@@ -15,6 +15,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -39,6 +40,17 @@ const createPermissions: Array<Permission> = [
   Permission.CreateProjectThreatIntelFeed,
 ];
 
+/*
+ * Through a relation too (#10310). A watchlist names the feed it follows,
+ * and a custom role that reads detection rules reads the watchlists: of the
+ * feed, it reads which feed it is - its name, its kind and whether it is on -
+ * and nothing it is reached by or how it is doing. Every other column a
+ * relation reads is held to the feed's own read
+ * (RelationReaders.ColumnReaders): a list feed's URL or a TAXII API root can
+ * carry a token in its query string, and its cursor, page token, errors and
+ * poll summary say what it last fetched. Before, every reader of a
+ * watchlist read them through it.
+ */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -227,6 +239,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "TAXII API Root URL",
     description:
       "The TAXII 2.1 API root, e.g. https://taxii.example.com/api1/. Collections are addressed beneath it.",
@@ -247,6 +260,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "List URL",
     description:
       "For a list feed: the https address of the list, one IP address, domain, URL or file hash a line.",
@@ -267,6 +281,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Confidence",
     description:
       "For a list feed: how sure the list is, 1 to 100, given to each of its indicators. It sets the severity of a match.",
@@ -314,6 +329,7 @@ export default class ThreatIntelFeed extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Google SecOps Connection ID",
     description:
       "For a Google SecOps feed: the ID of the connection whose key reads Google SecOps's indicator matches.",
@@ -334,6 +350,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Collection ID",
     description: "ID of the TAXII collection to poll for indicator objects.",
   })
@@ -433,6 +450,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: true,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description: "How often the collection is polled for new indicators.",
     defaultValue: 60,
     isDefaultValueColumn: true,
@@ -454,6 +472,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: true,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "Skip indicators whose STIX confidence is below this (0-100). 0 ingests everything; indicators that carry no confidence always pass.",
     defaultValue: 0,
@@ -475,6 +494,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Create Alerts",
     description: "Whether indicator matches open OneUptime alerts.",
     defaultValue: true,
@@ -496,6 +516,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Write Threat Intel Findings",
     description:
       "Whether matches also write a Detection Finding security event back into the events table.",
@@ -524,6 +545,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Create Incidents",
     description:
       "Whether matches also open OneUptime incidents. Off by default: incidents drive on-call, SLAs and status pages, so opt in per feed.",
@@ -547,6 +569,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Open Security Cases",
     description:
       "Whether matches open security cases (or join the open case about the same entity), where the security team works them and playbooks respond.",
@@ -662,6 +685,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description: "When this feed was last polled. Null means it has never run.",
   })
   @Column({
@@ -680,6 +704,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "Poll cursor: for a TAXII feed the added_after timestamp already ingested, for a list feed the hash of the list last written and when, for a Google SecOps feed the end of the window last read.",
   })
@@ -704,6 +729,7 @@ export default class ThreatIntelFeed extends BaseModel {
      */
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "Resume token for a poll that ended mid-pagination on a server that sends no X-TAXII-Date-Added-Last header. Cleared once the collection drains or the cursor advances.",
   })
@@ -723,6 +749,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "What the most recent successful poll did: objects fetched, indicators ingested, unsupported patterns skipped.",
   })
@@ -750,6 +777,7 @@ export default class ThreatIntelFeed extends BaseModel {
      */
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "The most recent poll error, if any. Cleared on the next successful poll.",
   })
@@ -774,6 +802,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "When the matcher last evaluated security events against this feed's indicators. Null means it has never run.",
   })
@@ -793,6 +822,7 @@ export default class ThreatIntelFeed extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "When this feed's indicators most recently matched security events. Null means they never have.",
   })
@@ -816,6 +846,7 @@ export default class ThreatIntelFeed extends BaseModel {
      */
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "The most recent matcher error, if any. Cleared on the next successful evaluation.",
   })

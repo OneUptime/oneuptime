@@ -93,6 +93,9 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Infrastructure/Postgres/CancelOnTimeoutClient.ts":
     SERVER_LOG,
   "packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts": SERVER_LOG,
+  // TypeORM's slow-query line, written to stdout (#10108).
+  "packages/Common/Server/Infrastructure/Postgres/PostgresQueryLogger.ts":
+    SERVER_LOG,
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationRunner.ts":
     SERVER_LOG,
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationWait.ts":

@@ -1004,6 +1004,7 @@ describe("Queues (MessageQueue) models", () => {
       );
     });
 
+    // Queues' levels (#10289) follow the project-wide roles.
     test("table access control: Settings / project roles plus the granular MessageQueue permissions", () => {
       const writeRoles: Array<Permission> = [
         Permission.ProjectOwner,
@@ -1011,6 +1012,8 @@ describe("Queues (MessageQueue) models", () => {
         Permission.ProjectMember,
         Permission.SettingsAdmin,
         Permission.SettingsMember,
+        Permission.QueueAdmin,
+        Permission.QueueMember,
       ];
 
       expect(sorted(model.getCreatePermissions())).toEqual(
@@ -1032,6 +1035,9 @@ describe("Queues (MessageQueue) models", () => {
           Permission.SettingsMember,
           Permission.SettingsViewer,
           Permission.ReadMessageQueue,
+          Permission.QueueAdmin,
+          Permission.QueueMember,
+          Permission.QueueViewer,
         ]),
       );
     });
@@ -1560,12 +1566,13 @@ describe("Queues (MessageQueue) models", () => {
           update: model.getUpdatePermissions(),
         });
 
-        // Rule tables: owners and admins write, members and viewers read.
+        // Rule tables: owners, admins and Queue Admin write, members and viewers read.
         expect(sorted(model.getCreatePermissions())).toEqual(
           sorted([
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             `CreateMessageQueue${kind}` as Permission,
+            Permission.QueueAdmin,
           ]),
         );
         expect(sorted(model.getReadPermissions())).toEqual(
@@ -1575,6 +1582,9 @@ describe("Queues (MessageQueue) models", () => {
             Permission.ProjectMember,
             Permission.Viewer,
             `ReadMessageQueue${kind}` as Permission,
+            Permission.QueueAdmin,
+            Permission.QueueMember,
+            Permission.QueueViewer,
           ]),
         );
         expect(model.enableWorkflowOn).toBeTruthy();

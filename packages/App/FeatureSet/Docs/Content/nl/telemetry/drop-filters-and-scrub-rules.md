@@ -98,7 +98,7 @@ Kies onder **Geavanceerd** de **Opschoonactie** en de **Te wissen velden**, of l
 | **Creditcardnummer** | Zestien cijfers in groepen van vier, zoals `4111 1111 1111 1111` |
 | **SSN (burgerservicenummer)** | Amerikaanse socialezekerheidsnummers, zoals `123-45-6789` |
 | **Telefoonnummer** | Noord-Amerikaanse telefoonnummers, zoals `555-123-4567` |
-| **IP-adres** | IPv4-adressen, zoals `192.168.1.1` |
+| **IP-adres** | Openbare IPv4- en IPv6-adressen, zoals `203.0.113.7` of `2001:db8::1`, maar geen privé-, loopback- of link-local-adressen |
 | **Gevoelige attribuutsleutels** | De hele waarde van elk attribuut waarvan de sleutel er geheim uitziet, zoals `password`, `token`, `api_key`, `authorization` of `cookie` |
 | **Aangepaste reguliere expressie** | Uw eigen reguliere expressie, geschreven zonder slashes of vlaggen, en hoofdlettergevoelig vergeleken |
 
@@ -106,7 +106,7 @@ Kies onder **Geavanceerd** de **Opschoonactie** en de **Te wissen velden**, of l
 | --- | --- |
 | **Redigeren** | `[REDACTED]`, de standaard |
 | **Masker** | Grotendeels verborgen: een e-mailadres houdt zijn eerste letter en het einde van zijn domein, een kaart-, telefoon- of socialezekerheidsnummer zijn laatste vier cijfers, en een aangepaste overeenkomst of een geheime waarde haar eerste en laatste teken. Een IP-adres wordt volledig verborgen. |
-| **Hash** | Een korte hash ervan, elke keer dezelfde voor dezelfde waarde, zodat herhalingen nog te tellen zijn |
+| **Hash** | Een token dat uniek is voor uw project, elke keer hetzelfde voor dezelfde waarde, zodat herhalingen nog te tellen zijn, maar niemand de waarde kan achterhalen |
 
 Een **E-mailadres**-regel slaat deze logtekst bijvoorbeeld op:
 
@@ -119,11 +119,13 @@ als een van deze, afhankelijk van zijn **Opschoonactie**:
 ```text
 Redact: Payment failed for [REDACTED]
 Mask:   Payment failed for j***@***.com
-Hash:   Payment failed for [HASHED:8c87b489]
+Hash:   Payment failed for [HASHED:5e29db14e508e09a]
 ```
 
 **Te wissen velden** is **Beide (Inhoud & Attributen)** voor een regel voor logboeken, tenzij u **Alleen inhoud** of **Alleen attributen** kiest, en **Alles (Naam, Attributen & Gebeurtenissen)** voor een regel voor spans, tenzij u **Alleen span-naam**, **Alleen attributen** of **Alleen gebeurtenisattributen** kiest. De attributen van de links van een span worden opgeschoond met de eigen attributen van de span, en **Alles (Naam, Attributen & Gebeurtenissen)** schoont ook het statusbericht van een span en de namen van zijn gebeurtenissen op. Een **Gevoelige attribuutsleutels**-regel leest sleutels en schoont dus altijd de waarden eronder op: in attributen en in de JSON-inhoud van een logboekregel.
 
+- **Een IP-adresregel verbergt de adressen die persoonsgegevens zijn.** Dat zijn openbare IPv4- en IPv6-adressen, hoe ze ook geschreven zijn: verkort, zoals `2001:db8::1`, tussen vierkante haken met een poort, zoals `[2001:db8::1]:443`, dat zijn haken en poort houdt, met een zone, zoals `2001:db8::2%eth0`, dat zijn zone houdt, of een IPv4-adres geschreven als IPv6, zoals `::ffff:203.0.113.7`, dat helemaal wordt verborgen. Privé-, loopback- en link-local-adressen blijven staan, zoals `10.0.0.12`, `127.0.0.1` en `fe80::1`, net als het metadata-adres van de cloud, `169.254.169.254`, in de URL van een verzoek, waar [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) zoekt naar vervalste verzoeken vanaf de server. Om ook interne adressen te verbergen, voegt u er een regel met **Aangepaste reguliere expressie** voor toe, zoals `\b(?:\d{1,3}\.){3}\d{1,3}\b` voor elk IPv4-adres.
+- **Een hash-token is van uw project.** Het wordt gemaakt met een sleutel van uw project, afgeleid van de `ENCRYPTION_SECRET` van de installatie, dus dezelfde waarde heeft in een ander project een ander token, en niemand die een token leest kan de waarde achterhalen of een gok hashen om te vergelijken. Een IP-adres heeft één token, hoe het ook geschreven is: `::ffff:203.0.113.7` en `203.0.113.7` delen er een. Records die zijn opgeslagen voordat tokens een sleutel hadden, bevatten tokens van 8 tekens, zoals `[HASHED:8c87b489]`, die verschillen van de huidige van 16 tekens: zoek naar beide totdat die records het einde van hun bewaartermijn bereiken. Het wijzigen van `ENCRYPTION_SECRET` wijzigt elk token, en op een zelfgehoste installatie zijn de tokens maar zo geheim als die waarde.
 - **Ook lijsten en geneste waarden worden gelezen.** Een regel leest elke tekst in een lijst, een lijst van lijsten of een sleutel-waardelijst, zoals de waarden van een HTTP-header, en behoudt de vorm van de waarde: getallen en waar of onwaar blijven zoals ze zijn. Een **Gevoelige attribuutsleutels**-regel leest ook de sleutels binnen een waarde, zodat ook het `password` in een sleutel-waardelijst wordt verborgen. De inhoud van een logboekregel die als map of als lijst wordt verzonden, wordt opgeslagen als de JSON-tekst ervan, en een **Gevoelige attribuutsleutels**-regel leest de sleutels erin, zoals in inhoud die als JSON is geschreven. Een patroonregel houdt zulke inhoud JSON, en ook een attribuut dat als JSON is geschreven, zoals de berichten van een AI-aanroep: hij leest de tekst zoals uw toepassing die schreef, een escape zoals `\n` gelezen als het regeleinde waarvoor die staat, en vervangt wat hij vindt alleen binnen de teksten en getallen ervan.
 - **Ook JSON in een tekst wordt gelezen.** Een tekst die zelf JSON is, zoals een attribuut `http.request.body` met `{"password":"hunter2"}`, of de `log`-regel van een Fluentd-record in de inhoud van een logboekregel, wordt als JSON gelezen, tot 4 niveaus JSON in elkaar, en dieper als tekst. Een **Gevoelige attribuutsleutels**-regel verbergt de waarden onder de sleutels erin die geheim lijken, en verder niets: de getallen, spaties en andere teksten blijven zoals uw toepassing ze schreef. Een tekst die alleen op JSON lijkt, zoals `{token}`, blijft zoals hij is.
 - **Een waarde die te groot is om item voor item te lezen, wordt als tekst gelezen.** Een waarde die meer dan 32 niveaus diep genest is, of een waarde die een record boven de 10.000 waarden in zijn lijsten en maps zou brengen, wordt gelezen en opgeslagen als de JSON-tekst ervan. Een patroonregel schoont op wat hij in die tekst vindt, en een **Gevoelige attribuutsleutels**-regel verbergt de hele waarde wanneer er een woord als `password` of `token` in voorkomt. In de inhoud van een logboekregel, en in JSON in een tekst, wordt alleen het deel voorbij deze grenzen als tekst gelezen: de rest wordt nog steeds sleutel voor sleutel gelezen.

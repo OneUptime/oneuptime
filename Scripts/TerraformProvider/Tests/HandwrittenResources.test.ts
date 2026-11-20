@@ -11,6 +11,7 @@ import {
   ON_CALL_SCHEDULE_LAYERS,
 } from "../Core/HandwrittenResources";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
+import { providerGoFilePath, registrationsOf } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 
 /*
@@ -44,10 +45,7 @@ beforeAll(async () => {
     { ...CONFIG, outputDir },
     buildFixtureSpec(),
   ).generateResources();
-  resourcesGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resources.go"),
-    "utf-8",
-  );
+  resourcesGo = registrationsOf(outputDir, "resources.go");
 });
 
 afterAll(() => {
@@ -82,7 +80,7 @@ describe("the resources written by hand", () => {
       for (const fileName of resource.staticFiles) {
         expect(
           fs.readFileSync(
-            path.join(outputDir, "internal/provider", fileName),
+            path.join(outputDir, providerGoFilePath(fileName)),
             "utf-8",
           ),
         ).toBe(fs.readFileSync(path.join(STATIC_FILES, fileName), "utf-8"));
@@ -95,7 +93,7 @@ describe("the resources written by hand", () => {
 
       // Registered once, by the constructor its Go file defines.
       expect(
-        resourcesGo.split(`        ${resource.goConstructor},`),
+        resourcesGo.split(`, New: ${resource.goConstructor}},`),
       ).toHaveLength(2);
       expect(goSource(resource)).toContain(
         `func ${resource.goConstructor}() resource.Resource {`,
@@ -111,7 +109,7 @@ describe("the resources written by hand", () => {
     const acceptance: string = fs.readFileSync(
       path.join(
         outputDir,
-        "internal/provider/acceptance_schedule_layers_test.go",
+        providerGoFilePath("acceptance_schedule_layers_test.go"),
       ),
       "utf-8",
     );

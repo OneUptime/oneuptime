@@ -98,7 +98,7 @@ Under **Avancerad** väljer du **Rensningsåtgärd** och **Fält att rensa**, el
 | **Kreditkortsnummer** | Sexton siffror i grupper om fyra, till exempel `4111 1111 1111 1111` |
 | **Personnummer (Social Security Number)** | Amerikanska socialförsäkringsnummer, till exempel `123-45-6789` |
 | **Telefonnummer** | Nordamerikanska telefonnummer, till exempel `555-123-4567` |
-| **IP-adress** | IPv4-adresser, till exempel `192.168.1.1` |
+| **IP-adress** | Offentliga IPv4- och IPv6-adresser, till exempel `203.0.113.7` eller `2001:db8::1`, men inte privata, loopback- eller länklokala adresser |
 | **Känsliga attributnycklar** | Hela värdet av varje attribut vars nyckel ser hemlig ut, till exempel `password`, `token`, `api_key`, `authorization` eller `cookie` |
 | **Anpassad regex** | Ditt eget reguljära uttryck, skrivet utan snedstreck eller flaggor, och matchat med hänsyn till skiftläge |
 
@@ -106,7 +106,7 @@ Under **Avancerad** väljer du **Rensningsåtgärd** och **Fält att rensa**, el
 | --- | --- |
 | **Maskera** | `[REDACTED]`, standardvalet |
 | **Mask** | Mestadels dold: en e-postadress behåller sin första bokstav och slutet av sin domän, ett kort-, telefon- eller socialförsäkringsnummer sina fyra sista siffror, och en anpassad träff eller ett hemligt värde sitt första och sista tecken. En IP-adress döljs helt. |
-| **Hash** | En kort hash av värdet, samma för samma värde varje gång, så att upprepningar fortfarande kan räknas |
+| **Hash** | En token som är unik för ditt projekt, samma för samma värde varje gång, så att upprepningar fortfarande kan räknas, men ingen kan räkna ut värdet |
 
 Till exempel lagrar en **E-postadress**-regel den här loggkroppen:
 
@@ -119,11 +119,13 @@ som en av dessa, beroende på dess **Rensningsåtgärd**:
 ```text
 Redact: Payment failed for [REDACTED]
 Mask:   Payment failed for j***@***.com
-Hash:   Payment failed for [HASHED:8c87b489]
+Hash:   Payment failed for [HASHED:5e29db14e508e09a]
 ```
 
 **Fält att rensa** är **Båda (brödtext och attribut)** för en loggregel, om du inte väljer **Endast brödtext** eller **Endast attribut**, och **Alla (namn, attribut och händelser)** för en span-regel, om du inte väljer **Endast span-namn**, **Endast attribut** eller **Endast händelseattribut**. Attributen på ett spans länkar rensas tillsammans med spanets egna attribut, och **Alla (namn, attribut och händelser)** rensar också ett spans statusmeddelande och namnen på dess händelser. En **Känsliga attributnycklar**-regel läser nycklar och rensar därför alltid värdena under dem: i attribut och i en loggposts JSON-brödtext.
 
+- **En IP-adressregel döljer de adresser som är personuppgifter.** Det är offentliga IPv4- och IPv6-adresser, hur de än skrivs: förkortade, som `2001:db8::1`, inom hakparenteser med en port, som `[2001:db8::1]:443`, som behåller hakparenteserna och porten, med en zon, som `2001:db8::2%eth0`, som behåller zonen, eller en IPv4-adress skriven som IPv6, som `::ffff:203.0.113.7`, som döljs helt. Den behåller privata, loopback- och länklokala adresser, till exempel `10.0.0.12`, `127.0.0.1` och `fe80::1`, och molnets metadataadress `169.254.169.254` i en begärans URL, där [Säkerhetshändelser](/docs/telemetry/security-events) letar efter förfalskade begäranden från servern. För att också dölja interna adresser lägger du till en regel med **Anpassad regex** för dem, till exempel `\b(?:\d{1,3}\.){3}\d{1,3}\b` för alla IPv4-adresser.
+- **En hash-token är ditt projekts egen.** Den skapas med en nyckel som hör till ditt projekt, härledd från installationens `ENCRYPTION_SECRET`, så att samma värde har en annan token i ett annat projekt, och ingen som läser en token kan räkna ut värdet eller hasha en gissning för att jämföra. En IP-adress har en token hur den än skrivs: `::ffff:203.0.113.7` och `203.0.113.7` delar en. Poster som sparades innan tokens hade en nyckel innehåller tokens på 8 tecken, till exempel `[HASHED:8c87b489]`, som skiljer sig från dagens på 16 tecken: sök efter båda tills de posterna når slutet av sin lagringstid. Att ändra `ENCRYPTION_SECRET` ändrar alla tokens, och i en egen installation är tokens bara så hemliga som den.
 - **Listor och nästlade värden läses också.** En regel läser varje text i en lista, en lista av listor eller en nyckel-värde-lista, till exempel värdena i en HTTP-header, och behåller värdets form: tal och sant eller falskt förblir som de är. En **Känsliga attributnycklar**-regel läser också nycklarna inuti ett värde, så `password` inuti en nyckel-värde-lista döljs också. Brödtexten i en loggpost som skickas som en map eller en lista lagras som sin JSON-text, och en **Känsliga attributnycklar**-regel läser nycklarna i den, som i en brödtext skriven som JSON. En mönsterregel håller en sådan brödtext som JSON, och även ett attribut skrivet som JSON, till exempel meddelandena i ett AI-anrop: Den läser texten så som ditt program skrev den, med en escape-sekvens som `\n` läst som den radbrytning den står för, och ersätter det den hittar bara inuti dess texter och tal.
 - **JSON i en text läses också.** En text som själv är JSON, till exempel ett attribut `http.request.body` som innehåller `{"password":"hunter2"}`, eller `log`-raden i en Fluentd-post inuti en loggposts brödtext, läses som JSON, upp till 4 nivåer av JSON inuti varandra, och djupare som text. En **Känsliga attributnycklar**-regel döljer värdena under de nycklar i den som ser hemliga ut, och inget annat: Dess tal, mellanslag och andra texter förblir som ditt program skrev dem. En text som bara liknar JSON, till exempel `{token}`, lämnas som den är.
 - **Ett värde som är för stort för att läsas element för element läses som text.** Ett värde som är nästlat mer än 32 nivåer djupt, eller som skulle ta en post över 10 000 värden i dess listor och maps, läses och lagras som sin JSON-text. En mönsterregel rensar det den hittar i den texten, och en **Känsliga attributnycklar**-regel döljer hela värdet när ett ord som `password` eller `token` förekommer i det. I en loggposts brödtext, och i JSON i en text, läses bara delen bortom dessa gränser som text: Resten läses fortfarande nyckel för nyckel.

@@ -84,6 +84,20 @@ export const AZURE_RESOURCES_API_VERSION: string = "2021-04-01";
 export const AZURE_METRIC_DEFINITIONS_API_VERSION: string = "2018-01-01";
 export const AZURE_METRICS_API_VERSION: string = "2023-10-01";
 export const AZURE_RESOURCE_GRAPH_API_VERSION: string = "2022-10-01";
+/*
+ * Azure Monitor's regional metrics data plane (metrics:getBatch): its
+ * hosts are <region>.metrics.monitor.azure.com, a token for it is asked
+ * for its own resource, and a batch holds 50 resources at most (Microsoft's
+ * "Migrate from the metrics API to the getBatch API").
+ */
+export const AZURE_METRICS_BATCH_API_VERSION: string = "2023-10-01";
+export const AZURE_METRICS_DATA_PLANE_SUFFIX: string =
+  "metrics.monitor.azure.com";
+export const AZURE_METRICS_DATA_PLANE_RESOURCE: string =
+  "https://metrics.monitor.azure.com";
+export const AZURE_METRICS_BATCH_MAX_RESOURCES: number = 50;
+// A Region's name as Resource Manager writes it ("southcentralus", "global").
+const AZURE_METRICS_BATCH_REGION_PATTERN: RegExp = /^[a-z0-9]{2,40}$/;
 export const AZURE_ACTIVITY_LOG_API_VERSION: string = "2015-04-01";
 // The fields of an Activity Log event read: never its claims or request.
 /*
@@ -732,31 +746,36 @@ export default class AzureArm {
     return await withCloudRetries({
       sleep: this.options.sleep,
       call: async (): Promise<JSONObject> => {
-        if (this.options.budget && !this.options.budget.take()) {
-          throw new CloudReadBudgetSpent();
-        }
-
-        const token: string = await this.tokens.getAccessToken(
-          this.getManagementBaseUrl(),
-        );
-
-        return (
-          await this.requestJson({
-            transport: this.options.transport,
-            method: "GET",
-            url,
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-            timeoutInMs: this.options.requestTimeoutInMs,
-            step,
-            providerTitle: PROVIDER_TITLE,
-            secretValues: [this.options.clientSecret, token],
-          })
-        ).body;
+        return await this.getOnce(url, step);
       },
     });
+  }
+
+  // One GET on the management host, signed in as the app: a request of the budget.
+  private async getOnce(url: string, step: string): Promise<JSONObject> {
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const token: string = await this.tokens.getAccessToken(
+      this.getManagementBaseUrl(),
+    );
+
+    return (
+      await this.requestJson({
+        transport: this.options.transport,
+        method: "GET",
+        url,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        timeoutInMs: this.options.requestTimeoutInMs,
+        step,
+        providerTitle: PROVIDER_TITLE,
+        secretValues: [this.options.clientSecret, token],
+      })
+    ).body;
   }
 
   /*
@@ -1009,7 +1028,12 @@ export default class AzureArm {
       ],
     )}`;
 
-    const response: JSONObject = await this.get(url, "metrics request");
+    /*
+     * Asked once: whoever reads the metrics asks again, after Azure's own
+     * wait (AzureMetricCalls), and an answer of only some metrics is no
+     * failure to ask again whole.
+     */
+    const response: JSONObject = await this.getOnce(url, "metrics request");
     const aggregationOf: Dictionary<string> = {};
 
     for (const metric of data.metrics) {
@@ -1021,6 +1045,144 @@ export default class AzureArm {
       failures: AzureArm.readMetricFailures(response),
       capped: splitBy ? AzureArm.readCappedMetrics(response, top) : [],
     };
+  }
+
+  /*
+   * Whether a Region's metrics may be read in batches (getMetricsBatch):
+   * Azure Monitor's data plane answers getBatch in the public cloud, at a
+   * host of each Region's own. A global resource (a Front Door profile) and
+   * Azure Government's are read a resource at a time, as before: the few
+   * global ones a subscription has gain little from a batch.
+   */
+  public canBatchMetrics(region: string): boolean {
+    const name: string = region.trim().toLowerCase();
+
+    return (
+      this.options.cloud === "public" &&
+      name !== "global" &&
+      AZURE_METRICS_BATCH_REGION_PATTERN.test(name)
+    );
+  }
+
+  /*
+   * The same metrics of up to AZURE_METRICS_BATCH_MAX_RESOURCES resources at
+   * once - of one subscription, one Region and one type - from Azure
+   * Monitor's regional data plane (metrics:getBatch, which Microsoft
+   * recommends over a call per resource for a heavy reader: one request on
+   * Azure Monitor's own data plane, rather than a Resource Manager request
+   * per resource). Signed in for the data plane
+   * (https://metrics.monitor.azure.com), which takes Monitoring Reader on
+   * the subscription itself; the token goes to that Region's host alone.
+   * Each resource's answer, by its lowercased id: its series and the
+   * metrics Azure could not read of it, as getMetrics answers one. Never
+   * split by a dimension: a split read is a resource's own call. Asked
+   * once, as getMetrics is: its caller asks again (AzureMetricReads).
+   */
+  public async getMetricsBatch(data: {
+    subscriptionId: string;
+    region: string;
+    // The resources' type, which is the metrics' namespace.
+    namespace: string;
+    resourceIds: Array<string>;
+    metrics: Array<{ name: string; aggregation: string }>;
+    interval: string;
+    start: Date;
+    end: Date;
+  }): Promise<Map<string, AzureMetricsAnswer>> {
+    EntraTokenClient.validateGuid(data.subscriptionId, "Subscription ID");
+
+    const region: string = data.region.trim().toLowerCase();
+
+    if (!this.canBatchMetrics(region)) {
+      throw new BadDataException(
+        `Azure Monitor's metrics cannot be read in batches in "${data.region}".`,
+      );
+    }
+
+    if (
+      data.resourceIds.length === 0 ||
+      data.resourceIds.length > AZURE_METRICS_BATCH_MAX_RESOURCES
+    ) {
+      throw new BadDataException(
+        `A metrics batch reads 1 to ${AZURE_METRICS_BATCH_MAX_RESOURCES} resources.`,
+      );
+    }
+
+    for (const resourceId of data.resourceIds) {
+      AzureMonitorClient.assertResourceId(resourceId);
+    }
+
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const aggregations: Array<string> = Array.from(
+      new Set(
+        data.metrics.map((metric: { aggregation: string }): string => {
+          return metric.aggregation;
+        }),
+      ),
+    );
+    const host: string = `${region}.${AZURE_METRICS_DATA_PLANE_SUFFIX}`;
+    const url: string = `https://${host}/subscriptions/${encodeURIComponent(
+      data.subscriptionId.trim(),
+    )}/metrics:getBatch?${buildQueryString([
+      ["starttime", data.start.toISOString()],
+      ["endtime", data.end.toISOString()],
+      ["interval", data.interval],
+      ["metricnamespace", data.namespace],
+      [
+        "metricnames",
+        data.metrics
+          .map((metric: { name: string }): string => {
+            return metric.name;
+          })
+          .join(","),
+      ],
+      ["aggregation", aggregations.join(",")],
+      ["api-version", AZURE_METRICS_BATCH_API_VERSION],
+    ])}`;
+    const token: string = await this.tokens.getAccessToken(
+      AZURE_METRICS_DATA_PLANE_RESOURCE,
+    );
+    const answer: AzureArmAnswer = await this.requestJson({
+      transport: this.options.transport,
+      method: "POST",
+      url,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      // The property's name is lower case, as the reference requires.
+      body: JSON.stringify({ resourceids: data.resourceIds }),
+      timeoutInMs: this.options.requestTimeoutInMs,
+      step: "metrics batch request",
+      providerTitle: PROVIDER_TITLE,
+      secretValues: [this.options.clientSecret, token],
+    });
+    const aggregationOf: Dictionary<string> = {};
+
+    for (const metric of data.metrics) {
+      aggregationOf[metric.name.toLowerCase()] = metric.aggregation;
+    }
+
+    const answers: Map<string, AzureMetricsAnswer> = new Map();
+
+    for (const raw of readArray(answer.body["values"])) {
+      const values: JSONObject = readObject(raw);
+      const resourceId: string = readText(values["resourceid"]).toLowerCase();
+
+      if (resourceId) {
+        answers.set(resourceId, {
+          series: AzureArm.readMetricSeries(values, aggregationOf),
+          failures: AzureArm.readMetricFailures(values),
+          capped: [],
+        });
+      }
+    }
+
+    return answers;
   }
 
   /*

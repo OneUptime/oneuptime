@@ -10,6 +10,7 @@ import {
   TerraformResource,
 } from "../Core/Types";
 import { StringUtils } from "../Core/StringUtils";
+import { providerGoFilePath } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 import { buildPeopleFixtureSpec } from "./PeopleFixtures";
 
@@ -60,7 +61,7 @@ async function generate(spec: OpenAPISpec): Promise<Generated> {
     dataSources: parser.getDataSources(),
     read: (file: string): string => {
       return fs.readFileSync(
-        path.join(outputDir, "internal/provider", file),
+        path.join(outputDir, providerGoFilePath(file)),
         "utf-8",
       );
     },
@@ -197,11 +198,11 @@ describe("a resource's attributes that hold IDs of other records", () => {
         { name: "team", isList: false },
         "string",
       ),
-    ).toBe("recordIDValidators");
+    ).toBe("RecordIDValidators");
     for (const [type, helper] of [
-      ["string", "dataSourceRecordIDValidators"],
-      ["set", "dataSourceRecordIDSetValidators"],
-      ["list", "dataSourceRecordIDListValidators"],
+      ["string", "DataSourceRecordIDValidators"],
+      ["set", "DataSourceRecordIDSetValidators"],
+      ["list", "DataSourceRecordIDListValidators"],
     ]) {
       expect(
         ResourceGenerator.getRecordIdValidators(

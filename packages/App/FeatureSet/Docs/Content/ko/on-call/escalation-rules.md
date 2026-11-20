@@ -267,6 +267,7 @@ flowchart TB
 - `escalateAfterInMinutes` 에는 대시보드 밖에서는 기본값이 없습니다. 이 값 없이 만든 규칙은 기다리지 않으며, 이 단계가 실행되자마자 다음 단계가 호출됩니다. 명시적으로 설정하세요. 대시보드가 제안하는 값은 30입니다.
 - `miscDataProps` 에 `onCallSchedules`, `teams`, `users` (ID 목록)를 넣어 만든 규칙은 그 응답자를 받습니다. 대시보드의 **알림** 선택기가 응답자를 보내는 방식입니다. 이것들 없이 만든 규칙은 위의 리소스로 응답자를 추가할 때까지 아무도 호출하지 않습니다.
 - `miscDataProps` 에 `nextInRotationSchedules` (스케줄 ID 목록)를 넣어 만든 규칙은 각 스케줄 로테이션의 다음 사람을 호출합니다. `-schedule` 리소스에서는 `pageNextInRotation` 이 `true` 인 행이 같은 일을 하며, 이 값은 행을 만들 때 정해집니다.
+- 규칙은 각 사람, 팀, 스케줄을 한 번만 호출하며, 스케줄은 호출하는 방식마다 한 번 호출합니다. 규칙이 이미 호출하는 응답자를 위의 리소스나 Terraform으로 추가하면 그 응답자와 규칙을 알려 주는 오류와 함께 거부되고, 아무것도 바뀌지 않습니다. `miscDataProps` 의 목록에 두 번 있는 ID는 한 번만 추가됩니다.
 - 단계에 따라 이름이 붙은 규칙의 이름이 바뀌는 것은 대시보드에서 규칙을 이동하거나 삭제할 때입니다. API나 Terraform으로 `order` 를 바꾸면 순서만 바뀝니다.
 - `/api/on-call-duty-policy` 에서 `miscDataProps` 에 `onCallSchedules`, `teams`, `users` (ID 목록)를 넣어 온콜 정책을 만들면, 대시보드와 같이 첫 번째 에스컬레이션 규칙이 생깁니다. 이들을 호출하는 **Level 1** 이며, `escalateAfterInMinutes` 는 30입니다. 모든 ID가 프로젝트에 속해야 하고 호출자가 에스컬레이션 규칙을 만들 수 있어야 하며, 그렇지 않으면 정책이 만들어지지 않습니다. 이것들 없이 만든 정책에는 이전처럼 규칙이 없으며, Terraform의 정책 리소스는 이것들을 보내지 않습니다.
 

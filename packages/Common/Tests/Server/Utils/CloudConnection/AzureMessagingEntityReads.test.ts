@@ -80,6 +80,15 @@ function definition(
     name: { value: name, localizedValue: name },
     unit,
     primaryAggregationType: aggregation,
+    // As Azure Monitor lists a messaging metric's: every aggregation.
+    supportedAggregationTypes: [
+      "None",
+      "Average",
+      "Minimum",
+      "Maximum",
+      "Total",
+      "Count",
+    ],
     metricAvailabilities: [
       { timeGrain: "PT1M", retention: "P93D" },
       { timeGrain: "PT5M", retention: "P93D" },
@@ -325,6 +334,10 @@ async function read(
     },
     sleep: async (milliseconds: number): Promise<void> => {
       sleeps.push(milliseconds);
+    },
+    // A retry's jitter at its least: each wait is its fixed half.
+    random: (): number => {
+      return 0;
     },
     state: {},
     serviceName: "Production Azure",
@@ -938,7 +951,8 @@ describe("reading Service Bus and Event Hubs namespaces through the connection",
 
     expect(callsTo(fake, SERVICE_BUS)).toHaveLength(4);
     expect(result.warnings).toEqual([
-      "Could not read the metrics of 1 resource this time.",
+      // Azure's own words, its error code redacted as everything stored on a connection is.
+      'Could not read the metrics of 1 resource this time: Azure Monitor was busy (Azure metrics request failed with HTTP 529: {"code":"[REDACTED]","message":"Too many metric queries."}). The next read asks again.',
     ]);
     expect(
       written(result).some((point: WrittenPoint): boolean => {

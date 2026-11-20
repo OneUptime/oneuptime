@@ -60,6 +60,11 @@ import {
   CloudUnreportedKeyMetricReport,
   CloudUnreportedReason,
 } from "../../../../Types/Cloud/CloudUnreportedKeyMetrics";
+import {
+  CloudMetricCollectionState,
+  CloudMetricNotReadKind,
+  CloudResourceMetricCollection,
+} from "../../../../Types/Cloud/CloudResourceMetricCollection";
 import { CloudConnectionAuthMethod } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -1627,6 +1632,58 @@ describe("what refuses a listing", () => {
   });
 });
 
+const EARLIER_TODAY: string = "2026-11-19T10:00:00.000Z";
+const TOMORROW: string = "2026-11-20T12:00:00.000Z";
+
+// A connection's last read as its summary keeps it.
+function readSummary(status: "success" | "partial" | "failed"): JSONObject {
+  return {
+    status,
+    accounts: [],
+    resourceCount: 1,
+    resourceTypes: [],
+    regions: [],
+    newResources: 0,
+    archivedResources: 0,
+    pointsWritten: 0,
+    changesRecorded: 0,
+    requestCount: 1,
+    warnings: [],
+    durationMs: 1,
+    finishedAt: NOW.toISOString(),
+  };
+}
+
+function explainKeys(
+  keys: Array<string>,
+): Promise<Array<CloudUnreportedKeyMetricReport>> {
+  return CloudResourceMetrics.explainUnreported({
+    projectId: PROJECT,
+    cloudResourceId: RESOURCE,
+    props: { isRoot: true },
+    keys,
+    dependencies: {
+      now: () => {
+        return NOW;
+      },
+      findLastReported: async () => {
+        return new Map<string, Date>();
+      },
+    },
+  });
+}
+
+function reasonsOf(
+  reports: Array<CloudUnreportedKeyMetricReport>,
+  key: string,
+): CloudUnreportedKeyMetricReport["reasons"] {
+  return (
+    reports.find((report: CloudUnreportedKeyMetricReport): boolean => {
+      return report.key === key;
+    })?.reasons || []
+  );
+}
+
 describe("why key metrics were not reported", () => {
   test("since when each last reported, never when the look-back holds the resource's whole life, and the reasons OneUptime knows", async () => {
     resource = resourceRow({
@@ -1858,6 +1915,257 @@ describe("why key metrics were not reported", () => {
       }),
     ).toEqual([]);
     expect(asked).toBe(0);
+  });
+
+  test("what the last read could not read of an Azure resource says why, in Azure's words: a metric it does not serve, one it was too busy for (#10291)", async () => {
+    resource = resourceRow({
+      cloudResourceType: "Microsoft.Compute/virtualMachines",
+      telemetryAttributes: { "azuremonitor.resource_id": SITE },
+    });
+    connection = connectionRow({
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            metrics: {
+              "available memory bytes": {
+                name: "Available Memory Bytes",
+                kind: CloudMetricNotReadKind.Throttled,
+                error:
+                  "Query was throttled with reason: ServerBusy. Too many queries are in flight.",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+              },
+              "percentage cpu": {
+                name: "Percentage CPU",
+                kind: CloudMetricNotReadKind.Unsupported,
+                error: "Sampling type is not found.",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+                until: TOMORROW,
+              },
+            },
+          },
+        },
+      },
+      lastPullResult: readSummary("partial"),
+    });
+
+    const reports: Array<CloudUnreportedKeyMetricReport> = await explainKeys([
+      "available memory bytes",
+      "percentage cpu",
+    ]);
+
+    expect(reasonsOf(reports, "available memory bytes")[0]).toEqual({
+      reason: CloudUnreportedReason.CloudBusy,
+      error:
+        "Query was throttled with reason: ServerBusy. Too many queries are in flight.",
+      since: EARLIER_TODAY,
+    });
+    expect(reasonsOf(reports, "percentage cpu")[0]).toEqual({
+      reason: CloudUnreportedReason.NotServed,
+      error: "Sampling type is not found.",
+      since: EARLIER_TODAY,
+      until: TOMORROW,
+    });
+  });
+
+  test("an Azure resource none of whose calls was answered says so of each of its metrics, with Azure's words and since when; a failed read says only that", async () => {
+    resource = resourceRow({
+      cloudResourceType: "Microsoft.Compute/virtualMachines",
+      telemetryAttributes: { "azuremonitor.resource_id": SITE },
+    });
+    connection = connectionRow({
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            failed: {
+              error: "Azure metrics request failed with HTTP 529: busy",
+              since: EARLIER_TODAY,
+              at: NOW.toISOString(),
+            },
+          },
+        },
+      },
+      lastPullResult: readSummary("partial"),
+    });
+
+    expect(
+      reasonsOf(await explainKeys(["percentage cpu"]), "percentage cpu")[0],
+    ).toEqual({
+      reason: CloudUnreportedReason.ReadFailed,
+      fix: "cloud-connect",
+      error: "Azure metrics request failed with HTTP 529: busy",
+      since: EARLIER_TODAY,
+    });
+
+    // The connection's last read failed as a whole: that, not an older read's news.
+    connection.lastPullResult = readSummary("failed");
+
+    expect(
+      reasonsOf(await explainKeys(["percentage cpu"]), "percentage cpu")[0],
+    ).toEqual({
+      reason: CloudUnreportedReason.ReadFailed,
+      fix: "cloud-connect",
+    });
+  });
+});
+
+describe("how an Azure resource's metrics were collected (#10291)", () => {
+  const collect: () => Promise<CloudResourceMetricCollection | null> = () => {
+    return CloudResourceMetrics.collectionOf({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+    });
+  };
+
+  test("read in full: when its connection last read it", async () => {
+    resource = resourceRow();
+    connection = connectionRow({ lastPullResult: readSummary("success") });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Collected,
+      lastReadAt: NOW.toISOString(),
+      metrics: [],
+    });
+  });
+
+  test("some of its metrics not read: each, what will not pass first, in Azure's words", async () => {
+    resource = resourceRow();
+    connection = connectionRow({
+      lastPullResult: readSummary("partial"),
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            metrics: {
+              cpupercentage: {
+                name: "CpuPercentage",
+                kind: CloudMetricNotReadKind.Throttled,
+                error: "ServerBusy",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+              },
+              bytehitratio: {
+                name: "ByteHitRatio",
+                kind: CloudMetricNotReadKind.Unsupported,
+                error: "Sampling type is not found.",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+                until: TOMORROW,
+              },
+            },
+          },
+          // Another resource's: none of this one's.
+          "/subscriptions/other/resource": {
+            failed: {
+              error: "x",
+              since: EARLIER_TODAY,
+              at: NOW.toISOString(),
+            },
+          },
+        },
+      },
+    });
+
+    const collection: CloudResourceMetricCollection | null = await collect();
+
+    expect(collection?.state).toBe(CloudMetricCollectionState.Partial);
+    expect(collection?.lastReadAt).toBe(NOW.toISOString());
+    expect(
+      collection?.metrics.map((metric: { name: string }): string => {
+        return metric.name;
+      }),
+    ).toEqual(["ByteHitRatio", "CpuPercentage"]);
+    expect(collection?.metrics[0]).toEqual({
+      name: "ByteHitRatio",
+      kind: CloudMetricNotReadKind.Unsupported,
+      error: "Sampling type is not found.",
+      since: EARLIER_TODAY,
+      at: NOW.toISOString(),
+      until: TOMORROW,
+    });
+  });
+
+  test("none of it read: since when, and why", async () => {
+    resource = resourceRow();
+    connection = connectionRow({
+      lastPullResult: readSummary("partial"),
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            failed: {
+              error: "Azure metrics request failed with HTTP 529: busy",
+              since: EARLIER_TODAY,
+              at: NOW.toISOString(),
+            },
+          },
+        },
+      },
+    });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Failed,
+      lastReadAt: null,
+      failedSince: EARLIER_TODAY,
+      error: "Azure metrics request failed with HTTP 529: busy",
+      metrics: [],
+    });
+  });
+
+  test("its connection's last read failed: the connection's error, and its last good read", async () => {
+    resource = resourceRow();
+    connection = connectionRow({
+      lastPullResult: readSummary("failed"),
+      lastError: "The app's client secret has expired.",
+      lastSuccessfulPullAt: new Date(EARLIER_TODAY),
+    });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Failed,
+      lastReadAt: EARLIER_TODAY,
+      error: "The app's client secret has expired.",
+      metrics: [],
+    });
+  });
+
+  test("never read, or found after the last read: its first read is to come; its connection off: not read", async () => {
+    resource = resourceRow();
+    connection = connectionRow();
+
+    expect((await collect())?.state).toBe(CloudMetricCollectionState.Waiting);
+
+    resource = resourceRow({ createdAt: new Date(NOW.getTime() + 60000) });
+    connection = connectionRow({ lastPullResult: readSummary("success") });
+
+    expect((await collect())?.state).toBe(CloudMetricCollectionState.Waiting);
+
+    connection = connectionRow({
+      isEnabled: false,
+      lastPullResult: readSummary("success"),
+    });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Off,
+      lastReadAt: null,
+      metrics: [],
+    });
+  });
+
+  test("another cloud's resource, or one no connection reads: nothing to say", async () => {
+    resource = resourceRow({
+      cloudProvider: CloudProvider.AWS,
+      cloudResourceType: "AWS::EC2::Instance",
+    });
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      lastPullResult: readSummary("success"),
+    });
+
+    expect(await collect()).toBeNull();
+
+    resource = resourceRow({ cloudConnectionId: undefined });
+
+    expect(await collect()).toBeNull();
   });
 });
 

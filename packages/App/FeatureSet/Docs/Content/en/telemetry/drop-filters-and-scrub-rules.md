@@ -98,7 +98,7 @@ Under **Advanced**, pick the **Scrub Action** and the **Fields to Scrub**, or le
 | **Credit Card Number** | Sixteen digits in groups of four, such as `4111 1111 1111 1111` |
 | **SSN (Social Security Number)** | US Social Security numbers, such as `123-45-6789` |
 | **Phone Number** | North American phone numbers, such as `555-123-4567` |
-| **IP Address** | IPv4 addresses, such as `192.168.1.1` |
+| **IP Address** | Public IPv4 and IPv6 addresses, such as `203.0.113.7` or `2001:db8::1`, but not private, loopback or link-local ones |
 | **Sensitive Attribute Keys** | The whole value of any attribute whose key looks secret, such as `password`, `token`, `api_key`, `authorization` or `cookie` |
 | **Custom Regex** | Your own regular expression, written without slashes or flags, and matched with its case |
 
@@ -106,7 +106,7 @@ Under **Advanced**, pick the **Scrub Action** and the **Fields to Scrub**, or le
 | --- | --- |
 | **Redact** | `[REDACTED]`, the default |
 | **Mask** | Mostly hidden: an email keeps its first letter and the end of its domain, a card, phone or Social Security number its last four digits, and a custom match or a secret value its first and last characters. An IP address is hidden completely. |
-| **Hash** | A short hash of it, the same for the same value every time, so repeats can still be counted |
+| **Hash** | A token unique to your project, the same for the same value every time, so repeats can still be counted, but no one can work back to the value |
 
 For example, an **Email Address** rule stores this log body:
 
@@ -119,11 +119,13 @@ as one of these, depending on its **Scrub Action**:
 ```text
 Redact: Payment failed for [REDACTED]
 Mask:   Payment failed for j***@***.com
-Hash:   Payment failed for [HASHED:8c87b489]
+Hash:   Payment failed for [HASHED:5e29db14e508e09a]
 ```
 
 **Fields to Scrub** is **Both (Body & Attributes)** for a log rule unless you pick **Body Only** or **Attributes Only**, and **All (Name, Attributes & Events)** for a span rule unless you pick **Span Name Only**, **Attributes Only** or **Event Attributes Only**. The attributes of a span's links are scrubbed with the span's own attributes, and **All (Name, Attributes & Events)** also scrubs a span's status message and its events' names. A **Sensitive Attribute Keys** rule reads keys, so it always scrubs the values under them: in attributes, and in a log's JSON body.
 
+- **An IP Address rule hides the addresses that are personal data.** Those are public IPv4 and IPv6 addresses, however they are written: shortened, as `2001:db8::1`, in brackets with a port, as `[2001:db8::1]:443`, which keeps its brackets and port, with a zone, as `2001:db8::2%eth0`, which keeps its zone, or an IPv4 address written as IPv6, as `::ffff:203.0.113.7`, hidden whole. It keeps private, loopback and link-local addresses, such as `10.0.0.12`, `127.0.0.1` and `fe80::1`, and the cloud metadata address `169.254.169.254` in a request's URL, where [Security Events](/docs/telemetry/security-events) looks for server-side request forgery. To hide internal addresses too, add a **Custom Regex** rule for them, such as `\b(?:\d{1,3}\.){3}\d{1,3}\b` for every IPv4 address.
+- **A Hash token is your project's own.** It is made with a key of your project's, derived from the installation's `ENCRYPTION_SECRET`, so the same value has another token in another project, and nobody who reads a token can work back to the value or hash a guess to compare. An IP address has one token however it is written: `::ffff:203.0.113.7` and `203.0.113.7` share one. Records stored before tokens had a key hold 8-character ones, such as `[HASHED:8c87b489]`, which differ from today's 16-character ones: until those records reach their retention, search for both. Changing `ENCRYPTION_SECRET` changes every token, and on a self-hosted installation the tokens are only as secret as it is.
 - **Lists and nested values are read too.** A rule reads every text inside a list, a list of lists or a key-value list, such as the values of an HTTP header, and keeps the value's shape: numbers and true or false stay as they are. A **Sensitive Attribute Keys** rule also reads the keys inside a value, so the `password` inside a key-value list is hidden too. A log body sent as a map or a list is stored as its JSON text, and a **Sensitive Attribute Keys** rule reads the keys inside it, as it does in a body written as JSON. A pattern rule keeps such a body JSON, and an attribute written as JSON too, such as an AI call's messages: it reads the text as your application wrote it, an escape such as `\n` read as the line break it stands for, and replaces what it finds only inside its texts and numbers.
 - **JSON held in a string is read too.** A text that is JSON of its own, such as an attribute `http.request.body` holding `{"password":"hunter2"}`, or a Fluentd record's `log` line inside a log body, is read as JSON, up to 4 levels of JSON one inside another, and deeper as text. A **Sensitive Attribute Keys** rule hides the values under the keys in it that look secret, and nothing else: its numbers, spaces and other texts stay as your application wrote them. A text that only looks like JSON, such as `{token}`, is left as it is.
 - **A value too large to read item by item is read as text.** A value nested more than 32 levels deep, or one that would take a record past 10,000 values inside its lists and maps, is read and stored as its JSON text. A pattern rule scrubs what it finds in that text, and a **Sensitive Attribute Keys** rule hides the whole value when a word such as `password` or `token` appears in it. In a log body, and in JSON held in a string, only the part past these bounds is read as text: the rest is still read key by key.

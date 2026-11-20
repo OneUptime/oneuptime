@@ -7,6 +7,7 @@ import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
+import { CloudResourceMetricStatus } from "../../../Types/Cloud/CloudResourceMetricCollection";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
 import { AwsStreamCoverage } from "../../../Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "../../../Types/JSON";
@@ -61,6 +62,8 @@ export interface CloudConnectorCallOptions {
   requestTimeoutInMs?: number | undefined;
   // Test seam for waiting before a retry; setTimeout when absent.
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+  // Test seam for the jitter of a retry's wait; Math.random when absent.
+  random?: (() => number) | undefined;
 }
 
 /*
@@ -171,6 +174,20 @@ export interface CloudConnectionPullState {
    * balancer), read with their own definitions.
    */
   azureResourceMetricDefinitions?: JSONObject | undefined;
+  /*
+   * Azure: per resource (its lowercased ARM id), what the reads could not
+   * read of its metrics (AzureMetricMemory): the resource as a whole when
+   * no call for it was answered, and each metric Azure Monitor answered
+   * with an error - one it does not serve is left out of the reads until
+   * its `until`. A resource read in full has none. Its pages say so.
+   */
+  azureMetricStatus?: Record<string, CloudResourceMetricStatus> | undefined;
+  /*
+   * Azure: who Azure Monitor refused to read in batches ("*", a
+   * subscription, or "<subscription>|<region>|<type>"), and until when:
+   * their resources are read a resource at a time until then.
+   */
+  azureMetricBatchesOff?: Record<string, string> | undefined;
   /*
    * Google Cloud: per project, the monitored resource types it reported a
    * key metric of, and when it last did - so a read asks a project only
@@ -794,11 +811,15 @@ export interface CloudConnector {
   /*
    * A small real read: is the credential accepted, may it read what the
    * connection needs, and what would a read find. Never throws: failures
-   * are a result with status "fail".
+   * are a result with status "fail". connectionId is the saved connection
+   * tested, when it is one (none for settings never saved): an AWS role's
+   * check is then kept for its reads, on every server (#10424).
    */
   testConnection(
     settings: CloudConnectionSettings,
-    options: CloudConnectorCallOptions,
+    options: CloudConnectorCallOptions & {
+      connectionId?: string | undefined;
+    },
   ): Promise<CloudConnectionTestResult>;
   // One read. Throws LlmProviderError when it cannot read at all.
   read(
