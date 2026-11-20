@@ -21,11 +21,12 @@ import {
  *     never named and its rows are dropped, one project's token never
  *     names another's address, and a token with two addresses names
  *     neither;
- *   - a span with client.address 203.0.113.7 and a path traversal in its
- *     URL, in a project with an IP Address Hash rule and the Traces source
- *     on, through trace ingest: the stored span holds only the token, the
- *     vault holds the token and 203.0.113.7, and the trace scan's event
- *     names 203.0.113.7;
+ *   - a span from 203.0.113.7 (its peer, network.peer.address: the
+ *     address its sender could not have written) with a path traversal in
+ *     its URL, in a project with an IP Address Hash rule and the Traces
+ *     source on, through trace ingest: the stored span holds only the
+ *     token, the vault holds the token and 203.0.113.7, and the trace
+ *     scan's event names 203.0.113.7;
  *   - the same for an nginx access log line read through "Your logs";
  *   - the Traces source off, or a Redact rule: no vault row;
  *   - a vault that cannot be written: the batch is stored, with the token.
@@ -727,7 +728,8 @@ integration("Security Events' address vault against ClickHouse", () => {
                       attribute("url.path", "/download"),
                       attribute("url.query", "file=../../../../etc/passwd"),
                       attribute("http.response.status_code", "200"),
-                      attribute("client.address", ATTACKER),
+                      // The peer: an address the sender could not have written (#10416).
+                      attribute("network.peer.address", ATTACKER),
                     ],
                     events: [],
                     links: [],
@@ -780,9 +782,9 @@ integration("Security Events' address vault against ClickHouse", () => {
       );
 
       expect(spans).toHaveLength(1);
-      expect((spans[0]!["attributes"] as JSONObject)["client.address"]).toBe(
-        tokenOf(ATTACKER),
-      );
+      expect(
+        (spans[0]!["attributes"] as JSONObject)["network.peer.address"],
+      ).toBe(tokenOf(ATTACKER));
       expect(JSON.stringify(spans)).not.toContain(ATTACKER);
 
       // The vault holds the token and the address.
@@ -858,9 +860,9 @@ integration("Security Events' address vault against ClickHouse", () => {
       );
 
       expect(spans).toHaveLength(1);
-      expect((spans[0]!["attributes"] as JSONObject)["client.address"]).toBe(
-        tokenOf(ATTACKER),
-      );
+      expect(
+        (spans[0]!["attributes"] as JSONObject)["network.peer.address"],
+      ).toBe(tokenOf(ATTACKER));
       expect(JSON.stringify(spans)).not.toContain(ATTACKER);
       expect(counted).toEqual(["trace:failed:1"]);
     });

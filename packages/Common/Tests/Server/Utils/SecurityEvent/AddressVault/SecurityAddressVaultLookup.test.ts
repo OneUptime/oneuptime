@@ -390,7 +390,11 @@ function hashRule<T extends LogScrubRule | TraceScrubRule>(rule: T): T {
   return rule;
 }
 
-// A server span of a path traversal, its client address hashed.
+/*
+ * A server span of a path traversal, its client's address hashed: the
+ * span's peer, the address its sender could not have written (#10416
+ * makes client.address only a claim).
+ */
 function traversalSpan(clientAddress: string): JSONObject {
   return {
     traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
@@ -404,7 +408,7 @@ function traversalSpan(clientAddress: string): JSONObject {
       "url.query": "file=../../../../etc/passwd",
       "http.request.method": "GET",
       "http.response.status_code": "200",
-      "client.address": clientAddress,
+      "network.peer.address": clientAddress,
     },
   };
 }
@@ -588,9 +592,9 @@ describe("the log scan names the address behind a line's token, as its row is st
       {},
     ],
     [
-      "a record's client.address attribute",
+      "a record's peer address attribute",
       "WARN rejected /static/../../etc/passwd",
-      { "client.address": "TOKEN" },
+      { "network.peer.address": "TOKEN" },
     ],
   ])(
     "%s, hashed, names its address",
@@ -660,7 +664,7 @@ describe("the log scan names the address behind a line's token, as its row is st
               durationMs: 3,
               attributes: {
                 "http.response.status_code": "404",
-                "client.address": tokenOf(ATTACKER),
+                "network.peer.address": tokenOf(ATTACKER),
               },
             },
           ],
@@ -696,7 +700,7 @@ describe("the log scan names the address behind a line's token, as its row is st
                 kind: "SPAN_KIND_SERVER",
                 statusCode: 0,
                 durationMs: 3,
-                attributes: { "client.address": tokenOf(ATTACKER) },
+                attributes: { "network.peer.address": tokenOf(ATTACKER) },
               },
             ],
             exceptions: [],

@@ -87,7 +87,9 @@ function logRule(data: {
   rule.patternType = data.patternType;
   rule.scrubAction = data.action;
   rule.fieldsToScrub = data.fields || LogScrubField.Both;
-  rule.customRegex = data.customRegex;
+  if (data.customRegex !== undefined) {
+    rule.customRegex = data.customRegex;
+  }
 
   return compile(LogScrubRuleService, rule) as never;
 }
@@ -104,7 +106,9 @@ function traceRule(data: {
   rule.patternType = data.patternType;
   rule.scrubAction = data.action;
   rule.fieldsToScrub = data.fields || TraceScrubField.All;
-  rule.customRegex = data.customRegex;
+  if (data.customRegex !== undefined) {
+    rule.customRegex = data.customRegex;
+  }
 
   return compile(TraceScrubRuleService, rule) as never;
 }
