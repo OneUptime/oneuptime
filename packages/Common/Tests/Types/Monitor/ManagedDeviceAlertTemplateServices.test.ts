@@ -285,7 +285,9 @@ describe("each service's device templates read its service", () => {
               }
 
               if (value instanceof Includes) {
-                return value.values.includes(attributes[key] as string);
+                return (value.values as Array<unknown>).includes(
+                  attributes[key],
+                );
               }
 
               return attributes[key] === value;
