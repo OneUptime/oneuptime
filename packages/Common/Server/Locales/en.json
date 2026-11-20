@@ -402,6 +402,7 @@
   "The email address of your {{product}} account was changed from this address to a new one.": "The email address of your {{product}} account was changed from this address to a new one.",
   "The email address you sign in to {{statusPage}} with was changed from this address to a new one.": "The email address you sign in to {{statusPage}} with was changed from this address to a new one.",
   "The registration of {{monitorName}} expires soon. Renew it with your registrar before it expires, or the websites and email that use it stop working.": "The registration of {{monitorName}} expires soon. Renew it with your registrar before it expires, or the websites and email that use it stop working.",
+  "The run stopped before this step ran.": "The run stopped before this step ran.",
   "The run was cancelled before this step ran.": "The run was cancelled before this step ran.",
   "The status of an incident affecting services you're subscribed to has been updated.": "The status of an incident affecting services you're subscribed to has been updated.",
   "The team that runs {{statusPage}} changed the email address you sign in to it with, from this address to a new one.": "The team that runs {{statusPage}} changed the email address you sign in to it with, from this address to a new one.",
