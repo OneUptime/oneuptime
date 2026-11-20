@@ -2599,10 +2599,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Copy Link on a line's details (#9794): the Logs page's address that
-   * opens this very line, with the list it was copied from under it - this
-   * list's chips over the window its rows were read in, pinned
-   * (LogLineLink). Built as the line's details draw.
+   * Copy Link on a line's details (#9794) and on its row (#9944): the Logs
+   * page's address that opens this very line, with the list it was copied
+   * from under it - this list's chips over the window its rows were read
+   * in, pinned (LogLineLink). A new one whenever the list's window moves
+   * (a live list, a preset that re-anchors), so a row's link and its
+   * details' are always the same, the window the rows show.
    */
   const getLogLink: (log: Log) => string | null = useCallback(
     (log: Log): string | null => {
@@ -2610,7 +2612,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         return null;
       }
 
-      const listTime: unknown = (filterOptionsRef.current as any)?.time;
+      const listTime: unknown = (filterOptions as any)?.time;
       const listWindow: InBetween<Date> =
         listTime instanceof InBetween
           ? (listTime as InBetween<Date>)
@@ -2636,7 +2638,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         },
       });
     },
-    [appliedFacetFilters, timeRange, props.syncUrlState],
+    [appliedFacetFilters, filterOptions, timeRange, props.syncUrlState],
   );
 
   /*
