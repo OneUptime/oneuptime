@@ -71,7 +71,6 @@ import { RUM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/
 import {
   fetchSessionReplayList,
   SessionReplayListResult,
-  SessionReplaySummary,
 } from "../../../Components/SessionReplay/SessionReplayTable";
 import isReplayOnlyInstrumented from "../../../Components/SessionReplay/RumInstrumentation";
 import useSessionReplayHealth, {
@@ -93,6 +92,7 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   diagnoseRumSignal,
+  getWebVitalsCheckWindow,
   RumApplicationArrivalFacts,
   RumSignalDiagnosis,
 } from "../../../Components/Rum/SetupCheck/RumSignalDiagnosis";
@@ -103,9 +103,13 @@ import {
   RUM_SIGNAL_APPLICATION_SELECT,
   toDateOrNull,
 } from "../../../Components/Rum/SetupCheck/RumSignalFacts";
-import { fetchNewestRumExceptionAt } from "../../../Components/Rum/SetupCheck/RumSignalReads";
+import {
+  fetchNewestRumExceptionAt,
+  fetchNewestRumWebVitalAt,
+} from "../../../Components/Rum/SetupCheck/RumSignalReads";
 import {
   getRumSignalEmptyCopy,
+  getRumWebVitalsEmptyCopy,
   RumClientKind,
   RumPanelSignal,
   RumSignalEmptyCopy,
@@ -244,10 +248,23 @@ const RumApplicationOverview: FunctionComponent<
   const [sessionsWithErrors, setSessionsWithErrors] = useState<number | null>(
     null,
   );
+  /*
+   * There are more sessions with an error than the page counted: the
+   * evidence says "or more" (issue #6379).
+   */
+  const [sessionsWithErrorsHasMore, setSessionsWithErrorsHasMore] =
+    useState<boolean>(false);
   // The setup dialog an empty chart opened.
   const [setUpSignal, setSetUpSignal] = useState<RumPanelSignal | null>(null);
   // "Pick another key", from an empty chart whose telemetry is refused.
   const [isPickingKey, setIsPickingKey] = useState<boolean>(false);
+  /*
+   * The newest Web Vital of the past 30 days, read only while the range has
+   * none: why the card is empty (issue #6379). null while it loads, and
+   * while the range has vitals to draw.
+   */
+  const [newestWebVital, setNewestWebVital] =
+    useState<RumSignalArrivalRead | null>(null);
   /*
    * What the project's keys were refused in the past day (issue #6378),
    * read again on every refresh: an empty chart says "refused" while
@@ -260,12 +277,16 @@ const RumApplicationOverview: FunctionComponent<
       return Boolean(pillar && !pillar.failed && pillar.total === 0);
     },
   );
+  const isWebVitalsCardEmpty: boolean = Boolean(
+    newestWebVital && !newestWebVital.failed,
+  );
   const refusals: Array<IngestRefusalFact> | null = useRecentIngestRefusals(
     refusalsReloadToken,
-    isChartEmpty,
+    isChartEmpty || isWebVitalsCardEmpty,
   );
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
+  const [webVitalsFailed, setWebVitalsFailed] = useState<boolean>(false);
   const [inpByRoute, setInpByRoute] = useState<WebVitalByRoute | null>(null);
   const [inpByRouteLoading, setInpByRouteLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
@@ -468,6 +489,35 @@ const RumApplicationOverview: FunctionComponent<
             }
             setWebVitals(v);
             setWebVitalsLoading(false);
+            setWebVitalsFailed(false);
+
+            /*
+             * None in the range: when the newest of the past 30 days came,
+             * so the card can say why it is empty (issue #6379) - one row
+             * of one metric's granules, read only then.
+             */
+            const anyReported: boolean = v.some((vital: WebVital): boolean => {
+              return vital.value !== null && Number.isFinite(vital.value);
+            });
+
+            if (anyReported) {
+              setNewestWebVital(null);
+            } else {
+              fetchNewestRumWebVitalAt({
+                rumApplicationId: primaryEntityId,
+                now: OneUptimeDate.getCurrentDate(),
+              })
+                .then((at: Date | null) => {
+                  if (isCurrent()) {
+                    setNewestWebVital({ at, failed: false });
+                  }
+                })
+                .catch(() => {
+                  if (isCurrent()) {
+                    setNewestWebVital({ at: null, failed: true });
+                  }
+                });
+            }
 
             /*
              * INP per route, under the name the card found INP under. No INP
@@ -510,6 +560,7 @@ const RumApplicationOverview: FunctionComponent<
               return;
             }
             setWebVitalsLoading(false);
+            setWebVitalsFailed(true);
             setInpByRouteLoading(false);
           });
 
@@ -622,17 +673,40 @@ const RumApplicationOverview: FunctionComponent<
           setSessionReplayCount(result.sessions.length);
           setSessionReplayHasMore(result.nextCursor !== null);
           setSessionReplayCountFailed(false);
-          setSessionsWithErrors(
-            result.sessions.filter((session: SessionReplaySummary): boolean => {
-              return session.errorCount > 0 || session.hasError;
-            }).length,
-          );
         })
         .catch(() => {
           if (!isCurrent()) {
             return;
           }
           setSessionReplayCountFailed(true);
+        });
+
+      /*
+       * Recorded sessions with an error, for the empty Exceptions chart's
+       * evidence: counted with Session Replay's own errors filter (issue
+       * #6379), so every such session in the range counts, not only those
+       * among the newest page. Past a page, "or more".
+       */
+      fetchSessionReplayList({
+        rumApplicationId: primaryEntityId,
+        signal: "errors",
+        startTime: start,
+        endTime: end,
+        limit: SESSION_REPLAY_COUNT_PAGE_SIZE,
+      })
+        .then((result: SessionReplayListResult) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSessionsWithErrors(result.sessions.length);
+          setSessionsWithErrorsHasMore(result.nextCursor !== null);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSessionsWithErrors(null);
+          setSessionsWithErrorsHasMore(false);
         });
     },
     [modelIdString, timeRangeKey, isMobileApp, loadMobileSignals],
@@ -826,6 +900,81 @@ const RumApplicationOverview: FunctionComponent<
     PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION,
   );
 
+  /*
+   * Why the Core Web Vitals card is empty (issue #6379), from the same
+   * diagnosis as the setup check's Web Vitals row: not set up, metrics of
+   * other names only, quiet in this range, nothing arriving, or refused.
+   */
+  const vitalsWindow: { otherNamesArrive: boolean; since: Date } =
+    getWebVitalsCheckWindow({
+      metricsLastReceivedAt: toDateOrNull(a.metricsLastReceivedAt),
+      trackedSince: toDateOrNull(a.signalArrivalsTrackedSince),
+      now: diagnosisNow,
+    });
+
+  const webVitalsDiagnosis: RumSignalDiagnosis = diagnoseRumSignal({
+    inRange: {
+      count: webVitalsLoading
+        ? undefined
+        : webVitalsFailed
+          ? null
+          : webVitals.filter((vital: WebVital): boolean => {
+              return vital.value !== null && Number.isFinite(vital.value);
+            }).length,
+    },
+    lastArrival: newestWebVital,
+    trackedSince: vitalsWindow.since,
+    otherNamesArrive: vitalsWindow.otherNamesArrive,
+    app: arrivalFacts,
+    range: diagnosisRange,
+    retentionInDays,
+    now: diagnosisNow,
+  });
+
+  const renderEmptyWebVitals: () => ReactElement | undefined = ():
+    | ReactElement
+    | undefined => {
+    const copy: RumSignalEmptyCopy | null = getRumWebVitalsEmptyCopy({
+      diagnosis: webVitalsDiagnosis,
+      // Web Vitals are metrics.
+      refusal: getRumKindRefusal({
+        refusals,
+        kind: "metrics",
+        lastArrivalAt: toDateOrNull(a.metricsLastReceivedAt),
+        app: refusalApp,
+        now: diagnosisNow,
+      }),
+      translator,
+      now: diagnosisNow,
+    });
+
+    if (!copy) {
+      return undefined;
+    }
+
+    return (
+      <RumSignalEmptyState
+        signal="webVitals"
+        state={webVitalsDiagnosis.state}
+        copy={copy}
+        variant="chart"
+        documentationRoute={documentationRoute}
+        onSetUp={(picked: RumPanelSignal): void => {
+          setSetUpSignal(picked);
+        }}
+        onRangeChange={(range: RangeStartAndEndDateTime): void => {
+          setTimeRange(range);
+        }}
+        onRetry={(): void => {
+          loadTelemetry(true);
+        }}
+        onPickKey={(): void => {
+          setIsPickingKey(true);
+        }}
+      />
+    );
+  };
+
   const renderEmptySignal: (
     signal: RumPanelSignal,
     diagnosis: RumSignalDiagnosis,
@@ -838,6 +987,8 @@ const RumApplicationOverview: FunctionComponent<
       diagnosis,
       client,
       sessionsWithErrors: signal === "exceptions" ? sessionsWithErrors : null,
+      sessionsWithErrorsHasMore:
+        signal === "exceptions" && sessionsWithErrorsHasMore,
       refusal: panelRefusals[signal],
       translator,
       now: diagnosisNow,
@@ -1696,6 +1847,7 @@ const RumApplicationOverview: FunctionComponent<
           vitals={webVitals}
           loading={webVitalsLoading}
           description={RUM_METRIC_DESCRIPTIONS.webVitals}
+          emptyState={renderEmptyWebVitals()}
         />
       )}
 
@@ -1719,6 +1871,7 @@ const RumApplicationOverview: FunctionComponent<
       {setUpSignal ? (
         <RumSignalSetupModal
           signal={setUpSignal}
+          rumApplicationId={modelId}
           appName={(a.appIdentifier as string) || (a.name as string) || ""}
           onClose={(): void => {
             setSetUpSignal(null);
@@ -1731,6 +1884,7 @@ const RumApplicationOverview: FunctionComponent<
       {isPickingKey ? (
         <RumKeySetupModal
           clientType={client}
+          appName={appIdentifier || undefined}
           onClose={(): void => {
             setIsPickingKey(false);
           }}

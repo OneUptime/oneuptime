@@ -3,7 +3,7 @@
 Instrumentera en Android-, iOS- eller React Native-app med OpenTelemetry så att den rapporterar till OneUptime som en mobil RUM-applikation. Alla andra plattformar med ett OpenTelemetry-SDK fungerar på samma sätt.
 
 :::cards
-- [Vad OneUptime behöver](#vad-oneuptime-behöver): Två resursattribut, skickade med en Server-nyckel.
+- [Vad OneUptime behöver](#vad-oneuptime-behöver): Två resursattribut, skickade med en Mobil-nyckel.
 - [Konfigurera din plattform](#konfigurera-din-plattform): Android, iOS, React Native och resten.
 - [Krascher och hängningar på iOS](#krascher-och-hängningar-på-ios): Rapporter från MetricKit och KSCrash i Undantag, namngivna av dina dSYM-filer.
 - [Kontrollera att det kommer in](#kontrollera-att-det-kommer-in): Testa nyckeln och hitta sedan appen.
@@ -12,12 +12,12 @@ Instrumentera en Android-, iOS- eller React Native-app med OpenTelemetry så att
 
 ## Så fungerar det
 
-Din app exporterar OTLP direkt till OneUptime med en **Server**-intagningsnyckel. Det är `device.*`-attributen på dess resurs som klassar den som mobil-RUM i stället för som backend-tjänst.
+Din app exporterar OTLP direkt till OneUptime med en **Mobil**-intagningsnyckel, fäst vid appen, så allt den skickar arkiveras som den mobila RUM-applikationen. Med alla andra nycklar är det `device.*`-attributen på dess resurs som klassar den som mobil-RUM i stället för som backend-tjänst.
 
 ```mermaid title="Vad en mobilapp skickar, och med vilken nyckel"
 flowchart TB
     app["Din mobilapp"] --> sdk["OpenTelemetry-SDK<br/>med device.*-attribut"]
-    sdk -->|"OTLP med en<br/>Server-nyckel"| oneuptime["OneUptime"]
+    sdk -->|"OTLP med en<br/>Mobil-nyckel"| oneuptime["OneUptime"]
     oneuptime --> rum["Mobil RUM-applikation"]
     replay["React Native-<br/>uppspelnings-SDK"] -->|"inspelningar med en<br/>Browser-nyckel"| oneuptime
 ```
@@ -31,7 +31,7 @@ Två resursattribut, på varje batch som din app exporterar:
 | `service.name` | Applikationens identitet, till exempel `storefront-android`. |
 | `device.id` eller `device.model.identifier` | Markerar telemetrin som mobil-RUM. `device.model.identifier` fyller också sidan **Klienter**. |
 
-Utan ett enhetsattribut kommer telemetrin ändå in och du kan fråga efter den, men den arkiveras som en backend-tjänst i stället för en RUM-applikation.
+Skickad med en annan nyckel kommer telemetri utan ett enhetsattribut ändå in och du kan fråga efter den, men den arkiveras som en backend-tjänst i stället för en RUM-applikation.
 
 `device.manufacturer` markerar också en batch som mobil, men bara på en resurs utan värdidentitet, eftersom en värds inventarie rapporterar en maskins tillverkare med det. Sätt även `device.id` eller `device.model.identifier`, som varje recept nedan gör, så spelar det aldrig någon roll.
 
@@ -40,7 +40,7 @@ Gör `device.id` till ett id per installation, aldrig ett annons-id eller något
 ## Innan du börjar
 
 - En app med ett OpenTelemetry-SDK: OpenTelemetry Java SDK eller OpenTelemetry Android, opentelemetry-swift eller OpenTelemetry JavaScript SDK för React Native.
-- En **Server**-intagningsnyckel, skapad under **Projektinställningar → Telemetri och APM → Intagningsnycklar** med **Skapa intagningsnyckel**. En **Webbläsare**-nyckel avvisas från en mobilapp: Den kontrolleras mot headern `Origin`, som mobil-SDK:er inte skickar.
+- En **Mobil**-intagningsnyckel, skapad under **Projektinställningar → Telemetri och APM → Intagningsnycklar** med **Skapa intagningsnyckel**, med appens `service.name` som **Fäst tjänstnamn**. En **Webbläsare**-nyckel avvisas från en mobilapp: Den kontrolleras mot headern `Origin`, som mobil-SDK:er inte skickar. Skicka aldrig med en **Server**-nyckel i en app.
 - De här OTLP-inställningarna. Om du driftar OneUptime själv byter du `https://oneuptime.com` mot din egen värd.
 
 | Inställning | Värde |
@@ -52,7 +52,7 @@ Gör `device.id` till ett id per installation, aldrig ett annons-id eller något
 | Loggar | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> Nyckeln följer med i din app, och en app kan packas upp, så utgå från att någon kopierar den. Sätt ett **Fäst tjänstnamn** på nyckelns sida så att en kopia inte kan skriva under dina backend-tjänsters namn, lägg till en **Requests Per Minute Limit** och ett datum under **Upphör**, och byt nyckeln med dina releaser.
+> Nyckeln följer med i din app, och en app kan packas upp, så utgå från att någon kopierar den. En kopia av en Mobil-nyckel kan bara skicka den här appens spår, loggar och mätvärden, arkiverade under dess **Fäst tjänstnamn**, och aldrig från en webbsida. Den kan ändå skicka påhittade data för den här appen, upp till nyckelns **Gräns för förfrågningar per minut**, så lägg till ett datum under **Upphör** och byt nyckeln med dina releaser.
 
 ## Konfigurera din plattform
 
@@ -136,7 +136,7 @@ OpenTelemetry.registerTracerProvider(
 
 `UIDevice.current.model` ger ett kort namn som `iPhone`, vilket håller sidan **Klienter** till en rad per enhetstyp. `identifierForVendor` är den installation som OneUptime räknar kraschfria installationer efter, som [Märk sessionerna](#märk-sessionerna) beskriver.
 @tab React Native
-React Native kör OpenTelemetry JavaScript SDK, så bygg providern, OTLP-exportören och batchprocessorn som i [Webbläsarkonfiguration](/docs/rum/browser-setup), med tre ändringar: Skicka med en **Server**-nyckel, utelämna `browserDetector` och `DocumentLoadInstrumentation`, och sätt enhetsattributen själv.
+React Native kör OpenTelemetry JavaScript SDK, så bygg providern, OTLP-exportören och batchprocessorn som i [Webbläsarkonfiguration](/docs/rum/browser-setup), med tre ändringar: Skicka med en **Mobil**-nyckel, utelämna `browserDetector` och `DocumentLoadInstrumentation`, och sätt enhetsattributen själv.
 
 ```ts
 import { Platform } from "react-native";
@@ -276,7 +276,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyder att nyckeln godtas. En Browser-nyckel svarar också `200`, men dess meddelande säger att den bara fungerar från en webbläsare: En mobilapp behöver en Server-nyckel. `401` betyder att nyckeln är okänd, återkallad, avstängd eller har gått ut, och ingen SDK-inställning åtgärdar det.
+`200` med `"valid": true` betyder att nyckeln godtas. En Browser-nyckel svarar också `200`, men dess meddelande säger att den bara fungerar från en webbläsare: En mobilapp behöver en Mobil-nyckel. `401` betyder att nyckeln är okänd, återkallad, avstängd eller har gått ut, och ingen SDK-inställning åtgärdar det.
 
 ### Starta appen
 
@@ -289,20 +289,20 @@ Kör appen och använd den en stund. Den visas under **Produkter → Resurser �
 
 ## Session Replay på mobil
 
-React Native-appar kan spela in sessioner med `@oneuptime/react-native-replay`. Det spelar in det inbyggda vyträdet som en trådram, aldrig skärmbilder eller texten på skärmen, och dess inspelningar öppnas i samma spelare som webbinspelningar. Det skickar med en **Webbläsare**-nyckel vars **Tillåtna ursprung** anger din app som `app://` följt av dess Android-applikations-id eller iOS-bundle-id: en annan nyckel än den Server-nyckel som ditt OpenTelemetry-SDK använder. [Installera i React Native](/docs/telemetry/session-replay#installation-i-react-native) går igenom hur.
+React Native-appar kan spela in sessioner med `@oneuptime/react-native-replay`. Det spelar in det inbyggda vyträdet som en trådram, aldrig skärmbilder eller texten på skärmen, och dess inspelningar öppnas i samma spelare som webbinspelningar. Det skickar med en **Webbläsare**-nyckel vars **Tillåtna ursprung** anger din app som `app://` följt av dess Android-applikations-id eller iOS-bundle-id: en annan nyckel än den Mobil-nyckel som ditt OpenTelemetry-SDK använder. [Installera i React Native](/docs/telemetry/session-replay#installation-i-react-native) går igenom hur.
 
 Inbyggda Android- och iOS-appar och de andra plattformarna har ingen sessionsinspelare: Deras sida **Sessionsuppspelning** förblir tom, medan spår, loggar, mätvärden, undantag och sidan **Klienter** fungerar som vanligt.
 
 ## Felsökning
 
 :::details Nyckelkontrollen ger 401, eller nyckeln avvisas
-En `401` betyder att nyckeln är okänd, återkallad, avstängd eller har gått ut: Skapa en Server-nyckel och bygg om appen med den.
+En `401` betyder att nyckeln är okänd, återkallad, avstängd eller har gått ut: Skapa en Mobil-nyckel och bygg om appen med den.
 
-En Browser-nyckel klarar kontrollen, men varje export från en mobilapp avvisas med en `422` som lyder `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` Använd en **Server**-nyckel.
+En Browser-nyckel klarar kontrollen, men varje export från en mobilapp avvisas med en `422` som lyder `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Använd en **Mobil**-nyckel. En Mobil-nyckel avvisas också med en `422` över gRPC och från en webbsida: Exportera över OTLP/HTTP.
 :::
 
 :::details Appen visas under Tjänster i stället för Övervakning av verkliga användare
-Resursen saknar både `device.id` och `device.model.identifier`, så telemetrin arkiverades som en backend-tjänst. Sätt dem som i [Konfigurera din plattform](#konfigurera-din-plattform).
+Telemetrin skickades med en annan nyckel än en Mobil-nyckel, och dess resurs saknar både `device.id` och `device.model.identifier`, så den arkiverades som en backend-tjänst. Skicka med en Mobil-nyckel, eller sätt dem som i [Konfigurera din plattform](#konfigurera-din-plattform).
 
 Tjänsten som redan har skapats blir inte en RUM-applikation, så radera den under **Produkter → Tjänster** när RUM-telemetrin kommer in.
 :::

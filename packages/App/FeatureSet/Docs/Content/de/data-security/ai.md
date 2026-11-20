@@ -23,11 +23,12 @@ Datensicherheit liest Ihre Daten selbst, in ihren Scans, und bewahrt nichts davo
 | Funktion | Was sie sendet | Läuft von selbst |
 | --- | --- | --- |
 | **Mit KI erklären** | Titel, Schweregrad und Belege des Problems, warum seine Prüfung wichtig ist, und die Behebung für die Cloud des Datenspeichers; Name, Art, Region und Cloud-ID des Datenspeichers, seine Sensibilität und die Namen seiner Datentypen; bei einem Problem in der Telemetrie, wo jede Art von Daten gefunden wurde: das Attribut, der Protokolltext oder der Prompt, in dem sie steht | Nein: Eine Person fragt, auf der Seite eines Problems |
+| **Analyse neuer Probleme** | Titel, Schweregrad und Belege des Problems, warum seine Prüfung wichtig ist, und die Behebung für die Cloud des Datenspeichers; Name, Art, Region und Cloud-ID des Datenspeichers, seine Sensibilität und die Namen seiner Datentypen; bei einem Problem in der Telemetrie, wo jede Art von Daten gefunden wurde: das Attribut, der Protokolltext oder der Prompt, in dem sie steht | Ja: ein neues kritisches oder hohes Problem startet sie, solange **An neuen Problemen arbeiten** eingeschaltet ist |
 | **Mit KI beheben** | Was Mit KI erklären sendet, als Anfrage an den Code-Agenten, der dann den eigenen Code des Repositorys liest, um die Änderung vorzunehmen | Nein: Eine Person fragt, in einem Repository, das sie unter **Code** ändern darf |
 | **Vorschläge für Felder, die kein Detektor zugeordnet hat** | Die Art des Datenspeichers und die Datentypen, die die KI nennen darf; der Name jedes Felds, die Namen der Felder daneben und die Formen seiner Werte, jeder Buchstabe als `a` oder `A` und jede Ziffer als `9`; wie viele Werte gelesen wurden und wie lang sie sind | Ja: Der Inhaltsscan eines Datenspeichers startet sie |
 | **KI fragen** | Die Datenspeicher, Probleme und Zugriffe, die die Person in Datensicherheit lesen darf; was wo gefunden wurde, jeder Datentyp nach seinem Ort, mit Anzahlen und Konfidenz | Nein: Eine Person stellt eine Frage |
 
-**Mit KI erklären** und **KI fragen** lesen außerdem zuerst den [KI-Kontext](/docs/ai/ai-context) Ihres Teams, wenn es einen hat: die Notizen, die Ihr Team für OneUptime AI über Ihre Systeme geschrieben hat.
+**Mit KI erklären** und **KI fragen** lesen außerdem zuerst den [KI-Kontext](/docs/ai/ai-context) Ihres Teams, wenn es einen hat: die Notizen, die Ihr Team für OneUptime AI über Ihre Systeme geschrieben hat. **Analyse neuer Probleme** liest ihn ebenfalls.
 
 ### Text aus Ihren Systemen ist Daten
 

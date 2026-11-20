@@ -52,6 +52,7 @@ import {
   isIngestRefusalRecent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestRefusalWords";
 import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import { writeReaderMoment } from "../../../UI/Utils/ReaderMoments";
 import ObjectID from "../../../Types/ObjectID";
 import {
   ALL_TELEMETRY_INGEST_REFUSAL_REASONS,
@@ -458,6 +459,8 @@ describe("what a refusal says", () => {
       [TelemetryIngestRefusalReason.OriginNotAllowed]: "open-key",
       [TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere]: null,
       [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: null,
+      // Another kind of key is the fix, as for a Browser key (#6457).
+      [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: null,
       [TelemetryIngestRefusalReason.KeyRequestsPerMinute]: "open-key",
       [TelemetryIngestRefusalReason.KeyDailyBudget]: "open-key",
       [TelemetryIngestRefusalReason.KeyIngestionRate]: "open-key",
@@ -561,17 +564,38 @@ describe("what a refusal says", () => {
       "One request refused 10\u00A0minutes ago.",
     );
     expect(getIngestRefusalCountText(many, ENGLISH, NOW)).toBe(
-      "1,234 requests refused since Nov 9, 2026, 8:00 AM UTC, the latest 10\u00A0minutes ago.",
+      `1,234 requests refused since ${writeReaderMoment(
+        many.firstRefusedAt,
+      )}, the latest 10\u00A0minutes ago.`,
     );
+    expect(writeReaderMoment(many.firstRefusedAt)).toMatch(/^Nov 9, 2026, /);
 
-    // Two days or more back, the date alone.
+    /*
+     * One shape however far back (#6458): the day and the time, as a
+     * sentence writes a moment. It was the day alone from two days on, so
+     * one card read "Nov 04, 2026" on a line and "Nov 08 2026, 12:32 CET"
+     * on the next.
+     */
+    for (const firstRefusedAt of [
+      ago(HOUR),
+      ago(5 * DAY - HOUR),
+      ago(5 * DAY),
+    ]) {
+      expect(
+        getIngestRefusalCountText(
+          fact({ count: 2, firstRefusedAt }),
+          ENGLISH,
+          NOW,
+        ),
+      ).toContain(`since ${writeReaderMoment(firstRefusedAt)}, the latest`);
+    }
     expect(
       getIngestRefusalCountText(
         fact({ count: 2, firstRefusedAt: ago(5 * DAY) }),
         ENGLISH,
         NOW,
       ),
-    ).toBe(
+    ).not.toBe(
       getIngestRefusalCountText(
         fact({ count: 2, firstRefusedAt: ago(5 * DAY - HOUR) }),
         ENGLISH,

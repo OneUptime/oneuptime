@@ -23,11 +23,12 @@ Seguridad de datos lee tus datos ella misma, dentro de sus escaneos, y no guarda
 | Función | Lo que envía | Se ejecuta sola |
 | --- | --- | --- |
 | **Explicar con IA** | El título, la gravedad y las evidencias del problema, por qué importa su comprobación y la corrección para la nube del almacén; el nombre, el tipo, la región y el ID en la nube del almacén, su sensibilidad y los nombres de sus tipos de datos; para un problema en la telemetría, dónde se encontró cada clase de datos: el atributo, el cuerpo del registro o el prompt en que está | No: una persona la pide, en la página de un problema |
+| **Análisis de problemas nuevos** | El título, la gravedad y las evidencias del problema, por qué importa su comprobación y la corrección para la nube del almacén; el nombre, el tipo, la región y el ID en la nube del almacén, su sensibilidad y los nombres de sus tipos de datos; para un problema en la telemetría, dónde se encontró cada clase de datos: el atributo, el cuerpo del registro o el prompt en que está | Sí: un problema nuevo crítico o alto la inicia, mientras **Trabajar en los problemas nuevos** está activado |
 | **Corregir con IA** | Lo que envía Explicar con IA, como solicitud al agente de código, que luego lee el propio código del repositorio para hacer el cambio | No: una persona la pide, en un repositorio que puede cambiar en **Código** |
 | **Sugerencias para campos que ningún detector identificó** | El tipo de almacén y los tipos de datos que la IA puede nombrar; el nombre de cada campo, los nombres de los campos de al lado y las formas de sus valores, cada letra como `a` o `A` y cada dígito como `9`; cuántos valores se leyeron y qué longitud tienen | Sí: el escaneo de contenido de un almacén las inicia |
 | **Preguntar a la IA** | Los almacenes, problemas y accesos que la persona puede leer en Seguridad de datos; qué se encontró y dónde, cada tipo de datos por su ubicación, con recuentos y confianza | No: una persona hace una pregunta |
 
-**Explicar con IA** y **Preguntar a la IA** también leen primero el [contexto de IA](/docs/ai/ai-context) de tu equipo, cuando tiene uno: las notas que tu equipo escribió para OneUptime AI sobre tus sistemas.
+**Explicar con IA** y **Preguntar a la IA** también leen primero el [contexto de IA](/docs/ai/ai-context) de tu equipo, cuando tiene uno: las notas que tu equipo escribió para OneUptime AI sobre tus sistemas. **Análisis de problemas nuevos** también lo lee.
 
 ### El texto que escribieron tus sistemas es un dato
 

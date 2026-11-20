@@ -62,11 +62,13 @@ import { stepCount, tables } from "./DocsPageShape";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { sectionInLanguage } from "./NetworkDocsLabels";
 import {
+  ANDROID_SETUP,
   APPLICATION_SIDE_MENU,
   BROWSER_SETUP,
   MOBILE_SETUP,
   RUM_INDEX,
   RUM_SETUP_PAGES,
+  RUM_TROUBLESHOOTING,
   RumDocsPageEntry,
   WEB_VITALS,
   WEB_VITAL_RATING_LABELS,
@@ -816,7 +818,7 @@ describe("RUM Overview: what you get", () => {
   });
 });
 
-describe("Ingestion keys: a Browser key for the web, a Server key for mobile", () => {
+describe("Ingestion keys: a Browser key for the web, a Mobile key for mobile", () => {
   it("draws the key's create form and page with the labels the pages name", () => {
     const form: string = source("ingestionKeyForm");
     const view: string = source("ingestionKeyView");
@@ -827,6 +829,7 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
       "Key Type",
       "Browser",
       "Server",
+      "Mobile",
       "Browser Settings",
       "Allowed Origins",
       "Pinned Service Name",
@@ -875,20 +878,51 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
     );
   });
 
-  it("gives a web app a Browser key and a mobile app a Server key", () => {
+  /*
+   * Whatever ships in an app is public, so a mobile app is never told to
+   * ship a Server key (#6457): it ships a Mobile key, pinned to the app.
+   */
+  it("gives a web app a Browser key and a mobile app a Mobile key", () => {
     expect(getRumIngestionKeyType("browser")).toBe(
       TelemetryIngestionKeyType.Browser,
     );
     expect(getRumIngestionKeyType("mobile")).toBe(
-      TelemetryIngestionKeyType.Server,
+      TelemetryIngestionKeyType.Mobile,
     );
 
     const getStarted: string = section(RUM_INDEX, "## Get started");
 
     expect(getStarted).toContain("A web app needs a **Browser** key");
     expect(getStarted).toContain(
-      "A mobile app needs a **Server** key, because a mobile SDK sends no `Origin` header.",
+      "A mobile app needs a **Mobile** key, pinned to the app's `service.name`: it ships inside the app, so it can send only that app's traces, logs and metrics.",
     );
+
+    // No page of the RUM docs tells a mobile app to ship a Server key.
+    const mobileAppServerKey: RegExp = /mobile app (?:needs|a) \*\*Server\*\*/;
+
+    for (const page of [
+      RUM_INDEX,
+      MOBILE_SETUP,
+      ANDROID_SETUP,
+      RUM_TROUBLESHOOTING,
+    ]) {
+      const text: string = englishPage(page);
+
+      expect({
+        page,
+        server: mobileAppServerKey.test(text),
+      }).toEqual({
+        page,
+        server: false,
+      });
+      expect({
+        page,
+        sendsWithServer: text.includes("with a **Server** ingestion key"),
+      }).toEqual({
+        page,
+        sendsWithServer: false,
+      });
+    }
   });
 
   it("lets a Browser key write only OTLP traces, logs, metrics, session replays and Sentry events", () => {
@@ -976,8 +1010,9 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
       "- `422` with `This telemetry ingestion key has been disabled.`",
     );
 
+    // It sends a mobile app to the Mobile key, and a server to a Server key (#6457).
     const noOrigin: string =
-      "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.";
+      "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.";
 
     expect(middleware).toContain(noOrigin);
     expect(mobile).toContain(`a \`422\` that reads \`${noOrigin}\``);
@@ -1191,7 +1226,7 @@ describe("Mobile Setup", () => {
     ).toBe("mobile");
   });
 
-  it("needs a Server key: a Browser key's origin check refuses a request without Origin", () => {
+  it("needs a Mobile key: a Browser key's origin check refuses a request without Origin", () => {
     expect(mobile).toContain(
       "A **Browser** key is refused from a mobile app: it is checked against the `Origin` header, which mobile SDKs do not send.",
     );

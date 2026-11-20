@@ -660,6 +660,7 @@ describe("every relation is defined, in one place", () => {
       [UsedByRowKind.CephCluster]: "CephCluster",
       [UsedByRowKind.StorageArray]: "StorageArray",
       [UsedByRowKind.NetworkDevice]: "NetworkDevice",
+      [UsedByRowKind.NetworkSite]: "NetworkSite",
       [UsedByRowKind.IoTFleet]: "IoTFleet",
       [UsedByRowKind.CloudResource]: "CloudResource",
       [UsedByRowKind.ServerlessFunction]: "ServerlessFunction",

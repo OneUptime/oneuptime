@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` with `"valid": true` | OneUptime accepts the key. The answer also gives its `keyType` and its `projectId`. Move on to the next check. |
 | `401` with `"valid": false` | The key is missing, unknown, revoked, switched off or expired, and the `message` says which. Create a live key under **Project Settings → Telemetry & APM → Ingestion Keys**. |
 
-A web app needs a **Browser** key, and a mobile app a **Server** key: see [Browser Setup](/docs/rum/browser-setup) and [Mobile Setup](/docs/rum/mobile-setup). The export endpoints refuse a bad key with `401` too, as the OTLP specification asks, so a well-behaved SDK logs the refusal instead of retrying. That line is easy to miss in a browser console, and this check answers directly.
+A web app needs a **Browser** key, and a mobile app a **Mobile** key: see [Browser Setup](/docs/rum/browser-setup) and [Mobile Setup](/docs/rum/mobile-setup). The export endpoints refuse a bad key with `401` too, as the OTLP specification asks, so a well-behaved SDK logs the refusal instead of retrying. That line is easy to miss in a browser console, and this check answers directly.
 
 OneUptime also counts what it refuses from a key it knows. The key's page under **Project Settings → Telemetry & APM → Ingestion Keys** lists its **Refused Telemetry** of the past 30 days, and the **Setup check** on the application's **Documentation** page says which kind of telemetry is refused, why, and how to fix it. A missing or unknown key names no project, so nothing counts it: this check and the `401` are all there is.
 

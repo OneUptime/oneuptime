@@ -92,6 +92,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: "packages/Common/Server/API/DataSecurityAPI.ts",
   },
+  // OneUptime AI's own analysis of a new issue (#10364), in its queue job.
+  [DataSecurityAiFeature.AnalyzeIssue]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataSecurityIssueAnalysis.ts`,
+  },
   [DataSecurityAiFeature.SuggestFieldTypes]: {
     kind: "ask",
     file: `${AI_DIRECTORY}/FieldSuggestion.ts`,

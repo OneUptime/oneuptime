@@ -23,11 +23,12 @@ Sicurezza dei dati legge i tuoi dati da sé, nelle sue scansioni, e non ne conse
 | Funzionalità | Cosa invia | Si avvia da sola |
 | --- | --- | --- |
 | **Spiega con l'IA** | Il titolo, la gravità e le prove del problema, perché il suo controllo è importante e la correzione per il cloud dell'archivio; il nome, il tipo, la regione e l'ID nel cloud dell'archivio, la sua sensibilità e i nomi dei suoi tipi di dati; per un problema nella telemetria, dove è stato trovato ogni tipo di dati: l'attributo, il corpo del log o il prompt in cui si trova | No: una persona la richiede, nella pagina di un problema |
+| **Analisi dei nuovi problemi** | Il titolo, la gravità e le prove del problema, perché il suo controllo è importante e la correzione per il cloud dell'archivio; il nome, il tipo, la regione e l'ID nel cloud dell'archivio, la sua sensibilità e i nomi dei suoi tipi di dati; per un problema nella telemetria, dove è stato trovato ogni tipo di dati: l'attributo, il corpo del log o il prompt in cui si trova | Sì: un nuovo problema critico o alto la avvia, mentre **Lavora sui nuovi problemi** è attivo |
 | **Correggi con l'IA** | Ciò che invia Spiega con l'IA, come richiesta all'agente di programmazione, che poi legge il codice stesso del repository per apportare la modifica | No: una persona la richiede, in un repository che può modificare in **Codice** |
 | **Suggerimenti per i campi che nessun rilevatore ha classificato** | Il tipo di archivio e i tipi di dati che l'IA può indicare; il nome di ogni campo, i nomi dei campi accanto e le forme dei suoi valori, ogni lettera come `a` o `A` e ogni cifra come `9`; quanti valori sono stati letti e quanto sono lunghi | Sì: la scansione del contenuto di un archivio li avvia |
 | **Chiedi all'IA** | Gli archivi, i problemi e gli accessi che la persona può leggere in Sicurezza dei dati; cosa è stato trovato e dove, ogni tipo di dati per posizione, con conteggi e confidenza | No: una persona fa una domanda |
 
-**Spiega con l'IA** e **Chiedi all'IA** leggono anche, per primo, il [contesto IA](/docs/ai/ai-context) del tuo team, quando ne ha uno: le note che il tuo team ha scritto per OneUptime AI sui tuoi sistemi.
+**Spiega con l'IA** e **Chiedi all'IA** leggono anche, per primo, il [contesto IA](/docs/ai/ai-context) del tuo team, quando ne ha uno: le note che il tuo team ha scritto per OneUptime AI sui tuoi sistemi. **Analisi dei nuovi problemi** lo legge anche.
 
 ### Il testo scritto dai tuoi sistemi è un dato
 

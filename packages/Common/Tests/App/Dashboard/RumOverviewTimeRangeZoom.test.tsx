@@ -359,6 +359,7 @@ interface FetchScope {
 }
 
 interface SessionListScope {
+  signal?: string;
   startTime: Date;
   endTime: Date;
 }
@@ -521,13 +522,24 @@ function fetchedWindows(mock: MockFunction): Array<[number, number]> {
   });
 }
 
-function sessionListWindows(): Array<[number, number]> {
-  return fetchSessionReplayListMock.mock.calls.map(
-    (call: Array<unknown>): [number, number] => {
-      const scope: SessionListScope = call[0] as SessionListScope;
+/*
+ * The windows the sessions-recorded count was read for; with
+ * `errors`, the windows Session Replay's errors filter counted the
+ * sessions with an error for (issue #6379).
+ */
+function sessionListWindows(
+  which: "all" | "errors" = "all",
+): Array<[number, number]> {
+  return fetchSessionReplayListMock.mock.calls
+    .map((call: Array<unknown>): SessionListScope => {
+      return call[0] as SessionListScope;
+    })
+    .filter((scope: SessionListScope): boolean => {
+      return (scope.signal === "errors") === (which === "errors");
+    })
+    .map((scope: SessionListScope): [number, number] => {
       return [scope.startTime.getTime(), scope.endTime.getTime()];
-    },
-  );
+    });
 }
 
 // A relative "past hour" resolved at some point after NOW.
@@ -668,6 +680,8 @@ describe("RUM overview: a drag zooms the page", () => {
       }),
     ).toEqual(expect.arrayContaining([true, false]));
     expect(sessionListWindows()).toEqual([ZOOM_WINDOW]);
+    // The sessions with an error are counted for the same ten minutes.
+    expect(sessionListWindows("errors")).toEqual([ZOOM_WINDOW]);
 
     // The Events tile now counts the ten zoomed minutes.
     expect(await screen.findByText("999")).toBeInTheDocument();

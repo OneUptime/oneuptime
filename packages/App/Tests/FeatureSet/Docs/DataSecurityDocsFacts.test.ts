@@ -79,6 +79,11 @@ import {
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import { DATA_SECURITY_API_ROUTES } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
+  DATA_SECURITY_AI_ALWAYS_ASKS,
+  DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES,
+  DataSecurityAiChangeSafety,
+} from "Common/Types/DataSecurity/DataSecurityAi";
+import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   BLOCKABLE_DATA_STORE_KINDS,
   DATA_SECURITY_RESPONSE_ACTION_CHECKS,
@@ -2572,6 +2577,9 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
       DATA_SECURITY_API_ROUTES.responseActions("<id>"),
       DATA_SECURITY_API_ROUTES.respond("<id>"),
+      DATA_SECURITY_API_ROUTES.approveAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.dismissAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.undoAiProposal("<id>"),
     ]);
   });
 
@@ -2611,6 +2619,67 @@ describe("Data Security Integrations", () => {
     );
     expect(page).toContain(
       `\`oneuptime_${residencyRule.toLowerCase().split(" ").join("_")}\``,
+    );
+  });
+
+  it("says what OneUptime AI does on its own as Data Security → AI names it", () => {
+    const onItsOwn: string = section(page, "### On its own");
+    const menu: string = source(
+      "App/FeatureSet/Dashboard/src/Utils/DataSecurityNavigation.ts",
+    );
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+    const switches: string = source(
+      "App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy.ts",
+    );
+
+    // The page, its switch, its lists and their buttons, by the names the Dashboard draws.
+    expect(menu).toMatch(/page: PageMap\.DATA_SECURITY_AI,\s+title: "AI"/);
+    expect(onItsOwn).toContain("**Data Security → AI**");
+    expect(switches).toContain('title: translationKey("Work on new issues")');
+    expect(onItsOwn).toContain("**Work on new issues**");
+
+    for (const name of [
+      "Waiting for you",
+      "Approve",
+      "Dismiss proposal",
+      "Done by AI",
+      "Undo",
+      "Why AI did not act",
+    ]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(onItsOwn).toContain(`**${name}**`);
+    }
+
+    // On for new projects, as the server makes them.
+    const projectService: string = source(
+      "Common/Server/Services/ProjectService.ts",
+    );
+    const defaults: string = projectService.slice(
+      projectService.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS"),
+    );
+    expect(defaults.slice(0, defaults.indexOf("];"))).toContain(
+      '"enableAutomaticDataSecurityAi"',
+    );
+    expect(onItsOwn).toContain("as it is for new projects");
+
+    // Out of the box, the issues it works on.
+    expect([...DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES]).toEqual([
+      SecuritySeverity.Critical,
+      SecuritySeverity.High,
+    ]);
+    expect(onItsOwn).toContain("each new Critical or High issue");
+
+    // Deleting data and paging people always ask, whatever a rule says.
+    expect([...DATA_SECURITY_AI_ALWAYS_ASKS]).toEqual(
+      expect.arrayContaining([
+        DataSecurityAiChangeSafety.Deletes,
+        DataSecurityAiChangeSafety.Pages,
+      ]),
+    );
+    expect(onItsOwn).toContain(
+      "it never deletes data or pages anyone without asking",
     );
   });
 

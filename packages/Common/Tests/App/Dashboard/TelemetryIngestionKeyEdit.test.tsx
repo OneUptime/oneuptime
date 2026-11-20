@@ -275,7 +275,7 @@ describe("Telemetry ingestion key detail page", () => {
     });
   });
 
-  test("walks Details, then Access & Limits, then Browser Settings", async () => {
+  test("walks Details, then Access & Limits, then Browser and App Settings", async () => {
     const user: UserEvent = await renderDetail();
     await openEditForm(user);
 
@@ -314,7 +314,7 @@ describe("Telemetry ingestion key detail page", () => {
 
     await next(user);
     await waitFor(() => {
-      expect(activeStep()).toBe("Browser Settings");
+      expect(activeStep()).toBe("Browser and App Settings");
     });
     expect(
       within(editDialog()).getByRole("textbox", { name: /^Allowed Origins/ }),
@@ -362,7 +362,7 @@ describe("Telemetry ingestion key detail page", () => {
       }
     }
 
-    expect(activeStep()).toBe("Browser Settings");
+    expect(activeStep()).toBe("Browser and App Settings");
   });
 
   /*

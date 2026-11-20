@@ -105,6 +105,16 @@ describe("the criteria fields", () => {
       "services",
       "serviceLabels",
       "serviceNamePattern",
+      // A Data Security issue's own (#10364).
+      "dataSecurityChecks",
+      "dataSecurityCheckGroups",
+      "dataSecuritySeverities",
+      "dataStoreSensitivities",
+      "dataStoreKinds",
+      "dataStoreProviders",
+      "dataStoreEnvironments",
+      "dataStoreLabels",
+      "dataCategories",
     ]);
     expect(new Set(AI_RULE_CRITERIA_FIELDS).size).toBe(
       AI_RULE_CRITERIA_FIELDS.length,
@@ -148,7 +158,7 @@ describe("isAiRuleTriggerEntity", () => {
 describe("getAiRuleCriteriaProblem", () => {
   test("an unknown trigger entity type is refused, naming the allowed ones", () => {
     const expected: string =
-      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric.";
+      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue.";
 
     expect(getAiRuleCriteriaProblem({ triggerEntityType: "Monitor" })).toBe(
       expected,
@@ -377,7 +387,7 @@ describe("getAiRuleCriteriaProblem", () => {
         criteria: { filters: [{ field: "services" }] },
       }),
     ).toBe(
-      "Services can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+      "Services can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules, metric AI rules or Data Security AI rules.",
     );
     expect(
       getAiRuleCriteriaProblem({
@@ -385,7 +395,7 @@ describe("getAiRuleCriteriaProblem", () => {
         values: { serviceLabels: [{ _id: "x" }] },
       }),
     ).toBe(
-      "Service Labels can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+      "Service Labels can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules, metric AI rules or Data Security AI rules.",
     );
     expect(
       getAiRuleCriteriaProblem({
@@ -393,7 +403,7 @@ describe("getAiRuleCriteriaProblem", () => {
         values: { serviceNamePattern: "checkout" },
       }),
     ).toBe(
-      "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+      "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules, metric AI rules or Data Security AI rules.",
     );
   });
 

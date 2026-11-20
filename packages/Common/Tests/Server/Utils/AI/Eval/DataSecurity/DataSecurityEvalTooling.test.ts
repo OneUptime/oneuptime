@@ -46,7 +46,15 @@ describe("which features a pull request's changes run", () => {
     ],
     [
       "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt.ts",
-      [DataSecurityAiFeature.ExplainIssue, DataSecurityAiFeature.FixIssue],
+      [
+        DataSecurityAiFeature.ExplainIssue,
+        DataSecurityAiFeature.AnalyzeIssue,
+        DataSecurityAiFeature.FixIssue,
+      ],
+    ],
+    [
+      "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
+      [DataSecurityAiFeature.AnalyzeIssue],
     ],
     [
       "packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts",
@@ -88,6 +96,7 @@ describe("which features a pull request's changes run", () => {
       ]),
     ).toEqual([
       DataSecurityAiFeature.ExplainIssue,
+      DataSecurityAiFeature.AnalyzeIssue,
       DataSecurityAiFeature.FixIssue,
       DataSecurityAiFeature.AskAi,
     ]);

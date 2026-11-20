@@ -1109,6 +1109,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_ISSUE_VIEW_TIMELINE]: `issues/${RouteParams.ModelID}/timeline`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_AUDIT_LOGS]: `issues/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_SECURITY_ISSUE_VIEW_DELETE]: `issues/${RouteParams.ModelID}/delete`,
+  [PageMap.DATA_SECURITY_AI]: "ai",
   [PageMap.DATA_SECURITY_SENSITIVE_DATA]: "sensitive-data",
   [PageMap.DATA_SECURITY_TELEMETRY]: "telemetry",
   [PageMap.DATA_SECURITY_FLOWS]: "flows",
@@ -8917,6 +8918,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_COMPLIANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_AI]
     }`,
   ),
 
