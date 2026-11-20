@@ -66,20 +66,11 @@ const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> =
  * (AmazonSesRoleSetupPanel, #7378).
  */
 const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> =
-  getProjectSmtpConfigFormFields().map(
-    (field: ModelField<ProjectSmtpConfig>): ModelField<ProjectSmtpConfig> => {
-      if (!field.field?.amazonSesRoleArn) {
-        return field;
-      }
-
-      return {
-        ...field,
-        getFooterElement: (): ReactElement => {
-          return <AmazonSesRoleSetupPanel />;
-        },
-      };
+  getProjectSmtpConfigFormFields({
+    getAmazonSesRoleSetup: (): ReactElement => {
+      return <AmazonSesRoleSetupPanel />;
     },
-  );
+  });
 
 /*
  * The providers, as the table's filter offers them: by the name people

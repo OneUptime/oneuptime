@@ -1231,6 +1231,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Notification/API/WhatsApp.ts": 3,
         "packages/App/FeatureSet/Notification/API/Telegram.ts": 3,
         "packages/App/FeatureSet/Notification/API/PushRelay.ts": 2,
+        /*
+         * #7378: SMTPConfig.ts also registers GET /aws-role-setup - what a
+         * project's Amazon SES config makes its IAM role with (the
+         * principal to trust, the project's email external id, a trust
+         * policy) - so it reads, and is no decision here. Its POST /test
+         * checks a role config's role afresh before it sends, as every
+         * test send of how OneUptime reaches people does.
+         */
         "packages/App/FeatureSet/Notification/API/SMTPConfig.ts": 1,
       },
     ),

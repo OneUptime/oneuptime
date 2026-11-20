@@ -29,6 +29,7 @@ import type { RadioButton } from "../RadioButtons/GroupRadioButtons";
 import Field, { FormFieldCollapsibleSection } from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../Forms/Types/FormStep";
+import type { ReactElement } from "react";
 import FormValues from "../Forms/Types/FormValues";
 import {
   getAdvancedFormSection,
@@ -1262,6 +1263,74 @@ export const getProjectSmtpServerSection: () => FormFieldCollapsibleSection<Proj
     });
   };
 
+// When a field of Amazon SES's step is shown: always, when left out.
+interface AmazonSesFieldOptions<TEntity> {
+  showIf?: ((values: FormValues<TEntity>) => boolean) | undefined;
+}
+
+// Amazon SES's access key ID.
+export const getAmazonSesAccessKeyIdField: <TEntity>(
+  options?: AmazonSesFieldOptions<TEntity>,
+) => Field<TEntity> = <TEntity>(
+  options: AmazonSesFieldOptions<TEntity> = {},
+): Field<TEntity> => {
+  return {
+    field: { amazonSesAccessKeyId: true } as SelectFormFields<TEntity>,
+    title: "Access Key ID",
+    stepId: "amazon-ses",
+    fieldType: FormFieldSchemaType.Text,
+    required: true,
+    placeholder: "AKIAIOSFODNN7EXAMPLE",
+    description: AMAZON_SES_ACCESS_KEY_ID_DESCRIPTION,
+    disableSpellCheck: true,
+    ...(options.showIf ? { showIf: options.showIf } : {}),
+  };
+};
+
+// The secret that goes with it.
+export const getAmazonSesSecretAccessKeyField: <TEntity>(
+  options?: AmazonSesFieldOptions<TEntity>,
+) => Field<TEntity> = <TEntity>(
+  options: AmazonSesFieldOptions<TEntity> = {},
+): Field<TEntity> => {
+  return {
+    field: { amazonSesSecretAccessKey: true } as SelectFormFields<TEntity>,
+    title: "Secret Access Key",
+    stepId: "amazon-ses",
+    fieldType: FormFieldSchemaType.EncryptedText,
+    required: true,
+    placeholder: "Secret access key",
+    description: AMAZON_SES_SECRET_ACCESS_KEY_DESCRIPTION,
+    disableSpellCheck: true,
+    ...(options.showIf ? { showIf: options.showIf } : {}),
+  };
+};
+
+// The Region the sender's identity is verified in, checked to be one.
+export const getAmazonSesRegionField: <TEntity>() => Field<TEntity> = <
+  TEntity,
+>(): Field<TEntity> => {
+  return {
+    field: { amazonSesRegion: true } as SelectFormFields<TEntity>,
+    title: "Region",
+    stepId: "amazon-ses",
+    fieldType: FormFieldSchemaType.Text,
+    required: true,
+    placeholder: "us-east-1",
+    description: AMAZON_SES_REGION_DESCRIPTION,
+    disableSpellCheck: true,
+    customValidation: (values: FormValues<TEntity>): string | null => {
+      const region: unknown = readSmtpFormValue(values, "amazonSesRegion");
+
+      if (!region || isAwsRegion(String(region))) {
+        return null;
+      }
+
+      return AMAZON_SES_REGION_INVALID;
+    },
+  };
+};
+
 /*
  * An Amazon SES config: the IAM access key and the Region. Its own step,
  * on a project's form and on the instance's Amazon SES card alike.
@@ -1270,45 +1339,9 @@ export const getAmazonSesFormFields: <TEntity>() => Array<Field<TEntity>> = <
   TEntity,
 >(): Array<Field<TEntity>> => {
   return [
-    {
-      field: { amazonSesAccessKeyId: true } as SelectFormFields<TEntity>,
-      title: "Access Key ID",
-      stepId: "amazon-ses",
-      fieldType: FormFieldSchemaType.Text,
-      required: true,
-      placeholder: "AKIAIOSFODNN7EXAMPLE",
-      description: AMAZON_SES_ACCESS_KEY_ID_DESCRIPTION,
-      disableSpellCheck: true,
-    },
-    {
-      field: { amazonSesSecretAccessKey: true } as SelectFormFields<TEntity>,
-      title: "Secret Access Key",
-      stepId: "amazon-ses",
-      fieldType: FormFieldSchemaType.EncryptedText,
-      required: true,
-      placeholder: "Secret access key",
-      description: AMAZON_SES_SECRET_ACCESS_KEY_DESCRIPTION,
-      disableSpellCheck: true,
-    },
-    {
-      field: { amazonSesRegion: true } as SelectFormFields<TEntity>,
-      title: "Region",
-      stepId: "amazon-ses",
-      fieldType: FormFieldSchemaType.Text,
-      required: true,
-      placeholder: "us-east-1",
-      description: AMAZON_SES_REGION_DESCRIPTION,
-      disableSpellCheck: true,
-      customValidation: (values: FormValues<TEntity>): string | null => {
-        const region: unknown = readSmtpFormValue(values, "amazonSesRegion");
-
-        if (!region || isAwsRegion(String(region))) {
-          return null;
-        }
-
-        return AMAZON_SES_REGION_INVALID;
-      },
-    },
+    getAmazonSesAccessKeyIdField<TEntity>(),
+    getAmazonSesSecretAccessKeyField<TEntity>(),
+    getAmazonSesRegionField<TEntity>(),
   ];
 };
 
@@ -1355,6 +1388,22 @@ export const getGlobalAmazonSesFormFields: () => Array<
   ];
 };
 
+// Whether a project's Amazon SES config signs in with its access key: not with its role.
+export const usesProjectAmazonSesAccessKey: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return !usesProjectAmazonSesRole(values);
+};
+
+/*
+ * What a project's form draws under the Role ARN: the Dashboard's panel of
+ * what to make the role with (AmazonSesRoleSetupPanel). The builder stays
+ * React-free, so the page hands it in.
+ */
+export interface ProjectSmtpConfigFormOptions {
+  getAmazonSesRoleSetup?: (() => ReactElement | undefined) | undefined;
+}
+
 /*
  * A project's Amazon SES step (#7378): how it signs in first - its access
  * key, or an IAM role in the project's own AWS account - then the access
@@ -1365,30 +1414,11 @@ export const getGlobalAmazonSesFormFields: () => Array<
  * Dashboard draws what to make the role with: the project's external id and
  * a trust policy to copy (AmazonSesRoleSetupPanel, which asks the server).
  */
-export const getProjectAmazonSesFormFields: () => Array<
-  Field<ProjectSmtpConfig>
-> = (): Array<Field<ProjectSmtpConfig>> => {
-  const usesAccessKey: (values: FormValues<ProjectSmtpConfig>) => boolean = (
-    values: FormValues<ProjectSmtpConfig>,
-  ): boolean => {
-    return !usesProjectAmazonSesRole(values);
-  };
-
-  const keyAndRegion: Array<Field<ProjectSmtpConfig>> =
-    getAmazonSesFormFields<ProjectSmtpConfig>();
-  const region: Field<ProjectSmtpConfig> = keyAndRegion.find(
-    (field: Field<ProjectSmtpConfig>): boolean => {
-      return Boolean(field.field && field.field.amazonSesRegion);
-    },
-  )!;
-  const accessKey: Array<Field<ProjectSmtpConfig>> = keyAndRegion
-    .filter((field: Field<ProjectSmtpConfig>): boolean => {
-      return field !== region;
-    })
-    .map((field: Field<ProjectSmtpConfig>): Field<ProjectSmtpConfig> => {
-      return { ...field, showIf: usesAccessKey };
-    });
-
+export const getProjectAmazonSesFormFields: (
+  options?: ProjectSmtpConfigFormOptions,
+) => Array<Field<ProjectSmtpConfig>> = (
+  options: ProjectSmtpConfigFormOptions = {},
+): Array<Field<ProjectSmtpConfig>> => {
   return [
     {
       field: { amazonSesAuthenticationType: true },
@@ -1403,7 +1433,12 @@ export const getProjectAmazonSesFormFields: () => Array<
       description: AMAZON_SES_AUTHENTICATION_TYPE_DESCRIPTION,
       dataTestId: "amazon-ses-authentication-type",
     },
-    ...accessKey,
+    getAmazonSesAccessKeyIdField<ProjectSmtpConfig>({
+      showIf: usesProjectAmazonSesAccessKey,
+    }),
+    getAmazonSesSecretAccessKeyField<ProjectSmtpConfig>({
+      showIf: usesProjectAmazonSesAccessKey,
+    }),
     {
       field: { amazonSesRoleArn: true },
       title: "Role ARN",
@@ -1425,8 +1460,11 @@ export const getProjectAmazonSesFormFields: () => Array<
 
         return AMAZON_SES_ROLE_ARN_INVALID;
       },
+      ...(options.getAmazonSesRoleSetup
+        ? { getFooterElement: options.getAmazonSesRoleSetup }
+        : {}),
     },
-    region,
+    getAmazonSesRegionField<ProjectSmtpConfig>(),
   ];
 };
 
@@ -1638,9 +1676,11 @@ const withStoredCredentialRule: (
  * A project's Custom SMTP config: the provider first, its Name beside it,
  * then the step of the provider picked, then who the mail comes from.
  */
-export const getProjectSmtpConfigFormFields: () => Array<
-  Field<ProjectSmtpConfig>
-> = (): Array<Field<ProjectSmtpConfig>> => {
+export const getProjectSmtpConfigFormFields: (
+  options?: ProjectSmtpConfigFormOptions,
+) => Array<Field<ProjectSmtpConfig>> = (
+  options: ProjectSmtpConfigFormOptions = {},
+): Array<Field<ProjectSmtpConfig>> => {
   const columns: SmtpConfigFormColumns<ProjectSmtpConfig> =
     PROJECT_SMTP_CONFIG_FORM_COLUMNS;
   const providerSection: FormFieldCollapsibleSection<ProjectSmtpConfig> =
@@ -1814,7 +1854,7 @@ export const getProjectSmtpConfigFormFields: () => Array<
       description: SMTP_OAUTH_SCOPE_DESCRIPTION,
       disableSpellCheck: true,
     },
-    ...getProjectAmazonSesFormFields(),
+    ...getProjectAmazonSesFormFields(options),
     ...getSendGridFormFields<ProjectSmtpConfig>(),
     ...getMailgunFormFields<ProjectSmtpConfig>(),
     ...getPostmarkFormFields<ProjectSmtpConfig>(),

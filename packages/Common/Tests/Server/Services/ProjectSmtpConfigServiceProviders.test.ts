@@ -1,12 +1,20 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig";
-import ProjectSmtpConfigService from "../../../Server/Services/ProjectSmtpConfigService";
+import ProjectSmtpConfigService, {
+  Service as ProjectSmtpConfigServiceClass,
+} from "../../../Server/Services/ProjectSmtpConfigService";
 import { PROJECT_SMTP_CONFIG_SEND_SELECT } from "../../../Server/Utils/Mail/ProjectSmtpConfigSelect";
 import Email from "../../../Types/Email";
 import EmailServer from "../../../Types/Email/EmailServer";
 import MailgunRegion from "../../../Types/Email/MailgunRegion";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  AMAZON_SES_AUTHENTICATION_TYPE_INVALID,
+  AMAZON_SES_ROLE_ARN_INVALID,
+  AMAZON_SES_ROLE_REGION_REQUIRED,
+} from "../../../Types/Email/AmazonSesRoleWords";
+import ProjectAmazonSesAuthenticationType from "../../../Types/Email/ProjectAmazonSesAuthenticationType";
 import Hostname from "../../../Types/API/Hostname";
 import Port from "../../../Types/Port";
 import {
@@ -100,7 +108,10 @@ describe("each provider is sent with its own key alone", () => {
   });
 
   test("Amazon SES: never the server's IAM role, whatever the row holds - a project's config signs in with its own key (#7000)", () => {
-    // A project's config has no such column; a value set on the row anyway is not read.
+    /*
+     * A project's column holds its own values (#7378: Access Key or IAM
+     * Role); the server's, written on the row anyway, reads as the key.
+     */
     const row: ProjectSmtpConfig = config({
       transportType: MailTransportType.AmazonSES,
     });
@@ -302,6 +313,8 @@ describe("what a send reads of a config (PROJECT_SMTP_CONFIG_SEND_SELECT)", () =
     expect(Object.keys(PROJECT_SMTP_CONFIG_SEND_SELECT).sort()).toEqual(
       [
         "_id",
+        // Whose config it is: an Amazon SES role's external id is derived from it (#7378).
+        "projectId",
         "transportType",
         "hostname",
         "port",
@@ -319,6 +332,8 @@ describe("what a send reads of a config (PROJECT_SMTP_CONFIG_SEND_SELECT)", () =
         "amazonSesAccessKeyId",
         "amazonSesSecretAccessKey",
         "amazonSesRegion",
+        "amazonSesAuthenticationType",
+        "amazonSesRoleArn",
         "sendgridApiKey",
         "mailgunApiKey",
         "mailgunDomain",
@@ -359,5 +374,366 @@ describe("what a send reads of a config (PROJECT_SMTP_CONFIG_SEND_SELECT)", () =
         encrypted: false,
       });
     }
+  });
+});
+
+/*
+ * A PROJECT'S AMAZON SES CONFIG THAT SIGNS IN WITH AN IAM ROLE IN ITS OWN AWS
+ * ACCOUNT (#7378): sent with the role's ARN, its Region and the row's own
+ * project - never a key - and written only with a role that can be signed
+ * in to.
+ */
+describe("Amazon SES with an IAM role in the project's own account", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "66666666-7777-4888-8999-000000000000",
+  );
+  const ROLE: string = "arn:aws:iam::210987654321:role/OneUptimeSes";
+
+  function roleConfig(values: ConfigValues = {}): ProjectSmtpConfig {
+    return config({
+      projectId: PROJECT_ID,
+      transportType: MailTransportType.AmazonSES,
+      amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
+      amazonSesRoleArn: ` ${ROLE} `,
+      amazonSesRegion: " EU-West-1 ",
+      ...values,
+    });
+  }
+
+  test("is sent with its role, its Region and the row's own project, and no key - whatever the row still holds", () => {
+    const emailServer: EmailServer =
+      ProjectSmtpConfigService.toEmailServer(roleConfig())!;
+
+    expect(emailServer.id?.toString()).toBe(ID.toString());
+    expect(credentialsOf(emailServer)).toEqual({
+      awsRoleArn: ROLE,
+      awsRoleProjectId: PROJECT_ID.toString(),
+      awsRegion: "eu-west-1",
+    });
+    expect(emailServer.awsAuthenticationType).toBeUndefined();
+  });
+
+  test("is refused without a role it can sign in to, a Region, or the project it belongs to", () => {
+    for (const [values, refusal] of [
+      [{ amazonSesRoleArn: undefined }, AMAZON_SES_ROLE_ARN_INVALID],
+      [
+        { amazonSesRoleArn: "arn:aws:iam::210987654321:user/OneUptime" },
+        AMAZON_SES_ROLE_ARN_INVALID,
+      ],
+      [{ amazonSesRegion: undefined }, AMAZON_SES_ROLE_REGION_REQUIRED],
+      [
+        { amazonSesRegion: "email.us-east-1.amazonaws.com" },
+        AMAZON_SES_ROLE_REGION_REQUIRED,
+      ],
+      [
+        { projectId: undefined },
+        "This SMTP config was read without its project, so its Amazon SES role cannot be signed in to.",
+      ],
+    ] as Array<[ConfigValues, string]>) {
+      expect(() => {
+        return ProjectSmtpConfigService.toEmailServer(roleConfig(values));
+      }).toThrow(refusal);
+    }
+  });
+
+  test("an access key config is read as it always was, a role ARN beside it or not", () => {
+    for (const type of [
+      ProjectAmazonSesAuthenticationType.AccessKey,
+      undefined,
+      "Server IAM Role",
+      "IAM role",
+    ]) {
+      const emailServer: EmailServer = ProjectSmtpConfigService.toEmailServer(
+        roleConfig({
+          amazonSesAuthenticationType:
+            type as ProjectAmazonSesAuthenticationType,
+        }),
+      )!;
+
+      expect(credentialsOf(emailServer)).toEqual({
+        awsAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+        awsSecretAccessKey: "ses-secret",
+        awsRegion: "eu-west-1",
+      });
+    }
+  });
+
+  describe("as it is written (applyAmazonSesAuthenticationRules)", () => {
+    function apply(
+      data: Record<string, unknown>,
+      stored?: Record<string, unknown>,
+    ): Record<string, unknown> {
+      ProjectSmtpConfigServiceClass.applyAmazonSesAuthenticationRules(
+        data,
+        stored,
+      );
+
+      return data;
+    }
+
+    const SES_ROLE: Record<string, unknown> = {
+      transportType: MailTransportType.AmazonSES,
+      amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
+      amazonSesRoleArn: ROLE,
+      amazonSesRegion: "eu-west-1",
+    };
+
+    test("a project's own values only: the server's role, or anything else, is refused with what it may be", () => {
+      for (const value of [
+        "Server IAM Role",
+        "IAM role",
+        "iam role",
+        "Role",
+        7,
+        true,
+      ]) {
+        expect(() => {
+          return apply({ amazonSesAuthenticationType: value });
+        }).toThrow(AMAZON_SES_AUTHENTICATION_TYPE_INVALID);
+      }
+
+      // Nothing written is an access key; so is an empty one.
+      expect(apply({ amazonSesAuthenticationType: "" })).toEqual({
+        amazonSesAuthenticationType:
+          ProjectAmazonSesAuthenticationType.AccessKey,
+      });
+      expect(apply({ name: "Renamed" })).toEqual({ name: "Renamed" });
+    });
+
+    test("signing in with a role clears the access key in the same write", () => {
+      expect(
+        apply({
+          ...SES_ROLE,
+          amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+          amazonSesSecretAccessKey: "ses-secret",
+        }),
+      ).toEqual({
+        ...SES_ROLE,
+        amazonSesAccessKeyId: null,
+        amazonSesSecretAccessKey: null,
+      });
+    });
+
+    test("a role keeps no key: one written to a config that signs in with a role is cleared", () => {
+      expect(
+        apply(
+          {
+            amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+            amazonSesSecretAccessKey: "ses-secret",
+          },
+          SES_ROLE,
+        ),
+      ).toEqual({
+        amazonSesAccessKeyId: null,
+        amazonSesSecretAccessKey: null,
+      });
+    });
+
+    test("a role needs an ARN that is one, and a Region, as stored after the write", () => {
+      expect(() => {
+        return apply({ ...SES_ROLE, amazonSesRoleArn: undefined });
+      }).toThrow(AMAZON_SES_ROLE_ARN_INVALID);
+      expect(() => {
+        return apply({ ...SES_ROLE, amazonSesRoleArn: "OneUptimeSes" });
+      }).toThrow(AMAZON_SES_ROLE_ARN_INVALID);
+      expect(() => {
+        return apply({ ...SES_ROLE, amazonSesRegion: undefined });
+      }).toThrow(AMAZON_SES_ROLE_REGION_REQUIRED);
+      expect(() => {
+        return apply({ ...SES_ROLE, amazonSesRegion: "not a region" });
+      }).toThrow(AMAZON_SES_ROLE_REGION_REQUIRED);
+
+      // The ARN and the Region a config already holds count.
+      expect(
+        apply(
+          {
+            amazonSesAuthenticationType:
+              ProjectAmazonSesAuthenticationType.IamRole,
+          },
+          {
+            transportType: MailTransportType.AmazonSES,
+            amazonSesRoleArn: ROLE,
+            amazonSesRegion: "us-east-1",
+          },
+        ),
+      ).toEqual({
+        amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
+        amazonSesAccessKeyId: null,
+        amazonSesSecretAccessKey: null,
+      });
+
+      // A write that empties a stored role's ARN is refused.
+      expect(() => {
+        return apply({ amazonSesRoleArn: "  " }, SES_ROLE);
+      }).toThrow(AMAZON_SES_ROLE_ARN_INVALID);
+    });
+
+    test("a role ARN written on its own is checked, and trimmed", () => {
+      expect(() => {
+        return apply({ amazonSesRoleArn: "arn:aws:iam::1:role/x" });
+      }).toThrow(AMAZON_SES_ROLE_ARN_INVALID);
+      expect(apply({ amazonSesRoleArn: ` ${ROLE} ` })).toEqual({
+        amazonSesRoleArn: ROLE,
+      });
+    });
+
+    test("an access key config, or a role on another transport, asks for no role", () => {
+      expect(
+        apply({
+          transportType: MailTransportType.AmazonSES,
+          amazonSesAuthenticationType:
+            ProjectAmazonSesAuthenticationType.AccessKey,
+          amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+        }),
+      ).toEqual({
+        transportType: MailTransportType.AmazonSES,
+        amazonSesAuthenticationType:
+          ProjectAmazonSesAuthenticationType.AccessKey,
+        amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE",
+      });
+      expect(
+        apply({
+          transportType: MailTransportType.SendGrid,
+          amazonSesAuthenticationType:
+            ProjectAmazonSesAuthenticationType.IamRole,
+        }),
+      ).toEqual({
+        transportType: MailTransportType.SendGrid,
+        amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
+        amazonSesAccessKeyId: null,
+        amazonSesSecretAccessKey: null,
+      });
+    });
+  });
+
+  describe("on create and update", () => {
+    type Hooks = {
+      onBeforeCreate: (createBy: unknown) => Promise<unknown>;
+      onBeforeUpdate: (updateBy: unknown) => Promise<unknown>;
+    };
+
+    const hooks: Hooks = ProjectSmtpConfigService as unknown as Hooks;
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("a new config that signs in with a role keeps no key", async () => {
+      const created: ProjectSmtpConfig = roleConfig({
+        amazonSesRoleArn: ROLE,
+        amazonSesRegion: "eu-west-1",
+      });
+
+      await hooks.onBeforeCreate({ data: created, props: { isRoot: true } });
+
+      expect(created.amazonSesAccessKeyId).toBeFalsy();
+      expect(created.amazonSesSecretAccessKey).toBeFalsy();
+      expect(created.amazonSesRoleArn).toBe(ROLE);
+    });
+
+    test("a new config that asks for the server's role, or a role it cannot sign in to, is refused", async () => {
+      await expect(
+        hooks.onBeforeCreate({
+          data: roleConfig({
+            amazonSesAuthenticationType:
+              "Server IAM Role" as ProjectAmazonSesAuthenticationType,
+          }),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(AMAZON_SES_AUTHENTICATION_TYPE_INVALID);
+      await expect(
+        hooks.onBeforeCreate({
+          data: roleConfig({ amazonSesRoleArn: undefined }),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(AMAZON_SES_ROLE_ARN_INVALID);
+    });
+
+    test("an update is weighed against the config it changes, and clears its key when it moves to a role", async () => {
+      jest
+        .spyOn(ProjectSmtpConfigService, "findBy")
+        .mockResolvedValue([
+          config({
+            transportType: MailTransportType.AmazonSES,
+            amazonSesRoleArn: ROLE,
+            amazonSesRegion: "eu-west-1",
+          }),
+        ]);
+
+      const data: Record<string, unknown> = {
+        amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
+      };
+
+      await hooks.onBeforeUpdate({
+        query: { _id: ID.toString() },
+        data,
+        props: { isRoot: true },
+      });
+
+      expect(data).toEqual({
+        amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
+        amazonSesAccessKeyId: null,
+        amazonSesSecretAccessKey: null,
+      });
+    });
+
+    test("an update that leaves a config with a role it cannot sign in to is refused", async () => {
+      jest
+        .spyOn(ProjectSmtpConfigService, "findBy")
+        .mockResolvedValue([
+          config({
+            transportType: MailTransportType.AmazonSES,
+            amazonSesRoleArn: undefined,
+          }),
+        ]);
+
+      await expect(
+        hooks.onBeforeUpdate({
+          query: { _id: ID.toString() },
+          data: {
+            amazonSesAuthenticationType:
+              ProjectAmazonSesAuthenticationType.IamRole,
+          },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(AMAZON_SES_ROLE_ARN_INVALID);
+    });
+
+    test("one write is never half done across configs that sign in in different ways", async () => {
+      jest
+        .spyOn(ProjectSmtpConfigService, "findBy")
+        .mockResolvedValue([
+          config({
+            transportType: MailTransportType.AmazonSES,
+            amazonSesAuthenticationType:
+              ProjectAmazonSesAuthenticationType.IamRole,
+            amazonSesRoleArn: ROLE,
+          }),
+          config({ transportType: MailTransportType.AmazonSES }),
+        ]);
+
+      await expect(
+        hooks.onBeforeUpdate({
+          query: { projectId: PROJECT_ID.toString() },
+          data: { amazonSesAccessKeyId: "AKIAIOSFODNN7EXAMPLE" },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        "Change how one SMTP config signs in to Amazon SES at a time: these configs sign in in different ways.",
+      );
+    });
+
+    test("an update that names none of the sign-in's columns reads nothing", async () => {
+      const findBy: jest.SpiedFunction<typeof ProjectSmtpConfigService.findBy> =
+        jest.spyOn(ProjectSmtpConfigService, "findBy");
+
+      await hooks.onBeforeUpdate({
+        query: { _id: ID.toString() },
+        data: { name: "Renamed" },
+        props: { isRoot: true },
+      });
+
+      expect(findBy).not.toHaveBeenCalled();
+    });
   });
 });
