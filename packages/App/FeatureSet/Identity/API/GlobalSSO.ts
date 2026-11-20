@@ -9,11 +9,13 @@ import SamlServiceProviders, {
   SamlServiceProvider,
 } from "../Utils/SamlServiceProvider";
 import {
-  buildMobileSsoSuccessUrl,
   clearMobileSsoIntentCookie,
+  getMobileSsoRelayState,
   isMobileSsoRequest,
+  readMobileSsoFlowId,
   respondToMobileSsoFailure,
-  setMobileSsoIntentCookie,
+  respondToMobileSsoSuccess,
+  startMobileSsoHandOff,
 } from "../Utils/MobileSso";
 import SsoTeamMembership, {
   SsoTeamMembershipOutcome,
@@ -187,8 +189,26 @@ router.get(
        * dropping them on the web dashboard, where the app cannot reach the
        * session.
        */
+      let mobileFlowId: string | null = null;
+
       if (isMobileRequest) {
-        setMobileSsoIntentCookie(res, globalSso.id!);
+        /*
+         * The app's state and PKCE challenge, kept for the round trip
+         * (#9989): its flow rides in RelayState and in the intent cookie.
+         */
+        const handOff: { flowId: string | null } | null =
+          await startMobileSsoHandOff({
+            req,
+            res,
+            providerId: globalSso.id!,
+            rememberInCookie: true,
+          });
+
+        if (!handOff) {
+          return;
+        }
+
+        mobileFlowId = handOff.flowId;
       }
 
       // The same Entity ID and Reply URL the response is held to.
@@ -202,7 +222,10 @@ router.get(
       });
 
       if (isMobileRequest) {
-        samlRequestUrl.addQueryParam("RelayState", "mobile");
+        samlRequestUrl.addQueryParam(
+          "RelayState",
+          getMobileSsoRelayState(mobileFlowId),
+        );
       }
 
       return Response.redirect(req, res, samlRequestUrl);
@@ -342,6 +365,11 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       req,
       providerId: globalSsoId,
     });
+
+    // And the hand-off flow it carries (#9989), read before the cookie goes.
+    const mobileFlowId: string | null = isMobileRequest
+      ? readMobileSsoFlowId({ req, providerId: globalSsoId })
+      : null;
 
     /*
      * The intent has been read into `isMobileRequest`; drop the cookie now so
@@ -883,29 +911,33 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         expiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
       });
 
-      /*
-       * Built through the shared helper so the SAML and OIDC routers cannot
-       * drift apart on the param names the mobile app parses. The single
-       * global SSO token is sent back as `globalSsoToken`; the app replays it
-       * on every request as the `x-global-sso-token` header.
-       */
-      const deepLinkUrl: string = buildMobileSsoSuccessUrl({
-        accessToken,
-        refreshToken: sessionMetadata.refreshToken,
-        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-        userId: alreadySavedUser.id!.toString(),
-        email: alreadySavedUser.email!.toString(),
-        name: alreadySavedUser.name?.toString() || "",
-        isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
-        globalSsoToken,
-      });
-
       logger.info(
         "User logged in with Global SSO (mobile): " + email.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return res.redirect(deepLinkUrl);
+      /*
+       * Handed back through the shared helper so the SAML and OIDC routers
+       * cannot drift apart on what the mobile app reads: a one-time code it
+       * redeems with its PKCE verifier, or - for an app from before #9989 -
+       * the deep link that carries the session. The single global SSO token
+       * is handed back as `globalSsoToken`; the app replays it on every
+       * request as the `x-global-sso-token` header.
+       */
+      return respondToMobileSsoSuccess({
+        res,
+        flowId: mobileFlowId,
+        signIn: {
+          accessToken,
+          refreshToken: sessionMetadata.refreshToken,
+          refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+          userId: alreadySavedUser.id!.toString(),
+          email: alreadySavedUser.email!.toString(),
+          name: alreadySavedUser.name?.toString() || "",
+          isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
+          globalSsoToken,
+        },
+      });
     }
 
     // Web: mint the standard user cookie + the single global SSO cookie.

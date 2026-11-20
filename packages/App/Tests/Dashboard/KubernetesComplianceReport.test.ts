@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { ComplianceRequirementStatus } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
 import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 import {
+  KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
   KubernetesComplianceTurnedOff,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
@@ -13,28 +14,39 @@ import {
   KubernetesComplianceRequirementResult,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceScoring";
 import {
+  ACCEPTANCE_EXPIRY_OPTIONS,
   BINDING_COUNT,
+  KubernetesAcceptanceExpiry,
   NAMESPACE_COUNT,
   NOT_EVALUATED_REASONS,
   ROLE_COUNT,
   SERVICE_ACCOUNT_COUNT,
   WORKLOAD_COUNT,
+  findAcceptanceEntry,
   findTurnedOff,
+  getAcceptanceExpiryDate,
+  getAcceptanceExpiryLine,
+  getAcceptedLine,
   getFailingControlCount,
   getFailingCountTemplate,
+  getKubernetesAcceptanceKey,
   getKubernetesSwitchKey,
   getNamespaceRows,
   getObjectName,
+  isAcceptanceRow,
   isSwitchOn,
+  sortAcceptancesForPage,
   sortControlsForPage,
 } from "../../FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceModel";
 import {
+  describeAcceptance,
   describeDetail,
   describeFinding,
   describeKubernetesTurnedOff,
   getKubernetesFrameworkReport,
   getKubernetesFrameworkReportCsv,
 } from "../../FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceExport";
+import { createTranslator } from "Common/Types/Translator";
 
 /*
  * A CLUSTER'S HARDENING, AS ITS PAGE AND ITS REPORTS SAY IT (#9627): the
@@ -311,7 +323,7 @@ describe("the CSV report", () => {
     const lines: Array<string> = csv.split("\r\n");
 
     expect(lines[0]).toBe(
-      "Framework,Control,Title,Status,Note,Failing,What Fails,How to Fix,Turned Off",
+      "Framework,Control,Title,Status,Note,Failing,What Fails,How to Fix,Turned Off,Accepted,Accepted Findings",
     );
     expect(lines).toHaveLength(6);
     expect(lines[1]).toContain("PSS Baseline,HostProcess,HostProcess,Passing");
@@ -442,5 +454,252 @@ describe("the JSON report", () => {
       reason: "NodeAccess",
       why: "Needs access to the nodes: file permissions and the kubelet's configuration.",
     });
+  });
+});
+
+/*
+ * #9874 and #9880, as the page and the reports say them: a finding accepted
+ * for one object, by whom, why and until when, in both exports; and a
+ * workload read from its pod template, as it runs no pod.
+ */
+function acceptanceOf(
+  data: Partial<KubernetesComplianceAcceptanceEntry> = {},
+): KubernetesComplianceAcceptanceEntry {
+  return {
+    id: "accept-1",
+    framework: BASELINE,
+    requirement: "Privileged Containers",
+    object: { kind: "DaemonSet", namespace: "kube-system", name: "cilium" },
+    note: "Cilium's agent programs the node's network.",
+    acceptedAt: "2026-11-12T09:00:00.000Z",
+    acceptedBy: "Jane Doe",
+    expiresAt: "2027-02-12T09:00:00.000Z",
+    isExpired: false,
+    isOnCluster: true,
+    ...data,
+  };
+}
+
+describe("accepted findings and templates in the reports", () => {
+  test("a workload read from its pod template says so", () => {
+    expect(
+      describeFinding({
+        object: { kind: "CronJob", namespace: "ops", name: "backup" },
+        details: [{ field: "hostNetwork", value: "true" }],
+        isFromTemplate: true,
+      }),
+    ).toBe(
+      "CronJob ops/backup (from its pod template, no pod running): hostNetwork=true",
+    );
+  });
+
+  test("an acceptance: its object, whether for every control, by whom, when, until when and why", () => {
+    expect(describeAcceptance(acceptanceOf())).toBe(
+      "DaemonSet kube-system/cilium, accepted by Jane Doe on 2026-11-12, until 2027-02-12: Cilium's agent programs the node's network.",
+    );
+    expect(
+      describeAcceptance(
+        acceptanceOf({
+          requirement: null,
+          acceptedBy: null,
+          expiresAt: "2026-11-01T00:00:00.000Z",
+          isExpired: true,
+          isOnCluster: false,
+          note: "",
+        }),
+      ),
+    ).toBe(
+      "DaemonSet kube-system/cilium, every control, accepted on 2026-11-12, expired 2026-11-01, not on the cluster now",
+    );
+  });
+
+  test("the CSV lists a control's accepted findings, and how many, beside what fails it", () => {
+    const csv: string = getKubernetesFrameworkReportCsv(
+      frameworkOf({
+        acceptances: [acceptanceOf()],
+        requirements: [
+          requirement({
+            requirement: "Privileged Containers",
+            status: ComplianceRequirementStatus.Failing,
+            failingCount: 1,
+            findings: [KUBE_PROXY],
+            acceptedCount: 1,
+            accepted: [
+              {
+                object: {
+                  kind: "DaemonSet",
+                  namespace: "kube-system",
+                  name: "cilium",
+                },
+                details: [],
+                podCount: 2,
+                acceptanceId: "accept-1",
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    const line: string = csv.split("\r\n")[1]!;
+
+    expect(line).toContain(
+      "1,\"DaemonSet kube-system/cilium, accepted by Jane Doe on 2026-11-12, until 2027-02-12: Cilium's agent programs the node's network.\"",
+    );
+  });
+
+  test("the JSON keeps every acceptance - expired and gone ones too - and what the framework read from templates", () => {
+    const report: Record<string, unknown> = getKubernetesFrameworkReport(
+      {
+        clusterId: "c",
+        kubernetesVersion: "1.31",
+        standardVersion: "1.31",
+        provider: null,
+      },
+      frameworkOf({
+        workloadsFromTemplates: 2,
+        acceptedCount: 1,
+        acceptances: [
+          acceptanceOf(),
+          acceptanceOf({ id: "accept-2", isExpired: true }),
+        ],
+      }),
+      new Date("2026-11-19T10:00:00.000Z"),
+    );
+
+    expect(report["workloadsFromTemplates"]).toBe(2);
+    expect(report["acceptedCount"]).toBe(1);
+    expect(
+      (report["acceptances"] as Array<Record<string, unknown>>).map(
+        (entry: Record<string, unknown>) => {
+          return [entry["id"], entry["isExpired"]];
+        },
+      ),
+    ).toEqual([
+      ["accept-1", false],
+      ["accept-2", true],
+    ]);
+  });
+});
+
+describe("an acceptance, as the page says it", () => {
+  const translator: ReturnType<typeof createTranslator> = createTranslator(
+    (key: string): string => {
+      return key;
+    },
+  );
+
+  test("its key names its framework, its control - or none - and its object", () => {
+    expect(
+      getKubernetesAcceptanceKey({
+        framework: BASELINE,
+        requirement: " Privileged Containers ",
+        object: { kind: "DaemonSet", namespace: "kube-system", name: "cilium" },
+      }),
+    ).toBe("PSS Baseline|Privileged Containers|DaemonSet|kube-system|cilium");
+    expect(
+      getKubernetesAcceptanceKey({
+        framework: CIS,
+        requirement: null,
+        object: { kind: "ClusterRoleBinding", namespace: "", name: "admin" },
+      }),
+    ).toBe("CIS Kubernetes||ClusterRoleBinding||admin");
+  });
+
+  test("a setting's row that names an object is an acceptance, never a switch", () => {
+    expect(isAcceptanceRow({ objectName: "cilium" })).toBe(true);
+    expect(isAcceptanceRow({ objectName: "  " })).toBe(false);
+    expect(isAcceptanceRow({})).toBe(false);
+  });
+
+  test("an accepted finding finds the acceptance it is under", () => {
+    const framework: KubernetesComplianceFrameworkResponse = frameworkOf({
+      acceptances: [acceptanceOf()],
+    });
+
+    expect(findAcceptanceEntry(framework, "accept-1")?.note).toBe(
+      "Cilium's agent programs the node's network.",
+    );
+    expect(findAcceptanceEntry(framework, "nope")).toBeUndefined();
+    expect(findAcceptanceEntry(frameworkOf(), "accept-1")).toBeUndefined();
+  });
+
+  test("who accepted it and when, and until when, in the reader's words", () => {
+    expect(getAcceptedLine(acceptanceOf(), translator)).toMatch(
+      /^Accepted by Jane Doe on /,
+    );
+    expect(
+      getAcceptedLine(acceptanceOf({ acceptedBy: null }), translator),
+    ).toMatch(/^Accepted on /);
+    expect(
+      getAcceptedLine(acceptanceOf({ acceptedAt: null }), translator),
+    ).toBe("Accepted");
+    expect(getAcceptanceExpiryLine(acceptanceOf(), translator)).toMatch(
+      /^Fails again on /,
+    );
+    expect(
+      getAcceptanceExpiryLine(acceptanceOf({ isExpired: true }), translator),
+    ).toMatch(/^Expired on .*: it fails again\.$/);
+    expect(
+      getAcceptanceExpiryLine(acceptanceOf({ expiresAt: null }), translator),
+    ).toBeNull();
+  });
+
+  test("the fold lists those in force first, then the expired, then the gone, the latest first", () => {
+    expect(
+      sortAcceptancesForPage([
+        acceptanceOf({ id: "gone", isOnCluster: false }),
+        acceptanceOf({ id: "expired", isExpired: true }),
+        acceptanceOf({ id: "older", acceptedAt: "2026-10-01T00:00:00.000Z" }),
+        acceptanceOf({ id: "newer" }),
+      ]).map((entry: KubernetesComplianceAcceptanceEntry): string => {
+        return entry.id;
+      }),
+    ).toEqual(["newer", "older", "expired", "gone"]);
+  });
+
+  test("the dialog's expiries, from now", () => {
+    const now: Date = new Date("2026-11-19T12:00:00.000Z");
+
+    expect(
+      ACCEPTANCE_EXPIRY_OPTIONS.map(
+        (option: { value: KubernetesAcceptanceExpiry }) => {
+          return option.value;
+        },
+      ),
+    ).toEqual([
+      KubernetesAcceptanceExpiry.Never,
+      KubernetesAcceptanceExpiry.Month,
+      KubernetesAcceptanceExpiry.ThreeMonths,
+      KubernetesAcceptanceExpiry.SixMonths,
+      KubernetesAcceptanceExpiry.Year,
+    ]);
+    expect(
+      getAcceptanceExpiryDate(KubernetesAcceptanceExpiry.Never, now),
+    ).toBeNull();
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.Month,
+        now,
+      )?.toISOString(),
+    ).toBe("2026-12-19T12:00:00.000Z");
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.ThreeMonths,
+        now,
+      )?.toISOString(),
+    ).toBe("2027-02-19T12:00:00.000Z");
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.SixMonths,
+        now,
+      )?.toISOString(),
+    ).toBe("2027-05-19T12:00:00.000Z");
+    expect(
+      getAcceptanceExpiryDate(
+        KubernetesAcceptanceExpiry.Year,
+        now,
+      )?.toISOString(),
+    ).toBe("2027-11-19T12:00:00.000Z");
+    expect(getAcceptanceExpiryDate("someday", now)).toBeNull();
   });
 });

@@ -244,7 +244,13 @@
     "signInWithProvider": "Logg inn med {{name}}",
     "requiredSubtitle": "Denne serveren krever enkel pålogging (SSO).",
     "requiredNotSetUp": "Enkel pålogging er ikke satt opp på denne serveren ennå. Be serveradministratoren om å sette det opp.",
-    "useDifferentEmail": "Bruk en annen e-post"
+    "useDifferentEmail": "Bruk en annen e-post",
+    "lastUsedTitle": "Sist brukt på denne enheten",
+    "forgetLastUsed": "Glem denne leverandøren",
+    "emailLinksPrompt": "Vi kan sende denne adressen SSO-påloggingslenkene til alle organisasjonene den hører til.",
+    "emailLinksButton": "Send meg påloggingslenkene mine",
+    "emailLinksSent": "Hvis denne adressen hører til en organisasjon som bruker enkel pålogging, har vi sendt den SSO-påloggingslenkene.",
+    "emailLinksCaptchaRequired": "Fullfør captchaen før du ber om lenkene."
   },
   "adminLogin": {
     "title": "Logg inn som hovedadministrator",

@@ -112,7 +112,9 @@ As visualizações salvas pertencem ao projeto, então todos nele veem as mesmas
 
 ## Transformar seus registros em gráficos
 
-Mude a lista para **Análises** para contar registros em vez de lê-los. Escolha uma série temporal, uma lista dos principais ou uma tabela; conte cada registro, ou os valores únicos de um campo; e agrupe por gravidade, serviço, traço, span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra os 5, 10, 25 ou 50 primeiros grupos.
+Mude a lista para **Análises** para mostrar os registros em gráficos em vez de lê-los. Escolha uma série temporal, uma lista dos principais ou uma tabela, e o que ela mede: cada registro contado, os valores únicos de um campo, ou a soma, a média, a mediana, o P90, o P95, o P99, o mínimo ou o máximo de um atributo numérico, como o P95 de `duration_ms`. Agrupe por gravidade, serviço, traço, span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra os 5, 10, 25 ou 50 primeiros grupos.
+
+Um atributo numérico só é lido onde seu valor é um número: um inteiro ou um decimal, com ou sem sinal, em notação científica ou não, como `42`, `-7`, `3.14` ou `1e3`. Um registro sem o atributo, ou com qualquer outra coisa nele, como `12ms` ou `n/a`, fica de fora em vez de ser lido como 0. Um percentil é calculado a partir de até 8.192 valores por ponto, então um ponto com mais registros tem uma estimativa próxima em vez do valor exato.
 
 Clique em **Lista** para voltar às próprias linhas.
 

@@ -43,7 +43,8 @@ const RESERVED_NAMES: Array<string> = [
 
 const ALLOWED_NAMES: Array<string> = [
   "oneuptime.telemetry.budgets",
-  "oneuptime.telemetry.usage.bytes.mine",
+  // The usage namespace is reserved too since #6355 (RecordingRuleReservedUsageMetricName).
+  "oneuptime.telemetry.usages",
   "telemetry.budget.used.bytes",
   "checkout.latency.p99",
 ];

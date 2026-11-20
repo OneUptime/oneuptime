@@ -47,7 +47,7 @@ Under **Berörda resurser** väljer du **Monitorer**, **Ändra övervakningsstat
 
 ### Bestäm om den återkommer
 
-Under **Återkommande** låter du **Återkommande händelse** vara avstängd för en mall som du använder manuellt, eller slår på den och fyller i dess schema. Klicka på **Nästa** för att gå igenom granskningen och skapa sedan mallen.
+Under **Återkommande** låter du **Återkommande händelse** vara avstängd för en mall som du använder manuellt, eller slår på den, väljer hur ofta den återkommer och dess **Tidszon** och anger den första händelsens tider under **Första händelsen**. Klicka på **Nästa** för att gå igenom granskningen och skapa sedan mallen.
 :::
 
 En mall frågar efter **Ändra övervakningsstatus till** även när den inte nämner några monitorer: statusen gäller också de monitorer du lägger till när du schemalägger en händelse från den. Under **Andra påverkade resurser** tar en mall värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster.
@@ -83,15 +83,18 @@ När projektet ännu inte har någon mall säger **Skapa från mall** det och l�
 
 ## Återkommande händelser
 
-En återkommande mall skapar händelsen enligt ett schema. Du anger när den första händelsen skapas, när den börjar och när den slutar; varje senare händelse behåller samma avstånd, ett intervall senare.
+En återkommande mall skapar händelsen enligt ett schema. Du anger hur ofta den återkommer, vilken tidszon den håller sig till och när den första händelsen skapas, när den börjar och när den slutar; varje senare händelse är den första flyttad hela intervall framåt i den tidszonens kalender, på samma tider på dygnet.
 
 | Fält                                                     | Vad det betyder                                                                                    |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | **Återkommande händelse**                                | Slår på schemat.                                                                                   |
+| **Hur ofta vill du att den här händelsen ska upprepas?** | Ett tal och en enhet: timmar, dagar, veckor, månader eller år.                                     |
+| **Tidszon**                              | Tidszonen som händelserna behåller sin tid på dygnet i. En ny mall börjar med din.                  |
 | **Första händelsen schemalagd**                          | När OneUptime skapar den första händelsen, och alltså när dess prenumeranter får veta att den är schemalagd. |
 | **Första händelsen börjar**                              | När den första händelsen börjar.                                                                   |
 | **Första händelsen slutar**                              | När den första händelsen slutar.                                                                   |
-| **Hur ofta vill du att den här händelsen ska upprepas?** | Ett tal och en enhet: timmar, dagar, veckor, månader eller år.                                     |
+
+De tre första finns i steget **Återkommande**. Den första händelsens tider finns i steget **Första händelsen**, som visas när **Återkommande händelse** är påslagen.
 
 Till exempel ett veckofönster där den första händelsen skapas en måndag för lördagen därefter:
 
@@ -100,15 +103,25 @@ Till exempel ett veckofönster där den första händelsen skapas en måndag fö
 | Den första   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Den andra    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Varje händelse behåller den första händelsens tider på dygnet i mallens tidszon, även när klockan ställs om för sommartid: ett fönster från 02:00 till 04:00 i Berlin ligger där från 02:00 till 04:00 både på sommaren och på vintern. Några dagar blir så här:
+
+- **En dag som månaden inte har.** En månatlig händelse den 29:e, 30:e eller 31:a infaller på den sista dagen i en kortare månad, till exempel 30 april eller 28 februari, och åter på sin egen dag de månader som har den. En årlig händelse den 29 februari infaller den 28 februari andra år.
+- **Natten då klockan ställs fram.** En tid som inte finns den natten, till exempel 02:30 när 02:00 hoppar till 03:00, flyttas fram med hoppet, till 03:30. En händelse vars start därmed hamnar efter dess slut behåller den första händelsens längd.
+- **Natten då klockan ställs tillbaka.** En tid som inträffar två gånger den natten, till exempel 01:30 i New York, är den första av de två.
+- **Med några timmars mellanrum.** Timmar räknas allteftersom de går, så en mall som återkommer med några timmars mellanrum flyttas en timme på klockan när den ställs om.
+- **En tidszon utan sommartid.** En tidszon som inte längre ställer om klockan, till exempel British Columbias (America/Vancouver) sedan november 2026, behåller samma förskjutning, så inget flyttas.
+
+En mall som skapades innan mallar hade en tidszon visar **UTC**, den tidszon som dess händelser beräknades i fram till dess. Välj den tidszon som dess tider var avsedda i, så behåller varje händelse från dess nästa händelse den första händelsens tid på dygnet där.
+
 Sätt **Första händelsen schemalagd** så långt före starten som du vill att dina kunder ska få höra om arbetet. Alla tre tiderna måste ligga i framtiden när du skapar mallen, händelsen måste skapas innan den börjar och slutar, och den måste börja innan den slutar; formuläret säger vilken regel en tid bryter mot.
 
-Ett jobb kontrollerar de återkommande mallarna varje minut. När en malls nästa tid kommer flyttar det den tiden ett intervall framåt och skapar händelsen. Malllistan visar den tiden i sin kolumn **Återkommande händelse**, och **Nej** för en mall som inte återkommer. En händelse som har skapats från schemat är som vilken annan som helst: dess regler körs, dess ägare läggs till och dess prenumeranter får veta att den är schemalagd.
+Ett jobb kontrollerar de återkommande mallarna varje minut. När en malls nästa tid kommer skapar det händelsen och flyttar den tiden framåt till schemats nästa händelse. Malllistan visar den tiden i sin kolumn **Återkommande händelse**, och **Nej** för en mall som inte återkommer. En händelse som har skapats från schemat är som vilken annan som helst: dess regler körs, dess ägare läggs till och dess prenumeranter får veta att den är schemalagd.
 
 ## Ändra eller stoppa en mall
 
 Öppna en mall från listan för att se dess sida:
 
-- **Malldetaljer för schemalagt underhåll** visar vad nya händelser börjar med. Dess **Redigera** går igenom **Mallinformation**, **Underhållsdetaljer**, **Statussidor** och **Återkommande**.
+- **Malldetaljer för schemalagt underhåll** visar vad nya händelser börjar med. Dess **Redigera** går igenom **Mallinformation**, **Underhållsdetaljer**, **Statussidor** och **Återkommande**, och därefter **Första händelsen** för en mall som återkommer.
 - **Berörda resurser** rymmer dess **Monitorer**, deras **Ändra övervakningsstatus till** och dess **Andra påverkade resurser**, med en egen **Redigera**.
 - **Ägare** listar de personer och team som äger varje händelse som schemaläggs från den.
 
@@ -122,6 +135,10 @@ Alla tre första tiderna måste ligga efter nu när du skapar den. Flytta fram d
 
 :::details En återkommande mall skapade ingen händelse
 Kontrollera att **Återkommande händelse** fortfarande är på, och titta på tiden i listans kolumn **Återkommande händelse**: händelsen skapas då, inte vid sin start. Jobbet körs varje minut, så ge det en minut.
+:::
+
+:::details Händelser från en återkommande mall kommer en timme för tidigt eller för sent efter att klockan ställts om
+Öppna mallen och kontrollera dess **Tidszon**: dess händelser behåller den första händelsens tid på dygnet i den tidszonen. En mall som skapades innan mallar hade en tidszon visar **UTC**: välj den tidszon som dess tider var avsedda i. Händelser som redan har skapats behåller sina tider.
 :::
 
 :::details En händelse från en mall saknar en resurs som jag valde

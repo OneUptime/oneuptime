@@ -24,8 +24,14 @@ import DropMetricModal, {
   DROP_METRIC_MODAL_TEST_ID,
   DROP_UNAVAILABLE_SENTENCES,
   MAX_METRIC_USERS_SHOWN,
+  MAX_WIDGETS_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DropMetricModal";
 import FindingRecordsPanel from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingRecordsPanel";
+import {
+  getMetricRecordingRulesRoute,
+  METRIC_RECORDING_RULES_OUTPUT_FILTER_KEY,
+  METRIC_RECORDING_RULES_TABLE_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/RecordingRule/RecordingRulesRoute";
 import IssueTelemetryFindings, {
   FindingSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueTelemetryFindings";
@@ -97,10 +103,13 @@ jest.mock("react-i18next", () => {
  * offered only on a finding in a metric's name, to a reader who may create
  * metric pipeline rules (locked, saying why, for one who may not), in a
  * dialog that says first that the points are lost for good, how many
- * metrics it drops, which monitors and dashboards read them, that what is
- * stored stays and how to undo it - its button locked until the reader
- * ticks that they understand. Once made, the page names the rule, which
- * opens the pipeline rules, and the finding reads Dropped.
+ * metrics it drops, what reads them - monitors, dashboards with their
+ * widgets, SLOs and recording rules (#9946), each kind saying what happens
+ * to it, each record a link, and the ones the reader can't see counted,
+ * never named - that what is stored stays and how to undo it - its button
+ * locked until the reader ticks that they understand. Once made, the page
+ * names the rule, which opens the pipeline rules, and the finding reads
+ * Dropped.
  *
  * In Your Telemetry's ModelTable is a stand-in that draws the rows with
  * their row actions, as DataSecurityTelemetryFindingRecords.test.tsx does.
@@ -115,6 +124,9 @@ const NAME_FINDING_ID: string = "6f6f6f6f-0000-4000-8000-0000000000f6";
 const ATTRIBUTE_FINDING_ID: string = "5e5e5e5e-0000-4000-8000-0000000000e5";
 const MONITOR_ID: string = "7a7a7a7a-0000-4000-8000-0000000000a7";
 const DASHBOARD_ID: string = "8b8b8b8b-0000-4000-8000-0000000000b8";
+const WIDGET_ID: string = "8b8b8b8b-0000-4000-8000-0000000000c8";
+const SLO_ID: string = "9d9d9d9d-0000-4000-8000-0000000000d9";
+const RECORDING_RULE_ID: string = "9e9e9e9e-0000-4000-8000-0000000000e9";
 const RULE_NAME: string =
   "Data Security: drop metrics named with Email address";
 
@@ -206,12 +218,43 @@ function impactOf(
     isMetricsMatchedCapped: false,
     metricsCounted: true,
     monitors: [{ id: MONITOR_ID, name: "Signups of Jane" }],
-    dashboards: [{ id: DASHBOARD_ID, name: "Growth" }],
+    dashboards: [
+      {
+        id: DASHBOARD_ID,
+        name: "Growth",
+        widgets: [
+          { id: WIDGET_ID, title: "Signups by plan", type: "Chart" },
+          { id: ObjectID.generate().toString(), title: "", type: "Value" },
+        ],
+      },
+    ],
+    slos: [{ id: SLO_ID, name: "Signup success" }],
+    recordingRules: [
+      {
+        id: RECORDING_RULE_ID,
+        name: "Signup rate",
+        outputMetricName: "signup_rate",
+      },
+    ],
     monitorsChecked: true,
     dashboardsChecked: true,
+    slosChecked: true,
+    recordingRulesChecked: true,
+    monitorsHidden: 0,
+    dashboardsHidden: 0,
+    slosHidden: 0,
+    recordingRulesHidden: 0,
     ...overrides,
   };
 }
+
+// Nothing reads them, every kind checked.
+const NO_READERS: Partial<DataSecurityDropMetricImpact> = {
+  monitors: [],
+  dashboards: [],
+  slos: [],
+  recordingRules: [],
+};
 
 function viewRoute(page: PageMap, id: string): string {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
@@ -414,21 +457,72 @@ describe("the dialog says what dropping loses, before it does", () => {
       within(dialog).getByTestId("data-security-drop-metric-count"),
     ).toHaveTextContent("3 metrics written in the last day have such a name.");
 
-    // Each monitor and dashboard that reads them, opening it.
+    // Everything that reads them, kind by kind, each saying what happens to it.
     const users: HTMLElement = within(dialog).getByTestId(
       "data-security-drop-metric-users",
     );
 
     expect(users).toHaveTextContent(
-      "These monitors and dashboards read those metrics, and get no new data from them:",
+      "What reads those metrics gets no new data from them:",
+    );
+
+    const monitors: HTMLElement = within(users).getByTestId(
+      "data-security-drop-metric-monitors",
+    );
+
+    expect(monitors).toHaveTextContent("Monitors");
+    expect(monitors).toHaveTextContent(
+      "They get no new data from those metrics, so they can no longer alert on their values.",
     );
     expect(
-      within(users).getByRole("link", { name: "Signups of Jane" }),
+      within(monitors).getByRole("link", { name: "Signups of Jane" }),
     ).toHaveAttribute("href", viewRoute(PageMap.MONITOR_VIEW, MONITOR_ID));
-    expect(within(users).getByRole("link", { name: "Growth" })).toHaveAttribute(
-      "href",
-      viewRoute(PageMap.DASHBOARD_VIEW, DASHBOARD_ID),
+
+    // A dashboard opens it, with the widgets on it that read them named under it.
+    const dashboards: HTMLElement = within(users).getByTestId(
+      "data-security-drop-metric-dashboards",
     );
+
+    expect(dashboards).toHaveTextContent(
+      "The widgets named under each show no new data from those metrics.",
+    );
+    expect(
+      within(dashboards).getByRole("link", { name: "Growth" }),
+    ).toHaveAttribute("href", viewRoute(PageMap.DASHBOARD_VIEW, DASHBOARD_ID));
+    expect(
+      within(dashboards).getByTestId("data-security-drop-metric-widgets"),
+    ).toHaveTextContent(/Signups by plan.*Value/);
+
+    const slos: HTMLElement = within(users).getByTestId(
+      "data-security-drop-metric-slos",
+    );
+
+    expect(slos).toHaveTextContent("SLOs");
+    expect(slos).toHaveTextContent(
+      "They count no new events from those metrics, so their error budgets no longer include them.",
+    );
+    expect(
+      within(slos).getByRole("link", { name: "Signup success" }),
+    ).toHaveAttribute("href", viewRoute(PageMap.SLO_VIEW, SLO_ID));
+
+    // A recording rule has no page: its list, filtered to the metric it writes.
+    const rules: HTMLElement = within(users).getByTestId(
+      "data-security-drop-metric-recording-rules",
+    );
+
+    expect(rules).toHaveTextContent("Recording Rules");
+    expect(rules).toHaveTextContent(
+      "They get no new points from those metrics, so their output metrics no longer include them.",
+    );
+    expect(
+      within(rules).getByRole("link", { name: "Signup rate" }),
+    ).toHaveAttribute(
+      "href",
+      getMetricRecordingRulesRoute("signup_rate").toString(),
+    );
+    // Nobody hidden, nothing unchecked.
+    expect(users).not.toHaveTextContent("you can't see");
+    expect(users).not.toHaveTextContent("could not be checked");
 
     expect(
       within(dialog).getByTestId("data-security-drop-metric-stored"),
@@ -508,20 +602,33 @@ describe("the dialog says what dropping loses, before it does", () => {
     expect(screen.getByTestId(DROP_METRIC_MODAL_TEST_ID)).toBeInTheDocument();
   });
 
-  test("no monitor or dashboard reads them; or the reader's role could not tell", async () => {
-    impact = impactOf({ monitors: [], dashboards: [] });
+  test("nothing reads them: one line says so, naming every kind it looked at", async () => {
+    impact = impactOf(NO_READERS);
     renderModal();
 
-    expect(
-      await screen.findByTestId("data-security-drop-metric-users"),
-    ).toHaveTextContent("No monitor or dashboard reads those metrics.");
+    const users: HTMLElement = await screen.findByTestId(
+      "data-security-drop-metric-users",
+    );
 
-    cleanup();
+    expect(users).toHaveTextContent(
+      "No monitor, dashboard, SLO or recording rule reads those metrics.",
+    );
+    expect(users).not.toHaveTextContent(
+      "What reads those metrics gets no new data from them:",
+    );
+
+    for (const kind of ["monitors", "dashboards", "slos", "recording-rules"]) {
+      expect(
+        screen.queryByTestId(`data-security-drop-metric-${kind}`),
+      ).not.toBeInTheDocument();
+    }
+  });
+
+  test("a kind that could not be checked says so, never that none reads them", async () => {
     impact = impactOf({
-      monitors: [],
-      dashboards: [],
-      monitorsChecked: false,
-      dashboardsChecked: false,
+      ...NO_READERS,
+      slosChecked: false,
+      recordingRulesChecked: false,
     });
     renderModal();
 
@@ -529,40 +636,236 @@ describe("the dialog says what dropping loses, before it does", () => {
       "data-security-drop-metric-users",
     );
 
-    // Never "none" when nobody looked.
-    expect(users).not.toHaveTextContent("No monitor or dashboard");
-    expect(users).toHaveTextContent(
-      "Your role cannot read monitors, so whether a monitor reads those metrics is not known.",
+    // Never "none" when nobody could look.
+    expect(users).not.toHaveTextContent("No monitor, dashboard");
+    expect(
+      within(users).getByTestId("data-security-drop-metric-slos-unchecked"),
+    ).toHaveTextContent(
+      "Whether an SLO reads those metrics could not be checked.",
     );
-    expect(users).toHaveTextContent(
-      "Your role cannot read dashboards, so whether a dashboard reads those metrics is not known.",
+    expect(
+      within(users).getByTestId(
+        "data-security-drop-metric-recording-rules-unchecked",
+      ),
+    ).toHaveTextContent(
+      "Whether a recording rule reads those metrics could not be checked.",
+    );
+    expect(
+      within(users).queryByTestId(
+        "data-security-drop-metric-monitors-unchecked",
+      ),
+    ).not.toBeInTheDocument();
+
+    // Each kind's own words.
+    cleanup();
+    impact = impactOf({
+      ...NO_READERS,
+      monitorsChecked: false,
+      dashboardsChecked: false,
+    });
+    renderModal();
+
+    const others: HTMLElement = await screen.findByTestId(
+      "data-security-drop-metric-users",
+    );
+
+    expect(others).toHaveTextContent(
+      "Whether a monitor reads those metrics could not be checked.",
+    );
+    expect(others).toHaveTextContent(
+      "Whether a dashboard reads those metrics could not be checked.",
     );
   });
 
-  test("a long list of monitors names the first few and counts the rest", async () => {
-    const monitors: Array<DataSecurityMetricUser> = [];
+  test("many read them: each kind names the first few, each a link, and counts the rest", async () => {
+    const usersNamed: (prefix: string) => Array<DataSecurityMetricUser> = (
+      prefix: string,
+    ): Array<DataSecurityMetricUser> => {
+      return Array.from(
+        { length: MAX_METRIC_USERS_SHOWN + 3 },
+        (_: unknown, index: number): DataSecurityMetricUser => {
+          return {
+            id: ObjectID.generate().toString(),
+            name: `${prefix} ${index}`,
+            outputMetricName: `${prefix.toLowerCase()}_${index}`,
+          };
+        },
+      );
+    };
 
-    for (let i: number = 0; i < MAX_METRIC_USERS_SHOWN + 3; i++) {
-      monitors.push({
-        id: ObjectID.generate().toString(),
-        name: `Monitor ${i}`,
-      });
+    impact = impactOf({
+      monitors: usersNamed("Monitor"),
+      dashboards: usersNamed("Dashboard"),
+      slos: usersNamed("SLO"),
+      recordingRules: usersNamed("Rule"),
+    });
+    renderModal();
+
+    for (const kind of ["monitors", "dashboards", "slos", "recording-rules"]) {
+      const shown: HTMLElement = await screen.findByTestId(
+        `data-security-drop-metric-${kind}`,
+      );
+
+      expect(within(shown).getAllByRole("link")).toHaveLength(
+        MAX_METRIC_USERS_SHOWN,
+      );
+      expect(shown).toHaveTextContent("and 3 more");
+      expect(shown).not.toHaveTextContent("you can't see");
     }
 
-    impact = impactOf({ monitors, dashboards: [] });
+    expect(
+      within(screen.getByTestId("data-security-drop-metric-slos")).getByRole(
+        "link",
+        { name: "SLO 0" },
+      ),
+    ).toHaveAttribute("href", viewRoute(PageMap.SLO_VIEW, impact.slos[0]!.id));
+  });
+
+  test("ones the reader can't see are counted, never named: after the ones they can, or on their own", async () => {
+    impact = impactOf({
+      monitorsHidden: 2,
+      dashboards: [],
+      dashboardsHidden: 1,
+      slos: [],
+      slosHidden: 4,
+      recordingRules: [],
+      recordingRulesHidden: 0,
+    });
+    renderModal();
+
+    const users: HTMLElement = await screen.findByTestId(
+      "data-security-drop-metric-users",
+    );
+
+    // After the monitors they can see.
+    expect(
+      within(users).getByTestId("data-security-drop-metric-monitors-hidden"),
+    ).toHaveTextContent("and 2 more you can't see");
+    expect(
+      within(
+        within(users).getByTestId("data-security-drop-metric-monitors"),
+      ).getAllByRole("link"),
+    ).toHaveLength(1);
+    // None they can see: the kind counted on its own, by its own noun.
+    expect(
+      within(users).getByTestId("data-security-drop-metric-dashboards-hidden"),
+    ).toHaveTextContent("1 dashboard you can't see");
+    expect(
+      within(users).getByTestId("data-security-drop-metric-slos-hidden"),
+    ).toHaveTextContent("4 SLOs you can't see");
+    expect(
+      within(
+        within(users).getByTestId("data-security-drop-metric-slos"),
+      ).queryAllByRole("link"),
+    ).toHaveLength(0);
+    // Still what happens to them.
+    expect(
+      within(users).getByTestId("data-security-drop-metric-slos"),
+    ).toHaveTextContent(
+      "They count no new events from those metrics, so their error budgets no longer include them.",
+    );
+    expect(
+      screen.queryByTestId("data-security-drop-metric-recording-rules"),
+    ).not.toBeInTheDocument();
+    // Hidden ones read them too: never "none".
+    expect(users).toHaveTextContent(
+      "What reads those metrics gets no new data from them:",
+    );
+
+    // Only hidden ones, of every kind.
+    cleanup();
+    impact = impactOf({
+      ...NO_READERS,
+      monitorsHidden: 1,
+      recordingRulesHidden: 3,
+    });
+    renderModal();
+
+    const hidden: HTMLElement = await screen.findByTestId(
+      "data-security-drop-metric-users",
+    );
+
+    expect(hidden).toHaveTextContent("1 monitor you can't see");
+    expect(hidden).toHaveTextContent("3 recording rules you can't see");
+    expect(hidden).not.toHaveTextContent("No monitor, dashboard");
+    expect(within(hidden).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  test("a dashboard's widgets under it: each by its title as written, one without by its kind, the rest counted", async () => {
+    const widgets: Array<{ id: string; title: string; type: string }> = [
+      { id: ObjectID.generate().toString(), title: "", type: "Gauge" },
+      {
+        id: ObjectID.generate().toString(),
+        title: "p99 <checkout>",
+        type: "Chart",
+      },
+      // A kind the catalog does not know, and no title.
+      { id: ObjectID.generate().toString(), title: "", type: "" },
+      ...Array.from(
+        { length: MAX_WIDGETS_SHOWN },
+        (_: unknown, index: number) => {
+          return {
+            id: ObjectID.generate().toString(),
+            title: `Widget ${index}`,
+            type: "Chart",
+          };
+        },
+      ),
+    ];
+
+    impact = impactOf({
+      dashboards: [{ id: DASHBOARD_ID, name: "Growth", widgets }],
+    });
     renderModal();
 
     const shown: HTMLElement = await screen.findByTestId(
-      "data-security-drop-metric-monitors",
+      "data-security-drop-metric-widgets",
     );
 
-    expect(within(shown).getAllByRole("link")).toHaveLength(
-      MAX_METRIC_USERS_SHOWN,
+    expect(shown).toHaveTextContent(
+      "Gauge, p99 <checkout>, Untitled, Widget 0, Widget 1, and 3 more",
     );
-    expect(shown).toHaveTextContent("and 3 more");
+    // The dashboard is the link; its widgets are named, not linked again.
     expect(
-      screen.queryByTestId("data-security-drop-metric-dashboards"),
+      within(
+        screen.getByTestId("data-security-drop-metric-dashboards"),
+      ).getAllByRole("link"),
+    ).toHaveLength(1);
+
+    // A dashboard that reads them outside its widgets: its link alone.
+    cleanup();
+    impact = impactOf({
+      dashboards: [{ id: DASHBOARD_ID, name: "Variables", widgets: [] }],
+    });
+    renderModal();
+
+    expect(
+      await screen.findByRole("link", { name: "Variables" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("data-security-drop-metric-widgets"),
     ).not.toBeInTheDocument();
+  });
+
+  test("a recording rule opens its list filtered to it, by the list's own Output Metric filter", () => {
+    const route: string =
+      getMetricRecordingRulesRoute("signup_rate").toString();
+    const query: URLSearchParams = new URLSearchParams(route.split("?")[1]);
+
+    expect(route.split("?")[0]).toBe(
+      routeFor(PageMap.METRICS_SETTINGS_RECORDING_RULES),
+    );
+    expect(
+      JSON.parse(query.get(`${METRIC_RECORDING_RULES_TABLE_ID}-filter`)!),
+    ).toEqual({ [METRIC_RECORDING_RULES_OUTPUT_FILTER_KEY]: "signup_rate" });
+    // The list's own key, and the filter it offers.
+    expect(METRIC_RECORDING_RULES_TABLE_ID).toBe(
+      "metric-recording-rules-table",
+    );
+    // No output metric: the list itself.
+    expect(getMetricRecordingRulesRoute().toString()).toBe(
+      routeFor(PageMap.METRICS_SETTINGS_RECORDING_RULES),
+    );
   });
 
   test("a finding no rule can drop says why, and nothing can be dropped", async () => {
@@ -961,7 +1264,7 @@ describe("the Dashboard's client for the drop", () => {
     dropSpy.mockRestore();
   });
 
-  test("the impact is read defensively: a user without an id is no user, a missing count is none", async () => {
+  test("the impact is read defensively: a user without an id is no user, a widget without an id no widget, a missing count is none", async () => {
     answer({
       isAvailable: true,
       metricsMatched: "many",
@@ -970,8 +1273,28 @@ describe("the Dashboard's client for the drop", () => {
         { id: "not an id", name: "Broken" },
         "Growth",
       ],
-      dashboards: null,
+      dashboards: [
+        {
+          id: DASHBOARD_ID,
+          name: "Growth",
+          widgets: [
+            { id: WIDGET_ID, title: "Signups", type: "Chart" },
+            { title: "No id" },
+            { id: "w2", title: 7, type: null },
+            null,
+          ],
+        },
+      ],
+      slos: "Signup success",
+      recordingRules: [
+        { id: RECORDING_RULE_ID, name: "Signup rate", outputMetricName: 9 },
+      ],
       monitorsChecked: true,
+      slosChecked: true,
+      monitorsHidden: 3,
+      dashboardsHidden: -1,
+      slosHidden: 1.5,
+      recordingRulesHidden: "2",
     } as unknown as JSONObject);
 
     const read: DataSecurityDropMetricImpact =
@@ -985,10 +1308,29 @@ describe("the Dashboard's client for the drop", () => {
       metricsMatched: 0,
       metricsCounted: false,
       monitors: [{ id: MONITOR_ID, name: "Signups of Jane" }],
-      dashboards: [],
+      dashboards: [
+        {
+          id: DASHBOARD_ID,
+          name: "Growth",
+          widgets: [
+            { id: WIDGET_ID, title: "Signups", type: "Chart" },
+            { id: "w2", title: "", type: "" },
+          ],
+        },
+      ],
+      slos: [],
+      recordingRules: [{ id: RECORDING_RULE_ID, name: "Signup rate" }],
       monitorsChecked: true,
       dashboardsChecked: false,
+      slosChecked: true,
+      recordingRulesChecked: false,
+      monitorsHidden: 3,
+      dashboardsHidden: 0,
+      slosHidden: 0,
+      recordingRulesHidden: 0,
     });
+    // An output metric that is no text is none: the rule's link opens the whole list.
+    expect(read.recordingRules[0]!.outputMetricName).toBeUndefined();
   });
 
   test("the drop is asked for with the data loss confirmed, and a refusal is thrown", async () => {

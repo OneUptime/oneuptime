@@ -191,8 +191,8 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | SSH 로그인, sudo | Linux 머신의 journal 또는 인증 로그를 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector)로 보냄 |
 | Windows 이벤트 | 머신에 있는 컬렉터의 `windowseventlog` 리시버, 또는 NXLog나 Winlogbeat처럼 각 이벤트를 JSON으로 쓰는 포워더. OneUptime에 추가한 [호스트](/docs/telemetry/hosts)는 Sysmon, Microsoft Defender, PowerShell이 있으면 그것도 읽습니다 |
 | AWS CloudTrail | CloudWatch Logs로 전달되는 추적을 컬렉터의 `awscloudwatch` 리시버로 읽음. **클라우드**에서 연결한 계정이면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
-| Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음. **클라우드**에서 연결한 프로젝트면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
-| Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음. **클라우드**에서 연결한 구독의 활동 로그면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
+| Google Cloud 감사 로그 | Pub/Sub으로 가는 로그 싱크를 컬렉터의 `googlecloudpubsub` 리시버가 `encoding: raw_text`로 읽음. **클라우드**에서 연결한 프로젝트면 그 [스트림](/docs/telemetry/cloud-streaming-google-cloud) 또는 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
+| Azure 활동 및 Entra ID 로그 | Event Hub로 스트리밍하는 진단 설정을 컬렉터의 `azureeventhub` 리시버가 `format: raw`로 읽음. 또는 연결한 구독의 [스트림](/docs/telemetry/cloud-streaming-azure) 이벤트 허브로 보냄. **클라우드**에서 연결한 구독의 활동 로그면 [클라우드 감사 로그](#클라우드-계정의-감사-로그-읽기) |
 | OpenStack 감사 기록 | 클라우드의 알림과 감사 필터를 `driver = log`로 로그에 보내고, 에이전트의 [로그 프로필](/docs/telemetry/openstack#누가-무엇을-했는가)이 읽음 |
 | CEF, LEEF | 제품의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
 | Palo Alto Networks, FortiGate, Cisco ASA | 방화벽 자체의 syslog를 [rsyslog](/docs/telemetry/syslog)로 중계 |
@@ -203,7 +203,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 
 CEF나 LEEF 탐지 결과, Palo Alto Networks, FortiGate, Cisco ASA의 위협처럼 보안 제품이 로그에 기록하는 위협은 연결된 제품의 경고처럼 [케이스](/docs/telemetry/security-cases)를 열고, 그 위협이 가리키는 사용자, 호스트, 주소의 위험을 높입니다. 어느 심각도부터 열지는 **내 로그**의 **케이스를 여는 심각도**에서 정하며, 다른 심각도를 고르지 않는 한 **높음 이상**이고 **없음**으로 둘 수도 있습니다. 제품의 로그인과 차단된 연결은 이벤트로 남아 규칙이 읽을 수 있습니다.
 
-두 가지 경로로 OneUptime에 도착하는 레코드는 한 번만 저장됩니다. 연결이 읽고 Azure가 로그로도 내보내는 Microsoft Entra ID 로그인, 또는 로그와 연결된 AWS 계정의 감사 로그 양쪽에 있는 CloudTrail 레코드가 그렇습니다.
+두 가지 경로로 OneUptime에 도착하는 레코드는 한 번만 저장됩니다. 연결이 읽고 Azure가 로그로도 내보내는 Microsoft Entra ID 로그인, 로그와 연결된 AWS 계정의 감사 로그 양쪽에 있는 CloudTrail 레코드, 또는 클라우드 계정의 스트림이 보내고 **클라우드 감사 로그**도 읽는 감사 레코드가 그렇습니다.
 
 ### 클라우드 계정의 감사 로그 읽기
 

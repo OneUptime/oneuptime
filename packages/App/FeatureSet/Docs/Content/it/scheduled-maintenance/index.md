@@ -106,7 +106,7 @@ Solo i monitor che l'evento indica in **Monitor** smettono di essere controllati
 :::
 
 :::details L'evento non compare sulla mia pagina di stato
-Controllate che l'evento indichi la pagina in **Mostra evento su queste pagine di stato** e che **Visibile sulla pagina di stato** sia attivo nelle **Impostazioni** dell'evento. Se la sua intestazione mostra **Non ancora sulle pagine di stato**, compare dal suo **Pubblica il**: vedi [Pubblicarlo più tardi](/docs/scheduled-maintenance/creating-events#pubblicarlo-più-tardi). Poi controllate la pagina di stato stessa: deve mostrare gli eventi di manutenzione, e un evento iniziato da più tempo della finestra della cronologia della pagina, 14 giorni se non l'avete cambiata, non viene più elencato.
+Controllate che l'evento indichi la pagina in **Mostra evento su queste pagine di stato** e che **Visibile sulla pagina di stato** sia attivo nelle **Impostazioni** dell'evento. Se la sua intestazione mostra **Non ancora sulle pagine di stato**, compare dal suo **Pubblica il**: vedi [Pubblicarlo più tardi](/docs/scheduled-maintenance/creating-events#pubblicarlo-più-tardi). Poi controllate la pagina di stato stessa: deve mostrare gli eventi di manutenzione (la scheda **Dettagli della manutenzione** dell'evento lo dice quando nessuna delle sue pagine di stato lo fa), e un evento iniziato da più tempo della finestra della cronologia della pagina, 14 giorni se non l'avete cambiata, non viene più elencato.
 :::
 
 ## Passi successivi

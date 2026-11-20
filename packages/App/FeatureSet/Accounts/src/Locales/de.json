@@ -244,7 +244,13 @@
     "signInWithProvider": "Mit {{name}} anmelden",
     "requiredSubtitle": "Dieser Server erfordert Single Sign-On (SSO).",
     "requiredNotSetUp": "Single Sign-On ist auf diesem Server noch nicht eingerichtet. Bitten Sie Ihren Server-Administrator, es einzurichten.",
-    "useDifferentEmail": "Andere E-Mail verwenden"
+    "useDifferentEmail": "Andere E-Mail verwenden",
+    "lastUsedTitle": "Zuletzt auf diesem Gerät verwendet",
+    "forgetLastUsed": "Diesen Anbieter vergessen",
+    "emailLinksPrompt": "Wir können dieser Adresse die SSO-Anmeldelinks aller Organisationen senden, zu denen sie gehört.",
+    "emailLinksButton": "Meine Anmeldelinks senden",
+    "emailLinksSent": "Wenn diese Adresse zu einer Organisation gehört, die Single Sign-On verwendet, haben wir ihr die SSO-Anmeldelinks gesendet.",
+    "emailLinksCaptchaRequired": "Bitte lösen Sie die Captcha-Aufgabe, bevor Sie die Links anfordern."
   },
   "adminLogin": {
     "title": "Anmeldung für Master-Admins",

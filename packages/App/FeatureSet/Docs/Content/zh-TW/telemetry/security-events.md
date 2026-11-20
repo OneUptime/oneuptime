@@ -191,8 +191,8 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | SSH 登入、sudo | Linux 機器的 journal 或驗證日誌，使用 [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 傳送 |
 | Windows 事件 | 機器上收集器的 `windowseventlog` 接收器，或把每個事件寫成 JSON 的轉送程式，例如 NXLog 或 Winlogbeat。新增到 OneUptime 的 [主機](/docs/telemetry/hosts) 也會讀取它上面的 Sysmon、Microsoft Defender 與 PowerShell |
 | AWS CloudTrail | 傳遞到 CloudWatch Logs 的追蹤，由收集器的 `awscloudwatch` 接收器讀取；對於在 **雲端** 下連線的帳戶，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
-| Google Cloud 稽核日誌 | 指向 Pub/Sub 的日誌接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 讀取；對於在 **雲端** 下連線的專案，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
-| Azure 活動與 Entra ID 日誌 | 串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取；對於在 **雲端** 下連線的訂用帳戶的活動記錄，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
+| Google Cloud 稽核日誌 | 指向 Pub/Sub 的日誌接收器（sink），由收集器的 `googlecloudpubsub` 接收器以 `encoding: raw_text` 讀取；對於在 **雲端** 下連線的專案，也可以用它的 [串流](/docs/telemetry/cloud-streaming-google-cloud) 或 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
+| Azure 活動與 Entra ID 日誌 | 串流到 Event Hub 的診斷設定，由收集器的 `azureeventhub` 接收器以 `format: raw` 讀取，或傳送到已連線訂用帳戶的 [串流](/docs/telemetry/cloud-streaming-azure) 的事件中樞；對於在 **雲端** 下連線的訂用帳戶的活動記錄，也可以用 [雲端稽核日誌](#讀取雲端帳戶的稽核日誌) |
 | OpenStack 稽核軌跡 | 雲端的通知與稽核過濾器以 `driver = log` 送到其日誌，由代理程式的 [日誌設定檔](/docs/telemetry/openstack#誰做了什麼) 讀取 |
 | CEF、LEEF | 產品的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
 | Palo Alto Networks、FortiGate、Cisco ASA | 防火牆本身的 syslog，由 [rsyslog](/docs/telemetry/syslog) 轉送 |
@@ -203,7 +203,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 安全性產品寫入日誌的威脅，例如 CEF 或 LEEF 的發現，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威脅，會像已連線產品的警示一樣開啟 [案件](/docs/telemetry/security-cases)，並提高它所指的使用者、主機或位址的風險。**你的日誌** 上的 **從以下等級開啟案例** 決定從哪個嚴重程度開始：預設為 **高及以上**，你也可以選擇其他等級或 **從未**。該產品的登入和被封鎖的連線仍然是事件，供你的規則讀取。
 
-透過兩條途徑到達 OneUptime 的記錄只會儲存一次：例如由其連線讀取、又由 Azure 匯出到您的日誌中的 Microsoft Entra ID 登入，或同時出現在您的日誌和已連線 AWS 帳戶稽核日誌中的 CloudTrail 記錄。
+透過兩條途徑到達 OneUptime 的記錄只會儲存一次：例如由其連線讀取、又由 Azure 匯出到您的日誌中的 Microsoft Entra ID 登入，同時出現在您的日誌和已連線 AWS 帳戶稽核日誌中的 CloudTrail 記錄，或由雲端帳戶的串流傳送、**雲端稽核日誌** 也會讀取的稽核記錄。
 
 ### 讀取雲端帳戶的稽核日誌
 

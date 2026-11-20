@@ -2085,7 +2085,7 @@
   "Security Events": "सुरक्षा इवेंट",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "स्पैन। अपवादों को अलग दिखाए जाने से पहले गिने गए दिनों में उनके अपवाद भी शामिल हैं।",
   "Exceptions recorded from spans and logs.": "स्पैन और लॉग से दर्ज किए गए अपवाद।",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "स्पैन और लॉग से दर्ज किए गए अपवाद। इनका बिल ट्रेस के हिस्से के रूप में बनता है।",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "स्पैन और लॉग से दर्ज किए गए अपवाद। स्पैन में मिले अपवादों का बिल ट्रेस के साथ बनता है, और लॉग में मिले अपवादों का लॉग के साथ।",
   "Profiles, and the samples recorded with them.": "प्रोफ़ाइल, और उनके साथ दर्ज किए गए सैंपल।",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",
@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "आपके पहचान प्रदाता का सिंगल साइन आउट URL। लोगों को वहां से भी साइन आउट करने के लिए ज़रूरी है।",
   "Single Logout URL:": "सिंगल लॉगआउट URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "लोगों को पहचान प्रदाता से भी साइन आउट करने के लिए उसे सिंगल लॉगआउट URL और OneUptime का साइनिंग प्रमाणपत्र भी दें।",
-  "Download Signing Certificate": "साइनिंग प्रमाणपत्र डाउनलोड करें"
+  "Download Signing Certificate": "साइनिंग प्रमाणपत्र डाउनलोड करें",
+  "Team and Label Budgets Today": "आज के टीम और लेबल बजट",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "हर टीम और लेबल की सेवाओं ने आज क्या भेजा। बजट ख़त्म होते ही उनकी टेलीमेट्री {{resetsAt}} तक छोड़ दी जाती है, और प्रोजेक्ट का बाकी हिस्सा भेजता रहता है।",
+  "Label": "लेबल",
+  "Team or Label": "टीम या लेबल",
+  "This team's own": "इस टीम का अपना",
+  "This label's own": "इस लेबल का अपना"
 }

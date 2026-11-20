@@ -21,10 +21,14 @@ import SnmpScanConfigUtil, {
 } from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { getNextScanAt } from "../../Utils/NetworkDiscovery/RescanIntervalUtil";
 import ScanModeUtil from "../../Utils/NetworkDiscovery/ScanModeUtil";
-import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkDeviceService, { AddressSeen } from "./NetworkDeviceService";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { WhenReachUnknown } from "../../Utils/NetworkDevice/DeviceAddressScope";
+import {
+  getSharedAddress,
+  withRegistration,
+} from "../../Utils/NetworkDiscovery/DiscoveredHostRegistration";
 
 // A project and a probe that scans' hosts are seen from, with their addresses.
 interface ScanHostViewpoint {
@@ -33,10 +37,14 @@ interface ScanHostViewpoint {
   hostnames: Set<string>;
 }
 
-// The devices those hosts are, and the addresses whose devices are a tie.
+/*
+ * The devices those hosts are, the addresses whose devices are a tie, and
+ * what the probe sees at each address with a device (issue #9905).
+ */
 interface RegisteredScanHosts {
   devices: Map<string, NetworkDevice>;
   ambiguous: Set<string>;
+  seen: Map<string, AddressSeen<NetworkDevice>>;
 }
 
 function getViewpointKey(projectId: ObjectID, probeId: string): string {
@@ -232,6 +240,12 @@ export class Service extends ProjectReferencesService<Model> {
      * with none of them named. Where the probe's site cannot be known, the
      * one device at the address is the host's, as before, so an import never
      * adds a box twice.
+     *
+     * A host at an address several devices share also says why it is the
+     * device it is, or why none can be named (sharedAddress, issue #9905),
+     * so Review Results can say so. None of these fields is ever stored
+     * (issue #9906): whatever a stored row carries is replaced by this read
+     * (Utils/NetworkDiscovery/DiscoveredHostRegistration).
      */
     // The scans with an address to look up, each with its project.
     const scansWithHosts: Array<{
@@ -301,6 +315,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     for (const [key, viewpoint] of viewpoints) {
       const ambiguous: Set<string> = new Set<string>();
+      const seen: Map<string, AddressSeen<NetworkDevice>> = new Map();
 
       const devices: Map<string, NetworkDevice> =
         await NetworkDeviceService.getDevicesByHostnames({
@@ -318,11 +333,13 @@ export class Service extends ProjectReferencesService<Model> {
             whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
           },
           ambiguousHostnames: ambiguous,
+          seenInto: seen,
         });
 
       registeredByViewpoint.set(key, {
         devices: devices,
         ambiguous: ambiguous,
+        seen: seen,
       });
     }
 
@@ -352,20 +369,22 @@ export class Service extends ProjectReferencesService<Model> {
 
               const device: NetworkDevice | undefined =
                 registered.devices.get(hostname);
-              const refreshed: DiscoveredNetworkDevice = {
-                ...host,
+              const atAddress: AddressSeen<NetworkDevice> | undefined =
+                registered.seen.get(hostname);
+
+              /*
+               * Only this read names the device and says why, never a
+               * stored row.
+               */
+              return withRegistration(host, {
                 isAlreadyRegistered:
                   Boolean(device) || registered.ambiguous.has(hostname),
-              };
-
-              // Only this read names the device, never a stored row.
-              delete refreshed.registeredDeviceId;
-
-              if (device?.id) {
-                refreshed.registeredDeviceId = device.id.toString();
-              }
-
-              return refreshed;
+                deviceId: device?.id?.toString(),
+                sharedAddress: getSharedAddress({
+                  seen: atAddress?.seen,
+                  devicesAtAddress: atAddress?.devices || [],
+                }),
+              });
             },
           ),
         });

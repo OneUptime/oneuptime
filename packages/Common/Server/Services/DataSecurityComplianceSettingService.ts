@@ -23,8 +23,13 @@ import {
 } from "../../Types/DataSecurity/DataStoreResource";
 import { isKubernetesComplianceRequirement } from "../../Types/Kubernetes/Compliance/KubernetesComplianceCatalog";
 import {
+  KUBERNETES_COMPLIANCE_OBJECT_KINDS,
+  isClusterScopedComplianceObjectKind,
+  isKubernetesAcceptanceInForce,
   isKubernetesComplianceFramework,
+  isKubernetesComplianceObjectKind,
   isKubernetesNamespaceName,
+  isKubernetesObjectName,
 } from "../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 
 /*
@@ -48,6 +53,13 @@ const TURNED_OFF_BY_KEYS: Array<string> = [
  * the CIS Kubernetes Benchmark (#9627) - are set the same way, on a cluster
  * only, for a control they are scored on, and for the whole cluster or one
  * namespace: one setting per framework, control and namespace.
+ *
+ * And one Kubernetes object's failing finding can be accepted (#9874): a
+ * setting that names the object - its kind, its name and, when a namespace
+ * holds it, its namespace - for one control or the whole framework. It says
+ * why, always: an accepted finding without a reason is refused. It may
+ * expire, and then fails again. One setting per framework, control and
+ * object.
  */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -61,6 +73,11 @@ export class Service extends ProjectReferencesService<Model> {
 
   // The namespace a setting names, trimmed: "" for the whole resource.
   public static readNamespace(value: unknown): string {
+    return typeof value === "string" ? value.trim() : "";
+  }
+
+  // The kind or the name of the object a setting accepts a finding of (#9874), trimmed.
+  public static readObjectPart(value: unknown): string {
     return typeof value === "string" ? value.trim() : "";
   }
 
@@ -85,6 +102,30 @@ export class Service extends ProjectReferencesService<Model> {
     return note || null;
   }
 
+  /*
+   * When an accepted finding fails again (#9874), as it is stored: a date,
+   * none for an empty one. A value that is no date is refused in words.
+   */
+  public static readExpiry(value: unknown): Date | null {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    const expiresAt: Date =
+      value instanceof Date ? value : new Date(value as string);
+
+    if (
+      Number.isNaN(expiresAt.getTime()) ||
+      (typeof value !== "string" && !(value instanceof Date))
+    ) {
+      throw new BadDataException(
+        "Write the expiry as a date and time, or leave it empty to keep the finding accepted until it is revoked.",
+      );
+    }
+
+    return expiresAt;
+  }
+
   // A reason in a write, read as it is stored; a write without one is left alone.
   private static normalizeNote(data: { note?: unknown }): void {
     if (data.note === undefined) {
@@ -92,6 +133,87 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     data.note = Service.readNote(data.note);
+  }
+
+  // An expiry in a write, read as it is stored; a write without one is left alone.
+  private static normalizeExpiry(data: { expiresAt?: unknown }): void {
+    if (data.expiresAt === undefined) {
+      return;
+    }
+
+    data.expiresAt = Service.readExpiry(data.expiresAt);
+  }
+
+  // An expiry set now must be one still to come.
+  private static assertExpiryToCome(expiresAt: Date | null): void {
+    if (
+      expiresAt &&
+      !isKubernetesAcceptanceInForce(expiresAt, OneUptimeDate.getCurrentDate())
+    ) {
+      throw new BadDataException(
+        "Choose an expiry still to come, or none to keep the finding accepted until it is revoked.",
+      );
+    }
+  }
+
+  /*
+   * The object an accepted finding names (#9874), checked and stored as a
+   * finding names it: a kind a finding can name, a name Kubernetes allows,
+   * the namespace a namespaced object is in - none for a ClusterRole or a
+   * ClusterRoleBinding, and its own name for a Namespace.
+   */
+  private static checkAcceptedObject(data: Model, namespace: string): string {
+    const objectKind: string = Service.readObjectPart(data.objectKind);
+    const objectName: string = Service.readObjectPart(data.objectName);
+
+    if (!isKubernetesComplianceObjectKind(objectKind)) {
+      throw new BadDataException(
+        `${objectKind || "That"} is not a kind of object a finding names. Choose one of ${KUBERNETES_COMPLIANCE_OBJECT_KINDS.join(", ")}.`,
+      );
+    }
+
+    if (!isKubernetesObjectName(objectName)) {
+      throw new BadDataException(
+        "Name the object as Kubernetes does: at most 253 characters, with no slash or space.",
+      );
+    }
+
+    data.objectKind = objectKind;
+    data.objectName = objectName;
+
+    if (isClusterScopedComplianceObjectKind(objectKind)) {
+      if (namespace) {
+        throw new BadDataException(
+          `A ${objectKind} belongs to no namespace. Leave the namespace empty.`,
+        );
+      }
+
+      return "";
+    }
+
+    if (objectKind === "Namespace") {
+      if (namespace && namespace !== objectName) {
+        throw new BadDataException(
+          "A namespace's finding is the namespace's own. Name the namespace itself, or leave the namespace empty.",
+        );
+      }
+
+      if (!isKubernetesNamespaceName(objectName)) {
+        throw new BadDataException(
+          `${objectName} is not a namespace's name. Write it as Kubernetes does: lowercase letters, digits and hyphens, at most 63 characters.`,
+        );
+      }
+
+      return objectName;
+    }
+
+    if (!namespace) {
+      throw new BadDataException(
+        `Choose the namespace the ${objectKind} is in.`,
+      );
+    }
+
+    return namespace;
   }
 
   @CaptureSpan()
@@ -114,7 +236,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     const framework: unknown = data.framework;
     const requirement: string = Service.readRequirement(data.requirement);
-    const namespace: string = Service.readNamespace(data.namespace);
+    let namespace: string = Service.readNamespace(data.namespace);
+    // A setting that names one object accepts that object's finding (#9874).
+    const isAcceptance: boolean = Boolean(
+      Service.readObjectPart(data.objectKind) ||
+        Service.readObjectPart(data.objectName),
+    );
 
     if (isKubernetesComplianceFramework(framework)) {
       /*
@@ -141,6 +268,10 @@ export class Service extends ProjectReferencesService<Model> {
           `${namespace} is not a namespace's name. Write it as Kubernetes does: lowercase letters, digits and hyphens, at most 63 characters.`,
         );
       }
+
+      if (isAcceptance) {
+        namespace = Service.checkAcceptedObject(data, namespace);
+      }
     } else if (isComplianceFramework(framework)) {
       if (requirement && !isRequirementOf(framework, requirement)) {
         throw new BadDataException(
@@ -151,6 +282,12 @@ export class Service extends ProjectReferencesService<Model> {
       if (namespace) {
         throw new BadDataException(
           "Only a Kubernetes cluster's own frameworks can be turned off for one namespace. Leave the namespace empty.",
+        );
+      }
+
+      if (isAcceptance) {
+        throw new BadDataException(
+          "Only a Kubernetes cluster's own frameworks accept one object's finding. Leave the object empty.",
         );
       }
     } else {
@@ -164,7 +301,28 @@ export class Service extends ProjectReferencesService<Model> {
     // The namespace it is for, or empty for the whole resource.
     data.namespace = namespace || (null as unknown as string);
 
+    if (!isAcceptance) {
+      data.objectKind = null as unknown as string;
+      data.objectName = null as unknown as string;
+    }
+
     Service.normalizeNote(data as unknown as { note?: unknown });
+    Service.normalizeExpiry(data as unknown as { expiresAt?: unknown });
+
+    if (isAcceptance) {
+      // Accepted, it says why; made revoked, there is nothing to explain yet.
+      if (data.isEnabled !== true && !data.note) {
+        throw new BadDataException(
+          "Say why this finding is accepted. The reason is kept with it, for whoever reviews it.",
+        );
+      }
+
+      Service.assertExpiryToCome(data.expiresAt || null);
+    } else if (data.expiresAt) {
+      throw new BadDataException(
+        "Only an accepted finding expires. Leave the expiry empty.",
+      );
+    }
 
     const projectId: ObjectID | undefined =
       data.projectId || createBy.props.tenantId || undefined;
@@ -192,22 +350,34 @@ export class Service extends ProjectReferencesService<Model> {
         resourceId: new ObjectID(data.resourceId.toString()),
         framework: data.framework,
       },
-      select: { _id: true, requirement: true, namespace: true },
+      select: {
+        _id: true,
+        requirement: true,
+        namespace: true,
+        objectKind: true,
+        objectName: true,
+      },
       skip: 0,
       limit: 1000,
       props: { isRoot: true },
     });
+    const objectKind: string = Service.readObjectPart(data.objectKind);
+    const objectName: string = Service.readObjectPart(data.objectName);
 
     if (
       existing.some((row: Model): boolean => {
         return (
           Service.readRequirement(row.requirement) === requirement &&
-          Service.readNamespace(row.namespace) === namespace
+          Service.readNamespace(row.namespace) === namespace &&
+          Service.readObjectPart(row.objectKind) === objectKind &&
+          Service.readObjectPart(row.objectName) === objectName
         );
       })
     ) {
       throw new BadDataException(
-        "This resource already has a setting for this. Change that setting instead.",
+        isAcceptance
+          ? "This finding already has an acceptance for this. Change that one instead."
+          : "This resource already has a setting for this. Change that setting instead.",
       );
     }
 
@@ -223,6 +393,9 @@ export class Service extends ProjectReferencesService<Model> {
     Service.normalizeNote(
       onUpdate.updateBy.data as unknown as { note?: unknown },
     );
+    Service.normalizeExpiry(
+      onUpdate.updateBy.data as unknown as { expiresAt?: unknown },
+    );
 
     return onUpdate;
   }
@@ -230,8 +403,9 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Who turned it off, and when (#9629), written once the create passed
    * every permission check: no caller may write either. A setting made off
-   * - how the Dashboard turns a framework off for the first time - is
-   * turned off by whoever made it. One made on is turned off by nobody.
+   * - how the Dashboard turns a framework off for the first time, and how
+   * it accepts a finding (#9874) - is turned off by whoever made it. One
+   * made on is turned off by nobody.
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -261,6 +435,16 @@ export class Service extends ProjectReferencesService<Model> {
    * off already - the same switch saved again keeps when it was turned off
    * - and turning it on again says nobody. A reason written while it is off
    * changes neither.
+   *
+   * An accepted finding (#9874) is accepted again by whoever turns it off
+   * once it has expired: an expired acceptance accepts nothing. Accepted, it
+   * keeps a reason, and only it may expire, at a date still to come.
+   *
+   * Each is decided on the rows the update writes, read in its own query,
+   * window and project and the update held to them
+   * (findRowsAndHoldUpdateToThem, UpdateChecksReadHeldRows): never on a row
+   * of another project, or one the caller may not change, that the query
+   * also names.
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -268,43 +452,99 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    const isEnabled: unknown = (updateBy.data as { isEnabled?: unknown })
-      .isEnabled;
-    const stamps: Record<string, unknown> = updateBy.data as unknown as Record<
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown
     >;
+    const isEnabled: unknown = data["isEnabled"];
+    const writesExpiry: boolean =
+      data["expiresAt"] !== undefined && data["expiresAt"] !== null;
+    const clearsNote: boolean = data["note"] !== undefined && !data["note"];
 
     if (isEnabled === true) {
-      stamps["turnedOffAt"] = null;
-      RelationIdUtil.stamp(stamps, TURNED_OFF_BY_KEYS, null);
+      data["turnedOffAt"] = null;
+      RelationIdUtil.stamp(data, TURNED_OFF_BY_KEYS, null);
+    }
+
+    if (isEnabled !== false && !writesExpiry && !clearsNote) {
       return;
+    }
+
+    const current: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        isEnabled: true,
+        objectName: true,
+        note: true,
+        expiresAt: true,
+      },
+    );
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const isAcceptance: (row: Model) => boolean = (row: Model): boolean => {
+      return Boolean(Service.readObjectPart(row.objectName));
+    };
+
+    if (writesExpiry) {
+      if (
+        current.some((row: Model): boolean => {
+          return !isAcceptance(row);
+        })
+      ) {
+        throw new BadDataException(
+          "Only an accepted finding expires. Leave the expiry empty.",
+        );
+      }
+
+      Service.assertExpiryToCome(data["expiresAt"] as Date);
+    }
+
+    // An acceptance that stays accepted keeps its reason.
+    const staysAccepted: (row: Model) => boolean = (row: Model): boolean => {
+      return (
+        isAcceptance(row) &&
+        (isEnabled === false || (isEnabled !== true && row.isEnabled !== true))
+      );
+    };
+
+    if (clearsNote && current.some(staysAccepted)) {
+      throw new BadDataException(
+        "An accepted finding keeps its reason. Write why it is accepted, or revoke it.",
+      );
     }
 
     if (isEnabled !== false) {
       return;
     }
 
-    const current: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: { _id: true, isEnabled: true },
-      skip: 0,
-      limit: 1000,
-      props: { isRoot: true },
-    });
+    if (
+      !data["note"] &&
+      current.some((row: Model): boolean => {
+        return isAcceptance(row) && !Service.readNote(row.note);
+      })
+    ) {
+      throw new BadDataException(
+        "Say why this finding is accepted. The reason is kept with it, for whoever reviews it.",
+      );
+    }
 
+    // Off already, and - an acceptance - not expired: who and when stay.
     if (
       current.length > 0 &&
       current.every((row: Model): boolean => {
-        return row.isEnabled !== true;
+        return (
+          row.isEnabled !== true &&
+          (!isAcceptance(row) ||
+            isKubernetesAcceptanceInForce(row.expiresAt, now))
+        );
       })
     ) {
       return;
     }
 
-    stamps["turnedOffAt"] = OneUptimeDate.getCurrentDate();
+    data["turnedOffAt"] = now;
     RelationIdUtil.stamp(
-      stamps,
+      data,
       TURNED_OFF_BY_KEYS,
       updateBy.props.userId || null,
     );

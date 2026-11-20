@@ -104,7 +104,7 @@ Android lar en app lese andre appers logger bare med tillatelsen READ_LOGS, og b
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Med Esper kjører du kommandoen over **Secure Remote ADB**: Slå på ADB-tilgang for enheten, koble til med `espercli secureadb connect -d DEVICE_ID`, og kjør deretter kommandoen. Android starter agenten på nytt når tillatelsen gis, og agenten begynner å lese med en gang.
+Med Esper kjører du kommandoen over **Secure Remote ADB**: Slå på ADB-tilgang for enheten, koble til med `espercli secureadb connect --device DEVICE_ID`, og kjør deretter kommandoen. Android starter agenten på nytt når tillatelsen gis, og agenten begynner å lese med en gang.
 
 Hva agenten da leser, avhenger av Android-versjonen:
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 Den første kommandoen gjelder Android 15 og nyere; brukstilgang kan også slås på under **Innstillinger → Brukstilgang** på enheten. En enhetspolicy kan ikke gi disse, og agentens skjerm viser kommandoene som fortsatt må kjøres. Med dem har hvert krasj under **Unntak** hele stack tracen sin, et native krasj signalet sitt og biblioteket det krasjet i, en ANR stacken til hovedtråden sin, og en omstart under **Logger** årsaken Android oppgir for den. Kortnumre, e-postadresser, tokener og passord i det agenten leser, erstattes med `[card number]`, `[email]`, `[token]` og `[redacted]` før det sendes.
 
+### Gi dem på en hel flåte
+
+Hver rapport fra agenten sier hvilke av dem den fortsatt mangler. For å få en liste over enhetene som trenger dem, åpner du **Inventar**, deretter **Alle elementer**, og filtrerer på **Agenttillatelser**: **Mangler**. Slå på kolonnen **Agenttillatelser** for å se hva hver enhet mangler, og eksporter listen som CSV.
+
+En enhetspolicy kan ikke gi disse: READ_LOGS og READ_DROPBOX_DATA er tillatelser som bare adb, systemet eller produsenten av enheten kan gi, og brukstilgang slås på av adb eller av personen ved enheten. Hva Esper tilbyr, og hvorfor ingenting av det gir dem:
+
+- **Apptillatelser**, i en blueprint eller med kommandoen `SET_APP_PERMISSION`, går gjennom Androids enhetseier-API, som bare gir tillatelsene en app ber personen ved enheten om. Android avviser disse tre.
+- **Administrert konfigurasjon** angir agentens egne innstillinger, aldri Androids tillatelser.
+- **Run Shell Script** kjører på Linux- og Windows-enheter, ikke på Android-enheter.
+- **Secure Remote ADB** når én enhet om gangen, fra en datamaskin som kjører `espercli`. På enheter med Esper Foundation trengs det ingen ved enheten. På andre enheter godtar noen ved enheten **Allow USB debugging?** første gang.
+
+Gi dem derfor med adb:
+
+- **Før en enhet sendes ut**, når den klargjøres med en USB-kabel. Dette gir alle tre på hver enhet som er koblet til datamaskinen:
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  På Android 14 og eldre sier den andre kommandoen at tillatelsen er ukjent: Den enheten trenger den ikke.
+- **På en enhet ute i felt**, over Secure Remote ADB, én enhet fra listen **Mangler** om gangen.
+- **Bare brukstilgang** kan slås på av personen ved enheten, under **Innstillinger → Brukstilgang**, eller med knappen på agentens skjerm.
+
+Innen et minutt tar enhetens neste rapport den ut av listen **Mangler**.
+
 ### CPU-bruk
 
 Fra og med Android 8 skjuler Android CPU-bruken til en enhet for apper. Bare en app som er enhetseier, kan lese den, og bare på enheter der maskinvaren rapporterer den. Agenten leser den når den er enhetseier, noe du angir med adb på en enhet som ikke har noen kontoer og ingen annen enhetseier:
@@ -141,16 +170,20 @@ En loggøkt sender logger fra alle apper på en enhet en stund, for feilsøking.
 :::steps
 ### Be om en loggøkt
 
-Åpne enheten under **Verter**, deretter **Logger**, og klikk på **Be om loggøkt** under **Loggøkter**. Velg hvor lenge enheten sender loggene sine, fra 15 minutter til 4 timer, og det laveste nivået den sender: **Info**, **Feilsøking** eller **Detaljert**.
+Åpne enheten under **Verter**, deretter **Logger**, og klikk på **Be om loggøkt** under **Loggøkter**. Velg hvor lenge enheten sender loggene sine, fra 15 minutter til 4 timer, og det laveste nivået den sender: **Info**, **Feilsøking** eller **Detaljert**. Legg til et **Notat** for å si hvorfor du ber om dem, for eksempel «Undersøker hvorfor betalingsappen krasjer etter kl. 18».
 
 ### Tillat den på enheten
 
-Innen et minutt viser enheten en varsling om at noen har bedt om loggene dens, med vedkommendes navn. Personen ved enheten åpner agenten og trykker på **Tillat**. På Android 13 og nyere spør Android deretter om å gi tilgang til alle enhetslogger, og det tillater personen også.
+Innen et minutt viser enheten en varsling om at noen har bedt om loggene dens, med vedkommendes navn og notatet ditt. Personen ved enheten åpner agenten, der forespørselen vises med notatet ditt under, og trykker på **Tillat**. På Android 13 og nyere spør Android deretter om å gi tilgang til alle enhetslogger, og det tillater personen også.
 
 ### Les linjene
 
-Økten står på **Samler inn**, og linjene fra alle apper kommer inn i loggene til enheten. Klikk på **Vis linjer** for å se bare linjene fra økten. Økten avsluttes når tiden er ute, eller når noen stopper den på enheten eller avbryter den i OneUptime.
+Økten står på **Samler inn**, og linjene fra alle apper kommer inn i loggene til enheten. Klikk på **Vis linjer** for å se bare linjene fra økten, eller på **Last ned linjer** for å lagre dem som en fil. Økten avsluttes når tiden er ute, eller når noen stopper den på enheten eller avbryter den i OneUptime.
 :::
+
+Notatet er én linje på opptil 200 tegn. Enheten viser det slik du skrev det, i anførselstegn, i varslingen og på agentens skjerm mens økten venter eller kjører; det oversettes aldri. Linjeskift blir til mellomrom, og kortnumre, e-postadresser, tokener og passord i det erstattes med `[card number]`, `[email]`, `[token]` og `[redacted]` før det lagres, slik som i det agenten sender. Listen over økter viser det under den som ba om økten, og vertens **Revisjonslogger** tar vare på det sammen med forespørselen.
+
+**Last ned linjer** lagrer linjene fra økten som en tekstfil i formatet `logcat -v threadtime` skriver ut, som brukerstøtten hos en leverandør kan lese: hver linje med tidspunktet ned på millisekundet, prosessen og tråden, nivået, taggen og meldingen. Tidspunktene er i UTC. De første linjene i filen sier hvilken økt, enhet og hvilket notat den gjelder, og hvem som ba om økten. Den inneholder linjene som **Logger** viser, slik agenten har maskert dem, så den krever samme tillatelse som å lese loggene til enheten. En fil inneholder høyst 100 000 linjer og 32 MB; filen til en lengre økt slutter med å si hvor mange linjer økten har.
 
 En økt trenger READ_LOGS og `logcat_enabled`; uten dem står den på **Utilgjengelig**. Én økt om gangen kjører på en enhet. En forespørsel som ingen tillater innen en time, utløper, og en økt som enheten starter på nytt under, avsluttes med den, siden Androids tillatelse avsluttes med agentens prosess. Å be om en økt krever tillatelse til å redigere verten, og vertens **Revisjonslogger** viser hvem som ba om den, og når.
 
@@ -165,11 +198,15 @@ En økt trenger READ_LOGS og `logcat_enabled`; uten dem står den på **Utilgjen
 | Omstarter | **Logger**, med `@event.name:device.boot`: hvor lenge enheten hadde vært oppe, om den ble slått av på riktig måte, hvor lenge den var av, hvorfor den startet på nytt, og omstartsløkker |
 | Installerte apper | **Logger**, med `@event.name:android.package.inventory` én gang om dagen, og hver installasjon, oppdatering og fjerning |
 | Krasj og ANR-er i alle apper | **Unntak**, som uhåndterte, oppkalt etter appen, med stackene sine når agenten leser [DropBox](#stack-traces-fra-krasj-og-årsaker-til-omstart) |
-| Merke, modell, serienummer, OS-versjon, sikkerhetspatchnivå og fastvare | Elementet for enheten i **Inventar** |
+| Merke, modell, serienummer, OS-versjon, sikkerhetspatchnivå og fastvare | Elementet for enheten i **Inventar**, med filteret og kolonnen **Sikkerhetspatchnivå** |
+| Hvor gammelt sikkerhetspatchnivået er | Målingen `android.os.security_patch.age`, i dager |
+| Det som fortsatt må gis til agenten | Elementet for enheten i **Inventar**, med filteret og kolonnen **Agenttillatelser** |
 
 Under **Verter** står enhetens OS som Android, med Androids logo.
 
-Antall oppstarter den siste timen er målingen `android.boot.recent_count`, og en enhet som fortsetter å starte på nytt, logger en advarsel ved hver oppstart. Under **Verter** tilbys en Android-enhet egne varslingsmaler: Device Unplugged, Low Battery, Device Overheating, Restart Loop og Storage Nearly Full, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization, og High CPU Utilization når den rapporterer CPU-bruk. De første feilsøkingskommandoene i hvert varsel er adb-kommandoer. Se [Verts-monitor](/docs/monitor/host-monitor#android-enheter).
+En enhet ligger etter med sikkerhetspatchene sine når sikkerhetspatchnivået er mer enn 90 dager gammelt. Google publiserer en sikkerhetsbulletin for Android hver måned, og Android Enterprise Recommended pålegger produsenten av en enhet å levere hver av dem innen 90 dager, så en enhet som ligger lenger etter, mangler rettelser som produsenten burde ha levert. I **Inventar** viser filteret **Sikkerhetspatchnivå** disse enhetene under **Utdatert**; malen **Security Patch Out of Date** gir et varsel for hver av dem.
+
+Antall oppstarter den siste timen er målingen `android.boot.recent_count`, og en enhet som fortsetter å starte på nytt, logger en advarsel ved hver oppstart. Under **Verter** tilbys en Android-enhet egne varslingsmaler: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full og Security Patch Out of Date, sammen med Host Stopped Reporting, Host Restarted og High Memory Utilization, og High CPU Utilization når den rapporterer CPU-bruk. De første feilsøkingskommandoene i hvert varsel er adb-kommandoer. Se [Verts-monitor](/docs/monitor/host-monitor#android-enheter).
 
 ## Feilsøking
 

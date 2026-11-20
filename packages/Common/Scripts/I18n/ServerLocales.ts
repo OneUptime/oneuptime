@@ -146,6 +146,12 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
    * (#9818, #9820), in the language on their account.
    */
   "packages/Common/Types/SSO/SignInSettingsClearedEmail.ts",
+  /*
+   * The email of an account's organizations' SSO sign-in links (#9987), in
+   * the language on the account.
+   */
+  "packages/Common/Types/Accounts/SsoSignInLinks.ts",
+  "packages/App/FeatureSet/Identity/Utils/SsoSignInLinksEmail.ts",
   "packages/App/FeatureSet/Workers/Jobs",
   "packages/App/FeatureSet/Notification/Templates",
   // Sentences the Dashboard writes too, worded as it words them (above).

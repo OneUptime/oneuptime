@@ -138,7 +138,8 @@ describe("the explorer shells offer one zoom to everything they render", () => {
 
 describe("the Analytics timeseries are time charts over the explorer's window", () => {
   test.each([
-    ["logs", 2, LOGS_ANALYTICS_VIEW],
+    // An area, stacked bars, and lines for an average or a percentile by group.
+    ["logs", 3, LOGS_ANALYTICS_VIEW],
     ["traces", 3, TRACES_ANALYTICS_VIEW],
   ])(
     "the %s view resolves its zoom for the timeseries only, and drives all %s of its charts with it",
@@ -341,7 +342,7 @@ describe("the crosshair is set on the recharts root, only where a drag zooms", (
       1,
       "props.onTimeRangeSelect",
     ],
-    ["the logs Analytics timeseries", LOGS_ANALYTICS_VIEW, 2, "canZoom"],
+    ["the logs Analytics timeseries", LOGS_ANALYTICS_VIEW, 3, "canZoom"],
     ["the traces Analytics timeseries", TRACES_ANALYTICS_VIEW, 3, "canZoom"],
     ["the error drawer's timeline", ERROR_PATTERN_DETAIL, 1, "pageZoom"],
   ])(

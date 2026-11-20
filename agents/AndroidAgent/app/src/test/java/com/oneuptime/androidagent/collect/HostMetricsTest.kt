@@ -224,6 +224,22 @@ class HostMetricsTest {
     }
 
     @Test
+    fun `the security patch level's age in days, for the Security Patch Out of Date template, sent every collection`() {
+        val metric: Metric = HostMetrics.from(snapshot().copy(securityPatchAgeDays = 120)).named("android.os.security_patch.age")
+
+        assertEquals("d", metric.unit)
+        assertTrue(metric.data is MetricData.Gauge)
+        assertEquals(NumberValue.Whole(120L), metric.data.points.single().value)
+        // Patched today is 0 days behind: sent, so a monitor reads the device as up to date.
+        assertEquals(
+            NumberValue.Whole(0L),
+            HostMetrics.from(snapshot().copy(securityPatchAgeDays = 0)).named("android.os.security_patch.age").data.points.single().value,
+        )
+        // A level that is not a date has no age, and none is sent.
+        assertTrue(HostMetrics.from(snapshot()).none { it.name == "android.os.security_patch.age" })
+    }
+
+    @Test
     fun `CPU use read as the device owner has only user and idle, and still reads as busy`() {
         val metric: Metric =
             HostMetrics.from(snapshot(cpu = mapOf("cpu0" to mapOf("user" to 0.3, "idle" to 0.7)))).named("system.cpu.utilization")

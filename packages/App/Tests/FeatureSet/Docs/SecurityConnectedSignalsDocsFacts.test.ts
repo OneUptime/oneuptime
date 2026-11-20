@@ -37,6 +37,8 @@ import {
   SECURITY_CONNECTION_KINDS,
   SECURITY_CONNECTION_MAX_RESOURCES,
   SECURITY_CONNECTION_MAX_WINDOW_IN_HOURS,
+  SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
+  SECURITY_LOG_ROW_FUNCTION_KEY,
   SECURITY_TELEMETRY_MAX_VALUES,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
@@ -55,6 +57,7 @@ import {
   getLookupKindsOf,
   getMonitorTargetHosts,
   getSecurityConnectionLookups,
+  isLogOfCloudResource,
   matchAddress,
   matchEmail,
   matchHostName,
@@ -371,8 +374,62 @@ describe("the Connected Signals page", () => {
       })!.certainty,
       // The record a log line was sent under.
       SecurityConnectionCertainty.Exact,
+      // The cloud resource or the serverless function a log line came from.
+      SecurityConnectionCertainty.Exact,
       "-",
     ]);
+    // An ARN or a Google Cloud name only as written, an Azure ID whatever its case.
+    expect(
+      matchResourceId({
+        entityValue: "arn:aws:s3:::ACME-PROD-DATA",
+        providerResourceId: "arn:aws:s3:::acme-prod-data",
+      }),
+    ).toBeNull();
+    expect(
+      matchResourceId({
+        entityValue: "//storage.googleapis.com/projects/_/buckets/Acme-Prod",
+        providerResourceId:
+          "//storage.googleapis.com/projects/_/buckets/acme-prod",
+      }),
+    ).toBeNull();
+    expect(
+      matchResourceId({
+        entityValue: "//storage.googleapis.com/projects/_/buckets/acme-prod",
+        providerResourceId:
+          "//storage.googleapis.com/projects/_/buckets/acme-prod",
+      })!.certainty,
+    ).toBe(SecurityConnectionCertainty.Exact);
+    expect(
+      matchResourceId({
+        entityValue:
+          "/SUBSCRIPTIONS/0B1C2D3E-0000-4000-8000-000000000001/RESOURCEGROUPS/SHOP/PROVIDERS/MICROSOFT.KEYVAULT/VAULTS/SHOP-KV",
+        providerResourceId:
+          "/subscriptions/0b1c2d3e-0000-4000-8000-000000000001/resourceGroups/shop/providers/Microsoft.KeyVault/vaults/shop-kv",
+      })!.certainty,
+    ).toBe(SecurityConnectionCertainty.Exact);
+    // A log line's own cloud resource is told by the same rule, by the keys the row names.
+    expect(
+      isLogOfCloudResource({
+        stampedId:
+          "/subscriptions/0b1c2d3e-0000-4000-8000-000000000001/resourcegroups/shop/providers/microsoft.keyvault/vaults/shop-kv",
+        providerResourceId:
+          "/subscriptions/0b1c2d3e-0000-4000-8000-000000000001/resourceGroups/shop/providers/Microsoft.KeyVault/vaults/shop-kv",
+      }),
+    ).toBe(true);
+    expect(
+      isLogOfCloudResource({
+        stampedId: "arn:aws:lambda:us-east-1:123456789012:function:Orders",
+        providerResourceId:
+          "arn:aws:lambda:us-east-1:123456789012:function:orders",
+      }),
+    ).toBe(false);
+    expect([
+      SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
+      SECURITY_LOG_ROW_FUNCTION_KEY,
+    ]).toEqual(["resource.cloud.resource_id", "resource.faas.name"]);
+    expect(rows[rows.length - 2]![0]).toBe(
+      "The cloud resource or the serverless function a log line came from, by its `cloud.resource_id` or its `faas.name`, for the events read from your logs",
+    );
     expect(
       matchAddress({ address: "203.0.113.9", holderCount: 2 })!.certainty,
     ).toBe(SecurityConnectionCertainty.Possible);

@@ -25,6 +25,9 @@ import {
   getSignInOptionClassName,
   SIGN_IN_OPTION_PRIMARY_CLASS,
 } from "../../../UI/Components/SignInOption/SignInOptionStyle";
+import GlobalConfigUtil, {
+  GlobalConfigVars,
+} from "../../../UI/Utils/GlobalConfig";
 import LoginUtil from "../../../UI/Utils/Login";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -269,6 +272,20 @@ beforeEach(() => {
   requestedUrls = [];
 
   jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
+  /*
+   * Whether the server can send email: a lookup that finds nothing offers
+   * to email the address its organizations' links (#9987), only where it
+   * can (LoginSsoEmailLinks.test.tsx).
+   */
+  jest
+    .spyOn(GlobalConfigUtil, "fetchVars")
+    .mockImplementation(async (): Promise<GlobalConfigVars> => {
+      return {
+        disableUserProjectCreation: false,
+        disablePushNotifications: false,
+        canSendEmail: true,
+      };
+    });
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
     return undefined;
   });

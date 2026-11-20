@@ -143,7 +143,7 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 | `/data-store/<id>/scan-now` | **Jetzt scannen**: nimmt sofort Stichproben vom Inhalt des Datenspeichers |
 | `/data-store/<id>/check-now` | **Jetzt prüfen**: liest die Konfiguration des Datenspeichers erneut und führt seine Prüfungen aus |
 | `/data-store-finding/<id>/scrub` | **Bereinigen** an einem Telemetrie-Fund |
-| `/data-store-finding/<id>/drop-metric-impact` | Was **Diese Metrik verwerfen** an einem Fund im Namen einer Metrik verwerfen würde: wie viele Metriken, und die Monitore und Dashboards, die sie lesen |
+| `/data-store-finding/<id>/drop-metric-impact` | Was **Diese Metrik verwerfen** an einem Fund im Namen einer Metrik verwerfen würde: wie viele Metriken, und die Monitore, Dashboards, SLOs und Aufzeichnungsregeln, die sie lesen |
 | `/data-store-finding/<id>/drop-metric` | **Diese Metrik verwerfen**: eine Metrik-Pipeline-Regel, die die neuen Datenpunkte dieser Metriken des Dienstes endgültig verwirft. Sie nimmt `{"confirmDataLoss": true}` entgegen |
 | `/data-security-issue/<id>/explain` | **Mit KI erklären** an einem Problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Mit KI beheben** an einem Problem |

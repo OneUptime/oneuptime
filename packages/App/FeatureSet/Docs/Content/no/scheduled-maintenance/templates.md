@@ -47,7 +47,7 @@ Under **Berørte ressurser** velger du **Monitorer**, **Endre monitorstatus til*
 
 ### Bestem om den gjentas
 
-Under **Gjentakende** lar du **Gjentakende hendelse** være av for en mal du bruker manuelt, eller slår den på og fyller ut tidsplanen. Klikk på **Neste** for å se gjennom oversikten, og opprett deretter malen.
+Under **Gjentakende** lar du **Gjentakende hendelse** være av for en mal du bruker manuelt, eller slår den på, velger hvor ofte den gjentas og dens **Tidssone**, og angir tidspunktene for den første hendelsen under **Første hendelse**. Klikk på **Neste** for å se gjennom oversikten, og opprett deretter malen.
 :::
 
 En mal spør om **Endre monitorstatus til** selv når den ikke nevner noen monitorer: statusen gjelder også monitorene du legger til når du planlegger en hendelse fra den. Under **Andre berørte ressurser** tar en mal verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester.
@@ -83,15 +83,18 @@ Når prosjektet ikke har noen mal ennå, sier **Opprett fra mal** det og lenker 
 
 ## Gjentakende hendelser
 
-En gjentakende mal oppretter hendelsen etter en tidsplan. Du angir når den første hendelsen opprettes, når den starter og når den slutter; hver senere hendelse holder de samme avstandene, ett intervall senere.
+En gjentakende mal oppretter hendelsen etter en tidsplan. Du angir hvor ofte den gjentas, hvilken tidssone den holder seg til, og når den første hendelsen opprettes, når den starter og når den slutter; hver senere hendelse er den første flyttet hele intervaller frem i kalenderen til den tidssonen, på de samme klokkeslettene.
 
 | Felt                                                   | Hva det betyr                                                                                       |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | **Gjentakende hendelse**                               | Slår på tidsplanen.                                                                                 |
+| **Hvor ofte vil du at denne hendelsen skal gjenta seg?** | Et tall og en enhet: timer, dager, uker, måneder eller år.                                        |
+| **Tidssone**                             | Tidssonen hendelsene holder klokkeslettet sitt i. En ny mal starter med din.                        |
 | **Første hendelse planlagt til**                       | Når OneUptime oppretter den første hendelsen, og dermed når abonnentene får vite at den er planlagt. |
 | **Første hendelse starter**                            | Når den første hendelsen starter.                                                                   |
 | **Første hendelse slutter**                            | Når den første hendelsen slutter.                                                                   |
-| **Hvor ofte vil du at denne hendelsen skal gjenta seg?** | Et tall og en enhet: timer, dager, uker, måneder eller år.                                        |
+
+De tre første står i trinnet **Gjentakende**. Tidspunktene for den første hendelsen står i trinnet **Første hendelse**, som vises når **Gjentakende hendelse** er slått på.
 
 For eksempel et ukentlig vindu der den første hendelsen opprettes en mandag for lørdagen etter:
 
@@ -100,15 +103,25 @@ For eksempel et ukentlig vindu der den første hendelsen opprettes en mandag for
 | Den første   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Den andre    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Hver hendelse holder klokkeslettene til den første hendelsen i malens tidssone, også når klokken stilles om for sommertid: et vindu fra 02:00 til 04:00 i Berlin er der fra 02:00 til 04:00 både om sommeren og om vinteren. Noen dager blir slik:
+
+- **En dag måneden ikke har.** En månedlig hendelse den 29., 30. eller 31. faller på den siste dagen i en kortere måned, for eksempel 30. april eller 28. februar, og igjen på sin egen dag i månedene som har den. En årlig hendelse 29. februar faller på 28. februar i andre år.
+- **Natten klokken stilles frem.** Et tidspunkt som ikke finnes den natten, for eksempel 02:30 når 02:00 hopper til 03:00, flyttes frem med hoppet, til 03:30. En hendelse der starten dermed flyttes forbi slutten, beholder lengden til den første hendelsen.
+- **Natten klokken stilles tilbake.** Et tidspunkt som inntreffer to ganger den natten, for eksempel 01:30 i New York, er det første av de to.
+- **Med noen timers mellomrom.** Timer telles etter hvert som de går, så en mal som gjentas med noen timers mellomrom, flytter seg en time på klokken når den stilles om.
+- **En tidssone uten sommertid.** En tidssone som ikke lenger stiller klokken, for eksempel British Columbias (America/Vancouver) siden november 2026, holder samme forskyvning, så ingenting flytter seg.
+
+En mal som ble opprettet før maler hadde en tidssone, viser **UTC**, tidssonen hendelsene ble beregnet i frem til da. Velg tidssonen tidspunktene var ment i, så holder hver hendelse fra neste hendelse klokkeslettet til den første hendelsen der.
+
 Sett **Første hendelse planlagt til** så langt før starten som du vil at kundene dine skal høre om arbeidet. Alle tre tidspunktene må ligge i fremtiden når du oppretter malen, hendelsen må opprettes før den starter og slutter, og den må starte før den slutter; skjemaet sier hvilken regel et tidspunkt bryter.
 
-En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet til en mal kommer, flytter den tidspunktet ett intervall frem og oppretter hendelsen. Mallisten viser det tidspunktet i kolonnen **Gjentakende hendelse**, og **Nei** for en mal som ikke gjentas. En hendelse som er opprettet fra tidsplanen, er som alle andre: reglene kjører, eierne legges til, og abonnentene får vite at den er planlagt.
+En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet til en mal kommer, oppretter den hendelsen og flytter tidspunktet frem til tidsplanens neste hendelse. Mallisten viser det tidspunktet i kolonnen **Gjentakende hendelse**, og **Nei** for en mal som ikke gjentas. En hendelse som er opprettet fra tidsplanen, er som alle andre: reglene kjører, eierne legges til, og abonnentene får vite at den er planlagt.
 
 ## Endre eller stopp en mal
 
 Åpne en mal fra listen for å se siden dens:
 
-- **Maldetaljer for planlagt vedlikehold** viser hva nye hendelser starter med. **Rediger** går gjennom **Malinformasjon**, **Detaljer om vedlikehold**, **Statussider** og **Gjentakende**.
+- **Maldetaljer for planlagt vedlikehold** viser hva nye hendelser starter med. **Rediger** går gjennom **Malinformasjon**, **Detaljer om vedlikehold**, **Statussider** og **Gjentakende**, og deretter **Første hendelse** for en mal som gjentas.
 - **Berørte ressurser** rommer **Monitorer**, deres **Endre monitorstatus til** og **Andre berørte ressurser**, med sin egen **Rediger**.
 - **Eiere** viser personene og teamene som eier hver hendelse som planlegges fra den.
 
@@ -122,6 +135,10 @@ Alle tre første tidspunktene må ligge etter nå når du oppretter den. Flytt d
 
 :::details En gjentakende mal opprettet ingen hendelse
 Sjekk at **Gjentakende hendelse** fortsatt er på, og se på tidspunktet i kolonnen **Gjentakende hendelse** i listen: hendelsen opprettes da, ikke ved starten. Jobben kjører hvert minutt, så gi den et minutt.
+:::
+
+:::details Hendelser fra en gjentakende mal kommer en time for tidlig eller for sent etter at klokken er stilt om
+Åpne malen og sjekk **Tidssone**: hendelsene holder klokkeslettet til den første hendelsen i den tidssonen. En mal som ble opprettet før maler hadde en tidssone, viser **UTC**: velg tidssonen tidspunktene var ment i. Hendelser som allerede er opprettet, beholder tidspunktene sine.
 :::
 
 :::details En hendelse fra en mal mangler en ressurs jeg valgte

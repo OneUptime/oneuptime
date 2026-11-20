@@ -244,7 +244,13 @@
     "signInWithProvider": "Logga in med {{name}}",
     "requiredSubtitle": "Den här servern kräver enkel inloggning (SSO).",
     "requiredNotSetUp": "Enkel inloggning är inte konfigurerad på den här servern ännu. Be serveradministratören att konfigurera den.",
-    "useDifferentEmail": "Använd en annan e-postadress"
+    "useDifferentEmail": "Använd en annan e-postadress",
+    "lastUsedTitle": "Senast använd på den här enheten",
+    "forgetLastUsed": "Glöm den här leverantören",
+    "emailLinksPrompt": "Vi kan mejla den här adressen SSO-inloggningslänkarna för alla organisationer som den tillhör.",
+    "emailLinksButton": "Skicka mina inloggningslänkar",
+    "emailLinksSent": "Om den här adressen tillhör en organisation som använder enkel inloggning har vi skickat SSO-inloggningslänkarna till den.",
+    "emailLinksCaptchaRequired": "Slutför captchan innan du ber om länkarna."
   },
   "adminLogin": {
     "title": "Inloggning för huvudadministratörer",
