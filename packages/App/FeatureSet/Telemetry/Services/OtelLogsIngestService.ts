@@ -72,6 +72,7 @@ import {
 import LogService from "Common/Server/Services/LogService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
+import AppleSymbolication from "Common/Server/Utils/Telemetry/AppleSymbolication";
 import LogExceptionExtractor, {
   ExtractedLogException,
 } from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
@@ -1463,7 +1464,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    */
                   if (TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED) {
                     try {
-                      this.collectExceptionFromLog({
+                      await this.collectExceptionFromLog({
                         logRow,
                         projectId,
                         primaryEntityId,
@@ -1831,7 +1832,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
    * the log's own traceId/spanId/sessionId preserved when correlated, and the
    * log retention policy (pillar "logs") reused from the caller.
    */
-  private static collectExceptionFromLog(data: {
+  private static async collectExceptionFromLog(data: {
     logRow: JSONObject;
     projectId: ObjectID;
     primaryEntityId: ObjectID;
@@ -1845,7 +1846,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     retentionDateDb: string;
     dbExceptions: Array<JSONObject>;
     pendingExceptionUpserts: Array<TelemetryExceptionPayload>;
-  }): void {
+  }): Promise<void> {
     const finalBody: string = (data.logRow["body"] as string) || "";
     const finalAttributes: JSONObject =
       (data.logRow["attributes"] as JSONObject) || {};
@@ -1861,7 +1862,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
      */
     const sessionId: string = (data.logRow["sessionId"] as string) || "";
 
-    const extracted: ExtractedLogException | null =
+    let extracted: ExtractedLogException | null =
       LogExceptionExtractor.extractFromLogRecord({
         body: finalBody,
         attributes: finalAttributes,
@@ -1871,6 +1872,30 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     if (!extracted) {
       return;
+    }
+
+    const faultKind: MobileAppFaultKind | null =
+      getMobileAppFaultKind(finalAttributes);
+
+    /*
+     * An iOS app's crash or hang (#9922): each frame whose binary has an
+     * uploaded dSYM named by its function before it is grouped, so it reads
+     * "CartViewController.checkout()" and groups by function across
+     * releases. A stack no dSYM resolves is kept as it was sent.
+     */
+    if (faultKind && extracted.stackTrace) {
+      const symbolicated: string | null =
+        await AppleSymbolication.symbolicateStackTrace({
+          projectId: data.projectId,
+          stackTrace: extracted.stackTrace,
+        });
+
+      if (symbolicated) {
+        extracted = LogExceptionExtractor.withStackTrace(
+          extracted,
+          symbolicated,
+        );
+      }
     }
 
     const fingerprint: string = ExceptionUtil.getFingerprint({
@@ -1913,9 +1938,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
      * An iOS hang keeps how long it lasted too, which its message, the
      * same for every hang so that they group, leaves out.
      */
-    const faultKind: MobileAppFaultKind | null =
-      getMobileAppFaultKind(finalAttributes);
-
     if (faultKind) {
       exceptionAttributes[LogEventNameAttributeKey] =
         getMobileAppFaultEventName(finalAttributes) || "";

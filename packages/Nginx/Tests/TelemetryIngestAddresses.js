@@ -692,6 +692,28 @@ const TELEMETRY_INGEST_ADDRESSES = [
     ],
   },
 
+  // An iOS app's dSYMs, uploaded from CI by the CLI or curl (#9922).
+  {
+    method: "POST",
+    route: "/dsyms/v1/upload",
+    addresses: [
+      {
+        address: "/dsyms/v1/upload",
+        handedOutBy: [
+          {
+            file: "packages/App/FeatureSet/Docs/Content/en/rum/mobile-setup.md",
+            contains:
+              'curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload"',
+          },
+          {
+            file: "packages/CLI/Commands/DsymCommands.ts",
+            contains: 'DSYM_UPLOAD_PATH: string = "/dsyms/v1/upload"',
+          },
+        ],
+      },
+    ],
+  },
+
   /*
    * The host collector: the supervisor the installers set up asks here for
    * its host's config, every 30 seconds.

@@ -513,6 +513,12 @@ enum Permission {
   EditTelemetrySourceMap = "EditTelemetrySourceMap",
   ReadTelemetrySourceMap = "ReadTelemetrySourceMap",
 
+  // dSYMs (symbolicate an iOS app's crash and hang stacks)
+  CreateTelemetryDsym = "CreateTelemetryDsym",
+  DeleteTelemetryDsym = "DeleteTelemetryDsym",
+  EditTelemetryDsym = "EditTelemetryDsym",
+  ReadTelemetryDsym = "ReadTelemetryDsym",
+
   // Spans
   CreateTelemetryServiceTraces = "CreateTelemetryServiceTraces",
   DeleteTelemetryServiceTraces = "DeleteTelemetryServiceTraces",
@@ -10701,6 +10707,47 @@ export class PermissionHelper {
         title: "Read Telemetry Source Map",
         description:
           "This permission can read source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateTelemetryDsym,
+        title: "Create Telemetry dSYM",
+        description:
+          "This permission can upload the dSYMs of this project's iOS apps.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteTelemetryDsym,
+        title: "Delete Telemetry dSYM",
+        description:
+          "This permission can delete the dSYMs of this project's iOS apps.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditTelemetryDsym,
+        title: "Edit Telemetry dSYM",
+        description:
+          "This permission can edit the dSYMs of this project's iOS apps.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadTelemetryDsym,
+        title: "Read Telemetry dSYM",
+        description:
+          "This permission can read the dSYMs of this project's iOS apps, the function symbols of each build included.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
