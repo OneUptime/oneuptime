@@ -130,6 +130,14 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a dashboard single sign-on",
   "packages/App/FeatureSet/Identity/API/DashboardOIDC.ts":
     "records the address of a dashboard single sign-on",
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts":
+    "records the address of a form private user's sign-in (#10249); its attempts are counted by IdentityRateLimit, and its password resets by PublicMessageRateLimit",
+  "packages/App/FeatureSet/Identity/API/FormSSO.ts":
+    "records the address of a form single sign-on",
+  "packages/App/FeatureSet/Identity/API/FormOIDC.ts":
+    "records the address of a form single sign-on",
+  "packages/App/FeatureSet/Identity/Utils/FormSignIn.ts":
+    "holds a form's sign-in to the form's IP allowlist, as every public form route is held",
   "packages/App/FeatureSet/Notification/API/Telegram.ts":
     "hands the address to VerificationCodeRateLimit.consume, which counts through ClientRateLimitCounter",
   "packages/App/FeatureSet/Runbook/API/RunbookWebhook.ts":

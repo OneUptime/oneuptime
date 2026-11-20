@@ -303,6 +303,21 @@ describe("password fields across the frontends", () => {
   test("exactly the sign-in, sign-up and own-password fields are left to password managers, each with the right autocomplete", () => {
     expect(ownCredentialAutoCompletesByFile(SCAN.fields)).toEqual({
       "App/FeatureSet/Accounts/src/Pages/Login.tsx": ["current-password"],
+      /*
+       * A form's private users (#10249): the password a reset link sets,
+       * and the one they sign in with, on the form's own sign-in.
+       */
+      "App/FeatureSet/Accounts/src/Components/FormSignIn/FormSignInView.tsx": [
+        "new-password",
+        "current-password",
+      ],
+      // A dashboard's private users (#10250): the same two, on its own pages.
+      "App/FeatureSet/PublicDashboard/src/Pages/SignIn/ResetPassword.tsx": [
+        "new-password",
+      ],
+      "App/FeatureSet/PublicDashboard/src/Pages/SignIn/SignIn.tsx": [
+        "current-password",
+      ],
       "App/FeatureSet/StatusPage/src/Pages/Accounts/Login.tsx": [
         "current-password",
       ],

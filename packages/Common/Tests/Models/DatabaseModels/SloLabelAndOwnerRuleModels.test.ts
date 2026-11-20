@@ -170,21 +170,25 @@ describe.each(RULE_MODELS)("$name", (c: RuleModelCase) => {
     );
   });
 
+  // With SLOs' levels (#10289): SLO Admin writes as Project Admin does.
   test("is written only by owners, admins and its own permissions, and read like every rule", () => {
     expect(model.getCreatePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       c.create,
+      Permission.SloAdmin,
     ]);
     expect(model.getUpdatePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       c.update,
+      Permission.SloAdmin,
     ]);
     expect(model.getDeletePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       c.delete,
+      Permission.SloAdmin,
     ]);
     expect(model.getReadPermissions()).toEqual([
       Permission.ProjectOwner,
@@ -192,6 +196,9 @@ describe.each(RULE_MODELS)("$name", (c: RuleModelCase) => {
       Permission.ProjectMember,
       Permission.Viewer,
       c.read,
+      Permission.SloAdmin,
+      Permission.SloMember,
+      Permission.SloViewer,
     ]);
   });
 

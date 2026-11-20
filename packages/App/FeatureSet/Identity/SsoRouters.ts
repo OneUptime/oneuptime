@@ -7,22 +7,25 @@ import StatusPageOidcAPI from "./API/StatusPageOIDC";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
 import DashboardOidcAPI from "./API/DashboardOIDC";
 import DashboardSsoAPI from "./API/DashboardSSO";
+import FormOidcAPI from "./API/FormOIDC";
+import FormSsoAPI from "./API/FormSSO";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
 
 /*
  * Single sign-on: SAML and OIDC for projects, the whole instance (Global SSO
- * and Global OIDC), status pages and dashboards. Core serves these routers
- * in every edition. ./Index.ts mounts them, in this order, at
+ * and Global OIDC), status pages, dashboards and forms. Core serves these
+ * routers in every edition. ./Index.ts mounts them, in this order, at
  * ["/api/identity", "/"]: after the authentication and reseller routers,
  * before the Enterprise Edition's identity routers (SCIM) and the status
  * page authentication router.
  *
  * The route paths are part of every customer's identity provider setup: the
  * SAML ACS URLs (/idp-login/..., /global-idp-login/...,
- * /status-page-idp-login/..., /dashboard-idp-login/...) and the OIDC redirect
- * URIs (/oidc-callback/..., /global-oidc-callback/...,
- * /status-page-oidc-callback/..., /dashboard-oidc-callback/...) are pasted
- * into Okta, Entra ID and the like. They must never change;
+ * /status-page-idp-login/..., /dashboard-idp-login/..., /form-idp-login/...)
+ * and the OIDC redirect URIs (/oidc-callback/..., /global-oidc-callback/...,
+ * /status-page-oidc-callback/..., /dashboard-oidc-callback/...,
+ * /form-oidc-callback/...) are pasted into Okta, Entra ID and the like.
+ * They must never change;
  * Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts pins every
  * (method, path) pair.
  */
@@ -48,6 +51,13 @@ export const SSO_ROUTERS: ReadonlyArray<SsoRouterEntry> = [
    */
   { name: "DashboardSSO", router: DashboardSsoAPI },
   { name: "DashboardOIDC", router: DashboardOidcAPI },
+  /*
+   * A form's public link, for the people who sign in to it (#10249): its
+   * SAML ACS URL (/form-idp-login/...) and OIDC redirect URI
+   * (/form-oidc-callback/...) are pasted into identity providers too.
+   */
+  { name: "FormSSO", router: FormSsoAPI },
+  { name: "FormOIDC", router: FormOidcAPI },
   /*
    * Not configured in any identity provider: the page a project-SSO
    * confirmation email links to (only the hosted service sends that email).

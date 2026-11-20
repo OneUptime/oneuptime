@@ -1,5 +1,6 @@
 import FormsCopy from "../../../Components/FormBuilder/FormsCopy";
 import FormShareLinkCard from "../../../Components/FormBuilder/FormShareLinkCard";
+import FormSignInCard from "../../../Components/FormBuilder/FormSignInCard";
 import FormStatusCard from "../../../Components/FormBuilder/FormStatusCard";
 import {
   getIpAllowlistFoldedItem,
@@ -67,6 +68,11 @@ const FormShare: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
 
       <FormShareLinkCard modelId={modelId} refresher={shareLinkRefresher} />
+      {/*
+       * Only people who sign in (#10249): the form's private users, and the
+       * people its single sign-on lets in.
+       */}
+      <FormSignInCard formId={modelId} />
 
       <CardModelDetail<Form>
         name="Form > After Submitting"

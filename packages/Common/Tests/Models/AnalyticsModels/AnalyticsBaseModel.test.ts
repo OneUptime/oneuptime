@@ -1,7 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
+import SecurityEvent, {
+  SECURITY_EVENT_CREATED_AT_INDEX_MAX_VALUES,
+  SECURITY_EVENT_CREATED_AT_INDEX_NAME,
+} from "../../../Models/AnalyticsModels/SecurityEvent";
+import AnalyticsTableColumn, {
+  SkipIndex,
+  SkipIndexType,
+} from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 
 type ModelOptions = ConstructorParameters<typeof AnalyticsBaseModel>[0];
@@ -118,5 +126,76 @@ describe("AnalyticsBaseModel base-column policy", () => {
         }),
       );
     }).toThrow("Primary key _id is not part of tableColumns");
+  });
+});
+
+/*
+ * A table read by when its rows arrived (SecurityEvent: scheduled detection
+ * rules judge what arrived since their last run, #10337) declares a skip
+ * index on the base createdAt column, which every other table leaves as it
+ * was.
+ */
+describe("AnalyticsBaseModel createdAt skip index", () => {
+  test("puts the index on the base createdAt column when a model asks for one", () => {
+    const model: AnalyticsBaseModel = new AnalyticsBaseModel(
+      modelOptions({
+        createdAtSkipIndex: {
+          name: "idx_created_at",
+          type: SkipIndexType.MinMax,
+          granularity: 1,
+        },
+      }),
+    );
+
+    expect(model.getTableColumn("createdAt")?.skipIndex).toEqual({
+      name: "idx_created_at",
+      type: SkipIndexType.MinMax,
+      granularity: 1,
+    });
+    expect(model.getTableColumn("_id")?.skipIndex).toBeUndefined();
+  });
+
+  test("leaves createdAt without one by default", () => {
+    const model: AnalyticsBaseModel = new AnalyticsBaseModel(modelOptions());
+
+    expect(model.getTableColumn("createdAt")?.skipIndex).toBeUndefined();
+  });
+
+  test("refuses one on a model without the base columns: there is no createdAt to index", () => {
+    expect(() => {
+      return new AnalyticsBaseModel(
+        modelOptions({
+          includeBaseColumns: false,
+          defaultSortColumn: "projectId",
+          createdAtSkipIndex: {
+            name: "idx_created_at",
+            type: SkipIndexType.MinMax,
+            granularity: 1,
+          },
+        }),
+      );
+    }).toThrow("createdAtSkipIndex needs the base columns");
+  });
+
+  test("the security events table indexes when each event arrived, and no other table does", () => {
+    for (const modelType of AnalyticsModels) {
+      const model: AnalyticsBaseModel = new modelType();
+      const index: SkipIndex | undefined =
+        model.getTableColumn("createdAt")?.skipIndex;
+
+      if (model.tableName === new SecurityEvent().tableName) {
+        // Each granule's arrival seconds: a minmax range is stretched by its few hours-late events.
+        expect(index).toEqual({
+          name: SECURITY_EVENT_CREATED_AT_INDEX_NAME,
+          type: SkipIndexType.Set,
+          params: [SECURITY_EVENT_CREATED_AT_INDEX_MAX_VALUES],
+          granularity: 1,
+        });
+        expect(SECURITY_EVENT_CREATED_AT_INDEX_MAX_VALUES).toBe(4096);
+        continue;
+      }
+
+      expect(index).toBeUndefined();
+    }
   });
 });
