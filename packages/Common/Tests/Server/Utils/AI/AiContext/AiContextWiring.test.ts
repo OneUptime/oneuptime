@@ -108,10 +108,8 @@ const READS_AI_CONTEXT: Record<string, string> = {
     "an incident's postmortem draft (its note drafts read none)",
   "Utils/AI/IncidentEpisodeAIContextBuilder.ts":
     "an episode's postmortem draft",
-  "API/DataSecurityAPI.ts":
-    "Explain on a Data Security issue: the steps to fix the team's own store, on its own systems",
-  "Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts":
-    "OneUptime AI's own analysis of a new Data Security issue: the steps to fix the team's own store, on its own systems, as Explain writes them",
+  "Utils/AI/DataSecurity/DataSecurityAiInput.ts":
+    "Explain on a Data Security issue: the steps to fix the team's own store, on its own systems (every Data Security prompt is built here, #10365; the field suggestions read none)",
   "Utils/AI/TelemetryAi/ExceptionExplanation.ts":
     "an exception's explanation: what happened in the team's own code, its likely root cause and the fix",
   "Utils/AI/TelemetryAi/ExceptionDigest.ts":
@@ -143,12 +141,12 @@ const LEAVES_OUT_AI_CONTEXT: Record<string, string> = {
     "summarizes a call's transcript in the speakers' own words",
   "Utils/CodeRepository/ProductionReview/ProductionReviewAI.ts":
     "reads one pull request against production's own data",
-  "Utils/AI/DataSecurity/FieldSuggestion.ts":
-    "names the data type of fields from their names and the shapes of their values: one short call after a store's scan",
   "Utils/DataObservability/DataCheckFromSentence.ts":
     "writes one data check from a rule a person typed and the table's own columns: one short call, reviewed before it is added",
   "Utils/AI/ObservabilityImport/ImportQueryConversion.ts":
     "converts one query of a file a person imports, from that file alone: one short call, reviewed before it is used",
+  "Utils/AI/Eval/DataSecurity/DataSecurityEval.ts":
+    "the Data Security eval's made-up cases (#10365) belong to no team, so there is no AI context to read",
 };
 
 // Files that name the role without writing a prompt.

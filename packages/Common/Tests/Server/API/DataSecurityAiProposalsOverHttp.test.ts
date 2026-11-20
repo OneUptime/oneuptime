@@ -285,7 +285,10 @@ beforeAll(async () => {
   await server.start([
     new DataSecurityAPI().getRouter(),
     // The App serves proposals as it serves every model: BaseAPI.
-    new BaseAPI<DataSecurityAiProposal, DatabaseService<DataSecurityAiProposal>>(
+    new BaseAPI<
+      DataSecurityAiProposal,
+      DatabaseService<DataSecurityAiProposal>
+    >(
       DataSecurityAiProposal,
       asService<DataSecurityAiProposal>(DataSecurityAiProposalService),
     ).getRouter(),
@@ -420,9 +423,11 @@ describe("who may approve a proposal to make a log scrub rule", () => {
     expect(statusOfProposal()).toBe(DataSecurityAiProposalStatus.Applied);
     // Made with the person's own props.
     expect(
-      ((action.apply as jest.Mock).mock.calls[0]![0] as {
-        actor: { props: DatabaseCommonInteractionProps };
-      }).actor.props.userId?.toString(),
+      (
+        (action.apply as jest.Mock).mock.calls[0]![0] as {
+          actor: { props: DatabaseCommonInteractionProps };
+        }
+      ).actor.props.userId?.toString(),
     ).toBe(caller.userId?.toString());
   });
 
@@ -516,9 +521,11 @@ describe("who reads proposals through the API", () => {
 
     if (role.reads) {
       expect(sent.status).toBe(200);
-      expect(rows.map((row: JSONObject) => {
-        return row["title"];
-      })).toEqual([
+      expect(
+        rows.map((row: JSONObject) => {
+          return row["title"];
+        }),
+      ).toEqual([
         "Scrub Password in attributes.user.password of checkout logs",
       ]);
       return;

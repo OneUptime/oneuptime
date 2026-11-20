@@ -104,9 +104,9 @@ describe("the four kinds of work and their answers", () => {
   });
 
   test("an analysis changes nothing, so it is off or runs: there is nothing to approve", () => {
-    expect(DATA_SECURITY_AI_WORK_AUTONOMIES[DataSecurityAiWork.Analyze]).toEqual(
-      [OFF, WITHOUT_ASKING],
-    );
+    expect(
+      DATA_SECURITY_AI_WORK_AUTONOMIES[DataSecurityAiWork.Analyze],
+    ).toEqual([OFF, WITHOUT_ASKING]);
 
     for (const work of [
       DataSecurityAiWork.Contain,
@@ -458,13 +458,14 @@ describe("what may run without asking", () => {
     expect(verdict({ autonomy: SUGGEST, safety })).toEqual(
       asks(DataSecurityAiAskReason.WorkAsksFirst),
     );
-    expect(
-      verdict({ autonomy: SUGGEST, safety, isNamedByRule: true }),
-    ).toEqual(asks(DataSecurityAiAskReason.WorkAsksFirst));
+    expect(verdict({ autonomy: SUGGEST, safety, isNamedByRule: true })).toEqual(
+      asks(DataSecurityAiAskReason.WorkAsksFirst),
+    );
   });
 
   test("an analysis changes nothing: it runs whenever its work is on", () => {
-    const safety: DataSecurityAiChangeSafety = DataSecurityAiChangeSafety.ReadOnly;
+    const safety: DataSecurityAiChangeSafety =
+      DataSecurityAiChangeSafety.ReadOnly;
 
     expect(verdict({ autonomy: WITHOUT_ASKING, safety })).toEqual(RUNS);
     expect(verdict({ autonomy: SUGGEST, safety })).toEqual(RUNS);
@@ -572,7 +573,8 @@ describe("what may run without asking", () => {
   });
 
   test("the circuit breaker proposes what comes after the hour's changes made without asking", () => {
-    const safety: DataSecurityAiChangeSafety = DataSecurityAiChangeSafety.MaskOnly;
+    const safety: DataSecurityAiChangeSafety =
+      DataSecurityAiChangeSafety.MaskOnly;
 
     expect(
       verdict({
@@ -598,9 +600,9 @@ describe("what may run without asking", () => {
         DataSecurityAiChangeSafety.Pages,
       ].sort(),
     );
-    expect(isRiskierDataSecurityAiChange(DataSecurityAiChangeSafety.MaskOnly)).toBe(
-      false,
-    );
+    expect(
+      isRiskierDataSecurityAiChange(DataSecurityAiChangeSafety.MaskOnly),
+    ).toBe(false);
     expect(isRiskierDataSecurityAiChange(undefined)).toBe(false);
   });
 });
@@ -628,7 +630,9 @@ describe("how many people approve a proposal", () => {
 describe("the kinds of change", () => {
   test("Scrub It is a contain change that only masks", () => {
     expect(
-      DATA_SECURITY_AI_PROPOSAL_KINDS[DataSecurityAiProposalKind.ScrubTelemetry],
+      DATA_SECURITY_AI_PROPOSAL_KINDS[
+        DataSecurityAiProposalKind.ScrubTelemetry
+      ],
     ).toEqual({
       kind: DataSecurityAiProposalKind.ScrubTelemetry,
       work: DataSecurityAiWork.Contain,
@@ -669,9 +673,19 @@ describe("the inbox lists what waits riskiest first", () => {
       createdAt: Date;
     }> = [
       { id: "low", safety: "MaskOnly", riskScore: 20, createdAt: old },
-      { id: "high-recent", safety: "MaskOnly", riskScore: 90, createdAt: recent },
+      {
+        id: "high-recent",
+        safety: "MaskOnly",
+        riskScore: 90,
+        createdAt: recent,
+      },
       { id: "high-old", safety: "MaskOnly", riskScore: 90, createdAt: old },
-      { id: "access", safety: "ChangesAccess", riskScore: 10, createdAt: recent },
+      {
+        id: "access",
+        safety: "ChangesAccess",
+        riskScore: 10,
+        createdAt: recent,
+      },
     ];
 
     expect(
@@ -722,8 +736,14 @@ describe("a plan's fingerprint", () => {
     const plan: { places: Array<string> } = { places: ["attributes.email"] };
     const text: string = toStableJsonText({ kind: "ScrubTelemetry", plan });
 
-    expect(getDataSecurityAiPlanFingerprint({ kind: "ScrubTelemetry", plan })).toBe(
-      crypto.createHash("sha256").update(text, "utf8").digest("hex").slice(0, 16),
+    expect(
+      getDataSecurityAiPlanFingerprint({ kind: "ScrubTelemetry", plan }),
+    ).toBe(
+      crypto
+        .createHash("sha256")
+        .update(text, "utf8")
+        .digest("hex")
+        .slice(0, 16),
     );
     expect(isDataSecurityAiPlanFingerprint("ABCDEF0123456789")).toBe(false);
     expect(isDataSecurityAiPlanFingerprint("abc")).toBe(false);

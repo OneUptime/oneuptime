@@ -36,8 +36,8 @@ export async function readCountedTelemetryFindings(data: {
     return [];
   }
 
-  const findings: Array<DataStoreFinding> = await DataStoreFindingService.findBy(
-    {
+  const findings: Array<DataStoreFinding> =
+    await DataStoreFindingService.findBy({
       query: {
         projectId: data.projectId,
         dataStoreId: data.dataStoreId,
@@ -67,8 +67,7 @@ export async function readCountedTelemetryFindings(data: {
       skip: 0,
       limit: MAX_ISSUE_FINDINGS_READ,
       props: { isRoot: true },
-    },
-  );
+    });
 
   return findings.filter((finding: DataStoreFinding): boolean => {
     return (

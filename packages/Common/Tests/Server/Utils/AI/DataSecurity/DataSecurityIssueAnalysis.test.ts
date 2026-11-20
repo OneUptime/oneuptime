@@ -8,7 +8,12 @@ import DataSecurityIssueFeedService from "../../../../../Server/Services/DataSec
 import AiContextReader from "../../../../../Server/Utils/AI/AiContext/AiContextReader";
 import DataSecurityIssueAnalysis from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
 import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
-import * as IssueFindings from "../../../../../Server/Utils/DataSecurity/DataSecurityIssueFindings";
+import DataSecurityAiCall from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiCall";
+import DataSecurityAiReads from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiReads";
+import LlmProviderChoice, {
+  RuleLlmProviderChoice,
+} from "../../../../../Server/Utils/AI/LlmProviderChoice";
+import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import logger from "../../../../../Server/Utils/Logger";
 import { DataSecurityAiDecisionReason } from "../../../../../Types/DataSecurity/DataSecurityAiDecision";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
@@ -74,15 +79,35 @@ async function analyze(
 beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {});
   jest.spyOn(AiContextReader, "read").mockResolvedValue(null);
+  // The issue and its places, as the input builder reads them (#10365).
   jest
-    .spyOn(IssueFindings, "readCountedTelemetryFindings")
-    .mockResolvedValue([]);
+    .spyOn(DataSecurityAiReads, "readIssue")
+    .mockResolvedValue(issue() as never);
+  jest.spyOn(DataSecurityAiReads, "readPlaces").mockResolvedValue([]);
+  // The rule's pick, when there is one, is the provider the call runs on.
+  jest
+    .spyOn(LlmProviderChoice, "decideIfPicked")
+    .mockImplementation(
+      async (data: {
+        pickedProviderId?: unknown;
+      }): Promise<RuleLlmProviderChoice> => {
+        return {
+          pickedProviderId: data.pickedProviderId
+            ? String(data.pickedProviderId)
+            : "",
+          llmProviderId: data.pickedProviderId
+            ? (data.pickedProviderId as ObjectID)
+            : undefined,
+        } as unknown as RuleLlmProviderChoice;
+      },
+    );
   blocker = jest
     .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
     .mockResolvedValue(null);
   jest.spyOn(AIService, "getReachedProjectDailyLimit").mockResolvedValue(null);
   call = jest.spyOn(AIService, "executeWithLogging").mockResolvedValue({
-    content: "Anyone can download the card numbers. Turn on Block Public Access.",
+    content:
+      "Anyone can download the card numbers. Turn on Block Public Access.",
   } as never);
   feed = jest
     .spyOn(DataSecurityIssueFeedService, "createDataSecurityIssueFeedItem")
@@ -125,15 +150,36 @@ describe("OneUptime AI's analysis of a new issue", () => {
     expect(request.llmProviderId).toBeUndefined();
   });
 
+  test("is built by the input builder, as its own feature, and asked through the one Data Security call", async () => {
+    const ask: jest.SpiedFunction<typeof DataSecurityAiCall.ask> = jest.spyOn(
+      DataSecurityAiCall,
+      "ask",
+    );
+
+    await analyze();
+
+    const request: Parameters<typeof DataSecurityAiCall.ask>[0] =
+      ask.mock.calls[0]![0];
+
+    expect(request.prompt.feature).toBe(DataSecurityAiFeature.AnalyzeIssue);
+    // No person started it: the call's own messages and bounds hold.
+    expect(request.protectRequestParameters).toBe(true);
+    expect(request.userId).toBeUndefined();
+  });
+
   test("tells OneUptime AI what Explain tells it - the issue as its check saw it", async () => {
     await analyze();
 
     const messages: AILogRequest["messages"] = call.mock.calls[0]![0].messages;
 
-    expect(messages.map((message: { role: string }) => {
-      return message.role;
-    })).toEqual(["system", "user"]);
-    expect(messages[1]!.content).toContain("Anyone on the internet can read it");
+    expect(
+      messages.map((message: { role: string }) => {
+        return message.role;
+      }),
+    ).toEqual(["system", "user"]);
+    expect(messages[1]!.content).toContain(
+      "Anyone on the internet can read it",
+    );
     expect(messages[1]!.content).toContain("Card number");
   });
 

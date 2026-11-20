@@ -94,7 +94,9 @@ export class Service extends ProjectReferencesService<Model> {
    * API or Terraform client creates always did.
    */
   public static assertNewRuleFits(data: Model): void {
-    if (data.triggerEntityType === AutoRemediationTriggerEntity.DataSecurityIssue) {
+    if (
+      data.triggerEntityType === AutoRemediationTriggerEntity.DataSecurityIssue
+    ) {
       Service.prepareNewDataSecurityRule(data);
     } else {
       Service.assertNoDataSecurityWork({
@@ -201,7 +203,8 @@ export class Service extends ProjectReferencesService<Model> {
     Service.assertDataSecurityRuleFits(written);
 
     for (const work of DATA_SECURITY_AI_WORKS) {
-      const column: DataSecurityAiWorkColumn = DATA_SECURITY_AI_WORK_COLUMN[work];
+      const column: DataSecurityAiWorkColumn =
+        DATA_SECURITY_AI_WORK_COLUMN[work];
 
       if (written[column] === undefined || written[column] === null) {
         written[column] = DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[work];
@@ -232,7 +235,9 @@ export class Service extends ProjectReferencesService<Model> {
     triggerEntityType: unknown;
     data: Record<string, unknown>;
   }): void {
-    if (data.triggerEntityType === AutoRemediationTriggerEntity.DataSecurityIssue) {
+    if (
+      data.triggerEntityType === AutoRemediationTriggerEntity.DataSecurityIssue
+    ) {
       return;
     }
 

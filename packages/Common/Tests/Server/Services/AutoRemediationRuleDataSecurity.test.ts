@@ -122,8 +122,10 @@ describe("a new Data Security AI rule", () => {
       fix: rule.dataSecurityFix,
       judge: rule.dataSecurityJudge,
     }).toEqual({
-      analyze: DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[DataSecurityAiWork.Analyze],
-      contain: DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[DataSecurityAiWork.Contain],
+      analyze:
+        DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[DataSecurityAiWork.Analyze],
+      contain:
+        DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[DataSecurityAiWork.Contain],
       fix: DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[DataSecurityAiWork.Fix],
       judge: DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[DataSecurityAiWork.Judge],
     });
@@ -281,10 +283,12 @@ describe("an edit of a Data Security AI rule", () => {
 
   it("is judged with what the rule holds: turning its last work off is refused", async () => {
     expect(
-      ((await updateError(
-        { dataSecurityContain: DataSecurityAiAutonomy.Off },
-        STORED,
-      )) as Error).message,
+      (
+        (await updateError(
+          { dataSecurityContain: DataSecurityAiAutonomy.Off },
+          STORED,
+        )) as Error
+      ).message,
     ).toBe(DATA_SECURITY_AI_RULE_DOES_NOTHING_MESSAGE);
   });
 
@@ -302,29 +306,33 @@ describe("an edit of a Data Security AI rule", () => {
 
   it("is refused an answer its work does not offer, or a value that does not exist", async () => {
     expect(
-      ((await updateError(
-        { dataSecurityJudge: "Sometimes" },
-        STORED,
-      )) as Error).message,
+      ((await updateError({ dataSecurityJudge: "Sometimes" }, STORED)) as Error)
+        .message,
     ).toBe("Data Security: Judge must be one of Off, Suggest, WithoutAsking.");
     expect(
-      ((await updateError(
-        { dataStoreKinds: ["Floppy Disk"] },
-        STORED,
-      )) as Error).message,
+      (
+        (await updateError(
+          { dataStoreKinds: ["Floppy Disk"] },
+          STORED,
+        )) as Error
+      ).message,
     ).toContain("Data Store Kinds can only hold");
   });
 
   it("of an incident's rule cannot add Data Security work to it", async () => {
     expect(
-      ((await updateError(
-        { dataSecurityAnalyze: DataSecurityAiAutonomy.WithoutAsking },
-        {
-          triggerEntityType: AutoRemediationTriggerEntity.Incident,
-          investigates: true,
-          fixes: true,
-        },
-      )) as Error).message,
-    ).toBe("Data Security: Analyze can only be used by Data Security AI rules.");
+      (
+        (await updateError(
+          { dataSecurityAnalyze: DataSecurityAiAutonomy.WithoutAsking },
+          {
+            triggerEntityType: AutoRemediationTriggerEntity.Incident,
+            investigates: true,
+            fixes: true,
+          },
+        )) as Error
+      ).message,
+    ).toBe(
+      "Data Security: Analyze can only be used by Data Security AI rules.",
+    );
   });
 });

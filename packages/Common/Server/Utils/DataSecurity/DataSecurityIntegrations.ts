@@ -265,7 +265,11 @@ export default class DataSecurityIntegrations {
     try {
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
-        select: { _id: true, enableAi: true, enableAutomaticDataSecurityAi: true },
+        select: {
+          _id: true,
+          enableAi: true,
+          enableAutomaticDataSecurityAi: true,
+        },
         props: { isRoot: true },
       });
 

@@ -85,6 +85,7 @@ const EXPECTED: Array<[string, Array<[string, PageMap]>]> = [
       ["Checks", PageMap.DATA_SECURITY_SETTINGS_CHECKS],
       ["Residency Rules", PageMap.DATA_SECURITY_SETTINGS_RESIDENCY],
       ["Scan Settings", PageMap.DATA_SECURITY_SETTINGS_SCANNING],
+      ["OneUptime AI", PageMap.DATA_SECURITY_SETTINGS_AI],
     ],
   ],
   [

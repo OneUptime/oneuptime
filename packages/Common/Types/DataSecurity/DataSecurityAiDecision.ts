@@ -50,8 +50,10 @@ export enum DataSecurityAiIssueSkipReason {
  * one.
  */
 export enum DataSecurityAiDecisionReason {
-  // --- Any kind of work ---
-  // Off for this issue: by a rule, or by the defaults (Medium and Low issues are not analyzed).
+  /*
+   * --- Any kind of work ---
+   * Off for this issue: by a rule, or by the defaults (Medium and Low issues are not analyzed).
+   */
   WorkOff = "WorkOff",
   // This kind of work has nothing OneUptime AI can do for this issue's check yet.
   NoActionForIssue = "NoActionForIssue",
@@ -69,8 +71,10 @@ export enum DataSecurityAiDecisionReason {
   // The model call failed; nothing was written.
   AnalysisFailed = "AnalysisFailed",
 
-  // --- A proposal of Contain, Fix or Judge ---
-  // Proposed, waiting for a person (askReason says why, where it wanted to run on its own).
+  /*
+   * --- A proposal of Contain, Fix or Judge ---
+   * Proposed, waiting for a person (askReason says why, where it wanted to run on its own).
+   */
   Proposed = "Proposed",
   // Made without asking.
   AppliedWithoutAsking = "AppliedWithoutAsking",
@@ -250,7 +254,9 @@ export class DataSecurityAiDecisionHelper {
   }
 
   // Whether any entry of an evaluation says OneUptime AI did something.
-  public static didAct(entries: ReadonlyArray<DataSecurityAiDecisionEntry>): boolean {
+  public static didAct(
+    entries: ReadonlyArray<DataSecurityAiDecisionEntry>,
+  ): boolean {
     return entries.some(DataSecurityAiDecisionHelper.isActed);
   }
 

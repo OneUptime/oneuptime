@@ -442,9 +442,7 @@ describe("a riskier change, where two people approve one", () => {
   });
 
   test("the first approval is recorded, and nothing is made", async () => {
-    expect(
-      await approveAs(ALICE, { expectedApprovalStep: "first" }),
-    ).toEqual({
+    expect(await approveAs(ALICE, { expectedApprovalStep: "first" })).toEqual({
       proposalId: PROPOSAL_ID,
       status: DataSecurityAiProposalStatus.Proposed,
       waitsForSecondApproval: true,

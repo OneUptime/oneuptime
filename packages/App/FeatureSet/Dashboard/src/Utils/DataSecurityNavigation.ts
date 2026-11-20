@@ -14,8 +14,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                   many wait for a person), the Sensitive Data found, what turned up In Your Telemetry,
  *                   where data flows, who has Access, and Compliance
  *   Settings        how the project's data is judged, set up once: Data
- *                   Types, Checks, Residency Rules, and Scan Settings (what
- *                   is read, how often, and what follows an issue)
+ *                   Types, Checks, Residency Rules, Scan Settings (what is
+ *                   read, how often, and what follows an issue), and
+ *                   OneUptime AI (what it is sent, and on which model)
  *   Rules           who owns a store and how it is labelled, assigned by
  *                   rules rather than by hand
  *   Help            the setup guide, for a first visit
@@ -141,6 +142,11 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
         page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
         title: "Scan Settings",
         icon: IconProp.Clock,
+      },
+      {
+        page: PageMap.DATA_SECURITY_SETTINGS_AI,
+        title: "OneUptime AI",
+        icon: IconProp.Sparkles,
       },
     ],
   },

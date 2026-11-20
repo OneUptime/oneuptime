@@ -1,28 +1,22 @@
 import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
-import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import { DataSecurityIssueFeedEventType } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
+import { AiContextActivity } from "../../../../Types/AI/AiContext";
 import { Purple500 } from "../../../../Types/BrandColors";
 import { DataSecurityAiDecisionReason } from "../../../../Types/DataSecurity/DataSecurityAiDecision";
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
 import ObjectID from "../../../../Types/ObjectID";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
-import AIService, {
-  AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
-} from "../../../Services/AIService";
+import AIService from "../../../Services/AIService";
 import DataSecurityIssueFeedService from "../../../Services/DataSecurityIssueFeedService";
-import { readCountedTelemetryFindings } from "../../DataSecurity/DataSecurityIssueFindings";
-import { LLMMessage } from "../../LLM/LLMService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import { withAiContext } from "../AiContext/AiContextPrompt";
 import AiContextReader from "../AiContext/AiContextReader";
-import { AiContextActivity } from "../../../../Types/AI/AiContext";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
+import DataSecurityAiCall from "./DataSecurityAiCall";
+import DataSecurityAiReads from "./DataSecurityAiReads";
 import {
-  DataSecurityFindingForAi,
-  MAX_ISSUE_FINDINGS_FOR_AI,
-  describeDataSecurityIssueForAi,
-  getDataSecurityExplainSystemPrompt,
+  buildAnalyzeIssuePrompt,
+  DATA_SECURITY_EXPLAIN_TEMPERATURE,
 } from "./DataSecurityIssuePrompt";
 
 /*
@@ -35,12 +29,13 @@ import {
  * writes it.
  *
  * It changes nothing: the analysis goes on the issue's timeline, as
- * OneUptime AI's. What is sent is what Explain sends - the issue as its
- * check saw it, and where a telemetry issue's data sits, never a sample or
- * a record (DataSecurityIssuePrompt). Until #10365's input builder lands,
- * buildMessages is the one place it is written, to switch over. Nothing of
- * it is kept in the AI Logs (#10361): no previews, and no provider error
- * that could quote the prompt. Its feature is autonomous
+ * OneUptime AI's. What is sent is what Explain sends, built by #10365's
+ * input builder (DataSecurityAiInput, as the AnalyzeIssue feature of
+ * DATA_SECURITY_AI_FEATURES) - the issue as its check saw it, and where a
+ * telemetry issue's data sits, never a sample or a record - and asked
+ * through the one Data Security model call (DataSecurityAiCall), which
+ * keeps nothing of it in the AI Logs (#10361) and runs on the provider the
+ * deciding AI rule picks. Its AI Logs label is autonomous
  * (AUTONOMOUS_AI_FEATURES), so the daily budget covers it, and the
  * project's AI switch, credits and limits hold as for every model call.
  */
@@ -54,56 +49,6 @@ export const DATA_SECURITY_ANALYSIS_MAX_TOKENS: number = 900;
 const MAX_ANALYSIS_LENGTH: number = 20000;
 
 export default class DataSecurityIssueAnalysis {
-  /*
-   * What OneUptime AI is sent about the issue: the system prompt Explain
-   * uses, after the project's AI context, and the issue as its check saw
-   * it - each data type by the project's name for it.
-   */
-  public static async buildMessages(data: {
-    projectId: ObjectID;
-    issue: DataSecurityIssue;
-    dataTypeNamer: DataTypeNamer;
-  }): Promise<Array<LLMMessage>> {
-    const aiContext: AiContextActivity | null = await AiContextReader.read({
-      projectId: data.projectId,
-    });
-    const findings: Array<DataSecurityFindingForAi> = (
-      await readCountedTelemetryFindings({
-        projectId: data.projectId,
-        dataStoreId: data.issue.dataStoreId,
-        checkId: data.issue.checkId,
-      })
-    )
-      .slice(0, MAX_ISSUE_FINDINGS_FOR_AI)
-      .map((finding: DataStoreFinding): DataSecurityFindingForAi => {
-        return {
-          dataTypeId: finding.dataTypeId,
-          dataTypeName: finding.dataTypeName,
-          location: finding.location,
-          locationKind: finding.locationKind,
-        };
-      });
-
-    return [
-      {
-        role: "system",
-        content: withAiContext(
-          getDataSecurityExplainSystemPrompt(data.issue.checkId),
-          aiContext,
-        ),
-      },
-      {
-        role: "user",
-        content: describeDataSecurityIssueForAi(
-          data.issue,
-          undefined,
-          findings,
-          data.dataTypeNamer,
-        ),
-      },
-    ];
-  }
-
   /*
    * Analyze the issue now, as OneUptime AI, and write the analysis on its
    * timeline. Never throws: what stopped it is the outcome's reason, which
@@ -156,22 +101,40 @@ export default class DataSecurityIssueAnalysis {
         };
       }
 
-      const response: { content: string } = await AIService.executeWithLogging(
-        {
+      /*
+       * What OneUptime AI is sent about the issue: Explain's instructions,
+       * after the project's AI context, and the issue as the builder reads
+       * it - each data type by the project's name for it.
+       */
+      const aiContext: AiContextActivity | null = await AiContextReader.read({
+        projectId: data.projectId,
+      });
+      const issue: Awaited<ReturnType<typeof DataSecurityAiReads.readIssue>> =
+        await DataSecurityAiReads.readIssue({
           projectId: data.projectId,
-          feature: AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
-          ...(data.llmProviderId ? { llmProviderId: data.llmProviderId } : {}),
-          /*
-           * Neither the issue nor the analysis in the AI Logs, which every
-           * Project Member and Viewer reads (#10361), nor a provider's
-           * error, which can quote the prompt.
-           */
-          storeContentPreviews: false,
-          storeErrorDetails: false,
-          messages: await DataSecurityIssueAnalysis.buildMessages(data),
-          maxTokens: DATA_SECURITY_ANALYSIS_MAX_TOKENS,
-        },
-      );
+          issueId: data.issue.id,
+        });
+      const findings: Awaited<
+        ReturnType<typeof DataSecurityAiReads.readPlaces>
+      > = await DataSecurityAiReads.readPlaces({
+        projectId: data.projectId,
+        issue,
+      });
+
+      const response: { content: string } = await DataSecurityAiCall.ask({
+        projectId: data.projectId,
+        prompt: buildAnalyzeIssuePrompt({
+          issue,
+          findings,
+          dataTypeNamer: data.dataTypeNamer,
+          aiContext,
+        }),
+        maxTokens: DATA_SECURITY_ANALYSIS_MAX_TOKENS,
+        temperature: DATA_SECURITY_EXPLAIN_TEMPERATURE,
+        // No person started it: the call's own messages and bounds hold.
+        protectRequestParameters: true,
+        rulePickedProviderId: data.llmProviderId,
+      });
 
       const content: string = (response.content || "").trim();
 

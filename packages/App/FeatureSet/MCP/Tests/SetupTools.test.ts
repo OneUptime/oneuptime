@@ -172,10 +172,25 @@ describe("the setup tools are listed", () => {
     expect(
       listed("add_monitors_to_status_page").annotations?.openWorldHint,
     ).toBe(true);
-    expect(listed("set_up_website_monitoring").annotations?.openWorldHint).toBe(
+    expect(listed("set_up_paging").annotations?.openWorldHint).toBe(false);
+  });
+
+  /*
+   * A website monitor checks the address it is given, as one made with
+   * create_monitor does: it points OneUptime at an address outside it, so
+   * open-world (OpenAI's plugin review flags it marked closed-world). A
+   * service's recommended monitors read the project's own telemetry, and
+   * stay inside it.
+   */
+  it("set_up_website_monitoring points OneUptime at the address it is given: open-world", () => {
+    expect(listed("set_up_website_monitoring").annotations).toEqual({
+      readOnlyHint: false,
+      destructiveHint: true,
+      openWorldHint: true,
+    });
+    expect(listed("set_up_service_monitor").annotations?.openWorldHint).toBe(
       false,
     );
-    expect(listed("set_up_paging").annotations?.openWorldHint).toBe(false);
   });
 
   /*

@@ -13,8 +13,10 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddDataSecurityAiRules1809187364000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187364000-AddDataSecurityAiRules";
 import { AddAIRunDataSecurityIssueIndex1809187364100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187364100-AddAIRunDataSecurityIssueIndex";
-import { DATA_SECURITY_AI_WORK_COLUMNS } from "../../../../Types/DataSecurity/DataSecurityAi";
-import { DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS } from "../../../../Types/DataSecurity/DataSecurityAi";
+import {
+  DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS,
+  DATA_SECURITY_AI_WORK_COLUMNS,
+} from "../../../../Types/DataSecurity/DataSecurityAi";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -150,7 +152,9 @@ describe("AddDataSecurityAiRules: what it runs", () => {
     ).toEqual([
       expect.stringContaining('CREATE TABLE "DataSecurityAiProposal"'),
       expect.stringContaining('CREATE TABLE "DataSecurityAiDecision"'),
-      expect.stringContaining('CREATE TABLE "AutoRemediationRuleDataStoreLabel"'),
+      expect.stringContaining(
+        'CREATE TABLE "AutoRemediationRuleDataStoreLabel"',
+      ),
     ]);
     expect(statements).toContain(
       'ALTER TABLE "Project" ADD "enableAutomaticDataSecurityAi" boolean NOT NULL DEFAULT false',
@@ -213,7 +217,9 @@ describe("AddDataSecurityAiRules: what it runs", () => {
 
     expect(statements).toContain('DROP TABLE "DataSecurityAiProposal"');
     expect(statements).toContain('DROP TABLE "DataSecurityAiDecision"');
-    expect(statements).toContain('DROP TABLE "AutoRemediationRuleDataStoreLabel"');
+    expect(statements).toContain(
+      'DROP TABLE "AutoRemediationRuleDataStoreLabel"',
+    );
     expect(statements).toContain(
       'ALTER TABLE "Project" DROP COLUMN "enableAutomaticDataSecurityAi"',
     );

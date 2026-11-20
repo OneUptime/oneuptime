@@ -151,7 +151,8 @@ function fakeAction(
         kind: "planned" as const,
         changes: [
           {
-            title: "Scrub AWS Access Key in attributes.aws.key of checkout logs",
+            title:
+              "Scrub AWS Access Key in attributes.aws.key of checkout logs",
             changeMarkdown: "One scrub rule.",
             reasonMarkdown: "Found unscrubbed.",
             proofMarkdown: "The check decides.",
@@ -324,9 +325,12 @@ afterEach(() => {
 describe("with AI off, Data Security works exactly as it did", () => {
   test.each([
     ["Enable AI is off", { enableAi: false }],
-    ["Work on new Data Security issues is off", {
-      enableAutomaticDataSecurityAi: false,
-    }],
+    [
+      "Work on new Data Security issues is off",
+      {
+        enableAutomaticDataSecurityAi: false,
+      },
+    ],
   ])(
     "%s: nothing is analyzed, proposed or written",
     async (_name: string, project: Partial<Project>) => {
@@ -484,9 +488,11 @@ describe("with no Data Security AI rule, the defaults", () => {
         actor: { props: { isRoot?: boolean }; userId?: unknown };
       },
     ).toMatchObject({ actor: { props: { isRoot: true } } });
-    expect(transitions.map((transition: { set: { status: string } }) => {
-      return transition.set.status;
-    })).toEqual([
+    expect(
+      transitions.map((transition: { set: { status: string } }) => {
+        return transition.set.status;
+      }),
+    ).toEqual([
       DataSecurityAiProposalStatus.Approved,
       DataSecurityAiProposalStatus.AppliedWithoutAsking,
     ]);
@@ -566,7 +572,9 @@ describe("with Data Security AI rules", () => {
   });
 
   test("a rule's LLM provider is the one the analysis uses", async () => {
-    world.rules = [dataSecurityRule({ llmProviderId: new ObjectID(PROVIDER_ID) })];
+    world.rules = [
+      dataSecurityRule({ llmProviderId: new ObjectID(PROVIDER_ID) }),
+    ];
 
     await evaluate();
 
@@ -601,7 +609,9 @@ describe("the limits", () => {
       reason: DataSecurityAiDecisionReason.Proposed,
       askReason: DataSecurityAiAskReason.CircuitBreaker,
     });
-    expect(proposals[0]!.askReason).toBe(DataSecurityAiAskReason.CircuitBreaker);
+    expect(proposals[0]!.askReason).toBe(
+      DataSecurityAiAskReason.CircuitBreaker,
+    );
   });
 
   test("a store's daily limit stops the work on its issues, and says so", async () => {
@@ -745,9 +755,11 @@ describe("what stopped the work, recorded", () => {
     expect(entryOf(evaluation, DataSecurityAiWork.Contain)).toMatchObject({
       reason: DataSecurityAiDecisionReason.ApplyFailed,
     });
-    expect(transitions.map((transition: { set: { status: string } }) => {
-      return transition.set.status;
-    })).toEqual([
+    expect(
+      transitions.map((transition: { set: { status: string } }) => {
+        return transition.set.status;
+      }),
+    ).toEqual([
       DataSecurityAiProposalStatus.Approved,
       DataSecurityAiProposalStatus.Failed,
     ]);

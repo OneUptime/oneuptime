@@ -85,7 +85,16 @@ import {
 export const MAX_SCRUB_PLACES_PER_PROPOSAL: number = 20;
 
 const RULE_PERMISSIONS: Readonly<
-  Record<ScrubRuleSignal, { create: Array<Permission>; delete: Array<Permission>; what: string; createPermission: string; deletePermission: string }>
+  Record<
+    ScrubRuleSignal,
+    {
+      create: Array<Permission>;
+      delete: Array<Permission>;
+      what: string;
+      createPermission: string;
+      deletePermission: string;
+    }
+  >
 > = {
   log: {
     create: new LogScrubRule().createRecordPermissions,
@@ -249,7 +258,9 @@ function hasAnyOf(
   );
 }
 
-function signalsOf(places: ReadonlyArray<{ signal: ScrubRuleSignal }>): Array<ScrubRuleSignal> {
+function signalsOf(
+  places: ReadonlyArray<{ signal: ScrubRuleSignal }>,
+): Array<ScrubRuleSignal> {
   return Array.from(
     new Set(
       places.map((place: { signal: ScrubRuleSignal }): ScrubRuleSignal => {
@@ -274,8 +285,11 @@ function referenceOf(
 // Whether a rule the change made is still there: one deleted since is undone already.
 async function ruleExists(rule: ScrubRuleUsed): Promise<boolean> {
   const id: ObjectID = new ObjectID(rule.scrubRuleId);
-  const query: { id: ObjectID; select: { _id: true }; props: { isRoot: true } } =
-    { id, select: { _id: true }, props: { isRoot: true } };
+  const query: {
+    id: ObjectID;
+    select: { _id: true };
+    props: { isRoot: true };
+  } = { id, select: { _id: true }, props: { isRoot: true } };
 
   switch (rule.signal) {
     case "log":
@@ -375,7 +389,9 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
     const coverage: ScrubCoverage = await getScrubCoverage(context.projectId);
     const serviceId: string | undefined =
       context.store.serviceId?.toString() || undefined;
-    const places: Array<ScrubPlace & { preview: ScrubRulePreview; matchCount: number }> = [];
+    const places: Array<
+      ScrubPlace & { preview: ScrubRulePreview; matchCount: number }
+    > = [];
     let unscrubbable: number = 0;
     const seen: Set<string> = new Set();
 
@@ -484,7 +500,9 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
             : mdText`${String(places.length)} scrub rules, made as Scrub It makes them:`,
           FeedMarkdown.bulletList(
             places.map(
-              (place: ScrubPlace & { preview: ScrubRulePreview }): MarkdownText => {
+              (
+                place: ScrubPlace & { preview: ScrubRulePreview },
+              ): MarkdownText => {
                 return mdText`**${place.preview.name}** (${place.preview.signal}): ${place.preview.description}`;
               },
             ),
@@ -510,8 +528,10 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
         ],
         "\n\n",
       ).toString(),
-      proofMarkdown: mdText`The issue's own check decides. Once the rules are made, the store is checked again: the issue resolves when none of its data is left unscrubbed, and every later scan keeps checking.`.toString(),
-      undoMarkdown: mdText`Undo deletes the scrub rules this made - never a rule that was there before - and checks the store again. New telemetry is then stored as it arrives; what was hidden stays hidden.`.toString(),
+      proofMarkdown:
+        mdText`The issue's own check decides. Once the rules are made, the store is checked again: the issue resolves when none of its data is left unscrubbed, and every later scan keeps checking.`.toString(),
+      undoMarkdown:
+        mdText`Undo deletes the scrub rules this made - never a rule that was there before - and checks the store again. New telemetry is then stored as it arrives; what was hidden stays hidden.`.toString(),
       plan: plan as unknown as JSONObject,
       planKey: getScrubPlanKey(plan.places),
       /*

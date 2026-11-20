@@ -225,7 +225,9 @@ export default class DataSecurityAiProposals {
     return proposal;
   }
 
-  private static actionOf(proposal: DataSecurityAiProposal): DataSecurityAiAction {
+  private static actionOf(
+    proposal: DataSecurityAiProposal,
+  ): DataSecurityAiAction {
     const action: DataSecurityAiAction | null = DataSecurityAiActions.get(
       proposal.kind,
     );
@@ -421,7 +423,8 @@ export default class DataSecurityAiProposals {
         issueEvent: DataSecurityIssueFeedEventType.AiProposed,
         storeEvent: DataStoreFeedEventType.AiProposed,
         color: Purple500,
-        markdown: mdText`OneUptime AI proposes: **${proposal.title}**. It waits for a person to approve or dismiss it in Data Security > AI.`.toString(),
+        markdown:
+          mdText`OneUptime AI proposes: **${proposal.title}**. It waits for a person to approve or dismiss it in Data Security > AI.`.toString(),
         moreInformationInMarkdown: data.change.changeMarkdown,
       });
 
@@ -454,9 +457,7 @@ export default class DataSecurityAiProposals {
       more?: Partial<DataSecurityAiDecisionEntry>,
     ) => DataSecurityAiDecisionEntry;
   }): Promise<DataSecurityAiDecisionEntry> {
-    const proposalId: ObjectID = new ObjectID(
-      data.proposal.id!.toString(),
-    );
+    const proposalId: ObjectID = new ObjectID(data.proposal.id!.toString());
     const now: Date = OneUptimeDate.getCurrentDate();
     const claimed: number =
       await DataSecurityAiProposalService.attemptTransition({
@@ -548,7 +549,8 @@ export default class DataSecurityAiProposals {
       issueEvent: DataSecurityIssueFeedEventType.AiChangeFailed,
       storeEvent: DataStoreFeedEventType.AiChangeFailed,
       color: Red500,
-      markdown: mdText`The change OneUptime AI proposed could not be made, and nothing changed: ${message}`.toString(),
+      markdown:
+        mdText`The change OneUptime AI proposed could not be made, and nothing changed: ${message}`.toString(),
       userId: data.userId,
     });
   }
@@ -627,9 +629,7 @@ export default class DataSecurityAiProposals {
         decodeRemediationApprovalStep(data.expectedApprovalStep);
 
       if (!offered || !isSameRemediationApprovalStep(offered, step)) {
-        throw new BadDataException(
-          getProposalApprovalStepChangedMessage(step),
-        );
+        throw new BadDataException(getProposalApprovalStepChangedMessage(step));
       }
     }
 
@@ -657,7 +657,8 @@ export default class DataSecurityAiProposals {
         issueEvent: DataSecurityIssueFeedEventType.AiProposalApproved,
         storeEvent: DataStoreFeedEventType.AiProposalApproved,
         color: Yellow500,
-        markdown: mdText`Approved OneUptime AI's proposal **${proposal.title || ""}**. It is a riskier change, so it is made once someone else approves it too.`.toString(),
+        markdown:
+          mdText`Approved OneUptime AI's proposal **${proposal.title || ""}**. It is a riskier change, so it is made once someone else approves it too.`.toString(),
         userId,
       });
 
@@ -830,7 +831,8 @@ export default class DataSecurityAiProposals {
       issueEvent: DataSecurityIssueFeedEventType.AiProposalDismissed,
       storeEvent: DataStoreFeedEventType.AiProposalDismissed,
       color: Gray500,
-      markdown: mdText`Dismissed OneUptime AI's proposal **${proposal.title || ""}**: ${reason.slice(0, MAX_DISMISS_REASON_LENGTH)}`.toString(),
+      markdown:
+        mdText`Dismissed OneUptime AI's proposal **${proposal.title || ""}**: ${reason.slice(0, MAX_DISMISS_REASON_LENGTH)}`.toString(),
       userId,
     });
 

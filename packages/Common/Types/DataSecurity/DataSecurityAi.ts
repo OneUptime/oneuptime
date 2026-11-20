@@ -331,9 +331,7 @@ export function isDataSecurityAiProposalKind(
 ): value is DataSecurityAiProposalKind {
   return (
     typeof value === "string" &&
-    (Object.values(DataSecurityAiProposalKind) as Array<string>).includes(
-      value,
-    )
+    (Object.values(DataSecurityAiProposalKind) as Array<string>).includes(value)
   );
 }
 
@@ -525,7 +523,8 @@ function readText(value: unknown): string {
     return value;
   }
 
-  return value && typeof (value as { toString?: unknown }).toString === "function"
+  return value &&
+    typeof (value as { toString?: unknown }).toString === "function"
     ? String(value)
     : "";
 }
@@ -631,8 +630,14 @@ export function decideDataSecurityAiWork(data: {
   return {
     skip: null,
     works: {
-      [DataSecurityAiWork.Analyze]: combine(matching, DataSecurityAiWork.Analyze),
-      [DataSecurityAiWork.Contain]: combine(matching, DataSecurityAiWork.Contain),
+      [DataSecurityAiWork.Analyze]: combine(
+        matching,
+        DataSecurityAiWork.Analyze,
+      ),
+      [DataSecurityAiWork.Contain]: combine(
+        matching,
+        DataSecurityAiWork.Contain,
+      ),
       [DataSecurityAiWork.Fix]: combine(matching, DataSecurityAiWork.Fix),
       [DataSecurityAiWork.Judge]: combine(matching, DataSecurityAiWork.Judge),
     },
@@ -642,9 +647,7 @@ export function decideDataSecurityAiWork(data: {
 }
 
 // Whether the decision has OneUptime AI do anything at all.
-export function isDataSecurityAiWorkToDo(
-  plan: DataSecurityAiPlan,
-): boolean {
+export function isDataSecurityAiWorkToDo(plan: DataSecurityAiPlan): boolean {
   return (
     plan.skip === null &&
     DATA_SECURITY_AI_WORKS.some((work: DataSecurityAiWork): boolean => {
@@ -699,10 +702,13 @@ export function getDataSecurityAiWithoutAskingVerdict(data: {
   // Changes made without asking in the project in the last hour.
   changesWithoutAskingThisHour: number;
 }): DataSecurityAiWithoutAskingVerdict {
-  const ask: (reason: DataSecurityAiAskReason) => DataSecurityAiWithoutAskingVerdict =
-    (reason: DataSecurityAiAskReason): DataSecurityAiWithoutAskingVerdict => {
-      return { runWithoutAsking: false, askReason: reason };
-    };
+  const ask: (
+    reason: DataSecurityAiAskReason,
+  ) => DataSecurityAiWithoutAskingVerdict = (
+    reason: DataSecurityAiAskReason,
+  ): DataSecurityAiWithoutAskingVerdict => {
+    return { runWithoutAsking: false, askReason: reason };
+  };
 
   if (data.safety === DataSecurityAiChangeSafety.ReadOnly) {
     return data.work.autonomy === DataSecurityAiAutonomy.Off

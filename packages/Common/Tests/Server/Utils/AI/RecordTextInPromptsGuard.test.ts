@@ -157,10 +157,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "Postmortem and note drafts: IncidentAIContextBuilder, every field a draftField.",
   "packages/Common/Server/API/AlertAPI.ts":
     "Note drafts: AlertAIContextBuilder.formatAlertContextForNote, every field a draftField.",
-  "packages/Common/Server/API/DataSecurityAPI.ts":
-    "Explain on a Data Security issue: DataSecurityIssuePrompt, the check's own words, and the store's name, cloud id and the evidence each a field - never a finding's samples.",
-  "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts":
-    "OneUptime AI's own analysis of a new Data Security issue (#10364): DataSecurityIssuePrompt, as Explain sends it - the check's own words, and the store's name, cloud id and the evidence each a field - never a finding's samples.",
+  "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityAiCall.ts":
+    "Every Data Security model call - Explain on an issue, the field suggestions - takes only a prompt DataSecurityAiInput built (#10365): the check's own words, and the store's name, cloud id, the evidence, a finding's location and a field's name each held to a length, cleaned of secrets and embedded files, as one JSON value of data under a system message that holds every instruction - never a finding's samples, a record or a connection string.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts":
     "Explain an exception: ExceptionExplanationPrompt cuts its message, stack trace, span names, log bodies and deploy titles to fixed lengths before ExceptionSanitizer scrubs them, and sends only allowlisted span attributes.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts":
@@ -193,8 +191,6 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The coding agent's own messages: source files, sent as they are (keepEmbeddedData).",
   "packages/Common/Server/Utils/AI/CallSummary/IncidentCallSummary.ts":
     "An incident call's transcript: CallSummaryPrompt, each line redacted through redactAndOmitEmbeddedData, the incident's title and description as fields.",
-  "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts":
-    "Data Security's field suggestions: FieldSuggestionPrompt sends the names of fields no detector placed and of the fields beside them, and the shapes of their values (UnplacedFields: letters as a or A, digits as 9 - never a value), each held to a length, as one JSON value of data under a system message that holds every instruction.",
   "packages/Common/Server/Utils/DataObservability/DataCheckFromSentence.ts":
     "A data check from a person's rule: the sentence held to MAX_SENTENCE_LENGTH, the table's name and its columns' names and types from the catalog (never a row), as the user message under a system message that holds every instruction; the model's answer is checked as Custom SQL before anyone sees it.",
   "packages/Common/Server/Utils/AI/Security/DetectionRuleDraft.ts":

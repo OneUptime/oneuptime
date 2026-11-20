@@ -589,6 +589,15 @@ export interface AILogRequest {
    */
   storeContentPreviews?: boolean | undefined;
   /*
+   * When false, what the call sent and got is never recorded on its span in
+   * OneUptime's own telemetry (LLMCallTelemetry), even where the server's
+   * operator turned recording on: for a feature whose prompts only some of
+   * the project may read, such as Data Security's (#10365), the operator's
+   * telemetry is one more place they would be kept. The span still says
+   * which model was called, its tokens, its cost and why it stopped.
+   */
+  recordContentInTelemetry?: boolean | undefined;
+  /*
    * Send the messages exactly as given, embedded files included. Every
    * other call has them left out (PromptText.omitEmbeddedDataFromMessages):
    * a model reads text, and a screenshot is hundreds of kilobytes of base64
@@ -1547,7 +1556,9 @@ export class Service extends BaseService {
        * and - when the operator turned recording on - what was sent. Set
        * before the call, so a call that fails shows too.
        */
-      const recordContent: boolean = LLMCallTelemetry.isContentRecordingOn();
+      const recordContent: boolean =
+        request.recordContentInTelemetry !== false &&
+        LLMCallTelemetry.isContentRecordingOn();
 
       this.setLlmSpanAttributes(() => {
         return LLMCallTelemetry.getRequestAttributes({

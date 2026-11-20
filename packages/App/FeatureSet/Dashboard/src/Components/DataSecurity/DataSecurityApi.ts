@@ -7,6 +7,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Timezone from "Common/Types/Timezone";
 import {
   DATA_SECURITY_API_ROUTES,
+  DataSecurityAiInputResponse,
   DataSecurityComplianceResponse,
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
@@ -425,6 +426,20 @@ export default class DataSecurityApi {
           : {}),
       },
     )) as unknown as DataSecurityResponseResult;
+  }
+
+  /*
+   * What OneUptime AI sees (Settings > OneUptime AI, #10365): whether AI is
+   * on and the model each feature runs on, and, once asked for, the exact
+   * input the project's riskiest open issue would send.
+   */
+  public static async getAiInput(
+    data: { withExample?: boolean | undefined } = {},
+  ): Promise<DataSecurityAiInputResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.aiInput,
+      data.withExample ? { withExample: true } : {},
+    )) as unknown as DataSecurityAiInputResponse;
   }
 
   public static async fixIssueWithAi(

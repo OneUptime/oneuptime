@@ -78,9 +78,9 @@ describe("a Data Security AI rule's condition lists", () => {
       expect(getDataSecurityAiRuleConditionListProblem(field, value)).toBe(
         message,
       );
-      expect(
-        getDataSecurityAiRuleConditionsProblem({ [field]: value }),
-      ).toBe(message);
+      expect(getDataSecurityAiRuleConditionsProblem({ [field]: value })).toBe(
+        message,
+      );
     },
   );
 

@@ -78,7 +78,10 @@ function finding(
 }
 
 function context(
-  overrides: { issue?: Partial<DataSecurityIssue>; store?: Partial<DataStore> } = {},
+  overrides: {
+    issue?: Partial<DataSecurityIssue>;
+    store?: Partial<DataStore>;
+  } = {},
 ): DataSecurityAiIssueContext {
   return {
     projectId: PROJECT_ID,
@@ -144,11 +147,9 @@ beforeEach(() => {
     .mockImplementation(async () => {
       return counted;
     });
-  jest
-    .spyOn(ScrubCoverage, "getScrubCoverage")
-    .mockImplementation(async () => {
-      return { rules: coverageRules };
-    });
+  jest.spyOn(ScrubCoverage, "getScrubCoverage").mockImplementation(async () => {
+    return { rules: coverageRules };
+  });
   created = jest
     .spyOn(ScrubCoverage, "createScrubRuleForFinding")
     .mockImplementation(async () => {
@@ -190,9 +191,9 @@ afterEach(() => {
 
 describe("Scrub It's place among the actions", () => {
   test("is its kind's one action: a contain change that only masks", () => {
-    expect(DataSecurityAiActions.get(DataSecurityAiProposalKind.ScrubTelemetry)).toBe(
-      ScrubTelemetryAction,
-    );
+    expect(
+      DataSecurityAiActions.get(DataSecurityAiProposalKind.ScrubTelemetry),
+    ).toBe(ScrubTelemetryAction);
     expect(
       DATA_SECURITY_AI_PROPOSAL_KINDS[ScrubTelemetryAction.kind].safety,
     ).toBe("MaskOnly");
@@ -296,9 +297,7 @@ describe("planning the change", () => {
   });
 
   test("says when no rule can reach what is left: the code is the fix", async () => {
-    counted = [
-      finding(SESSION_FINDING, "email-address", "user.email", 3),
-    ];
+    counted = [finding(SESSION_FINDING, "email-address", "user.email", 3)];
 
     expect(
       await ScrubTelemetryAction.plan(
@@ -550,8 +549,9 @@ describe("making the change", () => {
     jest
       .spyOn(LogScrubRuleService, "findOneById")
       .mockResolvedValue({ id: new ObjectID(MADE_RULE) } as never);
-    const deleted: jest.SpiedFunction<typeof LogScrubRuleService.deleteOneById> =
-      jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
+    const deleted: jest.SpiedFunction<
+      typeof LogScrubRuleService.deleteOneById
+    > = jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
 
     await expect(
       ScrubTelemetryAction.apply({
@@ -620,17 +620,20 @@ describe("undoing it", () => {
     jest
       .spyOn(LogScrubRuleService, "findOneById")
       .mockResolvedValue({ id: new ObjectID(MADE_RULE) } as never);
-    const deleted: jest.SpiedFunction<typeof LogScrubRuleService.deleteOneById> =
-      jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
+    const deleted: jest.SpiedFunction<
+      typeof LogScrubRuleService.deleteOneById
+    > = jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
     const traceDeleted: jest.SpiedFunction<
       typeof TraceScrubRuleService.deleteOneById
     > = jest.spyOn(TraceScrubRuleService, "deleteOneById").mockResolvedValue(1);
 
-    const undone: { summaryMarkdown: string } = await ScrubTelemetryAction.undo({
-      projectId: PROJECT_ID,
-      proposal: proposalWith({ plan: EMAIL_PLAN, result: MADE_AND_KEPT }),
-      actor: { props: asPerson },
-    });
+    const undone: { summaryMarkdown: string } = await ScrubTelemetryAction.undo(
+      {
+        projectId: PROJECT_ID,
+        proposal: proposalWith({ plan: EMAIL_PLAN, result: MADE_AND_KEPT }),
+        actor: { props: asPerson },
+      },
+    );
 
     expect(deleted).toHaveBeenCalledWith({
       id: new ObjectID(MADE_RULE),
@@ -645,8 +648,9 @@ describe("undoing it", () => {
 
   test("a rule someone deleted since is undone already", async () => {
     jest.spyOn(LogScrubRuleService, "findOneById").mockResolvedValue(null);
-    const deleted: jest.SpiedFunction<typeof LogScrubRuleService.deleteOneById> =
-      jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
+    const deleted: jest.SpiedFunction<
+      typeof LogScrubRuleService.deleteOneById
+    > = jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
 
     await ScrubTelemetryAction.undo({
       projectId: PROJECT_ID,
@@ -665,8 +669,18 @@ describe("a plan and a result, read back", () => {
         kind: "Logs",
         places: [
           EMAIL_PLAN.places[0],
-          { findingId: "not-an-id", dataTypeId: "x", location: "y", signal: "log" },
-          { findingId: EMAIL_FINDING, dataTypeId: "x", location: "y", signal: "sms" },
+          {
+            findingId: "not-an-id",
+            dataTypeId: "x",
+            location: "y",
+            signal: "log",
+          },
+          {
+            findingId: EMAIL_FINDING,
+            dataTypeId: "x",
+            location: "y",
+            signal: "sms",
+          },
           "a place",
         ],
       })?.places,

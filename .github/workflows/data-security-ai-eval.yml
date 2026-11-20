@@ -1,0 +1,192 @@
+name: Data Security AI Eval
+
+# The Data Security AI eval (npm run ai-data-security-eval, Docs/ai/evals.md,
+# #10365): every OneUptime AI feature of Data Security - Explain with AI, Fix
+# with AI, the field suggestions and Ask AI's Data Security reads - run with
+# a real, pinned model on fixed, made-up cases, each case's input built by
+# the feature's own builder (DataSecurityAiInput), and scored per feature
+# against its threshold (DATA_SECURITY_EVAL_THRESHOLDS).
+#
+# It spends real model credits, one call a case, so it does not run on every
+# pull request:
+#
+#   - on a pull request that changes a Data Security AI feature's prompt
+#     (the paths below): only the features the pull request changes
+#     (--changed-files, DataSecurityEvalCommandLine.featuresForChangedFiles);
+#   - nightly on main, every feature;
+#   - by hand (Run workflow), with which features or cases, and how many runs
+#     a case gets; and on the release branch before a release (RELEASING.md),
+#     where every feature must meet its threshold.
+#
+# The model's key is the repository secret AI_EVAL_LLM_API_KEY, the one the
+# AI Benchmark uses. Without it - not set yet, or a pull request from a
+# fork, which GitHub hands no secrets - the job says so in its summary and
+# passes: nothing runs, nothing is spent. The script refuses a key given as
+# an argument, so it travels in the environment only.
+#
+# Results: the score of each feature goes to the job's summary, and every
+# answer and score to the data-security-ai-eval-results artifact (kept 30
+# days). The job fails when a feature scores under its threshold.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    paths:
+      # What every feature's input is built with, sent by, or read with.
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/StrictAnswer.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityAiCall.ts
+      - packages/Common/Server/Utils/AI/Eval/DataSecurity/**
+      - packages/Common/Server/Utils/AI/Eval/PinnedModel.ts
+      - packages/Common/Server/Utils/LLM/**
+      - Scripts/AI/RunDataSecurityEval.ts
+      - .github/workflows/data-security-ai-eval.yml
+      # One feature's own words.
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestionPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts
+      - packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts
+      - packages/Common/Server/Utils/AI/Toolbox/Serializer.ts
+      - packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      features:
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi. Empty: all of them."
+        required: false
+        default: ""
+      cases:
+        description: "Case ids to run, separated by commas (npm run ai-data-security-eval -- --list). Empty: all of them."
+        required: false
+        default: ""
+      repeat:
+        description: "Runs per case (1 to 10). A case passes when more than half its runs pass."
+        required: false
+        default: "1"
+
+# Read-only: the job checks out the code, asks the model and uploads the
+# results as an artifact, nothing more.
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    name: Eval
+    runs-on: ubuntu-latest
+    # A dozen cases, one model call each, one after another.
+    timeout-minutes: 60
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      # The model under test, pinned so one night can be compared with the
+      # next: the current Claude Opus, as the AI Benchmark runs. Changing it
+      # starts a new series of scores.
+      DATA_SECURITY_EVAL_LLM_TYPE: Anthropic
+      DATA_SECURITY_EVAL_MODEL: claude-opus-5-5
+    steps:
+      - name: Check for the model's key
+        id: key
+        env:
+          AI_EVAL_LLM_API_KEY: ${{ secrets.AI_EVAL_LLM_API_KEY }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        run: |
+          if [ -n "$AI_EVAL_LLM_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "present=false" >> "$GITHUB_OUTPUT"
+
+          if [ "$IS_FORK" = "true" ]; then
+            reason="this pull request comes from a fork, and GitHub hands a fork's pull request none of the repository's secrets"
+          else
+            reason="the repository secret AI_EVAL_LLM_API_KEY is not set. A maintainer sets it to a key for the model below (Settings, Secrets and variables, Actions)"
+          fi
+
+          {
+            echo "## Data Security AI eval: skipped"
+            echo
+            echo "Nothing was run and no model was called: ${reason}."
+            echo
+            echo "It would run ${DATA_SECURITY_EVAL_LLM_TYPE} ${DATA_SECURITY_EVAL_MODEL}. To run it yourself, see Docs/ai/evals.md."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::notice title=Data Security AI eval skipped::Nothing was run: ${reason}."
+
+      - name: Checkout code
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v4
+
+      # A pull request runs only the features it changes.
+      - name: List what the pull request changes
+        if: steps.key.outputs.present == 'true' && github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > changed-files.txt
+
+      - name: Setup Node.js
+        if: steps.key.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install Common dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+
+      - name: Install root dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+
+      - name: Install Script dependencies
+        if: steps.key.outputs.present == 'true'
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Scripts
+
+      # The inputs reach the command through the environment, never pasted
+      # into the script; the eval refuses a feature, a case or a repeat it
+      # does not know before it calls the model.
+      - name: Run the eval
+        if: steps.key.outputs.present == 'true'
+        env:
+          AI_EVAL_LLM_API_KEY: ${{ secrets.AI_EVAL_LLM_API_KEY }}
+          EVENT_NAME: ${{ github.event_name }}
+          FEATURES: ${{ inputs.features || '' }}
+          CASES: ${{ inputs.cases || '' }}
+          REPEAT: ${{ inputs.repeat || '1' }}
+        run: |
+          changed=""
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            changed="--changed-files=changed-files.txt"
+          fi
+
+          npm run ai-data-security-eval -- \
+            --llm-type="$DATA_SECURITY_EVAL_LLM_TYPE" \
+            --model="$DATA_SECURITY_EVAL_MODEL" \
+            --feature="$FEATURES" \
+            --case="$CASES" \
+            --repeat="$REPEAT" \
+            $changed \
+            --enforce-thresholds \
+            --report-markdown="$GITHUB_STEP_SUMMARY"
+
+      - name: Keep every answer and score
+        if: always() && steps.key.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-security-ai-eval-results
+          path: ai-data-security-eval-results.json
+          if-no-files-found: ignore
+          retention-days: 30
