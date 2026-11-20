@@ -1,7 +1,7 @@
 import CloudApp from "../../../../Models/DatabaseModels/CloudApp";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddCloudAppPlatformCloudResource1809187207600 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187207600-AddCloudAppPlatformCloudResource";
-import { AddCloudAppPlatformCloudResourceIndexAndKey1809187207610 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187207610-AddCloudAppPlatformCloudResourceIndexAndKey";
+import { AddCloudAppPlatformCloudResource1809187383700 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187383700-AddCloudAppPlatformCloudResource";
+import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -80,11 +80,11 @@ function columnOf(property: string): ColumnMetadataArgs | undefined {
     .pop();
 }
 
-describe("AddCloudAppPlatformCloudResource1809187207600", () => {
+describe("AddCloudAppPlatformCloudResource1809187383700", () => {
   test("adds the site's column - and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddCloudAppPlatformCloudResource1809187207600().up(runner);
+        return new AddCloudAppPlatformCloudResource1809187383700().up(runner);
       }),
     ).toEqual([`ALTER TABLE "CloudApp" ADD "platformCloudResourceId" uuid`]);
   });
@@ -92,7 +92,7 @@ describe("AddCloudAppPlatformCloudResource1809187207600", () => {
   test("never rewrites the table: the column is nullable, with no default", async () => {
     const statements: Array<string> = await statementsOf(
       (runner: QueryRunner) => {
-        return new AddCloudAppPlatformCloudResource1809187207600().up(runner);
+        return new AddCloudAppPlatformCloudResource1809187383700().up(runner);
       },
     );
 
@@ -106,7 +106,7 @@ describe("AddCloudAppPlatformCloudResource1809187207600", () => {
   test("down() takes back exactly what up() added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddCloudAppPlatformCloudResource1809187207600().down(runner);
+        return new AddCloudAppPlatformCloudResource1809187383700().down(runner);
       }),
     ).toEqual([`ALTER TABLE "CloudApp" DROP COLUMN "platformCloudResourceId"`]);
   });
@@ -118,7 +118,7 @@ describe("AddCloudAppPlatformCloudResource1809187207600", () => {
       },
     );
     const index: number = names.indexOf(
-      "AddCloudAppPlatformCloudResource1809187207600",
+      "AddCloudAppPlatformCloudResource1809187383700",
     );
 
     expect(index).toBeGreaterThan(-1);
@@ -126,21 +126,21 @@ describe("AddCloudAppPlatformCloudResource1809187207600", () => {
     expect(index).toBeGreaterThan(
       names.indexOf("AddFormPrivateUsersAndSingleSignOn1809187140120"),
     );
-    expect(new AddCloudAppPlatformCloudResource1809187207600().name).toBe(
-      "AddCloudAppPlatformCloudResource1809187207600",
+    expect(new AddCloudAppPlatformCloudResource1809187383700().name).toBe(
+      "AddCloudAppPlatformCloudResource1809187383700",
     );
   });
 });
 
-describe("AddCloudAppPlatformCloudResourceIndexAndKey1809187207610", () => {
+describe("AddCloudAppPlatformCloudResourceIndexAndKey1809187383710", () => {
   test("the index and the key are named as TypeORM names them: the drift check finds nothing", () => {
     expect(INDEX).toBe("IDX_1b04c802f1e89284dfeaf2bdfe");
     expect(FOREIGN_KEY).toBe("FK_1b04c802f1e89284dfeaf2bdfe2");
   });
 
   test("builds the site's index and foreign key online, outside a transaction", async () => {
-    const migration: AddCloudAppPlatformCloudResourceIndexAndKey1809187207610 =
-      new AddCloudAppPlatformCloudResourceIndexAndKey1809187207610();
+    const migration: AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 =
+      new AddCloudAppPlatformCloudResourceIndexAndKey1809187383710();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -156,7 +156,7 @@ describe("AddCloudAppPlatformCloudResourceIndexAndKey1809187207610", () => {
   test("down() takes the key, then the index, away - the column's migration then the column", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddCloudAppPlatformCloudResourceIndexAndKey1809187207610().down(
+        return new AddCloudAppPlatformCloudResourceIndexAndKey1809187383710().down(
           runner,
         );
       }),
@@ -169,23 +169,23 @@ describe("AddCloudAppPlatformCloudResourceIndexAndKey1809187207610", () => {
   test("is registered right after the column's migration, once, named for its class", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
     const at: number = registered.indexOf(
-      AddCloudAppPlatformCloudResource1809187207600,
+      AddCloudAppPlatformCloudResource1809187383700,
     );
 
     expect(at).toBeGreaterThan(-1);
     expect(registered[at + 1]).toBe(
-      AddCloudAppPlatformCloudResourceIndexAndKey1809187207610,
+      AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
     );
     expect(
       registered.filter((candidate: unknown): boolean => {
         return (
-          candidate === AddCloudAppPlatformCloudResourceIndexAndKey1809187207610
+          candidate === AddCloudAppPlatformCloudResourceIndexAndKey1809187383710
         );
       }),
     ).toHaveLength(1);
     expect(
-      new AddCloudAppPlatformCloudResourceIndexAndKey1809187207610().name,
-    ).toBe("AddCloudAppPlatformCloudResourceIndexAndKey1809187207610");
+      new AddCloudAppPlatformCloudResourceIndexAndKey1809187383710().name,
+    ).toBe("AddCloudAppPlatformCloudResourceIndexAndKey1809187383710");
   });
 });
 

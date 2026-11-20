@@ -9,14 +9,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * The column only, nullable with no default, so no row is rewritten. The
  * index and foreign key generated with it are built online, in
- * AddCloudAppPlatformCloudResourceIndexAndKey1809187207610: the ingest
+ * AddCloudAppPlatformCloudResourceIndexAndKey1809187383710: the ingest
  * writes "CloudApp" for every app of every environment, at each window.
  * Every app is tied to its site by the next hourly sweep, or sooner.
  */
-export class AddCloudAppPlatformCloudResource1809187207600
+export class AddCloudAppPlatformCloudResource1809187383700
   implements MigrationInterface
 {
-  public name: string = "AddCloudAppPlatformCloudResource1809187207600";
+  public name: string = "AddCloudAppPlatformCloudResource1809187383700";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

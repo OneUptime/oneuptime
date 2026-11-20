@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddCloudAppPlatformCloudResource1809187207600, and moved into a migration
+ * AddCloudAppPlatformCloudResource1809187383700, and moved into a migration
  * of its own: the telemetry ingest writes "CloudApp" for every app of every
  * App Platforms environment, so the index on its new
  * "platformCloudResourceId" column is built online, and the foreign key to
@@ -18,11 +18,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Safe to run again after a stop part way: an index or key that is already
  * there is left as it is.
  */
-export class AddCloudAppPlatformCloudResourceIndexAndKey1809187207610
+export class AddCloudAppPlatformCloudResourceIndexAndKey1809187383710
   implements MigrationInterface
 {
   public name: string =
-    "AddCloudAppPlatformCloudResourceIndexAndKey1809187207610";
+    "AddCloudAppPlatformCloudResourceIndexAndKey1809187383710";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;
