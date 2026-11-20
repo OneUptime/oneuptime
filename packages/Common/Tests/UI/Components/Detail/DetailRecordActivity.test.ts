@@ -3,6 +3,8 @@ import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseMod
 import EmailLog from "../../../../Models/DatabaseModels/EmailLog";
 import User from "../../../../Models/DatabaseModels/User";
 import RecordActorType from "../../../../Types/Database/RecordActor";
+import Dictionary from "../../../../Types/Dictionary";
+import { JSONObject } from "../../../../Types/JSON";
 import Email from "../../../../Types/Email";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
@@ -56,7 +58,7 @@ function monitor(values: Record<string, unknown>): Monitor {
 }
 
 // What a reader who may read every column asks of a monitor.
-const EVERY_COLUMN: Record<string, unknown> = getRecordActivitySelect(
+const EVERY_COLUMN: Dictionary<boolean | JSONObject> = getRecordActivitySelect(
   new Monitor(),
   (): boolean => {
     return true;
