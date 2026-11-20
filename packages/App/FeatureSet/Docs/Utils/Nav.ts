@@ -1225,6 +1225,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/dashboards/data-sources",
       },
       {
+        title: "Import from Grafana and Datadog",
+        url: "/docs/dashboards/import",
+      },
+      {
         title: "Sharing & Public Dashboards",
         url: "/docs/dashboards/sharing",
       },
