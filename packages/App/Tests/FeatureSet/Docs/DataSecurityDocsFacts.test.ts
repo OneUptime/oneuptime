@@ -209,6 +209,8 @@ const TELEMETRY: string = "data-security/telemetry";
 const FLOWS: string = "data-security/flows-access-residency";
 const COMPLIANCE: string = "data-security/compliance";
 const INTEGRATIONS: string = "data-security/integrations";
+// OneUptime AI in Data Security (#10365): its own facts, DataSecurityAiDocsFacts.
+const AI: string = "data-security/ai";
 
 const PAGES: ReadonlyArray<string> = [
   INDEX,
@@ -219,6 +221,7 @@ const PAGES: ReadonlyArray<string> = [
   FLOWS,
   COMPLIANCE,
   INTEGRATIONS,
+  AI,
 ];
 
 const LINE_BREAK: RegExp = /\n/;

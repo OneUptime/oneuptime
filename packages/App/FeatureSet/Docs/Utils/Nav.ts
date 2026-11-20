@@ -1104,6 +1104,10 @@ const DocsNav: NavGroup[] = [
         title: "Data Security Integrations",
         url: "/docs/data-security/integrations",
       },
+      {
+        title: "OneUptime AI in Data Security",
+        url: "/docs/data-security/ai",
+      },
     ],
   },
   /*
