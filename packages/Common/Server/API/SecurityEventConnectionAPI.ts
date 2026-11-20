@@ -4,6 +4,11 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { SecurityConnectorTestReport } from "../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
+import {
+  ConnectorFieldChoice,
+  ConnectorFieldChoicesReport,
+} from "../../Types/SecurityEvent/Connectors/ConnectorFieldChoices";
+import { getSecurityEventConnectorTitle } from "../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import SecurityEventConnectionService, {
   Service as SecurityEventConnectionServiceType,
@@ -15,12 +20,30 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import SecurityEventConnectionRunExecutor from "../Utils/SecurityEvent/Connectors/SecurityEventConnectionRunExecutor";
-import SecurityEventConnectionTester from "../Utils/SecurityEvent/Connectors/SecurityEventConnectionTester";
-import { SecurityConnectorSettings } from "../Utils/SecurityEvent/Connectors/Types";
+import SecurityEventConnectionTester, {
+  CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
+} from "../Utils/SecurityEvent/Connectors/SecurityEventConnectionTester";
+import SecurityEventConnectorRegistry from "../Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
+import {
+  SecurityConnectorSettings,
+  SecurityEventConnector,
+} from "../Utils/SecurityEvent/Connectors/Types";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+
+/*
+ * The settings a test or a field-choices request names: a saved
+ * connection's, with the form's unsaved values over them, or settings never
+ * saved. recordRun is true only for a saved connection tested exactly as
+ * stored (see overlaysStoredSettings).
+ */
+interface ResolvedConnectionSettings {
+  settings: SecurityConnectorSettings;
+  connection: SecurityEventConnection | undefined;
+  recordRun: boolean;
+}
 
 export default class SecurityEventConnectionAPI extends BaseAPI<
   SecurityEventConnection,
@@ -117,155 +140,19 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
             CommonAPI.assertAuthenticatedProjectMember(props);
           this.assertCanOperate(props);
 
-          const body: JSONObject =
-            req.body && typeof req.body === "object" && !Array.isArray(req.body)
-              ? (req.body as JSONObject)
-              : {};
-
-          /*
-           * Rejected the way a save rejects it, instead of being read as
-           * "not provided" and silently testing a different selection than
-           * the one on screen. null is the one non-boolean accepted: it
-           * keeps the stored value, as it did on the Google SecOps test
-           * route this endpoint replaces.
-           */
-          const alertingOnlyValue: JSONValue | undefined = body["alertingOnly"];
-
-          if (
-            alertingOnlyValue !== undefined &&
-            alertingOnlyValue !== null &&
-            typeof alertingOnlyValue !== "boolean"
-          ) {
-            throw new BadDataException(
-              "Alerting records only must be true or false.",
-            );
-          }
-
-          const connectionIdValue: JSONValue | undefined = body["connectionId"];
-          let connection: SecurityEventConnection | undefined = undefined;
-          let settings: SecurityConnectorSettings;
-          // Only ever true for a saved connection tested exactly as stored.
-          let recordRun: boolean = false;
-
-          if (connectionIdValue !== undefined && connectionIdValue !== null) {
-            const connectionId: string = String(connectionIdValue);
-
-            if (!ObjectID.isValidUUID(connectionId)) {
-              throw new BadDataException("A valid connection ID is required.");
-            }
-
-            const accessible: SecurityEventConnection | null =
-              await this.service.findOneBy({
-                query: { _id: connectionId, projectId },
-                select: { _id: true, projectId: true },
-                props,
-              });
-            CommonAPI.assertResourceBelongsToProject({
-              resourceProjectId: accessible?.projectId,
+          const resolved: ResolvedConnectionSettings =
+            await this.resolveSettings({
+              body: SecurityEventConnectionAPI.readBody(req),
+              props,
               projectId,
+              isComplete: true,
             });
-
-            const loaded: SecurityEventConnection | null =
-              await this.service.findOneById({
-                id: new ObjectID(connectionId),
-                select: {
-                  _id: true,
-                  projectId: true,
-                  name: true,
-                  provider: true,
-                  config: true,
-                  secrets: true,
-                  alertingOnly: true,
-                  isEnabled: true,
-                  pollIntervalInMinutes: true,
-                  createdAt: true,
-                  lastPolledAt: true,
-                  lastSuccessfulPollAt: true,
-                  lastEventIngestedAt: true,
-                  lastError: true,
-                },
-                props: { isRoot: true },
-              });
-
-            if (!loaded || !loaded.provider) {
-              throw new BadDataException("The connection no longer exists.");
-            }
-
-            connection = loaded;
-
-            const stored: SecurityConnectorSettings =
-              await this.service.getConnectorSettings(loaded);
-            const config: JSONObject =
-              body["config"] !== undefined
-                ? SecurityEventConnectionServiceType.parseJsonObject(
-                    body["config"],
-                    "Configuration",
-                  )
-                : stored.config;
-            const overlay: JSONObject =
-              body["secrets"] !== undefined
-                ? SecurityEventConnectionServiceType.parseJsonObject(
-                    body["secrets"],
-                    "Credentials",
-                  )
-                : {};
-            /*
-             * The merge a save would apply. Testing with a different rule
-             * would pass settings that cannot be stored, or report a
-             * cleared credential as still in use (review finding
-             * optional-secret-cannot-be-cleared).
-             */
-            const secrets: JSONObject =
-              SecurityEventConnectionServiceType.mergeSecrets({
-                definition:
-                  SecurityEventConnectionServiceType.getDefinitionOrThrow(
-                    loaded.provider,
-                  ),
-                stored: stored.secrets,
-                provided: overlay,
-              });
-            const alertingOnly: boolean =
-              typeof alertingOnlyValue === "boolean"
-                ? alertingOnlyValue
-                : stored.alertingOnly;
-
-            settings =
-              await SecurityEventConnectionServiceType.validateSettings({
-                provider: loaded.provider,
-                config,
-                secrets,
-                alertingOnly,
-                requireRequiredSecrets: true,
-              });
-
-            recordRun = !SecurityEventConnectionAPI.overlaysStoredSettings({
-              stored,
-              config,
-              providedSecrets: overlay,
-              alertingOnly,
-            });
-          } else {
-            settings =
-              await SecurityEventConnectionServiceType.validateSettings({
-                provider: body["provider"],
-                config: SecurityEventConnectionServiceType.parseJsonObject(
-                  body["config"],
-                  "Configuration",
-                ),
-                secrets: SecurityEventConnectionServiceType.parseJsonObject(
-                  body["secrets"],
-                  "Credentials",
-                ),
-                alertingOnly: alertingOnlyValue !== false,
-                requireRequiredSecrets: true,
-              });
-          }
 
           const report: SecurityConnectorTestReport =
             await SecurityEventConnectionTester.test({
-              settings,
-              connection,
-              recordRun,
+              settings: resolved.settings,
+              connection: resolved.connection,
+              recordRun: resolved.recordRun,
             });
 
           return Response.sendJsonObjectResponse(
@@ -278,6 +165,246 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * The choices of a provider's fields that are the product's own
+     * (ConnectorField.choicesFromProvider): a Cloudflare token's accounts
+     * and zones, for the connection form's pickers. The body is the test's:
+     * a saved connection's id with the edit form's credentials over its
+     * stored ones, or settings never saved. The settings may not name a
+     * choice yet - the form asks for them after the credentials - so only
+     * the credentials have to be complete. The product is read through the
+     * provider's own connector, as every other read of it is, with the same
+     * gate as a test: whoever may configure the connection. Nothing is
+     * stored, and the credentials are never returned.
+     */
+    this.router.post(
+      `${basePath}/field-choices`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          this.assertCanOperate(props);
+
+          const resolved: ResolvedConnectionSettings =
+            await this.resolveSettings({
+              body: SecurityEventConnectionAPI.readBody(req),
+              props,
+              projectId,
+              isComplete: false,
+            });
+          const connector: SecurityEventConnector =
+            SecurityEventConnectorRegistry.getConnector(
+              resolved.settings.provider,
+            );
+
+          if (!connector.listFieldChoices) {
+            throw new BadDataException(
+              `${getSecurityEventConnectorTitle(resolved.settings.provider)} has no settings to choose from its own lists.`,
+            );
+          }
+
+          const choices: Record<string, Array<ConnectorFieldChoice>> =
+            await connector.listFieldChoices(resolved.settings, {
+              requestTimeoutInMs: CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
+            });
+          const report: ConnectorFieldChoicesReport = {
+            provider: resolved.settings.provider,
+            choices,
+          };
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            report as unknown as JSONObject,
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+  }
+
+  private static readBody(req: ExpressRequest): JSONObject {
+    return req.body && typeof req.body === "object" && !Array.isArray(req.body)
+      ? (req.body as JSONObject)
+      : {};
+  }
+
+  /*
+   * The settings a test or a field-choices body names. isComplete is false
+   * for a form still being filled in (field choices): only its credentials
+   * must be complete then, and the connector reads what it needs from them.
+   */
+  private async resolveSettings(data: {
+    body: JSONObject;
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    isComplete: boolean;
+  }): Promise<ResolvedConnectionSettings> {
+    const { body, props, projectId } = data;
+
+    /*
+     * Rejected the way a save rejects it, instead of being read as "not
+     * provided" and silently testing a different selection than the one on
+     * screen. null is the one non-boolean accepted: it keeps the stored
+     * value, as it did on the Google SecOps test route this endpoint
+     * replaces.
+     */
+    const alertingOnlyValue: JSONValue | undefined = body["alertingOnly"];
+
+    if (
+      alertingOnlyValue !== undefined &&
+      alertingOnlyValue !== null &&
+      typeof alertingOnlyValue !== "boolean"
+    ) {
+      throw new BadDataException("Alerting records only must be true or false.");
+    }
+
+    const validate: (settings: {
+      provider: unknown;
+      config: JSONObject;
+      secrets: JSONObject;
+      alertingOnly: boolean;
+    }) => Promise<SecurityConnectorSettings> = async (settings: {
+      provider: unknown;
+      config: JSONObject;
+      secrets: JSONObject;
+      alertingOnly: boolean;
+    }): Promise<SecurityConnectorSettings> => {
+      if (!data.isComplete) {
+        return SecurityEventConnectionServiceType.validateCredentials(settings);
+      }
+
+      return SecurityEventConnectionServiceType.validateSettings({
+        ...settings,
+        requireRequiredSecrets: true,
+      });
+    };
+
+    const connectionIdValue: JSONValue | undefined = body["connectionId"];
+
+    if (connectionIdValue === undefined || connectionIdValue === null) {
+      return {
+        settings: await validate({
+          provider: body["provider"],
+          config: SecurityEventConnectionServiceType.parseJsonObject(
+            body["config"],
+            "Configuration",
+          ),
+          secrets: SecurityEventConnectionServiceType.parseJsonObject(
+            body["secrets"],
+            "Credentials",
+          ),
+          alertingOnly: alertingOnlyValue !== false,
+        }),
+        connection: undefined,
+        recordRun: false,
+      };
+    }
+
+    const connectionId: string = String(connectionIdValue);
+
+    if (!ObjectID.isValidUUID(connectionId)) {
+      throw new BadDataException("A valid connection ID is required.");
+    }
+
+    const accessible: SecurityEventConnection | null =
+      await this.service.findOneBy({
+        query: { _id: connectionId, projectId },
+        select: { _id: true, projectId: true },
+        props,
+      });
+    CommonAPI.assertResourceBelongsToProject({
+      resourceProjectId: accessible?.projectId,
+      projectId,
+    });
+
+    const loaded: SecurityEventConnection | null =
+      await this.service.findOneById({
+        id: new ObjectID(connectionId),
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          provider: true,
+          config: true,
+          secrets: true,
+          alertingOnly: true,
+          isEnabled: true,
+          pollIntervalInMinutes: true,
+          createdAt: true,
+          lastPolledAt: true,
+          lastSuccessfulPollAt: true,
+          lastEventIngestedAt: true,
+          lastError: true,
+        },
+        props: { isRoot: true },
+      });
+
+    if (!loaded || !loaded.provider) {
+      throw new BadDataException("The connection no longer exists.");
+    }
+
+    const stored: SecurityConnectorSettings =
+      await this.service.getConnectorSettings(loaded);
+    const config: JSONObject =
+      body["config"] !== undefined
+        ? SecurityEventConnectionServiceType.parseJsonObject(
+            body["config"],
+            "Configuration",
+          )
+        : stored.config;
+    const overlay: JSONObject =
+      body["secrets"] !== undefined
+        ? SecurityEventConnectionServiceType.parseJsonObject(
+            body["secrets"],
+            "Credentials",
+          )
+        : {};
+    /*
+     * The merge a save would apply. Testing with a different rule would
+     * pass settings that cannot be stored, or report a cleared credential
+     * as still in use (review finding optional-secret-cannot-be-cleared).
+     */
+    const secrets: JSONObject = SecurityEventConnectionServiceType.mergeSecrets(
+      {
+        definition: SecurityEventConnectionServiceType.getDefinitionOrThrow(
+          loaded.provider,
+        ),
+        stored: stored.secrets,
+        provided: overlay,
+      },
+    );
+    const alertingOnly: boolean =
+      typeof alertingOnlyValue === "boolean"
+        ? alertingOnlyValue
+        : stored.alertingOnly;
+
+    const settings: SecurityConnectorSettings = await validate({
+      provider: loaded.provider,
+      config,
+      secrets,
+      alertingOnly,
+    });
+
+    return {
+      settings,
+      connection: loaded,
+      recordRun:
+        data.isComplete &&
+        !SecurityEventConnectionAPI.overlaysStoredSettings({
+          stored,
+          config,
+          providedSecrets: overlay,
+          alertingOnly,
+        }),
+    };
   }
 
   private assertCanOperate(props: DatabaseCommonInteractionProps): void {
