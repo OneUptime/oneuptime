@@ -80,22 +80,39 @@ export interface DetectionMatchGroup {
    * by the rule's Group By Field instead.
    */
   groupFields?: Array<{ field: string; value: string }> | undefined;
+  /*
+   * When the earliest of the group's matches happened. A scheduled run of a
+   * rule that fires on each match judges what arrived since the last run,
+   * whenever it happened, and says it covers events from here.
+   */
+  firstSeenAt?: Date | undefined;
 }
 
 /*
- * The events one write handed a rule that counts in real time
- * (Types/SecurityEvent/RealTimeDetection), and where they came in. A read
- * of a window with them takes the window as it stood when the write
- * arrived - its events with an id no later than the write's last: ids are
- * time-ordered (UUIDv7, made as each row is built), so a later id came in
- * later - and keeps a group only when the write is what brought it to the
- * threshold: one of its events is among the group's matches, and with only
- * what came in before its first id the group had not reached it. A burst
- * written an event at a time fires once, on the event that makes the
- * count; a late event that makes it fires too; and a group past it stays
- * quiet until the next window.
+ * WHAT A RUN OF A RULE JUDGES, BY WHEN IT ARRIVED.
+ *
+ * A rule that counts (Types/SecurityEvent/RealTimeDetection) reads a window
+ * of its interval as it stood when the events it judges came in, and keeps
+ * a group only when those events are what brought it to the threshold: one
+ * of them is among the group's matches, and with only what came in before
+ * them the group had not reached it. A burst fires once, on the events that
+ * make the count; a late event that makes it fires too; and a group past it
+ * stays quiet until the next window. Two kinds of run judge events so:
+ *
+ *  - A real-time run judges the events one write handed it, by id: ids are
+ *    time-ordered (UUIDv7, made as each row is built), so a later id came
+ *    in later, and the window as it stood is the events with an id no later
+ *    than the write's last.
+ *  - A scheduled run judges every event that arrived since the rule's last
+ *    run (#10337): createdAt, stamped as each row is built, after the
+ *    rule's last run and no later than this one. An event that happened
+ *    long before it reached OneUptime - a batch a shipper held, a span that
+ *    ended a minute after it started, a flow read in whole windows - is
+ *    judged by the first run after it arrived, once, with the events of the
+ *    window it happened in.
  */
-export interface DetectionArrivalRead {
+export interface DetectionWriteArrival {
+  kind?: "write" | undefined;
   // The write's events, by id.
   candidateIds: Array<string>;
   // The lowest and the highest of them.
@@ -104,6 +121,71 @@ export interface DetectionArrivalRead {
   // When they happened, at most: the groups they name are read there.
   candidateStartTime: Date;
   candidateEndTime: Date;
+}
+
+export interface DetectionRunArrival {
+  kind: "run";
+  // What the rule's last run judged: everything that arrived by then. Exclusive.
+  arrivedAfter: Date;
+  // What this run judges up to. Inclusive.
+  arrivedUntil: Date;
+  // When the events it judges happened, at most: the groups they name are read there.
+  candidateStartTime: Date;
+  candidateEndTime: Date;
+}
+
+export type DetectionArrivalRead = DetectionWriteArrival | DetectionRunArrival;
+
+// The window as it stood when the events judged came in.
+export function detectionArrivedBy(arrival: DetectionArrivalRead): Statement {
+  if (arrival.kind === "run") {
+    return SQL`createdAt <= ${{
+      type: TableColumnType.Date,
+      value: arrival.arrivedUntil,
+    }}`;
+  }
+
+  return SQL`_id <= ${{
+    type: TableColumnType.Text,
+    value: arrival.lastId,
+  }}`;
+}
+
+// What had come in before them: judged already.
+export function detectionArrivedBefore(
+  arrival: DetectionArrivalRead,
+): Statement {
+  if (arrival.kind === "run") {
+    return SQL`createdAt <= ${{
+      type: TableColumnType.Date,
+      value: arrival.arrivedAfter,
+    }}`;
+  }
+
+  return SQL`_id < ${{
+    type: TableColumnType.Text,
+    value: arrival.firstId,
+  }}`;
+}
+
+// One of the events judged.
+export function isDetectionArrivalCandidate(
+  arrival: DetectionArrivalRead,
+): Statement {
+  if (arrival.kind === "run") {
+    return SQL`(createdAt > ${{
+      type: TableColumnType.Date,
+      value: arrival.arrivedAfter,
+    }} AND createdAt <= ${{
+      type: TableColumnType.Date,
+      value: arrival.arrivedUntil,
+    }})`;
+  }
+
+  return SQL`has(${{
+    type: TableColumnType.ArrayText,
+    value: arrival.candidateIds,
+  }}, _id)`;
 }
 
 export interface FindDetectionMatchesData {
@@ -115,8 +197,41 @@ export interface FindDetectionMatchesData {
   distinctCountExpression: Statement | null;
   minMatchCount: number;
   maxGroups: number;
-  // A window of a rule that counts in real time, as one write found it.
+  // A window of a rule that counts, as the events it judges found it.
   arrival?: DetectionArrivalRead | undefined;
+  // Read when each group's earliest match happened (DetectionMatchGroup.firstSeenAt).
+  readFirstSeen?: boolean | undefined;
+}
+
+/*
+ * The windows of a rule's interval that hold an event a scheduled run
+ * judges (DetectionRunArrival), and when the first of the window's arrived:
+ * the windows a run of a rule that counts reads.
+ */
+export interface DetectionArrivalWindow {
+  // Where the window starts, on the clock (getRealTimeCountWindow).
+  windowStart: Date;
+  // When the earliest of its events the run judges arrived.
+  firstArrivedAt: Date;
+}
+
+export interface FindDetectionArrivalWindowsData {
+  projectId: ObjectID;
+  // Exclusive.
+  arrivedAfter: Date;
+  // Inclusive.
+  arrivedUntil: Date;
+  /*
+   * When the events may have happened. The table is sorted by the time
+   * events happened, so this is what keeps the read to the recent parts of
+   * it; createdAt's own index skips the rest of those.
+   */
+  happenedAfter: Date;
+  happenedBefore: Date;
+  // The rule's condition, with its exceptions.
+  whereFragment: Statement;
+  windowInMinutes: number;
+  limit: number;
 }
 
 /*
@@ -484,33 +599,28 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     const arrival: DetectionArrivalRead | undefined = data.arrival;
 
     if (arrival) {
-      // What had come in before the write, and the write's own matches.
-      statement.append(
-        SQL`, countIf(_id < ${{
-          type: TableColumnType.Text,
-          value: arrival.firstId,
-        }}) AS matchCountBefore, `,
-      );
+      // What had come in before the events judged, and their own matches.
+      statement.append(", countIf(");
+      statement.append(detectionArrivedBefore(arrival));
+      statement.append(") AS matchCountBefore, ");
 
       if (data.distinctCountExpression) {
         statement.append("uniqExactIf(nullIf(");
         statement.append(data.distinctCountExpression);
-        statement.append(
-          SQL`, ''), _id < ${{
-            type: TableColumnType.Text,
-            value: arrival.firstId,
-          }})`,
-        );
+        statement.append(", ''), ");
+        statement.append(detectionArrivedBefore(arrival));
+        statement.append(")");
       } else {
         statement.append("0");
       }
 
-      statement.append(
-        SQL` AS distinctCountBefore, countIf(has(${{
-          type: TableColumnType.ArrayText,
-          value: arrival.candidateIds,
-        }}, _id)) AS candidateMatches`,
-      );
+      statement.append(" AS distinctCountBefore, countIf(");
+      statement.append(isDetectionArrivalCandidate(arrival));
+      statement.append(") AS candidateMatches");
+    }
+
+    if (data.readFirstSeen) {
+      statement.append(", min(time) AS firstSeenAt");
     }
 
     statement.append(
@@ -534,15 +644,11 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     statement.append(")");
 
     if (arrival) {
-      // The window as it stood when the write came in.
-      statement.append(
-        SQL` AND _id <= ${{
-          type: TableColumnType.Text,
-          value: arrival.lastId,
-        }}`,
-      );
+      // The window as it stood when the events judged came in.
+      statement.append(" AND ");
+      statement.append(detectionArrivedBy(arrival));
 
-      // Only the groups the write's events name: read where they happened.
+      // Only the groups the events judged name: read where they happened.
       if (data.groupByExpression) {
         statement.append(" AND ");
         statement.append(data.groupByExpression);
@@ -561,11 +667,10 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
           }} AND time < ${{
             type: TableColumnType.DateTime64,
             value: arrival.candidateEndTime,
-          }} AND has(${{
-            type: TableColumnType.ArrayText,
-            value: arrival.candidateIds,
-          }}, _id))`,
+          }} AND `,
         );
+        statement.append(isDetectionArrivalCandidate(arrival));
+        statement.append(")");
       }
     }
 
@@ -585,8 +690,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
 
     if (arrival) {
       /*
-       * A group the write brought to the threshold: one of its events
-       * matched, and what came in before it had not reached the count.
+       * A group the events judged brought to the threshold: one of them
+       * matched, and what came in before them had not reached the count.
        */
       statement.append(
         ` HAVING candidateMatches > 0 AND ${effectiveCountColumn} >= `,
@@ -633,6 +738,10 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     }>();
 
     return (response.data || []).map((row: JSONObject): DetectionMatchGroup => {
+      const firstSeenAt: Date | null = data.readFirstSeen
+        ? readDate(row["firstSeenAt"])
+        : null;
+
       return {
         groupValue: String(row["groupValue"] ?? ""),
         matchCount: Number(row["matchCount"] || 0),
@@ -645,8 +754,94 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
               },
             )
           : [],
+        ...(firstSeenAt ? { firstSeenAt } : {}),
       };
     });
+  }
+
+  /*
+   * The windows of a rule's interval that hold an event a scheduled run
+   * judges - one that arrived in the run and meets the rule's condition -
+   * with when the first of each window's arrived, earliest first: what a
+   * run of a rule that counts reads (DetectionRuleEvaluator). Windows are
+   * cut on the clock from the Unix epoch, as getRealTimeCountWindow cuts
+   * them, so the window a scheduled run reads is the one a real-time run
+   * would.
+   */
+  public async findDetectionArrivalWindows(
+    data: FindDetectionArrivalWindowsData,
+  ): Promise<Array<DetectionArrivalWindow>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+    const windowInSeconds: number =
+      Math.max(1, Math.floor(data.windowInMinutes)) * 60;
+
+    const statement: Statement = SQL`SELECT intDiv(toUnixTimestamp(time), ${{
+      type: TableColumnType.Number,
+      value: windowInSeconds,
+    }}) AS windowIndex, min(createdAt) AS firstArrivedAt FROM `;
+    statement.append(`${databaseName}.${this.model.tableName} WHERE `);
+    statement.append(
+      SQL`projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.happenedAfter,
+      }} AND time < ${{
+        type: TableColumnType.DateTime64,
+        value: data.happenedBefore,
+      }} AND `,
+    );
+    statement.append(
+      isDetectionArrivalCandidate({
+        kind: "run",
+        arrivedAfter: data.arrivedAfter,
+        arrivedUntil: data.arrivedUntil,
+        candidateStartTime: data.happenedAfter,
+        candidateEndTime: data.happenedBefore,
+      }),
+    );
+    statement.append(" AND (");
+    statement.append(data.whereFragment);
+    statement.append(
+      SQL`) GROUP BY windowIndex ORDER BY firstArrivedAt ASC, windowIndex ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)),
+      }}`,
+    );
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 60 }));
+
+    // A rule's watchlists travel with the read: refused here when one request cannot carry them.
+    assertDetectionReadFits(statement);
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const windows: Array<DetectionArrivalWindow> = [];
+    const rows: Array<JSONObject> = (response.data || []) as Array<JSONObject>;
+
+    for (const row of rows) {
+      const windowIndex: number = Number(row["windowIndex"]);
+      const firstArrivedAt: Date | null = readDate(row["firstArrivedAt"]);
+
+      if (!Number.isFinite(windowIndex) || !firstArrivedAt) {
+        continue;
+      }
+
+      windows.push({
+        windowStart: new Date(windowIndex * windowInSeconds * 1000),
+        firstArrivedAt,
+      });
+    }
+
+    return windows;
   }
 
   /*
