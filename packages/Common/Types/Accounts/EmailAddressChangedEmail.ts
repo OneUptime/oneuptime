@@ -36,16 +36,15 @@ import { translationKey, Translator } from "../Translator";
  * sends nothing.
  *
  * NO UNDO LINK. A link that let the old address move the account back for a
- * few days would be the same link whoever made the change, and the server
- * cannot tell them apart: the owner and somebody holding their session both
- * ask from a signed-in session and confirm from the new mailbox, and a
- * session alone can set a new password (Update Password asks for no current
- * one), so nothing the owner knows could stand guard over it. Moving away
- * from a mailbox somebody else reads is the very recovery step UserService
- * protects (expirePasswordResetTokensForEmailChange); a link mailed to that
- * mailbox would hand the account back to whoever reads it, for as long as
- * the link worked. So the email says whom to ask instead: a server admin
- * can move an address back at once.
+ * few days would hand the account to whoever reads the old mailbox. Moving
+ * away from a mailbox somebody else reads is the very recovery step
+ * UserService protects (expirePasswordResetTokensForEmailChange), and since
+ * #10155 a person's own change is made only by somebody who has just
+ * confirmed it's them - their password and second step, or a passkey - so
+ * the change that needs undoing is now the rare one, and a link mailed to
+ * the old mailbox would undo the owner's own rescue just as well. So the
+ * email says whom to ask instead: a server admin can move an address back
+ * at once.
  *
  * NOTHING SECRET. The email carries no link that does anything, no token,
  * no password, and the new address masked; its only button-like words are
@@ -240,15 +239,33 @@ export const getEmailAddressChangedEmailVariables: (
     requestDevice: isAccountOwner ? data.requestDevice || "" : "",
   };
 
-  if (isAccountOwner) {
-    vars["changedByAccountOwner"] = "true";
-  } else if (data.changedBy === EmailAddressChangedBy.ServerAdmin) {
-    vars["changedByServerAdmin"] = "true";
-  } else if (data.changedBy === EmailAddressChangedBy.IdentityProvider) {
-    vars["changedByIdentityProvider"] = "true";
-  } else {
-    vars["changedByOneUptime"] = "true";
+  return { ...vars, ...getEmailAddressChangerVariables(data.changedBy) };
+};
+
+/*
+ * Who changed an address, as a template's {{#if}} reads it: exactly one of
+ * changedByAccountOwner, changedByServerAdmin, changedByIdentityProvider and
+ * changedByOneUptime, "true". The email to the address an account left
+ * (EmailAddressChanged.hbs) and the one to the address it moved to when it
+ * was written straight away (EmailChanged.hbs, #10157) name the changer
+ * alike.
+ */
+export const getEmailAddressChangerVariables: (
+  changedBy: EmailAddressChangedBy,
+) => Dictionary<string> = (
+  changedBy: EmailAddressChangedBy,
+): Dictionary<string> => {
+  if (changedBy === EmailAddressChangedBy.AccountOwner) {
+    return { changedByAccountOwner: "true" };
   }
 
-  return vars;
+  if (changedBy === EmailAddressChangedBy.ServerAdmin) {
+    return { changedByServerAdmin: "true" };
+  }
+
+  if (changedBy === EmailAddressChangedBy.IdentityProvider) {
+    return { changedByIdentityProvider: "true" };
+  }
+
+  return { changedByOneUptime: "true" };
 };

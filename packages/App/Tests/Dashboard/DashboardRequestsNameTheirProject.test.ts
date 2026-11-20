@@ -111,6 +111,11 @@ const PROJECT_FREE_ALLOWLIST: Array<ProjectFreeAllowlistEntry> = [
       "Whether the server's single sign-on manages the signed-in user's sign-in (#9688): a server-wide rule and their own master-admin standing, taken from the session, the same in every project.",
   },
   {
+    file: "Components/Reauthentication/ReauthenticationPrompt.tsx",
+    reason:
+      "Confirm It's You (#10155) confirms the signed-in user's own session before a change to how they sign in: its routes take the user and the session from the access token, the same in every project.",
+  },
+  {
     /*
      * Only this route: the file's other requests register a browser in one
      * project and are swept like any other. The one way a browser is

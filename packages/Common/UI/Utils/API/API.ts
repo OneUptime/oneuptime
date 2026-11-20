@@ -48,6 +48,7 @@ import API, { AuthRetryContext } from "../../../Utils/API";
 import { IDENTITY_URL } from "../../Config";
 import { registerPageErrorReader } from "../ErrorReader";
 import BlockedProject from "../BlockedProject";
+import Reauthentication from "../Reauthentication";
 
 /*
  * One in-flight refresh per session, shared by every caller in this tab: the
@@ -391,6 +392,23 @@ class BaseAPI extends API {
     _context: AuthRetryContext,
   ): Promise<boolean> {
     return await this.refreshSessionOrThrow();
+  }
+
+  /*
+   * A change to how the person signs in, refused until their session
+   * confirms it's theirs (#10155): the prompt the app mounted asks them
+   * (Utils/Reauthentication), and the request is sent again once they have.
+   * Only a person's own sign-in can confirm, so a status page's and a public
+   * dashboard's clients never ask.
+   */
+  protected static override async tryReauthenticate(
+    _context: AuthRetryContext,
+  ): Promise<boolean> {
+    if (!this.isUserSession()) {
+      return false;
+    }
+
+    return await Reauthentication.ask();
   }
 
   /*
