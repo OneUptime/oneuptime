@@ -59617,5 +59617,8 @@
   "This cluster runs its own {{engine}} ({{service}}), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your {{engine}} reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:": "此叢集執行著自己的 {{engine}}（{{service}}），成本代理讀取的就是它。由於代理找不到你的 {{engine}} 讀取的 Prometheus，記憶體規格調整仍從隨附的 Prometheus 讀取峰值。若要停止執行兩者，請在同一次升級中指定一個收集 cAdvisor 的 Prometheus：",
   "Without another Prometheus, keep the bundled engine: memory recommendations need it.": "沒有其他 Prometheus 時，請保留隨附的引擎：記憶體建議需要它。",
   "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約兩天後，依你實際支付的金額核對其價格，OneUptime 會逐一納入已核對的小時。在此之前，之後的小時以雲端的公開牌價計算。",
-  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約兩天後，依你實際支付的金額核對其價格。尚無已核對的小時送達 OneUptime：這些是雲端的公開牌價。"
+  "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.": "你的 Kubecost 會讀取你的雲端帳單，並在每個小時結束約兩天後，依你實際支付的金額核對其價格。尚無已核對的小時送達 OneUptime：這些是雲端的公開牌價。",
+  "Another custom role": "另一個自訂角色",
+  "No workflow runs as it": "沒有以此角色執行的工作流程",
+  "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.": "這會永久刪除該自訂角色。如果有工作流程以此角色執行，請說明它們今後以什麼身分執行，否則 OneUptime 會拒絕刪除並列出這些工作流程。若要改用另一個自訂角色，請將 {{placeholder}} 換成它的 ID。"
 }

@@ -21,6 +21,7 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
@@ -685,6 +686,56 @@ describe("an incident's own API page", () => {
 
     expect(text).toContain("ApiKey: $ONEUPTIME_API_KEY");
     expect(text).not.toMatch(/ApiKey: [0-9a-f]{8}-/);
+  });
+
+  test("deletes it with a plain delete: an incident's delete says nothing besides the incident", () => {
+    const deleteStep: DeveloperDocsStep | undefined = guide.steps[3];
+
+    expect(deleteStep?.description).toBe("This deletes the incident for good.");
+    expect(deleteStep?.variants).toBeUndefined();
+    expect(deleteStep?.markdown).toContain(
+      `curl -X DELETE ${ORIGIN}/api/incident/${INCIDENT_ID}`,
+    );
+    expect(deleteStep?.markdown).not.toContain("-d ");
+  });
+});
+
+/*
+ * A custom role's delete says what the workflows that run as it run as
+ * instead (#10031): DeveloperDocsDeleteChoices.test.ts holds the step to
+ * the API, the CLI and every language.
+ */
+describe("a custom role's own API page", () => {
+  const ROLE_ID: string = "5a0e0000-0000-4000-8000-0000000000aa";
+  const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+    DeveloperDocsPageType.Api,
+    context({
+      resource: getDeveloperDocsResource(CustomRole),
+      record: {
+        id: ROLE_ID,
+        displayName: "Incident Automation",
+        json: { _id: ROLE_ID, name: "Incident Automation" },
+      },
+    }),
+  );
+
+  test("ends with a Delete it step that has a tab for each way, each with its request body", () => {
+    const deleteStep: DeveloperDocsStep | undefined =
+      guide.steps[guide.steps.length - 1];
+
+    expect(deleteStep?.title).toBe("Delete it");
+    expect(variantLabels(deleteStep?.variants)).toEqual([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    expect(deleteStep?.variants?.[0]?.markdown).not.toContain("miscDataProps");
+    expect(deleteStep?.variants?.[1]?.markdown).toContain(
+      '"workflowsRunAs": "Default"',
+    );
+    expect(deleteStep?.variants?.[2]?.markdown).toContain(
+      '"workflowsRunAsCustomRoleId": "<custom-role-id>"',
+    );
   });
 });
 
