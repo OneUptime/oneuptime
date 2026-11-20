@@ -5,6 +5,7 @@ import {
   FeedTone,
   SHARED_FEED_ENTRY_KINDS,
 } from "Common/UI/Components/Feed/FeedEntryKind";
+import { getAiFeedKind } from "./AiFeedKind";
 
 export type GetDataSecurityIssueFeedKindFunction = (
   eventType: string,
@@ -68,6 +69,14 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
        */
       case DataSecurityIssueFeedEventType.ResponseActionTaken:
         return { icon: IconProp.ShieldCheck, tone: FeedTone.Record };
+      // What OneUptime AI proposed for the issue, and what became of it (#10364).
+      case DataSecurityIssueFeedEventType.AiProposed:
+      case DataSecurityIssueFeedEventType.AiProposalApproved:
+      case DataSecurityIssueFeedEventType.AiChangeMade:
+      case DataSecurityIssueFeedEventType.AiProposalDismissed:
+      case DataSecurityIssueFeedEventType.AiChangeUndone:
+      case DataSecurityIssueFeedEventType.AiChangeFailed:
+        return getAiFeedKind(eventType);
       default:
         return undefined;
     }

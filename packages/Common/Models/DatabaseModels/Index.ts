@@ -226,6 +226,8 @@ import DataStoreLabelRule from "./DataStoreLabelRule";
 import DataSecurityFlow from "./DataSecurityFlow";
 import DataSecurityIssue from "./DataSecurityIssue";
 import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
+import DataSecurityAiProposal from "./DataSecurityAiProposal";
+import DataSecurityAiDecision from "./DataSecurityAiDecision";
 import DataSecurityScan from "./DataSecurityScan";
 import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
@@ -751,6 +753,8 @@ const AllModelTypes: Array<{
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
+  DataSecurityAiProposal,
+  DataSecurityAiDecision,
   DataSecurityScan,
   DataSecurityCustomDataType,
   DataSecurityCheckSetting,

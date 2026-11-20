@@ -149,6 +149,13 @@ describe("what OneUptime AI sees", () => {
     expect(flat(sees)).toContain(
       "**Explain with AI** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one",
     );
+    // The analysis of a new issue (#10364) asks what Explain asks, its notes first.
+    expect(
+      source(
+        "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
+      ),
+    ).toContain("await AiContextReader.read({");
+    expect(flat(sees)).toContain("**Analysis of new issues** reads it too.");
     // The AI context's own page lists Explain with AI among what reads it.
     expect(
       tables(readPage("en", "ai/ai-context"))

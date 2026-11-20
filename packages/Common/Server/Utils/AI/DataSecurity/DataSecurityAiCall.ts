@@ -3,6 +3,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
   AILogResponse,
 } from "../../../Services/AIService";
@@ -54,6 +55,7 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
 > = {
   [DataSecurityAiFeature.ExplainIssue]:
     AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  [DataSecurityAiFeature.AnalyzeIssue]: AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   [DataSecurityAiFeature.SuggestFieldTypes]:
     AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
 };

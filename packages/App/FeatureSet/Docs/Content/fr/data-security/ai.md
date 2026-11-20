@@ -23,11 +23,12 @@ Sécurité des données lit vos données elle-même, dans ses analyses, et n'en 
 | Fonctionnalité | Ce qu'elle envoie | S'exécute seule |
 | --- | --- | --- |
 | **Expliquer avec l'IA** | Le titre, la gravité et les preuves du problème, pourquoi son contrôle compte et la correction pour le cloud du magasin de données ; le nom du magasin de données, son type, sa région et son ID dans son cloud, sa sensibilité et les noms de ses types de données ; pour un problème dans la télémétrie, l'endroit où chaque type de données a été trouvé : l'attribut, le corps du journal ou le prompt qui le contient | Non : une personne la demande, sur la page d'un problème |
+| **Analyse des nouveaux problèmes** | Le titre, la gravité et les preuves du problème, pourquoi son contrôle compte et la correction pour le cloud du magasin de données ; le nom du magasin de données, son type, sa région et son ID dans son cloud, sa sensibilité et les noms de ses types de données ; pour un problème dans la télémétrie, l'endroit où chaque type de données a été trouvé : l'attribut, le corps du journal ou le prompt qui le contient | Oui : un nouveau problème critique ou élevé la lance, tant que **Travailler sur les nouveaux problèmes** est activé |
 | **Corriger avec l'IA** | Ce qu'envoie Expliquer avec l'IA, sous forme de demande à l'agent de code, qui lit ensuite le code du dépôt lui-même pour effectuer la modification | Non : une personne la demande, dans un dépôt qu'elle peut modifier sous **Code** |
 | **Suggestions pour les champs qu'aucun détecteur n'a identifiés** | Le type de magasin de données et les types de données que l'IA peut nommer ; le nom de chaque champ, les noms des champs voisins et les formes de ses valeurs, chaque lettre comme `a` ou `A` et chaque chiffre comme `9` ; combien de valeurs ont été lues, et leur longueur | Oui : l'analyse du contenu d'un magasin de données les lance |
 | **Demander à l'IA** | Les magasins de données, problèmes et accès que la personne peut lire dans Sécurité des données ; ce qui a été trouvé et où, chaque type de données selon son emplacement, avec des décomptes et la confiance | Non : une personne pose une question |
 
-**Expliquer avec l'IA** et **Demander à l'IA** lisent aussi d'abord le [contexte IA](/docs/ai/ai-context) de votre équipe, quand elle en a un : les notes que votre équipe a écrites pour OneUptime AI sur vos systèmes.
+**Expliquer avec l'IA** et **Demander à l'IA** lisent aussi d'abord le [contexte IA](/docs/ai/ai-context) de votre équipe, quand elle en a un : les notes que votre équipe a écrites pour OneUptime AI sur vos systèmes. **Analyse des nouveaux problèmes** le lit aussi.
 
 ### Le texte écrit par vos systèmes est une donnée
 

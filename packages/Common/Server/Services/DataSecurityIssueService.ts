@@ -8,6 +8,7 @@ import { OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { queueDataSecurityEvaluation } from "../Utils/DataSecurity/DataSecurityJobs";
+import DataSecurityAiProposals from "../Utils/AI/DataSecurity/DataSecurityAiProposals";
 import DataSecurityIssueAlerts, {
   ClosedDataSecurityIssue,
 } from "../Utils/DataSecurity/DataSecurityIssueAlerts";
@@ -305,6 +306,24 @@ export class Service extends ProjectReferencesService<Model> {
       await DataSecurityIssueAlerts.resolveForClosedIssues({
         projectId: new ObjectID(projectId),
         issues: closed,
+      });
+    }
+
+    /*
+     * Nor does it need what OneUptime AI proposed for it (#10364): a
+     * person accepted it, set it aside or marked it resolved, which is no
+     * check passing, so nothing is proven by it.
+     */
+    if (status && status !== DataSecurityIssueStatus.Open) {
+      await DataSecurityAiProposals.onIssuesClosed({
+        issueIds: changes
+          .filter((change: IssueChange): boolean => {
+            return change.fromStatus !== status;
+          })
+          .map((change: IssueChange): ObjectID => {
+            return new ObjectID(change.id);
+          }),
+        checkPassed: false,
       });
     }
 
