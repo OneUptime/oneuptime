@@ -3193,6 +3193,26 @@ jobs:
           Tests/Server/Utils/TeamMember/PendingInviteeOrderPostgres.test.ts
           --forceExit
 
+      # Someone only invited is shown, searched, filtered and ordered by the
+      # address they were invited at, never the one their account has moved
+      # to, and a member by their own (#10175): what a read returns, a
+      # search through the relation by every kind of filter, an order both
+      # ways, after they accept, and the backfill of invitations made before
+      # the address was kept. Clones the migrated tables into an isolated
+      # schema.
+      - name: Test someone only invited, by the address invited, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PENDING_INVITEE_ADDRESS_TESTS: "true"
+          PENDING_INVITEE_ADDRESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PENDING_INVITEE_ADDRESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PENDING_INVITEE_ADDRESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/TeamMember/PendingInviteeAddressPostgres.test.ts
+          --forceExit
+
       # A list's count stops at the cap it asks for (CappedCount: the read's
       # own query with LIMIT upTo + 1, counted). Holds its answers to
       # repository.count's, or upTo + 1, for reads by project, through

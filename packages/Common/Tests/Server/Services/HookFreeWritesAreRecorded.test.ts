@@ -439,16 +439,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
-    /*
-     * Who gave a raised workflow its permissions, and when (#9695, #9765),
-     * stamped as the person or API key who saved a change to its variables
-     * (WorkflowVariableService.renewGivers, its only caller): that change
-     * is recorded, with who made it, on the workflow's own Audit Logs page
-     * (a WorkflowVariable's root is its Workflow). A change to the Run As
-     * or the steps stamps the giver inside that write, which is recorded
-     * itself.
-     */
-    "Service.recordRunAsGiven Workflow": Why.FollowOn,
   },
   "packages/Common/Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog.ts": {
     "AiAgentResetAuditLog.record *": Why.Recorded,

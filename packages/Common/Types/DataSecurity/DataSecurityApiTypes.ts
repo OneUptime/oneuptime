@@ -1,3 +1,4 @@
+import { MetricOutputReaders } from "../Metrics/MetricOutputReaders";
 import SecuritySeverity from "../SecuritySeverity";
 import ComplianceFramework from "./ComplianceFramework";
 import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
@@ -274,6 +275,7 @@ export enum DataSecurityDropMetricUnavailableReason {
 
 // A dashboard's widget that reads a metric the drop would empty.
 export interface DataSecurityMetricUserWidget {
+  // The id the board draws it under: a link opens the dashboard at it (#10084).
   id: string;
   // Its title, or "" when it has none.
   title: string;
@@ -292,6 +294,12 @@ export interface DataSecurityMetricUser {
   widgets?: Array<DataSecurityMetricUserWidget> | undefined;
   // A recording rule's: the metric it writes, which finds it in its list.
   outputMetricName?: string | undefined;
+  /*
+   * A recording rule's: what reads the metric it writes, which no longer
+   * includes those metrics either - and on down the chain (#10085). None
+   * when nothing does.
+   */
+  outputReaders?: MetricOutputReaders | undefined;
 }
 
 export interface DataSecurityDropMetricImpact {
@@ -330,6 +338,12 @@ export interface DataSecurityDropMetricImpact {
   dashboardsHidden: number;
   slosHidden: number;
   recordingRulesHidden: number;
+  /*
+   * What reads the output metrics of the recording rules the reader may
+   * not read (#10085): named where they may read it, never which rules
+   * those are. None when nothing does.
+   */
+  recordingRulesHiddenOutputReaders?: MetricOutputReaders | undefined;
 }
 
 export interface DataSecurityDropMetricResult {

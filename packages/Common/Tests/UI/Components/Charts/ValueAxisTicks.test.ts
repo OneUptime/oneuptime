@@ -4,10 +4,14 @@ import ValueFormatter, {
   ValueFormatterOptions,
 } from "../../../../Utils/ValueFormatter";
 import {
+  FEWEST_VALUE_AXIS_TICKS,
   FINEST_TICK_FIGURES,
+  MOST_VALUE_AXIS_TICKS,
+  VALUE_AXIS_TICK_SPACING_IN_PX,
   ValueAxisTicks,
   areNeighboursApart,
   getChartAxisValues,
+  getMostValueAxisTicks,
   getTickFormatter,
   getValueAxisTicks,
 } from "../../../../UI/Components/Charts/Utils/ValueAxisTicks";
@@ -21,23 +25,33 @@ import {
   getYAxisWidthForLabelsInPx,
 } from "../../../../UI/Components/Charts/Utils/YAxisWidth";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
+import {
+  NBSP,
+  ReadTick,
+  getMantissa,
+  isEveryTickExact,
+  isOneFigureFewerWorse,
+  isRoundDecimalStep,
+  readTick,
+} from "../../../Helpers/AxisTickLabels";
 
 /*
- * ISSUE #10079: A VALUE AXIS OVER A NARROW RANGE WROTE THE SAME LABEL ON EVERY
- * TICK.
+ * ISSUES #10079 AND #10117: EVERY VALUE AXIS STEPS EVENLY, IN ROUND STEPS OF
+ * THE UNIT IT IS WRITTEN IN.
  *
- * A filesystem holding 17.2 GB give or take a few megabytes read "17.2 GB"
- * five times: recharts steps the axis in five ticks, and the formatter keeps
- * about three figures. The chart now works out each axis's ticks as recharts
- * does, and only when two neighbouring ticks would read alike steps the axis
- * itself, in round steps (1, 2, 2.5 or 5 times a power of ten), handing the
- * formatter the step: ValueFormatter then writes each tick with the fewest
- * figures after the point at which neighbouring ticks differ and every tick
- * reads its own value, in the unit scaling it always used. An axis whose
- * ticks already read apart is left exactly as it was.
+ * #10079: a filesystem holding 17.2 GB give or take a few megabytes read
+ * "17.2 GB" five times: recharts steps the axis in five ticks, and the
+ * formatter keeps about three figures. #10117: an axis whose ticks read
+ * apart still stepped unevenly, as recharts' steps are any multiple of 0.05
+ * times a power of ten: a node's memory read "7.57 GB", "7.65 GB", "7.74
+ * GB". The chart now steps every axis itself, in round steps (1, 2, 2.5 or
+ * 5 times a power of ten), and hands the formatter the step: ValueFormatter
+ * writes each tick with the fewest figures after the point at which
+ * neighbouring ticks differ and every tick reads its own value, in the unit
+ * scaling it always used. The axis takes about five ticks, little blank
+ * space past its values, and the simplest step (Talbot, Lin and Hanrahan's
+ * scoring). An axis whose ticks recharts already stepped roundly keeps them.
  */
-
-const NBSP: string = "\u00A0";
 
 // An axis's formatter, as a metric chart builds it: a unit's, in a language.
 function axisFormatter(
@@ -48,146 +62,19 @@ function axisFormatter(
     return ValueFormatter.formatValue(value, unit, {
       ...options,
       step: precision?.step,
+      largestTick: precision?.largestTick,
     });
   };
 }
 
 const bytes: ValueAxisFormatter = axisFormatter("By");
+const byteRate: ValueAxisFormatter = axisFormatter("By/s");
 const percent: ValueAxisFormatter = axisFormatter("%");
-const milliseconds: ValueAxisFormatter = axisFormatter("ms");
 const count: ValueAxisFormatter = axisFormatter("{processes}");
+const celsius: ValueAxisFormatter = axisFormatter("Cel");
 const cpuFraction: ValueAxisFormatter = axisFormatter("1", {
   metricName: "system.cpu.utilization",
 });
-
-// What one of a unit's figures stands for, as the formatter scales it.
-const SCALE: Record<string, number> = {
-  B: 1,
-  KB: 1e3,
-  MB: 1e6,
-  GB: 1e9,
-  TB: 1e12,
-  PB: 1e15,
-  ns: 1e-6,
-  µs: 1e-3,
-  ms: 1,
-  sec: 1e3,
-  min: 6e4,
-  hours: 3.6e6,
-  days: 8.64e7,
-};
-
-const SCALE_LETTER: Record<string, number> = {
-  "": 1,
-  K: 1e3,
-  M: 1e6,
-  B: 1e9,
-  T: 1e12,
-  P: 1e15,
-};
-
-interface ReadLabel {
-  // The value the label says, in the axis's unit.
-  value: number;
-  // How many figures it was written with after the point.
-  decimals: number;
-  // What one unit of its last figure is worth, in the axis's unit.
-  resolution: number;
-}
-
-// An English label: its figure, its scale letter, its unit and its percent sign.
-const ENGLISH_LABEL: RegExp =
-  /^(-?\d+)(?:\.(\d+))?([KMBTP]?)(?:\u00A0(\S+))?(%?)$/;
-
-/*
- * What an English label says: "17.205 GB" is 17.205e9 bytes, to three
- * figures; "119.200B" is 119.2e9; "99.995%" is 99.995. A fraction metric's
- * percent is read back into its 0-1 fraction by `percentScale`.
- */
-function readLabel(label: string, percentScale: number = 1): ReadLabel {
-  const match: RegExpExecArray | null = ENGLISH_LABEL.exec(label);
-
-  if (!match) {
-    throw new Error(`Not a label the formatter writes: ${label}`);
-  }
-
-  const fraction: string = match[2] || "";
-  const unit: string = match[4] || "";
-  const unitScale: number =
-    (match[5] === "%" ? percentScale : SCALE[unit] ?? 1) *
-    (SCALE_LETTER[match[3] || ""] as number);
-
-  return {
-    value: Number(`${match[1]}${fraction ? `.${fraction}` : ""}`) * unitScale,
-    decimals: fraction.length,
-    resolution: Math.pow(10, -fraction.length) * unitScale,
-  };
-}
-
-/*
- * The fewest figures: none after the point, or, written with one figure
- * fewer, two neighbouring ticks would read alike, or a tick would no longer
- * read its own value.
- */
-function isOneFigureFewerWorse(
-  ticks: ReadonlyArray<number>,
-  labels: ReadonlyArray<string>,
-  percentScale: number = 1,
-): boolean {
-  if (
-    labels.every((label: string): boolean => {
-      return readLabel(label, percentScale).decimals === 0;
-    })
-  ) {
-    return true;
-  }
-
-  const fewer: Array<string> = labels.map((label: string): string => {
-    const read: ReadLabel = readLabel(label, percentScale);
-
-    if (read.decimals === 0) {
-      return label;
-    }
-
-    const coarser: number = read.resolution * 10;
-
-    return String(Math.round(read.value / coarser));
-  });
-  const isFewerExact: boolean = ticks.every(
-    (tick: number, index: number): boolean => {
-      const read: ReadLabel = readLabel(labels[index] as string, percentScale);
-
-      if (read.decimals === 0) {
-        return true;
-      }
-
-      const coarser: number = read.resolution * 10;
-
-      return (
-        Math.abs(Math.round(tick / coarser) * coarser - tick) <=
-        Math.abs(tick) * 1e-12 + coarser * 1e-9
-      );
-    },
-  );
-
-  return !areNeighboursApart(fewer) || !isFewerExact;
-}
-
-// Every label reads the tick it marks, to its last figure.
-function isEveryTickExact(
-  ticks: ReadonlyArray<number>,
-  labels: ReadonlyArray<string>,
-  percentScale: number = 1,
-): boolean {
-  return ticks.every((tick: number, index: number): boolean => {
-    const read: ReadLabel = readLabel(labels[index] as string, percentScale);
-
-    return (
-      Math.abs(read.value - tick) <=
-      read.resolution / 2 + Math.abs(tick) * 1e-12
-    );
-  });
-}
 
 // Two values a little apart, and the points between, as a series moves.
 function around(
@@ -204,110 +91,229 @@ function around(
   return values;
 }
 
-function expectSteppedApart(
+/*
+ * An axis the chart stepped: its ticks a round step apart, in the unit each
+ * tick is written in; neighbours apart; every tick its own value; the
+ * fewest figures; every tick of a unit to as many figures.
+ */
+function expectRoundAndEven(
   axis: ValueAxisTicks,
   percentScale: number = 1,
 ): void {
   expect(axis.precision).toBeDefined();
   expect(axis.ticks).toBeDefined();
+
+  const ticks: Array<number> = axis.ticks as Array<number>;
+  const step: number = (axis.precision as ValueAxisPrecision).step;
+
   expect(areNeighboursApart(axis.labels)).toBe(true);
-  expect(isEveryTickExact(axis.ticks!, axis.labels, percentScale)).toBe(true);
-  expect(isOneFigureFewerWorse(axis.ticks!, axis.labels, percentScale)).toBe(
-    true,
-  );
+  expect(isEveryTickExact(ticks, axis.labels, { percentScale })).toBe(true);
+  expect(
+    isOneFigureFewerWorse(ticks, axis.labels, { percentScale }, step),
+  ).toBe(true);
 
-  // Every tick of an axis is written with as many figures.
-  const decimals: Set<number> = new Set<number>(
-    axis.labels.map((label: string): number => {
-      return readLabel(label, percentScale).decimals;
-    }),
-  );
-  expect(decimals.size).toBe(1);
+  // Evenly: each tick a step past the one below it.
+  for (let index: number = 1; index < ticks.length; index++) {
+    expect(
+      Math.abs((ticks[index] as number) - (ticks[index - 1] as number) - step),
+    ).toBeLessThanOrEqual(step * 1e-9);
+  }
 
-  // A round step: 1, 2, 2.5 or 5 times a power of ten.
-  const step: number = axis.precision!.step;
-  const mantissa: number = Number(
-    (step / Math.pow(10, Math.floor(Math.log10(step)))).toPrecision(6),
+  // A round step in the unit each tick is written in.
+  for (const label of axis.labels) {
+    const read: ReadTick = readTick(label, { percentScale });
+
+    expect(isRoundDecimalStep(step / read.unitScale)).toBe(true);
+  }
+
+  // The ticks of one unit are written with as many figures.
+  const decimalsByUnit: Map<string, Set<number>> = new Map();
+  for (const label of axis.labels) {
+    const read: ReadTick = readTick(label, { percentScale });
+    const decimals: Set<number> =
+      decimalsByUnit.get(read.lastUnit) || new Set<number>();
+
+    decimals.add(read.decimals);
+    decimalsByUnit.set(read.lastUnit, decimals);
+  }
+  for (const decimals of decimalsByUnit.values()) {
+    expect(decimals.size).toBe(1);
+  }
+
+  // The axis's precision names its largest tick, for a span of time's units.
+  expect(axis.precision!.largestTick).toBe(
+    Math.max(Math.abs(ticks[0] as number), Math.abs(ticks[ticks.length - 1]!)),
   );
-  expect([1, 2, 2.5, 5]).toContain(mantissa);
 }
 
-describe("an axis whose ticks already read apart is left as recharts steps it", () => {
+describe("the issue's axes: round steps, read evenly (#10117)", () => {
+  test("the node's memory, 7.53 GB to 7.94 GB: a tenth of a gigabyte a tick, not 85 MB", () => {
+    const values: Array<number> = around(7.735e9, 0.41e9);
+    const before: Array<string> = getNiceTickValues(
+      [7.53e9, 7.94e9],
+      5,
+      true,
+      "adaptive",
+    ).map((tick: number): string => {
+      return bytes(tick);
+    });
+
+    // What recharts' own steps read: a step of 150 MB, written to three figures.
+    expect(before).toEqual([
+      `7.5${NBSP}GB`,
+      `7.65${NBSP}GB`,
+      `7.8${NBSP}GB`,
+      `7.95${NBSP}GB`,
+      `8.1${NBSP}GB`,
+    ]);
+
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: values,
+      domain: ["auto", "auto"],
+      allowDecimals: true,
+      formatter: bytes,
+    });
+
+    expectRoundAndEven(axis);
+    expect(axis.labels).toEqual([
+      `7.5${NBSP}GB`,
+      `7.6${NBSP}GB`,
+      `7.7${NBSP}GB`,
+      `7.8${NBSP}GB`,
+      `7.9${NBSP}GB`,
+      `8.0${NBSP}GB`,
+    ]);
+    // Recharts is handed the ticks, and a domain that runs over exactly them.
+    expect(axis.domain).toEqual([7.5e9, 8e9]);
+    // The tooltip keeps its own figures: the ticks already read apart.
+    expect(axis.tooltipPrecision).toBeUndefined();
+  });
+
+  test("the issue's 85 MB steps: what an axis around them reads now", () => {
+    // Recharts stepped 7.565 GB to 7.905 GB by 85 MB: "7.57", "7.65", "7.74".
+    const recharts: Array<number> = getNiceTickValues(
+      [7.57e9, 7.9e9],
+      5,
+      true,
+      "adaptive",
+    );
+    expect(recharts[1]! - recharts[0]!).toBeCloseTo(0.085e9, -3);
+    expect(
+      recharts.map((tick: number): string => {
+        return bytes(tick);
+      }),
+    ).toEqual([
+      `7.57${NBSP}GB`,
+      `7.65${NBSP}GB`,
+      `7.74${NBSP}GB`,
+      `7.82${NBSP}GB`,
+      `7.91${NBSP}GB`,
+    ]);
+
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [7.57e9, 7.66e9, 7.9e9],
+      domain: ["auto", "auto"],
+      allowDecimals: true,
+      formatter: bytes,
+    });
+
+    expectRoundAndEven(axis);
+    expect(axis.labels).toEqual([
+      `7.5${NBSP}GB`,
+      `7.6${NBSP}GB`,
+      `7.7${NBSP}GB`,
+      `7.8${NBSP}GB`,
+      `7.9${NBSP}GB`,
+    ]);
+  });
+
+  test("0 to 55 steps to 60, as recharts' own did, never to 80 as recharts' round steps pad it", () => {
+    expect(getNiceTickValues([0, 55], 5, true, "adaptive")).toEqual([
+      0, 15, 30, 45, 60,
+    ]);
+    expect(getNiceTickValues([0, 55], 5, true, "snap125")).toEqual([
+      0, 20, 40, 60, 80,
+    ]);
+
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [0, 12, 55],
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: count,
+    });
+
+    expectRoundAndEven(axis);
+    expect(axis.ticks).toEqual([0, 20, 40, 60]);
+    expect(axis.domain).toEqual([0, 60]);
+  });
+
+  test("0 to 41 ends at 50, where recharts' own ended at 60", () => {
+    expect(getNiceTickValues([0, 41], 5, true, "adaptive")).toEqual([
+      0, 15, 30, 45, 60,
+    ]);
+
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [0, 41],
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: count,
+    });
+
+    expectRoundAndEven(axis);
+    expect(axis.ticks).toEqual([0, 10, 20, 30, 40, 50]);
+  });
+});
+
+describe("charts that already looked right keep their ticks", () => {
   test.each([
-    ["bytes from 0 to 20 GB", bytes, [0, 7.2e9, 19.6e9]],
-    ["bytes over a disk's 40% to 60%", bytes, around(50e9, 20e9)],
-    ["percent from 3% to 97%", percent, [3, 40, 97]],
-    ["milliseconds from 12 to 1480", milliseconds, [12, 300, 1480]],
-    ["a count from 2 to 214", count, [2, 70, 214]],
-    ["a 0-1 fraction from 0.1 to 0.9", cpuFraction, [0.1, 0.5, 0.9]],
-    ["negative bytes", bytes, [-3e9, -1e9, 2e9]],
-    ["a counter in the billions", count, around(119.2e9, 0.2e9)],
-  ])(
-    "%s",
-    (_name: string, formatter: ValueAxisFormatter, values: Array<number>) => {
+    [
+      "a percent axis over its fixed 0% to 100%",
+      percent,
+      [12, 40, 63],
+      [0, 100],
+    ],
+    [
+      "a 0-1 fraction over its fixed 0 to 1",
+      cpuFraction,
+      [0.1, 0.5, 0.9],
+      [0, 1],
+    ],
+    ["a count from 0 to 7.3", count, [0, 3, 7.3], [0, "auto"]],
+    ["a count from 0 to 80", count, [0, 30, 80], [0, "auto"]],
+    ["a count from 0 to 19", count, [0, 7, 19], [0, "auto"]],
+    ["bytes from 0 to 20 GB", bytes, [0, 7.2e9, 19.6e9], [0, "auto"]],
+  ] as Array<
+    [string, ValueAxisFormatter, Array<number>, Array<number | "auto">]
+  >)(
+    "%s: recharts' own ticks",
+    (
+      _name: string,
+      formatter: ValueAxisFormatter,
+      values: Array<number>,
+      domain: Array<number | "auto">,
+    ) => {
       const axis: ValueAxisTicks = getValueAxisTicks({
         values: values,
-        domain: ["auto", "auto"],
+        domain: domain,
         allowDecimals: true,
         formatter: formatter,
       });
+      const lowest: number = Math.min(
+        ...values,
+        typeof domain[0] === "number" ? domain[0] : Infinity,
+      );
+      const highest: number = Math.max(
+        ...values,
+        typeof domain[1] === "number" ? domain[1] : -Infinity,
+      );
 
-      expect(axis.ticks).toBeUndefined();
-      expect(axis.domain).toBeUndefined();
-      expect(axis.precision).toBeUndefined();
-      expect(areNeighboursApart(axis.labels)).toBe(true);
-
-      // The labels are the formatter's own, at recharts' own ticks.
-      const lowest: number = Math.min(...values);
-      const highest: number = Math.max(...values);
-      expect(axis.labels).toEqual(
-        getNiceTickValues([lowest, highest], 5, true, "adaptive").map(
-          (tick: number): string => {
-            return formatter(tick);
-          },
-        ),
+      expect(axis.ticks).toEqual(
+        getNiceTickValues([lowest, highest], 5, true, "adaptive"),
       );
     },
   );
 
-  test("an axis from zero (a bar chart's, a rate chart's) reads apart, and needs more figures only for a percent near zero", () => {
-    const random: SeededRandom = seededRandom(10079);
-
-    for (let index: number = 0; index < 400; index++) {
-      const top: number = Math.pow(10, random(18) - 4) * (1 + random() * 9);
-
-      // Bytes, a duration and a count keep two figures however small: never stepped.
-      for (const formatter of [bytes, milliseconds, count]) {
-        const axis: ValueAxisTicks = getValueAxisTicks({
-          values: around(top / 2, top),
-          domain: [0, "auto"],
-          allowDecimals: true,
-          formatter: formatter,
-        });
-
-        expect(axis.precision).toBeUndefined();
-        expect(areNeighboursApart(axis.labels)).toBe(true);
-      }
-
-      // A percent keeps two decimals: from 0% to 0.004%, it is stepped.
-      const percentAxis: ValueAxisTicks = getValueAxisTicks({
-        values: around(top / 2, top),
-        domain: [0, "auto"],
-        allowDecimals: true,
-        formatter: percent,
-      });
-
-      expect(areNeighboursApart(percentAxis.labels)).toBe(true);
-      if (top >= 0.1) {
-        expect(percentAxis.precision).toBeUndefined();
-      }
-      if (top < 0.01) {
-        expect(percentAxis.precision).toBeDefined();
-      }
-    }
-  });
-
-  test("a percent axis over its fixed 0% to 100% keeps recharts' ticks", () => {
+  test("0% to 100%: in quarters, with the fewest figures, the tooltip as it always wrote", () => {
     const axis: ValueAxisTicks = getValueAxisTicks({
       values: [12, 40, 63],
       domain: [0, 100],
@@ -315,18 +321,83 @@ describe("an axis whose ticks already read apart is left as recharts steps it", 
       formatter: percent,
     });
 
-    expect(axis.ticks).toBeUndefined();
+    expectRoundAndEven(axis);
+    expect(axis.labels).toEqual(["0%", "25%", "50%", "75%", "100%"]);
+    // A fixed domain keeps its ends.
+    expect(axis.domain).toEqual([0, 100]);
+    expect(axis.tooltipPrecision).toBeUndefined();
+  });
+
+  test("a state chart's ranks: 0, 2, 4, 6 and 8, each a state's name", () => {
+    const names: Array<string> = [
+      "Failed",
+      "",
+      "Inactive",
+      "",
+      "Activating",
+      "",
+      "Active",
+      "",
+      "",
+    ];
+    // A page's own formatter: no step, no figures, a name for each rank.
+    const rank: ValueAxisFormatter = (value: number): string => {
+      return names[Math.round(value)] ?? "";
+    };
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [0, 2, 6, 4],
+      domain: [0, 8],
+      allowDecimals: true,
+      formatter: rank,
+    });
+
+    expect(axis.ticks).toEqual([0, 2, 4, 6, 8]);
     expect(axis.labels).toEqual([
-      "0.00%",
-      "25.00%",
-      "50.00%",
-      "75.00%",
-      "100.00%",
+      "Failed",
+      "Inactive",
+      "Activating",
+      "Active",
+      "",
     ]);
+    expect(axis.domain).toEqual([0, 8]);
+  });
+
+  test("an availability chart's Down and Up, at its fixed 0 and 100", () => {
+    const upDown: ValueAxisFormatter = (value: number): string => {
+      if (value >= 100) {
+        return "Up";
+      }
+      if (value <= 0) {
+        return "Down";
+      }
+      return `${Math.round(value)}%`;
+    };
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [100, 100, 0, 100],
+      domain: [0, 100],
+      allowDecimals: true,
+      formatter: upDown,
+    });
+
+    expect(axis.labels).toEqual(["Down", "25%", "50%", "75%", "Up"]);
+  });
+
+  test("a percent's soft range under 25%: round ticks between its fixed ends, none at its odd top", () => {
+    // Before: recharts' fixed-domain ticks ended on the domain's top, "9.13%".
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [3, 5.5, 7.3],
+      domain: [0, 9.125],
+      allowDecimals: true,
+      formatter: percent,
+    });
+
+    expectRoundAndEven(axis);
+    expect(axis.labels).toEqual(["0%", "2%", "4%", "6%", "8%"]);
+    expect(axis.domain).toEqual([0, 9.125]);
   });
 });
 
-describe("an axis over a narrow range is stepped so its neighbouring ticks read apart", () => {
+describe("an axis over a narrow range is stepped so its neighbouring ticks read apart (#10079)", () => {
   test("the issue's filesystem: 17.2 GB give or take a few megabytes", () => {
     const before: Array<string> = getNiceTickValues(
       [17.2013e9, 17.2047e9],
@@ -347,7 +418,7 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: bytes,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     expect(axis.labels).toEqual([
       `17.201${NBSP}GB`,
       `17.202${NBSP}GB`,
@@ -357,17 +428,19 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
     ]);
     // The domain recharts is handed runs over exactly those ticks.
     expect(axis.domain).toEqual([17.201e9, 17.205e9]);
+    // Its own figures read "17.2 GB" on every tick: the tooltip takes the step's.
+    expect(axis.tooltipPrecision).toEqual(axis.precision);
   });
 
   test.each([
     ["bytes", bytes, 17.2e9, 3e7, 1],
     ["bytes, a few kilobytes on a megabyte", bytes, 1.25e6, 2e3, 1],
     ["percent", percent, 99.995, 0.006, 1],
-    ["milliseconds", milliseconds, 250.5, 0.04, 1],
-    ["milliseconds past a second", milliseconds, 1840, 0.6, 1],
     ["a count", count, 70.5, 0.003, 1],
     ["a counter in the billions", count, 119.2e9, 4e6, 1],
     ["a 0-1 fraction drawn in percent", cpuFraction, 0.99991, 0.00006, 0.01],
+    ["a byte rate", byteRate, 1.2005e6, 400, 1],
+    ["a temperature", celsius, 23.25, 0.04, 1],
   ])(
     "%s",
     (
@@ -384,11 +457,21 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
         formatter: formatter,
       });
 
-      expectSteppedApart(axis, percentScale);
+      expectRoundAndEven(axis, percentScale);
       // Its ticks take the values in.
       expect(axis.ticks![0]!).toBeLessThanOrEqual(center - span / 2);
       expect(axis.ticks![axis.ticks!.length - 1]!).toBeGreaterThanOrEqual(
         center + span / 2,
+      );
+      // The tooltip takes the step where the formatter's own figures fail.
+      expect(axis.tooltipPrecision).toEqual(
+        areNeighboursApart(
+          axis.ticks!.map((tick: number): string => {
+            return formatter(tick);
+          }),
+        )
+          ? undefined
+          : axis.precision,
       );
     },
   );
@@ -401,7 +484,7 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: bytes,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     expect(axis.labels).toEqual([
       `-17.205${NBSP}GB`,
       `-17.204${NBSP}GB`,
@@ -419,7 +502,7 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: percent,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     expect(axis.labels).toContain("0.000%");
     // No minus before a zero.
     expect(axis.labels).not.toContain("-0.000%");
@@ -433,7 +516,7 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: percent,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     // A fixed domain keeps its ends.
     expect(axis.domain).toEqual([0, 0.002]);
     for (const tick of axis.ticks!) {
@@ -450,7 +533,7 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: bytes,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     for (const label of axis.labels) {
       expect(label).toMatch(/^1\.234\d\u00A0PB$/);
     }
@@ -464,7 +547,7 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: bytes,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     expect(axis.precision!.step).toBe(1e11);
     expect(axis.labels).toContain(`1.2345${NBSP}PB`);
   });
@@ -477,7 +560,7 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: count,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     for (const tick of axis.ticks!) {
       expect(Number.isInteger(tick)).toBe(true);
     }
@@ -491,8 +574,26 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: bytes,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
     expect(axis.labels).toContain(`17.200${NBSP}GB`);
+  });
+
+  test("a series of nothing but zero: 0 to 4, as recharts draws it", () => {
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [0, 0, 0],
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: bytes,
+    });
+
+    expect(axis.ticks).toEqual(getNiceTickValues([0, 0], 5, true, "adaptive"));
+    expect(axis.labels).toEqual([
+      `0${NBSP}B`,
+      `1${NBSP}B`,
+      `2${NBSP}B`,
+      `3${NBSP}B`,
+      `4${NBSP}B`,
+    ]);
   });
 
   test("a byte's rounding on 17.2 GB is never stretched over ticks a byte apart", () => {
@@ -503,31 +604,15 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       formatter: bytes,
     });
 
-    expectSteppedApart(axis);
+    expectRoundAndEven(axis);
 
     // Never finer than five figures of the value: ticks a megabyte apart or more.
     expect(axis.precision!.step).toBeGreaterThanOrEqual(
       Math.pow(10, 10 - FINEST_TICK_FIGURES + 1),
     );
     for (const label of axis.labels) {
-      expect(readLabel(label).decimals).toBeLessThanOrEqual(3);
+      expect(readTick(label).decimals).toBeLessThanOrEqual(3);
     }
-  });
-
-  test("a formatter that writes the same whatever it is handed leaves the axis as it was", () => {
-    const rounded: ValueAxisFormatter = (value: number): string => {
-      return `${Math.round(value / 1e9)} GB`;
-    };
-    const axis: ValueAxisTicks = getValueAxisTicks({
-      values: around(17.203e9, 3.4e6),
-      domain: ["auto", "auto"],
-      allowDecimals: true,
-      formatter: rounded,
-    });
-
-    expect(axis.ticks).toBeUndefined();
-    expect(axis.precision).toBeUndefined();
-    expect(new Set<string>(axis.labels)).toEqual(new Set<string>(["17 GB"]));
   });
 
   test("no values: nothing to step", () => {
@@ -542,26 +627,92 @@ describe("an axis over a narrow range is stepped so its neighbouring ticks read 
       ticks: undefined,
       domain: undefined,
       precision: undefined,
+      tooltipPrecision: undefined,
       labels: [],
     });
   });
 });
 
-describe("in every unit and at every scale, neighbouring ticks read apart with the fewest figures", () => {
+describe("a formatter that writes its own figures", () => {
+  test("one that writes too few figures for the best step takes the next it writes apart", () => {
+    // A topology edge's calls: whole numbers, whatever it is handed.
+    const wholeNumbers: ValueAxisFormatter = (value: number): string => {
+      return String(Math.round(value));
+    };
+    // Recharts' own ticks read "0", "0", "1", "1", "1".
+    expect(
+      getNiceTickValues([0, 1.4], 5, true, "adaptive").map(
+        (tick: number): string => {
+          return wholeNumbers(tick);
+        },
+      ),
+    ).toEqual(["0", "0", "1", "1", "1"]);
+
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [0, 1, 1.4],
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: wholeNumbers,
+    });
+
+    expect(axis.ticks).toEqual([0, 1, 2]);
+    expect(axis.labels).toEqual(["0", "1", "2"]);
+  });
+
+  test("one that writes the same whatever it is handed leaves the axis as recharts steps it", () => {
+    const rounded: ValueAxisFormatter = (value: number): string => {
+      return `${Math.round(value / 1e9)} GB`;
+    };
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: around(17.203e9, 3.4e6),
+      domain: ["auto", "auto"],
+      allowDecimals: true,
+      formatter: rounded,
+    });
+
+    expect(axis.ticks).toBeUndefined();
+    expect(axis.precision).toBeUndefined();
+    expect(axis.tooltipPrecision).toBeUndefined();
+    expect(new Set<string>(axis.labels)).toEqual(new Set<string>(["17 GB"]));
+  });
+
+  test("one that ignores the step writes the round ticks in its own figures", () => {
+    const own: ValueAxisFormatter = (value: number): string => {
+      return `${value.toFixed(2)} ms`;
+    };
+    const axis: ValueAxisTicks = getValueAxisTicks({
+      values: [12, 300, 1480],
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: own,
+    });
+
+    expect(axis.ticks).toEqual([0, 500, 1000, 1500]);
+    expect(axis.labels).toEqual([
+      "0.00 ms",
+      "500.00 ms",
+      "1000.00 ms",
+      "1500.00 ms",
+    ]);
+  });
+});
+
+describe("in every unit and at every scale, every axis steps evenly in round steps, with the fewest figures", () => {
   const units: Array<{
     name: string;
     formatter: ValueAxisFormatter;
     percentScale: number;
   }> = [
     { name: "bytes", formatter: bytes, percentScale: 1 },
+    { name: "a byte rate", formatter: byteRate, percentScale: 1 },
     { name: "percent", formatter: percent, percentScale: 1 },
-    { name: "milliseconds", formatter: milliseconds, percentScale: 1 },
     { name: "a count", formatter: count, percentScale: 1 },
+    { name: "a temperature", formatter: celsius, percentScale: 1 },
     { name: "a 0-1 fraction", formatter: cpuFraction, percentScale: 0.01 },
   ];
 
   test.each(units)(
-    "$name: a seeded sweep of 600 ranges, narrow and wide, positive and negative",
+    "$name: a seeded sweep of 600 ranges, narrow and wide, from zero and fixed, positive and negative",
     ({
       formatter,
       percentScale,
@@ -569,46 +720,138 @@ describe("in every unit and at every scale, neighbouring ticks read apart with t
       formatter: ValueAxisFormatter;
       percentScale: number;
     }) => {
-      const random: SeededRandom = seededRandom(10079);
-      let stepped: number = 0;
+      const random: SeededRandom = seededRandom(10117);
+      let narrow: number = 0;
+      let wide: number = 0;
 
       for (let index: number = 0; index < 600; index++) {
         const magnitude: number = Math.pow(10, random(20) - 6);
         const center: number =
           magnitude * (1 + random() * 9) * (random(4) === 0 ? -1 : 1);
         const span: number =
-          Math.abs(center) * Math.pow(10, -(1 + random() * 8));
+          Math.abs(center) * Math.pow(10, -(random() * 9) + 0.3);
+        const values: Array<number> = around(center, span, 2 + random(20));
+        const lowest: number = Math.min(...values);
+        const highest: number = Math.max(...values);
+        // Lines fit their values; bars and rates stand on zero; a host may fix both ends.
+        const shape: number = random(3);
+        const domain: Array<number | "auto"> =
+          shape === 0
+            ? ["auto", "auto"]
+            : shape === 1
+              ? [0, "auto"]
+              : [
+                  Math.min(0, lowest) - span * random(),
+                  Math.max(0, highest) + span * random(),
+                ];
         const axis: ValueAxisTicks = getValueAxisTicks({
-          values: around(center, span, 2 + random(20)),
-          domain: ["auto", "auto"],
+          values: values,
+          domain: domain,
           allowDecimals: true,
           formatter: formatter,
         });
+        const ticks: Array<number> = axis.ticks as Array<number>;
 
-        // Whatever the range, no two neighbouring ticks read alike.
-        expect(areNeighboursApart(axis.labels)).toBe(true);
+        // Every axis is stepped: evenly, roundly, apart, exactly, to the fewest figures.
+        expectRoundAndEven(axis, percentScale);
 
-        if (axis.precision) {
-          stepped++;
-          expect(isEveryTickExact(axis.ticks!, axis.labels, percentScale)).toBe(
-            true,
+        // About five ticks: never fewer than three, never more than six.
+        expect(ticks.length).toBeGreaterThanOrEqual(FEWEST_VALUE_AXIS_TICKS);
+        expect(ticks.length).toBeLessThanOrEqual(MOST_VALUE_AXIS_TICKS);
+
+        // Never finer than five figures of the axis's largest end.
+        const axisEnds: [number, number] = [
+          Math.min(lowest, typeof domain[0] === "number" ? domain[0] : lowest),
+          Math.max(
+            highest,
+            typeof domain[1] === "number" ? domain[1] : highest,
+          ),
+        ];
+        const largest: number = Math.max(...axisEnds.map(Math.abs));
+        expect(axis.precision!.step).toBeGreaterThanOrEqual(
+          Math.pow(
+            10,
+            Math.floor(Math.log10(largest)) - FINEST_TICK_FIGURES + 1,
+          ) *
+            (1 - 1e-9),
+        );
+
+        if (typeof domain[0] === "number" && typeof domain[1] === "number") {
+          // A fixed domain keeps its ends, its ticks between them.
+          expect(axis.domain).toEqual(axisEnds);
+          expect(ticks[0]!).toBeGreaterThanOrEqual(
+            axisEnds[0] - 1e-9 * largest,
           );
-          expect(
-            isOneFigureFewerWorse(axis.ticks!, axis.labels, percentScale),
-          ).toBe(true);
+          expect(ticks[ticks.length - 1]!).toBeLessThanOrEqual(
+            axisEnds[1] + 1e-9 * largest,
+          );
+        } else {
+          // An "auto" one runs over its ticks, which take every value in.
+          expect(axis.domain).toEqual([ticks[0], ticks[ticks.length - 1]]);
+          expect(ticks[0]!).toBeLessThanOrEqual(axisEnds[0]);
+          expect(ticks[ticks.length - 1]!).toBeGreaterThanOrEqual(axisEnds[1]);
+        }
+
+        // The tooltip takes the step only where the formatter's own figures fail.
+        const ownFigures: Array<string> = ticks.map((tick: number): string => {
+          return formatter(tick);
+        });
+        expect(axis.tooltipPrecision).toEqual(
+          areNeighboursApart(ownFigures) ? undefined : axis.precision,
+        );
+
+        if (axis.tooltipPrecision) {
+          narrow++;
+        } else {
+          wide++;
         }
       }
 
-      // The sweep reaches ranges the formatter's own figures cannot tell apart.
-      expect(stepped).toBeGreaterThan(100);
+      // The sweep reaches both: ranges the formatter's own figures tell apart, and not.
+      expect(narrow).toBeGreaterThan(50);
+      expect(wide).toBeGreaterThan(50);
     },
   );
+
+  test("the blank space past the values: less than recharts' on an axis from zero, and never half the plot", () => {
+    const random: SeededRandom = seededRandom(10117);
+    let mine: number = 0;
+    let recharts: number = 0;
+
+    for (let index: number = 0; index < 2000; index++) {
+      const highest: number = Math.pow(10, random(10) - 3) * (1 + random() * 9);
+      const axis: ValueAxisTicks = getValueAxisTicks({
+        values: [0, highest],
+        domain: [0, "auto"],
+        allowDecimals: true,
+        formatter: bytes,
+      });
+      const top: number = axis.ticks![axis.ticks!.length - 1]!;
+      const rechartsTicks: Array<number> = getNiceTickValues(
+        [0, highest],
+        5,
+        true,
+        "adaptive",
+      );
+      const blank: number = (top - highest) / top;
+
+      // At most a quarter of the plot is above the highest value.
+      expect(blank).toBeLessThanOrEqual(0.25 + 1e-9);
+      mine += blank;
+      recharts +=
+        (rechartsTicks[rechartsTicks.length - 1]! - highest) /
+        rechartsTicks[rechartsTicks.length - 1]!;
+    }
+
+    expect(mine).toBeLessThan(recharts);
+  });
 });
 
 describe("in the reader's language", () => {
   test.each([
     ["de", "17,201", "17,205"],
     ["fa", "۱۷٫۲۰۱", "۱۷٫۲۰۵"],
+    ["ar", "17.201", "17.205"],
     ["en", "17.201", "17.205"],
   ])(
     "%s: the stepped ticks keep their figures in the language's digits",
@@ -623,6 +866,37 @@ describe("in the reader's language", () => {
       expect(areNeighboursApart(axis.labels)).toBe(true);
       expect(axis.labels[0]).toContain(first);
       expect(axis.labels[axis.labels.length - 1]).toContain(last);
+    },
+  );
+
+  test.each([
+    ["de", ["0 %", "25 %", "50 %", "75 %", "100 %"]],
+    ["fa", ["۰٪", "۲۵٪", "۵۰٪", "۷۵٪", "۱۰۰٪"]],
+    [
+      "ar",
+      [
+        "0\u200E%\u200E",
+        "25\u200E%\u200E",
+        "50\u200E%\u200E",
+        "75\u200E%\u200E",
+        "100\u200E%\u200E",
+      ],
+    ],
+  ])(
+    "%s: a percent axis's quarters, with no figure after the point",
+    (language: string, expected: Array<string>) => {
+      const axis: ValueAxisTicks = getValueAxisTicks({
+        values: [12, 63],
+        domain: [0, 100],
+        allowDecimals: true,
+        formatter: axisFormatter("%", { language: language }),
+      });
+
+      expect(
+        axis.labels.map((label: string): string => {
+          return label.replace(/\u00A0/g, " ");
+        }),
+      ).toEqual(expected);
     },
   );
 
@@ -655,7 +929,7 @@ describe("in the reader's language", () => {
     }
   });
 
-  test("a range German's own figures already tell apart reads as it always has", () => {
+  test("a range German's own figures already tell apart: round tenths of a billion", () => {
     const axis: ValueAxisTicks = getValueAxisTicks({
       values: around(119.2e9, 8e7),
       domain: ["auto", "auto"],
@@ -663,8 +937,14 @@ describe("in the reader's language", () => {
       formatter: axisFormatter("1", { language: "de" }),
     });
 
-    expect(axis.precision).toBeUndefined();
-    expect(axis.labels).toContain("119,2\u00A0Mrd.");
+    expect(axis.precision!.step).toBe(2e7);
+    expect(axis.labels).toEqual([
+      "119,16\u00A0Mrd.",
+      "119,18\u00A0Mrd.",
+      "119,20\u00A0Mrd.",
+      "119,22\u00A0Mrd.",
+      "119,24\u00A0Mrd.",
+    ]);
   });
 });
 
@@ -727,11 +1007,11 @@ describe("the tick formatter recharts is handed", () => {
 
     const stepped: (value: number, index: number) => string = getTickFormatter(
       formatter,
-      { step: 1 },
+      { step: 1, largestTick: 8 },
     ) as unknown as (value: number, index: number) => string;
 
     stepped(5, 3);
-    expect(seen[1]).toEqual({ step: 1 });
+    expect(seen[1]).toEqual({ step: 1, largestTick: 8 });
     expect(seen).toHaveLength(2);
   });
 });
@@ -751,5 +1031,110 @@ describe("the axis's width over ticks it has written", () => {
     expect(
       getYAxisWidthForLabelsInPx({ labels: ["1 GB"], minWidthInPx: 90 }),
     ).toBe(90);
+  });
+});
+
+describe("a short plot's axis takes only the ticks it has room for (#10117)", () => {
+  test.each([
+    [undefined, 6],
+    [0, 6],
+    [Number.NaN, 6],
+    [320, 6],
+    [121, 6],
+    [100, 6],
+    [99, 5],
+    [82, 5],
+    [80, 5],
+    [79, 4],
+    [60, 4],
+    [59, 3],
+    [40, 3],
+    [20, 3],
+    [5, 3],
+  ] as Array<[number | undefined, number]>)(
+    "a plot %s px tall: at most %s ticks, a tick every 20px",
+    (plotHeightInPx: number | undefined, mostTicks: number) => {
+      expect(getMostValueAxisTicks(plotHeightInPx)).toBe(mostTicks);
+    },
+  );
+
+  test("the cluster's network card, 82px tall: 0 to 1.5 MB/s by a half, every label drawn, its zero too", () => {
+    const rate: ValueAxisFormatter = axisFormatter("By/s");
+    const values: Array<number> = [0, 4.2e5, 8.8e5, 1.1e6];
+    const tall: ValueAxisTicks = getValueAxisTicks({
+      values: values,
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: rate,
+    });
+    const short: ValueAxisTicks = getValueAxisTicks({
+      values: values,
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: rate,
+      mostTicks: getMostValueAxisTicks(82),
+    });
+
+    // Six ticks 16px apart: recharts drew every other label, "250 KB/s", "750 KB/s", "1.25 MB/s".
+    expect(tall.ticks).toEqual([0, 2.5e5, 5e5, 7.5e5, 1e6, 1.25e6]);
+    expect(82 / (tall.ticks!.length - 1)).toBeLessThan(
+      VALUE_AXIS_TICK_SPACING_IN_PX,
+    );
+    // Four, each label drawn.
+    expect(short.ticks).toEqual([0, 5e5, 1e6, 1.5e6]);
+    expect(short.labels).toEqual([
+      `0${NBSP}B/s`,
+      `500${NBSP}KB/s`,
+      `1.0${NBSP}MB/s`,
+      `1.5${NBSP}MB/s`,
+    ]);
+    expectRoundAndEven(short);
+  });
+
+  test("a seeded sweep: no more ticks than the plot has room for, an axis from zero always", () => {
+    const random: SeededRandom = seededRandom(10117);
+    let capped: number = 0;
+
+    for (let index: number = 0; index < 1200; index++) {
+      const magnitude: number = Math.pow(10, random(16) - 6);
+      const highest: number = magnitude * (1 + random() * 9);
+      const isFromZero: boolean = random(2) === 0;
+      const lowest: number = isFromZero ? 0 : highest * (0.05 + random() * 0.9);
+      const mostTicks: number = FEWEST_VALUE_AXIS_TICKS + random(4);
+      const values: Array<number> = around(
+        (lowest + highest) / 2,
+        highest - lowest,
+      );
+      const axis: ValueAxisTicks = getValueAxisTicks({
+        values: values,
+        domain: isFromZero ? [0, "auto"] : ["auto", "auto"],
+        allowDecimals: true,
+        formatter: bytes,
+        mostTicks: mostTicks,
+      });
+
+      expectRoundAndEven(axis);
+      expect(axis.ticks!.length).toBeGreaterThanOrEqual(2);
+      // An axis from zero always finds a round step that few: [S/2, S) holds one.
+      if (isFromZero) {
+        expect(axis.ticks!.length).toBeLessThanOrEqual(mostTicks);
+      }
+      if (axis.ticks!.length <= mostTicks) {
+        capped++;
+      }
+    }
+
+    // Almost every axis fits its room; a fitted line may need one tick more.
+    expect(capped).toBeGreaterThan(1200 * 0.95);
+  });
+});
+
+describe("the round steps themselves", () => {
+  test("first figures of 1, 2, 2.5 or 5", () => {
+    expect(getMantissa(0.025)).toBe(2.5);
+    expect(isRoundDecimalStep(0.025)).toBe(true);
+    expect(isRoundDecimalStep(5e9)).toBe(true);
+    expect(isRoundDecimalStep(8.5e7)).toBe(false);
+    expect(isRoundDecimalStep(15)).toBe(false);
   });
 });

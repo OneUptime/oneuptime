@@ -78,9 +78,35 @@ jest.mock("../../../FeatureSet/Identity/API/GoogleSignIn", () => {
 jest.mock("../../../FeatureSet/Identity/API/SignInMethods", () => {
   return { __esModule: true, default: { coreRouter: "sign-in-methods" } };
 });
+// "Sign in with SSO"'s Email Me My Sign-in Links (#9987).
+jest.mock("../../../FeatureSet/Identity/API/SsoSignInLinks", () => {
+  return { __esModule: true, default: { coreRouter: "sso-sign-in-links" } };
+});
+// Where the mobile app redeems an SSO sign-in's one-time code (#9989).
+jest.mock("../../../FeatureSet/Identity/API/MobileSsoExchange", () => {
+  return { __esModule: true, default: { coreRouter: "mobile-sso-exchange" } };
+});
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
+
+/*
+ * The core identity routers Identity/Index.ts mounts ahead of the SSO
+ * routers, at the same two prefixes, in mount order. Express asks them
+ * first, so a route of theirs that matched an SSO path would answer it in
+ * the SSO router's place. Each is a marker above; the real router is read
+ * where a test needs its routes.
+ */
+const ROUTERS_MOUNTED_BEFORE_SSO: Array<{ marker: string; module: string }> = [
+  { marker: "authentication", module: "API/Authentication" },
+  { marker: "first-account", module: "API/FirstAccount" },
+  { marker: "reseller", module: "API/Reseller" },
+  { marker: "microsoft-sign-in", module: "API/MicrosoftSignIn" },
+  { marker: "google-sign-in", module: "API/GoogleSignIn" },
+  { marker: "sign-in-methods", module: "API/SignInMethods" },
+  { marker: "sso-sign-in-links", module: "API/SsoSignInLinks" },
+  { marker: "mobile-sso-exchange", module: "API/MobileSsoExchange" },
+];
 
 type PinnedRoute = [method: string, path: string];
 
@@ -171,7 +197,47 @@ interface RouteLayer {
         stack: Array<{ handle: unknown }>;
       }
     | undefined;
+  regexp?: (RegExp & { fast_slash?: boolean; fast_star?: boolean }) | undefined;
 }
+
+// Whether Express would hand `requestPath` to this route layer for `method`.
+const answers: (
+  layer: RouteLayer,
+  method: string,
+  requestPath: string,
+) => boolean = (
+  layer: RouteLayer,
+  method: string,
+  requestPath: string,
+): boolean => {
+  if (!layer.route || !layer.regexp) {
+    return false;
+  }
+
+  const methods: Record<string, boolean> = layer.route.methods;
+
+  if (!methods[method.toLowerCase()] && !methods["_all"]) {
+    return false;
+  }
+
+  return Boolean(
+    layer.regexp.fast_slash ||
+      layer.regexp.fast_star ||
+      layer.regexp.test(requestPath),
+  );
+};
+
+// A request path a pinned route serves: each parameter given an id.
+const samplePathOf: (route: string) => string = (route: string): string => {
+  return route
+    .split("/")
+    .map((segment: string): string => {
+      return segment.startsWith(":")
+        ? "11111111-1111-4111-8111-111111111111"
+        : segment;
+    })
+    .join("/");
+};
 
 const getLayers: (router: ExpressRouter) => Array<RouteLayer> = (
   router: ExpressRouter,
@@ -388,6 +454,69 @@ describe("core SSO routers", () => {
       expect(route[1].startsWith("/scim/")).toBe(false);
       expect(route[1].startsWith("/status-page-scim/")).toBe(false);
     }
+  });
+
+  test.each(ROUTERS_MOUNTED_BEFORE_SSO)(
+    "$module, mounted ahead of them, answers no SSO path in their place",
+    (before: { marker: string; module: string }) => {
+      const router: ExpressRouter = (
+        jest.requireActual(`../../../FeatureSet/Identity/${before.module}`) as {
+          default: ExpressRouter;
+        }
+      ).default;
+      const layers: Array<RouteLayer> = getLayers(router);
+
+      // The real router, with routes of its own to hold to this.
+      expect(
+        layers.some((layer: RouteLayer): boolean => {
+          return Boolean(layer.route);
+        }),
+      ).toBe(true);
+
+      for (const [method, routePath] of ALL_PINNED) {
+        const answeredBy: Array<string> = layers
+          .filter((layer: RouteLayer): boolean => {
+            return answers(layer, method, samplePathOf(routePath));
+          })
+          .map((layer: RouteLayer): string => {
+            return layer.route!.path;
+          });
+
+        expect({ sso: `${method} ${routePath}`, answeredBy }).toEqual({
+          sso: `${method} ${routePath}`,
+          answeredBy: [],
+        });
+      }
+    },
+  );
+
+  test("the check above sees a route that would answer an SSO path", () => {
+    const shadowing: { stack: Array<RouteLayer> } =
+      Express.getRouter() as unknown as { stack: Array<RouteLayer> };
+
+    (shadowing as unknown as ExpressRouter).get(
+      "/sso/:anything/:else",
+      (): void => {},
+    );
+    (shadowing as unknown as ExpressRouter).post(
+      "/mobile-sso-exchange",
+      (): void => {},
+    );
+
+    expect(
+      answers(
+        shadowing.stack[0]!,
+        "GET",
+        samplePathOf("/sso/:projectId/:projectSsoId"),
+      ),
+    ).toBe(true);
+    expect(
+      answers(
+        shadowing.stack[1]!,
+        "GET",
+        samplePathOf("/sso/:projectId/:projectSsoId"),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -733,6 +862,46 @@ describe("the Identity feature set mounts the SSO routers", () => {
     });
   };
 
+  const MOUNTS_BEFORE_SSO: Array<MountRecord> = [
+    { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
+    { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
+    { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "microsoft-sign-in" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "google-sign-in" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "sign-in-methods" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "sso-sign-in-links" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "mobile-sso-exchange" },
+    },
+  ];
+
+  test("the routers mounted ahead of the SSO routers are the ones checked to answer no SSO path", () => {
+    expect(
+      MOUNTS_BEFORE_SSO.map((record: MountRecord): unknown => {
+        return record.router;
+      }),
+    ).toEqual(
+      ROUTERS_MOUNTED_BEFORE_SSO.map(
+        (before: { marker: string }): { coreRouter: string } => {
+          return { coreRouter: before.marker };
+        },
+      ),
+    );
+  });
+
   test.each(
     createEditionStateCases().map(
       (state: EditionStateCase): [string, EditionStateCase] => {
@@ -740,7 +909,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       },
     ),
   )(
-    "at /api/identity and /, after authentication, the first-account check, reseller, Sign in with Microsoft, Continue with Google and the sign-in methods, before ee's routers and status page authentication (%s)",
+    "at /api/identity and /, after authentication, the first-account check, reseller, Sign in with Microsoft, Continue with Google, the sign-in methods, the sign-in links email and the mobile app's code exchange, before ee's routers and status page authentication (%s)",
     async (_label: string, state: EditionStateCase) => {
       const fake: FakeEnterpriseModule | null = state.apply();
 
@@ -751,21 +920,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       await IdentityFeatureSet.init();
 
       expect(mounted).toEqual([
-        { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
-        { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
-        { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
-        {
-          paths: IDENTITY_PREFIXES,
-          router: { coreRouter: "microsoft-sign-in" },
-        },
-        {
-          paths: IDENTITY_PREFIXES,
-          router: { coreRouter: "google-sign-in" },
-        },
-        {
-          paths: IDENTITY_PREFIXES,
-          router: { coreRouter: "sign-in-methods" },
-        },
+        ...MOUNTS_BEFORE_SSO,
         ...SSO_MOUNTS(),
         ...(state.isLoaded
           ? [{ paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER }]
@@ -778,7 +933,9 @@ describe("the Identity feature set mounts the SSO routers", () => {
 
       // The very same router instances, not copies.
       SSO_ROUTERS.forEach((entry: SsoRouterEntry, index: number): void => {
-        expect(mounted[6 + index]!.router).toBe(entry.router);
+        expect(mounted[MOUNTS_BEFORE_SSO.length + index]!.router).toBe(
+          entry.router,
+        );
       });
     },
   );
@@ -797,6 +954,8 @@ describe("the Identity feature set mounts the SSO routers", () => {
       { coreRouter: "microsoft-sign-in" },
       { coreRouter: "google-sign-in" },
       { coreRouter: "sign-in-methods" },
+      { coreRouter: "sso-sign-in-links" },
+      { coreRouter: "mobile-sso-exchange" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
@@ -825,21 +984,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
     await IdentityFeatureSet.init();
 
     expect(mounted).toEqual([
-      { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
-      { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
-      { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
-      {
-        paths: IDENTITY_PREFIXES,
-        router: { coreRouter: "microsoft-sign-in" },
-      },
-      {
-        paths: IDENTITY_PREFIXES,
-        router: { coreRouter: "google-sign-in" },
-      },
-      {
-        paths: IDENTITY_PREFIXES,
-        router: { coreRouter: "sign-in-methods" },
-      },
+      ...MOUNTS_BEFORE_SSO,
       ...SSO_MOUNTS(),
       { paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER },
       { paths: IDENTITY_PREFIXES, router: EE_VERCEL_SIGN_IN_ROUTER },

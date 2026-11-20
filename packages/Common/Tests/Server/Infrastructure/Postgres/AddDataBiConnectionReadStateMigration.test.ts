@@ -26,8 +26,7 @@ const MIGRATION_TIMESTAMP: string = "1809184920000";
 const MIGRATION_BASE_NAME: string = "AddDataBiConnectionReadState";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string =
-  "AddTableHealthSkippedTables1809184919541";
+const PREVIOUS_MIGRATION: string = "AddTableHealthSkippedTables1809184919541";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,

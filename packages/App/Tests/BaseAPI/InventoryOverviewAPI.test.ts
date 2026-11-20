@@ -6,6 +6,7 @@ import { InventoryOverviewCounts } from "Common/Server/Utils/Inventory/Inventory
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { MANAGED_DEVICE_RESOURCE_TYPE } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -143,6 +144,7 @@ function makeItem(data: {
   displayName?: string | undefined;
   entityType?: EntityType | undefined;
   source?: EntitySource | undefined;
+  resourceType?: string | undefined;
   firstSeenAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
 }): InventoryItem {
@@ -156,6 +158,9 @@ function makeItem(data: {
   }
   if (data.source !== undefined) {
     item.source = data.source;
+  }
+  if (data.resourceType !== undefined) {
+    item.resourceType = data.resourceType;
   }
   if (data.firstSeenAt !== undefined) {
     item.firstSeenAt = data.firstSeenAt;
@@ -318,6 +323,8 @@ describe("POST /inventory-item/overview", () => {
         displayName: true,
         entityType: true,
         source: true,
+        // Whether its last-seen time is a heartbeat: a managed device's host.
+        resourceType: true,
         firstSeenAt: true,
         lastSeenAt: true,
       });
@@ -349,6 +356,7 @@ describe("POST /inventory-item/overview", () => {
         displayName: "checkout",
         entityType: EntityType.Service,
         source: EntitySource.Discovered,
+        resourceType: "",
         firstSeenAt: expect.stringContaining("2026-09-26"),
         lastSeenAt: expect.stringContaining("2026-09-26"),
       });
@@ -360,10 +368,30 @@ describe("POST /inventory-item/overview", () => {
         displayName: "Stripe",
         entityType: EntityType.ExternalService,
         source: EntitySource.Manual,
+        resourceType: "",
         firstSeenAt: expect.stringContaining("2026-09-20"),
         // Nothing to age: sent as null, not as an epoch or an empty string.
         lastSeenAt: null,
       });
+    });
+
+    test("a managed device's host says so: its check-ins are a heartbeat", async () => {
+      inventoryService.findBy.mockResolvedValue([
+        makeItem({
+          displayName: "Front desk tablet",
+          entityType: EntityType.Host,
+          source: EntitySource.Inventory,
+          resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+        }),
+      ] as never);
+
+      await callOverview();
+
+      const row: JSONObject = (
+        responseBody()["recentlyAdded"] as JSONArray
+      )[0] as JSONObject;
+
+      expect(row["resourceType"]).toBe(MANAGED_DEVICE_RESOURCE_TYPE);
     });
 
     test("a row missing optional fields still serializes to strings", async () => {
@@ -378,6 +406,7 @@ describe("POST /inventory-item/overview", () => {
       expect(row["displayName"]).toBe("");
       expect(row["entityType"]).toBe("");
       expect(row["source"]).toBe("");
+      expect(row["resourceType"]).toBe("");
       expect(row["firstSeenAt"]).toBeNull();
       expect(row["lastSeenAt"]).toBeNull();
     });

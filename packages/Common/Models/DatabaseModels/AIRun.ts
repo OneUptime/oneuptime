@@ -1097,6 +1097,7 @@ export default class AIRun extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmType),
     title: "LLM Provider Type",
     description:
       "The type of the LLM provider whose model wrote this run's answer (OpenAI, Anthropic, Ollama...). Recorded when the run completes.",

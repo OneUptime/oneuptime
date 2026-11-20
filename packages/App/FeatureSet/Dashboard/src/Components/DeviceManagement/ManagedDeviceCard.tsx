@@ -1,6 +1,4 @@
-import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
 import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
-import Select from "Common/Types/BaseDatabase/Select";
 import OneUptimeDate from "Common/Types/Date";
 import {
   getDeviceManagementConnectionAddress,
@@ -75,84 +73,11 @@ function withUnit(amount: string, unit: string): string {
   return unit ? `${amount}\u00A0${unit}` : amount;
 }
 
-/*
- * What the card reads of the device, and of the connection that imports it
- * through its relation: the connection's name and service, which a relation
- * reads (canReadOnRelationQuery). Its settings are not - the server refused
- * the whole read for them, and the card said "Column config on Device
- * Management Connection does not support read on relation query." on every
- * device - so they are read from the connection itself
- * (readConnectionSettings).
- */
-export const MANAGED_DEVICE_CARD_SELECT: Select<ManagedDevice> = {
-  deviceName: true,
-  alias: true,
-  serialNumber: true,
-  imei: true,
-  manufacturer: true,
-  model: true,
-  platform: true,
-  osVersion: true,
-  buildNumber: true,
-  securityPatchLevel: true,
-  agentVersion: true,
-  providerState: true,
-  lastCheckInAt: true,
-  groupName: true,
-  groupPath: true,
-  isKioskMode: true,
-  batteryLevel: true,
-  details: true,
-  provisionedAt: true,
-  removedAt: true,
-  appCount: true,
-  inventoryMatch: true,
-  connectionId: true,
-  connection: { name: true, provider: true },
-};
-
-// What the card reads of the connection itself: its settings say its address.
-export const MANAGED_DEVICE_CONNECTION_SELECT: Select<DeviceManagementConnection> =
-  {
-    _id: true,
-    config: true,
-  };
-
-/*
- * The settings of the connection that imports a device, read from the
- * connection by its own read permissions; null when there is none, or they
- * cannot be read - the card then names the connection without its address.
- */
-export async function readConnectionSettings(
-  connectionId: ObjectID | undefined,
-): Promise<JSONObject | null> {
-  if (!connectionId) {
-    return null;
-  }
-
-  try {
-    const connection: DeviceManagementConnection | null =
-      await ModelAPI.getItem<DeviceManagementConnection>({
-        modelType: DeviceManagementConnection,
-        id: connectionId,
-        select: MANAGED_DEVICE_CONNECTION_SELECT,
-      });
-
-    return connection?.config && typeof connection.config === "object"
-      ? (connection.config as JSONObject)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [device, setDevice] = useState<ManagedDevice | null>(null);
-  const [connectionSettings, setConnectionSettings] =
-    useState<JSONObject | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -163,16 +88,35 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
     ModelAPI.getItem<ManagedDevice>({
       modelType: ManagedDevice,
       id: props.managedDeviceId,
-      select: MANAGED_DEVICE_CARD_SELECT,
+      select: {
+        deviceName: true,
+        alias: true,
+        serialNumber: true,
+        imei: true,
+        manufacturer: true,
+        model: true,
+        platform: true,
+        osVersion: true,
+        buildNumber: true,
+        securityPatchLevel: true,
+        agentVersion: true,
+        providerState: true,
+        lastCheckInAt: true,
+        groupName: true,
+        groupPath: true,
+        isKioskMode: true,
+        batteryLevel: true,
+        details: true,
+        provisionedAt: true,
+        removedAt: true,
+        appCount: true,
+        inventoryMatch: true,
+        connection: { name: true, config: true, provider: true },
+      },
     })
-      .then(async (loaded: ManagedDevice | null) => {
-        const settings: JSONObject | null = loaded
-          ? await readConnectionSettings(loaded.connectionId)
-          : null;
-
+      .then((loaded: ManagedDevice | null) => {
         if (isCurrent) {
           setDevice(loaded);
-          setConnectionSettings(settings);
           setError("");
         }
       })
@@ -353,12 +297,10 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
 
     const connectionName: string = text(device.connection?.name);
     const providerTitle: string = getDeviceManagementProviderTitle(provider);
-    const address: string = connectionSettings
-      ? getDeviceManagementConnectionAddress({
-          provider,
-          config: readDeviceManagementConfig(connectionSettings, provider),
-        })
-      : "";
+    const address: string = getDeviceManagementConnectionAddress({
+      provider,
+      config: readDeviceManagementConfig(device.connection?.config, provider),
+    });
 
     return (
       <div className="space-y-4">
@@ -406,15 +348,10 @@ const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
 
         {connectionName ? (
           <p className="text-xs text-gray-500">
-            {address
-              ? translator.translateTemplate(
-                  "Imported by the {{provider}} connection {{name}} ({{address}}).",
-                  { provider: providerTitle, name: connectionName, address },
-                )
-              : translator.translateTemplate(
-                  "Imported by the {{provider}} connection {{name}}.",
-                  { provider: providerTitle, name: connectionName },
-                )}
+            {translator.translateTemplate(
+              "Imported by the {{provider}} connection {{name}} ({{address}}).",
+              { provider: providerTitle, name: connectionName, address },
+            )}
           </p>
         ) : (
           <></>

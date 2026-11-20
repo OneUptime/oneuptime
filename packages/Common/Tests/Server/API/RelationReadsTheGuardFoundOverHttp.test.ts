@@ -16,14 +16,7 @@ import {
   forgetPipelineLastErrors,
   readPipelineLastError,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/PipelineLastError";
-import {
-  MANAGED_DEVICE_CARD_SELECT,
-  readConnectionSettings,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/DeviceManagement/ManagedDeviceCard";
-import {
-  MONITOR_GROUP_MONITORS_SELECT,
-  loadMonitorGroupStatusReason,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupStatusReason";
+import { loadMonitorGroupStatusReason } from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupStatusReason";
 import { ResourceAttentionDialogRead } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttentionDialog";
 import { SSO_PROVIDER_DOMAINS_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/Sso/SsoProviderDomains";
 import { LINEAGE_SEEN_IN_FIELD } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/TableView/Lineage";
@@ -76,10 +69,7 @@ import { customDomainCaller } from "./CustomDomainCallers";
 import DashboardRequestsOverHttp, {
   SentRequest,
 } from "../TestingUtils/DashboardRequestsOverHttp";
-import {
-  InMemoryTable,
-  useInMemoryTable,
-} from "../TestingUtils/InMemoryRepository";
+import { useInMemoryTable } from "../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterAll,
@@ -103,9 +93,10 @@ import {
  *
  *   - a monitor group's "Why is this group Offline?" read each monitor's
  *     status through the monitor, a relation's relation ("You cannot query
- *     deep relations"): it reads the statuses on their own now;
+ *     deep relations"): it reads the statuses on their own now (ef57b64c4fd
+ *     fixed it on main the same morning);
  *   - a managed device's card read its connection's settings through the
- *     device: it reads them from the connection now;
+ *     device: they are read through a relation now (ef57b64c4fd too);
  *   - Settings > SSO's providers and its notice read whether each domain is
  *     verified: Domain.isVerified is read through a relation now, beside
  *     the domain's name;
@@ -113,11 +104,11 @@ import {
  *     and its error: its state and start are read through the relation now,
  *     and its error, free text, from the pipeline itself.
  *
- * Each page's own read - its exported select, or the select ModelTable
- * builds from its column - goes over HTTP through Express, BaseAPI and the
- * permission layer, into tables held in memory (DashboardRequestsOverHttp),
- * and is answered; and the read each sent before is refused with the
- * sentence the page showed.
+ * Each page's own read - its exported select, the relation it reads, or the
+ * select ModelTable builds from its column - goes over HTTP through Express,
+ * BaseAPI and the permission layer, into tables held in memory
+ * (DashboardRequestsOverHttp), and is answered; and a read the server still
+ * refuses is refused with the sentence a page would show.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -309,9 +300,12 @@ describe("a monitor group's why: its monitors, then their statuses on their own"
 
   test("the read it sent before, a monitor's status through the monitor, is refused whole", async () => {
     const before: Select<MonitorGroupResource> = {
-      ...MONITOR_GROUP_MONITORS_SELECT,
+      monitorId: true,
       monitor: {
-        ...(MONITOR_GROUP_MONITORS_SELECT.monitor as JSONObject),
+        _id: true,
+        name: true,
+        isArchived: true,
+        disableActiveMonitoring: true,
         currentMonitorStatus: {
           name: true,
           isOperationalState: true,
@@ -337,11 +331,9 @@ describe("a monitor group's why: its monitors, then their statuses on their own"
   });
 });
 
-describe("a managed device's card: the device, and its connection's settings from the connection", () => {
-  let devices: InMemoryTable;
-
+describe("a managed device's card: the device, with its connection's name, service and settings", () => {
   beforeEach(() => {
-    devices = useInMemoryTable(ManagedDeviceService, [
+    useInMemoryTable(ManagedDeviceService, [
       {
         _id: DEVICE_ID,
         projectId: PROJECT_ID.toString(),
@@ -351,16 +343,8 @@ describe("a managed device's card: the device, and its connection's settings fro
           _id: CONNECTION_ID,
           name: "Acme fleet",
           provider: "Esper",
+          config: { tenant: "acme", readIntervalInMinutes: 15 },
         },
-      },
-    ]);
-    useInMemoryTable(DeviceManagementConnectionService, [
-      {
-        _id: CONNECTION_ID,
-        projectId: PROJECT_ID.toString(),
-        name: "Acme fleet",
-        provider: "Esper",
-        config: { tenant: "acme", readIntervalInMinutes: 15 },
       },
     ]);
   });
@@ -369,61 +353,42 @@ describe("a managed device's card: the device, and its connection's settings fro
     ["a project owner", [Permission.ProjectOwner]],
     ["a viewer", [Permission.Viewer]],
   ] as Array<[string, Array<Permission>]>)(
-    "%s reads the card's device, and its connection's settings from the connection",
+    "%s reads the connection as the card does, through the device, its settings included",
     async (_who: string, permissions: Array<Permission>) => {
       caller = callerWith(permissions);
 
+      // The relation ManagedDeviceCard reads, beside the device's own columns.
       const device: ManagedDevice | null =
         await ModelAPI.getItem<ManagedDevice>({
           modelType: ManagedDevice,
           id: new ObjectID(DEVICE_ID),
-          select: MANAGED_DEVICE_CARD_SELECT,
+          select: {
+            deviceName: true,
+            connection: { name: true, config: true, provider: true },
+          },
         });
 
       expect(statusesOf(`/api/managed-device/${DEVICE_ID}/get-item`)).toEqual([
         200,
       ]);
       expect(device?.connection?.name).toBe("Acme fleet");
-
-      expect(await readConnectionSettings(device?.connectionId)).toEqual({
+      expect(device?.connection?.config).toEqual({
         tenant: "acme",
         readIntervalInMinutes: 15,
       });
-      expect(
-        statusesOf(
-          `/api/device-management-connection/${CONNECTION_ID}/get-item`,
-        ),
-      ).toEqual([200]);
     },
   );
 
-  test("the read it sent before, the settings through the device, is refused whole", async () => {
-    const before: Select<ManagedDevice> = {
-      ...MANAGED_DEVICE_CARD_SELECT,
-      connection: { name: true, config: true, provider: true },
-    };
-
+  test("its secrets stay off the relation", async () => {
     expect(
       await refusalOfRead(
         ModelAPI.getItem<ManagedDevice>({
           modelType: ManagedDevice,
           id: new ObjectID(DEVICE_ID),
-          select: before,
+          select: { deviceName: true, connection: { secrets: true } },
         }),
       ),
-    ).toBe(
-      "Column config on Device Management Connection does not support read on relation query.",
-    );
-    expect(devices.repository.find).not.toHaveBeenCalled();
-  });
-
-  test("a connection that cannot be read leaves the settings out, never the card", async () => {
-    caller = callerWith([Permission.SecurityViewer]);
-
-    expect(
-      await readConnectionSettings(new ObjectID(CONNECTION_ID)),
-    ).toBeNull();
-    expect(await readConnectionSettings(undefined)).toBeNull();
+    ).toMatch(/^Column secrets on Device Management Connection /);
   });
 });
 

@@ -41,9 +41,11 @@ import {
   getCliResourcesByCommand,
 } from "../../../FeatureSet/Docs/Utils/CliCommandsTable";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ListOrderSettings } from "Common/Types/Database/ListOrderColumn";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   InstallScriptName,
@@ -77,6 +79,7 @@ import {
   getLabelListSort,
   sortLabelNames,
 } from "Common/Utils/LabelOrder";
+import { getListOrderReadSort } from "Common/Utils/ListOrder";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -1214,9 +1217,13 @@ describe("Resource Operations", () => {
     expect(resources).toContain(
       '.option("--limit <n>", "Max results to return", "10")',
     );
-    // A read that asks for no order - the CLI sends {} - comes back newest first.
+    /*
+     * A read that asks for no order - the CLI sends {} - comes back newest
+     * first, but for a list people put in order by dragging (#9654, held
+     * below).
+     */
     expect(databaseService).toContain(
-      "protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> { if (!sort || Object.keys(sort).length === 0) { return { createdAt: SortOrder.Descending, } as Sort<TBaseModel>; } return sort; }",
+      "protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> { const listOrder: ListOrderSettings | null = this.model.getListOrder(); if (listOrder?.column) { return getListOrderReadSort({ sort: sort as Record<string, unknown> | undefined, column: listOrder.column, sortOrder: listOrder.sortOrder, }) as Sort<TBaseModel>; } if (!sort || Object.keys(sort).length === 0) { return { createdAt: SortOrder.Descending, } as Sort<TBaseModel>; } return sort; }",
     );
     expect(databaseService).toContain(
       "findBy.sort = this.getReadSort(findBy.sort);",
@@ -1265,11 +1272,11 @@ describe("Resource Operations", () => {
   });
 
   /*
-   * Labels are the one exception: LabelService reads them by name, in
-   * natural order, when asked for no order (OneUptime issue #5183), so
-   * `oneuptime label list` is not newest first, and both pages say so. A
-   * service that takes an order of its own fails this until the pages name
-   * it too.
+   * Labels are the one service with an order of its own: LabelService reads
+   * them by name, in natural order, when asked for no order (OneUptime issue
+   * #5183), so `oneuptime label list` is not newest first, and both pages
+   * say so. A service that takes an order of its own fails this until the
+   * pages name it too.
    */
   it("lists labels by name, numbered labels first, unless --sort asks for another order", () => {
     const ownOrders: Array<string> = sourceFilesUnder("Common/Server").filter(
@@ -1306,7 +1313,48 @@ describe("Resource Operations", () => {
       "Lists records, newest first. Labels are listed by name instead, numbered labels first (`2. Team` before `10. Owner`).",
     );
     expect(englishPage(RESOURCE_OPERATIONS)).toContain(
-      "Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically. To list them in another order, give `--sort`.",
+      "Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically.",
+    );
+  });
+
+  /*
+   * And the records of a list people put in order by dragging
+   * (@ListOrderColumn): DatabaseService reads them in the list's own order,
+   * top first, when asked for no order (#9654), so `oneuptime
+   * incident-state list` is in the order the Dashboard shows, not newest
+   * first, and both pages say so.
+   */
+  it("lists records put in order by dragging in that order, unless --sort asks for another", () => {
+    const listOrder: ListOrderSettings | null =
+      new IncidentState().getListOrder();
+
+    expect(listOrder?.column).toBe("order");
+    expect(resourceNamed("incident-state").operations).toContain(
+      CliOperation.List,
+    );
+
+    // No order asked for, as the CLI sends it: the list's own, top first.
+    expect(
+      getListOrderReadSort({
+        sort: {},
+        column: listOrder!.column,
+        sortOrder: listOrder!.sortOrder,
+      }),
+    ).toEqual({ order: SortOrder.Ascending, createdAt: SortOrder.Ascending });
+    // An order asked for with --sort is the order read.
+    expect(
+      getListOrderReadSort({
+        sort: { createdAt: SortOrder.Descending },
+        column: listOrder!.column,
+        sortOrder: listOrder!.sortOrder,
+      }),
+    ).toEqual({ createdAt: SortOrder.Descending });
+
+    expect(englishPage(COMMAND_REFERENCE)).toContain(
+      "Labels are listed by name instead, numbered labels first (`2. Team` before `10. Owner`). Records you put in order by dragging, such as incident states, are listed in that order.",
+    );
+    expect(englishPage(RESOURCE_OPERATIONS)).toContain(
+      "then the others alphabetically. Records you put in order by dragging, such as incident states, are listed in that order. To list them in another order, give `--sort`.",
     );
   });
 

@@ -20,6 +20,7 @@ import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotC
 import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import Timezone from "../../../Types/Timezone";
 import { EmailAddressChangedBy } from "../../../Types/Accounts/EmailAddressChangedEmail";
 import logger from "../../../Server/Utils/Logger";
@@ -27,6 +28,26 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import fs from "fs";
 import Path from "path";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+
+/*
+ * A OneUptime Cloud server can always send the confirming email
+ * (canSendEmail asks nothing there), and CI's config.env sets
+ * BILLING_ENABLED=true: billing is pinned off, for the self-hosted server
+ * these tests are about, and on only where a test says so.
+ */
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 
 /*
  * EmailChangeConfirmation (#9821): what a person's own change of address
@@ -75,6 +96,7 @@ function countLikeRedis(): void {
 }
 
 beforeEach(() => {
+  setTestBillingEnabled(false);
   counters = {};
   countLikeRedis();
   jest
@@ -83,6 +105,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setTestBillingEnabled(false);
   jest.restoreAllMocks();
 });
 
@@ -111,6 +134,16 @@ describe("assertMayAsk", () => {
     ).mockRejectedValue(new Error("settings unreadable"));
 
     await expect(EmailChangeConfirmation.canSendEmail()).resolves.toBe(false);
+  });
+
+  test("OneUptime Cloud can always send, without reading a status", async () => {
+    setTestBillingEnabled(true);
+    (
+      ServerSendingStatus.canSendEmailPublicly as unknown as jest.SpyInstance
+    ).mockResolvedValue(false);
+
+    await expect(EmailChangeConfirmation.canSendEmail()).resolves.toBe(true);
+    expect(ServerSendingStatus.canSendEmailPublicly).not.toHaveBeenCalled();
   });
 
   test(`an account may ask ${EMAIL_CHANGES_PER_HOUR} times an hour, then is told to wait`, async () => {

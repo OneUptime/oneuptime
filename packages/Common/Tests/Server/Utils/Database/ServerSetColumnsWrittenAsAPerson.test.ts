@@ -1,12 +1,12 @@
 import HostOwnerUser from "../../../../Models/DatabaseModels/HostOwnerUser";
+import IncidentTemplateOwnerUser from "../../../../Models/DatabaseModels/IncidentTemplateOwnerUser";
 import MonitorOwnerUser from "../../../../Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
-import ServiceOwnerUser from "../../../../Models/DatabaseModels/ServiceOwnerUser";
 import HostOwnerUserService from "../../../../Server/Services/HostOwnerUserService";
+import IncidentTemplateOwnerUserService from "../../../../Server/Services/IncidentTemplateOwnerUserService";
 import MonitorOwnerUserService from "../../../../Server/Services/MonitorOwnerUserService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
-import ServiceOwnerUserService from "../../../../Server/Services/ServiceOwnerUserService";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import ColumnPermissions from "../../../../Server/Types/Database/Permissions/ColumnPermission";
 import ColumnWriteRefusedException from "../../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
@@ -120,12 +120,13 @@ describe("an owner row OneUptime adds for the person who picked the owner", () =
     expect(ServerSetColumns.getMarked(owner)).toEqual([]);
   });
 
+  // An incident template's owner rows have no such column (a service's do since #9700).
   test("on an owner table with no such column, writes and marks nothing", () => {
-    const owner: ServiceOwnerUser = OwnerRuleAssignment.buildOwner({
-      ownerService: ServiceOwnerUserService,
+    const owner: IncidentTemplateOwnerUser = OwnerRuleAssignment.buildOwner({
+      ownerService: IncidentTemplateOwnerUserService,
       ownerColumn: "userId",
       ownerId: OWNER_ID,
-      resourceIdColumn: "serviceId",
+      resourceIdColumn: "incidentTemplateId",
       resourceId: RESOURCE_ID,
       projectId: PROJECT_ID,
       isOwnerNotified: true,

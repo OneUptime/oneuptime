@@ -68,6 +68,15 @@ export function useInMemoryLimitTransactions(data: {
 
       log.events.push(sql);
 
+      /*
+       * Who is only invited, read in the transaction by a check that names
+       * people under its lock (an override's refusal): nobody, as outside
+       * one below.
+       */
+      if (PENDING_MEMBERSHIPS_STATEMENTS.includes(sql)) {
+        return [];
+      }
+
       return [{ count: data.count(sql, parameters || []) }];
     },
     getRepository: (tableName: string): unknown => {

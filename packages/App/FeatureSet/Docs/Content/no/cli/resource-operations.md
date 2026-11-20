@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 En liste ber OneUptime om hvert felt i hver post nøkkelen kan lese. `--fields` ber i stedet om dem den nevner, og etter et punktum om et felt i en tilknyttet post, som i `currentIncidentState.name`. En tabell viser seks felter; JSON viser alle (se [Utdataformater](/docs/cli/output-formats)). `--all` leser hver side, 100 poster om gangen, opptil 100 000; `count` sier hvor mange det er.
 
-Etiketter listes etter navn i stedet for de nyeste først: etiketter der navnet begynner med et tall, kommer først, i rekkefølgen til tallet (`2. Team` før `10. Owner`), deretter de andre alfabetisk. Vil du ha dem i en annen rekkefølge, oppgir du `--sort`.
+Etiketter listes etter navn i stedet for de nyeste først: etiketter der navnet begynner med et tall, kommer først, i rekkefølgen til tallet (`2. Team` før `10. Owner`), deretter de andre alfabetisk. Poster du ordner ved å dra dem, som hendelsestilstander, listes i den rekkefølgen. Vil du ha dem i en annen rekkefølge, oppgir du `--sort`.
 
 ### Filtrer en liste
 

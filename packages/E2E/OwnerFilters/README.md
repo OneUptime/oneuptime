@@ -23,7 +23,10 @@ Ada and Bo are members of the SRE team. A list read answers the Owner chip's
 filter (`owners`, an `OwnedBy` - `Common/Types/BaseDatabase/OwnedBy`) as the
 server does (`QueryHelper.ownedBy`): a team's schedules are the ones the team
 owns, never its members', a person's the ones they own, "is not" the rest
-(unowned ones too), "is empty" the unowned, "is not empty" the owned.
+(unowned ones too), "is empty" the unowned, "is not empty" the owned. Which
+schedules share a name, which the list asks with every read of its rows to mark
+them (`GET /shared-names/on-call-schedule`, #9746), is answered as the server
+finds them: none, each schedule's name is its own.
 
 `OwnerFilters.spec.ts` checks, in Chromium:
 

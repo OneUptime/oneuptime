@@ -98,6 +98,7 @@ import {
   CloudPublishedMetricStatus,
   CloudPublishedMetricsListing,
 } from "../../../Types/Cloud/CloudPublishedMetrics";
+import { getEmptyMetricOutputReaders } from "../../../Types/Metrics/MetricOutputReaders";
 import ObjectID from "../../../Types/ObjectID";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { CLOUD_REMOVE_METRIC_MODAL_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/ResourceMetrics/CloudRemoveMetricModal";
@@ -214,8 +215,8 @@ const READERS: CloudAddedMetricReaders = {
       name: "Web apps",
       // A widget of a kind the catalog does not know, and no title.
       widgets: [
-        { title: "Memory by instance", type: "Chart" },
-        { title: "", type: "" },
+        { id: "", title: "Memory by instance", type: "Chart" },
+        { id: "", title: "", type: "" },
       ],
     },
     {
@@ -1375,7 +1376,7 @@ describe("keeping a type's metric for the resources its readers read", () => {
           kind: CloudAddedMetricReaderKind.Dashboard,
           id: DASHBOARD_ID,
           name: "Web apps",
-          widgets: [{ title: "", type: "Chart" }],
+          widgets: [{ id: "", title: "", type: "Chart" }],
         },
       ],
       hidden: 0,
@@ -1765,6 +1766,117 @@ describe("Remove lists what reads it as Drop This Metric does", () => {
     expect(
       within(dialog).getByText(
         "11 monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+/*
+ * #10084 and #10085 in Remove, through the same list Drop This Metric draws:
+ * a widget named opens its dashboard at it, and under a recording rule that
+ * reads the metric, what reads its output metric - which no longer includes
+ * the metric once it is removed - on down the chain, with what reads the
+ * outputs of rules the person can't open under their count.
+ */
+describe("Remove names what reads a recording rule's output, and links each widget", () => {
+  async function openRemove(): Promise<HTMLElement> {
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf("Http3xx")).getByRole("button", { name: /Remove/ }),
+      );
+    });
+
+    return await screen.findByTestId(CLOUD_REMOVE_METRIC_MODAL_TEST_ID);
+  }
+
+  function viewRoute(page: PageMap, id: string): string {
+    return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
+      modelId: new ObjectID(id),
+    }).toString();
+  }
+
+  test("a widget opens its dashboard at it; a rule shows what reads its output, and the hidden rules' outputs sit under their count", async () => {
+    const ruleId: string = "5f8b9c1e-9999-4999-8999-0000000000a1";
+    const alertId: string = "5f8b9c1e-9999-4999-8999-0000000000a2";
+
+    mockReaders.mockImplementation(() => {
+      return Promise.resolve({
+        readers: [
+          {
+            kind: CloudAddedMetricReaderKind.Dashboard,
+            id: DASHBOARD_ID,
+            name: "Web apps",
+            widgets: [
+              { id: "chart-1", title: "Memory by instance", type: "Chart" },
+              // An older answer's widget, without its id: named, not linked.
+              { id: "", title: "Swap", type: "Chart" },
+            ],
+          },
+          {
+            kind: CloudAddedMetricReaderKind.RecordingRule,
+            id: ruleId,
+            name: "Shop memory rate",
+            widgets: [],
+            outputMetricName: "shop_memory_rate",
+            outputReaders: {
+              ...getEmptyMetricOutputReaders(),
+              monitors: {
+                readers: [{ id: alertId, name: "Memory rate alert" }],
+                hidden: 0,
+              },
+            },
+          },
+        ],
+        hidden: 1,
+        uncheckedKinds: [],
+        hiddenByKind: { [CloudAddedMetricReaderKind.RecordingRule]: 1 },
+        hiddenOutputReaders: {
+          ...getEmptyMetricOutputReaders(),
+          dashboards: { readers: [], hidden: 2 },
+        },
+      });
+    });
+    await renderCard();
+    await list();
+
+    const dialog: HTMLElement = await openRemove();
+    const widgets: HTMLElement = await within(dialog).findByTestId(
+      "cloud-remove-metric-widgets",
+    );
+
+    expect(
+      within(widgets).getByRole("link", { name: "Memory by instance" }),
+    ).toHaveAttribute(
+      "href",
+      `${viewRoute(PageMap.DASHBOARD_VIEW, DASHBOARD_ID)}?widget=chart-1`,
+    );
+    expect(within(widgets).getAllByRole("link")).toHaveLength(1);
+    expect(widgets).toHaveTextContent("Memory by instance, Swap");
+
+    const output: HTMLElement = within(dialog).getByTestId(
+      "cloud-remove-metric-readers-recordingRule-output",
+    );
+
+    expect(output).toHaveTextContent(
+      "These read its output metric, shop_memory_rate:",
+    );
+    expect(
+      within(output).getByRole("link", { name: "Memory rate alert" }),
+    ).toHaveAttribute("href", viewRoute(PageMap.MONITOR_VIEW, alertId));
+
+    const hidden: HTMLElement = within(dialog).getByTestId(
+      "cloud-remove-metric-readers-recordingRule-hidden",
+    );
+
+    expect(hidden).toHaveTextContent("and 1 more you can't see");
+    expect(hidden).toHaveTextContent(
+      "These read the output metrics of the ones you can't see:",
+    );
+    expect(hidden).toHaveTextContent("2 dashboards you can't see");
+    // Its count is of what reads the metric: what reads an output is not counted again.
+    expect(
+      within(dialog).getByText(
+        "3 monitors, dashboards, SLOs and recording rules read it. Once it is removed, they get no new data.",
       ),
     ).toBeInTheDocument();
   });

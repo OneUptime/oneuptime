@@ -107,6 +107,8 @@ Klicken Sie unter **Benutzer** auf die Person und dann auf **Teams**.
 
 Klicken Sie auf **Einladen**, wählen Sie das **Team** und klicken Sie im Dialog auf **Einladen**. Ein Mitglied ist sofort im neuen Team. Wer noch nicht beigetreten ist, erhält eine weitere Einladung, und die Annahme einer der beiden nimmt beide an.
 
+Ihr Projekt sendet einer Person höchstens eine Einladung pro Stunde per E-Mail. Eine Einladung innerhalb einer Stunde nach der letzten E-Mail, in ein anderes Team oder nachdem Sie die Person entfernt haben, wird erstellt, aber bis sie eine davon annimmt oder ablehnt, wird keine zweite E-Mail verschickt. **Einladung erneut senden** im Zeilenmenü der Person unter **Benutzer** verschickt trotzdem eine.
+
 ### Sie aus einem Team nehmen
 
 Klicken Sie in der Zeile des Teams auf **Entfernen**. Ist es das letzte Team, dem die Person beigetreten ist, nimmt das Entfernen sie aus dem Projekt, und der Dialog sagt das, bevor sich etwas ändert.
@@ -139,7 +141,11 @@ In OneUptime Cloud hat ein Projekt im Free-Tarif Platz für eine Person. Ändern
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-An eine Adresse können 10 Einladungen pro Stunde gesendet werden, zu Projekten und privaten Statusseiten zusammen, egal wer sie sendet. Warten Sie eine Stunde und laden Sie die Person dann erneut ein.
+Ihr Projekt kann an eine Adresse 10 Einladungen pro Stunde senden, in seine Teams und zu seinen privaten Statusseiten zusammen. Einladungen anderer Projekte zählen nicht mit. Warten Sie eine Stunde und laden Sie die Person dann erneut ein.
+:::
+
+:::details "This invitation cannot be sent right now"
+OneUptime sendet an eine Adresse höchstens 50 Einladungen pro Stunde aus allen Projekten zusammen, und diese würde darüber hinausgehen. Es wurde nichts erstellt. Versuchen Sie es in einer Stunde erneut.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"

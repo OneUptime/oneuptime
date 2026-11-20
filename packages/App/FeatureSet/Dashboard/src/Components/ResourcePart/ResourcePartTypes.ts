@@ -3,7 +3,7 @@ import {
   ResourceAttentionCurrent,
   ResourceAttentionItem,
 } from "./ResourceAttention";
-import type { ComponentProps as ResourceAttentionDialogProps } from "./ResourceAttentionDialog";
+import type { ResourceAttentionDialogProps } from "./ResourceAttentionDialogProps";
 
 /*
  * The words and looks a part's page is built from - its status, its badges,

@@ -29,7 +29,9 @@ talking to the API server, one under disk pressure and one cordoned, a
 StatefulSet pod that cannot be scheduled and the claim it waits for, a
 DaemonSet ready on three of four nodes, a CronJob whose newest run failed, a
 Deployment mid-rollout, an open alert about the crash-looping pod, an open
-incident about the lost node, and one recommended monitor already on.
+incident about the lost node, and one recommended monitor already on. It has
+sent no cost yet, so the Overview's Cost card reads the cost agent's
+allocations, finds none, and says how to turn cost monitoring on.
 
 The suite reads the pages the way someone on call does:
 
@@ -55,7 +57,9 @@ The suite reads the pages the way someone on call does:
   ready with its namespace, no NotReady in its details, its Pods tab's
   Workload and Namespace columns, a cordoned node;
 - a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page (a run says
-  whose run it is), with dates in words or as a time, never as ISO strings;
+  whose run it is; a failed run lists its failed pod, how its container
+  ended, and its "3 pods failed" opens which), with dates in words or as a
+  time, never as ISO strings;
 - the Deployments, StatefulSets, DaemonSets, Jobs, CronJobs and Pods lists'
   statuses, tones and per-namespace CPU;
 - a node on OpenStack (`?openstack=instance`): which instance, hypervisor and

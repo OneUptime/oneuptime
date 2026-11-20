@@ -56,6 +56,7 @@ import {
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
+import { MetricOutputReaders } from "../../../../Types/Metrics/MetricOutputReaders";
 import ObjectID from "../../../../Types/ObjectID";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 
@@ -598,10 +599,14 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
         kind: CloudAddedMetricReaderKind.Dashboard,
         id: ID(5),
         name: "Databases",
-        // By title and kind (#10107): an untitled one is drawn by its kind.
+        /*
+         * By title and kind (#10107): an untitled one is drawn by its kind.
+         * Each with the id the board draws it under, which its link opens
+         * the dashboard at (#10084).
+         */
         widgets: [
-          { title: "Swap", type: "Chart" },
-          { title: "", type: "Chart" },
+          { id: "chart-1", title: "Swap", type: "Chart" },
+          { id: "chart-3", title: "", type: "Chart" },
         ],
       },
     ]);
@@ -623,8 +628,8 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
         id: ID(5),
         name: "Databases",
         widgets: [
-          { title: "Orders", type: "Table" },
-          { title: "Every database", type: "Table" },
+          { id: "table-1", title: "Orders", type: "Table" },
+          { id: "table-3", title: "Every database", type: "Table" },
         ],
       },
     ]);
@@ -710,6 +715,99 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
     ]);
   });
 
+  /*
+   * #10085: a recording rule that reads it computes its output without it
+   * once it is removed: what reads that output is named under the rule,
+   * whatever resource or service it reads it of - it reads the rule's
+   * output, never the added metric - and what the asker may not open is
+   * counted, never named, under the rule or under the rules' count.
+   */
+  test("a recording rule that reads it names what reads its output metric, on down the chain", async () => {
+    rules = [
+      ruleOf(12, "Swap rate", "swap_rate", [
+        { alias: "A", metricName: SWAP, aggregationType: "Avg" },
+      ]),
+      ruleOf(13, "Swap rate daily", "swap_rate_daily", [
+        { alias: "A", metricName: "swap_rate", aggregationType: "Avg" },
+      ]),
+    ];
+    monitors = [
+      // Of another resource and another service: it reads the rule's output.
+      monitorOf(1, "Swap rate alert", [
+        query("swap_rate", database("billing"), {
+          serviceIds: [OTHER_SERVICE],
+        }),
+      ]),
+    ];
+    dashboards = [
+      dashboardOf(4, "Rates", [
+        chart("chart-7", "Daily swap rate", [query("swap_rate_daily", {})]),
+      ]),
+    ];
+
+    const readers: CloudAddedMetricReaders = await readersOfOrders();
+
+    // The rule that reads the added metric alone is its reader.
+    expect(namesOf(readers)).toEqual(["recordingRule:Swap rate"]);
+
+    const outputs: MetricOutputReaders = readers.readers[0]!.outputReaders!;
+
+    expect(outputs.monitors.readers).toEqual([
+      { id: ID(1), name: "Swap rate alert" },
+    ]);
+    expect(outputs.recordingRules.readers[0]).toMatchObject({
+      id: ID(13),
+      name: "Swap rate daily",
+      outputMetricName: "swap_rate_daily",
+    });
+    expect(
+      outputs.recordingRules.readers[0]!.outputReaders!.dashboards.readers,
+    ).toEqual([
+      {
+        id: ID(4),
+        name: "Rates",
+        widgets: [{ id: "chart-7", title: "Daily swap rate", type: "Chart" }],
+      },
+    ]);
+    // Read as the page reads it: kept whole.
+    expect(
+      readCloudAddedMetricReaders(JSON.parse(JSON.stringify(readers))),
+    ).toEqual(readers);
+  });
+
+  test("what reads the output of a rule the asker may not open is named under the rules' count; the rule never", async () => {
+    rules = [
+      ruleOf(12, "Secret swap rate", "secret_swap_rate", [
+        { alias: "A", metricName: SWAP, aggregationType: "Avg" },
+      ]),
+    ];
+    monitors = [
+      monitorOf(1, "Swap rate alert", [query("secret_swap_rate", {})]),
+      monitorOf(2, "Private alert", [query("secret_swap_rate", {})]),
+    ];
+    readable = { recordingRule: [], monitor: [ID(1)] };
+
+    const readers: CloudAddedMetricReaders = await readersOfOrders();
+
+    expect(readers.readers).toEqual([]);
+    expect(readers.hiddenByKind).toEqual({
+      [CloudAddedMetricReaderKind.RecordingRule]: 1,
+    });
+    expect(readers.hiddenOutputReaders!.monitors).toEqual({
+      readers: [{ id: ID(1), name: "Swap rate alert" }],
+      hidden: 1,
+    });
+    // Counted once, as the rule it is: what reads its output is not the asker's count.
+    expect(readers.hidden).toBe(1);
+    expect(JSON.stringify(readers)).not.toContain("Secret swap rate");
+    expect(JSON.stringify(readers)).not.toContain("Private alert");
+    // Read as the page reads it: kept whole.
+    expect(
+      readCloudAddedMetricReaders(JSON.parse(JSON.stringify(readers)))!
+        .hiddenOutputReaders,
+    ).toEqual(readers.hiddenOutputReaders);
+  });
+
   test("monitors first, then dashboards, SLOs and recording rules, each by name; what the asker may not open is counted, never named", async () => {
     monitors = [
       monitorOf(1, "zeta", [query(SWAP, {})]),
@@ -773,8 +871,17 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
             kind: "dashboard",
             id: ID(2),
             name: "B",
-            // An older answer's title alone, the new one's title and kind.
-            widgets: ["W", 3, { title: "X", type: "Gauge" }, null],
+            /*
+             * An older answer's title alone, then its title and kind, the
+             * new one's id too (#10084).
+             */
+            widgets: [
+              "W",
+              3,
+              { title: "X", type: "Gauge" },
+              null,
+              { id: "chart-9", title: "Y", type: "Chart" },
+            ],
           },
           {
             kind: "recordingRule",
@@ -800,9 +907,11 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
           kind: CloudAddedMetricReaderKind.Dashboard,
           id: ID(2),
           name: "B",
+          // A widget without its id is named, and opens no widget.
           widgets: [
-            { title: "W", type: "" },
-            { title: "X", type: "Gauge" },
+            { id: "", title: "W", type: "" },
+            { id: "", title: "X", type: "Gauge" },
+            { id: "chart-9", title: "Y", type: "Chart" },
           ],
         },
         {

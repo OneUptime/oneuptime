@@ -4,6 +4,7 @@ import { And, Equal, FindOperator, ILike } from "typeorm";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import PendingInviteeProfiles, {
   ACCOUNT_DATES_THROUGH_RELATION_REFUSED_MESSAGE,
   ACCOUNT_DATE_COLUMNS,
@@ -465,10 +466,11 @@ describe("what a read is filtered by", () => {
     },
   );
 
-  test("a filter on a person's address or id alone is left as it is", () => {
+  test("a filter on a person's id alone, or on no address, is left as it is", () => {
     for (const filter of [
-      { email: ILike("%gra%") },
       { _id: PENDING_ID },
+      { email: undefined },
+      { email: null },
     ] as Array<Record<string, unknown>>) {
       const query: Record<string, unknown> = { user: filter };
 
@@ -480,6 +482,131 @@ describe("what a read is filtered by", () => {
         }),
       ).toBe(query);
     }
+  });
+
+  /*
+   * A person's address, as their row shows it (#10175): someone pending is
+   * matched by the address they were invited at, never by the one their
+   * account has moved to - so a search cannot spell that one out.
+   */
+  test("a search on a person's address reads the address their row shows, on their id", () => {
+    const search: FindOperator<unknown> = QueryHelper.search(
+      "gra",
+    ) as FindOperator<unknown>;
+    const query: Record<string, unknown> = {
+      projectId: PROJECT_ID,
+      user: { email: search },
+    };
+
+    const narrowed: Record<string, unknown> =
+      PendingInviteeProfiles.narrowRelationFilters({
+        modelType: TeamMember,
+        query: query,
+        props: PERSON_PROPS,
+      });
+
+    const user: Record<string, unknown> = narrowed["user"] as Record<
+      string,
+      unknown
+    >;
+
+    // The account's address is no longer filtered on its own.
+    expect("email" in user).toBe(false);
+
+    const id: FindOperator<unknown> = user["_id"] as FindOperator<unknown>;
+    const sql: string = sqlOf(id, `"user"."_id"`);
+
+    // Someone pending for the reader: the address they were invited at, else their account's.
+    expect(sql).toContain(`CAST((CASE WHEN "user"."_id" IN (SELECT`);
+    expect(sql).toMatch(
+      /THEN COALESCE\(\(SELECT BTRIM\("invited[A-Za-z]{10}"\."inviteeEmail"\) FROM "TeamMember" "invited[A-Za-z]{10}" WHERE "invited[A-Za-z]{10}"\."userId" = "user"\."_id"/,
+    );
+    expect(sql).toContain(
+      `, "user"."email") ELSE "user"."email" END) AS TEXT) ILIKE :`,
+    );
+    // The request's project's invitation first, then the newest.
+    expect(sql).toMatch(
+      /ORDER BY CASE WHEN "invited[A-Za-z]{10}"\."projectId" = :pendingInviteeAddressProject[A-Za-z]{10} THEN 0 ELSE 1 END, "invited[A-Za-z]{10}"\."createdAt" DESC LIMIT 1/,
+    );
+
+    const parameters: Record<string, unknown> = (id.objectLiteralParameters ||
+      {}) as Record<string, unknown>;
+
+    expect(Object.values(parameters)).toContain("%gra%");
+    expect(Object.values(parameters)).toContain(PROJECT_ID);
+
+    // The caller's query is never written to.
+    expect((query["user"] as Record<string, unknown>)["email"]).toBe(search);
+    expect((query["user"] as Record<string, unknown>)["_id"]).toBeUndefined();
+  });
+
+  test("an address, as it is written, is compared with the one their row shows", () => {
+    const narrowed: Record<string, unknown> =
+      PendingInviteeProfiles.narrowRelationFilters({
+        modelType: TeamMember,
+        query: { user: { email: "  Grace@Company.COM " } } as Record<
+          string,
+          unknown
+        >,
+        props: PERSON_PROPS,
+      });
+
+    const id: FindOperator<unknown> = (
+      narrowed["user"] as Record<string, unknown>
+    )["_id"] as FindOperator<unknown>;
+
+    expect(sqlOf(id, "u")).toMatch(
+      /^\(\(CASE WHEN u IN \(SELECT[\s\S]* END\) = :pendingInviteeAddress[A-Za-z]{10}\)$/,
+    );
+    expect(Object.values(id.objectLiteralParameters || {})).toContain(
+      "grace@company.com",
+    );
+  });
+
+  test("an address filter written as SQL of its own - one of TypeORM's operators - matches nobody pending", () => {
+    const query: Record<string, unknown> = {
+      user: { email: ILike("%gra%") },
+    };
+
+    const narrowed: Record<string, unknown> =
+      PendingInviteeProfiles.narrowRelationFilters({
+        modelType: TeamMember,
+        query: query,
+        props: PERSON_PROPS,
+      });
+
+    const user: Record<string, unknown> = narrowed["user"] as Record<
+      string,
+      unknown
+    >;
+
+    expect(user["email"]).toBe(
+      (query["user"] as Record<string, unknown>)["email"],
+    );
+    expect(sqlOf(user["_id"], "u")).toContain("(u NOT IN (SELECT");
+  });
+
+  test("an address filter beside a name filter: both hold, on the person's id", () => {
+    const narrowed: Record<string, unknown> =
+      PendingInviteeProfiles.narrowRelationFilters({
+        modelType: TeamMember,
+        query: {
+          user: {
+            name: ILike("%a%"),
+            email: QueryHelper.search("gra"),
+          },
+        } as Record<string, unknown>,
+        props: PERSON_PROPS,
+      });
+
+    const sql: string = sqlOf(
+      (narrowed["user"] as Record<string, unknown>)["_id"],
+      "u",
+    );
+
+    expect(sql).toContain("(u NOT IN (SELECT");
+    expect(sql).toContain(" AND ");
+    expect(sql).toContain("ILIKE :");
   });
 
   test("an id the filter already names is kept beside the condition", () => {
@@ -867,5 +994,270 @@ describe("what a project calls someone OneUptime read for it", () => {
         withheld: withheld,
       }),
     ).toBeUndefined();
+  });
+});
+
+/*
+ * THE ADDRESS IS THE ONE INVITED (#10175). Someone pending is shown by the
+ * address their invitation kept, never the one their account has moved to
+ * since; a member by their own; someone invited before addresses were kept
+ * by their account's, as before.
+ */
+describe("the address someone pending is shown by", () => {
+  function pendingRows(): Array<{
+    userId: string;
+    projectId: string;
+    inviteeName: string | null;
+    inviteeEmail: string | null;
+    createdAt: Date;
+  }> {
+    return [
+      {
+        userId: PENDING_ID,
+        projectId: PROJECT_ID,
+        inviteeName: null,
+        inviteeEmail: "grace.old@example.com",
+        createdAt: new Date("2026-11-01T00:00:00Z"),
+      },
+    ];
+  }
+
+  // A person read through a relation, at the address their account has now.
+  function movedPersonRead(id: string): TeamMember {
+    const member: TeamMember = membershipRead(id);
+    member.user!.email = new Email("grace.new@example.com");
+    return member;
+  }
+
+  test("a read returns the address they were invited at, not their account's new one", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readPendingMemberships")
+      .mockResolvedValue(pendingRows());
+
+    const rows: Array<TeamMember> = [
+      movedPersonRead(PENDING_ID),
+      movedPersonRead(MEMBER_ID),
+    ];
+
+    await PendingInviteeProfiles.withholdFromRows({
+      modelType: TeamMember,
+      rows: rows,
+      select: USER_SELECT,
+      props: PERSON_PROPS,
+    });
+
+    expect(rows[0]!.user!.email?.toString()).toBe("grace.old@example.com");
+    // A member: their own address, as the project sees any member's.
+    expect(rows[1]!.user!.email?.toString()).toBe("grace.new@example.com");
+  });
+
+  test("an invitation that kept no address shows the account's, as before", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readPendingMemberships")
+      .mockResolvedValue([{ ...pendingRows()[0]!, inviteeEmail: null }]);
+
+    const rows: Array<TeamMember> = [movedPersonRead(PENDING_ID)];
+
+    await PendingInviteeProfiles.withholdFromRows({
+      modelType: TeamMember,
+      rows: rows,
+      select: USER_SELECT,
+      props: PERSON_PROPS,
+    });
+
+    expect(rows[0]!.user!.email?.toString()).toBe("grace.new@example.com");
+  });
+
+  test("a read that did not ask for the address is not given one", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readPendingMemberships")
+      .mockResolvedValue(pendingRows());
+
+    const row: TeamMember = membershipRead(PENDING_ID);
+
+    await PendingInviteeProfiles.withholdFromRows({
+      modelType: TeamMember,
+      rows: [row],
+      select: { _id: true, user: { _id: true, name: true } },
+      props: PERSON_PROPS,
+    });
+
+    expect(row.user!.email).toBeUndefined();
+  });
+
+  test.each([
+    ["OneUptime itself", { isRoot: true }],
+    ["a master admin", { isMasterAdmin: true }],
+  ])(
+    "%s reads the account's address as it is",
+    async (_case: string, props: DatabaseCommonInteractionProps) => {
+      const asked: SpyInstance<
+        typeof PendingInviteeProfiles.readPendingMemberships
+      > = jest
+        .spyOn(PendingInviteeProfiles, "readPendingMemberships")
+        .mockResolvedValue(pendingRows());
+
+      const rows: Array<TeamMember> = [movedPersonRead(PENDING_ID)];
+
+      await PendingInviteeProfiles.withholdFromRows({
+        modelType: TeamMember,
+        rows: rows,
+        select: USER_SELECT,
+        props: props,
+      });
+
+      expect(rows[0]!.user!.email?.toString()).toBe("grace.new@example.com");
+      expect(asked).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the request's project's invitation first, then the newest that kept one - apart from the name's", async () => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readPendingMemberships")
+      .mockResolvedValue([
+        {
+          userId: PENDING_ID,
+          projectId: OTHER_PROJECT_ID,
+          inviteeName: "Newest elsewhere",
+          inviteeEmail: "grace.elsewhere@example.com",
+          createdAt: new Date("2026-11-19T00:00:00Z"),
+        },
+        {
+          userId: PENDING_ID,
+          projectId: PROJECT_ID,
+          inviteeName: "From this project",
+          inviteeEmail: null,
+          createdAt: new Date("2026-11-10T00:00:00Z"),
+        },
+        {
+          userId: PENDING_ID,
+          projectId: PROJECT_ID,
+          inviteeName: null,
+          inviteeEmail: " grace.here@example.com ",
+          createdAt: new Date("2025-01-01T00:00:00Z"),
+        },
+        {
+          userId: MEMBER_ID,
+          projectId: OTHER_PROJECT_ID,
+          inviteeName: null,
+          inviteeEmail: "  ",
+          createdAt: new Date("2026-11-19T00:00:00Z"),
+        },
+        {
+          userId: MEMBER_ID,
+          projectId: OTHER_PROJECT_ID,
+          inviteeName: null,
+          inviteeEmail: "older.but.kept@example.com",
+          createdAt: new Date("2024-01-01T00:00:00Z"),
+        },
+      ]);
+
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfiles({
+        userIds: [PENDING_ID, MEMBER_ID],
+        props: PERSON_PROPS,
+      });
+
+    expect(withheld.get(PENDING_ID)).toEqual({
+      inviteeName: "From this project",
+      inviteeEmail: "grace.here@example.com",
+    });
+    expect(withheld.get(MEMBER_ID)).toEqual({
+      inviteeName: null,
+      inviteeEmail: "older.but.kept@example.com",
+    });
+  });
+
+  test("the query reads the address each invitation kept", () => {
+    expect(
+      PendingInviteeProfiles.getPendingMembershipsStatement({
+        userId: READER_ID,
+      }),
+    ).toContain(`"pending"."inviteeEmail" AS "inviteeEmail"`);
+  });
+
+  test("a project names them by the name typed, else the address invited, never the account's new one", () => {
+    const withheld: Map<string, WithheldProfile> = new Map<
+      string,
+      WithheldProfile
+    >([
+      [
+        PENDING_ID,
+        { inviteeName: null, inviteeEmail: "grace.old@example.com" },
+      ],
+      [
+        OTHER_PROJECT_ID,
+        { inviteeName: "Typed", inviteeEmail: "typed.old@example.com" },
+      ],
+    ]);
+
+    expect(
+      PendingInviteeProfiles.getNameInProject({
+        userId: PENDING_ID,
+        name: new Name("Their Own Name"),
+        email: "grace.new@example.com",
+        withheld: withheld,
+      }),
+    ).toBe("grace.old@example.com");
+    expect(
+      PendingInviteeProfiles.getNameInProject({
+        userId: OTHER_PROJECT_ID,
+        name: new Name("Their Own Name"),
+        email: "typed.new@example.com",
+        withheld: withheld,
+      }),
+    ).toBe("Typed");
+
+    expect(
+      PendingInviteeProfiles.getAddressInProject({
+        userId: PENDING_ID.toUpperCase(),
+        email: "grace.new@example.com",
+        withheld: withheld,
+      }),
+    ).toBe("grace.old@example.com");
+    // A member, and someone pending whose invitation kept none: the account's.
+    expect(
+      PendingInviteeProfiles.getAddressInProject({
+        userId: MEMBER_ID,
+        email: " ada@example.com ",
+        withheld: withheld,
+      }),
+    ).toBe("ada@example.com");
+    expect(
+      PendingInviteeProfiles.getAddressInProject({
+        userId: PENDING_ID,
+        email: "grace.new@example.com",
+        withheld: new Map<string, WithheldProfile>([
+          [PENDING_ID, { inviteeName: null }],
+        ]),
+      }),
+    ).toBe("grace.new@example.com");
+  });
+
+  test("people read as OneUptime are given the address invited in place of their account's", async () => {
+    const pending: User = personRead(PENDING_ID);
+    pending.email = new Email("grace.new@example.com");
+    const member: User = personRead(MEMBER_ID);
+    member.email = new Email("ada.new@example.com");
+
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            PENDING_ID,
+            { inviteeName: null, inviteeEmail: "grace.old@example.com" },
+          ],
+        ]),
+      );
+
+    await PendingInviteeProfiles.nameInProject({
+      users: [pending, member],
+      projectId: new ObjectID(PROJECT_ID),
+    });
+
+    expect(pending.name?.toString()).toBe("grace.old@example.com");
+    expect(pending.email?.toString()).toBe("grace.old@example.com");
+    expect(member.email?.toString()).toBe("ada.new@example.com");
   });
 });

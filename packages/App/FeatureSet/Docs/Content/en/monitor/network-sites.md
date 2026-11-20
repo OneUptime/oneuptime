@@ -42,6 +42,8 @@ Sites form a tree. Each site has a **Site Type** and an optional parent site. Si
 
 A site's type, name, description, parent and location are edited in one place: the **Site Settings** card on the site's **Settings** page. The site's Overview shows them with an **Edit in Settings** link, and the **Sites** list adds sites but does not edit them.
 
+Sites that hold nothing go in one step: **Delete Empty Sites**, in the menu at the top of the **Sites** list, lists every site with no devices (archived ones too), no sites under it, and no endpoint, link, rule or maintenance event that uses it. It names the first ten, and deletes exactly the sites it listed once you confirm: a site that gets a device in the meantime is kept. It is for whoever may delete sites.
+
 Each device attaches to one site. A site's subtree is the site itself plus every site beneath it, and the subtree's devices are what its health rolls up from, so a Region with no devices of its own still has a status, because the units under it do.
 
 > [!NOTE]

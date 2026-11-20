@@ -227,6 +227,14 @@ beforeEach(() => {
         return null;
       }
 
+      /*
+       * The real base create looks for another policy of the project with
+       * the new one's name (UniqueNameInProject): there is none.
+       */
+      if ((request.query as JSONObject)["name"] !== undefined) {
+        return null;
+      }
+
       policyReads.push(request);
 
       const policy: OnCallDutyPolicy = new OnCallDutyPolicy();

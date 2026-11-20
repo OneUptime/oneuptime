@@ -20,8 +20,8 @@ import { KUBERNETES_COST_METRICS } from "../../../../Types/Kubernetes/Kubernetes
  * own receiver config adds — copied from each receiver's metadata.yaml at
  * the collector version the chart pins:
  *
- *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/k8sclusterreceiver/metadata.yaml
- *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/kubeletstatsreceiver/metadata.yaml
+ *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.165.0/receiver/k8sclusterreceiver/metadata.yaml
+ *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.165.0/receiver/kubeletstatsreceiver/metadata.yaml
  *
  * They go stale the moment the chart moves to another collector, which is
  * why AGENT_COLLECTOR_IMAGE_TAG is checked against values.yaml: bumping the
@@ -29,9 +29,12 @@ import { KUBERNETES_COST_METRICS } from "../../../../Types/Kubernetes/Kubernetes
  * this one. Receivers do rename metrics between versions (the
  * semantic-conventions work moved several k8s.* names, and the CPU rename
  * above is one), so that re-read is the point. At 0.161.0 both lists are
- * what they were at 0.96.0.
+ * what they were at 0.96.0. At 0.165.0 (#9828) both receivers enable
+ * exactly the metrics they did at 0.161.0, and k8s_cluster names a node's
+ * conditions and allocatables as it did: kubeletstats only adds
+ * k8s.node.pid.limit and k8s.node.pid.usage, both off.
  */
-export const AGENT_COLLECTOR_IMAGE_TAG: string = "0.161.0";
+export const AGENT_COLLECTOR_IMAGE_TAG: string = "0.165.0";
 
 /*
  * k8s_cluster — the agent Deployment's receiver
@@ -137,7 +140,7 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "container.filesystem.capacity",
   "container.filesystem.usage",
   /*
-   * On upstream at 0.161.0 (off at 0.96.0); the chart turns them on all
+   * On upstream at 0.165.0 (off at 0.96.0); the chart turns them on all
    * the same, with no flag, because k8s-high-cpu and the Kubernetes
    * dashboard template read them. The chart's
    * tests/kubeletstats-cpu-usage_test.yaml pins that on the rendered

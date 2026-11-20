@@ -12,6 +12,7 @@ import NetworkControllerDeviceAddRunner, {
   NETWORK_CONTROLLER_DEVICE_ADD_JOB,
   NetworkControllerDeviceAddDependencies,
   NetworkControllerDeviceAddOutcome,
+  getDeviceAddColumnsLeftOutReason,
 } from "../../../../Server/Utils/NetworkController/NetworkControllerDeviceAddRunner";
 import { ControllerIdentityHolder } from "../../../../Server/Utils/NetworkController/NetworkControllerDeviceAdd";
 import { ControllerInventoryCandidate } from "../../../../Server/Utils/NetworkController/NetworkControllerInventory";
@@ -193,6 +194,9 @@ let holders: Array<ControllerIdentityHolder>;
 let takenNames: Set<string>;
 let existingSites: Array<{ id: string; name: string }>;
 let personProps: Array<() => DatabaseCommonInteractionProps>;
+// The sites the ask took away again, and what it did in what order.
+let sitesRemoved: Array<string>;
+let steps: Array<string>;
 
 function ask(
   request: NetworkControllerDeviceAddRequest = {
@@ -259,6 +263,7 @@ function dependencies(
     },
     createSite: async (data: { name: string; address: string }) => {
       sitesCreated.push({ name: data.name, address: data.address });
+      steps.push(`site:${data.name}`);
       return `77777777-7777-4777-8777-${String(sitesCreated.length).padStart(12, "0")}`;
     },
     findRoleIds: async () => {
@@ -271,8 +276,13 @@ function dependencies(
       device: NetworkDevice;
       props: DatabaseCommonInteractionProps;
     }) => {
+      steps.push(`device:${data.device.name}`);
       created.push(data.device);
       createdBy.push(data.props);
+    },
+    removeSiteIfEmpty: async (data: { siteId: ObjectID }) => {
+      sitesRemoved.push(data.siteId.toString());
+      return true;
     },
     enqueueRead: async (id: ObjectID) => {
       readsQueued.push(id.toString());
@@ -318,6 +328,8 @@ beforeEach(() => {
   holders = [];
   takenNames = new Set<string>();
   existingSites = [{ id: EXISTING_SITE, name: "store 0660" }];
+  sitesRemoved = [];
+  steps = [];
   personProps = [
     () => {
       return propsWith(ADDER);
@@ -489,7 +501,7 @@ describe("an ask that works", () => {
       failedCount: 0,
       createdSiteCount: 1,
       remainingCount: 0,
-      failures: [],
+      failureReasons: [],
     });
     // Finished when the clock says - the client paced its calls in between.
     expect(lastState().finishedAt).toBe(clock.now().toISOString());
@@ -661,10 +673,11 @@ describe("what it cannot add, it says", () => {
       status: NetworkControllerDeviceAddStatus.Done,
       addedCount: 2,
       failedCount: 1,
-      failures: [
+      failureReasons: [
         {
-          name: "Core",
           reason: "Probe not found or it does not belong to this project.",
+          count: 1,
+          names: ["Core"],
         },
       ],
     });
@@ -700,8 +713,8 @@ describe("what it cannot add, it says", () => {
       },
     });
 
-    expect(lastState().failures).toEqual([
-      { name: "Core", reason: DEVICE_ADD_NAME_TAKEN_REASON },
+    expect(lastState().failureReasons).toEqual([
+      { reason: DEVICE_ADD_NAME_TAKEN_REASON, count: 1, names: ["Core"] },
     ]);
   });
 
@@ -736,6 +749,203 @@ describe("what it cannot add, it says", () => {
     expect(otherStore?.siteId).toBeUndefined();
     expect(lastState().createdSiteCount).toBe(0);
     expect(lastState().status).toBe(NetworkControllerDeviceAddStatus.Done);
+  });
+});
+
+describe("a site only for devices (#10188)", () => {
+  test("a network's site is added as its first device is, never before", async () => {
+    await run();
+
+    // Store 0101's site, then its lobby; Store 0660 has a site already.
+    expect(steps).toEqual([
+      "site:Store 0101",
+      "device:Lobby",
+      "device:Core",
+      "device:Lobby (Store 0660)",
+    ]);
+    // A site that got its device stays.
+    expect(sitesRemoved).toEqual([]);
+    expect(lastState().createdSiteCount).toBe(1);
+  });
+
+  test("a site whose devices could not be added is taken away again, and not counted", async () => {
+    await run({
+      createDevice: async (data: { device: NetworkDevice }) => {
+        if (data.device.siteId?.toString() !== EXISTING_SITE) {
+          throw new BadDataException("Something about this access point.");
+        }
+
+        created.push(data.device);
+      },
+    });
+
+    expect(sitesCreated).toEqual([
+      { name: "Store 0101", address: "101 High Street" },
+    ]);
+    expect(sitesRemoved).toEqual(["77777777-7777-4777-8777-000000000001"]);
+    expect(lastState()).toMatchObject({
+      status: NetworkControllerDeviceAddStatus.Done,
+      addedCount: 2,
+      failedCount: 1,
+      createdSiteCount: 0,
+    });
+    // The project's own site is never the ask's to take away.
+    expect(sitesRemoved).not.toContain(EXISTING_SITE);
+  });
+
+  test("a site something else went into meanwhile is kept, and counted", async () => {
+    await run({
+      createDevice: async () => {
+        throw new BadDataException("Something about this device.");
+      },
+      removeSiteIfEmpty: async (data: { siteId: ObjectID }) => {
+        sitesRemoved.push(data.siteId.toString());
+        return false;
+      },
+    });
+
+    expect(sitesRemoved).toEqual(["77777777-7777-4777-8777-000000000001"]);
+    expect(lastState().createdSiteCount).toBe(1);
+  });
+
+  test("a site that cannot be taken away stays, is counted, and the ask's outcome stands", async () => {
+    const errors: Array<string> = [];
+    jest.spyOn(logger, "error").mockImplementation((message: unknown) => {
+      errors.push(String(message));
+    });
+
+    await run({
+      createDevice: async () => {
+        throw new BadDataException("Something about this device.");
+      },
+      removeSiteIfEmpty: async () => {
+        throw new Error("Postgres is not answering");
+      },
+    });
+
+    expect(lastState()).toMatchObject({
+      status: NetworkControllerDeviceAddStatus.Done,
+      createdSiteCount: 1,
+    });
+    expect(errors).toEqual([
+      "Network controller device add: the site 77777777-7777-4777-8777-000000000001, added for devices that could not be added, could not be taken away again: Postgres is not answering",
+    ]);
+  });
+
+  test("an ask that stops half way takes away the site it had just added, too", async () => {
+    personProps = [
+      () => {
+        return propsWith(ADDER);
+      },
+      () => {
+        return propsWith([]);
+      },
+    ];
+
+    await run({
+      createDevice: async () => {
+        clock.advance(DEVICE_ADD_PERMISSION_REFRESH_MS);
+        throw new BadDataException("Something about this access point.");
+      },
+    });
+
+    expect(lastState()).toMatchObject({
+      status: NetworkControllerDeviceAddStatus.Failed,
+      message: DEVICE_ADD_MAY_NOT_CREATE_DEVICES,
+      addedCount: 0,
+      createdSiteCount: 0,
+    });
+    expect(sitesRemoved).toEqual(["77777777-7777-4777-8777-000000000001"]);
+  });
+
+  test("a person who may no longer add sites stops the ask, said as such", async () => {
+    await run({
+      createSite: async () => {
+        throw new NotAuthorizedException(
+          "You do not have permission to create Network Site.",
+        );
+      },
+    });
+
+    expect(lastState()).toMatchObject({
+      status: NetworkControllerDeviceAddStatus.Failed,
+      message: DEVICE_ADD_MAY_NOT_CREATE_SITES,
+    });
+    expect(created).toEqual([]);
+  });
+});
+
+describe("why devices could not be added: one line a reason (#10188)", () => {
+  test("every device refused for the same reason is said once, with the count and the first few", async () => {
+    await run({
+      createDevice: async () => {
+        throw new BadDataException(
+          "User is not allowed to create on serialNumber column of Network Device. No permission allows it: the column is set by the server, not by a request.",
+        );
+      },
+    });
+
+    expect(lastState()).toMatchObject({
+      addedCount: 0,
+      failedCount: 3,
+      failureReasons: [
+        {
+          reason:
+            "User is not allowed to create on serialNumber column of Network Device. No permission allows it: the column is set by the server, not by a request.",
+          count: 3,
+          names: ["Lobby", "Core", "Lobby (Store 0660)"],
+        },
+      ],
+    });
+  });
+
+  test("a device whose create would leave a value OneUptime gave it out is not created, and says which", async () => {
+    await run({
+      createDevice: async (data: {
+        device: NetworkDevice;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        // A create that would drop the serial number: one the build left unmarked.
+        const unmarked: NetworkDevice = new NetworkDevice();
+        unmarked.projectId = data.device.projectId!;
+        unmarked.name = data.device.name!;
+        unmarked.hostname = data.device.hostname!;
+        unmarked.serialNumber = data.device.serialNumber!;
+
+        NetworkControllerDeviceAddRunner.assertCreateKeepsAll(
+          unmarked,
+          data.props,
+        );
+        created.push(data.device);
+      },
+    });
+
+    expect(created).toEqual([]);
+    expect(lastState().failureReasons).toEqual([
+      {
+        reason: getDeviceAddColumnsLeftOutReason(["serialNumber"]),
+        count: 3,
+        names: ["Lobby", "Core", "Lobby (Store 0660)"],
+      },
+    ]);
+  });
+
+  test("the devices the build gives the person's create keep every value: nothing is left out", async () => {
+    await run({
+      createDevice: async (data: {
+        device: NetworkDevice;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        NetworkControllerDeviceAddRunner.assertCreateKeepsAll(
+          data.device,
+          data.props,
+        );
+        created.push(data.device);
+      },
+    });
+
+    expect(created).toHaveLength(3);
+    expect(lastState().failedCount).toBe(0);
   });
 });
 
