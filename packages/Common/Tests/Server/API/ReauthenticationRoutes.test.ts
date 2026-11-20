@@ -37,6 +37,12 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 });
 
 import UserAPI from "../../../Server/API/UserAPI";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import UserService from "../../../Server/Services/UserService";
+import DeleteBy from "../../../Server/Types/Database/DeleteBy";
+import DeleteById from "../../../Server/Types/Database/DeleteById";
+import User from "../../../Models/DatabaseModels/User";
+import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
 import UserTotpAuthAPI from "../../../Server/API/UserTotpAuthAPI";
 import UserTwoFactorBackupCodeAPI from "../../../Server/API/UserTwoFactorBackupCodeAPI";
 import Redis from "../../../Server/Infrastructure/Redis";
@@ -54,6 +60,10 @@ import {
   REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT,
   REAUTHENTICATION_FIELDS,
   REAUTHENTICATION_MESSAGES,
+  REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES,
+  REAUTHENTICATION_PURPOSE_FIELD,
+  REAUTHENTICATION_REQUIRED_MESSAGES,
+  ReauthenticationPurpose,
   REAUTHENTICATION_WINDOW_IN_MINUTES,
   ReauthenticationWebAuthnKind,
   SignInAgainProvider,
@@ -545,5 +555,117 @@ describe("POST /user-two-factor-backup-code/generate", () => {
 
     expect(answer.error).toBeNull();
     expect(UserTwoFactorBackupCodeService.regenerateForUser).toHaveBeenCalled();
+  });
+});
+
+/*
+ * Danger Zone > Delete Account sends DELETE /api/user/:id (#10220): the
+ * route hands the request's session to UserService, whose hook refuses the
+ * delete of the caller's own account until that session has confirmed it's
+ * theirs - here through the real route and the real hook, with only the
+ * database stood in.
+ */
+describe("DELETE /user/:id: deleting your own account waits for the session to confirm", () => {
+  let deleted: Array<string>;
+
+  beforeEach(() => {
+    deleted = [];
+
+    // The row the delete removes: the caller's own account.
+    jest
+      .spyOn(
+        UserService as unknown as {
+          findRowsAndHoldDeleteToThem: () => Promise<Array<User>>;
+        },
+        "findRowsAndHoldDeleteToThem",
+      )
+      .mockImplementation((async () => {
+        const row: User = new User();
+        row._id = REAUTH_USER_ID.toString();
+        return [row];
+      }) as never);
+
+    // In no project, so nothing else stops the delete.
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([] as never);
+
+    // The service's delete: its real hook, then the row is gone.
+    jest.spyOn(UserService, "deleteOneById").mockImplementation((async (
+      deleteById: DeleteById,
+    ) => {
+      await (
+        UserService as unknown as {
+          onBeforeDelete: (deleteBy: DeleteBy<User>) => Promise<unknown>;
+        }
+      ).onBeforeDelete({
+        query: {
+          _id: deleteById.id.toString(),
+        } as unknown as DeleteBy<User>["query"],
+        props: deleteById.props,
+        limit: 1,
+        skip: 0,
+      } as DeleteBy<User>);
+
+      deleted.push(deleteById.id.toString());
+      return 1;
+    }) as never);
+  });
+
+  const deleteOwnAccount: (
+    sessionId?: ObjectID | null,
+  ) => Promise<Answer> = async (
+    sessionId?: ObjectID | null,
+  ): Promise<Answer> => {
+    return await call("delete", "/user/:id", {
+      ...requestFor(sessionId === undefined ? {} : { sessionId: sessionId }),
+      params: { id: REAUTH_USER_ID.toString() },
+    } as unknown as JSONObject);
+  };
+
+  test("refused until the session confirms, saying what for, and nothing is deleted", async () => {
+    const answer: Answer = await deleteOwnAccount();
+
+    expect(answer.error).toBeInstanceOf(ReauthenticationRequiredException);
+    expect(answer.error!.message).toBe(
+      REAUTHENTICATION_REQUIRED_MESSAGES[ReauthenticationPurpose.DeleteAccount],
+    );
+    expect(getErrorDetails(answer.error)[REAUTHENTICATION_PURPOSE_FIELD]).toBe(
+      ReauthenticationPurpose.DeleteAccount,
+    );
+    expect(deleted).toEqual([]);
+  });
+
+  test("once the session confirmed with the password, the same delete goes through", async () => {
+    expect(
+      (
+        await confirmWith({
+          [REAUTHENTICATION_FIELDS.password]: RIGHT_PASSWORD,
+        })
+      ).error,
+    ).toBeNull();
+
+    const answer: Answer = await deleteOwnAccount();
+
+    expect(answer.error).toBeNull();
+    expect(deleted).toEqual([REAUTH_USER_ID.toString()]);
+  });
+
+  test("another session's confirmation does not count", async () => {
+    await confirmWith({ [REAUTHENTICATION_FIELDS.password]: RIGHT_PASSWORD });
+
+    const answer: Answer = await deleteOwnAccount(ObjectID.generate());
+
+    expect(answer.error).toBeInstanceOf(ReauthenticationRequiredException);
+    expect(deleted).toEqual([]);
+  });
+
+  test("a request with no session - an API key, an MCP client - cannot delete its account", async () => {
+    const answer: Answer = await deleteOwnAccount(null);
+
+    expect(answer.error?.message).toBe(
+      REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES[
+        ReauthenticationPurpose.DeleteAccount
+      ],
+    );
+    expect(deleted).toEqual([]);
   });
 });
