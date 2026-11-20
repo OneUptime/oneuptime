@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "इनमें से {{count}} साइटों का कोई प्रकार नहीं है, और किसी साइट को दूसरी के नीचे रखने के लिए प्रकार चाहिए। उन्हें यह प्रकार मिलता है, और बाकी अपना प्रकार रखती हैं।",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "इनमें से {{count}} साइट का कोई प्रकार नहीं है, और किसी साइट को दूसरी के नीचे रखने के लिए प्रकार चाहिए। उसे यह प्रकार मिलता है।",
   "{{count}} sites match": "{{count}} साइटें मेल खाती हैं",
-  "{{count}} sites match_one": "{{count}} साइट मेल खाती है"
+  "{{count}} sites match_one": "{{count}} साइट मेल खाती है",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "आपके खातों की लागत बारी-बारी से पढ़ी जाती है, उतनी तेज़ी से जितनी उनका क्लाउड अनुमति देता है।",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये आगे, लगभग {{time}} पर पढ़ी जाएँगी।",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "आपका क्लाउड सीमित करता है कि लागत कितनी तेज़ी से पढ़ी जा सकती है, इसलिए ये कनेक्शन की अगली रीडिंग में पढ़ी जाएँगी।"
 }

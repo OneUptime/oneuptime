@@ -223,9 +223,9 @@ describe("the tenant's quotas, as the pacer keeps them", () => {
       pacer.charge(t + second * 1000, 8);
     }
 
-    expect(
-      pacer.whenFits({ nowMs: t + 55_000, qpu: 1, scope: SCOPE }),
-    ).toBe(t + 60_000);
+    expect(pacer.whenFits({ nowMs: t + 55_000, qpu: 1, scope: SCOPE })).toBe(
+      t + 60_000,
+    );
   });
 
   test("the hour's quota too", () => {
@@ -252,9 +252,7 @@ describe("the tenant's quotas, as the pacer keeps them", () => {
 
     pacer.charge(t, 1);
 
-    expect(pacer.whenFits({ nowMs: t, qpu: 9, scope: SCOPE })).toBe(
-      t + 10_000,
-    );
+    expect(pacer.whenFits({ nowMs: t, qpu: 9, scope: SCOPE })).toBe(t + 10_000);
   });
 
   test("a tenant's hold holds every scope; a scope's, that scope alone", () => {
@@ -263,9 +261,7 @@ describe("the tenant's quotas, as the pacer keeps them", () => {
 
     pacer.holdScope(SCOPE, t + 37_000);
 
-    expect(pacer.whenFits({ nowMs: t, qpu: 1, scope: SCOPE })).toBe(
-      t + 37_000,
-    );
+    expect(pacer.whenFits({ nowMs: t, qpu: 1, scope: SCOPE })).toBe(t + 37_000);
     expect(
       pacer.whenFits({
         nowMs: t,
@@ -413,9 +409,11 @@ describe("a read's queries", () => {
       }),
     );
 
-    expect(seen.map((entry: { atMs: number }): number => {
-      return entry.atMs - START.getTime();
-    })).toEqual([0, 10_500]);
+    expect(
+      seen.map((entry: { atMs: number }): number => {
+        return entry.atMs - START.getTime();
+      }),
+    ).toEqual([0, 10_500]);
   });
 
   test("a scope's own limit holds that scope alone: another subscription is asked meanwhile", async () => {
@@ -428,8 +426,7 @@ describe("a read's queries", () => {
       answers: [
         throttled({
           "x-ms-ratelimit-microsoft.costmanagement-entity-retry-after": "37",
-          "x-ms-ratelimit-microsoft.costmanagement-clienttype-retry-after":
-            "0",
+          "x-ms-ratelimit-microsoft.costmanagement-clienttype-retry-after": "0",
         }),
         ANSWERED,
       ],
@@ -476,9 +473,11 @@ describe("a read's queries", () => {
       START.getTime() + 1_800_000,
     );
     // Asked once, and the read waited nothing.
-    expect(api.requests.filter((request: DataSourceHttpRequest): boolean => {
-      return request.url.includes("CostManagement");
-    })).toHaveLength(1);
+    expect(
+      api.requests.filter((request: DataSourceHttpRequest): boolean => {
+        return request.url.includes("CostManagement");
+      }),
+    ).toHaveLength(1);
     expect(clock.nowMs).toBe(START.getTime());
   });
 
@@ -526,10 +525,7 @@ describe("a read's queries", () => {
         const api: FakeProviderApi = scriptedApi({
           clock,
           seen,
-          answers: [
-            throttled({ "retry-after": String(seconds) }),
-            ANSWERED,
-          ],
+          answers: [throttled({ "retry-after": String(seconds) }), ANSWERED],
         });
 
         await ask(

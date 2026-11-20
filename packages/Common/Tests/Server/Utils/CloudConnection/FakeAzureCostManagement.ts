@@ -275,7 +275,9 @@ export class FakeAzureCostManagement {
   }): FakeResponse {
     this.chargeOthers();
 
-    const body: JSONObject = JSON.parse(String(data.request.body)) as JSONObject;
+    const body: JSONObject = JSON.parse(
+      String(data.request.body),
+    ) as JSONObject;
     const period: JSONObject = (body["timePeriod"] || {}) as JSONObject;
     const from: string = String(period["from"] || "");
     const to: string = String(period["to"] || "");
@@ -299,8 +301,7 @@ export class FakeAzureCostManagement {
     if (wait > 0) {
       record.status = 429;
       record.headers = {
-        "x-ms-ratelimit-microsoft.costmanagement-qpu-retry-after":
-          String(wait),
+        "x-ms-ratelimit-microsoft.costmanagement-qpu-retry-after": String(wait),
         "x-ms-ratelimit-microsoft.costmanagement-qpu-consumed": "0",
       };
 
@@ -354,13 +355,14 @@ export class FakeAzureCostManagement {
     const next: number = offset + data.pageSize;
     record.headers = {
       "x-ms-ratelimit-microsoft.costmanagement-qpu-consumed": String(qpu),
-      "x-ms-ratelimit-microsoft.costmanagement-qpu-remaining": DOCUMENTED_QPU_QUOTAS.map(
-        (quota: { spanMs: number; limit: number }): string => {
-          return `QueryQuota${quota.spanMs / 1000}s:${
-            quota.limit - this.usedQpu(this.clock.nowMs, quota.spanMs)
-          }`;
-        },
-      ).join(","),
+      "x-ms-ratelimit-microsoft.costmanagement-qpu-remaining":
+        DOCUMENTED_QPU_QUOTAS.map(
+          (quota: { spanMs: number; limit: number }): string => {
+            return `QueryQuota${quota.spanMs / 1000}s:${
+              quota.limit - this.usedQpu(this.clock.nowMs, quota.spanMs)
+            }`;
+          },
+        ).join(","),
     };
 
     return {

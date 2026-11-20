@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "이 사이트 중 {{count}}곳은 유형이 없으며, 사이트를 다른 사이트 아래에 두려면 유형이 필요합니다. 이 사이트들은 이 유형을 받고, 나머지는 기존 유형을 유지합니다.",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "이 사이트 중 {{count}}곳은 유형이 없으며, 사이트를 다른 사이트 아래에 두려면 유형이 필요합니다. 이 사이트는 이 유형을 받습니다.",
   "{{count}} sites match": "일치하는 사이트 {{count}}곳",
-  "{{count}} sites match_one": "일치하는 사이트 {{count}}곳"
+  "{{count}} sites match_one": "일치하는 사이트 {{count}}곳",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "계정 비용은 클라우드가 허용하는 속도로 차례대로 읽습니다.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 다음 차례로 {{time}}쯤 읽습니다.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다."
 }

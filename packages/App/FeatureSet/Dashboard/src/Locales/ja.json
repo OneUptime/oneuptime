@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "これらのサイトのうち {{count}} か所には種類がありません。サイトを別のサイトの下に置くには種類が必要です。それらにはこの種類が設定され、ほかのサイトは今の種類のままです。",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "これらのサイトのうち {{count}} か所には種類がありません。サイトを別のサイトの下に置くには種類が必要です。そのサイトにはこの種類が設定されます。",
   "{{count}} sites match": "{{count}} か所のサイトが一致",
-  "{{count}} sites match_one": "{{count}} か所のサイトが一致"
+  "{{count}} sites match_one": "{{count}} か所のサイトが一致",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "アカウントのコストは、クラウドが許す速さで順番に読み取られます。",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "クラウドがコストを読み取る速さを制限しているため、これらは次の順番として{{time}}頃に読み取られます。",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "クラウドがコストを読み取る速さを制限しているため、これらは接続の次回の読み取りで読み取られます。"
 }

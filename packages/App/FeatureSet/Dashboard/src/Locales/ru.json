@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "Площадок без типа среди выбранных: {{count}}, а площадке нужен тип, чтобы стоять под другой. Они получат этот тип, остальные сохранят свои.",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "У {{count}} из этих площадок нет типа, а площадке нужен тип, чтобы стоять под другой. Она получит этот тип.",
   "{{count}} sites match": "Подходящих площадок: {{count}}",
-  "{{count}} sites match_one": "Подходит {{count}} площадка"
+  "{{count}} sites match_one": "Подходит {{count}} площадка",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Затраты ваших аккаунтов читаются по очереди, так быстро, как позволяет их облако.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Ваше облако ограничивает скорость чтения затрат, поэтому эти затраты будут прочитаны следующими, примерно {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ваше облако ограничивает скорость чтения затрат, поэтому эти затраты будут прочитаны при следующем чтении подключения."
 }

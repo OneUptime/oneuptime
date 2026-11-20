@@ -495,15 +495,12 @@ describe("a subscription, read", () => {
   test("the read's own limit spent: thrown, not a failed summary", async () => {
     await expect(
       readAzureCommitments({
-        costs: readerOf(
-          costManagement({ usage: [], charges: [] }),
-          {
-            budget: new CloudReadBudget({
-              maxRequests: 0,
-              maxDurationMs: 60_000,
-            }),
-          },
-        ),
+        costs: readerOf(costManagement({ usage: [], charges: [] }), {
+          budget: new CloudReadBudget({
+            maxRequests: 0,
+            maxDurationMs: 60_000,
+          }),
+        }),
         subscriptionId: SUBSCRIPTION,
         now: NOW,
       }),

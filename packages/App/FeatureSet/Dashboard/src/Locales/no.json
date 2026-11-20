@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "{{count}} av disse lokasjonene har ingen type, og en lokasjon trenger en for å ligge under en annen. De får denne typen, og de andre beholder sin.",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "{{count}} av disse lokasjonene har ingen type, og en lokasjon trenger en for å ligge under en annen. Den får denne typen.",
   "{{count}} sites match": "{{count}} lokasjoner samsvarer",
-  "{{count}} sites match_one": "{{count}} lokasjon samsvarer"
+  "{{count}} sites match_one": "{{count}} lokasjon samsvarer",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Kostnadene til kontoene dine leses etter tur, så raskt som skyen deres tillater.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses som de neste, rundt {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses ved tilkoblingens neste lesing."
 }

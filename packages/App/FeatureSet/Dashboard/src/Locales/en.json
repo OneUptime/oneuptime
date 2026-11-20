@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "{{count}} of these sites has no type, and a site needs one to sit under another. It gets this type.",
   "{{count}} sites match": "{{count}} sites match",
-  "{{count}} sites match_one": "{{count}} site matches"
+  "{{count}} sites match_one": "{{count}} site matches",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Your accounts' costs are read in turn, as fast as their cloud allows.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Your cloud limits how fast costs can be read, so these are read with the connection's next read."
 }

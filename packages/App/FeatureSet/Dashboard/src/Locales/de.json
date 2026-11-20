@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "{{count}} dieser Standorte haben keinen Typ, und ein Standort braucht einen, um unter einem anderen zu liegen. Sie erhalten diesen Typ, die anderen behalten ihren.",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "{{count}} dieser Standorte hat keinen Typ, und ein Standort braucht einen, um unter einem anderen zu liegen. Er erhält diesen Typ.",
   "{{count}} sites match": "{{count}} passende Standorte",
-  "{{count}} sites match_one": "{{count}} passender Standort"
+  "{{count}} sites match_one": "{{count}} passender Standort",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "Die Kosten Ihrer Konten werden der Reihe nach gelesen, so schnell es ihre Cloud erlaubt.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Ihre Cloud begrenzt, wie schnell Kosten gelesen werden können, daher werden diese als Nächstes gelesen, gegen {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ihre Cloud begrenzt, wie schnell Kosten gelesen werden können, daher werden diese mit dem nächsten Lesevorgang der Verbindung gelesen."
 }

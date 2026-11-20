@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "这些站点中有 {{count}} 个没有类型，而站点需要类型才能位于另一个站点之下。它们会获得此类型，其他站点保留原有类型。",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "这些站点中有 {{count}} 个没有类型，而站点需要类型才能位于另一个站点之下。它会获得此类型。",
   "{{count}} sites match": "{{count}} 个站点匹配",
-  "{{count}} sites match_one": "{{count}} 个站点匹配"
+  "{{count}} sites match_one": "{{count}} 个站点匹配",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "您的账户成本按顺序读取，速度以其云允许的为准。",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "您的云限制了读取成本的速度，因此这些成本排在下一轮，约于{{time}}读取。",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "您的云限制了读取成本的速度，因此这些成本将在连接的下一次读取时读取。"
 }

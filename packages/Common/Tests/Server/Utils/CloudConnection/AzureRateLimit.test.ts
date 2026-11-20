@@ -67,8 +67,16 @@ describe("how long a throttled answer asks to wait", () => {
   });
 
   test.each([
-    ["x-ms-ratelimit-microsoft.costmanagement-tenant-retry-after", "25", 25_000],
-    ["x-ms-ratelimit-microsoft.costmanagement-client-retry-after", "12", 12_000],
+    [
+      "x-ms-ratelimit-microsoft.costmanagement-tenant-retry-after",
+      "25",
+      25_000,
+    ],
+    [
+      "x-ms-ratelimit-microsoft.costmanagement-client-retry-after",
+      "12",
+      12_000,
+    ],
     [
       "x-ms-ratelimit-microsoft.costmanagement-clienttype-retry-after",
       "40",
@@ -76,15 +84,18 @@ describe("how long a throttled answer asks to wait", () => {
     ],
     ["x-ms-ratelimit-microsoft.consumption-retry-after", "30", 30_000],
     ["retry-after", "60", 60_000],
-  ])("%s: %s seconds, held by the tenant", (name, value, waitMs) => {
-    const rateLimit: AzureRateLimit = readAzureRateLimit(
-      { [name]: value },
-      NOW_MS,
-    );
+  ])(
+    "%s: %s seconds, held by the tenant",
+    (name: string, value: string, waitMs: number) => {
+      const rateLimit: AzureRateLimit = readAzureRateLimit(
+        { [name]: value },
+        NOW_MS,
+      );
 
-    expect(rateLimit.retryAfterMs).toBe(waitMs);
-    expect(rateLimit.isScopeOnly).toBeUndefined();
-  });
+      expect(rateLimit.retryAfterMs).toBe(waitMs);
+      expect(rateLimit.isScopeOnly).toBeUndefined();
+    },
+  );
 
   test("the longest of several: every limit must have room", () => {
     const rateLimit: AzureRateLimit = readAzureRateLimit(
@@ -134,27 +145,26 @@ describe("how long a throttled answer asks to wait", () => {
     ).toBe(9_000);
   });
 
-  test.each([
-    ["none"],
-    ["soon"],
-    ["-5"],
-    ["1.5"],
-    [""],
-  ])("%p is nothing said", (value: string) => {
-    expect(
-      readAzureRateLimit(
-        {
-          "x-ms-ratelimit-microsoft.costmanagement-entity-retry-after": value,
-        },
-        NOW_MS,
-      ).retryAfterMs,
-    ).toBeUndefined();
-  });
+  test.each([["none"], ["soon"], ["-5"], ["1.5"], [""]])(
+    "%p is nothing said",
+    (value: string) => {
+      expect(
+        readAzureRateLimit(
+          {
+            "x-ms-ratelimit-microsoft.costmanagement-entity-retry-after": value,
+          },
+          NOW_MS,
+        ).retryAfterMs,
+      ).toBeUndefined();
+    },
+  );
 
   test("0 asks for no wait, and alone asks for none at all", () => {
     expect(
       readAzureRateLimit(
-        { "x-ms-ratelimit-microsoft.costmanagement-clienttype-retry-after": "0" },
+        {
+          "x-ms-ratelimit-microsoft.costmanagement-clienttype-retry-after": "0",
+        },
         NOW_MS,
       ).retryAfterMs,
     ).toBeUndefined();

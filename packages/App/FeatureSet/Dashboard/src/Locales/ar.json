@@ -59978,5 +59978,8 @@
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs.": "المواقع التي ليس لها نوع من بين هذه: {{count}}، ويحتاج الموقع إلى نوع ليقع تحت موقع آخر. ستحصل على هذا النوع، وتحتفظ المواقع الأخرى بأنواعها.",
   "{{count}} of these sites have no type, and a site needs one to sit under another. They get this type, and the others keep theirs._one": "موقع واحد ({{count}}) من هذه المواقع ليس له نوع، ويحتاج الموقع إلى نوع ليقع تحت موقع آخر. سيحصل على هذا النوع.",
   "{{count}} sites match": "المواقع المطابقة: {{count}}",
-  "{{count}} sites match_one": "موقع واحد مطابق ({{count}})"
+  "{{count}} sites match_one": "موقع واحد مطابق ({{count}})",
+  "Your accounts' costs are read in turn, as fast as their cloud allows.": "تُقرأ تكاليف حساباتك بالتناوب، بالسرعة التي تسمح بها سحابتها.",
+  "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف تاليًا، نحو {{time}}.",
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف مع القراءة التالية للاتصال."
 }

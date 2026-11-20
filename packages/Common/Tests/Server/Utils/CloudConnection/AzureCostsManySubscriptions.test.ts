@@ -187,7 +187,11 @@ beforeEach(() => {
           records,
         });
 
-        return { seriesCount: records, rowsWritten: records, recordsWithoutAccount: 0 };
+        return {
+          seriesCount: records,
+          rowsWritten: records,
+          recordsWithoutAccount: 0,
+        };
       },
     );
   jest
@@ -241,8 +245,10 @@ describe("a tenant of 50 subscriptions", () => {
     const state: CloudConnectionPullState = { accounts: [...SUBSCRIPTIONS] };
 
     // The first read: as many as the tenant's pace allows in the lane's two minutes.
-    const first: { outcome: CloudCostsLaneOutcome; asked: Array<FakeCostQuery> } =
-      await sync({ tenant, state });
+    const first: {
+      outcome: CloudCostsLaneOutcome;
+      asked: Array<FakeCostQuery>;
+    } = await sync({ tenant, state });
 
     /*
      * Two first reads (6 QPU) each ten seconds over the lane's two minutes:
@@ -293,8 +299,10 @@ describe("a tenant of 50 subscriptions", () => {
     ).toEqual([]);
 
     clock.advance(READ_INTERVAL_MS);
-    const second: { outcome: CloudCostsLaneOutcome; asked: Array<FakeCostQuery> } =
-      await sync({ tenant, state });
+    const second: {
+      outcome: CloudCostsLaneOutcome;
+      asked: Array<FakeCostQuery>;
+    } = await sync({ tenant, state });
 
     expect(
       new Set(
@@ -310,17 +318,21 @@ describe("a tenant of 50 subscriptions", () => {
     expect(state.costsReadAt).toBe(START.toISOString());
 
     // Every subscription asked once, over a first read's days, and never refused.
-    const answered: Map<string, Array<{ from: string }>> =
-      tenant.answeredSubscriptions();
+    const answered: Map<
+      string,
+      Array<{ from: string }>
+    > = tenant.answeredSubscriptions();
 
     expect(answered.size).toBe(50);
     for (const subscriptionId of SUBSCRIPTIONS) {
       expect(answered.get(subscriptionId)).toEqual([{ from: FIRST_READ_FROM }]);
     }
     expect(tenant.refused()).toEqual([]);
-    expect(tenant.queries.every((query: FakeCostQuery): boolean => {
-      return query.clientType === "OneUptime";
-    })).toBe(true);
+    expect(
+      tenant.queries.every((query: FakeCostQuery): boolean => {
+        return query.clientType === "OneUptime";
+      }),
+    ).toBe(true);
 
     // Within two thirds of every documented quota, so never past one.
     expect(tenant.mostQpuInWindow.get(10_000)).toBeLessThanOrEqual(8);
@@ -361,8 +373,10 @@ describe("a tenant of 50 subscriptions", () => {
     clock.nowMs = START.getTime() + CLOUD_COSTS_INTERVAL_MS + 60 * 1000;
     writes = [];
 
-    const refresh: { outcome: CloudCostsLaneOutcome; asked: Array<FakeCostQuery> } =
-      await sync({ tenant, state });
+    const refresh: {
+      outcome: CloudCostsLaneOutcome;
+      asked: Array<FakeCostQuery>;
+    } = await sync({ tenant, state });
 
     expect(refresh.outcome.accountsRead).toBe(50);
     expect(refresh.asked).toHaveLength(50);
@@ -424,8 +438,10 @@ describe("a tenant of 50 subscriptions", () => {
     }
 
     // Every subscription's first read, once each.
-    const answered: Map<string, Array<{ from: string }>> =
-      tenant.answeredSubscriptions();
+    const answered: Map<
+      string,
+      Array<{ from: string }>
+    > = tenant.answeredSubscriptions();
 
     for (const subscriptionId of SUBSCRIPTIONS) {
       expect(answered.get(subscriptionId)).toEqual([{ from: FIRST_READ_FROM }]);

@@ -132,9 +132,7 @@ describe("a throttled Cost Management query", () => {
       entityRequestsRemaining: 0,
       tenantRequestsRemaining: 15,
     });
-    expect(failure.message).toContain(
-      "Azure cost query failed with HTTP 429:",
-    );
+    expect(failure.message).toContain("Azure cost query failed with HTTP 429:");
     // Asked once: the caller paces it and asks again.
     expect(api.requestsTo(QUERY_PATH)).toHaveLength(1);
   });
@@ -239,7 +237,9 @@ describe("Resource Manager's other requests", () => {
     expect(subscriptions).toHaveLength(1);
     expect(sleeps).toEqual([3000]);
     // Never a Cost Management client type on a request that is not one of its queries.
-    expect((api.requestsTo("/subscriptions")[0]!.headers || {})["ClientType"]).toBeUndefined();
+    expect(
+      (api.requestsTo("/subscriptions")[0]!.headers || {})["ClientType"],
+    ).toBeUndefined();
   });
 
   test("an answer that names no wait backs off as before: a second, then two", async () => {
