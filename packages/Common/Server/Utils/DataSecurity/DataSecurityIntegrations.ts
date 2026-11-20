@@ -258,6 +258,10 @@ export default class DataSecurityIntegrations {
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
   ): Promise<void> {
+    if (issues.length === 0) {
+      return;
+    }
+
     try {
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,

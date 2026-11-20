@@ -401,6 +401,8 @@ describe("the AI rule", () => {
     ).toEqual([
       "AutoRemediationRuleAlertSeverity autoRemediationRuleId alertSeverityId",
       "AutoRemediationRuleCodeRepository autoRemediationRuleId codeRepositoryId",
+      // What a Data Security AI rule matches on: the store's labels (#10364).
+      "AutoRemediationRuleDataStoreLabel autoRemediationRuleId labelId",
       "AutoRemediationRuleExternalMcpServer autoRemediationRuleId externalMcpServerId",
       "AutoRemediationRuleIncidentSeverity autoRemediationRuleId incidentSeverityId",
       "AutoRemediationRuleLabel autoRemediationRuleId labelId",

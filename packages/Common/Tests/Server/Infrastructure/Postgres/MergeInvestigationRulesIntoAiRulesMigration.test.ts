@@ -396,9 +396,10 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
 
   /*
    * The telemetry products' lists (a rule's services and their labels)
-   * came after it too, with the telemetry products' AI rules.
+   * came after it too, with the telemetry products' AI rules, and so did
+   * Data Security's (a rule's store labels, #10364).
    */
-  test("the lists it reads are every list the AI rule declares but the runbooks and Runners, which only fixing uses, and the telemetry products' that came after it", () => {
+  test("the lists it reads are every list the AI rule declares but the runbooks and Runners, which only fixing uses, and the telemetry products' and Data Security's that came after it", () => {
     const modelJoinTables: Map<string, string> = getModelJoinTables();
 
     expect([...modelJoinTables.keys()]).toEqual(
@@ -414,6 +415,7 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
           return (
             property !== "runbooks" &&
             property !== "commandRunners" &&
+            property !== "dataStoreLabels" &&
             !TELEMETRY_AI_RULE_CRITERIA_FIELDS.includes(property)
           );
         })
