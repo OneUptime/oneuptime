@@ -731,3 +731,70 @@ describe("one at a time", () => {
     expect(release).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * IN THE INVITEE'S LANGUAGE (#9897): a resend is the invitation email
+ * again, so it is written as a new invitation is - in the language Grace's
+ * account picked, else in the language of Ada, who sends it again, else in
+ * English - and the project's email log keeps its subject in Ada's
+ * language whatever Grace's account says (EmailEnvelope.projectLogSubject).
+ */
+describe("in the invitee's language (#9897)", () => {
+  const INVITED_IN_ENGLISH: string = `Ada Walker invited you to ${PROJECT_NAME}`;
+  const INVITED_IN_GERMAN: string = `Ada Walker hat Sie zu ${PROJECT_NAME} eingeladen`;
+  const INVITED_IN_FRENCH: string = `Ada Walker vous a invité à rejoindre ${PROJECT_NAME}`;
+
+  function adaReads(language: string): void {
+    jest
+      .spyOn(InvitationInviterUtil, "read")
+      .mockResolvedValue({ ...INVITER, language: language });
+  }
+
+  test("Grace's account reads German: the email is German, the log's subject English", async () => {
+    grace!.language = "de";
+
+    await resend();
+
+    const mail: EmailMessage = sentMails()[0]!;
+
+    expect(mail.language).toBe("de");
+    expect(mail.subject).toBe(INVITED_IN_GERMAN);
+    expect(mail.isSubjectLiteral).toBe(true);
+    expect(mail.projectLogSubject).toBe(INVITED_IN_ENGLISH);
+  });
+
+  test("Grace picked no language: the email is in Ada's French, and so is the log's subject", async () => {
+    adaReads("fr");
+
+    await resend();
+
+    const mail: EmailMessage = sentMails()[0]!;
+
+    expect(mail.language).toBe("fr");
+    expect(mail.subject).toBe(INVITED_IN_FRENCH);
+    expect(mail.projectLogSubject).toBe(INVITED_IN_FRENCH);
+  });
+
+  test("Grace picked English: English it is, though Ada reads French, and the log keeps Ada's French", async () => {
+    grace!.language = "en";
+    adaReads("fr");
+
+    await resend();
+
+    const mail: EmailMessage = sentMails()[0]!;
+
+    expect(mail.language).toBeUndefined();
+    expect(mail.subject).toBe(INVITED_IN_ENGLISH);
+    expect(mail.projectLogSubject).toBe(INVITED_IN_FRENCH);
+  });
+
+  test("nobody picked a language: English, as it always was, with no language on the email", async () => {
+    await resend();
+
+    const mail: EmailMessage = sentMails()[0]!;
+
+    expect("language" in mail).toBe(false);
+    expect(mail.subject).toBe(INVITED_IN_ENGLISH);
+    expect(mail.projectLogSubject).toBe(INVITED_IN_ENGLISH);
+  });
+});

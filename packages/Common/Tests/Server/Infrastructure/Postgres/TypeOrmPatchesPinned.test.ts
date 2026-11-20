@@ -38,14 +38,23 @@ import { JoinAttribute } from "typeorm/query-builder/JoinAttribute";
  *    createWhereExpression appends;
  *  - CappedCount counts what TypeORM's count counts (computeCountExpression,
  *    executeCountQuery, on the builder EntityManager.count builds), in a
- *    subquery with a LIMIT.
+ *    subquery with a LIMIT;
+ *  - PendingInviteeProfiles.orderAsTheReaderSees (#9895) replaces an order
+ *    through a relation by a person's profile - which buildOrder writes as
+ *    "<join alias>.<column>" - with a value it selects under an alias of
+ *    its own, which createOrderByExpression and, in the two-query page,
+ *    createOrderByCombinedWithSelectExpression order by. It is a privacy
+ *    rule, not a shortcut, so on any other TypeORM it still applies, to the
+ *    builder EntityManager.find builds (PendingInviteeOrderPostgres holds
+ *    both).
  *
  * Each is held to TypeORM's answers by its own suite. Those hold the TypeORM
  * that is installed; this holds TypeORM to the one they were written for. A
  * TypeORM upgrade that changes any of these functions fails here: read the
  * new function, change the piece that relies on it if it must, run its
  * suite (EntityMetadataLookup, QueryPropertyNames, PagedFindSql,
- * PagedFindPostgres, CappedCountSql and CappedCountPostgres), and then pin
+ * PagedFindPostgres, CappedCountSql, CappedCountPostgres,
+ * PendingInviteeOrder and PendingInviteeOrderPostgres), and then pin
  * the new function's hash - and the new
  * version both here and in TypeOrmPatchVersion, which the patches check in
  * production too: on any other TypeORM they stand aside (held below).
@@ -174,6 +183,27 @@ describe("the TypeORM functions OneUptime's query patches rely on", () => {
       },
       "485bab8d8bffdecd10fb652538ab1b87059fc1f0046c73dd0a12002cfc563959",
     ],
+    [
+      "SelectQueryBuilder.buildOrder (PendingInviteeProfiles reads an order through a relation as '<join alias>.<column>')",
+      (): unknown => {
+        return selectPrototype["buildOrder"];
+      },
+      "521dee16316a119c00772fdeb660ed4e794e49f7b470a996900d757dd523a02a",
+    ],
+    [
+      "SelectQueryBuilder.createOrderByExpression (PendingInviteeProfiles orders by a value it selects, by its alias)",
+      (): unknown => {
+        return selectPrototype["createOrderByExpression"];
+      },
+      "a7d93d44034eb176d2400b36f4e9e3c7bf21ae0c1f07d3fa4fbe5895c0f692e9",
+    ],
+    [
+      "SelectQueryBuilder.createOrderByCombinedWithSelectExpression (the same, in TypeORM's two-query page)",
+      (): unknown => {
+        return selectPrototype["createOrderByCombinedWithSelectExpression"];
+      },
+      "da47af0873a6fbf5ff2273c8802459cc01b040540fc84cfdff9942b56a16b7d1",
+    ],
   ])(
     "%s is the code the patch was written against",
     (_label: string, read: () => unknown, pinned: string) => {
@@ -188,12 +218,56 @@ describe("the TypeORM functions OneUptime's query patches rely on", () => {
 /*
  * On a TypeORM other than the one they were written for, the patches stand
  * aside: neither install() replaces TypeORM's function, and PagedFind reads
- * through repository.find itself.
+ * through repository.find itself - or, for a read that hands an adjuster
+ * (the order a reader may see, #9895), through the builder repository.find
+ * builds, adjusted.
  */
 describe("on any other TypeORM, the patches stand aside", () => {
   afterEach(() => {
     TypeOrmPatchVersion.setInstalledVersionForTests(undefined);
     jest.restoreAllMocks();
+  });
+
+  test("a read with an adjuster: the builder repository.find builds, adjusted, and none of PagedFind's own", async () => {
+    TypeOrmPatchVersion.setInstalledVersionForTests("0.3.32");
+
+    const dataSource: DataSource = new DataSource({
+      type: "postgres",
+      entities: Entities,
+    });
+
+    await (
+      dataSource as unknown as { buildMetadatas: () => Promise<void> }
+    ).buildMetadatas();
+
+    const repository: Repository<Monitor> = dataSource.getRepository(Monitor);
+    const find: ReturnType<typeof jest.spyOn> = jest.spyOn(repository, "find");
+    const built: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      PagedFind,
+      "createQueryBuilder",
+    );
+    const adjusted: Array<SelectQueryBuilder<Monitor>> = [];
+
+    jest
+      .spyOn(SelectQueryBuilder.prototype, "getMany")
+      .mockResolvedValue([] as never);
+
+    expect(
+      await PagedFind.find(
+        repository,
+        { relations: { currentMonitorStatus: true }, take: 10 } as never,
+        (queryBuilder: SelectQueryBuilder<any>): void => {
+          adjusted.push(queryBuilder);
+        },
+      ),
+    ).toEqual([]);
+
+    expect(find).not.toHaveBeenCalled();
+    expect(built).not.toHaveBeenCalled();
+    expect(adjusted).toHaveLength(1);
+    // As EntityManager.find builds it: its page left to TypeORM's two queries.
+    expect(adjusted[0]!.expressionMap.take).toBe(10);
+    expect(adjusted[0]!.expressionMap.limit).toBeUndefined();
   });
 
   test.each([["0.3.32"], ["0.4.0"], [null]])(
