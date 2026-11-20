@@ -87,8 +87,7 @@ export function foldEdgeActivityRows(data: {
   const entryOf: (address: string) => SecurityCaseEdgeAddressJson = (
     address: string,
   ): SecurityCaseEdgeAddressJson => {
-    let entry: SecurityCaseEdgeAddressJson | undefined =
-      byAddress.get(address);
+    let entry: SecurityCaseEdgeAddressJson | undefined = byAddress.get(address);
 
     if (!entry) {
       entry = {
@@ -115,10 +114,11 @@ export function foldEdgeActivityRows(data: {
 
     if (action) {
       const edge: string = readText(row["vendorName"]) || "Edge";
-      let activity: SecurityCaseEdgeActivityJson | undefined =
-        entry.edges.find((candidate: SecurityCaseEdgeActivityJson): boolean => {
+      let activity: SecurityCaseEdgeActivityJson | undefined = entry.edges.find(
+        (candidate: SecurityCaseEdgeActivityJson): boolean => {
           return candidate.edge === edge;
-        });
+        },
+      );
 
       if (!activity) {
         if (entry.edges.length >= MAX_EDGES_PER_ADDRESS) {

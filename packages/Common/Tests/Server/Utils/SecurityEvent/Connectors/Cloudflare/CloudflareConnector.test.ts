@@ -98,7 +98,9 @@ function settings(
   };
 }
 
-function options(overrides: Partial<ConnectorFetchOptions> = {}): ConnectorFetchOptions {
+function options(
+  overrides: Partial<ConnectorFetchOptions> = {},
+): ConnectorFetchOptions {
   return {
     maxRequests: 120,
     maxEvents: 20000,
@@ -580,9 +582,11 @@ describe("CloudflareConnector - reading firewall events", () => {
     const result: ConnectorFetchResult = await fetchWindow(connector);
 
     expect(
-      api.sent("OneUptimeFirewallEvents").map((request: FakeRequest): string => {
-        return String(request.variables["zoneTag"]);
-      }),
+      api
+        .sent("OneUptimeFirewallEvents")
+        .map((request: FakeRequest): string => {
+          return String(request.variables["zoneTag"]);
+        }),
     ).toEqual([ZONE_A, ZONE_B, ZONE_A, ZONE_A, ZONE_A]);
     expect(rayNames(result)).toEqual(["a1", "a2", "a3"]);
     expect(result.details).toEqual({
@@ -628,9 +632,11 @@ describe("CloudflareConnector - reading firewall events", () => {
 
     expect(rayNames(result)).toEqual(["b1"]);
     expect(
-      api.sent("OneUptimeFirewallEvents").map((request: FakeRequest): string => {
-        return String(request.variables["zoneTag"]);
-      }),
+      api
+        .sent("OneUptimeFirewallEvents")
+        .map((request: FakeRequest): string => {
+          return String(request.variables["zoneTag"]);
+        }),
     ).toEqual([ZONE_B]);
   });
 
@@ -806,9 +812,14 @@ describe("CloudflareConnector - Cloudflare's rate limits", () => {
       matches: (request: FakeRequest): boolean => {
         return request.operation === "OneUptimeFirewallEvents";
       },
-      response: restError(429, 971, "Please wait and consider throttling your request speed", {
-        "retry-after": "2",
-      }),
+      response: restError(
+        429,
+        971,
+        "Please wait and consider throttling your request speed",
+        {
+          "retry-after": "2",
+        },
+      ),
       times: 1,
     });
 
@@ -1043,7 +1054,9 @@ describe("CloudflareConnector - the run's bounds and unreadable zones", () => {
   });
 
   test("a chosen zone that is gone is said, and the rest are still read", async () => {
-    const { connector } = harness([zone({ id: ZONE_A, events: [event(1, "a1")] })]);
+    const { connector } = harness([
+      zone({ id: ZONE_A, events: [event(1, "a1")] }),
+    ]);
 
     const result: ConnectorFetchResult = await fetchWindow(connector, {
       accountId: ACCOUNT_ID,
@@ -1080,11 +1093,12 @@ describe("CloudflareConnector - the form's account and zone pickers", () => {
       }),
     ]);
 
-    const choices: Record<string, Array<ConnectorFieldChoice>> =
-      await connector.listFieldChoices(
-        settings({}, { apiToken: TOKEN }),
-        { requestTimeoutInMs: 1000 },
-      );
+    const choices: Record<
+      string,
+      Array<ConnectorFieldChoice>
+    > = await connector.listFieldChoices(settings({}, { apiToken: TOKEN }), {
+      requestTimeoutInMs: 1000,
+    });
 
     expect(choices["accountId"]).toEqual([
       { value: ACCOUNT_ID, label: "Acme Corp" },
@@ -1152,10 +1166,12 @@ describe("CloudflareConnector - the form's account and zone pickers", () => {
     );
     const { api, connector } = harness(zones);
 
-    const choices: Record<string, Array<ConnectorFieldChoice>> =
-      await connector.listFieldChoices(settings({}), {
-        requestTimeoutInMs: 1000,
-      });
+    const choices: Record<
+      string,
+      Array<ConnectorFieldChoice>
+    > = await connector.listFieldChoices(settings({}), {
+      requestTimeoutInMs: 1000,
+    });
 
     expect(choices["zoneIds"]).toHaveLength(120);
     expect(

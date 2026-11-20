@@ -285,6 +285,9 @@ const MAX_TARGET_LENGTH: number = 2000;
 const MAX_MESSAGE_TARGET_LENGTH: number = 300;
 const MAX_ATTRIBUTE_LENGTH: number = 1000;
 
+// "00" is how Cloudflare writes "no challenged request before this one".
+const NO_ORIGINATOR_RAY: RegExp = /^0+$/;
+
 function readText(raw: JSONObject, key: string): string {
   return readString(raw, key).trim();
 }
@@ -355,7 +358,9 @@ export default class CloudflareNormalizer {
   }
 
   public static edgeActionFor(action: string): EdgeAction {
-    return EDGE_ACTIONS.get(cloudflareValueKey(action || "")) || EdgeAction.Other;
+    return (
+      EDGE_ACTIONS.get(cloudflareValueKey(action || "")) || EdgeAction.Other
+    );
   }
 
   /*
@@ -524,7 +529,8 @@ export default class CloudflareNormalizer {
     const rawAction: string = readText(raw, "action");
     const actionKey: string = cloudflareValueKey(rawAction);
     const action: string = CloudflareNormalizer.canonicalAction(rawAction);
-    const edgeAction: EdgeAction = CloudflareNormalizer.edgeActionFor(rawAction);
+    const edgeAction: EdgeAction =
+      CloudflareNormalizer.edgeActionFor(rawAction);
     const source: string = CloudflareNormalizer.canonicalSource(
       readText(raw, "source"),
     );
@@ -605,15 +611,17 @@ export default class CloudflareNormalizer {
     setText(CLOUDFLARE_ATTRIBUTES.rulesetId, readText(raw, "rulesetId"));
     setText(CLOUDFLARE_ATTRIBUTES.ruleRef, readText(raw, "ref"));
     setText(CLOUDFLARE_ATTRIBUTES.ruleDescription, ruleDescription);
-    // "00" is how Cloudflare writes "no challenged request before this one".
     const originatorRayName: string = readText(raw, "originatorRayName");
     setText(
       CLOUDFLARE_ATTRIBUTES.originatorRayId,
-      /^0+$/.test(originatorRayName) ? "" : originatorRayName,
+      NO_ORIGINATOR_RAY.test(originatorRayName) ? "" : originatorRayName,
     );
     setText(CLOUDFLARE_ATTRIBUTES.country, readText(raw, "clientCountryName"));
     setText(CLOUDFLARE_ATTRIBUTES.asn, readText(raw, "clientAsn"));
-    setText(CLOUDFLARE_ATTRIBUTES.asnName, readText(raw, "clientASNDescription"));
+    setText(
+      CLOUDFLARE_ATTRIBUTES.asnName,
+      readText(raw, "clientASNDescription"),
+    );
     setText(CLOUDFLARE_ATTRIBUTES.colo, readText(raw, "edgeColoName"));
     setText(CLOUDFLARE_ATTRIBUTES.scheme, scheme);
     setText(
@@ -684,11 +692,7 @@ export default class CloudflareNormalizer {
       ruleId,
       ruleName: ruleDescription || sourceLabel,
       mitreTactics: isExploitAttempt ? ["TA0001"] : isFlood ? ["TA0040"] : [],
-      mitreTechniques: isExploitAttempt
-        ? ["T1190"]
-        : isFlood
-          ? ["T1499"]
-          : [],
+      mitreTechniques: isExploitAttempt ? ["T1190"] : isFlood ? ["T1499"] : [],
       principalUser: "",
       principalHost: "",
       principalIp: clientIp,

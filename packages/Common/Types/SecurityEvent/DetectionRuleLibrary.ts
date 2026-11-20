@@ -2127,7 +2127,8 @@ detection:
       description:
         "Cloudflare logged an attack from an IP address, or a rule of yours let one through, and within fifteen minutes your app's own logs or traces show a request from that address reached the app.",
       category: DetectionRuleLibraryCategory.Web,
-      dataSource: "Cloudflare firewall events and web requests followed into their traces",
+      dataSource:
+        "Cloudflare firewall events and web requests followed into their traces",
       dataKind: DetectionRuleDataKind.Cloudflare,
       evaluationIntervalInMinutes: 5,
       matchCountThreshold: 1,

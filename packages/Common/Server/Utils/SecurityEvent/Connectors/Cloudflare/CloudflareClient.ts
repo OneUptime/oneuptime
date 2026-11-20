@@ -11,7 +11,11 @@ import DataSourceHttpRetry, {
   HttpRetryReason,
   HttpRetryVerdict,
 } from "../../../DataSource/HttpRetry";
-import { REDACTED, redactLogString, redactLogValue } from "../../../LogRedaction";
+import {
+  REDACTED,
+  redactLogString,
+  redactLogValue,
+} from "../../../LogRedaction";
 import { ConnectorTransport } from "../Types";
 
 /*
@@ -571,7 +575,8 @@ export default class CloudflareClient {
       });
     }
 
-    const rows: JSONValue | undefined = zone[CLOUDFLARE_FIREWALL_EVENTS_DATASET];
+    const rows: JSONValue | undefined =
+      zone[CLOUDFLARE_FIREWALL_EVENTS_DATASET];
 
     if (!Array.isArray(rows)) {
       throw this.unrecognized(CLOUDFLARE_ANALYTICS_STEP, data);
@@ -1014,10 +1019,10 @@ export default class CloudflareClient {
       statusCode: status,
       waitInMs:
         kind === CloudflareFailureKind.RateLimited
-          ? (this.readWait(response) ??
+          ? this.readWait(response) ??
             (messages.some(isRateLimitMessage)
               ? GRAPHQL_BUDGET_WAIT_IN_MS
-              : undefined))
+              : undefined)
           : undefined,
       unauthorizedZoneTags,
     });
@@ -1071,7 +1076,9 @@ export default class CloudflareClient {
       ? viewer["zones"]
       : undefined;
 
-    return Array.isArray(zones) ? (zones as JSONArray).filter(isJsonObject) : [];
+    return Array.isArray(zones)
+      ? (zones as JSONArray).filter(isJsonObject)
+      : [];
   }
 
   public static readZone(value: JSONValue): CloudflareZone | null {

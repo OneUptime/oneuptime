@@ -58,7 +58,9 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
     translationKey("Azure Activity Log"),
   [DetectionRuleDataKind.NetworkActivity]: translationKey("Network activity"),
   [DetectionRuleDataKind.WebRequests]: translationKey("Web requests"),
-  [DetectionRuleDataKind.Cloudflare]: translationKey("Cloudflare firewall events"),
+  [DetectionRuleDataKind.Cloudflare]: translationKey(
+    "Cloudflare firewall events",
+  ),
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Kubernetes audit logs",
   ),

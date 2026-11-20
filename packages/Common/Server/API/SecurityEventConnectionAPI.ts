@@ -209,10 +209,12 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
             );
           }
 
-          const choices: Record<string, Array<ConnectorFieldChoice>> =
-            await connector.listFieldChoices(resolved.settings, {
-              requestTimeoutInMs: CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
-            });
+          const choices: Record<
+            string,
+            Array<ConnectorFieldChoice>
+          > = await connector.listFieldChoices(resolved.settings, {
+            requestTimeoutInMs: CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
+          });
           const report: ConnectorFieldChoicesReport = {
             provider: resolved.settings.provider,
             choices,
@@ -263,7 +265,9 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
       alertingOnlyValue !== null &&
       typeof alertingOnlyValue !== "boolean"
     ) {
-      throw new BadDataException("Alerting records only must be true or false.");
+      throw new BadDataException(
+        "Alerting records only must be true or false.",
+      );
     }
 
     const validate: (settings: {

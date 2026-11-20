@@ -255,9 +255,8 @@ export default class CloudflareFakeApi {
       const body: JSONObject = JSON.parse(String(request.body)) as JSONObject;
       queryText = String(body["query"]);
       variables = (body["variables"] as JSONObject) || {};
-      const match: RegExpMatchArray | null = queryText.match(
-        /query\s+([A-Za-z]+)/,
-      );
+      const match: RegExpMatchArray | null =
+        queryText.match(/query\s+([A-Za-z]+)/);
       operation = match ? match[1]! : "graphql";
     }
 
@@ -327,7 +326,9 @@ export default class CloudflareFakeApi {
     return json(200, {
       success: true,
       errors: [],
-      messages: [{ code: 10000, message: "This API Token is valid and active" }],
+      messages: [
+        { code: 10000, message: "This API Token is valid and active" },
+      ],
       result: {
         id: "ed17574386854bf78a67040be0a770b0",
         status: this.token.status,
@@ -391,20 +392,20 @@ export default class CloudflareFakeApi {
    * Cloudflare refuses it: "zones [...] are not authorized".
    */
   private refusal(zoneTags: Array<string>): DataSourceHttpResponse | null {
-    const refused: Array<string> = zoneTags.filter((zoneTag: string): boolean => {
-      return this.zoneOf(zoneTag)?.analytics === false;
-    });
+    const refused: Array<string> = zoneTags.filter(
+      (zoneTag: string): boolean => {
+        return this.zoneOf(zoneTag)?.analytics === false;
+      },
+    );
 
     return refused.length
-      ? graphQlError(
-          `zones ${JSON.stringify(refused)} are not authorized`,
-          200,
-        )
+      ? graphQlError(`zones ${JSON.stringify(refused)} are not authorized`, 200)
       : null;
   }
 
   private settings(variables: JSONObject): DataSourceHttpResponse {
-    const zoneTags: Array<string> = (variables["zoneTags"] as Array<string>) || [];
+    const zoneTags: Array<string> =
+      (variables["zoneTags"] as Array<string>) || [];
     const refusal: DataSourceHttpResponse | null = this.refusal(zoneTags);
 
     if (refusal) {
@@ -453,7 +454,9 @@ export default class CloudflareFakeApi {
     }
 
     const zone: FakeZone | undefined = this.zoneOf(zoneTag);
-    const filter: JSONObject = { ...((variables["filter"] as JSONObject) || {}) };
+    const filter: JSONObject = {
+      ...((variables["filter"] as JSONObject) || {}),
+    };
 
     if (this.ignoresAfterFilter) {
       delete filter["OR"];
@@ -478,7 +481,8 @@ export default class CloudflareFakeApi {
   }
 
   private counts(variables: JSONObject): DataSourceHttpResponse {
-    const zoneTags: Array<string> = (variables["zoneTags"] as Array<string>) || [];
+    const zoneTags: Array<string> =
+      (variables["zoneTags"] as Array<string>) || [];
     const filter: JSONObject = (variables["filter"] as JSONObject) || {};
 
     return json(200, {

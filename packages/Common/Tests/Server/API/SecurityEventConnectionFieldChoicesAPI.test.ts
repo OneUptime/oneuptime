@@ -155,9 +155,7 @@ beforeEach(() => {
       plan: { name: "Pro Website", legacy_id: "pro" },
     },
   ]);
-  jest
-    .spyOn(DataSourceHttpFetch, "fetch")
-    .mockImplementation(api.transport());
+  jest.spyOn(DataSourceHttpFetch, "fetch").mockImplementation(api.transport());
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockImplementation(async () => {

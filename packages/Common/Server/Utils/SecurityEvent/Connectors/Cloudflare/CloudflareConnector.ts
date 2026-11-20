@@ -261,7 +261,9 @@ export default class CloudflareConnector implements SecurityEventConnector {
     }
 
     if (!accountId && options.requireAccount) {
-      throw new BadDataException(`${this.fieldTitle("accountId")} is required.`);
+      throw new BadDataException(
+        `${this.fieldTitle("accountId")} is required.`,
+      );
     }
 
     if (accountId && !CLOUDFLARE_ID_REGEX.test(accountId)) {
@@ -357,7 +359,10 @@ export default class CloudflareConnector implements SecurityEventConnector {
       });
     }
 
-    const byLabel: (a: ConnectorFieldChoice, b: ConnectorFieldChoice) => number = (
+    const byLabel: (
+      a: ConnectorFieldChoice,
+      b: ConnectorFieldChoice,
+    ) => number = (
       a: ConnectorFieldChoice,
       b: ConnectorFieldChoice,
     ): number => {
@@ -649,7 +654,10 @@ export default class CloudflareConnector implements SecurityEventConnector {
             },
           }),
         );
-        skipRest(3, "Skipped because a zone's firewall events could not be read.");
+        skipRest(
+          3,
+          "Skipped because a zone's firewall events could not be read.",
+        );
         return { checks };
       }
 
@@ -1250,7 +1258,8 @@ export default class CloudflareConnector implements SecurityEventConnector {
 
     if (settings.notOlderThanSeconds) {
       const oldestMs: number =
-        nowMs - settings.notOlderThanSeconds * SECOND_IN_MS +
+        nowMs -
+        settings.notOlderThanSeconds * SECOND_IN_MS +
         RETENTION_MARGIN_IN_MS;
 
       if (startMs < oldestMs) {
@@ -1353,9 +1362,7 @@ export default class CloudflareConnector implements SecurityEventConnector {
   }
 
   // The oldest edge time every unfinished zone was read to, or undefined when one read nothing.
-  private static oldestProgress(
-    unfinished: Array<ZoneRead>,
-  ): Date | undefined {
+  private static oldestProgress(unfinished: Array<ZoneRead>): Date | undefined {
     let oldest: Date | undefined = undefined;
 
     for (const zoneRead of unfinished) {
@@ -1591,7 +1598,11 @@ export default class CloudflareConnector implements SecurityEventConnector {
    */
   private static remediationFor(
     error: unknown,
-    step: "authentication" | "zones" | "read-permission" | "detections-available",
+    step:
+      | "authentication"
+      | "zones"
+      | "read-permission"
+      | "detections-available",
   ): string {
     const kind: CloudflareFailureKind | undefined =
       error instanceof CloudflareApiError ? error.kind : undefined;

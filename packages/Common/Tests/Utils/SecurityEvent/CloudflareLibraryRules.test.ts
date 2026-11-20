@@ -70,7 +70,10 @@ function cloudflare(raw: JSONObject): NormalizedSecurityEvent {
 }
 
 // A request the app's own access log recorded, from the attacker's address.
-function fromAccessLog(target: string, status: number): NormalizedSecurityEvent {
+function fromAccessLog(
+  target: string,
+  status: number,
+): NormalizedSecurityEvent {
   const events: Array<NormalizedSecurityEvent> = SecurityLogParser.parse(
     logLine(
       `${ATTACKER_IP} - - [20/Nov/2026:10:45:00 +0000] "GET ${target} HTTP/1.1" ${status} 512 "-" "sqlmap/1.7"`,
@@ -280,9 +283,9 @@ describe(LET_THROUGH_REACHED_APP, () => {
   test("its Cloudflare step is an attack logged or let through, never one stopped", () => {
     const letThrough: SigmaRule = stepRule(LET_THROUGH_REACHED_APP, 0);
 
-    expect(sigmaRuleMatchesEvent(letThrough, cloudflare(MANAGED_RULE_LOG))).toBe(
-      true,
-    );
+    expect(
+      sigmaRuleMatchesEvent(letThrough, cloudflare(MANAGED_RULE_LOG)),
+    ).toBe(true);
     expect(
       sigmaRuleMatchesEvent(letThrough, cloudflare(SKIP_WITH_PATH_TRAVERSAL)),
     ).toBe(true);

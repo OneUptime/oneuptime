@@ -92,8 +92,10 @@ export async function fetchConnectorFieldChoices(
  * One request per set of credentials, shared by every picker that reads
  * it. A failed one is forgotten, so Try Again asks again.
  */
-const choicesRequests: Map<string, Promise<ConnectorFieldChoicesReport>> =
-  new Map<string, Promise<ConnectorFieldChoicesReport>>();
+const choicesRequests: Map<
+  string,
+  Promise<ConnectorFieldChoicesReport>
+> = new Map<string, Promise<ConnectorFieldChoicesReport>>();
 
 export function readConnectorFieldChoices(
   key: string,
@@ -191,7 +193,9 @@ export interface ConnectorFieldChoicesInputProps {
   waitingReason?: string | undefined;
   fieldProps: CustomElementProps;
   // Test seam: the request.
-  fetcher?: ((body: JSONObject) => Promise<ConnectorFieldChoicesReport>) | undefined;
+  fetcher?:
+    | ((body: JSONObject) => Promise<ConnectorFieldChoicesReport>)
+    | undefined;
 }
 
 type ChoicesState =

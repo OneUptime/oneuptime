@@ -332,7 +332,11 @@ describe("CloudflareNormalizer - each source", () => {
     ["waf", "waf", "WAF (legacy)"],
     ["firewallrules", "firewallRules", "Firewall Rules"],
     ["dlp", "dlp", "Data Loss Prevention"],
-    ["apishieldschemavalidation", "apiShieldSchemaValidation", "API Shield schema validation"],
+    [
+      "apishieldschemavalidation",
+      "apiShieldSchemaValidation",
+      "API Shield schema validation",
+    ],
     ["somethingNew", "somethingNew", "somethingNew"],
   ])(
     "%s is stored as %s and named %s",

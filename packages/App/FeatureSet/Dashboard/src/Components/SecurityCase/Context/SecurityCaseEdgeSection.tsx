@@ -126,9 +126,7 @@ export function edgeHeadline(
 }
 
 // The figures of one address, the edge's first, those that are not zero.
-export function edgeFigures(
-  entry: SecurityCaseEdgeAddressJson,
-): Array<Figure> {
+export function edgeFigures(entry: SecurityCaseEdgeAddressJson): Array<Figure> {
   const figures: Array<Figure> = [];
 
   for (const activity of entry.edges) {
