@@ -92,6 +92,11 @@ import {
   getFirstOnCallPolicyName,
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SharedNameFacts,
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import Phone from "Common/Types/Phone";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -126,9 +131,17 @@ export interface ProjectPhoneFacts {
   balanceInUSDCents: number | null;
 }
 
+// A policy the step offers to pick.
+export interface PolicyChoice {
+  id: string;
+  name: string;
+  // What tells it from another policy of its name (#10314).
+  sharedName?: SharedNameFacts | undefined;
+}
+
 // The project's policies, and what this person may do with them.
 export interface PolicyChoiceFacts {
-  policies: Array<{ id: string; name: string }>;
+  policies: Array<PolicyChoice>;
   mayCreatePolicy: boolean;
   mayAddRules: boolean;
   mayEditLevels: boolean;
@@ -453,7 +466,12 @@ export default class OnCallSetupApi {
         query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
-        select: { _id: true, name: true },
+        select: {
+          _id: true,
+          name: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
+        },
         sort: { name: SortOrder.Ascending },
       });
 
@@ -462,10 +480,11 @@ export default class OnCallSetupApi {
         .filter((policy: OnCallDutyPolicy): boolean => {
           return Boolean(policy.id);
         })
-        .map((policy: OnCallDutyPolicy): { id: string; name: string } => {
+        .map((policy: OnCallDutyPolicy): PolicyChoice => {
           return {
             id: policy.id!.toString(),
             name: policy.name || "",
+            sharedName: getSharedNameFacts(policy),
           };
         }),
       mayCreatePolicy:

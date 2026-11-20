@@ -52,6 +52,8 @@ export interface TimelineTeam {
   id: string;
   name: string;
   isCurrentUserMember: boolean;
+  // When it was made: tells two teams of one name apart (#10314).
+  createdAt?: Date | undefined;
 }
 
 export interface TimelineData {
@@ -166,10 +168,17 @@ export default class TimelineModel {
       ),
       teams: response.teams.map(
         (team: ScheduleTimelineTeamJson): TimelineTeam => {
+          const createdAt: Date | null = team.teamCreatedAt
+            ? new Date(team.teamCreatedAt)
+            : null;
+
           return {
             id: team.teamId,
             name: team.teamName,
             isCurrentUserMember: team.isCurrentUserMember,
+            ...(createdAt && !isNaN(createdAt.getTime())
+              ? { createdAt: createdAt }
+              : {}),
           };
         },
       ),

@@ -42,6 +42,11 @@ import BadDataExceptionWithDetails from "./BadDataExceptionWithDetails";
  * record gives the name up. A refusal of one update that would give several
  * records one name carries no code: asking it again changes nothing.
  *
+ * A value that is not a name, but that a record holds alone - a domain, a
+ * host's identifier, an SSO provider's sign-on URL - is refused the same
+ * way with codes of its own, "value_taken" and "value_taken_by_archived"
+ * (ValueTakenException, #10319).
+ *
  * React-free and server-safe.
  */
 

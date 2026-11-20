@@ -3,7 +3,7 @@
 OneUptime のメールを、SMTP サーバーの代わりにメールプロバイダーの HTTPS API から送信します。対応しているのは Amazon SES、SendGrid、Mailgun、Postmark、Resend です。プロジェクトでは SMTP 設定でプロバイダーを選べます。セルフホストのインストールでは、OneUptime 自身のメールをすべてプロバイダー経由で送信できます。API にはポート 443 の HTTPS で接続するため、SMTP のポートをブロックしているネットワークからでもメールを送信でき、各プロバイダーのキーは暗号化して保存されます。
 
 :::cards
-- [Amazon SES](#amazon-ses): IAM のアクセスキー、またはサーバー自身の IAM ロールと、送信者を検証したリージョン。
+- [Amazon SES](#amazon-ses): IAM のアクセスキー、AWS アカウントの IAM ロール、またはサーバー自身の IAM ロールと、送信者を検証したリージョン。
 - [SendGrid](#sendgrid): Mail Send のアクセス権を持つ API キー。
 - [Mailgun](#mailgun): API キー、送信ドメインとそのリージョン。
 - [Postmark](#postmark): サーバーの API トークン。
@@ -55,16 +55,16 @@ OneUptime 用の IAM ユーザーを作成して、検証したアイデンテ�
 }
 ```
 
-AWS 上のセルフホスト環境では、キーを使わずに、同じポリシーで [サーバーの IAM ロールでサインインする](#サーバーの-iam-ロールでサインインする) こともできます。
+AWS 上のセルフホスト環境では、キーを使わずに、同じポリシーで [サーバーの IAM ロールでサインインする](#サーバーの-iam-ロールでサインインする) こともできます。 プロジェクトの設定でもキーを使わずに、[AWS アカウントの IAM ロールでサインインする](#aws-アカウントの-iam-ロールでサインインする) ことができます。
 
 ### Amazon SES のステップを入力する
 
-**アクセスキー ID** と **シークレットアクセスキー**、そしてアイデンティティを検証した **リージョン** (`us-east-1` など) を入力します。
+**認証タイプ** は **アクセスキー** のままにして、**アクセスキー ID** と **シークレットアクセスキー**、そしてアイデンティティを検証した **リージョン** (`us-east-1` など) を入力します。
 :::
 
 ### サーバーの IAM ロールでサインインする
 
-セルフホスト環境は IAM ロールとして自身のメールを送信でき、OneUptime にアクセスキーは保存されません。AWS 上では AWS がサーバーに与えるロール、それ以外の場所では IAM Roles Anywhere でサインインするロールです。認証情報は数時間で期限切れになり、OneUptime は期限が切れる前に新しいものを取得します。これはサーバー自身のメール専用です。プロジェクトの Amazon SES 設定は常にアクセスキーでサインインします。サーバーのロールはプロジェクトのものではなく、サーバー自身の AWS ID だからです。
+セルフホスト環境は IAM ロールとして自身のメールを送信でき、OneUptime にアクセスキーは保存されません。AWS 上では AWS がサーバーに与えるロール、それ以外の場所では IAM Roles Anywhere でサインインするロールです。認証情報は数時間で期限切れになり、OneUptime は期限が切れる前に新しいものを取得します。これはサーバー自身のメール専用です。サーバーのロールはプロジェクトのものではなく、サーバー自身の AWS ID だからです。プロジェクトの Amazon SES 設定は、アクセスキーまたは [AWS アカウントの IAM ロール](#aws-アカウントの-iam-ロールでサインインする) でサインインします。
 
 ロールに上記のポリシーを付け、OneUptime をそのロールで実行します。
 
@@ -114,6 +114,37 @@ Helm チャートでは、`extraVolumes` と `extraVolumeMounts` で設定、証
 次に Admin Dashboard で **Amazon SESを編集** をクリックし、**認証タイプ** として **このサーバーの IAM ロール** を選び、**リージョン** を入力します。保存すると、それまでに保存されていたアクセスキーは削除されます。
 
 OneUptime は AWS SDK と同じ場所を、次の順序で探してサーバーの認証情報を見つけます: 環境の `AWS_ACCESS_KEY_ID` と `AWS_SECRET_ACCESS_KEY`、`AWS_PROFILE`、`AWS_CONFIG_FILE` または `AWS_SHARED_CREDENTIALS_FILE` が指定する AWS プロファイル (そのキー、またはその `credential_process`)、Web ID トークン (`AWS_ROLE_ARN` と `AWS_WEB_IDENTITY_TOKEN_FILE`)、Amazon ECS と EKS Pod Identity のコンテナ認証情報エンドポイント、最後に EC2 のインスタンスメタデータサービス (IMDSv2)。この 3 つのどれも設定されていなければ、OneUptime は AWS 設定ファイルを読みません。
+
+### AWS アカウントの IAM ロールでサインインする
+
+プロジェクトの Amazon SES 設定は、自分の AWS アカウントの IAM ロールでサインインできるため、OneUptime にキーは保存されません。OneUptime は自身の AWS ID と、プロジェクトのメールだけが使う外部 ID でロールにサインインし、各セッションは 1 時間続きます。ロールには上のポリシーと、その外部 ID で OneUptime の AWS アカウントを受け入れる信頼ポリシーを設定します。
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+設定の **Amazon SES** ステップで、**認証タイプ** として **AWS アカウントの IAM ロール** を選びます。**ロール ARN** の下の **AWS でロールを設定** に、プロジェクトの **外部 ID** と、OneUptime のアカウントと ID を入れたこの信頼ポリシーがコピーできる形で表示されます。これでロールを作成し、その **ロール ARN** と **リージョン** を入力してから、設定の行で **テストメールを送信** をクリックします。ロールを保存すると、以前に保存したアクセスキーは削除されます。
+
+OneUptime はロール経由で送信する前にロールを確認し、次のロールには決してサインインしません。
+
+- 信頼ポリシーがプロジェクトの外部 ID を要求しないロール。ARN を知っているどのプロジェクトでも、あなたのアカウント経由でメールを送信できてしまいます。`sts:ExternalId` の条件を追加してテストメールを送信すると、すぐにロールが再確認されます。確認はおよそ 1 日に 1 回行われ、ロールの CloudTrail に `sts:AssumeRole` の `AccessDenied` として記録されます。
+- OneUptime 自身の AWS アカウントにあるロール。その信頼ポリシーの内容は問いません。サーバー自身のメールを稼働しているアカウント経由で送信するには、代わりに [サーバーの IAM ロール](#サーバーの-iam-ロールでサインインする) を使います。
+
+外部 ID はプロジェクト固有のもので、秘密ではありません。Cloud Connect の IAM ロールは別の外部 ID を使うため、一方のために作ったロールにもう一方がサインインすることはありません。Cloud Connect のアクセスキーも AWS 認証情報も持たない、自身の AWS ID がないサーバーはロールにサインインできず、ステップにその旨が表示されます。
 
 ## SendGrid
 
@@ -233,6 +264,10 @@ IAM ユーザーのポリシーで、アイデンティティに対する `ses:S
 
 :::details "This server's IAM role may not send with Amazon SES" または "did not let this server assume the role"
 ロールのポリシーで、アイデンティティに対する `ses:SendEmail` が許可されていません。上記のポリシーを追加してください。または Amazon EKS では、ロールの信頼ポリシーで、クラスターの OIDC プロバイダーと OneUptime のサービスアカウントに対する `sts:AssumeRoleWithWebIdentity` が許可されていません。
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" または "This role is in this OneUptime's own AWS account"
+[AWS アカウントの IAM ロールでサインインする](#aws-アカウントの-iam-ロールでサインインする) のとおり、OneUptime はこのロール経由では送信しません。設定の **AWS でロールを設定** に表示される `sts:ExternalId` の条件をロールの信頼ポリシーに追加するか、自分の AWS アカウントにロールを作成してから、テストメールを送信してください。
 :::
 
 :::details "Mailgun has no domain … in its US region"
