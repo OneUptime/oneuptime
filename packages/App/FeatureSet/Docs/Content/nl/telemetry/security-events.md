@@ -338,7 +338,7 @@ Een hunt die is opgeslagen met filters uit de zijbalk van Gebeurtenissen, toont 
 
 Een geplande hunt stelt de mensen en teams op de hoogte die je kiest onder **Op de hoogte stellen**: minstens één, en in totaal hooguit 50. Elke run:
 
-- leest de gebeurtenissen waarvan de tijd na de vorige run ligt, tot twee minuten geleden, zodat elke gebeurtenis één keer wordt doorzocht. De eerste run leest vanaf het moment dat het schema werd ingesteld of de zoekopdracht voor het laatst werd gewijzigd, en na een storing haalt een run hooguit een dag meer in dan zijn interval.
+- leest de gebeurtenissen die na de vorige run binnenkwamen, tot twee minuten geleden, wanneer ze ook plaatsvonden, zodat elke gebeurtenis één keer wordt doorzocht, ook een die laat binnenkomt. De eerste run leest vanaf het moment dat het schema werd ingesteld of de zoekopdracht voor het laatst werd gewijzigd, en na een storing haalt een run hooguit een dag meer in dan zijn interval. Een gebeurtenis die meer dan een dag nadat ze plaatsvond binnenkomt, wordt bewaard en is doorzoekbaar, maar geen run telt haar.
 - telt de gebeurtenissen die zijn zoekopdracht daar vindt, precies zoals **Gebeurtenissen** ze zou tonen, en leest alleen wat de persoon onder wie hij draait mag lezen.
 - stelt, als hij gebeurtenissen vindt, de mensen op de hoogte die de hunt noemt, en de leden van de teams die hij noemt, die hunts en beveiligingsgebeurtenissen mogen lezen.
 
@@ -348,11 +348,11 @@ Een geplande hunt draait onder de persoon die als laatste zijn schema instelde, 
 
 ### Runhistorie
 
-Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de regel die zegt wat de runs van een hunt vonden, toont ze met de nieuwste eerst: wanneer elke run draaide en welke gebeurtenissen hij doorzocht, dan hoeveel hij vond, met **Tonen** om die gebeurtenissen op de pagina van de hunt te openen; dat hij niets vond; of waarom hij niet kon draaien. Wie een hunt kan openen, kan zijn runs lezen.
+Elke geplande run wordt 90 dagen bewaard. **Runhistorie**, aan het eind van de regel die zegt wat de runs van een hunt vonden, toont ze met de nieuwste eerst: wanneer elke run draaide en wanneer de gebeurtenissen binnenkwamen die hij doorzocht, dan hoeveel hij vond, met **Tonen** om precies die gebeurtenissen op de pagina van de hunt te openen; dat hij niets vond; of waarom hij niet kon draaien. Wie een hunt kan openen, kan zijn runs lezen.
 
 ### Wie op de hoogte wordt gesteld
 
-De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en welk venster die las, en linkt naar de pagina van de hunt op die gebeurtenissen; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
+De melding **Hunt heeft beveiligingsgebeurtenissen gevonden** noemt de hunt en zijn zoekopdracht, hoeveel gebeurtenissen zijn run vond en wanneer ze binnenkwamen, en linkt naar de pagina van de hunt op precies die gebeurtenissen: het filter **Binnengekomen** over de dag ervoor, dat u kunt weghalen om al het andere uit die tijd te zien; er staat geen woord van een gebeurtenis zelf in. Iedereen krijgt hem per e-mail en push, en kiest de kanalen onder **Gebruikersinstellingen → Meldingsinstellingen**. Net als andere routine-e-mails kan hij worden vastgehouden in een [e-mailoverzicht](/docs/emails/notification-rollup).
 
 Om wat hunts vinden in Slack, Microsoft Teams of Mattermost te plaatsen, voeg je een regel toe aan **Regels voor hunts** onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams** of **Mattermost**), onder de regels die [beveiligingszaken](/docs/telemetry/security-cases#plaatsen-in-kanalen-van-slack-microsoft-teams-en-mattermost) plaatsen. Een regel noemt de kanalen waarin geplaatst wordt (en in Microsoft Teams de chats) en, als je wilt, de hunts waarvoor hij geldt, op **Naam van hunt**: een naam die jouw tekst is, die bevat, ermee begint of ermee eindigt. Telkens wanneer een geplande run gebeurtenissen vindt, plaatst hij de hunt, zijn zoekopdracht, hoeveel gebeurtenissen en wanneer, met een link ernaar, en geen van de eigen woorden van een gebeurtenis. Een huntregel wordt ingesteld door een rol die beveiligingsplaybooks mag instellen, zoals Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder.
 

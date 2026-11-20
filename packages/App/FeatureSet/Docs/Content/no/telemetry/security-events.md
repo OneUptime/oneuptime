@@ -338,7 +338,7 @@ En hunt som er lagret med filtre fra sidepanelet under Hendelser, viser dem i **
 
 En planlagt hunt varsler personene og teamene du velger under **Varsle**: minst én og høyst 50 til sammen. Hver kjøring:
 
-- leser hendelsene med et tidspunkt etter kjøringen før, frem til for to minutter siden, så hver hendelse søkes gjennom én gang. Den første kjøringen leser fra da tidsplanen ble satt eller søket sist ble endret, og etter et avbrudd henter en kjøring inn høyst én dag mer enn intervallet sitt.
+- leser hendelsene som kom inn etter kjøringen før, frem til for to minutter siden, uansett når de skjedde, så hver hendelse søkes gjennom én gang, også en som kommer sent. Den første kjøringen leser fra da tidsplanen ble satt eller søket sist ble endret, og etter et avbrudd henter en kjøring inn høyst én dag mer enn intervallet sitt. En hendelse som kommer mer enn en dag etter at den skjedde, lagres og kan søkes i, men ingen kjøring teller den.
 - teller hendelsene søket finner der, nøyaktig slik **Hendelser** ville listet dem, og leser bare det personen den kjører som, kan lese.
 - varsler, når den finner hendelser, personene hunten nevner, og medlemmene av teamene den nevner, som kan lese hunts og sikkerhetshendelser.
 
@@ -348,11 +348,11 @@ En planlagt hunt kjører som personen som sist satte tidsplanen, endret søket e
 
 ### Kjøringshistorikk
 
-Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slutten av linjen som sier hva kjøringene til en hunt fant, viser dem med den nyeste først: når hver kjørte og hvilke hendelser den søkte i, deretter hvor mange den fant, med **Vis dem** for å åpne de hendelsene på siden til hunten; at den ikke fant noe; eller hvorfor den ikke kunne kjøre. Den som kan åpne en hunt, kan lese kjøringene dens.
+Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slutten av linjen som sier hva kjøringene til en hunt fant, viser dem med den nyeste først: når hver kjørte og når hendelsene den søkte i kom inn, deretter hvor mange den fant, med **Vis dem** for å åpne nettopp de hendelsene på siden til hunten; at den ikke fant noe; eller hvorfor den ikke kunne kjøre. Den som kan åpne en hunt, kan lese kjøringene dens.
 
 ### Hvem som varsles
 
-Varslingen **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og vinduet den leste, og lenker til siden til hunten på de hendelsene; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varslingsinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
+Varslingen **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og når de kom inn, og lenker til siden til hunten på nettopp de hendelsene: filteret **Kommet inn** over dagen før dem, som du kan fjerne for å se alt annet fra den tiden; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varslingsinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
 
 For å legge ut det hunts finner i Slack, Microsoft Teams eller Mattermost, legger du til en regel i **Regler for hunts** under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglene som legger ut [sikkerhetssaker](/docs/telemetry/security-cases#legg-ut-i-slack-microsoft-teams-og-mattermost-kanaler). En regel navngir kanalene det skal legges ut i (og i Microsoft Teams chattene) og, om du vil, hvilke hunts den gjelder for, etter **Navn på hunt**: et navn som er teksten din, inneholder den, begynner eller slutter med den. Hver gang en planlagt kjøring finner hendelser, legger den ut hunten, søket, hvor mange hendelser og når, med en lenke til dem, og ingen av en hendelses egne ord. En huntregel settes opp av en rolle som kan sette opp sikkerhets-playbooks, som Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator.
 

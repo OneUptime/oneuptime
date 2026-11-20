@@ -338,7 +338,7 @@ En hunt, der er gemt med filtre fra sidepanelet under Begivenheder, viser dem i 
 
 En planlagt hunt giver de personer og teams besked, som du vælger under **Underret**: mindst én og højst 50 i alt. Hver kørsel:
 
-- læser de begivenheder, hvis tidspunkt ligger efter kørslen før, op til for to minutter siden, så hver begivenhed gennemsøges én gang. Den første kørsel læser fra det øjeblik, tidsplanen blev sat, eller søgningen sidst blev ændret, og efter et nedbrud indhenter en kørsel højst en dag mere end sit interval.
+- læser de begivenheder, der kom ind efter kørslen før, op til for to minutter siden, uanset hvornår de skete, så hver begivenhed gennemsøges én gang, også en, der kommer sent. Den første kørsel læser fra det øjeblik, tidsplanen blev sat, eller søgningen sidst blev ændret, og efter et nedbrud indhenter en kørsel højst en dag mere end sit interval. En begivenhed, der kommer mere end en dag efter, den skete, gemmes og kan søges, men ingen kørsel tæller den.
 - tæller de begivenheder, dens søgning finder der, præcis som **Begivenheder** ville vise dem, og læser kun det, som den person, den kører som, må læse.
 - giver, når den finder begivenheder, de personer besked, som hunten nævner, og medlemmerne af de teams, den nævner, der må læse hunts og sikkerhedsbegivenheder.
 
@@ -348,11 +348,11 @@ En planlagt hunt kører som den person, der sidst satte dens tidsplan, ændrede 
 
 ### Kørselshistorik
 
-Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linjen, der siger, hvad en hunts kørsler fandt, viser dem med den nyeste først: hvornår hver kørte, og hvilke begivenheder den søgte i, derefter hvor mange den fandt, med **Vis dem** til at åbne de begivenheder på huntens side; at den intet fandt; eller hvorfor den ikke kunne køre. Den, der kan åbne en hunt, kan læse dens kørsler.
+Hver planlagt kørsel gemmes i 90 dage. **Kørselshistorik**, for enden af linjen, der siger, hvad en hunts kørsler fandt, viser dem med den nyeste først: hvornår hver kørte, og hvornår de begivenheder, den søgte i, kom ind, derefter hvor mange den fandt, med **Vis dem** til at åbne netop de begivenheder på huntens side; at den intet fandt; eller hvorfor den ikke kunne køre. Den, der kan åbne en hunt, kan læse dens kørsler.
 
 ### Hvem der får besked
 
-Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvilket vindue den læste, og linker til huntens side på de begivenheder; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
+Notifikationen **En hunt fandt sikkerhedsbegivenheder** nævner hunten og dens søgning, hvor mange begivenheder dens kørsel fandt, og hvornår de kom ind, og linker til huntens side på netop de begivenheder: filteret **Kommet ind** over dagen før dem, som du kan fjerne for at se alt andet fra den tid; ingen af begivenhedernes egne ord står i den. Alle får den på e-mail og push og vælger dens kanaler under **Brugerindstillinger → Notifikationsindstillinger**. Ligesom andre rutinemails kan den holdes tilbage i en [e-mailsamling](/docs/emails/notification-rollup).
 
 For at slå det op, hunts finder, i Slack, Microsoft Teams eller Mattermost tilføjer du en regel til **Regler for hunts** under **Produkter → Sikkerhedshændelser → Arbejdsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under de regler, der slår [sikkerhedssager](/docs/telemetry/security-cases#slå-op-i-slack-microsoft-teams-og-mattermost-kanaler) op. En regel angiver de kanaler, der skal slås op i (og i Microsoft Teams chattene), og, hvis du vil, de hunts, den gælder for, efter **Huntens navn**: et navn, der er din tekst, indeholder den, begynder eller slutter med den. Hver gang en planlagt kørsel finder begivenheder, slår den hunten op, dens søgning, hvor mange begivenheder og hvornår, med et link til dem, og ingen af en begivenheds egne ord. En huntregel oprettes af en rolle, der må oprette sikkerheds-playbooks, såsom Projektejer, Projektadministrator eller Sikkerhedsadministrator.
 

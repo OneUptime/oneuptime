@@ -338,7 +338,7 @@ Uma caçada salva com filtros da barra lateral de Eventos os mostra em **Editar*
 
 Uma caçada agendada avisa as pessoas e equipes que você escolhe em **Notificar**: pelo menos uma, e no máximo 50 no total. Cada execução:
 
-- lê os eventos cujo horário vem depois da execução anterior, até dois minutos atrás, então cada evento é pesquisado uma vez. A primeira execução lê a partir do momento em que o agendamento foi definido ou a pesquisa foi alterada pela última vez, e depois de uma interrupção uma execução recupera no máximo um dia a mais que seu intervalo.
+- lê os eventos que chegaram depois da execução anterior, até dois minutos atrás, não importa quando aconteceram, então cada evento é pesquisado uma vez, até um que chega atrasado. A primeira execução lê a partir do momento em que o agendamento foi definido ou a pesquisa foi alterada pela última vez, e depois de uma interrupção uma execução recupera no máximo um dia a mais que seu intervalo. Um evento que chega mais de um dia depois de acontecer é guardado e pode ser pesquisado, mas nenhuma execução o conta.
 - conta os eventos que sua pesquisa encontra ali, exatamente como **Eventos** os listaria, lendo só o que a pessoa com quem ela é executada pode ler.
 - quando encontra eventos, avisa as pessoas que a caçada nomeia, e os membros das equipes que ela nomeia, que podem ler caçadas e eventos de segurança.
 
@@ -348,11 +348,11 @@ Uma caçada agendada é executada com a pessoa que por último definiu seu agend
 
 ### Histórico de execuções
 
-Cada execução agendada é guardada por 90 dias. **Histórico de execuções**, no fim da linha que diz o que as execuções de uma caçada encontraram, as lista da mais recente para a mais antiga: quando cada uma foi executada e os eventos que pesquisou, depois quantos encontrou, com **Mostrá-los** para abrir esses eventos na página da caçada; que não encontrou nada; ou por que não pôde ser executada. Quem pode abrir uma caçada pode ler as execuções dela.
+Cada execução agendada é guardada por 90 dias. **Histórico de execuções**, no fim da linha que diz o que as execuções de uma caçada encontraram, as lista da mais recente para a mais antiga: quando cada uma foi executada e quando chegaram os eventos que pesquisou, depois quantos encontrou, com **Mostrá-los** para abrir exatamente esses eventos na página da caçada; que não encontrou nada; ou por que não pôde ser executada. Quem pode abrir uma caçada pode ler as execuções dela.
 
 ### Quem é avisado
 
-A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e a janela que ela leu, e leva à página da caçada nesses eventos; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
+A notificação **Uma caçada encontrou eventos de segurança** nomeia a caçada e sua pesquisa, quantos eventos sua execução encontrou e quando chegaram, e leva à página da caçada exatamente nesses eventos: o filtro **Chegados** sobre o dia anterior a eles, que você pode tirar para ver todo o resto desse período; nenhuma palavra dos eventos está nela. Todos a recebem por e-mail e push, e escolhem seus canais em **Configurações do usuário → Configurações de notificação**. Como outros e-mails de rotina, ela pode ser retida em um [resumo de e-mails](/docs/emails/notification-rollup).
 
 Para publicar no Slack, no Microsoft Teams ou no Mattermost o que as caçadas encontram, adicione uma regra a **Regras de caçadas** em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams** ou **Mattermost**), abaixo das regras que publicam os [casos de segurança](/docs/telemetry/security-cases#publique-em-canais-do-slack-do-microsoft-teams-e-do-mattermost). Uma regra nomeia os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, as caçadas a que se aplica, por **Nome da caçada**: um nome que é o seu texto, o contém, começa ou termina com ele. Cada vez que uma execução agendada encontra eventos, ela publica a caçada, sua pesquisa, quantos eventos e quando, com um link para eles, e nenhuma das palavras próprias de um evento. Uma regra de caçadas é configurada por uma função que pode configurar playbooks de segurança, como Proprietário do projeto, Administrador do projeto ou Administrador de segurança.
 

@@ -338,7 +338,7 @@ A hunt saved with filters from the Events sidebar shows them in **Edit** under *
 
 A scheduled hunt tells the people and teams you choose under **Notify**: at least one, and at most 50 in all. Each run:
 
-- reads the events whose time falls after the run before, up to two minutes ago, so every event is searched once. The first run reads from when the schedule was set or the search last changed, and after an outage a run catches up on at most a day more than its interval.
+- reads the events that arrived after the run before, up to two minutes ago, whenever they happened, so every event is searched once, even one that arrives late. The first run reads from when the schedule was set or the search last changed, and after an outage a run catches up on at most a day more than its interval. An event that arrives more than a day after it happened is stored and searchable, but no run counts it.
 - counts the events its search finds there, exactly as **Events** would list them, reading only what the person it runs as can read.
 - when it finds events, tells the people the hunt names, and the members of the teams it names, who can read hunts and security events.
 
@@ -348,11 +348,11 @@ A scheduled hunt runs as the person who last set its schedule, changed its searc
 
 ### Run history
 
-Each scheduled run is kept for 90 days. **Run history**, at the end of the line that says what a hunt's runs found, lists them newest first: when each ran and the events it searched, then how many it found, with **Show them** to open those events on the hunt's page; that it found nothing; or why it could not run. Whoever can open a hunt can read its runs.
+Each scheduled run is kept for 90 days. **Run history**, at the end of the line that says what a hunt's runs found, lists them newest first: when each ran and when the events it searched arrived, then how many it found, with **Show them** to open exactly those events on the hunt's page; that it found nothing; or why it could not run. Whoever can open a hunt can read its runs.
 
 ### Who is told
 
-The notification **Hunt found security events** names the hunt and its search, how many events its run found and the window it read, and links to the hunt's page on those events; no event's own words are in it. Everyone has it by email and push, and chooses its channels under **User Settings → Notification Settings**. Like other routine emails, it can be held back in an [email rollup](/docs/emails/notification-rollup).
+The notification **Hunt found security events** names the hunt and its search, how many events its run found and when they arrived, and links to the hunt's page on exactly those events: the **Arrived** filter over the day before them, which you can take off to see everything else in that time; no event's own words are in it. Everyone has it by email and push, and chooses its channels under **User Settings → Notification Settings**. Like other routine emails, it can be held back in an [email rollup](/docs/emails/notification-rollup).
 
 To post what hunts find to Slack, Microsoft Teams or Mattermost, add a rule to **Hunt Rules** under **Products → Security Events → Workspace → Slack** (or **Microsoft Teams**, or **Mattermost**), below the rules that post [security cases](/docs/telemetry/security-cases#post-to-slack-microsoft-teams-and-mattermost-channels). A rule names the channels to post to (and, in Microsoft Teams, the chats) and, if you want, the hunts it is for by **Security Hunt Name**: a name that is, contains, starts with or ends with your text. Each time a scheduled run finds events, it posts the hunt, its search, how many events and when, with a link to them, and none of an event's own words. A hunt rule is set up by a role that may set up security playbooks, such as Project Owner, Project Admin or Security Admin.
 

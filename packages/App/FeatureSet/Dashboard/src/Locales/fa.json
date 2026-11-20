@@ -60465,5 +60465,7 @@
   "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "این را در Azure Cloud Shell به‌عنوان کسی اجرا کنید که می‌تواند در گروه مدیریت ریشهٔ مستأجر نقش واگذار کند. برنامه‌ای با دسترسی‌های زیر بر هر اشتراک می‌سازد و جزئیات آن را چاپ می‌کند.",
   "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "این را در Azure Cloud Shell اجرا کنید. برنامه‌ای با دسترسی‌های زیر می‌سازد و جزئیاتش را چاپ می‌کند.",
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "این را در Cloud Shell، در پروژه‌ای که باید پایش شود، اجرا کنید. حساب سرویسی با دسترسی‌های زیر می‌سازد و کلیدش را چاپ می‌کند.",
-  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "این را در Google Cloud Shell در یکی از پروژه‌های سازمان خود اجرا کنید، به‌عنوان کسی که می‌تواند در آن نقش اعطا کند. یک حساب سرویس با دسترسی‌های زیر بر هر پروژه می‌سازد و کلید آن را چاپ می‌کند."
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "این را در Google Cloud Shell در یکی از پروژه‌های سازمان خود اجرا کنید، به‌عنوان کسی که می‌تواند در آن نقش اعطا کند. یک حساب سرویس با دسترسی‌های زیر بر هر پروژه می‌سازد و کلید آن را چاپ می‌کند.",
+  "Arrived": "رسیده",
+  "Searched what arrived {{start}} to {{end}}": "جستجو در آنچه رسید: {{start}} تا {{end}}"
 }

@@ -54,6 +54,7 @@ import ThreatIntelFeedPoller, {
   StixIndicatorParseResult,
   StixParseContext,
 } from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelFeedPoller";
+import { isDetectionArrivalCandidate } from "Common/Server/Utils/SecurityEvent/DetectionArrivalRead";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -1835,10 +1836,26 @@ describe("the Security Events page", () => {
     expect(evaluator).toContain(
       "let arrivedAfter: Date = lastRun && !Number.isNaN(lastRun.getTime()) ? floorToSecond(lastRun) : OneUptimeDate.addRemoveMinutes( arrivedUntil, -Math.max(1, data.evaluationIntervalInMinutes || 1), ); if (OneUptimeDate.isBefore(arrivedAfter, earliest)) { arrivedAfter = earliest; }",
     );
-    // ...whenever it happened, as long as it arrived within a day of that.
-    expect(service).toContain(
-      "AND time >= createdAt - toIntervalSecond(${{ type: TableColumnType.Number, value: DETECTION_RUN_LATE_EVENT_SECONDS, }}))`;",
+    /*
+     * ...whenever it happened, as long as it arrived within a day of that:
+     * the condition a rule's run and a hunt's run both read by
+     * (DetectionArrivalRead), as it is built.
+     */
+    const arrived: { query: string; query_params: Record<string, unknown> } =
+      isDetectionArrivalCandidate({
+        kind: "run",
+        arrivedAfter: new Date("2026-11-04T09:00:00.000Z"),
+        arrivedUntil: new Date("2026-11-04T09:01:00.000Z"),
+        candidateStartTime: new Date("2026-11-03T09:00:00.000Z"),
+        candidateEndTime: new Date("2026-11-04T10:02:00.000Z"),
+      });
+    expect(arrived.query).toBe(
+      "(createdAt > {p0:DateTime} AND createdAt <= {p1:DateTime} AND time >= createdAt - toIntervalSecond({p2:Int32}))",
     );
+    expect(arrived.query_params["p2"]).toBe(
+      DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60,
+    );
+    expect(service).toContain("isDetectionArrivalCandidate(arrival)");
     expect(DETECTION_LATE_EVENT_WINDOW_IN_MINUTES).toBe(24 * 60);
     // A rule that counts reads the windows of its interval on the clock that hold what arrived.
     expect(evaluator).toContain(

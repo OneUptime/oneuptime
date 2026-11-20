@@ -60465,5 +60465,7 @@
   "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app with the access below on every subscription, and prints its details.": "请以可以在租户根管理组上分配角色的身份在 Azure Cloud Shell 中运行此命令。它会创建一个对每个订阅都具有下方所列访问权限的应用，并输出其详细信息。",
   "Run this in Azure Cloud Shell. It creates an app with the access below, and prints its details.": "在 Azure Cloud Shell 中运行此命令。它会创建一个具有下方所列访问权限的应用，并输出其详细信息。",
   "Run this in Cloud Shell, in the project to monitor. It creates a service account with the access below, and prints its key.": "在要监控的项目中，于 Cloud Shell 运行此命令。它会创建一个具有下方所列访问权限的服务账号，并输出其密钥。",
-  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "请以可以在组织上授予角色的身份，在组织的某个项目中于 Google Cloud Shell 运行此命令。它会创建一个对每个项目都具有下方所列访问权限的服务账号，并输出其密钥。"
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account with the access below on every project, and prints its key.": "请以可以在组织上授予角色的身份，在组织的某个项目中于 Google Cloud Shell 运行此命令。它会创建一个对每个项目都具有下方所列访问权限的服务账号，并输出其密钥。",
+  "Arrived": "到达",
+  "Searched what arrived {{start}} to {{end}}": "搜索到达时段：{{start}} 至 {{end}}"
 }

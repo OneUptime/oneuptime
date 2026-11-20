@@ -338,7 +338,7 @@ Una cacería guardada con filtros de la barra lateral de Eventos los muestra en 
 
 Una cacería programada avisa a las personas y equipos que eliges en **Notificar**: al menos uno, y como máximo 50 en total. Cada ejecución:
 
-- lee los eventos cuya hora es posterior a la ejecución anterior, hasta hace dos minutos, así que cada evento se busca una vez. La primera ejecución lee desde el momento en que se estableció la programación o se cambió la búsqueda por última vez, y tras una interrupción una ejecución recupera como máximo un día más que su intervalo.
+- lee los eventos que llegaron después de la ejecución anterior, hasta hace dos minutos, ocurrieran cuando ocurrieran, así que cada evento se busca una vez, incluso uno que llega tarde. La primera ejecución lee desde el momento en que se estableció la programación o se cambió la búsqueda por última vez, y tras una interrupción una ejecución recupera como máximo un día más que su intervalo. Un evento que llega más de un día después de ocurrir se guarda y se puede buscar, pero ninguna ejecución lo cuenta.
 - cuenta los eventos que su búsqueda encuentra ahí, exactamente como **Eventos** los listaría, leyendo solo lo que puede leer la persona con la que se ejecuta.
 - cuando encuentra eventos, avisa a las personas que nombra la cacería, y a los miembros de los equipos que nombra, que pueden leer cacerías y eventos de seguridad.
 
@@ -348,11 +348,11 @@ Una cacería programada se ejecuta con la persona que por última vez estableci�
 
 ### Historial de ejecuciones
 
-Cada ejecución programada se guarda 90 días. **Historial de ejecuciones**, al final de la línea que dice lo que encontraron las ejecuciones de una cacería, las lista de la más reciente a la más antigua: cuándo se ejecutó cada una y los eventos que buscó, luego cuántos encontró, con **Mostrarlos** para abrir esos eventos en la página de la cacería; que no encontró nada; o por qué no pudo ejecutarse. Quien puede abrir una cacería puede leer sus ejecuciones.
+Cada ejecución programada se guarda 90 días. **Historial de ejecuciones**, al final de la línea que dice lo que encontraron las ejecuciones de una cacería, las lista de la más reciente a la más antigua: cuándo se ejecutó cada una y cuándo llegaron los eventos que buscó, luego cuántos encontró, con **Mostrarlos** para abrir exactamente esos eventos en la página de la cacería; que no encontró nada; o por qué no pudo ejecutarse. Quien puede abrir una cacería puede leer sus ejecuciones.
 
 ### A quién se avisa
 
-La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y la ventana que leyó, y enlaza a la página de la cacería con esos eventos; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
+La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y cuándo llegaron, y enlaza a la página de la cacería con exactamente esos eventos: el filtro **Llegados** sobre el día anterior a ellos, que puede quitar para ver todo lo demás de ese tiempo; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
 
 Para publicar en Slack, Microsoft Teams o Mattermost lo que encuentran las cacerías, añade una regla a **Reglas de cacerías** en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams** o **Mattermost**), debajo de las reglas que publican los [casos de seguridad](/docs/telemetry/security-cases#publicar-en-canales-de-slack-microsoft-teams-y-mattermost). Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, las cacerías a las que se aplica, por **Nombre de la cacería**: un nombre que es tu texto, lo contiene, empieza o termina con él. Cada vez que una ejecución programada encuentra eventos, publica la cacería, su búsqueda, cuántos eventos y cuándo, con un enlace a ellos, y ninguna de las palabras propias de un evento. Una regla de cacerías la configura un rol que puede configurar playbooks de seguridad, como Propietario del proyecto, Administrador del proyecto o Administrador de seguridad.
 

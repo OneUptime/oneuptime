@@ -46,6 +46,38 @@ import {
 import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
+import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
+import ModelPermission from "Common/Server/Types/AnalyticsDatabase/ModelPermission";
+import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import SecurityHuntRunService from "Common/Server/Services/SecurityHuntRunService";
+import SecurityHuntService from "Common/Server/Services/SecurityHuntService";
+import CallerPlan from "Common/Server/Utils/Billing/CallerPlan";
+import SecurityHuntNotifications, {
+  getHuntLinkInDashboard,
+} from "Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntNotifications";
+import SecurityHuntScheduler, {
+  SecurityHuntRunOutcome,
+} from "Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntScheduler";
+import OneUptimeURL from "Common/Types/API/URL";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Query from "Common/Types/BaseDatabase/Query";
+import Permission from "Common/Types/Permission";
+import {
+  SECURITY_EVENT_ARRIVAL_QUERY_KEY,
+  SecurityEventArrivalRange,
+  readSecurityEventArrivalRangeFromSearch,
+  toSecurityEventArrivalQueryValue,
+} from "Common/Types/SecurityEvent/SecurityEventArrival";
+import {
+  SecurityHuntRunWindow,
+  SecurityHuntSchedule,
+  getSecurityHuntSearchStart,
+  securityHuntFiltersToMap,
+} from "Common/Types/SecurityEvent/SecurityHunt";
+import { buildSecurityEventSearchQuery } from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import {
   afterAll,
   beforeAll,
@@ -1642,6 +1674,507 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       expect(storedRule(rule._id).lastEvaluatedAt!.getTime()).toBe(
         at(38).getTime(),
       );
+    });
+  });
+
+  /*
+   * A SCHEDULED HUNT COUNTS EVERY EVENT ONCE, HOWEVER LATE IT LANDS (#10488).
+   *
+   * An hourly hunt for failed sign-ins, set at minute 0, run whenever it is
+   * due on the clock the test moves, as the person it runs as: a member of
+   * the project, whose read goes through the Events page's own permission
+   * checks (only the label scope, which reads Postgres, is left out). Each
+   * run counts what ARRIVED since the one before, whenever it happened in
+   * the day before; and its notification's link, read as the Events page
+   * reads it, lists exactly the events that run counted.
+   */
+  describe("a scheduled hunt", () => {
+    const DASHBOARD_URL: string = "https://oneuptime.example/dashboard";
+    const MAYA: ObjectID = ObjectID.generate();
+
+    let storedHunt: SecurityHunt;
+    let huntRuns: Array<SecurityHuntRun> = [];
+    let found: Array<{ eventCount: number; window: SecurityHuntRunWindow }> =
+      [];
+
+    // Maya, as her own reads carry her: a member of the project.
+    function mayaProps(): DatabaseCommonInteractionProps {
+      return {
+        userId: MAYA,
+        tenantId: world.projectId,
+        userTenantAccessPermission: {
+          [world.projectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: world.projectId,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.ProjectOwner,
+                labelIds: [],
+                isBlockPermission: false,
+              },
+            ],
+          },
+        },
+      } as unknown as DatabaseCommonInteractionProps;
+    }
+
+    // Set at minute 0: it counts what arrives from then on, the first run an hour later.
+    function addHourlyHunt(): void {
+      storedHunt = new SecurityHunt();
+      storedHunt._id = ObjectID.generate().toString();
+      storedHunt.projectId = world.projectId;
+      storedHunt.name = "Failed sign-ins";
+      storedHunt.schedule = SecurityHuntSchedule.EveryHour;
+      storedHunt.searchQuery = "";
+      storedHunt.filters = {
+        statusName: ["Failure"],
+      } as unknown as JSONObject;
+      storedHunt.scheduledByUserId = MAYA;
+      storedHunt.searchedUpToAt = getSecurityHuntSearchStart(at(0));
+      storedHunt.nextRunAt = at(60);
+    }
+
+    // A copy, as each read of the hunt service hands one.
+    function readHunt(): SecurityHunt {
+      const copy: SecurityHunt = new SecurityHunt();
+
+      for (const key of [
+        "_id",
+        "projectId",
+        "name",
+        "schedule",
+        "searchQuery",
+        "filters",
+        "scheduledByUserId",
+        "searchedUpToAt",
+        "nextRunAt",
+      ]) {
+        (copy as unknown as JSONObject)[key] = (
+          storedHunt as unknown as JSONObject
+        )[key];
+      }
+
+      return copy;
+    }
+
+    function sameMoment(a: unknown, b: unknown): boolean {
+      const left: number | null = a ? new Date(a as Date).getTime() : null;
+      const right: number | null = b ? new Date(b as Date).getTime() : null;
+
+      return left === right;
+    }
+
+    // Every ten minutes the events that arrived are written, and the hunt runs when it is due.
+    async function runHuntBetween(
+      firstMinute: number,
+      lastMinute: number,
+    ): Promise<void> {
+      for (
+        let minute: number = firstMinute;
+        minute <= lastMinute;
+        minute += 10
+      ) {
+        await clockAt(minute);
+
+        if (
+          storedHunt.nextRunAt &&
+          new Date(storedHunt.nextRunAt).getTime() <= world.clock.getTime()
+        ) {
+          await SecurityHuntScheduler.runHunt(readHunt(), {
+            now: new Date(world.clock),
+          });
+        }
+      }
+    }
+
+    /*
+     * What the notification's link lists, read as the Events page reads it
+     * for whoever opens it: the hunt's search and chips, over the link's
+     * time range, with its arrivals as the chip.
+     */
+    async function listedByLink(
+      window: SecurityHuntRunWindow,
+    ): Promise<Array<string>> {
+      const link: OneUptimeURL = await getHuntLinkInDashboard({
+        projectId: world.projectId,
+        huntId: storedHunt.id!,
+        window,
+      });
+      const search: string = link.toString().split("?")[1] || "";
+      const params: URLSearchParams = new URLSearchParams(search);
+      const arrival: SecurityEventArrivalRange | null =
+        readSecurityEventArrivalRangeFromSearch(search);
+
+      expect(params.get("range")).toBe("Custom");
+      expect(arrival).not.toBeNull();
+
+      const query: Query<SecurityEvent> = {
+        ...buildSecurityEventSearchQuery({
+          base: {
+            projectId: world.projectId,
+            time: new InBetween<Date>(
+              new Date(params.get("start")!),
+              new Date(params.get("end")!),
+            ),
+          } as Query<SecurityEvent>,
+          search: storedHunt.searchQuery || "",
+          filters: securityHuntFiltersToMap(
+            storedHunt.filters as unknown as { [key: string]: Array<string> },
+          ),
+        }),
+        [SECURITY_EVENT_ARRIVAL_QUERY_KEY]: toSecurityEventArrivalQueryValue(
+          arrival!,
+        ),
+      } as Query<SecurityEvent>;
+
+      const events: Array<SecurityEvent> = await SecurityEventService.findBy({
+        query,
+        select: { eventUid: true },
+        skip: 0,
+        limit: 100,
+        props: mayaProps(),
+      });
+
+      return events
+        .map((event: SecurityEvent): string => {
+          return String(event.eventUid);
+        })
+        .sort();
+    }
+
+    beforeEach((): void => {
+      huntRuns = [];
+      found = [];
+      addHourlyHunt();
+
+      // The hunt's record holds only on the schedule it was read with.
+      jest
+        .spyOn(SecurityHuntService, "compareAndSetColumnsByIdWithoutHooks")
+        .mockImplementation((async (args: {
+          data: JSONObject;
+          expectedData: JSONObject;
+        }) => {
+          if (
+            !sameMoment(storedHunt.nextRunAt, args.expectedData["nextRunAt"]) ||
+            !sameMoment(
+              storedHunt.searchedUpToAt,
+              args.expectedData["searchedUpToAt"],
+            )
+          ) {
+            return false;
+          }
+
+          for (const [key, value] of Object.entries(args.data)) {
+            (storedHunt as unknown as JSONObject)[key] = value as never;
+          }
+
+          return true;
+        }) as never);
+
+      jest
+        .spyOn(SecurityHuntRunService, "create")
+        .mockImplementation((async (args: { data: SecurityHuntRun }) => {
+          huntRuns.push(args.data);
+          return args.data;
+        }) as never);
+
+      jest
+        .spyOn(SecurityHuntNotifications, "huntFound")
+        .mockImplementation((async (data: {
+          eventCount: number;
+          window: SecurityHuntRunWindow;
+        }) => {
+          found.push({ eventCount: data.eventCount, window: data.window });
+          return true;
+        }) as never);
+
+      jest
+        .spyOn(
+          AccessTokenService,
+          "getDatabaseCommonInteractionPropsByUserAndProject",
+        )
+        .mockImplementation((async () => {
+          return mayaProps();
+        }) as never);
+
+      // No billing here; and the label scope reads Postgres: Maya holds no labels.
+      jest
+        .spyOn(CallerPlan, "withAnalyticsPlanFor")
+        .mockImplementation((async (data: {
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          return data.props;
+        }) as never);
+      jest
+        .spyOn(
+          ModelPermission as unknown as {
+            addReadScopeToQuery: (...args: Array<unknown>) => unknown;
+          },
+          "addReadScopeToQuery",
+        )
+        .mockImplementation((async (_model: unknown, query: unknown) => {
+          return query;
+        }) as never);
+
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockResolvedValue(OneUptimeURL.fromString(DASHBOARD_URL) as never);
+    });
+
+    test("on time, late, an hour late, very late and out of order: every event counted once, by the run after it arrived", async () => {
+      arrive(
+        {
+          uid: "on-time",
+          time: at(10),
+          arrivesAt: at(10, 5),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // Happened before the 1:00 run passed it, written after: a batch shipper.
+          uid: "late-across-a-run",
+          time: at(55),
+          arrivesAt: at(70),
+          principalIp: "203.0.113.7",
+        },
+        {
+          // A span read when it ended, an hour on.
+          uid: "an-hour-late",
+          time: at(30),
+          arrivesAt: at(95),
+          principalIp: "198.51.100.4",
+        },
+        {
+          // Out of order: the later one arrives first...
+          uid: "happened-second-arrived-first",
+          time: at(175),
+          arrivesAt: at(200),
+          principalIp: "192.0.2.10",
+        },
+        {
+          // ...and the earlier one after the next run has gone by.
+          uid: "happened-first-arrived-second",
+          time: at(170),
+          arrivesAt: at(250),
+          principalIp: "192.0.2.10",
+        },
+        {
+          // A shipper down for most of a day: 23 hours late, still counted.
+          uid: "23-hours-late",
+          time: at(40),
+          arrivesAt: at(40 + 23 * 60),
+          principalIp: "198.51.100.9",
+        },
+        {
+          // A day and a minute late: stored and searchable, but no run counts it.
+          uid: "a-day-and-a-minute-late",
+          time: at(100),
+          arrivesAt: at(100 + DETECTION_LATE_EVENT_WINDOW_IN_MINUTES + 1),
+          principalIp: "198.51.100.9",
+        },
+        {
+          // Not what the hunt looks for.
+          uid: "a-success",
+          time: at(20),
+          arrivesAt: at(21),
+          statusName: "Success",
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      await runHuntBetween(0, 1560);
+
+      // Every hour from 1:00 to 26:00, and none of them failed.
+      expect(huntRuns).toHaveLength(26);
+      expect(
+        huntRuns.every((run: SecurityHuntRun): boolean => {
+          return !run.error;
+        }),
+      ).toBe(true);
+
+      // Each run counts what arrived after the one before stopped: no gap, no overlap.
+      expect(huntRuns[0]!.windowStartAt!.getTime()).toBe(at(-2).getTime());
+
+      for (let index: number = 1; index < huntRuns.length; index++) {
+        expect(huntRuns[index]!.windowStartAt!.getTime()).toBe(
+          huntRuns[index - 1]!.windowEndAt!.getTime(),
+        );
+      }
+
+      // Each counted by the first run whose window holds when it arrived.
+      expect(
+        found.map(
+          (entry: {
+            eventCount: number;
+            window: SecurityHuntRunWindow;
+          }): [number, number] => {
+            return [
+              (entry.window.endTime.getTime() - BASE.getTime()) / MINUTE + 2,
+              entry.eventCount,
+            ];
+          },
+        ),
+      ).toEqual([
+        [60, 1],
+        [120, 2],
+        [240, 1],
+        [300, 1],
+        [1440, 1],
+      ]);
+
+      // Every countable event once in all: none twice, none skipped.
+      expect(
+        huntRuns.reduce((sum: number, run: SecurityHuntRun): number => {
+          return sum + (run.eventCount || 0);
+        }, 0),
+      ).toBe(6);
+      expect(storedHunt.searchedUpToAt!.getTime()).toBe(at(1558).getTime());
+    });
+
+    test("the notification's link lists exactly the events its run counted, wherever in the day before they happened", async () => {
+      arrive(
+        {
+          uid: "on-time",
+          time: at(10),
+          arrivesAt: at(10, 5),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "late-across-a-run",
+          time: at(55),
+          arrivesAt: at(70),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "an-hour-late",
+          time: at(30),
+          arrivesAt: at(95),
+          principalIp: "198.51.100.4",
+        },
+        {
+          // Arrives after the 2:00 run: the next run's, never this one's.
+          uid: "arrives-after-the-run",
+          time: at(100),
+          arrivesAt: at(119),
+          principalIp: "198.51.100.4",
+        },
+        {
+          uid: "23-hours-late",
+          time: at(130),
+          arrivesAt: at(130 + 23 * 60),
+          principalIp: "198.51.100.9",
+        },
+      );
+
+      await runHuntBetween(0, 1560);
+
+      expect(
+        found.map((entry: { eventCount: number }): number => {
+          return entry.eventCount;
+        }),
+      ).toEqual([1, 2, 1, 1]);
+
+      const listed: Array<Array<string>> = [];
+
+      for (const entry of found) {
+        listed.push(await listedByLink(entry.window));
+      }
+
+      expect(listed).toEqual([
+        ["on-time"],
+        // Happened in the window of the run before: the link still lists them.
+        ["an-hour-late", "late-across-a-run"],
+        ["arrives-after-the-run"],
+        // Happened 23 hours before the run that counted it.
+        ["23-hours-late"],
+      ]);
+
+      // Each run's link lists as many as the run told people it found.
+      expect(
+        listed.map((uids: Array<string>): number => {
+          return uids.length;
+        }),
+      ).toEqual(
+        found.map((entry: { eventCount: number }): number => {
+          return entry.eventCount;
+        }),
+      );
+    });
+
+    test("a run that cannot count keeps its window: the retry counts what it would have, once", async () => {
+      arrive(
+        {
+          uid: "in-the-failed-run",
+          time: at(10),
+          arrivesAt: at(10, 5),
+          principalIp: "203.0.113.7",
+        },
+        {
+          uid: "in-the-next-hour",
+          time: at(70),
+          arrivesAt: at(75),
+          principalIp: "203.0.113.7",
+        },
+      );
+
+      const countBy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        SecurityEventService,
+        "countBy",
+      );
+      countBy.mockRejectedValueOnce(new Error("ClickHouse is restarting."));
+
+      await runHuntBetween(0, 60);
+
+      // It said why, and kept its window: tried again within the hour.
+      expect(found).toEqual([]);
+      expect(huntRuns).toHaveLength(1);
+      expect(huntRuns[0]!.error).toBeTruthy();
+      expect(storedHunt.searchedUpToAt!.getTime()).toBe(at(-2).getTime());
+      expect(storedHunt.nextRunAt!.getTime()).toBe(at(120).getTime());
+
+      await runHuntBetween(70, 120);
+
+      // The retry counts both hours' arrivals, each once.
+      expect(found).toHaveLength(1);
+      expect(found[0]!.eventCount).toBe(2);
+      expect(found[0]!.window.startTime.getTime()).toBe(at(-2).getTime());
+      expect(await listedByLink(found[0]!.window)).toEqual([
+        "in-the-failed-run",
+        "in-the-next-hour",
+      ]);
+    });
+
+    test("two workers that run the hunt at once count its window once, and tell its people once", async () => {
+      arrive({
+        uid: "once",
+        time: at(10),
+        arrivesAt: at(10, 5),
+        principalIp: "203.0.113.7",
+      });
+
+      await clockAt(60);
+
+      const both: Array<SecurityHuntRunOutcome> = await Promise.all([
+        SecurityHuntScheduler.runHunt(readHunt(), {
+          now: new Date(world.clock),
+        }),
+        SecurityHuntScheduler.runHunt(readHunt(), {
+          now: new Date(world.clock),
+        }),
+      ]);
+
+      expect(
+        both.map((outcome: SecurityHuntRunOutcome): boolean => {
+          return outcome.isRecorded;
+        }),
+      ).toEqual(expect.arrayContaining([true, false]));
+      expect(found).toEqual([
+        {
+          eventCount: 1,
+          window: { startTime: at(-2), endTime: at(58) },
+        },
+      ]);
+      expect(huntRuns).toHaveLength(1);
     });
   });
 
