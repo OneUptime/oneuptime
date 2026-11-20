@@ -198,6 +198,96 @@ describe("relation selects only name columns the permission layer allows", () =>
     ]);
   });
 
+  test("no read reaches a monitor's steps through a relation: the Root Cause cards and an Affected Resource's commands read which monitor it is, by a shared select (#10309)", () => {
+    // No relation reads what a monitor checks; a page reads it on the monitor.
+    expect(
+      sitesWhere((site: RelationSelectSite): boolean => {
+        return site.column === "monitorSteps";
+      }).map((site: RelationSelectSite): string => {
+        return `${site.file}:${site.line} ${site.modelName}.${site.relation}`;
+      }),
+    ).toEqual([]);
+
+    /*
+     * The readers' select is a constant of another file, and is read where
+     * it is used. The episodes' cards name their member's model through
+     * fetchFirstEpisodeMember, which this scan does not follow (#10283):
+     * IncidentMetricSeriesScope pins their selects.
+     */
+    const read: Array<string> = sitesWhere(
+      (site: RelationSelectSite): boolean => {
+        return (
+          (site.relation === "monitors" || site.relation === "monitor") &&
+          site.writtenAt.includes("Components/Monitor/ReadMonitorSteps.ts")
+        );
+      },
+    ).map((site: RelationSelectSite): string => {
+      return `${site.file.split("/").pop()} ${site.modelName}.${site.relation}.${site.column}`;
+    });
+
+    expect(read.sort()).toEqual(
+      [
+        "AffectedResources.tsx Alert.monitor._id",
+        "AffectedResources.tsx Alert.monitor.monitorType",
+        "AffectedResources.tsx Incident.monitors._id",
+        "AffectedResources.tsx Incident.monitors.monitorType",
+        "AlertRootCauseMetricChart.tsx Alert.monitor._id",
+        "AlertRootCauseMetricChart.tsx Alert.monitor.monitorType",
+        "IncidentRootCauseMetricChart.tsx Incident.monitors._id",
+        "IncidentRootCauseMetricChart.tsx Incident.monitors.monitorType",
+      ].sort(),
+    );
+  });
+
+  test("a cloud connection's settings and a case's title are sent for each reader: a cloud resource's pages and a playbook's runs (#10310)", () => {
+    const perReader: Array<string> = sitesWhere(
+      (site: RelationSelectSite): boolean => {
+        return (
+          (site.relation === "cloudConnection" &&
+            ["config", "addedMetrics", "streamKeyCreatedAt"].includes(
+              site.column,
+            )) ||
+          (site.relation === "securityCase" && site.column === "title")
+        );
+      },
+    ).map((site: RelationSelectSite): string => {
+      return `${site.file.split("/").pop()} ${site.modelName}.${site.relation}.${site.column} ${site.isReadPerReader}`;
+    });
+
+    expect(perReader.sort()).toEqual(
+      [
+        "Logs.tsx CloudResource.cloudConnection.streamKeyCreatedAt true",
+        "Metrics.tsx CloudResource.cloudConnection.addedMetrics true",
+        "Metrics.tsx CloudResource.cloudConnection.config true",
+        "MonitoredResourceOverview.tsx CloudResource.cloudConnection.addedMetrics true",
+        "MonitoredResourceOverview.tsx CloudResource.cloudConnection.config true",
+        "useSecurityPlaybookRuns.ts SecurityPlaybookRun.securityCase.title true",
+      ].sort(),
+    );
+
+    // The Security pages read which record it is, and nothing held: a watchlist's feed, a scan's connection.
+    expect(
+      sitesWhere((site: RelationSelectSite): boolean => {
+        return (
+          (site.modelName === "SecurityWatchlist" &&
+            site.relation === "threatIntelFeed") ||
+          (site.modelName === "DataSecurityScan" &&
+            site.relation === "cloudConnection")
+        );
+      })
+        .map((site: RelationSelectSite): string => {
+          return `${site.file.split("/").pop()} ${site.relation}.${site.column}`;
+        })
+        .sort(),
+    ).toEqual(
+      expect.arrayContaining([
+        "Scans.tsx cloudConnection.name",
+        "WatchlistView.tsx threatIntelFeed.name",
+        "Watchlists.tsx threatIntelFeed.name",
+      ]),
+    );
+  });
+
   test("a table's columns are covered, a column declared apart included: the issues list's store and a table's Lineage", () => {
     expect(
       sitesWhere((site: RelationSelectSite): boolean => {
@@ -556,6 +646,113 @@ describe("the guard fails on a planted read the server refuses", () => {
       "select dataStore.sensitivity (for each reader)",
     ]);
   });
+
+  test("a monitor's steps read through a relation fail it, whoever the read is sent for, and a feed's list URL until it is sent for each reader (#10309, #10310)", async () => {
+    const reachFolder: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "relation-select-guard-10309-10310-"),
+    );
+
+    try {
+      fs.writeFileSync(
+        path.join(reachFolder, "PlantedRootCause.ts"),
+        [
+          'import Incident from "Common/Models/DatabaseModels/Incident";',
+          'import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";',
+          "",
+          "// #10309's shape: the Root Cause card's read as it was.",
+          "export async function readIncident(id: never): Promise<unknown> {",
+          "  return await ModelAPI.getItem<Incident>({",
+          "    modelType: Incident,",
+          "    id: id,",
+          "    select: { monitors: { _id: true, monitorType: true, monitorSteps: true } },",
+          "  } as never);",
+          "}",
+        ].join("\n"),
+      );
+      fs.writeFileSync(
+        path.join(reachFolder, "PlantedRootCausePerReader.ts"),
+        [
+          'import Alert from "Common/Models/DatabaseModels/Alert";',
+          'import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";',
+          'import PermissionGate from "Common/UI/Utils/PermissionGate";',
+          "",
+          "// Sent for each reader, the steps are refused all the same: no relation reads them.",
+          "export async function readAlert(id: never): Promise<unknown> {",
+          "  return await ModelAPI.getItem<Alert>({",
+          "    modelType: Alert,",
+          "    id: id,",
+          "    select: PermissionGate.getSelectReadableThroughRelations(Alert, {",
+          "      monitor: { monitorType: true, monitorSteps: true },",
+          "    }),",
+          "  } as never);",
+          "}",
+        ].join("\n"),
+      );
+      fs.writeFileSync(
+        path.join(reachFolder, "PlantedWatchlists.tsx"),
+        [
+          'import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";',
+          "",
+          "// #10310's shape: a watchlist's table that shows its feed's address.",
+          "export const Planted = () => {",
+          "  return (",
+          "    <ModelTable<SecurityWatchlist>",
+          "      modelType={SecurityWatchlist}",
+          '      columns={[{ field: { threatIntelFeed: { name: true, listUrl: true } }, title: "Feed" }]}',
+          "    />",
+          "  );",
+          "};",
+        ].join("\n"),
+      );
+      fs.writeFileSync(
+        path.join(reachFolder, "PlantedWatchlistPerReader.ts"),
+        [
+          'import SecurityWatchlist from "Common/Models/DatabaseModels/SecurityWatchlist";',
+          'import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";',
+          'import PermissionGate from "Common/UI/Utils/PermissionGate";',
+          "",
+          "export async function readWatchlist(id: never): Promise<unknown> {",
+          "  return await ModelAPI.getItem<SecurityWatchlist>({",
+          "    modelType: SecurityWatchlist,",
+          "    id: id,",
+          "    select: PermissionGate.getSelectReadableThroughRelations(SecurityWatchlist, {",
+          "      threatIntelFeed: { name: true, listUrl: true },",
+          "    }),",
+          "  } as never);",
+          "}",
+        ].join("\n"),
+      );
+
+      const reach: RelationSelectScan = await scanRelationSelects([
+        reachFolder,
+      ]);
+      const violationsIn: (fileName: string) => Array<string> = (
+        fileName: string,
+      ): Array<string> => {
+        return reach.violations.filter((violation: string): boolean => {
+          return violation.split(" - ")[0]!.split(":")[0]!.endsWith(fileName);
+        });
+      };
+
+      expect(violationsIn("PlantedRootCause.ts")).toHaveLength(1);
+      expect(violationsIn("PlantedRootCause.ts")[0]).toContain(
+        'Incident.monitors selects Monitor.monitorSteps, but that column has no canReadOnRelationQuery. The read throws "Column monitorSteps on Monitor does not support read on relation query."',
+      );
+      expect(violationsIn("PlantedRootCausePerReader.ts")).toHaveLength(1);
+      expect(violationsIn("PlantedRootCausePerReader.ts")[0]).toContain(
+        "Alert.monitor selects Monitor.monitorSteps, but that column has no canReadOnRelationQuery.",
+      );
+      expect(violationsIn("PlantedWatchlists.tsx")).toHaveLength(1);
+      expect(violationsIn("PlantedWatchlists.tsx")[0]).toContain(
+        '"You do not have permissions to read listUrl of Threat Intel Feed through threatIntelFeed on Watchlist."',
+      );
+      // Sent for each reader, the feed's address is left out for who may not read it.
+      expect(violationsIn("PlantedWatchlistPerReader.ts")).toEqual([]);
+      expect(reach.violations).toHaveLength(3);
+    } finally {
+      fs.rmSync(reachFolder, { recursive: true, force: true });
+    }
+  }, 600000);
 
   test("a column held to its own read passes once the planted table sends it for each reader", async () => {
     const fixedFolder: string = fs.mkdtempSync(

@@ -15,6 +15,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
@@ -48,6 +49,15 @@ const createPermissions: Array<Permission> = [
   Permission.CreateCloudResource,
 ];
 
+/*
+ * Through a relation too (#10310). A data store names the cloud account it
+ * is in, and the Security tiers and a custom role that reads stores read the
+ * store: of the account, which one it is - its name and its provider - and
+ * nothing else. Its account id, its name at the provider, its counts, when
+ * it was last seen and its connection are held to the account's own read
+ * (RelationReaders.ColumnReaders); a store says its own account number to
+ * its own readers.
+ */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -240,6 +250,7 @@ export default class CloudAccount extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Account ID",
     description:
       "The cloud's own id for the account: an AWS account id, an Azure subscription id or a Google Cloud project id.",
@@ -261,6 +272,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Name in the Cloud",
     description:
       "What the cloud calls the account: an AWS account alias, an Azure subscription's or a Google Cloud project's name.",
@@ -309,6 +321,7 @@ export default class CloudAccount extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Cloud Connection ID",
     description: "ID of the connection that reads this account, if one does.",
   })
@@ -328,6 +341,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Resources",
     description: "How many live resources the account has in OneUptime.",
     example: 42,
@@ -347,6 +361,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Regions",
     description: "How many regions the account's live resources are in.",
     example: 3,
@@ -432,6 +447,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Last Read At",
     description: "When a cloud connection last reached the account.",
   })

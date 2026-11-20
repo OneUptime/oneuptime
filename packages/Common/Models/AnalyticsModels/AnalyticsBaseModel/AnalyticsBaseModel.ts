@@ -1,7 +1,9 @@
 import EnableRealtimeEventsOn from "../../../Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndex,
+} from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Projection from "../../../Types/AnalyticsDatabase/Projection";
 import MaterializedView from "../../../Types/AnalyticsDatabase/MaterializedView";
@@ -87,6 +89,14 @@ export default class AnalyticsBaseModel extends CommonModel {
      */
     includeBaseColumns?: boolean | undefined;
     /*
+     * A skip index on the base `createdAt` column, for a table that is read
+     * by when its rows arrived: SecurityEvent, whose scheduled detection
+     * rules judge what arrived since their last run (#10337). The tables
+     * are sorted by when their rows happened, so without one such a read
+     * scans every row of its time range for the few that arrived.
+     */
+    createdAtSkipIndex?: SkipIndex | undefined;
+    /*
      * Column that `findBy` falls back to when the caller doesn't
      * specify a `sort`. Defaults to `createdAt` (matching the legacy
      * behavior), but heavy analytics tables should override this to
@@ -133,7 +143,14 @@ export default class AnalyticsBaseModel extends CommonModel {
           description: "Date and Time when the object was created.",
           required: true,
           type: TableColumnType.Date,
+          skipIndex: data.createdAtSkipIndex,
         }),
+      );
+    }
+
+    if (data.includeBaseColumns === false && data.createdAtSkipIndex) {
+      throw new BadDataException(
+        "createdAtSkipIndex needs the base columns: createdAt is not part of the table schema when includeBaseColumns is false",
       );
     }
 

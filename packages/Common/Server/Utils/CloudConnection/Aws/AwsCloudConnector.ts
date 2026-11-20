@@ -666,9 +666,14 @@ export default class AwsCloudConnector implements CloudConnector {
   public async getCredentials(
     settings: CloudConnectionSettings,
     options: CloudConnectorCallOptions & {
+      // The saved connection read, or tested; none for settings never saved.
       connectionId?: string | undefined;
       budget?: CloudReadBudget | undefined;
-      // A test signs in and checks the role afresh: a role changed a minute ago is tried as it is.
+      /*
+       * A test signs in and checks the role afresh: a role changed a minute
+       * ago is tried as it is. A test of a saved connection keeps what the
+       * check found for its reads, on every server (#10424).
+       */
       noCache?: boolean | undefined;
     },
   ): Promise<AwsCredentials> {
@@ -688,8 +693,9 @@ export default class AwsCloudConnector implements CloudConnector {
     });
 
     if (!options.noCache) {
-      // Only while the check that let the session be made holds.
-      const cached: AwsCredentials | undefined = AssumedRoleCache.get(key);
+      // Only while a pass of the role's check holds, for every server.
+      const cached: AwsCredentials | undefined =
+        await AssumedRoleCache.get(key);
 
       if (cached) {
         return cached;
@@ -713,6 +719,8 @@ export default class AwsCloudConnector implements CloudConnector {
         sleep: options.sleep,
         budget: options.budget,
         noCache: options.noCache,
+        // A test of a saved connection keeps what it found; of settings never saved, nothing.
+        keepsVerdict: Boolean(options.connectionId),
       });
     } catch (error) {
       // The server's own credentials expired or are unknown: new ones next time.
@@ -1195,7 +1203,10 @@ export default class AwsCloudConnector implements CloudConnector {
 
   public async testConnection(
     settings: CloudConnectionSettings,
-    options: CloudConnectorCallOptions,
+    options: CloudConnectorCallOptions & {
+      // The saved connection tested, when it is one: its role's check is kept for its reads.
+      connectionId?: string | undefined;
+    },
   ): Promise<CloudConnectionTestResult> {
     const startedAt: number = Date.now();
 

@@ -12,6 +12,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -30,6 +31,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * Written by OneUptime alone, kept for 90 days, so anyone can see what Data
  * Security looked at and when.
+ */
+/*
+ * Through a relation too (#10310). A data store finding names the scan that
+ * last read it, and a custom role that reads findings reads the finding: of
+ * the scan, what kind it was, and nothing else. What it read (its counts of
+ * stores, objects, rows and bytes), what it found, what failed, when and
+ * how long it ran, from which probe and of which store and connection are
+ * held to the scan's own read (RelationReaders.ColumnReaders).
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -194,6 +203,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Data Store ID",
     description: "The store scanned, for a content or telemetry scan.",
   })
@@ -233,6 +243,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Cloud Connection ID",
     description: "The connection read, for a configuration read.",
   })
@@ -272,6 +283,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Probe ID",
     description: "The probe that ran the scan, when one did.",
   })
@@ -304,6 +316,7 @@ export default class DataSecurityScan extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Status",
     description: "Running, Succeeded, Partly succeeded, Failed or Skipped.",
   })
@@ -320,6 +333,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Started At",
     description: "When the scan started.",
   })
@@ -335,6 +349,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Finished At",
     description: "When the scan finished.",
   })
@@ -350,6 +365,7 @@ export default class DataSecurityScan extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Duration (ms)",
     description: "How long the scan took.",
     defaultValue: 0,
@@ -368,6 +384,7 @@ export default class DataSecurityScan extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Stores Read",
     description: "How many stores a configuration read covered.",
     defaultValue: 0,
@@ -386,6 +403,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Objects Read",
     description: "How many objects or files the scan sampled.",
   })
@@ -402,6 +420,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Rows Read",
     description: "How many rows or records the scan sampled.",
   })
@@ -418,6 +437,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Bytes Read",
     description: "How many bytes the scan read.",
   })
@@ -434,6 +454,7 @@ export default class DataSecurityScan extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Findings",
     description: "How many findings the scan made or updated.",
     defaultValue: 0,
@@ -481,6 +502,7 @@ export default class DataSecurityScan extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Error",
     description: "Why the scan failed, if it did.",
   })
