@@ -147,6 +147,50 @@ export default class IpCanonicalUtil {
     return null;
   }
 
+  /*
+   * The IPv4 address an IPv4-mapped IPv6 literal (::ffff:0:0/96, RFC 4291
+   * 2.5.5.2) stands for, dotted - "203.0.113.7" for "::ffff:203.0.113.7",
+   * "::FFFF:cb00:7107" and "0:0:0:0:0:ffff:cb00:7107" alike - or null for
+   * anything else, an IPv4 address included. A dual-stack socket reports an
+   * IPv4 peer so, and it is that IPv4 address, only written as IPv6: an
+   * allowlist matches it as the IPv4 address (Types/Form/FormIpAllowlist),
+   * and a scrub rule hashes it as one (Utils/Telemetry/ScrubIpAddress).
+   * Unlike getEmbeddedIpv4, no other prefix counts: a translated, 6to4 or
+   * Teredo address is an IPv6 address of its own that carries an IPv4 one.
+   */
+  public static getIpv4OfMappedAddress(value: string): string | null {
+    const groups: Array<number> | null = IpCanonicalUtil.getIpv6Groups(value);
+
+    if (!groups || !IpCanonicalUtil.isIpv4Mapped(groups)) {
+      return null;
+    }
+
+    return IpCanonicalUtil.toDottedIpv4(groups[6]!, groups[7]!);
+  }
+
+  /*
+   * An IPv6 literal as its eight 16-bit groups - "::" expanded, an IPv4
+   * tail folded into the last two - or null when the value is not one: an
+   * IPv4 address, a range, a host name, or text that only looks like an
+   * address ("2a00::1::2", "2a00:12345::1", "1:2:3:4:5:6:7"). IP.isIP
+   * decides what is an address, so this takes exactly the forms Node's
+   * net.isIPv6 takes. A link-local address's zone ("fe80::1%eth0") names
+   * the interface, not the address, and is read past.
+   */
+  public static getIpv6Groups(value: string): Array<number> | null {
+    const trimmed: string = value.trim();
+
+    if (!IP.isIP(trimmed) || new IP(trimmed).isIPv4()) {
+      return null;
+    }
+
+    const zoneAt: number = trimmed.indexOf("%");
+
+    return IpCanonicalUtil.toIpv6Groups(
+      zoneAt === -1 ? trimmed : trimmed.substring(0, zoneAt),
+    );
+  }
+
   // Two 16-bit groups as a dotted IPv4 address.
   private static toDottedIpv4(high: number, low: number): string {
     return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
