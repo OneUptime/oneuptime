@@ -136,8 +136,12 @@ const SKIP_REASONS: ReadonlyArray<string> = Object.values(
 // The longest detail code an entry keeps.
 export const MAX_DECISION_DETAIL_LENGTH: number = 60;
 
-// A detail code: lower-case words joined by dashes, nothing else.
-const DETAIL_PATTERN: RegExp = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/*
+ * A detail code: lower-case words joined by dashes, each starting with a
+ * letter - so a number written in groups ("4111-1111-1111-1111") is never
+ * one.
+ */
+const DETAIL_PATTERN: RegExp = /^[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$/;
 
 function readString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;

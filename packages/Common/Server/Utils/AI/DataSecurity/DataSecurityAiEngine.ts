@@ -741,7 +741,7 @@ export default class DataSecurityAiEngine {
       projectId: data.context.projectId,
       issue: data.context.issue,
       store: data.context.store,
-      kind: data.action.kind,
+      action: data.action,
       change: data.change,
       work: data.decision,
       verdict,

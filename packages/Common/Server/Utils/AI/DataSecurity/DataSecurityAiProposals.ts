@@ -153,7 +153,8 @@ function messageOf(error: unknown): string {
   const message: string =
     error instanceof Error ? error.message : String(error || "");
 
-  return message.slice(0, 1000) || "The change could not be made.";
+  // As much as the proposal's Why It Failed holds.
+  return message.slice(0, 500) || "The change could not be made.";
 }
 
 function readCountedFirstApprover(
@@ -290,15 +291,17 @@ export default class DataSecurityAiProposals {
     projectId: ObjectID;
     issue: DataSecurityIssue;
     store: DataStore;
-    kind: DataSecurityAiProposalKind;
+    // The action that planned the change: it makes it, too.
+    action: DataSecurityAiAction;
     change: DataSecurityAiPlannedChange;
     work: DataSecurityAiWorkDecision;
     verdict: DataSecurityAiWithoutAskingVerdict;
     aiRunId?: ObjectID | undefined;
     now: Date;
   }): Promise<DataSecurityAiDecisionEntry> {
+    const kind: DataSecurityAiProposalKind = data.action.kind;
     const work: DataSecurityAiDecisionEntry["work"] =
-      DATA_SECURITY_AI_PROPOSAL_KINDS[data.kind].work;
+      DATA_SECURITY_AI_PROPOSAL_KINDS[kind].work;
     const entry: (
       reason: DataSecurityAiDecisionReason,
       more?: Partial<DataSecurityAiDecisionEntry>,
@@ -309,7 +312,7 @@ export default class DataSecurityAiProposals {
       return {
         work,
         reason,
-        kind: data.kind,
+        kind,
         ruleId: data.work.ruleId,
         ruleName: data.work.ruleName,
         ...more,
@@ -321,7 +324,7 @@ export default class DataSecurityAiProposals {
         query: {
           projectId: data.projectId,
           dataSecurityIssueId: data.issue.id!,
-          kind: data.kind,
+          kind,
         },
         select: { _id: true, status: true, planKey: true },
         skip: 0,
@@ -359,13 +362,13 @@ export default class DataSecurityAiProposals {
     }
 
     const safety: DataSecurityAiChangeSafety =
-      data.change.safety || DATA_SECURITY_AI_PROPOSAL_KINDS[data.kind].safety;
+      data.change.safety || DATA_SECURITY_AI_PROPOSAL_KINDS[kind].safety;
     const proposal: DataSecurityAiProposal = new DataSecurityAiProposal();
 
     proposal.projectId = data.projectId;
     proposal.dataSecurityIssueId = data.issue.id!;
     proposal.dataStoreId = data.store.id!;
-    proposal.kind = data.kind;
+    proposal.kind = kind;
     proposal.work = work;
     proposal.safety = safety;
     proposal.status = DataSecurityAiProposalStatus.Proposed;
@@ -377,7 +380,7 @@ export default class DataSecurityAiProposals {
     proposal.plan = data.change.plan;
     proposal.planKey = data.change.planKey.slice(0, 100);
     proposal.planFingerprint = getDataSecurityAiPlanFingerprint({
-      kind: data.kind,
+      kind,
       plan: data.change.plan,
     });
     proposal.riskScore = data.issue.riskScore || 0;
@@ -431,6 +434,7 @@ export default class DataSecurityAiProposals {
     return await DataSecurityAiProposals.makeWithoutAsking({
       projectId: data.projectId,
       proposal: created,
+      action: data.action,
       entry,
     });
   }
@@ -444,6 +448,7 @@ export default class DataSecurityAiProposals {
   private static async makeWithoutAsking(data: {
     projectId: ObjectID;
     proposal: DataSecurityAiProposal;
+    action: DataSecurityAiAction;
     entry: (
       reason: DataSecurityAiDecisionReason,
       more?: Partial<DataSecurityAiDecisionEntry>,
@@ -467,9 +472,7 @@ export default class DataSecurityAiProposals {
     }
 
     try {
-      const made: DataSecurityAiChangeMade = await DataSecurityAiProposals.actionOf(
-        data.proposal,
-      ).apply({
+      const made: DataSecurityAiChangeMade = await data.action.apply({
         projectId: data.projectId,
         proposal: data.proposal,
         actor: { props: { isRoot: true } },
