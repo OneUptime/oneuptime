@@ -65,17 +65,36 @@ import "./Tooltip.css";
  * Drawn only while it is open: its owner renders it with the menu's
  * content as its child, which carries the menu's own look (its border,
  * shadow and width - no wider than the window, max-w-[calc(100vw-1rem)]).
+ * A menu as wide as its control - a search's suggestions, which hung from
+ * edge to edge of the search box - takes its control's width from the
+ * layer (LAYERED_POPOVER_AS_WIDE_AS_ANCHOR_CLASS_NAME).
+ *
+ * THE POPUP OF A FIELD (isFieldPopup).
+ *
+ * A search's suggestions and its syntax help are a combobox's popups: the
+ * focus stays in the field the person types in, the field's own keys move
+ * through the suggestions and close them, and the field's owner closes them
+ * on a press outside the field and them (#9909). Taking Tab and Escape as a
+ * menu does would take them from the field: Tab in the search would jump
+ * into the suggestions instead of on to its Clear button, and Escape would
+ * never reach the field. So a field's popup is drawn and placed here as a
+ * menu is - on the layer, against the window, following its field - and
+ * nothing else: Tab, Escape and a press are the field's, as they were while
+ * the popup was drawn in place. A press in it is still a press inside the
+ * field's owner (isInsideComponent), which is how the owner tells it from a
+ * press outside.
  */
 
 export type LayeredPopoverAlignment = "start" | "end";
 
 export type LayeredPopoverSide = "bottom" | "top";
 
-export interface ComponentProps {
+interface LayeredPopoverPlacementProps {
   /*
    * The control it opens from: it is placed against it, Tab goes on from
    * it, and a press on it is the control's own (it opens and closes it).
-   * A control with a Tooltip of its own works too.
+   * A control with a Tooltip of its own works too. A field's popup hangs
+   * from the field's box.
    */
   anchorRef: RefObject<HTMLElement | null>;
   /*
@@ -85,8 +104,6 @@ export interface ComponentProps {
   ownerRef?: RefObject<HTMLElement | null> | undefined;
   // The menu or the panel, with its own look.
   children: ReactNode;
-  // Asked to close: Escape, a press outside, the focus leaving it.
-  onClose: () => void;
   /*
    * The anchor's edge its own lines up with, in the line's direction: its
    * start (the default) or its end. "end" suits a control at the end of a
@@ -100,6 +117,25 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
 }
 
+// A menu or a panel a press opens: Tab, Escape and a press outside are its.
+export interface LayeredMenuProps extends LayeredPopoverPlacementProps {
+  isFieldPopup?: false | undefined;
+  // Asked to close: Escape, a press outside, the focus leaving it.
+  onClose: () => void;
+}
+
+/*
+ * The popup of a field the person types in: Tab, Escape and a press outside
+ * stay the field's, so it is never asked to close - its field's owner
+ * closes it, as it did while the popup was drawn in place.
+ */
+export interface LayeredFieldPopupProps extends LayeredPopoverPlacementProps {
+  isFieldPopup: true;
+  onClose?: undefined;
+}
+
+export type ComponentProps = LayeredMenuProps | LayeredFieldPopupProps;
+
 // Kept this far inside the window's edges, as every portalled menu is.
 export const LAYERED_POPOVER_WINDOW_PADDING_PX: number = 8;
 const DEFAULT_GAP_PX: number = 4;
@@ -111,6 +147,22 @@ export const LAYERED_POPOVER_MIN_HEIGHT_PX: number = 120;
 
 // On the layer's own element, the one Popper places (Tooltip.css).
 export const LAYERED_POPOVER_CLASS_NAME: string = "layered-popover";
+
+/*
+ * The width of the control a menu hangs from, on the layer's element as a
+ * custom property its menu can size itself by - kept up to date as the
+ * control's width changes, and set before the menu is first measured.
+ */
+export const LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY: string =
+  "--layered-popover-anchor-width";
+
+/*
+ * A menu exactly as wide as its control, its own class: a search's
+ * suggestions, which hung from edge to edge of the search box
+ * (`left-0 right-0`) while they were drawn in place.
+ */
+export const LAYERED_POPOVER_AS_WIDE_AS_ANCHOR_CLASS_NAME: string =
+  "w-[var(--layered-popover-anchor-width)]";
 
 // Popper's modifier, as tippy's options type it.
 type PopperModifier = NonNullable<
@@ -216,9 +268,32 @@ const getMenu: (popper: HTMLElement) => HTMLElement | null = (
 };
 
 /*
- * All of the menu's height, even while a max-height cuts it short, with its
- * own border round it.
+ * The menu's height as it draws itself, with its own border: all of it,
+ * even while the max-height this layer gives it (APPLY_MAX_HEIGHT_MODIFIER)
+ * cuts it short, and no more than a max-height of its own lets it be. A
+ * menu that scrolls inside its own cap - a search's eight suggestions in
+ * their 14rem, a busy day's sixty events in their 20rem - needs room for
+ * the cap, not for all it holds: measured by all it holds, it opened above
+ * its control where it fitted under it, and was given a max-height taller
+ * than its own.
  */
+export const getLayeredMenuHeight: (menu: HTMLElement) => number = (
+  menu: HTMLElement,
+): number => {
+  const cut: string = menu.style.maxHeight;
+
+  if (!cut) {
+    return menu.offsetHeight;
+  }
+
+  // Measured without this layer's cut, then cut again.
+  menu.style.maxHeight = "";
+  const height: number = menu.offsetHeight;
+  menu.style.maxHeight = cut;
+
+  return height;
+};
+
 const getMenuHeight: (state: PopperState) => number = (
   state: PopperState,
 ): number => {
@@ -228,10 +303,36 @@ const getMenuHeight: (state: PopperState) => number = (
     return state.rects.popper.height;
   }
 
-  return Math.max(
-    menu.scrollHeight + (menu.offsetHeight - menu.clientHeight),
-    state.rects.popper.height,
-  );
+  return getLayeredMenuHeight(menu);
+};
+
+// The control's width, on the layer's element for its menu to size itself by.
+const setAnchorWidth: (popper: HTMLElement, width: number) => void = (
+  popper: HTMLElement,
+  width: number,
+): void => {
+  const value: string = `${width}px`;
+
+  if (
+    popper.style.getPropertyValue(LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY) !==
+    value
+  ) {
+    popper.style.setProperty(LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY, value);
+  }
+};
+
+/*
+ * Keeps the control's width on the layer as Popper places it again - a
+ * search box that grows with its toolbar. The first placement is measured
+ * with it already set (LayeredPopover sets it as it opens).
+ */
+const ANCHOR_WIDTH_MODIFIER: PopperModifier = {
+  name: "layeredPopoverAnchorWidth",
+  enabled: true,
+  phase: "write",
+  fn: ({ state }: { state: PopperState }): void => {
+    setAnchorWidth(state.elements.popper, state.rects.reference.width);
+  },
 };
 
 const FIT_TO_WINDOW_MODIFIER_NAME: string = "layeredPopoverFitToWindow";
@@ -336,10 +437,17 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
 
   const instanceRef: React.MutableRefObject<Instance | null> =
     useRef<Instance | null>(null);
-  const onCloseRef: React.MutableRefObject<() => void> = useRef<() => void>(
-    props.onClose,
-  );
+  const onCloseRef: React.MutableRefObject<(() => void) | undefined> = useRef<
+    (() => void) | undefined
+  >(props.onClose);
   onCloseRef.current = props.onClose;
+
+  /*
+   * A field's popup leaves Tab, Escape and a press to its field (#9909). A
+   * popup is one or the other for as long as it is open; were it to change,
+   * the layer's listeners would be set up again for what it is now.
+   */
+  const isFieldPopup: boolean = props.isFieldPopup === true;
 
   /*
    * Asked once: one gesture can close it twice - a press outside takes the
@@ -355,7 +463,7 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
       }
 
       hasAskedToCloseRef.current = true;
-      onCloseRef.current();
+      onCloseRef.current?.();
     },
   );
 
@@ -393,6 +501,7 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
           },
           getFitToWindowModifier({ preferred: side, gap: gap }),
           APPLY_MAX_HEIGHT_MODIFIER,
+          ANCHOR_WIDTH_MODIFIER,
         ],
       },
     };
@@ -472,7 +581,12 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
       ...getPlacementPropsRef.current(anchor),
       // The control says it opens a menu, and whether it is open, itself.
       aria: { content: null, expanded: false },
-      plugins: [keepTabOrder],
+      /*
+       * A field's popup is not in the Tab order from its field: Tab in a
+       * search goes on to its Clear button, as it did while the popup was
+       * drawn in place, and the field's leaving closes it (its owner).
+       */
+      plugins: isFieldPopup ? [] : [keepTabOrder],
       onHide: (): void => {
         if (!isLettingGo) {
           closeRef.current();
@@ -485,6 +599,9 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
     }
 
     instanceRef.current = instance;
+
+    // Measured from its first placement at the width its control has now.
+    setAnchorWidth(popper, anchor.getBoundingClientRect().width);
     instance.show();
 
     /*
@@ -505,6 +622,8 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
 
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver((): void => {
+        // A menu as wide as its control is measured at the new width.
+        setAnchorWidth(popper, anchor.getBoundingClientRect().width);
         void instance.popperInstance?.update();
       });
       resizeObserver.observe(anchor);
@@ -526,7 +645,7 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
         (anchor as TippyElement)._tippy = tooltipOfControl;
       }
     };
-  }, [popper, props.anchorRef]);
+  }, [popper, props.anchorRef, isFieldPopup]);
 
   // Its side or its edge changed while it is open: placed there.
   const isFirstPlacementRef: React.MutableRefObject<boolean> =
@@ -552,9 +671,9 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
     void instanceRef.current?.popperInstance?.update();
   });
 
-  // Escape closes it, and is spent.
+  // Escape closes it, and is spent - a field's popup's Escape is its field's.
   useEffect(() => {
-    if (!popper) {
+    if (!popper || isFieldPopup) {
       return undefined;
     }
 
@@ -616,11 +735,17 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [popper, props.anchorRef]);
+  }, [popper, props.anchorRef, isFieldPopup]);
 
-  // A press outside it, and outside its control, closes it.
+  /*
+   * A press outside it, and outside its control, closes it. A field's
+   * popup is closed by its field's owner, which tells a press in it from
+   * one outside (isInsideComponent) - and spends no press: a press on a
+   * dialog's backdrop behind a search's suggestions closes the dialog too,
+   * as it did while they were drawn in place.
+   */
   useEffect(() => {
-    if (!popper) {
+    if (!popper || isFieldPopup) {
       return undefined;
     }
 
@@ -647,7 +772,7 @@ const LayeredPopover: FunctionComponent<ComponentProps> = (
     return () => {
       document.removeEventListener("mousedown", onPress, true);
     };
-  }, [popper, props.anchorRef, props.ownerRef]);
+  }, [popper, props.anchorRef, props.ownerRef, isFieldPopup]);
 
   if (!popper) {
     return null;

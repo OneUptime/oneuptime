@@ -13,8 +13,9 @@ import AttributeValuesEmpty, {
 import AttributeKeySentence, {
   LOADING_ATTRIBUTE_VALUES_SENTENCE,
 } from "../../../UI/Components/TelemetryViewer/components/AttributeKeySentence";
-import TelemetrySearchSuggestions from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchSuggestions";
-import LogSearchSuggestions from "../../../UI/Components/LogsViewer/components/LogSearchSuggestions";
+import TelemetrySearchSuggestions, {
+  SEARCH_SUGGESTIONS_TEST_ID,
+} from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchSuggestions";
 import {
   TelemetryLoadError,
   TelemetryLoadErrorKind,
@@ -28,7 +29,7 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  * The dark theme is Theme.css remapping the light utilities a component
  * uses once <html> carries .dark; a utility with no remap keeps its light
  * colour and paints a light patch on the dark dropdown. Every colour the row
- * draws, in each of its states, and in both dropdowns that show it, must be
+ * draws, in each of its states, and in the dropdown that shows it, must be
  * one the stylesheet remaps.
  */
 
@@ -168,77 +169,77 @@ describe("the could-not-load row in the dark theme", () => {
     ).toEqual([]);
   });
 
-  test.each([
-    ["the explorers' dropdown", TelemetrySearchSuggestions],
-    ["the logs dropdown", LogSearchSuggestions],
-  ])(
-    "%s, holding either row or loading, draws only remapped colours",
-    (
-      _label: string,
-      Dropdown: typeof TelemetrySearchSuggestions | typeof LogSearchSuggestions,
-    ) => {
-      const { container, rerender } = render(
-        <Dropdown
-          suggestions={[]}
-          selectedIndex={-1}
-          onSelect={jest.fn()}
-          fieldContext="env"
-          isAttributeMode={true}
-          valuesError={ERRORS[0]![1]}
-          onRetryValues={jest.fn()}
-        />,
+  /*
+   * One dropdown for the explorers' searches and the logs search: the logs
+   * search draws the explorers' (TelemetrySearchSuggestions), on the
+   * tooltip layer (#9909), so its colours are read where it is drawn.
+   */
+  test("the explorers' and the logs search's dropdown, holding either row or loading, draws only remapped colours", () => {
+    function Dropdown(
+      props: Partial<React.ComponentProps<typeof TelemetrySearchSuggestions>>,
+    ): React.ReactElement {
+      const searchRef: React.RefObject<HTMLDivElement> =
+        React.useRef<HTMLDivElement>(null);
+
+      return (
+        <div>
+          <div ref={searchRef}>
+            <input aria-label="Search" />
+          </div>
+          <TelemetrySearchSuggestions
+            anchorRef={searchRef}
+            suggestions={[]}
+            selectedIndex={-1}
+            onSelect={jest.fn()}
+            fieldContext="env"
+            isAttributeMode={true}
+            {...props}
+          />
+        </div>
       );
+    }
 
-      const withError: Array<string> = colourTokensIn(container);
+    const dropdown: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId(SEARCH_SUGGESTIONS_TEST_ID);
+    };
 
-      rerender(
-        <Dropdown
-          suggestions={[]}
-          selectedIndex={-1}
-          onSelect={jest.fn()}
-          fieldContext="env"
-          isAttributeMode={true}
-          hasNoValues={true}
-        />,
-      );
+    const { rerender } = render(
+      <Dropdown valuesError={ERRORS[0]![1]} onRetryValues={jest.fn()} />,
+    );
 
-      const empty: Array<string> = colourTokensIn(container);
+    const withError: Array<string> = colourTokensIn(dropdown());
 
-      expect(
-        container.querySelector(
-          `[data-testid="${ATTRIBUTE_VALUES_EMPTY_TEST_ID}"]`,
-        ),
-      ).not.toBeNull();
+    rerender(<Dropdown hasNoValues={true} />);
 
-      rerender(
-        <Dropdown
-          suggestions={[]}
-          selectedIndex={-1}
-          onSelect={jest.fn()}
-          fieldContext="env"
-          isAttributeMode={true}
-          isLoading={true}
-          loadingMessage={
-            <AttributeKeySentence
-              template={LOADING_ATTRIBUTE_VALUES_SENTENCE}
-              attributeKey="env"
-            />
-          }
-        />,
-      );
+    const empty: Array<string> = colourTokensIn(dropdown());
 
-      const loading: Array<string> = colourTokensIn(container);
+    expect(
+      dropdown().querySelector(
+        `[data-testid="${ATTRIBUTE_VALUES_EMPTY_TEST_ID}"]`,
+      ),
+    ).not.toBeNull();
 
-      expect(withError).toEqual(
-        expect.arrayContaining(["bg-white", "border-gray-200"]),
-      );
-      expect(
-        [...withError, ...empty, ...loading].filter(
-          (token: string): boolean => {
-            return !isRemappedForDarkTheme(token);
-          },
-        ),
-      ).toEqual([]);
-    },
-  );
+    rerender(
+      <Dropdown
+        isLoading={true}
+        loadingMessage={
+          <AttributeKeySentence
+            template={LOADING_ATTRIBUTE_VALUES_SENTENCE}
+            attributeKey="env"
+          />
+        }
+      />,
+    );
+
+    const loading: Array<string> = colourTokensIn(dropdown());
+
+    expect(withError).toEqual(
+      expect.arrayContaining(["bg-white", "border-gray-200"]),
+    );
+    expect(
+      [...withError, ...empty, ...loading].filter((token: string): boolean => {
+        return !isRemappedForDarkTheme(token);
+      }),
+    ).toEqual([]);
+  });
 });
