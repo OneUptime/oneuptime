@@ -71,9 +71,10 @@ import { describe, expect, it } from "@jest/globals";
  *     tab names stay in English (SHOWN_IN_ENGLISH). When the Dashboard gains
  *     a key for one, a test below fails until the pages name it as drawn:
  *     the monitor criteria's aggregations (All Values) did in 31eadaee92e,
- *     and the profiles page's Grafana Alloy tab when the Setup Guide drew
- *     the name (#7742). A docs tab keeps its English name on its @tab line
- *     in every language, label or not.
+ *     the profiles page's Grafana Alloy tab when the Setup Guide drew the
+ *     name (#7742), and its .NET tab when an App Service app's Setup tab
+ *     drew it as a stack to pick (#10380). A docs tab keeps its English
+ *     name on its @tab line in every language, label or not.
  *
  * Bold words that are Dashboard labels only by coincidence are PROSE, with
  * why; bold words that are neither labels nor shown in English are the
@@ -137,21 +138,16 @@ const ALSO_A_BUTTON: Record<string, Array<string>> = {
  * (a product's name), by page.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [PROFILES]: [
-    /*
-     * The profile page's third tab, Diff vs. baseline, is not here: every
-     * locale words it now, and the translated pages name it as their
-     * Dashboard draws it.
-     */
-    /*
-     * The page's own tab ("the **.NET** tab"): a product, named as its
-     * maker names it. Grafana Alloy, the other tab the page names in bold,
-     * is a Dashboard label since #7742 (the Setup Guide's snippet tab for
-     * Prometheus and Loki), a product name every locale keeps as is
-     * (i18n/SameAsEnglish.json).
-     */
-    ".NET",
-  ],
+  /*
+   * The profiles page has none left. Its third tab, Diff vs. baseline, is
+   * worded by every locale now, and the translated pages name it as their
+   * Dashboard draws it. The two tabs it names in bold are products, named
+   * as their makers name them, and Dashboard labels every locale keeps as
+   * is (i18n/SameAsEnglish.json), so every translation names them as
+   * drawn: Grafana Alloy since #7742 (the Setup Guide's snippet tab for
+   * Prometheus and Loki), and .NET ("the **.NET** tab") since #10380 (the
+   * first stack an App Service app's Setup tab offers, #10294).
+   */
   /*
    * The editor's aggregation option, which has no locale key. A metrics
    * monitor's aggregation strategy (All Values) is a label since
@@ -585,9 +581,11 @@ describe("the lists this test keeps", () => {
    * fails here: then every translation names it as drawn, and it leaves the
    * list. The docs' own tab names are bold product names, kept here while
    * the Dashboard draws none of them; one it draws is a label like any
-   * other, as "Grafana Alloy" is since #7742. The tab itself is read from
-   * its @tab line, never as a bold name, and every translation names it as
-   * the English page does.
+   * other, as "Grafana Alloy" is since #7742 and ".NET" since #10380. One
+   * the Dashboard stops drawing fails "know every bold word" below until
+   * it is listed here again. The tab itself is read from its @tab line,
+   * never as a bold name, and every translation names it as the English
+   * page does.
    */
   it("keep in English only bold names the Dashboard has no translation for", () => {
     for (const page of Object.keys(SHOWN_IN_ENGLISH)) {

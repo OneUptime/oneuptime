@@ -216,8 +216,8 @@ const CloudResourceMetricCollectionLine: FunctionComponent<ComponentProps> = (
             className="font-medium text-indigo-600 hover:text-indigo-700"
           >
             {isOpen
-              ? translator.translateText("Hide") || "Hide"
-              : translator.translateText("Show why") || "Show why"}
+              ? translator.translateText("Hide")
+              : translator.translateText("Show why")}
           </button>
         ) : (
           <></>
