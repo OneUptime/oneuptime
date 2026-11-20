@@ -7,6 +7,11 @@
       "type": "string",
       "description": "The version of the chart this values.yaml comes with, stamped by the release pipeline. Do not set it: the chart compares it with its own version to warn when a release renders with an older chart's defaults (helm upgrade --reuse-values)."
     },
+    "installedAs": {
+      "type": "string",
+      "enum": ["", "aws-eks-addon"],
+      "description": "How this agent was installed: empty for a Helm install, aws-eks-addon for the Amazon EKS add-on, which sets it itself. Do not set it. The agent's ClusterRole carries it as its oneuptime.com/installed-as label, for the cluster's Compliance page to name the setting that changes what the role grants as the install takes it."
+    },
     "global": {
       "type": "object",
       "description": "Reserved for platform-injected globals (e.g. Rancher's global.cattle.*, ArgoCD, Flux). Not consumed by this chart."

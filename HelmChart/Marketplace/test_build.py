@@ -1142,6 +1142,8 @@ class EksAddonBuildTest(unittest.TestCase):
         self.assertEqual(values.get_value(["fullnameOverride"]), "kubernetes-agent")
         self.assertEqual(values.get_value(["preset"]), "standard")
         self.assertEqual(values.get_value(["clusterName"]), "set-by-amazon-eks")
+        # The agent's role says it is the add-on, for the Compliance page (#9928).
+        self.assertEqual(values.get_value(["installedAs"]), "aws-eks-addon")
         self.assertEqual(values.get_value(["chartDefaultsVersion"]), "14.0.65")
 
     def test_its_configuration_schema_says_what_values_yaml_does(self) -> None:

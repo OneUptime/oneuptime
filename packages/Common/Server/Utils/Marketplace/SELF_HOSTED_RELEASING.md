@@ -1125,6 +1125,11 @@ marketplace suite checks each rule:
   kubelets. Each default there is the add-on's values.yaml's. The chart's own
   schema is open at its root, for the `k8version` value EKS renders add-ons
   with.
+- **The add-on says it is the add-on**: values.yaml sets `installedAs:
+  aws-eks-addon`, which a buyer cannot change, and the agent's ClusterRole
+  carries it as its `oneuptime.com/installed-as` label. Where the role fails
+  CIS 5.1.10, the cluster's Compliance page names the add-on's configuration
+  value that drops `nodes/proxy` instead of a Helm `--set`.
 - **Nothing EKS cannot run**: no hook, no `lookup`, no CRD, no Release object
   but `.Name` and `.Namespace`, no subchart; no profiler and no debug sidecar
   (not offered, so their images are not shipped). Resources are named as the

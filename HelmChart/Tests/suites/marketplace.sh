@@ -552,6 +552,10 @@ PY
     done < <(addon_field compatibleKubernetesVersions)
 
     OLDEST="$(addon_field compatibleKubernetesVersions | head -n 1)"
+    # The role says it is the add-on's, so the cluster's Compliance page names the add-on's
+    # configuration value that drops nodes/proxy, not a Helm --set its buyer cannot run.
+    assert_present "aws-eks-addon: the agent's role says it is the add-on, for the Compliance page" \
+        "$(cat "${WORK_DIR}/aws-eks-addon-${OLDEST}.yaml")" 'oneuptime.com/installed-as: "aws-eks-addon"'
     ADDON_NO_NODES_PROXY_VALUES="${WORK_DIR}/aws-eks-addon-no-nodes-proxy.json"
     printf '%s\n' '{"kubeletstats": {"nodesProxy": false}}' >"$ADDON_NO_NODES_PROXY_VALUES"
     if [ -n "$(python3 -c 'import json,sys; s=json.load(open(sys.argv[1])); print("" if {"kubeletstats": {"nodesProxy": False}} in s["examples"] else "missing")' "${ADDON_CHART}/aws_mp_configuration_schema.json")" ]; then
