@@ -253,12 +253,10 @@ export const BLOCKLIST_TEST_IDS: {
   enforcedAtCell: string;
   notEnforced: string;
   expiresCell: string;
-  refusal: string;
 } = {
   notice: "blocklist-not-enforced-notice",
   addressCell: "blocklist-address",
   enforcedAtCell: "blocklist-enforced-at",
   notEnforced: "blocklist-not-enforced",
   expiresCell: "blocklist-expires",
-  refusal: "blocklist-block-refusal",
 };

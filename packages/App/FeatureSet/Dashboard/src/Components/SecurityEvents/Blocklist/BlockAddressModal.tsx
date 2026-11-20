@@ -8,7 +8,6 @@ import {
   ADDRESS_FIELD_PLACEHOLDER,
   ADDRESS_FIELD_TITLE,
   BLOCKED_TOAST,
-  BLOCKLIST_TEST_IDS,
   BLOCK_ADDRESS_DESCRIPTION,
   BLOCK_ADDRESS_TITLE,
   BLOCK_ANYWAY,
@@ -42,7 +41,6 @@ import {
   getSecurityBlockValueSentence,
   readSecurityBlockValue,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -166,6 +164,8 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [refusal, setRefusal] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  // What was typed, kept for the form when a question asked before blocking is cancelled.
+  const [typed, setTyped] = useState<JSONObject | null>(null);
   const [pending, setPending] = useState<{
     values: JSONObject;
     warnings: Array<BlockWarning>;
@@ -222,6 +222,7 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
   ): Promise<void> => {
     setRefusal(null);
     setIsSubmitting(true);
+    setTyped(values);
 
     try {
       const check: BlockValueCheck = await checkBlockValue(
@@ -301,20 +302,11 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
       isSubmitting={isSubmitting}
       onClose={props.onClose}
       onSubmit={submit}
-      beforeFormElement={
-        refusal ? (
-          <div data-testid={BLOCKLIST_TEST_IDS.refusal}>
-            <Alert
-              type={AlertType.DANGER}
-              title={<span>{refusal}</span>}
-              className="mb-4"
-            />
-          </div>
-        ) : undefined
-      }
+      // Why the block is not made: the server's reason in the reader's words, or what went wrong.
+      error={refusal || undefined}
       formProps={{
         name: "Block Address",
-        initialValues: {
+        initialValues: typed || {
           [EXPIRES_FIELD]: SECURITY_BLOCK_DEFAULT_DURATION,
           [ACTION_FIELD]: SecurityBlockAction.Block,
           [UNTIL_LIFTED_FIELD]: false,

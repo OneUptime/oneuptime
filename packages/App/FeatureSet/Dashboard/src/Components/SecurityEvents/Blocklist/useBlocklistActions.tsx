@@ -119,7 +119,9 @@ export default function useBlocklistActions(data: {
     values: JSONObject,
   ): Promise<void> => {
     if (!block.id) {
-      throw new BadDataException("Block ID not found");
+      throw new BadDataException(
+        "This block could not be read. Reload the page and try again.",
+      );
     }
 
     await ModelAPI.updateById<SecurityBlock>({
