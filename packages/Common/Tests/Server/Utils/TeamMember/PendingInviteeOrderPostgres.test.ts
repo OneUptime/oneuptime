@@ -308,10 +308,10 @@ describePostgres("a list sorted by a person's name, on Postgres", () => {
 
   async function readMembers(data: {
     adjust: FindBuilderAdjuster | null;
-    direction?: "ASC" | "DESC";
-    teamId?: string;
-    take?: number;
-    skip?: number;
+    direction?: "ASC" | "DESC" | undefined;
+    teamId?: string | undefined;
+    take?: number | undefined;
+    skip?: number | undefined;
   }): Promise<Array<TeamMember>> {
     const direction: "ASC" | "DESC" = data.direction || "ASC";
 
@@ -347,7 +347,7 @@ describePostgres("a list sorted by a person's name, on Postgres", () => {
   async function expectedMembersOrder(
     shown: Record<string, string | null>,
     direction: "ASC" | "DESC",
-    teamId?: string,
+    teamId?: string | undefined,
   ): Promise<Array<string>> {
     const rows: Array<{ _id: string; userId: string }> = await database.query(
       `SELECT "_id", "userId" FROM "${schema}"."TeamMember" WHERE "projectId" = $1 AND "deletedAt" IS NULL${

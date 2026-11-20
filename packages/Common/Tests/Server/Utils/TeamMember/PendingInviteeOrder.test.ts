@@ -613,9 +613,9 @@ describe("on a TypeORM PagedFind was not written for", () => {
   test("with no adjuster, repository.find as ever", async () => {
     TypeOrmPatchVersion.setInstalledVersionForTests("0.3.0");
 
-    const find: jest.SpiedFunction<
-      (options?: FindManyOptions<TeamMember>) => Promise<Array<TeamMember>>
-    > = jest.spyOn(repositoryOf(TeamMember), "find").mockResolvedValue([]);
+    const find: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(repositoryOf(TeamMember), "find")
+      .mockResolvedValue([]);
 
     await PagedFind.find(repositoryOf(TeamMember), { take: 10 });
 
