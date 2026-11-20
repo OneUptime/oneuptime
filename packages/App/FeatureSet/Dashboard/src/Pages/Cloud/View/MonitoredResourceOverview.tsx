@@ -528,6 +528,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           "What its cloud says it is, where it is, and how OneUptime reads it.",
         )}
         recordId={modelId.toString()}
+        recordModelType={CloudResource}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
       />

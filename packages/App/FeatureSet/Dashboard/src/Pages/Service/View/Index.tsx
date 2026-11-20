@@ -655,6 +655,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         detailRows={detailRows}
         detailsDescription={RESOURCE_OVERVIEW_DETAILS_DESCRIPTION}
         recordId={modelId.toString()}
+        recordModelType={Service}
         labels={r.labels}
         settingsRoute={populate(PageMap.SERVICE_VIEW_SETTINGS)}
       />
