@@ -17,6 +17,7 @@ import {
 import {
   SECURITY_CASE_MATCHES_MAX_DETECTIONS,
   SECURITY_CASE_MATCHES_MAX_EVENTS,
+  SECURITY_CASE_MATCHES_MAX_WINDOW_IN_HOURS,
   SecurityCaseMatchBasis,
   SecurityCaseMatchRuleJson,
   SecurityCaseMatchedDetectionJson,
@@ -40,7 +41,11 @@ import {
 } from "../../../../Types/SecurityEvent/DetectionRuleResponseSteps";
 import { getDetectionRuleLibraryResponseStepsForYaml } from "../../../../Types/SecurityEvent/DetectionRuleLibraryResponseSteps";
 import { getDetectionDefinitionRules } from "../../../../Types/SecurityEvent/RealTimeDetection";
-import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
+import {
+  DetectionRuleDefinition,
+  SigmaCorrelation,
+  SigmaCorrelationStep,
+} from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import { THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import { getObservableSearchValues } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
@@ -59,6 +64,8 @@ import SecurityEventService, {
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import logger from "../../Logger";
+import { buildCorrelationEventsRead } from "../../SecurityEvent/Correlation/CorrelationQueries";
+import { getCorrelationMatchedEventsStart } from "../../SecurityEvent/Correlation/CorrelationRuleMatcher";
 import DetectionRuleRetrohunt from "../../SecurityEvent/DetectionRuleRetrohunt";
 import SigmaClickhouseCompiler, {
   buildSigmaFieldExpression,
@@ -91,8 +98,10 @@ import {
  *   a rule's        its condition - compiled as its runs compile it, with
  *                   the watchlists it names - for the detection's group,
  *                   from a window before it first fired to when it last
- *                   did: exactly what it counted (a correlation: the rules
- *                   it reads, naming its group);
+ *                   did: exactly what it counted (a correlation: its steps'
+ *                   events, for its group as its own group-by groups them,
+ *                   from where the events its first run matched start -
+ *                   the window it keeps them from as it fires, #9939);
  *   a feed's        the events carrying the indicator;
  *   a product's     the event its alert was recorded as;
  *   anything else   the events naming what it is about, around its firings.
@@ -311,8 +320,19 @@ function observablesCondition(values: Array<string>): Statement {
 /*
  * A rule's condition for one detection: the rule's own, compiled as its
  * runs compile it, and - for a rule that groups - only the detection's
- * group. A correlation reads the rules its steps read, and the events
- * naming its group.
+ * group.
+ *
+ * A correlation's (#9939) is what it keeps its events by as it fires
+ * (buildCorrelationEventsRead, #9795): any of its steps' events - what its
+ * reads count - whose group is the detection's, taken as its own reads take
+ * each group-by field (an alias by the step the event matched) and joined
+ * as the case names the group ("alice / 203.0.113.7"). It used to be the
+ * events of the steps' rules carrying one of the group's values among their
+ * observables, which listed nothing for a correlation grouped by a field no
+ * observable holds (an HTTP route), and, for one grouped by an address,
+ * every event naming the address anywhere - as the source of another
+ * group's request, or its target. Throws, as the reads do, for a step that
+ * is not resolved to a rule.
  */
 export function buildRuleCondition(data: {
   rule: Pick<DetectionRule, "groupByField">;
@@ -339,49 +359,104 @@ export function buildRuleCondition(data: {
     return { condition, basis: SecurityCaseMatchBasis.RuleCondition };
   }
 
-  const rules: Array<SigmaRule> = getDetectionDefinitionRules(definition);
-  const values: Array<string> = getGroupValues(data.groupValue);
-
-  if (rules.length === 0) {
+  if (definition.steps.length === 0) {
     return null;
   }
 
+  const read: ReturnType<typeof buildCorrelationEventsRead> =
+    buildCorrelationEventsRead({
+      correlation: definition.correlation,
+      steps: definition.steps,
+    });
+
   const condition: Statement = SQL`(`;
-
-  rules.forEach((sigmaRule: SigmaRule, index: number): void => {
-    if (index > 0) {
-      condition.append(" OR ");
-    }
-
-    condition.append("(");
-    condition.append(SigmaClickhouseCompiler.compile(sigmaRule));
-    condition.append(")");
-  });
-
+  condition.append(read.condition);
   condition.append(")");
 
-  if (values.length > 0) {
-    condition.append(" AND ");
-    condition.append(observablesCondition(values));
+  // A correlation that does not group keeps its events as one group.
+  if (read.groupExpression && data.groupValue) {
+    condition.append(
+      SQL` AND has(${{
+        type: TableColumnType.ArrayText,
+        value: [data.groupValue],
+      }}, `,
+    );
+    condition.append(read.groupExpression);
+    condition.append(")");
   }
 
   return { condition, basis: SecurityCaseMatchBasis.CorrelationSteps };
 }
 
-/*
- * The time a correlation looks across, beside the interval its runs read:
- * the events of its steps can start that long before it fired.
- */
-function correlationLookBackInMinutes(
-  definition: DetectionRuleDefinition,
-  rule: DetectionRule,
-): number {
-  const timespan: number =
-    definition.kind === "correlation"
-      ? Math.ceil(definition.correlation.timespanInSeconds / 60)
-      : 0;
+function readTime(value: Date | string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
 
-  return Math.max(timespan, 0) + getRuleWindowInMinutes(rule);
+  const time: number = new Date(value).getTime();
+
+  return Number.isNaN(time) ? null : time;
+}
+
+/*
+ * The time a correlation's events are read over (#9939): the window it
+ * keeps them from as it fires (getCorrelationMatchedEventsStart), from its
+ * first run - the run whose interval ends as it first fired - to just after
+ * it last fired: a count's rolling window, from the step a timespan before
+ * that run; a sequence's timespan, and an event_count step's own, before
+ * it; a new value's run itself - what came before it is the history its
+ * values are new against, not what it matched. With a minute of slack
+ * either side, as a rule's window has (getDetectionMatchWindow), at most
+ * SECURITY_CASE_MATCHES_MAX_WINDOW_IN_HOURS from its start but never short
+ * of its first firing, and never past now. Null for a detection with no
+ * time at all.
+ *
+ * It used to look back the correlation's timespan and an interval: a new
+ * value's day to thirty days of history, the day after its start cut short
+ * well before it fired - so the case listed the history's events, never
+ * the run's.
+ */
+export function getCorrelationMatchWindow(data: {
+  correlation: SigmaCorrelation;
+  steps: Array<SigmaCorrelationStep>;
+  rule: Pick<DetectionRule, "evaluationIntervalInMinutes">;
+  firstSeenAt: Date | string | null | undefined;
+  lastSeenAt: Date | string | null | undefined;
+  now: Date;
+}): SecurityCaseMatchWindow | null {
+  const first: number | null = readTime(data.firstSeenAt);
+  const last: number | null = readTime(data.lastSeenAt) ?? first;
+
+  if (first === null || last === null) {
+    return null;
+  }
+
+  const minute: number = 60 * 1000;
+  const firstFiring: number = Math.min(first, last);
+  const lastFiring: number = Math.max(first, last);
+  // The run that first fired: the rule's interval, ending as it fired.
+  const runStart: Date = new Date(
+    firstFiring - getRuleWindowInMinutes(data.rule) * minute,
+  );
+  const start: number =
+    getCorrelationMatchedEventsStart({
+      correlation: data.correlation,
+      steps: data.steps,
+      startTime: runStart,
+    }).getTime() - minute;
+  const end: number = Math.min(
+    lastFiring + minute,
+    Math.max(
+      start + SECURITY_CASE_MATCHES_MAX_WINDOW_IN_HOURS * 60 * minute,
+      firstFiring + minute,
+    ),
+    data.now.getTime(),
+  );
+
+  return {
+    start: new Date(start),
+    end: new Date(Math.max(start, end)),
+  };
 }
 
 /*
@@ -817,17 +892,23 @@ export default class SecurityCaseMatches {
       const built: ReturnType<typeof buildRuleCondition> = definition
         ? this.tryBuildRuleCondition({ rule, definition, groupValue })
         : null;
-      const window: SecurityCaseMatchWindow | null = definition
-        ? getDetectionMatchWindow({
-            firstSeenAt: detection.firstSeenAt,
-            lastSeenAt: detection.lastSeenAt,
-            lookBackInMinutes:
-              definition.kind === "correlation"
-                ? correlationLookBackInMinutes(definition, rule)
-                : getRuleWindowInMinutes(rule),
-            now: data.now,
-          })
-        : null;
+      const window: SecurityCaseMatchWindow | null = !definition
+        ? null
+        : definition.kind === "correlation"
+          ? getCorrelationMatchWindow({
+              correlation: definition.correlation,
+              steps: definition.steps,
+              rule,
+              firstSeenAt: detection.firstSeenAt,
+              lastSeenAt: detection.lastSeenAt,
+              now: data.now,
+            })
+          : getDetectionMatchWindow({
+              firstSeenAt: detection.firstSeenAt,
+              lastSeenAt: detection.lastSeenAt,
+              lookBackInMinutes: getRuleWindowInMinutes(rule),
+              now: data.now,
+            });
 
       if (built && window) {
         lookup = {
