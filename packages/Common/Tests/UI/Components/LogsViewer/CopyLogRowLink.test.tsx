@@ -258,6 +258,34 @@ describe("Copy Link on a log row", () => {
     );
   });
 
+  /*
+   * Two actions take more of the row than one did: beside the whole cell
+   * they pushed a trace's id and its span's onto two lines at 1440px. They
+   * sit beside the message's line alone, and the ids under it keep the
+   * cell's whole width.
+   */
+  test("sits beside the message's line: the trace and span under it keep the cell's width", () => {
+    const log: Log = makeLog(FIRST_ID, "GET /admin 403");
+    log.traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+    log.spanId = "00f067aa0ba902b7";
+
+    renderTable({ logs: [log], getLogLink: linkTo });
+
+    const actions: HTMLElement = screen.getByTestId(
+      LOGS_TABLE_ROW_ACTIONS_TEST_ID,
+    );
+    const messageLine: HTMLElement = actions.parentElement!;
+
+    expect(messageLine).toHaveTextContent("GET /admin 403");
+    expect(messageLine).not.toHaveTextContent("Trace:");
+    expect(messageLine.parentElement).toHaveTextContent(
+      "Trace: 4bf92f3577b34da6a3ce929d0e0e4736",
+    );
+    expect(messageLine.parentElement!.closest("td")).toBe(
+      messageLine.closest("td"),
+    );
+  });
+
   test("shows on a screen with no pointer to hover, a finger's size, with room between", () => {
     const classes: Array<string> = LOGS_TABLE_ROW_ACTION_CLASS_NAME.split(" ");
 

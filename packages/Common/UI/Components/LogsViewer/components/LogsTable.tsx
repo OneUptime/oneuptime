@@ -758,92 +758,96 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                       if (columnId === "message") {
                         return (
                           <td className="px-4 py-2" key={columnId}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  {/*
+                                   * Read the way it is written (IsolatedText):
+                                   * an English message on a Persian page keeps
+                                   * its full stop at its end. A word longer
+                                   * than the column breaks where it must
+                                   * (anywhere), so the column keeps to the
+                                   * list's width: an RDS line opens with one
+                                   * long run (its time, client, user and
+                                   * process), and break-words alone let it
+                                   * push the message past the list's edge.
+                                   * Breaking anywhere would also let a narrow
+                                   * list squeeze the column to a letter a
+                                   * line (a phone did): 8rem is its floor.
+                                   */}
+                                  <p
+                                    className={LOGS_TABLE_MESSAGE_CLASS_NAME}
+                                    title={message}
+                                  >
+                                    {message ? (
+                                      <IsolatedText text={message} />
+                                    ) : (
+                                      <TableEmptyValue />
+                                    )}
+                                  </p>
+                                </div>
                                 {/*
-                                 * Read the way it is written (IsolatedText):
-                                 * an English message on a Persian page keeps
-                                 * its full stop at its end. A word longer
-                                 * than the column breaks where it must
-                                 * (anywhere), so the column keeps to the
-                                 * list's width: an RDS line opens with one
-                                 * long run (its time, client, user and
-                                 * process), and break-words alone let it
-                                 * push the message past the list's edge.
-                                 * Breaking anywhere would also let a narrow
-                                 * list squeeze the column to a letter a
-                                 * line (a phone did): 8rem is its floor.
+                                 * Shown under the pointer, and to the keyboard
+                                 * as Tab reaches it: it was there to Tab to but
+                                 * stayed unseen, a focus ring on nothing.
+                                 * Beside the message's first line only: the
+                                 * trace and span under it keep the cell's
+                                 * whole width.
                                  */}
-                                <p
-                                  className={LOGS_TABLE_MESSAGE_CLASS_NAME}
-                                  title={message}
+                                <div
+                                  className={LOGS_TABLE_ROW_ACTIONS_CLASS_NAME}
+                                  data-testid={LOGS_TABLE_ROW_ACTIONS_TEST_ID}
                                 >
-                                  {message ? (
-                                    <IsolatedText text={message} />
-                                  ) : (
-                                    <TableEmptyValue />
-                                  )}
-                                </p>
-                                {((traceId && !showTraceColumn) ||
-                                  (spanId && !showSpanColumn)) && (
-                                  <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
-                                    {traceId && !showTraceColumn && (
-                                      <span>
-                                        <TranslatedSentence
-                                          template="Trace: {{id}}"
-                                          slots={{
-                                            id: renderTraceIdValue(
-                                              traceId,
-                                              log,
-                                            ),
-                                          }}
-                                        />
-                                      </span>
-                                    )}
-                                    {spanId && !showSpanColumn && (
-                                      <span>
-                                        <TranslatedSentence
-                                          template="Span: {{id}}"
-                                          slots={{
-                                            id: renderSpanIdValue(spanId, log),
-                                          }}
-                                        />
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              {/*
-                               * Shown under the pointer, and to the keyboard
-                               * as Tab reaches it: it was there to Tab to but
-                               * stayed unseen, a focus ring on nothing.
-                               */}
-                              <div
-                                className={LOGS_TABLE_ROW_ACTIONS_CLASS_NAME}
-                                data-testid={LOGS_TABLE_ROW_ACTIONS_TEST_ID}
-                              >
-                                <CopyTextButton
-                                  textToBeCopied={message}
-                                  size="xs"
-                                  variant="ghost"
-                                  iconOnly={true}
-                                  title="Copy log message"
-                                  className={LOGS_TABLE_ROW_ACTION_CLASS_NAME}
-                                />
-                                {/*
-                                 * The line's link, without opening it
-                                 * (#9944): the link its details copy.
-                                 */}
-                                {props.getLogLink ? (
-                                  <CopyLogRowLinkButton
-                                    log={log}
-                                    getLogLink={props.getLogLink}
+                                  <CopyTextButton
+                                    textToBeCopied={message}
+                                    size="xs"
+                                    variant="ghost"
+                                    iconOnly={true}
+                                    title="Copy log message"
                                     className={LOGS_TABLE_ROW_ACTION_CLASS_NAME}
                                   />
-                                ) : (
-                                  <></>
-                                )}
+                                  {/*
+                                   * The line's link, without opening it
+                                   * (#9944): the link its details copy.
+                                   */}
+                                  {props.getLogLink ? (
+                                    <CopyLogRowLinkButton
+                                      log={log}
+                                      getLogLink={props.getLogLink}
+                                      className={
+                                        LOGS_TABLE_ROW_ACTION_CLASS_NAME
+                                      }
+                                    />
+                                  ) : (
+                                    <></>
+                                  )}
+                                </div>
                               </div>
+                              {((traceId && !showTraceColumn) ||
+                                (spanId && !showSpanColumn)) && (
+                                <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
+                                  {traceId && !showTraceColumn && (
+                                    <span>
+                                      <TranslatedSentence
+                                        template="Trace: {{id}}"
+                                        slots={{
+                                          id: renderTraceIdValue(traceId, log),
+                                        }}
+                                      />
+                                    </span>
+                                  )}
+                                  {spanId && !showSpanColumn && (
+                                    <span>
+                                      <TranslatedSentence
+                                        template="Span: {{id}}"
+                                        slots={{
+                                          id: renderSpanIdValue(spanId, log),
+                                        }}
+                                      />
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </td>
                         );
