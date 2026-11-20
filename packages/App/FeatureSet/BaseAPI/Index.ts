@@ -2138,6 +2138,7 @@ import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDisc
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
+import NetworkEmptySitesAPI from "Common/Server/API/NetworkEmptySitesAPI";
 import NetworkDeviceWatchingMonitorsAPI from "Common/Server/API/NetworkDeviceWatchingMonitorsAPI";
 import NetworkDeviceUntiedMonitorsAPI from "Common/Server/API/NetworkDeviceUntiedMonitorsAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
@@ -7979,6 +7980,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkSummaryAPI().getRouter(),
     );
+    /*
+     * The Sites page's Delete Empty Sites (NetworkEmptySitesAPI, #10188).
+     * Mounted after the site CRUD router, and safe there: BaseAPI claims no
+     * `/empty-sites` or `/delete-empty-sites` path on it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, NetworkEmptySitesAPI);
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkTrafficAPI().getRouter(),
