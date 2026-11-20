@@ -206,6 +206,9 @@ export const INGEST_SURFACE_LABELS: Readonly<Record<string, string>> = {
   [TelemetryIngestSurface.HostCollectorManagement]: translationKey(
     "Host collector management",
   ),
+  [TelemetryIngestSurface.AndroidAgentLogSessions]: translationKey(
+    "Android agent log sessions",
+  ),
   [UNNAMED_TELEMETRY_INGEST_SURFACE]: translationKey("Other endpoints"),
 };
 

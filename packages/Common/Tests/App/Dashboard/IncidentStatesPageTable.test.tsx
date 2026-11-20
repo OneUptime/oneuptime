@@ -30,6 +30,8 @@ configure({ asyncUtilTimeout: 15000 });
  *     as, its description - no raw ID, no "Add New Item" between rows;
  *   - the built-in states tagged, and their Delete locked with why;
  *   - one Create button, in the card's header;
+ *   - a drag sends a move to the place of the row it lands on, never a write
+ *     of the state's number (issue #9609);
  *   - a drag the server refuses (Resolved above Acknowledged) puts the rows
  *     back and says why, in the server's words.
  */
@@ -177,8 +179,10 @@ const toModel: (row: StateRow) => IncidentState = (
   return state;
 };
 
+// A row's writes, which a drag never makes, and the moves a drag sends.
 let updates: Array<{ id: string; data: Record<string, unknown> }> = [];
-let refuseUpdates: boolean = false;
+let moves: Array<{ id: string; placeOfId: string }> = [];
+let refuseMoves: boolean = false;
 
 const wait: (ms: number) => Promise<void> = async (
   ms: number,
@@ -237,7 +241,8 @@ const rowNames: () => Array<string> = (): Array<string> => {
 beforeEach(() => {
   permissionsForTest = [Permission.ProjectAdmin];
   updates = [];
-  refuseUpdates = false;
+  moves = [];
+  refuseMoves = false;
   PermissionGate.clearPermissionPropsCache();
   window.history.replaceState(
     window.history.state,
@@ -261,8 +266,19 @@ beforeEach(() => {
     data: Record<string, unknown>;
   }) => {
     updates.push({ id: args.id.toString(), data: args.data });
+  }) as never);
 
-    if (refuseUpdates) {
+  // POST <path>/:id/move { placeOfId }: what a drop sends.
+  jest.spyOn(ModelAPI, "moveInList").mockImplementation((async (args: {
+    id: { toString: () => string };
+    placeOfId: { toString: () => string };
+  }) => {
+    moves.push({
+      id: args.id.toString(),
+      placeOfId: args.placeOfId.toString(),
+    });
+
+    if (refuseMoves) {
       throw new BadDataException(REFUSAL);
     }
   }) as never);
@@ -418,7 +434,7 @@ describe("the Incident States page", () => {
     ).not.toHaveAttribute("aria-disabled", "true");
   });
 
-  test("a drag sends the number of the row it lands on", async () => {
+  test("a drag sends a move to the place of the row it lands on", async () => {
     await renderPage();
 
     // Acknowledged dragged up onto Investigating.
@@ -431,12 +447,14 @@ describe("the Incident States page", () => {
     await wait(400);
 
     await waitFor(() => {
-      expect(updates).toEqual([{ id: ROWS[2]!._id, data: { order: 2 } }]);
+      expect(moves).toEqual([{ id: ROWS[2]!._id, placeOfId: ROWS[1]!._id }]);
     });
+    // A move, never a write of the state's number.
+    expect(updates).toEqual([]);
   });
 
   test("a drag the server refuses puts the rows back, and says why", async () => {
-    refuseUpdates = true;
+    refuseMoves = true;
 
     await renderPage();
 

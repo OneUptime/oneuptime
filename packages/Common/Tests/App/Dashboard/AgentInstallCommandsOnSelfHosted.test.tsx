@@ -88,7 +88,7 @@ describe("the upgrade dialog's commands", () => {
     render(<AgentVersion kind={AgentKind.CephAgent} version="0.154.0" />);
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.",
+        name: "Agent 0.154.0 is outdated. A newer agent is available: 0.165.0. Show how to upgrade.",
       }),
     );
     return screen.findByRole("dialog");

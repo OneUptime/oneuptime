@@ -102,7 +102,7 @@ export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
     "Distinct sessions your app's spans belong to in the selected range, read from the session.id that OpenTelemetry Android sets on every span. A session ends after 15 minutes in the background, or after 4 hours.",
   ),
   crashFreeSessions: translationKey(
-    "The share of the sessions in the selected range that no crash ended: every session but the ones a crash happened in. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, from the app.installation.id OpenTelemetry Android sets for each install, a good stand-in for its users; for an app that sends none, how many sessions crashed.",
+    "The share of the sessions in the selected range that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, from the app.installation.id OpenTelemetry Android sets for each install, a good stand-in for its users; for an app that sends none, how many sessions crashed.",
   ),
   crashes: translationKey(
     "Times the app crashed in the selected range: the unhandled exceptions other than ANRs and hangs, which OpenTelemetry Android reports for every crash, and MetricKit for an iOS app. iOS hands a crash to the app on a later launch, so one can arrive up to a day after it happened. The line below is how many sessions they were in.",
