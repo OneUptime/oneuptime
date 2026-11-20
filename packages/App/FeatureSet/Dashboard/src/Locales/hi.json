@@ -60423,7 +60423,6 @@
   "Go to Share": "साझा करें पर जाएँ",
   "It applies while only people who sign in can open this form.": "यह तब तक लागू होता है जब तक केवल साइन इन करने वाले लोग यह फ़ॉर्म खोल सकते हैं।",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "उस फ़ॉर्म के लिए OpenID Connect (OIDC) साइन-इन प्रबंधित करें जो अपने आगंतुकों से साइन इन करने को कहता है",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "केवल फ़ॉर्म के निजी उपयोगकर्ता, और वे लोग जिन्हें आपका सिंगल साइन-ऑन अंदर आने देता है, इसे खोलकर भेज सकते हैं। बाकी सभी से इसके लिंक और कस्टम डोमेन पर साइन इन करने को कहा जाता है।",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "वे लोग जो किसी फ़ॉर्म का सार्वजनिक लिंक खोलने के लिए साइन इन कर सकते हैं, जब वह अपने आगंतुकों से साइन इन करने को कहता है।",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "वे लोग जो इस फ़ॉर्म को इसके लिंक पर खोलने और भेजने के लिए साइन इन कर सकते हैं। आपके जोड़ने पर हर व्यक्ति को ईमेल से आमंत्रण भेजा जाता है।",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "निजी उपयोगकर्ता अब पासवर्ड से साइन इन नहीं कर पाएँगे; केवल वे लोग यह फ़ॉर्म खोल पाएँगे जिन्हें आपका SSO प्रदाता अंदर आने देता है। पहले SSO का परीक्षण करें।",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "सुरक्षित पहुँच नियंत्रण के लिए फ़ॉर्म के निजी उपयोगकर्ताओं के सत्र, रीफ़्रेश टोकन और डिवाइस मेटाडेटा संग्रहीत करता है।",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "यह फ़ॉर्म अपने आगंतुकों से साइन इन करने को नहीं कहता, इसलिए जब तक आप इसके साझा करें पेज पर \"केवल साइन इन करने वाले लोग\" चालू नहीं करते, ये सेटिंग कुछ नहीं करतीं।",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "जो आगंतुक इस फ़ॉर्म के निजी उपयोगकर्ता नहीं हैं, और जिन्हें आपका सिंगल साइन-ऑन अंदर नहीं आने देता, वे अब इसे न खोल पाएँगे न भेज पाएँगे।",
-  "Who Can Open This Form": "यह फ़ॉर्म कौन खोल सकता है"
+  "Who Can Open This Form": "यह फ़ॉर्म कौन खोल सकता है",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "केवल फ़ॉर्म के निजी उपयोगकर्ता, और वे लोग जिन्हें आपका सिंगल साइन-ऑन अंदर आने देता है, इसे खोलकर भेज सकते हैं। बाकी सभी से साइन इन करने को कहा जाता है।"
 }

@@ -60423,7 +60423,6 @@
   "Go to Share": "Ir para Partilhar",
   "It applies while only people who sign in can open this form.": "Vale enquanto apenas as pessoas que entram puderem abrir este formulário.",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "Gerenciar o login com OpenID Connect (OIDC) para um formulário que pede aos visitantes que entrem",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "Apenas os usuários privados do formulário e as pessoas que o seu login único deixa entrar podem abri-lo e enviá-lo. Todos os outros precisam entrar, no link dele e nos domínios personalizados.",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "Pessoas que podem entrar para abrir o link público de um formulário quando ele pede aos visitantes que entrem.",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "Pessoas que podem entrar para abrir e enviar este formulário pelo link dele. Cada uma recebe um convite por e-mail quando você a adiciona.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "Os usuários privados não poderão mais entrar com senha; apenas as pessoas que o seu provedor de SSO deixar entrar abrirão este formulário. Teste o SSO primeiro.",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "Armazena as sessões dos usuários privados dos formulários, os tokens de atualização e os metadados dos dispositivos para um controle de acesso seguro.",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "Este formulário não pede aos visitantes que entrem, então estas configurações não fazem nada até você ativar \"Apenas quem entra\" na página Partilhar dele.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "Os visitantes que não são usuários privados deste formulário, e que o seu login único não deixa entrar, não podem mais abri-lo nem enviá-lo.",
-  "Who Can Open This Form": "Quem pode abrir este formulário"
+  "Who Can Open This Form": "Quem pode abrir este formulário",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Apenas os usuários privados do formulário e as pessoas que o seu login único deixa entrar podem abri-lo e enviá-lo. Todos os outros precisam entrar."
 }

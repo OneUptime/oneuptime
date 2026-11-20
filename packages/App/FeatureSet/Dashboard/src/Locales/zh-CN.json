@@ -60423,7 +60423,6 @@
   "Go to Share": "前往分享",
   "It applies while only people who sign in can open this form.": "在仅限登录的人才能打开此表单期间生效。",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "管理要求访客登录的表单的 OpenID Connect (OIDC) 登录",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "只有该表单的私人用户和您的单点登录允许进入的人才能打开并提交它。其他所有人都会在其链接和自定义域名上被要求登录。",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "当表单要求访客登录时，可以登录以打开其公开链接的人。",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "可以登录以通过链接打开并提交此表单的人。添加后，每个人都会收到一封邀请邮件。",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "私人用户将无法再使用密码登录；只有您的 SSO 提供商允许进入的人才能打开此表单。请先测试 SSO。",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "存储表单私人用户的会话、刷新令牌和设备元数据，用于安全的访问控制。",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "此表单不要求访客登录，因此在您于其“分享”页面开启“仅限登录的人”之前，这些设置不起作用。",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "不是此表单私人用户、且您的单点登录也不允许进入的访客，将无法再打开或提交它。",
-  "Who Can Open This Form": "谁可以打开此表单"
+  "Who Can Open This Form": "谁可以打开此表单",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "只有该表单的私人用户和您的单点登录允许进入的人才能打开并提交它。其他所有人都会被要求登录。"
 }

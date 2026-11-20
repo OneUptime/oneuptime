@@ -60423,7 +60423,6 @@
   "Go to Share": "Gå till Dela",
   "It applies while only people who sign in can open this form.": "Det gäller så länge bara personer som loggar in kan öppna det här formuläret.",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "Hantera inloggning med OpenID Connect (OIDC) för ett formulär som ber sina besökare logga in",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "Bara formulärets privata användare och de personer som din enkla inloggning släpper in kan öppna och skicka det. Alla andra ombeds logga in, på dess länk och anpassade domäner.",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "Personer som kan logga in för att öppna ett formulärs offentliga länk när det ber sina besökare logga in.",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "Personer som kan logga in för att öppna och skicka det här formuläret via dess länk. Var och en får en inbjudan via e-post när du lägger till dem.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "Privata användare kan inte längre logga in med lösenord; bara personer som din SSO-leverantör släpper in kan öppna det här formuläret. Testa SSO först.",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "Lagrar sessioner för formulärs privata användare, uppdateringstoken och enhetsmetadata för säker åtkomstkontroll.",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "Det här formuläret ber inte sina besökare logga in, så de här inställningarna gör ingenting förrän du slår på ”Bara personer som loggar in” på dess sida Dela.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "Besökare som inte är privata användare av det här formuläret, och som din enkla inloggning inte släpper in, kan inte längre öppna eller skicka det.",
-  "Who Can Open This Form": "Vem som kan öppna det här formuläret"
+  "Who Can Open This Form": "Vem som kan öppna det här formuläret",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Bara formulärets privata användare och de personer som din enkla inloggning släpper in kan öppna och skicka det. Alla andra ombeds logga in."
 }

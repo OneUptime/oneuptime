@@ -60423,7 +60423,6 @@
   "Go to Share": "共有へ移動",
   "It applies while only people who sign in can open this form.": "このフォームを開けるのがサインインした人のみである間に適用されます。",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "訪問者にサインインを求めるフォームの OpenID Connect (OIDC) サインインを管理します",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "フォームを開いて送信できるのは、フォームのプライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人は、リンクとカスタムドメインでサインインを求められます。",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "訪問者にサインインを求めるフォームの公開リンクを、サインインして開ける人。",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "このフォームのリンクでサインインして開き、送信できる人。追加すると、それぞれに招待メールが届きます。",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "プライベートユーザーはパスワードでサインインできなくなり、このフォームを開けるのは SSO プロバイダーが許可した人だけになります。先に SSO をテストしてください。",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "安全なアクセス制御のために、フォームのプライベートユーザーのセッション、リフレッシュトークン、デバイスのメタデータを保存します。",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "このフォームは訪問者にサインインを求めていないため、「共有」ページで「サインインした人のみ」をオンにするまで、これらの設定は何もしません。",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "このフォームのプライベートユーザーではなく、シングルサインオンでも許可されない訪問者は、フォームを開くことも送信することもできなくなります。",
-  "Who Can Open This Form": "このフォームを開ける人"
+  "Who Can Open This Form": "このフォームを開ける人",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "フォームを開いて送信できるのは、フォームのプライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人はサインインを求められます。"
 }

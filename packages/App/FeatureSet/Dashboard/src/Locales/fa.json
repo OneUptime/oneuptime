@@ -60423,7 +60423,6 @@
   "Go to Share": "رفتن به اشتراک‌گذاری",
   "It applies while only people who sign in can open this form.": "تا زمانی اعمال می‌شود که فقط افرادی که وارد می‌شوند بتوانند این فرم را باز کنند.",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "مدیریت ورود با OpenID Connect (OIDC) برای فرمی که از بازدیدکنندگانش می‌خواهد وارد شوند",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "فقط کاربران خصوصی فرم و افرادی که ورود یکپارچهٔ شما راهشان می‌دهد می‌توانند آن را باز کنند و بفرستند. از همهٔ افراد دیگر، در پیوند و دامنه‌های سفارشی آن، خواسته می‌شود وارد شوند.",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "افرادی که می‌توانند وارد شوند تا پیوند عمومی فرمی را باز کنند که از بازدیدکنندگانش می‌خواهد وارد شوند.",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "افرادی که می‌توانند وارد شوند تا این فرم را در پیوندش باز کنند و بفرستند. وقتی هر کدام را اضافه کنید، دعوت‌نامه‌ای برایش ایمیل می‌شود.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "کاربران خصوصی دیگر نمی‌توانند با رمز عبور وارد شوند؛ فقط افرادی که ارائه‌دهندهٔ SSO شما راهشان می‌دهد این فرم را باز می‌کنند. ابتدا SSO را آزمایش کنید.",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "نشست‌های کاربران خصوصی فرم‌ها، توکن‌های تازه‌سازی و فراداده‌های دستگاه را برای کنترل دسترسی امن ذخیره می‌کند.",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "این فرم از بازدیدکنندگانش نمی‌خواهد وارد شوند، پس این تنظیمات تا وقتی «فقط افرادی که وارد می‌شوند» را در صفحهٔ «اشتراک‌گذاری» آن روشن نکنید کاری انجام نمی‌دهند.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "بازدیدکنندگانی که کاربر خصوصی این فرم نیستند و ورود یکپارچهٔ شما راهشان نمی‌دهد، دیگر نمی‌توانند آن را باز کنند یا بفرستند.",
-  "Who Can Open This Form": "چه کسی می‌تواند این فرم را باز کند"
+  "Who Can Open This Form": "چه کسی می‌تواند این فرم را باز کند",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "فقط کاربران خصوصی فرم و افرادی که ورود یکپارچهٔ شما راهشان می‌دهد می‌توانند آن را باز کنند و بفرستند. از همهٔ افراد دیگر خواسته می‌شود وارد شوند."
 }

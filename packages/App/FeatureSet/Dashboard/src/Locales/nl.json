@@ -60423,7 +60423,6 @@
   "Go to Share": "Naar Delen",
   "It applies while only people who sign in can open this form.": "Het geldt zolang alleen personen die zich aanmelden dit formulier kunnen openen.",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "Aanmelden met OpenID Connect (OIDC) beheren voor een formulier dat bezoekers vraagt zich aan te melden",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "Alleen de privégebruikers van het formulier en de personen die uw single sign-on toelaat, kunnen het openen en verzenden. Alle anderen wordt gevraagd zich aan te melden, op de link en de aangepaste domeinen.",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "Personen die zich kunnen aanmelden om de openbare link van een formulier te openen wanneer het bezoekers vraagt zich aan te melden.",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "Personen die zich kunnen aanmelden om dit formulier via de link te openen en te verzenden. Iedereen krijgt een uitnodiging per e-mail wanneer u diegene toevoegt.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "Privégebruikers kunnen zich niet meer aanmelden met een wachtwoord; alleen personen die uw SSO-provider toelaat, kunnen dit formulier openen. Test SSO eerst.",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "Slaat sessies van privégebruikers van formulieren, vernieuwingstokens en apparaatmetadata op voor veilig toegangsbeheer.",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "Dit formulier vraagt bezoekers niet zich aan te melden, dus deze instellingen doen niets totdat u op de pagina Delen 'Alleen mensen die inloggen' inschakelt.",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "Bezoekers die geen privégebruikers van dit formulier zijn en die uw single sign-on niet toelaat, kunnen het niet meer openen of verzenden.",
-  "Who Can Open This Form": "Wie dit formulier kan openen"
+  "Who Can Open This Form": "Wie dit formulier kan openen",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Alleen de privégebruikers van het formulier en de personen die uw single sign-on toelaat, kunnen het openen en verzenden. Alle anderen wordt gevraagd zich aan te melden."
 }

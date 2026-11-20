@@ -60423,7 +60423,6 @@
   "Go to Share": "Перейти в «Поделиться»",
   "It applies while only people who sign in can open this form.": "Действует, пока открыть эту форму могут только вошедшие пользователи.",
   "Manage OpenID Connect (OIDC) sign-in for a form that asks its visitors to sign in": "Управление входом через OpenID Connect (OIDC) для формы, которая просит посетителей войти",
-  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.": "Открыть и отправить форму могут только её приватные пользователи и те, кого пускает ваш единый вход. Всех остальных просят войти — по её ссылке и на её пользовательских доменах.",
   "People who can sign in to open a form's public link when it asks its visitors to sign in.": "Люди, которые могут войти, чтобы открыть публичную ссылку формы, когда она просит посетителей войти.",
   "People who can sign in to open and submit this form on its link. Each one is emailed an invitation when you add them.": "Люди, которые могут войти, чтобы открыть и отправить эту форму по её ссылке. Каждому при добавлении приходит приглашение по электронной почте.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will open this form. Test SSO first.": "Приватные пользователи больше не смогут входить по паролю; открыть эту форму смогут только те, кого пускает ваш поставщик SSO. Сначала проверьте SSO.",
@@ -60431,5 +60430,6 @@
   "Stores form private user sessions, refresh tokens, and device metadata for secure access control.": "Хранит сеансы приватных пользователей форм, токены обновления и метаданные устройств для безопасного управления доступом.",
   "This form does not ask its visitors to sign in, so these settings do nothing until you turn on Only people who sign in on its Share page.": "Эта форма не просит посетителей войти, поэтому эти настройки ничего не делают, пока вы не включите «Только вошедшие пользователи» на её странице «Поделиться».",
   "Visitors who are not private users of this form, and whom your single sign-on does not let in, can no longer open or submit it.": "Посетители, которые не являются приватными пользователями этой формы и которых не пускает ваш единый вход, больше не смогут открыть или отправить её.",
-  "Who Can Open This Form": "Кто может открыть эту форму"
+  "Who Can Open This Form": "Кто может открыть эту форму",
+  "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Открыть и отправить форму могут только её приватные пользователи и те, кого пускает ваш единый вход. Всех остальных просят войти."
 }

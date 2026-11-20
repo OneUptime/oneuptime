@@ -35,7 +35,7 @@ const FormSignInCopy: {
   cardTitle: translationKey("Who Can Open This Form"),
   switchTitle: translationKey("Only people who sign in"),
   onDescription: translationKey(
-    "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in, on its link and custom domains.",
+    "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.",
   ),
   offDescription: translationKey(
     "Anyone with the form's link can open and submit it.",
