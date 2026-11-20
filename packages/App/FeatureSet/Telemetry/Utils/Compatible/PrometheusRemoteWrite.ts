@@ -1,7 +1,13 @@
 import protobuf from "protobufjs";
 import path from "path";
 import { JSONObject } from "Common/Types/JSON";
+import { PROMETHEUS_REMOTE_WRITE_MAX_ELEMENTS } from "Common/Types/Telemetry/CompatibleIngest";
 import OtlpJson, { OtlpKeyValue } from "./OtlpJson";
+import ProtobufElementCounter, {
+  ProtobufCountSchema,
+  ProtobufElementCount,
+  ProtobufElementCountOutcome,
+} from "./ProtobufElementCount";
 
 /*
  * PROMETHEUS REMOTE WRITE, AS OPENTELEMETRY METRICS.
@@ -22,7 +28,8 @@ import OtlpJson, { OtlpKeyValue } from "./OtlpJson";
  * filter on them still works. Following OpenTelemetry's Prometheus
  * compatibility rules, the job is also the service (service.name) and the
  * instance the service instance (service.instance.id); an
- * x-oneuptime-service-name header names the service instead.
+ * x-oneuptime-service-name header names the service instead. A label with
+ * an empty value is no label, as in Prometheus.
  *
  * A series' type comes from its metadata: remote write 2.0 carries it on
  * every series, 1.0 in the metadata a sender includes now and then (and
@@ -33,21 +40,54 @@ import OtlpJson, { OtlpKeyValue } from "./OtlpJson";
  * quantiles are in the same request. Counters, buckets and counts are
  * cumulative monotonic sums (OneUptime charts their rate); a histogram's or
  * summary's _sum is a cumulative sum that may go down; everything else is a
- * gauge. A classic histogram stays as its _bucket, _count and _sum series
- * rather than being reassembled, because remote write may split one
- * histogram's buckets across requests.
+ * gauge. A counter's start (2.0's start_timestamp, or an older sender's
+ * created_timestamp) is its points' start time.
+ *
+ * A classic histogram stays as its _bucket, _count and _sum series rather
+ * than being folded into one histogram point: a sender shards its series
+ * over parallel requests by series, so one histogram's buckets arrive in
+ * different requests, often at different servers. Its _bucket series is
+ * read as one histogram where it is charted instead - a percentile in the
+ * Metrics explorer (MetricService) and histogram_quantile in PromQL - and
+ * both see every bucket, wherever it arrived.
  *
  * A native histogram becomes an exponential histogram: Prometheus' schema
  * is OpenTelemetry's scale, and Prometheus' bucket i, (base^(i-1), base^i],
  * is OpenTelemetry's bucket i-1. One with custom buckets (schema -53)
  * becomes an explicit-bucket histogram.
  *
- * WHAT IS DROPPED
+ * EXEMPLARS
+ *
+ * An exemplar that names a trace (a trace_id label, as the specification
+ * asks, or traceID) links its series' datapoint to that trace and span: the
+ * metric store keeps one trace and span ID a datapoint, which the Metrics
+ * explorer draws as a dot to open. Prometheus sends an exemplar in a series
+ * of its own, beside the samples of the same labels, so an exemplar is
+ * matched to the datapoint of its labels nearest its time anywhere in the
+ * request; one whose datapoint is in another request, or that names no
+ * trace, has nowhere to be kept.
+ *
+ * WHAT IS ACCEPTED BUT NOT STORED
  *
  * A sample whose value is NaN (Prometheus' staleness marker is a NaN) or
- * infinite: OTLP JSON cannot carry one. The _created series of a counter,
- * histogram or summary, which only says when the series began. Exemplars,
- * for now.
+ * infinite, which OTLP JSON cannot carry, and the _created series of a
+ * counter, histogram or summary, which only says when the series began.
+ * They are counted as written: nothing is wrong with them, and a sender
+ * that heard otherwise would count them as failed.
+ *
+ * WHAT IS REFUSED
+ *
+ * Data neither version allows: a series with no metric name or a label with
+ * no name (or, in 2.0, a label reference outside the symbols), a sample
+ * with a negative timestamp, a native histogram whose buckets cannot be
+ * read. The rest of the request is still queued, and the endpoint answers
+ * 400 with what was refused, as both specifications ask of a partial write.
+ *
+ * LIMITS
+ *
+ * A body is counted before it is decoded (ProtobufElementCount): one that
+ * would become more than PROMETHEUS_REMOTE_WRITE_MAX_ELEMENTS objects is
+ * refused with 413 without being decoded.
  */
 
 export enum PrometheusRemoteWriteVersion {
@@ -67,6 +107,28 @@ export enum PrometheusMetricType {
   StateSet = "stateset",
 }
 
+// Why a series, a sample or a histogram was refused.
+export enum PrometheusRefusalReason {
+  MissingName = "missing-name",
+  InvalidLabels = "invalid-labels",
+  InvalidTimestamp = "invalid-timestamp",
+  UnreadableHistogram = "unreadable-histogram",
+}
+
+/*
+ * How a refusal is said in the answer's plain text, which senders log:
+ * after "Refused 2 samples" or "Refused 1 native histogram".
+ */
+const REFUSAL_WORDS: Record<PrometheusRefusalReason, string> = {
+  [PrometheusRefusalReason.MissingName]:
+    "of series with no metric name (__name__)",
+  [PrometheusRefusalReason.InvalidLabels]:
+    "of series with a label that has no name, or a label reference outside the symbols",
+  [PrometheusRefusalReason.InvalidTimestamp]: "with a negative timestamp",
+  [PrometheusRefusalReason.UnreadableHistogram]:
+    "whose buckets cannot be read",
+};
+
 export class PrometheusRemoteWriteError extends Error {
   public readonly statusCode: number;
 
@@ -83,6 +145,14 @@ export interface PrometheusLabel {
 }
 
 export interface PrometheusSample {
+  value: number;
+  timestampMs: number;
+  // 2.0's start_timestamp: when the counter began; 0 when it is not set.
+  startTimestampMs: number;
+}
+
+export interface PrometheusExemplar {
+  labels: Array<PrometheusLabel>;
   value: number;
   timestampMs: number;
 }
@@ -109,17 +179,23 @@ export interface PrometheusNativeHistogram {
   positiveCounts: Array<number>;
   customValues: Array<number>;
   timestampMs: number;
+  // 2.0's start_timestamp: 0 when it is not set.
+  startTimestampMs: number;
 }
 
 export interface PrometheusSeries {
   labels: Array<PrometheusLabel>;
   samples: Array<PrometheusSample>;
   histograms: Array<PrometheusNativeHistogram>;
+  exemplars: Array<PrometheusExemplar>;
   // From the series' own metadata (2.0); 1.0's is matched by name later.
   type: PrometheusMetricType;
   help: string;
   unit: string;
+  // An older 2.0 sender's series-wide created_timestamp; 0 when not set.
   createdTimestampMs: number;
+  // Set when the labels could not be read (2.0's references).
+  invalidLabels: boolean;
 }
 
 export interface PrometheusMetadata {
@@ -134,12 +210,25 @@ export interface PrometheusWriteRequest {
   metadata: Map<string, PrometheusMetadata>;
 }
 
+export interface PrometheusRefusalCount {
+  samples: number;
+  histograms: number;
+}
+
 export interface PrometheusTranslation {
   metrics: JSONObject | null;
+  /*
+   * What was accepted, as 2.0's X-Prometheus-Remote-Write-*-Written
+   * headers count it: samples and histograms stored or accepted without
+   * being stored (see samplesSkipped), and exemplars stored.
+   */
   samplesWritten: number;
   histogramsWritten: number;
-  // NaN and infinite samples, and _created series.
-  samplesDropped: number;
+  exemplarsWritten: number;
+  // Accepted, not stored: NaN and infinite values (staleness markers), _created series.
+  samplesSkipped: number;
+  // Refused as invalid, by why.
+  refused: Map<PrometheusRefusalReason, PrometheusRefusalCount>;
 }
 
 // The schema of a native histogram with custom bucket boundaries.
@@ -152,9 +241,19 @@ const MAX_EXPONENTIAL_SCHEMA: number = 8;
 /*
  * The most buckets one native histogram may expand to. A span list that
  * claims more (its offsets are sint32s) is not expanded into an array that
- * size; the histogram is dropped instead.
+ * size; the histogram is refused instead.
  */
 const MAX_NATIVE_HISTOGRAM_BUCKETS: number = 16_384;
+
+// The exemplar labels that name a trace and a span, in lower case.
+const TRACE_ID_LABELS: ReadonlySet<string> = new Set<string>([
+  "trace_id",
+  "traceid",
+]);
+const SPAN_ID_LABELS: ReadonlySet<string> = new Set<string>([
+  "span_id",
+  "spanid",
+]);
 
 const PROTO_DIR: string = path.resolve(
   __dirname,
@@ -183,6 +282,51 @@ const TO_OBJECT_OPTIONS: protobuf.IConversionOptions = {
   enums: Number,
   defaults: false,
   arrays: true,
+};
+
+/*
+ * What each version decodes into an object, for the count taken before it
+ * is decoded: messages, and every value of a repeated field.
+ */
+const BUCKET_SPAN_COUNT: ProtobufCountSchema = {};
+const HISTOGRAM_COUNT: ProtobufCountSchema = {
+  messages: { 8: BUCKET_SPAN_COUNT, 11: BUCKET_SPAN_COUNT },
+  varints: new Set<number>([9, 12]),
+  fixed64s: new Set<number>([10, 13, 16]),
+};
+const V1_LABEL_COUNT: ProtobufCountSchema = {};
+
+export const REMOTE_WRITE_V1_COUNT: ProtobufCountSchema = {
+  messages: {
+    // timeseries: labels, samples, exemplars (with labels), histograms.
+    1: {
+      messages: {
+        1: V1_LABEL_COUNT,
+        2: {},
+        3: { messages: { 1: V1_LABEL_COUNT } },
+        4: HISTOGRAM_COUNT,
+      },
+    },
+    // metadata
+    3: {},
+  },
+};
+
+export const REMOTE_WRITE_V2_COUNT: ProtobufCountSchema = {
+  // symbols
+  strings: new Set<number>([4]),
+  messages: {
+    // timeseries: label references, samples, histograms, exemplars, metadata.
+    5: {
+      varints: new Set<number>([1]),
+      messages: {
+        2: {},
+        3: HISTOGRAM_COUNT,
+        4: { varints: new Set<number>([1]) },
+        5: {},
+      },
+    },
+  },
 };
 
 // 1.0's and 2.0's metric type enums share their numbers.
@@ -218,11 +362,20 @@ interface ResourceAccumulator {
   metrics: Map<string, MetricAccumulator>;
 }
 
+// A datapoint an exemplar of its series may be kept on.
+interface ExemplarTarget {
+  timestampMs: number;
+  dataPoint: JSONObject;
+  // How far the kept exemplar's time is from the datapoint's.
+  keptDistanceMs: number;
+}
+
 export default class PrometheusRemoteWrite {
   /*
    * Which remote write a request is, from its Content-Type: 2.0 says
    * proto=io.prometheus.write.v2.Request; 1.0 says proto=prometheus.
    * WriteRequest or nothing. null for a proto this endpoint does not read.
+   * Other parameters (2.0's mode=stateless) change nothing here.
    */
   public static versionOf(
     contentType: string | undefined,
@@ -264,11 +417,50 @@ export default class PrometheusRemoteWrite {
     return PrometheusRemoteWriteVersion.V1;
   }
 
-  // The decompressed protobuf body, read as the version it is.
+  /*
+   * The decompressed protobuf body, read as the version it is. Counted
+   * first: a body that would decode into more than `maxElements` objects is
+   * refused with 413, and one that is not that version's message with 400,
+   * before anything is decoded.
+   */
   public static decode(
     body: Uint8Array,
     version: PrometheusRemoteWriteVersion,
+    options?: { maxElements?: number | undefined },
   ): PrometheusWriteRequest {
+    const maxElements: number =
+      options?.maxElements ?? PROMETHEUS_REMOTE_WRITE_MAX_ELEMENTS;
+    const notAWriteRequest: () => PrometheusRemoteWriteError =
+      (): PrometheusRemoteWriteError => {
+        return new PrometheusRemoteWriteError(
+          400,
+          `The body is not a remote write ${version} request (a snappy-compressed ${
+            version === PrometheusRemoteWriteVersion.V2
+              ? "io.prometheus.write.v2.Request"
+              : "prometheus.WriteRequest"
+          }).`,
+        );
+      };
+
+    const count: ProtobufElementCount = ProtobufElementCounter.count(
+      body,
+      version === PrometheusRemoteWriteVersion.V2
+        ? REMOTE_WRITE_V2_COUNT
+        : REMOTE_WRITE_V1_COUNT,
+      maxElements,
+    );
+
+    if (count.outcome === ProtobufElementCountOutcome.OverLimit) {
+      throw new PrometheusRemoteWriteError(
+        413,
+        `The request holds more than ${maxElements} series, labels, samples, exemplars and histogram buckets. Send fewer samples a request: lower queue_config's max_samples_per_send.`,
+      );
+    }
+
+    if (count.outcome === ProtobufElementCountOutcome.Malformed) {
+      throw notAWriteRequest();
+    }
+
     let decoded: JSONObject;
 
     try {
@@ -279,14 +471,7 @@ export default class PrometheusRemoteWrite {
       const message: protobuf.Message = type.decode(body);
       decoded = type.toObject(message, TO_OBJECT_OPTIONS) as JSONObject;
     } catch {
-      throw new PrometheusRemoteWriteError(
-        400,
-        `The body is not a remote write ${version} request (a snappy-compressed ${
-          version === PrometheusRemoteWriteVersion.V2
-            ? "io.prometheus.write.v2.Request"
-            : "prometheus.WriteRequest"
-        }).`,
-      );
+      throw notAWriteRequest();
     }
 
     return version === PrometheusRemoteWriteVersion.V2
@@ -302,7 +487,31 @@ export default class PrometheusRemoteWrite {
       metrics: null,
       samplesWritten: 0,
       histogramsWritten: 0,
-      samplesDropped: 0,
+      exemplarsWritten: 0,
+      samplesSkipped: 0,
+      refused: new Map<PrometheusRefusalReason, PrometheusRefusalCount>(),
+    };
+
+    const refuse: (
+      reason: PrometheusRefusalReason,
+      samples: number,
+      histograms: number,
+    ) => void = (
+      reason: PrometheusRefusalReason,
+      samples: number,
+      histograms: number,
+    ): void => {
+      if (samples === 0 && histograms === 0) {
+        return;
+      }
+
+      const count: PrometheusRefusalCount = translation.refused.get(reason) || {
+        samples: 0,
+        histograms: 0,
+      };
+      count.samples += samples;
+      count.histograms += histograms;
+      translation.refused.set(reason, count);
     };
 
     // What the request holds of each family, for the name-only rules.
@@ -316,7 +525,7 @@ export default class PrometheusRemoteWrite {
       );
       names.add(name);
 
-      if (PrometheusRemoteWrite.hasLabel(series.labels, "quantile")) {
+      if (PrometheusRemoteWrite.labelValue(series.labels, "quantile")) {
         quantileFamilies.add(name);
       }
     }
@@ -327,15 +536,47 @@ export default class PrometheusRemoteWrite {
     >();
     const serviceOverride: string = (options?.serviceName || "").trim();
 
+    // Each stored datapoint, by its series' labels, for the exemplars.
+    const targets: Map<string, Array<ExemplarTarget>> = new Map<
+      string,
+      Array<ExemplarTarget>
+    >();
+    const exemplarsBySeries: Map<string, Array<PrometheusExemplar>> = new Map<
+      string,
+      Array<PrometheusExemplar>
+    >();
+
     for (const series of request.series) {
       const name: string = PrometheusRemoteWrite.labelValue(
         series.labels,
         "__name__",
       );
 
-      if (!name) {
-        translation.samplesDropped += series.samples.length;
+      if (series.invalidLabels || PrometheusRemoteWrite.hasUnnamedLabel(series)) {
+        refuse(
+          PrometheusRefusalReason.InvalidLabels,
+          series.samples.length,
+          series.histograms.length,
+        );
         continue;
+      }
+
+      if (!name) {
+        refuse(
+          PrometheusRefusalReason.MissingName,
+          series.samples.length,
+          series.histograms.length,
+        );
+        continue;
+      }
+
+      const seriesKey: string = PrometheusRemoteWrite.seriesKey(series.labels);
+
+      if (series.exemplars.length > 0) {
+        const pending: Array<PrometheusExemplar> =
+          exemplarsBySeries.get(seriesKey) || [];
+        pending.push(...series.exemplars);
+        exemplarsBySeries.set(seriesKey, pending);
       }
 
       const metadata: PrometheusMetadata = PrometheusRemoteWrite.metadataFor(
@@ -353,7 +594,19 @@ export default class PrometheusRemoteWrite {
       );
 
       if (shape === OtlpShape.Skip) {
-        translation.samplesDropped += series.samples.length;
+        // A _created series: accepted, and nothing in it to store.
+        let invalid: number = 0;
+
+        for (const sample of series.samples) {
+          if (PrometheusRemoteWrite.isValidTimestamp(sample.timestampMs)) {
+            translation.samplesWritten++;
+            translation.samplesSkipped++;
+          } else {
+            invalid++;
+          }
+        }
+
+        refuse(PrometheusRefusalReason.InvalidTimestamp, invalid, 0);
         continue;
       }
 
@@ -366,7 +619,7 @@ export default class PrometheusRemoteWrite {
       const attributes: Array<OtlpKeyValue> = [];
 
       for (const label of series.labels) {
-        if (label.name === "__name__") {
+        if (label.name === "__name__" || label.value === "") {
           continue;
         }
 
@@ -376,10 +629,9 @@ export default class PrometheusRemoteWrite {
         });
       }
 
-      const startTimeUnixNano: string | null =
-        series.createdTimestampMs > 0
-          ? OtlpJson.millisecondsToUnixNano(series.createdTimestampMs)
-          : null;
+      const seriesTargets: Array<ExemplarTarget> =
+        targets.get(seriesKey) || [];
+      targets.set(seriesKey, seriesTargets);
 
       if (series.samples.length > 0) {
         const metric: MetricAccumulator = PrometheusRemoteWrite.metricFor(
@@ -388,14 +640,19 @@ export default class PrometheusRemoteWrite {
           shape,
           metadata,
         );
+        let invalid: number = 0;
 
         for (const sample of series.samples) {
-          if (
-            !Number.isFinite(sample.value) ||
-            !Number.isFinite(sample.timestampMs) ||
-            sample.timestampMs < 0
-          ) {
-            translation.samplesDropped++;
+          if (!PrometheusRemoteWrite.isValidTimestamp(sample.timestampMs)) {
+            invalid++;
+            continue;
+          }
+
+          // Accepted either way: a staleness marker is no fault.
+          translation.samplesWritten++;
+
+          if (!Number.isFinite(sample.value)) {
+            translation.samplesSkipped++;
             continue;
           }
 
@@ -405,25 +662,68 @@ export default class PrometheusRemoteWrite {
             attributes: attributes as unknown as JSONObject[],
           };
 
-          if (startTimeUnixNano && shape !== OtlpShape.Gauge) {
-            dataPoint["startTimeUnixNano"] = startTimeUnixNano;
+          const startTimestampMs: number =
+            PrometheusRemoteWrite.startOf(
+              sample.startTimestampMs,
+              sample.timestampMs,
+            ) ||
+            PrometheusRemoteWrite.startOf(
+              series.createdTimestampMs,
+              sample.timestampMs,
+            );
+
+          if (startTimestampMs > 0 && shape !== OtlpShape.Gauge) {
+            dataPoint["startTimeUnixNano"] =
+              OtlpJson.millisecondsToUnixNano(startTimestampMs);
           }
 
           metric.dataPoints.push(dataPoint);
-          translation.samplesWritten++;
+          seriesTargets.push({
+            timestampMs: sample.timestampMs,
+            dataPoint: dataPoint,
+            keptDistanceMs: Number.POSITIVE_INFINITY,
+          });
         }
+
+        refuse(PrometheusRefusalReason.InvalidTimestamp, invalid, 0);
       }
 
       for (const histogram of series.histograms) {
+        if (!PrometheusRemoteWrite.isValidTimestamp(histogram.timestampMs)) {
+          refuse(PrometheusRefusalReason.InvalidTimestamp, 0, 1);
+          continue;
+        }
+
+        /*
+         * A stale native histogram carries a NaN sum, and one may have
+         * observed an infinity: accepted, with nothing OTLP JSON can carry.
+         */
+        if (!Number.isFinite(histogram.sum) || !Number.isFinite(histogram.count)) {
+          translation.histogramsWritten++;
+          continue;
+        }
+
+        const startTimestampMs: number =
+          PrometheusRemoteWrite.startOf(
+            histogram.startTimestampMs,
+            histogram.timestampMs,
+          ) ||
+          PrometheusRemoteWrite.startOf(
+            series.createdTimestampMs,
+            histogram.timestampMs,
+          );
+
         const dataPoint: JSONObject | null =
           PrometheusRemoteWrite.nativeHistogramDataPoint(
             histogram,
             attributes,
-            startTimeUnixNano,
+            startTimestampMs > 0
+              ? OtlpJson.millisecondsToUnixNano(startTimestampMs)
+              : null,
           );
 
         if (!dataPoint) {
-          translation.samplesDropped++;
+          refuse(PrometheusRefusalReason.UnreadableHistogram, 0, 1);
           continue;
         }
 
@@ -437,13 +737,58 @@ export default class PrometheusRemoteWrite {
         );
 
         metric.dataPoints.push(dataPoint);
+        seriesTargets.push({
+          timestampMs: histogram.timestampMs,
+          dataPoint: dataPoint,
+          keptDistanceMs: Number.POSITIVE_INFINITY,
+        });
         translation.histogramsWritten++;
       }
     }
 
+    translation.exemplarsWritten = PrometheusRemoteWrite.attachExemplars(
+      exemplarsBySeries,
+      targets,
+    );
     translation.metrics = PrometheusRemoteWrite.toExportRequest(resources);
 
     return translation;
+  }
+
+  /*
+   * What was refused, as the plain text a 400 answers with (senders log
+   * it as it is), or null when nothing was.
+   */
+  public static describeRefusals(
+    translation: PrometheusTranslation,
+  ): string | null {
+    if (translation.refused.size === 0) {
+      return null;
+    }
+
+    const parts: Array<string> = [];
+
+    for (const [reason, count] of translation.refused) {
+      const items: Array<string> = [];
+
+      if (count.samples > 0) {
+        items.push(
+          `${count.samples} ${count.samples === 1 ? "sample" : "samples"}`,
+        );
+      }
+
+      if (count.histograms > 0) {
+        items.push(
+          `${count.histograms} native ${
+            count.histograms === 1 ? "histogram" : "histograms"
+          }`,
+        );
+      }
+
+      parts.push(`${items.join(" and ")} ${REFUSAL_WORDS[reason]}`);
+    }
+
+    return `Refused ${parts.join("; ")}. The rest of the request (${translation.samplesWritten} samples and ${translation.histogramsWritten} native histograms) was accepted.`;
   }
 
   private static fromV1(decoded: JSONObject): PrometheusWriteRequest {
@@ -468,24 +813,43 @@ export default class PrometheusRemoteWrite {
       });
     }
 
+    const v1Labels: (value: unknown) => Array<PrometheusLabel> = (
+      value: unknown,
+    ): Array<PrometheusLabel> => {
+      return PrometheusRemoteWrite.objects(value).map(
+        (label: JSONObject): PrometheusLabel => {
+          return {
+            name: PrometheusRemoteWrite.text(label["name"]),
+            value: PrometheusRemoteWrite.text(label["value"]),
+          };
+        },
+      );
+    };
+
     const series: Array<PrometheusSeries> = PrometheusRemoteWrite.objects(
       decoded["timeseries"],
     ).map((timeSeries: JSONObject): PrometheusSeries => {
       return {
-        labels: PrometheusRemoteWrite.objects(timeSeries["labels"]).map(
-          (label: JSONObject): PrometheusLabel => {
+        labels: v1Labels(timeSeries["labels"]),
+        samples: PrometheusRemoteWrite.samples(timeSeries["samples"]),
+        histograms: PrometheusRemoteWrite.histograms(timeSeries["histograms"]),
+        exemplars: PrometheusRemoteWrite.objects(timeSeries["exemplars"]).map(
+          (exemplar: JSONObject): PrometheusExemplar => {
             return {
-              name: PrometheusRemoteWrite.text(label["name"]),
-              value: PrometheusRemoteWrite.text(label["value"]),
+              labels: v1Labels(exemplar["labels"]),
+              value: PrometheusRemoteWrite.number(exemplar["value"], 0),
+              timestampMs: PrometheusRemoteWrite.number(
+                exemplar["timestamp"],
+                0,
+              ),
             };
           },
         ),
-        samples: PrometheusRemoteWrite.samples(timeSeries["samples"]),
-        histograms: PrometheusRemoteWrite.histograms(timeSeries["histograms"]),
         type: PrometheusMetricType.Unknown,
         help: "",
         unit: "",
         createdTimestampMs: 0,
+        invalidLabels: false,
       };
     });
 
@@ -499,31 +863,50 @@ export default class PrometheusRemoteWrite {
         })
       : [];
 
-    const symbol: (reference: unknown) => string = (
+    const symbol: (reference: unknown) => string | null = (
       reference: unknown,
-    ): string => {
+    ): string | null => {
       if (typeof reference !== "number" || !Number.isInteger(reference)) {
-        return "";
+        return null;
       }
 
-      return symbols[reference] ?? "";
+      return symbols[reference] ?? null;
+    };
+
+    // Label pairs from references; null when one does not resolve.
+    const labelsOf: (value: unknown) => Array<PrometheusLabel> | null = (
+      value: unknown,
+    ): Array<PrometheusLabel> | null => {
+      const references: Array<unknown> = Array.isArray(value)
+        ? (value as Array<unknown>)
+        : [];
+
+      if (references.length % 2 !== 0) {
+        return null;
+      }
+
+      const labels: Array<PrometheusLabel> = [];
+
+      for (let index: number = 0; index < references.length; index += 2) {
+        const name: string | null = symbol(references[index]);
+        const labelValue: string | null = symbol(references[index + 1]);
+
+        if (name === null || labelValue === null) {
+          return null;
+        }
+
+        labels.push({ name: name, value: labelValue });
+      }
+
+      return labels;
     };
 
     const series: Array<PrometheusSeries> = PrometheusRemoteWrite.objects(
       decoded["timeseries"],
     ).map((timeSeries: JSONObject): PrometheusSeries => {
-      const references: Array<unknown> = Array.isArray(timeSeries["labelsRefs"])
-        ? (timeSeries["labelsRefs"] as Array<unknown>)
-        : [];
-
-      const labels: Array<PrometheusLabel> = [];
-
-      for (let index: number = 0; index + 1 < references.length; index += 2) {
-        labels.push({
-          name: symbol(references[index]),
-          value: symbol(references[index + 1]),
-        });
-      }
+      const labels: Array<PrometheusLabel> | null = labelsOf(
+        timeSeries["labelsRefs"],
+      );
 
       const metadata: JSONObject =
         timeSeries["metadata"] &&
@@ -534,21 +917,158 @@ export default class PrometheusRemoteWrite {
 
       const created: unknown = timeSeries["createdTimestamp"];
 
+      const exemplars: Array<PrometheusExemplar> = [];
+
+      for (const exemplar of PrometheusRemoteWrite.objects(
+        timeSeries["exemplars"],
+      )) {
+        const exemplarLabels: Array<PrometheusLabel> | null = labelsOf(
+          exemplar["labelsRefs"],
+        );
+
+        // An exemplar whose labels do not resolve names no trace.
+        if (!exemplarLabels) {
+          continue;
+        }
+
+        exemplars.push({
+          labels: exemplarLabels,
+          value: PrometheusRemoteWrite.number(exemplar["value"], 0),
+          timestampMs: PrometheusRemoteWrite.number(exemplar["timestamp"], 0),
+        });
+      }
+
       return {
-        labels: labels,
+        labels: labels || [],
         samples: PrometheusRemoteWrite.samples(timeSeries["samples"]),
         histograms: PrometheusRemoteWrite.histograms(timeSeries["histograms"]),
+        exemplars: exemplars,
         type: PrometheusRemoteWrite.metricType(metadata["type"]),
-        help: symbol(metadata["helpRef"]),
-        unit: symbol(metadata["unitRef"]),
+        help: symbol(metadata["helpRef"]) ?? "",
+        unit: symbol(metadata["unitRef"]) ?? "",
         createdTimestampMs:
           typeof created === "number" && Number.isFinite(created) && created > 0
             ? created
             : 0,
+        invalidLabels: labels === null,
       };
     });
 
     return { series: series, metadata: new Map<string, PrometheusMetadata>() };
+  }
+
+  /*
+   * Keeps each exemplar that names a trace on the datapoint of its series
+   * nearest its time (the later one on a tie: the scrape that counted it),
+   * at most one a datapoint - the store keeps one trace and span a
+   * datapoint - the nearest in time winning. Returns how many were kept.
+   */
+  private static attachExemplars(
+    exemplarsBySeries: Map<string, Array<PrometheusExemplar>>,
+    targets: Map<string, Array<ExemplarTarget>>,
+  ): number {
+    const kept: Set<ExemplarTarget> = new Set<ExemplarTarget>();
+
+    for (const [seriesKey, exemplars] of exemplarsBySeries) {
+      const seriesTargets: Array<ExemplarTarget> | undefined =
+        targets.get(seriesKey);
+
+      if (!seriesTargets || seriesTargets.length === 0) {
+        continue;
+      }
+
+      for (const exemplar of exemplars) {
+        const otlp: JSONObject | null =
+          PrometheusRemoteWrite.otlpExemplar(exemplar);
+
+        if (!otlp) {
+          continue;
+        }
+
+        let nearest: ExemplarTarget | null = null;
+        let nearestDistance: number = Number.POSITIVE_INFINITY;
+
+        for (const target of seriesTargets) {
+          const distance: number = Math.abs(
+            target.timestampMs - exemplar.timestampMs,
+          );
+
+          if (
+            distance < nearestDistance ||
+            (distance === nearestDistance &&
+              nearest !== null &&
+              target.timestampMs > nearest.timestampMs)
+          ) {
+            nearest = target;
+            nearestDistance = distance;
+          }
+        }
+
+        if (!nearest || nearestDistance >= nearest.keptDistanceMs) {
+          continue;
+        }
+
+        nearest.dataPoint["exemplars"] = [otlp];
+        nearest.keptDistanceMs = nearestDistance;
+        kept.add(nearest);
+      }
+    }
+
+    return kept.size;
+  }
+
+  // An exemplar as OTLP JSON, or null when it names no trace.
+  private static otlpExemplar(exemplar: PrometheusExemplar): JSONObject | null {
+    let traceId: string = "";
+    let spanId: string = "";
+    const filtered: Array<OtlpKeyValue> = [];
+
+    for (const label of exemplar.labels) {
+      const name: string = label.name.toLowerCase();
+
+      if (TRACE_ID_LABELS.has(name) && !traceId) {
+        traceId = OtlpJson.hexId(label.value, 32);
+
+        if (traceId) {
+          continue;
+        }
+      }
+
+      if (SPAN_ID_LABELS.has(name) && !spanId) {
+        spanId = OtlpJson.hexId(label.value, 16);
+
+        if (spanId) {
+          continue;
+        }
+      }
+
+      if (label.name && label.value) {
+        filtered.push({ key: label.name, value: { stringValue: label.value } });
+      }
+    }
+
+    if (!traceId) {
+      return null;
+    }
+
+    const otlp: JSONObject = {
+      timeUnixNano: OtlpJson.millisecondsToUnixNano(exemplar.timestampMs),
+      traceId: traceId,
+    };
+
+    if (spanId) {
+      otlp["spanId"] = spanId;
+    }
+
+    if (Number.isFinite(exemplar.value)) {
+      otlp["asDouble"] = exemplar.value;
+    }
+
+    if (filtered.length > 0) {
+      otlp["filteredAttributes"] = filtered as unknown as JSONObject[];
+    }
+
+    return otlp;
   }
 
   /*
@@ -639,7 +1159,7 @@ export default class PrometheusRemoteWrite {
 
     if (
       name.endsWith("_bucket") &&
-      PrometheusRemoteWrite.hasLabel(labels, "le")
+      PrometheusRemoteWrite.labelValue(labels, "le")
     ) {
       return OtlpShape.MonotonicSum;
     }
@@ -726,8 +1246,6 @@ export default class PrometheusRemoteWrite {
     startTimeUnixNano: string | null,
   ): JSONObject | null {
     if (
-      !Number.isFinite(histogram.timestampMs) ||
-      histogram.timestampMs < 0 ||
       !Number.isFinite(histogram.count) ||
       histogram.count < 0 ||
       !Number.isFinite(histogram.sum)
@@ -982,6 +1500,10 @@ export default class PrometheusRemoteWrite {
         return {
           value: PrometheusRemoteWrite.number(sample["value"], 0),
           timestampMs: PrometheusRemoteWrite.number(sample["timestamp"], 0),
+          startTimestampMs: PrometheusRemoteWrite.number(
+            sample["startTimestamp"],
+            0,
+          ),
         };
       },
     );
@@ -1036,9 +1558,52 @@ export default class PrometheusRemoteWrite {
           positiveCounts: numbers(histogram["positiveCounts"]),
           customValues: numbers(histogram["customValues"]),
           timestampMs: PrometheusRemoteWrite.number(histogram["timestamp"], 0),
+          startTimestampMs: PrometheusRemoteWrite.number(
+            histogram["startTimestamp"],
+            0,
+          ),
         };
       },
     );
+  }
+
+  // A sample's time: milliseconds since the epoch, never before it.
+  private static isValidTimestamp(timestampMs: number): boolean {
+    return Number.isFinite(timestampMs) && timestampMs >= 0;
+  }
+
+  // A start time a point can carry: set, and not after the point itself.
+  private static startOf(startMs: number, timestampMs: number): number {
+    return Number.isFinite(startMs) && startMs > 0 && startMs <= timestampMs
+      ? startMs
+      : 0;
+  }
+
+  // A series' identity: its labels, in name order.
+  private static seriesKey(labels: Array<PrometheusLabel>): string {
+    const pairs: Array<[string, string]> = labels
+      .filter((label: PrometheusLabel): boolean => {
+        return label.value !== "";
+      })
+      .map((label: PrometheusLabel): [string, string] => {
+        return [label.name, label.value];
+      })
+      .sort((a: [string, string], b: [string, string]): number => {
+        if (a[0] === b[0]) {
+          return 0;
+        }
+
+        return a[0] < b[0] ? -1 : 1;
+      });
+
+    return JSON.stringify(pairs);
+  }
+
+  // A label named "" (an empty value is only an absent label).
+  private static hasUnnamedLabel(series: PrometheusSeries): boolean {
+    return series.labels.some((label: PrometheusLabel): boolean => {
+      return label.name === "" && label.value !== "";
+    });
   }
 
   private static metricType(value: unknown): PrometheusMetricType {
@@ -1060,15 +1625,6 @@ export default class PrometheusRemoteWrite {
     }
 
     return "";
-  }
-
-  private static hasLabel(
-    labels: Array<PrometheusLabel>,
-    name: string,
-  ): boolean {
-    return labels.some((label: PrometheusLabel): boolean => {
-      return label.name === name;
-    });
   }
 
   private static objects(value: unknown): Array<JSONObject> {
