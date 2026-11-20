@@ -291,6 +291,26 @@ one network every service off the host network joins, no service changed.
 The guide's `127.0.0.1:` port form publishes the ingress on the loopback
 address only.
 
+### `ComposeIngressPorts.test.js`
+
+An empty or unset `ONEUPTIME_HTTP_PORT` or `STATUS_PAGE_HTTPS_PORT` is
+published on its default port, 80 or 443 (`${ONEUPTIME_HTTP_PORT:-80}`), the
+port npm start's status check, the doctor, backup.sh's report and the bundled
+probes look for the ingress on (#10170): before the default, Docker published
+it on a port it picked. The defaults are config.example.env's, and Compose
+warns of nothing for a config.env without the settings. With docker's compose
+plugin on PATH, every form Preflight stops on (an address with no port after
+it, port 0) is held to what Compose renders, a port left to Docker, and every
+other form to a port of its own.
+
+### `MergeEnvTemplateNames.test.js`
+
+`npm run update`'s merge reads a setting's name as `WithConfig.sh` hands it to
+Compose: `HOST = x`, `  HOST=x` and `export HOST=x` are HOST, so the
+template's `HOST=localhost` is no longer appended after them, where it won.
+Run through the real loader, Compose gets the install's own value before and
+after the merge, and the merge and readSettings agree on every line.
+
 ### `ReadmeQuickStart.test.js`
 
 The README's Docker Compose quick start, in English and the 16 translations,
