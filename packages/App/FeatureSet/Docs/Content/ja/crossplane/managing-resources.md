@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-レコードの ID は、ダッシュボードでそのレコードの **開発者 → Terraform** ページが書き出す `import` ブロックにあります。また、[OneUptime CLI](/docs/cli/resource-operations#レコードを一覧表示する) の `oneuptime <resource> list` で、ある種類のレコードの ID を一覧表示できます。リソースの準備ができると、`status.atProvider` にレコードが表示されます。それ以降このレコードを管理するには、フィールドを `spec.forProvider` に書き、`managementPolicies` を `["*"]` に設定します。
+ダッシュボードでそのレコードの **開発者 → Crossplane** ページが、レコードの ID 入りのこのマニフェストと、フィールドをそのままにレコードを取り込むマニフェストを書き出します。また、[OneUptime CLI](/docs/cli/resource-operations#レコードを一覧表示する) の `oneuptime <resource> list` で、ある種類のレコードの ID を一覧表示できます。リソースの準備ができると、`status.atProvider` にレコードが表示されます。それ以降このレコードを管理するには、フィールドを `spec.forProvider` に書き、`managementPolicies` を `["*"]` に設定します。
 
 ## シークレット
 

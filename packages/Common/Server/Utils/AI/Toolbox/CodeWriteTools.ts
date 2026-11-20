@@ -60,6 +60,8 @@ import { CODE_CHANGE_PROPOSED_ON_KEY } from "../../../../Types/CodeRepository/Co
 import {
   CodeChangeProposedOn,
   CodeFileProposedOn,
+  CodeFileUnseen,
+  CodeFileUnseenFinding,
   findCodeFilesChangedSinceProposed,
   readCodeChangeProposedOn,
 } from "../../../../Types/CodeRepository/CodeFileSeen";
@@ -70,16 +72,22 @@ import {
   CodeFileTextNow,
   UnseenCodeChange,
   describeChangedSinceProposed,
+  describeValuesNotWrittenBack,
   findCodeFilesValuesHidden,
   findUnseenCodeChange,
   getCodeChangeProposedOn,
   getCodeChangesHoldingPlaceholders,
   getCodeFilesSeenFromWrite,
+  getGitBlobSha,
   readCodeFileTextsNow,
   readCodeFileVersionsNow,
   readCodeFilesNow,
 } from "./CodeFilesSeen";
 import { describeCodeFilesUnseenForReviewer } from "./CodeChangeReviewerNote";
+import {
+  CodeFileValuesRestored,
+  restoreCodeFileValuesHidden,
+} from "./CodeFileValuesRestored";
 import logger from "../../Logger";
 
 import {
@@ -621,6 +629,174 @@ async function holdToWhatTheCardShowed(data: {
 }
 
 /*
+ * The text of a file in the version a commit is held to (issue #6388), or
+ * null when it cannot be read or is not that version: read again on the
+ * branch, and taken only when its git blob is the one the approval read -
+ * a version pushed in between is never the one values are written back
+ * from. A file the commit is not held to (the prepare could not read it,
+ * or there was no card) is read as the branch has it now.
+ */
+async function readFileTextHeldTo(data: {
+  ctx: ToolContext;
+  repository: CodeRepository;
+  branchName: string;
+  filePath: string;
+  // The version the commit is held to, when it is held to one.
+  version: CodeHostFileExpected | undefined;
+}): Promise<string | null> {
+  try {
+    const file: CodeHostFileContent | null = await readRepositoryFile({
+      ctx: data.ctx,
+      repository: data.repository,
+      branchName: data.branchName,
+      filePath: data.filePath,
+    });
+
+    if (!file) {
+      return null;
+    }
+
+    if (!data.version) {
+      return file.content;
+    }
+
+    const blobSha: string = (data.version.blobSha || "").trim().toLowerCase();
+    const read: string = getGitBlobSha(
+      file.content,
+      blobSha.length === 64 ? "sha256" : "sha1",
+    );
+
+    return read === blobSha ? file.content : null;
+  } catch (error) {
+    logger.debug(
+      `Ask AI could not read ${data.filePath} again to write its hidden values back: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+
+    return null;
+  }
+}
+
+/*
+ * THE VALUES HIDDEN FROM ASK AI, WRITTEN BACK (issue #6388).
+ *
+ * The model was shown what looks like a secret or personal data as a
+ * placeholder, so its version of a file holds one on every such line it
+ * kept as it read it. Before the commit, each file holding a placeholder
+ * is read in the version the commit is held to (readFileTextHeldTo), and
+ * each line it kept exactly as shown is written as the file has it there
+ * (CodeFileValuesRestored) - in memory, for this commit of that same file
+ * only: the change's arguments, the action's record, the tool's result and
+ * the logs never see the values.
+ *
+ * A file whose placeholders are not all written back - a line the model
+ * changed, two lines that read the same - is committed as the card said,
+ * when the card said so (CodeFileUnseen.ValuesHidden) and the person
+ * approved it anyway. When the card said nothing - every placeholder was
+ * written back on the version the card was shown on - and that is no
+ * longer so, or the file cannot be read again in that version, nothing is
+ * committed: a placeholder never lands where a value is without the card
+ * saying so first.
+ */
+async function writeHiddenValuesBack(data: {
+  change: CodeChangeKind;
+  ctx: ToolContext;
+  repository: CodeRepository;
+  // The branch the files were read on: the one committed to, or a pull request's base.
+  readOnBranchName: string;
+  changes: Array<CodeHostFileWrite>;
+  held: HeldChange | null;
+}): Promise<Array<CodeHostFileWrite>> {
+  const holding: Array<string> = getCodeChangesHoldingPlaceholders(
+    data.changes,
+  );
+
+  if (holding.length === 0) {
+    return data.changes;
+  }
+
+  const saidHidden: (filePath: string) => boolean = (
+    filePath: string,
+  ): boolean => {
+    return (data.held?.proposedOn.unseen || []).some(
+      (finding: CodeFileUnseenFinding): boolean => {
+        return (
+          finding.filePath === filePath &&
+          finding.unseen === CodeFileUnseen.ValuesHidden
+        );
+      },
+    );
+  };
+
+  const written: Map<string, string> = new Map<string, string>();
+  const notWrittenBack: Array<string> = [];
+
+  for (const change of data.changes) {
+    if (!holding.includes(change.filePath)) {
+      continue;
+    }
+
+    const version: CodeHostFileExpected | undefined = data.held?.expected.find(
+      (expected: CodeHostFileExpected): boolean => {
+        return expected.filePath === change.filePath;
+      },
+    );
+
+    // A file the branch does not have yet: no value of its own to write back.
+    const fileContent: string | null =
+      version && version.blobSha === null
+        ? null
+        : await readFileTextHeldTo({
+            ctx: data.ctx,
+            repository: data.repository,
+            branchName: data.readOnBranchName,
+            filePath: change.filePath,
+            version,
+          });
+
+    if (fileContent === null) {
+      if (!saidHidden(change.filePath)) {
+        notWrittenBack.push(change.filePath);
+      }
+
+      continue;
+    }
+
+    const restored: CodeFileValuesRestored = restoreCodeFileValuesHidden({
+      content: change.content,
+      fileContent,
+    });
+
+    if (
+      restored.placeholdersWritten.length > 0 &&
+      !saidHidden(change.filePath)
+    ) {
+      notWrittenBack.push(change.filePath);
+      continue;
+    }
+
+    written.set(change.filePath, restored.content);
+  }
+
+  if (notWrittenBack.length > 0) {
+    throw new BadDataException(
+      describeValuesNotWrittenBack({
+        change: data.change,
+        branchName: data.readOnBranchName,
+        filePaths: notWrittenBack,
+      }),
+    );
+  }
+
+  return data.changes.map((change: CodeHostFileWrite): CodeHostFileWrite => {
+    const content: string | undefined = written.get(change.filePath);
+
+    return content === undefined ? change : { ...change, content };
+  });
+}
+
+/*
  * The commit of an approved change, held to the files as the approval read
  * them again (issue #6331): a push that landed between that read and the
  * commit - a teammate's, CI's, a merge queue's - makes the host refuse it,
@@ -760,12 +936,22 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
       changes,
     });
 
+    // Each value hidden from Ask AI written back, for this commit only (issue #6388).
+    const files: Array<CodeHostFileWrite> = await writeHiddenValuesBack({
+      change: CodeChangeKind.Commit,
+      ctx,
+      repository,
+      readOnBranchName: branchName,
+      changes,
+      held,
+    });
+
     const commit: CodeHostCommitMade = await commitHeldToTheRead({
       change: CodeChangeKind.Commit,
       writer,
       branchName,
       readOnBranchName: branchName,
-      changes,
+      changes: files,
       commitMessage,
       held,
     });
@@ -787,13 +973,17 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
       }),
       redactionCount: 0,
       isTruncated: false,
-      // Ask AI now knows each file on the branch as it wrote it (issue #6313).
+      /*
+       * Ask AI now knows each file on the branch as it was written (issue
+       * #6313): with its values written back, as the branch has it, kept
+       * by a keyed fingerprint only.
+       */
       ...(repository.id
         ? {
             recordSeen: getCodeFilesSeenFromWrite({
               repositoryId: repository.id.toString(),
               branchName,
-              files: changes,
+              files,
               commitSha: commit.commitSha,
             }),
           }
@@ -946,6 +1136,16 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       ? held.proposedOn
       : null;
 
+    // Each value hidden from Ask AI written back, for this commit only (issue #6388).
+    const files: Array<CodeHostFileWrite> = await writeHiddenValuesBack({
+      change: CodeChangeKind.PullRequest,
+      ctx,
+      repository,
+      readOnBranchName: baseBranchName,
+      changes,
+      held,
+    });
+
     const headBranchName: string = buildAiBranchName(title);
 
     const created: boolean = await writer.createBranch({
@@ -969,7 +1169,7 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       writer,
       branchName: headBranchName,
       readOnBranchName: baseBranchName,
-      changes,
+      changes: files,
       commitMessage: ToolArgs.getString(args, "commitMessage") || title,
       held,
     });
@@ -1077,13 +1277,13 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
       ),
       redactionCount: 0,
       isTruncated: false,
-      // Ask AI now knows each file on the new branch as it wrote it (issue #6313).
+      // Ask AI now knows each file on the new branch as it was written (issue #6313, #6388).
       ...(repository.id
         ? {
             recordSeen: getCodeFilesSeenFromWrite({
               repositoryId: repository.id.toString(),
               branchName: headBranchName,
-              files: changes,
+              files,
               commitSha: commit.commitSha,
             }),
           }

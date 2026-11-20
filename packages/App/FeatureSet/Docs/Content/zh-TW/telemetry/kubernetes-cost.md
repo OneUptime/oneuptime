@@ -63,7 +63,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 成本指標（`node_total_hourly_cost`、`pv_hourly_cost` 等）都是一般指標：它們會出現在指標瀏覽器中、自訂儀表板上和指標監測器中。若要使用現成的儀表板，請前往 **產品 → 儀表板**，選取 **建立儀表板**，然後挑選 **Kubernetes Cost Dashboard**：其中包含節點每小時成本趨勢、CPU 和記憶體單價，以及磁碟區和負載平衡器的支出。
 
-在這些數字下方，概覽和 **成本** 頁面會說明價格從何而來：雲端供應商的公開價格、你的費率表，或 OpenCost 的預設費率，無論由哪個引擎為叢集定價，Kubecost 3 也包括在內。讀取你的雲端帳單的 Kubecost 會在每個小時結束約一天半後，依該帳單調節其價格，因此這行說明會指出這些數字是它調節之前的公開價格。效率在各處都是同一個數字，效率指標也不例外：它表示所請求的 CPU 和記憶體中有多少被實際使用，每個容器的每個小時都依其 CPU 和記憶體的成本加權，因此一個什麼都不用的廉價工作無法拉低一個充分利用的叢集，而且閒置容量不計算在內。
+在這些數字下方，概覽和 **成本** 頁面會說明價格從何而來：雲端供應商的公開價格、你的費率表，或 OpenCost 的預設費率，無論由哪個引擎為叢集定價，Kubecost 3 也包括在內。讀取你的雲端帳單的 Kubecost 會在每個小時結束約兩天後，依該帳單調節其價格，OneUptime 會納入每個已調節的小時，因此這行說明會指出這些數字調節到了什麼時候。效率在各處都是同一個數字，效率指標也不例外：它表示所請求的 CPU 和記憶體中有多少被實際使用，每個容器的每個小時都依其 CPU 和記憶體的成本加權，因此一個什麼都不用的廉價工作無法拉低一個充分利用的叢集，而且閒置容量不計算在內。
 
 ## 已經在執行 Kubecost 或 OpenCost？
 
@@ -191,7 +191,7 @@ Kubernetes 監測器為它們提供了三個範本：Cluster Daily Cost Over Bud
 :::
 
 :::details 概覽顯示不需要內建的 OpenCost
-叢集執行著自己的 Kubecost 或 OpenCost，而成本代理程式讀取的是它，因此 chart 內建的 OpenCost 不會為任何東西定價。使用 `--set cost.engine.url=auto` 升級即可停止執行它及其 Prometheus，或者設定 `cost.engine.preferExisting=false`，改為讀取內建的引擎。使用 Kubecost 3 時，由於它不讀取任何 Prometheus，記憶體建議來自內建的 Prometheus：請在同一次升級中用 `cost.engine.prometheusUrl` 指定另一個。
+叢集執行著自己的 Kubecost 或 OpenCost，而成本代理程式讀取的是它，因此 chart 內建的 OpenCost 不會為任何東西定價。使用 `--set cost.engine.url=auto` 升級即可停止執行它及其 Prometheus，或者設定 `cost.engine.preferExisting=false`，改為讀取內建的引擎。當記憶體建議來自內建的 Prometheus 時（例如 Kubecost 3 不讀取任何 Prometheus），提示會說明這一點：請在同一次升級中用 `cost.engine.prometheusUrl` 指定另一個，或者保留內建的引擎。成本代理程式從不自行停止它：它不會寫入你的叢集，而且在你的引擎沒有回應時，內建的引擎是它的備援。
 :::
 
 :::details 成本代理程式沒有讀取你的引擎
@@ -215,7 +215,7 @@ Kubernetes 監測器為它們提供了三個範本：Cluster Daily Cost Over Bud
 :::
 
 :::details 數字與引擎本身的 UI 不一致
-OneUptime 會傳送完整的、已結束的小時，依引擎在這些小時結束時所定的價格，並計入其調節調整：目前小時的支出會在該小時結束後出現。讀取你的雲端帳單的 Kubecost 會在約一天半後依該帳單調節每個小時，而 OneUptime 會保留該小時最初定下的價格。
+OneUptime 會傳送完整的、已結束的小時，依引擎在這些小時結束時所定的價格，並計入其調節調整：目前小時的支出會在該小時結束後出現。讀取你的雲端帳單的 Kubecost 會在約兩天後依該帳單調節每個小時：OneUptime 會在該小時之後 36 小時、47 小時和 4 天再次讀取它，並納入變化的部分。Kubecost 預設將每小時的數字保留 49 小時，因此在此之後才調節的小時會保留 OneUptime 最後讀取的數字：若要納入每一次調節，請將它們保留 4 天（Kubecost 2 為 `kubecostAggregator.etlHourlyStoreDurationHours: 96`，Kubecost 3 為 `aggregator.retention1h: 96`）。
 :::
 
 :::details 內建的 Prometheus 重新啟動過

@@ -30,22 +30,32 @@ export interface ReplacedPrivateKeyBlocks {
   count: number;
 }
 
-export type ReplacePrivateKeyBlocksFunction = (
-  text: string,
-  replacement: string,
-) => ReplacedPrivateKeyBlocks;
+// Where a block is in a text: from its header's first character to just after its footer.
+export interface PrivateKeyBlockSpan {
+  start: number;
+  end: number;
+}
 
-export const replacePrivateKeyBlocks: ReplacePrivateKeyBlocksFunction = (
+export type FindPrivateKeyBlocksFunction = (
   text: string,
-  replacement: string,
-): ReplacedPrivateKeyBlocks => {
+) => Array<PrivateKeyBlockSpan>;
+
+/*
+ * Every block of a text, in order, as replacePrivateKeyBlocks replaces
+ * them: read_code_file reads a file a window at a time, and a window that
+ * cut a block would show the part of it it holds - no footer in it, so
+ * nothing to replace (issue #6388). It widens the window to whole blocks.
+ */
+export const findPrivateKeyBlocks: FindPrivateKeyBlocksFunction = (
+  text: string,
+): Array<PrivateKeyBlockSpan> => {
+  const blocks: Array<PrivateKeyBlockSpan> = [];
+
   if (text.indexOf(HEADER_START) === -1) {
-    return { text: text, count: 0 };
+    return blocks;
   }
 
-  const kept: Array<string> = [];
   let position: number = 0;
-  let count: number = 0;
 
   for (;;) {
     PRIVATE_KEY_HEADER.lastIndex = position;
@@ -65,16 +75,37 @@ export const replacePrivateKeyBlocks: ReplacePrivateKeyBlocksFunction = (
       break;
     }
 
-    kept.push(text.slice(position, header.index), replacement);
     position = footer.index + footer[0].length;
-    count++;
+    blocks.push({ start: header.index, end: position });
   }
 
-  if (count === 0) {
+  return blocks;
+};
+
+export type ReplacePrivateKeyBlocksFunction = (
+  text: string,
+  replacement: string,
+) => ReplacedPrivateKeyBlocks;
+
+export const replacePrivateKeyBlocks: ReplacePrivateKeyBlocksFunction = (
+  text: string,
+  replacement: string,
+): ReplacedPrivateKeyBlocks => {
+  const blocks: Array<PrivateKeyBlockSpan> = findPrivateKeyBlocks(text);
+
+  if (blocks.length === 0) {
     return { text: text, count: 0 };
+  }
+
+  const kept: Array<string> = [];
+  let position: number = 0;
+
+  for (const block of blocks) {
+    kept.push(text.slice(position, block.start), replacement);
+    position = block.end;
   }
 
   kept.push(text.slice(position));
 
-  return { text: kept.join(""), count: count };
+  return { text: kept.join(""), count: blocks.length };
 };

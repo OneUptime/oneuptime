@@ -3,6 +3,7 @@ import TokenSigningKey from "../../TokenSigningKey";
 import logger from "../../Logger";
 import ArrayUtil from "../../../../Utils/Array";
 import { REDACTION_PLACEHOLDERS } from "./Serializer";
+import { restoreCodeFileValuesHidden } from "./CodeFileValuesRestored";
 import {
   AIChatLineRange,
   AIChatLinesShown,
@@ -11,6 +12,7 @@ import {
 } from "../../../../Types/AI/AIChatRecordSeen";
 import {
   AI_ACTION_CODE_FILE,
+  AI_ACTION_CODE_NOT_MADE,
   AI_ACTION_PLURAL_LINES,
   AI_ACTION_TERMS,
   AIActionList,
@@ -484,9 +486,13 @@ type FindValuesHiddenFunction = (data: {
 /*
  * The files a change writes placeholders into in place of values hidden
  * from Ask AI, in its order: each placeholder its version holds more often
- * than the file on the branch - nothing there, none - does. A file whose
- * text could not be read is held to none: what it writes is said, never
- * taken for the file's own.
+ * than the file on the branch - nothing there, none - does, once every line
+ * it kept as shown is written back as the file has it (issue #6388,
+ * CodeFileValuesRestored): a version whose placeholders are all on such
+ * lines writes over nothing hidden, and the card says nothing of it. Only
+ * counts and lines come back: the values never leave the file's text. A
+ * file whose text could not be read is held to none: what it writes is
+ * said, never taken for the file's own.
  */
 export const findCodeFilesValuesHidden: FindValuesHiddenFunction = (data: {
   changes: ReadonlyArray<CodeHostFileWrite>;
@@ -501,11 +507,16 @@ export const findCodeFilesValuesHidden: FindValuesHiddenFunction = (data: {
 
     const text: CodeFileTextNow | undefined = data.texts.get(change.filePath);
     const written: Array<CodeFilePlaceholderWritten> =
-      findCodePlaceholdersWritten({
-        content: change.content,
-        branchContent: text && text.state === "text" ? text.text : "",
-        placeholders: REDACTION_PLACEHOLDERS,
-      });
+      text && text.state === "text"
+        ? restoreCodeFileValuesHidden({
+            content: change.content,
+            fileContent: text.text,
+          }).placeholdersWritten
+        : findCodePlaceholdersWritten({
+            content: change.content,
+            branchContent: "",
+            placeholders: REDACTION_PLACEHOLDERS,
+          });
 
     if (written.length > 0) {
       findings.push({
@@ -994,7 +1005,9 @@ export enum CodeChangeKind {
 
 /*
  * What the record of a change that was not made says of it (resultSummary),
- * by what mattered most.
+ * by what mattered most: the English of the sentences its Skipped row says
+ * in the reader's language (AI_ACTION_CODE_NOT_MADE, issue #6982), which the
+ * exports and AI Logs print as they always did.
  */
 export const CODE_UNSEEN_SUMMARIES: Record<
   CodeChangeKind,
@@ -1002,43 +1015,37 @@ export const CODE_UNSEEN_SUMMARIES: Record<
 > = {
   [CodeChangeKind.Commit]: {
     [CodeFileUnseen.ChangedSinceRead]:
-      "Not committed: a file changed on the branch after Ask AI read it.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedChangedSinceRead,
     [CodeFileUnseen.ReadOnAnotherBranch]:
-      "Not committed: Ask AI read a file on another branch, and it is different on this one.",
-    [CodeFileUnseen.NotRead]:
-      "Not committed: Ask AI had not read a file the commit replaces.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedReadOnAnotherBranch,
+    [CodeFileUnseen.NotRead]: AI_ACTION_CODE_NOT_MADE.notCommittedNotRead,
     [CodeFileUnseen.ReadInEarlierAnswer]:
-      "Not committed: Ask AI had read a file the commit replaces only in an earlier answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedReadInEarlierAnswer,
     [CodeFileUnseen.ReadEarlierInThisAnswer]:
-      "Not committed: Ask AI had read a file the commit replaces earlier in this answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedReadEarlierInThisAnswer,
     [CodeFileUnseen.PartNoLongerInHand]:
-      "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
-    [CodeFileUnseen.ReadInPart]:
-      "Not committed: Ask AI had read only part of a file the commit replaces whole.",
-    [CodeFileUnseen.NotChecked]:
-      "Not committed: OneUptime could not check a file against what Ask AI read.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedPartNoLongerInHand,
+    [CodeFileUnseen.ReadInPart]: AI_ACTION_CODE_NOT_MADE.notCommittedReadInPart,
+    [CodeFileUnseen.NotChecked]: AI_ACTION_CODE_NOT_MADE.notCommittedNotChecked,
     [CodeFileUnseen.ValuesHidden]:
-      "Not committed: Ask AI's version of a file writes placeholders in place of values hidden from it.",
+      AI_ACTION_CODE_NOT_MADE.notCommittedValuesHidden,
   },
   [CodeChangeKind.PullRequest]: {
     [CodeFileUnseen.ChangedSinceRead]:
-      "Not opened: a file changed on the default branch after Ask AI read it.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedChangedSinceRead,
     [CodeFileUnseen.ReadOnAnotherBranch]:
-      "Not opened: Ask AI read a file on another branch, and it is different on the default branch.",
-    [CodeFileUnseen.NotRead]:
-      "Not opened: Ask AI had not read a file the pull request replaces.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedReadOnAnotherBranch,
+    [CodeFileUnseen.NotRead]: AI_ACTION_CODE_NOT_MADE.notOpenedNotRead,
     [CodeFileUnseen.ReadInEarlierAnswer]:
-      "Not opened: Ask AI had read a file the pull request replaces only in an earlier answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedReadInEarlierAnswer,
     [CodeFileUnseen.ReadEarlierInThisAnswer]:
-      "Not opened: Ask AI had read a file the pull request replaces earlier in this answer, and no longer had its text.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedReadEarlierInThisAnswer,
     [CodeFileUnseen.PartNoLongerInHand]:
-      "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
-    [CodeFileUnseen.ReadInPart]:
-      "Not opened: Ask AI had read only part of a file the pull request replaces whole.",
-    [CodeFileUnseen.NotChecked]:
-      "Not opened: OneUptime could not check a file against what Ask AI read.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedPartNoLongerInHand,
+    [CodeFileUnseen.ReadInPart]: AI_ACTION_CODE_NOT_MADE.notOpenedReadInPart,
+    [CodeFileUnseen.NotChecked]: AI_ACTION_CODE_NOT_MADE.notOpenedNotChecked,
     [CodeFileUnseen.ValuesHidden]:
-      "Not opened: Ask AI's version of a file writes placeholders in place of values hidden from it.",
+      AI_ACTION_CODE_NOT_MADE.notOpenedValuesHidden,
   },
 };
 
@@ -1106,7 +1113,8 @@ type ValuesHiddenOnReadFunction = (
 /*
  * What read_code_file tells the model of the values it hid in what it
  * showed (issue #6364), before the model writes anything from it: where,
- * as what, and that it cannot write them back. Null when it hid none.
+ * as what, and that OneUptime writes each back only on a line kept
+ * exactly as shown (issue #6388). Null when it hid none.
  */
 export const describeValuesHiddenOnRead: ValuesHiddenOnReadFunction = (
   hidden: CodeFileLinesWithValuesHidden,
@@ -1115,7 +1123,7 @@ export const describeValuesHiddenOnRead: ValuesHiddenOnReadFunction = (
     return null;
   }
 
-  return `… [values that look like secrets or personal data are hidden from you on ${describeLineRanges(hidden.lines)}, as ${englishList(hidden.placeholders)}. You cannot write them back: a commit or pull request writes this file whole, so a version that keeps a placeholder puts it where the real value is. Leave a change to this file to a person, or change only files without hidden values.]`;
+  return `… [values that look like secrets or personal data are hidden from you on ${describeLineRanges(hidden.lines)}, as ${englishList(hidden.placeholders)}. A commit or pull request writes this file whole: keep each of those lines exactly as you see it here, and OneUptime writes its value back as the file has it. Do not change those lines, and never write a placeholder anywhere else: OneUptime cannot write a value back there, so the change would put the placeholder where a real value belongs. If one of those lines needs to change, leave that change to a person.]`;
 };
 
 type LineCountFunction = (lineCount: number) => string;
@@ -1458,7 +1466,7 @@ export const describeCodeFilesUnseenForModel: ForModelFunction = (data: {
     const files: string = englishList(hidden);
 
     lines.push(
-      `You cannot write a value hidden from you back: it reads as a placeholder however often you read the file again, so writing ${files} whole puts the placeholders where the real values are. Leave the change to ${files} to a person - tell the user what to change, and where - or change only files without hidden values. Never write a placeholder, or a value you guess, in place of a hidden one. If the user asked you to write that placeholder text itself, tell them they can approve it with Ask to act.`,
+      `OneUptime writes a hidden value back only on a line you keep exactly as read_code_file showed it, when no other line of the file reads the same with a different value - not on these lines. You cannot write those values yourself: they read as placeholders however often you read the file again. Keep each line with a placeholder exactly as you were shown it, and change only other lines; if such a line needs to change, or reads the same as another, leave the change to ${files} to a person - tell the user what to change, and where. Never write a placeholder, or a value you guess, in place of a hidden one. If the user asked you to write that placeholder text itself, tell them they can approve it with Ask to act.`,
     );
   }
 
@@ -1489,7 +1497,12 @@ export const summarizeCodeFilesUnseen: SummaryFunction = (data: {
 export interface UnseenCodeChange {
   findings: Array<CodeFileUnseenFinding>;
   lines: Array<AIActionSentence>;
-  notRunWithoutApproval: { toldModel: string; summary: string };
+  notRunWithoutApproval: {
+    toldModel: string;
+    summary: string;
+    // The summary as a sentence, for the Skipped row (issue #6982).
+    reason: AIActionSentence;
+  };
 }
 
 type FindUnseenCodeChangeFunction = (data: {
@@ -1556,6 +1569,11 @@ export const findUnseenCodeChange: FindUnseenCodeChangeFunction = (data: {
     }
   }
 
+  const summary: string = summarizeCodeFilesUnseen({
+    change: data.change,
+    findings: findings,
+  });
+
   return {
     findings: findings,
     lines: describeCodeFilesUnseenForPerson({
@@ -1569,10 +1587,9 @@ export const findUnseenCodeChange: FindUnseenCodeChangeFunction = (data: {
         findings: findings,
         reasons: reasons,
       }),
-      summary: summarizeCodeFilesUnseen({
-        change: data.change,
-        findings: findings,
-      }),
+      summary: summary,
+      // A sentence of no values: its template is the summary itself.
+      reason: aiActionSentence(summary),
     },
   };
 };
@@ -1599,4 +1616,31 @@ export const describeChangedSinceProposed: ChangedSinceProposedFunction =
     return data.change === CodeChangeKind.Commit
       ? `Nothing was committed: ${files} changed on ${data.branchName} after this commit was shown for approval, or could not be read there again, so committing it now could undo a change nobody saw. Read each of them again with read_code_file and branchName "${data.branchName}", and propose the commit again on the files as they are now.`
       : `No pull request was opened: ${files} changed on ${data.branchName} after this pull request was shown for approval, or could not be read there again, so it could undo a change nobody saw. Read each of them again with read_code_file and branchName "${data.branchName}", and propose the pull request again on the files as they are now.`;
+  };
+
+type ValuesNotWrittenBackFunction = (data: {
+  change: CodeChangeKind;
+  branchName: string;
+  filePaths: ReadonlyArray<string>;
+}) => string;
+
+/*
+ * Why a change was not made though its card said nothing of hidden values
+ * (issue #6388): OneUptime could not write back every value Ask AI was
+ * shown as a placeholder in these files - their text could not be read
+ * again in the version the change is held to, or no longer reads as the
+ * card worked out - and committing them as written would put placeholders
+ * where the values are, which nobody was asked about.
+ */
+export const describeValuesNotWrittenBack: ValuesNotWrittenBackFunction =
+  (data: {
+    change: CodeChangeKind;
+    branchName: string;
+    filePaths: ReadonlyArray<string>;
+  }): string => {
+    const files: string = data.filePaths.join(", ");
+
+    return data.change === CodeChangeKind.Commit
+      ? `Nothing was committed: OneUptime could not write back the values hidden from you in ${files} as the file on ${data.branchName} has them, so committing it would put placeholders where those values are. Read each of them again with read_code_file and branchName "${data.branchName}", keep each line with a placeholder exactly as you are shown it, and propose the commit again.`
+      : `No pull request was opened: OneUptime could not write back the values hidden from you in ${files} as the file on ${data.branchName} has them, so the pull request would put placeholders where those values are. Read each of them again with read_code_file and branchName "${data.branchName}", keep each line with a placeholder exactly as you are shown it, and propose the pull request again.`;
   };

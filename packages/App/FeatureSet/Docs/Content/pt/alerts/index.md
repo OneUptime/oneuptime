@@ -138,7 +138,7 @@ Enquanto trabalha nele, registre o que descobrir como **Notas privadas**, preenc
 | **Investigação** | **Descrição**, **Causa raiz**, **Remediação**, **Runbooks**, **Incidentes vinculados**, **Notas privadas** |
 | **Equipe** | **Execuções de plantão** e **Proprietários**: quem foi acionado para o alerta e quem é o proprietário dele |
 | **Notificações**         | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o alerta e tudo o que a IA fez por ele |
-| **Desenvolvedores**   | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o alerta gerenciado por código                    |
+| **Desenvolvedores**   | **Terraform**, **Crossplane**, **API**, **CLI** e **Assistentes de IA**: o alerta gerenciado por código                    |
 | **Avançado** | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir alerta** |
 
 **Visão geral**, **Investigação** e **Equipe** ficam abertas; as outras seções ficam recolhidas até você clicar nelas.

@@ -4,9 +4,11 @@ import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResour
 import {
   KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
+  KubernetesComplianceNodeBenchmark,
   KubernetesComplianceTurnedOff,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
 import { CIS_NOT_SCORED } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog";
+import { NSA_CISA_NOT_SCORED } from "Common/Types/Kubernetes/Compliance/NsaCisaHardening";
 import { KubernetesComplianceFinding } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFinding";
 import { KubernetesComplianceFramework } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import {
@@ -17,6 +19,7 @@ import {
   ACCEPTANCE_EXPIRY_OPTIONS,
   BINDING_COUNT,
   KubernetesAcceptanceExpiry,
+  MARKED_MANUAL_REASON,
   NAMESPACE_COUNT,
   NOT_EVALUATED_REASONS,
   ROLE_COUNT,
@@ -43,6 +46,7 @@ import {
   describeDetail,
   describeFinding,
   describeKubernetesTurnedOff,
+  getFixText,
   getKubernetesFrameworkReport,
   getKubernetesFrameworkReportCsv,
 } from "../../FeatureSet/Dashboard/src/Components/KubernetesCompliance/KubernetesComplianceExport";
@@ -60,6 +64,8 @@ const BASELINE: KubernetesComplianceFramework =
   KubernetesComplianceFramework.PssBaseline;
 const CIS: KubernetesComplianceFramework =
   KubernetesComplianceFramework.CisKubernetes;
+const NSA: KubernetesComplianceFramework =
+  KubernetesComplianceFramework.NsaCisaHardening;
 
 const KUBE_PROXY: KubernetesComplianceFinding = {
   object: { kind: "DaemonSet", namespace: "kube-system", name: "kube-proxy" },
@@ -178,8 +184,17 @@ describe("the page's controls", () => {
     for (const reason of Object.values(
       KubernetesComplianceNotEvaluatedReason,
     )) {
-      expect(NOT_EVALUATED_REASONS[reason]).toMatch(/^[A-Z].*\.$/);
+      // A sentence may open with kube-bench, which writes its name in lowercase.
+      expect(NOT_EVALUATED_REASONS[reason]).toMatch(
+        /^([A-Z]|kube-bench ).*\.$/,
+      );
     }
+    // Without kube-bench, the value that turns it on (#9873).
+    expect(
+      NOT_EVALUATED_REASONS[
+        KubernetesComplianceNotEvaluatedReason.NodeBenchmarkNotRun
+      ],
+    ).toContain("compliance.nodeBenchmark.enabled");
     expect(
       NOT_EVALUATED_REASONS[
         KubernetesComplianceNotEvaluatedReason.PolicyObjectsNotRead
@@ -701,5 +716,175 @@ describe("an acceptance, as the page says it", () => {
       )?.toISOString(),
     ).toBe("2027-11-19T12:00:00.000Z");
     expect(getAcceptanceExpiryDate("someday", now)).toBeNull();
+  });
+});
+
+/*
+ * #9873 and #9875 in the reports: the CIS benchmark's node controls, with
+ * what kube-bench read and what it marks manual, and the NSA/CISA guide's
+ * controls by its sections, with what it asks that OneUptime cannot read.
+ */
+describe("kube-bench's node controls and the NSA/CISA guide in the reports", () => {
+  const KIND_WORKER: KubernetesComplianceFinding = {
+    object: { kind: "Node", namespace: "", name: "kind-worker" },
+    details: [],
+  };
+  const NODE_BENCHMARK: KubernetesComplianceNodeBenchmark = {
+    benchmark: "cis-1.12",
+    family: "cis",
+    nodes: [
+      {
+        node: "kind-worker",
+        benchmark: "cis-1.12",
+        targets: ["node"],
+        finishedAt: "2026-11-19T22:41:05.000Z",
+        isControlPlane: false,
+        error: null,
+      },
+    ],
+    manual: ["4.2.4", "4.2.5"],
+    suggestedBenchmark: null,
+  };
+  const CLUSTER: {
+    clusterId: string;
+    kubernetesVersion: string | null;
+    standardVersion: string;
+    provider: string | null;
+  } = {
+    clusterId: "c",
+    kubernetesVersion: "1.33",
+    standardVersion: "1.33",
+    provider: null,
+  };
+
+  function cisWithNodes(): KubernetesComplianceFrameworkResponse {
+    return frameworkOf({
+      framework: CIS,
+      requirements: [
+        requirement({
+          requirement: "4.1.1",
+          title: "Kubelet service file: permissions 600 or stricter",
+          status: ComplianceRequirementStatus.Failing,
+          failingCount: 1,
+          findings: [KIND_WORKER],
+        }),
+      ],
+    });
+  }
+
+  test("a node control's fix is written whole, the command in it", () => {
+    expect(
+      getFixText({
+        fix: "Run {{setting}} on each node.",
+        fixSlots: { setting: "chmod 600 /var/lib/kubelet/config.yaml" },
+      }),
+    ).toBe("Run chmod 600 /var/lib/kubelet/config.yaml on each node.");
+    // A slot it is not given stays as written, rather than reading as nothing.
+    expect(getFixText({ fix: "Set {{setting}}.", fixSlots: {} })).toBe(
+      "Set {{setting}}.",
+    );
+    expect(getFixText(undefined)).toBe("");
+  });
+
+  test("the CSV says each node that fails a control, the fix, and the checks kube-bench marks manual", () => {
+    const csv: string = getKubernetesFrameworkReportCsv(cisWithNodes(), {
+      nodeBenchmark: NODE_BENCHMARK,
+    });
+
+    expect(csv).toContain(
+      "CIS Kubernetes,4.1.1,Kubelet service file: permissions 600 or stricter,Failing,,1,Node kind-worker,Run chmod 600 /etc/systemd/system/kubelet.service.d/10-kubeadm.conf on each node.",
+    );
+    expect(csv).toContain(
+      `CIS Kubernetes,4.2.4,,Not scored here,${MARKED_MANUAL_REASON}`,
+    );
+    // kube-bench read the kubelet: section 4 leaves the list it does not score.
+    expect(csv).not.toContain("4.1,Worker node configuration files");
+  });
+
+  test("the JSON carries what kube-bench read, and the CIS report alone", () => {
+    const report: Record<string, unknown> = getKubernetesFrameworkReport(
+      { ...CLUSTER, nodeBenchmark: NODE_BENCHMARK },
+      cisWithNodes(),
+      new Date(),
+    );
+    const notScored: Array<Record<string, unknown>> = report[
+      "notScored"
+    ] as Array<Record<string, unknown>>;
+
+    expect(report["nodeBenchmark"]).toEqual(NODE_BENCHMARK);
+    expect(
+      (report["requirements"] as Array<Record<string, unknown>>)[0]!["fix"],
+    ).toBe(
+      "Run chmod 600 /etc/systemd/system/kubelet.service.d/10-kubeadm.conf on each node.",
+    );
+    expect(
+      notScored.filter((row: Record<string, unknown>): boolean => {
+        return row["reason"] === "MarkedManual";
+      }),
+    ).toEqual([
+      {
+        id: "4.2.4",
+        title: "",
+        controlCount: 1,
+        reason: "MarkedManual",
+        why: MARKED_MANUAL_REASON,
+      },
+      {
+        id: "4.2.5",
+        title: "",
+        controlCount: 1,
+        reason: "MarkedManual",
+        why: MARKED_MANUAL_REASON,
+      },
+    ]);
+    expect(
+      getKubernetesFrameworkReport(
+        { ...CLUSTER, nodeBenchmark: NODE_BENCHMARK },
+        frameworkOf(),
+        new Date(),
+      ),
+    ).not.toHaveProperty("nodeBenchmark");
+  });
+
+  test("the NSA/CISA report names each control's section, and lists what the guide asks that is not scored", () => {
+    const guide: KubernetesComplianceFrameworkResponse = frameworkOf({
+      framework: NSA,
+      fullName: "NSA/CISA Kubernetes Hardening Guide v1.2",
+      requirements: [
+        requirement({
+          requirement: "No privileged containers",
+          status: ComplianceRequirementStatus.Failing,
+          failingCount: 1,
+          findings: [KUBE_PROXY],
+        }),
+      ],
+    });
+    const report: Record<string, unknown> = getKubernetesFrameworkReport(
+      CLUSTER,
+      guide,
+      new Date(),
+    );
+    const notScored: Array<Record<string, unknown>> = report[
+      "notScored"
+    ] as Array<Record<string, unknown>>;
+    const csv: string = getKubernetesFrameworkReportCsv(guide);
+
+    expect(
+      (report["requirements"] as Array<Record<string, unknown>>)[0],
+    ).toMatchObject({
+      requirement: "No privileged containers",
+      section: "Kubernetes Pod security",
+    });
+    expect(notScored).toHaveLength(NSA_CISA_NOT_SCORED.length);
+    expect(notScored[0]).toMatchObject({
+      id: "",
+      title: "Container images scanned for vulnerabilities",
+      reason: "OutsideKubernetes",
+      section: "Kubernetes Pod security",
+    });
+    expect(csv).toContain(
+      "NSA/CISA Hardening,,Container images scanned for vulnerabilities,Not scored here,",
+    );
+    expect(csv.split("\r\n")).toHaveLength(2 + NSA_CISA_NOT_SCORED.length);
   });
 });

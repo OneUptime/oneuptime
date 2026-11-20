@@ -59,7 +59,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Règles**    | **Règles de propriétaire**, **Règles de runbook**, **Règles d'étiquettes**, **Règles de rappel**.                              |
 | **Paramètres** | **État de la maintenance**, **Modèles de maintenance**, **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier**, **Numérotation**. |
 
-**Vue d'ensemble** est ouverte ; **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées au départ, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Développeurs** contient **Terraform**, **API**, **CLI** et **Assistants IA**, pour gérer la maintenance par le code. Tout ce qui concerne la maintenance se trouve ici, pas dans les **Paramètres du projet**.
+**Vue d'ensemble** est ouverte ; **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** sont repliées au départ, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Développeurs** contient **Terraform**, **Crossplane**, **API**, **CLI** et **Assistants IA**, pour gérer la maintenance par le code. Tout ce qui concerne la maintenance se trouve ici, pas dans les **Paramètres du projet**.
 
 La liste affiche **Numéro de maintenance planifiée**, **Titre**, **État actuel**, **Ressources affectées**, **Affiché sur la page de statut**, **Commence le**, **Durée**, **Se termine le**, **Étiquettes** et **Propriétaires**. Sélectionnez des événements pour agir sur plusieurs à la fois : **Marquer comme {{state}}**, **Modifier l'état**, **M'attribuer**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Ajouter des étiquettes**, **Retirer des étiquettes** ou **Supprimer**. Le menu **⋯** au bout de la ligne de chaque événement fait de même pour ce seul événement : les étapes **Marquer comme {{state}}** tant que l'événement peut les franchir, **Modifier l'état**, **M'attribuer** tant que vous n'en êtes pas propriétaire, et **Ajouter un propriétaire**.
 
@@ -85,7 +85,7 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie d'état**, **Description**, **Runbooks**, **Propriétaires** |
 | **Notifications**      | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'événement, et tout ce que l'IA a fait pour lui |
 | **Notes**         | **Notes privées** et **Notes publiques**                                                       |
-| **Développeurs**  | **Terraform**, **API**, **CLI** et **Assistants IA** : l'événement géré par le code            |
+| **Développeurs**  | **Terraform**, **Crossplane**, **API**, **CLI** et **Assistants IA** : l'événement géré par le code            |
 | **Avancé**        | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'événement de maintenance**      |
 
 **Vue d'ensemble** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.

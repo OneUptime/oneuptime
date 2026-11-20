@@ -1,3 +1,4 @@
+import { OneUptimeAgentComponent } from "./KubernetesAgentWorkloads";
 import { OneUptimeAgentNodesProxyReason } from "./KubernetesRbac";
 
 /*
@@ -29,16 +30,18 @@ export interface KubernetesComplianceObject {
 }
 
 /*
- * A binding the OneUptime agent's chart made (#9878): the page says so, and
- * why the agent asks for what the control finds.
+ * A binding (#9878) or a workload (#9929) the OneUptime agent's chart made:
+ * the page says so, and why the agent asks for what the control finds.
  */
 export interface KubernetesComplianceAgentObject {
   /*
    * Why its role grants nodes/proxy, as the chart labels it
    * (OneUptimeAgentNodesProxyReason): empty from a chart before the label,
-   * which grants it on every cluster.
+   * which grants it on every cluster, and for a workload.
    */
   nodesProxyReasons: Array<OneUptimeAgentNodesProxyReason>;
+  // The agent's component a workload is: the node collector, the eBPF instrumentation...
+  component?: OneUptimeAgentComponent | undefined;
 }
 
 export interface KubernetesComplianceFinding {
@@ -52,7 +55,7 @@ export interface KubernetesComplianceFinding {
    * node. Its pods, when it runs some, are read instead.
    */
   isFromTemplate?: boolean | undefined;
-  // The OneUptime agent's own binding, when it is one.
+  // The OneUptime agent's own binding or workload, when it is one.
   oneUptimeAgent?: KubernetesComplianceAgentObject | undefined;
 }
 

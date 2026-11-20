@@ -73,6 +73,12 @@ export interface PodSecurityContainer {
   secretEnv?: Array<PodSecuritySecretEnv> | undefined;
   // envFrom[*].secretRef.name
   secretEnvFrom?: Array<string> | undefined;
+  /*
+   * resources.limits' keys: the resources the container is capped on, "cpu"
+   * and "memory" among them (#9875). A LimitRange's defaults are in the pod
+   * as admitted. Read only into a block that says resourcesRead.
+   */
+  limits?: Array<string> | undefined;
 }
 
 export interface PodSecurityVolume {
@@ -109,6 +115,12 @@ export interface PodSecurity {
    * by container: the AppArmor profile as Kubernetes set it before the field.
    */
   appArmorAnnotations?: Record<string, string> | undefined;
+  /*
+   * Whether its containers' limits were read (#9875): a block stored before
+   * says nothing of them, which is not "no limits", until the agent's next
+   * pull rewrites it.
+   */
+  resourcesRead?: boolean | undefined;
   containers: Array<PodSecurityContainer>;
   volumes: Array<PodSecurityVolume>;
 }
@@ -297,6 +309,14 @@ function readContainer(
     .slice(0, MAX_LIST_LENGTH);
   const probeHosts: Array<PodSecurityProbeHost> = readProbeHosts(container);
   const fields: SecurityContextFields = readSecurityContextFields(context);
+  const limits: Array<string> = Object.keys(
+    asObject(asObject(container["resources"])["limits"]),
+  )
+    .filter((resource: string): boolean => {
+      return resource.length > 0 && resource.length <= 253;
+    })
+    .sort()
+    .slice(0, MAX_LIST_LENGTH);
 
   return withoutUnset<PodSecurityContainer>({
     name,
@@ -319,6 +339,7 @@ function readContainer(
     probeHosts: probeHosts.length > 0 ? probeHosts : undefined,
     secretEnv: secretEnv.length > 0 ? secretEnv : undefined,
     secretEnvFrom: secretEnvFrom.length > 0 ? secretEnvFrom : undefined,
+    limits: limits.length > 0 ? limits : undefined,
   });
 }
 
@@ -419,6 +440,7 @@ export function readPodSecurity(
       Object.keys(appArmorAnnotations).length > 0
         ? appArmorAnnotations
         : undefined,
+    resourcesRead: true,
     containers,
     volumes,
   });
@@ -513,6 +535,7 @@ function readStoredContainer(value: unknown): PodSecurityContainer | null {
     probeHosts: readStoredProbeHosts(container["probeHosts"]),
     secretEnv: readStoredSecretEnv(container["secretEnv"]),
     secretEnvFrom: readTextList(container["secretEnvFrom"]),
+    limits: readTextList(container["limits"]),
   });
 }
 
@@ -594,6 +617,7 @@ export function toPodSecurity(value: unknown): PodSecurity | null {
     windowsHostProcess: readBoolean(block["windowsHostProcess"]),
     appArmorAnnotations:
       Object.keys(annotations).length > 0 ? annotations : undefined,
+    resourcesRead: block["resourcesRead"] === true ? true : undefined,
     containers,
     volumes,
   });
