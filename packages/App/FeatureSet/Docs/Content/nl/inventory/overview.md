@@ -46,9 +46,9 @@ Elke drie uur verwijdert OneUptime de ontdekte items die langer stil zijn dan he
 
 | Soort item | Verwijderd na zo lang zonder telemetrie |
 | --- | --- |
-| Pods, deployments, Proxmox-gasten en virtuele VMware-machines | 1 dag |
-| Kubernetes-nodes en -namespaces, Proxmox-nodes, VMware-hosts, -clusters en -datastores, en de databases en externe services die je traces aanroepen | 7 dagen |
-| Services, hosts, Kubernetes-, Proxmox- en Ceph-clusters, storage-arrays, vCenters en Docker Swarm-clusters | 30 dagen |
+| Pods, deployments, Proxmox-gasten, OpenStack-instanties en virtuele VMware-machines | 1 dag |
+| Kubernetes-nodes en -namespaces, Proxmox-nodes, OpenStack-hypervisors, VMware-hosts, -clusters en -datastores, en de databases en externe services die je traces aanroepen | 7 dagen |
+| Services, hosts, Kubernetes-, Proxmox- en Ceph-clusters, OpenStack-clouds, storage-arrays, vCenters en Docker Swarm-clusters | 30 dagen |
 
 Een relatie die OneUptime heeft ontdekt, wordt verwijderd zodra die 30 dagen niet opnieuw is gezien.
 
@@ -77,6 +77,8 @@ Een host of een netwerkapparaat heeft een kaart **Assetgegevens** die beide op d
 - De gegevens van een host komen uit de resourceattributen van zijn telemetrie: zijn IP- en MAC-adressen, architectuur en besturingssysteem meteen, en zijn serienummer, merk, model en firmware zodra je ze erop stempelt.
 - De gegevens van een netwerkapparaat komen uit zijn SNMP-poll, zijn rol en zijn site. Wat zijn poll niet heeft gelezen, komt uit discovery: de laatste scan van zijn adres, de ARP-tabel van een router of de DNS-lookup van zijn sonde. Een apparaat zonder ENTITY-MIB, zoals een Meraki MX, krijgt zijn merk, model en besturingssysteem toch uit zijn systeembeschrijving, en zijn MAC-adres van zijn eigen poorten. Zijn IP-adres wordt nooit als zijn hostnaam getoond.
 - Een Meraki-apparaat neemt ook wat zijn poll leeg laat over uit het Meraki-dashboard, waaronder zijn serienummer, model en firmware, wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest.
+
+**Alle items** vindt de Android-apparaten waar je iets mee moet doen. Het filter **Beveiligingspatchniveau** toont de apparaten die **Niet actueel** zijn, waarvan het beveiligingspatchniveau ouder is dan 90 dagen, dezelfde regel die de waarschuwing Security Patch Out of Date van de [Host-monitor](/docs/monitor/host-monitor) hanteert. Het filter **Agentmachtigingen** toont de apparaten waarop de [Android-agent](/docs/telemetry/android-agent) nog READ_LOGS, READ_DROPBOX_DATA of gebruikstoegang mist. Elk filter heeft een kolom met dezelfde naam, verborgen tot je die aanzet, en de CSV-export neemt die mee.
 
 De kaart toont waar elk gegeven vandaan kwam en wanneer. De bron die de meeste gegevens delen, zoals de collector van een host, de eigen SNMP-poll van een netwerkapparaat of de discovery-scan die het las, wordt één keer genoemd, onder de gegevens. Elke andere bron, zoals de ARP-tabel van een router of een waarde die op het apparaat is opgeslagen, wordt onder het eigen gegeven genoemd. Een waarde die op een netwerkapparaat is opgeslagen, wordt nooit vervangen door wat discovery leest, en als de twee verschillen, toont de kaart ze allebei.
 

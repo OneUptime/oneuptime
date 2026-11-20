@@ -631,6 +631,17 @@ the legend says "Left axis: Percent" and "Right axis: Bytes" and tags each serie
 its axis, with no unit warning; and the card holds all of it on a phone. Its screenshots
 are `metric-explorer-second-axis-1280-synthetic.png` and `…-390-synthetic.png`.
 
+The same spec pins #10079 and #10080. Every value axis's neighbouring ticks read apart:
+the host's filesystem usage, about 17.2 GB on average and moving by a few bytes, wrote
+"17.2 GB" on all five of its ticks, and now writes each tick with the figures its step
+needs, every tick inside the card and left of the plot, at 1280px and 390px
+(`metric-explorer-narrow-axis-*-synthetic.png`). And a third kind of unit, the host's
+processes (a count) overlaid on that percent and bytes chart, is drawn to a scale of its
+own: two value axes, never a third, the percent axis kept at or under 100% (the count had
+pulled it up to thousands), the processes' line spread over the plot, its chip saying "Own
+scale" beside an "Own scale: …" badge, and the chart's note saying it has no axis
+(`metric-explorer-own-scale-*-synthetic.png`).
+
 ## Run it
 
 ```

@@ -72,7 +72,7 @@ Wählen Sie unter **Aggregieren nach**, wie die Werte jedes Punktes im Diagramm 
 
 Jede Abfrage zeichnet ihr eigenes Diagramm. Um eine Abfrage in dasselbe Diagramm wie die vorherige zu zeichnen, schalten Sie in ihren **Anzeigeeinstellungen** **Mit vorheriger Abfrage überlagern** ein.
 
-Ein überlagertes Diagramm liest seine linke Werteachse in der Einheit seiner ersten Abfrage und rechnet eine Abfrage in einer anderen Einheit derselben Art darin um, etwa Megabyte in einem Diagramm in Gigabyte. Eine Abfrage in einer Einheit anderer Art, etwa Bytes in einem Diagramm in Prozent, wird an einer zweiten Werteachse auf der rechten Seite des Diagramms gezeichnet, in ihrer eigenen Einheit, und die Legende unter dem Diagramm sagt, an welcher Achse jede Reihe gezeichnet wird. Nur eine dritte Art von Einheit passt auf keine der beiden Achsen: Sie wird an der linken Achse gezeichnet, und Diagramm und Schalter sagen das beide.
+Ein überlagertes Diagramm liest seine linke Werteachse in der Einheit seiner ersten Abfrage und rechnet eine Abfrage in einer anderen Einheit derselben Art darin um, etwa Megabyte in einem Diagramm in Gigabyte. Eine Abfrage in einer Einheit anderer Art, etwa Bytes in einem Diagramm in Prozent, wird an einer zweiten Werteachse auf der rechten Seite des Diagramms gezeichnet, in ihrer eigenen Einheit, und die Legende unter dem Diagramm sagt, an welcher Achse jede Reihe gezeichnet wird. Nur eine dritte Art von Einheit passt auf keine der beiden Achsen: Sie wird auf einer eigenen Skala ohne Achse gezeichnet, und Diagramm und Schalter sagen das beide. Lesen Sie ihre Werte in der Legende und im Tooltip ab.
 
 ## Abfragen mit einer Formel kombinieren
 

@@ -91,6 +91,7 @@ describe("the Cloud product menu", () => {
     // The Developer pages of the resources list, under it.
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${CLOUD}/resources/developer/terraform` },
+      { title: "Crossplane", href: `${CLOUD}/resources/developer/crossplane` },
       { title: "API", href: `${CLOUD}/resources/developer/api` },
       { title: "CLI", href: `${CLOUD}/resources/developer/cli` },
       {
@@ -150,6 +151,7 @@ describe("a cloud resource's menu", () => {
     ]);
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${RESOURCE_PATH}/developer/terraform` },
+      { title: "Crossplane", href: `${RESOURCE_PATH}/developer/crossplane` },
       { title: "API", href: `${RESOURCE_PATH}/developer/api` },
       { title: "CLI", href: `${RESOURCE_PATH}/developer/cli` },
       {
@@ -249,6 +251,7 @@ describe("a cloud account's menu", () => {
     ]);
     expect(linksIn("Developer")).toEqual([
       { title: "Terraform", href: `${ACCOUNT_PATH}/developer/terraform` },
+      { title: "Crossplane", href: `${ACCOUNT_PATH}/developer/crossplane` },
       { title: "API", href: `${ACCOUNT_PATH}/developer/api` },
       { title: "CLI", href: `${ACCOUNT_PATH}/developer/cli` },
       {

@@ -2,6 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -28,6 +30,10 @@ import {
   TerraformOmissionReason,
   TerraformResourceConfig,
 } from "../../../Utils/DeveloperDocs/TerraformConfig";
+import {
+  getTerraformAttributes,
+  TerraformAttributeDescriptor,
+} from "../../../Utils/DeveloperDocs/TerraformSchema";
 
 /*
  * The configuration the Developer > Terraform pages show. It is generated so
@@ -262,13 +268,19 @@ describe("a workflow as Terraform", () => {
     expect(config.resourceHcl).not.toMatch(/^\s*webhook_signing_secret\s*=/m);
   });
 
-  test("labels are a set of ids", () => {
+  /*
+   * A label rule adds labels on its own (ServerOwned.Shared, #10052): written
+   * with the ones it has now, the configuration would take a rule's next
+   * label off at the next plan. Left out, the provider keeps them all.
+   */
+  test("its labels are left to OneUptime, which a label rule adds to", () => {
     const config: TerraformResourceConfig = configFor(
       workflow({ labels: [label()] }),
       Workflow,
     );
 
-    expect(config.resourceHcl).toContain(`labels      = ["${LABEL_ID}"]`);
+    expect(config.resourceHcl).not.toContain("labels");
+    expect(config.resourceHcl).not.toContain(LABEL_ID);
   });
 
   test("its graph is written with jsonencode, and a secret in it comes from a variable", () => {
@@ -589,7 +601,14 @@ describe("a status page as Terraform", () => {
 });
 
 describe("which attributes are safe to write", () => {
-  test("an update-only setting that differs from its default is written, or plan would reset it", () => {
+  /*
+   * The AI agent's registration and reports set a cluster's AI settings, so
+   * they are OneUptime's too (ServerOwned.Shared, #10052): left out, even
+   * where one differs from its default, as the provider keeps OneUptime's
+   * value of an attribute a configuration leaves out instead of planning
+   * its default (StaticFiles/shared.go).
+   */
+  test("an update-only setting OneUptime changes too is left out, even off its default: the plan keeps it", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = ObjectID.generate().toString();
     cluster.name = "prod-eu";
@@ -599,8 +618,15 @@ describe("which attributes are safe to write", () => {
 
     const hcl: string = configFor(cluster, KubernetesCluster).resourceHcl;
 
-    expect(hcl).toContain("is_ai_investigation_enabled = false");
+    expect(hcl).not.toContain("is_ai_investigation_enabled");
     expect(hcl).not.toContain("agent_version");
+    expect(
+      getTerraformAttributes(KubernetesCluster).find(
+        (attribute: TerraformAttributeDescriptor): boolean => {
+          return attribute.columnName === "isAiInvestigationEnabled";
+        },
+      )?.isChangedByOneUptimeToo,
+    ).toBe(true);
   });
 
   test("a create-only setting is written when required, and left to the server otherwise", () => {
@@ -735,8 +761,8 @@ describe("the records a resource's ids point at", () => {
         `    "${MONITOR_IDS[0]}", # Checkout API`,
         `    "${MONITOR_IDS[1]}", # Website`,
         "  ]",
-        `  labels                      = ["${LABEL_ID}"] # production`,
-        `  change_monitor_status_to_id = "${STATUS_ID}"   # Degraded`,
+        // Its labels are OneUptime's too, which a label rule adds (#10052).
+        `  change_monitor_status_to_id = "${STATUS_ID}" # Degraded`,
         "}",
         "",
       ].join("\n"),
@@ -856,8 +882,28 @@ describe("the records a resource's ids point at", () => {
   });
 });
 
-describe("attributes Terraform cannot set", () => {
-  test("a Kubernetes cluster's provider is left out, and the configuration says why", () => {
+describe("attributes named like a Terraform meta-argument", () => {
+  /*
+   * `provider = "aws"` in a resource block is Terraform's own provider
+   * meta-argument. The provider exposes the attribute as provider_value,
+   * and a cloud account's is required: a configuration that left it out,
+   * as this one did, failed `terraform plan` before importing anything.
+   */
+  test("a cloud account's provider is set as provider_value, the provider's name for it", () => {
+    const account: CloudAccount = new CloudAccount();
+    account._id = "2a2b3c4d-1234-4b2c-9d8e-0123456789ab";
+    account.name = "Production";
+    account.provider = CloudProvider.AWS;
+    account.accountId = "123456789012";
+
+    const config: TerraformResourceConfig = configFor(account, CloudAccount);
+
+    expect(config.resourceHcl).toMatch(/^\s*provider_value\s*= "aws"$/m);
+    expect(config.resourceHcl).not.toMatch(/^\s*provider\s*=/m);
+    expect(config.resourceHcl).not.toContain("reserves");
+  });
+
+  test("a Kubernetes cluster's provider is OneUptime's once the cluster exists, so it is left out", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
     cluster.name = "production-us-east";
@@ -869,32 +915,7 @@ describe("attributes Terraform cannot set", () => {
       KubernetesCluster,
     );
 
-    // `provider = "EKS"` in a resource block is Terraform's own meta-argument.
-    expect(config.resourceHcl).not.toMatch(/^\s*provider\s*=/m);
-    expect(config.resourceHcl).toContain(
-      "# Not set here, because Terraform reserves the name: provider.",
-    );
-    expect(config.omittedReserved).toEqual([
-      {
-        attributeName: "provider",
-        title: expect.any(String),
-        reason: TerraformOmissionReason.ReservedName,
-      },
-    ]);
-  });
-
-  test("a cluster without a provider says nothing about it", () => {
-    const cluster: KubernetesCluster = new KubernetesCluster();
-    cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
-    cluster.name = "production-us-east";
-    cluster.clusterIdentifier = "production-us-east";
-
-    const config: TerraformResourceConfig = configFor(
-      cluster,
-      KubernetesCluster,
-    );
-
-    expect(config.omittedReserved).toEqual([]);
+    expect(config.resourceHcl).not.toMatch(/^\s*provider(_value)?\s*=/m);
     expect(config.resourceHcl).not.toContain("reserves");
   });
 });

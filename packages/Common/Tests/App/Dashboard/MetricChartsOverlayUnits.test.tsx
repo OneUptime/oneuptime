@@ -22,7 +22,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * unit when the two units are of one kind. A query in a unit of another
  * kind keeps its values and is drawn against a second axis, on the right
  * (issue #10042, MetricChartsSecondAxis.test.tsx); only a third kind of
- * unit, which fits neither axis, is left for the chart's warning to say.
+ * unit, which fits neither axis, is drawn to a scale of its own, and the
+ * chart says so (issue #10080).
  *
  * The real MetricCharts builds the charts; ChartGroup, which would draw
  * them, is stood in for by one that keeps what it was handed.
@@ -498,9 +499,12 @@ describe("a unit of another kind: a second axis, and only a third kind said", ()
       ],
     );
 
-    // Named as the chart's unit badges name them: "GB" as written.
+    /*
+     * Named as the chart's unit badges name them: "GB" as written. Both
+     * millisecond queries share one scale of their own (#10080).
+     */
     expect(screen.getByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toHaveTextContent(
-      "Queries in Milliseconds fit neither axis of this chart (GB, Percent), so they are drawn against the left axis",
+      "Queries in Milliseconds fit neither axis of this chart (GB, Percent), so each kind of unit is drawn to a scale of its own, with no axis",
     );
   });
 });

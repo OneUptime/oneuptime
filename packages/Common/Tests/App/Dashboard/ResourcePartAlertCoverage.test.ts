@@ -178,6 +178,36 @@ describe("the recommendations that watch a kind of part", () => {
       }),
     ).toHaveLength(1);
   });
+
+  /*
+   * A Kubernetes node's page lists Node Image Disk Almost Full only for a node
+   * whose images have a disk of their own (#10056): on any other the template
+   * reads the root filesystem High Node Disk Usage watches.
+   */
+  test("a Kubernetes node lists the image disk alert only when its images have a disk of their own", () => {
+    const NODE_ALERTS: Array<string> = [
+      "k8s-high-disk-usage",
+      "k8s-node-image-disk-almost-full",
+    ];
+    const listed: (hasImageDisk?: boolean) => Array<string> = (
+      hasImageDisk?: boolean,
+    ): Array<string> => {
+      return getResourcePartAlertRecommendations({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        templateIds: NODE_ALERTS,
+        context:
+          hasImageDisk === undefined
+            ? undefined
+            : { kubernetesHasSeparateImageDisk: hasImageDisk },
+      }).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      });
+    };
+
+    expect(listed(true)).toEqual(NODE_ALERTS);
+    expect(listed(false)).toEqual(["k8s-high-disk-usage"]);
+    expect(listed()).toEqual(["k8s-high-disk-usage"]);
+  });
 });
 
 describe("which of them are on", () => {

@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
-import YAxis, { SecondYAxis } from "../Types/YAxis/YAxis";
+import YAxis, { OwnScaleYAxis, SecondYAxis } from "../Types/YAxis/YAxis";
 import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint, {
   CHART_DATA_POINT_X_AXIS_KEY,
@@ -91,6 +91,11 @@ export interface ComponentProps {
         bucketStart: Date,
         bucketEnd: Date,
         valuesAtBucket: Record<string, number | string>,
+        /*
+         * A series' value as the tooltip writes it, by the name it is drawn
+         * with: to the figures its axis's ticks are written with (#10079).
+         */
+        formatValue?: (seriesName: string, value: number) => string,
       ) => void)
     | undefined;
   /*
@@ -120,6 +125,13 @@ export interface ComponentProps {
    * its own ticks, and the tooltip writes a series' values as its axis does.
    */
   secondYAxis?: SecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, for the series each names
+   * (issue #10080): an overlaid query in a unit neither axis can say. Each
+   * series' line keeps its shape, the axes keep theirs, and the tooltip
+   * writes its values with its scale's formatter.
+   */
+  ownScaleYAxes?: Array<OwnScaleYAxis> | undefined;
   /*
    * How the tooltip writes a series' values, by its name, for a series whose
    * unit is neither axis's. Left out, a series' values are written as the
@@ -244,8 +256,9 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
       data: props.data,
       yAxis: props.yAxis,
       secondYAxis: props.secondYAxis,
+      ownScaleYAxes: props.ownScaleYAxes,
     });
-  }, [props.data, props.yAxis, props.secondYAxis]);
+  }, [props.data, props.yAxis, props.secondYAxis, props.ownScaleYAxes]);
   const yAxisWidthInPx: number = valueAxes.firstYAxisWidthInPx;
 
   const hasNoData: boolean =
@@ -323,6 +336,7 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         anomalyBandLowerKey={bandLower}
         anomalyBandUpperKey={bandUpper}
         secondYAxis={valueAxes.secondYAxis}
+        ownScales={valueAxes.ownScales}
         categoryValueFormatters={props.seriesValueFormatters}
       />
       {hasNoData && <NoDataMessage />}

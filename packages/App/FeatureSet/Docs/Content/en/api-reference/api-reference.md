@@ -282,6 +282,16 @@ OneUptime records who created a record — and who archived it, resolved it, ack
 
 The API reference marks these fields read-only. A value a request sends for one beside other changes is ignored, so the rest of the change goes through; an update that sends nothing else is refused with a message naming the fields. Records that OneUptime itself creates on someone's behalf — a note posted from Slack or Microsoft Teams, an account made by an invitation — name that person.
 
+### Fields only OneUptime writes
+
+Some fields are OneUptime's alone to write: when a telemetry monitor last ran and runs next, what an agent last reported, an SLA's deadlines, when a SCIM client secret stops working. The API reference marks them read-only and leaves them out of the create and update bodies. A create that sends one, as a copy of a record you read does, goes through without it, and the new record gets OneUptime's value. An update that sends one is refused, and the answer names each such field it sent:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Leave these fields out of an update. The few a person changes have a request of their own: rotating a SCIM client secret sets when it stops working, and `POST /api/host/:id/try-collector-config-again` sends a host the collector config that failed on it again. A field you and OneUptime both change, such as a record's `labels`, which label rules add to, is yours to set as before.
+
 ## States and episodes
 
 ### The state a new record starts in

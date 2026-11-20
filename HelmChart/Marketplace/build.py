@@ -125,6 +125,10 @@ EKS_ADDON_VALUES: Dict[str, Any] = {
     # environment override, ${AWS_EKS_CLUSTER_NAME}). AWS's own checks render
     # the chart without it, and the chart renders nothing without a name.
     "clusterName": "set-by-amazon-eks",
+    # The agent's ClusterRole says it is the add-on (oneuptime.com/installed-as),
+    # so the cluster's Compliance page names the add-on's configuration value
+    # that drops nodes/proxy rather than a Helm --set a buyer cannot run.
+    "installedAs": "aws-eks-addon",
 }
 
 

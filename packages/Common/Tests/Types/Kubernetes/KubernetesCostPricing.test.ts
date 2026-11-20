@@ -1,7 +1,9 @@
 import {
   KUBERNETES_COST_ENGINE_NAMES,
+  KUBERNETES_COST_MEMORY_PEAKS_SOURCES,
   KUBERNETES_COST_PRICING_SOURCES,
   KubernetesCostEngineInfo,
+  KubernetesCostMemoryPeaksSource,
   KubernetesCostPricingSource,
   getKubernetesCostProviderDisplayName,
   readKubernetesCostEngineInfo,
@@ -23,6 +25,7 @@ const FULL: KubernetesCostEngineInfo = {
   bundledEngineUnused: true,
   pricingSource: KubernetesCostPricingSource.ListPrices,
   pricingProvider: "AWS",
+  memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Engine,
 };
 
 describe("readKubernetesCostEngineInfo", () => {
@@ -138,6 +141,55 @@ describe("readKubernetesCostEngineInfo", () => {
   });
 });
 
+/*
+ * #9970: where the memory peaks right-sizing reads come from. The note that
+ * advises stopping the bundled engine reads it: with the bundled Prometheus,
+ * stopping it stops the peaks too.
+ */
+describe("readKubernetesCostEngineInfo: where the memory peaks come from", () => {
+  test("knows the sources the agent names, none included", () => {
+    expect(KUBERNETES_COST_MEMORY_PEAKS_SOURCES).toEqual([
+      "engine",
+      "bundled",
+      "configured",
+      "",
+    ]);
+  });
+
+  test.each([
+    ["engine", KubernetesCostMemoryPeaksSource.Engine],
+    ["bundled", KubernetesCostMemoryPeaksSource.Bundled],
+    ["configured", KubernetesCostMemoryPeaksSource.Configured],
+    ["", KubernetesCostMemoryPeaksSource.None],
+  ])(
+    "keeps %j as the agent sends it",
+    (sent: string, read: KubernetesCostMemoryPeaksSource) => {
+      expect(
+        readKubernetesCostEngineInfo({ ...FULL, memoryPeaksFrom: sent })
+          ?.memoryPeaksFrom,
+      ).toBe(read);
+    },
+  );
+
+  test("an agent older than #9970 says nothing: no source", () => {
+    const older: Record<string, unknown> = { ...FULL };
+    delete older["memoryPeaksFrom"];
+
+    expect(readKubernetesCostEngineInfo(older)?.memoryPeaksFrom).toBe(
+      KubernetesCostMemoryPeaksSource.None,
+    );
+  });
+
+  test("drops what the agent cannot send, never storing it", () => {
+    for (const value of ["Bundled", "thanos", "<b>engine</b>", 1, true, null]) {
+      expect(
+        readKubernetesCostEngineInfo({ ...FULL, memoryPeaksFrom: value })
+          ?.memoryPeaksFrom,
+      ).toBe(KubernetesCostMemoryPeaksSource.None);
+    }
+  });
+});
+
 describe("getKubernetesCostProviderDisplayName", () => {
   test.each([
     ["AWS", "AWS"],
@@ -170,6 +222,8 @@ describe("KubernetesCostAllocation stores how each row was priced", () => {
     ["pricingSource", TableColumnType.Text, ""],
     ["pricingProvider", TableColumnType.Text, ""],
     ["bundledEngineUnused", TableColumnType.Boolean, false],
+    ["memoryPeaksFrom", TableColumnType.Text, ""],
+    ["isCostAdjustment", TableColumnType.Boolean, false],
   ])(
     "%s is a %s column, empty on rows from older agents",
     (key: string, type: TableColumnType, empty: string | boolean) => {
@@ -190,6 +244,7 @@ describe("KubernetesCostAllocation stores how each row was priced", () => {
       "costEngineService",
       "pricingSource",
       "pricingProvider",
+      "memoryPeaksFrom",
     ]) {
       expect(model.getTableColumn(key)?.isLowCardinality).toBe(true);
     }

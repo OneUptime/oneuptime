@@ -40,8 +40,13 @@ export interface AcceptFindingValues {
 
 export interface ComponentProps {
   object: KubernetesComplianceObject;
-  // The reason it had, when it is accepted again.
+  /*
+   * The reason it had, when it is accepted again; or, for the OneUptime
+   * agent's own workload, why it needs what the control fails (#9929).
+   */
   initialReason?: string | undefined;
+  // What it is accepted for at first: this control only, unless said.
+  initialScope?: KubernetesAcceptScope | undefined;
   onClose: () => void;
   // Saves the acceptance; the dialog shows what failed when it throws.
   onAccept: (values: AcceptFindingValues) => Promise<void>;
@@ -86,7 +91,7 @@ const AcceptFindingModal: FunctionComponent<ComponentProps> = (
         name: "kubernetes-compliance-accept-finding",
         initialValues: {
           reason: props.initialReason || "",
-          scope: KubernetesAcceptScope.Control,
+          scope: props.initialScope || KubernetesAcceptScope.Control,
           expiry: KubernetesAcceptanceExpiry.Never,
         },
         fields: [

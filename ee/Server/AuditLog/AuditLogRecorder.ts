@@ -1191,16 +1191,15 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
           auditLog.workflowRunAsCustomRoleName =
             ranAs.workflowRunAsCustomRoleName;
         }
-        if (ranAs.workflowRunAsGivenByUserId) {
-          auditLog.workflowRunAsGivenByUserId =
-            ranAs.workflowRunAsGivenByUserId;
+        if (ranAs.workflowRunAsGiverUserId) {
+          auditLog.workflowRunAsGiverUserId = ranAs.workflowRunAsGiverUserId;
         }
-        if (ranAs.workflowRunAsGivenByApiKeyId) {
-          auditLog.workflowRunAsGivenByApiKeyId =
-            ranAs.workflowRunAsGivenByApiKeyId;
+        if (ranAs.workflowRunAsGiverApiKeyId) {
+          auditLog.workflowRunAsGiverApiKeyId =
+            ranAs.workflowRunAsGiverApiKeyId;
         }
-        if (ranAs.workflowRunAsGivenByName) {
-          auditLog.workflowRunAsGivenByName = ranAs.workflowRunAsGivenByName;
+        if (ranAs.workflowRunAsGiverName) {
+          auditLog.workflowRunAsGiverName = ranAs.workflowRunAsGiverName;
         }
       }
     }

@@ -20,12 +20,16 @@ import { wordStatusChangeNote } from "./StatusChangeNotes";
  *
  * This words it the same way, for every View Cause:
  *
- *   - one of OneUptime's own status-change notes (StatusChangeNotes): a
- *     person, an incident or a maintenance event changed it, no criteria
- *     matched, monitoring went off or on - in the reader's words;
+ *   - one of OneUptime's own status- or state-change notes
+ *     (StatusChangeNotes): a person, an incident or a maintenance event
+ *     changed it, no criteria matched, monitoring went off or on - and, on
+ *     an incident's, an alert's or an episode's State Timeline, its episode
+ *     or a linked incident moved it, an SLO or a budget no longer holds it
+ *     open, a fix closed it (#9959) - in the reader's words;
  *   - an incident's or an alert's auto-resolve, as the engine writes it
  *     before the criteria that resolved it: its sentence in the reader's
- *     words, then the criteria's Markdown;
+ *     words, then the criteria's Markdown, or OneUptime's own note on the
+ *     same line (a series that recovered, a key reported resolved);
  *   - a criteria's Markdown, by MonitorRootCauseWording: OneUptime's labels,
  *     its yes or no, a failed phase, the timeout sentence and its figures.
  *     Each finding ("Response Status Code was 503, at or above the 500
@@ -168,6 +172,27 @@ export default class StatusChangeCauseWording {
       return lineEnd === -1
         ? sentence
         : `${sentence}\n${wordCriteria(rootCause.slice(lineEnd + 1))}`;
+    }
+
+    /*
+     * ...or on the same line as why the record resolved, when OneUptime
+     * said why itself: a series that no longer satisfies its criteria, a
+     * key an incoming request reported resolved (#9959).
+     */
+    for (const autoResolved of AUTO_RESOLVED_LINES) {
+      if (!firstLine.startsWith(`${autoResolved} `)) {
+        continue;
+      }
+
+      const sentence: string =
+        data.translator.translateText(autoResolved) || autoResolved;
+      const why: string = rootCause
+        .slice(rootCause.indexOf(autoResolved) + autoResolved.length)
+        .trim();
+
+      return `${sentence} ${
+        wordStatusChangeNote(why, data.translator) ?? wordCriteria(why)
+      }`;
     }
 
     return wordCriteria(rootCause);

@@ -9,7 +9,7 @@ OneUptime Kubernetes-agenten är ett Helm-chart som samlar in klustrets mätvär
 - [Installera agenten](#installera-agenten): Fyra steg med Helm.
 - [Installera som Amazon EKS-tillägg](#installera-som-amazon-eks-tillägg): Från EKS-konsolen, utan Helm.
 - [OpenShift](#openshift): Presetet, säkerhetskontextbegränsningarna det skapar och OpenShifts egna larm.
-- [Klusterhärdning](#klusterhärdning): Poäng mot säkerhetsstandarderna för poddar och CIS Benchmark, samt agentens egna behörigheter.
+- [Klusterhärdning](#klusterhärdning): Poäng mot säkerhetsstandarderna för poddar, CIS Benchmark och NSA/CISA Hardening Guide, kube-benchs kontroller av noderna samt agentens egna behörigheter.
 - [Konfigurationsalternativ](#konfigurationsalternativ): Filter, sampling, kontrollplan, service mesh, kostnader och etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivskyddad `kubectl` för OneUptime AI, och åtgärder när du tillåter dem.
 - [Skicka mindre](#minska-mängden-data-som-samlas-in): Spakarna, i ordning efter effekt.
@@ -202,6 +202,7 @@ Sätt dem under **Optional configuration settings** i EKS-konsolen, eller med `-
 - `logs.enabled`, `ebpf.enabled` och `aiAgent.enabled`: poddloggar, eBPF-spår och [Kubernetes-AI-agenten](#kubernetes-ai-agent), alla tre på som standard.
 - `kubeStateMetrics.enabled`: kube-state-metrics, avstängt som standard.
 - `cost.enabled`: [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), `auto` som standard: på, utom med presetet `eks-fargate`.
+- `kubeletstats.nodesProxy`: om agentens ClusterRole ger `nodes/proxy`, som når hela kubelet-API:t och underkänns av CIS 5.1.10. `auto`, standardvärdet, ger den på EKS 1.34 och 1.35, vars noder kan köra kubelets som är äldre än 1.33. Sätt `false` när varje nod kör 1.33 eller senare (`kubectl get nodes` visar varje nods version): en nod med en äldre kubelet skickar då inga av de nod-, podd-, container- och volymmätvärden som dess kubelet rapporterar.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -316,19 +317,53 @@ Sök bland dem i **Loggar**, eller släpp dem du inte vill ha med ett drop-filte
 
 ## Klusterhärdning
 
-Klustrets sida **Efterlevnad**, under **Säkerhet**, poängsätter själva klustret i avsnittet **Klusterhärdning**, mot tre ramverk. Den läser det som agenten redan skickar: klustrets poddar, dess namespaces och, för CIS Benchmark, dess RBAC, tjänstkonton och NetworkPolicies. Klustrets meny visar sidan så snart agenten rapporterar klustrets poddar, oavsett om klustret kör en databas eller inte.
+Klustrets sida **Efterlevnad**, under **Säkerhet**, poängsätter själva klustret i avsnittet **Klusterhärdning**, mot fyra ramverk. Den läser det som agenten redan skickar: klustrets poddar, dess namespaces och, för CIS Benchmark och NSA/CISA-guiden, dess RBAC, tjänstkonton och NetworkPolicies. Med kube-bench påslaget poängsätter den också det som bara noderna kan besvara: se [Kontroller för noder och kontrollplan](#kontroller-för-noder-och-kontrollplan). Klustrets meny visar sidan så snart agenten rapporterar klustrets poddar, oavsett om klustret kör en databas eller inte.
 
 | Ramverk | Vad det poängsätter |
 | --- | --- |
 | **Säkerhetsstandarder för poddar: Baseline** | Varje arbetsbelastning som körs på klustret, mot Baseline-policyn för klustrets Kubernetes-version: privilegierade containrar, värdens namespaces, portar och sökvägar, tillagda capabilities och alla andra fält som policyn anger, lästa från varje podds specifikation |
 | **Säkerhetsstandarder för poddar: Restricted** | Samma arbetsbelastningar, mot Restricted-policyn: Baselines kontroller, och dessutom bara de volymtyper den tillåter, körning som en annan användare än root, ingen privilegieeskalering, en seccomp-profil och alla capabilities borttagna |
-| **CIS Kubernetes Benchmark v2.0** | De 27 kontroller i avsnitt 5 som Kubernetes-API:t kan besvara: bindningar som ger cluster-admin, Secrets, `nodes/proxy` och de andra rättigheter som dess kontroller nämner, roller med jokertecken, standardtjänstkontona, Pod Security Admission eller en policymotor i varje namespace, NetworkPolicies och vad varje podd kör |
+| **CIS Kubernetes Benchmark v2.0** | De 27 kontroller i avsnitt 5 som Kubernetes-API:t kan besvara: bindningar som ger cluster-admin, Secrets, `nodes/proxy` och de andra rättigheter som dess kontroller nämner, roller med jokertecken, standardtjänstkontona, Pod Security Admission eller en policymotor i varje namespace, NetworkPolicies och vad varje podd kör. Med kube-bench påslaget även de kontroller för noder och kontrollplan som den kontrollerar på noderna |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | De av guidens rekommendationer som OneUptime kan läsa: containrar som inte körs som root, oföränderliga filsystem, inga privilegierade containrar eller värdens namespaces, och resursgränser på varje container, lästa från varje podds specifikation; en NetworkPolicy som nekar som standard, åt båda hållen, i varje namespace som kör poddar; minsta möjliga behörighet i RBAC; och, med kube-bench påslaget, inställningarna för TLS, autentisering, auktorisering och granskning i kontrollplanet och i kubelets |
 
 Varje ramverks ruta visar dess poäng, och hur många arbetsbelastningar det har utvärderat och hur många som inte klarar det. Bland dess kontroller listas de underkända först: var och en säger vad den hittar som är fel och hur du åtgärdar det, och listar de arbetsbelastningar, roller, bindningar, tjänstkonton eller namespaces som inte klarar den, var och en länkad till sin sida, ned till containern eller volymen och fältet, till exempel `securityContext.privileged`. Där Datasäkerhet poängsätter databaserna som körs på klustret ligger de kvar nedanför, under **Databaser på det här klustret**.
 
 Säkerhetsstandarderna för poddar poängsätts för klustrets egen Kubernetes-version: den nyaste kubeletens, upp till den nyaste version som OneUptime känner till. En kontroll som en senare version lade till räknas bara från och med den versionen, och sidan visar vilken version den poängsatte mot.
 
-Benchmarkens övriga 104 kontroller gäller nodernas filer och kubelets eller kontrollplanets flaggor, eller kräver en persons granskning. Inget API besvarar dem, så de listas under **Inte poängsatta här**, grupperade efter orsak, och räknas aldrig som godkända eller underkända. På ett hanterat kontrollplan, som på EKS, GKE eller AKS, säger sidan att de hör till leverantörens benchmark.
+Utan kube-bench gäller benchmarkens övriga 104 kontroller nodernas filer och kubelets eller kontrollplanets flaggor, eller kräver en persons granskning. Inget API besvarar dem, så de listas under **Inte poängsatta här**, grupperade efter orsak, och räknas aldrig som godkända eller underkända. På ett hanterat kontrollplan, som på EKS, GKE eller AKS, säger sidan att de hör till leverantörens benchmark.
+
+De rekommendationer i NSA/CISA-guiden som inget av det OneUptime läser kan besvara, som att skanna images efter sårbarheter eller att kryptera Secrets i vila, listas på samma sätt i guidens egen lista **Inte poängsatta här**, var och en med sitt avsnitt i guiden. En kontroll vars källa klustret inte har skickat, som en kubelet-inställning innan kube-bench har körts, är *inte utvärderad* och räknas varken som godkänd eller underkänd.
+
+### Kontroller för noder och kontrollplan
+
+Benchmarkens kontroller för noder och kontrollplan, flaggorna för API-servern, kontrollerhanteraren, schemaläggaren, etcd och kubeleten och behörigheterna på deras filer, kan bara läsas på noderna. Med `compliance.nodeBenchmark.enabled` kör agenten [kube-bench](https://github.com/aquasecurity/kube-bench) där var sjätte timme, och sidan poängsätter varje kontroll som kube-bench gör som en kontroll i CIS Benchmark, underkänd för varje nod som inte klarar den, med reglagen och knappen **Acceptera** som alla kontroller har. kube-bench är avstängd som standard, på grund av vad den kräver:
+
+- Podden för varje körning körs som root i nodens PID-namespace (`hostPID`), vilket kube-bench behöver för att läsa komponenternas kommandorader. Den är inte privilegierad: den tar bort alla Linux-capabilities utom `DAC_OVERRIDE`, förbjuder privilegieeskalering och körs på ett skrivskyddat rotfilsystem.
+- Den monterar nodens Kubernetes-kataloger skrivskyddade: `/etc/kubernetes`, som på en kontrollplansnod innehåller klustrets CA-nyckel och `admin.conf`, och `/var/lib/kubelet`, som innehåller volymerna för varje podd på den noden, Secrets inräknade.
+- Dess image kommer från Aqua Security, inte från OneUptime. Lås den till en digest med `compliance.nodeBenchmark.image.digest`, och spegla den med `compliance.nodeBenchmark.image.repository`.
+- Dess tjänstkonto monterar ingen token och är inte bundet till någon roll, och en NetworkPolicy håller dess poddar borta från nätverket. Den skriver varje kontrolls nummer och resultat som sin containers avslutningsmeddelande, som agentens ögonblicksbilder av resurserna redan skickar.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+För att köra den nu, i stället för vid nästa schemalagda tidpunkt:
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+kube-bench kör benchmarken för klustrets plattform, vald utifrån dess Kubernetes-version: CIS Amazon EKS Benchmark på EKS, CIS GKE Benchmark på GKE och den generiska benchmarken på andra ställen. På AKS lägger du till `--set compliance.nodeBenchmark.benchmark=aks-1.8`; där ett hanterat kluster körde den generiska benchmarken säger sidan vilken som ska sättas. På ett hanterat kontrollplan poängsätter kube-bench worker-noderna, och kontrollplanets kontroller förblir leverantörens ansvar, eftersom ingen podd kan läsa dem. kube-bench utelämnas på GKE Autopilot, EKS Fargate och OpenShift. Chartets README listar varje värde, och vad varje plattforms benchmark lämnar okänt.
+
+**Noder som kube-bench har läst** listar noderna som kube-bench senast kördes på, med den benchmark som kördes, när, och varför en körning inte kunde slutföras. De kontroller som dess benchmark markerar som manuella listas efter nummer under **Inte poängsatta här**, för en persons granskning.
+
+### Acceptera ett fynd
+
+**Acceptera** på ett underkänt fynd frågar varför, och räknar sedan objektet som godkänt för kontrollen, eller för alla kontroller i ramverket, tills acceptansen går ut eller du väljer **Återkalla**. Varje kontroll listar sina accepterade fynd för sig, och **Accepterade fynd** listar vart och ett med vem som accepterade det, när och varför.
+
+Där en underkänd arbetsbelastning är agentens egen, dess nod-collector, eBPF-instrumentering, profilerare eller kube-bench, säger fyndet det, varför agenten behöver det som kontrollen underkänner, och vilket värde som tar bort det. **Acceptera med den här motiveringen** öppnar dialogrutan med den motiveringen ifylld, för alla kontroller i ramverket.
 
 ### Stäng av ett ramverk, en kontroll eller ett namespace
 
@@ -340,7 +375,7 @@ Stäng av det som inte gäller för ett kluster. Varje reglage hör till just de
 
 ### Exportera ett ramverk
 
-**Exportera CSV** och **Exportera JSON** laddar ner ett ramverks rapport: varje kontroll, om den godkänns, vad som inte klarar den och hur du åtgärdar det, och den Kubernetes-version som den poängsattes mot.
+**Exportera CSV** och **Exportera JSON** laddar ner ett ramverks rapport: varje kontroll, om den godkänns, vad som inte klarar den och hur du åtgärdar det, vad som inte poängsätts och varför, och den Kubernetes-version som den poängsattes mot. JSON-filen för CIS Benchmark innehåller även de noder som kube-bench har läst.
 
 ### Vad agenten läser för härdningen
 
@@ -356,6 +391,8 @@ Agenten läser varje kubelet via de underresurser som kubeleten auktoriserar sin
 | `cost.prometheus.nodesProxy` | `auto` (standard) ger den bara med presetet `eks-fargate`, där ingen podd når en nods kubelet och agentens Prometheus för kostnader läser cAdvisor via API-servern. Överallt annars läser den varje nods kubelet på port 10250 |
 
 Där agentens egen bindning inte klarar 5.1.10 säger sidan att bindningen tillhör agenten, varför den ger `nodes/proxy` och vilket värde som tar bort rättigheten.
+
+På Amazon EKS-tillägget, som inte tar emot Helms `--set`, nämner sidan i stället tilläggets konfigurationsvärde: `{"kubeletstats": {"nodesProxy": false}}`, när varje nod kör 1.33 eller senare. Tillägget har inget `cost.prometheus.nodesProxy`: med presetet `eks-fargate` och kostnader påslagna tar bara `{"cost": {"enabled": false}}` bort `nodes/proxy`.
 
 ## Konfigurationsalternativ
 

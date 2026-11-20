@@ -116,7 +116,7 @@ tests:
       hostMetrics.enabled: true
     asserts:
       - notMatchRegexRaw:
-          pattern: "\\(kubeletstats\\)"
+          pattern: "\\(kubelet_?stats\\)"
       - notMatchRegexRaw:
           pattern: "cAdvisor: CFS throttling"
       - notMatchRegexRaw:
@@ -131,7 +131,7 @@ tests:
       hostMetrics.enabled: true
     asserts:
       - matchRegexRaw:
-          pattern: "\\n  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+          pattern: "\\n  - Node, pod, and container resource metrics \\(kubelet_stats\\)\\n"
       - matchRegexRaw:
           pattern: "\\n  - cAdvisor: CFS throttling and OOM kill counters"
       - notMatchRegexRaw:
@@ -143,7 +143,7 @@ tests:
       hostMetrics.enabled: true
     asserts:
       - matchRegexRaw:
-          pattern: "\\nThe agent is now collecting:\\n  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+          pattern: "\\nThe agent is now collecting:\\n  - Node, pod, and container resource metrics \\(kubelet_stats\\)\\n"
       - matchRegexRaw:
           pattern: "\\n  - cAdvisor: CFS throttling and OOM kill counters"
       - matchRegexRaw:

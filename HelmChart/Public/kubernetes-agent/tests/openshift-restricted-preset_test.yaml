@@ -165,7 +165,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^  kubeletstats:\n    collection_interval: 30s\n    auth_type: serviceAccount\n    endpoint: "https://\$\{env:NODE_IP\}:10250"$'
+          pattern: '(?m)^  kubelet_stats:\n    collection_interval: 30s\n    auth_type: serviceAccount\n    endpoint: "https://\$\{env:NODE_IP\}:10250"$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '(?m)^  prometheus/cadvisor:$'
@@ -267,7 +267,7 @@ tests:
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^(  filelog[a-z/-]*:|        - filelog[a-z/-]*|    logs(/[a-z-]+)?:)$'
+          pattern: '(?m)^(  file_?log[a-z/-]*:|        - file_?log[a-z/-]*|    logs(/[a-z-]+)?:)$'
 
   # --- No hostmetrics, eBPF or profiler -----------------------------------------
   - it: has no hostmetrics receiver, whatever hostMetrics.enabled says
@@ -277,7 +277,7 @@ tests:
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^(  hostmetrics:|        - hostmetrics)$'
+          pattern: '(?m)^(  host_?metrics:|        - host_?metrics)$'
 
   - it: leaves the eBPF instrumentation out, whatever ebpf.enabled says
     set:
@@ -320,11 +320,11 @@ tests:
           pattern: '(?m)^      - key: oneuptime\.kubernetes\.distribution\n        value: openshift\n        action: insert$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^  resourcedetection/openshift:\n    detectors: \[openshift\]\n    override: false$'
+          pattern: '(?m)^  resource_detection/openshift:\n    detectors: \[openshift\]\n    override: false$'
       # metrics and logs: no eBPF, so no traces pipeline.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?s)^(?:.*?\n        - resource\n        - resourcedetection/openshift\n){2}'
+          pattern: '(?s)^(?:.*?\n        - resource\n        - resource_detection/openshift\n){2}'
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '\n        - resource\n        - (?:[^r]|r[^e])'
@@ -337,7 +337,7 @@ tests:
           pattern: '(?m)^      - key: oneuptime\.kubernetes\.distribution\n        value: openshift\n        action: upsert$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '\n        - resource\n        - resourcedetection/openshift\n'
+          pattern: '\n        - resource\n        - resource_detection/openshift\n'
 
   - it: lets the detector read the cluster's Infrastructure object
     template: templates/rbac.yaml
@@ -360,13 +360,13 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^  k8sobjects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators$'
+          pattern: '(?m)^  k8s_objects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/openshift$'
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8s_objects\n        - k8s_objects/openshift$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^      processors:\n        - memory_limiter\n        # First, so no other processor holds a Route''s key\.\n        - transform/openshift-route-tls\n        - k8sattributes$'
+          pattern: '(?m)^      processors:\n        - memory_limiter\n        # First, so no other processor holds a Route''s key\.\n        - transform/openshift-route-tls\n        - k8s_attributes$'
 
   - it: names a pod's DeploymentConfig on both collectors, as the openshift preset does
     asserts:

@@ -40,9 +40,19 @@ import { isJSONObject } from "./TerraformValues";
 
 export type DeveloperDocsPageKind =
   | "terraform"
+  | "crossplane"
   | "api"
   | "cli"
   | "ai-assistants";
+
+/*
+ * The pages that write a record as its configuration, naming the records
+ * its IDs point at in comments: Terraform's, and Crossplane's manifest,
+ * which sets the same fields.
+ */
+function writesRecordConfiguration(page: DeveloperDocsPageKind): boolean {
+  return page === "terraform" || page === "crossplane";
+}
 
 /*
  * The CLI page shows the API page's requests as commands - the same
@@ -369,7 +379,11 @@ export function getDeveloperDocsPageLookups(data: {
     return getDeveloperDocsLookup(modelType);
   });
 
-  if (data.page === "terraform" && data.scope === "view" && data.json) {
+  if (
+    writesRecordConfiguration(data.page) &&
+    data.scope === "view" &&
+    data.json
+  ) {
     lookups.push(
       ...getDeveloperDocsRecordLookups({
         modelType: data.modelType,

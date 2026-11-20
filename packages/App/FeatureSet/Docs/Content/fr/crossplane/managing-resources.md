@@ -32,7 +32,7 @@ Les champs d'un type de ressource sont les arguments de la ressource Terraform, 
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` montre l'enregistrement tel que OneUptime le connaît, avec son `id`. Un champ que vous omettez et que OneUptime renseigne, comme une valeur par défaut, est copié dans `spec.forProvider` après la création de l'enregistrement, pour que la vérification suivante ne trouve rien à modifier. Un champ que OneUptime tient lui-même à jour n'est jamais copié : voir [Champs tenus à jour par OneUptime](#champs-tenus-à-jour-par-oneuptime).
+`status.atProvider` montre l'enregistrement tel que OneUptime le connaît, avec son `id`. Un champ que vous omettez et que OneUptime renseigne, comme une valeur par défaut, est copié dans `spec.forProvider` après la création de l'enregistrement, pour que la vérification suivante ne trouve rien à modifier. Un champ que OneUptime tient lui-même à jour, ou modifie aussi, n'est jamais copié : voir [Champs tenus à jour par OneUptime](#champs-tenus-à-jour-par-oneuptime).
 
 ## Faire référence à d'autres ressources
 
@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-L'ID de l'enregistrement figure dans le bloc `import` qu'écrit sa page **Développeurs → Terraform** dans le tableau de bord, et `oneuptime <resource> list` liste les ID d'un type d'enregistrement avec la [CLI de OneUptime](/docs/cli/resource-operations#lister-des-enregistrements). Une fois la ressource prête, `status.atProvider` montre l'enregistrement. Pour le gérer à partir de là, écrivez ses champs dans `spec.forProvider` et réglez `managementPolicies` sur `["*"]`.
+La page **Développeurs → Crossplane** de l'enregistrement, dans le tableau de bord, écrit ce manifeste pour vous, avec son ID, ainsi qu'un manifeste qui reprend l'enregistrement avec ses champs tels qu'ils sont. `oneuptime <resource> list` liste les ID d'un type d'enregistrement avec la [CLI de OneUptime](/docs/cli/resource-operations#lister-des-enregistrements). Une fois la ressource prête, `status.atProvider` montre l'enregistrement. Pour le gérer à partir de là, écrivez ses champs dans `spec.forProvider` et réglez `managementPolicies` sur `["*"]`.
 
 ## Secrets
 
@@ -104,7 +104,7 @@ Un champ qui contient un secret, comme la phrase secrète de la clé client TLS 
 
 ## Modifications faites en dehors de Kubernetes
 
-Le fournisseur compare chaque ressource à son enregistrement toutes les 10 minutes et rétablit ce que quelqu'un a modifié dans OneUptime. Pour vérifier plus souvent, donnez au fournisseur une configuration d'exécution avec `--poll` :
+Le fournisseur compare chaque ressource à son enregistrement toutes les 10 minutes et rétablit ce que quelqu'un a modifié dans OneUptime, sauf dans un champ que OneUptime modifie aussi (voir plus bas). Pour vérifier plus souvent, donnez au fournisseur une configuration d'exécution avec `--poll` :
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ Pour que le tableau de bord garde la main sur un champ après la création de l'
 
 ### Champs tenus à jour par OneUptime
 
-Il revient à OneUptime de tenir certains champs à jour, et le fournisseur les lui laisse : il ne les copie jamais dans `spec.forProvider` et ne les rétablit jamais.
+Il revient à OneUptime de tenir certains champs à jour, ou de les modifier lui aussi, et le fournisseur ne touche pas aux modifications de OneUptime : il ne copie jamais ces champs dans `spec.forProvider` et ne les rétablit jamais.
 
 - Un champ que seul OneUptime écrit, comme la date de la dernière exécution d'un moniteur de télémétrie (`telemetryMonitorLastMonitorAt`) ou le nombre de nœuds d'un cluster Kubernetes (`nodeCount`), ne figure que dans `status.atProvider`.
 - Un champ qui a une valeur de départ, comme le `currentMonitorStatusId` d'un moniteur ou le `currentIncidentStateId` d'un incident, peut être indiqué pour créer l'enregistrement, dans `spec.initProvider` ou `spec.forProvider`. Ensuite, OneUptime le fait évoluer, comme les vérifications d'un moniteur font évoluer son statut, et `status.atProvider` montre où il en est.
+- Un champ que vous et OneUptime modifiez tous les deux, comme les `labels` d'un enregistrement, que les règles d'étiquettes complètent, l'`isResolved` d'une exception ou le `siteId` d'un équipement réseau, que la découverte déplace, vous appartient : vous l'écrivez dans `spec.forProvider`. Le fournisseur l'envoie pour créer l'enregistrement, puis de nouveau chaque fois que sa valeur change dans le manifeste, et ne touche pas à une modification que OneUptime apporte entre-temps. Une liste comme `labels` garde les entrées que OneUptime a ajoutées, récupère une entrée que le manifeste contient et que quelqu'un a retirée, et perd une entrée que vous retirez du manifeste.
 
-`kubectl explain` l'indique dans la description de chaque champ qui a une valeur de départ. Une ressource dont une version antérieure du fournisseur a rempli `spec.forProvider` avec ces champs cesse d'elle-même de lutter contre OneUptime, sans rien à modifier.
+`kubectl explain` l'indique dans la description de chaque champ qui a une valeur de départ ou que OneUptime modifie aussi. Une ressource dont une version antérieure du fournisseur a rempli `spec.forProvider` avec ces champs cesse d'elle-même de lutter contre OneUptime, sans rien à modifier.
+
+Le fournisseur conserve dans l'annotation `crossplane.oneuptime.com/last-applied` de la ressource ce qu'un manifeste a appliqué en dernier aux champs que OneUptime modifie aussi. Dans une liste qu'une version antérieure du fournisseur a remplie, comme `labels`, une entrée que vous retirez reste dans l'enregistrement en tant qu'entrée de OneUptime ; une entrée que le manifeste contient après votre première modification de la liste est à vous, et elle est retirée de l'enregistrement quand vous la retirez.
 
 ## Supprimer une ressource
 
