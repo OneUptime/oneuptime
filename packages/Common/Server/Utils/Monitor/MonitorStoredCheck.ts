@@ -79,15 +79,38 @@ export default class MonitorStoredCheck {
     monitorStep?: MonitorStep | undefined;
     // The series the record is about; none for the whole monitor.
     seriesFingerprint?: string | null | undefined;
+    /*
+     * For a record about the whole of a grouped check: the series the
+     * evaluation acted on, kept first (boundSeries).
+     */
+    firstFingerprints?: ReadonlySet<string> | undefined;
     maxSizeInBytes?: number | undefined;
   }): JSONObject {
     const maxSizeInBytes: number =
       input.maxSizeInBytes || STORED_CHECK_MAX_SIZE_IN_BYTES;
 
-    const scoped: DataToProcess = MonitorStoredCheck.scopeToSeries({
+    const scopedToSeries: DataToProcess = MonitorStoredCheck.scopeToSeries({
       check: input.dataToProcess,
       seriesFingerprint: input.seriesFingerprint,
     });
+
+    /*
+     * A record about the whole of a grouped check - a change of the
+     * monitor's status, a criteria that judges the whole monitor - keeps its
+     * series as the monitor's log does, before anything walks them
+     * (boundSeries, #10108): the series the evaluation acted on first, up to
+     * the limit, and how many there were. Bounded only by the steps below,
+     * 16,000 series were a megabyte of the check copied and redacted, in one
+     * block of the event loop, only for most of it to be cut at the end.
+     */
+    const scoped: DataToProcess =
+      scopedToSeries === input.dataToProcess
+        ? MonitorStoredCheck.boundSeries({
+            check: scopedToSeries,
+            firstFingerprints: input.firstFingerprints,
+            maxSizeInBytes: maxSizeInBytes,
+          })
+        : scopedToSeries;
 
     const bounded: JsonBudgetResult = JsonBudget.fit(
       scoped,
@@ -226,7 +249,7 @@ export default class MonitorStoredCheck {
    * returned as it is; nothing it holds is changed or copied, but its own
    * object and lists.
    */
-  public static boundSeriesForLog(input: {
+  public static boundSeries(input: {
     check: DataToProcess;
     // The series the evaluation acted on: kept first.
     firstFingerprints?: ReadonlySet<string> | undefined;

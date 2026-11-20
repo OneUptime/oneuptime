@@ -26,8 +26,15 @@ import {
 import {
   EvaluationOutcome,
   EvaluationRun,
+  MatchedCriteriaRecord,
   runFleetEvaluation,
 } from "./GroupedMetricMonitorHarness";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  EVIDENCE_TRUNCATED_FIELD,
+  LOGGED_SERIES_FIELD,
+  STORED_CHECK_MAX_SIZE_IN_BYTES,
+} from "Common/Utils/Monitor/StoredCheckEvidence";
 
 /*
  * THE SAME ALERTS AS BEFORE #10108.
@@ -65,6 +72,8 @@ const WINDOW_END_MS: number = Date.UTC(2026, 10, 17, 10, 5, 0);
 
 interface GoldenFile {
   note: string;
+  // What #10108 changed on purpose, and what it was before.
+  changedOnPurpose?: Array<string> | undefined;
   cases: Record<string, EvaluationOutcome>;
 }
 
@@ -101,6 +110,7 @@ const CASES: Array<EquivalenceCase> = [
 
 const outcomes: Map<string, EvaluationOutcome> = new Map();
 const errors: Map<string, string | null> = new Map();
+const runs: Map<string, EvaluationRun> = new Map();
 
 beforeAll(async () => {
   // A frozen clock, so every time the evaluation writes down is the same.
@@ -126,11 +136,15 @@ beforeAll(async () => {
     });
     outcomes.set(testCase.name, run.outcome);
     errors.set(testCase.name, run.error);
+    runs.set(testCase.name, run);
   }
 
   if (process.env["UPDATE_GROUPED_METRIC_GOLDEN"] === "1") {
     const golden: GoldenFile = {
       note: "Written by GroupedMetricMonitorEquivalence.test.ts from the code before #10108. Compared with, never rewritten, unless an evaluation is meant to decide differently.",
+      changedOnPurpose: fs.existsSync(GOLDEN_PATH)
+        ? readGolden().changedOnPurpose
+        : undefined,
       cases: Object.fromEntries(outcomes),
     };
     fs.writeFileSync(GOLDEN_PATH, `${JSON.stringify(golden, null, 2)}\n`);
@@ -168,6 +182,53 @@ describe("a grouped metric monitor decides what it decided before #10108", () =>
     expect(outcome.criteriaResults).toEqual(expected.criteriaResults);
     expect(outcome.events).toEqual(expected.events);
     expect(outcome).toEqual(expected);
+  });
+
+  /*
+   * What #10108 changed on purpose: the log of a change of a grouped
+   * monitor's status, and the monitor's log of the check, keep the series
+   * the evaluation acted on first, a bounded share of them, and how many
+   * there were - not the first megabyte of whatever the check held.
+   */
+  test("a change of the fleet's status and its monitor log keep the series that breached first, bounded", () => {
+    const run: EvaluationRun = runs.get(CASES[0]!.name)!;
+    const breaching: Set<string> = new Set<string>(
+      run.outcome.matchedCriteria.flatMap(
+        (matched: MatchedCriteriaRecord): Array<string> => {
+          return matched.series.map(
+            (series: MatchedCriteriaRecord["series"][number]): string => {
+              return series.fingerprint;
+            },
+          );
+        },
+      ),
+    );
+
+    expect(breaching.size).toBeGreaterThan(10);
+
+    for (const log of [
+      run.written.statusChangeLogs[0]!,
+      run.written.monitorLogBodies[0]!,
+    ]) {
+      const kept: Array<string> = (
+        log["seriesBreakdown"] as Array<JSONObject>
+      ).map((entry: JSONObject): string => {
+        return String(entry["fingerprint"]);
+      });
+
+      expect(kept.length).toBeGreaterThan(breaching.size);
+      expect(new Set<string>(kept.slice(0, breaching.size))).toEqual(breaching);
+      expect(log[LOGGED_SERIES_FIELD]).toEqual({
+        seriesInEvaluation: 2_000,
+        seriesWithDataInEvaluation: 2_000,
+        seriesKept: kept.length,
+      });
+      expect(log[EVIDENCE_TRUNCATED_FIELD]).toBe(true);
+    }
+
+    expect(
+      Buffer.byteLength(JSON.stringify(run.written.statusChangeLogs[0])),
+    ).toBeLessThanOrEqual(STORED_CHECK_MAX_SIZE_IN_BYTES);
   });
 
   test("the fleet exercises every path the equivalence is about", () => {

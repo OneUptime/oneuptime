@@ -1738,6 +1738,7 @@ export default class MonitorResourceUtil {
                 props: {
                   telemetryQuery: telemetryQuery,
                 },
+                seriesActedOn: allBreachingSeriesFingerprints,
               });
 
         if (monitorStatusTimelineChange) {
@@ -2378,7 +2379,7 @@ export default class MonitorResourceUtil {
   /*
    * The series a grouped evaluation matched, under any criteria: what its
    * monitor log keeps first when it cannot keep every series
-   * (MonitorStoredCheck.boundSeriesForLog). Empty for any other evaluation.
+   * (MonitorStoredCheck.boundSeries). Empty for any other evaluation.
    */
   public static getSeriesActedOn(
     response: ProbeApiIngestResponse,

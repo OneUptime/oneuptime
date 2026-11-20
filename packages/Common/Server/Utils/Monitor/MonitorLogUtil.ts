@@ -128,7 +128,7 @@ export default class MonitorLogUtil {
     /*
      * The series of a grouped check the evaluation acted on: what the row
      * keeps first when it cannot keep every series
-     * (MonitorStoredCheck.boundSeriesForLog).
+     * (MonitorStoredCheck.boundSeries).
      */
     seriesActedOn?: ReadonlySet<string> | undefined;
   }): void {
@@ -175,7 +175,7 @@ export default class MonitorLogUtil {
          * encode on the event loop, every evaluation. Anything else is kept
          * as it is.
          */
-        const check: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+        const check: DataToProcess = MonitorStoredCheck.boundSeries({
           check: data.dataToProcess,
           firstFingerprints: data.seriesActedOn,
         });

@@ -219,6 +219,11 @@ export interface EvaluationRun {
   measurement: EvaluationMeasurement;
   outcome: EvaluationOutcome;
   error: string | null;
+  // What was written, in full, for a test that reads more than the outcome.
+  written: {
+    statusChangeLogs: Array<JSONObject>;
+    monitorLogBodies: Array<JSONObject>;
+  };
 }
 
 export interface RunEvaluationOptions {
@@ -1554,7 +1559,23 @@ export async function runFleetEvaluation(
       `unexpected ClickHouse reads: ${stubs.clickhouse.unexpectedReads.join(" | ")}`;
   }
 
-  return { measurement: measurement, outcome: outcome, error: error };
+  return {
+    measurement: measurement,
+    outcome: outcome,
+    error: error,
+    written: {
+      statusChangeLogs: stubs.statusTimelines.map(
+        (timeline: MonitorStatusTimeline): JSONObject => {
+          return (timeline.statusChangeLog as JSONObject) || {};
+        },
+      ),
+      monitorLogBodies: stubs.monitorLogRows.map(
+        (row: JSONObject): JSONObject => {
+          return (row["logBody"] as JSONObject) || {};
+        },
+      ),
+    },
+  };
 }
 
 // The open alerts a fleet starts with, for a test to name them.

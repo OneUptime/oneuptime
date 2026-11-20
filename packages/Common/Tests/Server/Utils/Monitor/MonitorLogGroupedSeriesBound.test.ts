@@ -161,7 +161,7 @@ beforeEach(() => {
   insertJsonRows.mockClear();
 });
 
-describe("MonitorStoredCheck.boundSeriesForLog", () => {
+describe("MonitorStoredCheck.boundSeries", () => {
   test("a check with no series list is handed back as it is", () => {
     const check: DataToProcess = {
       monitorId: MONITOR_ID,
@@ -169,13 +169,13 @@ describe("MonitorStoredCheck.boundSeriesForLog", () => {
       responseBody: "x".repeat(STORED_CHECK_MAX_SIZE_IN_BYTES * 3),
     } as unknown as DataToProcess;
 
-    expect(MonitorStoredCheck.boundSeriesForLog({ check: check })).toBe(check);
+    expect(MonitorStoredCheck.boundSeries({ check: check })).toBe(check);
   });
 
   test("a grouped check whose series fit is handed back as it is", () => {
     const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 20 });
 
-    expect(MonitorStoredCheck.boundSeriesForLog({ check: fleet.check })).toBe(
+    expect(MonitorStoredCheck.boundSeries({ check: fleet.check })).toBe(
       fleet.check,
     );
   });
@@ -186,7 +186,7 @@ describe("MonitorStoredCheck.boundSeriesForLog", () => {
     });
     const before: string = JSON.stringify(fleet.check);
 
-    const bounded: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+    const bounded: DataToProcess = MonitorStoredCheck.boundSeries({
       check: fleet.check,
     });
 
@@ -234,7 +234,7 @@ describe("MonitorStoredCheck.boundSeriesForLog", () => {
       "truncated"
     ] = true;
 
-    const bounded: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+    const bounded: DataToProcess = MonitorStoredCheck.boundSeries({
       check: fleet.check,
     });
     const kept: Array<MetricSeriesResult> = seriesOf(bounded);
@@ -266,7 +266,7 @@ describe("MonitorStoredCheck.boundSeriesForLog", () => {
       fleet.fingerprints[7]!,
     ];
 
-    const bounded: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+    const bounded: DataToProcess = MonitorStoredCheck.boundSeries({
       check: fleet.check,
       firstFingerprints: new Set<string>(actedOn),
     });
@@ -301,7 +301,7 @@ describe("MonitorStoredCheck.boundSeriesForLog", () => {
       );
     }
 
-    const bounded: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+    const bounded: DataToProcess = MonitorStoredCheck.boundSeries({
       check: fleet.check,
     });
 
@@ -328,7 +328,7 @@ describe("MonitorStoredCheck.boundSeriesForLog", () => {
       groupBreakdown: groups,
     } as unknown as LogMonitorResponse as DataToProcess;
 
-    const bounded: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+    const bounded: DataToProcess = MonitorStoredCheck.boundSeries({
       check: check,
       firstFingerprints: new Set<string>(["group-3999"]),
     });
@@ -353,7 +353,7 @@ describe("MonitorStoredCheck.boundSeriesForLog", () => {
     });
 
     const startedAt: number = Date.now();
-    const bounded: DataToProcess = MonitorStoredCheck.boundSeriesForLog({
+    const bounded: DataToProcess = MonitorStoredCheck.boundSeries({
       check: fleet.check,
     });
     const tookMs: number = Date.now() - startedAt;
@@ -443,7 +443,7 @@ describe("the Monitoring Logs page counts what a trimmed row saw", () => {
       seriesCount: 3_000,
     });
     const bounded: JSONObject = asObject(
-      MonitorStoredCheck.boundSeriesForLog({ check: fleet.check }),
+      MonitorStoredCheck.boundSeries({ check: fleet.check }),
     );
     bounded[LOGGED_SERIES_FIELD] = {
       seriesInEvaluation: 16_258,
