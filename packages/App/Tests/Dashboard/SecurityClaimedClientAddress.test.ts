@@ -429,8 +429,9 @@ describe("an event's Claimed IP", () => {
       labels.indexOf("Principal IP") + 1,
     );
 
-    const claimed: { value: string; facetKey?: string; facetValue?: string } =
-      overview[labels.indexOf(copy.CLAIMED_IP)]!;
+    const claimed: ReturnType<
+      Fields["buildSecurityEventOverviewFields"]
+    >[number] = overview[labels.indexOf(copy.CLAIMED_IP)]!;
 
     expect(claimed.value).toBe(CLAIMED);
     expect(claimed.facetKey).toBe(
