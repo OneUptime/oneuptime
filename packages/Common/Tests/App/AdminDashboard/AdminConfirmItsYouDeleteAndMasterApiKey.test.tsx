@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import axios from "axios";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
@@ -222,7 +223,7 @@ const KEY_OFF: FakeReply = {
 };
 
 let server: FakeAxiosServer;
-let navigate: jest.SpyInstance;
+let navigate: SpyInstance<typeof Navigation.navigate>;
 
 interface Language {
   name: string;

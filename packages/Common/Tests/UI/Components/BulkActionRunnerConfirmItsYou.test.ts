@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   BulkActionRunResult,
   isConfirmationRefusal,
@@ -169,11 +170,11 @@ describe("a run whose item is refused until the session confirms it's its person
 
   test("the first item refused: nothing is done to anyone", async () => {
     const items: Array<Row> = rows(3);
-    const step: jest.Mock<(row: Row) => Promise<void>> = jest.fn(
-      async (): Promise<void> => {
-        throw confirmationRefusal();
-      },
-    );
+    const step: Mock<(row: Row, index: number) => Promise<void>> = jest.fn<
+      (row: Row, index: number) => Promise<void>
+    >(async (): Promise<void> => {
+      throw confirmationRefusal();
+    });
 
     const result: BulkActionRunResult<Row> = await runBulkAction<Row>({
       actionProps: actionProps(items).props,
