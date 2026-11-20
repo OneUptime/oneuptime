@@ -12,6 +12,7 @@ import MetricService from "../../../../Server/Services/MetricService";
 import ManagedDeviceCheckInMetrics, {
   ManagedDeviceCheckInOutcome,
   buildManagedDeviceBatteryRow,
+  buildManagedDeviceChargingRow,
   buildManagedDeviceCheckInRow,
   buildManagedDeviceSecurityPatchRow,
   buildManagedDeviceStorageRow,
@@ -21,6 +22,8 @@ import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
 import OneUptimeDate from "../../../../Types/Date";
 import Dictionary from "../../../../Types/Dictionary";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION,
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_DESCRIPTION,
@@ -214,6 +217,7 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       hostCount: 0,
       securityPatchReadingCount: 0,
       batteryReadingCount: 0,
+      chargingReadingCount: 0,
       storageReadingCount: 0,
     });
     expect(rowOf("ESP-ID-AAAAW")["value"]).toBe(4);
@@ -278,6 +282,7 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       hostCount: 0,
       securityPatchReadingCount: 0,
       batteryReadingCount: 0,
+      chargingReadingCount: 0,
       storageReadingCount: 0,
     });
     expect(insert).not.toHaveBeenCalled();
@@ -302,6 +307,7 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       hostCount: 1,
       securityPatchReadingCount: 0,
       batteryReadingCount: 0,
+      chargingReadingCount: 0,
       storageReadingCount: 0,
     });
 
@@ -363,6 +369,7 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       hostCount: 0,
       securityPatchReadingCount: 0,
       batteryReadingCount: 0,
+      chargingReadingCount: 0,
       storageReadingCount: 0,
     });
     expect(insert).toHaveBeenCalledTimes(1);
@@ -465,6 +472,7 @@ describe("ManagedDeviceCheckInMetrics.record: security patches", () => {
       hostCount: 0,
       securityPatchReadingCount: 2,
       batteryReadingCount: 0,
+      chargingReadingCount: 0,
       storageReadingCount: 0,
     });
     // One write, the check-ins and the patches together.
@@ -510,6 +518,7 @@ describe("ManagedDeviceCheckInMetrics.record: security patches", () => {
       hostCount: 0,
       securityPatchReadingCount: 0,
       batteryReadingCount: 0,
+      chargingReadingCount: 0,
       storageReadingCount: 0,
     });
     expect(rowsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME)).toEqual([]);
@@ -647,6 +656,7 @@ describe("ManagedDeviceCheckInMetrics.record: battery and storage", () => {
       hostCount: 0,
       securityPatchReadingCount: 0,
       batteryReadingCount: 1,
+      chargingReadingCount: 0,
       storageReadingCount: 1,
     });
     // One write, every reading together.
@@ -963,5 +973,193 @@ describe("buildManagedDeviceCheckInRow", () => {
     expect(row["timeUnixNano"]).toBe(
       OneUptimeDate.toUnixNano(AS_OF).toString(),
     );
+  });
+});
+
+/*
+ * #10288: whether a device is on its charger, beside its battery, where
+ * its service says so: 1 on power, 0 on its battery, as its own metric
+ * with the battery row's attributes, so one series of a monitor holds a
+ * device's two readings.
+ */
+describe("ManagedDeviceCheckInMetrics.record: whether a device is on its charger", () => {
+  function rowsOf(metricName: string): Array<JSONObject> {
+    return writtenRows().filter((candidate: JSONObject): boolean => {
+      return candidate["name"] === metricName;
+    });
+  }
+
+  test("a device its service says is on power, or on its battery, gets a charging reading beside its battery", async () => {
+    devicePages = [
+      [
+        // A scanner in its cradle.
+        deviceRow({
+          id: "d1",
+          name: "WH-SCANNER-07",
+          minutesQuiet: 4,
+          batteryLevel: 12,
+          details: { isCharging: true },
+        }),
+        // One in a hand.
+        deviceRow({
+          id: "d2",
+          name: "WH-SCANNER-08",
+          minutesQuiet: 6,
+          batteryLevel: 15,
+          details: { isCharging: false },
+        }),
+        // An iPhone its service says neither of.
+        deviceRow({
+          id: "d3",
+          name: "Store 0412 Front Counter",
+          minutesQuiet: 20,
+          platform: ManagedDevicePlatform.IOS,
+          batteryLevel: 87,
+        }),
+        // A desktop on AC with no battery: nothing to say of it.
+        deviceRow({
+          id: "d4",
+          name: "DESKTOP-7KQ2M1",
+          minutesQuiet: 10,
+          platform: ManagedDevicePlatform.Windows,
+          batteryLevel: 0,
+          details: { isCharging: true },
+        }),
+      ],
+    ];
+
+    expect(await record()).toEqual({
+      readingCount: 4,
+      hostCount: 0,
+      securityPatchReadingCount: 0,
+      batteryReadingCount: 3,
+      chargingReadingCount: 2,
+      storageReadingCount: 0,
+    });
+
+    const charging: Array<JSONObject> = rowsOf(
+      MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+    );
+    const batteries: Array<JSONObject> = rowsOf(
+      MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+    );
+
+    expect(
+      charging.map((row: JSONObject): [string, unknown] => {
+        return [
+          (row["attributes"] as Dictionary<string>)[
+            "oneuptime.managed_device.name"
+          ]!,
+          row["value"],
+        ];
+      }),
+    ).toEqual([
+      ["WH-SCANNER-07", 1],
+      ["WH-SCANNER-08", 0],
+    ]);
+    // The battery row's very attributes: one series per device.
+    expect(charging[0]!["attributes"]).toEqual(batteries[0]!["attributes"]);
+    expect(charging[0]!["hostEntityKey"]).toBe(batteries[0]!["hostEntityKey"]);
+    expect(charging[0]!["time"]).toBe(batteries[0]!["time"]);
+  });
+
+  test("puts the charging metric in the catalog once a read wrote one, and not before", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "WH-SCANNER-07",
+          minutesQuiet: 4,
+          batteryLevel: 12,
+          details: { isCharging: true },
+        }),
+      ],
+    ];
+
+    await record();
+
+    const map: Dictionary<MetricType> = (
+      register.mock.calls[0]![0] as {
+        metricNameServiceNameMap: Dictionary<MetricType>;
+      }
+    ).metricNameServiceNameMap;
+
+    expect(map[MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME]!.description).toBe(
+      MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION,
+    );
+    expect(map[MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME]!.unit).toBe("");
+
+    register.mockClear();
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "WH-SCANNER-07",
+          minutesQuiet: 4,
+          batteryLevel: 12,
+        }),
+      ],
+    ];
+
+    await record();
+
+    expect(
+      Object.keys(
+        (
+          register.mock.calls[0]![0] as {
+            metricNameServiceNameMap: Dictionary<MetricType>;
+          }
+        ).metricNameServiceNameMap,
+      ),
+    ).not.toContain(MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME);
+  });
+});
+
+describe("buildManagedDeviceChargingRow", () => {
+  const reading: ManagedDeviceCheckInReading = {
+    deviceName: "WH-SCANNER-07",
+    hostName: "wh-scanner-07",
+    alias: "",
+    group: "",
+    ageInMinutes: 4,
+    isHost: false,
+    platform: ManagedDevicePlatform.Android,
+    batteryLevel: 12,
+    isCharging: true,
+  };
+
+  function input(
+    overrides: Partial<ManagedDeviceCheckInReading> = {},
+  ): Parameters<typeof buildManagedDeviceChargingRow>[0] {
+    return {
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: "workspace-one",
+      reading: { ...reading, ...overrides },
+      asOf: AS_OF,
+      retentionDate: OneUptimeDate.addRemoveDurationInDays(AS_OF, 30),
+    };
+  }
+
+  test("1 on its charger, 0 on its battery, under the battery row's attributes", () => {
+    const row: JSONObject = buildManagedDeviceChargingRow(input())!;
+
+    expect(row["name"]).toBe(MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME);
+    expect(row["value"]).toBe(1);
+    expect(row["attributes"]).toEqual(
+      buildManagedDeviceBatteryRow(input())!["attributes"],
+    );
+    expect(
+      buildManagedDeviceChargingRow(input({ isCharging: false }))!["value"],
+    ).toBe(0);
+  });
+
+  test("none where its service says neither, or for a device with no battery", () => {
+    expect(
+      buildManagedDeviceChargingRow(input({ isCharging: undefined })),
+    ).toBeUndefined();
+    expect(
+      buildManagedDeviceChargingRow(input({ batteryLevel: undefined })),
+    ).toBeUndefined();
   });
 });

@@ -14,6 +14,7 @@ import MonitorRecordText, {
 } from "../../../../Server/Utils/Monitor/MonitorRecordText";
 import MonitorTemplateUtil from "../../../../Server/Utils/Monitor/MonitorTemplateUtil";
 import SeriesContextEnricher from "../../../../Server/Utils/Monitor/SeriesContextEnricher";
+import { MANAGED_DEVICE_READING_METRIC_NAMES } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { JSONObject } from "../../../../Types/JSON";
 import { getManagedDeviceAlertTemplateById } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -264,7 +265,10 @@ describe("MonitorRecordText.render", () => {
         expect(written).toContain(`"name":"${metricName}"`);
       }
 
-      // Before #10209 the alert listed every reading of the device, check-ins first.
+      /*
+       * Before #10209 the alert listed every reading of the device,
+       * check-ins first - its charging too since #10288.
+       */
       const unnarrowed: string = MonitorRecordText.render({
         titleTemplate: alert.title,
         descriptionTemplate: alert.description,
@@ -273,7 +277,9 @@ describe("MonitorRecordText.render", () => {
         seriesLabels,
       }).description;
 
-      expect(unnarrowed.split("oneuptime metric list").length - 1).toBe(4);
+      expect(unnarrowed.split("oneuptime metric list").length - 1).toBe(
+        MANAGED_DEVICE_READING_METRIC_NAMES.length,
+      );
     },
   );
 });

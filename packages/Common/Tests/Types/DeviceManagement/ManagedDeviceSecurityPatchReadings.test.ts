@@ -76,6 +76,8 @@ describe("the metric", () => {
       MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
       // #10008: its battery and its storage, beside them.
       "oneuptime.managed_device.battery.level",
+      // #10288: and whether it is on its charger, beside its battery.
+      "oneuptime.managed_device.battery.charging",
       "oneuptime.managed_device.storage.used",
     ]);
   });

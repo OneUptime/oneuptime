@@ -489,6 +489,20 @@ describe("a monitor made before its query read its service still counts as made"
   test("the templates that read their service from the start have no earlier step", () => {
     for (const provider of DEVICE_MANAGEMENT_PROVIDERS) {
       for (const template of getManagedDeviceAlertTemplatesFor(provider)) {
+        /*
+         * Workspace ONE's and SOTI's Low Battery read the service from the
+         * start; their earlier step is the battery alone, before they read
+         * whether a device is on its charger (#10288), and its own test
+         * says so (ManagedDeviceBatteryAndStorageAlertTemplates).
+         */
+        if (
+          ["workspace-one-low-battery", "soti-low-battery"].includes(
+            template.id,
+          )
+        ) {
+          continue;
+        }
+
         const earlier: Array<MonitorStep> =
           template.getEarlierMonitorSteps?.(templateArgs()) || [];
 

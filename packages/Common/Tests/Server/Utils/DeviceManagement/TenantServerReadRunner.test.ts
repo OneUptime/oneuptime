@@ -119,6 +119,7 @@ function dependencies(
         hostCount: 0,
         securityPatchReadingCount: 0,
         batteryReadingCount: 0,
+        chargingReadingCount: 0,
         storageReadingCount: 0,
       };
     },

@@ -5,6 +5,7 @@ import MonitorSteps from "../MonitorSteps";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
@@ -1370,10 +1371,11 @@ export default class SeriesDebugHints {
    * A series names the device alone, whichever template it is of, so the
    * command is the one of the reading its monitor reads (#10209): a Low
    * Battery alert's first command lists the device's battery, never its
-   * check-ins. A monitor that reads several of them gets each of theirs;
-   * one whose readings are not known (`metricNames` not given, or none a
-   * device reading) gets all four, check-ins first. Read-only; only for a
-   * series that names the device.
+   * check-ins - and, where its service says whether a device is on its
+   * charger, its charging after it (#10288). A monitor that reads several
+   * of them gets each of theirs; one whose readings are not known
+   * (`metricNames` not given, or none a device reading) gets them all,
+   * check-ins first. Read-only; only for a series that names the device.
    */
   private static managedDeviceCommands(
     seriesLabels: JSONObject,
@@ -1406,6 +1408,11 @@ export default class SeriesDebugHints {
         metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
         purpose:
           "The device's battery at each read, in percent, as its device manager last heard it",
+      },
+      {
+        metricName: MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+        purpose:
+          "Whether the device was on its charger at each read: 1 on power, 0 on its battery",
       },
       {
         metricName: MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,

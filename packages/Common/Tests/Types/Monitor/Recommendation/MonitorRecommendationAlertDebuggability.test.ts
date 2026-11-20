@@ -14,6 +14,7 @@ import SeriesLabelDisplay, {
 } from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import SeriesContextEnricher from "../../../../Server/Utils/Monitor/SeriesContextEnricher";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
@@ -374,17 +375,26 @@ describe("Recommendation templates produce debuggable alerts", () => {
 
     /*
      * #10209: a device series is named the same whichever template it is
-     * of, so the commands follow the metric the monitor's step reads. A Low
-     * Battery alert's first - and only - step lists the device's battery,
-     * a Security Patch Out of Date alert's its patch age: never another
-     * reading's command, and never the check-ins first.
+     * of, so the commands follow the metrics the monitor's step reads. A
+     * Low Battery alert's first step lists the device's battery - and, for
+     * a service that says whether a device is on its charger, its charging
+     * after it (#10288) - a Security Patch Out of Date alert's its patch
+     * age: never another reading's command, and never the check-ins first.
      */
     const DEVICE_READINGS: Array<string> = [
       MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
       MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+      MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
       MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
       MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
     ];
+
+    // The device readings a step reads, in the order the commands list them.
+    function ownReadingsOf(ownMetrics: Array<string>): Array<string> {
+      return DEVICE_READINGS.filter((metricName: string): boolean => {
+        return ownMetrics.includes(metricName);
+      });
+    }
 
     function metricsListedBy(commands: Array<string>): Array<string> {
       return commands.map((command: string): string => {
@@ -406,6 +416,7 @@ describe("Recommendation templates produce debuggable alerts", () => {
         const ownMetrics: Array<string> = SeriesDebugHints.getMetricNamesOfView(
           MonitorStep.getMetricsViewConfig(testCase.step),
         );
+        const ownReadings: Array<string> = ownReadingsOf(ownMetrics);
         const commands: Array<string> = SeriesDebugHints.getDebugCommands({
           monitorType: testCase.monitorType,
           seriesLabels: buildSeriesLabels(testCase.groupByKeys),
@@ -414,12 +425,15 @@ describe("Recommendation templates produce debuggable alerts", () => {
           return command.command;
         });
 
-        expect(commands).toHaveLength(1);
+        // One command a reading the monitor reads: the connection's own, its one.
+        expect(commands).toHaveLength(Math.max(1, ownReadings.length));
         expect(ownMetrics).toContain(metricsListedBy(commands)[0]);
+        // Its first is the template's own reading: a Low Battery's battery.
+        expect(metricsListedBy(commands)[0]).toBe(ownMetrics[0]);
 
-        // Of the four a device's readings are, the one its monitor reads.
-        if (DEVICE_READINGS.includes(ownMetrics[0]!)) {
-          expect(metricsListedBy(commands)).toEqual([ownMetrics[0]]);
+        // Of a device's readings, the ones its monitor reads alone.
+        if (ownReadings.length > 0) {
+          expect(metricsListedBy(commands)).toEqual(ownReadings);
         }
       },
     );
@@ -445,11 +459,12 @@ describe("Recommendation templates produce debuggable alerts", () => {
                 return enriched.includes(`"name":"${metricName}"`);
               },
             );
+            const ownReadings: Array<string> = ownReadingsOf(metricNames);
 
-            expect(enriched.split("oneuptime metric list").length - 1).toBe(1);
-            expect(listed).toEqual(
-              DEVICE_READINGS.includes(metricNames[0]!) ? [metricNames[0]] : [],
+            expect(enriched.split("oneuptime metric list").length - 1).toBe(
+              Math.max(1, ownReadings.length),
             );
+            expect(listed).toEqual(ownReadings);
           }
         }
       },

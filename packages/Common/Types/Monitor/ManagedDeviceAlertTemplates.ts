@@ -4,7 +4,12 @@ import Dictionary from "../Dictionary";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import { EvaluateOverTimeType, FilterType } from "./CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+  NoDataPolicy,
+} from "./CriteriaFilter";
+import FilterCondition from "../Filter/FilterCondition";
 import MonitorType from "./MonitorType";
 import MonitorStepMetricMonitor from "./MonitorStepMetricMonitor";
 import RollingTime from "../RollingTime/RollingTime";
@@ -23,6 +28,8 @@ import {
   MANAGED_DEVICE_CONNECTION_READ_AGE_UNIT,
 } from "../DeviceManagement/DeviceManagementConnectionReading";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_CHARGING_UNIT,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
@@ -133,6 +140,9 @@ import {
  * Workspace ONE and SOTI report a battery in their device lists; Intune's
  * says none, and its reads ask each iPhone and iPad alone once it has
  * checked in since (#10287): Graph says no other device's battery.
+ * Workspace ONE's and MobiControl's lists say whether a device is on its
+ * charger too, and their Low Battery reads that beside the battery and
+ * leaves a device on its charger be (#10288).
  *
  * And, for every service, SECURITY PATCH OUT OF DATE (#10098): an Android
  * device whose security patch level, as the service reports it, is more than
@@ -242,6 +252,8 @@ const METRIC_ALIAS: string = "minutes_since_check_in";
 const SECURITY_PATCH_METRIC_ALIAS: string = "days_since_security_patch";
 
 const BATTERY_METRIC_ALIAS: string = "battery_percent";
+
+const CHARGING_METRIC_ALIAS: string = "on_charger";
 
 const STORAGE_METRIC_ALIAS: string = "storage_used_percent";
 
@@ -378,18 +390,48 @@ export function buildManagedDeviceSecurityPatchMetricMonitor(data: {
 export function buildManagedDeviceBatteryMetricMonitor(data: {
   deviceManagementConnectionId: string;
   provider: DeviceManagementProvider;
+  /*
+   * With a second query, of whether each device is on its charger, for a
+   * service that says it (#10288): the same devices, one series each, so
+   * a device's two readings are judged together.
+   */
+  readsCharging?: boolean | undefined;
 }): MonitorStepMetricMonitor {
-  return buildManagedDeviceReadingMetricMonitor({
-    deviceManagementConnectionId: data.deviceManagementConnectionId,
-    provider: data.provider,
-    metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
-    metricAlias: BATTERY_METRIC_ALIAS,
-    title: "Battery",
-    description:
-      "Each device's battery, as its device manager last heard it, at the connection's latest read.",
-    legendUnit: MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
-    aggregationType: MetricsAggregationType.Min,
-  });
+  const batteries: MonitorStepMetricMonitor =
+    buildManagedDeviceReadingMetricMonitor({
+      deviceManagementConnectionId: data.deviceManagementConnectionId,
+      provider: data.provider,
+      metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+      metricAlias: BATTERY_METRIC_ALIAS,
+      title: "Battery",
+      description:
+        "Each device's battery, as its device manager last heard it, at the connection's latest read.",
+      legendUnit: MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
+      aggregationType: MetricsAggregationType.Min,
+    });
+
+  if (!data.readsCharging) {
+    return batteries;
+  }
+
+  // Max per minute: on its charger at either of two reads is on it.
+  const charging: MonitorStepMetricMonitor =
+    buildManagedDeviceReadingMetricMonitor({
+      deviceManagementConnectionId: data.deviceManagementConnectionId,
+      provider: data.provider,
+      metricName: MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+      metricAlias: CHARGING_METRIC_ALIAS,
+      title: "On charger",
+      description:
+        "Whether each device is on its charger, 1 on power and 0 on its battery, as its device manager last heard it, at the connection's latest read.",
+      legendUnit: MANAGED_DEVICE_BATTERY_CHARGING_UNIT,
+    });
+
+  batteries.metricViewConfig.queryConfigs.push(
+    ...charging.metricViewConfig.queryConfigs,
+  );
+
+  return batteries;
 }
 
 /*
@@ -1101,6 +1143,12 @@ interface DeviceReadingTemplateSpec {
    * battery: a sentence of its own, said after what the template does.
    */
   devicesNote?: string | undefined;
+  /*
+   * For a service that says whether a device is on its charger (#10288):
+   * how it says it, a sentence of its own. Its Low Battery then reads that
+   * beside the battery, and leaves a device on its charger be.
+   */
+  chargingNote?: string | undefined;
 }
 
 /*
@@ -1108,76 +1156,136 @@ interface DeviceReadingTemplateSpec {
  * reading of its battery, under 20% fires, one alert per device; 20% or
  * more resolves. No dead band: a battery only falls between two reads
  * until it is charged, and then it climbs past the threshold.
+ *
+ * Where the service says whether a device is on its charger (#10288,
+ * spec.chargingNote), the step reads that too, per device, and a device on
+ * its charger is left be: it fires only below 20% and off its charger, and
+ * resolves once the device reports 20% or more or is put on its charger.
+ * A device its service says neither of has no charging reading, which
+ * counts as off its charger (Treat As Zero), so it alerts as before. A
+ * monitor made before, which reads the battery alone, is still this
+ * template's (getEarlierMonitorSteps).
  */
 function buildLowBatteryTemplate(
   spec: DeviceReadingTemplateSpec,
 ): ManagedDeviceAlertTemplate {
   // The words write the number out, "20%", as the agent's template's do.
   const minPercent: number = MANAGED_DEVICE_LOW_BATTERY_PERCENT;
+  const readsCharging: boolean = Boolean(spec.chargingNote);
+
+  const buildStep: (
+    args: ManagedDeviceAlertTemplateArgs,
+    withCharging: boolean,
+  ) => MonitorStep = (
+    args: ManagedDeviceAlertTemplateArgs,
+    withCharging: boolean,
+  ): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Metrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setMetricMonitor(
+      buildManagedDeviceBatteryMetricMonitor({
+        deviceManagementConnectionId: args.deviceManagementConnectionId,
+        provider: spec.provider,
+        readsCharging: withCharging,
+      }),
+    );
+
+    const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance({
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      incidentSeverityId: args.defaultIncidentSeverityId,
+      alertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      metricAlias: BATTERY_METRIC_ALIAS,
+      filterType: FilterType.LessThan,
+      value: minPercent,
+      incidentTitle: `[${getDeviceManagementProviderShortTitle(spec.provider)}] Low battery`,
+      incidentDescription: `A device ${spec.serviceName} manages reports less than 20% battery, so it will shut down soon unless it is charged, and then stops checking in. Put it on its charger or swap its battery; a kiosk or a terminal meant to stay on power has lost it, so check its cable, adapter and socket. The battery is the one the device last reported to ${spec.serviceName}. This resolves on its own once it reports 20% or more${withCharging ? `, or ${spec.serviceName} reports it on its charger` : ""}.`,
+      criteriaName: "A device's battery is low",
+      criteriaDescription: withCharging
+        ? "Triggers when a device's latest reading says its battery is below 20% and it is not on its charger, once for each such device."
+        : "Triggers when a device's latest reading says its battery is below 20%, once for each such device.",
+      resourceNoun: "device",
+      // Each device holds one reading here, its latest: Any Value is that reading.
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+      ...(withCharging
+        ? {
+            // Both of a device's readings: low, and not on its charger.
+            filterCondition: FilterCondition.All,
+            additionalFilters: [
+              {
+                metricAlias: CHARGING_METRIC_ALIAS,
+                filterType: FilterType.LessThan,
+                value: 1,
+                // A device its service says neither of is off its charger.
+                onNoDataPolicy: NoDataPolicy.TreatAsZero,
+              },
+            ],
+          }
+        : {}),
+    });
+
+    const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      metricAlias: BATTERY_METRIC_ALIAS,
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: minPercent,
+      recoveryValue: minPercent,
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+      ...(withCharging
+        ? {
+            // 20% or more, or on its charger: either is well.
+            filterCondition: FilterCondition.Any,
+            additionalFilters: [
+              {
+                metricAlias: CHARGING_METRIC_ALIAS,
+                filterType: FilterType.GreaterThanOrEqualTo,
+                value: 1,
+              },
+            ],
+            // 0 or 1: on its charger is 1, with no dead band below it.
+            isBinaryMetric: true,
+          }
+        : {}),
+    });
+
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+    step.setMonitorCriteria(criteria);
+
+    return step;
+  };
 
   return {
     id: spec.id,
     provider: spec.provider,
     name: spec.name,
     summary: spec.summary,
-    description: `Alert when a device ${spec.serviceName} manages reports less than 20% battery, one alert per device, resolved once it reports 20% or more: a handheld is about to shut down, or a kiosk lost its power, and a device that runs out stops checking in. Every read of the connection records each device's battery as ${spec.serviceName} last heard it.${spec.devicesNote ? ` ${spec.devicesNote}` : ""} A device without a battery reports none and never raises it. A device that runs the OneUptime Android agent is left to its host's Low Battery.`,
+    description: `Alert when a device ${spec.serviceName} manages reports less than 20% battery, one alert per device, resolved once it reports 20% or more: a handheld is about to shut down, or a kiosk lost its power, and a device that runs out stops checking in. Every read of the connection records each device's battery as ${spec.serviceName} last heard it.${spec.devicesNote ? ` ${spec.devicesNote}` : ""}${spec.chargingNote ? ` ${spec.chargingNote}` : ""} A device without a battery reports none and never raises it. A device that runs the OneUptime Android agent is left to its host's Low Battery.`,
     category: "Resource",
     severity: "Warning",
     monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
     metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
     minBatteryPercent: minPercent,
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
-        monitorName: args.monitorName,
-        monitorType: MonitorType.Metrics,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-      });
-
-      step.setMetricMonitor(
-        buildManagedDeviceBatteryMetricMonitor({
-          deviceManagementConnectionId: args.deviceManagementConnectionId,
-          provider: spec.provider,
-        }),
-      );
-
-      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
-        {
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias: BATTERY_METRIC_ALIAS,
-          filterType: FilterType.LessThan,
-          value: minPercent,
-          incidentTitle: `[${getDeviceManagementProviderShortTitle(spec.provider)}] Low battery`,
-          incidentDescription: `A device ${spec.serviceName} manages reports less than 20% battery, so it will shut down soon unless it is charged, and then stops checking in. Put it on its charger or swap its battery; a kiosk or a terminal meant to stay on power has lost it, so check its cable, adapter and socket. The battery is the one the device last reported to ${spec.serviceName}. This resolves on its own once it reports 20% or more.`,
-          criteriaName: "A device's battery is low",
-          criteriaDescription:
-            "Triggers when a device's latest reading says its battery is below 20%, once for each such device.",
-          resourceNoun: "device",
-          // Each device holds one reading here, its latest: Any Value is that reading.
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-        },
-      );
-
-      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: BATTERY_METRIC_ALIAS,
-        filterType: FilterType.GreaterThanOrEqualTo,
-        value: minPercent,
-        recoveryValue: minPercent,
-        metricAggregationType: EvaluateOverTimeType.AnyValue,
-      });
-
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-      step.setMonitorCriteria(criteria);
-
-      return step;
+      return buildStep(args, readsCharging);
     },
+    // A monitor made before it read the charging state: the battery alone.
+    ...(readsCharging
+      ? {
+          getEarlierMonitorSteps: (
+            args: ManagedDeviceAlertTemplateArgs,
+          ): Array<MonitorStep> => {
+            return [buildStep(args, false)];
+          },
+        }
+      : {}),
   };
 }
 
@@ -1265,6 +1373,12 @@ function buildStorageNearlyFullTemplate(
  * checked in since it was last asked (#10287): Graph's beta
  * hardwareInformation holds a battery level of an iOS or iPadOS device
  * alone, as of its last check-in.
+ *
+ * Workspace ONE's and SOTI's lists also say whether a device is on its
+ * charger (#10288): Workspace ONE's AcLineStatus of every device but an
+ * Apple one (whose MDM reports no power source), and MobiControl's
+ * IsCharging of an Android+ device. Their Low Battery leaves such a device
+ * be. Esper's device list and Intune's hardwareInformation say neither.
  */
 const esperLowBatteryTemplate: ManagedDeviceAlertTemplate =
   buildLowBatteryTemplate({
@@ -1293,6 +1407,9 @@ const workspaceOneLowBatteryTemplate: ManagedDeviceAlertTemplate =
     name: "Workspace ONE Low Battery",
     summary: "A device Workspace ONE manages has less than 20% battery left.",
     serviceName: "Workspace ONE",
+    // #10288: its device list says whether each is on power (AcLineStatus).
+    chargingNote:
+      "A device Workspace ONE says is on power, on its charger or its dock, is left be, and its alert resolves.",
   });
 
 const sotiLowBatteryTemplate: ManagedDeviceAlertTemplate =
@@ -1302,6 +1419,9 @@ const sotiLowBatteryTemplate: ManagedDeviceAlertTemplate =
     name: "SOTI Low Battery",
     summary: "A device MobiControl manages has less than 20% battery left.",
     serviceName: "MobiControl",
+    // #10288: its device list says whether an Android+ device is charging.
+    chargingNote:
+      "An Android device MobiControl says is charging is left be, and its alert resolves.",
   });
 
 // Storage Nearly Full for every service: each says a device's storage and its free space.

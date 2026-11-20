@@ -597,6 +597,12 @@ describe("the alert a device opens", () => {
           "The device's battery at each read, in percent, as its device manager last heard it",
         command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.level","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       },
+      // #10288: whether it was on its charger, where its service says so.
+      {
+        purpose:
+          "Whether the device was on its charger at each read: 1 on power, 0 on its battery",
+        command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.charging","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
       {
         purpose:
           "The device's storage at each read: how much of it was in use, and how many bytes were free",

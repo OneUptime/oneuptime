@@ -1347,22 +1347,27 @@ describe("SeriesDebugHints", () => {
       ).toEqual([
         `oneuptime metric list --query '{"name":"oneuptime.managed_device.check_in.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
         `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.level","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+        // #10288: whether it was on its charger, beside its battery.
+        `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.charging","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
         `oneuptime metric list --query '{"name":"oneuptime.managed_device.storage.used","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
         `oneuptime metric list --query '{"name":"oneuptime.managed_device.security_patch.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       ]);
     });
 
-    test("its check-ins come first, its battery and storage next, the security patch's age last", () => {
+    test("its check-ins come first, its battery and its charging next, then its storage, the security patch's age last", () => {
       const commands: Array<string> = getCommandStrings({
         monitorType: MonitorType.Metrics,
         seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
       });
 
-      expect(commands).toHaveLength(4);
+      expect(commands).toHaveLength(5);
       expect(commands[0]).toContain("oneuptime.managed_device.check_in.age");
       expect(commands[1]).toContain("oneuptime.managed_device.battery.level");
-      expect(commands[2]).toContain("oneuptime.managed_device.storage.used");
-      expect(commands[3]).toContain(
+      expect(commands[2]).toContain(
+        "oneuptime.managed_device.battery.charging",
+      );
+      expect(commands[3]).toContain("oneuptime.managed_device.storage.used");
+      expect(commands[4]).toContain(
         "oneuptime.managed_device.security_patch.age",
       );
     });
@@ -1398,7 +1403,7 @@ describe("SeriesDebugHints", () => {
         seriesLabels: { "oneuptime.managed_device.name": "x'; rm -rf / '" },
       });
 
-      expect(commands).toHaveLength(4);
+      expect(commands).toHaveLength(5);
       for (const command of commands) {
         expect(command).toContain(`'{"name":`);
         expect(command).toContain(`x'\\''; rm -rf / '\\''`);
@@ -1418,6 +1423,10 @@ describe("SeriesDebugHints", () => {
       [
         "oneuptime.managed_device.battery.level",
         "The device's battery at each read, in percent, as its device manager last heard it",
+      ],
+      [
+        "oneuptime.managed_device.battery.charging",
+        "Whether the device was on its charger at each read: 1 on power, 0 on its battery",
       ],
       [
         "oneuptime.managed_device.storage.used",
@@ -1463,7 +1472,7 @@ describe("SeriesDebugHints", () => {
       ]);
     });
 
-    test("a monitor whose readings are not known, or are none of a device's, gets all four", () => {
+    test("a monitor whose readings are not known, or are none of a device's, gets them all", () => {
       for (const metricNames of [undefined, [], ["system.cpu.utilization"]]) {
         expect(
           getCommandStrings({
@@ -1471,8 +1480,27 @@ describe("SeriesDebugHints", () => {
             seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
             metricNames,
           }),
-        ).toHaveLength(4);
+        ).toHaveLength(5);
       }
+    });
+
+    // #10288: a Low Battery that reads the charging state gets both, the battery first.
+    test("a monitor that reads the battery and the charging state gets both, the battery first", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.Metrics,
+          seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
+          metricNames: [
+            "oneuptime.managed_device.battery.charging",
+            "oneuptime.managed_device.battery.level",
+          ],
+        }).map((command: string): string => {
+          return command.split('"')[3]!;
+        }),
+      ).toEqual([
+        "oneuptime.managed_device.battery.level",
+        "oneuptime.managed_device.battery.charging",
+      ]);
     });
 
     test("the connection's own series keeps its one command whatever the monitor reads", () => {
