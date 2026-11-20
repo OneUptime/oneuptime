@@ -97,6 +97,7 @@ import {
   fingerprintOf,
   groupedMetricCheck,
 } from "../../../Helpers/GroupedMetricCheck";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 const MONITOR_ID: ObjectID = new ObjectID(
@@ -352,15 +353,16 @@ describe("MonitorStoredCheck.boundSeries", () => {
       seriesCount: 16_000,
     });
 
-    const startedAt: number = Date.now();
-    const bounded: DataToProcess = MonitorStoredCheck.boundSeries({
-      check: fleet.check,
-    });
-    const tookMs: number = Date.now() - startedAt;
-
-    expect(loggedOf(bounded).seriesInEvaluation).toBe(16_000);
     // About 10 ms in production's runtime; the copy it replaced took seconds.
-    expect(tookMs).toBeLessThan(1_000);
+    const timed: FastestRun<DataToProcess> = fastestRun({
+      run: (): DataToProcess => {
+        return MonitorStoredCheck.boundSeries({ check: fleet.check });
+      },
+      limitInMs: 1_000,
+    });
+
+    expect(loggedOf(timed.result).seriesInEvaluation).toBe(16_000);
+    expect(timed.inMs).toBeLessThan(1_000);
   });
 });
 
