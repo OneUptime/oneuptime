@@ -79,6 +79,18 @@ Test" workflow provides both:
   the jest step, and the suite checks that it does. `NODE_HEAP_IMAGES` (image
   references, space-separated) adds each built image's own start script, run
   with the image's shell and node, with and without a limit.
+- **docker, the nginx image and node:26-alpine3.24, for npm start's status
+  check.** `RUN_STATUS_CHECK_INGRESS_TESTS=1` turns on
+  `StatusCheckIngress.test.js`, which renders the ingress template with its
+  own `envsubst-on-templates.sh` under the nginx image the ingress image is
+  built `FROM`, in front of a stand-in App, publishes it on `127.0.0.1`,
+  `[::1]`, an address of the machine's own and a port alone, and runs
+  `Tests/Scripts/status-check.sh` with the real curl against each (#10024):
+  it must pass on every one, the check as it was before
+  (`Fixtures/StatusCheckBefore10024`) must fail on one address, and the
+  doctor's after-start run must ask the same ingress under `localhost`. The
+  workflow sets the variable on the jest step, and the suite checks that it
+  does. It removes the two containers and the network it creates.
 - **packages/Common's and packages/Nginx's packages.**
   `PruneUnreachablePackages.test.js` walks the real certificate sidecar's
   imports, as the ingress image's build does, only where both are installed
