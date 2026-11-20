@@ -93,8 +93,10 @@ In **Condividi**, copia il link e invialo alle persone che devono usare il modul
 | **Costruisci** | Il nome e la descrizione del modulo, il suo **Branding** (logo e favicon, ripiegati) e l'editor: le sue domande, la tavolozza delle domande e l'**Anteprima**. |
 | **Modelli** | Insiemi di risposte con un nome da cui si può iniziare il modulo, come ognuno pone le domande, quello con cui il modulo si apre e il link proprio di ciascuno. |
 | **All'invio** | Cosa crea ogni invio e come viene compilato ognuno dei suoi campi. **Modifica impostazioni** cambia i valori predefiniti e ciò che vale sempre. |
-| **Condividi** | **Accetta invii**, il **Link di condivisione**, il messaggio mostrato dopo l'invio e, in **Altre impostazioni**, la **Lista IP consentiti**. |
+| **Condividi** | **Accetta invii**, il **Link di condivisione**, **Chi può aprire questo modulo**, il messaggio mostrato dopo l'invio e, in **Altre impostazioni**, la **Lista IP consentiti**. |
 | **Domini personalizzati** | I domini propri del modulo, come `report.acme.com`, con i loro record DNS e certificati. Vedi [Domini personalizzati](/docs/forms/sharing-and-security#domini-personalizzati). |
+| **Utenti privati** | Le persone che possono accedere per aprire il modulo, quando solo chi accede può aprirlo. Vedi [Solo chi accede](/docs/forms/sharing-and-security#solo-chi-accede). |
+| **Single Sign-On** | I provider di identità SAML e OpenID Connect che fanno accedere le persone al modulo, e **Richiedi l'SSO per l'accesso**. |
 | **Invii** | Ogni invio fatto tramite il modulo, il più recente per primo, con le sue risposte e ciò che ha creato. |
 | **Duplica modulo** | In **Avanzato**: una copia del modulo, con un nome scelto per te, con le sue domande, i modelli, le impostazioni All'invio, il branding, il messaggio di ringraziamento e la lista degli IP consentiti, e un link proprio. La copia parte disattivata e si apre nel suo editor. |
 | **Log di audit** | In **Avanzato**: ogni modifica fatta al modulo, ai suoi domini personalizzati e ai suoi invii, chi l'ha fatta e quando. |
@@ -262,6 +264,8 @@ I moduli hanno i componenti dei flussi di lavoro generati: **Alla creazione: Mod
 ### Gli endpoint propri della pagina pubblica
 
 La pagina pubblica comunica con due route che non richiedono una chiave API: `GET /api/form/public/<shareKey>`, che restituisce il nome, la descrizione e le domande del modulo (e il suo logo, il testo alternativo del logo e la sua favicon, le immagini in base64, quando li ha, e i suoi modelli, con le loro risposte alle domande che la pagina pone), e `POST /api/form/public/<shareKey>/submit`, che lo invia indicando in `templateId` il modello da cui chi invia è partito. Sono gli endpoint propri della pagina, non un'API su cui costruire: ogni chiamata passa per le protezioni del modulo (vedi [Condivisione e sicurezza](/docs/forms/sharing-and-security)) e cambiano insieme alla pagina. Per creare incidenti dal tuo codice, usa `POST /api/incident` con una chiave API: vedi [Dichiarare un incidente](/docs/incidents/declaring-incidents). Su un [dominio personalizzato](/docs/forms/sharing-and-security#domini-personalizzati) di un modulo, la pagina usa invece `GET /api/form/custom-domain` e `POST /api/form/custom-domain/submit` su quel dominio, che non contengono alcuna chiave: è il dominio a indicare il modulo.
+
+Su un modulo che solo chi accede può aprire, queste route rispondono `401` a chiunque non abbia effettuato l'accesso come uno dei suoi utenti privati. La pagina legge prima `GET /api/form/public/<shareKey>/sign-in-state`, o `GET /api/form/custom-domain/sign-in-state` su un dominio personalizzato, che dice solo se il modulo chiede ai visitatori di accedere e, quando lo fa, il suo nome e chi ha effettuato l'accesso.
 
 ## Dove sono finiti i tuoi moduli di incidente
 

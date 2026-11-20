@@ -13,13 +13,6 @@ import FormSSO from "../../Models/DatabaseModels/FormSso";
 import ObjectID from "../../Types/ObjectID";
 
 /*
- * The sessions of a form's private users (#10249): the shared rules of
- * PrivateUserSessionServiceBase, over FormPrivateUserSession's own
- * columns, and the one place a browser's form session is read from its
- * cookie (findSignedInSessionOnRequest), which every public form route
- * asks through FormService before it shows or takes the form.
- */
-/*
  * What a public form route hands FormService of its visitor (#10249): a way
  * to read the session one of the form's private users holds on it - from
  * the form's own cookie, and nothing else of the request. The service is
@@ -33,6 +26,14 @@ export type FormSessionReader = (form: {
   withEmail?: boolean | undefined;
 }) => Promise<Model | null>;
 
+/*
+ * The sessions of a form's private users (#10249): the shared rules of
+ * PrivateUserSessionServiceBase, over FormPrivateUserSession's own
+ * columns, and the one place a browser's form session is read from its
+ * cookie (findSignedInSessionOnRequest), which every public form route
+ * hands FormService as its reader (getSessionReader) before the form is
+ * shown or taken.
+ */
 export class Service extends PrivateUserSessionServiceBase<Model> {
   public constructor() {
     super(Model, {

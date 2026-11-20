@@ -93,8 +93,10 @@ Under **Del** kopierer du lenken og sender den til dem som skal bruke skjemaet. 
 | **Bygg** | Skjemaets navn og beskrivelse, **Merkevare** (logo og favikon, slått sammen) og byggeverktøyet: spørsmålene, spørsmålspaletten og **Forhåndsvisning**. |
 | **Maler** | Navngitte sett med svar man kan starte skjemaet fra, hvordan hver mal stiller spørsmålene, malen skjemaet åpner med, og hver mals egen lenke. |
 | **Ved innsending** | Hva hver innsending oppretter, og hvordan hvert felt fylles ut. **Rediger innstillinger** endrer standardverdiene og det som alltid gjelder. |
-| **Del** | **Tar imot innsendinger**, **Delingslenke**, meldingen som vises etter innsending, og, under **Flere innstillinger**, **IP-tillatelsesliste**. |
+| **Del** | **Tar imot innsendinger**, **Delingslenke**, **Hvem som kan åpne dette skjemaet**, meldingen som vises etter innsending, og, under **Flere innstillinger**, **IP-tillatelsesliste**. |
 | **Egendefinerte domener** | Skjemaets egne domener, som `report.acme.com`, med DNS-postene og sertifikatene deres. Se [Egendefinerte domener](/docs/forms/sharing-and-security#egendefinerte-domener). |
+| **Private brukere** | Personene som kan logge på for å åpne skjemaet, når bare personer som logger inn, kan åpne det. Se [Bare personer som logger inn](/docs/forms/sharing-and-security#bare-personer-som-logger-inn). |
+| **Enkel pålogging** | SAML- og OpenID Connect-identitetsleverandørene som logger personer på skjemaet, og **Krev SSO for å logge på**. |
 | **Innsendinger** | Hver innsending gjennom skjemaet, nyeste først, med svarene og det den opprettet. |
 | **Dupliser skjema** | Under **Avansert**: en kopi av skjemaet, navngitt for deg, med spørsmålene, malene, innstillingene under Ved innsending, merkevaren, takkemeldingen og IP-tillatelseslisten, og en egen lenke. Kopien starter avslått og åpner i byggeverktøyet. |
 | **Revisjonslogger** | Under **Avansert**: hver endring av skjemaet, de egendefinerte domenene og innsendingene, hvem som gjorde den, og når. |
@@ -262,6 +264,8 @@ Skjemaer har de genererte arbeidsflytkomponentene: **Ved oppretting: Skjema**, *
 ### Den offentlige sidens egne endepunkter
 
 Den offentlige siden snakker med to ruter som ikke krever en API-nøkkel: `GET /api/form/public/<shareKey>`, som returnerer skjemaets navn, beskrivelse og spørsmål (og, når det har dem, logoen, logoens alternative tekst og favikonet, bildene som base64, og malene, med svarene deres på spørsmålene siden stiller), og `POST /api/form/public/<shareKey>/submit`, som sender det inn og i `templateId` oppgir malen innsenderen startet fra. Det er sidens egne endepunkter, ikke et API å bygge videre på: hvert kall går gjennom skjemaets beskyttelse (se [Deling og sikkerhet](/docs/forms/sharing-and-security)), og de endres sammen med siden. Bruk `POST /api/incident` med en API-nøkkel for å opprette hendelser fra din egen kode: se [Opprette en hendelse](/docs/incidents/declaring-incidents). På et skjemas [egendefinerte domene](/docs/forms/sharing-and-security#egendefinerte-domener) bruker siden i stedet `GET /api/form/custom-domain` og `POST /api/form/custom-domain/submit` på det domenet, som ikke nevner noen nøkkel: domenet peker ut skjemaet.
+
+På et skjema som bare personer som logger inn, kan åpne, svarer disse rutene `401` til alle som ikke er logget på som en av de private brukerne. Siden leser først `GET /api/form/public/<shareKey>/sign-in-state`, eller `GET /api/form/custom-domain/sign-in-state` på et egendefinert domene, som bare sier om skjemaet ber besøkende logge på, og i så fall navnet og hvem som er logget på.
 
 ## Hvor hendelsesskjemaene dine ble av
 

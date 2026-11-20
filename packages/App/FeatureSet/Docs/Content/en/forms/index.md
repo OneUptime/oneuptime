@@ -93,8 +93,10 @@ On **Share**, copy the link and send it to the people who should use the form. S
 | **Build** | The form's name and description, its **Branding** — logo and favicon, folded — and the builder: its questions, the question palette and **Preview**. |
 | **Templates** | Named sets of answers people can start the form from, how each asks the questions, the one it opens with, and each one's own link. |
 | **On Submit** | What each submission creates, and how every field of it is filled in. **Edit Settings** changes the defaults and what always applies. |
-| **Share** | **Accepting Submissions**, the **Share Link**, the message shown after submitting, and, under **More settings**, the **IP Allowlist**. |
+| **Share** | **Accepting Submissions**, the **Share Link**, **Who Can Open This Form**, the message shown after submitting, and, under **More settings**, the **IP Allowlist**. |
 | **Custom Domains** | The form's own domains, such as `report.acme.com`, with their DNS records and certificates. See [Custom domains](/docs/forms/sharing-and-security#custom-domains). |
+| **Private Users** | The people who may sign in to open the form, when only people who sign in can open it. See [Only people who sign in](/docs/forms/sharing-and-security#only-people-who-sign-in). |
+| **Single Sign-On** | The SAML and OpenID Connect identity providers that sign people in to the form, and **Require SSO to Sign In**. |
 | **Submissions** | Every submission made through the form, newest first, with its answers and what it created. |
 | **Duplicate Form** | Under **Advanced**: a copy of the form, named for you, with its questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. The copy starts turned off, and opens on its builder. |
 | **Audit Logs** | Under **Advanced**: every change made to the form, its custom domains and its submissions, who made it and when. |
@@ -262,6 +264,8 @@ Forms have the generated workflow components — **On Create Form**, **On Update
 ### The public page's own endpoints
 
 The public page talks to two routes that need no API key: `GET /api/form/public/<shareKey>`, which returns the form's name, description and questions — and its logo, the logo's alt text and its favicon, the images base64, when it has them, and its templates, with their answers to the questions the page asks — and `POST /api/form/public/<shareKey>/submit`, which submits it, naming the template the submitter started from in `templateId`. They are the page's own endpoints, not an API to build on: every call goes through the form's protections — see [Sharing & Security](/docs/forms/sharing-and-security) — and they change with the page. To create incidents from your own code, use `POST /api/incident` with an API key — see [Declaring an Incident](/docs/incidents/declaring-incidents). On a form's [custom domain](/docs/forms/sharing-and-security#custom-domains), the page uses `GET /api/form/custom-domain` and `POST /api/form/custom-domain/submit` on that domain instead, which name no key: the domain names the form.
+
+On a form that only people who sign in can open, these routes answer `401` to anyone not signed in as one of its private users. The page first reads `GET /api/form/public/<shareKey>/sign-in-state`, or `GET /api/form/custom-domain/sign-in-state` on a custom domain, which says only whether the form asks its visitors to sign in and, when it does, its name and who is signed in.
 
 ## Where your incident forms went
 
