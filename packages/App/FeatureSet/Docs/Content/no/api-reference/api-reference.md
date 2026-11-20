@@ -255,7 +255,7 @@ Team, etiketter, vaktpolicyer og vaktplaner har hvert sitt eget navn i et prosje
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Mange andre slag har også et eget navn, for eksempel alvorlighetsgrader for hendelser, monitorstatuser, statussider og arbeidsflyter, og avviser et navn som er tatt, på samme måte:
+Mange andre slag har også et eget navn, for eksempel alvorlighetsgrader for hendelser, monitorstatuser, statussider og arbeidsflyter, og avviser et navn som er tatt, på samme måte, både ved oppretting og ved navnebytte:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ I tillegg til meldingen inneholder hvert slikt avslag en `refusalCode` som sier 
 - `"refusalCode": "name_taken"`: en post i drift har det. Ingenting ble skrevet, så den samme forespørselen kan sendes på nytt så snart den posten gir fra seg navnet: Terraform-provideren spør på nytt i opptil 30 sekunder.
 - `"refusalCode": "name_taken_by_archived"`: bare en arkivert post har det. Fjern den posten fra arkivet, eller velg et annet navn: å sende forespørselen på nytt hjelper ikke, og Terraform-provideren gjør det ikke.
 
-En oppdatering som sender en posts eget navn på nytt, med store eller små bokstaver, er ikke et navnebytte, så poster som delte et navn før, kan fortsatt endres og få hvert sitt navn. For team, etiketter, vaktpolicyer og vaktplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på hvilke som deler et navn: `{"groups": [["<id>", "<id>"]]}`, der hver gruppe er ID-ene nøkkelen din kan lese, for postene med navn som leses likt. Arkiverte etiketter og vaktpolicyer er utelatt.
+En oppdatering som sender en posts eget navn på nytt, med store eller små bokstaver, er ikke et navnebytte, så poster som delte et navn før, kan fortsatt endres og få hvert sitt navn, men aldri navnet til en annen post. For team, etiketter, vaktpolicyer og vaktplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på hvilke som deler et navn: `{"groups": [["<id>", "<id>"]]}`, der hver gruppe er ID-ene nøkkelen din kan lese, for postene med navn som leses likt. Arkiverte etiketter og vaktpolicyer er utelatt.
+
+#### Verdier som en annen post allerede har
+
+Også noen verdier som ikke er et navn, hører til én post hver: domenet til en statusside, et dashbord eller et skjema, et prosjektdomene, identifikatoren til en vert eller en Kubernetes-klynge, påloggings-URL-en til en SSO-leverandør og tillatelsen til en API-nøkkel, blant andre. En oppretting, eller en oppdatering som endrer en av dem, til en verdi som en annen post har, avvises med en `400` som sier det:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+I tillegg til meldingen inneholder avslaget en `refusalCode` som sier hva som har verdien, og et `field` som navngir feltet med verdien som er tatt, for eksempel `"field": "fullDomain"`. En verdi av flere felt sammen kommer uten `field`. Kjenn igjen avslaget på koden, ikke på setningen, som kan bli omformulert:
+
+- `"refusalCode": "value_taken"`: en post i drift har den. Ingenting ble skrevet, så den samme forespørselen kan sendes på nytt så snart den posten gir fra seg verdien: Terraform-provideren spør på nytt i opptil 30 sekunder.
+- `"refusalCode": "value_taken_by_archived"`: bare en arkivert post har den. Fjern den posten fra arkivet, eller velg en annen verdi: å sende forespørselen på nytt hjelper ikke, og Terraform-provideren gjør det ikke.
+
+En oppdatering som sender en posts egen verdi på nytt, med store eller små bokstaver, er ingen endring, så poster som delte en verdi før, kan fortsatt endres og få hver sin verdi.
 
 ### Brytere
 

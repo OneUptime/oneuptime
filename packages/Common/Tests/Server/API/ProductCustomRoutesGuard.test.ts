@@ -851,6 +851,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/slo-history-aggregate/:dashboardId`":
         PUBLIC_PAGE,
+      // A public dashboard's PromQL widgets: their stored queries only (#10226).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}${PUBLIC_DASHBOARD_PROMQL_QUERY_PATH}/:dashboardId`":
+        PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/master-password/:dashboardId`":
         PUBLIC_PAGE,
     },
@@ -1250,6 +1253,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Notification/API/WhatsApp.ts": 3,
         "packages/App/FeatureSet/Notification/API/Telegram.ts": 3,
         "packages/App/FeatureSet/Notification/API/PushRelay.ts": 2,
+        /*
+         * #7378: SMTPConfig.ts also registers GET /aws-role-setup - what a
+         * project's Amazon SES config makes its IAM role with (the
+         * principal to trust, the project's email external id, a trust
+         * policy) - so it reads, and is no decision here. Its POST /test
+         * checks a role config's role afresh before it sends, as every
+         * test send of how OneUptime reaches people does.
+         */
         "packages/App/FeatureSet/Notification/API/SMTPConfig.ts": 1,
       },
     ),

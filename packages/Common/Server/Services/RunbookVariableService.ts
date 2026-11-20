@@ -179,6 +179,15 @@ export class Service extends ProjectReferencesService<RunbookVariable> {
   }
 
   /*
+   * A rename onto another variable's name, among the project's globals or
+   * the runbook's own, is refused by assertNameIsFree, in its own words:
+   * the generic check of an update leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
+  }
+
+  /*
    * What a write to the value or the access of these rows may hold, by
    * whether each is a secret.
    */

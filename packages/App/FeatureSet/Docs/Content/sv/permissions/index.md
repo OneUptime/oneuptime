@@ -129,6 +129,26 @@ Fakturering har tre egna roller. `BillingViewer` läser projektets fakturering �
 
 Alla {{PERMISSION_ROLE_COUNT}} roller finns i [Behörighetsreferensen](/docs/permissions/reference).
 
+### Produktnivåer
+
+En produktnivå ger ett team en enda produkt, på en enda nivå, och inget annat av projektet: `CloudAdmin`, `NetworkViewer`, `HostMember`. Varje nivå gör med produktens egna poster det som en projektövergripande roll gör med alla poster:
+
+- **Tittare** läser där det som rollen Tittare läser, och ändrar ingenting.
+- **Medlem** skapar, ändrar och tar även bort produktens poster, som en Projektmedlem gör.
+- **Administratör** gör där även det som en Projektadministratör gör: produktens inställningar, dess anslutningar och inloggningsuppgifter och dess etikett- och ägarregler.
+
+En nivå når aldrig en annan produkt, och inte heller projektets inställningar, team, medlemmar, API-nycklar, SSO eller fakturering.
+
+:::steps
+1. Öppna teamets sida **Behörigheter**.
+2. Välj under **Produktåtkomst** en nivå för varje produkt som teamet arbetar med. Töm en produkts nivå för att ta produkten från teamet igen.
+:::
+
+- **Monitorer, Incidenter och de andra områdena med egna roller** ges med **Lägg till roll**, under **Ett område**. Detsamma gäller Telemetry-rollerna, för Loggar, Mätvärden, Spår, Profiler och Undantag, och Security-rollerna.
+- **AI / LLM, Inventarie och Formulär** har bara nivåerna Tittare och Administratör, eftersom en Projektmedlem inte ändrar något i dem.
+- **En nivå är en behörighet som alla andra.** Du kan begränsa den till några etiketter eller till ägda poster i tabellen med behörigheter, blockera den, lägga den i en anpassad roll eller ge den till en API-nyckel. Som med alla behörigheter kan du bara ge en nivå om du själv har den, om du inte är Projektägare.
+- **En nivå läser produktens poster, inte dess telemetri.** Ett team med `HostViewer` ser projektets värdar och behöver även `TelemetryViewer` för deras diagram.
+
 ### Granulära behörigheter
 
 Varje enskild förmåga kan också tilldelas ensam — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` och {{PERMISSION_TOTAL_COUNT}} andra. Använd dem när en roll är för bred och du behöver dela ut exakt en sak.

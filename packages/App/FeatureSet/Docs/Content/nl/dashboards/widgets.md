@@ -250,7 +250,7 @@ Via de API en Terraform is de volgorde de `arguments.sort` van de widget: een ko
 Een [openbaar dashboard](/docs/dashboards/sharing) tekent de meeste widgets voor zijn bezoekers, en elk toont alleen wat hij moest tonen. Een paar kunnen niet worden weergegeven zonder aangemelde sessie:
 
 - **Logboekgrafiek**, **Tracegrafiek**, **Tracetabel**, **Beveiligingsgebeurtenissen**, **Stroom van beveiligingsgebeurtenissen**, **Trechter** en **Gebruikersretentie** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
-- De widgets van Externe gegevensbronnen worden helemaal weggelaten uit een openbaar dashboard, omdat hun instellingen de query zelf zijn.
+- De widgets van Externe gegevensbronnen tonen hun gegevens wanneer ze **Metrieken van dit project (PromQL)** lezen, nooit hun query's. Een widget met een externe gegevensbron wordt helemaal weggelaten uit een openbaar dashboard.
 
 ## Als een widget niet kan worden weergegeven
 

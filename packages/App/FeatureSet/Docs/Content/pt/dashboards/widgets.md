@@ -250,7 +250,7 @@ Pela API e pelo Terraform, a ordem é o `arguments.sort` do widget: uma coluna e
 Um [painel público](/docs/dashboards/sharing) desenha a maioria dos widgets para os visitantes, e cada um mostra só o que foi configurado para mostrar. Alguns não podem ser mostrados sem uma sessão conectada:
 
 - **Gráfico de registros**, **Gráfico de traços**, **Tabela de traços**, **Eventos de segurança**, **Fluxo de eventos de segurança**, **Funil** e **Retenção de usuários** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
-- Os widgets de Fontes de dados externas ficam totalmente fora de um painel público, porque as configurações deles são a própria consulta.
+- Os widgets de Fontes de dados externas mostram os dados quando leem **Métricas deste projeto (PromQL)**, nunca as consultas. Um widget de fonte de dados externa fica totalmente fora de um painel público.
 
 ## Quando um widget não pode ser mostrado
 

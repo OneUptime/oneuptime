@@ -1133,6 +1133,8 @@ import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRu
 import { AddDashboardPrivateUsersAndSingleSignOn1809187030250 } from "./1809187030250-AddDashboardPrivateUsersAndSingleSignOn";
 import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000-MakeEscalationRuleRespondersUnique";
 import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
+import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProjectAmazonSesIamRole";
+import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
 import { AddProjectSecurityTrustedProxies1809187150416 } from "./1809187150416-AddProjectSecurityTrustedProxies";
 
 export default [
@@ -2271,5 +2273,7 @@ export default [
   AddDashboardPrivateUsersAndSingleSignOn1809187030250,
   MakeEscalationRuleRespondersUnique1809187100000,
   AddFormPrivateUsersAndSingleSignOn1809187140120,
+  AddProjectAmazonSesIamRole1809187142000,
+  AddSecurityBlocklist1809187150000,
   AddProjectSecurityTrustedProxies1809187150416,
 ];

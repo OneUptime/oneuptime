@@ -10,12 +10,16 @@ import {
 } from "@jest/globals";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../../Models/DatabaseModels/Index";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../../Models/DatabaseModels/Label";
+import StatusPageGroup from "../../../../Models/DatabaseModels/StatusPageGroup";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "../../../../Models/DatabaseModels/Team";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
+import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import LabelService from "../../../../Server/Services/LabelService";
+import StatusPageGroupService from "../../../../Server/Services/StatusPageGroupService";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import TeamService from "../../../../Server/Services/TeamService";
@@ -99,6 +103,8 @@ const MODELS: Array<{ new (): BaseModel }> = [
   Label,
   OnCallDutyPolicy,
   OnCallDutyPolicySchedule,
+  IncidentSeverity,
+  StatusPageGroup,
 ];
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -972,5 +978,149 @@ describePostgres("a name as it reads, on Postgres", () => {
       "Gamma",
       "Beta",
     ]);
+  });
+
+  /*
+   * #10318: a kind whose model holds its name one of its kind
+   * (@UniqueColumnBy) refuses a rename onto another record's name as a
+   * create onto it is refused, compared by Postgres the way the create's
+   * check compares it (LOWER of the stored name with the name written,
+   * trimmed), with the archived code when only an archived record has it,
+   * and only within the record's own scope: a status page group's page.
+   */
+  async function renameUnique<TBaseModel extends BaseModel>(data: {
+    service: {
+      findRowsAndHoldUpdateToThem: unknown;
+    };
+    model: { new (): TBaseModel };
+    id: string;
+    name: string;
+  }): Promise<void> {
+    jest
+      .spyOn(data.service as never, "findRowsAndHoldUpdateToThem")
+      .mockImplementation((async (): Promise<Array<TBaseModel>> => {
+        return await database.getRepository(data.model).find({
+          where: { _id: data.id } as never,
+        });
+      }) as never);
+
+    await (
+      data.service as unknown as {
+        checkUniqueColumnByOnUpdate: (
+          updateBy: UpdateBy<TBaseModel>,
+        ) => Promise<void>;
+      }
+    ).checkUniqueColumnByOnUpdate({
+      query: { _id: data.id },
+      data: { name: data.name, description: "Wakes someone up." },
+      props: { userId: USER_ID, tenantId: PROJECT_ID },
+      limit: 1,
+      skip: 0,
+    } as unknown as UpdateBy<TBaseModel>);
+  }
+
+  test("a severity renamed onto another's name is refused, an archived one's with its own code; twins stay, and are renamed apart", async () => {
+    const severity: (
+      name: string,
+      options?: { isArchived?: boolean; projectId?: ObjectID },
+    ) => Promise<string> = async (
+      name: string,
+      options?: { isArchived?: boolean; projectId?: ObjectID },
+    ): Promise<string> => {
+      return await insert(IncidentSeverity, {
+        projectId: (options?.projectId || PROJECT_ID).toString(),
+        name: name,
+        isArchived: Boolean(options?.isArchived),
+      });
+    };
+
+    const criticalId: string = await severity("Critical");
+    const criticalTwinId: string = await severity("CRITICAL");
+    const minorId: string = await severity("Minor");
+    await severity("Retired", { isArchived: true });
+    await severity("Elsewhere", { projectId: OTHER_PROJECT_ID });
+
+    const rename: (id: string, name: string) => Promise<void> = (
+      id: string,
+      name: string,
+    ): Promise<void> => {
+      return renameUnique({
+        service: IncidentSeverityService,
+        model: IncidentSeverity,
+        id: id,
+        name: name,
+      });
+    };
+
+    const taken: unknown = await rename(minorId, " critical ").catch(
+      (error: unknown): unknown => {
+        return error;
+      },
+    );
+    expect(taken).toBeInstanceOf(NameTakenException);
+    expect((taken as NameTakenException).isTakenByArchived).toBe(false);
+    expect((taken as Error).message).toBe(
+      "Incident Severity with the same name already exists.",
+    );
+
+    const archived: unknown = await rename(minorId, "retired").catch(
+      (error: unknown): unknown => {
+        return error;
+      },
+    );
+    expect(archived).toBeInstanceOf(NameTakenException);
+    expect((archived as NameTakenException).isTakenByArchived).toBe(true);
+    expect((archived as Error).message).toBe(
+      "Incident Severity with the same name already exists, and it is archived. Unarchive it, or choose another name.",
+    );
+
+    // Another project's name is free; so is the record's own, in any case.
+    await expect(rename(minorId, "Elsewhere")).resolves.toBeUndefined();
+    await expect(rename(minorId, "MINOR")).resolves.toBeUndefined();
+
+    // Twins from before: each written with its own name again, and renamed apart.
+    await expect(rename(criticalTwinId, "Critical")).resolves.toBeUndefined();
+    await expect(
+      rename(criticalId, "Critical (Legacy)"),
+    ).resolves.toBeUndefined();
+  });
+
+  test("a status page group's name is one group's on its page, not across pages", async () => {
+    const PAGE_ID: string = ObjectID.generate().toString();
+    const OTHER_PAGE_ID: string = ObjectID.generate().toString();
+
+    const group: (
+      name: string,
+      statusPageId: string,
+    ) => Promise<string> = async (
+      name: string,
+      statusPageId: string,
+    ): Promise<string> => {
+      return await insert(StatusPageGroup, {
+        projectId: PROJECT_ID.toString(),
+        statusPageId: statusPageId,
+        name: name,
+      });
+    };
+
+    const overviewId: string = await group("Overview", PAGE_ID);
+    await group("Services", PAGE_ID);
+    await group("Services", OTHER_PAGE_ID);
+
+    const rename: (name: string) => Promise<void> = (
+      name: string,
+    ): Promise<void> => {
+      return renameUnique({
+        service: StatusPageGroupService,
+        model: StatusPageGroup,
+        id: overviewId,
+        name: name,
+      });
+    };
+
+    expect(await refusal(rename("SERVICES"))).toBe(
+      "Status Page Group with the same name already exists.",
+    );
+    await expect(rename("Platform")).resolves.toBeUndefined();
   });
 });

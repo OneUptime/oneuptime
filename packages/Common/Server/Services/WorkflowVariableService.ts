@@ -828,7 +828,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * @UniqueColumnBy(["workflowId", "projectId"]) on `name` is enforced by
-   * DatabaseService.checkUniqueColumnBy, which runs on create only - and there
+   * DatabaseService.checkUniqueColumnBy on a create; on an update this hook
+   * holds it (getUniqueColumnsCheckedOnUpdate, #10318, leaves the name out of
+   * DatabaseService's own update check) - and there
    * is no unique index on WorkflowVariable to catch what it misses. That was
    * harmless while the dashboard offered no way to edit a variable. Now that it
    * does, a rename is the one write that can put two rows with the same name in
@@ -1029,6 +1031,15 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward };
+  }
+
+  /*
+   * A rename onto another variable's name, among the project's globals or
+   * the workflow's own, is refused by onBeforeUpdate above, in its own
+   * words: the generic check of an update leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
   }
 }
 export default new Service();

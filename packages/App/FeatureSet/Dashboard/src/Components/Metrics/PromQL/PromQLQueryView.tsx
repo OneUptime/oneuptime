@@ -45,6 +45,10 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import { translationKey } from "Common/Types/Translator";
 import { formatPromQLLabels } from "Common/Utils/PromQL/PromQLLabels";
+import { PROMQL_METRIC_ALIAS } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
+import { MetricChartThreshold } from "../Utils/MetricChartThresholds";
 import {
   PrometheusPoint,
   PrometheusResult,
@@ -600,6 +604,20 @@ export interface PromQLGraphProps {
    * rule threshold, on the monitor form's preview (issue #7712).
    */
   criticalThreshold?: number | undefined;
+  /*
+   * The values a monitor compares the expression with, each a line with
+   * the side that alerts shaded (issue #10227): a PromQL monitor's
+   * Overview and the incidents it opens. On PROMQL_METRIC_ALIAS, the
+   * expression's name in the monitor's criteria.
+   */
+  thresholds?: Array<MetricChartThreshold> | undefined;
+  // Marks across the chart: status changes, incidents, an event's moments.
+  timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  // Spans shaded across the chart, such as what a monitor evaluated.
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
+  // A drag across the chart, and the way back out of it.
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  onTimeRangeReset?: (() => void) | undefined;
 }
 
 export const PromQLGraph: FunctionComponent<PromQLGraphProps> = (
@@ -632,13 +650,18 @@ export const PromQLGraph: FunctionComponent<PromQLGraphProps> = (
     return [{ data }];
   }, [props.series]);
 
+  const hasThresholds: boolean = Boolean(
+    props.thresholds && props.thresholds.length > 0,
+  );
+
   const metricViewData: MetricViewData = useMemo(() => {
     return {
       queryConfigs: [
         {
-          id: "promql",
+          id: PROMQL_METRIC_ALIAS,
           metricAliasData: {
-            metricVariable: undefined,
+            // The name a monitor's lines are drawn on, when it has some.
+            metricVariable: hasThresholds ? PROMQL_METRIC_ALIAS : undefined,
             title: undefined,
             description: undefined,
             // The chart is named by the query it draws.
@@ -662,7 +685,7 @@ export const PromQLGraph: FunctionComponent<PromQLGraphProps> = (
       formulaConfigs: [],
       startAndEndDate: props.window,
     };
-  }, [props.window, props.query, props.criticalThreshold]);
+  }, [props.window, props.query, props.criticalThreshold, hasThresholds]);
 
   return (
     <MetricCharts
@@ -675,6 +698,17 @@ export const PromQLGraph: FunctionComponent<PromQLGraphProps> = (
       topNOverrideScope="promql"
       enableSeriesActions={false}
       enableExemplarActions={false}
+      /*
+       * A monitor's lines are drawn on the chart whatever the data does: a
+       * value above all of it stretches the axis to it, so the person paged
+       * sees how far the series is from alerting.
+       */
+      thresholds={hasThresholds ? props.thresholds : undefined}
+      thresholdLinesExtendAxis={hasThresholds}
+      timeReferenceLines={props.timeReferenceLines}
+      referenceRegions={props.referenceRegions}
+      onTimeRangeSelect={props.onTimeRangeSelect}
+      onTimeRangeReset={props.onTimeRangeReset}
     />
   );
 };

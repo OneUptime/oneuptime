@@ -255,7 +255,7 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-许多其他类型也各自拥有独一无二的名称，例如事件严重程度、监视器状态、状态页面和工作流，它们会以同样的方式拒绝已被占用的名称：
+许多其他类型也各自拥有独一无二的名称，例如事件严重程度、监视器状态、状态页面和工作流，无论是创建还是重命名，它们都会以同样的方式拒绝已被占用的名称：
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Incident Severity with the same name already exists.
 - `"refusalCode": "name_taken"`：一条正在使用的记录占用了该名称。由于没有写入任何内容，一旦这条记录让出该名称，就可以再次发送同一请求：Terraform 提供程序会在最多 30 秒内再次请求。
 - `"refusalCode": "name_taken_by_archived"`：只有一条已归档的记录占用了该名称。请取消归档这条记录，或另选一个名称：再次发送请求无济于事，Terraform 提供程序也不会再次发送。
 
-以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来。对于团队、标签、值班策略和值班计划，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。已归档的标签和值班策略不计在内。
+以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来，但绝不能改成其他记录的名称。对于团队、标签、值班策略和值班计划，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。已归档的标签和值班策略不计在内。
+
+#### 其他记录已在使用的值
+
+一些不是名称的值也各自只属于一条记录，其中包括状态页面、仪表板或表单的域名、项目域名、主机或 Kubernetes 集群的标识符、SSO 提供商的登录 URL 以及 API 密钥的权限。创建记录，或更改其中某个值的更新，如果使用了其他记录已有的值，就会被拒绝，并返回一个说明这一点的 `400`：
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+除消息外，这类拒绝还包含一个 `refusalCode`，说明是什么占用了该值，以及一个 `field`，指明值被占用的字段，例如 `"field": "fullDomain"`。由多个字段共同组成的值不带 `field`。请凭这个代码识别拒绝，而不是凭措辞可能改变的句子：
+
+- `"refusalCode": "value_taken"`：一条正在使用的记录占用了该值。由于没有写入任何内容，一旦这条记录让出该值，就可以再次发送同一请求：Terraform 提供程序会在最多 30 秒内再次请求。
+- `"refusalCode": "value_taken_by_archived"`：只有一条已归档的记录占用了该值。请取消归档这条记录，或另选一个值：再次发送请求无济于事，Terraform 提供程序也不会再次发送。
+
+以任意大小写再次发送记录自身值的更新不算更改，因此此前共用一个值的记录仍然可以修改，也可以改成各不相同的值。
 
 ### 开关
 

@@ -250,7 +250,7 @@ Die Dashboard-Vorlagen öffnen ihre Listen von Hosts, Knoten, Pods, Swarm-Dienst
 Ein [öffentliches Dashboard](/docs/dashboards/sharing) zeichnet die meisten Widgets für seine Besucher, jedes zeigt nur, wofür es eingerichtet wurde. Einige können ohne angemeldete Sitzung nicht angezeigt werden:
 
 - **Protokolldiagramm**, **Trace-Diagramm**, **Trace-Tabelle**, **Sicherheitsereignisse**, **Fluss der Sicherheitsereignisse**, **Trichter** und **Benutzerbindung** sagen an ihrer Stelle, dass sie auf öffentlichen Dashboards nicht verfügbar sind.
-- Die Widgets der Gruppe External Data Sources werden aus einem öffentlichen Dashboard ganz weggelassen, weil ihre Einstellungen die Abfrage selbst sind.
+- Die Widgets der Gruppe External Data Sources zeigen ihre Daten, wenn sie **Metriken dieses Projekts (PromQL)** lesen, nie ihre Abfragen. Ein Widget mit externer Datenquelle wird aus einem öffentlichen Dashboard ganz weggelassen.
 
 ## Wenn ein Widget nicht angezeigt werden kann
 

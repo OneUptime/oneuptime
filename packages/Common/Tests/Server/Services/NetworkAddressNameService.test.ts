@@ -10,6 +10,10 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import NetworkAddressName from "../../../Models/DatabaseModels/NetworkAddressName";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
+import ValueTakenException, {
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/ValueTakenException";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -206,6 +210,24 @@ describe("NetworkAddressNameService.onBeforeCreate", () => {
         "10.18.167.0/24 already has a name: Mumbai office. Change that one instead.",
       ),
     );
+  });
+
+  test("an address another name has carries value_taken and the field (#10319)", async () => {
+    findOneBy.mockResolvedValue(
+      existing("10.18.167.0/24", "Mumbai office", OTHER_ROW),
+    );
+
+    const error: unknown = await hooks
+      .onBeforeCreate(createBy({ name: "Mumbai", address: "10.18.167.0/24" }))
+      .catch((caught: unknown): unknown => {
+        return caught;
+      });
+
+    expect(error).toBeInstanceOf(ValueTakenException);
+    expect(getErrorDetails(error)).toEqual({
+      refusalCode: VALUE_TAKEN_REFUSAL_CODE,
+      field: "address",
+    });
   });
 
   test("an address that is not one is refused before anything is read", async () => {
