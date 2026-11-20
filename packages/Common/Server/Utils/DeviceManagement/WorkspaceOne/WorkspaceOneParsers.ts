@@ -1,6 +1,10 @@
-import { getManagedDeviceStorageDetails } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
+import {
+  getManagedDeviceChargingDetails,
+  getManagedDeviceStorageDetails,
+} from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import {
   ManagedDevicePlatform,
+  isAppleManagedDevicePlatform,
   readManagedDevicePlatformFromName,
 } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
@@ -204,6 +208,33 @@ export function readWorkspaceOneBatteryLevel(value: unknown): number | null {
   return percent <= 100 ? Math.round(percent) : null;
 }
 
+/*
+ * Whether a device is on power, from its AcLineStatus (#10288), which
+ * Workspace ONE lists beside BatteryLevel. Its reference names the field
+ * without its values; they are Windows' ACLineStatus's, whose name it
+ * keeps: 0 offline, on the battery; 1 online, on power - a device on its
+ * charger or its dock; 255 unknown. True for 1, false for 0, null for
+ * anything else - and null for an Apple device's 0, which is also what
+ * Workspace ONE keeps of a device that never said: Apple's MDM reports a
+ * battery level but no power source, so its 0 says nothing.
+ */
+export function readWorkspaceOneIsCharging(data: {
+  acLineStatus: unknown;
+  platform: ManagedDevicePlatform;
+}): boolean | null {
+  const status: number | null = readNumber(data.acLineStatus);
+
+  if (status === 1) {
+    return true;
+  }
+
+  if (status === 0 && !isAppleManagedDevicePlatform(data.platform)) {
+    return false;
+  }
+
+  return null;
+}
+
 // A size in gigabytes, to one decimal: "" for none or zero.
 function gigabytes(value: number | null): string {
   if (value === null || value <= 0) {
@@ -321,6 +352,13 @@ export function parseWorkspaceOneDevice(
       totalBytes: capacity === null ? null : capacity * 1e9,
       freeBytes: available === null ? null : available * 1e9,
     }),
+    // On its charger or not, for Low Battery to leave be (#10288).
+    getManagedDeviceChargingDetails(
+      readWorkspaceOneIsCharging({
+        acLineStatus: raw["AcLineStatus"],
+        platform,
+      }),
+    ),
   );
 
   const ipAddresses: Array<string> = [];

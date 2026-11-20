@@ -31,12 +31,20 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
+import DeviceManagementConnectionAlerts, {
+  DeviceManagementConnectionGone,
+} from "../Utils/DeviceManagement/DeviceManagementConnectionAlerts";
 import { DeviceManagementSettings } from "../Utils/DeviceManagement/DeviceManagementTypes";
 import ManagedDeviceInventory from "../Utils/DeviceManagement/ManagedDeviceInventory";
 
-// The connections a delete removes, and their projects.
+// The connections a delete removes, with what their alerts' notes name them by.
 interface ConnectionDeleteCarryForward {
-  connections: Array<{ id: ObjectID; projectId: ObjectID }>;
+  connections: Array<DeviceManagementConnectionGone>;
+}
+
+// The connections an update turns off: those it writes isEnabled false to that were on.
+interface ConnectionUpdateCarryForward {
+  turnedOff: Array<DeviceManagementConnectionGone>;
 }
 
 /*
@@ -401,9 +409,82 @@ export class Service extends DatabaseService<Model> {
     const touchesSettings: boolean =
       incoming["config"] !== undefined || incoming["secrets"] !== undefined;
 
-    if (!touchesSettings) {
-      return { updateBy, carryForward: null };
+    if (touchesSettings) {
+      await this.checkSettingsOfUpdate(updateBy);
     }
+
+    /*
+     * Read after the settings' checks, which name the one row they allow
+     * by its plain id: reading the rows holds the update to them.
+     */
+    return {
+      updateBy,
+      carryForward: await this.readConnectionsTurnedOff(updateBy),
+    };
+  }
+
+  /*
+   * The connections an update turns off (#10286): those it writes isEnabled
+   * false to that are on now, read as the update writes them
+   * (findRowsAndHoldUpdateToThem). Writing the switch back as it is turns
+   * nothing off. None for an update that leaves the switch alone.
+   */
+  private async readConnectionsTurnedOff(
+    updateBy: UpdateBy<Model>,
+  ): Promise<ConnectionUpdateCarryForward | null> {
+    const incoming: JSONObject = updateBy.data as unknown as JSONObject;
+
+    if (incoming["isEnabled"] !== false) {
+      return null;
+    }
+
+    const connections: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        projectId: true,
+        name: true,
+        provider: true,
+        config: true,
+        isEnabled: true,
+        lastSuccessfulPullAt: true,
+        createdAt: true,
+      },
+    );
+
+    const turnedOff: Array<DeviceManagementConnectionGone> = connections
+      .filter((connection: Model): boolean => {
+        return Boolean(
+          connection.id &&
+            connection.projectId &&
+            connection.isEnabled !== false,
+        );
+      })
+      .map((connection: Model): DeviceManagementConnectionGone => {
+        return {
+          connectionId: connection.id!,
+          projectId: connection.projectId!,
+          name: connection.name,
+          provider: connection.provider,
+          readIntervalInMinutes: readDeviceManagementConfig(connection.config)
+            .readIntervalInMinutes,
+          lastSuccessfulPullAt: connection.lastSuccessfulPullAt,
+          createdAt: connection.createdAt,
+        };
+      });
+
+    return turnedOff.length > 0 ? { turnedOff } : null;
+  }
+
+  /*
+   * An update of a connection's settings or credentials, checked and made
+   * ready to store: one connection at a time, its tenant and service fixed,
+   * its secrets kept or replaced.
+   */
+  private async checkSettingsOfUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const incoming: JSONObject = updateBy.data as unknown as JSONObject;
 
     const connectionId: string | undefined = Service.getOneRowIdNamedBy(
       updateBy.query,
@@ -488,8 +569,6 @@ export class Service extends DatabaseService<Model> {
 
       incoming["secrets"] = Service.toSecretsJson(provider, secrets, requested);
     }
-
-    return { updateBy, carryForward: null };
   }
 
   /*
@@ -511,18 +590,54 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The connections a delete removes, with their projects: their devices go
-   * with them (the database removes them with the connection), and each
-   * device's host in Inventory is let go first (onDeleteSuccess). Read as
-   * the delete reads them - the ones its caller may delete - and the delete
-   * held to them (findRowsAndHoldDeleteToThem).
+   * Connections turned off (#10286): each writes its last reading, and what
+   * its Connection Stopped Reading monitors opened about it is resolved,
+   * saying who turned it off (DeviceManagementConnectionAlerts). Only the
+   * rows the update wrote; never fails the update.
+   */
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const turnedOff: Array<DeviceManagementConnectionGone> =
+      Service.ofRowsWritten(
+        (onUpdate.carryForward as ConnectionUpdateCarryForward | null)
+          ?.turnedOff || [],
+        updatedItemIds,
+      );
+
+    if (turnedOff.length > 0) {
+      try {
+        await DeviceManagementConnectionAlerts.onConnectionsTurnedOff({
+          connections: turnedOff,
+          turnedOffByUserId: onUpdate.updateBy.props.userId,
+        });
+      } catch (error) {
+        logger.error(
+          `Device management connections were turned off, but what their monitors had open about them could not be resolved: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * The connections a delete removes, with their projects and names: their
+   * devices go with them (the database removes them with the connection),
+   * each device's host in Inventory is let go first, and the monitors that
+   * read only them are turned off once they are gone (onDeleteSuccess).
+   * Read as the delete reads them - the ones its caller may delete - and the
+   * delete held to them (findRowsAndHoldDeleteToThem).
    */
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
       deleteBy,
-      { _id: true, projectId: true },
+      { _id: true, projectId: true, name: true, provider: true },
     );
 
     const carryForward: ConnectionDeleteCarryForward = {
@@ -530,8 +645,13 @@ export class Service extends DatabaseService<Model> {
         .filter((connection: Model): boolean => {
           return Boolean(connection.id && connection.projectId);
         })
-        .map((connection: Model): { id: ObjectID; projectId: ObjectID } => {
-          return { id: connection.id!, projectId: connection.projectId! };
+        .map((connection: Model): DeviceManagementConnectionGone => {
+          return {
+            connectionId: connection.id!,
+            projectId: connection.projectId!,
+            name: connection.name,
+            provider: connection.provider,
+          };
         }),
     };
 
@@ -543,11 +663,11 @@ export class Service extends DatabaseService<Model> {
       try {
         await ManagedDeviceInventory.releaseConnection({
           projectId: connection.projectId,
-          connectionId: connection.id,
+          connectionId: connection.connectionId,
         });
       } catch (error) {
         logger.error(
-          `Device management connection ${connection.id.toString()} is being deleted, but its devices' hosts in Inventory could not be let go: ${
+          `Device management connection ${connection.connectionId.toString()} is being deleted, but its devices' hosts in Inventory could not be let go: ${
             error instanceof Error ? error.message : String(error)
           }`,
         );
@@ -555,6 +675,59 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { deleteBy, carryForward };
+  }
+
+  /*
+   * Connections deleted (#10286): every monitor that read one of them alone
+   * has nothing left to read. What it had open is resolved, its monitoring
+   * turned off, and its feed says why (DeviceManagementConnectionAlerts).
+   * Only the rows the delete removed; never fails the delete.
+   */
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const deleted: Array<DeviceManagementConnectionGone> =
+      Service.ofRowsWritten(
+        (onDelete.carryForward as ConnectionDeleteCarryForward | null)
+          ?.connections || [],
+        deletedItemIds,
+      );
+
+    if (deleted.length > 0) {
+      try {
+        await DeviceManagementConnectionAlerts.onConnectionsDeleted({
+          connections: deleted,
+          deletedByUserId: onDelete.deleteBy.props.userId,
+        });
+      } catch (error) {
+        logger.error(
+          `Device management connections were deleted, but the monitors that read them could not be turned off: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return onDelete;
+  }
+
+  // The connections of a carry the write really wrote, by id.
+  private static ofRowsWritten(
+    connections: Array<DeviceManagementConnectionGone>,
+    writtenIds: Array<ObjectID>,
+  ): Array<DeviceManagementConnectionGone> {
+    const written: Set<string> = new Set<string>(
+      writtenIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    return connections.filter(
+      (connection: DeviceManagementConnectionGone): boolean => {
+        return written.has(connection.connectionId.toString());
+      },
+    );
   }
 
   /*

@@ -845,6 +845,7 @@ export default class MonitorTemplateUtil {
       monitorType: data.monitorType,
       seriesLabels: data.seriesLabels,
       seriesContext: data.seriesContext,
+      metricNames: MonitorTemplateUtil.getMetricNamesReadBy(data.dataToProcess),
     });
 
     if (data.monitor) {
@@ -908,6 +909,8 @@ export default class MonitorTemplateUtil {
     monitorType: MonitorType | undefined;
     seriesLabels: JSONObject | undefined;
     seriesContext?: JSONObject | undefined;
+    // The metrics the check's step read: its commands are of those (#10209).
+    metricNames?: ReadonlyArray<string> | undefined;
   }): void {
     data.storageMap["seriesResourceSuffix"] =
       SeriesLabelDisplay.buildTitleSuffix(data.seriesLabels, {
@@ -925,7 +928,21 @@ export default class MonitorTemplateUtil {
       SeriesDebugHints.buildMarkdownBlock({
         monitorType: data.monitorType,
         seriesLabels: data.seriesLabels,
+        metricNames: data.metricNames,
       });
+  }
+
+  /*
+   * The metrics a check's step read, as its answer names them: a Metrics
+   * monitor's (MetricMonitorResponse.metricViewConfig). [] for any other
+   * check, whose answer has no metric query.
+   */
+  public static getMetricNamesReadBy(
+    dataToProcess: DataToProcess | undefined,
+  ): Array<string> {
+    return SeriesDebugHints.getMetricNamesOfView(
+      (dataToProcess as MetricMonitorResponse | undefined)?.metricViewConfig,
+    );
   }
 
   /*

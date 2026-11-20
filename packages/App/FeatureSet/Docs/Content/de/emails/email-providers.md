@@ -64,7 +64,7 @@ Geben Sie **Zugriffsschlüssel-ID** und **Geheimer Zugriffsschlüssel** ein, daz
 
 ### Mit der IAM-Rolle des Servers anmelden
 
-Eine selbst gehostete Installation auf AWS kann ihre eigenen E-Mails als die IAM-Rolle senden, die AWS dem Server gibt, ohne dass in OneUptime ein Zugriffsschlüssel gespeichert ist: Die Anmeldedaten, die AWS ausgibt, laufen innerhalb von Stunden ab, und OneUptime holt neue, bevor das geschieht. Das gilt nur für die eigenen E-Mails des Servers. Die Amazon SES-Konfiguration eines Projekts meldet sich immer mit einem Zugriffsschlüssel an, denn die Rolle des Servers ist die eigene AWS-Identität des Servers, nicht die eines Projekts.
+Eine selbst gehostete Installation kann ihre eigenen E-Mails als eine IAM-Rolle senden, ohne dass in OneUptime ein Zugriffsschlüssel gespeichert ist: auf AWS als die Rolle, die AWS dem Server gibt, überall sonst als eine Rolle, bei der sie sich mit IAM Roles Anywhere anmeldet. Die Anmeldedaten laufen innerhalb von Stunden ab, und OneUptime holt neue, bevor das geschieht. Das gilt nur für die eigenen E-Mails des Servers. Die Amazon SES-Konfiguration eines Projekts meldet sich immer mit einem Zugriffsschlüssel an, denn die Rolle des Servers ist die eigene AWS-Identität des Servers, nicht die eines Projekts.
 
 Geben Sie der Rolle die Richtlinie von oben und führen Sie OneUptime dann als diese Rolle aus:
 
@@ -88,11 +88,32 @@ Hängen Sie die Rolle als Instanzprofil an die Instanz an. Läuft OneUptime in D
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Außerhalb von AWS, auf Ihren eigenen Servern oder in einer anderen Cloud, meldet sich der Server über IAM Roles Anywhere als Rolle an, das ein X.509-Zertifikat gegen die Anmeldedaten der Rolle eintauscht. Erstellen Sie in IAM Roles Anywhere einen Trust Anchor für Ihre Zertifizierungsstelle und ein Profil für die Rolle. Legen Sie dann das Hilfsprogramm von AWS für Anmeldedaten, `aws_signing_helper`, in einen Ordner, zusammen mit dem Zertifikat, seinem privaten Schlüssel und einer AWS-Konfigurationsdatei, deren Profil das Hilfsprogramm als seinen `credential_process` ausführt:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Mit Docker Compose binden Sie den Ordner schreibgeschützt ein und nennen die Datei und das Profil in `docker-compose.override.yml` neben `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Mit dem Helm-Chart binden Sie die Konfiguration, das Zertifikat und seinen Schlüssel aus einem Secret mit `extraVolumes` und `extraVolumeMounts` ein, setzen `AWS_CONFIG_FILE` und `AWS_PROFILE` mit `extraEnv` und legen das Hilfsprogramm in ein Image, das auf dem von OneUptime aufbaut: Ein Secret fasst höchstens 1 MB. OneUptime führt das Hilfsprogramm ohne Shell aus, über seinen vollständigen Pfad, höchstens 30 Sekunden lang und nur aus einer Konfigurationsdatei, die es selbst nicht ändern kann: Eine Datei, in die es schreiben könnte, wird abgelehnt.
 :::
 
 Klicken Sie dann im Admin Dashboard auf **Amazon SES bearbeiten**, wählen Sie **IAM-Rolle dieses Servers** als **Authentifizierungstyp** und geben Sie die **Region** ein. Beim Speichern wird ein zuvor gespeicherter Zugriffsschlüssel entfernt.
 
-OneUptime sucht die Anmeldedaten des Servers dort, wo die AWS SDKs sie suchen, in dieser Reihenfolge: `AWS_ACCESS_KEY_ID` und `AWS_SECRET_ACCESS_KEY` in seiner Umgebung, ein Web-Identity-Token (`AWS_ROLE_ARN` und `AWS_WEB_IDENTITY_TOKEN_FILE`), der Endpunkt für Container-Anmeldedaten von Amazon ECS und EKS Pod Identity, dann der Instanzmetadatendienst von EC2 (IMDSv2).
+OneUptime sucht die Anmeldedaten des Servers dort, wo die AWS SDKs sie suchen, in dieser Reihenfolge: `AWS_ACCESS_KEY_ID` und `AWS_SECRET_ACCESS_KEY` in seiner Umgebung, das AWS-Profil, das `AWS_PROFILE`, `AWS_CONFIG_FILE` oder `AWS_SHARED_CREDENTIALS_FILE` nennt (seine Schlüssel oder sein `credential_process`), ein Web-Identity-Token (`AWS_ROLE_ARN` und `AWS_WEB_IDENTITY_TOKEN_FILE`), der Endpunkt für Container-Anmeldedaten von Amazon ECS und EKS Pod Identity, dann der Instanzmetadatendienst von EC2 (IMDSv2). Ist keine der drei gesetzt, liest OneUptime keine AWS-Konfigurationsdatei.
 
 ## SendGrid
 

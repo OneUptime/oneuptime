@@ -4413,5 +4413,18 @@
   "Same name as another label": "与另一个标签同名",
   "Same name as another policy": "与另一个策略同名",
   "Same name as another schedule": "与另一个排班同名",
-  "Created {{date}}": "创建于 {{date}}"
+  "Created {{date}}": "创建于 {{date}}",
+  "Signs In As": "登录身份",
+  "Check again": "重新检查",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "无法询问服务器以哪个 AWS 身份登录。{{error}}",
+  "This server cannot sign in to AWS. {{error}}": "此服务器无法登录 AWS。{{error}}",
+  "A test email shows whether it may send.": "测试邮件可以显示它是否可以发送。",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "来自服务器环境中的 AWS_ACCESS_KEY_ID。",
+  "From the server's AWS profile.": "来自服务器的 AWS profile。",
+  "From IAM roles for service accounts.": "来自服务账户的 IAM 角色。",
+  "From EKS Pod Identity.": "来自 EKS Pod Identity。",
+  "From the ECS task role.": "来自 ECS 任务角色。",
+  "From the container credentials endpoint.": "来自容器凭证端点。",
+  "From the EC2 instance profile.": "来自 EC2 实例配置文件。",
+  "The server did not say which AWS identity it signs in as.": "服务器没有说明它以哪个 AWS 身份登录。"
 }

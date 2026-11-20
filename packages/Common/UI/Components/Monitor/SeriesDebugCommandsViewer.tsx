@@ -9,6 +9,11 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   monitorType?: MonitorType | undefined;
   seriesLabels?: JSONObject | undefined;
+  /*
+   * The metrics the monitor's steps read, where known: a managed device's
+   * commands are then those of the reading its monitor reads (#10209).
+   */
+  metricNames?: ReadonlyArray<string> | undefined;
 }
 
 /**
@@ -31,6 +36,7 @@ const SeriesDebugCommandsViewer: FunctionComponent<ComponentProps> = (
     {
       monitorType: props.monitorType,
       seriesLabels: props.seriesLabels,
+      metricNames: props.metricNames,
     },
   );
 

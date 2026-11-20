@@ -18,6 +18,7 @@ import {
   readSotiLastCheckIn,
   readSotiPlatform,
 } from "../../../../Server/Utils/DeviceManagement/Soti/SotiParsers";
+import { MANAGED_DEVICE_IS_CHARGING_DETAIL } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { EsperDeviceState } from "../../../../Types/DeviceManagement/ManagedDeviceStatus";
 import { JSONObject } from "../../../../Types/JSON";
@@ -440,5 +441,40 @@ describe("what MobiControl said went wrong", () => {
     expect(
       readSotiError({ bodyJson: undefined, bodyText: "Service Unavailable" }),
     ).toBe("Service Unavailable");
+  });
+});
+
+/*
+ * #10288: whether a device is charging, from IsCharging - a Boolean
+ * MobiControl's REST API lists for an Android+ device alone (its Device
+ * Properties Spreadsheet), beside BatteryStatus - kept in its details for
+ * Low Battery to read.
+ */
+describe("whether a device is charging", () => {
+  function chargingOf(raw: JSONObject): unknown {
+    return parseSotiDevice(raw, NOW)!.device.details[
+      MANAGED_DEVICE_IS_CHARGING_DETAIL
+    ];
+  }
+
+  test("an Android+ scanner in its cradle is charging; one in a hand is not", () => {
+    expect(
+      chargingOf(buildSotiDevice({ BatteryStatus: 14, IsCharging: true })),
+    ).toBe(true);
+    expect(
+      chargingOf(buildSotiDevice({ BatteryStatus: 14, IsCharging: false })),
+    ).toBe(false);
+  });
+
+  test("a device that says nothing of it - an iPad, a Windows PC, an older agent - has none", () => {
+    expect(chargingOf(buildSotiDevice())).toBeUndefined();
+    expect(chargingOf(buildSotiIpad())).toBeUndefined();
+    expect(chargingOf(buildSotiWindows())).toBeUndefined();
+
+    for (const value of ["true", 1, null, "Charging"]) {
+      expect(
+        chargingOf(buildSotiDevice({ IsCharging: value })),
+      ).toBeUndefined();
+    }
   });
 });

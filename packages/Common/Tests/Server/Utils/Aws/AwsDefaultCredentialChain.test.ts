@@ -230,6 +230,11 @@ describe("where the credentials come from", () => {
       "environment",
     ],
     [
+      "a profile of the AWS shared config files (AwsDefaultCredentialChainProfile.test.ts)",
+      { AWS_PROFILE: "oneuptime" },
+      "profile",
+    ],
+    [
       "a web identity token (IRSA)",
       { AWS_ROLE_ARN: ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE: TOKEN_FILE },
       "web-identity",
@@ -261,10 +266,11 @@ describe("where the credentials come from", () => {
     },
   );
 
-  test("in the SDKs' order: environment, web identity, container, instance profile", () => {
+  test("in the SDKs' order: environment, profile, web identity, container, instance profile", () => {
     const everything: AwsChainEnvironment = {
       AWS_ACCESS_KEY_ID: "AKIAENVEXAMPLE000001",
       AWS_SECRET_ACCESS_KEY: "envSecret",
+      AWS_PROFILE: "oneuptime",
       AWS_ROLE_ARN: ROLE_ARN,
       AWS_WEB_IDENTITY_TOKEN_FILE: TOKEN_FILE,
       AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: "/v2/credentials/abc",
@@ -282,13 +288,52 @@ describe("where the credentials come from", () => {
 
     expect(
       new AwsDefaultCredentialChain({ env: withoutKeys }).getSource(),
+    ).toBe("profile");
+
+    expect(
+      new AwsDefaultCredentialChain({
+        env: { ...withoutKeys, AWS_PROFILE: "" },
+      }).getSource(),
     ).toBe("web-identity");
 
     expect(
       new AwsDefaultCredentialChain({
-        env: { ...withoutKeys, AWS_WEB_IDENTITY_TOKEN_FILE: "" },
+        env: {
+          ...withoutKeys,
+          AWS_PROFILE: "",
+          AWS_WEB_IDENTITY_TOKEN_FILE: "",
+        },
       }).getSource(),
     ).toBe("container");
+  });
+
+  test("a caller may look in some sources only, in its own order", () => {
+    const env: AwsChainEnvironment = {
+      AWS_ACCESS_KEY_ID: "AKIAENVEXAMPLE000001",
+      AWS_SECRET_ACCESS_KEY: "envSecret",
+      AWS_ROLE_ARN: ROLE_ARN,
+      AWS_WEB_IDENTITY_TOKEN_FILE: TOKEN_FILE,
+    };
+
+    expect(
+      new AwsDefaultCredentialChain({
+        env: env,
+        sources: ["web-identity", "container", "environment"],
+      }).getSource(),
+    ).toBe("web-identity");
+
+    // Nothing it looks in is set up: no source, never the instance profile.
+    expect(
+      new AwsDefaultCredentialChain({
+        env: {},
+        sources: ["web-identity", "container", "environment"],
+      }).getSource(),
+    ).toBeNull();
+
+    // An empty list is every source.
+    expect(
+      new AwsDefaultCredentialChain({ env: env, sources: [] }).getSource(),
+    ).toBe("environment");
   });
 
   test("a web identity needs both the role and the token file", () => {
@@ -511,6 +556,40 @@ describe("a web identity token, traded at STS (IAM roles for service accounts)",
       await under.chain.getCredentials({ regionHint: hint });
 
       expect(under.http.requests[0]!.url).toBe(url);
+    },
+  );
+
+  test.each([
+    ["oneuptime-marketplace", "oneuptime-marketplace"],
+    // STS would refuse these, the time after them: OneUptime's own is used.
+    ["has spaces", "oneuptime"],
+    ["x".repeat(60), "oneuptime"],
+    ["", "oneuptime"],
+  ])(
+    "a caller names its sessions with a prefix of its own: %j",
+    async (prefix: string, expected: string) => {
+      const under: ChainUnderTest = chainWith({
+        env: WEB_IDENTITY_ENV,
+        files: { [TOKEN_FILE]: WEB_IDENTITY_TOKEN },
+        answers: [ok(STS_JSON_ANSWER(IN_AN_HOUR_SECONDS))],
+      });
+      const chain: AwsDefaultCredentialChain = new AwsDefaultCredentialChain({
+        env: WEB_IDENTITY_ENV,
+        httpClient: under.http.client,
+        now: under.clock.now,
+        readFile: async (): Promise<string> => {
+          return WEB_IDENTITY_TOKEN;
+        },
+        roleSessionNamePrefix: prefix,
+      });
+
+      await chain.getCredentials();
+
+      expect(
+        new URLSearchParams(under.http.requests[0]!.body).get(
+          "RoleSessionName",
+        ),
+      ).toBe(`${expected}-${NOW.getTime()}`);
     },
   );
 

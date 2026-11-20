@@ -31,6 +31,7 @@ import logger from "../../../../Server/Utils/Logger";
 import {
   ManagedDeviceReadingRowInput,
   buildManagedDeviceBatteryRow,
+  buildManagedDeviceChargingRow,
   buildManagedDeviceCheckInRow,
   buildManagedDeviceSecurityPatchRow,
   buildManagedDeviceStorageRow,
@@ -41,7 +42,10 @@ import {
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceSync";
 import { ProviderDevice } from "../../../../Server/Utils/DeviceManagement/DeviceManagementTypes";
 import { parseEsperDevice } from "../../../../Server/Utils/DeviceManagement/Esper/EsperParsers";
-import { parseIntuneDevice } from "../../../../Server/Utils/DeviceManagement/Intune/IntuneParsers";
+import {
+  parseIntuneBatteryLevel,
+  parseIntuneDevice,
+} from "../../../../Server/Utils/DeviceManagement/Intune/IntuneParsers";
 import { parseWorkspaceOneDevice } from "../../../../Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneParsers";
 import { parseSotiDevice } from "../../../../Server/Utils/DeviceManagement/Soti/SotiParsers";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -52,6 +56,7 @@ import Includes from "../../../../Types/BaseDatabase/Includes";
 import Dictionary from "../../../../Types/Dictionary";
 import DeviceManagementProvider from "../../../../Types/DeviceManagement/DeviceManagementProvider";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
   ManagedDeviceCheckInAttribute,
@@ -66,7 +71,11 @@ import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import { getHostAlertTemplateById } from "../../../../Types/Monitor/HostAlertTemplates";
-import { getManagedDeviceAlertTemplateById } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
+import {
+  ManagedDeviceAlertTemplate,
+  ManagedDeviceAlertTemplateArgs,
+  getManagedDeviceAlertTemplateById,
+} from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
@@ -81,7 +90,12 @@ import {
   buildEsperAppleDevice,
   buildEsperDevice,
 } from "../DeviceManagement/EsperFixtures";
-import { buildIntuneDevice } from "../DeviceManagement/FakeIntuneGraph";
+import {
+  buildIntuneDevice,
+  buildIntuneHardwareInformation,
+  buildIntuneIpad,
+  buildIntuneIphone,
+} from "../DeviceManagement/FakeIntuneGraph";
 import {
   buildWorkspaceOneAndroid,
   buildWorkspaceOneDevice,
@@ -213,6 +227,7 @@ function rowsOfARead(data: {
     for (const optional of [
       buildManagedDeviceSecurityPatchRow(input),
       buildManagedDeviceBatteryRow(input),
+      buildManagedDeviceChargingRow(input),
       buildManagedDeviceStorageRow(input),
     ]) {
       if (optional) {
@@ -263,29 +278,30 @@ function fingerprintOf(device: string): string {
   return MetricSeriesFingerprint.computeFingerprint({ [DEVICE_KEY]: device });
 }
 
+// One device's newest minute of a query: its time and its value.
+interface LatestMinute {
+  minute: string;
+  value: number;
+}
+
 /*
- * The worker's answer at a check: the rows the step's query reads, one
- * series per device, each judged on its newest minute, the minute's rows
- * taken as the query aggregates them (Min for a battery, Max for storage).
+ * The rows one query reads, each device's newest minute, the minute's rows
+ * taken as the query aggregates them (Min for a battery, Max for the rest).
  */
-function check(rows: Array<JSONObject>): MetricMonitorResponse {
-  const view: MetricsViewConfig = MonitorStep.getMetricsViewConfig(step)!;
-  const query: MetricQueryConfigData = view.queryConfigs[0]!;
-  const read: Array<JSONObject> = rowsRead(rows, query);
+function latestOf(
+  rows: Array<JSONObject>,
+  query: MetricQueryConfigData,
+): Map<string, LatestMinute> {
   const takesTheLeast: boolean =
     query.metricQueryData.filterData.aggegationType ===
     MetricsAggregationType.Min;
-  const latest: Map<string, { minute: string; value: number }> = new Map<
-    string,
-    { minute: string; value: number }
-  >();
+  const latest: Map<string, LatestMinute> = new Map<string, LatestMinute>();
 
-  for (const row of read) {
+  for (const row of rowsRead(rows, query)) {
     const name: string = (row["attributes"] as Dictionary<string>)[DEVICE_KEY]!;
     const minute: string = String(row["time"]).substring(0, 16);
     const value: number = row["value"] as number;
-    const earlier: { minute: string; value: number } | undefined =
-      latest.get(name);
+    const earlier: LatestMinute | undefined = latest.get(name);
 
     if (!earlier || minute > earlier.minute) {
       latest.set(name, { minute, value });
@@ -299,12 +315,28 @@ function check(rows: Array<JSONObject>): MetricMonitorResponse {
     }
   }
 
-  const sample: (
+  return latest;
+}
+
+/*
+ * The worker's answer at a check: what each of the step's queries reads,
+ * one series per device, each judged on its newest minute. A step of two
+ * queries - Low Battery with whether a device is on its charger (#10288) -
+ * gets one series per device either names, each with both queries' slots,
+ * empty where that query read nothing of it, as the worker builds its
+ * breakdown.
+ */
+function check(rows: Array<JSONObject>): MetricMonitorResponse {
+  const view: MetricsViewConfig = MonitorStep.getMetricsViewConfig(step)!;
+  const perQuery: Array<Map<string, LatestMinute>> = view.queryConfigs.map(
+    (query: MetricQueryConfigData): Map<string, LatestMinute> => {
+      return latestOf(rows, query);
+    },
+  );
+
+  const sample: (name: string, entry: LatestMinute) => AggregateModel = (
     name: string,
-    entry: { minute: string; value: number },
-  ) => AggregateModel = (
-    name: string,
-    entry: { minute: string; value: number },
+    entry: LatestMinute,
   ): AggregateModel => {
     return {
       timestamp: new Date(`${entry.minute.replace(" ", "T")}:00Z`),
@@ -313,34 +345,47 @@ function check(rows: Array<JSONObject>): MetricMonitorResponse {
     } as unknown as AggregateModel;
   };
 
-  const entries: Array<[string, { minute: string; value: number }]> =
-    Array.from(latest.entries());
+  // Every device any query read, in the order they were first read.
+  const names: Array<string> = [];
+
+  for (const latest of perQuery) {
+    for (const name of latest.keys()) {
+      if (!names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
 
   return {
     projectId: monitor.projectId!,
     monitorId: monitor.id!,
     metricViewConfig: view,
-    metricResult: [
-      {
-        data: entries.map(
-          ([name, entry]: [string, { minute: string; value: number }]) => {
-            return sample(name, entry);
-          },
-        ),
-      } as AggregatedResult,
-    ],
-    seriesBreakdown: entries.map(
-      ([name, entry]: [
-        string,
-        { minute: string; value: number },
-      ]): MetricSeriesResult => {
+    metricResult: perQuery.map(
+      (latest: Map<string, LatestMinute>): AggregatedResult => {
         return {
-          fingerprint: fingerprintOf(name),
-          labels: { [DEVICE_KEY]: name },
-          aggregatedResults: [{ data: [sample(name, entry)] }],
-        };
+          data: Array.from(latest.entries()).map(
+            ([name, entry]: [string, LatestMinute]) => {
+              return sample(name, entry);
+            },
+          ),
+        } as AggregatedResult;
       },
     ),
+    seriesBreakdown: names.map((name: string): MetricSeriesResult => {
+      return {
+        fingerprint: fingerprintOf(name),
+        labels: { [DEVICE_KEY]: name },
+        aggregatedResults: perQuery.map(
+          (latest: Map<string, LatestMinute>): AggregatedResult => {
+            const entry: LatestMinute | undefined = latest.get(name);
+
+            return {
+              data: entry ? [sample(name, entry)] : [],
+            } as AggregatedResult;
+          },
+        ),
+      };
+    }),
     startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
       RollingTime.Past2Hours,
       NOW,
@@ -353,15 +398,22 @@ let step: MonitorStep;
 let closeAlerts: jest.SpyInstance;
 let createAlerts: jest.SpyInstance;
 
-function useTemplate(templateId: string): void {
-  step = getManagedDeviceAlertTemplateById(templateId)!.getMonitorStep({
+// The template's step - or, `earlier`, the one a monitor made before has.
+function useTemplate(templateId: string, earlier: boolean = false): void {
+  const template: ManagedDeviceAlertTemplate =
+    getManagedDeviceAlertTemplateById(templateId)!;
+  const templateArgs: ManagedDeviceAlertTemplateArgs = {
     deviceManagementConnectionId: CONNECTION.toString(),
     onlineMonitorStatusId: ONLINE,
     offlineMonitorStatusId: OFFLINE,
     defaultIncidentSeverityId: ObjectID.generate(),
     defaultAlertSeverityId: ObjectID.generate(),
     monitorName: `acme - ${templateId}`,
-  });
+  };
+
+  step = earlier
+    ? template.getEarlierMonitorSteps!(templateArgs)[0]!
+    : template.getMonitorStep(templateArgs);
   monitor.monitorType = MonitorType.Metrics;
   const monitorSteps: MonitorSteps = new MonitorSteps();
   monitorSteps.data = {
@@ -374,8 +426,9 @@ function useTemplate(templateId: string): void {
 async function alertedFor(
   templateId: string,
   rows: Array<JSONObject>,
+  earlier: boolean = false,
 ): Promise<Array<string>> {
-  useTemplate(templateId);
+  useTemplate(templateId, earlier);
   createAlerts.mockClear();
   closeAlerts.mockClear();
 
@@ -641,7 +694,29 @@ describe("Esper: battery and storage, from its device list to the alert", () => 
   });
 });
 
-describe("Microsoft Intune: storage, from Graph's device list to the alert", () => {
+/*
+ * Intune's device list says no battery; a read asks each iPhone and iPad
+ * alone (#10287), through beta's hardwareInformation, and sets what it
+ * says on the device before the sync writes it - as here.
+ */
+function intuneAppleDevice(data: {
+  raw: JSONObject;
+  hardware: JSONObject;
+}): ListedDevice {
+  const read: { device: ProviderDevice; lastSyncAt: Date | null } =
+    parseIntuneDevice(data.raw, READ_AT)!;
+
+  read.device.batteryLevel = parseIntuneBatteryLevel({
+    "@odata.context":
+      "https://graph.microsoft.com/beta/$metadata#deviceManagement/managedDevices(id,hardwareInformation)/$entity",
+    id: data.raw["id"],
+    hardwareInformation: buildIntuneHardwareInformation(data.hardware),
+  });
+
+  return { device: read.device, lastCheckInAt: read.lastSyncAt };
+}
+
+describe("Microsoft Intune: battery and storage, from Graph to the alert", () => {
   const rows: () => Array<JSONObject> = (): Array<JSONObject> => {
     const listed: Array<ListedDevice> = [
       // 12 GB free of 255 GB: 95.3% used.
@@ -671,15 +746,104 @@ describe("Microsoft Intune: storage, from Graph's device list to the alert", () 
       return { device: read.device, lastCheckInAt: read.lastSyncAt };
     });
 
+    listed.push(
+      // An iPhone Intune last heard at 15%.
+      intuneAppleDevice({
+        raw: buildIntuneIphone({
+          lastSyncDateTime: new Date(
+            READ_AT.getTime() - 40 * MINUTE,
+          ).toISOString(),
+        }),
+        hardware: { productName: "iPhone15,4", batteryLevelPercentage: 15 },
+      }),
+      // An iPad at 64.5%.
+      intuneAppleDevice({
+        raw: buildIntuneIpad({
+          lastSyncDateTime: new Date(
+            READ_AT.getTime() - 90 * MINUTE,
+          ).toISOString(),
+        }),
+        hardware: { productName: "iPad12,1", batteryLevelPercentage: 64.5 },
+      }),
+      // An iPhone Intune may not read the Device Information of: no level.
+      intuneAppleDevice({
+        raw: buildIntuneIphone({
+          id: "7d6c5b4a-3f2e-4d1c-8b0a-000000000002",
+          deviceName: "Store 413 iPhone",
+          serialNumber: "F2LXK1GHJKL1",
+          imei: "353093105432110",
+          lastSyncDateTime: new Date(
+            READ_AT.getTime() - 20 * MINUTE,
+          ).toISOString(),
+        }),
+        hardware: { batteryLevelPercentage: null },
+      }),
+    );
+
     return rowsOfARead({ provider: DeviceManagementProvider.Intune, listed });
   };
 
-  test("its device list says no battery, so no battery reading is written", () => {
+  test("a PC's battery is never said, so none of its rows is a battery's", () => {
+    const read: Array<JSONObject> = rows();
+
+    for (const pc of ["DESKTOP-FULL01", "DESKTOP-OK0001", "DESKTOP-NEW001"]) {
+      expect(
+        valueOf(read, MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME, pc),
+      ).toBeUndefined();
+    }
+
     expect(
-      rows().filter((row: JSONObject): boolean => {
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        "Store 413 iPhone",
+      ),
+    ).toBeUndefined();
+  });
+
+  test("Intune Low Battery: one alert for the iPhone at 15%, none for the iPad at 65% nor for a device with no level", async () => {
+    const read: Array<JSONObject> = rows();
+
+    expect(
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        "Store 412 iPhone",
+      ),
+    ).toBe(15);
+    expect(
+      read.filter((row: JSONObject): boolean => {
         return row["name"] === MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME;
       }),
-    ).toEqual([]);
+    ).toHaveLength(2);
+    expect(await alertedFor("intune-low-battery", read)).toEqual([
+      "Store 412 iPhone",
+    ]);
+  });
+
+  test("the iPhone back over 20% at its next check-in resolves it", async () => {
+    const charged: Array<JSONObject> = rowsOfARead({
+      provider: DeviceManagementProvider.Intune,
+      listed: [
+        intuneAppleDevice({
+          raw: buildIntuneIphone({
+            lastSyncDateTime: new Date(
+              READ_AT.getTime() - 5 * MINUTE,
+            ).toISOString(),
+          }),
+          hardware: { batteryLevelPercentage: 81.25 },
+        }),
+      ],
+    });
+
+    expect(
+      valueOf(
+        charged,
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        "Store 412 iPhone",
+      ),
+    ).toBe(81);
+    expect(await alertedFor("intune-low-battery", charged)).toEqual([]);
   });
 
   test("Intune Storage Nearly Full: one alert for the full laptop, none for one that never said its free space", async () => {
@@ -871,5 +1035,172 @@ describe("SOTI MobiControl: battery and storage, from its device list to the ale
 
     expect(response.criteriaMetId).toBeFalsy();
     expect(closeAlerts).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #10288: Low Battery leaves a device on its charger be, end to end from
+ * each service's own payload: Workspace ONE's AcLineStatus and SOTI's
+ * IsCharging of an Android+ device, read by the real parsers, written as a
+ * read writes them (each device's charging reading beside its battery,
+ * under the battery's attributes), read back by the template's two
+ * queries, one series per device, and judged by the real criteria
+ * evaluator through MonitorResourceUtil.monitorResource.
+ */
+describe("Workspace ONE and SOTI: Low Battery leaves a device on its charger be", () => {
+  function workspaceOneRows(
+    raws: Array<JSONObject>,
+    readAt: Date = READ_AT,
+  ): Array<JSONObject> {
+    return rowsOfARead({
+      provider: DeviceManagementProvider.WorkspaceOne,
+      readAt,
+      listed: raws.map((raw: JSONObject): ListedDevice => {
+        const read: { device: ProviderDevice; lastSeenAt: Date | null } =
+          parseWorkspaceOneDevice(raw, readAt)!;
+
+        return { device: read.device, lastCheckInAt: read.lastSeenAt };
+      }),
+    });
+  }
+
+  function sotiRows(
+    raws: Array<JSONObject>,
+    readAt: Date = READ_AT,
+  ): Array<JSONObject> {
+    return rowsOfARead({
+      provider: DeviceManagementProvider.Soti,
+      readAt,
+      listed: raws.map((raw: JSONObject): ListedDevice => {
+        const read: { device: ProviderDevice; lastCheckInAt: Date | null } =
+          parseSotiDevice(raw, readAt)!;
+
+        return { device: read.device, lastCheckInAt: read.lastCheckInAt };
+      }),
+    });
+  }
+
+  // A second Workspace ONE scanner of the warehouse.
+  function secondScanner(overrides: JSONObject): JSONObject {
+    return buildWorkspaceOneAndroid({
+      Id: { Value: 19 },
+      Uuid: "a7b8c9d0-e1f2-4a3b-8c4d-5e6f70819203",
+      SerialNumber: "R5CR30ABCDF",
+      DeviceReportedName: "WH-SCANNER-08",
+      Imei: "354123456789013",
+      ...overrides,
+    });
+  }
+
+  test("Workspace ONE: a scanner in its cradle is left be; one in a hand, and an iPhone that says neither, alert", async () => {
+    const read: Array<JSONObject> = workspaceOneRows([
+      // On power at 12%: in its cradle.
+      buildWorkspaceOneAndroid({ AcLineStatus: 1, BatteryLevel: "12%" }),
+      // On its battery at 15%.
+      secondScanner({ AcLineStatus: 0, BatteryLevel: "15%" }),
+      // An iPhone at 12%: Apple's MDM says no power source, so neither.
+      buildWorkspaceOneDevice({ AcLineStatus: 0, BatteryLevel: "0.12" }),
+      // A laptop on its battery at 64%: nothing low.
+      buildWorkspaceOneWindows({ AcLineStatus: 0, BatteryLevel: "64" }),
+    ]);
+
+    expect(
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+        "WH-SCANNER-07",
+      ),
+    ).toBe(1);
+    expect(
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+        "WH-SCANNER-08",
+      ),
+    ).toBe(0);
+    expect(
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+        "Store 0412 Front Counter",
+      ),
+    ).toBeUndefined();
+    expect(await alertedFor("workspace-one-low-battery", read)).toEqual([
+      "Store 0412 Front Counter",
+      "WH-SCANNER-08",
+    ]);
+  });
+
+  test("Workspace ONE: an open alert resolves once the scanner is put in its cradle, still under 20%", async () => {
+    const earlier: Array<JSONObject> = workspaceOneRows(
+      [secondScanner({ AcLineStatus: 0, BatteryLevel: "15%" })],
+      new Date(READ_AT.getTime() - 15 * MINUTE),
+    );
+    const docked: Array<JSONObject> = workspaceOneRows([
+      secondScanner({ AcLineStatus: 1, BatteryLevel: "16%" }),
+    ]);
+
+    expect(
+      await alertedFor("workspace-one-low-battery", [...earlier, ...docked]),
+    ).toEqual([]);
+
+    const response: ProbeApiIngestResponse =
+      await MonitorResourceUtil.monitorResource(check([...earlier, ...docked]));
+
+    // Its newest readings: 16%, and on power - the healthy criteria.
+    expect(response.criteriaMetId).toBe(
+      step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!.data!
+        .id,
+    );
+    expect(closeAlerts).toHaveBeenCalled();
+  });
+
+  test("SOTI: an Android+ scanner charging is left be; one that is not, and one whose agent says neither, alert", async () => {
+    const read: Array<JSONObject> = sotiRows([
+      // Charging at 9%.
+      buildSotiDevice({ BatteryStatus: 9, IsCharging: true }),
+      // Off its charger at 11%.
+      buildSotiDevice({
+        DeviceId: "a1b2c3d4-0000-4000-8000-000000000002",
+        DeviceName: "WH-SCANNER-08",
+        HardwareSerialNumber: "21075B2C3E",
+        MobileSerialNumber: "21075B2C3E",
+        IMEI_MEID_ESN: "354123456789013",
+        BatteryStatus: 11,
+        IsCharging: false,
+      }),
+      // An older agent at 8%, saying nothing of its charger.
+      buildSotiDevice({
+        DeviceId: "a1b2c3d4-0000-4000-8000-000000000003",
+        DeviceName: "WH-SCANNER-09",
+        HardwareSerialNumber: "21075B2C3F",
+        MobileSerialNumber: "21075B2C3F",
+        IMEI_MEID_ESN: "354123456789014",
+        BatteryStatus: 8,
+      }),
+    ]);
+
+    expect(
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+        "WH-SCANNER-07",
+      ),
+    ).toBe(1);
+    expect(await alertedFor("soti-low-battery", read)).toEqual([
+      "WH-SCANNER-08",
+      "WH-SCANNER-09",
+    ]);
+  });
+
+  test("a monitor made before, of the battery alone, alerts on a charging device as it did", async () => {
+    const read: Array<JSONObject> = sotiRows([
+      buildSotiDevice({ BatteryStatus: 9, IsCharging: true }),
+    ]);
+
+    expect(await alertedFor("soti-low-battery", read, true)).toEqual([
+      "WH-SCANNER-07",
+    ]);
+    expect(await alertedFor("soti-low-battery", read)).toEqual([]);
   });
 });

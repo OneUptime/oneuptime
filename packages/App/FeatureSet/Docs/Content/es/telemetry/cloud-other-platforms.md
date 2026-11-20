@@ -182,7 +182,9 @@ Los detectores de los SDK escriben la plataforma `azure.app_service`, con un pun
 
 **Red:** App Service llega a Internet directamente salvo que esté activada la **VNet integration** con **Route All**. Entonces la VNet necesita una puerta de enlace NAT, o una ruta a un firewall que permita TCP 443 hacia el host de OneUptime.
 
-**Qué muestra la página de la aplicación:** las solicitudes, la tasa de errores y la latencia salen de las trazas de la aplicación, así que una aplicación que solo envía registros o métricas muestra ahí **No se recibieron trazas**, y su **Comprobación de la configuración** dice qué añadir. App Service no da a una aplicación CPU ni memoria propias, y sus mosaicos de CPU y memoria lo indican. Conecte la suscripción en **Nube → Conectar**, y la **Vista general** de la aplicación añade una sección **Azure Monitor**: las solicitudes, los errores de servidor, el tiempo de respuesta, el tiempo de CPU y la memoria del sitio, tal como los mide Azure, envíe lo que envíe la aplicación.
+**Qué muestra la página de la aplicación:** las solicitudes, la tasa de errores y la latencia salen de las trazas de la aplicación, así que una aplicación que solo envía registros o métricas muestra ahí **No se recibieron trazas**, y su **Comprobación de la configuración** dice qué añadir. App Service no da a una aplicación CPU ni memoria propias, y sus mosaicos de CPU y memoria lo indican. Conecte la suscripción en **Nube → Conectar**, y la **Vista general** de la aplicación añade una sección **Azure Monitor**: las solicitudes, los errores de servidor y de cliente, el tiempo de respuesta, el tiempo de CPU y la memoria del sitio, tal como los mide Azure, envíe lo que envíe la aplicación. Su pestaña **Instancias** lista entonces las instancias en las que Azure la ejecuta, y su pestaña **Revisiones**, las implementaciones que Azure conserva.
+
+La pestaña **Configuración** de la aplicación da estos ajustes como comandos de Azure Cloud Shell para .NET, Java, Node.js o Python, con el nombre, el grupo de recursos y la suscripción de la propia aplicación en cada comando. Para los registros de consola, HTTP y de plataforma del propio sitio, elija también **Transmitir métricas y registros** en la fila de la suscripción en **Nube → Conectar**: aparecen en la pestaña **Registros** de la aplicación, en **Desde la configuración de diagnóstico de Azure**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ Los detectores de App Service de Node.js y .NET no definen `cloud.account.id`. A
 :::
 
 :::details Una app de App Service no muestra solicitudes ni instancias
-Las solicitudes, la tasa de errores y la latencia salen de las trazas, así que una app que solo envía registros o métricas no tiene ninguna: su **Comprobación de la configuración** dice qué añadir. Las instancias salen de `azure.app_service.instance.id` o de `service.instance.id`, que definen los detectores de Azure: sin ninguno de los dos, el mosaico **Instancias** muestra **No reportado**. Para ver las solicitudes del sitio, envíe lo que envíe la app, conecte la suscripción: la página de la app añade una sección **Azure Monitor**.
+Las solicitudes, la tasa de errores y la latencia salen de las trazas, así que una app que solo envía registros o métricas no tiene ninguna: su **Comprobación de la configuración** dice qué añadir, y su pestaña **Configuración**, cómo. Las instancias salen de `azure.app_service.instance.id` o de `service.instance.id`, que definen los detectores de Azure: sin ninguno de los dos, el mosaico **Instancias** muestra **No reportado** hasta que se conecta la suscripción, y luego cuenta las instancias que ejecuta Azure. Para ver las solicitudes del sitio, envíe lo que envíe la app, conecte la suscripción: la página de la app añade una sección **Azure Monitor**.
+:::
+
+:::details Una app de App Service no tiene cifras de Azure Monitor
+La fila **Conexión de Azure Monitor** de su **Comprobación de la configuración** dice por qué. OneUptime vincula la app con su sitio por `cloud.resource_id`, que definen los detectores de App Service, o si no, por su `service.name` en la suscripción que nombra `cloud.account.id`: dé a la app el nombre de su sitio, o añada `cloud.resource_id`. Una conexión de Azure en **Nube → Conectar** debe leer esa suscripción, con el rol Monitoring Reader en ella. Una ranura de implementación es un recurso propio, que OneUptime aún no lee.
 :::
 
 :::details Una variable de Container Instances cambiada no tiene efecto

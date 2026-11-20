@@ -64,7 +64,7 @@ Vul de **Toegangssleutel-ID** en de **Geheime toegangssleutel** in, en zet de **
 
 ### Aanmelden met de IAM-rol van de server
 
-Een zelf gehoste installatie op AWS kan haar eigen e-mail verzenden als de IAM-rol die AWS de server geeft, zonder dat er een toegangssleutel in OneUptime wordt opgeslagen: de inloggegevens die AWS uitgeeft verlopen binnen enkele uren, en OneUptime haalt nieuwe op voordat dat gebeurt. Dit geldt alleen voor de eigen e-mail van de server. De Amazon SES-configuratie van een project meldt zich altijd aan met een toegangssleutel, omdat de rol van de server de eigen AWS-identiteit van de server is, niet die van een project.
+Een zelf gehoste installatie kan haar eigen e-mail verzenden als een IAM-rol, zonder dat er een toegangssleutel in OneUptime wordt opgeslagen: op AWS de rol die AWS de server geeft, overal elders een rol waarbij ze zich aanmeldt met IAM Roles Anywhere. De inloggegevens verlopen binnen enkele uren, en OneUptime haalt nieuwe op voordat dat gebeurt. Dit geldt alleen voor de eigen e-mail van de server. De Amazon SES-configuratie van een project meldt zich altijd aan met een toegangssleutel, omdat de rol van de server de eigen AWS-identiteit van de server is, niet die van een project.
 
 Geef de rol het beleid hierboven en voer OneUptime daarna uit als die rol:
 
@@ -88,11 +88,32 @@ Koppel de rol aan de instance als haar instanceprofiel. Draait OneUptime in Dock
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Buiten AWS, op uw eigen servers of in een andere cloud, meldt de server zich als een rol aan via IAM Roles Anywhere, dat een X.509-certificaat inruilt voor de inloggegevens van de rol. Maak in IAM Roles Anywhere een trust anchor voor uw certificeringsinstantie en een profiel voor de rol. Zet daarna de hulptool van AWS voor inloggegevens, `aws_signing_helper`, in een map, samen met het certificaat, de privésleutel ervan en een AWS-configuratiebestand waarvan het profiel de hulptool uitvoert als zijn `credential_process`:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Met Docker Compose koppelt u de map alleen-lezen aan en noemt u het bestand en het profiel in `docker-compose.override.yml`, naast `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Met de Helm-chart koppelt u de configuratie, het certificaat en de sleutel ervan aan vanuit een Secret met `extraVolumes` en `extraVolumeMounts`, stelt u `AWS_CONFIG_FILE` en `AWS_PROFILE` in met `extraEnv` en zet u de hulptool in een image dat op dat van OneUptime is gebouwd: een Secret bevat hoogstens 1 MB. OneUptime voert de hulptool uit zonder shell, via zijn volledige pad, hoogstens 30 seconden lang en alleen vanuit een configuratiebestand dat het zelf niet kan wijzigen: een bestand waarin het zou kunnen schrijven, wordt geweigerd.
 :::
 
 Klik daarna in het Admin Dashboard op **Amazon SES bewerken**, kies **IAM-rol van deze server** als **Authenticatietype** en vul de **Regio** in. Bij het opslaan wordt een eerder opgeslagen toegangssleutel verwijderd.
 
-OneUptime zoekt de inloggegevens van de server waar de AWS SDK's ze zoeken, in deze volgorde: `AWS_ACCESS_KEY_ID` en `AWS_SECRET_ACCESS_KEY` in zijn omgeving, een webidentiteitstoken (`AWS_ROLE_ARN` en `AWS_WEB_IDENTITY_TOKEN_FILE`), het endpoint voor containerinloggegevens van Amazon ECS en EKS Pod Identity, en daarna de instancemetadataservice van EC2 (IMDSv2).
+OneUptime zoekt de inloggegevens van de server waar de AWS SDK's ze zoeken, in deze volgorde: `AWS_ACCESS_KEY_ID` en `AWS_SECRET_ACCESS_KEY` in zijn omgeving, het AWS-profiel dat `AWS_PROFILE`, `AWS_CONFIG_FILE` of `AWS_SHARED_CREDENTIALS_FILE` noemt (de sleutels ervan, of de `credential_process` ervan), een webidentiteitstoken (`AWS_ROLE_ARN` en `AWS_WEB_IDENTITY_TOKEN_FILE`), het endpoint voor containerinloggegevens van Amazon ECS en EKS Pod Identity, en daarna de instancemetadataservice van EC2 (IMDSv2). Is geen van de drie ingesteld, dan leest OneUptime geen enkel AWS-configuratiebestand.
 
 ## SendGrid
 

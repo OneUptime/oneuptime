@@ -64,7 +64,7 @@ Enter the **Access Key ID** and the **Secret Access Key**, and the **Region** yo
 
 ### Sign in with the server's IAM role
 
-A self-hosted installation on AWS can send its own email as the IAM role AWS gives the server, with no access key stored in OneUptime: the credentials AWS hands out expire within hours, and OneUptime fetches new ones before they do. This is for the server's own email only. A project's Amazon SES config always signs in with an access key, because the server's role is the server's own AWS identity, not a project's.
+A self-hosted installation can send its own email as an IAM role, with no access key stored in OneUptime: on AWS, the role AWS gives the server; anywhere else, a role it signs in to with IAM Roles Anywhere. The credentials expire within hours, and OneUptime fetches new ones before they do. This is for the server's own email only. A project's Amazon SES config always signs in with an access key, because the server's role is the server's own AWS identity, not a project's.
 
 Give the role the policy above, then run OneUptime as it:
 
@@ -88,11 +88,32 @@ Attach the role to the instance as its instance profile. With OneUptime in Docke
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Off AWS, on your own servers or in another cloud, the server signs in as a role through IAM Roles Anywhere, which trades an X.509 certificate for the role's credentials. In IAM Roles Anywhere, create a trust anchor for your certificate authority and a profile for the role. Then put AWS's credential helper, `aws_signing_helper`, in a folder with the certificate, its private key and an AWS config file whose profile runs the helper as its `credential_process`:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+With Docker Compose, mount the folder read-only and name the file and the profile in `docker-compose.override.yml`, next to `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+With the Helm chart, mount the config, the certificate and its key from a Secret with `extraVolumes` and `extraVolumeMounts`, set `AWS_CONFIG_FILE` and `AWS_PROFILE` with `extraEnv`, and put the helper in an image built on OneUptime's: a Secret holds at most 1 MB. OneUptime runs the helper with no shell, by its full path, for at most 30 seconds, and only from a config file it cannot change: one it could write is refused.
 :::
 
 Then, in the Admin Dashboard, click **Edit Amazon SES**, pick **This Server's IAM Role** as the **Authentication Type**, and enter the **Region**. Saving it removes any access key stored before.
 
-OneUptime looks for the server's credentials where the AWS SDKs do, in this order: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in its environment, a web identity token (`AWS_ROLE_ARN` and `AWS_WEB_IDENTITY_TOKEN_FILE`), the container credentials endpoint of Amazon ECS and EKS Pod Identity, then the EC2 instance metadata service (IMDSv2).
+OneUptime looks for the server's credentials where the AWS SDKs do, in this order: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in its environment, the AWS profile that `AWS_PROFILE`, `AWS_CONFIG_FILE` or `AWS_SHARED_CREDENTIALS_FILE` names (its keys, or its `credential_process`), a web identity token (`AWS_ROLE_ARN` and `AWS_WEB_IDENTITY_TOKEN_FILE`), the container credentials endpoint of Amazon ECS and EKS Pod Identity, then the EC2 instance metadata service (IMDSv2). With none of the three set, OneUptime reads no AWS config file.
 
 ## SendGrid
 

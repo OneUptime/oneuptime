@@ -1865,6 +1865,13 @@ describe("RecommendationResourceRegistry", () => {
         // The crash and ANR rates (#9716).
         "rum-app-crash-rate",
         "rum-app-anr-rate",
+        /*
+         * And per install a day, as Android vitals and the Play Console
+         * judge them (#9924): the share of the day's installs a crash or
+         * an ANR happened on, from at least 250 installs.
+         */
+        "rum-app-daily-crash-rate",
+        "rum-app-daily-anr-rate",
         "rum-failed-user-operations",
         "rum-slow-cold-start",
         "rum-frozen-frames",
