@@ -181,6 +181,13 @@ export default class DeviceManagementConnection extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.JSON,
+    /*
+     * A device's Inventory page names the tenant its connection reads
+     * (ManagedDeviceCard), through the device's row. Nothing here is
+     * secret (that is `secrets`), and whoever may read a managed device may
+     * read its connection.
+     */
+    canReadOnRelationQuery: true,
     title: "Settings",
     description:
       "What is not secret: the Esper tenant (the name before .esper.cloud in the console's address) and how often the devices are read (readIntervalInMinutes: 5, 10, 15, 30 or 60).",

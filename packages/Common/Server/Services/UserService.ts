@@ -1880,7 +1880,7 @@ export class Service extends DatabaseService<Model> {
    * separately.
    */
   @CaptureSpan()
-  public async countVerifiedTwoFactorAuthMethods(
+  private async countVerifiedTwoFactorAuthMethods(
     userId: ObjectID,
   ): Promise<number> {
     const verifiedTotpCount: PositiveNumber = await UserTotpAuthService.countBy(
