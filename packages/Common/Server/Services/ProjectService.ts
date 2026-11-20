@@ -143,6 +143,10 @@ import {
   readAuditLogRetentionInDays,
 } from "../../Types/AuditLog/AuditLogRetention";
 import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
+import {
+  getTrustedProxyListError,
+  readTrustedProxyList,
+} from "../../Utils/SecurityEvent/ClientAddressTrust";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -774,6 +778,48 @@ export class ProjectService extends ProjectReferencesService<Model> {
     data.securityRiskCaseThreshold = value;
   }
 
+  /*
+   * The proxies Security Events trusts to forward a client's address
+   * (Security Events > Connections, under More settings; #10416): one IP
+   * address or range a line. Refused with the reason when an entry is
+   * neither or there are too many, never stored and read as no proxy later.
+   * Kept one way - each address or range as NetworkAddressBlock writes it,
+   * once, a line each - and a blank list as none.
+   */
+  public applySecurityTrustedProxyRules(data: {
+    securityTrustedProxies?: unknown;
+  }): void {
+    if (data.securityTrustedProxies === undefined) {
+      return;
+    }
+
+    if (data.securityTrustedProxies === null) {
+      return;
+    }
+
+    if (typeof data.securityTrustedProxies !== "string") {
+      throw new BadDataException(
+        "Trusted Proxies must be text: one IP address or range a line.",
+      );
+    }
+
+    const error: string | null = getTrustedProxyListError(
+      data.securityTrustedProxies,
+    );
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    const blocks: Array<string> = readTrustedProxyList(
+      data.securityTrustedProxies,
+    ).blocks.map((block: { text: string }): string => {
+      return block.text;
+    });
+
+    data.securityTrustedProxies = blocks.length > 0 ? blocks.join("\n") : null;
+  }
+
   public applyAiContextRules(data: { aiContext?: unknown }): void {
     if (data.aiContext === undefined) {
       return;
@@ -1020,6 +1066,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(data.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       data.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applySecurityTrustedProxyRules(
+      data.data as { securityTrustedProxies?: unknown },
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       data.data as { defaultNetworkTopologyLayout?: unknown },
@@ -1773,6 +1822,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       updateBy.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applySecurityTrustedProxyRules(
+      updateBy.data as { securityTrustedProxies?: unknown },
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       updateBy.data as { defaultNetworkTopologyLayout?: unknown },

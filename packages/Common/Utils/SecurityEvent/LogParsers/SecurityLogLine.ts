@@ -43,6 +43,7 @@ import {
   buildProcessFields,
 } from "../NormalizerHelpers";
 import { writeOwnValue } from "../../LookupTable";
+import { TrustedProxies } from "../ClientAddressTrust";
 
 /*
  * One log line as the log parsers read it: the line itself, the attributes
@@ -78,6 +79,13 @@ export interface SecurityLogLine {
   traceId?: string | undefined;
   spanId?: string | undefined;
   sessionId?: string | undefined;
+  /*
+   * The proxies the line's project trusts to forward a client's address
+   * (Utils/SecurityEvent/ClientAddressTrust, #10416): its Trusted Proxies,
+   * beside the private addresses every project trusts. Absent - Check a
+   * log line, a test - only those.
+   */
+  trustedProxies?: TrustedProxies | undefined;
 }
 
 // The longest line a text parser reads; past it a line is cut, not skipped.
