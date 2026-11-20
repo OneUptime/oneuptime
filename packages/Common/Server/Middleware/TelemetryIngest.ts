@@ -934,7 +934,7 @@ export default class TelemetryIngest {
        * the message - "Origin  is not allowed" reads like a bug and tells the
        * customer nothing about what to fix.
        */
-      return "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.";
+      return "This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.";
     }
 
     if (

@@ -12,11 +12,11 @@ Instrumenter en native Android-app med OpenTelemetry Android, så den rapportere
 
 ## Sådan virker det
 
-OpenTelemetry Android kører inde i din app. Den sender spor, logs og metrikker til OneUptime over OTLP med en **Server**-indtagelsesnøgle og tilføjer en W3C-header `traceparent` til de forespørgsler, din app sender, så din backends spans slutter sig til appens spor.
+OpenTelemetry Android kører inde i din app. Den sender spor, logs og metrikker til OneUptime over OTLP med en **Mobil**-indtagelsesnøgle, fastgjort til din app, og tilføjer en W3C-header `traceparent` til de forespørgsler, din app sender, så din backends spans slutter sig til appens spor.
 
 ```mermaid title="Fra appen til OneUptime og gennem din backend"
 flowchart TB
-    app["Din Android-app<br/>med OpenTelemetry Android"] -->|"OTLP med en<br/>Server-nøgle"| oneuptime["OneUptime"]
+    app["Din Android-app<br/>med OpenTelemetry Android"] -->|"OTLP med en<br/>Mobil-nøgle"| oneuptime["OneUptime"]
     app -->|"forespørgsler med en<br/>traceparent-header"| api["Dine API'er: ordrer,<br/>kasse, køkkenskærm"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Mobil RUM-applikation"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Før du begynder
 
 - En Android-app, hvis `minSdk` er 23 eller højere, bygget med `compileSdk` 34 eller højere. Med en `minSdk` under 26 skal du slå [core library desugaring](https://developer.android.com/studio/write/java8-support#library-desugaring) til, med Android Gradle Plugin 8.3.0 eller nyere og `android.useFullClasspathForDexingTransform=true` i `gradle.properties`.
-- En **Server**-indtagelsesnøgle, oprettet under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** med **Opret indtagelsesnøgle**. En **Browser**-nøgle afvises fra en app: Den tjekkes mod headeren `Origin`, som en app ikke sender.
+- En **Mobil**-indtagelsesnøgle, oprettet under **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler** med **Opret indtagelsesnøgle**, med din apps `service.name` som **Fastgjort tjenestenavn**. En **Browser**-nøgle afvises fra en app: Den tjekkes mod headeren `Origin`, som en app ikke sender.
 - Disse OTLP-indstillinger. Hvis du selv hoster OneUptime, så erstat `https://oneuptime.com` med din egen vært.
 
 | Indstilling | Værdi |
@@ -35,7 +35,7 @@ flowchart TB
 | Header | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> Nøglen følger med i din app, og en app kan pakkes ud, så gå ud fra, at nogen kopierer den. Sæt et **Fastgjort tjenestenavn**, en **Requests Per Minute Limit** og en dato under **Udløber den** på nøglens side, og udskift nøglen med dine udgivelser.
+> Nøglen følger med i din app, og en app kan pakkes ud, så gå ud fra, at nogen kopierer den. Sæt et **Fastgjort tjenestenavn**, en **Grænse for anmodninger pr. minut** og en dato under **Udløber den** på nøglens side, og udskift nøglen med dine udgivelser.
 
 ## Tilføj OpenTelemetry Android
 
@@ -303,7 +303,7 @@ OpenTelemetry Android sætter selv `device.model.identifier`, så appen blev sat
 :::
 
 :::details Intet kommer frem, eller nøglen afvises
-Kør nøgletjekket i [Tilføj OpenTelemetry Android](#tilføj-opentelemetry-android). En `401` betyder, at nøglen er ukendt, tilbagekaldt, slået fra eller udløbet. En **Browser**-nøgle afvises fra en app: Brug en **Server**-nøgle. Tjek, at `baseUrl` slutter på `/otlp`, uden `/v1/traces`: Agenten tilføjer selv stien.
+Kør nøgletjekket i [Tilføj OpenTelemetry Android](#tilføj-opentelemetry-android). En `401` betyder, at nøglen er ukendt, tilbagekaldt, slået fra eller udløbet. En **Browser**-nøgle afvises fra en app: Brug en **Mobil**-nøgle. Tjek, at `baseUrl` slutter på `/otlp`, uden `/v1/traces`: Agenten tilføjer selv stien.
 :::
 
 :::details Et nedbrud eller en ANR er ikke i Undtagelser

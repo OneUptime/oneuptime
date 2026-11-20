@@ -165,7 +165,7 @@ Alt i snippet-et sendes til de besøkende, så hvem som helst kan kopiere tokene
 | Innstilling | Hva den gjør |
 | --- | --- |
 | **Tillatte opprinnelser** | Forespørsler godtas bare fra disse opprinnelsene, hver med sitt skjema og eventuelle port. En vert kan begynne med ett jokertegn `*.`: `https://*.example.com` dekker alle underdomener av `example.com`, men ikke `example.com` selv. |
-| **Requests Per Minute Limit** | Ett tak for alle besøkende som bruker nøkkelen: 6000 forespørsler per minutt, med mindre du setter ditt eget. |
+| **Grense for forespørsler per minutt** | Ett tak for alle besøkende som bruker nøkkelen: 6000 forespørsler per minutt, med mindre du setter ditt eget. |
 | **Festet tjenestenavn** | Tvinger `service.name` på alt nøkkelen skriver, så en kopi ikke kan utgi telemetrien sin for å være en av backend-tjenestene dine. |
 | **Utløper** | Etter denne datoen godtas ikke nøkkelen lenger. |
 | **Aktivert** | Slå den av for å stoppe en lekket nøkkel med en gang. |

@@ -165,7 +165,7 @@ Allt i snippetet skickas till dina besökare, så vem som helst kan kopiera toke
 | Inställning | Vad den gör |
 | --- | --- |
 | **Tillåtna ursprung** | Förfrågningar tas bara emot från dessa ursprung, vart och ett med sitt schema och eventuell port. En värd får börja med ett enda jokertecken `*.`: `https://*.example.com` täcker alla underdomäner till `example.com`, men inte `example.com` självt. |
-| **Requests Per Minute Limit** | Ett tak för alla besökare som använder nyckeln: 6000 förfrågningar per minut, om du inte sätter ett eget. |
+| **Gräns för förfrågningar per minut** | Ett tak för alla besökare som använder nyckeln: 6000 förfrågningar per minut, om du inte sätter ett eget. |
 | **Fäst tjänstnamn** | Tvingar fram `service.name` på allt som nyckeln skriver, så att en kopia inte kan låta sin telemetri se ut att komma från en av dina backend-tjänster. |
 | **Upphör** | Efter det här datumet godtas nyckeln inte längre. |
 | **Aktiverad** | Stäng av den för att genast stoppa en läckt nyckel. |

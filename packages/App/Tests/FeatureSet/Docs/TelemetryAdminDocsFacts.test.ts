@@ -103,12 +103,14 @@ import {
 } from "Common/Types/Telemetry/ScrubRule";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
+  DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
 } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import { TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryUsage";
 import TelemetryIngestSurface, {
   BROWSER_ALLOWED_INGEST_SURFACES,
   IDENTITY_REGISTRATION_SURFACES,
+  MOBILE_ALLOWED_INGEST_SURFACES,
 } from "Common/Types/Telemetry/TelemetryIngestSurface";
 import TelemetryRetentionConfig, {
   HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS,
@@ -461,6 +463,17 @@ function browserPolicy(
   });
 }
 
+// A Mobile key (#6457): pinned, as a Mobile key always is.
+function mobilePolicy(
+  overrides: Partial<TelemetryIngestionKeyPolicy>,
+): TelemetryIngestionKeyPolicy {
+  return policy({
+    keyType: TelemetryIngestionKeyType.Mobile,
+    pinnedServiceName: "storefront-ios",
+    ...overrides,
+  });
+}
+
 interface GuardAnswer {
   // The status the refusal is sent with, or 200 when the request went on.
   status: number;
@@ -764,7 +777,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     }
 
     const rows: Array<Array<string>> = tableRows(
-      section(page, "## Server or Browser"),
+      section(page, "## Server, Browser or Mobile"),
       "",
     );
 
@@ -777,13 +790,75 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "Sends",
       "Every kind of telemetry, to every endpoint",
       `Traces, logs, metrics, session replays and [Sentry events](${SENTRY_SDKS_LINK})`,
+      "That app's traces, logs and metrics, over OTLP/HTTP",
+    ]);
+
+    // A Mobile key sends what the Sends row says, and nothing else (#6457).
+    expect([...MOBILE_ALLOWED_INGEST_SURFACES].sort()).toEqual(
+      [
+        TelemetryIngestSurface.OtelTraces,
+        TelemetryIngestSurface.OtelLogs,
+        TelemetryIngestSurface.OtelMetrics,
+      ].sort(),
+    );
+    expect(rows[3]).toEqual([
+      "Origins",
+      "Not checked",
+      "Only the listed origins are accepted",
+      "A request from a web page is refused",
     ]);
     // The link opens the section that gives a browser app's DSN a Browser key.
     expect(section(english(COMPATIBLE_ENDPOINTS), "## Sentry SDKs")).toContain(
       "A browser app's DSN is public, so use a **Browser** ingestion key there, with your site's origins on it.",
     );
     expect(page).toContain(
-      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads.",
+      "OneUptime refuses a Browser key everywhere else, such as over gRPC and MQTT, for profiles, syslog, Fluent Bit and Fluentd, and for source map uploads, and a Mobile key anywhere but OTLP traces, logs and metrics over HTTP.",
+    );
+  });
+
+  /*
+   * What a copy of a Mobile key can and cannot do (#6457), as the guard
+   * and the worker hold it: one app, its OTLP signals over HTTP, the
+   * Browser key's limit, the kill switch - and, said plainly, made-up data
+   * for that app.
+   */
+  it("says what a Mobile key limits, and what it cannot stop", () => {
+    const limits: string = section(page, "## What a Mobile key limits");
+
+    expect(limits).toContain(
+      "- **It writes only as one app.** Everything it sends is filed under its **Pinned Service Name** as a mobile RUM application, whatever service or host the sender names.",
+    );
+    expect(limits).toContain(
+      "- **It sends only that app's telemetry.** OTLP traces, logs and metrics over HTTP. It is refused over gRPC and MQTT, for session replays, profiles and source maps, on every other endpoint, and from any web page.",
+    );
+    for (const surface of [
+      TelemetryIngestSurface.Grpc,
+      TelemetryIngestSurface.Mqtt,
+      TelemetryIngestSurface.SessionReplay,
+      TelemetryIngestSurface.OtelProfiles,
+      TelemetryIngestSurface.SourceMap,
+      TelemetryIngestSurface.Sentry,
+    ]) {
+      expect({
+        surface,
+        mobile: MOBILE_ALLOWED_INGEST_SURFACES.has(surface),
+      }).toEqual({ surface, mobile: false });
+    }
+
+    expect(DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE).toBe(6000);
+    expect(
+      getEffectiveRequestsPerMinuteLimit(
+        mobilePolicy({}),
+        TelemetryIngestSurface.OtelTraces,
+      ),
+    ).toBe(DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE);
+    expect(limits).toContain(
+      `- **It is rate limited.** ${DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE.toLocaleString(
+        "en-US",
+      )} requests per minute for all copies together, unless you set its **Requests Per Minute Limit**.`,
+    );
+    expect(limits).toContain(
+      "What it cannot stop: someone who has your app can still send made-up traces, logs and metrics for that one app, up to the key's limit, until you turn the key off or it expires.",
     );
   });
 
@@ -813,7 +888,9 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toLocaleString("en-US");
 
     expect(page).toContain(
-      `| Requests per minute | No limit, unless you set one | ${limit}, unless you set another limit |`,
+      `| Requests per minute | No limit, unless you set one | ${limit}, unless you set another limit | ${DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE.toLocaleString(
+        "en-US",
+      )}, unless you set another limit |`,
     );
     expect(page).toContain(
       `A Browser key gets ${limit} when you leave it empty.`,
@@ -1034,6 +1111,8 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
         [422, "This telemetry ingestion key has been disabled."],
         [422, "A browser ingestion key cannot be used for"],
         [422, "did not send an Origin header"],
+        [422, "A mobile ingestion key cannot be used for"],
+        [422, "A mobile ingestion key cannot be used from a web page"],
         [422, "is not allowed for this browser ingestion key"],
         [422, "is pinned to a single service"],
         [429, "Too many telemetry requests for this ingestion key"],
@@ -1087,6 +1166,22 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
           surface: TelemetryIngestSurface.OtelLogs,
           headers: WITH_KEY,
           resolvesTo: browserPolicy({}),
+        },
+      },
+      {
+        fragment: "A mobile ingestion key cannot be used for",
+        request: {
+          surface: TelemetryIngestSurface.SessionReplay,
+          headers: WITH_KEY,
+          resolvesTo: mobilePolicy({}),
+        },
+      },
+      {
+        fragment: "A mobile ingestion key cannot be used from a web page",
+        request: {
+          surface: TelemetryIngestSurface.OtelTraces,
+          headers: { ...WITH_KEY, origin: ALLOWED_ORIGIN },
+          resolvesTo: mobilePolicy({}),
         },
       },
       {

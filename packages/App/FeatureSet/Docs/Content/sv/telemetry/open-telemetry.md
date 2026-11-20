@@ -375,7 +375,7 @@ OneUptime erbjuder OTLP/gRPC på samma värd som webbappen, på port 443 över T
 
 I en installation i egen drift når gRPC bara OneUptime över HTTPS: En okrypterad HTTP-anslutning (h2c) nekas. Om din instans levereras över vanlig HTTP, använd OTLP/HTTP.
 
-Två av en nyckels inställningar gäller bara OTLP/HTTP: dess **Requests Per Minute Limit** och dess **Fäst tjänstnamn**. Data som skickas över gRPC behåller det `service.name` de skickades med och räknas inte mot gränsen.
+Två av en nyckels inställningar gäller bara OTLP/HTTP: dess **Gräns för förfrågningar per minut** och dess **Fäst tjänstnamn**. Data som skickas över gRPC behåller det `service.name` de skickades med och räknas inte mot gränsen.
 
 ### Svar
 
@@ -389,7 +389,7 @@ OneUptime svarar på en export så fort data står i kö, och data visas några 
 | `413` | — | Begäran är större än storleksgränsen. | Skicka mindre batcher. |
 | `415` | — | `Content-Encoding` stöds inte. | Använd `gzip`, `deflate` eller `zstd`, eller ingen komprimering. |
 | `422` | `PERMISSION_DENIED` | Nyckeln är inaktiverad, eller så är det en webbläsarnyckel som används utanför sina tillåtna origins. | Aktivera nyckeln igen, eller skicka med en servernyckel. |
-| `429` | — | Nyckelns **Requests Per Minute Limit** är nådd. | Först ingenting: Exportörer försöker igen efter tiden i `Retry-After`. Höj gränsen om det fortsätter. |
+| `429` | — | Nyckelns **Gräns för förfrågningar per minut** är nådd. | Först ingenting: Exportörer försöker igen efter tiden i `Retry-After`. Höj gränsen om det fortsätter. |
 | `503` | `UNAVAILABLE` | OneUptime startar, eller så är intagskön otillgänglig. | Ingenting: OTLP-exportörer försöker själva igen vid `503`. |
 
 `401`, `402`, `413`, `415` och `422` är permanenta fel för OTLP-exportörer: Exportören kastar batchen och loggar felet i stället för att försöka igen.
@@ -409,7 +409,7 @@ Varje nyckels sida, under **Projektinställningar → Telemetri och APM → Inta
 | **Fäst tjänstnamn** | När den är satt ersätter den `service.name` på allt som skickas med den här nyckeln över OTLP/HTTP. |
 | **Aktiverad** | Stäng av den för att genast sluta acceptera data som skickas med nyckeln, utan att radera den. |
 | **Upphör** | Efter detta datum nekas nyckeln. Tomt betyder att den aldrig går ut. |
-| **Requests Per Minute Limit** | Det högsta antalet OTLP/HTTP-begäranden per minut som accepteras med nyckeln, sammanlagt för alla klienter som använder den. Tomt betyder ingen gräns på en servernyckel och 6 000 på en webbläsarnyckel. |
+| **Gräns för förfrågningar per minut** | Det högsta antalet OTLP/HTTP-begäranden per minut som accepteras med nyckeln, sammanlagt för alla klienter som använder den. Tomt betyder ingen gräns på en servernyckel och 6 000 på en webbläsarnyckel. |
 | **Senast använd den** | När data senast accepterades med nyckeln. Använd den för att hitta nycklar som säkert kan roteras eller raderas. |
 
 **Återställ hemlig nyckel** på nyckelns sida ersätter hemligheten. Varje applikation och collector som skickar med den gamla nekas tills du uppdaterar den. Om webbläsarnycklar, säkert byte av en nyckel och vad varje avvisning betyder, se [Intagningsnycklar](/docs/telemetry/ingestion-keys).

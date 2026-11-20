@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200`과 `"valid": true` | OneUptime이 키를 받아들입니다. 응답에는 키의 `keyType`과 `projectId`도 들어 있습니다. 다음 확인으로 넘어가세요. |
 | `401`과 `"valid": false` | 키가 없거나, 알 수 없거나, 취소되었거나, 꺼졌거나, 만료되었으며, `message`가 어느 쪽인지 알려 줍니다. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 유효한 키를 만드세요. |
 
-웹 앱에는 **브라우저** 키가, 모바일 앱에는 **서버** 키가 필요합니다. [브라우저 설정](/docs/rum/browser-setup)과 [모바일 설정](/docs/rum/mobile-setup)을 참고하세요. 내보내기 엔드포인트도 OTLP 사양에 따라 잘못된 키를 `401`로 거부하므로, 잘 동작하는 SDK는 재시도하지 않고 거부를 로그에 남깁니다. 그 줄은 브라우저 콘솔에서 놓치기 쉽지만, 이 확인은 바로 답을 줍니다.
+웹 앱에는 **브라우저** 키가, 모바일 앱에는 **모바일** 키가 필요합니다. [브라우저 설정](/docs/rum/browser-setup)과 [모바일 설정](/docs/rum/mobile-setup)을 참고하세요. 내보내기 엔드포인트도 OTLP 사양에 따라 잘못된 키를 `401`로 거부하므로, 잘 동작하는 SDK는 재시도하지 않고 거부를 로그에 남깁니다. 그 줄은 브라우저 콘솔에서 놓치기 쉽지만, 이 확인은 바로 답을 줍니다.
 
 OneUptime은 알고 있는 키에서 거부한 것도 집계합니다. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에 있는 키 페이지의 **거부된 텔레메트리**에는 지난 30일 동안 거부된 것이 표시되고, 애플리케이션 **문서** 페이지의 **설정 점검**은 어떤 종류의 텔레메트리가 거부되는지, 그 이유와 해결 방법을 알려 줍니다. 키가 없거나 알 수 없는 키는 어떤 프로젝트도 가리키지 않으므로 아무것도 집계하지 않습니다. 알 수 있는 것은 이 확인과 `401`뿐입니다.
 
@@ -81,7 +81,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 **`422`.** OneUptime이 여기서 키를 거부했으며, 메시지가 이유를 알려 줍니다. `Origin https://app.example.com is not allowed for this browser ingestion key.`는 스킴과 포트(있는 경우)를 포함한 페이지의 정확한 출처가 키의 **허용된 출처**에 없다는 뜻입니다. `This telemetry ingestion key has been disabled.`는 누군가 키를 껐다는 뜻입니다.
 
-**`429`.** 키의 **Requests Per Minute Limit**을 다 썼습니다: `Too many telemetry requests for this ingestion key. Please retry later.` Browser 키는 키에 직접 한도를 설정하지 않는 한, 모든 방문자를 합쳐 분당 6000개의 요청을 허용합니다.
+**`429`.** 키의 **분당 요청 한도**를 다 썼습니다: `Too many telemetry requests for this ingestion key. Please retry later.` Browser 키는 키에 직접 한도를 설정하지 않는 한, 모든 방문자를 합쳐 분당 6000개의 요청을 허용합니다.
 
 **HTML 페이지나 빈 본문이 있는 `403`.** OneUptime은 모든 거부에 JSON으로 응답하므로, 이 응답은 그 앞에 있는 무언가에서 왔습니다. 보통은 OneUptime을 프록시하는 자신의 도메인에 있는 웹 애플리케이션 방화벽입니다. 방화벽은 OTLP/JSON을 파싱해 모든 스팬 속성을 인젝션 규칙과 대조하므로, 스팬에 쿼리 문자열이 있는 URL 하나만으로도 차단될 수 있고, 방화벽 로그에 그 규칙이 기록됩니다. OTLP 경로에서만 OTLP 페이로드를 검사에서 제외하세요. 방법은 [OpenTelemetry 요청도 차단됨](/docs/rum/session-replay-troubleshooting#opentelemetry-요청도-차단됨)에서 설명하며, 같은 방화벽 뒤에 있는 리플레이 레코더도 다룹니다.
 
