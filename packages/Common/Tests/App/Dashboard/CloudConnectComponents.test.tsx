@@ -49,6 +49,11 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import {
+  DASHBOARD_LANGUAGES,
+  isWordedInDashboardLocale,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
@@ -699,6 +704,53 @@ describe("the setup step, with Data Security's settings", () => {
         expect(hint.split(", and prints ")[1]).toBe(
           method.hint.split(", and prints ")[1],
         );
+      }
+    }
+  });
+
+  test("its words read in every language the Dashboard ships, the shells' and products' names kept as written", () => {
+    const words: Array<string> = [
+      ...Object.values(SETUP_HINTS_FOR_ACCESS_BELOW),
+      ...Object.values(ORGANIZATION_SETUP_HINTS_FOR_ACCESS_BELOW),
+      ACCESS_READS_LINE,
+      ...Object.values(ACCESS_EXTRA_LINES),
+    ];
+    const NAMES: Array<string> = [
+      "AWS CloudShell",
+      "Azure Cloud Shell",
+      "Google Cloud Shell",
+      "Cloud Shell",
+      "ARN",
+      "OneUptime",
+    ];
+
+    expect(words).toHaveLength(10);
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const english of words) {
+        expect({
+          language,
+          english,
+          worded: isWordedInDashboardLocale(english, language),
+        }).toEqual({ language, english, worded: true });
+
+        for (const name of NAMES.filter((candidate: string): boolean => {
+          return english.includes(candidate);
+        })) {
+          expect({
+            language,
+            english,
+            name,
+            kept: locale[english]!.includes(name),
+          }).toEqual({
+            language,
+            english,
+            name,
+            kept: true,
+          });
+        }
       }
     }
   });

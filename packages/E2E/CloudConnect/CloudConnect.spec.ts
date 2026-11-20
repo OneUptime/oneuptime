@@ -1223,7 +1223,9 @@ async function listRequests(page: Page): Promise<Array<ListRequest>> {
 
 // The side menu beside a page (a phone folds it behind a button).
 function sideMenu(page: Page): Locator {
-  return page.getByRole("navigation", { name: "Pages in this section" }).first();
+  return page
+    .getByRole("navigation", { name: "Pages in this section" })
+    .first();
 }
 
 // One row of an account's Resources by type or by Region: its words and its count.
