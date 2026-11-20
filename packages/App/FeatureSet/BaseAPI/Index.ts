@@ -756,6 +756,12 @@ import DataSecurityIssueService, {
 import DataSecurityIssueFeedService, {
   Service as DataSecurityIssueFeedServiceType,
 } from "Common/Server/Services/DataSecurityIssueFeedService";
+import DataSecurityAiProposalService, {
+  Service as DataSecurityAiProposalServiceType,
+} from "Common/Server/Services/DataSecurityAiProposalService";
+import DataSecurityAiDecisionService, {
+  Service as DataSecurityAiDecisionServiceType,
+} from "Common/Server/Services/DataSecurityAiDecisionService";
 import DataSecurityScanService, {
   Service as DataSecurityScanServiceType,
 } from "Common/Server/Services/DataSecurityScanService";
@@ -1971,6 +1977,8 @@ import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
 import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
+import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
+import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
@@ -4919,6 +4927,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataSecurityIssueFeed, DataSecurityIssueFeedServiceType>(
         DataSecurityIssueFeed,
         DataSecurityIssueFeedService,
+      ).getRouter(),
+    );
+
+    // What OneUptime AI proposes for a Data Security issue, and why it did or did not act (#10364): read here, acted on through DataSecurityAPI.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityAiProposal, DataSecurityAiProposalServiceType>(
+        DataSecurityAiProposal,
+        DataSecurityAiProposalService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityAiDecision, DataSecurityAiDecisionServiceType>(
+        DataSecurityAiDecision,
+        DataSecurityAiDecisionService,
       ).getRouter(),
     );
 

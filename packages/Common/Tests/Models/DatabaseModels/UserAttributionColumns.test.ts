@@ -341,6 +341,13 @@ describe("which columns record a person doing something", () => {
        * again; no request chooses it.
        */
       "turnedOff",
+      /*
+       * DataSecurityAiProposal.undoneByUserId: who undid a change OneUptime
+       * AI made for a Data Security issue (#10364). DataSecurityAiProposals
+       * stamps it from the caller once the undo has passed its checks, and
+       * clears it when the undo could not be made; no request chooses it.
+       */
+      "undone",
       "viewed",
     ];
 

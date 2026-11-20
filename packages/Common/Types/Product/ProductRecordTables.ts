@@ -364,6 +364,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataSecurityIdentity",
     "DataSecurityIssue",
     "DataSecurityIssueFeed",
+    "DataSecurityAiProposal",
+    "DataSecurityAiDecision",
     "DataSecurityResidencyRule",
     "DataSecurityScan",
     "DataSecuritySetting",
