@@ -47,11 +47,12 @@ Chaque utilisateur, hôte et adresse qu'un dossier ou un événement nomme est r
 | Une forme courte ou complète du nom d'un enregistrement, comme `web-1` et `web-1.acme.internal` | Cet enregistrement | Possible |
 | Une adresse IP publique qu'un seul hôte ou équipement réseau détient, ou sur laquelle une seule ressource cloud répond | Cet enregistrement | Exacte |
 | Une adresse IP privée, ou une que plusieurs enregistrements détiennent | Chaque enregistrement qui la détient | Possible |
-| L'ID propre d'une ressource cloud : un ARN AWS, un ID de ressource Azure ou un nom de ressource Google Cloud | Cette ressource cloud | Exacte |
+| L'ID propre d'une ressource cloud : un ARN AWS ou un nom de ressource Google Cloud tel qu'il est écrit, ou un ID de ressource Azure, quelle que soit sa casse | Cette ressource cloud | Exacte |
 | Un hôte, une adresse IP publique ou l'hôte d'une URL qu'un moniteur vérifie | Ce moniteur | Exacte |
 | Une adresse IP privée qu'un moniteur vérifie | Ce moniteur | Possible |
 | L'adresse e-mail d'un membre | Ce membre | Exacte |
 | L'enregistrement sous lequel une ligne de journal a été envoyée, pour les événements lus dans vos journaux | Cet hôte, ce cluster, ce cloud OpenStack, cette ressource cloud, cette fonction serverless ou ce service | Exacte |
+| La ressource cloud ou la fonction serverless dont vient une ligne de journal, par son `cloud.resource_id` ou son `faas.name`, pour les événements lus dans vos journaux | Cette ressource cloud ou cette fonction serverless | Exacte |
 | Un simple nom d'utilisateur, une empreinte de fichier ou un processus | Rien : aucun enregistrement n'est indexé par eux | - |
 
 - Une correspondance possible affiche **Correspondance possible** à côté de son nom, et dit pourquoi. Elle n'est jamais comptée sur la page de l'enregistrement, et un incident que le dossier déclare n'y est jamais lié.

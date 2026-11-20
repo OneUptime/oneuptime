@@ -141,6 +141,13 @@ const unitTableMap: Record<string, Array<UnitThreshold>> = {
 const readableUnitMap: Record<string, string> = {
   // Dimensionless — OpenTelemetry uses "1" for unitless counts
   "1": "",
+  /*
+   * The clouds' own words for "no unit": CloudWatch's "None" (a metric
+   * published without one, #9809) and Azure Monitor's "Unspecified". Drawn
+   * as nothing, never as "5 None".
+   */
+  none: "",
+  unspecified: "",
 
   // Bytes (decimal)
   by: "Bytes",
@@ -236,6 +243,8 @@ const readableUnitMap: Record<string, string> = {
 const compactUnitMap: Record<string, string> = {
   // Dimensionless
   "1": "",
+  none: "",
+  unspecified: "",
 
   // Bytes (decimal)
   by: "B",

@@ -106,7 +106,7 @@ Nur die Monitore, die das Ereignis unter **Monitore** nennt, werden nicht mehr g
 :::
 
 :::details Das Ereignis erscheint nicht auf meiner Statusseite
-Prüfen Sie, ob das Ereignis die Seite unter **Ereignis auf diesen Status-Seiten anzeigen** nennt und ob **Auf Statusseite sichtbar** in den **Einstellungen** des Ereignisses eingeschaltet ist. Zeigt sein Kopfbereich **Noch nicht auf Statusseiten**, erscheint es ab seinem **Veröffentlichen am**: siehe [Später veröffentlichen](/docs/scheduled-maintenance/creating-events#später-veröffentlichen). Prüfen Sie dann die Statusseite selbst: Sie muss Wartungsereignisse anzeigen, und ein Ereignis, das vor längerer Zeit begonnen hat als das Verlaufsfenster der Seite, standardmäßig 14 Tage, wird nicht mehr aufgeführt.
+Prüfen Sie, ob das Ereignis die Seite unter **Ereignis auf diesen Status-Seiten anzeigen** nennt und ob **Auf Statusseite sichtbar** in den **Einstellungen** des Ereignisses eingeschaltet ist. Zeigt sein Kopfbereich **Noch nicht auf Statusseiten**, erscheint es ab seinem **Veröffentlichen am**: siehe [Später veröffentlichen](/docs/scheduled-maintenance/creating-events#später-veröffentlichen). Prüfen Sie dann die Statusseite selbst: Sie muss Wartungsereignisse anzeigen (die Karte **Wartungsdetails** des Ereignisses sagt es, wenn keine seiner Statusseiten das tut), und ein Ereignis, das vor längerer Zeit begonnen hat als das Verlaufsfenster der Seite, standardmäßig 14 Tage, wird nicht mehr aufgeführt.
 :::
 
 ## Nächste Schritte

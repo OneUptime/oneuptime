@@ -2165,6 +2165,11 @@ const MetricsViewer: FunctionComponent<Props> = (
       if (Object.keys(presetAttributes).length > 0) {
         queryPayload["attributes"] = presetAttributes;
       }
+      if (rowAggregation?.groupByAttributeKeys?.length) {
+        queryPayload["groupByAttributeKeys"] = [
+          ...rowAggregation.groupByAttributeKeys,
+        ];
+      }
       /*
        * Entity-scoped lists can have no attribute filters at all. Carry
        * their identity separately so the chart's event markers cannot

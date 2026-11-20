@@ -83,6 +83,8 @@ Un espace de noms Service Bus ou Event Hubs ne diffuse aucune métrique. Les lec
 
 Un journal est classé sous sa ressource par l'ID ARM de la ressource, porté en `cloud.resource_id`, et garde sa catégorie, son opération, son résultat et ses propriétés comme attributs, par exemple `azure.category`.
 
+Un enregistrement du journal d'activité de catégorie `Administrative`, `Security` ou `Policy`, et un enregistrement de connexion, d'audit ou de risque de Microsoft Entra ID, arrivent entiers, comme corps de leur journal, même celui qui porte sur un groupe de ressources, un abonnement ou le locataire plutôt que sur une ressource. Avec [Trouver des événements de sécurité dans vos journaux](/docs/telemetry/security-events#trouver-des-événements-de-sécurité-dans-vos-journaux) activé, chacun est lu comme un événement de sécurité, comme celui d'un pipeline de journaux, et stocké une seule fois, par quelque voie qu'il parvienne à OneUptime. La commande ne configure que les journaux de ressources : le journal d'activité d'un abonnement et les journaux de Microsoft Entra ID atteignent le flux par un paramètre de diagnostic à part qui les envoie vers l'un de ses hubs d'événements.
+
 Les machines virtuelles, groupes identiques, disques, interfaces réseau, réseaux virtuels, points de terminaison privés, passerelles NAT, zones DNS et plans App Service n'envoient pas de journaux de ressources propres : leurs pages n'ont donc pas d'onglet **Journaux**. Les journaux d'un compte de stockage sont ceux de ses services, et ceux d'une application conteneur ceux de son environnement.
 
 ## Ce que crée la commande

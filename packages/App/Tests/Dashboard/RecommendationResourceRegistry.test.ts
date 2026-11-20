@@ -94,6 +94,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
 import {
   MESSAGE_QUEUE_METRICS,
   getMessageQueueMetricId,
@@ -3254,6 +3255,63 @@ describe("RecommendationResourceRegistry", () => {
           context: {},
         }),
       ).toContain("broker metrics");
+    });
+  });
+
+  /*
+   * #9837: a device management connection is offered its own service's
+   * templates, so its row's service is its context.
+   */
+  describe("device management connection context", () => {
+    function connectionRow(provider: unknown): BaseModel {
+      const model: DeviceManagementConnection =
+        new DeviceManagementConnection();
+      (model as unknown as Record<string, unknown>)["provider"] = provider;
+      return model;
+    }
+
+    test("selects the connection's service with its name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.DeviceManagementConnection,
+        ),
+      ).toEqual({ _id: true, name: true, provider: true });
+    });
+
+    test("reads the service off the row, and none as none", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          model: connectionRow("esper"),
+        }),
+      ).toEqual({ deviceManagementProvider: "esper" });
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          model: connectionRow(undefined),
+        }),
+      ).toEqual({ deviceManagementProvider: null });
+    });
+
+    test("says nothing while its service has templates, and why the list is empty when it has none", () => {
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          context: { deviceManagementProvider: "esper" },
+        }),
+      ).toBeUndefined();
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          context: { deviceManagementProvider: "another-service" },
+        }),
+      ).toBe(
+        "OneUptime has no recommended monitor for this connection's devices yet.",
+      );
     });
   });
 });

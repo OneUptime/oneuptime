@@ -30,7 +30,7 @@ Im Modus **Nur Lesezugriff** werden dem Modell keine Aktionen angeboten, die Unt
 
 KI fragen beantwortet auch Fragen zu OneUptime selbst: „Wie bekomme ich eine SMS, wenn meine Website ausfällt?“, „Was ist eine Episode?“, „Wo füge ich eine zweite Telefonnummer hinzu?“. Die Antworten stammen aus dieser Dokumentation, der Kopie, die Ihr OneUptime selbst ausliefert: Das funktioniert ohne Internetzugang und schickt nichts an neue Stellen. Eine übersetzte Seite liest es in Ihrer Sprache, zu jedem Schritt nennt es Seite und Abschnitt, und steht etwas nicht in der Dokumentation, sagt es das, statt zu raten.
 
-Eine Antwort auf „Wie mache ich …?“ endet mit einer Schaltfläche, die die Seite Ihres Projekts öffnet, auf der Sie es tun, etwa **Monitor erstellen** oder **Benachrichtigungsmethoden**. Sie öffnet nur Seiten, die OneUptime hat: die, die die Suche (`Ctrl` + `K`) findet.
+Eine Antwort auf „Wie mache ich …?“ endet mit einer Schaltfläche, die die Seite Ihres Projekts öffnet, auf der Sie es tun, etwa **Monitor erstellen** oder **Benachrichtigungsmethoden**. Sie öffnet nur Seiten, die OneUptime hat: die, die die Suche (`Ctrl` + `K`) findet. Fragen Sie nach einem einzelnen Datensatz, etwa einer Statusseite, öffnet sie die eigene Seite dieses Datensatzes, etwa **Benutzerdefinierte Domains**, und nur für einen Datensatz, den Sie öffnen dürfen.
 
 ## KI fragen öffnen
 
@@ -60,7 +60,7 @@ KI fragen liest Ihr Projekt mit Ihren eigenen Berechtigungen und sieht daher gen
 
 ## Seitenkontext
 
-KI fragen weiß, von welcher Seite aus Sie den Chat geöffnet haben. Auf einer Vorfallseite meint „warum ist das passiert?“ genau diesen Vorfall: Der Eingabebereich zeigt einen Chip mit dem Gegenstand der Seite, und die vorgeschlagenen Fragen sind die dieser Seite. Entfernen Sie den Chip, um nach dem ganzen Projekt zu fragen, und fügen Sie ihn auf dieselbe Weise wieder hinzu. Öffnen Sie KI fragen auf einer anderen Seite, folgt Ihnen der Kontext. Die Unterhaltung merkt sich ihren ersten Gegenstand auch auf dem Server, sodass eine Nachfrage Tage später „diesen Vorfall“ noch richtig zuordnet.
+KI fragen weiß, von welcher Seite aus Sie den Chat geöffnet haben. Auf einer Vorfallseite meint „warum ist das passiert?“ genau diesen Vorfall: Der Eingabebereich zeigt einen Chip mit dem Gegenstand der Seite, und die vorgeschlagenen Fragen sind die dieser Seite. Entfernen Sie den Chip, um nach dem ganzen Projekt zu fragen, und fügen Sie ihn auf dieselbe Weise wieder hinzu. Öffnen Sie KI fragen auf einer anderen Seite, folgt Ihnen der Kontext. Die Unterhaltung merkt sich ihren ersten Gegenstand auch auf dem Server, sodass eine Nachfrage Tage später „diesen Vorfall“ noch richtig zuordnet. KI fragen kennt auch die Seiten, auf denen Sie ein Projekt einrichten: **Startseite**, **Projekteinstellungen**, **Benutzereinstellungen**, **Bereitschaft**, **Statusseiten** und die Formulare, mit denen Sie etwas erstellen, sodass „Wie füge ich hier eins hinzu?“ für die Seite beantwortet wird, auf der Sie sind.
 
 Auf einem Vorfall, einer Warnung, einem Monitor oder einem Wartungsereignis richten sich die Fragen auch danach, wo dieser Datensatz steht; das liest KI fragen jedes Mal, wenn Sie den Chat darauf öffnen. Ein behobener Vorfall fragt, wie die Reaktion verlief und was eine Wiederholung verhindern würde, eine behobene Warnung, ob sie ein echtes Problem war und wie oft Warnungen wie sie ausgelöst werden, und ein Monitor, der nicht betriebsbereit ist, fragt nach dem Grund. Ein Wartungsereignis, das noch nicht begonnen hat, fragt, ob seine Monitore vorher gesund sind, und eines, das beendet ist, ob sie wieder normal laufen.
 
@@ -147,7 +147,7 @@ KI fragen zählt zu den eigenen täglichen KI-Limits des Projekts, wenn das Proj
 ## Fehlerbehebung
 
 :::details KI fragen sagt, dass KI nicht verfügbar ist
-KI fragen sagt den Grund, bevor Sie tippen: Der Tarif des Projekts umfasst keine KI, **KI aktivieren** ist ausgeschaltet oder das Projekt hat keinen LLM-Anbieter. Jeder Hinweis verlinkt auf die Seite, auf der sich das ändern lässt.
+KI fragen sagt den Grund, bevor Sie tippen: Der Tarif des Projekts umfasst keine KI, **KI aktivieren** ist ausgeschaltet oder das Projekt hat keinen LLM-Anbieter. Jeder Hinweis verlinkt auf die Seite, auf der sich das ändern lässt. Über dem Hinweis durchsucht KI fragen trotzdem diese Dokumentation nach Ihrer Frage. Scheitert eine Antwort, etwa an einem Tageslimit oder weil der Anbieter nicht erreichbar ist, stehen die Seiten der Dokumentation zu ihrer Frage ebenfalls darunter.
 :::
 
 :::details Eine Aktion wurde abgelehnt

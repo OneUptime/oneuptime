@@ -1,4 +1,6 @@
 import AppLink from "../AppLink/AppLink";
+import { getWidgetTypeBadgeText } from "../Dashboard/Toolbar/WidgetCatalog";
+import { getMetricRecordingRulesRoute } from "../Metrics/RecordingRule/RecordingRulesRoute";
 import DataSecurityApi from "./DataSecurityApi";
 import { getRulesRoute } from "./TelemetryScrubIt";
 import PageMap from "../../Utils/PageMap";
@@ -9,6 +11,7 @@ import {
   DataSecurityDropMetricResult,
   DataSecurityDropMetricUnavailableReason,
   DataSecurityMetricUser,
+  DataSecurityMetricUserWidget,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -17,6 +20,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedTextList from "Common/UI/Components/IsolatedText/IsolatedTextList";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -46,9 +50,12 @@ import React, {
  *  - that the points are lost for good, first, in the danger colour;
  *  - how many of the service's metrics of the last day it drops - never
  *    their names, which hold the data;
- *  - which monitors and dashboards read those metrics and so get no new
- *    data, each a link - or that none does, or that the reader's role could
- *    not tell;
+ *  - what reads those metrics and so gets no new data (#9946): monitors,
+ *    dashboards with the widgets on them that read them, SLOs and recording
+ *    rules, each kind saying plainly what happens to it and each record a
+ *    link - a recording rule's to its list, filtered to it. Records the
+ *    reader may not see are counted ("2 more you can't see"), never
+ *    named. Or that none does, or that a kind could not be checked;
  *  - that what is stored already is not deleted;
  *  - and how to undo it: delete the rule.
  *
@@ -59,7 +66,7 @@ import React, {
 
 export const DROP_METRIC_MODAL_TEST_ID: string = "data-security-drop-metric";
 
-// How many monitors and dashboards of each kind the dialog names; the rest are counted.
+// How many records of each kind the dialog names; the rest are counted.
 export const MAX_METRIC_USERS_SHOWN: number = 5;
 
 const TITLE: string = translationKey("Drop This Metric");
@@ -86,23 +93,97 @@ const METRICS_UNCOUNTED: string = translationKey(
   "How many metrics have such a name could not be counted.",
 );
 const USERS_GO_QUIET: string = translationKey(
-  "These monitors and dashboards read those metrics, and get no new data from them:",
+  "What reads those metrics gets no new data from them:",
 );
 const NO_USERS: string = translationKey(
-  "No monitor or dashboard reads those metrics.",
+  "No monitor, dashboard, SLO or recording rule reads those metrics.",
 );
-const MONITORS_UNCHECKED: string = translationKey(
-  "Your role cannot read monitors, so whether a monitor reads those metrics is not known.",
-);
-const DASHBOARDS_UNCHECKED: string = translationKey(
-  "Your role cannot read dashboards, so whether a dashboard reads those metrics is not known.",
-);
-const MONITORS: string = translationKey("Monitors");
-const DASHBOARDS: string = translationKey("Dashboards");
 const MORE_USERS: PluralTemplate = {
   one: "and {{count}} more",
   other: "and {{count}} more",
 };
+// Readers the reader's role may not read: counted, never named.
+const MORE_HIDDEN: PluralTemplate = {
+  one: "and {{count}} more you can't see",
+  other: "and {{count}} more you can't see",
+};
+
+// One kind of record that reads metrics, as the dialog says what happens to it.
+interface ReaderKindWords {
+  title: string;
+  // What the drop does to it, said plainly.
+  consequence: string;
+  // How many of it read them when the reader can see none of them.
+  onlyHidden: PluralTemplate;
+  // That they could not be read just now.
+  unchecked: string;
+}
+
+export const READER_KIND_WORDS: Readonly<{
+  monitors: ReaderKindWords;
+  dashboards: ReaderKindWords;
+  slos: ReaderKindWords;
+  recordingRules: ReaderKindWords;
+}> = {
+  monitors: {
+    title: translationKey("Monitors"),
+    consequence: translationKey(
+      "They get no new data from those metrics, so they can no longer alert on their values.",
+    ),
+    onlyHidden: {
+      one: "{{count}} monitor you can't see",
+      other: "{{count}} monitors you can't see",
+    },
+    unchecked: translationKey(
+      "Whether a monitor reads those metrics could not be checked.",
+    ),
+  },
+  dashboards: {
+    title: translationKey("Dashboards"),
+    consequence: translationKey(
+      "The widgets named under each show no new data from those metrics.",
+    ),
+    onlyHidden: {
+      one: "{{count}} dashboard you can't see",
+      other: "{{count}} dashboards you can't see",
+    },
+    unchecked: translationKey(
+      "Whether a dashboard reads those metrics could not be checked.",
+    ),
+  },
+  slos: {
+    title: translationKey("SLOs"),
+    consequence: translationKey(
+      "They count no new events from those metrics, so their error budgets no longer include them.",
+    ),
+    onlyHidden: {
+      one: "{{count}} SLO you can't see",
+      other: "{{count}} SLOs you can't see",
+    },
+    unchecked: translationKey(
+      "Whether an SLO reads those metrics could not be checked.",
+    ),
+  },
+  recordingRules: {
+    title: translationKey("Recording Rules"),
+    consequence: translationKey(
+      "They get no new points from those metrics, so their output metrics no longer include them.",
+    ),
+    onlyHidden: {
+      one: "{{count}} recording rule you can't see",
+      other: "{{count}} recording rules you can't see",
+    },
+    unchecked: translationKey(
+      "Whether a recording rule reads those metrics could not be checked.",
+    ),
+  },
+};
+
+// How many of a dashboard's widgets are named under it; the rest are counted.
+export const MAX_WIDGETS_SHOWN: number = 5;
+// A widget with no title, of a kind the catalog does not know.
+const UNTITLED_WIDGET: string = translationKey("Untitled");
+
 const STORED_STAYS: string = translationKey(
   "What is stored already is not deleted. It stays until its retention ends.",
 );
@@ -162,21 +243,77 @@ const FactLine: FunctionComponent<{
   );
 };
 
-// The monitors or dashboards of one kind that read those metrics, each a link.
+/*
+ * A dashboard's widgets that read those metrics, under its link: each by its
+ * title as written, or by its kind when it has none, the first few named
+ * and the rest counted.
+ */
+const WidgetsOfDashboard: FunctionComponent<{
+  widgets: Array<DataSecurityMetricUserWidget>;
+}> = (props: {
+  widgets: Array<DataSecurityMetricUserWidget>;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (props.widgets.length === 0) {
+    return <></>;
+  }
+
+  const shown: Array<DataSecurityMetricUserWidget> = props.widgets.slice(
+    0,
+    MAX_WIDGETS_SHOWN,
+  );
+  const more: number = props.widgets.length - shown.length;
+  const texts: Array<string | ReactElement> = shown.map(
+    (widget: DataSecurityMetricUserWidget): string | ReactElement => {
+      return (
+        widget.title || (
+          <span key={widget.id} className="italic">
+            {getWidgetTypeBadgeText(widget.type, translator) ||
+              translator.translateText(UNTITLED_WIDGET)}
+          </span>
+        )
+      );
+    },
+  );
+
+  if (more > 0) {
+    texts.push(
+      <span key="more">{translator.translatePlural(MORE_USERS, more)}</span>,
+    );
+  }
+
+  return (
+    <IsolatedTextList
+      className="block text-xs text-gray-500 [overflow-wrap:anywhere]"
+      dataTestId="data-security-drop-metric-widgets"
+      texts={texts}
+    />
+  );
+};
+
+/*
+ * The records of one kind that read those metrics: what the drop does to
+ * them, then each the reader may see as a link - a dashboard with its
+ * widgets under it - and how many more there are that they may not see,
+ * never named.
+ */
 const UsersOfKind: FunctionComponent<{
-  title: string;
+  words: ReaderKindWords;
   users: Array<DataSecurityMetricUser>;
-  routeOf: (id: ObjectID) => Route;
+  hidden: number;
+  routeOf: (user: DataSecurityMetricUser) => Route;
   dataTestId: string;
 }> = (props: {
-  title: string;
+  words: ReaderKindWords;
   users: Array<DataSecurityMetricUser>;
-  routeOf: (id: ObjectID) => Route;
+  hidden: number;
+  routeOf: (user: DataSecurityMetricUser) => Route;
   dataTestId: string;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
-  if (props.users.length === 0) {
+  if (props.users.length === 0 && props.hidden <= 0) {
     return <></>;
   }
 
@@ -189,18 +326,22 @@ const UsersOfKind: FunctionComponent<{
   return (
     <div data-testid={props.dataTestId}>
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-        {translator.translateText(props.title)}
+        {translator.translateText(props.words.title)}
       </div>
-      <ul className="mt-1 space-y-0.5">
+      <p className="mt-0.5 text-gray-600">
+        {translator.translateText(props.words.consequence)}
+      </p>
+      <ul className="mt-1 space-y-1">
         {shown.map((user: DataSecurityMetricUser): ReactElement => {
           return (
             <li key={user.id}>
               <AppLink
                 className="font-medium text-indigo-600 hover:underline [overflow-wrap:anywhere]"
-                to={props.routeOf(new ObjectID(user.id))}
+                to={props.routeOf(user)}
               >
                 {user.name || user.id}
               </AppLink>
+              <WidgetsOfDashboard widgets={user.widgets || []} />
             </li>
           );
         })}
@@ -211,25 +352,49 @@ const UsersOfKind: FunctionComponent<{
         ) : (
           <></>
         )}
+        {props.hidden > 0 ? (
+          <li
+            className="text-gray-500"
+            data-testid={`${props.dataTestId}-hidden`}
+          >
+            {translator.translatePlural(
+              shown.length > 0 ? MORE_HIDDEN : props.words.onlyHidden,
+              props.hidden,
+            )}
+          </li>
+        ) : (
+          <></>
+        )}
       </ul>
     </div>
   );
 };
 
-function monitorRoute(id: ObjectID): Route {
+function monitorRoute(user: DataSecurityMetricUser): Route {
   return RouteUtil.populateRouteParams(
     RouteMap[PageMap.MONITOR_VIEW] as Route,
     {
-      modelId: id,
+      modelId: new ObjectID(user.id),
     },
   );
 }
 
-function dashboardRoute(id: ObjectID): Route {
+function dashboardRoute(user: DataSecurityMetricUser): Route {
   return RouteUtil.populateRouteParams(
     RouteMap[PageMap.DASHBOARD_VIEW] as Route,
-    { modelId: id },
+    { modelId: new ObjectID(user.id) },
   );
+}
+
+function sloRoute(user: DataSecurityMetricUser): Route {
+  return RouteUtil.populateRouteParams(RouteMap[PageMap.SLO_VIEW] as Route, {
+    modelId: new ObjectID(user.id),
+  });
+}
+
+// A recording rule has no page: its list, filtered to the metric it writes.
+function recordingRuleRoute(user: DataSecurityMetricUser): Route {
+  return getMetricRecordingRulesRoute(user.outputMetricName || undefined);
 }
 
 /*
@@ -365,7 +530,57 @@ const DropMetricModal: FunctionComponent<ComponentProps> = (
       </p>
     );
   } else {
-    const users: number = impact.monitors.length + impact.dashboards.length;
+    const kinds: Array<{
+      words: ReaderKindWords;
+      users: Array<DataSecurityMetricUser>;
+      hidden: number;
+      isChecked: boolean;
+      routeOf: (user: DataSecurityMetricUser) => Route;
+      dataTestId: string;
+    }> = [
+      {
+        words: READER_KIND_WORDS.monitors,
+        users: impact.monitors,
+        hidden: impact.monitorsHidden,
+        isChecked: impact.monitorsChecked,
+        routeOf: monitorRoute,
+        dataTestId: "data-security-drop-metric-monitors",
+      },
+      {
+        words: READER_KIND_WORDS.dashboards,
+        users: impact.dashboards,
+        hidden: impact.dashboardsHidden,
+        isChecked: impact.dashboardsChecked,
+        routeOf: dashboardRoute,
+        dataTestId: "data-security-drop-metric-dashboards",
+      },
+      {
+        words: READER_KIND_WORDS.slos,
+        users: impact.slos,
+        hidden: impact.slosHidden,
+        isChecked: impact.slosChecked,
+        routeOf: sloRoute,
+        dataTestId: "data-security-drop-metric-slos",
+      },
+      {
+        words: READER_KIND_WORDS.recordingRules,
+        users: impact.recordingRules,
+        hidden: impact.recordingRulesHidden,
+        isChecked: impact.recordingRulesChecked,
+        routeOf: recordingRuleRoute,
+        dataTestId: "data-security-drop-metric-recording-rules",
+      },
+    ];
+    const isAnyRead: boolean = kinds.some(
+      (kind: { users: Array<DataSecurityMetricUser>; hidden: number }) => {
+        return kind.users.length > 0 || kind.hidden > 0;
+      },
+    );
+    const isEveryKindChecked: boolean = kinds.every(
+      (kind: { isChecked: boolean }) => {
+        return kind.isChecked;
+      },
+    );
 
     body = (
       <>
@@ -385,42 +600,54 @@ const DropMetricModal: FunctionComponent<ComponentProps> = (
             icon={IconProp.Alert}
             dataTestId="data-security-drop-metric-users"
           >
-            <div className="space-y-2">
-              {users > 0 ? (
-                <>
-                  <p>{translator.translateText(USERS_GO_QUIET)}</p>
-                  <UsersOfKind
-                    title={MONITORS}
-                    users={impact.monitors}
-                    routeOf={monitorRoute}
-                    dataTestId="data-security-drop-metric-monitors"
-                  />
-                  <UsersOfKind
-                    title={DASHBOARDS}
-                    users={impact.dashboards}
-                    routeOf={dashboardRoute}
-                    dataTestId="data-security-drop-metric-dashboards"
-                  />
-                </>
-              ) : impact.monitorsChecked && impact.dashboardsChecked ? (
+            <div className="space-y-3">
+              {isAnyRead ? (
+                <p>{translator.translateText(USERS_GO_QUIET)}</p>
+              ) : isEveryKindChecked ? (
                 <p>{translator.translateText(NO_USERS)}</p>
               ) : (
                 <></>
               )}
-              {!impact.monitorsChecked ? (
-                <p className="text-gray-600">
-                  {translator.translateText(MONITORS_UNCHECKED)}
-                </p>
-              ) : (
-                <></>
+              {kinds.map(
+                (kind: {
+                  words: ReaderKindWords;
+                  users: Array<DataSecurityMetricUser>;
+                  hidden: number;
+                  routeOf: (user: DataSecurityMetricUser) => Route;
+                  dataTestId: string;
+                }): ReactElement => {
+                  return (
+                    <UsersOfKind
+                      key={kind.dataTestId}
+                      words={kind.words}
+                      users={kind.users}
+                      hidden={kind.hidden}
+                      routeOf={kind.routeOf}
+                      dataTestId={kind.dataTestId}
+                    />
+                  );
+                },
               )}
-              {!impact.dashboardsChecked ? (
-                <p className="text-gray-600">
-                  {translator.translateText(DASHBOARDS_UNCHECKED)}
-                </p>
-              ) : (
-                <></>
-              )}
+              {kinds
+                .filter((kind: { isChecked: boolean }): boolean => {
+                  return !kind.isChecked;
+                })
+                .map(
+                  (kind: {
+                    words: ReaderKindWords;
+                    dataTestId: string;
+                  }): ReactElement => {
+                    return (
+                      <p
+                        key={kind.dataTestId}
+                        className="text-gray-600"
+                        data-testid={`${kind.dataTestId}-unchecked`}
+                      >
+                        {translator.translateText(kind.words.unchecked)}
+                      </p>
+                    );
+                  },
+                )}
             </div>
           </FactLine>
           <FactLine

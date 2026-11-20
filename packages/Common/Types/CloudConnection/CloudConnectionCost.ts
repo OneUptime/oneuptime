@@ -128,6 +128,12 @@ export function countRetiredMetrics(data: {
  *   - Google Cloud: one more time series per resource each read, free
  *     within a billing account's first 1,000,000 a month.
  *
+ * Split by a dimension (#9808), it is a series per value: on AWS a metric
+ * read each, on Google Cloud a time series each - `seriesPerResource` of
+ * them, the values the resource has, at most the cap - while Azure answers
+ * every value in one call of its own, which never rides in the key
+ * metrics' call: its filter would split those too.
+ *
  * The cost is at the cloud's list price before any free allowance: whether
  * the allowance covers it depends on the rest of the account's use.
  */
@@ -157,12 +163,21 @@ export function estimateCloudAddedMetricCost(data: {
   azureGrain?: string | undefined;
   azureMetricsInCall?: number | undefined;
   azureHasFiveMinuteCall?: boolean | undefined;
+  /*
+   * Read split by a dimension (#9808): whether it is, and the series of
+   * each resource it reads, one a value. Unsplit, one.
+   */
+  isSplit?: boolean | undefined;
+  seriesPerResource?: number | undefined;
 }): CloudAddedMetricCostEstimate {
   const resources: number = Math.max(0, data.resources);
   const reads: number = getReadsPerMonth(data.readIntervalInMinutes);
+  const series: number = data.isSplit
+    ? Math.max(1, Math.floor(data.seriesPerResource || 1))
+    : 1;
 
   if (data.provider === CloudProvider.AWS) {
-    const units: number = resources * reads;
+    const units: number = resources * series * reads;
 
     return {
       monthlyUnits: units,
@@ -179,7 +194,10 @@ export function estimateCloudAddedMetricCost(data: {
       grain === "PT1M" &&
       (data.azureMetricsInCall || 0) < AZURE_MAX_METRICS_PER_RESOURCE;
 
-    if (ridesInMinuteCall || (isFiveMinutes && data.azureHasFiveMinuteCall)) {
+    if (
+      !data.isSplit &&
+      (ridesInMinuteCall || (isFiveMinutes && data.azureHasFiveMinuteCall))
+    ) {
       return { monthlyUnits: 0, monthlyCostUsd: 0, ridesInExistingCall: true };
     }
 
@@ -197,7 +215,7 @@ export function estimateCloudAddedMetricCost(data: {
     };
   }
 
-  const units: number = resources * reads;
+  const units: number = resources * series * reads;
 
   return {
     monthlyUnits: units,

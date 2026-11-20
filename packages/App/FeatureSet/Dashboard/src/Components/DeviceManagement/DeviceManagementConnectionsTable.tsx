@@ -7,16 +7,17 @@ import {
   getDeviceManagementConnectionHealth,
 } from "Common/Types/DeviceManagement/DeviceManagementConnectionHealth";
 import {
-  getEsperConsoleHost,
+  getDeviceManagementConnectionAddress,
   readDeviceManagementConfig,
 } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import { getDeviceManagementProviderTitle } from "Common/Types/DeviceManagement/DeviceManagementProvider";
 import {
   DeviceManagementReadSummary,
   readDeviceManagementReadSummary,
 } from "Common/Types/DeviceManagement/DeviceManagementReadSummary";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { PluralTemplate } from "Common/Types/Translator";
+import { PluralTemplate, getInlineSeparator } from "Common/Types/Translator";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
@@ -54,11 +55,13 @@ import {
 } from "./DeviceManagementWords";
 
 /*
- * The project's Esper connections: how each is doing, when it was last read
- * and what that read found, and what can be done with it - read it now, turn
- * it off or on, edit or delete it. Connect and edit go through
- * EsperConnectionFormModal (opened by the page): its key is write-only and
- * tested before it is saved, which ModelTable's own form cannot express.
+ * The project's device management connections - Esper, Microsoft Intune
+ * (#9837): how each is doing, when it was last read and what that read
+ * found, and what can be done with it - read it now, turn it off or on,
+ * edit or delete it. Connect and edit go through the service's own form
+ * (EsperConnectionFormModal, IntuneConnectionFormModal, opened by the
+ * page): its secret is write-only and tested before it is saved, which
+ * ModelTable's own form cannot express.
  */
 
 export interface ComponentProps {
@@ -156,6 +159,7 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const words: DeviceManagementTestWords = getDeviceManagementFailureWords(
       readDeviceManagementReadSummary(item.lastPullResult)?.failureKind,
+      item.provider,
     );
 
     return (
@@ -215,7 +219,7 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
         modelType={DeviceManagementConnection}
         refreshToggle={`${props.refreshToggle}-${refreshCounter}`}
         id="device-management-connections-table"
-        name="Inventory > Managed Devices > Esper Connections"
+        name="Inventory > Managed Devices > Connections"
         userPreferencesKey="device-management-connections-table"
         query={{ projectId: ProjectUtil.getCurrentProjectId()! }}
         selectMoreFields={{
@@ -238,15 +242,15 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={true}
         createVerb="Connect"
-        // The header's button reads "Connect Esper".
-        singularName="Esper"
-        pluralName="Esper connections"
+        // The header's button reads "Connect device manager".
+        singularName="device manager"
+        pluralName="device managers"
         getItemName={(item: DeviceManagementConnection): string => {
           return item.name || "";
         }}
         /*
-         * Its dialog names the connection, not the table's "Esper", which
-         * would read as deleting Esper itself.
+         * Its dialog names the connection, not the table's "device
+         * manager", which would read as deleting the service itself.
          */
         getDeleteConfirmation={async (
           item: DeviceManagementConnection,
@@ -263,11 +267,11 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
         sortOrder={SortOrder.Ascending}
         showRefreshButton={true}
         cardProps={{
-          title: "Esper Connections",
+          title: "Device Managers",
           description:
-            "Esper tenants whose Android devices are imported into Inventory and kept current. Esper sends nothing on its own, so each is read on a schedule.",
+            "The Esper and Microsoft Intune tenants whose devices are imported into Inventory and kept current. They send nothing on their own, so each is read on a schedule.",
         }}
-        noItemsMessage="No Esper connections yet."
+        noItemsMessage="No device managers connected yet."
         filters={[]}
         actionButtons={[
           {
@@ -286,8 +290,8 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
             },
           },
           /*
-           * The connection's recommended monitors (#9835): Esper Device
-           * Stopped Checking In, one alert per device. Open to everyone
+           * The connection's recommended monitors (#9835): its devices
+           * that stopped checking in, one alert per device. Open to everyone
            * who sees the row; creating a monitor asks its own permission.
            */
           {
@@ -404,10 +408,21 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
                     text={item.name || ""}
                     className="truncate text-sm font-medium text-gray-900"
                   />
+                  {/*
+                   * The service and what it reads: product words, as
+                   * written, set apart the reader's way.
+                   */}
                   <IsolatedLine
-                    text={getEsperConsoleHost(
-                      readDeviceManagementConfig(item.config).tenant,
-                    )}
+                    text={[
+                      getDeviceManagementProviderTitle(item.provider),
+                      getDeviceManagementConnectionAddress({
+                        provider: item.provider,
+                        config: readDeviceManagementConfig(
+                          item.config,
+                          item.provider,
+                        ),
+                      }),
+                    ].join(getInlineSeparator(translator.language))}
                     className="truncate text-xs text-gray-500"
                   />
                 </div>

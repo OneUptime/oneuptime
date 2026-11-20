@@ -47,11 +47,12 @@ Cada usuario, host y dirección que nombra un caso o un evento se busca entre lo
 | Una forma corta o completa del nombre de un elemento, como `web-1` y `web-1.acme.internal` | Ese elemento | Posible |
 | Una dirección IP pública que solo tiene un host o dispositivo de red, o en la que solo responde un recurso en la nube | Ese elemento | Exacta |
 | Una dirección IP privada, o una que tienen varios elementos | Cada elemento que la tiene | Posible |
-| El ID propio de un recurso en la nube: un ARN de AWS, un ID de recurso de Azure o un nombre de recurso de Google Cloud | Ese recurso en la nube | Exacta |
+| El ID propio de un recurso en la nube: un ARN de AWS o un nombre de recurso de Google Cloud tal como se escribió, o un ID de recurso de Azure, en mayúsculas o minúsculas | Ese recurso en la nube | Exacta |
 | Un host, una dirección IP pública o el host de una URL que comprueba un monitor | Ese monitor | Exacta |
 | Una dirección IP privada que comprueba un monitor | Ese monitor | Posible |
 | El correo electrónico de un miembro | Ese miembro | Exacta |
 | El elemento con el que se envió una línea de registro, para los eventos leídos de sus registros | Ese host, clúster, nube OpenStack, recurso en la nube, función serverless o servicio | Exacta |
+| El recurso en la nube o la función serverless de la que vino una línea de registro, por su `cloud.resource_id` o su `faas.name`, para los eventos leídos de sus registros | Ese recurso en la nube o esa función serverless | Exacta |
 | Un simple nombre de usuario, un hash de archivo o un proceso | Nada: ningún elemento se identifica por ellos | - |
 
 - Una posible coincidencia muestra **Posible coincidencia** junto a su nombre y dice por qué. Nunca se cuenta en la página del elemento, y un incidente que declara el caso nunca se vincula a ella.

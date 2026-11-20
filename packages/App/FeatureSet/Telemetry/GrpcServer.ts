@@ -477,6 +477,13 @@ export async function handleExport(
     );
 
     /*
+     * The export's protobuf size, which a budget counts it at, for the
+     * worker to share out over its resources (#6355, #6386): it holds the
+     * export as JSON, so it cannot measure it. A lookup, never a measure.
+     */
+    req.telemetryIngestBytes = getExportMessageSize(call.request);
+
+    /*
      * Ingestion budgets: the project's and the key's, for this signal,
      * counted at the export's protobuf size. Nothing is read from Redis unless
      * a budget or a rate is in force.
