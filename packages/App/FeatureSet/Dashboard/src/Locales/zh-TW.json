@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "新電子郵件地址連結的到期時間",
   "Send Link Again": "重新寄送連結",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "我們寄送到 {{email}} 的連結已過期，因此您的電子郵件地址沒有變更。請寄送新連結以完成變更，或取消此變更。",
-  "We emailed the new address again.": "我們已再次寄送電子郵件到新地址。"
+  "We emailed the new address again.": "我們已再次寄送電子郵件到新地址。",
+  "Device Manager ID": "裝置管理服務 ID",
+  "{{count}} days old": "已過 {{count}} 天",
+  "{{count}} days old_one": "已過 {{count}} 天"
 }

@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "انتهاء صلاحية رابط عنوان البريد الإلكتروني الجديد",
   "Send Link Again": "إرسال الرابط مرة أخرى",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "انتهت صلاحية الرابط الذي أرسلناه إلى {{email}}، لذا لم يتغيّر عنوان بريدك الإلكتروني. أرسل رابطًا جديدًا لإكمال التغيير، أو ألغِه.",
-  "We emailed the new address again.": "أرسلنا رسالة إلى العنوان الجديد مرة أخرى."
+  "We emailed the new address again.": "أرسلنا رسالة إلى العنوان الجديد مرة أخرى.",
+  "Device Manager ID": "المعرّف في خدمة إدارة الأجهزة",
+  "{{count}} days old": "العمر بالأيام: {{count}}",
+  "{{count}} days old_one": "العمر: {{count}} يوم"
 }

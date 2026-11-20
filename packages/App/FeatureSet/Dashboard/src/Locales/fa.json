@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "زمان انقضای پیوند نشانی ایمیل جدید",
   "Send Link Again": "ارسال دوباره پیوند",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "پیوندی که به {{email}} ایمیل کردیم منقضی شده است، بنابراین نشانی ایمیل شما تغییر نکرده است. برای کامل کردن تغییر یک پیوند جدید بفرستید، یا تغییر را لغو کنید.",
-  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم."
+  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم.",
+  "Device Manager ID": "شناسه در سرویس مدیریت دستگاه",
+  "{{count}} days old": "قدمت: {{count}} روز",
+  "{{count}} days old_one": "قدمت: {{count}} روز"
 }

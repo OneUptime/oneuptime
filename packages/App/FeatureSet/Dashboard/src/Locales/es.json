@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "Caducidad del enlace de la nueva dirección de correo electrónico",
   "Send Link Again": "Volver a enviar el enlace",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "El enlace que enviamos a {{email}} caducó, así que tu dirección de correo electrónico no ha cambiado. Envía un enlace nuevo para terminar el cambio, o cancélalo.",
-  "We emailed the new address again.": "Volvimos a enviar un correo a la nueva dirección."
+  "We emailed the new address again.": "Volvimos a enviar un correo a la nueva dirección.",
+  "Device Manager ID": "ID en el gestor de dispositivos",
+  "{{count}} days old": "{{count}} días de antigüedad",
+  "{{count}} days old_one": "{{count}} día de antigüedad"
 }

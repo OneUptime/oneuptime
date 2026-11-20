@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "新しいメールアドレスのリンクの有効期限",
   "Send Link Again": "リンクを再送信",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "{{email}} に送信したリンクの有効期限が切れたため、メールアドレスは変更されていません。変更を完了するには新しいリンクを送信するか、変更をキャンセルしてください。",
-  "We emailed the new address again.": "新しいアドレスにメールを再送信しました。"
+  "We emailed the new address again.": "新しいアドレスにメールを再送信しました。",
+  "Device Manager ID": "デバイス管理サービスの ID",
+  "{{count}} days old": "{{count}} 日経過",
+  "{{count}} days old_one": "{{count}} 日経過"
 }

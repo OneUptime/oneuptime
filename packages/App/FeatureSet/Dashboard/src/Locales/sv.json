@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "Utgång för länk till ny e-postadress",
   "Send Link Again": "Skicka länken igen",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Länken vi mejlade till {{email}} har gått ut, så din e-postadress har inte ändrats. Skicka en ny länk för att slutföra bytet, eller avbryt det.",
-  "We emailed the new address again.": "Vi har mejlat den nya adressen igen."
+  "We emailed the new address again.": "Vi har mejlat den nya adressen igen.",
+  "Device Manager ID": "MDM-ID",
+  "{{count}} days old": "{{count}} dagar gammal",
+  "{{count}} days old_one": "{{count}} dag gammal"
 }

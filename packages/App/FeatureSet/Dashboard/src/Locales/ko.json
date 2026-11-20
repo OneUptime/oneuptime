@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "새 이메일 주소 링크 만료 시간",
   "Send Link Again": "링크 다시 보내기",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "{{email}}(으)로 보낸 링크가 만료되어 이메일 주소가 변경되지 않았습니다. 변경을 완료하려면 새 링크를 보내거나 변경을 취소하세요.",
-  "We emailed the new address again.": "새 주소로 이메일을 다시 보냈습니다."
+  "We emailed the new address again.": "새 주소로 이메일을 다시 보냈습니다.",
+  "Device Manager ID": "디바이스 관리 서비스 ID",
+  "{{count}} days old": "{{count}}일 경과",
+  "{{count}} days old_one": "{{count}}일 경과"
 }

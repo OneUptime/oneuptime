@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "New Email Link Expires",
   "Send Link Again": "Send Link Again",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.",
-  "We emailed the new address again.": "We emailed the new address again."
+  "We emailed the new address again.": "We emailed the new address again.",
+  "Device Manager ID": "Device Manager ID",
+  "{{count}} days old": "{{count}} days old",
+  "{{count}} days old_one": "{{count}} day old"
 }

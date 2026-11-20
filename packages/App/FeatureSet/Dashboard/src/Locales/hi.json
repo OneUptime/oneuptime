@@ -59715,5 +59715,8 @@
   "New Email Link Expires": "नए ईमेल पते के लिंक की समय-सीमा",
   "Send Link Again": "लिंक फिर से भेजें",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "हमने {{email}} पर जो लिंक भेजा था उसकी समय-सीमा समाप्त हो गई है, इसलिए आपका ईमेल पता नहीं बदला है। बदलाव पूरा करने के लिए नया लिंक भेजें, या इसे रद्द करें।",
-  "We emailed the new address again.": "हमने नए पते पर फिर से ईमेल भेजा है।"
+  "We emailed the new address again.": "हमने नए पते पर फिर से ईमेल भेजा है।",
+  "Device Manager ID": "डिवाइस मैनेजर ID",
+  "{{count}} days old": "{{count}} दिन पुराना",
+  "{{count}} days old_one": "{{count}} दिन पुराना"
 }
