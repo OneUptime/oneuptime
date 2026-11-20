@@ -1081,10 +1081,11 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
             </div>
             {busyDayList.events.map(
               (event: CalendarEvent, index: number): ReactElement => {
+                // As react-big-calendar asks the grid's blocks for theirs.
                 const block: {
                   className?: string | undefined;
                   style?: React.CSSProperties;
-                } = eventStyleGetter(event);
+                } = eventStyleGetter(event, event.start, event.end, false);
                 const isShownAsAllDay: boolean =
                   Boolean(event.allDay) ||
                   localizer.diff(

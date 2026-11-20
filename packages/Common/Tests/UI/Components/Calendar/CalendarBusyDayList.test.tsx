@@ -210,9 +210,9 @@ async function placed(): Promise<void> {
 
 function renderBusyMonth(
   props: {
-    onEventClick?: (event: CalendarEvent) => void;
-    renderEventContent?: (event: CalendarEvent) => ReactElement;
-    onRangeChange?: () => void;
+    onEventClick?: ((event: CalendarEvent) => void) | undefined;
+    renderEventContent?: ((event: CalendarEvent) => ReactElement) | undefined;
+    onRangeChange?: (() => void) | undefined;
   } = {},
 ): void {
   render(
