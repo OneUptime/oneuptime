@@ -3,6 +3,8 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
+import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
+import Timezone from "../../Types/Timezone";
 import {
   getQuerySettings,
   INTERACTIVE_READ_TIME_LIMIT,
@@ -57,6 +59,12 @@ export interface HistogramRequest extends ExceptionFilters {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
 }
 
 /*
@@ -265,14 +273,20 @@ export class ExceptionAggregationService {
   }
 
   private static buildHistogramStatement(request: HistogramRequest): Statement {
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
-
+    // A day from the reader's midnight, when the request names their zone.
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(time, INTERVAL ${{
-          type: TableColumnType.Number,
-          value: intervalSeconds,
-        }} SECOND) AS bucket,
+        `;
+
+    statement.append(
+      TelemetryHistogramBuckets.buildBucketStatement({
+        timestampExpression: "time",
+        bucketSizeInMinutes: request.bucketSizeInMinutes,
+        timezone: request.timezone,
+      }),
+    );
+
+    statement.append(SQL` AS bucket,
         escaped,
         count() AS cnt
       FROM ${ExceptionAggregationService.TABLE_NAME}
@@ -288,7 +302,7 @@ export class ExceptionAggregationService {
           type: TableColumnType.Date,
           value: request.endTime,
         }}
-    `;
+    `);
 
     /*
      * Read-side retention filter: rows past their per-service retention

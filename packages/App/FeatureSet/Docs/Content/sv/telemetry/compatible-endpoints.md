@@ -116,6 +116,8 @@ Fluent Bits `loki`-output tar värden och sökvägen var för sig:
     Labels       job=fluent-bit
 ```
 
+OneUptime svarar som Loki gör: `204` när en push är sparad, `400` för en som den inte kan läsa, `413` för en över gränserna nedan, `401` för en saknad eller okänd nyckel, `403` för en förbrukad dagsbudget, `429` med `Retry-After` över en hastighetsgräns och `503` när den inte kan ta emot en just nu. Promtail, Alloy och Vector försöker igen vid `429` eller `503` och kastar varje annan avvisad batch och loggar varför; Fluent Bit kastar en `400` och försöker igen med allt annat, upp till sin `Retry_Limit`.
+
 ### Vad en ström blir
 
 - **Varje post är en logg**, med sin egen tidsstämpel på nanosekunden och sin rad som innehåll.
@@ -219,7 +221,9 @@ Ettan `1` i slutet av DSN:en krävs av Sentrys SDK:er och läses inte. En webbl�
 ## Gränser och intagningsbudgetar
 
 - **Requeststorlek** – OneUptimes ingress tar emot requests på upp till 4 MB under `/telemetry`, och varje requests innehåll får bli högst 64 MB när det dekomprimeras. En request från Prometheus remote write får bli högst 32 MB när den dekomprimeras och innehålla högst 500 000 serier, etiketter och samples, så att ingen enskild request kan förbruka serverns minne. Prometheus och Alloy skickar som standard 2 000 samples per request, långt under båda; en request över avvisas med `413`, sänk då `max_samples_per_send` i `queue_config`.
-- **Intagningsbudgetar** – Prometheus remote write och Loki kontrolleras mot budgeten för mätvärden eller loggar innan deras innehåll läses, och avvisas med `403` när den är förbrukad. En request från remote write räknas sedan med sin dekomprimerade storlek, som en OTLP-request, även mot ett teams eller en etiketts budgetar. En HEC-batch, en Datadog-nyttolast eller ett Sentry-kuvert kan innehålla flera signaler, så varje signal räknas mot sin egen budget när den sparas, och kastas när den budgeten är förbrukad.
+- **Loki-pushar** – en push får bli högst 32 MB när den dekomprimeras och innehålla högst 500 000 poster, etiketter och strukturerad metadata, där en ströms etiketter räknas en gång för var och en av dess poster. Promtail och Alloy skickar som standard batcher på 1 MB, långt under båda; en push över avvisas med `413`, sänk då klientens batchstorlek.
+- **JSON- och Datadog-nyttolaster** – ett JSON-innehåll får innehålla högst 1 000 000 värden (objekt, arrayer, strängar och tal), och en protobuf-nyttolast från Datadog Agent högst 500 000 serier, punkter, taggar och sketcher. Var och en räknas innan den läses, och en request över en gräns avvisas med `413`.
+- **Intagningsbudgetar** – Prometheus remote write och Loki kontrolleras mot budgeten för mätvärden eller loggar innan deras innehåll läses, och avvisas med `403` när den är förbrukad. Varje request räknas sedan med sin dekomprimerade storlek, som en OTLP-request, även mot ett teams eller en etiketts budgetar. En HEC-batch, en Datadog-nyttolast eller ett Sentry-kuvert kan innehålla flera signaler, så varje signal räknas mot sin egen budget när den sparas, och kastas när den budgeten är förbrukad: loggarna och mätvärdeshändelserna i en HEC-batch delar på dess storlek, och ett Sentry-kuvert räknas med de objekt som OneUptime behåller, inte med dess bilagor, replays eller profiler.
 
 ## Felsökning
 

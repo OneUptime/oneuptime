@@ -101,7 +101,8 @@ export const DEFERRED_BODY_SURFACES: ReadonlySet<TelemetryIngestSurface> =
     /*
      * Remote write and Loki read their bodies after the key check, and a
      * snappy body's size is only known once it is undone: the enqueue
-     * counts each at the size of the OTLP it becomes.
+     * counts each at the size of its body decompressed
+     * (CompatibleIngestService), as an OTLP export is counted.
      */
     TelemetryIngestSurface.PrometheusRemoteWrite,
     TelemetryIngestSurface.Loki,

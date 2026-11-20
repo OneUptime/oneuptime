@@ -3,7 +3,7 @@
 const fs = require("fs");
 const http = require("http");
 const https = require("https");
-const { ingressUrlOf } = require("./FollowIngressPort");
+const { ingressRequestOf } = require("./FollowIngressPort");
 const { isPlaceholderValue } = require("./ReplacePlaceholderSecrets");
 
 /*
@@ -24,7 +24,8 @@ const { isPlaceholderValue } = require("./ReplacePlaceholderSecrets");
  * password. The server keeps the time it was told.
  *
  * It asks the ingress on this server (ONEUPTIME_HTTP_PORT, as `npm run
- * doctor` does), never HOST, with the cluster key from config.env
+ * doctor` does, under the name localhost whatever address it is published
+ * on), never HOST, with the cluster key from config.env
  * (ONEUPTIME_SECRET) in the clusterkey header, URI-encoded, as every request
  * that presents the key does: POST /api/admin/health/backup-run. Only the
  * server's operator holds that key, so nobody else can mark the server as
@@ -202,8 +203,9 @@ const run = async (given) => {
   const file = argv[1] ? String(argv[1]) : "";
   const outcome = backupOutcomeOf(argv[0], file ? sizeOf(file) : null);
   const secret = String(env.ONEUPTIME_SECRET || "").trim();
-  const ingress = ingressUrlOf(env.ONEUPTIME_HTTP_PORT);
+  const ingress = ingressRequestOf(env.ONEUPTIME_HTTP_PORT);
   const ingressUrl = ingress ? ingress.url : "http://localhost";
+  const ingressHost = ingress ? ingress.host : "localhost";
 
   if (secret && !isPlaceholderValue(secret)) {
     /*
@@ -214,7 +216,7 @@ const run = async (given) => {
      */
     const answer = await request(`${ingressUrl}${BACKUP_SCRIPT_RUN_PATH}`, {
       method: "POST",
-      headers: { clusterkey: encodeURIComponent(secret) },
+      headers: { Host: ingressHost, clusterkey: encodeURIComponent(secret) },
       body: outcome,
     });
 

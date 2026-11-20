@@ -70,13 +70,13 @@ sequenceDiagram
     participant IdP as Proveedor de identidad
     participant O as OneUptime
     IdP->>O: Crear el usuario,<br/>cuando lo asignas
-    Note over O: Añadido a los equipos<br/>predeterminados.<br/>En OneUptime Cloud,<br/>una cuenta existente<br/>recibe una invitación<br/>en su lugar
+    Note over O: Añadido a los equipos<br/>predeterminados.<br/>En OneUptime Cloud,<br/>quien aún no está<br/>en el proyecto recibe<br/>una invitación en su lugar
     IdP->>O: Actualizar el usuario,<br/>cuando cambia su perfil
     IdP->>O: Eliminar o desactivar,<br/>cuando retiras la asignación
     Note over O: Quitado de los equipos<br/>predeterminados
 ```
 
-Quien ya tenía una cuenta de OneUptime se une cuando acepta la invitación en OneUptime Cloud (consulta las [preguntas frecuentes](#preguntas-frecuentes)). El acceso concedido por equipos ajenos a los equipos predeterminados de la conexión no se toca.
+En OneUptime Cloud, quien aún no está en tu proyecto se une cuando acepta la invitación, tanto si SCIM creó su cuenta de OneUptime como si ya tenía una (consulta las [preguntas frecuentes](#preguntas-frecuentes)). El acceso concedido por equipos ajenos a los equipos predeterminados de la conexión no se toca.
 
 ### Credenciales de cliente OAuth 2.0
 
@@ -445,9 +445,9 @@ En ningún sitio: OneUptime solo guarda su hash, así que ni el panel ni la API 
 Cuando SCIM intenta crear un usuario que ya existe (coincidiendo por correo electrónico), OneUptime no crea un usuario duplicado. Lo que ocurre después depende de dónde se ejecute OneUptime:
 
 - **Autoalojado**: el usuario existente se agrega de inmediato a los equipos predeterminados configurados (o al equipo del grupo, con grupos push).
-- **OneUptime Cloud**: Una cuenta de OneUptime pertenece a la persona, no a un proyecto concreto, así que SCIM no puede convertir a alguien en miembro de tu proyecto por su propia cuenta. En su lugar, el usuario existente es **invitado** a los equipos y recibe el correo de invitación habitual. Se une cuando acepta las invitaciones desde **Invitaciones del proyecto** en OneUptime, o cuando confirma el inicio de sesión único (SSO) de tu proyecto desde el correo que OneUptime envía en su primer inicio de sesión con SSO. Hasta entonces figura como pendiente. Lo mismo ocurre cuando un grupo agrega a un usuario existente que aún no es miembro de tu proyecto.
+- **OneUptime Cloud**: Una cuenta de OneUptime pertenece a la persona, no a un proyecto concreto, así que SCIM no puede convertir a alguien en miembro de tu proyecto por su propia cuenta. En su lugar, el usuario existente es **invitado** a los equipos y recibe el correo de invitación habitual, igual que un usuario que crea SCIM. Se une cuando acepta las invitaciones desde **Invitaciones del proyecto** en OneUptime, o cuando confirma el inicio de sesión único (SSO) de tu proyecto desde el correo que OneUptime envía en su primer inicio de sesión con SSO. Hasta entonces figura como pendiente, con el nombre que envió tu proveedor de identidad, de modo que la lista de usuarios de tu proyecto se ve igual tanto si alguien ya tenía una cuenta de OneUptime como si no. Lo mismo ocurre cuando un grupo agrega a alguien que aún no es miembro de tu proyecto.
 
-Los usuarios que crea el propio SCIM y los usuarios que son miembros de tu proyecto se agregan de inmediato en ambos casos. Confirmar el SSO de tu proyecto convierte a alguien en miembro, así que también se agrega de inmediato; quien haya dejado tu proyecto desde entonces vuelve a ser invitado.
+Los usuarios que son miembros de tu proyecto se agregan de inmediato en ambos casos, y en una instalación autoalojada también los usuarios que crea el propio SCIM. Confirmar el SSO de tu proyecto convierte a alguien en miembro, así que también se agrega de inmediato; quien haya dejado tu proyecto desde entonces vuelve a ser invitado.
 :::
 
 :::details ¿Puede SCIM cambiar la dirección de correo o el nombre de un usuario?

@@ -63,7 +63,7 @@ Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip: 
 Haga clic en una fila. Sus detalles se abren junto a la lista.
 :::
 
-Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros. Un enlace a una sola línea de registro, como **Ver línea de registro** de un evento de seguridad, abre esa línea encima de la lista, leída con sus propios permisos. **Copiar enlace**, en los detalles de una línea, copia un enlace así, con debajo la lista de la que lo copió, en el mismo intervalo de tiempo.
+Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros. Un enlace a una sola línea de registro, como **Ver línea de registro** de un evento de seguridad, abre esa línea encima de la lista, leída con sus propios permisos. **Copiar enlace**, en los detalles de una línea, copia un enlace así, con debajo la lista de la que lo copió, en el mismo intervalo de tiempo. Cada fila de la lista también tiene **Copiar enlace**, junto a su mensaje, para copiar el enlace de una línea sin abrirla.
 
 ## Leer un registro
 
@@ -194,6 +194,7 @@ Pulse `?` en el Visor para verlos.
 | --- | --- |
 | `j` / `k` | Pasar al registro siguiente o anterior. |
 | Enter | Abrir o cerrar el registro seleccionado. |
+| `l` | Copiar un enlace al registro seleccionado. |
 | Esc | Cerrar el panel de detalles. |
 | `/` | Ir al cuadro de búsqueda. |
 | ⌘ + Enter o Ctrl + Enter | Aplicar la búsqueda. |

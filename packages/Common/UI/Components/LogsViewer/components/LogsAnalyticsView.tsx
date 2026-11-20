@@ -71,6 +71,12 @@ import {
   getAnalyticsSeriesLabel,
   LogsEntityResolutionRequest,
 } from "../LogsEntityNames";
+import Timezone from "../../../../Types/Timezone";
+import {
+  formatHistogramTick,
+  getHistogramRequestTimezone,
+  readHistogramBucketTimezone,
+} from "../../Charts/Utils/HistogramDayBars";
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "../../Charts/Utils/useHistogramRangeSelection";
@@ -678,6 +684,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   const [timeseriesBucketMs, setTimeseriesBucketMs] = useState<
     number | undefined
   >(undefined);
+  /*
+   * The zone the server cut the rows' day buckets in (bucketTimezone,
+   * #7923), kept with them: a click on a day bar zooms to its next midnight.
+   */
+  const [timeseriesBucketTimezone, setTimeseriesBucketTimezone] = useState<
+    Timezone | undefined
+  >(undefined);
   const [topListData, setTopListData] = useState<Array<AnalyticsTopItem>>([]);
   const [tableData, setTableData] = useState<Array<AnalyticsTableRow>>([]);
   /*
@@ -807,6 +820,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         setLoadError(undefined);
         setTimeseriesData([]);
         setTimeseriesBucketMs(undefined);
+        setTimeseriesBucketTimezone(undefined);
         setTopListData([]);
         setTableData([]);
         return;
@@ -833,6 +847,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           endTime: endTime.toISOString(),
           bucketSizeInMinutes: bucketSizeInMinutes,
         } as JSONObject;
+
+        // A bucket of a day starts at the reader's midnight (#7923).
+        const timezone: Timezone | undefined = getHistogramRequestTimezone();
+
+        if (timezone) {
+          requestData["timezone"] = timezone;
+        }
 
         const requestGroupBy: Array<string> =
           groupByFields.length > 0 &&
@@ -909,6 +930,9 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         if (chartType === "timeseries") {
           setTimeseriesData(data as Array<AnalyticsTimeseriesRow>);
           setTimeseriesBucketMs(bucketSizeInMinutes * 60 * 1000);
+          setTimeseriesBucketTimezone(
+            readHistogramBucketTimezone(response.data["bucketTimezone"]),
+          );
         } else if (chartType === "toplist") {
           setTopListData(data as Array<AnalyticsTopItem>);
         } else {
@@ -923,6 +947,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         setLoadError(TelemetryLoadErrorUtil.fromError(err));
         setTimeseriesData([]);
         setTimeseriesBucketMs(undefined);
+        setTimeseriesBucketTimezone(undefined);
         setTopListData([]);
         setTableData([]);
       } finally {
@@ -1059,7 +1084,21 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     onTimeRangeSelect: zoomHandlers.onTimeRangeSelect,
     onZoomOut: zoomHandlers.onTimeRangeReset,
     bucketIntervalMs: timeseriesBucketMs,
+    bucketTimezone: timeseriesBucketTimezone,
   });
+
+  /*
+   * One function while the bars' width stays: the axis keeps its bars, as a
+   * press waiting to become a click needs (#7923). A day bar names its day,
+   * a shorter one its time.
+   */
+  const formatXAxisTick: (time: string) => string = useMemo(() => {
+    return (time: string): string => {
+      return formatHistogramTick(time, {
+        bucketIntervalMs: timeseriesBucketMs,
+      });
+    };
+  }, [timeseriesBucketMs]);
 
   const canZoom: boolean = Boolean(zoomHandlers.onTimeRangeSelect);
 
@@ -1379,7 +1418,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         />
         <XAxis
           dataKey="time"
-          tickFormatter={formatTickTime}
+          tickFormatter={formatXAxisTick}
           tick={{
             fontSize: 11,
             fill: "var(--ou-chart-tick, #94a3b8)",

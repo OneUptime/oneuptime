@@ -3,7 +3,7 @@ import { JSONObject } from "Common/Types/JSON";
 import MonitorEvaluationDetails from "Common/Types/Monitor/MonitorEvaluationDetails";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorEvaluationDetailsUtil from "Common/Utils/Monitor/MonitorEvaluationDetailsUtil";
-import MonitorRootCauseWording from "Common/Utils/Monitor/MonitorRootCauseWording";
+import RecordRootCauseWording from "Common/Utils/Monitor/RecordRootCauseWording";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -346,15 +346,17 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
   const storedRootCause: string = props.rootCause?.trim() || "";
 
   /*
-   * A root cause a monitor wrote, in the reader's language as far as it
-   * goes: OneUptime's own labels, and each finding the evaluation details
-   * hold as a sentence (MonitorRootCauseWording). The rest reads as stored,
-   * each value set apart from the label worded before it, so a line reads
-   * the way its label does on an Arabic or Persian page.
+   * The root cause in the reader's language as far as it goes
+   * (RecordRootCauseWording): a sentence OneUptime wrote when it opened the
+   * record itself (a Sigma rule matched, an SLO's burn rate, a page from
+   * Slack, #10125), or what a monitor wrote - OneUptime's own labels, and
+   * each finding the evaluation details hold as a sentence. The rest reads
+   * as stored, each value set apart from the words worded round it, so a
+   * line reads the way its words do on an Arabic or Persian page.
    */
   const rootCause: string = isOpenedByRootCause(storedRootCause)
     ? ""
-    : MonitorRootCauseWording.wordRootCause({
+    : RecordRootCauseWording.wordRootCause({
         rootCause: storedRootCause,
         translator: translator,
         findings: evaluationDetails?.filters,

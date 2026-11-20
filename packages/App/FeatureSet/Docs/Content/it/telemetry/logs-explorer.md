@@ -63,7 +63,7 @@ Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip
 Fate clic su una riga. I suoi dettagli si aprono accanto all'elenco.
 :::
 
-La ricerca, i chip e l'intervallo di tempo restano nell'indirizzo della pagina, quindi un aggiornamento, un segnalibro o un link condiviso apre gli stessi log. Un link a una singola riga di log, come **Visualizza riga di log** di un evento di sicurezza, apre quella riga sopra l'elenco, letta con i vostri permessi. **Copia link**, nei dettagli di una riga, copia un link di questo tipo, con sotto l'elenco da cui l'avete copiato, sullo stesso intervallo di tempo.
+La ricerca, i chip e l'intervallo di tempo restano nell'indirizzo della pagina, quindi un aggiornamento, un segnalibro o un link condiviso apre gli stessi log. Un link a una singola riga di log, come **Visualizza riga di log** di un evento di sicurezza, apre quella riga sopra l'elenco, letta con i vostri permessi. **Copia link**, nei dettagli di una riga, copia un link di questo tipo, con sotto l'elenco da cui l'avete copiato, sullo stesso intervallo di tempo. Anche ogni riga dell'elenco ha **Copia link**, accanto al suo messaggio, per copiare il link di una riga senza aprirla.
 
 ## Leggere un log
 
@@ -194,6 +194,7 @@ Premete `?` nel Visualizzatore per vederle.
 | --- | --- |
 | `j` / `k` | Passare al log successivo o precedente. |
 | Enter | Aprire o chiudere il log selezionato. |
+| `l` | Copiare un link al log selezionato. |
 | Esc | Chiudere il pannello dei dettagli. |
 | `/` | Andare alla casella di ricerca. |
 | ⌘ + Enter o Ctrl + Enter | Applicare la ricerca. |
