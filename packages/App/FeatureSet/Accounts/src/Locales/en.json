@@ -288,6 +288,29 @@
     "templateNone": "No template",
     "uploadingFiles": "Uploading your files…"
   },
+  "formSignIn": {
+    "prompt": "Sign in to open this form.",
+    "ssoOnlyPrompt": "Sign in with your organization's single sign-on to open this form.",
+    "noWayIn": "No way to sign in is set up for this form yet. Ask the person who shared it with you.",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "signIn": "Sign In",
+    "or": "or",
+    "signInWithProvider": "Sign in with {{provider}}",
+    "forgotTitle": "Forgot your password?",
+    "forgotPrompt": "Enter your email address and we'll send you a link to choose a new password.",
+    "sendLink": "Send Link",
+    "forgotSent": "If this address can sign in to this form, a link to choose a new password is on its way. The link works for 24 hours.",
+    "backToSignIn": "Back to sign in",
+    "resetTitle": "Choose a new password",
+    "resetPrompt": "Enter the password you'll sign in to this form with.",
+    "newPassword": "New Password",
+    "savePassword": "Save Password",
+    "resetDone": "Your password is saved. Sign in with it to open the form.",
+    "signedInAs": "Signed in as {{email}}",
+    "signOut": "Sign Out"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbidden",

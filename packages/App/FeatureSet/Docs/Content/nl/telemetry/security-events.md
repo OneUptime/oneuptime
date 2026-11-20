@@ -485,9 +485,9 @@ detection:
 | **In realtime uitvoeren** | Uit bij een nieuwe regel. Staat het aan, dan controleert de regel elke gebeurtenis zodra die binnenkomt in plaats van elk interval; zie [Realtimeregels](#realtimeregels). |
 | **Groeperingsveld** | Optioneel. Matches die de waarde van dit veld delen, zoals `principalHost`, worden samen geteld, gemeld en ontdubbeld: één waarschuwing per host in plaats van honderden. |
 | **Veld voor unieke telling** | Optioneel. Tel de verschillende waarden van dit veld in plaats van de matchende gebeurtenissen. Lege waarden tellen niet mee. |
-| **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één uitvoering bereikt, of binnen één venster in realtime: 1 tot 1000000, en 1 gaat af bij elke match. |
+| **Drempel voor aantal treffers** | Een groep gaat alleen af als zijn telling dit getal binnen één venster van het interval van de regel bereikt: 1 tot 1000000, en 1 gaat af bij elke match. |
 
-Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt de drempel "zoveel, van hetzelfde ding, in één uitvoering", zonder monitor erbovenop:
+Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt de drempel "zoveel, van hetzelfde ding, in één venster", zonder monitor erbovenop:
 
 | Doel | Group By Field | Distinct Count Field | Drempel |
 | --- | --- | --- | --- |
@@ -499,11 +499,11 @@ Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt d
 
 ### Wanneer een regel draait
 
-OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen waarvan de gebeurtenistijd tussen de vorige uitvoering en twee minuten geleden valt, en gaat dan verder. Die twee minuten geven gebeurtenissen die nog onderweg zijn ruimte, zoals een logregel die een minuut na het schrijven wordt gelezen:
+OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen die tussen de vorige uitvoering en twee minuten geleden bij OneUptime zijn binnengekomen, ongeacht wanneer ze gebeurden, en gaat dan verder. Die twee minuten geven gebeurtenissen die nog worden geschreven ruimte:
 
-- Vensters sluiten op elkaar aan en glijden niet. Met een interval van 10 minuten kunnen mislukkingen om 09:58 en 10:01 in verschillende uitvoeringen vallen en worden ze apart geteld, dus houd marge aan als je een drempel kiest.
+- Een tellende regel en een correlatie tellen in vensters zo lang als het interval, aaneengesloten op de klok: met een interval van 10 minuten vallen mislukkingen om 09:58 en 10:01 in verschillende vensters en worden ze apart geteld, dus houd marge aan als je een drempel kiest.
 - Na een onderbreking, zoals een storing van een worker of een regel die weer is aangezet, dekt de volgende uitvoering de hele onderbreking, tot hoogstens de laatste 24 uur.
-- Een gebeurtenis die meer dan twee minuten te laat binnenkomt, nadat een uitvoering haar tijd al heeft gedekt, wordt opgeslagen en is doorzoekbaar, maar die regel leest haar nooit.
+- Een gebeurtenis die te laat binnenkomt, leest de volgende uitvoering toch, één keer, en telt die in het venster waarin ze gebeurde: een groep gaat af als zijn venster de telling bereikt, en hoogstens één keer per venster. Een gebeurtenis die meer dan een dag nadat ze gebeurde binnenkomt, wordt opgeslagen en is doorzoekbaar, maar de uitvoeringen van de regel lezen haar niet; **Uitvoeren op eerdere gebeurtenissen** wel.
 - Elke groep die de drempel haalt, wordt een Detection Finding, tot 10.000 per uitvoering. Waarschuwingen, incidenten en zaken openen voor de 100 met de hoogste tellingen; de rest deelt één zaak over de regel, en de **Laatste fout** van de regel zegt hoeveel groepen matchten.
 
 ### Realtimeregels

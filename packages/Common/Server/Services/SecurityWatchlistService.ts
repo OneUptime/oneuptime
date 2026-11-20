@@ -444,6 +444,14 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A rename onto another watchlist's name is refused above, in its own
+   * words: the generic check of an update leaves the name out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return ["name"];
+  }
+
+  /*
    * A list nothing reads any more: deleting one a rule, a monitor or a hunt
    * names would stop it, so the refusal says which still read it.
    */

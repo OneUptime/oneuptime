@@ -38,8 +38,9 @@ import {
  * Kept apart from the screen, so every path that writes security events
  * loads the screen alone and never the engine.
  *
- * A handover (RealTimeJobs) names a window instead: every event of it is
- * read, for a rule that has just started to run in real time.
+ * A handover (RealTimeJobs) names a window instead: every event that
+ * arrived in it is judged, for a rule that has just started to run in real
+ * time.
  */
 
 // A handover's window, read defensively: two times, the first before the second.
@@ -259,8 +260,9 @@ export default class RealTimeDetectionJob {
   }
 
   /*
-   * A handover: every event of the window, read as a scheduled run reads
-   * its own - no screen, no ids - for a rule still on and in real time.
+   * A handover: every event that arrived in the window, whenever it
+   * happened, judged as a scheduled run judges what arrived - no screen, no
+   * ids - for a rule still on and in real time.
    */
   private static async handOver(
     job: RealTimeJobData,

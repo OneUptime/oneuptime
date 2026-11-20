@@ -85,6 +85,8 @@ const READ_PER_IP_LIMIT: number = 1800;
 const MASTER_PASSWORD_WINDOW_SECONDS: number = 15 * 60;
 const MASTER_PASSWORD_PER_DASHBOARD_LIMIT: number = 15;
 const MASTER_PASSWORD_PER_IP_LIMIT: number = 45;
+const PROMQL_PER_DASHBOARD_LIMIT: number = 240;
+const PROMQL_PER_IP_LIMIT: number = 480;
 
 /*
  * A fake that behaves like a Redis counter store rather than a bag of
@@ -804,6 +806,82 @@ describe("PublicDashboardRateLimit", () => {
        * produce a zero for any caller that is refused.
        */
       expect(decision.retryAfterSeconds ?? 1).toBeGreaterThan(0);
+    });
+  });
+
+  /*
+   * A public dashboard's PromQL widgets (issue #10226): each request runs a
+   * PromQL query, so a budget of its own per dashboard and visitor, tighter
+   * than the other reads', on counters of its own.
+   */
+  describe("consume - PromQL bucket", () => {
+    const consumePromQL: (
+      dashboardKey?: string,
+    ) => Promise<PublicDashboardRateLimitDecision> = (
+      dashboardKey?: string,
+    ) => {
+      return PublicDashboardRateLimit.consume({
+        resourceKey: dashboardKey || "id:dashboard-a",
+        clientIp: "203.0.113.7",
+        bucket: PublicDashboardRateLimitBucket.PromQL,
+      });
+    };
+
+    it("allows a board of wall displays, then refuses that dashboard and visitor", async () => {
+      for (let i: number = 0; i < PROMQL_PER_DASHBOARD_LIMIT; i++) {
+        expect((await consumePromQL()).outcome).toBe(
+          PublicDashboardRateLimitOutcome.Allowed,
+        );
+      }
+
+      const decision: PublicDashboardRateLimitDecision = await consumePromQL();
+
+      expect(decision.outcome).toBe(
+        PublicDashboardRateLimitOutcome.RateLimited,
+      );
+      expect(decision.scope).toBe(PublicDashboardRateLimitScope.Dashboard);
+    });
+
+    it("is tighter than the read budget, per dashboard and per address", () => {
+      expect(PROMQL_PER_DASHBOARD_LIMIT).toBeLessThan(READ_PER_DASHBOARD_LIMIT);
+      expect(PROMQL_PER_IP_LIMIT).toBeLessThan(READ_PER_IP_LIMIT);
+    });
+
+    it("caps a visitor rotating dashboards at its own per-address ceiling", async () => {
+      let rejected: PublicDashboardRateLimitDecision | null = null;
+
+      for (let i: number = 0; i < PROMQL_PER_IP_LIMIT + 5; i++) {
+        const decision: PublicDashboardRateLimitDecision = await consumePromQL(
+          `id:dashboard-${i}`,
+        );
+
+        if (
+          decision.outcome === PublicDashboardRateLimitOutcome.RateLimited &&
+          !rejected
+        ) {
+          rejected = decision;
+        }
+      }
+
+      expect(rejected?.scope).toBe(PublicDashboardRateLimitScope.Ip);
+    });
+
+    it("does not share a counter with the read bucket, either way", async () => {
+      for (let i: number = 0; i < PROMQL_PER_DASHBOARD_LIMIT + 5; i++) {
+        await consumePromQL();
+      }
+
+      expect((await consumeRead({})).outcome).toBe(
+        PublicDashboardRateLimitOutcome.Allowed,
+      );
+
+      for (let i: number = 0; i < READ_PER_DASHBOARD_LIMIT; i++) {
+        await consumeRead({ dashboardKey: "id:dashboard-b" });
+      }
+
+      expect((await consumePromQL("id:dashboard-b")).outcome).toBe(
+        PublicDashboardRateLimitOutcome.Allowed,
+      );
     });
   });
 

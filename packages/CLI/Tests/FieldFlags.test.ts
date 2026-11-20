@@ -27,6 +27,7 @@ import {
   printedJson,
   runCli,
   SEVERITY_ID,
+  TEAM_ID,
   useTestCredentials,
 } from "./Helpers/RunCli";
 import DatabaseModels from "Common/Models/DatabaseModels/Index";
@@ -370,6 +371,59 @@ describe("field flags", () => {
     expect(help).not.toContain("--body");
     expect(help).not.toContain("--severity-text");
   });
+
+  /*
+   * A permission is a permission's key (#10300). The flag took JSON while the
+   * API spec documented a permission as an object, so scripts and the
+   * Developer pages wrote --permission '"IncidentMember"'. It takes the key as
+   * text now, and still reads that JSON string as the key.
+   */
+  it.each([
+    ["team-permission", "--team-id", "teamId"],
+    ["api-key-permission", "--api-key-id", "apiKeyId"],
+    ["custom-role-permission", "--custom-role-id", "customRoleId"],
+  ])(
+    "%s: --permission takes the key, and the JSON string of it as the key",
+    async (command: string, parentFlag: string, parentField: string) => {
+      for (const written of ["IncidentMember", '"IncidentMember"']) {
+        const run: CliRun = await runCli([
+          command,
+          "create",
+          parentFlag,
+          TEAM_ID,
+          "--permission",
+          written,
+          "--json",
+        ]);
+
+        expect([written, run.exitCode]).toEqual([written, undefined]);
+        expect(lastRequest().data).toEqual(
+          expect.objectContaining({
+            [parentField]: TEAM_ID,
+            permission: "IncidentMember",
+          }),
+        );
+      }
+
+      // Anything else is sent as written, for OneUptime to refuse in its words.
+      await runCli([
+        command,
+        "create",
+        parentFlag,
+        TEAM_ID,
+        "--permission",
+        "Incident Member",
+      ]);
+      expect(lastRequest().data?.["permission"]).toBe("Incident Member");
+
+      const help: string = (await runCli([command, "create", "--help"])).printed
+        .join(" ")
+        .replace(/\s+/g, " ");
+
+      expect(help).toContain("--permission <permission> Required.");
+      expect(help).not.toContain("--permission <json>");
+    },
+  );
 
   it("say a create must give a required field, or its person's address instead", async () => {
     const run: CliRun = await runCli(["team-member", "create", "--help"]);

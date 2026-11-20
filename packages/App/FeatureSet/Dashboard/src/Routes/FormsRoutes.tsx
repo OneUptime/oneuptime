@@ -14,6 +14,8 @@ import FormTemplates from "../Pages/Forms/View/Templates";
 import FormOnSubmit from "../Pages/Forms/View/OnSubmit";
 import FormShare from "../Pages/Forms/View/Share";
 import FormCustomDomains from "../Pages/Forms/View/CustomDomains";
+import FormPrivateUsers from "../Pages/Forms/View/PrivateUsers";
+import FormSingleSignOn from "../Pages/Forms/View/SingleSignOn";
 import FormViewSubmissions from "../Pages/Forms/View/Submissions";
 import FormDuplicate from "../Pages/Forms/View/Duplicate";
 import FormDelete from "../Pages/Forms/View/Delete";
@@ -103,6 +105,24 @@ const FormsRoutes: FunctionComponent<ComponentProps> = (
             <FormCustomDomains
               {...props}
               pageRoute={RouteMap[PageMap.FORM_VIEW_CUSTOM_DOMAINS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_PRIVATE_USERS)}
+          element={
+            <FormPrivateUsers
+              {...props}
+              pageRoute={RouteMap[PageMap.FORM_VIEW_PRIVATE_USERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_SINGLE_SIGN_ON)}
+          element={
+            <FormSingleSignOn
+              {...props}
+              pageRoute={RouteMap[PageMap.FORM_VIEW_SINGLE_SIGN_ON] as Route}
             />
           }
         />

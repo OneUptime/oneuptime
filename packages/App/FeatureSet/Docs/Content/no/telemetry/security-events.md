@@ -485,9 +485,9 @@ detection:
 | **Kjør i sanntid** | Av på en ny regel. Når den er på, sjekker regelen hver hendelse når den kommer inn, i stedet for hvert intervall; se [Sanntidsregler](#sanntidsregler). |
 | **Grupperingsfelt** | Valgfritt. Treff som deler dette feltets verdi, for eksempel `principalHost`, telles, varsles og dedupliseres samlet: ett varsel per vert i stedet for hundrevis. |
 | **Felt for unik telling** | Valgfritt. Tell de ulike verdiene i dette feltet i stedet for hendelsene som treffer. Tomme verdier telles ikke. |
-| **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor én kjøring, eller innenfor ett vindu i sanntid: 1 til 1000000, og 1 slår til på hvert treff. |
+| **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor ett vindu av regelens intervall: 1 til 1000000, og 1 slår til på hvert treff. |
 
-Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier terskelen «så mange, fra den samme tingen, i én kjøring», uten en monitor på toppen:
+Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier terskelen «så mange, fra den samme tingen, i ett vindu», uten en monitor på toppen:
 
 | Mål | Group By Field | Distinct Count Field | Terskel |
 | --- | --- | --- | --- |
@@ -499,11 +499,11 @@ Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier te
 
 ### Når en regel kjører
 
-OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått siden forrige kjøring. Hver kjøring leser hendelsene der hendelsestidspunktet ligger mellom forrige kjøring og for to minutter siden, og går deretter videre. De to minuttene gir rom for hendelser som fortsatt er på vei, for eksempel en logglinje som leses et minutt etter at den ble skrevet:
+OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått siden forrige kjøring. Hver kjøring leser hendelsene som kom frem til OneUptime mellom forrige kjøring og for to minutter siden, uansett når de skjedde, og går deretter videre. De to minuttene gir rom for hendelser som fortsatt skrives:
 
-- Vinduene ligger etter hverandre og glir ikke. Med et intervall på 10 minutter kan feil kl. 09:58 og 10:01 havne i ulike kjøringer og telles hver for seg, så legg inn margin når du velger en terskel.
+- En tellende regel og en korrelasjon teller i vinduer like lange som intervallet, etter hverandre etter klokken: med et intervall på 10 minutter havner feil kl. 09:58 og 10:01 i ulike vinduer og telles hver for seg, så legg inn margin når du velger en terskel.
 - Etter et opphold, for eksempel et worker-avbrudd eller en regel som er slått på igjen, dekker neste kjøring hele oppholdet, opptil de siste 24 timene.
-- En hendelse som kommer mer enn to minutter for sent, etter at en kjøring har dekket tidspunktet, lagres og er søkbar, men den regelen leser den aldri.
+- En hendelse som kommer for sent, leses likevel én gang av neste kjøring og telles i vinduet den skjedde i: en gruppe slår til når vinduet når tellingen, og høyst én gang per vindu. En hendelse som kommer mer enn et døgn etter at den skjedde, lagres og er søkbar, men regelens kjøringer leser den ikke; **Kjør på tidligere hendelser** gjør det.
 - Hver gruppe som når terskelen, blir et Detection Finding, opptil 10 000 per kjøring. Varsler, hendelser og saker åpnes for de 100 med høyest telling; resten deler én sak om regelen, og regelens **Siste feil** sier hvor mange grupper som traff.
 
 ### Sanntidsregler

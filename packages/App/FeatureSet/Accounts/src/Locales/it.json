@@ -288,6 +288,29 @@
     "templateNone": "Nessun modello",
     "uploadingFiles": "Caricamento dei tuoi file…"
   },
+  "formSignIn": {
+    "prompt": "Accedi per aprire questo modulo.",
+    "ssoOnlyPrompt": "Accedi con il single sign-on della tua organizzazione per aprire questo modulo.",
+    "noWayIn": "Per questo modulo non è ancora configurato alcun modo di accedere. Chiedi alla persona che l'ha condiviso con te.",
+    "email": "E-mail",
+    "password": "Password",
+    "forgotPassword": "Password dimenticata?",
+    "signIn": "Accedi",
+    "or": "o",
+    "signInWithProvider": "Accedi con {{provider}}",
+    "forgotTitle": "Hai dimenticato la password?",
+    "forgotPrompt": "Inserisci il tuo indirizzo e-mail e ti invieremo un link per scegliere una nuova password.",
+    "sendLink": "Invia link",
+    "forgotSent": "Se questo indirizzo può accedere a questo modulo, un link per scegliere una nuova password è in arrivo. Il link è valido per 24 ore.",
+    "backToSignIn": "Torna all'accesso",
+    "resetTitle": "Scegli una nuova password",
+    "resetPrompt": "Inserisci la password con cui accederai a questo modulo.",
+    "newPassword": "Nuova password",
+    "savePassword": "Salva password",
+    "resetDone": "La tua password è stata salvata. Accedi con essa per aprire il modulo.",
+    "signedInAs": "Accesso eseguito come {{email}}",
+    "signOut": "Esci"
+  },
   "errors": {
     "forbidden": {
       "title": "Vietato",

@@ -255,7 +255,7 @@ Los equipos, las etiquetas, las políticas de guardia y las programaciones de gu
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Muchos otros tipos también tienen un nombre propio, como las severidades de incidentes, los estados de monitor, las páginas de estado y los workflows, y rechazan un nombre ocupado de la misma manera:
+Muchos otros tipos también tienen un nombre propio, como las severidades de incidentes, los estados de monitor, las páginas de estado y los workflows, y rechazan un nombre ocupado de la misma manera, tanto al crear como al cambiar el nombre:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Junto al mensaje, cada uno de estos rechazos incluye un `refusalCode` que dice q
 - `"refusalCode": "name_taken"`: lo tiene un registro en servicio. No se escribió nada, así que la misma solicitud se puede volver a enviar en cuanto ese registro deje el nombre: el proveedor de Terraform vuelve a pedirlo durante hasta 30 segundos.
 - `"refusalCode": "name_taken_by_archived"`: solo lo tiene un registro archivado. Desarchiva ese registro o elige otro nombre: volver a enviar la solicitud no sirve, y el proveedor de Terraform no lo hace.
 
-Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos. Para los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual. Las etiquetas y las políticas de guardia archivadas quedan fuera.
+Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos, pero nunca con el nombre de otro registro. Para los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual. Las etiquetas y las políticas de guardia archivadas quedan fuera.
+
+#### Valores que ya tiene otro registro
+
+Algunos valores que no son un nombre también pertenecen a un solo registro cada uno: el dominio de una página de estado, de un panel o de un formulario, un dominio del proyecto, el identificador de un host o de un clúster de Kubernetes, la URL de inicio de sesión de un proveedor de SSO y el permiso de una clave de API, entre otros. Una creación, o una actualización que cambia uno de ellos, a un valor que ya tiene otro registro se rechaza con un `400` que lo dice:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Junto al mensaje, el rechazo incluye un `refusalCode` que dice qué tiene el valor, y un `field` que nombra el campo cuyo valor está ocupado, como `"field": "fullDomain"`. Un valor de varios campos juntos llega sin `field`. Reconoce el rechazo por el código, no por la frase, que puede cambiar de redacción:
+
+- `"refusalCode": "value_taken"`: lo tiene un registro en servicio. No se escribió nada, así que la misma solicitud se puede volver a enviar en cuanto ese registro deje el valor: el proveedor de Terraform vuelve a pedirlo durante hasta 30 segundos.
+- `"refusalCode": "value_taken_by_archived"`: solo lo tiene un registro archivado. Desarchiva ese registro o elige otro valor: volver a enviar la solicitud no sirve, y el proveedor de Terraform no lo hace.
+
+Una actualización que vuelve a enviar a un registro su propio valor, en mayúsculas o minúsculas, no es un cambio, así que los registros que antes compartían un valor se pueden seguir modificando, y recibir valores distintos.
 
 ### Interruptores
 

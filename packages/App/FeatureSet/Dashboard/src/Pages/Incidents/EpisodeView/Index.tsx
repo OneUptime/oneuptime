@@ -790,6 +790,7 @@ const IncidentEpisodeView: FunctionComponent<
                 telemetryQuery={telemetrySnapshot.telemetryQuery}
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
+                seriesLabels={telemetrySnapshot.seriesLabels}
                 eventNoun="incident"
                 metricRuleEventId={snapshotMemberId}
                 /*

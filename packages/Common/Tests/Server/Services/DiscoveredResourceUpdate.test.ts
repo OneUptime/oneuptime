@@ -4,6 +4,10 @@ import NameTakenException, {
   NAME_TAKEN_REFUSAL_CODE,
 } from "../../../Types/Exception/NameTakenException";
 import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
+import ValueTakenException, {
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/ValueTakenException";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -334,15 +338,39 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
       `A host with the host name "web-02" already exists. ${ARCHIVED_RESOURCE_HINT}`,
     );
 
-    // A host name is an identifier, not a name: no code (#10065).
+    /*
+     * A host name is an identifier, not a name (#10065): it carries the
+     * code of any other taken value, and says the host that has it is
+     * archived (#10319).
+     */
     const error: unknown = await check(
       hostUpdate({ hostIdentifier: "web-02" }),
     ).catch((caught: unknown): unknown => {
       return caught;
     });
 
+    expect(error).toBeInstanceOf(ValueTakenException);
     expect(error).not.toBeInstanceOf(NameTakenException);
-    expect(getErrorDetails(error)).toEqual({});
+    expect(getErrorDetails(error)).toEqual({
+      refusalCode: VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+      field: "hostIdentifier",
+    });
+  });
+
+  test("an identifier a host in service has carries value_taken, with its field", async () => {
+    clash = storedHost("web-02", ObjectID.generate());
+
+    const error: unknown = await check(
+      hostUpdate({ hostIdentifier: "web-02" }),
+    ).catch((caught: unknown): unknown => {
+      return caught;
+    });
+
+    expect(error).toBeInstanceOf(ValueTakenException);
+    expect(getErrorDetails(error)).toEqual({
+      refusalCode: VALUE_TAKEN_REFUSAL_CODE,
+      field: "hostIdentifier",
+    });
   });
 
   test("refuses a blank identifier without looking anything up", async () => {

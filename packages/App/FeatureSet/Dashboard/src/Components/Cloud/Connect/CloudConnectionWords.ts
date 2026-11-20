@@ -4,6 +4,10 @@ import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import {
+  AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS,
+  isAwsRoleWithoutExternalIdRefusal,
+} from "Common/Types/CloudConnection/AwsRoleExternalIdRefusal";
+import {
   CloudConnectionDefinition,
   getCloudConnectionReadIntervalInMinutes,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
@@ -21,6 +25,7 @@ import {
 } from "Common/Types/CloudConnection/CloudConnectionTest";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
+import { sayErrorMessage } from "Common/UI/Utils/ErrorInSentence";
 import {
   PluralTemplate,
   TemplateValue,
@@ -37,9 +42,12 @@ import {
  *
  * React-free (App's tests read it). Every string is an English translation
  * key, or a template with its values, which the components translate when
- * they draw them (drawCloudTemplate). A cloud's own message is kept apart,
- * as the details of a failure: it is English, and it is the cloud's, not
- * ours.
+ * they draw them (drawCloudTemplate). The server's message is kept apart,
+ * as the details of a failure (drawCloudFailureDetails): a cloud's own
+ * answer as it came, in English, and OneUptime's own refusal in the
+ * reader's language where the Dashboard words it - an AWS role that lets
+ * OneUptime in without the project's external id (#10425), which has a
+ * headline and advice of its own too.
  */
 
 export interface CloudWords {
@@ -174,6 +182,32 @@ export function getCloudFailureWords(
 }
 
 /*
+ * The words of a refusal of OneUptime's own that says more than its kind:
+ * an AWS role that lets OneUptime in without the project's external id
+ * (#10405) is no setting the form names, so it is not "A setting is not
+ * right." Undefined for any other message.
+ */
+function getRefusalWords(
+  message: string | null | undefined,
+): { headline: string; advice: string } | undefined {
+  return isAwsRoleWithoutExternalIdRefusal(message)
+    ? AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS
+    : undefined;
+}
+
+/*
+ * A failure's details as its reader reads them: OneUptime's own refusal
+ * in the reader's language, around what it names as written (the exact
+ * sts:ExternalId condition), and a cloud's answer as it came.
+ */
+export function drawCloudFailureDetails(
+  translator: Translator,
+  details: string,
+): string {
+  return sayErrorMessage(details, translator);
+}
+
+/*
  * "It works", never "Connected": a test in the form runs before anything
  * is saved, and the connection is made only by the Connect button.
  */
@@ -199,9 +233,8 @@ export function getCloudTestWords(
     };
   }
 
-  const words: { headline: string; advice: string } = getCloudFailureWords(
-    result.failureKind,
-  );
+  const words: { headline: string; advice: string } =
+    getRefusalWords(result.message) || getCloudFailureWords(result.failureKind);
 
   return {
     headline: words.headline,
@@ -212,18 +245,28 @@ export function getCloudTestWords(
 
 /*
  * Why a saved connection's last read failed, in the words a test uses for
- * the same failure. Undefined for a failure of no known kind: the cloud's
+ * the same failure: by its kind, or by the refusal its error is
+ * (getRefusalWords). Undefined for a failure of no known kind: the cloud's
  * own answer is shown alone.
  */
 export function getCloudReadFailureWords(
-  connection: Pick<CloudConnection, "lastPullResult">,
+  connection: Pick<CloudConnection, "lastPullResult" | "lastError">,
 ): CloudWords | undefined {
   const summary: CloudConnectionReadSummary | undefined =
     readCloudConnectionReadSummary(connection.lastPullResult);
 
+  if (!summary || summary.status !== "failed") {
+    return undefined;
+  }
+
+  const refusal: { headline: string; advice: string } | undefined =
+    getRefusalWords(connection.lastError);
+
+  if (refusal) {
+    return refusal;
+  }
+
   if (
-    !summary ||
-    summary.status !== "failed" ||
     !summary.failureKind ||
     summary.failureKind === CloudConnectionFailureKind.Other
   ) {

@@ -22,10 +22,16 @@ import * as AwsSts from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
  *   3. anything but Cloud Connect's own sign-in takes OneUptime's own AWS
  *      credentials, which are what a role trusts (USES_ONEUPTIME_IDENTITY);
  *   4. anything but AwsSts writes a check's verdict (AwsRoleCheckCache.set):
- *      a pass written elsewhere would let assumeRole skip the check.
+ *      a pass written elsewhere would let assumeRole skip the check. The
+ *      verdicts are kept in the shared cache for every server (#10424), so
+ *      the cache's place for them is named in AwsSts alone, never exported,
+ *      and written to by AwsRoleCheckCache.set alone.
  *
- * A new caller - a project's Amazon SES role (#7378) - signs in with
- * AwsSts.assumeRole and its own connection id, and is listed in 3.
+ * A project's Amazon SES role (#7378) signs in with AwsSts.assumeRole, its
+ * config's id and a purpose of its own (AwsRolePurpose), and is listed in
+ * 3. Every purpose's external id is derived from the project's own id
+ * alone, with a label of the purpose's own, and assumeRole takes no
+ * external id from its caller: 5 holds it so.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(
@@ -89,12 +95,20 @@ const USES_ONEUPTIME_IDENTITY: Record<string, string> = {
     "where the identity comes from, and who it is (sts:GetCallerIdentity)",
   "packages/Common/Server/Utils/CloudConnection/Aws/AwsCloudConnector.ts":
     "getCredentials signs in to a connection's role with it, through AwsSts.assumeRole",
+  "packages/Common/Server/Utils/Mail/AmazonSesProjectRole.ts":
+    "a project's Amazon SES config signs in to the IAM role in its own AWS account with it, through AwsSts.assumeRole (#7378)",
 };
 const ONEUPTIME_IDENTITY_PATTERN: RegExp =
   /AwsServerIdentity\.getCredentials\(|AwsCloudConnector\.getServerCredentials\(/;
 
 // A check's verdict written: only AwsSts may.
 const VERDICT_WRITE_PATTERN: RegExp = /AwsRoleCheckCache\.set\(/;
+
+// Where the shared cache keeps the verdicts, and every way of writing to it.
+const VERDICT_NAMESPACE: string = "cloud-aws-role-check";
+const VERDICT_NAMESPACE_PATTERN: RegExp = /["'`]cloud-aws-role-check/;
+const CACHE_WRITE_PATTERN: RegExp =
+  /GlobalCache\.(?:set\w*|swap\w*|delete\w*|increment\w*|extendExpiry|getAndDelete\w*)\(/g;
 
 // A function's first line in AwsSts, and a call to its raw sign-in.
 const FUNCTION_START: RegExp = /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\(/;
@@ -300,7 +314,80 @@ describe("only AwsSts signs in to a customer's role", () => {
     expect(body.indexOf("probeRoleExternalId(")).toBeLessThan(
       body.indexOf("requestRoleSession("),
     );
-    expect(body).toContain("getAwsExternalIdForProject(data.projectId)");
+    expect(body).toContain(
+      "externalId: getRolePurposeExternalId(data.purpose, data.projectId)",
+    );
+  });
+
+  test("assumeRole takes no external id from its caller: each purpose's is derived from the project's own id", () => {
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, STS_FILE),
+      "utf8",
+    );
+    const start: number = text.indexOf("export async function assumeRole(");
+    const parameters: string = text.slice(
+      start,
+      text.indexOf("}): Promise<AwsAssumedRole>", start),
+    );
+
+    // What a caller hands it: never an external id, and always a purpose.
+    expect(parameters).not.toMatch(/\bexternalId\b/i);
+    expect(parameters).toContain("purpose: AwsRolePurpose;");
+
+    // Every purpose, and each one's id from the project alone.
+    expect(Object.values(AwsSts.AwsRolePurpose).sort()).toEqual(
+      ["amazon-ses", "cloud-connect"].sort(),
+    );
+
+    const project: string = "11111111-1111-4111-8111-111111111111";
+    const other: string = "22222222-2222-4222-8222-222222222222";
+    const ids: Array<string> = Object.values(AwsSts.AwsRolePurpose).map(
+      (purpose: AwsSts.AwsRolePurpose): string => {
+        return AwsSts.getRolePurposeExternalId(purpose, project);
+      },
+    );
+
+    // One project's two purposes never share an id, and no two projects do.
+    expect(new Set(ids).size).toBe(ids.length);
+
+    for (const purpose of Object.values(AwsSts.AwsRolePurpose)) {
+      expect(AwsSts.getRolePurposeExternalId(purpose, project)).toBe(
+        AwsSts.getRolePurposeExternalId(purpose, ` ${project.toUpperCase()} `),
+      );
+      expect(AwsSts.getRolePurposeExternalId(purpose, project)).not.toBe(
+        AwsSts.getRolePurposeExternalId(purpose, other),
+      );
+      // Every project's shape, so the check's random id has it too.
+      expect(AwsSts.getRolePurposeExternalId(purpose, project)).toMatch(
+        /^oneuptime-[0-9a-f]{32}$/,
+      );
+    }
+  });
+
+  test("each purpose keeps its verdicts and sessions apart: no key of one is another's", () => {
+    const role: {
+      projectId: string;
+      connectionId: string;
+      roleArn: string;
+    } = {
+      projectId: "11111111-1111-4111-8111-111111111111",
+      connectionId: "33333333-3333-4333-8333-333333333333",
+      roleArn: "arn:aws:iam::210987654321:role/Shared",
+    };
+    const keys: Array<string> = Object.values(AwsSts.AwsRolePurpose).map(
+      (purpose: AwsSts.AwsRolePurpose): string => {
+        return AwsSts.AssumedRoleCache.keyOf({ ...role, purpose });
+      },
+    );
+
+    expect(new Set(keys).size).toBe(keys.length);
+    // Cloud Connect's keys are as they were before there were purposes.
+    expect(
+      AwsSts.AssumedRoleCache.keyOf({
+        ...role,
+        purpose: AwsSts.AwsRolePurpose.CloudConnect,
+      }),
+    ).toBe(AwsSts.AssumedRoleCache.keyOf(role));
   });
 });
 
@@ -333,5 +420,82 @@ describe("a check's verdict", () => {
     );
 
     expect(writers).toEqual([STS_FILE]);
+  });
+
+  test("is kept in a place of the shared cache that no other file names, and AwsSts does not let out", () => {
+    const naming: Array<string> = Array.from(
+      new Set(
+        findings(SOURCE_FILES, [
+          {
+            name: "the verdicts' place in the shared cache",
+            pattern: VERDICT_NAMESPACE_PATTERN,
+          },
+        ]).map(fileOf),
+      ),
+    );
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, STS_FILE),
+      "utf8",
+    );
+
+    /*
+     * Any other file that names it could write a pass for every server to
+     * read: keep the verdicts to AwsRoleCheckCache (#10424).
+     */
+    expect(naming).toEqual([STS_FILE]);
+    expect(text).toContain(
+      `const ROLE_CHECK_CACHE_NAMESPACE: string = "${VERDICT_NAMESPACE}";`,
+    );
+    expect(text).not.toMatch(/export\s+const\s+ROLE_CHECK_CACHE_NAMESPACE/);
+    expect(Object.keys(AwsSts)).not.toContain("ROLE_CHECK_CACHE_NAMESPACE");
+  });
+
+  test("is written to the shared cache by AwsRoleCheckCache.set alone", () => {
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, STS_FILE),
+      "utf8",
+    );
+    const classStart: number = text.indexOf("export class AwsRoleCheckCache {");
+    const setStart: number = text.indexOf(
+      "  public static async set(",
+      classStart,
+    );
+    const setEnd: number = text.indexOf("\n  }\n", setStart);
+    const setBody: string = text.slice(setStart, setEnd);
+
+    expect(classStart).toBeGreaterThan(0);
+    expect(setStart).toBeGreaterThan(classStart);
+    expect(setEnd).toBeGreaterThan(setStart);
+    // One write of the shared cache in all of AwsSts, and it is set's.
+    expect(text.match(CACHE_WRITE_PATTERN)).toEqual(["GlobalCache.setString("]);
+    expect(setBody.match(CACHE_WRITE_PATTERN)).toEqual([
+      "GlobalCache.setString(",
+    ]);
+    expect(setBody).toContain("ROLE_CHECK_CACHE_NAMESPACE");
+  });
+
+  test("each write's pattern catches what it should, and its look-alikes are not", () => {
+    for (const line of [
+      'await GlobalCache.setString(ROLE_CHECK_CACHE_NAMESPACE, key, "x");',
+      "await GlobalCache.setJSON(namespace, key, value);",
+      "await GlobalCache.deleteKey(namespace, key);",
+      "await GlobalCache.swapString(namespace, key, value);",
+      "await GlobalCache.setStringIfNotExists(namespace, key, value);",
+    ]) {
+      expect(line.match(CACHE_WRITE_PATTERN)).not.toBeNull();
+    }
+
+    for (const line of [
+      "await GlobalCache.getString(ROLE_CHECK_CACHE_NAMESPACE, key);",
+      "await GlobalCache.getJSONObject(namespace, key);",
+    ]) {
+      expect(line.match(CACHE_WRITE_PATTERN)).toBeNull();
+    }
+
+    expect(VERDICT_NAMESPACE_PATTERN.test(`"${VERDICT_NAMESPACE}"`)).toBe(true);
+    expect(VERDICT_NAMESPACE_PATTERN.test("`cloud-aws-role-check-${id}`")).toBe(
+      true,
+    );
+    expect(VERDICT_NAMESPACE_PATTERN.test('"cloud-live-read"')).toBe(false);
   });
 });

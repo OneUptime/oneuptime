@@ -288,6 +288,29 @@
     "templateNone": "テンプレートなし",
     "uploadingFiles": "ファイルをアップロードしています…"
   },
+  "formSignIn": {
+    "prompt": "このフォームを開くにはサインインしてください。",
+    "ssoOnlyPrompt": "このフォームを開くには、組織のシングルサインオンでサインインしてください。",
+    "noWayIn": "このフォームにはまだサインイン方法が設定されていません。共有した人に問い合わせてください。",
+    "email": "メール",
+    "password": "パスワード",
+    "forgotPassword": "パスワードをお忘れですか？",
+    "signIn": "サインイン",
+    "or": "または",
+    "signInWithProvider": "{{provider}} でサインイン",
+    "forgotTitle": "パスワードをお忘れですか？",
+    "forgotPrompt": "メールアドレスを入力すると、新しいパスワードを選ぶためのリンクをお送りします。",
+    "sendLink": "リンクを送信",
+    "forgotSent": "このアドレスでこのフォームにサインインできる場合は、新しいパスワードを選ぶためのリンクをお送りしました。リンクは 24 時間有効です。",
+    "backToSignIn": "サインインに戻る",
+    "resetTitle": "新しいパスワードを選ぶ",
+    "resetPrompt": "このフォームへのサインインに使うパスワードを入力してください。",
+    "newPassword": "新しいパスワード",
+    "savePassword": "パスワードを保存",
+    "resetDone": "パスワードを保存しました。そのパスワードでサインインしてフォームを開いてください。",
+    "signedInAs": "{{email}} としてサインイン中",
+    "signOut": "サインアウト"
+  },
   "errors": {
     "forbidden": {
       "title": "禁止されています",

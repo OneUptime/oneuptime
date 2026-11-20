@@ -15,6 +15,11 @@ import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDi
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  MONITOR_THROUGH_RELATION_SELECT,
+  readMetricNamesOfMonitor,
+} from "../../../Components/Monitor/ReadMonitorSteps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -98,12 +103,14 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Deliberately a SEPARATE request from the labels above. The monitor
-   * type only decides which suggested commands to show, and reading it
-   * crosses into the Monitor model - a role with incident access but no
-   * monitor read permission would fail the whole query. Asking for it on
-   * its own means that user still gets the Affected Resource table and
-   * simply no command suggestions.
+   * A request of its own, apart from the labels above: the monitor's type
+   * only decides which suggested commands to show, and a read that fails
+   * leaves the Affected Resource table without them. Which monitor it is
+   * and what kind are read through the incident, as every reader of the
+   * incident may; the metrics a Metrics monitor's steps read, which only
+   * its commands name, on the monitor itself by the reader's own read: no
+   * relation reads a monitor's steps (#10309). A reader who may not read
+   * the monitor is offered every command of the resource instead.
    */
   const fetchMonitorType: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -111,10 +118,7 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
         modelType: Incident,
         id: props.incidentId,
         select: {
-          monitors: {
-            monitorType: true,
-            monitorSteps: true,
-          },
+          monitors: MONITOR_THROUGH_RELATION_SELECT,
         },
       });
 
@@ -123,12 +127,13 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
        * per-series incident is always created by exactly one criteria on
        * one monitor, so the first is the one that raised it.
        */
-      setMonitorType(incident?.monitors?.[0]?.monitorType);
-      setMetricNames(
-        SeriesDebugHints.getMetricNamesOfMonitorSteps(
-          incident?.monitors?.[0]?.monitorSteps,
-        ),
-      );
+      const monitor: Monitor | undefined = incident?.monitors?.[0];
+      // Read first, so the commands are drawn once, for what the monitor reads.
+      const metricNames: Array<string> | undefined =
+        await readMetricNamesOfMonitor(monitor);
+
+      setMonitorType(monitor?.monitorType);
+      setMetricNames(metricNames);
     } catch {
       setMonitorType(undefined);
       setMetricNames(undefined);

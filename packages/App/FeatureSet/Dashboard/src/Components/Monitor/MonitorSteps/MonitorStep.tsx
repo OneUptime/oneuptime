@@ -56,6 +56,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import AttributeFilterSentences from "./AttributeFilterSentences";
 import SignalMonitorSessionsLink from "./SignalMonitorSessionsLink";
 import { JSONObject } from "Common/Types/JSON";
+import MonitorStepMetricQueries, {
+  MonitorStepMetricReads,
+} from "Common/Utils/Monitor/MonitorStepMetricQueries";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -456,6 +459,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     props.monitorType,
   );
 
+  // What the step reads, as its monitor reads it: its PromQL expression too.
+  const stepReads: MonitorStepMetricReads | null = showMetricPreview
+    ? MonitorStepMetricQueries.getReads({
+        monitorType: props.monitorType,
+        monitorStep: props.monitorStep,
+      })
+    : null;
+
   const criteriaElement: ReactElement = (
     <MonitorCriteriaElement
       onCallPolicyOptions={props.onCallPolicyOptions}
@@ -509,7 +520,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         <MonitorStepMetricPreview
           /*
            * What the monitor evaluates: an infrastructure monitor's queries
-           * narrowed to the resource it watches, as the worker reads them.
+           * narrowed to the resource it watches, as the worker reads them -
+           * or a step's PromQL expression, for the services it reads (issue
+           * #10227), never the builder's queries it keeps from before.
            */
           metricsViewConfig={MonitorStepViewModel.getEvaluatedMetricsViewConfig(
             {
@@ -518,6 +531,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
             },
           )}
           rollingTime={MonitorStepViewModel.getRollingTime(props.monitorStep)}
+          promQLQuery={stepReads?.promQLQuery}
+          serviceIds={stepReads?.telemetryServiceIds}
         />
       )}
 
