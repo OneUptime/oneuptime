@@ -9,7 +9,7 @@ OneUptime Kubernetes-agenten er et Helm-chart som samler inn klyngens målinger,
 - [Installer agenten](#installer-agenten): Fire trinn med Helm.
 - [Installer som et Amazon EKS-tillegg](#installer-som-et-amazon-eks-tillegg): Fra EKS-konsollen, uten Helm.
 - [OpenShift](#openshift): Forhåndsinnstillingen, sikkerhetskontekstbegrensningene den oppretter, og OpenShifts egne varsler.
-- [Klyngeherding](#klyngeherding): Vurdering etter Pod-sikkerhetsstandardene og CIS Benchmark, og agentens egne tillatelser.
+- [Klyngeherding](#klyngeherding): Vurdering etter Pod-sikkerhetsstandardene, CIS Benchmark og NSA/CISA Hardening Guide, kube-benchs sjekker av nodene, og agentens egne tillatelser.
 - [Konfigurasjonsvalg](#konfigurasjonsvalg): Filtre, sampling, kontrollplan, service mesh, kostnader og etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivebeskyttet `kubectl` for OneUptime AI, og rettelser når du tillater dem.
 - [Send mindre](#redusere-mengden-data-som-samles-inn): Spakene, i rekkefølge etter effekt.
@@ -316,19 +316,53 @@ Søk i dem under **Logger**, eller dropp dem du ikke vil ha med et drop-filter. 
 
 ## Klyngeherding
 
-En klynges side **Samsvar**, under **Sikkerhet**, vurderer selve klyngen mot tre rammeverk i delen **Klyngeherding**. Den leser det agenten allerede sender: klyngens pods og navnerom og, for CIS Benchmark, klyngens RBAC, tjenestekontoer og NetworkPolicies. Klyngens meny viser siden så snart agenten rapporterer klyngens pods, enten klyngen kjører en database eller ikke.
+En klynges side **Samsvar**, under **Sikkerhet**, vurderer selve klyngen mot fire rammeverk i delen **Klyngeherding**. Den leser det agenten allerede sender: klyngens pods og navnerom og, for CIS Benchmark og NSA/CISA-veiledningen, klyngens RBAC, tjenestekontoer og NetworkPolicies. Med kube-bench slått på vurderer den også det bare nodene kan svare på: se [Kontroller for noder og kontrollplan](#kontroller-for-noder-og-kontrollplan). Klyngens meny viser siden så snart agenten rapporterer klyngens pods, enten klyngen kjører en database eller ikke.
 
 | Rammeverk | Hva det vurderer |
 | --- | --- |
 | **Pod-sikkerhetsstandarder: Baseline** | Alle arbeidsbelastninger som kjører på klyngen, mot Baseline-policyen for klyngens Kubernetes-versjon: privilegerte containere, vertens navnerom, porter og stier, tilføyde funksjoner og alle andre felt policyen nevner, lest fra spesifikasjonen til hver pod |
 | **Pod-sikkerhetsstandarder: Restricted** | De samme arbeidsbelastningene, mot Restricted-policyen: kontrollene i Baseline, og bare volumtypene den tillater, kjøring som en annen bruker enn root, ingen rettighetseskalering, en seccomp-profil og alle funksjoner fjernet |
-| **CIS Kubernetes Benchmark v2.0** | De 27 kontrollene i avsnitt 5 som Kubernetes-API-et kan svare på: bindinger som gir cluster-admin, Secrets, `nodes/proxy` og de andre rettighetene kontrollene nevner, roller med jokertegn, standardtjenestekontoene, Pod Security Admission eller en policymotor i hvert navnerom, NetworkPolicies, og hva hver pod kjører |
+| **CIS Kubernetes Benchmark v2.0** | De 27 kontrollene i avsnitt 5 som Kubernetes-API-et kan svare på: bindinger som gir cluster-admin, Secrets, `nodes/proxy` og de andre rettighetene kontrollene nevner, roller med jokertegn, standardtjenestekontoene, Pod Security Admission eller en policymotor i hvert navnerom, NetworkPolicies, og hva hver pod kjører. Med kube-bench slått på også kontrollene for noder og kontrollplan som den sjekker på nodene |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | Anbefalingene i veiledningen som OneUptime kan lese: ikke-root-containere, uforanderlige filsystemer, ingen privilegerte containere eller vertens navnerom og ressursgrenser på hver container, lest fra spesifikasjonen til hver pod; en NetworkPolicy som avviser alt som standard i begge retninger, i hvert navnerom som kjører pods; minste privilegium i RBAC; og, med kube-bench slått på, innstillingene for TLS, autentisering, autorisering og revisjon i kontrollplanet og på kubeletene |
 
 Hvert rammeverks flis viser scoren, og hvor mange arbeidsbelastninger det har evaluert og hvor mange som ikke består det. Kontrollene vises med dem som feiler, først: hver sier hva den finner galt og hvordan det rettes, og lister opp arbeidsbelastningene, rollene, bindingene, tjenestekontoene eller navnerommene som ikke består den, hver lenket til sin side, helt ned til containeren eller volumet og feltet, for eksempel `securityContext.privileged`. Der Datasikkerhet gir databasene som kjører på klyngen en score, blir de stående nedenfor, under **Databaser på denne klyngen**.
 
 Pod-sikkerhetsstandardene vurderes mot klyngens egen Kubernetes-versjon: versjonen til dens nyeste kubelet, men høyst den nyeste versjonen OneUptime kjenner. En kontroll som en senere versjon la til, teller først fra den versjonen, og siden sier hvilken versjon det ble vurdert mot.
 
-Benchmarkens øvrige 104 kontroller sjekker nodenes filer og kubelet eller kontrollplanets flagg, eller krever en persons gjennomgang. Ikke noe API kan svare på dem, så de vises under **Ikke vurdert her**, gruppert etter årsak, og regnes aldri som bestått eller feilet. På et administrert kontrollplan, som hos EKS, GKE eller AKS, sier siden at de hører inn under leverandørens benchmark.
+Uten kube-bench sjekker benchmarkens øvrige 104 kontroller nodenes filer og kubelet eller kontrollplanets flagg, eller krever en persons gjennomgang. Ikke noe API kan svare på dem, så de vises under **Ikke vurdert her**, gruppert etter årsak, og regnes aldri som bestått eller feilet. På et administrert kontrollplan, som hos EKS, GKE eller AKS, sier siden at de hører inn under leverandørens benchmark.
+
+Anbefalingene i NSA/CISA-veiledningen som ingenting OneUptime leser, kan svare på, for eksempel skanning av images etter sårbarheter eller kryptering av Secrets ved lagring, vises på samme måte under veiledningens egen **Ikke vurdert her**, hver med sitt avsnitt i veiledningen. En kontroll som klyngen ikke har sendt kilden til, for eksempel en kubelet-innstilling før kube-bench kjører, er *ikke evaluert* og regnes verken som bestått eller feilet.
+
+### Kontroller for noder og kontrollplan
+
+Benchmarkens kontroller for noder og kontrollplan, altså flaggene til API-serveren, kontrollerbehandleren, planleggeren, etcd og kubelet og tillatelsene på filene deres, kan bare leses på nodene. Med `compliance.nodeBenchmark.enabled` kjører agenten [kube-bench](https://github.com/aquasecurity/kube-bench) der hver sjette time, og siden vurderer hver sjekk den gjør, som en kontroll i CIS Benchmark som lister opp hver node som ikke består den, med bryterne og knappen **Godta** som hver kontroll har. Den er av som standard, på grunn av det den krever:
+
+- Poden i hver kjøring kjører som root i nodens prosessnavnerom (`hostPID`), noe kube-bench trenger for å lese kommandolinjene til komponentene. Den er ikke privilegert: den fjerner alle Linux-funksjoner unntatt `DAC_OVERRIDE`, forbyr rettighetseskalering og kjører på et skrivebeskyttet rotfilsystem.
+- Den monterer nodens Kubernetes-mapper skrivebeskyttet: `/etc/kubernetes`, som på en kontrollplannode inneholder klyngens CA-nøkkel og `admin.conf`, og `/var/lib/kubelet`, som inneholder volumene til hver pod på den noden, deriblant Secrets.
+- Imaget er Aqua Securitys, ikke OneUptimes. Lås det til en digest med `compliance.nodeBenchmark.image.digest`, og speil det med `compliance.nodeBenchmark.image.repository`.
+- Tjenestekontoen monterer ikke noe token og er ikke bundet til noen rolle, og en NetworkPolicy holder podene til kube-bench borte fra nettverket. kube-bench skriver nummeret og resultatet for hver sjekk som avslutningsmeldingen til containeren sin, som agentens øyeblikksbilder av ressursene allerede sender med.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+Slik kjører du den nå, i stedet for ved neste planlagte tidspunkt:
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+kube-bench kjører benchmarken for klyngens plattform, valgt ut fra Kubernetes-versjonen: CIS Amazon EKS Benchmark på EKS, CIS GKE Benchmark på GKE og den generiske benchmarken ellers. På AKS legger du til `--set compliance.nodeBenchmark.benchmark=aks-1.8`; der en administrert klynge kjørte den generiske benchmarken, sier siden hvilken du skal angi. På et administrert kontrollplan vurderer kube-bench worker-nodene, og kontrollplanets kontroller hører fortsatt inn under leverandøren, siden ingen pod kan lese dem. Den utelates på GKE Autopilot, EKS Fargate og OpenShift. Chartets README lister opp hver verdi, og hva hver plattforms benchmark lar være ukjent.
+
+**Noder lest av kube-bench** lister opp nodene kube-bench sist kjørte på, med benchmarken den kjørte, når, og hvorfor en kjøring ikke kunne fullføres. Sjekkene som benchmarken markerer som manuelle, vises etter nummer under **Ikke vurdert her**, for en persons gjennomgang.
+
+### Godta et funn
+
+**Godta** på et funn som feiler, spør hvorfor, og regner deretter objektet som bestått for kontrollen, eller for alle kontrollene i rammeverket, til godtakelsen utløper eller du tilbakekaller den med **Tilbakekall**. Hver kontroll viser de godtatte funnene sine for seg, og **Godtatte funn** viser hvert av dem, med hvem som godtok det, når og hvorfor.
+
+Der en arbeidsbelastning som feiler, er agentens egen, node-collectoren, eBPF-instrumenteringen, profileringen eller kube-bench, sier funnet det, hvorfor agenten trenger det kontrollen finner galt, og hvilken verdi som fjerner det. **Godta med denne begrunnelsen** åpner dialogen med den begrunnelsen allerede fylt ut, for alle kontrollene i rammeverket.
 
 ### Slå av et rammeverk, en kontroll eller et navnerom
 
@@ -340,7 +374,7 @@ Slå av det som ikke gjelder for en klynge. Hver bryter hører bare til den klyn
 
 ### Eksporter et rammeverk
 
-**Eksporter CSV** og **Eksporter JSON** laster ned rapporten for et rammeverk: hver kontroll, om den består, hva som ikke består den og hvordan det rettes, og Kubernetes-versjonen det ble vurdert mot.
+**Eksporter CSV** og **Eksporter JSON** laster ned rapporten for et rammeverk: hver kontroll, om den består, hva som ikke består den og hvordan det rettes, hva som ikke vurderes og hvorfor, og Kubernetes-versjonen det ble vurdert mot. JSON-rapporten for CIS Benchmark inneholder også nodene kube-bench leste.
 
 ### Hva agenten leser for det
 

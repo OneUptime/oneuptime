@@ -2093,3 +2093,77 @@ aiAgent:
 # carries aiAccess.remediation.* and aiAccess.extraEnv over while the
 # matching aiAgent key is unset, and ignores aiAccess.enabled, aiAccess.image
 # and aiAccess.resources.
+
+# The cluster's Compliance page scores the CIS Kubernetes Benchmark's policy
+# controls from the Kubernetes API (resourceSpecs.compliance). Its node and
+# control plane controls - the API server's, controller manager's,
+# scheduler's, etcd's and kubelet's flags, and their files' permissions - can
+# only be read on the nodes. kube-bench (aquasecurity/kube-bench) reads them
+# there, on a schedule, and the page scores what it finds.
+compliance:
+  nodeBenchmark:
+    # Off by default, as it costs this: each run starts one pod per node
+    # group below (and one on a control plane node) that runs as root, shares
+    # the node's process namespace (hostPID) to read the kubelet's and the
+    # control plane's command lines, and mounts the node's Kubernetes
+    # directories read-only - /etc/kubernetes, which on a control plane node
+    # holds the cluster's CA key and admin.conf, and /var/lib/kubelet, which
+    # holds every pod's mounted Secrets and service account tokens on that
+    # node. It is not privileged, drops every capability but DAC_OVERRIDE,
+    # holds no Kubernetes API token, is bound to no role, and a NetworkPolicy
+    # keeps it off the network; it sends OneUptime only each check's number
+    # and result. It runs a third-party image (below), which you trust with
+    # that access: pin it by digest, and mirror it, as you would your own.
+    # The README's "Node benchmark" section has the details. Left out on
+    # gke-autopilot, eks-fargate and the OpenShift presets, and with
+    # resourceSpecs.enabled: false, which carries its results.
+    enabled: false
+    # When it runs, as a CronJob schedule: every six hours by default, so a
+    # changed flag shows within a quarter of a day. To run it now:
+    #   kubectl create job --from=cronjob/<release>-kube-bench-workers kube-bench-now -n <namespace>
+    schedule: "37 */6 * * *"
+    # The time zone the schedule is read in (an IANA name, e.g. Europe/Berlin);
+    # empty is the controller manager's own, UTC on most clusters.
+    timeZone: ""
+    # The benchmark kube-bench scores. "auto" reads the platform off the
+    # cluster's Kubernetes version: eks-1.8.0 (CIS Amazon EKS Benchmark) on
+    # EKS, gke-1.9.0 (CIS GKE Benchmark) on GKE, and the generic cis-1.12
+    # elsewhere. AKS's version names no provider: set aks-1.8 there. On k3s
+    # and RKE2, whose flags live in the node's journal, "auto" leaves it out;
+    # cis-1.12 runs the generic benchmark anyway.
+    # One of: auto, cis-1.12, cis-1.11, eks-1.8.0, gke-1.9.0, aks-1.8.
+    benchmark: auto
+    # Also run it on a control plane node, for the API server's, controller
+    # manager's, scheduler's and etcd's controls: "auto" does unless the
+    # benchmark is EKS's, GKE's or AKS's, whose control plane is the
+    # provider's. true or false to say.
+    controlPlane: auto
+    # The worker nodes it runs on: one pod in each group each run, on one of
+    # its nodes, so list a group per set of nodes configured alike (an EKS
+    # node group, a GKE or AKS node pool). The default runs one pod on any
+    # worker node. Each group: a name (lowercase letters, digits and hyphens,
+    # at most 20), and the nodeSelector, affinity and tolerations that put it
+    # on that group's nodes, e.g.
+    #   - name: gpu
+    #     nodeSelector:
+    #       eks.amazonaws.com/nodegroup: gpu
+    #     tolerations:
+    #       - key: nvidia.com/gpu
+    #         operator: Exists
+    nodeGroups:
+      - name: workers
+    image:
+      repository: docker.io/aquasec/kube-bench
+      tag: v0.16.0
+      # A sha256 digest pins the exact image you reviewed (it wins over the tag).
+      digest: ""
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    # A run that takes longer is stopped; one takes seconds.
+    activeDeadlineSeconds: 600

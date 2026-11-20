@@ -521,6 +521,7 @@ describe("what an acceptance names", () => {
       [BASELINE, 1],
       [RESTRICTED, 0],
       [CIS, 0],
+      [KubernetesComplianceFramework.NsaCisaHardening, 0],
     ]);
   });
 
