@@ -112,7 +112,7 @@ function logsStore(overrides: Partial<DataStore> = {}): Partial<DataStore> {
   return {
     id: STORE_ID,
     name: "checkout logs",
-    kind: DataStoreKind.Logs,
+    kind: DataStoreKind.TelemetryLogs,
     provider: "oneuptime",
     environment: "Production" as never,
     sensitivity: "Restricted" as never,
