@@ -3357,6 +3357,27 @@ jobs:
           Tests/Server/API/PrivateRecordOwnerTeamsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated incident, role, note, owner, team, label and
+      # permission tables into an isolated schema and asks what the reader
+      # may do on each incident the way its page asks it (#10272): the
+      # Dashboard's own request over HTTP, through the real user middleware,
+      # the record access route and the permission layer, for a Project
+      # Owner and Admin, a permission limited to labels, one limited to owned
+      # incidents, a team's block on a label and a private incident - and
+      # holds each answer to what the same writes then do.
+      - name: Test what the reader may do on an incident, against the real rule on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RECORD_ACCESS_TESTS: "true"
+          RECORD_ACCESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RECORD_ACCESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RECORD_ACCESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/RecordAccessPostgres.test.ts
+          --forceExit
+
       # Clones the migrated incident on-call rule and owning team tables,
       # with the user, project, team, label and permission ones, into an
       # isolated schema and sends reads, changes, deletes and creates of

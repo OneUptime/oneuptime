@@ -35,6 +35,7 @@ import RecordAccess, {
 import UserType from "../../../Types/UserType";
 import { tenantPermissionsFor } from "./PermissionRows";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Contract under test - GET /<record>/record-access/:recordId
@@ -113,10 +114,10 @@ const RESULT: RecordAccessResult = {
 };
 
 interface Answer {
-  sent: jest.SpiedFunction<typeof Response.sendJsonObjectResponse>;
-  noCache: jest.SpiedFunction<typeof Response.setNoCacheHeaders>;
-  build: jest.SpiedFunction<typeof RecordAccessBuilder.build>;
-  next: jest.Mock;
+  sent: SpyInstance<typeof Response.sendJsonObjectResponse>;
+  noCache: SpyInstance<typeof Response.setNoCacheHeaders>;
+  build: SpyInstance<typeof RecordAccessBuilder.build>;
+  next: ReturnType<typeof jest.fn>;
 }
 
 /*
@@ -154,7 +155,7 @@ async function ask(data: {
     .spyOn(RecordAccessBuilder, "build")
     .mockResolvedValue(RESULT);
 
-  const next: jest.Mock = jest.fn();
+  const next: Answer["next"] = jest.fn();
   const handler: RouteFunction = gets[0]!.functions[2]!;
 
   await handler(
@@ -289,7 +290,7 @@ describe("each record's API registers it, for its own kind", () => {
   ])(
     "%s",
     (apiPath: string, kind: RecordAccessKind, makeApi: () => unknown) => {
-      const register: jest.SpiedFunction<typeof RecordAccessRoute.register> =
+      const register: SpyInstance<typeof RecordAccessRoute.register> =
         jest.spyOn(RecordAccessRoute, "register");
 
       makeApi();

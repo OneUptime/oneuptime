@@ -57,7 +57,7 @@ describe.each(KINDS)("%s", (kind: RecordAccessKind) => {
   });
 
   test.each(
-    spec.parts.map((part: RecordAccessPart) => {
+    spec.parts.map((part: RecordAccessPart): [string, RecordAccessPart] => {
       return [tableOf(part), part];
     }),
   )(
@@ -79,7 +79,7 @@ describe.each(KINDS)("%s", (kind: RecordAccessKind) => {
   );
 
   test.each(
-    spec.parts.map((part: RecordAccessPart) => {
+    spec.parts.map((part: RecordAccessPart): [string, RecordAccessPart] => {
       return [tableOf(part), part];
     }),
   )("%s names no other record a grant could be limited to", (table: string) => {
