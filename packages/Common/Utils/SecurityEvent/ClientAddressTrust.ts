@@ -944,20 +944,26 @@ export function canNameResolvedClientAddress(data: {
     return false;
   }
 
-  if (!readAddressText(data.address)) {
+  const address: string = readAddressText(data.address);
+
+  if (!address) {
     return false;
   }
 
-  // A peer of a request that forwarded nothing is the client, whatever it is.
-  if (
-    trust === ClientAddressTrust.Peer &&
-    !readAttribute(
-      data.attributes,
-      SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress,
-    )
-  ) {
-    return true;
-  }
+  /*
+   * An address a proxy forwarded, or the peer of a request that claimed
+   * another, may be a proxy itself. Any other - a peer that forwarded
+   * nothing, an SSH sign-in's, an address a log's own words name - is the
+   * client, whatever it is.
+   */
+  const wasForwarded: boolean =
+    trust === ClientAddressTrust.TrustedProxy ||
+    Boolean(
+      readAttribute(
+        data.attributes,
+        SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress,
+      ),
+    );
 
-  return !isTrustedProxy(readAddressText(data.address), data.proxies);
+  return !wasForwarded || !isTrustedProxy(address, data.proxies);
 }

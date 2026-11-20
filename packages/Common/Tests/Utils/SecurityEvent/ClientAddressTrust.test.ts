@@ -907,6 +907,40 @@ describe("the address vault's address (#10395)", () => {
     ).toBe(false);
   });
 
+  test("is named for an event of a source with no forwarding at all - an SSH sign-in - whatever it is", () => {
+    expect(
+      canNameResolvedClientAddress({
+        attributes: {
+          [SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden]: "scrub-rule",
+        },
+        address: "172.70.38.12",
+        proxies: CLOUDFLARE,
+      }),
+    ).toBe(true);
+  });
+
+  test("a peer beside a claim may be a proxy: one the project trusts is not named", () => {
+    const attributes: JSONObject = {
+      [SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust]: "peer",
+      [SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress]: "192.0.2.44",
+    };
+
+    expect(
+      canNameResolvedClientAddress({
+        attributes,
+        address: "172.70.38.12",
+        proxies: CLOUDFLARE,
+      }),
+    ).toBe(false);
+    expect(
+      canNameResolvedClientAddress({
+        attributes,
+        address: "203.0.113.7",
+        proxies: CLOUDFLARE,
+      }),
+    ).toBe(true);
+  });
+
   test("is never named for a request that only claimed one", () => {
     const attributes: JSONObject = {};
     markClientAddressTrust(
