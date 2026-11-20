@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 Con Grafana Alloy, añade un componente `prometheus.remote_write` y reenvíale tus scrapes:
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-Se aceptan tanto remote write 1.0 como 2.0, comprimidos con snappy, como los envía cualquier emisor.
+Se aceptan tanto remote write 1.0 como 2.0, comprimidos con snappy, como los envía cualquier emisor. Para enviar 2.0, que lleva el tipo, la unidad y la descripción de cada serie, configura `protobuf_message: io.prometheus.write.v2.Request` (Prometheus 3) o `protobuf_message = "io.prometheus.write.v2.Request"` (Alloy). Prometheus envía los exemplars con `send_exemplars: true` en cuanto los guarda (`--enable-feature=exemplar-storage`); Alloy los envía de forma predeterminada.
 
 ### En qué se convierte una serie
 
 - **Su nombre y sus etiquetas se mantienen.** `http_requests_total{job="checkout", code="500"}` es la métrica `http_requests_total` con los atributos `job` y `code`, así que una consulta traída de Grafana la encuentra.
 - **El job es el servicio.** Cada `job` se convierte en un servicio, y cada `instance`, en su instancia de servicio, tal como los asignan las reglas de Prometheus de OpenTelemetry.
 - **Los tipos se conservan.** Los contadores, y los buckets y el recuento de un histograma, son sumas acumulativas, así que sus tasas se grafican correctamente. El tipo sale de los metadatos que incluye el emisor; sin ellos, un nombre terminado en `_total` es un contador, y un `_bucket` con una etiqueta `le`, un bucket de histograma.
+- **Los histogramas clásicos grafican sus percentiles.** Un histograma clásico conserva sus series `_bucket`, `_count` y `_sum`. Grafica su métrica `_bucket` con P50 a P99 en el [Explorador de métricas](/docs/telemetry/metrics-explorer) y los buckets de cada scrape se leen como un solo histograma, sin importar en qué solicitud llegó cada bucket. En [PromQL](/docs/telemetry/promql), `histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` responde como en Prometheus.
 - **Los histogramas nativos** se convierten en histogramas exponenciales, y los histogramas nativos con buckets personalizados, en histogramas.
-- **No se conservan:** los marcadores de obsolescencia y otras muestras NaN o infinitas, las series `_created` de los contadores y los exemplars.
+- **Los exemplars enlazan con las trazas.** Un exemplar con una etiqueta `trace_id` (o `traceID`) vincula su punto de datos con esa traza y ese span: en el gráfico de la métrica, haz clic en su punto para ver la traza o sus registros. Su valor y sus otras etiquetas no se conservan, ni tampoco un exemplar cuyo punto de datos llegó en otra solicitud.
+- **No se conservan:** los marcadores de obsolescencia y otros valores NaN o infinitos, ni las series `_created` de los contadores. Aun así se cuentan como escritos, así que el emisor no informa de muestras fallidas.
+- **Se rechazan:** los datos que ninguna versión de remote write permite, como una serie sin nombre de métrica o una muestra con una marca de tiempo negativa. El resto de la solicitud se guarda, y el emisor recibe un `400` con lo que se rechazó.
 
 ## Loki
 
@@ -209,8 +218,8 @@ Los SDK de Sentry exigen el `1` del final del DSN, pero no se lee. El DSN de una
 
 ## Límites y presupuestos de ingesta
 
-- **Tamaño de la solicitud**: el ingress de OneUptime acepta solicitudes de hasta 4 MB bajo `/telemetry`, y cada cuerpo puede descomprimirse hasta un máximo de 64 MB.
-- **Presupuestos de ingesta**: Prometheus remote write y Loki se comprueban contra el presupuesto de métricas o de registros antes de leer su cuerpo, y se rechazan con `403` cuando está agotado. Un lote de HEC, una carga de Datadog o un sobre de Sentry pueden llevar varias señales, así que cada señal se descuenta de su propio presupuesto al guardarse, y se descarta cuando ese presupuesto está agotado.
+- **Tamaño de la solicitud**: el ingress de OneUptime acepta solicitudes de hasta 4 MB bajo `/telemetry`, y cada cuerpo puede descomprimirse hasta un máximo de 64 MB. Una solicitud de Prometheus remote write puede descomprimirse hasta un máximo de 32 MB y contener como máximo 500.000 series, etiquetas y muestras, para que ninguna solicitud por sí sola pueda agotar la memoria del servidor. Prometheus y Alloy envían 2.000 muestras por solicitud de forma predeterminada, muy por debajo de ambos; una solicitud que los supere se rechaza con `413`, así que reduce `max_samples_per_send` en `queue_config`.
+- **Presupuestos de ingesta**: Prometheus remote write y Loki se comprueban contra el presupuesto de métricas o de registros antes de leer su cuerpo, y se rechazan con `403` cuando está agotado. Después, una solicitud de remote write se descuenta por su tamaño descomprimido, como una solicitud OTLP, también de los presupuestos de un equipo o de una etiqueta. Un lote de HEC, una carga de Datadog o un sobre de Sentry pueden llevar varias señales, así que cada señal se descuenta de su propio presupuesto al guardarse, y se descarta cuando ese presupuesto está agotado.
 
 ## Solución de problemas
 

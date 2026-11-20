@@ -153,6 +153,7 @@ import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
+import CopyAuditLogWorkflowRunAsGiverColumns from "./CopyAuditLogWorkflowRunAsGiverColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1535,6 +1536,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * keeps.
    */
   new KeepManagedDeviceCheckInMonitorsOnAndroid(),
+  /*
+   * Copies whose permissions a workflow's step ran with, as an install
+   * recorded it under the audit log's first names for it
+   * (workflowRunAsGivenBy{UserId,ApiKeyId,Name}), into the columns that say
+   * it now (workflowRunAsGiver{UserId,ApiKeyId,Name}): no analytics model
+   * names a column "<act> by user" (UserAttributionColumns). A queued
+   * ClickHouse mutation that writes only a column that holds nothing, and
+   * none on an install that never had the first names; after
+   * AddAuditLogWorkflowRunAsColumns, before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new CopyAuditLogWorkflowRunAsGiverColumns(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

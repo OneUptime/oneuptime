@@ -5,12 +5,15 @@ import * as React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import KubernetesCostPricingNote, {
   KUBERNETES_COST_ENGINE_AUTO_COMMAND,
+  KUBERNETES_COST_ENGINE_AUTO_WITH_PROMETHEUS_COMMAND,
   KUBERNETES_COST_PRICING_DESCRIPTIONS,
   KUBERNETES_COST_PRICING_TEST_ID,
   KUBERNETES_COST_RATE_CARD_DOCS_ROUTE,
+  getKubernetesCostReconciliation,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/KubernetesCostPricingNote";
+import { KubernetesCostEngineView } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesCostEngine";
 import {
-  KubernetesCostEngineInfo,
+  KubernetesCostMemoryPeaksSource,
   KubernetesCostPricingSource,
 } from "../../../Types/Kubernetes/KubernetesCostPricing";
 
@@ -24,14 +27,15 @@ import {
  */
 
 function engine(
-  overrides: Partial<KubernetesCostEngineInfo> = {},
-): KubernetesCostEngineInfo {
+  overrides: Partial<KubernetesCostEngineView> = {},
+): KubernetesCostEngineView {
   return {
     engine: "OpenCost",
     service: "",
     bundledEngineUnused: false,
     pricingSource: KubernetesCostPricingSource.ListPrices,
     pricingProvider: "AWS",
+    memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Engine,
     ...overrides,
   };
 }
@@ -256,11 +260,202 @@ describe("KubernetesCostPricingNote", () => {
     ).toBe("Priced by your Kubecost (kubecost/kubecost-frontend)");
   });
 
-  test("explains what reconciling with the bill means for the hours OneUptime keeps", () => {
+  test("explains what reconciling with the bill means, before any reconciled hour arrived", () => {
     expect(KUBERNETES_COST_PRICING_DESCRIPTIONS.billingIntegration).toBe(
-      "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about a day and a half after each hour. OneUptime records each hour as it was priced when it closed: at the cloud's public list prices.",
+      "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour. No reconciled hour has reached OneUptime yet: these are the cloud's public list prices.",
+    );
+    // True of an older agent too, which never sends a reconciled hour.
+    expect(
+      KUBERNETES_COST_PRICING_DESCRIPTIONS.billingIntegration,
+    ).not.toContain("brings");
+  });
+
+  /*
+   * #9969: OneUptime brings in each hour Kubecost reconciled with the bill
+   * (the cost agent reads it again about two days on), and the line says how
+   * far the window's figures are reconciled.
+   */
+  test("says the figures are reconciled with your bill up to the newest reconciled hour", () => {
+    render(
+      <KubernetesCostPricingNote
+        engine={engine({
+          engine: "Kubecost",
+          service: "kubecost/kubecost-cost-analyzer",
+          pricingSource: KubernetesCostPricingSource.BillingIntegration,
+          pricingProvider: "AWS",
+          reconciledThrough: new Date("2026-11-17T15:00:00.000Z"),
+          pricedThrough: new Date("2026-11-19T11:00:00.000Z"),
+        })}
+      />,
+    );
+
+    expect(
+      textOf(
+        screen.getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-reconciled`),
+      ),
+    ).toBe(
+      "Prices: reconciled with your AWS bill up to Nov 17, 2026, 3:00 PM, then list prices",
+    );
+    expect(line().className).toContain("text-gray-600");
+    expect(
+      screen.getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-about`),
+    ).toBeInTheDocument();
+  });
+
+  test("says the figures are reconciled with your bill when every hour of the window is", () => {
+    render(
+      <KubernetesCostPricingNote
+        engine={engine({
+          pricingSource: KubernetesCostPricingSource.BillingIntegration,
+          pricingProvider: "GCP",
+          reconciledThrough: new Date("2026-11-10T00:00:00.000Z"),
+          pricedThrough: new Date("2026-11-10T00:00:00.000Z"),
+        })}
+      />,
+    );
+
+    expect(
+      textOf(
+        screen.getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-reconciled`),
+      ),
+    ).toBe("Prices: reconciled with your Google Cloud bill");
+  });
+
+  test("explains what the reconciled figures are, and what the hours after them are", () => {
+    expect(KUBERNETES_COST_PRICING_DESCRIPTIONS.billingReconciled).toBe(
+      "Your Kubecost reads your cloud bill and reconciles its prices with what you paid, about two days after each hour, and OneUptime brings each reconciled hour in. Later hours are at the cloud's public list prices until then.",
     );
   });
+
+  test("how far a window is reconciled: none, up to a time, or all of it", () => {
+    const base: ReturnType<typeof engine> = engine({
+      pricingSource: KubernetesCostPricingSource.BillingIntegration,
+    });
+
+    expect(getKubernetesCostReconciliation(base)).toEqual({
+      reconciled: "none",
+    });
+    expect(
+      getKubernetesCostReconciliation({ ...base, reconciledThrough: null }),
+    ).toEqual({ reconciled: "none" });
+
+    const through: Date = new Date("2026-11-17T15:00:00.000Z");
+
+    expect(
+      getKubernetesCostReconciliation({
+        ...base,
+        reconciledThrough: through,
+        pricedThrough: new Date("2026-11-17T16:00:00.000Z"),
+      }),
+    ).toEqual({ reconciled: "upTo", through });
+    expect(
+      getKubernetesCostReconciliation({
+        ...base,
+        reconciledThrough: through,
+        pricedThrough: through,
+      }),
+    ).toEqual({ reconciled: "all" });
+    // Without the newest hour to compare with, only up to the time.
+    expect(
+      getKubernetesCostReconciliation({ ...base, reconciledThrough: through }),
+    ).toEqual({ reconciled: "upTo", through });
+  });
+
+  test("list prices of a Kubecost that reads no bill never say reconciled", () => {
+    render(
+      <KubernetesCostPricingNote
+        engine={engine({
+          pricingSource: KubernetesCostPricingSource.ListPrices,
+          reconciledThrough: new Date("2026-11-17T15:00:00.000Z"),
+        })}
+      />,
+    );
+
+    expect(textOf(line())).toBe("Prices: AWS list prices");
+    expect(
+      screen.queryByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-reconciled`),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * #9970: with Kubecost 3, which reads no Prometheus, memory right-sizing
+   * reads its peaks from the bundled one. The upgrade that stops the bundled
+   * engine names another, or the note says to keep it.
+   */
+  test("when the memory peaks come from the bundled Prometheus, the upgrade names another", () => {
+    render(
+      <KubernetesCostPricingNote
+        engine={engine({
+          engine: "Kubecost",
+          service: "kubecost/kubecost-frontend",
+          bundledEngineUnused: true,
+          memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Bundled,
+        })}
+      />,
+    );
+
+    const notice: HTMLElement = screen.getByTestId(
+      `${KUBERNETES_COST_PRICING_TEST_ID}-bundled-peaks`,
+    );
+
+    expect(textOf(notice)).toContain(
+      "This cluster runs its own Kubecost (kubecost/kubecost-frontend), and the cost agent reads that. Memory right-sizing still reads its peaks from the bundled Prometheus, as the agent found none your Kubecost reads. To stop running both, name a Prometheus that scrapes cAdvisor in the same upgrade:",
+    );
+    expect(textOf(notice)).toContain(
+      "Without another Prometheus, keep the bundled engine: memory recommendations need it.",
+    );
+    expect(
+      within(notice).getByText(/cost\.engine\.prometheusUrl=<prometheus-url>/),
+    ).toBeTruthy();
+    expect(KUBERNETES_COST_ENGINE_AUTO_WITH_PROMETHEUS_COMMAND).toBe(
+      [
+        "helm upgrade kubernetes-agent oneuptime/kubernetes-agent",
+        "  --namespace oneuptime-agent",
+        "  --reset-then-reuse-values",
+        "  --set cost.engine.url=auto",
+        "  --set cost.engine.prometheusUrl=<prometheus-url>",
+      ].join(" \\\n"),
+    );
+    // Still under the same title: OpenCost itself prices nothing.
+    expect(
+      textOf(
+        screen.getByTestId(`${KUBERNETES_COST_PRICING_TEST_ID}-bundled-unused`),
+      ),
+    ).toContain("The bundled OpenCost is not needed");
+  });
+
+  test.each([
+    KubernetesCostMemoryPeaksSource.Engine,
+    KubernetesCostMemoryPeaksSource.Configured,
+    // An agent older than #9970 says nothing: the upgrade as it was.
+    KubernetesCostMemoryPeaksSource.None,
+  ])(
+    "when the memory peaks come from elsewhere (%j), the plain upgrade stops the bundled engine",
+    (memoryPeaksFrom: KubernetesCostMemoryPeaksSource) => {
+      render(
+        <KubernetesCostPricingNote
+          engine={engine({
+            engine: "Kubecost",
+            service: "kubecost/kubecost-cost-analyzer",
+            bundledEngineUnused: true,
+            memoryPeaksFrom,
+          })}
+        />,
+      );
+
+      const notice: HTMLElement = screen.getByTestId(
+        `${KUBERNETES_COST_PRICING_TEST_ID}-bundled-unused`,
+      );
+
+      expect(
+        screen.queryByTestId(
+          `${KUBERNETES_COST_PRICING_TEST_ID}-bundled-peaks`,
+        ),
+      ).not.toBeInTheDocument();
+      expect(textOf(notice)).not.toContain("prometheusUrl");
+      expect(within(notice).getByText(/cost\.engine\.url=auto/)).toBeTruthy();
+    },
+  );
 
   test("a bill-reading Kubecost with no cloud named says nothing rather than a blank", () => {
     const { container } = render(

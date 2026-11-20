@@ -109,7 +109,7 @@ The app could not reach `https://<your-oneuptime>/api/status`. Check the address
 :::
 
 :::details "No SSO configuration found for the email"
-No project on this OneUptime offers single sign-on for that email's domain yet: a project's admin adds the domain to its SSO provider, whoever the email belongs to. Check the email, or sign in with your password. Providers your administrator set up for the whole installation are listed before the email field.
+No project on this OneUptime offers single sign-on for that email's domain yet: a Project Owner or Project Admin adds the domain to their project's SSO provider, whoever the email belongs to. Check the email, or sign in with your password. Providers your administrator set up for the whole installation are listed before the email field.
 :::
 
 :::details A security key is your only second factor

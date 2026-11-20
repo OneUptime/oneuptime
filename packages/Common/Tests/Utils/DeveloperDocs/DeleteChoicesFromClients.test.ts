@@ -14,10 +14,15 @@ import {
   DeleteChoice,
   DeleteChoiceError,
   DeleteChoiceWay,
+  getDeleteChoiceExampleValue,
+  getDeleteChoiceWayData,
   getDeleteChoiceWays,
   isRefusedForDeleteChoices,
   readDeleteChoices,
 } from "../../../Utils/DeveloperDocs/DeleteChoices";
+import { getCliResourceByTableName } from "../../../Utils/DeveloperDocs/CliResources";
+import { getModelApiPath } from "../../../Utils/DeveloperDocs/ApiExamples";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 
 /*
  * A DELETE'S CHOICES AS A CLIENT IS GIVEN THEM (#9949).
@@ -491,5 +496,69 @@ describe("the ways to say what a delete needs", () => {
     for (const tableName of ["Team", "", null, undefined]) {
       expect(getDeleteChoiceWays(tableName)).toEqual([]);
     }
+  });
+});
+
+/*
+ * EACH WAY AS AN EXAMPLE SHOWS IT (#10031): the dashboard's Developer >
+ * API and CLI pages, and the CLI's own help and its hint after a refusal,
+ * write each way from the same facts, with the other role's ID as a
+ * placeholder the reader fills in.
+ */
+describe("each way, as an example shows it", () => {
+  const roleIdChoice: DeleteChoice = CUSTOM_ROLE_DELETE_CHOICES.choices.find(
+    (choice: DeleteChoice): boolean => {
+      return choice.key === WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY;
+    },
+  )!;
+
+  test("the other custom role's ID is <custom-role-id>, named for the command and the path that find one", () => {
+    expect(getDeleteChoiceExampleValue(roleIdChoice)).toBe("<custom-role-id>");
+    // `oneuptime custom-role list` finds one, as POST /custom-role/get-list does.
+    expect(getDeleteChoiceExampleValue(roleIdChoice)).toBe(
+      `<${getCliResourceByTableName("CustomRole")!.name}-id>`,
+    );
+    expect(getModelApiPath(CustomRole)).toBe("/custom-role");
+  });
+
+  test("a choice of values, which an example never leaves to fill in, is named by its key", () => {
+    expect(
+      getDeleteChoiceExampleValue({ key: WORKFLOWS_RUN_AS_INSTEAD_KEY }),
+    ).toBe("<workflows-run-as>");
+  });
+
+  test("Default is sent alone, and CustomRole with the other role's ID", () => {
+    expect(
+      getDeleteChoiceWays("CustomRole").map((way: DeleteChoiceWay) => {
+        return getDeleteChoiceWayData(way);
+      }),
+    ).toEqual([
+      { [WORKFLOWS_RUN_AS_INSTEAD_KEY]: WorkflowRunAs.Default },
+      {
+        [WORKFLOWS_RUN_AS_INSTEAD_KEY]: WorkflowRunAs.CustomRole,
+        [WORKFLOWS_RUN_AS_INSTEAD_ROLE_KEY]: "<custom-role-id>",
+      },
+    ]);
+  });
+
+  test("filled in with a real ID, each way is what the server reads, and what a client sends for it", () => {
+    for (const way of getDeleteChoiceWays("CustomRole")) {
+      const data: JSONObject = getDeleteChoiceWayData(way, (): string => {
+        return OTHER_ROLE_ID;
+      });
+
+      expect(WorkflowsOfDeletedRoles.readInstead(data)).not.toBeNull();
+      // A client given these values sends exactly these.
+      expect(read(data)).toEqual(data);
+      expect(read(data, inputOf)).toEqual(data);
+    }
+  });
+
+  test("left with its placeholder, the other role's ID is no ID: a client refuses it before anything is sent", () => {
+    const customRole: DeleteChoiceWay = getDeleteChoiceWays("CustomRole")[1]!;
+
+    expect(refusal(getDeleteChoiceWayData(customRole))).toBe(
+      '--workflows-run-as-custom-role-id takes an ID, such as 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11, and "<custom-role-id>" is not one.',
+    );
   });
 });

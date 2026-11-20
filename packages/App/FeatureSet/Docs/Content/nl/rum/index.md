@@ -44,7 +44,7 @@ Het zijmenu van een applicatie groepeert de pagina's zo; **Ontwikkelaars** en **
 | **Observability** | **Metrieken**, **Logboeken**, **Traces**, **Clients** |
 | **Productanalyse** | **Gebruikers**, **Sessies**, **Gebeurtenissen**, **Trechters**, **Gebruikersretentie**, **Gebruikersstromen**, **Analyse-instellingen** |
 | **Sessieherhaling** | **Sessieherhaling**, **Gebruikers in herhalingen**, **Gezondheid**, **Herhalingsbeleid**, **Frustratiesignalen**, **Toegangslog van replays**, **Documentatie** |
-| **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
+| **Ontwikkelaars** | **Terraform**, **Crossplane**, **API**, **CLI**, **AI-assistenten** |
 | **Geavanceerd** | **Instellingen**, **Auditlogboeken**, **Applicatie verwijderen** |
 
 ## Hoe OneUptime RUM herkent

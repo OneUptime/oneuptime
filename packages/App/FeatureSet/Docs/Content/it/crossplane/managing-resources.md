@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-L'ID del record si trova nel blocco `import` che la sua pagina **Sviluppatori → Terraform** scrive nella dashboard, e `oneuptime <resource> list` elenca gli ID di un tipo di record con la [CLI di OneUptime](/docs/cli/resource-operations#elencare-i-record). Quando la risorsa è pronta, `status.atProvider` mostra il record. Per gestirlo da quel momento in poi, scrivi i suoi campi in `spec.forProvider` e imposta `managementPolicies` su `["*"]`.
+La pagina **Sviluppatori → Crossplane** del record, nella dashboard, scrive questo manifest per te, con il suo ID, e uno che prende in carico il record con i suoi campi così come sono. `oneuptime <resource> list` elenca gli ID di un tipo di record con la [CLI di OneUptime](/docs/cli/resource-operations#elencare-i-record). Quando la risorsa è pronta, `status.atProvider` mostra il record. Per gestirlo da quel momento in poi, scrivi i suoi campi in `spec.forProvider` e imposta `managementPolicies` su `["*"]`.
 
 ## Segreti
 

@@ -121,3 +121,37 @@ test("buildShipment handles an empty window without throwing", (): void => {
   assert.deepStrictEqual(empty.rows, []);
   assert.strictEqual(empty.id.length, 32);
 });
+
+/*
+ * #9969: a correction is a later reading of a window the server holds. Its
+ * identity hashes its costs too, so a server older than corrections takes it
+ * for another delivery of the window, and skips it, rather than for chunks
+ * of the first one.
+ */
+test("a correction's identity never matches the first delivery's, and follows its costs", (): void => {
+  const first: Shipment = buildShipment([row()]);
+  const correction: Shipment = buildShipment([row()], { correction: true });
+  const reconciled: Shipment = buildShipment([row({ totalCost: 0.7 })], {
+    correction: true,
+  });
+
+  assert.notStrictEqual(correction.id, first.id);
+  assert.notStrictEqual(reconciled.id, correction.id);
+  assert.strictEqual(correction.id.length, 32);
+  // The first delivery's identity still ignores costs.
+  assert.strictEqual(buildShipment([row({ totalCost: 0.7 })]).id, first.id);
+});
+
+test("the same correction sent twice hashes the same, in any row order", (): void => {
+  const a: Shipment = buildShipment(
+    [row({ podName: "a" }), row({ podName: "b", totalCost: 3 })],
+    { correction: true },
+  );
+  const b: Shipment = buildShipment(
+    [row({ podName: "b", totalCost: 3 }), row({ podName: "a" })],
+    { correction: true },
+  );
+
+  assert.strictEqual(a.id, b.id);
+  assert.deepStrictEqual(a.rows, b.rows);
+});

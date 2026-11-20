@@ -138,7 +138,7 @@ Während Sie daran arbeiten, halten Sie Erkenntnisse als **Private Notizen** fes
 | **Untersuchung** | **Beschreibung**, **Grundursache**, **Behebung**, **Runbooks**, **Verknüpfte Vorfälle**, **Private Notizen** |
 | **Team** | **Bereitschaftsausführungen** und **Eigentümer**: wer für die Warnung alarmiert wurde und wem sie gehört |
 | **Benachrichtigungen**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über die Warnung, und alles, was die KI für sie getan hat |
-| **Entwickler**    | **Terraform**, **API**, **CLI** und **KI-Assistenten**: die Warnung aus Code verwaltet                         |
+| **Entwickler**    | **Terraform**, **Crossplane**, **API**, **CLI** und **KI-Assistenten**: die Warnung aus Code verwaltet                         |
 | **Erweitert** | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Warnung löschen** |
 
 **Übersicht**, **Untersuchung** und **Team** sind geöffnet; die anderen Bereiche sind eingeklappt, bis Sie sie anklicken.

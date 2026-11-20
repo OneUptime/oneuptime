@@ -8,6 +8,7 @@ import {
   OpenCodePullRequestTool,
 } from "../../../../Server/Utils/AI/Toolbox/CodeWriteTools";
 import { ReadCodeFileTool } from "../../../../Server/Utils/AI/Toolbox/CodeTools";
+import logger from "../../../../Server/Utils/Logger";
 import {
   CODE_UNSEEN_SUMMARIES,
   CodeChangeKind,
@@ -40,7 +41,6 @@ import {
   AI_ACTION_PLURAL_LINES,
   AIActionSentence,
   describeAIActionSentence,
-  isKnownAIActionWords,
 } from "../../../../Types/AI/AIActionWords";
 import { CODE_CHANGE_PROPOSED_ON_KEY } from "../../../../Types/CodeRepository/CodeChangeProposedOnKey";
 import {
@@ -49,7 +49,6 @@ import {
   CodeFileUnseenFinding,
   readCodeChangeProposedOn,
 } from "../../../../Types/CodeRepository/CodeFileSeen";
-import { CodeFilePlaceholderWritten } from "../../../../Types/CodeRepository/CodeFileValuesHidden";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { createTranslator, Translator } from "../../../../Types/Translator";
@@ -71,7 +70,7 @@ import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
- * ISSUE #6364, THROUGH THE REAL TOOLS.
+ * ISSUES #6364 AND #6388, THROUGH THE REAL TOOLS.
  *
  * read_code_file shows what looks like a secret or personal data as a
  * placeholder - "10.0.0.12" reads "[redacted-ip]", "ops@acme.com" reads
@@ -79,12 +78,17 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * model was shown: a model that changes one line of config/servers.ts
  * writes "[redacted-ip]" where every address was. So:
  *
- *   - the model reads exactly the redaction it always read, and is told
- *     which lines had values hidden and that it cannot write them back;
- *   - a file whose new version holds a placeholder more often than the
- *     file on the branch does is named on the card before anyone approves;
- *     in Auto-run it is not made, and the model is told it cannot write
- *     those values back;
+ *   - the model reads exactly the redaction it always read, a private key
+ *     block never cut by its window, and is told which lines had values
+ *     hidden and that a line it keeps exactly as shown has its value
+ *     written back;
+ *   - each line kept exactly as shown, that no other line of the file
+ *     reads like with another value, is written as the file has it, in the
+ *     version the commit is held to - for that commit of that file only
+ *     (#6388): the card says nothing, and Auto-run makes the change;
+ *   - a placeholder that cannot be written back - a line the model changed,
+ *     two lines that read the same, a new file - is named on the card
+ *     before anyone approves; in Auto-run the change is not made (#6364);
  *   - placeholder text the file holds itself, kept, says nothing; neither
  *     does a change that takes a hidden value out or puts another in;
  *   - only such a file's text is read; a pull request approved anyway
@@ -345,6 +349,13 @@ const hiddenNoteOf: (answer: string) => string | null = (
 
 const HIDDEN_IN_SERVERS: string = `Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: ${SERVERS}.`;
 
+// The values config/servers.ts holds: never anywhere but its commit.
+const HIDDEN_IN_SERVERS_VALUES: Array<string> = [
+  "10.0.0.12",
+  "10.0.0.13",
+  "ops@acme.com",
+];
+
 const repositoryWithServers: () => FakeGitRepository =
   (): FakeGitRepository => {
     return makeRepository({
@@ -361,6 +372,20 @@ const repositoryWithServers: () => FakeGitRepository =
 // What the model writes from its read: the one line it changed, every other line as it saw it.
 const retriesFive: (written: string) => string = (written: string): string => {
   return written.replace("RETRIES = 3;", "RETRIES = 5;");
+};
+
+/*
+ * A line with a placeholder the model changed (issue #6388): it no longer
+ * reads as shown, so its value is never written back - it may no longer
+ * belong there - and the placeholder stays.
+ */
+const primaryEdited: (written: string) => string = (
+  written: string,
+): string => {
+  return written.replace(
+    'PRIMARY_HOST = "[redacted-ip]";',
+    'PRIMARY_HOST = "[redacted-ip]"; // the main one',
+  );
 };
 
 describe("read_code_file: the model reads exactly the redaction it always read, and is told where", () => {
@@ -394,7 +419,7 @@ describe("read_code_file: the model reads exactly the redaction it always read, 
     expect(answer).toContain('PRIMARY_HOST = "[redacted-ip]"');
   });
 
-  test("the note says which lines, as what, and that it cannot write them back", async () => {
+  test("the note says which lines, as what, and that a line kept exactly as shown has its value written back", async () => {
     serveOnGitHub(repositoryWithServers());
 
     const answer: string = (
@@ -404,7 +429,7 @@ describe("read_code_file: the model reads exactly the redaction it always read, 
     ).dataForLlm;
 
     expect(hiddenNoteOf(answer)).toBe(
-      "… [values that look like secrets or personal data are hidden from you on lines 1-3, as [redacted-ip] and [redacted-email]. You cannot write them back: a commit or pull request writes this file whole, so a version that keeps a placeholder puts it where the real value is. Leave a change to this file to a person, or change only files without hidden values.]",
+      "… [values that look like secrets or personal data are hidden from you on lines 1-3, as [redacted-ip] and [redacted-email]. A commit or pull request writes this file whole: keep each of those lines exactly as you see it here, and OneUptime writes its value back as the file has it. Do not change those lines, and never write a placeholder anywhere else: OneUptime cannot write a value back there, so the change would put the placeholder where a real value belongs. If one of those lines needs to change, leave that change to a person.]",
     );
   });
 
@@ -530,7 +555,7 @@ describe("read_code_file: the model reads exactly the redaction it always read, 
 });
 
 describe("the issue's case: a file with IP addresses and an email, read whole and committed with one line changed", () => {
-  test("before anyone approves, the card says values were hidden from Ask AI, and nothing is committed", async () => {
+  test("before anyone approves, the card says nothing: every value is written back", async () => {
     const repository: FakeGitRepository = repositoryWithServers();
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
@@ -538,43 +563,30 @@ describe("the issue's case: a file with IP addresses and an email, read whole an
     const read: ToolExecutionResult = await conversation.read(SERVERS, {
       branchName: "fix/login",
     });
+    const args: JSONObject = commit("fix/login", [
+      {
+        filePath: SERVERS,
+        content: retriesFive(writtenFrom(read.dataForLlm, true)),
+      },
+    ]);
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
-      commit("fix/login", [
-        {
-          filePath: SERVERS,
-          content: retriesFive(writtenFrom(read.dataForLlm, true)),
-        },
-      ]),
+      args,
     );
 
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
     expect(cardOf(CommitCodeToBranchTool, prepared)).toEqual({
       title: "Commit 1 file to fix/login",
-      line: HIDDEN_IN_SERVERS,
+      line: undefined,
     });
-    expect(
-      prepared.description!.map((sentence: AIActionSentence) => {
-        return sentence.template;
-      }),
-    ).toEqual([AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other]);
-    expect(
-      isKnownAIActionWords({
-        title: CommitCodeToBranchTool.buildActionTitle!(prepared.arguments),
-        description: prepared.description,
-      }),
-    ).toBe(true);
-    // A pull request's or a commit's card still says how many files it writes (issue #6331).
-    expect(
-      drawnCard(
-        CommitCodeToBranchTool,
-        prepared.arguments,
-        prepared.description,
-      ).line,
-    ).toBe(HIDDEN_IN_SERVERS);
+    // A commit's card still says how many files it writes (issue #6331).
+    expect(drawnCard(CommitCodeToBranchTool, prepared.arguments)).toEqual(
+      drawnCard(CommitCodeToBranchTool, args),
+    );
     expect(repository.commits).toEqual([]);
   });
 
-  test("in Auto-run it is not made, and the model is told it cannot write those values back", async () => {
+  test("in Auto-run nothing holds it back", async () => {
     serveOnGitHub(repositoryWithServers());
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
@@ -591,23 +603,11 @@ describe("the issue's case: a file with IP addresses and an email, read whole an
       ]),
     );
 
-    expect(prepared.notRunWithoutApproval).toEqual({
-      toldModel: [
-        "Not done: nothing was committed to fix/login, because your version of these files writes placeholders where values were hidden from you:",
-        `- ${SERVERS}: your version writes [redacted-ip] on lines 1-2; [redacted-email] on line 3. These are placeholders for values hidden from you, and the file on fix/login does not hold them.`,
-        `You cannot write a value hidden from you back: it reads as a placeholder however often you read the file again, so writing ${SERVERS} whole puts the placeholders where the real values are. Leave the change to ${SERVERS} to a person - tell the user what to change, and where - or change only files without hidden values. Never write a placeholder, or a value you guess, in place of a hidden one. If the user asked you to write that placeholder text itself, tell them they can approve it with Ask to act.`,
-      ].join("\n"),
-      summary:
-        CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
-          CodeFileUnseen.ValuesHidden
-        ],
-    });
-    expect(prepared.notRunWithoutApproval!.toldModel).not.toContain(
-      "Read each of these files",
-    );
+    expect(prepared.notRunWithoutApproval).toBeUndefined();
+    expect(prepared.description).toBeUndefined();
   });
 
-  test("what the card was shown on keeps the placeholders and their lines, for the approval and a reviewer", async () => {
+  test("what the card was shown on is the file as the branch had it, and nothing of its values", async () => {
     serveOnGitHub(repositoryWithServers());
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
@@ -632,33 +632,16 @@ describe("the issue's case: a file with IP addresses and an email, read whole an
           fingerprint: fingerprintCodeFileVersion(blobOf(SERVERS_ON_BRANCH)),
         },
       ],
-      unseen: [
-        {
-          filePath: SERVERS,
-          unseen: CodeFileUnseen.ValuesHidden,
-          placeholdersWritten: [
-            {
-              placeholder: "[redacted-ip]",
-              written: 2,
-              onBranch: 0,
-              lines: [range(1, 2)],
-            },
-            {
-              placeholder: "[redacted-email]",
-              written: 1,
-              onBranch: 0,
-              lines: [range(3, 3)],
-            },
-          ],
-        },
-      ],
+      unseen: [],
     });
-    // Never the values themselves.
-    expect(JSON.stringify(prepared)).not.toContain("10.0.0.12");
-    expect(JSON.stringify(prepared)).not.toContain("ops@acme.com");
+    // Never the values themselves: the arguments keep the model's version.
+    for (const value of HIDDEN_IN_SERVERS_VALUES) {
+      expect(JSON.stringify(prepared)).not.toContain(value);
+    }
+    expect(JSON.stringify(prepared)).toContain("[redacted-ip]");
   });
 
-  test("approved anyway, it is committed as the card said: the person chose", async () => {
+  test("committed with the real values, as the file has them: only the line changed differs", async () => {
     const repository: FakeGitRepository = repositoryWithServers();
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
@@ -666,17 +649,62 @@ describe("the issue's case: a file with IP addresses and an email, read whole an
     const read: ToolExecutionResult = await conversation.read(SERVERS, {
       branchName: "fix/login",
     });
-    const content: string = retriesFive(writtenFrom(read.dataForLlm, true));
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath: SERVERS,
+          content: retriesFive(writtenFrom(read.dataForLlm, true)),
+        },
+      ]),
+    );
+    const result: ToolExecutionResult = await conversation.run(
+      CommitCodeToBranchTool,
+      prepared,
+    );
+
+    expect(repository.commits).toHaveLength(1);
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      SERVERS_ON_BRANCH.replace("RETRIES = 3;", "RETRIES = 5;"),
+    );
+    // Only the commit holds them: not the tool's result, nor what it keeps of the file.
+    for (const value of HIDDEN_IN_SERVERS_VALUES) {
+      expect(JSON.stringify(result)).not.toContain(value);
+      expect(JSON.stringify(prepared.arguments)).not.toContain(value);
+    }
+  });
+
+  test("Ask AI then knows the file as it was committed: the next change of it says nothing", async () => {
+    serveOnGitHub(repositoryWithServers());
+    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+
+    const read: ToolExecutionResult = await conversation.read(SERVERS, {
+      branchName: "fix/login",
+    });
+    const shown: string = writtenFrom(read.dataForLlm, true);
+
     await conversation.run(
       CommitCodeToBranchTool,
       await conversation.propose(
         CommitCodeToBranchTool,
-        commit("fix/login", [{ filePath: SERVERS, content }]),
+        commit("fix/login", [
+          { filePath: SERVERS, content: retriesFive(shown) },
+        ]),
       ),
     );
 
-    expect(repository.commits).toHaveLength(1);
-    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(content);
+    // Written from what it wrote, one more line changed: never "changed since read".
+    const next: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath: SERVERS,
+          content: retriesFive(shown).replace("RETRIES = 5;", "RETRIES = 6;"),
+        },
+      ]),
+    );
+
+    expect(Object.keys(next)).toEqual(["arguments"]);
   });
 
   test("a version that takes the hidden values out, or puts the person's in, writes over nothing hidden: the card as it always was", async () => {
@@ -810,15 +838,10 @@ const VALUES_OF_EVERY_RULE: Array<
   ],
 ];
 
-describe("every redaction rule: a value of its kind, written back as the model was shown it", () => {
+describe("every redaction rule: a value of its kind, kept as the model was shown it, is written back", () => {
   test.each(VALUES_OF_EVERY_RULE)(
     "%s",
-    async (
-      _kind: string,
-      valueLines: Array<string>,
-      placeholder: string,
-      lines: AIChatLineRange,
-    ) => {
+    async (_kind: string, valueLines: Array<string>, placeholder: string) => {
       const filePath: string = "src/settings.ts";
       const content: string = [
         "// settings",
@@ -826,43 +849,32 @@ describe("every redaction rule: a value of its kind, written back as the model w
         "export const RETRIES = 3;",
         "",
       ].join("\n");
-      serveOnGitHub(
-        makeRepository({ files: { "fix/login": { [filePath]: content } } }),
-      );
+      const repository: FakeGitRepository = makeRepository({
+        files: { "fix/login": { [filePath]: content } },
+      });
+      serveOnGitHub(repository);
       const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
       const read: ToolExecutionResult = await conversation.read(filePath, {
         branchName: "fix/login",
       });
+      const written: string = retriesFive(writtenFrom(read.dataForLlm, true));
       const prepared: PreparedMutation = await conversation.propose(
         CommitCodeToBranchTool,
-        commit("fix/login", [
-          {
-            filePath,
-            content: retriesFive(writtenFrom(read.dataForLlm, true)),
-          },
-        ]),
+        commit("fix/login", [{ filePath, content: written }]),
       );
 
-      expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
-        `Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: ${filePath}.`,
-      );
-      const finding: CodeFileUnseenFinding = proposedOnOf(prepared)!.unseen[0]!;
-      expect(finding.unseen).toBe(CodeFileUnseen.ValuesHidden);
-      expect(finding.placeholdersWritten).toEqual([
-        {
-          placeholder,
-          written: lines.last - lines.first + 1,
-          onBranch: 0,
-          lines: [lines],
-        },
-      ]);
-      expect(prepared.notRunWithoutApproval!.toldModel).toContain(
-        `- ${filePath}: your version writes ${placeholder} on`,
-      );
-      // The model was told before it wrote anything.
+      // The model was shown the placeholder, was told, and wrote it back as shown.
       expect(hiddenNoteOf(read.dataForLlm)).toContain(`as ${placeholder}.`);
+      expect(written).toContain(placeholder);
       expect(REDACTION_PLACEHOLDERS).toContain(placeholder);
+
+      // Nothing on the card; committed with the value as the file has it.
+      expect(Object.keys(prepared)).toEqual(["arguments"]);
+      await conversation.run(CommitCodeToBranchTool, prepared);
+      expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
+        retriesFive(content),
+      );
     },
   );
 
@@ -874,6 +886,735 @@ describe("every redaction rule: a value of its kind, written back as the model w
         },
       ).sort(),
     ).toEqual([...REDACTION_PLACEHOLDERS].sort());
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Issue #6388: what is written back, and what is not. A line of the model's
+ * version is written as the file has it only when it reads exactly as
+ * read_code_file shows one text of that same file, in the version the
+ * commit is held to, and no other text of the file reads the same.
+ * ---------------------------------------------------------------------------
+ */
+
+// A file on fix/login, read whole by a new conversation: the model's view of it, and the repository.
+const readWhole: (data: { filePath: string; content: string }) => Promise<{
+  repository: FakeGitRepository;
+  conversation: Conversation;
+  shown: string;
+}> = async (data: {
+  filePath: string;
+  content: string;
+}): Promise<{
+  repository: FakeGitRepository;
+  conversation: Conversation;
+  shown: string;
+}> => {
+  const repository: FakeGitRepository = makeRepository({
+    files: {
+      "fix/login": { [data.filePath]: data.content, "README.md": "# app\n" },
+    },
+  });
+  serveOnGitHub(repository);
+  const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+  const read: ToolExecutionResult = await conversation.read(data.filePath, {
+    branchName: "fix/login",
+  });
+
+  return {
+    repository,
+    conversation,
+    shown: writtenFrom(read.dataForLlm, data.content.endsWith("\n")),
+  };
+};
+
+describe("issue #6388: what is written back, and what is not", () => {
+  test("an interface's password: string, kept as shown and another line changed: committed with password: string", async () => {
+    const filePath: string = "src/login.ts";
+    const content: string = [
+      "interface Login {",
+      "  user: string;",
+      "  password: string;",
+      "}",
+      "export const RETRIES = 3;",
+      "",
+    ].join("\n");
+    const { repository, conversation, shown } = await readWhole({
+      filePath,
+      content,
+    });
+
+    expect(shown).toContain("  password: [redacted];");
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath, content: retriesFive(shown) }]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
+      retriesFive(content),
+    );
+  });
+
+  test("the same mask on two lines with two values: neither written back, and the card says so; approved anyway, every other value is", async () => {
+    const filePath: string = "config/hosts.ts";
+    const content: string = [
+      'host = "10.0.0.1"',
+      'host = "10.0.0.2"',
+      'owner = "ops@acme.com"',
+      "export const RETRIES = 3;",
+      "",
+    ].join("\n");
+    const { repository, conversation, shown } = await readWhole({
+      filePath,
+      content,
+    });
+
+    expect(shown.split("\n").slice(0, 2)).toEqual([
+      'host = "[redacted-ip]"',
+      'host = "[redacted-ip]"',
+    ]);
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath, content: retriesFive(shown) }]),
+    );
+
+    expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
+      `Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: ${filePath}.`,
+    );
+    expect(proposedOnOf(prepared)!.unseen).toEqual([
+      {
+        filePath,
+        unseen: CodeFileUnseen.ValuesHidden,
+        placeholdersWritten: [
+          {
+            placeholder: "[redacted-ip]",
+            written: 2,
+            onBranch: 0,
+            lines: [range(1, 2)],
+          },
+        ],
+      },
+    ]);
+    expect(prepared.notRunWithoutApproval!.toldModel).toContain(
+      `if such a line needs to change, or reads the same as another, leave the change to ${filePath} to a person`,
+    );
+
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    // As the card said: the two addresses' placeholders; the address's value back.
+    expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
+      [
+        'host = "[redacted-ip]"',
+        'host = "[redacted-ip]"',
+        'owner = "ops@acme.com"',
+        "export const RETRIES = 5;",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("the same mask on two lines with one value: both written back", async () => {
+    const filePath: string = "config/hosts.ts";
+    const content: string = [
+      'primary = "10.0.0.1"',
+      "",
+      'primary = "10.0.0.1"',
+      "export const RETRIES = 3;",
+      "",
+    ].join("\n");
+    const { repository, conversation, shown } = await readWhole({
+      filePath,
+      content,
+    });
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath, content: retriesFive(shown) }]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
+      retriesFive(content),
+    );
+  });
+
+  test("lines moved: each value goes with its line", async () => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+    const reorder: (lines: string) => string = (lines: string): string => {
+      const [primary, backup, onCall, retries]: Array<string> =
+        lines.split("\n");
+
+      return [onCall, retries, backup, primary, ""].join("\n");
+    };
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath: SERVERS, content: reorder(shown) }]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      reorder(SERVERS_ON_BRANCH),
+    );
+  });
+
+  test("a line copied exactly as shown takes the same value, in the same file", async () => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+    const copied: (text: string, line: string) => string = (
+      text: string,
+      line: string,
+    ): string => {
+      return `${text}${line.replace("ON_CALL", "ESCALATE_TO")}\n`;
+    };
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath: SERVERS,
+          content: copied(shown, 'export const ON_CALL = "[redacted-email]";'),
+        },
+      ]),
+    );
+
+    // Renamed, the copy is a changed line: its placeholder stays, and the card says so.
+    expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
+      HIDDEN_IN_SERVERS,
+    );
+
+    const exact: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath: SERVERS,
+          content: `${shown}export const ON_CALL = "[redacted-email]";\n`,
+        },
+      ]),
+    );
+
+    expect(Object.keys(exact)).toEqual(["arguments"]);
+    await conversation.run(CommitCodeToBranchTool, exact);
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      `${SERVERS_ON_BRANCH}export const ON_CALL = "ops@acme.com";\n`,
+    );
+  });
+
+  test("a masked line edited keeps its placeholder: the card names that line only, and Auto-run does not make it", async () => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        { filePath: SERVERS, content: primaryEdited(retriesFive(shown)) },
+      ]),
+    );
+
+    expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
+      HIDDEN_IN_SERVERS,
+    );
+    expect(proposedOnOf(prepared)!.unseen[0]!.placeholdersWritten).toEqual([
+      {
+        placeholder: "[redacted-ip]",
+        written: 1,
+        onBranch: 0,
+        lines: [range(1, 1)],
+      },
+    ]);
+    expect(prepared.notRunWithoutApproval!.toldModel).toContain(
+      `- ${SERVERS}: your version writes [redacted-ip] on line 1.`,
+    );
+    expect(repository.commits).toEqual([]);
+  });
+
+  test("a private key block, shown as one placeholder, is written back whole; a placeholder after it is named on the model's own line", async () => {
+    const filePath: string = "src/keys.ts";
+    const content: string = [
+      "export const KEY = `",
+      "-----BEGIN RSA PRIVATE KEY-----",
+      "MIIEowIBAAKCAQEAx",
+      "qwertyuiopasdfgh",
+      "-----END RSA PRIVATE KEY-----",
+      "`;",
+      'export const HOST = "10.0.0.7";',
+      "export const RETRIES = 3;",
+      "",
+    ].join("\n");
+    const { repository, conversation, shown } = await readWhole({
+      filePath,
+      content,
+    });
+
+    expect(shown.split("\n").slice(0, 4)).toEqual([
+      "export const KEY = `",
+      "[redacted-private-key]",
+      "`;",
+      'export const HOST = "[redacted-ip]";',
+    ]);
+
+    // The host's line changed: the key goes back whole, the host's placeholder stays, on line 4.
+    const edited: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath,
+          content: retriesFive(shown).replace(
+            'HOST = "[redacted-ip]";',
+            'HOST = "[redacted-ip]"; // edge',
+          ),
+        },
+      ]),
+    );
+
+    expect(proposedOnOf(edited)!.unseen[0]!.placeholdersWritten).toEqual([
+      {
+        placeholder: "[redacted-ip]",
+        written: 1,
+        onBranch: 0,
+        lines: [range(4, 4)],
+      },
+    ]);
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath, content: retriesFive(shown) }]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
+      retriesFive(content),
+    );
+  });
+
+  test("two private key blocks show the same: neither is written back", async () => {
+    const filePath: string = "src/keys.ts";
+    const block: (body: string) => Array<string> = (
+      body: string,
+    ): Array<string> => {
+      return ["-----BEGIN PRIVATE KEY-----", body, "-----END PRIVATE KEY-----"];
+    };
+    const content: string = [
+      ...block("Zmlyc3Qga2V5IGJvZHk"),
+      ...block("c2Vjb25kIGtleSBib2R5"),
+      "export const RETRIES = 3;",
+      "",
+    ].join("\n");
+    const { conversation, shown } = await readWhole({ filePath, content });
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath, content: retriesFive(shown) }]),
+    );
+
+    expect(proposedOnOf(prepared)!.unseen[0]!.placeholdersWritten).toEqual([
+      {
+        placeholder: "[redacted-private-key]",
+        written: 2,
+        onBranch: 0,
+        lines: [range(1, 2)],
+      },
+    ]);
+  });
+
+  test("a Windows file: each line written back, ending as the model ended it", async () => {
+    const filePath: string = "config/servers.ps1";
+    const content: string =
+      '$Primary = "10.0.0.12"\r\n$Retries = 3\r\n$OnCall = "ops@acme.com"\r\n';
+    const { repository, conversation, shown } = await readWhole({
+      filePath,
+      content,
+    });
+
+    // The model writes Unix line endings.
+    const unix: string = shown.replace(/\r/g, "").replace("= 3", "= 5");
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath, content: unix }]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
+      '$Primary = "10.0.0.12"\n$Retries = 5\n$OnCall = "ops@acme.com"\n',
+    );
+
+    // Its own line endings kept, as it wrote them.
+    const windows: string = shown.replace("= 3", "= 7");
+    repository.branches.get("fix/login")!.set(filePath, content);
+    const again: Conversation = new Conversation(GITHUB_CONTEXT);
+    await again.read(filePath, { branchName: "fix/login" });
+    await again.run(
+      CommitCodeToBranchTool,
+      await again.propose(
+        CommitCodeToBranchTool,
+        commit("fix/login", [{ filePath, content: windows }]),
+      ),
+    );
+    expect(repository.branches.get("fix/login")!.get(filePath)).toBe(
+      content.replace("= 3", "= 7"),
+    );
+  });
+
+  test("a value never goes into another file: copied into a new file, its placeholder stays, and the card says so", async () => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        { filePath: SERVERS, content: retriesFive(shown) },
+        { filePath: "config/servers.prod.ts", content: shown },
+      ]),
+    );
+
+    expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
+      "Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: config/servers.prod.ts.",
+    );
+
+    await conversation.run(CommitCodeToBranchTool, prepared);
+
+    // Each file's values from itself: the copy has none of its own, so it keeps the placeholders.
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      retriesFive(SERVERS_ON_BRANCH),
+    );
+    expect(
+      repository.branches.get("fix/login")!.get("config/servers.prod.ts"),
+    ).toBe(shown);
+    for (const value of HIDDEN_IN_SERVERS_VALUES) {
+      expect(
+        repository.branches.get("fix/login")!.get("config/servers.prod.ts"),
+      ).not.toContain(value);
+    }
+  });
+
+  test("the file changed after the card was shown: nothing committed, and the refusal holds no value", async () => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath: SERVERS, content: retriesFive(shown) }]),
+    );
+
+    push(
+      repository,
+      "fix/login",
+      SERVERS,
+      SERVERS_ON_BRANCH.replace("10.0.0.13", "10.0.0.99"),
+    );
+
+    const failure: Error = await conversation
+      .run(CommitCodeToBranchTool, prepared)
+      .then(
+        (): Error => {
+          return new Error("committed");
+        },
+        (error: Error): Error => {
+          return error;
+        },
+      );
+
+    expect(failure.message).toContain(
+      "Nothing was committed: config/servers.ts changed on fix/login after this commit was shown for approval",
+    );
+    expect(repository.commits).toEqual([]);
+    for (const value of [...HIDDEN_IN_SERVERS_VALUES, "10.0.0.99"]) {
+      expect(failure.message).not.toContain(value);
+    }
+  });
+
+  test("pushed between the approval's read of the version and the read of its text: nothing committed, never values of another version", async () => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath: SERVERS, content: retriesFive(shown) }]),
+    );
+
+    // Right after the approval reads the version, a teammate pushes.
+    let pushed: boolean = false;
+    repository.afterVersionRead = (filePath: string): void => {
+      if (!pushed && filePath === SERVERS) {
+        pushed = true;
+        push(
+          repository,
+          "fix/login",
+          SERVERS,
+          SERVERS_ON_BRANCH.replace("10.0.0.13", "10.0.0.99"),
+        );
+      }
+    };
+
+    const failure: Error = await conversation
+      .run(CommitCodeToBranchTool, prepared)
+      .then(
+        (): Error => {
+          return new Error("committed");
+        },
+        (error: Error): Error => {
+          return error;
+        },
+      );
+
+    expect(pushed).toBe(true);
+    expect(failure.message).toBe(
+      `Nothing was committed: OneUptime could not write back the values hidden from you in ${SERVERS} as the file on fix/login has them, so committing it would put placeholders where those values are. Read each of them again with read_code_file and branchName "fix/login", keep each line with a placeholder exactly as you are shown it, and propose the commit again.`,
+    );
+    expect(repository.commits).toEqual([]);
+  });
+
+  test("its text cannot be read again after the card said nothing: nothing committed", async () => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath: SERVERS, content: retriesFive(shown) }]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    repository.textUnreadable.set(SERVERS, "GitHub answered 502.");
+
+    await expect(
+      conversation.run(CommitCodeToBranchTool, prepared),
+    ).rejects.toThrow(
+      `Nothing was committed: OneUptime could not write back the values hidden from you in ${SERVERS}`,
+    );
+    expect(repository.commits).toEqual([]);
+  });
+
+  test("a pull request that can no longer write its values back opens nothing, not even its branch", async () => {
+    const repository: FakeGitRepository = repositoryWithServers();
+    serveOnGitHub(repository);
+    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+    const read: ToolExecutionResult = await conversation.read(SERVERS);
+    const prepared: PreparedMutation = await conversation.propose(
+      OpenCodePullRequestTool,
+      pullRequest([
+        {
+          filePath: SERVERS,
+          content: retriesFive(writtenFrom(read.dataForLlm, true)),
+        },
+      ]),
+    );
+    const branches: number = repository.branches.size;
+
+    repository.textUnreadable.set(SERVERS, "GitHub answered 502.");
+
+    await expect(
+      conversation.run(OpenCodePullRequestTool, prepared),
+    ).rejects.toThrow(
+      `No pull request was opened: OneUptime could not write back the values hidden from you in ${SERVERS} as the file on main has them`,
+    );
+    expect(repository.branches.size).toBe(branches);
+    expect(repository.pullRequests).toEqual([]);
+  });
+
+  test("no value reaches a log, the arguments or the tool's result, from the card to the commit", async () => {
+    const logged: Array<unknown> = [];
+    for (const level of ["debug", "info", "warn", "error"] as const) {
+      jest.spyOn(logger, level).mockImplementation(((
+        ...args: Array<unknown>
+      ): void => {
+        logged.push(args);
+      }) as never);
+    }
+
+    try {
+      await expectNoValueOutsideTheCommit(logged);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  const expectNoValueOutsideTheCommit: (
+    logged: Array<unknown>,
+  ) => Promise<void> = async (logged: Array<unknown>): Promise<void> => {
+    const { repository, conversation, shown } = await readWhole({
+      filePath: SERVERS,
+      content: SERVERS_ON_BRANCH,
+    });
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath: SERVERS, content: retriesFive(shown) }]),
+    );
+    const result: ToolExecutionResult = await conversation.run(
+      CommitCodeToBranchTool,
+      prepared,
+    );
+
+    // Committed, with the values ...
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      retriesFive(SERVERS_ON_BRANCH),
+    );
+    // ... and nowhere else.
+    const everythingElse: string = JSON.stringify([
+      logged,
+      prepared,
+      result,
+      conversation.records,
+    ]);
+    for (const value of HIDDEN_IN_SERVERS_VALUES) {
+      expect(everythingElse).not.toContain(value);
+    }
+  };
+});
+
+describe("issue #6388: read_code_file never shows part of a private key block", () => {
+  const KEY_BODY: Array<string> = [
+    "S2V5Qm9keUxpbmVPbmVJc05vdEFSZWFsS2V5QnV0SXRMb29rc0xpa2VPbmU",
+    "S2V5Qm9keUxpbmVUd29Jc05vdEFSZWFsS2V5QnV0SXRMb29rc0xpa2VPbmU",
+    "S2V5Qm9keUxpbmVUaHJlZUlzTm90QVJlYWxLZXlCdXRJdExvb2tzTGlrZU8",
+  ];
+
+  // A file of `lines` lines with a key block from line `at`: header, body, footer.
+  const fileWithKeyAt: (at: number, lines: number, width?: number) => string = (
+    at: number,
+    lines: number,
+    width: number = 10,
+  ): string => {
+    const all: Array<string> = [];
+
+    while (all.length < lines) {
+      if (all.length + 1 === at) {
+        all.push(
+          "-----BEGIN RSA PRIVATE KEY-----",
+          ...KEY_BODY,
+          "-----END RSA PRIVATE KEY-----",
+        );
+        continue;
+      }
+
+      all.push(`const v${all.length + 1} = 1;`.padEnd(width, " "));
+    }
+
+    return `${all.join("\n")}\n`;
+  };
+
+  const readOf: (
+    content: string,
+    args?: JSONObject,
+  ) => Promise<ToolExecutionResult> = async (
+    content: string,
+    args?: JSONObject,
+  ): Promise<ToolExecutionResult> => {
+    serveOnGitHub(
+      makeRepository({ files: { main: { "src/key.ts": content } } }),
+    );
+
+    return await new Conversation(GITHUB_CONTEXT).read("src/key.ts", args);
+  };
+
+  const expectNoKey: (answer: string) => void = (answer: string): void => {
+    for (const line of KEY_BODY) {
+      expect(answer).not.toContain(line);
+    }
+  };
+
+  test("the 400 lines a read shows end inside a block: the read goes on to its footer", async () => {
+    const answer: string = (await readOf(fileWithKeyAt(398, 600))).dataForLlm;
+
+    expectNoKey(answer);
+    expect(answer).toContain("showing lines 1-402 of 600");
+    expect(answer).toContain("398| [redacted-private-key]");
+    expect(answer).toContain("call again with startLine=403 to read on");
+  });
+
+  test("the byte budget ends inside a block: the read goes on to its footer", async () => {
+    // Lines of 118 characters: the 12 KB budget ends on line 100, the block's first line of key.
+    const answer: string = (await readOf(fileWithKeyAt(99, 300, 118)))
+      .dataForLlm;
+
+    expectNoKey(answer);
+    expect(answer).toContain(" 99| [redacted-private-key]");
+    expect(answer).toMatch(/showing lines 1-103 of 300/);
+  });
+
+  test("a startLine inside a block starts at its header", async () => {
+    const answer: string = (
+      await readOf(fileWithKeyAt(20, 60), { startLine: 22, endLine: 40 })
+    ).dataForLlm;
+
+    expectNoKey(answer);
+    expect(answer).toContain("showing lines 20-40 of 60");
+    expect(answer).toContain("20| [redacted-private-key]");
+  });
+
+  test("an endLine inside a block ends at its footer", async () => {
+    const answer: string = (
+      await readOf(fileWithKeyAt(20, 60), { startLine: 1, endLine: 21 })
+    ).dataForLlm;
+
+    expectNoKey(answer);
+    expect(answer).toContain("showing lines 1-24 of 60");
+  });
+
+  test("a window inside a block, and one around a line in it, show the block whole", async () => {
+    for (const args of [
+      { startLine: 21, endLine: 23 },
+      { aroundLine: 22 },
+    ] as Array<JSONObject>) {
+      const answer: string = (await readOf(fileWithKeyAt(20, 200), args))
+        .dataForLlm;
+
+      expectNoKey(answer);
+      expect(answer).toContain("20| [redacted-private-key]");
+    }
+  });
+
+  test("any window of a file with blocks, drawn from a seed: never a line of a key", async () => {
+    const random: SeededRandom = seededRandom(6388);
+    const content: string = [
+      fileWithKeyAt(5, 30).trimEnd(),
+      fileWithKeyAt(3, 25).trimEnd(),
+      fileWithKeyAt(10, 40).trimEnd(),
+    ].join("\n");
+    const lines: number = content.split("\n").length;
+
+    serveOnGitHub(
+      makeRepository({ files: { main: { "src/key.ts": content } } }),
+    );
+
+    for (let round: number = 0; round < 60; round++) {
+      const startLine: number = 1 + random(lines);
+      const endLine: number = startLine + random(lines - startLine + 1);
+      const answer: string = (
+        await new Conversation(GITHUB_CONTEXT).read(
+          "src/key.ts",
+          random(2) === 0 ? { startLine, endLine } : { aroundLine: startLine },
+        )
+      ).dataForLlm;
+
+      for (const line of KEY_BODY) {
+        expect({
+          round,
+          startLine,
+          endLine,
+          shown: answer.includes(line),
+        }).toEqual({ round, startLine, endLine, shown: false });
+      }
+    }
   });
 });
 
@@ -925,18 +1666,26 @@ describe("placeholder text the file on the branch holds itself", () => {
     );
   });
 
-  test("beside values hidden in it: said, with how many the file holds itself", async () => {
-    const tests: string = [
-      'test("an address", () => {',
-      '  expect(redact("host 10.0.0.1")).toBe("host [redacted-ip]");',
-      "});",
-      "",
-    ].join("\n");
-    serveOnGitHub(
-      makeRepository({
-        files: { "fix/login": { "Tests/Redact.test.ts": tests } },
-      }),
-    );
+  const MIXED: string = [
+    'test("an address", () => {',
+    '  expect(redact("host 10.0.0.1")).toBe("host [redacted-ip]");',
+    "});",
+    "",
+  ].join("\n");
+
+  const readMixed: () => Promise<{
+    repository: FakeGitRepository;
+    conversation: Conversation;
+    shown: string;
+  }> = async (): Promise<{
+    repository: FakeGitRepository;
+    conversation: Conversation;
+    shown: string;
+  }> => {
+    const repository: FakeGitRepository = makeRepository({
+      files: { "fix/login": { "Tests/Redact.test.ts": MIXED } },
+    });
+    serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
 
     const read: ToolExecutionResult = await conversation.read(
@@ -950,15 +1699,42 @@ describe("placeholder text the file on the branch holds itself", () => {
       "hidden from you on line 2, as [redacted-ip].",
     );
 
+    return {
+      repository,
+      conversation,
+      shown: writtenFrom(read.dataForLlm, true),
+    };
+  };
+
+  test("beside a value hidden in it, kept as shown: written back, the file's own placeholder with it", async () => {
+    const { repository, conversation, shown } = await readMixed();
+
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
       commit("fix/login", [
         {
           filePath: "Tests/Redact.test.ts",
-          content: writtenFrom(read.dataForLlm, true).replace(
-            '"an address"',
-            '"an IP address"',
-          ),
+          content: shown.replace('"an address"', '"an IP address"'),
+        },
+      ]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    expect(
+      repository.branches.get("fix/login")!.get("Tests/Redact.test.ts"),
+    ).toBe(MIXED.replace('"an address"', '"an IP address"'));
+  });
+
+  test("beside a value hidden in it, the line changed: said, with how many the file holds itself", async () => {
+    const { conversation, shown } = await readMixed();
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath: "Tests/Redact.test.ts",
+          content: shown.replace('toBe("host', 'toBe("server'),
         },
       ]),
     );
@@ -1194,7 +1970,49 @@ describe("a new file, and a file whose text cannot be read", () => {
 });
 
 describe("beside what Ask AI never saw of a file", () => {
-  test("changed since the read and written with placeholders: two lines, the placeholders first, and the model told both", async () => {
+  test("changed since the read, its lines kept as shown: only the change is said; approved, the values are the ones the branch has now", async () => {
+    const repository: FakeGitRepository = repositoryWithServers();
+    serveOnGitHub(repository);
+    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+
+    const read: ToolExecutionResult = await conversation.read(SERVERS, {
+      branchName: "fix/login",
+    });
+    // A teammate moves the backup host: the model never saw either address.
+    const moved: string = SERVERS_ON_BRANCH.replace("10.0.0.13", "10.0.0.99");
+    push(repository, "fix/login", SERVERS, moved);
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [
+        {
+          filePath: SERVERS,
+          content: retriesFive(writtenFrom(read.dataForLlm, true)),
+        },
+      ]),
+    );
+
+    expect(
+      prepared.description!.map((sentence: AIActionSentence) => {
+        return describeAIActionSentence(sentence);
+      }),
+    ).toEqual([
+      `This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: ${SERVERS}.`,
+    ]);
+    expect(prepared.notRunWithoutApproval!.summary).toBe(
+      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+        CodeFileUnseen.ChangedSinceRead
+      ],
+    );
+
+    // Approved anyway: each value as the branch has it now, never the one before.
+    await conversation.run(CommitCodeToBranchTool, prepared);
+    expect(repository.branches.get("fix/login")!.get(SERVERS)).toBe(
+      retriesFive(moved),
+    );
+  });
+
+  test("changed since the read and a line with a placeholder changed: two lines, the placeholders first, and the model told both", async () => {
     const repository: FakeGitRepository = repositoryWithServers();
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
@@ -1214,7 +2032,9 @@ describe("beside what Ask AI never saw of a file", () => {
       commit("fix/login", [
         {
           filePath: SERVERS,
-          content: retriesFive(writtenFrom(read.dataForLlm, true)),
+          content: primaryEdited(
+            retriesFive(writtenFrom(read.dataForLlm, true)),
+          ),
         },
       ]),
     );
@@ -1236,7 +2056,9 @@ describe("beside what Ask AI never saw of a file", () => {
     expect(told[0]).toBe(
       "Not done: nothing was committed to fix/login, because writing these files whole would undo or replace what you have not read there:",
     );
-    expect(told[1]!.startsWith(`- ${SERVERS}: your version writes`)).toBe(true);
+    expect(told[1]).toBe(
+      `- ${SERVERS}: your version writes [redacted-ip] on line 1. These are placeholders for values hidden from you, and the file on fix/login does not hold them.`,
+    );
     expect(told[2]).toBe(
       `- ${SERVERS} changed on fix/login after you last read it there.`,
     );
@@ -1244,7 +2066,7 @@ describe("beside what Ask AI never saw of a file", () => {
       'Read each of these files on fix/login with read_code_file and branchName "fix/login"',
     );
     expect(told.join("\n")).toContain(
-      "You cannot write a value hidden from you back",
+      "OneUptime writes a hidden value back only on a line you keep exactly as read_code_file showed it",
     );
     expect(
       proposedOnOf(prepared)!.unseen.map((finding: CodeFileUnseenFinding) => {
@@ -1253,7 +2075,7 @@ describe("beside what Ask AI never saw of a file", () => {
     ).toEqual([CodeFileUnseen.ValuesHidden, CodeFileUnseen.ChangedSinceRead]);
   });
 
-  test("read only in part and written with placeholders: both lines", async () => {
+  test("read only in part and a line with a placeholder changed: both lines", async () => {
     const lines: Array<string> = [];
 
     for (let line: number = 1; line <= 900; line++) {
@@ -1272,10 +2094,30 @@ describe("beside what Ask AI never saw of a file", () => {
     const read: ToolExecutionResult = await conversation.read(SERVERS, {
       branchName: "fix/login",
     });
+    const written: string = writtenFrom(read.dataForLlm, true);
+
+    // Kept as shown, only the part it read is said.
+    expect(
+      (
+        await conversation.propose(
+          CommitCodeToBranchTool,
+          commit("fix/login", [{ filePath: SERVERS, content: written }]),
+        )
+      ).description!.map((sentence: AIActionSentence) => {
+        return sentence.template;
+      }),
+    ).toEqual([AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other]);
+
     const prepared: PreparedMutation = await conversation.propose(
       CommitCodeToBranchTool,
       commit("fix/login", [
-        { filePath: SERVERS, content: writtenFrom(read.dataForLlm, true) },
+        {
+          filePath: SERVERS,
+          content: written.replace(
+            'const HOST = "[redacted-ip]";',
+            'const HOST = "[redacted-ip]"; // the host',
+          ),
+        },
       ]),
     );
 
@@ -1289,7 +2131,7 @@ describe("beside what Ask AI never saw of a file", () => {
     ]);
   });
 
-  test("five files written with placeholders: one line, three named and the rest counted; the model told every one", async () => {
+  test("five files, a line with a placeholder changed in each: one line, three named and the rest counted; the model told every one", async () => {
     const names: Array<string> = ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts"];
     const files: Record<string, string> = {};
 
@@ -1310,7 +2152,10 @@ describe("beside what Ask AI never saw of a file", () => {
       );
       changes.push({
         filePath: `config/${name}`,
-        content: writtenFrom(read.dataForLlm, true),
+        content: writtenFrom(read.dataForLlm, true).replace(
+          "HOST =",
+          "API_HOST =",
+        ),
       });
     }
 
@@ -1329,13 +2174,13 @@ describe("beside what Ask AI never saw of a file", () => {
       );
     }
     expect(prepared.notRunWithoutApproval!.toldModel).toContain(
-      "Leave the change to config/a.ts, config/b.ts, config/c.ts, config/d.ts and config/e.ts to a person",
+      "leave the change to config/a.ts, config/b.ts, config/c.ts, config/d.ts and config/e.ts to a person",
     );
   });
 });
 
 describe("open_code_pull_request, written with placeholders on the default branch", () => {
-  test("the card names it; Auto-run does not open it; approved anyway, its reviewer is told where the placeholders are", async () => {
+  test("kept as shown: nothing on the card, Auto-run opens it, and its branch holds the real values, no note for the reviewer", async () => {
     const repository: FakeGitRepository = repositoryWithServers();
     serveOnGitHub(repository);
     const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
@@ -1347,6 +2192,51 @@ describe("open_code_pull_request, written with placeholders on the default branc
         {
           filePath: SERVERS,
           content: retriesFive(writtenFrom(read.dataForLlm, true)),
+        },
+      ]),
+    );
+
+    expect(Object.keys(prepared)).toEqual(["arguments"]);
+    expect(cardOf(OpenCodePullRequestTool, prepared)).toEqual({
+      title: "Open pull request: More retries",
+      line: undefined,
+    });
+
+    const result: ToolExecutionResult = await conversation.run(
+      OpenCodePullRequestTool,
+      prepared,
+    );
+
+    expect(repository.pullRequests).toHaveLength(1);
+    const head: string = repository.pullRequests[0]!.headBranchName;
+    expect(repository.branches.get(head)!.get(SERVERS)).toBe(
+      retriesFive(SERVERS_ON_BRANCH),
+    );
+    // The base is left alone, and the reviewer is told nothing of values.
+    expect(repository.branches.get("main")!.get(SERVERS)).toBe(
+      SERVERS_ON_BRANCH,
+    );
+    expect(repository.pullRequests[0]!.body).not.toContain("Check these files");
+    for (const value of HIDDEN_IN_SERVERS_VALUES) {
+      expect(JSON.stringify(result)).not.toContain(value);
+      expect(repository.pullRequests[0]!.body).not.toContain(value);
+    }
+  });
+
+  test("a line changed: the card names it; Auto-run does not open it; approved anyway, its reviewer is told where the placeholder is", async () => {
+    const repository: FakeGitRepository = repositoryWithServers();
+    serveOnGitHub(repository);
+    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+
+    const read: ToolExecutionResult = await conversation.read(SERVERS);
+    const prepared: PreparedMutation = await conversation.propose(
+      OpenCodePullRequestTool,
+      pullRequest([
+        {
+          filePath: SERVERS,
+          content: primaryEdited(
+            retriesFive(writtenFrom(read.dataForLlm, true)),
+          ),
         },
       ]),
     );
@@ -1383,8 +2273,23 @@ describe("open_code_pull_request, written with placeholders on the default branc
         "_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._",
         "",
         "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:",
-        `- \`${SERVERS}\`: AI's version writes \`[redacted-ip]\` on lines 1-2; \`[redacted-email]\` on line 3, placeholders for values hidden from AI, where the real values belong.`,
+        `- \`${SERVERS}\`: AI's version writes \`[redacted-ip]\` on line 1, placeholders for values hidden from AI, where the real values belong.`,
       ].join("\n"),
+    );
+    // The other lines' values written back on its branch.
+    expect(
+      repository.branches
+        .get(repository.pullRequests[0]!.headBranchName)!
+        .get(SERVERS),
+    ).toBe(
+      primaryEdited(
+        retriesFive(
+          SERVERS_ON_BRANCH.replace(
+            'PRIMARY_HOST = "10.0.0.12";',
+            'PRIMARY_HOST = "[redacted-ip]";',
+          ),
+        ),
+      ),
     );
   });
 
@@ -1425,7 +2330,7 @@ describe("beyond GitHub", () => {
       },
     ],
   ])(
-    "%s: written with placeholders, the card says so; written without, nothing",
+    "%s: kept as shown, written back and committed; a line changed, the card says so",
     async (_host: string, serve: () => void) => {
       gitlabOrForgejo = repositoryWithServers();
       serve();
@@ -1435,6 +2340,7 @@ describe("beyond GitHub", () => {
         branchName: "fix/login",
       });
       expect(hiddenNoteOf(read.dataForLlm)).toContain("on lines 1-3");
+      const shown: string = retriesFive(writtenFrom(read.dataForLlm, true));
 
       expect(
         cardOf(
@@ -1442,25 +2348,22 @@ describe("beyond GitHub", () => {
           await conversation.propose(
             CommitCodeToBranchTool,
             commit("fix/login", [
-              {
-                filePath: SERVERS,
-                content: retriesFive(writtenFrom(read.dataForLlm, true)),
-              },
+              { filePath: SERVERS, content: primaryEdited(shown) },
             ]),
           ),
         ).line,
       ).toBe(HIDDEN_IN_SERVERS);
 
-      expect(
-        Object.keys(
-          await conversation.propose(
-            CommitCodeToBranchTool,
-            commit("fix/login", [
-              { filePath: SERVERS, content: "export const RETRIES = 5;\n" },
-            ]),
-          ),
-        ),
-      ).toEqual(["arguments"]);
+      const prepared: PreparedMutation = await conversation.propose(
+        CommitCodeToBranchTool,
+        commit("fix/login", [{ filePath: SERVERS, content: shown }]),
+      );
+
+      expect(Object.keys(prepared)).toEqual(["arguments"]);
+      await conversation.run(CommitCodeToBranchTool, prepared);
+      expect(gitlabOrForgejo.branches.get("fix/login")!.get(SERVERS)).toBe(
+        retriesFive(SERVERS_ON_BRANCH),
+      );
     },
   );
 });
@@ -1472,9 +2375,11 @@ describe("beyond GitHub", () => {
  * placeholder text, or a private key block over several lines. The model
  * reads each whole; then:
  *
- *   - written back whole as it was shown, one plain line changed: said
- *     exactly when the file holds a value, of every placeholder whose
- *     count rose, on the lines an oracle that counts its own way finds;
+ *   - written back whole as it was shown, one plain line changed: every
+ *     value written back, and the commit exactly the file as it was with
+ *     that one line changed (issue #6388) - unless two lines with different
+ *     values read the same, which an oracle reads off the draw: then said,
+ *     and nothing committed in Auto-run;
  *   - written as the branch has it, one plain line changed - every value
  *     and every placeholder of the file's own left alone: never said;
  *   - written as it was shown, without the lines that held values: never
@@ -1685,6 +2590,12 @@ interface DrawnFile {
   valueLines: Set<number>;
   secrets: Array<string>;
   plainLines: Array<number>;
+  /*
+   * What was drawn, in order - a plain line, a value (its lines, joined),
+   * the file's own placeholder text - each of which a read shows as one
+   * line (issue #6388): a private key block as one placeholder.
+   */
+  items: Array<{ isValue: boolean; text: string }>;
 }
 
 const drawFile: (random: SeededRandom) => DrawnFile = (
@@ -1695,6 +2606,7 @@ const drawFile: (random: SeededRandom) => DrawnFile = (
     valueLines: new Set(),
     secrets: [],
     plainLines: [],
+    items: [],
   };
   const count: number = 2 + random(40);
 
@@ -1710,6 +2622,7 @@ const drawFile: (random: SeededRandom) => DrawnFile = (
 
       file.lines.push(text);
       file.plainLines.push(file.lines.length);
+      file.items.push({ isValue: false, text });
     } else if (kind < 9) {
       const value: DrawnValue = VALUES[random(VALUES.length)]!(random);
 
@@ -1719,56 +2632,17 @@ const drawFile: (random: SeededRandom) => DrawnFile = (
       }
 
       file.secrets.push(...value.secrets);
+      file.items.push({ isValue: true, text: value.lines.join("\n") });
     } else {
-      file.lines.push(
-        OWN_PLACEHOLDER_LINES[random(OWN_PLACEHOLDER_LINES.length)]!,
-      );
+      const own: string =
+        OWN_PLACEHOLDER_LINES[random(OWN_PLACEHOLDER_LINES.length)]!;
+
+      file.lines.push(own);
+      file.items.push({ isValue: false, text: own });
     }
   }
 
   return file;
-};
-
-// The oracle: each placeholder counted by splitting, the lines of each found by reading every line.
-const placeholdersRisen: (
-  content: string,
-  branchContent: string,
-) => Array<CodeFilePlaceholderWritten> = (
-  content: string,
-  branchContent: string,
-): Array<CodeFilePlaceholderWritten> => {
-  const risen: Array<CodeFilePlaceholderWritten> = [];
-
-  for (const placeholder of REDACTION_PLACEHOLDERS) {
-    const written: number = content.split(placeholder).length - 1;
-    const onBranch: number = branchContent.split(placeholder).length - 1;
-
-    if (written <= onBranch) {
-      continue;
-    }
-
-    const lines: Array<AIChatLineRange> = [];
-
-    content.split("\n").forEach((line: string, index: number): void => {
-      if (line.includes(placeholder)) {
-        const previous: AIChatLineRange | undefined = lines[lines.length - 1];
-
-        if (previous && previous.last === index) {
-          previous.last = index + 1;
-        } else {
-          lines.push(range(index + 1, index + 1));
-        }
-      }
-    });
-
-    risen.push({ placeholder, written, onBranch, lines });
-  }
-
-  return risen.sort(
-    (a: CodeFilePlaceholderWritten, b: CodeFilePlaceholderWritten): number => {
-      return a.lines[0]!.first - b.lines[0]!.first;
-    },
-  );
 };
 
 // The runs of lines a set of line numbers holds.
@@ -1793,17 +2667,18 @@ const runsOf: (lines: Set<number>) => Array<AIChatLineRange> = (
 };
 
 describe("every file, against the serializer's rules", () => {
-  test("written back as shown: said exactly when a value was hidden; with the values left alone or taken out: never", async () => {
-    const random: SeededRandom = seededRandom(63641);
+  test("written back as shown, one plain line changed: committed as the file was with that line changed, unless two lines read the same; with the values left alone or taken out: never said", async () => {
+    const random: SeededRandom = seededRandom(63881);
     const repository: FakeGitRepository = makeRepository({
       files: { "fix/login": {} },
     });
     serveOnGitHub(repository);
 
-    let said: number = 0;
+    let writtenBack: number = 0;
+    let ambiguous: number = 0;
     let withOwnPlaceholders: number = 0;
     let multiLine: number = 0;
-    const placeholdersSeen: Set<string> = new Set<string>();
+    const placeholdersBack: Set<string> = new Set<string>();
 
     for (let round: number = 0; round < 150; round++) {
       const filePath: string = `src/round${round}.ts`;
@@ -1832,7 +2707,7 @@ describe("every file, against the serializer's rules", () => {
 
       const shown: string = writtenFrom(read.dataForLlm, true);
 
-      // The note names exactly the lines that held a value, and every placeholder it reads there.
+      // The note names exactly the lines that held a value.
       const note: string | null = hiddenNoteOf(read.dataForLlm);
       expect({ round, noted: note !== null }).toEqual({
         round,
@@ -1846,14 +2721,46 @@ describe("every file, against the serializer's rules", () => {
             `hidden from you on ${describeLineRanges(runsOf(file.valueLines))}, as `,
           ),
         });
-
-        for (const written of placeholdersRisen(shown, content)) {
-          expect({ round, names: note.includes(written.placeholder) }).toEqual({
-            round,
-            names: true,
-          });
-        }
       }
+
+      /*
+       * The oracle: each thing drawn is one line of what the model was
+       * shown - a key block too - so the lines that read alike, and what
+       * each stood for, are read off the draw itself.
+       */
+      const shownLines: Array<string> = shown.split("\n").slice(0, -1);
+      expect({ round, lines: shownLines.length }).toEqual({
+        round,
+        lines: file.items.length,
+      });
+
+      const standsFor: Map<string, Set<string>> = new Map<
+        string,
+        Set<string>
+      >();
+
+      file.items.forEach(
+        (item: { isValue: boolean; text: string }, index: number): void => {
+          const line: string = shownLines[index]!;
+
+          if (
+            REDACTION_PLACEHOLDERS.some((placeholder: string): boolean => {
+              return line.includes(placeholder);
+            })
+          ) {
+            standsFor.set(
+              line,
+              new Set([...(standsFor.get(line) || []), item.text]),
+            );
+          }
+        },
+      );
+
+      const isAmbiguous: boolean = Array.from(standsFor.values()).some(
+        (texts: Set<string>): boolean => {
+          return texts.size > 1;
+        },
+      );
       const plain: number | undefined =
         file.plainLines[random(Math.max(1, file.plainLines.length))];
       const edit: (text: string) => string = (text: string): string => {
@@ -1871,38 +2778,23 @@ describe("every file, against the serializer's rules", () => {
       };
 
       // Written back whole as shown, one plain line changed.
-      const fromTheRead: string = edit(shown);
       const prepared: PreparedMutation = await conversation.propose(
         CommitCodeToBranchTool,
-        commit("fix/login", [{ filePath, content: fromTheRead }]),
+        commit("fix/login", [{ filePath, content: edit(shown) }]),
       );
-      const findings: Array<CodeFileUnseenFinding> =
-        proposedOnOf(prepared)!.unseen;
-      const expected: Array<CodeFilePlaceholderWritten> = placeholdersRisen(
-        fromTheRead,
-        content,
+      const valuesHidden: boolean = (proposedOnOf(prepared)?.unseen || []).some(
+        (finding: CodeFileUnseenFinding): boolean => {
+          return finding.unseen === CodeFileUnseen.ValuesHidden;
+        },
       );
 
-      expect({ round, said: findings.length > 0 }).toEqual({
+      expect({ round, said: valuesHidden }).toEqual({
         round,
-        said: file.valueLines.size > 0,
-      });
-      expect({ round, findings }).toEqual({
-        round,
-        findings:
-          expected.length > 0
-            ? [
-                {
-                  filePath,
-                  unseen: CodeFileUnseen.ValuesHidden,
-                  placeholdersWritten: expected,
-                },
-              ]
-            : [],
+        said: isAmbiguous,
       });
 
-      if (findings.length > 0) {
-        said++;
+      if (isAmbiguous) {
+        ambiguous++;
         expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
           `Values that look like secrets or personal data were hidden from Ask AI, and its version of this file writes placeholders in their place: ${filePath}.`,
         );
@@ -1911,10 +2803,12 @@ describe("every file, against the serializer's rules", () => {
             CodeFileUnseen.ValuesHidden
           ],
         );
-
-        for (const written of expected) {
-          placeholdersSeen.add(written.placeholder);
-        }
+      } else {
+        // Nothing on the card: committed last in the round, below.
+        expect({ round, card: Object.keys(prepared) }).toEqual({
+          round,
+          card: ["arguments"],
+        });
       }
 
       if (
@@ -1971,13 +2865,35 @@ describe("every file, against the serializer's rules", () => {
           },
         ),
       }).toEqual({ round, valuesHidden: false });
+
+      // Unless two lines read the same: committed as the file was, that one line changed.
+      if (!isAmbiguous) {
+        await conversation.run(CommitCodeToBranchTool, prepared);
+        expect({
+          round,
+          committed: repository.branches.get("fix/login")!.get(filePath),
+        }).toEqual({ round, committed: edit(content) });
+
+        if (file.valueLines.size > 0) {
+          writtenBack++;
+
+          for (const line of standsFor.keys()) {
+            for (const placeholder of REDACTION_PLACEHOLDERS) {
+              if (line.includes(placeholder)) {
+                placeholdersBack.add(placeholder);
+              }
+            }
+          }
+        }
+      }
     }
 
-    // The draws reach every case, many times, and every rule's placeholder.
-    expect(said).toBeGreaterThan(80);
+    // The draws reach every case, many times, and every rule's placeholder is written back.
+    expect(writtenBack).toBeGreaterThan(40);
+    expect(ambiguous).toBeGreaterThan(20);
     expect(withOwnPlaceholders).toBeGreaterThan(30);
     expect(multiLine).toBeGreaterThan(20);
-    expect(Array.from(placeholdersSeen).sort()).toEqual(
+    expect(Array.from(placeholdersBack).sort()).toEqual(
       [...REDACTION_PLACEHOLDERS].sort(),
     );
   });

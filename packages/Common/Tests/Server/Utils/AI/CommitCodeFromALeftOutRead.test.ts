@@ -351,6 +351,12 @@ describe("the issue's case: read whole early in a long answer, left out, committ
         CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
           CodeFileUnseen.ReadEarlierInThisAnswer
         ],
+      reason: {
+        template:
+          CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+            CodeFileUnseen.ReadEarlierInThisAnswer
+          ],
+      },
     });
   });
 
@@ -480,6 +486,10 @@ describe("what a left-out read still counts for, and what it does not", () => {
       ].join("\n"),
       summary:
         "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
+      reason: {
+        template:
+          "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
+      },
     });
     expect(prepared.notRunWithoutApproval!.toldModel).not.toContain(
       "have not read",
@@ -551,6 +561,10 @@ describe("what a left-out read still counts for, and what it does not", () => {
       ].join("\n"),
       summary:
         "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+      reason: {
+        template:
+          "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+      },
     });
   });
 
@@ -723,8 +737,9 @@ describe("what a left-out read still counts for, and what it does not", () => {
       commit("fix/login", [
         {
           filePath: "config/servers.ts",
+          // The host's line changed: its value cannot be written back (#6388).
           content:
-            'export const HOST = "[redacted-ip]";\nexport const RETRIES = 5;\n',
+            'export const HOST = "[redacted-ip]"; // the main one\nexport const RETRIES = 5;\n',
         },
       ]),
     );
@@ -742,7 +757,9 @@ describe("what a left-out read still counts for, and what it does not", () => {
       "- config/servers.ts: you read it earlier in this answer, and its text has been left out of this conversation since, to keep it within your context window.",
     );
     expect(told).toContain("Read each file whose text was left out again now");
-    expect(told).toContain("You cannot write a value hidden from you back");
+    expect(told).toContain(
+      "OneUptime writes a hidden value back only on a line you keep exactly as read_code_file showed it",
+    );
     // Mixed kinds: the general opening.
     expect(told).toMatch(
       /^Not done: nothing was committed to fix\/login, because writing these files whole/,
@@ -918,6 +935,10 @@ describe("open_code_pull_request, from a left-out read of the default branch", (
       ].join("\n"),
       summary:
         "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
+      reason: {
+        template:
+          "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
+      },
     });
     expect(repository.pullRequests).toEqual([]);
 

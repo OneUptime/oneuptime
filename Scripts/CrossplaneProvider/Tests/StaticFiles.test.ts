@@ -209,6 +209,24 @@ describe("the package", () => {
     expect(meta).toContain("https://oneuptime.com/docs/crossplane");
   });
 
+  // What a package catalog, such as the Upbound Marketplace, lists (#6618).
+  test("has the name and the icon a catalog lists it by", () => {
+    expect(meta).toContain(
+      "\n    friendly-name.meta.crossplane.io: Provider OneUptime\n",
+    );
+
+    // The icon the Helm charts show, at the address they show it from.
+    const chartIcon: string | undefined = /^icon: (\S+)$/m.exec(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "HelmChart", "Public", "oneuptime", "Chart.yaml"),
+        "utf-8",
+      ),
+    )?.[1];
+
+    expect(chartIcon).toMatch(/^https:\/\/oneuptime\.com\/.+\.png$/);
+    expect(meta).toContain(`\n    meta.crossplane.io/iconURI: ${chartIcon}\n`);
+  });
+
   test("runs as a user that is not root, on an image with nothing else in it", () => {
     const dockerfile: string = read("Dockerfile");
     expect(dockerfile).toMatch(/^FROM gcr\.io\/distroless\/static/m);

@@ -350,6 +350,12 @@ describe("the issue's case: read whole in one turn, committed without a read in 
         CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
           CodeFileUnseen.ReadInEarlierAnswer
         ],
+      reason: {
+        template:
+          CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+            CodeFileUnseen.ReadInEarlierAnswer
+          ],
+      },
     });
   });
 
@@ -592,8 +598,9 @@ describe("what an earlier answer still counts for, and what it does not", () => 
       commit("fix/login", [
         {
           filePath: "config/servers.ts",
+          // The host's line changed: its value cannot be written back (#6388).
           content:
-            'export const HOST = "[redacted-ip]";\nexport const RETRIES = 5;\n',
+            'export const HOST = "[redacted-ip]"; // the main one\nexport const RETRIES = 5;\n',
         },
       ]),
     );
@@ -617,7 +624,9 @@ describe("what an earlier answer still counts for, and what it does not", () => 
     expect(told).toContain(
       "Read each file you read in an earlier answer again in this answer",
     );
-    expect(told).toContain("You cannot write a value hidden from you back");
+    expect(told).toContain(
+      "OneUptime writes a hidden value back only on a line you keep exactly as read_code_file showed it",
+    );
     // Mixed kinds: the general opening.
     expect(told).toMatch(
       /^Not done: nothing was committed to fix\/login, because writing these files whole/,
