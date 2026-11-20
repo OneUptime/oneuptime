@@ -4,13 +4,15 @@
  * Go compiles the Terraform provider with a soft memory limit, everywhere CI
  * compiles it.
  *
- * The generated provider's internal/provider is one Go package, some 985
+ * The generated provider's internal/provider was one Go package, some 985
  * files and 60 MB of Go. With Go's default garbage collection the compiler
  * peaked at about 15 GB, for `go build` and for the test binary `go test`
  * builds alike, while the Node.js generator held another 1.5 GB: more than
  * the 16 GB of a GitHub-hosted runner. Terraform Provider Generation and
  * Terraform Provider E2E Tests both lost their runner in "Generate Terraform
- * provider" on the 14.0.109 release gate (#7559).
+ * provider" on the 14.0.109 release gate (#7559). The generated resources
+ * are split into packages now (#7591), each compile far below the limit,
+ * which stays as a guard rail.
  *
  * GOMEMLIMIT makes Go collect garbage more often as its memory nears the
  * limit. Scripts/TerraformProvider/Core/GoCommand.ts sets it for every Go

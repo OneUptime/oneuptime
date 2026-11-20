@@ -251,7 +251,9 @@ describe("runGoCommand's memory report", () => {
     }
 
     expect(written).toHaveLength(1);
-    expect(written[0]).toMatch(/^📈 go mod tidy: [0-9.]+ GiB at most, .*\n$/);
+    expect(written[0]).toMatch(
+      /^📈 go mod tidy: [0-9.]+ (MiB|GiB) at most, .*\n$/,
+    );
   });
 
   test("is left out where there is no /proc to read, as on macOS", async () => {
@@ -291,6 +293,18 @@ describe("goMemoryReport", () => {
       goMemoryReport("go build -o terraform-provider-oneuptime", compile),
     ).toEqual([
       "📈 go build -o terraform-provider-oneuptime: 12.4 GiB at most, with the generator (largest process: compile, 11.3 GiB)",
+    ]);
+  });
+
+  test("says a size below a GiB in MiB", () => {
+    expect(
+      goMemoryReport("go mod tidy", {
+        totalBytes: 1.1 * GiB,
+        largestProcess: "go",
+        largestBytes: 41 * MiB,
+      }),
+    ).toEqual([
+      "📈 go mod tidy: 1.1 GiB at most, with the generator (largest process: go, 41 MiB)",
     ]);
   });
 

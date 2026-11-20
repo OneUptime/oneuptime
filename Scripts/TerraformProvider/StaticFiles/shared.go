@@ -26,7 +26,7 @@ package provider
 //     annotation of the managed resource, and hands it to the provider it
 //     makes for each reconcile (LastApplied, NewUnderCrossplane).
 //
-// planShared does both, in each such resource's ModifyPlan.
+// PlanShared does both, in each such resource's ModifyPlan.
 //
 //   - Under Terraform, a value in the configuration is held to as Terraform
 //     holds any attribute: the plan shows OneUptime's change and puts it
@@ -47,13 +47,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-// sharedAttribute is an attribute people and OneUptime both change.
-type sharedAttribute struct {
+// SharedAttribute is an attribute people and OneUptime both change.
+type SharedAttribute struct {
 	// Its Terraform name.
-	name string
+	Name string
 	// A list or a set of IDs, held entry by entry: under Crossplane, the
-	// entries a manifest declares, beside the ones OneUptime added.
-	entries bool
+	// Entries a manifest declares, beside the ones OneUptime added.
+	Entries bool
 }
 
 // LastApplied is what a Crossplane manifest said of the attributes people
@@ -66,10 +66,10 @@ type LastApplied struct {
 	Fields   map[string]any
 }
 
-// planShared is part of the ModifyPlan of every resource with attributes
-// people and OneUptime both change, after keepLeftOutUnderCrossplane and
-// before keepStateWhenNothingChanges.
-func planShared(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, client *Client, attributes []sharedAttribute) {
+// PlanShared is part of the ModifyPlan of every resource with attributes
+// people and OneUptime both change, after KeepLeftOutUnderCrossplane and
+// before KeepStateWhenNothingChanges.
+func PlanShared(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, client *Client, attributes []SharedAttribute) {
 	if req.State.Raw.IsNull() || resp.Plan.Raw.IsNull() || len(attributes) == 0 {
 		// A create sends what the configuration gives; a destroy plans nothing.
 		return
@@ -94,20 +94,20 @@ func planShared(ctx context.Context, req resource.ModifyPlanRequest, resp *resou
 	}
 
 	for _, attribute := range attributes {
-		config, ok := configured[attribute.name]
+		config, ok := configured[attribute.Name]
 		if !ok {
 			continue
 		}
-		before, ok := prior[attribute.name]
+		before, ok := prior[attribute.Name]
 		if !ok {
 			continue
 		}
-		value, changed := planSharedAttribute(attribute, config, before, planned[attribute.name], lastApplied)
+		value, changed := planSharedAttribute(attribute, config, before, planned[attribute.Name], lastApplied)
 		if !changed {
 			continue
 		}
-		next[attribute.name] = value
-		kept[attribute.name] = value.Equal(before)
+		next[attribute.Name] = value
+		kept[attribute.Name] = value.Equal(before)
 	}
 
 	if len(kept) == 0 {
@@ -132,7 +132,7 @@ func planShared(ctx context.Context, req resource.ModifyPlanRequest, resp *resou
 // planSharedAttribute is the plan of one attribute people and OneUptime both
 // change, of a record that exists, and whether it differs from the plan the
 // attribute's own modifiers made.
-func planSharedAttribute(attribute sharedAttribute, config, prior, planned tftypes.Value, lastApplied *LastApplied) (tftypes.Value, bool) {
+func planSharedAttribute(attribute SharedAttribute, config, prior, planned tftypes.Value, lastApplied *LastApplied) (tftypes.Value, bool) {
 	if !config.IsKnown() {
 		// Known only at apply: Terraform plans it as written.
 		return planned, false
@@ -148,8 +148,8 @@ func planSharedAttribute(attribute sharedAttribute, config, prior, planned tftyp
 		 * manifest moved to spec.initProvider is not in what it last applied
 		 * (the Crossplane provider's LastAppliedOf), and keeps its entries.
 		 */
-		if attribute.entries && lastApplied != nil && lastApplied.Recorded && prior.IsKnown() && !prior.IsNull() {
-			if last, ok := lastApplied.Fields[attribute.name]; ok && last != nil {
+		if attribute.Entries && lastApplied != nil && lastApplied.Recorded && prior.IsKnown() && !prior.IsNull() {
+			if last, ok := lastApplied.Fields[attribute.Name]; ok && last != nil {
 				none := tftypes.NewValue(prior.Type(), []tftypes.Value{})
 				if value, ok := heldToDeclaredEntries(none, prior, last, true); ok && !value.Equal(prior) {
 					return value, true
@@ -167,12 +167,12 @@ func planSharedAttribute(attribute sharedAttribute, config, prior, planned tftyp
 		return planned, false
 	}
 
-	last, declaredBefore := lastApplied.Fields[attribute.name]
+	last, declaredBefore := lastApplied.Fields[attribute.Name]
 	if !lastApplied.Recorded {
 		declaredBefore = false
 	}
 
-	if attribute.entries {
+	if attribute.Entries {
 		value, ok := heldToDeclaredEntries(config, prior, last, declaredBefore)
 		if !ok || value.Equal(planned) {
 			return planned, false

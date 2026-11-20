@@ -61,7 +61,7 @@ func (d *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 				MarkdownDescription: "The person's email address, in any case. Set it to look them up by it: the usual way.",
 				Optional:            true,
 				Computed:            true,
-				Validators:          personEmailValidators(),
+				Validators:          PersonEmailValidators(),
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "The person's name, exactly as it is shown in OneUptime. Set it to look them up by it; two people of the same name are an error, so prefer `email`.",

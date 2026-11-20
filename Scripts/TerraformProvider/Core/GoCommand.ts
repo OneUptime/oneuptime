@@ -6,24 +6,25 @@ import path from "path";
  * How the generators run Go: with a soft memory limit, and a report of the
  * memory each command took.
  *
- * The provider's internal/provider is one Go package, some 1,000 files and
- * 64 MB of Go, and compiling it takes more memory than anything else CI
- * does. Go's default garbage collection lets the heap grow to twice what is
- * live, and the compiler peaked at about 15 GB, for `go build` and for the
- * test binary `go test` builds alike, while the Node.js process that runs
- * the generator held another 1.5 GB. That is more than the 16 GB of a
- * GitHub-hosted runner: a generation got through only while swap took the
- * rest, and when it did not the runner stopped answering and GitHub marked
- * the job lost (#7559).
+ * The provider's generated resources and data sources used to be one Go
+ * package, internal/provider, some 1,000 files and 64 MB of Go, and
+ * compiling it took more memory than anything else CI does. Go's default
+ * garbage collection lets the heap grow to twice what is live, and the
+ * compiler peaked at about 15 GB, for `go build` and for the test binary
+ * `go test` builds alike, while the Node.js process that runs the generator
+ * held another 1.5 GB: more than the 16 GB of a GitHub-hosted runner, which
+ * stopped answering, and GitHub marked the job lost (#7559). They are split
+ * into packages of a few dozen files now (Core/ProviderShards.ts, #7591),
+ * and a compile of one holds under 1 GiB: Go compiles four at a time, and
+ * the build held 1.7 GiB at most.
  *
- * GOMEMLIMIT is that limit: as Go's memory nears it, Go collects garbage
- * more often instead of letting the heap double. 10 GiB is about what the
- * compiler holds live at its peak, so it peaks at about 11 GB instead of 15,
- * for 5-45 s more per compile, spent collecting garbage. A lower limit buys
- * nothing, because what is live cannot be collected: at 8 or 6 GiB the
- * compiler peaked just as high, and took 45-70% longer. The limit
- * changes how Go manages its memory, not what it builds: the provider is
- * byte for byte the same.
+ * GOMEMLIMIT stays, as the guard rail it was: as Go's memory nears it, Go
+ * collects garbage more often instead of letting the heap double. It does
+ * nothing to a compile far below it, and it changes how Go manages its
+ * memory, not what it builds: the provider is byte for byte the same. With
+ * the one package, 10 GiB was about what the compiler held live, so it
+ * peaked at about 11 GB instead of 15; a lower limit bought nothing, as what
+ * is live cannot be collected.
  *
  * A caller's own GOMEMLIMIT wins ("off" turns the limit off). The workflows
  * that compile the provider set this value for their own Go steps, and
@@ -33,12 +34,14 @@ import path from "path";
 export const GO_MEMORY_LIMIT: string = "10GiB";
 
 /*
- * What is live in the compiler grows with every resource the provider gains,
- * and the limit cannot take the compiler below that: the compiler held about
- * 10.5 GiB on 2026-11-13 and 11.3 GiB a week later. So runGoCommand reports
- * the most each Go command took, and when that, with the generator's own
- * Node.js, is above this, it is a warning in the CI run: a 16 GB runner then
- * has under 3 GB left for the system and the runner itself.
+ * What a compile holds grows with the provider: as one package, the compiler
+ * peaked at 10.6 GiB on 2026-11-13 and 11.3 GiB a week later, above the
+ * limit.
+ * So runGoCommand reports the most each Go command took, and when that, with
+ * the generator's own Node.js, is above this, it is a warning in the CI run:
+ * a 16 GB runner then has under 3 GB left for the system and the runner
+ * itself. checkShardSizes (Core/ProviderShards.ts) stops a shard from
+ * growing that far long before.
  */
 export const GO_MEMORY_WARNING_BYTES: number = 13 * 1024 ** 3;
 
@@ -240,7 +243,11 @@ class GoMemoryMonitor {
   }
 }
 
+// A size as people read it: "11.3 GiB", and "41 MiB" below a GiB.
 function gibibytes(bytes: number): string {
+  if (bytes < 1024 ** 3) {
+    return `${Math.round(bytes / 1024 ** 2)} MiB`;
+  }
   return `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
 }
 

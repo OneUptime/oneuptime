@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { DataSourceGenerator } from "../Core/DataSourceGenerator";
+import { providerGoFilePath, registrationsOf } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 
 let outputDir: string;
@@ -21,13 +22,10 @@ beforeAll(async () => {
   );
   await generator.generateDataSources();
   monitorGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/data_source_monitor.go"),
+    path.join(outputDir, providerGoFilePath("data_source_monitor.go")),
     "utf-8",
   );
-  dataSourcesGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/data_sources.go"),
-    "utf-8",
-  );
+  dataSourcesGo = registrationsOf(outputDir, "data_sources.go");
 });
 
 afterAll(() => {
@@ -101,7 +99,7 @@ describe("lookup by arguments", () => {
       'filters["monitorType"] = data.MonitorType.ValueString()',
     );
     expect(monitorGo).toContain(
-      'filters["priority"] = lookupNumber(data.Priority)',
+      'filters["priority"] = LookupNumber(data.Priority)',
     );
     expect(monitorGo).toContain(
       'filters["isPaused"] = data.IsPaused.ValueBool()',
@@ -135,13 +133,13 @@ describe("lookup by arguments", () => {
     expect(monitorGo).toContain(
       'filterNames = append(filterNames, "monitor_type = "+fmt.Sprintf("%q", data.MonitorType.ValueString()))',
     );
-    expect(monitorGo).toContain("describeLookup(filterNames)");
+    expect(monitorGo).toContain("DescribeLookup(filterNames)");
   });
 
   test("the lookup helpers ship with the provider", () => {
     for (const file of ["lookup.go", "lookup_test.go"]) {
       expect(
-        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+        fs.existsSync(path.join(outputDir, providerGoFilePath(file))),
       ).toBe(true);
     }
   });
@@ -152,7 +150,7 @@ describe("a model with a list endpoint but no get endpoint", () => {
 
   beforeAll(() => {
     emailLogGo = fs.readFileSync(
-      path.join(outputDir, "internal/provider/data_source_email_log.go"),
+      path.join(outputDir, providerGoFilePath("data_source_email_log.go")),
       "utf-8",
     );
   });
@@ -175,7 +173,7 @@ describe("a renamed data source", () => {
 
   beforeAll(() => {
     fleetGo = fs.readFileSync(
-      path.join(outputDir, "internal/provider/data_source_iot_fleet.go"),
+      path.join(outputDir, providerGoFilePath("data_source_iot_fleet.go")),
       "utf-8",
     );
   });
@@ -188,9 +186,9 @@ describe("a renamed data source", () => {
       'resp.TypeName = req.ProviderTypeName + "_io_t_fleet"',
     );
     expect(fleetGo).toContain("resp.Schema.DeprecationMessage =");
-    expect(dataSourcesGo).toContain("NewIotFleetLegacyDataSource,");
+    expect(dataSourcesGo).toMatch(/New: NewIotFleetLegacyDataSource\},/);
     expect(dataSourcesGo).toContain(
-      '{Name: "iot_fleet", LegacyName: "io_t_fleet", New: NewIotFleetDataSource, NewLegacy: NewIotFleetLegacyDataSource},',
+      'Name: "iot_fleet", LegacyName: "io_t_fleet", New: NewIotFleetDataSource, NewLegacy: NewIotFleetLegacyDataSource},',
     );
   });
 

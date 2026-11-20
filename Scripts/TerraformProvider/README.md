@@ -45,11 +45,16 @@ Terraform/terraform-provider-oneuptime/
 │   ├── provider.go                  # Main provider implementation
 │   ├── client.go                    # HTTP client
 │   ├── config.go                    # Configuration management
-│   ├── schema.go                    # Provider schema
-│   ├── resources.go                 # Resource registry
-│   ├── data_sources.go              # Data source registry
-│   ├── resource_*.go                # Individual resources (100+)
-│   └── data_source_*.go             # Individual data sources
+│   ├── shards.go                    # Lists what every shard holds, in order
+│   ├── resources.go                 # The resources written by hand, in their places
+│   ├── data_sources.go              # The data sources written by hand, in theirs
+│   ├── *.go                         # The helpers written by hand (StaticFiles/)
+│   ├── shard00/ … shard31/          # The generated resources and data sources
+│   │   ├── resources.go             # What the shard hands to the provider
+│   │   ├── data_sources.go
+│   │   ├── resource_*.go            # Individual resources
+│   │   └── data_source_*.go         # Individual data sources
+│   └── all/all.go                   # Imports every shard
 ├── docs/
 │   ├── index.md                     # Provider documentation
 │   ├── resources/                   # Resource documentation
@@ -70,12 +75,21 @@ npm run generate-terraform-provider
 ```
 
 Generation compiles the provider twice: `go build`, then the test binary
-the docs step runs. Go runs both with a soft memory limit, `GOMEMLIMIT`, set
-in `Core/GoCommand.ts`, unless you set your own (`GOMEMLIMIT=off` turns it
-off): the provider's `internal/provider` is one Go package of ~1,000 files,
-and without the limit the compiler alone takes ~15 GB. After each Go command,
-generation prints the most memory it took with the generator (`📈 go build
-...`), read from `/proc` on Linux; in CI, more than 13 GiB is a warning.
+the docs step runs. The generated resources and data sources are split into
+32 packages, `internal/provider/shard00` to `shard31`, by the hash of each
+file's name (`Core/ProviderShards.ts`): as one package of ~1,000 files, a
+compile of them took the compiler ~11 GiB, and ~15 GB without a memory limit.
+Split, Go compiles four shards at a time, each under 1 GiB. Each shard hands
+what it holds to `internal/provider` from its `init`, and
+`internal/provider/all` imports them all; the provider lists its resources
+and data sources in the same order as before. Generation stops when a shard
+grows past 6 MiB of Go: raise `SHARD_COUNT` then.
+
+Go still runs with a soft memory limit, `GOMEMLIMIT`, set in
+`Core/GoCommand.ts`, as a guard rail, unless you set your own
+(`GOMEMLIMIT=off` turns it off). After each Go command, generation prints the
+most memory it took with the generator (`📈 go build ...`), read from `/proc`
+on Linux; in CI, more than 13 GiB is a warning.
 
 Generation runs the generator without type-checking it (ts-node's
 transpile-only mode), which keeps about 1 GiB of Node.js out of memory while
@@ -237,6 +251,13 @@ To modify the generator:
 2. Run `npm run generate-terraform-provider` to test changes
 3. Check generated Go code in `Terraform/terraform-provider-oneuptime/`
 4. Iterate and improve
+
+The Go written by hand, in `StaticFiles/`, goes into `internal/provider`, and
+the generated resources and data sources into its shards, packages of their
+own. So a helper, type, field or method that generated code uses must be
+exported (`NumberFromAPI`, `PersonAttribute{ID: ...}`): the shards name them
+through a dot import of `internal/provider`, and `go build` says "undefined"
+for one that is not.
 
 ### Checking the generator
 
