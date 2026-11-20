@@ -221,6 +221,29 @@ Gruppera inte ett mätvärde som redan är en enda skalär för hela systemet (e
 
 Grupperingsattributets värden finns också som [mallvariabler](/docs/monitor/incident-alert-templating) i titeln, beskrivningen och åtgärdsanteckningarna för larmet eller incidenten: gruppering efter `host.name` låter titeln lyda `Disk almost full on {{host.name}}`.
 
+## Larma om ett PromQL-uttryck
+
+Ett steg kan bevaka ett PromQL-uttryck i stället för mätvärdesfrågor: Prometheus frågespråk, över ditt projekts mätvärden, som på sidan [PromQL](/docs/telemetry/promql). Varje serie som uttrycket returnerar bedöms för sig, som serierna i en grupperad fråga: den öppnar sitt eget larm eller sin egen incident, som löses när serien återhämtar sig eller inte längre returneras.
+
+:::steps
+### Byt till PromQL
+
+I **Mätvärde att bevaka** klickar du på **PromQL**. **Frågebyggare** tar dig tillbaka till mätvärdesfrågorna.
+
+### Skriv uttrycket
+
+Skriv det, till exempel `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, eller börja från **Lägg till ett mätvärdesnamn**. Diagrammet under ritar varje serie över tidsfönstret och säger vad som är fel med ett uttryck som inte körs.
+
+### Bestäm regeln
+
+I **När det ska larmas** väljer du under **Mätt som** hur varje serie mäts, och sedan ett **Tidsfönster**, ett **Villkor** och ett **Värde**, som för mätvärdesfrågor. Uttrycket utvärderas varje minut i fönstret, så **Varje värde (hela fönstret)** över **Senaste 5 minuterna** kräver att en serie överskrider i fem minuter, som `for: 5m` gör i en larmregel i Prometheus.
+:::
+
+- **En jämförelse i uttrycket** behåller bara de serier den stämmer för: `rate(errors_total[5m]) > 0.1` returnerar serierna över 0.1 och inga andra. Klicka på **Flytta till När det ska larmas** för att göra den till regelns jämförelse, så att diagrammet visar varje serie och regeln bedömer var och en.
+- **Högst 100 serier per kontroll.** När uttrycket returnerar fler bedömer en kontroll 100: först serierna med ett öppet larm eller en öppen incident, sedan de andra i ordningen på deras etiketter. Resten bedöms inte vid den kontrollen, så inget öppnas eller löses för dem, och redigeraren säger att uttrycket returnerar för många. Aggregera det med `sum by (...)`, eller lägg till etikettmatchare.
+- **Gränserna för alla PromQL-frågor gäller**, över mätvärdena för de tjänster som monitorn nämner, eller för hela projektet när den inte nämner någon.
+- **Avvikelsevillkoren erbjuds inte**: ett uttryck har ingen egen historik att jämföra med. Det har prognosvillkoren.
+
 ## Felsökning
 
 :::details Diagrammet visar ett överskridande, men monitorn varnade inte

@@ -618,6 +618,8 @@ const store = {
   // What the Recommendations menu item reads: no monitors, nothing dismissed.
   Monitor: [],
   RecommendationDismissal: [],
+  // The service's notes for OneUptime AI (#7672): the team wrote none yet.
+  ServiceAINote: [],
 };
 
 for (const name of ARCHIVABLE_VALUE_TABLE_NAMES) {
@@ -920,6 +922,18 @@ async function handleApi(method, options) {
   // What refers to the service (its Used by card).
   if (method === "GET" && parsed.pathname.includes("/used-by/")) {
     return ok(usedByNothing(parsed.pathname));
+  }
+
+  /*
+   * What OneUptime AI learned about the service (#7672, GET
+   * /service-knowledge/:serviceId), as the server answers for a service with
+   * no resolved incident or alert to learn from: no failures yet.
+   */
+  if (method === "GET" && parsed.pathname.includes("/service-knowledge/")) {
+    return ok({
+      serviceId: parsed.pathname.split("/service-knowledge/")[1].split("/")[0],
+      failures: [],
+    });
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

@@ -6,7 +6,7 @@
 - [전역 옵션](#전역-옵션): 모든 명령이 받는 옵션.
 - [로그인과 컨텍스트](#로그인과-컨텍스트): login과 context 명령.
 - [리소스 명령](#리소스-명령): 모든 리소스의 작업, 필드, 동작.
-- [기타 명령](#기타-명령): deploy, dbt upload, data-checks apply, whoami, resources, version, help.
+- [기타 명령](#기타-명령): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version, help.
 :::
 
 ## 명령 구성
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-레코드를 최신순으로 나열합니다. 레이블은 대신 이름순으로 나열되며, 번호가 붙은 레이블이 먼저 옵니다(`2. Team`이 `10. Owner`보다 앞).
+레코드를 최신순으로 나열합니다. 레이블은 대신 이름순으로 나열되며, 번호가 붙은 레이블이 먼저 옵니다(`2. Team`이 `10. Owner`보다 앞). 끌어서 순서를 정하는 레코드(인시던트 상태 등)는 그 순서대로 나열됩니다.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | 아니요 | dbt 프로젝트 이름. 매니페스트를 보내지 않을 때만 필요합니다 | 매니페스트의 프로젝트 |
 | `--ingestion-key <key>` | 아니요 | 프로젝트의 텔레메트리 수집 키 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+빌드 후 CI나 Xcode 빌드 단계에서 iOS 앱의 dSYM을 보내, **예외**에 표시되는 크래시와 앱 멈춤의 프레임에 함수 이름이 붙고 릴리스가 바뀌어도 함수별로 그룹화되게 합니다. 각 dSYM은 사용자의 컴퓨터에서 읽습니다. `.dSYM` 번들, 아카이브의 `dSYMs` 폴더처럼 dSYM이 들어 있는 폴더, App Store Connect가 제공하는 형태의 dSYM zip 파일, 또는 dSYM의 DWARF 파일을 읽습니다. 각 바이너리의 UUID, 아키텍처, 함수 이름만 보내며, 쓰기에는 API 키가 아니라 텔레메트리 수집 키를 사용합니다. 함수가 제거된 바이너리는 경고와 함께 제외됩니다. [dSYM 업로드하기](/docs/rum/mobile-setup#dsym-업로드하기)를 참조하세요.
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| 옵션 | 필수 | 설명 | 기본값 |
+| --- | --- | --- | --- |
+| `--app <name>` | 아니요 | dSYM이 속한 앱. 앱의 `service.name`으로 지정하며, dSYM과 함께 보관됩니다 | |
+| `--ingestion-key <key>` | 아니요 | 프로젝트의 텔레메트리 수집 키 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 프로젝트의 데이터 검사를 YAML 파일과 일치시켜, 검사를 저장소에 보관하고 코드처럼 리뷰할 수 있게 합니다. 파일의 어디에든 실수가 있으면 아무것도 적용하지 않고 오류와 함께 종료합니다. 파일 형식은 [검사 및 대사](/docs/data-observability/checks)에 있습니다.
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | `--api-key` 플래그가 주지 않을 때의 API 키 |
 | `ONEUPTIME_URL` | `--url` 플래그가 주지 않을 때의 OneUptime 주소 |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | `--ingestion-key` 플래그가 주지 않을 때 `oneuptime deploy`가 쓰기에 사용하는 텔레메트리 수집 키 |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | `--ingestion-key` 플래그가 주지 않을 때 `oneuptime deploy`, `oneuptime dbt upload`, `oneuptime dsym upload`가 쓰기에 사용하는 텔레메트리 수집 키 |
 | `NO_COLOR` | 아무 값이나 설정하면 색이 꺼집니다 |
 
 ## 파일

@@ -122,6 +122,15 @@ export interface TerraformAttributeDescriptor {
    */
   isChangedByOneUptimeToo: boolean;
   /*
+   * Of those, a list of related records people and OneUptime both add to
+   * (ServerOwned.Shared on an EntityArray: a record's labels, an incident's
+   * on-call policies). The Terraform provider holds a configuration's list
+   * to the entries it declares (its entries.go, #10134): an entry OneUptime
+   * adds stays, so a configuration written from a record can list every
+   * entry the record has without taking off one a rule adds later.
+   */
+  isHeldEntryByEntry: boolean;
+  /*
    * A value a create may give and OneUptime keeps from then on
    * (ServerOwned.AfterCreate): the status a monitor starts in. The provider
    * sends it to create the record only, and never replaces the record for
@@ -695,6 +704,9 @@ export function getTerraformAttributes(
       secretKind: getSecretKind(columnName, column),
       isServerManaged: isServerManagedColumn(tableName, columnName, column),
       isChangedByOneUptimeToo: column.serverOwned === ServerOwned.Shared,
+      isHeldEntryByEntry:
+        column.serverOwned === ServerOwned.Shared &&
+        column.type === TableColumnType.EntityArray,
       startsAtCreate: column.serverOwned === ServerOwned.AfterCreate,
       readPermissions: accessControl?.read || [],
       isReservedName: TERRAFORM_RESOURCE_META_ARGUMENTS.includes(

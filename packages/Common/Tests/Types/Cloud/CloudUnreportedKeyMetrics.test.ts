@@ -10,7 +10,11 @@ import {
 } from "../../../Types/Cloud/CloudKeyMetricGroup";
 import {
   AWS_KEY_METRICS,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_HOURLY_GRAIN,
   AZURE_KEY_METRICS,
+  AZURE_SIX_HOURLY_GRAIN,
+  CloudKeyMetricCadence,
   GCP_KEY_METRICS,
   GCP_OPS_AGENT,
   getAwsKeyMetrics,
@@ -18,22 +22,39 @@ import {
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
+  CLOUD_LONGEST_READ_INTERVAL_MINUTES,
   CLOUD_UNREPORTED_FEW_TIMES_A_DAY,
   CLOUD_UNREPORTED_FIVE_MINUTES,
+  CLOUD_UNREPORTED_HOURLY,
   CLOUD_UNREPORTED_ONCE_A_DAY,
   CLOUD_UNREPORTED_REASON_SENTENCES,
+  CLOUD_UNREPORTED_SIX_HOURLY,
   CloudResourceKeyMetric,
   CloudUnreportedConnectionState,
   CloudUnreportedReason,
   CloudUnreportedReasonEntry,
   explainCloudUnreportedKeyMetric,
   getCloudKeyMetricKeyOfStoredName,
+  getCloudKeyMetricNewestPointMaxAgeMs,
   getCloudKeyMetricsOfResource,
   getCloudUnreportedKeyMetrics,
   getCloudUnreportedReasonText,
+  isCloudKeyMetricExpectedInRange,
   isCloudReadWarningAbout,
   readCloudUnreportedKeyMetricReports,
 } from "../../../Types/Cloud/CloudUnreportedKeyMetrics";
+import {
+  AZURE_FIVE_MINUTE_CURSOR,
+  AzureReadGroup,
+  getAzureReadGroups,
+} from "../../../Server/Utils/CloudConnection/Azure/AzureCloudConnector";
+import {
+  AWS_METRIC_DELAY_MS,
+  MetricWindow,
+  getMetricWindow,
+  getMetricWindowPolicy,
+} from "../../../Server/Utils/CloudConnection/CloudMetricWindows";
+import { CLOUD_CONNECTION_READ_INTERVALS } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 
 /*
  * Which key metrics a cloud resource did not report, and why (#9569): the
@@ -390,6 +411,566 @@ describe("the key metrics a resource did not report", () => {
   });
 });
 
+/*
+ * #10026: A KEY METRIC WHOSE POINTS COME SELDOM IS NOT MISSING FROM A RANGE
+ * TOO SHORT TO HOLD ONE.
+ *
+ * An hourly Azure metric's newest point is 2 to 3 hours old when it is
+ * read, so the last hour holds none of it, and the Metrics card counted it
+ * as not reported. It is counted only past its own interval and delay.
+ */
+describe("the key metrics a range can hold", () => {
+  const MINUTE_MS: number = 60 * 1000;
+  const HOUR_MS: number = 60 * MINUTE_MS;
+  const NOW_MS: number = Date.parse("2026-11-19T10:00:00.000Z");
+  const STORAGE: string = "Microsoft.Storage/storageAccounts";
+  const SITES: string = "Microsoft.Web/sites";
+
+  function pastHours(hours: number): { startMs: number; endMs: number } {
+    return { startMs: NOW_MS - hours * HOUR_MS, endMs: NOW_MS };
+  }
+
+  function metricOf(
+    provider: string,
+    type: string,
+    name: string,
+  ): CloudResourceKeyMetric {
+    return getCloudKeyMetricsOfResource({ provider, type }).find(
+      (metric: CloudResourceKeyMetric): boolean => {
+        return metric.name === name;
+      },
+    )!;
+  }
+
+  test("every marked Azure metric says how often it comes and is read, by its mark", () => {
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of getCloudKeyMetricsOfResource({
+        provider: "azure",
+        type: entry.type,
+      })) {
+        const grain: string | undefined = entry.metrics.find(
+          (candidate: { name: string }): boolean => {
+            return candidate.name === metric.name;
+          },
+        )?.grain;
+        const expected: Partial<CloudResourceKeyMetric> =
+          grain === AZURE_FIVE_MINUTE_GRAIN
+            ? {
+                intervalSeconds: 300,
+                readEverySeconds: 900,
+                cadence: CloudKeyMetricCadence.FiveMinutes,
+              }
+            : grain === AZURE_HOURLY_GRAIN
+              ? {
+                  intervalSeconds: 3600,
+                  readEverySeconds: 3600,
+                  cadence: CloudKeyMetricCadence.Hourly,
+                }
+              : grain === AZURE_SIX_HOURLY_GRAIN
+                ? {
+                    intervalSeconds: 21600,
+                    readEverySeconds: 21600,
+                    cadence: CloudKeyMetricCadence.SixHourly,
+                  }
+                : {
+                    intervalSeconds: undefined,
+                    readEverySeconds: undefined,
+                    cadence: undefined,
+                  };
+
+        expect({
+          type: entry.type,
+          name: metric.name,
+          intervalSeconds: metric.intervalSeconds,
+          readEverySeconds: metric.readEverySeconds,
+          cadence: metric.cadence,
+        }).toEqual({ type: entry.type, name: metric.name, ...expected });
+      }
+    }
+  });
+
+  test("an AWS metric published a few times a day or once a day says so; one read at five minutes says nothing", () => {
+    // Of every namespace, only the hourly and the daily ones have a cadence.
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of getCloudKeyMetricsOfResource({
+        provider: "aws",
+        type: "",
+        namespace: entry.namespace,
+      })) {
+        const period: number | undefined = entry.metrics.find(
+          (candidate: { metricName: string }): boolean => {
+            return candidate.metricName === metric.name;
+          },
+        )?.periodSeconds;
+
+        expect([entry.namespace, metric.name, metric.cadence]).toEqual([
+          entry.namespace,
+          metric.name,
+          period === 86400
+            ? CloudKeyMetricCadence.Daily
+            : period === 3600
+              ? CloudKeyMetricCadence.FewTimesADay
+              : undefined,
+        ]);
+      }
+    }
+
+    expect(metricOf("aws", "AWS::S3::Bucket", "BucketSizeBytes").cadence).toBe(
+      CloudKeyMetricCadence.Daily,
+    );
+    expect(
+      metricOf("aws", "AWS::CertificateManager::Certificate", "DaysToExpiry")
+        .cadence,
+    ).toBe(CloudKeyMetricCadence.FewTimesADay);
+    expect(
+      metricOf("aws", "AWS::EC2::Instance", "CPUUtilization").cadence,
+    ).toBeUndefined();
+    // Google Cloud's come a minute apart.
+    expect(
+      getCloudKeyMetricsOfResource({
+        provider: "gcp",
+        type: "gce_instance",
+      }).every((metric: CloudResourceKeyMetric): boolean => {
+        return metric.cadence === undefined;
+      }),
+    ).toBe(true);
+  });
+
+  test("how old the newest point can be: its delay, its interval and the reads between, at each interval", () => {
+    const table: Record<string, Array<number>> = {};
+
+    for (const cadence of Object.values(CloudKeyMetricCadence)) {
+      table[cadence] = CLOUD_CONNECTION_READ_INTERVALS.map(
+        (readIntervalInMinutes: number): number => {
+          return (
+            getCloudKeyMetricNewestPointMaxAgeMs({
+              cadence,
+              readIntervalInMinutes,
+            }) / MINUTE_MS
+          );
+        },
+      );
+    }
+
+    // Read every 5, 10, 15, 30 and 60 minutes.
+    expect(CLOUD_CONNECTION_READ_INTERVALS).toEqual([5, 10, 15, 30, 60]);
+    expect(table).toEqual({
+      // 14 minutes old when read; a call every 15, 20, 15, 30 or 60 minutes.
+      [CloudKeyMetricCadence.FiveMinutes]: [29, 34, 29, 44, 74],
+      [CloudKeyMetricCadence.Hourly]: [185, 190, 195, 210, 240],
+      [CloudKeyMetricCadence.SixHourly]: [1085, 1090, 1095, 1110, 1140],
+      [CloudKeyMetricCadence.FewTimesADay]: [905, 910, 915, 930, 960],
+      [CloudKeyMetricCadence.Daily]: [5045, 5050, 5055, 5070, 5100],
+    });
+
+    // Not knowing the connection's interval, the longest a connection waits.
+    expect(CLOUD_LONGEST_READ_INTERVAL_MINUTES).toBe(60);
+    expect(
+      getCloudKeyMetricNewestPointMaxAgeMs({
+        cadence: CloudKeyMetricCadence.Hourly,
+      }),
+    ).toBe(4 * HOUR_MS);
+    expect(
+      getCloudKeyMetricNewestPointMaxAgeMs({
+        cadence: CloudKeyMetricCadence.Hourly,
+        readIntervalInMinutes: null,
+      }),
+    ).toBe(4 * HOUR_MS);
+  });
+
+  test("a metric that comes every read is in any range; an hourly one in the last hour or three is not, in the last six it is", () => {
+    const cpu: CloudResourceKeyMetric = metricOf("azure", VM, "Percentage CPU");
+    const used: CloudResourceKeyMetric = metricOf(
+      "azure",
+      STORAGE,
+      "UsedCapacity",
+    );
+    const expectedIn: (
+      metric: CloudResourceKeyMetric,
+      hours: number,
+      readIntervalInMinutes?: number,
+    ) => boolean = (
+      metric: CloudResourceKeyMetric,
+      hours: number,
+      readIntervalInMinutes?: number,
+    ): boolean => {
+      return isCloudKeyMetricExpectedInRange({
+        metric,
+        range: pastHours(hours),
+        nowMs: NOW_MS,
+        readIntervalInMinutes,
+      });
+    };
+
+    expect(expectedIn(cpu, 0.25)).toBe(true);
+    expect(expectedIn(used, 1, 5)).toBe(false);
+    expect(expectedIn(used, 3, 5)).toBe(false);
+    // 3 hours and the 5 minutes between two reads.
+    expect(expectedIn(used, 3 + 5 / 60, 5)).toBe(true);
+    expect(expectedIn(used, 6, 5)).toBe(true);
+    expect(expectedIn(used, 24, 60)).toBe(true);
+    // Read every hour, its newest point can be an hour older.
+    expect(expectedIn(used, 3.5, 60)).toBe(false);
+    expect(expectedIn(used, 4, 60)).toBe(true);
+  });
+
+  test("an App Service app's file system is counted past 18 hours and a read, its health check past half an hour", () => {
+    const fileSystem: CloudResourceKeyMetric = metricOf(
+      "azure",
+      SITES,
+      "FileSystemUsage",
+    );
+    const health: CloudResourceKeyMetric = metricOf(
+      "azure",
+      SITES,
+      "HealthCheckStatus",
+    );
+
+    for (const [hours, expected] of [
+      [6, false],
+      [12, false],
+      [18, false],
+      [18.25, true],
+      [24, true],
+      [24 * 7, true],
+    ] as Array<[number, boolean]>) {
+      expect([
+        hours,
+        isCloudKeyMetricExpectedInRange({
+          metric: fileSystem,
+          range: pastHours(hours),
+          nowMs: NOW_MS,
+          readIntervalInMinutes: 5,
+        }),
+      ]).toEqual([hours, expected]);
+    }
+
+    expect(
+      isCloudKeyMetricExpectedInRange({
+        metric: health,
+        range: pastHours(0.25),
+        nowMs: NOW_MS,
+        readIntervalInMinutes: 5,
+      }),
+    ).toBe(false);
+    expect(
+      isCloudKeyMetricExpectedInRange({
+        metric: health,
+        range: pastHours(0.5),
+        nowMs: NOW_MS,
+        readIntervalInMinutes: 5,
+      }),
+    ).toBe(true);
+    expect(
+      isCloudKeyMetricExpectedInRange({
+        metric: health,
+        range: pastHours(1),
+        nowMs: NOW_MS,
+        readIntervalInMinutes: 60,
+      }),
+    ).toBe(false);
+  });
+
+  test("a range in the past holds a point of every whole interval its points are surely in by", () => {
+    const used: CloudResourceKeyMetric = metricOf(
+      "azure",
+      STORAGE,
+      "UsedCapacity",
+    );
+
+    // Yesterday's hour 09:00 to 10:00: long in, and an hour long.
+    expect(
+      isCloudKeyMetricExpectedInRange({
+        metric: used,
+        range: {
+          startMs: NOW_MS - 25 * HOUR_MS,
+          endMs: NOW_MS - 24 * HOUR_MS,
+        },
+        nowMs: NOW_MS,
+        readIntervalInMinutes: 5,
+      }),
+    ).toBe(true);
+    // Half an hour of it may hold no hour's start.
+    expect(
+      isCloudKeyMetricExpectedInRange({
+        metric: used,
+        range: {
+          startMs: NOW_MS - 25 * HOUR_MS,
+          endMs: NOW_MS - 24.5 * HOUR_MS,
+        },
+        nowMs: NOW_MS,
+        readIntervalInMinutes: 5,
+      }),
+    ).toBe(false);
+    // An hour that ended two hours ago may not be read yet.
+    expect(
+      isCloudKeyMetricExpectedInRange({
+        metric: used,
+        range: { startMs: NOW_MS - 3 * HOUR_MS, endMs: NOW_MS - 2 * HOUR_MS },
+        nowMs: NOW_MS,
+        readIntervalInMinutes: 5,
+      }),
+    ).toBe(false);
+  });
+
+  test("the list of what a resource did not report leaves out what its range cannot hold", () => {
+    const keysIn: (data: {
+      type: string;
+      hours: number;
+      readIntervalInMinutes?: number;
+    }) => Array<string> = (data: {
+      type: string;
+      hours: number;
+      readIntervalInMinutes?: number;
+    }): Array<string> => {
+      return keysOf(
+        getCloudUnreportedKeyMetrics({
+          provider: "azure",
+          type: data.type,
+          reportedMetricNames: [],
+          range: pastHours(data.hours),
+          nowMs: NOW_MS,
+          readIntervalInMinutes: data.readIntervalInMinutes,
+        }),
+      );
+    };
+
+    expect(keysIn({ type: STORAGE, hours: 1 })).not.toContain("usedcapacity");
+    expect(keysIn({ type: STORAGE, hours: 1 })).toContain("transactions");
+    expect(keysIn({ type: STORAGE, hours: 6 })).toContain("usedcapacity");
+    expect(keysIn({ type: SITES, hours: 6 })).not.toContain("filesystemusage");
+    expect(keysIn({ type: SITES, hours: 24 })).toContain("filesystemusage");
+    // Without a range, every key metric not reported, as before.
+    expect(
+      keysOf(
+        getCloudUnreportedKeyMetrics({
+          provider: "azure",
+          type: STORAGE,
+          reportedMetricNames: [],
+        }),
+      ),
+    ).toContain("usedcapacity");
+  });
+
+  /*
+   * The reads themselves, as each connection decides them
+   * (CloudMetricWindows): at every read interval, at a read and just before
+   * the next one, a range that ends now and that the rule says holds a
+   * point does hold one of what the reads wrote - so a metric is never
+   * counted as not reported because of how seldom it comes. And a range
+   * of a day (a week for a daily metric) always counts it.
+   */
+  interface Simulated {
+    name: string;
+    metric: CloudResourceKeyMetric;
+    periodMs: number;
+    // The window a read reads now, or null.
+    windowOf: (
+      cursors: Record<string, string>,
+      now: Date,
+    ) => {
+      window: MetricWindow | null;
+      cursorKey: string;
+    };
+    // Whether the cloud published a point stamped then (ACM: twice a day).
+    isPublished: (stampMs: number) => boolean;
+    simulatedDays: number;
+    alwaysHeldHours: number;
+  }
+
+  const SIMULATED: Array<Simulated> = [
+    {
+      name: "an Azure five-minute metric",
+      metric: metricOf("azure", SITES, "HealthCheckStatus"),
+      periodMs: 5 * MINUTE_MS,
+      windowOf: (cursors: Record<string, string>, now: Date) => {
+        const group: AzureReadGroup = getAzureReadGroups({ cursors, now }).get(
+          AZURE_FIVE_MINUTE_CURSOR,
+        )!;
+        return { window: group.window, cursorKey: group.cursorKey };
+      },
+      isPublished: () => {
+        return true;
+      },
+      simulatedDays: 1,
+      alwaysHeldHours: 3,
+    },
+    {
+      name: "an Azure hourly metric",
+      metric: metricOf("azure", STORAGE, "UsedCapacity"),
+      periodMs: HOUR_MS,
+      windowOf: (cursors: Record<string, string>, now: Date) => {
+        const group: AzureReadGroup = getAzureReadGroups({ cursors, now }).get(
+          AZURE_HOURLY_GRAIN,
+        )!;
+        return { window: group.window, cursorKey: group.cursorKey };
+      },
+      isPublished: () => {
+        return true;
+      },
+      simulatedDays: 3,
+      alwaysHeldHours: 6,
+    },
+    {
+      name: "an Azure six-hourly metric",
+      metric: metricOf("azure", SITES, "FileSystemUsage"),
+      periodMs: 6 * HOUR_MS,
+      windowOf: (cursors: Record<string, string>, now: Date) => {
+        const group: AzureReadGroup = getAzureReadGroups({ cursors, now }).get(
+          AZURE_SIX_HOURLY_GRAIN,
+        )!;
+        return { window: group.window, cursorKey: group.cursorKey };
+      },
+      isPublished: () => {
+        return true;
+      },
+      simulatedDays: 5,
+      alwaysHeldHours: 24,
+    },
+    {
+      name: "ACM's days to expiry, published twice a day",
+      metric: metricOf(
+        "aws",
+        "AWS::CertificateManager::Certificate",
+        "DaysToExpiry",
+      ),
+      periodMs: HOUR_MS,
+      windowOf: (cursors: Record<string, string>, now: Date) => {
+        return {
+          window: getMetricWindow({
+            policy: getMetricWindowPolicy({
+              periodSeconds: 3600,
+              delayMs: AWS_METRIC_DELAY_MS,
+            }),
+            cursor: cursors["3600"],
+            now,
+          }),
+          cursorKey: "3600",
+        };
+      },
+      isPublished: (stampMs: number): boolean => {
+        return new Date(stampMs).getUTCHours() % 12 === 3;
+      },
+      simulatedDays: 5,
+      alwaysHeldHours: 24,
+    },
+    {
+      name: "S3's daily storage",
+      metric: metricOf("aws", "AWS::S3::Bucket", "BucketSizeBytes"),
+      periodMs: 24 * HOUR_MS,
+      windowOf: (cursors: Record<string, string>, now: Date) => {
+        return {
+          window: getMetricWindow({
+            policy: getMetricWindowPolicy({
+              periodSeconds: 86400,
+              delayMs: AWS_METRIC_DELAY_MS,
+            }),
+            cursor: cursors["86400"],
+            now,
+          }),
+          cursorKey: "86400",
+        };
+      },
+      isPublished: () => {
+        return true;
+      },
+      simulatedDays: 12,
+      alwaysHeldHours: 24 * 7,
+    },
+  ];
+
+  const RANGES_IN_HOURS: Array<number> = [
+    0.25,
+    0.5,
+    1,
+    3,
+    6,
+    12,
+    24,
+    48,
+    72,
+    24 * 7,
+  ];
+
+  describe.each(SIMULATED)("$name", (simulated: Simulated) => {
+    test.each(CLOUD_CONNECTION_READ_INTERVALS)(
+      "read every %i minutes, a range the rule counts it in holds a point of it",
+      (intervalInMinutes: number) => {
+        const startMs: number = Date.parse("2026-11-01T00:07:00.000Z");
+        const endMs: number = startMs + simulated.simulatedDays * 24 * HOUR_MS;
+        const cursors: Record<string, string> = {};
+        const arrived: Array<number> = [];
+        let checked: number = 0;
+
+        for (
+          let at: number = startMs;
+          at < endMs;
+          at += intervalInMinutes * MINUTE_MS
+        ) {
+          const read: { window: MetricWindow | null; cursorKey: string } =
+            simulated.windowOf(cursors, new Date(at));
+
+          if (read.window) {
+            for (
+              let stamp: number = read.window.start.getTime();
+              stamp < read.window.end.getTime();
+              stamp += simulated.periodMs
+            ) {
+              if (simulated.isPublished(stamp)) {
+                arrived.push(stamp);
+              }
+            }
+
+            cursors[read.cursorKey] = read.window.end.toISOString();
+          }
+
+          // Once the first points are in.
+          if (arrived.length === 0) {
+            continue;
+          }
+
+          // At the read, and the minute before the next one.
+          for (const nowMs of [at, at + intervalInMinutes * MINUTE_MS - 1]) {
+            for (const hours of RANGES_IN_HOURS) {
+              const rangeStartMs: number = nowMs - hours * HOUR_MS;
+
+              // A range that starts before the reads did holds nothing read.
+              if (rangeStartMs < startMs) {
+                continue;
+              }
+
+              const isExpected: boolean = isCloudKeyMetricExpectedInRange({
+                metric: simulated.metric,
+                range: { startMs: rangeStartMs, endMs: nowMs },
+                nowMs,
+                readIntervalInMinutes: intervalInMinutes,
+              });
+              const holds: boolean = arrived.some((stamp: number): boolean => {
+                return stamp >= rangeStartMs && stamp <= nowMs;
+              });
+
+              if (isExpected) {
+                checked++;
+                expect([hours, new Date(nowMs).toISOString(), holds]).toEqual([
+                  hours,
+                  new Date(nowMs).toISOString(),
+                  true,
+                ]);
+              }
+
+              if (hours >= simulated.alwaysHeldHours) {
+                expect([hours, isExpected]).toEqual([hours, true]);
+              }
+            }
+          }
+        }
+
+        expect(checked).toBeGreaterThan(0);
+      },
+    );
+  });
+});
+
 describe("why a key metric was not reported", () => {
   const healthy: CloudUnreportedConnectionState = {
     isEnabled: true,
@@ -604,6 +1185,7 @@ describe("why a key metric was not reported", () => {
         reason: CloudUnreportedReason.Cadence,
         intervalSeconds: 300,
         readEverySeconds: 900,
+        cadence: CloudKeyMetricCadence.FiveMinutes,
       },
     ]);
     expect(
@@ -612,7 +1194,61 @@ describe("why a key metric was not reported", () => {
         connection: healthy,
       }),
     ).toEqual([
-      { reason: CloudUnreportedReason.Cadence, intervalSeconds: 86400 },
+      {
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 86400,
+        cadence: CloudKeyMetricCadence.Daily,
+      },
+    ]);
+  });
+
+  test("an hourly or a six-hourly Azure metric says it comes once an hour, or every 6 hours (#10026)", () => {
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric: metricOf(
+          "azure",
+          "Microsoft.Storage/storageAccounts",
+          "UsedCapacity",
+        ),
+        connection: healthy,
+      }),
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 3600,
+        readEverySeconds: 3600,
+        cadence: CloudKeyMetricCadence.Hourly,
+      },
+    ]);
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric: metricOf("azure", "Microsoft.Web/sites", "FileSystemUsage"),
+        connection: healthy,
+      }),
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 21600,
+        readEverySeconds: 21600,
+        cadence: CloudKeyMetricCadence.SixHourly,
+      },
+    ]);
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric: metricOf(
+          "aws",
+          "AWS::CertificateManager::Certificate",
+          "DaysToExpiry",
+          "AWS/CertificateManager",
+        ),
+        connection: healthy,
+      }),
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 3600,
+        cadence: CloudKeyMetricCadence.FewTimesADay,
+      },
     ]);
   });
 
@@ -661,6 +1297,43 @@ describe("a reason in words", () => {
         intervalSeconds: 86400,
       }),
     ).toBe(CLOUD_UNREPORTED_ONCE_A_DAY);
+    // Said by how often it comes, which an hourly Azure metric's says apart.
+    expect(
+      getCloudUnreportedReasonText({
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 3600,
+        cadence: CloudKeyMetricCadence.Hourly,
+      }),
+    ).toBe(CLOUD_UNREPORTED_HOURLY);
+    expect(
+      getCloudUnreportedReasonText({
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 21600,
+        cadence: CloudKeyMetricCadence.SixHourly,
+      }),
+    ).toBe(CLOUD_UNREPORTED_SIX_HOURLY);
+    expect(
+      getCloudUnreportedReasonText({
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 3600,
+        cadence: CloudKeyMetricCadence.FewTimesADay,
+      }),
+    ).toBe(CLOUD_UNREPORTED_FEW_TIMES_A_DAY);
+
+    // Every cadence has its sentence, each its own.
+    const sentences: Set<string> = new Set<string>();
+
+    for (const cadence of Object.values(CloudKeyMetricCadence)) {
+      const sentence: string = getCloudUnreportedReasonText({
+        reason: CloudUnreportedReason.Cadence,
+        cadence,
+      });
+
+      expect(sentence.length).toBeGreaterThan(10);
+      sentences.add(sentence);
+    }
+
+    expect(sentences.size).toBe(Object.values(CloudKeyMetricCadence).length);
     expect(
       getCloudUnreportedReasonText({
         reason: CloudUnreportedReason.NeedsAgent,
@@ -801,6 +1474,40 @@ describe("the server's answer, read", () => {
     ]);
     expect(readCloudUnreportedKeyMetricReports(undefined)).toEqual([]);
     expect(readCloudUnreportedKeyMetricReports({ metrics: "x" })).toEqual([]);
+  });
+
+  test("a cadence is read with its reason, one it does not know is left out (#10026)", () => {
+    expect(
+      readCloudUnreportedKeyMetricReports({
+        metrics: [
+          {
+            key: "usedcapacity",
+            name: "UsedCapacity",
+            lastReportedAt: null,
+            isNeverReported: false,
+            reasons: [
+              {
+                reason: "cadence",
+                intervalSeconds: 3600,
+                readEverySeconds: 3600,
+                cadence: "hourly",
+              },
+              { reason: "cadence", intervalSeconds: 60, cadence: "weekly" },
+              { reason: "cadence", intervalSeconds: 60, cadence: 7 },
+            ],
+          },
+        ],
+      })[0]?.reasons,
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.Cadence,
+        intervalSeconds: 3600,
+        readEverySeconds: 3600,
+        cadence: CloudKeyMetricCadence.Hourly,
+      },
+      { reason: CloudUnreportedReason.Cadence, intervalSeconds: 60 },
+      { reason: CloudUnreportedReason.Cadence, intervalSeconds: 60 },
+    ]);
   });
 });
 

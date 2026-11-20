@@ -6,7 +6,7 @@ Cada comando da CLI `oneuptime`, com seus argumentos, opções e valores padrão
 - [Opções globais](#opções-globais): As opções que todo comando aceita.
 - [Login e contextos](#login-e-contextos): login e os comandos context.
 - [Comandos de recursos](#comandos-de-recursos): As operações, os campos e as ações de cada recurso.
-- [Outros comandos](#outros-comandos): deploy, dbt upload, data-checks apply, whoami, resources, version e help.
+- [Outros comandos](#outros-comandos): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version e help.
 :::
 
 ## Os comandos
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Lista registros, os mais recentes primeiro. Os rótulos, por sua vez, são listados por nome, primeiro os numerados (`2. Team` antes de `10. Owner`).
+Lista registros, os mais recentes primeiro. Os rótulos, por sua vez, são listados por nome, primeiro os numerados (`2. Team` antes de `10. Owner`). Os registros que você ordena arrastando-os, como os estados de incidente, são listados nessa ordem.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | Não | O nome do projeto dbt, necessário só quando nenhum manifesto é enviado | O projeto do manifesto |
 | `--ingestion-key <key>` | Não | Uma chave de ingestão de telemetria do projeto | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+Envia os dSYMs de um aplicativo iOS depois de um build, a partir da CI ou de uma fase de build do Xcode, para que os frames das suas falhas e travamentos em **Exceções** sejam nomeados pelas suas funções e agrupados por elas de uma versão para a seguinte. Ele lê cada dSYM na sua máquina: um pacote `.dSYM`, uma pasta deles, como a pasta `dSYMs` de um archive do Xcode, um zip deles como o App Store Connect os entrega, ou o arquivo DWARF de um dSYM. Ele envia só o UUID, a arquitetura e os nomes das funções de cada binário, e grava com uma chave de ingestão de telemetria, não com uma chave de API. Um binário do qual as funções foram removidas é deixado de fora com um aviso. Veja [Enviar seus dSYMs](/docs/rum/mobile-setup#enviar-seus-dsyms).
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| Opção | Obrigatório | O que é | Padrão |
+| --- | --- | --- | --- |
+| `--app <name>` | Não | O aplicativo a que eles pertencem, como o seu `service.name`, guardado ao lado deles | |
+| `--ingestion-key <key>` | Não | Uma chave de ingestão de telemetria do projeto | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 Faz as verificações de dados do projeto corresponderem a um arquivo YAML, para que fiquem em um repositório e sejam revisadas como código. Um erro em qualquer parte do arquivo não aplica nada e termina com um erro. O formato do arquivo está em [Verificações e reconciliações](/docs/data-observability/checks).
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | A chave de API, quando nenhuma flag `--api-key` informa uma |
 | `ONEUPTIME_URL` | O endereço do seu OneUptime, quando nenhuma flag `--url` informa um |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | A chave de ingestão de telemetria com que `oneuptime deploy` grava, quando nenhuma flag `--ingestion-key` informa uma |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | A chave de ingestão de telemetria com que `oneuptime deploy`, `oneuptime dbt upload` e `oneuptime dsym upload` gravam, quando nenhuma flag `--ingestion-key` informa uma |
 | `NO_COLOR` | Definida com qualquer valor, desativa as cores |
 
 ## Arquivos

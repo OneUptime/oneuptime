@@ -10,6 +10,7 @@ import DashboardCommandPalette from "./Components/CommandPalette/DashboardComman
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
 import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
+import ReauthenticationPrompt from "./Components/Reauthentication/ReauthenticationPrompt";
 import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
 import DashboardRecording from "./Components/DashboardRecording/DashboardRecording";
 import MasterPage from "./Components/MasterPage/MasterPage";
@@ -677,6 +678,12 @@ const App: () => JSX.Element = () => {
       <DashboardKeyboardShortcuts />
       <HowOneUptimeWorksDialog />
       <GiveFeedbackDialog />
+      {/*
+       * Confirm It's You (#10155): a change to how the person signs in that
+       * the server refused until they confirm is asked here, from any page,
+       * and sent again once they have.
+       */}
+      <ReauthenticationPrompt />
       {/*
        * Contain page-level render errors here. Without a boundary a single
        * throwing component (or a lazy chunk that 404s after a deploy) unmounts

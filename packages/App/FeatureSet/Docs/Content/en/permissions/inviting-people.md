@@ -107,6 +107,8 @@ On **Users**, click the person, then **Teams**.
 
 Click **Invite**, pick the **Team**, and click **Invite** in the dialog. A member is on the new team at once. Someone who has not joined yet gets one more invitation, and accepting either one accepts both.
 
+Your project emails someone one invitation an hour at most. An invitation within an hour of the last email, to another team or after you removed them, is made, but no second email goes out until they accept or decline one. **Resend Invitation** in their row menu on **Users** still sends one.
+
 ### Take them off a team
 
 Click **Remove** on the team's row. If it is the last team they have joined, removing it takes them out of the project, and the dialog says so before anything changes.
@@ -139,7 +141,11 @@ On OneUptime Cloud, a project on the Free plan has room for one person. Change t
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-One address can be sent 10 invitations an hour, to projects and private status pages together, whoever sends them. Wait an hour, then invite them again.
+Your project can send one address 10 invitations an hour, to its teams and its private status pages together. Other projects' invitations do not count. Wait an hour, then invite them again.
+:::
+
+:::details "This invitation cannot be sent right now"
+OneUptime sends one address no more than 50 invitations an hour from all projects together, and this one would go past that. Nothing was created. Try again in an hour.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"

@@ -13,6 +13,7 @@ import BaseModel, {
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../../../Types/Database/AccessControl/OwnerOnlyColumn";
+import { isAccountDateColumn } from "../../../../Types/Database/AccessControl/AccountDateColumns";
 import { ListOrderSettings } from "../../../../Types/Database/ListOrderColumn";
 import {
   TableColumnMetadata,
@@ -301,6 +302,12 @@ export default class SortValidator {
           }),
           query: data.query,
           props: data.props,
+          isReadPinnedToCaller:
+            OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+              data.modelType,
+              data.query,
+              data.props,
+            ),
         });
       }
     }
@@ -320,6 +327,11 @@ export default class SortValidator {
     held: HeldPermissions;
     query: Query<BaseModel>;
     props: DatabaseCommonInteractionProps;
+    /*
+     * The list's own query pinned to the caller's own records: the person's
+     * own records its relations reach are the caller's (#10176).
+     */
+    isReadPinnedToCaller: boolean;
   }): void {
     const relatedModel: BaseModel = new data.relatedModelType();
 
@@ -363,10 +375,11 @@ export default class SortValidator {
       });
 
       /*
-       * A column only a person reads of their own account - their language,
-       * whether their address is verified - orders no list of people: a
-       * relation never shows the reader to be that person
-       * (QueryPermission.canFilterOrOrderByRelatedColumn, #9895).
+       * A column only a person reads of their own records - their
+       * account's language, whether their address is verified, their
+       * notification methods and on-call logs - orders no list: a relation
+       * never shows the reader to be that person
+       * (QueryPermission.canFilterOrOrderByRelatedColumn, #9895, #10176).
        */
       if (
         !alwaysReadable.includes(relatedField) &&
@@ -375,6 +388,7 @@ export default class SortValidator {
           relatedModel: relatedModel,
           column: relatedField,
           held: data.held,
+          isReadPinnedToCaller: data.isReadPinnedToCaller,
         }) ||
           RelationListPermission.isReadWithheldFromWorkflow(
             data.relatedModelType,
@@ -708,8 +722,9 @@ export default class SortValidator {
   /*
    * The fields of a related record a refusal offers to sort by: those any
    * reader of the relation may read (canReadOnRelationQuery, and the ids and
-   * times every select may name), never a secret or one read only by its
-   * own user.
+   * times every select may name), never a secret, one read only by its own
+   * user, or a person's account dates, which no relation is ordered by
+   * (#9823).
    */
   private static getRelatedFieldsToSortBy(
     relatedModel: BaseModel,
@@ -727,7 +742,8 @@ export default class SortValidator {
         column.type === TableColumnType.Entity ||
         column.type === TableColumnType.EntityArray ||
         SortValidator.isSecret(column) ||
-        isOwnerOnlyColumn(relatedModel, key)
+        isOwnerOnlyColumn(relatedModel, key) ||
+        isAccountDateColumn(relatedModel.tableName, key)
       ) {
         return false;
       }

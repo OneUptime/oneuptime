@@ -554,3 +554,139 @@ describe("OverrideCard edit and End now", () => {
     expect(screen.queryByText("End now")).toBeNull();
   });
 });
+
+/*
+ * #9883: an action the server would refuse the reader is not offered as a
+ * control that fails; the card says why in its place - one line, the
+ * reason for Edit and End now first, as both are edits of the override.
+ */
+describe("OverrideCard locked actions", () => {
+  const EDIT_REFUSAL: string =
+    "This user override names someone who is not in a team that lets you manage their user overrides, so you can't change it. Ask someone who can manage every user override.";
+  const DELETE_REFUSAL: string =
+    "This user override names someone who is not in a team that lets you manage their user overrides, so you can't delete it. Ask someone who can manage every user override.";
+
+  // A handler the card is given, whose calls nobody reads.
+  const noop: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+
+  test("in force: Edit and End now give way to why, and nothing can be pressed", async (): Promise<void> => {
+    const onEdit: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+    const onEndNow: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+
+    await render(
+      <OverrideCard
+        override={override()}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+        onEdit={onEdit}
+        onEndNow={onEndNow}
+        editLockedReason={EDIT_REFUSAL}
+      />,
+    );
+
+    expect(screen.queryByTestId("override-edit-override-1")).toBeNull();
+    expect(screen.queryByTestId("override-end-now-override-1")).toBeNull();
+    expect(screen.getByTestId("override-locked-override-1")).toBeTruthy();
+    expect(screen.getByText(EDIT_REFUSAL)).toBeTruthy();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(onEndNow).not.toHaveBeenCalled();
+  });
+
+  test("to come, both locked: one line, the edit's, in place of Edit and Cancel", async (): Promise<void> => {
+    await render(
+      <OverrideCard
+        override={override()}
+        state="upcoming"
+        currentUserId={ME}
+        now={NOW}
+        onEdit={noop}
+        onCancel={noop}
+        editLockedReason={EDIT_REFUSAL}
+        cancelLockedReason={DELETE_REFUSAL}
+      />,
+    );
+
+    expect(screen.queryByTestId("override-edit-override-1")).toBeNull();
+    expect(screen.queryByTestId("override-cancel-override-1")).toBeNull();
+    expect(screen.getByText(EDIT_REFUSAL)).toBeTruthy();
+    expect(screen.queryByText(DELETE_REFUSAL)).toBeNull();
+  });
+
+  test("Cancel alone locked: Edit stays, and the line says why Cancel is not there", async (): Promise<void> => {
+    await render(
+      <OverrideCard
+        override={override()}
+        state="upcoming"
+        currentUserId={ME}
+        now={NOW}
+        onEdit={noop}
+        onCancel={noop}
+        cancelLockedReason={DELETE_REFUSAL}
+      />,
+    );
+
+    expect(screen.getByTestId("override-edit-override-1")).toBeTruthy();
+    expect(screen.queryByTestId("override-cancel-override-1")).toBeNull();
+    expect(screen.getByText(DELETE_REFUSAL)).toBeTruthy();
+  });
+
+  test("a lock on an action the card does not offer says nothing", async (): Promise<void> => {
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <OverrideCard
+        override={override()}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+        onEdit={noop}
+        onEndNow={noop}
+        cancelLockedReason={DELETE_REFUSAL}
+      />,
+    );
+
+    // In force, the card offers no Cancel: its lock is no line.
+    expect(screen.queryByTestId("override-locked-override-1")).toBeNull();
+    expect(screen.getByTestId("override-edit-override-1")).toBeTruthy();
+
+    await rendered.rerender(
+      <OverrideCard
+        override={override()}
+        state="past"
+        currentUserId={ME}
+        now={NOW}
+        onEdit={noop}
+        editLockedReason={EDIT_REFUSAL}
+      />,
+    );
+
+    // Ended, it offers nothing at all.
+    expect(screen.queryByTestId("override-locked-override-1")).toBeNull();
+  });
+
+  test("the line is a lock and secondary words, readable in the dark theme too", async (): Promise<void> => {
+    mockColorScheme = "dark";
+
+    try {
+      await render(
+        <ThemeProvider>
+          <OverrideCard
+            override={override()}
+            state="active"
+            currentUserId={ME}
+            now={NOW}
+            onEdit={noop}
+            editLockedReason={EDIT_REFUSAL}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(screen.getByText(EDIT_REFUSAL)).toHaveStyle({
+        color: darkColors.textSecondary,
+      });
+      expect(flatStyle("override-locked-override-1").flexDirection).toBe("row");
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});

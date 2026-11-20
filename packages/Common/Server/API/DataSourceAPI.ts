@@ -27,6 +27,11 @@ import ConnectorRegistry from "../Utils/DataSource/ConnectorRegistry";
 import logger from "../Utils/Logger";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import { ProjectMetricsDataSourceUtil } from "../../Types/DataSource/ProjectMetricsDataSource";
+import {
+  ProjectMetricsQueryAnswer,
+  runProjectMetricsQuery,
+} from "../Utils/PromQL/PromQLDataSourceQuery";
 
 /*
  * Upper bound on stored/ad-hoc query text. Real PromQL/SQL/DSL queries are
@@ -149,6 +154,30 @@ export default class DataSourceAPI extends BaseAPI<
               // Floor, but never to 0 — Loki/Prometheus reject step=0.
               stepInSeconds = Math.max(1, Math.floor(parsedStep));
             }
+          }
+
+          /*
+           * The built-in source: PromQL over the project's own metrics, as
+           * the person looking at the dashboard (issue #7713). No record,
+           * so no record to read and no credentials.
+           */
+          if (
+            ProjectMetricsDataSourceUtil.isProjectMetrics(body["dataSourceId"])
+          ) {
+            const answer: ProjectMetricsQueryAnswer =
+              await runProjectMetricsQuery({
+                props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+                query,
+                resultKind,
+                startDate,
+                endDate,
+                stepInSeconds,
+              });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              resultKind: answer.resultKind,
+              result: answer.result as unknown as JSONObject,
+            });
           }
 
           const dataSource: DataSource = await this.getAccessibleDataSource({

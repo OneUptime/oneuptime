@@ -1,5 +1,6 @@
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import {
+  ExpectedTraceGroup,
   TRACE_GROUP_EXPECTED_CACHE_MINUTES,
   TRACE_GROUP_EXPECTED_LIMIT,
   TRACE_GROUP_EXPECTED_LOOKBACK_DAYS,
@@ -271,17 +272,18 @@ describe("TraceGroupExpectedCache", () => {
 
   test("reads a monitor's expected groups once per ten minutes", async () => {
     let reads: number = 0;
-    const load: () => Promise<Array<Array<string>>> = async () => {
+    const load: () => Promise<Array<ExpectedTraceGroup>> = async () => {
       reads++;
-      return [["kiosk-a"]];
+      return [{ values: ["kiosk-a"], context: { "device.name": "Lane 1" } }];
     };
     const at: (minutes: number) => Date = (minutes: number): Date => {
       return new Date(Date.UTC(2026, 10, 19, 10, minutes));
     };
 
+    // A group's context is kept with it, as read (#9925).
     expect(
       await TraceGroupExpectedCache.read({ key: "m1", now: at(0), load }),
-    ).toEqual([["kiosk-a"]]);
+    ).toEqual([{ values: ["kiosk-a"], context: { "device.name": "Lane 1" } }]);
     await TraceGroupExpectedCache.read({ key: "m1", now: at(9), load });
     expect(reads).toBe(1);
 
@@ -308,11 +310,11 @@ describe("TraceGroupExpectedCache", () => {
       await TraceGroupExpectedCache.read({
         key: "m1",
         now: new Date(),
-        load: async () => {
-          return [["kiosk-a"]];
+        load: async (): Promise<Array<ExpectedTraceGroup>> => {
+          return [{ values: ["kiosk-a"] }];
         },
       }),
-    ).toEqual([["kiosk-a"]]);
+    ).toEqual([{ values: ["kiosk-a"] }]);
   });
 });
 

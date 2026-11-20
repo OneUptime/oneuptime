@@ -89,7 +89,7 @@ Eine Liste oder eine Zählung nimmt eine `query`. Ein Feld mit einem Wert passt 
 | `Includes` | Einen der Werte in `value` |
 | `IsNull`, `NotNull` | Keinen Wert oder einen beliebigen Wert |
 
-Ein Feld eines Datensatzes, den die Ressource nennt, wird unter seiner Beziehung gefiltert: `"user": { "name": { "_type": "Search", "value": "ada" } }` findet die Teammitglieder, deren Benutzer einen Namen hat, der „ada“ enthält. Nach einem Feld zu filtern erfordert die Berechtigung, es zu lesen, über eine Beziehung wie an der Ressource selbst: Ein Filter auf ein Feld, das Sie nicht lesen dürfen, wird mit einem `422` abgelehnt, der das Feld nennt.
+Ein Feld eines Datensatzes, den die Ressource nennt, wird unter seiner Beziehung gefiltert: `"user": { "name": { "_type": "Search", "value": "ada" } }` findet die Teammitglieder, deren Benutzer einen Namen hat, der „ada“ enthält. Nach einem Feld zu filtern erfordert die Berechtigung, es zu lesen, über eine Beziehung wie an der Ressource selbst: Ein Filter auf ein Feld, das Sie nicht lesen dürfen, wird mit einem `422` abgelehnt, der das Feld nennt. Über eine Beziehung wird ein Feld, das nur die Person selbst lesen darf, etwa die Zeitzone eines Benutzers oder seine Benachrichtigungsmethoden und Bereitschaftsprotokolle, für alle abgelehnt, in einem Filter wie in einer Sortierung, denn die Beziehung kann den Datensatz jeder beliebigen Person nennen.
 
 Eine Ressource mit Eigentümern - ein Monitor, ein Vorfall, eine Bereitschaftsrichtlinie und jede andere mit Benutzer- und Team-Eigentümern - wird auch danach gefiltert, wem sie gehört, unter `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` findet die Datensätze, die einer oder mehreren dieser Personen und Teams gehören. `match` ist `AnyOf`, solange Sie nichts anderes setzen: `NoneOf` findet die Datensätze, die keinem von ihnen gehören, Datensätze ohne Eigentümer eingeschlossen, und `AnyOwner` und `NoOwner` finden die Datensätze mit irgendeinem Eigentümer oder ohne einen und nennen niemanden. Die Mitglieder eines Teams sind keine Eigentümer dessen, was dem Team gehört. Ein Filter nennt höchstens 1.000 Personen und Teams zusammen, eine Ressource ohne Eigentümer lehnt ihn mit einem `400` ab, und nach Eigentümern zu filtern, ohne sie lesen zu dürfen, wird mit einem `422` abgelehnt.
 
@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | Die Anfrage ist falsch: Der API-Schlüssel ist ungültig, ein Wert ist nicht erlaubt, ein Feld kann nicht geschrieben werden, ein genannter Datensatz ist nicht Ihrer, oder sie ändert mehrere Projekte auf einmal. Die Meldung sagt, was falsch ist. | [Datensätze, die eine Anfrage nennt](#datensätze-die-eine-anfrage-nennt) |
 | `402` | Der Tarif des Projekts enthält nicht, was die Anfrage nutzt. Die Meldung nennt den Tarif. | [Funktionen, die Ihr Tarif nicht enthält](#funktionen-die-ihr-tarif-nicht-enthält) |
 | `404` | Der Datensatz existiert nicht, liegt in einem anderen Projekt oder ist einer, den Sie nicht lesen dürfen: dieselbe Antwort für jeden Fall. | [Einen Datensatz ändern oder löschen, den Sie nicht lesen dürfen](#einen-datensatz-ändern-oder-löschen-den-sie-nicht-lesen-dürfen) |
+| `413` | Der Body ist größer, als OneUptime in der Anfrage annimmt: 1 MB mit höchstens 100.000 JSON-Werten bei den meisten Anfragen und 50 MB bei einer, die eine Datei, ein Dashboard oder eine Statusseite sendet. Die Meldung nennt die Grenze. Auf einem Server, den Sie selbst betreiben, heben `REQUEST_BODY_MAX_BYTES` und `REQUEST_BODY_MAX_JSON_VALUES` die Grenze der meisten Anfragen an. | [Anfragen und Antworten](#anfragen-und-antworten) |
 | `422` | Sie dürfen das nicht tun: Der API-Schlüssel hat keine Berechtigung für diese Art von Datensatz, Sie dürfen den Datensatz lesen, aber nicht ändern, oder die Labels einer Berechtigung schließen ihn aus. Die Meldung sagt, warum. | [Einen Datensatz ändern oder löschen, den Sie nicht lesen dürfen](#einen-datensatz-ändern-oder-löschen-den-sie-nicht-lesen-dürfen) |
 | `500` | Auf dem Server ist etwas fehlgeschlagen. Wenn der Eigentümer eines neuen Datensatzes nicht geschrieben werden kann, wird der Datensatz wieder entfernt, sodass das Anlegen erneut versucht werden kann. | [Datensätze, die eine Anfrage nennt](#datensätze-die-eine-anfrage-nennt) |
 
@@ -291,6 +292,30 @@ User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor
 ```
 
 Lassen Sie diese Felder in einem Update weg. Die wenigen, die eine Person ändert, haben eine eigene Anfrage: Ein SCIM-Client-Secret zu rotieren legt fest, wann es abläuft, und `POST /api/host/:id/try-collector-config-again` sendet einem Host die Collector-Konfiguration, die auf ihm fehlgeschlagen ist, erneut. Ein Feld, das Sie und OneUptime beide ändern, etwa die `labels` eines Datensatzes, zu denen Beschriftungsregeln weitere hinzufügen, setzen Sie wie bisher selbst.
+
+Ein Anlegen, das ein Feld weggelassen hat, nennt es im Header `X-OneUptime-Fields-Left-Out` der Antwort, die Felder durch Kommas getrennt; eine Antwort, in der nichts weggelassen wurde, hat keinen solchen Header. Die CLI gibt die Felder in einem Hinweis aus, die Antwort des MCP-Servers listet sie in `fieldsLeftOut` auf, und der Terraform-Provider zeigt sie in einer Warnung.
+
+### Einträge zu einer Liste hinzufügen und wieder entfernen
+
+Eine Änderung kann einer Liste Datensätze hinzufügen oder einige daraus entfernen, ohne die ganze Liste zu senden: `addToList` und `removeFromList` nennen die IDs, die hinzugefügt und entfernt werden sollen, Liste für Liste. Jeder Eintrag, den die Änderung nicht nennt, bleibt, auch einer, den jemand anderes oder eine Beschriftungsregel im selben Moment hinzufügt:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+An `PUT /api/monitor/<id>` gesendet, benennt dies den Monitor um, fügt ihm ein Label hinzu und entfernt ein anderes. Lassen Sie `data` weg, wenn die Änderung nur Einträge hinzufügt und entfernt. Ein Eintrag ist die ID des Datensatzes oder ein Objekt mit seiner `_id`, wie in `data`, und einen Eintrag hinzuzufügen, den die Liste schon enthält, oder einen zu entfernen, den sie nicht enthält, ändert nichts.
+
+Die Listen, die eine Änderung nennen kann, sind die, die die vollständige API-Referenz unter `addToList` für die `PUT`-Anfrage der Ressource aufführt. Eine so gemachte Änderung wird nach den Regeln oben geprüft, als sendete sie die ganze Liste, die sie hinterlässt: Ihre Berechtigung, die Liste zu ändern, dass jeder Datensatz, den sie hinzufügt, einer Ihres Projekts ist, den Sie lesen dürfen, und die Labels, an die eine auf Labels beschränkte Berechtigung gebunden ist. Eine Liste, die sowohl ganz, in `data`, als auch in `addToList` oder `removeFromList` gesendet wird, wird mit einem `400` abgelehnt:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Der Terraform- und der Crossplane-Provider ändern die Labels eines Datensatzes auf diese Weise, sodass ein Label, das eine Regel hinzufügt, während sie laufen, bleibt: siehe [Beschriftungen und andere Listen, die OneUptime selbst ergänzt](/docs/terraform/complete-guide#beschriftungen-und-andere-listen-die-oneuptime-selbst-ergänzt).
 
 ## Status und Episoden
 

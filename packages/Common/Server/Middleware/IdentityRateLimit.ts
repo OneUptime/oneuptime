@@ -12,6 +12,7 @@ import ClientRateLimitCounter, {
 import Response from "../Utils/Response";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
+import { REAUTHENTICATION_MESSAGES } from "../../Types/Accounts/Reauthentication";
 
 /*
  * Attempt limiting for the anonymous identity routes that accept a
@@ -225,6 +226,15 @@ export enum IdentityRateLimitBucket {
    * See MOBILE_SSO_EXCHANGE_BUCKET.
    */
   MobileSsoExchange = "mobile-sso-exchange",
+
+  /*
+   * POST /api/user/reauthentication and its WebAuthn options - a signed-in
+   * person confirming it's them before a change to how they sign in
+   * (#10155, Utils/Reauthentication). A password oracle like /login's, for
+   * whoever holds the session, so bounded the same way. See
+   * REAUTHENTICATION_BUCKET.
+   */
+  Reauthentication = "reauthentication",
 }
 
 export enum IdentityRateLimitScope {
@@ -599,6 +609,34 @@ const SIGN_UP_BUCKET: BucketConfig = {
 };
 
 /*
+ * Re-authentication budget (#10155).
+ *
+ * Counted on every confirmation and every request for a key's options,
+ * before anything is checked. The account counter is keyed on the signed-in
+ * person and the client address together, never on the person alone - as
+ * every counter here is - so attempts from one network cannot keep the
+ * account's owner from confirming anywhere else. It is a backstop: what
+ * bounds guessing is the session's own count
+ * (REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT wrong attempts end the session
+ * they came from, Utils/Reauthentication), and somebody confirming tries
+ * once or twice. The numbers of /login, for an office behind one NAT.
+ */
+const REAUTHENTICATION_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_REAUTHENTICATION_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_REAUTHENTICATION_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_REAUTHENTICATION_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
  * What a refused caller is told. See getRefusalMessages for why the sign-in
  * routes all share one pair and the resend route has its own.
  */
@@ -792,6 +830,10 @@ export default class IdentityRateLimit {
       return MOBILE_SSO_EXCHANGE_BUCKET;
     }
 
+    if (bucket === IdentityRateLimitBucket.Reauthentication) {
+      return REAUTHENTICATION_BUCKET;
+    }
+
     return LOGIN_BUCKET;
   }
 
@@ -830,6 +872,17 @@ export default class IdentityRateLimit {
       return {
         rateLimited: SIGN_UP_RATE_LIMITED_MESSAGE,
         unavailable: SIGN_UP_UNAVAILABLE_MESSAGE,
+      };
+    }
+
+    /*
+     * Somebody confirming it's them is signed in already: "sign-in
+     * attempts" would send them looking for a problem they do not have.
+     */
+    if (bucket === IdentityRateLimitBucket.Reauthentication) {
+      return {
+        rateLimited: REAUTHENTICATION_MESSAGES.tooManyAttempts,
+        unavailable: REAUTHENTICATION_MESSAGES.unavailable,
       };
     }
 

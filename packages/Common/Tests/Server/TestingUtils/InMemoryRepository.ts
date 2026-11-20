@@ -7,6 +7,7 @@ import { FindOperator } from "typeorm";
 import { getPhoneLineSql } from "../../../Server/Utils/StatusPage/SubscriberContactSql";
 import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
 import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
+import { matchesLikePattern } from "./QueryConditions";
 
 /*
  * A table in memory behind a DatabaseService, for tests that drive the real
@@ -16,10 +17,11 @@ import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
  * It answers the repository calls that pipeline makes (find, count, save,
  * update, delete) and understands the where clauses it builds: plain values,
  * TypeORM's In / Equal / Not / IsNull / And operators, and the Raw SQL that
- * QueryHelper and the permission layer write (equality, IN, NOT IN, NOT IN
- * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE),
- * a phone number's line (SubscriberContactSql.onPhoneLine), a name as it
- * reads (QueryHelper.findWithSameName), and a column
+ * QueryHelper and the permission layer write (equality, IN and LOWER() IN,
+ * NOT IN, NOT IN ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, LIKE,
+ * TRUE = TRUE / FALSE), a phone number's line
+ * (SubscriberContactSql.onPhoneLine), a name as it reads
+ * (QueryHelper.findWithSameName), and a column
  * naming a private incident, alert or episode (PrivateRecordReadFilter),
  * answered from the private records a test says there are
  * (setPrivateRecords). A condition it does not understand fails the test
@@ -227,7 +229,24 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     );
   }
 
-  match = sql.match(/^\(c IN \(:\.\.\.(\w+)\)\)$/);
+  /*
+   * A pattern, as SQL's LIKE reads it: % any run, _ any one character, and
+   * a backslash taking the next one as itself (a site's subtree,
+   * NetworkSiteService.pathStartsWith). Case kept, as LIKE keeps it.
+   */
+  match = sql.match(/^\(c LIKE :(\w+)\)$/);
+  if (match) {
+    if (stored === null || stored === undefined) {
+      return false;
+    }
+
+    return matchesLikePattern(String(parameters[match[1]!]), String(stored), {
+      isCaseSensitive: true,
+    });
+  }
+
+  // LOWER(c) too: a text the way QueryHelper.findWithSameTextAnyOf asks.
+  match = sql.match(/^\((?:c|LOWER\(c\)) IN \(:\.\.\.(\w+)\)\)$/);
   if (match) {
     return storedText !== null && listOf(match[1]!).includes(storedText);
   }
@@ -614,4 +633,96 @@ export function useInMemoryHookFreeWrites<TBaseModel extends BaseModel>(
       table.updates.push({ id: String(row["_id"]), set: written });
     },
   );
+}
+
+// What a write of a row's lists entry by entry added and took off (#10135).
+export interface InMemoryListEntryWrite {
+  rowId: string;
+  // By the list's field: the IDs added, and the IDs taken off.
+  writes: Record<string, { add: Array<string>; remove: Array<string> }>;
+}
+
+/*
+ * Answers `service`'s writes of a row's lists entry by entry (#10135) from
+ * `table`, as the junction table holding each list would: an entry added
+ * once whatever is asked, one taken off only when the row has it, every
+ * other entry left as it is. The row's own columns, written in the same
+ * transaction (updateRowWithListEntries), are written as update() writes
+ * them. Each write's entries are recorded in the list returned, in order.
+ */
+export function useInMemoryListEntryWrites<TBaseModel extends BaseModel>(
+  service: DatabaseService<TBaseModel>,
+  table: InMemoryTable,
+): Array<InMemoryListEntryWrite> {
+  const written: Array<InMemoryListEntryWrite> = [];
+
+  const writeEntries: (data: InMemoryListEntryWrite) => void = (
+    data: InMemoryListEntryWrite,
+  ): void => {
+    const row: StoredRow | undefined = table.get(data.rowId);
+
+    const entries: Record<
+      string,
+      { add: Array<string>; remove: Array<string> }
+    > = {};
+
+    for (const [column, write] of Object.entries(data.writes)) {
+      entries[column] = { add: [...write.add], remove: [...write.remove] };
+    }
+
+    written.push({ rowId: data.rowId, writes: entries });
+
+    if (!row) {
+      return;
+    }
+
+    for (const [column, write] of Object.entries(data.writes)) {
+      const removed: Set<string | null> = new Set(write.remove.map(normalize));
+      const entries: Array<unknown> = (
+        Array.isArray(row[column]) ? (row[column] as Array<unknown>) : []
+      ).filter((entry: unknown): boolean => {
+        return !removed.has(normalize(entry));
+      });
+
+      for (const id of write.add) {
+        const isThere: boolean = entries.some((entry: unknown): boolean => {
+          return normalize(entry) === normalize(id);
+        });
+
+        if (!isThere) {
+          entries.push({ _id: id });
+        }
+      }
+
+      row[column] = entries;
+    }
+  };
+
+  getJestSpyOn(service, "updateRowWithListEntries").mockImplementation(
+    async (data: {
+      criteria: Record<string, unknown>;
+      values: Record<string, unknown>;
+      rowId: string;
+      writes: Record<string, { add: Array<string>; remove: Array<string> }>;
+    }): Promise<{ affected: number }> => {
+      const result: { affected: number } = (await table.repository.update(
+        data.criteria,
+        data.values,
+      )) as { affected: number };
+
+      if (result.affected > 0) {
+        writeEntries({ rowId: data.rowId, writes: data.writes });
+      }
+
+      return result;
+    },
+  );
+
+  getJestSpyOn(service, "writeListEntries").mockImplementation(
+    async (data: InMemoryListEntryWrite): Promise<void> => {
+      writeEntries(data);
+    },
+  );
+
+  return written;
 }

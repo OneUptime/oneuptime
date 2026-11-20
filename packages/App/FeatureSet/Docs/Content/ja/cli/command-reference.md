@@ -6,7 +6,7 @@
 - [グローバルオプション](#グローバルオプション): すべてのコマンドが受け付けるオプション。
 - [ログインとコンテキスト](#ログインとコンテキスト): login と context のコマンド。
 - [リソースのコマンド](#リソースのコマンド): すべてのリソースの操作、フィールド、アクション。
-- [その他のコマンド](#その他のコマンド): deploy、dbt upload、data-checks apply、whoami、resources、version、help。
+- [その他のコマンド](#その他のコマンド): deploy、dbt upload、dsym upload、data-checks apply、whoami、resources、version、help。
 :::
 
 ## コマンドの全体像
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-レコードを新しい順に一覧表示します。ラベルは代わりに名前順で、番号付きのラベルが先に並びます（`2. Team` は `10. Owner` の前）。
+レコードを新しい順に一覧表示します。ラベルは代わりに名前順で、番号付きのラベルが先に並びます（`2. Team` は `10. Owner` の前）。ドラッグで並べ替えるレコード（インシデントの状態など）は、その順に並びます。
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | いいえ | dbt プロジェクトの名前。マニフェストを送らないときにだけ必要です | マニフェストのプロジェクト |
 | `--ingestion-key <key>` | いいえ | プロジェクトのテレメトリ取り込みキー | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+ビルドの後に、CI や Xcode のビルドフェーズから iOS アプリの dSYM を送ります。これにより、**例外** に表示されるクラッシュとハングのフレームが関数名で示され、リリースが変わっても関数ごとにグループ化されます。各 dSYM はお使いのマシン上で読み取ります。読み取れるのは、`.dSYM` バンドル、アーカイブの `dSYMs` フォルダーのようにそれらを含むフォルダー、App Store Connect が提供する形のそれらの zip、または dSYM の DWARF ファイルです。送信するのは各バイナリの UUID、アーキテクチャ、関数名だけで、書き込みには API キーではなくテレメトリ取り込みキーを使います。関数が取り除かれたバイナリは、警告を出して除外されます。[dSYM をアップロードする](/docs/rum/mobile-setup#dsym-をアップロードする)を参照してください。
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| オプション | 必須 | 内容 | 既定値 |
+| --- | --- | --- | --- |
+| `--app <name>` | いいえ | dSYM の対象アプリ。その `service.name` で指定し、dSYM とともに保存されます | |
+| `--ingestion-key <key>` | いいえ | プロジェクトのテレメトリ取り込みキー | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 プロジェクトのデータチェックを YAML ファイルに一致させます。チェックをリポジトリで管理し、コードと同じようにレビューできます。ファイル内のどこかに誤りがあると、何も適用されず、エラーで終了します。ファイルの形式は [チェックと照合](/docs/data-observability/checks) にあります。
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | `--api-key` フラグで指定されていないときの API キー |
 | `ONEUPTIME_URL` | `--url` フラグで指定されていないときの OneUptime のアドレス |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | `--ingestion-key` フラグで指定されていないときに `oneuptime deploy` が書き込みに使うテレメトリ取り込みキー |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | `--ingestion-key` フラグで指定されていないときに `oneuptime deploy`、`oneuptime dbt upload`、`oneuptime dsym upload` が書き込みに使うテレメトリ取り込みキー |
 | `NO_COLOR` | 任意の値を設定すると色が消えます |
 
 ## ファイル

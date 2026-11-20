@@ -50,7 +50,7 @@ Noen spørringer å starte med:
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime lagrer målinger på OpenTelemetry-måten. PromQL leser dem med navnen
 
 | I OneUptime | I PromQL |
 | --- | --- |
-| En gauge `system.cpu.utilization` | `system_cpu_utilization` |
-| En teller `http.requests` | `http_requests`, eller `http_requests_total` |
-| Et histogram `http.server.request.duration` | `http_server_request_duration_bucket` (med `le`), `_count` og `_sum` |
+| En gauge `system.cpu.utilization`, i `1` | `system_cpu_utilization_ratio` eller `system_cpu_utilization` |
+| En gauge `system.memory.usage`, i `By` | `system_memory_usage_bytes` eller `system_memory_usage` |
+| En teller `http.requests` | `http_requests_total` eller `http_requests` |
+| Et histogram `http.server.request.duration`, i `s` | `http_server_request_duration_seconds_bucket` (med `le`), `_count` og `_sum`, eller de samme uten `_seconds` |
 | En summary `rpc.latency` | `rpc_latency` (med `quantile`), `_count` og `_sum` |
 | Et attributt `http.route` | Etiketten `http_route` |
 | Et ressursattributt `service.name` | Etiketten `resource_service_name`, og `job` |
 | Et ressursattributt `service.instance.id` | Etiketten `resource_service_instance_id`, og `instance` |
 
 - **Punktum og bindestreker blir understreker** i målings- og etikettnavn. For å angi en måling eller en etikett nøyaktig slik den er lagret, setter du navnet i anførselstegn, slik Prometheus 3 gjør: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **Enheten er en del av navnet**, slik Prometheus 3 og OpenTelemetry Collector skriver den: `s` legger til `_seconds`, `By` `_bytes`, `By/s` `_bytes_per_second` og `%` `_percent`; en gauge i `1` slutter på `_ratio` og en teller på `_total`, og en enhet i krøllparenteser, som `{request}`, legger ikke til noe. Navnet uten enheten finner også målingen, og **Legg til et målingsnavn** viser hver måling med den.
 - **Delta-tellere summeres** fra starten av spørringens tidsintervall, så `rate()` og `increase()` leser dem som en hvilken som helst annen teller.
 - **Eksponentielle histogrammer** har `_count` og `_sum`, men ingen bøtter.
 
@@ -144,6 +146,7 @@ Hver spørring er avgrenset, slik at et dashbord med mange paneler ikke kan over
 | Tid evalueringen kan ta | 30 sekunder |
 | Hvor langt tilbake en selektor ser etter den siste verdien i en serie | 5 minutter |
 | Steget til en underspørring når spørringen utelater det | 1 minutt |
+| Spørringer et prosjekt kan sende hvert minutt | 1 200 |
 
 ## Feilsøking
 
@@ -159,10 +162,15 @@ PromQL-navnet har understreker der det lagrede navnet har punktum, og et histogr
 Spørringen ber om mer enn en lesing kan romme. Legg til etikettfiltre, forkort tidsintervallet, eller bruk et større steg.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+Prosjektets dashbord, Grafana og skript sendte til sammen mer enn 1 200 spørringer til API-et dette minuttet. Panelene lastes igjen neste minutt; oppdater dashbord sjeldnere for å holde deg under grensen.
+:::
+
 ## Neste steg
 
 :::cards
 - [Målingsutforsker](/docs/telemetry/metrics-explorer): Vis målinger i diagrammer uten å skrive en spørring.
-- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
-- [Eksterne datakilder](/docs/dashboards/data-sources): Vis en ekstern Prometheus på dashbordene dine.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel om en måling eller et PromQL-uttrykk, med én hendelse per serie.
+- [Eksterne datakilder](/docs/dashboards/data-sources): Vis PromQL på dashbordene dine, over målingene i dette prosjektet eller en ekstern Prometheus.
+- [LogQL](/docs/telemetry/logql): Spør i logger med LogQL, også fra Loki-datakilden i Grafana.
 :::

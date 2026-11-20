@@ -15,6 +15,8 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "../../Types/HostCollector/HostCollectorRoutes";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -66,9 +68,15 @@ export default class HostAPI extends BaseAPI<Host, HostServiceType> {
       },
     );
 
+    /*
+     * A change of a host: refused while Hosts is switched off on the
+     * server, with who can switch it on, before anything is read
+     * (ServerProductRoutes, ProductCustomRoutesGuard).
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Hosts),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.tryCollectorConfigAgain(req, res);

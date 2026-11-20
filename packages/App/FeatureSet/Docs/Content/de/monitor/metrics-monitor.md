@@ -221,6 +221,29 @@ Gruppieren Sie keine Metrik, die schon ein einzelner Skalar für das ganze Syste
 
 Die Werte des Gruppierungsattributs stehen auch als [Vorlagenvariablen](/docs/monitor/incident-alert-templating) im Titel, in der Beschreibung und in den Hinweisen zur Behebung der Warnung oder des Vorfalls bereit – Gruppieren nach `host.name` lässt den Titel `Disk almost full on {{host.name}}` lauten.
 
+## Bei einem PromQL-Ausdruck warnen
+
+Ein Schritt kann statt Metrikabfragen einen PromQL-Ausdruck überwachen: die Abfragesprache von Prometheus, über die Metriken Ihres Projekts, wie auf der Seite [PromQL](/docs/telemetry/promql). Jede Reihe, die der Ausdruck liefert, wird für sich beurteilt, wie die einer gruppierten Abfrage: Sie öffnet ihre eigene Warnung oder ihren eigenen Vorfall, die sich auflösen, wenn sich diese Reihe erholt oder nicht mehr geliefert wird.
+
+:::steps
+### Zu PromQL wechseln
+
+Klicken Sie in **Zu überwachende Metrik** auf **PromQL**. **Abfrage-Builder** führt zurück zu den Metrikabfragen.
+
+### Den Ausdruck schreiben
+
+Tippen Sie ihn ein, etwa `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, oder beginnen Sie mit **Metriknamen einfügen**. Das Diagramm darunter zeichnet jede Reihe über das Zeitfenster und sagt, was an einem Ausdruck falsch ist, der nicht läuft.
+
+### Die Regel festlegen
+
+Wählen Sie in **Wann alarmieren**, wie jede Reihe **Gemessen als** wird, ein **Zeitfenster**, eine **Bedingung** und einen **Wert**, wie bei Metrikabfragen. Der Ausdruck wird zu jeder Minute des Zeitfensters ausgewertet, daher verlangt **Jeder Wert (das ganze Zeitfenster)** über **Letzte 5 Minuten**, dass eine Reihe fünf Minuten lang überschreitet, wie `for: 5m` in einer Alerting-Regel von Prometheus.
+:::
+
+- **Ein Vergleich im Ausdruck** behält nur die Reihen, für die er zutrifft: `rate(errors_total[5m]) > 0.1` liefert die Reihen über 0.1 und keine andere. Klicken Sie auf **Nach „Wann alarmieren“ verschieben**, um ihn zum Vergleich der Regel zu machen; dann zeigt das Diagramm jede Reihe, und die Regel beurteilt jede einzeln.
+- **Höchstens 100 Reihen pro Prüfung.** Liefert der Ausdruck mehr, beurteilt eine Prüfung 100: zuerst die Reihen mit einer offenen Warnung oder einem offenen Vorfall, dann die übrigen in der Reihenfolge ihrer Labels. Der Rest wird in dieser Prüfung nicht beurteilt, sodass sich für ihn nichts öffnet oder auflöst, und der Editor sagt, dass der Ausdruck zu viele liefert. Fassen Sie ihn mit `sum by (...)` zusammen oder fügen Sie Label-Matcher hinzu.
+- **Es gelten die Grenzen jeder PromQL-Abfrage**, über die Metriken der Dienste, die die Überwachung nennt, oder des ganzen Projekts, wenn sie keine nennt.
+- **Die Anomalie-Bedingungen werden nicht angeboten**: Ein Ausdruck hat keine eigene Historie, mit der er sich vergleichen ließe. Die Prognose-Bedingungen schon.
+
 ## Fehlerbehebung
 
 :::details Das Diagramm zeigt eine Überschreitung, aber der Monitor hat nicht gewarnt

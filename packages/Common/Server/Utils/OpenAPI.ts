@@ -4,6 +4,7 @@ import {
   RouteConfig,
 } from "@asteasolutions/zod-to-openapi";
 import type {
+  HeadersObject,
   ParameterObject,
   ReferenceObject,
   SchemaObject,
@@ -22,6 +23,11 @@ import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
 import { getApiSingularName } from "../../Utils/ModelApiName";
+import {
+  ADD_TO_LIST_KEY,
+  REMOVE_FROM_LIST_KEY,
+} from "../../Types/Database/ListChanges";
+import { FIELDS_LEFT_OUT_HEADER } from "../../Types/API/FieldsLeftOut";
 import {
   DeleteChoicesOfTable,
   getDeleteChoiceApiName,
@@ -542,6 +548,7 @@ export default class OpenAPIUtil {
       responses: {
         "201": {
           description: "Created successfully",
+          headers: OpenAPIUtil.getFieldsLeftOutHeaderSchema(),
           content: {
             "application/json": {
               schema: {
@@ -565,6 +572,23 @@ export default class OpenAPIUtil {
    * answers 404 when the record does not exist, is in another project, or
    * is one the caller may not read: the same answer for each.
    */
+  /*
+   * The header a create answers with the fields it left out because only
+   * OneUptime writes them (Types/API/FieldsLeftOut, #10136).
+   */
+  public static getFieldsLeftOutHeaderSchema(): HeadersObject {
+    return {
+      [FIELDS_LEFT_OUT_HEADER]: {
+        description:
+          "The fields of the request the create left out because only OneUptime writes them, each by the name it was sent under, joined by a comma: the new record has OneUptime's value of each. Sent only when the create left one out.",
+        schema: {
+          type: "string",
+          example: "createdByUserId, lastRollupAt",
+        },
+      },
+    };
+  }
+
   public static getNotFoundResponseSchema(): JSONObject {
     return {
       "404": {
@@ -711,12 +735,22 @@ export default class OpenAPIUtil {
     const updateSchemaName: string = `${tableName}UpdateSchema`;
     const readSchemaName: string = `${tableName}ReadSchema`;
 
+    /*
+     * The lists an update can add single entries to and take them off,
+     * beside `data` (Types/Database/ListChanges, #10135).
+     */
+    const lists: Array<string> =
+      ModelSchema.getListsChangedEntryByEntry(modelType);
+
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
       operationId: `update${tableName}`,
       summary: `Update ${singularModelName}`,
-      description: `Endpoint to update an existing ${singularModelName}`,
+      description:
+        lists.length > 0
+          ? `Endpoint to update an existing ${singularModelName}. To add single entries to a list of related records, or take them off, without sending the whole list, send them in ${ADD_TO_LIST_KEY} and ${REMOVE_FROM_LIST_KEY}, by the list's field: only those entries change, so one OneUptime adds at the same moment stays. A list is named in data or in these, not both.`
+          : `Endpoint to update an existing ${singularModelName}`,
       tags: [singularModelName],
       parameters: [
         ...OpenAPIUtil.getDefaultApiHeaders(),
@@ -741,6 +775,20 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${updateSchemaName}`,
                 },
+                ...(lists.length > 0
+                  ? {
+                      [ADD_TO_LIST_KEY]: OpenAPIUtil.getListChangeSchema({
+                        lists: lists,
+                        description:
+                          "The IDs of related records to add to each list, by the list's field. An entry the record has already changes nothing.",
+                      }),
+                      [REMOVE_FROM_LIST_KEY]: OpenAPIUtil.getListChangeSchema({
+                        lists: lists,
+                        description:
+                          "The IDs of related records to take off each list, by the list's field. An entry the record does not have changes nothing.",
+                      }),
+                    }
+                  : {}),
               },
               required: ["data"],
             },
@@ -767,6 +815,32 @@ export default class OpenAPIUtil {
         ...this.getNotFoundResponseSchema(),
       },
     });
+  }
+
+  /*
+   * The schema of an update's addToList or removeFromList for a model whose
+   * update can change `lists` entry by entry (#10135): each list's IDs, by
+   * its field, and no other field.
+   */
+  public static getListChangeSchema(data: {
+    lists: Array<string>;
+    description: string;
+  }): JSONObject {
+    const properties: JSONObject = {};
+
+    for (const list of data.lists) {
+      properties[list] = {
+        type: "array",
+        items: { type: "string", format: "uuid" },
+      };
+    }
+
+    return {
+      type: "object",
+      description: data.description,
+      properties: properties,
+      additionalProperties: false,
+    };
   }
 
   public static generateDeleteApiSpec(data: {

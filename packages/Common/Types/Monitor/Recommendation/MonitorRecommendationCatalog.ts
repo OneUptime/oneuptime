@@ -103,7 +103,9 @@ import {
 } from "../DataPipelineAlertTemplates";
 import {
   CloudAlertTemplate,
+  CloudAlertTemplateArgs,
   getAllCloudAlertTemplates,
+  getCloudAlertTemplateEquivalentSteps,
   getCloudAlertTemplatesFor,
 } from "../CloudAlertTemplates";
 import {
@@ -958,26 +960,51 @@ function normalizeCloudTemplate(
   template: CloudAlertTemplate,
   context?: MonitorRecommendationContext | undefined,
 ): MonitorRecommendation {
-  return normalize({
-    resourceType: MonitorRecommendationResourceType.CloudResource,
-    monitorType: template.monitorType,
-    template: template,
-    getMonitorStep: (args: MonitorRecommendationArgs) => {
-      return template.getMonitorStep({
-        cloudResourceId: args.resourceIdentifier,
-        telemetryAttributes: context?.cloudTelemetryAttributes || {},
-        readings: context?.cloudReadings,
-        allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
-        connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
-        resourceName: context?.cloudResourceName,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-      });
+  const toTemplateArgs: (
+    args: MonitorRecommendationArgs,
+  ) => CloudAlertTemplateArgs = (
+    args: MonitorRecommendationArgs,
+  ): CloudAlertTemplateArgs => {
+    return {
+      cloudResourceId: args.resourceIdentifier,
+      telemetryAttributes: context?.cloudTelemetryAttributes || {},
+      readings: context?.cloudReadings,
+      allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+      connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
+      resourceName: context?.cloudResourceName,
+      // Its window follows how often its connection reads it (#10028).
+      readIntervalInMinutes: context?.cloudReadIntervalInMinutes,
+      streamedMetrics: context?.cloudStreamedMetrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+    };
+  };
+
+  return {
+    ...normalize({
+      resourceType: MonitorRecommendationResourceType.CloudResource,
+      monitorType: template.monitorType,
+      template: template,
+      getMonitorStep: (args: MonitorRecommendationArgs) => {
+        return template.getMonitorStep(toTemplateArgs(args));
+      },
+    }),
+    /*
+     * A monitor made before its connection's interval changed keeps its
+     * window, and is still this recommendation.
+     */
+    getEquivalentMonitorSteps: (
+      args: MonitorRecommendationArgs,
+    ): Array<MonitorStep> => {
+      return getCloudAlertTemplateEquivalentSteps(
+        template,
+        toTemplateArgs(args),
+      );
     },
-  });
+  };
 }
 
 function getCloudResourceRecommendations(

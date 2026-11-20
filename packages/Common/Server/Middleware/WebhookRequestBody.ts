@@ -1,4 +1,8 @@
 import { JSONArray, JSONObject } from "../../Types/JSON";
+import JsonElementCounter, {
+  JsonElementLimits,
+} from "../../Utils/JsonElementCount";
+import RequestBodyJson from "../Utils/RequestBodyJson";
 import {
   ExpressRaw,
   ExpressRequest,
@@ -66,8 +70,16 @@ export default class WebhookRequestBody {
    * The body a text is kept as: the JSON object or array the text holds,
    * else the text itself. A text with nothing in it but whitespace is an
    * empty body, as no text is.
+   *
+   * With a limit (the route's, RequestBodyLimit), a text that holds more
+   * JSON values than it is not parsed, and is kept as the text it is
+   * (#10183): JSON.parse made 17 million empty arrays of 50 MB of "[],",
+   * before anyone's key was checked.
    */
-  public static fromText(text: unknown): WebhookBody {
+  public static fromText(
+    text: unknown,
+    limit?: JsonElementLimits | undefined,
+  ): WebhookBody {
     if (typeof text !== "string") {
       return {};
     }
@@ -78,6 +90,10 @@ export default class WebhookRequestBody {
 
     if (!withoutMark.trim()) {
       return {};
+    }
+
+    if (limit && JsonElementCounter.countText(withoutMark, limit).passed) {
+      return withoutMark;
     }
 
     try {
@@ -116,11 +132,14 @@ export default class WebhookRequestBody {
       },
     });
 
-    return WebhookRequestBody.readWith(readText, (body: unknown): unknown => {
-      return typeof body === "string"
-        ? WebhookRequestBody.fromText(body)
-        : body;
-    });
+    return WebhookRequestBody.readWith(
+      readText,
+      (body: unknown, req: ExpressRequest): unknown => {
+        return typeof body === "string"
+          ? WebhookRequestBody.fromText(body, RequestBodyJson.getLimit(req))
+          : body;
+      },
+    );
   }
 
   /*
@@ -189,7 +208,7 @@ export default class WebhookRequestBody {
 
   private static readWith(
     read: RequestHandler,
-    keep: (body: unknown) => unknown,
+    keep: (body: unknown, req: ExpressRequest) => unknown,
   ): RequestHandler {
     return (
       req: ExpressRequest,
@@ -202,7 +221,7 @@ export default class WebhookRequestBody {
       }
 
       read(req, res, (err?: unknown): void => {
-        req.body = err ? {} : keep(req.body);
+        req.body = err ? {} : keep(req.body, req);
         next();
       });
     };

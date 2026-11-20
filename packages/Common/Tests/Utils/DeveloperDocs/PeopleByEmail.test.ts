@@ -242,6 +242,7 @@ describe("the dashboard's view of the provider", () => {
     });
     expect(isRequiredInTerraform(member.get("user_id")!)).toBe(false);
     expect(isRequiredInTerraform(member.get("team_id")!)).toBe(true);
+    expect(isRequiredInTerraform(member.get("invitee_name")!)).toBe(false);
     expect(member.get("team_id")!.personEmail).toBeUndefined();
   });
 

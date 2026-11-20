@@ -58,6 +58,12 @@ export const COPIES_OF_KNOWN_KEYS: ReadonlyArray<CopiedFromKnownKeys> = [
       "the table's columns the search resolved each field to (COLUMN_BY_FIELD_ALIAS, a Map): never a field as typed",
   },
   {
+    file: "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources.ts",
+    target: "dimensions",
+    keyedBy:
+      "the ARN dimensions a CloudTrail field's companions name, written in CLOUDTRAIL_RESOURCE_FIELDS: never a key of the record",
+  },
+  {
     file: "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder.ts",
     target: "record",
     keyedBy: "the columns of the update the recorder writes, an object literal",

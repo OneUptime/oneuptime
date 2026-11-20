@@ -14,7 +14,6 @@ import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyCo
 import Attribution, { SignUpAttribution } from "../Utils/Attribution";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
-import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import MailService from "./MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import RequestOriginUtil, {
@@ -48,7 +47,6 @@ import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
-import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
@@ -104,6 +102,7 @@ import EmailChangeConfirmation, {
   EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
 } from "../Utils/EmailChange/EmailChangeConfirmation";
 import EmailAddressChangedNotice from "../Utils/EmailChange/EmailAddressChangedNotice";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
 import {
   EMAIL_ADDRESS_CHANGED_BY_KEY,
   getEmailAddressChanger,
@@ -121,6 +120,8 @@ interface PendingEmailChange {
   userId: ObjectID;
   newEmail: Email;
   timezone: Timezone | null | undefined;
+  // The asking account's language: its link is written in it (#10157).
+  language: string | null | undefined;
   origin: RequestOrigin | undefined;
   /*
    * When the link stops working (#9908): kept on the account with the
@@ -689,6 +690,19 @@ export class Service extends DatabaseService<Model> {
       if (turnsTwoFactorAuthOn) {
         await this.assertTwoFactorAuthMayBeTurnedOn(updateBy.props.userId!);
       }
+
+      /*
+       * Turning it off takes the second step out of every sign-in, and out
+       * of the confirmation every other change to how they sign in asks
+       * for: so it waits for one too (#10155). Turning it on gives nobody
+       * anything - it asks for steps already set up - and asks nothing.
+       */
+      if (
+        turnsTwoFactorAuthOff &&
+        (await this.isTwoFactorAuthOn(updateBy.props.userId!))
+      ) {
+        await Reauthentication.assertConfirmed(updateBy.props);
+      }
     }
 
     /*
@@ -749,6 +763,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * A new password or a new address for the caller's own account waits
+     * until their session has confirmed it's theirs (#10155). After the
+     * rules a refused value is told (the password's, single sign-on's) and
+     * before anything below counts, sends or writes.
+     */
+    await this.assertOwnSignInChangeIsConfirmed(updateBy, carryForward);
+
+    /*
      * A person's own new address waits for the address to confirm it
      * (#9821): it is kept as pending and the email is left as it is, so the
      * answer is the same whether or not another account has the address.
@@ -765,6 +787,79 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * A SESSION ALONE NO LONGER CHANGES HOW ITS PERSON SIGNS IN (#10155).
+   *
+   * A new password, or a new email address, for the account the caller is
+   * signed in as - asked from the profile, PUT /api/user/:id, the mobile app
+   * or anything else a session reaches - is refused until the session has
+   * confirmed it's its person's (Utils/Reauthentication): the password, and
+   * its second step while two-factor authentication is on; a passkey; or,
+   * for an account with neither, a sign-in in the last few minutes. The
+   * refusal changes nothing, so the same write goes through once it has.
+   *
+   * Only a change: the address the account already has, which every save of
+   * the profile's form sends, asks nothing. Only the caller's own account: a
+   * master admin's change of somebody else's is the Admin Dashboard's, and a
+   * root write is the server's own - a reset link, the link that confirms an
+   * address, SCIM, single sign-on. `rows` are the rows the write may change,
+   * as onBeforeUpdate read them.
+   *
+   * A server that cannot send the email that confirms a new address refuses
+   * that change before asking for anything (EmailChangeConfirmation): a
+   * person is never asked to confirm for a change that cannot happen.
+   */
+  private async assertOwnSignInChangeIsConfirmed(
+    updateBy: UpdateBy<Model>,
+    rows: Array<Model>,
+  ): Promise<void> {
+    if (updateBy.props.isRoot || !updateBy.props.userId) {
+      return;
+    }
+
+    const callerId: string = updateBy.props.userId.toString().toLowerCase();
+
+    const own: Model | undefined = rows.find((row: Model): boolean => {
+      return row.id?.toString().toLowerCase() === callerId;
+    });
+
+    if (!own) {
+      return;
+    }
+
+    const changesPassword: boolean = Boolean(updateBy.data.password);
+    const changesEmail: boolean =
+      Boolean(updateBy.data.email) &&
+      own.email?.toString().toLowerCase() !==
+        String(updateBy.data.email).trim().toLowerCase();
+
+    if (!changesPassword && !changesEmail) {
+      return;
+    }
+
+    if (changesEmail && !updateBy.props.isMasterAdmin) {
+      await EmailChangeConfirmation.assertCanConfirm();
+    }
+
+    await Reauthentication.assertConfirmed(updateBy.props);
+  }
+
+  // Whether two-factor authentication is on for this account now.
+  private async isTwoFactorAuthOn(userId: ObjectID): Promise<boolean> {
+    const user: Model | null = await this.findOneById({
+      id: userId,
+      select: {
+        _id: true,
+        enableTwoFactorAuth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return user?.enableTwoFactorAuth === true;
   }
 
   /*
@@ -848,6 +943,7 @@ export class Service extends DatabaseService<Model> {
       userId: own.id,
       newEmail: requested,
       timezone: own.timezone,
+      language: own.language,
       origin: updateBy.props.requestOrigin,
       linkExpires: OneUptimeDate.getSomeHoursAfter(
         EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
@@ -884,9 +980,10 @@ export class Service extends DatabaseService<Model> {
     pending: PendingEmailChange,
   ): Promise<void> {
     try {
+      // And, for the email that says it is taken, its own person's language.
       const holder: Model | null = await this.findOneBy({
         query: { email: pending.newEmail },
-        select: { _id: true },
+        select: { _id: true, language: true, timezone: true },
         props: { isRoot: true },
       });
 
@@ -896,6 +993,15 @@ export class Service extends DatabaseService<Model> {
         isTaken: Boolean(holder),
         origin: pending.origin,
         timezone: pending.timezone,
+        language: pending.language,
+        ...(holder
+          ? {
+              holder: {
+                language: holder.language,
+                timezone: holder.timezone,
+              },
+            }
+          : {}),
         linkExpires: pending.linkExpires,
       });
     } catch (err) {
@@ -1474,7 +1580,6 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           email: true,
-          name: true,
         },
         props: {
           isRoot: true,
@@ -1483,50 +1588,34 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
       });
 
+      const props: DatabaseCommonInteractionProps = onUpdate.updateBy.props;
+
       for (const user of onUpdate.carryForward) {
         const newUser: Model | undefined = newUsers.find((u: Model) => {
           return u._id?.toString() === user._id.toString();
         });
 
         if (newUser && newUser.email?.toString() !== user.email.toString()) {
-          // password changed, send password changed mail
-          const generatedToken: ObjectID = ObjectID.generate();
-
-          const emailVerificationToken: EmailVerificationToken =
-            new EmailVerificationToken();
-          emailVerificationToken.userId = user.id;
-          emailVerificationToken.email = newUser.email!;
-          emailVerificationToken.token = generatedToken;
-          emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
-
-          await EmailVerificationTokenService.create({
-            data: emailVerificationToken,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          const host: Hostname = await DatabaseConfig.getHost();
-          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-          MailService.sendMail({
-            toEmail: newUser.email!,
-            subject: "You have changed your email. Please verify your email.",
-            isSubjectLiteral: true,
-            templateType: EmailTemplateType.EmailChanged,
-            vars: {
-              name: newUser.name!.toString(),
-              tokenVerifyUrl: new URL(
-                httpProtocol,
-                host,
-                new Route(AccountsRoute.toString()).addRoute(
-                  "/verify-email/" + generatedToken.toString(),
-                ),
-              ).toString(),
-              homeUrl: new URL(httpProtocol, host).toString(),
-            },
-          }).catch((err: Error) => {
-            logger.error(err, { userId: user.id?.toString() } as LogAttributes);
+          /*
+           * The link that proves the new address, saying who made the change
+           * - by role, as the email to the address it left does - and when,
+           * in the account's own language and time zone, as read before the
+           * write (#10157).
+           */
+          await EmailChangeConfirmation.sendVerificationOfNewAddress({
+            userId: user.id!,
+            newEmail: newUser.email!,
+            changedBy: getEmailAddressChanger({
+              isRoot: props.isRoot === true,
+              isMasterAdmin: props.isMasterAdmin === true,
+              callerUserId: props.userId?.toString(),
+              accountUserId: user.id!.toString(),
+              namedChanger:
+                onUpdate.updateBy.miscDataProps?.[EMAIL_ADDRESS_CHANGED_BY_KEY],
+            }),
+            at: OneUptimeDate.getCurrentDate(),
+            language: user.language,
+            timezone: user.timezone,
           });
 
           await this.updateOneBy({
@@ -2007,7 +2096,7 @@ export class Service extends DatabaseService<Model> {
    * separately.
    */
   @CaptureSpan()
-  public async countVerifiedTwoFactorAuthMethods(
+  private async countVerifiedTwoFactorAuthMethods(
     userId: ObjectID,
   ): Promise<number> {
     const verifiedTotpCount: PositiveNumber = await UserTotpAuthService.countBy(

@@ -6,7 +6,7 @@ Chaque commande de la CLI `oneuptime`, avec ses arguments, ses options et ses va
 - [Options globales](#options-globales): Les options que prend chaque commande.
 - [Connexion et contextes](#connexion-et-contextes): login et les commandes context.
 - [Commandes des ressources](#commandes-des-ressources): Les opérations, les champs et les actions de chaque ressource.
-- [Autres commandes](#autres-commandes): deploy, dbt upload, data-checks apply, whoami, resources, version et help.
+- [Autres commandes](#autres-commandes): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version et help.
 :::
 
 ## Les commandes
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Liste des enregistrements, les plus récents d'abord. Les étiquettes sont plutôt listées par nom, les étiquettes numérotées d'abord (`2. Team` avant `10. Owner`).
+Liste des enregistrements, les plus récents d'abord. Les étiquettes sont plutôt listées par nom, les étiquettes numérotées d'abord (`2. Team` avant `10. Owner`). Les enregistrements que vous ordonnez en les faisant glisser, comme les états d'incident, sont listés dans cet ordre.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | Non | Le nom du projet dbt, nécessaire seulement quand aucun manifeste n'est envoyé | Le projet du manifeste |
 | `--ingestion-key <key>` | Non | Une clé d'ingestion de télémétrie du projet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+Envoie les dSYM d'une application iOS après un build, depuis la CI ou une phase de build Xcode, pour que, dans **Exceptions**, les frames de ses plantages et blocages portent le nom de leur fonction et que ceux-ci soient regroupés par fonction d'une version à la suivante. La commande lit chaque dSYM sur votre machine : un bundle `.dSYM`, un dossier qui en contient, comme le dossier `dSYMs` d'une archive, un zip qui en contient, tel qu'App Store Connect le fournit, ou le fichier DWARF d'un dSYM. Elle n'envoie que l'UUID, l'architecture et les noms de fonctions de chaque binaire, et écrit avec une clé d'ingestion de télémétrie, pas avec une clé API. Un binaire dont les fonctions ont été retirées est ignoré avec un avertissement. Voir [Envoyer vos dSYM](/docs/rum/mobile-setup#envoyer-vos-dsym).
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| Option | Obligatoire | Ce que c'est | Par défaut |
+| --- | --- | --- | --- |
+| `--app <name>` | Non | L'application à laquelle ils appartiennent, indiquée par son `service.name`, qui est conservé à côté d'eux | |
+| `--ingestion-key <key>` | Non | Une clé d'ingestion de télémétrie du projet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 Fait correspondre les contrôles de données du projet à un fichier YAML, afin qu'ils soient conservés dans un dépôt et relus comme du code. Une erreur n'importe où dans le fichier n'applique rien et se termine par une erreur. Le format du fichier est décrit dans [Contrôles et rapprochements](/docs/data-observability/checks).
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | La clé API, quand aucune option `--api-key` n'en donne une |
 | `ONEUPTIME_URL` | L'adresse de votre OneUptime, quand aucune option `--url` n'en donne une |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | La clé d'ingestion de télémétrie avec laquelle `oneuptime deploy` écrit, quand aucune option `--ingestion-key` n'en donne une |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | La clé d'ingestion de télémétrie avec laquelle `oneuptime deploy`, `oneuptime dbt upload` et `oneuptime dsym upload` écrivent, quand aucune option `--ingestion-key` n'en donne une |
 | `NO_COLOR` | Définie avec n'importe quelle valeur, elle désactive les couleurs |
 
 ## Fichiers

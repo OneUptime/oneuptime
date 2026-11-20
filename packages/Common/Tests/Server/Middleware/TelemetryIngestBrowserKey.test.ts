@@ -670,10 +670,10 @@ describe("TelemetryIngest browser ingestion key guard", () => {
 
     test("a browser key is refused 403 on every other surface, naming the surface and pointing at a server key", async () => {
       /*
-       * Fourteen infrastructure / build-time pipes (the Vercel log drain
+       * Fifteen infrastructure / build-time pipes (the Vercel log drain
        * among them: Vercel's servers send it, never a browser; a
-       * scheduler's OpenLineage events; a dbt build's artifacts; and
-       * Fivetran's and Airbyte's sync webhooks), the three
+       * scheduler's OpenLineage events; a dbt build's artifacts; an iOS
+       * build's dSYMs; and Fivetran's and Airbyte's sync webhooks), the three
        * identity registrations (the Kubernetes agent Runner, the
        * Kubernetes AI agent and the resource AI agents), which mint cluster
        * or infrastructure credentials and must never be reachable with a key
@@ -683,7 +683,7 @@ describe("TelemetryIngest browser ingestion key guard", () => {
        * endpoints - Prometheus remote write, Loki, Splunk HEC and Datadog -
        * which agents and servers send to, never a page.
        */
-      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(23);
+      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(24);
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.AndroidAgentLogSessions,
       );
@@ -707,6 +707,9 @@ describe("TelemetryIngest browser ingestion key guard", () => {
       );
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.DbtArtifacts,
+      );
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.Dsym,
       );
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.VercelLogDrain,

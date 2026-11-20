@@ -253,9 +253,12 @@ const FriendlyLabelNames: Record<string, string> = {
    *
    * The install OpenTelemetry Android names on its resource (#9711): what a
    * mobile app's Device Stopped Reporting groups by, one per phone or
-   * kiosk the app is installed on.
+   * kiosk the app is installed on. Beside it, what the install's spans
+   * last said about its device (#9925): its name ("device.name", from
+   * host.name, registered above) and its model.
    */
   "app.installation.id": "Install",
+  "device.model.name": "Model",
 
   /*
    * --- Network events ---
@@ -575,6 +578,21 @@ export interface DisplaySeriesLabel {
   value: string;
 }
 
+export interface SeriesDisplayOptions {
+  /*
+   * What else is known about the series, shown before its identity and
+   * never part of it (PerSeriesCriteriaMatch.context): a device's name
+   * and model beside the install it is grouped by (#9925). A device that
+   * sends no name has none here, and reads by its identity as before.
+   */
+  context?: JSONObject | undefined;
+}
+
+export interface InlineSummaryOptions extends SeriesDisplayOptions {
+  maxLabels?: number | undefined;
+  maxValueLength?: number | undefined;
+}
+
 export default class SeriesLabelDisplay {
   /*
    * Strip the ClickHouse `resource.` prefix so a resource attribute and
@@ -701,6 +719,85 @@ export default class SeriesLabelDisplay {
    */
   public static getDisplayLabels(
     seriesLabels: JSONObject | undefined,
+    options?: SeriesDisplayOptions | undefined,
+  ): Array<DisplaySeriesLabel> {
+    const identity: Array<DisplaySeriesLabel> =
+      SeriesLabelDisplay.collectLabels(seriesLabels);
+    const context: Array<DisplaySeriesLabel> = SeriesLabelDisplay.collectLabels(
+      options?.context,
+    );
+
+    if (context.length === 0) {
+      return identity;
+    }
+
+    /*
+     * One list, the most identifying first, a context label before an
+     * identity label of the same rank: what a person recognises the series
+     * by ("Device: Store 0412, lane 3") comes before the id it is stored
+     * under ("Install: 1b4e..."), and what only describes it ("Model:
+     * Pixel Tablet") after both. An identity label that would read under
+     * a context label's name with another value - a device grouped by its
+     * id, beside the device's name - reads as the id it is, so two
+     * "Device:" never sit side by side.
+     */
+    const contextNames: Set<string> = new Set<string>(
+      context.map((label: DisplaySeriesLabel): string => {
+        return label.name;
+      }),
+    );
+    const contextValues: Set<string> = new Set<string>(
+      context.map((label: DisplaySeriesLabel): string => {
+        return `${label.name}\u0000${label.value}`;
+      }),
+    );
+
+    const ranked: Array<{ label: DisplaySeriesLabel; isContext: boolean }> = [
+      ...context.map((label: DisplaySeriesLabel) => {
+        return { label: label, isContext: true };
+      }),
+      ...identity
+        .filter((label: DisplaySeriesLabel): boolean => {
+          return !contextValues.has(`${label.name}\u0000${label.value}`);
+        })
+        .map((label: DisplaySeriesLabel) => {
+          return {
+            label: contextNames.has(label.name)
+              ? { ...label, name: `${label.name} ID` }
+              : label,
+            isContext: false,
+          };
+        }),
+    ];
+
+    // A stable sort: each list keeps its own order within a rank.
+    ranked.sort(
+      (
+        a: { label: DisplaySeriesLabel; isContext: boolean },
+        b: { label: DisplaySeriesLabel; isContext: boolean },
+      ): number => {
+        const priorityDifference: number =
+          SeriesLabelDisplay.getLabelPriority(a.label.key) -
+          SeriesLabelDisplay.getLabelPriority(b.label.key);
+
+        if (priorityDifference !== 0) {
+          return priorityDifference;
+        }
+
+        return Number(b.isContext) - Number(a.isContext);
+      },
+    );
+
+    return ranked.map(
+      (entry: { label: DisplaySeriesLabel; isContext: boolean }) => {
+        return entry.label;
+      },
+    );
+  }
+
+  // One label map's display labels, most identifying first, deduplicated.
+  private static collectLabels(
+    seriesLabels: JSONObject | undefined,
   ): Array<DisplaySeriesLabel> {
     if (!seriesLabels) {
       return [];
@@ -757,19 +854,25 @@ export default class SeriesLabelDisplay {
    */
   public static buildInlineSummary(
     seriesLabels: JSONObject | undefined,
-    options?:
-      | {
-          maxLabels?: number | undefined;
-          maxValueLength?: number | undefined;
-        }
-      | undefined,
+    options?: InlineSummaryOptions | undefined,
+  ): string {
+    return SeriesLabelDisplay.formatInlineLabels(
+      SeriesLabelDisplay.getDisplayLabels(seriesLabels, options),
+      options,
+    );
+  }
+
+  /*
+   * Display labels as one line, in the order given: the inline summary's
+   * rendering, for a caller that has already picked which labels to say.
+   */
+  public static formatInlineLabels(
+    labels: Array<DisplaySeriesLabel>,
+    options?: InlineSummaryOptions | undefined,
   ): string {
     const maxLabels: number = options?.maxLabels ?? MaxLabelsInTitle;
     const maxValueLength: number =
       options?.maxValueLength ?? MaxLabelValueLengthInTitle;
-
-    const labels: Array<DisplaySeriesLabel> =
-      SeriesLabelDisplay.getDisplayLabels(seriesLabels);
 
     if (labels.length === 0) {
       return "";
@@ -811,12 +914,7 @@ export default class SeriesLabelDisplay {
    */
   public static buildTitleSuffix(
     seriesLabels: JSONObject | undefined,
-    options?:
-      | {
-          maxLabels?: number | undefined;
-          maxValueLength?: number | undefined;
-        }
-      | undefined,
+    options?: InlineSummaryOptions | undefined,
   ): string {
     const summary: string = SeriesLabelDisplay.buildInlineSummary(
       seriesLabels,
@@ -842,10 +940,12 @@ export default class SeriesLabelDisplay {
    */
   public static buildMarkdownBlock(
     seriesLabels: JSONObject | undefined,
-    options?: { heading?: string | undefined } | undefined,
+    options?:
+      | ({ heading?: string | undefined } & SeriesDisplayOptions)
+      | undefined,
   ): string {
     const labels: Array<DisplaySeriesLabel> =
-      SeriesLabelDisplay.getDisplayLabels(seriesLabels);
+      SeriesLabelDisplay.getDisplayLabels(seriesLabels, options);
 
     if (labels.length === 0) {
       return "";

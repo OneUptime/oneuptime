@@ -6,7 +6,7 @@ Varje kommando i CLI:n `oneuptime`, med dess argument, alternativ och standardv�
 - [Globala alternativ](#globala-alternativ): Alternativen som varje kommando tar.
 - [Inloggning och kontexter](#inloggning-och-kontexter): login och context-kommandona.
 - [Resurskommandon](#resurskommandon): Varje resurs operationer, fält och åtgärder.
-- [Andra kommandon](#andra-kommandon): deploy, dbt upload, data-checks apply, whoami, resources, version och help.
+- [Andra kommandon](#andra-kommandon): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version och help.
 :::
 
 ## Kommandona
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Listar poster, de nyaste först. Etiketter listas i stället efter namn, numrerade etiketter först (`2. Team` före `10. Owner`).
+Listar poster, de nyaste först. Etiketter listas i stället efter namn, numrerade etiketter först (`2. Team` före `10. Owner`). Poster som du ordnar genom att dra dem, som incidenttillstånd, listas i den ordningen.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | Nej | dbt-projektets namn, behövs bara när inget manifest skickas | Manifestets projekt |
 | `--ingestion-key <key>` | Nej | En intagningsnyckel för telemetri från projektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+Skickar en iOS-apps dSYM-filer efter ett bygge, från CI eller en byggfas i Xcode, så att ramarna i dess krascher och häng under **Undantag** namnges efter sina funktioner och grupperas efter dem från en version till nästa. Kommandot läser varje dSYM på din dator: ett `.dSYM`-paket, en mapp med sådana, till exempel ett arkivs `dSYMs`-mapp, en zip med sådana så som App Store Connect lämnar ut dem, eller en dSYM:s DWARF-fil. Det skickar bara varje binärfils UUID, arkitektur och funktionsnamn och skriver med en intagningsnyckel för telemetri, inte med en API-nyckel. En binärfil vars funktioner har tagits bort utelämnas med en varning. Se [Ladda upp dina dSYM-filer](/docs/rum/mobile-setup#ladda-upp-dina-dsym-filer).
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| Alternativ | Krävs | Vad det är | Standard |
+| --- | --- | --- | --- |
+| `--app <name>` | Nej | Appen de hör till, som dess `service.name`, sparad bredvid dem | |
+| `--ingestion-key <key>` | Nej | En intagningsnyckel för telemetri från projektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 Gör projektets datakontroller likadana som en YAML-fil, så att de förvaras i ett repository och granskas som kod. Ett fel var som helst i filen gör att ingenting tillämpas och kommandot avslutas med ett fel. Filens format finns i [Kontroller och avstämningar](/docs/data-observability/checks).
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | API-nyckeln, när ingen `--api-key`-flagga anger en |
 | `ONEUPTIME_URL` | Adressen till ditt OneUptime, när ingen `--url`-flagga anger en |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Intagningsnyckeln för telemetri som `oneuptime deploy` skriver med, när ingen `--ingestion-key`-flagga anger en |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Intagningsnyckeln för telemetri som `oneuptime deploy`, `oneuptime dbt upload` och `oneuptime dsym upload` skriver med, när ingen `--ingestion-key`-flagga anger en |
 | `NO_COLOR` | Satt till valfritt värde stänger den av färger |
 
 ## Filer

@@ -64,12 +64,10 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/opamp",
   /*
-   * The Android agent's log sessions (/android-agent/v1/log-sessions,
-   * AndroidAgentLogSessions): the agent posts beside its OTLP, under
-   * "/telemetry", and the router is mounted on "/" too. POST-only today;
-   * reserved by its own first segment so a GET to it - a person checking
-   * the address the agent was given - is never answered with the
-   * Dashboard's page, or a status page's, at HTTP 200.
+   * Where the OneUptime Android agent asks every minute for the log sessions
+   * open for its device (/android-agent/v1/log-sessions, #9806), mounted on
+   * "/telemetry" and "/" alike. POST-only; reserved for the same reason as
+   * /fluentd.
    */
   "/android-agent",
   /*

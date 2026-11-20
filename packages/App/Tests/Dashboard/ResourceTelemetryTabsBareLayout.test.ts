@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
@@ -57,7 +58,11 @@ const ATTRIBUTE_NAME_PART: RegExp = /[\w-]/;
  * A sentence written there, or one a function picks by what is true of the
  * resource - an App Platforms environment's, by its platform
  * (getCloudEnvironmentNoLogsMessage, whose sentences
- * CloudEnvironmentStreamedLogs holds).
+ * CloudEnvironmentStreamedLogs holds). A condition may pick among sentences
+ * written there - a host's, by whether it is an Android device and whether a
+ * log session's lines are shown (#9806) - and each of them is held to the
+ * same rule (getEmptyStateMessages), as LogsEmptyHintsGuard reads either side
+ * of a condition.
  */
 const EMPTY_STATE_MESSAGE: RegExp =
   /^(?:"[^"]+"|\{get[A-Za-z]+NoLogsMessage\([^)]*\)\})$/;
@@ -398,6 +403,54 @@ function getJsxAttributes(
   return attributes;
 }
 
+/*
+ * The lines an attribute's value can hand over (EMPTY_STATE_MESSAGE): the
+ * value itself, or - when a condition picks among them - each side of the
+ * condition, written as a whole value would be: a sentence as its quoted
+ * literal, anything else in braces. A side that is neither a sentence nor
+ * a get...NoLogsMessage call fails the rule a whole value is held to.
+ */
+function getEmptyStateMessages(value: string): Array<string> {
+  if (!value.startsWith("{") || !value.endsWith("}")) {
+    return [value];
+  }
+
+  const file: ts.SourceFile = ts.createSourceFile(
+    "attribute.tsx",
+    `(${value.slice(1, -1)});`,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const statement: ts.Statement | undefined = file.statements[0];
+
+  if (
+    file.statements.length !== 1 ||
+    !statement ||
+    !ts.isExpressionStatement(statement)
+  ) {
+    return [value];
+  }
+
+  const sidesOf: (node: ts.Expression) => Array<string> = (
+    node: ts.Expression,
+  ): Array<string> => {
+    if (ts.isParenthesizedExpression(node)) {
+      return sidesOf(node.expression);
+    }
+
+    if (ts.isConditionalExpression(node)) {
+      return [...sidesOf(node.whenTrue), ...sidesOf(node.whenFalse)];
+    }
+
+    return ts.isStringLiteral(node)
+      ? [node.getText(file)]
+      : [`{${node.getText(file)}}`];
+  };
+
+  return sidesOf(statement.expression);
+}
+
 function getDefaultImportName(
   source: string,
   modulePath: string,
@@ -639,6 +692,33 @@ describe("the JSX scanner these checks rely on", () => {
       live: "{true}",
     });
   });
+
+  test("reads each line a condition picks, and holds any other side like a whole value", () => {
+    expect(getEmptyStateMessages('"Point the device here."')).toEqual([
+      '"Point the device here."',
+    ]);
+    expect(getEmptyStateMessages("{getHostNoLogsMessage(host)}")).toEqual([
+      "{getHostNoLogsMessage(host)}",
+    ]);
+    const lines: Array<string> = getEmptyStateMessages(
+      '{\n  a\n    ? "First."\n    : (b ? "No logs yet." : "Third, it\'s here.")\n}',
+    );
+
+    expect(lines).toEqual([
+      '"First."',
+      '"No logs yet."',
+      '"Third, it\'s here."',
+    ]);
+    // The side that says the title again is read, so the rule catches it.
+    expect(lines[1]).toMatch(RESTATES_THE_TITLE);
+
+    const sides: Array<string> = getEmptyStateMessages(
+      '{a ? "First." : `Second ${b}.`}',
+    );
+
+    expect(sides).toEqual(['"First."', "{`Second ${b}.`}"]);
+    expect(sides[1]).not.toMatch(EMPTY_STATE_MESSAGE);
+  });
 });
 
 describe("the scan finds the resource telemetry tabs", () => {
@@ -751,8 +831,14 @@ describe("the Logs tabs taken out of their card", () => {
       expect(attributes["id"]!.startsWith(`{\`${idPrefix}-\${`)).toBe(true);
       expect(attributes["showFilters"]).toBe("{true}");
       expect(attributes["enableRealtime"]).toBe("{true}");
-      expect(attributes["noLogsMessage"]).toMatch(EMPTY_STATE_MESSAGE);
-      expect(attributes["noLogsMessage"]).not.toMatch(RESTATES_THE_TITLE);
+      expect(attributes["noLogsMessage"]).toBeDefined();
+
+      for (const message of getEmptyStateMessages(
+        attributes["noLogsMessage"]!,
+      )) {
+        expect(message).toMatch(EMPTY_STATE_MESSAGE);
+        expect(message).not.toMatch(RESTATES_THE_TITLE);
+      }
     },
   );
 

@@ -411,6 +411,7 @@
     "Search Syntax": "Search Syntax",
     "Zooming Into a Time Range": "Zooming Into a Time Range",
     "PromQL": "PromQL",
+    "LogQL": "LogQL",
     "Deploys and Changes": "Deploys and Changes",
     "Log Pipelines": "Log Pipelines",
     "Profiles": "Profiles",

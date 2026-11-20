@@ -22,6 +22,7 @@ import {
 } from "../../../Server/Utils/Express";
 import logger from "../../../Server/Utils/Logger";
 import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
+import { ProxmoxGuestPowerTaskReading } from "../../../Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import {
   PROXMOX_MONITOR_WINDOW_MS,
   PROXMOX_NODE_SILENCE_MS,
@@ -165,6 +166,13 @@ import { DataSource } from "typeorm";
  *     pre-migration row, left in place), "still-reporting" (a native node
  *     that is up or of unknown state);
  *   - getInventorySummary's online count follows the marks;
+ *   - recordGuestPowerTasks writes a stopped guest's last power task from
+ *     the task log by its id - never a node, another cluster's guest or
+ *     lastSeenAt - only moving forward, clears it on a reading with no
+ *     task, and drops a reading of a guest a scrape saw running after it
+ *     was taken; bulkUpsert clears it once a scrape as new as the reading
+ *     or newer sees the guest running, and never for a stopped scrape, an
+ *     older one or one that does not say (#10017);
  *   - timelines of a native-push cluster - a node dying, a OneUptime outage,
  *     a whole-cluster power cut, a node coming back, a node already down when
  *     the cluster moved from the agent to the native push (with and without a
@@ -1675,6 +1683,448 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
         ]),
       ).toBe(0);
       expect(query).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Who or what stopped a guest, from the cluster's task log (#10017): the
+   * Proxmox AI agent's readings (recordGuestPowerTasks), and the inventory
+   * upsert dropping a reading once a scrape newer than it sees the guest
+   * running (CLEAR_POWER_TASK_WHEN_SEEN_RUNNING).
+   */
+  describe("guests' last power tasks from the task log", () => {
+    interface PowerTaskRow {
+      lastPowerTaskType: string | null;
+      lastPowerTaskUser: string | null;
+      lastPowerTaskStatus: string | null;
+      lastPowerTaskAt: Date | null;
+      powerTaskReadAt: Date | null;
+      lastSeenAt: Date;
+      isUp: boolean | null;
+    }
+
+    const NO_POWER_TASK: Partial<PowerTaskRow> = {
+      lastPowerTaskType: null,
+      lastPowerTaskUser: null,
+      lastPowerTaskStatus: null,
+      lastPowerTaskAt: null,
+      powerTaskReadAt: null,
+    };
+
+    async function powerTaskOf(
+      kind: string,
+      externalId: string,
+      proxmoxClusterId: ObjectID = CLUSTER_ID,
+    ): Promise<PowerTaskRow> {
+      const rows: Array<PowerTaskRow> = await database.query(
+        `SELECT "lastPowerTaskType", "lastPowerTaskUser", "lastPowerTaskStatus",
+                "lastPowerTaskAt", "powerTaskReadAt", "lastSeenAt", "isUp"
+         FROM "${schema}"."${TABLE}"
+         WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
+           AND "kind" = $3 AND "externalId" = $4`,
+        [PROJECT_ID.toString(), proxmoxClusterId.toString(), kind, externalId],
+      );
+      expect(rows).toHaveLength(1);
+      return rows[0]!;
+    }
+
+    async function recordPowerTasks(
+      readings: Array<ProxmoxGuestPowerTaskReading>,
+      proxmoxClusterId: ObjectID = CLUSTER_ID,
+    ): Promise<number> {
+      return ProxmoxResourceService.recordGuestPowerTasks({
+        projectId: PROJECT_ID,
+        proxmoxClusterId: proxmoxClusterId,
+        readings: readings,
+      });
+    }
+
+    // What the agent read of a guest's task log at readAt.
+    function reading(
+      externalId: string,
+      readAt: Date,
+      task: {
+        type: string;
+        user: string;
+        status: string;
+        at: Date;
+      } | null,
+    ): ProxmoxGuestPowerTaskReading {
+      return {
+        externalId: externalId,
+        type: task?.type ?? null,
+        user: task?.user ?? null,
+        status: task?.status ?? null,
+        node: task ? "pve1" : null,
+        at: task?.at ?? null,
+        readAt: readAt,
+      };
+    }
+
+    function stoppedGuest(
+      vmid: number,
+      lastSeenAt: Date,
+      overrides: Partial<ParsedProxmoxResource> = {},
+    ): ParsedProxmoxResource {
+      return guest(vmid, "pve1", {
+        isUp: false,
+        uptimeSeconds: 0,
+        lastSeenAt: lastSeenAt,
+        ...overrides,
+      });
+    }
+
+    test("the columns are nullable with no default, in the migrated table and the clone", async () => {
+      const expected: Record<string, string> = {
+        lastPowerTaskType: "character varying",
+        lastPowerTaskUser: "character varying",
+        lastPowerTaskStatus: "character varying",
+        lastPowerTaskAt: "timestamp with time zone",
+        powerTaskReadAt: "timestamp with time zone",
+      };
+      for (const tableSchema of ["public", schema]) {
+        const columns: Array<{
+          column_name: string;
+          data_type: string;
+          is_nullable: string;
+          column_default: string | null;
+          character_maximum_length: number | null;
+        }> = await database.query(
+          `SELECT column_name, data_type, is_nullable, column_default,
+                  character_maximum_length
+           FROM information_schema.columns
+           WHERE table_schema = $1 AND table_name = $2 AND column_name = ANY($3)`,
+          [tableSchema, TABLE, Object.keys(expected)],
+        );
+        expect(columns).toHaveLength(Object.keys(expected).length);
+        for (const column of columns) {
+          expect(column.data_type).toBe(expected[column.column_name]);
+          expect(column.is_nullable).toBe("YES");
+          expect(column.column_default).toBeNull();
+        }
+        // Proxmox's own error text is kept to 500 characters, the rest to 100.
+        expect(
+          columns
+            .filter((column: { character_maximum_length: number | null }) => {
+              return column.character_maximum_length !== null;
+            })
+            .map(
+              (column: {
+                column_name: string;
+                character_maximum_length: number | null;
+              }): [string, number | null] => {
+                return [column.column_name, column.character_maximum_length];
+              },
+            )
+            .sort(),
+        ).toEqual([
+          ["lastPowerTaskStatus", 500],
+          ["lastPowerTaskType", 100],
+          ["lastPowerTaskUser", 100],
+        ]);
+      }
+    });
+
+    test("writes each guest's last power task by its id, and nothing else: not lastSeenAt, not another cluster's guest, not a node", async () => {
+      const seenAt: Date = at(-2 * MINUTE_MS);
+      await upsert([
+        node("pve1", { lastSeenAt: seenAt }),
+        stoppedGuest(101, seenAt),
+        stoppedGuest(103, seenAt, { haState: "error" }),
+      ]);
+      await upsert([stoppedGuest(101, seenAt)], {
+        proxmoxClusterId: OTHER_CLUSTER_ID,
+      });
+
+      const readAt: Date = at(-MINUTE_MS);
+      const stoppedAt: Date = at(-2 * HOUR_MS);
+      const failedAt: Date = at(-10 * MINUTE_MS);
+      const written: number = await recordPowerTasks([
+        reading("qemu/101", readAt, {
+          type: "qmstop",
+          user: "alice@pve",
+          status: "OK",
+          at: stoppedAt,
+        }),
+        reading("qemu/103", readAt, {
+          type: "qmstart",
+          user: "root@pam",
+          status: "start failed: QEMU exited with code 1",
+          at: failedAt,
+        }),
+        // A guest with no row yet: skipped.
+        reading("qemu/555", readAt, {
+          type: "qmstop",
+          user: "alice@pve",
+          status: "OK",
+          at: stoppedAt,
+        }),
+        // A node has no task log of its own.
+        reading("node/pve1", readAt, {
+          type: "qmstop",
+          user: "alice@pve",
+          status: "OK",
+          at: stoppedAt,
+        }),
+      ]);
+
+      expect(written).toBe(2);
+      expect(await powerTaskOf("Guest", "qemu/101")).toEqual({
+        lastPowerTaskType: "qmstop",
+        lastPowerTaskUser: "alice@pve",
+        lastPowerTaskStatus: "OK",
+        lastPowerTaskAt: stoppedAt,
+        powerTaskReadAt: readAt,
+        // What the task log says is not the cluster being read.
+        lastSeenAt: seenAt,
+        isUp: false,
+      });
+      expect(await powerTaskOf("Guest", "qemu/103")).toMatchObject({
+        lastPowerTaskType: "qmstart",
+        lastPowerTaskUser: "root@pam",
+        lastPowerTaskStatus: "start failed: QEMU exited with code 1",
+        lastPowerTaskAt: failedAt,
+        powerTaskReadAt: readAt,
+      });
+      expect(
+        await powerTaskOf("Guest", "qemu/101", OTHER_CLUSTER_ID),
+      ).toMatchObject(NO_POWER_TASK);
+      expect(await powerTaskOf("Node", "node/pve1")).toMatchObject(
+        NO_POWER_TASK,
+      );
+    });
+
+    test("a newer reading replaces an older one, an older one changes nothing, and a reading with no task clears what an earlier one wrote", async () => {
+      await upsert([stoppedGuest(101, at(-10 * MINUTE_MS))]);
+      const first: Date = at(-6 * MINUTE_MS);
+      const second: Date = at(-MINUTE_MS);
+      const stop: {
+        type: string;
+        user: string;
+        status: string;
+        at: Date;
+      } = {
+        type: "qmshutdown",
+        user: "carol@pam",
+        status: "OK",
+        at: at(-3 * HOUR_MS),
+      };
+
+      expect(await recordPowerTasks([reading("qemu/101", first, stop)])).toBe(
+        1,
+      );
+      // A round read later, delivered first: the earlier one is not taken.
+      expect(
+        await recordPowerTasks([
+          reading("qemu/101", second, { ...stop, user: "dave@pve" }),
+        ]),
+      ).toBe(1);
+      expect(await recordPowerTasks([reading("qemu/101", first, stop)])).toBe(
+        0,
+      );
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject({
+        lastPowerTaskUser: "dave@pve",
+        powerTaskReadAt: second,
+      });
+
+      // The log no longer holds a start or stop of it: nothing is told.
+      expect(await recordPowerTasks([reading("qemu/101", NOW, null)])).toBe(1);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject({
+        lastPowerTaskType: null,
+        lastPowerTaskUser: null,
+        lastPowerTaskStatus: null,
+        lastPowerTaskAt: null,
+        powerTaskReadAt: NOW,
+      });
+    });
+
+    test("one call naming a guest twice keeps its newest reading", async () => {
+      await upsert([stoppedGuest(101, at(-10 * MINUTE_MS))]);
+      expect(
+        await recordPowerTasks([
+          reading("qemu/101", at(-MINUTE_MS), {
+            type: "qmstop",
+            user: "erin@pve",
+            status: "OK",
+            at: at(-HOUR_MS),
+          }),
+          reading("qemu/101", at(-5 * MINUTE_MS), {
+            type: "qmstop",
+            user: "frank@pve",
+            status: "OK",
+            at: at(-2 * HOUR_MS),
+          }),
+        ]),
+      ).toBe(1);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject({
+        lastPowerTaskUser: "erin@pve",
+        powerTaskReadAt: at(-MINUTE_MS),
+      });
+    });
+
+    test("a reading of a guest a scrape saw running after it was taken is dropped; one taken after the last scrape is written", async () => {
+      // Seen running a minute ago: a reading from before then is stale.
+      await upsert([guest(101, "pve1", { lastSeenAt: at(-MINUTE_MS) })]);
+      const stop: {
+        type: string;
+        user: string;
+        status: string;
+        at: Date;
+      } = {
+        type: "qmstop",
+        user: "alice@pve",
+        status: "OK",
+        at: at(-3 * HOUR_MS),
+      };
+      expect(
+        await recordPowerTasks([reading("qemu/101", at(-2 * MINUTE_MS), stop)]),
+      ).toBe(0);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject(
+        NO_POWER_TASK,
+      );
+
+      // Read after that scrape: it stopped since, and the reading says how.
+      expect(
+        await recordPowerTasks([
+          reading("qemu/101", at(-30 * SECOND_MS), stop),
+        ]),
+      ).toBe(1);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject({
+        lastPowerTaskType: "qmstop",
+        powerTaskReadAt: at(-30 * SECOND_MS),
+      });
+    });
+
+    test("bulkUpsert clears the reading once a scrape newer than it sees the guest running - never for a stopped scrape, an older one, or one that does not say", async () => {
+      const readAt: Date = at(-5 * MINUTE_MS);
+      await upsert([stoppedGuest(101, at(-6 * MINUTE_MS))]);
+      expect(
+        await recordPowerTasks([
+          reading("qemu/101", readAt, {
+            type: "qmstop",
+            user: "alice@pve",
+            status: "OK",
+            at: at(-3 * HOUR_MS),
+          }),
+        ]),
+      ).toBe(1);
+      const written: Partial<PowerTaskRow> = {
+        lastPowerTaskType: "qmstop",
+        lastPowerTaskUser: "alice@pve",
+        lastPowerTaskStatus: "OK",
+        lastPowerTaskAt: at(-3 * HOUR_MS),
+        powerTaskReadAt: readAt,
+      };
+
+      // A scrape from before the reading, delivered late, says it ran then.
+      await upsert([guest(101, "pve1", { lastSeenAt: at(-5.5 * MINUTE_MS) })]);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject(written);
+
+      // Still stopped, or a scrape that does not say whether it runs.
+      await upsert([stoppedGuest(101, at(-4 * MINUTE_MS))]);
+      await upsert([
+        guest(101, "pve1", { isUp: null, lastSeenAt: at(-3 * MINUTE_MS) }),
+      ]);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject(written);
+
+      // Running after the reading: what it said no longer holds.
+      await upsert([guest(101, "pve1", { lastSeenAt: at(-2 * MINUTE_MS) })]);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject({
+        ...NO_POWER_TASK,
+        isUp: true,
+        lastSeenAt: at(-2 * MINUTE_MS),
+      });
+    });
+
+    test("a scrape as new as the reading that sees the guest running clears it too", async () => {
+      await upsert([stoppedGuest(101, at(-6 * MINUTE_MS))]);
+      await recordPowerTasks([
+        reading("qemu/101", at(-5 * MINUTE_MS), {
+          type: "qmstop",
+          user: "alice@pve",
+          status: "OK",
+          at: at(-HOUR_MS),
+        }),
+      ]);
+      await upsert([guest(101, "pve1", { lastSeenAt: at(-5 * MINUTE_MS) })]);
+      expect(await powerTaskOf("Guest", "qemu/101")).toMatchObject(
+        NO_POWER_TASK,
+      );
+    });
+
+    test("an oversized status is clamped to its column, never failing the others", async () => {
+      await upsert([
+        stoppedGuest(101, at(-10 * MINUTE_MS)),
+        stoppedGuest(102, at(-10 * MINUTE_MS)),
+      ]);
+      const longStatus: string = `start failed: ${"x".repeat(900)}`;
+      expect(
+        await recordPowerTasks([
+          reading("qemu/101", at(-MINUTE_MS), {
+            type: "qmstart",
+            user: "root@pam",
+            status: longStatus,
+            at: at(-2 * MINUTE_MS),
+          }),
+          reading("qemu/102", at(-MINUTE_MS), {
+            type: "qmstop",
+            user: `${"u".repeat(150)}@pve`,
+            status: "OK",
+            at: at(-2 * MINUTE_MS),
+          }),
+        ]),
+      ).toBe(2);
+      expect(
+        (await powerTaskOf("Guest", "qemu/101")).lastPowerTaskStatus,
+      ).toHaveLength(500);
+      expect(
+        (await powerTaskOf("Guest", "qemu/102")).lastPowerTaskUser,
+      ).toHaveLength(100);
+    });
+
+    test("nothing to write - an empty list, or only readings with no time - runs no statement", async () => {
+      const query: jest.SpyInstance = jest.spyOn(database, "query");
+      expect(await recordPowerTasks([])).toBe(0);
+      expect(
+        await recordPowerTasks([
+          reading("qemu/101", new Date("not a date"), null),
+        ]),
+      ).toBe(0);
+      expect(query).not.toHaveBeenCalled();
+    });
+
+    test("the model reads the columns the service writes", async () => {
+      await upsert([stoppedGuest(101, at(-10 * MINUTE_MS))]);
+      await recordPowerTasks([
+        reading("qemu/101", at(-MINUTE_MS), {
+          type: "hastop",
+          user: "bob@pve",
+          status: "OK",
+          at: at(-30 * MINUTE_MS),
+        }),
+      ]);
+
+      const found: ProxmoxResource | null =
+        await ProxmoxResourceService.findOneBy({
+          query: { projectId: PROJECT_ID, externalId: "qemu/101" },
+          select: {
+            lastPowerTaskType: true,
+            lastPowerTaskUser: true,
+            lastPowerTaskStatus: true,
+            lastPowerTaskAt: true,
+            powerTaskReadAt: true,
+          },
+          props: { isRoot: true },
+        });
+      expect(found?.lastPowerTaskType).toBe("hastop");
+      expect(found?.lastPowerTaskUser).toBe("bob@pve");
+      expect(found?.lastPowerTaskStatus).toBe("OK");
+      expect(new Date(found!.lastPowerTaskAt!).getTime()).toBe(
+        at(-30 * MINUTE_MS).getTime(),
+      );
+      expect(new Date(found!.powerTaskReadAt!).getTime()).toBe(
+        at(-MINUTE_MS).getTime(),
+      );
     });
   });
 

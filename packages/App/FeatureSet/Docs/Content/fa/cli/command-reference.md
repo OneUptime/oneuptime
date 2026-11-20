@@ -6,7 +6,7 @@
 - [گزینه‌های سراسری](#گزینههای-سراسری): گزینه‌هایی که هر دستور می‌پذیرد.
 - [ورود و زمینه‌ها](#ورود-و-زمینهها): login و دستورهای context.
 - [دستورهای منبع](#دستورهای-منابع): عملیات، فیلدها و کنش‌های هر منبع.
-- [دستورهای دیگر](#دستورهای-دیگر): deploy، dbt upload، data-checks apply، whoami، resources، version و help.
+- [دستورهای دیگر](#دستورهای-دیگر): deploy، dbt upload، dsym upload، data-checks apply، whoami، resources، version و help.
 :::
 
 ## دستورها
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-رکوردها را فهرست می‌کند، تازه‌ترین‌ها در ابتدا. برچسب‌ها در عوض به ترتیب نام فهرست می‌شوند، برچسب‌های شماره‌دار اول (`2. Team` پیش از `10. Owner`).
+رکوردها را فهرست می‌کند، تازه‌ترین‌ها در ابتدا. برچسب‌ها در عوض به ترتیب نام فهرست می‌شوند، برچسب‌های شماره‌دار اول (`2. Team` پیش از `10. Owner`). رکوردهایی که با کشیدن مرتب می‌کنید، مانند وضعیت‌های حادثه، به همان ترتیب فهرست می‌شوند.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | خیر | نام پروژهٔ dbt، که تنها وقتی لازم است که هیچ مانیفستی فرستاده نشود | پروژهٔ مانیفست |
 | `--ingestion-key <key>` | خیر | یک کلید دریافت دادهٔ تله‌متری پروژه | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+پس از یک ساخت، از CI یا یک مرحلهٔ ساخت Xcode، فایل‌های dSYM یک برنامهٔ iOS را می‌فرستد تا فریم‌های کرش‌ها و هنگ‌های آن در **استثناها** با نام تابع‌هایشان نام‌گذاری شوند و از یک انتشار به انتشار بعدی بر اساس همین تابع‌ها گروه‌بندی شوند. هر dSYM را روی دستگاه شما می‌خواند: یک بستهٔ `.dSYM`، پوشه‌ای از آن‌ها مانند پوشهٔ `dSYMs` یک آرشیو، یک فایل zip از آن‌ها به همان شکلی که App Store Connect می‌دهد، یا فایل DWARF یک dSYM. تنها UUID، معماری و نام تابع‌های هر فایل باینری را می‌فرستد، و با یک کلید دریافت دادهٔ تله‌متری می‌نویسد، نه با کلید API. فایل باینری‌ای که تابع‌هایش از آن حذف شده باشد با یک هشدار کنار گذاشته می‌شود. [فایل‌های dSYM را بارگذاری کنید](/docs/rum/mobile-setup#فایلهای-dsym-را-بارگذاری-کنید) را ببینید.
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| گزینه | الزامی | چیست | پیش‌فرض |
+| --- | --- | --- | --- |
+| `--app <name>` | خیر | برنامه‌ای که این فایل‌ها به آن تعلق دارند، به‌صورت `service.name` آن، که کنارشان نگه داشته می‌شود | |
+| `--ingestion-key <key>` | خیر | یک کلید دریافت دادهٔ تله‌متری پروژه | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 بررسی‌های داده پروژه را با یک فایل YAML یکی می‌کند، تا در یک مخزن نگه داشته شوند و مانند کد بازبینی شوند. یک اشتباه در هر جای فایل باعث می‌شود چیزی اعمال نشود و با خطا خارج شود. قالب فایل در [بررسی‌ها و تطبیق‌ها](/docs/data-observability/checks) آمده است.
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | کلید API، وقتی هیچ پرچم `--api-key` کلیدی ندهد |
 | `ONEUPTIME_URL` | نشانی OneUptime شما، وقتی هیچ پرچم `--url` نشانی‌ای ندهد |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | کلید دریافت دادهٔ تله‌متری‌ای که `oneuptime deploy` با آن می‌نویسد، وقتی هیچ پرچم `--ingestion-key` کلیدی ندهد |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | کلید دریافت دادهٔ تله‌متری‌ای که `oneuptime deploy`، `oneuptime dbt upload` و `oneuptime dsym upload` با آن می‌نویسند، وقتی هیچ پرچم `--ingestion-key` کلیدی ندهد |
 | `NO_COLOR` | با هر مقداری، رنگ‌ها را خاموش می‌کند |
 
 ## فایل‌ها

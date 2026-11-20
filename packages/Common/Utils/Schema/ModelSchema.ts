@@ -39,6 +39,7 @@ import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import { getApiSingularName } from "../ModelApiName";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../Types/Database/AccessControl/OwnerOnlyColumn";
+import { isAccountDateColumn } from "../../Types/Database/AccessControl/AccountDateColumns";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 
 export type ModelSchemaType = ZodSchema;
@@ -791,6 +792,34 @@ export class ModelSchema extends BaseSchema {
   }
 
   /*
+   * The lists of related records an update of `modelType` can add single
+   * entries to and take them off (addToList and removeFromList,
+   * Types/Database/ListChanges, #10135): each list its update schema
+   * documents - a list a caller may update, which only OneUptime does not
+   * write - by its field, in the model's order.
+   */
+  public static getListsChangedEntryByEntry(
+    modelType: new () => DatabaseBaseModel,
+  ): Array<string> {
+    const model: DatabaseBaseModel = new modelType();
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    return Object.keys(columns).filter((key: string): boolean => {
+      const column: TableColumnMetadata | undefined = columns[key];
+
+      return Boolean(
+        column &&
+          column.type === TableColumnType.EntityArray &&
+          !column.hideColumnInDocumentation &&
+          !ModelSchema.isWrittenOnlyByOneUptime(column) &&
+          (accessControl[key]?.update || []).length > 0,
+      );
+    });
+  }
+
+  /*
    * The model each relation of `columns` points at, keyed by the column a
    * caller writes: a many-to-one relation's id column (`labelId` for
    * `label`), and a relation list itself (`labels`).
@@ -1289,9 +1318,11 @@ export class ModelSchema extends BaseSchema {
    * columns marked canReadOnRelationQuery, which any reader of the relation
    * may read, and the ids and times), of a type that orders. Not a secret,
    * whose stored value orders nothing a person reads, nor a column kept to
-   * its owner (OwnerOnlyColumn), which a relation read refuses most callers.
-   * The fields SortValidator's refusals offer through a relation are of
-   * these.
+   * its owner (OwnerOnlyColumn), which a relation read refuses most callers,
+   * nor a person's account dates (AccountDateColumns), which SortValidator
+   * refuses as an order through a relation to all but OneUptime and a
+   * master admin (#9823). The fields SortValidator's refusals offer through
+   * a relation are of these.
    */
   public static getRelationSortFields(
     modelType: new () => DatabaseBaseModel,
@@ -1317,7 +1348,8 @@ export class ModelSchema extends BaseSchema {
         !this.isSecretColumn(column) &&
         !column.hashed &&
         !column.encrypted &&
-        !isOwnerOnlyColumn(model, key)
+        !isOwnerOnlyColumn(model, key) &&
+        !isAccountDateColumn(model.tableName, key)
       );
     });
 

@@ -129,7 +129,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de excepciones tienen seis clases de **Tipo de filtro**: **Número de excepciones**, el número de excepciones que coincidieron en la ventana, y **Excepciones nuevas**, **Excepciones con regresión**, **Aumento de excepciones (en %)**, **Sesiones con excepciones (en %)** y **Sesiones**, descritos más abajo. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y un **Valor**.
+Los criterios de un monitor de excepciones tienen ocho clases de **Tipo de filtro**: **Número de excepciones**, el número de excepciones que coincidieron en la ventana, y **Excepciones nuevas**, **Excepciones con regresión**, **Aumento de excepciones (en %)**, **Sesiones con excepciones (en %)**, **Sesiones**, **Instalaciones con excepciones (en %)** e **Instalaciones**, descritos más abajo. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de excepciones está… |
 | --- | --- |
@@ -184,6 +184,19 @@ Una aplicación instalada en miles de teléfonos siempre tiene algunos fallos, a
 | **Sesiones** | Las sesiones de la ventana: los `session.id` distintos de los spans de los servicios del monitor. Combínalo con la proporción, para que una proporción calculada sobre unas pocas sesiones no alerte. |
 
 Con **Solo excepciones no controladas** activado y los tipos `ANR` y `Hang` excluidos, la proporción es la tasa de fallos de una aplicación móvil. La recomendación **App Crash Rate** de una aplicación móvil alerta cuando falla más del 1,09 % de las sesiones de una hora, la tasa que Android vitals considera mal comportamiento, siempre que la hora tenga al menos 250 sesiones. **App ANR Rate** cuenta solo `ANR` y `Hang`, por encima del 0,47 %. Para escribir tú mismo una regla así, elige **Una proporción de sesiones** en **Alertar sobre** de **Cuándo alertar**.
+
+## Una proporción de instalaciones
+
+A lo largo de un día, la tasa que Android vitals evalúa y que muestra Play Console es la proporción de las instalaciones de una aplicación que tuvieron un fallo: alguien cuya aplicación falla cinco veces es una sola instalación con fallos. Para una aplicación móvil cuya telemetría identifica su instalación, un monitor de excepciones puede alertar sobre esa proporción, junto a la proporción de sesiones o en su lugar.
+
+| Tipo de filtro | Qué lee en la ventana |
+| --- | --- |
+| **Instalaciones con excepciones (en %)** | La proporción de las instalaciones de la ventana en las que ocurrió una excepción coincidente. Sin ninguna instalación en la ventana no hay proporción, y ningún criterio sobre ella coincide. |
+| **Instalaciones** | Las instalaciones de la ventana: las instalaciones distintas que nombran los spans de los servicios del monitor. Combínalo con la proporción, para que una proporción calculada sobre unas pocas instalaciones no alerte. |
+
+Una instalación es lo que indica el recurso de la aplicación: el `app.installation.id` que definen OpenTelemetry Android 1.1 y posteriores o, si no, el `device.id` de una aplicación de iOS, su identificador de proveedor. Una instalación de Android termina cuando se desinstala la aplicación, así que una reinstalación es una instalación nueva. Una de iOS dura mientras alguna de las aplicaciones del proveedor siga en el dispositivo, así que reinstalar la única es una instalación nueva, y reinstalar una de dos no lo es. Una instalación es de la ventana cuando su aplicación envió un span en ella. Un fallo cuenta aunque su instalación no haya enviado ninguno, como ocurre con un fallo de iOS que MetricKit informa un día después, y la proporción nunca supera el 100 %.
+
+**Daily Crash Rate** alerta cuando falla más del 1,09 % de al menos 250 instalaciones en un día, y **Daily ANR Rate** cuando más del 0,47 % de ellas tiene un ANR o un bloqueo. Para escribir tú mismo una regla así, elige **Una proporción de instalaciones** en **Alertar sobre** de **Cuándo alertar**.
 
 ## Picos frente a lo normal
 

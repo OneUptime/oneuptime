@@ -10,9 +10,11 @@ npm run test-postmortem-rules-ui
 `PostmortemRules/Fixture/server.js` bundles the real **Incidents → AI →
 Settings** page with the Dashboard's esbuild config, Tailwind, theme and font,
 over in-memory records. Only ModelAPI data access, the project's plan and the
-user's permission snapshot are replaced, and every create, update and delete
-the page sends is recorded, so the tests check what was sent as well as what
-was drawn.
+user's permission snapshot are replaced, and every create, update, move and
+delete the page sends is recorded, so the tests check what was sent as well as
+what was drawn. A drop is a move (`POST <list>/:id/move`): the rule takes the
+place of the rule it lands on and the list is numbered again, as the server
+does it.
 
 It covers the **Postmortem rules** table under **More settings**: the
 **Draft a postmortem when an incident resolves** switch staying the only way to

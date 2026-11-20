@@ -6,7 +6,7 @@ Elke opdracht van de CLI `oneuptime`, met zijn argumenten, opties en standaardwa
 - [Globale opties](#globale-opties): De opties die elke opdracht neemt.
 - [Inloggen en contexten](#inloggen-en-contexten): login en de context-opdrachten.
 - [Bronopdrachten](#opdrachten-voor-bronnen): De bewerkingen, velden en acties van elke bron.
-- [Andere opdrachten](#andere-opdrachten): deploy, dbt upload, data-checks apply, whoami, resources, version en help.
+- [Andere opdrachten](#andere-opdrachten): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version en help.
 :::
 
 ## De opdrachten
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Toont records, de nieuwste eerst. Labels worden in plaats daarvan op naam getoond, genummerde labels eerst (`2. Team` vóór `10. Owner`).
+Toont records, de nieuwste eerst. Labels worden in plaats daarvan op naam getoond, genummerde labels eerst (`2. Team` vóór `10. Owner`). Records die je door slepen ordent, zoals incidentstatussen, worden in die volgorde getoond.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | Nee | De naam van het dbt-project, alleen nodig als er geen manifest wordt verstuurd | Het project van het manifest |
 | `--ingestion-key <key>` | Nee | Een telemetrie-ingestiesleutel van het project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+Stuurt de dSYM's van een iOS-app na een build, vanuit CI of een buildfase in Xcode, zodat de frames van de crashes en vastlopers ervan in **Uitzonderingen** naar hun functies worden genoemd en van de ene release naar de volgende op die functies worden gegroepeerd. Hij leest elke dSYM op je computer: een `.dSYM`-bundel, een map ervan zoals de map `dSYMs` van een archief, een zip ervan zoals App Store Connect ze geeft, of het DWARF-bestand van een dSYM. Hij stuurt alleen de UUID, de architectuur en de functienamen van elk binair bestand en schrijft met een telemetrie-ingestiesleutel, niet met een API-sleutel. Een binair bestand waaruit de functies zijn verwijderd, wordt met een waarschuwing overgeslagen. Zie [Je dSYM's uploaden](/docs/rum/mobile-setup#je-dsyms-uploaden).
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| Optie | Verplicht | Wat het is | Standaard |
+| --- | --- | --- | --- |
+| `--app <name>` | Nee | De app waarvoor ze zijn, als zijn `service.name`, die naast ze wordt bewaard | |
+| `--ingestion-key <key>` | Nee | Een telemetrie-ingestiesleutel van het project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 Laat de gegevenscontroles van het project overeenkomen met een YAML-bestand, zodat ze in een repository worden bewaard en als code worden beoordeeld. Een fout ergens in het bestand past niets toe en eindigt met een foutmelding. Het formaat van het bestand staat in [Controles en reconciliaties](/docs/data-observability/checks).
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | De API-sleutel, als geen vlag `--api-key` er een geeft |
 | `ONEUPTIME_URL` | Het adres van je OneUptime, als geen vlag `--url` er een geeft |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | De telemetrie-ingestiesleutel waarmee `oneuptime deploy` schrijft, als geen vlag `--ingestion-key` er een geeft |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | De telemetrie-ingestiesleutel waarmee `oneuptime deploy`, `oneuptime dbt upload` en `oneuptime dsym upload` schrijven, als geen vlag `--ingestion-key` er een geeft |
 | `NO_COLOR` | Ingesteld op een willekeurige waarde, zet hij kleuren uit |
 
 ## Bestanden

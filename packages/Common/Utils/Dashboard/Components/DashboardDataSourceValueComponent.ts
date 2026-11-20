@@ -4,6 +4,7 @@ import DashboardDataSourceValueComponent, {
 import { DashboardValueTrendDirection } from "../../../Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
@@ -42,7 +43,8 @@ export default class DashboardDataSourceValueComponentUtil extends DashboardBase
         title: "",
         query: {
           id: ObjectID.generate().toString(),
-          dataSourceId: "",
+          // A new query reads the project's own metrics (issue #7713).
+          dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
           query: "",
         },
         reduce: DataSourceValueReduce.Last,

@@ -6,7 +6,7 @@ Jeder Befehl der CLI `oneuptime`, mit seinen Argumenten, Optionen und Standardwe
 - [Globale Optionen](#globale-optionen): Die Optionen, die jeder Befehl nimmt.
 - [Anmeldung und Kontexte](#anmeldung-und-kontexte): login und die context-Befehle.
 - [Ressourcenbefehle](#ressourcenbefehle): Die Operationen, Felder und Aktionen jeder Ressource.
-- [Weitere Befehle](#weitere-befehle): deploy, dbt upload, data-checks apply, whoami, resources, version und help.
+- [Weitere Befehle](#weitere-befehle): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version und help.
 :::
 
 ## Die Befehle
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -103,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Listet Datensätze auf, die neuesten zuerst. Beschriftungen werden stattdessen nach Namen aufgelistet, nummerierte Beschriftungen zuerst (`2. Team` vor `10. Owner`).
+Listet Datensätze auf, die neuesten zuerst. Beschriftungen werden stattdessen nach Namen aufgelistet, nummerierte Beschriftungen zuerst (`2. Team` vor `10. Owner`). Datensätze, die Sie per Ziehen ordnen, etwa Vorfallsstatus, werden in dieser Reihenfolge aufgelistet.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | Nein | Der Name des dbt-Projekts, nur nötig, wenn kein Manifest gesendet wird | Das Projekt des Manifests |
 | `--ingestion-key <key>` | Nein | Ein Telemetrie-Ingestion-Schlüssel des Projekts | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+Sendet die dSYMs einer iOS-App nach einem Build, aus einer CI oder einer Build-Phase von Xcode, damit die Frames ihrer Abstürze und Hänger in **Ausnahmen** nach ihren Funktionen benannt und von einem Release zum nächsten nach ihnen gruppiert werden. Der Befehl liest jedes dSYM auf Ihrem Rechner: ein `.dSYM`-Bundle, einen Ordner davon wie den Ordner `dSYMs` eines Archivs, ein Zip davon, wie App Store Connect sie ausgibt, oder die DWARF-Datei eines dSYM. Er sendet nur die UUID, die Architektur und die Funktionsnamen jeder Binärdatei und schreibt mit einem Telemetrie-Ingestion-Schlüssel, nicht mit einem API-Schlüssel. Eine Binärdatei, aus der ihre Funktionen entfernt wurden, wird mit einer Warnung ausgelassen. Siehe [Ihre dSYMs hochladen](/docs/rum/mobile-setup#ihre-dsyms-hochladen).
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| Option | Erforderlich | Was es ist | Standard |
+| --- | --- | --- | --- |
+| `--app <name>` | Nein | Die App, zu der sie gehören, angegeben als ihr `service.name` und neben ihnen gespeichert | |
+| `--ingestion-key <key>` | Nein | Ein Telemetrie-Ingestion-Schlüssel des Projekts | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 Bringt die Datenprüfungen des Projekts mit einer YAML-Datei in Übereinstimmung, damit sie in einem Repository liegen und wie Code geprüft werden. Ein Fehler irgendwo in der Datei wendet nichts an und beendet mit einem Fehler. Das Format der Datei steht unter [Prüfungen und Abgleiche](/docs/data-observability/checks).
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | Der API-Schlüssel, wenn kein Flag `--api-key` einen angibt |
 | `ONEUPTIME_URL` | Die Adresse Ihrer OneUptime-Instanz, wenn kein Flag `--url` eine angibt |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Der Telemetrie-Ingestion-Schlüssel, mit dem `oneuptime deploy` schreibt, wenn kein Flag `--ingestion-key` einen angibt |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Der Telemetrie-Ingestion-Schlüssel, mit dem `oneuptime deploy`, `oneuptime dbt upload` und `oneuptime dsym upload` schreiben, wenn kein Flag `--ingestion-key` einen angibt |
 | `NO_COLOR` | Auf einen beliebigen Wert gesetzt, schaltet sie Farben aus |
 
 ## Dateien

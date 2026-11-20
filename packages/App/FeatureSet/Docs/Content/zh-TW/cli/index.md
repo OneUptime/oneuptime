@@ -103,6 +103,7 @@ oneuptime resources
 | `oneuptime deploy` | 為圖表和 OneUptime AI 記錄一次部署或其他變更 | [部署與變更](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | 讓專案的資料檢查與你儲存庫中的一個檔案一致 | [命令參考](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | 在建置之後把 dbt 專案的產物傳送到資料可觀測性 | [命令參考](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | 在建置之後傳送 iOS 應用程式的 dSYM，讓它的當機和卡頓按函式顯示 | [行動端設定](/docs/rum/mobile-setup#上傳-dsym) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 處理一種記錄 | [資源操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 列出資源的欄位以及設定它們的旗標 | [資源操作](/docs/cli/resource-operations#檢視資源的欄位) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 對事件、警示和排定維護執行儀表板按鈕所做的動作 | [資源操作](/docs/cli/resource-operations#確認解決和新增備註) |

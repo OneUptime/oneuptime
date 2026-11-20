@@ -886,6 +886,24 @@ jobs:
       - name: Build the estate
         run: bash Tests/Ops/openstack-e2e/estate.sh
 
+      # The clean machines are containers on this runner, and the runner's AppArmor profile for
+      # unix_chkpwd attaches to every unix_chkpwd by its path, a container's too. It allows neither
+      # dac_read_search nor dac_override, so a unix_chkpwd confined by it cannot read a shadow file
+      # only root may read: Rocky's is 0000 (Ubuntu's is the shadow group's, which it is in). From
+      # Rocky 9.9's image, pam_unix asks unix_chkpwd for every shadow entry (CVE-2024-10041), so
+      # sudo on the Rocky machine failed with "PAM account management error" (17.1.0, 2026-11-19;
+      # the kernel logged each apparmor="DENIED" capname="dac_read_search"). A real Rocky host has
+      # no such profile, and this runner is thrown away after the job.
+      - name: Let the machines' unix_chkpwd read their own shadow file
+        run: |
+          if sudo grep -q '^unix-chkpwd ' /sys/kernel/security/apparmor/profiles 2>/dev/null; then
+            sudo apparmor_parser -R /etc/apparmor.d/unix-chkpwd
+          fi
+          if sudo grep -q '^unix-chkpwd ' /sys/kernel/security/apparmor/profiles 2>/dev/null; then
+            echo "::error::AppArmor's unix-chkpwd profile is still loaded"
+            exit 1
+          fi
+
       - name: Install the agent the way its docs say, and break it
         run: bash Tests/Ops/openstack-e2e/agent-install.sh
         env:

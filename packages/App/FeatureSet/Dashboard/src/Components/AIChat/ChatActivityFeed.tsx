@@ -458,6 +458,15 @@ export const friendlyToolNames: { [key: string]: string } = {
   add_monitors_to_status_page: translationKey(
     "Adding monitors to a status page",
   ),
+  /*
+   * People added to a policy the project has (#7244), how pages reach the
+   * person asking (#7454), invitations (#7242) and a service's recommended
+   * monitors (#7243).
+   */
+  add_to_on_call_policy: translationKey("Adding people to an on-call policy"),
+  set_how_to_reach_me: translationKey("Setting how pages reach you"),
+  invite_people: translationKey("Inviting people to this project"),
+  set_up_service_monitor: translationKey("Creating a recommended monitor"),
   // The rest of a long output a command printed.
   read_tool_output: translationKey("Reading the rest of an output"),
   run_kubectl: translationKey("Running kubectl on the cluster"),

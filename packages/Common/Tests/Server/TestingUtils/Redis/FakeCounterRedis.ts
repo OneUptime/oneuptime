@@ -16,6 +16,11 @@
  * (Utils/RateLimit/ClientRateLimitCounterValkey.test.ts) checks the same
  * behaviour against a real server.
  *
+ * It also answers SET (with EX and NX, as InvitationEmailWindow sends it) and
+ * DEL, on plain values that expire by the clock tests mock (Date.now): SET
+ * answers "OK", or null when NX finds the key there; DEL how many it removed.
+ * Each is a round trip of its own in `sent`, and `failCommand` fails it.
+ *
  * It also runs the one script ClientRateLimitCounter.countDifferent sends
  * (DIFFERENT_VALUES_SCRIPT), as EVAL does: a set of values per key, checked
  * and added to in one step, each set's TTL set by the call that made it.
@@ -35,7 +40,9 @@ export type FakeCounterCommandName =
   | "decr"
   | "get"
   | "expire"
-  | "eval";
+  | "eval"
+  | "set"
+  | "del";
 
 export interface FakeCounterCommand {
   name: FakeCounterCommandName;
@@ -167,6 +174,103 @@ export default class FakeCounterRedis {
     string,
     unknown
   >();
+
+  // The plain values SET writes, with when each expires (null: never).
+  public readonly values: Map<
+    string,
+    { value: string; expiresAtMs: number | null }
+  > = new Map<string, { value: string; expiresAtMs: number | null }>();
+
+  /*
+   * SET key value [EX seconds] [NX]: "OK", or null when NX finds a live key.
+   * Rejects as a dropped connection would when failCommand says so.
+   */
+  public async set(
+    key: string,
+    value: string,
+    ...options: Array<string | number>
+  ): Promise<string | null> {
+    const command: FakeCounterCommand = { name: "set", key: key };
+
+    this.sent.push([command]);
+
+    const failure: Error | null = this.failCommand
+      ? this.failCommand(command)
+      : null;
+
+    if (failure) {
+      throw failure;
+    }
+
+    let ttlSeconds: number | null = null;
+    let onlyIfAbsent: boolean = false;
+
+    for (let index: number = 0; index < options.length; index++) {
+      const option: string = String(options[index]).toUpperCase();
+
+      if (option === "EX") {
+        ttlSeconds = Number(options[index + 1]);
+        index++;
+      } else if (option === "NX") {
+        onlyIfAbsent = true;
+      }
+    }
+
+    if (onlyIfAbsent && this.readValue(key) !== null) {
+      return null;
+    }
+
+    this.values.set(key, {
+      value: String(value),
+      expiresAtMs: ttlSeconds === null ? null : Date.now() + ttlSeconds * 1000,
+    });
+
+    return "OK";
+  }
+
+  // DEL key [key ...]: how many live keys it removed.
+  public async del(...keys: Array<string>): Promise<number> {
+    const command: FakeCounterCommand = { name: "del", key: keys[0] || "" };
+
+    this.sent.push([command]);
+
+    const failure: Error | null = this.failCommand
+      ? this.failCommand(command)
+      : null;
+
+    if (failure) {
+      throw failure;
+    }
+
+    let removed: number = 0;
+
+    for (const key of keys) {
+      if (this.readValue(key) !== null) {
+        removed++;
+      }
+
+      this.values.delete(key);
+    }
+
+    return removed;
+  }
+
+  // A plain value SET wrote, or null when there is none or it has expired.
+  public readValue(key: string): string | null {
+    const stored: { value: string; expiresAtMs: number | null } | undefined =
+      this.values.get(key);
+
+    if (!stored) {
+      return null;
+    }
+
+    if (stored.expiresAtMs !== null && stored.expiresAtMs <= Date.now()) {
+      this.values.delete(key);
+      return null;
+    }
+
+    return stored.value;
+  }
 
   public pipeline(): FakeCounterPipeline {
     return new FakeCounterPipeline(this);
@@ -332,11 +436,12 @@ export default class FakeCounterRedis {
     return this.counters.get(key) || 0;
   }
 
-  // Every key there is: the counters', then the sets'.
+  // Every key there is: the counters', the sets', then the plain values'.
   public keys(): Array<string> {
     return [
       ...Array.from(this.counters.keys()),
       ...Array.from(this.sets.keys()),
+      ...Array.from(this.values.keys()),
     ];
   }
 
@@ -361,6 +466,7 @@ export default class FakeCounterRedis {
     this.sets.clear();
     this.expiries.clear();
     this.storedValues.clear();
+    this.values.clear();
     this.sent.length = 0;
     this.failNextExec = null;
     this.answerNextExecWith = undefined;
