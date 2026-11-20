@@ -1241,6 +1241,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
         "packages/App/FeatureSet/Telemetry/API/DbtArtifactsIngest.ts": 1,
+        // #9922: an iOS app's dSYMs, uploaded as its source maps are.
+        "packages/App/FeatureSet/Telemetry/API/DsymIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Fluent.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/GcpPubSub.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/HostCollectorOpAmp.ts": 1,
