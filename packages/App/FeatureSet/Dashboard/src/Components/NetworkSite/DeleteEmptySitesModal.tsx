@@ -14,6 +14,7 @@ import {
   EMPTY_SITES_KEPT,
   EMPTY_SITES_NOT_DELETED,
   EMPTY_SITES_NOT_LISTED,
+  EMPTY_SITE_NAMES_SHOWN,
   NO_EMPTY_SITES,
 } from "./DeleteEmptySitesWords";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -42,9 +43,6 @@ import React, {
  * person confirms. A site something went into since it was listed is kept,
  * and the toast says so.
  */
-
-// The names listed under the question; the rest are counted.
-export const EMPTY_SITE_NAMES_SHOWN: number = 10;
 
 export interface ComponentProps {
   onClose: () => void;

@@ -9,6 +9,9 @@ import {
  * translation key, or a plural template translated where it is drawn.
  */
 
+// The names listed under the question; the rest are counted.
+export const EMPTY_SITE_NAMES_SHOWN: number = 10;
+
 // The action, in the Sites list's ⋯ menu.
 export const DELETE_EMPTY_SITES_ACTION: string =
   translationKey("Delete Empty Sites");
@@ -20,7 +23,7 @@ export const DELETE_EMPTY_SITES_TITLE: PluralTemplate = {
 
 // A dialog's description: at most 150 characters (ShortDescriptionsGuard).
 export const DELETE_EMPTY_SITES_DESCRIPTION: string = translationKey(
-  "Sites with no devices, no sites under them, and no endpoint, link, rule or maintenance event that names them.",
+  "Sites with no devices and no sites under them, that no endpoint, link, rule or maintenance event uses.",
 );
 
 export const DELETE_EMPTY_SITES_QUESTION: PluralTemplate = {
@@ -36,7 +39,7 @@ export const DELETE_EMPTY_SITES_BUTTON: PluralTemplate = {
 
 // Nothing to delete: the dialog says why, and has only Close.
 export const NO_EMPTY_SITES: string = translationKey(
-  "No site is empty. Every site has a device, a site under it, or an endpoint, link, rule or maintenance event that names it.",
+  "No site is empty. Every site has devices or sites under it, or an endpoint, link, rule or maintenance event uses it.",
 );
 
 // What a delete did, in a toast.
@@ -50,8 +53,8 @@ export const EMPTY_SITES_DELETED: PluralTemplate = {
  * them, after the dialog listed them.
  */
 export const EMPTY_SITES_KEPT: PluralTemplate = {
-  one: "{{count}} site was kept: something is in it or names it now.",
-  other: "{{count}} sites were kept: something is in them or names them now.",
+  one: "{{count}} site was kept: it is not empty any more.",
+  other: "{{count}} sites were kept: they are not empty any more.",
 };
 
 // What failed, said first for a failure nobody explained.
