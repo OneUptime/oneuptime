@@ -90,6 +90,19 @@ jest.mock("../../../FeatureSet/Identity/API/MobileSsoExchange", () => {
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
+// The sign-ins of a dashboard's and a form's private users (#10250, #10249).
+jest.mock(
+  "../../../FeatureSet/Identity/API/DashboardPrivateUserAuthentication",
+  () => {
+    return {
+      __esModule: true,
+      default: { coreRouter: "dashboard-private-user" },
+    };
+  },
+);
+jest.mock("../../../FeatureSet/Identity/API/FormPrivateUserAuthentication", () => {
+  return { __esModule: true, default: { coreRouter: "form-private-user" } };
+});
 
 type MountRecord = { paths: unknown; router: unknown };
 
@@ -392,6 +405,8 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
         return entry.router;
       }),
       { coreRouter: "status-page" },
+      { coreRouter: "dashboard-private-user" },
+      { coreRouter: "form-private-user" },
     ]);
   });
 
@@ -425,6 +440,8 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       EE_SCIM_ROUTER,
       EE_VERCEL_SIGN_IN_ROUTER,
       { coreRouter: "status-page" },
+      { coreRouter: "dashboard-private-user" },
+      { coreRouter: "form-private-user" },
     ]);
   });
 
