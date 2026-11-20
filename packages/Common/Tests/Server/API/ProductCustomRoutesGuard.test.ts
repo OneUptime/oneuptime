@@ -372,8 +372,13 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataObservability],
     leftAlone: {},
   },
+  /*
+   * And Code, for Fix with AI on an issue: it starts a task in Code, refused
+   * while Code is off as every route that asks OneUptime AI for a code
+   * change is (#10362).
+   */
   "packages/Common/Server/API/DataSecurityAPI.ts": {
-    products: [ProductKey.DataSecurity],
+    products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
   "packages/Common/Server/API/CloudConnectionAPI.ts": {

@@ -2543,8 +2543,12 @@ describe("Data Security Integrations", () => {
       "Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar)",
     );
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "message: buildDataSecurityFixRequest(",
+      "return buildDataSecurityFixRequest(",
     );
+    // The request is what the Code task it starts is asked (#10362).
+    expect(
+      source("Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask.ts"),
+    ).toContain("message: await data.buildMessage(),");
     expect(section(page, "## OneUptime AI")).toContain(
       "Terraform, CloudFormation, Bicep or the like",
     );
