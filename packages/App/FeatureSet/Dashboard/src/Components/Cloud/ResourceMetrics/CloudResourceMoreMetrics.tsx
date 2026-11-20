@@ -389,6 +389,19 @@ const CloudResourceMoreMetrics: FunctionComponent<ComponentProps> = (
             );
             void load();
           }}
+          onKept={(added: Array<CloudAddedMetric>) => {
+            const name: string = removing.displayName || removing.name;
+
+            setRemoving(null);
+            props.onAddedMetricsChange?.(added);
+            Toast.success(
+              translator.translateTemplate(
+                "{{metric}} is now read only for the resources its readers read.",
+                { metric: name },
+              ),
+            );
+            void load();
+          }}
         />
       ) : (
         <></>
