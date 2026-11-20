@@ -1092,9 +1092,10 @@ describe("Local Development, against the scripts it runs", () => {
         }
       )["service"],
     ).toBe("ingress");
+    // Ports 80 and 443 even where config.env leaves them empty (#10170).
     expect(ingress["ports"]).toEqual([
-      "${ONEUPTIME_HTTP_PORT}:7849",
-      "${STATUS_PAGE_HTTPS_PORT}:7850",
+      "${ONEUPTIME_HTTP_PORT:-80}:7849",
+      "${STATUS_PAGE_HTTPS_PORT:-443}:7850",
     ]);
     expect(config.get("ONEUPTIME_HTTP_PORT")).toBe("80");
     expect(config.get("STATUS_PAGE_HTTPS_PORT")).toBe("443");
@@ -1450,6 +1451,17 @@ describe("Docker Compose, against the compose files and scripts", () => {
         expect(inlineCodes(row[3] as string)).toContain("127.0.0.1");
       }
 
+      if (unwrap(row[1] as string) === "ingress") {
+        // The row's port even where config.env leaves the setting empty (#10170).
+        expect(
+          (base["ingress"]?.["ports"] as Array<string>).filter(
+            (entry: string): boolean => {
+              return entry.startsWith(`\${${settings[0]}:-${row[0]}}:`);
+            },
+          ),
+        ).toHaveLength(1);
+      }
+
       expect({
         port: row[0],
         setting: config.get(settings[0] as string),
@@ -1457,8 +1469,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     }
 
     expect(base["ingress"]?.["ports"]).toEqual([
-      "${ONEUPTIME_HTTP_PORT}:7849",
-      "${STATUS_PAGE_HTTPS_PORT}:7850",
+      "${ONEUPTIME_HTTP_PORT:-80}:7849",
+      "${STATUS_PAGE_HTTPS_PORT:-443}:7850",
     ]);
     expect(valueAt(base, "probe-1.environment.PORT")).toBe(
       "${GLOBAL_PROBE_1_PORT}",
@@ -1643,7 +1655,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(check).toContain(
       'RESOLVE="localhost:${INGRESS_PORT}:${resolved_address}"',
     );
-    expect(check).toContain("setting=$(read_setting ONEUPTIME_HTTP_PORT)");
+    // ONEUPTIME_HTTP_PORT, 80 when it names no port, as Compose publishes it.
+    expect(check).toContain("read_published ONEUPTIME_HTTP_PORT 80");
     expect(check).toContain('echo "🚀 OneUptime is up! 🚀"');
     expect(readSource("endpointStatus")).toContain("Maximum retries reached");
 
@@ -1659,6 +1672,28 @@ describe("Docker Compose, against the compose files and scripts", () => {
     );
     // The proxy steps restart with npm start; nobody runs the check by hand.
     expect(page).not.toContain("bash Tests/Scripts/status-check.sh");
+  });
+
+  // #10169: and HOST over HTTPS, where the ingress serves it itself.
+  it("with PROVISION_SSL=true the status check also checks HOST over HTTPS where STATUS_PAGE_HTTPS_PORT publishes the ingress, as the page says", () => {
+    const check: string = readSource("statusCheck");
+
+    expect(page).toContain(
+      "With `PROVISION_SSL=true` it also checks `HOST` over HTTPS, where `STATUS_PAGE_HTTPS_PORT` publishes the ingress.",
+    );
+    expect(check).toContain(
+      'if [ "$(read_setting PROVISION_SSL)" = "true" ] && [ -n "$https_name" ]; then',
+    );
+    expect(check).toContain(
+      'https_name=$(https_name_of "$(read_setting HOST)")',
+    );
+    expect(check).toContain("read_published STATUS_PAGE_HTTPS_PORT 443");
+    expect(check).toContain(
+      'HTTPS_URL="https://$(with_port "$https_name" "$PUBLISHED_PORT" 443)/status/ready"',
+    );
+    expect(check).toContain(
+      'bash "$scriptDir/endpoint-status.sh" "App (HTTPS)" "$HTTPS_URL" "$HTTPS_RESOLVE" "$HTTPS_CHECKED_AT" STATUS_PAGE_HTTPS_PORT',
+    );
   });
 
   /*

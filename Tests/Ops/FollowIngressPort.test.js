@@ -417,6 +417,33 @@ describe("followIngressPort on config.env", () => {
     ]);
   });
 
+  /*
+   * Compose gets `export NAME=value` as NAME (WithConfig.sh): read as a
+   * setting of that name, the port and the probe's URL both, and the export
+   * kept on the line it moves.
+   */
+  test("an export before a name is read as WithConfig.sh hands it to Compose, and stays", () => {
+    const before = [
+      "export ONEUPTIME_HTTP_PORT=8080",
+      "export GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost",
+      "  export   GLOBAL_PROBE_2_ONEUPTIME_URL = http://localhost",
+      "",
+    ].join("\n");
+    const result = followIngressPort(before);
+
+    expect(result.moved).toEqual([
+      "GLOBAL_PROBE_1_ONEUPTIME_URL",
+      "GLOBAL_PROBE_2_ONEUPTIME_URL",
+    ]);
+    expect(result.contents.split("\n")).toEqual([
+      "export ONEUPTIME_HTTP_PORT=8080",
+      "export GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080",
+      "  export   GLOBAL_PROBE_2_ONEUPTIME_URL =http://localhost:8080",
+      "",
+    ]);
+    expect(followIngressPort(result.contents).moved).toEqual([]);
+  });
+
   test("a second run changes nothing", () => {
     const first = followIngressPort(
       withSetting(TEMPLATE, "ONEUPTIME_HTTP_PORT", "8080"),
