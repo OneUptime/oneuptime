@@ -73,7 +73,9 @@ Generation compiles the provider twice: `go build`, then the test binary
 the docs step runs. Go runs both with a soft memory limit, `GOMEMLIMIT`, set
 in `Core/GoCommand.ts`, unless you set your own (`GOMEMLIMIT=off` turns it
 off): the provider's `internal/provider` is one Go package of ~1,000 files,
-and without the limit the compiler alone takes ~15 GB.
+and without the limit the compiler alone takes ~15 GB. After each Go command,
+generation prints the most memory it took with the generator (`📈 go build
+...`), read from `/proc` on Linux; in CI, more than 13 GiB is a warning.
 
 Generation runs the generator without type-checking it (ts-node's
 transpile-only mode), which keeps about 1 GiB of Node.js out of memory while
