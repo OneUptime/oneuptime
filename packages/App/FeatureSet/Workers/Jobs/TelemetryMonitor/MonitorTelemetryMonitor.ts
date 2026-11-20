@@ -2859,18 +2859,19 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs:
-      kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs:
+        kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: kubernetesMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             kubernetesMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -3047,17 +3048,18 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs: dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: dockerMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             dockerMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -3221,17 +3223,18 @@ export const monitorHost: MonitorHostFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: hostMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   let seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: hostMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             hostMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -3428,17 +3431,18 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs: podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: podmanMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             podmanMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -3678,17 +3682,19 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs: proxmoxMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs:
+        proxmoxMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: proxmoxMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             proxmoxMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -3905,18 +3911,19 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs:
-      openstackMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs:
+        openstackMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const allSeries: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: openstackMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             openstackMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -4138,17 +4145,18 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs: vmwareMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: vmwareMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             vmwareMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -4357,17 +4365,18 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   let seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             iotMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -4708,18 +4717,19 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs:
-      dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs:
+        dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: dockerSwarmMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             dockerSwarmMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -4941,17 +4951,18 @@ export const monitorCeph: MonitorCephFunction = async (data: {
       nativeUnitByMetricName: nativeUnitsByMetricName,
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs: cephMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: cephMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: cephMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             cephMonitorConfig.metricViewConfig.formulaConfigs || [],
@@ -5176,18 +5187,19 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
       ),
     });
 
-  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
-    queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
-    formulaConfigs:
-      storageArrayMonitorConfig.metricViewConfig.formulaConfigs || [],
-    aggregatedResults: resultsInDisplayUnit,
-    projectId: data.projectId,
-    zeroFill: zeroFill,
-  });
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs:
+        storageArrayMonitorConfig.metricViewConfig.formulaConfigs || [],
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
 
   const seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
-      ? buildSeriesBreakdown({
+      ? await buildSeriesBreakdownInSlices({
           queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
           formulaConfigs:
             storageArrayMonitorConfig.metricViewConfig.formulaConfigs || [],
