@@ -307,6 +307,112 @@ export function describePlaybookTarget(target: PlaybookTarget): string {
 }
 
 /*
+ * The action that undoes each containment action, as the server pairs them
+ * (Common SecurityPlaybookAction's `undoes`): a target the step contained is
+ * released with it from the case - the account unsuspended, the host's
+ * containment lifted, the device released.
+ */
+export const SECURITY_PLAYBOOK_UNDO_ACTIONS: Readonly<Record<string, string>> =
+  {
+    "Suspend Okta User": "Unsuspend Okta User",
+    "Contain CrowdStrike Host": "Lift CrowdStrike Containment",
+    "Isolate Defender Device": "Release Defender Device",
+    "Disable Entra ID User": "Enable Entra ID User",
+    "Suspend Google Workspace User": "Unsuspend Google Workspace User",
+  };
+
+// The run statuses a step's target cannot be undone in: the run is still going.
+const STILL_RUNNING: ReadonlyArray<string> = ["Queued", "Running"];
+
+/*
+ * A user or host a playbook step contained, which the case's screen can
+ * release with the step's undo (POST /security-playbook-run/:runId/undo).
+ */
+export interface ContainedPlaybookTarget {
+  runId: string;
+  // The step's id in the run, which its undo names.
+  stepId: string;
+  // 1 for the run's first step.
+  stepNumber: number;
+  playbookName: string;
+  // "Suspend the user in Okta".
+  stepTitle: string;
+  // "Unsuspend the user in Okta".
+  undoTitle: string;
+  target: PlaybookTarget;
+}
+
+/*
+ * What the case's runs contained and can still be undone, newest run
+ * first as the runs are read: each target a containment step acted on
+ * (Done), of a run that is not still running - the server refuses an undo
+ * until a run stops. A target already released, or one the step never
+ * reached, has nothing to undo.
+ */
+export function readContainedPlaybookTargets(
+  runs: Array<PlaybookRunRecord>,
+): Array<ContainedPlaybookTarget> {
+  const contained: Array<ContainedPlaybookTarget> = [];
+
+  for (const run of runs) {
+    const runId: string = readText(run._id);
+
+    if (!runId || STILL_RUNNING.includes(readText(run.status))) {
+      continue;
+    }
+
+    const steps: Array<unknown> = Array.isArray(run.steps) ? run.steps : [];
+    const results: Array<unknown> = Array.isArray(run.stepResults)
+      ? run.stepResults
+      : [];
+
+    steps.forEach((item: unknown, index: number): void => {
+      const step: Record<string, unknown> | null = readRecord(item);
+      const stepId: string = step ? readText(step["id"]) : "";
+      const action: string = step ? readText(step["action"]) : "";
+      const undoAction: string | undefined =
+        SECURITY_PLAYBOOK_UNDO_ACTIONS[action];
+      const result: Record<string, unknown> | null =
+        results
+          .map(readRecord)
+          .find((candidate: Record<string, unknown> | null): boolean => {
+            return Boolean(candidate) && candidate!["stepId"] === stepId;
+          }) || null;
+
+      if (!stepId || !undoAction || !result) {
+        return;
+      }
+
+      for (const target of readPlaybookTargets(result["targets"])) {
+        if (target.state !== "Done") {
+          continue;
+        }
+
+        contained.push({
+          runId,
+          stepId,
+          stepNumber: index + 1,
+          playbookName: readText(run.playbookName).trim(),
+          stepTitle: getPlaybookActionTitle(action),
+          undoTitle: getPlaybookActionTitle(undoAction),
+          target,
+        });
+      }
+    });
+  }
+
+  return contained;
+}
+
+/*
+ * What an undo is asked to confirm, as the dashboard asks it: the target
+ * gets its access back.
+ */
+export function describePlaybookUndo(contained: ContainedPlaybookTarget): string {
+  return `${contained.target.value} gets its access back, undoing step ${contained.stepNumber}. Do it once the threat is gone. It is kept on the case's timeline and in the audit log.`;
+}
+
+/*
  * The targets an approval keeps, as the server reads them: the values of
  * the ticked ones. Undefined for a step that acts on nobody in particular,
  * which the server reads as every target of the step.

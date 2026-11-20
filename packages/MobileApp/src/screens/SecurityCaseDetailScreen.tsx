@@ -22,7 +22,9 @@ import {
   useSecurityCaseStatuses,
 } from "../hooks/useSecurityCases";
 import {
+  useCasePlaybookRuns,
   useCaseWaitingPlaybookRuns,
+  usePlaybookApproval,
   useSecurityCaseDetail,
   useSecurityCaseFeed,
   useSecurityCaseNotes,
@@ -30,7 +32,9 @@ import {
 import {
   createSecurityCaseNote,
   decidePlaybookStep,
+  undoPlaybookTarget,
   updateSecurityCase,
+  type PlaybookApprovalReadout,
   type PlaybookDecision,
 } from "../api/securityCases";
 import {
@@ -59,10 +63,14 @@ import {
   type SecurityEntity,
 } from "../security/caseTerms";
 import {
+  describePlaybookUndo,
   didStartPlaybookRun,
+  readContainedPlaybookTargets,
   readWaitingPlaybookStep,
+  type ContainedPlaybookTarget,
   type WaitingPlaybookStep,
 } from "../security/playbookApproval";
+import { isUuid } from "../security/caseLinks";
 import { getCaseGuidance, type CaseGuidance } from "../security/caseGuidance";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
@@ -96,7 +104,9 @@ import {
   CloseCaseSheet,
 } from "../components/security/CaseChangeSheets";
 import {
+  ContainedTargetsSection,
   PlaybookApprovalCard,
+  PlaybookApprovalDecidedNotice,
   PlaybookDecisionSheet,
 } from "../components/security/PlaybookApproval";
 import type {
@@ -129,6 +139,48 @@ export const CASE_ACTION_MIN_WIDTH: number = 180;
  */
 const AI_TRIAGE_FEED_EVENT: string = "AiTriage";
 
+function isSameId(a: string | null | undefined, b: string | null): boolean {
+  return Boolean(a) && Boolean(b) && String(a).toLowerCase() === b!.toLowerCase();
+}
+
+/*
+ * One step waiting for a decision, with the evidence its chat messages
+ * carry once it is read: what will be done and through what, who asked,
+ * the evidence behind the case and the undo. The card does not wait for
+ * it - Reject and Approve are there at once.
+ */
+function WaitingPlaybookApproval({
+  projectId,
+  step,
+  isOwnRun,
+  busy,
+  onDecide,
+}: {
+  projectId: string;
+  step: WaitingPlaybookStep;
+  isOwnRun: boolean;
+  busy: boolean;
+  onDecide: (decision: PlaybookDecision) => void;
+}): React.JSX.Element {
+  const approvalQuery: ReturnType<typeof usePlaybookApproval> =
+    usePlaybookApproval(projectId, step.runId);
+  // Only the evidence of the step this card asks about.
+  const evidence: PlaybookApprovalReadout | null =
+    approvalQuery.data && approvalQuery.data.stepIndex === step.stepNumber - 1
+      ? approvalQuery.data
+      : null;
+
+  return (
+    <PlaybookApprovalCard
+      step={step}
+      isOwnRun={isOwnRun}
+      busy={busy}
+      onDecide={onDecide}
+      evidence={evidence}
+    />
+  );
+}
+
 /**
  * One security case, as the analyst a page woke reads and works it: any
  * playbook step waiting for their approval first, then who has the case and
@@ -142,6 +194,10 @@ export default function SecurityCaseDetailScreen({
   navigation,
 }: Props): React.JSX.Element {
   const { caseId, projectId } = route.params;
+  // The run a push about an approval named: its approval, first.
+  const pushedRunId: string | null = isUuid(route.params.runId)
+    ? (route.params.runId as string)
+    : null;
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
   const gutters: ContentGutters = useContentGutters();
@@ -166,6 +222,8 @@ export default function SecurityCaseDetailScreen({
     useSecurityCaseNotes(projectId, caseId, exists);
   const runsQuery: ReturnType<typeof useCaseWaitingPlaybookRuns> =
     useCaseWaitingPlaybookRuns(projectId, caseId, exists);
+  const caseRunsQuery: ReturnType<typeof useCasePlaybookRuns> =
+    useCasePlaybookRuns(projectId, caseId, exists);
 
   const [busy, setBusy] = useState<boolean>(false);
   const [sheet, setSheet] = useState<OpenSheet | null>(null);
@@ -174,6 +232,7 @@ export default function SecurityCaseDetailScreen({
     decision: PlaybookDecision;
   } | null>(null);
   const [deciding, setDeciding] = useState<boolean>(false);
+  const [undoing, setUndoing] = useState<ContainedPlaybookTarget | null>(null);
   const [noteModalVisible, setNoteModalVisible] = useState<boolean>(false);
   const [submittingNote, setSubmittingNote] = useState<boolean>(false);
   const isAssignSheetOpen: boolean = sheet?.kind === "assign";
@@ -187,14 +246,49 @@ export default function SecurityCaseDetailScreen({
     prioritiesQuery.data ?? [];
 
   const waitingSteps: Array<WaitingPlaybookStep> = useMemo(() => {
-    return (runsQuery.data ?? [])
+    const steps: Array<WaitingPlaybookStep> = (runsQuery.data ?? [])
       .map((run: SecurityPlaybookRunItem): WaitingPlaybookStep | null => {
         return readWaitingPlaybookStep(run);
       })
       .filter((step: WaitingPlaybookStep | null): boolean => {
         return step !== null;
       }) as Array<WaitingPlaybookStep>;
-  }, [runsQuery.data]);
+
+    // The one the push asked about first, the rest in the order they asked.
+    return [
+      ...steps.filter((step: WaitingPlaybookStep): boolean => {
+        return isSameId(step.runId, pushedRunId);
+      }),
+      ...steps.filter((step: WaitingPlaybookStep): boolean => {
+        return !isSameId(step.runId, pushedRunId);
+      }),
+    ];
+  }, [runsQuery.data, pushedRunId]);
+
+  /*
+   * A push about an approval somebody decided since - here, in Slack,
+   * Microsoft Teams or the dashboard - or whose run stopped waiting: what
+   * became of it, read once the waiting runs are known.
+   */
+  const isPushedRunWaiting: boolean = waitingSteps.some(
+    (step: WaitingPlaybookStep): boolean => {
+      return isSameId(step.runId, pushedRunId);
+    },
+  );
+  const pushedApprovalQuery: ReturnType<typeof usePlaybookApproval> =
+    usePlaybookApproval(
+      projectId,
+      pushedRunId,
+      exists && runsQuery.isSuccess && !isPushedRunWaiting,
+    );
+  const decidedApproval: PlaybookApprovalReadout | null =
+    pushedRunId && runsQuery.isSuccess && !isPushedRunWaiting
+      ? pushedApprovalQuery.data ?? null
+      : null;
+
+  const contained: Array<ContainedPlaybookTarget> = useMemo(() => {
+    return readContainedPlaybookTargets(caseRunsQuery.data ?? []);
+  }, [caseRunsQuery.data]);
 
   const timeline: Array<SecurityCaseFeedItem> = useMemo(() => {
     return (feedQuery.data ?? []).filter(
@@ -216,6 +310,9 @@ export default function SecurityCaseDetailScreen({
         queryClient.invalidateQueries({
           queryKey: ["security-playbook-runs-waiting", projectId],
         }),
+        queryClient.invalidateQueries({
+          queryKey: ["security-playbook-approval", projectId],
+        }),
       ]);
     }, [queryClient, projectId]);
 
@@ -227,6 +324,7 @@ export default function SecurityCaseDetailScreen({
       feedQuery.refetch(),
       notesQuery.refetch(),
       runsQuery.refetch(),
+      caseRunsQuery.refetch(),
     ]);
   });
 
@@ -303,14 +401,71 @@ export default function SecurityCaseDetailScreen({
         setDeciding(false);
         await Promise.allSettled([
           runsQuery.refetch(),
+          caseRunsQuery.refetch(),
           feedQuery.refetch(),
           caseQuery.refetch(),
         ]);
         await refreshLists();
       }
     },
-    [decision, projectId, runsQuery, feedQuery, caseQuery, refreshLists],
+    [
+      decision,
+      projectId,
+      runsQuery,
+      caseRunsQuery,
+      feedQuery,
+      caseQuery,
+      refreshLists,
+    ],
   );
+
+  /*
+   * Releases one target a playbook contained, with the step's undo, once
+   * the person confirmed it. Not drawn ahead of the server: the runs are
+   * read again whatever it answered, and a refusal - a role, the run
+   * running again, the product refusing - is said in the server's words.
+   */
+  const undo: (item: ContainedPlaybookTarget) => Promise<void> = useCallback(
+    async (item: ContainedPlaybookTarget): Promise<void> => {
+      setUndoing(item);
+      try {
+        await undoPlaybookTarget(projectId, item.runId, {
+          stepId: item.stepId,
+          value: item.target.value,
+        });
+        await successFeedback();
+      } catch (error: unknown) {
+        await errorFeedback();
+        Alert.alert(
+          `Could not undo step ${item.stepNumber}`,
+          getFriendlyErrorMessage(error),
+        );
+      } finally {
+        setUndoing(null);
+        await Promise.allSettled([
+          caseRunsQuery.refetch(),
+          feedQuery.refetch(),
+          caseQuery.refetch(),
+        ]);
+      }
+    },
+    [projectId, caseRunsQuery, feedQuery, caseQuery],
+  );
+
+  const confirmUndo: (item: ContainedPlaybookTarget) => void = (
+    item: ContainedPlaybookTarget,
+  ): void => {
+    Alert.alert(item.undoTitle, describePlaybookUndo(item), [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: item.undoTitle,
+        style: "destructive",
+        onPress: (): void => {
+          void undo(item);
+        },
+      },
+    ]);
+  };
 
   const addNote: (note: string) => Promise<void> = useCallback(
     async (note: string): Promise<void> => {
@@ -614,10 +769,14 @@ export default function SecurityCaseDetailScreen({
             onRetry={runsQuery.refetch}
           />
         ) : null}
+        {decidedApproval ? (
+          <PlaybookApprovalDecidedNotice readout={decidedApproval} />
+        ) : null}
         {waitingSteps.map((step: WaitingPlaybookStep): React.JSX.Element => {
           return (
-            <PlaybookApprovalCard
+            <WaitingPlaybookApproval
               key={step.runId}
+              projectId={projectId}
               step={step}
               isOwnRun={didStartPlaybookRun(step, userId)}
               busy={deciding && decision?.step.runId === step.runId}
@@ -673,6 +832,19 @@ export default function SecurityCaseDetailScreen({
         />
 
         <CaseEntitiesSection entities={entities} />
+
+        {caseRunsQuery.isError ? (
+          <QueryErrorNotice
+            message="Could not read what the case's playbooks contained."
+            retryLabel="Retry playbook runs"
+            onRetry={caseRunsQuery.refetch}
+          />
+        ) : null}
+        <ContainedTargetsSection
+          contained={contained}
+          undoing={undoing}
+          onUndo={confirmUndo}
+        />
 
         <ResponseSection
           title="Details"

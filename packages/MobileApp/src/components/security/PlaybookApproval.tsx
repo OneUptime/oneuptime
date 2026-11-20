@@ -12,11 +12,16 @@ import {
   SELF_APPROVAL_SENTENCE,
   describePlaybookTarget,
   getKeptTargetValues,
+  type ContainedPlaybookTarget,
   type PlaybookTarget,
   type WaitingPlaybookStep,
 } from "../../security/playbookApproval";
 import { getEntityTerm } from "../../security/caseTerms";
-import type { PlaybookDecision } from "../../api/securityCases";
+import type {
+  PlaybookApprovalReadout,
+  PlaybookDecision,
+} from "../../api/securityCases";
+import { ResponseSection } from "../ResponseDetailLayout";
 import { countTypingAsActivity } from "../../auth/userActivity";
 
 // The heading over the targets a step never acts on, as the dashboard says it.
@@ -28,19 +33,28 @@ interface PlaybookApprovalCardProps {
   isOwnRun: boolean;
   busy: boolean;
   onDecide: (decision: PlaybookDecision) => void;
+  /*
+   * The approval as its chat messages say it, once read: what the step
+   * will do and through what, who asked, the evidence, and the undo.
+   */
+  evidence?: PlaybookApprovalReadout | null | undefined;
 }
 
 /**
  * A playbook step held for a decision, first on the case's screen: nothing
  * happens until somebody approves or rejects it, and this is often why the
  * phone rang. It says which step of which playbook waits, what the step
- * would act on and what it leaves alone, with Reject and Approve beside it.
+ * would act on and what it leaves alone, what will be done and through
+ * what, who asked, the evidence behind the case and whether it can be
+ * undone - the same as the approval's Slack and Microsoft Teams messages -
+ * with Reject and Approve beside it.
  */
 export function PlaybookApprovalCard({
   step,
   isOwnRun,
   busy,
   onDecide,
+  evidence,
 }: PlaybookApprovalCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const startedWhen: string = step.startedAt
@@ -123,6 +137,8 @@ export function PlaybookApprovalCard({
         />
       ) : null}
 
+      {evidence ? <PlaybookApprovalEvidence readout={evidence} /> : null}
+
       {/*
         Who started the run, or how it started on its own. The reader's own
         run says why they cannot approve it instead: the sentence names them.
@@ -170,6 +186,253 @@ export function PlaybookApprovalCard({
         />
       </View>
     </View>
+  );
+}
+
+/*
+ * What the approval's chat messages say besides its targets: what will be
+ * done and through which connection, who or what asked, the evidence
+ * behind the case, and whether it can be undone. The server's own words
+ * (POST /security-playbook-run/:runId/approval), so the phone says what
+ * Slack and Microsoft Teams say.
+ */
+export function PlaybookApprovalEvidence({
+  readout,
+}: {
+  readout: PlaybookApprovalReadout;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+
+  return (
+    <View testID="playbook-approval-evidence" style={{ gap: spacing.sm }}>
+      {readout.action ? (
+        <View style={{ gap: spacing.xxs }}>
+          <Text
+            style={{
+              ...typography.footnote,
+              fontWeight: "700",
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Will do
+          </Text>
+          <Text
+            testID="playbook-approval-action"
+            selectable
+            style={{ ...typography.subhead, color: theme.colors.textPrimary }}
+          >
+            {readout.action}
+          </Text>
+        </View>
+      ) : null}
+      {readout.source ? (
+        <Text
+          testID="playbook-approval-source"
+          style={{ ...typography.footnote, color: theme.colors.textSecondary }}
+        >
+          {readout.source}
+        </Text>
+      ) : null}
+      {readout.evidence.length > 0 ? (
+        <View style={{ gap: spacing.xxs }}>
+          <Text
+            style={{
+              ...typography.footnote,
+              fontWeight: "700",
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Evidence
+          </Text>
+          {readout.evidence.map(
+            (line: string, index: number): React.JSX.Element => {
+              return (
+                <Text
+                  key={`${index}-${line}`}
+                  testID="playbook-approval-evidence-line"
+                  selectable
+                  style={{
+                    ...typography.subhead,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
+                  {`• ${line}`}
+                </Text>
+              );
+            },
+          )}
+        </View>
+      ) : null}
+      {readout.undo ? (
+        <Text
+          testID="playbook-approval-undo"
+          style={{ ...typography.footnote, color: theme.colors.textSecondary }}
+        >
+          {readout.undo}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The approval a push opened, once nobody needs to decide it any more:
+ * somebody approved or rejected it a moment ago - here, in Slack, Microsoft
+ * Teams or the dashboard - or the run stopped waiting. Who, when, and how
+ * the step went, in the words of its chat messages.
+ */
+export function PlaybookApprovalDecidedNotice({
+  readout,
+}: {
+  readout: PlaybookApprovalReadout;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+
+  return (
+    <View
+      testID="playbook-approval-decided"
+      accessibilityLiveRegion="polite"
+      style={{
+        marginBottom: spacing.xl,
+        padding: spacing.lg,
+        gap: spacing.xs,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.borderSubtle,
+        backgroundColor: theme.colors.backgroundElevated,
+        ...elevation("card", theme.dark),
+      }}
+    >
+      <Text
+        accessibilityRole="header"
+        style={{ ...typography.overline, color: theme.colors.textSecondary }}
+      >
+        No longer waiting for you
+      </Text>
+      <Text
+        testID="playbook-approval-decided-headline"
+        style={{ ...typography.headline, color: theme.colors.textPrimary }}
+      >
+        {readout.headline}
+      </Text>
+      {readout.progress ? (
+        <Text
+          testID="playbook-approval-decided-progress"
+          style={{ ...typography.subhead, color: theme.colors.textSecondary }}
+        >
+          {readout.progress}
+        </Text>
+      ) : null}
+      {readout.targets.map((line: string): React.JSX.Element => {
+        return (
+          <Text
+            key={line}
+            selectable
+            style={{ ...typography.footnote, color: theme.colors.textSecondary }}
+          >
+            {`• ${line}`}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
+
+interface ContainedTargetsSectionProps {
+  contained: Array<ContainedPlaybookTarget>;
+  // The target an undo is on its way for: its button waits, and so do the others.
+  undoing: ContainedPlaybookTarget | null;
+  onUndo: (contained: ContainedPlaybookTarget) => void;
+}
+
+/**
+ * What the case's playbooks contained - each account suspended, host
+ * contained or device isolated - with the step's undo beside it, once the
+ * threat is gone: one tap and a confirmation, through the step's own
+ * connection, as on the case's Playbook Runs page.
+ */
+export function ContainedTargetsSection({
+  contained,
+  undoing,
+  onUndo,
+}: ContainedTargetsSectionProps): React.JSX.Element | null {
+  const { theme } = useTheme();
+
+  if (contained.length === 0) {
+    return null;
+  }
+
+  return (
+    <ResponseSection
+      title="Contained by playbooks"
+      iconName="shield-half-outline"
+      count={contained.length}
+      testID="playbook-contained-section"
+    >
+      {contained.map((item: ContainedPlaybookTarget): React.JSX.Element => {
+        const key: string = `${item.runId}-${item.stepId}-${item.target.value}`;
+        const isUndoing: boolean =
+          undoing !== null &&
+          undoing.runId === item.runId &&
+          undoing.stepId === item.stepId &&
+          undoing.target.value === item.target.value;
+
+        return (
+          <View
+            key={key}
+            testID={`playbook-contained-${item.target.value}`}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.md,
+              paddingVertical: spacing.md,
+            }}
+          >
+            <Ionicons
+              name={getEntityTerm(item.target.type).icon}
+              size={18}
+              color={theme.colors.textSecondary}
+            />
+            <View style={{ flex: 1, gap: spacing.xxs }}>
+              <Text
+                selectable
+                style={{
+                  ...typography.subhead,
+                  fontWeight: "600",
+                  color: theme.colors.textPrimary,
+                }}
+              >
+                {item.target.value}
+              </Text>
+              <Text
+                style={{
+                  ...typography.caption,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                {`${item.stepTitle} · ${
+                  item.playbookName
+                    ? `${item.playbookName}, step ${item.stepNumber}`
+                    : `Step ${item.stepNumber}`
+                }`}
+              </Text>
+            </View>
+            <GradientButton
+              testID={`playbook-undo-${item.target.value}`}
+              label="Undo"
+              icon="arrow-undo-outline"
+              variant="secondary"
+              size="sm"
+              loading={isUndoing}
+              disabled={undoing !== null}
+              onPress={(): void => {
+                onUndo(item);
+              }}
+            />
+          </View>
+        );
+      })}
+    </ResponseSection>
   );
 }
 

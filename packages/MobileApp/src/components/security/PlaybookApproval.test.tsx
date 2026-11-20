@@ -12,17 +12,26 @@ import {
 } from "../../__tests__/userActivityHeard";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import {
+  ContainedTargetsSection,
   PlaybookApprovalCard,
+  PlaybookApprovalDecidedNotice,
+  PlaybookApprovalEvidence,
   PlaybookDecisionSheet,
   describeTargetLine,
 } from "./PlaybookApproval";
 import { ThemeProvider, darkColors, lightColors } from "../../theme";
 import { withAlpha } from "../../utils/color";
 import {
+  readContainedPlaybookTargets,
   readWaitingPlaybookStep,
+  type ContainedPlaybookTarget,
   type WaitingPlaybookStep,
 } from "../../security/playbookApproval";
-import { makeWaitingPlaybookRun } from "../../__tests__/testSupport";
+import type { PlaybookApprovalReadout } from "../../api/securityCases";
+import {
+  makeContainedPlaybookRun,
+  makeWaitingPlaybookRun,
+} from "../../__tests__/testSupport";
 
 /*
  * A playbook step held for a decision: often why the phone rang. The card
@@ -544,6 +553,229 @@ describe("rejecting a step", () => {
 
     expect(screen.queryByTestId("playbook-approve-sheet")).toBeNull();
     expect(screen.queryByTestId("playbook-reject-sheet")).toBeNull();
+  });
+});
+
+/*
+ * The evidence the approval's Slack and Microsoft Teams messages carry, on
+ * the phone too (#10341): what will be done and through what, who asked,
+ * the evidence behind the case, and whether it can be undone - in the
+ * server's own words.
+ */
+const READOUT: PlaybookApprovalReadout = {
+  runId: "7a6b0000-0001-4000-8000-000000000001",
+  stepIndex: 0,
+  stepId: "step-1",
+  standing: "Waiting",
+  headline: "Approval needed on CASE-142: Credential stuffing",
+  action: "Suspend the user in Okta, through Okta (acme)",
+  targets: ["alice@acme.test: the case is grouped on it"],
+  leftAlone: [],
+  source:
+    "Asked by playbook Contain a compromised account, which started when the case opened.",
+  evidence: [
+    "12 requests behind the case: Turned away: 9, Reached the app: 3",
+    "Nothing it acts on is on your protected list.",
+  ],
+  undo: "Can be undone: each one, with Unsuspend the user in Okta on the case.",
+};
+
+describe("the approval card's evidence", () => {
+  test("what will be done and through what, who asked, the evidence and the undo", async () => {
+    await render(
+      <PlaybookApprovalCard
+        step={waitingStep()}
+        isOwnRun={false}
+        busy={false}
+        onDecide={jest.fn()}
+        evidence={READOUT}
+      />,
+    );
+
+    expect(screen.getByText("Will do")).toBeTruthy();
+    expect(screen.getByTestId("playbook-approval-action")).toHaveTextContent(
+      "Suspend the user in Okta, through Okta (acme)",
+    );
+    expect(screen.getByTestId("playbook-approval-source")).toHaveTextContent(
+      READOUT.source,
+    );
+    expect(
+      screen
+        .getAllByTestId("playbook-approval-evidence-line")
+        .map((line: RenderedElement): string => {
+          return String(line.props.children);
+        }),
+    ).toEqual([
+      "• 12 requests behind the case: Turned away: 9, Reached the app: 3",
+      "• Nothing it acts on is on your protected list.",
+    ]);
+    expect(screen.getByTestId("playbook-approval-undo")).toHaveTextContent(
+      READOUT.undo,
+    );
+  });
+
+  test("before it is read, the card asks all the same: Reject and Approve do not wait for it", async () => {
+    await render(
+      <PlaybookApprovalCard
+        step={waitingStep()}
+        isOwnRun={false}
+        busy={false}
+        onDecide={jest.fn()}
+        evidence={null}
+      />,
+    );
+
+    expect(screen.queryByTestId("playbook-approval-evidence")).toBeNull();
+    expect(isDisabled(screen.getByTestId("playbook-approve"))).toBeFalsy();
+  });
+
+  test("evidence with nothing to say leaves its lines out", async () => {
+    await render(
+      <PlaybookApprovalEvidence
+        readout={{ ...READOUT, evidence: [], source: "", undo: "" }}
+      />,
+    );
+
+    expect(screen.getByTestId("playbook-approval-action")).toBeTruthy();
+    expect(screen.queryByText("Evidence")).toBeNull();
+    expect(screen.queryByTestId("playbook-approval-source")).toBeNull();
+    expect(screen.queryByTestId("playbook-approval-undo")).toBeNull();
+  });
+});
+
+describe("an approval somebody decided since the push", () => {
+  test("says who decided and when, how the step went, and what became of each target", async () => {
+    await render(
+      <PlaybookApprovalDecidedNotice
+        readout={{
+          ...READOUT,
+          standing: "Approved",
+          headline: "Approved by Jane Doe at 10:43 UTC",
+          progress: "Done at 10:44 UTC.",
+          targets: ["alice@acme.test: done · suspended"],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("header", { name: "No longer waiting for you" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("playbook-approval-decided-headline"),
+    ).toHaveTextContent("Approved by Jane Doe at 10:43 UTC");
+    expect(
+      screen.getByTestId("playbook-approval-decided-progress"),
+    ).toHaveTextContent("Done at 10:44 UTC.");
+    expect(screen.getByText("• alice@acme.test: done · suspended")).toBeTruthy();
+  });
+
+  test("a rejection, or a run that stopped waiting, has no progress to tell", async () => {
+    await render(
+      <PlaybookApprovalDecidedNotice
+        readout={{
+          ...READOUT,
+          standing: "Rejected",
+          headline: "Rejected by Jane Doe at 10:43 UTC. Nothing was done.",
+          targets: [],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("playbook-approval-decided-headline"),
+    ).toHaveTextContent("Rejected by Jane Doe at 10:43 UTC. Nothing was done.");
+    expect(screen.queryByTestId("playbook-approval-decided-progress")).toBeNull();
+  });
+});
+
+describe("what the case's playbooks contained", () => {
+  function contained(): Array<ContainedPlaybookTarget> {
+    return readContainedPlaybookTargets([
+      makeContainedPlaybookRun(),
+      makeContainedPlaybookRun({
+        _id: "7a6b0000-0003-4000-8000-000000000003",
+        playbookName: "",
+        steps: [{ id: "contain", action: "Contain CrowdStrike Host" }],
+        stepResults: [
+          {
+            stepId: "contain",
+            action: "Contain CrowdStrike Host",
+            status: "Succeeded",
+            targets: [{ type: "Host", value: "web-01", state: "Done" }],
+          },
+        ],
+      }),
+    ]);
+  }
+
+  test("each target, with the step and the playbook that contained it, and an Undo", async () => {
+    await render(
+      <ContainedTargetsSection
+        contained={contained()}
+        undoing={null}
+        onUndo={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Contained by playbooks")).toBeTruthy();
+    const alice: RenderedElement = screen.getByTestId(
+      "playbook-contained-alice@acme.test",
+    );
+    expect(within(alice).getByText("alice@acme.test")).toBeTruthy();
+    expect(
+      within(alice).getByText(
+        "Suspend the user in Okta · Contain a compromised account, step 2",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("playbook-contained-web-01")).getByText(
+        "Contain the host in CrowdStrike · Step 1",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("Undo hands the target to the screen, which asks first", async () => {
+    const onUndo: jest.Mock = jest.fn();
+    const items: Array<ContainedPlaybookTarget> = contained();
+
+    await render(
+      <ContainedTargetsSection
+        contained={items}
+        undoing={null}
+        onUndo={onUndo}
+      />,
+    );
+    await fireEvent.press(screen.getByTestId("playbook-undo-web-01"));
+
+    expect(onUndo).toHaveBeenCalledWith(items[1]);
+  });
+
+  test("while one undo is on its way, no other Undo takes a press", async () => {
+    const onUndo: jest.Mock = jest.fn();
+    const items: Array<ContainedPlaybookTarget> = contained();
+
+    await render(
+      <ContainedTargetsSection
+        contained={items}
+        undoing={items[0]!}
+        onUndo={onUndo}
+      />,
+    );
+
+    expect(
+      isDisabled(screen.getByTestId("playbook-undo-alice@acme.test")),
+    ).toBe(true);
+    expect(isDisabled(screen.getByTestId("playbook-undo-web-01"))).toBe(true);
+    await fireEvent.press(screen.getByTestId("playbook-undo-web-01"));
+    expect(onUndo).not.toHaveBeenCalled();
+  });
+
+  test("nothing contained, no section", async () => {
+    await render(
+      <ContainedTargetsSection contained={[]} undoing={null} onUndo={jest.fn()} />,
+    );
+
+    expect(screen.queryByTestId("playbook-contained-section")).toBeNull();
   });
 });
 

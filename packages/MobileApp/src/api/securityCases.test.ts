@@ -5,7 +5,9 @@ import {
   countSecurityCases,
   createSecurityCaseNote,
   decidePlaybookStep,
+  fetchCasePlaybookRuns,
   fetchOpenSecurityCases,
+  fetchPlaybookApproval,
   fetchSecurityCaseById,
   fetchSecurityCaseFeed,
   fetchSecurityCaseNotes,
@@ -13,6 +15,7 @@ import {
   fetchSecurityCaseStatuses,
   fetchWaitingPlaybookRuns,
   toStatusIdsQuery,
+  undoPlaybookTarget,
   updateSecurityCase,
 } from "./securityCases";
 import type { ListResponse, SecurityCaseItem } from "./types";
@@ -523,5 +526,96 @@ describe("deciding a step", () => {
     await decidePlaybookStep(PROJECT_ID, "a/b", "approve");
 
     expect(lastCall()[0]).toBe("/api/security-playbook-run/a%2Fb/approve");
+  });
+});
+
+describe("a step's approval, as its chat messages say it", () => {
+  const READOUT: Record<string, unknown> = {
+    runId: RUN_ID,
+    stepIndex: 1,
+    stepId: "step-2",
+    standing: "Waiting",
+    headline: "Approval needed on CASE-142: Credential stuffing",
+    action: "Suspend the user in Okta, through Okta (acme)",
+    targets: ["alice@acme.test: the case is grouped on it"],
+    leftAlone: ["ceo@acme.test: on your protected list"],
+    source: "Asked by playbook Contain, which started when the case opened.",
+    evidence: ["12 requests behind the case: Turned away: 9, Reached the app: 3"],
+    undo: "Can be undone: each one, with Unsuspend the user in Okta on the case.",
+  };
+
+  test("is read from the run's approval route, in the project", async () => {
+    respondWith(READOUT);
+
+    await expect(fetchPlaybookApproval(PROJECT_ID, RUN_ID)).resolves.toEqual(
+      READOUT,
+    );
+    expect(lastCall()[0]).toBe(`/api/security-playbook-run/${RUN_ID}/approval`);
+    expect(lastCall()[2]).toEqual({ headers: { tenantid: PROJECT_ID } });
+  });
+
+  test("a decided one carries how it went", async () => {
+    respondWith({
+      ...READOUT,
+      standing: "Approved",
+      headline: "Approved by Jane Doe at 10:43 UTC",
+      progress: "Done at 10:44 UTC.",
+    });
+
+    await expect(
+      fetchPlaybookApproval(PROJECT_ID, RUN_ID),
+    ).resolves.toMatchObject({
+      standing: "Approved",
+      progress: "Done at 10:44 UTC.",
+    });
+  });
+
+  test("an answer missing its parts reads as empty, never as a crash", async () => {
+    respondWith({ evidence: "not a list", targets: [3, "web-01: grouped on"] });
+
+    await expect(fetchPlaybookApproval(PROJECT_ID, RUN_ID)).resolves.toEqual({
+      runId: RUN_ID,
+      stepIndex: 0,
+      stepId: "",
+      standing: "",
+      headline: "",
+      action: "",
+      targets: ["web-01: grouped on"],
+      leftAlone: [],
+      source: "",
+      evidence: [],
+      undo: "",
+    });
+  });
+});
+
+describe("what a case's playbooks contained, and its undo", () => {
+  test("the case's runs, the latest first, with their steps and results", async () => {
+    await fetchCasePlaybookRuns(PROJECT_ID, CASE_ID);
+
+    expect(lastCall()[0]).toBe(
+      "/api/security-playbook-run/get-list?skip=0&limit=50",
+    );
+    expect(lastBody()).toMatchObject({
+      query: { securityCaseId: CASE_ID },
+      select: expect.objectContaining({
+        steps: true,
+        stepResults: true,
+        status: true,
+      }),
+      sort: { createdAt: "DESC" },
+    });
+    expect(lastCall()[2]).toEqual({ headers: { tenantid: PROJECT_ID } });
+  });
+
+  test("an undo names the step and the target, in the project", async () => {
+    await undoPlaybookTarget(PROJECT_ID, RUN_ID, {
+      stepId: "step-2",
+      value: "alice@acme.test",
+    });
+
+    expect(lastCall()[0]).toBe(`/api/security-playbook-run/${RUN_ID}/undo`);
+    expect(lastBody()).toEqual({ stepId: "step-2", value: "alice@acme.test" });
+    expect(lastCall()[2]).toEqual({ headers: { tenantid: PROJECT_ID } });
   });
 });
