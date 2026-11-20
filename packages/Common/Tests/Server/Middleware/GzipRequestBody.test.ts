@@ -44,7 +44,13 @@ jest.mock("../../../Server/Utils/Response", () => {
 import GzipRequestBodyMiddleware, {
   MAX_COMPRESSED_REQUEST_BODY_BYTES,
   MAX_DECOMPRESSED_REQUEST_BODY_BYTES,
+  isJsonContentType,
 } from "../../../Server/Middleware/GzipRequestBody";
+import {
+  LARGE_REQUEST_BODY_LIMIT,
+  ORDINARY_REQUEST_BODY_LIMIT,
+  RequestBodyLimit,
+} from "../../../Server/Utils/RequestBodyLimit";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
 import Exception from "../../../Types/Exception/Exception";
@@ -170,7 +176,10 @@ class Driver {
     }
   };
 
-  public constructor(headers?: Record<string, string>) {
+  public constructor(
+    headers?: Record<string, string>,
+    limit?: RequestBodyLimit | undefined,
+  ) {
     const req: FakeRequest = new EventEmitter() as FakeRequest;
 
     req.headers = headers || {};
@@ -200,6 +209,7 @@ class Driver {
         this.nextCalls.push(err);
         this.wake();
       }) as NextFunction,
+      limit,
     );
   }
 
@@ -697,6 +707,196 @@ describe("zlib.createGunzip ignores maxOutputLength (why the counter is manual)"
         maxOutputLength: 1024 * 1024,
       });
     }).toThrow();
+  });
+});
+
+/*
+ * A JSON body's values, counted as it inflates (#10183): 50 MiB of "[],"
+ * gzips to 50 KB and parsed into 17 million arrays. It is refused once the
+ * route's limit is passed, with most of it never inflated or kept.
+ */
+describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inflates", () => {
+  const bombOf: (bytes: number) => Buffer = (bytes: number): Buffer => {
+    return gzip(
+      Buffer.from(`[${"[],".repeat(Math.floor((bytes - 4) / 3))}[]]`),
+    );
+  };
+
+  const wire: Buffer = bombOf(50 * 1024 * 1024);
+
+  /*
+   * Empty arrays with a little whitespace after each, at random: still
+   * JSON, but gzip can no longer squeeze it a thousandfold, so how much of
+   * it was read before the refusal shows on the wire.
+   */
+  const scatteredBombOf: (bytes: number) => Buffer = (
+    bytes: number,
+  ): Buffer => {
+    const gaps: Array<string> = [" ", "\n", "\t", "\r\n", "  ", ""];
+    const parts: Array<string> = ["["];
+    let length: number = 1;
+    let seed: number = 17;
+
+    while (length < bytes - 4) {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      const part: string = `[],${gaps[seed % gaps.length]!}`;
+      parts.push(part);
+      length += part.length;
+    }
+
+    parts.push("[]]");
+
+    return gzip(Buffer.from(parts.join("")));
+  };
+
+  const scatteredWire: Buffer = scatteredBombOf(20 * 1024 * 1024);
+
+  test("50 MiB of empty arrays - 50 KB of gzip - is refused at the route's limit, none of it kept", async () => {
+    // About 50 KB on the wire.
+    expect(wire.length).toBeLessThan(100 * 1024);
+
+    const driver: Driver = new Driver(
+      { "content-type": "application/json" },
+      LARGE_REQUEST_BODY_LIMIT,
+    );
+
+    await driver.feed(chunked(wire, 512));
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+
+    expect(driver.nextCalls).toHaveLength(1);
+    expect(driver.nextCalls[0]).toMatchObject({
+      type: "entity.too.many.values",
+      status: 413,
+      expose: true,
+      limit: LARGE_REQUEST_BODY_LIMIT.values,
+    });
+    expect(driver.req.body).toBeUndefined();
+    expect(driver.req.paused).toBe(true);
+  });
+
+  test("a bomb is refused while most of it is still on the wire", async () => {
+    const driver: Driver = new Driver(
+      { "content-type": "application/json" },
+      LARGE_REQUEST_BODY_LIMIT,
+    );
+
+    await driver.feed(chunked(scatteredWire, 4096));
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+
+    expect(driver.nextCalls[0]).toMatchObject({
+      type: "entity.too.many.values",
+    });
+    // A million values are about a third of these 20 MiB.
+    expect(driver.fedBytes).toBeLessThan(scatteredWire.length / 2);
+  });
+
+  test("an ordinary route's 100,000 values are passed sooner still", async () => {
+    const driver: Driver = new Driver(
+      { "content-type": "application/json; charset=utf-8" },
+      ORDINARY_REQUEST_BODY_LIMIT,
+    );
+
+    await driver.feed(chunked(scatteredWire, 4096));
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+
+    expect(driver.nextCalls[0]).toMatchObject({
+      type: "entity.too.many.values",
+      status: 413,
+      limit: 100000,
+    });
+    expect(driver.fedBytes).toBeLessThan(scatteredWire.length / 10);
+  });
+
+  test("a +json body is counted as JSON", async () => {
+    const driver: Driver = new Driver(
+      { "content-type": "application/cloudevents+json" },
+      ORDINARY_REQUEST_BODY_LIMIT,
+    );
+
+    await driver.feed([bombOf(900 * 1024)]);
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+    expect(driver.nextCalls[0]).toMatchObject({
+      type: "entity.too.many.values",
+    });
+  });
+
+  test("a JSON body under the limit is handed on whole, counted", async () => {
+    const payload: Buffer = Buffer.from(
+      JSON.stringify({ values: Array.from({ length: 50000 }, (): number => 1) }),
+    );
+    const driver: Driver = new Driver(
+      { "content-type": "application/json" },
+      ORDINARY_REQUEST_BODY_LIMIT,
+    );
+
+    await driver.feed(chunked(gzip(payload), 1024));
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+    expect(driver.nextCalls).toEqual([undefined]);
+    expect((driver.req.body as Buffer).equals(payload)).toBe(true);
+  });
+
+  test("a body of another type is not counted: it is the route's to read, and to count first", async () => {
+    const driver: Driver = new Driver(
+      { "content-type": "text/plain" },
+      ORDINARY_REQUEST_BODY_LIMIT,
+    );
+
+    await driver.feed([bombOf(900 * 1024)]);
+    driver.end();
+
+    expect(await driver.waitForOutcome()).toBe(true);
+    expect(driver.nextCalls).toEqual([undefined]);
+    expect(Buffer.isBuffer(driver.req.body)).toBe(true);
+  });
+
+  test("the route's size limit holds what it inflates to, and what it says it sends", async () => {
+    const inflating: Driver = new Driver(
+      { "content-type": "text/plain" },
+      ORDINARY_REQUEST_BODY_LIMIT,
+    );
+
+    await inflating.feed([gzip(Buffer.alloc(2 * 1024 * 1024))]);
+    inflating.end();
+
+    expect(await inflating.waitForOutcome()).toBe(true);
+    expect(inflating.res.statusCode).toBe(413);
+    expect(inflating.res.jsonBody).toEqual({
+      message: `Request body too large. The decompressed body of a gzip-encoded request may not exceed ${ORDINARY_REQUEST_BODY_LIMIT.bytes} bytes.`,
+    });
+
+    const declared: Driver = new Driver(
+      { "content-length": String(ORDINARY_REQUEST_BODY_LIMIT.bytes + 1) },
+      ORDINARY_REQUEST_BODY_LIMIT,
+    );
+
+    expect(declared.res.statusCode).toBe(413);
+    expect(declared.res.jsonBody).toEqual({
+      message: `Request body too large. The compressed body of a gzip-encoded request may not exceed ${ORDINARY_REQUEST_BODY_LIMIT.bytes} bytes.`,
+    });
+  });
+
+  test.each([
+    ["application/json", true],
+    ["Application/JSON; charset=utf-8", true],
+    ["application/scim+json", true],
+    ["application/cloudevents+json", true],
+    ["text/plain", false],
+    ["application/x-protobuf", false],
+    ["application/jsonx", false],
+    ["text/json+", false],
+    [undefined, false],
+  ])("%s is JSON: %s", (contentType: string | undefined, isJson: boolean) => {
+    expect(isJsonContentType(contentType)).toBe(isJson);
   });
 });
 
