@@ -2,8 +2,10 @@ import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
 import {
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
   ManagedDeviceCheckInAttribute,
 } from "../../DeviceManagement/ManagedDeviceCheckIn";
 import {
@@ -1293,14 +1295,16 @@ export default class SeriesDebugHints {
 
   /*
    * A managed device a connection's alert names - one that stopped checking
-   * in, or an Android device behind on its security patches (#10098): the
-   * readings its connection's last reads took of it, newest first, with the
-   * OneUptime CLI. Its check-ins first - how long it had been quiet at each
-   * read, so when it went quiet, and its alias and group on their
-   * attributes - then its security patch's age at each read, with the level
-   * on its attributes, which an Android device has. A series names the
-   * device alone, whichever template it is of, so both are offered.
-   * Read-only; only for a series that names the device.
+   * in, ran low on battery or filled its storage (#10008), or an Android
+   * device behind on its security patches (#10098): the readings its
+   * connection's last reads took of it, newest first, with the OneUptime
+   * CLI. Its check-ins first - how long it had been quiet at each read, so
+   * when it went quiet, and its alias and group on their attributes - then
+   * its battery, its storage with its free bytes, and its security patch's
+   * age with the level on its attributes. A series names the device alone,
+   * whichever template it is of, so each is offered (#10209 would narrow
+   * them to the one its monitor reads). Read-only; only for a series that
+   * names the device.
    */
   private static managedDeviceCommands(
     seriesLabels: JSONObject,
@@ -1327,6 +1331,16 @@ export default class SeriesDebugHints {
         purpose:
           "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
         command: readingsOf(MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME),
+      },
+      {
+        purpose:
+          "The device's battery at each read, in percent, as its device manager last heard it",
+        command: readingsOf(MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME),
+      },
+      {
+        purpose:
+          "The device's storage at each read: how much of it was in use, and how many bytes were free",
+        command: readingsOf(MANAGED_DEVICE_STORAGE_USED_METRIC_NAME),
       },
       {
         purpose:

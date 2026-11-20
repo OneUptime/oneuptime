@@ -82,6 +82,9 @@ describe("a device", () => {
       freeStorage: "18.3",
       totalRam: "3.8",
       memoryUnits: "GB",
+      // #10008: its storage in bytes, as MobiControl gives it, for how full it is.
+      storageTotalBytes: 31675383808,
+      storageFreeBytes: 18253611008,
     });
   });
 
@@ -203,6 +206,36 @@ describe("a device", () => {
     });
     expect(device.details).toEqual({});
     expect(lastCheckInAt).toBeNull();
+  });
+
+  /*
+   * #10008: its own storage in bytes, as MobiControl gives it - never an SD
+   * card's, which has fields of its own - and a whole of 0, which a device
+   * without the agent reports, as no figure.
+   */
+  test("its own storage in bytes, never its SD card's; a whole of 0 is none", () => {
+    const withCard: JSONObject = read(
+      buildSotiDevice({
+        Memory: {
+          AvailableStorage: 1000000000,
+          TotalStorage: 31675383808,
+          AvailableSDCardStorage: 60000000000,
+          TotalSDCardStorage: 64000000000,
+        },
+      }),
+    ).device.details;
+
+    expect(withCard["storageTotalBytes"]).toBe(31675383808);
+    expect(withCard["storageFreeBytes"]).toBe(1000000000);
+
+    const agentless: JSONObject = read(
+      buildSotiIpad({
+        Memory: { AvailableStorage: 14682259456, TotalStorage: 0 },
+      }),
+    ).device.details;
+
+    expect(agentless["storageTotalBytes"]).toBeUndefined();
+    expect(agentless["storageFreeBytes"]).toBe(14682259456);
   });
 });
 

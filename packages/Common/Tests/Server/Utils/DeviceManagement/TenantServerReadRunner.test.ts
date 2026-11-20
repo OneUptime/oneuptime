@@ -114,7 +114,13 @@ function dependencies(
       data: ManagedDeviceCheckInRecordInput,
     ): Promise<ManagedDeviceCheckInOutcome> => {
       checkInRecords.push(data);
-      return { readingCount: 0, hostCount: 0, securityPatchReadingCount: 0 };
+      return {
+        readingCount: 0,
+        hostCount: 0,
+        securityPatchReadingCount: 0,
+        batteryReadingCount: 0,
+        storageReadingCount: 0,
+      };
     },
     // The connection's own readings (#10006): ClickHouse is not played here.
     recordConnectionReadings: async (

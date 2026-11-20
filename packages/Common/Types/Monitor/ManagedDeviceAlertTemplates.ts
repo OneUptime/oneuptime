@@ -20,10 +20,14 @@ import {
   MANAGED_DEVICE_CONNECTION_READ_AGE_UNIT,
 } from "../DeviceManagement/DeviceManagementConnectionReading";
 import {
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_UNIT,
   ManagedDeviceCheckInAttribute,
 } from "../DeviceManagement/ManagedDeviceCheckIn";
 import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "../Host/AndroidSecurityPatch";
@@ -106,6 +110,20 @@ import {
  * read failed with. Without it a revoked key or a service out of reach
  * froze every device alert of the fleet, and nobody learned the fleet was
  * unwatched.
+ *
+ * Where a service reports them, LOW BATTERY and STORAGE NEARLY FULL
+ * (#10008): a device's battery, as its service last heard it, under 20%,
+ * and its own storage more than 90% in use - the thresholds of the Android
+ * agent's own Low Battery and Storage Nearly Full, so a device reads the
+ * same alert whichever reports it. Each read writes them beside the
+ * device's check-in, and the templates read them the way the check-in
+ * templates read theirs: each device's latest reading, one alert per
+ * device, never a device the agent reports - whose host's own templates
+ * read the agent's hw.battery.charge and system.filesystem.utilization, and
+ * none of the import's - and no resolving on a connection gone quiet. A
+ * dying battery shows hours before the device stops checking in. Esper,
+ * Workspace ONE and SOTI report a battery; Intune's device list does not,
+ * so an Intune connection is offered Storage Nearly Full alone.
  *
  * And, for every service, SECURITY PATCH OUT OF DATE (#10098): an Android
  * device whose security patch level, as the service reports it, is more than
@@ -197,11 +215,31 @@ export const MANAGED_DEVICE_NON_APPLE_PLATFORMS: ReadonlyArray<ManagedDevicePlat
     ManagedDevicePlatform.Other,
   ];
 
+/*
+ * Low Battery's threshold (#10008): less than this many percent, the
+ * Android agent's own Low Battery's, so a device reads the same alert
+ * whether its device manager or the agent reports it.
+ */
+export const MANAGED_DEVICE_LOW_BATTERY_PERCENT: number = 20;
+
+/*
+ * Storage Nearly Full's (#10008): more than this many percent of its own
+ * storage in use, the agent's own Storage Nearly Full's.
+ */
+export const MANAGED_DEVICE_STORAGE_NEARLY_FULL_PERCENT: number = 90;
+
 const METRIC_ALIAS: string = "minutes_since_check_in";
 
 const SECURITY_PATCH_METRIC_ALIAS: string = "days_since_security_patch";
 
-export type ManagedDeviceAlertTemplateCategory = "Availability" | "Security";
+const BATTERY_METRIC_ALIAS: string = "battery_percent";
+
+const STORAGE_METRIC_ALIAS: string = "storage_used_percent";
+
+export type ManagedDeviceAlertTemplateCategory =
+  | "Availability"
+  | "Security"
+  | "Resource";
 
 export type ManagedDeviceAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -247,6 +285,10 @@ export interface ManagedDeviceAlertTemplate {
   thresholdInMinutes?: number | undefined;
   // A security patch template's: the days old a patch may be, and no more.
   maxSecurityPatchAgeInDays?: number | undefined;
+  // Low Battery's: the percent a battery may fall to, and no lower (#10008).
+  minBatteryPercent?: number | undefined;
+  // Storage Nearly Full's: the percent of its storage a device may use, and no more.
+  maxStorageUsedPercent?: number | undefined;
   // The platforms it reads; none is every device of the connection.
   platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
   getMonitorStep: (args: ManagedDeviceAlertTemplateArgs) => MonitorStep;
@@ -297,8 +339,48 @@ export function buildManagedDeviceSecurityPatchMetricMonitor(data: {
 }
 
 /*
+ * The query of a connection's devices' batteries (#10008): each one's
+ * battery in percent, of the devices no agent reports, one series per
+ * device. Min per minute: two reads in one minute say the lower charge.
+ */
+export function buildManagedDeviceBatteryMetricMonitor(data: {
+  deviceManagementConnectionId: string;
+}): MonitorStepMetricMonitor {
+  return buildManagedDeviceReadingMetricMonitor({
+    deviceManagementConnectionId: data.deviceManagementConnectionId,
+    metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+    metricAlias: BATTERY_METRIC_ALIAS,
+    title: "Battery",
+    description:
+      "Each device's battery, as its device manager last heard it, at the connection's latest read.",
+    legendUnit: MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
+    aggregationType: MetricsAggregationType.Min,
+  });
+}
+
+/*
+ * The query of a connection's devices' storage (#10008): how much of each
+ * one's own storage is in use, in percent, of the devices no agent reports,
+ * one series per device. Max per minute: the fuller of two reads.
+ */
+export function buildManagedDeviceStorageMetricMonitor(data: {
+  deviceManagementConnectionId: string;
+}): MonitorStepMetricMonitor {
+  return buildManagedDeviceReadingMetricMonitor({
+    deviceManagementConnectionId: data.deviceManagementConnectionId,
+    metricName: MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+    metricAlias: STORAGE_METRIC_ALIAS,
+    title: "Storage used",
+    description:
+      "How much of each device's own storage is in use, as its device manager last heard it, at the connection's latest read.",
+    legendUnit: MANAGED_DEVICE_STORAGE_USED_UNIT,
+  });
+}
+
+/*
  * A connection's readings of its devices, of one metric: the devices no
- * agent reports, of the given platforms, one series per device.
+ * agent reports, of the given platforms, one series per device. Max per
+ * minute unless the metric says otherwise.
  */
 function buildManagedDeviceReadingMetricMonitor(data: {
   deviceManagementConnectionId: string;
@@ -308,6 +390,7 @@ function buildManagedDeviceReadingMetricMonitor(data: {
   title: string;
   description: string;
   legendUnit: string;
+  aggregationType?: MetricsAggregationType | undefined;
 }): MonitorStepMetricMonitor {
   const attributes: Dictionary<string | Includes> = {
     [ManagedDeviceCheckInAttribute.ConnectionId]:
@@ -344,7 +427,8 @@ function buildManagedDeviceReadingMetricMonitor(data: {
             filterData: {
               metricName: data.metricName,
               attributes: attributes,
-              aggegationType: MetricsAggregationType.Max,
+              aggegationType:
+                data.aggregationType || MetricsAggregationType.Max,
               aggregateBy: {},
             },
             groupByAttributeKeys: [
@@ -910,25 +994,267 @@ const sotiSecurityPatchOutOfDateTemplate: ManagedDeviceAlertTemplate =
     serviceName: "MobiControl",
   });
 
+// What a battery or storage template says, for its service.
+interface DeviceReadingTemplateSpec {
+  id: string;
+  provider: DeviceManagementProvider;
+  name: string;
+  summary: string;
+  // The service as a sentence names it: "Esper", "Intune", "MobiControl".
+  serviceName: string;
+}
+
+/*
+ * Low Battery, for one service's devices (#10008): each device's latest
+ * reading of its battery, under 20% fires, one alert per device; 20% or
+ * more resolves. No dead band: a battery only falls between two reads
+ * until it is charged, and then it climbs past the threshold.
+ */
+function buildLowBatteryTemplate(
+  spec: DeviceReadingTemplateSpec,
+): ManagedDeviceAlertTemplate {
+  // The words write the number out, "20%", as the agent's template's do.
+  const minPercent: number = MANAGED_DEVICE_LOW_BATTERY_PERCENT;
+
+  return {
+    id: spec.id,
+    provider: spec.provider,
+    name: spec.name,
+    summary: spec.summary,
+    description: `Alert when a device ${spec.serviceName} manages reports less than 20% battery, one alert per device, resolved once it reports 20% or more: a handheld is about to shut down, or a kiosk lost its power, and a device that runs out stops checking in. Every read of the connection records each device's battery as ${spec.serviceName} last heard it. A device without a battery reports none and never raises it. A device that runs the OneUptime Android agent is left to its host's Low Battery.`,
+    category: "Resource",
+    severity: "Warning",
+    monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+    metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+    minBatteryPercent: minPercent,
+    getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Metrics,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setMetricMonitor(
+        buildManagedDeviceBatteryMetricMonitor({
+          deviceManagementConnectionId: args.deviceManagementConnectionId,
+        }),
+      );
+
+      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
+        {
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          incidentSeverityId: args.defaultIncidentSeverityId,
+          alertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+          metricAlias: BATTERY_METRIC_ALIAS,
+          filterType: FilterType.LessThan,
+          value: minPercent,
+          incidentTitle: `[${getDeviceManagementProviderShortTitle(spec.provider)}] Low battery`,
+          incidentDescription: `A device ${spec.serviceName} manages reports less than 20% battery, so it will shut down soon unless it is charged, and then stops checking in. Put it on its charger or swap its battery; a kiosk or a terminal meant to stay on power has lost it, so check its cable, adapter and socket. The battery is the one the device last reported to ${spec.serviceName}. This resolves on its own once it reports 20% or more.`,
+          criteriaName: "A device's battery is low",
+          criteriaDescription:
+            "Triggers when a device's latest reading says its battery is below 20%, once for each such device.",
+          resourceNoun: "device",
+          // Each device holds one reading here, its latest: Any Value is that reading.
+          metricAggregationType: EvaluateOverTimeType.AnyValue,
+        },
+      );
+
+      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: BATTERY_METRIC_ALIAS,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: minPercent,
+        recoveryValue: minPercent,
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      });
+
+      const criteria: MonitorCriteria = new MonitorCriteria();
+      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+      step.setMonitorCriteria(criteria);
+
+      return step;
+    },
+  };
+}
+
+/*
+ * Storage Nearly Full, for one service's devices (#10008): each device's
+ * latest reading of how much of its own storage is in use, more than 90%
+ * fires, one alert per device; 90% or less resolves.
+ */
+function buildStorageNearlyFullTemplate(
+  spec: DeviceReadingTemplateSpec,
+): ManagedDeviceAlertTemplate {
+  // The words write the number out, "90%", as the agent's template's do.
+  const maxPercent: number = MANAGED_DEVICE_STORAGE_NEARLY_FULL_PERCENT;
+
+  return {
+    id: spec.id,
+    provider: spec.provider,
+    name: spec.name,
+    summary: spec.summary,
+    description: `Alert when a device ${spec.serviceName} manages has more than 90% of its own storage in use, one alert per device, resolved once it has 90% or less: a device refuses app installs and updates as its storage fills, and apps that keep caches or logs start failing. Every read of the connection records how full each device's storage is, as ${spec.serviceName} last heard it. A device that reports no free space never raises it. A device that runs the OneUptime Android agent is left to its host's Storage Nearly Full.`,
+    category: "Resource",
+    severity: "Warning",
+    monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+    metricName: MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+    maxStorageUsedPercent: maxPercent,
+    getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Metrics,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setMetricMonitor(
+        buildManagedDeviceStorageMetricMonitor({
+          deviceManagementConnectionId: args.deviceManagementConnectionId,
+        }),
+      );
+
+      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
+        {
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          incidentSeverityId: args.defaultIncidentSeverityId,
+          alertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+          metricAlias: STORAGE_METRIC_ALIAS,
+          filterType: FilterType.GreaterThan,
+          value: maxPercent,
+          incidentTitle: `[${getDeviceManagementProviderShortTitle(spec.provider)}] Storage nearly full`,
+          incidentDescription: `A device ${spec.serviceName} manages has more than 90% of its own storage in use. As it fills, the device refuses app installs and updates, ${spec.serviceName}'s included, and apps that keep caches or logs start failing. Clear what its apps keep, or remove apps it does not need, through ${spec.serviceName}. This resolves on its own once ${spec.serviceName} reports 90% or less in use.`,
+          criteriaName: "A device's storage is nearly full",
+          criteriaDescription:
+            "Triggers when a device's latest reading says more than 90% of its storage is in use, once for each such device.",
+          resourceNoun: "device",
+          // Each device holds one reading here, its latest: Any Value is that reading.
+          metricAggregationType: EvaluateOverTimeType.AnyValue,
+        },
+      );
+
+      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: STORAGE_METRIC_ALIAS,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: maxPercent,
+        recoveryValue: maxPercent,
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      });
+
+      const criteria: MonitorCriteria = new MonitorCriteria();
+      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+      step.setMonitorCriteria(criteria);
+
+      return step;
+    },
+  };
+}
+
+/*
+ * Low Battery for each service whose device list says a device's battery:
+ * Esper's, Workspace ONE's and SOTI's. Intune's lists none (only a device
+ * read on its own, on Graph's beta, says one), so it is offered none.
+ */
+const esperLowBatteryTemplate: ManagedDeviceAlertTemplate =
+  buildLowBatteryTemplate({
+    id: "esper-low-battery",
+    provider: DeviceManagementProvider.Esper,
+    name: "Esper Low Battery",
+    summary: "A device Esper manages has less than 20% battery left.",
+    serviceName: "Esper",
+  });
+
+const workspaceOneLowBatteryTemplate: ManagedDeviceAlertTemplate =
+  buildLowBatteryTemplate({
+    id: "workspace-one-low-battery",
+    provider: DeviceManagementProvider.WorkspaceOne,
+    name: "Workspace ONE Low Battery",
+    summary: "A device Workspace ONE manages has less than 20% battery left.",
+    serviceName: "Workspace ONE",
+  });
+
+const sotiLowBatteryTemplate: ManagedDeviceAlertTemplate =
+  buildLowBatteryTemplate({
+    id: "soti-low-battery",
+    provider: DeviceManagementProvider.Soti,
+    name: "SOTI Low Battery",
+    summary: "A device MobiControl manages has less than 20% battery left.",
+    serviceName: "MobiControl",
+  });
+
+// Storage Nearly Full for every service: each says a device's storage and its free space.
+const esperStorageNearlyFullTemplate: ManagedDeviceAlertTemplate =
+  buildStorageNearlyFullTemplate({
+    id: "esper-storage-nearly-full",
+    provider: DeviceManagementProvider.Esper,
+    name: "Esper Storage Nearly Full",
+    summary: "A device Esper manages has more than 90% of its storage in use.",
+    serviceName: "Esper",
+  });
+
+const intuneStorageNearlyFullTemplate: ManagedDeviceAlertTemplate =
+  buildStorageNearlyFullTemplate({
+    id: "intune-storage-nearly-full",
+    provider: DeviceManagementProvider.Intune,
+    name: "Intune Storage Nearly Full",
+    summary: "A device Intune manages has more than 90% of its storage in use.",
+    serviceName: "Intune",
+  });
+
+const workspaceOneStorageNearlyFullTemplate: ManagedDeviceAlertTemplate =
+  buildStorageNearlyFullTemplate({
+    id: "workspace-one-storage-nearly-full",
+    provider: DeviceManagementProvider.WorkspaceOne,
+    name: "Workspace ONE Storage Nearly Full",
+    summary:
+      "A device Workspace ONE manages has over 90% of its storage in use.",
+    serviceName: "Workspace ONE",
+  });
+
+const sotiStorageNearlyFullTemplate: ManagedDeviceAlertTemplate =
+  buildStorageNearlyFullTemplate({
+    id: "soti-storage-nearly-full",
+    provider: DeviceManagementProvider.Soti,
+    name: "SOTI Storage Nearly Full",
+    summary:
+      "A device MobiControl manages has more than 90% of its storage in use.",
+    serviceName: "MobiControl",
+  });
+
 /*
  * Each service's templates in the order its connection is offered them: the
  * connection itself first, which feeds every other one, then its devices'
- * check-ins, then its Android devices' security patches.
+ * check-ins, their batteries and their storage, then its Android devices'
+ * security patches.
  */
 const ALL_TEMPLATES: ReadonlyArray<ManagedDeviceAlertTemplate> = [
   esperConnectionStoppedReadingTemplate,
   esperAndroidDeviceStoppedCheckingInTemplate,
   esperAppleDeviceStoppedCheckingInTemplate,
+  esperLowBatteryTemplate,
+  esperStorageNearlyFullTemplate,
   esperSecurityPatchOutOfDateTemplate,
   intuneConnectionStoppedReadingTemplate,
   intuneDeviceStoppedCheckingInTemplate,
+  intuneStorageNearlyFullTemplate,
   intuneSecurityPatchOutOfDateTemplate,
   workspaceOneConnectionStoppedReadingTemplate,
   workspaceOneDeviceStoppedCheckingInTemplate,
+  workspaceOneLowBatteryTemplate,
+  workspaceOneStorageNearlyFullTemplate,
   workspaceOneSecurityPatchOutOfDateTemplate,
   sotiConnectionStoppedReadingTemplate,
   sotiDeviceStoppedCheckingInTemplate,
   sotiAppleDeviceStoppedCheckingInTemplate,
+  sotiLowBatteryTemplate,
+  sotiStorageNearlyFullTemplate,
   sotiSecurityPatchOutOfDateTemplate,
 ];
 
