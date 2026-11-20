@@ -11,6 +11,8 @@ import EventRootCauseMetricChart, {
   RootCauseEventReader,
   RootCauseMoments,
 } from "../Telemetry/EventRootCauseMetricChart";
+import { readRootCauseMonitorSteps } from "../Telemetry/RootCauseMonitorSteps";
+import { MONITOR_THROUGH_RELATION_SELECT } from "../Monitor/ReadMonitorSteps";
 import { EventMetricSubject } from "../../Utils/EventMetricInvestigation";
 import {
   RootCauseEvent,
@@ -23,9 +25,12 @@ export interface ComponentProps {
 
 /*
  * How the Root Cause card reads an incident: the columns that decide what it
- * charts and when it was declared, with the monitors it is on, in one read;
- * then, for a card there is, its state timeline and the project's incident
- * states, as its Overview reads them.
+ * charts and when it was declared, with which monitors it is on and what
+ * kind, in one read every reader of the incident may send; for one that kept
+ * no metric snapshot, the steps of its monitors that read metrics, on each
+ * monitor by the reader's own read (#10309); then, for a card there is, its
+ * state timeline and the project's incident states, as its Overview reads
+ * them.
  */
 export const INCIDENT_ROOT_CAUSE_READER: RootCauseEventReader = {
   subject: EventMetricSubject.Incident,
@@ -40,15 +45,13 @@ export const INCIDENT_ROOT_CAUSE_READER: RootCauseEventReader = {
         telemetryQuery: true,
         seriesLabels: true,
         createdCriteriaId: true,
-        monitors: {
-          _id: true,
-          monitorType: true,
-          monitorSteps: true,
-        } as never,
+        monitors: MONITOR_THROUGH_RELATION_SELECT as never,
       },
     });
 
-    return incident ? getIncidentRootCauseEvent(incident) : null;
+    return incident
+      ? await readRootCauseMonitorSteps(getIncidentRootCauseEvent(incident))
+      : null;
   },
   readMoments: async (incidentId: ObjectID): Promise<RootCauseMoments> => {
     const [timelines, states]: [

@@ -2560,6 +2560,26 @@ jobs:
           Tests/Server/Services/OnCallChildCreateAuthorizationPostgres.test.ts
           --forceExit
 
+      # #10411: a person, team or schedule is on an escalation rule once. The
+      # real services refuse a second row, as a person and as an API key, two
+      # creates at the same moment leave one row - the unique index refuses
+      # the other, in the same words - and the migration that made the rows
+      # unique keeps the oldest row of each copy and soft-deletes the rest,
+      # writing nothing when run again; all on copies of the migrated tables.
+      - name: Test that a responder is on an escalation rule once, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ESCALATION_RULE_RESPONDER_TESTS: "true"
+          ESCALATION_RULE_RESPONDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ESCALATION_RULE_RESPONDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ESCALATION_RULE_RESPONDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EscalationRuleRespondersOncePostgres.test.ts
+          Tests/Server/Infrastructure/Postgres/MakeEscalationRuleRespondersUniquePostgres.test.ts
+          --forceExit
+
       - name: Test permission blocks on delete on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common

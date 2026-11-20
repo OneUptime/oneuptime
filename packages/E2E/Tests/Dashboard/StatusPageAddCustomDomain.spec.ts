@@ -84,8 +84,13 @@ test.describe("Status page Custom Domains: Add Custom Domain", () => {
       const statusPageId: string = toId(statusPage["_id"]);
       expect(statusPageId).not.toBe("");
 
+      /*
+       * Exact: the project this test makes is named "E2E Add Custom Domain
+       * ...", and the project switcher in the banner, a button named after
+       * the project, comes first on the page.
+       */
       const addButton: Locator = page
-        .getByRole("button", { name: "Add Custom Domain" })
+        .getByRole("button", { name: "Add Custom Domain", exact: true })
         .first();
 
       await gotoProjectPage({

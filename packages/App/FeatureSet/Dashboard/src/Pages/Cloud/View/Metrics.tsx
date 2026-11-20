@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -79,31 +80,40 @@ const CloudResourceMetrics: FunctionComponent<
     setIsLoading(true);
     setError("");
     try {
+      /*
+       * Its connection's additions and settings are read through the
+       * resource for who may read the connection itself (#10310): every
+       * reader of the project's cloud resources, but a team kept from its
+       * connections, which reads the key metrics without them.
+       */
       const item: CloudResource | null = await ModelAPI.getItem({
         modelType: CloudResource,
         id: modelId,
-        select: {
-          _id: true,
-          resourceIdentifier: true,
-          name: true,
-          // The scope reads the attributes of a resource only.
-          cloudResourceKind: true,
-          telemetryAttributes: true,
-          // What its rows add up: a namespace's metrics, one per queue.
-          cloudProvider: true,
-          cloudResourceType: true,
-          /*
-           * What its connection reads for it besides its key metrics, and
-           * how often: a metric that comes once an hour is missing only
-           * past its delay (#10026).
-           */
-          cloudConnectionId: true,
-          cloudConnection: {
-            addedMetrics: true,
-            provider: true,
-            config: true,
+        select: PermissionGate.getSelectReadableThroughRelations(
+          CloudResource,
+          {
+            _id: true,
+            resourceIdentifier: true,
+            name: true,
+            // The scope reads the attributes of a resource only.
+            cloudResourceKind: true,
+            telemetryAttributes: true,
+            // What its rows add up: a namespace's metrics, one per queue.
+            cloudProvider: true,
+            cloudResourceType: true,
+            /*
+             * What its connection reads for it besides its key metrics, and
+             * how often: a metric that comes once an hour is missing only
+             * past its delay (#10026).
+             */
+            cloudConnectionId: true,
+            cloudConnection: {
+              addedMetrics: true,
+              provider: true,
+              config: true,
+            },
           },
-        },
+        ),
       });
 
       if (!item?.resourceIdentifier) {

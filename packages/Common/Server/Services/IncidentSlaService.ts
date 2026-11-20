@@ -77,7 +77,6 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     // The incident and the rule are the project's first (ProjectReferencesService).
     await super.onBeforeCreate(createBy);
-
     const sla: Model = createBy.data;
     const record: Record<string, unknown> = sla as unknown as Record<
       string,
@@ -115,7 +114,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return { createBy: createBy, carryForward: null };
+    return { createBy: createBy, carryForward: undefined };
   }
 
   /*
@@ -286,8 +285,20 @@ export class Service extends ProjectReferencesService<Model> {
     // Create SLA record
     const sla: Model = new Model();
     sla.projectId = data.projectId;
-    sla.incidentId = data.incidentId;
-    sla.incidentSlaRuleId = matchingRule.id;
+    /*
+     * The incident and the rule are OneUptime's to name here, so each is
+     * written under its ID column alone (RelationIdUtil.stamp).
+     */
+    const record: Record<string, unknown> = sla as unknown as Record<
+      string,
+      unknown
+    >;
+    RelationIdUtil.stamp(record, ["incidentId", "incident"], data.incidentId);
+    RelationIdUtil.stamp(
+      record,
+      ["incidentSlaRuleId", "incidentSlaRule"],
+      matchingRule.id,
+    );
     sla.slaStartedAt = slaStartedAt;
     sla.status = IncidentSlaStatus.OnTrack;
 

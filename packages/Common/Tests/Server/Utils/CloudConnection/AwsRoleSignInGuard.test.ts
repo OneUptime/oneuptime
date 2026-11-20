@@ -22,7 +22,10 @@ import * as AwsSts from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
  *   3. anything but Cloud Connect's own sign-in takes OneUptime's own AWS
  *      credentials, which are what a role trusts (USES_ONEUPTIME_IDENTITY);
  *   4. anything but AwsSts writes a check's verdict (AwsRoleCheckCache.set):
- *      a pass written elsewhere would let assumeRole skip the check.
+ *      a pass written elsewhere would let assumeRole skip the check. The
+ *      verdicts are kept in the shared cache for every server (#10424), so
+ *      the cache's place for them is named in AwsSts alone, never exported,
+ *      and written to by AwsRoleCheckCache.set alone.
  *
  * A new caller - a project's Amazon SES role (#7378) - signs in with
  * AwsSts.assumeRole and its own connection id, and is listed in 3.
@@ -95,6 +98,12 @@ const ONEUPTIME_IDENTITY_PATTERN: RegExp =
 
 // A check's verdict written: only AwsSts may.
 const VERDICT_WRITE_PATTERN: RegExp = /AwsRoleCheckCache\.set\(/;
+
+// Where the shared cache keeps the verdicts, and every way of writing to it.
+const VERDICT_NAMESPACE: string = "cloud-aws-role-check";
+const VERDICT_NAMESPACE_PATTERN: RegExp = /["'`]cloud-aws-role-check/;
+const CACHE_WRITE_PATTERN: RegExp =
+  /GlobalCache\.(?:set\w*|swap\w*|delete\w*|increment\w*|extendExpiry|getAndDelete\w*)\(/g;
 
 // A function's first line in AwsSts, and a call to its raw sign-in.
 const FUNCTION_START: RegExp = /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\(/;
@@ -333,5 +342,82 @@ describe("a check's verdict", () => {
     );
 
     expect(writers).toEqual([STS_FILE]);
+  });
+
+  test("is kept in a place of the shared cache that no other file names, and AwsSts does not let out", () => {
+    const naming: Array<string> = Array.from(
+      new Set(
+        findings(SOURCE_FILES, [
+          {
+            name: "the verdicts' place in the shared cache",
+            pattern: VERDICT_NAMESPACE_PATTERN,
+          },
+        ]).map(fileOf),
+      ),
+    );
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, STS_FILE),
+      "utf8",
+    );
+
+    /*
+     * Any other file that names it could write a pass for every server to
+     * read: keep the verdicts to AwsRoleCheckCache (#10424).
+     */
+    expect(naming).toEqual([STS_FILE]);
+    expect(text).toContain(
+      `const ROLE_CHECK_CACHE_NAMESPACE: string = "${VERDICT_NAMESPACE}";`,
+    );
+    expect(text).not.toMatch(/export\s+const\s+ROLE_CHECK_CACHE_NAMESPACE/);
+    expect(Object.keys(AwsSts)).not.toContain("ROLE_CHECK_CACHE_NAMESPACE");
+  });
+
+  test("is written to the shared cache by AwsRoleCheckCache.set alone", () => {
+    const text: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, STS_FILE),
+      "utf8",
+    );
+    const classStart: number = text.indexOf("export class AwsRoleCheckCache {");
+    const setStart: number = text.indexOf(
+      "  public static async set(",
+      classStart,
+    );
+    const setEnd: number = text.indexOf("\n  }\n", setStart);
+    const setBody: string = text.slice(setStart, setEnd);
+
+    expect(classStart).toBeGreaterThan(0);
+    expect(setStart).toBeGreaterThan(classStart);
+    expect(setEnd).toBeGreaterThan(setStart);
+    // One write of the shared cache in all of AwsSts, and it is set's.
+    expect(text.match(CACHE_WRITE_PATTERN)).toEqual(["GlobalCache.setString("]);
+    expect(setBody.match(CACHE_WRITE_PATTERN)).toEqual([
+      "GlobalCache.setString(",
+    ]);
+    expect(setBody).toContain("ROLE_CHECK_CACHE_NAMESPACE");
+  });
+
+  test("each write's pattern catches what it should, and its look-alikes are not", () => {
+    for (const line of [
+      'await GlobalCache.setString(ROLE_CHECK_CACHE_NAMESPACE, key, "x");',
+      "await GlobalCache.setJSON(namespace, key, value);",
+      "await GlobalCache.deleteKey(namespace, key);",
+      "await GlobalCache.swapString(namespace, key, value);",
+      "await GlobalCache.setStringIfNotExists(namespace, key, value);",
+    ]) {
+      expect(line.match(CACHE_WRITE_PATTERN)).not.toBeNull();
+    }
+
+    for (const line of [
+      "await GlobalCache.getString(ROLE_CHECK_CACHE_NAMESPACE, key);",
+      "await GlobalCache.getJSONObject(namespace, key);",
+    ]) {
+      expect(line.match(CACHE_WRITE_PATTERN)).toBeNull();
+    }
+
+    expect(VERDICT_NAMESPACE_PATTERN.test(`"${VERDICT_NAMESPACE}"`)).toBe(true);
+    expect(VERDICT_NAMESPACE_PATTERN.test("`cloud-aws-role-check-${id}`")).toBe(
+      true,
+    );
+    expect(VERDICT_NAMESPACE_PATTERN.test('"cloud-live-read"')).toBe(false);
   });
 });
