@@ -2895,10 +2895,12 @@ const NOBODY_NEW_AT_LEVEL: (data: {
 };
 
 // A level that pages everyone a call named already (#10041, #10411).
-const everyoneNamedPagedAlready: (level: number, policyName: string) => string =
-  (level: number, policyName: string): string => {
-    return `Level ${level} of the on-call policy "${policyName}" pages everyone named already, so nobody was added again.`;
-  };
+const everyoneNamedPagedAlready: (
+  level: number,
+  policyName: string,
+) => string = (level: number, policyName: string): string => {
+  return `Level ${level} of the on-call policy "${policyName}" pages everyone named already, so nobody was added again.`;
+};
 
 /*
  * Who of those a call named the level pages already, said after what was

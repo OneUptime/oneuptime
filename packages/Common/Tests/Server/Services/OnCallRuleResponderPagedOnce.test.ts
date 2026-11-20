@@ -214,8 +214,10 @@ describe("a level whose rows name a person more than once", () => {
     await pageTheLevel();
 
     expect(paged).toEqual([ANA.toString()]);
-    // Each further time the level reached her: two team rows, the user row
-    // and the two schedule rows, one of them her page.
+    /*
+     * Each further time the level reached her: two team rows, the user row
+     * and the two schedule rows, one of them her page.
+     */
     expect(alreadyPagedLines()).toHaveLength(4);
   });
 

@@ -97,7 +97,8 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     return getScheduleOnRuleAlreadyRefusal({
       rule: data.rule,
       schedule: schedule?.name?.toString() || "",
-      pagesNextInRotation: data.responder.columns["pageNextInRotation"] === true,
+      pagesNextInRotation:
+        data.responder.columns["pageNextInRotation"] === true,
     });
   }
 

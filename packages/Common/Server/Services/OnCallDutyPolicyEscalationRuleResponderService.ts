@@ -53,7 +53,7 @@ export interface EscalationRuleResponder {
  * The refusals the check before the write made: thrown out of create() as
  * they are, rather than worded again.
  */
-const refusedBeforeTheWrite: WeakSet<object> = new WeakSet<object>();
+const refusedBeforeTheWrite: WeakSet<Error> = new WeakSet<Error>();
 
 export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
   TBaseModel extends BaseModel,
@@ -94,7 +94,7 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
       return await super.create(createBy);
     } catch (error) {
       if (
-        refusedBeforeTheWrite.has(error as object) ||
+        (error instanceof Error && refusedBeforeTheWrite.has(error)) ||
         !PostgresErrorTranslator.isUniqueViolationOf(
           error,
           this.getResponderIndexName(),
@@ -191,25 +191,24 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
     responder: EscalationRuleResponder,
     createBy: CreateBy<TBaseModel>,
   ): Promise<string> {
-    const rule: OnCallDutyPolicyEscalationRule | null = await new DatabaseService(
-      OnCallDutyPolicyEscalationRule,
-    ).findOneBy({
-      query: {
-        _id: responder.ruleId.toString(),
-      },
-      select: {
-        _id: true,
-        name: true,
-        order: true,
-        projectId: true,
-        onCallDutyPolicy: {
-          name: true,
+    const rule: OnCallDutyPolicyEscalationRule | null =
+      await new DatabaseService(OnCallDutyPolicyEscalationRule).findOneBy({
+        query: {
+          _id: responder.ruleId.toString(),
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        select: {
+          _id: true,
+          name: true,
+          order: true,
+          projectId: true,
+          onCallDutyPolicy: {
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     const projectId: ObjectID | null =
       rule?.projectId ||

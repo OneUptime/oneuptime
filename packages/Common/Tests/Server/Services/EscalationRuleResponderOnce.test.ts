@@ -76,9 +76,7 @@ const TEAM_ID: ObjectID = new ObjectID("10411000-0000-4000-8000-0000000000b1");
 const SCHEDULE_ID: ObjectID = new ObjectID(
   "10411000-0000-4000-8000-0000000000c1",
 );
-const OTHER_ID: ObjectID = new ObjectID(
-  "10411000-0000-4000-8000-0000000000f1",
-);
+const OTHER_ID: ObjectID = new ObjectID("10411000-0000-4000-8000-0000000000f1");
 
 const RULE_WORDS: string =
   'The escalation rule "Level 1" of the on-call policy "Payments on-call"';
@@ -115,7 +113,8 @@ interface Kind {
 const KINDS: Array<Kind> = [
   {
     name: "a person",
-    service: EscalationRuleUserService as unknown as DatabaseService<ResponderModel>,
+    service:
+      EscalationRuleUserService as unknown as DatabaseService<ResponderModel>,
     model: OnCallDutyPolicyEscalationRuleUser,
     index: ESCALATION_RULE_USER_INDEX,
     column: "userId",
@@ -126,7 +125,8 @@ const KINDS: Array<Kind> = [
   },
   {
     name: "a team",
-    service: EscalationRuleTeamService as unknown as DatabaseService<ResponderModel>,
+    service:
+      EscalationRuleTeamService as unknown as DatabaseService<ResponderModel>,
     model: OnCallDutyPolicyEscalationRuleTeam,
     index: ESCALATION_RULE_TEAM_INDEX,
     column: "teamId",
@@ -137,7 +137,8 @@ const KINDS: Array<Kind> = [
   },
   {
     name: "a schedule",
-    service: EscalationRuleScheduleService as unknown as DatabaseService<ResponderModel>,
+    service:
+      EscalationRuleScheduleService as unknown as DatabaseService<ResponderModel>,
     model: OnCallDutyPolicyEscalationRuleSchedule,
     index: ESCALATION_RULE_SCHEDULE_INDEX,
     column: "onCallDutyPolicyScheduleId",
@@ -151,7 +152,9 @@ const KINDS: Array<Kind> = [
   },
 ];
 
-function parts(service: DatabaseService<ResponderModel>): ResponderServiceParts {
+function parts(
+  service: DatabaseService<ResponderModel>,
+): ResponderServiceParts {
   return service as unknown as ResponderServiceParts;
 }
 
@@ -347,8 +350,9 @@ describe("each responder service", () => {
 
 describe.each(KINDS)("$name the rule pages already", (kind: Kind) => {
   test("is read from the row under either name of each reference", () => {
-    const responder: ReturnType<ResponderServiceParts["readResponder"]> =
-      parts(kind.service).readResponder(row(kind));
+    const responder: ReturnType<ResponderServiceParts["readResponder"]> = parts(
+      kind.service,
+    ).readResponder(row(kind));
 
     expect(responder?.ruleId.toString()).toBe(RULE_ID.toString());
     expect(responder?.columns).toEqual(kind.columns);
@@ -363,7 +367,9 @@ describe.each(KINDS)("$name the rule pages already", (kind: Kind) => {
     } as never);
 
     expect(
-      parts(kind.service).readResponder(byRelation)?.columns[kind.column]?.toString(),
+      parts(kind.service)
+        .readResponder(byRelation)
+        ?.columns[kind.column]?.toString(),
     ).toBe(kind.responderId.toString());
 
     // Two names of one reference that disagree are refused, not guessed.
@@ -381,7 +387,10 @@ describe.each(KINDS)("$name the rule pages already", (kind: Kind) => {
     const noResponder: ResponderModel = row(kind);
     noResponder.setColumnValue(kind.column, undefined as never);
     const noRule: ResponderModel = row(kind);
-    noRule.setColumnValue("onCallDutyPolicyEscalationRuleId", undefined as never);
+    noRule.setColumnValue(
+      "onCallDutyPolicyEscalationRuleId",
+      undefined as never,
+    );
 
     expect(parts(kind.service).readResponder(noResponder)).toBeNull();
     expect(parts(kind.service).readResponder(noRule)).toBeNull();
@@ -421,11 +430,11 @@ describe.each(KINDS)("$name the rule pages already", (kind: Kind) => {
 
       // The rows the index holds: the rule's, of the responder, not deleted.
       expect(countBy).toHaveBeenCalledTimes(1);
-      const count: { query: Record<string, unknown>; props: unknown } =
-        countBy.mock.calls[0]![0] as {
-          query: Record<string, unknown>;
-          props: unknown;
-        };
+      const count: { query: Record<string, unknown>; props: unknown } = countBy
+        .mock.calls[0]![0] as {
+        query: Record<string, unknown>;
+        props: unknown;
+      };
       expect(count.query).toEqual({
         onCallDutyPolicyEscalationRuleId: RULE_ID,
         ...kind.columns,
@@ -471,7 +480,10 @@ describe.each(KINDS)("$name the rule pages already", (kind: Kind) => {
     jest
       .spyOn(OnCallDutyPolicyChildService.prototype, "create")
       .mockRejectedValue(
-        uniqueViolation(kind.index, kind.service.getModel().tableName!) as never,
+        uniqueViolation(
+          kind.index,
+          kind.service.getModel().tableName!,
+        ) as never,
       );
 
     await expect(
@@ -517,7 +529,9 @@ describe.each(KINDS)("$name the rule pages already", (kind: Kind) => {
     const otherIndex: Error = PostgresErrorTranslator.translate(
       uniqueViolation("IDX_some_other_index", "Somewhere"),
     ) as Error;
-    const notUnique: Error = new BadDataException("An on-call policy is required.");
+    const notUnique: Error = new BadDataException(
+      "An on-call policy is required.",
+    );
 
     for (const failure of [otherIndex, notUnique]) {
       jest
@@ -570,14 +584,14 @@ describe("a schedule is a responder once for each way the rule pages it", () => 
 describe("a rule created with a responder twice in its lists", () => {
   test("adds each once: the second would be refused after the rule is written", async () => {
     const written: Array<string> = [];
-    const record: (kind: string) => (createBy: {
-      data: BaseModel;
-    }) => Promise<BaseModel> = (kind: string) => {
+    const record: (
+      kind: string,
+    ) => (createBy: { data: BaseModel }) => Promise<BaseModel> = (
+      kind: string,
+    ) => {
       return async (createBy: { data: BaseModel }): Promise<BaseModel> => {
-        const data: Record<string, unknown> = createBy.data as unknown as Record<
-          string,
-          unknown
-        >;
+        const data: Record<string, unknown> =
+          createBy.data as unknown as Record<string, unknown>;
         written.push(
           `${kind} ${String(data["userId"] || data["teamId"] || data["onCallDutyPolicyScheduleId"])}${data["pageNextInRotation"] ? " next" : ""}`,
         );

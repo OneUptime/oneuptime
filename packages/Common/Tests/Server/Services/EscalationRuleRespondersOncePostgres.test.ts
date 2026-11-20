@@ -20,7 +20,9 @@ import {
   ESCALATION_RULE_TEAM_INDEX,
   ESCALATION_RULE_USER_INDEX,
 } from "../../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
-import Permission, { UserTenantAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import {
   afterAll,
@@ -331,7 +333,13 @@ describePostgres(
       ] as const) {
         await database.query(
           `INSERT INTO "${schema}"."OnCallDutyPolicyEscalationRule" ("_id", "version", "projectId", "onCallDutyPolicyId", "name", "order") VALUES ($1, 1, $2, $3, $4, $5)`,
-          [id.toString(), projectId.toString(), policyId.toString(), name, order],
+          [
+            id.toString(),
+            projectId.toString(),
+            policyId.toString(),
+            name,
+            order,
+          ],
         );
       }
     });
@@ -399,7 +407,10 @@ describePostgres(
         ["an API key", asApiKey],
       ])(
         "a second create of the same responder, as %s, is refused in words naming it and the rule; one row stays, told once",
-        async (_caller: string, props: () => DatabaseCommonInteractionProps) => {
+        async (
+          _caller: string,
+          props: () => DatabaseCommonInteractionProps,
+        ) => {
           const first: BaseModel = await services[fixture.kind].create({
             data: responderRow(fixture),
             props: props(),
@@ -434,15 +445,17 @@ describePostgres(
         });
 
         const byRelations: BaseModel = responderRow(fixture);
-        byRelations.setColumnValue("onCallDutyPolicyEscalationRuleId", undefined as never);
+        byRelations.setColumnValue(
+          "onCallDutyPolicyEscalationRuleId",
+          undefined as never,
+        );
         byRelations.setColumnValue(fixture.column, undefined as never);
         byRelations.setColumnValue("onCallDutyPolicyEscalationRule", {
           _id: ruleId.toString(),
         } as never);
-        byRelations.setColumnValue(
-          fixture.column.replace(/Id$/, ""),
-          { _id: fixture.responderId.toString() } as never,
-        );
+        byRelations.setColumnValue(fixture.column.replace(/Id$/, ""), {
+          _id: fixture.responderId.toString(),
+        } as never);
 
         await expect(
           services[fixture.kind].create({
@@ -508,14 +521,13 @@ describePostgres(
 
           expect(checked).toBe(2);
 
-          const kept: Array<PromiseFulfilledResult<BaseModel>> =
-            results.filter(
-              (
-                result: PromiseSettledResult<BaseModel>,
-              ): result is PromiseFulfilledResult<BaseModel> => {
-                return result.status === "fulfilled";
-              },
-            );
+          const kept: Array<PromiseFulfilledResult<BaseModel>> = results.filter(
+            (
+              result: PromiseSettledResult<BaseModel>,
+            ): result is PromiseFulfilledResult<BaseModel> => {
+              return result.status === "fulfilled";
+            },
+          );
           const refused: Array<PromiseRejectedResult> = results.filter(
             (
               result: PromiseSettledResult<BaseModel>,

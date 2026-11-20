@@ -199,9 +199,9 @@ describe("the models", () => {
 
 describe("the indexes, online", () => {
   test("runs outside a transaction, as CREATE INDEX CONCURRENTLY must", () => {
-    expect(new MakeEscalationRuleRespondersUnique1809187100000().transaction).toBe(
-      false,
-    );
+    expect(
+      new MakeEscalationRuleRespondersUnique1809187100000().transaction,
+    ).toBe(false);
   });
 
   test("hands OnlineDdl each index exactly as its model declares it", async () => {
@@ -278,7 +278,9 @@ describe("the copies, soft-deleted", () => {
       expect(statement).toContain(`INNER JOIN "duplicated" USING (${columns})`);
       expect(statement).toContain(`WHERE responder."deletedAt" IS NULL`);
       // A soft delete, of the rows ranked after the first.
-      expect(statement).toContain(`UPDATE "${kind.table}" newer SET "deletedAt" = now()`);
+      expect(statement).toContain(
+        `UPDATE "${kind.table}" newer SET "deletedAt" = now()`,
+      );
       expect(statement).toContain(`"ranked"."place" > 1`);
       expect(statement).not.toMatch(/\bDELETE\b/);
     },
@@ -314,9 +316,11 @@ describe("the copies, soft-deleted", () => {
     );
     expect(three).toBe(3);
 
-    expect(info.mock.calls.map((call: Array<unknown>) => {
-      return call[0];
-    })).toEqual([
+    expect(
+      info.mock.calls.map((call: Array<unknown>) => {
+        return call[0];
+      }),
+    ).toEqual([
       "OnCallDutyPolicyEscalationRuleTeam: soft-deleted 1 copy of responders that escalation rules had more than once, keeping the oldest row of each.",
       "OnCallDutyPolicyEscalationRuleUser: soft-deleted 3 copies of responders that escalation rules had more than once, keeping the oldest row of each.",
     ]);
@@ -389,7 +393,9 @@ describe("a copy added while an index is built", () => {
 describe("registration", () => {
   test("is registered, and named after its file's timestamp", () => {
     expect(registered).toContain(NAME);
-    expect(new MakeEscalationRuleRespondersUnique1809187100000().name).toBe(NAME);
+    expect(new MakeEscalationRuleRespondersUnique1809187100000().name).toBe(
+      NAME,
+    );
     expect(
       fs.existsSync(
         path.join(
