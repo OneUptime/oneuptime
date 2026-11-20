@@ -37,6 +37,40 @@ export const PROXMOX_GUEST_POWER_TASK_METRIC_NAME: string =
 export const PROXMOX_GUEST_POWER_TASK_SCOPE_NAME: string =
   "oneuptime-proxmox-guest-tasks";
 
+/*
+ * Stamped on the resource these go out under, beside proxmox.cluster.name,
+ * so the ingest can tell them from the collector's metrics: the AI agent
+ * reading the task log says nothing of whether the collector is running,
+ * and must not read as the cluster's agent being heard.
+ */
+export const PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE: string =
+  "proxmox.report.source";
+export const PROXMOX_GUEST_POWER_TASK_RESOURCE_VALUE: string = "task-log";
+
+// Whether a resource's attributes, as OTLP has them, are of this report.
+export function isProxmoxGuestPowerTaskResource(attributes: unknown): boolean {
+  if (!Array.isArray(attributes)) {
+    return false;
+  }
+  return attributes.some((attribute: unknown): boolean => {
+    if (!attribute || typeof attribute !== "object") {
+      return false;
+    }
+    const item: { key?: unknown; value?: unknown } = attribute as {
+      key?: unknown;
+      value?: unknown;
+    };
+    const value: { stringValue?: unknown } | null =
+      item.value && typeof item.value === "object"
+        ? (item.value as { stringValue?: unknown })
+        : null;
+    return (
+      item.key === PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE &&
+      value?.stringValue === PROXMOX_GUEST_POWER_TASK_RESOURCE_VALUE
+    );
+  });
+}
+
 // The task's facts, as datapoint attributes beside the guest's own `id`.
 export enum ProxmoxGuestPowerTaskAttribute {
   // qmstop, qmshutdown, vzstop, hastop, qmstart...; "" when none was found.

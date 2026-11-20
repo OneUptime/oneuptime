@@ -20,6 +20,8 @@ import { AgentLogger } from "./Logger";
 import { waitAtMost } from "./Sleep";
 import {
   PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+  PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE,
+  PROXMOX_GUEST_POWER_TASK_RESOURCE_VALUE,
   PROXMOX_GUEST_POWER_TASK_SCOPE_NAME,
   ProxmoxGuestPowerTask,
   ProxmoxGuestPowerTaskAttribute,
@@ -207,15 +209,18 @@ function stringAttribute(key: string, value: string): Record<string, unknown> {
  * The round's readings as one OTLP/JSON metrics request: a gauge datapoint
  * per guest, its identity as the collector's pve-identity transform writes
  * it (id qemu/104, pve.scope guest, pve.type, pve.id) and its last power
- * task beside it, on the cluster the collector reports.
+ * task beside it, on the cluster the collector reports, marked as the task
+ * log's (PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE). Every datapoint is
+ * timed when the round read which guests are stopped: what it says holds
+ * from then, and the ingest drops it for a guest seen running since.
  */
 export function buildGuestTaskMetrics(data: {
   clusterName: string;
   readings: ReadonlyArray<ProxmoxGuestTaskReading>;
-  nowMs: number;
+  readAtMs: number;
   agentVersion?: string | null | undefined;
 }): Record<string, unknown> {
-  const timeUnixNano: string = `${Math.round(data.nowMs)}000000`;
+  const timeUnixNano: string = `${Math.round(data.readAtMs)}000000`;
   const dataPoints: Array<Record<string, unknown>> = data.readings.map(
     (reading: ProxmoxGuestTaskReading): Record<string, unknown> => {
       const task: ProxmoxGuestPowerTask | null = reading.task;
@@ -255,6 +260,10 @@ export function buildGuestTaskMetrics(data: {
         resource: {
           attributes: [
             stringAttribute("proxmox.cluster.name", data.clusterName),
+            stringAttribute(
+              PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE,
+              PROXMOX_GUEST_POWER_TASK_RESOURCE_VALUE,
+            ),
           ],
         },
         scopeMetrics: [
@@ -421,6 +430,8 @@ export default class ProxmoxGuestTaskReporter {
         ? fs.readFileSync(connection.caFile, "utf8")
         : null;
 
+    // When the round learned which guests are stopped: see buildGuestTaskMetrics.
+    const readAtMs: number = this.nowMs();
     const guests: Array<ProxmoxClusterGuest> = parseClusterGuests(
       dataOf(await this.get(connection, ca, "/cluster/resources?type=vm")),
     ).filter((guest: ProxmoxClusterGuest): boolean => {
@@ -440,16 +451,28 @@ export default class ProxmoxGuestTaskReporter {
     ].slice(0, MAX_GUESTS_PER_ROUND);
     this.nextGuest = start + chosen.length;
 
+    /*
+     * A guest whose task log cannot be read - its node does not answer the
+     * node proxying the request - is left for the next round; the others
+     * are still sent.
+     */
     const readings: Array<ProxmoxGuestTaskReading> = [];
+    let firstFailure: unknown = null;
     let next: number = 0;
     const worker: () => Promise<void> = async (): Promise<void> => {
       while (next < chosen.length && !this.stopped) {
         const guest: ProxmoxClusterGuest = chosen[next++]!;
-        const body: string = await this.get(
-          connection,
-          ca,
-          `/nodes/${encodeURIComponent(guest.node)}/tasks?vmid=${guest.vmid}&limit=${TASKS_PER_GUEST}`,
-        );
+        let body: string;
+        try {
+          body = await this.get(
+            connection,
+            ca,
+            `/nodes/${encodeURIComponent(guest.node)}/tasks?vmid=${guest.vmid}&limit=${TASKS_PER_GUEST}`,
+          );
+        } catch (err: unknown) {
+          firstFailure = firstFailure || err;
+          continue;
+        }
         readings.push({
           guest: guest,
           task: selectProxmoxGuestPowerTask(parseTaskLog(dataOf(body))),
@@ -463,7 +486,13 @@ export default class ProxmoxGuestTaskReporter {
       ),
     );
 
-    if (this.stopped || readings.length === 0) {
+    if (this.stopped) {
+      return;
+    }
+    if (readings.length === 0) {
+      if (firstFailure) {
+        throw firstFailure;
+      }
       return;
     }
 
@@ -471,11 +500,15 @@ export default class ProxmoxGuestTaskReporter {
       buildGuestTaskMetrics({
         clusterName: clusterName,
         readings: readings,
-        nowMs: this.nowMs(),
+        readAtMs: readAtMs,
         agentVersion: this.options.config.agentVersion,
       }),
     );
-    this.sayProblem(null);
+    this.sayProblem(
+      firstFailure
+        ? `Read the task log of ${readings.length} of the ${chosen.length} stopped guests; the others are read again next round. The first that failed: ${firstFailure instanceof Error ? firstFailure.message : String(firstFailure)}`
+        : null,
+    );
   }
 
   /*

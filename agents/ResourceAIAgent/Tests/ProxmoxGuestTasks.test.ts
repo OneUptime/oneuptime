@@ -22,6 +22,7 @@ import { CapturedLogs, captureLogs, testConfig } from "./Helpers/TestSupport";
 import {
   PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
   PROXMOX_GUEST_POWER_TASK_SCOPE_NAME,
+  isProxmoxGuestPowerTaskResource,
 } from "../Common/Utils/Proxmox/ProxmoxGuestPowerTask";
 import Logger from "../Logger";
 
@@ -255,6 +256,8 @@ class FakeApi {
   public readonly requests: Array<ProxmoxHttpRequest> = [];
   public unreachableHosts: Set<string> = new Set<string>();
   public refuseTasks: boolean = false;
+  // Nodes that do not answer the node proxying a request to them.
+  public silentNodes: Set<string> = new Set<string>();
   public guests: Array<Record<string, unknown>> = GUESTS;
 
   public readonly send: (
@@ -278,6 +281,17 @@ class FakeApi {
       /^\/api2\/json\/nodes\/([^/]+)\/tasks$/,
     );
     if (match) {
+      if (this.silentNodes.has(match[1]!)) {
+        // What a node says of a request it cannot proxy to the node named.
+        return {
+          statusCode: 595,
+          statusMessage: `Connection refused`,
+          location: null,
+          contentType: "application/json",
+          body: JSON.stringify({ data: null }),
+          truncated: false,
+        };
+      }
       if (this.refuseTasks) {
         return {
           statusCode: 403,
@@ -458,9 +472,15 @@ test("sends each guest's last power task to OneUptime, on the cluster the collec
   const resource: Record<string, unknown> = (
     request.body["resourceMetrics"] as Array<Record<string, unknown>>
   )[0]!["resource"] as Record<string, unknown>;
+  // The cluster, and that this is the task log's report, not the collector.
   assert.deepStrictEqual(resource["attributes"], [
     { key: "proxmox.cluster.name", value: { stringValue: CLUSTER } },
+    { key: "proxmox.report.source", value: { stringValue: "task-log" } },
   ]);
+  assert.strictEqual(
+    isProxmoxGuestPowerTaskResource(resource["attributes"]),
+    true,
+  );
   const scope: Record<string, unknown> = (
     (request.body["resourceMetrics"] as Array<Record<string, unknown>>)[0]![
       "scopeMetrics"
@@ -609,6 +629,45 @@ test("a task log the token may not read sends nothing and says why once, however
   );
 });
 
+test("a guest whose node does not answer is left for the next round, and the others are still sent", async (): Promise<void> => {
+  api.silentNodes = new Set<string>(["pve2"]);
+  const reporterUnderTest: ProxmoxGuestTaskReporter = reporter();
+  await reporterUnderTest.tick();
+
+  assert.strictEqual(oneuptime.sent.length, 1);
+  assert.deepStrictEqual(Object.keys(pointsOf(oneuptime.sent[0]!)).sort(), [
+    "lxc/200",
+    "qemu/101",
+    "qemu/103",
+  ]);
+  const warnings: Array<string> = logs.messages("warn");
+  assert.strictEqual(warnings.length, 1);
+  assert.match(
+    warnings[0]!,
+    /Read the task log of 3 of the 5 stopped guests; the others are read again next round\. The first that failed: .*\/nodes\/pve2\/tasks.* answered HTTP 595 Connection refused/,
+  );
+
+  // Once it answers again, all are sent and it says so.
+  api.silentNodes = new Set<string>();
+  await reporterUnderTest.tick();
+  assert.strictEqual(Object.keys(pointsOf(oneuptime.sent[1]!)).length, 5);
+  assert.match(
+    logs.messages("info").join("\n"),
+    /Reading the guests' task log again/,
+  );
+});
+
+test("when no guest's task log can be read, nothing is sent and it says why", async (): Promise<void> => {
+  api.silentNodes = new Set<string>(["pve1", "pve2"]);
+  await reporter().tick();
+
+  assert.strictEqual(oneuptime.sent.length, 0);
+  assert.match(
+    logs.messages("warn")[0]!,
+    /Could not read the guests' task log: .* answered HTTP 595 Connection refused/,
+  );
+});
+
 test("OneUptime refusing the readings is said once", async (): Promise<void> => {
   oneuptime.status = 401;
   const reporterUnderTest: ProxmoxGuestTaskReporter = reporter();
@@ -694,6 +753,19 @@ test("how often: every 5 minutes by default, never more than once a minute, and 
     readGuestTasksIntervalMs({}),
     DEFAULT_GUEST_TASKS_INTERVAL_MS,
   );
+  // What the compose file passes when .env does not set it: not 0, not off.
+  assert.strictEqual(
+    readGuestTasksIntervalMs({
+      ONEUPTIME_PROXMOX_GUEST_TASKS_INTERVAL_SECONDS: "",
+    }),
+    DEFAULT_GUEST_TASKS_INTERVAL_MS,
+  );
+  assert.strictEqual(
+    readGuestTasksIntervalMs({
+      ONEUPTIME_PROXMOX_GUEST_TASKS_INTERVAL_SECONDS: "  ",
+    }),
+    DEFAULT_GUEST_TASKS_INTERVAL_MS,
+  );
   assert.strictEqual(
     readGuestTasksIntervalMs({
       ONEUPTIME_PROXMOX_GUEST_TASKS_INTERVAL_SECONDS: "600",
@@ -746,6 +818,39 @@ test("the API's answers are read as they are written, and anything else is left 
   );
 });
 
+test("every reading is timed when the round read which guests are stopped, however long their task logs take", async (): Promise<void> => {
+  let calls: number = 0;
+  const reporterUnderTest: ProxmoxGuestTaskReporter =
+    new ProxmoxGuestTaskReporter({
+      config: agentConfig(),
+      env: pveEnv(),
+      logger: Logger,
+      transport: api.send,
+      fetchImpl: oneuptime.fetch,
+      // A minute later each time the clock is read.
+      nowMs: (): number => {
+        return NOW_MS + 60_000 * calls++;
+      },
+    });
+  await reporterUnderTest.tick();
+
+  const points: Array<Record<string, unknown>> = (
+    (
+      (
+        (
+          oneuptime.sent[0]!.body["resourceMetrics"] as Array<
+            Record<string, unknown>
+          >
+        )[0]!["scopeMetrics"] as Array<Record<string, unknown>>
+      )[0]!["metrics"] as Array<Record<string, unknown>>
+    )[0]!["gauge"] as Record<string, unknown>
+  )["dataPoints"] as Array<Record<string, unknown>>;
+  assert.strictEqual(points.length, 5);
+  for (const point of points) {
+    assert.strictEqual(point["timeUnixNano"], `${NOW_MS}000000`);
+  }
+});
+
 test("the readings are one OTLP/JSON request with a datapoint per guest", (): void => {
   const body: Record<string, unknown> = buildGuestTaskMetrics({
     clusterName: CLUSTER,
@@ -767,7 +872,7 @@ test("the readings are one OTLP/JSON request with a datapoint per guest", (): vo
         },
       },
     ],
-    nowMs: NOW_MS,
+    readAtMs: NOW_MS,
     agentVersion: "17.1.0",
   });
   const point: Point = pointsOf({ url: "", headers: {}, body: body })[

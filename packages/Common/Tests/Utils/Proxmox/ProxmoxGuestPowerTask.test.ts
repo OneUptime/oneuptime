@@ -5,6 +5,7 @@ import {
   ProxmoxGuestStopCause,
   ProxmoxTaskLogEntry,
   getProxmoxGuestStopCause,
+  isProxmoxGuestPowerTaskResource,
   isProxmoxTaskOk,
   selectProxmoxGuestPowerTask,
 } from "../../../Utils/Proxmox/ProxmoxGuestPowerTask";
@@ -44,6 +45,36 @@ describe("the metric", () => {
     expect(PROXMOX_GUEST_POWER_TASK_METRIC_NAME).toBe(
       "pve_guest_last_power_task",
     );
+  });
+
+  test("its resource is told from the collector's by one attribute", () => {
+    expect(
+      isProxmoxGuestPowerTaskResource([
+        { key: "proxmox.cluster.name", value: { stringValue: "pve-prod" } },
+        { key: "proxmox.report.source", value: { stringValue: "task-log" } },
+      ]),
+    ).toBe(true);
+    // The collector's own resource, and anything that is not OTLP's shape.
+    expect(
+      isProxmoxGuestPowerTaskResource([
+        { key: "proxmox.cluster.name", value: { stringValue: "pve-prod" } },
+        { key: "oneuptime.agent.version", value: { stringValue: "0.165.0" } },
+      ]),
+    ).toBe(false);
+    expect(
+      isProxmoxGuestPowerTaskResource([
+        { key: "proxmox.report.source", value: { stringValue: "probe" } },
+      ]),
+    ).toBe(false);
+    expect(
+      isProxmoxGuestPowerTaskResource([
+        { key: "proxmox.report.source", value: "task-log" },
+        null,
+        "proxmox.report.source",
+      ]),
+    ).toBe(false);
+    expect(isProxmoxGuestPowerTaskResource(undefined)).toBe(false);
+    expect(isProxmoxGuestPowerTaskResource({})).toBe(false);
   });
 });
 
