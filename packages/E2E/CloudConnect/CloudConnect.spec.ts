@@ -744,6 +744,73 @@ test.describe("Data Security's settings, under the command", () => {
     });
   });
 
+  /*
+   * A connection saved before these settings: its edit shows the command it
+   * always had, until a setting is picked; Save changes keeps the pick and
+   * everything else the connection had.
+   */
+  test("editing a saved connection: the command it always had, then the one a pick grants, and Save changes keeps the pick", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=connected");
+
+    await page.getByTestId("row-actions-more-button").first().click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+
+    await expect(dialog(page)).toContainText("Edit AWS 123456789012");
+
+    const code: Locator = dialog(page).getByTestId("cloud-setup-command-code");
+    await expect(code).toContainText("aws iam create-role");
+    await expect(code).not.toContainText("OneUptimeDataSecurity");
+    await expect(
+      dialog(page).getByTestId("cloud-setup-read-only"),
+    ).toContainText("Never data or secrets.");
+
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    await pickUnderCommand(
+      page,
+      DATA_SECURITY_RESPONSE,
+      "Close exposures and fix settings",
+    );
+    await expect(code).toContainText(
+      "--policy-name OneUptimeDataSecurityResponse",
+    );
+    await expect(code).not.toContainText(
+      "--policy-name OneUptimeDataSecurity --policy-document",
+    );
+
+    // Credentials: the role's ARN is kept; Test tests the saved connection.
+    await next(page).click();
+    await next(page).click();
+    await expect(
+      dialog(page).getByTestId("cloud-connection-test-pass"),
+    ).toBeVisible();
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const state: FixtureState = await fixture(page);
+    const update: { id: string; data: Record<string, unknown> } | undefined =
+      state.updates.find(
+        (candidate: { id: string; data: Record<string, unknown> }): boolean => {
+          return candidate.id === "20000000-0000-4000-8000-000000000001";
+        },
+      );
+
+    expect(update?.data["config"]).toEqual({
+      authMethod: "aws-role",
+      roleArn: "arn:aws:iam::123456789012:role/OneUptimeReadOnly-5f3a9c1e",
+      readScope: "account",
+      readIntervalInMinutes: "10",
+      resourceCosts: "off",
+      dataSecurity: "off",
+      dataSecurityResponse: "block",
+    });
+  });
+
   test("Azure and Google Cloud: Close exposures and fix settings makes the custom role and assigns it where the command grants the rest", async ({
     page,
   }: {
