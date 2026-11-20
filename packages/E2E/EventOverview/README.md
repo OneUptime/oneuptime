@@ -193,6 +193,14 @@ this role."), and `?role=owner-people` signs in someone who holds only Create In
 User: they add people as an incident's owners but not teams, and give no role, so the Add
 owners list names Teams locked with why.
 
+Handing a role on (#10191, #10195): the header's commander and the roles card's Reassign send
+one `ModelAPI.updateById` of the role's row, which the fixture records and applies, naming the
+person picked on the row's next read as the server's join does. `?fail=role-reassign` refuses
+it in the server's words ("You do not have permission to update this Incident Member.").
+`?role=role-editor` signs in #10191's customer, who may change incident and episode roles
+(Edit Incident Member) but take nobody off one, and `?role=role-giver` someone who may give
+and take off roles (Create and Delete Incident Member) but not hand them on.
+
 ## What the spec covers
 
 `EventOverview.spec.ts` (678 tests):
@@ -452,6 +460,20 @@ its cause marked Cause, both in view as the drawing opens, the sentence saying s
 way's own mark, under the Data card and asked for once (screenshot
 `data-alert-lineage-synthetic.png`); on #310 the way down to #311 marked Consequence; and no
 card, nor any read of it, for an alert no data monitor raised or with its data alert refused.
+
+`CommanderReassign.spec.ts` (12 tests, same fixture and command): the header's commander
+handing the role on (#10195) - under the pointer, a pencil after the label, a ring round the
+name and Click to reassign under it, the name on one line and nothing moving; pressed, the
+header's people list right under the name with Maya ticked, a click handing the role to Jordan
+in one update of the role's row (no delete, no create) and the roles card following; Enter,
+Down and Enter from the keyboard, the focus back on the name; Escape handing nothing on;
+`?fail=role-reassign` said in the list; plain text for a viewer, for `?role=role-giver` and on
+a resolved incident; the same on incident episode #12, updating the episode's row; and the
+name, its ring and its list on a 390px phone in the dark theme. Then the roles card's Reassign
+(#10191): for `?role=role-editor`, Remove locked and Reassign one update; a refusal said in its
+dialog, which stays open, and nowhere on the page behind it; and for `?role=role-giver`, locked
+with why. Its screenshots are `incident-commander-reassign-{hover,list,refused,phone-dark}`,
+`incident-commander-reassigned` and `incident-roles-reassign-refused`.
 
 ## What the fixture records
 
