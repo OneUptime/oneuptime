@@ -38,6 +38,7 @@ import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import { getApiSingularName } from "../ModelApiName";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../Types/Database/AccessControl/OwnerOnlyColumn";
+import { isAccountDateColumn } from "../../Types/Database/AccessControl/AccountDateColumns";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 
 export type ModelSchemaType = ZodSchema;
@@ -1253,9 +1254,11 @@ export class ModelSchema extends BaseSchema {
    * columns marked canReadOnRelationQuery, which any reader of the relation
    * may read, and the ids and times), of a type that orders. Not a secret,
    * whose stored value orders nothing a person reads, nor a column kept to
-   * its owner (OwnerOnlyColumn), which a relation read refuses most callers.
-   * The fields SortValidator's refusals offer through a relation are of
-   * these.
+   * its owner (OwnerOnlyColumn), which a relation read refuses most callers,
+   * nor a person's account dates (AccountDateColumns), which SortValidator
+   * refuses as an order through a relation to all but OneUptime and a
+   * master admin (#9823). The fields SortValidator's refusals offer through
+   * a relation are of these.
    */
   public static getRelationSortFields(
     modelType: new () => DatabaseBaseModel,
@@ -1281,7 +1284,8 @@ export class ModelSchema extends BaseSchema {
         !this.isSecretColumn(column) &&
         !column.hashed &&
         !column.encrypted &&
-        !isOwnerOnlyColumn(model, key)
+        !isOwnerOnlyColumn(model, key) &&
+        !isAccountDateColumn(model.tableName, key)
       );
     });
 

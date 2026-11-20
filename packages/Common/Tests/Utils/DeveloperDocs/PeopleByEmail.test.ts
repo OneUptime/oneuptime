@@ -221,8 +221,13 @@ describe("the dashboard's view of the provider", () => {
     const member: Map<string, TerraformAttributeDescriptor> =
       attributes(TeamMember);
 
-    // project_id is the API key's, filled in by the server.
+    /*
+     * project_id is the API key's, filled in by the server. invitee_name is
+     * the name the inviter types for the person (#9823): the inviter's to
+     * give, never the invitee's.
+     */
     expect([...member.keys()].sort()).toEqual([
+      "invitee_name",
       "project_id",
       "team_id",
       "user_id",
@@ -235,6 +240,7 @@ describe("the dashboard's view of the provider", () => {
     });
     expect(isRequiredInTerraform(member.get("user_id")!)).toBe(false);
     expect(isRequiredInTerraform(member.get("team_id")!)).toBe(true);
+    expect(isRequiredInTerraform(member.get("invitee_name")!)).toBe(false);
     expect(member.get("team_id")!.personEmail).toBeUndefined();
   });
 

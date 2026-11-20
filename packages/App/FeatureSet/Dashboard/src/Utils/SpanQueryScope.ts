@@ -5,7 +5,13 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import { JSONObject } from "Common/Types/JSON";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "./Milliseconds";
 import {
   TelemetryScopeAttributeValue,
   getFilterAttributes,
@@ -164,6 +170,9 @@ export const DURATION_FACET_KEY: string = "durationUnixNano";
 
 const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
 
+// English, as a chip's seed is written: the explorer words it for the reader.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
 /*
  * A stored comparison as its wire shape: a deserialized GreaterThanOrEqual
  * (the pages restore the query) or the `{_type, value}` JSON (a raw reader).
@@ -295,7 +304,7 @@ export function toDurationSearchValue(
 /**
  * How a duration chip says its bounds, before the explorer words the
  * durations in the reader's language: a comparison symbol, which no
- * language translates, before each bound. "≥ 5000 ms" for a monitor's
+ * language translates, before each bound. "≥ 5,000 ms" for a monitor's
  * floor of five seconds.
  */
 export function describeDurationBounds(
@@ -684,14 +693,14 @@ export function buildSpanQueryScope(
       scope.duration = duration;
 
       /*
-       * The seed reads "≥ 5000 ms"; the explorer words the durations in the
+       * The seed reads "≥ 5,000 ms"; the explorer words the durations in the
        * reader's language as it draws the chip. Its value is the search
        * bar's spelling (`>=5000`), which the chip's tooltip offers to copy.
        */
       const seed: string = describeDurationBounds(
         duration,
         (milliseconds: number): string => {
-          return `${milliseconds}\u00A0ms`;
+          return formatMilliseconds(ENGLISH, milliseconds);
         },
       );
 

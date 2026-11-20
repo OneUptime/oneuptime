@@ -332,6 +332,15 @@ describe("which columns record a person doing something", () => {
        */
       "transcriptAdded",
       "triggered",
+      /*
+       * DataSecurityComplianceSetting.turnedOffByUserId: who last turned a
+       * compliance framework or requirement off for a resource (#9629).
+       * DataSecurityComplianceSettingService stamps it from the caller once
+       * the write has passed every permission check, whenever the setting
+       * goes from on to off, and clears it when it is turned on again; no
+       * request chooses it.
+       */
+      "turnedOff",
       "viewed",
     ];
 
@@ -377,16 +386,23 @@ describe("which columns record a person doing something", () => {
     expect(wrong).toEqual([]);
   });
 
-  test("the analytics models record no person doing something", () => {
+  test("the analytics models record a person doing something only where no request writes it", () => {
     const found: Array<string> = [];
+    const writable: Array<string> = [];
 
     for (const modelType of AnalyticsModels as Array<{ new (): unknown }>) {
       const model: {
         tableName?: string;
-        getTableColumns: () => Array<{ key: string }>;
+        getTableColumns: () => Array<{
+          key: string;
+          accessControl?: ColumnAccessControl | undefined;
+        }>;
       } = new modelType() as {
         tableName?: string;
-        getTableColumns: () => Array<{ key: string }>;
+        getTableColumns: () => Array<{
+          key: string;
+          accessControl?: ColumnAccessControl | undefined;
+        }>;
       };
 
       for (const column of model.getTableColumns()) {
@@ -395,15 +411,26 @@ describe("which columns record a person doing something", () => {
           LOOKS_LIKE_A_PERSON_WHO_ACTED.test(column.key)
         ) {
           found.push(`${model.tableName}.${column.key}`);
+
+          if (
+            (column.accessControl?.create || []).length > 0 ||
+            (column.accessControl?.update || []).length > 0
+          ) {
+            writable.push(`${model.tableName}.${column.key}`);
+          }
         }
       }
     }
 
     /*
      * The rule is applied by the database models' column decorators; an
-     * analytics model that starts recording who did something needs it too.
+     * analytics model that records who did something applies it itself,
+     * closing the column to every write. The audit log keeps whose
+     * permissions a workflow's change ran with (#9766), which only its
+     * recorder writes. Each is listed here, so a new one is weighed.
      */
-    expect(found).toEqual([]);
+    expect(found).toEqual(["AuditLogV2.workflowRunAsGivenByUserId"]);
+    expect(writable).toEqual([]);
   });
 });
 

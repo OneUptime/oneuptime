@@ -8,6 +8,7 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import TraceMonitorGroupResult from "../../../Types/Monitor/TraceMonitor/TraceMonitorGroupResult";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import CompareCriteria from "./Criteria/CompareCriteria";
 
 /*
@@ -217,7 +218,7 @@ interface CachedGroups {
  * reads again at once.
  */
 export class TraceGroupExpectedCache {
-  private static cache: Map<string, CachedGroups> = new Map<
+  private static cache: OldestKeyMap<string, CachedGroups> = new OldestKeyMap<
     string,
     CachedGroups
   >();
@@ -239,7 +240,7 @@ export class TraceGroupExpectedCache {
     const groups: Array<Array<string>> = await input.load();
 
     if (this.cache.size >= this.MAX_ENTRIES) {
-      const oldest: string | undefined = this.cache.keys().next().value;
+      const oldest: string | undefined = this.cache.oldestKey();
 
       if (oldest !== undefined) {
         this.cache.delete(oldest);

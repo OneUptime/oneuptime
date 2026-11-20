@@ -431,7 +431,7 @@ describe("a Traces monitor's duration floor (Takes at least)", () => {
         facetKey: DURATION_FACET_KEY,
         value: ">=5000",
         displayKey: "Duration",
-        displayValue: "≥\u00A05000\u00A0ms",
+        displayValue: "≥\u00A05,000\u00A0ms",
       },
     ]);
   });

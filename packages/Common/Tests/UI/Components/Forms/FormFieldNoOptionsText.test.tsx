@@ -146,7 +146,9 @@ describe("a dropdown field with words of its own for an empty list", () => {
     await openMenu();
 
     expect(notice()).toBe(NO_DEVICE_MONITOR_TEMPLATE_YET);
-    expect(notice()).toContain("Network Device, Ping, IP, Port or NTP");
+    expect(notice()).toContain(
+      "Network Device, Ping, IP, Port, NTP, Website, API or SSL Certificate",
+    );
     expect(notice()).toContain("Manage templates");
   });
 
