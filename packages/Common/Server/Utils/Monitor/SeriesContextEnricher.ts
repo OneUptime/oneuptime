@@ -151,9 +151,12 @@ export default class SeriesContextEnricher {
   private static getUnmentionedLabels(input: {
     text: string;
     seriesLabels: JSONObject | undefined;
+    seriesContext?: JSONObject | undefined;
   }): Array<DisplaySeriesLabel> {
     const labels: Array<DisplaySeriesLabel> =
-      SeriesLabelDisplay.getDisplayLabels(input.seriesLabels);
+      SeriesLabelDisplay.getDisplayLabels(input.seriesLabels, {
+        context: input.seriesContext,
+      });
 
     if (labels.length === 0) {
       return [];
@@ -178,6 +181,11 @@ export default class SeriesContextEnricher {
   public static enrichTitle(input: {
     title: string;
     seriesLabels: JSONObject | undefined;
+    /*
+     * What else is known about the series, for its words only: a device's
+     * name and model beside its install (#9925). Said first.
+     */
+    seriesContext?: JSONObject | undefined;
   }): string {
     const title: string = input.title || "";
 
@@ -185,6 +193,7 @@ export default class SeriesContextEnricher {
       SeriesContextEnricher.getUnmentionedLabels({
         text: title,
         seriesLabels: input.seriesLabels,
+        seriesContext: input.seriesContext,
       });
 
     if (unmentioned.length === 0) {
@@ -192,21 +201,17 @@ export default class SeriesContextEnricher {
     }
 
     /*
-     * Rebuild a label map from just the unmentioned labels so the
-     * shared formatter still applies its own ordering and title cap
-     * rather than this module reimplementing either.
+     * Just the unmentioned labels, in the order the shared formatter put
+     * them in (the context first), with its own title cap, rather than
+     * this module reimplementing either.
      */
-    const remaining: JSONObject = {};
+    const summary: string = SeriesLabelDisplay.formatInlineLabels(unmentioned);
 
-    for (const label of unmentioned) {
-      remaining[label.key] = label.value;
-    }
-
-    const suffix: string = SeriesLabelDisplay.buildTitleSuffix(remaining);
-
-    if (!suffix) {
+    if (!summary) {
       return title;
     }
+
+    const suffix: string = ` - ${summary}`;
 
     /*
      * `Alert.title` and `Incident.title` are LongText, i.e. 500
@@ -246,11 +251,15 @@ export default class SeriesContextEnricher {
     description: string;
     seriesLabels: JSONObject | undefined;
     monitorType: MonitorType | undefined;
+    // As enrichTitle reads it: said first, never the identity.
+    seriesContext?: JSONObject | undefined;
   }): string {
     const description: string = input.description || "";
 
     const labels: Array<DisplaySeriesLabel> =
-      SeriesLabelDisplay.getDisplayLabels(input.seriesLabels);
+      SeriesLabelDisplay.getDisplayLabels(input.seriesLabels, {
+        context: input.seriesContext,
+      });
 
     if (labels.length === 0) {
       return description;
@@ -267,10 +276,12 @@ export default class SeriesContextEnricher {
       SeriesContextEnricher.getUnmentionedLabels({
         text: description,
         seriesLabels: input.seriesLabels,
+        seriesContext: input.seriesContext,
       });
 
     const block: string = SeriesLabelDisplay.buildMarkdownBlock(
       input.seriesLabels,
+      { context: input.seriesContext },
     );
 
     /*

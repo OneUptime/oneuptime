@@ -1095,7 +1095,7 @@ const deviceStoppedReportingTemplate: RumAlertTemplate = {
   id: "rum-device-stopped-reporting",
   name: "Device Stopped Reporting",
   description:
-    "Alert when a device sends no spans for an hour after sending some in the past week, one alert per device: a kiosk or terminal of a fleet gone quiet while the others report. Reads the app.installation.id OpenTelemetry Android sets; when every device goes quiet at once, App Stopped Reporting alerts instead.",
+    "Alert when a device sends no spans for an hour after sending some in the past week, one alert per device: a kiosk or terminal of a fleet gone quiet while the others report. Reads the app.installation.id OpenTelemetry Android sets, and names each device by the host.name it sent; when every device goes quiet at once, App Stopped Reporting alerts instead.",
   category: "Availability",
   severity: "Warning",
   monitorType: MonitorType.Traces,
@@ -1133,7 +1133,7 @@ const deviceStoppedReportingTemplate: RumAlertTemplate = {
           "Triggers when a device that sent spans in the past week sends none over the past hour, once for each such device.",
         incidentTitle: `[RUM] Device stopped reporting - ${args.monitorName}`,
         incidentDescription:
-          "One device of the app sent no spans for an hour, though it sent some in the past week, while other devices still report. Check whether it is on, online and still running the app. Its last spans name its model, and its host.name when the fleet names its devices. This resolves on its own once it reports again.",
+          "One device of the app sent no spans for an hour, though it sent some in the past week, while other devices still report. Check whether it is on, online and still running the app. It is named by the host.name its last spans carried, when the fleet names its devices, and by its model. This resolves on its own once it reports again.",
         healthyDescription: `Every device of ${args.monitorName} that reported in the past week sent spans in the past hour.`,
       }),
     );
