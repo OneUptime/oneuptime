@@ -507,13 +507,15 @@ beforeEach(() => {
     });
 
   // A field suggestion's setup, and what it writes.
-  jest.spyOn(DataSecurityRunner, "getScanSetup").mockImplementation((async () => {
-    return {
-      setting: { disabledDataTypeIds: [] },
-      options: {},
-      customTypes: new Map(),
-    };
-  }) as never);
+  jest
+    .spyOn(DataSecurityRunner, "getScanSetup")
+    .mockImplementation((async () => {
+      return {
+        setting: { disabledDataTypeIds: [] },
+        options: {},
+        customTypes: new Map(),
+      };
+    }) as never);
   jest
     .spyOn(DataSecurityFindingWriter, "recordFieldSuggestions")
     .mockResolvedValue(0);
@@ -524,7 +526,10 @@ afterEach(() => {
   passSessionGuards();
 });
 
-async function post(route: string, body: JSONObject = {}): Promise<SentRequest> {
+async function post(
+  route: string,
+  body: JSONObject = {},
+): Promise<SentRequest> {
   return await server.request("POST", `/api${route}`, body);
 }
 
@@ -626,9 +631,11 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
 describe("no feature's input carries a value planted where a record keeps one", () => {
   test("every Data Security AI feature has a run here", () => {
     expect(Object.keys(RUNS).sort()).toEqual(
-      DATA_SECURITY_AI_FEATURES.map((info: DataSecurityAiFeatureInfo): string => {
-        return info.feature;
-      }).sort(),
+      DATA_SECURITY_AI_FEATURES.map(
+        (info: DataSecurityAiFeatureInfo): string => {
+          return info.feature;
+        },
+      ).sort(),
     );
   });
 
@@ -650,19 +657,18 @@ describe("no feature's input carries a value planted where a record keeps one", 
   });
 
   test("the reads for AI never even select what holds a value", async () => {
-    const issueReads: SpyInstance = jest.spyOn(
-      DataSecurityIssueService,
-      "findOneBy",
-    );
-    const findingReads: SpyInstance = jest.spyOn(
-      DataStoreFindingService,
-      "findBy",
-    );
+    const issueReads: SpyInstance<typeof DataSecurityIssueService.findOneBy> =
+      jest.spyOn(DataSecurityIssueService, "findOneBy");
+    const findingReads: SpyInstance<typeof DataStoreFindingService.findBy> =
+      jest.spyOn(DataStoreFindingService, "findBy");
 
     await RUNS[DataSecurityAiFeature.ExplainIssue]();
     await RUNS[DataSecurityAiFeature.FixIssue]();
 
-    const selects: string = [...issueReads.mock.calls, ...findingReads.mock.calls]
+    const selects: string = [
+      ...issueReads.mock.calls,
+      ...findingReads.mock.calls,
+    ]
       .map((call: Array<unknown>): string => {
         return JSON.stringify((call[0] as { select?: unknown }).select || {});
       })
@@ -695,7 +701,10 @@ describe("the search finds a planted value in a prompt that carries one", () => 
     const finding: DataStoreFinding = new DataStoreFinding();
     finding.maskedSamples = [PLANTED["maskedSample"]!];
     finding.sampleRecords = [
-      { time: "2026-11-20T10:00:00.000Z", traceId: PLANTED["sampleRecordTrace"] },
+      {
+        time: "2026-11-20T10:00:00.000Z",
+        traceId: PLANTED["sampleRecordTrace"],
+      },
     ];
 
     const leaky: string = JSON.stringify([
@@ -735,7 +744,10 @@ describe("the search finds a planted value in a prompt that carries one", () => 
 // An AI Logs row of these runs keeps none of it either.
 describe("and the AI Logs keep none of it", () => {
   test("Explain's and the field suggestions' rows", async () => {
-    const logs: SpyInstance = jest.spyOn(LlmLogService, "create");
+    const logs: SpyInstance<typeof LlmLogService.create> = jest.spyOn(
+      LlmLogService,
+      "create",
+    );
 
     await RUNS[DataSecurityAiFeature.ExplainIssue]();
     await DataSecurityFieldSuggestion.suggestForStore({

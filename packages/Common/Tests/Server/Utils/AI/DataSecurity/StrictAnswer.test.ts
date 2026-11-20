@@ -83,9 +83,9 @@ describe("an answer is the object asked for", () => {
     expect(
       readStrictAnswer(`\`\`\`json\n${answer(GOOD)}\n\`\`\``, VERDICT),
     ).toEqual(GOOD);
-    expect(readStrictAnswer(`\`\`\`\n${answer(GOOD)}\n\`\`\``, VERDICT)).toEqual(
-      GOOD,
-    );
+    expect(
+      readStrictAnswer(`\`\`\`\n${answer(GOOD)}\n\`\`\``, VERDICT),
+    ).toEqual(GOOD);
     expect(readStrictAnswer(`\n\n  ${answer(GOOD)}  \n`, VERDICT)).toEqual(
       GOOD,
     );
@@ -215,7 +215,10 @@ describe("anything else is no answer", () => {
 
   test("a text that must not be cut, longer than it may be", () => {
     expect(
-      readStrictAnswer(answer({ ...GOOD, owner: "a-much-longer-owner" }), VERDICT),
+      readStrictAnswer(
+        answer({ ...GOOD, owner: "a-much-longer-owner" }),
+        VERDICT,
+      ),
     ).toBeNull();
   });
 });

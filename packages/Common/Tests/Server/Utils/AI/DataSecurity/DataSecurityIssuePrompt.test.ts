@@ -124,11 +124,12 @@ function issuePart(data: JSONObject): JSONObject {
   return data["issue"] as JSONObject;
 }
 
+// The JSON code fence that ends a fix's request.
+const JSON_FENCE: RegExp = /```json\n([\s\S]*)\n```$/;
+
 // The JSON a fix's request carries, read back from its code fence.
 function requestData(request: DataSecurityAiCodeRequest): JSONObject {
-  const fence: RegExpExecArray | null = /```json\n([\s\S]*)\n```$/.exec(
-    request.text,
-  );
+  const fence: RegExpExecArray | null = JSON_FENCE.exec(request.text);
 
   expect(fence).not.toBeNull();
 
@@ -174,8 +175,9 @@ describe("Explain with AI's prompt", () => {
 
   test("a fact nobody recorded is left out, never guessed", () => {
     const issue: DataSecurityIssue = bucketIssue();
-    issue.evidence = undefined;
-    issue.dataStore!.region = undefined;
+    // Never recorded: the issue has no evidence, its store no region.
+    Object.assign(issue, { evidence: undefined });
+    Object.assign(issue.dataStore!, { region: undefined });
 
     const data: JSONObject = explainData(issue);
 
@@ -245,7 +247,11 @@ describe("where a telemetry issue's data sits, for OneUptime AI", () => {
       placesOf(data).map((place: JSONObject): unknown => {
         return place["dataType"];
       }),
-    ).toEqual(["Ireland PPS number", "Loyalty card number", "Custom data type"]);
+    ).toEqual([
+      "Ireland PPS number",
+      "Loyalty card number",
+      "Custom data type",
+    ]);
     expect(JSON.stringify(data)).not.toContain("renamed in the past");
     expect(JSON.stringify(data)).not.toContain("custom:");
   });
@@ -333,8 +339,7 @@ describe("what OneUptime AI is asked to do", () => {
       "scrub it at ingest, then change the code that writes it",
     );
     expect(
-      buildExplainIssuePrompt({ issue: telemetryIssue() }).messages[0]!
-        .content,
+      buildExplainIssuePrompt({ issue: telemetryIssue() }).messages[0]!.content,
     ).toContain(DATA_SECURITY_TELEMETRY_EXPLAIN_SYSTEM_PROMPT);
   });
 
@@ -367,9 +372,8 @@ describe("what OneUptime AI is asked to do", () => {
   });
 
   test("Fix with AI asks for a change to any other issue's infrastructure code", () => {
-    const request: DataSecurityAiCodeRequest = buildDataSecurityFixRequest(
-      bucketIssue(),
-    );
+    const request: DataSecurityAiCodeRequest =
+      buildDataSecurityFixRequest(bucketIssue());
 
     expect(
       request.text.startsWith(`${DATA_SECURITY_FIX_INSTRUCTION}\n\n`),

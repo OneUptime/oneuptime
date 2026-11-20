@@ -69,11 +69,14 @@ const SKIPPED_DIRECTORY_NAMES: Array<string> = [
 // What makes a call one of Data Security's.
 const DATA_SECURITY_LABEL: RegExp = /\bAI_DATA_SECURITY_[A-Z_]+_FEATURE\b/;
 const DATA_SECURITY_FILE: RegExp = /(^|\/)DataSecurity(\/|[A-Za-z]*\.ts$)/;
+// The types only the builder may give a value.
+const PROMPT_TYPE: RegExp = /\bDataSecurityAi(?:Prompt|CodeRequest)\b/;
 
 const AI_DIRECTORY: string = "packages/Common/Server/Utils/AI/DataSecurity";
 const INPUT_FILE: string = `${AI_DIRECTORY}/DataSecurityAiInput.ts`;
 const CALL_FILE: string = `${AI_DIRECTORY}/DataSecurityAiCall.ts`;
-const TOOLS_FILE: string = "packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts";
+const TOOLS_FILE: string =
+  "packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts";
 
 /*
  * Every Data Security AI feature, and how its call is made: through
@@ -97,7 +100,8 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "codeTask",
     file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
     // The coding agent's completions, which read the request.
-    agentFile: "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
+    agentFile:
+      "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
   },
   [DataSecurityAiFeature.AskAi]: {
     kind: "askAiTools",
@@ -210,7 +214,10 @@ function visitAll(node: ts.Node, visit: (node: ts.Node) => void): void {
 }
 
 // A call of `object.method(...)`, by the method's name.
-function isMethodCall(node: ts.Node, method: string): node is ts.CallExpression {
+function isMethodCall(
+  node: ts.Node,
+  method: string,
+): node is ts.CallExpression {
   return (
     ts.isCallExpression(node) &&
     ts.isPropertyAccessExpression(node.expression) &&
@@ -249,7 +256,9 @@ function findModelCalls(file: SourceFile): Array<ModelCall> {
     const settings: Record<string, string | null> = {};
 
     for (const name of SETTINGS) {
-      settings[name] = request ? propertyText(request, name, file.source) : null;
+      settings[name] = request
+        ? propertyText(request, name, file.source)
+        : null;
     }
 
     calls.push({
@@ -268,7 +277,9 @@ function findModelCalls(file: SourceFile): Array<ModelCall> {
 
 // Whether a call is one of Data Security's: from its code, or under its label.
 function isDataSecurityModelCall(call: ModelCall): boolean {
-  return DATA_SECURITY_FILE.test(call.file) || DATA_SECURITY_LABEL.test(call.feature);
+  return (
+    DATA_SECURITY_FILE.test(call.file) || DATA_SECURITY_LABEL.test(call.feature)
+  );
 }
 
 // What is wrong with a Data Security model call, or nothing (rule B).
@@ -415,9 +426,7 @@ function findHandMadePrompts(file: SourceFile): Array<string> {
   visitAll(file.source, (node: ts.Node): void => {
     if (
       (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) &&
-      /\bDataSecurityAi(?:Prompt|CodeRequest)\b/.test(
-        node.type.getText(file.source),
-      )
+      PROMPT_TYPE.test(node.type.getText(file.source))
     ) {
       found.push(
         `${file.file}:${lineOf(node, file.source)}: casts a value to ${node.type.getText(file.source)}`,
@@ -512,9 +521,11 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
   test("the files that ask OneUptime AI through DataSecurityAiCall are the listed ones", () => {
     const asking: Array<string> = SERVER_FILES.filter(
       (file: SourceFile): boolean => {
-        return findCalls(file, "ask").some((call: ts.CallExpression): boolean => {
-          return receiverOf(call, file.source) === "DataSecurityAiCall";
-        });
+        return findCalls(file, "ask").some(
+          (call: ts.CallExpression): boolean => {
+            return receiverOf(call, file.source) === "DataSecurityAiCall";
+          },
+        );
       },
     )
       .map((file: SourceFile): string => {
@@ -653,17 +664,18 @@ describe("B: Data Security asks a model one way, and keeps nothing of it", () =>
   });
 
   test.each(
-    DATA_SECURITY_MODEL_CALLS.map(
-      (call: ModelCall): [string, ModelCall] => {
-        return [`${call.file}:${call.line}`, call];
-      },
-    ),
-  )("%s keeps no preview, no provider error and no span content", (_where: string, call: ModelCall) => {
-    expect({
-      call: `${call.file}:${call.line}`,
-      problems: getModelCallProblems(call),
-    }).toEqual({ call: `${call.file}:${call.line}`, problems: [] });
-  });
+    DATA_SECURITY_MODEL_CALLS.map((call: ModelCall): [string, ModelCall] => {
+      return [`${call.file}:${call.line}`, call];
+    }),
+  )(
+    "%s keeps no preview, no provider error and no span content",
+    (_where: string, call: ModelCall) => {
+      expect({
+        call: `${call.file}:${call.line}`,
+        problems: getModelCallProblems(call),
+      }).toEqual({ call: `${call.file}:${call.line}`, problems: [] });
+    },
+  );
 
   test("every Data Security label is a feature's, filed by the one call", () => {
     const labels: Array<string> = Object.keys(AIServiceModule)
@@ -710,9 +722,9 @@ describe("C: a prompt is one DataSecurityAiInput made", () => {
     const call: SourceFile = serverFile(CALL_FILE);
 
     expect(call.text).toContain("if (!isDataSecurityAiPrompt(request.prompt))");
-    expect(call.text.indexOf("isDataSecurityAiPrompt(request.prompt)")).toBeLessThan(
-      call.text.indexOf("AIService.executeWithLogging("),
-    );
+    expect(
+      call.text.indexOf("isDataSecurityAiPrompt(request.prompt)"),
+    ).toBeLessThan(call.text.indexOf("AIService.executeWithLogging("));
   });
 });
 
@@ -754,7 +766,9 @@ describe("D: no Data Security AI file can read a value", () => {
 describe("E: what Settings says a feature keeps of a failed call is what its calls do", () => {
   test.each(
     DATA_SECURITY_AI_FEATURES.map(
-      (info: DataSecurityAiFeatureInfo): [string, DataSecurityAiFeatureInfo] => {
+      (
+        info: DataSecurityAiFeatureInfo,
+      ): [string, DataSecurityAiFeatureInfo] => {
         return [info.feature, info];
       },
     ),
@@ -804,9 +818,7 @@ describe("F: the scan", () => {
     );
 
     expect(calls.filter(isDataSecurityModelCall)).toHaveLength(1);
-    expect(getModelCallProblems(calls[0]!)[0]).toContain(
-      "asks a model itself",
-    );
+    expect(getModelCallProblems(calls[0]!)[0]).toContain("asks a model itself");
   });
 
   test("catches a call under a Data Security label from anywhere", () => {

@@ -266,9 +266,11 @@ describe("Explain with AI's prompt", () => {
         issue: plantedIssue(),
       });
 
-    expect(prompt.messages.map((message: { role: string }): string => {
-      return message.role;
-    })).toEqual(["system", "user"]);
+    expect(
+      prompt.messages.map((message: { role: string }): string => {
+        return message.role;
+      }),
+    ).toEqual(["system", "user"]);
     expect(prompt.instructions).toBe(
       `Explain it.\n\n${DATA_SECURITY_AI_DATA_RULE}`,
     );
@@ -601,8 +603,11 @@ describe("the columns that hold a value", () => {
       new DataStoreAccess(),
     ]) {
       for (const column of model.getEncryptedColumns().columns) {
-        expect({ model: model.tableName, column, listed: listed.has(column) })
-          .toEqual({ model: model.tableName, column, listed: true });
+        expect({
+          model: model.tableName,
+          column,
+          listed: listed.has(column),
+        }).toEqual({ model: model.tableName, column, listed: true });
       }
     }
   });
@@ -629,6 +634,8 @@ describe("the columns that hold a value", () => {
       })
       .sort();
 
-    expect(narrower).toEqual([...NEVER_SENT_COLUMNS["DataStoreFinding"]!].sort());
+    expect(narrower).toEqual(
+      [...NEVER_SENT_COLUMNS["DataStoreFinding"]!].sort(),
+    );
   });
 });

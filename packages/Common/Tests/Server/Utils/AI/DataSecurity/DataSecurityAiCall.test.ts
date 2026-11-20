@@ -151,42 +151,40 @@ beforeEach(() => {
   } as unknown as Project);
 
   // The provider rows, answered by the query the real resolution makes.
-  jest
-    .spyOn(LlmProviderService, "findOneBy")
-    .mockImplementation((async (args: {
-      query: Record<string, unknown>;
-    }): Promise<LlmProvider | null> => {
-      const query: Record<string, unknown> = args.query;
+  jest.spyOn(LlmProviderService, "findOneBy").mockImplementation((async (args: {
+    query: Record<string, unknown>;
+  }): Promise<LlmProvider | null> => {
+    const query: Record<string, unknown> = args.query;
 
-      if (query["_id"]) {
-        return (
-          providers.find((provider: LlmProvider): boolean => {
-            return provider._id === String(query["_id"]);
-          }) || null
-        );
-      }
+    if (query["_id"]) {
+      return (
+        providers.find((provider: LlmProvider): boolean => {
+          return provider._id === String(query["_id"]);
+        }) || null
+      );
+    }
 
-      if (query["isDefault"] === true) {
-        return (
-          providers.find((provider: LlmProvider): boolean => {
-            return (
-              provider.isDefault === true &&
-              provider.projectId?.toString() === PROJECT_ID.toString()
-            );
-          }) || null
-        );
-      }
+    if (query["isDefault"] === true) {
+      return (
+        providers.find((provider: LlmProvider): boolean => {
+          return (
+            provider.isDefault === true &&
+            provider.projectId?.toString() === PROJECT_ID.toString()
+          );
+        }) || null
+      );
+    }
 
-      if (query["isGlobalLlm"] === true) {
-        return (
-          providers.find((provider: LlmProvider): boolean => {
-            return provider.isGlobalLlm === true;
-          }) || null
-        );
-      }
+    if (query["isGlobalLlm"] === true) {
+      return (
+        providers.find((provider: LlmProvider): boolean => {
+          return provider.isGlobalLlm === true;
+        }) || null
+      );
+    }
 
-      return null;
-    }) as never);
+    return null;
+  }) as never);
 
   getCompletion = jest.spyOn(LLMService, "getCompletion").mockResolvedValue({
     content: "The bucket is public. Turn on Block Public Access.",
@@ -417,11 +415,12 @@ describe("every call runs on the project's own model", () => {
       await LlmProviderService.getProviderForChat({ projectId: PROJECT_ID }),
     ).toBe(SELF_HOSTED);
 
-    const sources: Array<DataSecurityAiModelSource> = DATA_SECURITY_AI_FEATURES.map(
-      (info: DataSecurityAiFeatureInfo): DataSecurityAiModelSource => {
-        return info.modelSource;
-      },
-    );
+    const sources: Array<DataSecurityAiModelSource> =
+      DATA_SECURITY_AI_FEATURES.map(
+        (info: DataSecurityAiFeatureInfo): DataSecurityAiModelSource => {
+          return info.modelSource;
+        },
+      );
 
     expect(sources).toEqual([
       DataSecurityAiModelSource.ProjectProvider,
