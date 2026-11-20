@@ -540,6 +540,12 @@ interface SecurityPatchTemplateSpec {
 function buildSecurityPatchTemplate(
   spec: SecurityPatchTemplateSpec,
 ): ManagedDeviceAlertTemplate {
+  /*
+   * The criteria read the rule's own number; the words write it out, "90
+   * days", as the Host template's do, so no code joins a figure to its word
+   * (NumbersKeepTheirUnitsInCodeGuard). The templates' tests hold the two
+   * together.
+   */
   const maxAge: number = ANDROID_SECURITY_PATCH_MAX_AGE_DAYS;
 
   return {
@@ -547,7 +553,7 @@ function buildSecurityPatchTemplate(
     provider: spec.provider,
     name: spec.name,
     summary: spec.summary,
-    description: `Alert when an Android device ${spec.serviceName} manages has a security patch level more than ${maxAge} days old, one alert per device, resolved once it is updated. Android Enterprise Recommended devices get each monthly Android security bulletin within ${maxAge} days, so a device further behind misses fixes for known vulnerabilities. Every read of the connection records how old each device's patch level is. A device that runs the OneUptime Android agent is left to its host's Security Patch Out of Date.`,
+    description: `Alert when an Android device ${spec.serviceName} manages has a security patch level more than 90 days old, one alert per device, resolved once it is updated. Android Enterprise Recommended devices get each monthly Android security bulletin within 90 days, so a device further behind misses fixes for known vulnerabilities. Every read of the connection records how old each device's patch level is. A device that runs the OneUptime Android agent is left to its host's Security Patch Out of Date.`,
     category: "Security",
     severity: "Warning",
     monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
@@ -580,9 +586,9 @@ function buildSecurityPatchTemplate(
           filterType: FilterType.GreaterThan,
           value: maxAge,
           incidentTitle: `[${spec.serviceName}] Security patch out of date`,
-          incidentDescription: `An Android device ${spec.serviceName} manages has a security patch level more than ${maxAge} days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through the system update policy ${spec.serviceName} sets on it, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. This resolves on its own once ${spec.serviceName} reports a patch level from the last ${maxAge} days.`,
+          incidentDescription: `An Android device ${spec.serviceName} manages has a security patch level more than 90 days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through the system update policy ${spec.serviceName} sets on it, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. This resolves on its own once ${spec.serviceName} reports a patch level from the last 90 days.`,
           criteriaName: "A device's security patch is out of date",
-          criteriaDescription: `Triggers when a device's latest reading says its security patch level is more than ${maxAge} days old, once for each such device.`,
+          criteriaDescription: `Triggers when a device's latest reading says its security patch level is more than 90 days old, once for each such device.`,
           resourceNoun: "device",
           // Each device holds one reading here, its latest: Any Value is that reading.
           metricAggregationType: EvaluateOverTimeType.AnyValue,
