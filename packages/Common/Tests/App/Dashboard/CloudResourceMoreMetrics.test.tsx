@@ -83,6 +83,7 @@ jest.mock("../../../UI/Utils/Toast", () => {
 import CloudResourceMoreMetrics, {
   CLOUD_MORE_METRICS_ROW_TEST_ID,
   CLOUD_MORE_METRICS_SEARCH_FROM,
+  isAddedSplitLearnedFromEveryValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics";
 import { CLOUD_ADD_METRIC_MODAL_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/ResourceMetrics/CloudAddMetricModal";
 import { getCloudAddedMetricCostWords } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/ResourceMetrics/CloudAddedMetricWords";
@@ -1122,6 +1123,153 @@ describe("adding one split by a dimension", () => {
         splitBy: "command",
       }),
     );
+  });
+
+  /*
+   * #10164: a split its connection's reads found PromQL cannot rank is
+   * learned each hour from a list of every value: the dialog says so under
+   * the picker once it is picked, and counts the learning's every value -
+   * what the list returned of a resource - in what it costs.
+   */
+  test("a Google Cloud split PromQL cannot rank says its hour reads every value, and costs them", async () => {
+    const listed: CloudPublishedMetricsListing = listing({
+      provider: CloudProvider.GCP,
+      resourceType: "gce_instance",
+      resourcesOfType: 12,
+    });
+
+    delete listed.azureMetricsInCall;
+    listed.metrics[1] = {
+      name: "agent.googleapis.com/processes/cpu_time",
+      displayName: "Process CPU time",
+      unit: "us/s",
+      aggregation: "ALIGN_RATE",
+      status: CloudPublishedMetricStatus.Available,
+      splits: [
+        {
+          name: "command",
+          isLearnedFromEveryValue: true,
+          learnedValuesPerResource: 40,
+        },
+        { name: "owner" },
+      ],
+    };
+    mockList.mockImplementation(() => {
+      return Promise.resolve(listed);
+    });
+    await renderCard();
+    await list();
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf("Process CPU time")).getByRole("button", {
+          name: /Add/,
+        }),
+      );
+    });
+
+    const dialog: HTMLElement = screen.getByTestId(
+      CLOUD_ADD_METRIC_MODAL_TEST_ID,
+    );
+
+    // Not split yet: nothing of it.
+    expect(
+      within(dialog).queryByTestId("cloud-add-metric-split-every-value"),
+    ).toBeNull();
+
+    const combobox: HTMLElement = within(dialog).getByLabelText("Split by");
+
+    fireEvent.keyDown(combobox, { key: "ArrowDown", code: 40, keyCode: 40 });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("option", { name: "command" }));
+    });
+
+    expect(
+      within(dialog).getByTestId("cloud-add-metric-split-every-value"),
+    ).toHaveTextContent(
+      "Google Cloud cannot rank this metric's values, so finding the busiest each hour reads every value, and Google Cloud bills them all.",
+    );
+    // Its reads, 10 a resource; its hour's learning, the 40 its list returned.
+    expect(
+      within(dialog).getByText(
+        "Up to 115,200 more time series read a month: free within the first 1,000,000 a month, then up to $0.06.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Up to 1,382,400 more time series read a month: free within the first 1,000,000 a month, then up to $0.69.",
+      ),
+    ).toBeInTheDocument();
+
+    // Another label, which PromQL ranks: as #10076's.
+    fireEvent.keyDown(combobox, { key: "ArrowDown", code: 40, keyCode: 40 });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("option", { name: "owner" }));
+    });
+
+    expect(
+      within(dialog).queryByTestId("cloud-add-metric-split-every-value"),
+    ).toBeNull();
+    expect(
+      within(dialog).getByText(
+        "Up to 93,600 more time series read a month: free within the first 1,000,000 a month, then up to $0.05.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("an added split PromQL cannot rank says so on its row; one it ranks does not", async () => {
+    const listed: CloudPublishedMetricsListing = listing({
+      provider: CloudProvider.GCP,
+      resourceType: "gce_instance",
+      resourcesOfType: 12,
+    });
+
+    delete listed.azureMetricsInCall;
+    listed.metrics[1] = {
+      name: "agent.googleapis.com/processes/cpu_time",
+      displayName: "Process CPU time",
+      unit: "us/s",
+      aggregation: "ALIGN_RATE",
+      status: CloudPublishedMetricStatus.Added,
+      addedSplitBy: "command",
+      splits: [
+        { name: "command", isLearnedFromEveryValue: true },
+        { name: "owner" },
+      ],
+    };
+    listed.metrics[2] = {
+      name: "agent.googleapis.com/processes/rss_usage",
+      displayName: "Process memory",
+      unit: "By",
+      aggregation: "ALIGN_MEAN",
+      status: CloudPublishedMetricStatus.Added,
+      addedSplitBy: "owner",
+      splits: [
+        { name: "command", isLearnedFromEveryValue: true },
+        { name: "owner" },
+      ],
+    };
+    mockList.mockImplementation(() => {
+      return Promise.resolve(listed);
+    });
+    await renderCard();
+    await list();
+
+    expect(
+      within(rowOf("Process CPU time")).getByTestId(
+        "cloud-more-metrics-split-every-value",
+      ),
+    ).toHaveTextContent("Google Cloud cannot rank this metric's values");
+    expect(
+      within(rowOf("Process memory")).queryByTestId(
+        "cloud-more-metrics-split-every-value",
+      ),
+    ).toBeNull();
+    expect(
+      isAddedSplitLearnedFromEveryValue({
+        addedSplitBy: undefined,
+        splits: [],
+      }),
+    ).toBe(false);
   });
 
   test("an AWS metric split counts each value's metric read in its cost", () => {

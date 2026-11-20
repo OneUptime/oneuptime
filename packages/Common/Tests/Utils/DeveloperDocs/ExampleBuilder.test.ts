@@ -965,14 +965,42 @@ describe("ids the server assigns are dropped", () => {
   });
 });
 
-describe("what cannot be created with Terraform", () => {
-  test("an inventory item gets no create example: OneUptime works out its key", () => {
-    expect(
+/*
+ * Since #10020 an inventory item's key and source are OneUptime's alone
+ * (ServerOwned.Always), read only in the provider: Terraform creates one by
+ * its type and name, and OneUptime works out its key from the name. Before,
+ * the key was required and OneUptime replaced it, so no example was given.
+ */
+describe("what OneUptime works out itself is left out of a Terraform create", () => {
+  test("an inventory item is created by its type and name: OneUptime works out its key and source", () => {
+    const example: DeveloperDocsTerraformExample | null =
       getTerraformCreateExample({
         modelType: InventoryItem,
         context: project(),
+      });
+
+    expect(example).not.toBeNull();
+    expect(example!.isPlaceholder).toBe(false);
+    expect(example!.address).toBe(
+      "oneuptime_inventory_item.stripe_payments_api",
+    );
+    expect(example!.hcl).toBe(
+      [
+        'resource "oneuptime_inventory_item" "stripe_payments_api" {',
+        '  display_name = "Stripe payments API"',
+        '  entity_type  = "external.service"',
+        '  description  = "Vendor-managed payments API. Sends no telemetry."',
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(
+      example!.rows.map((row: { name: string }): string => {
+        return row.name;
       }),
-    ).toBeNull();
+    ).toEqual(["display_name", "entity_type", "description"]);
+    // What only OneUptime writes is never written: the provider reads it.
+    expect(example!.hcl).not.toMatch(/^\s*(entity_key|source)\s*=/m);
   });
 
   test("but the API example still shows one", () => {

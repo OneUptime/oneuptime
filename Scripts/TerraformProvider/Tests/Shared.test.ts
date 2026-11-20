@@ -270,10 +270,14 @@ describe("the spec's shared kind", () => {
     }
   });
 
-  test("says in the attribute's description that OneUptime changes it too", () => {
+  test("says in the attribute's description that OneUptime changes it too, and of a list that its other entries stay", () => {
     const resource: TerraformResource = parse();
 
-    expect(attribute(resource, "labels").description).toContain(
+    // A list of related records: the configuration's entries are its own (#10134).
+    expect(attribute(resource, "labels").description).toBe(
+      `Labels to group and filter by. ${OpenAPIParser.SHARED_LIST_DESCRIPTION}`,
+    );
+    expect(attribute(resource, "is_private").description).toContain(
       OpenAPIParser.SHARED_DESCRIPTION,
     );
     expect(attribute(resource, "postmortem_note").description).toBe(

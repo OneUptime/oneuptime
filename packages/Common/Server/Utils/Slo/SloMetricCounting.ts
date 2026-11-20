@@ -416,6 +416,57 @@ export default class SloMetricCounting {
     );
   }
 
+  /*
+   * The kind of point ("Sum", "Histogram", "Gauge"...) the metric's newest
+   * point of the SLO's services is, in [from, to): what an SLO that counted
+   * nothing says it waits for (#10027) - a gauge, which every cloud metric
+   * is, has no events, and a counter counted as a histogram none of a
+   * histogram's. Any kind, so the newest of whichever was sent.
+   */
+  public static buildNewestPointTypeStatement(data: {
+    projectId: ObjectID;
+    serviceIds: Array<ObjectID>;
+    metricName: string;
+    from: Date;
+    to: Date;
+  }): Statement {
+    return SQL`SELECT metricPointType FROM ${TABLE_NAME} WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND name = ${{
+      type: TableColumnType.Text,
+      value: data.metricName,
+    }} AND primaryEntityId IN (${{
+      type: TableColumnType.ObjectID,
+      value: new Includes(data.serviceIds),
+    }}) AND time >= ${{
+      type: TableColumnType.DateTime64,
+      value: data.from,
+    }} AND time < ${{
+      type: TableColumnType.DateTime64,
+      value: data.to,
+    }} AND retentionDate >= now() ORDER BY time DESC LIMIT 1`;
+  }
+
+  public static async getNewestPointType(data: {
+    projectId: ObjectID;
+    serviceIds: Array<ObjectID>;
+    metricName: string;
+    from: Date;
+    to: Date;
+  }): Promise<string | null> {
+    if (data.serviceIds.length === 0 || !data.metricName.trim()) {
+      return null;
+    }
+
+    const rows: Array<JSONObject> = await SloMetricCounting.readRows(
+      SloMetricCounting.buildNewestPointTypeStatement(data),
+    );
+    const pointType: unknown = rows[0]?.["metricPointType"];
+
+    return typeof pointType === "string" && pointType ? pointType : null;
+  }
+
   private static async readRows(
     statement: Statement,
   ): Promise<Array<JSONObject>> {

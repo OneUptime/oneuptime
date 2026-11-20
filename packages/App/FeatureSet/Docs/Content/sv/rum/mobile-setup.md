@@ -5,7 +5,7 @@ Instrumentera en Android-, iOS- eller React Native-app med OpenTelemetry så att
 :::cards
 - [Vad OneUptime behöver](#vad-oneuptime-behöver): Två resursattribut, skickade med en Server-nyckel.
 - [Konfigurera din plattform](#konfigurera-din-plattform): Android, iOS, React Native och resten.
-- [Krascher och hängningar på iOS](#krascher-och-hängningar-på-ios): MetricKits diagnostik i Undantag och på översikten.
+- [Krascher och hängningar på iOS](#krascher-och-hängningar-på-ios): Rapporter från MetricKit och KSCrash i Undantag, namngivna av dina dSYM-filer.
 - [Kontrollera att det kommer in](#kontrollera-att-det-kommer-in): Testa nyckeln och hitta sedan appen.
 - [Session Replay på mobil](#session-replay-på-mobil): Inspelningar för React Native-appar.
 :::
@@ -115,6 +115,7 @@ let resource = Resource(attributes: [
     "service.name": .string("storefront-ios"),
     "device.model.identifier": .string(UIDevice.current.model),
     "device.manufacturer": .string("Apple"),
+    "device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),
     "telemetry.sdk.language": .string("swift"),
 ])
 
@@ -133,7 +134,7 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-`UIDevice.current.model` ger ett kort namn som `iPhone`, vilket håller sidan **Klienter** till en rad per enhetstyp.
+`UIDevice.current.model` ger ett kort namn som `iPhone`, vilket håller sidan **Klienter** till en rad per enhetstyp. `identifierForVendor` är den installation som OneUptime räknar kraschfria installationer efter, som [Märk sessionerna](#märk-sessionerna) beskriver.
 @tab React Native
 React Native kör OpenTelemetry JavaScript SDK, så bygg providern, OTLP-exportören och batchprocessorn som i [Webbläsarkonfiguration](/docs/rum/browser-setup), med tre ändringar: Skicka med en **Server**-nyckel, utelämna `browserDetector` och `DocumentLoadInstrumentation`, och sätt enhetsattributen själv.
 
@@ -178,7 +179,9 @@ opentelemetry-swift 2.3 och senare rapporterar en iOS-apps krascher och hängnin
 | En krasch | `metrickit.diagnostic.crash` | Ett ohanterat undantag, med typ efter det som avslutade appen: Objective-C-undantaget på iOS 17 och senare, annars Mach-undantaget (`EXC_BAD_ACCESS`), annars signalen (`SIGSEGV`) |
 | En hängning | `metrickit.diagnostic.hang` | Ett ohanterat undantag av typen **Hang**, iOS motsvarighet till en ANR, som behåller hur länge hängningen varade |
 
-Översiktens ruta **Krascher** räknar krascherna, och dess ruta **ANR:er** räknar hängningarna tillsammans med Androids ANR:er. Varje stackspårning ritas som trådarna i en kraschrapport, med tråden som kraschade eller hängde sig först. Stackramarna är inte symboliserade: var och en anger sin binärfil och hur långt in i den koden låg, och **Binary Images** listar varje binärfils UUID, som visar vilket bygges dSYM som symboliserar den.
+Översiktens ruta **Krascher** räknar krascherna, och dess ruta **ANR:er** räknar hängningarna tillsammans med Androids ANR:er. Varje stackspårning ritas som trådarna i en kraschrapport, med tråden som kraschade eller hängde sig först. En stackram i din apps kod namnges efter sin funktion, till exempel `CartViewController.checkout()`, när dSYM-filen för dess bygge har laddats upp, som i [Ladda upp dina dSYM-filer](#ladda-upp-dina-dsym-filer). Alla andra stackramar anger sin binärfil och hur långt in i den koden låg, och **Binary Images** listar varje binärfils UUID, som visar vilket bygges dSYM som namnger den.
+
+Krascher och hängningar grupperas efter din apps stackramar på tråden som kraschade eller hängde sig: efter deras funktioner där en dSYM-fil namngav dem, så att en krasch förblir ett undantag från en version till nästa, och efter deras förskjutningar i binärfilen där ingen gjorde det, vilka ändras med varje bygge. En rapport namnges när den kommer in, så ladda upp ett bygges dSYM-filer innan du släpper det: en krasch som kom in före sin dSYM-fil behåller sina förskjutningar.
 
 :::steps
 ### Exportera loggar utöver spans
@@ -218,13 +221,48 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### Märk sessionerna
 
-Rutorna **Sessioner** och **Kraschfria sessioner** räknar `session.id` på dina spans. Produkten `Sessions` i opentelemetry-swift sätter det: lägg till `SessionSpanProcessor` i tracer providern och slå in loggprocessorn i `SessionLogRecordProcessor`, så att diagnostiken också bär en session. Dess versioner sätter ännu inget `app.installation.id`, så en iOS-apps ruta **Kraschfria sessioner** visar hur många sessioner som kraschade i stället för dess kraschfria installationer.
+Rutorna **Sessioner** och **Kraschfria sessioner** räknar `session.id` på dina spans. Produkten `Sessions` i opentelemetry-swift sätter det: lägg till `SessionSpanProcessor` i tracer providern och slå in loggprocessorn i `SessionLogRecordProcessor`, så att diagnostiken också bär en session.
+
+Raden under **Kraschfria sessioner** visar andelen installationer som inte kraschade, och **Daily Crash Rate** och **Daily ANR Rate** larmar utifrån andelen som gjorde det. En installation är `device.id` i resursen ovan, appens leverantörs-id: ett per enhet för alla dina appar, som behålls så länge någon av dem är installerad, så att installera om din enda app ger en ny installation medan att installera om en av två inte gör det. En version av opentelemetry-swift som sätter `app.installation.id` räknas efter det i stället.
+
+### Ladda upp dina dSYM-filer
+
+Xcode skriver en dSYM-fil för var och en av appens binärfiler när den arkiverar appen, och App Store Connect lämnar tillbaka dem under **Download dSYMs**. Ladda upp dem efter varje arkivering, från CI eller en byggfas i Xcode, med [OneUptime CLI](/docs/cli/index) och en Server-nyckel som hör till ditt bygge: en nyckel med ett **Fäst tjänstnamn**, som den din app levereras med, avvisas, eftersom en dSYM-fil namnger stackramarna i varje app i projektet som levererar dess binärfil.
+
+```bash
+oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com --ingestion-key YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+CLI:t läser `.dSYM`-paket, mappar och zip-filer med dem, och DWARF-filer där de ligger, och skickar bara varje binärfils UUID, arkitektur och funktionsnamn: en stor apps dSYM-filer är hundratals megabyte, deras namn några få. Utan CLI:t skickar du DWARF-filen från en dSYM-fil, eller en zip-fil med `.dSYM`-paket, som den är, upp till 50 MB per fil:
+
+```bash
+curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -F "appName=storefront-ios" \
+  -F "dsym=@MyApp.app.dSYM/Contents/Resources/DWARF/MyApp"
+```
+
+Varje binärfil behålls efter sitt UUID i 400 dagar, så att en version som fortfarande finns på folks telefoner månader senare fortfarande namnges, och att ladda upp ett bygge igen ersätter det som behölls för det. En dSYM-fil hör till projektet, inte till en app: ett ramverk som två av dina appar bäddar in namnges i båda.
 :::
 
 > [!NOTE]
 > Apple lämnar över MetricKits diagnostik till appen vid en senare start, direkt på iOS 15 och senare och en gång om dagen före det, så en krasch eller en hängning kan komma minuter eller en dag efter att den inträffade, och räknas när den kommer. "0 krascher den senaste timmen" på en iOS-apps översikt är ännu inga goda nyheter. En diagnostik bär den session som rapporterade den, inte den som den avslutade.
 
 opentelemetry-swift registrerar inget span när appen startar, så rutorna **Appstarter** och **Kallstart (p95)** förblir tomma tills din app registrerar ett: ett span med namnet `AppStart`, med `start.type` satt till `cold`, `warm` eller `hot`, från att processen startar tills den första skärmen är klar.
+
+### När KSCrash också rapporterar en krasch
+
+opentelemetry-swift kan också rapportera krascher via KSCrash, som skickar sin rapport som en loggpost `device.crash` nästa gång appen öppnas, med tiden då appen kraschade. En app som registrerar båda rapporterar varje krasch två gånger: KSCrash vid nästa start, MetricKit vid nästa start eller upp till en dag senare. OneUptime räknar en sådan krasch en gång: den första rapporten som kommer in är förekomsten, och den andra behålls bredvid den, i samma undantag, som bevis på samma krasch, och räknas inte i någon ruta, något diagram eller någon monitor. Under undantagets **Förekomster** står det **Rapporterad två gånger** vid förekomsten.
+
+Två rapporter räknas som en krasch bara när allt detta gäller:
+
+- De kommer från de två rapportörerna, KSCrash och MetricKit. Ingen av dem rapporterar en krasch två gånger, så två rapporter från samma rapportör är två krascher.
+- De kommer från samma installation: samma `app.installation.id`, eller `device.id`.
+- De ligger högst 26 timmar isär: MetricKit stämplar en krasch med slutet av dagen den rapporterar om, KSCrash med ögonblicket för kraschen.
+- De stämmer överens om signalen, Mach-undantaget och Objective-C-undantaget, varhelst båda anger ett.
+- Trådarna som kraschade stämmer överens ram för ram från där tråden startade och inåt, efter binärfil och förskjutning, över varje ram i din apps kod som någon av dem anger. En krasch helt i Apples kod måste stämma överens i minst tre ramar, och i alla.
+
+Varje rapport paras en gång, med den närmaste i tid, så två krascher från samma bugg på en installation, med minuters mellanrum, är två förekomster, var och en med sin andra rapport. När OneUptime inte kan jämföra en rapport med installationens andra rapporter räknar den den, så en krasch räknas i värsta fall två gånger, men går aldrig förlorad.
 
 ## Kontrollera att det kommer in
 

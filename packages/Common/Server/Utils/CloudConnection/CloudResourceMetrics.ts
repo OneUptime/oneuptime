@@ -116,8 +116,11 @@ import {
   CloudConnectorCallOptions,
   CloudConnectorTransport,
   CloudReadBudget,
+  GcpSplitUnranked,
 } from "./CloudConnectorTypes";
-import GcpCloudConnector from "./Gcp/GcpCloudConnector";
+import GcpCloudConnector, {
+  getGcpSplitUnranked,
+} from "./Gcp/GcpCloudConnector";
 import { GcpMetricDescriptor } from "./Gcp/GcpMonitoring";
 import CloudLiveReadRateLimit from "./LiveRead/CloudLiveReadRateLimit";
 import logger from "../Logger";
@@ -1234,6 +1237,8 @@ export default class CloudResourceMetrics {
 
   private static async readGcp(data: {
     target: CloudResourceTarget;
+    // Its reads' state: the split metrics PromQL could not rank (#10164).
+    connection: CloudConnection;
     applying: Array<CloudAddedMetric>;
     settings: CloudConnectionSettings;
     options: CloudConnectorCallOptions;
@@ -1267,6 +1272,8 @@ export default class CloudResourceMetrics {
       }),
     );
     const byName: Map<string, CloudPublishedMetric> = new Map();
+    const pullState: CloudConnectionPullState =
+      CloudConnectionPullRunner.readPullState(data.connection.pullState);
 
     for (const descriptor of descriptors) {
       const read: { aligner: string; unit: string } | null =
@@ -1291,7 +1298,12 @@ export default class CloudResourceMetrics {
           : {}),
         unit: read ? read.unit : descriptor.unit,
         aggregation: read ? read.aligner : "",
-        ...CloudResourceMetrics.gcpSplitsOf({ descriptor, read }),
+        ...CloudResourceMetrics.gcpSplitsOf({
+          descriptor,
+          read,
+          pullState,
+          projectId,
+        }),
         ...CloudResourceMetrics.statusOf({
           applying: data.applying,
           name: descriptor.type,
@@ -1307,16 +1319,22 @@ export default class CloudResourceMetrics {
   /*
    * What a Cloud Monitoring metric can be split by when added (#9808): its
    * labels, for a rate or a level, whose other labels a split read can add
-   * up - not a distribution's, nor a true-or-false gauge's.
+   * up - not a distribution's, nor a true-or-false gauge's. One its
+   * connection's reads found PromQL cannot rank says so (#10164), with what
+   * the hour's list of it returned of each resource: its learning bills
+   * every value.
    */
   private static gcpSplitsOf(data: {
     descriptor: GcpMetricDescriptor;
     read: { aligner: string; unit: string } | null;
+    pullState?: CloudConnectionPullState | undefined;
+    projectId?: string | undefined;
   }): Pick<CloudPublishedMetric, "splits"> {
     if (!data.read || !GCP_SPLIT_ALIGNERS.includes(data.read.aligner)) {
       return {};
     }
 
+    const read: { aligner: string; unit: string } = data.read;
     const splits: Array<CloudPublishedMetricSplit> = (
       data.descriptor.labels || []
     )
@@ -1327,7 +1345,28 @@ export default class CloudResourceMetrics {
         );
       })
       .map((label: { key: string }): CloudPublishedMetricSplit => {
-        return { name: label.key };
+        const unranked: GcpSplitUnranked | undefined =
+          data.pullState && data.projectId
+            ? getGcpSplitUnranked({
+                pullState: data.pullState,
+                projectId: data.projectId,
+                metricType: data.descriptor.type,
+                aligner: read.aligner,
+                label: label.key,
+              })
+            : undefined;
+
+        return {
+          name: label.key,
+          ...(unranked
+            ? {
+                isLearnedFromEveryValue: true,
+                ...(unranked.valuesPerResource
+                  ? { learnedValuesPerResource: unranked.valuesPerResource }
+                  : {}),
+              }
+            : {}),
+        };
       });
 
     return splits.length > 0 ? { splits } : {};

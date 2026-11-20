@@ -104,7 +104,7 @@ Android 只允許擁有 READ_LOGS 權限的應用程式讀取其他應用程式�
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-使用 Esper 時，請透過 **Secure Remote ADB** 執行該命令：為裝置啟用 ADB 存取，以 `espercli secureadb connect --device DEVICE_ID` 連線，然後執行命令。授予權限後，Android 會重新啟動代理程式，代理程式隨即開始讀取。
+使用 Esper 時，請透過 **Secure Remote ADB** 執行該命令：為裝置啟用 ADB 存取，以 `espercli secureadb connect --device DEVICE_ID` 連線，然後執行命令。授予權限後，Android 會重新啟動代理程式，代理程式隨即開始讀取。資產清單的 **裝置管理服務 ID** 欄顯示每台裝置的 `DEVICE_ID`。
 
 之後代理程式讀取的內容取決於 Android 版本：
 
@@ -126,7 +126,7 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 ### 為整個裝置群授予這些權限
 
-代理程式的每次回報都會說明它仍缺少其中哪些權限。若要列出需要這些權限的裝置，請開啟 **資產清單** ，再開啟 **所有項目** ，然後將 **代理程式權限** 篩選條件設為 **遺失** 。開啟 **代理程式權限** 欄即可查看每台裝置缺少什麼，也可以把清單匯出為 CSV。
+代理程式的每次回報都會說明它仍缺少其中哪些權限。若要列出需要這些權限的裝置，請開啟 **資產清單** ，再開啟 **所有項目** ，然後將 **代理程式權限** 篩選條件設為 **遺失** 。開啟 **代理程式權限** 欄即可查看每台裝置缺少什麼，也可以把清單匯出為 CSV。再開啟 **裝置管理服務 ID** 欄，匯出的清單就會包含每台裝置的 Esper ID，也就是作為 `DEVICE_ID` 傳給 `espercli secureadb connect --device` 的值。
 
 裝置原則無法授予這些權限：READ_LOGS 和 READ_DROPBOX_DATA 是只有 adb、系統或裝置製造商才能授予的權限，而使用狀況存取權則由 adb 或裝置前的人設定。以下是 Esper 提供的幾種方式，以及它們為何都無法授予這些權限：
 
@@ -204,7 +204,7 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 
 在 **主機** 中，裝置的作業系統會顯示為 Android，並帶有 Android 的標誌。
 
-當裝置的安全性修補程式等級距今超過 90 天時，它的安全性修補程式就落後了。Google 每個月發布一份 Android 安全性公告，Android Enterprise Recommended 則要求裝置製造商在 90 天內推出每一份公告的更新，因此落後更久的裝置缺少其製造商早該推出的修正。在 **資產清單** 中， **安全性修補程式等級** 篩選條件會列出 **需要更新** 的裝置； **Security Patch Out of Date** 範本會針對每一台這樣的裝置發出警示。
+當裝置的安全性修補程式等級距今超過 90 天時，它的安全性修補程式就落後了。Google 每個月發布一份 Android 安全性公告，Android Enterprise Recommended 則要求裝置製造商在 90 天內推出每一份公告的更新，因此落後更久的裝置缺少其製造商早該推出的修正。在 **資產清單** 中， **安全性修補程式等級** 篩選條件會列出 **需要更新** 的裝置； **Security Patch Out of Date** 範本會針對每一台這樣的裝置發出警示。由裝置管理服務匯入、未執行代理程式的 Android 裝置，由其連線自己的範本（例如 **Esper Security Patch Out of Date**）依裝置管理服務回報的修補程式等級發出警示；執行代理程式的裝置交由這個範本，因此不會重複發出警示。
 
 裝置在過去一小時內的開機次數是指標 `android.boot.recent_count` ，不斷重新啟動的裝置會在每次開機時記錄一筆警告日誌。在 **主機** 中，Android 裝置會獲得自己的警示範本：Device Unplugged、Low Battery、Device Overheating、Restart Loop、Storage Nearly Full 和 Security Patch Out of Date，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，並在回報 CPU 使用率後獲得 High CPU Utilization。每個警示最先提供的偵錯命令都是 adb 命令。請參閱 [主機監控](/docs/monitor/host-monitor#android-裝置) 。
 

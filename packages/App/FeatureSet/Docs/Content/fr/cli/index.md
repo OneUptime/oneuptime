@@ -103,6 +103,7 @@ La liste montre chaque type d'enregistrement avec lequel vous pouvez travailler,
 | `oneuptime deploy` | Enregistre un déploiement, ou un autre changement, pour les graphiques et OneUptime AI | [Déploiements et changements](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | Fait correspondre les contrôles de données du projet à un fichier de votre dépôt | [Référence des commandes](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Envoie les artefacts d'un projet dbt après un build à l'Observabilité des données | [Référence des commandes](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | Envoie les dSYM d'une application iOS après un build, pour que ses plantages et blocages se lisent par fonction | [Configuration mobile](/docs/rum/mobile-setup#envoyer-vos-dsym) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Travaille avec un type d'enregistrement | [Opérations sur les ressources](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Liste les champs d'une ressource, et les options qui les définissent | [Opérations sur les ressources](/docs/cli/resource-operations#voir-les-champs-dune-ressource) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Fait ce que font les boutons du tableau de bord sur les incidents, les alertes et les maintenances planifiées | [Opérations sur les ressources](/docs/cli/resource-operations#prendre-en-compte-résoudre-et-ajouter-des-notes) |

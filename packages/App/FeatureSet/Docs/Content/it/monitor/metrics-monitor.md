@@ -221,6 +221,29 @@ Non raggruppate una metrica che è già un singolo scalare per l'intero sistema 
 
 I valori dell'attributo di raggruppamento sono disponibili anche come [variabili di modello](/docs/monitor/incident-alert-templating) nel titolo, nella descrizione e nelle note di rimedio dell'avviso o dell'incidente: raggruppare per `host.name` permette al titolo di dire `Disk almost full on {{host.name}}`.
 
+## Avvisare su un'espressione PromQL
+
+Un passaggio può osservare un'espressione PromQL invece di query di metriche: il linguaggio di query di Prometheus, sulle metriche del vostro progetto, come nella pagina [PromQL](/docs/telemetry/promql). Ogni serie che l'espressione restituisce viene giudicata da sola, come quelle di una query raggruppata: apre il proprio avviso o il proprio incidente, che si risolve quando quella serie si riprende o non viene più restituita.
+
+:::steps
+### Passare a PromQL
+
+In **Metrica da osservare**, fate clic su **PromQL**. **Generatore di query** torna alle query di metriche.
+
+### Scrivere l'espressione
+
+Scrivetela, per esempio `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, oppure partite da **Aggiungi il nome di una metrica**. Il grafico sotto disegna ogni serie nella finestra temporale e dice cosa non va in un'espressione che non viene eseguita.
+
+### Impostare la regola
+
+In **Quando avvisare**, scegliete in **Misurato come** come viene misurata ogni serie, poi una **Finestra temporale**, una **Condizione** e un **Valore**, come per le query di metriche. L'espressione viene valutata a ogni minuto della finestra, quindi **Ogni valore (l'intera finestra)** su **Ultimi 5 minuti** chiede a una serie di superare la soglia per cinque minuti, come `for: 5m` in una regola di avviso di Prometheus.
+:::
+
+- **Un confronto nell'espressione** tiene solo le serie per cui è vero: `rate(errors_total[5m]) > 0.1` restituisce le serie sopra 0.1, e nessun'altra. Fate clic su **Sposta in Quando avvisare** per farne il confronto della regola: il grafico mostra allora ogni serie, e la regola le giudica una per una.
+- **Al massimo 100 serie per controllo.** Quando l'espressione ne restituisce di più, un controllo ne giudica 100: prima le serie con un avviso o un incidente aperto, poi le altre nell'ordine delle loro etichette. Le restanti non vengono giudicate in quel controllo, quindi per loro nulla si apre né si risolve, e l'editor dice che l'espressione ne restituisce troppe. Aggregatela con `sum by (...)` oppure aggiungete dei selettori di etichette.
+- **Valgono i limiti di ogni query PromQL**, sulle metriche dei servizi che il monitor nomina, oppure di tutto il progetto se non ne nomina nessuno.
+- **Le condizioni di anomalia non sono offerte**: un'espressione non ha una cronologia propria con cui confrontarsi. Le condizioni di previsione sì.
+
 ## Risoluzione dei problemi
 
 :::details Il grafico mostra un superamento, ma il monitor non ha avvisato

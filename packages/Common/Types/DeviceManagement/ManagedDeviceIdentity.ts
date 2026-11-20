@@ -1,3 +1,7 @@
+import DeviceManagementProvider, {
+  DEVICE_MANAGEMENT_PROVIDERS,
+} from "./DeviceManagementProvider";
+
 /*
  * ONE DEVICE, ONE INVENTORY ROW: THE IDENTITY CONTRACT (issue #9586).
  *
@@ -128,6 +132,46 @@ export function getAllManagedDeviceServiceAttributeKeys(): Array<string> {
       ];
     },
   );
+}
+
+// The ID a device manager knows a device by, as the device's host carries it.
+export interface ManagedDeviceServiceId {
+  provider: DeviceManagementProvider;
+  deviceId: string;
+}
+
+/*
+ * THE ID EACH DEVICE MANAGER KNOWS A DEVICE BY (#10097), read from what its
+ * import wrote on the device's host (esper.device.id, intune.device.id,
+ * workspaceone.device.id, soti.device.id): what a person types into that
+ * service's console or CLI to reach the device - Esper's is the one
+ * `espercli secureadb connect --device` takes, to grant the Android agent
+ * what Esper cannot. In the services' order, one per service the host has
+ * an ID from: a device two services enroll (moved from one to the other)
+ * has both. Read without trusting the bag: only a text that is not blank.
+ * Pure.
+ */
+export function getManagedDeviceServiceIds(
+  attributes: unknown,
+): Array<ManagedDeviceServiceId> {
+  if (!attributes || typeof attributes !== "object") {
+    return [];
+  }
+
+  const bag: Record<string, unknown> = attributes as Record<string, unknown>;
+  const ids: Array<ManagedDeviceServiceId> = [];
+
+  for (const provider of DEVICE_MANAGEMENT_PROVIDERS) {
+    const value: unknown =
+      bag[getManagedDeviceServiceAttributeKeys(provider).deviceId];
+    const deviceId: string = typeof value === "string" ? value.trim() : "";
+
+    if (deviceId) {
+      ids.push({ provider, deviceId });
+    }
+  }
+
+  return ids;
 }
 /*
  * Android's security patch level (Build.VERSION.SECURITY_PATCH), under the

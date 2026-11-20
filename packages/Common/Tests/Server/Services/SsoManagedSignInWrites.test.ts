@@ -31,6 +31,7 @@ import {
   passwordProject,
   standInMemberProjects,
 } from "../TestingUtils/SsoManagedProjects";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 import {
   afterEach,
   beforeEach,
@@ -79,6 +80,12 @@ let memberProjects: MemberProjectsStandIn;
 
 beforeEach(() => {
   isMasterAdmin = false;
+
+  /*
+   * Every session here has confirmed it's its person's (#10155): what this
+   * suite holds is the server's SSO rule, which is asked first.
+   */
+  confirmEverySession();
 
   getRequireSsoForLogin = getJestSpyOn(
     GlobalConfigService,

@@ -50,6 +50,24 @@ jest.mock("../../../Server/Utils/SsoManagedSignIn", () => {
   };
 });
 
+/*
+ * Whether the session adding or removing a key has confirmed it's its
+ * person's (#10155): it reads the session and the account through services
+ * this file keeps out, and is pinned by Tests/Server/Utils/Reauthentication
+ * and ReauthenticationGates.test.ts. Here every session has confirmed,
+ * unless a test says otherwise.
+ */
+jest.mock("../../../Server/Utils/Reauthentication/Reauthentication", () => {
+  return {
+    __esModule: true,
+    default: {
+      assertConfirmed: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }),
+    },
+  };
+});
+
 jest.mock("../../../Server/Infrastructure/Redis", () => {
   return {
     __esModule: true,

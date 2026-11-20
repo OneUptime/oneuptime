@@ -64,6 +64,14 @@ export interface CloudPublishedMetricSplit {
   name: string;
   displayName?: string | undefined;
   values?: number | undefined;
+  /*
+   * Google Cloud: its connection's reads found PromQL cannot rank the
+   * metric's values by it (#10164), so each hour's learning of its busiest
+   * lists every value of each resource - `learnedValuesPerResource` of them
+   * on average, where a list has run - and Google bills them all.
+   */
+  isLearnedFromEveryValue?: boolean | undefined;
+  learnedValuesPerResource?: number | undefined;
 }
 
 export interface CloudPublishedMetric {
@@ -215,6 +223,9 @@ function readMetric(value: unknown): CloudPublishedMetric | null {
 
         const displayName: string = readText(split["displayName"]);
         const values: unknown = split["values"];
+        const learnedValues: unknown = split["learnedValuesPerResource"];
+        const isLearnedFromEveryValue: boolean =
+          split["isLearnedFromEveryValue"] === true;
 
         return {
           name: splitName,
@@ -223,6 +234,13 @@ function readMetric(value: unknown): CloudPublishedMetric | null {
           Number.isFinite(values) &&
           values >= 0
             ? { values: Math.floor(values) }
+            : {}),
+          ...(isLearnedFromEveryValue ? { isLearnedFromEveryValue: true } : {}),
+          ...(isLearnedFromEveryValue &&
+          typeof learnedValues === "number" &&
+          Number.isFinite(learnedValues) &&
+          learnedValues >= 1
+            ? { learnedValuesPerResource: Math.ceil(learnedValues) }
             : {}),
         };
       })

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 2602
+    "keys": 59636,
+    "untranslated": 2609
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -749,6 +749,7 @@
     "compute-01 · RegionTwo",
     "compute-07 · RegionOne",
     "customer facing|tier-1",
+    "dSYMs",
     "db-primary",
     "db-replica.prod.internal:5432",
     "debug",

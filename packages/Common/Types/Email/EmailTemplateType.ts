@@ -82,6 +82,12 @@ enum EmailTemplateType {
   // A private user's sign-in link (Types/StatusPage/StatusPageMagicLink).
   StatusPageMagicLink = "StatusPageMagicLink.hbs",
   StatusPagePasswordChanged = "StatusPagePasswordChanged.hbs",
+  /*
+   * A private user's address changed (#10156): to the address they had, in
+   * the status page's branding and language
+   * (Types/StatusPage/PrivateUserEmailAddressChangedEmail).
+   */
+  StatusPagePrivateUserEmailAddressChanged = "StatusPagePrivateUserEmailAddressChanged.hbs",
   StatusPageWelcomeEmail = "StatusPageWelcomeEmail.hbs",
   SubscriberScheduledMaintenanceEventNoteCreated = "SubscriberScheduledMaintenanceEventNoteCreated.hbs",
   SubscriberScheduledMaintenanceEventNoteUpdated = "SubscriberScheduledMaintenanceEventNoteUpdated.hbs",

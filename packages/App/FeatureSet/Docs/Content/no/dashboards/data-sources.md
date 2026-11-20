@@ -75,6 +75,7 @@ For å endre en datakilde senere åpner du den fra listen. **Rediger** på **Dat
 
 Rediger et dashbord, klikk på **Legg til widget**, og velg en widget fra gruppen Eksterne datakilder: et **Diagram**, en **Verdi**, en **Måler** eller en **Tabell**. I innstillingene:
 
+- **Målingene i dette prosjektet (PromQL)** er den første **Datakilde**, og den en ny widget starter på: PromQL over målingene prosjektet ditt sender til OneUptime, lest for tjenestene du kan lese, som på siden [PromQL](/docs/telemetry/promql). Den trenger ingen egen datakilde og fungerer derfor med alle abonnementer.
 - Velg **Datakilde**, og skriv **Spørring**. Redigeringsprogrammet navngir spørrespråket og viser et eksempel for typen.
 - På et diagram legger **Legg til spørring** flere spørringer på de samme aksene, og **Legend (optional)** navngir hver serie ut fra etikettene: `{{instance}} — errors` skriver seriens etikett `instance` foran.
 - På en verdi eller en måler gjør **Slå sammen** punktene om til ett tall: den siste verdien (standard), den første, gjennomsnittet, summen, minimum eller maksimum. **Enhet** legger til et suffiks og skalerer de kjente enhetene: `Bytes` leses som 1.5 MB, `ms` som 2.4 s.

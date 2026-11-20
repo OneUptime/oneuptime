@@ -99,6 +99,7 @@ import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentT
 import DashboardDataSourceChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardDataSourceChartComponent";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DataSourceQueryConfig from "../../../Types/DataSource/DataSourceQueryConfig";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import { ObjectType } from "../../../Types/JSON";
 import MetricQueryConfigData, {
   ChartSeries,
@@ -731,6 +732,76 @@ describe("Data Source chart synthetic MetricViewData", () => {
           }
         ).attributes["query"],
       ).toBe("select count(*) from t");
+    });
+  });
+
+  /*
+   * The built-in source (issue #7713): a chart of PromQL over the project's
+   * own metrics is the same widget, fetched under the source's own id, its
+   * series named by their labels as an outside Prometheus' are.
+   */
+  describe("a query on the project's own metrics", () => {
+    test("is fetched under its id, over the dashboard's window", async () => {
+      fetchTimeSeriesMock.mockResolvedValue(
+        buildSeries([
+          buildPoint(4, "2026-08-10T09:15:00.000Z", { job: "api" }),
+          buildPoint(2, "2026-08-10T09:15:00.000Z", { job: "worker" }),
+        ]),
+      );
+      getAttributeKeysMock.mockReturnValue(["job"]);
+
+      const configs: Array<MetricQueryConfigData> = await renderAndGetConfigs({
+        queries: [
+          {
+            id: "own",
+            dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+            query: "sum by (job) (rate(http_requests_total[5m]))",
+            legend: "{{job}}",
+          },
+        ],
+      });
+
+      const fetched: DataSourceFetchArgs = fetchTimeSeriesMock.mock
+        .calls[0]![0] as DataSourceFetchArgs;
+
+      expect(fetched.queryConfig.dataSourceId).toBe(
+        PROJECT_METRICS_DATA_SOURCE_ID,
+      );
+      expect(fetched.queryConfig.query).toBe(
+        "sum by (job) (rate(http_requests_total[5m]))",
+      );
+      expect(fetched.startDate.getTime()).toBe(START_DATE.getTime());
+      expect(fetched.endDate.getTime()).toBe(END_DATE.getTime());
+
+      // One config, grouped by the labels, each series named by its legend.
+      expect(configs).toHaveLength(1);
+      expect(configs[0]!.metricQueryData.groupByAttributeKeys).toEqual(["job"]);
+      expect(configs[0]!.metricQueryData.filterData).toEqual({});
+      expect(
+        configs[0]!.getSeries!(
+          buildPoint(4, "2026-08-10T09:15:00.000Z", { job: "api" }),
+        ).title,
+      ).toBe("api");
+    });
+
+    test("is a placeholder on a public dashboard, as every data source widget is", async () => {
+      setPublicDashboardContext({
+        dashboardId: ObjectID.generate(),
+      } as never);
+
+      renderChartWidget({
+        queries: [
+          {
+            id: "own",
+            dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+            query: "up",
+          },
+        ],
+      });
+
+      // Nothing is asked of the server for an anonymous viewer.
+      expect(fetchTimeSeriesMock).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("metric-charts")).not.toBeInTheDocument();
     });
   });
 });

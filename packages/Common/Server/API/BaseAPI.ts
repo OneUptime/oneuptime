@@ -33,6 +33,11 @@ import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnVa
 import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
 import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
 import { coerceTextColumnsInJSON } from "../../Types/Database/TextColumnValue";
+import ListChangesUtil, { ListChanges } from "../../Types/Database/ListChanges";
+import FieldsLeftOut, {
+  FIELDS_LEFT_OUT_HEADER,
+} from "../../Types/API/FieldsLeftOut";
+import ListEntries from "../Utils/Database/ListEntries";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -614,14 +619,30 @@ export default class BaseAPI<
     const objectId: ObjectID = new ObjectID(idParam);
     const objectIdString: string = objectId.toString();
     const body: JSONObject = req.body;
-    const dataInBody: JSONValue | undefined = body["data"];
+
+    /*
+     * Entries to add to the record's lists and take off them, beside or in
+     * place of `data` (Types/Database/ListChanges, #10135): only those
+     * entries are written, so an entry OneUptime or someone else adds at
+     * the same moment stays.
+     */
+    const entityModel: TBaseModel = new this.entityType();
+    const listChanges: ListChanges | null = ListChangesUtil.fromRequestBody({
+      body: body,
+      listColumns: ListEntries.getListColumns(entityModel),
+      modelName: entityModel.singularName || this.entityType.name || "Record",
+    });
+
+    const dataInBody: JSONValue | undefined =
+      body["data"] === undefined && listChanges ? {} : body["data"];
 
     /*
      * The update payload has to be wrapped as { "data": { ...columns... } }.
      * A flat body has no "data" key, and deserializing that undefined handed
      * back an empty object: the update then matched the row, wrote no columns
      * at all, and still answered 200. Callers were told the write succeeded
-     * while their fields were dropped on the floor.
+     * while their fields were dropped on the floor. An update that only adds
+     * entries to lists and takes them off sends no `data`.
      */
     if (
       !dataInBody ||
@@ -657,7 +678,6 @@ export default class BaseAPI<
      * asked for thirty-one names before they were text - is the text it
      * holds, as on a create. See Types/Database/TextColumnValue.
      */
-    const entityModel: TBaseModel = new this.entityType();
 
     const item: PartialEntity<TBaseModel> = coerceTextColumnsInJSON(
       coerceBooleanColumnsInJSON(
@@ -679,9 +699,10 @@ export default class BaseAPI<
 
     /*
      * An update that carries no columns writes nothing. Saying 200 to that is
-     * the same lie in a different shape, so ask for at least one field.
+     * the same lie in a different shape, so ask for at least one field - or
+     * an entry to add to a list or take off it.
      */
-    if (Object.keys(item).length === 0) {
+    if (Object.keys(item).length === 0 && !listChanges) {
       throw new BadDataException(
         'No fields to update. Please include at least one field to update in the "data" object of the request body.',
       );
@@ -710,6 +731,7 @@ export default class BaseAPI<
       id: new ObjectID(objectIdString),
       data: item,
       miscDataProps: miscDataProps,
+      ...(listChanges ? { listChanges: listChanges } : {}),
       props: props,
     });
 
@@ -790,9 +812,24 @@ export default class BaseAPI<
       data: item,
       miscDataProps: miscDataProps,
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+      // Filled in by the create: what it left out because only OneUptime writes it.
+      fieldsLeftOut: [],
     };
 
     const savedItem: BaseModel = await this.service.create(createBy);
+
+    /*
+     * The answer names the fields the create left out because only
+     * OneUptime writes them (Types/API/FieldsLeftOut, #10136), beside the
+     * record, so a caller that copied a record - the CLI, the MCP server, a
+     * status page imported from JSON - can say so. None, no header.
+     */
+    if (createBy.fieldsLeftOut && createBy.fieldsLeftOut.length > 0) {
+      res.setHeader(
+        FIELDS_LEFT_OUT_HEADER,
+        FieldsLeftOut.toHeaderValue(createBy.fieldsLeftOut),
+      );
+    }
 
     return Response.sendEntityResponse(req, res, savedItem, this.entityType);
   }

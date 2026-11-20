@@ -59,11 +59,22 @@ type serverOwnedAPI struct {
 	duringUpdate map[string]interface{}
 	// Every flag a monitor has: OneUptime answers each, false when unset.
 	flags []string
+	// Every update's whole body - data, addToList, removeFromList - in order.
+	updateBodies []map[string]interface{}
+	// A OneUptime older than #10135: an update's addToList and
+	// removeFromList are not read.
+	ignoresListChanges bool
+	// What a create's answer says it left out (#10136), by its header.
+	createLeftOut string
+	// What Terraform keeps of each monitor beside its state - the
+	// provider's private state - as a state file keeps it, by the monitor's
+	// ID: the harness carries it from an apply or a read to the next.
+	private map[string][]byte
 }
 
 func newServerOwnedAPI(t *testing.T) *serverOwnedAPI {
 	t.Helper()
-	api := &serverOwnedAPI{t: t, monitors: map[string]map[string]interface{}{}}
+	api := &serverOwnedAPI{t: t, monitors: map[string]map[string]interface{}{}, private: map[string][]byte{}}
 	api.server = httptest.NewServer(http.HandlerFunc(api.handle))
 	t.Cleanup(api.server.Close)
 	return api
@@ -112,6 +123,9 @@ func (a *serverOwnedAPI) handle(w http.ResponseWriter, r *http.Request) {
 		}
 		a.monitors[id] = monitor
 		a.creates = append(a.creates, data)
+		if a.createLeftOut != "" {
+			w.Header().Set("X-OneUptime-Fields-Left-Out", a.createLeftOut)
+		}
 		a.reply(w, http.StatusOK, monitor)
 	case r.Method == http.MethodPost && len(parts) == 3 && parts[2] == "get-item":
 		monitor, ok := a.monitors[parts[1]]
@@ -126,19 +140,82 @@ func (a *serverOwnedAPI) handle(w http.ResponseWriter, r *http.Request) {
 			a.reply(w, http.StatusNotFound, map[string]interface{}{"message": "not found"})
 			return
 		}
+		// An update names a list in data or entry by entry, not both (#10135).
+		for _, key := range []string{"addToList", "removeFromList"} {
+			lists, _ := body[key].(map[string]interface{})
+			for name := range lists {
+				if _, inData := data[name]; inData {
+					a.reply(w, http.StatusBadRequest, map[string]interface{}{"message": name + " is both in data and in addToList or removeFromList."})
+					return
+				}
+			}
+		}
 		for k, v := range data {
 			monitor[k] = v
+		}
+		if !a.ignoresListChanges {
+			applyListChanges(monitor, body)
 		}
 		for k, v := range a.duringUpdate {
 			monitor[k] = v
 		}
 		a.updates = append(a.updates, data)
+		a.updateBodies = append(a.updateBodies, body)
 		a.reply(w, http.StatusOK, map[string]interface{}{})
 	case r.Method == http.MethodDelete && len(parts) == 2:
 		delete(a.monitors, parts[1])
 		a.reply(w, http.StatusOK, map[string]interface{}{})
 	default:
 		a.reply(w, http.StatusNotFound, map[string]interface{}{"message": "no such endpoint: " + r.URL.Path})
+	}
+}
+
+// applyListChanges adds an update's addToList entries to a record's lists
+// and takes its removeFromList entries off them, as OneUptime's junction
+// tables do: an entry added once, one taken off only if there, every other
+// entry left as it is (#10135).
+func applyListChanges(record map[string]interface{}, body map[string]interface{}) {
+	idOf := func(entry interface{}) string {
+		switch typed := entry.(type) {
+		case string:
+			return strings.ToLower(typed)
+		case map[string]interface{}:
+			id, _ := typed["_id"].(string)
+			return strings.ToLower(id)
+		}
+		return ""
+	}
+	removes, _ := body["removeFromList"].(map[string]interface{})
+	for name, entries := range removes {
+		taken := map[string]bool{}
+		for _, entry := range entries.([]interface{}) {
+			taken[idOf(entry)] = true
+		}
+		kept := []interface{}{}
+		existing, _ := record[name].([]interface{})
+		for _, entry := range existing {
+			if !taken[idOf(entry)] {
+				kept = append(kept, entry)
+			}
+		}
+		record[name] = kept
+	}
+	adds, _ := body["addToList"].(map[string]interface{})
+	for name, entries := range adds {
+		existing, _ := record[name].([]interface{})
+		list := append([]interface{}{}, existing...)
+		for _, entry := range entries.([]interface{}) {
+			there := false
+			for _, each := range list {
+				if idOf(each) == idOf(entry) {
+					there = true
+				}
+			}
+			if !there {
+				list = append(list, map[string]interface{}{"_id": idOf(entry)})
+			}
+		}
+		record[name] = list
 	}
 }
 
@@ -269,6 +346,34 @@ func (tf *serverOwnedTerraform) proposedNew(prior, config tftypes.Value) tftypes
 	return tftypes.NewValue(tf.objectType(), proposed)
 }
 
+// idOfState is a state's monitor ID, or "" for none.
+func (tf *serverOwnedTerraform) idOfState(state tftypes.Value) string {
+	if state.IsNull() {
+		return ""
+	}
+	id := attributesOf(tf.t, state)["id"]
+	var value string
+	if id.IsNull() || !id.IsKnown() || id.As(&value) != nil {
+		return ""
+	}
+	return value
+}
+
+// privateOf is what Terraform keeps beside a monitor's state.
+func (tf *serverOwnedTerraform) privateOf(state tftypes.Value) []byte {
+	tf.api.mu.Lock()
+	defer tf.api.mu.Unlock()
+	return tf.api.private[tf.idOfState(state)]
+}
+
+func (tf *serverOwnedTerraform) keepPrivate(state tftypes.Value, private []byte) {
+	tf.api.mu.Lock()
+	defer tf.api.mu.Unlock()
+	if id := tf.idOfState(state); id != "" {
+		tf.api.private[id] = private
+	}
+}
+
 func (tf *serverOwnedTerraform) plan(prior, config tftypes.Value) (tftypes.Value, *tfprotov6.PlanResourceChangeResponse) {
 	tf.t.Helper()
 	planned, err := tf.server.PlanResourceChange(tf.ctx, &tfprotov6.PlanResourceChangeRequest{
@@ -276,6 +381,7 @@ func (tf *serverOwnedTerraform) plan(prior, config tftypes.Value) (tftypes.Value
 		PriorState:       tf.encode(prior),
 		ProposedNewState: tf.encode(tf.proposedNew(prior, config)),
 		Config:           tf.encode(config),
+		PriorPrivate:     tf.privateOf(prior),
 	})
 	if err != nil {
 		tf.t.Fatalf("PlanResourceChange: %s", err)
@@ -300,6 +406,7 @@ func (tf *serverOwnedTerraform) apply(prior, config tftypes.Value) tftypes.Value
 	}
 	failOnErrors(tf.t, "applying", applied.Diagnostics)
 	state := tf.decode(applied.NewState)
+	tf.keepPrivate(state, applied.Private)
 	got := attributesOf(tf.t, state)
 	for name, want := range attributesOf(tf.t, planned) {
 		if !got[name].IsFullyKnown() {
@@ -317,12 +424,15 @@ func (tf *serverOwnedTerraform) refresh(state tftypes.Value) tftypes.Value {
 	read, err := tf.server.ReadResource(tf.ctx, &tfprotov6.ReadResourceRequest{
 		TypeName:     "oneuptime_monitor",
 		CurrentState: tf.encode(state),
+		Private:      tf.privateOf(state),
 	})
 	if err != nil {
 		tf.t.Fatalf("ReadResource: %s", err)
 	}
 	failOnErrors(tf.t, "refreshing", read.Diagnostics)
-	return tf.decode(read.NewState)
+	refreshed := tf.decode(read.NewState)
+	tf.keepPrivate(refreshed, read.Private)
+	return refreshed
 }
 
 // changes is what a plan changes, and what it replaces the monitor for.

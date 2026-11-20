@@ -19,7 +19,9 @@ import {
   DbJSONResponse,
   Results,
 } from "../../Services/AnalyticsDatabaseService";
-import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
+import ExceptionInstanceService, {
+  EXCEPTION_ORIGINALS_SQL,
+} from "../../Services/ExceptionInstanceService";
 import TelemetryExceptionService from "../../Services/TelemetryExceptionService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -135,6 +137,9 @@ export default class ExceptionListStatsReader {
      * the same way.
      */
     statement.append(" AND retentionDate >= now()");
+
+    // One crash, counted once (ExceptionInstanceService, #9923).
+    statement.append(` AND ${EXCEPTION_ORIGINALS_SQL}`);
 
     TelemetryReadScopeUtil.appendServiceFilter(statement, query.serviceFilter);
   }

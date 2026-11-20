@@ -13,6 +13,7 @@ import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
 import { isOpenStackCheckResource } from "Common/Utils/OpenStack/OpenStackCheckMetrics";
+import { isProxmoxGuestPowerTaskResource } from "Common/Utils/Proxmox/ProxmoxGuestPowerTask";
 import OpenStackAcrossProducts from "Common/Server/Utils/OpenStack/OpenStackAcrossProducts";
 import { isOpenStackInstanceId } from "Common/Types/OpenStack/OpenStackInstanceMetrics";
 import { OpenStackPlacement } from "Common/Types/OpenStack/OpenStackLinks";
@@ -2093,6 +2094,16 @@ export default abstract class OtelIngestBaseService {
 
       if (!clusterIdStr) {
         return null;
+      }
+
+      /*
+       * What the Proxmox AI agent read from the task log (#10017,
+       * ProxmoxGuestPowerTask): it belongs to this cluster, and says
+       * nothing of whether the collector is running. A collector that
+       * stopped has to read as stopped, however often the AI agent reports.
+       */
+      if (isProxmoxGuestPowerTaskResource(data.attributes)) {
+        return new ObjectID(clusterIdStr);
       }
 
       /*

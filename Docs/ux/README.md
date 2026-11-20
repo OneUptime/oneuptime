@@ -358,10 +358,13 @@ work out, starts from a default for everything else, and folds what most people 
   a page and holds a control of its own - a region's health pill that opens why, an (i) - is
   never one link around it: the row's name is its link, stretched over the row so a press
   anywhere still opens the page, and the control sits beside the name, above the stretch
-  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). Enforced by
-  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts)
-  and
-  [ResourcePartRowControlsGuard](../../packages/App/Tests/Dashboard/ResourcePartRowControlsGuard.test.ts).
+  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). A
+  component counts as what its own source draws: an (i), an attention pill and a health pill
+  are buttons, `AppLink` is a link around what it is given, and JSX handed to a control in a
+  prop it draws inside itself (a button's title) is inside it. The guard knew a short list of
+  shared components and never saw the Regions card's (i) in its row's link (#10015). Enforced
+  by
+  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
 - **A menu, a list or a panel opens on the tooltip layer, never in place.** Drawn `absolute`
   under its control, a popup was cut off wherever the box it sat in clipped. The logs toolbar's
   Columns lost its foot over a trace's empty logs (#9859), and a search's suggestions ran into an
