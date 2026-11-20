@@ -24,8 +24,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
 import CreateFormAddress from "Common/UI/Utils/CreateFormAddress";
 import Link from "Common/Types/Link";
+import DashboardModel from "Common/Models/DatabaseModels/Dashboard";
+import Form from "Common/Models/DatabaseModels/Form";
+import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Team from "Common/Models/DatabaseModels/Team";
 import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -322,6 +329,68 @@ const entityPageRules: Array<EntityPageRule> = [
     icon: IconProp.Call,
     isValidId: isUuid,
   },
+  /*
+   * One on-call schedule's pages, one incoming call policy's, one team's,
+   * one dashboard's, one runbook's, one SLO's and one form's (#10104):
+   * "how do I add a layer to this schedule?" is about the one on screen,
+   * and ends at its own page (#7065). Each with its area's own icon.
+   */
+  {
+    pageMapKey: PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+    type: AIChatPageContextType.OnCallSchedule,
+    noun: translationKey("on-call schedule"),
+    chipLabel: "This on-call schedule",
+    icon: IconProp.Calendar,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW,
+    type: AIChatPageContextType.IncomingCallPolicy,
+    noun: translationKey("incoming call policy"),
+    chipLabel: "This incoming call policy",
+    icon: IconProp.IncomingCall,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.TEAM_VIEW,
+    type: AIChatPageContextType.Team,
+    noun: translationKey("team"),
+    chipLabel: "This team",
+    icon: IconProp.Team,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.DASHBOARD_VIEW,
+    type: AIChatPageContextType.Dashboard,
+    noun: translationKey("dashboard"),
+    chipLabel: "This dashboard",
+    icon: IconProp.ChartPie,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.RUNBOOK_VIEW,
+    type: AIChatPageContextType.Runbook,
+    noun: translationKey("runbook"),
+    chipLabel: "This runbook",
+    icon: IconProp.BookOpen,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.SLO_VIEW,
+    type: AIChatPageContextType.Slo,
+    noun: translationKey("SLO"),
+    chipLabel: "This SLO",
+    icon: IconProp.Gauge,
+    isValidId: isUuid,
+  },
+  {
+    pageMapKey: PageMap.FORM_VIEW,
+    type: AIChatPageContextType.Form,
+    noun: translationKey("form"),
+    chipLabel: "This form",
+    icon: IconProp.ClipboardDocumentList,
+    isValidId: isUuid,
+  },
 ];
 
 /*
@@ -387,9 +456,12 @@ const setupPageRules: Array<SetupPageRule> = [
 /*
  * The contexts that also say which of their pages is on screen (#7062):
  * the setup pages, whose area has many pages - API Keys, Labels, SSO -
- * and one status page's and one on-call policy's, where "here" is Custom
- * Domains or Escalation Rules. A list's or a record's own questions are
- * about its data, and keep the context they had.
+ * and the records whose own pages Ask AI opens (#7065, #10104), where
+ * "here" is a status page's Custom Domains, a policy's Escalation Rules,
+ * a monitor's Criteria or a schedule's Layers. Every one of them is a
+ * record kind of the server's catalog of record pages, which names the
+ * page; a list's own questions are about its data, and keep the context
+ * they had.
  */
 const PAGE_TELLING_CONTEXT_TYPES: ReadonlyArray<AIChatPageContextType> = [
   AIChatPageContextType.Home,
@@ -400,6 +472,19 @@ const PAGE_TELLING_CONTEXT_TYPES: ReadonlyArray<AIChatPageContextType> = [
   AIChatPageContextType.CreateForm,
   AIChatPageContextType.StatusPage,
   AIChatPageContextType.OnCallPolicy,
+  AIChatPageContextType.Monitor,
+  AIChatPageContextType.Incident,
+  AIChatPageContextType.Alert,
+  AIChatPageContextType.ScheduledMaintenanceEvent,
+  AIChatPageContextType.TelemetryService,
+  AIChatPageContextType.Workflow,
+  AIChatPageContextType.OnCallSchedule,
+  AIChatPageContextType.IncomingCallPolicy,
+  AIChatPageContextType.Team,
+  AIChatPageContextType.Dashboard,
+  AIChatPageContextType.Runbook,
+  AIChatPageContextType.Slo,
+  AIChatPageContextType.Form,
 ];
 
 /*
@@ -1071,6 +1156,67 @@ export default class PageContextUtil {
               id: id,
               select: { name: true },
             });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        // The records #10104 gives a context, each by its name.
+        case AIChatPageContextType.OnCallSchedule: {
+          const item: OnCallDutyPolicySchedule | null =
+            await ModelAPI.getItem<OnCallDutyPolicySchedule>({
+              modelType: OnCallDutyPolicySchedule,
+              id: id,
+              select: { name: true },
+            });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.IncomingCallPolicy: {
+          const item: IncomingCallPolicy | null =
+            await ModelAPI.getItem<IncomingCallPolicy>({
+              modelType: IncomingCallPolicy,
+              id: id,
+              select: { name: true },
+            });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.Team: {
+          const item: Team | null = await ModelAPI.getItem<Team>({
+            modelType: Team,
+            id: id,
+            select: { name: true },
+          });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.Dashboard: {
+          const item: DashboardModel | null =
+            await ModelAPI.getItem<DashboardModel>({
+              modelType: DashboardModel,
+              id: id,
+              select: { name: true },
+            });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.Runbook: {
+          const item: Runbook | null = await ModelAPI.getItem<Runbook>({
+            modelType: Runbook,
+            id: id,
+            select: { name: true },
+          });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.Slo: {
+          const item: ServiceLevelObjective | null =
+            await ModelAPI.getItem<ServiceLevelObjective>({
+              modelType: ServiceLevelObjective,
+              id: id,
+              select: { name: true },
+            });
+          return PageContextUtil.titleOnly(item?.name);
+        }
+        case AIChatPageContextType.Form: {
+          const item: Form | null = await ModelAPI.getItem<Form>({
+            modelType: Form,
+            id: id,
+            select: { name: true },
+          });
           return PageContextUtil.titleOnly(item?.name);
         }
         default:
@@ -2006,6 +2152,187 @@ export default class PageContextUtil {
             title: "Escalate sooner",
             question:
               "How do I page the next person sooner when nobody acknowledges?",
+          },
+        ];
+      /*
+       * The records #10104 gives a context: what the person sees there and
+       * how to set it up, each answered for the one on screen and ending
+       * at its own page.
+       */
+      case AIChatPageContextType.OnCallSchedule:
+        return [
+          {
+            icon: IconProp.User,
+            title: "Who is on call?",
+            question:
+              "Who is on call on this schedule right now, and who is up next?",
+          },
+          {
+            icon: IconProp.Layers,
+            title: "Add a layer",
+            question: "How do I add a layer to this schedule?",
+          },
+          {
+            icon: IconProp.ArrowPath,
+            title: "Take turns weekly",
+            question:
+              "How do I make people on this schedule take turns each week?",
+          },
+          {
+            icon: IconProp.Clock,
+            title: "Cover a shift",
+            question: "How do I cover someone's shift on this schedule?",
+          },
+        ];
+      case AIChatPageContextType.IncomingCallPolicy:
+        return [
+          {
+            icon: IconProp.IncomingCall,
+            title: "What happens on a call?",
+            question:
+              "What happens when someone calls this policy's phone number?",
+          },
+          {
+            icon: IconProp.UserPlus,
+            title: "Ring someone else",
+            question:
+              "How do I make this policy ring someone else when nobody answers?",
+          },
+          {
+            icon: IconProp.Logs,
+            title: "Recent calls",
+            question:
+              "Where do I see the calls this policy took, and who answered them?",
+          },
+          {
+            icon: IconProp.Settings,
+            title: "Change the greeting",
+            question:
+              "How do I change what callers hear when they call this policy?",
+          },
+        ];
+      case AIChatPageContextType.Team:
+        return [
+          {
+            icon: IconProp.Team,
+            title: "Who is in it?",
+            question:
+              "Who is in this team, and who has not accepted their invitation yet?",
+          },
+          {
+            icon: IconProp.UserPlus,
+            title: "Add someone",
+            question: "How do I add someone to this team?",
+          },
+          {
+            icon: IconProp.Lock,
+            title: "What can it do?",
+            question: "How do I change what the members of this team may do?",
+          },
+          {
+            icon: IconProp.Call,
+            title: "Who pages it?",
+            question: "Which on-call policies page this team?",
+          },
+        ];
+      case AIChatPageContextType.Dashboard:
+        return [
+          {
+            icon: IconProp.Add,
+            title: "Add a chart",
+            question: "How do I add a chart to this dashboard?",
+          },
+          {
+            icon: IconProp.Filter,
+            title: "Filter it",
+            question: "How do I let people filter this dashboard by service?",
+          },
+          {
+            icon: IconProp.Share,
+            title: "Share it",
+            question:
+              "How do I share this dashboard with people outside my project?",
+          },
+          {
+            icon: IconProp.Globe,
+            title: "Use my own domain",
+            question:
+              "How do I put this dashboard's public link on my own domain?",
+          },
+        ];
+      case AIChatPageContextType.Runbook:
+        return [
+          {
+            icon: IconProp.BookOpen,
+            title: "What does it do?",
+            question: "What does this runbook do, step by step?",
+          },
+          {
+            icon: IconProp.Play,
+            title: "Did it work?",
+            question: "When did this runbook last run, and did it succeed?",
+          },
+          {
+            icon: IconProp.Add,
+            title: "Add a step",
+            question: "How do I add a step to this runbook?",
+          },
+          {
+            icon: IconProp.Bolt,
+            title: "Run it on its own",
+            question:
+              "How do I make this runbook run on its own when an incident starts?",
+          },
+        ];
+      case AIChatPageContextType.Slo:
+        return [
+          {
+            icon: IconProp.Gauge,
+            title: "Budget left",
+            question:
+              "How much of this SLO's error budget is left, and how fast is it burning?",
+          },
+          {
+            icon: IconProp.Bell,
+            title: "Alert on fast burn",
+            question:
+              "How do I get alerted when this SLO burns its error budget too fast?",
+          },
+          {
+            icon: IconProp.Settings,
+            title: "Change the target",
+            question: "How do I change this SLO's target?",
+          },
+          {
+            icon: IconProp.Pause,
+            title: "Freeze deploys",
+            question:
+              "How do I freeze deployments when this SLO runs out of error budget?",
+          },
+        ];
+      case AIChatPageContextType.Form:
+        return [
+          {
+            icon: IconProp.Add,
+            title: "Add a question",
+            question: "How do I add a question to this form?",
+          },
+          {
+            icon: IconProp.Alert,
+            title: "What it creates",
+            question:
+              "What does a submission of this form create in my project?",
+          },
+          {
+            icon: IconProp.Link,
+            title: "Share it",
+            question:
+              "How do I share this form with the people who should fill it in?",
+          },
+          {
+            icon: IconProp.Lock,
+            title: "Who can submit",
+            question: "How do I limit who can submit this form?",
           },
         ];
       case AIChatPageContextType.Home:

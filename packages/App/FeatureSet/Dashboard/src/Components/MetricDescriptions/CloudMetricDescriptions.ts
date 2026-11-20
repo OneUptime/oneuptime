@@ -151,7 +151,7 @@ export const CLOUD_APP_AZURE_MONITOR_DESCRIPTIONS: Record<
     "Memory the site uses (its working set), averaged over the selected range, as Azure Monitor measures it.",
   ),
   requestsChart: translationKey(
-    "The site's requests in each interval, with those answered with a 5xx status as a second line, as Azure Monitor counts them. A dashed line marks each deploy.",
+    "The site's requests in each interval, with those answered with a 5xx and a 4xx status as lines of their own, as Azure Monitor counts them. A dashed line marks each deploy.",
   ),
   responseTimeChart: translationKey(
     "The site's average response time in each interval, as Azure Monitor measures it. A dashed line marks each deploy.",

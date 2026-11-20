@@ -4413,5 +4413,18 @@
   "Same name as another label": "Samme navn som en anden etiket",
   "Same name as another policy": "Samme navn som en anden politik",
   "Same name as another schedule": "Samme navn som en anden tidsplan",
-  "Created {{date}}": "Oprettet {{date}}"
+  "Created {{date}}": "Oprettet {{date}}",
+  "Signs In As": "Logger ind som",
+  "Check again": "Tjek igen",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "Kunne ikke spørge serveren, hvilken AWS-identitet den logger ind som. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "Denne server kan ikke logge ind på AWS. {{error}}",
+  "A test email shows whether it may send.": "En test-e-mail viser, om den må sende.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "Fra AWS_ACCESS_KEY_ID i serverens miljø.",
+  "From the server's AWS profile.": "Fra serverens AWS-profil.",
+  "From IAM roles for service accounts.": "Fra IAM-roller til tjenestekonti.",
+  "From EKS Pod Identity.": "Fra EKS Pod Identity.",
+  "From the ECS task role.": "Fra ECS-opgaverollen.",
+  "From the container credentials endpoint.": "Fra container-legitimationsendpointet.",
+  "From the EC2 instance profile.": "Fra EC2-instansprofilen.",
+  "The server did not say which AWS identity it signs in as.": "Serveren sagde ikke, hvilken AWS-identitet den logger ind som."
 }

@@ -31,6 +31,7 @@ import {
   IntuneDeviceRead,
   getIntuneCheckIns,
   getIntuneGroups,
+  parseIntuneBatteryLevel,
   parseIntuneDetectedApps,
   parseIntuneDevice,
   parseIntuneEnrolledDeviceCount,
@@ -63,6 +64,23 @@ import {
  *                                                supports Intune's beta
  *                                                routes but changes them
  *                                                more often.
+ *   GET /beta/deviceManagement/managedDevices/{id}?$select=id,hardwareInformation
+ *                                                an iPhone's or an iPad's
+ *                                                battery (#10287): Graph
+ *                                                fills hardwareInformation
+ *                                                only on a device read
+ *                                                alone, with $select, and
+ *                                                its batteryLevelPercentage
+ *                                                on iOS and iPadOS alone,
+ *                                                per check-in. Asked once a
+ *                                                device has checked in since
+ *                                                it was last asked
+ *                                                (DeviceManagementReadRunner
+ *                                                .getBatteryLookups), within
+ *                                                the read's budget and
+ *                                                Graph's 2,000 requests per
+ *                                                20 seconds an app may make
+ *                                                of the tenant's devices.
  *
  * Intune's groups are Microsoft Entra groups, which this permission does
  * not read; a device's category is its group instead. A device's user is
@@ -78,12 +96,25 @@ export const INTUNE_DEVICES_PATH: string =
 export const INTUNE_OVERVIEW_PATH: string =
   "/v1.0/deviceManagement/managedDeviceOverview";
 
-export function getIntuneDetectedAppsPath(providerDeviceId: string): string {
+export function getIntuneBetaDevicePath(providerDeviceId: string): string {
   return `/beta/deviceManagement/managedDevices/${encodeURIComponent(providerDeviceId)}`;
 }
 
 export const INTUNE_DETECTED_APPS_QUERY: string =
   "?$select=id&$expand=detectedApps";
+
+// One device's hardware, which holds an iPhone's or an iPad's battery (#10287).
+export const INTUNE_HARDWARE_QUERY: string = "?$select=id,hardwareInformation";
+
+/*
+ * The platforms Graph says a battery level of: "currently supported only
+ * on devices running iOS 5.0 and later" (hardwareInformation), an iPad's
+ * iPadOS among them. No other device is asked.
+ */
+export const INTUNE_BATTERY_PLATFORMS: ReadonlyArray<ManagedDevicePlatform> = [
+  ManagedDevicePlatform.IOS,
+  ManagedDevicePlatform.IPadOS,
+];
 
 // The tenant as a test names it: its ID or domain, and its cloud when it is not the commercial one.
 function describeTenant(config: DeviceManagementConfig): string {
@@ -237,12 +268,30 @@ export class IntuneSession implements DeviceManagementSession {
     providerDeviceId: string;
   }): Promise<Array<ProviderApp>> {
     const page: IntunePage = await this.client.get(
-      getIntuneDetectedAppsPath(data.providerDeviceId),
+      getIntuneBetaDevicePath(data.providerDeviceId),
       INTUNE_DETECTED_APPS_QUERY,
       "app list request",
     );
 
     return parseIntuneDetectedApps(page.body);
+  }
+
+  // An iPhone's or an iPad's battery: Graph says none of another device's.
+  public readsBatteryOf(device: { platform: ManagedDevicePlatform }): boolean {
+    return INTUNE_BATTERY_PLATFORMS.includes(device.platform);
+  }
+
+  // One device's battery, as Intune last heard it: null when it says none.
+  public async readBatteryLevel(
+    providerDeviceId: string,
+  ): Promise<number | null> {
+    const page: IntunePage = await this.client.get(
+      getIntuneBetaDevicePath(providerDeviceId),
+      INTUNE_HARDWARE_QUERY,
+      "battery request",
+    );
+
+    return parseIntuneBatteryLevel(page.body);
   }
 }
 

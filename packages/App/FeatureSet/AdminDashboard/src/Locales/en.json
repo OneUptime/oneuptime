@@ -4413,5 +4413,18 @@
   "Same name as another label": "Same name as another label",
   "Same name as another policy": "Same name as another policy",
   "Same name as another schedule": "Same name as another schedule",
-  "Created {{date}}": "Created {{date}}"
+  "Created {{date}}": "Created {{date}}",
+  "Signs In As": "Signs In As",
+  "Check again": "Check again",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "Couldn't ask the server which AWS identity it signs in as. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "This server cannot sign in to AWS. {{error}}",
+  "A test email shows whether it may send.": "A test email shows whether it may send.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "From AWS_ACCESS_KEY_ID in the server's environment.",
+  "From the server's AWS profile.": "From the server's AWS profile.",
+  "From IAM roles for service accounts.": "From IAM roles for service accounts.",
+  "From EKS Pod Identity.": "From EKS Pod Identity.",
+  "From the ECS task role.": "From the ECS task role.",
+  "From the container credentials endpoint.": "From the container credentials endpoint.",
+  "From the EC2 instance profile.": "From the EC2 instance profile.",
+  "The server did not say which AWS identity it signs in as.": "The server did not say which AWS identity it signs in as."
 }

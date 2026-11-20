@@ -64,7 +64,7 @@ Informe o **ID da chave de acesso**, a **Chave de acesso secreta** e a **Região
 
 ### Entrar com a função do IAM do servidor
 
-Uma instalação auto-hospedada na AWS pode enviar os próprios e-mails como a função do IAM que a AWS dá ao servidor, sem nenhuma chave de acesso armazenada no OneUptime: as credenciais que a AWS fornece expiram em poucas horas, e o OneUptime obtém novas antes disso. Isso vale só para os e-mails do próprio servidor. A configuração do Amazon SES de um projeto sempre entra com uma chave de acesso, porque a função do servidor é a identidade da AWS do próprio servidor, não a de um projeto.
+Uma instalação auto-hospedada pode enviar os próprios e-mails como uma função do IAM, sem nenhuma chave de acesso armazenada no OneUptime: na AWS, a função que a AWS dá ao servidor; em qualquer outro lugar, uma função em que ele entra com o IAM Roles Anywhere. As credenciais expiram em poucas horas, e o OneUptime obtém novas antes disso. Isso vale só para os e-mails do próprio servidor. A configuração do Amazon SES de um projeto sempre entra com uma chave de acesso, porque a função do servidor é a identidade da AWS do próprio servidor, não a de um projeto.
 
 Dê à função a política acima e depois execute o OneUptime com ela:
 
@@ -88,11 +88,32 @@ Anexe a função à instância como o perfil de instância dela. Com o OneUptime
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Fora da AWS, nos seus próprios servidores ou em outra nuvem, o servidor entra como uma função pelo IAM Roles Anywhere, que troca um certificado X.509 pelas credenciais da função. No IAM Roles Anywhere, crie um trust anchor para a sua autoridade certificadora e um perfil para a função. Depois, coloque o auxiliar de credenciais da AWS, `aws_signing_helper`, em uma pasta com o certificado, a chave privada dele e um arquivo de configuração da AWS cujo perfil execute o auxiliar como seu `credential_process`:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Com o Docker Compose, monte a pasta como somente leitura e indique o arquivo e o perfil em `docker-compose.override.yml`, ao lado de `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Com o chart do Helm, monte a configuração, o certificado e a chave dele a partir de um Secret com `extraVolumes` e `extraVolumeMounts`, defina `AWS_CONFIG_FILE` e `AWS_PROFILE` com `extraEnv` e coloque o auxiliar em uma imagem construída sobre a do OneUptime: um Secret comporta no máximo 1 MB. O OneUptime executa o auxiliar sem shell, pelo caminho completo, por no máximo 30 segundos e somente a partir de um arquivo de configuração que ele não consegue alterar: um arquivo em que ele poderia escrever é recusado.
 :::
 
 Depois, no Admin Dashboard, clique em **Editar Amazon SES**, escolha **Função do IAM deste servidor** como **Tipo de autenticação** e informe a **Região**. Ao salvar, qualquer chave de acesso armazenada antes é removida.
 
-O OneUptime procura as credenciais do servidor onde os SDKs da AWS procuram, nesta ordem: `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no seu ambiente, um token de identidade web (`AWS_ROLE_ARN` e `AWS_WEB_IDENTITY_TOKEN_FILE`), o endpoint de credenciais de contêiner do Amazon ECS e do EKS Pod Identity e, por fim, o serviço de metadados de instância do EC2 (IMDSv2).
+O OneUptime procura as credenciais do servidor onde os SDKs da AWS procuram, nesta ordem: `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no seu ambiente, o perfil da AWS que `AWS_PROFILE`, `AWS_CONFIG_FILE` ou `AWS_SHARED_CREDENTIALS_FILE` indica (as chaves dele ou o `credential_process` dele), um token de identidade web (`AWS_ROLE_ARN` e `AWS_WEB_IDENTITY_TOKEN_FILE`), o endpoint de credenciais de contêiner do Amazon ECS e do EKS Pod Identity e, por fim, o serviço de metadados de instância do EC2 (IMDSv2). Sem nenhuma das três definida, o OneUptime não lê nenhum arquivo de configuração da AWS.
 
 ## SendGrid
 

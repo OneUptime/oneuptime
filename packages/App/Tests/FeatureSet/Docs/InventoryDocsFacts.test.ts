@@ -187,7 +187,11 @@ import {
   getManagedDeviceAlertTemplatesFor,
   getManagedDeviceConnectionStoppedReadingMinutes,
 } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
-import { MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/DeviceManagementConnectionReading";
+import {
+  DeviceManagementConnectionReadOutcome,
+  MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+  getDeviceManagementConnectionReading,
+} from "Common/Types/DeviceManagement/DeviceManagementConnectionReading";
 import {
   DeviceManagementConnectionStatus,
   getDeviceManagementStaleAfterMinutes,
@@ -2576,9 +2580,25 @@ describe("Inventory Overview: a connection that stops reading, a device's batter
     expect(section).toContain(
       "Its first debugging step lists the connection's last readings, each with the error its read failed with",
     );
+    /*
+     * #10286: turning the connection off writes its last reading, 0 - a
+     * connection that is off is never overdue - and resolves its alert;
+     * deleting it turns off the monitors that read it alone.
+     */
     expect(section).toContain(
-      "a connection turned off records nothing, so an alert it had open stays open until you resolve it.",
+      "Turning the connection off resolves the alert it had open, as nothing is overdue of a connection that is off, and its devices' alerts stay as they are until it reads again. Deleting the connection resolves what the monitors that read it alone had open, and turns their monitoring off.",
     );
+    expect(
+      getDeviceManagementConnectionReading({
+        connectionId: "8a4e1c2d-3b5f-4a6c-9d7e-0f1a2b3c4d5e",
+        connectionName: "Esper acme",
+        provider: DeviceManagementProvider.Esper,
+        readIntervalInMinutes: 15,
+        outcome: DeviceManagementConnectionReadOutcome.Off,
+        lastSuccessfulReadAt: new Date("2026-11-19T09:00:00Z"),
+        asOf: new Date("2026-11-19T12:00:00Z"),
+      }).ageInMinutes,
+    ).toBe(0);
   });
 
   it("says a device's battery and storage alerts fire at the Android Agent's levels, and leave a device it reports to its host", () => {
@@ -2629,11 +2649,52 @@ describe("Inventory Overview: a connection that stops reading, a device's batter
     );
   });
 
+  /*
+   * #10288: Workspace ONE's and SOTI's device lists say whether a device is
+   * on its charger, and their Low Battery leaves such a device be; Esper's
+   * and Intune's say no such thing, so theirs read the battery alone.
+   */
+  it.each([
+    [
+      "workspace-one-low-battery",
+      "## Import devices from Workspace ONE UEM",
+      "A device Workspace ONE says is on power, on its charger or its dock, is left out of **Workspace ONE Low Battery**, and an alert it had open resolves.",
+    ],
+    [
+      "soti-low-battery",
+      "## Import devices from SOTI MobiControl",
+      "An Android device MobiControl says is charging is left out of **SOTI Low Battery**, and an alert it had open resolves.",
+    ],
+  ])(
+    "says %s leaves a device on its charger be, as its template does",
+    (id: string, heading: string, sentence: string) => {
+      const lowBattery: ManagedDeviceAlertTemplate = template(id);
+
+      expect(englishSection(INVENTORY_OVERVIEW, heading)).toContain(sentence);
+      expect(sentence).toContain(bold(lowBattery.name));
+      expect(lowBattery.description).toContain("is left be");
+      expect(lowBattery.getEarlierMonitorSteps).toBeDefined();
+    },
+  );
+
+  it("says nothing of a charger for Esper's and Intune's Low Battery, which read the battery alone", () => {
+    for (const id of ["esper-low-battery", "intune-low-battery"]) {
+      expect(template(id).description).not.toContain("is left be");
+    }
+
+    expect(
+      englishSection(
+        INVENTORY_OVERVIEW,
+        "## Import devices from Microsoft Intune",
+      ),
+    ).not.toContain("charger");
+  });
+
   it.each([
     [
       DeviceManagementProvider.Intune,
       "## Import devices from Microsoft Intune",
-      "**Intune Storage Nearly Full** and **Intune Connection Stopped Reading** alert as Esper's do. No battery alert is offered, as Intune's list of devices has no battery level.",
+      "**Intune Low Battery**, **Intune Storage Nearly Full** and **Intune Connection Stopped Reading** alert as Esper's do. Intune knows the battery of an iPhone or an iPad alone, as of its last check-in, so **Intune Low Battery** alerts on those.",
     ],
     [
       DeviceManagementProvider.WorkspaceOne,

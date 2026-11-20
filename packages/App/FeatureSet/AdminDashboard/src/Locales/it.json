@@ -4413,5 +4413,18 @@
   "Same name as another label": "Stesso nome di un'altra etichetta",
   "Same name as another policy": "Stesso nome di un'altra policy",
   "Same name as another schedule": "Stesso nome di un'altra pianificazione",
-  "Created {{date}}": "Creato il {{date}}"
+  "Created {{date}}": "Creato il {{date}}",
+  "Signs In As": "Accede come",
+  "Check again": "Controlla di nuovo",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "Impossibile chiedere al server con quale identità AWS accede. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "Questo server non riesce ad accedere ad AWS. {{error}}",
+  "A test email shows whether it may send.": "Un'e-mail di prova mostra se può inviare.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "Da AWS_ACCESS_KEY_ID nell'ambiente del server.",
+  "From the server's AWS profile.": "Dal profilo AWS del server.",
+  "From IAM roles for service accounts.": "Dai ruoli IAM per gli account di servizio.",
+  "From EKS Pod Identity.": "Da EKS Pod Identity.",
+  "From the ECS task role.": "Dal ruolo di task ECS.",
+  "From the container credentials endpoint.": "Dall'endpoint delle credenziali dei container.",
+  "From the EC2 instance profile.": "Dal profilo di istanza EC2.",
+  "The server did not say which AWS identity it signs in as.": "Il server non ha detto con quale identità AWS accede."
 }

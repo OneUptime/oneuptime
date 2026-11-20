@@ -15,11 +15,13 @@ import {
   parseWorkspaceOneDevice,
   readWorkspaceOneBatteryLevel,
   readWorkspaceOneDate,
+  readWorkspaceOneIsCharging,
   readWorkspaceOneDeviceId,
   readWorkspaceOneError,
   readWorkspaceOnePage,
   readWorkspaceOnePlatform,
 } from "../../../../Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneParsers";
+import { MANAGED_DEVICE_IS_CHARGING_DETAIL } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -468,5 +470,90 @@ describe("what Workspace ONE said went wrong", () => {
     expect(readWorkspaceOneError({ bodyJson: undefined, bodyText: "" })).toBe(
       "",
     );
+  });
+});
+
+/*
+ * #10288: whether a device is on its charger, from the AcLineStatus
+ * Workspace ONE lists beside BatteryLevel - Windows' ACLineStatus values,
+ * whose name it keeps: 0 offline (on its battery), 1 online (on power),
+ * 255 unknown - kept in its details for Low Battery to read.
+ */
+describe("whether a device is on its charger", () => {
+  function chargingOf(raw: JSONObject): unknown {
+    return parseWorkspaceOneDevice(raw, NOW)!.device.details[
+      MANAGED_DEVICE_IS_CHARGING_DETAIL
+    ];
+  }
+
+  test("a scanner on its cradle is on power; one in a hand is on its battery", () => {
+    expect(
+      chargingOf(
+        buildWorkspaceOneAndroid({ AcLineStatus: 1, BatteryLevel: "0.12" }),
+      ),
+    ).toBe(true);
+    expect(
+      chargingOf(
+        buildWorkspaceOneAndroid({ AcLineStatus: 0, BatteryLevel: "0.12" }),
+      ),
+    ).toBe(false);
+  });
+
+  test("a laptop plugged in, and one on its battery", () => {
+    expect(chargingOf(buildWorkspaceOneWindows({ AcLineStatus: 1 }))).toBe(
+      true,
+    );
+    expect(chargingOf(buildWorkspaceOneWindows({ AcLineStatus: 0 }))).toBe(
+      false,
+    );
+  });
+
+  test("an unknown status, or none, says nothing", () => {
+    for (const status of [255, 2, -1, "", null, "online"]) {
+      expect(
+        chargingOf(buildWorkspaceOneAndroid({ AcLineStatus: status })),
+      ).toBeUndefined();
+    }
+
+    const raw: JSONObject = buildWorkspaceOneAndroid();
+    delete raw["AcLineStatus"];
+    expect(chargingOf(raw)).toBeUndefined();
+  });
+
+  test("an iPhone's or iPad's 0 says nothing - Apple's MDM reports no power source - and its 1 is on power", () => {
+    expect(
+      chargingOf(buildWorkspaceOneDevice({ AcLineStatus: 0 })),
+    ).toBeUndefined();
+    expect(
+      chargingOf(buildWorkspaceOneIpad({ AcLineStatus: 0 })),
+    ).toBeUndefined();
+    expect(chargingOf(buildWorkspaceOneIpad({ AcLineStatus: 1 }))).toBe(true);
+  });
+
+  test("read on its own: 1 on power, 0 on the battery but for an Apple device, nothing else", () => {
+    expect(
+      readWorkspaceOneIsCharging({
+        acLineStatus: "1",
+        platform: ManagedDevicePlatform.Android,
+      }),
+    ).toBe(true);
+    expect(
+      readWorkspaceOneIsCharging({
+        acLineStatus: 0,
+        platform: ManagedDevicePlatform.Windows,
+      }),
+    ).toBe(false);
+    expect(
+      readWorkspaceOneIsCharging({
+        acLineStatus: 0,
+        platform: ManagedDevicePlatform.MacOS,
+      }),
+    ).toBeNull();
+    expect(
+      readWorkspaceOneIsCharging({
+        acLineStatus: 255,
+        platform: ManagedDevicePlatform.Android,
+      }),
+    ).toBeNull();
   });
 });

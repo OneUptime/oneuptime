@@ -30,9 +30,12 @@ import DataToProcess from "./DataToProcess";
  *
  * And for the connection's own reading (#10006: Connection Stopped
  * Reading), which its reads and the scheduler write while it is turned on:
- * a window with none of them says the connection was turned off or
- * deleted, or that OneUptime's workers stopped - never that it reads again.
- * Its alert stays open until a read that works says so.
+ * a window with none of them says OneUptime's workers stopped - never that
+ * it reads again - and its alert stays open until a read that works says
+ * so. A connection turned off says so itself: it writes one last reading,
+ * 0, which its monitor reads as healthy, and what the monitor had open was
+ * resolved then, saying why; a connection deleted turns off every monitor
+ * that read it alone (DeviceManagementConnectionAlerts, #10286).
  */
 const READINGS_OF_A_CONNECTION: ReadonlyArray<string> = [
   ...MANAGED_DEVICE_READING_METRIC_NAMES,

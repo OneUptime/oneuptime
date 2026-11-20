@@ -121,11 +121,12 @@ const NO_CREDENTIAL_NEEDED: string =
 
 /*
  * What a tool is called: a verb the server's tools start with, then the rest
- * of a snake_case name - Ask AI's setup tools' set_up_, publish_ and who_
- * among them (#7241). Nothing else in a skill is lower-case snake_case.
+ * of a snake_case name - Ask AI's setup tools' set_up_, publish_, who_ and
+ * invite_ among them (#7241, #10041). Nothing else in a skill is lower-case
+ * snake_case.
  */
 const TOOL_NAME_PATTERN: RegExp =
-  /\b(?:acknowledge|add|count|create|delete|get|list|oneuptime|publish|resolve|set|update|who)_[a-z][a-z_]*\b/g;
+  /\b(?:acknowledge|add|count|create|delete|get|invite|list|oneuptime|publish|resolve|set|update|who)_[a-z][a-z_]*\b/g;
 
 // A JSON example of a call: its info string names the tool after the language.
 const TOOL_EXAMPLE_PATTERN: RegExp = /```json ([a-z_]+)\n([\s\S]*?)\n```/g;
@@ -1070,6 +1071,41 @@ describe("the coding agent plugin", () => {
       );
       // They act as the person signed in: the skill says so.
       expect(skill.text).toContain("act as the person signed in");
+    });
+
+    /*
+     * Ask AI's other four setup actions became tools too (#10041): the
+     * skill shows each with a call, the three about who is paged after
+     * set_up_paging, where a project that pages people already is sent.
+     */
+    test("shows a service's recommended monitors, the people on call and how pages reach the person, each with a call", () => {
+      for (const tool of [
+        "set_up_service_monitor",
+        "add_to_on_call_policy",
+        "invite_people",
+        "set_how_to_reach_me",
+      ]) {
+        expect([tool, TOOLS.has(tool)]).toEqual([tool, true]);
+        expect([tool, skill.text.includes(`json ${tool}`)]).toEqual([
+          tool,
+          true,
+        ]);
+      }
+
+      const paging: number = skill.text.indexOf("json set_up_paging");
+
+      for (const tool of [
+        "add_to_on_call_policy",
+        "invite_people",
+        "set_how_to_reach_me",
+      ]) {
+        expect([tool, skill.text.indexOf(`json ${tool}`) > paging]).toEqual([
+          tool,
+          true,
+        ]);
+      }
+
+      expect(skill.text).toContain("makes nothing twice");
     });
   });
 

@@ -6,6 +6,7 @@ import { AIToolRefusal } from "../../../../Types/AI/AIChatTypes";
 import {
   SETUP_ACTIONS_RUN_OUTSIDE_CHAT,
   SetupActionRunResult,
+  getSetupActionApiKeyRefusal,
   isSetupActionRunOutsideChat,
 } from "../../../../Types/AI/AISetupActions";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -13,7 +14,7 @@ import ConflictException from "../../../../Types/Exception/ConflictException";
 import Exception from "../../../../Types/Exception/Exception";
 import ForbiddenException from "../../../../Types/Exception/ForbiddenException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import logger from "../../Logger";
 import AIToolbox, { ToolCallOutcome } from "./Index";
 import {
@@ -24,12 +25,14 @@ import {
 } from "./ToolTypes";
 
 /*
- * ASK AI'S SETUP ACTIONS, ONE CALL EACH, OUTSIDE THE CHAT (#7241).
+ * ASK AI'S SETUP ACTIONS, ONE CALL EACH, OUTSIDE THE CHAT (#7241, #10041).
  *
  * The MCP server offers Ask AI's setup actions as tools of its own: "set up
- * website monitoring for example.com", "set up paging", "publish a status
- * page with these monitors", "add these monitors to that page", and "who
- * is told when it goes down". It runs them here, through the API
+ * website monitoring for example.com", "monitor the checkout service",
+ * "set up paging", "page Ana too", "invite ana@acme.com", "text me, then
+ * call me after five minutes", "publish a status page with these
+ * monitors", "add these monitors to that page", and "who is told when it
+ * goes down". It runs them here, through the API
  * (Server/API/SetupActionAPI), with the very tools Ask AI runs - nothing of
  * what they read, check or make is written twice:
  *
@@ -51,10 +54,20 @@ import {
  * it makes. The result says what was made in the card's words instead.
  *
  * Every write acts for a signed-in person, as Ask AI's do - the monitor is
- * theirs, a policy pages them - so a project API key is refused a setup
- * action, in words that say so; who_is_told only reads, and answers a key
- * too. A connection authorized as read-only is refused every setup action
- * before anything is read for it.
+ * theirs, a policy pages them, an invitation names them, How to Reach Me
+ * is their own - so a project API key is refused a setup action, in words
+ * that say why for that action (getSetupActionApiKeyRefusal); who_is_told
+ * only reads, and answers a key too. A connection authorized as read-only
+ * is refused every setup action before anything is read for it.
+ *
+ * A caller hands an action only what its schema takes (#10041): an
+ * address, the names of people, a policy and a level. What its prepare
+ * works out from them - the records each name stands for, by id, the
+ * team an invitation joins, who a level pages already - is the action's
+ * own, read as the person, as Ask AI's card shows it before anyone
+ * approves it. A key the caller sent beside them is dropped before the
+ * prepare reads anything, so where a prepare leaves a key as it was
+ * handed, the caller's own id never runs unseen.
  */
 
 // How a setup action's own check begins, before a card - and here instead.
@@ -65,12 +78,29 @@ const NOTHING_SET_UP: string = "Nothing was set up:";
 export const READ_ONLY_CONNECTION_REFUSAL: string =
   "This connection was authorized as read-only, and setting things up makes changes. Connect again with read and write access to set things up.";
 
-// A project API key: setting things up acts as a person.
-export const API_KEY_REFUSAL: (action: string) => string = (
-  action: string,
-): string => {
-  return `${action} acts as the person who is signed in, as Ask AI's setup actions do: they own the monitor, and they are paged. A project API key is not a person, so it cannot set things up. Sign in to OneUptime from your MCP client instead, or create the records one by one with the create tools.`;
-};
+/*
+ * The arguments of a call that the action's schema takes, and nothing
+ * else: what its prepare fills in is never the caller's to hand it.
+ */
+export function readArgumentsTheSchemaTakes(
+  tool: ObservabilityTool,
+  args: JSONObject,
+): JSONObject {
+  const properties: unknown = tool.inputSchema["properties"];
+  const taken: JSONObject = {};
+
+  if (!properties || typeof properties !== "object") {
+    return taken;
+  }
+
+  for (const key of Object.keys(properties as JSONObject)) {
+    if (Object.prototype.hasOwnProperty.call(args, key)) {
+      taken[key] = args[key] as JSONValue;
+    }
+  }
+
+  return taken;
+}
 
 export default class SetupActionRunner {
   public static async run(data: {
@@ -111,11 +141,14 @@ export default class SetupActionRunner {
       }
 
       if (!ctx.props.userId && !ctx.props.isRoot) {
-        throw new ForbiddenException(API_KEY_REFUSAL(data.action));
+        throw new ForbiddenException(getSetupActionApiKeyRefusal(data.action));
       }
     }
 
-    let args: JSONObject = data.args as JSONObject;
+    let args: JSONObject = readArgumentsTheSchemaTakes(
+      tool,
+      data.args as JSONObject,
+    );
     let title: AIActionSentence | undefined = undefined;
     let description: Array<AIActionSentence> = [];
 
