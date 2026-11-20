@@ -15,6 +15,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
+import { SignUpInvitation } from "Common/Types/Accounts/SignUpInvitation";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ExpressRequest,
@@ -980,13 +981,17 @@ describe("Identity /signup - the paths that must not have changed", () => {
  */
 describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
   it("hands the address and the token to SignUpInvitation, and answers with what it read", async () => {
-    readSignUpInvitation.mockResolvedValue({
+    // An ordinary invitation: no single sign-on manages their sign-in (#9819).
+    const invitation: SignUpInvitation = {
       projectId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       projectName: "Walk Co",
       inviterName: "Ada Walker",
       name: "Grace Member",
       isAccepted: false,
-    });
+      ssoSignIn: null,
+    };
+
+    readSignUpInvitation.mockResolvedValue(invitation);
 
     await invoke("/sign-up-invitation", {
       email: VICTIM_EMAIL,
@@ -1004,6 +1009,7 @@ describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
         inviterName: "Ada Walker",
         name: "Grace Member",
         isAccepted: false,
+        ssoSignIn: null,
       },
     });
     expect(setNoCacheHeaders).toHaveBeenCalled();
