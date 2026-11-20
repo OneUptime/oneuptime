@@ -59873,5 +59873,10 @@
   "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "차트는 발생한 예외 수를 보여 줍니다. 새 예외, 다시 발생한 예외, 평소보다 증가, 세션 또는 설치 비율에는 그려지지 않습니다.",
   "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "iOS 앱 바이너리의 한 빌드에 대한 함수 심볼로, 해당 dSYM에서 가져옵니다. 앱의 크래시 및 행 스택 프레임에 함수 이름을 붙이고 함수별로 그룹화하는 데 쓰입니다. 바이너리의 UUID로 프레임과 연결됩니다.",
   "dSYMs": "dSYM",
-  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "선택한 범위의 세션 중 크래시로 끝나지 않은 세션의 비율입니다. 막대는 99.5% 미만에서 주황색, 99% 미만에서 빨간색이 됩니다. 아래 줄은 같은 비율을 설치 기준으로 나타낸 값으로 앱 사용자를 대신하며, OpenTelemetry Android가 설정하는 app.installation.id나 iOS 앱의 device.id로 구합니다. 둘 다 보내지 않는 앱에서는 크래시가 발생한 세션 수를 보여 줍니다."
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "선택한 범위의 세션 중 크래시로 끝나지 않은 세션의 비율입니다. 막대는 99.5% 미만에서 주황색, 99% 미만에서 빨간색이 됩니다. 아래 줄은 같은 비율을 설치 기준으로 나타낸 값으로 앱 사용자를 대신하며, OpenTelemetry Android가 설정하는 app.installation.id나 iOS 앱의 device.id로 구합니다. 둘 다 보내지 않는 앱에서는 크래시가 발생한 세션 수를 보여 줍니다.",
+  "More read its output metric, {{metric}}, further down the chain.": "체인의 더 아래에서도 출력 메트릭 {{metric}}을(를) 읽는 항목이 더 있습니다.",
+  "More read their output metrics further down the chain.": "체인의 더 아래에서도 이들의 출력 메트릭을 읽는 항목이 더 있습니다.",
+  "The widget this link points to is no longer on this dashboard.": "이 링크가 가리키는 위젯은 더 이상 이 대시보드에 없습니다.",
+  "These read its output metric, {{metric}}:": "출력 메트릭 {{metric}}을(를) 읽는 항목:",
+  "These read the output metrics of the ones you can't see:": "볼 수 없는 기록 규칙의 출력 메트릭을 읽는 항목:"
 }
