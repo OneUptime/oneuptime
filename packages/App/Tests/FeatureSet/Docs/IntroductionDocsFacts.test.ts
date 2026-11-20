@@ -4730,8 +4730,24 @@ describe("Your Account", () => {
       readSource(COMMON_DIR, "Types/Accounts/Reauthentication.ts"),
     ).toContain("An API key cannot make it.");
 
+    // Someone else's account deleted, and the master API key turned back on (#10330).
+    expect(readSource(COMMON_DIR, "Server/Services/UserService.ts")).toContain(
+      "deletesOwnAccount\n        ? ReauthenticationPurpose.DeleteAccount\n        : ReauthenticationPurpose.AdminChange,",
+    );
+
+    const globalConfigService: string = readSource(
+      COMMON_DIR,
+      "Server/Services/GlobalConfigService.ts",
+    );
+    expect(globalConfigService).toContain(
+      "await this.assertMasterApiKeyTurnOnIsConfirmed(\n      updateBy.data,\n      updateBy.props,\n    );",
+    );
+    expect(globalConfigService).toContain(
+      "return value !== undefined && value !== null && value !== false;",
+    );
+
     expect(YOUR_ACCOUNT).toContain(
-      "master admins confirm it's them in the same way before they change how someone else signs in, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key. The master API key cannot make these changes.",
+      "master admins confirm it's them in the same way before they change how someone else signs in, delete someone else's account, make someone a master admin, change the server's single sign-on providers or email settings, or create a master API key or turn it back on. The master API key cannot make these changes.",
     );
   });
 
@@ -4773,9 +4789,49 @@ describe("Your Account", () => {
       "| OpenID Connect | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |",
       "| Google | When you signed in (`auth_time`). Google cannot be asked to have you sign in again. | Turn on Session age claims for the server's Google sign-in app, which must be published and verified. |",
       "| Microsoft | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |",
+      "| Vercel | Nothing: Vercel cannot be asked to have you sign in again, and does not say when you signed in. | It never confirms. Choose **Sign In Another Way** and sign in with a link emailed to you, or set a password with **Forgot password?** and confirm with it. |",
     ]) {
       expect(YOUR_ACCOUNT).toContain(row);
     }
+
+    // And where each identity provider's own settings are (#10332).
+    expect(YOUR_ACCOUNT).toContain(
+      "What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.",
+    );
+  });
+
+  /*
+   * Sign in with Vercel cannot confirm it's you (#10331): the server names
+   * it, with no way back through it, and the prompt says so and offers the
+   * emailed link or a password - as the page says. That a sign-in from
+   * Vercel keeps no Sign In Again is ee's own test (VercelSignInAPI).
+   */
+  it("says Sign in with Vercel never confirms it's you, and what does, as the server and the prompt decide it (#10331)", () => {
+    expect(
+      readSource(
+        COMMON_DIR,
+        "Server/Utils/Reauthentication/Reauthentication.ts",
+      ),
+    ).toContain(
+      "if (signIn.method === SignInMethod.Vercel) {\n      return {\n        route: null,\n        provider: SignInAgainProvider.Vercel,",
+    );
+
+    const prompt: string = readSource(
+      COMMON_DIR,
+      "UI/Components/Reauthentication/ReauthenticationPrompt.tsx",
+    );
+
+    for (const words of [
+      "You signed in with Vercel, which cannot confirm it's you: Vercel cannot be asked to have you sign in again, and does not say when you signed in.",
+      "Choose Sign In Another Way, and sign in with a link emailed to you instead.",
+      "Set a password with Forgot password? on the sign-in page, then confirm it's you with it instead.",
+    ]) {
+      expect(prompt).toContain(`"${words}"`);
+    }
+
+    expect(YOUR_ACCOUNT).toContain(
+      "If you sign in only with Vercel, which cannot confirm it's you, choose **Sign In Another Way** and sign in with a link emailed to you instead.",
+    );
   });
 
   it("recovers sign-in with the sign-in page's own links, and a reset verifies the address", () => {
