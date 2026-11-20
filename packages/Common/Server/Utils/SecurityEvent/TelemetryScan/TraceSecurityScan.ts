@@ -24,6 +24,7 @@ import SpanService from "../../../Services/SpanService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
+import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
 import {
   TelemetryScanWindow,
   buildTraceCandidatesStatement,
@@ -51,7 +52,9 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  *     that address, from the client spans of its trace;
  *   - each request is followed into its trace (RequestTrace/
  *     SecurityRequestTrace.ts), so it is stored knowing whether it reached
- *     the database, threw, or was turned away.
+ *     the database, threw, or was turned away;
+ *   - a request whose client address a scrub rule hid names the project's
+ *     rule that did (ScrubbedClientAddresses, #10397).
  *
  * Each of those reads is bounded and failure-tolerant: one that fails is
  * logged and the events are stored as the spans said them.
@@ -184,6 +187,11 @@ export default class TraceSecurityScan {
       events: events.filter((event: NormalizedSecurityEvent): boolean => {
         return signalOf(event) === SecurityTelemetrySignal.WebAttack;
       }),
+    });
+
+    await ScrubbedClientAddresses.nameScrubRules({
+      projectId: data.projectId,
+      events,
     });
 
     return events;

@@ -86,6 +86,13 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import { securityCaseGroupingKey } from "../SecurityCase/SecurityCaseIngest";
 import DetectionRuleEvaluator from "./DetectionRuleEvaluator";
 import { buildSecurityEventDbRow } from "./SecurityEventRow";
+import ScrubbedClientAddresses from "./ScrubbedClientAddresses";
+import {
+  AddressScrubRule,
+  ScrubbedAddressSignal,
+  SecurityAddressScrubRule,
+  findScrubRuleHidingAddresses,
+} from "../../../Utils/SecurityEvent/ScrubbedAddress";
 
 /*
  * Security in a few clicks: what the Overview's "Get started" reads and
@@ -132,6 +139,14 @@ export interface SecuritySetupStatus {
   enabledPlaybooks: number;
   // Where they are sent.
   destinations: number;
+  /*
+   * The scrub rules that keep Security Events from naming the address an
+   * attack came from (#10397): of the logs and the traces it reads, the
+   * first enabled IP Address rule of each that redacts or masks where it
+   * reads an address - none for a kind it does not read, or whose rules
+   * the person may not read.
+   */
+  addressScrubRules: Array<SecurityAddressScrubRule>;
 }
 
 export interface TurnOnRecommendedOptions {
@@ -263,6 +278,9 @@ export default class SecuritySetup {
       openCases,
       enabledPlaybooks,
       destinations,
+      tracesSource,
+      logAddressScrubRules,
+      traceAddressScrubRules,
     ] = await Promise.all([
       this.count(async (): Promise<number> => {
         return (
@@ -359,7 +377,66 @@ export default class SecuritySetup {
           })
         ).toNumber();
       }),
+      // Whether Security Events reads the project's traces.
+      this.read(async (): Promise<SecurityTelemetrySource | null> => {
+        return SecurityTelemetrySourceService.findOneBy({
+          query: {
+            projectId,
+            kind: SecurityTelemetrySourceKind.Traces,
+            isEnabled: true,
+          },
+          select: { _id: true },
+          props,
+        });
+      }, null),
+      this.read(async (): Promise<Array<AddressScrubRule>> => {
+        return ScrubbedClientAddresses.getAddressScrubRules({
+          projectId,
+          signal: "log",
+          props,
+        });
+      }, []),
+      this.read(async (): Promise<Array<AddressScrubRule>> => {
+        return ScrubbedClientAddresses.getAddressScrubRules({
+          projectId,
+          signal: "trace",
+          props,
+        });
+      }, []),
     ]);
+
+    const addressScrubRules: Array<SecurityAddressScrubRule> = [];
+    const readSignals: Array<{
+      signal: ScrubbedAddressSignal;
+      isRead: boolean;
+      rules: Array<AddressScrubRule>;
+    }> = [
+      {
+        signal: "log",
+        isRead: logSource?.isEnabled === true,
+        rules: logAddressScrubRules,
+      },
+      {
+        signal: "trace",
+        isRead: Boolean(tracesSource),
+        rules: traceAddressScrubRules,
+      },
+    ];
+
+    for (const item of readSignals) {
+      const rule: AddressScrubRule | null = item.isRead
+        ? findScrubRuleHidingAddresses(item.rules, item.signal)
+        : null;
+
+      if (rule) {
+        addressScrubRules.push({
+          signal: item.signal,
+          ruleId: rule.id,
+          ruleName: rule.name,
+          scrubAction: rule.scrubAction,
+        });
+      }
+    }
 
     const recommended: Array<DetectionRuleLibraryEntry> =
       getRecommendedDetectionRules();
@@ -387,6 +464,7 @@ export default class SecuritySetup {
       openCases,
       enabledPlaybooks,
       destinations,
+      addressScrubRules,
     };
   }
 

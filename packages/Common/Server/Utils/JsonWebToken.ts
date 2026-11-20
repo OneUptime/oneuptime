@@ -97,6 +97,20 @@ export interface DashboardPrivateUserSessionClaims {
   sessionId: ObjectID;
 }
 
+/*
+ * What a form private user's session token names
+ * (JsonWebTokenPurpose.FormPrivateUserSession, and its sign-out
+ * cookie's FormPrivateUserSessionSignOut): which form, whose
+ * session there - a FormPrivateUser's - and which. Nothing else: no
+ * address and no name, so a token copied out of a browser says nothing
+ * about the person (#10249).
+ */
+export interface FormPrivateUserSessionClaims {
+  formId: ObjectID;
+  userId: ObjectID;
+  sessionId: ObjectID;
+}
+
 class JSONWebToken {
   /*
    * A dashboard session's access token, the only token the API takes as a
@@ -284,6 +298,70 @@ class JSONWebToken {
   ): JSONObject {
     return {
       dashboardId: data.dashboardId.toString(),
+      userId: data.userId.toString(),
+      sessionId: data.sessionId.toString(),
+    };
+  }
+
+  /*
+   * A form private user's access token, for that one form's public
+   * link (JsonWebTokenPurpose.FormPrivateUserSession): signed only by
+   * CookieUtil.setFormPrivateUserCookie, which keeps it in the
+   * form's own HttpOnly cookie. Read only by
+   * decodeFormPrivateUserSession, and taken there only together with
+   * the live session it names (FormPrivateUserSessionService).
+   */
+  @CaptureSpan()
+  public static signFormPrivateUserSessionToken(
+    data: FormPrivateUserSessionClaims & {
+      // Fifteen minutes at most; a whole number of seconds.
+      expiresInSeconds: number;
+    },
+  ): string {
+    return JSONWebToken.sign({
+      data: JSONWebToken.getFormPrivateUserSessionClaims(data),
+      expiresInSeconds:
+        Number.isFinite(data.expiresInSeconds) && data.expiresInSeconds > 0
+          ? Math.min(
+              Math.floor(data.expiresInSeconds),
+              DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+            )
+          : DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+      purpose: JsonWebTokenPurpose.FormPrivateUserSession,
+    });
+  }
+
+  /*
+   * Which session a browser holds on one form's public link, for its
+   * sign-out there and nothing else
+   * (JsonWebTokenPurpose.FormPrivateUserSessionSignOut):
+   * CookieUtil.setFormPrivateUserCookie keeps it in a cookie sent only
+   * to that form's sign-out, beside the session's refresh token and for
+   * as long. Read only by decodeFormPrivateUserSessionToSignOut.
+   */
+  @CaptureSpan()
+  public static signFormPrivateUserSessionSignOutToken(
+    data: FormPrivateUserSessionClaims & {
+      // As long as the session's refresh token: a whole number of seconds.
+      expiresInSeconds: number;
+    },
+  ): string {
+    return JSONWebToken.sign({
+      data: JSONWebToken.getFormPrivateUserSessionClaims(data),
+      expiresInSeconds:
+        Number.isFinite(data.expiresInSeconds) && data.expiresInSeconds > 0
+          ? Math.ceil(data.expiresInSeconds)
+          : 0,
+      purpose: JsonWebTokenPurpose.FormPrivateUserSessionSignOut,
+    });
+  }
+
+  // The three ids, as text, and nothing else of what the caller handed in.
+  private static getFormPrivateUserSessionClaims(
+    data: FormPrivateUserSessionClaims,
+  ): JSONObject {
+    return {
+      formId: data.formId.toString(),
       userId: data.userId.toString(),
       sessionId: data.sessionId.toString(),
     };
@@ -553,6 +631,24 @@ class JSONWebToken {
           JSONWebToken.isId(claims["sessionId"])
         );
 
+      /*
+       * A form private user's session, and the cookie that names it for
+       * its sign-out (signFormPrivateUserSessionToken,
+       * signFormPrivateUserSessionSignOutToken): each says so - no
+       * release signed one that did not - and names its form, its
+       * private user and its session, and no status page or SSO provider.
+       */
+      case JsonWebTokenPurpose.FormPrivateUserSession:
+      case JsonWebTokenPurpose.FormPrivateUserSessionSignOut:
+        return (
+          claimedPurpose === purpose &&
+          !namesStatusPage &&
+          !JSONWebToken.namesSsoProvider(claims) &&
+          JSONWebToken.isId(claims["formId"]) &&
+          JSONWebToken.isId(claims["userId"]) &&
+          JSONWebToken.isId(claims["sessionId"])
+        );
+
       default:
         return false;
     }
@@ -581,10 +677,11 @@ class JSONWebToken {
       if (
         purpose === JsonWebTokenPurpose.UserSessionSignOut ||
         purpose === JsonWebTokenPurpose.StatusPageSessionSignOut ||
-        purpose === JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut
+        purpose === JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut ||
+        purpose === JsonWebTokenPurpose.FormPrivateUserSessionSignOut
       ) {
         throw new BadDataException(
-          "A sign-out cookie is read only by JSONWebToken.decodeSessionToSignOut, decodeStatusPageSessionToSignOut or decodeDashboardPrivateUserSessionToSignOut.",
+          "A sign-out cookie is read only by JSONWebToken.decodeSessionToSignOut, decodeStatusPageSessionToSignOut, decodeDashboardPrivateUserSessionToSignOut or decodeFormPrivateUserSessionToSignOut.",
         );
       }
 
@@ -595,6 +692,16 @@ class JSONWebToken {
       if (purpose === JsonWebTokenPurpose.DashboardPrivateUserSession) {
         throw new BadDataException(
           "A dashboard private user's session is read only by JSONWebToken.decodeDashboardPrivateUserSession.",
+        );
+      }
+
+      /*
+       * A form private user's session names no address, so it is no
+       * JSONWebTokenData: it is read only by decodeFormPrivateUserSession.
+       */
+      if (purpose === JsonWebTokenPurpose.FormPrivateUserSession) {
+        throw new BadDataException(
+          "A form private user's session is read only by JSONWebToken.decodeFormPrivateUserSession.",
         );
       }
 
@@ -776,6 +883,68 @@ class JSONWebToken {
   ): DashboardPrivateUserSessionClaims {
     return {
       dashboardId: new ObjectID(decoded["dashboardId"] as string),
+      userId: new ObjectID(decoded["userId"] as string),
+      sessionId: new ObjectID(decoded["sessionId"] as string),
+    };
+  }
+
+  /*
+   * The session a form private user's access token names
+   * (JsonWebTokenPurpose.FormPrivateUserSession,
+   * signFormPrivateUserSessionToken), if OneUptime signed it for that
+   * and it has not expired. Throws otherwise, as decode does: a OneUptime
+   * session, an SSO sign-in, a status page's session, a sign-out cookie or
+   * anything else is refused here exactly as a token that does not verify.
+   * The caller still holds it to the live session it names, and to the
+   * form it is asked about (FormPrivateUserSessionService).
+   */
+  @CaptureSpan()
+  public static decodeFormPrivateUserSession(
+    token: string,
+  ): FormPrivateUserSessionClaims {
+    try {
+      return JSONWebToken.readFormPrivateUserSessionClaims(
+        JSONWebToken.readClaimsFor(
+          token,
+          JsonWebTokenPurpose.FormPrivateUserSession,
+        ),
+      );
+    } catch (e) {
+      logger.error(e);
+      throw new BadDataException(INVALID_TOKEN_MESSAGE);
+    }
+  }
+
+  /*
+   * The session a browser's sign-out cookie for a form names
+   * (JsonWebTokenPurpose.FormPrivateUserSessionSignOut,
+   * signFormPrivateUserSessionSignOutToken), if OneUptime signed it for
+   * that and it has not expired. Throws otherwise. For the form's
+   * sign-out to end that session of that private user on that form and
+   * nothing else, when the refresh token it sent matches none.
+   */
+  @CaptureSpan()
+  public static decodeFormPrivateUserSessionToSignOut(
+    token: string,
+  ): FormPrivateUserSessionClaims {
+    try {
+      return JSONWebToken.readFormPrivateUserSessionClaims(
+        JSONWebToken.readClaimsFor(
+          token,
+          JsonWebTokenPurpose.FormPrivateUserSessionSignOut,
+        ),
+      );
+    } catch (e) {
+      logger.error(e);
+      throw new BadDataException(INVALID_TOKEN_MESSAGE);
+    }
+  }
+
+  private static readFormPrivateUserSessionClaims(
+    decoded: JSONObject,
+  ): FormPrivateUserSessionClaims {
+    return {
+      formId: new ObjectID(decoded["formId"] as string),
       userId: new ObjectID(decoded["userId"] as string),
       sessionId: new ObjectID(decoded["sessionId"] as string),
     };

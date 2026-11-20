@@ -5,6 +5,9 @@ import BillingService, {
 import ProjectService from "../../../Server/Services/ProjectService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import { customDomainCaller } from "../API/CustomDomainCallers";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { SpyInstance } from "jest-mock";
@@ -78,9 +81,16 @@ describe("BillingPaymentMethodService provider sync", () => {
 
   type OnBeforeFind = (findBy: unknown) => Promise<unknown>;
 
+  // A list of the project's payment methods, as its owner asks for it.
   const find: () => Promise<unknown> = (): Promise<unknown> => {
     return (service as unknown as { onBeforeFind: OnBeforeFind }).onBeforeFind({
-      props: { tenantId: PROJECT_ID },
+      props: {
+        ...customDomainCaller({
+          permissions: [Permission.ProjectOwner],
+          projectId: PROJECT_ID,
+        }),
+        ...ON_HIGHEST_PLAN,
+      },
     });
   };
 

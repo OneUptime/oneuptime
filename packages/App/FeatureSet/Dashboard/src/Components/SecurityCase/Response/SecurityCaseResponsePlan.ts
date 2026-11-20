@@ -3,6 +3,15 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { withRouteQueryParams } from "../../../Utils/TelemetryTabScope";
 import { getDetectionExceptionEntity } from "../../SecurityEvents/RuleExceptions/RuleExceptionsModel";
 import {
+  ADDRESS_HIDDEN_FROM_CASE,
+  ADDRESS_HIDDEN_FROM_CASE_BY_RULE,
+  OPEN_SCRUB_RULES,
+  STEP_FIND_HIDDEN_ADDRESS,
+} from "../../SecurityEvents/HiddenClientAddressCopy";
+import { getCaseHiddenClientAddress } from "../../SecurityEvents/HiddenClientAddressModel";
+import { getHiddenAddressRulesRoute } from "../../SecurityEvents/HiddenClientAddressRoute";
+import { HiddenClientAddress } from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import {
   RequestOutcomeSummary,
   RequestOutcomeSummaryKind,
   getDetectionEntity,
@@ -965,11 +974,12 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
     ? playbooksById.get(input.ai.suggestedPlaybookId) || null
     : null;
   const usedPlaybookIds: Set<string> = new Set<string>();
-
-  for (const entity of getContainEntities({
+  const containEntities: Array<SecurityEntity> = getContainEntities({
     opening,
     entities: input.entities,
-  })) {
+  });
+
+  for (const entity of containEntities) {
     switch (entity.type) {
       case SecurityEntityType.IpAddress: {
         const isPublic: boolean =
@@ -1072,6 +1082,49 @@ export function buildResponsePlan(input: ResponsePlanInput): ResponsePlan {
       default:
         break;
     }
+  }
+
+  /*
+   * Where the plan would say to block the address, a case whose every
+   * event had its address hidden by a scrub rule says so (#10397): there is
+   * no address to block here, so the step is to find it where the request
+   * came in, and the line under it says which rule hid it. Once the address
+   * vault names the address behind a Hash rule's token (#10395), its events
+   * name it, and the plan says to block it as it does any other.
+   */
+  const hiddenAddress: HiddenClientAddress | null = containEntities.some(
+    (entity: SecurityEntity): boolean => {
+      return entity.type === SecurityEntityType.IpAddress;
+    },
+  )
+    ? null
+    : getCaseHiddenClientAddress(input.matches);
+
+  if (hiddenAddress) {
+    const rulesRoute: Route | null = getHiddenAddressRulesRoute(
+      hiddenAddress.signal,
+    );
+
+    add({
+      key: getResponseStepKey("contain:hidden-address"),
+      phase: ResponsePhase.Contain,
+      text: { template: STEP_FIND_HIDDEN_ADDRESS, values: {} },
+      detail: hiddenAddress.ruleName
+        ? {
+            template: ADDRESS_HIDDEN_FROM_CASE_BY_RULE,
+            values: { rule: hiddenAddress.ruleName },
+          }
+        : { template: ADDRESS_HIDDEN_FROM_CASE, values: {} },
+      isDetailWarning: true,
+      isOutsideOneUptime: true,
+      action: rulesRoute
+        ? {
+            kind: ResponseActionKind.OpenRoute,
+            title: OPEN_SCRUB_RULES,
+            route: rulesRoute,
+          }
+        : undefined,
+    });
   }
 
   /*

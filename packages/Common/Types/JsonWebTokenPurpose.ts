@@ -86,6 +86,27 @@ enum JsonWebTokenPurpose {
    * lost still ends the session - as a status page's does (issue #8671).
    */
   DashboardPrivateUserSessionSignOut = "dashboard-private-user-session-sign-out",
+
+  /*
+   * A form private user's sign-in (#10249): the access token of one
+   * FormPrivateUserSession (CookieUtil.setFormPrivateUserCookie),
+   * for that one form's public link. It names the form, the
+   * private user and the session, and nothing else - no address, no name -
+   * so it is no OneUptime session, no SSO sign-in and no status page's
+   * session, and none of those is one.
+   */
+  FormPrivateUserSession = "form-private-user-session",
+
+  /*
+   * Which FormPrivateUserSession a browser holds on one form's
+   * public link, for its sign-out there and nothing else
+   * (JSONWebToken.signFormPrivateUserSessionSignOutToken): the
+   * form, the private user and the session. Kept in a cookie of its
+   * own, sent only to that form's sign-out, for as long as the
+   * session's refresh token, so a sign-out after a renewal whose answer was
+   * lost still ends the session - as a status page's does (issue #8671).
+   */
+  FormPrivateUserSessionSignOut = "form-private-user-session-sign-out",
 }
 
 export default JsonWebTokenPurpose;

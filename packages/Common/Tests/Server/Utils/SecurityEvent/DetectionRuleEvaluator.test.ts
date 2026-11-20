@@ -23,9 +23,17 @@ jest.mock("isolated-vm", () => {
 
 import DetectionRuleEvaluator, {
   DETECTION_RULES_PROJECT_WORK,
+  DETECTION_RULE_RUN_LOCK_NAMESPACE,
+  DetectionRuleArrivalRange,
   DetectionRuleEvaluationResult,
+  getArrivalEventTimeBounds,
+  getScheduledArrivalRange,
+  pickArrivalWindows,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import { MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES } from "../../../../Server/Utils/SecurityEvent/SecurityEventRow";
 import SecurityProjectWork, {
+  SECURITY_PROJECT_WORK_LEASE_TIMEOUT_IN_MS,
   SecurityProjectWorkLease,
 } from "../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
@@ -42,7 +50,10 @@ import DetectionRuleExceptionService from "../../../../Server/Services/Detection
 import DetectionRuleException from "../../../../Models/DatabaseModels/DetectionRuleException";
 import { DetectionRuleExceptionKind } from "../../../../Types/SecurityEvent/DetectionRuleException";
 import SecurityEventService, {
+  DetectionArrivalWindow,
   DetectionMatchGroup,
+  DetectionRunArrival,
+  FindDetectionArrivalWindowsData,
   FindDetectionMatchesData,
 } from "../../../../Server/Services/SecurityEventService";
 import OTelIngestService, {
@@ -53,9 +64,11 @@ import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/Sec
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import {
   DETECTION_EVALUATION_DELAY_IN_SECONDS,
+  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
   DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
+  DETECTION_MAX_WINDOWS_PER_RUN,
 } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
 import {
   SIGMA_DEFAULT_LEVEL,
@@ -270,6 +283,7 @@ function expectedFingerprint(groupValue: string): string {
 
 interface EvaluationSpies {
   findDetectionMatches: Spy;
+  findDetectionArrivalWindows: Spy;
   insertJsonRows: Spy;
   alertFindBy: Spy;
   alertCreate: Spy;
@@ -281,6 +295,22 @@ interface EvaluationSpies {
   telemetryServiceFromName: Spy;
 }
 
+/*
+ * One window of what arrived, for a rule that counts: the one the run's
+ * events fall in (SecurityEventService.findDetectionArrivalWindows). Its
+ * own read is pinned in SecurityEventService's suite; here it hands the
+ * run a window to read.
+ */
+function arrivalWindow(
+  windowStart: Date,
+  firstArrivedAt?: Date,
+): DetectionArrivalWindow {
+  return {
+    windowStart,
+    firstArrivedAt: firstArrivedAt || new Date(windowStart.getTime() + 1000),
+  };
+}
+
 function installSpies(
   options: {
     groups?: Array<DetectionMatchGroup>;
@@ -288,12 +318,30 @@ function installSpies(
     openAlerts?: Array<Alert>;
     incidentSeverities?: Array<IncidentSeverity>;
     openIncidents?: Array<Incident>;
+    windows?: Array<DetectionArrivalWindow>;
   } = {},
 ): EvaluationSpies {
   const findDetectionMatches: Spy = getJestSpyOn(
     SecurityEventService,
     "findDetectionMatches",
   ).mockResolvedValue((options.groups || []) as never);
+
+  const findDetectionArrivalWindows: Spy = getJestSpyOn(
+    SecurityEventService,
+    "findDetectionArrivalWindows",
+  ).mockResolvedValue(
+    (options.windows || [
+      arrivalWindow(
+        new Date(
+          Math.floor(
+            OneUptimeDate.getCurrentDate().getTime() / (5 * 60 * 1000),
+          ) *
+            (5 * 60 * 1000) -
+            5 * 60 * 1000,
+        ),
+      ),
+    ]) as never,
+  );
 
   const insertJsonRows: Spy = getJestSpyOn(
     SecurityEventService,
@@ -342,6 +390,7 @@ function installSpies(
 
   return {
     findDetectionMatches,
+    findDetectionArrivalWindows,
     insertJsonRows,
     alertFindBy,
     alertCreate,
@@ -415,6 +464,30 @@ describe("DetectionRuleEvaluator", () => {
      */
     getJestSpyOn(SecurityConnections, "readEntityLinks").mockResolvedValue(
       [] as never,
+    );
+    /*
+     * A turn runs each rule under its own lock (Valkey), held here as
+     * always free; "a turn runs each rule under its own lock" pins it.
+     */
+    getJestSpyOn(Semaphore, "lock").mockResolvedValue({} as never);
+    getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined as never);
+    /*
+     * ...and reads the rule again under it: the rules the turn read, as a
+     * test stubbed them.
+     */
+    getJestSpyOn(DetectionRuleService, "findOneById").mockImplementation(
+      (async (args: { id: ObjectID }) => {
+        const rules: Array<DetectionRule> =
+          ((await DetectionRuleService.findBy({} as never)) as unknown as
+            | Array<DetectionRule>
+            | undefined) || [];
+
+        return (
+          rules.find((rule: DetectionRule): boolean => {
+            return rule.id?.toString() === args.id.toString();
+          }) || null
+        );
+      }) as never,
     );
   });
 
@@ -501,6 +574,11 @@ describe("DetectionRuleEvaluator", () => {
     });
 
     test("an alert is linked to the host its group names, read in the run's window", async () => {
+      const now: Date = new Date("2026-09-18T12:00:30.000Z");
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        now as never,
+      );
+
       const links: Spy = linksToHost();
       const rule: DetectionRule = buildRule({
         groupByField: "principalHost",
@@ -534,10 +612,53 @@ describe("DetectionRuleEvaluator", () => {
         { type: SecurityEntityType.Host, value: "web-1" },
         { type: SecurityEntityType.IpAddress, value: "10.0.0.9" },
       ]);
-      // The window the matched events were read in.
+      /*
+       * The window the matched events cover: from where the run's
+       * arrivals start - the run judged what arrived since the rule's
+       * last - to where it judged up to.
+       */
+      const range: DetectionRuleArrivalRange = getScheduledArrivalRange({
+        now,
+        evaluationIntervalInMinutes: rule.evaluationIntervalInMinutes,
+      });
+
       expect(asked.window).toEqual({
-        start: findMatchesArg(spies).startTime,
-        end: findMatchesArg(spies).endTime,
+        start: range.arrivedAfter,
+        end: range.arrivedUntil,
+      });
+      expect(spies.findDetectionMatches).toHaveBeenCalledTimes(1);
+    });
+
+    test("the window reaches back to when the earliest late event it matched happened", async () => {
+      const now: Date = new Date("2026-09-18T12:00:30.000Z");
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        now as never,
+      );
+
+      const links: Spy = linksToHost();
+      const rule: DetectionRule = buildRule({
+        groupByField: "principalHost",
+        shouldWriteDetectionFinding: false,
+      });
+      // A span read when it ended: it happened twenty minutes before it arrived.
+      const happened: Date = new Date("2026-09-18T11:38:00.000Z");
+
+      installSpies({
+        groups: [{ ...buildGroup("web-1", 3), firstSeenAt: happened }],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const asked: { window: { start: Date; end: Date } } = links.mock
+        .calls[0]![0] as never;
+
+      expect(asked.window).toEqual({
+        start: happened,
+        end: getScheduledArrivalRange({
+          now,
+          evaluationIntervalInMinutes: rule.evaluationIntervalInMinutes,
+        }).arrivedUntil,
       });
     });
 
@@ -705,7 +826,14 @@ describe("DetectionRuleEvaluator", () => {
 
       expect(updateArg.id.toString()).toBe(RULE_ID.toString());
       expect(updateArg.data["lastError"]).toBe("clickhouse exploded");
-      expect(updateArg.data["lastEvaluatedAt"]).toBeInstanceOf(Date);
+      /*
+       * And the rule stays where it was: the next run judges the same
+       * events again (#10337). A failed run used to move it to the moment
+       * it failed, so its window - and two minutes more - were never read.
+       */
+      expect(
+        Object.prototype.hasOwnProperty.call(updateArg.data, "lastEvaluatedAt"),
+      ).toBe(false);
     });
 
     test("reads the project's enabled rules page by page, in a stable order", async () => {
@@ -1658,15 +1786,17 @@ describe("DetectionRuleEvaluator", () => {
     });
   });
 
-  describe("evaluation window", () => {
+  describe("what a scheduled run judges", () => {
     /*
-     * The Detection Rules guide tells customers exactly which events a
-     * run sees: the first run looks back one interval, later runs resume
-     * where the previous one stopped, and a gap is caught up at most
-     * DETECTION_MAX_LOOKBACK_IN_MINUTES back. Pinned here so the guide
-     * and the engine cannot drift apart.
+     * The Detection Rules guide tells customers exactly which events a run
+     * sees: what ARRIVED since the rule's last run, up to two minutes ago,
+     * whenever it happened - up to a day before it arrived (#10337). The
+     * first run judges one interval's arrivals, later runs go on where the
+     * one before stopped, and a gap is caught up at most
+     * DETECTION_MAX_LOOKBACK_IN_MINUTES back. Pinned here so the guide and
+     * the engine cannot drift apart.
      */
-    const NOW: Date = new Date("2026-09-18T12:00:00.000Z");
+    const NOW: Date = new Date("2026-09-18T12:00:30.500Z");
 
     function freezeNow(): void {
       getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
@@ -1674,18 +1804,33 @@ describe("DetectionRuleEvaluator", () => {
       );
     }
 
-    /*
-     * A run reads up to DETECTION_EVALUATION_DELAY_IN_SECONDS behind the
-     * clock: an event still on its way in - through the ingest queue, a
-     * connection's poll or the scan of "Your logs" - is in the table before
-     * a rule reads its moment.
-     */
-    const READ_UNTIL: Date = OneUptimeDate.addRemoveSeconds(
-      NOW,
-      -DETECTION_EVALUATION_DELAY_IN_SECONDS,
-    );
+    // Two minutes behind the clock, on the second, as createdAt keeps it.
+    const READ_UNTIL: Date = new Date("2026-09-18T11:58:30.000Z");
 
-    test("a run reads up to two minutes behind the clock", async () => {
+    // The arrivals a rule that fires on each match ANDs into its read, as written to ClickHouse.
+    function arrivalRangeOf(args: FindDetectionMatchesData): {
+      after: unknown;
+      until: unknown;
+    } {
+      const query: string = args.whereFragment.query;
+      const after: RegExpMatchArray | null = query.match(
+        /createdAt > \{(p\d+):DateTime\}/,
+      );
+      const until: RegExpMatchArray | null = query.match(
+        /createdAt <= \{(p\d+):DateTime\}/,
+      );
+
+      return {
+        after: after ? args.whereFragment.query_params[after[1]!] : undefined,
+        until: until ? args.whereFragment.query_params[until[1]!] : undefined,
+      };
+    }
+
+    function asWritten(date: Date): string {
+      return OneUptimeDate.toClickhouseDateTime(date);
+    }
+
+    test("a run judges what arrived up to two minutes behind the clock, on the second", async () => {
       freezeNow();
 
       const spies: EvaluationSpies = installSpies();
@@ -1693,12 +1838,12 @@ describe("DetectionRuleEvaluator", () => {
       await DetectionRuleEvaluator.evaluateRule(buildRule());
 
       expect(DETECTION_EVALUATION_DELAY_IN_SECONDS).toBe(120);
-      expect(findMatchesArg(spies).endTime.getTime()).toBe(
-        READ_UNTIL.getTime(),
+      expect(arrivalRangeOf(findMatchesArg(spies)).until).toBe(
+        asWritten(READ_UNTIL),
       );
     });
 
-    test("the first run looks back one evaluation interval", async () => {
+    test("the first run judges one evaluation interval of arrivals", async () => {
       freezeNow();
 
       const spies: EvaluationSpies = installSpies();
@@ -1707,26 +1852,24 @@ describe("DetectionRuleEvaluator", () => {
         buildRule({ evaluationIntervalInMinutes: 10 }),
       );
 
-      const args: FindDetectionMatchesData = findMatchesArg(spies);
-
-      expect(args.endTime.getTime()).toBe(READ_UNTIL.getTime());
-      expect(args.startTime.getTime()).toBe(
-        OneUptimeDate.addRemoveMinutes(READ_UNTIL, -10).getTime(),
-      );
+      expect(arrivalRangeOf(findMatchesArg(spies))).toEqual({
+        after: asWritten(OneUptimeDate.addRemoveMinutes(READ_UNTIL, -10)),
+        until: asWritten(READ_UNTIL),
+      });
     });
 
-    test("a later run resumes exactly where the previous one stopped", async () => {
+    test("a later run goes on exactly where the previous one stopped", async () => {
       freezeNow();
 
-      const lastEvaluatedAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -37);
+      const lastEvaluatedAt: Date = new Date("2026-09-18T11:23:30.000Z");
       const spies: EvaluationSpies = installSpies();
 
       await DetectionRuleEvaluator.evaluateRule(
         buildRule({ evaluationIntervalInMinutes: 10, lastEvaluatedAt }),
       );
 
-      expect(findMatchesArg(spies).startTime.getTime()).toBe(
-        lastEvaluatedAt.getTime(),
+      expect(arrivalRangeOf(findMatchesArg(spies)).after).toBe(
+        asWritten(lastEvaluatedAt),
       );
     });
 
@@ -1741,16 +1884,56 @@ describe("DetectionRuleEvaluator", () => {
         }),
       );
 
-      expect(findMatchesArg(spies).startTime.getTime()).toBe(
-        OneUptimeDate.addRemoveMinutes(
-          READ_UNTIL,
-          -DETECTION_MAX_LOOKBACK_IN_MINUTES,
-        ).getTime(),
+      expect(arrivalRangeOf(findMatchesArg(spies)).after).toBe(
+        asWritten(
+          OneUptimeDate.addRemoveMinutes(
+            READ_UNTIL,
+            -DETECTION_MAX_LOOKBACK_IN_MINUTES,
+          ),
+        ),
       );
       expect(DETECTION_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
     });
 
-    test("a rule is due on the clock it reads by, so its windows stay as long as its interval", async () => {
+    test("whenever they happened: the read reaches a day before what arrived, and as far ahead as a source's clock may run", async () => {
+      freezeNow();
+
+      const lastEvaluatedAt: Date = new Date("2026-09-18T11:48:30.000Z");
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ evaluationIntervalInMinutes: 10, lastEvaluatedAt }),
+      );
+
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
+
+      expect(args.startTime.getTime()).toBe(
+        OneUptimeDate.addRemoveMinutes(
+          lastEvaluatedAt,
+          -DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
+        ).getTime(),
+      );
+      expect(args.endTime.getTime()).toBe(
+        OneUptimeDate.addRemoveMinutes(
+          READ_UNTIL,
+          MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES + 1,
+        ).getTime(),
+      );
+      expect(DETECTION_LATE_EVENT_WINDOW_IN_MINUTES).toBe(24 * 60);
+
+      // Each event within a day of when it happened, held to itself.
+      const late: RegExpMatchArray | null = args.whereFragment.query.match(
+        /time >= createdAt - toIntervalSecond\(\{(p\d+):Int32\}\)/,
+      );
+
+      expect(late).not.toBeNull();
+      expect(args.whereFragment.query_params[late![1]!]).toBe(24 * 60 * 60);
+      // Its matches cover events from when the earliest of them happened.
+      expect(args.readFirstSeen).toBe(true);
+      expect(args.arrival).toBeUndefined();
+    });
+
+    test("a rule is due on the clock it reads by, so its runs stay as long as its interval", async () => {
       freezeNow();
 
       const evaluate: Spy = getJestSpyOn(
@@ -1762,7 +1945,13 @@ describe("DetectionRuleEvaluator", () => {
       const dueRule: DetectionRule = buildRule({
         id: new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaab01"),
         evaluationIntervalInMinutes: 5,
-        lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(READ_UNTIL, -5),
+        lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.addRemoveSeconds(
+            NOW,
+            -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+          ),
+          -5,
+        ),
       });
 
       // Last read up to four minutes before: due in a minute, not now.
@@ -1799,8 +1988,28 @@ describe("DetectionRuleEvaluator", () => {
         .calls[0]?.[0] as { data: JSONObject };
 
       expect((updateArg.data["lastEvaluatedAt"] as Date).getTime()).toBe(
-        findMatchesArg(spies).endTime.getTime(),
+        READ_UNTIL.getTime(),
       );
+      expect(arrivalRangeOf(findMatchesArg(spies)).until).toBe(
+        asWritten(updateArg.data["lastEvaluatedAt"] as Date),
+      );
+    });
+
+    test("a run with nothing new to judge reads nothing and leaves the rule where it is", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+
+      // Its last run already reached past where this one would read up to.
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(
+          buildRule({ lastEvaluatedAt: NOW }),
+        );
+
+      expect(result.matchedGroups).toBe(0);
+      expect(spies.findDetectionMatches).not.toHaveBeenCalled();
+      expect(spies.findDetectionArrivalWindows).not.toHaveBeenCalled();
+      expect(spies.updateOneById).not.toHaveBeenCalled();
     });
 
     test("one group more than a run records is asked for, so it can tell when there were more", async () => {
@@ -1813,6 +2022,701 @@ describe("DetectionRuleEvaluator", () => {
       );
       expect(DETECTION_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
       expect(DETECTION_MAX_GROUPS_PER_EVALUATION).toBe(100);
+    });
+  });
+
+  /*
+   * A rule that counts - a threshold above 1, a distinct count - reads the
+   * windows of its interval on the clock that hold what arrived, each as it
+   * stood when the run's last event arrived, and fires a group the run's
+   * events brought to the count: at most once a window, however its events
+   * arrived (#10337). What the reads say to ClickHouse is pinned in
+   * SecurityEventService's suite; here, which reads a run makes.
+   */
+  describe("what a scheduled run of a rule that counts reads", () => {
+    const NOW: Date = new Date("2026-09-18T12:00:30.500Z");
+    const READ_UNTIL: Date = new Date("2026-09-18T11:58:30.000Z");
+    const LAST_RUN: Date = new Date("2026-09-18T11:48:30.000Z");
+
+    function freezeNow(): void {
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        NOW as never,
+      );
+    }
+
+    function countingRule(): DetectionRule {
+      return buildRule({
+        matchCountThreshold: 3,
+        evaluationIntervalInMinutes: 5,
+        lastEvaluatedAt: LAST_RUN,
+        shouldWriteDetectionFinding: false,
+      });
+    }
+
+    function windowsArg(
+      spies: EvaluationSpies,
+      call: number = 0,
+    ): FindDetectionArrivalWindowsData {
+      return spies.findDetectionArrivalWindows.mock.calls[
+        call
+      ]?.[0] as FindDetectionArrivalWindowsData;
+    }
+
+    function matchesArgs(
+      spies: EvaluationSpies,
+    ): Array<FindDetectionMatchesData> {
+      return spies.findDetectionMatches.mock.calls.map(
+        (call: Array<unknown>): FindDetectionMatchesData => {
+          return call[0] as FindDetectionMatchesData;
+        },
+      );
+    }
+
+    function cursorWrites(spies: EvaluationSpies): Array<number> {
+      return spies.updateOneById.mock.calls
+        .map((call: Array<unknown>): unknown => {
+          return (call[0] as { data: JSONObject }).data["lastEvaluatedAt"];
+        })
+        .filter((value: unknown): boolean => {
+          return value instanceof Date;
+        })
+        .map((value: unknown): number => {
+          return (value as Date).getTime();
+        });
+    }
+
+    // Windows whose first events arrived a second apart, from the first second after the last run.
+    function windowsArrivingOneASecond(
+      count: number,
+    ): Array<DetectionArrivalWindow> {
+      return Array.from({ length: count }, (_: unknown, index: number) => {
+        return arrivalWindow(
+          new Date(Date.UTC(2026, 8, 18, 10, 0) + index * 5 * 60 * 1000),
+          new Date(LAST_RUN.getTime() + (index + 1) * 1000),
+        );
+      });
+    }
+
+    test("each window of its interval that holds what arrived, as it stood when the run's last event arrived", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies({
+        windows: [
+          // A late event's window, then the one the run's on-time events fill.
+          arrivalWindow(new Date("2026-09-18T11:15:00.000Z")),
+          arrivalWindow(new Date("2026-09-18T11:50:00.000Z")),
+        ],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(countingRule());
+
+      const windows: FindDetectionArrivalWindowsData = windowsArg(spies);
+
+      expect(spies.findDetectionArrivalWindows).toHaveBeenCalledTimes(1);
+      expect(windows.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(windows.arrivedAfter.getTime()).toBe(LAST_RUN.getTime());
+      expect(windows.arrivedUntil.getTime()).toBe(READ_UNTIL.getTime());
+      expect(windows.happenedAfter.getTime()).toBe(
+        OneUptimeDate.addRemoveMinutes(
+          LAST_RUN,
+          -DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
+        ).getTime(),
+      );
+      expect(windows.windowInMinutes).toBe(5);
+      expect(windows.limit).toBe(DETECTION_MAX_WINDOWS_PER_RUN + 1);
+      expect(windows.whereFragment).toBeInstanceOf(Statement);
+
+      expect(
+        matchesArgs(spies).map((args: FindDetectionMatchesData) => {
+          return {
+            from: args.startTime.toISOString(),
+            until: args.endTime.toISOString(),
+            arrival: args.arrival,
+          };
+        }),
+      ).toEqual([
+        {
+          from: "2026-09-18T11:15:00.000Z",
+          until: "2026-09-18T11:20:00.000Z",
+          arrival: {
+            kind: "run",
+            arrivedAfter: LAST_RUN,
+            arrivedUntil: READ_UNTIL,
+            candidateStartTime: new Date("2026-09-18T11:15:00.000Z"),
+            candidateEndTime: new Date("2026-09-18T11:20:00.000Z"),
+          } satisfies DetectionRunArrival,
+        },
+        {
+          from: "2026-09-18T11:50:00.000Z",
+          until: "2026-09-18T11:55:00.000Z",
+          arrival: {
+            kind: "run",
+            arrivedAfter: LAST_RUN,
+            arrivedUntil: READ_UNTIL,
+            candidateStartTime: new Date("2026-09-18T11:50:00.000Z"),
+            candidateEndTime: new Date("2026-09-18T11:55:00.000Z"),
+          } satisfies DetectionRunArrival,
+        },
+      ]);
+
+      // One run: where it got to, recorded once.
+      expect(cursorWrites(spies)).toEqual([READ_UNTIL.getTime()]);
+    });
+
+    test("no window holds what arrived: nothing is counted, and the run still records where it got to", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies({ windows: [] });
+
+      await DetectionRuleEvaluator.evaluateRule(countingRule());
+
+      expect(spies.findDetectionMatches).not.toHaveBeenCalled();
+      expect(cursorWrites(spies)).toEqual([READ_UNTIL.getTime()]);
+    });
+
+    test("a distinct count reads windows too, even at a threshold of 1", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({
+          distinctCountField: "principalIp",
+          lastEvaluatedAt: LAST_RUN,
+          shouldWriteDetectionFinding: false,
+        }),
+      );
+
+      expect(spies.findDetectionArrivalWindows).toHaveBeenCalledTimes(1);
+      expect(findMatchesArg(spies).arrival?.kind).toBe("run");
+    });
+
+    test("only a rule that fires on each match reads the arrivals alone, with no window", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ lastEvaluatedAt: LAST_RUN }),
+      );
+
+      expect(spies.findDetectionArrivalWindows).not.toHaveBeenCalled();
+      expect(findMatchesArg(spies).arrival).toBeUndefined();
+    });
+
+    test("arrivals that fill more windows than one run reads are judged up to where they fill that many, and the next run goes on from there", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+      const thirteen: Array<DetectionArrivalWindow> = windowsArrivingOneASecond(
+        DETECTION_MAX_WINDOWS_PER_RUN + 1,
+      );
+
+      spies.findDetectionArrivalWindows
+        .mockResolvedValueOnce(thirteen as never)
+        .mockResolvedValueOnce([thirteen[12]!] as never);
+
+      await DetectionRuleEvaluator.evaluateRule(countingRule());
+
+      // Up to the second before the first window left out started to arrive.
+      const firstStretchEnd: number =
+        thirteen[12]!.firstArrivedAt.getTime() - 1000;
+
+      expect(cursorWrites(spies)).toEqual([
+        firstStretchEnd,
+        READ_UNTIL.getTime(),
+      ]);
+      expect(windowsArg(spies, 1).arrivedAfter.getTime()).toBe(firstStretchEnd);
+      // Twelve windows, then the one left out.
+      expect(spies.findDetectionMatches).toHaveBeenCalledTimes(
+        DETECTION_MAX_WINDOWS_PER_RUN + 1,
+      );
+      expect(
+        matchesArgs(spies)
+          .slice(0, DETECTION_MAX_WINDOWS_PER_RUN)
+          .every((args: FindDetectionMatchesData): boolean => {
+            return (
+              args.arrival?.kind === "run" &&
+              args.arrival.arrivedUntil.getTime() === firstStretchEnd
+            );
+          }),
+      ).toBe(true);
+    });
+
+    test("a turn out of time stops after the stretch it judged, and records it", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies({
+        windows: windowsArrivingOneASecond(DETECTION_MAX_WINDOWS_PER_RUN + 1),
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(countingRule(), {
+        hasTimeLeft: (): boolean => {
+          return false;
+        },
+      });
+
+      expect(spies.findDetectionArrivalWindows).toHaveBeenCalledTimes(1);
+      expect(cursorWrites(spies)).toEqual([LAST_RUN.getTime() + 12 * 1000]);
+    });
+
+    test("when the run's first second alone fills more windows than a run reads, that second is judged whole", async () => {
+      freezeNow();
+
+      const spies: EvaluationSpies = installSpies();
+      const firstSecond: Date = new Date(LAST_RUN.getTime() + 1000);
+      const fifteen: Array<DetectionArrivalWindow> = Array.from(
+        { length: 15 },
+        (_: unknown, index: number): DetectionArrivalWindow => {
+          return arrivalWindow(
+            new Date(Date.UTC(2026, 8, 18, 9, 0) + index * 5 * 60 * 1000),
+            firstSecond,
+          );
+        },
+      );
+
+      spies.findDetectionArrivalWindows
+        .mockResolvedValueOnce(
+          fifteen.slice(0, DETECTION_MAX_WINDOWS_PER_RUN + 1) as never,
+        )
+        .mockResolvedValueOnce(fifteen as never)
+        .mockResolvedValue([] as never);
+
+      await DetectionRuleEvaluator.evaluateRule(countingRule(), {
+        hasTimeLeft: (): boolean => {
+          return false;
+        },
+      });
+
+      // The second read: that one second, without the run's limit.
+      expect(windowsArg(spies, 1).arrivedAfter.getTime()).toBe(
+        LAST_RUN.getTime(),
+      );
+      expect(windowsArg(spies, 1).arrivedUntil.getTime()).toBe(
+        firstSecond.getTime(),
+      );
+      expect(windowsArg(spies, 1).limit).toBeGreaterThan(15);
+      expect(spies.findDetectionMatches).toHaveBeenCalledTimes(15);
+      expect(cursorWrites(spies)).toEqual([firstSecond.getTime()]);
+    });
+  });
+
+  describe("the arrivals a run judges, and the windows it reads", () => {
+    const NOW: Date = new Date("2026-09-18T12:00:30.500Z");
+    const READ_UNTIL: Date = new Date("2026-09-18T11:58:30.000Z");
+
+    test("getScheduledArrivalRange: from the last run, on the second, to two minutes ago", () => {
+      expect(
+        getScheduledArrivalRange({
+          now: NOW,
+          lastEvaluatedAt: new Date("2026-09-18T11:57:29.999Z"),
+          evaluationIntervalInMinutes: 1,
+        }),
+      ).toEqual({
+        arrivedAfter: new Date("2026-09-18T11:57:29.000Z"),
+        arrivedUntil: READ_UNTIL,
+      });
+    });
+
+    test("getScheduledArrivalRange: a rule that never ran, or holds no usable time, judges its last interval", () => {
+      for (const lastEvaluatedAt of [undefined, null, new Date("not a time")]) {
+        expect(
+          getScheduledArrivalRange({
+            now: NOW,
+            lastEvaluatedAt,
+            evaluationIntervalInMinutes: 15,
+          }),
+        ).toEqual({
+          arrivedAfter: OneUptimeDate.addRemoveMinutes(READ_UNTIL, -15),
+          arrivedUntil: READ_UNTIL,
+        });
+      }
+
+      // An interval left out, or under a minute, is a minute.
+      expect(
+        getScheduledArrivalRange({ now: NOW, evaluationIntervalInMinutes: 0 })
+          .arrivedAfter,
+      ).toEqual(OneUptimeDate.addRemoveMinutes(READ_UNTIL, -1));
+    });
+
+    test("getScheduledArrivalRange: a day back at most", () => {
+      expect(
+        getScheduledArrivalRange({
+          now: NOW,
+          lastEvaluatedAt: new Date("2026-08-01T00:00:00.000Z"),
+          evaluationIntervalInMinutes: 5,
+        }).arrivedAfter,
+      ).toEqual(
+        OneUptimeDate.addRemoveMinutes(
+          READ_UNTIL,
+          -DETECTION_MAX_LOOKBACK_IN_MINUTES,
+        ),
+      );
+    });
+
+    test("getArrivalEventTimeBounds: a day before the first arrival, an hour and a minute past the last", () => {
+      expect(
+        getArrivalEventTimeBounds({
+          arrivedAfter: new Date("2026-09-18T11:57:00.000Z"),
+          arrivedUntil: READ_UNTIL,
+        }),
+      ).toEqual({
+        happenedAfter: new Date("2026-09-17T11:57:00.000Z"),
+        happenedBefore: new Date("2026-09-18T12:59:30.000Z"),
+      });
+    });
+
+    test("pickArrivalWindows: every window, by when it starts, when there are no more than a run reads", () => {
+      const range: DetectionRuleArrivalRange = {
+        arrivedAfter: new Date("2026-09-18T11:50:00.000Z"),
+        arrivedUntil: READ_UNTIL,
+      };
+      const late: DetectionArrivalWindow = arrivalWindow(
+        new Date("2026-09-18T09:00:00.000Z"),
+        new Date("2026-09-18T11:55:00.000Z"),
+      );
+      const onTime: DetectionArrivalWindow = arrivalWindow(
+        new Date("2026-09-18T11:50:00.000Z"),
+        new Date("2026-09-18T11:50:01.000Z"),
+      );
+
+      expect(
+        pickArrivalWindows({ windows: [onTime, late], range, maxWindows: 12 }),
+      ).toEqual({
+        judgedUntil: READ_UNTIL,
+        windows: [late, onTime],
+        readFirstSecond: false,
+      });
+    });
+
+    test("pickArrivalWindows: past the limit, up to the second before the first window left out started to arrive", () => {
+      const range: DetectionRuleArrivalRange = {
+        arrivedAfter: new Date("2026-09-18T11:50:00.000Z"),
+        arrivedUntil: READ_UNTIL,
+      };
+      const windows: Array<DetectionArrivalWindow> = [0, 1, 2].map(
+        (index: number): DetectionArrivalWindow => {
+          return arrivalWindow(
+            new Date(Date.UTC(2026, 8, 18, 11, 0) + index * 60 * 1000),
+            new Date(Date.UTC(2026, 8, 18, 11, 51 + index)),
+          );
+        },
+      );
+
+      expect(pickArrivalWindows({ windows, range, maxWindows: 2 })).toEqual({
+        judgedUntil: new Date("2026-09-18T11:52:59.000Z"),
+        windows: windows.slice(0, 2),
+        readFirstSecond: false,
+      });
+    });
+
+    test("pickArrivalWindows: when the first window left out started to arrive in the run's first second, that second is read again whole", () => {
+      const range: DetectionRuleArrivalRange = {
+        arrivedAfter: new Date("2026-09-18T11:50:00.000Z"),
+        arrivedUntil: READ_UNTIL,
+      };
+      const windows: Array<DetectionArrivalWindow> = [0, 1, 2].map(
+        (index: number): DetectionArrivalWindow => {
+          return arrivalWindow(
+            new Date(Date.UTC(2026, 8, 18, 11, 0) + index * 60 * 1000),
+            new Date("2026-09-18T11:50:01.000Z"),
+          );
+        },
+      );
+
+      expect(pickArrivalWindows({ windows, range, maxWindows: 2 })).toEqual({
+        judgedUntil: new Date("2026-09-18T11:50:01.000Z"),
+        windows: [],
+        readFirstSecond: true,
+      });
+    });
+  });
+
+  /*
+   * Two turns of a project can overlap - one whose lease ran out while a
+   * rule was still running, a job BullMQ started again - and each rule's
+   * run takes a lock of its own, so they never judge the same events at
+   * once; under it the rule is read again, so a run that finished since the
+   * turn read it is not repeated.
+   */
+  describe("a turn runs each rule under its own lock", () => {
+    const NOW: Date = new Date("2026-09-18T12:00:30.500Z");
+
+    function freezeNow(): void {
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        NOW as never,
+      );
+    }
+
+    function dueRule(id: string): DetectionRule {
+      return buildRule({
+        id: new ObjectID(id),
+        evaluationIntervalInMinutes: 5,
+        lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(NOW, -30),
+      });
+    }
+
+    test("the lock is the rule's own, held as long as a project's lease, and given back", async () => {
+      freezeNow();
+
+      const rule: DetectionRule = dueRule(RULE_ID.toString());
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        rule,
+      ] as never);
+
+      const lock: Spy = getJestSpyOn(Semaphore, "lock").mockResolvedValue({
+        held: true,
+      } as never);
+      const release: Spy = getJestSpyOn(Semaphore, "release").mockResolvedValue(
+        undefined as never,
+      );
+      const evaluate: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      expect(lock).toHaveBeenCalledTimes(1);
+
+      const asked: JSONObject = lock.mock.calls[0]![0] as JSONObject;
+
+      expect(asked["namespace"]).toBe(DETECTION_RULE_RUN_LOCK_NAMESPACE);
+      expect(asked["key"]).toBe(RULE_ID.toString());
+      expect(asked["lockTimeout"]).toBe(
+        SECURITY_PROJECT_WORK_LEASE_TIMEOUT_IN_MS,
+      );
+      // Taken once: a rule another run holds waits for the next turn.
+      expect(asked["acquireAttemptsLimit"]).toBe(1);
+      expect(typeof asked["onLockLost"]).toBe("function");
+      expect(evaluate).toHaveBeenCalledTimes(1);
+      expect(release).toHaveBeenCalledWith({ held: true });
+    });
+
+    test("a rule another run holds is left for the next turn, and the turn goes on", async () => {
+      freezeNow();
+
+      const held: DetectionRule = dueRule(
+        "aeaeaeae-aeae-4aea-8aea-aeaeaeaeae01",
+      );
+      const free: DetectionRule = dueRule(
+        "aeaeaeae-aeae-4aea-8aea-aeaeaeaeae02",
+      );
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        held,
+        free,
+      ] as never);
+
+      getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
+        key: string;
+      }) => {
+        if (data.key === held.id!.toString()) {
+          throw new Error("The lock is held.");
+        }
+
+        return {};
+      }) as never);
+      const release: Spy = getJestSpyOn(Semaphore, "release").mockResolvedValue(
+        undefined as never,
+      );
+      const evaluate: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      expect(
+        evaluate.mock.calls.map((call: Array<unknown>): string => {
+          return (call[0] as DetectionRule).id!.toString();
+        }),
+      ).toEqual([free.id!.toString()]);
+      // Only the lock it took is given back.
+      expect(release).toHaveBeenCalledTimes(1);
+    });
+
+    test("the rule is read again under the lock: a run that finished since the turn read it is not repeated", async () => {
+      freezeNow();
+
+      const stale: DetectionRule = dueRule(RULE_ID.toString());
+      const current: DetectionRule = buildRule({
+        evaluationIntervalInMinutes: 5,
+        // Another turn ran it a moment ago.
+        lastEvaluatedAt: OneUptimeDate.addRemoveSeconds(
+          NOW,
+          -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+        ),
+      });
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        stale,
+      ] as never);
+      const findOne: Spy = getJestSpyOn(
+        DetectionRuleService,
+        "findOneById",
+      ).mockResolvedValue(current as never);
+      const evaluate: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      expect(findOne).toHaveBeenCalledTimes(1);
+      expect(
+        (findOne.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+      ).toBe(RULE_ID.toString());
+      expect(evaluate).not.toHaveBeenCalled();
+    });
+
+    test("a rule turned off, moved to real time or deleted since the turn read it is left alone", async () => {
+      freezeNow();
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        dueRule(RULE_ID.toString()),
+      ] as never);
+
+      const evaluate: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      const turnedOff: DetectionRule = dueRule(RULE_ID.toString());
+      turnedOff.isEnabled = false;
+      const realTime: DetectionRule = dueRule(RULE_ID.toString());
+      realTime.isRealTime = true;
+
+      for (const current of [turnedOff, realTime, null]) {
+        getJestSpyOn(DetectionRuleService, "findOneById").mockResolvedValue(
+          current as never,
+        );
+
+        await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+      }
+
+      expect(evaluate).not.toHaveBeenCalled();
+    });
+
+    test("a rule that cannot be read again is left to the next turn, and the turn goes on", async () => {
+      freezeNow();
+
+      const unreadable: DetectionRule = dueRule(
+        "afafafaf-afaf-4faf-8faf-afafafafaf01",
+      );
+      const readable: DetectionRule = dueRule(
+        "afafafaf-afaf-4faf-8faf-afafafafaf02",
+      );
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        unreadable,
+        readable,
+      ] as never);
+      getJestSpyOn(DetectionRuleService, "findOneById").mockImplementation(
+        (async (args: { id: ObjectID }) => {
+          if (args.id.toString() === unreadable.id!.toString()) {
+            throw new Error("Postgres is restarting.");
+          }
+
+          return readable;
+        }) as never,
+      );
+      const release: Spy = getJestSpyOn(Semaphore, "release").mockResolvedValue(
+        undefined as never,
+      );
+      const evaluate: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      await expect(
+        DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID),
+      ).resolves.toBeUndefined();
+
+      expect(
+        evaluate.mock.calls.map((call: Array<unknown>): string => {
+          return (call[0] as DetectionRule).id!.toString();
+        }),
+      ).toEqual([readable.id!.toString()]);
+      expect(release).toHaveBeenCalledTimes(2);
+    });
+
+    test("a run whose lock is lost stops after the stretch it is judging, and records it", async () => {
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        NOW as never,
+      );
+
+      const lastRun: Date = new Date("2026-09-18T11:48:30.000Z");
+      const rule: DetectionRule = buildRule({
+        matchCountThreshold: 3,
+        evaluationIntervalInMinutes: 5,
+        lastEvaluatedAt: lastRun,
+        shouldWriteDetectionFinding: false,
+      });
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        rule,
+      ] as never);
+
+      let loseLock: (() => void) | null = null;
+
+      getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
+        onLockLost: () => void;
+      }) => {
+        loseLock = data.onLockLost;
+        return {};
+      }) as never);
+
+      const spies: EvaluationSpies = installSpies({
+        windows: Array.from(
+          { length: DETECTION_MAX_WINDOWS_PER_RUN + 1 },
+          (_: unknown, index: number): DetectionArrivalWindow => {
+            return arrivalWindow(
+              new Date(Date.UTC(2026, 8, 18, 10, 0) + index * 5 * 60 * 1000),
+              new Date(lastRun.getTime() + (index + 1) * 1000),
+            );
+          },
+        ),
+      });
+
+      spies.findDetectionMatches.mockImplementation((async () => {
+        loseLock?.();
+        return [];
+      }) as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      const written: Array<unknown> = spies.updateOneById.mock.calls
+        .map((call: Array<unknown>): unknown => {
+          return (call[0] as { data: JSONObject }).data["lastEvaluatedAt"];
+        })
+        .filter((value: unknown): boolean => {
+          return value instanceof Date;
+        });
+
+      expect(written).toEqual([new Date(lastRun.getTime() + 12 * 1000)]);
+      expect(spies.findDetectionArrivalWindows).toHaveBeenCalledTimes(1);
+    });
+
+    test("the lock is given back however the run ends", async () => {
+      freezeNow();
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        dueRule(RULE_ID.toString()),
+      ] as never);
+
+      const release: Spy = getJestSpyOn(Semaphore, "release").mockResolvedValue(
+        undefined as never,
+      );
+      installSpies();
+      getJestSpyOn(DetectionRuleEvaluator, "evaluateRule").mockRejectedValue(
+        new Error("clickhouse exploded") as never,
+      );
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      expect(release).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -2294,11 +3198,13 @@ describe("DetectionRuleEvaluator", () => {
       expect(storedError.endsWith("... (truncated)")).toBe(true);
 
       /*
-       * And lastEvaluatedAt is stamped. This is the column whose absence
-       * made the outage unreadable: a rule that never records an attempt
-       * looks identical to a rule nobody ever enabled.
+       * The error is what the rule's row says now: its status reads Run
+       * Failed, so a rule that never got through a run no longer looks
+       * like one nobody enabled. And the rule stays where it was - its
+       * lastEvaluatedAt untouched - so the next run judges the events this
+       * one could not (#10337).
        */
-      expect(write.lastEvaluatedAt).toBeInstanceOf(Date);
+      expect(write.lastEvaluatedAt).toBeUndefined();
     });
 
     test("one rule whose bookkeeping write rejects does not stop the rules after it", async () => {
@@ -2374,10 +3280,10 @@ describe("DetectionRuleEvaluator", () => {
         thirdRule.id!.toString(),
       ]);
 
-      // The two rules behind the poisoned one did get their errors recorded.
+      // The two rules behind the poisoned one did get their errors recorded, and keep their place.
       for (const write of writes.slice(1)) {
         expect(write.lastError).toBe("clickhouse read timed out");
-        expect(write.lastEvaluatedAt).toBeInstanceOf(Date);
+        expect(write.lastEvaluatedAt).toBeUndefined();
       }
     });
 

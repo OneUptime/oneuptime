@@ -29,6 +29,7 @@ import SecurityProjectWork, {
 } from "../SecurityProjectWork";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
+import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
@@ -527,6 +528,15 @@ export default class SecurityLogScanner {
      * there is then matched against threat intel like any other.
      */
     await SecurityRequestTrace.followEvents({
+      projectId: data.projectId,
+      events: data.events,
+    });
+
+    /*
+     * A client address a scrub rule hid - in the line, or in the trace it
+     * was followed into - names the project's rule that did (#10397).
+     */
+    await ScrubbedClientAddresses.nameScrubRules({
       projectId: data.projectId,
       events: data.events,
     });

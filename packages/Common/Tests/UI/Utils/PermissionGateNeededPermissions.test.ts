@@ -72,6 +72,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { isProductLevelPermission } from "../../../Types/Product/ProductLevels";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const DASHBOARD_LOCALES: string = path.join(
@@ -95,12 +96,20 @@ const readLocale: (code: string) => Locale = (code: string): Locale => {
   ) as Locale;
 };
 
-const ROLE_TITLES: Array<string> =
-  PermissionHelper.getRolePermissionProps().map(
-    (props: PermissionProps): string => {
-      return props.title;
+/*
+ * The roles a lock names as roles: the built-in ones, and the products'
+ * levels (#10289), a project-wide role kept to one product's records.
+ */
+const ROLE_TITLES: Array<string> = [
+  ...PermissionHelper.getRolePermissionProps(),
+  ...PermissionHelper.getAllPermissionProps().filter(
+    (props: PermissionProps): boolean => {
+      return isProductLevelPermission(props.permission);
     },
-  );
+  ),
+].map((props: PermissionProps): string => {
+  return props.title;
+});
 
 const isRoleTitle: (title: string) => boolean = (title: string): boolean => {
   return ROLE_TITLES.includes(title);

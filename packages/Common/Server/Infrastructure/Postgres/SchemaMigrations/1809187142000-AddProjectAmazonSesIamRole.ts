@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * role's column is nullable with no default. No index or foreign key is
  * added.
  */
-export class AddProjectAmazonSesIamRole1809187137800
+export class AddProjectAmazonSesIamRole1809187142000
   implements MigrationInterface
 {
-  public name: string = "AddProjectAmazonSesIamRole1809187137800";
+  public name: string = "AddProjectAmazonSesIamRole1809187142000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

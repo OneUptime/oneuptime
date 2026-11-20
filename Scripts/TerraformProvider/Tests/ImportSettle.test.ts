@@ -308,6 +308,7 @@ describe("the plan modifiers that keep what an import read", () => {
       [{ type: "string", isDateTime: true }, "RFC3339KeepSameInstant()"],
       [{ type: "number" }, "NumberKeepSameAPINumber()"],
       [{ type: "string", isPhone: true }, "PhoneKeepSameNumber()"],
+      [{ type: "string", isPermission: true }, "PermissionKeepSameKey()"],
       [{ type: "string", isComplexObject: true }, "JSONSubsetKeepImported()"],
       [{ type: "string", isComplexObject: true, isWrappedScalar: true }, null],
       [{ type: "string" }, null],
