@@ -2,9 +2,18 @@ import Dictionary from "../../Types/Dictionary";
 import JSONFunctions from "../../Types/JSONFunctions";
 import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
 import MetricMonitorResponse from "../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
-import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
+import MonitorStep from "../../Types/Monitor/MonitorStep";
+import MonitorType from "../../Types/Monitor/MonitorType";
+import {
+  TelemetryQuery,
+  TelemetrySignalScope,
+} from "../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import MetricQueryServices from "../Metrics/MetricQueryServices";
+import MonitorResourceSignalScope, {
+  ResourceSignal,
+  ResourceSignalScope,
+} from "./MonitorResourceSignalScope";
 import MonitorStepMetricQueries from "./MonitorStepMetricQueries";
 
 /*
@@ -69,9 +78,19 @@ export default class MetricTelemetrySnapshot {
    * The event's snapshot of a metric check: the window it read, its queries
    * and formulas as the step keeps them, and beside each query the filters
    * the monitor added to it (see getQueryScopes). A response that does not
-   * say what it read its queries with keeps no scopes, as before.
+   * say what it read its queries with keeps no scopes, as before. Told the
+   * monitor, it keeps a resource monitor's logs and traces too
+   * (getSignalScopes).
    */
-  public static fromResponse(response: MetricMonitorResponse): TelemetryQuery {
+  public static fromResponse(
+    response: MetricMonitorResponse,
+    monitor?:
+      | {
+          monitorType?: MonitorType | undefined;
+          monitorStep?: MonitorStep | undefined;
+        }
+      | undefined,
+  ): TelemetryQuery {
     const queryConfigs: Array<MetricQueryConfigData> =
       response.metricViewConfig.queryConfigs;
 
@@ -86,6 +105,15 @@ export default class MetricTelemetrySnapshot {
       response.queryServiceIds,
     );
 
+    const signalScopes: {
+      logs: TelemetrySignalScope;
+      traces: TelemetrySignalScope;
+    } | null = MetricTelemetrySnapshot.getSignalScopes({
+      monitorType: monitor?.monitorType,
+      monitorStep: monitor?.monitorStep,
+      queryAttributes: response.queryAttributes,
+    });
+
     return {
       telemetryQuery: null,
       telemetryType: TelemetryType.Metric,
@@ -96,7 +124,105 @@ export default class MetricTelemetrySnapshot {
       },
       ...(scopes ? { metricQueryScopes: scopes } : {}),
       ...(serviceIds.length > 0 ? { metricServiceIds: serviceIds } : {}),
+      ...(signalScopes ? { metricSignalScopes: signalScopes } : {}),
     };
+  }
+
+  /*
+   * A Host, Docker, Podman or IoT Device monitor's logs and traces, as the
+   * event's tabs read them (#10451): its resource's, from what the check
+   * read - every query of it, each read for the same resource
+   * (MonitorResourceSignalScope). Null for any other monitor: its tabs read
+   * the metric queries' own filters, as before.
+   */
+  public static getSignalScopes(input: {
+    monitorType: MonitorType | undefined;
+    monitorStep: MonitorStep | undefined;
+    queryAttributes: Array<Dictionary<unknown> | undefined> | null | undefined;
+  }): { logs: TelemetrySignalScope; traces: TelemetrySignalScope } | null {
+    const reads: Array<Dictionary<unknown> | undefined> = Array.isArray(
+      input.queryAttributes,
+    )
+      ? input.queryAttributes
+      : [];
+
+    const scopeOf: (signal: ResourceSignal) => ResourceSignalScope | null = (
+      signal: ResourceSignal,
+    ): ResourceSignalScope | null => {
+      return MonitorResourceSignalScope.getScope({
+        monitorType: input.monitorType,
+        monitorStep: input.monitorStep,
+        signal: signal,
+        readAttributes: reads,
+      });
+    };
+
+    const logs: ResourceSignalScope | null = scopeOf(ResourceSignal.Logs);
+    const traces: ResourceSignalScope | null = scopeOf(ResourceSignal.Traces);
+
+    return logs && traces ? { logs, traces } : null;
+  }
+
+  /*
+   * The resource scopes a stored snapshot keeps (above), or null: a snapshot
+   * of another monitor, stored before, or holding anything but a map of
+   * texts and a list of names for each signal.
+   */
+  public static getStoredSignalScopes(
+    telemetryQuery: TelemetryQuery | null | undefined,
+  ): { logs: TelemetrySignalScope; traces: TelemetrySignalScope } | null {
+    if (
+      !telemetryQuery ||
+      telemetryQuery.telemetryType !== TelemetryType.Metric
+    ) {
+      return null;
+    }
+
+    const stored: unknown = telemetryQuery.metricSignalScopes;
+
+    if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+      return null;
+    }
+
+    const readScope: (value: unknown) => TelemetrySignalScope | null = (
+      value: unknown,
+    ): TelemetrySignalScope | null => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+      }
+
+      const attributes: unknown = (value as TelemetrySignalScope).attributes;
+      const notCarried: unknown = (value as TelemetrySignalScope).notCarried;
+
+      if (
+        !attributes ||
+        typeof attributes !== "object" ||
+        Array.isArray(attributes) ||
+        !Object.values(attributes).every((text: unknown): boolean => {
+          return typeof text === "string";
+        }) ||
+        !Array.isArray(notCarried) ||
+        !notCarried.every((name: unknown): boolean => {
+          return typeof name === "string";
+        })
+      ) {
+        return null;
+      }
+
+      return {
+        attributes: { ...(attributes as Dictionary<string>) },
+        notCarried: [...(notCarried as Array<string>)],
+      };
+    };
+
+    const logs: TelemetrySignalScope | null = readScope(
+      (stored as Record<string, unknown>)["logs"],
+    );
+    const traces: TelemetrySignalScope | null = readScope(
+      (stored as Record<string, unknown>)["traces"],
+    );
+
+    return logs && traces ? { logs, traces } : null;
   }
 
   /*
