@@ -88,6 +88,8 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 OneUptime 会列出每个区域中的 EC2 实例和卷、VPC、子网和安全组、NAT 网关、Auto Scaling 组、负载均衡器（Application、Network、Gateway 和 Classic）、EKS 集群、ECS 集群和服务、Lambda 函数、RDS 数据库、ElastiCache、SQS 队列、SNS 主题、DynamoDB 表、Kinesis 数据流、Step Functions 状态机、API Gateway API、EFS 文件系统、OpenSearch 域、App Runner 服务、Elastic Beanstalk 环境、WAF Web ACL、Network Firewall 防火墙、Cognito 用户池、AppSync GraphQL API 和 SageMaker 端点，并附上它们的标签；CloudFront 分配及其 Web ACL 只在 us-east-1 中列出一次，Global Accelerator 加速器只在 us-west-2 中列出一次。它还会记录它们之间的连接：每个资源所在的子网和 VPC 以及保护它的安全组、每个负载均衡器把流量发往何处，以及每个 EKS 集群的网络和节点实例。在 OneUptime 列出某种类型之前创建的角色仍会被读取，只是不含该类型，也不会显示警告：再次运行命令即可同时列出该类型，例如子网、安全组和 EKS 集群，或之后新增的 Web ACL、防火墙、加速器、用户池、GraphQL API 和端点，它们随后会在报告指标之前就被列出。
 
+只有当角色的信任策略以命令写入的 `sts:ExternalId` 条件要求你项目的外部 ID 时，OneUptime 才会登录该角色。在通过角色读取任何内容之前，以及之后每天，OneUptime 都会用一个不属于任何项目的外部 ID 登录一次：AWS 拒绝这次登录即为通过，因此对于每台读取该角色的 OneUptime 服务器，角色的 CloudTrail 大约每天会显示一次来自 OneUptime 的 `AccessDenied`。允许这次登录通过的角色，会让任何知道其 ARN 的项目通过 OneUptime 读取你的账户，因此 OneUptime 会拒绝该角色，不通过它读取任何内容，并说明要添加哪个条件。
+
 > [!NOTE]
 > 在自托管的 OneUptime 上，**IAM 角色** 方式需要 OneUptime 自己的、可以调用 `sts:AssumeRole` 的 AWS 身份：服务器运行时使用的 IAM 角色（在 Amazon EKS 上是其 Pod 的角色，在 Helm Chart 的 `serviceAccount.annotations` 中设置；在 Amazon ECS 上是其任务角色；在 Amazon EC2 上是其实例配置文件），或者 `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` 和 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` 中某个 IAM 用户的密钥，设置了密钥时总是使用密钥。两者都没有时，表单会提供 **访问密钥**。
 
@@ -292,6 +294,8 @@ OneUptime 发出的调用会按你的云的价格计入你的云账户。列出�
 
 Service Bus 或 Event Hubs 命名空间的关键指标会按 `EntityName` 维度拆分，为它的每个队列、主题和事件中心读取，每次读取仍然只对每个命名空间调用一次：每 5 分钟读取一次时，有 50 个队列的命名空间每小时调用 12 次，与只有一个队列的命名空间相同。每次读取每个命名空间最多读取 1,000 个，超出时会说明。每一个的指标都显示在 [队列](/docs/telemetry/queues#azure-service-bus) 下它自己的页面上，归属方式与 Collector 的 `azure_monitor` 接收器相同；如果该接收器也读取某个队列的同一指标，则保留它的值并舍弃连接的值，因此不会重复计数。
 
+Azure Monitor 的指标按 Microsoft 为读取大量资源推荐的方式读取。以相同指标读取的同一订阅、区域和类型的资源共用最多 50 个资源的 `metrics:getBatch` 调用，每个调用只请求其中每个指标都支持的聚合，一个订阅的每个区域中同时最多运行 4 个调用，在 Azure 表示繁忙期间更少。被 Azure 限流的调用会在等待后，或在 Azure 要求的时间后重新发送；Azure 过于繁忙而未能响应的指标会在同一次读取和下一次读取中再次请求。Azure 表示不为某个资源提供的指标，一天内不再请求。批量读取需要订阅本身的 **Monitoring Reader** 角色，设置命令会授予该角色：如果应用只在部分资源上拥有该角色，这些资源会逐个读取，读取结果会说明这一点。资源页面在其指标上方显示上次读取的时间，**显示原因** 会列出未能读取的指标以及 Azure 的回复。
+
 少数关键指标在 Azure Monitor 中最细只保留五分钟粒度，例如 App Service 应用的健康检查和 Azure Cosmos DB 帐户的存储，它们每 15 分钟用单独一次调用读取，每次调用读取 3 个数据点：每 5 分钟读取一次时，这样的资源每小时多花 4 次调用，没有这类指标的资源不会多花。资源页面上，每个这类指标的行都会注明每 5 分钟一个值；为这类指标设置监视器时，请使用 30 分钟或更长的时间窗口。在两次调用之间，资源会保留这些指标的最新值，直到它们满 40 分钟，因此这些值不会在资源页面和健康状况中时有时无，每个指标的卡片都会注明其值是多久之前的。设置了健康检查的 App Service 应用按该健康检查判断：只要有一个实例未通过即为 **性能下降**，通过的实例不到一半即为 **不健康**。Azure Cosmos DB 账户的页面首先显示其数据大小、索引大小和文档数。Azure Monitor 还以一小时为粒度保存少数关键指标，例如 Azure Storage 帐户的已用容量：它们每小时读取一次，读取时已有 2 小时，并保留到满 4 小时为止。App Service 应用的文件系统使用量由 Azure Monitor 以六小时为粒度保存：它每 6 小时到达一次，在其衡量的周期之后 12 到 18 小时到达，并保留到满 19 小时为止。
 
 Compute Engine VM 的内存和磁盘使用率不是 Google Cloud 自己的指标：它们由 VM 内部的 [Ops Agent](https://docs.cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation) 报告。OneUptime 从每台运行它的 VM 读取这些指标，并判断内存和最满的磁盘有多满；没有它的 VM 的页面会说明需要该代理，并链接到 Google 的安装说明。没有任何 VM 运行它的项目每小时询问一次，而不是每次读取都询问。上报这些指标的 VM 还会获得三个推荐的监视器，均按 15 分钟判断：内存达到 95% 或以上，以及任一磁盘达到 90% 或以上和 95% 或以上。每个监视器的事件都会给出 `gcloud compute ssh` 命令，在 Google Cloud Shell 中运行即可查看是什么占满了 VM。没有该代理的 VM 不会获得这三个监视器中的任何一个。
@@ -338,6 +342,10 @@ OneUptime AI 在调查时会借助上面的只读访问读取每个已连接的�
 
 :::details 测试可以登录，但无法读取
 再次运行该命令：它会授予 OneUptime 所需的角色。在 AWS 上，请运行表单为此项目显示的命令：为其他项目创建的角色信任的是那个项目的外部 ID，而不是此项目的外部 ID。
+:::
+
+:::details 角色允许 OneUptime 在没有你项目外部 ID 的情况下登录
+它的信任策略没有用 `sts:ExternalId` 条件要求你项目的外部 ID，因此任何知道该角色 ARN 的项目都可以通过 OneUptime 读取你的账户，OneUptime 也不会使用该角色。请将消息中显示的条件添加到信任 OneUptime 的那条语句中，或再次运行该命令并连接它输出的角色。测试会立即重新检查该角色，读取会在一小时内开始使用它。
 :::
 
 :::details Google Cloud 不允许该命令创建密钥

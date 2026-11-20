@@ -18,6 +18,10 @@ import {
   CloudUnreportedKeyMetricReport,
   readCloudUnreportedKeyMetricReports,
 } from "Common/Types/Cloud/CloudUnreportedKeyMetrics";
+import {
+  CloudResourceMetricCollection,
+  readCloudResourceMetricCollection,
+} from "Common/Types/Cloud/CloudResourceMetricCollection";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
@@ -28,8 +32,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
  * The calls a cloud resource's pages make about its metrics beyond its key
  * metrics (CloudConnectionAPI's resource-metrics routes): what it
  * publishes, asked of its cloud now (#9563); adding one of them to what its
- * connection reads, and removing it; and why it did not report some of its
- * key metrics (#9569).
+ * connection reads, and removing it; why it did not report some of its
+ * key metrics (#9569); and how its metrics were collected (#10291).
  */
 
 export const CLOUD_RESOURCE_METRICS_API_PATH: string =
@@ -153,5 +157,17 @@ export async function explainCloudResourceUnreportedKeyMetrics(data: {
 }): Promise<Array<CloudUnreportedKeyMetricReport>> {
   return readCloudUnreportedKeyMetricReports(
     await post(data.cloudResourceId, "unreported", { keys: data.keys }),
+  );
+}
+
+/*
+ * How its metrics were collected (#10291): when its connection last read
+ * them, and what it could not. Null where its reads keep nothing to say.
+ */
+export async function getCloudResourceMetricCollection(
+  cloudResourceId: ObjectID,
+): Promise<CloudResourceMetricCollection | null> {
+  return readCloudResourceMetricCollection(
+    await post(cloudResourceId, "collection", {}),
   );
 }

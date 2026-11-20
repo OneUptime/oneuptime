@@ -6,6 +6,7 @@ import { ResourceGenerator } from "../Core/ResourceGenerator";
 import { DataSourceGenerator } from "../Core/DataSourceGenerator";
 import { DocumentationGenerator } from "../Core/DocumentationGenerator";
 import { OpenAPISpec, TerraformResource } from "../Core/Types";
+import { providerGoFilePath, registrationsOf } from "../Core/ProviderShards";
 
 /*
  * RESOURCE NAMES BY MODEL.
@@ -236,11 +237,13 @@ beforeAll(async () => {
     return fs.readFileSync(path.join(outputDir, file), "utf-8");
   };
   linkGo = read(
-    "internal/provider/resource_status_page_subscriber_notification_template.go",
+    providerGoFilePath(
+      "resource_status_page_subscriber_notification_template.go",
+    ),
   );
-  ruleUserGo = read("internal/provider/resource_escalation_rule_user.go");
-  resourcesGo = read("internal/provider/resources.go");
-  dataSourcesGo = read("internal/provider/data_sources.go");
+  ruleUserGo = read(providerGoFilePath("resource_escalation_rule_user.go"));
+  resourcesGo = registrationsOf(outputDir, "resources.go");
+  dataSourcesGo = registrationsOf(outputDir, "data_sources.go");
   linkPage = read(
     "docs/resources/status_page_subscriber_notification_template.md",
   );
@@ -307,7 +310,7 @@ describe("two models of one singular name", () => {
       "var _ resource.ResourceWithMoveState = &StatusPageSubscriberNotificationTemplateResource{}",
     );
     expect(linkGo).toContain(
-      'legacyNameStateMover("oneuptime_subscriber_notification_template", r.schemaDefinition())',
+      'LegacyNameStateMover("oneuptime_subscriber_notification_template", r.schemaDefinition())',
     );
     expect(linkGo).not.toContain("isLegacyAlias");
     expect(resourcesGo).not.toContain(
@@ -387,10 +390,10 @@ describe("a model whose own name reads poorly as a resource's", () => {
       'resp.TypeName = req.ProviderTypeName + "_users_on_call_duty_escalation_rule"',
     );
     expect(resourcesGo).toContain(
-      '{Name: "escalation_rule_user", LegacyName: "users_on_call_duty_escalation_rule"',
+      'Name: "escalation_rule_user", LegacyName: "users_on_call_duty_escalation_rule"',
     );
     expect(dataSourcesGo).toContain(
-      '{Name: "escalation_rule_user", LegacyName: "users_on_call_duty_escalation_rule"',
+      'Name: "escalation_rule_user", LegacyName: "users_on_call_duty_escalation_rule"',
     );
 
     // The provider's index lists it with the other renamed resources.

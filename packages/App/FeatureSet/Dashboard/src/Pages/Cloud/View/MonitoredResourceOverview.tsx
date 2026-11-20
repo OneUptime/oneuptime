@@ -43,6 +43,7 @@ import {
   MetricRowGroupGap,
 } from "../../../Components/Metrics/Utils/MetricRowScope";
 import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
+import CloudResourceMetricCollectionLine from "../../../Components/Cloud/ResourceMetrics/CloudResourceMetricCollectionLine";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
@@ -585,6 +586,15 @@ const CloudMonitoredResourceOverview: FunctionComponent<
             title="Metrics"
             description="Everything the provider reports about this resource. Open a metric to chart it, then choose Create monitor from this view to alert on it."
           >
+            {/*
+             * When its connection last read them, and what it could not
+             * (#10291) - also where none is recorded yet.
+             */}
+            {r.cloudConnectionId ? (
+              <CloudResourceMetricCollectionLine cloudResourceId={modelId} />
+            ) : (
+              <></>
+            )}
             {Object.keys(attributeFilters).length > 0 ? (
               <MetricsViewer
                 attributeFilters={attributeFilters}

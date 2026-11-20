@@ -83,6 +83,20 @@ export interface StatusPageSessionToSignOut {
   sessionId: ObjectID;
 }
 
+/*
+ * What a dashboard private user's session token names
+ * (JsonWebTokenPurpose.DashboardPrivateUserSession, and its sign-out
+ * cookie's DashboardPrivateUserSessionSignOut): which dashboard, whose
+ * session there - a DashboardPrivateUser's - and which. Nothing else: no
+ * address and no name, so a token copied out of a browser says nothing
+ * about the person (#10250).
+ */
+export interface DashboardPrivateUserSessionClaims {
+  dashboardId: ObjectID;
+  userId: ObjectID;
+  sessionId: ObjectID;
+}
+
 class JSONWebToken {
   /*
    * A dashboard session's access token, the only token the API takes as a
@@ -209,6 +223,70 @@ class JSONWebToken {
           : 0,
       purpose: JsonWebTokenPurpose.StatusPageSessionSignOut,
     });
+  }
+
+  /*
+   * A dashboard private user's access token, for that one dashboard's public
+   * link (JsonWebTokenPurpose.DashboardPrivateUserSession): signed only by
+   * CookieUtil.setDashboardPrivateUserCookie, which keeps it in the
+   * dashboard's own HttpOnly cookie. Read only by
+   * decodeDashboardPrivateUserSession, and taken there only together with
+   * the live session it names (DashboardPrivateUserSessionService).
+   */
+  @CaptureSpan()
+  public static signDashboardPrivateUserSessionToken(
+    data: DashboardPrivateUserSessionClaims & {
+      // Fifteen minutes at most; a whole number of seconds.
+      expiresInSeconds: number;
+    },
+  ): string {
+    return JSONWebToken.sign({
+      data: JSONWebToken.getDashboardPrivateUserSessionClaims(data),
+      expiresInSeconds:
+        Number.isFinite(data.expiresInSeconds) && data.expiresInSeconds > 0
+          ? Math.min(
+              Math.floor(data.expiresInSeconds),
+              DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+            )
+          : DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+      purpose: JsonWebTokenPurpose.DashboardPrivateUserSession,
+    });
+  }
+
+  /*
+   * Which session a browser holds on one dashboard's public link, for its
+   * sign-out there and nothing else
+   * (JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut):
+   * CookieUtil.setDashboardPrivateUserCookie keeps it in a cookie sent only
+   * to that dashboard's sign-out, beside the session's refresh token and for
+   * as long. Read only by decodeDashboardPrivateUserSessionToSignOut.
+   */
+  @CaptureSpan()
+  public static signDashboardPrivateUserSessionSignOutToken(
+    data: DashboardPrivateUserSessionClaims & {
+      // As long as the session's refresh token: a whole number of seconds.
+      expiresInSeconds: number;
+    },
+  ): string {
+    return JSONWebToken.sign({
+      data: JSONWebToken.getDashboardPrivateUserSessionClaims(data),
+      expiresInSeconds:
+        Number.isFinite(data.expiresInSeconds) && data.expiresInSeconds > 0
+          ? Math.ceil(data.expiresInSeconds)
+          : 0,
+      purpose: JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut,
+    });
+  }
+
+  // The three ids, as text, and nothing else of what the caller handed in.
+  private static getDashboardPrivateUserSessionClaims(
+    data: DashboardPrivateUserSessionClaims,
+  ): JSONObject {
+    return {
+      dashboardId: data.dashboardId.toString(),
+      userId: data.userId.toString(),
+      sessionId: data.sessionId.toString(),
+    };
   }
 
   private static isUsableDate(value: unknown): value is Date {
@@ -457,6 +535,24 @@ class JSONWebToken {
           JSONWebToken.isId(claims["sessionId"])
         );
 
+      /*
+       * A dashboard private user's session, and the cookie that names it for
+       * its sign-out (signDashboardPrivateUserSessionToken,
+       * signDashboardPrivateUserSessionSignOutToken): each says so - no
+       * release signed one that did not - and names its dashboard, its
+       * private user and its session, and no status page or SSO provider.
+       */
+      case JsonWebTokenPurpose.DashboardPrivateUserSession:
+      case JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut:
+        return (
+          claimedPurpose === purpose &&
+          !namesStatusPage &&
+          !JSONWebToken.namesSsoProvider(claims) &&
+          JSONWebToken.isId(claims["dashboardId"]) &&
+          JSONWebToken.isId(claims["userId"]) &&
+          JSONWebToken.isId(claims["sessionId"])
+        );
+
       default:
         return false;
     }
@@ -484,10 +580,21 @@ class JSONWebToken {
     try {
       if (
         purpose === JsonWebTokenPurpose.UserSessionSignOut ||
-        purpose === JsonWebTokenPurpose.StatusPageSessionSignOut
+        purpose === JsonWebTokenPurpose.StatusPageSessionSignOut ||
+        purpose === JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut
       ) {
         throw new BadDataException(
-          "A sign-out cookie is read only by JSONWebToken.decodeSessionToSignOut or decodeStatusPageSessionToSignOut.",
+          "A sign-out cookie is read only by JSONWebToken.decodeSessionToSignOut, decodeStatusPageSessionToSignOut or decodeDashboardPrivateUserSessionToSignOut.",
+        );
+      }
+
+      /*
+       * A dashboard private user's session names no address, so it is no
+       * JSONWebTokenData: it is read only by decodeDashboardPrivateUserSession.
+       */
+      if (purpose === JsonWebTokenPurpose.DashboardPrivateUserSession) {
+        throw new BadDataException(
+          "A dashboard private user's session is read only by JSONWebToken.decodeDashboardPrivateUserSession.",
         );
       }
 
@@ -610,6 +717,68 @@ class JSONWebToken {
       logger.error(e);
       throw new BadDataException(INVALID_TOKEN_MESSAGE);
     }
+  }
+
+  /*
+   * The session a dashboard private user's access token names
+   * (JsonWebTokenPurpose.DashboardPrivateUserSession,
+   * signDashboardPrivateUserSessionToken), if OneUptime signed it for that
+   * and it has not expired. Throws otherwise, as decode does: a OneUptime
+   * session, an SSO sign-in, a status page's session, a sign-out cookie or
+   * anything else is refused here exactly as a token that does not verify.
+   * The caller still holds it to the live session it names, and to the
+   * dashboard it is asked about (DashboardPrivateUserSessionService).
+   */
+  @CaptureSpan()
+  public static decodeDashboardPrivateUserSession(
+    token: string,
+  ): DashboardPrivateUserSessionClaims {
+    try {
+      return JSONWebToken.readDashboardPrivateUserSessionClaims(
+        JSONWebToken.readClaimsFor(
+          token,
+          JsonWebTokenPurpose.DashboardPrivateUserSession,
+        ),
+      );
+    } catch (e) {
+      logger.error(e);
+      throw new BadDataException(INVALID_TOKEN_MESSAGE);
+    }
+  }
+
+  /*
+   * The session a browser's sign-out cookie for a dashboard names
+   * (JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut,
+   * signDashboardPrivateUserSessionSignOutToken), if OneUptime signed it for
+   * that and it has not expired. Throws otherwise. For the dashboard's
+   * sign-out to end that session of that private user on that dashboard and
+   * nothing else, when the refresh token it sent matches none.
+   */
+  @CaptureSpan()
+  public static decodeDashboardPrivateUserSessionToSignOut(
+    token: string,
+  ): DashboardPrivateUserSessionClaims {
+    try {
+      return JSONWebToken.readDashboardPrivateUserSessionClaims(
+        JSONWebToken.readClaimsFor(
+          token,
+          JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut,
+        ),
+      );
+    } catch (e) {
+      logger.error(e);
+      throw new BadDataException(INVALID_TOKEN_MESSAGE);
+    }
+  }
+
+  private static readDashboardPrivateUserSessionClaims(
+    decoded: JSONObject,
+  ): DashboardPrivateUserSessionClaims {
+    return {
+      dashboardId: new ObjectID(decoded["dashboardId"] as string),
+      userId: new ObjectID(decoded["userId"] as string),
+      sessionId: new ObjectID(decoded["sessionId"] as string),
+    };
   }
 
   /*
