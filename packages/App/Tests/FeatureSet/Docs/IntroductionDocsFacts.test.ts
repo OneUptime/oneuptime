@@ -4626,7 +4626,7 @@ describe("Your Account", () => {
       "turnsTwoFactorAuthOff &&\n        (await this.isTwoFactorAuthOn(updateBy.props.userId!))",
     );
     expect(userService).toContain(
-      "await this.assertOwnAccountDeleteIsConfirmed(deleteBy, users);",
+      "await this.assertAccountDeleteIsConfirmed(deleteBy, users);",
     );
 
     // Passkeys, security keys and authenticator apps, added or removed.
