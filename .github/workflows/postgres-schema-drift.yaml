@@ -2473,9 +2473,10 @@ jobs:
           Tests/Server/Types/Database/UUIDColumnFilterPostgres.test.ts
           --forceExit
 
-      # The inventory's overview and status facets, and the host an Esper
-      # device's serial number finds when telemetry names the device
-      # another way (#9586).
+      # The inventory's overview and status facets, its security patch
+      # (#9965) and agent permissions (#9967) facets, and the host an Esper
+      # device's serial number finds when telemetry names the device another
+      # way (#9586).
       - name: Test the inventory overview, status facets and hosts by serial number on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
@@ -2488,6 +2489,8 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/InventoryOverviewPostgres.test.ts
           Tests/Server/Types/Database/InventoryStatusPostgres.test.ts
+          Tests/Server/Types/Database/InventorySecurityPatchPostgres.test.ts
+          Tests/Server/Types/Database/InventoryAgentPermissionsPostgres.test.ts
           Tests/Server/Services/InventoryHostsBySerialNumberPostgres.test.ts
           --forceExit
 

@@ -55,6 +55,8 @@ data class LogSessionRequest(
     val requestedBy: String?,
     // Until when someone at the device can allow it.
     val expiresAtMillis: Long?,
+    // Why they ask, in their words: one line of plain text, shown under the request (LogSessionNote).
+    val note: String? = null,
 )
 
 /** What the device tells OneUptime about a session. */

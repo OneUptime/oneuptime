@@ -37,6 +37,8 @@ import com.oneuptime.androidagent.otlp.millisToNanos
  *   android.thermal.headroom       gauge, 1.0 when the device starts throttling
  *   android.boot.recent_count      gauge, {boot}, the boots in the last hour, this one included:
  *                                  3 or more is a restart loop (the Restart Loop template)
+ *   android.os.security_patch.age  gauge, d, the days since the security patch level's date:
+ *                                  more than 90 is out of date (the Security Patch Out of Date template)
  *
  * system.cpu.utilization comes from /proc/stat with every state where
  * Android lets an app read it, and from HardwarePropertiesManager when the
@@ -241,6 +243,19 @@ object HostMetrics {
                 "{boot}",
                 "The device's boots in the last hour: 3 or more is a restart loop.",
                 listOf(NumberPoint(NumberValue.Whole(boots.toLong()), time)),
+            )
+        }
+
+        /*
+         * Sent every collection, as the patch level is: a monitor reads how far
+         * behind the device is, which grows by a day a day until it is updated.
+         */
+        snapshot.securityPatchAgeDays?.takeIf { it >= 0 }?.let { age ->
+            gauge(
+                "android.os.security_patch.age",
+                "d",
+                "Days since the device's security patch level: more than 90 is out of date.",
+                listOf(NumberPoint(NumberValue.Whole(age.toLong()), time)),
             )
         }
 

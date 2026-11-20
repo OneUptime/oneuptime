@@ -46,9 +46,9 @@ Alle drei Stunden entfernt OneUptime die erkannten Elemente, die länger als das
 
 | Art des Elements | Entfernt nach so langer Zeit ohne Telemetrie |
 | --- | --- |
-| Pods, Deployments, Proxmox-Gäste und virtuelle VMware-Maschinen | 1 Tag |
-| Kubernetes-Knoten und -Namespaces, Proxmox-Knoten, VMware-Hosts, -Cluster und -Datastores sowie die Datenbanken und entfernten Dienste, die Ihre Traces aufrufen | 7 Tage |
-| Dienste, Hosts, Kubernetes-, Proxmox- und Ceph-Cluster, Speicher-Arrays, vCenters und Docker-Swarm-Cluster | 30 Tage |
+| Pods, Deployments, Proxmox-Gäste, OpenStack-Instanzen und virtuelle VMware-Maschinen | 1 Tag |
+| Kubernetes-Knoten und -Namespaces, Proxmox-Knoten, OpenStack-Hypervisoren, VMware-Hosts, -Cluster und -Datastores sowie die Datenbanken und entfernten Dienste, die Ihre Traces aufrufen | 7 Tage |
+| Dienste, Hosts, Kubernetes-, Proxmox- und Ceph-Cluster, OpenStack-Clouds, Speicher-Arrays, vCenters und Docker-Swarm-Cluster | 30 Tage |
 
 Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lang nicht erneut gesehen wurde.
 
@@ -77,6 +77,8 @@ Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf
 - Die Fakten eines Hosts stammen aus den Ressourcenattributen seiner Telemetrie: seine IP- und MAC-Adressen, Architektur und Betriebssystem von Haus aus, und seine Seriennummer, Marke, Modell und Firmware, sobald Sie sie aufprägen.
 - Die Fakten eines Netzwerkgeräts stammen aus seiner SNMP-Abfrage, seiner Rolle und seinem Standort. Was seine Abfrage nicht gelesen hat, stammt aus der Erkennung: dem letzten Scan seiner Adresse, der ARP-Tabelle eines Routers oder der DNS-Abfrage seiner Sonde. Ein Gerät ohne ENTITY-MIB, etwa ein Meraki MX, erhält Marke, Modell und Betriebssystem trotzdem aus seiner Systembeschreibung und seine MAC-Adresse von seinen eigenen Ports. Seine IP-Adresse wird nie als sein Hostname angezeigt.
 - Ein Meraki-Gerät übernimmt außerdem, was seine Abfrage leer lässt, aus dem Meraki-Dashboard, darunter seine Seriennummer, sein Modell und seine Firmware, wenn eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) seine Organisation liest.
+
+In **Alle Elemente** finden Sie die Android-Geräte, bei denen etwas zu tun ist. Der Filter **Sicherheitspatch-Ebene** listet unter **Nicht aktuell** die Geräte auf, deren Sicherheitspatch-Ebene älter als 90 Tage ist, nach derselben Regel, die auch die Warnung Security Patch Out of Date eines [Host-Monitors](/docs/monitor/host-monitor) anwendet. Der Filter **Agent-Berechtigungen** listet die Geräte auf, auf denen dem [Android-Agenten](/docs/telemetry/android-agent) noch READ_LOGS, READ_DROPBOX_DATA oder der Zugriff auf Nutzungsdaten fehlt. Zu jedem Filter gibt es eine gleichnamige Spalte, ausgeblendet, bis Sie sie einschalten, und sie geht in den CSV-Export ein.
 
 Die Karte zeigt, woher jeder Fakt kam und wann. Die Quelle, die die meisten Fakten teilen, etwa der Collector eines Hosts, die eigene SNMP-Abfrage eines Netzwerkgeräts oder der Erkennungsscan, der es gelesen hat, wird einmal genannt, unter den Fakten. Jede andere Quelle, etwa die ARP-Tabelle eines Routers oder ein am Gerät gespeicherter Wert, wird unter ihrem Fakt genannt. Ein an einem Netzwerkgerät gespeicherter Wert wird nie durch das ersetzt, was die Erkennung liest, und wenn beide sich unterscheiden, zeigt die Karte beide.
 

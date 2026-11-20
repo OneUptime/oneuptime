@@ -117,6 +117,7 @@ class AgentRuntime private constructor(context: Context) {
                     takeDroppedLogcatRecord = logcat::takeDroppedLinesRecord,
                     readDropBox = { config -> dropBox.read(config.logcatEnabled) },
                     cpuReading = { collector.capabilities },
+                    missingPermissions = { config -> missingPermissions(config.logcatEnabled) },
                     takeDroppedDropBoxRecord = dropBox::takeDroppedRecord,
                 ),
             facts = facts,
@@ -130,6 +131,17 @@ class AgentRuntime private constructor(context: Context) {
             logSessions = logSessions,
             logSessionClient = LogSessionClient(transport, clock),
             canSendSessionLogs = { logcat.unavailable() == null },
+        )
+
+    /** The grants the agent still lacks on this device (AgentPermissions): what its screen and every report say. */
+    fun missingPermissions(logcatEnabled: Boolean): List<AgentGrant> =
+        AgentPermissions.missing(
+            logcatEnabled = logcatEnabled,
+            readLogsGranted = readLogsGranted(),
+            readDropBoxDataMissing =
+                AndroidDropBoxAccess.readDropBoxDataExists(appContext) &&
+                    appContext.checkSelfPermission(AndroidDropBoxAccess.READ_DROPBOX_DATA) != PackageManager.PERMISSION_GRANTED,
+            usageAccessGranted = AndroidDropBoxAccess(appContext).usageAccessGranted(),
         )
 
     fun readLogsGranted(): Boolean =
