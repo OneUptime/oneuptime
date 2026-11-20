@@ -798,7 +798,6 @@ export function readStorageRecord(
     status === 403 ||
     statusText.toLowerCase() === STORAGE_PUBLIC_ACCESS_NOT_PERMITTED;
   let severity: OcsfSeverity = OcsfSeverity.Low;
-  let how: string = "";
 
   if (!refused) {
     if (!isServed(status)) {
@@ -806,24 +805,23 @@ export function readStorageRecord(
     }
 
     if (authorization === StorageAuthorization.Anonymous) {
+      // Served with no credential: Low, but a static website's page.
       if (isStaticWebsiteRequest(record)) {
         return null;
       }
+    } else if (
+      !STORAGE_ACCESS_CHANGES.includes(lower) &&
+      !STORAGE_WHOLE_DELETES.includes(lower)
+    ) {
+      // Else only a change a shared access signature made: Informational.
+      if (
+        authorization !== StorageAuthorization.SharedAccessSignature ||
+        (category !== "storagewrite" && category !== "storagedelete")
+      ) {
+        return null;
+      }
 
-      how = "anonymously";
-    } else if (
-      STORAGE_ACCESS_CHANGES.includes(lower) ||
-      STORAGE_WHOLE_DELETES.includes(lower)
-    ) {
-      how = "";
-    } else if (
-      authorization === StorageAuthorization.SharedAccessSignature &&
-      (category === "storagewrite" || category === "storagedelete")
-    ) {
       severity = OcsfSeverity.Informational;
-      how = "with a shared access signature";
-    } else {
-      return null;
     }
   }
 
@@ -855,7 +853,7 @@ export function readStorageRecord(
     severity,
     message: refused
       ? `${who} was refused ${operation} on ${where}: ${statusText || String(status)}`
-      : `${who} called ${operation} on ${where}${how ? ` ${how}` : ""}${ip ? ` from ${ip}` : ""}`,
+      : `${who} called ${operation} on ${where}${ip ? ` from ${ip}` : ""}`,
     principalUser: caller,
     principalIp: ip,
     targetHost: subscriptionOf(resourceId),

@@ -469,7 +469,7 @@ describe("AzureResourceLogParser - a storage account's requests", () => {
       "/contosodata/public/invoices/2026-11.pdf",
     );
     expect(event.message).toBe(
-      "An anonymous caller called GetBlob on storage account CONTOSODATA (/contosodata/public/invoices/2026-11.pdf) anonymously from 198.51.100.23",
+      "An anonymous caller called GetBlob on storage account CONTOSODATA (/contosodata/public/invoices/2026-11.pdf) from 198.51.100.23",
     );
   });
 
@@ -550,7 +550,7 @@ describe("AzureResourceLogParser - a storage account's requests", () => {
       OcsfSeverity.Informational,
     ]);
     expect(write.message).toBe(
-      "A shared access signature called PutBlob on storage account CONTOSODATA (/contosodata/uploads/avatar.png) with a shared access signature from 203.0.113.80",
+      "A shared access signature called PutBlob on storage account CONTOSODATA (/contosodata/uploads/avatar.png) from 203.0.113.80",
     );
     expect(deleted.activityName).toBe("DeleteBlob");
   });
