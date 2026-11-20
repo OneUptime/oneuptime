@@ -38,7 +38,7 @@ import {
 } from "../../AutoRemediation/RemediationChatWords";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 import WorkspacePublicNoteApproval from "../WorkspacePublicNoteApproval";
-import WorkspaceSecurityPlaybookApproval from "../WorkspaceSecurityPlaybookApproval";
+import WorkspaceSecurityPlaybookApprovalPress from "../WorkspaceSecurityPlaybookApprovalPress";
 
 /*
  * "CONNECT YOUR MICROSOFT TEAMS ACCOUNT TO ACKNOWLEDGE THIS INCIDENT."
@@ -462,7 +462,7 @@ export default class MicrosoftTeamsConnectPrompt {
      * who they are, so they press again.
      */
     const stepPress: WorkspacePressDescription | null =
-      WorkspaceSecurityPlaybookApproval.describePress({
+      WorkspaceSecurityPlaybookApprovalPress.describe({
         actionType: data.actionType,
       });
 

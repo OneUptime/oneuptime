@@ -37,10 +37,6 @@ import { getServerTranslator } from "../ServerTranslation";
 import { SecurityPlaybookApprovalRound } from "../SecurityPlaybook/SecurityPlaybookApprovalReader";
 import TokenSigningKey from "../TokenSigningKey";
 import SlackActionType from "./Slack/Actions/ActionTypes";
-import {
-  WorkspaceConnectRequestAgainKind,
-  WorkspacePressDescription,
-} from "./WorkspaceConnectRequest";
 import WorkspaceMessageTime from "./WorkspaceMessageTime";
 
 /*
@@ -153,50 +149,6 @@ export default class WorkspaceSecurityPlaybookApproval {
     }
 
     return undefined;
-  }
-
-  /*
-   * What a press from a chat account not connected yet asks to be
-   * connected for (SlackConnectPrompt, MicrosoftTeamsConnectPrompt), or
-   * null for another press. Never decided for them once they are connected:
-   * containment is decided by a press made knowing who they are, so they
-   * press again - and it is decided then only while the step still waits.
-   */
-  public static describePress(data: {
-    actionType: string | undefined;
-  }): WorkspacePressDescription | null {
-    const english: SecurityPlaybookApprovalButtonWords =
-      getSecurityPlaybookApprovalButtonWords(getServerTranslator(undefined));
-
-    switch (data.actionType) {
-      case SlackActionType.ApproveSecurityPlaybookStep:
-        return {
-          purpose: "approve this playbook step",
-          again: {
-            kind: WorkspaceConnectRequestAgainKind.Button,
-            label: english.approve,
-          },
-        };
-      case SlackActionType.ViewApproveSomeSecurityPlaybookStep:
-      case SlackActionType.SubmitApproveSomeSecurityPlaybookStep:
-        return {
-          purpose: "approve this playbook step",
-          again: {
-            kind: WorkspaceConnectRequestAgainKind.Button,
-            label: english.approveSome,
-          },
-        };
-      case SlackActionType.RejectSecurityPlaybookStep:
-        return {
-          purpose: "reject this playbook step",
-          again: {
-            kind: WorkspaceConnectRequestAgainKind.Button,
-            label: english.reject,
-          },
-        };
-      default:
-        return null;
-    }
   }
 
   // ---------- what the buttons carry ----------
@@ -543,7 +495,7 @@ export default class WorkspaceSecurityPlaybookApproval {
 
     const intro: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
-      text: `${wording.action.markdown.toString()}\n\n${FeedMarkdown.templateText(words.intro)}`,
+      text: `${wording.action.markdown.toString()}\n\n${FeedMarkdown.textInLine(words.intro).toString()}`,
     };
 
     const boxes: Array<WorkspaceCheckboxBlock> =

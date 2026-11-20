@@ -453,7 +453,7 @@ interface ApprovalValue {
 const asText: (value: string) => ApprovalValue = (
   value: string,
 ): ApprovalValue => {
-  return { markdown: FeedMarkdown.templateText(value), text: value };
+  return { markdown: FeedMarkdown.textInLine(value).toString(), text: value };
 };
 
 const asCode: (value: string) => ApprovalValue = (
@@ -465,7 +465,7 @@ const asCode: (value: string) => ApprovalValue = (
 const asBold: (value: string) => ApprovalValue = (
   value: string,
 ): ApprovalValue => {
-  const escaped: string = FeedMarkdown.templateText(value);
+  const escaped: string = FeedMarkdown.textInLine(value).toString();
 
   return { markdown: escaped ? `**${escaped}**` : "", text: value };
 };
@@ -632,7 +632,7 @@ function wordHeadline(
     case: {
       markdown: ask.caseUrl
         ? FeedMarkdown.link(ask.caseNumber, ask.caseUrl).toString()
-        : FeedMarkdown.templateText(ask.caseNumber),
+        : FeedMarkdown.textInLine(ask.caseNumber).toString(),
       text: ask.caseNumber,
     },
     title: asText(ask.caseTitle),
@@ -718,7 +718,7 @@ function wordTarget(
 
     return {
       markdown: FeedMarkdown.asMarkdown(
-        `${line.markdown.toString()} · ${FeedMarkdown.templateText(detail)}`,
+        `${line.markdown.toString()} · ${FeedMarkdown.textInLine(detail).toString()}`,
       ),
       text: `${line.text} · ${detail}`,
     };

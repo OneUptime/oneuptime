@@ -251,7 +251,7 @@ export default class MicrosoftTeamsSecurityPlaybookApprovalActions {
         },
         {
           type: "TextBlock",
-          text: FeedMarkdown.templateText(words.intro),
+          text: FeedMarkdown.textInLine(words.intro).toString(),
           wrap: true,
           spacing: "Small",
         },

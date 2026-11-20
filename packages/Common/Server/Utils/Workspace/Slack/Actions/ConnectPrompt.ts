@@ -32,7 +32,7 @@ import SlackActionAnswer, {
   SlackAnswerPlace,
 } from "./Answer";
 import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
-import WorkspaceSecurityPlaybookApproval from "../../WorkspaceSecurityPlaybookApproval";
+import WorkspaceSecurityPlaybookApprovalPress from "../../WorkspaceSecurityPlaybookApprovalPress";
 import SlackRequestWorkspaceUtil, {
   SlackRequestWorkspace,
 } from "../SlackRequestWorkspace";
@@ -446,7 +446,7 @@ export default class SlackConnectPrompt {
      * who they are, so they press again.
      */
     const stepPress: SlackPressDescription | null =
-      WorkspaceSecurityPlaybookApproval.describePress({
+      WorkspaceSecurityPlaybookApprovalPress.describe({
         actionType: actionType,
       });
 

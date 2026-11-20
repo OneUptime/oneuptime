@@ -14,9 +14,9 @@ import {
   SecurityPlaybookApprovalStandingKind,
   wordSecurityPlaybookApprovalAnswer,
 } from "../../../Utils/SecurityPlaybook/SecurityPlaybookApprovalWords";
-import SecurityPlaybookRunAPI, {
+import SecurityPlaybookRunDecision, {
   SecurityPlaybookApprovalChangedException,
-} from "../../API/SecurityPlaybookRunAPI";
+} from "../SecurityPlaybook/SecurityPlaybookRunDecision";
 import SecurityCaseService from "../../Services/SecurityCaseService";
 import logger from "../Logger";
 import UserLanguage from "../Notification/UserLanguage";
@@ -56,13 +56,13 @@ import WorkspaceSecurityPlaybookApproval from "./WorkspaceSecurityPlaybookApprov
  *      the project - what the Dashboard's Approve asks (the Member tier and
  *      up, or Edit Security Playbook Run) - and a read of the case itself,
  *      under their labels and blocks. The run's own decision checks again
- *      (SecurityPlaybookRunAPI.decide: the run as they may change it).
+ *      (SecurityPlaybookRunDecision.decide: the run as they may change it).
  *   5. The approval: still waiting, on the step the message asked about,
  *      proposing what it proposed (its digest) - else nothing is decided,
  *      and they are told who decided, and when, or that it changed.
  *   6. Approving takes somebody other than whoever started the run.
  *
- * The decision is the Dashboard's own (SecurityPlaybookRunAPI.decide): one
+ * The decision is the Dashboard's own (SecurityPlaybookRunDecision.decide): one
  * compare-and-set from Waiting for Approval, so two presses at once decide
  * once - the second is told the first's - recorded on the step, the case's
  * timeline (with where it was made) and the audit log, as the member; an
@@ -331,7 +331,7 @@ export default class WorkspaceSecurityPlaybookApprovalActions {
     }
 
     try {
-      await SecurityPlaybookRunAPI.decide({
+      await SecurityPlaybookRunDecision.decide({
         projectId: data.projectId,
         runId: read.round.runId,
         decision: isReject

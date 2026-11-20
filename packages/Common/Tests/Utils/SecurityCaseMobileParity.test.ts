@@ -59,9 +59,10 @@ const RULE_CASES: string = path.join(
   REPOSITORY_ROOT,
   "packages/MobileApp/src/__tests__/securityCaseRuleCases.json",
 );
+// Where a run's decisions are made, and refused (SELF_APPROVAL_REFUSED_MESSAGE).
 const RUN_API_SOURCE: string = path.join(
   REPOSITORY_ROOT,
-  "packages/Common/Server/API/SecurityPlaybookRunAPI.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookRunDecision.ts",
 );
 const REPORT_PARSER_SOURCE: string = path.join(
   REPOSITORY_ROOT,

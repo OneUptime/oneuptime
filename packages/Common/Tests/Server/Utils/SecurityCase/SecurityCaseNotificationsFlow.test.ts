@@ -65,9 +65,18 @@ import {
   NotificationRuleConditionCheckOn,
 } from "../../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import WorkspaceMessagePayload, {
+  WorkspaceMessageBlock,
+  WorkspaceMessagePayloadButton,
+  WorkspacePayloadButtons,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
+import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
+import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import SecurityDetectionService from "../../../../Server/Services/SecurityDetectionService";
+import SecurityEventConnectionService from "../../../../Server/Services/SecurityEventConnectionService";
+import ThreatIntelIndicatorService from "../../../../Server/Services/ThreatIntelIndicatorService";
 import { getJestSpyOn } from "../../../Spy";
 import {
   TEST_PRIORITY_IDS,
@@ -170,6 +179,8 @@ let emails: Array<{
   vars: JSONObject;
 }>;
 let pushes: Array<{ userId: string; title: string }>;
+// The run each push names, for the app to open its approval.
+let pushRuns: Array<string>;
 let slackPosts: Array<WorkspaceMessagePayload>;
 let feed: Array<string>;
 
@@ -256,6 +267,7 @@ beforeEach(() => {
   jobs = [];
   emails = [];
   pushes = [];
+  pushRuns = [];
   slackPosts = [];
   feed = [];
   seedDefaults();
@@ -470,6 +482,14 @@ beforeEach(() => {
         userId: String(userId),
         title: (message as { title: string }).title,
       });
+
+      const runId: unknown = (
+        message as { data?: { runId?: unknown } | undefined }
+      ).data?.runId;
+
+      if (runId) {
+        pushRuns.push(String(runId));
+      }
     },
   );
 
@@ -793,6 +813,45 @@ describe("a security case from opening to approval", () => {
       },
     ] as never);
 
+    /*
+     * The approval says what the step acts through and what the case holds
+     * (#10341): the CrowdStrike connection by its name, the requests behind
+     * the case as its detection kept them, and nothing threat intel knows.
+     */
+    getJestSpyOn(SecurityEventConnectionService, "findOneBy").mockImplementation(
+      async () => {
+        const connection: SecurityEventConnection = new SecurityEventConnection();
+        connection.name = "CrowdStrike (prod)";
+        return connection;
+      },
+    );
+    getJestSpyOn(SecurityDetectionService, "findBy").mockImplementation(
+      async () => {
+        const detection: SecurityDetection = new SecurityDetection();
+        detection.matchedEvents = {
+          events: [],
+          outcomes: { "Reached App": 3, Rejected: 9 },
+        };
+        return [detection];
+      },
+    );
+    getJestSpyOn(
+      ThreatIntelIndicatorService,
+      "findActiveIndicatorsByValues",
+    ).mockResolvedValue([] as never);
+    // Slack is connected: the approval is posted, with its buttons, and kept.
+    getJestSpyOn(
+      WorkspaceProjectAuthTokenService,
+      "getProjectAuths",
+    ).mockImplementation(async () => {
+      const projectAuth: WorkspaceProjectAuthToken =
+        new WorkspaceProjectAuthToken();
+      projectAuth.projectId = PROJECT_ID;
+      projectAuth.workspaceType = WorkspaceType.Slack;
+      projectAuth.authToken = "xoxb-project-token";
+      return [projectAuth];
+    });
+
     await SecurityPlaybookEngine.executeRun(RUN_ID);
     expect(run.status).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
 
@@ -808,14 +867,47 @@ describe("a security case from opening to approval", () => {
           "[CASE-12] Approval needed: Contain compromised host, step 1 (Contain the host in CrowdStrike)",
       }),
     ]);
-    // The approver is told what the step would act on.
-    expect(emails[0]!.vars["stepTargets"]).toBe("web-01");
+    // The approver is told what the step would act on, why, and the rest of the evidence.
+    expect(emails[0]!.vars["stepTargets"]).toBe(
+      "web-01: the case is grouped on it",
+    );
+    expect(emails[0]!.vars["approvalAction"]).toBe(
+      "Contain the host in CrowdStrike, through CrowdStrike (prod)",
+    );
+    expect(emails[0]!.vars["approvalEvidence"]).toBe(
+      "12 requests behind the case: Turned away: 9, Reached the app: 3 Nothing it acts on is on your protected list.",
+    );
+    expect(emails[0]!.vars["approvalUndo"]).toBe(
+      "Can be undone: each one, with Lift containment in CrowdStrike on the case.",
+    );
+    // Its button opens the approval on the case, never approves it.
+    expect(emails[0]!.vars["caseViewLink"]).toBe(
+      `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/security-events/cases/${CASE_ID.toString()}/playbook-runs`,
+    );
     expect(pushes).toEqual([
       {
         userId: ANALYST_ID.toString(),
         title: "Approval needed: Contain compromised host",
       },
     ]);
-    expect(slackMarkdown()[0]).toContain("⏸️ **Approval needed**");
+    // The push opens the approval itself, on the case.
+    expect(pushRuns).toEqual([RUN_ID.toString()]);
+    // #soc gets the approval with its buttons.
+    expect(slackMarkdown()[0]).toContain(
+      "⏸️ **Approval needed on [CASE-12](",
+    );
+    expect(
+      slackPosts[0]!.messageBlocks
+        .filter((block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadButtons";
+        })
+        .flatMap((block: WorkspaceMessageBlock): Array<string> => {
+          return (block as WorkspacePayloadButtons).buttons.map(
+            (button: WorkspaceMessagePayloadButton): string => {
+              return button.title;
+            },
+          );
+        }),
+    ).toEqual(["Approve", "Reject", "Open Case"]);
   });
 });
