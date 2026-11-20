@@ -59842,5 +59842,12 @@
   "a few times a day": "några gånger om dagen",
   "every 6 hours": "var 6:e timme",
   "every hour": "varje timme",
-  "once a day": "en gång om dagen"
+  "once a day": "en gång om dagen",
+  "Couldn't load part of this issue. {{error}}": "En del av det här problemet kunde inte läsas in. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Datalagret för det här problemet kunde inte läsas in. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Teamet som det här problemet är tilldelat kunde inte läsas in. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Datatyperna för det här datalagret kunde inte läsas in. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Det gick inte att läsa in vem som accepterade risken för det här problemet. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Det gick inte att läsa in vem det här problemet är tilldelat. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "Importerad av {{provider}}-anslutningen {{name}}."
 }

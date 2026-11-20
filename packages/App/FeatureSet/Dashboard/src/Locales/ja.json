@@ -59842,5 +59842,12 @@
   "a few times a day": "1 日に数回",
   "every 6 hours": "6 時間ごと",
   "every hour": "1 時間ごと",
-  "once a day": "1 日に 1 回"
+  "once a day": "1 日に 1 回",
+  "Couldn't load part of this issue. {{error}}": "この問題の一部を読み込めませんでした。{{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "この問題のデータストアを読み込めませんでした。{{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "この問題が割り当てられているチームを読み込めませんでした。{{error}}",
+  "Couldn't load this store's data types. {{error}}": "このデータストアのデータタイプを読み込めませんでした。{{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "この問題のリスクを受容したユーザーを読み込めませんでした。{{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "この問題の割り当て先を読み込めませんでした。{{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "{{provider}} 接続 {{name}} によってインポートされました。"
 }

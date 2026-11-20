@@ -59842,5 +59842,12 @@
   "a few times a day": "qualche volta al giorno",
   "every 6 hours": "ogni 6 ore",
   "every hour": "ogni ora",
-  "once a day": "una volta al giorno"
+  "once a day": "una volta al giorno",
+  "Couldn't load part of this issue. {{error}}": "Impossibile caricare una parte di questo problema. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Impossibile caricare l'archivio di questo problema. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Impossibile caricare il team a cui è assegnato questo problema. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Impossibile caricare i tipi di dati di questo archivio. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Impossibile caricare chi ha accettato il rischio di questo problema. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Impossibile caricare a chi è assegnato questo problema. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "Importato dalla connessione {{provider}} {{name}}."
 }

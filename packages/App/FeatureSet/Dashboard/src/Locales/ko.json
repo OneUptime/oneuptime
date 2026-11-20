@@ -59842,5 +59842,12 @@
   "a few times a day": "하루에 몇 번",
   "every 6 hours": "6시간마다",
   "every hour": "1시간마다",
-  "once a day": "하루에 한 번"
+  "once a day": "하루에 한 번",
+  "Couldn't load part of this issue. {{error}}": "이 이슈의 일부를 불러오지 못했습니다. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "이 이슈의 저장소를 불러오지 못했습니다. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "이 이슈가 할당된 팀을 불러오지 못했습니다. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "이 저장소의 데이터 유형을 불러오지 못했습니다. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "이 이슈의 위험을 수락한 사람을 불러오지 못했습니다. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "이 이슈가 할당된 사람을 불러오지 못했습니다. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "{{provider}} 연결 {{name}}에서 가져왔습니다."
 }

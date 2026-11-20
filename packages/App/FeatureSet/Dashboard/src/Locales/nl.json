@@ -59842,5 +59842,12 @@
   "a few times a day": "een paar keer per dag",
   "every 6 hours": "elke 6 uur",
   "every hour": "elk uur",
-  "once a day": "één keer per dag"
+  "once a day": "één keer per dag",
+  "Couldn't load part of this issue. {{error}}": "Een deel van dit probleem kon niet worden geladen. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "De opslag van dit probleem kon niet worden geladen. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Het team waaraan dit probleem is toegewezen, kon niet worden geladen. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "De gegevenstypen van deze opslag konden niet worden geladen. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Kon niet laden wie het risico van dit probleem heeft geaccepteerd. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Kon niet laden aan wie dit probleem is toegewezen. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "Geïmporteerd door de {{provider}}-koppeling {{name}}."
 }

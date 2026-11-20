@@ -59842,5 +59842,12 @@
   "a few times a day": "چند بار در روز",
   "every 6 hours": "هر ۶ ساعت",
   "every hour": "هر ساعت",
-  "once a day": "روزی یک بار"
+  "once a day": "روزی یک بار",
+  "Couldn't load part of this issue. {{error}}": "بخشی از این مسئله بارگذاری نشد. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "مخزن این مسئله بارگذاری نشد. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "تیمی که این مسئله به آن تخصیص یافته است بارگذاری نشد. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "انواع داده این مخزن بارگذاری نشد. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "اینکه چه کسی ریسک این مسئله را پذیرفته است بارگذاری نشد. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "اینکه این مسئله به چه کسی تخصیص یافته است بارگذاری نشد. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "با اتصال {{provider}} به نام {{name}} وارد شده است."
 }

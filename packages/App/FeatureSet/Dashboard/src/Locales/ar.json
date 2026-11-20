@@ -59842,5 +59842,12 @@
   "a few times a day": "بضع مرات في اليوم",
   "every 6 hours": "كل 6 ساعات",
   "every hour": "كل ساعة",
-  "once a day": "مرة واحدة في اليوم"
+  "once a day": "مرة واحدة في اليوم",
+  "Couldn't load part of this issue. {{error}}": "تعذّر تحميل جزء من هذه المشكلة. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "تعذّر تحميل مخزن هذه المشكلة. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "تعذّر تحميل الفريق الذي عُيّنت له هذه المشكلة. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "تعذّر تحميل أنواع بيانات هذا المخزن. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "تعذّر تحميل من قبِل مخاطرة هذه المشكلة. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "تعذّر تحميل من عُيّنت له هذه المشكلة. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "استورده اتصال {{provider}} المسمّى {{name}}."
 }

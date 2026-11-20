@@ -59842,5 +59842,12 @@
   "a few times a day": "每天几次",
   "every 6 hours": "每 6 小时",
   "every hour": "每小时",
-  "once a day": "每天一次"
+  "once a day": "每天一次",
+  "Couldn't load part of this issue. {{error}}": "无法加载此问题的部分内容。{{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "无法加载此问题所在的数据存储。{{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "无法加载此问题所分配的团队。{{error}}",
+  "Couldn't load this store's data types. {{error}}": "无法加载此数据存储的数据类型。{{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "无法加载接受此问题风险的人员。{{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "无法加载此问题的分配对象。{{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "由 {{provider}} 连接 {{name}} 导入。"
 }

@@ -59842,5 +59842,12 @@
   "a few times a day": "a few times a day",
   "every 6 hours": "every 6 hours",
   "every hour": "every hour",
-  "once a day": "once a day"
+  "once a day": "once a day",
+  "Couldn't load part of this issue. {{error}}": "Couldn't load part of this issue. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Couldn't load the store this issue is on. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Couldn't load the team this issue is assigned to. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Couldn't load this store's data types. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Couldn't load who accepted this issue's risk. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Couldn't load who this issue is assigned to. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "Imported by the {{provider}} connection {{name}}."
 }

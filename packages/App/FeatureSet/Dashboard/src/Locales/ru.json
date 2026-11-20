@@ -59842,5 +59842,12 @@
   "a few times a day": "несколько раз в день",
   "every 6 hours": "каждые 6 часов",
   "every hour": "каждый час",
-  "once a day": "раз в день"
+  "once a day": "раз в день",
+  "Couldn't load part of this issue. {{error}}": "Не удалось загрузить часть этой проблемы. {{error}}",
+  "Couldn't load the store this issue is on. {{error}}": "Не удалось загрузить хранилище этой проблемы. {{error}}",
+  "Couldn't load the team this issue is assigned to. {{error}}": "Не удалось загрузить команду, которой назначена эта проблема. {{error}}",
+  "Couldn't load this store's data types. {{error}}": "Не удалось загрузить типы данных этого хранилища. {{error}}",
+  "Couldn't load who accepted this issue's risk. {{error}}": "Не удалось загрузить, кто принял риск по этой проблеме. {{error}}",
+  "Couldn't load who this issue is assigned to. {{error}}": "Не удалось загрузить, кому назначена эта проблема. {{error}}",
+  "Imported by the {{provider}} connection {{name}}.": "Импортировано подключением {{provider}} {{name}}."
 }
