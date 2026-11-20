@@ -175,7 +175,8 @@ export const DASHBOARD_BOARD_WIDTH_PROBE_TEST_ID: string =
   "dashboard-board-width-probe";
 
 // What each widget's box on the board carries: the box a link lands on (#10084).
-export const DASHBOARD_WIDGET_BOX_ATTRIBUTE: string = "data-dashboard-widget-box";
+export const DASHBOARD_WIDGET_BOX_ATTRIBUTE: string =
+  "data-dashboard-widget-box";
 
 // The id of a widget's box on the board: what a scroll to it finds it by.
 export function getDashboardWidgetBoxId(componentId: string): string {

@@ -825,12 +825,59 @@ describe("the dialog says what dropping loses, before it does", () => {
     expect(shown).toHaveTextContent(
       "Gauge, p99 <checkout>, Untitled, Widget 0, Widget 1, and 3 more",
     );
-    // The dashboard is the link; its widgets are named, not linked again.
+
+    /*
+     * #10084: the dashboard is a link to it, and each widget named under it
+     * a link to the dashboard opened at that widget, by the id the board
+     * draws it under. The ones counted are not linked.
+     */
+    const links: Array<HTMLElement> = within(
+      screen.getByTestId("data-security-drop-metric-dashboards"),
+    ).getAllByRole("link");
+
+    expect(links).toHaveLength(1 + MAX_WIDGETS_SHOWN);
+    expect(links[0]).toHaveTextContent("Growth");
+    expect(links[0]).toHaveAttribute(
+      "href",
+      viewRoute(PageMap.DASHBOARD_VIEW, DASHBOARD_ID),
+    );
+
+    const widgetLinks: Array<HTMLElement> = within(shown).getAllByRole("link");
+
+    expect(
+      widgetLinks.map((link: HTMLElement): string => {
+        return link.textContent || "";
+      }),
+    ).toEqual(["Gauge", "p99 <checkout>", "Untitled", "Widget 0", "Widget 1"]);
+    widgetLinks.forEach((link: HTMLElement, index: number): void => {
+      expect(link).toHaveAttribute(
+        "href",
+        `${viewRoute(PageMap.DASHBOARD_VIEW, DASHBOARD_ID)}?widget=${widgets[index]!.id}`,
+      );
+    });
+    expect(within(shown).getByText("and 3 more").closest("a")).toBeNull();
+
+    // A widget an older answer names without its id is named, not linked.
+    cleanup();
+    impact = impactOf({
+      dashboards: [
+        {
+          id: DASHBOARD_ID,
+          name: "Growth",
+          widgets: [{ id: "", title: "Signups", type: "Chart" }],
+        },
+      ],
+    });
+    renderModal();
+
+    expect(
+      await screen.findByTestId("data-security-drop-metric-widgets"),
+    ).toHaveTextContent("Signups");
     expect(
       within(
-        screen.getByTestId("data-security-drop-metric-dashboards"),
-      ).getAllByRole("link"),
-    ).toHaveLength(1);
+        screen.getByTestId("data-security-drop-metric-widgets"),
+      ).queryAllByRole("link"),
+    ).toHaveLength(0);
 
     // A dashboard that reads them outside its widgets: its link alone.
     cleanup();

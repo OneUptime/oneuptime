@@ -60,7 +60,9 @@ export function getDashboardWidgetLinkQuery(
 ): Record<string, string> {
   const id: string = parseDashboardLinkWidgetId(widgetId || "");
 
-  return id ? { [DASHBOARD_WIDGET_LINK_PARAMETER]: encodeURIComponent(id) } : {};
+  return id
+    ? { [DASHBOARD_WIDGET_LINK_PARAMETER]: encodeURIComponent(id) }
+    : {};
 }
 
 // Whether a widget, by the componentId it is drawn under, is the one a link names.
