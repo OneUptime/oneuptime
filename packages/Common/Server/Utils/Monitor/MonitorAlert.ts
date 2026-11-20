@@ -275,6 +275,14 @@ export default class MonitorAlert {
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /*
+     * The monitor log names each open alert a recovery was reported for
+     * but left open, because its criteria's alert has Auto Resolve Alert
+     * off (an Incoming Request monitor's recoveries, #10550). The grouping
+     * settings ask for the resolve and the switch withholds it: without
+     * this, the log said only that the request opened nothing new.
+     */
+    noteLeftOpen?: boolean | undefined;
   }): Promise<void> {
     const fingerprintSet: Set<string> = new Set<string>(
       input.fingerprints || [],
@@ -301,6 +309,7 @@ export default class MonitorAlert {
       select: {
         _id: true,
         title: true,
+        createdAt: true,
         createdCriteriaId: true,
         projectId: true,
         alertNumber: true,
@@ -341,6 +350,26 @@ export default class MonitorAlert {
             input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
         })
       ) {
+        if (input.noteLeftOpen) {
+          input.evaluationSummary?.events.push({
+            type: "alert-skipped",
+            ...EvaluationEventText.from({
+              title: translatableSentence("Alert left open: {{title}}", {
+                title: String(openAlert.title || openAlert.id?.toString()),
+              }),
+              message: translatableSentence(
+                "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.",
+              ),
+            }),
+            relatedCriteriaId: createdCriteriaId,
+            relatedAlertId: openAlert.id?.toString(),
+            relatedAlertNumber: openAlert.alertNumber,
+            relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
+            relatedAlertCreatedAt: openAlert.createdAt,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
         continue;
       }
 

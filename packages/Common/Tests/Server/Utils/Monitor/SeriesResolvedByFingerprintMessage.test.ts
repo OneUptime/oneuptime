@@ -193,6 +193,166 @@ describe("resolveSeriesAlertsByFingerprint", () => {
 
     expect(AlertService.findBy).not.toHaveBeenCalled();
   });
+
+  /*
+   * #10550: an Incoming Request monitor grouped by AlertActiveID got each
+   * SolarWinds Orion reset - and resolved none, because the alert the
+   * Dashboard adds to a criteria starts with Auto Resolve Alert off. The
+   * monitor log said only that the reset opened nothing new.
+   */
+  describe("an Incoming Request monitor's recovery that Auto Resolve Alert holds back", () => {
+    async function recover(input: {
+      fingerprints: Array<string>;
+      wholeMonitorCriteriaIds?: Array<string> | undefined;
+      noteLeftOpen?: boolean | undefined;
+      evaluationSummary: MonitorEvaluationSummary;
+    }): Promise<void> {
+      await MonitorAlert.resolveSeriesAlertsByFingerprint({
+        monitor: monitor(),
+        fingerprints: input.fingerprints,
+        rootCause: "Incoming request reported this key as resolved.",
+        ...(input.wholeMonitorCriteriaIds
+          ? {
+              wholeMonitor: {
+                criteriaIds: input.wholeMonitorCriteriaIds,
+                rootCause:
+                  "Incoming request with no value to group by reported recovered.",
+              },
+            }
+          : {}),
+        dataToProcess: {} as DataToProcess,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: {
+          down: ["alert-template"],
+        },
+        evaluationSummary: input.evaluationSummary,
+        ...(input.noteLeftOpen !== undefined
+          ? { noteLeftOpen: input.noteLeftOpen }
+          : {}),
+      });
+    }
+
+    function orionAlert(fingerprint: string | undefined): Alert {
+      const value: Alert = alert(fingerprint, "orion");
+
+      value.title = "Hardware status is Critical";
+      value.alertNumber = 7;
+      value.alertNumberWithPrefix = "ALT-7";
+      value.createdAt = new Date("2026-11-20T09:00:00.000Z");
+
+      return value;
+    }
+
+    test("is named in the monitor log: which alert, and why it stays open", async () => {
+      const leftOpen: Alert = orionAlert("fp-48214");
+
+      openAlerts = [leftOpen];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({
+        fingerprints: ["fp-48214"],
+        noteLeftOpen: true,
+        evaluationSummary,
+      });
+
+      expect(resolveOpenAlert).not.toHaveBeenCalled();
+      expect(evaluationSummary.events).toHaveLength(1);
+      expect(evaluationSummary.events[0]).toMatchObject({
+        type: "alert-skipped",
+        title: "Alert left open: Hardware status is Critical",
+        message:
+          "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.",
+        relatedCriteriaId: "orion",
+        relatedAlertId: leftOpen.id?.toString(),
+        relatedAlertNumber: 7,
+        relatedAlertNumberWithPrefix: "ALT-7",
+        relatedAlertCreatedAt: leftOpen.createdAt,
+      });
+      // Worded again in each reader's language from its sentences.
+      expect(evaluationSummary.events[0]?.titleSentence).toEqual({
+        template: "Alert left open: {{title}}",
+        values: { title: "Hardware status is Critical" },
+      });
+      expect(evaluationSummary.events[0]?.messageSentence?.template).toBe(
+        evaluationSummary.events[0]?.message,
+      );
+    });
+
+    test("so is the alert a request with no value opened for the whole monitor", async () => {
+      openAlerts = [orionAlert(undefined)];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({
+        fingerprints: [],
+        wholeMonitorCriteriaIds: ["orion"],
+        noteLeftOpen: true,
+        evaluationSummary,
+      });
+
+      expect(resolveOpenAlert).not.toHaveBeenCalled();
+      expect(
+        evaluationSummary.events.map((event: { title: string }) => {
+          return event.title;
+        }),
+      ).toEqual(["Alert left open: Hardware status is Critical"]);
+    });
+
+    test("names only the alerts the recovery was for: another value's, and one that resolves, are not", async () => {
+      const resolves: Alert = alert("fp-48214", "down");
+
+      openAlerts = [orionAlert("fp-48213"), orionAlert("fp-48215"), resolves];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({
+        fingerprints: ["fp-48214", "fp-48215"],
+        noteLeftOpen: true,
+        evaluationSummary,
+      });
+
+      expect(resolveOpenAlert).toHaveBeenCalledTimes(1);
+      expect(resolveOpenAlert.mock.calls[0]![0]).toMatchObject({
+        openAlert: resolves,
+      });
+      expect(
+        evaluationSummary.events.map((event: { type: string }) => {
+          return event.type;
+        }),
+      ).toEqual(["alert-skipped", "alert-resolved"]);
+      expect(evaluationSummary.events[0]?.relatedAlertId).toBe(
+        openAlerts[1]!.id?.toString(),
+      );
+    });
+
+    test("without the note asked for - a Logs monitor's resolving log - nothing is said, as before", async () => {
+      openAlerts = [orionAlert("fp-48214")];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({ fingerprints: ["fp-48214"], evaluationSummary });
+
+      expect(resolveOpenAlert).not.toHaveBeenCalled();
+      expect(evaluationSummary.events).toEqual([]);
+    });
+
+    test("an alert from no criteria is not the recovery's to name", async () => {
+      const unowned: Alert = orionAlert("fp-48214");
+
+      unowned.createdCriteriaId = undefined;
+      openAlerts = [unowned];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({
+        fingerprints: ["fp-48214"],
+        noteLeftOpen: true,
+        evaluationSummary,
+      });
+
+      expect(evaluationSummary.events).toEqual([]);
+    });
+  });
 });
 
 describe("resolveSeriesIncidentsByFingerprint", () => {
@@ -277,5 +437,146 @@ describe("resolveSeriesIncidentsByFingerprint", () => {
     expect(evaluationSummary.events[0]?.message).toBe(
       INCOMING_INCIDENT_MESSAGE,
     );
+  });
+
+  // #10550, for the incident a grouped criteria declares.
+  describe("an Incoming Request monitor's recovery that Auto Resolve Incident holds back", () => {
+    async function recover(input: {
+      fingerprints: Array<string>;
+      wholeMonitorCriteriaIds?: Array<string> | undefined;
+      noteLeftOpen?: boolean | undefined;
+      evaluationSummary: MonitorEvaluationSummary;
+    }): Promise<void> {
+      await MonitorIncident.resolveSeriesIncidentsByFingerprint({
+        monitor: monitor(),
+        fingerprints: input.fingerprints,
+        rootCause: "Incoming request reported this key as resolved.",
+        ...(input.wholeMonitorCriteriaIds
+          ? {
+              wholeMonitor: {
+                criteriaIds: input.wholeMonitorCriteriaIds,
+                rootCause:
+                  "Incoming request with no value to group by reported recovered.",
+              },
+            }
+          : {}),
+        dataToProcess: {} as DataToProcess,
+        // Criteria "down" resolves its template-1 incidents, and nothing else.
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
+          down: ["template-1"],
+        },
+        evaluationSummary: input.evaluationSummary,
+        ...(input.noteLeftOpen !== undefined
+          ? { noteLeftOpen: input.noteLeftOpen }
+          : {}),
+      });
+    }
+
+    function orionIncident(
+      fingerprint: string | undefined,
+      criteriaId: string = "orion",
+    ): Incident {
+      const value: Incident = incident(fingerprint, criteriaId);
+
+      value.title = "Hardware status is Critical";
+      value.incidentNumber = 12;
+      value.incidentNumberWithPrefix = "INC-12";
+      value.createdAt = new Date("2026-11-20T09:00:00.000Z");
+
+      return value;
+    }
+
+    test("is named in the monitor log: which incident, and why it stays open", async () => {
+      const leftOpen: Incident = orionIncident("fp-48214");
+
+      openIncidents = [leftOpen];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({
+        fingerprints: ["fp-48214"],
+        noteLeftOpen: true,
+        evaluationSummary,
+      });
+
+      expect(resolveOpenIncident).not.toHaveBeenCalled();
+      expect(evaluationSummary.events).toHaveLength(1);
+      expect(evaluationSummary.events[0]).toMatchObject({
+        type: "incident-skipped",
+        title: "Incident left open: Hardware status is Critical",
+        message:
+          "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.",
+        relatedCriteriaId: "orion",
+        relatedIncidentId: leftOpen.id?.toString(),
+        relatedIncidentNumber: 12,
+        relatedIncidentNumberWithPrefix: "INC-12",
+        relatedIncidentCreatedAt: leftOpen.createdAt,
+      });
+      expect(evaluationSummary.events[0]?.titleSentence).toEqual({
+        template: "Incident left open: {{title}}",
+        values: { title: "Hardware status is Critical" },
+      });
+    });
+
+    test("an incident of a template that does not resolve on its own is named, beside its criteria's one that does", async () => {
+      // Same criteria: template-1 resolves on its own, template-2 does not.
+      const resolves: Incident = orionIncident("fp-48214", "down");
+      const heldBack: Incident = orionIncident("fp-48214", "down");
+
+      heldBack.createdIncidentTemplateId = "template-2";
+      openIncidents = [resolves, heldBack];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({
+        fingerprints: ["fp-48214"],
+        noteLeftOpen: true,
+        evaluationSummary,
+      });
+
+      expect(resolveOpenIncident).toHaveBeenCalledTimes(1);
+      expect(resolveOpenIncident.mock.calls[0]![0]).toMatchObject({
+        openIncident: resolves,
+      });
+      expect(
+        evaluationSummary.events.map(
+          (event: { type: string; relatedIncidentId?: string | undefined }) => {
+            return `${event.type} ${event.relatedIncidentId}`;
+          },
+        ),
+      ).toEqual([
+        `incident-resolved ${resolves.id?.toString()}`,
+        `incident-skipped ${heldBack.id?.toString()}`,
+      ]);
+    });
+
+    test("so is the incident a request with no value opened for the whole monitor", async () => {
+      openIncidents = [orionIncident(undefined)];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({
+        fingerprints: [],
+        wholeMonitorCriteriaIds: ["orion"],
+        noteLeftOpen: true,
+        evaluationSummary,
+      });
+
+      expect(resolveOpenIncident).not.toHaveBeenCalled();
+      expect(evaluationSummary.events[0]?.title).toBe(
+        "Incident left open: Hardware status is Critical",
+      );
+    });
+
+    test("without the note asked for - a Logs monitor's resolving log - nothing is said, as before", async () => {
+      openIncidents = [orionIncident("fp-48214")];
+
+      const evaluationSummary: MonitorEvaluationSummary = summary();
+
+      await recover({ fingerprints: ["fp-48214"], evaluationSummary });
+
+      expect(resolveOpenIncident).not.toHaveBeenCalled();
+      expect(evaluationSummary.events).toEqual([]);
+    });
   });
 });
