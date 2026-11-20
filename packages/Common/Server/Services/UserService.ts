@@ -104,6 +104,7 @@ import EmailChangeConfirmation, {
   EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
 } from "../Utils/EmailChange/EmailChangeConfirmation";
 import EmailAddressChangedNotice from "../Utils/EmailChange/EmailAddressChangedNotice";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
 import {
   EMAIL_ADDRESS_CHANGED_BY_KEY,
   getEmailAddressChanger,
@@ -689,6 +690,19 @@ export class Service extends DatabaseService<Model> {
       if (turnsTwoFactorAuthOn) {
         await this.assertTwoFactorAuthMayBeTurnedOn(updateBy.props.userId!);
       }
+
+      /*
+       * Turning it off takes the second step out of every sign-in, and out
+       * of the confirmation every other change to how they sign in asks
+       * for: so it waits for one too (#10155). Turning it on gives nobody
+       * anything - it asks for steps already set up - and asks nothing.
+       */
+      if (
+        turnsTwoFactorAuthOff &&
+        (await this.isTwoFactorAuthOn(updateBy.props.userId!))
+      ) {
+        await Reauthentication.assertConfirmed(updateBy.props);
+      }
     }
 
     /*
@@ -749,6 +763,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * A new password or a new address for the caller's own account waits
+     * until their session has confirmed it's theirs (#10155). After the
+     * rules a refused value is told (the password's, single sign-on's) and
+     * before anything below counts, sends or writes.
+     */
+    await this.assertOwnSignInChangeIsConfirmed(updateBy, carryForward);
+
+    /*
      * A person's own new address waits for the address to confirm it
      * (#9821): it is kept as pending and the email is left as it is, so the
      * answer is the same whether or not another account has the address.
@@ -765,6 +787,79 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * A SESSION ALONE NO LONGER CHANGES HOW ITS PERSON SIGNS IN (#10155).
+   *
+   * A new password, or a new email address, for the account the caller is
+   * signed in as - asked from the profile, PUT /api/user/:id, the mobile app
+   * or anything else a session reaches - is refused until the session has
+   * confirmed it's its person's (Utils/Reauthentication): the password, and
+   * its second step while two-factor authentication is on; a passkey; or,
+   * for an account with neither, a sign-in in the last few minutes. The
+   * refusal changes nothing, so the same write goes through once it has.
+   *
+   * Only a change: the address the account already has, which every save of
+   * the profile's form sends, asks nothing. Only the caller's own account: a
+   * master admin's change of somebody else's is the Admin Dashboard's, and a
+   * root write is the server's own - a reset link, the link that confirms an
+   * address, SCIM, single sign-on. `rows` are the rows the write may change,
+   * as onBeforeUpdate read them.
+   *
+   * A server that cannot send the email that confirms a new address refuses
+   * that change before asking for anything (EmailChangeConfirmation): a
+   * person is never asked to confirm for a change that cannot happen.
+   */
+  private async assertOwnSignInChangeIsConfirmed(
+    updateBy: UpdateBy<Model>,
+    rows: Array<Model>,
+  ): Promise<void> {
+    if (updateBy.props.isRoot || !updateBy.props.userId) {
+      return;
+    }
+
+    const callerId: string = updateBy.props.userId.toString().toLowerCase();
+
+    const own: Model | undefined = rows.find((row: Model): boolean => {
+      return row.id?.toString().toLowerCase() === callerId;
+    });
+
+    if (!own) {
+      return;
+    }
+
+    const changesPassword: boolean = Boolean(updateBy.data.password);
+    const changesEmail: boolean =
+      Boolean(updateBy.data.email) &&
+      own.email?.toString().toLowerCase() !==
+        String(updateBy.data.email).trim().toLowerCase();
+
+    if (!changesPassword && !changesEmail) {
+      return;
+    }
+
+    if (changesEmail && !updateBy.props.isMasterAdmin) {
+      await EmailChangeConfirmation.assertCanConfirm();
+    }
+
+    await Reauthentication.assertConfirmed(updateBy.props);
+  }
+
+  // Whether two-factor authentication is on for this account now.
+  private async isTwoFactorAuthOn(userId: ObjectID): Promise<boolean> {
+    const user: Model | null = await this.findOneById({
+      id: userId,
+      select: {
+        _id: true,
+        enableTwoFactorAuth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return user?.enableTwoFactorAuth === true;
   }
 
   /*

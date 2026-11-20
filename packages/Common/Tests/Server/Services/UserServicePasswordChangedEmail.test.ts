@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RequestOrigin from "../../../Types/RequestOrigin";
 import Timezone from "../../../Types/Timezone";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * ---------------------------------------------------------------------------
@@ -123,6 +124,9 @@ function sentMails(): Array<SentMail> {
 }
 
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   sendMail = jest
     .spyOn(MailService, "sendMail")
     .mockResolvedValue(undefined as never);

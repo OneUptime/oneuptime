@@ -45,6 +45,16 @@ import {
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import { SignInManagement } from "../../Types/SSO/SsoManagedSignIn";
 import { TwoFactorAuthSetup } from "../../Types/TwoFactorAuthSetup";
+import Reauthentication, {
+  ReauthenticationSession,
+} from "../Utils/Reauthentication/Reauthentication";
+import {
+  REAUTHENTICATION_FIELDS,
+  ReauthenticationStatus,
+  ReauthenticationWebAuthnKind,
+  reauthenticationStatusToJSON,
+} from "../../Types/Accounts/Reauthentication";
+import IdentityRateLimit from "../Middleware/IdentityRateLimit";
 
 const BLANK_PROFILE_PICTURE_PATH: string =
   "/usr/src/Common/UI/Images/users/blank-profile.svg";
@@ -114,6 +124,137 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
           return Response.sendJsonObjectResponse(req, res, {
             status: setup.status,
             verifiedMethodCount: setup.verifiedMethodCount,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * CONFIRM IT'S YOU (#10155, Types/Accounts/Reauthentication).
+     *
+     * A change to how its person signs in - a new password or address, a
+     * passkey, a key or an authenticator app added or removed, unused
+     * backup codes replaced, two-factor authentication turned off - waits
+     * until the session asking for it has confirmed it's its person's
+     * (Utils/Reauthentication). These three routes are how it does:
+     *
+     *   - GET: where the session stands - confirmed until when, and what the
+     *     account confirms with - for the Dashboard's prompt. Nothing secret
+     *     in it: what the account has set up, which its own pages list;
+     *   - POST: a confirmation - the password, with the second step while
+     *     two-factor authentication is on, or a passkey - checked as a
+     *     sign-in checks it, rate limited, and counted for the session: too
+     *     many wrong ones sign that session out, never anybody else;
+     *   - POST webauthn-options: the options for a key's prompt, for the
+     *     session's account and kept for the session.
+     *
+     * The caller's own session only, from its access token: there is no
+     * user id or session id to name, so there is none to substitute. An API
+     * key, an MCP client and a workflow have no session, and are refused.
+     * The body - a password, a code - is never logged.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/reauthentication`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const session: ReauthenticationSession =
+            Reauthentication.getSessionOf(
+              await CommonAPI.getDatabaseCommonInteractionProps(req),
+            );
+
+          const status: ReauthenticationStatus =
+            await Reauthentication.getStatus(session);
+
+          // A confirmation runs out: a stale "confirmed" would ask nothing and fail.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            reauthenticationStatusToJSON(status) as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/reauthentication`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const session: ReauthenticationSession =
+            Reauthentication.getSessionOf(props);
+
+          const body: JSONObject = UserAPI.getBodyObject(req);
+
+          const answer: { confirmedUntil: Date } =
+            await Reauthentication.confirm({
+              session: session,
+              proof: {
+                password: UserAPI.getBodyText(
+                  body,
+                  REAUTHENTICATION_FIELDS.password,
+                ),
+                code: UserAPI.getBodyText(body, REAUTHENTICATION_FIELDS.code),
+                backupCode: UserAPI.getBodyText(
+                  body,
+                  REAUTHENTICATION_FIELDS.backupCode,
+                ),
+                securityKeyCredential:
+                  body[REAUTHENTICATION_FIELDS.securityKeyCredential] ||
+                  undefined,
+                passkeyCredential:
+                  body[REAUTHENTICATION_FIELDS.passkeyCredential] || undefined,
+              },
+              clientIp: IdentityRateLimit.resolveClientIp(req),
+              requestOrigin: props.requestOrigin,
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            confirmedUntil: answer.confirmedUntil.toISOString(),
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/reauthentication/webauthn-options`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const session: ReauthenticationSession =
+            Reauthentication.getSessionOf(
+              await CommonAPI.getDatabaseCommonInteractionProps(req),
+            );
+
+          const answer: { options: unknown } =
+            await Reauthentication.getWebAuthnOptions({
+              session: session,
+              kind: UserAPI.getBodyObject(req)[
+                REAUTHENTICATION_FIELDS.webAuthnKind
+              ] as ReauthenticationWebAuthnKind,
+              clientIp: IdentityRateLimit.resolveClientIp(req),
+            });
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            options: answer.options as JSONObject,
           });
         } catch (err) {
           return next(err);
@@ -705,6 +846,25 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     }
 
     return userId;
+  }
+
+  // A request's JSON body, or an empty one: whatever the caller sent.
+  private static getBodyObject(req: ExpressRequest): JSONObject {
+    const body: unknown = req.body;
+
+    return body && typeof body === "object" && !Array.isArray(body)
+      ? (body as JSONObject)
+      : {};
+  }
+
+  // A text field of a body, or undefined when it is not one.
+  private static getBodyText(
+    body: JSONObject,
+    field: string,
+  ): string | undefined {
+    const value: unknown = body[field];
+
+    return typeof value === "string" ? value : undefined;
   }
 
   /*

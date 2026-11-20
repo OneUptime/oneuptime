@@ -18,6 +18,7 @@ import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsEx
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * CHANGING YOUR OWN EMAIL ADDRESS SAYS NOTHING ABOUT THE NEW ONE (#9821).
@@ -132,6 +133,9 @@ async function flushBackgroundWork(): Promise<void> {
 }
 
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   const findBy: jest.SpyInstance = jest
     .spyOn(UserService, "findBy")
     .mockResolvedValue([ownRow()] as never);

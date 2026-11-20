@@ -23,6 +23,7 @@ import Timezone from "../../../Types/Timezone";
 import UserAuthenticationStatus from "../../../Types/UserAuthenticationStatus";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * Whether a person's sign-in is managed by single sign-on (#9688) has a
@@ -204,6 +205,9 @@ async function accountTheResetLinkFinds(): Promise<User | null> {
 }
 
 beforeEach(async () => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   linkHash = await HashedString.hashValue(TOKEN, EncryptionSecret);
   resetLinkHash = await HashedString.hashValue(RESET_TOKEN, EncryptionSecret);
 

@@ -88,9 +88,7 @@ export default class EmailChangeConfirmation {
     userId: ObjectID;
     newEmail: Email;
   }): Promise<void> {
-    if (!(await EmailChangeConfirmation.canSendEmail())) {
-      throw new BadDataException(EMAIL_CHANGE_CANNOT_BE_EMAILED_MESSAGE);
-    }
+    await EmailChangeConfirmation.assertCanConfirm();
 
     /*
      * The account first, and the address only while the account may still
@@ -218,6 +216,18 @@ export default class EmailChangeConfirmation {
       });
     } catch (err) {
       logger.error(err, { userId: data.userId.toString() });
+    }
+  }
+
+  /*
+   * Refuses a change of address on a server that cannot send the email that
+   * confirms it, with what to do instead. Asked before the session is asked
+   * to confirm it's its person's (#10155, UserService): nobody confirms for
+   * a change that cannot happen.
+   */
+  public static async assertCanConfirm(): Promise<void> {
+    if (!(await EmailChangeConfirmation.canSendEmail())) {
+      throw new BadDataException(EMAIL_CHANGE_CANNOT_BE_EMAILED_MESSAGE);
     }
   }
 
