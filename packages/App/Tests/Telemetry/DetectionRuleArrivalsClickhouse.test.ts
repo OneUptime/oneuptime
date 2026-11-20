@@ -934,6 +934,41 @@ integration("a scheduled rule judges every event once (#10337)", () => {
       }
     });
 
+    test("a network flow read in whole five-minute windows: the event at its window's start, written when the window is read, is matched once", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(0),
+      });
+
+      /*
+       * The flow scan reads 10:00 to 10:05 once the window has settled a
+       * minute: the flow at 10:00:00 is written at 10:06, six minutes on.
+       */
+      arrive(
+        {
+          uid: "flow-at-window-start",
+          time: at(10),
+          arrivesAt: at(16),
+          principalIp: "192.0.2.10",
+        },
+        {
+          uid: "flow-at-window-end",
+          time: at(14, 59),
+          arrivesAt: at(16),
+          principalIp: "192.0.2.10",
+        },
+      );
+
+      await runMinutes(1, 25);
+
+      expect(judgedUids(rule)).toEqual([
+        "flow-at-window-end",
+        "flow-at-window-start",
+      ]);
+      expect(judgedAtMinute(rule, "flow-at-window-start")).toBe(18);
+    });
+
     test("an event that arrives within a day of when it happened is judged; one a day and more late is not", async () => {
       const rule: DetectionRule = addRule({
         name: "Any failed sign-in",
