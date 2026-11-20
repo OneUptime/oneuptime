@@ -166,6 +166,16 @@ const STORAGE: string = view("Storage.tsx");
 const INSIGHTS: string = view("Insights.tsx");
 
 const BACKUPS_CARD: string = component("ProxmoxBackupsCard.tsx");
+// The inventory read every Proxmox page makes.
+const RESOURCE_UTILS: string = readCode(
+  path.join(
+    DASHBOARD_SRC,
+    "Pages",
+    "Proxmox",
+    "Utils",
+    "ProxmoxResourceUtils.ts",
+  ),
+);
 const COLUMNS: string = component("ProxmoxResourceColumns.ts");
 const PART_HERO: string = component(path.join("Part", "ProxmoxPartHero.tsx"));
 const NODE_OVERVIEW: string = component(
@@ -858,6 +868,36 @@ describe("cluster overview: counts of what is wrong open which, and why", () => 
     );
     expect(pill).toContain("tone: getResourceAttentionTone(data.items),");
     expect(pill).toContain("hint: PROXMOX_GUESTS_HINT,");
+  });
+
+  /*
+   * #10017: each guest that should be running says who or what stopped it,
+   * and when, from the task log the Proxmox AI agent reads: the Overview
+   * reads the columns it is kept in, and words the rows' explanations in
+   * the reader's language.
+   */
+  test("the guests that should be running say who or what stopped them: the columns are read, the explanations worded", () => {
+    const call: string = between(
+      OVERVIEW,
+      "return inventory && isClusterConnected ? getProxmoxProblemItems({",
+      "})",
+    );
+    expect(call).toContain("translator: translator,");
+
+    const select: string = between(
+      RESOURCE_UTILS,
+      "const INVENTORY_SELECT: Record<string, boolean> = {",
+      "};",
+    );
+    for (const column of [
+      "lastPowerTaskType",
+      "lastPowerTaskUser",
+      "lastPowerTaskStatus",
+      "lastPowerTaskAt",
+      "powerTaskReadAt",
+    ]) {
+      expect(select).toContain(`${column}: true,`);
+    }
   });
 
   test("an HA chip in error or fence opens its resources; the calm states stay words", () => {

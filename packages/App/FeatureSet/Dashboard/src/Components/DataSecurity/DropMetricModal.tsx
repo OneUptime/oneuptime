@@ -53,11 +53,14 @@ import React, {
  *  - what reads those metrics and so gets no new data (#9946): monitors,
  *    dashboards with the widgets on them that read them, SLOs and recording
  *    rules, each kind saying plainly what happens to it and each record a
- *    link - a recording rule's to its list, filtered to it. Records the
- *    reader may not see are counted ("2 more you can't see"), never
- *    named. Or that none does, or that a kind could not be checked. Listed
- *    as More Metrics' Remove lists what reads a cloud metric, by the one
- *    list of what reads a metric (MetricReadersList, #10107);
+ *    link - a recording rule's to its list, filtered to it, and a widget's
+ *    to its dashboard opened at it (#10084). Under a recording rule, what
+ *    reads its output metric, which no longer includes them either, on
+ *    down the chain (#10085). Records the reader may not see are counted
+ *    ("2 more you can't see"), never named. Or that none does, or that a
+ *    kind could not be checked. Listed as More Metrics' Remove lists what
+ *    reads a cloud metric, by the one list of what reads a metric
+ *    (MetricReadersList, #10107);
  *  - that what is stored already is not deleted;
  *  - and how to undo it: delete the rule.
  *
@@ -369,6 +372,7 @@ const DropMetricModal: FunctionComponent<ComponentProps> = (
         isChecked: impact.recordingRulesChecked,
         words: READER_KIND_WORDS.recordingRules,
         dataTestId: "data-security-drop-metric-recording-rules",
+        hiddenOutputReaders: impact.recordingRulesHiddenOutputReaders,
       },
     ];
     const isAnyRead: boolean = kinds.some(isMetricReaderGroupShown);

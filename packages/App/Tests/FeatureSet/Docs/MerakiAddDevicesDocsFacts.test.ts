@@ -284,6 +284,29 @@ describe("Network Traffic: Add devices, held to the code", () => {
     );
   });
 
+  it("starts each device with its serial number and MAC from Meraki, adds a site only for a network a device goes into, and says each reason once (#10188)", () => {
+    const runner: string = readRepoFile(DEVICE_ADD_RUNNER);
+    // A site as its first device is added, and one left empty taken away.
+    expect(runner).toContain("NetworkControllerDeviceAddRunner.getSiteIdOf");
+    expect(runner).toContain(
+      "NetworkControllerDeviceAddRunner.removeSitesLeftEmpty",
+    );
+    // Failures counted by reason.
+    expect(runner).toContain("addNetworkControllerDeviceAddFailure");
+    // The serial number and the MAC written as OneUptime's.
+    expect(
+      readRepoFile(
+        "Common/Server/Utils/NetworkController/NetworkControllerDeviceAdd.ts",
+      ),
+    ).toContain(
+      "ServerSetColumns.set(device, {\n    serialNumber: data.device.serial,\n    macAddress: data.device.mac || undefined,\n  });",
+    );
+
+    expect(englishParagraph(NOTHING_TWICE_PARAGRAPH)).toContain(
+      "Each device starts with the serial number and MAC address Meraki lists for it, a site is added only for a network a device goes into, and the row gives each reason a device could not be added once, with how many devices it kept out.",
+    );
+  });
+
   it("is for project owners and admins, as reading a connection is", () => {
     const update: Array<Permission> =
       new NetworkControllerConnection().getUpdatePermissions();

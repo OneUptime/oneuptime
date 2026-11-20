@@ -9,7 +9,13 @@ import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus from "Common/Types/Marketplace/MarketplaceSubscriptionStatus";
 import VercelInstallationStatus from "Common/Types/Marketplace/VercelInstallationStatus";
 import ObjectID from "Common/Types/ObjectID";
+import ProductKey from "Common/Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  ServerProductsOff,
+} from "Common/Types/Product/ServerProducts";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import MarketplaceSubscriptionService from "Common/Server/Services/MarketplaceSubscriptionService";
 import MarketplacePurchases from "../../../../Server/CloudMarketplace/MarketplacePurchases";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -26,6 +32,7 @@ import VercelMarketplaceResources, {
   ProvisionedVercelResource,
 } from "../../../../Server/CloudMarketplace/Vercel/VercelMarketplaceResources";
 import logger from "Common/Server/Utils/Logger";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -33,7 +40,8 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * and status page - each only once, however often Vercel asks - given new
  * secrets, and deleted after its final usage is billed. Deleting its
  * project in OneUptime deletes it on Vercel, and changing the project's
- * plan changes it there.
+ * plan changes it there. While the server has Status Pages switched off,
+ * the resource is made without its status page (#10251).
  */
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
@@ -149,6 +157,31 @@ const STATUS_PAGE_ID: ObjectID = ObjectID.generate();
 
 const growth: () => SubscriptionPlan = (): SubscriptionPlan => {
   return VercelMarketplacePlans.findPlan("growth")!;
+};
+
+/*
+ * What is switched off on the server (Admin Dashboard > Settings >
+ * Products), as a server with its database reads it. The other tests run
+ * without a database, where nothing is off.
+ */
+const switchOff: (products: Array<ProductKey>) => void = (
+  products: Array<ProductKey>,
+): void => {
+  jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+  jest.spyOn(ServerProducts, "getOff").mockResolvedValue(
+    Object.fromEntries(
+      products.map(
+        (product: ProductKey): [ProductKey, ServerProductOffReason] => {
+          return [product, ServerProductOffReason.SwitchedOff];
+        },
+      ),
+    ) as ServerProductsOff,
+  );
+};
+
+// What the log says after what was not made, while a product is switched off.
+const switchedOff: (title: string) => string = (title: string): string => {
+  return `${title} is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.`;
 };
 
 const installation: () => VercelMarketplaceInstallation =
@@ -376,6 +409,139 @@ describe("VercelMarketplaceResources.provision", () => {
 
     expect(provisioned.secrets.length).toBeGreaterThan(0);
     expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+describe("VercelMarketplaceResources.provision while a product is switched off on the server", () => {
+  const provisionStorefront: (
+    earlier?: MarketplaceSubscription,
+  ) => Promise<ProvisionedVercelResource> = async (
+    earlier?: MarketplaceSubscription,
+  ): Promise<ProvisionedVercelResource> => {
+    return await VercelMarketplaceResources.provision({
+      installation: installation(),
+      purchase: earlier,
+      resourceId: "res_1",
+      productId: "oneuptime",
+      name: "Storefront",
+      metadata: { createStatusPage: true },
+      plan: growth(),
+      ownerUserId: OWNER_ID,
+    });
+  };
+
+  it("makes no status page while Status Pages is switched off, and still provisions the resource", async () => {
+    switchOff([ProductKey.StatusPages]);
+
+    const provisioned: ProvisionedVercelResource = await provisionStorefront();
+
+    expect(StatusPageService.create).not.toHaveBeenCalled();
+
+    // The resource is all there: its purchase, its project, its key and its secrets.
+    expect(MarketplacePurchases.recordPurchase).toHaveBeenCalledTimes(1);
+    expect(MarketplacePurchaseClaim.createProject).toHaveBeenCalledTimes(1);
+    expect(MarketplacePurchases.linkToProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        status: MarketplaceSubscriptionStatus.Active,
+      }),
+    );
+    expect(TelemetryIngestionKeyService.create).toHaveBeenCalledTimes(1);
+    expect(provisioned.secrets).toContainEqual({
+      name: "OTEL_EXPORTER_OTLP_HEADERS",
+      value: `x-oneuptime-token=${KEY_SECRET.toString()}`,
+    });
+    expect(provisioned.purchase.details).toMatchObject({
+      telemetryIngestionKeyId: KEY_ID.toString(),
+    });
+    expect(provisioned.purchase.details).not.toHaveProperty("statusPageId");
+
+    // Logged as a page that could not be made is, with why.
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      `Could not make a status page for the Vercel resource in project ${PROJECT_ID.toString()}: ${switchedOff("Status Pages")}`,
+    );
+  });
+
+  it("makes the status page as before while Status Pages is on, whatever else is off", async () => {
+    switchOff([
+      ProductKey.Monitors,
+      ProductKey.Incidents,
+      ProductKey.Logs,
+      ProductKey.Traces,
+    ]);
+
+    const provisioned: ProvisionedVercelResource = await provisionStorefront();
+
+    expect(StatusPageService.create).toHaveBeenCalledTimes(1);
+    expect(
+      mocked(StatusPageService.create).mock.calls[0]![0].data,
+    ).toMatchObject({
+      projectId: PROJECT_ID,
+      name: "Storefront",
+      isPublicStatusPage: true,
+    });
+    expect(provisioned.purchase.details).toMatchObject({
+      statusPageId: STATUS_PAGE_ID.toString(),
+    });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it("asks only about Status Pages, and only when a status page is to be made", async () => {
+    switchOff([]);
+    const asked: jest.SpyInstance = jest.spyOn(
+      ServerProducts,
+      "getOffReasonOfServerWork",
+    );
+
+    await provisionStorefront();
+
+    expect(asked).toHaveBeenCalledTimes(1);
+    expect(asked).toHaveBeenCalledWith(ProductKey.StatusPages);
+
+    // The team turned the page off: there is nothing to ask about.
+    asked.mockClear();
+
+    await VercelMarketplaceResources.provision({
+      installation: installation(),
+      resourceId: "res_2",
+      productId: "oneuptime",
+      name: "Checkout",
+      metadata: { createStatusPage: false },
+      plan: growth(),
+      ownerUserId: OWNER_ID,
+    });
+
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  it("a provisioning Vercel sends again once Status Pages is on makes the status page, once", async () => {
+    switchOff([ProductKey.StatusPages]);
+
+    const first: ProvisionedVercelResource = await provisionStorefront();
+
+    expect(StatusPageService.create).not.toHaveBeenCalled();
+
+    // The same provisioning again (its Idempotency-Key), with Status Pages switched on.
+    switchOff([]);
+
+    const again: ProvisionedVercelResource = await provisionStorefront(
+      first.purchase,
+    );
+
+    expect(StatusPageService.create).toHaveBeenCalledTimes(1);
+    expect(again.purchase.details).toMatchObject({
+      telemetryIngestionKeyId: KEY_ID.toString(),
+      statusPageId: STATUS_PAGE_ID.toString(),
+    });
+
+    await provisionStorefront(again.purchase);
+
+    // One of each, however often it is asked.
+    expect(StatusPageService.create).toHaveBeenCalledTimes(1);
+    expect(MarketplacePurchases.recordPurchase).toHaveBeenCalledTimes(1);
+    expect(MarketplacePurchaseClaim.createProject).toHaveBeenCalledTimes(1);
+    expect(TelemetryIngestionKeyService.create).toHaveBeenCalledTimes(1);
   });
 });
 

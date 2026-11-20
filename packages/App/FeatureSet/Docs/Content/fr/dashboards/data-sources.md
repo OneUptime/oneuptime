@@ -75,6 +75,7 @@ Pour modifier une source de données plus tard, ouvrez-la depuis la liste. **Mod
 
 Modifiez un tableau de bord, cliquez sur **Ajouter un widget** et choisissez un widget du groupe External Data Sources : un **Graphique**, une **Valeur**, une **Jauge** ou un **Tableau**. Dans ses paramètres :
 
+- **Métriques de ce projet (PromQL)** est la première **Source de données**, et celle par laquelle commence un nouveau widget : du PromQL sur les métriques que votre projet envoie à OneUptime, lues pour les services que vous pouvez lire, comme sur la page [PromQL](/docs/telemetry/promql). Elle n'a besoin d'aucune source de données à elle, et fonctionne donc avec toutes les offres.
 - Choisissez la **Source de données** et écrivez la **Requête**. L'éditeur nomme le langage de requête et montre un exemple pour le type.
 - Dans un graphique, **Ajouter une requête** superpose d'autres requêtes sur les mêmes axes, et **Légende (facultative)** nomme chaque série d'après ses étiquettes : `{{instance}} — errors` écrit l'étiquette `instance` de la série en tête.
 - Pour une valeur ou une jauge, **Réduire** ramène les points à un nombre : la dernière valeur (par défaut), la première, la moyenne, la somme, le minimum ou le maximum. **Unité** ajoute un suffixe, et met à l'échelle les unités connues : `Bytes` s'affiche 1.5 MB, `ms` 2.4 s.

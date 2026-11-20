@@ -25,8 +25,7 @@ const MIGRATION_TIMESTAMP: string = "1809186000000";
 const MIGRATION_BASE_NAME: string = "AddKubernetesDiskReadings";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 // The last migration registered before it.
-const PREVIOUS_MIGRATION: string =
-  "AddServiceAINote1809185918000";
+const PREVIOUS_MIGRATION: string = "AddServiceAINote1809185918000";
 const PREVIOUS_TIMESTAMP: number = 1809185918000;
 
 const BIG_NUMBER_COLUMNS: Array<string> = [

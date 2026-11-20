@@ -101,6 +101,24 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
         req.probe = new ProbeModel(new ObjectIDType(String(req.body.probeId)));
         next();
       },
+      /*
+       * A collection's key checks before its report is parsed (#10222):
+       * nothing here posts a collection's key, so they let it through.
+       */
+      isAuthorizedFromHeadersMiddleware: (
+        _req: unknown,
+        _res: unknown,
+        next: () => void,
+      ): void => {
+        next();
+      },
+      isAuthorizedFromReportOpeningMiddleware: (
+        _req: unknown,
+        _res: unknown,
+        next: () => void,
+      ): void => {
+        next();
+      },
     },
   };
 });

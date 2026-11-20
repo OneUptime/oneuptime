@@ -1,8 +1,10 @@
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
+import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -180,9 +182,13 @@ export function getMonitorGroupStatusItems(data: {
 }
 
 /*
- * The group's monitors, then the open status events of those that are not
- * operational - one read each. A failed read of the events still lists the
- * monitors and their statuses: why is a supplement.
+ * The group's monitors, the statuses they are in, then the open status
+ * events of those that are not operational - one read each. A monitor's
+ * status is read by its id: the group's monitors are read through the
+ * group, and a read through a relation goes one step, never on to the
+ * monitor's status (QueryPermission.checkRelationQueryPermission refuses
+ * the whole read). A failed read of the events still lists the monitors
+ * and their statuses: why is a supplement.
  */
 export async function loadMonitorGroupStatusReason(data: {
   monitorGroupId: ObjectID;
@@ -201,34 +207,70 @@ export async function loadMonitorGroupStatusReason(data: {
           _id: true,
           name: true,
           ...MONITORED_SELECT,
-          currentMonitorStatus: {
-            name: true,
-            isOperationalState: true,
-            isOfflineState: true,
-          },
+          currentMonitorStatusId: true,
         },
       },
       sort: {},
     });
+
+  const statusIds: Array<string> = Array.from(
+    new Set<string>(
+      resources.data
+        .map((resource: MonitorGroupResource): string => {
+          return resource.monitor?.currentMonitorStatusId?.toString() || "";
+        })
+        .filter((statusId: string): boolean => {
+          return Boolean(statusId);
+        }),
+    ),
+  );
+
+  const statusesById: Map<string, MonitorStatus> = new Map<
+    string,
+    MonitorStatus
+  >();
+
+  if (statusIds.length > 0) {
+    const statuses: ListResult<MonitorStatus> =
+      await ModelAPI.getList<MonitorStatus>({
+        modelType: MonitorStatus,
+        query: { _id: new Includes(statusIds) } as Query<MonitorStatus>,
+        limit: statusIds.length,
+        skip: 0,
+        select: {
+          _id: true,
+          name: true,
+          isOperationalState: true,
+          isOfflineState: true,
+        },
+        sort: {},
+      });
+
+    for (const status of statuses.data) {
+      if (status._id) {
+        statusesById.set(status._id.toString(), status);
+      }
+    }
+  }
 
   const monitors: Array<MonitorGroupStatusRow> = resources.data
     .filter((resource: MonitorGroupResource): boolean => {
       return Boolean(resource.monitor);
     })
     .map((resource: MonitorGroupResource): MonitorGroupStatusRow => {
+      const status: MonitorStatus | undefined = statusesById.get(
+        resource.monitor?.currentMonitorStatusId?.toString() || "",
+      );
+
       return {
         monitorId:
           resource.monitor?._id?.toString() ||
           resource.monitorId?.toString() ||
           "",
         name: resource.monitor?.name || "",
-        statusName: resource.monitor?.currentMonitorStatus?.name || "",
-        isOperationalState: Boolean(
-          resource.monitor?.currentMonitorStatus?.isOperationalState,
-        ),
-        isOfflineState: Boolean(
-          resource.monitor?.currentMonitorStatus?.isOfflineState,
-        ),
+        statusName: status?.name || "",
+        isOperationalState: Boolean(status?.isOperationalState),
+        isOfflineState: Boolean(status?.isOfflineState),
         isMonitored: MonitoringOff.isMonitored(resource.monitor),
       };
     });

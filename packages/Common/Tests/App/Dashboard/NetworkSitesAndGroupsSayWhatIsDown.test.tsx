@@ -716,6 +716,11 @@ describe("a group's monitors that are not operational", () => {
   });
 });
 
+/*
+ * A group's monitor as the group's read returns it: its status by id, as a
+ * read through the group reaches no further (the statuses are read beside
+ * it, by their ids).
+ */
 function groupResource(data: {
   id: string;
   name: string;
@@ -728,7 +733,7 @@ function groupResource(data: {
   monitor.name = data.name;
   monitor.isArchived = Boolean(data.isArchived);
   monitor.disableActiveMonitoring = false;
-  monitor.currentMonitorStatus = data.status;
+  monitor.currentMonitorStatusId = new ObjectID(data.status._id!);
 
   const resource: MonitorGroupResource = new MonitorGroupResource();
 
@@ -737,8 +742,29 @@ function groupResource(data: {
   return resource;
 }
 
+// The arguments of the first read of a model.
+function readOf(modelType: unknown): Record<string, any> | undefined {
+  return getListMock.mock.calls
+    .map((call: Array<unknown>): Record<string, any> => {
+      return call[0] as Record<string, any>;
+    })
+    .find((args: Record<string, any>): boolean => {
+      return args["modelType"] === modelType;
+    });
+}
+
 describe("reading a group's why when it is pressed", () => {
-  test("reads its monitors, then the open events of those not operational", async () => {
+  const offline: MonitorStatus = status({
+    name: "Offline",
+    isOperationalState: false,
+    isOfflineState: true,
+  });
+  const operational: MonitorStatus = status({
+    name: "Operational",
+    isOperationalState: true,
+  });
+
+  test("reads its monitors, the statuses they are in, then the open events of those not operational", async () => {
     getListMock.mockImplementation(
       async (args: { modelType: unknown }): Promise<unknown> => {
         if (args.modelType === MonitorGroupResource) {
@@ -747,33 +773,26 @@ describe("reading a group's why when it is pressed", () => {
               groupResource({
                 id: "m-1",
                 name: "Checkout API",
-                status: status({
-                  name: "Offline",
-                  isOperationalState: false,
-                  isOfflineState: true,
-                }),
+                status: offline,
               }),
               groupResource({
                 id: "m-2",
                 name: "Home page",
-                status: status({
-                  name: "Operational",
-                  isOperationalState: true,
-                }),
+                status: operational,
               }),
               groupResource({
                 id: "m-3",
                 name: "Old API",
                 isArchived: true,
-                status: status({
-                  name: "Offline",
-                  isOperationalState: false,
-                  isOfflineState: true,
-                }),
+                status: offline,
               }),
             ],
             count: 3,
           };
+        }
+
+        if (args.modelType === MonitorStatus) {
+          return { data: [offline, operational], count: 2 };
         }
 
         return { data: [], count: 0 };
@@ -789,19 +808,28 @@ describe("reading a group's why when it is pressed", () => {
 
     expect(names(read.items)).toEqual(["Checkout API"]);
 
-    const eventsRead: { query: { monitorId: { values: Array<string> } } } =
-      getListMock.mock.calls
-        .map((call: Array<unknown>): unknown => {
-          return call[0];
-        })
-        .find((args: unknown): boolean => {
-          return (
-            (args as { modelType: unknown }).modelType === MonitorStatusTimeline
-          );
-        }) as { query: { monitorId: { values: Array<string> } } };
+    /*
+     * Through the group, each monitor's status id alone: the server refuses
+     * a read through a relation that goes on to another one.
+     */
+    expect(readOf(MonitorGroupResource)?.["select"]["monitor"]).toEqual({
+      _id: true,
+      name: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+      currentMonitorStatusId: true,
+    });
+
+    // The statuses they are in, each once, by id.
+    expect(readOf(MonitorStatus)?.["query"]["_id"].values).toEqual([
+      offline._id,
+      operational._id,
+    ]);
 
     // Only the monitor that is not operational, and counted.
-    expect(eventsRead.query.monitorId.values).toEqual(["m-1"]);
+    expect(
+      readOf(MonitorStatusTimeline)?.["query"]["monitorId"].values,
+    ).toEqual(["m-1"]);
   });
 
   test("a failed read of the events still lists the monitors", async () => {
@@ -813,15 +841,15 @@ describe("reading a group's why when it is pressed", () => {
               groupResource({
                 id: "m-1",
                 name: "Checkout API",
-                status: status({
-                  name: "Offline",
-                  isOperationalState: false,
-                  isOfflineState: true,
-                }),
+                status: offline,
               }),
             ],
             count: 1,
           };
+        }
+
+        if (args.modelType === MonitorStatus) {
+          return { data: [offline], count: 1 };
         }
 
         throw new Error("You need permission to read status timelines.");
@@ -837,5 +865,34 @@ describe("reading a group's why when it is pressed", () => {
 
     expect(names(read.items)).toEqual(["Checkout API"]);
     expect(read.items[0]?.explanation).toBeUndefined();
+  });
+
+  test("a failed read of the statuses fails the read: without them nothing can be said", async () => {
+    getListMock.mockImplementation(
+      async (args: { modelType: unknown }): Promise<unknown> => {
+        if (args.modelType === MonitorGroupResource) {
+          return {
+            data: [
+              groupResource({
+                id: "m-1",
+                name: "Checkout API",
+                status: offline,
+              }),
+            ],
+            count: 1,
+          };
+        }
+
+        throw new Error("You need permission to read monitor statuses.");
+      },
+    );
+
+    await expect(
+      loadMonitorGroupStatusReason({
+        monitorGroupId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+        translator: ENGLISH,
+        getMonitorRoute: monitorRoute,
+      }),
+    ).rejects.toThrow("You need permission to read monitor statuses.");
   });
 });

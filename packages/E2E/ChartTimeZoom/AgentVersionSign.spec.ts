@@ -6,6 +6,7 @@ import {
   test,
 } from "@playwright/test";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { HOST_COLLECTOR_PINNED_VERSION } from "Common/Types/HostCollector/HostCollector";
 
 /*
  * "If the agent version is outdated, can you please show the sign beside the
@@ -17,7 +18,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * it runs (APP_VERSION in env.js), which a OneUptime agent's version is
  * compared with; the fixture leaves it unset otherwise, as on a dev build.
  * A host's collector is compared with the release the host guide pins
- * (0.161.0), whatever the server's own version.
+ * (HOST_COLLECTOR_VERSION), whatever the server's own version.
  *
  * Network fenced, page errors and requests the fixture does not model fail
  * the test - the sign and the dialog need nothing from the server.
@@ -33,8 +34,20 @@ const SERVER_VERSION: string = "14.0.14";
 
 const OUTDATED_NAME: string = `Agent 1.9.0 is outdated. A newer agent is available: ${SERVER_VERSION}. Show how to upgrade.`;
 
-// The otelcol-contrib release the host guide pins (HOST_COLLECTOR_VERSION).
-const HOST_COLLECTOR_PIN: string = "0.161.0";
+/*
+ * The otelcol-contrib release the host guide pins (0.165.0 since #9902), and
+ * a release after it: its minor one up. Read from Common's pin, which the
+ * host installers carry and the Dashboard's HOST_COLLECTOR_VERSION matches:
+ * this package's image holds Common, not the Dashboard's source, so a spec
+ * importing from App/ does not compile there (docker-build-e2e).
+ */
+const HOST_COLLECTOR_PIN: string = HOST_COLLECTOR_PINNED_VERSION;
+const AFTER_HOST_COLLECTOR_PIN: string = HOST_COLLECTOR_PIN.replace(
+  /^(\d+)\.(\d+)\.\d+$/,
+  (_release: string, major: string, minor: string): string => {
+    return `${major}.${Number(minor) + 1}.0`;
+  },
+);
 const HOST_OUTDATED_NAME: string = `Agent 0.154.0 is outdated. A newer agent is available: ${HOST_COLLECTOR_PIN}. Show how to upgrade.`;
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -295,7 +308,7 @@ test.describe("a host's collector behind the release the host guide pins", () =>
   }: {
     page: Page;
   }) => {
-    for (const version of [HOST_COLLECTOR_PIN, "0.162.0"]) {
+    for (const version of [HOST_COLLECTOR_PIN, AFTER_HOST_COLLECTOR_PIN]) {
       await open(page, `${HOST_PATH}?hostAgentVersion=${version}`);
 
       await expect(page.getByText(version, { exact: true })).toBeVisible({

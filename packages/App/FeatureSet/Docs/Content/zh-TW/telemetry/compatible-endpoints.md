@@ -6,8 +6,8 @@
 - [Prometheus remote write](#prometheus-remote-write): 來自 Prometheus、Grafana Alloy 或任何 remote write 傳送端的指標。
 - [Loki](#loki): 來自 Promtail、Grafana Alloy、Fluent Bit 或 Vector 的日誌。
 - [Splunk HTTP Event Collector](#splunk-http-event-collector): 來自任何 HEC 用戶端的日誌與指標事件。
-- [Datadog Agent](#datadog-agent): 來自 Datadog Agent 的指標與日誌。
-- [Sentry SDK](#sentry-sdk): 來自任何 Sentry SDK 的錯誤、交易與日誌。
+- [Datadog Agent](#datadog-agent): 來自 Datadog Agent 的指標、日誌與 APM 追蹤。
+- [Sentry SDK](#sentry-sdk): 來自任何 Sentry SDK 的錯誤、交易、日誌、cron check-in、意見回饋與效能剖析資料。
 :::
 
 ## 運作方式
@@ -24,7 +24,7 @@ flowchart TB
     end
     tools -->|"各自的協定 + 你的擷取金鑰"| endpoint["OneUptime 相容端點"]
     endpoint --> otlp["儲存為 OpenTelemetry 資料"]
-    otlp --> signals["日誌、指標、追蹤與例外"]
+    otlp --> signals["日誌、指標、追蹤、例外與效能剖析"]
 ```
 
 每個端點都以其工具自己的方式回應：Prometheus 與 Loki 得到 `204`，HEC 得到 `{"text": "Success", "code": 0}`，Datadog 得到 `202`，Sentry 得到事件 ID，因此工具會像以往一樣回報成功與失敗。之後，這些資料的處理方式與來自 OpenTelemetry SDK 的資料完全相同。
@@ -159,7 +159,7 @@ curl https://oneuptime.com/telemetry/services/collector/event \
 
 ## Datadog Agent
 
-將 Agent 的指標與日誌指向 OneUptime，並以你的擷取金鑰作為它的 API 金鑰：
+將 Agent 的指標、日誌與 APM 追蹤指向 OneUptime，並以你的擷取金鑰作為它的 API 金鑰：
 
 ```yaml title="datadog.yaml"
 api_key: YOUR_TELEMETRY_KEY_WITHOUT_HYPHENS
@@ -169,13 +169,14 @@ logs_config:
   use_http: true
   logs_dd_url: oneuptime.com:443
 apm_config:
-  enabled: false
+  enabled: true
+  apm_dd_url: https://oneuptime.com/telemetry/datadog
 process_config:
   process_collection:
     enabled: false
 ```
 
-Agent 會在 `dd_url` 後加上自己的路徑，並將日誌傳送到 `logs_dd_url` 所指定主機與連接埠上的 `/api/v2/logs`。只有對帶有 `DD-API-KEY` 標頭的請求，OneUptime 才會在根路徑上回應這些路徑。修改後重新啟動 Agent；當 OneUptime 接受該 API 金鑰時，`datadog-agent status` 會顯示它有效。
+Agent 會在 `dd_url` 與 `apm_dd_url` 後加上自己的路徑，並將日誌傳送到 `logs_dd_url` 所指定主機與連接埠上的 `/api/v2/logs`。只有對帶有 `DD-API-KEY` 標頭的請求，OneUptime 才會在根路徑上回應這些路徑。修改後重新啟動 Agent；當 OneUptime 接受該 API 金鑰時，`datadog-agent status` 會顯示它有效。
 
 ### Agent 的資料會變成什麼
 
@@ -183,10 +184,22 @@ Agent 會在 `dd_url` 後加上自己的路徑，並將日誌傳送到 `logs_dd_
 - **分佈**（distribution）會變為帶有計數、總和、最小值與最大值的摘要（summary）。
 - **服務檢查** 會變成以該檢查命名的指標，其值為檢查的狀態：0 表示 OK，1 表示警告，2 表示嚴重，3 表示未知。
 - **日誌** 保留訊息、狀態、主機與服務，其餘欄位作為屬性保留。
-- **標籤都是屬性**，`service`、`env` 與 `version` 標籤分別指定服務、其環境與其版本。
-- **尚未讀取：** APM 追蹤、處理程序、容器、網路資料與效能剖析資料。請像上面那樣在 `datadog.yaml` 中將它們關閉。
+- **APM 追蹤** 會出現在「追蹤」中。每個 span 以它的資源命名（`GET /users/:id`、一則查詢），並屬於它的服務；整合為其另取服務名稱的 span（例如 `checkout-postgres`）屬於發出呼叫的服務。它的作業名稱與類型保留為 `datadog.operation_name` 與 `datadog.span_type`。
+- **span 中的錯誤** 會出現在「例外」中，並帶有追蹤器記錄的堆疊追蹤。
+- **標籤都是屬性**，`service`、`env` 與 `version` 標籤分別指定服務、其環境與其版本。span 的 HTTP 標籤與資料庫標籤也會以它們的 OpenTelemetry 名稱寫入：`http.status_code` 寫為 `http.response.status_code`，`db.type` 寫為 `db.system.name`。
+- **尚未讀取：** 處理程序、容器、網路資料與效能剖析資料。請像上面那樣在 `datadog.yaml` 中將它們關閉。Agent 的 APM 統計會被接受但不保留：OneUptime 會根據 span 自行計算。
 
 Datadog 的 HTTP API 用戶端（向 `/api/v2/logs` 傳送 POST 的日誌程式庫、傳送序列的指令碼）也可以帶上 `DD-API-KEY` 標頭，傳送到同一個端點。
+
+### 不經過 Agent
+
+dd-trace-go 可以自己將追蹤傳送到 OneUptime，只需把你的擷取金鑰作為它的 Agent URL 的密碼：
+
+```bash
+DD_TRACE_AGENT_URL=https://oneuptime:YOUR_TELEMETRY_KEY@oneuptime.com/telemetry/datadog
+```
+
+Python 與 Node.js 的追蹤器會去掉 URL 中的路徑與密碼，因此請透過 Agent 傳送它們的追蹤。
 
 ## Sentry SDK
 
@@ -215,15 +228,18 @@ DSN 結尾的 `1` 是 Sentry SDK 所要求的，不會被讀取。瀏覽器應�
 - **錯誤** 會出現在「例外」中，帶有它們的堆疊追蹤與導致它們的例外，並像其他例外一樣分組。每個錯誤都是其追蹤上的一個 span，位於當時處於作用中的 span 之下。
 - **交易** 及其 span 會出現在「追蹤」中。
 - **Sentry 日誌** 以及用 `capture_message` 捕捉的訊息會出現在「日誌」中。
+- **cron check-in** 會出現在「日誌」中，每個 check-in 一筆記錄，監控的 slug 在 `sentry.monitor.slug` 中，狀態在 `sentry.check_in.status` 中。失敗、逾時或錯過的 check-in 以 Error 層級記錄。若要在工作失敗或沒有執行時得知，請針對它的 slug 建立[日誌監控](/docs/monitor/logs-monitor)。
+- **使用者意見回饋** 來自 Sentry 的意見回饋小工具或 `capture_user_feedback`，會出現在「日誌」中，位於傳送它的追蹤裡。它的 `sentry.feedback.associated_event_id` 就是它所涉及錯誤的 `sentry.event_id`。
+- **效能剖析資料** 無論來自交易還是持續效能剖析，都會以掛鐘時間（wall time）剖析的形式出現在「效能剖析」中，並連結到其交易的追蹤。Android 的效能剖析資料尚未讀取。
 - **服務** 取 `service` 標籤，否則取發行版本名稱中 `@` 之前的部分：`checkout@1.4.2` 即 `checkout`。發行版本即服務版本，環境也會保留。
-- **不保留：** 工作階段、重播、附件、效能剖析資料與 check-in。SDK 仍會傳送它們；OneUptime 接受後將其捨棄。
+- **不保留：** 工作階段、重播與附件。SDK 仍會傳送它們；OneUptime 接受後將其捨棄。
 
 ## 限制與擷取預算
 
 - **請求大小**：OneUptime 的輸入端在 `/telemetry` 下接受最大 4 MB 的請求，每個內文解壓縮後最多 64 MB。Prometheus remote write 請求解壓縮後最多 32 MB，最多包含 500,000 個序列、標籤與樣本，因此任何單一請求都無法耗盡伺服器的記憶體。Prometheus 與 Alloy 預設每個請求傳送 2,000 個樣本，遠低於這兩個上限；超過上限的請求會以 `413` 拒絕，此時請調低 `queue_config` 中的 `max_samples_per_send`。
 - **Loki push**：一次 push 解壓縮後最多 32 MB，最多包含 500,000 個項目、標籤與結構化中繼資料，其中日誌串流的標籤按它的每個項目各計一次。Promtail 與 Alloy 預設傳送 1 MB 的批次，遠低於這兩個上限；超過上限的 push 會以 `413` 拒絕，此時請調低用戶端的批次大小。
-- **JSON 與 Datadog 承載**：JSON 內文最多包含 1,000,000 個值（物件、陣列、字串與數字），Datadog Agent 的 protobuf 承載最多包含 500,000 個序列、資料點、標籤與 sketch。兩者都會在讀取前計數，超過上限的請求會以 `413` 拒絕。
-- **擷取預算**：Prometheus remote write 與 Loki 在讀取內文之前，就會對照指標或日誌預算進行檢查，預算用完時以 `403` 拒絕。之後，每個請求都會像 OTLP 請求一樣按解壓縮後的大小計入，也會計入團隊或標籤的預算。HEC 批次、Datadog 承載或 Sentry 信封可能帶有多種訊號，因此每種訊號會在儲存時計入它自己的預算，並在該預算用完時遭到捨棄：HEC 批次中的日誌與指標事件分攤它的大小，Sentry 信封按 OneUptime 保留的項目計入，而不計入它的附件、重播或效能分析資料。
+- **JSON、MessagePack 與 Datadog 承載**：JSON 或 MessagePack 內文最多包含 1,000,000 個值（物件、陣列、字串與數字），Datadog Agent 的 protobuf 承載最多包含 500,000 個序列、資料點、span、標籤與 sketch。它們都會在讀取前計數，超過上限的請求會以 `413` 拒絕。
+- **擷取預算**：Prometheus remote write 與 Loki 在讀取內文之前，就會對照指標或日誌預算進行檢查，預算用完時以 `403` 拒絕。之後，每個請求都會像 OTLP 請求一樣按解壓縮後的大小計入，也會計入團隊或標籤的預算。HEC 批次、Datadog 承載或 Sentry 信封可能帶有多種訊號，因此每種訊號會在儲存時計入它自己的預算，並在該預算用完時遭到捨棄：HEC 批次中的日誌與指標事件分攤它的大小，Sentry 信封中的每個項目計入它自己的訊號——效能剖析資料計入效能剖析預算，check-in 與意見回饋計入日誌預算——而不保留的附件、重播與工作階段不計入任何預算。
 
 ## 疑難排解
 
@@ -238,6 +254,10 @@ Sentry SDK 會拒絕金鑰中含有連字號的 DSN。請將金鑰寫成不含�
 ### Datadog 指標有送達，但日誌沒有
 
 檢查 `logs_config.use_http` 是否為 `true`，以及 `logs_config.logs_dd_url` 是否為主機與連接埠，而不是 URL。未設定 `use_http` 時，Agent 會透過 TCP 傳送日誌。
+
+### Datadog 日誌沒有連結到它的追蹤
+
+追蹤器只將追蹤 ID 的低 64 位元寫入了日誌。請在追蹤器上設定 `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED=true`，讓它寫入完整的 ID。
 
 ### Prometheus 回報 415
 

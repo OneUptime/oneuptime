@@ -1082,8 +1082,15 @@ describe("website and API checks", () => {
   );
 
   it("the API page says a JSON body is matched in its compact form", () => {
+    /*
+     * redact takes out only the one-time codes the check made, one asterisk
+     * per digit, so the body is still the compact JSON.
+     */
     expect(readRepoFile(PROBE_API_FILE)).toContain(
-      "responseBody: JSON.stringify(result.data || {}),",
+      "responseBody: redact(JSON.stringify(result.data || {})),",
+    );
+    expect(readRepoFile(PROBE_API_FILE)).toContain(
+      "return totpCodes ? totpCodes.redact(value) : value;",
     );
     expect(JSON.stringify({ status: "ok" })).toBe('{"status":"ok"}');
     expect(englishPage(API)).toContain(

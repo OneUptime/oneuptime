@@ -24,6 +24,12 @@ export interface EventRole {
 
 // Somebody holding one of those roles on the record.
 export interface EventRoleMember {
+  /*
+   * The row that gives them the role: what the header's commander hands on
+   * (#10195), the row then naming someone else. Empty for a member the
+   * header named before the roles card read the record again.
+   */
+  memberId?: string | undefined;
   roleId: string;
   userId: string;
   name: string;
@@ -44,6 +50,7 @@ export interface EventRolesSnapshot {
  * reads it.
  */
 export interface EventRoleMemberRow {
+  _id?: { toString: () => string } | string | undefined | null;
   incidentRoleId?: { toString: () => string } | undefined | null;
   userId?: { toString: () => string } | undefined | null;
   user?:
@@ -61,6 +68,7 @@ export const toEventRoleMember: (row: EventRoleMemberRow) => EventRoleMember = (
   row: EventRoleMemberRow,
 ): EventRoleMember => {
   return {
+    memberId: row._id?.toString() || undefined,
     roleId: row.incidentRoleId?.toString() || "",
     userId: row.userId?.toString() || "",
     name: row.user?.name?.toString().trim() || "",
@@ -117,6 +125,46 @@ export interface PickedEventPerson {
   hasProfilePicture?: boolean | undefined;
 }
 
+// The member a picked person stands for: their name, or their email.
+const toMemberOf: (data: {
+  roleId: string;
+  person: PickedEventPerson;
+  memberId?: string | undefined;
+}) => EventRoleMember = (data: {
+  roleId: string;
+  person: PickedEventPerson;
+  memberId?: string | undefined;
+}): EventRoleMember => {
+  const email: string | undefined =
+    data.person.description?.trim() || undefined;
+  const name: string = data.person.name.trim();
+
+  return {
+    ...(data.memberId ? { memberId: data.memberId } : {}),
+    roleId: data.roleId,
+    userId: data.person.id,
+    // A person without a name is listed by their email: named by it.
+    name: name && name !== email ? name : "",
+    email: email,
+    hasProfilePicture: Boolean(data.person.hasProfilePicture),
+  };
+};
+
+// Whether two members are the same row: by its id, else by role and person.
+const isSameRoleMember: (
+  first: EventRoleMember,
+  second: EventRoleMember,
+) => boolean = (first: EventRoleMember, second: EventRoleMember): boolean => {
+  if (first.memberId && second.memberId) {
+    return first.memberId.toLowerCase() === second.memberId.toLowerCase();
+  }
+
+  return (
+    first.roleId === second.roleId &&
+    first.userId.toLowerCase() === second.userId.toLowerCase()
+  );
+};
+
 /*
  * The roles as they are once the header's Assign gave one to `person`: the
  * same, with them holding it - so the header names them the moment the
@@ -149,23 +197,61 @@ export const withRoleGiven: (data: {
     return data.snapshot;
   }
 
-  const email: string | undefined =
-    data.person.description?.trim() || undefined;
-  const name: string = data.person.name.trim();
-
   return {
     roles: data.snapshot.roles,
     members: [
       ...data.snapshot.members,
-      {
-        roleId: data.roleId,
-        userId: data.person.id,
-        // A person without a name is listed by their email: named by it.
-        name: name && name !== email ? name : "",
-        email: email,
-        hasProfilePicture: Boolean(data.person.hasProfilePicture),
-      },
+      toMemberOf({ roleId: data.roleId, person: data.person }),
     ],
+  };
+};
+
+/*
+ * The roles as they are once the header handed one on from `member` to
+ * `person` (Reassign, #10195): the same, with the person in that member's
+ * place - the same row, naming someone else - so the header names them the
+ * moment the role is handed on, before the roles card has read the record
+ * again and says the same. A member the snapshot no longer holds, or
+ * another record's roles, are left as they are.
+ */
+export const withRoleReassigned: (data: {
+  snapshot: EventRolesSnapshot | undefined;
+  member: EventRoleMember;
+  person: PickedEventPerson;
+}) => EventRolesSnapshot | undefined = (data: {
+  snapshot: EventRolesSnapshot | undefined;
+  member: EventRoleMember;
+  person: PickedEventPerson;
+}): EventRolesSnapshot | undefined => {
+  if (!data.snapshot) {
+    return data.snapshot;
+  }
+
+  let isHandedOn: boolean = false;
+
+  const members: Array<EventRoleMember> = data.snapshot.members.map(
+    (member: EventRoleMember): EventRoleMember => {
+      if (isHandedOn || !isSameRoleMember(member, data.member)) {
+        return member;
+      }
+
+      isHandedOn = true;
+
+      return toMemberOf({
+        roleId: member.roleId,
+        person: data.person,
+        memberId: member.memberId,
+      });
+    },
+  );
+
+  if (!isHandedOn) {
+    return data.snapshot;
+  }
+
+  return {
+    roles: data.snapshot.roles,
+    members: members,
   };
 };
 

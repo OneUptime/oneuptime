@@ -89,10 +89,16 @@ const CloudResourceMetrics: FunctionComponent<
           // What its rows add up: a namespace's metrics, one per queue.
           cloudProvider: true,
           cloudResourceType: true,
-          // What its connection reads for it besides its key metrics.
+          /*
+           * What its connection reads for it besides its key metrics, and
+           * how often: a metric that comes once an hour is missing only
+           * past its delay (#10026).
+           */
           cloudConnectionId: true,
           cloudConnection: {
             addedMetrics: true,
+            provider: true,
+            config: true,
           },
         },
       });
@@ -229,6 +235,7 @@ const CloudResourceMetrics: FunctionComponent<
     cloudResource?.cloudProvider,
     cloudResource?.cloudResourceType,
     cloudResource?.telemetryAttributes,
+    cloudResource?.cloudConnection?.config,
   ]);
 
   const renderRowGroupGap: (gap: MetricRowGroupGap) => ReactElement =

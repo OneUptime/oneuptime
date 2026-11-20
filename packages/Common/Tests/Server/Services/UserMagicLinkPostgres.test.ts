@@ -13,7 +13,15 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 import { DataSource } from "typeorm";
+
+/*
+ * Whether a person's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts): here it
+ * lets everyone through, as in UserServiceNewPasswordEndsLinks.test.ts.
+ */
+jest.mock("../../../Server/Utils/SsoManagedSignIn");
 
 /*
  * AN ACCOUNT'S SIGN-IN LINKS, AGAINST POSTGRES
@@ -155,6 +163,12 @@ describePostgres("an account's sign-in links against Postgres", () => {
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
+
+    /*
+     * A new password from the profile waits for the session to confirm it's
+     * its person's (#10155): every session here has.
+     */
+    confirmEverySession();
 
     // The rest of what a new password does: tables and servers not cloned here.
     jest

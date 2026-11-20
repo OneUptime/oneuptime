@@ -122,7 +122,8 @@ const PAGES = [
     // 2026-11-04: 1,059,516 bytes, loading browser telemetry only where it is configured (#5619).
     // 2026-11-04: 967,395 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-16: 927,460 bytes (982,809 on main that day, 0.2 KiB under 960 KiB), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
-    ceiling: 925 * KIB,
+    // 2026-11-20: 952,251 bytes, and the ceiling raised to about 2% above it. Since 17.0.0 (946,666 bytes) the page loads tzdata 2026f (moment-timezone 0.6.6, #9999), which every time it shows is converted with - 1.1 KiB, enough alone to take it over 925 KiB; the models its pages read, and those they name, grown with the features since (a Kubernetes node's disk, new settings of monitors, projects and teams, and their permissions: 2.6 KiB); and the layer every tooltip is drawn on (#9769), the words for a name a project already has (#9674) and the Android mark (1.8 KiB).
+    ceiling: 950 * KIB,
   },
   {
     frontend: "PublicDashboard",

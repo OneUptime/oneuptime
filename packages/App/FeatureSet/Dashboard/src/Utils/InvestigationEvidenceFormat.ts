@@ -856,6 +856,39 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "add_to_on_call_policy",
+    {
+      description: "Added people to an on-call policy",
+      icon: IconProp.Call,
+      category: "On-call",
+    },
+  ],
+  [
+    "set_how_to_reach_me",
+    {
+      // What it did: "Set how pages reach you" is the card's, what it will do.
+      description: "Changed how pages reach you",
+      icon: IconProp.Notification,
+      category: "On-call",
+    },
+  ],
+  [
+    "invite_people",
+    {
+      description: "Invited people to this project",
+      icon: IconProp.UserPlus,
+      category: "Teams",
+    },
+  ],
+  [
+    "set_up_service_monitor",
+    {
+      description: "Created a recommended monitor",
+      icon: IconProp.Heartbeat,
+      category: "Monitors",
+    },
+  ],
+  [
     "who_is_told",
     {
       description: "Checked who is told",

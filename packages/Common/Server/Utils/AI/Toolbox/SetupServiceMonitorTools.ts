@@ -32,6 +32,7 @@ import MonitorRecommendationCreateUtil, {
 import { MonitorRecommendation } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorRecommendationUtil from "../../../../Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import ObjectID from "../../../../Types/ObjectID";
+import PromptText from "../../../../Utils/AI/PromptText";
 import Permission from "../../../../Types/Permission";
 import {
   RecommendedService,
@@ -594,7 +595,7 @@ export const SetUpServiceMonitorTool: ObservabilityTool = {
     const monitorName: string = created.name || reading.plan.monitorName;
 
     return {
-      dataForLlm: `Created the monitor "${monitorName}" for the service "${reading.plan.service.name}": the "${reading.plan.recommendation.name}" monitor its Recommendations tab recommends (${reading.plan.recommendation.description}). It opens an alert for the team, never an incident on a status page; who is told is the project's on-call rules for alerts, which who_is_told answers. To show customers instead, the person switches the monitor to open an incident.`,
+      dataForLlm: `Created the monitor "${monitorName}" for the service "${reading.plan.service.name}": the "${reading.plan.recommendation.name}" monitor its Recommendations tab recommends (${PromptText.field(reading.plan.recommendation.description)}). It opens an alert for the team, never an incident on a status page; who is told is the project's on-call rules for alerts, which who_is_told answers. To show customers instead, the person switches the monitor to open an incident.`,
       rowCount: 1,
       ...citationSentence(AI_TOOL_CITATIONS.setUpMonitor, {
         name: monitorName,

@@ -652,8 +652,13 @@ test.describe("a cloud of several regions", () => {
     await expect(
       page.getByTestId("openstack-needs-attention"),
     ).not.toContainText("RegionOne");
+    // The Regions card says which region the page reads, on that region's link.
     await expect(
-      page.locator('[data-testid="openstack-regions-card-item"][aria-current]'),
+      page.getByTestId("openstack-regions-card-item").filter({
+        has: page.locator(
+          '[data-testid="openstack-regions-card-name"][aria-current="true"]',
+        ),
+      }),
     ).toHaveAttribute("data-region", "RegionTwo");
     // Projects are Keystone's, so a region has all of them.
     await expect(

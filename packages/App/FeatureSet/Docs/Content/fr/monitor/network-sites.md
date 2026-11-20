@@ -42,6 +42,8 @@ Les sites forment une arborescence. Chaque site a un **Type de site** et un site
 
 Le type, le nom, la description, le parent et l'emplacement d'un site se modifient à un seul endroit : la carte **Site Settings** de la page **Paramètres** du site. L'aperçu du site les affiche avec un lien **Modifier dans les paramètres**, et la liste **Sites** ajoute des sites mais ne les modifie pas.
 
+Les sites qui ne contiennent rien partent en une fois : **Supprimer les sites vides**, dans le menu en haut de la liste **Sites**, liste chaque site sans équipements (archivés compris), sans sites en dessous et sans point de terminaison, lien, règle ou événement de maintenance qui l’utilise. Il nomme les dix premiers et supprime, une fois que vous confirmez, exactement les sites listés : un site qui reçoit un équipement entre-temps est conservé. Il est réservé à qui peut supprimer des sites.
+
 Chaque équipement est rattaché à un site. Le sous-arbre d'un site, c'est le site lui-même plus chaque site en dessous, et la santé du site est agrégée à partir des équipements de ce sous-arbre, si bien qu'une région sans équipements propres a quand même un statut, parce que les unités en dessous en ont un.
 
 > [!NOTE]

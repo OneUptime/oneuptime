@@ -45,6 +45,7 @@ import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -391,5 +392,7 @@ createRoot(document.getElementById("root")).render(
         <PageRoute index element={<Page />} />
       </PageRoute>
     </Routes>
+    {/* Where the app's notes are drawn, as its root draws them (src/Index.tsx). */}
+    <ToastRegion />
   </BrowserRouter>,
 );

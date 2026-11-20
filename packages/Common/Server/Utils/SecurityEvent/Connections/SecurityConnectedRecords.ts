@@ -1470,7 +1470,17 @@ export default class SecurityConnectedRecords {
     for (const member of members || []) {
       const id: string = member.userId?.toString() || "";
       const user: User | undefined = usersById.get(id);
-      const email: string = user?.email?.toString() || "";
+      /*
+       * Matched by the address the project sees (#10175): someone only
+       * invited by the one they were invited at, so an event that names the
+       * address their account has moved to connects nobody, and does not
+       * tell the project whose address it is.
+       */
+      const email: string = PendingInviteeProfiles.getAddressInProject({
+        userId: id,
+        email: user?.email,
+        withheld: withheld,
+      });
       const entity: SecurityEntity | undefined = entityByEmail.get(
         foldConnectionValue(email),
       );

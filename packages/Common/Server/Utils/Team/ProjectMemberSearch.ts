@@ -203,7 +203,10 @@ export default class ProjectMemberSearch {
     /*
      * Someone only invited is not found by their account's own name, which
      * the project does not see until they join (#9823, PendingInviteeProfiles
-     * narrows the reads above), but by the name typed for them.
+     * narrows the reads above), but by the name typed for them - and by the
+     * address they were invited at, never the one their account has moved
+     * to (#10175: the read by email above is held to the address each row
+     * shows).
      */
     const readInvitedByTypedName: () => Promise<
       Array<TeamMember>

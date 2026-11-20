@@ -26,11 +26,23 @@ import {
   findSloMetricReferences,
   METRIC_READER_KINDS,
   MetricNameReference,
+  MetricReader,
   MetricReaderKind,
   MetricReaders,
   MetricReadersOfKind,
   MetricReaderWidget,
 } from "../../../../Server/Utils/Telemetry/MetricReaders";
+import {
+  countMetricOutputReaders,
+  getEmptyMetricOutputReaders,
+  isMetricOutputReadersEmpty,
+  MAX_OUTPUT_METRIC_DEPTH,
+  METRIC_OUTPUT_READER_KIND_KEYS,
+  MetricOutputReader,
+  MetricOutputReaders,
+  MetricOutputReadersOfKind,
+  readMetricOutputReaders,
+} from "../../../../Types/Metrics/MetricOutputReaders";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -390,6 +402,63 @@ describe("what a record reads", () => {
         components: [chartOf("x".repeat(5000), LEAKED)],
       }).widgets[0]!.widget.title,
     ).toHaveLength(200);
+  });
+
+  /*
+   * #4571: a dashboard's config is read as every board reads it
+   * (StoredDashboardViewConfig) - one written in the envelope the API
+   * reference documented, its widget list or a widget as JSON text, a
+   * widget's arguments as JSON text - so a widget a board draws is never
+   * missed here.
+   */
+  test("a dashboard stored in any shape a board reads is read widget by widget too", () => {
+    const chartId: string = ObjectID.generate().toString();
+    const valueId: string = ObjectID.generate().toString();
+    const chart: Record<string, unknown> = chartOf("Signups", LEAKED, chartId);
+    const value: Record<string, unknown> = {
+      componentType: "Value",
+      componentId: valueId,
+      // Arguments encoded twice.
+      arguments: JSON.stringify({
+        title: "Errors",
+        metricQueryConfig: metricQuery("errors"),
+      }),
+    };
+    const widgets: Array<MetricReaderWidget> = [
+      { id: chartId, title: "Signups", type: "Chart" },
+      { id: valueId, title: "Errors", type: "Value" },
+    ];
+
+    for (const stored of [
+      // The envelope, with a widget as JSON text.
+      {
+        _type: "DashboardViewConfig",
+        value: { components: [JSON.stringify(chart), value] },
+      },
+      // The widget list as JSON text, the whole config as JSON text.
+      JSON.stringify({ components: JSON.stringify([chart, value]) }),
+      // A bare widget list.
+      [chart, value],
+    ]) {
+      const found: DashboardMetricReferences =
+        findDashboardMetricReferences(stored);
+
+      expect(
+        found.widgets.map(
+          (entry: { widget: MetricReaderWidget }): MetricReaderWidget => {
+            return entry.widget;
+          },
+        ),
+      ).toEqual(widgets);
+      expect(found.widgets[0]!.references).toEqual([
+        { metricName: LEAKED, serviceIds: null },
+      ]);
+      expect(found.widgets[1]!.references).toEqual([
+        { metricName: "errors", serviceIds: null },
+      ]);
+      // Nothing of the widgets is read as the dashboard's own.
+      expect(found.dashboard).toEqual([]);
+    }
   });
 
   test("a Metric SLO: its metric, of its own services - no other kind of SLO, and none of no service", () => {
@@ -1072,5 +1141,846 @@ describe("the references that read it, when asked for", () => {
         expect(reader.references).toBeUndefined();
       }
     }
+  });
+});
+
+/*
+ * #10085: WHAT READS A RECORDING RULE'S OUTPUT METRIC, DOWN THE CHAIN.
+ *
+ * A recording rule that reads what is taken away computes its output
+ * metric without it, so whatever reads that output - a monitor, a
+ * dashboard's widget, a Metric SLO, another recording rule - gets less from
+ * it, one step further on. Asked to (followsOutputMetrics), the lookup
+ * names them under the rule, and follows the rules among them on: each
+ * record once, at the first place met (a dashboard once per widget), a
+ * chain that closes on itself ending there, three output metrics down at
+ * most. As everywhere, what the person may not read is counted, never
+ * named - a rule they may not read is still followed, what reads its
+ * output named under its count - and a kind that could not be read is
+ * neither named nor counted down the chain.
+ */
+describe("what reads a recording rule's output metric, down the chain", () => {
+  function monitorReading(
+    name: string,
+    metricName: string,
+    serviceIds?: Array<string>,
+  ): Monitor {
+    const monitor: Monitor = new Monitor(ObjectID.generate());
+
+    monitor.name = name;
+    (monitor as unknown as { monitorSteps: unknown }).monitorSteps = {
+      monitorStepsInstanceArray: [
+        {
+          data: {
+            metricMonitor: {
+              metricViewConfig: {
+                queryConfigs: [metricQuery(metricName, serviceIds)],
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    return monitor;
+  }
+
+  function serveAll(visible?: {
+    monitors?: ((monitor: Monitor) => boolean) | Error;
+    dashboards?: ((dashboard: Dashboard) => boolean) | Error;
+    slos?: ((slo: ServiceLevelObjective) => boolean) | Error;
+    rules?: ((rule: MetricRecordingRule) => boolean) | Error;
+  }): void {
+    jest.restoreAllMocks();
+    serve(MonitorService, {
+      all: monitors,
+      ...(visible?.monitors ? { visible: visible.monitors } : {}),
+    });
+    serve(DashboardService, {
+      all: dashboards,
+      ...(visible?.dashboards ? { visible: visible.dashboards } : {}),
+    });
+    serve(ServiceLevelObjectiveService, {
+      all: slos,
+      ...(visible?.slos ? { visible: visible.slos } : {}),
+    });
+    serve(MetricRecordingRuleService, {
+      all: rules,
+      ...(visible?.rules ? { visible: visible.rules } : {}),
+    });
+  }
+
+  async function follow(): Promise<MetricReaders> {
+    return await findMetricReaders({
+      projectId: PROJECT_ID,
+      reads: readsLeak,
+      props: PROPS,
+      followsOutputMetrics: true,
+    });
+  }
+
+  function ruleNamed(name: string): MetricRecordingRule {
+    return rules.find((rule: MetricRecordingRule): boolean => {
+      return rule.name === name;
+    })!;
+  }
+
+  function namesOf(ofKind: MetricOutputReadersOfKind): Array<string> {
+    return ofKind.readers.map((reader: MetricOutputReader): string => {
+      return reader.name;
+    });
+  }
+
+  // The first recording rule the drop empties, as named.
+  function firstRule(found: MetricReaders): MetricReader {
+    return found[MetricReaderKind.MetricRecordingRule].readers[0]!;
+  }
+
+  test("a rule that reads it names what reads its output metric, of every kind and every service", async () => {
+    const dailyWidgetId: string = ObjectID.generate().toString();
+
+    monitors.push(
+      // Of another service: the rule writes its output for the project.
+      monitorReading("Signup rate alert", "signup_rate", [PAYMENTS]),
+      monitorReading("Orders", "orders"),
+    );
+    dashboards.push(
+      dashboardOf("Growth trends", [
+        chartOf("Signup rate", "signup_rate", dailyWidgetId),
+        chartOf("Orders", "orders"),
+      ]),
+    );
+    slos.push(
+      sloOf({
+        name: "Signup rate budget",
+        metricName: "signup_rate",
+        serviceIds: [CHECKOUT],
+      }),
+    );
+    rules.push(
+      recordingRuleOf({
+        name: "Signup rate daily",
+        outputMetricName: "signup_rate_daily",
+        metricNames: ["signup_rate"],
+      }),
+    );
+    serveAll();
+
+    const rule: MetricReader = firstRule(await follow());
+
+    expect(rule.name).toBe("Signup rate");
+    expect(rule.outputReaders).toEqual({
+      monitors: {
+        readers: [
+          {
+            id: monitors[2]!.id!.toString(),
+            name: "Signup rate alert",
+          },
+        ],
+        hidden: 0,
+      },
+      dashboards: {
+        readers: [
+          {
+            id: dashboards[1]!.id!.toString(),
+            name: "Growth trends",
+            // Only the widget that reads it, by the id the board draws it under.
+            widgets: [
+              { id: dailyWidgetId, title: "Signup rate", type: "Chart" },
+            ],
+          },
+        ],
+        hidden: 0,
+      },
+      slos: {
+        readers: [{ id: slos[1]!.id!.toString(), name: "Signup rate budget" }],
+        hidden: 0,
+      },
+      recordingRules: {
+        readers: [
+          {
+            id: ruleNamed("Signup rate daily").id!.toString(),
+            name: "Signup rate daily",
+            outputMetricName: "signup_rate_daily",
+          },
+        ],
+        hidden: 0,
+      },
+    });
+    // What reads something else is named nowhere.
+    expect(JSON.stringify(rule.outputReaders)).not.toContain("Orders");
+  });
+
+  test("on down the chain: what reads the output of a rule that reads the output", async () => {
+    rules.push(
+      recordingRuleOf({
+        name: "Signup rate daily",
+        outputMetricName: "signup_rate_daily",
+        metricNames: ["signup_rate"],
+      }),
+    );
+    monitors.push(monitorReading("Daily signups", "signup_rate_daily"));
+    serveAll();
+
+    const daily: MetricOutputReader = firstRule(await follow()).outputReaders!
+      .recordingRules.readers[0]!;
+
+    expect(daily.name).toBe("Signup rate daily");
+    expect(namesOf(daily.outputReaders!.monitors)).toEqual(["Daily signups"]);
+  });
+
+  test("each record named once, at the first place it is met", async () => {
+    // A monitor that reads the metric and the rule's output: named as a reader of the metric.
+    (
+      monitors[0] as unknown as {
+        monitorSteps: {
+          value: {
+            monitorStepsInstanceArray: Array<{
+              data: {
+                metricMonitor: {
+                  metricViewConfig: { queryConfigs: Array<unknown> };
+                };
+              };
+            }>;
+          };
+        };
+      }
+    ).monitorSteps.value.monitorStepsInstanceArray[0]!.data.metricMonitor.metricViewConfig.queryConfigs.push(
+      metricQuery("signup_rate"),
+    );
+    // Two rules the drop empties, and one monitor that reads both their outputs.
+    rules.push(
+      recordingRuleOf({
+        name: "Another signup rate",
+        outputMetricName: "another_signup_rate",
+        metricNames: [LEAKED],
+      }),
+    );
+    monitors.push(
+      (() => {
+        const both: Monitor = monitorReading("Both rates", "signup_rate");
+
+        (
+          both as unknown as {
+            monitorSteps: {
+              monitorStepsInstanceArray: Array<{
+                data: {
+                  metricMonitor: {
+                    metricViewConfig: { queryConfigs: Array<unknown> };
+                  };
+                };
+              }>;
+            };
+          }
+        ).monitorSteps.monitorStepsInstanceArray[0]!.data.metricMonitor.metricViewConfig.queryConfigs.push(
+          metricQuery("another_signup_rate"),
+        );
+
+        return both;
+      })(),
+    );
+    serveAll();
+
+    const found: MetricReaders = await follow();
+    const [another, signup] = found[MetricReaderKind.MetricRecordingRule]
+      .readers as [MetricReader, MetricReader];
+
+    expect(another.name).toBe("Another signup rate");
+    expect(signup.name).toBe("Signup rate");
+    // Met first under the rule first by name; not named again under the other.
+    expect(namesOf(another.outputReaders!.monitors)).toEqual(["Both rates"]);
+    expect(signup.outputReaders).toBeUndefined();
+    // The monitor that reads the metric itself is named once, as its reader.
+    expect(
+      found[MetricReaderKind.Monitor].readers.map(
+        (reader: MetricReader): string => {
+          return reader.name;
+        },
+      ),
+    ).toEqual(["Signups of Jane"]);
+    expect(JSON.stringify(another.outputReaders)).not.toContain(
+      "Signups of Jane",
+    );
+  });
+
+  test("a dashboard is named once for each widget: one reads the metric, another the rule's output", async () => {
+    const rateWidgetId: string = ObjectID.generate().toString();
+
+    (
+      dashboards[0] as unknown as {
+        dashboardViewConfig: { components: Array<Record<string, unknown>> };
+      }
+    ).dashboardViewConfig.components.push(
+      chartOf("Signup rate", "signup_rate", rateWidgetId),
+    );
+    serveAll();
+
+    const found: MetricReaders = await follow();
+
+    expect(
+      found[MetricReaderKind.Dashboard].readers[0]!.widgets!.map(
+        (widget: MetricReaderWidget): string => {
+          return widget.title;
+        },
+      ),
+    ).toEqual(["Signups"]);
+    expect(firstRule(found).outputReaders!.dashboards.readers).toEqual([
+      {
+        id: dashboards[0]!.id!.toString(),
+        name: "Growth",
+        widgets: [{ id: rateWidgetId, title: "Signup rate", type: "Chart" }],
+      },
+    ]);
+  });
+
+  test("a chain that comes back on itself ends where it closes", async () => {
+    // A rule that reads its own output, and two that read each other's.
+    rules.splice(
+      0,
+      rules.length,
+      recordingRuleOf({
+        name: "Signup rate",
+        outputMetricName: "signup_rate",
+        metricNames: [LEAKED, "signup_rate", "signup_echo"],
+      }),
+      recordingRuleOf({
+        name: "Signup echo",
+        outputMetricName: "signup_echo",
+        metricNames: ["signup_rate"],
+      }),
+    );
+    serveAll();
+
+    const found: MetricReaders = await follow();
+    const rule: MetricReader = firstRule(found);
+
+    expect(found[MetricReaderKind.MetricRecordingRule].readers).toHaveLength(1);
+    expect(namesOf(rule.outputReaders!.recordingRules)).toEqual([
+      "Signup echo",
+    ]);
+    // The echo's output leads back to a rule already named: nothing more.
+    expect(
+      rule.outputReaders!.recordingRules.readers[0]!.outputReaders,
+    ).toBeUndefined();
+  });
+
+  test(`${MAX_OUTPUT_METRIC_DEPTH} output metrics down at most: past that, more readers are said, never named`, async () => {
+    expect(MAX_OUTPUT_METRIC_DEPTH).toBe(3);
+
+    // Signup rate -> step 1 -> step 2 -> step 3, whose output a monitor reads.
+    rules.push(
+      recordingRuleOf({
+        name: "Step 1",
+        outputMetricName: "step_1",
+        metricNames: ["signup_rate"],
+      }),
+      recordingRuleOf({
+        name: "Step 2",
+        outputMetricName: "step_2",
+        metricNames: ["step_1"],
+      }),
+      recordingRuleOf({
+        name: "Step 3",
+        outputMetricName: "step_3",
+        metricNames: ["step_2"],
+      }),
+    );
+    monitors.push(monitorReading("Far down", "step_3"));
+    serveAll();
+
+    const found: MetricReaders = await follow();
+    const step1: MetricOutputReader =
+      firstRule(found).outputReaders!.recordingRules.readers[0]!;
+    const step2: MetricOutputReader =
+      step1.outputReaders!.recordingRules.readers[0]!;
+    const step3: MetricOutputReader =
+      step2.outputReaders!.recordingRules.readers[0]!;
+
+    expect([step1.name, step2.name, step3.name]).toEqual([
+      "Step 1",
+      "Step 2",
+      "Step 3",
+    ]);
+    // Step 3 is named; what reads its output is past the depth followed.
+    expect(step3.outputReaders).toEqual({
+      ...getEmptyMetricOutputReaders(),
+      isPastDepth: true,
+    });
+    expect(JSON.stringify(found)).not.toContain("Far down");
+
+    // Nothing past it: nothing said.
+    monitors.pop();
+    serveAll();
+    expect(
+      (await follow())[MetricReaderKind.MetricRecordingRule].readers[0]!
+        .outputReaders!.recordingRules.readers[0]!.outputReaders!.recordingRules
+        .readers[0]!.outputReaders!.recordingRules.readers[0]!.outputReaders,
+    ).toBeUndefined();
+  });
+
+  test("an output metric is read whatever its case, or the spaces around it", async () => {
+    monitors.push(monitorReading("Shouting", "  SIGNUP_RATE "));
+    serveAll();
+
+    expect(namesOf(firstRule(await follow()).outputReaders!.monitors)).toEqual([
+      "Shouting",
+    ]);
+  });
+
+  test("a rule with no output metric, or one nothing reads, carries none", async () => {
+    rules[0]!.outputMetricName = "";
+    monitors.push(monitorReading("Reads nothing it writes", ""));
+    serveAll();
+
+    expect(firstRule(await follow()).outputReaders).toBeUndefined();
+  });
+
+  test("what the person may not read down the chain is counted, never named", async () => {
+    monitors.push(
+      monitorReading("Secret rate alert", "signup_rate"),
+      monitorReading("Rate alert", "signup_rate"),
+    );
+    serveAll({
+      monitors: (monitor: Monitor): boolean => {
+        return !monitor.name!.startsWith("Secret");
+      },
+    });
+
+    const found: MetricReaders = await follow();
+
+    expect(firstRule(found).outputReaders!.monitors).toEqual({
+      readers: [{ id: expect.any(String), name: "Rate alert" }],
+      hidden: 1,
+    });
+    expect(JSON.stringify(found)).not.toContain("Secret");
+  });
+
+  test("a rule the person may not read is counted, and what reads its output named under the count", async () => {
+    rules.push(
+      recordingRuleOf({
+        name: "Secret daily",
+        outputMetricName: "secret_daily",
+        metricNames: ["signup_rate"],
+      }),
+    );
+    monitors.push(
+      monitorReading("Daily alert", "secret_daily"),
+      monitorReading("Rate alert", "signup_rate"),
+    );
+    // The drop's own rule hidden too: what reads its output under the count.
+    serveAll({
+      rules: (rule: MetricRecordingRule): boolean => {
+        return rule.name !== "Secret daily";
+      },
+    });
+
+    const found: MetricReaders = await follow();
+    const outputs: MetricOutputReaders = firstRule(found).outputReaders!;
+
+    expect(outputs.recordingRules.readers).toEqual([]);
+    expect(outputs.recordingRules.hidden).toBe(1);
+    expect(
+      namesOf(outputs.recordingRules.hiddenOutputReaders!.monitors),
+    ).toEqual(["Daily alert"]);
+    expect(JSON.stringify(found)).not.toContain("Secret daily");
+    expect(JSON.stringify(found)).not.toContain("secret_daily");
+
+    // A rule the drop empties, hidden itself: counted, its readers under the count.
+    serveAll({
+      rules: (): boolean => {
+        return false;
+      },
+    });
+
+    const hidden: MetricReadersOfKind = (await follow())[
+      MetricReaderKind.MetricRecordingRule
+    ];
+
+    expect(hidden.readers).toEqual([]);
+    expect(hidden.hiddenCount).toBe(1);
+    expect(namesOf(hidden.hiddenOutputReaders!.monitors)).toEqual([
+      "Rate alert",
+    ]);
+    // The hidden rule it leads to is counted as hidden, its own readers under it.
+    expect(hidden.hiddenOutputReaders!.recordingRules.hidden).toBe(1);
+    expect(
+      namesOf(
+        hidden.hiddenOutputReaders!.recordingRules.hiddenOutputReaders!
+          .monitors,
+      ),
+    ).toEqual(["Daily alert"]);
+  });
+
+  test("further down the chain too: the rules of one step are taken the visible first, across the whole step", async () => {
+    // Two rules the drop empties, each leading to one rule of the next step.
+    rules.splice(
+      0,
+      rules.length,
+      recordingRuleOf({
+        name: "Alpha source",
+        outputMetricName: "alpha_source",
+        metricNames: [LEAKED],
+      }),
+      recordingRuleOf({
+        name: "Beta source",
+        outputMetricName: "beta_source",
+        metricNames: [LEAKED],
+      }),
+      // First by name, under the first rule - and the person cannot see it.
+      recordingRuleOf({
+        name: "Alpha hidden",
+        outputMetricName: "alpha_hidden",
+        metricNames: ["alpha_source"],
+      }),
+      recordingRuleOf({
+        name: "Zulu visible",
+        outputMetricName: "zulu_visible",
+        metricNames: ["beta_source"],
+      }),
+    );
+    monitors.push(
+      (() => {
+        const both: Monitor = monitorReading("Both outputs", "alpha_hidden");
+
+        (
+          both as unknown as {
+            monitorSteps: {
+              monitorStepsInstanceArray: Array<{
+                data: {
+                  metricMonitor: {
+                    metricViewConfig: { queryConfigs: Array<unknown> };
+                  };
+                };
+              }>;
+            };
+          }
+        ).monitorSteps.monitorStepsInstanceArray[0]!.data.metricMonitor.metricViewConfig.queryConfigs.push(
+          metricQuery("zulu_visible"),
+        );
+
+        return both;
+      })(),
+    );
+    serveAll({
+      rules: (rule: MetricRecordingRule): boolean => {
+        return rule.name !== "Alpha hidden";
+      },
+    });
+
+    const found: MetricReaders = await follow();
+    const [alpha, beta] = found[MetricReaderKind.MetricRecordingRule]
+      .readers as [MetricReader, MetricReader];
+    const zulu: MetricOutputReader =
+      beta.outputReaders!.recordingRules.readers[0]!;
+
+    expect(zulu.name).toBe("Zulu visible");
+    expect(namesOf(zulu.outputReaders!.monitors)).toEqual(["Both outputs"]);
+    // Counted under Alpha source, with nothing named under its count.
+    expect(alpha.outputReaders!.recordingRules.hidden).toBe(1);
+    expect(
+      alpha.outputReaders!.recordingRules.hiddenOutputReaders,
+    ).toBeUndefined();
+  });
+
+  test("a record two rules lead to is named under the one the person can see", async () => {
+    rules.push(
+      recordingRuleOf({
+        name: "Another signup rate",
+        outputMetricName: "another_signup_rate",
+        metricNames: [LEAKED],
+      }),
+    );
+    // One monitor that reads both rules' outputs.
+    monitors.push(
+      (() => {
+        const both: Monitor = monitorReading("Both rates", "signup_rate");
+
+        (
+          both as unknown as {
+            monitorSteps: {
+              monitorStepsInstanceArray: Array<{
+                data: {
+                  metricMonitor: {
+                    metricViewConfig: { queryConfigs: Array<unknown> };
+                  };
+                };
+              }>;
+            };
+          }
+        ).monitorSteps.monitorStepsInstanceArray[0]!.data.metricMonitor.metricViewConfig.queryConfigs.push(
+          metricQuery("another_signup_rate"),
+        );
+
+        return both;
+      })(),
+    );
+    // "Another signup rate" comes first by name, but the person cannot see it.
+    serveAll({
+      rules: (rule: MetricRecordingRule): boolean => {
+        return rule.name === "Signup rate";
+      },
+    });
+
+    const kind: MetricReadersOfKind = (await follow())[
+      MetricReaderKind.MetricRecordingRule
+    ];
+
+    expect(
+      kind.readers.map((reader: MetricReader): string => {
+        return reader.name;
+      }),
+    ).toEqual(["Signup rate"]);
+    expect(namesOf(kind.readers[0]!.outputReaders!.monitors)).toEqual([
+      "Both rates",
+    ]);
+    // Not again under the count of the one they cannot see.
+    expect(kind.hiddenCount).toBe(1);
+    expect(kind.hiddenOutputReaders).toBeUndefined();
+  });
+
+  test("a kind that could not be read is neither named nor counted down the chain; the rest is", async () => {
+    monitors.push(monitorReading("Rate alert", "signup_rate"));
+    dashboards.push(
+      dashboardOf("Rates", [chartOf("Signup rate", "signup_rate")]),
+    );
+    slos.push(
+      sloOf({
+        name: "Rate budget",
+        metricName: "signup_rate",
+        serviceIds: [CHECKOUT],
+      }),
+    );
+    jest.restoreAllMocks();
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockRejectedValue(new Error("Connection terminated unexpectedly"));
+    serve(DashboardService, { all: dashboards });
+    serve(ServiceLevelObjectiveService, {
+      all: slos,
+      visible: new Error("Query read timeout"),
+    });
+    serve(MetricRecordingRuleService, { all: rules });
+
+    const found: MetricReaders = await follow();
+    const outputs: MetricOutputReaders = firstRule(found).outputReaders!;
+
+    expect(found[MetricReaderKind.Monitor].isChecked).toBe(false);
+    expect(found[MetricReaderKind.ServiceLevelObjective].isChecked).toBe(false);
+    expect(outputs.monitors).toEqual({ readers: [], hidden: 0 });
+    expect(outputs.slos).toEqual({ readers: [], hidden: 0 });
+    expect(namesOf(outputs.dashboards)).toEqual(["Rates"]);
+  });
+
+  test("one read of each kind as the server, and one as the person, however long the chain", async () => {
+    rules.push(
+      recordingRuleOf({
+        name: "Step 1",
+        outputMetricName: "step_1",
+        metricNames: ["signup_rate"],
+      }),
+      recordingRuleOf({
+        name: "Step 2",
+        outputMetricName: "step_2",
+        metricNames: ["step_1"],
+      }),
+    );
+    monitors.push(monitorReading("Step 2 alert", "step_2"));
+    serveAll();
+
+    await follow();
+
+    for (const service of [
+      MonitorService,
+      DashboardService,
+      ServiceLevelObjectiveService,
+      MetricRecordingRuleService,
+    ]) {
+      const calls: Array<[AnyFindBy]> = (
+        service.findBy as unknown as { mock: { calls: Array<[AnyFindBy]> } }
+      ).mock.calls;
+
+      expect(calls).toHaveLength(2);
+      expect(calls[0]![0].props).toEqual({ isRoot: true });
+      expect(calls[1]![0].props).toBe(PROPS);
+    }
+
+    // The person's read of the rules asks for all of them at once.
+    const rulesAsked: {
+      objectLiteralParameters?: Record<string, Array<string>>;
+    } = (
+      MetricRecordingRuleService.findBy as unknown as {
+        mock: { calls: Array<[AnyFindBy]> };
+      }
+    ).mock.calls[1]![0].query["_id"] as {
+      objectLiteralParameters?: Record<string, Array<string>>;
+    };
+
+    expect(
+      Object.values(rulesAsked.objectLiteralParameters || {}).flat(),
+    ).toHaveLength(3);
+  });
+
+  test("not asked for: no rule carries what reads its output, as Drop This Metric's answer was", async () => {
+    monitors.push(monitorReading("Rate alert", "signup_rate"));
+    serveAll();
+
+    const found: MetricReaders = await readers();
+
+    expect(firstRule(found).outputReaders).toBeUndefined();
+    expect(
+      found[MetricReaderKind.MetricRecordingRule].hiddenOutputReaders,
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * The answer's shape, read defensively on the page
+ * (Types/Metrics/MetricOutputReaders): what is no answer is none, a reader
+ * without its id is no reader, a count that is no count is none, an answer
+ * deeper than any server writes is cut where it goes too deep.
+ */
+describe("what reads an output metric, as the page reads the answer", () => {
+  test("an answer that says nothing, or is none, is none", () => {
+    for (const value of [
+      null,
+      undefined,
+      "x",
+      [],
+      {},
+      getEmptyMetricOutputReaders(),
+    ]) {
+      expect(readMetricOutputReaders(value)).toBeUndefined();
+    }
+
+    expect(isMetricOutputReadersEmpty(undefined)).toBe(true);
+    expect(
+      isMetricOutputReadersEmpty({
+        ...getEmptyMetricOutputReaders(),
+        isPastDepth: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("each kind read as it is answered: a reader without its id is none, a widget's fields text, a count whole", () => {
+    expect(
+      readMetricOutputReaders({
+        monitors: {
+          readers: [{ id: "m1", name: "Rate alert" }, { name: "No id" }, 3],
+          hidden: 2.6,
+        },
+        dashboards: {
+          readers: [
+            {
+              id: "d1",
+              name: "Rates",
+              widgets: [{ id: "w1", title: "Rate", type: "Chart" }, null, 4],
+            },
+          ],
+          hidden: -1,
+        },
+        slos: "none",
+        recordingRules: {
+          readers: [
+            {
+              id: "r1",
+              name: "Daily",
+              outputMetricName: "daily",
+              outputReaders: {
+                monitors: { readers: [{ id: "m2", name: "Far" }] },
+              },
+            },
+          ],
+          hidden: 1,
+          hiddenOutputReaders: { isPastDepth: true },
+        },
+      }),
+    ).toEqual({
+      monitors: { readers: [{ id: "m1", name: "Rate alert" }], hidden: 2 },
+      dashboards: {
+        readers: [
+          {
+            id: "d1",
+            name: "Rates",
+            widgets: [{ id: "w1", title: "Rate", type: "Chart" }],
+          },
+        ],
+        hidden: 0,
+      },
+      slos: { readers: [], hidden: 0 },
+      recordingRules: {
+        readers: [
+          {
+            id: "r1",
+            name: "Daily",
+            outputMetricName: "daily",
+            outputReaders: {
+              ...getEmptyMetricOutputReaders(),
+              monitors: { readers: [{ id: "m2", name: "Far" }], hidden: 0 },
+            },
+          },
+        ],
+        hidden: 1,
+        hiddenOutputReaders: {
+          ...getEmptyMetricOutputReaders(),
+          isPastDepth: true,
+        },
+      },
+    });
+  });
+
+  test("an answer deeper than any server writes is cut where it goes too deep", () => {
+    let answer: Record<string, unknown> = {
+      monitors: { readers: [{ id: "bottom", name: "Bottom" }] },
+    };
+
+    for (let step: number = 0; step < 40; step++) {
+      answer = {
+        recordingRules: {
+          readers: [
+            { id: `r${step}`, name: `Rule ${step}`, outputReaders: answer },
+          ],
+        },
+      };
+    }
+
+    const read: MetricOutputReaders = readMetricOutputReaders(answer)!;
+
+    expect(JSON.stringify(read)).not.toContain("Bottom");
+    expect(countMetricOutputReaders(read)).toBeLessThanOrEqual(
+      MAX_OUTPUT_METRIC_DEPTH + 5,
+    );
+  });
+
+  test("counted at every step of the chain", () => {
+    expect(
+      countMetricOutputReaders({
+        ...getEmptyMetricOutputReaders(),
+        monitors: { readers: [{ id: "m1", name: "A" }], hidden: 2 },
+        recordingRules: {
+          readers: [
+            {
+              id: "r1",
+              name: "R",
+              outputReaders: {
+                ...getEmptyMetricOutputReaders(),
+                slos: { readers: [], hidden: 1 },
+              },
+            },
+          ],
+          hidden: 1,
+          hiddenOutputReaders: {
+            ...getEmptyMetricOutputReaders(),
+            dashboards: { readers: [{ id: "d1", name: "D" }], hidden: 0 },
+          },
+        },
+      }),
+    ).toBe(7);
+    expect(METRIC_OUTPUT_READER_KIND_KEYS).toEqual([
+      "monitors",
+      "dashboards",
+      "slos",
+      "recordingRules",
+    ]);
   });
 });

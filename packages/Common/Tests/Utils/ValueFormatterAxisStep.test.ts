@@ -9,8 +9,10 @@ import ValueFormatter, {
  * Given the step between its axis's ticks (options.step), a value is written
  * with the figures after the point that step needs in the unit the value is
  * written in, every one of them kept, so the ticks of an axis line up and no
- * two neighbouring ticks read alike: "17.200 GB", "17.205 GB". Without a step,
- * a value is written exactly as it always was.
+ * two neighbouring ticks read alike: "17.200 GB", "17.205 GB". A span of
+ * time is written in the units of time its step needs (issue #10118, pinned
+ * in ValueFormatterDurationAxis.test.ts). Without a step, a value is
+ * written exactly as it always was.
  */
 
 const NBSP: string = "\u00A0";
@@ -95,9 +97,10 @@ describe("with a step, a value takes the figures the step needs, in its own unit
     expect(write(17.205e9, "By", { step: -5e6 })).toBe(`17.205${NBSP}GB`);
   });
 
-  test("a step no figures write exactly (a second, in hours) gets the fewest that keep neighbours apart", () => {
-    expect(write(5400, "s", { step: 1 })).toBe(`1.5000${NBSP}hours`);
-    expect(write(5401, "s", { step: 1 })).toBe(`1.5003${NBSP}hours`);
+  test("a span of time a step no decimal writes exactly (a second, near an hour and a half) reads as a clock (#10118)", () => {
+    // It read "1.5000 hours" and "1.5003 hours".
+    expect(write(5400, "s", { step: 1 })).toBe("1:30:00");
+    expect(write(5401, "s", { step: 1 })).toBe("1:30:01");
   });
 
   test("neighbouring ticks a step apart always read apart", () => {
@@ -127,7 +130,7 @@ describe("with a step, in the reader's language", () => {
     ["de", 119.201e9, "1", 1e6, `119,201${NBSP}Mrd.`],
     ["fa", 119.201e9, "1", 1e6, `۱۱۹٫۲۰۱${NBSP}میلیارد`],
     ["ja", 119.201e9, "1", 1e6, "1192.01億"],
-    ["de", 5400.5, "s", 0.5, `1,5001${NBSP}Stunden`],
+    ["de", 5400.5, "s", 0.5, "1:30:00,5"],
   ])(
     "%s: %s %s on an axis stepping %s reads %s",
     (

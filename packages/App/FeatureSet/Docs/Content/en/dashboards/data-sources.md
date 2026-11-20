@@ -75,6 +75,7 @@ To change a data source later, open it from the list. **Edit** on **Data Source 
 
 Edit a dashboard, click **Add Widget** and pick a widget of the External Data Sources group: a **Chart**, a **Value**, a **Gauge** or a **Table**. In its settings:
 
+- **This project's metrics (PromQL)** is the first **Data Source**, and what a new widget starts on: PromQL over the metrics your project sends to OneUptime, read for the services you may read, as on the [PromQL](/docs/telemetry/promql) page. It needs no data source of its own, so it works on every plan.
 - Pick the **Data Source** and write the **Query**. The editor names the query language and shows an example for the type.
 - On a chart, **Add Query** overlays more queries on the same axes, and **Legend (optional)** names each series from its labels: `{{instance}} — errors` writes the series' `instance` label in front.
 - On a value or a gauge, **Reduce** turns the points into one number: the last value (the default), the first, the average, the sum, the minimum or the maximum. **Unit** adds a suffix, and scales the known ones: `Bytes` reads as 1.5 MB, `ms` as 2.4 s.

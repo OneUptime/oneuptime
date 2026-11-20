@@ -186,6 +186,13 @@ export default class DeviceManagementConnection extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.JSON,
+    /*
+     * A device's Inventory page names the tenant its connection reads
+     * (ManagedDeviceCard), through the device's row. Nothing here is
+     * secret (that is `secrets`), and whoever may read a managed device may
+     * read its connection.
+     */
+    canReadOnRelationQuery: true,
     title: "Settings",
     description:
       "What is not secret: the tenant (Esper's: the name before .esper.cloud in the console's address; Intune's: the Microsoft Entra directory ID, or a domain of it; Workspace ONE's and SOTI's: the server's host, like as1234.awmdm.com), for Intune the app registration's clientId and the cloud (public, gcc, usgov or dod), for Workspace ONE how it signs in (authMethod: oauth, with the OAuth client's clientId and the token service's region - na, emea, apac or uat - or basic, with an administrator's username), for SOTI the API client's clientId and the API user's username, and how often the devices are read (readIntervalInMinutes: 5, 10, 15, 30 or 60).",

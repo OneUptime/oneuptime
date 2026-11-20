@@ -63,6 +63,16 @@ import {
   entraSignIn,
 } from "../Connectors/EntraIdFixtures";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
+import {
+  accountKeyStorageRecord,
+  anonymousStorageRecord,
+  batchOf,
+  keyVaultChallenge,
+  keyVaultRecord,
+  sasStorageRecord,
+  sqlAuditRecord,
+  sqlDatabaseRecord,
+} from "./AzureResourceLogFixtures";
 
 function parse(body: string): Array<NormalizedSecurityEvent> {
   return SecurityLogParser.parse(logLine(body, { "host.name": "web-03" }));
@@ -226,6 +236,11 @@ const EVENT_LINES: Array<[SecurityLogFormat, string]> = [
       records: [entraExport("SignInLogs", entraFailedSignIn())],
     }),
   ],
+  // An Azure resource's own audit log (#10110).
+  [SecurityLogFormat.AzureResourceLogs, batchOf([keyVaultRecord()])],
+  [SecurityLogFormat.AzureResourceLogs, batchOf([anonymousStorageRecord()])],
+  [SecurityLogFormat.AzureResourceLogs, JSON.stringify(sasStorageRecord())],
+  [SecurityLogFormat.AzureResourceLogs, batchOf([sqlDatabaseRecord()])],
 ];
 
 describe("SecurityLogParser", () => {
@@ -273,6 +288,10 @@ describe("SecurityLogParser", () => {
       JSON.stringify(
         entraExport("NonInteractiveUserSignInLogs", entraSignIn()),
       ),
+      // A storage account's own reads, the Azure SDK's token challenge and a pooled sign-in.
+      batchOf([accountKeyStorageRecord()]),
+      batchOf([keyVaultChallenge()]),
+      batchOf([sqlAuditRecord()]),
       ...NAMED_SHAPES.map(
         ([, render]: [
           WindowsShape,

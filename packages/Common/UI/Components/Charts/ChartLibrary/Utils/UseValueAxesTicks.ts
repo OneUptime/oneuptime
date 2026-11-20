@@ -21,16 +21,16 @@ import {
 } from "./SecondYAxis";
 
 /*
- * THE LINE, AREA AND BAR CHARTS' VALUE AXES, STEPPED SO NEIGHBOURING TICKS
- * READ APART (issue #10079).
+ * THE LINE, AREA AND BAR CHARTS' VALUE AXES, STEPPED EVENLY IN ROUND STEPS
+ * (issues #10079, #10117, #10118).
  *
  * Each axis is worked out over the values drawn against it - its categories'
  * values in every row, a stack's sums, a band's ends and the reference lines
- * that stretch it - as recharts steps it (ValueAxisTicks). An axis whose
- * ticks already read apart is handed to recharts as it always was. One whose
- * ticks would read alike is stepped by the chart, its ticks written with the
- * figures its step needs, and is as wide as the widest of them: never
- * narrower than its host measured (YAxisWidth), so nothing else moves.
+ * that stretch it - and stepped by the chart in round steps of the unit it
+ * is written in, natural steps of time for a duration axis (ValueAxisTicks).
+ * Its ticks are written with the figures its step needs, and it is as wide
+ * as the widest of them: never narrower than its host measured
+ * (YAxisWidth), so nothing else moves.
  */
 
 export interface ChartValueAxisPlan {
@@ -51,6 +51,7 @@ const NOT_STEPPED: ValueAxisTicks = {
   ticks: undefined,
   domain: undefined,
   precision: undefined,
+  tooltipPrecision: undefined,
   labels: [],
 };
 
@@ -74,19 +75,20 @@ function useSameTicks(
   }, [numbers]);
 }
 
-// One tick formatter while the axis's formatter and its step stay.
+// One tick formatter while the axis's formatter, its step and its largest tick stay.
 function useTickFormatter(
   formatter: ValueAxisFormatter,
   precision: ValueAxisPrecision | undefined,
 ): (value: number) => string {
   const step: number | undefined = precision?.step;
+  const largestTick: number | undefined = precision?.largestTick;
 
   return React.useMemo((): ((value: number) => string) => {
     return getTickFormatter(
       formatter,
-      step === undefined ? undefined : { step: step },
+      step === undefined ? undefined : { step: step, largestTick: largestTick },
     );
-  }, [formatter, step]);
+  }, [formatter, step, largestTick]);
 }
 
 export function useValueAxesTicks(input: {
@@ -106,6 +108,17 @@ export function useValueAxesTicks(input: {
   bandKeys?: [string, string] | undefined;
   // The chart draws no value axis it steps (a vertical or a percent bar chart).
   isFirstAxisLeftToRecharts?: boolean | undefined;
+  /*
+   * For a first axis of spans of time, the seconds one value stands for:
+   * it steps in natural units of time (issue #10118). The second axis's
+   * is its own (ChartSecondYAxis).
+   */
+  durationUnitInSeconds?: number | undefined;
+  /*
+   * The most ticks the plot has room for, both axes alike (usePlotRoom);
+   * six while the plot is not yet laid out.
+   */
+  mostTicks?: number | undefined;
   /*
    * The scales of their own (issue #10080): their categories and lines are
    * drawn to no axis, so neither axis takes them in.
@@ -186,11 +199,13 @@ export function useValueAxesTicks(input: {
 
   /*
    * Worked out again only when what it is worked out from changes: the
-   * values drawn, either axis's ends or either axis's formatter.
+   * values drawn, either axis's ends, formatter or unit of time.
    */
   const secondYAxis: ChartSecondYAxis | undefined = input.secondYAxis;
   const secondFormatter: ValueAxisFormatter | undefined =
     secondYAxis?.valueFormatter;
+  const secondDurationUnitInSeconds: number | undefined =
+    secondYAxis?.durationUnitInSeconds;
   const axesTicks: {
     first: ValueAxisTicks;
     second: ValueAxisTicks | undefined;
@@ -206,6 +221,8 @@ export function useValueAxesTicks(input: {
             domain: input.firstDomain,
             allowDecimals: input.allowDecimals,
             formatter: input.valueFormatter,
+            durationUnitInSeconds: input.durationUnitInSeconds,
+            mostTicks: input.mostTicks,
           }),
       second: secondFormatter
         ? getValueAxisTicks({
@@ -213,6 +230,8 @@ export function useValueAxesTicks(input: {
             domain: input.secondDomain,
             allowDecimals: input.allowDecimals,
             formatter: secondFormatter,
+            durationUnitInSeconds: secondDurationUnitInSeconds,
+            mostTicks: input.mostTicks,
           })
         : undefined,
     };
@@ -225,7 +244,10 @@ export function useValueAxesTicks(input: {
     input.allowDecimals,
     input.valueFormatter,
     input.isFirstAxisLeftToRecharts,
+    input.durationUnitInSeconds,
+    input.mostTicks,
     secondFormatter,
+    secondDurationUnitInSeconds,
   ]);
 
   /*

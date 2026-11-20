@@ -79,6 +79,24 @@ import {
  * twice. The device manager's Security Patch Out of Date templates read only
  * the devices no agent reports (IsHost "false"), so a device that runs the
  * agent is alerted on once, by its host.
+ *
+ * ITS BATTERY AND ITS STORAGE (#10008)
+ *
+ * A dying battery is the commonest reason a kiosk or a handheld stops
+ * checking in, and it shows hours before. Most services report a device's
+ * battery (Esper's battery_stats.battery_level, Workspace ONE's
+ * BatteryLevel, SOTI's BatteryStatus; Intune's device list has none) and its
+ * storage with its free space (Esper's memory_info and memory_stats,
+ * Intune's totalStorageSpaceInBytes and freeStorageSpaceInBytes, Workspace
+ * ONE's DeviceCapacity and AvailableDeviceCapacity, SOTI's Memory), each as
+ * the device last told it. So the same read writes, beside each device's
+ * check-in, its battery in percent and how much of its storage is in use,
+ * in percent, under metrics of their own: what each service's Low Battery
+ * and Storage Nearly Full read, for the devices no agent reports - the
+ * agent's device is its host's Low Battery's and Storage Nearly Full's,
+ * which read the agent's own metrics. A device that reports no battery (a
+ * desktop, an Apple TV) or none of its free space gets no such reading,
+ * and so never alerts.
  */
 
 // The metric: minutes since the device's last check-in, a gauge per read.
@@ -102,11 +120,82 @@ export const MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT: string = "d";
 
 export const MANAGED_DEVICE_SECURITY_PATCH_AGE_DESCRIPTION: string = `Days since an Android managed device's security patch level, as its device management service reported it at the last read of its connection: more than ${ANDROID_SECURITY_PATCH_MAX_AGE_DAYS} is out of date. One reading per Android device in service whose patch level is known, at every read.`;
 
+/*
+ * The metric: a device's battery, in percent, as its device manager last
+ * heard it, a gauge per read (#10008). OneUptime's own name, never the
+ * Android agent's hw.battery.charge: a host's monitors read that one by the
+ * host's name, which the readings carry too.
+ */
+export const MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME: string =
+  "oneuptime.managed_device.battery.level";
+
+export const MANAGED_DEVICE_BATTERY_LEVEL_UNIT: string = "%";
+
+export const MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION: string =
+  "A managed device's battery, in percent, as its device management service last heard it at the last read of its connection. One reading per device in service that reports a battery, at every read.";
+
+/*
+ * The metric: how much of a device's own storage is in use, in percent, as
+ * its device manager last heard it, a gauge per read (#10008). OneUptime's
+ * own name, never the agent's system.filesystem.utilization.
+ */
+export const MANAGED_DEVICE_STORAGE_USED_METRIC_NAME: string =
+  "oneuptime.managed_device.storage.used";
+
+export const MANAGED_DEVICE_STORAGE_USED_UNIT: string = "%";
+
+export const MANAGED_DEVICE_STORAGE_USED_DESCRIPTION: string =
+  "How much of a managed device's own storage is in use, in percent, as its device management service last heard it at the last read of its connection. One reading per device in service that reports its storage and its free space, at every read.";
+
 // Every metric a connection's reads write for its devices.
 export const MANAGED_DEVICE_READING_METRIC_NAMES: ReadonlyArray<string> = [
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
 ];
+
+/*
+ * The keys an import keeps a device's storage under, in its details, in
+ * bytes (#10008): each service's own fields, made one shape by its parser,
+ * so a reading is read the same way whatever the service.
+ */
+export const MANAGED_DEVICE_STORAGE_TOTAL_BYTES_DETAIL: string =
+  "storageTotalBytes";
+export const MANAGED_DEVICE_STORAGE_FREE_BYTES_DETAIL: string =
+  "storageFreeBytes";
+
+/*
+ * What a parser keeps of a device's storage, in bytes, under the keys a
+ * reading reads (#10008): each one a whole number of bytes, more than 0,
+ * and left out where the service said none, 0 or something that is no
+ * size. Pure.
+ */
+export function getManagedDeviceStorageDetails(data: {
+  totalBytes: number | null | undefined;
+  freeBytes: number | null | undefined;
+}): Record<string, number> {
+  const details: Record<string, number> = {};
+  const isSize: (value: number | null | undefined) => value is number = (
+    value: number | null | undefined,
+  ): value is number => {
+    return typeof value === "number" && Number.isFinite(value) && value > 0;
+  };
+
+  if (isSize(data.totalBytes)) {
+    details[MANAGED_DEVICE_STORAGE_TOTAL_BYTES_DETAIL] = Math.round(
+      data.totalBytes,
+    );
+  }
+
+  if (isSize(data.freeBytes)) {
+    details[MANAGED_DEVICE_STORAGE_FREE_BYTES_DETAIL] = Math.round(
+      data.freeBytes,
+    );
+  }
+
+  return details;
+}
 
 /*
  * The attributes of each reading. OneUptime's own keys, bare like the other
@@ -144,6 +233,9 @@ export enum ManagedDeviceCheckInAttribute {
    * ("2024-06-05"): on its security patch readings only.
    */
   SecurityPatchLevel = "oneuptime.managed_device.security_patch.level",
+  // A device's free and whole storage, in bytes: on its storage readings only.
+  StorageFreeBytes = "oneuptime.managed_device.storage.free_bytes",
+  StorageTotalBytes = "oneuptime.managed_device.storage.total_bytes",
 }
 
 // The device's state, as far as its check-ins are concerned.
@@ -168,6 +260,14 @@ export interface ManagedDeviceCheckInDevice {
   removedAt?: Date | string | null | undefined;
   // An Android device's security patch level, as the service reports it.
   securityPatchLevel?: string | null | undefined;
+  // Its battery in percent, as the service last heard it; none for no battery.
+  batteryLevel?: number | null | undefined;
+  /*
+   * What else the service says of it (ManagedDevice.details): its storage
+   * in bytes, under MANAGED_DEVICE_STORAGE_TOTAL_BYTES_DETAIL and
+   * MANAGED_DEVICE_STORAGE_FREE_BYTES_DETAIL.
+   */
+  details?: Record<string, unknown> | null | undefined;
 }
 
 // How old a device's security patch is, at a read.
@@ -176,6 +276,14 @@ export interface ManagedDeviceSecurityPatchReading {
   level: string;
   // Whole UTC days since the level's date, as the agent counts them.
   ageInDays: number;
+}
+
+// How full a device's own storage is, at a read.
+export interface ManagedDeviceStorageReading {
+  // Of its storage, how much is in use: 0 to 100, to one decimal.
+  usedPercent: number;
+  totalBytes: number;
+  freeBytes: number;
 }
 
 export interface ManagedDeviceCheckInReading {
@@ -197,6 +305,82 @@ export interface ManagedDeviceCheckInReading {
    * of the calendar: the patch readings a read writes beside the check-ins.
    */
   securityPatch?: ManagedDeviceSecurityPatchReading | undefined;
+  // Its battery in percent, when it reports one (#10008).
+  batteryLevel?: number | undefined;
+  // How full its storage is, when it reports its storage and its free space.
+  storage?: ManagedDeviceStorageReading | undefined;
+}
+
+/*
+ * A device's battery, as a reading reads it: a percent from 1 to 100. 0
+ * says no battery - a device at 0% cannot check in - and anything else is
+ * none. Pure.
+ */
+export function getManagedDeviceBatteryReading(
+  batteryLevel: number | null | undefined,
+): number | undefined {
+  if (
+    typeof batteryLevel !== "number" ||
+    !Number.isFinite(batteryLevel) ||
+    batteryLevel <= 0 ||
+    batteryLevel > 100
+  ) {
+    return undefined;
+  }
+
+  return Math.round(batteryLevel);
+}
+
+function readBytes(value: unknown): number | undefined {
+  const bytes: number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : NaN;
+
+  return Number.isFinite(bytes) && bytes >= 0 ? Math.round(bytes) : undefined;
+}
+
+/*
+ * How full a device's own storage is, from what its import keeps of it in
+ * bytes (MANAGED_DEVICE_STORAGE_TOTAL_BYTES_DETAIL and
+ * MANAGED_DEVICE_STORAGE_FREE_BYTES_DETAIL). None when either is missing,
+ * when the whole is 0, when it says no byte is free - a service's default
+ * for a device that never said (Intune's freeStorageSpaceInBytes), never a
+ * device full to its last byte - or when it says more is free than there
+ * is. Pure.
+ */
+export function getManagedDeviceStorageReading(
+  details: Record<string, unknown> | null | undefined,
+): ManagedDeviceStorageReading | undefined {
+  if (!details || typeof details !== "object") {
+    return undefined;
+  }
+
+  const totalBytes: number | undefined = readBytes(
+    details[MANAGED_DEVICE_STORAGE_TOTAL_BYTES_DETAIL],
+  );
+  const freeBytes: number | undefined = readBytes(
+    details[MANAGED_DEVICE_STORAGE_FREE_BYTES_DETAIL],
+  );
+
+  if (
+    totalBytes === undefined ||
+    freeBytes === undefined ||
+    totalBytes <= 0 ||
+    freeBytes <= 0 ||
+    freeBytes > totalBytes
+  ) {
+    return undefined;
+  }
+
+  return {
+    usedPercent:
+      Math.round(((totalBytes - freeBytes) / totalBytes) * 1000) / 10,
+    totalBytes,
+    freeBytes,
+  };
 }
 
 /*
@@ -330,6 +514,11 @@ export function getManagedDeviceCheckInReadings(data: {
         securityPatchLevel: device.securityPatchLevel,
         asOf: data.asOf,
       });
+    const batteryLevel: number | undefined = getManagedDeviceBatteryReading(
+      device.batteryLevel,
+    );
+    const storage: ManagedDeviceStorageReading | undefined =
+      getManagedDeviceStorageReading(device.details);
 
     readings.push({
       deviceName,
@@ -340,6 +529,8 @@ export function getManagedDeviceCheckInReadings(data: {
       ageInMinutes,
       isHost: data.hostNames.has(hostName),
       ...(securityPatch ? { securityPatch } : {}),
+      ...(batteryLevel !== undefined ? { batteryLevel } : {}),
+      ...(storage ? { storage } : {}),
     });
   }
 
@@ -395,5 +586,30 @@ export function getManagedDeviceSecurityPatchAttributes(data: {
     ...getManagedDeviceCheckInAttributes(data),
     [ManagedDeviceCheckInAttribute.SecurityPatchLevel]:
       data.reading.securityPatch.level,
+  };
+}
+
+/*
+ * A storage reading's attributes (#10008): the check-in's, and how many
+ * bytes were free of how many, so its readings say what filled up.
+ * Undefined for a reading with no storage. Pure.
+ */
+export function getManagedDeviceStorageAttributes(data: {
+  reading: ManagedDeviceCheckInReading;
+  connectionId: string;
+  provider: string;
+}): Dictionary<string> | undefined {
+  if (!data.reading.storage) {
+    return undefined;
+  }
+
+  return {
+    ...getManagedDeviceCheckInAttributes(data),
+    [ManagedDeviceCheckInAttribute.StorageFreeBytes]: String(
+      data.reading.storage.freeBytes,
+    ),
+    [ManagedDeviceCheckInAttribute.StorageTotalBytes]: String(
+      data.reading.storage.totalBytes,
+    ),
   };
 }

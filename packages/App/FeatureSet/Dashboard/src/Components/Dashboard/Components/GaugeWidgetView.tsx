@@ -125,6 +125,12 @@ export interface GaugeWidgetViewProps {
   maxValue: number;
   warningThreshold: number | undefined;
   criticalThreshold: number | undefined;
+  /*
+   * A mark sits in the tile's top corner (a deprecated metric's,
+   * RetiredCloudMetricBadge): the title keeps clear of both corners, so a
+   * long one never runs under it and stays centred.
+   */
+  hasCornerMark?: boolean | undefined;
 }
 
 const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
@@ -460,7 +466,9 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       {props.title && (
         <DashboardWidgetLine
           text={props.title}
-          className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
+          className={`text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center ${
+            props.hasCornerMark ? "px-5" : ""
+          }`}
         />
       )}
 

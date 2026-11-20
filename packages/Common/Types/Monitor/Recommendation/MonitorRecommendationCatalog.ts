@@ -103,7 +103,9 @@ import {
 } from "../DataPipelineAlertTemplates";
 import {
   CloudAlertTemplate,
+  CloudAlertTemplateArgs,
   getAllCloudAlertTemplates,
+  getCloudAlertTemplateEquivalentSteps,
   getCloudAlertTemplatesFor,
 } from "../CloudAlertTemplates";
 import {
@@ -123,7 +125,9 @@ import {
 } from "../MessageQueueAlertTemplates";
 import {
   ManagedDeviceAlertTemplate,
+  ManagedDeviceAlertTemplateArgs,
   getAllManagedDeviceAlertTemplates,
+  getManagedDeviceAlertTemplateEquivalentSteps,
   getManagedDeviceAlertTemplatesFor,
 } from "../ManagedDeviceAlertTemplates";
 
@@ -958,26 +962,51 @@ function normalizeCloudTemplate(
   template: CloudAlertTemplate,
   context?: MonitorRecommendationContext | undefined,
 ): MonitorRecommendation {
-  return normalize({
-    resourceType: MonitorRecommendationResourceType.CloudResource,
-    monitorType: template.monitorType,
-    template: template,
-    getMonitorStep: (args: MonitorRecommendationArgs) => {
-      return template.getMonitorStep({
-        cloudResourceId: args.resourceIdentifier,
-        telemetryAttributes: context?.cloudTelemetryAttributes || {},
-        readings: context?.cloudReadings,
-        allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
-        connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
-        resourceName: context?.cloudResourceName,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-      });
+  const toTemplateArgs: (
+    args: MonitorRecommendationArgs,
+  ) => CloudAlertTemplateArgs = (
+    args: MonitorRecommendationArgs,
+  ): CloudAlertTemplateArgs => {
+    return {
+      cloudResourceId: args.resourceIdentifier,
+      telemetryAttributes: context?.cloudTelemetryAttributes || {},
+      readings: context?.cloudReadings,
+      allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+      connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
+      resourceName: context?.cloudResourceName,
+      // Its window follows how often its connection reads it (#10028).
+      readIntervalInMinutes: context?.cloudReadIntervalInMinutes,
+      streamedMetrics: context?.cloudStreamedMetrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+    };
+  };
+
+  return {
+    ...normalize({
+      resourceType: MonitorRecommendationResourceType.CloudResource,
+      monitorType: template.monitorType,
+      template: template,
+      getMonitorStep: (args: MonitorRecommendationArgs) => {
+        return template.getMonitorStep(toTemplateArgs(args));
+      },
+    }),
+    /*
+     * A monitor made before its connection's interval changed keeps its
+     * window, and is still this recommendation.
+     */
+    getEquivalentMonitorSteps: (
+      args: MonitorRecommendationArgs,
+    ): Array<MonitorStep> => {
+      return getCloudAlertTemplateEquivalentSteps(
+        template,
+        toTemplateArgs(args),
+      );
     },
-  });
+  };
 }
 
 function getCloudResourceRecommendations(
@@ -1156,27 +1185,62 @@ function getAllMessageQueueRecommendations(): Array<MonitorRecommendation> {
 
 /*
  * The device management connection adapter (#9835): a connection's monitors
- * read the check-ins its reads write for its devices, filtered on the
- * connection's id, which is the resource identifier.
+ * read the readings its reads write - of its devices, and of itself
+ * (#10006) - filtered on the connection's id, which is the resource
+ * identifier. Its read interval, where the context says it, is what
+ * Connection Stopped Reading waits three of; the default one otherwise.
  */
 function normalizeManagedDeviceTemplate(
   template: ManagedDeviceAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
 ): MonitorRecommendation {
-  return normalize({
+  const readIntervalInMinutes: number | undefined =
+    typeof context?.deviceManagementReadIntervalInMinutes === "number"
+      ? context.deviceManagementReadIntervalInMinutes
+      : undefined;
+  const toTemplateArgs: (
+    args: MonitorRecommendationArgs,
+  ) => ManagedDeviceAlertTemplateArgs = (
+    args: MonitorRecommendationArgs,
+  ): ManagedDeviceAlertTemplateArgs => {
+    return {
+      deviceManagementConnectionId: args.resourceIdentifier,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      readIntervalInMinutes,
+    };
+  };
+  const recommendation: MonitorRecommendation = normalize({
     resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
     monitorType: MonitorType.Metrics,
     template: template,
     getMonitorStep: (args: MonitorRecommendationArgs) => {
-      return template.getMonitorStep({
-        deviceManagementConnectionId: args.resourceIdentifier,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-      });
+      return template.getMonitorStep(toTemplateArgs(args));
     },
   });
+
+  if (!template.followsReadInterval) {
+    return recommendation;
+  }
+
+  return {
+    ...recommendation,
+    /*
+     * A monitor made before its connection's interval changed keeps the
+     * wait it was made with, and is still this recommendation.
+     */
+    getEquivalentMonitorSteps: (
+      args: MonitorRecommendationArgs,
+    ): Array<MonitorStep> => {
+      return getManagedDeviceAlertTemplateEquivalentSteps(
+        template,
+        toTemplateArgs(args),
+      );
+    },
+  };
 }
 
 /*
@@ -1189,12 +1253,16 @@ function getManagedDeviceRecommendations(
 ): Array<MonitorRecommendation> {
   return getManagedDeviceAlertTemplatesFor(
     context?.deviceManagementProvider,
-  ).map(normalizeManagedDeviceTemplate);
+  ).map((template: ManagedDeviceAlertTemplate): MonitorRecommendation => {
+    return normalizeManagedDeviceTemplate(template, context);
+  });
 }
 
 function getAllManagedDeviceRecommendations(): Array<MonitorRecommendation> {
   return getAllManagedDeviceAlertTemplates().map(
-    normalizeManagedDeviceTemplate,
+    (template: ManagedDeviceAlertTemplate): MonitorRecommendation => {
+      return normalizeManagedDeviceTemplate(template);
+    },
   );
 }
 

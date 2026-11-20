@@ -254,6 +254,8 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
             : BarChartPalette
         }
         valueFormatter={props.yAxis.options.formatter || undefined}
+        // A duration axis steps in natural units of time (issue #10118).
+        valueDurationUnitInSeconds={props.yAxis.options.durationUnitInSeconds}
         showTooltip={true}
         showLegend={props.showLegend !== false}
         yAxisWidth={yAxisWidthInPx}

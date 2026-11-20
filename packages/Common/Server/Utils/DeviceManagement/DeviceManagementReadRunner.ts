@@ -20,6 +20,7 @@ import {
   ManagedDeviceStatus,
   getManagedDeviceStatus,
 } from "../../../Types/DeviceManagement/ManagedDeviceStatus";
+import { DeviceManagementConnectionReadOutcome } from "../../../Types/DeviceManagement/DeviceManagementConnectionReading";
 import { JSONObject } from "../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../Types/LlmObservability/LlmConnectionTest";
 import ObjectID from "../../../Types/ObjectID";
@@ -52,6 +53,9 @@ import ManagedDeviceCheckInMetrics, {
   ManagedDeviceCheckInOutcome,
   ManagedDeviceCheckInRecordInput,
 } from "./ManagedDeviceCheckInMetrics";
+import DeviceManagementConnectionReadMetrics, {
+  DeviceManagementConnectionReadRecord,
+} from "./DeviceManagementConnectionReadMetrics";
 import {
   ManagedDeviceAppSyncPlan,
   ManagedDeviceSyncPlan,
@@ -91,7 +95,12 @@ import {
  *      alerts on per device (ManagedDeviceCheckInMetrics, #9835) - only
  *      when it read every check-in up to its end, so no age is too old. A
  *      failure there is a warning too;
- *   7. records the outcome on the connection: when it read, what it found,
+ *   7. writes how long since a read of the connection itself worked - 0
+ *      now, or how long when this one failed, with why - which the
+ *      connection's own monitor alerts on once it stops reading
+ *      (DeviceManagementConnectionReadMetrics, #10006). A failure there is
+ *      a warning as well;
+ *   8. records the outcome on the connection: when it read, what it found,
  *      the error with the key removed, where the check-ins got to and when
  *      it reads next.
  *
@@ -136,6 +145,8 @@ export const APPS_NOT_READ_WARNING: string =
   "Some devices' apps could not be read this time: the next read tries again.";
 export const CHECK_INS_NOT_RECORDED_WARNING: string =
   "How long since each device checked in could not be recorded this time, so its alerts have nothing new to read: the next read tries again.";
+export const CONNECTION_READ_NOT_RECORDED_WARNING: string =
+  "How this read went could not be recorded for the connection's own alert this time: the next read tries again.";
 
 export interface DeviceManagementReadDependencies {
   transport?: DeviceManagementTransport | undefined;
@@ -158,6 +169,12 @@ export interface DeviceManagementReadDependencies {
     | ((
         data: ManagedDeviceCheckInRecordInput,
       ) => Promise<ManagedDeviceCheckInOutcome>)
+    | undefined;
+  // Test seam for the connection's own reading (#10006).
+  recordConnectionReadings?:
+    | ((
+        records: ReadonlyArray<DeviceManagementConnectionReadRecord>,
+      ) => Promise<number>)
     | undefined;
 }
 
@@ -339,6 +356,8 @@ export default class DeviceManagementReadRunner {
           isEnabled: true,
           pullState: true,
           lastPullResult: true,
+          createdAt: true,
+          lastSuccessfulPullAt: true,
         },
         props: { isRoot: true },
       });
@@ -638,6 +657,22 @@ export default class DeviceManagementReadRunner {
         ? "partial"
         : "success";
 
+      // The connection's own reading: it read, so nothing is overdue (#10006).
+      if (
+        !(await DeviceManagementReadRunner.recordConnectionReading({
+          dependencies,
+          connection,
+          interval,
+          outcome:
+            status === "partial"
+              ? DeviceManagementConnectionReadOutcome.Partial
+              : DeviceManagementConnectionReadOutcome.Success,
+          now,
+        }))
+      ) {
+        warnings.push(CONNECTION_READ_NOT_RECORDED_WARNING);
+      }
+
       const summary: DeviceManagementReadSummary = {
         status,
         tenant: settings.config.tenant,
@@ -727,6 +762,24 @@ export default class DeviceManagementReadRunner {
         finishedAt: clock().toISOString(),
       };
 
+      /*
+       * The connection's own reading: how long since a read of it worked,
+       * and why this one did not (#10006).
+       */
+      if (
+        !(await DeviceManagementReadRunner.recordConnectionReading({
+          dependencies,
+          connection,
+          interval,
+          outcome: DeviceManagementConnectionReadOutcome.Failed,
+          failureKind: failure.kind,
+          lastError: failure.message,
+          now,
+        }))
+      ) {
+        summary.warnings = [CONNECTION_READ_NOT_RECORDED_WARNING];
+      }
+
       await DeviceManagementReadRunner.record(connection.id!, {
         lastPulledAt: now,
         lastError: failure.message,
@@ -740,6 +793,59 @@ export default class DeviceManagementReadRunner {
       });
 
       return { status: "failed", summary, error: failure.message };
+    }
+  }
+
+  /*
+   * Writes the connection's own reading of this read (#10006): 0 for a read
+   * that worked, and for one that failed the minutes since its last read
+   * that worked - or since it was saved - with what failed. Guarded: false
+   * when it could not be written, which the read keeps as a warning.
+   */
+  private static async recordConnectionReading(data: {
+    dependencies: DeviceManagementReadDependencies;
+    connection: DeviceManagementConnection;
+    interval: number;
+    outcome: DeviceManagementConnectionReadOutcome;
+    failureKind?: LlmConnectionFailureKind | undefined;
+    lastError?: string | undefined;
+    now: Date;
+  }): Promise<boolean> {
+    const record: DeviceManagementConnectionReadRecord = {
+      projectId: data.connection.projectId!,
+      connectionId: data.connection.id!,
+      reading: {
+        connectionName: data.connection.name,
+        provider: data.connection.provider,
+        readIntervalInMinutes: data.interval,
+        outcome: data.outcome,
+        lastSuccessfulReadAt: data.connection.lastSuccessfulPullAt,
+        createdAt: data.connection.createdAt,
+        failureKind: data.failureKind,
+        lastError: data.lastError,
+        asOf: data.now,
+      },
+    };
+
+    try {
+      await (
+        data.dependencies.recordConnectionReadings ||
+        ((
+          records: ReadonlyArray<DeviceManagementConnectionReadRecord>,
+        ): Promise<number> => {
+          return DeviceManagementConnectionReadMetrics.record(records);
+        })
+      )([record]);
+
+      return true;
+    } catch (error) {
+      logger.error(
+        `Device management connection ${data.connection.id!.toString()}: how its read went could not be recorded for its alert: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return false;
     }
   }
 

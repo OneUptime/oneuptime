@@ -69,6 +69,10 @@ import PrometheusAPI, {
   readApiKeyFromAuthorization,
 } from "../../../Server/API/PrometheusAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
+import CompatibleQueryRateLimit, {
+  COMPATIBLE_QUERY_TOO_MANY_MESSAGE,
+  CompatibleQueryRateLimitOutcome,
+} from "../../../Server/Middleware/CompatibleQueryRateLimit";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import Response from "../../../Server/Utils/Response";
 import MetricService from "../../../Server/Services/MetricService";
@@ -264,6 +268,41 @@ describe("Prometheus API routes", () => {
       permissions: getMetricReadPermissions(),
       wildcard: Permission.ReadAllOperationalResources,
     });
+  });
+
+  test("a project over its rate is answered 429 in Prometheus' envelope, before a series is read", async () => {
+    jest.spyOn(CompatibleQueryRateLimit, "consume").mockResolvedValue({
+      outcome: CompatibleQueryRateLimitOutcome.RateLimited,
+      retryAfterSeconds: 7,
+      isFirstRejectionInWindow: false,
+    });
+
+    const route: RecordedRoute = findRoute(
+      "POST",
+      `${PROMETHEUS_API_PATH}/query_range`,
+    );
+    // After the permission check, before the handler.
+    const rateLimit: RouteHandler = route.handlers[route.handlers.length - 2]!;
+    const setHeader: jest.Mock = jest.fn();
+    const next: jest.Mock = jest.fn();
+
+    await rateLimit(
+      { tenantId: PROJECT_ID, headers: {} } as unknown as ExpressRequest,
+      { setHeader } as unknown as ExpressResponse,
+      next as unknown as NextFunction,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(setHeader).toHaveBeenCalledWith("Retry-After", "7");
+    expect(lastAnswer()).toEqual({
+      statusCode: 429,
+      body: {
+        status: "error",
+        errorType: "unavailable",
+        error: COMPATIBLE_QUERY_TOO_MANY_MESSAGE,
+      },
+    });
+    expect(statements).toHaveLength(0);
   });
 
   test("a range query reads the caller's project and services, and answers in Prometheus' shape", async () => {

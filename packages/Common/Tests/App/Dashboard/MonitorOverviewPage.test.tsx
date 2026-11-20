@@ -641,6 +641,16 @@ function withoutSecretRequests(): Array<ItemRequest> {
   });
 }
 
+/*
+ * The hero's read of why a status that is not operational holds: the
+ * current status event's root cause (useMonitorStatusCause, #9592).
+ */
+function statusCauseRequests(): Array<ItemRequest> {
+  return itemRequests().filter((request: ItemRequest): boolean => {
+    return request.modelType === MonitorStatusTimeline;
+  });
+}
+
 function apiGetUrls(route: string): Array<string> {
   return apiGetSpy.mock.calls
     .map((call: Array<unknown>) => {
@@ -2224,7 +2234,10 @@ describe("Monitor overview page: Change status in the hero", () => {
     const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
       "MonitorFeed",
     ).refreshToken;
-    const readsBefore: number = itemRequests().length;
+    const readsBefore: number = rowRequests().length;
+
+    // Operational needs no why, so the hero has read none.
+    expect(statusCauseRequests()).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(
@@ -2254,7 +2267,13 @@ describe("Monitor overview page: Change status in the hero", () => {
      * brings the new status (a status change), which catches the feed item
      * the server writes after it records the change.
      */
-    expect(itemRequests()).toHaveLength(readsBefore + 1);
+    expect(rowRequests()).toHaveLength(readsBefore + 1);
+    // And the hero reads why it is Offline: the new status event's cause, once.
+    expect(
+      statusCauseRequests().map((request: ItemRequest): string => {
+        return request.id.toString();
+      }),
+    ).toEqual([STATUS_ROW_ID]);
     expect(refreshHeaderMock).toHaveBeenCalledTimes(1);
     expect(
       latestProps<{ refreshToken: number }>("MonitorFeed").refreshToken,

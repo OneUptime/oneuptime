@@ -31,7 +31,7 @@ npm run test-resource-overviews-ui
   card however many machines, and a service on no cloud saying nothing of it.
 - A service's and a serverless function's Security card (`?security=`): the page asks about
   that record alone, by its kind and id; the events and findings read from its own logs, each
-  opening Security Events on its logs, no open cases or risk (neither has a name an event would
+  opening its own Security Events page, no open cases or risk (neither has a name an event would
   name it by), a quiet week's one line, no card in a project that uses no Security Events, and
   Refresh reads the card again - at 390, 768 and 1280 pixels, light and dark; the serverless
   function's in German and in Persian right to left too, its link at the header's end.
@@ -45,6 +45,8 @@ Kafka queue (`orders.checkout-completed`) and one AWS Lambda function
 (`checkout-webhook`, three instances). Telemetry is a smooth series over the
 last half hour, the same for every aggregate; the logs and exceptions charts
 are empty, Security Events is not in use, and the database has no AI agent.
+OneUptime AI has learned nothing about the service yet, and its team wrote it
+no notes (the service's two AI cards, #7672).
 
 ## Scenarios
 

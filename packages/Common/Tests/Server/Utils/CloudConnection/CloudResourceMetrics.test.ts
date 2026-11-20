@@ -14,7 +14,12 @@ import CloudConnectionService from "../../../../Server/Services/CloudConnectionS
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import MetricService from "../../../../Server/Services/MetricService";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
-import { CloudConnectionSettings } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import {
+  CloudConnectionPullState,
+  CloudConnectionSettings,
+  GcpSplitUnranked,
+} from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import { getGcpSplitRankKey } from "../../../../Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
 import {
   AWS_CLOUDWATCH_UNITS,
   AWS_UNIT_LOOK_BACK_DAYS,
@@ -1418,6 +1423,78 @@ describe("a Google Cloud resource's metrics", () => {
         unit: "1",
         block: undefined,
       },
+    ]);
+  });
+
+  /*
+   * #10164: a split its connection's reads found PromQL cannot rank says
+   * so, with what the hour's list returned of each resource, so its cost
+   * counts the learning's every value.
+   */
+  test("a split its reads found PromQL cannot rank says so, with what the hour's list returns of a resource", async () => {
+    const METRIC: string =
+      "cloudsql.googleapis.com/database/postgresql/statements_executed_count";
+    const unranked: GcpSplitUnranked = {
+      at: new Date().toISOString(),
+      projectId: "acme-prod",
+      metricType: METRIC,
+      aligner: "ALIGN_RATE",
+      label: "operation_type",
+      valuesPerResource: 42,
+    };
+
+    // The reads' own state, kept on the row as CloudConnectionPullRunner keeps it.
+    const pullState: CloudConnectionPullState = {
+      gcpSplitUnranked: { [getGcpSplitRankKey(unranked)]: unranked },
+    };
+
+    connection = connectionRow({
+      provider: CloudProvider.GCP,
+      pullState: pullState as unknown as JSONObject,
+    });
+
+    const fake: FakeGcpLive = createFakeGcpLive({
+      monitoring: (url: URL) => {
+        if (!url.pathname.endsWith("/metricDescriptors")) {
+          return json({ timeSeries: [] });
+        }
+
+        return json({
+          metricDescriptors: [
+            descriptor(METRIC, {
+              metricKind: "DELTA",
+              labels: [
+                { key: "operation_type", valueType: "STRING" },
+                { key: "user_name", valueType: "STRING" },
+              ],
+            }),
+          ],
+        });
+      },
+    });
+
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+    const listed: CloudPublishedMetric | undefined = listing.metrics.find(
+      (metric: CloudPublishedMetric): boolean => {
+        return metric.name === METRIC;
+      },
+    );
+
+    expect(listed?.splits).toEqual([
+      {
+        name: "operation_type",
+        isLearnedFromEveryValue: true,
+        learnedValuesPerResource: 42,
+      },
+      // Another label of it: PromQL was never refused by it.
+      { name: "user_name" },
     ]);
   });
 

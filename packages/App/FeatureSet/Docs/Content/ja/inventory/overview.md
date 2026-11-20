@@ -138,9 +138,17 @@ Esper から削除されたデバイスは **削除済み** となり、その�
 
 **管理対象デバイス** で接続の行の **アラートをセットアップ** をクリックし、**Esper Android Device Stopped Checking In** と **Esper Apple Device Stopped Checking In** を作成します。前者は Esper に 1 時間を超えてチェックインしていない Android デバイスごとに、後者は 1 日を超えてチェックインしていない Apple デバイスごとに、そのデバイスの名前を付けたアラートを 1 件開き、デバイスが再びチェックインすると解決します。
 
-接続を読み取るたびに、各デバイスが何分前に最後にチェックインしたかがメトリクス `oneuptime.managed_device.check_in.age` として記録され、モニターは 5 分ごとに各デバイスの最新の値を確認します。Android Agent も実行しているデバイスは **Host Stopped Reporting** に任せるため二重にアラートが出ることはなく、Esper から削除されたデバイスのアラートは解決されます。読み取りに失敗すると何も記録されないため、次の読み取りまでアラートが開くことも解決することもありません。夜間に電源を切るフリートでは、モニターのしきい値を上げてください。
+接続を読み取るたびに、各デバイスが何分前に最後にチェックインしたかがメトリクス `oneuptime.managed_device.check_in.age` として記録され、モニターは 5 分ごとに各デバイスの最新の値を確認します。Android Agent も実行しているデバイスは **Host Stopped Reporting** に任せるため二重にアラートが出ることはなく、Esper から削除されたデバイスのアラートは解決されます。読み取りに失敗するとデバイスについて何も記録されないため、読み取りが再び成功するまで、デバイスのアラートが開くことも解決することもありません。夜間に電源を切るフリートでは、モニターのしきい値を上げてください。
 
 **Esper Security Patch Out of Date** も作成すると、Esper が報告するセキュリティパッチレベルが 90 日より古い Android デバイスごとに個別のアラートが開き、デバイスが更新されると解決されます。読み取りのたびに、各 Android デバイスのパッチレベルが何日前のものかがメトリクス `oneuptime.managed_device.security_patch.age` として記録されます。Android Agent を実行しているデバイスはそのホストの **Security Patch Out of Date** に任せるため、二重にアラートが出ることはありません。
+
+**Esper Low Battery** と **Esper Storage Nearly Full** も作成すると、Esper が最後に読み取ったバッテリー残量が 20% 未満のデバイスごとに個別のアラートが開き、ストレージの使用率が 90% を超えるデバイスごとにも同じように開き、それぞれデバイスが充電されるか空き容量が戻ると解決されます。読み取りのたびに、両方がメトリクス `oneuptime.managed_device.battery.level` と `oneuptime.managed_device.storage.used` として記録されます。Android Agent を実行しているデバイスは、同じしきい値でアラートを出すホストの **Low Battery** と **Storage Nearly Full** に任せるため、二重にアラートが出ることはありません。
+
+デバイスのアラートはその項目にも表示されます。デバイスの **Esper** カードには、そのデバイスについて開いているインシデントとアラートがそれぞれのページへのリンク付きで一覧表示され、Android Agent が報告しないデバイスの **アラート** ページと **インシデント** ページには、その接続のモニターがそのデバイスについて発生させたものがすべて一覧表示されます。
+
+### 接続が読み取られなくなったらアラートを受け取る
+
+**Esper Connection Stopped Reading** を作成すると、接続の行が **ステータス** を **古い** にするまで待つ時間、つまり読み取り間隔 3 回分に 10 分を加えた時間 (ただし 30 分以上) にわたって読み取りが 1 回も成功しなかったとき、接続そのものについてアラートが開きます。既定の 15 分間隔では 55 分です。最初のデバッグ手順では接続の直近の値が、それぞれの読み取りが失敗したときのエラーとともに一覧表示され、最初に成功した読み取りでアラートは解決されます。読み取りのたびに、また接続の読み取り時期が来るたびに、最後に成功してから何分経ったかがメトリクス `oneuptime.managed_device.connection.read.age` として記録されます。モニターは作成時の接続の読み取り間隔に従って待ちます。オフにした接続は何も記録しないため、開いていたアラートは手動で解決するまで開いたままです。
 
 ## Microsoft Intune からデバイスをインポートする
 
@@ -168,7 +176,7 @@ Microsoft Entra 管理センターで `App registrations` を開き、`New regis
 
 Intune はデバイスに所有者が付けた名前を使うため、2 台のデバイスが同じ名前になることがあります。誰も名前を変えていない iPhone はすべて `iPhone` です。1 つの接続の 2 台のデバイスが共有する名前は、インベントリではどちらのものにもなりません。それぞれシリアル番号で名付けられ、ほかにその名前のデバイスがなくなると名前が戻ります。
 
-デバイスのチェックインが止まったときにアラートを受け取るには、接続の行で **アラートをセットアップ** をクリックし、**Intune Device Stopped Checking In** を作成します。Intune に 1 日を超えてチェックインしていないデバイスごとに、そのデバイスの名前を付けたアラートを 1 件開きます。週末に電源を切ったノート PC も同じように見えるため、1 日では短すぎる場合はモニターのしきい値を上げてください。**Intune Security Patch Out of Date** は、Esper のテンプレートと同じように、セキュリティパッチレベルが 90 日より古い Android デバイスごとにアラートを出します。
+デバイスのチェックインが止まったときにアラートを受け取るには、接続の行で **アラートをセットアップ** をクリックし、**Intune Device Stopped Checking In** を作成します。Intune に 1 日を超えてチェックインしていないデバイスごとに、そのデバイスの名前を付けたアラートを 1 件開きます。週末に電源を切ったノート PC も同じように見えるため、1 日では短すぎる場合はモニターのしきい値を上げてください。**Intune Security Patch Out of Date** は、Esper のテンプレートと同じように、セキュリティパッチレベルが 90 日より古い Android デバイスごとにアラートを出します。**Intune Storage Nearly Full** と **Intune Connection Stopped Reading** は Esper のテンプレートと同じようにアラートを出します。Intune のデバイス一覧にはバッテリー残量がないため、バッテリーのアラートはありません。
 
 ## Workspace ONE UEM からデバイスをインポートする
 
@@ -194,7 +202,7 @@ Workspace ONE UEM コンソールで `Accounts`、`Administrators`、`Roles` の
 
 デバイスからテレメトリを送るアプリや Android Agent は、デバイスのシリアル番号によってそのデバイスと 1 つの項目にまとまります。Android Agent の管理対象の構成で、`device_serial` 設定にルックアップ値 `{DeviceSerialNumber}` を設定してください。
 
-デバイスのチェックインが止まったときにアラートを受け取るには、接続の行で **アラートをセットアップ** をクリックし、**Workspace ONE Device Stopped Checking In** を作成します。Workspace ONE に 1 日を超えて報告していないデバイスごとに、そのデバイスの名前を付けたアラートを 1 件開きます。**Workspace ONE Security Patch Out of Date** は、Esper のテンプレートと同じように、セキュリティパッチレベルが 90 日より古い Android デバイスごとにアラートを出します。
+デバイスのチェックインが止まったときにアラートを受け取るには、接続の行で **アラートをセットアップ** をクリックし、**Workspace ONE Device Stopped Checking In** を作成します。Workspace ONE に 1 日を超えて報告していないデバイスごとに、そのデバイスの名前を付けたアラートを 1 件開きます。**Workspace ONE Security Patch Out of Date** は、Esper のテンプレートと同じように、セキュリティパッチレベルが 90 日より古い Android デバイスごとにアラートを出します。**Workspace ONE Low Battery**、**Workspace ONE Storage Nearly Full**、**Workspace ONE Connection Stopped Reading** は Esper のテンプレートと同じようにアラートを出します。
 
 ## SOTI MobiControl からデバイスをインポートする
 
@@ -218,7 +226,7 @@ MobiControl エージェントはサーバーとの接続を常に保ってい�
 
 デバイスからテレメトリを送るアプリや Android Agent は、デバイスのシリアル番号によってそのデバイスと 1 つの項目にまとまります。Android Agent の管理対象の構成で、`device_serial` 設定にマクロ `%SERIALNUM%` を設定してください。
 
-デバイスのチェックインが止まったときにアラートを受け取るには、接続の行で **アラートをセットアップ** をクリックし、**SOTI Device Stopped Checking In** と **SOTI Apple Device Stopped Checking In** を作成します。前者はエージェントが 1 時間を超えて接続していない Android、Windows、Linux のデバイスごとに、後者は 1 日を超えてチェックインしていない Apple デバイスごとに、そのデバイスの名前を付けたアラートを 1 件開きます。**SOTI Security Patch Out of Date** は、Esper のテンプレートと同じように、セキュリティパッチレベルが 90 日より古い Android デバイスごとにアラートを出します。
+デバイスのチェックインが止まったときにアラートを受け取るには、接続の行で **アラートをセットアップ** をクリックし、**SOTI Device Stopped Checking In** と **SOTI Apple Device Stopped Checking In** を作成します。前者はエージェントが 1 時間を超えて接続していない Android、Windows、Linux のデバイスごとに、後者は 1 日を超えてチェックインしていない Apple デバイスごとに、そのデバイスの名前を付けたアラートを 1 件開きます。**SOTI Security Patch Out of Date** は、Esper のテンプレートと同じように、セキュリティパッチレベルが 90 日より古い Android デバイスごとにアラートを出します。**SOTI Low Battery**、**SOTI Storage Nearly Full**、**SOTI Connection Stopped Reading** は Esper のテンプレートと同じようにアラートを出します。
 
 ## 手動で追加する
 

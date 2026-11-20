@@ -423,6 +423,7 @@ describe("the Docker Swarm Clusters list's counts", () => {
 describe("the IoT Fleets list's devices online", () => {
   test("in Persian, Arabic and English", async () => {
     const item: Record<string, unknown> = {
+      otelCollectorStatus: "connected",
       deviceCount: 5,
       onlineDeviceCount: 4,
     };
@@ -452,6 +453,7 @@ describe("the IoT Fleets list's devices online", () => {
 
   test("a fleet of thousands is grouped the way the reader's language groups it", async () => {
     const item: Record<string, unknown> = {
+      otelCollectorStatus: "connected",
       deviceCount: 12000,
       onlineDeviceCount: 11999,
     };
@@ -470,6 +472,41 @@ describe("the IoT Fleets list's devices online", () => {
         item,
       ),
     ).toBe("11.999/12.000 online");
+  });
+
+  /*
+   * While a fleet is disconnected its devices' last states are not current
+   * (#10014): the list counts the devices it has, in the reader's digits
+   * and plural forms, never how many are online.
+   */
+  test("a disconnected fleet counts the devices it has, in the reader's digits", async () => {
+    const item: Record<string, unknown> = {
+      otelCollectorStatus: "disconnected",
+      deviceCount: 5,
+      onlineDeviceCount: 0,
+    };
+
+    expect(
+      cellText(
+        "fa",
+        await listColumn("fa", <IoTFleets {...PAGE_PROPS} />, "Devices"),
+        item,
+      ),
+    ).toBe("۵ دستگاه");
+    expect(
+      cellText(
+        "de",
+        await listColumn("de", <IoTFleets {...PAGE_PROPS} />, "Devices"),
+        item,
+      ),
+    ).toBe("5 Geräte");
+    expect(
+      cellText(
+        "en",
+        await listColumn("en", <IoTFleets {...PAGE_PROPS} />, "Devices"),
+        item,
+      ),
+    ).toBe("5 devices");
   });
 });
 

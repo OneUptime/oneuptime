@@ -250,16 +250,21 @@ describe("listPromQLMetricMetadata", () => {
       metricType("constructor"),
     ]);
 
+    /*
+     * Keyed by the names Prometheus gives them (issue #7715): an
+     * OpenTelemetry counter with its _total, a name that is a Prometheus
+     * name already as it is; `1` is no unit in Prometheus' words.
+     */
     expect(Object.keys(metadata)).toEqual([
-      "http_requests",
+      "http_requests_total",
       "__proto__",
       "constructor",
     ]);
     expect(readOwnValue(metadata, "__proto__")).toEqual([
-      { type: "counter", help: "about __proto__", unit: "1" },
+      { type: "counter", help: "about __proto__", unit: "" },
     ]);
     expect(readOwnValue(metadata, "constructor")).toEqual([
-      { type: "unknown", help: "about constructor", unit: "1" },
+      { type: "unknown", help: "about constructor", unit: "" },
     ]);
     expect(Object.getPrototypeOf(metadata)).toBe(Object.prototype);
     expect(JSON.stringify(metadata)).toContain('"__proto__":[');
@@ -275,6 +280,54 @@ describe("listPromQLMetricMetadata", () => {
     );
 
     expect(Object.keys(metadata)).toEqual(["__proto__"]);
+  });
+
+  test("keys each metric by its Prometheus family name, in Prometheus' unit", async () => {
+    const histogram: MetricType = metricType("http.server.request.duration");
+    histogram.unit = "s";
+    const memory: MetricType = metricType("system.memory.usage");
+    memory.unit = "By";
+    const network: MetricType = metricType("system.network.io", true);
+    network.unit = "By";
+
+    jest
+      .spyOn(MetricTypeService, "findBy")
+      .mockResolvedValue([histogram, memory, network] as never);
+    jest.spyOn(MetricService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<unknown> }> => {
+        return {
+          data: [
+            { name: "http.server.request.duration", pointType: "Histogram" },
+          ],
+        };
+      },
+    } as never);
+
+    const metadata: Record<
+      string,
+      Array<PrometheusMetricMetadata>
+    > = await listPromQLMetricMetadata({
+      projectId: ObjectID.generate(),
+      props: { isRoot: true },
+      metric: undefined,
+      limit: 100,
+    });
+
+    expect(metadata).toEqual({
+      http_server_request_duration_seconds: [
+        {
+          type: "histogram",
+          help: "about http.server.request.duration",
+          unit: "seconds",
+        },
+      ],
+      system_memory_usage_bytes: [
+        { type: "unknown", help: "about system.memory.usage", unit: "bytes" },
+      ],
+      system_network_io_bytes_total: [
+        { type: "counter", help: "about system.network.io", unit: "bytes" },
+      ],
+    });
   });
 
   test("stops at the limit, a metric named __proto__ counting as one", async () => {

@@ -352,7 +352,10 @@ jobs:
           # minutes, its status page and telemetry setups' suite the longest.
           # Saved funnels and retention tables' suite (#6718, 0.8 minutes:
           # 38.9 s locally with its bundle built, times 1.26) joined group 13
-          # the same day too.
+          # the same day too. On 2026-11-20 the dashboard time range suite's
+          # look at a link that opens a dashboard at one of its widgets
+          # (#10084) took it from 4.1 to 4.9 minutes, past group 2's 22, so
+          # it moved to group 13: group 2 19.7 minutes, group 13 7.4.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
@@ -375,7 +378,6 @@ jobs:
               test-security-events-empty-states-ui
               test-journeys-ui
               test-resource-overviews-ui
-              test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
               test-list-delete-ui
               test-host-collectors-ui
@@ -519,6 +521,7 @@ jobs:
               test-server-setup-ui
           - group: 13
             suites: >-
+              test-dashboard-time-range-ui
               test-admin-health-ui
               test-status-page-telemetry-guided-setups-ui
               test-product-onboarding-ui

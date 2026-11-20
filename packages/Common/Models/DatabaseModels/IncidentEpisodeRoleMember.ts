@@ -189,7 +189,20 @@ export default class IncidentEpisodeRoleMember extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodeRoleMember,
     ],
-    update: [],
+    /*
+     * Reassign hands the role to someone else in one write, as an
+     * incident's does (IncidentMember): the row keeps its episode and its
+     * role, and names another person, and the episode's incidents follow
+     * (IncidentEpisodeRoleMemberService.onUpdateSuccess).
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentEpisodeRoleMember,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "userId",
@@ -231,7 +244,15 @@ export default class IncidentEpisodeRoleMember extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentEpisodeRoleMember,
     ],
-    update: [],
+    // Reassign: see the user relation above.
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentEpisodeRoleMember,
+    ],
   })
   @Index()
   @TableColumn({

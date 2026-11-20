@@ -121,6 +121,30 @@ function card(page: Page): Locator {
   return page.getByTestId("resource-security-card");
 }
 
+/*
+ * The card's events open the record's own Security Events page, beside its
+ * Logs (a host's and a cluster's since #9547, a Docker or Podman host's
+ * since #9628), over the card's week: the page carries the record's scope
+ * itself, so the link searches for nothing.
+ */
+async function expectItsOwnPageOverTheWeek(
+  events: Locator,
+  recordPath: string,
+): Promise<void> {
+  const week: URL = new URL(
+    (await events.getAttribute("href"))!,
+    "http://127.0.0.1:4233",
+  );
+  expect(week.pathname).toBe(`${recordPath}/security-events`);
+  expect(week.searchParams.get("range")).toBe("Custom");
+  expect(new Date(week.searchParams.get("end")!).getTime()).toBe(NOW.getTime());
+  expect(
+    new Date(week.searchParams.get("end")!).getTime() -
+      new Date(week.searchParams.get("start")!).getTime(),
+  ).toBe(7 * 24 * 60 * 60 * 1000);
+  expect(week.searchParams.get("search")).toBeNull();
+}
+
 // The page has read what Security Events says about the record.
 async function securityRead(page: Page): Promise<void> {
   await expect
@@ -235,17 +259,10 @@ test.describe("a host's Security card", () => {
       "What Security Events found about it in the last 7 days.",
     );
 
-    // The events, opening the explorer on what names the host this week.
+    // The events, opening the host's own Security Events page on this week.
     const events: Locator = card(page).getByTestId("resource-security-open");
     await expect(events).toHaveText("128");
-    const search: URL = new URL(
-      (await events.getAttribute("href"))!,
-      "http://127.0.0.1:4233",
-    );
-    expect(search.pathname).toBe(`${DASHBOARD}/security-events`);
-    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
-      "observable:(api-gateway-01 OR 203.0.113.40)",
-    );
+    await expectItsOwnPageOverTheWeek(events, HOST_PATH);
 
     await expect(card(page)).toContainText("Findings");
     await expect(card(page)).toContainText("High");
@@ -394,14 +411,7 @@ test.describe("a Docker host's Security card", () => {
 
     const events: Locator = card(page).getByTestId("resource-security-open");
     await expect(events).toHaveText("19");
-    const search: URL = new URL(
-      (await events.getAttribute("href"))!,
-      "http://127.0.0.1:4233",
-    );
-    expect(search.pathname).toBe(`${DASHBOARD}/security-events`);
-    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
-      "observable:(docker-edge-01 OR 203.0.113.61)",
-    );
+    await expectItsOwnPageOverTheWeek(events, DOCKER_HOST_PATH);
     await expect(card(page)).toContainText("38");
 
     const cases: Locator = card(page).getByTestId("resource-security-cases");
@@ -535,14 +545,9 @@ test.describe("a Podman host's Security card", () => {
     await expect(card(page).getByTestId("resource-security-cases")).toHaveCount(
       0,
     );
-    const search: URL = new URL(
-      (await card(page)
-        .getByTestId("resource-security-open")
-        .getAttribute("href"))!,
-      "http://127.0.0.1:4233",
-    );
-    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
-      "observable:podman-build-02",
+    await expectItsOwnPageOverTheWeek(
+      card(page).getByTestId("resource-security-open"),
+      PODMAN_HOST_PATH,
     );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     expect(await partsOutsideTheCard(page)).toEqual([]);
