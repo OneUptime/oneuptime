@@ -22,11 +22,14 @@ jest.mock("../../../Server/Utils/Logger", () => {
   };
 });
 
+import RequestBodyAfterAuthentication from "../../../Server/Middleware/RequestBodyAfterAuthentication";
 import Express, {
   ExpressApplication,
+  NextFunction,
   OneUptimeRequest,
 } from "../../../Server/Utils/Express";
 import logger from "../../../Server/Utils/Logger";
+import { REPORT_REQUEST_BODY_LIMIT } from "../../../Server/Utils/RequestBodyLimit";
 import { REQUEST_BODY_REFUSAL_MESSAGES } from "../../../Server/Utils/RequestBodyRefusal";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import {
@@ -84,6 +87,29 @@ let port: number;
 
 // What the routes below were handed, by path.
 const reached: Array<string> = [];
+
+/*
+ * What StartServer left of the body of a route that reads its own once it
+ * knows who sent it (#10222): whether it read the body at all.
+ */
+const leftByStartServer: Array<Record<string, unknown>> = [];
+
+const recordWhatStartServerLeft: (
+  req: express.Request,
+  _res: express.Response,
+  next: NextFunction,
+) => void = (
+  req: express.Request,
+  _res: express.Response,
+  next: NextFunction,
+): void => {
+  leftByStartServer.push({
+    path: req.path,
+    isRead: RequestBodyAfterAuthentication.isRead(req),
+    body: req.body === undefined ? "unread" : "read",
+  });
+  next();
+};
 
 function post(data: {
   path: string;
@@ -215,14 +241,25 @@ beforeAll(async () => {
     },
   );
 
-  // A vCenter's collection, gzip-compressed: left to the route as its bytes.
-  app.post(
+  /*
+   * A vCenter's collection, and a forwarding pod's rows: StartServer leaves
+   * their bodies unread, and the route reads them once it has checked who
+   * sent them - here, at once.
+   */
+  for (const path of [
     "/probe-ingest/probe/vmware/collection",
-    (req: express.Request, res: express.Response) => {
-      reached.push(req.path);
-      res.send(describeBody(req));
-    },
-  );
+    "/telemetry-writer/insert",
+  ]) {
+    app.post(
+      path,
+      recordWhatStartServerLeft,
+      RequestBodyAfterAuthentication.readBytes(REPORT_REQUEST_BODY_LIMIT),
+      (req: express.Request, res: express.Response) => {
+        reached.push(req.path);
+        res.send(describeBody(req));
+      },
+    );
+  }
 
   // Stripe's webhook: a signature over the body's exact text.
   app.post(
@@ -277,6 +314,7 @@ afterAll(async () => {
 beforeEach(() => {
   jest.clearAllMocks();
   reached.length = 0;
+  leftByStartServer.length = 0;
   parseSpy?.mockRestore();
   parseSpy = jest.spyOn(JSON, "parse");
 });
@@ -523,10 +561,12 @@ describe("the routes that take large bodies take what they are sent", () => {
       headers: { "content-encoding": "gzip" },
     });
 
+    // The route reads it, and is handed its bytes to check the key on.
     expect(result).toEqual({
       status: 200,
       body: { isBuffer: true, bytes: report.length, keys: [] },
     });
+    expect(parsesOfAtLeast(MIB)).toBe(0);
 
     const ordinary: HttpResult = await post({
       path: "/api/monitor/get-list",
@@ -536,6 +576,65 @@ describe("the routes that take large bodies take what they are sent", () => {
 
     expect(ordinary.status).toBe(413);
   }, 120000);
+});
+
+/*
+ * A probe's collection and a forwarding pod's rows take 8,000,000 values,
+ * which cost JSON.parse 1.4 s and 490 MiB: StartServer, which runs before
+ * any key is checked, neither reads nor parses their bodies (#10222). The
+ * routes do, once they know who sent them.
+ */
+describe("the routes that read their body once they know who sent it", () => {
+  test("are left their body unread, gzip-compressed or not, and StartServer parses none of it", async () => {
+    // A million values, three bytes each: more than any large route parses.
+    const body: string = emptyArrays(3 * MIB);
+
+    for (const path of [
+      "/probe-ingest/probe/vmware/collection",
+      "/telemetry-writer/insert",
+      // As the routers match it.
+      "/Probe-Ingest/Probe/VMware/Collection/",
+    ]) {
+      for (const sent of [
+        { body: Buffer.from(body), headers: {} },
+        {
+          body: zlib.gzipSync(Buffer.from(body)),
+          headers: { "content-encoding": "gzip" },
+        },
+        {
+          body: Buffer.from(body),
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+        },
+      ]) {
+        leftByStartServer.length = 0;
+
+        const result: HttpResult = await post({ path: path, ...sent });
+
+        expect({ path, status: result.status, body: result.body }).toEqual({
+          path,
+          status: 200,
+          body: { isBuffer: true, bytes: body.length, keys: [] },
+        });
+        expect(leftByStartServer).toEqual([
+          { path: path, isRead: false, body: "unread" },
+        ]);
+      }
+    }
+
+    expect(parsesOfAtLeast(MIB)).toBe(0);
+  }, 120000);
+
+  test("while a probe's other routes are still read by StartServer", async () => {
+    const result: HttpResult = await post({
+      path: "/probe-ingest/probe/response/ingest",
+      body: JSON.stringify({ probeId: "probe", probeKey: "key" }),
+    });
+
+    expect(result).toEqual({
+      status: 200,
+      body: { isBuffer: false, keys: ["probeId", "probeKey"] },
+    });
+  });
 });
 
 describe("a webhook's signature check still sees the body's exact text", () => {
