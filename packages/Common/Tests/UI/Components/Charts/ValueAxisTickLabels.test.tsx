@@ -32,6 +32,9 @@ import { getNiceTickValues } from "recharts";
 // The chart's root, as recharts is handed it: its clicks, for a bucket's.
 const chartRootProps: { current: Record<string, unknown> } = { current: {} };
 
+// How tall recharts lays each chart out: a card's short chart sets it lower.
+const chartBox: { height: number } = { height: 320 };
+
 jest.mock("recharts", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "recharts",
@@ -50,7 +53,7 @@ jest.mock("recharts", () => {
     }): React.ReactElement => {
       return react.cloneElement(children, {
         width: 640,
-        height: 320,
+        height: chartBox.height,
       } as Record<string, unknown>);
     },
     LineChart: (props: Record<string, unknown>): React.ReactElement => {
@@ -72,6 +75,7 @@ const NBSP: string = "\u00A0";
 
 afterEach(() => {
   cleanup();
+  chartBox.height = 320;
 });
 
 function unitFormatter(unit: string, language?: string): ValueAxisFormatter {
@@ -665,6 +669,77 @@ describe("a duration axis steps in natural units of time (#10118)", () => {
     );
 
     expect(container.innerHTML).not.toMatch(/durationunitinseconds/i);
+  });
+});
+
+// The plot's height as recharts laid it out: its horizontal grid lines' span.
+function plotHeight(container: HTMLElement): number {
+  const lines: Array<number> = Array.from(
+    container.querySelectorAll(".recharts-cartesian-grid-horizontal line"),
+  ).map((line: Element): number => {
+    return Number(line.getAttribute("y1") || 0);
+  });
+
+  return Math.max(...lines) - Math.min(...lines);
+}
+
+// A cluster's network throughput, up to 1.1 MB/s, as its overview's card draws it.
+const NETWORK_RATE: Array<number> = [0, 2.1e5, 4.2e5, 8.8e5, 1.1e6, 6.4e5];
+
+describe("a short plot takes only the ticks it has room for (#10117)", () => {
+  test.each([
+    ["line", LineChart],
+    ["area", AreaChart],
+    ["bar", BarChart],
+  ])(
+    "the %s chart in a card: a tick every 20px or more, from its zero",
+    (
+      kind: string,
+      Chart: typeof LineChart | typeof AreaChart | typeof BarChart,
+    ) => {
+      chartBox.height = 130;
+      const ChartElement: React.ElementType = Chart as React.ElementType;
+      const { container } = render(
+        <ChartElement
+          data={rowsOf({ network: NETWORK_RATE })}
+          index={CHART_DATA_POINT_X_AXIS_KEY}
+          categories={["network"]}
+          valueFormatter={unitFormatter("By/s")}
+          showLegend={false}
+        />,
+      );
+
+      const [ticks] = valueAxesIn(container);
+      const height: number = plotHeight(container);
+
+      expect(kind).toBeTruthy();
+      // A short plot, measured once recharts laid it out.
+      expect(height).toBeLessThan(100);
+      expect(height / (ticks!.length - 1)).toBeGreaterThanOrEqual(20);
+      expect(ticks![0]).toBe(`0${NBSP}B/s`);
+      expectApart(ticks!);
+    },
+  );
+
+  test("the same values on a tall plot keep six ticks a quarter of a megabyte apart", () => {
+    const { container } = render(
+      <LineChart
+        data={rowsOf({ network: NETWORK_RATE })}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
+        categories={["network"]}
+        valueFormatter={unitFormatter("By/s")}
+        showLegend={false}
+      />,
+    );
+
+    expect(valueAxesIn(container)[0]).toEqual([
+      `0${NBSP}B/s`,
+      `250${NBSP}KB/s`,
+      `500${NBSP}KB/s`,
+      `750${NBSP}KB/s`,
+      `1.00${NBSP}MB/s`,
+      `1.25${NBSP}MB/s`,
+    ]);
   });
 });
 

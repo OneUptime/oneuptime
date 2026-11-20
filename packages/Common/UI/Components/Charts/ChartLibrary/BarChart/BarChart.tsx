@@ -65,6 +65,10 @@ import {
   ChartValueAxesPlan,
   useValueAxesTicks,
 } from "../Utils/UseValueAxesTicks";
+import PlotHeightProbe, {
+  PlotRoom,
+  usePlotRoom,
+} from "../Utils/PlotHeightProbe";
 import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 import {
   PreparedTooltipEntries,
@@ -992,6 +996,8 @@ const BarChart: React.ForwardRefExoticComponent<
      * bottom, and a chart of shares always reads 0% to 100%: recharts steps
      * both as it always has.
      */
+    // The ticks the plot has room for, once recharts has laid it out.
+    const plotRoom: PlotRoom = usePlotRoom();
     const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
       data: data,
       categories: categories,
@@ -1003,6 +1009,7 @@ const BarChart: React.ForwardRefExoticComponent<
       allowDecimals: allowDecimals,
       valueFormatter: valueFormatter,
       durationUnitInSeconds: valueDurationUnitInSeconds,
+      mostTicks: plotRoom.mostTicks,
       yAxisWidth: yAxisWidth,
       isStacked: type === "stacked",
       isFirstAxisLeftToRecharts: layout === "vertical" || type === "percent",
@@ -1166,6 +1173,8 @@ const BarChart: React.ForwardRefExoticComponent<
               layout={layout}
               barCategoryGap={barCategoryGap ?? "10%"}
             >
+              {/* Hands the axes the plot's height, so a short one takes fewer ticks. */}
+              <PlotHeightProbe onPlotHeight={plotRoom.onPlotHeight} />
               {showGridLines ? (
                 <CartesianGrid
                   className={cx("stroke-gray-100")}

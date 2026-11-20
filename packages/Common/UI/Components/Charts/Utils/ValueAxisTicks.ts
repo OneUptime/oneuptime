@@ -30,7 +30,8 @@ import { ValueAxisFormatter, ValueAxisPrecision } from "../Types/YAxis/YAxis";
  * Wilkinson's tick labelling scores them (the scoring ggplot2 uses):
  *
  *   - about five ticks (recharts' own count), never fewer than three or
- *     more than six while a round step gives that many (density);
+ *     more than six while a round step gives that many, nor more than its
+ *     plot has room for, a tick every 20px (density);
  *   - little blank space past the values, so the line fills the plot
  *     (coverage): an axis over 0 to 55 reads 0, 20, 40, 60, as recharts'
  *     own ended at 60, not 0 to 80 as recharts' round steps pad it;
@@ -60,6 +61,36 @@ export const VALUE_AXIS_TICK_COUNT: number = 5;
 // The fewest and the most ticks an axis is stepped in, while a round step gives that many.
 export const FEWEST_VALUE_AXIS_TICKS: number = 3;
 export const MOST_VALUE_AXIS_TICKS: number = 6;
+
+/*
+ * The room a tick's label takes up the plot: its 10px text, and the 5px
+ * recharts keeps between two labels (minTickGap), and a little air. Closer
+ * than that, recharts hides every other label, and a short card's axis of
+ * six ticks read "250 KB/s", "750 KB/s", "1.25 MB/s", its zero gone.
+ */
+export const VALUE_AXIS_TICK_SPACING_IN_PX: number = 20;
+
+/*
+ * The most ticks an axis over a plot `plotHeightInPx` tall is stepped in:
+ * as many as are VALUE_AXIS_TICK_SPACING_IN_PX apart, from three to six.
+ * A plot not yet measured takes six, as a tall one does: an 82px card's
+ * plot takes five, a 60px one four.
+ */
+export function getMostValueAxisTicks(
+  plotHeightInPx: number | undefined,
+): number {
+  if (!isFiniteNumber(plotHeightInPx) || plotHeightInPx <= 0) {
+    return MOST_VALUE_AXIS_TICKS;
+  }
+
+  return Math.min(
+    MOST_VALUE_AXIS_TICKS,
+    Math.max(
+      FEWEST_VALUE_AXIS_TICKS,
+      Math.floor(plotHeightInPx / VALUE_AXIS_TICK_SPACING_IN_PX) + 1,
+    ),
+  );
+}
 
 // The most figures of its largest value an axis's step resolves.
 export const FINEST_TICK_FIGURES: number = 5;
@@ -126,6 +157,11 @@ export interface ValueAxisTicksInput {
    * steps in natural units of time (DURATION_STEPS_IN_SECONDS, #10118).
    */
   durationUnitInSeconds?: number | undefined;
+  /*
+   * The most ticks the axis's plot has room for (getMostValueAxisTicks);
+   * MOST_VALUE_AXIS_TICKS when left out.
+   */
+  mostTicks?: number | undefined;
 }
 
 export interface ValueAxisTicks {
@@ -415,6 +451,7 @@ function getRoundTicksBestFirst(input: {
   hasAutoEnd: boolean;
   allowDecimals: boolean;
   durationUnitInSeconds?: number | undefined;
+  mostTicks: number;
 }): Array<RoundTicks> {
   let [low, high] = input.axisDomain;
   const largest: number = Math.max(Math.abs(low), Math.abs(high));
@@ -503,7 +540,7 @@ function getRoundTicksBestFirst(input: {
     (labelling: RoundTicks): boolean => {
       return (
         labelling.ticks.length >= FEWEST_VALUE_AXIS_TICKS &&
-        labelling.ticks.length <= MOST_VALUE_AXIS_TICKS
+        labelling.ticks.length <= input.mostTicks
       );
     },
   );
@@ -553,6 +590,10 @@ export function getValueAxisTicks(input: ValueAxisTicksInput): ValueAxisTicks {
     hasAutoEnd: hasAutoEnd,
     allowDecimals: input.allowDecimals,
     durationUnitInSeconds: input.durationUnitInSeconds,
+    mostTicks: Math.max(
+      FEWEST_VALUE_AXIS_TICKS,
+      input.mostTicks ?? MOST_VALUE_AXIS_TICKS,
+    ),
   })) {
     const firstTick: number = round.ticks[0] as number;
     const lastTick: number = round.ticks[round.ticks.length - 1] as number;

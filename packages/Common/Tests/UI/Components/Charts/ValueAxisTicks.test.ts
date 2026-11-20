@@ -7,9 +7,11 @@ import {
   FEWEST_VALUE_AXIS_TICKS,
   FINEST_TICK_FIGURES,
   MOST_VALUE_AXIS_TICKS,
+  VALUE_AXIS_TICK_SPACING_IN_PX,
   ValueAxisTicks,
   areNeighboursApart,
   getChartAxisValues,
+  getMostValueAxisTicks,
   getTickFormatter,
   getValueAxisTicks,
 } from "../../../../UI/Components/Charts/Utils/ValueAxisTicks";
@@ -1029,6 +1031,101 @@ describe("the axis's width over ticks it has written", () => {
     expect(
       getYAxisWidthForLabelsInPx({ labels: ["1 GB"], minWidthInPx: 90 }),
     ).toBe(90);
+  });
+});
+
+describe("a short plot's axis takes only the ticks it has room for (#10117)", () => {
+  test.each([
+    [undefined, 6],
+    [0, 6],
+    [Number.NaN, 6],
+    [320, 6],
+    [121, 6],
+    [100, 6],
+    [99, 5],
+    [82, 5],
+    [80, 5],
+    [79, 4],
+    [60, 4],
+    [59, 3],
+    [40, 3],
+    [20, 3],
+    [5, 3],
+  ] as Array<[number | undefined, number]>)(
+    "a plot %s px tall: at most %s ticks, a tick every 20px",
+    (plotHeightInPx: number | undefined, mostTicks: number) => {
+      expect(getMostValueAxisTicks(plotHeightInPx)).toBe(mostTicks);
+    },
+  );
+
+  test("the cluster's network card, 82px tall: 0 to 1.5 MB/s by a half, every label drawn, its zero too", () => {
+    const rate: ValueAxisFormatter = axisFormatter("By/s");
+    const values: Array<number> = [0, 4.2e5, 8.8e5, 1.1e6];
+    const tall: ValueAxisTicks = getValueAxisTicks({
+      values: values,
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: rate,
+    });
+    const short: ValueAxisTicks = getValueAxisTicks({
+      values: values,
+      domain: [0, "auto"],
+      allowDecimals: true,
+      formatter: rate,
+      mostTicks: getMostValueAxisTicks(82),
+    });
+
+    // Six ticks 16px apart: recharts drew every other label, "250 KB/s", "750 KB/s", "1.25 MB/s".
+    expect(tall.ticks).toEqual([0, 2.5e5, 5e5, 7.5e5, 1e6, 1.25e6]);
+    expect(82 / (tall.ticks!.length - 1)).toBeLessThan(
+      VALUE_AXIS_TICK_SPACING_IN_PX,
+    );
+    // Four, each label drawn.
+    expect(short.ticks).toEqual([0, 5e5, 1e6, 1.5e6]);
+    expect(short.labels).toEqual([
+      `0${NBSP}B/s`,
+      `500${NBSP}KB/s`,
+      `1.0${NBSP}MB/s`,
+      `1.5${NBSP}MB/s`,
+    ]);
+    expectRoundAndEven(short);
+  });
+
+  test("a seeded sweep: no more ticks than the plot has room for, an axis from zero always", () => {
+    const random: SeededRandom = seededRandom(10117);
+    let capped: number = 0;
+
+    for (let index: number = 0; index < 1200; index++) {
+      const magnitude: number = Math.pow(10, random(16) - 6);
+      const highest: number = magnitude * (1 + random() * 9);
+      const isFromZero: boolean = random(2) === 0;
+      const lowest: number = isFromZero ? 0 : highest * (0.05 + random() * 0.9);
+      const mostTicks: number = FEWEST_VALUE_AXIS_TICKS + random(4);
+      const values: Array<number> = around(
+        (lowest + highest) / 2,
+        highest - lowest,
+      );
+      const axis: ValueAxisTicks = getValueAxisTicks({
+        values: values,
+        domain: isFromZero ? [0, "auto"] : ["auto", "auto"],
+        allowDecimals: true,
+        formatter: bytes,
+        mostTicks: mostTicks,
+      });
+
+      expectRoundAndEven(axis);
+      expect(axis.ticks!.length).toBeGreaterThanOrEqual(2);
+      // An axis from zero always finds a round step that few: [S/2, S) holds one.
+      if (isFromZero) {
+        expect(axis.ticks!.length).toBeLessThanOrEqual(mostTicks);
+      }
+      if (axis.ticks!.length <= mostTicks) {
+        capped++;
+      }
+    }
+
+    // Almost every axis fits its room; a fitted line may need one tick more.
+    expect(capped).toBeGreaterThan(1200 * 0.95);
   });
 });
 

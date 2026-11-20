@@ -80,6 +80,10 @@ import {
   ChartValueAxesPlan,
   useValueAxesTicks,
 } from "../Utils/UseValueAxesTicks";
+import PlotHeightProbe, {
+  PlotRoom,
+  usePlotRoom,
+} from "../Utils/PlotHeightProbe";
 import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 
 /*
@@ -924,6 +928,8 @@ const AreaChart: React.ForwardRefExoticComponent<
      * wide as its widest tick (issues #10079, #10117). The expected-range band is
      * drawn against the first axis, so it takes the band in.
      */
+    // The ticks the plot has room for, once recharts has laid it out.
+    const plotRoom: PlotRoom = usePlotRoom();
     const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
       data: data,
       categories: categories,
@@ -935,6 +941,7 @@ const AreaChart: React.ForwardRefExoticComponent<
       allowDecimals: allowDecimals,
       valueFormatter: valueFormatter,
       durationUnitInSeconds: valueDurationUnitInSeconds,
+      mostTicks: plotRoom.mostTicks,
       yAxisWidth: yAxisWidth,
       bandKeys:
         anomalyBandLowerKey && anomalyBandUpperKey
@@ -1159,6 +1166,8 @@ const AreaChart: React.ForwardRefExoticComponent<
                   );
                 })}
               </defs>
+              {/* Hands the axes the plot's height, so a short one takes fewer ticks. */}
+              <PlotHeightProbe onPlotHeight={plotRoom.onPlotHeight} />
               {showGridLines ? (
                 <CartesianGrid
                   className={cx("stroke-gray-100")}

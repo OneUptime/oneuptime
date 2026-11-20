@@ -83,6 +83,10 @@ import {
   ChartValueAxesPlan,
   useValueAxesTicks,
 } from "../Utils/UseValueAxesTicks";
+import PlotHeightProbe, {
+  PlotRoom,
+  usePlotRoom,
+} from "../Utils/PlotHeightProbe";
 import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 
 /*
@@ -941,6 +945,8 @@ const LineChart: React.ForwardRefExoticComponent<
      * Each value axis stepped evenly in round steps of its unit, and as
      * wide as its widest tick (issues #10079, #10117).
      */
+    // The ticks the plot has room for, once recharts has laid it out.
+    const plotRoom: PlotRoom = usePlotRoom();
     const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
       data: data,
       categories: categories,
@@ -952,6 +958,7 @@ const LineChart: React.ForwardRefExoticComponent<
       allowDecimals: allowDecimals,
       valueFormatter: valueFormatter,
       durationUnitInSeconds: valueDurationUnitInSeconds,
+      mostTicks: plotRoom.mostTicks,
       yAxisWidth: yAxisWidth,
     });
     /*
@@ -1161,6 +1168,8 @@ const LineChart: React.ForwardRefExoticComponent<
                 top: annotations.marginTop,
               }}
             >
+              {/* Hands the axes the plot's height, so a short one takes fewer ticks. */}
+              <PlotHeightProbe onPlotHeight={plotRoom.onPlotHeight} />
               {showGridLines ? (
                 <CartesianGrid
                   className={cx("stroke-gray-100")}

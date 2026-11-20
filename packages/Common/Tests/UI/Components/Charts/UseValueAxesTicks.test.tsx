@@ -446,6 +446,63 @@ function drawn(text: string): string {
   return text.replace(/ /g, String.fromCharCode(0xa0));
 }
 
+describe("the ticks a plot has room for (#10117)", () => {
+  const RATE: Array<number> = [0, 2.1e5, 4.2e5, 8.8e5, 1.1e6, 6.4e5];
+  const RATE_ROWS: Array<Record<string, number | string>> = rowsOf({
+    rate: RATE,
+  });
+  const BYTE_RATE: ValueAxisFormatter = unitFormatter("By/s");
+  const rateInput: (mostTicks?: number) => AxesInput = (
+    mostTicks?: number,
+  ): AxesInput => {
+    return inputAt({
+      data: RATE_ROWS,
+      categories: ["rate"],
+      secondYAxis: undefined,
+      valueFormatter: BYTE_RATE,
+      firstDomain: [0, "auto"],
+      mostTicks: mostTicks,
+    });
+  };
+
+  test("both axes take no more ticks than the plot has room for", () => {
+    const roomy: ChartValueAxesPlan = drawPlan(rateInput()).plan();
+    const short: ChartValueAxesPlan = drawPlan(rateInput(5)).plan();
+    const both: ChartValueAxesPlan = drawPlan(
+      inputAt({
+        data: rowsOf({ rate: RATE, cpu: WIDE_PERCENT }),
+        categories: ["rate", "cpu"],
+        valueFormatter: unitFormatter("By/s"),
+        firstDomain: [0, "auto"],
+        secondYAxis: { ...CPU_ON_THE_RIGHT, categories: ["cpu"] },
+        secondDomain: [0, "auto"],
+        mostTicks: 4,
+      }),
+    ).plan();
+
+    expect(roomy.first.ticks.ticks).toHaveLength(6);
+    expect(short.first.ticks.ticks).toEqual([0, 5e5, 1e6, 1.5e6]);
+    expect(both.first.ticks.ticks!.length).toBeLessThanOrEqual(4);
+    expect(both.second?.ticks.ticks!.length).toBeLessThanOrEqual(4);
+  });
+
+  test("the plot measured once laid out: the axis is worked out again only when its room changes", () => {
+    const { plan, drawAgain } = drawPlan(rateInput());
+    const before: ChartValueAxesPlan = plan();
+
+    drawAgain(rateInput(5));
+    const measured: ChartValueAxesPlan = plan();
+
+    expect(measured.first.ticks.ticks).not.toEqual(before.first.ticks.ticks);
+    expect(measured.first.tickFormatter).not.toBe(before.first.tickFormatter);
+
+    // Measured again at the same room (a resize by a few pixels): the same objects.
+    drawAgain(rateInput(5));
+    expect(plan().first.ticks.ticks).toBe(measured.first.ticks.ticks);
+    expect(plan().first.tickFormatter).toBe(measured.first.tickFormatter);
+  });
+});
+
 describe("an axis of spans of time (issue #10118)", () => {
   const SECONDS: ValueAxisFormatter = unitFormatter("s");
 

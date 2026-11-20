@@ -115,6 +115,11 @@ export function useValueAxesTicks(input: {
    */
   durationUnitInSeconds?: number | undefined;
   /*
+   * The most ticks the plot has room for, both axes alike (usePlotRoom);
+   * six while the plot is not yet laid out.
+   */
+  mostTicks?: number | undefined;
+  /*
    * The scales of their own (issue #10080): their categories and lines are
    * drawn to no axis, so neither axis takes them in.
    */
@@ -217,6 +222,7 @@ export function useValueAxesTicks(input: {
             allowDecimals: input.allowDecimals,
             formatter: input.valueFormatter,
             durationUnitInSeconds: input.durationUnitInSeconds,
+            mostTicks: input.mostTicks,
           }),
       second: secondFormatter
         ? getValueAxisTicks({
@@ -225,6 +231,7 @@ export function useValueAxesTicks(input: {
             allowDecimals: input.allowDecimals,
             formatter: secondFormatter,
             durationUnitInSeconds: secondDurationUnitInSeconds,
+            mostTicks: input.mostTicks,
           })
         : undefined,
     };
@@ -238,6 +245,7 @@ export function useValueAxesTicks(input: {
     input.valueFormatter,
     input.isFirstAxisLeftToRecharts,
     input.durationUnitInSeconds,
+    input.mostTicks,
     secondFormatter,
     secondDurationUnitInSeconds,
   ]);
