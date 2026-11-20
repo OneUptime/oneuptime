@@ -176,6 +176,32 @@ export const BROWSER_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface
   ]);
 
 /*
+ * The only surfaces a Mobile key may write to (issue #6457): what a mobile
+ * app's OpenTelemetry SDK exports over OTLP/HTTP, and nothing else. An
+ * ALLOWLIST for the same reason as the browser one above.
+ *
+ * Narrower than a Browser key's on purpose:
+ *
+ *   - OTLP over gRPC and MQTT are not here. Neither runs the per-key rate
+ *     limit (it is an HTTP guard's), and a public key without its limit is
+ *     what this key type exists to avoid. The mobile SDKs export over HTTP.
+ *   - Sentry is not here: its events are not pinned to the key's service
+ *     name, so a copied key could write them under any app's name.
+ *   - Session replay is not here: a React Native app records with a Browser
+ *     key whose allowed origins list it as app://, the path built for it.
+ *
+ * Everything else - profiles, source maps, dSYMs, syslog, security events,
+ * every agent registration and collector management surface - is a
+ * server's, and a key copied out of an app must not reach it.
+ */
+export const MOBILE_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface> =
+  new Set<TelemetryIngestSurface>([
+    TelemetryIngestSurface.OtelTraces,
+    TelemetryIngestSurface.OtelLogs,
+    TelemetryIngestSurface.OtelMetrics,
+  ]);
+
+/*
  * Typed as a total Record rather than a partial lookup so that adding a member
  * to the enum without naming it is a compile error, not a surface that
  * silently reports itself by its raw slug in a customer-facing error.

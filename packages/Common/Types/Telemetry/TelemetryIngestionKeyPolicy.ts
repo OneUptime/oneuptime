@@ -84,3 +84,13 @@ export default interface TelemetryIngestionKeyPolicy {
  * A customer who genuinely needs more sets requestsPerMinuteLimit explicitly.
  */
 export const DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE: number = 6000;
+
+/*
+ * The same ceiling for a Mobile key (issue #6457), for the same reason: the
+ * key is published with every copy of the app, so "no limit configured"
+ * must not mean "unlimited", and the whole fleet of installs shares it. A
+ * mobile SDK batches as a browser one does, a few requests a minute per
+ * install.
+ */
+export const DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE: number =
+  DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE;

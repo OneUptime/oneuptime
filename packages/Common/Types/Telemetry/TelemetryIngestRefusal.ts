@@ -27,6 +27,11 @@ export enum TelemetryIngestRefusalReason {
   OriginNotAllowed = "origin-not-allowed",
   // A Browser key on a surface only Server keys may use.
   BrowserKeyNotAllowedHere = "browser-key-not-allowed-here",
+  /*
+   * A Mobile key (issue #6457) sending anything but a mobile app's OTLP
+   * traces, logs and metrics over HTTP, or sending from a web page.
+   */
+  MobileKeyNotAllowedHere = "mobile-key-not-allowed-here",
   // A key pinned to one service on an identity registration surface.
   PinnedKeyNotAllowedHere = "pinned-key-not-allowed-here",
   // Over the key's own requests-per-minute limit.

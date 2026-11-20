@@ -189,6 +189,8 @@ router.get(
 
       const isBrowserKey: boolean =
         policy.keyType === TelemetryIngestionKeyType.Browser;
+      const isMobileKey: boolean =
+        policy.keyType === TelemetryIngestionKeyType.Mobile;
 
       /*
        * Reported on every resolved token, valid or not, because "which of
@@ -240,7 +242,15 @@ router.get(
          */
         message: isBrowserKey
           ? "Ingestion token is valid, but it is a BROWSER ingestion key. It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics, session replays, and events from a Sentry browser SDK. Use a server ingestion key in a collector, an agent, or any backend service."
-          : "Ingestion token is valid.",
+          : isMobileKey
+            ? /*
+               * The mobile counterpart (issue #6457): valid in the app it
+               * was made for, and nowhere a collector or a page would use
+               * it. Its pinned app is not named: that is the shape of the
+               * project's defences, as the browser message keeps its origins.
+               */
+              "Ingestion token is valid. It is a MOBILE ingestion key: it is accepted only from a mobile app, without an Origin header, and only for OTLP traces, logs and metrics over HTTP, all filed under the app it is pinned to. Use a server ingestion key in a collector, an agent, or any backend service, and a browser ingestion key in a web page."
+            : "Ingestion token is valid.",
       });
     } catch (err) {
       return next(err);
