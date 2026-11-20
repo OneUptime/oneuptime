@@ -453,7 +453,7 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
           key: "totalCost",
           title: "Total Cost",
           description:
-            "Total cost of the row over the window (all components).",
+            "Total cost of the row over the window (all components). On a row where isCostAdjustment is true, the change a later reading of the window made to it, which can be negative.",
         },
         {
           key: "cpuEfficiency",

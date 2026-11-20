@@ -22,8 +22,10 @@ export enum KubernetesCostPricingSource {
   ListPrices = "list-prices",
   /*
    * The same list prices, priced by a Kubecost that reads the cloud's bill
-   * (#9851): it reconciles them with what was paid about a day and a half
-   * after each hour, after the cost agent shipped it.
+   * (#9851): it reconciles them with what was paid about two days after
+   * each hour, after the cost agent shipped it, and the agent reads the hour
+   * again then (#9969, KubernetesCostCorrection): the change arrives as rows
+   * of its own (KubernetesCostAllocation.isCostAdjustment).
    */
   BillingIntegration = "billing-integration",
   // Rates someone set: a rate card, or a CSV price list.
