@@ -149,20 +149,23 @@ describe("who can view a dashboard, read off its columns", () => {
 
   test("a state read without the sign-in column reads as it did before there was one", () => {
     // What a reader that never selects requireSignIn sees.
-    expect(
-      getDashboardAccess({
-        isPublicDashboard: true,
-        enableMasterPassword: false,
-        hasMasterPassword: false,
-      }),
-    ).toBe(DashboardAccess.AnyoneWithLink);
-    expect(
-      getDashboardAccess({
-        isPublicDashboard: true,
-        enableMasterPassword: true,
-        hasMasterPassword: true,
-      }),
-    ).toBe(DashboardAccess.AnyoneWithPassword);
+    const openToTheLink: DashboardAccessState = {
+      isPublicDashboard: true,
+      enableMasterPassword: false,
+      hasMasterPassword: false,
+    };
+    const behindAPassword: DashboardAccessState = {
+      isPublicDashboard: true,
+      enableMasterPassword: true,
+      hasMasterPassword: true,
+    };
+
+    expect(getDashboardAccess(openToTheLink)).toBe(
+      DashboardAccess.AnyoneWithLink,
+    );
+    expect(getDashboardAccess(behindAPassword)).toBe(
+      DashboardAccess.AnyoneWithPassword,
+    );
   });
 
   test("a public dashboard with both switches off is open to anyone with the link, a stored password or not", () => {

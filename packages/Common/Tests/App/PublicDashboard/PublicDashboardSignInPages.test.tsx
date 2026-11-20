@@ -41,12 +41,12 @@ import {
 } from "../../../../App/FeatureSet/PublicDashboard/src/Pages/SignIn/SignInCopy";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
-import URL from "../../../Types/API/URL";
 import { RESET_LINK_MESSAGES } from "../../../Types/Accounts/SignInMessages";
 import { DASHBOARD_PRIVATE_USER_CREDENTIALS_MESSAGE } from "../../../Types/Dashboard/DashboardPrivateUserSignIn";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import { APIRequestOptions } from "../../../Utils/API";
 import fs from "fs";
 import path from "path";
 
@@ -126,12 +126,12 @@ beforeEach(() => {
   jest
     .spyOn(API, "post")
     .mockImplementation(
-      async (request: {
-        url: URL;
-        data?: JSONObject;
-      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      async (
+        request: APIRequestOptions,
+      ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
         const url: string = request.url.toString();
-        posted.push({ url, data: request.data || {} });
+        // The sign-in pages post JSON objects only.
+        posted.push({ url, data: (request.data as JSONObject) || {} });
 
         const route: string = routeOf(url).split(`/${DASHBOARD_ID}`)[0]!;
         const answer: () => HTTPResponse<JSONObject> | HTTPErrorResponse =
