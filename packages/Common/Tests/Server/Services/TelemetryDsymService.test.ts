@@ -13,14 +13,7 @@ import {
   AppleSymbolTable,
   encodeAppleSymbols,
 } from "../../../Utils/Telemetry/AppleSymbols";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
