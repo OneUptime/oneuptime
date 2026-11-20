@@ -40,6 +40,8 @@ import McpCredentialUtil, {
   McpCredentialInput,
 } from "../Types/McpCredential";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import FieldsLeftOut from "Common/Types/API/FieldsLeftOut";
+import Headers from "Common/Types/API/Headers";
 import logger from "Common/Server/Utils/Logger";
 import {
   DeleteChoice,
@@ -448,6 +450,9 @@ async function handleCallTool(
       }
     }
 
+    // What a create left out because only OneUptime writes it (#10136).
+    let fieldsLeftOut: Array<string> = [];
+
     // Execute the OneUptime operation with this request's credential
     const result: unknown = await OneUptimeApiService.executeOperation(
       tool.tableName,
@@ -456,6 +461,9 @@ async function handleCallTool(
       tool.apiPath || "",
       args as OneUptimeToolCallArgs,
       credential,
+      (headers: Headers): void => {
+        fieldsLeftOut = FieldsLeftOut.fromHeaders(headers);
+      },
     );
 
     // Format the response
@@ -463,6 +471,7 @@ async function handleCallTool(
       tool,
       result,
       args as OneUptimeToolCallArgs,
+      fieldsLeftOut,
     );
 
     return toToolResult(envelope);
@@ -498,6 +507,8 @@ export function formatToolResponse(
   tool: McpToolInfo,
   result: unknown,
   args: OneUptimeToolCallArgs,
+  // What a create left out because only OneUptime writes it (#10136).
+  fieldsLeftOut: Array<string> = [],
 ): JSONObject {
   const operation: OneUptimeOperation = tool.operation;
   const modelName: string = tool.singularName;
@@ -505,7 +516,7 @@ export function formatToolResponse(
 
   switch (operation) {
     case OneUptimeOperation.Create:
-      return formatCreateResponse(modelName, result);
+      return formatCreateResponse(modelName, result, fieldsLeftOut);
 
     case OneUptimeOperation.Read:
       return formatReadResponse(tool, result, args.id);
@@ -531,12 +542,28 @@ export function formatToolResponse(
   }
 }
 
-function formatCreateResponse(modelName: string, result: unknown): JSONObject {
+/*
+ * A create that left out a field only OneUptime writes - as a copy of a
+ * record read before carries one - says so (#10136): the fields, and a note
+ * in its message, so an agent that copied a record knows the new one has
+ * OneUptime's values of them. A create that left nothing out answers as it
+ * always did.
+ */
+function formatCreateResponse(
+  modelName: string,
+  result: unknown,
+  fieldsLeftOut: Array<string> = [],
+): JSONObject {
+  const note: string | null = FieldsLeftOut.getNote(fieldsLeftOut);
+
   return {
     success: true,
     operation: "create",
     resourceType: modelName,
-    message: `Successfully created ${modelName}`,
+    message: note
+      ? `Successfully created ${modelName}. ${note}`
+      : `Successfully created ${modelName}`,
+    ...(note ? { fieldsLeftOut: fieldsLeftOut } : {}),
     data: result as JSONValue,
   } as JSONObject;
 }
