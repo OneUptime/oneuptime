@@ -79,8 +79,8 @@ Test" workflow provides both:
   the jest step, and the suite checks that it does. `NODE_HEAP_IMAGES` (image
   references, space-separated) adds each built image's own start script, run
   with the image's shell and node, with and without a limit.
-- **docker, the nginx image and node:26-alpine3.24, for npm start's status
-  check.** `RUN_STATUS_CHECK_INGRESS_TESTS=1` turns on
+- **docker, openssl, the nginx image and node:26-alpine3.24, for npm start's
+  status check.** `RUN_STATUS_CHECK_INGRESS_TESTS=1` turns on
   `StatusCheckIngress.test.js`, which renders the ingress template with its
   own `envsubst-on-templates.sh` under the nginx image the ingress image is
   built `FROM`, in front of a stand-in App, publishes it on `127.0.0.1`,
@@ -90,10 +90,15 @@ Test" workflow provides both:
   (`Fixtures/StatusCheckBefore10024`) must fail on one address, the
   doctor's after-start run must ask the same ingress under `localhost`, and
   a bundled probe's 2 MB report must reach the App at the address
-  `FollowIngressPort` gives it. Where Docker cannot publish on `[::1]`, it
-  runs without that address and says so. The workflow sets the variable on
-  the jest step, and the suite checks that it does. It removes the two
-  containers and the network it creates.
+  `FollowIngressPort` gives it. A second ingress renders it with
+  `PROVISION_SSL=true` and a certificate for `HOST` made with openssl, its
+  HTTPS published each of those ways (#10169): the check must ask for
+  `HOST` over HTTPS there and pass, and fail, saying why, where nothing
+  listens, where `STATUS_PAGE_HTTPS_PORT` names the plain-HTTP port, and at
+  the first ingress's HTTPS, which serves none for `HOST`. Where Docker
+  cannot publish on `[::1]`, it runs without that address and says so. The
+  workflow sets the variable on the jest step, and the suite checks that it
+  does. It removes the three containers and the network it creates.
 - **packages/Common's and packages/Nginx's packages.**
   `PruneUnreachablePackages.test.js` walks the real certificate sidecar's
   imports, as the ingress image's build does, only where both are installed
@@ -285,6 +290,26 @@ copies of the shipped files the way `npm start` reads them: IPv6 on for the
 one network every service off the host network joins, no service changed.
 The guide's `127.0.0.1:` port form publishes the ingress on the loopback
 address only.
+
+### `ComposeIngressPorts.test.js`
+
+An empty or unset `ONEUPTIME_HTTP_PORT` or `STATUS_PAGE_HTTPS_PORT` is
+published on its default port, 80 or 443 (`${ONEUPTIME_HTTP_PORT:-80}`), the
+port npm start's status check, the doctor, backup.sh's report and the bundled
+probes look for the ingress on (#10170): before the default, Docker published
+it on a port it picked. The defaults are config.example.env's, and Compose
+warns of nothing for a config.env without the settings. With docker's compose
+plugin on PATH, every form Preflight stops on (an address with no port after
+it, port 0) is held to what Compose renders, a port left to Docker, and every
+other form to a port of its own.
+
+### `MergeEnvTemplateNames.test.js`
+
+`npm run update`'s merge reads a setting's name as `WithConfig.sh` hands it to
+Compose: `HOST = x`, `  HOST=x` and `export HOST=x` are HOST, so the
+template's `HOST=localhost` is no longer appended after them, where it won.
+Run through the real loader, Compose gets the install's own value before and
+after the merge, and the merge and readSettings agree on every line.
 
 ### `ReadmeQuickStart.test.js`
 

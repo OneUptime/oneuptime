@@ -704,6 +704,8 @@ describe("A mobile app's crashes and ANRs reach Exceptions as unhandled", () => 
         "log.severityText": "Unspecified",
         "event.name": "metrickit.diagnostic.hang",
         "metrickit.diagnostic.hang.hang_duration": "3.2",
+        // The install it happened on: the device.id opentelemetry-swift sets (#9924).
+        "resource.device.id": "8C1A0C4E-0E5B-4F3D-9F0A-2B6C7D8E9F10",
       });
 
       expect(upsertedPayloads[0]!.unhandled).toBe(true);

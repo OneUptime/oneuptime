@@ -27,7 +27,7 @@ import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
-import { STORED_APP_INSTALLATION_ID_ATTRIBUTE } from "../../Types/Rum/MobileAppTelemetry";
+import { STORED_APP_INSTALL_SQL } from "../../Types/Rum/MobileAppTelemetry";
 import {
   appendResourceScopeFilters,
   ResourceEntityScope,
@@ -567,9 +567,12 @@ export class TraceAggregationService {
       "SELECT uniqIf(sessionId, sessionId != '') AS sessions, count() AS cnt",
     );
 
-    // An install as a crash's occurrence names it (ExceptionAggregationService).
+    /*
+     * An install as a crash's occurrence names it (ExceptionAggregationService):
+     * the resource's app.installation.id, else its device.id (#9924).
+     */
     if (request.countInstalls) {
-      const install: string = `attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}']`;
+      const install: string = STORED_APP_INSTALL_SQL;
 
       statement.append(`, uniqIf(${install}, ${install} != '') AS installs`);
     }

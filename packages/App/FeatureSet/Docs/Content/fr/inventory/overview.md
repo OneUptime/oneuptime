@@ -74,13 +74,13 @@ Ouvrez un élément : son propre menu latéral contient sa **Vue d'ensemble** (s
 
 ### Détails de l'actif
 
-Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui décrit les deux de la même façon : nom d'hôte, adresse IP, adresse MAC, numéro de série, fabricant, modèle, version du firmware, système d'exploitation, version du système d'exploitation, type d'appareil et emplacement. La carte d'un appareil Android indique aussi son niveau de correctif de sécurité, fourni par l'Agent Android ou par son gestionnaire d'appareils. Un fait que rien n'a signalé indique **Inconnu**, et la carte explique pourquoi c'est le cas et comment les inconnus se remplissent : un équipement qui ne les signale pas par SNMP, un équipement pas encore lu, ou un équipement Meraki dont le tableau de bord les détient.
+Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui décrit les deux de la même façon : nom d'hôte, adresse IP, adresse MAC, numéro de série, fabricant, modèle, version du firmware, système d'exploitation, version du système d'exploitation, type d'appareil et emplacement. La carte d'un appareil Android indique aussi son niveau de correctif de sécurité, fourni par l'Agent Android ou par son gestionnaire d'appareils. Elle indique aussi si le correctif est **Pas à jour**, comme la colonne **Niveau du correctif de sécurité**, et depuis combien de jours il date. Un fait que rien n'a signalé indique **Inconnu**, et la carte explique pourquoi c'est le cas et comment les inconnus se remplissent : un équipement qui ne les signale pas par SNMP, un équipement pas encore lu, ou un équipement Meraki dont le tableau de bord les détient.
 
 - Les faits d'un hôte viennent des attributs de ressource de sa télémétrie : ses adresses IP et MAC, son architecture et son système d'exploitation d'emblée, et son numéro de série, sa marque, son modèle et son firmware une fois que vous les y apposez.
 - Les faits d'un équipement réseau viennent de son interrogation SNMP, de son rôle et de son site. Ce que son interrogation n'a pas lu vient de la découverte : la dernière analyse de son adresse, la table ARP d'un routeur ou la résolution DNS de sa sonde. Un équipement sans ENTITY-MIB, comme un Meraki MX, obtient tout de même sa marque, son modèle et son système d'exploitation à partir de sa description système, et son adresse MAC à partir de ses propres ports. Son adresse IP n'est jamais affichée comme son nom d'hôte.
 - Un équipement Meraki prend aussi dans le tableau de bord Meraki ce que son interrogation laisse vide, dont son numéro de série, son modèle et son firmware, quand une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) lit son organisation.
 
-**Tous les éléments** permet de trouver les appareils Android sur lesquels agir. Son filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour**, dont le niveau de correctif de sécurité date de plus de 90 jours, selon la règle qu'applique l'alerte Security Patch Out of Date du [moniteur d'hôte](/docs/monitor/host-monitor). Son filtre **Autorisations de l'agent** liste les appareils sur lesquels il manque encore à l'[Agent Android](/docs/telemetry/android-agent) READ_LOGS, READ_DROPBOX_DATA ou l'accès aux données d'utilisation. Chacun a une colonne du même nom, masquée jusqu'à ce que vous l'activiez, et l'export CSV la reprend.
+**Tous les éléments** permet de trouver les appareils Android sur lesquels agir. Son filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour**, dont le niveau de correctif de sécurité date de plus de 90 jours, selon la règle qu'applique l'alerte Security Patch Out of Date du [moniteur d'hôte](/docs/monitor/host-monitor). Son filtre **Autorisations de l'agent** liste les appareils sur lesquels il manque encore à l'[Agent Android](/docs/telemetry/android-agent) READ_LOGS, READ_DROPBOX_DATA ou l'accès aux données d'utilisation. Chacun a une colonne du même nom, masquée jusqu'à ce que vous l'activiez, et l'export CSV la reprend. À côté, la colonne **ID dans le gestionnaire d'appareils** contient l'ID sous lequel le gestionnaire d'appareils connaît un appareil, comme l'ID Esper qu'attend `espercli secureadb connect --device`.
 
 La carte indique d'où vient chaque fait et quand. La source que partagent la plupart des faits, comme le collecteur d'un hôte, la propre interrogation SNMP d'un équipement réseau ou l'analyse de découverte qui l'a lu, est nommée une seule fois, sous les faits. Toute autre source, comme la table ARP d'un routeur ou une valeur enregistrée sur l'équipement, est nommée sous son fait. Une valeur enregistrée sur un équipement réseau n'est jamais remplacée par ce que lit la découverte, et quand les deux diffèrent, la carte montre les deux.
 
@@ -115,6 +115,7 @@ Allez dans **Produits → Ressources → Inventaire**, puis **Appareils gérés*
 | Modèle, fabricant, numéro de série, système d'exploitation et sa version, build, et adresses IP et MAC | La carte **Détails de l’actif** de l'appareil, et les colonnes de **Tous les éléments** |
 | Statut, dernier contact, groupe, niveau de correctif de sécurité, IMEI, batterie, stockage et agent Esper | La carte **Esper** de l'appareil, et la liste **Appareils** de la page **Appareils gérés** |
 | Les applications et leurs versions | La liste **Applications installées** de l'appareil |
+| Son ID d'appareil Esper | La colonne **ID dans le gestionnaire d'appareils** de **Tous les éléments** |
 
 ### Un appareil, pas deux
 
@@ -138,6 +139,8 @@ Un appareil retiré d'Esper est marqué **Retiré**, et son élément est archiv
 Dans **Appareils gérés**, cliquez sur **Configurer des alertes** sur la ligne de la connexion, et créez **Esper Android Device Stopped Checking In** et **Esper Apple Device Stopped Checking In**. Le premier ouvre une alerte pour chaque appareil Android qui n'a pas contacté Esper depuis plus d'une heure, le second pour chaque appareil Apple après plus d'une journée, chacune au nom de l'appareil et résolue dès qu'il se manifeste à nouveau.
 
 Chaque lecture de la connexion enregistre il y a combien de minutes chaque appareil a contacté Esper pour la dernière fois, sous la forme de la métrique `oneuptime.managed_device.check_in.age`, et le moniteur vérifie la dernière valeur de chaque appareil toutes les 5 minutes. Un appareil qui exécute aussi l'Agent Android est laissé à **Host Stopped Reporting**, si bien qu'il n'alerte jamais deux fois, et un appareil retiré d'Esper résout son alerte. Une lecture qui échoue n'enregistre rien, si bien qu'aucune alerte ne s'ouvre ni ne se résout avant la suivante. Pour une flotte éteinte la nuit, relevez le seuil du moniteur.
+
+Créez aussi **Esper Security Patch Out of Date** : chaque appareil Android dont le niveau de correctif de sécurité, selon Esper, date de plus de 90 jours ouvre sa propre alerte, résolue une fois l'appareil mis à jour. Chaque lecture enregistre depuis combien de jours date le niveau de correctif de chaque appareil Android, sous la forme de la métrique `oneuptime.managed_device.security_patch.age`. Un appareil qui exécute l'Agent Android est laissé au **Security Patch Out of Date** de son hôte, si bien qu'il n'alerte jamais deux fois.
 
 ## Importer des appareils depuis Microsoft Intune
 
@@ -165,7 +168,7 @@ Un appareil contacte Intune environ toutes les huit heures, et son dernier conta
 
 Intune nomme un appareil comme son propriétaire l'a appelé, donc deux appareils peuvent porter le même nom : chaque iPhone que personne n'a renommé s'appelle `iPhone`. Un nom que portent deux appareils d'une connexion n'appartient à aucun des deux dans l'inventaire : chacun est nommé par son numéro de série à la place, et reprend son nom dès qu'aucun autre appareil ne le porte.
 
-Pour recevoir une alerte quand un appareil cesse de contacter Intune, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Intune Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Intune depuis plus d'une journée, au nom de l'appareil. Un ordinateur portable éteint pendant un week-end se lit de la même façon : relevez le seuil du moniteur si une journée est trop courte pour les vôtres.
+Pour recevoir une alerte quand un appareil cesse de contacter Intune, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Intune Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Intune depuis plus d'une journée, au nom de l'appareil. Un ordinateur portable éteint pendant un week-end se lit de la même façon : relevez le seuil du moniteur si une journée est trop courte pour les vôtres. **Intune Security Patch Out of Date** alerte pour chaque appareil Android dont le niveau de correctif de sécurité date de plus de 90 jours, comme le modèle d'Esper.
 
 ## Importer des appareils depuis Workspace ONE UEM
 
@@ -191,7 +194,7 @@ Un appareil contacte Workspace ONE à son propre rythme, un iPhone à plusieurs 
 
 Une application ou l'Agent Android qui envoie de la télémétrie depuis un appareil ne forme qu'un seul élément avec lui, grâce au numéro de série de l'appareil : définissez le paramètre `device_serial` de l'Agent Android sur la valeur de recherche `{DeviceSerialNumber}` dans sa configuration gérée.
 
-Pour recevoir une alerte quand un appareil cesse de contacter Workspace ONE, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Workspace ONE Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Workspace ONE depuis plus d'une journée, au nom de l'appareil.
+Pour recevoir une alerte quand un appareil cesse de contacter Workspace ONE, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **Workspace ONE Device Stopped Checking In**. Il ouvre une alerte pour chaque appareil qui n'a pas contacté Workspace ONE depuis plus d'une journée, au nom de l'appareil. **Workspace ONE Security Patch Out of Date** alerte pour chaque appareil Android dont le niveau de correctif de sécurité date de plus de 90 jours, comme le modèle d'Esper.
 
 ## Importer des appareils depuis SOTI MobiControl
 
@@ -215,7 +218,7 @@ Un agent MobiControl garde une connexion permanente avec son serveur, donc un ap
 
 Une application ou l'Agent Android qui envoie de la télémétrie depuis un appareil ne forme qu'un seul élément avec lui, grâce au numéro de série de l'appareil : définissez le paramètre `device_serial` de l'Agent Android sur la macro `%SERIALNUM%` dans sa configuration gérée.
 
-Pour recevoir une alerte quand un appareil cesse de se manifester, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **SOTI Device Stopped Checking In** et **SOTI Apple Device Stopped Checking In**. Le premier ouvre une alerte pour chaque appareil Android, Windows ou Linux dont l'agent n'est plus connecté depuis plus d'une heure, le second pour chaque appareil Apple qui ne s'est pas manifesté depuis plus d'une journée, chacune au nom de l'appareil.
+Pour recevoir une alerte quand un appareil cesse de se manifester, cliquez sur **Configurer des alertes** sur la ligne de la connexion et créez **SOTI Device Stopped Checking In** et **SOTI Apple Device Stopped Checking In**. Le premier ouvre une alerte pour chaque appareil Android, Windows ou Linux dont l'agent n'est plus connecté depuis plus d'une heure, le second pour chaque appareil Apple qui ne s'est pas manifesté depuis plus d'une journée, chacune au nom de l'appareil. **SOTI Security Patch Out of Date** alerte pour chaque appareil Android dont le niveau de correctif de sécurité date de plus de 90 jours, comme le modèle d'Esper.
 
 ## Ajouter quelque chose à la main
 

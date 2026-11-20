@@ -74,6 +74,8 @@ describe("the metric", () => {
         "oneuptime.managed_device.name",
         "oneuptime.managed_device.platform",
         "oneuptime.managed_device.provider",
+        // An Android device's patch level, on its security patch readings (#10098).
+        "oneuptime.managed_device.security_patch.level",
         "resource.host.name",
       ].sort(),
     );

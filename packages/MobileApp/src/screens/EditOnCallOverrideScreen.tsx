@@ -53,6 +53,19 @@ import {
   isOverlapRefusal,
   type OverrideSavedTimes,
 } from "../oncall/overrideEdit";
+import { useOverrideTeamLimits } from "../hooks/useOverrideTeamLimits";
+import {
+  useOverrideTeamPeople,
+  type OverrideTeamPeopleState,
+} from "../hooks/useOverrideTeamPeople";
+import {
+  OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
+  getMemberIdsOfTeams,
+  getOverrideTeamHint,
+  getOverrideTeamLock,
+  getOverrideTeamPersonRefusal,
+  type OverrideTeamLimit,
+} from "../oncall/overrideTeamAccess";
 import type { OnCallOverrideChange } from "../api/onCallOverrides";
 import type { OnCallStackParamList } from "../navigation/types";
 import type { OnCallOverrideItem, ProjectUserItem } from "../api/types";
@@ -177,9 +190,6 @@ export default function EditOnCallOverrideScreen(): React.JSX.Element {
   const currentUserId: string | null = useCurrentUserId();
   const overrides: ReturnType<typeof useOnCallOverrides> =
     useOnCallOverrides(now);
-  const projectUsers: ReturnType<typeof useProjectUsers> = useProjectUsers(
-    override.projectId,
-  );
 
   const saved: OverrideSavedTimes | null = useMemo(() => {
     return toSavedTimes(override);
@@ -187,6 +197,47 @@ export default function EditOnCallOverrideScreen(): React.JSX.Element {
 
   const awayUserId: string | null = override.overrideUser?._id || null;
   const savedCoverId: string | null = override.routeAlertsToUser?._id || null;
+
+  /*
+   * For someone who manages the user overrides of their own teams' people
+   * only (Manage On-Call Policy User Overrides for Own Team, issue #9883):
+   * an override naming anybody outside those teams is not theirs to change,
+   * and the server refuses any edit of it - so the sheet says why in place
+   * of the form. One of theirs offers only those teams' people to cover,
+   * saying which teams above the list. Global overrides and a policy's are
+   * reached by different grants (oncall/overrideTeamAccess).
+   */
+  const isGlobal: boolean = !(
+    override.onCallDutyPolicyId || override.onCallDutyPolicy?._id
+  );
+  const teamLimit: OverrideTeamLimit | null = useOverrideTeamLimits(
+    override.projectId,
+  )("update", isGlobal);
+  const teamPeople: OverrideTeamPeopleState = useOverrideTeamPeople({
+    projectId: override.projectId,
+    teamIds: teamLimit ? teamLimit.teamIds : null,
+  });
+  const projectUsers: ReturnType<typeof useProjectUsers> = useProjectUsers(
+    teamLimit ? null : override.projectId,
+  );
+
+  // Whom the picker offers: the teams' people, or the project's.
+  const people: {
+    users: ProjectUserItem[];
+    isLoading: boolean;
+    isError: boolean;
+  } = teamLimit ? teamPeople : projectUsers;
+
+  const teamMemberIds: ReadonlySet<string> | null = teamLimit
+    ? getMemberIdsOfTeams(teamPeople.membersByTeam, teamLimit.teamIds)
+    : null;
+
+  const teamLock: string | null = getOverrideTeamLock({
+    action: "update",
+    limit: teamLimit,
+    memberIds: teamMemberIds,
+    people: { awayUserId: awayUserId, coverUserId: savedCoverId },
+  });
 
   const [coverChoice, setCoverChoice] = useState<CoverChoice>(
     savedCoverId ? "person" : "rotation",
@@ -252,6 +303,27 @@ export default function EditOnCallOverrideScreen(): React.JSX.Element {
 
     if (cover && awayUserId && cover.userId === awayUserId) {
       setError(SAME_PERSON_REFUSAL);
+      errorFeedback();
+      return;
+    }
+
+    /*
+     * Somebody outside the teams the person is kept to, picked to cover
+     * before the server said whom they may name: the server's own refusal,
+     * before anything is sent.
+     */
+    const teamRefusal: string | null =
+      coverChoice === "person"
+        ? getOverrideTeamPersonRefusal({
+            role: "cover",
+            limit: teamLimit,
+            memberIds: teamMemberIds,
+            userId: cover?.userId,
+          })
+        : null;
+
+    if (teamRefusal) {
+      setError(teamRefusal);
       errorFeedback();
       return;
     }
@@ -370,6 +442,62 @@ export default function EditOnCallOverrideScreen(): React.JSX.Element {
               ? OVERRIDE_ENDED_REFUSAL
               : "This override's times could not be read. Pull to refresh the overrides and open it again."
           }
+        />
+      </ScrollView>
+    );
+  }
+
+  /*
+   * Not theirs to change (issue #9883): who is away and who covers, and
+   * why the server would refuse any change to it - nothing to choose, and
+   * nothing to save or end.
+   */
+  if (teamLock) {
+    return (
+      <ScrollView
+        testID="edit-override-scroll"
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={containerStyle}
+      >
+        <ScreenIntro title="Edit coverage" />
+        <Card testID="edit-override-away" variant="tinted">
+          <AppText variant="footnote" tone="secondary">
+            Who is away
+          </AppText>
+          <AppText variant="title3" style={{ marginTop: spacing.xxs }}>
+            {awayName}
+          </AppText>
+          <AppText
+            testID="edit-override-scope"
+            variant="subhead"
+            tone="secondary"
+            style={{ marginTop: spacing.xxs }}
+          >
+            {override.onCallDutyPolicy?.name || "All on-call policies"}
+          </AppText>
+          <AppText
+            variant="footnote"
+            tone="secondary"
+            style={{ marginTop: spacing.md }}
+          >
+            Who covers
+          </AppText>
+          <AppText
+            testID="edit-override-locked-cover"
+            variant="headline"
+            style={{ marginTop: spacing.xxs }}
+          >
+            {savedCoverId
+              ? displayNameForUser(override.routeAlertsToUser)
+              : ROTATION_COVERS_TEXT}
+          </AppText>
+        </Card>
+        <Banner
+          testID="edit-override-team-locked"
+          tone="warning"
+          message={teamLock}
+          style={{ marginTop: spacing.xxl }}
         />
       </ScrollView>
     );
@@ -506,7 +634,7 @@ export default function EditOnCallOverrideScreen(): React.JSX.Element {
                   : "Choose a teammate"
               }
               onPress={() => {
-                if (!projectUsers.isError) {
+                if (!people.isError) {
                   setIsPickerOpen(true);
                 }
               }}
@@ -754,10 +882,16 @@ export default function EditOnCallOverrideScreen(): React.JSX.Element {
         />
       </ScrollView>
       <UserPickerModal
-        visible={isPickerOpen && !projectUsers.isError}
+        visible={isPickerOpen && !people.isError}
         title="Who covers?"
-        users={projectUsers.users}
-        isLoading={projectUsers.isLoading}
+        users={people.users}
+        isLoading={people.isLoading}
+        hint={
+          teamLimit && teamPeople.teamNames
+            ? getOverrideTeamHint(teamPeople.teamNames)
+            : null
+        }
+        emptyText={teamLimit ? OVERRIDE_TEAM_PICKER_EMPTY_TEXT : null}
         selectedUserId={cover?.userId ?? null}
         excludeUserId={awayUserId}
         onSelect={(user: ProjectUserItem) => {

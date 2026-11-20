@@ -118,8 +118,11 @@ import {
 } from "Common/Types/Host/HostHealth";
 import {
   HOST_ATTENTION_CURRENT,
+  getHostFailedUnitNames,
   getHostOwnAttentionItems,
 } from "../Utils/HostAttention";
+import { SystemdUnitJournalLine } from "../Utils/SystemdUnitFailure";
+import { useHostFailedUnitsJournal } from "../Utils/UseHostFailedUnitsJournal";
 import {
   HOST_CPU_BUSY_PERCENT,
   HOST_LOAD_QUEUING_PERCENT,
@@ -1258,6 +1261,22 @@ const HostOverview: FunctionComponent<
     }
   };
 
+  /*
+   * Why the host's failed systemd units failed, as systemd said it (#10129):
+   * one bounded read of what systemd wrote of them, when the page opens with
+   * failed units, when they change and on Refresh - not on a tick of the
+   * auto-refresh (useHostFailedUnitsJournal). Until it lands, or when it
+   * cannot be read, their rows say Failed.
+   */
+  const [unitJournalRefresh, setUnitJournalRefresh] = useState<number>(0);
+  const unitJournal: ReadonlyArray<SystemdUnitJournalLine> | null =
+    useHostFailedUnitsJournal({
+      hostIdentifier: host?.hostIdentifier,
+      unitNames:
+        host && isHostReporting(host) ? getHostFailedUnitNames(host) : [],
+      refreshToken: unitJournalRefresh,
+    });
+
   const onManualRefresh: () => void = (): void => {
     fetchStatsRef.current().catch((err: Error) => {
       setStatsError(API.getFriendlyMessage(err));
@@ -1265,16 +1284,25 @@ const HostOverview: FunctionComponent<
     setDetailsRefresher((prev: boolean) => {
       return !prev;
     });
+    setUnitJournalRefresh((count: number): number => {
+      return count + 1;
+    });
   };
 
   /*
    * What on the host needs someone (HostHealth), for its Needs attention
    * card and for what its Degraded or Unhealthy pill opens: one list, so the
-   * two never disagree. A host that is not reporting has none - what it last
-   * reported is no longer the truth.
+   * two never disagree - each failed unit saying why it failed once its
+   * journal is read, the pill's dialog with systemd's result, exit status
+   * and lines too (isDetailed). A host that is not reporting has none - what
+   * it last reported is no longer the truth.
    */
-  const getAttentionItems: (row: Host) => Array<ResourceAttentionItem> = (
+  const getAttentionItems: (
     row: Host,
+    isDetailed?: boolean,
+  ) => Array<ResourceAttentionItem> = (
+    row: Host,
+    isDetailed?: boolean,
   ): Array<ResourceAttentionItem> => {
     if (!isHostReporting(row)) {
       return [];
@@ -1282,6 +1310,8 @@ const HostOverview: FunctionComponent<
     return getHostOwnAttentionItems({
       host: row,
       now: new Date(),
+      unitJournal: unitJournal,
+      isDetailed: isDetailed,
       collectorName: getHostCollectorConfigLabel(
         {
           configName: row.collectorConfig?.name,
@@ -1528,7 +1558,7 @@ const HostOverview: FunctionComponent<
                         <ResourceHealthPill
                           health={health}
                           isConnected={assessment.isReporting}
-                          items={getAttentionItems(host)}
+                          items={getAttentionItems(host, true)}
                           testId="host-hero-health"
                           words={HOST_HEALTH_WORDS}
                           showKind={true}

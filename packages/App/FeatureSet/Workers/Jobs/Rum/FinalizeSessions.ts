@@ -10,6 +10,7 @@ import { isSessionErased } from "Common/Server/Utils/SessionReplay/SessionReplay
 import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
+import { EXCEPTION_ORIGINALS_SQL } from "Common/Server/Services/ExceptionInstanceService";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -1209,8 +1210,14 @@ export function buildSessionExceptionFingerprintStatement(data: {
     }} AND sessionId IN ${{
       type: TableColumnType.ArrayText,
       value: data.sessionIds,
-    }} AND fingerprint != ''
-    GROUP BY sessionId`);
+    }} AND fingerprint != ''`);
+
+  /*
+   * One crash, counted once (ExceptionInstanceService, #9923): a repeat
+   * names the session that delivered it, which did not crash.
+   */
+  statement.append(` AND ${EXCEPTION_ORIGINALS_SQL}`);
+  statement.append(SQL` GROUP BY sessionId`);
 
   return statement;
 }

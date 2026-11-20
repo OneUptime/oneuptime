@@ -1,3 +1,9 @@
+import {
+  readStatusChangeNote,
+  StatusChangeNote,
+  WHO_OPENED_IT_NOTES,
+} from "../Monitor/StatusChangeNotes";
+
 /*
  * A ROOT CAUSE THAT ONLY SAYS WHO OPENED THE RECORD.
  *
@@ -17,25 +23,18 @@
  * timeline of every monitor the incident changed. New records are left with
  * no root cause until somebody writes one; the ones written before read as
  * none here (the Dashboard's What happened card), while the Root Cause page
- * still shows them as they are stored.
+ * and View Cause say them in the reader's words.
  *
- * Read in one pass over at most one line: every pattern is anchored at both
- * ends, and each repeat stops at the character that ends it.
+ * The lines are notes of the registry the Dashboard words OneUptime's own
+ * sentences by (StatusChangeNotes' WHO_OPENED_IT_NOTES, #10125): defined
+ * there once, the person a link and the Slack member a handle, so a line a
+ * person typed that starts the same way ("Incident created by a bad
+ * deploy") is a root cause. Read in time in line with the text, and never
+ * past a thousand characters.
  */
 
-// "Incident created by [Name](<address>)", the name as mdText escaped it.
-const CREATED_BY_PERSON_LINK: RegExp =
-  /^(?:Incident|Alert) created by \[(?:\\.|[^\\\]\n])*\]\([^()\s]*\)$/;
-
-// "Incident created by @name on Slack." - a Slack name is at most 80 long.
-const CREATED_ON_SLACK: RegExp =
-  /^Incident created by @[^\n]{1,200} on Slack\.$/;
-
-// The ones written word for word: by the Teams form and the copilot.
-const CREATED_VIA: ReadonlyArray<string> = [
-  "Incident created via Microsoft Teams",
-  "Incident created via the OneUptime AI copilot.",
-];
+// A longer root cause is never one of these lines.
+const MAX_LINE_LENGTH: number = 1000;
 
 /*
  * Whether a root cause is one of the lines OneUptime wrote to say who
@@ -46,15 +45,13 @@ export function isWhoOpenedItRootCause(
 ): boolean {
   const text: string = (rootCause || "").trim();
 
-  if (!text || text.length > 1000) {
+  if (!text || text.length > MAX_LINE_LENGTH) {
     return false;
   }
 
-  return (
-    CREATED_VIA.includes(text) ||
-    CREATED_BY_PERSON_LINK.test(text) ||
-    CREATED_ON_SLACK.test(text)
-  );
+  const read: { note: StatusChangeNote } | null = readStatusChangeNote(text);
+
+  return Boolean(read && WHO_OPENED_IT_NOTES.includes(read.note));
 }
 
 export default isWhoOpenedItRootCause;

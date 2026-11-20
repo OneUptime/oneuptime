@@ -11,7 +11,7 @@
 
 ## 프로바이더 설정
 
-프로바이더는 설정 두 가지를 받습니다. 각 설정은 프로바이더 블록에서, 없으면 환경 변수에서 가져옵니다.
+프로바이더는 설정 두 가지로 연결합니다. 각 설정은 프로바이더 블록에서, 없으면 환경 변수에서 가져옵니다.
 
 | 설정 | 환경 변수 | 둘 다 설정되지 않은 경우 |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url`은 `/api`를 뺀 OneUptime 주소입니다. 프로바이더는 주소에 스킴이 없으면 `https://`를, 끝에는 `/api`를 붙입니다. `api_key`는 민감한 값이므로 Terraform이 절대 출력하지 않습니다.
+
+세 번째 설정인 `exclusive_lists`는 구성의 레이블이 무엇을 담는지 정합니다. [레이블과 OneUptime도 추가하는 다른 목록](#레이블과-oneuptime도-추가하는-다른-목록)을 참고하세요.
 
 키는 관리하는 프로젝트의 API 키여야 하며, 구성에 있는 모든 종류의 레코드를 만들고, 읽고, 변경하고, 삭제할 수 있어야 합니다. [프로젝트 API 키 만들기](/docs/terraform/quick-start#프로젝트-api-키-만들기)를 참조하세요. 자체 호스팅 OneUptime의 마스터 API 키는 어떤 프로젝트에도 속하지 않으므로, 이 키로 만들기를 하면 `ProjectId required`로 실패합니다.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## 레이블과 OneUptime도 추가하는 다른 목록
+
+OneUptime은 레코드의 일부 목록에 스스로 항목을 추가합니다. 레이블 규칙은 일치하는 레코드에 레이블을 추가하고, 온콜 규칙은 일치하는 인시던트와 경고에 정책을 추가하며, SLO의 모니터 규칙은 일치하는 모니터를 연결합니다. 레퍼런스는 그런 속성마다 "OneUptime adds to it too, on its own"라고 적습니다. 그런 목록을 설정하는 구성은 자신이 나열한 항목을 유지하고 나머지는 그대로 둡니다.
+
+- **구성이 나열한 것은 추가되고**, 누군가 제거하면 다시 추가됩니다.
+- **구성에서 뺀 것은 제거됩니다.** `labels = []`는 구성이 나열했던 레이블을 모두 제거합니다.
+- **OneUptime이나 사람이 추가한 것은 남고**, 어떤 계획도 그것을 변경으로 표시하지 않습니다.
+- **구성에서 빼면** 목록은 OneUptime의 것이 됩니다. Terraform은 아무것도 추가하지 않고 아무것도 제거하지 않습니다.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+state에는 구성이 나열하고 레코드에 있는 레이블이 담기며, 레코드의 모든 레이블이 담기지는 않습니다. 같은 이름의 데이터 소스는 그 모두를 읽습니다. apply는 레이블을 하나씩 추가하고 제거하므로, 실행 중에 규칙이 추가한 레이블도 남습니다.
+
+가져오기는 레코드에 있는 레이블을 모두 넘겨받습니다. 대시보드에 있는 레코드의 Terraform 페이지처럼 모두 나열하세요. 그렇지 않으면 계획에 빠뜨린 레이블이 제거된다고 표시됩니다. 이전 버전의 프로바이더에서 업그레이드한 뒤, 레이블을 설정하는 구성의 첫 계획은 레이블이 설정된다고 표시합니다. apply는 레코드에 없는 레이블을 추가하고 아무것도 제거하지 않습니다.
+
+이전 버전처럼 그런 목록을 각각 구성이 나열한 것과 정확히 같게 유지하려면 프로바이더 블록에서 `exclusive_lists`를 설정하세요. 그러면 Terraform은 apply할 때마다 규칙이 추가한 레이블을 제거합니다.
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

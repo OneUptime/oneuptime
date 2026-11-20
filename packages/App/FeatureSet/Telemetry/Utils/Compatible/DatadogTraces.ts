@@ -9,7 +9,7 @@ import { DatadogIntakeError } from "./DatadogIntake";
 import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
-} from "./JsonElementCount";
+} from "Common/Utils/JsonElementCount";
 import Msgpack, {
   MsgpackDecodeError,
   MsgpackElementCount,

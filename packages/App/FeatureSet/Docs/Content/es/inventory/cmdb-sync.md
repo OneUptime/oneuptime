@@ -171,6 +171,7 @@ La [tabla de hosts](#atributos-de-activo-de-los-hosts) y la [tabla de dispositiv
 | Nombre del sistema operativo | `os.name` | Solo de los SDK que lo informan: si no, `os.description` nombra el sistema |
 | Tipo de dispositivo | `device.type` | Opcional: estámpalo de la misma forma (`Hypervisor`, `Workstation`) |
 | Ubicación | `device.location` | Opcional: estámpala de la misma forma (`Frankfurt DC, Rack B4`) |
+| Nivel del parche de seguridad | `android.os.security_patch` | En un dispositivo Android: del Agente de Android o de su gestor de dispositivos |
 
 Todo lo marcado con Sí viene del procesador `resourcedetection` del recolector, y ya está en la configuración que OneUptime genera para ti.
 

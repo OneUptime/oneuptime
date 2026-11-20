@@ -75,6 +75,7 @@ Para cambiar una fuente de datos más tarde, ábrela desde la lista. **Editar** 
 
 Edita un panel, haz clic en **Añadir widget** y elige un widget del grupo Fuentes de datos externas: un **Gráfico**, un **Valor**, un **Indicador** o una **Tabla**. En sus ajustes:
 
+- **Métricas de este proyecto (PromQL)** es la primera **Fuente de datos**, y con la que empieza un widget nuevo: PromQL sobre las métricas que tu proyecto envía a OneUptime, leídas para los servicios que puedes leer, como en la página [PromQL](/docs/telemetry/promql). No necesita una fuente de datos propia, así que funciona en todos los planes.
 - Elige la **Fuente de datos** y escribe la **Consulta**. El editor indica el lenguaje de consulta y muestra un ejemplo para el tipo.
 - En un gráfico, **Añadir consulta** superpone más consultas en los mismos ejes, y **Leyenda (opcional)** nombra cada serie a partir de sus etiquetas: `{{instance}} — errors` escribe delante la etiqueta `instance` de la serie.
 - En un valor o un indicador, **Reducir** convierte los puntos en un solo número: el último valor (el predeterminado), el primero, la media, la suma, el mínimo o el máximo. **Unidad** añade un sufijo, y escala las unidades conocidas: `Bytes` se lee como 1.5 MB, y `ms` como 2.4 s.

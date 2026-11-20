@@ -36,6 +36,13 @@ export interface ApiRequestOptions {
    * (Utils/DeleteChoiceFlags, #9949).
    */
   miscDataProps?: JSONObject | undefined;
+  /*
+   * Handed the headers of a successful answer, as the server sent them: a
+   * create says in X-OneUptime-Fields-Left-Out which fields it left out
+   * because only OneUptime writes them (Common/Types/API/FieldsLeftOut,
+   * #10136).
+   */
+  onAnswerHeaders?: ((headers: Headers) => void) | undefined;
 }
 
 function buildApiRoute(
@@ -203,6 +210,8 @@ export async function executeApiRequest(
       `API error (${response.statusCode}): ${response.message || "Unknown error"}`,
     );
   }
+
+  options.onAnswerHeaders?.(response.headers || {});
 
   return response.data;
 }

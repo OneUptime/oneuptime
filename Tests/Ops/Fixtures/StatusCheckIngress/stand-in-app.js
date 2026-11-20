@@ -12,7 +12,9 @@
  * fix.
  *
  * It writes every request it takes, a JSON line each, to
- * /requests/requests.jsonl before it answers, so the test reads them all.
+ * /requests/requests.jsonl before it answers, so the test reads them all,
+ * with the scheme the ingress says the visitor used (X-Forwarded-Proto:
+ * https when it ended TLS itself).
  */
 
 const fs = require("fs");
@@ -100,6 +102,7 @@ http
           method: request.method,
           path: request.url,
           host: host,
+          proto: request.headers["x-forwarded-proto"] || "",
           bytes: bytes,
           status: status,
         })}\n`,

@@ -104,7 +104,7 @@ Android では、アプリがほかのアプリのログを読み取れるのは
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Esper では、このコマンドを **Secure Remote ADB** 経由で実行します。デバイスの ADB アクセスをオンにし、 `espercli secureadb connect --device DEVICE_ID` で接続してから、コマンドを実行します。権限が付与されると Android がエージェントを再起動し、エージェントはすぐに読み取りを始めます。
+Esper では、このコマンドを **Secure Remote ADB** 経由で実行します。デバイスの ADB アクセスをオンにし、 `espercli secureadb connect --device DEVICE_ID` で接続してから、コマンドを実行します。権限が付与されると Android がエージェントを再起動し、エージェントはすぐに読み取りを始めます。インベントリの **デバイス管理サービスの ID** 列には、各デバイスの `DEVICE_ID` が入ります。
 
 そのあとエージェントが読み取る内容は、Android のバージョンによって異なります。
 
@@ -126,7 +126,7 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 ### フリート全体で付与する
 
-エージェントは報告のたびに、これらの権限のうちまだ足りないものを伝えます。それらが必要なデバイスを一覧にするには、 **インベントリ** を開き、 **すべての項目** を開いて、 **エージェントの権限**: **欠落** で絞り込みます。 **エージェントの権限** 列をオンにして各デバイスに足りないものを確認し、一覧を CSV としてエクスポートします。
+エージェントは報告のたびに、これらの権限のうちまだ足りないものを伝えます。それらが必要なデバイスを一覧にするには、 **インベントリ** を開き、 **すべての項目** を開いて、 **エージェントの権限**: **欠落** で絞り込みます。 **エージェントの権限** 列をオンにして各デバイスに足りないものを確認し、一覧を CSV としてエクスポートします。**デバイス管理サービスの ID** 列もオンにすると、エクスポートに各デバイスの Esper の ID が含まれます。これが `DEVICE_ID` として `espercli secureadb connect --device` に渡す値です。
 
 これらはデバイスポリシーでは付与できません。READ_LOGS と READ_DROPBOX_DATA は adb、システム、またはデバイスのメーカーだけが付与できる権限で、使用状況へのアクセスは adb かデバイスの前にいる人が設定するものだからです。Esper が提供する機能と、どれもこれらを付与できない理由は次のとおりです。
 
@@ -204,7 +204,7 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 
 デバイスの OS は、 **ホスト** では Android のマーク付きで Android と表示されます。
 
-セキュリティパッチレベルが 90 日より古いデバイスは、セキュリティパッチが遅れています。Google は Android のセキュリティに関する公開情報を毎月発行しており、Android Enterprise Recommended はデバイスのメーカーに、それぞれの修正を 90 日以内に配信するよう求めています。そのため、それより遅れているデバイスには、メーカーが配信しているはずの修正が欠けています。 **インベントリ** では、 **セキュリティパッチレベル** フィルターで **更新が必要** を選ぶとそうしたデバイスが一覧になり、 **Security Patch Out of Date** テンプレートがそれぞれについてアラートを出します。
+セキュリティパッチレベルが 90 日より古いデバイスは、セキュリティパッチが遅れています。Google は Android のセキュリティに関する公開情報を毎月発行しており、Android Enterprise Recommended はデバイスのメーカーに、それぞれの修正を 90 日以内に配信するよう求めています。そのため、それより遅れているデバイスには、メーカーが配信しているはずの修正が欠けています。 **インベントリ** では、 **セキュリティパッチレベル** フィルターで **更新が必要** を選ぶとそうしたデバイスが一覧になり、 **Security Patch Out of Date** テンプレートがそれぞれについてアラートを出します。デバイス管理サービスがインポートし、エージェントが動いていない Android デバイスには、その接続の **Esper Security Patch Out of Date** などのテンプレートが、デバイス管理サービスが報告するパッチレベルからアラートを出します。エージェントが動いているデバイスはこのテンプレートに任せるため、二重にアラートが出ることはありません。
 
 直近 1 時間の起動回数はメトリクス `android.boot.recent_count` で、再起動を繰り返しているデバイスは起動のたびに警告をログに記録します。 **ホスト** では、Android デバイスに専用のアラートテンプレートが提示されます。Device Unplugged、Low Battery、Device Overheating、Restart Loop、Storage Nearly Full、Security Patch Out of Date に加えて、Host Stopped Reporting、Host Restarted、High Memory Utilization、そして CPU 使用率を報告するようになれば High CPU Utilization です。各アラートで最初に示されるデバッグ用のコマンドは adb のコマンドです。 [ホスト モニター](/docs/monitor/host-monitor#android-デバイス) を参照してください。
 

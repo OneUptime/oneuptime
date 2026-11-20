@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | En global sonde, der kører dine monitorers tjek. Den bruger værtens netværk. |
 | `global-runner` | `oneuptime/runner` | Den medfølgende globale Runner, der kører runbooks' JavaScript-trin og OneUptime AI's koderettelser for alle projekter. |
 | `postgres` | `postgres:15` | Konfiguration og tilstand: monitorer, hændelser, brugere. Gemt i volumet `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetri: logs, metrikker, traces og exceptions. Gemt i volumet `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Telemetri: logs, metrikker, traces og exceptions. Gemt i volumet `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache og køer. Den gemmer intet på disk. |
 
 > [!NOTE]
@@ -585,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Når hver container kører, så kør tjekket igen med `npm run status-check`. Det tjekker ingressen dér, hvor `ONEUPTIME_HTTP_PORT` udgiver den, med adresse og port, som `127.0.0.1:8080`, og med værtsnavnet `localhost`, som en browser på serveren ville gøre.
+Når hver container kører, så kør tjekket igen med `npm run status-check`. Det tjekker ingressen dér, hvor `ONEUPTIME_HTTP_PORT` udgiver den, med adresse og port, som `127.0.0.1:8080`, og med værtsnavnet `localhost`, som en browser på serveren ville gøre. Med `PROVISION_SSL=true` tjekker det også `HOST` over HTTPS, dér hvor `STATUS_PAGE_HTTPS_PORT` udgiver ingressen.
 :::
 
 :::details Browseren viser "OneUptime er ikke sat op til denne adresse"

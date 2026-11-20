@@ -85,7 +85,7 @@ export const PROMQL_EXAMPLES: ReadonlyArray<PromQLExample> = [
   {
     title: translationKey("95th percentile of a histogram"),
     query:
-      "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))",
+      "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))",
   },
   {
     title: translationKey("Top 5 series"),
@@ -591,15 +591,20 @@ const PromQLResultBody: FunctionComponent<ResultBodyProps> = (
   );
 };
 
-const PromQLGraph: FunctionComponent<{
+export interface PromQLGraphProps {
   series: Array<PrometheusSeries>;
   window: InBetween<Date>;
   query: string;
-}> = (props: {
-  series: Array<PrometheusSeries>;
-  window: InBetween<Date>;
-  query: string;
-}): ReactElement => {
+  /*
+   * A value to draw across the chart as its critical line: a monitor's
+   * rule threshold, on the monitor form's preview (issue #7712).
+   */
+  criticalThreshold?: number | undefined;
+}
+
+export const PromQLGraph: FunctionComponent<PromQLGraphProps> = (
+  props: PromQLGraphProps,
+): ReactElement => {
   /*
    * The chart layer OneUptime's own metric charts use, through a query
    * config of its own: each point carries its series' labels, and the
@@ -642,6 +647,9 @@ const PromQLGraph: FunctionComponent<{
           },
           metricQueryData: { filterData: {} },
           chartType: MetricChartType.LINE,
+          ...(props.criticalThreshold !== undefined
+            ? { criticalThreshold: props.criticalThreshold }
+            : {}),
           getSeries: (dataPoint: AggregatedModel) => {
             return {
               title: String(
@@ -654,7 +662,7 @@ const PromQLGraph: FunctionComponent<{
       formulaConfigs: [],
       startAndEndDate: props.window,
     };
-  }, [props.window, props.query]);
+  }, [props.window, props.query, props.criticalThreshold]);
 
   return (
     <MetricCharts

@@ -772,4 +772,92 @@ describe("a monitor's root cause, by the reader's language", () => {
 
     expect(rootCauseText(renderIn("fa", typed))).toBe(typed);
   });
+
+  /*
+   * Why OneUptime opened the record itself (#10125) - a Sigma rule, an
+   * SLO's error budget, a budget's costs, a page from Slack - read in
+   * English on every page. It is one of OneUptime's notes now
+   * (StatusChangeNotes), in the reader's words, each value as written.
+   */
+  const SIGMA: string =
+    mdText`Sigma detection rule "${"Sudo to root"}" matched security events.`.toString();
+  const SLO_TIER: string =
+    mdText`The error budget left of SLO "${"Checkout availability"}" is at or below ${"12.35%"}, the "${"Freeze"}" tier of its error budget policy.`.toString();
+  const COSTS: string =
+    "What cost the most this month: Amazon EC2 ($437.87), Amazon S3 ($272.74) and AWS Lambda ($34.84).";
+  const SLACK_PAGE: string =
+    mdText`Created by **${"Jane Doe"}** from ${"Slack"} to page people.`.toString();
+
+  test.each(["fa", "ar", "de", "ja"])(
+    "in %s: a root cause OneUptime wrote when it opened the record reads in the reader's words",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+      const sigma: string = withoutIsolateMarks(
+        rootCauseText(renderIn(language, SIGMA)),
+      );
+
+      expect(sigma).toBe(
+        words[
+          'Sigma detection rule "{{rule}}" matched security events.'
+        ]!.replace("{{rule}}", "Sudo to root"),
+      );
+      cleanup();
+
+      const page: string = withoutIsolateMarks(
+        rootCauseText(renderIn(language, SLACK_PAGE)),
+      );
+
+      expect(page).not.toContain("to page people");
+      expect(page).toContain("Jane Doe");
+      expect(page).toContain("Slack");
+    },
+  );
+
+  test("in Persian: the policy tier's threshold in Persian digits, the costs listed as Persian lists them", () => {
+    const tier: string = withoutIsolateMarks(
+      rootCauseText(renderIn("fa", SLO_TIER)),
+    );
+
+    expect(tier).toContain("۱۲٫۳۵٪");
+    expect(tier).toContain("Checkout availability");
+    expect(tier).not.toContain("error budget");
+    cleanup();
+
+    const costs: string = withoutIsolateMarks(
+      rootCauseText(renderIn("fa", COSTS)),
+    );
+
+    expect(costs).toContain(
+      "Amazon EC2 ($437.87)، Amazon S3 ($272.74) و AWS Lambda ($34.84)",
+    );
+    expect(costs).not.toContain("What cost the most");
+  });
+
+  test("in Arabic: a rule's name set apart, whole, in a sentence read from the right", () => {
+    expect(rootCauseText(renderIn("ar", SIGMA))).toContain(
+      isolated("Sudo to root"),
+    );
+  });
+
+  test("in English: as OneUptime stored it", () => {
+    for (const stored of [SIGMA, SLO_TIER, COSTS, SLACK_PAGE]) {
+      expect(rootCauseText(renderIn("en", stored))).toBe(stored);
+      cleanup();
+    }
+  });
+
+  test("an older record's who-opened-it line is still no root cause here, in any language", () => {
+    const stored: string =
+      mdText`Incident created by [${"Maya Chen"}](${"https://oneuptime.example/dashboard/p/users/u"})`.toString();
+
+    for (const language of ["en", "fa", "de"]) {
+      const view: RenderResult = renderIn(language, stored);
+
+      expect(view.queryByTestId("what-happened-root-cause-value")).toBeNull();
+      expect(
+        view.getByTestId("what-happened-root-cause-empty"),
+      ).toBeInTheDocument();
+      cleanup();
+    }
+  });
 });

@@ -9,7 +9,7 @@ import { copyOwnValues, writeOwnValue } from "Common/Utils/LookupTable";
 import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
-} from "./JsonElementCount";
+} from "Common/Utils/JsonElementCount";
 import ProtobufElementCounter, {
   ProtobufCountSchema,
   ProtobufElementCount,
