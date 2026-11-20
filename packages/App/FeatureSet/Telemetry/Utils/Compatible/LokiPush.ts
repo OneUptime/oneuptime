@@ -1,11 +1,24 @@
 import protobuf from "protobufjs";
 import path from "path";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  COMPATIBLE_JSON_MAX_VALUES,
+  LOKI_PUSH_MAX_ELEMENTS,
+} from "Common/Types/Telemetry/CompatibleIngest";
+import JsonElementCounter, {
+  JsonElementCount,
+  JsonElementCountOutcome,
+} from "./JsonElementCount";
 import OtlpJson, {
   OTLP_SEVERITY_UNSPECIFIED,
   OtlpKeyValue,
   OtlpSeverity,
 } from "./OtlpJson";
+import ProtobufElementCounter, {
+  ProtobufCountSchema,
+  ProtobufElementCount,
+  ProtobufElementCountOutcome,
+} from "./ProtobufElementCount";
 
 /*
  * LOKI'S PUSH API, AS OPENTELEMETRY LOGS.
@@ -41,16 +54,32 @@ import OtlpJson, {
  * logfmt `level=` or a JSON line's top-level level or severity field. A
  * trace_id / span_id in the structured metadata (Alloy puts them there)
  * links the record to its trace.
+ *
+ * LIMITS
+ *
+ * A push may hold at most LOKI_PUSH_MAX_ELEMENTS streams, entries, labels
+ * and structured metadata, a stream's labels counted once for each of its
+ * entries: every entry becomes a log record that carries them all. A
+ * protobuf push is counted on its wire format before it is decoded
+ * (ProtobufElementCount), a JSON push's values before it is parsed
+ * (JsonElementCount, COMPATIBLE_JSON_MAX_VALUES), and both again as their
+ * streams are read, before anything is translated - so a small body cannot
+ * become millions of objects. A push over a limit is refused with 413.
  */
 
 export class LokiPushError extends Error {
   public readonly statusCode: number;
 
-  public constructor(message: string) {
+  public constructor(message: string, statusCode?: number | undefined) {
     super(message);
     this.name = "LokiPushError";
-    this.statusCode = 400;
+    this.statusCode = statusCode ?? 400;
   }
+}
+
+export interface LokiReadOptions {
+  // LOKI_PUSH_MAX_ELEMENTS when absent.
+  maxElements?: number | undefined;
 }
 
 export interface LokiEntry {
@@ -109,10 +138,22 @@ const LOGFMT_LEVEL_KEYS: ReadonlyArray<string> = [
   "severity=",
 ];
 
+// Whitespace beyond ASCII's, as \s matches it.
 const WHITESPACE: RegExp = /\s/;
-// A label name's characters (Prometheus allows [a-zA-Z_:][a-zA-Z0-9_:]*; Loki's clients send dots too).
-const LABEL_NAME_CHARACTER: RegExp = /[A-Za-z0-9_.:]/;
 const HEX_DIGITS: RegExp = /^[0-9a-fA-F]+$/;
+
+const CHAR_TAB: number = 0x09;
+const CHAR_CARRIAGE_RETURN: number = 0x0d;
+const CHAR_SPACE: number = 0x20;
+const CHAR_QUOTE: number = 0x22;
+const CHAR_APOSTROPHE: number = 0x27;
+const CHAR_COMMA: number = 0x2c;
+const CHAR_DOT: number = 0x2e;
+const CHAR_COLON: number = 0x3a;
+const CHAR_EQUALS: number = 0x3d;
+const CHAR_BACKSLASH: number = 0x5c;
+const CHAR_UNDERSCORE: number = 0x5f;
+const CHAR_BACKTICK: number = 0x60;
 const LETTER: RegExp = /[A-Za-z]/;
 // Nanoseconds since the epoch fit in 20 digits.
 const NANOSECOND_DIGITS: RegExp = /^\d{1,20}$/;
@@ -126,11 +167,100 @@ const PushRequest: protobuf.Type = protobuf
 
 export { PushRequest as LokiPushRequestType };
 
+/*
+ * What a logproto.PushRequest decodes into an object, for the count taken
+ * before it is decoded: each stream, each entry, its timestamp, and each
+ * label pair of its structured metadata and of `parsed` (which Loki's
+ * clients leave empty, but a decoder reads all the same).
+ */
+const LOKI_LABEL_PAIR_COUNT: ProtobufCountSchema = {};
+
+export const LOKI_PUSH_COUNT: ProtobufCountSchema = {
+  messages: {
+    // streams
+    1: {
+      messages: {
+        // entries: timestamp, structuredMetadata, parsed.
+        2: {
+          messages: {
+            1: {},
+            3: LOKI_LABEL_PAIR_COUNT,
+            4: LOKI_LABEL_PAIR_COUNT,
+          },
+        },
+      },
+    },
+  },
+};
+
+/*
+ * The push's streams, entries, labels and structured metadata, counted as
+ * its streams are read (LOKI_PUSH_MAX_ELEMENTS): a stream once, its labels
+ * once and again for every entry after the first - each entry becomes a log
+ * record that carries them all - and each entry with its metadata. It
+ * throws as soon as the count passes the limit, so nothing past it is read.
+ */
+export class LokiElementBudget {
+  private elements: number = 0;
+  private readonly limit: number;
+
+  public constructor(limit: number) {
+    this.limit = limit;
+  }
+
+  public add(count: number): void {
+    this.elements += count;
+
+    if (this.elements > this.limit) {
+      throw LokiPush.tooManyElements(this.limit);
+    }
+  }
+
+  // An entry of a stream of `labelCount` labels, `entryIndex` entries in.
+  public addEntry(
+    entryIndex: number,
+    labelCount: number,
+    metadataCount: number,
+  ): void {
+    this.add(1 + metadataCount + (entryIndex > 0 ? labelCount : 0));
+  }
+}
+
 export default class LokiPush {
-  // A JSON push body (decompressed), as streams.
-  public static parseJson(body: Buffer | string): Array<LokiStream> {
+  /*
+   * A push over LOKI_PUSH_MAX_ELEMENTS: a 413, which Promtail, Alloy and
+   * Vector drop rather than retry (Alloy counts it as batch_too_large).
+   */
+  public static tooManyElements(limit: number): LokiPushError {
+    return new LokiPushError(
+      `The push holds more than ${limit} entries, labels and structured metadata, a stream's labels counted once for each of its entries. Send fewer entries a push: lower the client's batch size.`,
+      413,
+    );
+  }
+
+  /*
+   * A JSON push body (decompressed), as streams. Its values are counted
+   * before it is parsed, and its streams as they are read: over either
+   * limit is a LokiPushError with status 413.
+   */
+  public static parseJson(
+    body: Buffer | string,
+    options?: LokiReadOptions,
+  ): Array<LokiStream> {
     const text: string =
       typeof body === "string" ? body : body.toString("utf8");
+
+    const values: JsonElementCount = JsonElementCounter.count(
+      text,
+      COMPATIBLE_JSON_MAX_VALUES,
+    );
+
+    if (values.outcome === JsonElementCountOutcome.OverLimit) {
+      throw new LokiPushError(
+        `${JsonElementCounter.tooManyValuesMessage(COMPATIBLE_JSON_MAX_VALUES)} Send fewer entries a push: lower the client's batch size.`,
+        413,
+      );
+    }
 
     let parsed: unknown;
 
@@ -146,6 +276,9 @@ export default class LokiPush {
       );
     }
 
+    const budget: LokiElementBudget = new LokiElementBudget(
+      options?.maxElements ?? LOKI_PUSH_MAX_ELEMENTS,
+    );
     const streams: Array<LokiStream> = [];
 
     for (const stream of parsed["streams"] as Array<unknown>) {
@@ -153,13 +286,17 @@ export default class LokiPush {
         continue;
       }
 
-      const labels: Array<[string, string]> = LokiPush.isObject(
-        stream["stream"],
-      )
-        ? LokiPush.stringPairs(stream["stream"] as JSONObject)
-        : typeof stream["labels"] === "string"
-          ? LokiPush.parseLabelSet(stream["labels"] as string)
-          : [];
+      budget.add(1);
+
+      let labels: Array<[string, string]> = [];
+
+      if (LokiPush.isObject(stream["stream"])) {
+        labels = LokiPush.stringPairs(stream["stream"] as JSONObject);
+        budget.add(labels.length);
+      } else if (typeof stream["labels"] === "string") {
+        // Counted as each label is read.
+        labels = LokiPush.parseLabelSet(stream["labels"] as string, budget);
+      }
 
       const entries: Array<LokiEntry> = [];
 
@@ -168,6 +305,11 @@ export default class LokiPush {
           const entry: LokiEntry | null = LokiPush.entryFromValue(value);
 
           if (entry) {
+            budget.addEntry(
+              entries.length,
+              labels.length,
+              entry.structuredMetadata.length,
+            );
             entries.push(entry);
           }
         }
@@ -181,6 +323,7 @@ export default class LokiPush {
             continue;
           }
 
+          budget.addEntry(entries.length, labels.length, 0);
           entries.push({
             timeUnixNano: LokiPush.timeFromRfc3339(legacy["ts"]),
             line: legacy["line"] as string,
@@ -195,8 +338,37 @@ export default class LokiPush {
     return streams;
   }
 
-  // A protobuf push body (snappy already undone), as streams.
-  public static parseProtobuf(body: Uint8Array): Array<LokiStream> {
+  /*
+   * A protobuf push body (snappy already undone), as streams. Counted on
+   * its wire format before it is decoded, and its streams as they are read:
+   * over either limit is a LokiPushError with status 413, and bytes that
+   * are not a PushRequest one with status 400 - neither is decoded.
+   */
+  public static parseProtobuf(
+    body: Uint8Array,
+    options?: LokiReadOptions,
+  ): Array<LokiStream> {
+    const maxElements: number = options?.maxElements ?? LOKI_PUSH_MAX_ELEMENTS;
+    const notAPushRequest: () => LokiPushError = (): LokiPushError => {
+      return new LokiPushError(
+        "The body is not a snappy-compressed logproto.PushRequest.",
+      );
+    };
+
+    const count: ProtobufElementCount = ProtobufElementCounter.count(
+      body,
+      LOKI_PUSH_COUNT,
+      maxElements,
+    );
+
+    if (count.outcome === ProtobufElementCountOutcome.OverLimit) {
+      throw LokiPush.tooManyElements(maxElements);
+    }
+
+    if (count.outcome === ProtobufElementCountOutcome.Malformed) {
+      throw notAPushRequest();
+    }
+
     let decoded: JSONObject;
 
     try {
@@ -206,16 +378,19 @@ export default class LokiPush {
         arrays: true,
       }) as JSONObject;
     } catch {
-      throw new LokiPushError(
-        "The body is not a snappy-compressed logproto.PushRequest.",
-      );
+      throw notAPushRequest();
     }
 
+    const budget: LokiElementBudget = new LokiElementBudget(maxElements);
     const streams: Array<LokiStream> = [];
 
     for (const stream of (decoded["streams"] || []) as Array<JSONObject>) {
+      budget.add(1);
+
+      // Counted as each label is read.
       const labels: Array<[string, string]> = LokiPush.parseLabelSet(
         typeof stream["labels"] === "string" ? stream["labels"] : "",
+        budget,
       );
 
       const entries: Array<LokiEntry> = [];
@@ -225,24 +400,31 @@ export default class LokiPush {
           ? (entry["timestamp"] as JSONObject)
           : {};
 
+        const structuredMetadata: Array<[string, string]> = (
+          (entry["structuredMetadata"] || []) as Array<JSONObject>
+        )
+          .filter((pair: JSONObject): boolean => {
+            return typeof pair["name"] === "string" && pair["name"] !== "";
+          })
+          .map((pair: JSONObject): [string, string] => {
+            return [
+              pair["name"] as string,
+              typeof pair["value"] === "string" ? pair["value"] : "",
+            ];
+          });
+
+        budget.addEntry(
+          entries.length,
+          labels.length,
+          structuredMetadata.length,
+        );
         entries.push({
           timeUnixNano: LokiPush.timeFromSecondsAndNanos(
             timestamp["seconds"],
             timestamp["nanos"],
           ),
           line: typeof entry["line"] === "string" ? entry["line"] : "",
-          structuredMetadata: (
-            (entry["structuredMetadata"] || []) as Array<JSONObject>
-          )
-            .filter((pair: JSONObject): boolean => {
-              return typeof pair["name"] === "string" && pair["name"] !== "";
-            })
-            .map((pair: JSONObject): [string, string] => {
-              return [
-                pair["name"] as string,
-                typeof pair["value"] === "string" ? pair["value"] : "",
-              ];
-            }),
+          structuredMetadata: structuredMetadata,
         });
       }
 
@@ -398,14 +580,26 @@ export default class LokiPush {
    * A label set as Prometheus and Loki write one: {name="value", ...},
    * braces optional, values double-quoted (single quotes and backticks
    * read too) with Go's escapes. A malformed set is refused, not guessed.
+   *
+   * Read in one pass: a value is sliced out between its escapes, never
+   * built a character at a time, so a label set of megabytes costs
+   * milliseconds. Each label is counted against `budget` as it is read: a
+   * set of more labels than the push may still hold stops there, with the
+   * push's 413.
    */
-  public static parseLabelSet(text: string): Array<[string, string]> {
+  public static parseLabelSet(
+    text: string,
+    budget?: LokiElementBudget | undefined,
+  ): Array<[string, string]> {
     const labels: Array<[string, string]> = [];
     let position: number = 0;
     const input: string = text.trim();
 
     const skipSpace: () => void = (): void => {
-      while (position < input.length && WHITESPACE.test(input[position]!)) {
+      while (
+        position < input.length &&
+        LokiPush.isSpace(input.charCodeAt(position))
+      ) {
         position++;
       }
     };
@@ -441,7 +635,10 @@ export default class LokiPush {
 
       const nameStart: number = position;
 
-      while (position < end && LABEL_NAME_CHARACTER.test(input[position]!)) {
+      while (
+        position < end &&
+        LokiPush.isLabelNameCharacter(input.charCodeAt(position))
+      ) {
         position++;
       }
 
@@ -453,35 +650,41 @@ export default class LokiPush {
 
       skipSpace();
 
-      if (input[position] !== "=") {
+      if (input.charCodeAt(position) !== CHAR_EQUALS) {
         fail();
       }
 
       position++;
       skipSpace();
 
-      const quote: string | undefined = input[position];
+      const quote: number = input.charCodeAt(position);
 
-      if (quote !== '"' && quote !== "'" && quote !== "`") {
+      if (
+        quote !== CHAR_QUOTE &&
+        quote !== CHAR_APOSTROPHE &&
+        quote !== CHAR_BACKTICK
+      ) {
         fail();
       }
 
       position++;
       let value: string = "";
+      let runStart: number = position;
 
       while (true) {
         if (position >= end) {
           fail();
         }
 
-        const char: string = input[position]!;
+        const code: number = input.charCodeAt(position);
 
-        if (char === quote) {
+        if (code === quote) {
+          value += input.slice(runStart, position);
           position++;
           break;
         }
 
-        if (char === "\\" && quote !== "`") {
+        if (code === CHAR_BACKSLASH && quote !== CHAR_BACKTICK) {
           const escape: { text: string; length: number } | null =
             LokiPush.readEscape(input, position);
 
@@ -489,20 +692,21 @@ export default class LokiPush {
             fail();
           }
 
-          value += escape!.text;
+          value += input.slice(runStart, position) + escape!.text;
           position += escape!.length;
+          runStart = position;
           continue;
         }
 
-        value += char;
         position++;
       }
 
       labels.push([name, value]);
+      budget?.add(1);
       skipSpace();
 
       if (position < end) {
-        if (input[position] !== ",") {
+        if (input.charCodeAt(position) !== CHAR_COMMA) {
           fail();
         }
 
@@ -511,6 +715,33 @@ export default class LokiPush {
     }
 
     return labels;
+  }
+
+  // \s, without a regular expression for the characters labels are made of.
+  private static isSpace(code: number): boolean {
+    if (
+      code === CHAR_SPACE ||
+      (code >= CHAR_TAB && code <= CHAR_CARRIAGE_RETURN)
+    ) {
+      return true;
+    }
+
+    return code > 0x7f && WHITESPACE.test(String.fromCharCode(code));
+  }
+
+  /*
+   * A label name's characters: Prometheus allows [a-zA-Z_:][a-zA-Z0-9_:]*,
+   * and Loki's clients send dots too.
+   */
+  private static isLabelNameCharacter(code: number): boolean {
+    return (
+      (code >= 0x61 && code <= 0x7a) ||
+      (code >= 0x41 && code <= 0x5a) ||
+      (code >= 0x30 && code <= 0x39) ||
+      code === CHAR_UNDERSCORE ||
+      code === CHAR_DOT ||
+      code === CHAR_COLON
+    );
   }
 
   private static readEscape(
