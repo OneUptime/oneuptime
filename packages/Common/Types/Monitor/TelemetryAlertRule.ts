@@ -164,9 +164,11 @@ export interface TelemetryAlertRuleReadResult {
 /*
  * The comparisons the rule editor offers, in the order it offers them. The
  * same set the full criteria editor offers for these checks
- * (CriteriaFilterUtil.getFilterTypeOptionsByCheckOn in the Dashboard), plus
- * Not Equal To, which only an older or hand-written criteria holds: read,
- * and offered back to such a rule, so it keeps meaning what it meant.
+ * (CriteriaFilterUtil.getFilterTypeOptionsByCheckOn in the Dashboard): a
+ * metric's value is also offered Not Equal To, after Equal To (#10449),
+ * since many metrics are a state written as a number. A count is not; a
+ * rule of one that holds Not Equal To - an older or hand-written criteria -
+ * has it read, and offered back, so it keeps meaning what it meant.
  */
 const STATIC_COMPARISONS: Array<FilterType> = [
   FilterType.GreaterThan,
@@ -174,6 +176,11 @@ const STATIC_COMPARISONS: Array<FilterType> = [
   FilterType.LessThan,
   FilterType.LessThanOrEqualTo,
   FilterType.EqualTo,
+];
+
+const METRIC_STATIC_COMPARISONS: Array<FilterType> = [
+  ...STATIC_COMPARISONS,
+  FilterType.NotEqualTo,
 ];
 
 const ANOMALY_COMPARISONS: Array<FilterType> = [
@@ -319,7 +326,11 @@ export default class TelemetryAlertRuleUtil {
      */
     isPromQL?: boolean | undefined;
   }): Array<FilterType> {
-    const comparisons: Array<FilterType> = [...STATIC_COMPARISONS];
+    const comparisons: Array<FilterType> =
+      TelemetryAlertRuleUtil.getMeasureCheckOn(data.monitorType) ===
+      CheckOn.MetricValue
+        ? [...METRIC_STATIC_COMPARISONS]
+        : [...STATIC_COMPARISONS];
 
     if (
       !data.isPromQL &&
