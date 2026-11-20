@@ -120,6 +120,40 @@ describe("an Apple device", () => {
     expect(device.details["availableStorage"]).toBeUndefined();
   });
 
+  // #10008: in bytes already, for how full it is.
+  test("keeps its whole and its free storage in bytes, as Esper documents an Apple device's", () => {
+    const device: ProviderDevice = parseEsperDevice(
+      buildEsperAppleDevice({ id: IPAD_ID, name: "x" }),
+    )!;
+
+    expect(device.details["storageTotalBytes"]).toBe(64000000000);
+    expect(device.details["storageFreeBytes"]).toBe(31500000000);
+  });
+
+  /*
+   * #10008: Esper documents battery_level without its scale. An Apple
+   * device's may be Apple's own fraction, so 1 or less on one is read as
+   * that: 0.15 is 15%, and a full iPad's 1 is 100%, never 1%.
+   */
+  test("its battery as a percent, or as Apple's fraction of one", () => {
+    const battery: (level: unknown) => number | null = (
+      level: unknown,
+    ): number | null => {
+      const raw: JSONObject = buildEsperAppleDevice({ id: IPAD_ID, name: "x" });
+      raw["battery_stats"] = { battery_level: level } as JSONObject;
+
+      return parseEsperDevice(raw)!.batteryLevel;
+    };
+
+    expect(battery(76)).toBe(76);
+    expect(battery(0.15)).toBe(15);
+    expect(battery(0.876)).toBe(88);
+    expect(battery(1)).toBe(100);
+    expect(battery(0)).toBe(0);
+    expect(battery(150)).toBeNull();
+    expect(battery("high")).toBeNull();
+  });
+
   test("runs iOS, iPadOS or tvOS as its os says, else as its model says, else iOS", () => {
     const platformOf: (fixture: {
       os?: string;
@@ -200,6 +234,93 @@ describe("an Apple device", () => {
 
   test("the platforms a read lists are Android and Apple", () => {
     expect(ESPER_IMPORTED_PLATFORMS).toEqual(["ANDROID", "APPLE"]);
+  });
+});
+
+/*
+ * #10008: an Esper Android device's storage, in bytes, for how full it is:
+ * its whole from memory_info (a number as text, in its units, binary where
+ * its binary prefix says so), its free space from memory_stats, in MB.
+ */
+describe("an Android device's storage", () => {
+  function storageOf(
+    memoryInfo: JSONObject,
+    availableMegabytes: unknown,
+  ): JSONObject {
+    const raw: JSONObject = buildEsperDevice({ id: DEVICE_ID, name: "x" });
+    raw["memory_info"] = memoryInfo;
+    (raw["memory_stats"] as JSONObject)["available_internal_storage"] =
+      availableMegabytes as JSONObject[string];
+
+    return parseEsperDevice(raw)!.details;
+  }
+
+  test("binary where its prefix says GiB: 32 GiB, 18200 MiB free", () => {
+    const details: JSONObject = storageOf(
+      {
+        total_ram: "3.6",
+        total_internal_storage: "32",
+        units: "GB",
+        internal_storage_binary_prefix: "GiB",
+      },
+      18200,
+    );
+
+    expect(details["storageTotalBytes"]).toBe(32 * 1024 ** 3);
+    expect(details["storageFreeBytes"]).toBe(18200 * 1024 ** 2);
+    // What the card shows is kept as it was.
+    expect(details["totalStorage"]).toBe("32");
+    expect(details["availableStorage"]).toBe(18200);
+  });
+
+  test("decimal where it says nothing binary: 64 GB, 3000 MB free", () => {
+    const details: JSONObject = storageOf(
+      { total_internal_storage: "64", units: "GB" },
+      3000,
+    );
+
+    expect(details["storageTotalBytes"]).toBe(64e9);
+    expect(details["storageFreeBytes"]).toBe(3000e6);
+  });
+
+  test("a unit Esper writes binary itself, and a prefix that is no binary unit", () => {
+    expect(
+      storageOf({ total_internal_storage: "16", units: "GiB" }, 100)[
+        "storageTotalBytes"
+      ],
+    ).toBe(16 * 1024 ** 3);
+    expect(
+      storageOf(
+        {
+          total_internal_storage: "16",
+          units: "GB",
+          internal_storage_binary_prefix: "decimal",
+        },
+        100,
+      )["storageTotalBytes"],
+    ).toBe(16e9);
+  });
+
+  test("no whole without its unit, and no size where Esper said none", () => {
+    const noUnit: JSONObject = storageOf({ total_internal_storage: "32" }, 100);
+
+    expect(noUnit["storageTotalBytes"]).toBeUndefined();
+    expect(noUnit["storageFreeBytes"]).toBe(100e6);
+
+    const none: JSONObject = storageOf({}, null);
+
+    expect(none["storageTotalBytes"]).toBeUndefined();
+    expect(none["storageFreeBytes"]).toBeUndefined();
+  });
+
+  test("its battery is a percent: Android's is never read as a fraction", () => {
+    const raw: JSONObject = buildEsperDevice({
+      id: DEVICE_ID,
+      name: "x",
+      batteryLevel: 1,
+    });
+
+    expect(parseEsperDevice(raw)!.batteryLevel).toBe(1);
   });
 });
 

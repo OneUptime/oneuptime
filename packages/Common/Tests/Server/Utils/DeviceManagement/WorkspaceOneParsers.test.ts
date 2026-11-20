@@ -89,6 +89,9 @@ describe("a device", () => {
       freeStorage: "87.4",
       totalRam: "6",
       memoryUnits: "GB",
+      // #10008: its storage in bytes, from its gigabytes, for how full it is.
+      storageTotalBytes: 119200000000,
+      storageFreeBytes: 87400000000,
     });
   });
 
@@ -240,6 +243,28 @@ describe("a device", () => {
     });
     expect(device.details).toEqual({});
     expect(lastSeenAt).toBeNull();
+  });
+
+  /*
+   * #10008: its storage in bytes, from Workspace ONE's gigabytes - both in
+   * one unit, so how full it is never hangs on it - and none where it says
+   * none.
+   */
+  test("its whole and its free storage in bytes, from its gigabytes; none where it says none", () => {
+    const laptop: JSONObject = read(buildWorkspaceOneWindows()).device.details;
+
+    expect(laptop["storageTotalBytes"]).toBe(475.8e9);
+    expect(laptop["storageFreeBytes"]).toBe(211.3e9);
+
+    const unsaid: JSONObject = read(
+      buildWorkspaceOneAndroid({
+        DeviceCapacity: null,
+        AvailableDeviceCapacity: 0,
+      }),
+    ).device.details;
+
+    expect(unsaid["storageTotalBytes"]).toBeUndefined();
+    expect(unsaid["storageFreeBytes"]).toBeUndefined();
   });
 
   test("a device reported in the future reported now; Workspace ONE's year 1 is never", () => {
