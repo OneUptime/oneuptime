@@ -209,7 +209,7 @@ Ela responde `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.
 
 ### Uma função personalizada com a qual workflows são executados
 
-O OneUptime só exclui uma função personalizada com a qual workflows são executados quando a exclusão diz com o que eles são executados no lugar, e recusa a que não diz, nomeando os workflows. Diga isso com `--workflows-run-as`: `Default`, as permissões padrão, ou `CustomRole`, outra função personalizada que você poderia dar a uma equipe, com o ID dela em `--workflows-run-as-custom-role-id`. Nunca Project Owner: excluir uma função nunca amplia o que um workflow pode fazer.
+O OneUptime só exclui uma função personalizada com a qual workflows são executados quando a exclusão diz com o que eles são executados no lugar, e recusa a que não diz, nomeando os workflows. Diga isso com `--workflows-run-as`: `Default`, as permissões padrão, ou `CustomRole`, outra função personalizada que você poderia dar a uma equipe, com o ID dela em `--workflows-run-as-custom-role-id`. Nunca Proprietário do projeto: excluir uma função nunca amplia o que um workflow pode fazer.
 
 ```bash
 # They run with the default permissions

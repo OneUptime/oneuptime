@@ -1,5 +1,8 @@
 import { OneUptimeAgentComponent } from "./KubernetesAgentWorkloads";
-import { OneUptimeAgentNodesProxyReason } from "./KubernetesRbac";
+import {
+  OneUptimeAgentInstall,
+  OneUptimeAgentNodesProxyReason,
+} from "./KubernetesRbac";
 
 /*
  * WHAT A COMPLIANCE CONTROL FOUND ON A CLUSTER (#9627), in the words of the
@@ -40,6 +43,13 @@ export interface KubernetesComplianceAgentObject {
    * which grants it on every cluster, and for a workload.
    */
   nodesProxyReasons: Array<OneUptimeAgentNodesProxyReason>;
+  /*
+   * How it was installed, as its role's label says (#9928): the Amazon EKS
+   * add-on's buyer drops nodes/proxy with the add-on's configuration
+   * values, not with Helm. Not there from a server before it, nor for a
+   * workload: Helm.
+   */
+  installedAs?: OneUptimeAgentInstall | undefined;
   // The agent's component a workload is: the node collector, the eBPF instrumentation...
   component?: OneUptimeAgentComponent | undefined;
 }

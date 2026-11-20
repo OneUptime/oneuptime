@@ -258,6 +258,23 @@ describe("sendForPendingChange", () => {
     );
   });
 
+  test("the link ends when the account says its change does (#9908)", async () => {
+    const linkExpires: Date = new Date(Date.now() + 23 * 60 * 60 * 1000);
+
+    await EmailChangeConfirmation.sendForPendingChange({
+      userId: USER_ID,
+      newEmail: NEW_EMAIL,
+      isTaken: false,
+      linkExpires: linkExpires,
+    });
+
+    const row: EmailVerificationToken = (
+      createToken.mock.calls[0]![0] as { data: EmailVerificationToken }
+    ).data;
+
+    expect(row.expires!.getTime()).toBe(linkExpires.getTime());
+  });
+
   test("each change gets a link of its own", async () => {
     await EmailChangeConfirmation.sendForPendingChange({
       userId: USER_ID,

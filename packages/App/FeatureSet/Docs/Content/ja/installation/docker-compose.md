@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` は新しいポート `localhost:8080` で OneUptime を確認し、最後に **OneUptime is up!** と表示して終了します。
+`npm start` は ingress がいま待ち受けている `127.0.0.1:8080` で OneUptime を確認し、最後に **OneUptime is up!** と表示して終了します。
+
+これで ingress に届くのはこのサーバーだけです。ingress はホスト名でリクエストをルーティングします。アプリケーション全体に到達するのは `HOST` と `localhost` だけで、アドレス `127.0.0.1` を含むそれ以外の名前はステータスページのドメインとして扱われます。そのため、プロキシはブラウザーが求めた名前である `HOST` をそのまま渡し、プローブは `http://localhost:8080` を呼び出し、`npm start` の最後のチェックは `npm run doctor` と同じく、ホスト名 `localhost:8080` で `127.0.0.1:8080` に接続します。
 
 #### プロキシを構成する
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-すべてのコンテナーが動いたら、`npm run status-check` でもう一度チェックします。このチェックは、`ONEUPTIME_HTTP_PORT` が指定するポートで ingress を確認します。
+すべてのコンテナーが動いたら、`npm run status-check` でもう一度チェックします。このチェックは、`ONEUPTIME_HTTP_PORT` が ingress を公開しているアドレスとポート (例: `127.0.0.1:8080`) で、サーバー上のブラウザーと同じようにホスト名 `localhost` を使って ingress を確認します。
 :::
 
 :::details ブラウザーに "このアドレスでは OneUptime が設定されていません" と表示される

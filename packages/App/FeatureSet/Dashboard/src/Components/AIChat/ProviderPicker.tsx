@@ -1,15 +1,17 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import LayeredPopover, {
+  LayeredPopoverSide,
+} from "Common/UI/Components/Tooltip/LayeredPopover";
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
+  useCallback,
   useId,
   useRef,
   useState,
 } from "react";
-import { MenuSide, useMenuSide } from "./MenuSide";
 import { ChatProvider } from "./useAiChat";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -24,11 +26,14 @@ export interface ComponentProps {
   /*
    * Which side of the button the menu opens on: "top" (the default) for a
    * composer at the foot of its surface, "bottom" for one near the top.
-   * The other side when the menu would not fit on this one and fits
-   * better there (MenuSide).
+   * The other side when the window has no room for it on this one
+   * (LayeredPopover).
    */
-  menuSide?: MenuSide | undefined;
+  menuSide?: LayeredPopoverSide | undefined;
 }
+
+// 6px between the button and the menu.
+const MENU_GAP_PX: number = 6;
 
 function providerLabel(provider: ChatProvider): string {
   /*
@@ -59,62 +64,27 @@ function providerDescription(provider: ChatProvider): string | null {
  * against any provider configured for the project (or a shared global
  * provider) and switch mid-thread. Purely presentational — selection is
  * persisted server-side when the next message is sent.
+ *
+ * Its menu is drawn on the tooltip layer (LayeredPopover), placed against
+ * the window, so a composer in a card, a dialog or a scrolling panel never
+ * cuts it off (#9910). The layer closes it on Escape - spent there, so the
+ * panel the picker sits in (Ask AI) does not close with it - on a press
+ * outside and on the focus leaving it.
  */
 const ProviderPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const containerRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
-  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const menuId: string = useId();
-  // 6 px between the button and the menu (mt-1.5 / mb-1.5).
-  const menuSide: MenuSide = useMenuSide({
-    isOpen: isOpen,
-    preferred: props.menuSide || "top",
-    gap: 6,
-    buttonRef: buttonRef,
-    menuRef: menuRef,
-  });
 
   const variant: "compact" | "full" = props.variant || "compact";
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const onClick: (event: MouseEvent) => void = (event: MouseEvent): void => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-    /*
-     * Escape closes the menu and gives the focus back to its button - and
-     * only the menu: the key is marked as spent, so the panel the picker
-     * sits in (Ask AI) does not close with it.
-     */
-    const onKeyDown: (event: KeyboardEvent) => void = (
-      event: KeyboardEvent,
-    ): void => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setIsOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [isOpen]);
+  const close: () => void = useCallback((): void => {
+    setIsOpen(false);
+  }, []);
 
   const selected: ChatProvider | undefined = props.providers.find(
     (provider: ChatProvider) => {
@@ -139,11 +109,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
     : null;
 
   return (
-    /*
-     * Not `relative`: the menu is placed against the composer's row of
-     * controls (ChatInput), which has room for all of it.
-     */
-    <div ref={containerRef}>
+    <div>
       <button
         ref={buttonRef}
         type="button"
@@ -183,86 +149,91 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
       </button>
 
       {isOpen && (
-        <div
-          ref={menuRef}
-          id={menuId}
-          role="menu"
-          aria-label={translator.translateText("LLM provider")}
-          data-menu-side={menuSide}
-          className={`absolute left-2 z-50 w-72 max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
-            menuSide === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5"
-          }`}
+        <LayeredPopover
+          anchorRef={buttonRef}
+          onClose={close}
+          side={props.menuSide || "top"}
+          align="start"
+          gap={MENU_GAP_PX}
         >
-          <div className="border-b border-gray-100 px-3 py-2">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-              {translator.translateText("LLM provider")}
-            </div>
-          </div>
-          <div className="max-h-72 overflow-y-auto overscroll-contain py-1">
-            {props.providers.length === 0 && (
-              <div className="px-3 py-3 text-xs text-gray-500">
-                {translator.translateText(
-                  "No LLM providers configured yet. Add one in Project Settings → AI → LLM Providers.",
-                )}
+          <div
+            id={menuId}
+            role="menu"
+            aria-label={translator.translateText("LLM provider")}
+            className="w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+          >
+            <div className="border-b border-gray-100 px-3 py-2">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                {translator.translateText("LLM provider")}
               </div>
-            )}
-            {props.providers.map((provider: ChatProvider) => {
-              const isSelected: boolean =
-                provider.id === props.selectedProviderId;
-              const description: string | null = providerDescription(provider);
-              return (
-                <button
-                  key={provider.id}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={isSelected}
-                  onClick={() => {
-                    props.onSelect(provider.id);
-                    setIsOpen(false);
-                    buttonRef.current?.focus();
-                  }}
-                  className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 ${
-                    isSelected ? "bg-gray-50" : ""
-                  }`}
-                >
-                  <div
-                    className={`mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full ${
-                      isSelected
-                        ? "bg-gray-900 text-white"
-                        : "border border-gray-300"
+            </div>
+            <div className="max-h-72 overflow-y-auto overscroll-contain py-1">
+              {props.providers.length === 0 && (
+                <div className="px-3 py-3 text-xs text-gray-500">
+                  {translator.translateText(
+                    "No LLM providers configured yet. Add one in Project Settings → AI → LLM Providers.",
+                  )}
+                </div>
+              )}
+              {props.providers.map((provider: ChatProvider) => {
+                const isSelected: boolean =
+                  provider.id === props.selectedProviderId;
+                const description: string | null =
+                  providerDescription(provider);
+                return (
+                  <button
+                    key={provider.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isSelected}
+                    onClick={() => {
+                      props.onSelect(provider.id);
+                      setIsOpen(false);
+                      buttonRef.current?.focus();
+                    }}
+                    className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 ${
+                      isSelected ? "bg-gray-50" : ""
                     }`}
                   >
-                    {isSelected && (
-                      <Icon icon={IconProp.Check} className="h-2.5 w-2.5" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="truncate text-sm font-semibold text-gray-900">
-                        {provider.name || provider.modelName}
-                      </span>
-                      {provider.isDefault && (
-                        <span className="flex-shrink-0 rounded bg-emerald-50 px-1 py-px text-xs font-semibold uppercase text-emerald-600">
-                          {translator.translateText("Default")}
-                        </span>
-                      )}
-                      {provider.isGlobal && (
-                        <span className="flex-shrink-0 rounded bg-sky-50 px-1 py-px text-xs font-semibold uppercase text-sky-600">
-                          {translator.translateText("Global")}
-                        </span>
+                    <div
+                      className={`mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full ${
+                        isSelected
+                          ? "bg-gray-900 text-white"
+                          : "border border-gray-300"
+                      }`}
+                    >
+                      {isSelected && (
+                        <Icon icon={IconProp.Check} className="h-2.5 w-2.5" />
                       )}
                     </div>
-                    {description ? (
-                      <div className="mt-0.5 truncate text-xs text-gray-500">
-                        {description}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-sm font-semibold text-gray-900">
+                          {provider.name || provider.modelName}
+                        </span>
+                        {provider.isDefault && (
+                          <span className="flex-shrink-0 rounded bg-emerald-50 px-1 py-px text-xs font-semibold uppercase text-emerald-600">
+                            {translator.translateText("Default")}
+                          </span>
+                        )}
+                        {provider.isGlobal && (
+                          <span className="flex-shrink-0 rounded bg-sky-50 px-1 py-px text-xs font-semibold uppercase text-sky-600">
+                            {translator.translateText("Global")}
+                          </span>
+                        )}
                       </div>
-                    ) : null}
-                  </div>
-                </button>
-              );
-            })}
+                      {description ? (
+                        <div className="mt-0.5 truncate text-xs text-gray-500">
+                          {description}
+                        </div>
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </LayeredPopover>
       )}
     </div>
   );

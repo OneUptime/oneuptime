@@ -144,7 +144,14 @@ import {
   DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
   INTUNE_CLOUDS,
   MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS,
+  WORKSPACE_ONE_AUTH_METHODS,
+  readSotiServer,
+  readWorkspaceOneServer,
 } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import { WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ } from "Common/Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneConnector";
+import { WORKSPACE_ONE_READ_PERMISSIONS } from "Common/Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneApiClient";
+import { SOTI_READ_PERMISSIONS } from "Common/Server/Utils/DeviceManagement/Soti/SotiApiClient";
+import { PRIVATE_SERVER_HINT } from "Common/Server/Utils/DeviceManagement/TenantServerClient";
 import {
   MANAGED_DEVICE_ONLINE_WINDOW_MINUTES,
   MANAGED_DEVICE_STATUS_LABELS,
@@ -699,7 +706,7 @@ describe("Inventory Overview: where items come from", () => {
       }),
     ).toBe(false);
     expect(overview).toContain(
-      "So does a device from Esper or Intune: each time it checks in with its device manager. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
+      "So does a managed device: each time it checks in with its device manager. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
     );
     expect(
       statusRows.map((row: Array<string>): string => {
@@ -906,7 +913,7 @@ describe("Inventory Overview: finding your way around", () => {
     expect(goneQuiet).not.toContain("source:");
     expect(goneQuiet).toContain("staleOnly: true");
     expect(section).toContain(
-      "| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with Esper. |",
+      "| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with their device manager. |",
     );
   });
 
@@ -2000,7 +2007,12 @@ describe("Inventory Overview: devices from Esper (issue #9586)", () => {
           return getDeviceManagementProviderTitle(provider);
         },
       ),
-    ).toEqual(["Esper", "Microsoft Intune"]);
+    ).toEqual([
+      "Esper",
+      "Microsoft Intune",
+      "Workspace ONE UEM",
+      "SOTI MobiControl",
+    ]);
     // The form's two questions, the fold and its button.
     for (const title of ['title: "Tenant"', 'title: "API Key"']) {
       expect(form).toContain(title);
@@ -2193,5 +2205,199 @@ describe("Inventory Overview: devices from Microsoft Intune (issue #9837)", () =
     expect(intune()).toContain(
       "each is named by its serial number instead, and takes its name back once no other device has it.",
     );
+  });
+});
+
+/*
+ * #10086: a Workspace ONE UEM server, read through its REST API by an
+ * OAuth client with a read-only role - or, on premises, an
+ * administrator's account. The page says what the connector asks for, and
+ * the words its form and its template use.
+ */
+describe("Inventory Overview: devices from Workspace ONE UEM (issue #10086)", () => {
+  const SECTION: string = "## Import devices from Workspace ONE UEM";
+  const FORM: string = `${DASHBOARD_APP}/Components/DeviceManagement/WorkspaceOneConnectionFormModal.tsx`;
+
+  function workspaceOne(): string {
+    return englishSection(INVENTORY_OVERVIEW, SECTION);
+  }
+
+  it("names the read-only role the connector reads with, and where the OAuth client is made", () => {
+    expect(WORKSPACE_ONE_READ_PERMISSIONS).toBe(
+      "API > REST: Devices and Apps, Read",
+    );
+    expect(workspaceOne()).toContain(
+      "Under `API`, then `REST`, select `Read` for `Devices` and for `Apps`, and nothing else.",
+    );
+    expect(workspaceOne()).toContain(
+      "Go to `Groups & Settings`, then `Configurations`, then `OAuth Client Management`, and click `Add`.",
+    );
+    expect(workspaceOne()).toContain(
+      "Copy its `Client ID` and its `Client Secret`: Workspace ONE shows the secret once.",
+    );
+  });
+
+  it("connects from the table's button and the Workspace ONE form, with both ways in", () => {
+    const form: string = readRepoFile(FORM);
+
+    for (const title of [
+      'title: "REST API URL"',
+      'title: "Sign in with"',
+      'title: "OAuth client"',
+      'title: "Administrator account"',
+      'title: "Client ID"',
+      'title: "Client Secret"',
+      'title: "Region"',
+      'title: "Username"',
+      'title: "Password"',
+      'title: "REST API Key"',
+    ]) {
+      expect(form).toContain(title);
+    }
+    expect([...WORKSPACE_ONE_AUTH_METHODS]).toEqual(["oauth", "basic"]);
+    expect(workspaceOne()).toContain(
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **Workspace ONE UEM**. Enter the **REST API URL**",
+    );
+    expect(readWorkspaceOneServer("https://as1234.awmdm.com/API")).toBe(
+      "as1234.awmdm.com",
+    );
+    expect(workspaceOne()).toContain(
+      "pick **Administrator account** under **Sign in with**",
+    );
+  });
+
+  it("says where a server may be read from, as the connector's refusal does", () => {
+    expect(PRIVATE_SERVER_HINT).toContain(
+      "OneUptime Cloud reads servers on the public internet only.",
+    );
+    expect(workspaceOne()).toContain(
+      "OneUptime Cloud reads servers on the public internet only, so a server on a private network is read by a self-hosted OneUptime.",
+    );
+  });
+
+  it("reads on the default schedule, at most a few devices' apps a read, and nothing of a device's user", () => {
+    expect(workspaceOne()).toContain(
+      `the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+    );
+    expect(workspaceOne()).toContain(
+      `a read reads the apps of at most ${WORKSPACE_ONE_MAX_APP_DEVICES_PER_READ} devices`,
+    );
+    expect(workspaceOne()).toContain("nothing about a device's user is read.");
+  });
+
+  it("says a device is offline after a day, as its status and its template read it", () => {
+    const template: { name: string; thresholdInMinutes: number } | undefined =
+      getManagedDeviceAlertTemplateById(
+        "workspace-one-device-stopped-checking-in",
+      );
+
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.WorkspaceOne,
+        platform: ManagedDevicePlatform.IOS,
+      }),
+    ).toBe(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES);
+    expect(workspaceOne()).toContain(
+      `a device that has not for a day is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}.`,
+    );
+    expect(template!.thresholdInMinutes).toBe(24 * 60);
+    expect(workspaceOne()).toContain(
+      `click **Set up alerts** on the connection's row and create ${bold(template!.name)}.`,
+    );
+  });
+});
+
+/*
+ * #10087: a SOTI MobiControl server, read through its REST API by an API
+ * client and a read-only MobiControl user. The page says what the
+ * connector asks for, and the words its form and its templates use.
+ */
+describe("Inventory Overview: devices from SOTI MobiControl (issue #10087)", () => {
+  const SECTION: string = "## Import devices from SOTI MobiControl";
+  const FORM: string = `${DASHBOARD_APP}/Components/DeviceManagement/SotiConnectionFormModal.tsx`;
+
+  function soti(): string {
+    return englishSection(INVENTORY_OVERVIEW, SECTION);
+  }
+
+  it("names the permissions the user reads with, and where the API client is made", () => {
+    expect(SOTI_READ_PERMISSIONS).toBe(
+      "Web Console Access and View Installed Applications, and View Groups on the device groups to read",
+    );
+    expect(soti()).toContain(
+      "Allow `Web Console Access` and `View Installed Applications` in its general permissions and nothing else, and give it `View Groups` on the device groups OneUptime reads.",
+    );
+    expect(soti()).toContain(
+      "go to `Global Settings`, then `Services`, then `API Client`, and add one.",
+    );
+    expect(soti()).toContain("`MCAdmin.exe APIClientAdd -n:OneUptime`");
+  });
+
+  it("connects from the table's button and the SOTI form", () => {
+    const form: string = readRepoFile(FORM);
+
+    for (const title of [
+      'title: "Server"',
+      'title: "Client ID"',
+      'title: "Client Secret"',
+      'title: "Username"',
+      'title: "Password"',
+    ]) {
+      expect(form).toContain(title);
+    }
+    expect(soti()).toContain(
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, click **Connect device manager**, and pick **SOTI MobiControl**. Enter the **Server**",
+    );
+    expect(
+      readSotiServer("https://acme.mobicontrolcloud.com/MobiControl"),
+    ).toBe("acme.mobicontrolcloud.com");
+  });
+
+  it("says when a device is offline: its agent's live connection, an Apple device's day, a disabled one", () => {
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Soti,
+        platform: ManagedDevicePlatform.Android,
+      }),
+    ).toBe(MANAGED_DEVICE_ONLINE_WINDOW_MINUTES);
+    expect(soti()).toContain(
+      `one whose agent has not been connected for ${MANAGED_DEVICE_ONLINE_WINDOW_MINUTES} minutes is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}.`,
+    );
+    expect(
+      getManagedDeviceOnlineWindowMinutes({
+        provider: DeviceManagementProvider.Soti,
+        platform: ManagedDevicePlatform.IPadOS,
+      }),
+    ).toBe(MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES);
+    expect(soti()).toContain(
+      `An iPhone, iPad or Mac checks in through Apple's push service, hours apart, and is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])} after a day.`,
+    );
+    expect(soti()).toContain(
+      `A device an administrator disabled is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Disabled])}`,
+    );
+  });
+
+  it("says how to get an alert, as its two templates fire", () => {
+    const agents: { name: string; thresholdInMinutes: number } | undefined =
+      getManagedDeviceAlertTemplateById("soti-device-stopped-checking-in");
+    const apple: { name: string; thresholdInMinutes: number } | undefined =
+      getManagedDeviceAlertTemplateById(
+        "soti-apple-device-stopped-checking-in",
+      );
+
+    expect(agents!.thresholdInMinutes).toBe(
+      MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+    );
+    expect(apple!.thresholdInMinutes).toBe(24 * 60);
+    expect(soti()).toContain(
+      `create ${bold(agents!.name)} and ${bold(apple!.name)}.`,
+    );
+    expect(soti()).toContain(
+      "whose agent has not been connected for more than an hour",
+    );
+    expect(soti()).toContain(
+      "each Apple device that has not checked in for more than a day",
+    );
+    expect(soti()).toContain("Nothing about a device's user is read.");
   });
 });

@@ -25,6 +25,7 @@ import {
   SetupGuideTopic,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Models from "../../../Models/DatabaseModels/Index";
@@ -575,6 +576,8 @@ describe("an incident's own CLI page", () => {
     expect(step(guide, "Delete it").markdown).toContain(
       `oneuptime incident delete ${INCIDENT_ID}`,
     );
+    // An incident's delete says nothing besides the incident: no tabs.
+    expect(step(guide, "Delete it").variants).toBeUndefined();
   });
 
   test("writes the dashboard's buttons as the CLI's own commands", () => {
@@ -616,6 +619,56 @@ describe("an incident's own CLI page", () => {
         return item.title;
       }),
     ).toEqual(["Use it from an AI agent", "Use it in a script"]);
+  });
+});
+
+/*
+ * A custom role's delete says what the workflows that run as it run as
+ * instead (#10031), as the CLI's flags: DeveloperDocsDeleteChoices.test.ts
+ * holds the step to the API page, the CLI's help and every language.
+ */
+describe("a custom role's own CLI page", () => {
+  const ROLE_ID: string = "5a0e0000-0000-4000-8000-0000000000aa";
+  const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+    DeveloperDocsPageType.Cli,
+    context({
+      resource: getDeveloperDocsResource(CustomRole),
+      scope: DeveloperDocsScope.View,
+      record: {
+        id: ROLE_ID,
+        displayName: "Incident Automation",
+        json: { _id: ROLE_ID, name: "Incident Automation" },
+      },
+    }),
+  );
+
+  test("deletes it with a tab for each way, each the CLI's delete with its flags", () => {
+    const deleteStep: DeveloperDocsStep = step(guide, "Delete it");
+    const byLabel: Record<string, string> = Object.fromEntries(
+      (deleteStep.variants || []).map(
+        (variant: SetupGuideStepVariant): [string, string] => {
+          return [variant.label, variant.markdown];
+        },
+      ),
+    );
+
+    expect(Object.keys(byLabel)).toEqual([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    expect(byLabel["No workflow runs as it"]).toContain(
+      `oneuptime custom-role delete ${ROLE_ID}`,
+    );
+    expect(byLabel["No workflow runs as it"]).not.toContain(
+      "--workflows-run-as",
+    );
+    expect(byLabel["Default permissions"]).toContain(
+      `oneuptime custom-role delete ${ROLE_ID} \\\n  --workflows-run-as Default`,
+    );
+    expect(byLabel["Another custom role"]).toContain(
+      "--workflows-run-as CustomRole \\\n  --workflows-run-as-custom-role-id '<custom-role-id>'",
+    );
   });
 });
 

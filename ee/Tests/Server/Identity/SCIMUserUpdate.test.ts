@@ -23,6 +23,10 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Email from "Common/Types/Email";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  EmailAddressChangedBy,
+} from "Common/Types/Accounts/EmailAddressChangedEmail";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
@@ -855,10 +859,47 @@ describe("Project SCIM user PATCH", () => {
       expect(projectUserService.updateOneById).toHaveBeenCalledWith({
         id: USER_ID,
         data: { email: new Email(UPDATED_EMAIL) },
+        /*
+         * The identity provider's change, by role: the address the account
+         * leaves is told so (#9907, UserService.tellPreviousAddressesOfChange).
+         */
+        miscDataProps: {
+          [EMAIL_ADDRESS_CHANGED_BY_KEY]:
+            EmailAddressChangedBy.IdentityProvider,
+        },
         props: { isRoot: true },
       });
       expect(teamMemberService.deleteBy).not.toHaveBeenCalled();
       expectProjectAccountRetained();
+    },
+  );
+
+  /*
+   * An identity provider sends the whole user again on every push, address
+   * and all (#9907): the address the account already has - in any case,
+   * with spaces around it - is no change, so nothing writes it, and the
+   * address is told nothing.
+   */
+  test.each([
+    ["as it is", ORIGINAL_EMAIL],
+    ["in capitals", ORIGINAL_EMAIL.toUpperCase()],
+    ["with spaces around it", `  ${ORIGINAL_EMAIL} `],
+  ])(
+    "writes no address when the identity provider sends the account's own again, %s",
+    async (_label: string, userName: string) => {
+      const result: HttpResult = await send(
+        "PATCH",
+        userPath("project"),
+        patch({ op: "Replace", path: "userName", value: userName }),
+      );
+
+      expect(result.status).toBe(200);
+
+      for (const call of projectUserService.updateOneById.mock.calls) {
+        expect(
+          (call[0] as { data: Record<string, unknown> }).data["email"],
+        ).toBeUndefined();
+      }
     },
   );
 

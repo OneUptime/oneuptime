@@ -41,6 +41,12 @@ metadata:
     # 5.1.10, and how to drop it.
     oneuptime.com/nodes-proxy: {{ . | quote }}
     {{- end }}
+    {{- with .Values.installedAs }}
+    # How the agent was installed (installedAs): on the Amazon EKS add-on the
+    # Compliance page names the add-on's configuration value that drops
+    # nodes/proxy, where a Helm install is told its --set.
+    oneuptime.com/installed-as: {{ . | quote }}
+    {{- end }}
 rules:
   # For k8s_cluster receiver and k8sattributes processor
   - apiGroups: [""]

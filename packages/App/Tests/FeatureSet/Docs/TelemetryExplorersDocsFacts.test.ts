@@ -949,10 +949,36 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     );
     expect(button).toContain("title={COPY_LOG_LINE_LINK}");
     expect(panel).toContain("<CopyLogLineLinkButton link={logLink} />");
-    // Both the row's details and the opened line's draw the panel with it.
-    expect(commonViewer.split("getLogLink={props.getLogLink}")).toHaveLength(3);
+    /*
+     * The row's details, the opened line's and the list's rows (#9944)
+     * are all handed the one link.
+     */
+    expect(commonViewer.split("getLogLink={props.getLogLink}")).toHaveLength(4);
     expect(dashboardViewer).toContain("getLogLink={getLogLink}");
     expect(dashboardViewer).toContain("buildLogLineLink({");
+  });
+
+  /*
+   * Copy Link on a row itself (#9944): beside the row's message, the link
+   * its details copy, without opening it.
+   */
+  it("says a row has Copy Link too, beside its message, to copy a line's link without opening it", () => {
+    const table: string = readCommonSource(
+      "UI/Components/LogsViewer/components/LogsTable.tsx",
+    );
+    const button: string = readCommonSource(
+      "UI/Components/LogsViewer/components/CopyLogLineLinkButton.tsx",
+    );
+
+    expect(page).toContain(
+      "A row of the list has **Copy Link** too, beside its message, so you can copy a line's link without opening it.",
+    );
+    // The same words as the details' button, and drawn in the message's cell.
+    expect(button).toContain("translator.translateText(COPY_LOG_LINE_LINK)");
+    expect(table).toContain("<CopyLogRowLinkButton");
+    expect(table.indexOf('title="Copy log message"')).toBeLessThan(
+      table.indexOf("<CopyLogRowLinkButton"),
+    );
   });
 
   it("opens on the past hour, newest first, 100 logs per page", () => {
@@ -1245,6 +1271,7 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       '"j"',
       '"k"',
       "KeyboardKey.Enter",
+      '"l"',
       "KeyboardKey.Escape",
       '"/"',
       "KeyboardKey.Mod, KeyboardKey.Enter",
@@ -1253,6 +1280,7 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     expect(firstColumn(section(page, "## Keyboard shortcuts"))).toEqual([
       "`j` / `k`",
       "Enter",
+      "`l`",
       "Esc",
       "`/`",
       "⌘ + Enter or Ctrl + Enter",

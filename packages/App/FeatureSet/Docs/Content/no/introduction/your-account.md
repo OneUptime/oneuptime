@@ -41,7 +41,7 @@ Klikk på bildet ditt øverst til høyre, og velg **Profil**. Siden **Oversikt**
 
 Klikk på **Rediger Bruker**, og endre det du trenger:
 
-- **E-post**: adressen du logger inn med. Endrer du den, sender OneUptime en lenke til den nye adressen, og adressen din endres når du åpner den. Frem til da logger du inn med den nåværende, og **Avbryt endring** stopper endringen. En hovedadministrators egen adresse endres med en gang.
+- **E-post**: adressen du logger inn med. Endrer du den, sender OneUptime en lenke til den nye adressen, og adressen din endres når du åpner den. Frem til da logger du inn med den nåværende, og **Avbryt endring** stopper endringen. En hovedadministrators egen adresse endres med en gang. Utløper lenken, sender **Send lenken på nytt** en ny. Hver gang adressen din endres, sender OneUptime en e-post til adressen du hadde.
 - **Fullt navn**: navnet teamet ditt ser overalt i OneUptime.
 - **Tidssone**: tidssonen dashbordet viser og leser tider i, og den som brukes for tidene i varslinger til deg.
 - **Språk**: språket i dashbordet i alle nettlesere du logger inn i, og i vakttilkallingene dine. Ikke valgt: tilkallingene er på engelsk, og dashbordet følger nettleseren din.
@@ -191,7 +191,11 @@ Den adressen har allerede en OneUptime-konto, så registreringen opprettet og en
 :::
 
 :::details E-postadressen min har ikke endret seg
-Adressen din endres først når du åpner lenken OneUptime sendte til den nye adressen. Lenken virker i 24 timer: Har den utløpt, endrer du e-posten din på nytt for å få en ny. Bruker en annen konto allerede den adressen, står det i e-posten som ble sendt dit, og adressen din forblir som den er.
+Adressen din endres først når du åpner lenken OneUptime sendte til den nye adressen. Lenken virker i 24 timer: Har den utløpt, står det på profilen din, og **Send lenken på nytt** sender en ny. Bruker en annen konto allerede den adressen, står det i e-posten som ble sendt dit, og adressen din forblir som den er.
+:::
+
+:::details Jeg fikk en e-post om at e-postadressen min er endret
+OneUptime sender en e-post til adressen kontoen din hadde hver gang adressen endres: når du åpner lenken som ble sendt til en ny adresse, når en serveradministrator endrer den, eller når identitetsleverandøren til organisasjonen din endrer den. Endret du den selv, trenger du ikke gjøre noe. Hvis ikke, har noen som kunne logge inn på kontoen din, flyttet den til en egen adresse: Kontakt serveradministratoren din fra den gamle adressen din, eller support@oneuptime.com på OneUptime Cloud, som kan flytte den tilbake. E-posten viser bare en del av den nye adressen og har ingen lenke for å angre endringen: En slik lenke ville virket for alle som leser den gamle innboksen din.
 :::
 
 :::details Jeg har mistet autentiseringsappen min

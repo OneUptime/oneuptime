@@ -41,7 +41,7 @@ Haz clic en tu foto, arriba a la derecha, y elige **Perfil**. La página **Vista
 
 Haz clic en **Editar Usuario** y cambia lo que necesites:
 
-- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, OneUptime envía un enlace a la nueva dirección, y tu dirección cambia cuando lo abres. Hasta entonces inicias sesión con la actual, y **Cancelar cambio** detiene el cambio. La dirección propia de un administrador principal cambia de inmediato.
+- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, OneUptime envía un enlace a la nueva dirección, y tu dirección cambia cuando lo abres. Hasta entonces inicias sesión con la actual, y **Cancelar cambio** detiene el cambio. La dirección propia de un administrador principal cambia de inmediato. Si el enlace caduca, **Volver a enviar el enlace** envía uno nuevo. Cada vez que cambia tu dirección, OneUptime envía un correo a la dirección que tenías.
 - **Nombre completo**: el nombre que tu equipo ve en todo OneUptime.
 - **Zona horaria**: la zona horaria en la que el panel muestra y lee las horas, y la de las horas de las notificaciones que se te envían.
 - **Idioma**: el idioma del panel en cada navegador en el que inicies sesión, y el de tus avisos de guardia. Sin definir, tus avisos están en inglés y el panel sigue a tu navegador.
@@ -191,7 +191,11 @@ Esa dirección ya tiene una cuenta de OneUptime, así que el registro no creó n
 :::
 
 :::details Mi dirección de correo electrónico no ha cambiado
-Tu dirección cambia solo cuando abres el enlace que OneUptime envió a la nueva dirección. El enlace funciona durante 24 horas: si ha caducado, vuelve a cambiar tu correo para recibir uno nuevo. Si otra cuenta ya usa esa dirección, el correo enviado allí lo dice, y tu dirección se queda como está.
+Tu dirección cambia solo cuando abres el enlace que OneUptime envió a la nueva dirección. El enlace funciona durante 24 horas: cuando caduca, tu perfil lo indica, y **Volver a enviar el enlace** envía uno nuevo. Si otra cuenta ya usa esa dirección, el correo enviado allí lo dice, y tu dirección se queda como está.
+:::
+
+:::details Recibí un correo que dice que se cambió mi dirección de correo electrónico
+OneUptime envía un correo a la dirección que tenía tu cuenta cada vez que esa dirección cambia: cuando abres el enlace enviado a una dirección nueva, cuando un administrador del servidor la cambia o cuando la cambia el proveedor de identidad de tu organización. Si hiciste tú el cambio, no tienes que hacer nada. Si no, alguien que podía iniciar sesión en tu cuenta la cambió a una dirección propia: desde tu dirección anterior, ponte en contacto con el administrador de tu servidor o, en OneUptime Cloud, con support@oneuptime.com, que pueden devolverla. El correo muestra solo una parte de la nueva dirección y no trae ningún enlace para deshacer el cambio: un enlace así funcionaría para cualquiera que lea tu buzón anterior.
 :::
 
 :::details Perdí mi aplicación de autenticación

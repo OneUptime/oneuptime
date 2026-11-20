@@ -1,10 +1,13 @@
 import LayeredPopover, {
+  LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY,
+  LAYERED_POPOVER_AS_WIDE_AS_ANCHOR_CLASS_NAME,
   LAYERED_POPOVER_CLASS_NAME,
   LAYERED_POPOVER_MIN_HEIGHT_PX,
   LAYERED_POPOVER_WINDOW_PADDING_PX,
   LayeredPopoverAlignment,
   LayeredPopoverSide,
   chooseLayeredPopoverSide,
+  getLayeredMenuHeight,
   getLayeredPopoverPlacement,
   isReadRightToLeft,
 } from "../../../UI/Components/Tooltip/LayeredPopover";
@@ -12,7 +15,9 @@ import Modal from "../../../UI/Components/Modal/Modal";
 import Tooltip from "../../../UI/Components/Tooltip/Tooltip";
 import { getTooltipLayer } from "../../../UI/Components/Tooltip/TooltipLayer";
 import { wasPressConsumedByAnAnchoredPopup } from "../../../UI/Types/LayeredDismissal";
-import useComponentOutsideClick from "../../../UI/Types/UseComponentOutsideClick";
+import useComponentOutsideClick, {
+  isInsideComponent,
+} from "../../../UI/Types/UseComponentOutsideClick";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import "@testing-library/jest-dom";
 import {
@@ -580,6 +585,81 @@ describe("LayeredPopover - placed against the window", () => {
     );
   });
 
+  test("a menu with a max-height of its own needs room for that, not for all it holds", async () => {
+    /*
+     * A search's suggestions scroll inside their own 14rem: 224px drawn,
+     * though they hold 900. Measured by all they held, they opened above a
+     * control with 300px under it, and were given a max-height of 300px -
+     * taller than their own.
+     */
+    menuHeight = 900;
+    defineGetter(HTMLElement.prototype, "offsetHeight", function () {
+      if (!isMenu(this)) {
+        return 0;
+      }
+
+      const cut: number = parseFloat(this.style.maxHeight || "");
+      const ownCap: number = 224;
+
+      return Number.isFinite(cut) ? Math.min(cut, ownCap) : ownCap;
+    });
+
+    const shown: Placed = await openAt({ left: 400, top: 300 });
+
+    expect(shown.placement).toBe("bottom-start");
+    expect(shown.menu.style.maxHeight).toBe("");
+    expect(shown.menu.style.overflowY).toBe("");
+  });
+
+  test("a menu cut down to its room is measured again at its own height, not the cut", () => {
+    const menu: HTMLElement = document.createElement("div");
+    let ownHeight: number = 320;
+
+    Object.defineProperty(menu, "offsetHeight", {
+      configurable: true,
+      get: (): number => {
+        const cut: number = parseFloat(menu.style.maxHeight || "");
+
+        return Number.isFinite(cut) ? Math.min(cut, ownHeight) : ownHeight;
+      },
+    });
+
+    expect(getLayeredMenuHeight(menu)).toBe(320);
+
+    // Cut to 180px by the layer: still 320 tall as it draws itself.
+    menu.style.maxHeight = "180px";
+    expect(getLayeredMenuHeight(menu)).toBe(320);
+    // The cut is put back.
+    expect(menu.style.maxHeight).toBe("180px");
+
+    ownHeight = 120;
+    expect(getLayeredMenuHeight(menu)).toBe(120);
+  });
+
+  test("its control's width is on the layer before it is first measured, and follows the control", async () => {
+    const shown: Placed = await openAt({ left: 400, top: 100 });
+    const layer: HTMLElement = layerOf(shown.menu);
+
+    // The control's box: 120px wide (openAt).
+    expect(
+      layer.style.getPropertyValue(LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY),
+    ).toBe("120px");
+
+    placeAt(trigger(), { left: 400, top: 100, width: 260, height: 30 });
+    fireEvent.scroll(window);
+    await placed();
+
+    expect(
+      layer.style.getPropertyValue(LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY),
+    ).toBe("260px");
+  });
+
+  test("a menu as wide as its control says so with the shared class, which reads that width", () => {
+    expect(LAYERED_POPOVER_AS_WIDE_AS_ANCHOR_CLASS_NAME).toBe(
+      `w-[var(${LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY})]`,
+    );
+  });
+
   test("it follows its control as a box around it scrolls", async () => {
     const before: Placed = await openAt(
       { left: 400, top: 100 },
@@ -941,6 +1021,259 @@ describe("LayeredPopover - a press", () => {
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The popup of a field (#9909): a search's suggestions. The field keeps the
+ * focus, its own keys and a press, as it did while the popup was drawn in
+ * place, so the harness's search does what the explorers' does: it shows
+ * the list while it has the focus, its Escape closes it, and a press
+ * outside the search and the list (isInsideComponent) closes it.
+ */
+interface FieldProps {
+  boxStyle?: React.CSSProperties | undefined;
+  onFieldEscape?: (() => void) | undefined;
+}
+
+function SearchWithSuggestions(props: FieldProps): ReactElement {
+  const searchRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    const onPress: (event: MouseEvent) => void = (event: MouseEvent): void => {
+      if (!isInsideComponent(searchRef.current, event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onPress);
+
+    return () => {
+      document.removeEventListener("mousedown", onPress);
+    };
+  }, []);
+
+  return (
+    <div data-testid="drawer" style={props.boxStyle}>
+      <div ref={searchRef} data-testid="search">
+        <input
+          aria-label="Search"
+          onFocus={() => {
+            setIsOpen(true);
+          }}
+          onBlur={() => {
+            setIsOpen(false);
+          }}
+          onKeyDown={(event: React.KeyboardEvent) => {
+            if (event.key === "Escape") {
+              props.onFieldEscape?.();
+              setIsOpen(false);
+            }
+          }}
+        />
+        <button type="button">Clear search</button>
+      </div>
+      {isOpen ? (
+        <LayeredPopover
+          anchorRef={searchRef}
+          isFieldPopup={true}
+          dataTestId="suggestions-layer"
+        >
+          <div
+            data-testid="suggestions"
+            className={LAYERED_POPOVER_AS_WIDE_AS_ANCHOR_CLASS_NAME}
+          >
+            <button
+              type="button"
+              onMouseDown={(event: React.MouseEvent) => {
+                event.preventDefault();
+              }}
+            >
+              service
+            </button>
+            <p>+3 more...</p>
+          </div>
+        </LayeredPopover>
+      ) : null}
+      <button type="button">After the search</button>
+    </div>
+  );
+}
+
+function searchInput(): HTMLElement {
+  return screen.getByRole("textbox", { name: "Search" });
+}
+
+function openSuggestions(props: FieldProps = {}): HTMLElement {
+  render(<SearchWithSuggestions {...props} />);
+  act(() => {
+    searchInput().focus();
+  });
+
+  return screen.getByTestId("suggestions");
+}
+
+describe("LayeredPopover - the popup of a field (isFieldPopup)", () => {
+  test.each([
+    ["a drawer's scrolling body", { overflowY: "auto" }],
+    ["a card that hides what runs past it", { overflow: "hidden" }],
+  ] as Array<[string, React.CSSProperties]>)(
+    "opened in %s, it is drawn on the body, against its field, as a menu is",
+    (_name: string, style: React.CSSProperties) => {
+      const list: HTMLElement = openSuggestions({ boxStyle: style });
+      const layer: HTMLElement = layerOf(list);
+
+      expect(screen.getByTestId("drawer")).not.toContainElement(list);
+      expect(layer.parentElement).toBe(document.body);
+      expect(layer).toHaveAttribute("data-testid", "suggestions-layer");
+      expect(
+        (layer as HTMLElement & { _tippy?: { reference: Element } })._tippy
+          ?.reference,
+      ).toBe(screen.getByTestId("search"));
+      expect(layer).toHaveAttribute("data-popper-placement", "bottom-start");
+    },
+  );
+
+  test("the field keeps the focus: it is never moved into the list", () => {
+    openSuggestions();
+
+    expect(searchInput()).toHaveFocus();
+  });
+
+  test("Tab in the field is the browser's, on to its Clear button - never into the list", () => {
+    openSuggestions();
+
+    // Not prevented: the browser moves on from the field as it did before.
+    expect(pressTab()).toBe(true);
+    expect(screen.getByRole("button", { name: "service" })).not.toHaveFocus();
+  });
+
+  test("Escape is the field's: its own handler closes the list, and the page still hears it", () => {
+    const fieldEscape: MockFunction = getJestMockFunction();
+    const pageEscape: MockFunction = getJestMockFunction();
+    const listener: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.key === "Escape") {
+        pageEscape();
+      }
+    };
+    document.addEventListener("keydown", listener);
+
+    try {
+      openSuggestions({ onFieldEscape: fieldEscape as () => void });
+
+      const isLeftToTheBrowser: boolean = fireEvent.keyDown(searchInput(), {
+        key: "Escape",
+      });
+
+      expect(isLeftToTheBrowser).toBe(true);
+      expect(fieldEscape).toHaveBeenCalledTimes(1);
+      expect(pageEscape).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId("suggestions")).toBeNull();
+      expect(searchInput()).toHaveFocus();
+    } finally {
+      document.removeEventListener("keydown", listener);
+    }
+  });
+
+  test("a press on it keeps the field's focus, and is a press inside the field's owner", () => {
+    openSuggestions();
+
+    const item: HTMLElement = screen.getByRole("button", { name: "service" });
+
+    expect(isInsideComponent(screen.getByTestId("search"), item)).toBe(true);
+    // Spent on the item, which keeps the focus in the field.
+    expect(fireEvent.mouseDown(item)).toBe(false);
+    // A press on its words, not an item, is inside too: the list stays.
+    fireEvent.mouseDown(screen.getByText("+3 more..."));
+
+    expect(screen.getByTestId("suggestions")).toBeInTheDocument();
+    expect(searchInput()).toHaveFocus();
+  });
+
+  test("a press outside is the owner's to answer, and is never spent on the list", () => {
+    render(
+      <div>
+        <p>Elsewhere</p>
+        <SearchWithSuggestions />
+      </div>,
+    );
+    act(() => {
+      searchInput().focus();
+    });
+
+    const press: MouseEvent = new MouseEvent("mousedown", {
+      bubbles: true,
+      cancelable: true,
+    });
+
+    act(() => {
+      screen.getByText("Elsewhere").dispatchEvent(press);
+    });
+
+    // The owner closed it; a dialog's backdrop behind it still hears the press.
+    expect(screen.queryByTestId("suggestions")).toBeNull();
+    expect(wasPressConsumedByAnAnchoredPopup(press)).toBe(false);
+  });
+
+  test("the field losing the focus is its owner's to answer: the layer asks nothing", () => {
+    openSuggestions();
+
+    act(() => {
+      screen.getByRole("button", { name: "After the search" }).focus();
+    });
+
+    expect(screen.queryByTestId("suggestions")).toBeNull();
+  });
+
+  test("inside a dialog, Escape in the field closes the list and leaves the dialog to its own Escape", () => {
+    const onDialogClose: MockFunction = getJestMockFunction();
+
+    render(
+      <Modal title="Investigate" onClose={onDialogClose as () => void}>
+        <SearchWithSuggestions />
+      </Modal>,
+    );
+    act(() => {
+      searchInput().focus();
+    });
+
+    fireEvent.keyDown(searchInput(), { key: "Escape" });
+
+    expect(screen.queryByTestId("suggestions")).toBeNull();
+  });
+
+  test("it is as wide as its field: the field's width is on the layer", () => {
+    render(<SearchWithSuggestions />);
+    screen.getByTestId("search").getBoundingClientRect = (): DOMRect => {
+      return {
+        x: 10,
+        y: 10,
+        left: 10,
+        top: 10,
+        width: 480,
+        height: 36,
+        right: 490,
+        bottom: 46,
+        toJSON: (): string => {
+          return "";
+        },
+      } as DOMRect;
+    };
+    act(() => {
+      searchInput().focus();
+    });
+
+    const list: HTMLElement = screen.getByTestId("suggestions");
+
+    expect(
+      layerOf(list).style.getPropertyValue(
+        LAYERED_POPOVER_ANCHOR_WIDTH_PROPERTY,
+      ),
+    ).toBe("480px");
+    expect(list).toHaveClass(LAYERED_POPOVER_AS_WIDE_AS_ANCHOR_CLASS_NAME);
   });
 });
 
