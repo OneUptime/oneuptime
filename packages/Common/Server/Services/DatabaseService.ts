@@ -105,6 +105,7 @@ import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLeng
 import Columns from "../../Types/Database/Columns";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import DatabaseProperty from "../../Types/Database/DatabaseProperty";
 import {
   TableColumnMetadata,
   getTableColumns,
@@ -8910,9 +8911,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   /*
    * The @UniqueColumnBy columns an update writes a value to, with the
    * columns each is unique within and the value as the check compares it:
-   * text that is not blank, or a number. No value - none sent, null, blank
-   * text - is the column's own checks' to answer, and so is a value of any
-   * other type. A column the service checks itself is left out.
+   * text that is not blank - a value kept as text, such as a domain, read
+   * as its text - or a number. No value - none sent, null, blank text - is
+   * the column's own checks' to answer, and so is a value of any other
+   * type. A column the service checks itself is left out.
    */
   private getUniqueColumnWrites(
     data: Record<string, unknown>,
@@ -8933,26 +8935,43 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
-      const value: unknown = data?.[column];
+      const value: string | number | null = DatabaseService.toUniqueValue(
+        data?.[column],
+      );
 
-      const isText: boolean =
-        typeof value === Typeof.String && (value as string).trim().length > 0;
-
-      const isNumber: boolean =
-        typeof value === Typeof.Number && Number.isFinite(value as number);
-
-      if (!isText && !isNumber) {
+      if (value === null) {
         continue;
       }
 
       writes.push({
         column: column,
         scope: Array.isArray(scope) ? scope : [scope],
-        value: value as string | number,
+        value: value,
       });
     }
 
     return writes;
+  }
+
+  /*
+   * A value of a unique column as the check compares it: text that is not
+   * blank, a value kept as text (a Domain) as its text, a number. Null for
+   * anything else: no value, and an ID, which no column a person may change
+   * is held unique by.
+   */
+  private static toUniqueValue(value: unknown): string | number | null {
+    if (typeof value === Typeof.Number) {
+      return Number.isFinite(value as number) ? (value as number) : null;
+    }
+
+    const text: string | null =
+      typeof value === Typeof.String
+        ? (value as string)
+        : value instanceof DatabaseProperty && !(value instanceof ObjectID)
+          ? value.toString()
+          : null;
+
+    return text !== null && text.trim().length > 0 ? text : null;
   }
 
   // One column of an update, held to its value among the rows it writes.
@@ -9116,9 +9135,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
+    const storedText: string | number | null =
+      DatabaseService.toUniqueValue(stored);
+
     return (
-      typeof stored === Typeof.String &&
-      (stored as string).trim().toLowerCase() ===
+      typeof storedText === Typeof.String &&
+      (storedText as string).trim().toLowerCase() ===
         (written as string).trim().toLowerCase()
     );
   }
