@@ -4,6 +4,10 @@ import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import {
+  CloudConnectionDefinition,
+  getCloudConnectionReadIntervalInMinutes,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
+import {
   CloudConnectionCostEstimate,
   estimateCloudConnectionCost,
 } from "Common/Types/CloudConnection/CloudConnectionCost";
@@ -571,5 +575,40 @@ export function getCloudCostWords(data: {
       minutes: numberIn(data.readIntervalInMinutes),
       cost: numberIn(Math.round(estimate.monthlyCostUsd * 100) / 100, 2),
     },
+  };
+}
+
+/*
+ * What raising a connection's read interval does to the monitors already
+ * made from its resources' Recommendations (#10028): each keeps the window
+ * it was made with, sized for the interval it was made at
+ * (CloudAlertTemplates.getCloudAlertWindow), and one made again reads a
+ * window sized for the new one. Nothing when the interval is not raised:
+ * a monitor's window that is longer than a faster read needs still judges
+ * every reading.
+ */
+export function getCloudReadIntervalRaisedWords(data: {
+  definition: CloudConnectionDefinition;
+  savedValue: unknown;
+  chosenValue: unknown;
+}): CloudTemplate | undefined {
+  const saved: number = getCloudConnectionReadIntervalInMinutes(
+    data.definition,
+    data.savedValue,
+  );
+  const chosen: number = getCloudConnectionReadIntervalInMinutes(
+    data.definition,
+    data.chosenValue,
+  );
+
+  if (chosen <= saved) {
+    return undefined;
+  }
+
+  return {
+    template: translationKey(
+      "Monitors already created from Recommendations keep the window they were made with. To size one for reads every {{minutes}} minutes, delete it and create it again from Recommendations.",
+    ),
+    values: { minutes: numberIn(chosen) },
   };
 }

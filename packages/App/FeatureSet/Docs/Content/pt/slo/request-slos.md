@@ -90,7 +90,7 @@ Quando seus serviços já contam as requisições deles como métricas, ou não 
 | **Bom até** | Para um histograma: o valor que uma observação boa não ultrapassa, na unidade da própria métrica, por exemplo `0.3` para 300 ms de um histograma em segundos. Use um dos limites dos buckets dele. |
 | **Filtro de métrica** | Opcional: as séries que contam, por exemplo `-@http.route:/health`. |
 
-Os eventos de um contador são quanto ele cresceu em cada etapa de 5 minutos, como o `increase()` do Prometheus o lê: um contador que reinicia volta a contar do zero, e tanto os contadores cumulativos quanto os delta contam. Os eventos de um histograma são as observações dele, e os bons são os que estão nos buckets até esse valor. Só contam os pontos da própria métrica, vindos dos serviços do SLO: um gauge com o mesmo nome não conta nada.
+Os eventos de um contador são quanto ele cresceu em cada etapa de 5 minutos, como o `increase()` do Prometheus o lê: um contador que reinicia volta a contar do zero, e tanto os contadores cumulativos quanto os delta contam. Os eventos de um histograma são as observações dele, e os bons são os que estão nos buckets até esse valor. Só contam os pontos da própria métrica, vindos dos serviços do SLO: um gauge com o mesmo nome não conta nada. Um SLO sobre um gauge, como é toda métrica de nuvem, diz isso na página dele, e o seletor de métricas também: meça uma métrica de nuvem com um monitor de métricas e um SLO da disponibilidade desse monitor.
 
 A partir daí, um SLO de métrica funciona como um SLO de requisições, com o orçamento de erros, as regras de taxa de consumo e as verificações de lançamento em eventos. Mudar a métrica faz os eventos dela serem contados de novo desde o início.
 

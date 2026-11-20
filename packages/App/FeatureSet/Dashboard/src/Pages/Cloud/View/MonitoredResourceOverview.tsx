@@ -189,6 +189,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
             name: true,
             // What it reads for this resource besides its key metrics.
             addedMetrics: true,
+            // How often: a seldom metric is missing only past its delay.
+            provider: true,
+            config: true,
           },
           labels: {
             name: true,
@@ -259,6 +262,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     cloudResource?.cloudProvider,
     cloudResource?.cloudResourceType,
     cloudResource?.telemetryAttributes,
+    cloudResource?.cloudConnection?.config,
   ]);
 
   const renderRowGroupGap: (gap: MetricRowGroupGap) => ReactElement =

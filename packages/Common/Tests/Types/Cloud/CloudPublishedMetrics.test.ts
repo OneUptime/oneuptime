@@ -147,6 +147,53 @@ describe("reading the server's listing", () => {
       canEdit: false,
     });
   });
+
+  test("a split its reads found PromQL cannot rank, with what its list returns of a resource; nothing else is read so (#10164)", () => {
+    const listing: CloudPublishedMetricsListing | null =
+      readCloudPublishedMetricsListing({
+        provider: "gcp",
+        resourceType: "gce_instance",
+        metrics: [
+          {
+            name: "agent.googleapis.com/processes/cpu_time",
+            unit: "us/s",
+            aggregation: "ALIGN_RATE",
+            status: "added",
+            addedSplitBy: "command",
+            splits: [
+              {
+                name: "command",
+                isLearnedFromEveryValue: true,
+                learnedValuesPerResource: 41.2,
+              },
+              { name: "pid", isLearnedFromEveryValue: "yes" },
+              // A count of values without the mark is no learning's.
+              { name: "owner", learnedValuesPerResource: 7 },
+              {
+                name: "user_or_syst",
+                isLearnedFromEveryValue: true,
+                learnedValuesPerResource: -2,
+              },
+            ],
+          },
+        ],
+        resourcesOfType: 12,
+        readIntervalInMinutes: 5,
+        addedForResource: 1,
+        canEdit: true,
+      });
+
+    expect(listing?.metrics[0]?.splits).toEqual([
+      {
+        name: "command",
+        isLearnedFromEveryValue: true,
+        learnedValuesPerResource: 42,
+      },
+      { name: "pid" },
+      { name: "owner" },
+      { name: "user_or_syst", isLearnedFromEveryValue: true },
+    ]);
+  });
 });
 
 describe("the order the page lists them in", () => {
@@ -390,6 +437,67 @@ describe("what a metric split by a dimension costs a month", () => {
         readIntervalInMinutes: 5,
       }).isAtMost,
     ).toBeUndefined();
+  });
+
+  /*
+   * #10164: a metric PromQL cannot rank is learned from a list of the hour
+   * that returns every value of each resource: its learning costs every
+   * value, not the cap's, while its reads are still for the busiest alone.
+   */
+  test("Google Cloud: a split PromQL cannot rank costs every value of each resource at its hourly learning", () => {
+    const learns: number = getGcpSplitLearnsPerMonth();
+    const ranked: number = estimateCloudAddedMetricCost({
+      provider: CloudProvider.GCP,
+      resources: 3,
+      readIntervalInMinutes: 5,
+      isSplit: true,
+      seriesPerResource: 10,
+    }).monthlyUnits;
+    const unranked: ReturnType<typeof estimateCloudAddedMetricCost> =
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 3,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 10,
+        gcpLearnedValuesPerResource: 42,
+      });
+
+    expect(ranked).toBe(3 * 10 * (reads + learns));
+    expect(unranked.monthlyUnits).toBe(3 * (10 * reads + 42 * learns));
+    expect(unranked.monthlyUnits - ranked).toBe(3 * (42 - 10) * learns);
+    expect(unranked.isAtMost).toBe(true);
+    // Its reads keep the cap, however many values it has.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 60,
+        isSplit: true,
+        seriesPerResource: 300,
+        gcpLearnedValuesPerResource: 300,
+      }).monthlyUnits,
+    ).toBe(10 * getReadsPerMonth(60) + 300 * learns);
+    // A fraction of a value is a series: rounded up, one at least.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 1,
+        gcpLearnedValuesPerResource: 0.2,
+      }).monthlyUnits,
+    ).toBe(reads + learns);
+    // Not split, nothing is learned.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        gcpLearnedValuesPerResource: 42,
+      }).monthlyUnits,
+    ).toBe(reads);
   });
 
   test("Azure: a call of its own each read, however few metrics the key metrics' call has", () => {
