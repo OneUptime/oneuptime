@@ -280,7 +280,9 @@ describe("charts that already looked right keep their ticks", () => {
     ["a count from 0 to 80", count, [0, 30, 80], [0, "auto"]],
     ["a count from 0 to 19", count, [0, 7, 19], [0, "auto"]],
     ["bytes from 0 to 20 GB", bytes, [0, 7.2e9, 19.6e9], [0, "auto"]],
-  ])(
+  ] as Array<
+    [string, ValueAxisFormatter, Array<number>, Array<number | "auto">]
+  >)(
     "%s: recharts' own ticks",
     (
       _name: string,
@@ -637,7 +639,11 @@ describe("a formatter that writes its own figures", () => {
     };
     // Recharts' own ticks read "0", "0", "1", "1", "1".
     expect(
-      getNiceTickValues([0, 1.4], 5, true, "adaptive").map(wholeNumbers),
+      getNiceTickValues([0, 1.4], 5, true, "adaptive").map(
+        (tick: number): string => {
+          return wholeNumbers(tick);
+        },
+      ),
     ).toEqual(["0", "0", "1", "1", "1"]);
 
     const axis: ValueAxisTicks = getValueAxisTicks({

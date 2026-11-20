@@ -207,7 +207,9 @@ describe("the axes a duration metric draws, from milliseconds to weeks", () => {
       [0, "auto"],
       ["0 h", "1 h", "2 h", "3 h", "4 h"],
     ],
-  ])(
+  ] as Array<
+    [string, string, Array<number>, Array<number | "auto">, Array<string>]
+  >)(
     "%s",
     (
       _name: string,
