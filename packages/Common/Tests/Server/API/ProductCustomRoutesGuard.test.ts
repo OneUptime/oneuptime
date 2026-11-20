@@ -687,6 +687,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // The blocklist (#10338): checking a block, and where blocks are enforced.
+  "packages/Common/Server/API/SecurityBlockAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
+  // The addresses and entities a block may never cover (#10338).
+  "packages/Common/Server/API/SecurityProtectedEntityAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
