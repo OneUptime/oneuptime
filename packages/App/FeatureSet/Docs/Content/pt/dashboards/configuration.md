@@ -60,6 +60,7 @@ Quem pode ver um painel fora do projeto é uma única escolha na página **Compa
 1. **Apenas pessoas deste projeto** (o padrão): o painel não tem link público; o endereço público dele mostra uma página de não encontrado.
 2. **Qualquer pessoa com o link**: quem tiver o link público pode vê-lo, sem entrar.
 3. **Qualquer pessoa com o link e uma senha**: os visitantes digitam uma senha antes de o painel aparecer.
+4. **Apenas quem entra**: só o veem, depois de entrar, os usuários privados que você convida e as pessoas que o seu login único deixa entrar.
 
 Em **Mais configurações** na mesma página, a **Lista de IPs permitidos** (plano Scale) recusa as requisições ao link público de qualquer endereço IP que não esteja nela. A configuração pública mais fechada é **Qualquer pessoa com o link e uma senha** com uma lista de IPs permitidos, útil para portais de parceiros em que você quer as duas camadas.
 

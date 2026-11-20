@@ -11,6 +11,7 @@ import {
   TerraformResource,
   TERRAFORM_SERVER_OWNED_KINDS,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 
 /*
  * WHAT PEOPLE AND ONEUPTIME BOTH CHANGE (#10052).
@@ -20,7 +21,7 @@ import {
  * monitor, whether it is private, which a privacy rule decides. The
  * generator keeps each an ordinary optional attribute that a create and an
  * update send, says so in its description, and names it to the resource's
- * ModifyPlan (planShared, StaticFiles/shared.go): left out of a
+ * ModifyPlan (PlanShared, StaticFiles/shared.go): left out of a
  * configuration, the plan keeps OneUptime's value even where the attribute
  * has a default, and under Crossplane a manifest's value is sent when it
  * changes, and a list keeps the entries OneUptime added. The provider made
@@ -225,7 +226,7 @@ beforeAll(async () => {
     dir: string,
     file: string,
   ): string => {
-    return fs.readFileSync(path.join(dir, "internal/provider", file), "utf-8");
+    return fs.readFileSync(path.join(dir, providerGoFilePath(file)), "utf-8");
   };
   resourceGo = read(outputDir, "resource_incident.go");
   plainResourceGo = read(plainDir, "resource_incident.go");
@@ -291,7 +292,7 @@ describe("the spec's shared kind", () => {
 });
 
 describe("the resource's ModifyPlan", () => {
-  test("names each shared attribute to planShared, a list as one held entry by entry", () => {
+  test("names each shared attribute to PlanShared, a list as one held entry by entry", () => {
     const shared: Array<SharedAttribute> =
       ResourceGenerator.getSharedAttributes(parse());
 
@@ -301,19 +302,19 @@ describe("the resource's ModifyPlan", () => {
       { name: "postmortem_note", entries: false },
     ]);
     expect(resourceGo).toContain(
-      "planShared(ctx, req, resp, r.client, []sharedAttribute{",
+      "PlanShared(ctx, req, resp, r.client, []SharedAttribute{",
     );
-    expect(resourceGo).toContain('{name: "labels", entries: true},');
-    expect(resourceGo).toContain('{name: "is_private", entries: false},');
+    expect(resourceGo).toContain('{Name: "labels", Entries: true},');
+    expect(resourceGo).toContain('{Name: "is_private", Entries: false},');
   });
 
   test("plans them after what a manifest leaves out under Crossplane, before the state is kept when nothing changes", () => {
     const keepLeftOut: number = resourceGo.indexOf(
-      "keepLeftOutUnderCrossplane(ctx, req, resp)",
+      "KeepLeftOutUnderCrossplane(ctx, req, resp)",
     );
-    const planShared: number = resourceGo.indexOf("planShared(ctx, req, resp");
+    const planShared: number = resourceGo.indexOf("PlanShared(ctx, req, resp");
     const keepState: number = resourceGo.indexOf(
-      "keepStateWhenNothingChanges(ctx, req, resp)",
+      "KeepStateWhenNothingChanges(ctx, req, resp)",
     );
 
     expect(keepLeftOut).toBeGreaterThan(-1);
@@ -322,7 +323,7 @@ describe("the resource's ModifyPlan", () => {
   });
 
   test("of a resource with none is as before", () => {
-    expect(plainResourceGo).not.toContain("planShared(");
+    expect(plainResourceGo).not.toContain("PlanShared(");
     expect(ResourceGenerator.generatePlanSharedCall(parse({}))).toBe("");
   });
 });
@@ -341,7 +342,7 @@ describe("the provider a Crossplane reconcile makes", () => {
     for (const file of ["shared.go", "shared_test.go", "shared_plan_test.go"]) {
       expect([
         file,
-        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+        fs.existsSync(path.join(outputDir, providerGoFilePath(file))),
       ]).toEqual([file, true]);
     }
   });

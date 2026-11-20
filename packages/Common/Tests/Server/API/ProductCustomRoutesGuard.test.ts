@@ -379,8 +379,13 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataObservability],
     leftAlone: {},
   },
+  /*
+   * And Code, for Fix with AI on an issue: it starts a task in Code, refused
+   * while Code is off as every route that asks OneUptime AI for a code
+   * change is (#10362).
+   */
   "packages/Common/Server/API/DataSecurityAPI.ts": {
-    products: [ProductKey.DataSecurity],
+    products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
   "packages/Common/Server/API/CloudConnectionAPI.ts": {
@@ -888,6 +893,30 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.StatusPages],
     leftAlone: {
       '"/status-page-idp-login/:statusPageId/:statusPageSsoId"': PUBLIC_PAGE,
+    },
+  },
+  // A dashboard's sign-in page on its public link (#10250), as a status page's.
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    {
+      products: [ProductKey.Dashboards],
+      leftAlone: {
+        "`${DashboardPrivateUserApiRoutes.login}/:dashboardId`": PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.logout}/:dashboardId`": PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.refreshToken}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.forgotPassword}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.resetPassword}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.exchangeLoginCode}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.signInMethods}/:dashboardId`": READ,
+      },
+    },
+  "packages/App/FeatureSet/Identity/API/DashboardSSO.ts": {
+    products: [ProductKey.Dashboards],
+    leftAlone: {
+      '"/dashboard-idp-login/:dashboardId/:dashboardSsoId"': PUBLIC_PAGE,
     },
   },
   "packages/Common/Server/API/WorkflowVariableAPI.ts": {

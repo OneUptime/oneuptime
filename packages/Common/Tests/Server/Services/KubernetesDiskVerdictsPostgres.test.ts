@@ -1,6 +1,7 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import KubernetesResourceService, {
+  KubernetesImageFsReading,
   KubernetesNeedsAttention,
   ParsedKubernetesResource,
   ResourceLatestNodeFilesystem,
@@ -480,7 +481,8 @@ describePostgres(
 
     test("a node's snapshot keeps its disk verdict and its own pressure's", async () => {
       await seed([inventoryRow("Node", "node-1")]);
-      await writeNodes([nodeReading(85, 1)]);
+      // 82% of the disk that holds its images: nearly full (#10057).
+      await writeNodes([nodeReading(82, 1)]);
 
       await seed([
         inventoryRow("Node", "node-1", {
@@ -491,6 +493,49 @@ describePostgres(
       ]);
 
       expect((await stored("Node", "node-1")).healthSeverity).toBe("warning");
+    });
+
+    /*
+     * A node that keeps its images on its root disk, as most do, is almost
+     * full there from 85%, where the kubelet starts evicting pods (#10057),
+     * and its next snapshot keeps that over its own pressure's warning.
+     */
+    test("a disk that holds the node's images is almost full from 85%, and its next snapshot keeps that", async () => {
+      await seed([inventoryRow("Node", "node-1")]);
+
+      await writeNodes([nodeReading(84, 1, { imageFs: { state: "same" } })]);
+      expect((await stored("Node", "node-1")).healthSeverity).toBe("warning");
+
+      await writeNodes([nodeReading(85, 2, { imageFs: { state: "same" } })]);
+      expect((await stored("Node", "node-1")).healthSeverity).toBe("critical");
+
+      await seed([
+        inventoryRow("Node", "node-1", {
+          lastSeenAt: minutesAfter(3),
+          hasDiskPressure: true,
+          healthSeverity: null,
+        }),
+      ]);
+      expect((await stored("Node", "node-1")).healthSeverity).toBe("critical");
+    });
+
+    test("a root disk whose images have a disk of their own is almost full only at 90%", async () => {
+      await seed([inventoryRow("Node", "node-1")]);
+      const imageFs: KubernetesImageFsReading = {
+        state: "separate",
+        capacityBytes: 500 * GIB,
+        availableBytes: 400 * GIB,
+      };
+
+      await writeNodes([nodeReading(85, 1, { imageFs })]);
+      expect((await stored("Node", "node-1")).healthSeverity).toBe("warning");
+
+      // A batch that cannot tell keeps the image disk, and so the 90% line.
+      await writeNodes([nodeReading(89, 2)]);
+      expect((await stored("Node", "node-1")).healthSeverity).toBe("warning");
+
+      await writeNodes([nodeReading(90, 3, { imageFs })]);
+      expect((await stored("Node", "node-1")).healthSeverity).toBe("critical");
     });
 
     test("the claims pods own: what ingest names an ephemeral volume's claim by", async () => {

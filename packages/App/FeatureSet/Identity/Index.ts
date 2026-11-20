@@ -7,7 +7,9 @@ import SignInMethodsAPI from "./API/SignInMethods";
 import SsoSignInLinksAPI from "./API/SsoSignInLinks";
 import MobileSsoExchangeAPI from "./API/MobileSsoExchange";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
+import DashboardPrivateUserAuthenticationAPI from "./API/DashboardPrivateUserAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
+import { DASHBOARD_PRIVATE_USER_API_ROUTE } from "Common/Types/Dashboard/DashboardPrivateUserSignIn";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
@@ -85,6 +87,18 @@ const IdentityFeatureSet: FeatureSet = {
     app.use(
       [`/${APP_NAME}/status-page`, "/status-page"],
       StatusPageAuthenticationAPI,
+    );
+
+    /*
+     * A dashboard's public link signs its private users in on the host it
+     * is served from (#10250): every host passes /public-dashboard-api to
+     * the app as /api/dashboard (Nginx/default.conf.template), so the
+     * router answers under it, beside the link's other routes - and only
+     * there: no route of it is mounted at the root.
+     */
+    app.use(
+      `/api/dashboard${DASHBOARD_PRIVATE_USER_API_ROUTE}`,
+      DashboardPrivateUserAuthenticationAPI,
     );
   },
 };

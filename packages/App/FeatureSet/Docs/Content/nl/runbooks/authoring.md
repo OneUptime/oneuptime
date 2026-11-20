@@ -64,7 +64,7 @@ Elke stap heeft deze velden. Een geautomatiseerde stap toont zijn **Titel** en d
 | [kubectl](#kubectl) | Een Runner | Een Runner, en een kubeconfig-variabele of de eigen toegang van de Runner |
 | [AI](#ai) | De OneUptime Worker | Een LLM-provider |
 
-In elke geautomatiseerde stap hieronder bevat **Meer velden** van de stap eerst zijn **Runner**, voor een stap die op een Runner loopt, dan **Goedkeuring vereisen** en **Doorgaan bij fout**, dan de eigen instellingen van de stap - de headers van een HTTP-aanroep, de poort, de wachtwoordzin van de sleutel en de hostsleutel van een SSH-stap, de provider en de contextschakelaars van een AI-stap - en als laatste de **Beschrijving** en de time-outs. Ingeklapt noemt het de Runner van de stap, zodat u ziet waar een stap loopt zonder hem te openen.
+In elke geautomatiseerde stap hieronder bevat **Meer velden** van de stap eerst zijn **Runner**, voor een stap die op een Runner loopt, dan **Goedkeuring vereisen** en **Doorgaan bij fout**, dan de eigen instellingen van de stap - de headers en certificaatinstellingen van een HTTP-aanroep, de poort, de wachtwoordzin van de sleutel en de hostsleutel van een SSH-stap, de provider en de contextschakelaars van een AI-stap - en als laatste de **Beschrijving** en de time-outs. Ingeklapt noemt het de Runner van de stap, zodat u ziet waar een stap loopt zonder hem te openen.
 
 ### Manual
 
@@ -101,6 +101,8 @@ Een uitgaande HTTP-aanroep, gedaan door de OneUptime Worker. Er is geen Runner n
 | **Methode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` of `HEAD`. | `GET` |
 | **URL** | Het endpoint dat wordt aangeroepen. | Leeg |
 | **Headers (JSON)** | Onder **Meer velden**. Een JSON-object, zoals `{ "Authorization": "Bearer ..." }`. Headers die geen geldige JSON zijn, laten de stap mislukken. | Geen |
+| **Zelfondertekende certificaten toestaan** | Onder **Meer velden**. Staat deze aan, dan neemt de stap elk certificaat dat de server toont, zodat een zelfondertekend certificaat werkt, maar controleert hij noch de hostnaam noch de geldigheidsdatums, en kan iedereen op het netwerkpad het verzoek, geheimen inbegrepen, lezen en het antwoord wijzigen. | Uit |
+| **CA-certificaat** | Onder **Meer velden**, zolang **Zelfondertekende certificaten toestaan** uit staat. Het certificaat, in PEM, van de CA die het certificaat van de server heeft ondertekend, of dat van de server zelf als het zelfondertekend is. De stap vertrouwt dan alleen dat certificaat, en controleert nog steeds de hostnaam en de geldigheidsdatums. | Geen |
 | **Body** | Getoond voor `POST`, `PUT`, `PATCH` en `DELETE`. Verzonden als JSON wanneer het als JSON te lezen is, anders als tekst. | Geen |
 | **Time-out van verzoek** | Hoe lang op het antwoord van het endpoint wordt gewacht voordat de stap mislukt. | 30 seconden |
 
@@ -113,6 +115,21 @@ Handig voor: een PagerDuty-incident openen, naar een Slack-webhook posten, de op
 
 > [!TIP]
 > Houd tokens uit de stap. Sla ze op als geheime [runbookvariabelen](/docs/runbooks/variables) en schrijf `{{global.variables.NAME}}` waar de waarde moet komen, in de URL, de headers of de body. OneUptime verstuurt het verzoek zelf, dus het vult ook geheimen in, en het antwoord dat de stap vastlegt toont `[REDACTED]` op hun plek. In JSON-headers of een JSON-body komt een waarde binnen zijn string, zodat een aanhalingsteken of regeleinde erin de JSON niet breekt.
+
+Een server waarvan het certificaat door hemzelf of door uw eigen CA is ondertekend, wordt geweigerd totdat de stap hem vertrouwt, en er wordt niets verzonden. De fout van de stap zegt wat u moet wijzigen: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Plak het certificaat dat het heeft ondertekend in **CA-certificaat**: dat van de CA, of dat van de server zelf als het zelfondertekend is. De stap controleert het certificaat van de server dan daartegen, hostnaam en geldigheidsdatums inbegrepen, zodat een server die zich alleen voordoet als de uwe nog steeds wordt geweigerd. Zet **Zelfondertekende certificaten toestaan** alleen aan als u er geen kunt plakken. Beide gelden alleen voor het verzoek van deze stap, nooit voor een andere stap, een ander verzoek van OneUptime of de verbinding met een uitgaande proxy.
+
+> [!TIP]
+> Om in plaats daarvan uw eigen CA voor alle verzoeken tegelijk te vertrouwen, monitoren inbegrepen, stelt een zelf gehoste installatie `NODE_EXTRA_CA_CERTS` in op haar containers.
+
+Via de API en Terraform is de schakelaar `allowSelfSignedCertificates` in de configuratie van de stap, `true` of `false`, en het CA-certificaat haar `caCertificate`, de PEM als tekst. Opslaan wordt geweigerd als `caCertificate` geen certificaat is of een privésleutel bevat.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 
