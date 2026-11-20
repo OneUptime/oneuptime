@@ -373,6 +373,17 @@ See `SecurityPage/README.md`. Screenshots of each are written to
   the page shows through instead. `readDrawnPopup(popup)` reads the same in one
   frame, with the side Popper put it on; `contrastOf` and `luminanceOf` read a
   dark popup's colours.
+- `Axe.ts`: `axeViolations(page, { include, exclude, rules })` runs axe's
+  rules (`@axe-core/playwright`, a devDependency of this package) on the
+  part of a page the selectors in `include` find, and returns each rule
+  broken with the elements it is broken on. `expectNoAxeViolations` fails
+  naming them. Left out, `rules` is `SHARED_UI_AXE_RULES`: the bugs the
+  shared UI's accessibility fixes were for (`aria-required-children`,
+  `landmark-unique`, `nested-interactive`, `aria-roles`,
+  `aria-allowed-role`, `button-name`, `link-name`, #10297). The shared UI
+  and navigation search suites run them light and dark, at 1280 and 390,
+  with menus and dialogs open; `npm run test-suite-helpers-ui` holds the
+  helper to finding each rule on a page that breaks it.
 - `Edition.ts`: `readFixtureEdition(request)` asks a fixture which edition it
   bundled (`/edition.json`), and `skipUnlessEnterprise(edition, reason)` skips
   an Enterprise spec where `ee/` is not checked out - or fails it where

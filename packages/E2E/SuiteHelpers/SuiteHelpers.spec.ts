@@ -37,6 +37,12 @@ import {
   QUIET_DASH,
 } from "./QuietDash";
 import { expectNoSidewaysScroll, sidewaysScrollOf } from "./PageFit";
+import {
+  AxeViolation,
+  axeViolations,
+  expectNoAxeViolations,
+  SHARED_UI_AXE_RULES,
+} from "./Axe";
 
 /*
  * The helpers every focused suite shares, on pages written here: no fixture
@@ -1678,5 +1684,125 @@ test.describe("drawnTextOf, heardTextOf and expectQuietDash", () => {
     expect(await failureOfQuietDash(page.locator("#worded"))).toContain(
       "is heard as",
     );
+  });
+});
+
+/*
+ * axeViolations runs axe's rules on the part of a page it is given (#10297).
+ * Each rule the shared UI is held to is planted once, beside a part that
+ * breaks none, so a helper that ran no rule, ran them on the wrong part or
+ * lost what they found would pass every suite that leans on it.
+ */
+function brokenByEveryRule(): string {
+  return `<!doctype html>
+<html lang="en"><head><title>axe</title></head><body>
+<main>
+  <section id="broken">
+    <ul role="menu"><li>No menu item in this menu</li></ul>
+    <nav aria-label="Pages"><a href="#one">One</a></nav>
+    <nav aria-label="Pages"><a href="#two">Two</a></nav>
+    <button type="button">Open <a href="#inside">a link inside a button</a></button>
+    <div role="made-up">A role ARIA does not have</div>
+    <button type="button" role="heading" aria-level="2">A button as a heading</button>
+    <button type="button"></button>
+    <a href="#nameless"></a>
+  </section>
+  <section id="sound">
+    <ul role="menu" aria-label="Actions"><li role="menuitem" tabindex="-1">Rename</li></ul>
+    <nav aria-label="Trail"><a href="#home">Home</a></nav>
+    <button type="button">Save</button>
+    <a href="#docs">Documentation</a>
+  </section>
+</main>
+</body></html>`;
+}
+
+test.describe("axeViolations", () => {
+  test("finds each rule the shared UI is held to, broken where it was planted", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(brokenByEveryRule());
+
+    const violations: Array<AxeViolation> = await axeViolations(page, {
+      include: ["#broken"],
+    });
+    const rules: Array<string> = violations
+      .map((violation: AxeViolation): string => {
+        return violation.rule;
+      })
+      .sort();
+
+    expect(rules).toEqual([...SHARED_UI_AXE_RULES].sort());
+    // Each says where, as a selector that finds the planted element.
+    for (const violation of violations) {
+      expect(violation.help).not.toBe("");
+      expect(violation.targets.length).toBeGreaterThan(0);
+      for (const target of violation.targets) {
+        expect(
+          await page.evaluate((selector: string): boolean => {
+            return Boolean(
+              document.querySelector(selector)?.closest("#broken"),
+            );
+          }, target),
+          `${violation.rule} at ${target}`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  test("reads only the part it is given: the sound part breaks no rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(brokenByEveryRule());
+
+    expect(await axeViolations(page, { include: ["#sound"] })).toEqual([]);
+    await expectNoAxeViolations(page, { include: ["#sound"] });
+    // Left out of a part it is given, a broken one is not read either.
+    expect(
+      await axeViolations(page, { include: ["main"], exclude: ["#broken"] }),
+    ).toEqual([]);
+  });
+
+  test("runs only the rules it is asked for", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(brokenByEveryRule());
+
+    const violations: Array<AxeViolation> = await axeViolations(page, {
+      include: ["#broken"],
+      rules: ["button-name"],
+    });
+
+    expect(
+      violations.map((violation: AxeViolation): string => {
+        return violation.rule;
+      }),
+    ).toEqual(["button-name"]);
+  });
+
+  test("expectNoAxeViolations fails naming the rule and the element", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(brokenByEveryRule());
+
+    const failure: string = await failureOf(
+      expectNoAxeViolations(page, {
+        include: ["#broken"],
+        rules: ["link-name"],
+        message: "the planted page",
+      }),
+    );
+
+    expect(failure).toContain("the planted page");
+    expect(failure).toContain("link-name");
+    expect(failure).toContain("#nameless");
   });
 });
