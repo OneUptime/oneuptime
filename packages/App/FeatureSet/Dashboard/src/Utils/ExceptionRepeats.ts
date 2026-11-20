@@ -1,6 +1,7 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelAPI, {
   ListResult as AnalyticsListResult,
@@ -83,6 +84,7 @@ export async function findRepeatedOccurrences(
         modelType: ExceptionInstance,
         query: query,
         select: { duplicateOf: true },
+        sort: { time: SortOrder.Descending },
         skip: 0,
         limit: (query["duplicateOf"] as Includes).values.length,
       });
