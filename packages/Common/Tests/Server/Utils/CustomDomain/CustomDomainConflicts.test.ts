@@ -7,6 +7,10 @@ import DashboardDomainService from "../../../../Server/Services/DashboardDomainS
 import FormDomainService from "../../../../Server/Services/FormDomainService";
 import DomainService from "../../../../Server/Services/DomainService";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { getErrorDetails } from "../../../../Types/Exception/BadDataExceptionWithDetails";
+import ValueTakenException, {
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "../../../../Types/Exception/ValueTakenException";
 import ObjectID from "../../../../Types/ObjectID";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 import {
@@ -175,6 +179,31 @@ describe("CustomDomainConflicts.assertNameIsFree", () => {
       expect(lookup.select).toEqual({ _id: true });
       expect(lookup.props).toEqual({ isRoot: true });
     }
+  });
+
+  /*
+   * With the code a program tells a taken value by, and the field (#10319):
+   * a domain moved from a dashboard to a status page in one Terraform apply
+   * is one deleted and one created, side by side, and the provider asks the
+   * create again while the other still has the name.
+   */
+  test("the refusal carries value_taken and the field, beside its words", async () => {
+    names[CustomDomainKind.Dashboard] = ["status.acme.com"];
+
+    const error: Error | null = await refusalOf(
+      CustomDomainConflicts.assertNameIsFree({
+        kind: CustomDomainKind.StatusPage,
+        fullDomain: "status.acme.com",
+      }),
+    );
+
+    expect(error).toBeInstanceOf(ValueTakenException);
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(getErrorDetails(error)).toEqual({
+      refusalCode: VALUE_TAKEN_REFUSAL_CODE,
+      field: "fullDomain",
+    });
+    expect(error!.message).toBe(getCustomDomainInUseMessage("status.acme.com"));
   });
 
   test("compares the name in one spelling: trimmed, lower case", async () => {

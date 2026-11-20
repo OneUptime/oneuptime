@@ -34,6 +34,11 @@ import NameTakenException, {
   NAME_TAKEN_REFUSAL_CODE,
   REFUSAL_CODE_FIELD,
 } from "../../../Types/Exception/NameTakenException";
+import ValueTakenException, {
+  TAKEN_FIELD_DETAIL,
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/ValueTakenException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -819,6 +824,25 @@ describe("a rename, through the API's own PUT route", () => {
       expect(writtenNames(table)).toEqual(["staging"]);
     },
   );
+
+  test.each(cases(OTHER_UNIQUE_COLUMNS))(
+    "%s: a change onto a value another record has answers 400, with value_taken and the field beside the sentence",
+    async (_label: string, kind: UniqueKind) => {
+      const table: InMemoryTable = tableOf(kind);
+
+      const answer: Answer = await put(kind, {
+        [kind.column]: valueOf(kind, "Primary"),
+      });
+
+      expect(answer.statuses).toEqual([400]);
+      expect(answer.bodies).toHaveLength(1);
+      expect(answer.bodies[0]![REFUSAL_CODE_FIELD]).toBe(
+        VALUE_TAKEN_REFUSAL_CODE,
+      );
+      expect(answer.bodies[0]![TAKEN_FIELD_DETAIL]).toBe(kind.column);
+      expect(table.updates).toEqual([]);
+    },
+  );
 });
 
 /*
@@ -1193,8 +1217,13 @@ describe("a change of another unique column", () => {
     );
   });
 
+  /*
+   * With the code of a taken value and its field (#10319), as a create
+   * onto it is refused: a domain or an identifier moved between Terraform
+   * resources in one apply converges.
+   */
   test.each(cases(OTHER_UNIQUE_COLUMNS))(
-    "%s: onto a value another record has is refused, and nothing is written",
+    "%s: onto a value another record has is refused with value_taken and its field, and nothing is written",
     async (_label: string, kind: UniqueKind) => {
       const table: InMemoryTable = tableOf(kind);
 
@@ -1202,13 +1231,44 @@ describe("a change of another unique column", () => {
         rename(kind, valueOf(kind, "Primary")),
       );
 
+      expect(error).toBeInstanceOf(ValueTakenException);
       expect(error).toBeInstanceOf(BadDataException);
       expect(error).not.toBeInstanceOf(NameTakenException);
+      expect(getErrorDetails(error)).toEqual({
+        [REFUSAL_CODE_FIELD]: VALUE_TAKEN_REFUSAL_CODE,
+        [TAKEN_FIELD_DETAIL]: kind.column,
+      });
 
       if (!kind.isCheckedByService) {
         expect((error as Error).message).toBe(createRefusal(kind));
       }
 
+      expect(table.updates).toEqual([]);
+    },
+  );
+
+  test.each(
+    cases(
+      OTHER_UNIQUE_COLUMNS.filter((kind: UniqueKind): boolean => {
+        return kind.isArchivable;
+      }),
+    ),
+  )(
+    "%s: onto a value only an archived record has is refused with value_taken_by_archived",
+    async (_label: string, kind: UniqueKind) => {
+      const table: InMemoryTable = tableOf(kind, {
+        holder: { isArchived: true },
+      });
+
+      const error: unknown = await refusalOf(
+        rename(kind, valueOf(kind, "Primary")),
+      );
+
+      expect(error).toBeInstanceOf(ValueTakenException);
+      expect(getErrorDetails(error)).toEqual({
+        [REFUSAL_CODE_FIELD]: VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+        [TAKEN_FIELD_DETAIL]: kind.column,
+      });
       expect(table.updates).toEqual([]);
     },
   );
