@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} は {{address}} からのリクエストを約 {{count}} 件止めました。",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} は {{address}} からのリクエストを約 {{count}} 件止めました。",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} は {{address}} からのリクエストを {{count}} 件止めました。",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} は {{address}} からのリクエストを {{count}} 件止めました。"
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} は {{address}} からのリクエストを {{count}} 件止めました。",
+  "firewall events": "ファイアウォールイベント"
 }

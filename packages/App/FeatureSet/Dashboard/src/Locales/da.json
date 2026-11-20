@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} stoppede cirka {{count}} anmodninger fra {{address}}.",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} stoppede cirka {{count}} anmodning fra {{address}}.",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} stoppede {{count}} anmodninger fra {{address}}.",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} stoppede {{count}} anmodning fra {{address}}."
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} stoppede {{count}} anmodning fra {{address}}.",
+  "firewall events": "firewallhændelser"
 }

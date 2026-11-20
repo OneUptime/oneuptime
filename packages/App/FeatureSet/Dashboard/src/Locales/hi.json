@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} ने {{address}} से लगभग {{count}} अनुरोध रोके।",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} ने {{address}} से लगभग {{count}} अनुरोध रोका।",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} ने {{address}} से {{count}} अनुरोध रोके।",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} ने {{address}} से {{count}} अनुरोध रोका।"
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} ने {{address}} से {{count}} अनुरोध रोका।",
+  "firewall events": "फ़ायरवॉल इवेंट"
 }

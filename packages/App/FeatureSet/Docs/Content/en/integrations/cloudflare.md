@@ -97,7 +97,7 @@ The events show in Events, in Campaigns (attack requests by address), in Entity 
 
 Every plan has firewall events through the API. **What each zone's plan gives**, in **Test connection**, reads each zone's own limits from Cloudflare.
 
-| | Free | Pro | Business | Enterprise |
+| Plan | Free | Pro | Business | Enterprise |
 | --- | --- | --- | --- | --- |
 | Firewall events kept | 31 days | 31 days | 31 days | 31 days |
 | Longest query | 30 days | 30 days | 30 days | 31 days |

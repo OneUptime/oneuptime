@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} 攔截了來自 {{address}} 的約 {{count}} 個請求。",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} 攔截了來自 {{address}} 的約 {{count}} 個請求。",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} 攔截了來自 {{address}} 的 {{count}} 個請求。",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} 攔截了來自 {{address}} 的 {{count}} 個請求。"
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} 攔截了來自 {{address}} 的 {{count}} 個請求。",
+  "firewall events": "防火牆事件"
 }

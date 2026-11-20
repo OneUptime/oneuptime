@@ -249,6 +249,7 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 | Okta System Log | 登录、MFA、账户和策略事件 | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | 登录、目录更改和风险检测，可选的失败的后台和应用登录，以及 Microsoft 365 审计日志中的邮件转发、共享和钓鱼判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登录、Google 自身的检测、管理员更改和应用授权，以及云端硬盘中的共享 | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | 其防火墙在边缘拦截、质询和记录的请求，作为 HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - 产品自身的警报，只要级别达到或高于 **打开案例的起始严重程度**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
 - 连接按产品创建记录的时间读取记录，而不是按记录所描述活动的时间。每小时运行一次的 SIEM 规则会在它匹配的事件之后很久才创建检测，这些检测仍然会被导入。

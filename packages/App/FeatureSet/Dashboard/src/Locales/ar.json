@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "أوقف {{edge}} نحو {{count}} من الطلبات القادمة من {{address}}.",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "أوقف {{edge}} نحو {{count}} من الطلبات القادمة من {{address}}.",
   "{{edge}} stopped {{count}} requests from {{address}}.": "أوقف {{edge}} {{count}} من الطلبات القادمة من {{address}}.",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "أوقف {{edge}} {{count}} من الطلبات القادمة من {{address}}."
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "أوقف {{edge}} {{count}} من الطلبات القادمة من {{address}}.",
+  "firewall events": "أحداث جدار الحماية"
 }

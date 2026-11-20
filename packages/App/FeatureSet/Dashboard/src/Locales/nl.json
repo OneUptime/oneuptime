@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} hield ongeveer {{count}} aanvragen van {{address}} tegen.",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} hield ongeveer {{count}} aanvraag van {{address}} tegen.",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} hield {{count}} aanvragen van {{address}} tegen.",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} hield {{count}} aanvraag van {{address}} tegen."
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} hield {{count}} aanvraag van {{address}} tegen.",
+  "firewall events": "firewallgebeurtenissen"
 }

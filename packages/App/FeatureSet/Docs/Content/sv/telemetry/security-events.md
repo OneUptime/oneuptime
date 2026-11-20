@@ -249,6 +249,7 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 | Okta System Log | Händelser för inloggning, MFA, konton och policyer | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Inloggningar, katalogändringar och riskidentifieringar, om du vill misslyckade bakgrunds- och appinloggningar, och från Microsoft 365-granskningsloggen vidarebefordran av e-post, delning och nätfiskeutlåtanden | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inloggningar, Googles egna fynd, administratörsändringar och appåtkomst, och delning i Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Det som brandväggen blockerade, utmanade och loggade vid kanten, som HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Produktens egna larm på eller över **Öppna ärenden från** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.

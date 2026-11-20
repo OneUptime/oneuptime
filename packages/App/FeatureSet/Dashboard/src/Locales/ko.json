@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}}이(가) {{address}}의 요청 약 {{count}}개를 막았습니다.",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}}이(가) {{address}}의 요청 약 {{count}}개를 막았습니다.",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}}이(가) {{address}}의 요청 {{count}}개를 막았습니다.",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}}이(가) {{address}}의 요청 {{count}}개를 막았습니다."
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}}이(가) {{address}}의 요청 {{count}}개를 막았습니다.",
+  "firewall events": "방화벽 이벤트"
 }

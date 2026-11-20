@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} остановил запросов от {{address}}: около {{count}}.",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} остановил около {{count}} запроса от {{address}}.",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} остановил запросов от {{address}}: {{count}}.",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} остановил {{count}} запрос от {{address}}."
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} остановил {{count}} запрос от {{address}}.",
+  "firewall events": "события межсетевого экрана"
 }

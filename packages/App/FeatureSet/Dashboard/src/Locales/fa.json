@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} حدود {{count}} درخواست از {{address}} را متوقف کرد.",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} حدود {{count}} درخواست از {{address}} را متوقف کرد.",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} {{count}} درخواست از {{address}} را متوقف کرد.",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} {{count}} درخواست از {{address}} را متوقف کرد."
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} {{count}} درخواست از {{address}} را متوقف کرد.",
+  "firewall events": "رویدادهای فایروال"
 }

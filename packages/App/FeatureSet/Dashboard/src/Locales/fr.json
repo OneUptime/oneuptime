@@ -60490,5 +60490,6 @@
   "{{edge}} stopped about {{count}} requests from {{address}}.": "{{edge}} a arrêté environ {{count}} requêtes de {{address}}.",
   "{{edge}} stopped about {{count}} requests from {{address}}._one": "{{edge}} a arrêté environ {{count}} requête de {{address}}.",
   "{{edge}} stopped {{count}} requests from {{address}}.": "{{edge}} a arrêté {{count}} requêtes de {{address}}.",
-  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} a arrêté {{count}} requête de {{address}}."
+  "{{edge}} stopped {{count}} requests from {{address}}._one": "{{edge}} a arrêté {{count}} requête de {{address}}.",
+  "firewall events": "événements du pare-feu"
 }

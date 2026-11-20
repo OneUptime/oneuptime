@@ -249,6 +249,7 @@ Key Vault、ストレージ アカウント、Azure SQL データベースは、
 | Okta System Log | サインイン、MFA、アカウント、ポリシーのイベント | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | サインイン、ディレクトリの変更、リスク検出、選んだ場合は失敗したバックグラウンドとアプリのサインイン、および Microsoft 365 監査ログのメール転送、共有、フィッシングの判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | サインイン、Google 自身による検出、管理者による変更とアプリへのアクセス許可、ドライブでの共有 | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | ファイアウォールがエッジでブロック、チャレンジ、ログ記録したもの、HTTP Activity として | [Cloudflare](/docs/integrations/cloudflare) |
 
 - 製品自身のアラートのうち **ケースを開く重大度** (別のレベルを選ばない限り **高以上**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
 - 接続は、レコードが表すアクティビティの時刻ではなく、製品がレコードを作成した時刻で読み取ります。1 時間ごとに実行される SIEM ルールは一致したイベントよりずっと後に検出を作成しますが、それも取り込まれます。

@@ -1858,8 +1858,8 @@ describe("every connection page in every language: the labels built from a sente
       }
     }
 
-    // Ten Preview buttons, Returned by Google SecOps and three switches.
-    expect(labels).toBe(14);
+    // Eleven Preview buttons, Returned by Google SecOps and three switches.
+    expect(labels).toBe(15);
     expect(tried).toBe(TRANSLATED_LANGUAGES.length * labels);
   });
 });

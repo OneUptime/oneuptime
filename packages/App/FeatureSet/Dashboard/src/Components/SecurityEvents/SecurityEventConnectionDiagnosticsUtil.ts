@@ -127,6 +127,7 @@ export const CONNECTOR_RECORDS_NAMES: Readonly<Record<string, string>> = {
   record: translationKey("records"),
   "audit event": translationKey("audit events"),
   detection: translationKey("detections"),
+  "firewall event": translationKey("firewall events"),
 };
 
 export function connectorRecordsName(
