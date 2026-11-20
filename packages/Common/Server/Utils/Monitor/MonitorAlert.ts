@@ -623,6 +623,31 @@ export default class MonitorAlert {
      */
     let networkDeviceOwners: NetworkDeviceOwners | null = null;
 
+    /*
+     * This criteria's open alerts by their series (undefined: the whole
+     * monitor's), the first of each in the order they were read - the one a
+     * search of the list for the series met first. Read once: a grouped
+     * monitor's series were each searched for in every open alert (#10108).
+     */
+    const criteriaId: string | undefined =
+      input.criteriaInstance.data?.id?.toString() || undefined;
+    const openAlertsBySeries: Map<string | undefined, Alert> = new Map<
+      string | undefined,
+      Alert
+    >();
+
+    for (const alert of openAlerts) {
+      const seriesKey: string | undefined =
+        alert.seriesFingerprint || undefined;
+
+      if (
+        (alert.createdCriteriaId || undefined) === criteriaId &&
+        !openAlertsBySeries.has(seriesKey)
+      ) {
+        openAlertsBySeries.set(seriesKey, alert);
+      }
+    }
+
     for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
       for (const seriesMatch of seriesToProcess) {
         try {
@@ -706,15 +731,8 @@ export default class MonitorAlert {
            * cycle) and normalise both sides to `undefined` on missing so dedupe
            * stays correct instead of creating a duplicate alert each cycle.
            */
-          const alreadyOpenAlert: Alert | undefined = openAlerts.find(
-            (alert: Alert) => {
-              return (
-                (alert.createdCriteriaId || undefined) ===
-                  (input.criteriaInstance.data?.id?.toString() || undefined) &&
-                (alert.seriesFingerprint || undefined) === seriesFingerprint
-              );
-            },
-          );
+          const alreadyOpenAlert: Alert | undefined =
+            openAlertsBySeries.get(seriesFingerprint);
 
           const hasAlreadyOpenAlert: boolean = Boolean(alreadyOpenAlert);
 

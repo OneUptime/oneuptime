@@ -669,6 +669,32 @@ export default class MonitorIncident {
      */
     let networkDeviceOwners: NetworkDeviceOwners | null = null;
 
+    /*
+     * This criteria's open incidents by their series (undefined: the whole
+     * monitor's), in the order they were read: a series is looked up, not
+     * searched for in every open incident (#10108).
+     */
+    const criteriaId: string | undefined =
+      input.criteriaInstance.data?.id?.toString() || undefined;
+    const openIncidentsBySeries: Map<
+      string | undefined,
+      Array<Incident>
+    > = new Map<string | undefined, Array<Incident>>();
+
+    for (const incident of openIncidents) {
+      if ((incident.createdCriteriaId || undefined) !== criteriaId) {
+        continue;
+      }
+
+      const seriesKey: string | undefined =
+        incident.seriesFingerprint || undefined;
+      const ofSeries: Array<Incident> =
+        openIncidentsBySeries.get(seriesKey) || [];
+
+      ofSeries.push(incident);
+      openIncidentsBySeries.set(seriesKey, ofSeries);
+    }
+
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
       for (const seriesMatch of seriesToProcess) {
@@ -766,18 +792,15 @@ export default class MonitorIncident {
            * once its template has one it must still be found, or a second
            * incident would open beside it while the first is still open.
            */
-          const alreadyOpenIncident: Incident | undefined = openIncidents.find(
-            (incident: Incident) => {
-              return (
-                (incident.createdCriteriaId || undefined) ===
-                  (input.criteriaInstance.data?.id?.toString() || undefined) &&
-                (!incident.createdIncidentTemplateId ||
-                  incident.createdIncidentTemplateId ===
-                    (criteriaIncident.id?.toString() || undefined)) &&
-                (incident.seriesFingerprint || undefined) === seriesFingerprint
-              );
-            },
-          );
+          const alreadyOpenIncident: Incident | undefined = (
+            openIncidentsBySeries.get(seriesFingerprint) || []
+          ).find((incident: Incident) => {
+            return (
+              !incident.createdIncidentTemplateId ||
+              incident.createdIncidentTemplateId ===
+                (criteriaIncident.id?.toString() || undefined)
+            );
+          });
 
           const hasAlreadyOpenIncident: boolean = Boolean(alreadyOpenIncident);
 
