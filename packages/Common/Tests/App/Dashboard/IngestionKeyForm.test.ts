@@ -267,9 +267,9 @@ describe("Telemetry ingestion key create form", () => {
         ["description", "key", true],
       ]);
       // No origins: a Mobile key is refused from a web page.
-      expect(getIngestionKeyFormFields(MOBILE_GUIDE).map(fieldKey)).not.toContain(
-        "allowedOrigins",
-      );
+      expect(
+        getIngestionKeyFormFields(MOBILE_GUIDE).map(fieldKey),
+      ).not.toContain("allowedOrigins");
     });
 
     test("a Server guide asks for the name only, with the description folded", () => {

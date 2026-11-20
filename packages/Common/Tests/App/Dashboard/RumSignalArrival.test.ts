@@ -98,12 +98,18 @@ describe("when the first one counts as arrived", () => {
     const recent: Date = ago(RUM_SIGNAL_ARRIVING_WINDOW_MS);
     const old: Date = ago(RUM_SIGNAL_ARRIVING_WINDOW_MS + 1);
 
-    expect(hasRumSignalArrived({ baseline: recent, latest: recent, now: NOW })).toBe(true);
-    expect(hasRumSignalArrived({ baseline: old, latest: old, now: NOW })).toBe(false);
+    expect(
+      hasRumSignalArrived({ baseline: recent, latest: recent, now: NOW }),
+    ).toBe(true);
+    expect(hasRumSignalArrived({ baseline: old, latest: old, now: NOW })).toBe(
+      false,
+    );
   });
 
   test("nothing, or a date that is not one: not arrived", () => {
-    expect(hasRumSignalArrived({ baseline: null, latest: null, now: NOW })).toBe(false);
+    expect(
+      hasRumSignalArrived({ baseline: null, latest: null, now: NOW }),
+    ).toBe(false);
     expect(
       hasRumSignalArrived({ baseline: undefined, latest: undefined, now: NOW }),
     ).toBe(false);
@@ -127,8 +133,14 @@ describe("when the first one counts as arrived", () => {
 });
 
 describe("what the step says", () => {
-  const states: Array<[string, Partial<RumSignalArrivalFacts>, RumSignalArrivalState]> = [
-    ["before the first answer", { latest: undefined, baseline: undefined }, "checking"],
+  const states: Array<
+    [string, Partial<RumSignalArrivalFacts>, RumSignalArrivalState]
+  > = [
+    [
+      "before the first answer",
+      { latest: undefined, baseline: undefined },
+      "checking",
+    ],
     ["in its first minutes, with nothing", {}, "waiting"],
     [
       "nothing after a few minutes",
@@ -176,9 +188,16 @@ describe("what the step says", () => {
     ],
   ];
 
-  test.each(states)("%s", (_name: string, overrides: Partial<RumSignalArrivalFacts>, expected: RumSignalArrivalState) => {
-    expect(getRumSignalArrivalState(facts(overrides))).toBe(expected);
-  });
+  test.each(states)(
+    "%s",
+    (
+      _name: string,
+      overrides: Partial<RumSignalArrivalFacts>,
+      expected: RumSignalArrivalState,
+    ) => {
+      expect(getRumSignalArrivalState(facts(overrides))).toBe(expected);
+    },
+  );
 
   // An open dialog does not look for ever: it stops once arrived or stopped.
   test("keeps looking until one arrives or it stops", () => {
@@ -249,7 +268,9 @@ describe("its words, in every language the Dashboard is read in", () => {
 
       for (const word of words) {
         const translated: unknown = locale[word];
-        const placeholders: Array<string> = (word.match(/\{\{\w+\}\}/g) || []).sort();
+        const placeholders: Array<string> = (
+          word.match(/\{\{\w+\}\}/g) || []
+        ).sort();
 
         expect({
           language,

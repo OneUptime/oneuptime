@@ -28,6 +28,13 @@ const DASHBOARD_SOURCE: string = path.resolve(
   "../../../../App/FeatureSet/Dashboard/src",
 );
 
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+// A constant that holds the key (ENDPOINT_HINT).
+const CONSTANT_NAME: RegExp = /^[A-Z][A-Z0-9_]*,?$/;
+// The key selector passes the step's own hint along.
+const PASSED_ALONG: RegExp = /^(?:props\.|keyStep\.)\w+/;
+const OWN_HINT: RegExp = /^\w+\.endpointHint/;
+
 function sourceFiles(directory: string): Array<string> {
   return fs
     .readdirSync(directory, { withFileTypes: true })
@@ -40,7 +47,7 @@ function sourceFiles(directory: string): Array<string> {
           : sourceFiles(file);
       }
 
-      return /\.tsx?$/.test(entry.name) ? [file] : [];
+      return TYPESCRIPT_FILE.test(entry.name) ? [file] : [];
     });
 }
 
@@ -90,10 +97,10 @@ describe("a setup guide's endpoint hint", () => {
         ...declared,
         isKey:
           declared.value.startsWith("translationKey(") ||
-          /^[A-Z][A-Z0-9_]*,?$/.test(declared.value) ||
+          CONSTANT_NAME.test(declared.value) ||
           // The key selector passes the step's own hint along.
-          /^(?:props\.|keyStep\.)\w+/.test(declared.value) ||
-          /^\w+\.endpointHint/.test(declared.value),
+          PASSED_ALONG.test(declared.value) ||
+          OWN_HINT.test(declared.value),
       }).toEqual({ ...declared, isKey: true });
     }
   });

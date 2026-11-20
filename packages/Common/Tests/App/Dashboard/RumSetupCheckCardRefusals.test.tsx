@@ -800,51 +800,54 @@ describe("a refused mobile application", () => {
   test.each([
     TelemetryIngestionKeyType.Mobile,
     TelemetryIngestionKeyType.Server,
-  ])("its pinned %s key expired: Traces says Refused, and the dialog asks for Mobile keys", async (refusedKeyType: TelemetryIngestionKeyType) => {
-    arrange({
-      app: { ...silentApp(), clientType: "mobile", sdkLanguage: "swift" },
-      refusals: Promise.resolve([
-        // A shared Browser key is no mobile app's.
-        refusalRow(),
-        refusalRow({
-          reason: TelemetryIngestRefusalReason.KeyExpired,
-          telemetryIngestionKey: {
-            name: "iOS key",
-            keyType: refusedKeyType,
-            pinnedServiceName: "storefront-ios",
-          },
-        }),
-      ]),
-    });
-    await renderCard("storefront-ios");
-
-    expect(row("traces")).toHaveAttribute("data-tone", "error");
-    const notice: HTMLElement = onlyNotice();
-    expect(noticeText(notice)).toBe(
-      'The key "iOS key" has expired, so everything sent with it is refused.',
-    );
-
-    fireEvent.click(noticeAction(notice)!);
-    await flush();
-
-    const keyReads: Array<unknown> = getListMock.mock.calls
-      .map((call: Array<unknown>) => {
-        return call[0] as Record<string, unknown>;
-      })
-      .filter((args: Record<string, unknown>): boolean => {
-        return args["modelType"] === TelemetryIngestionKey;
-      })
-      .map((args: Record<string, unknown>): unknown => {
-        return (args["query"] as Record<string, unknown>)["keyType"];
+  ])(
+    "its pinned %s key expired: Traces says Refused, and the dialog asks for Mobile keys",
+    async (refusedKeyType: TelemetryIngestionKeyType) => {
+      arrange({
+        app: { ...silentApp(), clientType: "mobile", sdkLanguage: "swift" },
+        refusals: Promise.resolve([
+          // A shared Browser key is no mobile app's.
+          refusalRow(),
+          refusalRow({
+            reason: TelemetryIngestRefusalReason.KeyExpired,
+            telemetryIngestionKey: {
+              name: "iOS key",
+              keyType: refusedKeyType,
+              pinnedServiceName: "storefront-ios",
+            },
+          }),
+        ]),
       });
-    expect(keyReads).toEqual([TelemetryIngestionKeyType.Mobile]);
-    const dialog: HTMLElement = screen.getByTestId("rum-pick-key-setup");
-    expect(dialog).toHaveAttribute("data-client", "mobile");
-    expect(dialog.textContent).toContain(
-      'OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-key-mobile"',
-    );
-    expect(dialog.textContent).not.toContain("secret-key-backend");
-  });
+      await renderCard("storefront-ios");
+
+      expect(row("traces")).toHaveAttribute("data-tone", "error");
+      const notice: HTMLElement = onlyNotice();
+      expect(noticeText(notice)).toBe(
+        'The key "iOS key" has expired, so everything sent with it is refused.',
+      );
+
+      fireEvent.click(noticeAction(notice)!);
+      await flush();
+
+      const keyReads: Array<unknown> = getListMock.mock.calls
+        .map((call: Array<unknown>) => {
+          return call[0] as Record<string, unknown>;
+        })
+        .filter((args: Record<string, unknown>): boolean => {
+          return args["modelType"] === TelemetryIngestionKey;
+        })
+        .map((args: Record<string, unknown>): unknown => {
+          return (args["query"] as Record<string, unknown>)["keyType"];
+        });
+      expect(keyReads).toEqual([TelemetryIngestionKeyType.Mobile]);
+      const dialog: HTMLElement = screen.getByTestId("rum-pick-key-setup");
+      expect(dialog).toHaveAttribute("data-client", "mobile");
+      expect(dialog.textContent).toContain(
+        'OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-key-mobile"',
+      );
+      expect(dialog.textContent).not.toContain("secret-key-backend");
+    },
+  );
 });
 
 describe("in German", () => {

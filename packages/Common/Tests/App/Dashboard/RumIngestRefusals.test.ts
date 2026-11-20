@@ -576,7 +576,11 @@ describe("what a refusal says", () => {
      * one card read "Nov 04, 2026" on a line and "Nov 08 2026, 12:32 CET"
      * on the next.
      */
-    for (const firstRefusedAt of [ago(HOUR), ago(5 * DAY - HOUR), ago(5 * DAY)]) {
+    for (const firstRefusedAt of [
+      ago(HOUR),
+      ago(5 * DAY - HOUR),
+      ago(5 * DAY),
+    ]) {
       expect(
         getIngestRefusalCountText(
           fact({ count: 2, firstRefusedAt }),

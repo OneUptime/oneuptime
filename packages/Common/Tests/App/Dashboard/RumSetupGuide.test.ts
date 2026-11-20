@@ -551,7 +551,9 @@ describe("the mobile guide", () => {
       guide.advanced,
       "SDK notes for Android, iOS and React Native",
     );
-    expect(notes).toContain("It sends with a **Mobile** key, like any mobile app.");
+    expect(notes).toContain(
+      "It sends with a **Mobile** key, like any mobile app.",
+    );
     expect(notes).not.toContain("**Server** key");
   });
 
