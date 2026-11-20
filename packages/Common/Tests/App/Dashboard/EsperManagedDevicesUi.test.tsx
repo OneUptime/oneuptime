@@ -947,3 +947,109 @@ describe("the words", () => {
     expect(getManagedDeviceMatchWords(undefined)).toBeUndefined();
   });
 });
+
+/*
+ * #10238's guard: the card read its connection's settings through the
+ * device, a column the server will not read through a relation, so it
+ * refused the whole read and every device's card said "Column config on
+ * Device Management Connection does not support read on relation query."
+ * The card reads the connection's name and service through the device, and
+ * its settings - its address - from the connection itself.
+ */
+describe("a device's card names the connection that imports it", () => {
+  const CONNECTION_ID: string = "30000000-0000-4000-8000-0000000000c1";
+
+  function deviceOfConnection(): ManagedDevice {
+    const device: ManagedDevice = new ManagedDevice();
+    device._id = DEVICE_ID;
+    device.deviceName = "ESP-ID-AAAAW";
+    device.connectionId = new ObjectID(CONNECTION_ID);
+
+    const connection: DeviceManagementConnection =
+      new DeviceManagementConnection();
+    connection.name = "Acme fleet";
+    connection.provider = DeviceManagementProvider.Esper;
+    device.connection = connection;
+
+    return device;
+  }
+
+  async function renderConnectedCard(): Promise<void> {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <ManagedDeviceCard managedDeviceId={new ObjectID(DEVICE_ID)} />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  test("with its address, read from the connection, never through the device", async () => {
+    const settings: DeviceManagementConnection =
+      new DeviceManagementConnection();
+    settings.config = { tenant: "acme", readIntervalInMinutes: 15 };
+
+    const getItem: jest.SpyInstance<any, any> = getJestSpyOn(
+      ModelAPI,
+      "getItem",
+    ).mockImplementation((async (args: {
+      modelType: unknown;
+    }): Promise<unknown> => {
+      return args.modelType === ManagedDevice ? deviceOfConnection() : settings;
+    }) as never);
+
+    await renderConnectedCard();
+
+    expect(
+      screen.getByText(
+        "Imported by the Esper connection Acme fleet (acme.esper.cloud).",
+      ),
+    ).toBeInTheDocument();
+
+    const reads: Array<{
+      modelType: unknown;
+      id: ObjectID;
+      select: Record<string, unknown>;
+    }> = getItem.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as {
+        modelType: unknown;
+        id: ObjectID;
+        select: Record<string, unknown>;
+      };
+    });
+
+    // The device's read names nothing of the connection a relation does not read.
+    expect(reads[0]!.modelType).toBe(ManagedDevice);
+    expect(reads[0]!.select["connection"]).toEqual({
+      name: true,
+      provider: true,
+    });
+    expect(reads[1]!.modelType).toBe(DeviceManagementConnection);
+    expect(reads[1]!.id.toString()).toBe(CONNECTION_ID);
+    expect(reads[1]!.select).toEqual({ _id: true, config: true });
+  });
+
+  test("without its address when the connection's settings cannot be read, and the rest of the card", async () => {
+    getJestSpyOn(ModelAPI, "getItem").mockImplementation((async (args: {
+      modelType: unknown;
+    }): Promise<unknown> => {
+      if (args.modelType === ManagedDevice) {
+        return deviceOfConnection();
+      }
+
+      throw new Error(
+        "You do not have permissions to read Device Management Connection.",
+      );
+    }) as never);
+
+    await renderConnectedCard();
+
+    expect(
+      screen.getByText("Imported by the Esper connection Acme fleet."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Esper Agent")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/does not support read on relation query/),
+    ).toBeNull();
+  });
+});

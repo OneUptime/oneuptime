@@ -1,8 +1,10 @@
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
+import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -180,9 +182,35 @@ export function getMonitorGroupStatusItems(data: {
 }
 
 /*
- * The group's monitors, then the open status events of those that are not
- * operational - one read each. A failed read of the events still lists the
- * monitors and their statuses: why is a supplement.
+ * The group's monitors, each with its status by its id. A relation's own
+ * relation is never read through it - the server refuses the whole read
+ * ("You cannot query deep relations"), and every group's dialog said
+ * "Couldn't read this group's monitors." (#10238's guard found it) - so the
+ * statuses are read on their own (MONITOR_GROUP_STATUS_SELECT).
+ */
+export const MONITOR_GROUP_MONITORS_SELECT: Select<MonitorGroupResource> = {
+  monitorId: true,
+  monitor: {
+    _id: true,
+    name: true,
+    ...MONITORED_SELECT,
+    currentMonitorStatusId: true,
+  },
+};
+
+// What the dialog reads of each status its monitors are in.
+export const MONITOR_GROUP_STATUS_SELECT: Select<MonitorStatus> = {
+  _id: true,
+  name: true,
+  isOperationalState: true,
+  isOfflineState: true,
+};
+
+/*
+ * The group's monitors, the statuses they are in, then the open status
+ * events of those that are not operational - one read each. A failed read
+ * of the events still lists the monitors and their statuses: why is a
+ * supplement.
  */
 export async function loadMonitorGroupStatusReason(data: {
   monitorGroupId: ObjectID;
@@ -195,43 +223,68 @@ export async function loadMonitorGroupStatusReason(data: {
       query: { monitorGroupId: data.monitorGroupId },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
-      select: {
-        monitorId: true,
-        monitor: {
-          _id: true,
-          name: true,
-          ...MONITORED_SELECT,
-          currentMonitorStatus: {
-            name: true,
-            isOperationalState: true,
-            isOfflineState: true,
-          },
-        },
-      },
+      select: MONITOR_GROUP_MONITORS_SELECT,
       sort: {},
     });
 
-  const monitors: Array<MonitorGroupStatusRow> = resources.data
-    .filter((resource: MonitorGroupResource): boolean => {
+  const groupResources: Array<MonitorGroupResource> = resources.data.filter(
+    (resource: MonitorGroupResource): boolean => {
       return Boolean(resource.monitor);
-    })
-    .map((resource: MonitorGroupResource): MonitorGroupStatusRow => {
+    },
+  );
+
+  const statusIdOf: (resource: MonitorGroupResource) => string = (
+    resource: MonitorGroupResource,
+  ): string => {
+    return resource.monitor?.currentMonitorStatusId?.toString() || "";
+  };
+
+  const statusIds: Array<string> = Array.from(
+    new Set(groupResources.map(statusIdOf).filter(Boolean)),
+  );
+
+  const statuses: Map<string, MonitorStatus> = new Map<string, MonitorStatus>();
+
+  if (statusIds.length > 0) {
+    const read: ListResult<MonitorStatus> =
+      await ModelAPI.getList<MonitorStatus>({
+        modelType: MonitorStatus,
+        query: { _id: new Includes(statusIds) },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: MONITOR_GROUP_STATUS_SELECT,
+        sort: {},
+      });
+
+    for (const monitorStatus of read.data) {
+      const statusId: string =
+        monitorStatus._id?.toString() || monitorStatus.id?.toString() || "";
+
+      if (statusId) {
+        statuses.set(statusId, monitorStatus);
+      }
+    }
+  }
+
+  const monitors: Array<MonitorGroupStatusRow> = groupResources.map(
+    (resource: MonitorGroupResource): MonitorGroupStatusRow => {
+      const monitorStatus: MonitorStatus | undefined = statuses.get(
+        statusIdOf(resource),
+      );
+
       return {
         monitorId:
           resource.monitor?._id?.toString() ||
           resource.monitorId?.toString() ||
           "",
         name: resource.monitor?.name || "",
-        statusName: resource.monitor?.currentMonitorStatus?.name || "",
-        isOperationalState: Boolean(
-          resource.monitor?.currentMonitorStatus?.isOperationalState,
-        ),
-        isOfflineState: Boolean(
-          resource.monitor?.currentMonitorStatus?.isOfflineState,
-        ),
+        statusName: monitorStatus?.name || "",
+        isOperationalState: Boolean(monitorStatus?.isOperationalState),
+        isOfflineState: Boolean(monitorStatus?.isOfflineState),
         isMonitored: MonitoringOff.isMonitored(resource.monitor),
       };
-    });
+    },
+  );
 
   const notOperationalIds: Array<string> = monitors
     .filter((monitor: MonitorGroupStatusRow): boolean => {

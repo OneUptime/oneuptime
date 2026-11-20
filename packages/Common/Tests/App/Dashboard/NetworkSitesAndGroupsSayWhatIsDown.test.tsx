@@ -89,6 +89,8 @@ import {
   getSiteDownDeviceItems,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkSite/SiteDownDevices";
 import {
+  MONITOR_GROUP_MONITORS_SELECT,
+  MONITOR_GROUP_STATUS_SELECT,
   MonitorGroupStatusEvent,
   MonitorGroupStatusRow,
   getMonitorGroupStatusItems,
@@ -716,6 +718,13 @@ describe("a group's monitors that are not operational", () => {
   });
 });
 
+// The statuses the group's monitors are in, as the project holds them.
+let groupStatuses: Array<MonitorStatus> = [];
+
+/*
+ * A group's monitor as the server answers the group's read: its status by
+ * its id only - a relation's relation is never read through it (#10238).
+ */
 function groupResource(data: {
   id: string;
   name: string;
@@ -728,7 +737,15 @@ function groupResource(data: {
   monitor.name = data.name;
   monitor.isArchived = Boolean(data.isArchived);
   monitor.disableActiveMonitoring = false;
-  monitor.currentMonitorStatus = data.status;
+  monitor.currentMonitorStatusId = new ObjectID(data.status._id!.toString());
+
+  if (
+    !groupStatuses.some((known: MonitorStatus): boolean => {
+      return known._id === data.status._id;
+    })
+  ) {
+    groupStatuses.push(data.status);
+  }
 
   const resource: MonitorGroupResource = new MonitorGroupResource();
 
@@ -737,10 +754,149 @@ function groupResource(data: {
   return resource;
 }
 
+// The statuses a read of statuses by their ids asks for.
+function statusesAskedFor(args: {
+  query: { _id: { values: Array<string> } };
+}): { data: Array<MonitorStatus>; count: number } {
+  const asked: Array<string> = args.query._id.values.map(
+    (id: unknown): string => {
+      return String(id);
+    },
+  );
+  const data: Array<MonitorStatus> = groupStatuses.filter(
+    (known: MonitorStatus): boolean => {
+      return asked.includes(known._id!.toString());
+    },
+  );
+
+  return { data: data, count: data.length };
+}
+
 describe("reading a group's why when it is pressed", () => {
+  beforeEach(() => {
+    groupStatuses = [];
+  });
+
+  test("reads its monitors with their statuses' ids, and the statuses on their own: never a relation of a relation, which the server refuses", async () => {
+    getListMock.mockImplementation(
+      async (args: {
+        modelType: unknown;
+        query: { _id: { values: Array<string> } };
+      }): Promise<unknown> => {
+        if (args.modelType === MonitorStatus) {
+          return statusesAskedFor(args);
+        }
+
+        if (args.modelType === MonitorGroupResource) {
+          return {
+            data: [
+              groupResource({
+                id: "m-1",
+                name: "Checkout API",
+                status: status({
+                  name: "Offline",
+                  isOperationalState: false,
+                  isOfflineState: true,
+                }),
+              }),
+              groupResource({
+                id: "m-2",
+                name: "Payments API",
+                status: status({
+                  name: "Offline",
+                  isOperationalState: false,
+                  isOfflineState: true,
+                }),
+              }),
+            ],
+            count: 2,
+          };
+        }
+
+        return { data: [], count: 0 };
+      },
+    );
+
+    const read: ResourceAttentionDialogRead =
+      await loadMonitorGroupStatusReason({
+        monitorGroupId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+        translator: ENGLISH,
+        getMonitorRoute: monitorRoute,
+      });
+
+    expect(names(read.items).sort()).toEqual(["Checkout API", "Payments API"]);
+
+    const reads: Array<{
+      modelType: unknown;
+      select: Record<string, unknown>;
+      query: Record<string, unknown>;
+    }> = getListMock.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as {
+        modelType: unknown;
+        select: Record<string, unknown>;
+        query: Record<string, unknown>;
+      };
+    });
+
+    const monitorsRead: { select: Record<string, unknown> } = reads.find(
+      (args: { modelType: unknown }): boolean => {
+        return args.modelType === MonitorGroupResource;
+      },
+    )!;
+
+    expect(monitorsRead.select).toEqual(MONITOR_GROUP_MONITORS_SELECT);
+
+    // Nothing under the monitor is itself a relation.
+    for (const value of Object.values(
+      monitorsRead.select["monitor"] as Record<string, unknown>,
+    )) {
+      expect(typeof value).not.toBe("object");
+    }
+
+    const statusesRead: {
+      select: Record<string, unknown>;
+      query: Record<string, unknown>;
+    } = reads.find((args: { modelType: unknown }): boolean => {
+      return args.modelType === MonitorStatus;
+    })!;
+
+    expect(statusesRead.select).toEqual(MONITOR_GROUP_STATUS_SELECT);
+    // Each status once, however many monitors are in it.
+    expect(
+      (statusesRead.query["_id"] as { values: Array<string> }).values,
+    ).toEqual(["status-Offline"]);
+  });
+
+  test("a group with no monitors reads no statuses", async () => {
+    getListMock.mockImplementation(async (): Promise<unknown> => {
+      return { data: [], count: 0 };
+    });
+
+    const read: ResourceAttentionDialogRead =
+      await loadMonitorGroupStatusReason({
+        monitorGroupId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+        translator: ENGLISH,
+        getMonitorRoute: monitorRoute,
+      });
+
+    expect(read.items).toEqual([]);
+    expect(
+      getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        return (call[0] as { modelType: unknown }).modelType === MonitorStatus;
+      }),
+    ).toEqual([]);
+  });
+
   test("reads its monitors, then the open events of those not operational", async () => {
     getListMock.mockImplementation(
-      async (args: { modelType: unknown }): Promise<unknown> => {
+      async (args: {
+        modelType: unknown;
+        query: { _id: { values: Array<string> } };
+      }): Promise<unknown> => {
+        if (args.modelType === MonitorStatus) {
+          return statusesAskedFor(args);
+        }
+
         if (args.modelType === MonitorGroupResource) {
           return {
             data: [
@@ -806,7 +962,14 @@ describe("reading a group's why when it is pressed", () => {
 
   test("a failed read of the events still lists the monitors", async () => {
     getListMock.mockImplementation(
-      async (args: { modelType: unknown }): Promise<unknown> => {
+      async (args: {
+        modelType: unknown;
+        query: { _id: { values: Array<string> } };
+      }): Promise<unknown> => {
+        if (args.modelType === MonitorStatus) {
+          return statusesAskedFor(args);
+        }
+
         if (args.modelType === MonitorGroupResource) {
           return {
             data: [
