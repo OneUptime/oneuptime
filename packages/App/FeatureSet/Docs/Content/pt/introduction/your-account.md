@@ -146,6 +146,31 @@ O mesmo acontece quando todos os projetos de que você faz parte exigem login ú
 - **Os administradores principais** sempre mantêm suas próprias configurações de **Segurança**.
 - **O que você configurou antes** continua salvo. Um administrador do servidor pode limpá-lo, e também um proprietário de todos os projetos de que você faz parte; você recebe um e-mail quando isso acontece.
 
+### Confirmar que é você
+
+Algumas alterações pedem primeiro que você confirme que é você, mesmo que já tenha entrado, para que ninguém possa fazê-las em um navegador em que você deixou a sessão aberta. O OneUptime pede isso antes de você:
+
+- alterar seu endereço de e-mail ou sua senha;
+- adicionar ou remover uma chave de acesso, uma chave de segurança ou um aplicativo autenticador;
+- obter novos códigos de backup enquanto ainda tiver códigos não usados;
+- desativar a autenticação de dois fatores;
+- excluir sua conta.
+
+A janela **Confirme que é você** pede sua senha e, enquanto a autenticação de dois fatores estiver ativada, sua segunda etapa: um código do seu aplicativo autenticador, sua chave de segurança ou um dos seus códigos de backup. Com uma chave de acesso, clique em **Usar uma chave de acesso**. Se você entra apenas com login único, Google ou Microsoft, clique em **Entrar novamente**: o OneUptime faz seu provedor de identidade pedir que você entre de novo e depois traz você de volta à página. Em seguida, a alteração é feita.
+
+Depois que você confirma, não é perguntado de novo por 10 minutos nesse navegador. Cinco tentativas erradas encerram a sessão desse navegador, mas nunca bloqueiam sua conta: entre novamente e tente outra vez. O OneUptime envia um e-mail quando isso acontece, e sempre que um código de backup confirma que é você.
+
+Em um servidor auto-hospedado, os administradores principais confirmam da mesma forma que são eles antes de alterar como outra pessoa entra, tornar alguém administrador principal, alterar os provedores de login único ou as configurações de e-mail do servidor, ou criar uma chave de API mestra. A chave de API mestra não pode fazer essas alterações.
+
+Entrar novamente só conta quando seu provedor de identidade informa que você entrou depois que o OneUptime enviou você até ele. Se o provedor fizer você entrar com uma sessão que ele já tem, sem pedir sua senha, isso não confirma nada: saia primeiro do provedor e depois clique em **Entrar novamente**. Onde seu servidor permite entrar com um link enviado por e-mail, **Entrar de outra forma** faz isso no lugar. O que o OneUptime pede a cada provedor, e o que um administrador pode mudar quando entrar novamente não confirma nada:
+
+| Provedor | O que o OneUptime pede | Quando não confirma nada |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` e quando você entrou (`AuthnInstant`) | Faça o provedor respeitar a solicitação, por exemplo com Honor Force Authentication no Okta. |
+| OpenID Connect | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Faça o provedor enviar `auth_time`. No Microsoft Entra ID, adicione-o ao token de ID como uma declaração opcional. |
+| Google | Quando você entrou (`auth_time`). Não é possível pedir ao Google que faça você entrar de novo. | Ative Session age claims para o aplicativo de login do Google do servidor, que precisa estar publicado e verificado. |
+| Microsoft | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Adicione `auth_time` ao token de ID do aplicativo de login da Microsoft do servidor como uma declaração opcional. |
+
 ## Seus projetos
 
 Você pode pertencer a quantos projetos quiser. O seletor de projetos, no canto superior esquerdo do painel, lista todos eles: escolha um para trocar.
@@ -178,7 +203,7 @@ Seu tema fica salvo no seu navegador, então configure-o de novo em outro navega
 
 ## Excluir sua conta
 
-Abra **Zona de perigo → Excluir conta**. Você só pode excluir sua conta quando não estiver em nenhum projeto: a página lista os projetos em que você ainda está. Saia deles primeiro, depois clique em **Excluir conta** e confirme. Excluir sua conta é permanente e não pode ser desfeito.
+Abra **Zona de perigo → Excluir conta**. Você só pode excluir sua conta quando não estiver em nenhum projeto: a página lista os projetos em que você ainda está. Saia deles primeiro, depois clique em **Excluir conta** e confirme. Excluir sua conta é permanente e não pode ser desfeito. Antes de excluir sua conta, o OneUptime pede que você confirme que é você.
 
 ## Solução de problemas
 

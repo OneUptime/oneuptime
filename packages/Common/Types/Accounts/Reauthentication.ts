@@ -71,6 +71,151 @@ export const REAUTHENTICATION_ROUTE: string = "/user/reauthentication";
 export const REAUTHENTICATION_WEBAUTHN_OPTIONS_ROUTE: string =
   "/user/reauthentication/webauthn-options";
 
+/*
+ * WHAT A CONFIRMATION IS ASKED FOR, beside the refusal's code
+ * (REAUTHENTICATION_PURPOSE_FIELD), so the refusal and the prompt say what
+ * the person is about to do:
+ *
+ *   - OwnSignIn: a change to how they sign in (#10155);
+ *   - DeleteAccount: deleting their own account (#10220), the one change
+ *     nobody recovers from;
+ *   - AdminChange: a master admin's change to how someone else signs in,
+ *     or to how anyone signs in to the server (#10216): another person's
+ *     password, email address, two-factor authentication or sign-in
+ *     settings, who is a master admin, the server's own single sign-on,
+ *     the server's email settings, and the master API key.
+ */
+export enum ReauthenticationPurpose {
+  OwnSignIn = "OwnSignIn",
+  DeleteAccount = "DeleteAccount",
+  AdminChange = "AdminChange",
+}
+
+// The refusal's field that names its purpose.
+export const REAUTHENTICATION_PURPOSE_FIELD: string = "reauthenticationPurpose";
+
+// A purpose as a refusal's body names it, or OwnSignIn for any other value.
+export const readReauthenticationPurpose: (
+  value: unknown,
+) => ReauthenticationPurpose = (value: unknown): ReauthenticationPurpose => {
+  return Object.values(ReauthenticationPurpose).includes(
+    value as ReauthenticationPurpose,
+  )
+    ? (value as ReauthenticationPurpose)
+    : ReauthenticationPurpose.OwnSignIn;
+};
+
+/*
+ * SIGN IN AGAIN, WHICH HAS THE IDENTITY PROVIDER ASK AGAIN (#10217).
+ *
+ * An account with neither a password nor a passkey confirms by signing in
+ * again. Its identity provider usually remembers its own session and signs
+ * a browser that still has one straight back in, asking nothing - so a
+ * sign-in counts as a confirmation only when it proved, just now, that its
+ * person was asked:
+ *
+ *   - a sign-in started by Sign In Again (this query parameter on the
+ *     sign-in's start) asks the provider to authenticate the person again:
+ *     SAML's ForceAuthn, OpenID Connect's prompt=login and max_age=0 (Google
+ *     takes neither, and is asked for auth_time instead);
+ *   - and counts only when the provider says it authenticated them at or
+ *     after the moment Sign In Again sent them there, give or take
+ *     SIGN_IN_AGAIN_CLOCK_SKEW_IN_SECONDS: the assertion's AuthnInstant, or
+ *     the ID token's auth_time, checked by OneUptime, never by trusting that
+ *     the provider honoured the request;
+ *   - a sign-in link always counts: opening it, minutes after it was sent,
+ *     is the proof.
+ *
+ * A provider that cannot prove it - it reused its session, or did not say
+ * when the person signed in - still signs them in, and the confirmation is
+ * refused with why (SignInAgainRefusal) and what their administrator can
+ * change. Nothing is accepted silently.
+ */
+export const REAUTHENTICATE_QUERY_PARAM: string = "reauthenticate";
+
+// How far the provider's clock and this server's may disagree, either way.
+export const SIGN_IN_AGAIN_CLOCK_SKEW_IN_SECONDS: number = 60;
+
+// Why a Sign In Again did not confirm it's you.
+export enum SignInAgainRefusal {
+  // The provider signed the person in with a session it already had.
+  ReusedSession = "ReusedSession",
+  // The provider did not say when the person signed in.
+  NoSignInTime = "NoSignInTime",
+}
+
+// Who a Sign In Again goes through, for what the prompt says to do.
+export enum SignInAgainProvider {
+  // A project's or the server's own SAML or OpenID Connect provider.
+  SingleSignOn = "SingleSignOn",
+  Google = "Google",
+  Microsoft = "Microsoft",
+  // A sign-in link, or a sign-in OneUptime cannot send back by itself.
+  SignInPage = "SignInPage",
+}
+
+/*
+ * What a sign-in Sign In Again started proved, from when its provider says
+ * it authenticated the person (`authenticatedAt`: SAML's AuthnInstant,
+ * OpenID Connect's auth_time; null when it said nothing) and when Sign In
+ * Again sent them there (`requestedAt`):
+ *
+ *   - authenticated at or after it was asked, give or take the skew, and
+ *     inside the window: confirmed from then (never from a time ahead of
+ *     now), for the window;
+ *   - authenticated before: the provider reused a session it had;
+ *   - no time, or one that has not happened yet: it said nothing usable.
+ *
+ * Pure: every sign-in route holds what its provider said to it.
+ */
+export const judgeSignInAgain: (data: {
+  requestedAt: Date;
+  authenticatedAt: Date | null;
+  now: Date;
+}) => { reauthenticatedAt: Date } | { refusal: SignInAgainRefusal } = (data: {
+  requestedAt: Date;
+  authenticatedAt: Date | null;
+  now: Date;
+}): { reauthenticatedAt: Date } | { refusal: SignInAgainRefusal } => {
+  const skewInMs: number = SIGN_IN_AGAIN_CLOCK_SKEW_IN_SECONDS * 1000;
+  const windowInMs: number = REAUTHENTICATION_WINDOW_IN_MINUTES * 60 * 1000;
+  const now: number = data.now.getTime();
+  const authenticatedAt: number | null =
+    data.authenticatedAt && !isNaN(data.authenticatedAt.getTime())
+      ? data.authenticatedAt.getTime()
+      : null;
+
+  if (authenticatedAt === null || authenticatedAt > now + skewInMs) {
+    return { refusal: SignInAgainRefusal.NoSignInTime };
+  }
+
+  if (
+    authenticatedAt < data.requestedAt.getTime() - skewInMs ||
+    authenticatedAt + windowInMs <= now
+  ) {
+    return { refusal: SignInAgainRefusal.ReusedSession };
+  }
+
+  return { reauthenticatedAt: new Date(Math.min(authenticatedAt, now)) };
+};
+
+// Where Sign In Again takes a session, and why the last one did not confirm.
+export interface ReauthenticationSignInAgain {
+  /*
+   * The start of the session's own sign-in, under Identity's address
+   * ("/sso/<project>/<provider>", "/google/sign-in"), which the prompt
+   * opens with REAUTHENTICATE_QUERY_PARAM; null for the sign-in page.
+   */
+  route: string | null;
+  provider: SignInAgainProvider;
+  // The provider's name as the session's sign-in kept it, or null.
+  providerName: string | null;
+  // Why this session's own Sign In Again did not confirm it's you, or null.
+  refusal: SignInAgainRefusal | null;
+  // Whether an emailed sign-in link can sign this person in instead.
+  canUseSignInLink: boolean;
+}
+
 // Which kind of key a WebAuthn prompt is for.
 export enum ReauthenticationWebAuthnKind {
   // A security key or passkey as the second step, after the password.
@@ -121,6 +266,8 @@ export interface ReauthenticationStatus {
   confirmedUntil: Date | null;
   windowInMinutes: number;
   methods: ReauthenticationMethods;
+  // For an account that confirms by signing in again (methods.signInAgain).
+  signInAgain: ReauthenticationSignInAgain | null;
 }
 
 /*
@@ -194,20 +341,57 @@ export const REAUTHENTICATION_MESSAGES: {
   ),
 };
 
+/*
+ * The refusal of a change that waits for a confirmation, in the words of
+ * what it is for: REAUTHENTICATION_MESSAGES.required is a change to how
+ * you sign in.
+ */
+export const REAUTHENTICATION_REQUIRED_MESSAGES: Record<
+  ReauthenticationPurpose,
+  string
+> = {
+  [ReauthenticationPurpose.OwnSignIn]: REAUTHENTICATION_MESSAGES.required,
+  [ReauthenticationPurpose.DeleteAccount]: translationKey(
+    "Confirm it's you before you delete your account, then try again.",
+  ),
+  [ReauthenticationPurpose.AdminChange]: translationKey(
+    "Confirm it's you before you make this change, then try again.",
+  ),
+};
+
+/*
+ * The refusal of such a change from a request with no session - an API
+ * key, the master API key, an MCP client, a workflow - which cannot
+ * confirm, since nobody signed in to it.
+ */
+export const REAUTHENTICATION_NOT_FROM_A_SESSION_MESSAGES: Record<
+  ReauthenticationPurpose,
+  string
+> = {
+  [ReauthenticationPurpose.OwnSignIn]:
+    REAUTHENTICATION_MESSAGES.notFromASession,
+  [ReauthenticationPurpose.DeleteAccount]: translationKey(
+    "An account can only be deleted from a session its person signed in to, after they confirm it's them.",
+  ),
+  [ReauthenticationPurpose.AdminChange]: translationKey(
+    "This change can only be made from a session you signed in to, after you confirm it's you. An API key cannot make it.",
+  ),
+};
+
 // GET REAUTHENTICATION_ROUTE's answer as JSON, and back.
-export const reauthenticationStatusToJSON: (status: ReauthenticationStatus) => {
+export interface ReauthenticationStatusJSON {
   isConfirmed: boolean;
   confirmedUntil: string | null;
   windowInMinutes: number;
   methods: ReauthenticationMethods;
-} = (
+  signInAgain: ReauthenticationSignInAgain | null;
+}
+
+export const reauthenticationStatusToJSON: (
   status: ReauthenticationStatus,
-): {
-  isConfirmed: boolean;
-  confirmedUntil: string | null;
-  windowInMinutes: number;
-  methods: ReauthenticationMethods;
-} => {
+) => ReauthenticationStatusJSON = (
+  status: ReauthenticationStatus,
+): ReauthenticationStatusJSON => {
   return {
     isConfirmed: status.isConfirmed,
     confirmedUntil: status.confirmedUntil
@@ -226,6 +410,58 @@ export const reauthenticationStatusToJSON: (status: ReauthenticationStatus) => {
       passkey: status.methods.passkey,
       signInAgain: status.methods.signInAgain,
     },
+    signInAgain: status.signInAgain
+      ? {
+          route: status.signInAgain.route,
+          provider: status.signInAgain.provider,
+          providerName: status.signInAgain.providerName,
+          refusal: status.signInAgain.refusal,
+          canUseSignInLink: status.signInAgain.canUseSignInLink,
+        }
+      : null,
+  };
+};
+
+// A route under Identity's address: a path of plain segments, nothing else.
+const SIGN_IN_AGAIN_ROUTE: RegExp = /^(?:\/[A-Za-z0-9_-]+){1,4}$/;
+
+// What a status's signInAgain says, or null when it says nothing readable.
+const readSignInAgain: (
+  value: unknown,
+) => ReauthenticationSignInAgain | null = (
+  value: unknown,
+): ReauthenticationSignInAgain | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const json: Record<string, unknown> = value as Record<string, unknown>;
+  const provider: unknown = json["provider"];
+  const refusal: unknown = json["refusal"];
+  const route: unknown = json["route"];
+  const providerName: unknown = json["providerName"];
+
+  return {
+    // Only a path under Identity's address: never a page somewhere else.
+    route:
+      typeof route === "string" && SIGN_IN_AGAIN_ROUTE.test(route)
+        ? route
+        : null,
+    provider: Object.values(SignInAgainProvider).includes(
+      provider as SignInAgainProvider,
+    )
+      ? (provider as SignInAgainProvider)
+      : SignInAgainProvider.SignInPage,
+    providerName:
+      typeof providerName === "string" && providerName.trim()
+        ? providerName.trim()
+        : null,
+    refusal: Object.values(SignInAgainRefusal).includes(
+      refusal as SignInAgainRefusal,
+    )
+      ? (refusal as SignInAgainRefusal)
+      : null,
+    canUseSignInLink: json["canUseSignInLink"] === true,
   };
 };
 
@@ -288,5 +524,9 @@ export const readReauthenticationStatus: (
       passkey: methodsJson["passkey"] === true,
       signInAgain: methodsJson["signInAgain"] === true,
     },
+    signInAgain:
+      methodsJson["signInAgain"] === true
+        ? readSignInAgain(json["signInAgain"])
+        : null,
   };
 };

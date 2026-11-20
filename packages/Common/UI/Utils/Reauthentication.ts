@@ -3,6 +3,7 @@ import HTTPResponse from "../../Types/API/HTTPResponse";
 import URL from "../../Types/API/URL";
 import {
   REAUTHENTICATION_ROUTE,
+  ReauthenticationPurpose,
   ReauthenticationStatus,
   readReauthenticationStatus,
 } from "../../Types/Accounts/Reauthentication";
@@ -22,13 +23,21 @@ import API from "./API/API";
  * is sent again once they have confirmed. Cancelled, the request's answer
  * is the refusal, which says what to do.
  *
+ * The refusal says what it is for (ReauthenticationPurpose): a change to
+ * how you sign in, deleting your own account (#10220), or a master admin's
+ * change to how someone else signs in, or to the server's (#10216). The
+ * prompt says so.
+ *
  * One prompt at a time: every request refused while it is open waits for
- * the same answer, and is sent again with it. An app that mounts no prompt
- * (the Admin Dashboard) answers every refusal with itself.
+ * the same answer, and is sent again with it. The Dashboard and the Admin
+ * Dashboard each mount the prompt (Common/UI/Components/Reauthentication);
+ * an app that mounts none answers every refusal with itself.
  */
 
 // Asks the person, and resolves true once the session has confirmed.
-export type ReauthenticationAsker = () => Promise<boolean>;
+export type ReauthenticationAsker = (
+  purpose: ReauthenticationPurpose,
+) => Promise<boolean>;
 
 export default class Reauthentication {
   private static asker: ReauthenticationAsker | null = null;
@@ -46,9 +55,12 @@ export default class Reauthentication {
 
   /*
    * Whether the session has confirmed it's its person's, asking them when
-   * it has not and a prompt is mounted. Never rejects.
+   * it has not and a prompt is mounted - for `purpose`, which the prompt
+   * says. Never rejects.
    */
-  public static async ask(): Promise<boolean> {
+  public static async ask(
+    purpose: ReauthenticationPurpose = ReauthenticationPurpose.OwnSignIn,
+  ): Promise<boolean> {
     const asker: ReauthenticationAsker | null = Reauthentication.asker;
 
     if (!asker) {
@@ -61,7 +73,7 @@ export default class Reauthentication {
 
     const pending: Promise<boolean> = (async (): Promise<boolean> => {
       try {
-        return await asker();
+        return await asker(purpose);
       } catch {
         return false;
       } finally {

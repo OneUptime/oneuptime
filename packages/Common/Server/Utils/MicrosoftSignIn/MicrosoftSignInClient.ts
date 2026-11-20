@@ -57,9 +57,30 @@ export interface MicrosoftSignInRequest {
 export interface MicrosoftIdentity {
   email: Email;
   name: string | null;
+  /*
+   * When Microsoft says its person signed in (auth_time), or null:
+   * Microsoft Entra ID sends it only once the app has it as an optional ID
+   * token claim (Marketplace/RELEASING.md).
+   */
+  authenticatedAt: Date | null;
   tenantId: string;
   objectId: string;
 }
+
+/*
+ * When an ID token says its person authenticated (OpenID Connect Core 2:
+ * auth_time, in seconds since the epoch), or null when it does not say:
+ * Sign In Again holds it to the moment the person was sent (#10217).
+ */
+const readAuthTime: (claims: Record<string, unknown>) => Date | null = (
+  claims: Record<string, unknown>,
+): Date | null => {
+  const value: unknown = claims["auth_time"];
+
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? new Date(value * 1000)
+    : null;
+};
 
 export class MicrosoftSignInError extends Error {
   // Words for the person signing in.
@@ -101,8 +122,15 @@ export default class MicrosoftSignInClient {
     return buffer.toString("base64url");
   }
 
-  // Where to send the browser, and what its callback has to match.
-  public createSignInRequest(): MicrosoftSignInRequest {
+  /*
+   * Where to send the browser, and what its callback has to match. A Sign
+   * In Again (#10217) asks Microsoft to have the person sign in again
+   * (prompt=login) and to say when (max_age=0), in place of choosing an
+   * account.
+   */
+  public createSignInRequest(options?: {
+    isSignInAgain?: boolean | undefined;
+  }): MicrosoftSignInRequest {
     const state: string = MicrosoftSignInClient.base64Url(
       crypto.randomBytes(32),
     );
@@ -129,6 +157,11 @@ export default class MicrosoftSignInClient {
       // Lets someone signed in to several Microsoft accounts choose which.
       prompt: "select_account",
     });
+
+    if (options?.isSignInAgain) {
+      params.set("prompt", "login");
+      params.set("max_age", "0");
+    }
 
     return {
       authorizationUrl: `${AUTHORITY}/authorize?${params.toString()}`,
@@ -275,6 +308,7 @@ export default class MicrosoftSignInClient {
       name: typeof name === "string" && name.trim() ? name.trim() : null,
       tenantId: tenantId,
       objectId: objectId,
+      authenticatedAt: readAuthTime(claims),
     };
   }
 
