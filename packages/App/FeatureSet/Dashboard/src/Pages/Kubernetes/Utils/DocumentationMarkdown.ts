@@ -143,6 +143,17 @@ function isRestrictedPlatform(platform: KubernetesPlatform): boolean {
   return platform === "gke-autopilot" || platform === "eks-fargate";
 }
 
+/*
+ * Where the chart's cost.enabled: auto leaves cost monitoring off: the
+ * presets whose pods are each billed by what they request
+ * (kubernetes-agent.costEnabled in the chart's _helpers.tpl).
+ */
+export function isCostOffByDefaultPlatform(
+  platform: KubernetesPlatform,
+): boolean {
+  return platform === "gke-autopilot" || platform === "eks-fargate";
+}
+
 export interface KubernetesSetupGuideOptions {
   oneuptimeUrl: string;
   apiKey: string;
@@ -609,18 +620,42 @@ Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose t
     });
   }
 
-  topics.push({
-    title: "Track what workloads cost",
-    summary:
-      "Spend per namespace, workload and pod — with idle capacity and efficiency — on the cluster's Costs page.",
-    markdown: `${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set cost.enabled=true"]))}
-
-That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.
-
-- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add \`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003\` (or your Kubecost service).
+  /*
+   * Cost monitoring is on by default (cost.enabled: auto), except on the two
+   * presets whose pods are each billed by what they request: there the
+   * topic says why it is off and how to turn it on anyway.
+   */
+  const isCostOffByDefault: boolean = isCostOffByDefaultPlatform(platform);
+  const costEnableCommand: string = codeBlock(
+    "bash",
+    getKubernetesAgentUpgradeCommand(["--set cost.enabled=true"]),
+  );
+  const costElsewhere: string = `- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add \`--set cost.engine.url=auto\` to stop bundling a second one.
 - **On-prem or bare metal?** Set a rate card with \`--set cost.opencost.customPricing.enabled=true\` (USD per resource-hour — see the chart's \`values.yaml\`).
 
-Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).`,
+Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).`;
+
+  topics.push({
+    title: "Track what workloads cost",
+    summary: isCostOffByDefault
+      ? "Spend per namespace, workload and pod — with idle capacity and efficiency — on the cluster's Costs page."
+      : "Spend per namespace, workload and pod — with idle capacity and efficiency — on the cluster's overview and Costs page. On by default.",
+    markdown: isCostOffByDefault
+      ? `Cost monitoring is off by default on this platform: it bills every pod by what it requests, so the three cost pods would add to your bill, and OpenCost prices nodes rather than pods. To turn it on anyway:
+
+${costEnableCommand}
+
+That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.
+
+${costElsewhere}`
+      : `Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.
+
+On an agent installed before it was on by default, upgrade it:
+
+${costEnableCommand}
+
+- **Turn it off:** add \`--set cost.enabled=false\` to the same upgrade.
+${costElsewhere}`,
   });
 
   if (isRestrictedPlatform(platform)) {
@@ -743,7 +778,9 @@ function getCollectedDataMarkdown(platform: KubernetesPlatform): string {
   }
 
   rows.push(
-    "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |",
+    isCostOffByDefaultPlatform(platform)
+      ? "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |"
+      : "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |",
   );
 
   const notes: Array<string> = [];

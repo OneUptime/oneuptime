@@ -7,7 +7,7 @@ services:
     # (oneuptime.agent.version). Bump them together;
     # Tests/Ops/validate-collector-configs.sh validates the three configs
     # against this version.
-    image: otel/opentelemetry-collector-contrib:0.161.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     # One agent monitors ONE array. To monitor a second array from the same
     # machine, install it into another directory and give its container
     # another name here (see README.md).

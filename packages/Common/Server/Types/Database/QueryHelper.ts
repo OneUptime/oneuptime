@@ -10,6 +10,10 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import { OwnedByMatch } from "../../../Types/BaseDatabase/OwnedBy";
+import {
+  NAME_WHITE_SPACE_RUN_PATTERN,
+  getNameKeySql,
+} from "../../../Types/Database/UniqueName";
 import buildJSONColumnQuery, {
   JSONColumnQuery,
   escapeLikePattern,
@@ -168,6 +172,36 @@ export default class QueryHelper {
       },
       {
         [rid]: `${text}`,
+      },
+    );
+  }
+
+  /*
+   * A name column holding the name `name` reads as (Types/Database/
+   * UniqueName, #9674): the same whatever its case, the white space around
+   * it, and how much - or which kind of - white space stands between its
+   * words. Both sides are read the same way in Postgres, so a name a project
+   * already holds is matched however it was saved: "Tenants ", "TENANTS"
+   * and "Tenants" are one name. findWithSameText compares case alone, and
+   * only after trimming the name it is handed.
+   */
+  public static findWithSameName(name: string): FindWhereProperty<any> {
+    const nameRid: string = Text.generateRandomText(10);
+    const patternRid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(${getNameKeySql({
+          textSql: alias,
+          patternSql: `:${patternRid}`,
+        })} = ${getNameKeySql({
+          textSql: `CAST(:${nameRid} AS TEXT)`,
+          patternSql: `:${patternRid}`,
+        })})`;
+      },
+      {
+        [nameRid]: `${name}`,
+        [patternRid]: NAME_WHITE_SPACE_RUN_PATTERN,
       },
     );
   }
@@ -507,6 +541,66 @@ export default class QueryHelper {
         [rid]: `%${trimmed}%`,
       },
     );
+  }
+
+  /*
+   * Any of these entity properties holds `text` as typed - without case,
+   * "%" and "_" matching only themselves - or matches `pattern`, a Postgres
+   * regular expression read without case (`~*`). Set on any one property,
+   * as multiSearch is: its SQL names them all. Each value is one bound
+   * parameter. With no text and no pattern it matches nothing.
+   *
+   * Search by meaning (Server/Utils/AI/MeaningSearch) asks it for the
+   * records that say what a question says, in any of the words that say it.
+   */
+  public static multiSearchOrPattern(
+    entityPropertyNames: Array<string>,
+    data: { text: string; pattern: string | null },
+  ): FindWhereProperty<any> {
+    const text: string = (data.text || "").toLowerCase().trim();
+    const pattern: string = data.pattern || "";
+
+    if ((!text && !pattern) || entityPropertyNames.length === 0) {
+      return Raw(() => {
+        return "TRUE = FALSE";
+      }, {});
+    }
+
+    const textRid: string = Text.generateRandomText(10);
+    const patternRid: string = Text.generateRandomText(10);
+    const parameters: Dictionary<string> = {};
+
+    if (text) {
+      parameters[textRid] = `%${escapeLikePattern(text)}%`;
+    }
+
+    if (pattern) {
+      parameters[patternRid] = pattern;
+    }
+
+    return Raw((alias: string) => {
+      const tableAlias: string = alias.includes(".")
+        ? (alias.split(".")[0] as string)
+        : alias;
+
+      const orConditions: Array<string> = [];
+
+      for (const field of entityPropertyNames) {
+        if (text) {
+          orConditions.push(
+            `(CAST(${tableAlias}.${field} AS TEXT) ILIKE :${textRid})`,
+          );
+        }
+
+        if (pattern) {
+          orConditions.push(
+            `(CAST(${tableAlias}.${field} AS TEXT) ~* :${patternRid})`,
+          );
+        }
+      }
+
+      return `(${orConditions.join(" OR ")})`;
+    }, parameters);
   }
 
   public static notContains(name: string): FindWhereProperty<any> {

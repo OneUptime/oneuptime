@@ -124,6 +124,33 @@ Monitorer, som sonder ikke tjekker (Manuel, Indgående anmodning, Indgående e-m
 > [!TIP]
 > En sonde, der skal tjekke private adresser som `http://10.0.0.5/health`, skal have `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`. Sonder afviser private adresser, indtil du tillader dem: se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 
+## Opdater en sonde
+
+En sonde kører versionen af det image, den blev startet fra, så for at opdatere den skal du starte den igen fra et nyere image med samme sonde-ID og nøgle. Imaget `oneuptime/probe:release` er altid den nyeste version.
+
+:::tabs
+@tab Docker
+```bash
+docker pull oneuptime/probe:release
+docker rm -f oneuptime-probe
+```
+
+Kør derefter kommandoen fra [Kør sonden](#kør-sonden) igen.
+@tab Docker Compose
+```bash
+docker compose pull oneuptime-probe
+docker compose up -d oneuptime-probe
+```
+@tab Kubernetes
+```bash
+kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
+```
+
+Erstat `<version>` med den version, der skal køre, f.eks. `17.0.1`, og skriv samme image i `oneuptime-probe.yaml`, så det bliver ved, når du anvender filen igen.
+:::
+
+Sondens side viser den version, den kører, under **Sondestatus**. En sonde ældre end 17.0.1 kan ikke generere koderne til en [engangskodehemmelighed](/docs/monitor/monitor-secrets#log-ind-med-en-engangskode): dens side siger det, og det gør formularen for en monitor, den kontrollerer, også.
+
 ## Forbind gennem en proxy
 
 Hvis sonden skal gennem en proxy for at nå OneUptime eller de websteder, den tjekker, så giv den proxyens adresse:

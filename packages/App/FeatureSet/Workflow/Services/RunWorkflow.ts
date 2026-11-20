@@ -75,6 +75,14 @@ import { OAUTH2_TOKEN_REQUEST_TIMEOUT_IN_MS } from "Common/Server/Utils/Workflow
 import WorkflowVariableOAuthToken, {
   WorkflowVariableAccessToken,
 } from "Common/Server/Utils/Workflow/WorkflowVariableOAuthToken";
+import WorkflowPrincipal, {
+  WorkflowRunAsGrant,
+} from "Common/Server/Utils/Workflow/WorkflowPrincipal";
+import WorkflowRunAsAuthority from "Common/Server/Utils/Workflow/WorkflowRunAsAuthority";
+import {
+  WorkflowRunAs,
+  getWorkflowRunAsRunLogLine,
+} from "Common/Types/Workflow/WorkflowRunAs";
 import {
   WorkflowVariableReference,
   WorkflowVariableScope,
@@ -413,6 +421,13 @@ export default class RunWorkflow {
   private workflowId: ObjectID | null = null;
   // For the audit trail of what the run's steps change (WorkflowPrincipal).
   private workflowName: string | null = null;
+  /*
+   * What the run's steps act as (#9695): the workflow's Run As, checked
+   * against the person who gave it as the run starts or carries on
+   * (WorkflowRunAsAuthority.resolveForRun). The default permissions until
+   * then.
+   */
+  private runAs: WorkflowRunAsGrant = { runAs: WorkflowRunAs.Default };
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
   private callChain: Array<string> = [];
@@ -593,6 +608,10 @@ export default class RunWorkflow {
           isEnabled: true,
           isArchived: true,
           name: true,
+          runAs: true,
+          runAsCustomRoleId: true,
+          runAsGivenByUserId: true,
+          runAsGivenByApiKeyId: true,
         },
         props: {
           isRoot: true,
@@ -805,6 +824,26 @@ export default class RunWorkflow {
         },
       });
 
+      /*
+       * What the steps act as (#9695): the workflow's Run As as it is now -
+       * for a run carrying on after a Sleep step too, which acts as the
+       * workflow does when it wakes - checked against whoever gave it, a
+       * person or a project API key (#9765), as they are in the project now.
+       * Refused, the run stops here, before any step, and says why and who
+       * can put it right.
+       */
+      this.runAs = await WorkflowRunAsAuthority.resolveForRun({
+        projectId: workflow.projectId!,
+        setting: {
+          runAs: workflow.runAs,
+          customRoleId: workflow.runAsCustomRoleId,
+        },
+        givenByUserId: workflow.runAsGivenByUserId,
+        givenByApiKeyId: workflow.runAsGivenByApiKeyId,
+      });
+
+      await this.recordRunAs(runProps.workflowLogId);
+
       // form a run stack.
 
       let runStack: RunStack = await this.makeRunStack(workflow.graph);
@@ -867,6 +906,20 @@ export default class RunWorkflow {
       // get storage map with variables.
       const storageMap: StorageMap = getVariableResult.storageMap;
       variables = getVariableResult.variables;
+
+      /*
+       * A workflow that runs as more than Default reads only its own
+       * variables (#9695): anyone who may edit workflow variables may change
+       * the project's global ones, and with them what its steps do with its
+       * permissions. Saving such a graph is refused when it names them
+       * (WorkflowService.assertNoGlobalVariables); here they are not there to
+       * read at all, nor refreshed (refreshOAuthVariablesUsedByComponent).
+       * Every variable is still redacted from the run's logs.
+       */
+      RunWorkflow.withholdGlobalVariables({
+        runAs: this.runAs,
+        storageMap: storageMap,
+      });
 
       /*
        * Seed the execution state. On a fresh run we start at the trigger with
@@ -1794,6 +1847,18 @@ export default class RunWorkflow {
     }
 
     for (const reference of this.getVariableReferencesOfComponent(data.node)) {
+      /*
+       * A workflow that runs as more than Default reads no global variable
+       * (withholdGlobalVariables), so it refreshes none either: the token
+       * would land in the map it was kept out of.
+       */
+      if (
+        reference.scope === WorkflowVariableScope.Global &&
+        WorkflowPrincipal.isRaised(this.runAs.runAs)
+      ) {
+        continue;
+      }
+
       const variable: WorkflowVariable | undefined = findVariableForReference(
         oauthVariables,
         reference,
@@ -2048,6 +2113,8 @@ export default class RunWorkflow {
         configuredArguments: node.arguments || {},
         workflowId: this.workflowId!,
         workflowName: this.workflowName || undefined,
+        // What the steps act as (#9695), as resolved when the run started.
+        runAs: this.runAs,
         workflowLogId: this.workflowLogId!,
         projectId: callingProjectId,
         getRemainingExecutionTimeInMs: (): number => {
@@ -2105,6 +2172,8 @@ export default class RunWorkflow {
                 isEnabled: true,
                 isArchived: true,
                 name: true,
+                runAs: true,
+                runAsCustomRoleId: true,
               },
               props: {
                 isRoot: true,
@@ -2154,6 +2223,22 @@ export default class RunWorkflow {
             );
           }
 
+          /*
+           * A workflow that runs as more than Default is started by another
+           * only if the other's own permissions include it (#9695): whoever
+           * may change this workflow decides what the other is started
+           * with, and holds only this workflow's permissions.
+           */
+          await WorkflowRunAsAuthority.assertMayStart({
+            projectId: callingProjectId,
+            parent: this.runAs,
+            child: {
+              runAs: targetWorkflow.runAs,
+              customRoleId: targetWorkflow.runAsCustomRoleId,
+            },
+            childName: targetWorkflow.name,
+          });
+
           await QueueWorkflow.addWorkflowToQueue({
             workflowId: child.workflowId,
             returnValues: child.returnValues,
@@ -2164,6 +2249,61 @@ export default class RunWorkflow {
     }
 
     throw new BadDataException("Component " + node.metadata.id + " not found");
+  }
+
+  /*
+   * A run that acts as more than Default reads none of the project's global
+   * variables (#9695): its storage map is left with the workflow's own.
+   * A run that acts as Default reads them all, as it always did.
+   */
+  public static withholdGlobalVariables(data: {
+    runAs: WorkflowRunAsGrant;
+    storageMap: StorageMap;
+  }): void {
+    if (!WorkflowPrincipal.isRaised(data.runAs.runAs)) {
+      return;
+    }
+
+    data.storageMap.global.variables = {};
+  }
+
+  /*
+   * What this run acts as, on its row (WorkflowLog.runAs and the columns
+   * beside it), and - for a run that acts as more than Default - said in
+   * its log as it starts, with whose permissions: a person's, or a project
+   * API key's, by its name now (#9765). Every run says it; a run as Default
+   * leaves its log as it always was.
+   */
+  private async recordRunAs(workflowLogId: ObjectID): Promise<void> {
+    const isGivenByApiKey: boolean = Boolean(this.runAs.givenByApiKeyId);
+
+    if (WorkflowPrincipal.isRaised(this.runAs.runAs)) {
+      this.log(
+        getWorkflowRunAsRunLogLine({
+          choice: {
+            runAs: this.runAs.runAs,
+            customRoleName: this.runAs.customRoleName,
+          },
+          giverName: this.runAs.givenByName || "",
+          isGivenByApiKey: isGivenByApiKey,
+        }),
+      );
+    }
+
+    await WorkflowLogService.updateColumnsByIdWithoutHooks({
+      id: workflowLogId,
+      data: {
+        runAs: this.runAs.runAs,
+        runAsCustomRoleName: this.runAs.customRoleName || null,
+        runAsGivenByUserId: isGivenByApiKey
+          ? null
+          : this.runAs.givenByUserId || null,
+        runAsGivenByApiKeyId: this.runAs.givenByApiKeyId || null,
+        runAsGivenByApiKeyName: isGivenByApiKey
+          ? this.runAs.givenByName || null
+          : null,
+      } as any,
+    });
   }
 
   public async getVariables(

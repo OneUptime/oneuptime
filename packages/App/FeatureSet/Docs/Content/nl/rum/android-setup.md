@@ -107,6 +107,10 @@ OpenTelemetry Android legt dit allemaal uit zichzelf vast. De apparaatattributen
 
 Crashes en ANR's komen in **Uitzonderingen** binnen als niet-afgehandeld, gegroepeerd op hun stacktraces, met de sessie waarin ze gebeurden. De agent slaat een crash op schijf op terwijl de app sterft en verstuurt hem van daaruit, dus een crash die offline gebeurt, komt toch binnen zodra de app weer draait met een netwerk.
 
+De pagina **Overzicht** van de applicatie zet dit voor je op een rij: **Sessies**, **Crashvrije sessies**, **Crashes**, **ANR's**, **App-starts**, **Koude start (p95)** en **Bevroren frames**, en elke tegel opent de uitzonderingen, spans of gebeurtenissen die hij telt. Zolang de app geen app-starts of frames verstuurt, vertellen de bijbehorende grafieken hoe je ze aanzet. De pagina **Aanbevelingen** biedt monitors voor crashes, ANR's, trage koude starts, bevroren frames, en een app of een van zijn apparaten die stopt met rapporteren.
+
+Onder **Crashvrije sessies** toont de regel hetzelfde aandeel voor de installaties: de `app.installation.id` die OpenTelemetry Android vanaf versie 1.1 op elke span en log instelt, een id die blijft zolang de app geïnstalleerd is, zodat hij voor de gebruikers van de app staat. Voor een app met honderden sessies per uur, waar een crash per dag normaal is, waarschuwen **App Crash Rate** en **App ANR Rate** bij het aandeel van de sessies van een uur dat crashte of vastliep, boven de 1,09% en 0,47% van Android vitals, in plaats van bij elke crash afzonderlijk.
+
 Een sessie eindigt na 15 minuten op de achtergrond, of na 4 uur. Een app die nooit naar de achtergrond gaat, zoals een kiosk, houdt 4 uur lang één sessie, dus trace het bezoek van elke klant als een eigen span, zoals [Je eigen workflows tracen](#je-eigen-workflows-tracen) laat zien.
 
 De eigen `android.util.Log`-aanroepen van je app worden ook logs wanneer je `android-log-library` en `android-log-agent` naast de OkHttp-modules hieronder toevoegt: de tag van elke aanroep komt in `android.log.tag`, en een aanroep met een throwable is een uitzondering in **Uitzonderingen**. OpenTelemetry Android leest Logcat niet.
@@ -219,7 +223,36 @@ resource {
 }
 ```
 
-De telemetrie van de app blijft bij zijn RUM-applicatie, en het apparaat wordt geen host in **Hosts**: een app meldt geen hostmetrieken, dus daar zou niets te tonen zijn. De pagina van het apparaat in **Inventaris** toont zijn eigen logs, traces en uitzonderingen, en `@resource.host.name:` vindt ze in **Traces** en **Logboeken**. Een apparaat dat 30 dagen niets verstuurt, verdwijnt uit **Inventaris**.
+De telemetrie van de app blijft bij zijn RUM-applicatie, en het apparaat wordt geen host in **Hosts**: een app meldt geen hostmetrieken, dus daar zou niets te tonen zijn. De pagina van het apparaat in **Inventaris** toont zijn eigen logs, traces en uitzonderingen, en `@resource.host.name:` vindt ze in **Traces** en **Logboeken**. Een apparaat dat 30 dagen niets verstuurt, verdwijnt uit **Inventaris**. Om het apparaat zelf te zien, zijn geheugen, opslag en herstarts en de crashes van elke app erop, voeg je de [Android-agent](/docs/telemetry/android-agent) toe en geef je hem dezelfde naam in zijn `device_name`: het apparaat is dan ook een host in **Hosts**, en nog steeds één item in **Inventaris**.
+
+### Horen wanneer een apparaat stil wordt
+
+De pagina **Aanbevelingen** van de applicatie biedt **Device Stopped Reporting**: een waarschuwing voor elk apparaat dat een uur lang geen spans verstuurt nadat het er in de afgelopen week wel verstuurde, onderscheiden aan de `app.installation.id` die de agent instelt. De waarschuwing van elk apparaat noemt zijn installatie en wordt opgelost zodra het apparaat weer rapporteert. Als alle apparaten tegelijk stil worden, bijvoorbeeld wanneer het netwerk van een winkel uitvalt, waarschuwt geen enkel apparaat: **App Stopped Reporting** meldt het één keer voor de hele app.
+
+Een kiosk die op één scherm blijft staan, verstuurt niets tot iemand hem gebruikt. Verstuur om de paar minuten een span zolang de app draait, zodat een kiosk die niet wordt gebruikt niet wordt aangezien voor een stille:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Start hem zodra de agent is gestart, met `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Een span om de vijf minuten houdt een werkende kiosk ruim binnen het uur.
 
 ### De vloot vanuit je MDM configureren
 
@@ -246,6 +279,12 @@ Geef daarna `token` door aan `baseHeaders` in plaats van `BuildConfig.ONEUPTIME_
 ```
 
 Laat de apparaten na een wijziging convergeren, zodat ze de nieuwe waarden lezen. Declareer dezelfde sleutels in een `app_restrictions.xml` als je MDM om een schema vraagt. Esper weigert een APK zonder v1-handtekening, dus onderteken de release met het v1-schema naast v2 of v3.
+
+### De vloot uit Esper importeren
+
+Koppel je Esper-tenant aan de inventaris, en elk apparaat dat Esper inschrijft, wordt vermeld, ook de apparaten waarvan de app nooit is gestart, met wat alleen Esper weet: zijn groep, Android-versie, beveiligingspatchniveau, serienummer, batterij, opslag, geïnstalleerde apps en laatste check-in. Een apparaat dat niet meer incheckt, staat als offline, met hoe lang geleden het dat voor het laatst deed. Zie [Apparaten uit Esper importeren](/docs/inventory/overview#apparaten-uit-esper-importeren).
+
+Een apparaat waarvan de app het noemt zoals hierboven, is één item met wat de app stuurt: `host.name` is zijn naam in Esper. OneUptime vindt het item van een apparaat op `host.name` en daarna op `host.serial_number`, dus geef elk apparaat dezelfde naam en hetzelfde serienummer in elke app die ervandaan rapporteert, en in de instellingen `device_name` en `device_serial` van de Android Agent.
 
 ### Bewaren wat offline wordt vastgelegd
 
@@ -279,6 +318,7 @@ Alleen een apparaat waarvan de app `host.name` instelt, wordt vermeld. Controlee
 
 :::cards
 - [Mobiele configuratie](/docs/rum/mobile-setup): iOS, React Native en de andere platforms.
+- [Android-agent](/docs/telemetry/android-agent): Het apparaat zelf bewaken: zijn gezondheid, herstarts, geïnstalleerde apps en de crashes van elke app.
 - [Uitzonderingen](/docs/telemetry/exceptions): De crashes en ANR's triëren die je app meldt.
 - [Traceverkenner](/docs/telemetry/traces-explorer): Een bestelling volgen van de kiosk tot in de keuken.
 - [Applicaties beheren](/docs/rum/applications): Namen, labels, eigenaren en bewaartermijnen.

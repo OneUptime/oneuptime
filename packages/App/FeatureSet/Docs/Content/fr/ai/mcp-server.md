@@ -41,7 +41,7 @@ Le serveur est sans état : il n'émet aucun identifiant de session et chaque re
 - **Maintenance planifiée** : créer et gérer des événements de maintenance.
 - **Télémétrie** : interroger les logs, les métriques, les traces, les exceptions, les logs de moniteurs, les événements de sécurité et plus encore, en lecture seule.
 
-Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 54 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint`, tout outil qui modifie quelque chose porte `destructiveHint`, et seuls les outils des pages de statut publiques portent `openWorldHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
+Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 55 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Un type d'enregistrement sans aucun champ modifiable une fois créé, comme le lien d'un incident avec une alerte, n'a pas d'outil de mise à jour. Les outils en lecture seule portent `readOnlyHint` et tout outil qui modifie quelque chose porte `destructiveHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. `openWorldHint` signale les outils qui vont au-delà de votre projet : les outils des pages de statut publiques, et les modifications affichées sur une page de statut et envoyées à ses abonnés, comme un nouvel incident, un changement de son état ou une note publique. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
 
 ## Avant de commencer
 
@@ -341,6 +341,20 @@ L'outil **`get_data_table_freshness`** indique à un agent si une table que Data
 
 L'outil **`get_data_table_lineage`** indique à un agent à partir de quoi une table surveillée est construite et ce qui est construit à partir d'elle, avant qu'il ne modifie la table ou ne se fie à ses données : les tables en amont et en aval qui sont en retard, supprimées, qui ont des alertes ouvertes ou dont le pipeline a échoué à sa dernière exécution, les plus proches d'abord, chacune avec le nombre d'étapes qui l'en séparent, puis les autres, les pipelines qui chargent ses sources depuis l'extérieur et les tableaux de bord BI construits dessus. Il va jusqu'à trois étapes de chaque côté, ou jusqu'à cinq avec `depth`. Passez `table` comme pour `get_data_table_freshness`. Il ne modifie rien.
 
+L'outil **`oneuptime_move_in_list`** déplace une ligne d'une liste ordonnée, comme une sévérité d'incident, un état d'incident ou un statut de moniteur, à la place d'une autre ligne, comme le fait un glisser-déposer dans le tableau de bord : les lignes intermédiaires se décalent d'une place, et il répond avec chaque ligne dont le numéro a changé. Passez `resource` (comme `Incident Severity`), l'`id` de la ligne et `placeOfId`, l'ID de la ligne dont elle prend la place. Écrire le numéro d'une ligne avec son outil `update_` ne place que cette ligne, à côté de toute ligne qui a déjà ce numéro.
+
+## Outils pour mettre les choses en place
+
+Le serveur a aussi les actions de mise en place de Demander à l'IA, un appel chacune : ce que vous mettez en place, plutôt qu'un enregistrement à la fois. Chacune crée les enregistrements que Demander à l'IA et les configurations guidées créent pour les mêmes réponses, avec les mêmes vérifications :
+
+- **`set_up_website_monitoring`** : un moniteur de site web ou d'API pour une adresse, qui ouvre un incident quand l'adresse ne répond pas ou répond par une erreur. Il est à vous, et une adresse qu'un moniteur vérifie déjà n'en reçoit pas un second
+- **`set_up_paging`** : dans un projet qui n'alerte encore personne, sa première politique d'astreinte, qui vous alerte, ainsi que les personnes et les équipes que vous nommez, pour chaque nouvel incident et chaque nouvelle alerte
+- **`publish_status_page`** : une page de statut publique qui montre les moniteurs que vous nommez
+- **`add_monitors_to_status_page`** : des moniteurs ajoutés à une page de statut que le projet a déjà
+- **`who_is_told`** : qui est prévenu quand un moniteur tombe en panne, et ce qui empêcherait de joindre quelqu'un. Il ne change rien
+
+Ils agissent en votre nom, connecté avec OAuth : une clé d'API de projet ne peut pas utiliser les quatre qui créent quelque chose. Votre client vous demande avant chacun d'eux, et sa réponse dit ce qui a été créé. Ce qui manque, comme une autorisation, une adresse ou de la place dans le forfait, est dit avant que quoi que ce soit soit créé.
+
 ## Interroger la télémétrie
 
 Les logs, les métriques, les traces (spans), les exceptions, les logs de moniteurs et les autres types de télémétrie sont accessibles par des outils `list_` et `count_` en lecture seule (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` et leurs jumeaux `count_`). La télémétrie arrive par OpenTelemetry, il n'y a donc pas d'outils de création.
@@ -489,7 +503,7 @@ Le serveur MCP est sans état : il n'émet ni ne suit d'identifiants de session,
 | Équipes et astreinte | Team, On-Call Policy |
 | Étiquettes | Label |
 | Sécurité | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Sécurité des données | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Sécurité des données | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Observabilité des données | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Cloud | Cloud Budget |
 

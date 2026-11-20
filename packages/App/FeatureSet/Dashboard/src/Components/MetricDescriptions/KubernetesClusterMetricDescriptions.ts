@@ -101,7 +101,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "Pods placed on a node with their containers running or starting. A pod whose container cannot run is counted under that problem instead, such as CrashLoopBackOff. Running does not mean healthy - a container can still be failing its readiness check.",
   ),
   podsCannotRun: translationKey(
-    "Pods with a container that cannot run: it keeps crashing (CrashLoopBackOff), its image cannot be pulled (ImagePullBackOff) or its configuration is wrong. Kubernetes retries in vain until the cause is fixed. Any such pod marks the cluster Unhealthy.",
+    "Pods with a container that cannot run: it keeps crashing (CrashLoopBackOff), its image cannot be pulled (ImagePullBackOff) or its configuration is wrong. Retrying changes nothing until the cause is fixed. Any such pod marks the cluster Unhealthy.",
   ),
   podsPending: translationKey(
     "Pods the cluster has accepted but not started yet - usually waiting for a node with enough free CPU or memory, for an image to download, or for a volume. A pod pending for more than five minutes marks the cluster Degraded.",
@@ -140,7 +140,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   ),
 
   podHealth: translationKey(
-    "Pods in the latest inventory, by kubectl status: Running, Can't run (keeps crashing or cannot start), Pending (not started yet), Failed (stopped with an error) and Succeeded (finished without error, such as completed jobs). Not tied to the time range.",
+    "Pods in the latest inventory, each counted once as kubectl shows it: Running, Can't run (a container keeps crashing or cannot start), Pending (not started yet), Failed (stopped with an error) and Succeeded (finished without error). Not tied to the time range.",
   ),
 
   // Top consumers - each pod's latest minute from the past hour.
@@ -154,6 +154,34 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   // Insights page network card.
   networkThroughput: translationKey(
     "Bytes per second received and transmitted in each interval, added up across every node and network interface the agent reports. Worked out from the nodes' running byte counters rather than sampled directly.",
+  ),
+};
+
+/*
+ * The cluster overview's Cost card (Pages/Kubernetes/View/
+ * KubernetesCostOverviewCard): fixed windows, not the page's range.
+ */
+export type KubernetesCostOverviewMetric =
+  | "lastDaySpend"
+  | "monthlyRunRate"
+  | "idleSpend"
+  | "efficiency";
+
+export const KUBERNETES_COST_OVERVIEW_DESCRIPTIONS: Record<
+  KubernetesCostOverviewMetric,
+  string
+> = {
+  lastDaySpend: translationKey(
+    "Everything this cluster cost in the last 24 hours, idle capacity included, as its cost engine priced it. Each hour's cost arrives about an hour after it closes, so this holds about 23 hours. Ignores the time range picker.",
+  ),
+  monthlyRunRate: translationKey(
+    "A month at the average hourly spend of the last 7 days: that average times 730, the hours in a month. Hours with no cost data are left out, not counted as free. An estimate at list prices or your rate card, not your cloud bill.",
+  ),
+  idleSpend: translationKey(
+    "What the cluster paid in the last 24 hours for node capacity no workload requested or used, plus cost the engine could not allocate, and its share of the spend. Amber from 25%, red from 40%.",
+  ),
+  efficiency: translationKey(
+    "How much of their requested CPU and memory the workloads used in the last 24 hours, weighted by what that CPU and memory cost, as the Costs page counts it; above 100% means more than requested. Green from 70%, red below 40%.",
   ),
 };
 
@@ -220,7 +248,7 @@ export const KUBERNETES_COST_METRIC_DESCRIPTIONS: Record<
     "All costs for this workload (a Deployment, StatefulSet, Job and so on) in the selected range. The percentage and bar show its share of workload spend, which leaves idle capacity out.",
   ),
   efficiency: translationKey(
-    "How much of the requested CPU and memory was actually used, averaged over the cost records in the range; above 100% means more was used than requested. Green from 70%, red below 40% - low values mean paying for unused requests.",
+    "How much of the requested CPU and memory was used in the selected range, weighted by what that CPU and memory cost; above 100% means more was used than requested. Green from 70%, red below 40%: low means paying for unused requests.",
   ),
 
   fleetTotalSpend: translationKey(
@@ -248,7 +276,7 @@ export const KUBERNETES_COST_METRIC_DESCRIPTIONS: Record<
     "Everything this cluster cost in the selected range. The percentage and bar show its share of spend across all clusters.",
   ),
   clusterEfficiency: translationKey(
-    "Average share of requested CPU and memory that was actually used, over all of this cluster's cost records in the range, idle-capacity records included. Green from 70%, red below 40%.",
+    "How much of the requested CPU and memory this cluster's workloads used in the selected range, weighted by what that CPU and memory cost. Idle capacity is not counted. Green from 70%, red below 40%.",
   ),
 };
 

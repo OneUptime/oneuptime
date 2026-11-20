@@ -6,6 +6,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+  DiscoveryImportAlerting,
   DiscoveryImportHostResult,
   DiscoveryImportSettings,
   DiscoveryImportView,
@@ -40,10 +41,19 @@ import React, {
 } from "react";
 import {
   DiscoveredHostQuery,
+  DiscoveredHostSelectability,
+  getAlreadyAddedDeviceIds,
   getDiscoveredHostsToImport,
   getInitialSelection,
+  isAddingMonitorToExistingHost,
   isSelectableDiscoveredHost,
 } from "../DiscoveredHostFilter";
+import {
+  DeviceMonitorsByKey,
+  emptyDeviceMonitorsByKey,
+  getMonitoredDeviceIds,
+  loadDeviceMonitorsForDeviceIds,
+} from "../DeviceMonitorsOfDevices";
 import DiscoveryScanStatusMessage from "../DiscoveryScanStatusMessage";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import DiscoveredHostTable from "./DiscoveredHostTable";
@@ -64,6 +74,7 @@ import {
   DEFAULT_DISCOVERY_REVIEW_QUERY,
   DISCOVERY_REVIEW_SCAN_SELECT,
   getImportedAddresses,
+  getImportedDeviceIds,
   getPickedTemplate,
   getReviewHosts,
   keepPickedTemplate,
@@ -262,6 +273,10 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   const [importedAddresses, setImportedAddresses] = useState<Set<string>>(
     new Set<string>(),
   );
+  // The device an import of this sitting created or found for each host.
+  const [importedDeviceIds, setImportedDeviceIds] = useState<
+    Map<string, string>
+  >(new Map<string, string>());
   const [allResults, setAllResults] =
     useState<Array<DiscoveryImportHostResult> | null>(null);
   const [isLoadingAllResults, setIsLoadingAllResults] =
@@ -270,6 +285,15 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   const [now, setNow] = useState<number>(Date.now());
   // Bumped by "Try again" after the scan could not be read, to read it again.
   const [openAttempt, setOpenAttempt] = useState<number>(0);
+  /*
+   * The monitors of the devices the scan's hosts already are (issue #9544):
+   * null until read. They decide which of those hosts can be picked to get
+   * a monitor - one with none - and say Already monitored on the rest.
+   */
+  const [deviceMonitors, setDeviceMonitors] =
+    useState<DeviceMonitorsByKey | null>(null);
+  // Bumped when an import finishes: the devices it gave monitors have them now.
+  const [monitorsReadAttempt, setMonitorsReadAttempt] = useState<number>(0);
   const openRequestRef: React.MutableRefObject<number> = useRef<number>(0);
   const contentRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
@@ -420,10 +444,24 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
         setImportedAddresses((current: Set<string>) => {
           return new Set<string>([...current, ...addresses]);
         });
+
+        // The device each one is (issue #9677): its monitors are read by it.
+        const deviceIds: Map<string, string> = getImportedDeviceIds(results);
+
+        if (deviceIds.size > 0) {
+          setImportedDeviceIds((current: Map<string, string>) => {
+            return new Map<string, string>([...current, ...deviceIds]);
+          });
+        }
       };
 
       markImported(view.results);
       props.onImportsChanged();
+
+      // The devices it gave a monitor are Already monitored now.
+      setMonitorsReadAttempt((attempt: number) => {
+        return attempt + 1;
+      });
 
       getDiscoveryImport(view.id, { allResults: true })
         .then((full: DiscoveryImportView) => {
@@ -449,8 +487,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     return getReviewHosts({
       scan: scan,
       importedAddresses: importedAddresses,
+      importedDeviceIds: importedDeviceIds,
     });
-  }, [scan, importedAddresses]);
+  }, [scan, importedAddresses, importedDeviceIds]);
 
   const naming: { useShortDeviceNames?: boolean | null | undefined } = {
     useShortDeviceNames: scan?.useShortDeviceNames,
@@ -460,24 +499,84 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     return { ...query, naming: naming };
   }, [query, scan?.useShortDeviceNames]);
 
+  /*
+   * The monitors of every host that is a device already (issue #9544), read
+   * when the scan is, and again after an import: which of them can be picked
+   * to get a monitor, and which say Already monitored. By the device each
+   * host is, which the server names from the scan's probe (issue #9677):
+   * another site's device at the same address, and its monitors, are not
+   * this host's. A read that fails offers every one of them - the server's
+   * duplicate rule still keeps each device to one monitor of a kind.
+   */
+  const alreadyAddedDeviceIds: string = useMemo(() => {
+    return getAlreadyAddedDeviceIds(hosts).join(",");
+  }, [hosts]);
+
+  const monitorsRequestRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    monitorsRequestRef.current += 1;
+    const request: number = monitorsRequestRef.current;
+
+    if (!alreadyAddedDeviceIds) {
+      setDeviceMonitors(emptyDeviceMonitorsByKey());
+      return;
+    }
+
+    loadDeviceMonitorsForDeviceIds(alreadyAddedDeviceIds.split(","))
+      .then((loaded: DeviceMonitorsByKey) => {
+        if (request === monitorsRequestRef.current) {
+          setDeviceMonitors(loaded);
+        }
+      })
+      .catch(() => {
+        if (request === monitorsRequestRef.current) {
+          setDeviceMonitors(emptyDeviceMonitorsByKey());
+        }
+      });
+  }, [alreadyAddedDeviceIds, monitorsReadAttempt]);
+
+  const selectability: DiscoveredHostSelectability = useMemo(() => {
+    return deviceMonitors
+      ? { monitoredDeviceIds: getMonitoredDeviceIds(deviceMonitors) }
+      : {};
+  }, [deviceMonitors]);
+
   const hostsToImport: Array<DiscoveredNetworkDevice> = useMemo(() => {
     return getDiscoveredHostsToImport({
       hosts: hosts,
       filter: fullQuery,
       selectedIpAddresses: selection,
+      selectability: selectability,
     });
-  }, [hosts, fullQuery, selection]);
+  }, [hosts, fullQuery, selection, selectability]);
+
+  /*
+   * What is picked, told apart: hosts the import brings in, and devices
+   * already added that it gives a monitor (issue #9544).
+   */
+  const newHosts: Array<DiscoveredNetworkDevice> = hostsToImport.filter(
+    (host: DiscoveredNetworkDevice): boolean => {
+      return !isAddingMonitorToExistingHost(host, selectability);
+    },
+  );
+  const existingHosts: Array<DiscoveredNetworkDevice> = hostsToImport.filter(
+    (host: DiscoveredNetworkDevice): boolean => {
+      return isAddingMonitorToExistingHost(host, selectability);
+    },
+  );
 
   /*
    * What the project's naming rules call each host the import would create
    * (issue #6619), read again as the selection changes - the numbers a
-   * pattern's {nn} gives depend on which hosts are imported together.
+   * pattern's {nn} gives depend on which hosts are imported together. A
+   * device already added is not created, so it is not named again.
    */
   const namingPreview: NamingPreviewState = useNamingPreview({
     isActive:
       step === DiscoveryImportStep.Choose && Boolean(scan) && !isLoading,
     scanId: scanId,
-    ipAddresses: hostsToImport.map((host: DiscoveredNetworkDevice): string => {
+    ipAddresses: newHosts.map((host: DiscoveredNetworkDevice): string => {
       return host.ipAddress;
     }),
   });
@@ -497,7 +596,8 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     });
 
   const blocker: string | null = getDiscoveryImportBlocker({
-    hostCount: hostsToImport.length,
+    hostCount: newHosts.length,
+    existingDeviceCount: existingHosts.length,
     settings: settings,
     template: pickedTemplate,
   });
@@ -623,13 +723,20 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
           seedIds: facts?.seedIds,
         });
 
+      /*
+       * A device already added is in the import only to be given a monitor
+       * (issue #9544): with none asked for, there is nothing to do for it.
+       */
+      const hostsSent: Array<DiscoveredNetworkDevice> =
+        settings.alerting === DiscoveryImportAlerting.MonitorTemplate
+          ? hostsToImport
+          : newHosts;
+
       const started: DiscoveryImportView = await startDiscoveryImport({
         scanId: scanId,
-        ipAddresses: hostsToImport.map(
-          (host: DiscoveredNetworkDevice): string => {
-            return host.ipAddress;
-          },
-        ),
+        ipAddresses: hostsSent.map((host: DiscoveredNetworkDevice): string => {
+          return host.ipAddress;
+        }),
         settings: {
           pollingIntervalInMinutes: settings.pollingIntervalInMinutes,
           applyVendorTemplates: settings.applyVendorTemplates,
@@ -751,10 +858,13 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     ? getDiscoveryImportProgressModel(progressView, now)
     : null;
 
-  // Whether the scan still has a host to import, for "Import more devices".
+  /*
+   * Whether the scan still has a host to import - or a device already added
+   * that has no monitor (issue #9544) - for "Import more devices".
+   */
   const hasImportableHostsLeft: boolean = hosts.some(
     (host: DiscoveredNetworkDevice): boolean => {
-      return isSelectableDiscoveredHost(host);
+      return isSelectableDiscoveredHost(host, selectability);
     },
   );
 
@@ -813,21 +923,43 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
           }`}
           data-testid="discovery-import-choose-summary"
         >
-          {hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT
-            ? translator.translateTemplate(
-                "One import brings in up to {{max}} hosts: narrow the selection, then import the rest after.",
-                {
-                  max: translator.formatNumber(MAX_HOSTS_PER_DISCOVERY_IMPORT),
-                },
-              )
-            : translator.translatePlural(
-                {
-                  one: "{{count}} host will be imported",
-                  other: "{{count}} hosts will be imported",
-                },
-                hostsToImport.length,
-                { count: translator.formatNumber(hostsToImport.length) },
+          {hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT ? (
+            translator.translateTemplate(
+              "One import brings in up to {{max}} hosts: narrow the selection, then import the rest after.",
+              {
+                max: translator.formatNumber(MAX_HOSTS_PER_DISCOVERY_IMPORT),
+              },
+            )
+          ) : (
+            <>
+              {/*
+               * The hosts imported, then - set apart - the devices already
+               * added that get a monitor (issue #9544). With only those,
+               * the line says only what happens to them.
+               */}
+              {(newHosts.length > 0 || existingHosts.length === 0) &&
+                translator.translatePlural(
+                  {
+                    one: "{{count}} host will be imported",
+                    other: "{{count}} hosts will be imported",
+                  },
+                  newHosts.length,
+                  { count: translator.formatNumber(newHosts.length) },
+                )}
+              {newHosts.length > 0 && existingHosts.length > 0 && (
+                <InlineSeparator />
               )}
+              {existingHosts.length > 0 &&
+                translator.translatePlural(
+                  {
+                    one: "{{count}} device already added gets a monitor",
+                    other: "{{count}} devices already added get a monitor",
+                  },
+                  existingHosts.length,
+                  { count: translator.formatNumber(existingHosts.length) },
+                )}
+            </>
+          )}
         </p>
       );
     }
@@ -840,14 +972,29 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
         setStep(DiscoveryImportStep.Choose);
       },
     };
-    submitButtonText = translator.translatePlural(
-      {
-        one: "Import {{count}} device",
-        other: "Import {{count}} devices",
-      },
-      hostsToImport.length,
-      { count: translator.formatNumber(hostsToImport.length) },
-    );
+    /*
+     * What the press does: imports the new hosts - or, when every host
+     * picked is a device already, gives those devices their monitors
+     * (issue #9544).
+     */
+    submitButtonText =
+      newHosts.length > 0 || existingHosts.length === 0
+        ? translator.translatePlural(
+            {
+              one: "Import {{count}} device",
+              other: "Import {{count}} devices",
+            },
+            newHosts.length,
+            { count: translator.formatNumber(newHosts.length) },
+          )
+        : translator.translatePlural(
+            {
+              one: "Add {{count}} monitor",
+              other: "Add {{count}} monitors",
+            },
+            existingHosts.length,
+            { count: translator.formatNumber(existingHosts.length) },
+          );
     onSubmit = () => {
       void startImport();
     };
@@ -1033,13 +1180,16 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
                 setSelection(update);
               }}
               namingPreview={namingPreview.byKey}
+              selectability={selectability}
+              {...(deviceMonitors ? { deviceMonitors: deviceMonitors } : {})}
             />
           </div>
         )}
 
         {step === DiscoveryImportStep.Monitoring && (
           <DiscoveryImportMonitoringStep
-            hosts={hostsToImport}
+            hosts={newHosts}
+            existingHosts={existingHosts}
             probeName={probe?.name || undefined}
             settings={settings}
             onSettingsChange={setSettings}

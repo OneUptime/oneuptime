@@ -26,9 +26,24 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
-import TableEmptyValue, {
-  getValueOrQuietDash,
-} from "Common/UI/Components/Table/TableEmptyValue";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import StorageUsageBar, {
+  StorageUsageBarSize,
+} from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import {
+  StorageUsage,
+  StorageUsageLevel,
+  formatStorageUsedPercent,
+} from "Common/Utils/Storage/StorageUsage";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { getCephPoolStorageUsage } from "../../../Pages/Ceph/Utils/CephPartFacts";
+import {
+  CEPH_POOL_FULL_PERCENT,
+  CEPH_POOL_NEARFULL_PERCENT,
+  toCephNumber,
+} from "../../../Pages/Ceph/Utils/CephHealth";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * `pool_id` is the datapoint label every per-pool data series carries
@@ -52,12 +67,55 @@ const COLUMNS: Array<ResourceListColumn> = [
   { label: "Cluster", widthPct: "18%", sortKey: "cluster" },
 ];
 
-const POOL_LEGEND: Array<HoneycombLegendItem> = [
-  { label: "< 70% used", color: "#10b981" },
-  { label: "70–85% used", color: "#f59e0b" },
-  { label: "> 85% used", color: "#ef4444" },
-  { label: "Unknown", color: "#d1d5db" },
-];
+// A pool's tile by how full it is, in the shared bar's colours.
+const POOL_USAGE_COLORS: Record<StorageUsageLevel, string> = {
+  [StorageUsageLevel.Normal]: "#10b981",
+  [StorageUsageLevel.Warning]: "#f59e0b",
+  [StorageUsageLevel.Critical]: "#ef4444",
+};
+const POOL_USAGE_UNKNOWN_COLOR: string = "#d1d5db";
+
+/*
+ * What the tiles' colours mean, at Ceph's own lines (#9646): amber past the
+ * Pool Near Full alert's 85%, red past 95% - as the Pools list and the
+ * cluster's Needs attention colour a pool - in the reader's digits.
+ */
+export function getCephPoolWidgetLegend(
+  translator: Translator,
+): Array<HoneycombLegendItem> {
+  const percent: (value: number) => string = (value: number): string => {
+    return formatReaderFigure(value, {
+      decimals: 0,
+      isPercent: true,
+      language: translator.language,
+    });
+  };
+
+  return [
+    {
+      label: translator.translateTemplate("Up to {{percent}} used", {
+        percent: percent(CEPH_POOL_NEARFULL_PERCENT),
+      }),
+      color: POOL_USAGE_COLORS[StorageUsageLevel.Normal],
+      isLabelUserContent: true,
+    },
+    {
+      label: translator.translateTemplate("Past {{percent}} used", {
+        percent: percent(CEPH_POOL_NEARFULL_PERCENT),
+      }),
+      color: POOL_USAGE_COLORS[StorageUsageLevel.Warning],
+      isLabelUserContent: true,
+    },
+    {
+      label: translator.translateTemplate("Past {{percent}} used", {
+        percent: percent(CEPH_POOL_FULL_PERCENT),
+      }),
+      color: POOL_USAGE_COLORS[StorageUsageLevel.Critical],
+      isLabelUserContent: true,
+    },
+    { label: "Unknown", color: POOL_USAGE_UNKNOWN_COLOR },
+  ];
+}
 
 const BASE_SELECT: Select<CephResource> = {
   _id: true,
@@ -101,56 +159,18 @@ function getPoolRoute(r: CephResource): Route | undefined {
 }
 
 /*
- * Used % for a pool is stored / (stored + max_avail) — max_avail is the
- * remaining headroom AFTER replication, so this matches what `ceph df`
- * reports as %USED (and what the ceph-pool-near-full alert template
- * computes).
+ * How full a pool is, as the shared storage bar reads it: STORED of STORED +
+ * MAX AVAIL, both counted once before replication, so the percent is the
+ * Pool Near Full alert's and the Pools list's. Null when the pool reported
+ * neither.
  */
-function getUsedPercent(r: CephResource): number | null {
-  const stored: number = Number(r.storedBytes);
-  const maxAvail: number = Number(r.maxAvailBytes);
-  if (
-    !Number.isFinite(stored) ||
-    !Number.isFinite(maxAvail) ||
-    stored + maxAvail <= 0
-  ) {
-    return null;
-  }
-  return (stored / (stored + maxAvail)) * 100;
-}
-
-function getUsageColor(percent: number | null): string {
-  if (percent === null) {
-    return "#d1d5db";
-  }
-  if (percent >= 85) {
-    return "#ef4444";
-  }
-  if (percent >= 70) {
-    return "#f59e0b";
-  }
-  return "#10b981";
-}
-
-function renderUsageBar(percent: number | null): ReactElement {
-  if (percent === null) {
-    return <TableEmptyValue isSmall={true} />;
-  }
-  const clamped: number = Math.max(0, Math.min(100, percent));
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="h-1.5 w-16 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${clamped}%`,
-            backgroundColor: getUsageColor(clamped),
-          }}
-        ></div>
-      </div>
-      <span className="text-xs text-gray-500">{clamped.toFixed(1)}%</span>
-    </div>
-  );
+export function getCephPoolWidgetUsage(
+  r: Pick<CephResource, "storedBytes" | "maxAvailBytes">,
+): StorageUsage | null {
+  return getCephPoolStorageUsage({
+    storedBytes: toCephNumber(r.storedBytes),
+    maxAvailBytes: toCephNumber(r.maxAvailBytes),
+  });
 }
 
 function formatBytes(value: number | undefined): string {
@@ -166,13 +186,14 @@ function formatObjects(value: number | undefined): string {
   if (value === undefined || value === null || !Number.isFinite(numeric)) {
     return EMPTY_VALUE_MARK;
   }
+  // In the reader's digits, the scale letter kept ("1,2M", "۸۳۰٫۰K").
   if (numeric >= 1_000_000) {
-    return `${(numeric / 1_000_000).toFixed(1)}M`;
+    return `${formatReaderFigure(numeric / 1_000_000, { decimals: 1 })}M`;
   }
   if (numeric >= 1_000) {
-    return `${(numeric / 1_000).toFixed(1)}K`;
+    return `${formatReaderFigure(numeric / 1_000, { decimals: 1 })}K`;
   }
-  return String(numeric);
+  return formatReaderFigure(numeric, { decimals: 0 });
 }
 
 function getPoolDisplayName(r: CephResource): string {
@@ -217,7 +238,12 @@ function renderPoolRow(r: CephResource): ReactElement {
           isSmall: true,
         })}
       </td>
-      <td className="px-3 py-2">{renderUsageBar(getUsedPercent(r))}</td>
+      <td className="px-3 py-2">
+        <StorageUsageBar
+          usage={getCephPoolWidgetUsage(r)}
+          size={StorageUsageBarSize.Inline}
+        />
+      </td>
       <td className="px-3 py-2 text-xs text-gray-500">
         {getValueOrQuietDash(formatObjects(r.objects as number | undefined), {
           isSmall: true,
@@ -231,17 +257,22 @@ function renderPoolRow(r: CephResource): ReactElement {
   );
 }
 
-function buildPoolTile(r: CephResource): HoneycombTile {
+function buildPoolTile(r: CephResource, translator: Translator): HoneycombTile {
   const id: string = (r._id as string) || "";
   const name: string = getPoolDisplayName(r);
-  const usedPercent: number | null = getUsedPercent(r);
+  const usage: StorageUsage | null = getCephPoolWidgetUsage(r);
   const clusterName: string | undefined = r.cephCluster?.name as string;
 
   return {
     id: id || name,
-    status:
-      usedPercent === null ? "Unknown" : `${usedPercent.toFixed(1)}% used`,
-    color: getUsageColor(usedPercent),
+    // Worded here, in the reader's language and digits; "Unknown" is looked up.
+    status: usage
+      ? translator.translateTemplate("{{percent}} used", {
+          percent: formatStorageUsedPercent(usage, translator.language),
+        })
+      : "Unknown",
+    isStatusUserContent: Boolean(usage),
+    color: usage ? POOL_USAGE_COLORS[usage.level] : POOL_USAGE_UNKNOWN_COLOR,
     route: getPoolRoute(r),
     tooltip: {
       title: name,
@@ -263,6 +294,7 @@ function buildPoolTile(r: CephResource): HoneycombTile {
 const DashboardCephPoolListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const args: DashboardCephPoolListComponent["arguments"] =
     props.component.arguments;
 
@@ -302,8 +334,10 @@ const DashboardCephPoolListComponentElement: FunctionComponent<
       attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderPoolRow}
       viewMode={viewMode}
-      renderHoneycombTile={buildPoolTile}
-      honeycombLegend={POOL_LEGEND}
+      renderHoneycombTile={(r: CephResource): HoneycombTile => {
+        return buildPoolTile(r, translator);
+      }}
+      honeycombLegend={getCephPoolWidgetLegend(translator)}
     />
   );
 };

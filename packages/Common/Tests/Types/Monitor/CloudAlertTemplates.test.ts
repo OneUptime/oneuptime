@@ -57,6 +57,7 @@ import {
   getAwsKeyMetricOf,
   getCloudAlertMetricReadingKey,
   getCloudAlertStoredMetricName,
+  getCloudAlertIncidentDescription,
   getCloudAlertTemplate,
   getCloudAlertTemplateReadingKeys,
   getCloudAlertTemplatesFor,
@@ -65,6 +66,9 @@ import {
   getCloudConnectionsThreshold,
   getCloudResourceTypesWithAlertTemplates,
   isCloudSlowMetricTemplate,
+  isCloudFiveMinuteMetricTemplate,
+  CLOUD_FIVE_MINUTE_METRIC_WINDOW,
+  quoteCloudShellArgument,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
 } from "../../../Types/Monitor/CloudAlertTemplates";
@@ -304,12 +308,16 @@ describe("the cloud alert template library", () => {
       expect(cloudTemplate.monitorType).toBe(MonitorType.Metrics);
       /*
        * Every five minutes over its cloud's window - but a metric published
-       * a few times a day, read once an hour: over 2 days, once an hour.
+       * a few times a day, read once an hour: over 2 days, once an hour;
+       * and an Azure metric kept at five minutes, read every 15: over 30
+       * minutes, still every five (#9981).
        */
       expect(cloudTemplate.rollingTime).toBe(
         isSlow
           ? CLOUD_SLOW_METRIC_WINDOW
-          : CLOUD_ALERT_WINDOWS[cloudTemplate.provider],
+          : isCloudFiveMinuteMetricTemplate(cloudTemplate)
+            ? CLOUD_FIVE_MINUTE_METRIC_WINDOW
+            : CLOUD_ALERT_WINDOWS[cloudTemplate.provider],
       );
       expect(cloudTemplate.monitoringInterval).toBe(
         isSlow
@@ -2418,10 +2426,18 @@ describe("getCloudAlertTemplateReadingKeys", () => {
  * metric totals it over its window (aggregatesWholeWindow), so each reads
  * the same decision from both: a breach, a quiet window, and an empty one.
  */
+/*
+ * A share of its own: a web ACL's blocked requests over all it saw (blocked
+ * and allowed), from half of them - not the failed share of requests the
+ * tests below read. Its own tests follow them.
+ */
+const SHARES_OF_THEIR_OWN: Array<string> = ["cloud-aws-wafv2-requests-blocked"];
+
 const AWS_SUM_TEMPLATES: Array<CloudAlertTemplate> = ALL.filter(
   (cloudTemplate: CloudAlertTemplate): boolean => {
     return (
       cloudTemplate.provider === CloudProvider.AWS &&
+      !SHARES_OF_THEIR_OWN.includes(cloudTemplate.id) &&
       cloudTemplate.queries.some((query: CloudAlertQuery): boolean => {
         return query.metric.aggregationType === AggregationType.Sum;
       })
@@ -2567,6 +2583,69 @@ describe.each(
     });
   },
 );
+
+/*
+ * #9692: a web ACL's blocked requests over all it saw, read whole on a
+ * read-only and a streamed account alike: half or more of them, once 20
+ * were blocked, is an attack or a rule turning real users away.
+ */
+describe("cloud-aws-wafv2-requests-blocked, read-only and streamed", () => {
+  const waf: CloudAlertTemplate = getCloudAlertTemplate(
+    "cloud-aws-wafv2-requests-blocked",
+  )!;
+
+  async function outcomeOf(data: {
+    shape: Shape;
+    blocked: number;
+    allowed: number;
+  }): Promise<Outcome> {
+    return await evaluate({
+      id: waf.id,
+      pointsByAlias: pointsFor({
+        cloudTemplate: waf,
+        shape: data.shape,
+        failed: data.blocked,
+        requests: data.allowed,
+      }),
+    });
+  }
+
+  test("is read whole, blocked over blocked and allowed", () => {
+    expect(
+      MonitorStepMetricMonitorUtil.aggregatesWholeWindow(
+        stepOf(waf).data!.metricMonitor,
+      ),
+    ).toBe(true);
+    expect(waf.formula?.formula).toBe("$failed / ($failed + $requests) * 100");
+    expect(waf.threshold).toBe(50);
+  });
+
+  test("60 blocked of 100 breaches on both", async () => {
+    for (const shape of SHAPES) {
+      expect({
+        shape,
+        ...(await outcomeOf({ shape, blocked: 60, allowed: 40 })),
+      }).toEqual({ shape, breached: true, healthy: false });
+    }
+  });
+
+  test("a few blocked among many allowed is healthy on both", async () => {
+    for (const shape of SHAPES) {
+      expect({
+        shape,
+        ...(await outcomeOf({ shape, blocked: 30, allowed: 970 })),
+      }).toEqual({ shape, breached: false, healthy: true });
+    }
+  });
+
+  test("fewer than 20 blocked are not judged, however few were allowed", async () => {
+    for (const shape of SHAPES) {
+      expect(
+        (await outcomeOf({ shape, blocked: 15, allowed: 0 })).breached,
+      ).toBe(false);
+    }
+  });
+});
 
 /*
  * ---------------------------------------------------------------------------
@@ -2719,6 +2798,250 @@ describe("the monitors recommended for a namespace read its totals", () => {
       }
 
       expect(JSON.stringify(stored)).toBe(before);
+    }
+  });
+});
+
+/*
+ * #9692: the monitors recommended for the types read since #9567 say the
+ * first command to run when they fire, written for the resource they watch
+ * from its own attributes, in its own Region.
+ */
+describe("the first command an incident says", () => {
+  function attributes(
+    dimensions: Record<string, string>,
+    region: string = "eu-west-1",
+  ): Record<string, string> {
+    const stored: Record<string, string> = {
+      "resource.cloud.account.id": "123456789012",
+      "resource.cloud.region": region,
+    };
+
+    for (const [name, value] of Object.entries(dimensions)) {
+      stored[`Dimensions.${name}`] = value;
+    }
+
+    return stored;
+  }
+
+  function commandOf(
+    id: string,
+    stored: Record<string, string>,
+  ): string | null {
+    const cloudTemplate: CloudAlertTemplate = getCloudAlertTemplate(id)!;
+
+    return cloudTemplate.firstCommand
+      ? cloudTemplate.firstCommand(stored)
+      : null;
+  }
+
+  test("each template of the types read since #9567 names one, for its resource and Region", () => {
+    expect(
+      commandOf(
+        "cloud-aws-apprunner-server-errors",
+        attributes({ ServiceName: "checkout", ServiceID: "a1b2c3" }),
+      ),
+    ).toBe(
+      "aws logs tail /aws/apprunner/checkout/a1b2c3/application --since 30m --region eu-west-1",
+    );
+    // Without the id its log group's name holds: the service, found by name.
+    expect(
+      commandOf(
+        "cloud-aws-apprunner-server-errors",
+        attributes({ ServiceName: "checkout" }),
+      ),
+    ).toBe(
+      "aws apprunner list-services --query 'ServiceSummaryList[?ServiceName=='\\''checkout'\\'']' --region eu-west-1",
+    );
+    expect(
+      commandOf(
+        "cloud-aws-globalaccelerator-no-healthy-endpoints",
+        attributes(
+          { Accelerator: "1234abcd-abcd-1234-abcd-1234abcdefgh" },
+          "us-west-2",
+        ),
+      ),
+    ).toBe(
+      "aws globalaccelerator list-listeners --accelerator-arn arn:aws:globalaccelerator::123456789012:accelerator/1234abcd-abcd-1234-abcd-1234abcdefgh --region us-west-2",
+    );
+    expect(
+      commandOf(
+        "cloud-aws-elasticbeanstalk-health-degraded",
+        attributes({ EnvironmentName: "shop-prod" }),
+      ),
+    ).toBe(
+      "aws elasticbeanstalk describe-environment-health --environment-name shop-prod --attribute-names All --region eu-west-1",
+    );
+
+    for (const id of [
+      "cloud-aws-autoscaling-short-of-desired",
+      "cloud-aws-autoscaling-pending-instances",
+    ]) {
+      expect(
+        commandOf(id, attributes({ AutoScalingGroupName: "web-asg" })),
+      ).toBe(
+        "aws autoscaling describe-scaling-activities --auto-scaling-group-name web-asg --max-items 10 --region eu-west-1",
+      );
+    }
+
+    expect(
+      commandOf(
+        "cloud-aws-wafv2-requests-blocked",
+        attributes({ WebACL: "edge", Rule: "ALL" }),
+      ),
+    ).toBe(
+      "aws cloudwatch list-metrics --namespace AWS/WAFV2 --metric-name BlockedRequests --dimensions Name=WebACL,Value=edge --recently-active PT3H --region eu-west-1",
+    );
+    expect(
+      commandOf(
+        "cloud-aws-sagemaker-invocation-errors",
+        attributes({ EndpointName: "recommender" }),
+      ),
+    ).toBe(
+      "aws logs tail /aws/sagemaker/Endpoints/recommender --since 30m --region eu-west-1",
+    );
+    expect(
+      commandOf(
+        "cloud-aws-apigatewayv2-server-errors",
+        attributes({ ApiId: "a1b2c3d4e5" }),
+      ),
+    ).toBe(
+      "aws apigatewayv2 get-integrations --api-id a1b2c3d4e5 --region eu-west-1",
+    );
+    expect(
+      commandOf(
+        "cloud-aws-networkfirewall-packets-dropped-outside-rules",
+        attributes({ FirewallName: "egress" }),
+      ),
+    ).toBe(
+      "aws network-firewall describe-firewall --firewall-name egress --region eu-west-1",
+    );
+    expect(
+      commandOf("cloud-aws-cognito-throttled", attributes({ UserPool: "x" })),
+    ).toBe(
+      "aws service-quotas list-service-quotas --service-code cognito-idp --region eu-west-1",
+    );
+    expect(
+      commandOf(
+        "cloud-aws-appsync-server-errors",
+        attributes({ GraphQLAPIId: "abcdefghij" }),
+      ),
+    ).toBe(
+      "aws logs tail /aws/appsync/apis/abcdefghij --since 30m --region eu-west-1",
+    );
+  });
+
+  test("none when the resource's attributes do not name enough of it", () => {
+    // No Region: AWS CloudShell's own may be another.
+    expect(
+      commandOf("cloud-aws-elasticbeanstalk-health-degraded", {
+        "Dimensions.EnvironmentName": "shop-prod",
+      }),
+    ).toBeNull();
+    expect(
+      commandOf("cloud-aws-elasticbeanstalk-health-degraded", attributes({})),
+    ).toBeNull();
+    // An accelerator's ARN needs its account.
+    expect(
+      commandOf("cloud-aws-globalaccelerator-unhealthy-endpoints", {
+        "Dimensions.Accelerator": "1234",
+        "resource.cloud.region": "us-west-2",
+      }),
+    ).toBeNull();
+  });
+
+  test("a value the shell would read is quoted, so the command runs as written", () => {
+    expect(quoteCloudShellArgument("web-asg")).toBe("web-asg");
+    expect(quoteCloudShellArgument("my group")).toBe("'my group'");
+    expect(quoteCloudShellArgument("it's $HOME")).toBe("'it'\\''s $HOME'");
+    expect(
+      commandOf(
+        "cloud-aws-autoscaling-pending-instances",
+        attributes({ AutoScalingGroupName: "web; rm -rf /" }),
+      ),
+    ).toBe(
+      "aws autoscaling describe-scaling-activities --auto-scaling-group-name 'web; rm -rf /' --max-items 10 --region eu-west-1",
+    );
+  });
+
+  test("the incident's description ends with it, and is the template's own without it", () => {
+    const beanstalk: CloudAlertTemplate = getCloudAlertTemplate(
+      "cloud-aws-elasticbeanstalk-health-degraded",
+    )!;
+
+    expect(
+      getCloudAlertIncidentDescription(
+        beanstalk,
+        attributes({ EnvironmentName: "shop-prod" }),
+      ),
+    ).toBe(
+      `${beanstalk.incidentDescription} First, run this in AWS CloudShell: \`aws elasticbeanstalk describe-environment-health --environment-name shop-prod --attribute-names All --region eu-west-1\``,
+    );
+    expect(getCloudAlertIncidentDescription(beanstalk, {})).toBe(
+      beanstalk.incidentDescription,
+    );
+
+    // The monitor it builds says it in its incident.
+    const step: MonitorStep = beanstalk.getMonitorStep(
+      argsFor(attributes({ EnvironmentName: "shop-prod" })),
+    );
+    const incidents: Array<{ description?: string | undefined }> = step.data!
+      .monitorCriteria.data!.monitorCriteriaInstanceArray[0]!.data!
+      .incidents as Array<{ description?: string | undefined }>;
+
+    expect(incidents[0]!.description).toContain(
+      "aws elasticbeanstalk describe-environment-health --environment-name shop-prod",
+    );
+  });
+
+  test("the templates of the types read since #9567 are offered to each of them", () => {
+    for (const [type, ids] of [
+      ["AWS::AppRunner::Service", ["cloud-aws-apprunner-server-errors"]],
+      [
+        "AWS::GlobalAccelerator::Accelerator",
+        [
+          "cloud-aws-globalaccelerator-no-healthy-endpoints",
+          "cloud-aws-globalaccelerator-unhealthy-endpoints",
+        ],
+      ],
+      [
+        "AWS::ElasticBeanstalk::Environment",
+        ["cloud-aws-elasticbeanstalk-health-degraded"],
+      ],
+      [
+        "AWS::AutoScaling::AutoScalingGroup",
+        [
+          "cloud-aws-autoscaling-short-of-desired",
+          "cloud-aws-autoscaling-pending-instances",
+        ],
+      ],
+      ["AWS::WAFv2::WebACL", ["cloud-aws-wafv2-requests-blocked"]],
+      ["AWS::SageMaker::Endpoint", ["cloud-aws-sagemaker-invocation-errors"]],
+      [
+        "AWS::ApiGatewayV2::Api",
+        [
+          "cloud-aws-apigateway-slow-responses",
+          "cloud-aws-apigatewayv2-server-errors",
+        ],
+      ],
+      [
+        "AWS::NetworkFirewall::Firewall",
+        ["cloud-aws-networkfirewall-packets-dropped-outside-rules"],
+      ],
+      ["AWS::Cognito::UserPool", ["cloud-aws-cognito-throttled"]],
+      ["AWS::AppSync::GraphQLApi", ["cloud-aws-appsync-server-errors"]],
+    ] as Array<[string, Array<string>]>) {
+      expect({
+        type,
+        ids: getCloudAlertTemplatesForType({
+          provider: "aws",
+          resourceType: type,
+        })
+          .map((cloudTemplate: CloudAlertTemplate): string => {
+            return cloudTemplate.id;
+          })
+          .sort(),
+      }).toEqual({ type, ids: [...ids].sort() });
     }
   });
 });

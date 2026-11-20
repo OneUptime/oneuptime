@@ -175,6 +175,10 @@ const DETAIL_FIELDS: Record<
   NodeDetail: [
     ['"CPU (Capacity / Allocatable)"', "nodeCpuCapacity"],
     ['"Memory (Capacity / Allocatable)"', "nodeMemoryCapacity"],
+    [
+      '"Ephemeral Storage (Capacity / Allocatable)"',
+      "nodeEphemeralStorageCapacity",
+    ],
     ['"Pods (Capacity)"', "nodePodCapacity"],
   ],
   PodDetail: [['"Restarts"', "podRestarts"]],
@@ -414,10 +418,32 @@ interface ListPage {
   columns: Array<[string, KubernetesResourceMetric]>;
   // Rows carry pod sums from the aggregate endpoints.
   sumsPods: boolean;
+  /*
+   * The texts of the table's own Used and Free columns, for a list of claims
+   * or volumes (storageUsageColumns, #9539).
+   */
+  storage?: [KubernetesResourceMetric, KubernetesResourceMetric] | undefined;
+  /*
+   * A list of nodes' disk columns (#9645): Disk, Disk Free, Disk Capacity
+   * and the image disk's, after CPU and Memory.
+   */
+  disk?:
+    | [
+        KubernetesResourceMetric,
+        KubernetesResourceMetric,
+        KubernetesResourceMetric,
+        KubernetesResourceMetric,
+      ]
+    | undefined;
 }
 
 const LIST_PAGES: Record<string, ListPage> = {
-  Nodes: { builtIn: ["nodeCpu", "nodeMemory"], columns: [], sumsPods: false },
+  Nodes: {
+    builtIn: ["nodeCpu", "nodeMemory"],
+    columns: [],
+    sumsPods: false,
+    disk: ["nodeDiskUsed", "nodeDiskFree", "nodeDiskCapacity", "nodeImageDisk"],
+  },
   Pods: {
     builtIn: ["podCpu", "podMemory"],
     columns: [
@@ -473,11 +499,13 @@ const LIST_PAGES: Record<string, ListPage> = {
     builtIn: null,
     columns: [["Capacity", "pvcCapacity"]],
     sumsPods: false,
+    storage: ["pvcUsed", "pvcFree"],
   },
   PersistentVolumes: {
     builtIn: null,
     columns: [["Capacity", "pvCapacity"]],
     sumsPods: false,
+    storage: ["pvUsed", "pvFree"],
   },
 };
 
@@ -616,9 +644,60 @@ describe("list pages: custom metric columns carry their tooltip", () => {
             return column[1];
           },
         ),
+        ...(list.storage || []),
+        ...(list.disk || []),
       ];
 
       expect(referencedKeys(code).sort()).toEqual(expected.sort());
+    },
+  );
+
+  test("Nodes hands the table its disk texts, its disk after its CPU and memory", () => {
+    const code: string = readCode(`${PAGES}/Nodes.tsx`);
+    const [used, free, capacity, image] = LIST_PAGES["Nodes"]!.disk!;
+
+    expect(code).toContain(
+      compact(
+        `storageUsageColumns={{
+          usedTitle: translationKey("Disk"),
+          freeTitle: translationKey("Disk Free"),
+          usedDescription: ${REC}.${used},
+          freeDescription: ${REC}.${free},
+          capacity: {
+            title: translationKey("Disk Capacity"),
+            description: ${REC}.${capacity},
+          },
+          secondary: {
+            title: translationKey("Image Disk"),
+            description: ${REC}.${image},
+          },
+          isAfterResourceMetrics: true,
+        }}`,
+      ),
+    );
+  });
+
+  test.each(
+    Object.entries(LIST_PAGES).filter((entry: [string, ListPage]): boolean => {
+      return Boolean(entry[1].storage);
+    }),
+  )(
+    "%s hands the table its Used and Free texts",
+    (page: string, list: ListPage) => {
+      const code: string = readCode(`${PAGES}/${page}.tsx`);
+      const [used, free] = list.storage as [
+        KubernetesResourceMetric,
+        KubernetesResourceMetric,
+      ];
+
+      expect(code).toContain(
+        compact(
+          `storageUsageColumns={{
+            usedDescription: ${REC}.${used},
+            freeDescription: ${REC}.${free},
+          }}`,
+        ),
+      );
     },
   );
 

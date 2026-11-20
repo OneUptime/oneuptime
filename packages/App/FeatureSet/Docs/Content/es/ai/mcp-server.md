@@ -41,7 +41,7 @@ El servidor no tiene estado: no emite ids de sesión y cada petición es indepen
 - **Mantenimiento programado**: crear y gestionar eventos de mantenimiento.
 - **Telemetría**: consultar logs, métricas, trazas, excepciones, logs de monitores, eventos de seguridad y más, solo lectura.
 
-Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 54 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Las herramientas de solo lectura llevan `readOnlyHint`, toda herramienta que cambia algo lleva `destructiveHint` y solo las herramientas de páginas de estado públicas llevan `openWorldHint`, así que un cliente puede ejecutar por su cuenta las llamadas de solo lectura y preguntarte antes de cualquier cambio. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
+Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 55 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Un tipo de registro sin ningún campo que puedas cambiar una vez creado, como el vínculo de un incidente con una alerta, no tiene herramienta de actualizar. Las herramientas de solo lectura llevan `readOnlyHint` y toda herramienta que cambia algo lleva `destructiveHint`, así que un cliente puede ejecutar por su cuenta las llamadas de solo lectura y preguntarte antes de cualquier cambio. `openWorldHint` marca las herramientas que van más allá de tu proyecto: las herramientas de páginas de estado públicas y los cambios que se muestran en una página de estado y se envían a sus suscriptores, como un incidente nuevo, un cambio de su estado o una nota pública. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
 
 ## Antes de empezar
 
@@ -341,6 +341,20 @@ La herramienta **`get_data_table_freshness`** le dice a un agente si una tabla q
 
 La herramienta **`get_data_table_lineage`** le dice a un agente a partir de qué se construye una tabla vigilada y qué se construye a partir de ella, antes de que cambie la tabla o se fíe de sus datos: las tablas de origen y de destino que van con retraso, se eliminaron, tienen alertas abiertas o cuyo pipeline falló en su última ejecución, primero las más cercanas, cada una con cuántos pasos la separan, luego las demás, los pipelines que cargan sus orígenes desde fuera y los paneles de BI construidos sobre ella. Llega a tres pasos en cada dirección, o hasta cinco con `depth`. Pase `table` como para `get_data_table_freshness`. No cambia nada.
 
+La herramienta **`oneuptime_move_in_list`** mueve una fila de una lista ordenada, como una severidad de incidente, un estado de incidente o un estado de monitor, al lugar de otra fila, como hace arrastrarla en el panel: las filas intermedias se desplazan un lugar, y responde con cada fila cuyo número cambió. Pase `resource` (como `Incident Severity`), el `id` de la fila y `placeOfId`, el ID de la fila cuyo lugar ocupa. Escribir el número de una fila con su herramienta `update_` coloca solo esa fila, junto a cualquier fila que ya tenga ese número.
+
+## Herramientas para configurar
+
+El servidor también tiene las acciones de configuración de Preguntar a la IA, una llamada cada una: lo que configuras, en lugar de un registro cada vez. Cada una crea los registros que Preguntar a la IA y las configuraciones guiadas crean para las mismas respuestas, con las mismas comprobaciones:
+
+- **`set_up_website_monitoring`**: un monitor de sitio web o de API para una dirección, que abre un incidente cuando la dirección no responde o responde con un error. Es tuyo, y una dirección que un monitor ya comprueba no recibe un segundo
+- **`set_up_paging`**: en un proyecto que aún no avisa a nadie, su primera política de guardia, que te avisa a ti y a las personas y equipos que nombres ante cada nuevo incidente y cada nueva alerta
+- **`publish_status_page`**: una página de estado pública que muestra los monitores que nombres
+- **`add_monitors_to_status_page`**: monitores añadidos a una página de estado que el proyecto ya tiene
+- **`who_is_told`**: a quién se avisa cuando un monitor cae, y qué impediría que se le contactara. No cambia nada
+
+Actúan como tú, con la sesión iniciada mediante OAuth: una clave de API de proyecto no puede usar las cuatro que crean algo. Tu cliente te pregunta antes de cada una, y su respuesta dice qué se creó. Lo que falta, como un permiso, una dirección o espacio en el plan, se dice antes de crear nada.
+
 ## Consultar la telemetría
 
 Los logs, las métricas, las trazas (spans), las excepciones, los logs de monitores y los demás tipos de telemetría llegan como herramientas `list_` y `count_` de solo lectura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` y sus gemelas `count_`). La telemetría llega a través de OpenTelemetry, así que no hay herramientas de creación.
@@ -489,7 +503,7 @@ El servidor MCP no tiene estado: ni emite ni rastrea ids de sesión, así que ca
 | Equipos y guardias | Team, On-Call Policy |
 | Etiquetas | Label |
 | Seguridad | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Seguridad de datos | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Seguridad de datos | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Observabilidad de datos | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Nube | Cloud Budget |
 

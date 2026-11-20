@@ -42,7 +42,7 @@ const OPTIONS: string = [
   '[data-testid="passkey-login"]',
   // An instance-wide single sign-on provider (SsoProviderOptions).
   '[data-testid="sso-provider"]',
-  // A provider of a project an address belongs to, after the email lookup.
+  // A project provider the email lookup found for an address's domain.
   '[data-testid="sso-project-provider"]',
 ].join(", ");
 /*
@@ -1081,13 +1081,16 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
       await page.locator(SUBMIT).click();
     };
 
-    // An address that finds nothing: the message names it, and it stays.
+    /*
+     * An address that finds nothing: the message names its domain, by which
+     * providers are found (#9824), and says what to do; the address stays.
+     */
     await open(page, "page=login&ssorequired=1&providers=1&projectsso=1");
     await lookUp();
 
     await expect(
       page.getByText(
-        "No SSO configuration found for the email: ada@example.com",
+        "Single sign-on is not set up for example.com. Ask your admin for your organization’s SSO sign-in link, or sign in another way.",
       ),
     ).toBeVisible();
     await expect(page.getByTestId("email")).toHaveValue("ada@example.com");

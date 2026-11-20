@@ -7,7 +7,7 @@ services:
     # our own: the agent is entirely defined by otel-collector-logs-files.yaml, and that
     # config reports this pin as the agent's version. Bump them together;
     # Tests/Ops/validate-collector-configs.sh validates the config against this version.
-    image: otel/opentelemetry-collector-contrib:0.161.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     container_name: oneuptime-openstack-logs
     # Kolla's logs belong to its services' own users. It runs as root to read them,
     # keeping one capability of root's: reading a file whoever owns it. It can write

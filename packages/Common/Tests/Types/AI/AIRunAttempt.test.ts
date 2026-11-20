@@ -6,6 +6,7 @@ import {
   getRecordTokenLimitFailureKind,
   isRecordTokenLimitFailureKind,
   parseAIRunAttemptEnd,
+  PROVIDER_FIXED_FAILURE_KINDS,
   RECORD_TOKEN_LIMIT_FAILURE_KINDS,
 } from "../../../Types/AI/AIRunAttempt";
 import AIRunStatus, { AIRunStatusHelper } from "../../../Types/AI/AIRunStatus";
@@ -357,6 +358,42 @@ describe("parseAIRunAttemptEnd", () => {
         nextAttemptAt: `2026-11-09T14:05:00.000Z${" ".repeat(40)}`,
       }),
     ).toEqual({ outcome: AIRunAttemptOutcome.WillRetry });
+  });
+});
+
+// Issue #6494: whose provider failed, as the queue wrote it.
+describe("parseAIRunAttemptEnd and the global LLM provider", () => {
+  test("reads that the provider was the global one", () => {
+    expect(
+      parseAIRunAttemptEnd({
+        outcome: "GaveUp",
+        failureKind: "ProviderTimeout",
+        providerIsGlobal: true,
+      }),
+    ).toEqual({
+      outcome: AIRunAttemptOutcome.GaveUp,
+      failureKind: AIRunFailureKind.ProviderTimeout,
+      providerIsGlobal: true,
+    });
+  });
+
+  test.each([false, "true", 1, null])(
+    "reads nothing from a value that is not true (%p)",
+    (value: unknown) => {
+      expect(
+        parseAIRunAttemptEnd({ outcome: "GaveUp", providerIsGlobal: value }),
+      ).toEqual({ outcome: AIRunAttemptOutcome.GaveUp });
+    },
+  );
+
+  test("the provider's own failures are the ones it can be said of", () => {
+    expect([...PROVIDER_FIXED_FAILURE_KINDS].sort()).toEqual(
+      [
+        AIRunFailureKind.ProviderRejected,
+        AIRunFailureKind.ProviderTimeout,
+        AIRunFailureKind.ProviderUnavailable,
+      ].sort(),
+    );
   });
 });
 

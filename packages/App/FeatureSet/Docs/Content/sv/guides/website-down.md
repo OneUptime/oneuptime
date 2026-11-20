@@ -28,7 +28,7 @@ Adressen kontrolleras från din servers egen sond, så den måste gå att nå d�
 
 ![Hem frågar ”Vad vill du göra först?”, med ”Veta när min webbplats eller mitt API ligger nere” ikryssat](screen:home-goal-website)
 
-I ett nytt projekt börjar sidan **Hem** med frågan **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere** och klicka på **Fortsätt**. Klicka sedan på **Skapa din första monitor** i checklistan **Välkommen till OneUptime 👋**. Om checklistan inte visar det steget trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` och väljer **Veta när min webbplats eller mitt API ligger nere**. **Monitorer** erbjuder den också: **Guidad installation** i den tomma listan och under **Så fungerar det**, och en rad på **Skapa monitor** när du väljer **Webbplats** eller **API**.
+I ett nytt projekt börjar sidan **Hem** med frågan **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere** och klicka på **Fortsätt**. Klicka sedan på **Skapa din första monitor** i checklistan **Välkommen till OneUptime 👋**. Om checklistan inte visar det steget trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` och väljer **Veta när min webbplats eller mitt API ligger nere**. **Monitorer** erbjuder den också: **Guidad installation** i den tomma listan och under **Så fungerar det**, och en rad på **Skapa monitor** när du väljer **Webbplats** eller **API**. Eller klicka på **Beskriv det i stället**: Fråga AI öppnas med uppgiften skriven i rutan, redo att skickas.
 
 ### Ange adressen
 

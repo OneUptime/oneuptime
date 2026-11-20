@@ -1169,6 +1169,11 @@ const FormField: <T extends GenericObject>(
                 : fieldLabelId,
 
               ariaDescribedby: describedBy,
+
+              // Enter in a custom text box submits, as in the form's own.
+              onEnterPress: () => {
+                props.submitForm?.();
+              },
             })}
 
           {/*
@@ -1222,6 +1227,10 @@ const FormField: <T extends GenericObject>(
                   props.currentValues,
                 )}
                 whenNobodyPicked={props.field.peoplePicker.whenNobodyPicked}
+                onlyMembersOfTeamIds={
+                  props.field.peoplePicker.onlyMembersOfTeamIds
+                }
+                searchHint={props.field.peoplePicker.searchHint}
                 readOnly={props.field.peoplePicker.isReadOnly}
                 disabled={props.field.disabled}
                 error={props.touched && props.error ? props.error : undefined}

@@ -19,6 +19,10 @@ import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import SecurityCaseNotifications from "../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
 import SecurityCaseSourceAlerts from "../../../Server/Utils/SecurityCase/SecurityCaseSourceAlerts";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
+import Email from "../../../Types/Email";
 import {
   Gray500,
   Green500,
@@ -256,6 +260,54 @@ describe("Assign to Me and Assign to Someone Else", () => {
     // Somebody is on it now: acknowledged, once.
     expect(stamps).toHaveLength(1);
     expect(stamps[0]!["acknowledgedAt"]).toBeInstanceOf(Date);
+  });
+
+  /*
+   * A case can be assigned to someone invited to the project who has not
+   * accepted: the project sees only what it invited of them - the name
+   * typed for them, else their address - never their own name (#9823).
+   */
+  test("a person only invited to the project: the timeline names them by the name typed for them", async () => {
+    getJestSpyOn(UserService, "findOneById").mockImplementation(
+      async (data: unknown) => {
+        const user: User = new User();
+        user._id = String((data as { id: ObjectID }).id);
+        user.name = "Diego Alvarez" as never;
+        user.email = new Email("diego@example.com");
+        return user;
+      },
+    );
+    const withheldIn: jest.SpyInstance = getJestSpyOn(
+      PendingInviteeProfiles,
+      "readWithheldProfilesInProject",
+    ).mockResolvedValue(
+      new Map<string, WithheldProfile>([
+        [DIEGO_ID.toString().toLowerCase(), { inviteeName: "Diego (SOC)" }],
+      ]) as never,
+    );
+
+    await move(caseBefore(), { assignedToUserId: DIEGO_ID.toString() });
+
+    expect(feed[0]!.feedInfoInMarkdown).toContain(
+      "Assigned to **Diego (SOC)**",
+    );
+    expect(feed[0]!.feedInfoInMarkdown).not.toContain("Diego Alvarez");
+    expect(
+      (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT_ID);
+
+    withheldIn.mockResolvedValue(
+      new Map<string, WithheldProfile>([
+        [DIEGO_ID.toString().toLowerCase(), { inviteeName: null }],
+      ]) as never,
+    );
+    feed = [];
+
+    await move(caseBefore(), { assignedToUserId: DIEGO_ID.toString() });
+
+    expect(feed[0]!.feedInfoInMarkdown).toContain(
+      "Assigned to **diego@example.com**",
+    );
   });
 
   test("Assign to Me: the reader is both who has it and who did it", async () => {

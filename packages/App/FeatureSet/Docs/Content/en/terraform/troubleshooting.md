@@ -22,6 +22,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `This project has been blocked` | Ask a master admin to unblock the project: see [A blocked project](#a-blocked-project) |
 | `references records that are not in this project` | Use an ID of your project's own record: see [IDs from another project](#ids-from-another-project) |
 | `Not Found` or `Ambiguous Match` from a data source | Fix the lookup's arguments: see [Lookups that find none or several](#lookups-that-find-none-or-several) |
+| `There is already a team called` (a label, an on-call policy, an on-call schedule) | Give it a name no other one of its kind has, or rename the other first: see [Names another record has](#names-another-record-has) |
 | `Cannot import non-existent remote object` | Check the ID and the key's permissions: see [Importing Resources](/docs/terraform/importing-resources#troubleshooting) |
 | `Provider produced inconsistent result after apply` | Upgrade the provider: see [Inconsistent result after apply](#inconsistent-result-after-apply) |
 | A plan creates a resource you did not add | The key can no longer read it, and OneUptime answered `404`: give the key read access back, then `terraform import` the resource: see [A resource leaves the state, and the next apply creates it again](#a-resource-leaves-the-state-and-the-next-apply-creates-it-again) |
@@ -103,6 +104,12 @@ It usually means an ID was copied from another project's configuration or state,
 
 A data source finds exactly one record, or stops the plan. `Not Found` says no record has the `id`, or none matches the arguments you set; `Ambiguous Match` says several do. Fix the arguments, set more of them to narrow the lookup down to one, or look the record up by `id`. [Read what already exists](/docs/terraform/complete-guide#read-what-already-exists) has the rules.
 
+### Names another record has
+
+Teams, labels, on-call policies and on-call schedules each have a name of their own in a project, whatever its case or spacing. A create, or a rename, onto a name another one of its kind has answers `400`, such as `There is already an on-call policy called Primary in this project. Pick another name.` An archived on-call policy keeps its name: unarchive it, or pick another name. Records that shared a name before keep it, and the dashboard's lists of teams, on-call policies and on-call schedules mark them.
+
+Terraform makes the changes of one apply side by side, so a rename onto a name another resource gives up in the same apply can be refused while that one still has it: apply again, or add a `depends_on` from the resource that takes the name to the one that gives it up. A swap, A to B and B to A, or any chain of renames that ends where it started, cannot be made in one apply: rename one of them to a name nobody has, apply, then make the rest of the change.
+
 ## Plans that do not settle
 
 ### Inconsistent result after apply
@@ -131,9 +138,13 @@ That happens when the key that manages a resource can no longer read it: its rea
 
 ### A priority or order that moves
 
-Monitor statuses, incident and alert states and severities, and the other lists you put in order in the dashboard hold each number once. A number nobody else holds is kept as written. A number another one already holds is taken over, and the ones in the way step down one place, as a drag in the dashboard does. So two of them configured with the same number trade places on every apply.
+Every list you put in order in the dashboard keeps the number each resource is given: monitor statuses (`priority`), incident and alert states and severities, custom fields, log pipelines and drop filters (`sort_order`), status page groups and resources, escalation rules, schedule layers and the rest. Setting a number places that resource and moves no other, so a configuration that numbers a whole list, such as `order = index(local.severities, each.key) + 1` over a `for_each` of `local.severities`, is applied exactly as written, whatever order the provider's writes land in, and the next plan is empty.
 
-Give each one its own number with gaps between them, such as `101`, `102` and `103`, and reorder the ones Terraform manages in Terraform, not by dragging them in the dashboard.
+- Give each resource a number of its own: two at one number both keep it, side by side, in an order you do not choose.
+- A resource created without a number goes to the end of its list. A new incident or alert state goes just above the resolved state instead, and a new monitor status just above the offline status.
+- Deleting a resource leaves a gap in the numbers, which changes nothing: a list goes by its numbers, not by counting.
+- Dragging a resource in the OneUptime dashboard numbers its whole list again from the top, and the next plan shows that as changes. Put the resources Terraform manages in order in Terraform.
+- The built-in states keep their order: a change that would put two of them at one number, or out of order, is refused, with why. When an apply moves built-in states past each other's old numbers, one of its writes can land first and meet that refusal; apply again and it finishes.
 
 ### Read-only attributes
 

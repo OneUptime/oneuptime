@@ -5,7 +5,7 @@ En Kubernetes-monitor advarer på de metrikker, som OneUptimes Kubernetes-agent 
 :::cards
 - [Installér agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando bringer klyngen ind i OneUptime.
 - [Opret monitoren](#opret-en-kubernetes-monitor): Vælg klyngen, og derefter en skabelon, en metrik eller en forespørgsel.
-- [Advarselsskabeloner](#færdige-advarselsskabeloner): Enogtyve færdige advarsler, fra en tavs klynge til etcd.
+- [Advarselsskabeloner](#færdige-advarselsskabeloner): Femogtyve færdige advarsler, fra en tavs klynge til etcd.
 - [Kriterier](#overvågningskriterier): Statiske tærskler og anomalidetektion.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - OneUptimes Kubernetes-agent kører i klyngen. Se [Kubernetes-agent (Helm-installation)](/docs/monitor/kubernetes-agent); klyngen vises under **Kubernetes** et par minutter efter installationen.
 - Til kontrolplan-skabelonerne (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): agentens indsamling fra kontrolplanet, `controlPlane.enabled`, som læser API-serveren med det samme; etcd og scheduleren skal desuden have deres endpoints angivet (se [Slå overvågning af kontrolplanet til](/docs/telemetry/kubernetes-agent#slå-overvågning-af-kontrolplanet-til)). Administrerede klynger (EKS, GKE, AKS) eksponerer ikke disse endpoints, så der modtager de monitorer aldrig data.
+- Til omkostningsskabelonerne (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): agentens omkostningsovervågning, som er slået til som standard undtagen med presets `gke-autopilot` og `eks-fargate` (se [Observability for Kubernetes-omkostninger](/docs/telemetry/kubernetes-cost)).
 
 ## Opret en Kubernetes-monitor
 
@@ -85,12 +86,13 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 
 | Kategori | Metrikker |
 | --- | --- |
-| Pod | Pod'ens CPU-forbrug, Pod-hukommelsesforbrug, Pod'ens fase (kode), Pod'ens filsystemforbrug, Pod'ens udnyttelse af hukommelsesgrænsen, Pod'ens udnyttelse af CPU-grænsen, Pod'ens netværks-I/O (akkumuleret, begge retninger) |
-| Node | Nodens CPU-forbrug, Nodens allokerbare CPU, Node-hukommelsesforbrug, Nodens working set for hukommelse, Node-filsystemforbrug, Nodens allokerbare hukommelse, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgængelige filsystem |
+| Pod | Pod'ens CPU-forbrug, Pod-hukommelsesforbrug, Pod'ens fase (kode), Pod'ens filsystemforbrug, Volumenkapacitet, Ledig plads på volumen, Pod'ens udnyttelse af hukommelsesgrænsen, Pod'ens udnyttelse af CPU-grænsen, Pod'ens netværks-I/O (akkumuleret, begge retninger) |
+| Node | Nodens CPU-forbrug, Nodens allokerbare CPU, Node-hukommelsesforbrug, Nodens working set for hukommelse, Node-filsystemforbrug, Nodens allokerbare hukommelse, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgængelige filsystem, Nodens filsystemkapacitet |
 | Container | Containerens genstarter, Containerens genstarter (stigning), Containerens CPU-grænse, Containerens CPU-anmodning, Containerens hukommelsesgrænse, Containerens hukommelsesanmodning, Container klar |
 | Arbejdsbyrde | Deploymentens tilgængelige replikaer, Deploymentens ønskede replikaer, DaemonSettets ønskede noder, DaemonSettets fejlplanlagte noder, DaemonSettets klare noder, StatefulSettets ønskede replikaer, StatefulSettets klare replikaer, Jobbets mislykkede pods, Jobbets mislykkede pods (stigning), Jobbets vellykkede pods |
 | HPA | HPA'ens aktuelle replikaer, HPA'ens ønskede replikaer, HPA'ens maksimale replikaer, HPA'ens minimale replikaer |
 | Kontrolplan | etcd har en leder, API-serverens igangværende anmodninger, Schedulerens ventende pods |
+| Omkostning | Klyngens omkostning, Inaktiv omkostning, Arbejdsbelastningens omkostning, Arbejdsbelastningens omkostningseffektivitet |
 
 > [!NOTE]
 > **Pod'ens CPU-forbrug** og **Nodens CPU-forbrug** er i kerner, ikke procent: `0.18` er 0,18 af en kerne. **Pod'ens fase (kode)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregér den med Maksimum eller Minimum, aldrig Sum. Kontrolplan-metrikker kommer kun, når agentens indsamling fra kontrolplanet er slået til. **Nodens Ready-betingelse** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det, en node, der er gået ned, rapporterer: advar ved mindre end 1. **Containerens genstarter** er containerens løbende genstartstæller; **Containerens genstarter (stigning)** er det, agenten sender med hver metrik: genstarterne siden dens forrige metrik af containeren, så summen over et vindue er genstarterne i det. Den bærer det, **Containerens genstarter** bærer, herunder navnene på arbejdsbyrderne for containerens pod, men ikke containerens ID, som skifter ved hver genstart. **Jobbets mislykkede pods** er et Jobs løbende tæller af fejlede pods; **Jobbets mislykkede pods (stigning)** er det, agenten sender med hver metrik: Jobbets pods, der er fejlet siden dens forrige metrik af Jobbet, så summen over et vindue er fejlene i det. Den bærer det, **Jobbets mislykkede pods** bærer: Jobbets navn og navnerum.
@@ -148,6 +150,7 @@ Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efte
 | API Server Request Saturation | Kontrolplan | API-serveren holder 200 eller flere igangværende forespørgsler i hele vinduet | Kritisk |
 | Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Advarsel |
 | High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 90 % fuldt | Advarsel |
+| PVC Almost Full | Lagerplads | Et persistent volume claim er mere end 90 % fuldt | Advarsel |
 | DaemonSet Pods Not Ready | Arbejdsbyrde | Et DaemonSet har noder uden en klar pod fra det i 15 minutter | Advarsel |
 | DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Advarsel |
 | High Node CPU Request Commitment | Node | En nodes samlede CPU-requests fra containere overstiger 90 % af dens allokerbare CPU | Advarsel |
@@ -155,8 +158,13 @@ Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efte
 | HPA Saturated at Max Replicas | Arbejdsbyrde | En HPA, der er skaleret over sin `minReplicas`, kører på 90 % eller mere af sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres hukommelsesgrænse | Kritisk |
 | Pod CPU Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres CPU-grænse | Advarsel |
+| Cluster Daily Cost Over Budget | Omkostning | Klyngens omkostning over det seneste døgn overstiger 100, et budget, du selv skal sætte | Advarsel |
+| Namespace Daily Cost Over Budget | Omkostning | Et navnerums omkostning over det seneste døgn overstiger 20, et budget, du selv skal sætte | Advarsel |
+| High Idle Spend | Omkostning | Mere end 40 % af klyngens omkostning over det seneste døgn gik til tomgangskapacitet | Advarsel |
 
 Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for sig, så en klynge med flere usunde pods får en hændelse pr. pod i stedet for én for hele klyngen.
+
+Omkostningsskabelonerne læser de metrikker, OneUptime skriver ud fra agentens timevise omkostningsrækker, ét punkt i timen, så de lægger det seneste døgn sammen; deres budgetter er i klyngens valuta, USD som standard.
 
 **High Node CPU Request Commitment** og **High Node Memory Request Commitment** tæller kun requests fra pods, der ikke er færdige, sådan som scheduleren gør. Klyngen bliver ved med at rapportere requests fra en pod, der er Succeeded eller Failed, for eksempel fra et færdigt Job, indtil poden slettes: de tælles ikke med.
 

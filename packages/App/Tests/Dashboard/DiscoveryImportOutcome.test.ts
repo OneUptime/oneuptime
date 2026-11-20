@@ -14,8 +14,11 @@ import {
   DiscoveryImportOutcome,
   DiscoveryImportPolicyFact,
   DiscoveryImportTemplateChoice,
+  EXISTING_DEVICES_NEED_A_TEMPLATE,
   RECOMMENDED_TEMPLATE_CHOICE_VALUE,
   checksDeviceAddress,
+  checksDeviceUrl,
+  checksFromProbe,
   countPingOnlyHosts,
   getDiscoveryImportBlocker,
   getDiscoveryImportOutcome,
@@ -465,6 +468,176 @@ describe("what keeps Import from being pressed", () => {
         hostCount: 3,
         settings: WITH_MONITORS,
         template: template(),
+      }),
+    ).toBeNull();
+  });
+});
+
+/*
+ * ISSUE #9544: devices already added, with no monitor, picked to get one.
+ * They are counted apart from the hosts imported, and get the template's
+ * monitor only when monitors are asked for.
+ */
+describe("devices already added, picked to get a monitor (#9544)", () => {
+  const existing: Array<DiscoveredNetworkDevice> = [
+    { ipAddress: "10.0.9.1", snmpReachable: true, isAlreadyRegistered: true },
+    { ipAddress: "10.0.9.2", snmpReachable: false, isAlreadyRegistered: true },
+  ];
+
+  test("each gets the template's monitor: monitors are counted for the new devices and for them", () => {
+    const outcome: DiscoveryImportOutcome = getDiscoveryImportOutcome({
+      hosts: hosts(3, 1),
+      existingHosts: existing,
+      settings: WITH_MONITORS,
+      template: template(),
+      policies: [],
+      monitorRoom: null,
+    });
+
+    expect(outcome.hostCount).toBe(4);
+    expect(outcome.existingDeviceCount).toBe(2);
+    expect(outcome.monitorCount).toBe(6);
+    // They are not walked or pinged anew: the counts of devices are the new ones'.
+    expect(outcome.snmpHostCount).toBe(3);
+    expect(outcome.pingOnlyHostCount).toBe(1);
+  });
+
+  test("a plan's room is counted against their monitors too", () => {
+    expect(
+      getDiscoveryImportOutcome({
+        hosts: hosts(3, 0),
+        existingHosts: existing,
+        settings: WITH_MONITORS,
+        template: template(),
+        policies: [],
+        monitorRoom: 4,
+      }).monitorsBeyondRoom,
+    ).toBe(1);
+  });
+
+  test("with no monitor asked for, they get nothing", () => {
+    const outcome: DiscoveryImportOutcome = getDiscoveryImportOutcome({
+      hosts: hosts(3, 0),
+      existingHosts: existing,
+      settings: settings(),
+      template: template(),
+      policies: [],
+      monitorRoom: null,
+    });
+
+    expect(outcome.existingDeviceCount).toBe(2);
+    expect(outcome.monitorCount).toBe(0);
+  });
+
+  test("only devices already added, and no monitor asked for: nothing to do, and the blocker says what to change", () => {
+    expect(
+      getDiscoveryImportBlocker({
+        hostCount: 0,
+        existingDeviceCount: 2,
+        settings: settings(),
+        template: null,
+      }),
+    ).toBe(EXISTING_DEVICES_NEED_A_TEMPLATE);
+    expect(EXISTING_DEVICES_NEED_A_TEMPLATE).toBe(
+      "The devices you picked are already added. Give them a monitor from a template, or go back and pick new hosts.",
+    );
+  });
+
+  test("only devices already added, with a template: nothing keeps Import from being pressed", () => {
+    expect(
+      getDiscoveryImportBlocker({
+        hostCount: 0,
+        existingDeviceCount: 2,
+        settings: WITH_MONITORS,
+        template: template(),
+      }),
+    ).toBeNull();
+    // New hosts as well, with Status only: they are imported, the rest wait.
+    expect(
+      getDiscoveryImportBlocker({
+        hostCount: 3,
+        existingDeviceCount: 2,
+        settings: settings(),
+        template: null,
+      }),
+    ).toBeNull();
+  });
+});
+
+/*
+ * ISSUE #9546: a Website, API or SSL Certificate template's monitor checks
+ * a URL on each device, from the scan's probe - like an address template's,
+ * it fires on a device that answers ping only, and reads no walk.
+ */
+describe("a template whose monitors check a URL on each device (#9546)", () => {
+  test("is told apart from the address kinds, and both check from the probe", () => {
+    for (const monitorType of [
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
+    ]) {
+      expect(checksDeviceUrl(template({ monitorType: monitorType }))).toBe(
+        true,
+      );
+      expect(checksDeviceAddress(template({ monitorType: monitorType }))).toBe(
+        false,
+      );
+      expect(checksFromProbe(template({ monitorType: monitorType }))).toBe(
+        true,
+      );
+    }
+
+    expect(checksFromProbe(template({ monitorType: MonitorType.Ping }))).toBe(
+      true,
+    );
+    expect(
+      checksFromProbe(template({ monitorType: MonitorType.NetworkDevice })),
+    ).toBe(false);
+    expect(checksDeviceUrl(null)).toBe(false);
+  });
+
+  test("every ping-only device is covered by what it raises", () => {
+    const outcome: DiscoveryImportOutcome = outcomeOf({
+      hosts: hosts(0, 12),
+      settings: WITH_MONITORS,
+      template: template({
+        name: "Device status page",
+        monitorType: MonitorType.Website,
+        templateUrl: "https://device:8443/status",
+        // Even read as a Network Device template's would be.
+        summary: summary({
+          raisesIncidents: true,
+          raisesIncidentsOnPingOnlyDevices: false,
+        }),
+      }),
+    });
+
+    expect(outcome.raisesIncidents).toBe(true);
+    expect(outcome.pingOnlyHostsWithoutAlerts).toBe(0);
+    expect(outcome.reach).toBe(DiscoveryImportAlertReach.Template);
+  });
+
+  test("one no device's monitor can be made from keeps Import from being pressed, with the server's words", () => {
+    const reason: string =
+      "This template's URL names its host with a variable, which is read when the check runs, so each device's address cannot take its place. Write a host into the URL, such as https://device/, then pick it again.";
+
+    expect(
+      getDiscoveryImportBlocker({
+        hostCount: 3,
+        settings: WITH_MONITORS,
+        template: template({
+          monitorType: MonitorType.API,
+          templateUrl: "https://{{monitorSecrets.host}}/",
+          unusableReason: reason,
+        }),
+      }),
+    ).toBe(reason);
+    // Asked for no monitor, the template is not used: nothing waits for it.
+    expect(
+      getDiscoveryImportBlocker({
+        hostCount: 3,
+        settings: settings(),
+        template: template({ unusableReason: reason }),
       }),
     ).toBeNull();
   });

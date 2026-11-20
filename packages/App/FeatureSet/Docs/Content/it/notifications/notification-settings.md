@@ -19,6 +19,7 @@ flowchart TB
 ```
 
 - Ogni riga è un evento, e ogni colonna un canale: E-mail, SMS, Chiamata, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost sono colonne solo se il progetto li ha collegati. Un canale non ancora configurato non è una colonna: è elencato in **Canali non ancora configurati**, sopra le schede, come link per configurarlo.
+- WhatsApp consegna solo messaggi approvati da Meta, e OneUptime li ha per gli aggiornamenti su incidenti, avvisi, episodi, monitor, sonde, agenti IA, pagine di stato, eventi di manutenzione e la maggior parte dei turni di reperibilità. Gli altri aggiornamenti, come lo stato di uno SLO, una chiamata persa, un caso di sicurezza o il diventare proprietari di un servizio, non hanno un interruttore WhatsApp, e il loro riquadro dice che WhatsApp non è disponibile. Vi arrivano dagli altri canali.
 - Un canale attivo invia a ogni metodo verificato che avete su di esso in questo progetto, non a uno solo.
 - Un canale attivo senza un metodo verificato dietro non invia nulla. La sua colonna mostra **Configura** sotto il nome, e i suoi interruttori si possono solo disattivare. **Your setup checklist** lo segnala anche, in **Staying informed**.
 - Un aggiornamento va ai proprietari dell'elemento: le persone indicate come proprietari e i membri dei suoi team proprietari. Quando un elemento non ha proprietari, va invece ai Proprietari del progetto. Chi è già stato raggiunto dalla chiamata di reperibilità di un nuovo incidente, avviso o episodio non riceve di nuovo la notifica della sua creazione. Un evento sull'essere stati aggiunti come proprietari va solo alla persona aggiunta. Se OneUptime si ferma mentre sta inviando un aggiornamento ai proprietari di un elemento, le persone a cui non era ancora arrivato lo ricevono quando OneUptime torna, qualche minuto dopo, e nessuno lo riceve due volte.
@@ -49,23 +50,28 @@ Quando entrate in un progetto, questi eventi partono attivi, via e-mail. Tutto i
 | --- | --- | --- |
 | **Incidenti** | **Incidente creato**, **Stato dell'incidente modificato**, **Promemoria incidente**, **SLA dell'incidente violato**, **Episodio dell'incidente creato**, **Stato dell'episodio dell'incidente modificato**, **Incidente aggiunto all'episodio dell'incidente** | **Nota dell'incidente pubblicata**, **Aggiunto come proprietario dell'incidente**, **Assegnato a un incidente**, **Nota dell'episodio dell'incidente pubblicata**, **Aggiunto come proprietario dell'episodio di incidente** |
 | **Avvisi** | **Avviso creato**, **Stato dell'avviso modificato**, **Promemoria avviso**, **Episodio di avviso creato**, **Stato dell'episodio di avviso modificato**, **Avviso aggiunto all'episodio di avviso** | **Nota dell'avviso pubblicata**, **Aggiunto come proprietario dell'avviso**, **Nota dell'episodio di avviso pubblicata**, **Aggiunto come proprietario dell'episodio di avviso** |
-| **Monitoraggio** | **Stato della sonda modificato per il tuo monitor**, **Il monitor non ha sonde attive**, **Stato dell'SLO modificato**, **Aggiunto come proprietario dell'SLO**, **Eccezione assegnata a me**, **Stato della sonda modificato**, **Aggiunto come proprietario della sonda** | **Monitor creato**, **Stato del monitor modificato**, **Aggiunto come proprietario del monitor**, **Stato dell'agente IA modificato**, **Aggiunto come proprietario dell'agente IA** |
+| **Monitoraggio** | **Stato della sonda modificato per il tuo monitor**, **Il monitor non ha sonde attive**, **Stato dell'SLO modificato**, **Aggiunto come proprietario dell'SLO**, **Eccezione assegnata a me**, **Stato della sonda modificato**, **Aggiunto come proprietario della sonda**, **Aggiunto come proprietario della tabella**, **Aggiunto come proprietario della pipeline**, **Aggiunto come proprietario di un servizio o di un'infrastruttura**, **Aggiunto come proprietario della dashboard**, **Aggiunto come proprietario del flusso di lavoro**, **Aggiunto come proprietario del runbook**, **Aggiunto come proprietario del gruppo di monitor**, **Aggiunto come proprietario del Runner** | **Monitor creato**, **Stato del monitor modificato**, **Aggiunto come proprietario del monitor**, **Stato dell'agente IA modificato**, **Aggiunto come proprietario dell'agente IA** |
 | **Pagine di stato** | **La mia nota pubblica approvata o rifiutata**, e anche via push: **Nota pubblica in attesa della mia approvazione** | **Pagina di stato creata**, **Annuncio della pagina di stato pubblicato**, **Aggiunto come proprietario della pagina di stato** |
 | **Manutenzione programmata** | **Promemoria manutenzione** | **Evento di manutenzione creato**, **Stato della manutenzione modificato**, **Nota di manutenzione pubblicata**, **Aggiunto come proprietario della manutenzione** |
-| **Reperibilità** | **Inizi la reperibilità**, **Sei il prossimo in reperibilità**, **Termini la reperibilità**, **Aggiunto alla policy di reperibilità**, **Rimosso dalla policy di reperibilità**, **Chiamata persa**, e anche via push: **Prima dell'inizio del mio turno di reperibilità**, **Il mio prossimo turno di reperibilità viene riassegnato** | Nessuno |
-| **Sicurezza** | Anche via push: **Nuovo caso di sicurezza** (casi con priorità Alta e Critica), **Caso di sicurezza assegnato a me**, **Passaggio di playbook in attesa della mia approvazione**, **Obiettivo di risposta di un caso di sicurezza**, **Attività di un caso di sicurezza assegnata a me**, **Una caccia ha trovato eventi di sicurezza** | Nessuno |
+| **Reperibilità** | **Inizi la reperibilità**, **Sei il prossimo in reperibilità**, **Termini la reperibilità**, **Aggiunto alla policy di reperibilità**, **Rimosso dalla policy di reperibilità**, **Chiamata persa**, **Aggiunto come proprietario della policy di reperibilità**, **Aggiunto come proprietario della pianificazione di reperibilità**, **Aggiunto come proprietario della policy chiamate in entrata**, e anche via push: **Prima dell'inizio del mio turno di reperibilità**, **Il mio prossimo turno di reperibilità viene riassegnato** | Nessuno |
+| **Sicurezza** | **Aggiunto come proprietario dell'archivio dati**, e anche via push: **Nuovo caso di sicurezza** (casi con priorità Alta e Critica), **Caso di sicurezza assegnato a me**, **Passaggio di playbook in attesa della mia approvazione**, **Obiettivo di risposta di un caso di sicurezza**, **Attività di un caso di sicurezza assegnata a me**, **Una caccia ha trovato eventi di sicurezza** | Nessuno |
 
 > [!IMPORTANT]
 > **Stato del monitor modificato** parte disattivato. Per sapere quando un monitor vostro va giù o torna su, attivatelo nella scheda **Monitoraggio**.
 
+**Aggiunto come proprietario di un servizio o di un'infrastruttura**, nel riquadro **Servizi e infrastruttura**, è un solo interruttore per ogni servizio, applicazione RUM, database, coda, host, cluster, risorsa cloud e altro elemento di infrastruttura di cui diventate proprietari. Il messaggio dice di quale si tratta.
+
+**Aggiunto come proprietario del gruppo di monitor**, nel riquadro **Monitor**, e **Aggiunto come proprietario del Runner**, nel riquadro **Dashboard e automazione**, vi avvisano quando qualcuno vi aggiunge come proprietari di un gruppo di monitor o di un Runner.
+
 ## I vostri turni
 
-La scheda **Reperibilità** riguarda voi, non gli elementi vostri:
+La scheda **Reperibilità** riguarda voi e gli elementi di reperibilità vostri:
 
 - **Inizi la reperibilità**, **Sei il prossimo in reperibilità** e **Termini la reperibilità** seguono i vostri turni nelle pianificazioni di reperibilità di cui fate parte.
 - **Aggiunto alla policy di reperibilità** e **Rimosso dalla policy di reperibilità** vi dicono quando una politica di reperibilità inizia o smette di nominarvi.
 - **Prima dell'inizio del mio turno di reperibilità** invia promemoria agli orari che scegliete in **Impostazioni utente → Profilo e calendario → Feed calendario**, e **Il mio prossimo turno di reperibilità viene riassegnato** vi dice quando qualcun altro copre un turno di cui avevate ricevuto il promemoria. Vedete [Feed calendario](/docs/on-call/calendar-feeds#promemoria-e-avvisi-di-riassegnazione).
 - **Chiamata persa**, nel riquadro **Policy chiamate in entrata**, dice ai proprietari di una policy di chiamate in entrata che chi ha chiamato non ha raggiunto nessuno. Vedete [Politica chiamate in arrivo](/docs/on-call/incoming-call-policy#chiamate-perse).
+- **Aggiunto come proprietario della policy di reperibilità**, **Aggiunto come proprietario della pianificazione di reperibilità** e **Aggiunto come proprietario della policy chiamate in entrata** vi dicono quando diventate proprietari di uno di essi, tramite una regola dei proprietari o una persona nella sua pagina Proprietari.
 
 ## Casi di sicurezza
 
@@ -99,6 +105,10 @@ Vedete [Riepilogo delle notifiche](/docs/emails/notification-rollup).
 
 :::details Un interruttore è attivo, ma non arriva nulla
 Controllate di avere un metodo verificato su quel canale in **Impostazioni utente → Metodi di notifica**. Per SMS, chiamate, WhatsApp e Telegram, anche il progetto deve avere il canale attivo.
+:::
+
+:::details Non c'è un interruttore WhatsApp per un aggiornamento
+WhatsApp consegna solo messaggi approvati da Meta, e OneUptime non ne ha per quell'aggiornamento, quindi il suo riquadro dice che WhatsApp non è disponibile. Scegliete un altro canale, come SMS o Push.
 :::
 
 :::details Sono proprietario di un monitor, ma non so mai quando va giù

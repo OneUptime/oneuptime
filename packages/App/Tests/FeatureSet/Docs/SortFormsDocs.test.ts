@@ -61,7 +61,7 @@ const MCP_SERVER: string = "ai/mcp-server";
 
 // The paragraph each page added, by its line: the same line in every language.
 const API_REFERENCE_SORT_LINE: number = 98;
-const MCP_SERVER_SORT_LINE: number = 364;
+const MCP_SERVER_SORT_LINE: number = 378;
 
 // The sorts and values the paragraphs quote, as inline code.
 const BY_DECLARED_NULLS_LAST: string =

@@ -127,7 +127,7 @@ flowchart TB
 | 데이터 저장소, 그 타임라인과 발견 사항, 접근할 수 있는 대상과 각 ID | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | 이슈, 그 타임라인, 데이터 흐름 | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | 스캔 | `/data-security-scan` |
-| 사용자 지정 데이터 유형, 검사 설정, 데이터 상주 규칙 | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| 사용자 지정 데이터 유형, 검사 설정, 규정 준수 설정, 데이터 상주 규칙 | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | 프로젝트의 설정 | `/data-security-setting` |
 | 소유자, 소유자 규칙, 레이블 규칙 | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ flowchart TB
 | --- | --- |
 | `/data-security/overview` | 개요의 수치: 민감도와 범주별 저장소, 심각도별 열린 이슈, 위험이 가장 큰 이슈, 최근 30일간의 이슈 |
 | `/data-security/compliance` | 모든 프레임워크의 점수와 요구 사항 |
+| `/data-security/resource-scope` | 리소스 하나(Kubernetes 클러스터, Docker 또는 Podman 호스트, 데이터베이스, 서비스 또는 클라우드 리소스)의 데이터 저장소와, 그 저장소들이 어느 리소스의 규정 준수 스위치를 따르는지 |
+| `/data-security/resource-compliance` | 리소스 하나의 프레임워크: 그 리소스의 저장소에 대한 점수와 그 리소스에서 꺼진 것 |
 | `/data-security/record-of-processing` | GDPR 처리 활동 기록. 개인 데이터가 있는 저장소마다 한 행 |
 | `/data-store/<id>/scan-now` | **지금 스캔**: 저장소의 콘텐츠를 지금 샘플링 |
 | `/data-store/<id>/check-now` | **지금 검사**: 저장소의 구성을 다시 읽고 검사를 실행 |
 | `/data-store-finding/<id>/scrub` | 텔레메트리 발견 사항의 **정리** |
+| `/data-store-finding/<id>/drop-metric-impact` | 메트릭 이름에 있는 발견 사항에서 **이 메트릭 삭제** 가 삭제할 대상: 메트릭 수와, 그 메트릭을 읽는 모니터와 대시보드 |
+| `/data-store-finding/<id>/drop-metric` | **이 메트릭 삭제**: 서비스의 해당 메트릭의 새 데이터 포인트를 영구히 삭제하는 메트릭 파이프라인 규칙. `{"confirmDataLoss": true}` 를 받습니다 |
 | `/data-security-issue/<id>/explain` | 이슈의 **AI로 설명** |
 | `/data-security-issue/<id>/fix-with-ai` | 이슈의 **AI로 수정** |
 | `/data-store/<id>/response-actions` | 저장소가 지금 취할 수 있는 대응 작업과, 취할 수 없는 경우 그 이유 |
 | `/data-store/<id>/respond` | 실행한 이슈와 함께, 저장소에 대한 대응 작업 하나(예: **공개 액세스 차단** 또는 **버전 관리 켜기**) |
 
-[Terraform 프로바이더](/docs/terraform/index)에는 직접 만드는 레코드의 종류마다 리소스가 있으며(직접 추가하는 데이터 저장소, 사용자 지정 데이터 유형, 검사 설정, 데이터 상주 규칙, 소유자 규칙과 레이블 규칙), 리소스 이름은 `oneuptime_residency_rule` 처럼 레코드의 이름을 따릅니다.
+[Terraform 프로바이더](/docs/terraform/index)에는 직접 만드는 레코드의 종류마다 리소스가 있으며(직접 추가하는 데이터 저장소, 사용자 지정 데이터 유형, 검사 설정, 규정 준수 설정, 데이터 상주 규칙, 소유자 규칙과 레이블 규칙), 리소스 이름은 `oneuptime_residency_rule` 처럼 레코드의 이름을 따릅니다.
 
-[MCP 서버](/docs/ai/mcp-server)에는 다음 데이터 보안 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구가 있습니다: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule, Data Security Setting. 그러면 AI 어시스턴트가 사용자의 권한으로 어떤 저장소에 카드 번호가 있는지, 버킷에 무엇이 열려 있는지 물어볼 수 있습니다.
+[MCP 서버](/docs/ai/mcp-server)에는 다음 데이터 보안 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구가 있습니다: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule, Data Security Setting. 그러면 AI 어시스턴트가 사용자의 권한으로 어떤 저장소에 카드 번호가 있는지, 버킷에 무엇이 열려 있는지 물어볼 수 있습니다.
 
 ## 다음 단계
 

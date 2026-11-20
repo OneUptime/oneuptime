@@ -1,0 +1,353 @@
+# Kubernetes cost monitoring is on by default (issue #9548).
+#
+# cost.enabled used to default to false, so nobody saw what a cluster costs
+# until they found the flag. It now defaults to `auto`: on, on every preset
+# whose nodes OpenCost can price - standard (EKS, GKE Standard, AKS, and any
+# self-managed cluster, where OpenCost falls back to its default rates),
+# openshift and openshift-restricted - and off on gke-autopilot and
+# eks-fargate, which bill every pod by its requests (so the three cost pods
+# would add to the bill they measure) and are not priced by node, which is
+# how OpenCost prices. true and false still mean what they say on every
+# preset, and the chart refuses any other value instead of guessing.
+#
+# Every part reads cost.enabled through kubernetes-agent.costEnabled, so a
+# preset that leaves cost out leaves none of it behind: no cost agent, no
+# OpenCost, no Prometheus, no RBAC for them and no cost-engine scrape in the
+# collector's configuration.
+suite: cost monitoring is on by default, except where it cannot price or would cost
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/deployment-cost-agent.yaml
+  - templates/opencost.yaml
+  - templates/prometheus-cost.yaml
+  - templates/configmap-deployment.yaml
+  - templates/rbac.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- On by default ---------------------------------------------------------
+  - it: runs the cost agent, OpenCost and its Prometheus with no values set
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/deployment-cost-agent.yaml
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-cost
+      # The Deployment and its Service; no rate card while customPricing is off.
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 2
+      # The scrape config, the Deployment and its Service; no PVC by default.
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 3
+
+  - it: points the cost agent at the bundled OpenCost and its Prometheus
+    template: templates/deployment-cost-agent.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: http://oneuptime-agent-kubernetes-agent-opencost.oneuptime.svc.cluster.local:9003
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_URL
+            value: http://oneuptime-agent-kubernetes-agent-cost-prometheus.oneuptime.svc.cluster.local:9090
+
+  # The cost agent reads the cluster's own engine when it runs one, so the
+  # collector asks the agent which engine's prices to scrape (#9852):
+  # cost-engine-bundled-prices_test.yaml.
+  - it: scrapes the cost engine's price metrics in the collector by default
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  prometheus:\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          http_sd_configs:\\n            - url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\"\\n"
+      # The metrics pipeline reads the receiver, or its scrape goes nowhere.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - prometheus\\n"
+
+  - it: lets the bundled OpenCost read storage classes and disruption budgets
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["storage.k8s.io"]
+            resources:
+              - storageclasses
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["policy"]
+            resources:
+              - poddisruptionbudgets
+            verbs: ["get", "list", "watch"]
+
+  - it: reads auto, written out, as the default
+    set:
+      cost.enabled: auto
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 2
+
+  - it: runs on the OpenShift presets, whose nodes OpenCost prices
+    set:
+      preset: openshift
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 2
+
+  - it: runs on openshift-restricted, which needs no SCC for any cost pod
+    set:
+      preset: openshift-restricted
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 3
+
+  # --- Off where auto leaves it out --------------------------------------------
+  - it: leaves every cost part out on GKE Autopilot
+    set:
+      preset: gke-autopilot
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+
+  - it: leaves every cost part out on EKS Fargate
+    set:
+      preset: eks-fargate
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+
+  - it: grants OpenCost nothing where it does not run
+    template: templates/rbac.yaml
+    set:
+      preset: eks-fargate
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["storage.k8s.io"]
+          any: true
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["policy"]
+          any: true
+
+  # --- true and false win over the preset ----------------------------------------
+  - it: turns cost on on GKE Autopilot when cost.enabled is true
+    set:
+      preset: gke-autopilot
+      cost.enabled: true
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 2
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+
+  - it: turns cost on on EKS Fargate when cost.enabled is true
+    set:
+      preset: eks-fargate
+      cost.enabled: true
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 3
+
+  - it: turns every cost part off with cost.enabled=false, the one-line opt-out
+    set:
+      cost.enabled: false
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+
+  - it: bundles nothing with an engine of your own, and still polls and scrapes it
+    set:
+      cost.engine.url: http://opencost.opencost.svc.cluster.local:9003
+    asserts:
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 0
+      # Scraped where the agent finds that engine's price metrics
+      # (cost-engine-metrics_test.yaml).
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+http_sd_configs:\\n\\s+- url: \"http://oneuptime-agent-kubernetes-agent-cost\\.oneuptime\\.svc\\.cluster\\.local:13134/scrape-targets\""
+
+  - it: refuses a value that is neither true, false nor auto
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.enabled: "yes"
+    asserts:
+      - failedTemplate: {}
+
+  # --- What the collector forwards -----------------------------------------------
+  - it: forwards the engine's prices, one series per node, volume or load balancer
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "regex: \"\\^\\(node_cpu_hourly_cost\\|node_gpu_hourly_cost\\|node_ram_hourly_cost\\|node_total_hourly_cost\\|pv_hourly_cost\\|kubecost_cluster_management_cost\\|kubecost_load_balancer_cost\\|kubecost_network_zone_egress_cost\\|kubecost_network_region_egress_cost\\|kubecost_network_internet_egress_cost\\)\\$\"\\n\\s+action: keep"
+
+  # One series per container on every scrape grew a cluster's metrics with its
+  # pod count; spend per workload arrives priced from the cost agent instead.
+  - it: no longer forwards the per-container allocation series by default
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "container_cpu_allocation|container_memory_allocation_bytes|container_gpu_allocation|pod_pvc_allocation"
+
+  - it: forwards them again when they are put back on the allowlist
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.metrics.metricsAllowlist:
+        - node_total_hourly_cost
+        - container_cpu_allocation
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "regex: \"\\^\\(node_total_hourly_cost\\|container_cpu_allocation\\)\\$\""
+
+  # --- What the bundled Prometheus keeps ------------------------------------------
+  # The cAdvisor job reads each node's kubelet by default, through the API
+  # server's node proxy where cost.prometheus.nodesProxy says so (#9878):
+  # either way the allowlist is that job's, right after its relabeling.
+  - it: keeps only the cAdvisor series OpenCost and the cost agent read
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "regex: __meta_kubernetes_node_label_\\(\\.\\+\\)\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n(?:\\s+#[^\\n]*\\n)*\\s+- job_name: opencost\\n"
+
+  - it: keeps only those series through the API server's node proxy too
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    set:
+      cost.prometheus.nodesProxy: true
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "replacement: /api/v1/nodes/\\$1/proxy/metrics/cadvisor\\n(?:\\s+#[^\\n]*\\n)*\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(container_cpu_usage_seconds_total\\|container_memory_working_set_bytes\\|container_fs_usage_bytes\\|container_fs_limit_bytes\\|container_network_receive_bytes_total\\|container_network_transmit_bytes_total\\|container_cpu_cfs_throttled_periods_total\\|container_cpu_cfs_periods_total\\)\\$\"\\n\\s+action: keep\\n(?:\\s+#[^\\n]*\\n)*\\s+- job_name: opencost\\n"
+
+  # The cost agent reads memory peaks from this job, by this name.
+  - it: keeps the cAdvisor job's name, which the cost agent queries
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "- job_name: kubernetes-nodes-cadvisor\\n"
+
+  # OpenCost's own job carries the prices and request metrics it reads back:
+  # nothing of it is dropped.
+  - it: keeps every series of OpenCost's own job
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    asserts:
+      - matchRegex:
+          path: data["prometheus.yml"]
+          pattern: "- job_name: opencost\\n\\s+honor_labels: true\\n\\s+static_configs:\\n\\s+- targets:\\n\\s+- \"oneuptime-agent-kubernetes-agent-opencost\\.oneuptime\\.svc\\.cluster\\.local:9003\"\\n?$"
+
+  - it: keeps every cAdvisor series when the allowlist is emptied
+    template: templates/prometheus-cost.yaml
+    documentSelector:
+      path: kind
+      value: ConfigMap
+    set:
+      cost.prometheus.cadvisorMetricsAllowlist: []
+    asserts:
+      - notMatchRegex:
+          path: data["prometheus.yml"]
+          pattern: "metric_relabel_configs"

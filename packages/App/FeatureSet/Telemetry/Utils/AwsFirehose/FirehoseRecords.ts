@@ -1,5 +1,13 @@
+import {
+  StreamedReadingMinute,
+  toStreamedReadingMinute,
+} from "Common/Server/Utils/CloudConnection/CloudStreamReadings";
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
+import {
+  AwsStreamStack,
+  UNVERSIONED_AWS_STREAM_STACK,
+} from "Common/Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "Common/Types/JSON";
 import {
   CLOUDWATCH_LOGS_DATA_MESSAGE,
@@ -14,6 +22,7 @@ import {
 } from "./CloudWatchLogs";
 import {
   MetricResourceFacts,
+  StreamedKeyPoint,
   StreamedSeriesMemory,
   decodeJsonMetricRecord,
   decodeOpenTelemetryMetricRecord,
@@ -44,15 +53,24 @@ import {
  * The delivery's metrics are then kept once for each resource - its own
  * aggregate, never its splits too - and its key metrics written as the
  * connection's read writes them, a gauge of the read's statistic, so the
- * two are one series (shapeStreamedMetrics).
+ * two are one series (shapeStreamedMetrics). Each minute of a metric a
+ * resource's readings keep is noted with the minute's summary
+ * (readingMinutes), for its health and headlines (CloudStreamReadings).
  */
 
+export interface DeliveredMetricsSighting {
+  accountId: string;
+  region: string;
+  namespaces: Set<string>;
+  // The stack that delivered them (CloudStreamStack).
+  stack: AwsStreamStack;
+  // When the newest minute of its metrics starts, in milliseconds: null for none.
+  newestMs: number | null;
+}
+
 export interface DeliverySightings {
-  // "account|region": the namespaces its metrics carried.
-  metrics: Map<
-    string,
-    { accountId: string; region: string; namespaces: Set<string> }
-  >;
+  // "account|region": the namespaces its metrics carried, and its stack.
+  metrics: Map<string, DeliveredMetricsSighting>;
   // "account|region": the log groups its logs came from.
   logs: Map<
     string,
@@ -76,6 +94,12 @@ export interface DecodedDelivery {
   // Records that were none of the formats, or broke off.
   unrecognized: number;
   sightings: DeliverySightings;
+  /*
+   * Each minute it wrote of a metric a resource's readings keep, with the
+   * minute's summary: what its health and headlines are judged from
+   * (CloudStreamReadings), so the read need not read it from CloudWatch.
+   */
+  readingMinutes: Array<StreamedReadingMinute>;
 }
 
 /*
@@ -220,7 +244,13 @@ export async function decodeFirehoseRecords(data: {
   budget: DecodeBudget;
   // What the connection's earlier deliveries carried (tests give their own).
   seriesMemory?: StreamedSeriesMemory | undefined;
+  /*
+   * The stack that sent it, from its common attributes (CloudStreamStack):
+   * one that says nothing of itself when left out.
+   */
+  stack?: AwsStreamStack | undefined;
 }): Promise<DecodedDelivery> {
+  const stack: AwsStreamStack = data.stack || UNVERSIONED_AWS_STREAM_STACK;
   const delivery: DecodedDelivery = {
     resourceMetrics: [],
     resourceLogs: [],
@@ -229,6 +259,7 @@ export async function decodeFirehoseRecords(data: {
     controlMessages: 0,
     unrecognized: 0,
     sightings: { metrics: new Map(), logs: new Map() },
+    readingMinutes: [],
   };
   const messages: Array<CloudWatchLogsMessage> = [];
   const metricResources: Array<JSONObject> = [];
@@ -289,6 +320,15 @@ export async function decodeFirehoseRecords(data: {
     connectionId: data.connectionId,
     now: data.now,
     memory: data.seriesMemory,
+    stack,
+    onKeyPoint: (point: StreamedKeyPoint): void => {
+      const minute: StreamedReadingMinute | null =
+        toStreamedReadingMinute(point);
+
+      if (minute) {
+        delivery.readingMinutes.push(minute);
+      }
+    },
   });
 
   for (const stamped of shapedResources) {
@@ -306,16 +346,25 @@ export async function decodeFirehoseRecords(data: {
 
     if (facts.accountId) {
       const key: string = `${facts.accountId}|${facts.region}`;
-      const sighting:
-        | { accountId: string; region: string; namespaces: Set<string> }
-        | undefined = delivery.sightings.metrics.get(key) || {
+      const sighting: DeliveredMetricsSighting = delivery.sightings.metrics.get(
+        key,
+      ) || {
         accountId: facts.accountId,
         region: facts.region,
         namespaces: new Set<string>(),
+        stack,
+        newestMs: null,
       };
 
       for (const namespace of facts.namespaces) {
         sighting.namespaces.add(namespace);
+      }
+
+      if (
+        facts.newestMs !== null &&
+        facts.newestMs > (sighting.newestMs ?? 0)
+      ) {
+        sighting.newestMs = facts.newestMs;
       }
 
       delivery.sightings.metrics.set(key, sighting);

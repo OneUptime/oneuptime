@@ -440,6 +440,26 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Whether a master admin has turned on Suggest Every Account When
+   * Inviting (GlobalConfig.suggestServerAccountsWhenInviting, #9744): the
+   * column as it is stored, false while it was never set. Whether it applies
+   * - never on OneUptime Cloud, only to someone who may invite - is
+   * InviteSuggestions.mayFindServerAccounts's to say. Read afresh on every
+   * ask, with nothing kept: the email box asks at most once per pause in
+   * typing, and a switch turned off holds on every server at once.
+   */
+  @CaptureSpan()
+  public async getSuggestServerAccountsWhenInviting(): Promise<boolean> {
+    const config: Model | null = await this.findOneBy({
+      query: {},
+      select: { suggestServerAccountsWhenInviting: true },
+      props: { isRoot: true },
+    });
+
+    return Boolean(config?.suggestServerAccountsWhenInviting);
+  }
+
+  /*
    * Whether push notifications are turned off for the whole server. Throws
    * when it cannot be read, and keeps nothing: the push sender refuses
    * rather than take a failed read for "on", since the switch is there for

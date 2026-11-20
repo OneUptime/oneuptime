@@ -35,6 +35,7 @@ flowchart LR
 | Сборщик узла | DaemonSet | Логи подов из `/var/log/pods`, метрики kubelet и cAdvisor и метрики ОС узла. | Да |
 | eBPF-инструментирование (OBI) | DaemonSet | Трассировки HTTP, gRPC, SQL и Redis и метрики запросов от каждого пода, а также карта сервисов. | Да |
 | ИИ-агент Kubernetes | Deployment | Позволяет OneUptime AI выполнять `kubectl` только для чтения, пока он расследует инцидент или оповещение в этом кластере. | Да |
+| Движок затрат и опросчик | Deployments | Сколько стоит каждое пространство имён и каждая рабочая нагрузка: OpenCost, небольшой Prometheus, который ему нужен, и агент затрат, который отправляет то, что они рассчитали. | Да, кроме пресетов `gke-autopilot` и `eks-fargate` |
 | Считыватель логов | Deployment | Логи подов через Kubernetes API там, где сборщик узла не может их прочитать. | С пресетами `gke-autopilot`, `eks-fargate` и `openshift-restricted` |
 | eBPF-профилировщик | DaemonSet | Непрерывные flame-графы CPU для каждого процесса. | Нет |
 | kube-state-metrics | Deployment | Фазы подов, причины ожидания контейнеров и квоты ресурсов. | Нет |
@@ -357,14 +358,14 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | --- | --- | --- |
 | `hostMetrics.enabled` | вкл. | Метрики ОС каждого узла из `/proc` и `/sys`: очереди дискового ввода-вывода, inode файловых систем, ошибки сетевых интерфейсов, подкачка и средняя нагрузка. Работает в сборщике узла, без дополнительных подов. |
 | `kubeletstats.utilizationMetrics.enabled` | вкл. | CPU и память контейнеров и подов в процентах от их request и limit, которые читают шаблоны Pod CPU Saturating Container Limit и Pod Memory Saturating Container Limit. Контейнер без limit (или request) не получает ни одной из этих серий, а под — только если такой есть у каждого его контейнера. |
-| `kubeletstats.volumeMetrics.enabled` | вкл. | Свободное и общее место каждого PVC (`k8s.volume.available`, `k8s.volume.capacity`) для собственных графиков и мониторов метрик: ни один встроенный шаблон их не читает. Одна серия на PVC на под. |
+| `kubeletstats.volumeMetrics.enabled` | вкл. | Свободное и общее место каждого PVC (`k8s.volume.available`, `k8s.volume.capacity`), названное по его запросу тома: занятое, свободное место и ёмкость на страницах запросов постоянных томов и то, что читает шаблон PVC Almost Full. Запрос тома, заполненный на 80 % и больше, попадает в раздел «Требует внимания» кластера. Несколько серий на том и под — для томов, в которых хранятся данные (запросы томов, emptyDir, hostPath): тома configMap, secret, downwardAPI и токенов сервисных аккаунтов пода отбрасываются на узле. |
 | `cadvisor.enabled` | вкл. | Троттлинг CPU и завершения по OOM из `/metrics/cadvisor` каждого kubelet: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` и `container_oom_events_total`, и ничего больше. |
 | `kubeStateMetrics.enabled` | выкл. | Фазы подов (Pending, Terminating), поды, которые не удаётся запланировать, причины ожидания контейнеров (CrashLoopBackOff, ImagePullBackOff) и использование квот ресурсов из kube-state-metrics. `kubeStateMetrics.mode: bundled` (по умолчанию) запускает для вас небольшой kube-state-metrics; `external` читает уже работающий у вас, по адресу `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | выкл. | Журнал аудита Kubernetes, `/var/log/kubernetes/audit.log`: каждый запрос к API — кто его сделал и к чему. Только самостоятельно управляемые кластеры: управляемые (EKS, GKE, AKS, DOKS) отправляют его облачному провайдеру. |
 | `csi.enabled` | выкл. | Метрики драйверов хранилища CSI из подов с метками `app=csi-driver` или `app.kubernetes.io/component=csi-driver`: время подключения и отключения томов, ошибки выделения, IOPS. |
 | `coreDns.enabled` | выкл. | Метрики CoreDNS на `:9153/metrics`: частота запросов, задержка, попадания в кеш и ошибки. |
 | `controlPlane.enabled` | выкл. | API-сервер по его адресу внутри кластера, а etcd, планировщик и controller manager — по указанным вами конечным точкам ([Включение мониторинга плоскости управления](/docs/telemetry/kubernetes-agent#включение-мониторинга-плоскости-управления)). Только самостоятельно управляемые кластеры: управляемые их не открывают. |
-| `cost.enabled` | выкл. | Сколько стоит каждая рабочая нагрузка. См. [Наблюдаемость затрат Kubernetes](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Сколько стоит каждое пространство имён и каждая рабочая нагрузка, с простаивающими мощностями и эффективностью, в том числе в виде метрик для оповещений: включено, кроме пресетов `gke-autopilot` и `eks-fargate`; `false` выключает. См. [Наблюдаемость затрат Kubernetes](/docs/telemetry/kubernetes-cost). |
 
 ## Основные параметры
 

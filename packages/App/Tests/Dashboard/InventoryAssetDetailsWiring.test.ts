@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import Dictionary from "Common/Types/Dictionary";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import {
   INVENTORY_ASSET_ATTRIBUTE_KEYS,
   INVENTORY_ASSET_FIELDS,
@@ -103,7 +104,10 @@ describe("the CMDB page documents the asset details (issue #4569)", () => {
       }),
     ).toEqual(
       INVENTORY_ASSET_FIELDS.map((field: InventoryAssetField): string => {
-        return INVENTORY_ASSET_FIELD_LABELS[field].toLowerCase();
+        // In English: a meaning key draws its word (Model, #9838).
+        return withMeaningKeyAsItsWord(
+          INVENTORY_ASSET_FIELD_LABELS[field],
+        ).toLowerCase();
       }),
     );
   });
@@ -138,8 +142,11 @@ describe("the CMDB page documents the asset details (issue #4569)", () => {
       ...INVENTORY_ASSET_FIELDS,
       ...INVENTORY_ASSET_OPTIONAL_FIELDS,
     ]) {
-      if (field === InventoryAssetField.Architecture) {
-        // A host's fact only.
+      if (
+        field === InventoryAssetField.Architecture ||
+        field === InventoryAssetField.SecurityPatch
+      ) {
+        // A host's fact only: its architecture, an Android device's patch level.
         continue;
       }
       expect(keys).toContain(INVENTORY_ASSET_ATTRIBUTE_KEYS[field]);

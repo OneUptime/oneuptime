@@ -20,6 +20,7 @@ import {
   CloudResourceReading,
   CloudResourceReadings,
   assessCloudResourceHealth,
+  getCloudHeadlineReadingOf,
   getCloudHeadlineReadings,
   getCloudReadingPeriodSeconds,
   readCloudResourceReadings,
@@ -309,10 +310,11 @@ export function getCloudTopologyFacts(data: {
       break;
     }
 
-    const reading: CloudResourceReading | undefined =
-      data.readings[headline.key];
+    // Its own reading, else the first of its fallbacks the resource has.
+    const found: { key: string; reading: CloudResourceReading } | null =
+      getCloudHeadlineReadingOf(headline, data.readings);
 
-    if (!reading) {
+    if (!found) {
       continue;
     }
 
@@ -320,10 +322,11 @@ export function getCloudTopologyFacts(data: {
       label: headline.label,
       value: formatCloudTopologyFigure({
         format: headline.format,
-        value: reading.value,
+        value: found.reading.value,
         periodSeconds: getCloudReadingPeriodSeconds(
           data.provider,
-          headline.key,
+          found.key,
+          data.type,
         ),
       }),
     });

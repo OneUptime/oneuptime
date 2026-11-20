@@ -198,15 +198,12 @@ const getJsxProp: GetJsxPropFunction = (
   return block.substring(1, block.length - 1).trim();
 };
 
-type ParseObjectLiteralFunction = (literal: string) => Record<string, string>;
+type SplitObjectLiteralFunction = (literal: string) => Array<string>;
 
-/*
- * Parse a flat object literal `{ "a.b": expr, [CONST]: expr, }` into a map
- * of key -> value expression text. Keys keep a [computed] form as written.
- */
-const parseObjectLiteral: ParseObjectLiteralFunction = (
+// The entries of an object literal `{ ... }`, as written, split at its own commas.
+const splitObjectLiteral: SplitObjectLiteralFunction = (
   literal: string,
-): Record<string, string> => {
+): Array<string> => {
   const trimmed: string = literal.trim();
   expect(trimmed.startsWith("{")).toBe(true);
   expect(trimmed.endsWith("}")).toBe(true);
@@ -243,10 +240,88 @@ const parseObjectLiteral: ParseObjectLiteralFunction = (
 
   entries.push(current);
 
+  return entries.filter((entry: string): boolean => {
+    return entry.trim().length > 0;
+  });
+};
+
+interface ConditionalSpread {
+  condition: string;
+  // The object literal spread in while the condition holds.
+  literal: string;
+}
+
+type ReadConditionalSpreadFunction = (
+  entry: string,
+) => ConditionalSpread | null;
+
+// `...(condition ? {` - the condition is everything before its own " ? {".
+const CONDITIONAL_SPREAD_START: RegExp = /^\.\.\.\(\s*([\s\S]+?)\s+\?\s+\{/;
+const NOTHING_OTHERWISE: RegExp = /^\s*:\s*\{\s*\}\s*\)$/;
+
+/*
+ * An entry `...(condition ? { ... } : {})`: entries a page adds only while
+ * the condition holds - a host's log session chip, while Show Lines narrows
+ * the logs to that session (#9806). null when the entry is no spread; a
+ * spread of any other shape is refused, as an entry that cannot be read is.
+ */
+const readConditionalSpread: ReadConditionalSpreadFunction = (
+  entry: string,
+): ConditionalSpread | null => {
+  const trimmed: string = entry.trim();
+
+  if (!trimmed.startsWith("...")) {
+    return null;
+  }
+
+  const start: RegExpExecArray | null = CONDITIONAL_SPREAD_START.exec(trimmed);
+
+  if (start) {
+    const open: number = start[0].length - 1;
+    const literal: string = readBalanced(trimmed, open);
+
+    if (NOTHING_OTHERWISE.test(trimmed.substring(open + literal.length))) {
+      return { condition: start[1]!, literal: literal };
+    }
+  }
+
+  throw new Error(`Cannot parse object entry: ${entry}`);
+};
+
+type ParseObjectLiteralFunction = (literal: string) => Record<string, string>;
+
+/*
+ * Parse a flat object literal `{ "a.b": expr, [CONST]: expr, }` into a map
+ * of key -> value expression text. Keys keep a [computed] form as written.
+ * The entries of a conditional spread (readConditionalSpread) are in the map
+ * too, so every rule below holds each chip a page can show; a key written
+ * twice would hide one of its values from them, and is refused.
+ */
+const parseObjectLiteral: ParseObjectLiteralFunction = (
+  literal: string,
+): Record<string, string> => {
   const result: Record<string, string> = {};
 
-  for (const entry of entries) {
-    if (!entry.trim()) {
+  const add: (key: string, value: string) => void = (
+    key: string,
+    value: string,
+  ): void => {
+    if (key in result) {
+      throw new Error(`Object key written twice: ${key}`);
+    }
+
+    result[key] = value;
+  };
+
+  for (const entry of splitObjectLiteral(literal)) {
+    const spread: ConditionalSpread | null = readConditionalSpread(entry);
+
+    if (spread) {
+      for (const [key, value] of Object.entries(
+        parseObjectLiteral(spread.literal),
+      )) {
+        add(key, value);
+      }
       continue;
     }
 
@@ -263,10 +338,33 @@ const parseObjectLiteral: ParseObjectLiteralFunction = (
       ? rawKey.substring(1, rawKey.length - 1)
       : rawKey;
 
-    result[key] = keyMatch[2]!.trim();
+    add(key, keyMatch[2]!.trim());
   }
 
   return result;
+};
+
+type GetSpreadConditionsFunction = (literal: string) => Record<string, string>;
+
+// The keys an object literal adds only under a condition, and that condition.
+const getSpreadConditions: GetSpreadConditionsFunction = (
+  literal: string,
+): Record<string, string> => {
+  const conditions: Record<string, string> = {};
+
+  for (const entry of splitObjectLiteral(literal)) {
+    const spread: ConditionalSpread | null = readConditionalSpread(entry);
+
+    if (!spread) {
+      continue;
+    }
+
+    for (const key of Object.keys(parseObjectLiteral(spread.literal))) {
+      conditions[key] = spread.condition;
+    }
+  }
+
+  return conditions;
 };
 
 type GetObjectPropFunction = (
@@ -379,6 +477,15 @@ const RAW_IDENTIFIER_EXPRESSIONS: Array<string> = [
   "containerId",
 ];
 
+/*
+ * A host's log session chip (#9806), there while Show Lines narrows the logs
+ * to one session: it names the session by when it was requested, as the
+ * line above the logs does, never by its id.
+ */
+const LOG_SESSION_CHIP_KEY: string = "[HOST_LOG_SESSION_ATTRIBUTE]";
+const LOG_SESSION_REQUESTED_AT: RegExp =
+  /^OneUptimeDate\.getDateAsUserFriendlyLocalFormattedString\(\s*shownSession\.createdAt,?\s*\)$/;
+
 describe("source helpers", () => {
   test("getJsxElements finds nested-brace props and stops at the right />", () => {
     const source: string =
@@ -405,6 +512,35 @@ describe("source helpers", () => {
       "resource.host.name": 'host.name || host.hostIdentifier || ""',
       "[ATTR]": "f(a, b)",
     });
+  });
+
+  test("parseObjectLiteral reads entries spread in under a condition, and refuses any other spread", () => {
+    const literal: string =
+      '{ "resource.host.name": host.name, ...(session?.createdAt ? { [ATTR]: f(session.createdAt, ), } : {}), }';
+
+    expect(parseObjectLiteral(literal)).toEqual({
+      "resource.host.name": "host.name",
+      "[ATTR]": "f(session.createdAt, )",
+    });
+    expect(getSpreadConditions(literal)).toEqual({
+      "[ATTR]": "session?.createdAt",
+    });
+
+    for (const unreadable of [
+      "{ ...rest }",
+      "{ ...(on ? { [ATTR]: a } : other) }",
+      "{ ...(on && { [ATTR]: a }) }",
+    ]) {
+      expect(() => {
+        return parseObjectLiteral(unreadable);
+      }).toThrow("Cannot parse object entry");
+    }
+
+    expect(() => {
+      return parseObjectLiteral(
+        '{ [ATTR]: a, ...(on ? { [ATTR]: "b" } : {}) }',
+      );
+    }).toThrow("Object key written twice: [ATTR]");
   });
 
   test("comment stripping keeps URLs and string content", () => {
@@ -520,11 +656,19 @@ describe("every scoped resource page gives the viewer a name, not just an id", (
             ),
           });
 
-          // The friendly name comes first; the identifier is only a fallback.
+          /*
+           * The friendly name comes first; the identifier is only a
+           * fallback. A log session has no name: its chip reads when it was
+           * requested.
+           */
           expect({ page, key, value }).toEqual({
             page,
             key,
-            value: expect.stringMatching(/^(host\??\.name|containerName)\b/),
+            value: expect.stringMatching(
+              key === LOG_SESSION_CHIP_KEY
+                ? LOG_SESSION_REQUESTED_AT
+                : /^(host\??\.name|containerName)\b/,
+            ),
           });
         }
       }
@@ -648,13 +792,36 @@ describe("Host pages", () => {
 
     expect(getObjectProp(element, "attributeFilterDisplayKeys")).toEqual({
       "resource.host.name": '"Host"',
+      [LOG_SESSION_CHIP_KEY]: '"Log Session"',
     });
     expect(getObjectProp(element, "attributeFilterDisplayValues")).toEqual({
       "resource.host.name": "host.name || host.hostIdentifier!",
+      [LOG_SESSION_CHIP_KEY]: expect.stringMatching(LOG_SESSION_REQUESTED_AT),
     });
 
-    // The page must load the name it displays.
-    expect(source).toMatch(/select: \{ hostIdentifier: true, name: true, \}/);
+    /*
+     * The page must load the name it displays, and the OS that says whether
+     * the host is an Android device, whose log sessions it lists (#9806).
+     */
+    expect(source).toMatch(
+      /select: \{ hostIdentifier: true, name: true, osType: true, \}/,
+    );
+  });
+
+  test("Host Logs names a log session's chip only while that session's lines are shown", () => {
+    const source: string = readPage("Host/View/Logs.tsx");
+    const element: string = getOnlyJsxElement(source, "DashboardLogsViewer");
+
+    expect(
+      getSpreadConditions(getJsxProp(element, "attributeFilterDisplayKeys")!),
+    ).toEqual({ [LOG_SESSION_CHIP_KEY]: "shownSession" });
+    expect(
+      getSpreadConditions(getJsxProp(element, "attributeFilterDisplayValues")!),
+    ).toEqual({ [LOG_SESSION_CHIP_KEY]: "shownSession?.createdAt" });
+    // As the logs narrow to its lines, by its id, only then.
+    expect(source).toContain(
+      "...(shownSession?._id ? { [HOST_LOG_SESSION_ATTRIBUTE]: shownSession._id.toString() } : {})",
+    );
   });
 
   test("Host Logs still filters on the hostIdentifier", () => {

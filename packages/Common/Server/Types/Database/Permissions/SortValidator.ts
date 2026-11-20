@@ -13,6 +13,7 @@ import BaseModel, {
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../../../Types/Database/AccessControl/OwnerOnlyColumn";
+import { isAccountDateColumn } from "../../../../Types/Database/AccessControl/AccountDateColumns";
 import { ListOrderSettings } from "../../../../Types/Database/ListOrderColumn";
 import {
   TableColumnMetadata,
@@ -23,6 +24,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PendingInviteeProfiles from "../../../Utils/TeamMember/PendingInviteeProfiles";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../../Types/HeldPermissions";
@@ -349,6 +351,16 @@ export default class SortValidator {
         query: data.query,
         props: data.props,
         relationPath: data.relationPath,
+      });
+
+      /*
+       * A person's account dates say when they were last active: never an
+       * order through a relation (#9823, PendingInviteeProfiles).
+       */
+      PendingInviteeProfiles.assertMayReadThroughRelation({
+        relatedModel: relatedModel,
+        column: relatedField,
+        props: data.props,
       });
 
       if (
@@ -691,8 +703,9 @@ export default class SortValidator {
   /*
    * The fields of a related record a refusal offers to sort by: those any
    * reader of the relation may read (canReadOnRelationQuery, and the ids and
-   * times every select may name), never a secret or one read only by its
-   * own user.
+   * times every select may name), never a secret, one read only by its own
+   * user, or a person's account dates, which no relation is ordered by
+   * (#9823).
    */
   private static getRelatedFieldsToSortBy(
     relatedModel: BaseModel,
@@ -710,7 +723,8 @@ export default class SortValidator {
         column.type === TableColumnType.Entity ||
         column.type === TableColumnType.EntityArray ||
         SortValidator.isSecret(column) ||
-        isOwnerOnlyColumn(relatedModel, key)
+        isOwnerOnlyColumn(relatedModel, key) ||
+        isAccountDateColumn(relatedModel.tableName, key)
       ) {
         return false;
       }

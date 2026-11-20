@@ -9,11 +9,15 @@ import {
 import fs from "fs";
 import path from "path";
 import LogScrubRule from "../../../../../Models/DatabaseModels/LogScrubRule";
+import MetricPipelineRule from "../../../../../Models/DatabaseModels/MetricPipelineRule";
 import TraceScrubRule from "../../../../../Models/DatabaseModels/TraceScrubRule";
 import LogScrubRuleService from "../../../../../Server/Services/LogScrubRuleService";
+import MetricPipelineRuleService from "../../../../../Server/Services/MetricPipelineRuleService";
 import TraceScrubRuleService from "../../../../../Server/Services/TraceScrubRuleService";
 import CreateBy from "../../../../../Server/Types/Database/CreateBy";
 import {
+  buildMetricScrubFilters,
+  buildMetricScrubRule,
   buildScrubPatternForDataType,
   CoveringScrubRule,
   createScrubRuleForFinding,
@@ -25,13 +29,29 @@ import {
   getScrubTarget,
   INGEST_SENSITIVE_KEY_REGEX,
   isFindingScrubbed,
+  MAX_METRIC_RULE_ATTRIBUTE_KEY_LENGTH,
   MAX_SCRUB_PATTERN_LENGTH,
+  METRIC_NAME_NOT_SCRUBBABLE,
+  METRIC_REDACT_REPLACEMENT,
   relaxLongRepeats,
   ScrubbedField,
   ScrubCoverage,
   ScrubRuleSignal,
+  SESSION_DETAILS_NOT_SCRUBBABLE,
+  toCoveringMetricRule,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import { validateMetricPipelineRuleFilters } from "../../../../../Server/Utils/MetricPipelineRuleValidation";
 import { validateScrubRule } from "../../../../../Server/Utils/ScrubRuleValidation";
+import {
+  getScrubUnavailableReason,
+  TelemetryScrubUnavailableReason,
+} from "../../../../../Types/DataSecurity/TelemetryScrubTarget";
+import FilterCondition from "../../../../../Types/Filter/FilterCondition";
+import MetricPipelineRuleFilterCondition, {
+  MetricPipelineRuleFilterCheckOn,
+  MetricPipelineRuleFilterConditionType,
+} from "../../../../../Types/Metrics/MetricPipelineRuleFilterCondition";
+import MetricPipelineRuleType from "../../../../../Types/Metrics/MetricPipelineRuleType";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
@@ -145,6 +165,50 @@ function savedTraceRule(data: Partial<TraceScrubRule>): TraceScrubRule {
   return saved;
 }
 
+const CHECKOUT: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d5401");
+const PAYMENTS: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d5402");
+
+function savedMetricRule(
+  data: Partial<MetricPipelineRule>,
+): MetricPipelineRule {
+  const saved: MetricPipelineRule = new MetricPipelineRule();
+  saved._id = ObjectID.generate().toString();
+  Object.assign(saved, data);
+  return saved;
+}
+
+// A metric attribute finding of checkout's metrics.
+function metricFinding(
+  location: string,
+  dataTypeId: string = "email-address",
+): {
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+  serviceId: ObjectID;
+} {
+  return {
+    kind: DataStoreKind.TelemetryMetrics,
+    dataTypeId,
+    location,
+    serviceId: CHECKOUT,
+  };
+}
+
+function coveredByMetricRule(
+  saved: MetricPipelineRule,
+  finding: {
+    kind: DataStoreKind;
+    dataTypeId: string;
+    location: string;
+    serviceId: ObjectID;
+  },
+): boolean {
+  const covering: CoveringScrubRule | null = toCoveringMetricRule(saved);
+
+  return covering ? isFindingScrubbed({ rules: [covering] }, finding) : false;
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -237,6 +301,264 @@ describe("where a finding sits, as scrub rules see it", () => {
     ).toBeNull();
     expect(getScrubTarget(DataStoreKind.TelemetryLogs, "message")).toBeNull();
     expect(getScrubTarget(DataStoreKind.TelemetryTraces, "body")).toBeNull();
+  });
+
+  test("a metric's attribute, its resource's too, is a metric pipeline rule's, by its key", () => {
+    expect(
+      getScrubTarget(DataStoreKind.TelemetryMetrics, "attributes.user.email"),
+    ).toEqual({
+      signal: "metric",
+      field: ScrubbedField.Attributes,
+      key: "user.email",
+    });
+    expect(
+      getScrubTarget(
+        DataStoreKind.TelemetryMetrics,
+        "attributes.resource.client.ip",
+      ),
+    ).toEqual({
+      signal: "metric",
+      field: ScrubbedField.Attributes,
+      key: "resource.client.ip",
+    });
+  });
+
+  test("no rule reaches a metric's name, and why is said for it and for a session's details", () => {
+    expect(getScrubTarget(DataStoreKind.TelemetryMetrics, "name")).toBeNull();
+    expect(
+      getScrubTarget(DataStoreKind.TelemetryMetrics, "attributes."),
+    ).toBeNull();
+    expect(
+      getScrubUnavailableReason(DataStoreKind.TelemetryMetrics, "name"),
+    ).toBe(TelemetryScrubUnavailableReason.MetricName);
+    expect(
+      getScrubUnavailableReason(
+        DataStoreKind.TelemetrySessionReplays,
+        "sessions.identifiedUserLabel",
+      ),
+    ).toBe(TelemetryScrubUnavailableReason.SessionDetails);
+    expect(
+      getScrubUnavailableReason(DataStoreKind.TelemetryLogs, "message"),
+    ).toBe(TelemetryScrubUnavailableReason.NoRule);
+    expect(
+      getScrubUnavailableReason(DataStoreKind.AwsS3Bucket, "exports/*.csv"),
+    ).toBe(TelemetryScrubUnavailableReason.NoRule);
+    // A place a rule reaches has no reason.
+    expect(
+      getScrubUnavailableReason(
+        DataStoreKind.TelemetryMetrics,
+        " attributes.user.email ",
+      ),
+    ).toBeNull();
+    expect(
+      getScrubUnavailableReason(DataStoreKind.TelemetryLogs, "body"),
+    ).toBeNull();
+  });
+});
+
+describe("a metric pipeline rule", () => {
+  const redactEmails: MetricPipelineRuleFilterCondition = {
+    checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+    attributeKey: "user.email",
+    conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+    value: buildScrubPatternForDataType("email-address")!,
+  };
+
+  test("that redacts or removes the attribute, for the service or every service, covers it", () => {
+    for (const ruleType of [
+      MetricPipelineRuleType.RedactAttribute,
+      MetricPipelineRuleType.RemoveAttribute,
+    ]) {
+      // The service's own rule, and a rule for every service (none named).
+      for (const ofService of [{ serviceId: CHECKOUT }, {}]) {
+        expect(
+          coveredByMetricRule(
+            savedMetricRule({
+              ruleType,
+              addAttributeKey: "user.email",
+              filters: [],
+              ...ofService,
+            }),
+            metricFinding("attributes.user.email"),
+          ),
+        ).toBe(true);
+      }
+    }
+
+    // Its resource's attribute, by its key as the row holds it.
+    expect(
+      coveredByMetricRule(
+        savedMetricRule({
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: "resource.client.ip",
+        }),
+        metricFinding("attributes.resource.client.ip", "ip-address"),
+      ),
+    ).toBe(true);
+  });
+
+  test("of another service, another key, or another kind, covers nothing", () => {
+    expect(
+      coveredByMetricRule(
+        savedMetricRule({
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: "user.email",
+          serviceId: PAYMENTS,
+        }),
+        metricFinding("attributes.user.email"),
+      ),
+    ).toBe(false);
+    expect(
+      coveredByMetricRule(
+        savedMetricRule({
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: "user.id",
+        }),
+        metricFinding("attributes.user.email"),
+      ),
+    ).toBe(false);
+
+    // A Drop rule is read (#9757), but with a person's own filter covers no attribute.
+    expect(
+      coveredByMetricRule(
+        savedMetricRule({
+          ruleType: MetricPipelineRuleType.Drop,
+          addAttributeKey: "user.email",
+          filters: [
+            {
+              checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+              conditionType: MetricPipelineRuleFilterConditionType.StartsWith,
+              value: "debug.",
+            },
+          ],
+        }),
+        metricFinding("attributes.user.email"),
+      ),
+    ).toBe(false);
+
+    for (const ruleType of [
+      MetricPipelineRuleType.Filter,
+      MetricPipelineRuleType.RenameAttribute,
+      MetricPipelineRuleType.AddAttribute,
+      MetricPipelineRuleType.Sample,
+    ]) {
+      expect(
+        toCoveringMetricRule(
+          savedMetricRule({ ruleType, addAttributeKey: "user.email" }),
+        ),
+      ).toBeNull();
+    }
+
+    // Nor a log or trace rule, nor a metric rule a log finding.
+    expect(
+      isFindingScrubbed(
+        {
+          rules: [
+            rule({
+              signal: "log",
+              patternType: "email",
+              fieldsToScrub: "both",
+            }),
+          ],
+        },
+        metricFinding("attributes.user.email"),
+      ),
+    ).toBe(false);
+    expect(
+      isFindingScrubbed(
+        {
+          rules: [
+            toCoveringMetricRule(
+              savedMetricRule({
+                ruleType: MetricPipelineRuleType.RedactAttribute,
+                addAttributeKey: "user.email",
+              }),
+            )!,
+          ],
+        },
+        {
+          kind: DataStoreKind.TelemetryLogs,
+          dataTypeId: "email-address",
+          location: "attributes.user.email",
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("with filters covers only when they are exactly the one Scrub It makes for the type", () => {
+    expect(
+      coveredByMetricRule(
+        savedMetricRule({
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: "user.email",
+          filters: [redactEmails],
+        }),
+        metricFinding("attributes.user.email"),
+      ),
+    ).toBe(true);
+    // Scrub It's filter for one type is not another type's.
+    expect(
+      coveredByMetricRule(
+        savedMetricRule({
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: "user.email",
+          filters: [redactEmails],
+        }),
+        metricFinding("attributes.user.email", "phone-number"),
+      ),
+    ).toBe(false);
+
+    // A filter a person wrote never counts: it may let the data through.
+    for (const filters of [
+      [
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+          conditionType: MetricPipelineRuleFilterConditionType.EqualTo,
+          value: "user.logins",
+        },
+      ],
+      [{ ...redactEmails, value: "@acmecorp\\.io$" }],
+      [
+        redactEmails,
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+          attributeKey: "region",
+          conditionType: MetricPipelineRuleFilterConditionType.EqualTo,
+          value: "eu",
+        },
+      ],
+    ] as Array<Array<MetricPipelineRuleFilterCondition>>) {
+      expect(
+        coveredByMetricRule(
+          savedMetricRule({
+            ruleType: MetricPipelineRuleType.RedactAttribute,
+            addAttributeKey: "user.email",
+            filters,
+          }),
+          metricFinding("attributes.user.email"),
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("Scrub It's filter is the type's own pattern on the attribute's value, or none where no pattern finds the type", () => {
+    expect(buildMetricScrubFilters("email-address", "user.email")).toEqual([
+      redactEmails,
+    ]);
+    // Found by the field's name, or one of the project's own: every value under the key.
+    expect(buildMetricScrubFilters("person-name", "customer.name")).toEqual([]);
+    expect(
+      buildMetricScrubFilters(
+        "custom:0192f1a0-0000-7000-8000-0000000d5300",
+        "account.code",
+      ),
+    ).toEqual([]);
+    // Each runs at ingest: saved as a rule is checked.
+    expect(() => {
+      validateMetricPipelineRuleFilters(
+        buildMetricScrubFilters("github-token", "config.token"),
+      );
+    }).not.toThrow();
   });
 });
 
@@ -794,10 +1116,40 @@ describe("a project's coverage", () => {
           fieldsToScrub: "name",
         }),
       ] as never);
+    const metricFindBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MetricPipelineRuleService, "findBy")
+      .mockResolvedValue([
+        savedMetricRule({
+          name: "Hide checkout's user emails",
+          ruleType: MetricPipelineRuleType.RedactAttribute,
+          addAttributeKey: "user.email",
+          serviceId: CHECKOUT,
+        }),
+        /*
+         * A Drop rule with a person's own filter: read, but it covers no
+         * attribute (#9757); nor a rule that names no key.
+         */
+        savedMetricRule({
+          name: "Drop debug metrics",
+          ruleType: MetricPipelineRuleType.Drop,
+          filters: [
+            {
+              checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+              conditionType: MetricPipelineRuleFilterConditionType.StartsWith,
+              value: "debug.",
+            },
+          ],
+        }),
+        savedMetricRule({
+          name: "No key",
+          ruleType: MetricPipelineRuleType.RemoveAttribute,
+          addAttributeKey: " ",
+        }),
+      ] as never);
 
     const coverage: ScrubCoverage = await getScrubCoverage(PROJECT_ID);
 
-    for (const spy of [logFindBy, traceFindBy]) {
+    for (const spy of [logFindBy, traceFindBy, metricFindBy]) {
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
           query: { projectId: PROJECT_ID, isEnabled: true },
@@ -813,7 +1165,18 @@ describe("a project's coverage", () => {
     ).toEqual([
       ["Emails", "log", "both"],
       ["Keys", "trace", "name"],
+      ["Hide checkout's user emails", "metric", "attributes"],
+      ["Drop debug metrics", "metric", "name"],
     ]);
+    expect(
+      isFindingScrubbed(coverage, metricFinding("attributes.user.email")),
+    ).toBe(true);
+    expect(
+      isFindingScrubbed(coverage, {
+        ...metricFinding("attributes.user.email"),
+        serviceId: PAYMENTS,
+      }),
+    ).toBe(false);
     expect(
       isFindingScrubbed(coverage, {
         kind: DataStoreKind.TelemetryLogs,
@@ -848,10 +1211,22 @@ describe("a project's coverage", () => {
 describe("Scrub It", () => {
   let logCreate: ReturnType<typeof jest.spyOn>;
   let traceCreate: ReturnType<typeof jest.spyOn>;
+  let metricCreate: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     jest.spyOn(LogScrubRuleService, "findBy").mockResolvedValue([] as never);
     jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(MetricPipelineRuleService, "findBy")
+      .mockResolvedValue([] as never);
+    metricCreate = jest
+      .spyOn(MetricPipelineRuleService, "create")
+      .mockImplementation((async (
+        createBy: CreateBy<MetricPipelineRule>,
+      ): Promise<MetricPipelineRule> => {
+        createBy.data._id = "0192f1a0-0000-7000-8000-0000000d5103";
+        return createBy.data;
+      }) as never);
     logCreate = jest
       .spyOn(LogScrubRuleService, "create")
       .mockImplementation((async (
@@ -877,6 +1252,180 @@ describe("Scrub It", () => {
   function createdTraceRule(): TraceScrubRule {
     return (traceCreate.mock.calls[0]![0] as CreateBy<TraceScrubRule>).data;
   }
+
+  function createdMetricRule(): MetricPipelineRule {
+    return (metricCreate.mock.calls[0]![0] as CreateBy<MetricPipelineRule>)
+      .data;
+  }
+
+  test("an email in a metric's label: a rule for its service that redacts the label's emails", async () => {
+    const created: CreatedScrubRule = await createScrubRuleForFinding({
+      projectId: PROJECT_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "email-address",
+      location: "attributes.user.email",
+      serviceId: CHECKOUT,
+    });
+
+    expect(created).toEqual({
+      signal: "metric",
+      scrubRuleId: "0192f1a0-0000-7000-8000-0000000d5103",
+      scrubRuleName: "Data Security: Email address in attributes.user.email",
+    });
+
+    const saved: MetricPipelineRule = createdMetricRule();
+
+    expect(saved.projectId).toEqual(PROJECT_ID);
+    expect(saved.serviceId).toEqual(CHECKOUT);
+    expect(saved.ruleType).toBe(MetricPipelineRuleType.RedactAttribute);
+    expect(saved.addAttributeKey).toBe("user.email");
+    expect(saved.redactReplacement).toBe(METRIC_REDACT_REPLACEMENT);
+    expect(saved.filterCondition).toBe(FilterCondition.All);
+    expect(saved.filters).toEqual(
+      buildMetricScrubFilters("email-address", "user.email"),
+    );
+    expect(saved.isEnabled).toBe(true);
+    expect(saved.name!.length).toBeLessThanOrEqual(100);
+    expect(saved.description).toContain("Made by Data Security");
+    expect(saved.description).toContain(
+      "every value of user.email that holds email address",
+    );
+    expect(() => {
+      validateMetricPipelineRuleFilters(saved.filters);
+    }).not.toThrow();
+    expect(logCreate).not.toHaveBeenCalled();
+    expect(traceCreate).not.toHaveBeenCalled();
+    // No person named: made as OneUptime itself, the caller having checked.
+    expect(metricCreate.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ props: { isRoot: true } }),
+    );
+
+    // Once made, it is the rule that covers the finding.
+    expect(
+      coveredByMetricRule(saved, metricFinding("attributes.user.email")),
+    ).toBe(true);
+  });
+
+  test("a name found by the label's key: every value of the label redacted", async () => {
+    await createScrubRuleForFinding({
+      projectId: PROJECT_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "person-name",
+      location: "attributes.resource.customer.full_name",
+      serviceId: CHECKOUT,
+    });
+
+    const saved: MetricPipelineRule = createdMetricRule();
+
+    expect(saved.addAttributeKey).toBe("resource.customer.full_name");
+    expect(saved.filters).toEqual([]);
+    expect(saved.description).toContain(
+      "every value of resource.customer.full_name with",
+    );
+  });
+
+  test("made as the person who asked, so the metric pipeline rules' own permissions apply", async () => {
+    const memberProps: DatabaseCommonInteractionProps = {
+      userId: USER_ID,
+      tenantId: PROJECT_ID,
+    };
+
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockResolvedValue(memberProps as never);
+
+    await createScrubRuleForFinding({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "ip-address",
+      location: "attributes.resource.client.ip",
+      serviceId: CHECKOUT,
+    });
+
+    expect(metricCreate.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ props: memberProps }),
+    );
+  });
+
+  test("a metric attribute a rule already hides gets that rule", async () => {
+    jest.spyOn(MetricPipelineRuleService, "findBy").mockResolvedValue([
+      savedMetricRule({
+        _id: "0192f1a0-0000-7000-8000-0000000d5198",
+        name: "Remove emails everywhere",
+        ruleType: MetricPipelineRuleType.RemoveAttribute,
+        addAttributeKey: "user.email",
+      }),
+    ] as never);
+
+    const created: CreatedScrubRule = await createScrubRuleForFinding({
+      projectId: PROJECT_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "email-address",
+      location: "attributes.user.email",
+      serviceId: CHECKOUT,
+    });
+
+    expect(created).toEqual({
+      signal: "metric",
+      scrubRuleId: "0192f1a0-0000-7000-8000-0000000d5198",
+      scrubRuleName: "Remove emails everywhere",
+    });
+    expect(metricCreate).not.toHaveBeenCalled();
+  });
+
+  test("refuses a metric's name, saying why, a key longer than a rule can name, and a service that is gone", async () => {
+    await expect(
+      createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: "email-address",
+        location: "name",
+        serviceId: CHECKOUT,
+      }),
+    ).rejects.toThrow(METRIC_NAME_NOT_SCRUBBABLE);
+    await expect(
+      createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetrySessionReplays,
+        dataTypeId: "email-address",
+        location: "sessions.identifiedUserLabel",
+      }),
+    ).rejects.toThrow(SESSION_DETAILS_NOT_SCRUBBABLE);
+    await expect(
+      createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: "email-address",
+        location: `attributes.${"k".repeat(MAX_METRIC_RULE_ATTRIBUTE_KEY_LENGTH + 1)}`,
+        serviceId: CHECKOUT,
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+    await expect(
+      createScrubRuleForFinding({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: "email-address",
+        location: "attributes.user.email",
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+
+    expect(metricCreate).not.toHaveBeenCalled();
+    // The rule is built the same way either way.
+    expect(() => {
+      buildMetricScrubRule({
+        projectId: PROJECT_ID,
+        serviceId: "not-an-id",
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: "email-address",
+        location: "attributes.user.email",
+        target: getScrubTarget(
+          DataStoreKind.TelemetryMetrics,
+          "attributes.user.email",
+        )!,
+      });
+    }).toThrow(BadDataException);
+  });
 
   test("an email in a log body: the built-in email pattern on log bodies", async () => {
     const created: CreatedScrubRule = await createScrubRuleForFinding({

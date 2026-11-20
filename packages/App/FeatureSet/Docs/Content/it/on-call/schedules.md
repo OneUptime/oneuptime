@@ -18,7 +18,7 @@ Quando crei una pianificazione nella pagina **Pianificazioni di reperibilità**,
 
 :::steps
 1. Vai in **Reperibilità** > **Pianificazioni di reperibilità** e fai clic su **Crea pianificazione di reperibilità**.
-2. Inserisci un **Nome**.
+2. Inserisci un **Nome**. Un nome già usato da un'altra pianificazione del progetto viene rifiutato, comunque siano scritte maiuscole, minuscole e spazi, così ogni selettore distingue le pianificazioni tra loro.
 3. In **Chi si alterna?**, fai clic su **Aggiungi utente** e scegli le persone, nell'ordine in cui si alternano.
 4. Se vuoi, apri **Altri campi** per cambiare quanto dura ogni turno, il fuso orario, la descrizione o le etichette.
 5. Fai clic su **Crea pianificazione di reperibilità**. La nuova pianificazione si apre poi nella sua pagina **Livelli**, dove puoi cambiare la rotazione o aggiungere altri livelli.
@@ -40,7 +40,7 @@ Tutto il resto si trova in **Altri campi**, chiuso finché non lo apri:
 | Campo | Che cosa fa |
 | --- | --- |
 | **Ogni turno dura** | **1 giorno**, **1 settimana**, **2 settimane** o **1 mese**, e **1 settimana** se non lo cambi. Viene chiesto non appena qualcuno si alterna. Ogni persona è reperibile per quel tempo, poi subentra la successiva, all'ora del giorno in cui è stata creata la pianificazione. |
-| **Fuso orario** | Il fuso orario in cui valgono gli orari di passaggio e gli orari di reperibilità. Parte dal tuo. |
+| **Fuso orario** | Il fuso orario in cui valgono gli orari di passaggio e gli orari di reperibilità. Parte dal tuo. Ogni fuso orario segue le regole attuali della sua regione: America/Vancouver (Columbia Britannica) resta su UTC-7 tutto l'anno dal 2026. |
 | **Descrizione** | Note sulla pianificazione. |
 | **Etichette** | Etichette per trovare e raggruppare la pianificazione. |
 
@@ -97,11 +97,11 @@ Mentre è assente:
 
 Se invece scegli qualcuno in **Chi sostituisce?**, quella persona riceve tutti i suoi avvisi, da ogni pianificazione e da ogni policy, invece che la rotazione prenda i suoi turni.
 
-Un'assenza aggiunta così vale per tutte le policy di reperibilità, quindi richiede il permesso per le sostituzioni sull'intero progetto. Se il ruolo del tuo team è limitato alle sue policy o ad alcune etichette, viene aggiunta invece sulle policy di questa pianificazione su cui puoi aggiungere sostituzioni, con una sostituzione per policy, elencata nella pagina **Sostituzioni utente** di ciascuna policy; se sono più d'una, le selezioni in **Policy di reperibilità**. **Salta fino a…** è bloccato e dice perché solo dove non puoi su nessuna. È elencata in **Reperibilità** > **Avanzato** > **Sostituzioni utente**, e tra le sostituzioni utente della pianificazione nella sua pagina **Livelli**, dove **Termina ora** la fa rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
+Un'assenza aggiunta così vale per tutte le policy di reperibilità, quindi richiede il permesso per le sostituzioni sull'intero progetto. Se il ruolo del tuo team è limitato alle sue policy o ad alcune etichette, viene aggiunta invece sulle policy di questa pianificazione su cui puoi aggiungere sostituzioni, con una sostituzione per policy, elencata nella pagina **Sostituzioni utente** di ciascuna policy; se sono più d'una, le selezioni in **Policy di reperibilità**. **Salta fino a…** è bloccato e dice perché solo dove non puoi su nessuna. È elencata in **Reperibilità** > **Pianificazioni** > **Sostituzioni utente**, e tra le sostituzioni utente della pianificazione nella sua pagina **Livelli**, dove **Termina ora** la fa rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 
 Con l'API, una sostituzione utente (`/api/on-call-duty-policy-user-override`) creata senza `routeAlertsToUserId` salta la persona in `overrideUserId` da `startsAt` a `endsAt`.
 
-La **Panoramica** di una pianificazione ha una scheda **Usato da**: le policy di reperibilità le cui regole di escalation chiamano chi è reperibile, con le regole che lo fanno. Se nessuna lo fa, lo dice e rimanda alle policy di reperibilità. Eliminare la pianificazione, dalla sua pagina o dall'elenco, dice prima quali policy chiamano tramite essa. Le policy che non puoi aprire vengono contate, non nominate.
+La **Panoramica** di una pianificazione ha una scheda **Usato da**: le policy di reperibilità le cui regole di escalation chiamano chi è reperibile, con le regole che lo fanno. Se nessuna lo fa, lo dice e rimanda alle policy di reperibilità. Eliminare la pianificazione, dalla sua pagina o dall'elenco, dice prima quali policy chiamano tramite essa. Le policy che non puoi aprire vengono contate, non nominate. Una pianificazione che ha lo stesso nome di un'altra pianificazione, da prima che i nomi dovessero essere diversi, è contrassegnata con **Stesso nome di un'altra pianificazione** nell'elenco **Pianificazioni di reperibilità**, che indica quante sono: confronta i loro livelli, poi rinominane una con **Rinomina** nella sua riga.
 
 ## Creare pianificazioni con l'API o Terraform
 

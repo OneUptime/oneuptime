@@ -148,6 +148,18 @@ jest.mock("Common/Server/Infrastructure/Redis", () => {
   };
 });
 
+/*
+ * The per-minute count of sessions that hit each of the application's own
+ * signals (issue #6518) is SessionReplaySignalMetrics' own suite; here it
+ * is only what the ingest hands it, and when.
+ */
+jest.mock("../../FeatureSet/Telemetry/Utils/SessionReplaySignalMetrics", () => {
+  return {
+    __esModule: true,
+    default: { countChunk: jest.fn() },
+  };
+});
+
 jest.mock("Common/Server/Services/RumApplicationService", () => {
   return {
     __esModule: true,
@@ -324,6 +336,7 @@ import logger from "Common/Server/Utils/Logger";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import SessionReplayScrubService from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
 import SessionReplayChunkStore from "../../FeatureSet/Telemetry/Utils/SessionReplayChunkStore";
+import SessionReplaySignalMetrics from "../../FeatureSet/Telemetry/Utils/SessionReplaySignalMetrics";
 import SessionReplayRateLimiter, {
   SessionReplayLimitOutcome,
 } from "../../FeatureSet/Telemetry/Utils/SessionReplayRateLimiter";
@@ -397,6 +410,8 @@ function buildPolicy(
     frustrationSignals: readSessionReplayFrustrationSignalsConfig(null),
     isProductAnalyticsEnabled: false,
     productAnalyticsUserPropertyKeys: [],
+    pageRules: { recordOnly: [], neverRecord: [] },
+    readableEventPropertyKeys: [],
     configEpoch: 1234,
     ...overrides,
   };
@@ -3173,6 +3188,74 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
         ],
       },
     };
+
+    /*
+     * Issue #6518: once the rows are durable, each chunk that names
+     * signals is handed to the per-minute count of the sessions that hit
+     * them, with the application's ids for the names.
+     */
+    test("hands a written chunk's signals to the session count, with the policy's ids", async () => {
+      const countChunk: jest.Mock =
+        SessionReplaySignalMetrics.countChunk as unknown as jest.Mock;
+
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          customSignalIds: { "payment failed": "signal-payment" },
+        }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([WITH_SIGNALS, { chunkIndex: 1 }])),
+      );
+
+      expect(countChunk).toHaveBeenCalledTimes(1);
+      expect(countChunk).toHaveBeenCalledWith({
+        projectId: PROJECT_ID.toString(),
+        rumApplicationId: RUM_APPLICATION_ID.toString(),
+        sessionId: "a".repeat(32),
+        customSignals: [
+          { name: "Payment failed", count: 2, frustrationCount: 2 },
+          { name: "Help opened", count: 1, frustrationCount: 0 },
+        ],
+        customSignalIds: { "payment failed": "signal-payment" },
+        receivedAtUnixMs: 1_800_000_020_000,
+      });
+    });
+
+    test("counts nothing for a chunk whose rows did not land, so a retried job counts once", async () => {
+      const countChunk: jest.Mock =
+        SessionReplaySignalMetrics.countChunk as unknown as jest.Mock;
+
+      /* Pre-observed, as the ack-after-flush tests do: still a rejection. */
+      const flushed: Promise<void> = Promise.reject(
+        new Error("ClickHouse is down"),
+      );
+
+      flushed.catch((): void => {
+        /* Pre-observed only. */
+      });
+
+      submitMock.mockResolvedValue({ flushed: flushed } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([WITH_SIGNALS])),
+        ),
+      ).rejects.toThrow();
+
+      expect(countChunk).not.toHaveBeenCalled();
+    });
+
+    test("counts nothing for chunks that name no signal", async () => {
+      const countChunk: jest.Mock =
+        SessionReplaySignalMetrics.countChunk as unknown as jest.Mock;
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }, { chunkIndex: 1 }])),
+      );
+
+      expect(countChunk).not.toHaveBeenCalled();
+    });
 
     test("the chunk row carries the chunk's totals and sorted names, none from an older recorder", async () => {
       await SessionReplayIngestService.processFromQueue(

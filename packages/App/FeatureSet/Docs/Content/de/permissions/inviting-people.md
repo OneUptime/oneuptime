@@ -43,7 +43,7 @@ Klicken Sie auf **Benutzer einladen**. Der Dialog **Neuen Benutzer einladen** ö
 
 ### Die E-Mail-Adresse eingeben
 
-Geben Sie die Adresse unter **E-Mail** ein. Verwendet noch kein OneUptime-Konto diese Adresse, fragt der Dialog zusätzlich nach einem **Name**, mit dem das neue Konto beginnt.
+Geben Sie die Adresse unter **E-Mail** ein. Während Sie tippen, schlägt **E-Mail** Personen des Projekts nach Name oder Adresse vor und zeigt, wer **Eingeladen** und wer **Bereits in diesem Team** ist: Klicken Sie auf eine Person, um ihre Adresse einzutragen. Auf einem selbst gehosteten Server werden einem Master-Admin außerdem die übrigen Konten des Servers angeboten, markiert mit **Noch nicht in diesem Projekt**, und ebenso allen, die Personen einladen dürfen, sobald ein Master-Admin es im Admin Dashboard erlaubt. Für eine selbst eingegebene Adresse fragt der Dialog zusätzlich nach einem **Name**, der optional ist: Hat die Person noch kein OneUptime-Konto, wird es mit diesem Namen eingerichtet. Bis die Person annimmt, zeigt das Projekt sie unter diesem Namen oder nur mit ihrer Adresse, nie mit dem Namen oder Bild ihres eigenen Kontos. Die Einladungsformulare im Admin Dashboard schlagen Personen auf dieselbe Weise vor.
 
 ### Das Team wählen
 
@@ -61,9 +61,9 @@ Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, geht kei
 
 ## Eine Einladung annehmen
 
-Die Einladungs-E-Mail nennt das Projekt und wer die Person eingeladen hat. Ihre Schaltfläche heißt **Create Your Account** für jemanden ohne OneUptime-Konto und **Sign In to OneUptime** für jemanden mit Konto.
+Die Einladungs-E-Mail nennt das Projekt und wer die Person eingeladen hat. Ihre Schaltfläche heißt **Create Your Account** für jemanden ohne OneUptime-Konto und **Sign In to OneUptime** für jemanden mit Konto. Wird SSO ihre Anmeldung verwalten, weil das Projekt die Anmeldung seiner Personen mit SSO verwaltet und jedes andere Projekt, zu dem sie gehört, ebenso, oder weil der ganze Server SSO verlangt, sagt die E-Mail das stattdessen, und ihre Schaltfläche heißt **Sign In with SSO**.
 
-**Create Your Account** öffnet die Registrierungsseite, auf der ihre Adresse und der Name, den Sie eingegeben haben, schon ausgefüllt sind, und sagt, welches Projekt sie eingeladen hat und wer. Wer sich dort registriert, tritt dem Projekt bei, ohne noch etwas annehmen zu müssen.
+**Create Your Account** öffnet die Registrierungsseite, auf der ihre Adresse und der Name, den Sie eingegeben haben, schon ausgefüllt sind, und sagt, welches Projekt sie eingeladen hat und wer. Wer sich dort registriert, tritt dem Projekt bei, ohne noch etwas annehmen zu müssen. **Sign In with SSO** öffnet dieselbe Seite, die statt eines Passworts Single Sign-On anbietet: Wer sich dort mit einem der Identitätsanbieter des Projekts anmeldet, tritt dem Projekt bei.
 
 Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, bekommt niemand eine E-Mail: Der Einladungslink, den die Person stattdessen erhält, öffnet dieselbe Registrierungsseite, oder die Anmeldeseite für jemanden, der schon ein Konto hat.
 
@@ -82,7 +82,7 @@ Mit der Annahme ist die Person sofort im Projekt, mit den Berechtigungen ihres T
 
 | Spalte | Was sie zeigt |
 | --- | --- |
-| **Benutzer** | Name und E-Mail-Adresse. |
+| **Benutzer** | Name und E-Mail-Adresse. Bis die Person annimmt, der Name, den Sie für sie eingegeben haben, falls vorhanden. |
 | **Teams** | Jedes Team des Projekts, in dem die Person ist oder zu dem sie eingeladen ist. |
 | **Status** | **Mitglied**, sobald sie beigetreten ist, mit der Zahl der noch nicht angenommenen Einladungen in andere Teams. **Einladung gesendet** bis dahin, oder **E-Mail nicht gesendet**, wenn der Mail-Dienst die letzte Einladungs-E-Mail abgelehnt hat. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, stattdessen **Eingeladen**: Die Einladung wird erstellt, aber keine E-Mail verschickt. |
 

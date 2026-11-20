@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 清單會向 OneUptime 請求金鑰可讀取的每筆記錄的所有欄位。`--fields` 則只請求它指定的欄位，點號後面的則是關聯記錄的欄位，例如 `currentIncidentState.name`。表格顯示六個欄位；JSON 顯示全部（請參閱 [輸出格式](/docs/cli/output-formats)）。`--all` 每次讀取 100 筆記錄，逐頁讀完，最多 100,000 筆；`count` 會告訴你總數。
 
-標籤依名稱排列，而不是最新的在前：名稱以數字開頭的標籤排在前面，依該數字的大小排序（`2. Team` 在 `10. Owner` 之前），其餘標籤依字母順序排在後面。要依其他順序列出，請指定 `--sort`。
+標籤依名稱排列，而不是最新的在前：名稱以數字開頭的標籤排在前面，依該數字的大小排序（`2. Team` 在 `10. Owner` 之前），其餘標籤依字母順序排在後面。透過拖曳排序的記錄（例如事件狀態）依該順序列出。要依其他順序列出，請指定 `--sort`。
 
 ### 篩選清單
 
@@ -206,6 +206,20 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 
 > [!CAUTION]
 > `delete` 會立即刪除記錄。CLI 不會請你確認，也無法復原。它接受 `--force`，以相容帶有該旗標的指令碼，但 `--force` 不會改變任何行為。
+
+### 工作流程以其身分執行的自訂角色
+
+只有當刪除說明了工作流程改以什麼身分執行時，OneUptime 才會刪除工作流程以其身分執行的自訂角色；沒有說明的刪除會被拒絕，並列出這些工作流程的名稱。用 `--workflows-run-as` 說明：`Default` 即預設權限，`CustomRole` 即你可以授予團隊的另一個自訂角色，並在 `--workflows-run-as-custom-role-id` 中提供它的 ID。絕不會是專案擁有者：刪除角色絕不會擴大工作流程能做的事。
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+被拒絕的刪除會印出 OneUptime 的拒絕訊息（其中列出了這些工作流程），然後印出重新執行時要加的旗標。沒有任何工作流程以其身分執行的角色，兩個旗標都不需要。
 
 ## 統計記錄
 

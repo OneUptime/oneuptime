@@ -60,6 +60,12 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Security Events",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_INCIDENTS, [
       "Project",
       "Podman",
@@ -76,6 +82,18 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Podman", "View Host", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_DATA_SECURITY, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Data Security",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_COMPLIANCE, [
+      "Project",
+      "Podman",
+      "View Host",
+      "Compliance",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_HOST_VIEW_SETTINGS, [
       "Project",
       "Podman",

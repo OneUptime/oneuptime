@@ -37,10 +37,11 @@ import { describe, expect, test } from "@jest/globals";
  *     every time memory goes over 75% is a Host monitor, built from its
  *     memory template - one that exists, with a threshold the page says
  *     is a starting point;
- *   - that Ask AI sets up only website and API monitors (#6829), and asked
- *     for another kind, says so, checks the value now and offers an alert -
- *     what the prompt tells it, and true of the toolbox, whose one monitor
- *     writer is set_up_website_monitoring.
+ *   - that Ask AI sets up website and API monitors (#6829) and a service's
+ *     recommended monitors (#7243), and asked for another kind, says so,
+ *     checks the value now and offers an alert - what the prompt tells it,
+ *     and true of the toolbox, whose monitor writers are
+ *     set_up_website_monitoring and set_up_service_monitor.
  *
  * Every language says it on the English paragraph's line, linking the Host
  * monitor's templates under that language's own heading.
@@ -149,10 +150,12 @@ describe("the Ask AI page says which to ask for, and what an alert rule is", () 
 
   /*
    * Issue #6829: Ask AI sets up website and API monitors, as the website
-   * guided setup does, and no other kind - so a memory threshold is still a
-   * monitor a person creates, as the page and the prompt both say.
+   * guided setup does, and (#7243) a service's recommended monitors, as the
+   * telemetry guided setup does, and no other kind - so a memory threshold
+   * is still a monitor a person creates, as the page and the prompt both
+   * say.
    */
-  test("Ask AI sets up only website and API monitors: the toolbox's one monitor writer is set_up_website_monitoring", () => {
+  test("Ask AI sets up website and API monitors and a service's recommended ones: the toolbox's monitor writers are set_up_website_monitoring and set_up_service_monitor", () => {
     const monitorWriters: Array<string> = AIToolbox.getTools()
       .filter((tool: ObservabilityTool): boolean => {
         return (
@@ -167,9 +170,12 @@ describe("the Ask AI page says which to ask for, and what an alert rule is", () 
       });
 
     expect(PARAGRAPH).toContain(
-      "Ask AI sets up only website and API monitors (see [Set things up](#set-things-up)).",
+      "Ask AI sets up website and API monitors, and a service's recommended monitors (see [Set things up](#set-things-up)).",
     );
-    expect(monitorWriters).toEqual(["set_up_website_monitoring"]);
+    expect(monitorWriters).toEqual([
+      "set_up_website_monitoring",
+      "set_up_service_monitor",
+    ]);
     expect(
       AIToolbox.getToolByName("set_up_website_monitoring")?.inputSchema,
     ).toEqual(
@@ -180,8 +186,20 @@ describe("the Ask AI page says which to ask for, and what an alert rule is", () 
         }),
       }),
     );
+    // Only the monitors a service's Recommendations recommend: no threshold of its own.
+    expect(
+      AIToolbox.getToolByName("set_up_service_monitor")?.inputSchema,
+    ).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({
+          monitor: expect.objectContaining({
+            enum: ["errors", "slow_requests", "exceptions", "error_logs"],
+          }),
+        }),
+      }),
+    );
     expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
-      "The only monitor a tool here sets up watches a website or API address",
+      "The monitors a tool here sets up watch a website or API address (set_up_website_monitoring), and a service that sends telemetry, with the monitors its Recommendations recommend",
     );
     expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
       'For any other condition ("alert me when memory goes above 75%") no tool here creates one',

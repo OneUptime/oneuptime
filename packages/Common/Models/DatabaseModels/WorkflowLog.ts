@@ -7,6 +7,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -19,6 +20,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
+import { WorkflowRunAs } from "../../Types/Workflow/WorkflowRunAs";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
@@ -554,6 +556,212 @@ export default class WorkflowLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public startedByUserId?: ObjectID = undefined;
+
+  /*
+   * What this run's steps acted as (Types/Workflow/WorkflowRunAs, #9695):
+   * the workflow's Run As when the run started, or when it carried on after
+   * a Sleep step. OneUptime records it as the run starts; no request writes
+   * it. Empty for a run that never got that far, and for every run from
+   * before Run As existed, which all ran as Default.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(WorkflowRunAs),
+    computed: true,
+    title: "Ran As",
+    description:
+      "What the run's steps could do in the project: Default, ProjectOwner or CustomRole (runAsCustomRoleName names the role). Set by OneUptime as the run starts.",
+    example: WorkflowRunAs.Default,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public runAs?: WorkflowRunAs = undefined;
+
+  /*
+   * The custom role the run acted as, by the name it had then, so the run
+   * still says what it ran as once the role is renamed or deleted.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Ran As Custom Role",
+    description:
+      "The name of the custom role the run's steps acted as, as it was when the run started. Empty unless the run ran as a custom role.",
+    example: "Team Provisioner",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public runAsCustomRoleName?: string = undefined;
+
+  /*
+   * The person whose permissions a run that acted as more than Default ran
+   * with (Workflow.runAsGivenByUserId when it started). Empty for a run
+   * that acted as Default.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "runAsGivenByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Ran As Given by User",
+    description:
+      "The person whose permissions the run ran with, when it ran as more than Default.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "runAsGivenByUserId" })
+  public runAsGivenByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Ran As Given by User ID",
+    description:
+      "ID of the person whose permissions the run ran with, when it ran as more than Default.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runAsGivenByUserId?: ObjectID = undefined;
+
+  /*
+   * The project API key whose permissions a run that acted as more than
+   * Default ran with, when a key gave them (#9765: Workflow
+   * .runAsGivenByApiKeyId when it started), with the key's name then, so the
+   * run still says which key it was once the key is renamed or deleted.
+   * Kept as the run read it, with no key to ApiKey: a run's record is
+   * history, and deleting a key leaves its runs as they were.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    title: "Ran As Given by API Key ID",
+    description:
+      "ID of the project API key whose permissions the run ran with, when it ran as more than Default and a key gave them.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public runAsGivenByApiKeyId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Ran As Given by API Key Name",
+    description:
+      "The name of the project API key whose permissions the run ran with, as it was when the run started. Empty unless a key gave them.",
+    example: "Terraform",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public runAsGivenByApiKeyName?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

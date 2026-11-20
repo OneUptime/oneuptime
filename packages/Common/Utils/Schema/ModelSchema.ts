@@ -38,6 +38,7 @@ import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import { getApiSingularName } from "../ModelApiName";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../Types/Database/AccessControl/OwnerOnlyColumn";
+import { isAccountDateColumn } from "../../Types/Database/AccessControl/AccountDateColumns";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 
 export type ModelSchemaType = ZodSchema;
@@ -680,6 +681,7 @@ export class ModelSchema extends BaseSchema {
         zodType: zodType,
         description: finalDescription,
         relation: relations[key],
+        changesOnlyWith: column.changesOnlyWith,
       });
 
       // Mark computed fields as readOnly in OpenAPI spec
@@ -711,11 +713,17 @@ export class ModelSchema extends BaseSchema {
    * at (`x-oneuptime-relation`): `tag` is the name that model's endpoints are
    * tagged with, so a client generated from the spec - the Terraform provider
    * - can say which of its resources an id belongs to.
+   *
+   * A column that changes only together with a new value of another
+   * (TableColumnMetadata.changesOnlyWith) names that column
+   * (`x-oneuptime-changes-only-with`), so the Terraform provider refuses,
+   * at plan time, a plan that changes it alone (#9814).
    */
   private static annotateColumn(data: {
     zodType: ZodTypes.ZodTypeAny;
     description: string;
     relation?: ModelRelationReference | undefined;
+    changesOnlyWith?: string | undefined;
     disableOpenApiSchema?: boolean | undefined;
   }): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny = data.zodType;
@@ -735,6 +743,12 @@ export class ModelSchema extends BaseSchema {
     if (data.relation) {
       zodType = zodType.openapi({
         "x-oneuptime-relation": data.relation,
+      } as any);
+    }
+
+    if (data.changesOnlyWith) {
+      zodType = zodType.openapi({
+        "x-oneuptime-changes-only-with": data.changesOnlyWith,
       } as any);
     }
 
@@ -1240,9 +1254,11 @@ export class ModelSchema extends BaseSchema {
    * columns marked canReadOnRelationQuery, which any reader of the relation
    * may read, and the ids and times), of a type that orders. Not a secret,
    * whose stored value orders nothing a person reads, nor a column kept to
-   * its owner (OwnerOnlyColumn), which a relation read refuses most callers.
-   * The fields SortValidator's refusals offer through a relation are of
-   * these.
+   * its owner (OwnerOnlyColumn), which a relation read refuses most callers,
+   * nor a person's account dates (AccountDateColumns), which SortValidator
+   * refuses as an order through a relation to all but OneUptime and a
+   * master admin (#9823). The fields SortValidator's refusals offer through
+   * a relation are of these.
    */
   public static getRelationSortFields(
     modelType: new () => DatabaseBaseModel,
@@ -1268,7 +1284,8 @@ export class ModelSchema extends BaseSchema {
         !this.isSecretColumn(column) &&
         !column.hashed &&
         !column.encrypted &&
-        !isOwnerOnlyColumn(model, key)
+        !isOwnerOnlyColumn(model, key) &&
+        !isAccountDateColumn(model.tableName, key)
       );
     });
 
@@ -1721,6 +1738,7 @@ export class ModelSchema extends BaseSchema {
         zodType: zodType,
         description: finalDescription,
         relation: relations[key],
+        changesOnlyWith: column.changesOnlyWith,
         disableOpenApiSchema: data.disableOpenApiSchema || false,
       });
 

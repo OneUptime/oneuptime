@@ -5,6 +5,13 @@ import { JSONObject } from "Common/Types/JSON";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  StorageReadingValue,
+  StorageUsage,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import {
+  ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
   ResourceAttentionText,
@@ -78,6 +85,58 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
 
 export const VMWARE_DATASTORE_WARNING_PERCENT: number = 80;
 export const VMWARE_DATASTORE_CRITICAL_PERCENT: number = 90;
+
+/*
+ * Where a datastore's bar turns amber and red, and the vCenter's total
+ * across its datastores: the levels its alerts and Needs attention flag a
+ * datastore at, and that mark the vCenter Degraded and Unhealthy. Past the
+ * line, as its alerts and Needs attention flag it.
+ */
+export const VMWARE_DATASTORE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: VMWARE_DATASTORE_WARNING_PERCENT,
+  criticalPercent: VMWARE_DATASTORE_CRITICAL_PERCENT,
+  isPastLineOnly: true,
+};
+
+/*
+ * A VM's datastore space against what is provisioned for it has no line: a
+ * thick-provisioned disk takes all of it from the start, so a full bar is
+ * how such a VM always reads, never a problem by itself. Its bar stays calm;
+ * the datastore filling up is what the rules watch (#9646).
+ */
+export const VMWARE_VM_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: Number.POSITIVE_INFINITY,
+  criticalPercent: Number.POSITIVE_INFINITY,
+};
+
+/*
+ * A VM's storage as its list's bar reads it: the datastore space its files
+ * take (vcenter.vm.disk.usage, used) of all that is provisioned for it (used
+ * plus what its disks may still grow into). Null when vSphere reported none.
+ */
+export function getVMwareVmStorageUsage(data: {
+  usedBytes: StorageReadingValue;
+  provisionedBytes: StorageReadingValue;
+}): StorageUsage | null {
+  return getStorageUsage(
+    { capacity: data.provisionedBytes, used: data.usedBytes },
+    VMWARE_VM_STORAGE_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * A vCenter's storage: the used and capacity of every datastore it reports,
+ * added up (VMwareVCenter's datastore totals), at the datastores' levels.
+ */
+export function getVMwareVCenterStorageUsage(data: {
+  datastoreUsedBytes: StorageReadingValue;
+  datastoreCapacityBytes: StorageReadingValue;
+}): StorageUsage | null {
+  return getStorageUsage(
+    { capacity: data.datastoreCapacityBytes, used: data.datastoreUsedBytes },
+    VMWARE_DATASTORE_USAGE_THRESHOLDS,
+  );
+}
 export const VMWARE_HOST_SATURATION_PERCENT: number = 90;
 export const VMWARE_CPU_READY_WARNING_PERCENT: number = 10;
 
@@ -1411,6 +1470,117 @@ export function getVMwareHealth(
   items: Array<ResourceAttentionItem>,
 ): ResourceHealth {
   return getResourceAttentionHealth(items);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What the Overview's counts open
+ * ---------------------------------------------------------------------------
+ *
+ * "2/3 ESXi hosts connected" says one host is out of reach, never which or
+ * why (#9594). Beside it, a count of the hosts in each state that needs
+ * attention - not responding (vCenter cannot reach it), or reporting no
+ * usage (vCenter's counts cannot tell whether it is not responding, off or
+ * in standby) - opens exactly those hosts: why, by the same rules as Needs
+ * attention, their cluster and datacenter, each a step from its page. A
+ * host off or in standby is someone's choice, or DPM's: no count.
+ */
+export type VMwareHostProblemState =
+  | VMwareHostState.NotResponding
+  | VMwareHostState.NoUsage;
+
+// The states the hero counts, the most urgent first.
+export const VMWARE_HOST_PROBLEM_STATES: Array<VMwareHostProblemState> = [
+  VMwareHostState.NotResponding,
+  VMwareHostState.NoUsage,
+];
+
+const FACT_CLUSTER: string = translationKey("Cluster");
+const FACT_DATACENTER: string = translationKey("Datacenter");
+
+export function getVMwareHostProblemItems(data: {
+  // The inventory as the Overview read it: its hosts, clusters, datacenters.
+  rows: Array<VMwareResource>;
+  state: VMwareHostProblemState;
+  now: Date;
+  routeFor: VMwareRouteFor;
+}): Array<ResourceAttentionItem> {
+  const ofKind: (kind: VMwareResourceKind) => Array<VMwareResource> = (
+    kind: VMwareResourceKind,
+  ): Array<VMwareResource> => {
+    return data.rows.filter((row: VMwareResource): boolean => {
+      return row.kind === kind;
+    });
+  };
+  const datacenters: Array<VMwareResource> = ofKind(
+    VMwareResourceKind.Datacenter,
+  );
+  const clustersByName: Map<string, VMwareResource> = new Map();
+  for (const cluster of ofKind(VMwareResourceKind.Cluster)) {
+    if (cluster.name) {
+      clustersByName.set(cluster.name, cluster);
+    }
+  }
+
+  const items: Array<ResourceAttentionItem> = [];
+  for (const host of ofKind(VMwareResourceKind.Host)) {
+    const datacenter: VMwareResource | null = findVMwareDatacenter(
+      datacenters,
+      host.datacenterName,
+    );
+    const state: VMwareHostState = getVMwareHostState({
+      host: host,
+      datacenter: datacenter,
+      now: data.now,
+    });
+    if (state !== data.state) {
+      continue;
+    }
+    const assessment: VMwareAssessment = assessVMwareHost({
+      host: host,
+      datacenter: datacenter,
+      now: data.now,
+    });
+    const externalId: string = host.externalId || "";
+    const cluster: VMwareResource | undefined = host.clusterName
+      ? clustersByName.get(host.clusterName)
+      : undefined;
+
+    // Which one it is: where it sits, its cluster a step from its page.
+    const facts: Array<ResourceAttentionFact> = [];
+    if (host.clusterName) {
+      facts.push({
+        key: "cluster",
+        label: FACT_CLUSTER,
+        value: host.clusterName,
+        route: cluster?.externalId
+          ? data.routeFor(VMwareResourceKind.Cluster, cluster.externalId)
+          : undefined,
+      });
+    }
+    if (host.datacenterName) {
+      facts.push({
+        key: "datacenter",
+        label: FACT_DATACENTER,
+        value: host.datacenterName,
+      });
+    }
+
+    items.push({
+      key: getVMwareAttentionKey(VMwareResourceKind.Host, externalId),
+      kind: KIND_HOST,
+      icon: getVMwareKindIcon(VMwareResourceKind.Host),
+      name: getVMwareDisplayName(host),
+      severity: assessment.severity || ResourceAttentionSeverity.Warning,
+      reasons: assessment.reasons,
+      route: externalId
+        ? data.routeFor(VMwareResourceKind.Host, externalId)
+        : undefined,
+      facts: facts,
+    });
+  }
+
+  return sortResourceAttention(items, VMWARE_ATTENTION_KIND_ORDER);
 }
 
 // The worst of several findings' severities, none counting as nothing.

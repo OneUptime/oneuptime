@@ -41,7 +41,7 @@ Klicka på din bild uppe till höger och välj **Profil**. Sidan **Översikt** �
 
 Klicka på **Redigera Användare** och ändra det du behöver:
 
-- **E-post**: adressen du loggar in med. Om du ändrar den verifierar du den nya adressen igen.
+- **E-post**: adressen du loggar in med. Om du ändrar den skickar OneUptime en länk till den nya adressen, och din adress ändras när du öppnar den. Tills dess loggar du in med den nuvarande, och **Avbryt ändring** stoppar ändringen. En huvudadministratörs egen adress ändras direkt.
 - **Fullständigt namn**: namnet som ditt team ser överallt i OneUptime.
 - **Tidszon**: tidszonen som instrumentpanelen visar och läser tider i, och den som används för tiderna i aviseringar till dig.
 - **Språk**: språket i instrumentpanelen i alla webbläsare du loggar in i, och i dina jourlarm. Inte valt: dina larm är på engelska och instrumentpanelen följer din webbläsare.
@@ -105,24 +105,46 @@ Länken fungerar en gång, i 15 minuter, och en nyare länk ersätter den. Du ka
 
 ### Slå på tvåfaktorsautentisering
 
-Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en länk via e-post. Lägg först till ett andra steg, och slå sedan på den.
+Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en länk via e-post. Den aktiveras först när ditt andra steg fungerar, så den ber aldrig om ett steg du inte har.
 
 :::steps
-### Lägg till en autentiseringsapp
+### Välj ditt andra steg
 
-Öppna **Säkerhet → Tvåfaktorsautentisering**. Under **Autentiseringsappar** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verifiera och slutför**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Säkerhetsnycklar**.
+Öppna **Säkerhet → Tvåfaktorsautentisering** och klicka på **Aktivera tvåfaktorsautentisering**. Välj **Autentiseringsapp** eller **Säkerhetsnyckel** och klicka på **Fortsätt**.
+
+### Konfigurera det
+
+För en autentiseringsapp skannar du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, anger den sexsiffriga kod den visar och klickar på **Verifiera och slutför**. En USB- eller NFC-nyckel ger du ett namn och följer webbläsarens anvisningar. Tvåfaktorsautentisering är sedan aktiverad, och kortet visar **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 
 ### Spara dina reservkoder
 
 Första gången du lägger till en app, en nyckel eller en passnyckel visar OneUptime **Dina reservkoder**. Varje kod loggar in dig en gång om du tappar bort din app eller nyckel. Kopiera eller ladda ned dem, kryssa i rutan som säger att du har sparat dem och klicka på **Klar**.
-
-### Slå på den
-
-Klicka på **Aktivera tvåfaktorsautentisering** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 :::
+
+Har du redan en app under **Autentiseringsappar** eller en nyckel under **Säkerhetsnycklar**, ber **Aktivera tvåfaktorsautentisering** dig bara att bekräfta. Så länge den är aktiverad går det inte att ta bort din sista app, nyckel eller passnyckel: lägg först till en annan, eller stäng av tvåfaktorsautentisering. Visar kortet **Konfiguration krävs**, är tvåfaktorsautentisering aktiverad utan att något är konfigurerat, ofta för att en administratör har krävt det: klicka på **Slutför konfigurationen**, annars blir du ombedd att göra det vid nästa inloggning.
+
+### Konfigurera tvåfaktorsautentisering när du loggar in
+
+När en administratör kräver tvåfaktorsautentisering och du inte har konfigurerat något ännu, ber din nästa inloggning med lösenord eller en länk via e-post dig att konfigurera den innan du släpps in. Välj **Autentiseringsapp** eller **Säkerhetsnyckel** och klicka på **Fortsätt**:
+
+- **Autentiseringsapp**: skanna QR-koden, ange den sexsiffriga kod din app visar och klicka på **Verifiera och logga in**.
+- **Säkerhetsnyckel**: klicka på **Registrera säkerhetsnyckel** och följ webbläsarens anvisningar. Rör vid en USB- eller NFC-nyckel, eller använd fingeravtryck, ansikte eller skärmlås på din telefon eller dator.
+
+Har du inga reservkoder ännu visar OneUptime dem sedan en gång, och du är inloggad. **Välj ett annat sätt** går tillbaka till valet. En webbläsare som inte kan registrera en säkerhetsnyckel, till exempel på en sida utan HTTPS, erbjuder bara autentiseringsappen.
 
 > [!TIP]
 > Håller reservkoderna på att ta slut? **Generera nya koder** på samma sida ger dig en ny uppsättning, och de gamla koderna slutar fungera direkt.
+
+### När din organisation hanterar din inloggning
+
+På en server som kräver enkel inloggning loggar du bara in via organisationens identitetsleverantör, till exempel Okta eller Microsoft Entra ID, och OneUptime konfigurerar inget lösenord, ingen passnyckel och ingen tvåfaktorsautentisering åt dig. **Användarprofil** har då ingen del som heter **Säkerhet**, och dess **Översikt** visar din leverantör under **Enkel inloggning**. Byt lösenord och andra steg hos din identitetsleverantör. Det du konfigurerade tidigare finns kvar: det fungerar igen först om servern slutar kräva enkel inloggning, om inte en serveradministratör rensar det, och då får du ett e-postmeddelande. Huvudadministratörer behåller sina egna inställningar under **Säkerhet**.
+
+Samma sak händer när alla projekt du tillhör kräver enkel inloggning och har **Hantera inloggning med SSO** påslaget. Ditt lösenord loggar fortfarande in dig i OneUptime, men alla projekt ber om SSO, så OneUptime konfigurerar inget nytt lösenord, ingen ny passnyckel och inget nytt andra steg åt dig:
+
+- **Ett projekt som inte gör det**: så snart du är medlem i, eller inbjuden till, ett projekt som inte kräver SSO eller inte har **Hantera inloggning med SSO** påslaget, kommer din del **Säkerhet** tillbaka. **Översikt** visar då de projekten under **Enkel inloggning**, som skälet till att inställningarna är dina. Lämnar du det projektet förlorar du dem igen.
+- **Projekt med olika leverantörer**: om alla dina projekt hanterar inloggningen, vart och ett med sin egen identitetsleverantör, visar **Översikt** varje leverantör.
+- **Huvudadministratörer** behåller alltid sina egna inställningar under **Säkerhet**.
+- **Det du konfigurerade tidigare** finns kvar. En serveradministratör kan rensa det, och det kan även en ägare till alla projekt du tillhör; du får ett e-postmeddelande när det sker.
 
 ## Dina projekt
 
@@ -162,6 +184,14 @@ Ditt tema sparas i din webbläsare, så ställ in det igen i en annan webbläsar
 
 :::details Jag fick inte e-postmeddelandet för att verifiera min adress
 Loggar du in igen skickas en ny länk: titta även i skräppostmappen. Kan du inte logga in, använd **Glömt lösenord?** på inloggningssidan. Återställningslänken verifierar också din adress.
+:::
+
+:::details Registreringen skickade ett mejl om att jag redan har ett konto
+Den adressen har redan ett OneUptime-konto, så registreringen skapade och ändrade ingenting. Logga in med den, eller använd **Glömt lösenord?** på inloggningssidan om du inte minns ditt lösenord. Registreringssidan säger samma sak för alla adresser, så den avslöjar inte för någon vilka adresser som har ett konto.
+:::
+
+:::details Min e-postadress har inte ändrats
+Din adress ändras först när du öppnar länken som OneUptime skickade till den nya adressen. Länken fungerar i 24 timmar: om den har gått ut, ändra din e-post igen för att få en ny. Om ett annat konto redan använder adressen står det i mejlet som skickades dit, och din adress förblir som den är.
 :::
 
 :::details Jag har tappat bort min autentiseringsapp

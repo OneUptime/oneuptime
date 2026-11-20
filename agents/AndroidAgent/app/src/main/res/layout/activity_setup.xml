@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The agent's one screen: whether the device is reporting, then the three
+    settings a person may need to enter, then what Android lets the agent
+    read on this device. A fleet set up by its device manager only ever reads
+    the first part.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <!-- SetupActivity widens the side padding on a wide screen, so the form stays a readable width. -->
+    <LinearLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            style="@style/AgentText.Title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name" />
+
+        <TextView
+            style="@style/AgentText.Secondary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/setup_subtitle" />
+
+        <LinearLayout
+            android:id="@+id/status_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:id="@+id/status_dot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/status_dot" />
+
+                <TextView
+                    android:id="@+id/status_headline"
+                    style="@style/AgentText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/status_detail"
+                style="@style/AgentText.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textIsSelectable="true" />
+
+            <TextView
+                android:id="@+id/status_last_report"
+                style="@style/AgentText.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" />
+
+            <!-- Settings the device manager sent that the agent cannot use, one per line. -->
+            <TextView
+                android:id="@+id/config_problems"
+                style="@style/AgentText.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/status_warn"
+                android:textIsSelectable="true"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!--
+            A log session OneUptime asks for: the request with Allow and
+            Decline, then what to do in Android's prompt, then until when it
+            sends, with Stop. Shown only while there is one.
+        -->
+        <LinearLayout
+            android:id="@+id/log_session_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <TextView
+                style="@style/AgentText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/log_session_title"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/log_session_text"
+                style="@style/AgentText.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp" />
+
+            <TextView
+                android:id="@+id/log_session_prompt"
+                style="@style/AgentText.Help"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/log_session_android_prompt"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/log_session_answer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/log_session_allow"
+                    style="@style/AgentButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/log_session_allow" />
+
+                <Button
+                    android:id="@+id/log_session_decline"
+                    style="@style/AgentButton.Outline"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/log_session_decline" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/log_session_stop"
+                style="@style/AgentButton.Outline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/log_session_stop"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/AgentText.Section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_connection" />
+
+        <TextView
+            android:id="@+id/managed_notice"
+            style="@style/AgentText.Secondary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_managed_notice"
+            android:visibility="gone" />
+
+        <TextView
+            style="@style/AgentText.Label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:labelFor="@+id/url"
+            android:text="@string/setup_url_label" />
+
+        <EditText
+            android:id="@+id/url"
+            style="@style/AgentField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autofillHints=""
+            android:imeOptions="actionNext"
+            android:inputType="textUri" />
+
+        <TextView
+            android:id="@+id/url_help"
+            style="@style/AgentText.Help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_url_help" />
+
+        <TextView
+            style="@style/AgentText.Label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:labelFor="@+id/token"
+            android:text="@string/setup_token_label" />
+
+        <EditText
+            android:id="@+id/token"
+            style="@style/AgentField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autofillHints=""
+            android:imeOptions="actionNext"
+            android:inputType="textPassword" />
+
+        <TextView
+            android:id="@+id/token_help"
+            style="@style/AgentText.Help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_token_help" />
+
+        <TextView
+            style="@style/AgentText.Label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:labelFor="@+id/device_name"
+            android:text="@string/setup_device_name_label" />
+
+        <EditText
+            android:id="@+id/device_name"
+            style="@style/AgentField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autofillHints=""
+            android:imeOptions="actionDone"
+            android:inputType="text" />
+
+        <TextView
+            android:id="@+id/device_name_help"
+            style="@style/AgentText.Help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_device_name_help" />
+
+        <Button
+            android:id="@+id/save"
+            style="@style/AgentButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/setup_save" />
+
+        <TextView
+            android:id="@+id/save_message"
+            style="@style/AgentText.Secondary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone" />
+
+        <TextView
+            style="@style/AgentText.Section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_readings" />
+
+        <LinearLayout
+            android:id="@+id/readings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="8dp" />
+
+        <!-- What is still to grant for other apps' logs and crash stacks: the commands, one per line, and usage access. -->
+        <TextView
+            android:id="@+id/grants"
+            style="@style/AgentText.Help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/setup_grants"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/grant_commands"
+            style="@style/AgentText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_code"
+            android:fontFamily="monospace"
+            android:padding="10dp"
+            android:textDirection="ltr"
+            android:textIsSelectable="true"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/usage_access"
+            style="@style/AgentButton.Outline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/setup_usage_access"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/version"
+            style="@style/AgentText.Help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_horizontal" />
+    </LinearLayout>
+</ScrollView>

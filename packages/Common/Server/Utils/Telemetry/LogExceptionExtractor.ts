@@ -9,9 +9,14 @@ import StackTraceParser, { ParsedStackTrace } from "./StackTraceParser";
 import {
   ANR_EXCEPTION_MESSAGE,
   ANR_EXCEPTION_TYPE,
+  HANG_EXCEPTION_MESSAGE,
+  HANG_EXCEPTION_TYPE,
   MobileAppFaultKind,
+  getMobileAppFaultEventName,
   getMobileAppFaultKind,
+  isMetricKitFaultEventName,
 } from "../../../Utils/Telemetry/MobileAppFaults";
+import { toReadableMetricKitStackTrace } from "../../../Utils/Telemetry/MetricKitCallStack";
 
 /**
  * Result of detecting an exception inside a single log record. Shaped to feed
@@ -26,7 +31,8 @@ export interface ExtractedLogException {
   parsedFrames: string; // JSON.stringify(StackFrame[]) or "[]"
   /*
    * Path A may carry exception.escaped; Path B => null (unknown). A mobile
-   * app's crash or ANR (MobileAppFaults) => true unless the record says.
+   * app's crash, ANR or hang (MobileAppFaults) => true unless the record
+   * says.
    */
   escaped: boolean | null;
 }
@@ -121,9 +127,13 @@ export default class LogExceptionExtractor {
     input: LogExceptionExtractorInput,
   ): ExtractedLogException | null {
     try {
-      // A mobile app's crash or ANR, which is unhandled whatever it says.
+      // A mobile app's crash, ANR or hang, unhandled whatever it says.
       const fault: MobileAppFaultKind | null = getMobileAppFaultKind(
         input.attributes,
+      );
+      // An iOS app's MetricKit diagnostic, whose stack is JSON.
+      const isMetricKit: boolean = isMetricKitFaultEventName(
+        getMobileAppFaultEventName(input.attributes),
       );
 
       /*
@@ -131,16 +141,20 @@ export default class LogExceptionExtractor {
        * highest-signal (the app explicitly recorded an exception on the log).
        */
       const fromAttributes: ExtractedLogException | null =
-        LogExceptionExtractor.extractFromAttributes(input.attributes, fault);
+        LogExceptionExtractor.extractFromAttributes(
+          input.attributes,
+          fault,
+          isMetricKit,
+        );
       if (fromAttributes) {
         return fromAttributes;
       }
 
       /*
-       * A crash or an ANR is an exception whatever its record carries: one
-       * with no exception.* attribute is read from its body, at any
-       * severity (the SDK may set none), and an ANR counts even with no
-       * stack trace at all.
+       * A crash, an ANR or a hang is an exception whatever its record
+       * carries: one with no exception.* attribute is read from its body,
+       * at any severity (the SDK may set none), and an ANR or a hang counts
+       * even with no stack trace at all.
        */
       if (fault) {
         return LogExceptionExtractor.extractMobileAppFaultFromBody(
@@ -165,12 +179,13 @@ export default class LogExceptionExtractor {
   private static extractFromAttributes(
     attributes: JSONObject,
     fault: MobileAppFaultKind | null,
+    isMetricKit: boolean = false,
   ): ExtractedLogException | null {
     if (!attributes) {
       return null;
     }
 
-    const stackTrace: string = asString(attributes["exception.stacktrace"]);
+    let stackTrace: string = asString(attributes["exception.stacktrace"]);
     let exceptionType: string = asString(attributes["exception.type"]);
     let message: string = asString(attributes["exception.message"]);
 
@@ -179,13 +194,33 @@ export default class LogExceptionExtractor {
     }
 
     /*
-     * An ANR carries the main thread's stack and nothing else: name it, so
-     * it reads as an ANR in Exceptions rather than as a row with no type
-     * and no message. A type or message the SDK did send wins.
+     * An ANR, and an iOS hang, carry the main thread's stack and nothing
+     * else: name each, so it reads as what it is in Exceptions rather than
+     * as a row with no type and no message. A type or message the SDK did
+     * send wins.
      */
     if (fault === MobileAppFaultKind.Anr) {
       exceptionType = exceptionType || ANR_EXCEPTION_TYPE;
       message = message || ANR_EXCEPTION_MESSAGE;
+    }
+
+    if (fault === MobileAppFaultKind.Hang) {
+      exceptionType = exceptionType || HANG_EXCEPTION_TYPE;
+      message = message || HANG_EXCEPTION_MESSAGE;
+    }
+
+    /*
+     * A MetricKit crash's or hang's stack is Apple's call stack tree as
+     * JSON: drawn as the threads of a crash report instead, the one it is
+     * about first (MetricKitCallStack). A stack that is not such a tree is
+     * kept as sent.
+     */
+    if (isMetricKit && stackTrace && fault) {
+      stackTrace =
+        toReadableMetricKitStackTrace(
+          stackTrace,
+          fault === MobileAppFaultKind.Crash ? "crash" : "hang",
+        ) || stackTrace;
     }
 
     const clampedStack: string = clamp(
@@ -216,10 +251,11 @@ export default class LogExceptionExtractor {
   }
 
   /*
-   * A crash or an ANR whose record holds no exception.* attribute: its
-   * body's stack trace when it has one. A crash with nothing to read is no
-   * exception - nothing says what was thrown - while an ANR still counts, as
-   * one ANR with no stack, because that it happened is the fact.
+   * A crash, an ANR or a hang whose record holds no exception.* attribute:
+   * its body's stack trace when it has one. A crash with nothing to read is
+   * no exception - nothing says what was thrown - while an ANR or a hang
+   * still counts, as one with no stack, because that it happened is the
+   * fact.
    */
   private static extractMobileAppFaultFromBody(
     body: string,
@@ -228,10 +264,12 @@ export default class LogExceptionExtractor {
     const fromBody: ExtractedLogException | null =
       LogExceptionExtractor.extractFromBody(body);
 
-    if (fault === MobileAppFaultKind.Anr) {
+    if (fault === MobileAppFaultKind.Anr || fault === MobileAppFaultKind.Hang) {
+      const isHang: boolean = fault === MobileAppFaultKind.Hang;
+
       return {
-        message: ANR_EXCEPTION_MESSAGE,
-        exceptionType: ANR_EXCEPTION_TYPE,
+        message: isHang ? HANG_EXCEPTION_MESSAGE : ANR_EXCEPTION_MESSAGE,
+        exceptionType: isHang ? HANG_EXCEPTION_TYPE : ANR_EXCEPTION_TYPE,
         stackTrace: fromBody?.stackTrace || "",
         parsedFrames: fromBody?.parsedFrames || "[]",
         escaped: true,
@@ -383,7 +421,7 @@ function asString(value: JSONValue | undefined): string {
 
 /*
  * Whether an occurrence escaped (was unhandled): what the record says, and
- * for a mobile app's crash or ANR, which says nothing, yes.
+ * for a mobile app's crash, ANR or hang, which says nothing, yes.
  */
 function escapedFor(
   stated: boolean | null,

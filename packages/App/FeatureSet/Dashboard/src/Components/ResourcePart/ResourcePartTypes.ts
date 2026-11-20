@@ -1,4 +1,9 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  ResourceAttentionCurrent,
+  ResourceAttentionItem,
+} from "./ResourceAttention";
+import type { ResourceAttentionDialogProps } from "./ResourceAttentionDialogProps";
 
 /*
  * The words and looks a part's page is built from - its status, its badges,
@@ -40,6 +45,41 @@ export interface ResourcePartChip {
   icon: IconProp;
   // Already in the reader's language (a count or a size is built per chip).
   label: string;
+  /*
+   * A count of something wrong ("3 pods failed"): pressed, it opens exactly
+   * what it counts and why (ResourceAttentionPill), where a plain chip only
+   * said how many.
+   */
+  attention?: ResourcePartChipAttention | undefined;
+}
+
+/*
+ * What a chip that counts something wrong opens, and how bad it is: the
+ * pill's tone, what a press shows (English, "Show which pods and why") and
+ * the dialog (ResourceAttentionDialog), its items or the read that fetches
+ * them when it opens.
+ */
+export interface ResourcePartChipAttention {
+  tone: ResourcePartTone;
+  hint: string;
+  dialog: Omit<ResourceAttentionDialogProps, "onClose" | "testId">;
+  // The pill's test id; the hero's `${testId}-chip-${key}` when left out.
+  testId?: string | undefined;
+}
+
+/*
+ * What needs attention on a part and what it runs - the list its Overview's
+ * Needs attention card draws, its own row named as the card names it ("This
+ * node"). A status that says something is wrong opens it, so the hero's
+ * "Offline" or "CrashLoopBackOff" says why where it is read (#9594).
+ */
+export interface ResourcePartAttention {
+  items: Array<ResourceAttentionItem>;
+  // What the list is, in English: the card's description.
+  description?: string | undefined;
+  current?: ResourceAttentionCurrent | undefined;
+  // False when every row is the same kind of part.
+  showKind?: boolean | undefined;
 }
 
 // A Kubernetes part takes violet, as its cluster's own hero does.

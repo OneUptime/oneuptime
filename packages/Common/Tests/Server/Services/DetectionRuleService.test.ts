@@ -466,3 +466,146 @@ describe("DetectionRuleService field-name trimming", () => {
     expect("distinctCountField" in result.updateBy.data).toBe(false);
   });
 });
+
+/*
+ * A rule's own response steps (#9621) are saved as the plan reads them:
+ * each with a part of the plan, an id of its own and words within their
+ * bound, trimmed, one left without words left out - or refused with what to
+ * change. A save that does not name them leaves them as they are.
+ */
+describe("DetectionRuleService response steps", () => {
+  const STEP: { id: string; phase: string; text: string } = {
+    id: "page-payments",
+    phase: "Contain",
+    text: "  Page the payments on-call.  ",
+  };
+
+  test("a create saves its steps trimmed, leaving out one without words", async () => {
+    const rule: DetectionRule = buildRule({ name: "My Rule" });
+    rule.responseSteps = [
+      STEP,
+      { id: "empty", phase: "Fix", text: "   " },
+    ] as never;
+
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(result.createBy.data.responseSteps).toEqual([
+      {
+        id: "page-payments",
+        phase: "Contain",
+        text: "Page the payments on-call.",
+      },
+    ]);
+  });
+
+  test("a create that names none leaves a library rule to read its library's", async () => {
+    const rule: DetectionRule = buildRule({ name: "My Rule" });
+
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(result.createBy.data.responseSteps).toBeUndefined();
+  });
+
+  test("a create with a step under no part of the plan is refused, saying what to change", async () => {
+    const rule: DetectionRule = buildRule({ name: "My Rule" });
+    rule.responseSteps = [{ ...STEP, phase: "Later" }] as never;
+
+    await expect(service.onBeforeCreate(buildCreateBy(rule))).rejects.toThrow(
+      "Each response step goes under Confirm, Contain or Fix. Choose where it goes.",
+    );
+  });
+
+  test("an update saves its steps as the plan reads them, and may take them all out", async () => {
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ responseSteps: [STEP] as never }),
+    );
+
+    expect(result.updateBy.data.responseSteps).toEqual([
+      {
+        id: "page-payments",
+        phase: "Contain",
+        text: "Page the payments on-call.",
+      },
+    ]);
+
+    const cleared: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ responseSteps: [] as never }),
+    );
+
+    expect(cleared.updateBy.data.responseSteps).toEqual([]);
+  });
+
+  test("an update with too many steps, or two of one id, is refused", async () => {
+    await expect(
+      service.onBeforeUpdate(
+        buildUpdateBy({
+          responseSteps: Array.from(
+            { length: 11 },
+            (_: unknown, index: number) => {
+              return { ...STEP, id: `s${index}` };
+            },
+          ) as never,
+        }),
+      ),
+    ).rejects.toThrow(BadDataException);
+
+    await expect(
+      service.onBeforeUpdate(
+        buildUpdateBy({ responseSteps: [STEP, STEP] as never }),
+      ),
+    ).rejects.toThrow(/id of its own/);
+  });
+
+  test("an update that does not name them leaves them as they are", async () => {
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ description: "Just renaming things" }),
+    );
+
+    expect("responseSteps" in result.updateBy.data).toBe(false);
+  });
+
+  /*
+   * Reordered on the rule's form (#9796): the whole list is written in its
+   * new order, in one write of the rule, each step's id as it was - so the
+   * plan shows the new order and a case's ticks, kept by `rule:<id>`, stay.
+   */
+  test("an update of the steps in a new order saves that order, every id as it was", async () => {
+    const reordered: Array<{ id: string; phase: string; text: string }> = [
+      { id: "rotate-key", phase: "Contain", text: "Rotate the key in Vault." },
+      { ...STEP, text: "Page the payments on-call." },
+      { id: "check-audit-log", phase: "Confirm", text: "Check the audit log." },
+    ];
+
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ responseSteps: reordered as never }),
+    );
+
+    expect(result.updateBy.data.responseSteps).toEqual(reordered);
+  });
+
+  /*
+   * Regression: null - none written - was saved as an empty list, the
+   * author's "no steps", so a library rule saved from a form that left the
+   * field alone lost its library's steps.
+   */
+  test("none written (null) stays null, so a library rule keeps reading its library's", async () => {
+    const updated: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ responseSteps: null as never }),
+    );
+
+    expect(updated.updateBy.data.responseSteps).toBeNull();
+
+    const rule: DetectionRule = buildRule({ name: "My Rule" });
+    rule.responseSteps = null as never;
+
+    const created: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(created.createBy.data.responseSteps).toBeNull();
+  });
+});

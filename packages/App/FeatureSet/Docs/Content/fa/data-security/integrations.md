@@ -127,7 +127,7 @@ flowchart TB
 | مخازن داده، خط‌های زمانی‌شان، یافته‌هایشان، اینکه چه کسی به آن‌ها دسترسی دارد و هر هویتی که دسترسی دارد | `/data-store`، `/data-store-feed`، `/data-store-finding`، `/data-store-access`، `/data-security-identity` |
 | مسائل، خط‌های زمانی‌شان و جریان‌های داده | `/data-security-issue`، `/data-security-issue-feed`، `/data-security-flow` |
 | اسکن‌ها | `/data-security-scan` |
-| انواع داده سفارشی، تنظیمات بررسی و قواعد محل نگهداری داده | `/data-security-custom-data-type`، `/data-security-check-setting`، `/data-security-residency-rule` |
+| انواع داده سفارشی، تنظیمات بررسی، تنظیمات انطباق و قواعد محل نگهداری داده | `/data-security-custom-data-type`، `/data-security-check-setting`، `/data-security-compliance-setting`، `/data-security-residency-rule` |
 | تنظیمات پروژه | `/data-security-setting` |
 | مالکان، قواعد مالکیت و قواعد برچسب | `/data-store-owner-user`، `/data-store-owner-team`، `/data-store-owner-rule`، `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ flowchart TB
 | --- | --- |
 | `/data-security/overview` | ارقام نمای کلی: مخازن بر اساس حساسیت و دسته، مسائل باز بر اساس شدت، پرخطرترین مسائل و ۳۰ روز گذشتهٔ آن‌ها |
 | `/data-security/compliance` | امتیاز و الزامات هر چارچوب |
+| `/data-security/resource-scope` | مخازن دادهٔ یک منبع - یک خوشهٔ Kubernetes، یک میزبان Docker یا Podman، یک پایگاه داده، یک سرویس یا یک منبع ابری - و اینکه از کلیدهای انطباق کدام منبع پیروی می‌کنند |
+| `/data-security/resource-compliance` | چارچوب‌های یک منبع: امتیازهایشان برای مخازن آن، و آنچه برای آن خاموش شده است |
 | `/data-security/record-of-processing` | سوابق پردازش GDPR، یک ردیف برای هر مخزنی که دادهٔ شخصی دارد |
 | `/data-store/<id>/scan-now` | **اکنون اسکن کن**: همین حالا از محتوای مخزن نمونه برمی‌دارد |
 | `/data-store/<id>/check-now` | **اکنون بررسی کن**: پیکربندی مخزن را دوباره می‌خواند و بررسی‌هایش را اجرا می‌کند |
 | `/data-store-finding/<id>/scrub` | **پاک‌سازی** روی یک یافتهٔ تله‌متری |
+| `/data-store-finding/<id>/drop-metric-impact` | آنچه **رها کردن این متریک** برای یافته‌ای در نام یک متریک رها می‌کند: چند متریک، و مانیتورها و داشبوردهایی که آن‌ها را می‌خوانند |
+| `/data-store-finding/<id>/drop-metric` | **رها کردن این متریک**: یک قاعده خط لوله متریک که نقطه‌های دادهٔ تازهٔ آن متریک‌های سرویس را برای همیشه رها می‌کند. `{"confirmDataLoss": true}` را می‌گیرد |
 | `/data-security-issue/<id>/explain` | **توضیح با هوش مصنوعی** روی یک مسئله |
 | `/data-security-issue/<id>/fix-with-ai` | **رفع با هوش مصنوعی** روی یک مسئله |
 | `/data-store/<id>/response-actions` | کدام اقدام‌های پاسخ را همین حالا می‌توان روی مخزن انجام داد، و اگر نه، چرا |
 | `/data-store/<id>/respond` | یک کنش پاسخ روی مخزن، مانند **مسدود کردن دسترسی عمومی** یا **روشن کردن نسخه‌بندی**، همراه با مسئله‌ای که از آن اجرا شده است |
 
-[ارائه‌دهندهٔ Terraform](/docs/terraform/index) برای هر گونه رکوردی که می‌سازید یک منبع دارد - مخازن داده‌ای که خودتان می‌افزایید، انواع داده سفارشی، تنظیمات بررسی، قواعد محل نگهداری داده، قواعد مالکیت و برچسب - که به نام همان رکورد است، مانند `oneuptime_residency_rule`.
+[ارائه‌دهندهٔ Terraform](/docs/terraform/index) برای هر گونه رکوردی که می‌سازید یک منبع دارد - مخازن داده‌ای که خودتان می‌افزایید، انواع داده سفارشی، تنظیمات بررسی، تنظیمات انطباق، قواعد محل نگهداری داده، قواعد مالکیت و برچسب - که به نام همان رکورد است، مانند `oneuptime_residency_rule`.
 
-[سرور MCP](/docs/ai/mcp-server) برای این رکوردهای امنیت داده ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش دارد: Data Store، Data Store Finding، Data Store Access Entry، Data Security Identity، Data Flow، Data Security Issue، Data Security Scan، Custom Data Type، Check Setting، Residency Rule و Data Security Setting. سپس یک دستیار هوش مصنوعی می‌تواند با مجوزهای شما بپرسد کدام مخازن شماره‌های کارت دارند، یا چه چیزی روی یک باکت باز است.
+[سرور MCP](/docs/ai/mcp-server) برای این رکوردهای امنیت داده ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش دارد: Data Store، Data Store Finding، Data Store Access Entry، Data Security Identity، Data Flow، Data Security Issue، Data Security Scan، Custom Data Type، Check Setting، Compliance Setting، Residency Rule و Data Security Setting. سپس یک دستیار هوش مصنوعی می‌تواند با مجوزهای شما بپرسد کدام مخازن شماره‌های کارت دارند، یا چه چیزی روی یک باکت باز است.
 
 ## گام‌های بعدی
 

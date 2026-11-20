@@ -110,6 +110,16 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
       },
       {},
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_MANAGED_DEVICES, [
+      "Project",
+      "Inventory",
+      "Managed Devices",
+    ]),
+    // An Esper connection's recommended monitors, opened from its row.
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS,
+      ["Project", "Inventory", "Managed Devices", "Recommendations"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_ARCHIVED, [
       "Project",
       "Inventory",

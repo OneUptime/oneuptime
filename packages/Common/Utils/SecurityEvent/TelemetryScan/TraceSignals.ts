@@ -12,6 +12,14 @@ import {
   SecurityTelemetrySourceKind,
 } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
 import {
+  SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
+  SECURITY_LOG_ROW_FUNCTION_KEY,
+} from "../../../Types/SecurityCase/SecurityConnection";
+import {
+  readLogCloudResource,
+  readLogFunction,
+} from "../LogParsers/SecurityLogLine";
+import {
   WEB_ATTACK_KIND_ATTRIBUTE,
   WEB_ATTACK_MARKERS,
   WEB_HTTP_ACTIVITY_CLASS_UID,
@@ -151,15 +159,26 @@ export const TRACE_SCAN_ATTRIBUTE_KEYS: {
   serverAddress: ["server.address", "net.peer.name", "http.host"],
 };
 
+/*
+ * The resource attributes that say which cloud resource and which
+ * serverless function a span is of (#9779, #9780): what each one's own
+ * Traces page filters on, carried onto the events read from the span.
+ */
+export const TRACE_SCAN_OWNER_ATTRIBUTES: ReadonlyArray<string> = [
+  SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
+  SECURITY_LOG_ROW_FUNCTION_KEY,
+];
+
 // Every attribute the trace scan reads, for its SELECT.
 export const TRACE_SCAN_ATTRIBUTES_READ: ReadonlyArray<string> = Array.from(
-  new Set<string>(
-    Object.values(TRACE_SCAN_ATTRIBUTE_KEYS).flatMap(
+  new Set<string>([
+    ...Object.values(TRACE_SCAN_ATTRIBUTE_KEYS).flatMap(
       (keys: ReadonlyArray<string>): Array<string> => {
         return [...keys];
       },
     ),
-  ),
+    ...TRACE_SCAN_OWNER_ATTRIBUTES,
+  ]),
 );
 
 // The attributes a server span's URL is read from, for the scan's prefilter.
@@ -661,6 +680,21 @@ export function buildTraceSecurityEvents(
 
   if (promptInjection) {
     events.push(promptInjection);
+  }
+
+  /*
+   * The cloud resource and the serverless function the span is of, as a
+   * log line's events carry them (#9779, #9780): a Lambda's spans are filed
+   * under the service of its name, and its own page reads them by its
+   * faas.name, as its Traces page does.
+   */
+  const owners: JSONObject = {
+    ...readLogCloudResource(span.attributes),
+    ...readLogFunction(span.attributes),
+  };
+
+  for (const event of events) {
+    Object.assign(event.attributes, owners);
   }
 
   return events;

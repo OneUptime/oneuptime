@@ -41,7 +41,7 @@ Serveren er tilstandsløs: den utsteder ingen økt-ID-er, og hver forespørsel s
 - **Planlagt vedlikehold**: opprett og administrer vedlikeholdshendelser.
 - **Telemetri**: spør etter logger, målinger, spor, unntak, monitorlogger, sikkerhetshendelser og mer, kun lesing.
 
-Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 54 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. Skrivebeskyttede verktøy har `readOnlyHint`, alle verktøy som endrer noe, har `destructiveHint`, og bare verktøyene for offentlige statussider har `openWorldHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
+Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 55 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. En type post uten et felt du kan endre etter at den er opprettet, som en hendelses kobling til et varsel, har ikke noe verktøy for å oppdatere. Skrivebeskyttede verktøy har `readOnlyHint`, og alle verktøy som endrer noe, har `destructiveHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. `openWorldHint` markerer verktøyene som når utover prosjektet ditt: verktøyene for offentlige statussider, og endringene som vises på en statusside og sendes til abonnentene på den, som en ny hendelse, en endring av tilstanden dens eller et offentlig notat. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
 
 ## Før du begynner
 
@@ -341,6 +341,20 @@ Verktøyet **`get_data_table_freshness`** forteller en agent om en tabell som Da
 
 Verktøyet **`get_data_table_lineage`** forteller en agent hva en overvåket tabell er bygget fra og hva som er bygget fra den, før den endrer tabellen eller stoler på dataene: oppstrøms- og nedstrømstabellene som er forsinket, slettet, har åpne varsler eller der pipelinen feilet på siste kjøring, de nærmeste først, hver med hvor mange trinn unna den er, så resten, pipelinene som laster kildene dens utenfra, og BI-dashbordene som er bygget på den. Det går tre trinn i hver retning, eller opptil fem med `depth`. Oppgi `table` som for `get_data_table_freshness`. Det endrer ingenting.
 
+Verktøyet **`oneuptime_move_in_list`** flytter en rad i en ordnet liste, for eksempel en alvorlighetsgrad, en hendelsestilstand eller en monitorstatus, til en annen rads plass, slik det å dra den i dashbordet gjør: radene imellom flytter seg én plass, og det svarer med hver rad der nummeret endret seg. Oppgi `resource` (for eksempel `Incident Severity`), radens `id` og `placeOfId`, ID-en til raden den tar plassen til. Å skrive en rads nummer med dens `update_`-verktøy plasserer bare den raden, ved siden av en rad som allerede har det nummeret.
+
+## Verktøy for å sette opp ting
+
+Serveren har også oppsettshandlingene til Spør AI, ett kall hver: det du setter opp, i stedet for én post om gangen. Hver oppretter postene som Spør AI og de veiledede oppsettene oppretter for de samme svarene, med de samme kontrollene:
+
+- **`set_up_website_monitoring`**: en monitor for et nettsted eller et API på en adresse, som åpner en hendelse når adressen ikke svarer eller svarer med en feil. Den er din, og en adresse som en monitor allerede sjekker, får ikke en til
+- **`set_up_paging`**: i et prosjekt som ennå ikke tilkaller noen, den første vaktpolicyen, som tilkaller deg og personene og teamene du nevner ved hver ny hendelse og hvert nytt varsel
+- **`publish_status_page`**: en offentlig statusside som viser monitorene du nevner
+- **`add_monitors_to_status_page`**: monitorer satt på en statusside prosjektet har
+- **`who_is_told`**: hvem som får beskjed når en monitor er nede, og hva som ville hindret at noen blir nådd. Den endrer ingenting
+
+De handler som deg, pålogget med OAuth: en API-nøkkel for et prosjekt kan ikke bruke de fire som oppretter noe. Klienten din spør deg før hver av dem, og svaret sier hva som ble opprettet. Det som mangler, for eksempel en tillatelse, en adresse eller plass i abonnementet, sies før noe opprettes.
+
 ## Spørre etter telemetri
 
 Logger, målinger, spor (spans), unntak, monitorlogger og de andre typene telemetri kommer som skrivebeskyttede verktøy `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og `count_`-tvillingene deres). Telemetri kommer inn gjennom OpenTelemetry, så det finnes ingen opprettingsverktøy.
@@ -489,7 +503,7 @@ MCP-serveren er tilstandsløs: den verken utsteder eller sporer økt-ID-er, så 
 | Team og vakt | Team, On-Call Policy |
 | Etiketter | Label |
 | Sikkerhet | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Datasikkerhet | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Datasikkerhet | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Dataobserverbarhet | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Sky | Cloud Budget |
 

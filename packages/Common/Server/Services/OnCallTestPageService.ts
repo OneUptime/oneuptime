@@ -4,6 +4,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import logger from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallTestPageEvents from "../Utils/OnCall/OnCallTestPageEvents";
 import OnCallTestPageAcknowledge, {
@@ -1474,6 +1477,18 @@ export class OnCallTestPageService extends BaseService {
       },
     );
 
+    /*
+     * Who of them is only invited to the project, read once for the level:
+     * a line names such a person as the project knows them (readName).
+     */
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: candidates.map((candidate: { userId: ObjectID }): string => {
+          return candidate.userId.toString();
+        }),
+        projectId: data.projectId,
+      });
+
     for (const candidate of candidates) {
       let userId: ObjectID = candidate.userId;
       let reachedThroughCode: OnCallTestPageReachedThrough | undefined =
@@ -1490,7 +1505,11 @@ export class OnCallTestPageService extends BaseService {
         if (away && !away.coverUserId) {
           notPaged.push({
             code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
-            userName: await this.readName(candidate.userId),
+            userName: await this.readName({
+              userId: candidate.userId,
+              projectId: data.projectId,
+              withheld: withheld,
+            }),
             awayUntil: OneUptimeDate.fromString(away.endsAt).toISOString(),
           });
           continue;
@@ -1499,7 +1518,11 @@ export class OnCallTestPageService extends BaseService {
         if (away?.coverUserId) {
           reachedThroughCode = reachedThroughOf(
             OnCallTestPageReachedThroughCode.CoveringFor,
-            await this.readName(candidate.userId),
+            await this.readName({
+              userId: candidate.userId,
+              projectId: data.projectId,
+              withheld: withheld,
+            }),
           );
           userId = away.coverUserId;
         }
@@ -1522,7 +1545,12 @@ export class OnCallTestPageService extends BaseService {
       ) {
         notPaged.push({
           code: OnCallTestPageNotPagedCode.NotProjectMember,
-          userName: await this.readName(userId),
+          userName: await this.readName({
+            userId: userId,
+            projectId: data.projectId,
+            // Who covers was not read with the level: read on its own.
+            withheld: userId === candidate.userId ? withheld : undefined,
+          }),
         });
         continue;
       }
@@ -1551,14 +1579,39 @@ export class OnCallTestPageService extends BaseService {
     };
   }
 
-  private async readName(userId: ObjectID): Promise<string> {
+  /*
+   * A person as a line of the level names them: someone only invited to
+   * the project by the name typed for them, else their address - never
+   * their account's own name, which the project does not see until they
+   * join (#9823). `withheld` is the level's own read of who is only
+   * invited, when the person was among those it asked about.
+   */
+  private async readName(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    withheld?: Map<string, WithheldProfile> | undefined;
+  }): Promise<string> {
     const user: User | null = await UserService.findOneById({
-      id: userId,
+      id: data.userId,
       select: { name: true, email: true },
       props: { isRoot: true },
     });
 
-    return user?.name?.toString() || user?.email?.toString() || "Someone";
+    const withheld: Map<string, WithheldProfile> =
+      data.withheld ||
+      (await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: [data.userId.toString()],
+        projectId: data.projectId,
+      }));
+
+    return (
+      PendingInviteeProfiles.getNameInProject({
+        userId: data.userId,
+        name: user?.name,
+        email: user?.email,
+        withheld: withheld,
+      }) || "Someone"
+    );
   }
 
   /*
@@ -1626,6 +1679,7 @@ export class OnCallTestPageService extends BaseService {
           alertSentToUser: { name: true, email: true },
           userBelongsToTeam: { name: true },
           onCallDutySchedule: { name: true },
+          overridedByUserId: true,
           overridedByUser: { name: true, email: true },
           onCallDutyPolicyEscalationRule: { name: true, order: true },
           isAcknowledged: true,
@@ -1698,6 +1752,26 @@ export class OnCallTestPageService extends BaseService {
 
     const severityName: string = await this.readSeverityNameOf(run);
 
+    /*
+     * Who of the people its lines name is only invited to the project, read
+     * once for the run: a step names them as the project knows them.
+     */
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: lines.flatMap(
+          (line: OnCallDutyPolicyExecutionLogTimeline): Array<string> => {
+            return [line.alertSentToUserId, line.overridedByUserId]
+              .filter((userId: ObjectID | undefined): userId is ObjectID => {
+                return Boolean(userId);
+              })
+              .map((userId: ObjectID): string => {
+                return userId.toString();
+              });
+          },
+        ),
+        projectId: data.projectId,
+      });
+
     const steps: Array<OnCallTestPageStep> = lines.map(
       (line: OnCallDutyPolicyExecutionLogTimeline): OnCallTestPageStep => {
         return this.toStep({
@@ -1711,6 +1785,7 @@ export class OnCallTestPageService extends BaseService {
             },
           ),
           deliveredSmsIds: deliveredSmsIds,
+          withheld: withheld,
         });
       },
     );
@@ -1993,6 +2068,8 @@ export class OnCallTestPageService extends BaseService {
     line: OnCallDutyPolicyExecutionLogTimeline;
     deliveries: Array<UserOnCallLogTimeline>;
     deliveredSmsIds: Set<string>;
+    // Who of its people is only invited to the project (#9823).
+    withheld: Map<string, WithheldProfile>;
   }): OnCallTestPageStep {
     const line: OnCallDutyPolicyExecutionLogTimeline = data.line;
 
@@ -2020,10 +2097,12 @@ export class OnCallTestPageService extends BaseService {
 
     if (line.alertSentToUserId) {
       step.userId = line.alertSentToUserId.toString();
-      step.userName =
-        line.alertSentToUser?.name?.toString() ||
-        line.alertSentToUser?.email?.toString() ||
-        "";
+      step.userName = PendingInviteeProfiles.getNameInProject({
+        userId: line.alertSentToUserId,
+        name: line.alertSentToUser?.name,
+        email: line.alertSentToUser?.email,
+        withheld: data.withheld,
+      });
     }
 
     if (line.userBelongsToTeam?.name) {
@@ -2036,9 +2115,12 @@ export class OnCallTestPageService extends BaseService {
 
     if (line.overridedByUser) {
       step.coveringForName =
-        line.overridedByUser.name?.toString() ||
-        line.overridedByUser.email?.toString() ||
-        undefined;
+        PendingInviteeProfiles.getNameInProject({
+          userId: line.overridedByUserId,
+          name: line.overridedByUser.name,
+          email: line.overridedByUser.email,
+          withheld: data.withheld,
+        }) || undefined;
     }
 
     // What the line says, as a code with the name it is about (#7260).

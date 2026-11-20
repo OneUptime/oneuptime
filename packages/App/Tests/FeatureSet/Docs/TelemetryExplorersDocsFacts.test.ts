@@ -12,6 +12,11 @@ import {
 } from "./TelemetryExplorersDocsPages";
 import { readPage } from "./DocsContentSupport";
 import {
+  LOGS_EXPLORER_LOG_PARAM,
+  LOGS_EXPLORER_LOG_TIME_PARAM,
+} from "Common/Utils/Telemetry/CrossSignalScope";
+import { VIEW_LOG_LINE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventRequestCopy";
+import {
   MenuSection,
   PACKAGES_DIR,
   developerSection,
@@ -668,7 +673,7 @@ describe("Services (telemetry/services)", () => {
     );
   });
 
-  it("describes a service's own menu section by section, with Developer and Advanced folded", () => {
+  it("describes a service's own menu section by section, with Security, Developer and Advanced folded", () => {
     const menuSource: string = readDashboardSource(
       "Pages/Service/View/SideMenu.tsx",
     );
@@ -700,7 +705,9 @@ describe("Services (telemetry/services)", () => {
         folded: startsCollapsed(menuSource, menuSection.title),
       }).toEqual({
         section: menuSection.title,
-        folded: ["Developer", "Advanced"].includes(menuSection.title),
+        folded: ["Security", "Developer", "Advanced"].includes(
+          menuSection.title,
+        ),
       });
     }
 
@@ -708,6 +715,40 @@ describe("Services (telemetry/services)", () => {
       "| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |",
     );
     expect(page).toContain("**Advanced** starts collapsed: expand it first.");
+  });
+
+  /*
+   * The Security section (#9547, #9555) is drawn only for a service Data
+   * Security has scanned, so the row says when it appears as well as what
+   * its two pages hold, and links to where each is explained (#9724).
+   */
+  it("says when a service's Security section appears, and links its pages' docs", () => {
+    const menuSource: string = readDashboardSource(
+      "Pages/Service/View/SideMenu.tsx",
+    );
+
+    expect(menuSource).toContain("{dataSecurityMenu ? (");
+    expect(menuSource).toContain("kind: DataStoreResourceKind.Service,");
+
+    const row: string =
+      section(page, "## A service's pages")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("| **Security** |");
+        }) || "";
+
+    expect(row).toContain(
+      "**Data Security**: the sensitive data its logs, traces and exceptions carry, and what to fix ([Sensitive Data in Telemetry](/docs/data-security/telemetry)).",
+    );
+    expect(row).toContain(
+      "**Compliance**: how that data stands against each framework, with a switch that turns a framework or a requirement off for this service ([Data Security Compliance](/docs/data-security/compliance#on-a-resources-page)).",
+    );
+    expect(row).toContain(
+      "It appears once Data Security has scanned the service's telemetry, and starts collapsed.",
+    );
+    expect(english("data-security/compliance")).toContain(
+      "\n## On a resource's page\n",
+    );
   });
 
   it("names the Settings page's cards, fields and buttons as the page draws them", () => {
@@ -864,6 +905,49 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
         ...firstColumn(section(page, "## What happens to logs as they arrive")),
       ].sort(),
     ).toEqual([...settingsPages].sort());
+  });
+
+  /*
+   * One log line opened by its id (#9620): the address names it (`log`,
+   * `logTime`), the Dashboard's explorer reads it, the Common viewer draws
+   * it above the list, and a security event's View log line links to it.
+   */
+  it("opens one log line from a link, above the list, as the address names it", () => {
+    expect(page).toContain(
+      `A link to one log line, such as a security event's **${VIEW_LOG_LINE}**, opens that line above the list, read with your own permissions.`,
+    );
+    expect(LOGS_EXPLORER_LOG_PARAM).toBe("log");
+    expect(LOGS_EXPLORER_LOG_TIME_PARAM).toBe("logTime");
+    expect(dashboardViewer).toContain("useOpenedLogLine(");
+    expect(commonViewer).toContain("<OpenedLogLine");
+  });
+
+  /*
+   * Copy Link on a line's details (#9794): the details of a row and of the
+   * line a link opened both draw it, the Dashboard builds the link with the
+   * list's chips over its window, pinned (LogLineLink).
+   */
+  it("says Copy Link on a line's details copies such a link, over the same list and time range", () => {
+    const panel: string = readCommonSource(
+      "UI/Components/LogsViewer/components/LogDetailsPanel.tsx",
+    );
+    const button: string = readCommonSource(
+      "UI/Components/LogsViewer/components/CopyLogLineLinkButton.tsx",
+    );
+
+    expect(page).toContain(
+      "**Copy Link** on a line's details copies such a link, with the list you copied it from under it, over the same time range.",
+    );
+    // The button's own words, as the page names them.
+    expect(button).toContain(
+      'COPY_LOG_LINE_LINK: string = translationKey("Copy Link")',
+    );
+    expect(button).toContain("title={COPY_LOG_LINE_LINK}");
+    expect(panel).toContain("<CopyLogLineLinkButton link={logLink} />");
+    // Both the row's details and the opened line's draw the panel with it.
+    expect(commonViewer.split("getLogLink={props.getLogLink}")).toHaveLength(3);
+    expect(dashboardViewer).toContain("getLogLink={getLogLink}");
+    expect(dashboardViewer).toContain("buildLogLineLink({");
   });
 
   it("opens on the past hour, newest first, 100 logs per page", () => {

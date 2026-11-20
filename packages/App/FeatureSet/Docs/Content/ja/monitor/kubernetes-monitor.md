@@ -5,7 +5,7 @@ Kubernetes モニターは、OneUptime の Kubernetes エージェントがク�
 :::cards
 - [エージェントをインストールする](/docs/monitor/kubernetes-agent): Helm コマンド 1 つでクラスターを OneUptime に取り込みます。
 - [モニターを作成する](#kubernetes-モニターを作成する): クラスターを選び、テンプレート、メトリクス、クエリのいずれかを選びます。
-- [アラートテンプレート](#既製のアラートテンプレート): 報告が止まったクラスターから etcd まで、21 個の既製アラート。
+- [アラートテンプレート](#既製のアラートテンプレート): 報告が止まったクラスターから etcd まで、25 個の既製アラート。
 - [条件](#監視条件): 静的なしきい値と異常検知。
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - クラスター内で OneUptime の Kubernetes エージェントが動作していること。[Kubernetes エージェント (Helm インストール)](/docs/monitor/kubernetes-agent) を参照してください。インストールから数分後にクラスターが **Kubernetes** に表示されます。
 - コントロールプレーンのテンプレート（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）には、エージェントのコントロールプレーンのスクレイプ（`controlPlane.enabled`）が必要です。これで API サーバーはそのまま読み取れますが、etcd とスケジューラーにはエンドポイントの指定も必要です（[コントロールプレーンの監視を有効にする](/docs/telemetry/kubernetes-agent#コントロールプレーンの監視を有効にする) を参照）。マネージドクラスター（EKS、GKE、AKS）はこれらのエンドポイントを公開しないため、そこではこれらのモニターにデータが届きません。
+- コストのテンプレート（**Cluster Daily Cost Over Budget**、**Namespace Daily Cost Over Budget**、**High Idle Spend**）には、エージェントのコストの監視が必要です。これは `gke-autopilot` と `eks-fargate` のプリセットを除いて既定で有効です（[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照）。
 
 ## Kubernetes モニターを作成する
 
@@ -85,12 +86,13 @@ flowchart TB
 
 | カテゴリ | メトリクス |
 | --- | --- |
-| Pod | Pod の CPU 使用量, Pod のメモリ使用量, Pod のフェーズ（コード）, Pod のファイルシステム使用量, Pod のメモリ制限使用率, Pod の CPU 制限使用率, Pod のネットワーク I/O（累積、双方向） |
-| ノード | ノード CPU 使用量, ノードの割り当て可能 CPU, ノードメモリ使用量, ノードメモリワーキングセット, ノードファイルシステム使用量, ノードの割り当て可能メモリ, ノードの Ready 状態, ノードの MemoryPressure 状態, ノードの DiskPressure 状態, ノードの PIDPressure 状態, ノードファイルシステム空き容量 |
+| Pod | Pod の CPU 使用量, Pod のメモリ使用量, Pod のフェーズ（コード）, Pod のファイルシステム使用量, ボリューム容量, ボリュームの空き容量, Pod のメモリ制限使用率, Pod の CPU 制限使用率, Pod のネットワーク I/O（累積、双方向） |
+| ノード | ノード CPU 使用量, ノードの割り当て可能 CPU, ノードメモリ使用量, ノードメモリワーキングセット, ノードファイルシステム使用量, ノードの割り当て可能メモリ, ノードの Ready 状態, ノードの MemoryPressure 状態, ノードの DiskPressure 状態, ノードの PIDPressure 状態, ノードファイルシステム空き容量, ノードファイルシステム容量 |
 | コンテナ | コンテナの再起動回数, コンテナの再起動回数（増加分）, コンテナの CPU 制限, コンテナの CPU 要求, コンテナのメモリ制限, コンテナのメモリ要求, コンテナ準備完了 |
 | ワークロード | Deployment の利用可能レプリカ数, Deployment の希望レプリカ数, DaemonSet の希望ノード数, DaemonSet の誤スケジュールノード数, DaemonSet の準備完了ノード数, StatefulSet の希望レプリカ数, StatefulSet の準備完了レプリカ数, Job の失敗 Pod 数, Job の失敗 Pod 数（増加分）, Job の成功 Pod 数 |
 | HPA | HPA の現在のレプリカ数, HPA の希望レプリカ数, HPA の最大レプリカ数, HPA の最小レプリカ数 |
 | コントロールプレーン | etcd にリーダーがいる, API サーバーの処理中のリクエスト, スケジューラーの保留中 Pod |
+| コスト | クラスターのコスト, アイドル時のコスト, ワークロードのコスト, ワークロードのコスト効率 |
 
 > [!NOTE]
 > **Pod の CPU 使用量** と **ノード CPU 使用量** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod のフェーズ（コード）** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**ノードの Ready 状態** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。 **コンテナの再起動回数** はコンテナの再起動数の累計で、**コンテナの再起動回数（増加分）** はエージェントがサンプルごとに送る、そのコンテナの前回のサンプル以降の再起動数です。ウィンドウ内での合計が、その間の再起動数になります。**コンテナの再起動回数** と同じ属性を持ち、コンテナの Pod のワークロード名も含みますが、再起動のたびに変わるコンテナの ID は含みません。**Job の失敗 Pod 数** は Job の失敗 Pod 数の累計で、**Job の失敗 Pod 数（増加分）** はエージェントがサンプルごとに送る、その Job の前回のサンプル以降に失敗した Pod 数です。ウィンドウ内での合計が、その間の失敗数になります。**Job の失敗 Pod 数** と同じく、Job の名前と Namespace を持ちます。
@@ -148,6 +150,7 @@ flowchart TB
 | API Server Request Saturation | コントロールプレーン | API サーバーが期間全体にわたって 200 件以上の処理中リクエストを抱えている | 重大 |
 | Scheduler Backlog | スケジューリング | スケジューラーの保留中 Pod のキューが 5 分間空にならない | 警告 |
 | High Node Disk Usage | ストレージ | ノードのファイルシステムの使用率が 90% を超えた | 警告 |
+| PVC Almost Full | ストレージ | 永続ボリュームクレームの使用率が 90% を超えた | 警告 |
 | DaemonSet Pods Not Ready | ワークロード | DaemonSet の準備完了 Pod がないノードが 15 分間ある | 警告 |
 | DaemonSet Misscheduled Nodes | ワークロード | DaemonSet が、ノードセレクター、アフィニティ、トレレーションに合わなくなったノードで Pod を実行している | 警告 |
 | High Node CPU Request Commitment | ノード | ノード上のコンテナの CPU リクエストの合計が割り当て可能な CPU の 90% を超えた | 警告 |
@@ -155,8 +158,13 @@ flowchart TB
 | HPA Saturated at Max Replicas | ワークロード | `minReplicas` を超えてスケールした HPA が `maxReplicas` の 90% 以上で動作している | 重大 |
 | Pod Memory Saturating Container Limit | ワークロード | Pod がコンテナのメモリ上限の 90% を超えて使用している | 重大 |
 | Pod CPU Saturating Container Limit | ワークロード | Pod がコンテナの CPU 上限の 90% を超えて使用している | 警告 |
+| Cluster Daily Cost Over Budget | コスト | 過去一日のクラスターのコストが 100 を超えた（この予算は自分の値に設定します） | 警告 |
+| Namespace Daily Cost Over Budget | コスト | 過去一日の Namespace のコストが 20 を超えた（この予算は自分の値に設定します） | 警告 |
+| High Idle Spend | コスト | 過去一日のクラスターのコストの 40% 超がアイドル容量に費やされた | 警告 |
 
 オブジェクト単位のメトリクスを使うテンプレートは、ノード、Pod、Deployment、Job、DaemonSet、HPA をそれぞれ個別に評価します。そのため、不健全な Pod が複数あるクラスターでは、クラスター全体で 1 件ではなく Pod ごとにインシデントが作成されます。
+
+コストのテンプレートは、OneUptime がエージェントの 1 時間ごとのコスト行から書き込むメトリクス（1 時間に 1 ポイント）を読み取るため、過去一日分を合計します。予算はクラスターの通貨で、既定は USD です。
 
 **High Node CPU Request Commitment** と **High Node Memory Request Commitment** は、スケジューラーと同じく、終了していない Pod のリクエストだけを数えます。Succeeded または Failed になった Pod (完了した Job の Pod など) のリクエストは、Pod が削除されるまでクラスターが報告し続けますが、それらは数えません。
 

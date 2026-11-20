@@ -15,6 +15,17 @@ import Probe, {
 } from "../../../Models/DatabaseModels/Probe";
 import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
+import DataSecurityComplianceSettingService from "../../../Server/Services/DataSecurityComplianceSettingService";
+import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
+import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
+import ServiceService from "../../../Server/Services/ServiceService";
+import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import ServiceModel from "../../../Models/DatabaseModels/Service";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
+import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import AiContextReader from "../../../Server/Utils/AI/AiContext/AiContextReader";
 import { AiContextSource } from "../../../Types/AI/AiContext";
@@ -25,6 +36,7 @@ import {
   DATA_SECURITY_SCAN_STORE_JOB,
 } from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import * as TelemetryScrubCoverage from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import * as TelemetryMetricDrop from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
 import * as TelemetryFindingOccurrences from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import { TelemetrySampleSource } from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryDataScanner";
 import DataSecurityRunner from "../../../Server/Utils/DataSecurity/DataSecurityRunner";
@@ -37,6 +49,7 @@ import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../Models/AnalyticsModels/Log";
+import Metric from "../../../Models/AnalyticsModels/Metric";
 import RumSession from "../../../Models/AnalyticsModels/RumSession";
 import Span from "../../../Models/AnalyticsModels/Span";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
@@ -89,6 +102,7 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceFramework,
   DataSecurityComplianceResponse,
+  DataSecurityComplianceTurnedOff,
   DataSecurityFindingOccurrence,
   DataSecurityFindingOccurrences,
   DataSecurityOccurrenceExcerptPartKind,
@@ -97,6 +111,11 @@ import {
   DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
+  DataSecurityResourceComplianceFramework,
+  DataSecurityResourceComplianceResponse,
+  DataSecurityResourceScope,
+  MAX_COMPLIANCE_TURNED_OFF,
+  MAX_RESOURCE_SCOPE_STORES,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import { FindingSampleRecord } from "../../../Types/DataSecurity/FindingSampleRecord";
 import { getDataSecurityCheck } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
@@ -178,6 +197,23 @@ const SCRUB: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.CreateProjectLogScrubRule,
   Permission.CreateProjectTraceScrubRule,
+  // A metric's attribute is scrubbed by a metric pipeline rule (#9604).
+  Permission.CreateProjectMetricPipelineRule,
+];
+// Dropping a service's metrics named with a finding's data: who may make pipeline rules (#9757).
+const DROP_METRIC: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.CreateProjectMetricPipelineRule,
+];
+// Who may change other rules, or read the findings, but not make pipeline rules.
+const NOT_DROP_METRIC: Array<Permission> = [
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.CreateProjectLogScrubRule,
+  Permission.CreateProjectTraceScrubRule,
+  Permission.EditDataStoreFinding,
+  Permission.ReadProjectMetricPipelineRule,
 ];
 const OCCURRENCES: Array<Permission> = [
   Permission.ProjectOwner,
@@ -199,7 +235,19 @@ interface RouteCase {
   path: string;
   allowed: Array<Permission>;
   refused: Array<Permission>;
+  // What the route is asked about, when it reads its body.
+  body?: JSONObject | undefined;
 }
+
+const CLUSTER_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+const DATABASE_SERVER_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const OTHER_DATABASE_SERVER_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
 
 const ROUTES: Array<RouteCase> = [
   {
@@ -213,6 +261,26 @@ const ROUTES: Array<RouteCase> = [
     path: DATA_SECURITY_API_ROUTES.compliance,
     allowed: READ,
     refused: [Permission.ProjectMember, Permission.ReadDataSecurityIssue],
+  },
+  {
+    name: "a resource's stores",
+    path: DATA_SECURITY_API_ROUTES.resourceScope,
+    allowed: READ,
+    refused: [Permission.ProjectMember, Permission.ReadDataSecurityIssue],
+    body: {
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    },
+  },
+  {
+    name: "a resource's compliance",
+    path: DATA_SECURITY_API_ROUTES.resourceCompliance,
+    allowed: READ,
+    refused: [Permission.ProjectMember, Permission.ReadDataSecurityIssue],
+    body: {
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    },
   },
   {
     name: "record of processing",
@@ -249,6 +317,19 @@ const ROUTES: Array<RouteCase> = [
       Permission.EditDataStore,
       Permission.EditDataStoreFinding,
     ],
+  },
+  {
+    name: "what dropping a metric would do",
+    path: DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+    allowed: DROP_METRIC,
+    refused: NOT_DROP_METRIC,
+  },
+  {
+    name: "drop a metric",
+    path: DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+    allowed: DROP_METRIC,
+    refused: NOT_DROP_METRIC,
+    body: { confirmDataLoss: true },
   },
   {
     name: "a finding's records",
@@ -350,8 +431,19 @@ let aiSpy: jest.SpyInstance;
 let repositoriesSpy: jest.SpyInstance;
 let codeTaskSpy: jest.SpyInstance;
 let scrubSpy: jest.SpyInstance;
+let dropSpy: jest.SpyInstance;
+let dropImpactSpy: jest.SpyInstance;
 let ownersSpy: jest.SpyInstance;
 let aiContextSpy: jest.SpyInstance;
+let complianceSettingFindSpy: jest.SpyInstance;
+let databaseServerFindSpy: jest.SpyInstance;
+let databaseServerFindOneSpy: jest.SpyInstance;
+let clusterFindOneSpy: jest.SpyInstance;
+let clusterFindSpy: jest.SpyInstance;
+let complianceSettings: Array<DataSecurityComplianceSetting>;
+let databaseServers: Array<DatabaseServer>;
+let databaseServerRow: DatabaseServer | null;
+let clusterRow: KubernetesCluster | null;
 
 let storeRow: DataStore | null;
 let issueRow: DataSecurityIssue | null;
@@ -400,6 +492,10 @@ function paramsFor(route: RouteCase): Record<string, string> {
   return route.path.includes(":id") ? { id: STORE_ID.toString() } : {};
 }
 
+function bodyFor(route: RouteCase): JSONObject {
+  return route.body || {};
+}
+
 function readsMade(): number {
   return [
     storeFindOneSpy,
@@ -410,6 +506,10 @@ function readsMade(): number {
     findingFindSpy,
     connectionsSpy,
     repositoriesSpy,
+    complianceSettingFindSpy,
+    databaseServerFindSpy,
+    databaseServerFindOneSpy,
+    clusterFindOneSpy,
   ].reduce((sum: number, spy: jest.SpyInstance) => {
     return sum + spy.mock.calls.length;
   }, 0);
@@ -544,11 +644,65 @@ beforeEach(() => {
       scrubRuleId: "88888888-8888-4888-8888-888888888888",
       scrubRuleName: "Data Security: Email address in attributes.user.email",
     });
+  dropSpy = jest
+    .spyOn(TelemetryScrubCoverage, "createDropRuleForFinding")
+    .mockResolvedValue({
+      ruleId: "99999999-9999-4999-8999-999999999999",
+      ruleName: "Data Security: drop metrics named with Email address",
+      isNew: true,
+    });
+  dropImpactSpy = jest
+    .spyOn(TelemetryMetricDrop, "getDropMetricImpact")
+    .mockResolvedValue({
+      isAvailable: true,
+      ruleName: "Data Security: drop metrics named with Email address",
+      metricsMatched: 2,
+      isMetricsMatchedCapped: false,
+      metricsCounted: true,
+      monitors: [],
+      dashboards: [],
+      monitorsChecked: true,
+      dashboardsChecked: true,
+    });
   ownersSpy = jest
     .spyOn(DataSecurityIntegrations, "getOwnerUsers")
     .mockResolvedValue([]);
   // A project with no AI context, unless a test writes one.
   aiContextSpy = jest.spyOn(AiContextReader, "read").mockResolvedValue(null);
+
+  // No resource turned anything off, unless a test turns it off.
+  complianceSettings = [];
+  complianceSettingFindSpy = jest
+    .spyOn(DataSecurityComplianceSettingService, "findBy")
+    .mockImplementation((async () => {
+      return complianceSettings;
+    }) as never);
+  databaseServers = [];
+  databaseServerFindSpy = jest
+    .spyOn(DatabaseServerService, "findBy")
+    .mockImplementation((async () => {
+      return databaseServers;
+    }) as never);
+  databaseServerRow = null;
+  databaseServerFindOneSpy = jest
+    .spyOn(DatabaseServerService, "findOneBy")
+    .mockImplementation((async () => {
+      return databaseServerRow;
+    }) as never);
+  // The cluster the resource routes are asked about, readable by the caller.
+  clusterRow = new KubernetesCluster(CLUSTER_ID);
+  clusterRow.name = "prod-eu";
+  clusterFindOneSpy = jest
+    .spyOn(KubernetesClusterService, "findOneBy")
+    .mockImplementation((async () => {
+      return clusterRow;
+    }) as never);
+  // A list of clusters, as OneUptime or as the caller: that cluster.
+  clusterFindSpy = jest
+    .spyOn(KubernetesClusterService, "findBy")
+    .mockImplementation((async () => {
+      return clusterRow ? [clusterRow] : [];
+    }) as never);
 });
 
 afterEach(() => {
@@ -561,6 +715,12 @@ describe("routes and who may call them", () => {
     expect(DATA_SECURITY_API_ROUTES.compliance).toBe(
       "/data-security/compliance",
     );
+    expect(DATA_SECURITY_API_ROUTES.resourceScope).toBe(
+      "/data-security/resource-scope",
+    );
+    expect(DATA_SECURITY_API_ROUTES.resourceCompliance).toBe(
+      "/data-security/resource-compliance",
+    );
     expect(DATA_SECURITY_API_ROUTES.recordOfProcessing).toBe(
       "/data-security/record-of-processing",
     );
@@ -572,6 +732,12 @@ describe("routes and who may call them", () => {
     );
     expect(DATA_SECURITY_API_ROUTES.scrubFinding("x")).toBe(
       "/data-store-finding/x/scrub",
+    );
+    expect(DATA_SECURITY_API_ROUTES.dropMetricImpact("x")).toBe(
+      "/data-store-finding/x/drop-metric-impact",
+    );
+    expect(DATA_SECURITY_API_ROUTES.dropMetric("x")).toBe(
+      "/data-store-finding/x/drop-metric",
     );
     expect(DATA_SECURITY_API_ROUTES.findingOccurrences("x")).toBe(
       "/data-store-finding/x/occurrences",
@@ -603,7 +769,11 @@ describe("routes and who may call them", () => {
       asCaller([permission]);
       repositories = [new CodeRepository(ObjectID.generate())];
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeUndefined();
       expect(result.answer).toBeDefined();
@@ -615,7 +785,11 @@ describe("routes and who may call them", () => {
     async (_name: string, permission: Permission, route: RouteCase) => {
       asCaller([permission]);
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
       expect((result.thrown as Exception).message).toBe(PERMISSION_MESSAGE);
@@ -624,6 +798,8 @@ describe("routes and who may call them", () => {
       expect(queueSpy).not.toHaveBeenCalled();
       expect(aiSpy).not.toHaveBeenCalled();
       expect(scrubSpy).not.toHaveBeenCalled();
+      expect(dropSpy).not.toHaveBeenCalled();
+      expect(dropImpactSpy).not.toHaveBeenCalled();
     },
   );
 
@@ -632,7 +808,11 @@ describe("routes and who may call them", () => {
     async (route: RouteCase) => {
       propsSpy.mockResolvedValue({});
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeInstanceOf(NotAuthenticatedException);
       expect(readsMade()).toBe(0);
@@ -646,7 +826,11 @@ describe("routes and who may call them", () => {
         buildProps([Permission.ProjectOwner], ObjectID.generate()),
       );
 
-      const result: RouteCall = await call(route.path, paramsFor(route));
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
 
       expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
       expect(readsMade()).toBe(0);
@@ -999,9 +1183,12 @@ describe("Scrub It", () => {
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "email-address",
       location: "attributes.user.email",
+      serviceId: null,
     });
     expect(findingFindOneSpy.mock.calls[0]![0]).toMatchObject({
       query: { _id: STORE_ID, projectId: PROJECT_ID },
+      // The store's service: a metric pipeline rule is its own.
+      select: { dataStore: { kind: true, serviceId: true } },
     });
     expect(findingUpdateSpy).toHaveBeenCalledWith({
       id: STORE_ID,
@@ -1026,6 +1213,7 @@ describe("Scrub It", () => {
       DataStoreKind.TelemetryExceptions,
       DataStoreKind.TelemetrySessionReplays,
       DataStoreKind.TelemetryAiConversations,
+      DataStoreKind.TelemetryMetrics,
     ]) {
       findingRow = telemetryFinding(kind);
 
@@ -1037,7 +1225,31 @@ describe("Scrub It", () => {
       expect(result.thrown).toBeUndefined();
     }
 
-    expect(scrubSpy).toHaveBeenCalledTimes(4);
+    expect(scrubSpy).toHaveBeenCalledTimes(5);
+  });
+
+  test("a metric's attribute is scrubbed for the service whose metrics it is, by someone who may make metric pipeline rules", async () => {
+    asCaller([Permission.CreateProjectMetricPipelineRule]);
+    findingRow = telemetryFinding(DataStoreKind.TelemetryMetrics);
+
+    const serviceId: ObjectID = ObjectID.generate();
+
+    findingRow.dataStore!.serviceId = serviceId;
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(scrubSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "email-address",
+      location: "attributes.user.email",
+      serviceId,
+    });
   });
 
   test("a finding in a data store, not telemetry, is refused: Scrub It masks telemetry at ingest", async () => {
@@ -1081,6 +1293,148 @@ describe("Scrub It", () => {
 
     expect((nowhere.thrown as Exception).message).toBe("Finding not found.");
     expect(scrubSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * DROP THIS METRIC (#9757): dropping the new data points of a service's
+ * metrics whose names hold a finding's data loses them for good, so it is
+ * asked for in as many words, by someone who may make metric pipeline
+ * rules, and made as them.
+ */
+describe("Drop This Metric", () => {
+  const SERVICE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  function nameFinding(): DataStoreFinding {
+    const finding: DataStoreFinding = telemetryFinding(
+      DataStoreKind.TelemetryMetrics,
+    );
+
+    finding.location = "name";
+    finding.dataStore!.serviceId = SERVICE_ID;
+
+    return finding;
+  }
+
+  test("drops as the caller, for the metrics' service, marks the finding scrubbed and evaluates again", async () => {
+    asCaller([Permission.CreateProjectMetricPipelineRule]);
+    findingRow = nameFinding();
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+      { id: STORE_ID.toString() },
+      { confirmDataLoss: true },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(dropSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "email-address",
+      location: "name",
+      serviceId: SERVICE_ID,
+    });
+    expect(findingUpdateSpy).toHaveBeenCalledWith({
+      id: STORE_ID,
+      data: { isScrubbed: true },
+    });
+    expect(queuedJobs()).toEqual([
+      {
+        jobName: DATA_SECURITY_EVALUATE_PROJECT_JOB,
+        payload: { projectId: PROJECT_ID.toString() },
+      },
+    ]);
+    expect(result.answer).toEqual({
+      ruleId: "99999999-9999-4999-8999-999999999999",
+      ruleName: "Data Security: drop metrics named with Email address",
+    });
+    expect(scrubSpy).not.toHaveBeenCalled();
+  });
+
+  test("nothing is dropped unless the request confirms the data loss in as many words", async () => {
+    asCaller([Permission.ProjectOwner]);
+    findingRow = nameFinding();
+
+    for (const body of [
+      {},
+      { confirmDataLoss: false },
+      { confirmDataLoss: "true" },
+      { confirmDataLoss: 1 },
+    ] as Array<JSONObject>) {
+      const result: RouteCall = await call(
+        DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+        { id: STORE_ID.toString() },
+        body,
+      );
+
+      expect((result.thrown as Exception).message).toBe(
+        "Dropping these metrics loses their new data points for good. Confirm that you want them dropped.",
+      );
+    }
+
+    expect(dropSpy).not.toHaveBeenCalled();
+    expect(findingUpdateSpy).not.toHaveBeenCalled();
+    expect(queueSpy).not.toHaveBeenCalled();
+  });
+
+  test("what dropping would do is worked out with the caller's own permissions, for the finding's service", async () => {
+    asCaller([Permission.CreateProjectMetricPipelineRule]);
+    findingRow = nameFinding();
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(dropImpactSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: "email-address",
+        location: "name",
+        serviceId: SERVICE_ID,
+        props: expect.objectContaining({ userId: USER_ID }),
+      }),
+    );
+    // Never as OneUptime itself: the monitors and dashboards named are the caller's.
+    expect(dropImpactSpy.mock.calls[0]![0].props.isRoot).toBeFalsy();
+    expect(result.answer).toMatchObject({
+      isAvailable: true,
+      metricsMatched: 2,
+    });
+    // Asking changes nothing.
+    expect(dropSpy).not.toHaveBeenCalled();
+    expect(findingUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a finding of another project, or in a data store, is refused", async () => {
+    asCaller([Permission.ProjectOwner]);
+    findingRow = null;
+
+    const missing: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+      { id: STORE_ID.toString() },
+      { confirmDataLoss: true },
+    );
+
+    expect((missing.thrown as Exception).message).toBe("Finding not found.");
+
+    findingRow = telemetryFinding(DataStoreKind.AwsS3Bucket);
+
+    const notTelemetry: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect((notTelemetry.thrown as Exception).message).toBe(
+      "Scrub It masks telemetry at ingest; this finding is in a data store.",
+    );
+    expect(dropSpy).not.toHaveBeenCalled();
+    expect(dropImpactSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -1280,6 +1634,14 @@ describe("A telemetry finding's records", () => {
         Log,
         WEB_APP_ID,
       ],
+      // A metric's points: read by who may read the service's metrics (#9604).
+      [
+        DataStoreKind.TelemetryMetrics,
+        "attributes.user.email",
+        Metric,
+        SERVICE_ID.toString(),
+      ],
+      [DataStoreKind.TelemetryMetrics, "name", Metric, SERVICE_ID.toString()],
     ];
 
     for (const [kind, location, model, ownerId] of cases) {
@@ -1556,6 +1918,89 @@ describe("A telemetry finding's records", () => {
       ),
     ).toEqual(["Ping to 34.***.***.*** succeeded in 120 ms"]);
     expect(JSON.stringify(answer)).not.toContain("34.120.7.19");
+  });
+
+  test("end to end, a metric's kept point: looked up by its metric and millisecond, narrowed, each series once, masked (#9604)", async () => {
+    occurrencesSpy.mockRestore();
+
+    const statements: Array<Statement> = [];
+    const pointTime: string = "2026-10-27T11:59:00.000Z";
+
+    findingRow = serviceFinding(
+      DataStoreKind.TelemetryMetrics,
+      "attributes.http.route",
+    );
+    findingRow.lastSeenAt = new Date("2026-10-27T12:00:30.000Z");
+    findingRow.sampleRecords = [{ time: pointTime, metricName: "http.calls" }];
+    jest
+      .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+      .mockImplementation((async (statement: Statement): Promise<Results> => {
+        statements.push(statement);
+
+        const point: (route: string) => JSONObject = (
+          route: string,
+        ): JSONObject => {
+          return {
+            ownerId: SERVICE_ID.toString(),
+            recordTime: String(Date.parse(pointTime)),
+            readMetricName: "http.calls",
+            readAttributes: [["http.route", route]],
+          };
+        };
+
+        return {
+          json: (): Promise<unknown> => {
+            return Promise.resolve({
+              data: [
+                point("/users/jane.doe@acme-corp.com/orders"),
+                // The same series again: one record.
+                point("/users/jane.doe@acme-corp.com/orders"),
+                point("/users/sam.lee@acme-corp.com/orders"),
+              ],
+            });
+          },
+        } as unknown as Results;
+      }) as never);
+
+    const answer: DataSecurityFindingOccurrences = (await records())
+      .answer as unknown as DataSecurityFindingOccurrences;
+
+    expect(statements.length).toBe(1);
+    // The metric's own range of the table, at the kept millisecond.
+    expect(statements[0]!.query).toMatch(
+      /AND \(\(name = \{p\d+:String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time < \{p\d+:DateTime64\(9\)\}\)\)/,
+    );
+    // Every series of the metric shares the millisecond: narrowed by the pattern.
+    expect(statements[0]!.query).toContain("match(substringUTF8(attributes[");
+    expect(Object.values(statements[0]!.query_params)).toContain("http.calls");
+    expect(answer.source).toBe(DataSecurityOccurrencesSource.SampledRecords);
+    expect(
+      answer.occurrences.map(
+        (occurrence: DataSecurityFindingOccurrence): unknown => {
+          return [
+            occurrence.recordKind,
+            occurrence.name,
+            occurrence.metricName,
+            occurrence.excerpt?.field,
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        DataSecurityOccurrenceRecordKind.Metric,
+        "http.calls",
+        "http.calls",
+        "http.route",
+      ],
+      [
+        DataSecurityOccurrenceRecordKind.Metric,
+        "http.calls",
+        "http.calls",
+        "http.route",
+      ],
+    ]);
+    expect(JSON.stringify(answer)).not.toContain("jane.doe");
+    expect(JSON.stringify(answer)).not.toContain("sam.lee");
   });
 });
 
@@ -2672,6 +3117,8 @@ describe("Compliance", () => {
         ),
         fullName: COMPLIANCE_FRAMEWORK_INFO[framework.framework].fullName,
         scope: COMPLIANCE_FRAMEWORK_INFO[framework.framework].scope,
+        // Nothing turned off anywhere (#9629).
+        turnedOff: [],
       });
     }
 
@@ -2721,6 +3168,877 @@ describe("Compliance", () => {
       });
       expect(framework.storesInScope).toBe(0);
     }
+  });
+});
+
+describe("Compliance, with what resources turned off", () => {
+  function cardStoreOnServer(serverId: ObjectID): DataStore {
+    const store: DataStore = new DataStore(ObjectID.generate());
+    store.dataTypeIds = ["credit-card-number"];
+    store.configurationReadAt = NOW;
+    store.databaseServerId = serverId;
+    stores.push(store);
+    return store;
+  }
+
+  function serverOnCluster(serverId: ObjectID): DatabaseServer {
+    const server: DatabaseServer = new DatabaseServer(serverId);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+    return server;
+  }
+
+  function turnedOff(data: {
+    framework: ComplianceFramework;
+    requirement?: string | undefined;
+  }): void {
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.KubernetesCluster;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = data.framework;
+
+    if (data.requirement) {
+      setting.requirement = data.requirement;
+    }
+
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+  }
+
+  function pciOf(
+    answer: DataSecurityComplianceResponse,
+  ): DataSecurityComplianceFramework {
+    return answer.frameworks.find(
+      (framework: DataSecurityComplianceFramework) => {
+        return framework.framework === ComplianceFramework.PCIDSS;
+      },
+    )!;
+  }
+
+  test("a framework a cluster turned off leaves its databases' stores out of the project's score", async () => {
+    serverOnCluster(DATABASE_SERVER_ID);
+    cardStoreOnServer(DATABASE_SERVER_ID);
+    // A database on no cluster still counts.
+    cardStoreOnServer(OTHER_DATABASE_SERVER_ID);
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+
+    const answer: DataSecurityComplianceResponse = (
+      await call(DATA_SECURITY_API_ROUTES.compliance)
+    ).answer as unknown as DataSecurityComplianceResponse;
+
+    expect(complianceSettingFindSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      props: { isRoot: true },
+    });
+    expect(pciOf(answer).storesInScope).toBe(1);
+    expect(pciOf(answer).storesTurnedOff).toBe(1);
+  });
+
+  test("a requirement a cluster turned off stops its stores' issues failing it, project-wide", async () => {
+    serverOnCluster(DATABASE_SERVER_ID);
+    const orders: DataStore = cardStoreOnServer(DATABASE_SERVER_ID);
+    const issue: DataSecurityIssue = new DataSecurityIssue(ObjectID.generate());
+    issue.dataStoreId = orders.id!;
+    issue.checkId = "public-read";
+    issues.push(issue);
+    turnedOff({ framework: ComplianceFramework.PCIDSS, requirement: "7.2" });
+
+    const answer: DataSecurityComplianceResponse = (
+      await call(DATA_SECURITY_API_ROUTES.compliance)
+    ).answer as unknown as DataSecurityComplianceResponse;
+
+    expect(
+      pciOf(answer).requirements.find(
+        (requirement: ComplianceRequirementResult) => {
+          return requirement.requirement === "7.2";
+        },
+      )?.status,
+    ).toBe(ComplianceRequirementStatus.TurnedOff);
+  });
+
+  test("with nothing turned off, no database's placement is read", async () => {
+    cardStoreOnServer(DATABASE_SERVER_ID);
+
+    const answer: DataSecurityComplianceResponse = (
+      await call(DATA_SECURITY_API_ROUTES.compliance)
+    ).answer as unknown as DataSecurityComplianceResponse;
+
+    expect(databaseServerFindSpy).not.toHaveBeenCalled();
+    expect(pciOf(answer).storesInScope).toBe(1);
+    expect(pciOf(answer).storesTurnedOff).toBe(0);
+    // Nothing turned off, and no resource read to name one.
+    expect(pciOf(answer).turnedOff).toEqual([]);
+    expect(clusterFindSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Why a framework or a requirement is turned off for a resource, and who
+ * turned it off when (#9629): the project's Compliance page lists each
+ * one, its resource named as the reader may see it.
+ */
+describe("Compliance, with why each was turned off", () => {
+  const JANE: User = new User(
+    new ObjectID("99999999-9999-4999-8999-999999999999"),
+  );
+  JANE.name = new Name("Jane Doe");
+
+  function turnedOff(data: {
+    framework: ComplianceFramework;
+    requirement?: string | undefined;
+    note?: string | undefined;
+    turnedOffAt?: Date | undefined;
+    turnedOffByUser?: User | undefined;
+    resourceType?: DataStoreResourceKind | undefined;
+    resourceId?: ObjectID | undefined;
+  }): DataSecurityComplianceSetting {
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType =
+      data.resourceType || DataStoreResourceKind.KubernetesCluster;
+    setting.resourceId = data.resourceId || CLUSTER_ID;
+    setting.framework = data.framework;
+
+    if (data.requirement) {
+      setting.requirement = data.requirement;
+    }
+
+    if (data.note !== undefined) {
+      setting.note = data.note;
+    }
+
+    if (data.turnedOffAt) {
+      setting.turnedOffAt = data.turnedOffAt;
+    }
+
+    if (data.turnedOffByUser) {
+      setting.turnedOffByUser = data.turnedOffByUser;
+    }
+
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+    return setting;
+  }
+
+  function frameworkOf(
+    answer: DataSecurityComplianceResponse,
+    framework: ComplianceFramework,
+  ): DataSecurityComplianceFramework {
+    return answer.frameworks.find((each: DataSecurityComplianceFramework) => {
+      return each.framework === framework;
+    })!;
+  }
+
+  async function compliance(): Promise<DataSecurityComplianceResponse> {
+    return (await call(DATA_SECURITY_API_ROUTES.compliance))
+      .answer as unknown as DataSecurityComplianceResponse;
+  }
+
+  test("lists each, the latest turned off first, with why, by whom and when, its resource named", async () => {
+    const whole: DataSecurityComplianceSetting = turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      note: "No card data ever reaches prod-eu.",
+      turnedOffAt: new Date("2026-10-20T09:00:00.000Z"),
+      turnedOffByUser: JANE,
+    });
+    const requirement: DataSecurityComplianceSetting = turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      requirement: "7.2",
+      turnedOffAt: new Date("2026-10-26T09:00:00.000Z"),
+    });
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff).toEqual([
+      {
+        id: requirement.id!.toString(),
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: "7.2",
+        note: "",
+        turnedOffAt: "2026-10-26T09:00:00.000Z",
+        turnedOffBy: null,
+      },
+      {
+        id: whole.id!.toString(),
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: null,
+        note: "No card data ever reaches prod-eu.",
+        turnedOffAt: "2026-10-20T09:00:00.000Z",
+        turnedOffBy: "Jane Doe",
+      },
+    ]);
+    // Another framework lists only its own.
+    expect(
+      frameworkOf(await compliance(), ComplianceFramework.HIPAA).turnedOff,
+    ).toEqual([]);
+  });
+
+  test("reads what is turned off as OneUptime, with why and by whom", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+
+    await compliance();
+
+    const read: Record<string, unknown> | undefined = (
+      complianceSettingFindSpy.mock.calls as Array<
+        [{ query: Record<string, unknown>; select: Record<string, unknown> }]
+      >
+    )
+      .map(
+        (
+          args: [
+            { query: Record<string, unknown>; select: Record<string, unknown> },
+          ],
+        ): {
+          query: Record<string, unknown>;
+          select: Record<string, unknown>;
+        } => {
+          return args[0];
+        },
+      )
+      .find((args: { query: Record<string, unknown> }): boolean => {
+        return args.query["isEnabled"] === false;
+      }) as Record<string, unknown> | undefined;
+
+    expect(read).toMatchObject({
+      query: { projectId: PROJECT_ID, isEnabled: false },
+      select: {
+        note: true,
+        turnedOffAt: true,
+        turnedOffByUser: { name: true, email: true },
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("names a resource as the reader may see it: asked as OneUptime whether it is there, as the reader what it is called", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+
+    await compliance();
+
+    const propsOfReads: Array<DatabaseCommonInteractionProps> =
+      clusterFindSpy.mock.calls.map(
+        (args: Array<unknown>): DatabaseCommonInteractionProps => {
+          return (args[0] as { props: DatabaseCommonInteractionProps }).props;
+        },
+      );
+
+    expect(propsOfReads).toHaveLength(2);
+    expect(propsOfReads[0]).toEqual({ isRoot: true });
+    expect(propsOfReads[1]?.isRoot).toBeFalsy();
+    expect(propsOfReads[1]?.tenantId?.toString()).toBe(PROJECT_ID.toString());
+  });
+
+  test("a resource the reader may not read is named by its kind alone", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS, note: "Not ours." });
+    const cluster: KubernetesCluster = new KubernetesCluster(CLUSTER_ID);
+    cluster.name = "prod-eu";
+    clusterFindSpy.mockImplementation((async (args: {
+      props: DatabaseCommonInteractionProps;
+    }) => {
+      return args.props.isRoot ? [cluster] : [];
+    }) as never);
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff?.[0]?.resource.name).toBe("");
+    expect(pci.turnedOff?.[0]?.note).toBe("Not ours.");
+  });
+
+  test("one whose resource is gone is left out: it turns nothing off now", async () => {
+    turnedOff({ framework: ComplianceFramework.PCIDSS });
+    clusterFindSpy.mockImplementation((async () => {
+      return [];
+    }) as never);
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff).toEqual([]);
+  });
+
+  test("a person with no name is named by their email; an API key by nobody", async () => {
+    const byEmail: User = new User(ObjectID.generate());
+    byEmail.email = new Email("sam@acme.example");
+    turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      turnedOffByUser: byEmail,
+      turnedOffAt: new Date("2026-10-26T09:00:00.000Z"),
+    });
+    turnedOff({
+      framework: ComplianceFramework.PCIDSS,
+      requirement: "3.4",
+      turnedOffAt: new Date("2026-10-25T09:00:00.000Z"),
+    });
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(
+      pci.turnedOff?.map((entry: DataSecurityComplianceTurnedOff) => {
+        return entry.turnedOffBy;
+      }),
+    ).toEqual(["sam@acme.example", null]);
+  });
+
+  test("lists at most MAX_COMPLIANCE_TURNED_OFF of one framework", async () => {
+    for (
+      let index: number = 0;
+      index < MAX_COMPLIANCE_TURNED_OFF + 5;
+      index++
+    ) {
+      turnedOff({ framework: ComplianceFramework.PCIDSS });
+    }
+
+    const pci: DataSecurityComplianceFramework = frameworkOf(
+      await compliance(),
+      ComplianceFramework.PCIDSS,
+    );
+
+    expect(pci.turnedOff).toHaveLength(MAX_COMPLIANCE_TURNED_OFF);
+  });
+});
+
+describe("a resource's stores", () => {
+  function storeOf(data: Partial<DataStore>): DataStore {
+    const store: DataStore = new DataStore(ObjectID.generate());
+    Object.assign(store, data);
+    stores.push(store);
+    return store;
+  }
+
+  async function scopeOf(body: JSONObject): Promise<RouteCall> {
+    return await call(DATA_SECURITY_API_ROUTES.resourceScope, {}, body);
+  }
+
+  test("a cluster's stores are the stores of the databases running on it, and its compliance is set on it", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+    const orders: DataStore = storeOf({
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+
+    const result: RouteCall = await scopeOf({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    });
+    const scope: DataSecurityResourceScope =
+      result.answer as unknown as DataSecurityResourceScope;
+
+    // The cluster is read as the caller may read it.
+    expect(clusterFindOneSpy.mock.calls[0]![0]).toMatchObject({
+      query: { _id: CLUSTER_ID.toString(), projectId: PROJECT_ID },
+    });
+    expect(clusterFindOneSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
+    // Its databases, then their stores - not archived, the riskiest first.
+    expect(databaseServerFindSpy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID, kubernetesClusterId: CLUSTER_ID },
+    });
+    const storeQuery: Record<string, unknown> = storeFindSpy.mock.calls[0]![0]
+      .query as Record<string, unknown>;
+    expect(storeQuery["projectId"]).toEqual(PROJECT_ID);
+    expect(storeQuery["isArchived"]).toBe(false);
+    expect(storeQuery["databaseServerId"]).toBeInstanceOf(Includes);
+    expect(storeFindSpy.mock.calls[0]![0].limit).toBe(
+      MAX_RESOURCE_SCOPE_STORES + 1,
+    );
+
+    expect(scope).toEqual({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+      dataStoreIds: [orders.id!.toString()],
+      ownedDataStoreIds: [orders.id!.toString()],
+      complianceOwner: null,
+      isTruncated: false,
+    });
+  });
+
+  test("a cluster with no databases has no stores, and none are read", async () => {
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.KubernetesCluster,
+        id: CLUSTER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(storeFindSpy).not.toHaveBeenCalled();
+    expect(scope.dataStoreIds).toEqual([]);
+    expect(scope.ownedDataStoreIds).toEqual([]);
+  });
+
+  test("a database on a cluster shows its store, whose compliance is set on the cluster", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+    databaseServerRow = server;
+    const orders: DataStore = storeOf({
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(storeFindSpy.mock.calls[0]![0].query).toMatchObject({
+      projectId: PROJECT_ID,
+      isArchived: false,
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+    expect(scope.name).toBe("orders");
+    expect(scope.dataStoreIds).toEqual([orders.id!.toString()]);
+    expect(scope.ownedDataStoreIds).toEqual([]);
+    expect(scope.complianceOwner).toEqual({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+    });
+  });
+
+  test("a database on a cluster with no store yet still says where its compliance is set", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServerRow = server;
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(scope.dataStoreIds).toEqual([]);
+    expect(scope.complianceOwner?.kind).toBe(
+      DataStoreResourceKind.KubernetesCluster,
+    );
+  });
+
+  test("a database that runs on nothing monitored owns its store's compliance", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "billing";
+    databaseServers.push(server);
+    databaseServerRow = server;
+    const billing: DataStore = storeOf({
+      databaseServerId: DATABASE_SERVER_ID,
+    });
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.DatabaseServer,
+        id: DATABASE_SERVER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(scope.ownedDataStoreIds).toEqual([billing.id!.toString()]);
+    expect(scope.complianceOwner).toBeNull();
+  });
+
+  test("a service's stores are its telemetry", async () => {
+    const service: ServiceModel = new ServiceModel(STORE_ID);
+    service.name = "checkout";
+    jest.spyOn(ServiceService, "findOneBy").mockResolvedValue(service);
+    const logs: DataStore = storeOf({ serviceId: STORE_ID });
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.Service,
+        id: STORE_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(storeFindSpy.mock.calls[0]![0].query).toMatchObject({
+      serviceId: STORE_ID,
+      isArchived: false,
+    });
+    expect(scope.name).toBe("checkout");
+    expect(scope.ownedDataStoreIds).toEqual([logs.id!.toString()]);
+  });
+
+  test("more stores than a scope lists are cut, and said to be", async () => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+
+    for (let index: number = 0; index <= MAX_RESOURCE_SCOPE_STORES; index++) {
+      storeOf({ databaseServerId: DATABASE_SERVER_ID });
+    }
+
+    const scope: DataSecurityResourceScope = (
+      await scopeOf({
+        kind: DataStoreResourceKind.KubernetesCluster,
+        id: CLUSTER_ID.toString(),
+      })
+    ).answer as unknown as DataSecurityResourceScope;
+
+    expect(scope.dataStoreIds.length).toBe(MAX_RESOURCE_SCOPE_STORES);
+    expect(scope.isTruncated).toBe(true);
+  });
+
+  test("a resource the caller may not read is not found, and none of its stores are read", async () => {
+    clusterRow = null;
+
+    const result: RouteCall = await scopeOf({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+    });
+
+    expect(result.thrown).toBeInstanceOf(NotFoundException);
+    expect(databaseServerFindSpy).not.toHaveBeenCalled();
+    expect(storeFindSpy).not.toHaveBeenCalled();
+  });
+
+  test("a kind that is not one, or an id that is not one, is refused before anything is read", async () => {
+    for (const body of [
+      { kind: "Host", id: CLUSTER_ID.toString() },
+      { id: CLUSTER_ID.toString() },
+      { kind: DataStoreResourceKind.KubernetesCluster, id: "prod-eu" },
+      { kind: DataStoreResourceKind.KubernetesCluster },
+    ]) {
+      const result: RouteCall = await scopeOf(body as JSONObject);
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+    }
+
+    expect(readsMade()).toBe(0);
+  });
+});
+
+describe("a resource's compliance", () => {
+  function clusterStore(data: { dataTypeIds: Array<string> }): DataStore {
+    const store: DataStore = new DataStore(ObjectID.generate());
+    store.dataTypeIds = data.dataTypeIds;
+    store.configurationReadAt = NOW;
+    store.databaseServerId = DATABASE_SERVER_ID;
+    stores.push(store);
+    return store;
+  }
+
+  function turnedOff(
+    framework: ComplianceFramework,
+    requirement?: string | undefined,
+  ): void {
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.KubernetesCluster;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = framework;
+
+    if (requirement) {
+      setting.requirement = requirement;
+    }
+
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+  }
+
+  function frameworkOf(
+    answer: DataSecurityResourceComplianceResponse,
+    framework: ComplianceFramework,
+  ): DataSecurityResourceComplianceFramework {
+    return answer.frameworks.find(
+      (each: DataSecurityResourceComplianceFramework) => {
+        return each.framework === framework;
+      },
+    )!;
+  }
+
+  async function complianceOf(): Promise<RouteCall> {
+    return await call(
+      DATA_SECURITY_API_ROUTES.resourceCompliance,
+      {},
+      {
+        kind: DataStoreResourceKind.KubernetesCluster,
+        id: CLUSTER_ID.toString(),
+      },
+    );
+  }
+
+  beforeEach(() => {
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServers.push(server);
+  });
+
+  test("scores every framework over the cluster's own stores, with what it turned off", async () => {
+    const orders: DataStore = clusterStore({
+      dataTypeIds: ["credit-card-number"],
+    });
+    const issue: DataSecurityIssue = new DataSecurityIssue(ObjectID.generate());
+    issue.dataStoreId = orders.id!;
+    issue.checkId = "public-read";
+    issues.push(issue);
+    turnedOff(ComplianceFramework.HIPAA);
+    turnedOff(ComplianceFramework.SOC2, "CC6.1");
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.name).toBe("prod-eu");
+    expect(answer.storeCount).toBe(1);
+    expect(
+      answer.frameworks.map(
+        (framework: DataSecurityResourceComplianceFramework) => {
+          return framework.framework;
+        },
+      ),
+    ).toEqual([...ALL_COMPLIANCE_FRAMEWORKS]);
+
+    // Only the cluster's stores' open issues are read.
+    const issueQuery: Record<string, unknown> = issueFindSpy.mock.calls[0]![0]
+      .query as Record<string, unknown>;
+    expect(issueQuery["status"]).toBe(DataSecurityIssueStatus.Open);
+    expect(issueQuery["dataStoreId"]).toBeInstanceOf(Includes);
+
+    const soc2: DataSecurityResourceComplianceFramework = frameworkOf(
+      answer,
+      ComplianceFramework.SOC2,
+    );
+    expect(soc2.isTurnedOff).toBe(false);
+    expect(soc2.turnedOffRequirements).toEqual(["CC6.1"]);
+    expect(
+      soc2.requirements.find((requirement: ComplianceRequirementResult) => {
+        return requirement.requirement === "CC6.1";
+      })?.status,
+    ).toBe(ComplianceRequirementStatus.TurnedOff);
+
+    const hipaa: DataSecurityResourceComplianceFramework = frameworkOf(
+      answer,
+      ComplianceFramework.HIPAA,
+    );
+    expect(hipaa.isTurnedOff).toBe(true);
+
+    const pci: DataSecurityResourceComplianceFramework = frameworkOf(
+      answer,
+      ComplianceFramework.PCIDSS,
+    );
+    expect(pci.storesInScope).toBe(1);
+    expect(
+      pci.requirements.find((requirement: ComplianceRequirementResult) => {
+        return requirement.requirement === "7.2";
+      }),
+    ).toMatchObject({
+      status: ComplianceRequirementStatus.Failing,
+      failingIssueCount: 1,
+    });
+  });
+
+  test("another resource's setting does not change this cluster's page", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.Service;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = ComplianceFramework.PCIDSS;
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(frameworkOf(answer, ComplianceFramework.PCIDSS)).toMatchObject({
+      isTurnedOff: false,
+      storesInScope: 1,
+      storesTurnedOff: 0,
+    });
+  });
+
+  test("a database on the cluster is scored with the cluster's settings, which only the cluster's page changes", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    turnedOff(ComplianceFramework.PCIDSS);
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServerRow = server;
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await call(
+        DATA_SECURITY_API_ROUTES.resourceCompliance,
+        {},
+        {
+          kind: DataStoreResourceKind.DatabaseServer,
+          id: DATABASE_SERVER_ID.toString(),
+        },
+      )
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.name).toBe("orders");
+    expect(answer.storeCount).toBe(1);
+    expect(answer.complianceOwner).toEqual({
+      kind: DataStoreResourceKind.KubernetesCluster,
+      id: CLUSTER_ID.toString(),
+      name: "prod-eu",
+    });
+    expect(frameworkOf(answer, ComplianceFramework.PCIDSS)).toMatchObject({
+      isTurnedOff: true,
+      storesInScope: 0,
+      storesTurnedOff: 1,
+    });
+  });
+
+  test("a cluster sets its own compliance", async () => {
+    clusterStore({ dataTypeIds: [] });
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.complianceOwner).toBeNull();
+  });
+
+  test("a cluster with no stores scores nothing and reads no issues", async () => {
+    databaseServers.length = 0;
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(answer.storeCount).toBe(0);
+    expect(issueFindSpy).not.toHaveBeenCalled();
+    for (const framework of answer.frameworks) {
+      expect(framework.score).toBeNull();
+    }
+  });
+
+  test("a resource the caller may not read is not found", async () => {
+    clusterRow = null;
+
+    const result: RouteCall = await complianceOf();
+
+    expect(result.thrown).toBeInstanceOf(NotFoundException);
+    expect(storeFindSpy).not.toHaveBeenCalled();
+    expect(complianceSettingFindSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Why each was turned off here, by whom and when (#9629): the settings of
+   * where the compliance is set, named as the page names it, with no other
+   * resource read to name them.
+   */
+  test("says why each of its own was turned off, by whom and when", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    turnedOff(ComplianceFramework.SOC2, "CC6.1");
+    const setting: DataSecurityComplianceSetting = complianceSettings[0]!;
+    setting.note = "Access is reviewed by the platform team instead.";
+    setting.turnedOffAt = new Date("2026-10-26T09:00:00.000Z");
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(frameworkOf(answer, ComplianceFramework.SOC2).turnedOff).toEqual([
+      {
+        id: setting.id!.toString(),
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: "CC6.1",
+        note: "Access is reviewed by the platform team instead.",
+        turnedOffAt: "2026-10-26T09:00:00.000Z",
+        turnedOffBy: null,
+      },
+    ]);
+    expect(frameworkOf(answer, ComplianceFramework.HIPAA).turnedOff).toEqual(
+      [],
+    );
+    // Only the cluster's own settings are asked for, and nobody is read to name them.
+    expect(
+      (
+        complianceSettingFindSpy.mock.calls as Array<
+          [{ query: Record<string, unknown> }]
+        >
+      ).some((args: [{ query: Record<string, unknown> }]): boolean => {
+        return (
+          args[0].query["isEnabled"] === false &&
+          args[0].query["resourceType"] ===
+            DataStoreResourceKind.KubernetesCluster &&
+          String(args[0].query["resourceId"]) === CLUSTER_ID.toString()
+        );
+      }),
+    ).toBe(true);
+    expect(clusterFindSpy).not.toHaveBeenCalled();
+  });
+
+  test("another resource's reason is not this cluster's", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    const setting: DataSecurityComplianceSetting =
+      new DataSecurityComplianceSetting(ObjectID.generate());
+    setting.resourceType = DataStoreResourceKind.Service;
+    setting.resourceId = CLUSTER_ID;
+    setting.framework = ComplianceFramework.PCIDSS;
+    setting.note = "A service's own.";
+    setting.isEnabled = false;
+    complianceSettings.push(setting);
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await complianceOf()
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(frameworkOf(answer, ComplianceFramework.PCIDSS).turnedOff).toEqual(
+      [],
+    );
+  });
+
+  test("a database on the cluster shows the cluster's reasons, under the cluster's name", async () => {
+    clusterStore({ dataTypeIds: ["credit-card-number"] });
+    turnedOff(ComplianceFramework.PCIDSS);
+    complianceSettings[0]!.note = "No card data on this cluster.";
+    const server: DatabaseServer = new DatabaseServer(DATABASE_SERVER_ID);
+    server.name = "orders";
+    server.kubernetesClusterId = CLUSTER_ID;
+    databaseServerRow = server;
+
+    const answer: DataSecurityResourceComplianceResponse = (
+      await call(
+        DATA_SECURITY_API_ROUTES.resourceCompliance,
+        {},
+        {
+          kind: DataStoreResourceKind.DatabaseServer,
+          id: DATABASE_SERVER_ID.toString(),
+        },
+      )
+    ).answer as unknown as DataSecurityResourceComplianceResponse;
+
+    expect(
+      frameworkOf(answer, ComplianceFramework.PCIDSS).turnedOff,
+    ).toMatchObject([
+      {
+        resource: {
+          kind: DataStoreResourceKind.KubernetesCluster,
+          id: CLUSTER_ID.toString(),
+          name: "prod-eu",
+        },
+        requirement: null,
+        note: "No card data on this cluster.",
+      },
+    ]);
   });
 });
 

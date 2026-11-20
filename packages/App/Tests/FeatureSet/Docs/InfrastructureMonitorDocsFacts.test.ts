@@ -1376,6 +1376,7 @@ describe(`${KUBERNETES}: the template table`, () => {
     ControlPlane: "Control Plane",
     Storage: "Storage",
     Scheduling: "Scheduling",
+    Cost: "Cost",
   };
 
   it("lists every template, in the picker's order, with its category and severity", () => {
@@ -1467,11 +1468,12 @@ describe(`${KUBERNETES}: the template table`, () => {
     );
   });
 
+  // Twenty-five since PVC Almost Full (f82d55afccf).
   it("counts the templates in the card", () => {
     expect(englishPage(KUBERNETES)).toContain(
-      `(#pre-built-alert-templates): Twenty-one ready-made alerts`,
+      `(#pre-built-alert-templates): Twenty-five ready-made alerts`,
     );
-    expect(templates).toHaveLength(21);
+    expect(templates).toHaveLength(25);
   });
 
   it("Cluster Stopped Reporting comes first and fires only when the agent sends nothing", () => {
@@ -1790,6 +1792,7 @@ describe(`${KUBERNETES}: the metric catalog`, () => {
     Workload: "Workload",
     HPA: "HPA",
     ControlPlane: "Control Plane",
+    Cost: "Cost",
   };
 
   it("lists every metric the Custom Metric tab offers, under its category", () => {
@@ -2882,7 +2885,11 @@ describe("the agents the pages describe", () => {
     // The page names the files versions that send them, which the agent reports.
     expect(englishPage(SWARM)).toContain("version 0.161.2");
     expect(englishPage(SWARM)).toContain("version 0.161.3");
-    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.161.3}");
+    /*
+     * The files on collector 0.165.0 (#9828), which carry everything before
+     * them: 0.161.4's size of each local volume and its disk (#9648) too.
+     */
+    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.165.0}");
     // The swarm's own state, every minute, from the poller on a manager.
     const poller: string = source(
       "agents/DockerSwarmAgent/inventory-snapshot.sh",

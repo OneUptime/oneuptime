@@ -749,6 +749,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
       { page: PageMap.SERVICE_VIEW_FEED, section: "Basic", title: "Feed" },
       { page: PageMap.SERVICE_VIEW_LOGS, section: "Telemetry", title: "Logs" },
       {
+        page: PageMap.SERVICE_VIEW_SECURITY_EVENTS,
+        section: "Telemetry",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
+      {
         page: PageMap.SERVICE_VIEW_TRACES,
         section: "Telemetry",
         title: "Traces",
@@ -789,6 +795,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE,
         section: "Activity",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.SERVICE_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "telemetry"],
+      },
+      {
+        page: PageMap.SERVICE_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.SERVICE_VIEW_SETTINGS,
@@ -842,6 +867,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Processes",
       },
       { page: PageMap.HOST_VIEW_LOGS, section: "Observability", title: "Logs" },
+      {
+        page: PageMap.HOST_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
       {
         page: PageMap.HOST_VIEW_TRACES,
         section: "Observability",
@@ -962,6 +993,8 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.WORKFLOW_VIEW_SETTINGS,
         section: "Advanced",
         title: "Settings",
+        // What a workflow runs as is set here (#9695).
+        keywords: ["run as", "permissions"],
       },
       {
         page: PageMap.WORKFLOW_VIEW_OWNERS,
@@ -1656,6 +1689,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Recommendations",
       },
       {
+        page: PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data store"],
+      },
+      {
+        page: PageMap.DATABASE_SERVER_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
+      },
+      {
         page: PageMap.DATABASE_SERVER_VIEW_ENDPOINTS,
         section: "Advanced",
         title: "Endpoints",
@@ -1945,6 +1997,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Events",
       },
       {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
+        section: "Telemetry",
+        title: "Security Events",
+        keywords: ["security", "audit log", "siem", "threats"],
+      },
+      {
         page: PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES,
         section: "Telemetry",
         title: "Profiles",
@@ -2042,6 +2100,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Scheduled Maintenance",
       },
       {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data stores", "databases"],
+      },
+      {
+        page: PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
+      },
+      {
         page: PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS,
         section: "Advanced",
         title: "Owners",
@@ -2118,6 +2195,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Logs",
       },
       {
+        page: PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
+      {
         page: PageMap.DOCKER_HOST_VIEW_TRACES,
         section: "Observability",
         title: "Traces",
@@ -2143,6 +2226,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE,
         section: "Activity",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.DOCKER_HOST_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data stores", "databases"],
+      },
+      {
+        page: PageMap.DOCKER_HOST_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.DOCKER_HOST_VIEW_OWNERS,
@@ -2360,6 +2462,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Logs",
       },
       {
+        page: PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
+      },
+      {
         page: PageMap.PODMAN_HOST_VIEW_TRACES,
         section: "Observability",
         title: "Traces",
@@ -2385,6 +2493,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE,
         section: "Activity",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.PODMAN_HOST_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data stores", "databases"],
+      },
+      {
+        page: PageMap.PODMAN_HOST_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.PODMAN_HOST_VIEW_OWNERS,
@@ -2444,6 +2571,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.SERVERLESS_FUNCTION_VIEW_LOGS,
         section: "Observability",
         title: "Logs",
+      },
+      {
+        page: PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS,
+        section: "Observability",
+        title: "Security Events",
       },
       {
         page: PageMap.SERVERLESS_FUNCTION_VIEW_TRACES,
@@ -2645,6 +2777,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         section: "Observability",
         title: "Metrics",
       },
+      /*
+       * Not its Logs, Recommendations or Security Events (#9779): its menu
+       * draws each only for a resource that has them - logs a stream sends,
+       * a type monitors are recommended for, an ID or a name an event can
+       * name it by - so Search does not offer them for every resource.
+       */
       {
         page: PageMap.CLOUD_RESOURCE_VIEW_FEED,
         section: "Observability",
@@ -2669,6 +2807,25 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.CLOUD_RESOURCE_VIEW_CHANGES,
         section: "Activity",
         title: "Changes",
+      },
+      {
+        page: PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+        section: "Security",
+        title: "Data Security",
+        keywords: ["sensitive data", "pii", "data store", "bucket"],
+      },
+      {
+        page: PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE,
+        section: "Security",
+        title: "Compliance",
+        keywords: [
+          "gdpr",
+          "hipaa",
+          "pci dss",
+          "soc 2",
+          "iso 27001",
+          "frameworks",
+        ],
       },
       {
         page: PageMap.CLOUD_RESOURCE_VIEW_OWNERS,
@@ -2947,6 +3104,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.OPENSTACK_CLOUD_VIEW_LOGS,
         section: "Telemetry",
         title: "Logs",
+      },
+      {
+        page: PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS,
+        section: "Telemetry",
+        title: "Security Events",
+        keywords: ["security", "siem", "threats"],
       },
       {
         page: PageMap.OPENSTACK_CLOUD_VIEW_TRACES,
@@ -3654,6 +3817,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS,
         section: "Pipeline",
         title: "Recommendations",
+      },
+      {
+        page: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER,
+        section: "Pipeline",
+        title: "Circuit Breaker",
       },
       {
         page: PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS,

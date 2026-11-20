@@ -7,6 +7,7 @@ import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import HostOperatingSystem from "Common/Utils/Host/HostOperatingSystem";
 import ObjectID from "Common/Types/ObjectID";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
@@ -32,6 +33,7 @@ import React, {
 } from "react";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useResourceSecurityEventsMenu } from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -41,6 +43,9 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Security Events inside the host (#9547).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -62,6 +67,8 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
    */
   const [isWindowsHost, setIsWindowsHost] = useState<boolean>(false);
   const [isLinuxHost, setIsLinuxHost] = useState<boolean>(false);
+  // An Android device reports through the Android agent: it has no collector, so no Collector page.
+  const [isAndroidHost, setIsAndroidHost] = useState<boolean>(false);
 
   const fetchHostOsType: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -81,6 +88,7 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
       const osType: string = (item?.osType || "").toLowerCase();
       setIsWindowsHost(osType.includes("windows"));
       setIsLinuxHost(osType.includes("linux"));
+      setIsAndroidHost(HostOperatingSystem.isAndroid(osType));
     } catch {
       // ignore — the OS-specific service items simply won't show
     }
@@ -179,16 +187,20 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
          * or - for a collector installed by hand - how to hand it over to
          * OneUptime, and the manual guide.
          */}
-        <SideMenuItem
-          link={{
-            title: "Collector",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Cube}
-        />
+        {!isAndroidHost ? (
+          <SideMenuItem
+            link={{
+              title: "Collector",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Cube}
+          />
+        ) : (
+          <></>
+        )}
       </SideMenuSection>
 
       {/*
@@ -288,6 +300,25 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Terminal}
         />
+        {/*
+         * The security events naming this host, beside the logs they are
+         * often read from (#9547): only in a project that uses Security
+         * Events, for whoever may read them.
+         */}
+        {showSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Traces",

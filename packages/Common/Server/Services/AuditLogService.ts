@@ -21,6 +21,7 @@ import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import { withAuditLogResourceTypeSpellings } from "../../Utils/AuditLog/AuditLogResourceTypes";
 import { SessionAuditEvent } from "../../Types/AuditLog/AuditLogSessionEvent";
 import { SignInFailureAuditEvent } from "../../Types/AuditLog/AuditLogSignInFailure";
+import { SignInSettingsClearedAuditEvent } from "../../Types/AuditLog/AuditLogSignInSettingsCleared";
 import { StatusPageSessionAuditEvent } from "../../Types/AuditLog/AuditLogStatusPageSession";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -47,7 +48,7 @@ export const AUDIT_LOG_CREATE_REFUSED_MESSAGE: string =
  * (ee/Server/AuditLog/AuditLogRecorder.ts): which changes are recorded, the
  * diff, redaction, relation names, the actor and the project-settings cache.
  * recordCreate / recordUpdate / recordDelete / recordDownload /
- * recordSessionEvents / recordSignInFailures /
+ * recordSessionEvents / recordSignInFailures / recordSignInSettingsCleared /
  * recordStatusPageSessionEvents / invalidateProjectSettings stay here as
  * thin delegates to the recorder the enterprise module registered, so
  * DatabaseService, ProjectService and the user-notification services call
@@ -324,6 +325,34 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
       await recorder.recordSignInFailures(events);
     } catch (err) {
       logger.warn("AuditLog: failed to record failed sign-ins");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * People whose sign-in settings were cleared (Types/AuditLog/
+   * AuditLogSignInSettingsCleared, issue #9762) - by a master admin, as
+   * LocalSignInClearing hands them over, or by an owner of all their
+   * projects, as ProjectSignInClearing does (#9820) - once they are
+   * cleared. Never throws: the settings are gone whatever happens here.
+   */
+  public async recordSignInSettingsCleared(
+    events: Array<SignInSettingsClearedAuditEvent>,
+  ): Promise<void> {
+    if (events.length === 0) {
+      return;
+    }
+
+    const recorder: AuditLogRecorder | null = this.getRecorder();
+
+    if (!recorder) {
+      return;
+    }
+
+    try {
+      await recorder.recordSignInSettingsCleared(events);
+    } catch (err) {
+      logger.warn("AuditLog: failed to record cleared sign-in settings");
       logger.warn(err);
     }
   }

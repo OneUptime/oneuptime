@@ -1,0 +1,134 @@
+# What the notes say about Kubernetes cost monitoring.
+#
+# Cost is on by default now (cost-default_test.yaml), so an install or an
+# upgrade can start three pods nobody asked for by name. The notes say cost is
+# on, how its figures are priced (list prices on the three big clouds, default
+# rates elsewhere) and give the one line that turns it off. On the presets
+# where the default leaves it off, they say why and how to turn it on. A
+# cost.enabled=false someone set gets no word: they chose it.
+suite: the notes say whether cost monitoring runs, and how to change it
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: says cost is on by default, how it is priced, and how to turn it off
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: on, as it is by default\\.\\nThe bundled OpenCost prices your nodes and volumes: at your cloud's public\\nlist prices on AWS, Azure and Google Cloud, and at OpenCost's default rates\\nanywhere else \\(set your own with cost\\.opencost\\.customPricing\\)\\. It runs as\\nthree small pods: OpenCost, the Prometheus it needs, and the cost agent\\.\\n"
+      - matchRegexRaw:
+          pattern: "\\nTo turn it off:\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set cost\\.enabled=false\\n"
+
+  - it: lists the cost allocations and the engine's price metrics among what is collected
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Per-workload cost allocations \\(cpu/ram/gpu/pv/network/idle spend and efficiency\\) from the bundled OpenCost engine"
+      - matchRegexRaw:
+          pattern: "\\n  - The cost engine's price metrics \\(node, volume and load balancer hourly cost\\)"
+      # The per-container allocation series are no longer forwarded by default.
+      - notMatchRegexRaw:
+          pattern: "container allocation"
+
+  - it: does not call cost the default when cost.enabled is true
+    set:
+      cost.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: on\\.\\n"
+
+  - it: counts two pods when the cost agent is turned off
+    set:
+      cost.agent.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "It runs as\\ntwo small pods: OpenCost and the Prometheus it needs\\.\\n"
+      - notMatchRegexRaw:
+          pattern: "Per-workload cost allocations"
+
+  - it: names the engine it reads instead of the bundled one
+    set:
+      cost.engine.url: http://opencost.opencost.svc.cluster.local:9003
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: on, as it is by default\\.\\nCosts are read from the cost engine at http://opencost\\.opencost\\.svc\\.cluster\\.local:9003\\.\\n"
+      - notMatchRegexRaw:
+          pattern: "The bundled OpenCost prices"
+
+  - it: says why cost is off on GKE Autopilot, and how to turn it on
+    set:
+      preset: gke-autopilot
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: off on the gke-autopilot preset\\. GKE Autopilot bills every\\npod by what it requests, so the three cost pods would add to your bill, and\\nOpenCost prices nodes rather than pods, so its figures would not be your\\nbill\\. To turn it on anyway:\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set cost\\.enabled=true\\n"
+      - notMatchRegexRaw:
+          pattern: "Per-workload cost allocations"
+
+  - it: says why cost is off on EKS Fargate
+    set:
+      preset: eks-fargate
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: off on the eks-fargate preset\\. EKS Fargate bills every\\npod by what it requests"
+      - matchRegexRaw:
+          pattern: "--set cost\\.enabled=true\\n"
+
+  - it: says cost is on when it is turned on on GKE Autopilot
+    set:
+      preset: gke-autopilot
+      cost.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: on\\.\\n"
+      - notMatchRegexRaw:
+          pattern: "Kubernetes cost: off"
+
+  - it: says nothing of cost when cost.enabled is false
+    set:
+      cost.enabled: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Kubernetes cost:"
+      - notMatchRegexRaw:
+          pattern: "cost allocations"
+
+  # --- Using the engine the cluster already runs (#9633) ---------------------------
+  - it: says the agent reads an engine the cluster already runs, and how to stop bundling one
+    asserts:
+      - matchRegexRaw:
+          pattern: "and the cost agent\\.\\nAlready running Kubecost or OpenCost\\? The cost agent reads it instead, and\\nthe cluster's overview then says the bundled one is not needed\\. To stop\\nrunning it:\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set cost\\.engine\\.url=auto\\n"
+      - matchRegexRaw:
+          pattern: "from the bundled OpenCost engine, or the cluster's own OpenCost or Kubecost when it runs one — "
+
+  - it: says nothing of another engine when the bundled one has a rate card
+    set:
+      cost.opencost.customPricing.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Already running Kubecost or OpenCost"
+      - matchRegexRaw:
+          pattern: "from the bundled OpenCost engine — "
+
+  - it: says nothing of another engine with preferExisting off
+    set:
+      cost.engine.preferExisting: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Already running Kubecost or OpenCost"
+
+  - it: with auto, says the agent finds the cluster's engine and nothing is bundled
+    set:
+      cost.engine.url: auto
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nKubernetes cost: on, as it is by default\\.\\nCosts are read from the OpenCost or Kubecost this cluster runs, which the\\ncost agent finds by itself; nothing is bundled\\. With neither installed,\\nnothing is priced: install one, or bundle OpenCost again:\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set cost\\.engine\\.url=\\n"
+      - matchRegexRaw:
+          pattern: "from the OpenCost or Kubecost this cluster runs — "
+      - notMatchRegexRaw:
+          pattern: "The bundled OpenCost prices"
+      - notMatchRegexRaw:
+          pattern: "cost engine at auto"

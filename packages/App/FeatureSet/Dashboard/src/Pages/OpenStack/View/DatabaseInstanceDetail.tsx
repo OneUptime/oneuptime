@@ -2,24 +2,29 @@ import PageComponentProps from "../../PageComponentProps";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
-  getOpenStackDatabaseVolumePercent,
-} from "Common/Types/OpenStack/OpenStackHealthRules";
+import { getOpenStackDatabaseVolumeUsage } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Link from "Common/UI/Components/Link/Link";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import React, { FunctionComponent, ReactElement } from "react";
-import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
+import GoldenMetricTile, {
+  STORAGE_USAGE_TILE_TONES,
+} from "../../../Components/Infrastructure/GoldenMetricTile";
 import {
   formatOpenStackBytes,
   formatOpenStackPercent,
 } from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
-import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import OpenStackServicePartOverview, {
+  OpenStackServicePartWords,
+  getOpenStackServicePartAttention,
+} from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
@@ -41,23 +46,50 @@ const WHY_NOT_KNOWN: string = translationKey(
   "The agent's exporter doesn't read why a database failed. Run openstack database instance show for this one, or collect this cloud with a probe, which reads Trove's own fault.",
 );
 
+const WORDS: OpenStackServicePartWords = {
+  thisOne: translationKey("This database"),
+  attentionDescription: translationKey(
+    "What about this database is broken or needs a look.",
+  ),
+  openTitle: translationKey("Open on this database"),
+  openDescription: translationKey(
+    "Unresolved incidents and alerts about this database, incidents first.",
+  ),
+  alertsTitle: translationKey("Database alerts"),
+  alertsDescription: translationKey(
+    "The cloud's alerts that watch every database, this one included: each is one monitor on the cloud.",
+  ),
+  detailsDescription: translationKey("What Trove reports about this database."),
+};
+
 const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const part: OpenStackPart = useOpenStackPart(
     OpenStackResourceKind.DatabaseInstance,
   );
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getOpenStackServicePartAttention({
+    part: part,
+    words: WORDS,
+  });
 
   return (
     <OpenStackPartPage
       part={part}
+      hero={{ attention }}
       overview={(row: OpenStackResource): ReactElement => {
         const fault: string = getOpenStackFactText(row, "faultMessage");
         const task: string = getOpenStackFactText(row, "taskDescription");
         const datastore: string = getOpenStackFactText(row, "datastoreType");
         const version: string = getOpenStackFactText(row, "datastoreVersion");
         const health: string = getOpenStackFactText(row, "healthStatus");
-        const percent: number | null = getOpenStackDatabaseVolumePercent({
+        /*
+         * Its volume as the Databases list's bar reads it: used, free and
+         * size, amber at Trove's line (#9647).
+         */
+        const volume: StorageUsage | null = getOpenStackDatabaseVolumeUsage({
           usedBytes: row.diskAllocatedBytes,
           sizeBytes: row.diskCapacityBytes,
         });
@@ -147,23 +179,8 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
             alertTemplateIds={OPENSTACK_DATABASE_INSTANCE_ALERT_TEMPLATE_IDS}
             detailRows={detailRows}
             whyNotKnown={fault ? undefined : WHY_NOT_KNOWN}
-            words={{
-              thisOne: translationKey("This database"),
-              attentionDescription: translationKey(
-                "What about this database is broken or needs a look.",
-              ),
-              openTitle: translationKey("Open on this database"),
-              openDescription: translationKey(
-                "Unresolved incidents and alerts about this database, incidents first.",
-              ),
-              alertsTitle: translationKey("Database alerts"),
-              alertsDescription: translationKey(
-                "The cloud's alerts that watch every database, this one included: each is one monitor on the cloud.",
-              ),
-              detailsDescription: translationKey(
-                "What Trove reports about this database.",
-              ),
-            }}
+            words={WORDS}
+            attention={attention}
             tiles={
               <>
                 <GoldenMetricTile
@@ -171,20 +188,28 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
                   icon={IconProp.Disc}
                   iconColor="emerald"
                   value={
-                    percent === null
-                      ? undefined
-                      : formatOpenStackPercent(percent)
+                    volume
+                      ? formatOpenStackPercent(volume.usedPercent)
+                      : undefined
                   }
-                  percent={percent}
-                  thresholds={{
-                    warn: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
-                    danger: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,
-                  }}
+                  percent={volume ? volume.usedPercent : null}
+                  tone={
+                    volume ? STORAGE_USAGE_TILE_TONES[volume.level] : undefined
+                  }
                   sublabel={
-                    row.diskCapacityBytes === null ||
-                    row.diskCapacityBytes === undefined
-                      ? undefined
-                      : formatOpenStackBytes(row.diskCapacityBytes)
+                    volume
+                      ? // What is still free, of the volume's size.
+                        translator.translateTemplate(
+                          "{{free}} free of {{total}}",
+                          {
+                            free: formatOpenStackBytes(volume.free),
+                            total: formatOpenStackBytes(volume.capacity),
+                          },
+                        )
+                      : row.diskCapacityBytes === null ||
+                          row.diskCapacityBytes === undefined
+                        ? undefined
+                        : formatOpenStackBytes(row.diskCapacityBytes)
                   }
                   isSublabelAsWritten={true}
                   description="What its database has used of its volume, as its guest reports. One that isn't running has nothing to report, however full it is."

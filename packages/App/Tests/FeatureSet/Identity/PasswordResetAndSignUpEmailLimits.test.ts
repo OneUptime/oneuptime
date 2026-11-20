@@ -79,6 +79,21 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
   ).ssoNotRequired();
 });
 
+/*
+ * Single sign-on manages nobody's sign-in here: setting up a second step at
+ * sign-in, claiming an invited account with a password and a password reset
+ * link each ask SsoManagedSignIn first, which reads the server's rule and,
+ * since #9763, every project the person is in. Driven for real in
+ * SignInMatrixSsoAndTwoFactor.test.ts and ForgotPasswordSsoManaged.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoManagedSignInStandIn",
+    ) as typeof import("./SsoManagedSignInStandIn")
+  ).ssoManagesNobody();
+});
+
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/EnvironmentConfig",
@@ -333,6 +348,7 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
 
 const sendCompleteRegistrationEmail: jest.Mock = jest.fn();
 const sendVerificationEmail: jest.Mock = jest.fn();
+const sendAccountAlreadyExistsEmail: jest.Mock = jest.fn();
 
 jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
@@ -344,6 +360,10 @@ jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
       },
       sendCompleteRegistrationEmail: (...args: Array<unknown>): unknown => {
         sendCompleteRegistrationEmail(...args);
+        return Promise.resolve();
+      },
+      sendAccountAlreadyExistsEmail: (...args: Array<unknown>): unknown => {
+        sendAccountAlreadyExistsEmail(...args);
         return Promise.resolve();
       },
     },
@@ -808,14 +828,41 @@ describe.each([
     expect(redisClient.keys()).toEqual(keysBefore);
   });
 
-  it("an address that already has an account is answered as before, and counts against nobody", async () => {
+  it("an address that already has an account: where the server emails it, answered as every address is and counted as an email to its owner; elsewhere refused as taken, counting against nobody", async () => {
     const answer: Answer = await signUp(VICTIM_EMAIL, CALLER);
+
+    if (billingEnabled) {
+      /*
+       * The answer every address gets (#9816), and its owner is emailed
+       * instead - counted, per caller and per address, as any sign-up's
+       * email is, before the address is looked at.
+       */
+      expect(answer.error).toBeNull();
+      expect(sendAccountAlreadyExistsEmail).toHaveBeenCalledTimes(1);
+      expect(userCreateUserOnSignup).not.toHaveBeenCalled();
+      expect(redisClient.keys().length).toBeGreaterThan(0);
+      return;
+    }
 
     // Says what to do next (#6836): sign in, or reset the password.
     expect(answer.error?.message).toBe(
       `An account with ${VICTIM_EMAIL} already exists. Sign in instead, or reset your password if you have forgotten it.`,
     );
     expect(redisClient.keys()).toEqual([]);
+  });
+
+  it("an address that already has an account is held to the same five sign-up emails an hour as a new one", async () => {
+    if (!billingEnabled) {
+      return;
+    }
+
+    const { accepted, refusals } = await acceptedOf(8, (index: number) => {
+      return signUp(VICTIM_EMAIL, `192.0.2.${index + 1}`);
+    });
+
+    expect(accepted).toBe(5);
+    expect(sendAccountAlreadyExistsEmail).toHaveBeenCalledTimes(5);
+    expectRefused(refusals[0], SIGN_UP_FOR_ADDRESS);
   });
 
   it("a list of addresses is refused, and no account is created or emailed", async () => {
@@ -884,8 +931,15 @@ describe.each([
           `192.0.2.${index + 1}`,
         );
 
+        /*
+         * Where the server emails the address, the account is made after
+         * the answer every address gets (#9816), so a create that fails is
+         * not the answer: it is logged, and the address gets its count back.
+         */
         expect(answer.error?.message).toBe(
-          "companyName length cannot be more than 100 characters",
+          billingEnabled
+            ? undefined
+            : "companyName length cannot be more than 100 characters",
         );
       }
 

@@ -14,12 +14,22 @@ import {
 } from "./ToolAnnotations";
 import ModelType from "../Types/ModelType";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
+import { requireString, requireUuid } from "./ToolArguments";
+import {
+  MOVE_IN_LIST_TOOL_NAME,
+  getMoveInListToolDefinition,
+  moveInList,
+} from "./MoveInList";
+import {
+  SETUP_TOOL_DEFINITIONS,
+  handleSetupTool,
+  isSetupTool,
+} from "./SetupTools";
 import McpCredentialUtil, {
   McpCredential,
   McpCredentialInput,
   McpCredentialType,
 } from "../Types/McpCredential";
-import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DATA_OBSERVABILITY_API_ROUTES } from "Common/Types/DataObservability/DataObservabilityApiTypes";
@@ -35,6 +45,12 @@ interface WorkflowToolDefinition {
   description: string;
   inputSchema: JSONSchema;
   readOnly: boolean;
+  /*
+   * What it writes is published, as a write to one of
+   * ToolAnnotations' PUBLISHED_TABLE_NAMES is: an incident's new state, or
+   * a public note, shown on the status page and sent to its subscribers.
+   */
+  published?: boolean;
 }
 
 const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
@@ -56,6 +72,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
       additionalProperties: false,
     },
     readOnly: false,
+    published: true,
   },
   {
     name: "resolve_incident",
@@ -75,6 +92,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
       additionalProperties: false,
     },
     readOnly: false,
+    published: true,
   },
   {
     name: "acknowledge_alert",
@@ -142,6 +160,8 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
       additionalProperties: false,
     },
     readOnly: false,
+    // A public note is; an internal one is not, but the tool can post either.
+    published: true,
   },
   {
     name: "add_alert_note",
@@ -222,11 +242,31 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
   },
 ];
 
+/*
+ * Every workflow tool: the ones above, the move of a row of an ordered
+ * list (MoveInList), whose resources are read off the models - so built the
+ * first time it is asked for, once the models are there to read - and Ask
+ * AI's setup actions, one call each (SetupTools, #7241).
+ */
+let workflowToolDefinitions: Array<WorkflowToolDefinition> | null = null;
+
+function getWorkflowToolDefinitions(): Array<WorkflowToolDefinition> {
+  if (!workflowToolDefinitions) {
+    workflowToolDefinitions = [
+      ...WORKFLOW_TOOL_DEFINITIONS,
+      getMoveInListToolDefinition(),
+      ...SETUP_TOOL_DEFINITIONS,
+    ];
+  }
+
+  return workflowToolDefinitions;
+}
+
 /**
  * Generate workflow tools
  */
 export function generateWorkflowTools(): McpToolInfo[] {
-  return WORKFLOW_TOOL_DEFINITIONS.map(
+  return getWorkflowToolDefinitions().map(
     (definition: WorkflowToolDefinition): McpToolInfo => {
       return {
         name: definition.name,
@@ -235,7 +275,7 @@ export function generateWorkflowTools(): McpToolInfo[] {
         inputSchema: definition.inputSchema,
         annotations: definition.readOnly
           ? readOnlyToolAnnotations()
-          : writeToolAnnotations(),
+          : writeToolAnnotations({ openWorld: definition.published === true }),
         modelName: "Workflow",
         operation: definition.readOnly
           ? OneUptimeOperation.Read
@@ -254,7 +294,7 @@ export function generateWorkflowTools(): McpToolInfo[] {
  * Check if a tool is a workflow tool (requires an API key or a sign-in)
  */
 export function isWorkflowTool(toolName: string): boolean {
-  return WORKFLOW_TOOL_DEFINITIONS.some(
+  return getWorkflowToolDefinitions().some(
     (definition: WorkflowToolDefinition) => {
       return definition.name === toolName;
     },
@@ -266,7 +306,7 @@ export function isWorkflowTool(toolName: string): boolean {
  * client that signed in read-only may not do.
  */
 export function isReadOnlyWorkflowTool(toolName: string): boolean {
-  return WORKFLOW_TOOL_DEFINITIONS.some(
+  return getWorkflowToolDefinitions().some(
     (definition: WorkflowToolDefinition) => {
       return definition.name === toolName && definition.readOnly;
     },
@@ -322,30 +362,15 @@ export async function handleWorkflowTool(
       return getDataTableLineage(args, credential);
     case "oneuptime_whoami":
       return whoami(credential);
+    case MOVE_IN_LIST_TOOL_NAME:
+      return moveInList(args, credential);
     default:
+      if (isSetupTool(toolName)) {
+        return handleSetupTool(toolName, args, credential);
+      }
+
       throw new Error(`Unknown workflow tool: ${toolName}`);
   }
-}
-
-function requireUuid(args: Record<string, unknown>, key: string): string {
-  const value: unknown = args[key];
-  if (typeof value !== "string" || !value) {
-    throw new Error(`'${key}' is required.`);
-  }
-  if (!ObjectID.isValidUUID(value)) {
-    throw new Error(
-      `'${key}' must be a UUID like "550e8400-e29b-41d4-a716-446655440000". Use the corresponding list tool to find valid IDs.`,
-    );
-  }
-  return value;
-}
-
-function requireString(args: Record<string, unknown>, key: string): string {
-  const value: unknown = args[key];
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(`'${key}' is required.`);
-  }
-  return value;
 }
 
 /**

@@ -1,8 +1,10 @@
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/UserWebAuthn";
 import UserService from "./UserService";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import Hostname from "../../Types/API/Hostname";
@@ -36,29 +38,19 @@ interface RegistrationChallenge {
 }
 
 /*
- * One answer for both ways of having no security key to offer, because the
- * route that asks is anonymous.
+ * What a sign-in asking for a security key's options is told when the
+ * account it proved has none to offer.
  *
- * `generateAuthenticationOptions` is reached by POSTing an email address and
- * nothing else. It used to answer "User not found" for an address nobody has
- * registered and "No WebAuthn credentials found for this user" for one that
- * exists but has no key -- two distinguishable replies, which together are a
- * free account-existence oracle for anyone who can send a request, and a
- * second oracle telling them which of those accounts is protected by hardware.
- *
- * Every other door on this surface already refuses to say that much: the login
- * routes deliberately do not reveal which half of a credential was wrong, and
- * IdentityRateLimit answers identically for a real address and an invented
- * one specifically so that being throttled does not give back the enumeration
- * the handlers withhold. This route was the exception.
- *
- * Nothing legitimate is lost. A real user only reaches this after signing in
- * with their password, from a list of their OWN registered keys returned by
- * /login -- so they cannot arrive here with an account that has none, and the
- * message they would never see is not worth an oracle to everyone else.
+ * Only ever said to somebody who has proved the account: the options are
+ * asked for with the email and password again, or the sign-in link's token
+ * (POST /identity/security-key-sign-in-options, Types/Accounts/
+ * SecurityKeySignIn), and an address with no account, or a wrong password,
+ * is refused before this is reached, as a wrong password is (#9822). The
+ * anonymous route that once asked with an address alone, and said this to
+ * anyone who named one, is gone.
  */
-const NO_SECURITY_KEY_AVAILABLE: string =
-  "No security key is available for this account.";
+export const NO_SECURITY_KEY_AVAILABLE: string =
+  "No security key is available for this account. Choose another way to sign in.";
 
 /*
  * How much a security key is asked to prove about the person holding it.
@@ -284,6 +276,14 @@ export class Service extends DatabaseService<Model> {
     userId: ObjectID;
     isPasskey?: boolean;
   }): Promise<{ options: any; challenge: string }> {
+    /*
+     * A passkey or a security key, while the person's sign-in is managed by
+     * single sign-on (SsoManagedSignIn, #9688): refused before a challenge
+     * is made, and again when one is answered (verifyRegistration), for a
+     * challenge made before the server came to require SSO.
+     */
+    await SsoManagedSignIn.assertMayChangeLocalSignIn(data.userId);
+
     const user: User | null = await UserService.findOneById({
       id: data.userId,
       select: {
@@ -371,11 +371,20 @@ export class Service extends DatabaseService<Model> {
   public async verifyRegistration(data: {
     credential: any;
     name: string;
+    /*
+     * The name to file it under when its challenge was a passkey's: a
+     * setup that may register either (sign-in's, #9817) names it by what
+     * the server asked for, never by what a client says it is.
+     */
+    passkeyName?: string | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     if (!data.props.userId) {
       throw new BadDataException("User ID not found in request");
     }
+
+    // See generateRegistrationOptions. Before the challenge is spent.
+    await SsoManagedSignIn.assertMayChangeLocalSignIn(data.props.userId);
 
     const storedChallenge: RegistrationChallenge = JSON.parse(
       await this.consumeChallenge(
@@ -422,7 +431,10 @@ export class Service extends DatabaseService<Model> {
     // Save the credential
     const userWebAuthn: Model = Model.fromJSON(
       {
-        name: data.name,
+        name:
+          storedChallenge.isPasskey === true && data.passkeyName
+            ? data.passkeyName
+            : data.name,
         credentialId: registrationInfo.credential.id,
         publicKey: Buffer.from(registrationInfo.credential.publicKey).toString(
           "base64",
@@ -482,28 +494,21 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * The options for a security key's prompt at sign-in, for the account the
+   * sign-in has proved - by its id, never by an address a caller typed
+   * (#9822). Its keys are named in `allowCredentials`, because a security
+   * key is not discoverable, and the challenge is kept for that account
+   * alone: only its own sign-in writes it.
+   */
   @CaptureSpan()
   public async generateAuthenticationOptions(data: {
-    email: string;
+    userId: ObjectID;
   }): Promise<{ options: any; challenge: string }> {
-    const user: User | null = await UserService.findOneBy({
-      query: { email: data.email },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!user) {
-      throw new BadDataException(NO_SECURITY_KEY_AVAILABLE);
-    }
-
     // Get user's WebAuthn credentials
     const credentials: Array<Model> = await this.findBy({
       query: {
-        userId: user.id!,
+        userId: data.userId,
         isVerified: true,
       },
       select: {
@@ -551,25 +556,16 @@ export class Service extends DatabaseService<Model> {
     });
 
     await this.storeChallenge(
-      `${AUTHENTICATION_CHALLENGE_PREFIX}${user.id!.toString()}`,
+      `${AUTHENTICATION_CHALLENGE_PREFIX}${data.userId.toString()}`,
       options.challenge,
     );
 
     /*
-     * The anonymous caller gets the ceremony and nothing else.
-     *
-     * This used to hand back `userId` too -- the account's real row id, to
-     * anybody who could name an email address with a key on it. Nothing ever
-     * read it: the browser posts the assertion to /verify-webauthn-auth along
-     * with the email and password again, and that route takes the user from
-     * the password it has just verified
-     * (App/FeatureSet/Identity/API/Authentication.ts), never from the body.
-     *
-     * So it was an identifier handed to strangers for free, on the one route
-     * that has just been made careful about what it tells them -- and it would
-     * have undone half of that: unifying the two refusals stops a caller
-     * learning whether an account exists, while a success that carries its
-     * internal id tells them rather more than that.
+     * The ceremony and nothing else - never the account's id. The browser
+     * posts the key's answer to /verify-webauthn-auth with the email and
+     * password again, and that route takes the account from the password it
+     * has just checked (App/FeatureSet/Identity/API/Authentication.ts),
+     * never from the body.
      */
     return {
       options: options as any,
@@ -904,29 +900,34 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * There is no `onBeforeDelete` here any more.
+   * Removing the last second step while two factor authentication is on is
+   * refused (UserService.assertTwoFactorAuthKeepsASecondStep, #9666): a
+   * passkey is one, as a security key is, since the second step of a
+   * sign-in with a password asks for any of the account's keys. A passkey
+   * removed from the Passkeys page counts the same as one removed here.
    *
-   * It used to refuse the deletion of a user's LAST verified factor while
-   * `enableTwoFactorAuth` was on, telling them to "disable two factor auth
-   * before deleting this item". Both halves of that stopped being true:
-   *
-   *  - the advice is impossible to follow for a user whose two factor auth was
-   *    mandated by an admin. They cannot turn the requirement off, so the
-   *    guard did not protect them, it stranded them on an authenticator they
-   *    may have been trying to replace;
-   *  - the lockout it protected against no longer exists. An account that is
-   *    required to use two factor auth and has nothing set up is now sent
-   *    through enrolment at its next sign-in rather than refused, so deleting
-   *    the last factor costs a QR code, not an account.
-   *
-   * It was also wrong on its own terms: it counted the verified factors that
-   * existed BEFORE the delete, once per item, inside a loop over the whole
-   * `deleteBy` set -- so removing two verified factors in a single call passed
-   * the check twice and landed in exactly the state it existed to prevent.
-   *
-   * The same guard has been removed from UserTotpAuthService for the same
-   * reasons; the two were mirror images and had to move together.
+   * UserTotpAuthService says why the guard is back, and how it answers the
+   * reasons it was once taken out for; the two move together.
    */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.isRoot) {
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        {
+          _id: true,
+          userId: true,
+          isVerified: true,
+        },
+      );
+
+      await UserService.assertTwoFactorAuthKeepsASecondStep(rows);
+    }
+
+    return { deleteBy, carryForward: null };
+  }
 }
 
 export default new Service();

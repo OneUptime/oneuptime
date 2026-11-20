@@ -19,6 +19,7 @@ import ServerEmailLogService from "./ServerEmailLogService";
 import ProductFeedbackService from "./ProductFeedbackService";
 import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
 import InstanceTokenSigningKeyService from "./InstanceTokenSigningKeyService";
+import InstanceSamlSigningKeyService from "./InstanceSamlSigningKeyService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -89,6 +90,9 @@ import NetworkTopologySuppressionService from "./NetworkTopologySuppressionServi
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import NetworkDeviceNamingRuleService from "./NetworkDeviceNamingRuleService";
 import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
+import DeviceManagementConnectionService from "./DeviceManagementConnectionService";
+import ManagedDeviceService from "./ManagedDeviceService";
+import ManagedDeviceAppService from "./ManagedDeviceAppService";
 import NetworkAddressNameService from "./NetworkAddressNameService";
 import PodmanHostService from "./PodmanHostService";
 import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
@@ -204,6 +208,7 @@ import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import ServiceFeedService from "./ServiceFeedService";
+import ServiceAINoteService from "./ServiceAINoteService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import NotificationService from "./NotificationService";
@@ -450,6 +455,7 @@ import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
 import DataSecurityScanService from "./DataSecurityScanService";
 import DataSecurityCustomDataTypeService from "./DataSecurityCustomDataTypeService";
 import DataSecurityCheckSettingService from "./DataSecurityCheckSettingService";
+import DataSecurityComplianceSettingService from "./DataSecurityComplianceSettingService";
 import DataSecurityResidencyRuleService from "./DataSecurityResidencyRuleService";
 import DataSecuritySettingService from "./DataSecuritySettingService";
 import DataAssetService from "./DataAssetService";
@@ -466,6 +472,7 @@ import DataAssetOwnerTeamService from "./DataAssetOwnerTeamService";
 import DataAssetOwnerRuleService from "./DataAssetOwnerRuleService";
 import DataPipelineOwnerUserService from "./DataPipelineOwnerUserService";
 import DataPipelineOwnerTeamService from "./DataPipelineOwnerTeamService";
+import DataPipelineOwnerRuleService from "./DataPipelineOwnerRuleService";
 import DataAssetLabelRuleService from "./DataAssetLabelRuleService";
 import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
@@ -575,6 +582,7 @@ import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
+import HostLogSessionService from "./HostLogSessionService";
 import HostCollectorConfigService from "./HostCollectorConfigService";
 import HostCollectorConfigVersionService from "./HostCollectorConfigVersionService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
@@ -656,6 +664,7 @@ const services: Array<BaseService> = [
   ProductFeedbackService,
   InstanceReceivingPeriodService,
   InstanceTokenSigningKeyService,
+  InstanceSamlSigningKeyService,
   DomainService,
 
   EmailLogService,
@@ -729,6 +738,9 @@ const services: Array<BaseService> = [
   NetworkSiteAssignmentRuleService,
   NetworkDeviceNamingRuleService,
   NetworkControllerConnectionService,
+  DeviceManagementConnectionService,
+  ManagedDeviceService,
+  ManagedDeviceAppService,
   NetworkAddressNameService,
   PodmanHostService,
   PodmanHostOwnerRuleService,
@@ -827,6 +839,7 @@ const services: Array<BaseService> = [
   HostFeedService,
   CloudResourceFeedService,
   ServiceFeedService,
+  ServiceAINoteService,
 
   NotificationService,
 
@@ -1051,6 +1064,7 @@ const services: Array<BaseService> = [
   DataSecurityScanService,
   DataSecurityCustomDataTypeService,
   DataSecurityCheckSettingService,
+  DataSecurityComplianceSettingService,
   DataSecurityResidencyRuleService,
   DataSecuritySettingService,
   DataAssetService,
@@ -1067,6 +1081,7 @@ const services: Array<BaseService> = [
   DataAssetOwnerRuleService,
   DataPipelineOwnerUserService,
   DataPipelineOwnerTeamService,
+  DataPipelineOwnerRuleService,
   DataAssetLabelRuleService,
   DataObservabilitySettingService,
   DataAssetLineageService,
@@ -1190,6 +1205,7 @@ const services: Array<BaseService> = [
   HostOwnerRuleService,
   HostOwnerTeamService,
   HostOwnerUserService,
+  HostLogSessionService,
   HostCollectorConfigService,
   HostCollectorConfigVersionService,
   IncomingCallPolicyService,

@@ -163,19 +163,21 @@ const resource = defaultResource().merge(
 
 ## RUM डेटा पर अलर्ट
 
-RUM टेलीमेट्री सामान्य लॉग, मेट्रिक्स और ट्रेस ही है, इसलिए कोई अलग RUM मॉनिटर नहीं है: सामान्य मॉनिटर इस पर काम करते हैं। सबसे तेज़ शुरुआत एप्लिकेशन का **सुझाव** पेज है, जो पहले से एप्लिकेशन तक सीमित मॉनिटर पेश करता है:
+RUM टेलीमेट्री सामान्य लॉग, मेट्रिक्स और ट्रेस ही है, इसलिए कोई अलग RUM मॉनिटर नहीं है: सामान्य मॉनिटर इस पर काम करते हैं। सबसे तेज़ शुरुआत एप्लिकेशन का **सुझाव** पेज है, जो पहले से एप्लिकेशन तक सीमित मॉनिटर पेश करता है, वे जो वेब ऐप या मोबाइल ऐप के लिए सही हों:
 
 | समूह | सुझाव |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint और Slow Time to First Byte। [Core Web Vitals](/docs/rum/web-vitals) देखें। |
-| त्रुटियाँ | Failed User Operations, और Unhandled Browser Exceptions। |
+| Core Web Vitals | वेब ऐप के लिए: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint और Slow Time to First Byte। [Core Web Vitals](/docs/rum/web-vitals) देखें। |
+| त्रुटियाँ | मोबाइल ऐप के लिए App Crashes और App Not Responding (ANR), और घंटे में सैकड़ों सेशन वाले ऐप के लिए उनकी दरें, App Crash Rate और App ANR Rate; दोनों के लिए Failed User Operations, और वेब ऐप के लिए Unhandled Browser Exceptions। |
+| प्रदर्शन | मोबाइल ऐप के लिए: Slow Cold Start, जब कोल्ड स्टार्ट में 5 सेकंड या उससे ज़्यादा लगें, जिसे Android vitals अत्यधिक मानता है, और Frozen Frames, जब किसी फ़्रेम को रेंडर होने में 700 मि.से. से ज़्यादा लगें। |
+| उपलब्धता | मोबाइल ऐप के लिए: App Stopped Reporting, जब ऐप 30 मिनट तक कोई स्पैन नहीं भेजता, और Device Stopped Reporting, जब उसका कोई डिवाइस पिछले सप्ताह में स्पैन भेजने के बाद एक घंटे तक कोई स्पैन नहीं भेजता। |
 | सेशन रीप्ले | चार [स्टोरेज बजट अलर्ट](/docs/telemetry/session-replay#स्टोरेज-बजट-अलर्ट), जो प्रोजेक्ट की दैनिक सीमा या एप्लिकेशन का मासिक बजट खत्म होने से पहले चेतावनी देते हैं। एप्लिकेशन के कोई रीप्ले रिकॉर्ड कर लेने के बाद ये पेश किए जाते हैं, और मासिक जोड़ी तब, जब उसका मासिक बजट भी हो। |
 
 अपना मॉनिटर बनाने के लिए, वह चुनें जो उस सिग्नल को पढ़ता है:
 
 - [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor): कोई Core Web Vital, या आपका ऐप जो भी मेट्रिक भेजता है।
-- [ट्रेस मॉनिटर](/docs/monitor/traces-monitor): क्लाइंट-साइड त्रुटि दर या लेटेंसी।
-- [लॉग मॉनिटर](/docs/monitor/logs-monitor): ब्राउज़र लॉग में कोई पैटर्न।
+- [ट्रेस मॉनिटर](/docs/monitor/traces-monitor): क्लाइंट-साइड त्रुटि दर या लेटेंसी, या आपकी तय की गई अवधि से धीमे ऐप स्टार्ट।
+- [लॉग मॉनिटर](/docs/monitor/logs-monitor): ब्राउज़र लॉग में कोई पैटर्न, या किसी मोबाइल ऐप के `app.crash`, `device.anr` और `app.jank` इवेंट।
 - [अपवाद मॉनिटर](/docs/monitor/exceptions-monitor): नए या अचानक बढ़ते क्लाइंट-साइड अपवाद।
 
 जो मॉनिटर आप बनाते हैं, उसे एप्लिकेशन तक सीमित करें, ताकि मिलते-जुलते सिग्नेचर वाली कोई बैकएंड सेवा उसे ट्रिगर न करे।

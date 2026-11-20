@@ -552,6 +552,8 @@ export const AWS_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> = [
   aws("AWS::MemoryDB::Cluster", "MemoryDB Cluster", PAAS, C.Database),
   aws("AWS::Redshift::Cluster", "Redshift Cluster", PAAS, C.Analytics),
   aws("AWS::OpenSearchService::Domain", "OpenSearch Domain", PAAS, C.Analytics),
+  aws("AWS::Glue::Job", "Glue Job", PAAS, C.Analytics),
+  aws("AWS::Athena::WorkGroup", "Athena Workgroup", PAAS, C.Analytics),
   // Messaging and streaming
   aws("AWS::SQS::Queue", "SQS Queue", PAAS, C.Messaging),
   aws("AWS::SNS::Topic", "SNS Topic", PAAS, C.Messaging),
@@ -605,6 +607,14 @@ export interface AwsCloudWatchResourceRule {
   identityDimensions: ReadonlyArray<string>;
   // The rule does not apply to a datapoint carrying any of these.
   excludedDimensions?: ReadonlyArray<string>;
+  /*
+   * The rule applies only to a datapoint whose these dimensions hold
+   * exactly these values, whatever their case: a web ACL's own total is
+   * its series whose Rule is ALL - its other series are one rule's, or a
+   * label's. The resource's metric filter names them too, so its charts
+   * read its total alone.
+   */
+  requiredDimensionValues?: Readonly<Record<string, string>>;
   /*
    * The resource's name, from its identity dimensions. Default: the first
    * identity dimension's value.
@@ -825,11 +835,17 @@ export const AWS_CLOUDWATCH_RESOURCE_RULES: ReadonlyArray<AwsCloudWatchResourceR
       },
     },
     {
-      // A Web ACL's ARN carries an id no metric reports.
+      /*
+       * A web ACL's own total is published with Rule ALL; its other series
+       * are each one rule's (Rule), a rule group's (RuleGroup) or a
+       * label's (Label, without Rule). Its ARN carries an id no metric
+       * reports.
+       */
       namespace: "AWS/WAFV2",
       type: "AWS::WAFv2::WebACL",
       identityDimensions: ["WebACL"],
-      excludedDimensions: ["Rule", "RuleGroup"],
+      requiredDimensionValues: { Rule: "ALL" },
+      excludedDimensions: ["RuleGroup"],
     },
     {
       namespace: "AWS/S3",
@@ -1189,6 +1205,37 @@ export const AWS_CLOUDWATCH_RESOURCE_RULES: ReadonlyArray<AwsCloudWatchResourceR
           context,
           "events",
           bus && bus !== "default" ? `rule/${bus}/${rule}` : `rule/${rule}`,
+        );
+      },
+    },
+    {
+      /*
+       * A Glue job's own metrics are its series whose JobRunId is ALL; each
+       * run's series, with its run id there instead, is no job's: summed
+       * with the job's, a run would count twice.
+       */
+      namespace: "Glue",
+      type: "AWS::Glue::Job",
+      identityDimensions: ["JobName"],
+      requiredDimensionValues: { JobRunId: "ALL" },
+      getArn: (context: AwsArnContext): string => {
+        return arn(
+          context,
+          "glue",
+          `job/${dimension(context.dimensions, "JobName")}`,
+        );
+      },
+    },
+    {
+      // A workgroup's queries, of each state and type, and its own bytes scanned.
+      namespace: "AWS/Athena",
+      type: "AWS::Athena::WorkGroup",
+      identityDimensions: ["WorkGroup"],
+      getArn: (context: AwsArnContext): string => {
+        return arn(
+          context,
+          "athena",
+          `workgroup/${dimension(context.dimensions, "WorkGroup")}`,
         );
       },
     },

@@ -48,7 +48,7 @@ I **Spans å følge med på** angir du **Span-status** og **Span-navnet innehold
 
 ### Snevre dem inn (valgfritt)
 
-Åpne **Flere felt** for å filtrere etter telemetritjeneste, infrastrukturentitet eller attributt.
+Åpne **Flere felt** for å filtrere etter telemetritjeneste, infrastrukturentitet eller attributt, for å telle bare spans som tok minst en gitt tid, eller for å utløse ett varsel per verdi av et attributt med **Grupper etter attributter**.
 
 ### Si når det skal varsles
 
@@ -76,8 +76,10 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Filtrer etter tjeneste** (under **Flere felt**) | Spans fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Spans fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Filtrer etter attributter** (under **Flere felt**) | Spans der attributtene oppfyller alle vilkår. Hvert vilkår har sin egen operator, som «er lik» eller «inneholder». | Tom: ingen vilkår |
+| **Tar minst (ms)** (under **Flere felt**) | Spans som tok så lang tid eller lenger, i millisekunder, for eksempel 5000 for en kaldstart på fem sekunder. | Tom: hvilken som helst varighet |
+| **Grupper etter attributter** (under **Flere felt**) | Ikke et filter: ett antall, og ett varsel eller én hendelse, per kombinasjon av verdiene til disse attributtene. Se [Ett varsel per gruppe](#ett-varsel-per-gruppe). | Tom: alle samsvarende spans telles samlet |
 
-Alle filtrene du angir, må samsvare for at et span skal telles.
+Alle filtrene du angir, må samsvare for at et span skal telles. Spans bak et varsel eller en hendelse som monitoren åpner, listes med de samme filtrene, med **Tar minst (ms)** tatt med som et filter på **Varighet**, så det er de samme spans som den talte.
 
 ### Span-statuskoder
 
@@ -98,6 +100,14 @@ Hvis du vil at vellykkede forespørsler skal vises som OK, legger du til en spor
 - **Kriterier fra topp til bunn.** Det første kriteriet som samsvarer, avgjør, så legg det mest alvorlige øverst.
 
 Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
+
+## Ett varsel per gruppe
+
+Når **Grupper etter attributter** er angitt, teller monitoren de samsvarende spans per kombinasjon av attributtverdiene, og hver gruppe utløser sitt eget varsel eller sin egen hendelse og løser det på egen hånd. Anbefalingen **Device Stopped Reporting** for en mobilapp grupperer etter `resource.app.installation.id`, én gruppe per installasjon av appen.
+
+En enhet som slutter å sende spans, etterlater ingen span i vinduet som en gruppe kan lages av. Derfor teller en gruppert monitor med en regel som kan samsvare når det ikke er noen spans, for eksempel **Færre enn** `1`, også som 0 hver gruppe som sendte spans i uken før vinduet, men ingen i det. En gruppe som har vært stille lenger enn den uken, faller ut, og varselet dens løses.
+
+Når ingen av gruppene sender et span, har hele appen blitt stille, ikke én enhet: ingen gruppe varsler, og de åpne varslene forblir åpne til det kommer spans. En ugruppert monitor, for eksempel **App Stopped Reporting**, varsler om det. Høyst 100 grupper vurderes i én sjekk, de stille først.
 
 ## Kriterier
 

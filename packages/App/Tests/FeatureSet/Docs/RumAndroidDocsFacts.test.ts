@@ -45,12 +45,28 @@ import InventoryItem, {
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import { INVENTORY_ASSET_ATTRIBUTE_KEYS } from "Common/Utils/Inventory/InventoryAssetDetails";
 import {
+  ESPER_DEVICE_NAME_PLACEHOLDER,
+  ESPER_PLACEHOLDERS_MIN_AGENT_VERSION,
+  ESPER_SERIAL_NUMBER_PLACEHOLDER,
+  MANAGED_DEVICE_HOST_NAME_ATTRIBUTE,
+  MANAGED_DEVICE_SERIAL_NUMBER_ATTRIBUTE,
+  canonicalizeManagedDeviceIdentity,
+  getManagedDeviceHostName,
+} from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
+import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
+import {
   ANR_EXCEPTION_TYPE,
   MOBILE_APP_FAULT_EVENT_NAMES,
   MobileAppFaultKind,
   getMobileAppFaultKind,
 } from "Common/Utils/Telemetry/MobileAppFaults";
 import { SESSION_ID_ATTRIBUTE_KEYS } from "Common/Utils/Telemetry/CorrelationIdAttributes";
+import { APP_INSTALLATION_ID_ATTRIBUTE } from "Common/Types/Rum/MobileAppTelemetry";
+import {
+  MOBILE_ANR_RATE_PERCENT,
+  MOBILE_CRASH_RATE_PERCENT,
+  getRumAlertTemplateById,
+} from "Common/Types/Monitor/RumAlertTemplates";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { describe, expect, it, jest } from "@jest/globals";
@@ -220,6 +236,30 @@ describe("crashes and ANRs, as ingest files them", () => {
     expect(SESSION_ID_ATTRIBUTE_KEYS[0]).toBe("session.id");
     expect(reports).toContain("searched with `@session.id:`");
   });
+
+  /*
+   * #9716: crash-free installs, from the install key the Overview's reads
+   * count, and the crash and ANR rate recommendations' own thresholds.
+   */
+  it("names the install key the Overview counts crash-free installs by", () => {
+    expect(APP_INSTALLATION_ID_ATTRIBUTE).toBe("app.installation.id");
+    expect(reports).toContain(
+      `Under **Crash-free sessions**, the line reads the same share of installs: the \`${APP_INSTALLATION_ID_ATTRIBUTE}\` OpenTelemetry Android 1.1 and later set`,
+    );
+  });
+
+  it("states the rate recommendations' thresholds as they alert", () => {
+    expect(getRumAlertTemplateById("rum-app-crash-rate")?.name).toBe(
+      "App Crash Rate",
+    );
+    expect(getRumAlertTemplateById("rum-app-anr-rate")?.name).toBe(
+      "App ANR Rate",
+    );
+    expect(reports).toContain(
+      `above Android vitals' ${MOBILE_CRASH_RATE_PERCENT}% and ${MOBILE_ANR_RATE_PERCENT}%`,
+    );
+    expect(reports).toContain("**App Crash Rate** and **App ANR Rate**");
+  });
 });
 
 describe("the endpoint and the key", () => {
@@ -350,6 +390,33 @@ describe("a kiosk named in host.name", () => {
     );
   });
 
+  it("is the one item the Esper import keeps for the device: its host has the key the import gives the device's Esper name", () => {
+    const projectId: string = "5f3e9c1a-0000-4000-8000-000000000001";
+    const host: ExtractedEntity | undefined = InventoryItem.extractEntities({
+      projectId,
+      attributes: { ...AGENT_RESOURCE, ...kioskResourceFromPage() },
+    }).find((entity: ExtractedEntity): boolean => {
+      return entity.entityType === EntityType.Host;
+    });
+
+    // The device as Esper names it: ManagedDeviceInventory keys its host so.
+    expect(host?.entityKey).toBe(
+      keyForHost(
+        projectId,
+        canonicalizeManagedDeviceIdentity(
+          getManagedDeviceHostName({
+            deviceName: "store-0412-kiosk-02",
+            serialNumber: "R9J1A2B3C4",
+            providerDeviceId: "6f0d7c1e-2b3a-4c5d-8e9f-0a1b2c3d4e5f",
+          }),
+        ),
+      ),
+    );
+    expect(section("### Import the fleet from Esper")).toContain(
+      "OneUptime finds a device's item by `host.name`, then by `host.serial_number`, so give each device the same name and serial number in every app that reports from it, and in the Android Agent's `device_name` and `device_serial` settings.",
+    );
+  });
+
   it("leaves Inventory after the days the page says, the discovered host's prune TTL", () => {
     expect(source("pruneStaleEntities")).toContain(
       "[EntityType.Host, 30 * 24],",
@@ -419,5 +486,46 @@ describe("the code samples", () => {
     for (const key of Object.keys(configuration)) {
       expect(reader!.code).toContain(`getString("${key}")`);
     }
+  });
+
+  it("names each device by the identity contract the Esper import matches on: its Esper name and serial number", () => {
+    const [json] = fences("json");
+    const configuration: Record<string, string> = JSON.parse(json!.code);
+    const reader: DocsFence | undefined = fences("kotlin").find(
+      (fence: DocsFence): boolean => {
+        return fence.code.includes("RestrictionsManager");
+      },
+    );
+    const resource: DocsFence | undefined = fences("kotlin").find(
+      (fence: DocsFence): boolean => {
+        return fence.code.includes('put("host.name"');
+      },
+    );
+
+    // val deviceName = restrictions.getString("device_name") ...
+    const keyOfVariable: Map<string, string> = new Map<string, string>();
+    for (const match of reader!.code.matchAll(
+      /val (\w+) = restrictions\.getString\("([^"]+)"\)/g,
+    )) {
+      keyOfVariable.set(match[1]!, match[2]!);
+    }
+
+    // put("host.name", deviceName): each attribute's placeholder in Esper.
+    const placeholderOf: Record<string, string> = {};
+    for (const match of resource!.code.matchAll(/put\("([^"]+)",\s*(\w+)\)/g)) {
+      const key: string | undefined = keyOfVariable.get(match[2]!);
+
+      if (key) {
+        placeholderOf[match[1]!] = configuration[key]!;
+      }
+    }
+
+    expect(placeholderOf).toEqual({
+      [MANAGED_DEVICE_HOST_NAME_ATTRIBUTE]: ESPER_DEVICE_NAME_PLACEHOLDER,
+      [MANAGED_DEVICE_SERIAL_NUMBER_ATTRIBUTE]: ESPER_SERIAL_NUMBER_PLACEHOLDER,
+    });
+    expect(englishPage(ANDROID_SETUP)).toContain(
+      `with Esper Agent ${ESPER_PLACEHOLDERS_MIN_AGENT_VERSION} or later`,
+    );
   });
 });

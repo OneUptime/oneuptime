@@ -44,6 +44,11 @@ enum NotificationSettingEventType {
   SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION = "Send monitor status changed notification when I am the owner of the monitor",
   SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES = "Send monitor notification when probe status changes",
   SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR = "Send monitor notification when no probes are monitoring the monitor",
+  /*
+   * Being made an owner of a monitor group, by a person on its Owners page
+   * (#9758; Workers MonitorGroupOwners, on ResourceOwnersAdded).
+   */
+  SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a monitor group",
 
   // Scheduled Maintenance
   SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION = "Send event created notification when I am the owner of the event",
@@ -69,8 +74,44 @@ enum NotificationSettingEventType {
   SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION = "Send SLO status change notification when I am the owner of the SLO",
   SEND_SLO_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the SLO",
 
+  /*
+   * Data Observability's tables and pipelines, and the data stores it shares
+   * with Data Security (#9681): an owner rule, or a person on an Owners
+   * page, makes the person an owner (Workers DataAssetOwners,
+   * DataPipelineOwners, DataStoreOwners).
+   */
+  SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a table",
+  SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a pipeline",
+  SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a data store",
+
+  /*
+   * Being made an owner, by an owner rule whose Notify Owners is on or by a
+   * person on an Owners page (#9700; Workers ResourceOwnersAdded). One event
+   * for every service, app and piece of infrastructure - services, RUM
+   * applications, databases, queues, hosts, clusters, cloud resources,
+   * serverless functions, IoT fleets, storage arrays and the rest - so one
+   * switch says whether the person hears of them; the message names which
+   * it is.
+   */
+  SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a service or infrastructure",
+  // Dashboards & Automation (#9700).
+  SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a dashboard",
+  SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a workflow",
+  SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a runbook",
+  /*
+   * A runner, which runs runbooks' steps and AI code fixes on the project's
+   * own machines: being made its owner on its page (#9758; Workers
+   * RunnerOwners, on ResourceOwnersAdded).
+   */
+  SEND_RUNNER_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of a runner",
+  // On-call policies and schedules (#9700).
+  SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of an on-call policy",
+  SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of an on-call schedule",
+
   // Incoming Call Policies
   SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION = "Send missed call notification when I am the owner of the incoming call policy",
+  // Being made an owner of an incoming call policy (#9700).
+  SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as an owner of an incoming call policy",
 
   /*
    * Exceptions (ExceptionAssignmentNotifications). An exception is assigned

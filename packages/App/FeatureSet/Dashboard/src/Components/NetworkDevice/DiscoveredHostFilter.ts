@@ -601,17 +601,20 @@ export function countSelectedDiscoveredHosts(data: {
   hosts: Array<DiscoveredNetworkDevice>;
   filter: DiscoveredHostFilterInput;
   selectedIpAddresses: Record<string, boolean>;
+  selectability?: DiscoveredHostSelectability | undefined;
 }): { selected: number; hiddenSelected: number } {
   const selected: number = getDiscoveredHostsToImport({
     hosts: data.hosts,
     filter: DiscoveredHostFilter.All,
     selectedIpAddresses: data.selectedIpAddresses,
+    selectability: data.selectability,
   }).length;
 
   const shownSelected: number = getDiscoveredHostsToImport({
     hosts: data.hosts,
     filter: data.filter,
     selectedIpAddresses: data.selectedIpAddresses,
+    selectability: data.selectability,
   }).length;
 
   return {
@@ -721,15 +724,45 @@ export function getDiscoveredHostFilterOptions(
   });
 }
 
+/*
+ * Whether a host that is already a device can be picked, and which of them
+ * (OneUptime issue #9544). Review Results lets a device that was added with
+ * no monitor ("Status only") be picked again, to give it one: the import
+ * finds the device at its address and makes the template's monitor for it,
+ * under the same duplicate rule as every other path. A device that already
+ * has a monitor ("Already monitored") is never offered.
+ *
+ * By the device the host is, never by its address (issue #9677): two sites
+ * can each have a 10.0.0.5, and another site's device having a monitor says
+ * nothing of this one's. A host whose device the server could not name -
+ * the devices at its address cannot be told apart from the scan's probe -
+ * is never offered: whose monitor it would get is not known.
+ *
+ * Left out, a host that is already a device cannot be picked - as before -
+ * so a caller that knows nothing of the devices' monitors offers none of
+ * them.
+ */
+export interface DiscoveredHostSelectability {
+  /*
+   * The devices (by id, lower-cased) that have a monitor, once they are
+   * read. Unset while they are not known: no device is offered until then.
+   * Empty when the read failed: every device is offered, and the server's
+   * duplicate rule still keeps each to one monitor of a kind.
+   */
+  monitoredDeviceIds?: ReadonlySet<string> | undefined;
+}
+
 /**
  * True when this row's checkbox can be ticked at all.
  *
  * A host with no address cannot be imported (the address is the device's
- * hostname AND the selection key), and one already registered has nothing left
- * to import.
+ * hostname AND the selection key). One already registered has nothing left
+ * to import - unless the selectability says its device has no monitor, and
+ * it is picked to get one (issue #9544).
  */
 export function isSelectableDiscoveredHost(
   host: DiscoveredNetworkDevice | null | undefined,
+  selectability?: DiscoveredHostSelectability | undefined,
 ): boolean {
   if (!host) {
     return false;
@@ -742,11 +775,77 @@ export function isSelectableDiscoveredHost(
    * itself depending on which list you came through is the class of bug the
    * whole module is arranged to avoid.
    */
+  const address: string = String(host.ipAddress ?? "").trim();
+
+  if (!address || !isImportableDiscoveredHost(host)) {
+    return false;
+  }
+
+  if (!host.isAlreadyRegistered) {
+    return true;
+  }
+
+  const deviceId: string = getRegisteredDeviceIdOf(host);
+  const monitoredDeviceIds: ReadonlySet<string> | undefined =
+    selectability?.monitoredDeviceIds;
+
   return (
-    Boolean(String(host.ipAddress ?? "").trim()) &&
-    !host.isAlreadyRegistered &&
-    isImportableDiscoveredHost(host)
+    Boolean(deviceId) &&
+    Boolean(monitoredDeviceIds) &&
+    !monitoredDeviceIds!.has(deviceId)
   );
+}
+
+/*
+ * The device a host already is, as the server named it (lower-cased), or
+ * empty: not a device, or one of devices its scan's probe cannot tell apart.
+ */
+export function getRegisteredDeviceIdOf(
+  host: DiscoveredNetworkDevice | null | undefined,
+): string {
+  if (!host?.isAlreadyRegistered) {
+    return "";
+  }
+
+  const deviceId: unknown = host.registeredDeviceId;
+
+  return typeof deviceId === "string" ? deviceId.trim().toLowerCase() : "";
+}
+
+/*
+ * True when the host is picked to get a monitor rather than be imported: a
+ * device already, with none (issue #9544).
+ */
+export function isAddingMonitorToExistingHost(
+  host: DiscoveredNetworkDevice | null | undefined,
+  selectability?: DiscoveredHostSelectability | undefined,
+): boolean {
+  return Boolean(
+    host?.isAlreadyRegistered &&
+      isSelectableDiscoveredHost(host, selectability),
+  );
+}
+
+/*
+ * The devices the scan's hosts already are, each once and in order: the ones
+ * whose monitors are read to know which of them can be picked to get one
+ * (issue #9544). By the device each host is (issue #9677): two sites' devices
+ * at one address are two devices, with monitors of their own.
+ */
+export function getAlreadyAddedDeviceIds(
+  hosts: Array<DiscoveredNetworkDevice>,
+): Array<string> {
+  const deviceIds: Set<string> = new Set();
+
+  for (const host of hosts) {
+    const deviceId: string = getRegisteredDeviceIdOf(host);
+
+    if (deviceId) {
+      deviceIds.add(deviceId);
+    }
+  }
+
+  return Array.from(deviceIds).sort();
 }
 
 /**
@@ -764,10 +863,15 @@ export function isSelectableDiscoveredHost(
  *
  * Returns copies; the scan's own array is left alone so nothing depends on
  * mutation order.
+ *
+ * With the device the import created or found for each host (issue #9677),
+ * the host names it too, unless the scan already did: its monitors are read
+ * by that device, and a device that got none can be picked to get one.
  */
 export function markDiscoveredHostsAsRegistered(data: {
   hosts: Array<DiscoveredNetworkDevice>;
   importedIpAddresses: Set<string>;
+  importedDeviceIds?: ReadonlyMap<string, string> | undefined;
 }): Array<DiscoveredNetworkDevice> {
   if (data.importedIpAddresses.size === 0) {
     return data.hosts;
@@ -779,11 +883,20 @@ export function markDiscoveredHostsAsRegistered(data: {
      * as "10" on the way in and would never match `has(10)` on the way out —
      * leaving an imported host looking importable for ever.
      */
-    if (!data.importedIpAddresses.has(String(host?.ipAddress ?? ""))) {
+    const address: string = String(host?.ipAddress ?? "");
+
+    if (!data.importedIpAddresses.has(address)) {
       return host;
     }
 
-    return { ...host, isAlreadyRegistered: true };
+    const deviceId: string | undefined =
+      host.registeredDeviceId || data.importedDeviceIds?.get(address);
+
+    return {
+      ...host,
+      isAlreadyRegistered: true,
+      ...(deviceId ? { registeredDeviceId: deviceId } : {}),
+    };
   });
 }
 
@@ -902,6 +1015,8 @@ export function getDiscoveredHostsToImport(data: {
   hosts: Array<DiscoveredNetworkDevice>;
   filter: DiscoveredHostFilterInput;
   selectedIpAddresses: Record<string, boolean>;
+  // Which hosts that are devices already may be picked (issue #9544).
+  selectability?: DiscoveredHostSelectability | undefined;
 }): Array<DiscoveredNetworkDevice> {
   const seenIpAddresses: Set<string> = new Set<string>();
 
@@ -909,7 +1024,7 @@ export function getDiscoveredHostsToImport(data: {
     hosts: data.hosts,
     filter: data.filter,
   }).filter((host: DiscoveredNetworkDevice) => {
-    if (!isSelectableDiscoveredHost(host)) {
+    if (!isSelectableDiscoveredHost(host, data.selectability)) {
       return false;
     }
 
@@ -942,6 +1057,7 @@ export function getDiscoveredHostsToImport(data: {
 export function countSelectableShownHosts(data: {
   hosts: Array<DiscoveredNetworkDevice>;
   filter: DiscoveredHostFilterInput;
+  selectability?: DiscoveredHostSelectability | undefined;
 }): number {
   const seenIpAddresses: Set<string> = new Set<string>();
 
@@ -949,7 +1065,7 @@ export function countSelectableShownHosts(data: {
     hosts: data.hosts,
     filter: data.filter,
   })) {
-    if (isSelectableDiscoveredHost(host)) {
+    if (isSelectableDiscoveredHost(host, data.selectability)) {
       seenIpAddresses.add(host.ipAddress);
     }
   }
@@ -968,10 +1084,12 @@ export function areAllShownHostsSelected(data: {
   hosts: Array<DiscoveredNetworkDevice>;
   filter: DiscoveredHostFilterInput;
   selectedIpAddresses: Record<string, boolean>;
+  selectability?: DiscoveredHostSelectability | undefined;
 }): boolean {
   const selectableCount: number = countSelectableShownHosts({
     hosts: data.hosts,
     filter: data.filter,
+    selectability: data.selectability,
   });
 
   if (selectableCount === 0) {
@@ -983,6 +1101,7 @@ export function areAllShownHostsSelected(data: {
       hosts: data.hosts,
       filter: data.filter,
       selectedIpAddresses: data.selectedIpAddresses,
+      selectability: data.selectability,
     }).length === selectableCount
   );
 }
@@ -1003,6 +1122,7 @@ export function toggleSelectionForShownHosts(data: {
   hosts: Array<DiscoveredNetworkDevice>;
   filter: DiscoveredHostFilterInput;
   selectedIpAddresses: Record<string, boolean>;
+  selectability?: DiscoveredHostSelectability | undefined;
 }): Record<string, boolean> {
   const shouldClear: boolean = areAllShownHostsSelected(data);
 
@@ -1012,7 +1132,7 @@ export function toggleSelectionForShownHosts(data: {
     hosts: data.hosts,
     filter: data.filter,
   })) {
-    if (!isSelectableDiscoveredHost(host)) {
+    if (!isSelectableDiscoveredHost(host, data.selectability)) {
       continue;
     }
 

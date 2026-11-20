@@ -13,7 +13,7 @@ Una política de guardia decide a quién se avisa por un incidente o una alerta,
 
 :::steps
 1. Ve a **Guardia → Políticas de guardia** y haz clic en **Crear política de guardia**.
-2. Escribe un **Nombre**, por ejemplo «Pagos principal».
+2. Escribe un **Nombre**, por ejemplo «Pagos principal». Se rechaza un nombre que ya tenga otra política del proyecto, incluida una archivada, sin importar mayúsculas, minúsculas ni espacios, para que todo selector distinga las políticas.
 3. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elige las programaciones de guardia, los equipos y las personas a los que avisar primero.
 4. Haz clic en **Crear política de guardia**. La política se abre en su página **Reglas de escalado**, con **Level 1** ya creado.
 :::
@@ -26,7 +26,7 @@ El formulario también pregunta **Activarla con cada nuevo incidente y cada nuev
 
 Para que te guíen paso a paso, desde tu teléfono hasta un aviso de prueba, haz clic en **Configuración guiada**: en la lista vacía de **Políticas de guardia** o en **Cómo funciona**. Consulta [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
 
-La lista **Políticas de guardia** muestra de cada política su **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**. Selecciona políticas para **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Archivar**, **Exportar JSON** o eliminarlas. **Importar JSON** crea políticas a partir de una exportación: una exportación contiene los ajustes propios de una política, no sus reglas de escalado ni sus propietarios.
+La lista **Políticas de guardia** muestra de cada política su **Nombre**, **Avisados primero**, **Descripción**, **Etiquetas** y **Propietarios**. **Avisados primero** indica a quién avisa la primera regla de escalado de la política: sus programaciones de guardia, cada una con quien está de guardia en ella ahora mismo, sus equipos y las personas que nombra, o **Sin reglas de escalado** o **Sin respondedores** cuando no avisa a nadie. Selecciona políticas para **Añadir etiquetas**, **Quitar etiquetas**, **Añadir propietario**, **Quitar propietario**, **Archivar**, **Exportar JSON** o eliminarlas. **Importar JSON** crea políticas a partir de una exportación: una exportación contiene los ajustes propios de una política, no sus reglas de escalado ni sus propietarios. Una política que tiene el mismo nombre que otra política, de cuando los nombres no tenían que ser distintos, aparece marcada como **Mismo nombre que otra política**, y la lista indica cuántas hay: compara sus reglas de escalado y luego cambia el nombre de una con **Cambiar nombre** en su fila.
 
 ## Qué ejecuta una política
 
@@ -157,7 +157,7 @@ Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y qui�
 Archivar retira una política del servicio y lo conserva todo: abre los **Ajustes** de la política y haz clic en **Archivar** en su tarjeta de archivo, o selecciona políticas en la lista y elige **Archivar**.
 
 - Una política archivada no avisa a nadie. Los incidentes y las alertas que la usan la omiten, y una ejecución que aún esté escalando se detiene en su siguiente paso.
-- Sale de la lista **Políticas de guardia** y pasa a **Guardia → Avanzado → Políticas archivadas**, donde **Desarchivar** la vuelve a poner en servicio.
+- Sale de la lista **Políticas de guardia** y pasa a **Guardia → Avanzado → Políticas archivadas**, donde **Desarchivar** la vuelve a poner en servicio. Conserva su nombre: a quien crea una política nueva con ese nombre se le indica que desarchive esta en su lugar.
 
 **Eliminar política**, en **Avanzado**, elimina la política junto con sus reglas de escalado y sus sustituciones de usuarios. Eliminar desde la lista pide confirmación y sugiere archivar en su lugar.
 

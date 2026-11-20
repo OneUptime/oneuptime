@@ -4,6 +4,10 @@ import {
 } from "./MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import { translationKey } from "../Translator";
+import {
+  KUBERNETES_COST_DEFAULT_CURRENCY,
+  KubernetesCostMetric,
+} from "../Kubernetes/KubernetesCostMetrics";
 
 export type KubernetesMetricCategory =
   | "Pod"
@@ -11,7 +15,8 @@ export type KubernetesMetricCategory =
   | "Container"
   | "Workload"
   | "HPA"
-  | "ControlPlane";
+  | "ControlPlane"
+  | "Cost";
 
 export interface KubernetesMetricDefinition {
   id: string;
@@ -77,6 +82,35 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     category: "Pod",
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: KubernetesResourceScope.Pod,
+    unit: "bytes",
+  },
+  /*
+   * A mounted volume's size and free space, from the kubeletstats volume
+   * group: a persistent volume claim's names its claim, which the PVC Almost
+   * Full template groups by (#9539).
+   */
+  {
+    id: "volume-capacity",
+    friendlyName: translationKey("Volume Capacity"),
+    description: translationKey(
+      "The size of a mounted volume's filesystem, in bytes, as the kubelet measures it. A persistent volume claim's volume names its claim in k8s.persistentvolumeclaim.name.",
+    ),
+    metricName: "k8s.volume.capacity",
+    category: "Pod",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Namespace,
+    unit: "bytes",
+  },
+  {
+    id: "volume-available",
+    friendlyName: translationKey("Volume Free Space"),
+    description: translationKey(
+      "Bytes still free to write on a mounted volume's filesystem. Falling is bad, so alert with a 'less than' threshold; for a share of the capacity, use the PVC Almost Full template.",
+    ),
+    metricName: "k8s.volume.available",
+    category: "Pod",
+    defaultAggregation: MetricsAggregationType.Min,
+    defaultResourceScope: KubernetesResourceScope.Namespace,
     unit: "bytes",
   },
   {
@@ -251,6 +285,22 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     metricName: "k8s.node.filesystem.available",
     category: "Node",
     defaultAggregation: MetricsAggregationType.Min,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "bytes",
+  },
+  /*
+   * The size of a node's root filesystem (#9645): what High Node Disk Usage
+   * divides by, as the kubelet measures nodefs.available against it.
+   */
+  {
+    id: "node-filesystem-capacity",
+    friendlyName: translationKey("Node Filesystem Capacity"),
+    description: translationKey(
+      "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.",
+    ),
+    metricName: "k8s.node.filesystem.capacity",
+    category: "Node",
+    defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: KubernetesResourceScope.Node,
     unit: "bytes",
   },
@@ -590,6 +640,70 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultResourceScope: KubernetesResourceScope.Cluster,
     unit: "count",
   },
+
+  /*
+   * Cost Metrics
+   *
+   * Not the agent's collector's: OneUptime writes them from the allocation
+   * rows the cost agent sends (Common/Types/Kubernetes/KubernetesCostMetrics),
+   * one point per allocation window - an hour by default - stamped at the
+   * window's start, about an hour after the window closes. So a monitor on
+   * them wants a window of hours, and the costs are summed over it: each
+   * point is what one hour cost.
+   */
+  {
+    id: "cost-cluster",
+    friendlyName: translationKey("Cluster Cost"),
+    description: translationKey(
+      "What the cluster cost in each hour, idle capacity included, as its cost engine priced it. Each point is one hour's cost, written about an hour after the hour ends: sum it over the past day for the day's cost.",
+    ),
+    metricName: KubernetesCostMetric.Total,
+    category: "Cost",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: KUBERNETES_COST_DEFAULT_CURRENCY,
+  },
+  {
+    id: "cost-idle",
+    friendlyName: translationKey("Idle Cost"),
+    description: translationKey(
+      "The part of the cluster's cost in each hour that no workload used: node capacity nothing requested or used, and cost the engine could not allocate. Fewer or smaller nodes lower it.",
+    ),
+    metricName: KubernetesCostMetric.Idle,
+    category: "Cost",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Cluster,
+    unit: KUBERNETES_COST_DEFAULT_CURRENCY,
+  },
+  {
+    id: "cost-workload",
+    friendlyName: translationKey("Workload Cost"),
+    description: translationKey(
+      "What each workload cost in each hour, in its namespace. A Namespace scope adds up what the namespace cost, a Workload scope what one workload cost. Idle capacity is never charged to a workload.",
+    ),
+    metricName: KubernetesCostMetric.Workload,
+    category: "Cost",
+    defaultAggregation: MetricsAggregationType.Sum,
+    defaultResourceScope: KubernetesResourceScope.Namespace,
+    unit: KUBERNETES_COST_DEFAULT_CURRENCY,
+  },
+  {
+    id: "cost-workload-efficiency",
+    friendlyName: translationKey("Workload Cost Efficiency"),
+    description: translationKey(
+      "How much of the CPU and memory each workload requested it used in each hour, in percent, weighted by what each part cost: 100 is all of it. Low values mean paying for requests nothing uses.",
+    ),
+    metricName: KubernetesCostMetric.Efficiency,
+    category: "Cost",
+    defaultAggregation: MetricsAggregationType.Avg,
+    /*
+     * Namespace, as for Workload Cost: the metric is written for every kind
+     * of workload, so no one Workload Kind fits it; a Workload scope still
+     * reads one workload, of the kind the form is set to.
+     */
+    defaultResourceScope: KubernetesResourceScope.Namespace,
+    unit: "%",
+  },
 ];
 
 export function getAllKubernetesMetrics(): Array<KubernetesMetricDefinition> {
@@ -621,7 +735,15 @@ export function getKubernetesMetricByMetricName(
 }
 
 export function getAllKubernetesMetricCategories(): Array<KubernetesMetricCategory> {
-  return ["Pod", "Node", "Container", "Workload", "HPA", "ControlPlane"];
+  return [
+    "Pod",
+    "Node",
+    "Container",
+    "Workload",
+    "HPA",
+    "ControlPlane",
+    "Cost",
+  ];
 }
 
 /*
@@ -636,6 +758,7 @@ const categoryLabels: Record<KubernetesMetricCategory, string> = {
   Workload: translationKey("Workload"),
   HPA: translationKey("HPA"),
   ControlPlane: translationKey("Control Plane"),
+  Cost: translationKey("Cost"),
 };
 
 export function getKubernetesMetricCategoryLabel(

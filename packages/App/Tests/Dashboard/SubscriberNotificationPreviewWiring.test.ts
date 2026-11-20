@@ -3,6 +3,7 @@ import SubscriberNotificationPreviewCopy, {
 } from "../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberNotificationPreviewCopy";
 import {
   describeHiddenPages,
+  describeNoteShownLater,
   describeNothingSent,
   describePreviewStatusPage,
   describeTemplateChoice,
@@ -184,20 +185,167 @@ describe("the link's name holds the word it shows, in every locale", () => {
 });
 
 describe("what the dialog says", () => {
-  test("each reason nothing will be sent has its own line, looked up", () => {
-    const lines: Array<string> = Object.values(
+  test.each(Object.values(SubscriberNotificationPreviewEvent))(
+    "each reason nothing will be sent has its own line, looked up (%s)",
+    (event: SubscriberNotificationPreviewEvent) => {
+      const lines: Array<string> = Object.values(
+        SubscriberNotificationPreviewNothingSentReason,
+      ).map(
+        (reason: SubscriberNotificationPreviewNothingSentReason): string => {
+          return describeNothingSent(reason, event, english);
+        },
+      );
+
+      expect(new Set(lines).size).toBe(lines.length);
+      expect(
+        describeNothingSent(
+          SubscriberNotificationPreviewNothingSentReason.NoMonitors,
+          event,
+          marked,
+        ),
+      ).toBe(`<${SubscriberNotificationPreviewCopy.noMonitors}>`);
+    },
+  );
+
+  describe("a public note on an incident no status page shows (#9684)", () => {
+    const NOTE: SubscriberNotificationPreviewEvent =
+      SubscriberNotificationPreviewEvent.IncidentPublicNoteCreated;
+    const DECLARE: SubscriberNotificationPreviewEvent =
+      SubscriberNotificationPreviewEvent.IncidentCreated;
+
+    // Each reason, and whether a status page shows the incident then.
+    const SHOWN_ON_A_PAGE: Record<
       SubscriberNotificationPreviewNothingSentReason,
-    ).map((reason: SubscriberNotificationPreviewNothingSentReason): string => {
-      return describeNothingSent(reason, english);
+      boolean
+    > = {
+      [SubscriberNotificationPreviewNothingSentReason.NoMonitors]: false,
+      [SubscriberNotificationPreviewNothingSentReason.HiddenFromStatusPages]:
+        false,
+      [SubscriberNotificationPreviewNothingSentReason.PrivateIncident]: false,
+      [SubscriberNotificationPreviewNothingSentReason.NoStatusPages]: false,
+      // The box is off: the pages that list its monitors still show it.
+      [SubscriberNotificationPreviewNothingSentReason.NotifyOff]: true,
+      // A page shows it, and sends its subscribers nothing.
+      [SubscriberNotificationPreviewNothingSentReason.NotificationsOff]: true,
+    };
+
+    test("with no page showing it, a note is told that none does yet, not that none will", () => {
+      expect(
+        describeNothingSent(
+          SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+          NOTE,
+          english,
+        ),
+      ).toBe("No status page shows this incident yet.");
+
+      expect(
+        describeNothingSent(
+          SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+          NOTE,
+          marked,
+        ),
+      ).toBe(`<${SubscriberNotificationPreviewCopy.noStatusPagesForNote}>`);
     });
 
-    expect(new Set(lines).size).toBe(lines.length);
-    expect(
-      describeNothingSent(
-        SubscriberNotificationPreviewNothingSentReason.NoMonitors,
-        marked,
+    test("declaring, it says no page will show it when it is declared - not that none ever will", () => {
+      expect(
+        describeNothingSent(
+          SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+          DECLARE,
+          english,
+        ),
+      ).toBe(
+        "No status page that lists these monitors will show this incident when it is declared.",
+      );
+
+      expect(
+        describeNothingSent(
+          SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+          DECLARE,
+          marked,
+        ),
+      ).toBe(`<${SubscriberNotificationPreviewCopy.noStatusPages}>`);
+    });
+
+    test.each(
+      Object.values(SubscriberNotificationPreviewNothingSentReason).filter(
+        (reason: SubscriberNotificationPreviewNothingSentReason): boolean => {
+          return (
+            reason !==
+            SubscriberNotificationPreviewNothingSentReason.NoStatusPages
+          );
+        },
       ),
-    ).toBe(`<${SubscriberNotificationPreviewCopy.noMonitors}>`);
+    )(
+      "%s reads the same for a note and a declare",
+      (reason: SubscriberNotificationPreviewNothingSentReason) => {
+        expect(describeNothingSent(reason, NOTE, english)).toBe(
+          describeNothingSent(reason, DECLARE, english),
+        );
+      },
+    );
+
+    test.each(Object.values(SubscriberNotificationPreviewNothingSentReason))(
+      "%s: a note says it shows on a page that starts showing the incident, exactly when no page shows it now",
+      (reason: SubscriberNotificationPreviewNothingSentReason) => {
+        const expected: string | null = SHOWN_ON_A_PAGE[reason]
+          ? null
+          : `<${SubscriberNotificationPreviewCopy.noteShownLater}>`;
+
+        expect(describeNoteShownLater(reason, NOTE, marked)).toBe(expected);
+      },
+    );
+
+    test.each(Object.values(SubscriberNotificationPreviewNothingSentReason))(
+      "%s: declaring has no note, so nothing is said of one",
+      (reason: SubscriberNotificationPreviewNothingSentReason) => {
+        expect(describeNoteShownLater(reason, DECLARE, marked)).toBeNull();
+      },
+    );
+
+    test("the line says the note shows there, and that nobody is notified then", () => {
+      expect(SubscriberNotificationPreviewCopy.noteShownLater).toBe(
+        "Any status page that starts showing this incident shows this note too, without notifying its subscribers.",
+      );
+    });
+
+    /*
+     * "will show this incident", with nothing to say when, read as never:
+     * a note seemed to go nowhere, though a page that lists one of the
+     * incident's monitors later shows it. Said only of the moment an
+     * incident is declared.
+     */
+    test("no reason says a status page will show, or will not show, an incident without saying when", () => {
+      const willShow: RegExp = new RegExp("will (not )?show");
+
+      const sentences: Array<string> = [
+        ...Object.values(SubscriberNotificationPreviewEvent).flatMap(
+          (event: SubscriberNotificationPreviewEvent): Array<string> => {
+            return Object.values(
+              SubscriberNotificationPreviewNothingSentReason,
+            ).flatMap(
+              (
+                reason: SubscriberNotificationPreviewNothingSentReason,
+              ): Array<string> => {
+                return [
+                  describeNothingSent(reason, event, english),
+                  describeNoteShownLater(reason, event, english) || "",
+                ];
+              },
+            );
+          },
+        ),
+      ].filter((sentence: string): boolean => {
+        return willShow.test(sentence);
+      });
+
+      expect(sentences).toEqual([
+        SubscriberNotificationPreviewCopy.noStatusPages,
+      ]);
+      expect(SubscriberNotificationPreviewCopy.noStatusPages).toContain(
+        "when it is declared",
+      );
+    });
   });
 
   test("which template and why, with the template's name filled in after the lookup", () => {
@@ -494,7 +642,7 @@ describe("the dashboard is wired where the feature says", () => {
      * under them.
      */
     expect(composer).toContain(
-      '<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5" data-testid="note-notify-line" > <label htmlFor={notifyId} className="block cursor-pointer text-sm font-medium text-gray-900" > {tx(props.notifyOption.title)} </label> {props.values.shouldNotify && props.notifyPreview ? ( <div className="flex" data-testid="note-notify-preview"> {props.notifyPreview(props.values)} </div> ) : ( <></> )} </div> <p className="mt-0.5 text-xs text-gray-500" data-testid="note-notify-description" >',
+      '<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5" data-testid="note-notify-line" > <label htmlFor={notifyId} className="block cursor-pointer text-sm font-medium text-gray-900" > {tx(props.notifyOption.title)} </label> {props.values.shouldNotify && props.notifyPreview ? ( <div className="flex" data-testid="note-notify-preview"> {props.notifyPreview(props.values)} </div> ) : ( <></> )} </div> {notifyDescription.length > 0 ? ( <div className="mt-0.5 space-y-0.5 text-xs text-gray-500" data-testid="note-notify-description" >',
     );
     expect(
       composer.indexOf('data-testid="note-notify-audience"'),

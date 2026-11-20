@@ -7,7 +7,7 @@ services:
     # needed. This is the version Tests/Ops/validate-collector-configs.sh
     # validates the config against, and the one the config reports as the
     # agent's version (oneuptime.agent.version); bump the three together.
-    image: otel/opentelemetry-collector-contrib:0.161.0
+    image: otel/opentelemetry-collector-contrib:0.165.0
     container_name: oneuptime-vmware-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro

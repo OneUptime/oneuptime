@@ -272,6 +272,8 @@ describe("Monitor overview page", () => {
         "useMonitorOpenWork",
         "useMonitorOverviewData",
         "useMonitorOwners",
+        // Why a status that is not operational holds (#9592).
+        "useMonitorStatusCause",
         "useMonitorUptimeSummary",
         "useOutletContext",
         "useRef",
@@ -505,7 +507,19 @@ describe("Monitor overview data flow", () => {
       }
     }
 
-    expect(readers).toEqual(["Overview/useMonitorOverviewData"]);
+    /*
+     * The status cause (#9592) reads one status event, never the Monitor
+     * row: its root cause, once per status change.
+     */
+    expect(readers).toEqual([
+      "Overview/useMonitorOverviewData",
+      "Overview/useMonitorStatusCause",
+    ]);
+
+    const causeCode: string = getModuleCode("Overview/useMonitorStatusCause");
+
+    expect(causeCode).toContain("modelType: MonitorStatusTimeline,");
+    expect(causeCode).not.toContain("modelType: Monitor,");
 
     /*
      * getReadableMonitorSecretKeySelect() reads the permission snapshot when
@@ -798,8 +812,27 @@ describe("Monitor overview side cards", () => {
 
     expect(editable).toEqual(["name", "description"]);
     // The labels too, folded under Advanced, on one page with no steps.
-    expect(formFields).toContain("getLabelsFormField<Monitor>()");
+    expect(formFields).toContain(
+      "getLabelsFormField<Monitor>({ collapsibleSection: moreFields }),",
+    );
     expect(code).not.toContain("formSteps");
+    /*
+     * And, for a monitor a person made that checks a host, the network
+     * device it checks (issue #9545): the shared field, asked only when the
+     * monitor is of a kind that checks a host and no import made it for a
+     * device, and only of a reader who may read devices.
+     */
+    expect(formFields).toContain("...deviceFormFields,");
+    expect(code).toContain(
+      "const canTieToDevice: boolean = canReadDevice && !props.isMadeForDevice && isDeviceTargetMonitorType(props.monitorType);",
+    );
+    expect(code).toContain(
+      "const deviceFormFields: Fields<Monitor> = canTieToDevice ? [ getMonitorNetworkDeviceFormField({",
+    );
+    // Folded beside the labels, under the one header.
+    expect(code).toContain(
+      'placeholder: "Not tied to a device", collapsibleSection: moreFields,',
+    );
   });
 });
 

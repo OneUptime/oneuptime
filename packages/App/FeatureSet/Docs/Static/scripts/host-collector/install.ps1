@@ -44,7 +44,7 @@ param(
     [string]$Key = "",
     [string[]]$Label = @(),
     [string[]]$EnvVar = @(),
-    [string]$Version = "0.161.0",
+    [string]$Version = "0.165.0",
     [string]$DownloadUrl = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download",
     [string]$Proxy = "",
     [switch]$ReplaceExisting,
@@ -148,7 +148,7 @@ if (-not $Key) { Stop-WithError "-Key is required: a telemetry ingestion key of 
 if (-not (Test-UrlValue $Url)) { Stop-WithError "-Url must be an http:// or https:// address, such as https://oneuptime.com." }
 if (-not (Test-KeyValue $Key)) { Stop-WithError "-Key does not look like an ingestion key. Copy it again from OneUptime." }
 if (-not (Test-UrlValue $DownloadUrl)) { Stop-WithError "-DownloadUrl must be an http:// or https:// address." }
-if ($Version -cnotmatch '^[0-9]+(\.[0-9]+)*\z') { Stop-WithError "-Version must be a release number, such as 0.161.0." }
+if ($Version -cnotmatch '^[0-9]+(\.[0-9]+)*\z') { Stop-WithError "-Version must be a release number, such as 0.165.0." }
 $Proxy = Get-TrimmedUrl $Proxy
 if ($Proxy -and -not (Test-UrlValue $Proxy)) { Stop-WithError "-Proxy must be an http:// or https:// address, such as http://proxy:3128." }
 

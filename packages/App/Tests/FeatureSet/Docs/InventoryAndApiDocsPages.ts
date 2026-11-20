@@ -37,11 +37,12 @@ export const INVENTORY_AND_API_PAGES: ReadonlyArray<InventoryAndApiDocsPageEntry
 /*
  * A table's create button, drawn as translateCreateAction draws it: the
  * custom fields table's and the API keys table's ("Create <singular
- * name>"), and the Inventory list's, whose table names its own verb
- * (createVerb "Add").
+ * name>"), and the Inventory list's and the Esper connections table's,
+ * whose tables name their own verbs (createVerb "Add" and "Connect").
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  [INVENTORY_OVERVIEW]: ["Add Item"],
+  // The Esper connections table's createVerb is "Connect" (issue #9586).
+  [INVENTORY_OVERVIEW]: ["Add Item", "Connect Esper"],
   [INVENTORY_CUSTOM_FIELDS]: ["Create Inventory Item Custom Field"],
   [CMDB_SYNC]: ["Create API Key"],
   [API_REFERENCE]: ["Create API Key"],
@@ -91,10 +92,17 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *   - the Owned permission scope, which no locale has as a key;
  *   - the workflow trigger On Update, which the workflow builder draws as
  *     the component catalog writes it. Its Fields to watch setting is worded
- *     in every language now, so each page names it as drawn.
+ *     in every language now, so each page names it as drawn;
+ *   - a recommended monitor's name, which a Recommendations page draws as
+ *     its template names it: Esper Device Stopped Checking In, and Host
+ *     Stopped Reporting for a device the Android Agent reports (#9835).
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
+    [INVENTORY_OVERVIEW]: [
+      "Esper Device Stopped Checking In",
+      "Host Stopped Reporting",
+    ],
     [API_REFERENCE]: ["⋯", "Owned", "On Update"],
   };
 

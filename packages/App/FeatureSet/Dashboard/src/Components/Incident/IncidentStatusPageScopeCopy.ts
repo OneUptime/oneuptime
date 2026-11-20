@@ -150,8 +150,16 @@ export const IncidentStatusPageScopeCopy: {
     "{{name}} (does not send notifications to its subscribers)",
   audienceAlreadyNotified: "{{name}} (already sent this notification in full)",
   audienceNotListingMonitors: "{{name}} (lists none of these monitors)",
-  audienceNoStatusPages:
-    "No status page subscribers will be notified: no status page that lists these monitors will show this incident.",
+  /*
+   * Nobody, and nothing said of what the status pages show: the pages left
+   * out are listed under it, each with why (#9684). It said "no status page
+   * that lists these monitors will show this incident", which read as never
+   * - a public note seemed to go nowhere, though a page that lists one of
+   * the monitors later shows it - and was untrue when a page left out does
+   * show the incident: one that sends its subscribers nothing, one a Retry
+   * had sent the notification in full, or one the reader cannot see.
+   */
+  audienceNoStatusPages: "No status page subscribers will be notified.",
   audienceNoSubscribers:
     "No one will be notified: these status pages have no subscribers yet.",
   audienceNotificationsOffEverywhere:

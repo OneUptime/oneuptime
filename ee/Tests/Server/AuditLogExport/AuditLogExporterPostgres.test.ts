@@ -767,10 +767,10 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
 
   /*
    * Issue #6247, on the real table: a new export is saved sending the
-   * newest record version; one saved before there was a choice holds the
-   * column's default - what the migration gave every such row - is sent as
-   * version 1, and switched through the service sends version 2 from its
-   * next batch.
+   * newest record version (3, since #9766); one saved before there was a
+   * choice holds the column's default - what the migration gave every such
+   * row - is sent as version 1, and switched through the service sends
+   * version 2 from its next batch.
    */
   test("a new export sends the newest record version; one saved before holds the column's default, 1, until it is switched", async () => {
     const id: ObjectID = await createExport({
@@ -785,7 +785,7 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
       summary: ['Added "Log" (log-1)'],
     };
 
-    expect((await storedRow(id))["schemaVersion"]).toBe(2);
+    expect((await storedRow(id))["schemaVersion"]).toBe(3);
 
     // As the migration left every export saved before it.
     await database.query(

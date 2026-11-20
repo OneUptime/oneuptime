@@ -1,9 +1,20 @@
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
+import {
+  CloudAddedMetric,
+  readCloudAddedMetrics,
+} from "../../../Types/Cloud/CloudAddedMetrics";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionDefinition } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
+  CloudStreamSummary,
   getStreamedMetricKeys,
   readCloudStreamSummary,
 } from "../../../Types/CloudConnection/CloudStream";
+import {
+  AwsStreamCoverage,
+  NO_AWS_STREAM_COVERAGE,
+  getAwsStreamCoverage,
+} from "../../../Types/CloudConnection/CloudStreamStack";
 import {
   CloudConnectionFailureKind,
   CloudConnectionReadStatus,
@@ -39,7 +50,11 @@ import CloudConnectionLanes, {
 } from "./CloudConnectionLanes";
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
 import CloudConnectorRegistry from "./CloudConnectorRegistry";
-import CloudResourceReadingsWriter from "./CloudResourceReadings";
+import CloudResourceReadingsWriter, {
+  CollectedCloudReadings,
+} from "./CloudResourceReadings";
+import CloudRetiredMetricReads from "./CloudRetiredMetricReads";
+import CloudStreamReadings from "./CloudStreamReadings";
 import { withoutStreamedMetrics } from "./CloudStreamedMetrics";
 import {
   CloudConnectionPullState,
@@ -77,7 +92,9 @@ import {
  *      to spend less (the costs and savings lanes), and checks the
  *      project's budgets against the costs;
  *   7. keeps, on each resource, the newest of the metrics that say whether
- *      it is well, and what its rules find in them (CloudResourceReadings);
+ *      it is well, and what its rules find in them (CloudResourceReadings) -
+ *      from the read, and from what an AWS account's streams delivered
+ *      (CloudStreamReadings), which the read then need not read;
  *   8. records the outcome on the connection: when it read, what it found,
  *      the error (secrets removed), where it got to and when it reads next.
  *
@@ -120,7 +137,18 @@ export interface CloudConnectionPullDependencies {
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   // Which queues a collector delivered lately: the stored metrics, unless a test's.
   findCollectorQueues?: CollectorMessagingQueuesFinder | undefined;
+  /*
+   * What the read keeps reading of a deprecated metric, for the monitors and
+   * charts still on it: the project's (CloudRetiredMetricReads), unless a test's.
+   */
+  findRetiredMetricReads?: CloudRetiredMetricReadsFinder | undefined;
 }
+
+export type CloudRetiredMetricReadsFinder = (data: {
+  projectId: ObjectID;
+  provider: CloudProvider | string | undefined;
+  now: Date;
+}) => Promise<Array<CloudAddedMetric>>;
 
 // Said when the read could not tell which queues a collector reads.
 export const COLLECTOR_QUEUES_UNKNOWN_WARNING: string =
@@ -163,6 +191,33 @@ export default class CloudConnectionPullRunner {
     }
 
     return new Date(data.now.getTime() + interval);
+  }
+
+  /*
+   * What a read keeps reading of a deprecated metric for what still reads
+   * it: a lookup that fails reads none this time, and is logged - the read
+   * itself goes on.
+   */
+  public static async findRetiredReads(data: {
+    projectId: ObjectID;
+    provider: CloudProvider | string | undefined;
+    now: Date;
+    find: CloudRetiredMetricReadsFinder;
+  }): Promise<Array<CloudAddedMetric>> {
+    try {
+      return await data.find({
+        projectId: data.projectId,
+        provider: data.provider,
+        now: data.now,
+      });
+    } catch (err) {
+      logger.error(
+        `CloudConnectionPullRunner: could not tell which deprecated metrics project ${data.projectId.toString()} still reads:`,
+      );
+      logger.error(err);
+
+      return [];
+    }
   }
 
   /*
@@ -243,6 +298,7 @@ export default class CloudConnectionPullRunner {
           lastPullResult: true,
           streamKeyCreatedAt: true,
           streamSummary: true,
+          addedMetrics: true,
         },
         props: { isRoot: true },
       });
@@ -294,6 +350,55 @@ export default class CloudConnectionPullRunner {
         connectionId: connection.id!,
       });
 
+      /*
+       * What the connection's streams deliver lately - only while it has a
+       * stream key: once Stop streaming refuses what its streams deliver,
+       * the read reads and writes everything again at once. An AWS stream
+       * writes each key metric its stack carries (CloudStreamStack): the
+       * read leaves those out of what it writes and out of what it reads -
+       * one a resource's health is judged from only while the stream's
+       * readings of its account and Region are fresh (below).
+       */
+      const streamSummary: CloudStreamSummary | null =
+        connection.streamKeyCreatedAt
+          ? readCloudStreamSummary(connection.streamSummary)
+          : null;
+      const awsCoverage: AwsStreamCoverage = streamSummary
+        ? getAwsStreamCoverage({ summary: streamSummary, now })
+        : NO_AWS_STREAM_COVERAGE;
+      /*
+       * What those streams said of the resources' readings lately
+       * (CloudStreamReadings), for an AWS connection that streams: the
+       * read leaves to the stream the metrics health is judged from where
+       * they are fresh, and the readings are written from both. Nothing to
+       * ask of one that does not stream.
+       */
+      const streamed: {
+        readings: Map<string, CollectedCloudReadings>;
+        freshSources: Set<string>;
+      } | null =
+        connection.provider === CloudProvider.AWS && awsCoverage.size > 0
+          ? await CloudStreamReadings.load({
+              connectionId: connection.id!.toString(),
+              now,
+            })
+          : null;
+
+      /*
+       * A deprecated metric a monitor or a chart of the project still reads
+       * is read of the resources it reads, as an addition of its own, until
+       * it is moved (CloudRetiredMetricReads, #9739's gap).
+       */
+      const retiredReads: Array<CloudAddedMetric> =
+        await CloudConnectionPullRunner.findRetiredReads({
+          projectId: connection.projectId,
+          provider: connection.provider,
+          now,
+          find:
+            dependencies.findRetiredMetricReads ||
+            CloudRetiredMetricReads.find.bind(CloudRetiredMetricReads),
+        });
+
       const read: CloudReadResult = await connector.read(settings, {
         transport,
         now: clock,
@@ -304,6 +409,15 @@ export default class CloudConnectionPullRunner {
         maxRequests: CLOUD_READ_MAX_REQUESTS,
         maxDurationMs: CLOUD_READ_MAX_DURATION_MS,
         knownResources: CloudConnectionResourceSync.toKnownResources(linked),
+        awsStreamCoverage: awsCoverage,
+        ...(streamed
+          ? { awsStreamedReadingSources: streamed.freshSources }
+          : {}),
+        // What people added to the reads, beyond the key metrics.
+        addedMetrics: [
+          ...readCloudAddedMetrics(connection.addedMetrics),
+          ...retiredReads,
+        ],
       });
 
       // The resources first, so their metrics land on rows with the cloud's names.
@@ -317,19 +431,15 @@ export default class CloudConnectionPullRunner {
         });
 
       /*
-       * A namespace a stream delivered lately is the stream's to write: the
-       * read leaves out the datapoints the stream writes in its place
-       * (CloudStreamedMetrics: never an Azure metric a diagnostic setting
-       * cannot export, nor a Service Bus or Event Hubs namespace's), and
-       * keeps them for the resources' readings below. Only while the
-       * connection has a stream key: once Stop streaming refuses what its
-       * streams deliver, the read writes everything again at once.
+       * What a stream delivered lately is the stream's to write: the read
+       * leaves out the datapoints the stream writes in its place
+       * (CloudStreamedMetrics: an AWS key metric the stack carries; never
+       * an Azure metric a diagnostic setting cannot export, nor a Service
+       * Bus or Event Hubs namespace's), and keeps them for the resources'
+       * readings below.
        */
-      const streamedKeys: Set<string> = connection.streamKeyCreatedAt
-        ? getStreamedMetricKeys({
-            summary: readCloudStreamSummary(connection.streamSummary),
-            now,
-          })
+      const streamedKeys: Set<string> = streamSummary
+        ? getStreamedMetricKeys({ summary: streamSummary, now })
         : new Set<string>();
       let pointsLeftToStreams: number = 0;
 
@@ -355,7 +465,11 @@ export default class CloudConnectionPullRunner {
 
       for (const payload of read.payloads) {
         const toWrite: { payload: JSONObject | null; leftOut: number } =
-          withoutStreamedMetrics({ payload, streamedKeys });
+          withoutStreamedMetrics({
+            payload,
+            streamedKeys,
+            awsCoverage,
+          });
 
         pointsLeftToStreams += toWrite.leftOut;
 
@@ -492,6 +606,9 @@ export default class CloudConnectionPullRunner {
         connectionId: connection.id!,
         payloads: read.payloads,
         writtenAt: now,
+        ...(streamed && streamed.readings.size > 0
+          ? { streamedReadings: streamed.readings }
+          : {}),
       });
 
       // What the connection holds after the last sync of this read.

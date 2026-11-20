@@ -40,6 +40,7 @@ import TableHealthIngest, {
   IngestStore,
   TableHealthIngestResult,
 } from "./TableHealthIngest";
+import { readSkippedTables } from "../../../Types/DataObservability/SkippedTables";
 
 /*
  * TABLE HEALTH COLLECTED BY ONEUPTIME'S OWN WORKERS.
@@ -156,6 +157,7 @@ export default class DataObservabilityRunner {
         cloudAccountNumber: true,
         region: true,
         tableHealthCollectedAt: true,
+        tableHealthSkippedTables: true,
         watchedPaths: true,
       },
       props: { isRoot: true },
@@ -229,6 +231,11 @@ export default class DataObservabilityRunner {
             (exclusion: unknown): exclusion is string => {
               return typeof exclusion === "string";
             },
+          ),
+          // What the database refused at earlier collections, skipped until each one's next try (#9541).
+          skippedTables: readSkippedTables(
+            store.tableHealthSkippedTables,
+            OneUptimeDate.getCurrentDate(),
           ),
         },
       );

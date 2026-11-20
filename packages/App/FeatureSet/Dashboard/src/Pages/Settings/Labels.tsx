@@ -25,6 +25,7 @@ import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionB
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
+import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
@@ -105,6 +106,8 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             // Not the column's "Any friendly name of this object", written for the API.
             hideColumnDescription: true,
+            // Another label's name, said under the field (#9674).
+            ownsServerError: isNameTakenRefusal,
           },
           {
             field: {

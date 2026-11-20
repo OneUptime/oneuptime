@@ -41,7 +41,7 @@ Fai clic sulla tua foto in alto a destra e scegli **Profilo**. La pagina **Panor
 
 Fai clic su **Modifica: Utente** e cambia ciò che ti serve:
 
-- **E-mail**: l'indirizzo con cui accedi. Se lo cambi, verifichi di nuovo il nuovo indirizzo.
+- **E-mail**: l'indirizzo con cui accedi. Se lo cambi, OneUptime invia un link al nuovo indirizzo, e il tuo indirizzo cambia quando lo apri. Fino ad allora accedi con quello attuale, e **Annulla modifica** ferma la modifica. L'indirizzo di un amministratore principale cambia subito.
 - **Nome completo**: il nome che il tuo team vede in tutto OneUptime.
 - **Fuso orario**: il fuso orario in cui la dashboard mostra e legge gli orari, e quello degli orari nelle notifiche che ti vengono inviate.
 - **Lingua**: la lingua della dashboard in ogni browser in cui accedi, e quella delle tue chiamate di reperibilità. Se non è impostata, le chiamate sono in inglese e la dashboard segue il tuo browser.
@@ -105,24 +105,46 @@ Il link funziona una sola volta, per 15 minuti, e un link più recente lo sostit
 
 ### Attivare l'autenticazione a due fattori
 
-L'autenticazione a due fattori si applica quando accedi con la password o con un link inviato via e-mail. Aggiungi prima un secondo passaggio, poi attivala.
+L'autenticazione a due fattori si applica quando accedi con la tua password o con un link ricevuto via email. Si attiva solo quando il tuo secondo passaggio funziona, quindi non ti chiede mai un passaggio che non hai.
 
 :::steps
-### Aggiungere un'app di autenticazione
+### Scegliere il secondo passaggio
 
-Apri **Sicurezza → Autenticazione a due fattori**. In **App di autenticazione**, aggiungi un'app e dalle un nome. Scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice a 6 cifre che mostra e fai clic su **Verifica e completa**. Per usare invece una chiave USB o NFC, aggiungila in **Chiavi di sicurezza**.
+Apri **Sicurezza → Autenticazione a due fattori** e fai clic su **Attiva l'autenticazione a due fattori**. Scegli **App di autenticazione** o **Chiave di sicurezza** e fai clic su **Continua**.
+
+### Configurarlo
+
+Per un'app di autenticazione, scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice di 6 cifre che mostra e fai clic su **Verifica e completa**. Per una chiave USB o NFC, dalle un nome e segui le istruzioni del browser. L'autenticazione a due fattori è quindi attiva e la scheda mostra **Abilitato**. Dal tuo prossimo accesso con password o con un link via email, OneUptime ti chiede il secondo passaggio.
 
 ### Salvare i codici di backup
 
 La prima volta che aggiungi un'app, una chiave o una passkey, OneUptime mostra **I tuoi codici di backup**. Ogni codice ti fa accedere una volta se perdi l'app o la chiave. Copiali o scaricali, spunta la casella che conferma di averli salvati e fai clic su **Fatto**.
-
-### Attivarla
-
-In cima alla pagina, fai clic su **Attiva l'autenticazione a due fattori** e conferma. La scheda ora mostra **Abilitato**. Dal prossimo accesso con password o con un link inviato via e-mail, OneUptime ti chiede il secondo passaggio.
 :::
+
+Se hai già un'app in **App di autenticazione** o una chiave in **Chiavi di sicurezza**, **Attiva l'autenticazione a due fattori** ti chiede solo di confermare. Finché è attiva, non puoi rimuovere l'ultima app, chiave o passkey: aggiungine prima un'altra, oppure disattiva l'autenticazione a due fattori. Se la scheda mostra **Configurazione necessaria**, l'autenticazione a due fattori è attiva ma non è ancora configurato nulla, spesso perché un amministratore l'ha richiesta: fai clic su **Completa la configurazione**, altrimenti ti verrà chiesto al prossimo accesso.
+
+### Configurare l'autenticazione a due fattori durante l'accesso
+
+Quando un amministratore richiede l'autenticazione a due fattori e non hai ancora configurato nulla, il tuo prossimo accesso con una password o con un link via email ti chiede di configurarla prima di farti entrare. Scegli **App di autenticazione** o **Chiave di sicurezza** e fai clic su **Continua**:
+
+- **App di autenticazione**: scansiona il codice QR, inserisci il codice di 6 cifre che mostra la tua app e fai clic su **Verifica e accedi**.
+- **Chiave di sicurezza**: fai clic su **Registra la chiave di sicurezza** e segui le istruzioni del browser. Tocca una chiave USB o NFC, oppure usa l'impronta digitale, il volto o il blocco schermo del tuo telefono o computer.
+
+Se non hai ancora codici di backup, OneUptime te li mostra una sola volta, e hai effettuato l'accesso. **Scegli un altro metodo** torna alla scelta. Un browser che non può registrare una chiave di sicurezza, come uno su una pagina senza HTTPS, offre solo l'app di autenticazione.
 
 > [!TIP]
 > Ti restano pochi codici di backup? **Rigenera i codici** nella stessa pagina ti dà un nuovo set, e i vecchi codici smettono subito di funzionare.
+
+### Quando la tua organizzazione gestisce il tuo accesso
+
+Su un server che richiede il single sign-on, accedi solo tramite il provider di identità della tua organizzazione, come Okta o Microsoft Entra ID, e OneUptime non imposta per te password, passkey né autenticazione a due fattori. Il **Profilo utente** non ha quindi la sezione **Sicurezza**, e la sua **Panoramica** indica il tuo provider in **Single Sign-On**. Cambia la password e il secondo passaggio presso il tuo provider di identità. Quello che avevi configurato prima resta salvato: torna a funzionare solo se il server smette di richiedere il single sign-on, a meno che un amministratore del server non lo cancelli, e in quel caso ricevi un'email. Gli amministratori principali mantengono le proprie impostazioni di **Sicurezza**.
+
+Lo stesso accade quando ogni progetto a cui appartieni richiede il single sign-on e ha attivo **Gestisci l'accesso con l'SSO**. La tua password ti fa ancora accedere a OneUptime, ma ogni progetto chiede l'SSO, quindi OneUptime non imposta per te nessuna nuova password, passkey o secondo passaggio:
+
+- **Un progetto che non lo fa**: appena sei membro di un progetto, o vieni invitato in uno, che non richiede l'SSO o non ha attivo **Gestisci l'accesso con l'SSO**, la tua sezione **Sicurezza** torna. La **Panoramica** indica allora quei progetti in **Single Sign-On**, come motivo per cui le impostazioni sono tue. Lasciare quel progetto te le toglie di nuovo.
+- **Progetti con provider diversi**: se tutti i tuoi progetti gestiscono l'accesso, ciascuno con il proprio provider di identità, la **Panoramica** indica ogni provider.
+- **Gli amministratori principali** mantengono sempre le proprie impostazioni di **Sicurezza**.
+- **Quello che avevi configurato prima** resta salvato. Può cancellarlo un amministratore del server, e anche un proprietario di tutti i progetti a cui appartieni; ricevi un'email quando lo fanno.
 
 ## I tuoi progetti
 
@@ -162,6 +184,14 @@ Apri **Zona pericolosa → Elimina account**. Puoi eliminare il tuo account solo
 
 :::details Non ho ricevuto l'e-mail per verificare il mio indirizzo
 Accedere di nuovo invia un nuovo link: controlla anche la cartella dello spam. Se non riesci ad accedere, usa **Password dimenticata?** nella pagina di accesso. Il suo link di reimpostazione verifica anche il tuo indirizzo.
+:::
+
+:::details La registrazione mi ha inviato un'e-mail che dice che ho già un account
+Quell'indirizzo ha già un account OneUptime, quindi la registrazione non ha creato né cambiato nulla. Accedi con quello, oppure usa **Password dimenticata?** nella pagina di accesso se non ricordi la password. La pagina di registrazione dice lo stesso per ogni indirizzo, quindi non rivela a nessuno quali indirizzi hanno un account.
+:::
+
+:::details Il mio indirizzo e-mail non è cambiato
+Il tuo indirizzo cambia solo quando apri il link che OneUptime ha inviato al nuovo indirizzo. Il link funziona per 24 ore: se è scaduto, cambia di nuovo la tua e-mail per riceverne uno nuovo. Se un altro account usa già quell'indirizzo, l'e-mail inviata lì lo dice, e il tuo indirizzo resta com'è.
 :::
 
 :::details Ho perso la mia app di autenticazione

@@ -254,7 +254,7 @@ pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
 기본 `otel/opentelemetry-collector-contrib` 이미지는 `FROM scratch`로 빌드되어 journald 리시버가 실행하는 `journalctl`이 없고, 저널을 읽을 수 없는 사용자로 실행됩니다. 이 래퍼를 빌드하고 `docker-compose.yml`의 `image:`가 이를 가리키게 하세요:
 
 ```dockerfile title="Dockerfile"
-FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
+FROM otel/opentelemetry-collector-contrib:0.165.0 AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends systemd \

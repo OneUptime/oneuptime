@@ -22,6 +22,10 @@ import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { ResourceAttentionItem } from "./ResourceAttention";
+import {
+  ResourceAttentionDialogProps,
+  ResourceAttentionDialogRead,
+} from "./ResourceAttentionDialogProps";
 import ResourceAttentionRow from "./ResourceAttentionRow";
 
 /*
@@ -44,33 +48,9 @@ import ResourceAttentionRow from "./ResourceAttentionRow";
  * It is read and left: one way out, Close, and no primary action.
  */
 
-export interface ResourceAttentionDialogRead {
-  items: Array<ResourceAttentionItem>;
-  // More matched than one read lists: the most urgent are shown.
-  isTruncated?: boolean | undefined;
-}
-
-export interface ComponentProps {
-  /*
-   * In the reader's words already, a count in it: "3 failed pods". A page
-   * builds it with translatePlural, so it is never looked up again.
-   */
-  title: string;
-  // What the list is, in English - one fixed sentence, looked up here.
-  description?: string | undefined;
-  // The parts, when the page holds them; else `load` reads them on open.
-  items?: Array<ResourceAttentionItem> | undefined;
-  load?: (() => Promise<ResourceAttentionDialogRead>) | undefined;
-  // What it says when nothing matches any more, in English.
-  emptyMessage: string;
-  // What failed while reading, in English: "Couldn't read the failed pods."
-  whatFailed?: string | undefined;
-  // Prefix of its test ids.
-  testId: string;
-  onClose: () => void;
-  // False when every row is the same kind of part (a list of pods).
-  showKind?: boolean | undefined;
-}
+// React-free, for App's tests (ResourceAttentionDialogProps); re-exported here.
+export type { ResourceAttentionDialogRead };
+export type ComponentProps = ResourceAttentionDialogProps;
 
 // The View link's look: the shared plain button, tinted indigo for View.
 export const RESOURCE_ATTENTION_VIEW_LINK_CLASS_NAME: string = `${OUTLINE_BUTTON_CLASS_NAME} ${
@@ -82,7 +62,7 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [read, setRead] = useState<ResourceAttentionDialogRead | null>(
-    props.items ? { items: props.items } : null,
+    props.items ? { items: props.items, isTruncated: props.isTruncated } : null,
   );
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(!props.items);
@@ -138,10 +118,10 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
   // What the page holds, kept current while the dialog is open.
   useEffect(() => {
     if (props.items) {
-      setRead({ items: props.items });
+      setRead({ items: props.items, isTruncated: props.isTruncated });
       setIsLoading(false);
     }
-  }, [props.items]);
+  }, [props.items, props.isTruncated]);
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !read) {
@@ -192,22 +172,29 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
           className="divide-y divide-gray-100"
         >
           {items.map((item: ResourceAttentionItem): ReactElement => {
+            const isCurrent: boolean = Boolean(
+              props.current && props.current.key === item.key,
+            );
             return (
               <li
                 key={item.key}
                 data-testid={`${props.testId}-item`}
                 data-key={item.key}
                 data-severity={item.severity}
+                data-current={isCurrent ? "true" : undefined}
                 className="flex items-start gap-3 py-4 first:pt-0 last:pb-0"
               >
                 <ResourceAttentionRow
                   item={item}
                   testId={props.testId}
                   showKind={props.showKind}
+                  currentLabel={
+                    isCurrent && props.current ? props.current.label : undefined
+                  }
                   areFactsLinked={true}
                   now={now}
                 />
-                {item.route ? (
+                {item.route && !isCurrent ? (
                   <Link
                     to={item.route}
                     dataTestId={`${props.testId}-view`}
@@ -234,7 +221,7 @@ const ResourceAttentionDialog: FunctionComponent<ComponentProps> = (
             className="mt-4 text-xs text-gray-500"
           >
             {translator.translatePlural(
-              {
+              props.truncatedMessage || {
                 one: "Showing the first {{count}}, the most urgent first.",
                 other: "Showing the first {{count}}, the most urgent first.",
               },

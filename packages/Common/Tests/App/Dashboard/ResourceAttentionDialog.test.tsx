@@ -426,6 +426,87 @@ describe("the dialog a count opens", () => {
       "Showing the first 2, the most urgent first.",
     );
   });
+
+  test("a list in another order says its own order when it lists only some (#9749)", () => {
+    render(
+      <ResourceAttentionDialog
+        testId="failed"
+        title="74 commands failed"
+        items={[crashLoopingPod(), pendingPod()]}
+        isTruncated={true}
+        truncatedMessage={{
+          one: "Showing the newest {{count}}.",
+          other: "Showing the newest {{count}}.",
+        }}
+        emptyMessage="None failed."
+        onClose={() => {}}
+      />,
+    );
+
+    const truncated: HTMLElement = screen.getByTestId("failed-truncated");
+
+    expect(truncated).toHaveTextContent("Showing the newest 2.");
+    expect(truncated).not.toHaveTextContent("most urgent");
+  });
+});
+
+describe("the dialog a part's own status opens", () => {
+  /*
+   * A part's page lists the part itself among what needs attention: its
+   * hero above names it, and View would open the page the reader is on.
+   */
+  test("names the part whose page this is as its card does, with no View; the rest keep theirs", () => {
+    render(
+      <ResourceAttentionDialog
+        testId="status"
+        title="Needs attention"
+        items={[crashLoopingPod(), pendingPod()]}
+        emptyMessage="Nothing needs attention now."
+        onClose={() => {}}
+        current={{ key: "Pod:shop/queued", label: "This pod" }}
+      />,
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("status-item");
+    expect(rows[0]!).not.toHaveAttribute("data-current");
+    expect(within(rows[0]!).getByTestId("status-view")).toHaveAttribute(
+      "href",
+      "/dashboard/k8s/pods/checkout-7d9f8b6c5-x2k4q",
+    );
+
+    expect(rows[1]!).toHaveAttribute("data-current", "true");
+    expect(within(rows[1]!).getByTestId("status-name")).toHaveTextContent(
+      "This pod",
+    );
+    // Its kind is not repeated either: the hero says what it is.
+    expect(within(rows[1]!).queryByTestId("status-kind")).toBeNull();
+    expect(within(rows[1]!).queryByTestId("status-view")).toBeNull();
+    // Why it needs attention still reads in full.
+    expect(within(rows[1]!).getByTestId("status-reason")).toHaveTextContent(
+      "Can't be scheduled",
+    );
+  });
+
+  test("its own row's words are in the reader's language", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+
+    render(
+      <ResourceAttentionDialog
+        testId="status"
+        title="Needs attention"
+        items={[pendingPod()]}
+        emptyMessage="Nothing needs attention now."
+        onClose={() => {}}
+        current={{ key: "Pod:shop/queued", label: "This pod" }}
+      />,
+    );
+
+    const german: string = readLocale("de")["This pod"] || "";
+    expect(german).not.toBe("");
+    expect(screen.getByTestId("status-name")).toHaveTextContent(german);
+  });
 });
 
 describe("a count that opens the dialog", () => {
@@ -619,6 +700,35 @@ describe("a resource's health pill", () => {
 
     expect(screen.getByTestId("health").tagName).toBe("SPAN");
   });
+
+  /*
+   * A pill in a list of several - a cloud's regions (#9728) - says whose
+   * health its dialog is about: the name as written, the sentence in the
+   * reader's words.
+   */
+  test("a pill among several names whose health its dialog is about", () => {
+    render(
+      <ResourceHealthPill
+        health="Degraded"
+        isConnected={true}
+        items={[pendingPod()]}
+        testId="health"
+        words={{
+          degradedTitle: "Why region {{name}} is Degraded",
+          unhealthyTitle: "Why region {{name}} is Unhealthy",
+          titleValues: { name: "RegionTwo" },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("health"));
+
+    expect(
+      within(screen.getByRole("dialog")).getByText(
+        "Why region RegionTwo is Degraded",
+      ),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("the Needs attention card draws the same row", () => {
@@ -653,5 +763,96 @@ describe("the Needs attention card draws the same row", () => {
         "Pod",
       );
     });
+  });
+
+  /*
+   * A nearly full claim under the cluster's Needs attention (#9643): how
+   * much is used and free, how soon it is full, and the pod that mounts it.
+   */
+  function nearlyFullClaim(): ResourceAttentionItem {
+    return {
+      key: "PersistentVolumeClaim/data/data-postgres-0",
+      kind: "PVC",
+      kindAsWritten: true,
+      icon: IconProp.Database,
+      name: "data-postgres-0",
+      detail: "data",
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [
+        { text: "Almost out of space" },
+        {
+          text: "{{percent}} used, {{free}} free",
+          values: { percent: "95%", free: "2.5 GiB" },
+        },
+        {
+          text: "Full in about {{count}} hours",
+          plural: { one: "Full in about {{count}} hour", count: 5 },
+        },
+      ],
+      route: new Route("/dashboard/k8s/pvcs/data-postgres-0"),
+      facts: [
+        {
+          key: "pod",
+          label: "Pod",
+          value: "postgres-0",
+          route: new Route("/dashboard/k8s/pods/postgres-0"),
+        },
+      ],
+    };
+  }
+
+  test("a nearly full claim: used and free, how soon it is full, and its pod", () => {
+    render(
+      <NeedsAttentionCard
+        testId="needs-attention"
+        items={[nearlyFullClaim()]}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId("needs-attention-item");
+    const links: Array<HTMLElement> = within(row).getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]?.getAttribute("href")).toBe(
+      "/dashboard/k8s/pvcs/data-postgres-0",
+    );
+    expect(
+      within(row)
+        .getAllByTestId("needs-attention-reason")
+        .map((chip: HTMLElement): string => {
+          return chip.textContent || "";
+        }),
+    ).toEqual([
+      "Almost out of space",
+      "95% used, 2.5 GiB free",
+      // A count holds to the word it counts.
+      "Full in about 5 hours",
+    ]);
+    expect(within(row).getByTestId("needs-attention-facts")).toHaveTextContent(
+      "postgres-0",
+    );
+  });
+
+  test("in the dialog a count opens, its pod is a step to the pod's page", () => {
+    render(
+      <ResourceAttentionDialog
+        testId="full"
+        title="1 claim"
+        description="Claims nearly full."
+        items={[nearlyFullClaim()]}
+        emptyMessage="No claim is nearly full."
+        onClose={() => {}}
+        showKind={true}
+      />,
+    );
+
+    const facts: HTMLElement = screen.getByTestId("full-facts");
+    expect(facts).toHaveTextContent("Pod:");
+    expect(
+      within(facts)
+        .getAllByTestId("full-fact-link")
+        .map((link: HTMLElement): string | null => {
+          return link.getAttribute("href");
+        }),
+    ).toEqual(["/dashboard/k8s/pods/postgres-0"]);
   });
 });

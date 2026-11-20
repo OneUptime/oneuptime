@@ -11,7 +11,6 @@ import NotificationSettingEventType from "../../../Types/NotificationSetting/Not
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
 import Timezone from "../../../Types/Timezone";
-import { WhatsAppMessagePayload } from "../../../Types/WhatsApp/WhatsAppMessage";
 import PushNotificationUtil from "../PushNotificationUtil";
 
 /*
@@ -51,12 +50,18 @@ export interface MissedCall {
   incomingCallLogViewLink: string;
 }
 
+/*
+ * No WhatsApp message: WhatsApp delivers only Meta-approved templates and
+ * none is approved for a missed call (Types/WhatsApp/WhatsAppEventTemplates),
+ * so none is handed over and sendUserNotification skips the channel. The
+ * plain body this used to hand over was refused by the notification
+ * service, a failed WhatsApp log each time, and reached nobody (#9715).
+ */
 export interface MissedCallNotificationContent {
   emailEnvelope: EmailEnvelope;
   smsMessage: SMSMessage;
   callRequestMessage: CallRequestMessage;
   pushNotificationMessage: PushNotificationMessage;
-  whatsAppMessage: WhatsAppMessagePayload;
 }
 
 export default class MissedCallNotification {
@@ -303,21 +308,11 @@ export default class MissedCallNotification {
         requireInteraction: false,
       });
 
-    /*
-     * No WhatsApp template is registered for this event, and
-     * createWhatsAppMessageFromTemplate throws without one. A plain body is
-     * sent instead, as the SLO notifications do.
-     */
-    const whatsAppMessage: WhatsAppMessagePayload = {
-      body: smsMessage.message,
-    };
-
     return {
       emailEnvelope,
       smsMessage,
       callRequestMessage,
       pushNotificationMessage,
-      whatsAppMessage,
     };
   }
 }

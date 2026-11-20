@@ -718,9 +718,18 @@ describe("list pages", () => {
     expect(COLUMNS).toContain(
       'title: "Shared", key: "shared", description: PROXMOX_METRIC_DESCRIPTIONS.storageShared,',
     );
+    /*
+     * How full each storage is: the table's shared Used and Free columns
+     * (#9539), explained by the storage page's own Used and Free tiles' words,
+     * in place of a "Used / Total" text written in English digits.
+     */
     expect(COLUMNS).toContain(
-      'title: "Used / Total", key: "diskBytes", description: PROXMOX_METRIC_DESCRIPTIONS.storageTableUsage,',
+      "usedDescription: PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent, freeDescription: PROXMOX_METRIC_DESCRIPTIONS.storageFree,",
     );
+    expect(STORAGE).toContain(
+      "storageUsageColumns={PROXMOX_STORAGE_USAGE_COLUMNS}",
+    );
+    expect(COLUMNS).not.toContain('title: "Used / Total"');
     // Storage has no CPU or memory columns, so it must not describe them.
     expect(STORAGE).toContain("showResourceMetrics={false}");
     expect(STORAGE).not.toMatch(/\b(cpu|memory): PROXMOX_METRIC/);
@@ -757,5 +766,121 @@ describe("insights", () => {
       'description="Per-second inbound and outbound network throughput summed across all guests."',
     );
     expect(network).toContain("<ProxmoxRateChart");
+  });
+});
+
+/*
+ * "2/3 nodes online", "1 HA error", "Last backup failed 1" said something
+ * was wrong, never which part or why (#9594). Each count of what is wrong
+ * opens exactly the parts it counts, through the shared pill and the
+ * cluster's own rules (ProxmoxHealth.getProxmoxProblemItems).
+ */
+describe("cluster overview: counts of what is wrong open which, and why", () => {
+  const PILL_IMPORT: RegExp =
+    /import ResourceAttentionPill, \{ ComponentProps as ResourceAttentionPillProps, \} from "(\.\.\/)+(Components\/)?ResourcePart\/ResourceAttentionPill";/;
+
+  test("the Overview and the Backups card draw the shared pill, from the cluster's rules", () => {
+    expect(OVERVIEW).toMatch(PILL_IMPORT);
+    expect(BACKUPS_CARD).toMatch(PILL_IMPORT);
+    expect(OVERVIEW).toContain("getProxmoxProblemItems({");
+    expect(BACKUPS_CARD).toContain("getProxmoxProblemItems({");
+  });
+
+  test("the nodes chip and the Node Availability tile open the nodes offline, and the quorum lost", () => {
+    expect(OVERVIEW).toContain(
+      'const nodesOfflineItems: Array<ResourceAttentionItem> = problemItemsOf({ kind: "nodesOffline", });',
+    );
+    const problem: string = between(
+      OVERVIEW,
+      "const nodesProblem:",
+      "const getGuestRoute",
+    );
+    expect(problem).toContain("...quorumItems, ...nodesOfflineItems,");
+    expect(problem).toContain('hint: "Show which nodes and why"');
+
+    const chip: string = between(
+      OVERVIEW,
+      'testId: "proxmox-hero-nodes",',
+      "if (guestsTotal > 0)",
+    );
+    expect(chip).toContain("problem: nodesProblem");
+
+    const tile: string = between(
+      OVERVIEW,
+      '<GoldenMetricTile title="Node Availability"',
+      "/>",
+    );
+    expect(tile).toContain("attention={nodesProblem}");
+    // Its figure in the reader's digits, as the hero's chips write it.
+    expect(tile).toContain(
+      "`${translator.formatNumber(nodesOnline)}/${translator.formatNumber(nodesTotal)}`",
+    );
+  });
+
+  /*
+   * "8/10 guests running" opened the whole list while a guest that starts
+   * on boot was stopped (#9729): after the chip and under the Guests tile's
+   * figure, the guests that should be running open, by the rules, while
+   * the agent reports.
+   */
+  test("the guests chip and the Guests tile open the guests that should be running", () => {
+    expect(OVERVIEW).toContain(
+      'const guestsStoppedItems: Array<ResourceAttentionItem> = problemItemsOf({ kind: "guestsStopped", });',
+    );
+    // problemItemsOf reads nothing while the agent is disconnected.
+    expect(OVERVIEW).toContain(
+      "return inventory && isClusterConnected ? getProxmoxProblemItems({",
+    );
+
+    const chip: string = between(
+      OVERVIEW,
+      'testId: "proxmox-hero-guests",',
+      "if (templatesTotal > 0)",
+    );
+    expect(chip).toContain(
+      'problem: getProxmoxGuestsStoppedPill({ testId: "proxmox-hero-guests-stopped", items: guestsStoppedItems, translator: translator, }),',
+    );
+
+    const tile: string = between(
+      OVERVIEW,
+      '<GoldenMetricTile title="Guests"',
+      "/>",
+    );
+    expect(tile).toContain(
+      'attention={getProxmoxGuestsStoppedPill({ testId: "proxmox-tile-guests-stopped", items: guestsStoppedItems, translator: translator, })}',
+    );
+
+    // Its tone is the shared rule: red while HA gave up on one, amber otherwise.
+    const pill: string = between(
+      OVERVIEW,
+      "export function getProxmoxGuestsStoppedPill(",
+      "showKind: false,",
+    );
+    expect(pill).toContain("tone: getResourceAttentionTone(data.items),");
+    expect(pill).toContain("hint: PROXMOX_GUESTS_HINT,");
+  });
+
+  test("an HA chip in error or fence opens its resources; the calm states stay words", () => {
+    const chips: string = between(
+      OVERVIEW,
+      "{haChips.length > 0 && (",
+      "</div> )}",
+    );
+    expect(chips).toContain(
+      'chip.state === "error" || chip.state === "fence" ? problemItemsOf({ kind: "haState", state: chip.state })',
+    );
+    expect(chips).toContain("<ResourceAttentionPill");
+    // A count in the reader's digits on every chip.
+    expect(chips).toContain("{translator.formatNumber(chip.value)}");
+    expect(chips).not.toContain("{chip.value}");
+  });
+
+  test("the Backups card's failed and in-no-job counts open their guests, each a step from its page", () => {
+    expect(BACKUPS_CARD).toContain('guestsOf({ kind: "backupFailed" })');
+    expect(BACKUPS_CARD).toContain('guestsOf({ kind: "noBackupJob" })');
+    expect(BACKUPS_CARD).toContain(
+      "<ResourceAttentionPill {...stat.problem} />",
+    );
+    expect(OVERVIEW).toContain("routeFor={getPartRoute}");
   });
 });

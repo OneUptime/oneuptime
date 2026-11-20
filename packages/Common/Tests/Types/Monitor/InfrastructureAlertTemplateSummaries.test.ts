@@ -4,7 +4,10 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { getAllCephAlertTemplates } from "../../../Types/Monitor/CephAlertTemplates";
 import { getAllDockerAlertTemplates } from "../../../Types/Monitor/DockerAlertTemplates";
 import { getAllDockerSwarmAlertTemplates } from "../../../Types/Monitor/DockerSwarmAlertTemplates";
-import { getAllHostAlertTemplates } from "../../../Types/Monitor/HostAlertTemplates";
+import {
+  getAllHostAlertTemplates,
+  getAndroidHostAlertTemplates,
+} from "../../../Types/Monitor/HostAlertTemplates";
 import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
@@ -52,7 +55,11 @@ const CATALOGS: Array<Catalog> = [
   {
     name: "Host",
     resourceType: MonitorRecommendationResourceType.Host,
-    templates: getAllHostAlertTemplates(),
+    // A server's templates, and the ones only an Android device has (#9802).
+    templates: [
+      ...getAllHostAlertTemplates(),
+      ...getAndroidHostAlertTemplates(),
+    ],
   },
   {
     name: "Docker",

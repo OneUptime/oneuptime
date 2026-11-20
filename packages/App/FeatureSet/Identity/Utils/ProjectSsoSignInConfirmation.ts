@@ -7,6 +7,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import { JSONObject } from "Common/Types/JSON";
+import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -24,6 +26,7 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserProjectSsoConsentService from "Common/Server/Services/UserProjectSsoConsentService";
 import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
 import SsoTeamMembership, {
   SsoTeamMembershipOutcome,
@@ -53,9 +56,12 @@ import User from "Common/Models/DatabaseModels/User";
  * own address instead. The link in that email, and only that link, records the
  * owner's consent (UserProjectSsoConsent). After that, sign-ins through the
  * project's SSO go straight through, exactly as before. The same click proves
- * the mailbox, so it also verifies the address of an account the IdP has just
- * provisioned -- which is what "email verification for SSO signups" means
- * here.
+ * the mailbox, so it also verifies the account's address -- which is what
+ * "email verification for SSO signups" means here. An address no account
+ * uses yet gets nothing made for it: its link carries the sign-in, and
+ * confirming it makes the account (requestConfirmationForNewAccount, #9824).
+ * Every sign-in that stops answers alike, whatever stopped it
+ * (ProjectSsoSignInGate).
  *
  * Self-hosted installs are unchanged. Their project admins are usually one
  * organisation, and many have no working SMTP to confirm anything with.
@@ -112,29 +118,53 @@ interface ProjectSsoProvider {
 
 export const PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS: number = 24;
 
-// What a sign-in that is waiting on its confirmation email tells the person.
+/*
+ * What every sign-in a project's single sign-on may not finish yet tells the
+ * person, on the hosted service: one page, in the same time, whether the
+ * address has an account that waits on its confirmation, has none yet, is
+ * blocked, or is an administrator's (#9824, ProjectSsoSignInGate). True of
+ * each: a link went to the address only where it can do something.
+ */
 export const PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE: string =
-  "To finish signing in with single sign-on, open the link we have just emailed you. You only need to do this once for this project. Please do not forget to check spam.";
+  "If this address can sign in through this project's single sign-on, we have emailed it a link to finish signing in. You only need to do this once for this project. Please do not forget to check spam.";
+
+export const PROJECT_SSO_CONFIRMATION_REQUIRED_TITLE: string =
+  "Check your email.";
+
+/*
+ * What a sign-in a project's single sign-on may never finish tells the
+ * person on a self-hosted server: one page for a blocked account and an
+ * administrator's alike (#9824). Why is logged on the server, and recorded
+ * in the person's own projects' audit logs.
+ */
+export const PROJECT_SSO_SIGN_IN_REFUSED_TITLE: string =
+  "We could not sign you in with single sign-on.";
+
+export const PROJECT_SSO_SIGN_IN_REFUSED_MESSAGE: string =
+  "Sign in to OneUptime another way, or ask your OneUptime administrator for help.";
+
+// The same, as the reason code on the mobile app's deep link.
+export const PROJECT_SSO_SIGN_IN_REFUSED_ERROR: string = "sso_sign_in_refused";
+
+// What a confirmation link for an account still to be made is signed for.
+export const PROJECT_SSO_NEW_ACCOUNT_PURPOSE: string =
+  "project-sso-new-account-confirmation";
+
+// The query parameter that carries it.
+export const PROJECT_SSO_NEW_ACCOUNT_PARAMETER: string = "account";
+
+// What a confirmation link for an account still to be made carries.
+export interface ProjectSsoNewAccountClaims {
+  email: Email;
+  name: string | null;
+  kind: ProjectSsoKind;
+  projectId: ObjectID;
+  providerId: ObjectID;
+}
 
 // The same, as the reason code on the mobile app's deep link.
 export const PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR: string =
   "sso_confirmation_required";
-
-/*
- * What an administrator account is told when a project's single sign-on
- * refuses to authenticate it (see the doctrine above). Deliberately names a
- * first-party way back in rather than why, so the page reads the same to the
- * person whether or not they expected it.
- */
-export const PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE: string =
-  "Sign in with your OneUptime account.";
-
-export const PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE: string =
-  "This account has OneUptime administrator access, which a project's single sign-on cannot grant. Sign in with your email and password, a passkey, or an instance-wide single sign-on instead.";
-
-// The same, as the reason code on the mobile app's deep link.
-export const PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR: string =
-  "sso_admin_not_allowed";
 
 /*
  * One email per account, per project, per window, per node. The SSO callback
@@ -317,19 +347,10 @@ export default class ProjectSsoSignInConfirmation {
       }
 
       const throttleKey: string = `${data.user.id.toString()}:${data.projectId.toString()}`;
-      const now: number = Date.now();
 
-      for (const [key, sentAt] of lastConfirmationEmailSentAt) {
-        if (now - sentAt >= PROJECT_SSO_CONFIRMATION_EMAIL_THROTTLE_MS) {
-          lastConfirmationEmailSentAt.delete(key);
-        }
-      }
-
-      if (lastConfirmationEmailSentAt.has(throttleKey)) {
+      if (!this.takeEmailSlot(throttleKey)) {
         return;
       }
-
-      lastConfirmationEmailSentAt.set(throttleKey, now);
 
       const token: ObjectID = ObjectID.generate();
 
@@ -609,15 +630,38 @@ export default class ProjectSsoSignInConfirmation {
       return invalid;
     }
 
-    if (isAlreadyMember) {
+    return await this.joinAndRecordConsent({
+      user: user,
+      projectId: projectId,
+      provider: provider,
+      isAlreadyMember: isAlreadyMember,
+    });
+  }
+
+  /*
+   * What a confirmed link writes, once everything that can refuse has been
+   * read: the person joins the project - a pending invitation into it is
+   * accepted, else the provider's default teams take them - their address
+   * is verified, and their consent to this project's sign-in is recorded.
+   */
+  private static async joinAndRecordConsent(data: {
+    user: User;
+    projectId: ObjectID;
+    provider: ProjectSsoProvider;
+    isAlreadyMember: boolean;
+  }): Promise<ProjectSsoConfirmationResult> {
+    const user: User = data.user;
+    const userId: ObjectID = user.id!;
+
+    if (data.isAlreadyMember) {
       /*
        * An invitation into this project that was still pending: confirming
        * this project's sign-in is the person agreeing to join it.
        */
       await TeamMemberService.updateBy({
         query: {
-          projectId: projectId,
-          userId: user.id,
+          projectId: data.projectId,
+          userId: userId,
           hasAcceptedInvitation: false,
         },
         data: {
@@ -639,9 +683,9 @@ export default class ProjectSsoSignInConfirmation {
        */
       const added: SsoTeamMembershipOutcome =
         await SsoTeamMembership.addToTeams({
-          projectId: projectId,
-          userId: user.id,
-          teams: provider.teams,
+          projectId: data.projectId,
+          userId: userId,
+          teams: data.provider.teams,
         });
 
       if (added === SsoTeamMembershipOutcome.NoRoom) {
@@ -655,7 +699,7 @@ export default class ProjectSsoSignInConfirmation {
      */
     if (!user.isEmailVerified) {
       await UserService.updateOneById({
-        id: user.id,
+        id: userId,
         data: {
           isEmailVerified: true,
         },
@@ -666,19 +710,331 @@ export default class ProjectSsoSignInConfirmation {
     }
 
     await UserProjectSsoConsentService.recordConsent({
-      userId: user.id,
-      projectId: projectId,
+      userId: userId,
+      projectId: data.projectId,
     });
 
-    await AccessTokenService.refreshUserAllPermissions(user.id);
+    await AccessTokenService.refreshUserAllPermissions(userId);
 
     logger.info("Project SSO sign-in confirmed from the mailbox", {
-      userId: user.id.toString(),
-      projectId: projectId.toString(),
+      userId: userId.toString(),
+      projectId: data.projectId.toString(),
       service: "identity",
     });
 
     return { outcome: ProjectSsoConfirmationOutcome.Confirmed };
+  }
+
+  /*
+   * ---------------------------------------------------------------------
+   * AN ADDRESS NO ACCOUNT USES YET (#9824).
+   *
+   * A sign-in through a project's provider for an address with no account
+   * used to make the account at once - a scrypt hash that took a sign-in
+   * for such an address longer than any other, and an account left behind
+   * for every address a hostile provider asserted - and only then asked its
+   * mailbox. Now nothing is made: the address is sent a link that carries
+   * the sign-in (whose address, the name the provider sent, which project
+   * and provider), signed by the server so nobody else can make one, and
+   * valid for a day. Confirming from the mailbox makes the account, joins
+   * it to the project and records its consent, as confirming an existing
+   * account's sign-in does. A second click, or one after an account has
+   * appeared at the address meanwhile, confirms that account: the link
+   * proves the mailbox either way.
+   * ---------------------------------------------------------------------
+   */
+  public static getNewAccountToken(claims: ProjectSsoNewAccountClaims): string {
+    return JSONWebToken.signJsonPayload(
+      {
+        purpose: PROJECT_SSO_NEW_ACCOUNT_PURPOSE,
+        email: claims.email.toString(),
+        name: claims.name || "",
+        kind: claims.kind,
+        projectId: claims.projectId.toString(),
+        providerId: claims.providerId.toString(),
+      },
+      PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS * 60 * 60,
+    );
+  }
+
+  /*
+   * The sign-in a new-account link carries, when it was made by this server
+   * for the provider and project its path names; null for anything else.
+   * An expired link is read with `isExpired` set, so the page can say so.
+   */
+  public static readNewAccountToken(data: {
+    account: string;
+    kind: string;
+    projectId: string;
+    providerId: string;
+  }): (ProjectSsoNewAccountClaims & { isExpired: boolean }) | null {
+    if (
+      !data.account ||
+      !this.isProjectSsoKind(data.kind) ||
+      !ObjectID.isValidUUID(data.projectId || "") ||
+      !ObjectID.isValidUUID(data.providerId || "")
+    ) {
+      return null;
+    }
+
+    let claims: JSONObject;
+    let isExpired: boolean = false;
+
+    try {
+      claims = JSONWebToken.decodeJsonPayload(data.account);
+    } catch {
+      try {
+        claims = JSONWebToken.decodeJsonPayload(data.account, {
+          acceptExpired: true,
+        });
+        isExpired = true;
+      } catch {
+        return null;
+      }
+    }
+
+    const email: unknown = claims["email"];
+    const sameId: (claimed: unknown, inPath: string) => boolean = (
+      claimed: unknown,
+      inPath: string,
+    ): boolean => {
+      return (
+        typeof claimed === "string" &&
+        claimed.toLowerCase() === inPath.toLowerCase()
+      );
+    };
+
+    if (
+      claims["purpose"] !== PROJECT_SSO_NEW_ACCOUNT_PURPOSE ||
+      claims["kind"] !== data.kind ||
+      !sameId(claims["projectId"], data.projectId) ||
+      !sameId(claims["providerId"], data.providerId) ||
+      typeof email !== "string" ||
+      !Email.isValid(email)
+    ) {
+      return null;
+    }
+
+    const name: unknown = claims["name"];
+
+    return {
+      email: new Email(email),
+      name: typeof name === "string" && name.trim() ? name.trim() : null,
+      kind: data.kind as ProjectSsoKind,
+      projectId: new ObjectID(data.projectId),
+      providerId: new ObjectID(data.providerId),
+      isExpired: isExpired,
+    };
+  }
+
+  /*
+   * Mails an address no account uses yet the link that, once its owner
+   * confirms, makes the account and lets this project's sign-in through.
+   * Never throws, and is never waited for by a sign-in: what it takes must
+   * not say whether the address has an account.
+   */
+  public static async requestConfirmationForNewAccount(data: {
+    email: Email;
+    name: string | null;
+    projectId: ObjectID;
+    kind: ProjectSsoKind;
+    providerId: ObjectID;
+    origin?: RequestOrigin | undefined;
+  }): Promise<void> {
+    try {
+      const throttleKey: string = `new:${data.email.toString().toLowerCase()}:${data.projectId.toString()}`;
+
+      if (!this.takeEmailSlot(throttleKey)) {
+        return;
+      }
+
+      const host: Hostname = await DatabaseConfig.getHost();
+      const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+      const confirmationUrl: URL = new URL(
+        httpProtocol,
+        host,
+        this.getConfirmationRoute({
+          kind: data.kind,
+          projectId: data.projectId.toString(),
+          providerId: data.providerId.toString(),
+        }),
+      ).addQueryParam(
+        PROJECT_SSO_NEW_ACCOUNT_PARAMETER,
+        this.getNewAccountToken({
+          email: data.email,
+          name: data.name,
+          kind: data.kind,
+          projectId: data.projectId,
+          providerId: data.providerId,
+        }),
+      );
+
+      const projectName: string = await this.getProjectName(data.projectId);
+
+      await MailService.sendMail({
+        toEmail: data.email,
+        subject: `Confirm single sign-on for your ${ProductBrandingText.getProductName()} account`,
+        isSubjectLiteral: true,
+        templateType: EmailTemplateType.ConfirmProjectSsoSignIn,
+        vars: {
+          // Escaped text, never HTML: the project's name is its admins'.
+          signInSummary: `Someone just signed in through the single sign-on of the OneUptime project "${projectName}" as ${data.email.toString()}. No ${ProductBrandingText.getProductName()} account uses this address yet: if it was you, confirm, and one is set up for you and signed in through it.`,
+          confirmationUrl: confirmationUrl.toString(),
+          expiryNote: `This link expires in ${PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS} hours.`,
+          homeUrl: new URL(httpProtocol, host).toString(),
+          ...RequestOriginUtil.getEmailVars({
+            origin: data.origin,
+            timezone: undefined,
+          }),
+        },
+      });
+    } catch (err) {
+      logger.error(err as Error, {
+        projectId: data.projectId.toString(),
+        service: "identity",
+      });
+    }
+  }
+
+  /*
+   * Spends a new-account link (see above): makes the account the sign-in
+   * named, unless one has appeared at its address meanwhile, then writes
+   * what confirming any account's sign-in writes. Everything that can
+   * refuse is read before anything is made.
+   */
+  public static async confirmNewAccount(data: {
+    account: string;
+    kind: string;
+    projectId: string;
+    providerId: string;
+  }): Promise<ProjectSsoConfirmationResult> {
+    const invalid: ProjectSsoConfirmationResult = {
+      outcome: ProjectSsoConfirmationOutcome.InvalidLink,
+    };
+
+    const claims: (ProjectSsoNewAccountClaims & { isExpired: boolean }) | null =
+      this.readNewAccountToken(data);
+
+    if (!claims) {
+      return invalid;
+    }
+
+    if (claims.isExpired) {
+      return { outcome: ProjectSsoConfirmationOutcome.ExpiredLink };
+    }
+
+    const provider: ProjectSsoProvider | null = await this.findProvider({
+      kind: claims.kind,
+      projectId: claims.projectId,
+      providerId: claims.providerId,
+    });
+
+    if (!provider) {
+      return { outcome: ProjectSsoConfirmationOutcome.ProviderUnavailable };
+    }
+
+    let user: User | null = await this.findAccountAt(claims.email);
+
+    if (user && this.mustNotSignInThroughProjectProvider(user)) {
+      return invalid;
+    }
+
+    if (user?.isBlocked) {
+      return { outcome: ProjectSsoConfirmationOutcome.AccountBlocked };
+    }
+
+    const isAlreadyMember: boolean = user?.id
+      ? (
+          await TeamMemberService.countBy({
+            query: {
+              projectId: claims.projectId,
+              userId: user.id,
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        ).toNumber() > 0
+      : false;
+
+    if (!isAlreadyMember && provider.teams.length === 0) {
+      return { outcome: ProjectSsoConfirmationOutcome.NoDefaultTeams };
+    }
+
+    if (!user) {
+      try {
+        user = await UserService.createByEmail({
+          email: claims.email,
+          name: claims.name ? new Name(claims.name) : undefined,
+          // Verified once it has joined (joinAndRecordConsent).
+          isEmailVerified: false,
+          generateRandomPassword: true,
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        // A second click made it a moment ago: confirm that one.
+        user = await this.findAccountAt(claims.email);
+
+        if (!user) {
+          throw err;
+        }
+      }
+    }
+
+    if (!user?.id) {
+      return invalid;
+    }
+
+    return await this.joinAndRecordConsent({
+      user: user,
+      projectId: claims.projectId,
+      provider: provider,
+      isAlreadyMember: isAlreadyMember,
+    });
+  }
+
+  // The account at an address, as a confirmation reads it.
+  private static async findAccountAt(email: Email): Promise<User | null> {
+    return await UserService.findOneBy({
+      query: {
+        email: email,
+      },
+      select: {
+        _id: true,
+        email: true,
+        isEmailVerified: true,
+        isBlocked: true,
+        isMasterAdmin: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Whether a confirmation email may go out under this key now, taking the
+   * slot if so: one per key, per window, per node.
+   */
+  private static takeEmailSlot(throttleKey: string): boolean {
+    const now: number = Date.now();
+
+    for (const [key, sentAt] of lastConfirmationEmailSentAt) {
+      if (now - sentAt >= PROJECT_SSO_CONFIRMATION_EMAIL_THROTTLE_MS) {
+        lastConfirmationEmailSentAt.delete(key);
+      }
+    }
+
+    if (lastConfirmationEmailSentAt.has(throttleKey)) {
+      return false;
+    }
+
+    lastConfirmationEmailSentAt.set(throttleKey, now);
+
+    return true;
   }
 
   // Test-only: forget which confirmation emails were recently sent.

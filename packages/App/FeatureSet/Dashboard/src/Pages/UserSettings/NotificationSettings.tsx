@@ -57,6 +57,7 @@ import {
 import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 import NotificationMatrix, {
   NotificationMatrixEvent,
+  NotificationMatrixSection,
 } from "../../Components/NotificationSettings/NotificationMatrix";
 import {
   ChannelReadinessFacts,
@@ -414,6 +415,10 @@ const EVENT_LIBRARY: Record<
     label: "Added as monitor owner",
     description: "You are added as an owner of a monitor.",
   },
+  [NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as monitor group owner",
+    description: "You are added as an owner of a monitor group.",
+  },
   [NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION]: {
     label: "SLO status changed",
     description:
@@ -427,6 +432,41 @@ const EVENT_LIBRARY: Record<
     label: "Exception assigned to me",
     description:
       "Someone assigns an exception to you, or to a team you are on.",
+  },
+  [NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as table owner",
+    description: "You are added as an owner of a table.",
+  },
+  [NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as pipeline owner",
+    description: "You are added as an owner of a pipeline.",
+  },
+  [NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as data store owner",
+    description: "You are added as an owner of a data store.",
+  },
+  [NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as service or infrastructure owner",
+      description:
+        "You are added as an owner of a service, a RUM application, a host, a cluster, a database, a queue, a cloud resource or other infrastructure.",
+    },
+  [NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as dashboard owner",
+    description: "You are added as an owner of a dashboard.",
+  },
+  [NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as workflow owner",
+    description: "You are added as an owner of a workflow.",
+  },
+  [NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as runbook owner",
+    description: "You are added as an owner of a runbook.",
+  },
+  [NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as Runner owner",
+    description:
+      "You are added as an owner of a Runner, which runs runbook steps and AI code fixes.",
   },
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     {
@@ -547,6 +587,20 @@ const EVENT_LIBRARY: Record<
     description:
       "A call to an incoming call policy you own ends without reaching anyone.",
   },
+  [NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as incoming call policy owner",
+      description: "You are added as an owner of an incoming call policy.",
+    },
+  [NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION]: {
+    label: "Added as on-call policy owner",
+    description: "You are added as an owner of an on-call policy.",
+  },
+  [NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION]:
+    {
+      label: "Added as on-call schedule owner",
+      description: "You are added as an owner of an on-call schedule.",
+    },
 
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]: {
     label: "You go on-call",
@@ -788,6 +842,8 @@ const monitoring: Array<SectionDef> = [
       NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+      // A group of them, made an owner of on its Owners page (#9758).
+      NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
     ],
@@ -822,6 +878,47 @@ const monitoring: Array<SectionDef> = [
     [
       NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  /*
+   * Tables and pipelines (#9681): being made an owner, by an owner rule
+   * whose Notify Owners is on or on an Owners page.
+   */
+  buildSection(
+    translationKey("Data Observability"),
+    translationKey("Notify me about tables and pipelines I own."),
+    [
+      NotificationSettingEventType.SEND_DATA_ASSET_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_DATA_PIPELINE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  /*
+   * Services, apps and infrastructure (#9700): one switch for being made an
+   * owner of any of them - a service, a RUM application, a host, a cluster,
+   * a database, a queue, a cloud resource - by an owner rule whose Notify
+   * Owners is on or on an Owners page. The message names which it is.
+   */
+  buildSection(
+    translationKey("Services and Infrastructure"),
+    translationKey("Notify me about the services and infrastructure I own."),
+    [
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+  /*
+   * Dashboards, workflows and runbooks (#9700), the products menu's own
+   * group, and the Runners that run runbook steps (#9758).
+   */
+  buildSection(
+    translationKey("Dashboards & Automation"),
+    translationKey(
+      "Notify me about dashboards, workflows, runbooks and Runners I own.",
+    ),
+    [
+      NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_WORKFLOW_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_RUNBOOK_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
     ],
   ),
 ];
@@ -878,10 +975,26 @@ const onCall: Array<SectionDef> = [
       NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
     ],
   ),
+  /*
+   * The on-call policies and schedules the person owns (#9700): being made
+   * an owner of one. Apart from the card above, which is about the person's
+   * own shifts and the policies that page them.
+   */
+  buildSection(
+    translationKey("On-Call Policies and Schedules"),
+    translationKey("Notify me about on-call policies and schedules I own."),
+    [
+      NotificationSettingEventType.SEND_ON_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_ON_CALL_SCHEDULE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
   buildSection(
     translationKey("Incoming Call Policies"),
-    translationKey("Notify me about calls to incoming call policies I own."),
-    [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION],
+    translationKey("Notify me about incoming call policies I own."),
+    [
+      NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCOMING_CALL_POLICY_OWNER_ADDED_NOTIFICATION,
+    ],
   ),
 ];
 
@@ -907,22 +1020,45 @@ const security: Array<SectionDef> = [
     ),
     [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION],
   ),
+  /*
+   * Data stores (#9681): being made an owner, by an owner rule whose Notify
+   * Owners is on or on a store's Owners page.
+   */
+  buildSection(
+    translationKey("Data Security"),
+    translationKey("Notify me about data stores I own."),
+    [NotificationSettingEventType.SEND_DATA_STORE_OWNER_ADDED_NOTIFICATION],
+  ),
 ];
 
+/*
+ * Every card of the page, tab by tab, in its order: what its tests walk
+ * through, so an event is checked the day it is listed here.
+ */
+export const NOTIFICATION_SETTINGS_CARDS: ReadonlyArray<NotificationMatrixSection> =
+  [
+    ...incidents,
+    ...alerts,
+    ...monitoring,
+    ...statusPages,
+    ...scheduledMaintenance,
+    ...onCall,
+    ...security,
+  ];
+
 // Every event the page lists, read in one go.
-const ALL_EVENT_TYPES: Array<NotificationSettingEventType> = [
-  ...incidents,
-  ...alerts,
-  ...monitoring,
-  ...statusPages,
-  ...scheduledMaintenance,
-  ...onCall,
-  ...security,
-].flatMap((section: SectionDef): Array<NotificationSettingEventType> => {
-  return section.events.map((event: EventDef): NotificationSettingEventType => {
-    return event.type;
-  });
-});
+const ALL_EVENT_TYPES: Array<NotificationSettingEventType> =
+  NOTIFICATION_SETTINGS_CARDS.flatMap(
+    (
+      section: NotificationMatrixSection,
+    ): Array<NotificationSettingEventType> => {
+      return section.events.map(
+        (event: NotificationMatrixEvent): NotificationSettingEventType => {
+          return event.type;
+        },
+      );
+    },
+  );
 
 export const NOTIFICATION_SETTINGS_INTRO_TEST_ID: string =
   "notification-settings-intro";

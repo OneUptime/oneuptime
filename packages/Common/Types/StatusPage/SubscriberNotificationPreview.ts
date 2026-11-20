@@ -67,11 +67,17 @@ export enum SubscriberNotificationPreviewNothingSentReason {
   PrivateIncident = "PrivateIncident",
   // 'Notify Status Page Subscribers' is off on the incident being declared.
   NotifyOff = "NotifyOff",
-  // No status page that lists its monitors will show it.
+  /*
+   * No status page shows it: none lists its monitors, or those that do leave
+   * it out (its status page scope, or they do not show incidents). A page
+   * that starts showing it later shows it, and its public notes, from then
+   * on - without sending anything about a note posted before.
+   */
   NoStatusPages = "NoStatusPages",
   /*
-   * Every status page that shows it sends its subscribers nothing (Send
-   * Notifications to Subscribers off).
+   * A status page shows it, and every page that shows it sends its
+   * subscribers nothing (Send Notifications to Subscribers off). A public
+   * note posted then is on those pages at once.
    */
   NotificationsOff = "NotificationsOff",
 }

@@ -24,6 +24,7 @@ import {
   countRulesRunningPolicyInService,
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import {
+  MONITORS_CHECKING_ADDRESS_READ_LIMIT,
   WEBSITE_MONITOR_SEEDS_MISSING,
   pickWebsiteMonitorSeeds,
 } from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
@@ -58,6 +59,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { createWithFreeName } from "Common/Types/Database/UniqueName";
 
 /*
  * THE RECORDS THE WEBSITE-DOWN GUIDED SETUP READS AND WRITES (issue #6804),
@@ -180,12 +182,15 @@ export const OWN_MONITORS_READ_LIMIT: number = 100;
 
 /*
  * How many of the project's newest Website and API monitors are read to
- * find one a teammate made for an address (#7254). An address is in a
- * monitor's steps, which no query can ask for, so the newest are read and
- * matched here. A project with more than this misses an older one, and
- * the setup then makes a monitor of the person's own, as it did before.
+ * find one a teammate made for an address (#7254): as many as Ask AI's
+ * set_up_website_monitoring reads for the same answer (#7292). An address
+ * is in a monitor's steps, which no query can ask for, so the newest are
+ * read and matched here. A project with more than this misses an older
+ * one, and the setup then makes a monitor of the person's own, as it did
+ * before.
  */
-export const OTHER_MONITORS_READ_LIMIT: number = 200;
+export const OTHER_MONITORS_READ_LIMIT: number =
+  MONITORS_CHECKING_ADDRESS_READ_LIMIT;
 
 // How many status pages step 4 reads to offer (#7053).
 export const STATUS_PAGES_READ_LIMIT: number = 100;
@@ -614,12 +619,28 @@ export default class WebsiteDownApi {
       language: data.translator.language,
     });
 
-    const response: HTTPResponse<OnCallDutyPolicy> =
-      (await ModelAPI.create<OnCallDutyPolicy>({
-        model: create.policy,
-        modelType: OnCallDutyPolicy,
-        miscDataProps: create.miscDataProps,
-      })) as HTTPResponse<OnCallDutyPolicy>;
+    /*
+     * A policy's name is one policy's (#9742): while another has it - an
+     * archived one, or one this person may not see - the policy is made
+     * numbered, as Duplicate numbers a copy ("Default on-call policy 2").
+     */
+    const { created: response } = await createWithFreeName<
+      HTTPResponse<OnCallDutyPolicy>
+    >({
+      name: create.policy.name || "",
+      create: async (name: string): Promise<HTTPResponse<OnCallDutyPolicy>> => {
+        create.policy.name = name;
+
+        return (await ModelAPI.create<OnCallDutyPolicy>({
+          model: create.policy,
+          modelType: OnCallDutyPolicy,
+          miscDataProps: create.miscDataProps,
+        })) as HTTPResponse<OnCallDutyPolicy>;
+      },
+      readRefusal: (error: unknown): string => {
+        return API.getFriendlyMessage(error);
+      },
+    });
 
     const id: string | undefined = response.data?.id?.toString();
 

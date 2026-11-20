@@ -9,6 +9,7 @@ OneUptime Kubernetes-agenten er et Helm-chart som samler inn klyngens målinger,
 - [Installer agenten](#installer-agenten): Fire trinn med Helm.
 - [Installer som et Amazon EKS-tillegg](#installer-som-et-amazon-eks-tillegg): Fra EKS-konsollen, uten Helm.
 - [OpenShift](#openshift): Forhåndsinnstillingen, sikkerhetskontekstbegrensningene den oppretter, og OpenShifts egne varsler.
+- [Klyngeherding](#klyngeherding): Vurdering etter Pod-sikkerhetsstandardene og CIS Benchmark, og agentens egne tillatelser.
 - [Konfigurasjonsvalg](#konfigurasjonsvalg): Filtre, sampling, kontrollplan, service mesh, kostnader og etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivebeskyttet `kubectl` for OneUptime AI, og rettelser når du tillater dem.
 - [Send mindre](#redusere-mengden-data-som-samles-inn): Spakene, i rekkefølge etter effekt.
@@ -32,7 +33,7 @@ flowchart TB
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-spor og forespørselsmålinger fra hver pod, og tjenestekartet. | Som standard, unntatt på GKE Autopilot og EKS Fargate |
 | Kubernetes-AI-agent | Deployment | Skrivebeskyttet `kubectl` for OneUptime AI mens den undersøker en hendelse eller et varsel. | Som standard |
 | Logg-tailer | Deployment | Pod-logger gjennom Kubernetes-API-et, der node-collectoren ikke kan lese dem. | Med forhåndsinnstillingene `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
-| Kostnadsmotor og poller | Deployments | Forbruk per navnerom, arbeidsbelastning og pod. | Med `cost.enabled=true` |
+| Kostnadsmotor og poller | Deployments | Forbruk per navnerom, arbeidsbelastning og pod. | Som standard, unntatt på GKE Autopilot og EKS Fargate |
 
 Alle agentimager er bare for Linux, så hver arbeidsbelastning er festet til Linux-noder.
 
@@ -199,7 +200,8 @@ Sett dem under **Optional configuration settings** i EKS-konsollen, eller med `-
 - `oneuptime.labels`: prosjektetiketter for alt denne klyngen sender, for eksempel `{"team": "payments"}`.
 - `preset`: `eks-fargate` for en klynge som bare kjører på Fargate, ellers `standard`, som er standardverdien.
 - `logs.enabled`, `ebpf.enabled` og `aiAgent.enabled`: pod-logger, eBPF-spor og [Kubernetes-AI-agenten](#kubernetes-ai-agent), alle på som standard.
-- `kubeStateMetrics.enabled` og `cost.enabled`: kube-state-metrics og [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), begge av som standard.
+- `kubeStateMetrics.enabled`: kube-state-metrics, av som standard.
+- `cost.enabled`: [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), `auto` som standard: på, unntatt med presetet `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -266,12 +268,13 @@ For å få dem tilbake bytter du til `openshift` med `--set preset=openshift` ve
 | Kubernetes-hendelser | Hver hendelse, Warning og Normal, fra hvert navnerom og hver slags objekt: se [Kubernetes-hendelser](#kubernetes-hendelser) |
 | Pod-logger | Stdout og stderr fra hver container (gjennom `hostPath` på standardklynger, gjennom Kubernetes-API-et på Autopilot og Fargate) |
 | OpenShift-objekter (OpenShift-forhåndsinnstillingene) | ClusterOperators, ClusterVersion, Routes, DeploymentConfigs og Services: se [OpenShift](#openshift) |
+| RBAC, tjenestekontoer og NetworkPolicies | Roles, ClusterRoles og bindingene deres, ServiceAccounts og NetworkPolicies, kun med lesetilgang, hvert `resourceSpecs.interval`, for å vurdere herdingen av klyngen: se [Klyngeherding](#klyngeherding). Ingen Secret leses noen gang |
 | Applikasjonsspor (eBPF, på som standard) | HTTP-, gRPC-, SQL- og Redis-spenn fra hver pod, uten SDK eller kodeendringer |
 | HTTP RED-målinger (eBPF) | `http.server.request.duration`, og størrelsen på forespørsels- og svarkropper, per tjeneste |
 | Tjenestegraf (eBPF) | Forespørselsrate, latens og feil fra kaller til mottaker, som tegner tjenestekartet |
 | Nettverksflytmålinger (eBPF) | Byte- og pakketellere for TCP og UDP fra pod til pod, med Kubernetes-metadata |
 | TCP-statistikk (eBPF) | Tur-retur-tid, mislykkede tilkoblinger og retransmisjonstellere på nodenivå |
-| Kostnader for arbeidsbelastninger (valgfritt, `cost.enabled=true`) | Forbruk per navnerom, arbeidsbelastning og pod, med ledig kapasitet og effektivitet, og timekostnader for noder og volumer: se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost) |
+| Kostnader for arbeidsbelastninger (på som standard, unntatt på GKE Autopilot og EKS Fargate) | Forbruk per navnerom, arbeidsbelastning og pod, med ledig kapasitet og effektivitet, også som målinger å varsle på, og timekostnader for noder og volumer: se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes-hendelser
 
@@ -310,6 +313,49 @@ Hver hendelse er også en logg. En advarsel lagres med alvorlighetsgraden **Adva
 | `k8s.namespace.name` | `default` |
 
 Søk i dem under **Logger**, eller dropp dem du ikke vil ha med et drop-filter. For å bli varslet når en skjer, slår du på **Warning Events** på klyngens side **Anbefalinger**, eller velger **Slå på varsler for advarsler** nederst på siden **Hendelser**: en [loggmonitor](/docs/monitor/logs-monitor) på klyngens advarsler som gir ett varsel per objekt og årsak, og lukker det når det har gått 5 minutter uten en ny advarsel om det. For å bli varslet om bare noen årsaker, legger du `k8s.event.reason` til i filteret.
+
+## Klyngeherding
+
+En klynges side **Samsvar**, under **Sikkerhet**, vurderer selve klyngen mot tre rammeverk i delen **Klyngeherding**. Den leser det agenten allerede sender: klyngens pods og navnerom og, for CIS Benchmark, klyngens RBAC, tjenestekontoer og NetworkPolicies. Klyngens meny viser siden så snart agenten rapporterer klyngens pods, enten klyngen kjører en database eller ikke.
+
+| Rammeverk | Hva det vurderer |
+| --- | --- |
+| **Pod-sikkerhetsstandarder: Baseline** | Alle arbeidsbelastninger som kjører på klyngen, mot Baseline-policyen for klyngens Kubernetes-versjon: privilegerte containere, vertens navnerom, porter og stier, tilføyde funksjoner og alle andre felt policyen nevner, lest fra spesifikasjonen til hver pod |
+| **Pod-sikkerhetsstandarder: Restricted** | De samme arbeidsbelastningene, mot Restricted-policyen: kontrollene i Baseline, og bare volumtypene den tillater, kjøring som en annen bruker enn root, ingen rettighetseskalering, en seccomp-profil og alle funksjoner fjernet |
+| **CIS Kubernetes Benchmark v2.0** | De 27 kontrollene i avsnitt 5 som Kubernetes-API-et kan svare på: bindinger som gir cluster-admin, Secrets, `nodes/proxy` og de andre rettighetene kontrollene nevner, roller med jokertegn, standardtjenestekontoene, Pod Security Admission eller en policymotor i hvert navnerom, NetworkPolicies, og hva hver pod kjører |
+
+Hvert rammeverks flis viser scoren, og hvor mange arbeidsbelastninger det har evaluert og hvor mange som ikke består det. Kontrollene vises med dem som feiler, først: hver sier hva den finner galt og hvordan det rettes, og lister opp arbeidsbelastningene, rollene, bindingene, tjenestekontoene eller navnerommene som ikke består den, hver lenket til sin side, helt ned til containeren eller volumet og feltet, for eksempel `securityContext.privileged`. Der Datasikkerhet gir databasene som kjører på klyngen en score, blir de stående nedenfor, under **Databaser på denne klyngen**.
+
+Pod-sikkerhetsstandardene vurderes mot klyngens egen Kubernetes-versjon: versjonen til dens nyeste kubelet, men høyst den nyeste versjonen OneUptime kjenner. En kontroll som en senere versjon la til, teller først fra den versjonen, og siden sier hvilken versjon det ble vurdert mot.
+
+Benchmarkens øvrige 104 kontroller sjekker nodenes filer og kubelet eller kontrollplanets flagg, eller krever en persons gjennomgang. Ikke noe API kan svare på dem, så de vises under **Ikke vurdert her**, gruppert etter årsak, og regnes aldri som bestått eller feilet. På et administrert kontrollplan, som hos EKS, GKE eller AKS, sier siden at de hører inn under leverandørens benchmark.
+
+### Slå av et rammeverk, en kontroll eller et navnerom
+
+Slå av det som ikke gjelder for en klynge. Hver bryter hører bare til den klyngen og spør hvorfor, og siden tar vare på hvem som slo den av, når og hvorfor:
+
+- Et rammeverks bryter **Gjelder her** holder klyngen utenfor rammeverket. Rammeverket lukkes da under **Slått av**, med bryteren som slår det på igjen.
+- En kontrolls bryter holder den kontrollen utenfor klyngens score.
+- Et navneroms bryter, under hvert rammeverk, holder alt i navnerommet utenfor det rammeverket, slik Pod Security Admission unntar et navnerom.
+
+### Eksporter et rammeverk
+
+**Eksporter CSV** og **Eksporter JSON** laster ned rapporten for et rammeverk: hver kontroll, om den består, hva som ikke består den og hvordan det rettes, og Kubernetes-versjonen det ble vurdert mot.
+
+### Hva agenten leser for det
+
+`resourceSpecs.compliance` (på som standard) leser Roles, ClusterRoles og bindingene deres, ServiceAccounts og NetworkPolicies hvert `resourceSpecs.interval`, med `get`, `list` og `watch` på dem og ingenting mer. Ingen Secret leses noen gang: en ServiceAccount nevner bare navnene på token-Secretene sine, og OneUptime forkaster til og med navnene. Når den er av (`--set resourceSpecs.compliance=false`), er benchmarkens kontroller for RBAC, tjenestekontoer og NetworkPolicies *ikke evaluert*, og Pod-sikkerhetsstandardene vurderes fortsatt ut fra podene.
+
+### Agentens egne tillatelser
+
+Agenten leser hver kubelet gjennom underressursene kubelet knytter stiene sine til ved autorisering: `nodes/stats` for statistikken, `nodes/metrics` for cAdvisor og `nodes/pods` for podlisten til en node, som kubelet tillater fra Kubernetes 1.33. `nodes/proxy` gir tilgang til hele kubelet-API-et, og en binding som gir den underressursen, består ikke CIS 5.1.10, så agenten gir den bare der ingenting snevrere strekker til:
+
+| Verdi | Når agenten gir `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (standard) gir tillatelsen så lenge klyngen kjører Kubernetes eldre enn 1.36, der kubeletene kan være eldre enn 1.33 og bare lister podene på en node med `nodes/proxy`. Sett `false` når hver node kjører 1.33 eller nyere, eller `true` når `KubeletFineGrainedAuthz` er slått av på kubeletene |
+| `cost.prometheus.nodesProxy` | `auto` (standard) gir tillatelsen bare med forhåndsinnstillingen `eks-fargate`, der ingen pod når kubelet på en node og kostnads-Prometheus leser cAdvisor gjennom API-serveren. Alle andre steder leser den kubelet på hver node gjennom port 10250 |
+
+Der agentens egen binding ikke består 5.1.10, sier siden at bindingen er agentens, hvorfor den gir `nodes/proxy`, og hvilken verdi som fjerner det.
 
 ## Konfigurasjonsvalg
 
@@ -409,7 +455,7 @@ Hendelser over flere linjer settes sammen igjen før filtreringen i begge moduse
 Dropp noen få støyende målinger (en blokkeringsliste, vanligvis det du vil ha):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Send bare et fast sett (en tillatelsesliste: alt annet droppes):
@@ -594,7 +640,7 @@ Noen grafer viser målinger agenten ikke har noen scrape for: **kube-proxy** på
 
 ### Aktiver kostnadsobserverbarhet
 
-Se hva hvert navnerom, hver arbeidsbelastning og hver pod koster, med ledig kapasitet og hvor mye av hver request som brukes, på klyngens side **Kostnader**:
+Kostnadsobserverbarhet er på som standard: klyngens oversikt og siden **Kostnader** viser hva hvert navnerom, hver arbeidsbelastning og hver pod koster, med ledig kapasitet og hvor mye av hver request som brukes, og kostnadsmålingene kan vises i grafer og varsles på. Den er av som standard med presetene `gke-autopilot` og `eks-fargate`, som fakturerer hver pod etter requestene dens, og på en agent som ble installert før den ble på som standard. Slå den på der:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +649,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Det alene er en komplett installasjon: chartet inkluderer opensource-motoren [OpenCost](https://opencost.io) (med den lille Prometheus den trenger) og priser nodene og volumene dine ut fra skyleverandørens offentlige listepriser, uten legitimasjon. Den legger til to små poder, og de første kostnadene vises etter den første avsluttede timen. Kjører du allerede Kubecost eller OpenCost? Legg til `--set cost.engine.url=<its service URL>` i stedet, så følger ingenting med. Lokale klynger kan sette en prisliste med `cost.opencost.customPricing`. Den fullstendige veiledningen, med lokal prising og feilsøking, er [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost).
+Det alene er en komplett installasjon: chartet inkluderer opensource-motoren [OpenCost](https://opencost.io) (med den lille Prometheus den trenger) og priser nodene og volumene dine ut fra skyleverandørens offentlige listepriser, uten legitimasjon. Den legger til tre små poder, og de første kostnadene vises etter den første avsluttede timen. For å slå av kostnadsobserverbarhet setter du `--set cost.enabled=false` på samme måte. Kjører du allerede Kubecost eller OpenCost? Kostnadsagenten finner den og leser den i stedet for den medfølgende; legg til `--set cost.engine.url=auto` for ikke å ta med en ekstra motor. Lokale klynger kan sette en prisliste med `cost.opencost.customPricing`. Den fullstendige veiledningen, med lokal prising og feilsøking, er [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost).
 
 ### Automatisk merking med prosjektetiketter
 
@@ -824,6 +870,8 @@ Ikke bruk `--reuse-values`: den beholder også standardverdiene til chartet du o
 
 Hvis oppgraderingen feiler med `namespaces "<name>" not found`, lister `aiAgent.remediation.namespaces` (eller den eldre `aiAccess.remediation.namespaces`) et navnerom som ikke finnes (eller ikke lenger finnes): chartet legger en RoleBinding i hvert listede navnerom og oppretter aldri et. Opprett navnerommet, eller oppgrader med listen uten det navnerommet (`--set "aiAgent.remediation.namespaces={web}"`), eller med `--set-json 'aiAgent.remediation.namespaces=[]'` for å gå tilbake til bindingen for hele klyngen. `--set aiAgent.remediation.namespaces=null` tilbakestiller ikke en lagret liste under `--reuse-values`, så den feiler med den samme feilen.
 
+> **RBAC-kontrollene i CIS Benchmark krever en oppgradert agent.** En agent fra før `resourceSpecs.compliance` sender ingen RBAC, tjenestekontoer eller NetworkPolicies, så klyngens side **Samsvar** sier at benchmarkens kontroller for RBAC, tjenestekontoer og NetworkPolicies er *ikke evaluert*, og hvordan det rettes. Oppgrader agenten med `resourceSpecs.compliance` slått på, slik det er som standard: det krever collector 0.125.0 eller nyere. Etter oppgraderingen gir agenten heller ikke lenger `nodes/proxy` der ingen node trenger det: se [Agentens egne tillatelser](#agentens-egne-tillatelser).
+
 > **eBPF-spennmålinger har nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene, under navnene OBI beholder (den har utfaset de gamle). Et dashbord, en graf eller en målingsmonitor på et gammelt navn mottar ingen nye data etter oppgraderingen, uten feil — flytt den til det nye navnet, og oppdater enhver `filters.metrics`-oppføring som navngir et gammelt.
 
 ### Oppgradere til Kubernetes-AI-agenten
@@ -959,7 +1007,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Kardinalitet, antall distinkte serier, betyr like mye som frekvens, fordi hver serie lagres og faktureres for seg.
 
 - cAdvisor er tillatelseslistet med vilje. cAdvisor-receiveren (på som standard) kan sende hundrevis av målinger; chartet videresender bare tellerne for CPU-struping og OOM-kills i `cadvisor.metricsAllowlist`, til dine egne grafer og målingsmonitorer: ingen innebygd mal leser dem. Hold listen kort: hver oppføring beholdes per container, så én måling til multipliseres med klyngens antall containere. kube-state-metrics er av som standard; hvis du slår den på (`kubeStateMetrics.enabled=true`), fungerer `kubeStateMetrics.metricsAllowlist` på samme måte, og hver oppføring må treffe hele navnet på en måling.
-- Volummålinger per PVC (`kubeletstats.volumeMetrics.enabled`, på som standard) sender én serie per PVC per pod: greit for de fleste klynger, mye på tilstandsfulle arbeidsbelastninger (Kafka, databaser) med tusenvis av PVC-er. Slå dem av der hvis du ikke overvåker PVC-diskplass, med `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volummålinger (`kubeletstats.volumeMetrics.enabled`, på som standard) sender fem serier for hvert volum med data i hver pod (et claim, en emptyDir, en hostPath), fyller brukt, ledig og kapasitet på sidene for Persistent Volume Claims og malen PVC Almost Full, og viser et nesten fullt claim under klyngens Krever oppmerksomhet. En pods configMap-, secret-, downwardAPI- og serviceaccount-token-volumer, som sto for de fleste av disse seriene, droppes på noden. Fortsatt mye på tilstandsfulle arbeidsbelastninger (Kafka, databaser) med tusenvis av PVC-er: slå dem av der hvis du ikke overvåker PVC-diskplass, med `--set kubeletstats.volumeMetrics.enabled=false`.
 - Metningsmålinger (`kubeletstats.utilizationMetrics.enabled`, på som standard) legger til 8 avledede familier av typen «% av request eller limit». De koster ingen ekstra scrape, men hvis du ikke bruker monitorene for CPU og minne mot limit, dropp dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Dropp målinger etter navn med `filters.metrics.exclude`, som spenner over alle receivere, for alt receivernes tillatelseslister ikke kan uttrykke (se [Inkludere eller utelukke målinger etter navn](#inkludere-eller-utelukke-målinger-etter-navn)):
 
@@ -990,7 +1038,8 @@ Disse er av som standard fordi de legger til belastning. Slå en på bare når d
 | `kubeStateMetrics.enabled` | Målinger for CrashLoop, ImagePull og planleggingsårsaker (legger til en kube-state-metrics-Deployment og en scrape) |
 | `ebpf.features.networkInterZoneMetrics` | Dobler nettverksflytseriene |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Flere Prometheus-scrapejobber |
-| `cost.enabled` | Kostnader for arbeidsbelastninger (inkluderer OpenCost og en liten Prometheus; kostnadsrader per time og en scrape av målinger med en stram tillatelsesliste; moderat inntak, to poder til) |
+
+Kostnadsobserverbarhet (`cost.enabled`) er derimot på som standard: tre små poder, en kostnadsrad per time for hver container og en scrape av én prisserie per node, volum og lastbalanserer. Slå den av med `--set cost.enabled=false` hvis du ikke bruker den.
 
 ### Sample spor i stedet for å droppe dem
 
@@ -1058,7 +1107,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Stram inn mer etter behov: øk `minSeverity` til `ERROR`, legg `metrics` til i områdene til en navneromsregel, eller sett `ebpf.enabled=false` hvis du allerede sender spor fra OpenTelemetry SDK-er.
 
 > [!CAUTION]
-> Pass på hva du kutter. Noen monitorer avhenger av bestemte signaler: å slå av `kubeletstats.utilizationMetrics` gjør de to malene som måler pods mot containergrensene sine, stumme, å slå av logger fjerner loggbaserte varsler, og å slå av `cadvisor` eller `kubeletstats.volumeMetrics` fjerner seriene for struping, OOM-kill og PVC-er som dine egne grafer og målingsmonitorer kan lese. `sampling.traces.percentage` fjerner ingen monitor, men skalerer ned de spennbaserte (**Spor** på `Span Count`, **Unntak** på `Exception Count`), så juster tersklene deres. Trim signalene du ikke handler på, ikke dem en monitor overvåker.
+> Pass på hva du kutter. Noen monitorer avhenger av bestemte signaler: å slå av `kubeletstats.utilizationMetrics` gjør de to malene som måler pods mot containergrensene sine, stumme, å slå av logger fjerner loggbaserte varsler, å slå av `kubeletstats.volumeMetrics` gjør malen PVC Almost Full taus og etterlater sidene for claims uten bruken sin, og å slå av `cadvisor` fjerner seriene for struping og OOM-kill som dine egne grafer og målingsmonitorer kan lese. `sampling.traces.percentage` fjerner ingen monitor, men skalerer ned de spennbaserte (**Spor** på `Span Count`, **Unntak** på `Exception Count`), så juster tersklene deres. Trim signalene du ikke handler på, ikke dem en monitor overvåker.
 
 ### Mål effekten
 

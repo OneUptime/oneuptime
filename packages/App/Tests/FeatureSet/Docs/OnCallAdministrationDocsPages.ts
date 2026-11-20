@@ -110,6 +110,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Edit On-Call Policy User Override",
       "Delete On-Call Policy User Override",
       "Read On-Call Policy User Override",
+      // Overrides of one's own team's people only (#9733).
+      "Manage On-Call Policy User Overrides for Own Team",
     ],
     [READINESS_AND_REPORTS]: [
       "Edit On-Call Policy",

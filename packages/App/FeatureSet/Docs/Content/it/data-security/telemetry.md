@@ -1,6 +1,6 @@
 # Dati sensibili nella telemetria
 
-La telemetria contiene tutto ciò che scrive il tuo codice: un indirizzo email in una riga di log, un numero di carta in un attributo di uno span, un token in uno stack trace, la domanda di un cliente in un prompt. Sicurezza dei dati tratta i log, le tracce, le eccezioni e le conversazioni IA di ogni servizio, e le sessioni di ogni applicazione RUM, come archivi dati a sé stanti. Li campiona ogni ora, vi trova i dati sensibili come fa in un bucket, e **Ripulisci** trasforma un risultato in una regola di pulizia che da quel momento in poi maschera quei dati all'ingestione.
+La telemetria contiene tutto ciò che scrive il tuo codice: un indirizzo email in una riga di log, un numero di carta in un attributo di uno span, un token in uno stack trace, la domanda di un cliente in un prompt, l'indirizzo IP di un utente nell'etichetta di una metrica. Sicurezza dei dati tratta i log, le tracce, le metriche, le eccezioni e le conversazioni IA di ogni servizio, e le sessioni di ogni applicazione RUM, come archivi dati a sé stanti. Li campiona ogni ora, vi trova i dati sensibili come fa in un bucket, e **Ripulisci** trasforma un risultato in una regola che da quel momento in poi maschera quei dati all'ingestione.
 
 Non c'è nulla da configurare: la telemetria di ogni servizio viene scansionata ogni ora, a meno che **Scansiona telemetria** non sia disattivato nelle impostazioni del progetto. Per escludere i log, le tracce o un altro segnale di un servizio, disattiva **Scansiona contenuto** nelle **Impostazioni** di quell'archivio: dalla scansione successiva non se ne legge nulla.
 
@@ -8,6 +8,7 @@ Non c'è nulla da configurare: la telemetria di ogni servizio viene scansionata 
 - [Cosa viene letto](#cosa-viene-letto): Gli attributi, i corpi, i messaggi e i prompt di ogni segnale.
 - [Come campiona una scansione](#come-campiona-una-scansione): I record più recenti di ogni servizio, ogni ora.
 - [Ripulisci](#ripulisci): Maschera un risultato all'ingestione, con un clic.
+- [Scarta questa metrica](#scarta-questa-metrica): Smetti di memorizzare le metriche il cui nome contiene dati sensibili.
 - [Cosa conta come ripulito](#cosa-conta-come-ripulito): Quando una regola di pulizia copre già un risultato.
 :::
 
@@ -34,8 +35,20 @@ Un risultato coperto da una regola di pulizia viene contrassegnato come ripulito
 | Eccezioni | Il messaggio, lo stack trace e gli attributi | `message`, `stackTrace`, `attributes.<key>` |
 | Conversazioni IA | I prompt e le risposte di ogni chiamata IA, sotto le chiavi in cui li mettono le convenzioni GenAI, e ogni altro attributo | La chiave in cui si trovano, come `gen_ai.input.messages` o `gen_ai.prompt[].content` |
 | Session Replays | Gli attributi degli span e dei log di un'applicazione RUM, gli attributi delle sue sessioni, i tratti che `identify()` ha assegnato ai suoi utenti e il riferimento utente che ha ricevuto | `spans.attributes.<key>`, `logs.attributes.<key>`, `sessions.attributes.<key>`, `sessions.identifiedUserTraits.<key>`, `sessions.identifiedUserLabel` |
+| Metriche | Ogni attributo di un punto dati, compresi quelli della sua risorsa, e i nomi delle metriche | `attributes.<key>`, `attributes.resource.<key>`, `name` |
 
 Le chiavi numerate vengono raccolte in un'unica posizione: `gen_ai.prompt.3.content` diventa `gen_ai.prompt[].content`, così i venti messaggi di una chat sono un solo risultato, non venti. Gli attributi che OneUptime aggiunge da sé, che iniziano con `oneuptime.`, non vengono letti.
+
+### Metriche
+
+Gli attributi di una metrica sono le etichette delle sue serie. Sono gli stessi su ogni punto dati di una serie, quindi una metrica che scrive mille punti al minuto può contenere solo tre valori, e un'etichetta che espone l'email di un utente aggiunge una serie, non un punto. Per questo una metrica viene campionata per serie, non per punti:
+
+- **Un punto di ogni serie.** Ogni metrica viene letta nel minuto più recente in cui ha scritto nell'ultima ora: un punto dati di ciascuna di al massimo 100 serie di quel minuto, con qualunque frequenza venga inviata la metrica, così una serie attiva non scavalca mai una serie tranquilla. Un valore viene classificato una sola volta, per quante serie lo ripetano, quindi un risultato conta i valori distinti nella sua posizione.
+- **Prima le metriche nuove, poi le altre a turno.** Quali metriche ha scritto un servizio, e quando ciascuna ha scritto per la prima volta nell'ultimo giorno, si ricava dall'aggregazione al minuto che conserva la tabella delle metriche, mai dai suoi punti. Ogni scansione legge le metriche più attive di un servizio, quelle con più probabilità di avere molte serie. Poi vengono le metriche che ha iniziato a scrivere nelle ultime 2 ore, perché una nuova fuga di dati di solito nasce da codice nuovo, e poi le successive delle sue altre metriche, in un ordine fisso, da dove si è fermata l'ultima scansione. Le metriche nuove occupano al massimo metà di quei turni, così le altre conservano sempre i propri.
+- **Ogni metrica entro un tempo fisso.** In un servizio di M metriche, di cui ogni scansione ne legge 10, ciascuna viene letta almeno una volta ogni M ÷ 5 ore, arrotondando per eccesso: 60 ore per un servizio di 300 metriche. Finché continua ad avviare nuove metriche ogni ora, il tempo è al massimo il doppio.
+- **L'intervallo proprio di ogni metrica.** Le metriche vengono lette insieme, ciascuna per il proprio intervallo della chiave primaria della tabella. Una metrica il cui minuto più recente contiene più di 16.384 punti, come una che ha come etichetta l'email di ogni utente, viene letta da sola, e la lettura si ferma ai suoi primi punti, così non costa più di qualsiasi altra metrica.
+
+Un risultato indica l'attributo, come `attributes.user.email`, oppure `name` per i dati nel nome di una metrica. I suoi record sono i punti dati in cui è stato trovato: ognuno mostra la sua metrica e il valore dell'attributo, mascherato, e si apre in **Metriche** su quella metrica, raggruppata per quell'attributo. Quando il nome di una metrica contiene dati sensibili, anche il nome viene mascherato, e il record apre invece le metriche del servizio.
 
 ### Perché la registrazione di un replay non viene mai letta
 
@@ -62,6 +75,9 @@ Ogni ora vengono letti i record più recenti dell'ultima ora di ogni segnale, e 
 | Attributi di un record | 128; 64 per una chiamata IA |
 | Eventi di uno span, e attributi di un evento | 16 e 32 |
 | Posizioni di un archivio | 500 |
+| Metriche lette in una scansione | 100, condivise tra i servizi, almeno una per ciascuno; al massimo 10 di un servizio, metà tra le sue più attive e metà tra le nuove e le altre, a turno |
+| Una metrica nuova | Una il cui primo punto delle ultime 24 ore è arrivato nelle ultime 2 ore |
+| Serie di una metrica | Un punto dati di ciascuna, del suo minuto più recente, al massimo 100 |
 
 Ogni valore viene troncato già nel database, così nessun valore lungo ne esce, e ogni lettura si ferma dopo 30 secondi. Una lettura non riuscita è un'avvertenza sugli archivi a cui era destinata; la scansione prosegue con la successiva.
 
@@ -69,16 +85,16 @@ Per escludere qualcosa, aggiungilo alle **Esclusioni dalla scansione** dell'arch
 
 ## Ripulisci
 
-**Ripulisci** su un risultato crea la regola di pulizia che da quel momento nasconde quel tipo di dati in quella posizione, oppure indica la regola abilitata che lo fa già:
+**Ripulisci** su un risultato crea la regola che da quel momento nasconde quel tipo di dati in quella posizione, oppure indica la regola abilitata che lo fa già:
 
 :::steps
 ### Apri il risultato
 
-Apri l'archivio di telemetria - i **Log** di un servizio, per esempio - e il risultato.
+Apri il problema - **Dove è stato trovato** elenca ogni risultato che lo causa - oppure **Sicurezza dei dati > Nella tua telemetria**, dove **Mostra i record** apre accanto all'elenco i record in cui è stato trovato un risultato.
 
 ### Premi Ripulisci
 
-Fai clic su **Ripulisci**. OneUptime crea una regola di pulizia dei log per i log e per i log di un'applicazione RUM, e una regola di pulizia delle tracce per span, eccezioni e chiamate IA, sulla parte del record in cui si trova il risultato.
+Fai clic su **Ripulisci**. OneUptime crea una regola di pulizia dei log per i log e per i log di un'applicazione RUM, una regola di pulizia delle tracce per span, eccezioni e chiamate IA, sulla parte del record in cui si trova il risultato, e una regola della pipeline delle metriche per l'attributo di una metrica.
 
 ### Correggi anche il codice
 
@@ -92,16 +108,29 @@ La regola prende il nome da ciò che nasconde, come «Data Security: Email addre
 | Indirizzo email, numero di carta, numero di Social Security USA, numero di telefono o indirizzo IP | Il pattern integrato di quel tipo. I numeri di carta, i numeri di Social Security e i numeri di telefono vengono mascherati, gli altri oscurati. |
 | Un valore sotto una chiave che sembra sensibile, come `password` o `token` | Una regola **Chiavi di attributi sensibili**, che oscura l'intero valore di ogni attributo del genere |
 | Qualsiasi altro tipo di dati che un pattern può trovare | Una regola **Regex personalizzata** creata dai pattern propri del tipo di dati, che oscura ogni valore con quella forma |
+| Qualsiasi tipo di dati nell'attributo di una metrica | Una regola della pipeline delle metriche **Oscura attributo** per il servizio, che sostituisce con `[REDACTED]` i valori dell'attributo con la forma del tipo di dati, oppure ogni valore dell'attributo quando nessun pattern trova il tipo di dati |
 
-Alcuni risultati non possono essere ripuliti da una regola, e **Ripulisci** dice perché:
+Alcuni risultati non possono essere ripuliti da una regola, e **Ripulisci** dice perché. L'attributo di una metrica può sempre esserlo, poiché la sua regola può nascondere ogni valore dell'attributo:
 
 - Un tipo di dati trovato solo dai nomi dei campi, come il nome di una persona: nessun pattern può trovarlo. Rinomina l'attributo con una chiave che una regola delle chiavi sensibili nasconde, oppure smetti di inviarlo.
 - Un tipo di dati che si distingue dagli altri valori solo per le parole che lo circondano, come un routing number: una regola nasconderebbe molto più di quel tipo di dati.
 - Una dicitura di classificazione di un documento: nascondere la parola non nasconderebbe il documento.
 - Uno dei tuoi tipi di dati: aggiungi tu una regola di pulizia personalizzata con il suo pattern.
 - I dettagli propri di una sessione (`sessions.*`): l'ingestione dei replay di sessione non esegue regole di pulizia.
+- Il nome di una metrica (`name`): lo imposta il codice che crea la metrica, e una regola della pipeline può solo rinominare una metrica per intero. Rinomina la metrica e invia invece come attributo ciò che varia nel suo nome. Nel frattempo, **Scarta questa metrica** può smettere di memorizzare quelle metriche.
 
-**Ripulisci** crea la regola a tuo nome, con i tuoi permessi: possono premerlo i Proprietari del progetto e gli Amministratori del progetto, e anche un team che può creare regole di pulizia dei log, e regole di pulizia delle tracce per span, eccezioni e chiamate IA.
+**Ripulisci** crea la regola a tuo nome, con i tuoi permessi: possono premerlo i Proprietari del progetto e gli Amministratori del progetto, e anche un team che può creare regole di pulizia dei log, regole di pulizia delle tracce per span, eccezioni e chiamate IA, e regole della pipeline delle metriche per le metriche.
+
+## Scarta questa metrica
+
+Nessuna regola toglie i dati dal nome di una metrica, quindi finché il codice che dà il nome alla metrica non viene corretto, i dati continuano ad arrivare. **Scarta questa metrica** su un risultato nel nome di una metrica smette di memorizzare le metriche il cui nome li contiene, a costo dei loro dati, quindi avviene solo quando lo chiedi:
+
+- **Le metriche di un servizio.** Crea una regola della pipeline delle metriche **Scarta** per il servizio del risultato: ogni nuovo punto dati di una metrica il cui nome contiene quel tipo di dati viene scartato prima di essere memorizzato. Il suo filtro è il pattern che **Ripulisci** usa per il tipo, quindi un tipo che nessun pattern può trovare, come il nome di una persona, non si può scartare, e la finestra di dialogo dice perché.
+- **Detto prima di farlo.** La finestra di dialogo dice che quei punti dati vanno persi per sempre, quante delle metriche del servizio scritte nell'ultimo giorno hanno un nome simile, quali monitor e dashboard le leggono e quindi non ricevono più nuovi dati, che ciò che è già memorizzato resta fino alla fine della sua conservazione, e come annullarlo. Non viene scartato nulla finché non spunti di aver capito.
+- **A tuo nome, e registrato.** La regola viene creata con il tuo permesso di creare regole della pipeline delle metriche: possono crearla i Proprietari del progetto e gli Amministratori del progetto, e anche un team che può creare regole della pipeline delle metriche. I log di audit registrano chi l'ha creata.
+- **Si annulla eliminando la regola.** La regola prende il nome da ciò che scarta, ad esempio «Data Security: drop metrics named with Email address», e compare con le altre regole della pipeline delle metriche in **Metriche → Impostazioni → Regole pipeline**. Eliminala o disattivala, e quelle metriche vengono di nuovo memorizzate da quel momento. Ciò che è stato scartato nel frattempo non torna.
+
+Il risultato viene allora segnato come **Scartati**, e conta come ripulito: di quei dati non viene memorizzato più nulla.
 
 ## Cosa conta come ripulito
 
@@ -111,6 +140,8 @@ Un risultato viene contrassegnato come ripulito solo quando l'ingestione eseguir
 - **La parte giusta.** I **Campi da rimuovere** della regola includono la parte del record in cui si trova il risultato, oppure la regola li lascia al loro valore predefinito.
 - **Un pattern che trova il tipo.** Un **Tipo di pattern** integrato trova il proprio tipo di dati: **Indirizzo email** trova gli indirizzi email, **Numero di carta di credito** i numeri di carta, **SSN (numero di previdenza sociale USA)** i numeri di Social Security USA, **Numero di telefono** i numeri di telefono e **Indirizzo IP** gli indirizzi IP. **Chiavi di attributi sensibili** copre ogni valore sotto una chiave che sembra sensibile, qualunque sia il valore.
 - **I tuoi pattern personalizzati non contano mai.** Una **Regex personalizzata** copre un risultato solo quando è esattamente il pattern che **Ripulisci** crea per il suo tipo. Un risultato conserva solo campioni mascherati, su cui nessun pattern può essere provato, quindi OneUptime non potrebbe dimostrare che il tuo pattern nasconde i dati, e un risultato considerato ripulito per errore è una fuga che nessuno guarda.
+- **L'attributo di una metrica.** Una regola della pipeline delle metriche **Oscura attributo** o **Rimuovi attributo** sulla chiave di quell'attributo, per il servizio del risultato o per l'intero progetto, lo copre quando non ha filtri, o ha esattamente il filtro che crea **Ripulisci**. Un filtro scritto da te non conta mai, per lo stesso motivo.
+- **Il nome di una metrica.** Una regola della pipeline delle metriche **Scarta** per il servizio del risultato o per l'intero progetto lo copre quando ha esattamente il filtro che crea **Scarta questa metrica**, o nessun filtro, nel qual caso non memorizza nessuna metrica del servizio. Una regola così senza filtri copre ogni risultato in quelle metriche.
 
 Una regola disattivata, o che non ripulisce nulla, non conta mai. La copertura viene ricalcolata dopo ogni scansione, quindi una regola che aggiungi o rimuovi a mano cambia ciò che è contrassegnato come ripulito entro un'ora.
 

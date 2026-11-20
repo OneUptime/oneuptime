@@ -15,6 +15,7 @@ import ServiceView from "../Pages/Service/View/Index";
 import ServiceViewRecommendations from "../Pages/Service/View/Recommendations";
 
 import ServiceViewLogs from "../Pages/Service/View/Logs";
+import ServiceViewSecurityEvents from "../Pages/Service/View/SecurityEvents";
 
 import ServiceViewTraces from "../Pages/Service/View/Traces";
 
@@ -42,6 +43,8 @@ import ServiceViewAlerts from "../Pages/Service/View/Alerts";
 import ServiceViewSlos from "../Pages/Service/View/Slos";
 
 import ServiceViewScheduledMaintenance from "../Pages/Service/View/ScheduledMaintenance";
+import ServiceViewDataSecurity from "../Pages/Service/View/DataSecurity";
+import ServiceViewCompliance from "../Pages/Service/View/Compliance";
 
 import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
 
@@ -210,6 +213,20 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <ServiceViewSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_VIEW_SECURITY_EVENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_TRACES)}
           element={
             <ServiceViewTraces
@@ -320,6 +337,28 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE] as Route
               }
+            />
+          }
+        />
+
+        {/* Data Security: the sensitive data in this service's telemetry, and what to fix */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_DATA_SECURITY)}
+          element={
+            <ServiceViewDataSecurity
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_DATA_SECURITY] as Route}
+            />
+          }
+        />
+
+        {/* Compliance: how this service's telemetry stands against each framework */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_COMPLIANCE)}
+          element={
+            <ServiceViewCompliance
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_COMPLIANCE] as Route}
             />
           }
         />

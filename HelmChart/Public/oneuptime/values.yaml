@@ -234,6 +234,13 @@ nginx:
   # options of the listening socket, such as "backlog=4096".
   listenAddress: ""
   listenOptions: ""
+  # HTTP/2 for host on the gateway's HTTPS port, which the gateway serves itself
+  # only with ssl.provision: true. OTLP over gRPC to host needs it. false turns
+  # it off there, and changes nothing else: OTLP over gRPC to host stops, while
+  # OTLP over HTTP and browsers keep working over HTTP/1.1. Turn it off when
+  # nginx fixes a vulnerability in HTTP/2 and you cannot upgrade OneUptime yet;
+  # upgrading is the fix. See /docs/self-hosted/hardening.
+  http2: true
   # Per-request access logging for the high-volume ingest locations (/otlp,
   # /telemetry, /session-replay, /kubernetes-cost, /pyroscope). "on" keeps every
   # ingest line, which is the default because per-request status and client IP
@@ -536,7 +543,11 @@ clickhouse:
     # stricter schema validation (26.7 rejects AggregatingMergeTree dimensions
     # outside the sort key unless they are modeled as aggregate measures).
     # Keep this aligned with docker-compose.base.yml and production.
-    tag: "26.7"
+    # Pinned to the patch: ClickHouse builds its time zone data into the
+    # server and cuts charts' days in the reader's zone with it. 26.7.1 to
+    # 26.7.12 carry tzdata 2025a, without British Columbia's permanent UTC-7
+    # (#9999), and a node that pulled "26.7" early kept it (IfNotPresent).
+    tag: "26.7.38.18"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -738,10 +749,11 @@ clickhouse:
 clickhouseOperator:
   altinity:
     enabled: false
-    # ClickHouse operand image. Pin a specific version for production.
+    # ClickHouse operand image. Pin a specific version for production. The
+    # same patch as clickhouse.image above, for its time zone data.
     image:
       repository: clickhouse/clickhouse-server
-      tag: "26.7"
+      tag: "26.7.38.18"
       pullPolicy: IfNotPresent
     # Cluster topology. shardsCount distributes data; replicasCount adds copies for
     # HA. replicasCount > 1 requires a coordinator — keeper.enabled (below) provides
@@ -841,7 +853,7 @@ clickhouseOperator:
       image:
         repository: clickhouse/clickhouse-keeper
         # Keep Keeper aligned with the ClickHouse server version pinned above.
-        tag: "26.7-alpine"
+        tag: "26.7.38.18-alpine"
         pullPolicy: IfNotPresent
       persistence:
         size: 10Gi
@@ -3034,9 +3046,12 @@ microsoftTeamsApp:
 # See https://oneuptime.com/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server
 
 # A Zoom General app (user-managed) with the meeting:write:meeting and
-# user:read:user scopes. webhookSecretToken is the app's Secret Token: it
-# verifies the event Zoom sends to /api/video-call-oauth/zoom/events when
-# someone removes the app from their Zoom account.
+# user:read:user scopes, and, for call transcripts (Get from Zoom and Record
+# and transcribe incident calls), cloud_recording:read:list_recording_files
+# and cloud_recording:read:meeting_transcript. webhookSecretToken is the app's
+# Secret Token: it verifies the event Zoom sends to
+# /api/video-call-oauth/zoom/events when someone removes the app from their
+# Zoom account.
 zoomApp:
   clientId:
   clientSecret:
@@ -3059,7 +3074,9 @@ googleMeetApp:
   #   clientSecretKey: clientSecret
 
 # A Microsoft Entra app registration with the delegated
-# OnlineMeetings.ReadWrite permission. Not the Teams bot (microsoftTeamsApp):
+# OnlineMeetings.ReadWrite permission (and Calendars.ReadWrite and
+# OnlineMeetingTranscript.Read.All, which a project that records and
+# transcribes its incident calls asks for). Not the Teams bot (microsoftTeamsApp):
 # it signs people in for meetings, which the bot's registration does not.
 # A multi-tenant app needs no tenantId. For an app registered for your own
 # organization only (single tenant), set tenantId to its Directory (tenant)

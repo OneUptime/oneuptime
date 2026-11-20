@@ -53,39 +53,29 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
 import TableEmptyValue, {
   getValueOrQuietDash,
 } from "Common/UI/Components/Table/TableEmptyValue";
+import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import { getStorageArrayCapacityUsage } from "./Utils/StorageArrayHealth";
 
 /*
- * Pure raises its own capacity alerts at 80% and 90% used, so the bar
- * turns amber and red at the same levels.
+ * Pure raises its own capacity alerts at 80% and 90% used, so the bar turns
+ * amber and red past the same levels (StorageArrayHealth), its percent in
+ * the reader's digits (#9539), with how much of the array's capacity is
+ * used under it (#9647). An array that reported only its share draws the
+ * bar alone.
  */
-const renderCapacityBar: (
-  capacityUsedPercent: number | undefined,
-) => ReactElement = (capacityUsedPercent: number | undefined): ReactElement => {
-  if (
-    capacityUsedPercent === null ||
-    capacityUsedPercent === undefined ||
-    !Number.isFinite(Number(capacityUsedPercent))
-  ) {
-    return <TableEmptyValue />;
-  }
-
-  const pct: number = Number(capacityUsedPercent);
-  const clamped: number = Math.min(100, Math.max(0, pct));
-  const barColor: string =
-    pct >= 90 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500";
-
+const renderCapacityBar: (item: StorageArray) => ReactElement = (
+  item: StorageArray,
+): ReactElement => {
+  const hasCapacity: boolean = Number(item.capacityBytes) > 0;
   return (
-    <div className="flex items-center gap-2 min-w-[120px]">
-      <div className="flex-1 bg-gray-200 rounded-full h-2">
-        <div
-          className={`h-2 rounded-full ${barColor}`}
-          style={{ width: `${clamped}%` }}
-        />
-      </div>
-      <span className="text-xs text-gray-600 whitespace-nowrap w-12 text-right">
-        {pct.toFixed(1)}%
-      </span>
-    </div>
+    <StorageUsageBar
+      usage={getStorageArrayCapacityUsage({
+        capacityBytes: item.capacityBytes,
+        usedBytes: item.usedBytes,
+        capacityUsedPercent: item.capacityUsedPercent,
+      })}
+      showAmount={hasCapacity}
+    />
   );
 };
 
@@ -259,6 +249,9 @@ const StorageArrays: FunctionComponent<
           osName: true,
           // The Health column's Unknown, whichever columns are shown.
           otelCollectorStatus: true,
+          // The Capacity bar's amounts (#9647).
+          capacityBytes: true,
+          usedBytes: true,
         }}
         columns={[
           {
@@ -368,7 +361,7 @@ const StorageArrays: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: StorageArray): ReactElement => {
-              return renderCapacityBar(item.capacityUsedPercent);
+              return renderCapacityBar(item);
             },
           },
           {

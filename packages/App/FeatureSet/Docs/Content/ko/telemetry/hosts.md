@@ -205,7 +205,7 @@ Linux에서 컬렉터는 권한 없는 사용자 `oneuptime-collector`로 실행
 | `--key KEY` | `-Key KEY` | 프로젝트의 텔레메트리 수집 키. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | 호스트에 레이블을 지정합니다. 레이블이 더 있으면 반복하고, Windows에서는 쉼표로 나열합니다. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | `${env:NAME}`을 읽는 구성을 위해 컬렉터에 환경 변수를 줍니다. |
-| `--version VERSION` | `-Version VERSION` | 설치할 컬렉터 릴리스이며, 기본값은 0.161.0입니다. |
+| `--version VERSION` | `-Version VERSION` | 설치할 컬렉터 릴리스이며, 기본값은 0.165.0입니다. |
 | `--download-url URL` | `-DownloadUrl URL` | GitHub와 같은 폴더 구조를 가진 미러에서 릴리스를 내려받습니다. |
 | `--proxy URL` | `-Proxy URL` | 다운로드와 컬렉터의 모든 트래픽을 HTTP 프록시로 보냅니다. |
 | `--replace-existing` | `-ReplaceExisting` | 수동으로 설치한 컬렉터를 중지하고 비활성화합니다. |

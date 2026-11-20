@@ -149,7 +149,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ### Ver o que ele fez
 
 - **Métricas → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências e **Abrir em Métricas**, que abre a métrica dela para o seu serviço, da hora em que foi encontrada. Um serviço sem métricas, ou sem métricas das suas requisições, oferece **Abrir em Traços** no lugar: os spans que suas métricas mediriam.
-- **Métricas → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou.
+- **Métricas → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou. Um pull request diz como a tarefa dele está agora no Code: uma correção pedida de novo com Tentar novamente depois de falhar não aparece mais como falha e mostra o pull request que ela abriu.
 - Em Código, a tarefa diz que o OneUptime a iniciou, com um link para a constatação, e o pull request diz por que foi aberto.
 
 ### Registrar métricas de requisições sem alterar o código
@@ -189,7 +189,7 @@ Reinicie o collector. Cada serviço cujos traces passam por ele passa então a e
 | Renomear Atributo | Renomeia a chave de um atributo nos pontos de dados que correspondem. |
 | Adicionar atributo | Adiciona um atributo aos pontos de dados que correspondem. |
 | Remover Atributo | Remove um atributo, como um com valores demais para ser útil. |
-| Redigir Atributo | Substitui o valor de um atributo por um marcador. |
+| Ocultar Atributo | Substitui o valor de um atributo por um marcador. |
 | Amostra | Mantém uma porcentagem dos pontos de dados que correspondem. |
 
 **Métricas → Configurações → Regras de gravação** calcula a cada minuto novas métricas a partir de outras métricas. Veja [Regras de gravação de registros](/docs/telemetry/log-recording-rules) para saber como as regras de gravação funcionam.

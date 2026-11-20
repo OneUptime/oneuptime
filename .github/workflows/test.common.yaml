@@ -128,6 +128,23 @@ jobs:
       # label and private tables (ReadAudiencePostgres, #9576). A schema of
       # its own, dropped after.
       RUN_POSTGRES_READ_AUDIENCE_TESTS: "true"
+      # OneUptime AI's search of past incidents and alerts by meaning: the
+      # regular expression built from MeaningMatch's concepts, read by
+      # Postgres over each searched column (MeaningSearchPostgres, #7673).
+      # A schema of its own, dropped after.
+      RUN_POSTGRES_MEANING_SEARCH_TESTS: "true"
+      # A team's, a label's, an on-call policy's and an on-call schedule's
+      # name compared as it reads - case, spaces and every kind of space
+      # aside - by Postgres as by the server, each refused another one's
+      # name, and the records that share a name found for their lists
+      # (UniqueNamePostgres, #9674, #9742, #9746). A schema of its own,
+      # dropped after.
+      RUN_POSTGRES_UNIQUE_NAME_TESTS: "true"
+      # Postgres's own tz database keeps British Columbia on UTC-7 after
+      # 2026-11-01, so a status page's uptime days start at a Vancouver
+      # visitor's midnight (MonitorStatusTimelineBritishColumbiaPostgres,
+      # #9999). Creates nothing.
+      RUN_POSTGRES_TIME_ZONE_DATA_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

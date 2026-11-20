@@ -1,9 +1,10 @@
 import { isAwsRegion } from "../Cloud/AwsRegionCode";
 import {
-  AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
+  AWS_STREAM_TEMPLATE_VERSION,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
+  isAwsKeyMetricInTemplate,
 } from "../Cloud/CloudKeyMetrics";
 import { AWS_LOG_GROUP_NAME_MAX_LENGTH } from "../Cloud/CloudLogGroups";
 import { JSONObject } from "../JSON";
@@ -18,6 +19,10 @@ import {
   CloudStreamProblem,
   getCloudStreamSuffix,
 } from "./CloudStream";
+import {
+  CLOUD_STREAM_METRICS_ATTRIBUTE,
+  CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+} from "./CloudStreamStack";
 
 /*
  * THE CLOUDFORMATION STACK THAT STREAMS ONE AWS REGION INTO ONEUPTIME.
@@ -86,6 +91,13 @@ export const CLOUD_STREAM_MAX_REGIONS: number = 30;
  * body CloudFormation accepts without an S3 bucket.
  */
 export const CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES: number = 51_200;
+
+/*
+ * The most names a metric stream's filters may hold, namespaces and metric
+ * names together (CloudWatch's MetricStreamFilter): the key metrics'
+ * filters stay well under it (CloudStreamTemplate.test).
+ */
+export const CLOUDWATCH_METRIC_STREAM_MAX_FILTER_NAMES: number = 1000;
 
 export const CLOUD_STREAM_TEMPLATE_FILE: string = "oneuptime-stream.json";
 
@@ -339,19 +351,20 @@ export function getCloudStreamOptionsProblem(data: {
 }
 
 /*
- * The metric stream's filters for the key metrics: each namespace
- * OneUptime reads, with its key metrics - the ones read every five
- * minutes, which a stream brings a minute at a time. A metric published a
- * few times a day or once is left to the connection's own reads, which
- * keep reading it: S3's daily storage metrics, which a metric stream does
- * not carry, and ACM's DaysToExpiry, published twice a day and read once
- * an hour, which a stream would bring an hour or two sooner - nothing to a
- * count of days - for a bigger template. So is every key metric added
- * since streams began (AwsKeyMetric.isStreamed): a stack made before it
- * does not carry it, so the reads write it whatever the account streams,
- * and the filters stay the ones every stack has.
+ * The metric stream's filters for the key metrics of a template version
+ * (the current one, unless asked): each namespace OneUptime reads, with
+ * the key metrics that version carries (AwsKeyMetric.streamedSince) - the
+ * ones read every five minutes, which a stream brings a minute at a time.
+ * A metric published a few times a day or once is left to the
+ * connection's own reads, which keep reading it: S3's daily storage
+ * metrics, which a metric stream does not carry, and ACM's DaysToExpiry,
+ * published twice a day and read once an hour, which a stream would bring
+ * an hour or two sooner - nothing to a count of days - for a bigger
+ * template.
  */
-export function getCloudStreamKeyMetricFilters(): Array<{
+export function getCloudStreamKeyMetricFilters(
+  templateVersion: number = AWS_STREAM_TEMPLATE_VERSION,
+): Array<{
   Namespace: string;
   MetricNames: Array<string>;
 }> {
@@ -360,10 +373,7 @@ export function getCloudStreamKeyMetricFilters(): Array<{
   for (const namespace of AWS_KEY_METRICS as ReadonlyArray<AwsNamespaceKeyMetrics>) {
     const metricNames: Array<string> = namespace.metrics
       .filter((metric: AwsKeyMetric): boolean => {
-        return (
-          metric.isStreamed &&
-          metric.periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS
-        );
+        return isAwsKeyMetricInTemplate(metric, templateVersion);
       })
       .map((metric: AwsKeyMetric): string => {
         return metric.metricName;
@@ -452,7 +462,18 @@ function deliveryStream(data: {
   backupPrefix: string;
   logStream: string;
   stackCondition?: string | undefined;
+  /*
+   * What Firehose tells OneUptime with every delivery, in its
+   * X-Amz-Firehose-Common-Attributes header (CloudStreamStack).
+   */
+  commonAttributes?: Record<string, string> | undefined;
 }): JSONObject {
+  const commonAttributes: Array<JSONObject> = Object.entries(
+    data.commonAttributes || {},
+  ).map(([name, value]: [string, string]): JSONObject => {
+    return { AttributeName: name, AttributeValue: value };
+  });
+
   return {
     Type: "AWS::KinesisFirehose::DeliveryStream",
     ...(data.stackCondition ? { Condition: data.stackCondition } : {}),
@@ -466,7 +487,12 @@ function deliveryStream(data: {
           Url: data.url,
           AccessKey: ref("StreamKey"),
         },
-        RequestConfiguration: { ContentEncoding: "GZIP" },
+        RequestConfiguration: {
+          ContentEncoding: "GZIP",
+          ...(commonAttributes.length > 0
+            ? { CommonAttributes: commonAttributes }
+            : {}),
+        },
         BufferingHints: {
           SizeInMBs: CLOUD_STREAM_BUFFER_SIZE_MIB,
           IntervalInSeconds: CLOUD_STREAM_BUFFER_INTERVAL_SECONDS,
@@ -634,6 +660,15 @@ export function getAwsCloudStreamTemplate(
       endpointName: "OneUptime metrics",
       backupPrefix: "metrics/",
       logStream: "MetricsDeliveryLogStream",
+      /*
+       * The template the stack is made from, and what its metric stream
+       * streams: OneUptime leaves to the stream every key metric it
+       * carries, and reads the rest (CloudStreamStack).
+       */
+      commonAttributes: {
+        [CLOUD_STREAM_TEMPLATE_ATTRIBUTE]: String(AWS_STREAM_TEMPLATE_VERSION),
+        [CLOUD_STREAM_METRICS_ATTRIBUTE]: options.metrics,
+      },
     });
 
     resources["MetricStreamRole"] = serviceRole({
@@ -799,6 +834,30 @@ export function getAwsCloudStreamTemplateBody(
   options: CloudStreamTemplateOptions,
 ): string {
   return JSON.stringify(getAwsCloudStreamTemplate(options));
+}
+
+export const STREAM_TEMPLATE_TOO_LARGE: string = translationKey(
+  "These log groups' names make the stack's template larger than CloudFormation takes from a command. Name fewer log groups, or stream every log group.",
+);
+
+/*
+ * What stops the command for the size of its template, or null: aws
+ * cloudformation deploy sends a template of at most
+ * CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES without an S3 bucket, and refuses
+ * a larger one before it does anything. Only named log groups grow it that
+ * far - each is a subscription of its own, its name included - beside the
+ * key metrics' filters: 50 groups with names of 400 characters fit.
+ */
+export function getCloudStreamTemplateSizeProblem(
+  options: CloudStreamTemplateOptions,
+): CloudStreamProblem | null {
+  const bytes: number = new TextEncoder().encode(
+    getAwsCloudStreamTemplateBody(options),
+  ).length;
+
+  return bytes > CLOUDFORMATION_TEMPLATE_BODY_MAX_BYTES
+    ? problem(STREAM_TEMPLATE_TOO_LARGE)
+    : null;
 }
 
 /*
@@ -990,6 +1049,121 @@ export function getAwsCloudStreamCommand(data: {
     `    ${deploy}`,
     "  done",
     "fi",
+  ].join("\n");
+}
+
+/*
+ * UPDATING A STACK IN PLACE (#9693).
+ *
+ * A stack made from an older template streams only the key metrics of its
+ * day, and says so with every delivery (CloudStreamStack). Running the
+ * command again would rewrite the whole stack from the dialog's choices of
+ * today: a person who named log groups would have to name them again, and
+ * make a new key. The update command needs neither. In each Region it
+ * reads the stack's own template back from CloudFormation and, with jq -
+ * which AWS CloudShell has - changes two things of it
+ * (getAwsCloudStreamUpdateProgram):
+ *
+ *   - the metric stream's key-metric filters (IncludeFilters), when it has
+ *     them, become today's (getCloudStreamKeyMetricFilters). A stream of
+ *     every metric has none, and is given none;
+ *   - the metrics Firehose stream's common attributes say today's template
+ *     (AWS_STREAM_TEMPLATE_VERSION), and whether its stream carries the key
+ *     metrics or every metric.
+ *
+ * Then it deploys that template with no parameter given, which keeps each
+ * parameter's value (aws cloudformation deploy: UsePreviousValue), so the
+ * stack keeps its key, and its log subscriptions are as they were. A
+ * Region without the stack says so in AWS's words, and the next goes on.
+ */
+
+// What the update command writes: its jq program, and the template it read back.
+export const CLOUD_STREAM_UPDATE_PROGRAM_FILE: string =
+  "oneuptime-stream-update.jq";
+export const CLOUD_STREAM_DEPLOYED_TEMPLATE_FILE: string =
+  "oneuptime-stream-deployed.json";
+
+const METRIC_STREAM_FILTERS_PATH: string =
+  ".Resources.MetricStream.Properties.IncludeFilters";
+const METRICS_DELIVERY_ATTRIBUTES_PATH: string =
+  ".Resources.MetricsDeliveryStream.Properties.HttpEndpointDestinationConfiguration.RequestConfiguration.CommonAttributes";
+
+/*
+ * The jq program that changes a stack's template as above: it takes the
+ * template as CloudFormation answers it - an object from get-template (the
+ * CLI decodes a JSON body), a string from describe-stack-set - and writes
+ * it whole with those two changes, and nothing else.
+ */
+export function getAwsCloudStreamUpdateProgram(): string {
+  const filters: string = JSON.stringify(getCloudStreamKeyMetricFilters());
+  const attributes: string = `[{"AttributeName": ${JSON.stringify(
+    CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+  )}, "AttributeValue": ${JSON.stringify(
+    String(AWS_STREAM_TEMPLATE_VERSION),
+  )}}, {"AttributeName": ${JSON.stringify(
+    CLOUD_STREAM_METRICS_ATTRIBUTE,
+  )}, "AttributeValue": (if ${METRIC_STREAM_FILTERS_PATH} then ${JSON.stringify(
+    CloudStreamMetricsMode.Key,
+  )} else ${JSON.stringify(CloudStreamMetricsMode.All)} end)}]`;
+
+  return [
+    '(if type == "string" then fromjson else . end)',
+    `| if ${METRIC_STREAM_FILTERS_PATH} then ${METRIC_STREAM_FILTERS_PATH} = ${filters} else . end`,
+    `| if .Resources.MetricsDeliveryStream then ${METRICS_DELIVERY_ATTRIBUTES_PATH} = ${attributes} else . end`,
+  ].join("\n");
+}
+
+// The lines that write the jq program to its file.
+export function getAwsCloudStreamUpdateProgramLines(): Array<string> {
+  return [
+    `cat > ${CLOUD_STREAM_UPDATE_PROGRAM_FILE} <<'UPDATE'`,
+    getAwsCloudStreamUpdateProgram(),
+    "UPDATE",
+  ];
+}
+
+/*
+ * One Region's stack updated in place, as one line: its template read back,
+ * changed, and deployed with the parameters it has. Each step only after
+ * the one before worked, so a Region without the stack deploys nothing.
+ */
+export function getAwsCloudStreamUpdateStackLine(connectionId: string): string {
+  const stackName: string = getCloudStreamNames(connectionId).stackName;
+
+  return [
+    `aws cloudformation get-template --region "$REGION" --stack-name ${stackName} --query TemplateBody --output json > ${CLOUD_STREAM_DEPLOYED_TEMPLATE_FILE}`,
+    `jq -c -f ${CLOUD_STREAM_UPDATE_PROGRAM_FILE} ${CLOUD_STREAM_DEPLOYED_TEMPLATE_FILE} > ${CLOUD_STREAM_TEMPLATE_FILE}`,
+    `aws cloudformation deploy --region "$REGION" --stack-name ${stackName} --template-file ${CLOUD_STREAM_TEMPLATE_FILE} --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset`,
+  ].join(" && ");
+}
+
+// The Regions a command names, each once, in order: CloudShell's own when none is known.
+export function getCloudStreamRegionList(regions: Array<string>): string {
+  const named: Array<string> = regions
+    .map((region: string): string => {
+      return region.trim().toLowerCase();
+    })
+    .filter((region: string, index: number, all: Array<string>): boolean => {
+      return isAwsRegion(region) && all.indexOf(region) === index;
+    });
+
+  return named.length > 0 ? named.join(" ") : '"${AWS_REGION:-us-east-1}"';
+}
+
+/*
+ * The update command, for AWS CloudShell in the account: each Region's
+ * stack updated in place (above). No new key: each stack keeps its own.
+ */
+export function getAwsCloudStreamUpdateCommand(data: {
+  connectionId: string;
+  // The Regions whose stacks are of an older template.
+  regions: Array<string>;
+}): string {
+  return [
+    ...getAwsCloudStreamUpdateProgramLines(),
+    `for REGION in ${getCloudStreamRegionList(data.regions)}; do`,
+    `  ${getAwsCloudStreamUpdateStackLine(data.connectionId)}`,
+    "done",
   ].join("\n");
 }
 

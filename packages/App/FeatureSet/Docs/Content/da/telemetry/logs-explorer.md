@@ -63,7 +63,7 @@ Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip: en 
 Klik på en række. Dens detaljer åbner ved siden af listen.
 :::
 
-Din søgning, dine chips og tidsintervallet gemmes i sidens adresse, så en genindlæsning, et bogmærke eller et delt link åbner de samme protokoller.
+Din søgning, dine chips og tidsintervallet gemmes i sidens adresse, så en genindlæsning, et bogmærke eller et delt link åbner de samme protokoller. Et link til én loglinje, såsom **Vis loglinje** på en sikkerhedsbegivenhed, åbner den linje over listen, læst med dine egne tilladelser. **Kopiér link** i en linjes detaljer kopierer sådan et link, med listen, du kopierede det fra, under linjen, over det samme tidsinterval.
 
 ## Læs en protokol
 
@@ -170,7 +170,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 ### Se, hvad den gjorde
 
 - **Protokoller → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Protokoller**, som åbner de linjer, det handler om, fra den time, det blev fundet i, i **Seer**. En fejl, der ikke skriver nogen loglinje, har ingen linjer at åbne: **Åbn i Spor** åbner i stedet dens fejlede spans. For en fejllog opretter **Opret monitor** en logmonitor, der tæller meddelelsens linjer.
-- **Protokoller → AI → Aktivitet** viser hver undersøgelse og hver pull request, nyeste først, med status for hver. En afsluttet undersøgelse siger også, hvad OneUptime AI fandt, såsom årsagen til en fejl uden for koden, og derfor fik den fejllog ingen pull request af sig selv.
+- **Protokoller → AI → Aktivitet** viser hver undersøgelse og hver pull request, nyeste først, med status for hver. En afsluttet undersøgelse siger også, hvad OneUptime AI fandt, såsom årsagen til en fejl uden for koden, og derfor fik den fejllog ingen pull request af sig selv. En pull request siger, hvordan dens opgave i Code står nu: en rettelse, der blev bedt om igen med Prøv igen, efter at den mislykkedes, står ikke længere som mislykket og nævner den pull request, den åbnede.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med protokoller, når de ankommer

@@ -42,7 +42,7 @@ Tout le reste se trouve dans le tableau de bord.
 :::
 
 :::details Puis-je accuser réception d'une alerte depuis la notification ?
-Non. Touchez la notification : l'application ouvre l'incident, l'alerte, l'épisode ou le dossier de sécurité concerné, dans le bon projet, et vous en accusez réception là. Si l'application est verrouillée ou si vous êtes déconnecté, elle ouvre l'alerte dès que vous êtes connecté.
+Oui. Appuyez longuement sur la notification sur un iPhone, ou développez-la sur Android : une alerte d'astreinte propose **Acknowledge** et **Escalate**, une alerte qui vous tient seulement informé propose **I've seen it**, et une alerte de test propose **Acknowledge test page**. Chaque action ouvre l'application sur l'élément dès que le téléphone est déverrouillé et fait ce que fait le bouton de l'élément lui-même ; avant d'escalader, elle demande confirmation. Si vous touchez la notification elle-même, l'application ouvre l'incident, l'alerte, l'épisode ou le dossier de sécurité concerné, dans le bon projet. Si l'application est verrouillée ou si vous êtes déconnecté, elle ouvre l'alerte dès que vous êtes connecté.
 :::
 
 :::details Ma connexion est-elle sûre sur le téléphone ?
@@ -109,7 +109,7 @@ L'application n'a pas pu joindre `https://<your-oneuptime>/api/status`. Vérifie
 :::
 
 :::details « No SSO configuration found for the email »
-Aucun des projets dont cet e-mail est membre n'a configuré l'authentification unique, ou l'e-mail n'a pas de compte sur ce OneUptime. Vérifiez l'e-mail, ou connectez-vous avec votre mot de passe. Les fournisseurs que votre administrateur a configurés pour toute l'installation sont listés avant le champ e-mail.
+Aucun projet de ce OneUptime ne propose encore l'authentification unique pour le domaine de cet e-mail : un Propriétaire du projet ou un Administrateur du projet ajoute le domaine au fournisseur SSO du projet, quel que soit le titulaire de l'e-mail. Vérifiez l'e-mail, ou connectez-vous avec votre mot de passe. Les fournisseurs que votre administrateur a configurés pour toute l'installation sont listés avant le champ e-mail.
 :::
 
 :::details Une clé de sécurité est votre seul second facteur

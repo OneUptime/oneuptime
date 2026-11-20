@@ -63,7 +63,7 @@ Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke: 
 Klikk på en rad. Detaljene åpnes ved siden av listen.
 :::
 
-Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme loggene.
+Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme loggene. En lenke til én logglinje, som **Vis logglinje** på en sikkerhetshendelse, åpner den linjen over listen, lest med dine egne tillatelser. **Kopier lenke** i en linjes detaljer kopierer en slik lenke, med listen du kopierte den fra under linjen, over det samme tidsintervallet.
 
 ## Les en logg
 
@@ -170,7 +170,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ### Se hva den gjorde
 
 - **Logger → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Logger**, som åpner linjene det gjelder, fra timen det ble funnet i, i **Leser**. En feil som ikke skriver noen logglinje, har ingen linjer å åpne: **Åpne i Spor** åpner i stedet de feilede spansene. For en feillogg setter **Opprett monitor** opp en loggmonitor som teller meldingens linjer.
-- **Logger → KI → Aktivitet** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver. En fullført undersøkelse sier også hva OneUptime AI fant, for eksempel årsaken til en feil utenfor koden, og derfor fikk den feilloggen ingen pull-forespørsel av seg selv.
+- **Logger → KI → Aktivitet** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver. En fullført undersøkelse sier også hva OneUptime AI fant, for eksempel årsaken til en feil utenfor koden, og derfor fikk den feilloggen ingen pull-forespørsel av seg selv. En pull-forespørsel sier hvordan oppgaven i Code står nå: en retting som ble bedt om på nytt med Prøv igjen etter at den mislyktes, står ikke lenger som mislykket og viser hvilken pull-forespørsel den åpnet.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Hva som skjer med logger når de kommer inn

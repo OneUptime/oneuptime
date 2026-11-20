@@ -129,7 +129,7 @@ Los nombres de campo no distinguen mayúsculas y minúsculas: `statusMessage:` y
 
 ### Trazas
 
-Los campos de traza aceptan un valor simple o una lista como `status:(ok OR unset)`, y `duration` además acepta `>` y `<`. Los comodines, `~`, `!` y un `-` inicial aquí solo funcionan con atributos.
+Los campos de traza aceptan un valor simple o una lista como `status:(ok OR unset)`, y `duration` además acepta `>`, `>=`, `<` y `<=`. Los comodines, `~`, `!` y un `-` inicial aquí solo funcionan con atributos.
 
 | Campo | Notas |
 | --- | --- |
@@ -137,7 +137,7 @@ Los campos de traza aceptan un valor simple o una lista como `status:(ok OR unse
 | `name` | Nombre del span. Un único valor coincide con cualquier parte del nombre. Las palabras sueltas también lo buscan |
 | `status` | `ok`, `error`, `unset` (unset = No se estableció ningún estado de error, el valor predeterminado de OpenTelemetry) |
 | `kind` | `server`, `client`, `producer`, `consumer`, `internal` |
-| `duration` | Milisegundos: `duration:>500`, `duration:<200` o un valor exacto |
+| `duration` | Milisegundos: `duration:>500`, `duration:>=500`, `duration:<200`, `duration:<=200` o un valor exacto |
 | `statusMessage` | Texto del mensaje de estado. Un único valor coincide con cualquier parte del texto |
 | `hasException` | `true` o `false` |
 | `trace`, `span` | ID |

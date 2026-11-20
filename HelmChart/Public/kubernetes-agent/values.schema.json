@@ -476,6 +476,10 @@
         "vpa": {
           "type": "boolean",
           "description": "Enable VPA collection (requires VPA CRDs installed in the cluster)"
+        },
+        "compliance": {
+          "type": "boolean",
+          "description": "Read RBAC (Roles, ClusterRoles and their bindings), ServiceAccounts and NetworkPolicies, read-only, to score the cluster against the CIS Kubernetes Benchmark on its Compliance page"
         }
       },
       "additionalProperties": false
@@ -498,11 +502,16 @@
         },
         "volumeMetrics": {
           "type": "object",
-          "description": "Per-PVC disk usage (k8s.volume.available / capacity). One series per PVC per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
+          "description": "Disk usage of the volumes that hold data (claims, generic ephemeral ones too, emptyDirs and hostPaths: k8s.volume.capacity / available / inodes), each persistent volume claim's named by k8s.persistentvolumeclaim.name: the used, free and capacity figures on the Persistent Volume Claims pages, a nearly full claim under the cluster's Needs attention, and the PVC Almost Full monitor template. configMap, secret, downwardAPI and projected token volumes are dropped on the node. A few series per volume per pod — bounded on most clusters, can be heavy on stateful workloads with thousands of PVCs.",
           "properties": {
             "enabled": { "type": "boolean" }
           },
           "additionalProperties": false
+        },
+        "nodesProxy": {
+          "type": ["boolean", "string"],
+          "enum": [true, false, "auto", "true", "false"],
+          "description": "Grant nodes/proxy for the kubelet pod list (/pods), which a kubelet older than Kubernetes 1.33 allows only with it; from 1.33 nodes/pods, always granted, is enough. auto (the default): granted while the cluster runs Kubernetes older than 1.36. CIS Kubernetes Benchmark 5.1.10 fails a binding that grants nodes/proxy."
         }
       },
       "additionalProperties": false
@@ -576,23 +585,31 @@
     },
     "cost": {
       "type": "object",
-      "description": "Kubernetes cost observability. `cost.enabled=true` alone is a complete install: the chart bundles OpenCost plus a minimal dedicated Prometheus. Set cost.engine.url to use an existing OpenCost/Kubecost instead (nothing is bundled then).",
+      "description": "Kubernetes cost monitoring, on by default: the chart bundles OpenCost plus a minimal dedicated Prometheus, and the cost agent ships what they work out. Set cost.engine.url to use an existing OpenCost/Kubecost instead (nothing is bundled then).",
       "properties": {
-        "enabled": { "type": "boolean" },
+        "enabled": {
+          "type": ["boolean", "string"],
+          "enum": [true, false, "auto", "true", "false"],
+          "description": "auto (the default): on, except on the gke-autopilot and eks-fargate presets. true: on, whatever the preset. false: off."
+        },
         "engine": {
           "type": "object",
           "properties": {
             "url": {
               "type": "string",
-              "description": "Base URL of an EXISTING cost engine, http:// or https://. Empty (default) bundles OpenCost + a minimal Prometheus. The poller and the metrics scrape both follow the scheme, and verify an https engine's certificate against public CAs only. Example: http://opencost.opencost.svc.cluster.local:9003"
+              "description": "Which cost engine prices the cluster. Empty (default) bundles OpenCost + a minimal Prometheus, and the cost agent reads the cluster's own OpenCost or Kubecost instead when it runs one (see preferExisting). auto bundles nothing: the cost agent finds the OpenCost or Kubecost the cluster runs. A URL (http:// or https://) bundles nothing and reads that engine; the poller and the metrics scrape both follow the scheme, and verify an https engine's certificate against public CAs only. Example: http://opencost.opencost.svc.cluster.local:9003"
+            },
+            "preferExisting": {
+              "type": "boolean",
+              "description": "With the bundled engine (url empty): read the cluster's own OpenCost or Kubecost instead when it runs one and answers. The agent looks when it starts and hourly, and falls back to the bundled engine; the price metrics the collector scrapes follow it. false always reads the bundled one; so does a rate card in cost.opencost.customPricing."
             },
             "prometheusUrl": {
               "type": "string",
-              "description": "Prometheus the cost agent reads per-container memory peaks from, for right-sizing recommendations. Empty (default) uses the bundled Prometheus when the engine is bundled, and nothing when an external engine is configured. Without it, CPU recommendations still work and memory ones are unavailable."
+              "description": "Prometheus the cost agent reads per-container memory peaks from, for right-sizing recommendations, whatever the engine. Empty (default): the bundled Prometheus for the bundled engine, and for the cluster's own engine the Prometheus that engine reads, found at run time (OpenCost's PROMETHEUS_SERVER_ENDPOINT, the Prometheus Kubecost 2 bundles) once it answers for this cluster's cAdvisor series. Kubecost 3 reads none. Without one, CPU recommendations still work and memory ones are unavailable."
             },
             "prometheusCadvisorJob": {
               "type": "string",
-              "description": "Prometheus job label of the cAdvisor scrape. Empty (default) uses kubernetes-nodes-cadvisor, which is what the bundled Prometheus names it. Override when reusing your own Prometheus."
+              "description": "Prometheus job label of the cAdvisor scrape. Empty (default): read off the Prometheus in use (kubernetes-nodes-cadvisor when it has it, as the bundled one, Kubecost's and the community chart's do; kubelet in kube-prometheus-stack's). Set it when that Prometheus scrapes cAdvisor under more than one job."
             },
             "allocationPath": {
               "type": "string",
@@ -603,7 +620,7 @@
         },
         "opencost": {
           "type": "object",
-          "description": "Bundled OpenCost engine. Deployed only when cost.enabled is true and cost.engine.url is empty.",
+          "description": "Bundled OpenCost engine. Deployed while cost monitoring is on (cost.enabled) and cost.engine.url is empty.",
           "properties": {
             "image": {
               "type": "object",
@@ -664,8 +681,18 @@
               },
               "additionalProperties": false
             },
+            "nodesProxy": {
+              "type": ["boolean", "string"],
+              "enum": [true, false, "auto", "true", "false"],
+              "description": "Read each node's cAdvisor through the API server's node proxy (nodes/proxy, which CIS Kubernetes Benchmark 5.1.10 fails) rather than from the node's kubelet (nodes/metrics). auto (the default): through the API server on the eks-fargate preset only, where no pod reaches a kubelet."
+            },
             "retention": { "type": "string" },
             "scrapeInterval": { "type": "string" },
+            "cadvisorMetricsAllowlist": {
+              "type": "array",
+              "description": "The cAdvisor series the bundled Prometheus keeps, as regular expressions the whole metric name must match: the ones OpenCost queries. Empty keeps every series.",
+              "items": { "type": "string" }
+            },
             "resources": {
               "type": "object",
               "properties": {
@@ -741,7 +768,7 @@
             "enabled": { "type": "boolean" },
             "endpoint": {
               "type": "string",
-              "description": "Metrics endpoint URL. Empty defaults to <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused."
+              "description": "Metrics endpoint URL. Empty: wherever the engine the cost agent reads serves its price metrics, which the agent finds (the engine's /metrics, the /model/metrics a Kubecost 2 frontend or OpenCost's UI proxies, or a Kubecost 3 finops agent) and the collector asks it for: the bundled OpenCost's until the agent reads the cluster's own engine instead, or the engine cost.engine.url auto or a URL gives. The bundled OpenCost the agent always reads (preferExisting false, or a rate card) is scraped where the chart puts it; with cost.agent.enabled false, <cost.engine.url>/metrics. Scraped where it points: https:// over TLS, and a path other than /metrics at that path. A URL with credentials, a query string or a fragment is refused. Example: http://kubecost-finopsagent.kubecost.svc.cluster.local:80/metrics"
             },
             "scrapeInterval": { "type": "string" },
             "metricsAllowlist": {

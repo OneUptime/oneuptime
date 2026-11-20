@@ -1,7 +1,8 @@
 import CephResource from "Common/Models/DatabaseModels/CephResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { StorageUsageThresholds } from "Common/Utils/Storage/StorageUsage";
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -87,6 +88,24 @@ export const CEPH_POOL_FULL_PERCENT: number = 95;
 // The Cluster Near Full and Cluster Full alerts' lines.
 export const CEPH_CLUSTER_NEARFULL_PERCENT: number = 85;
 export const CEPH_CLUSTER_FULL_PERCENT: number = 95;
+
+/*
+ * Where the shared storage bar (StorageUsageBar) turns amber and red for an
+ * OSD and a pool: at the lines above, which the rules below and the alerts
+ * read. Only past a line, as Ceph's ratios are crossed: an OSD at exactly
+ * 85% is not nearfull.
+ */
+export const CEPH_OSD_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: CEPH_OSD_NEARFULL_PERCENT,
+  criticalPercent: CEPH_OSD_FULL_PERCENT,
+  isPastLineOnly: true,
+};
+
+export const CEPH_POOL_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: CEPH_POOL_NEARFULL_PERCENT,
+  criticalPercent: CEPH_POOL_FULL_PERCENT,
+  isPastLineOnly: true,
+};
 
 /*
  * Latest readings older than this are no readings: the cleanup's cutoff
@@ -969,6 +988,355 @@ export function getCephTopologyHealth(
     return "healthy";
   }
   return "unknown";
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What an Overview count is about
+ * ---------------------------------------------------------------------------
+ *
+ * "5/6 OSDs up", the OSD States card's "Down + In" and the Problem PGs tile
+ * each count parts Needs attention lists, and said how many and nothing else
+ * (#9594). Pressed, each opens exactly the parts it counts, with why: the
+ * same items as Needs attention, chosen by the rows the count was made of,
+ * so a count and its list never disagree about a part.
+ */
+
+// Where an OSD sits in the OSD States card's up/in matrix.
+export type CephOsdQuadrant = "upIn" | "upOut" | "downIn" | "downOut";
+
+/*
+ * The card's quadrant for an OSD: an OSD that has not said it is up is not
+ * up, and one that has not said it is in is not in, as the card counts.
+ */
+export function getCephOsdQuadrant(
+  row: Pick<CephResource, "isUp" | "isIn">,
+): CephOsdQuadrant {
+  if (row.isUp) {
+    return row.isIn ? "upIn" : "upOut";
+  }
+  return row.isIn ? "downIn" : "downOut";
+}
+
+// The items of Needs attention about the OSDs a count is made of.
+export function getCephOsdAttentionItems(data: {
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+  isCounted: (row: CephResource) => boolean;
+}): Array<ResourceAttentionItem> {
+  const keys: Set<string> = new Set<string>(
+    data.rows
+      .filter((row: CephResource): boolean => {
+        return (
+          row.kind === "Osd" && Boolean(row.externalId) && data.isCounted(row)
+        );
+      })
+      .map((row: CephResource): string => {
+        return getCephAttentionKey("Osd", row.externalId || "");
+      }),
+  );
+  return data.items.filter((item: ResourceAttentionItem): boolean => {
+    return keys.has(item.key);
+  });
+}
+
+// The OSDs a "5/6 OSDs up" leaves out: every one that says it is down.
+export function getCephDownOsdItems(data: {
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+}): Array<ResourceAttentionItem> {
+  return getCephOsdAttentionItems({
+    items: data.items,
+    rows: data.rows,
+    isCounted: (row: CephResource): boolean => {
+      return row.isUp === false;
+    },
+  });
+}
+
+/*
+ * The pools that hold the placement groups the Problem PGs tile counts:
+ * those with a degraded or an undersized one, by their latest readings.
+ */
+export function getCephProblemPgPoolItems(data: {
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+  pgStatesByPool: Map<string, CephPoolPgStates> | null | undefined;
+}): Array<ResourceAttentionItem> {
+  const pgStatesByPool: Map<string, CephPoolPgStates> | null | undefined =
+    data.pgStatesByPool;
+  if (!pgStatesByPool) {
+    return [];
+  }
+  const keys: Set<string> = new Set<string>();
+  for (const row of data.rows) {
+    if (row.kind !== "Pool" || !row.externalId) {
+      continue;
+    }
+    const states: CephPoolPgStates | undefined = pgStatesByPool.get(
+      row.externalId,
+    );
+    if (
+      states &&
+      (Math.round(states.degraded ?? 0) > 0 ||
+        Math.round(states.undersized ?? 0) > 0)
+    ) {
+      keys.add(getCephAttentionKey("Pool", row.externalId));
+    }
+  }
+  return data.items.filter((item: ResourceAttentionItem): boolean => {
+    return keys.has(item.key);
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What the Placement Group States bar opens
+ * ---------------------------------------------------------------------------
+ *
+ * "Degraded PGs (12)" said something was wrong and nothing of where (#9727).
+ * Which pool decides who is hurt, and what Ceph is doing about it decides
+ * whether to wait or act. Pressed, the bar's Degraded or Undersized opens
+ * the pools that hold such placement groups, each with how many, and Ceph's
+ * own reason: the other states it reports for the pool's placement groups
+ * (ceph_pg_<state>, per pool), which say whether it is copying the missing
+ * data back, waiting to, or cannot.
+ */
+
+// The bar's segments that open which pools and why.
+export type CephPgProblemState = "degraded" | "undersized";
+
+/*
+ * The placement-group states that say what Ceph is doing about missing
+ * copies, as Ceph names them (its PG_STATES): each is a ceph_pg_<state>
+ * series per pool, which the agent already sends.
+ */
+export const CEPH_PG_REASON_STATES: ReadonlyArray<string> = [
+  "recovering",
+  "recovery_wait",
+  "recovery_toofull",
+  "recovery_unfound",
+  "backfilling",
+  "backfill_wait",
+  "backfill_toofull",
+  "backfill_unfound",
+  "remapped",
+  "stale",
+];
+
+// A pool's placement groups in each of those states, by Ceph's word.
+export type CephPgReasonStates = Record<string, number>;
+
+const REASON_PGS_INACTIVE_KEY: string = REASON_PGS_INACTIVE.other;
+const REASON_PGS_DEGRADED_KEY: string = REASON_PGS_DEGRADED.other;
+const REASON_PGS_UNDERSIZED_KEY: string = REASON_PGS_UNDERSIZED.other;
+
+const FACT_PLACEMENT_GROUPS: string = translationKey("Placement Groups");
+
+/*
+ * What Ceph is doing about them, in OneUptime's words: whole sentences, the
+ * most pressing first. Ceph's own state names follow, as Ceph writes them.
+ */
+const PG_REASON_UNFOUND: string = translationKey(
+  "Ceph can't find every copy of some of their objects.",
+);
+const PG_REASON_TOO_FULL: string = translationKey(
+  "Ceph can't copy them back: an OSD it would copy to is too full.",
+);
+const PG_REASON_STALE: string = translationKey(
+  "The OSD that holds their first copy has stopped reporting them.",
+);
+const PG_REASON_COPYING: string = translationKey(
+  "Ceph is copying the missing data back.",
+);
+const PG_REASON_WAITING: string = translationKey(
+  "Ceph is waiting to copy the missing data back.",
+);
+const PG_REASON_IDLE: string = translationKey(
+  "Ceph reports nothing under way to copy the missing data back.",
+);
+
+function countOf(states: CephPgReasonStates, state: string): number {
+  const value: number = Number(states[state]);
+  return Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+}
+
+/*
+ * Ceph's reason for a pool's degraded or undersized placement groups, in the
+ * reader's words: whether it is copying the missing data back, waiting to,
+ * or cannot - and why it cannot (an OSD too full to copy to, objects whose
+ * copies it cannot find, an OSD that stopped reporting).
+ */
+export function getCephPgReasonSentences(
+  states: CephPgReasonStates,
+  translator: Translator,
+): Array<string> {
+  const say: (key: string) => string = (key: string): string => {
+    return translator.translateText(key) || key;
+  };
+  const sentences: Array<string> = [];
+  if (
+    countOf(states, "recovery_unfound") + countOf(states, "backfill_unfound") >
+    0
+  ) {
+    sentences.push(say(PG_REASON_UNFOUND));
+  }
+  if (
+    countOf(states, "recovery_toofull") + countOf(states, "backfill_toofull") >
+    0
+  ) {
+    sentences.push(say(PG_REASON_TOO_FULL));
+  }
+  if (countOf(states, "stale") > 0) {
+    sentences.push(say(PG_REASON_STALE));
+  }
+  const copying: number =
+    countOf(states, "recovering") + countOf(states, "backfilling");
+  const waiting: number =
+    countOf(states, "recovery_wait") + countOf(states, "backfill_wait");
+  if (copying > 0) {
+    sentences.push(say(PG_REASON_COPYING));
+  } else if (waiting > 0) {
+    sentences.push(say(PG_REASON_WAITING));
+  }
+  if (sentences.length === 0) {
+    sentences.push(say(PG_REASON_IDLE));
+  }
+  return sentences;
+}
+
+/*
+ * The states as Ceph writes them, as `ceph pg stat` counts them: "3
+ * recovering, 1 backfill_toofull". Ceph's own words, never translated.
+ */
+export function formatCephPgReasonStates(states: CephPgReasonStates): string {
+  return CEPH_PG_REASON_STATES.filter((state: string): boolean => {
+    return countOf(states, state) > 0;
+  })
+    .map((state: string): string => {
+      return `${countOf(states, state)} ${state}`;
+    })
+    .join(", ");
+}
+
+/*
+ * The pools that hold the placement groups a segment of the bar counts,
+ * as Needs attention lists them, each with the segment's own reason first
+ * ("4 placement groups degraded"), how many placement groups it has, and -
+ * when Ceph's other states for them were read - Ceph's reason, in the
+ * reader's words and in Ceph's own. The most urgent first, then the pool
+ * with the most of them. Empty on a Ceph that reports its placement groups
+ * for the whole cluster only: it never says which pools hold them.
+ */
+export function getCephPgStatePoolItems(data: {
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+  pgStatesByPool: Map<string, CephPoolPgStates> | null | undefined;
+  state: CephPgProblemState;
+  // Each pool's other states, by pool id; null or missing when unread.
+  reasonsByPool?: Map<string, CephPgReasonStates> | null | undefined;
+  translator: Translator;
+}): Array<ResourceAttentionItem> {
+  const pgStatesByPool: Map<string, CephPoolPgStates> | null | undefined =
+    data.pgStatesByPool;
+  if (!pgStatesByPool || pgStatesByPool.size === 0) {
+    return [];
+  }
+  const ownReason: string =
+    data.state === "degraded"
+      ? REASON_PGS_DEGRADED_KEY
+      : REASON_PGS_UNDERSIZED_KEY;
+  const ranked: Array<{ item: ResourceAttentionItem; count: number }> = [];
+
+  for (const row of data.rows) {
+    if (row.kind !== "Pool" || !row.externalId) {
+      continue;
+    }
+    const states: CephPoolPgStates | undefined = pgStatesByPool.get(
+      row.externalId,
+    );
+    const count: number = Math.round(states?.[data.state] ?? 0);
+    if (!states || count <= 0) {
+      continue;
+    }
+    const key: string = getCephAttentionKey("Pool", row.externalId);
+    const listed: ResourceAttentionItem | undefined = data.items.find(
+      (item: ResourceAttentionItem): boolean => {
+        return item.key === key;
+      },
+    );
+    if (!listed) {
+      continue;
+    }
+
+    // The segment's own reason first, then the rest, inactive leading them.
+    const rank: (reason: ResourceAttentionText) => number = (
+      reason: ResourceAttentionText,
+    ): number => {
+      if (reason.text === ownReason) {
+        return 0;
+      }
+      return reason.text === REASON_PGS_INACTIVE_KEY ? 1 : 2;
+    };
+    const reasons: Array<ResourceAttentionText> = [...listed.reasons].sort(
+      (a: ResourceAttentionText, b: ResourceAttentionText): number => {
+        return rank(a) - rank(b);
+      },
+    );
+
+    const item: ResourceAttentionItem = { ...listed, reasons: reasons };
+    // How many placement groups the pool has: "4 degraded" of how many.
+    if (states.total !== null && states.total > 0) {
+      item.facts = [
+        {
+          key: "placementGroups",
+          label: FACT_PLACEMENT_GROUPS,
+          value: String(Math.round(states.total)),
+          isCount: true,
+        },
+      ];
+    }
+
+    const reasonStates: CephPgReasonStates | undefined =
+      data.reasonsByPool?.get(row.externalId);
+    if (reasonStates) {
+      item.explanation = getCephPgReasonSentences(
+        reasonStates,
+        data.translator,
+      ).join(" ");
+      const asCephWritesIt: string = formatCephPgReasonStates(reasonStates);
+      if (asCephWritesIt) {
+        item.message = asCephWritesIt;
+      }
+    }
+
+    ranked.push({ item: item, count: count });
+  }
+
+  return ranked
+    .sort(
+      (
+        a: { item: ResourceAttentionItem; count: number },
+        b: { item: ResourceAttentionItem; count: number },
+      ): number => {
+        const severity: number =
+          (a.item.severity === ResourceAttentionSeverity.Critical ? 0 : 1) -
+          (b.item.severity === ResourceAttentionSeverity.Critical ? 0 : 1);
+        if (severity !== 0) {
+          return severity;
+        }
+        if (a.count !== b.count) {
+          return b.count - a.count;
+        }
+        return a.item.name.localeCompare(b.item.name, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+      },
+    )
+    .map((entry: { item: ResourceAttentionItem; count: number }) => {
+      return entry.item;
+    });
 }
 
 /*

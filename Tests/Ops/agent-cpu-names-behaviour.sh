@@ -93,9 +93,16 @@ for (const name of names) {
   }
 }
 // Right after memory_limiter, filter first, so everything after them (the
-// telemetry filters among them) sees the names OneUptime does.
+// telemetry filters among them) sees the names OneUptime does. Only
+// filter/volume-series, there while volume metrics are on, comes earlier: it
+// drops whole volumes by their resource attributes, reads no metric name and
+// renames nothing (the chart pins the order in tests/metric-names_test.yaml).
 const processors = collector.service.pipelines.metrics.processors;
-if (processors.slice(0, 3).join(",") !== `memory_limiter,${names.join(",")}`) {
+const ahead = processors[1] === "filter/volume-series" ? 2 : 1;
+if (
+  processors[0] !== "memory_limiter" ||
+  processors.slice(ahead, ahead + names.length).join(",") !== names.join(",")
+) {
   throw new Error(`the metrics pipeline runs ${processors.join(", ")}`);
 }
 

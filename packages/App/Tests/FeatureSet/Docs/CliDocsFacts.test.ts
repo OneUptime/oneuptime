@@ -41,9 +41,11 @@ import {
   getCliResourcesByCommand,
 } from "../../../FeatureSet/Docs/Utils/CliCommandsTable";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ListOrderSettings } from "Common/Types/Database/ListOrderColumn";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   InstallScriptName,
@@ -54,8 +56,10 @@ import {
   CLI_FIELDS_SUBCOMMAND,
   CLI_OPERATIONS,
   CliAction,
+  CliDeleteChoiceFlag,
   CliFieldFlag,
   CliOperation,
+  getCliDeleteChoiceFlags,
   getCliFieldFlags,
   getCliNoteTarget,
   getCliResourceName,
@@ -75,6 +79,7 @@ import {
   getLabelListSort,
   sortLabelNames,
 } from "Common/Utils/LabelOrder";
+import { getListOrderReadSort } from "Common/Utils/ListOrder";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -1212,9 +1217,13 @@ describe("Resource Operations", () => {
     expect(resources).toContain(
       '.option("--limit <n>", "Max results to return", "10")',
     );
-    // A read that asks for no order - the CLI sends {} - comes back newest first.
+    /*
+     * A read that asks for no order - the CLI sends {} - comes back newest
+     * first, but for a list people put in order by dragging (#9654, held
+     * below).
+     */
     expect(databaseService).toContain(
-      "protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> { if (!sort || Object.keys(sort).length === 0) { return { createdAt: SortOrder.Descending, } as Sort<TBaseModel>; } return sort; }",
+      "protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> { const listOrder: ListOrderSettings | null = this.model.getListOrder(); if (listOrder?.column) { return getListOrderReadSort({ sort: sort as Record<string, unknown> | undefined, column: listOrder.column, sortOrder: listOrder.sortOrder, }) as Sort<TBaseModel>; } if (!sort || Object.keys(sort).length === 0) { return { createdAt: SortOrder.Descending, } as Sort<TBaseModel>; } return sort; }",
     );
     expect(databaseService).toContain(
       "findBy.sort = this.getReadSort(findBy.sort);",
@@ -1263,11 +1272,11 @@ describe("Resource Operations", () => {
   });
 
   /*
-   * Labels are the one exception: LabelService reads them by name, in
-   * natural order, when asked for no order (OneUptime issue #5183), so
-   * `oneuptime label list` is not newest first, and both pages say so. A
-   * service that takes an order of its own fails this until the pages name
-   * it too.
+   * Labels are the one service with an order of its own: LabelService reads
+   * them by name, in natural order, when asked for no order (OneUptime issue
+   * #5183), so `oneuptime label list` is not newest first, and both pages
+   * say so. A service that takes an order of its own fails this until the
+   * pages name it too.
    */
   it("lists labels by name, numbered labels first, unless --sort asks for another order", () => {
     const ownOrders: Array<string> = sourceFilesUnder("Common/Server").filter(
@@ -1304,7 +1313,48 @@ describe("Resource Operations", () => {
       "Lists records, newest first. Labels are listed by name instead, numbered labels first (`2. Team` before `10. Owner`).",
     );
     expect(englishPage(RESOURCE_OPERATIONS)).toContain(
-      "Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically. To list them in another order, give `--sort`.",
+      "Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically.",
+    );
+  });
+
+  /*
+   * And the records of a list people put in order by dragging
+   * (@ListOrderColumn): DatabaseService reads them in the list's own order,
+   * top first, when asked for no order (#9654), so `oneuptime
+   * incident-state list` is in the order the Dashboard shows, not newest
+   * first, and both pages say so.
+   */
+  it("lists records put in order by dragging in that order, unless --sort asks for another", () => {
+    const listOrder: ListOrderSettings | null =
+      new IncidentState().getListOrder();
+
+    expect(listOrder?.column).toBe("order");
+    expect(resourceNamed("incident-state").operations).toContain(
+      CliOperation.List,
+    );
+
+    // No order asked for, as the CLI sends it: the list's own, top first.
+    expect(
+      getListOrderReadSort({
+        sort: {},
+        column: listOrder!.column,
+        sortOrder: listOrder!.sortOrder,
+      }),
+    ).toEqual({ order: SortOrder.Ascending, createdAt: SortOrder.Ascending });
+    // An order asked for with --sort is the order read.
+    expect(
+      getListOrderReadSort({
+        sort: { createdAt: SortOrder.Descending },
+        column: listOrder!.column,
+        sortOrder: listOrder!.sortOrder,
+      }),
+    ).toEqual({ createdAt: SortOrder.Descending });
+
+    expect(englishPage(COMMAND_REFERENCE)).toContain(
+      "Labels are listed by name instead, numbered labels first (`2. Team` before `10. Owner`). Records you put in order by dragging, such as incident states, are listed in that order.",
+    );
+    expect(englishPage(RESOURCE_OPERATIONS)).toContain(
+      "then the others alphabetically. Records you put in order by dragging, such as incident states, are listed in that order. To list them in another order, give `--sort`.",
     );
   });
 
@@ -1475,16 +1525,21 @@ describe("Resource Operations", () => {
     );
 
     expect(remove).toContain('.option("--force", "Skip confirmation")');
-    // The action never reads the option, and nothing asks the terminal.
-    expect(remove).toContain(
-      ".action(async (id: string, _options: { force?: boolean }, cmd: Command) => {",
+    /*
+     * The action never reads the option, and nothing asks the terminal: it
+     * reads its options only for what the delete says besides the record
+     * (#9949).
+     */
+    expect(flat(remove)).toContain(
+      ".action( async ( id: string, options: { force?: boolean } & Record<string, unknown>, cmd: Command, ) => {",
     );
+    expect(remove).not.toMatch(/options\.force|options\["force"\]/);
     expect(resources).not.toContain("readline");
     expect(remove).toContain(
       "printSuccess(`${resource.singularName} ${id} deleted successfully.`);",
     );
-    expect(remove).toContain(
-      "formatOutput({ _id: id, deleted: true }, resolveOutputFormat(cmd)),",
+    expect(flat(remove)).toContain(
+      "formatOutput( { _id: id, deleted: true }, resolveOutputFormat(cmd), ),",
     );
     expect(
       rowOfCode(
@@ -1492,6 +1547,71 @@ describe("Resource Operations", () => {
         "--force",
       )[2],
     ).toBe("Accepted and changes nothing: `delete` never asks to confirm");
+  });
+
+  /*
+   * A custom role that workflows run as is deleted only by a delete that
+   * says what they run as instead (#9949). Its `delete` says it with two
+   * flags, named for the keys the API reads, and sends them in the body
+   * the pages name; any other delete sends none.
+   */
+  it("deletes a custom role that workflows run as with the flags the pages name, sent in the body they name", () => {
+    const remove: string = resources.slice(
+      resources.indexOf("function registerDeleteCommand("),
+      resources.indexOf("function registerCountCommand("),
+    );
+    const flags: Array<CliDeleteChoiceFlag> =
+      getCliDeleteChoiceFlags("CustomRole");
+    const reference: string = englishSection(
+      COMMAND_REFERENCE,
+      "### `oneuptime <resource> delete`",
+    );
+    const operations: string = englishSection(
+      RESOURCE_OPERATIONS,
+      "### A custom role that workflows run as",
+    );
+
+    expect(
+      flags.map((flag: CliDeleteChoiceFlag): string => {
+        return `${flag.flag} ${flag.valueName}`;
+      }),
+    ).toEqual([
+      "--workflows-run-as <value>",
+      "--workflows-run-as-custom-role-id <id>",
+    ]);
+    expect(getCliDeleteChoiceFlags("Team")).toEqual([]);
+    expect(remove).toContain("addDeleteChoiceFlags(command, resource);");
+    expect(remove).toContain(
+      "miscDataProps = readDeleteChoiceFlags({ resource, options, id });",
+    );
+
+    for (const flag of flags) {
+      expect(rowOfCode(reference, `${flag.flag} ${flag.valueName}`)[1]).toBe(
+        "No",
+      );
+      expect(operations).toContain(`\`${flag.flag}\``);
+    }
+
+    expect(operations).toContain(
+      "OneUptime deletes a custom role that workflows run as only when the delete says what they run as instead, and refuses one that does not, naming the workflows.",
+    );
+    expect(operations).toContain(
+      "Never Project Owner: deleting a role never raises what a workflow can do.",
+    );
+
+    // A delete sends its body only when it says something besides the record.
+    expect(flat(cliSource("Core/ApiClient.ts"))).toContain(
+      'case "delete": return options.miscDataProps && Object.keys(options.miscDataProps).length > 0 ? ({ miscDataProps: options.miscDataProps } as JSONObject) : undefined;',
+    );
+    expect(
+      rowStartingWith(
+        tableWithHeader(
+          englishSection(COMMAND_REFERENCE, "### API requests"),
+          "Operation",
+        ),
+        "`delete`",
+      )[2],
+    ).toBe("None, or `miscDataProps` with `--workflows-run-as`");
   });
 
   it("asks for every field a key may read, for telemetry never a column its table lacks, and leaves out a refused one", () => {

@@ -20,11 +20,14 @@ import DockerHostAiInsights from "../Pages/Docker/View/AI/Insights";
 import DockerHostAiLogs from "../Pages/Docker/View/AI/Logs";
 import DockerHostAiAgent from "../Pages/Docker/View/AI/Agent";
 import DockerHostLogs from "../Pages/Docker/View/Logs";
+import DockerHostSecurityEvents from "../Pages/Docker/View/SecurityEvents";
 import DockerHostTraces from "../Pages/Docker/View/Traces";
 import DockerHostProfiles from "../Pages/Docker/View/Profiles";
 import DockerHostIncidents from "../Pages/Docker/View/Incidents";
 import DockerHostAlerts from "../Pages/Docker/View/Alerts";
 import DockerHostScheduledMaintenance from "../Pages/Docker/View/ScheduledMaintenance";
+import DockerHostDataSecurity from "../Pages/Docker/View/DataSecurity";
+import DockerHostCompliance from "../Pages/Docker/View/Compliance";
 import DockerHostOwners from "../Pages/Docker/View/Owners";
 import DockerHostFeed from "../Pages/Docker/View/Feed";
 import DockerHostAuditLogs from "../Pages/Docker/View/AuditLogs";
@@ -256,6 +259,20 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <DockerHostSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS] as Route
+              }
+            />
+          }
+        />
+
         {/* Traces */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.DOCKER_HOST_VIEW_TRACES)}
@@ -313,6 +330,34 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
                   PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE
                 ] as Route
               }
+            />
+          }
+        />
+
+        {/* Data Security: the databases running on this host, and what to fix on them */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_DATA_SECURITY,
+          )}
+          element={
+            <DockerHostDataSecurity
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_HOST_VIEW_DATA_SECURITY] as Route
+              }
+            />
+          }
+        />
+
+        {/* Compliance: how those databases stand, and what is turned off for the host */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_HOST_VIEW_COMPLIANCE,
+          )}
+          element={
+            <DockerHostCompliance
+              {...props}
+              pageRoute={RouteMap[PageMap.DOCKER_HOST_VIEW_COMPLIANCE] as Route}
             />
           }
         />

@@ -168,6 +168,8 @@ const NOTICES: Record<string, NoticeEntry> = {
     { count: 1, why: WHY.error },
   "packages/App/FeatureSet/Dashboard/src/Components/Sso/ProjectOidcProviders.tsx":
     { count: 1, why: WHY.copy },
+  "packages/App/FeatureSet/Dashboard/src/Components/StateTimeline/StateChangeCause.tsx":
+    { count: 1, why: WHY.details },
   // Reading the device, then what failed.
   "packages/App/FeatureSet/Dashboard/src/Components/Topology/AddNeighborToMonitoringModal.tsx":
     { count: 2, why: WHY.error },
@@ -182,10 +184,6 @@ const NOTICES: Record<string, NoticeEntry> = {
     { count: 1, why: WHY.error },
   "packages/App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSummaryTable.tsx":
     { count: 1, why: WHY.error },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Alerts/View/StateTimeline.tsx": {
-    count: 1,
-    why: WHY.details,
-  },
   "packages/App/FeatureSet/Dashboard/src/Pages/Dashboards/Settings/DataSourceView.tsx":
     { count: 1, why: WHY.testRun },
   "packages/App/FeatureSet/Dashboard/src/Pages/Dashboards/Settings/DataSources.tsx":
@@ -198,14 +196,10 @@ const NOTICES: Record<string, NoticeEntry> = {
     count: 1,
     why: WHY.error,
   },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Incidents/View/StateTimeline.tsx":
-    { count: 1, why: WHY.details },
   "packages/App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorProbes.tsx":
     { count: 1, why: WHY.copy },
   "packages/App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView.tsx":
     { count: 1, why: WHY.report },
-  "packages/App/FeatureSet/Dashboard/src/Pages/Monitor/View/StatusTimeline.tsx":
-    { count: 1, why: WHY.details },
   "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx":
     { count: 1, why: WHY.error },
   "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/Index.tsx": {

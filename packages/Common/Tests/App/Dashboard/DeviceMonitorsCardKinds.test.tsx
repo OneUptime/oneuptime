@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -12,12 +14,19 @@ import fs from "fs";
 import path from "path";
 import { MemoryRouter } from "react-router-dom";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import DeviceMonitorsCard, {
+  ADDABLE_MONITOR_QUERY,
   getDeviceWebUiMonitorRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorsCard";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import { DEVICE_TARGET_MONITOR_TYPES } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import {
   DEVICE_MONITOR_CHECK_QUERY_PARAM,
   DeviceMonitorCheck,
@@ -326,5 +335,421 @@ describe("Monitor web UI", () => {
     });
 
     expect(screen.getByText("WB0024KDS03 web UI")).toBeVisible();
+  });
+});
+
+/*
+ * "Add Existing Monitor" (issue #9545): a Ping, Port or Website monitor
+ * someone made by hand, before the device was added or on another of its
+ * names, tied to the device - listed on its pages from then on, and counted
+ * by the duplicate check imports and auto import rules run.
+ */
+describe("Add Existing Monitor", () => {
+  const HAND_MADE_PING: Monitor = monitor({
+    id: "90000000-0000-4000-8000-000000000031",
+    name: "Kiosk ping (made by hand)",
+    monitorType: MonitorType.Ping,
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function grant(permissions: Array<Permission>): void {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue(permissions);
+  }
+
+  function renderAddable(onMonitorAdded?: () => void): void {
+    render(
+      <MemoryRouter>
+        <DeviceMonitorsCard
+          monitors={[]}
+          isLoading={false}
+          error=""
+          networkDeviceId={DEVICE_ID}
+          isMonitorBacked={false}
+          canCreateMonitor={true}
+          onMonitorAdded={onMonitorAdded}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  test("a page that reads the card again offers it in the card's header", () => {
+    grant([Permission.ProjectOwner]);
+    renderAddable(jest.fn());
+
+    expect(
+      within(screen.getByTestId("card-header-actions")).getByRole("button", {
+        name: "Add Existing Monitor",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("a card no page reads again, or a reader who may not tie monitors to devices, is offered nothing to add", () => {
+    grant([Permission.ProjectOwner]);
+    renderCard({ monitors: [], isMonitorBacked: false });
+
+    expect(
+      screen.queryByRole("button", { name: "Add Existing Monitor" }),
+    ).toBeNull();
+
+    cleanup();
+    grant([Permission.Viewer]);
+    renderAddable(jest.fn());
+
+    expect(
+      screen.queryByRole("button", { name: "Add Existing Monitor" }),
+    ).toBeNull();
+  });
+
+  test("the monitor picked is tied to the device - nothing else about it changes - and the page reads its monitors again", async () => {
+    grant([Permission.ProjectOwner]);
+
+    const getList: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "getList")
+      .mockResolvedValue({
+        data: [HAND_MADE_PING],
+        count: 1,
+        skip: 0,
+        limit: 10,
+      } as never);
+    const updateById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never);
+    const onMonitorAdded: Mock<() => void> = jest.fn<() => void>();
+
+    renderAddable(onMonitorAdded);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Add Existing Monitor" }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    const combobox: HTMLElement = within(dialog).getByRole("combobox");
+
+    await act(async () => {
+      fireEvent.focus(combobox);
+      fireEvent.keyDown(combobox, { key: "ArrowDown", keyCode: 40 });
+    });
+
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: /Kiosk ping \(made by hand\)/,
+    });
+
+    await act(async () => {
+      fireEvent.click(option);
+    });
+
+    // Only the monitors a person made that check a host and are no device's yet.
+    const queries: Array<Record<string, unknown>> = getList.mock.calls.map(
+      (call: Array<unknown>): Record<string, unknown> => {
+        return (call[0] as { query: Record<string, unknown> }).query;
+      },
+    );
+    expect(queries.length).toBeGreaterThan(0);
+    for (const query of queries) {
+      expect(query["networkDeviceId"]).toBeInstanceOf(IsNull);
+      expect(query["autoProvisionedNetworkDeviceId"]).toBeInstanceOf(IsNull);
+      expect((query["monitorType"] as Includes).values).toEqual([
+        ...DEVICE_TARGET_MONITOR_TYPES,
+      ]);
+    }
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add Monitor" }),
+      );
+    });
+
+    expect(updateById).toHaveBeenCalledTimes(1);
+    const update: {
+      modelType: unknown;
+      id: ObjectID;
+      data: Record<string, unknown>;
+    } = updateById.mock.calls[0]![0] as {
+      modelType: unknown;
+      id: ObjectID;
+      data: Record<string, unknown>;
+    };
+    expect(update.modelType).toBe(Monitor);
+    expect(update.id.toString()).toBe(HAND_MADE_PING._id);
+    expect(Object.keys(update.data)).toEqual(["networkDeviceId"]);
+    expect(String(update.data["networkDeviceId"])).toBe(DEVICE_ID);
+    expect(onMonitorAdded).toHaveBeenCalledTimes(1);
+    expect(ADDABLE_MONITOR_QUERY["networkDeviceId"]).toBeInstanceOf(IsNull);
+  });
+
+  test("a tie the server refuses is said in the dialog, which stays open, and the page reads nothing again", async () => {
+    grant([Permission.ProjectOwner]);
+
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [HAND_MADE_PING],
+      count: 1,
+      skip: 0,
+      limit: 10,
+    } as never);
+    jest
+      .spyOn(ModelAPI, "updateById")
+      .mockRejectedValue(
+        new Error(
+          "An import, an auto import rule or an alert policy made this monitor for its network device, so it is that device's already. Its Network Device cannot be changed.",
+        ),
+      );
+    const onMonitorAdded: Mock<() => void> = jest.fn<() => void>();
+
+    renderAddable(onMonitorAdded);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Add Existing Monitor" }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    const combobox: HTMLElement = within(dialog).getByRole("combobox");
+
+    await act(async () => {
+      fireEvent.focus(combobox);
+      fireEvent.keyDown(combobox, { key: "ArrowDown", keyCode: 40 });
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        await screen.findByRole("option", {
+          name: /Kiosk ping \(made by hand\)/,
+        }),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add Monitor" }),
+      );
+    });
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Its Network Device cannot be changed.",
+    );
+    expect(onMonitorAdded).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * ISSUE #9676: a monitor a person tied to the device - and nothing else puts
+ * on the card - can be taken off it from the card, after a confirmation that
+ * says what that changes. One made for the device, bound to it or watching
+ * it is the device's for that reason, and is never offered.
+ */
+describe("Remove a monitor someone tied to the device", () => {
+  const TIED_PING: Monitor = monitor({
+    id: "90000000-0000-4000-8000-000000000041",
+    name: "Kiosk ping (made by hand)",
+    monitorType: MonitorType.Ping,
+  });
+  const TIED_ID: string = TIED_PING._id!.toString();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function grant(permissions: Array<Permission>): void {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue(permissions);
+  }
+
+  function renderRemovable(data: {
+    removableMonitorIds?: Array<string>;
+    onMonitorRemoved?: (() => void) | undefined;
+  }): void {
+    render(
+      <MemoryRouter>
+        <DeviceMonitorsCard
+          monitors={[
+            NETWORK_DEVICE_MONITOR,
+            PING_MONITOR_FROM_IMPORT,
+            TIED_PING,
+          ]}
+          isLoading={false}
+          error=""
+          networkDeviceId={DEVICE_ID}
+          isMonitorBacked={false}
+          canCreateMonitor={true}
+          removableMonitorIds={new Set<string>(data.removableMonitorIds || [])}
+          onMonitorRemoved={data.onMonitorRemoved}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  function removeButtons(): Array<HTMLElement> {
+    return screen.queryAllByRole("button", {
+      name: /^Remove .+ from this device$/,
+    });
+  }
+
+  test("is offered on the tied monitor's row alone, named for a screen reader", () => {
+    grant([Permission.ProjectOwner]);
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: jest.fn(),
+    });
+
+    expect(removeButtons()).toHaveLength(1);
+    expect(
+      screen.getByRole("button", {
+        name: "Remove Kiosk ping (made by hand) from this device",
+      }),
+    ).toHaveTextContent("Remove");
+    expect(
+      screen.getByTestId(`device-monitors-remove-${TIED_ID}`),
+    ).toBeInTheDocument();
+  });
+
+  test("is never offered for a monitor made for the device, or one watching it", () => {
+    grant([Permission.ProjectOwner]);
+    renderRemovable({ removableMonitorIds: [], onMonitorRemoved: jest.fn() });
+
+    expect(removeButtons()).toHaveLength(0);
+  });
+
+  test("is offered to nobody who may not tie monitors to devices, nor on a page that reads nothing again", () => {
+    grant([Permission.Viewer]);
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: jest.fn(),
+    });
+
+    expect(removeButtons()).toHaveLength(0);
+
+    cleanup();
+    grant([Permission.ProjectOwner]);
+    renderRemovable({ removableMonitorIds: [TIED_ID] });
+
+    expect(removeButtons()).toHaveLength(0);
+  });
+
+  test("asks first, naming the monitor and what changes, then unties it alone and reads the device's monitors again", async () => {
+    grant([Permission.ProjectOwner]);
+    const updateById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never);
+    const onMonitorRemoved: Mock<() => void> = jest.fn<() => void>();
+
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: onMonitorRemoved,
+    });
+
+    await act(async () => {
+      fireEvent.click(removeButtons()[0]!);
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Remove from Device");
+    expect(dialog).toHaveTextContent(
+      "Kiosk ping (made by hand) leaves this device: what it raises is no longer linked to it, and imports may add a monitor like it. The monitor keeps checking.",
+    );
+    // Nothing is written until the reader says so.
+    expect(updateById).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(updateById).toHaveBeenCalledTimes(1);
+    const update: {
+      modelType: unknown;
+      id: ObjectID;
+      data: Record<string, unknown>;
+    } = updateById.mock.calls[0]![0] as {
+      modelType: unknown;
+      id: ObjectID;
+      data: Record<string, unknown>;
+    };
+    expect(update.modelType).toBe(Monitor);
+    expect(update.id.toString()).toBe(TIED_ID);
+    expect(update.data).toEqual({ networkDeviceId: null });
+    expect(onMonitorRemoved).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("Cancel writes nothing", async () => {
+    grant([Permission.ProjectOwner]);
+    const updateById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue({} as never);
+
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: jest.fn(),
+    });
+
+    await act(async () => {
+      fireEvent.click(removeButtons()[0]!);
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    });
+
+    expect(updateById).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("a removal the server refuses is said in the dialog, which stays open, and nothing is read again", async () => {
+    grant([Permission.ProjectOwner]);
+    jest
+      .spyOn(ModelAPI, "updateById")
+      .mockRejectedValue(new Error("You may not edit this monitor."));
+    const onMonitorRemoved: Mock<() => void> = jest.fn<() => void>();
+
+    renderRemovable({
+      removableMonitorIds: [TIED_ID],
+      onMonitorRemoved: onMonitorRemoved,
+    });
+
+    await act(async () => {
+      fireEvent.click(removeButtons()[0]!);
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "You may not edit this monitor.",
+    );
+    expect(onMonitorRemoved).not.toHaveBeenCalled();
+  });
+
+  test("both device pages pass the card what it may remove, and read the monitors again after", () => {
+    for (const page of ["Index.tsx", "Monitors.tsx"]) {
+      const source: string = fs
+        .readFileSync(
+          path.join(
+            __dirname,
+            "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View",
+            page,
+          ),
+          "utf-8",
+        )
+        .replace(WHITESPACE_RUNS, " ");
+
+      expect(source).toContain("removableMonitorIds={removableMonitorIds}");
+      expect(source).toContain("onMonitorRemoved={readMonitorsAgain}");
+      expect(source).toContain(
+        "setRemovableMonitorIds(context.removableMonitorIds);",
+      );
+    }
   });
 });

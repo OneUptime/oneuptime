@@ -1,10 +1,11 @@
 # Conformità di Sicurezza dei dati
 
-Sicurezza dei dati valuta nove framework in base a ciò che hanno trovato le sue scansioni. Ogni framework copre gli archivi di cui parlano le sue regole - il GDPR gli archivi che contengono dati personali, PCI DSS gli archivi in cui sono stati trovati dati di carte, SOC 2 ogni archivio - e ciascuno dei suoi requisiti viene soddisfatto o meno dai controlli che ne sono la prova. **Sicurezza dei dati → Conformità** mostra il punteggio di ogni framework, quanti archivi copre, e ogni requisito con il numero di problemi aperti che lo fanno fallire. Un punteggio è una prova per un audit, non un certificato: dice ciò che OneUptime riesce a vedere degli archivi che legge.
+Sicurezza dei dati valuta nove framework in base a ciò che hanno trovato le sue scansioni. Ogni framework copre gli archivi di cui parlano le sue regole - il GDPR gli archivi che contengono dati personali, PCI DSS gli archivi in cui sono stati trovati dati di carte, SOC 2 ogni archivio - e ciascuno dei suoi requisiti viene soddisfatto o meno dai controlli che ne sono la prova. **Sicurezza dei dati → Conformità** mostra il punteggio di ogni framework, quanti archivi copre, e ogni requisito con il numero di problemi aperti che lo fanno fallire. Ogni risorsa che contiene archivi dati - un cluster Kubernetes, un host Docker o Podman, un database, un servizio o una risorsa cloud - ha la stessa pagina tutta per sé, dove puoi disattivare ciò che non la riguarda. Un punteggio è una prova per un audit, non un certificato: dice ciò che OneUptime riesce a vedere degli archivi che legge.
 
 :::cards
 - [I framework](#i-framework): I nove, e quali archivi copre ciascuno.
 - [Come viene valutato un framework](#come-viene-valutato-un-framework): Requisiti superati, non superati e non valutati.
+- [Nella pagina di una risorsa](#nella-pagina-di-una-risorsa): La conformità di un cluster, di un host, di un database, di un servizio o di una risorsa cloud, e ciò che è disattivato per quella risorsa.
 - [Requisiti e relativi controlli](#requisiti-e-relativi-controlli): Ogni requisito, e i controlli che ne sono la prova.
 - [Registro dei trattamenti](#registro-dei-trattamenti): L'articolo 30 del GDPR, scritto a partire dai tuoi archivi.
 :::
@@ -47,9 +48,35 @@ flowchart TB
 - **Un requisito è superato** quando nessun problema aperto dei controlli associati a esso si trova su un archivio nell'ambito del framework, e **non è superato** quando ce n'è uno.
 - **Non è valutato** finché nessun archivio nell'ambito ha avuto la configurazione letta o il contenuto scansionato.
 - **Due requisiti sono soddisfatti da Sicurezza dei dati stessa**: l'articolo 30 del GDPR, registri delle attività di trattamento, e ISO 27001 A.5.12, classificazione delle informazioni. Sono superati quando ogni archivio nell'ambito è stato letto o scansionato, e non superati finché uno non lo è stato.
-- **Il punteggio** è la quota dei requisiti valutati di un framework che sono superati, come percentuale intera. Un framework senza nulla di valutato non ha un punteggio.
+- **È disattivato** quando ogni archivio nell'ambito appartiene a una risorsa che ha disattivato il requisito (vedi [Nella pagina di una risorsa](#nella-pagina-di-una-risorsa)).
+- **Il punteggio** è la quota dei requisiti valutati di un framework che sono superati, come percentuale intera: uno disattivato non conta né in un senso né nell'altro. Un framework senza nulla di valutato non ha un punteggio.
 
 Contano solo i problemi aperti. Un problema il cui rischio è accettato, o che non è un problema, non fa fallire i suoi requisiti, quindi un rischio accettato è una decisione che il tuo audit può vedere sul problema: chi lo ha accettato, perché, e fino a quando.
+
+## Nella pagina di una risorsa
+
+Il menu di una risorsa ha una sezione **Sicurezza**, chiusa finché non la apri, non appena la risorsa contiene un archivio dati che Sicurezza dei dati conosce, in un progetto che usa Sicurezza dei dati e per chi può leggere gli archivi dati:
+
+| Risorsa | I suoi archivi dati |
+| --- | --- |
+| Cluster Kubernetes | I database in esecuzione su di esso |
+| Host Docker o Podman | I database in esecuzione su di esso |
+| Database | Il database stesso |
+| Servizio | La sua telemetria: i log, le tracce e le eccezioni che invia |
+| Risorsa cloud | La risorsa stessa: un bucket, un database o un data warehouse |
+
+- **Sicurezza dei dati** elenca quegli archivi, prima i più rischiosi, e i problemi aperti su di essi. Ognuno si apre in Sicurezza dei dati, dove viene gestito.
+- **Conformità** valuta i framework solo per quegli archivi. Vengono prima i framework che i loro dati fanno rientrare nell'ambito; quelli disattivati, e quelli per cui nessuno di questi archivi contiene dati, sono raccolti più in basso, in una sezione chiusa.
+
+Ogni framework ha un interruttore, **Si applica qui**, e così ciascuno dei suoi requisiti. Disattivarne uno esclude gli archivi della risorsa da quel framework, o da quel requisito, nella pagina della risorsa e in **Sicurezza dei dati → Conformità**, che indica quanti archivi sono stati esclusi dalle loro risorse. Riattivarlo li fa rientrare. Ogni interruttore si salva subito, e ogni modifica resta nei [Log di audit](/docs/configuration/audit-logs) del progetto.
+
+Disattivarne uno chiede poi, subito sotto, **Perché non si applica qui?** Il motivo è facoltativo: scrivine uno breve e scegli **Salva motivo**, oppure **Non ora** per lasciar perdere. Da quel momento indica chi lo ha disattivato e quando, e il motivo, con **Aggiungi motivo** o **Modifica motivo** per scriverlo o cambiarlo in seguito. Come l'interruttore, il motivo resta nel log di audit.
+
+**Sicurezza dei dati → Conformità** dice lo stesso per ogni risorsa. Un framework selezionato elenca, sotto **Disattivato per l'intero framework**, le risorse che lo hanno disattivato del tutto, e ogni requisito indica, sotto il suo stato, le risorse che hanno disattivato quel requisito: ciascuna con un link alla propria pagina Conformità, con chi lo ha disattivato, quando e perché. Il suo **Esporta CSV** le riporta in una colonna `Turned Off On`, ed **Esporta JSON** in un elenco `turnedOff`.
+
+Un archivio segue gli interruttori di una sola risorsa. Un database in esecuzione su un cluster Kubernetes, o su un host Docker o Podman, segue quelli del cluster o dell'host: disattiva un framework per il cluster, ed è disattivato per ogni database in esecuzione su di esso. La pagina Conformità del database stesso lo dice e rimanda a quella del cluster o dell'host, con i suoi interruttori bloccati.
+
+I Membri della sicurezza, gli Amministratori della sicurezza, gli Amministratori del progetto e i Proprietari del progetto possono attivare e disattivare framework e requisiti, come possono regolare un controllo. I Visualizzatori della sicurezza vedono ciò che è disattivato, e perché.
 
 ## Requisiti e relativi controlli
 
@@ -162,7 +189,7 @@ L'articolo 30 del GDPR ti chiede di tenere un registro delle tue attività di tr
 | Conservazione | Ciò che scrivi nella **Conservazione** dell'archivio: per quanto tempo vi vengono conservati i dati |
 | Framework | I framework che i suoi tipi di dati fanno rientrare nell'ambito |
 
-Compila **Finalità** e **Conservazione** nelle **Impostazioni** di ogni archivio: sono le due cose che nessuna scansione può sapere. Il registro e i punteggi sono forniti anche dall'API di Sicurezza dei dati, in `/data-security/record-of-processing` e `/data-security/compliance`, a chiunque possa leggere gli archivi dati (vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations#api-terraform-e-mcp)).
+Compila **Finalità** e **Conservazione** nelle **Impostazioni** di ogni archivio: sono le due cose che nessuna scansione può sapere. Il registro e i punteggi sono forniti anche dall'API di Sicurezza dei dati, in `/data-security/record-of-processing`, `/data-security/compliance` e, per una singola risorsa, `/data-security/resource-compliance`, a chiunque possa leggere gli archivi dati (vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations#api-terraform-e-mcp)).
 
 ## Passaggi successivi
 

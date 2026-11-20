@@ -352,9 +352,9 @@ fi
 # docker-compose.yml pins, each archive held to a sha256 kept here rather than
 # one fetched from the same release. Tests/Ops/OpenStackAgentWithoutDocker.test.js
 # holds these to docker-compose.yml, so bump them together.
-COLLECTOR_VERSION="0.161.0"
-COLLECTOR_SHA256_AMD64="778c689efa681ff6e4722ce9f66b9b7f57c3ba009ab2e2b43dc2e0315862c731"
-COLLECTOR_SHA256_ARM64="cd5de93213a0dbb90e4998b3b9e4e15ed691ec635cf7cf4147f95799fb16b676"
+COLLECTOR_VERSION="0.165.0"
+COLLECTOR_SHA256_AMD64="bd6e73d94bf3359ad6fac25529a8ee308adb9b0b8a0e8af034ed3891fbe5aa33"
+COLLECTOR_SHA256_ARM64="376420729c862230807bc89811d07d10031eaeca3f6481fe371a2bdcefd2c8fa"
 EXPORTER_VERSION="2.0.0-alpha"
 EXPORTER_SHA256_AMD64="20c42022773fd2e8a41a609b698d3fe97843098ad81479c5e9decf58f349d002"
 EXPORTER_SHA256_ARM64="d41800fc6170a5d44027f8fc6a0037e915b6ea3887076e6b96b78e06ebfba9f2"

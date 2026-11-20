@@ -75,7 +75,7 @@ const ExplainedPill: FunctionComponent<ComponentProps> = (
         // Looked up once, above, for the tooltip and the description alike.
         isTextTranslated={true}
         richContent={props.explanationContent}
-        // Nothing in it to click: it mounts on the page, never clipped by a table.
+        // Nothing in it to click: it goes as the pointer leaves the pill.
         interactive={props.explanationContent ? false : undefined}
         isShownOnPress={true}
         isTriggerAlreadyDescribed={true}

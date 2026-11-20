@@ -111,6 +111,13 @@ export interface ComponentProps {
    */
   whenNobodyPicked?: PeoplePickerNobodyPicked | undefined;
   /*
+   * The search list offers only these teams' people, and says why above
+   * the list in `searchHint` (PeoplePickerFieldConfig.onlyMembersOfTeamIds
+   * and searchHint).
+   */
+  onlyMembersOfTeamIds?: Array<string> | undefined;
+  searchHint?: string | undefined;
+  /*
    * More chips, drawn after the picks in the same row: what the field holds
    * that is not a pick - in a workflow step, a value from an earlier step.
    * They count as something picked: whenNobodyPicked is not said beside
@@ -460,6 +467,8 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
         onOptionsLoaded={lookup.remember}
         searchPlaceholder={props.searchPlaceholder}
         emptyText={props.emptyText}
+        onlyMembersOfTeamIds={props.onlyMembersOfTeamIds}
+        searchHint={props.searchHint}
         ariaLabel={addButtonText}
       />
     </div>

@@ -25,7 +25,7 @@ ARG BASE_TAG=1.30.3
 
 # The release, a resource of hardening_manifest.yaml: Iron Bank's pipeline
 # pulls it by digest and gives it this name before it builds.
-FROM oneuptime/nginx:14.0.102 AS release
+FROM oneuptime/nginx:16.0.0 AS release
 
 # The release without its tests, which no image runs: one of Common's test
 # fixtures (an SVG data URI with a script in it) is what ClamAV calls
@@ -72,12 +72,12 @@ COPY --from=shipped /usr/src /usr/src
 # hardening_manifest.yaml carry.
 LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
 LABEL org.opencontainers.image.documentation="https://oneuptime.com/docs"
-LABEL org.opencontainers.image.revision="eabb86bd64e59edcecab13b7f8bc3512babb2483"
+LABEL org.opencontainers.image.revision="dec5b8392bb8cb875251584a5d1b27774c3bf5a4"
 
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 ENV PRODUCTION=true
-ENV APP_VERSION=14.0.102
-ENV GIT_SHA=eabb86bd64e59edcecab13b7f8bc3512babb2483
+ENV APP_VERSION=16.0.0
+ENV GIT_SHA=dec5b8392bb8cb875251584a5d1b27774c3bf5a4
 ENV IS_ENTERPRISE_EDITION=false
 
 WORKDIR /usr/src/app

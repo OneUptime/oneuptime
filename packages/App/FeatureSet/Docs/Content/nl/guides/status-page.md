@@ -30,7 +30,7 @@ Uw server heeft een eigen hostnaam nodig met een A-record dat ernaar wijst, zoal
 
 ![Start vraagt "Wat wil je eerst doen?", met "Mijn klanten informeren met een statuspagina" aangevinkt](screen:home-goal-status-page)
 
-Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Publiceer een statuspagina**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **Mijn klanten informeren met een statuspagina** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `status page` en kies **Publiceer een statuspagina**.
+Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Publiceer een statuspagina**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **Mijn klanten informeren met een statuspagina** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `status page` en kies **Publiceer een statuspagina**. Of klik op **Beschrijf het liever**: AI vragen opent met de taak in het invoerveld, klaar om te versturen.
 
 Ook **Statuspagina's** opent hem: klik in de lege lijst op **Begeleide installatie**, of onder **Hoe het werkt** zodra het project een statuspagina heeft.
 

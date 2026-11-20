@@ -6,24 +6,49 @@ import {
   ConfidencePill,
   SensitivityPill,
 } from "../../Components/DataSecurity/DataSecurityPills";
+import FindingRecordsPanel from "../../Components/DataSecurity/FindingRecordsPanel";
 import {
   DataTypeNamer,
   useDataTypeNamer,
 } from "../../Components/DataSecurity/IssueDataTypes";
 import { getStoreViewRoute } from "../../Components/DataSecurity/IssueListRoute";
 import IssueMoment from "../../Components/DataSecurity/IssueMoment";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  getTelemetryStoreOwnerName,
+  TelemetryStoreOfFindings,
+} from "../../Components/DataSecurity/IssueTelemetryFindings";
+import DropMetricModal from "../../Components/DataSecurity/DropMetricModal";
+import {
+  DROP_METRIC,
+  DROP_NOTICE,
+  DROPPED,
+  DROPPED_TOOLTIP,
+  DropMetricState,
+  getDropMetricState,
+  getRulesRoute,
+  getScrubItGates,
+  getScrubItState,
+  isScrubItOfferedAtAll,
+  SCRUB_IT,
+  SCRUB_NOTICES,
+  SCRUB_UNAVAILABLE_SENTENCES,
+  ScrubItGates,
+  ScrubItState,
+} from "../../Components/DataSecurity/TelemetryScrubIt";
+import TelemetryRuleNotice from "../../Components/DataSecurity/TelemetryRuleNotice";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
-import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
-import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { DataSecurityScrubResult } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DataSecurityDropMetricResult,
+  DataSecurityScrubResult,
+  DataSecurityScrubSignal,
+} from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { isMetricNameFinding } from "Common/Types/DataSecurity/TelemetryScrubTarget";
 import DataConfidence, {
   ALL_DATA_CONFIDENCES,
 } from "Common/Types/DataSecurity/DataConfidence";
@@ -35,8 +60,9 @@ import {
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Card from "Common/UI/Components/Card/Card";
@@ -52,10 +78,7 @@ import TableEmptyState, {
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionGate, {
-  ModelAction,
-  PermissionGateResult,
-} from "Common/UI/Utils/PermissionGate";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   PluralTemplate,
@@ -75,28 +98,28 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 /*
  * IS SENSITIVE DATA LEAKING INTO YOUR TELEMETRY?
  *
- * What Data Security found in the logs, traces, exceptions, session
- * replays and AI conversations each service sends OneUptime: the service,
- * the signal, where in it (an attribute, a body), the data type, how sure
- * the scan is and how many values matched - and whether a scrub rule
- * already masks it at ingest. The page opens on what is not masked yet.
+ * What Data Security found in the logs, traces, metrics, exceptions,
+ * session replays and AI conversations each service sends OneUptime: the
+ * service, the signal, where in it (an attribute, a body, a metric's
+ * name), the data type, how sure the scan is and how many values matched -
+ * and whether a rule already masks it at ingest. The page opens on what is
+ * not masked yet.
  *
- * Scrub It, in each row, makes the scrub rule that masks that data type at
- * that place from now on, for anyone who may create scrub rules - the rule
- * is theirs - and says which rule it made.
+ * Show Records, in each row, opens the records the finding was seen in
+ * beside the list (FindingRecordsPanel, issue #9605) - the log lines,
+ * spans and metric data points themselves, the data marked and masked -
+ * for a reader who may read the masked samples, as an issue's Where It Was
+ * Found shows them. Scrub It, in the row and in the panel, makes the rule
+ * that masks that data type at that place from now on - a log or trace
+ * scrub rule, or a metric pipeline rule that redacts a metric's attribute
+ * - for anyone who may create that rule, the rule being theirs, and says
+ * which rule it made; where no rule reaches the place, it says why. On a
+ * metric's name, which no rule scrubs, Drop This Metric makes a metric
+ * pipeline rule that drops the service's metrics so named instead (#9757),
+ * once a dialog has said what that loses and the reader has agreed.
  */
 
-const SCRUB_IT: string = translationKey("Scrub It");
-
-const SCRUB_RULE_CREATED: string = translationKey(
-  "Scrub rule {{rule}} created. New data at this place is masked at ingest.",
-);
-
-const SCRUB_LOCKED: string = translationKey(
-  "You do not have permission to create scrub rules.",
-);
-
-const VIEW_SCRUB_RULES: string = translationKey("View scrub rules");
+const SHOW_RECORDS: string = translationKey("Show Records");
 
 const SCRUBBED: string = translationKey("Scrubbed");
 
@@ -109,13 +132,16 @@ const NOT_SCRUBBED: string = translationKey("Not scrubbed");
 
 const PAGE_TITLE: string = translationKey("In Your Telemetry");
 const PAGE_DESCRIPTION: string = translationKey(
-  "Sensitive data found in the logs, traces, exceptions, replays and AI conversations your services send. Scrub It masks it at ingest.",
+  "Sensitive data found in the logs, traces, metrics, exceptions, replays and AI conversations your services send. Scrub It masks it at ingest.",
 );
 
 type ScrubView = "notScrubbed" | "all";
 
-// One telemetry store: a service's logs, traces, exceptions, replays or AI conversations.
-interface TelemetryStore {
+/*
+ * One telemetry store: a service's logs, traces, metrics, exceptions,
+ * replays or AI conversations - with what its records panel reads of it.
+ */
+interface TelemetryStore extends TelemetryStoreOfFindings {
   name: string;
   kind: string;
   serviceName: string;
@@ -123,7 +149,9 @@ interface TelemetryStore {
 
 interface ScrubNotice {
   ruleName: string;
-  signal: "log" | "trace";
+  signal: DataSecurityScrubSignal;
+  // A Drop rule Drop This Metric made, rather than Scrub It's rule.
+  isDrop?: boolean | undefined;
 }
 
 const DataSecurityTelemetryPage: FunctionComponent<
@@ -141,6 +169,12 @@ const DataSecurityTelemetryPage: FunctionComponent<
   const [scrubView, setScrubView] = useState<ScrubView>("notScrubbed");
   const [refreshCount, setRefreshCount] = useState<number>(0);
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
+  // The finding whose records are open beside the list.
+  const [openFinding, setOpenFinding] = useState<DataStoreFinding | null>(null);
+  const [isPanelScrubbing, setIsPanelScrubbing] = useState<boolean>(false);
+  const [panelScrubError, setPanelScrubError] = useState<string>("");
+  // The finding in a metric's name whose metrics the reader is asked about dropping.
+  const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
 
   // The project's telemetry stores, which the findings below are in.
   useEffect(() => {
@@ -160,6 +194,8 @@ const DataSecurityTelemetryPage: FunctionComponent<
         _id: true,
         name: true,
         kind: true,
+        serviceId: true,
+        storeKey: true,
         service: { name: true },
       },
       sort: { name: SortOrder.Ascending },
@@ -179,6 +215,8 @@ const DataSecurityTelemetryPage: FunctionComponent<
               name: store.name || "",
               kind: store.kind || "",
               serviceName: store.service?.name?.toString() || "",
+              serviceId: store.serviceId,
+              storeKey: store.storeKey,
             });
           }
         }
@@ -196,61 +234,170 @@ const DataSecurityTelemetryPage: FunctionComponent<
     };
   }, [storesReadCount]);
 
-  const scrubGate: PermissionGateResult = PermissionGate.check(
-    new LogScrubRule(),
-    ModelAction.Create,
-    { sentence: SCRUB_LOCKED },
+  /*
+   * The records and the masked samples are evidence about real records:
+   * only a reader who may read the samples opens them (DataStoreFinding's
+   * restricted columns), as on an issue's Where It Was Found.
+   */
+  const canReadSamples: boolean = PermissionGate.canReadColumn(
+    new DataStoreFinding(),
+    "maskedSamples",
   );
+  // Who may make each kind of rule Scrub It makes.
+  const scrubGates: ScrubItGates = getScrubItGates();
 
-  const actionButtons: Array<ActionButtonSchema<DataStoreFinding>> =
-    scrubGate.isAllowed || scrubGate.disabledReason
-      ? [
-          {
-            title: SCRUB_IT,
-            icon: IconProp.EyeSlash,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            isVisible: (finding: DataStoreFinding): boolean => {
-              return !finding.isScrubbed;
-            },
-            ...(scrubGate.isAllowed
-              ? {}
-              : {
-                  disabled: true,
-                  ...(scrubGate.disabledReason
-                    ? { tooltip: scrubGate.disabledReason }
-                    : {}),
-                }),
-            onClick: async (
-              finding: DataStoreFinding,
-              onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ): Promise<void> => {
-              const id: string = finding._id?.toString() || "";
+  const storeOf: (finding: DataStoreFinding) => TelemetryStore | undefined = (
+    finding: DataStoreFinding,
+  ): TelemetryStore | undefined => {
+    return stores?.get(finding.dataStoreId?.toString() || "");
+  };
 
-              if (!id) {
-                onCompleteAction();
-                return;
-              }
+  const scrubItOf: (finding: DataStoreFinding) => ScrubItState = (
+    finding: DataStoreFinding,
+  ): ScrubItState => {
+    return getScrubItState({
+      kind: storeOf(finding)?.kind || finding.dataStore?.kind,
+      location: finding.location,
+      gates: scrubGates,
+    });
+  };
 
-              try {
-                const result: DataSecurityScrubResult =
-                  await DataSecurityApi.scrubFinding(new ObjectID(id));
+  const dropMetricOf: (finding: DataStoreFinding) => DropMetricState = (
+    finding: DataStoreFinding,
+  ): DropMetricState => {
+    return getDropMetricState({
+      kind: storeOf(finding)?.kind || finding.dataStore?.kind,
+      location: finding.location,
+      gates: scrubGates,
+    });
+  };
 
-                setNotice({
-                  ruleName: result.scrubRuleName,
-                  signal: result.signal,
-                });
-                onCompleteAction();
-                setRefreshCount((count: number): number => {
-                  return count + 1;
-                });
-              } catch (err) {
-                onError(err as Error);
-              }
-            },
-          },
-        ]
-      : [];
+  // A scrubbed finding in a metric's name is one a Drop rule keeps out.
+  const isDroppedFinding: (finding: DataStoreFinding) => boolean = (
+    finding: DataStoreFinding,
+  ): boolean => {
+    return isMetricNameFinding(
+      storeOf(finding)?.kind || finding.dataStore?.kind,
+      finding.location,
+    );
+  };
+
+  // Scrub It on a finding: the rule made, said on the page, the list read again.
+  const scrubFinding: (finding: DataStoreFinding) => Promise<void> = async (
+    finding: DataStoreFinding,
+  ): Promise<void> => {
+    const id: string = finding._id?.toString() || "";
+
+    if (!id) {
+      return;
+    }
+
+    const result: DataSecurityScrubResult = await DataSecurityApi.scrubFinding(
+      new ObjectID(id),
+    );
+
+    setNotice({
+      ruleName: result.scrubRuleName,
+      signal: result.signal,
+    });
+    setRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  };
+
+  const actionButtons: Array<ActionButtonSchema<DataStoreFinding>> = [];
+
+  if (canReadSamples) {
+    actionButtons.push({
+      title: SHOW_RECORDS,
+      icon: IconProp.List,
+      buttonStyleType: ButtonStyleType.NORMAL,
+      // What the row is opened for: the records, then whether to scrub.
+      placement: ActionButtonPlacement.Primary,
+      isVisible: (finding: DataStoreFinding): boolean => {
+        return Boolean(finding._id);
+      },
+      onClick: (
+        finding: DataStoreFinding,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        setPanelScrubError("");
+        setOpenFinding(finding);
+        onCompleteAction();
+      },
+    });
+  }
+
+  if (isScrubItOfferedAtAll(scrubGates)) {
+    actionButtons.push({
+      title: SCRUB_IT,
+      icon: IconProp.EyeSlash,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      isVisible: (finding: DataStoreFinding): boolean => {
+        const scrubIt: ScrubItState = scrubItOf(finding);
+
+        return (
+          !finding.isScrubbed &&
+          (scrubIt.isShown || Boolean(scrubIt.unavailableReason))
+        );
+      },
+      /*
+       * Locked on the rows it cannot scrub, saying why: no rule reaches
+       * the place, or the reader may not make the rule it takes.
+       */
+      getDisabledReason: (finding: DataStoreFinding): string | undefined => {
+        const scrubIt: ScrubItState = scrubItOf(finding);
+
+        if (scrubIt.unavailableReason) {
+          const sentence: string =
+            SCRUB_UNAVAILABLE_SENTENCES[scrubIt.unavailableReason];
+
+          return translator.translateText(sentence) || sentence;
+        }
+
+        return scrubIt.isAllowed ? undefined : scrubIt.disabledReason;
+      },
+      onClick: async (
+        finding: DataStoreFinding,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): Promise<void> => {
+        try {
+          await scrubFinding(finding);
+          onCompleteAction();
+        } catch (err) {
+          onError(err as Error);
+        }
+      },
+    });
+  }
+
+  /*
+   * A metric's name, which Scrub It cannot reach: its metrics can be
+   * dropped instead (#9757) - in a dialog that says what that loses first.
+   */
+  if (scrubGates.metric.isAllowed || scrubGates.metric.disabledReason) {
+    actionButtons.push({
+      title: DROP_METRIC,
+      icon: IconProp.Trash,
+      buttonStyleType: ButtonStyleType.HOVER_DANGER_OUTLINE,
+      isVisible: (finding: DataStoreFinding): boolean => {
+        return !finding.isScrubbed && dropMetricOf(finding).isShown;
+      },
+      getDisabledReason: (finding: DataStoreFinding): string | undefined => {
+        const drop: DropMetricState = dropMetricOf(finding);
+
+        return drop.isAllowed ? undefined : drop.disabledReason;
+      },
+      onClick: (
+        finding: DataStoreFinding,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        setDropping(finding);
+        onCompleteAction();
+      },
+    });
+  }
 
   const storeIds: Array<string> = stores ? [...stores.keys()] : [];
 
@@ -274,14 +421,6 @@ const DataSecurityTelemetryPage: FunctionComponent<
         ]}
       />
     </div>
-  );
-
-  const scrubRulesRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[
-      notice?.signal === "trace"
-        ? PageMap.TRACES_SETTINGS_SCRUB_RULES
-        : PageMap.LOGS_SETTINGS_SCRUB_RULES
-    ] as Route,
   );
 
   if (storesError) {
@@ -325,21 +464,80 @@ const DataSecurityTelemetryPage: FunctionComponent<
   return (
     <>
       {notice ? (
-        <Alert
-          type={AlertType.SUCCESS}
-          dataTestId="data-security-scrub-notice"
-          title={
-            <span>
-              {translator.translateTemplate(SCRUB_RULE_CREATED, {
-                rule: notice.ruleName,
-              })}{" "}
-              <AppLink className="font-medium underline" to={scrubRulesRoute}>
-                {translator.translateText(VIEW_SCRUB_RULES) || VIEW_SCRUB_RULES}
-              </AppLink>
-            </span>
+        <TelemetryRuleNotice
+          template={
+            notice.isDrop
+              ? DROP_NOTICE
+              : SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log
+          }
+          ruleName={notice.ruleName}
+          rulesRoute={getRulesRoute(notice.signal)}
+          dataTestId={
+            notice.isDrop
+              ? "data-security-drop-notice"
+              : "data-security-scrub-notice"
           }
           onClose={() => {
             setNotice(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {openFinding ? (
+        <FindingRecordsPanel
+          finding={openFinding}
+          store={storeOf(openFinding)}
+          scrubIt={scrubItOf(openFinding)}
+          isScrubbing={isPanelScrubbing}
+          scrubError={panelScrubError || undefined}
+          onScrub={() => {
+            setIsPanelScrubbing(true);
+            setPanelScrubError("");
+            scrubFinding(openFinding)
+              .then(() => {
+                setOpenFinding(null);
+              })
+              .catch((err: unknown) => {
+                setPanelScrubError(API.getFriendlyMessage(err));
+              })
+              .finally(() => {
+                setIsPanelScrubbing(false);
+              });
+          }}
+          dropMetric={dropMetricOf(openFinding)}
+          onDropMetric={() => {
+            setDropping(openFinding);
+          }}
+          onClose={() => {
+            setOpenFinding(null);
+            setPanelScrubError("");
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dropping?._id ? (
+        <DropMetricModal
+          findingId={new ObjectID(dropping._id.toString())}
+          dataTypeName={namer(dropping.dataTypeId || "", dropping.dataTypeName)}
+          serviceName={getTelemetryStoreOwnerName(storeOf(dropping))}
+          onClose={() => {
+            setDropping(null);
+          }}
+          onDropped={(result: DataSecurityDropMetricResult) => {
+            setNotice({
+              ruleName: result.ruleName,
+              signal: "metric",
+              isDrop: true,
+            });
+            setDropping(null);
+            setOpenFinding(null);
+            setRefreshCount((count: number): number => {
+              return count + 1;
+            });
           }}
         />
       ) : (
@@ -379,6 +577,11 @@ const DataSecurityTelemetryPage: FunctionComponent<
           isScrubbed: true,
           locationKind: true,
           sensitivity: true,
+          // What a finding's records panel says of it.
+          valueCount: true,
+          matchCount: true,
+          lastSeenAt: true,
+          ...(canReadSamples ? { maskedSamples: true } : {}),
         }}
         filters={[
           {
@@ -574,14 +777,34 @@ const DataSecurityTelemetryPage: FunctionComponent<
             title: "Scrubbed",
             type: FieldType.Element,
             disableSort: true,
+            /*
+             * Under the data type, where the list does not fit its card
+             * (TableFit): in German at 1280px, beside the side menu, each
+             * row's Show Records and its ⋯ pushed the list past its card.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "dataTypeId",
             getExportValue: (finding: DataStoreFinding): string => {
-              return finding.isScrubbed ? SCRUBBED : NOT_SCRUBBED;
+              if (!finding.isScrubbed) {
+                return NOT_SCRUBBED;
+              }
+
+              return isDroppedFinding(finding) ? DROPPED : SCRUBBED;
             },
             getElement: (finding: DataStoreFinding): ReactElement => {
-              return finding.isScrubbed ? (
-                <Pill text={SCRUBBED} color={Green500} />
+              if (!finding.isScrubbed) {
+                return <Pill text={NOT_SCRUBBED} color={Gray500} />;
+              }
+
+              // A metric's name is not scrubbed: a Drop rule keeps its metrics out.
+              return isDroppedFinding(finding) ? (
+                <Pill
+                  text={DROPPED}
+                  color={Green500}
+                  tooltip={DROPPED_TOOLTIP}
+                />
               ) : (
-                <Pill text={NOT_SCRUBBED} color={Gray500} />
+                <Pill text={SCRUBBED} color={Green500} />
               );
             },
           },

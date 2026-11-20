@@ -1,12 +1,30 @@
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
+  AWS_DEFAULT_PERIOD_SECONDS,
   AWS_KEY_METRICS,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
+  AwsStatistic,
+  getAwsKeyMetric,
   getAwsProbeMetricNames,
   getAwsStoredMetricName,
+  isAwsKeyMetricSeries,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
+import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricDimension,
+  CloudAddedMetricScope,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
+import { isCloudReadingOfType } from "../../../../Types/Cloud/CloudReadingKeys";
+import { getStreamedReadingSource } from "../CloudStreamReadings";
+import {
+  AwsStreamCoverage,
+  NO_AWS_STREAM_COVERAGE,
+  isAwsKeyMetricLeftToStream,
+  isAwsNamespaceStreamedWhole,
+} from "../../../../Types/CloudConnection/CloudStreamStack";
 import {
   CloudConnectionAuthMethod,
   CloudConnectionDefinition,
@@ -205,6 +223,84 @@ interface AwsSeries {
   metric: AwsListedMetric;
   keyMetric: AwsKeyMetric;
   resource: CloudMonitoredResource;
+  // A metric a person added to the reads (CloudAddedMetrics), not a key metric.
+  isAdded?: boolean | undefined;
+}
+
+/*
+ * An added metric (CloudAddedMetrics) as the read reads a key metric: with
+ * its statistic, every five minutes, and never one a key-metric stream
+ * carries (streamedSince null). Its group is not shown anywhere: a
+ * resource's page lists an added metric under its own heading.
+ */
+export function toAwsAddedKeyMetric(metric: CloudAddedMetric): AwsKeyMetric {
+  return {
+    metricName: metric.name,
+    statistic: metric.aggregation as AwsStatistic,
+    unit: metric.unit || "None",
+    group: CloudKeyMetricGroup.Traffic,
+    periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
+    streamedSince: null,
+  };
+}
+
+/*
+ * The type-wide additions a read lists in a namespace like its key
+ * metrics, each once - never one that is a key metric of it already.
+ */
+export function getAwsTypeAdditionsOfNamespace(data: {
+  added: ReadonlyArray<CloudAddedMetric>;
+  namespace: string;
+}): Array<CloudAddedMetric> {
+  const namespace: string = data.namespace.trim().toLowerCase();
+  const seen: Set<string> = new Set<string>();
+
+  return data.added.filter((metric: CloudAddedMetric): boolean => {
+    const key: string = `${metric.resourceType.toLowerCase()}|${metric.name.toLowerCase()}`;
+
+    if (
+      metric.provider !== CloudProvider.AWS ||
+      metric.scope !== CloudAddedMetricScope.Type ||
+      (metric.namespace || "").trim().toLowerCase() !== namespace ||
+      getAwsKeyMetric(namespace, metric.name) ||
+      seen.has(key)
+    ) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+/*
+ * The resources' own additions a read of this account reads: each in an
+ * account, Region and namespace the read has resources in, on the series
+ * the resource's listing found (its dimensions, kept with the addition) -
+ * no listing call each read. A metric that is a key metric of its
+ * namespace is read as one already.
+ */
+export function getAwsResourceAdditionsToRead(data: {
+  added: ReadonlyArray<CloudAddedMetric>;
+  accountId: string;
+  activePairs: ReadonlyArray<string>;
+}): Array<CloudAddedMetric> {
+  const active: Set<string> = new Set<string>(
+    data.activePairs.map((pair: string): string => {
+      return pair.toLowerCase();
+    }),
+  );
+
+  return data.added.filter((metric: CloudAddedMetric): boolean => {
+    return (
+      metric.provider === CloudProvider.AWS &&
+      metric.scope === CloudAddedMetricScope.Resource &&
+      Boolean(metric.namespace && metric.region && metric.dimensions?.length) &&
+      (metric.accountId || "") === data.accountId &&
+      active.has(`${metric.region}|${metric.namespace}`.toLowerCase()) &&
+      !getAwsKeyMetric(metric.namespace || "", metric.name)
+    );
+  });
 }
 
 interface RegionNamespace {
@@ -233,6 +329,130 @@ function isOlderThan(
 ): boolean {
   const time: number = iso ? Date.parse(iso) : NaN;
   return !Number.isFinite(time) || now.getTime() - time >= ageMs;
+}
+
+// A listed series' dimensions, by name.
+function dimensionsOf(metric: AwsListedMetric): Record<string, string> {
+  const dimensions: Record<string, string> = {};
+
+  for (const dimension of metric.dimensions) {
+    dimensions[dimension.name] = dimension.value;
+  }
+
+  return dimensions;
+}
+
+/*
+ * The series a read reads from CloudWatch: every one, but a key metric a
+ * stream writes in the read's place (CloudStreamStack) - GetMetricData
+ * bills each metric read. One a resource's health or headline is judged
+ * from (CloudReadingKeys) is left to the stream too where its account and
+ * Region's streamed readings are fresh (streamedReadingSources,
+ * CloudStreamReadings: the read's statistic over its five minutes, from
+ * the stream's minutes); elsewhere it is read, for the resource's
+ * readings, and left out of what the read writes (CloudStreamedMetrics).
+ */
+export function getAwsSeriesToRead<
+  T extends {
+    metric: AwsListedMetric;
+    keyMetric: AwsKeyMetric;
+    resource: CloudMonitoredResource;
+  },
+>(data: {
+  series: Array<T>;
+  accountId: string;
+  coverage: AwsStreamCoverage;
+  streamedReadingSources?: ReadonlySet<string> | undefined;
+}): Array<T> {
+  if (data.coverage.size === 0) {
+    return data.series;
+  }
+
+  return data.series.filter((entry: T): boolean => {
+    if (
+      !isAwsKeyMetricLeftToStream({
+        coverage: data.coverage,
+        accountId: data.accountId,
+        region: entry.resource.region,
+        namespace: entry.metric.namespace,
+        metric: entry.keyMetric,
+      })
+    ) {
+      return true;
+    }
+
+    return (
+      isCloudReadingOfType({
+        provider: CloudProvider.AWS,
+        resourceType: entry.resource.resourceType,
+        storedMetricName: getAwsStoredMetricName(
+          entry.metric.namespace,
+          entry.metric.metricName,
+        ),
+      }) &&
+      !(data.streamedReadingSources || new Set<string>()).has(
+        getStreamedReadingSource({
+          accountId: data.accountId,
+          region: entry.resource.region,
+        }),
+      )
+    );
+  });
+}
+
+/*
+ * The Regions whose streams carry metrics a resource's health is judged
+ * from, which the read read from CloudWatch all the same: their streamed
+ * readings were not fresh (CloudStreamReadings) - a stream gone quiet, or
+ * readings that could not be kept. Each once, in the order found.
+ */
+export function getAwsRegionsReadForStreamedHealth<
+  T extends {
+    metric: AwsListedMetric;
+    keyMetric: AwsKeyMetric;
+    resource: CloudMonitoredResource;
+  },
+>(data: {
+  series: Array<T>;
+  accountId: string;
+  coverage: AwsStreamCoverage;
+  streamedReadingSources?: ReadonlySet<string> | undefined;
+}): Array<string> {
+  const regions: Array<string> = [];
+
+  if (data.coverage.size === 0) {
+    return regions;
+  }
+
+  for (const entry of data.series) {
+    const region: string = entry.resource.region;
+
+    if (
+      !regions.includes(region) &&
+      isAwsKeyMetricLeftToStream({
+        coverage: data.coverage,
+        accountId: data.accountId,
+        region,
+        namespace: entry.metric.namespace,
+        metric: entry.keyMetric,
+      }) &&
+      isCloudReadingOfType({
+        provider: CloudProvider.AWS,
+        resourceType: entry.resource.resourceType,
+        storedMetricName: getAwsStoredMetricName(
+          entry.metric.namespace,
+          entry.metric.metricName,
+        ),
+      }) &&
+      !(data.streamedReadingSources || new Set<string>()).has(
+        getStreamedReadingSource({ accountId: data.accountId, region }),
+      )
+    ) {
+      regions.push(region);
+    }
+  }
+
+  return regions;
 }
 
 export default class AwsCloudConnector implements CloudConnector {
@@ -610,10 +830,36 @@ export default class AwsCloudConnector implements CloudConnector {
     credentials: AwsCredentials;
     options: CloudConnectorCallOptions;
     budget?: CloudReadBudget | undefined;
+    /*
+     * The namespace's type-wide additions (getAwsTypeAdditionsOfNamespace):
+     * listed like its key metrics, each kept for the resources of its type.
+     */
+    addedMetrics?: Array<CloudAddedMetric> | undefined;
   }): Promise<Array<AwsSeries>> {
     const kept: Map<string, Array<AwsSeries>> = new Map();
+    const toList: Array<{
+      keyMetric: AwsKeyMetric;
+      // An addition's type: only its resources' series are kept.
+      addedForType?: string | undefined;
+    }> = [
+      ...data.pair.namespace.metrics.map(
+        (keyMetric: AwsKeyMetric): { keyMetric: AwsKeyMetric } => {
+          return { keyMetric };
+        },
+      ),
+      ...(data.addedMetrics || []).map(
+        (
+          added: CloudAddedMetric,
+        ): { keyMetric: AwsKeyMetric; addedForType: string } => {
+          return {
+            keyMetric: toAwsAddedKeyMetric(added),
+            addedForType: added.resourceType.toLowerCase(),
+          };
+        },
+      ),
+    ];
 
-    for (const keyMetric of data.pair.namespace.metrics) {
+    for (const { keyMetric, addedForType } of toList) {
       const listed: Array<AwsListedMetric> = await listMetrics(
         {
           transport: data.options.transport,
@@ -632,19 +878,33 @@ export default class AwsCloudConnector implements CloudConnector {
       );
 
       for (const metric of listed) {
+        // A series the metric is not read from (AwsKeyMetric.onlyDimensionValues).
+        if (!isAwsKeyMetricSeries(keyMetric, dimensionsOf(metric))) {
+          continue;
+        }
+
         const resource: CloudMonitoredResource | null = this.resolveSeries({
           metric,
           accountId: data.accountId,
           region: data.pair.region,
         });
 
-        if (!resource) {
+        if (
+          !resource ||
+          (addedForType !== undefined &&
+            resource.resourceType.toLowerCase() !== addedForType)
+        ) {
           continue;
         }
 
         const key: string = `${resource.identityKey}|${keyMetric.metricName}`;
         const existing: Array<AwsSeries> = kept.get(key) || [];
-        const series: AwsSeries = { metric, keyMetric, resource };
+        const series: AwsSeries = {
+          metric,
+          keyMetric,
+          resource,
+          ...(addedForType !== undefined ? { isAdded: true } : {}),
+        };
         const fewest: number =
           existing.length > 0
             ? existing[0]!.metric.dimensions.length
@@ -1197,6 +1457,7 @@ export default class AwsCloudConnector implements CloudConnector {
       }
     }
 
+    const added: Array<CloudAddedMetric> = options.addedMetrics || [];
     const listed: Array<Settled<Array<AwsSeries>>> = await mapWithConcurrency(
       pairs,
       CONCURRENCY,
@@ -1207,6 +1468,10 @@ export default class AwsCloudConnector implements CloudConnector {
           credentials,
           options,
           budget,
+          addedMetrics: getAwsTypeAdditionsOfNamespace({
+            added,
+            namespace: pair.namespace.namespace,
+          }),
         });
       },
     );
@@ -1241,9 +1506,81 @@ export default class AwsCloudConnector implements CloudConnector {
       );
     });
 
-    // 3. Their values since the last read, per period.
+    // The resources' own additions, on the series their listing found.
+    for (const metric of getAwsResourceAdditionsToRead({
+      added,
+      accountId,
+      activePairs,
+    })) {
+      const listedMetric: AwsListedMetric = {
+        namespace: metric.namespace!,
+        metricName: metric.name,
+        dimensions: (metric.dimensions || []).map(
+          (dimension: CloudAddedMetricDimension) => {
+            return { name: dimension.name, value: dimension.value };
+          },
+        ),
+      };
+      const resource: CloudMonitoredResource | null = this.resolveSeries({
+        metric: listedMetric,
+        accountId,
+        region: metric.region!,
+      });
+
+      if (resource) {
+        series.push({
+          metric: listedMetric,
+          keyMetric: toAwsAddedKeyMetric(metric),
+          resource,
+          isAdded: true,
+        });
+      }
+    }
+
+    const coverage: AwsStreamCoverage =
+      options.awsStreamCoverage || NO_AWS_STREAM_COVERAGE;
+
+    /*
+     * 3. Their values since the last read, per period - but those of the
+     * key metrics a stream writes, which are read only where a resource's
+     * health is judged from them (getAwsSeriesToRead), and the added
+     * metrics a stream of every metric writes already.
+     */
+    // Said only where the read was told the streams' readings: one that was not reads as it always has.
+    const readForHealth: Array<string> = options.awsStreamedReadingSources
+      ? getAwsRegionsReadForStreamedHealth({
+          series,
+          accountId,
+          coverage,
+          streamedReadingSources: options.awsStreamedReadingSources,
+        })
+      : [];
+
+    if (readForHealth.length > 0) {
+      warnings.push(
+        `The streams sent no resource health from ${readForHealth.join(", ")} lately, so it was read from CloudWatch.`,
+      );
+    }
+
+    const toRead: Array<AwsSeries> = getAwsSeriesToRead({
+      series,
+      accountId,
+      coverage,
+      streamedReadingSources: options.awsStreamedReadingSources,
+    }).filter((entry: AwsSeries): boolean => {
+      return !(
+        entry.isAdded &&
+        isAwsNamespaceStreamedWhole({
+          coverage,
+          accountId,
+          region: entry.resource.region,
+          namespace: entry.metric.namespace,
+        })
+      );
+    });
     const cursors: Record<string, string> = { ...(state.cursors || {}) };
     const groups: Map<string, CloudMetricGroup> = new Map();
+    // Every listed series' period, read or not: its cursor moves on either way.
     const periods: Array<number> = Array.from(
       new Set(
         series.map((entry: AwsSeries): number => {
@@ -1272,11 +1609,21 @@ export default class AwsCloudConnector implements CloudConnector {
         continue;
       }
 
-      const ofPeriod: Array<AwsSeries> = series.filter(
+      const ofPeriod: Array<AwsSeries> = toRead.filter(
         (entry: AwsSeries): boolean => {
           return entry.keyMetric.periodSeconds === periodSeconds;
         },
       );
+
+      /*
+       * A stream writes every series of the period: nothing to read, and
+       * the window is done - a stream that goes quiet is read from here,
+       * never again from the hours it wrote.
+       */
+      if (ofPeriod.length === 0) {
+        cursors[String(periodSeconds)] = window.end.toISOString();
+        continue;
+      }
 
       const byRegion: Map<string, Array<AwsSeries>> = new Map();
 

@@ -19,7 +19,10 @@ import MobileReplayRecorder, {
   getReplayStorageNamespace,
   MobileReplayDiagnosticEvent,
 } from "../src/MobileReplayRecorder";
-import { productAnalyticsSessionKey } from "../src/ProductAnalytics";
+import {
+  productAnalyticsQueueKey,
+  productAnalyticsSessionKey,
+} from "../src/ProductAnalytics";
 import {
   PRODUCT_ANALYTICS_EVENTS_PATH,
   PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
@@ -687,6 +690,107 @@ describe("MobileReplayRecorder product analytics", () => {
     });
   });
 
+  /*
+   * Issue #9577: an app used offline and then stopped by the system sends
+   * what it held on its next launch, under the session it happened in -
+   * the launch after it is another session's - and consent withdrawn on
+   * any launch removes it.
+   */
+  describe("what a launch could not send", () => {
+    function failAnalytics(test: Harness): void {
+      const answer: ReplayFetch =
+        test.fetch.getMockImplementation() as ReplayFetch;
+      test.fetch.mockImplementation(
+        async (url: string, init?: ReplayFetchInit) => {
+          if (url.endsWith(PRODUCT_ANALYTICS_EVENTS_PATH)) {
+            throw new TypeError("Network request failed");
+          }
+          return answer(url, init);
+        },
+      );
+    }
+
+    function queueKey(test: Harness): string {
+      return productAnalyticsQueueKey(
+        getReplayStorageNamespace(
+          validateStartOptions(options(test)) as ValidatedStartOptions,
+        ),
+      );
+    }
+
+    test("is sent on the next launch, under the session it happened in", async () => {
+      const storage: MemoryStorage = new MemoryStorage();
+      const offline: Harness = harness({}, storage);
+      failAnalytics(offline);
+      expect(await offline.recorder.start(options(offline))).toBe(true);
+      const offlineSession: string = offline.recorder.getSessionId() as string;
+
+      await offline.recorder.setRoute("/Basket");
+      offline.recorder.track("Ordered offline");
+      offline.appState.emit("background");
+      await flush();
+      await offline.recorder.stop();
+      await flush();
+
+      expect(offline.analytics).toHaveLength(0);
+      expect(storage.values.has(queueKey(offline))).toBe(true);
+
+      /* Next morning: a new session. */
+      await elapse(SESSION_REPLAY_IDLE_ROLLOVER_MS + 60_000);
+
+      const relaunch: Harness = harness({}, storage);
+      expect(await relaunch.recorder.start(options(relaunch))).toBe(true);
+      const relaunchSession: string =
+        relaunch.recorder.getSessionId() as string;
+      expect(relaunchSession).not.toBe(offlineSession);
+
+      await nextAnalyticsFlush();
+      await nextAnalyticsFlush();
+
+      expect(relaunch.analytics[0]?.batch.sessionId).toBe(offlineSession);
+      expect(named(relaunch.analytics[0]?.batch.events ?? [])).toEqual([
+        "session:",
+        "page:/Basket",
+        "custom:Ordered offline",
+      ]);
+      expect(
+        relaunch.analytics.some((post: AnalyticsPost): boolean => {
+          return post.batch.sessionId === relaunchSession;
+        }),
+      ).toBe(true);
+      expect(diagnosticCodes(relaunch)).toContain("analytics-restored");
+      await relaunch.recorder.stop();
+    });
+
+    test("is removed when consent is withdrawn, even with the events off on this launch", async () => {
+      const storage: MemoryStorage = new MemoryStorage();
+      const offline: Harness = harness({}, storage);
+      failAnalytics(offline);
+      expect(await offline.recorder.start(options(offline))).toBe(true);
+      offline.recorder.track("Ordered offline");
+      offline.appState.emit("background");
+      await flush();
+      await offline.recorder.stop();
+      await flush();
+      expect(storage.values.has(queueKey(offline))).toBe(true);
+
+      /* The application has product analytics off by the next launch. */
+      const relaunch: Harness = harness(
+        { productAnalytics: { enabled: false, userPropertyKeys: [] } },
+        storage,
+      );
+      expect(await relaunch.recorder.start(options(relaunch))).toBe(true);
+      expect(relaunch.recorder.getDiagnostics().productAnalytics.state).toBe(
+        "off",
+      );
+
+      await relaunch.recorder.revokeConsent();
+      await flush();
+
+      expect(storage.values.has(queueKey(relaunch))).toBe(false);
+    });
+  });
+
   test("counts an announced session once across a relaunch of the app", async () => {
     const storage: MemoryStorage = new MemoryStorage();
     const first: Harness = harness({}, storage);
@@ -708,5 +812,143 @@ describe("MobileReplayRecorder product analytics", () => {
       "custom:Second launch",
     ]);
     await relaunch.recorder.stop();
+  });
+});
+
+/*
+ * Readable event properties (issue #7501): this recorder masks all text,
+ * and an application that lists a property key keeps that key's short
+ * token values as written - in the event product analytics counts and in
+ * the recording's marker alike. A listed key's sentence, every other key
+ * and every identify() trait stay masked, and with no key listed - the
+ * default - nothing is readable.
+ */
+describe("MobileReplayRecorder readable event properties", () => {
+  beforeEach((): void => {
+    jest.useFakeTimers({
+      now: START_UNIX_MS,
+      doNotFake: ["nextTick", "queueMicrotask"],
+    });
+  });
+
+  afterEach((): void => {
+    jest.useRealTimers();
+  });
+
+  const PROPERTIES: Record<string, string> = {
+    step: "billing",
+    setup: "monitor.website",
+    plan: "pro",
+    note: "Jane Doe asked for a refund",
+  };
+
+  function markedProperties(test: Harness): unknown {
+    const marker: RrwebEvent | undefined = test.chunks
+      .flatMap((chunk: ChunkPost): Array<RrwebEvent> => {
+        return chunk.events;
+      })
+      .find((event: RrwebEvent): boolean => {
+        return (
+          event.type === RrwebEventType.Custom &&
+          (event.data as { tag?: string }).tag === CUSTOM_EVENT_TAG
+        );
+      });
+
+    return (
+      (marker?.data as { payload?: { properties?: unknown } }).payload
+        ?.properties ?? null
+    );
+  }
+
+  test("keeps a listed key's token, in the event and the recording, and masks everything else", async () => {
+    const test: Harness = harness({
+      readableEventPropertyKeys: ["step", "setup", "note", "currency"],
+    });
+    expect(await test.recorder.start(options(test))).toBe(true);
+
+    test.recorder.track("guided_setup/step_reached", PROPERTIES);
+    test.recorder.metric("cart.value", 42.5, {
+      currency: "EUR",
+      region: "eu",
+    });
+    await nextAnalyticsFlush();
+
+    const custom: ProductAnalyticsWireEvent | undefined = analyticsEvents(
+      test,
+    ).find((event: ProductAnalyticsWireEvent): boolean => {
+      return event.name === "guided_setup/step_reached";
+    });
+
+    expect(custom?.properties).toEqual({
+      step: "billing",
+      setup: "monitor.website",
+      plan: "••••",
+      note: "••••••••••••••••",
+    });
+    expect(test.analytics[0]?.batch.metrics[0]?.attributes).toEqual({
+      currency: "EUR",
+      region: "••••",
+    });
+
+    await test.recorder.stop();
+
+    expect(markedProperties(test)).toEqual({
+      step: "billing",
+      setup: "monitor.website",
+      plan: "••••",
+      note: "••••••••••••••••",
+    });
+  });
+
+  test("masks every value when the application lists no key: the default", async () => {
+    const test: Harness = harness();
+    expect(await test.recorder.start(options(test))).toBe(true);
+
+    test.recorder.track("guided_setup/step_reached", PROPERTIES);
+    await nextAnalyticsFlush();
+
+    const custom: ProductAnalyticsWireEvent | undefined = analyticsEvents(
+      test,
+    ).find((event: ProductAnalyticsWireEvent): boolean => {
+      return event.name === "guided_setup/step_reached";
+    });
+
+    expect(custom?.properties).toEqual({
+      step: "••••",
+      setup: "••••••••••••••••",
+      plan: "••••",
+      note: "••••••••••••••••",
+    });
+
+    await test.recorder.stop();
+
+    expect(markedProperties(test)).toEqual(custom?.properties);
+  });
+
+  test("never keeps an identify() trait readable, even one the list names", async () => {
+    const test: Harness = harness({
+      captureUserIdentity: true,
+      productAnalytics: { enabled: true, userPropertyKeys: ["plan"] },
+      readableEventPropertyKeys: ["plan"],
+    });
+    expect(await test.recorder.start(options(test))).toBe(true);
+
+    test.recorder.identify("user-42", { plan: "pro" });
+    await flush();
+    test.recorder.track("Signed in", { plan: "pro" });
+    await nextAnalyticsFlush();
+
+    const post: AnalyticsPost | undefined = test.analytics[0];
+
+    expect(post?.batch.userProperties).toEqual({ plan: "••••" });
+    expect(
+      analyticsEvents(test).find(
+        (event: ProductAnalyticsWireEvent): boolean => {
+          return event.name === "Signed in";
+        },
+      )?.properties,
+    ).toEqual({ plan: "pro" });
+
+    await test.recorder.stop();
   });
 });

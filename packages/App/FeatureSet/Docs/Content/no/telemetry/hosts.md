@@ -205,7 +205,7 @@ Kjør kommandoen igjen for å endre noen av disse, eller for å gå over til en 
 | `--key KEY` | `-Key KEY` | En inntaksnøkkel for telemetri fra prosjektet ditt. |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | Merker verten. Gjenta det for flere etiketter; på Windows lister du dem med komma. |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | Gir innsamleren en miljøvariabel, for konfigurasjoner som leser `${env:NAME}`. |
-| `--version VERSION` | `-Version VERSION` | Innsamlerutgivelsen som installeres, 0.161.0 som standard. |
+| `--version VERSION` | `-Version VERSION` | Innsamlerutgivelsen som installeres, 0.165.0 som standard. |
 | `--download-url URL` | `-DownloadUrl URL` | Laster ned utgivelsene fra et speil med samme mappestruktur som GitHubs. |
 | `--proxy URL` | `-Proxy URL` | Sender nedlastingene og all trafikken til innsamleren gjennom en HTTP-proxy. |
 | `--replace-existing` | `-ReplaceExisting` | Stopper og deaktiverer en innsamler som ble installert manuelt. |

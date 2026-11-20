@@ -31,6 +31,7 @@ type RoutesModule =
 type UtilsModule =
   typeof import("../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesResourceUtils");
 
+let KUBERNETES_CLAIM_POD_FACT_LABEL: AttentionModule["KUBERNETES_CLAIM_POD_FACT_LABEL"];
 let KUBERNETES_CURRENT_PART_LABELS: AttentionModule["KUBERNETES_CURRENT_PART_LABELS"];
 let NAMESPACED_KUBERNETES_KINDS: AttentionModule["NAMESPACED_KUBERNETES_KINDS"];
 let getKubernetesKindChip: AttentionModule["getKubernetesKindChip"];
@@ -87,6 +88,7 @@ beforeAll(async () => {
   }
 
   ({
+    KUBERNETES_CLAIM_POD_FACT_LABEL,
     KUBERNETES_CURRENT_PART_LABELS,
     NAMESPACED_KUBERNETES_KINDS,
     getKubernetesKindChip,
@@ -716,12 +718,15 @@ describe("the part read, as the server answers it", () => {
       part: { kind: "Pod", name: "web-1" },
       pods: [{ kind: "Pod", name: "web-1" }],
       jobs: [],
+      // A namespace's other objects, none from a server that sends none.
+      objects: [],
       isPodsTruncated: true,
     });
     expect(parseKubernetesPartRead(null)).toEqual({
       part: null,
       pods: [],
       jobs: [],
+      objects: [],
       isPodsTruncated: false,
     });
   });
@@ -804,6 +809,98 @@ describe("the Overview's Needs attention, as the server answers it", () => {
     expect(item.detail).toBe("shop");
     expect(routeOf(item)).toContain("/pvcs/data-0");
     expect(routeOf(item)).toContain(`${KUBERNETES_NAMESPACE_QUERY_PARAM}=shop`);
+    // No pod named: no fact under it.
+    expect(item.facts).toBeUndefined();
+  });
+
+  /*
+   * A nearly full claim (#9643) names a pod that mounts it - the workload
+   * writing to it - read from the answer, and a step to its page.
+   */
+  test("a nearly full claim keeps the pod that mounts it, and a malformed one is left out", () => {
+    const read: ReturnType<typeof parseKubernetesNeedsAttention> =
+      parseKubernetesNeedsAttention({
+        findings: [
+          {
+            key: "PersistentVolumeClaim/data/data-postgres-0",
+            kind: "PersistentVolumeClaim",
+            namespace: "data",
+            name: "data-postgres-0",
+            severity: "critical",
+            reasons: [
+              {
+                text: "{{percent}} used, {{free}} free",
+                values: { percent: "95%", free: "2.5\u00A0GiB" },
+              },
+              {
+                text: "Full in about {{count}} hours",
+                plural: { one: "Full in about {{count}} hour", count: 3 },
+              },
+            ],
+            pod: "postgres-0",
+          },
+          {
+            key: "PersistentVolumeClaim/data/data-redis-0",
+            kind: "PersistentVolumeClaim",
+            namespace: "data",
+            name: "data-redis-0",
+            severity: "warning",
+            reasons: [{ text: "Nearly full" }],
+            pod: 42,
+          },
+          {
+            key: "PersistentVolumeClaim/data/logs-0",
+            kind: "PersistentVolumeClaim",
+            namespace: "data",
+            name: "logs-0",
+            severity: "warning",
+            reasons: [{ text: "Nearly full" }],
+            pod: "",
+          },
+        ],
+      } as unknown as JSONObject);
+
+    expect(read.findings).toHaveLength(3);
+    expect(read.findings[0]!.pod).toBe("postgres-0");
+    expect(read.findings[0]!.reasons[0]).toEqual({
+      text: "{{percent}} used, {{free}} free",
+      values: { percent: "95%", free: "2.5\u00A0GiB" },
+    });
+    expect(read.findings[1]!.pod).toBeUndefined();
+    expect(read.findings[2]!.pod).toBeUndefined();
+  });
+
+  test("a claim's pod is a fact under it: its name, and a step to its page in the claim's namespace", () => {
+    const item: ResourceAttentionItem = toKubernetesAttentionItem(
+      {
+        key: "PersistentVolumeClaim/data/data-postgres-0",
+        kind: "PersistentVolumeClaim",
+        namespace: "data",
+        name: "data-postgres-0",
+        severity: KubernetesHealthSeverity.Critical,
+        reasons: [
+          {
+            text: "{{percent}} used, {{free}} free",
+            values: { percent: "95%", free: "2.5\u00A0GiB" },
+          },
+        ],
+        pod: "postgres-0",
+      },
+      routeFor,
+    );
+
+    // The row opens the claim.
+    expect(routeOf(item)).toContain("/pvcs/data-postgres-0");
+    expect(item.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(item.facts).toHaveLength(1);
+    const [fact] = item.facts!;
+    expect(fact!.key).toBe("pod");
+    expect(fact!.label).toBe(KUBERNETES_CLAIM_POD_FACT_LABEL);
+    expect(fact!.label).toBe("Pod");
+    expect(fact!.value).toBe("postgres-0");
+    const podRoute: string = fact!.route ? fact!.route.toString() : "";
+    expect(podRoute).toContain("/pods/postgres-0");
+    expect(podRoute).toContain(`${KUBERNETES_NAMESPACE_QUERY_PARAM}=data`);
   });
 });
 
@@ -916,10 +1013,15 @@ describe("the words of a part's page", () => {
       "Job",
       "CronJob",
       "Node",
+      // A DeploymentConfig's and a namespace's pages have theirs too (#9595).
+      "DeploymentConfig",
+      "Namespace",
     ]) {
       expect(KUBERNETES_PART_COPY[kind]).toBeDefined();
       expect(KUBERNETES_CURRENT_PART_LABELS[kind]).toMatch(/^This /);
     }
+    // A container's page names its own row as its card would.
+    expect(KUBERNETES_CURRENT_PART_LABELS["Container"]).toBe("This container");
   });
 
   test("each kind's Details card says what reports its facts, in its own words", () => {
@@ -931,6 +1033,11 @@ describe("the words of a part's page", () => {
       ["Job", "What Kubernetes reports about this Job."],
       ["CronJob", "What Kubernetes reports about this CronJob."],
       ["Node", "What Kubernetes reports about this node."],
+      [
+        "DeploymentConfig",
+        "What Kubernetes reports about this DeploymentConfig.",
+      ],
+      ["Namespace", "What Kubernetes reports about this namespace."],
     ];
 
     for (const [kind, description] of cases) {

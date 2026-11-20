@@ -2,6 +2,7 @@ import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import MonitorUtil from "../../Utils/Monitor";
+import TotpProbeGate, { ItemForProbeKind } from "../../Utils/TotpProbeGate";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -347,12 +348,25 @@ router.post(
         monitorWithSecretsPopulatePromises,
       );
 
+      /*
+       * A step that needs a one-time code goes only to a probe that makes
+       * one; an older custom probe's is failed, as its own result, with a
+       * sentence saying to update the probe (TotpProbeGate, #9759).
+       */
+      monitorsWithSecretPopulated =
+        await TotpProbeGate.keepStepsFromProbesTooOld({
+          items: monitorsWithSecretPopulated,
+          probeId: probeId,
+          requestBody: data,
+          kind: ItemForProbeKind.Monitor,
+        });
+
+      /*
+       * A count, never the monitors: they now hold the secrets' values, which
+       * the logger's redaction (by field name) cannot all tell apart.
+       */
       logger.debug(
-        "Populated secrets",
-        getLogAttributesFromRequest(req as any),
-      );
-      logger.debug(
-        monitorsWithSecretPopulated,
+        `Populated secrets for ${monitorsWithSecretPopulated.length} monitors`,
         getLogAttributesFromRequest(req as any),
       );
 
@@ -532,12 +546,18 @@ router.post(
         monitorTestsWithSecretsPopulatePromises,
       );
 
+      // As for monitors: a test's step that needs a one-time code too (#9759).
+      monitorTestsWithSecretPopulated =
+        await TotpProbeGate.keepStepsFromProbesTooOld({
+          items: monitorTestsWithSecretPopulated,
+          probeId: probeId,
+          requestBody: data,
+          kind: ItemForProbeKind.MonitorTest,
+        });
+
+      // A count, never the tests: they now hold the secrets' values.
       logger.debug(
-        "Populated secrets",
-        getLogAttributesFromRequest(req as any),
-      );
-      logger.debug(
-        monitorTestsWithSecretPopulated,
+        `Populated secrets for ${monitorTestsWithSecretPopulated.length} monitor tests`,
         getLogAttributesFromRequest(req as any),
       );
 

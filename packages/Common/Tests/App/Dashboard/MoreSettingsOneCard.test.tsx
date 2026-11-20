@@ -37,6 +37,9 @@ import TeamViewPermissions, {
   TEAM_PERMISSIONS_ADVANCED_SECTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/Permissions";
 import HostSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Settings";
+import WorkflowSettings, {
+  WORKFLOW_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/View/Settings";
 import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
 import ProjectTelemetrySettings, {
   PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
@@ -375,6 +378,18 @@ const PAGES: Array<MoreSettingsPage> = [
     tableCount: 0,
   },
   {
+    // What a workflow's steps run as (#9695).
+    name: "Workflows -> a workflow -> Settings",
+    path: `/dashboard/${PROJECT_ID}/workflows/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      return <WorkflowSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: WORKFLOW_SETTINGS_MORE_TEST_ID,
+    sectionTitles: ["Run As"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
     name: "Project Settings -> Advanced -> API Keys -> a key",
     path: `/dashboard/${PROJECT_ID}/settings/api-keys/${RECORD_ID}`,
     element: (): ReactElement => {
@@ -535,10 +550,14 @@ const PAGES: Array<MoreSettingsPage> = [
       return <NotificationSettings {...PAGE_PROPS} />;
     },
     sectionTestId: NOTIFICATION_SETTINGS_MORE_TEST_ID,
-    // How members are paged by default (#7449), then the two tables.
+    /*
+     * How members are paged by default (#7449), whether on-call calls tell
+     * voicemail from a person (#6594), then the two tables.
+     */
     sectionTitles: [
       "Default Ladder for New Members",
       "Phone for People on Call",
+      "Voicemail on On-Call Calls",
       "Custom SMTP Configs",
       "Twilio Config",
     ],

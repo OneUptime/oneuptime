@@ -5,7 +5,7 @@ Ein Kubernetes-Monitor warnt anhand der Metriken, die der OneUptime-Kubernetes-A
 :::cards
 - [Den Agent installieren](/docs/monitor/kubernetes-agent): Ein Helm-Befehl bringt den Cluster in OneUptime.
 - [Den Monitor erstellen](#einen-kubernetes-monitor-erstellen): Den Cluster wählen, dann eine Vorlage, eine Metrik oder eine Abfrage.
-- [Warnungsvorlagen](#fertige-warnungsvorlagen): Einundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
+- [Warnungsvorlagen](#fertige-warnungsvorlagen): Fünfundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
 - [Kriterien](#überwachungskriterien): Statische Schwellenwerte und Anomalieerkennung.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - Der OneUptime-Kubernetes-Agent läuft im Cluster. Siehe [Kubernetes-Agent (Helm-Installation)](/docs/monitor/kubernetes-agent); der Cluster erscheint wenige Minuten nach der Installation unter **Kubernetes**.
 - Für die Vorlagen der Steuerungsebene (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): die Erfassung der Steuerungsebene durch den Agent, `controlPlane.enabled`, die den API-Server ohne Weiteres liest; etcd und der Scheduler brauchen zusätzlich ihre eingetragenen Endpunkte (siehe [Control-Plane-Überwachung aktivieren](/docs/telemetry/kubernetes-agent#control-plane-überwachung-aktivieren)). Verwaltete Cluster (EKS, GKE, AKS) stellen diese Endpunkte nicht bereit, daher erhalten diese Monitore dort nie Daten.
+- Für die Kostenvorlagen (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): die Kostenüberwachung des Agents, standardmäßig eingeschaltet außer mit den Presets `gke-autopilot` und `eks-fargate` (siehe [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost)).
 
 ## Einen Kubernetes-Monitor erstellen
 
@@ -85,12 +86,13 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 
 | Kategorie | Metriken |
 | --- | --- |
-| Pod | Pod-CPU-Nutzung, Pod-Speichernutzung, Pod-Phase (Code), Pod-Dateisystemnutzung, Pod-Auslastung des Speicherlimits, Pod-Auslastung des CPU-Limits, Pod-Netzwerk-I/O (kumuliert, beide Richtungen) |
-| Knoten | Knoten-CPU-Nutzung, Zuweisbare CPU des Knotens, Knoten-Speichernutzung, Arbeitsspeicher-Working-Set des Knotens, Knoten-Dateisystemnutzung, Zuweisbarer Arbeitsspeicher des Knotens, Ready-Bedingung des Knotens, MemoryPressure-Bedingung des Knotens, DiskPressure-Bedingung des Knotens, PIDPressure-Bedingung des Knotens, Verfügbares Dateisystem des Knotens |
+| Pod | Pod-CPU-Nutzung, Pod-Speichernutzung, Pod-Phase (Code), Pod-Dateisystemnutzung, Volume-Kapazität, Freier Volume-Speicher, Pod-Auslastung des Speicherlimits, Pod-Auslastung des CPU-Limits, Pod-Netzwerk-I/O (kumuliert, beide Richtungen) |
+| Knoten | Knoten-CPU-Nutzung, Zuweisbare CPU des Knotens, Knoten-Speichernutzung, Arbeitsspeicher-Working-Set des Knotens, Knoten-Dateisystemnutzung, Zuweisbarer Arbeitsspeicher des Knotens, Ready-Bedingung des Knotens, MemoryPressure-Bedingung des Knotens, DiskPressure-Bedingung des Knotens, PIDPressure-Bedingung des Knotens, Verfügbares Dateisystem des Knotens, Dateisystemkapazität des Knotens |
 | Container | Container-Neustarts, Container-Neustarts (Zuwachs), CPU-Limit des Containers, CPU-Anforderung des Containers, Speicherlimit des Containers, Speicheranforderung des Containers, Container bereit |
 | Workload | Verfügbare Replikate des Deployments, Gewünschte Replikate des Deployments, Gewünschte Knoten des DaemonSets, Falsch geplante Knoten des DaemonSets, Bereite Knoten des DaemonSets, Gewünschte Replikate des StatefulSets, Bereite Replikate des StatefulSets, Fehlgeschlagene Pods des Jobs, Fehlgeschlagene Pods des Jobs (Zuwachs), Erfolgreiche Pods des Jobs |
 | HPA | Aktuelle Replikate des HPA, Gewünschte Replikate des HPA, Maximale Replikate des HPA, Minimale Replikate des HPA |
 | Steuerungsebene | etcd hat einen Leader, Laufende Anfragen des API-Servers, Ausstehende Pods des Schedulers |
+| Kosten | Clusterkosten, Leerlaufkosten, Workload-Kosten, Kosteneffizienz des Workloads |
 
 > [!NOTE]
 > **Pod-CPU-Nutzung** und **Knoten-CPU-Nutzung** sind in Kernen angegeben, nicht in Prozent: `0.18` ist 0,18 eines Kerns. **Pod-Phase (Code)** ist ein Code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregieren Sie ihn mit Maximum oder Minimum, niemals mit Summe. Metriken der Steuerungsebene kommen nur an, wenn die Erfassung der Steuerungsebene durch den Agent eingeschaltet ist. **Ready-Bedingung des Knotens** ist 1 bei Ready, 0 bei NotReady und -1 bei Unknown, was ein ausgefallener Knoten meldet: Warnen Sie bei weniger als 1. **Container-Neustarts** ist der laufende Neustartzähler des Containers; **Container-Neustarts (Zuwachs)** sendet der Agent mit jeder Messung: die Neustarts seit seiner vorigen Messung des Containers, sodass ihre Summe über ein Zeitfenster die Neustarts darin ergibt. Sie trägt, was **Container-Neustarts** trägt, einschließlich der Workload-Namen des Pods des Containers, aber nicht die ID des Containers, die sich bei jedem Neustart ändert. **Fehlgeschlagene Pods des Jobs** ist der laufende Zähler fehlgeschlagener Pods eines Jobs; **Fehlgeschlagene Pods des Jobs (Zuwachs)** sendet der Agent mit jeder Messung: die Pods des Jobs, die seit seiner vorigen Messung des Jobs fehlgeschlagen sind, sodass ihre Summe über ein Zeitfenster die Fehlschläge darin ergibt. Sie trägt, was **Fehlgeschlagene Pods des Jobs** trägt: den Namen und den Namespace des Jobs.
@@ -148,6 +150,7 @@ Unter **Worüber benachrichtigt wird** stehen diese Vorlagen, gruppiert nach Kat
 | API Server Request Saturation | Steuerungsebene | Der API-Server während des gesamten Zeitfensters 200 oder mehr laufende Anfragen hält | Kritisch |
 | Scheduler Backlog | Planung | Die Warteschlange ausstehender Pods des Schedulers 5 Minuten lang nicht leer ist | Warnung |
 | High Node Disk Usage | Speicher | Das Dateisystem eines Knotens zu mehr als 90 % voll ist | Warnung |
+| PVC Almost Full | Speicher | Ein Persistent Volume Claim zu mehr als 90 % voll ist | Warnung |
 | DaemonSet Pods Not Ready | Workload | Ein DaemonSet 15 Minuten lang Knoten ohne einen bereiten Pod von ihm hat | Warnung |
 | DaemonSet Misscheduled Nodes | Workload | Ein DaemonSet Pods auf Knoten ausführt, die nicht mehr zu seinem Node-Selector, seiner Affinität oder seinen Tolerations passen | Warnung |
 | High Node CPU Request Commitment | Knoten | Die summierten CPU-Requests der Container eines Knotens 90 % seiner zuweisbaren CPU übersteigen | Warnung |
@@ -155,8 +158,13 @@ Unter **Worüber benachrichtigt wird** stehen diese Vorlagen, gruppiert nach Kat
 | HPA Saturated at Max Replicas | Workload | Ein über seine `minReplicas` skalierter HPA bei 90 % oder mehr seiner `maxReplicas` läuft | Kritisch |
 | Pod Memory Saturating Container Limit | Workload | Ein Pod mehr als 90 % seines Container-Speicherlimits nutzt | Kritisch |
 | Pod CPU Saturating Container Limit | Workload | Ein Pod mehr als 90 % seines Container-CPU-Limits nutzt | Warnung |
+| Cluster Daily Cost Over Budget | Kosten | Die Kosten des Clusters über den vergangenen Tag 100 übersteigen, ein Budget, das Sie auf Ihr eigenes setzen | Warnung |
+| Namespace Daily Cost Over Budget | Kosten | Die Kosten eines Namespaces über den vergangenen Tag 20 übersteigen, ein Budget, das Sie auf Ihr eigenes setzen | Warnung |
+| High Idle Spend | Kosten | Mehr als 40 % der Kosten des Clusters über den vergangenen Tag auf Leerlaufkapazität entfallen | Warnung |
 
 Vorlagen auf objektbezogenen Metriken werten jeden Knoten, Pod, jedes Deployment, jeden Job, jedes DaemonSet oder jeden HPA einzeln aus, sodass ein Cluster mit mehreren fehlerhaften Pods einen Vorfall pro Pod erhält statt eines für den ganzen Cluster.
+
+Die Kostenvorlagen lesen die Metriken, die OneUptime aus den stündlichen Kostenzeilen des Agents schreibt, einen Punkt pro Stunde, und addieren daher den vergangenen Tag; ihre Budgets sind in der Währung des Clusters angegeben, standardmäßig USD.
 
 **High Node CPU Request Commitment** und **High Node Memory Request Commitment** zählen nur die Requests von Pods, die nicht beendet sind, so wie der Scheduler. Der Cluster meldet die Requests eines Pods, der Succeeded oder Failed ist, etwa eines beendeten Jobs, weiter, bis der Pod gelöscht wird: Diese werden nicht mitgezählt.
 

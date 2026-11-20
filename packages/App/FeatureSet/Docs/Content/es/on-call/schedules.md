@@ -18,7 +18,7 @@ Cuando creas una programación en la página **Programaciones de guardia**, el f
 
 :::steps
 1. Ve a **Guardia** > **Programaciones de guardia** y haz clic en **Crear programación de guardia**.
-2. Escribe un **Nombre**.
+2. Escribe un **Nombre**. Se rechaza un nombre que ya tenga otra programación del proyecto, sin importar mayúsculas, minúsculas ni espacios, para que todo selector distinga las programaciones.
 3. En **¿Quiénes se turnan?**, haz clic en **Añadir usuario** y elige a las personas, en el orden en que se turnan.
 4. Si quieres, abre **Más campos** para cambiar cuánto dura cada turno, la zona horaria, la descripción o las etiquetas.
 5. Haz clic en **Crear programación de guardia**. La nueva programación se abre después en su página **Capas**, donde puedes cambiar la rotación o añadir más capas.
@@ -40,7 +40,7 @@ Todo lo demás espera en **Más campos**, plegado hasta que lo abras:
 | Campo | Qué hace |
 | --- | --- |
 | **Cada turno dura** | **1 día**, **1 semana**, **2 semanas** o **1 mes**, y **1 semana** si no lo cambias. Se pregunta en cuanto alguien se turna. Cada persona está de guardia ese tiempo y luego toma el relevo la siguiente, a la hora del día en que se creó la programación. |
-| **Zona horaria** | La zona horaria en la que se guardan las horas de relevo y las horas de guardia. Empieza con la tuya. |
+| **Zona horaria** | La zona horaria en la que se guardan las horas de relevo y las horas de guardia. Empieza con la tuya. Cada zona horaria sigue las reglas actuales de su región: America/Vancouver (Columbia Británica) se queda en UTC-7 todo el año desde 2026. |
 | **Descripción** | Notas sobre la programación. |
 | **Etiquetas** | Etiquetas para encontrar y agrupar la programación. |
 
@@ -97,11 +97,11 @@ Mientras está ausente:
 
 Si eliges a alguien en **¿Quién cubre?**, esa persona recibe todos sus avisos, de cada programación y cada política, en lugar de que la rotación se quede con sus turnos.
 
-Una ausencia añadida así se aplica a todas las políticas de guardia, por lo que requiere el permiso de sustituciones sobre todo el proyecto. Si el rol de tu equipo está limitado a sus propias políticas o a algunas etiquetas, se añade en su lugar en las políticas de esta programación en las que puedes añadir sustituciones, con una sustitución por política, que aparece en la página **Sustituciones de usuarios** de cada política; si son varias, las marcas en **Políticas de guardia**. **Omitir hasta…** solo está bloqueado y dice por qué donde no puedes en ninguna. Aparece en **Guardia** > **Avanzado** > **Sustituciones de usuarios**, y entre las sustituciones de usuarios de la programación en su página **Capas**, donde **Terminar ahora** hace que vuelva antes. Para omitir a alguien en una sola política, añade la sustitución en la página **Sustituciones de usuarios** de esa política y deja **¿Quién cubre?** como está. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
+Una ausencia añadida así se aplica a todas las políticas de guardia, por lo que requiere el permiso de sustituciones sobre todo el proyecto. Si el rol de tu equipo está limitado a sus propias políticas o a algunas etiquetas, se añade en su lugar en las políticas de esta programación en las que puedes añadir sustituciones, con una sustitución por política, que aparece en la página **Sustituciones de usuarios** de cada política; si son varias, las marcas en **Políticas de guardia**. **Omitir hasta…** solo está bloqueado y dice por qué donde no puedes en ninguna. Aparece en **Guardia** > **Programaciones** > **Sustituciones de usuarios**, y entre las sustituciones de usuarios de la programación en su página **Capas**, donde **Terminar ahora** hace que vuelva antes. Para omitir a alguien en una sola política, añade la sustitución en la página **Sustituciones de usuarios** de esa política y deja **¿Quién cubre?** como está. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 
 Con la API, una sustitución de usuario (`/api/on-call-duty-policy-user-override`) creada sin `routeAlertsToUserId` omite a la persona de `overrideUserId` desde `startsAt` hasta `endsAt`.
 
-La **Vista general** de una programación tiene una tarjeta **Usado por**: las políticas de guardia cuyas reglas de escalado avisan a quien está de guardia, con las reglas que lo hacen. Si ninguna lo hace, lo dice y enlaza a las políticas de guardia. Eliminar la programación, en su página o desde la lista, dice primero qué políticas avisan a través de ella. Las políticas que no puedes abrir se cuentan, pero no se nombran.
+La **Vista general** de una programación tiene una tarjeta **Usado por**: las políticas de guardia cuyas reglas de escalado avisan a quien está de guardia, con las reglas que lo hacen. Si ninguna lo hace, lo dice y enlaza a las políticas de guardia. Eliminar la programación, en su página o desde la lista, dice primero qué políticas avisan a través de ella. Las políticas que no puedes abrir se cuentan, pero no se nombran. Una programación que tiene el mismo nombre que otra programación, de cuando los nombres no tenían que ser distintos, aparece marcada como **Mismo nombre que otra programación** en la lista **Programaciones de guardia**, que indica cuántas hay: compara sus capas y luego cambia el nombre de una con **Cambiar nombre** en su fila.
 
 ## Crear programaciones con la API o Terraform
 

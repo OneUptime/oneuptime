@@ -127,7 +127,7 @@ Alles wat Gegevensbeveiliging bewaart, is een record van de OneUptime-API, gelez
 | Gegevensopslagen, hun tijdlijnen, hun bevindingen, wie erbij kan en elke identiteit die dat kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemen, hun tijdlijnen en gegevensstromen | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
-| Aangepaste gegevenstypen, controle-instellingen en residentieregels | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Aangepaste gegevenstypen, controle-instellingen, compliance-instellingen en residentieregels | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | De instellingen van het project | `/data-security-setting` |
 | Eigenaren, eigenaarsregels en labelregels | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 | --- | --- |
 | `/data-security/overview` | De cijfers van het Overzicht: opslagen per gevoeligheid en categorie, openstaande problemen per ernst, de riskantste problemen en de laatste 30 dagen ervan |
 | `/data-security/compliance` | De score en de eisen van elk kader |
+| `/data-security/resource-scope` | De gegevensopslagen van één resource - een Kubernetes-cluster, een Docker- of Podman-host, een database, een service of een cloud-resource - en van welke resource ze de compliance-schakelaars volgen |
+| `/data-security/resource-compliance` | De kaders van één resource: hun scores voor de opslagen ervan, en wat ervoor is uitgeschakeld |
 | `/data-security/record-of-processing` | Het verwerkingsregister van de AVG, een rij voor elke opslag die persoonsgegevens bevat |
 | `/data-store/<id>/scan-now` | **Nu scannen**: bemonstert nu de inhoud van de opslag |
 | `/data-store/<id>/check-now` | **Nu controleren**: leest de configuratie van de opslag opnieuw en voert de controles ervan uit |
 | `/data-store-finding/<id>/scrub` | **Opschonen** op een telemetriebevinding |
+| `/data-store-finding/<id>/drop-metric-impact` | Wat **Deze metriek verwerpen** zou verwerpen voor een bevinding in de naam van een metriek: hoeveel metrieken, en de monitoren en dashboards die ze lezen |
+| `/data-store-finding/<id>/drop-metric` | **Deze metriek verwerpen**: een pipelineregel voor metrieken die de nieuwe datapunten van die metrieken van de service voorgoed verwerpt. Hij neemt `{"confirmDataLoss": true}` aan |
 | `/data-security-issue/<id>/explain` | **Uitleggen met AI** op een probleem |
 | `/data-security-issue/<id>/fix-with-ai` | **Oplossen met AI** op een probleem |
 | `/data-store/<id>/response-actions` | Welke responsacties de opslag nu kan uitvoeren, en waarom niet |
 | `/data-store/<id>/respond` | Eén responsactie op de opslag, zoals **Openbare toegang blokkeren** of **Versiebeheer inschakelen**, met het probleem van waaruit ze werd uitgevoerd |
 
-De [Terraform-provider](/docs/terraform/index) heeft een resource voor elk soort record dat je aanmaakt - gegevensopslagen die je zelf toevoegt, aangepaste gegevenstypen, controle-instellingen, residentieregels, eigenaars- en labelregels - genoemd naar het record, zoals `oneuptime_residency_rule`.
+De [Terraform-provider](/docs/terraform/index) heeft een resource voor elk soort record dat je aanmaakt - gegevensopslagen die je zelf toevoegt, aangepaste gegevenstypen, controle-instellingen, compliance-instellingen, residentieregels, eigenaars- en labelregels - genoemd naar het record, zoals `oneuptime_residency_rule`.
 
-De [MCP-server](/docs/ai/mcp-server) heeft tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor deze records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule en Data Security Setting. Een AI-assistent kan dan met jouw machtigingen vragen welke opslagen kaartnummers bevatten, of wat er openstaat op een bucket.
+De [MCP-server](/docs/ai/mcp-server) heeft tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor deze records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule en Data Security Setting. Een AI-assistent kan dan met jouw machtigingen vragen welke opslagen kaartnummers bevatten, of wat er openstaat op een bucket.
 
 ## Volgende stappen
 

@@ -7,7 +7,6 @@ import ResourceTable, {
 import {
   VMwareResourceKind,
   fetchVMwareInventoryResources,
-  formatBytes,
   routeParamFromExternalId,
 } from "../Utils/VMwareResourceUtils";
 import React, {
@@ -23,11 +22,43 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
-import { getVMwareDatastoreUsedTone } from "../../../Components/VMware/VMwareResourceColumns";
+import {
+  formatStorageBytes,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import { VMWARE_DATASTORE_USAGE_THRESHOLDS } from "../Utils/VMwareHealth";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
+
+const DATASTORE_NOT_REPORTED: string = translationKey("Not reported");
+
+/*
+ * A datastore's used of its capacity, as vSphere last reported them, for
+ * the shared Used and Free columns (ResourceTable's storageUsage).
+ */
+function withDatastoreUsage(
+  resource: InfrastructureResource,
+): InfrastructureResource {
+  return {
+    ...resource,
+    storageUsage: {
+      usage: getStorageUsage(
+        {
+          capacity: resource.additionalAttributes["maxDiskBytes"],
+          used: resource.additionalAttributes["diskBytes"],
+        },
+        VMWARE_DATASTORE_USAGE_THRESHOLDS,
+      ),
+      noUsageText: DATASTORE_NOT_REPORTED,
+    },
+  };
+}
 
 const VMwareVCenterDatastores: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
@@ -50,7 +81,7 @@ const VMwareVCenterDatastores: FunctionComponent<
           kind: VMwareResourceKind.Datastore,
         });
 
-      setResources(datastoreList);
+      setResources(datastoreList.map(withDatastoreUsage));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -82,38 +113,29 @@ const VMwareVCenterDatastores: FunctionComponent<
       showResourceMetrics={false}
       tableIdPrefix="vmware"
       emptyMessage="No datastores reported yet. Make sure the VMware agent is sending metrics and that its read-only role is propagated to child objects."
+      /*
+       * How full each datastore is (#9539): a bar and a percent that turn
+       * amber at 80% and red at 90%, as its alerts do, and what is free,
+       * where the list wrote "Used / Capacity" as English text.
+       */
+      storageUsageColumns={{
+        usedDescription: VMWARE_METRIC_DESCRIPTIONS.datastoreListUsedCapacity,
+        freeDescription: VMWARE_METRIC_DESCRIPTIONS.datastoreFree,
+      }}
       columns={[
         {
-          title: "Used / Capacity",
-          key: "diskBytes",
-          description: VMWARE_METRIC_DESCRIPTIONS.datastoreListUsedCapacity,
-          // Red past 90% full, amber past 80%, as Needs attention says.
-          getTone: getVMwareDatastoreUsedTone,
+          title: "Capacity",
+          key: "maxDiskBytes",
+          foldInto: "storageUsage",
+          showTitleWhenFolded: true,
           getValue: (resource: InfrastructureResource): string => {
-            const usedRaw: string =
-              resource.additionalAttributes["diskBytes"] || "";
-            const totalRaw: string =
-              resource.additionalAttributes["maxDiskBytes"] || "";
-            if (!usedRaw || !totalRaw) {
-              return "N/A";
+            const total: number = Number(
+              resource.additionalAttributes["maxDiskBytes"] || "",
+            );
+            if (!Number.isFinite(total) || total <= 0) {
+              return EMPTY_VALUE_MARK;
             }
-            const used: number = Number(usedRaw);
-            const total: number = Number(totalRaw);
-            if (
-              !Number.isFinite(used) ||
-              !Number.isFinite(total) ||
-              total <= 0
-            ) {
-              return "N/A";
-            }
-            /*
-             * Prefer the receiver's own vcenter.datastore.disk.utilization
-             * when present; fall back to used / (used + available).
-             */
-            const pctRaw: string =
-              resource.additionalAttributes["diskPercent"] || "";
-            const pct: number = pctRaw ? Number(pctRaw) : (used / total) * 100;
-            return `${formatBytes(used)} / ${formatBytes(total)} (${pct.toFixed(1)}%)`;
+            return formatStorageBytes(total, translator.language);
           },
         },
       ]}

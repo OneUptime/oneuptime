@@ -7,7 +7,9 @@ import {
   GCP_FREE_TIME_SERIES_PER_MONTH,
   GCP_USD_PER_MILLION_TIME_SERIES,
   countKeyMetrics,
+  countRetiredMetrics,
   estimateCloudConnectionCost,
+  getAzureFiveMinuteReadsPerMonth,
   getReadsPerMonth,
 } from "../../../Types/CloudConnection/CloudConnectionCost";
 import {
@@ -126,23 +128,71 @@ describe("the monthly estimate", () => {
       accounts: 1,
     });
 
+    // An app's health check is one more read every 15 minutes.
     expect(large.monthlyCostUsd).toBeCloseTo(
-      ((500 * 8640 - AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION) / 1000) *
+      ((500 * (8640 + 2880) - AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION) /
+        1000) *
         AZURE_USD_PER_THOUSAND_METRIC_READS,
       6,
     );
+  });
+
+  /*
+   * A resource whose type has metrics Azure Monitor keeps at five minutes,
+   * marked as earning their call (an App Service app's health check, a
+   * Cosmos DB account's storage), is read in a five-minute call every 15
+   * minutes beside its minute call (#9566): a third of a call more a read
+   * at the default 5 minutes. Every other type costs what it did.
+   */
+  test("Azure: a type with five-minute metrics costs one more read every 15 minutes, and no other type more", () => {
+    expect(getAzureFiveMinuteReadsPerMonth(5)).toBe(2880);
+    // Read every 10 minutes: 15 minutes of them are there every other read.
+    expect(getAzureFiveMinuteReadsPerMonth(10)).toBe(2160);
+    expect(getAzureFiveMinuteReadsPerMonth(15)).toBe(2880);
+    expect(getAzureFiveMinuteReadsPerMonth(30)).toBe(1440);
+    expect(getAzureFiveMinuteReadsPerMonth(60)).toBe(720);
+
+    const sites: CloudConnectionCostEstimate = estimateCloudConnectionCost({
+      provider: CloudProvider.Azure,
+      resourceTypes: [
+        { type: "Microsoft.Web/sites", count: 100 },
+        { type: "Microsoft.DocumentDB/databaseAccounts", count: 10 },
+        { type: "Microsoft.Compute/virtualMachines", count: 50 },
+      ],
+      readIntervalInMinutes: 5,
+      accounts: 1,
+    });
+
+    expect(sites.monthlyUnits).toBe(160 * 8640 + 110 * 2880);
+
+    // A virtual machine and a Static Web App cost one read each, as before.
+    expect(
+      estimateCloudConnectionCost({
+        provider: CloudProvider.Azure,
+        resourceTypes: [
+          { type: "Microsoft.Compute/virtualMachines", count: 50 },
+          { type: "Microsoft.Web/staticSites", count: 50 },
+        ],
+        readIntervalInMinutes: 5,
+        accounts: 1,
+      }).monthlyUnits,
+    ).toBe(100 * 8640);
   });
 
   test("Azure: each subscription has its own allowance", () => {
     const twoSubscriptions: CloudConnectionCostEstimate =
       estimateCloudConnectionCost({
         provider: CloudProvider.Azure,
-        resourceTypes: [{ type: "Microsoft.Web/sites", count: 200 }],
+        resourceTypes: [{ type: "Microsoft.Web/sites", count: 150 }],
         readIntervalInMinutes: 5,
         accounts: 2,
       });
 
-    expect(200 * 8640).toBeLessThan(
+    // More than one subscription's allowance, less than two's.
+    expect(150 * (8640 + 2880)).toBeGreaterThan(
+      AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
+    );
+    expect(150 * (8640 + 2880)).toBeLessThan(
       2 * AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
     );
     expect(twoSubscriptions.monthlyCostUsd).toBe(0);
@@ -169,6 +219,56 @@ describe("the monthly estimate", () => {
         GCP_USD_PER_MILLION_TIME_SERIES,
       6,
     );
+  });
+
+  /*
+   * A Pub/Sub topic's publish operations are deprecated (#9565) but still
+   * read, so a monitor built on them keeps working: a time series a topic
+   * a read beside its 3 key metrics, which the estimate counts too.
+   */
+  /*
+   * A deprecated metric read for its monitors is a series a read too - but
+   * a topic's publish operations are read no more since their monitors
+   * moved to the count of its message sizes (#9739): a topic costs its key
+   * metrics alone again.
+   */
+  test("Google Cloud: a deprecated metric no longer read costs nothing", () => {
+    const topics: Array<{ type: string; count: number }> = [
+      { type: "pubsub_topic", count: 10 },
+    ];
+
+    expect(
+      countKeyMetrics({ provider: CloudProvider.GCP, resourceTypes: topics }),
+    ).toBe(10 * 3);
+    expect(
+      countRetiredMetrics({
+        provider: CloudProvider.GCP,
+        resourceTypes: topics,
+      }),
+    ).toBe(0);
+    expect(
+      estimateCloudConnectionCost({
+        provider: CloudProvider.GCP,
+        resourceTypes: topics,
+        readIntervalInMinutes: 5,
+      }).monthlyUnits,
+    ).toBe(10 * 3 * 8640);
+
+    // A type with none adds nothing; Azure's ride in their resource's call.
+    expect(
+      countRetiredMetrics({
+        provider: CloudProvider.GCP,
+        resourceTypes: [{ type: "gce_instance", count: 10 }],
+      }),
+    ).toBe(0);
+    expect(
+      countRetiredMetrics({
+        provider: CloudProvider.Azure,
+        resourceTypes: [
+          { type: "Microsoft.DocumentDB/databaseAccounts", count: 10 },
+        ],
+      }),
+    ).toBe(0);
   });
 });
 

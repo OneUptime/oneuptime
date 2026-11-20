@@ -103,7 +103,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Выводит записи, сначала самые новые. Метки же выводятся по названию, сначала нумерованные (`2. Team` перед `10. Owner`).
+Выводит записи, сначала самые новые. Метки же выводятся по названию, сначала нумерованные (`2. Team` перед `10. Owner`). Записи, порядок которых вы задаёте перетаскиванием, например состояния инцидентов, выводятся в этом порядке.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Сразу удаляет запись, ничего не спрашивая.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Аргумент или параметр | Обязателен | Что это |
 | --- | --- | --- |
 | `<id>` | Да | ID записи |
 | `--force` | Нет | Принимается и ничего не меняет: `delete` никогда не просит подтверждения |
+| `--workflows-run-as <value>` | Нет | Только пользовательские роли: с чем будут выполняться после удаления роли рабочие процессы, которые выполняются с ней, `Default` или `CustomRole`. Роль, с которой выполняются рабочие процессы, удаляется только с этим флагом |
+| `--workflows-run-as-custom-role-id <id>` | Нет | Только пользовательские роли: вместе с `--workflows-run-as CustomRole` другая пользовательская роль, с которой они будут выполняться |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ CLI выпускается вместе с OneUptime, поэтому `oneuptime 
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | Нет |
+| `delete` | `DELETE /api/<path>/<id>/` | Нет, или `miscDataProps` с `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 Действие читает состояния вашего проекта и запись, затем создаёт строку в хронологии состояний записи, как кнопка панели управления: `acknowledge` для инцидента создаёт `incident-state-timeline`. `add-note` создаёт `incident-internal-note`, а с `--public` — `incident-public-note`. Флаг почты сначала выводит участников команд проекта с этим адресом. Когда OneUptime отклоняет поле, которое ключ не может читать, список или чтение запрашивает снова без него.

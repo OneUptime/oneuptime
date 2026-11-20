@@ -126,7 +126,7 @@ Dess regler, ägare, flöde och första tillstånd sker ändå i båda fallen. I
 - **Ändra tillstånd till**, i menyn **⋯** bredvid, flyttar det till ett eget tillstånd, till exempel "Under utredning".
 - **Deklarera incident** öppnar en ny incident, förifylld från larmet, när det visar sig att problemet drabbar användarna. Se [Länkade larm](/docs/incidents/linked-alerts).
 
-Ett byte till ett annat tillstånd ber dig bekräfta, med en valfri privat anteckning hopfälld under **Lägg till en privat anteckning**. Vad varje tillstånd gör står på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities).
+Ett byte till ett annat tillstånd ber dig bekräfta, med en valfri privat anteckning hopfälld under **Lägg till en privat anteckning**. När du löser det från sidhuvudet finns även **Lägg till rotorsaken** hopfälld: varför det hände, som blir larmets rotorsak och det som OneUptime AI:s utredning jämförs med. Vad varje tillstånd gör står på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities).
 
 Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckningar**, fyller i sidorna **Rotorsak** och **Åtgärd** och lägger till **Ägare**. Menyn **Åtgärder** i **Larmflöde** kör också en runbook med **Kör runbook**, eller larmar fler personer med **Kör jourpolicy**.
 

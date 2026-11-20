@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Eine Liste fragt OneUptime nach jedem Feld jedes Datensatzes, das der Schlüssel lesen darf. `--fields` fragt stattdessen nach den genannten Feldern und, nach einem Punkt, nach einem Feld eines verknüpften Datensatzes, wie in `currentIncidentState.name`. Eine Tabelle zeigt sechs Felder; JSON zeigt sie alle (siehe [Ausgabeformate](/docs/cli/output-formats)). `--all` liest jede Seite, 100 Datensätze auf einmal, bis zu 100.000; `count` sagt, wie viele es gibt.
 
-Beschriftungen werden nach Namen statt mit den neuesten zuerst aufgelistet: Beschriftungen, deren Namen mit einer Zahl beginnen, kommen zuerst, in der Reihenfolge dieser Zahl (`2. Team` vor `10. Owner`), danach die übrigen alphabetisch. Für eine andere Reihenfolge geben Sie `--sort` an.
+Beschriftungen werden nach Namen statt mit den neuesten zuerst aufgelistet: Beschriftungen, deren Namen mit einer Zahl beginnen, kommen zuerst, in der Reihenfolge dieser Zahl (`2. Team` vor `10. Owner`), danach die übrigen alphabetisch. Datensätze, die Sie per Ziehen ordnen, etwa Vorfallsstatus, werden in dieser Reihenfolge aufgelistet. Für eine andere Reihenfolge geben Sie `--sort` an.
 
 ### Eine Liste filtern
 
@@ -206,6 +206,20 @@ Sie antwortet `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully
 
 > [!CAUTION]
 > `delete` entfernt den Datensatz sofort. Die CLI fragt nicht nach einer Bestätigung, und es gibt kein Rückgängig. Sie akzeptiert `--force` für Skripte, die damit geschrieben wurden, und `--force` ändert nichts.
+
+### Eine benutzerdefinierte Rolle, mit der Workflows laufen
+
+OneUptime löscht eine benutzerdefinierte Rolle, mit der Workflows laufen, nur, wenn das Löschen sagt, womit sie stattdessen laufen, und lehnt ein Löschen, das es nicht sagt, mit den Namen der Workflows ab. Sagen Sie es mit `--workflows-run-as`: `Default`, die Standardberechtigungen, oder `CustomRole`, eine andere benutzerdefinierte Rolle, die Sie einem Team geben könnten, mit ihrer ID in `--workflows-run-as-custom-role-id`. Nie Projektinhaber: Das Löschen einer Rolle erweitert nie, was ein Workflow darf.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+Ein abgelehntes Löschen gibt die Ablehnung von OneUptime aus, die die Workflows nennt, und danach die Flags, mit denen Sie es erneut ausführen. Eine Rolle, mit der kein Workflow läuft, braucht keines der beiden Flags.
 
 ## Datensätze zählen
 

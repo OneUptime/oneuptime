@@ -18,7 +18,7 @@ Når du opretter en vagtplan på siden **Vagtplaner**, beder formularen om dens 
 
 :::steps
 1. Gå til **Vagt** > **Vagtplaner**, og klik på **Opret vagtplan**.
-2. Indtast et **Navn**.
+2. Indtast et **Navn**. Et navn, som en anden vagtplan i projektet allerede har, afvises, uanset store og små bogstaver og mellemrum, så vagtplanerne kan skelnes fra hinanden i enhver vælger.
 3. Klik under **Hvem skiftes til at have vagt?** på **Tilføj bruger**, og vælg personerne i den rækkefølge, de skiftes.
 4. Åbn eventuelt **Flere felter** for at ændre, hvor længe hver tørn varer, tidszonen, beskrivelsen eller etiketterne.
 5. Klik på **Opret vagtplan**. Den nye vagtplan åbner derefter på sin side **Lag**, hvor du kan ændre rotationen eller tilføje flere lag.
@@ -40,7 +40,7 @@ Alt andet ligger under **Flere felter**, foldet sammen, indtil du åbner det:
 | Felt | Hvad det gør |
 | --- | --- |
 | **Hver tørn varer** | **1 dag**, **1 uge**, **2 uger** eller **1 måned**, og **1 uge**, medmindre du ændrer det. Det spørges om, så snart nogen skiftes. Hver person har vagt så længe, og så tager den næste over, på det tidspunkt af dagen, hvor vagtplanen blev oprettet. |
-| **Tidszone** | Den tidszone, overdragelsestider og vagttimer holdes i. Den starter på din. |
+| **Tidszone** | Den tidszone, overdragelsestider og vagttimer holdes i. Den starter på din. Hver tidszone følger sin regions gældende regler: America/Vancouver (British Columbia) forbliver på UTC-7 hele året fra 2026. |
 | **Beskrivelse** | Noter om vagtplanen. |
 | **Etiketter** | Etiketter til at finde og gruppere vagtplanen. |
 
@@ -97,11 +97,11 @@ Mens de er fraværende:
 
 Vælg i stedet nogen under **Hvem dækker?**, så får den person alle deres tilkald fra alle vagtplaner og alle politikker, i stedet for at rotationen tager deres vagter.
 
-Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker, så det kræver tilladelsen til overrides over hele projektet. Er dit teams rolle begrænset til dets egne politikker eller til nogle etiketter, lægges det i stedet på de politikker i denne vagtplan, du må tilføje overrides på, med én override pr. politik, som står på hver politiks egen side **Brugertilsidesættelser**; er der flere, markerer du dem under **Vagtpolitikker**. **Spring over indtil…** er kun låst og siger hvorfor, hvor du ikke må på nogen af dem. Det står under **Vagt** > **Avanceret** > **Brugertilsidesættelser** og blandt vagtplanens brugertilsidesættelser på dens side **Lag**, hvor **Afslut nu** får dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
+Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker, så det kræver tilladelsen til overrides over hele projektet. Er dit teams rolle begrænset til dets egne politikker eller til nogle etiketter, lægges det i stedet på de politikker i denne vagtplan, du må tilføje overrides på, med én override pr. politik, som står på hver politiks egen side **Brugertilsidesættelser**; er der flere, markerer du dem under **Vagtpolitikker**. **Spring over indtil…** er kun låst og siger hvorfor, hvor du ikke må på nogen af dem. Det står under **Vagt** > **Tidsplaner** > **Brugertilsidesættelser** og blandt vagtplanens brugertilsidesættelser på dens side **Lag**, hvor **Afslut nu** får dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 
 Via API'et springer en brugeroverride (`/api/on-call-duty-policy-user-override`), der oprettes uden `routeAlertsToUserId`, personen i `overrideUserId` over fra `startsAt` til `endsAt`.
 
-En vagtplans **Oversigt** har et kort **Bruges af**: de vagtpolitikker, hvis eskaleringsregler tilkalder den, der har vagt, med de regler, der gør det. Gør ingen det, siger kortet det og linker til vagtpolitikkerne. Når du sletter vagtplanen, på dens side eller fra listen, siges det først, hvilke politikker der tilkalder via den. Politikker, du ikke må åbne, tælles, men nævnes ikke.
+En vagtplans **Oversigt** har et kort **Bruges af**: de vagtpolitikker, hvis eskaleringsregler tilkalder den, der har vagt, med de regler, der gør det. Gør ingen det, siger kortet det og linker til vagtpolitikkerne. Når du sletter vagtplanen, på dens side eller fra listen, siges det først, hvilke politikker der tilkalder via den. Politikker, du ikke må åbne, tælles, men nævnes ikke. En vagtplan, der har samme navn som en anden vagtplan fra dengang, navne ikke behøvede at være forskellige, er markeret med **Samme navn som en anden tidsplan** på listen **Vagtplaner**, som viser, hvor mange der er: sammenlign deres lag, og omdøb så én af dem med **Omdøb** i dens række.
 
 ## Opret vagtplaner med API'et eller Terraform
 

@@ -19,7 +19,9 @@ import AIInsight from "../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AIInsightService from "../Services/AIInsightService";
+import AIInsightService, {
+  TriageRunWithEvents,
+} from "../Services/AIInsightService";
 import InsightHighlights from "../Utils/AI/SRE/Insights/InsightHighlights";
 import InsightTriage from "../Utils/AI/SRE/Insights/Triage";
 import { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
@@ -269,7 +271,7 @@ router.post(
  * CRUD, so after the access check the service reads them as root — the
  * sendLatestInvestigation idiom. An insight without a triage run responds
  * { run: null, events: [] }, not an error.
- * Body: { insightId }. Response: { run, events }.
+ * Body: { insightId }. Response: { run, events, hasEarlierEvents }.
  */
 router.post(
   "/ai-insight/triage-run",
@@ -285,7 +287,7 @@ router.post(
 
       const insight: AIInsight = await findAccessibleInsight(req, props);
 
-      const result: { run: AIRun | null; events: Array<AIRunEvent> } =
+      const result: TriageRunWithEvents =
         await AIInsightService.getLatestTriageRunWithEvents({
           insightId: insight.id!,
         });
@@ -302,6 +304,8 @@ router.post(
       Response.sendJsonObjectResponse(req, res, {
         run: runJson || null,
         events: eventsJson,
+        // Whether its first steps were left out (issue #6489).
+        hasEarlierEvents: result.hasEarlierEvents,
         /*
          * Try again is offered for a triage that did not finish, to whoever
          * may act on the insight - this route's reader (issue #6438).

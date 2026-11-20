@@ -1,10 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import AzureCloudConnector, {
+  chunkAzureMetricCalls,
+  withAzureResourceAdditions,
   AZURE_DEFINITION_SAMPLES,
+  AZURE_FIVE_MINUTE_CURSOR,
   AZURE_MAX_RESOURCE_DEFINITIONS,
   SelectedMetric,
   getAzureKeyMetricsFingerprint,
+  getAzureReadGroupKey,
+  getAzureReadGroups,
   isAzureUnsupportedMetricsRefusal,
   mergeAzureSelections,
   pickAzureDefinitionSamples,
@@ -21,10 +26,20 @@ import {
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import {
+  PUBSUB_PUBLISH_OPERATIONS_METRIC,
+  RetiredCloudMetric,
+} from "../../../../Utils/Metrics/RetiredCloudMetricMoves";
+import { getRetiredCloudMetricReads } from "../../../../Utils/Metrics/RetiredCloudMetricReads";
+import {
   AzureTypeKeyMetrics,
   getAzureKeyMetrics,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+  getCloudAddedMetricKey,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
 import {
   CloudMonitoredResource,
   resolveCloudMonitoredResource,
@@ -1385,5 +1400,991 @@ describe("choosing which resources' definitions to read", () => {
     ).toBe(false);
     expect(isAzureUnsupportedMetricsRefusal(undefined)).toBe(false);
     expect(AZURE_MAX_RESOURCE_DEFINITIONS).toBe(500);
+  });
+});
+
+/*
+ * A metric Azure Monitor keeps at five minutes at its finest takes a call
+ * of its own: one marked as earning it (an App Service app's health check,
+ * #9566) is read every 15 minutes, three points a call, beside its type's
+ * minute metrics, and a type whose metrics are all five-minute ones (a
+ * Static Web App) keeps reading them every read in its one call.
+ */
+describe("metrics Azure Monitor keeps at five minutes", () => {
+  const SITE: string = `/subscriptions/${SUB_A}/resourceGroups/rg-web/providers/Microsoft.Web/sites/shop`;
+  const STATIC: string = `/subscriptions/${SUB_A}/resourceGroups/rg-web/providers/Microsoft.Web/staticSites/docs`;
+  const SITE_DEFINITIONS: Array<JSONObject> = [
+    definition("Requests", "Total", ["PT1M", "PT1H"], "Count"),
+    definition("Http5xx", "Total", ["PT1M"], "Count"),
+    definition(
+      "HealthCheckStatus",
+      "Average",
+      ["PT5M", "PT1H", "P1D"],
+      "Count",
+    ),
+  ];
+  const STATIC_DEFINITIONS: Array<JSONObject> = [
+    definition("SiteHits", "Total", ["PT5M", "PT1H", "P1D"], "Count"),
+    definition("SiteErrors", "Total", ["PT5M", "PT1H", "P1D"], "Count"),
+  ];
+
+  function siteFake(): FakeAzure {
+    return createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(SITE, "Microsoft.Web/sites", "shop"),
+          resource(STATIC, "Microsoft.Web/staticSites", "docs"),
+        ],
+      },
+      definitions: { [SITE]: SITE_DEFINITIONS, [STATIC]: STATIC_DEFINITIONS },
+    });
+  }
+
+  // Each metrics call a resource got: what it asked, at which grain, for when.
+  function callsOf(
+    fake: FakeAzure,
+    id: string,
+  ): Array<{ metrics: string; interval: string; timespan: string }> {
+    return fake.metricCalls
+      .filter((url: URL): boolean => {
+        return url.pathname.startsWith(id);
+      })
+      .map((url: URL) => {
+        return {
+          metrics: url.searchParams.get("metricnames") || "",
+          interval: url.searchParams.get("interval") || "",
+          timespan: url.searchParams.get("timespan") || "",
+        };
+      });
+  }
+
+  function at(
+    time: string,
+  ): Partial<Parameters<AzureCloudConnector["read"]>[1]> {
+    return {
+      now: () => {
+        return new Date(time);
+      },
+    };
+  }
+
+  // The next read's state: it lists again, so the fake's resources are read.
+  function relisting(
+    state: CloudConnectionPullState,
+  ): CloudConnectionPullState {
+    const next: CloudConnectionPullState = { ...state };
+    delete next.inventoryAt;
+    return next;
+  }
+
+  test("a health check is read in a five-minute call of its own, the app's minute metrics in theirs, a Static Web App's in its one", async () => {
+    const fake: FakeAzure = siteFake();
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(callsOf(fake, SITE)).toEqual([
+      {
+        metrics: "Requests,Http5xx",
+        interval: "PT1M",
+        timespan: "2026-10-21T11:03:00.000Z/2026-10-21T12:03:00.000Z",
+      },
+      // Its window ends on a whole five minutes: 12:00, four minutes back.
+      {
+        metrics: "HealthCheckStatus",
+        interval: "PT5M",
+        timespan: "2026-10-21T11:00:00.000Z/2026-10-21T12:00:00.000Z",
+      },
+    ]);
+    expect(callsOf(fake, STATIC)).toEqual([
+      {
+        metrics: "SiteHits,SiteErrors",
+        interval: "PT5M",
+        timespan: "2026-10-21T11:00:00.000Z/2026-10-21T12:00:00.000Z",
+      },
+    ]);
+    // Each call's window has its own cursor.
+    expect(result.nextState.cursors).toEqual({
+      "60": "2026-10-21T12:03:00.000Z",
+      "300": "2026-10-21T12:00:00.000Z",
+      "300/900": "2026-10-21T12:00:00.000Z",
+    });
+
+    // Its points say their grain, as the azure_monitor receiver's do.
+    const health: Array<{ stored: JSONObject }> = datapoints(result).filter(
+      (point: { metricName: string }): boolean => {
+        return point.metricName === "azure_healthcheckstatus_average";
+      },
+    );
+
+    expect(health.length).toBeGreaterThan(0);
+    expect(health[0]!.stored["timegrain"]).toBe("PT5M");
+  });
+
+  test("the five-minute call waits for 15 minutes of points, three a call; the minute call and the Static Web App's are read every read", async () => {
+    const first: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(siteFake()),
+    );
+
+    // Five minutes on: the minute call and the Static Web App's, no health check.
+    const second: FakeAzure = siteFake();
+    const secondResult: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        second,
+        relisting(first.nextState),
+        at("2026-10-21T12:12:00Z"),
+      ),
+    );
+
+    expect(callsOf(second, SITE)).toEqual([
+      {
+        metrics: "Requests,Http5xx",
+        interval: "PT1M",
+        timespan: "2026-10-21T12:03:00.000Z/2026-10-21T12:08:00.000Z",
+      },
+    ]);
+    expect(callsOf(second, STATIC)).toEqual([
+      {
+        metrics: "SiteHits,SiteErrors",
+        interval: "PT5M",
+        timespan: "2026-10-21T12:00:00.000Z/2026-10-21T12:05:00.000Z",
+      },
+    ]);
+    // Not read: its cursor stays where its last call ended.
+    expect(secondResult.nextState.cursors?.["300/900"]).toBe(
+      "2026-10-21T12:00:00.000Z",
+    );
+
+    // Fifteen minutes of it are there: one call, three points.
+    const third: FakeAzure = siteFake();
+    const thirdResult: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        third,
+        relisting(secondResult.nextState),
+        at("2026-10-21T12:22:00Z"),
+      ),
+    );
+
+    expect(
+      callsOf(third, SITE).filter((call: { interval: string }): boolean => {
+        return call.interval === "PT5M";
+      }),
+    ).toEqual([
+      {
+        metrics: "HealthCheckStatus",
+        interval: "PT5M",
+        timespan: "2026-10-21T12:00:00.000Z/2026-10-21T12:15:00.000Z",
+      },
+    ]);
+    expect(thirdResult.nextState.cursors?.["300/900"]).toBe(
+      "2026-10-21T12:15:00.000Z",
+    );
+  });
+
+  test("a health check offered at a minute is read in the minute call, at no cost", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: { [SUB_A]: [resource(SITE, "Microsoft.Web/sites", "shop")] },
+      definitions: {
+        [SITE]: [
+          definition("Requests", "Total", ["PT1M"], "Count"),
+          definition("HealthCheckStatus", "Average", ["PT1M", "PT5M"], "Count"),
+        ],
+      },
+    });
+
+    await connector.read(settings(), readOptions(fake));
+
+    expect(callsOf(fake, SITE)).toEqual([
+      {
+        metrics: "Requests,HealthCheckStatus",
+        interval: "PT1M",
+        timespan: "2026-10-21T11:03:00.000Z/2026-10-21T12:03:00.000Z",
+      },
+    ]);
+  });
+
+  test("which call a metric is read in, and when each call is due", () => {
+    const metric: (name: string, grain: string) => SelectedMetric = (
+      name: string,
+      grain: string,
+    ): SelectedMetric => {
+      return { name, grain, aggregation: "Average", unit: "Count" };
+    };
+
+    expect(AZURE_FIVE_MINUTE_CURSOR).toBe("300/900");
+    expect(
+      getAzureReadGroupKey(
+        "Microsoft.Web/sites",
+        metric("HealthCheckStatus", "PT5M"),
+      ),
+    ).toBe(AZURE_FIVE_MINUTE_CURSOR);
+    expect(
+      getAzureReadGroupKey(
+        "microsoft.web/SITES",
+        metric("healthcheckstatus", "pt5m"),
+      ),
+    ).toBe(AZURE_FIVE_MINUTE_CURSOR);
+    // Offered at a minute: the minute call's.
+    expect(
+      getAzureReadGroupKey(
+        "Microsoft.Web/sites",
+        metric("HealthCheckStatus", "PT1M"),
+      ),
+    ).toBe("PT1M");
+    // Not marked: its grain's call, read every read.
+    expect(
+      getAzureReadGroupKey(
+        "Microsoft.Web/staticSites",
+        metric("SiteHits", "PT5M"),
+      ),
+    ).toBe("PT5M");
+    expect(
+      getAzureReadGroupKey("Microsoft.Web/sites", metric("Requests", "pt1m")),
+    ).toBe("PT1M");
+
+    const cursors: Record<string, string> = {
+      "300/900": "2026-10-21T12:00:00.000Z",
+    };
+    const windowAt: (time: string) => unknown = (time: string): unknown => {
+      return getAzureReadGroups({ cursors, now: new Date(time) }).get(
+        AZURE_FIVE_MINUTE_CURSOR,
+      )!.window;
+    };
+
+    // 12:12: five minutes of it are there, not fifteen.
+    expect(windowAt("2026-10-21T12:12:00Z")).toBeNull();
+    expect(windowAt("2026-10-21T12:18:00Z")).toBeNull();
+    expect(windowAt("2026-10-21T12:19:00Z")).toEqual({
+      periodSeconds: 300,
+      start: new Date("2026-10-21T12:00:00.000Z"),
+      end: new Date("2026-10-21T12:15:00.000Z"),
+    });
+    // The other grains keep their own cursors, every read.
+    expect(
+      getAzureReadGroups({
+        cursors,
+        now: new Date("2026-10-21T12:12:00Z"),
+      }).get("PT5M")!.window,
+    ).not.toBeNull();
+  });
+});
+
+/*
+ * A deprecated metric is no key metric (#9565): a Cosmos DB account's
+ * latency is read from ServerSideLatencyDirect and ServerSideLatencyGateway.
+ * ServerSideLatency rode in the same call for the monitors built on it
+ * until they were moved to one of the two (#9739): it is read no more,
+ * whatever the definitions list.
+ */
+describe("a deprecated metric no longer read", () => {
+  const COSMOS: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.DocumentDB/databaseAccounts/orders`;
+  const cosmos: AzureTypeKeyMetrics = getAzureKeyMetrics(
+    "Microsoft.DocumentDB/databaseAccounts",
+  )!;
+
+  test("is not asked, even where the definitions still list it", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(COSMOS, "Microsoft.DocumentDB/databaseAccounts", "orders"),
+        ],
+      },
+      definitions: {
+        [COSMOS]: [
+          definition("ServerSideLatency", "Average", ["PT1M"], "MilliSeconds"),
+          definition("TotalRequests", "Count", ["PT1M"], "Count"),
+          definition(
+            "ServerSideLatencyDirect",
+            "Average",
+            ["PT1M"],
+            "MilliSeconds",
+          ),
+          definition("DataUsageV2", "Total", ["PT5M", "PT1H"], "Bytes"),
+        ],
+      },
+      refuseUnpublished: true,
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(
+      fake.metricCalls.map((url: URL) => {
+        return [
+          url.searchParams.get("metricnames"),
+          url.searchParams.get("interval"),
+        ];
+      }),
+    ).toEqual([
+      ["TotalRequests,ServerSideLatencyDirect", "PT1M"],
+      ["DataUsageV2", "PT5M"],
+    ]);
+    expect(
+      Array.from(
+        new Set(
+          datapoints(result).map((point: { metricName: string }): string => {
+            return point.metricName;
+          }),
+        ),
+      ).sort(),
+    ).toEqual([
+      // The fake answers no count: TotalRequests writes nothing here.
+      "azure_datausagev2_total",
+      "azure_serversidelatencydirect_average",
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("is not asked where the definitions no longer list it", async () => {
+    const fake: FakeAzure = createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(COSMOS, "Microsoft.DocumentDB/databaseAccounts", "orders"),
+        ],
+      },
+      definitions: {
+        [COSMOS]: [
+          definition(
+            "ServerSideLatencyGateway",
+            "Average",
+            ["PT1M"],
+            "MilliSeconds",
+          ),
+        ],
+      },
+      refuseUnpublished: true,
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake),
+    );
+
+    expect(
+      fake.metricCalls.map((url: URL): string | null => {
+        return url.searchParams.get("metricnames");
+      }),
+    ).toEqual(["ServerSideLatencyGateway"]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("selections never pick it, and a cached one that holds it drops it", () => {
+    const selected: (name: string) => SelectedMetric = (
+      name: string,
+    ): SelectedMetric => {
+      return { name, aggregation: "Average", grain: "PT1M", unit: "Count" };
+    };
+
+    expect(
+      selectAzureMetrics(cosmos, [
+        {
+          name: "ServerSideLatency",
+          unit: "MilliSeconds",
+          primaryAggregationType: "Average",
+          timeGrains: ["PT1M"],
+        },
+        {
+          name: "TotalRequests",
+          unit: "Count",
+          primaryAggregationType: "Count",
+          timeGrains: ["PT1M"],
+        },
+      ]).map((metric: SelectedMetric): string => {
+        return metric.name;
+      }),
+    ).toEqual(["TotalRequests"]);
+    // A selection a read kept from before (#9739) asks it no more.
+    expect(
+      mergeAzureSelections(cosmos, [
+        [selected("ServerSideLatency")],
+        [selected("ServerSideLatencyGateway")],
+      ]).map((metric: SelectedMetric): string => {
+        return metric.name;
+      }),
+    ).toEqual(["ServerSideLatencyGateway"]);
+    expect(cosmos.retired).toBeUndefined();
+  });
+
+  /*
+   * The way to retire a metric stays: one kept for its monitors rides
+   * after the key metrics, and a type's fingerprint follows it, so the
+   * selections a read kept are made again once it goes.
+   */
+  test("a metric kept for its monitors rides after the key metrics, and the fingerprint follows it", () => {
+    const withRetired: AzureTypeKeyMetrics = {
+      ...cosmos,
+      retired: [
+        {
+          name: "ServerSideLatency",
+          replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
+        },
+      ],
+    };
+
+    expect(
+      selectAzureMetrics(withRetired, [
+        {
+          name: "ServerSideLatency",
+          unit: "MilliSeconds",
+          primaryAggregationType: "Average",
+          timeGrains: ["PT1M"],
+        },
+        {
+          name: "TotalRequests",
+          unit: "Count",
+          primaryAggregationType: "Count",
+          timeGrains: ["PT1M"],
+        },
+      ]).map((metric: SelectedMetric): string => {
+        return metric.name;
+      }),
+    ).toEqual(["TotalRequests", "ServerSideLatency"]);
+    expect(getAzureKeyMetricsFingerprint(cosmos)).not.toBe(
+      getAzureKeyMetricsFingerprint(withRetired),
+    );
+  });
+});
+
+/*
+ * #9739's gap: a monitor the move left on ServerSideLatency - an account
+ * that reported neither latency when the migration ran - keeps it read, of
+ * that account alone, until it is moved (RetiredCloudMetricReads): the
+ * read hands it to the connector as an added metric of its own.
+ */
+describe("a deprecated metric a monitor still reads", () => {
+  const COSMOS: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.DocumentDB/databaseAccounts/orders`;
+  const COSMOS_2: string = `/subscriptions/${SUB_A}/resourceGroups/rg-data/providers/Microsoft.DocumentDB/databaseAccounts/carts`;
+  const COSMOS_TYPE: string = "Microsoft.DocumentDB/databaseAccounts";
+  const STILL_PUBLISHED: Array<JSONObject> = [
+    definition("ServerSideLatency", "Average", ["PT1M"], "MilliSeconds"),
+    definition("ServerSideLatencyGateway", "Average", ["PT1M"], "MilliSeconds"),
+  ];
+
+  function twoAccounts(definitions: Array<JSONObject>): FakeAzure {
+    return createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(COSMOS, COSMOS_TYPE, "orders"),
+          resource(COSMOS_2, COSMOS_TYPE, "carts"),
+        ],
+      },
+      definitions: { [COSMOS]: definitions, [COSMOS_2]: definitions },
+      refuseUnpublished: true,
+    });
+  }
+
+  function readsOf(attributes: unknown): Array<CloudAddedMetric> {
+    return getRetiredCloudMetricReads([
+      {
+        metric: RetiredCloudMetric.CosmosServerSideLatency,
+        metricVariable: "a",
+        metricName: "azure_serversidelatency_average",
+        attributes,
+      },
+      // Another cloud's read is never Azure's to ask.
+      {
+        metric: RetiredCloudMetric.PubSubPublishOperations,
+        metricVariable: "b",
+        metricName: PUBSUB_PUBLISH_OPERATIONS_METRIC,
+        attributes: {},
+      },
+    ]);
+  }
+
+  test("is asked of the account its monitor reads, in that account's own minute call, and stored as before", async () => {
+    const fake: FakeAzure = twoAccounts(STILL_PUBLISHED);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: readsOf({ "azuremonitor.resource_id": COSMOS }),
+        },
+      ),
+    );
+
+    expect(metricNamesAsked(fake, COSMOS)).toEqual([
+      "ServerSideLatencyGateway,ServerSideLatency",
+    ]);
+    expect(metricNamesAsked(fake, COSMOS_2)).toEqual([
+      "ServerSideLatencyGateway",
+    ]);
+    expect(writtenNamesOf(result, COSMOS)).toContain(
+      "azure_serversidelatency_average",
+    );
+    expect(writtenNamesOf(result, COSMOS_2)).not.toContain(
+      "azure_serversidelatency_average",
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("is asked of every account for a monitor of every account", async () => {
+    const fake: FakeAzure = twoAccounts(STILL_PUBLISHED);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: readsOf({}) }),
+    );
+
+    for (const account of [COSMOS, COSMOS_2]) {
+      expect(metricNamesAsked(fake, account)).toEqual([
+        "ServerSideLatencyGateway,ServerSideLatency",
+      ]);
+      expect(writtenNamesOf(result, account)).toContain(
+        "azure_serversidelatency_average",
+      );
+    }
+  });
+
+  test("once Microsoft stops publishing it, the account's latency is still read: the refused call is made again without it", async () => {
+    const fake: FakeAzure = twoAccounts([
+      definition(
+        "ServerSideLatencyGateway",
+        "Average",
+        ["PT1M"],
+        "MilliSeconds",
+      ),
+    ]);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: readsOf({ "azuremonitor.resource_id": COSMOS }),
+        },
+      ),
+    );
+
+    expect(metricNamesAsked(fake, COSMOS)).toEqual([
+      "ServerSideLatencyGateway,ServerSideLatency",
+      "ServerSideLatencyGateway",
+    ]);
+    expect(writtenNamesOf(result, COSMOS)).toEqual([
+      "azure_serversidelatencygateway_average",
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a type's read its accounts no longer publish is never asked", async () => {
+    const fake: FakeAzure = twoAccounts([
+      definition(
+        "ServerSideLatencyGateway",
+        "Average",
+        ["PT1M"],
+        "MilliSeconds",
+      ),
+    ]);
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: readsOf(undefined) }),
+    );
+
+    expect(metricNamesAsked(fake, COSMOS)).toEqual([
+      "ServerSideLatencyGateway",
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+});
+
+/*
+ * ---- Metrics a person added to the reads (#9563) -------------------------
+ *
+ * An added metric is read with the key metrics, in the call that reads them
+ * while it has room (20 metrics), and only of the resources that publish
+ * it: a type's of every resource of the type its definitions list it for, a
+ * resource's own of that resource alone.
+ */
+describe("metrics a person added to the reads", () => {
+  const VM_TYPE: string = "Microsoft.Compute/virtualMachines";
+  const VM_2: string = `/subscriptions/${SUB_A}/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-web-2`;
+  const KEY_CALL: string = "Percentage CPU,Network In Total,Disk Read Bytes";
+
+  function added(overrides: Partial<CloudAddedMetric> = {}): CloudAddedMetric {
+    const metric: CloudAddedMetric = {
+      key: "",
+      provider: CloudProvider.Azure,
+      scope: CloudAddedMetricScope.Type,
+      resourceType: VM_TYPE,
+      name: "Data Disk Read Bytes/sec",
+      aggregation: "Average",
+      grain: "PT1M",
+      unit: "BytesPerSecond",
+      addedAt: NOW.toISOString(),
+      ...overrides,
+    };
+
+    return { ...metric, key: getCloudAddedMetricKey(metric) };
+  }
+
+  function ownAddition(
+    overrides: Partial<CloudAddedMetric> = {},
+  ): CloudAddedMetric {
+    return added({
+      scope: CloudAddedMetricScope.Resource,
+      cloudResourceId: "c1d2e3f4-0000-4000-8000-000000000001",
+      azureResourceId: VM,
+      ...overrides,
+    });
+  }
+
+  function twoVms(options: Partial<FakeAzureOptions> = {}): FakeAzure {
+    return createFakeAzure({
+      resources: {
+        [SUB_A]: [
+          resource(VM, VM_TYPE, "vm-web-1"),
+          resource(VM_2, VM_TYPE, "vm-web-2"),
+        ],
+      },
+      ...options,
+    });
+  }
+
+  test("a type's addition rides in each resource's minute call, at no extra call, stored as the receiver names it", async () => {
+    const fake: FakeAzure = twoVms();
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: [added()] }),
+    );
+
+    expect(metricNamesAsked(fake, VM)).toEqual([
+      `${KEY_CALL},Data Disk Read Bytes/sec`,
+    ]);
+    expect(metricNamesAsked(fake, VM_2)).toEqual([
+      `${KEY_CALL},Data Disk Read Bytes/sec`,
+    ]);
+    expect(writtenNamesOf(result, VM)).toContain(
+      "azure_data_disk_read_bytes/sec_average",
+    );
+    expect(writtenNamesOf(result, VM_2)).toContain(
+      "azure_data_disk_read_bytes/sec_average",
+    );
+
+    // Its points say their grain, as a key metric's do.
+    const point: { stored: JSONObject } | undefined = datapoints(result).find(
+      (candidate: { metricName: string }): boolean => {
+        return (
+          candidate.metricName === "azure_data_disk_read_bytes/sec_average"
+        );
+      },
+    );
+
+    expect(point?.stored["timegrain"]).toBe("PT1M");
+  });
+
+  test("a resource's own addition is asked of that resource alone", async () => {
+    const fake: FakeAzure = twoVms();
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: [ownAddition()] }),
+    );
+
+    expect(metricNamesAsked(fake, VM)).toEqual([
+      `${KEY_CALL},Data Disk Read Bytes/sec`,
+    ]);
+    expect(metricNamesAsked(fake, VM_2)).toEqual([KEY_CALL]);
+    expect(writtenNamesOf(result, VM_2)).not.toContain(
+      "azure_data_disk_read_bytes/sec_average",
+    );
+  });
+
+  test("a type's addition its resources do not publish is never asked, so no call is refused", async () => {
+    const fake: FakeAzure = twoVms({ refuseUnpublished: true });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        { addedMetrics: [added({ name: "Not Published Anywhere" })] },
+      ),
+    );
+
+    expect(metricNamesAsked(fake, VM)).toEqual([KEY_CALL]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a resource's own addition it no longer publishes is dropped after Azure refuses it, and its key metrics are read", async () => {
+    const fake: FakeAzure = twoVms({ refuseUnpublished: true });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        { addedMetrics: [ownAddition({ name: "Gone Metric" })] },
+      ),
+    );
+
+    expect(metricNamesAsked(fake, VM)).toEqual([
+      `${KEY_CALL},Gone Metric`,
+      KEY_CALL,
+    ]);
+    expect(writtenNamesOf(result, VM)).toEqual([
+      "azure_disk_read_bytes_total",
+      "azure_network_in_total_total",
+      "azure_percentage_cpu_average",
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("past 20 metrics a resource's additions take a second call, and the key metrics keep the first", async () => {
+    const keyNames: Array<string> = getAzureKeyMetrics(VM_TYPE)!.metrics.map(
+      (metric: { name: string }): string => {
+        return metric.name;
+      },
+    );
+    const extra: Array<string> = [
+      "Extra A",
+      "Extra B",
+      "Extra C",
+      "Extra D",
+      "Extra E",
+    ];
+    const everything: Array<JSONObject> = [...keyNames, ...extra].map(
+      (name: string): JSONObject => {
+        return definition(name, "Average", ["PT1M"]);
+      },
+    );
+    const fake: FakeAzure = twoVms({
+      definitions: { [VM]: everything, [VM_2]: everything },
+    });
+
+    await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: extra.map((name: string): CloudAddedMetric => {
+            return added({ name });
+          }),
+        },
+      ),
+    );
+
+    const calls: Array<Array<string>> = metricNamesAsked(fake, VM).map(
+      (call: string): Array<string> => {
+        return call.split(",");
+      },
+    );
+
+    expect(keyNames.length).toBeLessThan(20);
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toHaveLength(20);
+    expect(calls[0]!.slice(0, keyNames.length)).toEqual(keyNames);
+    expect([...calls[0]!.slice(keyNames.length), ...calls[1]!]).toEqual(extra);
+  });
+
+  test("an addition kept at five minutes is read in the five-minute call every 15 minutes, never a call of its own each read", async () => {
+    const withFiveMinutes: Array<JSONObject> = [
+      ...VM_DEFINITIONS,
+      definition("Five Minute Only", "Average", ["PT5M", "PT1H"]),
+    ];
+    const fake: FakeAzure = twoVms({
+      definitions: { [VM]: withFiveMinutes, [VM_2]: VM_DEFINITIONS },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: [
+            ownAddition({ name: "Five Minute Only", grain: "PT5M" }),
+          ],
+        },
+      ),
+    );
+
+    const calls: Array<string> = fake.metricCalls
+      .filter((url: URL): boolean => {
+        return url.pathname.startsWith(`${VM}/`);
+      })
+      .map((url: URL): string => {
+        return `${url.searchParams.get("interval")}:${url.searchParams.get("metricnames")}`;
+      });
+
+    expect(calls).toEqual([`PT1M:${KEY_CALL}`, "PT5M:Five Minute Only"]);
+    expect(result.nextState.cursors?.["300/900"]).toBe(
+      "2026-10-21T12:00:00.000Z",
+    );
+  });
+
+  test("a type's kept selection is read again when its additions change, and kept while they do not", async () => {
+    const first: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(twoVms()),
+    );
+    // The next reads list again, five minutes on, so the fake's resources are read.
+    const relisted: CloudConnectionPullState = { ...first.nextState };
+    delete relisted.inventoryAt;
+    const later: () => Date = (): Date => {
+      return new Date("2026-10-21T12:12:00Z");
+    };
+
+    // The same additions (none): the kept selection, no definitions call.
+    const same: FakeAzure = twoVms();
+    await connector.read(
+      settings(),
+      readOptions(same, relisted, { now: later }),
+    );
+    expect(metricNamesAsked(same, VM)).toEqual([KEY_CALL]);
+    expect(definitionCallsOf(same)).toEqual([]);
+
+    // An addition to the type: its definitions are read again at once.
+    const changed: FakeAzure = twoVms();
+    await connector.read(
+      settings(),
+      readOptions(changed, relisted, { now: later, addedMetrics: [added()] }),
+    );
+    expect(definitionCallsOf(changed).length).toBeGreaterThan(0);
+    expect(metricNamesAsked(changed, VM)).toEqual([
+      `${KEY_CALL},Data Disk Read Bytes/sec`,
+    ]);
+  });
+
+  test("a resource's own additions follow the type's selection, each once, at a grain its call can ask", () => {
+    const selection: Array<SelectedMetric> = [
+      {
+        name: "Percentage CPU",
+        aggregation: "Average",
+        grain: "PT1M",
+        unit: "Percent",
+      },
+    ];
+
+    expect(
+      withAzureResourceAdditions(selection, [
+        ownAddition({ name: "percentage cpu" }),
+        ownAddition({ name: "Data Disk Read Bytes/sec" }),
+        ownAddition({
+          name: "Data Disk Read Bytes/sec",
+          aggregation: "Maximum",
+        }),
+        ownAddition({ name: "No Grain", grain: "P7D" }),
+      ]),
+    ).toEqual([
+      ...selection,
+      {
+        name: "Data Disk Read Bytes/sec",
+        aggregation: "Average",
+        grain: "PT1M",
+        unit: "BytesPerSecond",
+        isAdded: true,
+      },
+    ]);
+  });
+
+  test("an addition is read with the aggregation it was added with while its definition offers it", () => {
+    const vm: AzureTypeKeyMetrics = getAzureKeyMetrics(VM_TYPE)!;
+
+    expect(
+      selectAzureMetrics(
+        vm,
+        [
+          {
+            name: "Data Disk Read Bytes/sec",
+            unit: "BytesPerSecond",
+            primaryAggregationType: "Average",
+            supportedAggregationTypes: ["Average", "Maximum"],
+            timeGrains: ["PT1M"],
+          },
+          {
+            name: "Queue Depth",
+            unit: "Count",
+            primaryAggregationType: "Average",
+            supportedAggregationTypes: ["Average"],
+            timeGrains: ["PT1M"],
+          },
+        ],
+        [
+          added({ aggregation: "Maximum" }),
+          added({ name: "Queue Depth", aggregation: "Total" }),
+        ],
+      ),
+    ).toEqual([
+      {
+        name: "Data Disk Read Bytes/sec",
+        aggregation: "Maximum",
+        grain: "PT1M",
+        unit: "BytesPerSecond",
+        isAdded: true,
+      },
+      // Total is not offered: its primary aggregation.
+      {
+        name: "Queue Depth",
+        aggregation: "Average",
+        grain: "PT1M",
+        unit: "Count",
+        isAdded: true,
+      },
+    ]);
+  });
+
+  test("calls of 20 metrics at most, in order", () => {
+    expect(chunkAzureMetricCalls([])).toEqual([]);
+    expect(chunkAzureMetricCalls([1, 2, 3])).toEqual([[1, 2, 3]]);
+
+    const many: Array<number> = Array.from(
+      { length: 41 },
+      (_: unknown, index: number): number => {
+        return index;
+      },
+    );
+    const calls: Array<Array<number>> = chunkAzureMetricCalls(many);
+
+    expect(
+      calls.map((call: Array<number>): number => {
+        return call.length;
+      }),
+    ).toEqual([20, 20, 1]);
+    expect(calls.flat()).toEqual(many);
+  });
+
+  test("an addition that is a key metric of the type is read once, as the key metric", () => {
+    const vm: AzureTypeKeyMetrics = getAzureKeyMetrics(VM_TYPE)!;
+
+    expect(
+      selectAzureMetrics(
+        vm,
+        [
+          {
+            name: "Percentage CPU",
+            unit: "Percent",
+            primaryAggregationType: "Average",
+            timeGrains: ["PT1M"],
+          },
+        ],
+        [added({ name: "Percentage CPU" })],
+      ),
+    ).toEqual([
+      {
+        name: "Percentage CPU",
+        aggregation: "Average",
+        grain: "PT1M",
+        unit: "Percent",
+      },
+    ]);
+    expect(getAzureKeyMetricsFingerprint(vm, [added()])).not.toBe(
+      getAzureKeyMetricsFingerprint(vm),
+    );
+    expect(getAzureKeyMetricsFingerprint(vm, [])).toBe(
+      getAzureKeyMetricsFingerprint(vm),
+    );
   });
 });

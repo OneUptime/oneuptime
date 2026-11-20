@@ -21,6 +21,8 @@ export const TOOL_PRODUCTS: Readonly<
   // "Who is told when this monitor goes down?" starts at a monitor.
   who_is_told: [ProductKey.Monitors],
   set_up_website_monitoring: [ProductKey.Monitors],
+  // A monitor of a telemetry service's data (#7243): both products'.
+  set_up_service_monitor: [ProductKey.Monitors, ProductKey.Services],
 
   // Incidents.
   query_incidents: [ProductKey.Incidents],
@@ -36,6 +38,7 @@ export const TOOL_PRODUCTS: Readonly<
 
   // Alerts.
   query_alerts: [ProductKey.Alerts],
+  search_alerts: [ProductKey.Alerts],
   get_alert_timeline: [ProductKey.Alerts],
   create_alert: [ProductKey.Alerts],
   acknowledge_alert: [ProductKey.Alerts],
@@ -49,6 +52,7 @@ export const TOOL_PRODUCTS: Readonly<
   query_on_call_pages: [ProductKey.OnCall],
   page_on_call_policy: [ProductKey.OnCall],
   set_up_paging: [ProductKey.OnCall],
+  add_to_on_call_policy: [ProductKey.OnCall],
 
   // Status Pages: the monitors on one are read, never changed.
   query_status_pages: [ProductKey.StatusPages],
@@ -146,6 +150,13 @@ export const TOOLS_OF_NO_PRODUCT: ReadonlyArray<string> = [
   "start_investigation",
   "recent_changes",
   "get_change_details",
+  /*
+   * The project's people (#7242), always on, and how pages reach a person
+   * (#7454), which incidents, alerts and on-call all use - as their own
+   * routes are of no one product (ProductCustomRoutesGuard).
+   */
+  "invite_people",
+  "set_how_to_reach_me",
 ];
 
 // The products a tool needs on, by its name (none for a tool of no product).

@@ -119,14 +119,15 @@ const TITLES: Record<ProxmoxMetric, string> = {
   nodesTableMemory: "Memory",
   nodesTableUptime: "Age",
   nodesTableGuests: "Guests",
+  nodesTableDisk: "Disk",
   guestsTableStatus: "Status",
   guestsTableCpu: "CPU",
   guestsTableMemory: "Memory",
   guestsTableUptime: "Age",
   guestsTableHaState: "HA State",
   guestsTableBackup: "Backup",
+  guestsTableDisk: "Disk",
   storageTableStatus: "Status",
-  storageTableUsage: "Used / Total",
   insightsDiskThroughput: "Disk Throughput",
 };
 

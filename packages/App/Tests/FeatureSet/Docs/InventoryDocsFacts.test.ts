@@ -130,7 +130,34 @@ import {
 import {
   INVENTORY_LIVE_WINDOW_MINUTES,
   INVENTORY_STALE_AFTER_MINUTES,
+  hasInventoryHeartbeat,
 } from "Common/Types/Telemetry/InventoryLiveness";
+import {
+  ESPER_DEVICE_NAME_PLACEHOLDER,
+  ESPER_SERIAL_NUMBER_PLACEHOLDER,
+  MANAGED_DEVICE_HOST_NAME_ATTRIBUTE,
+  MANAGED_DEVICE_RESOURCE_TYPE,
+  MANAGED_DEVICE_SERIAL_NUMBER_ATTRIBUTE,
+  ManagedDeviceHostMatch,
+} from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
+import {
+  DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
+  MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS,
+} from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import {
+  MANAGED_DEVICE_ONLINE_WINDOW_MINUTES,
+  MANAGED_DEVICE_STATUS_LABELS,
+  ManagedDeviceStatus,
+} from "Common/Types/DeviceManagement/ManagedDeviceStatus";
+import { REMOVED_DEVICE_RETENTION_DAYS } from "Common/Server/Utils/DeviceManagement/ManagedDeviceSync";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
+import { MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME } from "Common/Types/DeviceManagement/ManagedDeviceCheckIn";
+import {
+  MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+  MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES,
+  getManagedDeviceAlertTemplateById,
+} from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
+import { getHostAlertTemplateById } from "Common/Types/Monitor/HostAlertTemplates";
 import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
 import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionState";
 import { EVERY_FIFTEEN_MINUTE, EVERY_THREE_HOURS } from "Common/Utils/CronTime";
@@ -643,8 +670,24 @@ describe("Inventory Overview: where items come from", () => {
         return sourceHasLivenessSignal(source);
       }),
     ).toEqual([true, false, false]);
+    /*
+     * Of the mirrored items, the host of a device an Esper connection
+     * imports has one too: its check-ins (issue #9586).
+     */
+    expect(
+      hasInventoryHeartbeat({
+        source: EntitySource.Inventory,
+        resourceType: MANAGED_DEVICE_RESOURCE_TYPE,
+      }),
+    ).toBe(true);
+    expect(
+      hasInventoryHeartbeat({
+        source: EntitySource.Inventory,
+        resourceType: "NetworkDevice",
+      }),
+    ).toBe(false);
     expect(overview).toContain(
-      "Mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
+      "So does an Android device from Esper: each time it checks in with Esper. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.",
     );
     expect(
       statusRows.map((row: Array<string>): string => {
@@ -821,7 +864,7 @@ describe("Inventory Overview: finding your way around", () => {
     expect(pages).toEqual(expected);
   });
 
-  it("names the By Source pages as the menu titles them, and Gone Quiet as the discovered items' stale list", () => {
+  it("names the By Source pages as the menu titles them, and Gone Quiet as the stale list of every item with a heartbeat", () => {
     const section: string = findYourWay();
     const source: string = readRepoFile(INVENTORY_MENU);
     const getSourceTitle: string = source.slice(
@@ -844,10 +887,14 @@ describe("Inventory Overview: finding your way around", () => {
       source.indexOf('title: "By Source"'),
     );
 
-    expect(goneQuiet).toContain("source: EntitySource.Discovered");
+    /*
+     * No source: discovered items and the hosts of managed devices both go
+     * quiet (issue #9586), and the Stale status is only ever theirs.
+     */
+    expect(goneQuiet).not.toContain("source:");
     expect(goneQuiet).toContain("staleOnly: true");
     expect(section).toContain(
-      "| **Gone Quiet** | The discovered items that have not sent telemetry for more than a day. |",
+      "| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with Esper. |",
     );
   });
 
@@ -882,11 +929,17 @@ describe("Inventory Overview: finding your way around", () => {
   });
 
   it("lists the Asset Details card's facts in the card's order", () => {
+    /*
+     * As the card draws each in English: a meaning key draws its word
+     * (Model, a machine's model, #9838).
+     */
     const facts: string = listOf(
       INVENTORY_ASSET_FIELDS.map((field: string): string => {
-        return INVENTORY_ASSET_FIELD_LABELS[
-          field as keyof typeof INVENTORY_ASSET_FIELD_LABELS
-        ];
+        return withMeaningKeyAsItsWord(
+          INVENTORY_ASSET_FIELD_LABELS[
+            field as keyof typeof INVENTORY_ASSET_FIELD_LABELS
+          ],
+        );
       }),
       "and",
     );
@@ -1859,5 +1912,125 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       "A mirrored item that carries custom field values is archived rather than deleted when its record goes",
     );
     expect(fresh).not.toContain("An item that carries custom field values");
+  });
+});
+
+describe("Inventory Overview: devices from Esper (issue #9586)", () => {
+  const ESPER_SECTION: string = "## Import devices from Esper";
+  const CONNECTIONS_TABLE: string = `${DASHBOARD_APP}/Components/DeviceManagement/DeviceManagementConnectionsTable.tsx`;
+  const CONNECT_FORM: string = `${DASHBOARD_APP}/Components/DeviceManagement/EsperConnectionFormModal.tsx`;
+
+  function esper(): string {
+    return englishSection(INVENTORY_OVERVIEW, ESPER_SECTION);
+  }
+
+  it("reads the devices on the default schedule and the apps on theirs", () => {
+    expect(esper()).toContain(
+      `OneUptime reads it on a schedule: the devices every ${DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES} minutes, and each device's apps every ${MANAGED_DEVICE_APPS_READ_INTERVAL_IN_HOURS} hours.`,
+    );
+  });
+
+  it("opens Managed Devices from the Inventory menu, and connects from its table's button and form", () => {
+    const menu: Array<MenuSection> = menuSections(INVENTORY_MENU);
+    const table: string = readRepoFile(CONNECTIONS_TABLE);
+    const form: string = readRepoFile(CONNECT_FORM);
+
+    expect(
+      menu.some((section: MenuSection): boolean => {
+        return section.items.includes("Managed Devices");
+      }),
+    ).toBe(true);
+    // The table's button: its createVerb and its singularName.
+    expect(table).toContain('createVerb="Connect"');
+    expect(table).toContain('singularName="Esper"');
+    // The form's two questions, the fold and its button.
+    for (const title of ['title: "Tenant"', 'title: "API Key"']) {
+      expect(form).toContain(title);
+    }
+    expect(form).toContain("getAdvancedFormSection");
+    expect(form).toContain('"Connect"');
+    expect(esper()).toContain(
+      "Go to **Products → Resources → Inventory**, then **Managed Devices**, and click **Connect Esper**. Enter the **Tenant**",
+    );
+  });
+
+  it("names the attributes and the placeholders the import matches a device by, in the order it tries them", () => {
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(INVENTORY_OVERVIEW, "### One device, not two"),
+      "Resource attribute",
+    );
+
+    expect(
+      rows.map((row: Array<string>): Array<string> => {
+        return [row[0] as string, row[1] as string];
+      }),
+    ).toEqual([
+      [
+        `\`${MANAGED_DEVICE_HOST_NAME_ATTRIBUTE}\``,
+        `\`${ESPER_DEVICE_NAME_PLACEHOLDER}\``,
+      ],
+      [
+        `\`${MANAGED_DEVICE_SERIAL_NUMBER_ATTRIBUTE}\``,
+        `\`${ESPER_SERIAL_NUMBER_PLACEHOLDER}\``,
+      ],
+    ]);
+    // The rules, as ManagedDeviceHostMatch numbers them.
+    expect(Object.values(ManagedDeviceHostMatch)).toEqual([
+      ManagedDeviceHostMatch.Name,
+      ManagedDeviceHostMatch.SerialNumber,
+      ManagedDeviceHostMatch.Created,
+    ]);
+    expect(
+      englishSection(INVENTORY_OVERVIEW, "### One device, not two"),
+    ).toContain(
+      "OneUptime finds a device's item by its name in Esper, then by its serial number, and makes one only when none matches. The Android Agent sets both from its `device_name` and `device_serial` settings",
+    );
+  });
+
+  it("says when a device is offline, and how long a removed one is kept", () => {
+    const quiet: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### When a device goes quiet, or leaves Esper",
+    );
+
+    expect(quiet).toContain(
+      `A device that has not checked in for ${MANAGED_DEVICE_ONLINE_WINDOW_MINUTES} minutes is ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Offline])}`,
+    );
+    expect(quiet).toContain(
+      `A device removed from Esper is marked ${bold(MANAGED_DEVICE_STATUS_LABELS[ManagedDeviceStatus.Removed])}`,
+    );
+    expect(quiet).toContain(
+      `${REMOVED_DEVICE_RETENTION_DAYS} days after it left, the device is deleted`,
+    );
+  });
+
+  /*
+   * #9835: the connection's row opens its recommended monitors, and Esper
+   * Device Stopped Checking In alerts per device after an hour, from the
+   * metric each read writes, checked every 5 minutes.
+   */
+  it("says how to get an alert when a device stops checking in, as the row, the template and the metric do", () => {
+    const alerts: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "### Get an alert when a device stops checking in",
+    );
+    const template: { name: string } | undefined =
+      getManagedDeviceAlertTemplateById("esper-device-stopped-checking-in");
+    const table: string = readRepoFile(CONNECTIONS_TABLE);
+
+    expect(table).toContain('title: "Set up alerts"');
+    expect(alerts).toContain(
+      `On **Managed Devices**, click **Set up alerts** on the connection's row, and create ${bold(template!.name)}.`,
+    );
+    expect(MANAGED_DEVICE_STOPPED_CHECKING_IN_MINUTES).toBe(60);
+    expect(alerts).toContain(
+      "has not checked in with Esper for more than an hour",
+    );
+    expect(alerts).toContain(`\`${MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME}\``);
+    expect(MANAGED_DEVICE_ALERT_MONITORING_INTERVAL).toBe("*/5 * * * *");
+    expect(alerts).toContain("latest reading every 5 minutes");
+    expect(alerts).toContain(
+      `A device that also runs the Android Agent is left to ${bold(getHostAlertTemplateById("host-stopped-reporting")!.name)}, so it never alerts twice`,
+    );
   });
 });

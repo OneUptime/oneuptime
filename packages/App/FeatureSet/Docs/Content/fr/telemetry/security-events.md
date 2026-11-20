@@ -218,6 +218,7 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 - Chaque enregistrement est lu comme **Vos journaux** le lit depuis un pipeline, si bien que les règles CloudTrail, Google Cloud et Azure de la bibliothèque de règles le reconnaissent.
 - Un événement est horodaté au moment où il est stocké, l'heure propre de l'enregistrement étant dans `oneuptime.cloud.record_time` : un journal d'audit arrive dans OneUptime avec quelques minutes de retard, et une règle lit les événements selon leur heure.
 - La lecture du compte n'apporte rien de plus : les événements de données, les journaux Data Access et les journaux de Microsoft Entra ID passent toujours par **Vos journaux** ou par une [connexion](/docs/integrations/microsoft-entra-id).
+- Chaque événement nomme les ressources cloud dont parle son enregistrement par leurs propres identifiants - un ARN, un ID de ressource Azure, un nom de ressource Google Cloud -, il apparaît donc sur la page **Événements de sécurité** de chacune, et sur celle d'une fonction serverless dès que sa télémétrie définit `cloud.account.id` et `cloud.region`.
 
 ### Connecter un produit de sécurité
 
@@ -371,7 +372,7 @@ flowchart TB
 3. Le **Nom** se remplit avec le `title` de la règle : remplacez-le pour l'appeler autrement. Une nouvelle règle s'exécute ; **Activé** se trouve dans son formulaire de modification.
 4. Dans **En cas de correspondance**, laissez **Ouvrir un dossier en cas de correspondance** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
 5. Sous **Alertes et incidents**, choisissez ce qu'une correspondance déclenche d'autre : **Créer une alerte** (par défaut), **Déclarer un incident**, **Les deux** ou **Aucun des deux**, avec une **Gravité de l'alerte** ou une **Gravité de l'incident** optionnelle.
-6. **Plus de champs** contient la **Description**, **Écrire un Detection Finding en cas de correspondance** (activé), **Exécuter en temps réel** (désactivé) et la façon de compter les correspondances ; voir [Paramètres d'évaluation](#paramètres-dévaluation).
+6. **Plus de champs** contient la **Description**, **Écrire un Detection Finding en cas de correspondance** (activé), **Exécuter en temps réel** (désactivé), la façon de compter les correspondances, et les **Étapes de réponse** : que faire quand la règle ouvre un dossier, chaque étape sous la partie de votre choix du Plan de réponse du dossier, 10 au plus. Faites glisser une étape par sa poignée, ou utilisez **Monter** et **Descendre** : le plan du dossier montre les étapes de chaque partie dans l'ordre que vous leur donnez. Voir [Paramètres d'évaluation](#paramètres-dévaluation).
 :::
 
 Une première règle, qui correspond aux échecs de connexion venant de l'extérieur de `10.x.x.x` :

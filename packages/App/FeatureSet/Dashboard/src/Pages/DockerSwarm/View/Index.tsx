@@ -17,6 +17,7 @@ import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/Res
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
 import {
   ResourceAttentionItem,
+  getResourceAttentionTone,
   ResourceHealth,
 } from "../../../Components/ResourcePart/ResourceAttention";
 import DockerSwarmNodesCard from "../../../Components/DockerSwarm/DockerSwarmNodesCard";
@@ -45,13 +46,20 @@ import IconProp from "Common/Types/Icon/IconProp";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { fetchDockerSwarmInventoryRows } from "../Utils/DockerSwarmResourceUtils";
 import {
+  DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
   countDockerSwarmTasks,
   getDockerSwarmAttentionItems,
+  getDockerSwarmFailingTaskItems,
   getDockerSwarmHealth,
   getDockerSwarmManagerQuorum,
+  getDockerSwarmManagersOutOfReachItems,
+  getDockerSwarmNodesNotReadyItems,
   DockerSwarmManagerQuorum,
   DockerSwarmTaskCount,
 } from "../Utils/DockerSwarmHealth";
+import ResourceAttentionPill, {
+  ComponentProps as ResourceAttentionPillProps,
+} from "../../../Components/ResourcePart/ResourceAttentionPill";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -67,7 +75,11 @@ import { getResourceConnectionLabel } from "../../../Components/TelemetryResourc
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatRelativeTime } from "../../../Components/Home/HomeRelativeTime";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import ResourceHealthPill, {
   ResourceHealthDialogWords,
 } from "../../../Components/ResourcePart/ResourceHealthPill";
@@ -77,6 +89,63 @@ export const DOCKER_SWARM_HEALTH_WORDS: ResourceHealthDialogWords = {
   degradedTitle: translationKey("Why this swarm is Degraded"),
   unhealthyTitle: translationKey("Why this swarm is Unhealthy"),
 };
+
+/*
+ * What "3 managers" opens while a manager is out of reach (#9729): which
+ * managers, why, and what that costs the swarm - its majority lost, or one
+ * manager from lost.
+ */
+export const DOCKER_SWARM_MANAGERS_OUT_OF_REACH: PluralTemplate = {
+  one: "{{count}} manager unreachable",
+  other: "{{count}} managers unreachable",
+};
+export const DOCKER_SWARM_MANAGERS_HINT: string = translationKey(
+  "Show which managers and why",
+);
+export const DOCKER_SWARM_MANAGERS_DESCRIPTION: string = translationKey(
+  "A swarm schedules and changes nothing unless more than half of its managers can reach each other.",
+);
+export const DOCKER_SWARM_NO_MANAGER_OUT_OF_REACH: string = translationKey(
+  "Every manager is reachable now.",
+);
+
+/*
+ * The pill after the managers chip, or none while every manager is in
+ * reach: how many managers the majority cannot count on, red while any of
+ * them is broken (an unreachable manager, a majority lost), amber
+ * otherwise. It counts managers; the swarm's own row only rides along.
+ */
+export function getDockerSwarmManagersPill(data: {
+  items: Array<ResourceAttentionItem>;
+  translator: Translator;
+}): ResourceAttentionPillProps | undefined {
+  const managers: Array<ResourceAttentionItem> = data.items.filter(
+    (item: ResourceAttentionItem): boolean => {
+      return item.key !== DOCKER_SWARM_CLUSTER_ATTENTION_KEY;
+    },
+  );
+  if (managers.length === 0) {
+    return undefined;
+  }
+  const words: string = data.translator.translatePlural(
+    DOCKER_SWARM_MANAGERS_OUT_OF_REACH,
+    managers.length,
+  );
+  return {
+    testId: "docker-swarm-hero-managers-out-of-reach",
+    label: words,
+    tone: getResourceAttentionTone(data.items),
+    hint: DOCKER_SWARM_MANAGERS_HINT,
+    dialog: {
+      title: words,
+      description: DOCKER_SWARM_MANAGERS_DESCRIPTION,
+      items: data.items,
+      emptyMessage: DOCKER_SWARM_NO_MANAGER_OUT_OF_REACH,
+      // A list of managers alone names no kind on each; with the swarm's row it does.
+      showKind: managers.length !== data.items.length,
+    },
+  };
+}
 
 /*
  * A Docker Swarm cluster's Overview, what `docker node ls` and
@@ -102,6 +171,12 @@ interface SpecChip {
   label: string;
   route?: Route | undefined;
   testId?: string | undefined;
+  /*
+   * A count of what is wrong among what the chip counts - "1 node not
+   * ready" beside "2/3 nodes ready" - drawn after it, which opens exactly
+   * those and why (#9594). The chip itself still opens the whole list.
+   */
+  problem?: ResourceAttentionPillProps | undefined;
 }
 
 interface InventorySummary {
@@ -355,8 +430,44 @@ const DockerSwarmClusterOverview: FunctionComponent<
      * nodes, the services, the tasks and the stacks (the side menu has the
      * rest).
      */
+    /*
+     * Which nodes are not ready, and which tasks fail, while the agent
+     * reports: a disconnected swarm's last snapshot is no longer the truth.
+     */
+    const nodesNotReady: Array<ResourceAttentionItem> =
+      inventory && isConnected
+        ? getDockerSwarmNodesNotReadyItems({
+            rows: inventory.rows,
+            routeFor: routes.getPartRoute,
+          })
+        : [];
+    const failingTasks: Array<ResourceAttentionItem> =
+      inventory && isConnected
+        ? getDockerSwarmFailingTaskItems({
+            rows: inventory.rows,
+            routeFor: routes.getPartRoute,
+            now: inventoryReadAt,
+          })
+        : [];
+    // The managers its majority cannot count on, and what that costs it.
+    const managersProblem: ResourceAttentionPillProps | undefined =
+      inventory && isConnected
+        ? getDockerSwarmManagersPill({
+            items: getDockerSwarmManagersOutOfReachItems({
+              rows: inventory.rows,
+              clusterName: (cluster.name as string | undefined) || "",
+              routeFor: routes.getPartRoute,
+            }),
+            translator: translator,
+          })
+        : undefined;
+
     const specChips: Array<SpecChip> = [];
     if (nodesTotal > 0) {
+      const notReadyWords: string = translator.translatePlural(
+        { one: "{{count}} node not ready", other: "{{count}} nodes not ready" },
+        nodesNotReady.length,
+      );
       specChips.push({
         icon: IconProp.Server,
         route: routes.nodesRoute,
@@ -370,6 +481,21 @@ const DockerSwarmClusterOverview: FunctionComponent<
           // In the reader's digits, as the count beside it is.
           { ready: translator.formatNumber(nodesReady) },
         ),
+        problem:
+          nodesNotReady.length > 0
+            ? {
+                testId: "docker-swarm-hero-nodes-not-ready",
+                label: notReadyWords,
+                tone: getResourceAttentionTone(nodesNotReady),
+                hint: "Show which nodes and why",
+                dialog: {
+                  title: notReadyWords,
+                  items: nodesNotReady,
+                  emptyMessage: "Every node is ready now.",
+                  showKind: false,
+                },
+              }
+            : undefined,
       });
     }
     if (managersTotal > 0) {
@@ -381,6 +507,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
           { one: "{{count}} manager", other: "{{count}} managers" },
           managersTotal,
         ),
+        problem: managersProblem,
       });
     }
     if (servicesTotal > 0) {
@@ -395,6 +522,10 @@ const DockerSwarmClusterOverview: FunctionComponent<
       });
     }
     if (tasksTotal > 0) {
+      const failingWords: string = translator.translatePlural(
+        { one: "{{count}} task failing", other: "{{count}} tasks failing" },
+        failingTasks.length,
+      );
       specChips.push({
         icon: IconProp.QueueList,
         route: routes.tasksRoute,
@@ -407,6 +538,21 @@ const DockerSwarmClusterOverview: FunctionComponent<
           tasksTotal,
           { running: translator.formatNumber(tasksRunning) },
         ),
+        problem:
+          failingTasks.length > 0
+            ? {
+                testId: "docker-swarm-hero-tasks-failing",
+                label: failingWords,
+                tone: getResourceAttentionTone(failingTasks),
+                hint: "Show which tasks and why",
+                dialog: {
+                  title: failingWords,
+                  items: failingTasks,
+                  emptyMessage: "No task is failing now.",
+                  showKind: false,
+                },
+              }
+            : undefined,
       });
     }
     if (stackCount > 0) {
@@ -539,22 +685,31 @@ const DockerSwarmClusterOverview: FunctionComponent<
                     <span className="font-medium">{chip.label}</span>
                   </>
                 );
+                // What is wrong among them, after the chip: it opens which, and why.
+                const problem: ReactElement = chip.problem ? (
+                  <ResourceAttentionPill {...chip.problem} />
+                ) : (
+                  <></>
+                );
                 if (chip.route) {
                   return (
-                    <Link
-                      key={`spec-${idx}`}
-                      to={chip.route}
-                      dataTestId={chip.testId}
-                      className={CHIP_LINK_CLASS_NAME}
-                    >
-                      {content}
-                    </Link>
+                    <React.Fragment key={`spec-${idx}`}>
+                      <Link
+                        to={chip.route}
+                        dataTestId={chip.testId}
+                        className={CHIP_LINK_CLASS_NAME}
+                      >
+                        {content}
+                      </Link>
+                      {problem}
+                    </React.Fragment>
                   );
                 }
                 return (
-                  <span key={`spec-${idx}`} className={CHIP_CLASS_NAME}>
-                    {content}
-                  </span>
+                  <React.Fragment key={`spec-${idx}`}>
+                    <span className={CHIP_CLASS_NAME}>{content}</span>
+                    {problem}
+                  </React.Fragment>
                 );
               })}
               {/*

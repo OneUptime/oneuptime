@@ -149,7 +149,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Metrieken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Metrieken**, dat haar metriek voor haar service opent, uit het uur waarin ze werd gevonden. Een service zonder metrieken, of zonder metrieken voor haar verzoeken, biedt in plaats daarvan **Openen in Traces** aan: de spans die haar metrieken zouden meten.
-- **Metrieken → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
+- **Metrieken → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond. Een pull request zegt hoe de taak ervan nu in Code staat: een fix die na een mislukking met Opnieuw proberen nog eens is gevraagd, staat niet langer als mislukt en noemt de pull request die hij opende.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ### Verzoekmetrieken vastleggen zonder code te wijzigen
@@ -189,7 +189,7 @@ Start de collector opnieuw. Elke service waarvan de traces erdoorheen gaan, vers
 | Kenmerk hernoemen | Geeft de sleutel van een attribuut op overeenkomende datapunten een andere naam. |
 | Attribuut toevoegen | Voegt een attribuut toe aan overeenkomende datapunten. |
 | Kenmerk verwijderen | Haalt een attribuut weg, zoals een met te veel waarden om nuttig te zijn. |
-| Kenmerk redigeren | Vervangt de waarde van een attribuut door een plaatshouder. |
+| Kenmerk weglakken | Vervangt de waarde van een attribuut door een plaatshouder. |
 | Voorbeeld | Houdt een percentage van de overeenkomende datapunten. |
 
 **Metrieken → Instellingen → Opnameregels** berekent elke minuut nieuwe metrieken uit andere metrieken. Zie [Opnameregels voor logboeken](/docs/telemetry/log-recording-rules) voor hoe opnameregels werken.

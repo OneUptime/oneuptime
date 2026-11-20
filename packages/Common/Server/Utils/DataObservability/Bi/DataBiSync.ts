@@ -34,7 +34,13 @@ import {
   readBiTool,
 } from "./BiConnectors";
 import { summarizeBiLineage } from "./BiLineageSummary";
-import { matchBiTables } from "./BiMatching";
+import { BiCatalog, matchBiTables } from "./BiMatching";
+import {
+  BiReadKeptStateError,
+  BiReadState,
+  readBiReadState,
+  writeBiReadState,
+} from "./BiReadState";
 import {
   BiUsageLedger,
   BiUsageRead,
@@ -73,6 +79,16 @@ import {
  * Matched says why it is 0. Each dashboard keeps what its tool says it is
  * built on (Power BI's datasets and their data sources), whether or not
  * OneUptime watches them.
+ *
+ * A read keeps what lets the next one read less (BiReadState): Power BI's
+ * workspaces as last scanned, so the hourly read scans only those that
+ * changed (#9552), and its scans still running, which the next read picks
+ * up (#9697). A read that fails keeps what the last one kept, but for one
+ * that read nothing yet and left scans running: it keeps those.
+ *
+ * The tables Power BI's OData connectors name by their Dataverse entity
+ * set are matched through the names each collection keeps with the tables
+ * (#9696), whether OneUptime or a probe collects the environment.
  */
 
 export interface DataBiSyncResult {
@@ -83,6 +99,9 @@ export interface DataBiSyncResult {
 
 const MAX_ERROR_LENGTH: number = 500;
 const MAX_WARNING_LENGTH: number = 1_000;
+
+// How many tools the hourly read reads at once.
+export const MAX_TOOLS_READ_AT_ONCE: number = 4;
 
 // What a read could not read, each warning whole, and never the credentials.
 export function getWarningText(
@@ -147,7 +166,11 @@ export function getRefreshFields(refresh: DataDashboardRefreshHistory | null): {
 }
 
 export default class DataBiSync {
-  // Every enabled tool, one after another: one that fails never stops the others.
+  /*
+   * Every enabled tool, a few at a time: one that fails never stops the
+   * others, and one whose scans are slow (a big Power BI tenant's can take
+   * many minutes) never holds the rest past the hourly job's time.
+   */
   public static async syncAll(): Promise<void> {
     const connections: Array<DataBiConnection> =
       await DataBiConnectionService.findBy({
@@ -157,21 +180,43 @@ export default class DataBiSync {
         skip: 0,
         props: { isRoot: true },
       });
+    let next: number = 0;
 
-    for (const connection of connections) {
-      try {
-        await DataBiSync.syncConnection(connection.id!);
-      } catch (error) {
-        logger.error(
-          `Data Observability: reading BI tool ${connection.id?.toString()} failed`,
-        );
-        logger.error(error);
+    const syncNext: () => Promise<void> = async (): Promise<void> => {
+      while (next < connections.length) {
+        const connection: DataBiConnection = connections[next]!;
+
+        next++;
+
+        try {
+          await DataBiSync.syncConnection(connection.id!, {
+            isScheduled: true,
+          });
+        } catch (error) {
+          logger.error(
+            `Data Observability: reading BI tool ${connection.id?.toString()} failed`,
+          );
+          logger.error(error);
+        }
       }
-    }
+    };
+
+    await Promise.all(
+      Array.from(
+        { length: Math.min(MAX_TOOLS_READ_AT_ONCE, connections.length) },
+        (): Promise<void> => {
+          return syncNext();
+        },
+      ),
+    );
   }
 
   public static async syncConnection(
     connectionId: ObjectID,
+    options: {
+      // The hourly read, not one someone asked for (Read Now).
+      isScheduled?: boolean | undefined;
+    } = {},
   ): Promise<DataBiSyncResult> {
     const connection: DataBiConnection | null =
       await DataBiConnectionService.findOneById({
@@ -185,6 +230,7 @@ export default class DataBiSync {
           usageReadFrom: true,
           usageReadUntil: true,
           failedRefreshes: true,
+          readState: true,
         },
         props: { isRoot: true },
       });
@@ -216,6 +262,7 @@ export default class DataBiSync {
         throw new Error("The credentials are not JSON.");
       }
 
+      const readState: BiReadState = readBiReadState(connection.readState);
       const read: BiToolRead = await readBiTool(tool as DataBiTool, {
         baseUrl: connection.baseUrl || "",
         credentials,
@@ -227,10 +274,16 @@ export default class DataBiSync {
             ? new Date(connection.usageReadUntil)
             : null,
         },
+        readState: readState.powerBi,
+        isScheduled: Boolean(options.isScheduled),
       });
-      const catalog: ProjectCatalog = await OpenLineageIngest.readCatalog(
-        connection.projectId,
-      );
+      /*
+       * The watched tables, each Dataverse table with the entity set name
+       * its collection kept (#9696): what Power BI's OData connectors name
+       * it by, matched without asking the environment.
+       */
+      const catalog: ProjectCatalog & BiCatalog =
+        await OpenLineageIngest.readCatalog(connection.projectId);
       const dashboards: Array<BiDashboardRead> = read.dashboards.slice(
         0,
         MAX_BI_DASHBOARDS,
@@ -269,6 +322,11 @@ export default class DataBiSync {
           matchedTableCount: result.matchedTableCount,
           // JSON, as failedRefreshes below: its type is too deep for an update's.
           lineageSummary: lineageSummary as never,
+          // What this read kept so the next one reads less: kept only when it read.
+          readState: writeBiReadState({
+            powerBi:
+              read.readState !== undefined ? read.readState : readState.powerBi,
+          }) as never,
           ...(read.usage
             ? {
                 usageReadFrom: new Date(read.usage.range.from),
@@ -299,6 +357,17 @@ export default class DataBiSync {
         data: {
           lastSyncedAt: OneUptimeDate.getCurrentDate(),
           lastSyncError: message,
+          /*
+           * A read with nothing to show yet, but scans the next read picks
+           * up (#9697): what it kept, so the next read does not start over.
+           */
+          ...(error instanceof BiReadKeptStateError
+            ? {
+                readState: writeBiReadState({
+                  powerBi: error.readState,
+                }) as never,
+              }
+            : {}),
         },
         props: { isRoot: true },
       });
@@ -312,7 +381,7 @@ export default class DataBiSync {
     connection: DataBiConnection;
     tool: DataBiTool;
     read: Array<BiDashboardRead>;
-    catalog: ProjectCatalog;
+    catalog: ProjectCatalog & BiCatalog;
     // The views read with the dashboards, where the tool says.
     usage?: BiUsageRead | null | undefined;
     now?: Date | undefined;

@@ -1,10 +1,4 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Incident from "../../../Models/DatabaseModels/Incident";
-import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
-import AuditLogService from "../../../Server/Services/AuditLogService";
-import DatabaseService from "../../../Server/Services/DatabaseService";
-import FileService from "../../../Server/Services/FileService";
-import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import {
   RunOptions,
   RunReturnType,
@@ -12,23 +6,27 @@ import {
 import OnTriggerBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel";
 import PublishedImages from "../../../Server/Utils/File/PublishedImages";
 import logger from "../../../Server/Utils/Logger";
-import WorkflowListeners from "../../../Server/Utils/Workflow/WorkflowListeners";
 import Exception from "../../../Types/Exception/Exception";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
-import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import API from "../../../Utils/API";
-import { getJestSpyOn } from "../../Spy";
-import type { SpyInstance } from "jest-mock";
 import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+  AN_INCIDENT,
+  KINDS,
+  Kind,
+  OTHER_RECORD_ID,
+  PROJECT_ID,
+  READ_BACK_FAILURE,
+  READ_FAILURE,
+  RECORD_ID,
+  World,
+  WriteRecorders,
+  rootProps,
+  useDatabase,
+  useWriteRecorders,
+} from "./WriteWorld";
+import type { SpyInstance } from "jest-mock";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -63,294 +61,15 @@ jest.mock("../../../Server/Utils/Logger");
  *     cannot be read back keeps its images as they were.
  *
  * It drives DatabaseService's real create, updateBy and deleteBy, with the
- * database left out (a repository that keeps nothing) and the private-record
- * read answered by the test: for an incident, its own row (the record
- * itself); for an internal note, the incident it is part of.
+ * database left out (a repository that keeps nothing, WriteWorld) and the
+ * private-record read answered by the test: for an incident, its own row
+ * (the record itself); for an internal note, the incident it is part of.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID(
-  "6ba7b810-9dad-41d1-80b4-00c04fd4b300",
-);
-const RECORD_ID: string = "6ba7b810-9dad-41d1-80b4-00c04fd4b301";
-const OTHER_RECORD_ID: string = "6ba7b810-9dad-41d1-80b4-00c04fd4b302";
-const INCIDENT_ID: string = "6ba7b810-9dad-41d1-80b4-00c04fd4b303";
+// The workflow events posted and the audit log entries, of each test.
+const { posted, audited }: WriteRecorders = useWriteRecorders();
 
-// What the read failed with, as Postgres says it when the connection drops.
-const READ_FAILURE: string = "Connection terminated unexpectedly";
-
-// What the read back of a row saved failed with.
-const READ_BACK_FAILURE: string = "Query read timeout";
-
-// What the read of whether the record is private does, in a test.
-type PrivateRead = "fails" | "private" | "not private";
-
-// A service that keeps which of a write's hooks it reached.
-class RecordingService<
-  TModel extends BaseModel,
-> extends DatabaseService<TModel> {
-  // A write that is done reaches no error hook: its caller is told it was done.
-  public errorHooks: Array<string> = [];
-  public successHooks: Array<string> = [];
-
-  public constructor(modelType: { new (): TModel }) {
-    super(modelType);
-  }
-
-  protected override async onCreateError(error: Exception): Promise<Exception> {
-    this.errorHooks.push(`create: ${error.message}`);
-    return error;
-  }
-
-  protected override async onUpdateError(error: Exception): Promise<Exception> {
-    this.errorHooks.push(`update: ${error.message}`);
-    return error;
-  }
-
-  protected override async onDeleteError(error: Exception): Promise<Exception> {
-    this.errorHooks.push(`delete: ${error.message}`);
-    return error;
-  }
-
-  protected override async onUpdateSuccess(
-    onUpdate: OnUpdate<TModel>,
-    updatedItemIds: Array<ObjectID>,
-  ): Promise<OnUpdate<TModel>> {
-    this.successHooks.push(`update: ${updatedItemIds.length}`);
-    return onUpdate;
-  }
-
-  protected override async onDeleteSuccess(
-    onDelete: OnDelete<TModel>,
-    itemIdsBeforeDelete: Array<ObjectID>,
-  ): Promise<OnDelete<TModel>> {
-    this.successHooks.push(`delete: ${itemIdsBeforeDelete.length}`);
-    return onDelete;
-  }
-}
-
-// A kind of record a workflow can start on that can be private, or part of a private record.
-interface Kind<TModel extends BaseModel> {
-  name: string;
-  modelType: { new (): TModel };
-  // What a create is handed.
-  newRecord: () => TModel;
-  // The row as a write reads it before it writes it.
-  row: (id: string) => TModel;
-  // An update that changes the row.
-  change: JSONObject;
-  // Whose row says it is private: its own (an incident), or its incident's (a note).
-  isPrivateBy: "itself" | "its incident";
-}
-
-const AN_INCIDENT: Kind<Incident> = {
-  name: "an incident",
-  modelType: Incident,
-  newRecord: (): Incident => {
-    const incident: Incident = new Incident();
-    incident.projectId = PROJECT_ID;
-    incident.title = "Checkout is slow";
-    return incident;
-  },
-  row: (id: string): Incident => {
-    const incident: Incident = new Incident();
-    incident._id = id;
-    incident.projectId = PROJECT_ID;
-    incident.title = "Checkout is slow";
-    return incident;
-  },
-  change: { title: "Checkout is down" },
-  isPrivateBy: "itself",
-};
-
-const A_NOTE: Kind<IncidentInternalNote> = {
-  name: "an internal note of an incident",
-  modelType: IncidentInternalNote,
-  newRecord: (): IncidentInternalNote => {
-    const note: IncidentInternalNote = new IncidentInternalNote();
-    note.projectId = PROJECT_ID;
-    note.incidentId = new ObjectID(INCIDENT_ID);
-    note.note = "Rolled back the deploy.";
-    return note;
-  },
-  row: (id: string): IncidentInternalNote => {
-    const note: IncidentInternalNote = new IncidentInternalNote();
-    note._id = id;
-    note.projectId = PROJECT_ID;
-    note.incidentId = new ObjectID(INCIDENT_ID);
-    note.note = "Rolled back the deploy.";
-    return note;
-  },
-  change: { note: "Rolled back the deploy, and flushed the cache." },
-  isPrivateBy: "its incident",
-};
-
-const KINDS: Array<Kind<BaseModel>> = [
-  AN_INCIDENT as unknown as Kind<BaseModel>,
-  A_NOTE as unknown as Kind<BaseModel>,
-];
-
-// What a write did, as the test saw it.
-interface World {
-  service: RecordingService<BaseModel>;
-  // What reached the repository.
-  written: Array<string>;
-  // The realtime events sent: "<event> <id>".
-  realtime: Array<string>;
-  // The reads of whether a record is private: whose row each read.
-  privacyReads: Array<string>;
-}
-
-let posted: Array<string> = [];
-let audited: Array<string> = [];
 let errors: SpyInstance<typeof logger.error>;
-
-/*
- * A database that keeps nothing: the rows `rowIds` as a write reads them
- * before it writes, the private-record read doing `privateRead`, and the
- * read back of each row of `readBackFailsFor` failing once it is saved.
- */
-function useDatabase(
-  kind: Kind<BaseModel>,
-  privateRead: PrivateRead,
-  rowIds: Array<string> = [RECORD_ID],
-  readBackFailsFor: Array<string> = [],
-): World {
-  const service: RecordingService<BaseModel> = new RecordingService<BaseModel>(
-    kind.modelType,
-  );
-
-  const world: World = {
-    service: service,
-    written: [],
-    realtime: [],
-    privacyReads: [],
-  };
-
-  getJestSpyOn(service, "getRepository").mockReturnValue({
-    // A create's INSERT, or an update written through save() (it writes a list).
-    save: async (entity: unknown): Promise<unknown> => {
-      const saved: BaseModel = entity as BaseModel;
-
-      if (saved._id) {
-        world.written.push(`save ${saved._id.toString()}`);
-        return saved;
-      }
-
-      world.written.push("insert");
-      saved._id = RECORD_ID;
-      return saved;
-    },
-    update: async (criteria: {
-      _id?: unknown;
-    }): Promise<{
-      affected: number;
-    }> => {
-      world.written.push(`update ${String(criteria._id)}`);
-      return { affected: 1 };
-    },
-    delete: async (): Promise<{ affected: number }> => {
-      world.written.push("delete");
-      return { affected: rowIds.length };
-    },
-    find: async (): Promise<Array<BaseModel>> => {
-      return [];
-    },
-  } as never);
-
-  getJestSpyOn(service, "_findBy").mockImplementation((async (
-    findBy: { query: JSONObject },
-    withDeleted?: boolean,
-  ): Promise<Array<BaseModel>> => {
-    // The read before an update or a delete - the rows it writes - or the read back of one saved.
-    if (withDeleted !== true) {
-      const id: string = String(findBy.query["_id"] ?? "");
-
-      if (
-        readBackFailsFor.includes(id) &&
-        world.written.includes(`save ${id}`)
-      ) {
-        throw new Error(READ_BACK_FAILURE);
-      }
-
-      return rowIds.includes(id) ? [kind.row(id)] : rowIds.map(kind.row);
-    }
-
-    // isAboutPrivateRecord's read of the record's own row, deleted rows included.
-    world.privacyReads.push("itself");
-
-    const row: BaseModel = kind.row(String(findBy.query["_id"]));
-
-    if (kind.isPrivateBy === "itself") {
-      if (privateRead === "fails") {
-        throw new Error(READ_FAILURE);
-      }
-
-      (row as unknown as { isPrivate: boolean }).isPrivate =
-        privateRead === "private";
-    }
-
-    return [row];
-  }) as never);
-
-  // The private record a part of one names (a note's incident), read by OneUptime.
-  getJestSpyOn(DatabaseService, "getParentReader").mockImplementation(
-    ((modelType: { new (): BaseModel }) => {
-      return {
-        findBy: async (findBy: {
-          query: JSONObject;
-        }): Promise<Array<{ _id: string }>> => {
-          if (findBy.query["isPrivate"] !== true) {
-            return [];
-          }
-
-          expect(modelType).toBe(Incident);
-          world.privacyReads.push("its incident");
-
-          if (privateRead === "fails") {
-            throw new Error(READ_FAILURE);
-          }
-
-          return privateRead === "private"
-            ? [{ _id: String(findBy.query["_id"]) }]
-            : [];
-        },
-      };
-    }) as never,
-  );
-
-  getJestSpyOn(service, "onTriggerRealtime").mockImplementation((async (
-    modelId: ObjectID,
-    projectId: ObjectID,
-    eventType: ModelEventType,
-  ): Promise<void> => {
-    expect(projectId.toString()).toBe(PROJECT_ID.toString());
-    world.realtime.push(`${eventType} ${modelId.toString()}`);
-  }) as never);
-
-  getJestSpyOn(service, "countBy").mockResolvedValue(
-    new PositiveNumber(0) as never,
-  );
-  getJestSpyOn(service, "checkRequiredFields").mockImplementation(((
-    data: unknown,
-  ) => {
-    return data;
-  }) as never);
-
-  // What a delete reads before it deletes, with nothing to find.
-  getJestSpyOn(service, "readRowsDeletedWith").mockResolvedValue([] as never);
-  getJestSpyOn(service, "getRealtimeAccessBeforeDelete").mockResolvedValue(
-    new Map() as never,
-  );
-  getJestSpyOn(service, "readAttachedFilesOfRowsDeleted").mockResolvedValue(
-    new Map() as never,
-  );
-
-  return world;
-}
-
-function rootProps(): { isRoot: true; tenantId: ObjectID } {
-  return { isRoot: true, tenantId: PROJECT_ID };
-}
 
 // What was logged about a private-record read that failed.
 function loggedCauses(): Array<{ message: string; attributes: unknown }> {
@@ -391,60 +110,9 @@ function expectCauseLoggedFor(ids: Array<string>): void {
 }
 
 beforeEach(() => {
-  posted = [];
-  audited = [];
-
   // The logger is a mock of the module's (jest.mock above): each test reads its own calls.
   errors = jest.spyOn(logger, "error");
   errors.mockClear();
-
-  jest.spyOn(API, "post").mockImplementation((async (options: {
-    url: { route: { toString: () => string } };
-    data: { data: { _id: string } };
-  }) => {
-    const route: Array<string> = options.url.route
-      .toString()
-      .split("/")
-      .filter((segment: string): boolean => {
-        return segment.length > 0;
-      });
-
-    posted.push(`${route.slice(-2).join(" ")} ${options.data.data._id}`);
-
-    return {};
-  }) as never);
-
-  // A workflow of the project listens: the record is asked about.
-  jest
-    .spyOn(WorkflowListeners, "isAnyListening")
-    .mockResolvedValue(true as never);
-
-  jest
-    .spyOn(PublishedImages, "setImagesVisibility")
-    .mockResolvedValue(undefined as never);
-  jest
-    .spyOn(FileService, "getFileOwners")
-    .mockResolvedValue(new Map() as never);
-
-  jest.spyOn(AuditLogService, "recordCreate").mockImplementation((async (data: {
-    createdItem: BaseModel;
-  }) => {
-    audited.push(`create ${data.createdItem.id?.toString()}`);
-  }) as never);
-  jest.spyOn(AuditLogService, "recordUpdate").mockImplementation((async (data: {
-    itemId: ObjectID;
-  }) => {
-    audited.push(`update ${data.itemId.toString()}`);
-  }) as never);
-  jest.spyOn(AuditLogService, "recordDelete").mockImplementation((async (data: {
-    itemId: ObjectID;
-  }) => {
-    audited.push(`delete ${data.itemId.toString()}`);
-  }) as never);
-});
-
-afterEach(() => {
-  jest.restoreAllMocks();
 });
 
 describe("the records written here", () => {

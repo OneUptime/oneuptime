@@ -106,8 +106,10 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *   - OpenAI Compatible, an option of the LLM Provider field, drawn as
  *     the field's options write it;
  *   - text the server writes in English: a refused Base URL's message,
- *     the context window errors, the AI Logs statuses, and the lead of a
- *     follow-up check's analysis (IncidentFollowUpCheck.buildReportLead).
+ *     the context window errors, and the lead of a follow-up check's
+ *     analysis (IncidentFollowUpCheck.buildReportLead). The AI Logs'
+ *     statuses are the Dashboard's own words since #6495 ("Daily Limit
+ *     Reached", "AI Credits Used Up"), drawn in each language;
  *     The investigation card's lines for an incident outside the rules and
  *     for one resolved during a rule's wait are the Dashboard's own now
  *     (InvestigationNotStartedWords, #6656), and drawn in each language;
@@ -125,8 +127,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "kube-system",
       "kube-public",
       "kube-node-lease",
-      "Budget Exceeded",
-      "Insufficient Balance",
       "Most likely root cause",
       "Suggested next steps",
       "Ruled out",
@@ -261,6 +261,12 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "What each part needs.",
     "Then test it.",
     "Who is told.",
+    // A service's monitors (#7243), how pages reach you (#7454), invitations (#7242).
+    "A service's monitors.",
+    "How pages reach you.",
+    "Inviting people.",
+    // The guided setups and Ask AI link to each other (#7245).
+    "Step by step instead.",
   ],
   [AI_SRE]: [
     "strictly read-only",

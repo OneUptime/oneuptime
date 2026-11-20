@@ -130,7 +130,7 @@ Un seul passage remonte la liste : la réouverture par une règle de regroupemen
 
 Pour corriger un état mis par erreur, supprimez sa ligne sur la page de la chronologie d'état de l'enregistrement (voir [La chronologie d'état](#la-chronologie-détat)). L'enregistrement revient à l'état de sa dernière ligne restante ; un épisode dont vous supprimez la ligne de résolution est de nouveau ouvert, et son heure de résolution est effacée.
 
-Par l'API et Terraform, l'ordre est la colonne `order` : les plus petits nombres viennent en premier. Un état créé sans ordre se place juste au-dessus de l'état résolu ; un état créé ou mis à jour avec un nombre prend cette place, et les états qui la gênent descendent d'un rang. Les nombres que personne d'autre ne détient sont conservés tels qu'écrits, si bien qu'un état géré par Terraform relit le nombre qu'on lui a donné.
+Par l'API et Terraform, l'ordre est la colonne `order` : les plus petits nombres viennent en premier. Un état créé sans ordre se place juste au-dessus de l'état résolu. Un nombre que vous écrivez est conservé tel qu'écrit et ne déplace aucun autre état, si bien qu'un état géré par Terraform relit le nombre qu'on lui a donné ; de deux états au même nombre, le plus ancien s'affiche en premier. Les états intégrés gardent malgré tout leur ordre : une écriture qui mettrait deux d'entre eux au même nombre, ou hors de leur ordre, est refusée.
 
 ## Les gravités créées d'office
 
@@ -178,9 +178,9 @@ Un incident change d'état de cinq façons :
 
 | Façon                     | Où                                                                                          | Ce qui est demandé                                                                                                                                                                                           |
 | ------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Boutons de l'en-tête**  | L'en-tête de l'incident : **Prendre en compte** et **Résoudre**, et **Changer l'état en** dans son menu **⋯** | Une courte confirmation — **Prendre en compte l'incident** ou **Résoudre l'incident** — avec **Notifier les abonnés de la page de statut** et, replié sous **Ajouter une note publique**, la **Note publique** facultative et son sélecteur **Sélectionner le modèle de note** (quand le projet a des modèles de notes). |
+| **Boutons de l'en-tête**  | L'en-tête de l'incident : **Prendre en compte** et **Résoudre**, et **Changer l'état en** dans son menu **⋯** | Une courte confirmation — **Prendre en compte l'incident** ou **Résoudre l'incident** — avec **Notifier les abonnés de la page de statut** et, replié sous **Ajouter une note publique**, la **Note publique** facultative et son sélecteur **Sélectionner le modèle de note** (quand le projet a des modèles de notes). Une résolution replie aussi une cause racine facultative sous **Ajouter la cause racine**. |
 | **Chronologie d'état**    | **Chronologie d'état** dans le menu latéral de l'incident                                   | Une ligne ajoutée à la main, avec **Statut de l'incident**, **Commence le** et **Notifier les abonnés de la page de statut**.                                                                               |
-| **Ligne de la liste** | Le menu **⋯** sur la ligne d'un incident dans la liste des incidents : **Prendre en compte**, **Résoudre** et **Modifier l'état** | La confirmation de l'en-tête, qui nomme l'incident. Un incident qu'un autre changement a déjà fait avancer est laissé tel quel, et la boîte de dialogue dit pourquoi. |
+| **Ligne de la liste** | Le menu **⋯** sur la ligne d'un incident dans la liste des incidents : **Prendre en compte**, **Résoudre** et **Modifier l'état** | La confirmation de l'en-tête, qui nomme l'incident. Un incident qu'un autre changement a déjà fait avancer est laissé tel quel, et la boîte de dialogue dit pourquoi. Elle ne demande pas la cause racine. |
 | **Modification groupée**  | **Prendre en compte**, **Résoudre** ou **Modifier l'état** sur une sélection dans la liste des incidents                           | Une page avec l'état, **Notifier les abonnés de la page de statut** et le même **Ajouter une note publique** replié.                                                                                        |
 | **Automatiquement**       | Un critère de moniteur, ou votre propre code                                                | Un critère avec **Résoudre automatiquement l'incident** activé résout son incident quand le critère n'est plus rempli. L'API change l'état en créant une ligne à `/api/incident-state-timeline`.           |
 
@@ -208,6 +208,12 @@ Un incident est résolu quand il passe d'un état situé au-dessus de votre éta
 - **Marque le SLA comme résolu** et, quand les brouillons de post-mortem de OneUptime AI sont activés, rédige un post-mortem.
 
 Passer de **Résolu** à un état qui le suit — **Closed**, par exemple — n'est pas une seconde résolution : rien de tout cela ne s'exécute de nouveau, et aucun nouveau SLA ne démarre. Un incident déclaré avant que OneUptime ne commence à enregistrer cela rend ses moniteurs à sa prochaine résolution, comme avant.
+
+## Saisir la cause racine en résolvant
+
+Quand l'en-tête de l'incident le résout, avec **Résoudre** ou avec **Changer l'état en** un état résolu, la confirmation replie une **Cause racine** facultative sous **Ajouter la cause racine** : pourquoi il s'est produit. Ce que vous y écrivez devient la cause racine de l'incident, comme si vous l'aviez saisi sur sa page **Cause racine**, et l'investigation de l'incident par OneUptime AI est évaluée par rapport à elle (voir [Comment OneUptime AI s'en sort](/docs/ai/ai-sre#comment-oneuptime-ai-sen-sort)). Si vous la laissez vide, l'incident est résolu comme avant et garde la cause racine qu'il a.
+
+La saisir demande la permission de modifier l'incident, en plus de celle de changer son état : à qui ne l'a pas, **Ajouter la cause racine** n'est pas proposé, et un changement d'état qu'il envoie avec une cause racine est refusé en entier, si bien que l'incident garde son état. Par l'API, envoyez-la avec la ligne que vous créez à `/api/incident-state-timeline`, en tant que `writtenRootCause` dans `miscDataProps`.
 
 ## La chronologie d'état
 

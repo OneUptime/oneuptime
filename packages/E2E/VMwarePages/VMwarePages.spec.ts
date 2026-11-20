@@ -306,8 +306,7 @@ async function backgroundOf(locator: Locator): Promise<string> {
   });
 }
 
-// Tailwind's red-700 and amber-700, as computed colours.
-const RED_700: string = "rgb(185, 28, 28)";
+// Tailwind's amber-700, as a computed colour.
 const AMBER_700: string = "rgb(180, 83, 9)";
 // Tailwind's red-500, amber-500 and emerald-500: a tile's bar.
 const RED_500: string = "rgb(239, 68, 68)";
@@ -891,16 +890,24 @@ test.describe("the lists", () => {
     page: Page;
   }) => {
     await openPage(page, `${VCENTER_PATH}/datastores`);
-    expect(
-      await colourOf(
-        listRow(page, "ds-prod-01").getByText("93.0%", { exact: false }),
-      ),
-    ).toBe(RED_700);
-    expect(
-      await colourOf(
-        listRow(page, "ds-prod-02").getByText("84.0%", { exact: false }),
-      ),
-    ).toBe(AMBER_700);
+    /*
+     * How full each datastore is, on the shared Used bar (#9539): its
+     * percent, and the bar red past 90% and amber past 80%, the levels its
+     * alerts and Needs attention use.
+     */
+    for (const [name, percent, level, colour] of [
+      ["ds-prod-01", "93%", "critical", RED_500],
+      ["ds-prod-02", "84%", "warning", AMBER_500],
+    ] as Array<[string, string, string, string]>) {
+      const used: Locator = listRow(page, name).getByTestId("storage-usage");
+      await expect(
+        used.getByRole("meter", { name: `${percent} used` }),
+      ).toBeVisible();
+      await expect(used).toContainText(percent);
+      const fill: Locator = used.getByTestId("storage-usage-fill");
+      await expect(fill).toHaveAttribute("data-level", level);
+      expect(await backgroundOf(fill)).toBe(colour);
+    }
     await expectTablesFitTheirCards(page);
 
     await openPage(page, `${VCENTER_PATH}/resource-pools`);

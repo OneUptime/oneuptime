@@ -6,6 +6,7 @@ import CloudStreamActivity, {
 import CloudStreamAuthenticator, {
   CloudStreamAuthentication,
 } from "Common/Server/Utils/CloudConnection/CloudStreamAuthentication";
+import CloudStreamReadings from "Common/Server/Utils/CloudConnection/CloudStreamReadings";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -26,8 +27,10 @@ import {
   CLOUD_STREAM_REQUESTS_PER_MINUTE,
   CloudStreamRefusalReason,
   FIREHOSE_ACCESS_KEY_HEADER,
+  FIREHOSE_COMMON_ATTRIBUTES_HEADER,
   FIREHOSE_SOURCE_ARN_HEADER,
 } from "Common/Types/CloudConnection/CloudStream";
+import { readAwsStreamStack } from "Common/Types/CloudConnection/CloudStreamStack";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -89,7 +92,9 @@ import MetricsQueueService from "./Queue/MetricsQueueService";
  *      pipelines, retention, billing and finding each datapoint's cloud
  *      resource apply to them as to any other telemetry. A queue that
  *      cannot take them is 503, which Firehose sends again;
- *   8. noted on the connection (CloudStreamActivity) and answered 200.
+ *   8. what its resources' readings are made of kept for the connection's
+ *      read (CloudStreamReadings), noted on the connection
+ *      (CloudStreamActivity) and answered 200.
  *
  * Every answer is in Firehose's own shape (sendFirehoseResponse), with the
  * request's id. A delivery that cannot be told apart - no key, a wrong one -
@@ -279,6 +284,10 @@ export default class AwsFirehoseIngestService {
           ),
           now,
           budget,
+          // What its stack streams, as its template says (CloudStreamStack).
+          stack: readAwsStreamStack(
+            req.headers[FIREHOSE_COMMON_ATTRIBUTES_HEADER],
+          ),
         });
       } catch (error) {
         if (error instanceof RangeError) {
@@ -308,6 +317,16 @@ export default class AwsFirehoseIngestService {
       }
 
       await FirehoseDeliveryLedger.markTaken({ connectionId, requestId });
+
+      /*
+       * What its resources' readings are made of, kept for the connection's
+       * read (CloudStreamReadings): never fails the delivery, which is taken.
+       */
+      await CloudStreamReadings.noteDelivery({
+        connectionId: connectionId.toString(),
+        minutes: delivery.readingMinutes,
+        sources: Array.from(delivery.sightings.metrics.values()),
+      });
 
       CloudStreamActivity.noteDelivery({
         connectionId,
@@ -342,6 +361,8 @@ export default class AwsFirehoseIngestService {
         accountId: metrics.accountId,
         region: metrics.region,
         namespaces: Array.from(metrics.namespaces),
+        templateVersion: metrics.stack.templateVersion,
+        everyMetric: metrics.stack.everyMetric,
       });
     }
 

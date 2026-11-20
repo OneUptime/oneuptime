@@ -127,7 +127,7 @@ Tout ce que conserve Sécurité des données est un enregistrement de l'API OneU
 | Les magasins de données, leurs chronologies, leurs détections, qui peut y accéder et chaque identité qui le peut | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Les problèmes, leurs chronologies et les flux de données | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Les analyses | `/data-security-scan` |
-| Les types de données personnalisés, les paramètres des contrôles et les règles de résidence | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Les types de données personnalisés, les paramètres des contrôles, les paramètres de conformité et les règles de résidence | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Les paramètres du projet | `/data-security-setting` |
 | Les propriétaires, les règles de propriétaire et les règles d'étiquettes | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ Quelques réponses sont calculées à la demande plutôt que stockées. Chacune 
 | --- | --- |
 | `/data-security/overview` | Les chiffres de la Vue d'ensemble : les magasins de données par sensibilité et par catégorie, les problèmes ouverts par gravité, les problèmes les plus risqués et ceux des 30 derniers jours |
 | `/data-security/compliance` | Le score et les exigences de chaque référentiel |
+| `/data-security/resource-scope` | Les magasins de données d'une ressource - un cluster Kubernetes, un hôte Docker ou Podman, une base de données, un service ou une ressource cloud - et la ressource dont ils suivent les interrupteurs de conformité |
+| `/data-security/resource-compliance` | Les référentiels d'une ressource : leurs scores pour ses magasins de données, et ce qui est désactivé pour elle |
 | `/data-security/record-of-processing` | Le registre des traitements du RGPD, une ligne pour chaque magasin de données qui contient des données personnelles |
 | `/data-store/<id>/scan-now` | **Analyser maintenant** : échantillonne aussitôt le contenu du magasin de données |
 | `/data-store/<id>/check-now` | **Contrôler maintenant** : relit la configuration du magasin de données et exécute ses contrôles |
 | `/data-store-finding/<id>/scrub` | **Nettoyer** sur une détection de télémétrie |
+| `/data-store-finding/<id>/drop-metric-impact` | Ce que ferait **Abandonner cette métrique** pour une détection dans le nom d'une métrique : combien de métriques elle abandonnerait, et les moniteurs et tableaux de bord qui les lisent |
+| `/data-store-finding/<id>/drop-metric` | **Abandonner cette métrique** : une règle de pipeline de métriques qui abandonne définitivement les nouveaux points de données de ces métriques du service. Elle prend `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Expliquer avec l'IA** sur un problème |
 | `/data-security-issue/<id>/fix-with-ai` | **Corriger avec l'IA** sur un problème |
 | `/data-store/<id>/response-actions` | Les actions de réponse que le magasin de données peut effectuer maintenant, et la raison quand il ne le peut pas |
 | `/data-store/<id>/respond` | Une action de réponse sur le magasin de données, comme **Bloquer l'accès public** ou **Activer le versioning**, avec le problème depuis lequel l'action a été lancée |
 
-Le [fournisseur Terraform](/docs/terraform/index) a une ressource pour chaque sorte d'enregistrement que vous créez - les magasins de données que vous ajoutez vous-même, les types de données personnalisés, les paramètres des contrôles, les règles de résidence, les règles de propriétaire et d'étiquettes - nommée d'après l'enregistrement, comme `oneuptime_residency_rule`.
+Le [fournisseur Terraform](/docs/terraform/index) a une ressource pour chaque sorte d'enregistrement que vous créez - les magasins de données que vous ajoutez vous-même, les types de données personnalisés, les paramètres des contrôles, les paramètres de conformité, les règles de résidence, les règles de propriétaire et d'étiquettes - nommée d'après l'enregistrement, comme `oneuptime_residency_rule`.
 
-Le [serveur MCP](/docs/ai/mcp-server) a des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour ces enregistrements : Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule et Data Security Setting. Un assistant IA peut alors demander quels magasins de données contiennent des numéros de carte, ou ce qui est ouvert sur un bucket, avec vos autorisations.
+Le [serveur MCP](/docs/ai/mcp-server) a des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour ces enregistrements : Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule et Data Security Setting. Un assistant IA peut alors demander quels magasins de données contiennent des numéros de carte, ou ce qui est ouvert sur un bucket, avec vos autorisations.
 
 ## Prochaines étapes
 

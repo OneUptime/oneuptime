@@ -522,3 +522,92 @@ describe("Docker Swarm Insights charts", () => {
     expect(code).not.toContain("InfoTooltip");
   });
 });
+
+/*
+ * "2/3 nodes ready" and "4/6 tasks running" said something was wrong,
+ * never which or why (#9594): beside each chip, the count of what is wrong
+ * opens exactly those parts, by the swarm's rules, through the shared pill.
+ */
+describe("Docker Swarm overview: counts of what is wrong open which, and why", () => {
+  const code: string = readCode("Index.tsx");
+
+  test("the nodes not ready and the tasks failing come from the swarm's rules, while it reports", () => {
+    expect(code).toContain(
+      'import ResourceAttentionPill, { ComponentProps as ResourceAttentionPillProps, } from "../../../Components/ResourcePart/ResourceAttentionPill";',
+    );
+    expect(code).toContain(
+      "inventory && isConnected ? getDockerSwarmNodesNotReadyItems({",
+    );
+    expect(code).toContain(
+      "inventory && isConnected ? getDockerSwarmFailingTaskItems({",
+    );
+  });
+
+  test("each count sits after its chip, which still opens the whole list", () => {
+    // The chip keeps its link to the whole list.
+    const nodes: string = between(
+      code,
+      'route: routes.nodesRoute, testId: "docker-swarm-hero-nodes",',
+      "if (managersTotal > 0)",
+    );
+    expect(nodes).toContain('testId: "docker-swarm-hero-nodes-not-ready"');
+    expect(nodes).toContain('hint: "Show which nodes and why"');
+
+    const tasks: string = between(
+      code,
+      'route: routes.tasksRoute, testId: "docker-swarm-hero-tasks",',
+      "if (stackCount > 0)",
+    );
+    expect(tasks).toContain('testId: "docker-swarm-hero-tasks-failing"');
+    expect(tasks).toContain('hint: "Show which tasks and why"');
+
+    // Drawn right after the chip's link, never inside it.
+    expect(code).toContain("</Link> {problem} </React.Fragment>");
+  });
+
+  /*
+   * "3 managers" said nothing while a swarm lost its managers' majority
+   * (#9729): after it, the managers the majority cannot count on open,
+   * by the rule the quorum counts them with, while the agent reports.
+   */
+  test("the managers chip opens the managers out of reach, by the quorum's own rule, while it reports", () => {
+    expect(code).toContain(
+      'const managersProblem: ResourceAttentionPillProps | undefined = inventory && isConnected ? getDockerSwarmManagersPill({ items: getDockerSwarmManagersOutOfReachItems({ rows: inventory.rows, clusterName: (cluster.name as string | undefined) || "", routeFor: routes.getPartRoute, }), translator: translator, }) : undefined;',
+    );
+    const managers: string = between(
+      code,
+      'route: routes.nodesRoute, testId: "docker-swarm-hero-managers",',
+      "if (servicesTotal > 0)",
+    );
+    // The chip keeps its link to the nodes; its count of what is wrong sits after it.
+    expect(managers).toContain("problem: managersProblem,");
+    expect(code).toContain(
+      'testId: "docker-swarm-hero-managers-out-of-reach", label: words, tone: getResourceAttentionTone(data.items), hint: DOCKER_SWARM_MANAGERS_HINT,',
+    );
+  });
+
+  test("the quorum and the managers' list read one rule of who is out of reach", () => {
+    const health: string = fs
+      .readFileSync(
+        path.join(
+          DASHBOARD_DIR,
+          "Pages",
+          "DockerSwarm",
+          "Utils",
+          "DockerSwarmHealth.ts",
+        ),
+        "utf8",
+      )
+      .replace(BLOCK_COMMENT, " ")
+      .replace(LINE_COMMENT, "$1")
+      .replace(WHITESPACE, " ");
+    expect(health).toContain(
+      "return !isDockerSwarmManagerOutOfReach(row); }, ).length;",
+    );
+    expect(health).toContain(
+      "if (!isDockerSwarmManagerOutOfReach(row)) { continue; }",
+    );
+    // Needs attention and the managers' list share the swarm's own row.
+    expect(health.split("getDockerSwarmQuorumItem({").length - 1).toBe(2);
+  });
+});

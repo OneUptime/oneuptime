@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import Route from "Common/Types/API/Route";
 import {
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
@@ -168,6 +169,55 @@ describe("getSecurityEventExceptionRoute", () => {
   });
 });
 
+/*
+ * The very line an event was read from (#9620): the logs explorer open on
+ * it by its id - read with the reader's own permissions - with its
+ * service's lines in the second around it under it.
+ */
+describe("getSecurityEventLogLineRoute", () => {
+  test("opens the line by its id and when it was written, over its service's second", () => {
+    const route: Route | null = Links.getSecurityEventLogLineRoute(
+      logEvent({ traceId: "4bf92f3577b34da6a3ce929d0e0e4736" }),
+    );
+    const query: URLSearchParams = queryOf(route!);
+
+    expect(pathOf(route!)).toContain("/logs");
+    expect(query.get("log")).toBe(LOG_ID);
+    expect(new Date(query.get("logTime")!).getTime()).toBe(TIME.getTime());
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["primaryEntityId", [SERVICE_ID]],
+    ]);
+    expect(query.get("range")).toBe("Custom");
+    expect(new Date(query.get("start")!).getTime()).toBe(
+      TIME.getTime() - Links.NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000,
+    );
+    expect(new Date(query.get("end")!).getTime()).toBe(
+      TIME.getTime() + Links.NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 1000,
+    );
+  });
+
+  test("a line whose service is not known still opens, over the second around it", () => {
+    const route: Route | null = Links.getSecurityEventLogLineRoute(
+      event({ attributes: { [SECURITY_LOG_ID_ATTRIBUTE]: LOG_ID } }),
+    );
+    const query: URLSearchParams = queryOf(route!);
+
+    expect(query.get("log")).toBe(LOG_ID);
+    expect(query.get("filters")).toBeNull();
+  });
+
+  test("an event read from no log line, or that says not when, opens none", () => {
+    expect(Links.getSecurityEventLogLineRoute(event())).toBeNull();
+    expect(
+      Links.getSecurityEventLogLineRoute(
+        Object.assign(new SecurityEvent(), {
+          attributes: { [SECURITY_LOG_ID_ATTRIBUTE]: LOG_ID },
+        }),
+      ),
+    ).toBeNull();
+  });
+});
+
 describe("getSecurityEventLogsLink", () => {
   test("a line written inside a request opens every line of that request", () => {
     const link: ReturnType<typeof Links.getSecurityEventLogsLink> =
@@ -192,24 +242,13 @@ describe("getSecurityEventLogsLink", () => {
     );
   });
 
-  test("a line outside any request opens its service's lines in the second around it", () => {
-    const link: ReturnType<typeof Links.getSecurityEventLogsLink> =
-      Links.getSecurityEventLogsLink(logEvent());
-    const query: URLSearchParams = queryOf(link!.route);
-
-    expect(link!.scope).toBe("neighbours");
-    expect(JSON.parse(query.get("filters")!)).toEqual([
-      ["primaryEntityId", [SERVICE_ID]],
-    ]);
-    expect(
-      new Date(query.get("end")!).getTime() -
-        new Date(query.get("start")!).getTime(),
-    ).toBe(Links.NEIGHBOUR_LOGS_WINDOW_IN_SECONDS * 2 * 1000);
+  test("a line outside any request has no request's lines: the line itself opens with its neighbours", () => {
+    expect(Links.getSecurityEventLogsLink(logEvent())).toBeNull();
+    expect(Links.getSecurityEventLogLineRoute(logEvent())).not.toBeNull();
   });
 
   test("an event with neither a trace nor a log line has no logs to open", () => {
     expect(Links.getSecurityEventLogsLink(event())).toBeNull();
-    // A line whose service is unknown cannot be found among the logs.
     expect(
       Links.getSecurityEventLogsLink(
         event({ attributes: { [SECURITY_LOG_ID_ATTRIBUTE]: LOG_ID } }),

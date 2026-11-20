@@ -218,6 +218,7 @@ En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbund
 - Hver post læses, som **Dine logs** læser den fra en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- og Azure-regler matcher den.
 - En hændelse får tidspunktet, hvor den gemmes, med postens egen tid i `oneuptime.cloud.record_time`: En auditlog når OneUptime minutter for sent, og en regel læser hændelser efter deres tid.
 - Kontoens egen læsning giver ikke mere: datahændelser, Data Access-logs og Microsoft Entra ID's logs kræver stadig **Dine logs** eller en [forbindelse](/docs/integrations/microsoft-entra-id).
+- Hver begivenhed nævner de cloud-ressourcer, dens post handler om, ved deres egne ID'er - et ARN, et Azure-ressource-ID, et ressourcenavn fra Google Cloud - så den vises på siden **Sikkerhedshændelser** for hver af dem og på en serverløs funktions, så snart dens telemetri angiver `cloud.account.id` og `cloud.region`.
 
 ### Forbind et sikkerhedsprodukt
 
@@ -371,7 +372,7 @@ flowchart TB
 3. **Navn** udfyldes med regelens `title`: skriv ovenpå for at kalde reglen noget andet. En ny regel kører; **Aktiveret** står i dens redigeringsformular.
 4. Lad **Åbn en sag ved match** være slået til under **Ved match** for at samle regelens match i sager efter den værdi, reglen grupperer efter.
 5. Vælg under **Advarsler og hændelser**, hvad et match ellers udløser: **Opret en advarsel** (standard), **Erklær en hændelse**, **Begge** eller **Ingen af dem**, med en valgfri **Advarselsalvor** eller **Hændelsesalvor**.
-6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til), **Kør i realtid** (fra) og hvordan match tælles; se [Evalueringsindstillinger](#evalueringsindstillinger).
+6. **Flere felter** rummer **Beskrivelse**, **Skriv Detection Finding ved match** (til), **Kør i realtid** (fra), hvordan match tælles, og **Responstrin**: hvad der skal gøres, når reglen åbner en sag, hvert trin under den del af sagens Responsplan, du vælger, højst 10. Træk et trin i dets greb, eller brug **Flyt op** og **Flyt ned**: sagens plan viser hver dels trin i den rækkefølge, du giver dem. Se [Evalueringsindstillinger](#evalueringsindstillinger).
 :::
 
 En første regel, der matcher mislykkede logins uden for `10.x.x.x`:

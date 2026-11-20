@@ -35,6 +35,7 @@ flowchart LR
 | Node-collector | DaemonSet | Podlogs uit `/var/log/pods`, kubelet- en cAdvisor-metrieken, en de besturingssysteemmetrieken van de node. | Ja |
 | eBPF-instrumentatie (OBI) | DaemonSet | HTTP-, gRPC-, SQL- en Redis-traces en verzoekmetrieken van elke pod, en de servicemap. | Ja |
 | Kubernetes AI-agent | Deployment | Laat OneUptime AI alleen-lezen `kubectl` uitvoeren terwijl het een incident of waarschuwing op dit cluster onderzoekt. | Ja |
+| Kostenengine en poller | Deployments | Wat elke namespace en workload kost: OpenCost, de kleine Prometheus die het nodig heeft, en de kostenagent die verstuurt wat ze berekenen. | Ja, behalve met de presets `gke-autopilot` en `eks-fargate` |
 | Log-tailer | Deployment | Podlogs via de Kubernetes-API, waar de node-collector ze niet kan lezen. | Met de presets `gke-autopilot`, `eks-fargate` en `openshift-restricted` |
 | eBPF-profiler | DaemonSet | Doorlopende CPU-flamegraphs van elk proces. | Nee |
 | kube-state-metrics | Deployment | Podfasen, wachtredenen van containers en resourcequota. | Nee |
@@ -357,14 +358,14 @@ Profilering vereist **Linux 5.10** of later, en een geprivilegieerde pod met de 
 | --- | --- | --- |
 | `hostMetrics.enabled` | aan | De besturingssysteemmetrieken van elke node uit `/proc` en `/sys`: schijf-I/O-wachtrijen, inodes van bestandssystemen, fouten van netwerkinterfaces, paging en load average. Draait in de node-collector, zonder extra pods. |
 | `kubeletstats.utilizationMetrics.enabled` | aan | CPU en geheugen van containers en pods als percentage van hun request en limit, die de sjablonen Pod CPU Saturating Container Limit en Pod Memory Saturating Container Limit lezen. Een container zonder limit (of request) krijgt geen van deze reeksen, en een pod alleen als elke container erin er een heeft. |
-| `kubeletstats.volumeMetrics.enabled` | aan | De vrije en totale ruimte van elke PVC (`k8s.volume.available`, `k8s.volume.capacity`), voor eigen grafieken en metric-monitors: geen ingebouwd sjabloon leest ze. Eén reeks per PVC per pod. |
+| `kubeletstats.volumeMetrics.enabled` | aan | De vrije en totale ruimte van elke PVC (`k8s.volume.available`, `k8s.volume.capacity`), genoemd naar zijn claim: het gebruik, de vrije ruimte en de capaciteit op de pagina's van de Persistent Volume Claims, en wat de sjabloon PVC Almost Full leest. Vanaf 80% vol staat een claim onder Vraagt aandacht van het cluster. Een paar series per volume en pod, voor de volumes die gegevens bevatten (claims, emptyDirs, hostPaths): de configMap-, secret-, downwardAPI- en serviceaccounttokenvolumes van een pod worden op de node weggelaten. |
 | `cadvisor.enabled` | aan | CPU-throttling en OOM-kills uit de `/metrics/cadvisor` van elke kubelet: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` en `container_oom_events_total`, en verder niets. |
 | `kubeStateMetrics.enabled` | uit | Podfasen (Pending, Terminating), pods die niet gepland kunnen worden, wachtredenen van containers (CrashLoopBackOff, ImagePullBackOff) en het gebruik van resourcequota, uit kube-state-metrics. `kubeStateMetrics.mode: bundled` (de standaard) draait een kleine kube-state-metrics voor je; `external` leest er een die je al draait, op `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | uit | De Kubernetes-auditlog, `/var/log/kubernetes/audit.log`: elk verzoek aan de API, door wie, waarop. Alleen zelfbeheerde clusters: beheerde clusters (EKS, GKE, AKS, DOKS) sturen hem naar de cloudprovider. |
 | `csi.enabled` | uit | De metrieken van CSI-opslagdrivers, van pods met het label `app=csi-driver` of `app.kubernetes.io/component=csi-driver`: koppel- en ontkoppeltijden van volumes, provisioningfouten, IOPS. |
 | `coreDns.enabled` | uit | De metrieken van CoreDNS op `:9153/metrics`: querysnelheid, latentie, cachehits en fouten. |
 | `controlPlane.enabled` | uit | De API-server, op zijn adres binnen het cluster, en etcd, de scheduler en de controller manager op de endpoints die je opgeeft ([Controlevlakmonitoring inschakelen](/docs/telemetry/kubernetes-agent#controlevlakmonitoring-inschakelen)). Alleen zelfbeheerde clusters: beheerde clusters stellen ze niet beschikbaar. |
-| `cost.enabled` | uit | Wat elke workload kost. Zie [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Wat elke namespace en workload kost, met inactieve capaciteit en efficiëntie, ook als metrieken om op te waarschuwen: aan, behalve met de presets `gke-autopilot` en `eks-fargate`; `false` zet het uit. Zie [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost). |
 
 ## Veelgebruikte opties
 

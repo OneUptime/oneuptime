@@ -49,7 +49,11 @@ Deze vier widgets lezen een metrics-query, opgebouwd zoals de metrics-verkenner 
 
 ### Grafiek
 
-Een tijdreeks van een of meer metrics-query's over het tijdsbereik van het dashboard. **Grafiektype** tekent haar als lijn-, staaf-, vlak-, gestapelde vlak- of cirkeldiagram. **Extra query's** legt meer metrics op dezelfde assen, en **Formules** combineert ze met `+`, `-`, `*`, `/`, `%`, `^` en haakjes, zoals in `(1 - a) * 100`. De weergave-instellingen van elke query voegen een legenda en een eenheid toe, een kleur, waarschuwings- en kritieke lijnen, en een snelheid per seconde voor tellers die alleen maar groeien.
+Een tijdreeks van een of meer metrics-query's over het tijdsbereik van het dashboard. **Grafiektype** tekent haar als lijn-, staaf-, vlak-, gestapelde vlak- of cirkeldiagram. **Query toevoegen** voegt nog een metrics-query toe, en **Formule toevoegen** een formule om ze te combineren met `+`, `-`, `*`, `/`, `%`, `^` en haakjes, zoals in `(1 - a) * 100`. De **Weergave-instellingen** van elke query voegen een legenda en een eenheid toe, een kleur, waarschuwings- en kritieke lijnen, en een snelheid per seconde voor tellers die alleen maar groeien.
+
+Elke query tekent een eigen grafiek, onder elkaar in de widget. Om een query in plaats daarvan in de grafiek van de query ervoor te tekenen, als extra lijnen op dezelfde assen, zet je **Over de vorige query leggen** aan in de **Weergave-instellingen** ervan: bijvoorbeeld `mem_used` en `mem_total` in één grafiek. Elke query na de eerste heeft deze schakelaar, en elke query waarbij hij aan staat, komt in dezelfde grafiek, zodat drie of meer query's er één kunnen delen. Zet hem uit om de query weer een eigen grafiek te geven.
+
+Een over elkaar gelegde grafiek neemt zijn titel, zijn grafiektype en zijn waardeas over van zijn eerste query, dus elke query erin wordt gelezen in de eenheid van die query. Een query in een andere eenheid van dezelfde soort wordt getekend in de eenheid van de grafiek, zoals megabytes in een grafiek in gigabytes, of seconden in een grafiek in milliseconden. Een eenheid van een andere soort is niet af te lezen op die as, zoals bytes in een grafiek in procenten: de query wordt er toch getekend, en de grafiek en de schakelaar zeggen allebei dat de eenheden verschillen, dus geef zo'n query een eigen grafiek.
 
 Gebruik hem als de vorm van de lijn het verhaal vertelt: latentie, fouten, doorvoer of de lengte van een wachtrij.
 

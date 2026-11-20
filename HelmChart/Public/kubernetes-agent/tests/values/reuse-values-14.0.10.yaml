@@ -31,3 +31,13 @@ ebpf:
   extraSpanAttributes: null
   nodejs: null
   routes: null
+# 14.0.10 did not read RBAC, service accounts or network policies (#9627).
+resourceSpecs:
+  compliance: null
+# 14.0.10 granted nodes/proxy on every cluster, and its cost Prometheus read
+# cAdvisor through the API server's node proxy (#9878).
+kubeletstats:
+  nodesProxy: null
+cost:
+  prometheus:
+    nodesProxy: null

@@ -1,5 +1,6 @@
 import ChatAgentRunner, {
   ChatTurnRequest,
+  MAX_LLM_CALL_ERROR_LENGTH,
   applyHistoryTokenBudget,
   buildEvidenceDigest,
   buildReplayedHistoryMessage,
@@ -19,6 +20,8 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
 import AIConversationMessage from "../../../../Models/DatabaseModels/AIConversationMessage";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
+import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIChatMessageRole from "../../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../../Types/AI/AIChatMessageStatus";
 import AIChatPageContextType, {
@@ -40,6 +43,12 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import OnCallTestPageService from "../../../../Server/Services/OnCallTestPageService";
+import {
+  OnCallTestPageKind,
+  OnCallTestPageResult,
+  OnCallTestPageStatus,
+} from "../../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -762,6 +771,97 @@ describe("ChatAgentRunner.runTurn — history replay", () => {
     // A long conversation gets no generated title.
     expect(spies.executeWithLogging).toHaveBeenCalledTimes(1);
   });
+
+  /*
+   * #7249: a test page sent from an answer is kept on it, and the next
+   * turn's model reads what became of it - read now, as the person asking,
+   * after that answer's own words - so "did the test page reach Ana?" is
+   * answered from it.
+   */
+  test("an answer a test page was sent from ends with what became of it, read as the person asking", async () => {
+    const runId: string = "72490000-0000-4000-8000-0000000000aa";
+    const history: Array<AIConversationMessage> = [
+      buildHistoryMessage({
+        role: AIChatMessageRole.User,
+        content: "Did the test page reach Ana?",
+      }),
+      buildHistoryMessage({
+        role: AIChatMessageRole.Assistant,
+        content: "Set up: the monitor and who is paged.",
+        widgets: [
+          {
+            id: "W1",
+            type: AIChatWidgetType.ResourceCard,
+            title: "Created",
+            data: {
+              heading: "Default on-call policy",
+              testPage: {
+                kind: "policy",
+                policyId: "72490000-0000-4000-8000-0000000000bb",
+                sent: {
+                  executionLogId: runId,
+                  sentAt: "2026-11-19T10:15:00.000Z",
+                },
+              },
+            },
+          },
+        ],
+      }),
+    ];
+
+    const spies: RunnerSpies = installRunnerSpies({ history, titleCount: 5 });
+    const request: ChatTurnRequest = buildRequest();
+    const getResult: jest.SpyInstance = jest
+      .spyOn(OnCallTestPageService, "getResult")
+      .mockResolvedValue({
+        executionLogId: runId,
+        kind: OnCallTestPageKind.Policy,
+        policyId: "72490000-0000-4000-8000-0000000000bb",
+        policyName: "Default on-call policy",
+        recordKind: "Incident",
+        severityName: "Critical",
+        walksEscalation: false,
+        status: OnCallTestPageStatus.Acknowledged,
+        statusMessage: "",
+        startedAt: "2026-11-19T10:15:00.000Z",
+        endsAt: "2026-11-19T10:45:00.000Z",
+        acknowledgedByName: "Ana",
+        acknowledgedChannel: "SMS",
+        acknowledgedAfterSeconds: 42,
+        steps: [],
+      } as unknown as OnCallTestPageResult);
+
+    await ChatAgentRunner.runTurn(request);
+    await flushAsync();
+
+    expect(getResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: request.projectId,
+        props: request.props,
+      }),
+    );
+    expect(
+      (
+        getResult.mock.calls[0]?.[0] as { executionLogId: ObjectID }
+      ).executionLogId.toString(),
+    ).toBe(runId);
+
+    const llmRequest: AILogRequest = spies.executeWithLogging.mock
+      .calls[0]?.[0] as AILogRequest;
+    const answer: string =
+      llmRequest.messages.find((message: { content: string }): boolean => {
+        return message.content.startsWith("Set up:");
+      })?.content || "";
+
+    expect(answer).toContain("[A test page was sent from this answer.");
+    expect(answer).toContain("status=Acknowledged");
+    expect(answer).toContain("acknowledgedBy=Ana");
+    expect(answer).toContain("acknowledgedAfterSeconds=42");
+    // After the answer's own words.
+    expect(answer.indexOf("Set up:")).toBeLessThan(
+      answer.indexOf("[A test page was sent"),
+    );
+  });
 });
 
 describe("ChatAgentRunner.runTurn — output truncation notice", () => {
@@ -1006,5 +1106,111 @@ describe("ChatAgentRunner.runTurn — one chat is one conversation in OneUptime'
     expect(requests[1]!.conversationId?.toString()).toBe(
       firstTurn.conversationId.toString(),
     );
+  });
+});
+
+/*
+ * Issue #6488: a model call of an Ask AI turn that fails for good (after
+ * LLMService's own retries) says so in the turn's activity, as an
+ * investigation's does: its LlmCallStarted is closed by an LlmCallFailed
+ * that keeps the provider's words, so the call's "Thinking" ends, failed,
+ * instead of spinning until the turn's error notice replaces it.
+ */
+describe("ChatAgentRunner.runTurn — a model call that fails says so in the activity", () => {
+  function emittedEvents(spy: jest.SpyInstance): Array<AIRunEvent> {
+    return spy.mock.calls.map((call: Array<unknown>): AIRunEvent => {
+      return (call[0] as { data: AIRunEvent }).data;
+    });
+  }
+
+  test("writes one LlmCallFailed after its LlmCallStarted, with the provider's message, and the turn fails as before", async () => {
+    const spies: RunnerSpies = installRunnerSpies({});
+    const eventCreate: jest.SpyInstance = jest
+      .spyOn(AIRunEventService, "create")
+      .mockResolvedValue({} as never);
+    spies.executeWithLogging.mockRejectedValue(
+      new Error(
+        "OpenAICompatible API request failed: 503 upstream connect error",
+      ) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    const events: Array<AIRunEvent> = emittedEvents(eventCreate);
+    const types: Array<AIRunEventType | undefined> = events.map(
+      (event: AIRunEvent): AIRunEventType | undefined => {
+        return event.eventType;
+      },
+    );
+
+    expect(
+      types.filter((type: AIRunEventType | undefined): boolean => {
+        return type === AIRunEventType.LlmCallFailed;
+      }),
+    ).toHaveLength(1);
+    expect(types.indexOf(AIRunEventType.LlmCallFailed)).toBe(
+      types.indexOf(AIRunEventType.LlmCallStarted) + 1,
+    );
+
+    const failed: AIRunEvent = events.find((event: AIRunEvent): boolean => {
+      return event.eventType === AIRunEventType.LlmCallFailed;
+    })!;
+    expect(failed.resultSummary?.errorMessage).toBe(
+      "OpenAICompatible API request failed: 503 upstream connect error",
+    );
+    // Sequenced before the turn's own RunFailed, which comes last.
+    expect(types[types.length - 1]).toBe(AIRunEventType.RunFailed);
+
+    // The turn still fails, with the provider's words on its notice.
+    const errored: JSONObject | undefined = findCallWithDataKey(
+      spies.messageUpdateOneBy,
+      "errorMessage",
+    );
+    expect(errored?.["status"]).toBe(AIChatMessageStatus.Error);
+    expect(errored?.["errorMessage"]).toBe(
+      "OpenAICompatible API request failed: 503 upstream connect error",
+    );
+  });
+
+  test("keeps no more of a long provider error than an investigation's step does", async () => {
+    const spies: RunnerSpies = installRunnerSpies({});
+    const eventCreate: jest.SpyInstance = jest
+      .spyOn(AIRunEventService, "create")
+      .mockResolvedValue({} as never);
+    spies.executeWithLogging.mockRejectedValue(
+      new Error(`Provider error: ${"x".repeat(5000)}`) as never,
+    );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    const failed: AIRunEvent | undefined = emittedEvents(eventCreate).find(
+      (event: AIRunEvent): boolean => {
+        return event.eventType === AIRunEventType.LlmCallFailed;
+      },
+    );
+    expect(failed?.resultSummary?.errorMessage).toHaveLength(
+      MAX_LLM_CALL_ERROR_LENGTH,
+    );
+    expect(MAX_LLM_CALL_ERROR_LENGTH).toBe(400);
+  });
+
+  test("a call that answers writes no LlmCallFailed", async () => {
+    installRunnerSpies({});
+    const eventCreate: jest.SpyInstance = jest
+      .spyOn(AIRunEventService, "create")
+      .mockResolvedValue({} as never);
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    expect(
+      emittedEvents(eventCreate).map(
+        (event: AIRunEvent): AIRunEventType | undefined => {
+          return event.eventType;
+        },
+      ),
+    ).not.toContain(AIRunEventType.LlmCallFailed);
   });
 });

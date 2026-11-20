@@ -2,11 +2,13 @@ import {
   CloudCostState,
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudAddedMetric } from "../../../Types/Cloud/CloudAddedMetrics";
 import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
+import { AwsStreamCoverage } from "../../../Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "../../../Types/JSON";
 import {
   DataSourceHttpRequest,
@@ -69,7 +71,9 @@ export interface CloudConnectionPullState {
   /*
    * Per datapoint period, in seconds: where the last metric window ended
    * (exclusive), as an ISO time. The next read starts there, so no
-   * datapoint is written twice.
+   * datapoint is written twice. A period read less often than every read
+   * has a key of its own, its seconds and how often it is read: "300/900",
+   * Azure's five-minute metrics read every 15 minutes (AzureReadGroup).
    */
   cursors?: Record<string, string> | undefined;
   // When the resources were last listed (Azure) or swept for (AWS).
@@ -97,6 +101,14 @@ export interface CloudConnectionPullState {
    * the metrics of the resource types it has (GcpCloudConnector).
    */
   gcpResourceTypesSeen?: Record<string, Record<string, string>> | undefined;
+  /*
+   * Google Cloud: per project, when one of its VMs last reported an Ops
+   * Agent metric - its agent metrics are asked every read for a day after -
+   * and when a read last asked whether one does, which a project none of
+   * whose VMs runs the agent is asked once an hour (getGcpOpsAgentAsk).
+   */
+  gcpOpsAgentSeen?: Record<string, string> | undefined;
+  gcpOpsAgentAskedAt?: Record<string, string> | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
   // When the inventory last listed every resource (CloudInventory).
@@ -257,6 +269,29 @@ export interface CloudReadOptions extends CloudConnectorCallOptions {
   maxDurationMs: number;
   // The resources the connection holds, for a read that lists none.
   knownResources?: Array<CloudKnownResource> | undefined;
+  /*
+   * AWS: what the connection's streams deliver lately, and what each
+   * stack carries (CloudStreamStack). A key metric a stream writes is not
+   * read from CloudWatch, but where a resource's health or headline is
+   * judged from it and its account and Region's streamed readings are not
+   * fresh (awsStreamedReadingSources). None for a connection that does not
+   * stream.
+   */
+  awsStreamCoverage?: AwsStreamCoverage | undefined;
+  /*
+   * AWS: the accounts and Regions ("<account>|<region>", lower case) whose
+   * streams noted their resources' readings lately (CloudStreamReadings):
+   * a key metric their stack carries is left to the stream even where a
+   * resource's health or headline is judged from it. None: every such
+   * metric is read.
+   */
+  awsStreamedReadingSources?: ReadonlySet<string> | undefined;
+  /*
+   * The metrics people added to what the connection reads, beyond each
+   * type's key metrics (CloudAddedMetrics): read with them, in the same
+   * calls wherever a call can carry them. None when nobody added any.
+   */
+  addedMetrics?: Array<CloudAddedMetric> | undefined;
 }
 
 // One resource a read saw, with a friendlier name when the cloud has one.

@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 En liste beder OneUptime om hvert felt i hver post, som nøglen må læse. `--fields` beder i stedet om dem, den nævner, og efter et punktum om et felt i en tilknyttet post, som i `currentIncidentState.name`. En tabel viser seks felter; JSON viser dem alle (se [Outputformater](/docs/cli/output-formats)). `--all` læser hver side, 100 poster ad gangen, op til 100.000; `count` fortæller, hvor mange der er.
 
-Etiketter vises efter navn i stedet for de nyeste først: etiketter, hvis navn begynder med et tal, kommer først, i rækkefølge efter tallet (`2. Team` før `10. Owner`), derefter de øvrige alfabetisk. Vil du have dem i en anden rækkefølge, så angiv `--sort`.
+Etiketter vises efter navn i stedet for de nyeste først: etiketter, hvis navn begynder med et tal, kommer først, i rækkefølge efter tallet (`2. Team` før `10. Owner`), derefter de øvrige alfabetisk. Poster, du ordner ved at trække dem, som hændelsestilstande, vises i den rækkefølge. Vil du have dem i en anden rækkefølge, så angiv `--sort`.
 
 ### Filtrér en liste
 
@@ -206,6 +206,20 @@ Den svarer `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` 
 
 > [!CAUTION]
 > `delete` fjerner posten med det samme. CLI'en beder dig ikke bekræfte, og det kan ikke fortrydes. Den accepterer `--force` til scripts, der er skrevet med det, og `--force` ændrer intet.
+
+### En brugerdefineret rolle, som arbejdsgange kører som
+
+OneUptime sletter kun en brugerdefineret rolle, som arbejdsgange kører som, når sletningen siger, hvad de skal køre som i stedet, og afviser en sletning, der ikke gør det, med navnene på arbejdsgangene. Sig det med `--workflows-run-as`: `Default`, standardtilladelserne, eller `CustomRole`, en anden brugerdefineret rolle, du kunne give et team, med dens ID i `--workflows-run-as-custom-role-id`. Aldrig Projektejer: at slette en rolle giver aldrig en arbejdsgang flere tilladelser.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+En afvist sletning udskriver OneUptimes afvisning, som nævner arbejdsgangene, og derefter de flag, du skal køre den igen med. En rolle, som ingen arbejdsgang kører som, behøver ingen af dem.
 
 ## Tæl poster
 

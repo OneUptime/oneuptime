@@ -25,7 +25,12 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import Toast from "Common/UI/Utils/Toast";
+import {
+  Translator,
+  formatList,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -40,6 +45,7 @@ import AddCallTranscriptModal from "./AddCallTranscriptModal";
 import {
   CALL_TRANSCRIPTS_DOCS_PATH,
   CallTranscriptFromProvider,
+  CallTranscriptRemoved,
   getCallTranscriptFromProvider,
   readCallTranscriptAgain,
   removeCallTranscript,
@@ -94,6 +100,87 @@ export interface ComponentProps {
   onReview: () => void;
   // The call's transcript or its reading changed: read the calls again.
   onChanged: () => void;
+}
+
+/*
+ * What Remove transcript asks before it removes (#9290): everything
+ * OneUptime AI read in the transcript goes with it, from the call, the
+ * feed and the incident's channels, and the root cause someone saved from
+ * it stays - in a dialog description's two short lines (ShortDescriptions
+ * Guard), as the Video Calls docs say it. A message OneUptime cannot
+ * delete is said once the removal is done (sayTranscriptRemoved), where it
+ * stays.
+ */
+export const REMOVE_TRANSCRIPT_DESCRIPTION: string = translationKey(
+  "The transcript of the {{call}} and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.",
+);
+
+// Said once the transcript is gone, and nothing about it stays.
+export const TRANSCRIPT_REMOVED: string = translationKey("Transcript removed");
+
+// Said when a message about it stays where OneUptime could not delete it.
+export const TRANSCRIPT_MESSAGES_LEFT_TITLE: string = translationKey(
+  "Some messages were not deleted",
+);
+export const TRANSCRIPT_MESSAGES_LEFT: string = translationKey(
+  "The transcript is removed, but OneUptime could not delete what it posted about it in {{places}}. Delete it there.",
+);
+
+/*
+ * Said when what OneUptime AI read was posted before OneUptime kept track
+ * of where it posts: a message of it may stay that OneUptime could not
+ * find.
+ */
+export const TRANSCRIPT_MESSAGES_MAY_BE_LEFT_TITLE: string = translationKey(
+  "Some messages may still be posted",
+);
+export const TRANSCRIPT_MESSAGES_MAY_BE_LEFT: string = translationKey(
+  "The transcript is removed. What OneUptime AI read in it was posted before OneUptime kept track of its messages, so it may still be in the incident's Slack, Microsoft Teams or Mattermost channels. Delete it there.",
+);
+
+/*
+ * Says the transcript is gone, in a toast: and where a message about it
+ * stays, in one that stays until it is closed, since the person has to
+ * delete it there.
+ */
+export function sayTranscriptRemoved(data: {
+  removed: CallTranscriptRemoved;
+  translator: Translator;
+}): void {
+  const { removed, translator } = data;
+
+  if (removed.messagesLeftIn.length > 0) {
+    Toast.error(
+      translator.translateText(TRANSCRIPT_MESSAGES_LEFT_TITLE) ||
+        TRANSCRIPT_MESSAGES_LEFT_TITLE,
+      {
+        description: translator.translateTemplate(TRANSCRIPT_MESSAGES_LEFT, {
+          places: formatList(removed.messagesLeftIn, translator),
+        }),
+        dataTestId: "call-transcript-messages-left",
+      },
+    );
+  }
+
+  if (removed.mayHaveMessagesLeft) {
+    Toast.error(
+      translator.translateText(TRANSCRIPT_MESSAGES_MAY_BE_LEFT_TITLE) ||
+        TRANSCRIPT_MESSAGES_MAY_BE_LEFT_TITLE,
+      {
+        description:
+          translator.translateText(TRANSCRIPT_MESSAGES_MAY_BE_LEFT) ||
+          TRANSCRIPT_MESSAGES_MAY_BE_LEFT,
+        dataTestId: "call-transcript-messages-may-be-left",
+      },
+    );
+  }
+
+  if (removed.messagesLeftIn.length === 0 && !removed.mayHaveMessagesLeft) {
+    Toast.success(
+      translator.translateText(TRANSCRIPT_REMOVED) || TRANSCRIPT_REMOVED,
+      { dataTestId: "call-transcript-removed" },
+    );
+  }
 }
 
 const WARNING_REASONS: ReadonlyArray<VideoCallTranscriptUnavailableReason> = [
@@ -993,7 +1080,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title="Remove the transcript?"
           description={translator.translateTemplate(
-            "The transcript of the {{call}} and what OneUptime AI read in it are removed from this incident. The incident's root cause is kept.",
+            REMOVE_TRANSCRIPT_DESCRIPTION,
             { call: props.callLabel },
           )}
           submitButtonText="Remove"
@@ -1009,9 +1096,12 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
             setRemoveError(undefined);
 
             try {
-              await removeCallTranscript({ callId });
+              const removed: CallTranscriptRemoved = await removeCallTranscript(
+                { callId },
+              );
               setIsRemoving(false);
               setIsConfirmingRemove(false);
+              sayTranscriptRemoved({ removed, translator });
               props.onChanged();
             } catch (err) {
               setIsRemoving(false);

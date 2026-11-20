@@ -339,7 +339,7 @@ Was `/ServiceProviderConfig` meldet:
 | ETag | Nein |
 | Authentifizierung | HTTP-Bearer-Token oder ein OAuth-2.0-Zugriffstoken |
 
-Eine Gruppe, die Ihr Identitätsanbieter anlegt, wird im Projekt zu einem Team mit demselben Namen; ein Team, das diesen Namen schon hat, wird statt eines neuen verwendet.
+Eine Gruppe, die Ihr Identitätsanbieter anlegt, wird im Projekt zu einem Team mit demselben Namen. Ein Team, dessen Name gleich lautet, unabhängig von Groß- und Kleinschreibung und Leerzeichen, wird statt eines neuen verwendet und übernimmt die Schreibweise der Gruppe, es sei denn, ein Identitätsanbieter führt dieses Team bereits als eine andere seiner Gruppen: Zwei Gruppen, deren Namen sich nur in Groß- und Kleinschreibung oder Leerzeichen unterscheiden, was Microsoft Entra ID zulässt, bekommen jeweils ein eigenes Team und werden nie zu einem zusammengelegt. Owners und Admin, die sich nicht umbenennen lassen, werden nur bei ihrem genauen Namen verwendet. Eine Gruppe, die in Ihrem Identitätsanbieter umbenannt wird, benennt ihr eigenes Team um, auch in einen Namen, den ein anderes Team hat.
 
 :::details SCIM-Benutzerschema
 ```json
@@ -454,7 +454,7 @@ Benutzer, die SCIM selbst erstellt, und Benutzer, die Mitglieder Ihres Projekts 
 Die E-Mail-Adresse eines OneUptime-Kontos ist das, womit sich die Person anmeldet, in jedem Projekt, zu dem sie gehört, und wohin ihre Links zum Zurücksetzen des Passworts gehen. Daher gilt:
 
 - **OneUptime Cloud**: SCIM ändert nie eine E-Mail-Adresse. Eine Anfrage, die eine ändern würde, gelingt trotzdem: Die Verbindung behält die Adresse, die Ihr Identitätsanbieter gesendet hat, und antwortet mit ihr, während das Konto die Adresse behält, mit der sich die Person anmeldet. Die SCIM-Protokolle der Verbindung vermerken, dass die Änderung nicht übernommen wurde. Bitten Sie den Benutzer, seine Adresse in seinem eigenen OneUptime-Profil zu ändern.
-- **Selbst gehostet**: SCIM ändert die E-Mail-Adresse nur bei einem Benutzer, der diesem Projekt beigetreten ist, zu keinem anderen Projekt gehört und kein OneUptime-Administrator ist. Bei allen anderen behält die Verbindung die neue Adresse und das Konto seine eigene, wie auf OneUptime Cloud.
+- **Selbst gehostet**: SCIM ändert die E-Mail-Adresse nur bei einem Benutzer, der diesem Projekt beigetreten ist, zu keinem anderen Projekt gehört und kein OneUptime-Administrator ist. Bei allen anderen behält die Verbindung die neue Adresse und das Konto seine eigene, wie auf OneUptime Cloud. Dasselbe gilt für eine Adresse, mit der sich schon ein anderes OneUptime-Konto anmeldet.
 
 Für Namen gilt überall dieselbe Regel: SCIM aktualisiert den Namen nur bei einem Benutzer, der diesem Projekt beigetreten ist, zu keinem anderen Projekt gehört und kein OneUptime-Administrator ist. Bei allen anderen bleibt der Name, wie er ist, und der Rest der Anfrage gelingt trotzdem.
 :::

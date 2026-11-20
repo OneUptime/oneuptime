@@ -59,9 +59,15 @@ jest.mock("../../../../../Server/Utils/Logger");
 import {
   CloudAdapter,
   ConfigurationBotFrameworkAuthentication,
+  TeamsInfo,
+  type TeamsPagedMembersResult,
+  type TurnContext,
 } from "botbuilder";
 import WorkspaceLiveMessage from "../../../../../Models/DatabaseModels/WorkspaceLiveMessage";
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
+import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsMiscData,
+} from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import {
   OnCallPageRecordType,
   OnCallPageResult,
@@ -69,8 +75,10 @@ import {
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceClass,
 } from "../../../../../Server/Services/WorkspaceNotificationLogService";
+import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import OnCallPolicyRunMessage from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsCutChatIds from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCutChatIds";
 import MicrosoftTeamsServiceUrl from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsServiceUrl";
 import WorkspacePage, {
   WorkspacePagePlace,
@@ -568,5 +576,287 @@ describe("A place kept before the upgrade, cut to 100 characters", () => {
     await world.settle();
 
     expect(connector.pageCard(PERSONAL_CHAT_ID)).toBeDefined();
+  });
+});
+
+/*
+ * A PLACE KEPT CUT BEFORE THE UPGRADE, OF A CHAT REGISTERED AGAIN AFTER IT
+ * (issue #9330).
+ *
+ * The data migration puts a place back from the chats the project's
+ * connection lists when it runs. Jane had removed the app from her chat
+ * then, so the connection listed no chat to tell hers from its cut id, and
+ * the place stayed cut. She adds the app to the chat again after the
+ * upgrade: the bot registers the chat (an installationUpdate, through the
+ * real chat capture), the place gets the chat's whole id, and the run's
+ * next change reaches the chat.
+ *
+ * The connection is the world's, read by its tenant and written as the
+ * capture writes it: what it saves is what the run's sends then find. The
+ * kept messages are the world's in-memory table, which runs the restore
+ * statement as Postgres does (InMemoryLiveMessages); the statement itself
+ * is run on a real Postgres by RestoreCutMicrosoftTeamsChatIdsPostgres.
+ */
+
+// The OneUptime bot, and Jane as Microsoft Entra knows her.
+const BOT_ID: string = "28:oneuptime-bot";
+const JANE_AAD_OBJECT_ID: string = "1d2c3b4a-0000-4000-8000-0000000000aa";
+const CHAT_SERVICE_URL: string = "https://smba.trafficmanager.net/teams/";
+
+// Another chat whose id starts with the same 100 characters as Jane's.
+const TWIN_CHAT_ID: string = `${CUT_PERSONAL_CHAT_ID}-another-chat-that-starts-the-same-way`;
+
+// Another project, whose rows the restore never reads.
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "93300000-0000-4000-8000-0000000000b1",
+);
+
+// The world's Microsoft Teams connection, as the database hands it out.
+async function teamsConnection(): Promise<WorkspaceProjectAuthToken> {
+  const connection: WorkspaceProjectAuthToken | null =
+    await WorkspaceProjectAuthTokenService.getProjectAuth({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    });
+
+  connection!.id = new ObjectID("93300000-0000-4000-8000-0000000000c1");
+  connection!.miscData = JSON.parse(JSON.stringify(connection!.miscData));
+
+  return connection!;
+}
+
+/*
+ * Chat capture reads the project's connection by its tenant and saves the
+ * chats it lists; the roster of Jane's chat is Jane and the bot.
+ */
+function letTheBotRegisterChats(): void {
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+    .mockImplementation((async (data: {
+      query: { workspaceType?: WorkspaceType; workspaceProjectId?: string };
+    }): Promise<Array<WorkspaceProjectAuthToken>> => {
+      const connection: WorkspaceProjectAuthToken = await teamsConnection();
+
+      return data.query.workspaceType === WorkspaceType.MicrosoftTeams &&
+        data.query.workspaceProjectId === connection.workspaceProjectId
+        ? [connection]
+        : [];
+    }) as never);
+
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "updateOneById")
+    .mockImplementation((async (data: {
+      data: { miscData?: MicrosoftTeamsMiscData };
+    }): Promise<void> => {
+      world.teamsChats = JSON.parse(
+        JSON.stringify(data.data.miscData?.availableChats || {}),
+      );
+    }) as never);
+
+  jest.spyOn(TeamsInfo, "getPagedMembers").mockResolvedValue({
+    members: [
+      { id: BOT_ID, name: "OneUptime" },
+      { id: "29:jane", name: "Jane Doe", aadObjectId: JANE_AAD_OBJECT_ID },
+    ],
+    continuationToken: undefined,
+  } as unknown as TeamsPagedMembersResult);
+}
+
+// Jane adds the OneUptime app to her personal chat: Teams tells the bot.
+async function janeAddsTheAppToHerChat(): Promise<void> {
+  const tenantId: string = (await teamsConnection()).workspaceProjectId!;
+
+  await MicrosoftTeamsUtil.handleInstallationUpdateActivity({
+    activity: {
+      type: "installationUpdate",
+      action: "add",
+      conversation: {
+        conversationType: "personal",
+        id: PERSONAL_CHAT_ID,
+        tenantId: tenantId,
+      },
+      channelData: { tenant: { id: tenantId } },
+      serviceUrl: CHAT_SERVICE_URL,
+      recipient: { id: BOT_ID },
+      from: { id: "29:jane", aadObjectId: JANE_AAD_OBJECT_ID },
+    },
+    turnContext: {
+      activity: { recipient: { id: BOT_ID }, serviceUrl: CHAT_SERVICE_URL },
+    } as unknown as TurnContext,
+  });
+}
+
+// A page's place, kept as the release before the upgrade kept it.
+function keepPlaceCut(data?: {
+  projectId?: ObjectID | undefined;
+  workspaceType?: WorkspaceType | undefined;
+  messageKey?: string | undefined;
+}): WorkspaceLiveMessage {
+  const place: WorkspaceLiveMessage = new WorkspaceLiveMessage();
+  place.id = ObjectID.generate();
+  place.projectId = data?.projectId || PROJECT_ID;
+  place.workspaceType = data?.workspaceType || WorkspaceType.MicrosoftTeams;
+  place.messageKey = data?.messageKey || PLACE_KEY;
+  place.destinationType = WorkspaceLiveMessageDestinationType.Chat;
+  place.channelId = CUT_PERSONAL_CHAT_ID;
+  place.channelName = "Jane Doe";
+  place.messageId = "";
+  place.messageData = { pagedByUserId: JANE.toString() };
+  world.liveMessages.rows.push(place);
+
+  return place;
+}
+
+// The page's places in the project, as the run reads them.
+function placesInProject(): Array<WorkspaceLiveMessage> {
+  return places().filter((row: WorkspaceLiveMessage): boolean => {
+    return row.projectId?.toString() === PROJECT_ID.toString();
+  });
+}
+
+// The run's next change: whatever moves it re-draws its messages.
+async function theRunsNextChange(): Promise<void> {
+  await OnCallPolicyRunMessage.syncRun(world.run!.id!);
+  await world.settle();
+}
+
+describe("A place kept cut before the upgrade, of a chat registered again after it (#9330)", () => {
+  // Rows of another project and of Slack that hold the same 100 characters.
+  let otherProjectPlace: WorkspaceLiveMessage;
+  let slackPlace: WorkspaceLiveMessage;
+
+  beforeEach(async () => {
+    // Jane removed the app from her chat before the upgrade.
+    world.teamsChats = {};
+    letTheBotRegisterChats();
+
+    keepPlaceCut();
+    otherProjectPlace = keepPlaceCut({ projectId: OTHER_PROJECT_ID });
+    slackPlace = keepPlaceCut({
+      workspaceType: WorkspaceType.Slack,
+      messageKey: WorkspaceLiveMessageKey.forOnCallPageRequest(
+        WorkspaceLiveMessagePageRecordType.Alert,
+        ObjectID.generate(),
+      ),
+    });
+
+    await world.startDirectPage({
+      targets: { userIds: [NITIN] },
+      startedBy: { userId: JANE },
+    });
+  });
+
+  test("until the chat is registered again, nothing reaches it, and the log says it is not connected - as the data migration left it", () => {
+    expect(placesInProject()[0]!.channelId).toBe(CUT_PERSONAL_CHAT_ID);
+    expect(connector.posts(PERSONAL_CHAT_ID)).toEqual([]);
+    expect(notConnectedLogs()[0]!.statusMessage).toBe(NOT_CONNECTED);
+    expect(world.liveMessages.statements).toEqual([]);
+  });
+
+  test("REGRESSION #9330: Jane adds the app to her chat again: the place gets the chat's whole id, and the run's next change reaches the chat", async () => {
+    await janeAddsTheAppToHerChat();
+
+    expect(world.teamsChats[PERSONAL_CHAT_ID]?.["chatType"]).toBe("personal");
+    expect(placesInProject()).toHaveLength(1);
+    expect(placesInProject()[0]!.channelId).toBe(PERSONAL_CHAT_ID);
+
+    connector.requests = [];
+    logs = [];
+    await theRunsNextChange();
+
+    const card: ConnectorRequest | undefined =
+      connector.pageCard(PERSONAL_CHAT_ID);
+
+    expect(card).toBeDefined();
+    expect(card!.text).toContain("Nitin");
+    expect(card!.text).toContain(TITLE);
+    expect(connector.posts(CUT_PERSONAL_CHAT_ID)).toEqual([]);
+    expect(notConnectedLogs()).toEqual([]);
+  });
+
+  test("REGRESSION #9330: one statement, scoped to the project and to Microsoft Teams: another project's place and a Slack place with the same 100 characters are left as they are", async () => {
+    await janeAddsTheAppToHerChat();
+
+    expect(world.liveMessages.statements).toEqual([
+      {
+        statement: MicrosoftTeamsCutChatIds.getRestoreStatement(
+          "WorkspaceLiveMessage",
+        ),
+        parameters: [
+          PROJECT_ID.toString(),
+          [CUT_PERSONAL_CHAT_ID],
+          [PERSONAL_CHAT_ID],
+          WorkspaceType.MicrosoftTeams,
+        ],
+      },
+    ]);
+    expect(otherProjectPlace.channelId).toBe(CUT_PERSONAL_CHAT_ID);
+    expect(slackPlace.channelId).toBe(CUT_PERSONAL_CHAT_ID);
+  });
+
+  test("once listed, the app added again changes nothing more: nothing is put back twice", async () => {
+    await janeAddsTheAppToHerChat();
+    await janeAddsTheAppToHerChat();
+
+    expect(world.liveMessages.statements).toHaveLength(1);
+    expect(placesInProject()[0]!.channelId).toBe(PERSONAL_CHAT_ID);
+  });
+});
+
+describe("A chat whose first 100 characters another listed chat shares (#9330)", () => {
+  beforeEach(async () => {
+    // The connection lists another chat that starts like Jane's.
+    world.teamsChats = {
+      [TWIN_CHAT_ID]: {
+        id: TWIN_CHAT_ID,
+        name: "Amit Rajput",
+        chatType: "personal",
+        serviceUrl: CHAT_SERVICE_URL,
+      },
+    };
+    letTheBotRegisterChats();
+    keepPlaceCut();
+
+    await world.startDirectPage({
+      targets: { userIds: [NITIN] },
+      startedBy: { userId: JANE },
+    });
+  });
+
+  test("REGRESSION #9330: registering Jane's chat puts nothing back - the place could be either chat's - and the run's card goes to neither", async () => {
+    await janeAddsTheAppToHerChat();
+
+    expect(world.teamsChats[PERSONAL_CHAT_ID]).toBeDefined();
+    expect(world.liveMessages.statements).toEqual([]);
+    expect(placesInProject()[0]!.channelId).toBe(CUT_PERSONAL_CHAT_ID);
+
+    connector.requests = [];
+    await theRunsNextChange();
+
+    expect(connector.pageCard(PERSONAL_CHAT_ID)).toBeUndefined();
+    expect(connector.posts(TWIN_CHAT_ID)).toEqual([]);
+  });
+});
+
+describe("A chat the connection already lists, registered again (#9330)", () => {
+  beforeEach(async () => {
+    // The connection lists Jane's chat (the top beforeEach), and a place of it is kept cut.
+    letTheBotRegisterChats();
+    keepPlaceCut();
+
+    await world.startDirectPage({
+      targets: { userIds: [NITIN] },
+      startedBy: { userId: JANE },
+    });
+  });
+
+  test("REGRESSION #9330: a re-capture of a listed chat saves it and runs no restore: that is for a chat the connection newly lists", async () => {
+    await janeAddsTheAppToHerChat();
+
+    expect(world.teamsChats[PERSONAL_CHAT_ID]?.["memberAadObjectIds"]).toEqual([
+      JANE_AAD_OBJECT_ID,
+    ]);
+    expect(world.liveMessages.statements).toEqual([]);
+    expect(placesInProject()[0]!.channelId).toBe(CUT_PERSONAL_CHAT_ID);
   });
 });

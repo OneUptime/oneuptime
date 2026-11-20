@@ -1,10 +1,12 @@
+import ObjectID from "../ObjectID";
+
 /*
  * THE RECORDS A TELEMETRY SCAN FOUND A FINDING'S DATA IN.
  *
  * A telemetry finding - a data type at a location of one service's logs,
- * traces, exceptions, AI conversations or session replays - comes from a
- * sample: the newest records of the hour before a scan. The scan keeps, with
- * the finding, which of those records held the data type
+ * traces, metrics, exceptions, AI conversations or session replays - comes
+ * from a sample: the newest records of the hour before a scan. The scan
+ * keeps, with the finding, which of those records held the data type
  * (DataStoreFinding.sampleRecords), so the issue's page reads exactly those
  * records again when a person asks where it was found (issue #9549), instead
  * of searching for them among everything the service wrote since.
@@ -12,8 +14,15 @@
  * A reference is when the record was written, to the millisecond - the
  * primary key's own column, so the read is a lookup, not a search - and the
  * keys that tell it from its neighbours of the same millisecond: its trace
- * and span, its session. Never a value: what the record holds is read from
- * the telemetry itself, by someone who may read that telemetry.
+ * and span, its session, a log line's own id (issue #9793: the logs
+ * explorer opens that very line by it), or - for a metric's data point -
+ * the metric it is a point of, which the metrics table is keyed by before
+ * the time. Never a value: what the record holds is read from the
+ * telemetry itself, by
+ * someone who may read that telemetry. A metric's name is kept only where
+ * it is the record's key and not the data: never for a finding in the
+ * name itself, nor when a detector finds sensitive data in the name (a
+ * name a project built from a user's email is a value, not a key).
  */
 
 // The most records one finding keeps: as many as its records list shows.
@@ -22,12 +31,22 @@ export const MAX_FINDING_SAMPLE_RECORDS: number = 10;
 // The longest a kept trace, span or session id may be.
 export const MAX_SAMPLE_RECORD_ID_LENGTH: number = 128;
 
+/*
+ * The longest a kept metric name may be: OpenTelemetry's limit is 255
+ * characters and Prometheus has none, so a longer name is kept as no key.
+ */
+export const MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH: number = 1_024;
+
 export interface FindingSampleRecord {
   // When the record was written (ISO 8601, to the millisecond).
   time: string;
   traceId?: string | undefined;
   spanId?: string | undefined;
   sessionId?: string | undefined;
+  // A log line: its own id (the Log row's _id), a UUID.
+  logId?: string | undefined;
+  // A metric's data point: the metric it is a point of.
+  metricName?: string | undefined;
 }
 
 type SampleRecordIdKey = "traceId" | "spanId" | "sessionId";
@@ -38,6 +57,21 @@ const ID_KEYS: ReadonlyArray<SampleRecordIdKey> = [
   "sessionId",
 ];
 
+/*
+ * A log line's id as the Log table writes it: a UUID, which is what the
+ * logs explorer opens a line by, kept exactly as written since a lookup
+ * matches it so. Anything else is no id.
+ */
+function readLogId(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed: string = value.trim();
+
+  return ObjectID.isValidUUID(trimmed) ? trimmed : "";
+}
+
 function readId(value: unknown): string {
   if (typeof value !== "string") {
     return "";
@@ -46,6 +80,18 @@ function readId(value: unknown): string {
   const trimmed: string = value.trim();
 
   return trimmed.length <= MAX_SAMPLE_RECORD_ID_LENGTH ? trimmed : "";
+}
+
+/*
+ * A metric's name as the table keys it: as written, spaces and all, since
+ * the read matches it exactly - none when it is blank or too long.
+ */
+function readMetricName(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "";
+  }
+
+  return value.length <= MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH ? value : "";
 }
 
 function readTime(value: unknown): Date | null {
@@ -59,13 +105,16 @@ function readTime(value: unknown): Date | null {
 
 /*
  * A record as a reference: its time (a Date, milliseconds since the epoch,
- * or ISO text) and the ids it has. Null without a time it was written.
+ * or ISO text), the ids it has - a log line's own among them - and the
+ * metric it is a point of. Null without a time it was written.
  */
 export function toFindingSampleRecord(data: {
   time: unknown;
   traceId?: unknown;
   spanId?: unknown;
   sessionId?: unknown;
+  logId?: unknown;
+  metricName?: unknown;
 }): FindingSampleRecord | null {
   const time: Date | null =
     data.time instanceof Date
@@ -86,6 +135,18 @@ export function toFindingSampleRecord(data: {
     }
   }
 
+  const logId: string = readLogId(data.logId);
+
+  if (logId) {
+    record.logId = logId;
+  }
+
+  const metricName: string = readMetricName(data.metricName);
+
+  if (metricName) {
+    record.metricName = metricName;
+  }
+
   return record;
 }
 
@@ -96,6 +157,8 @@ export function getFindingSampleRecordKey(record: FindingSampleRecord): string {
     record.traceId || "",
     record.spanId || "",
     record.sessionId || "",
+    record.metricName || "",
+    record.logId || "",
   ].join("|");
 }
 
@@ -131,6 +194,8 @@ export function readFindingSampleRecords(
       traceId: entry["traceId"],
       spanId: entry["spanId"],
       sessionId: entry["sessionId"],
+      logId: entry["logId"],
+      metricName: entry["metricName"],
     });
 
     if (!record) {

@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * orders-api's nightly-sales-report job, which runs inside orders-api, opened
@@ -748,27 +749,20 @@ const scenario: BenchmarkScenario = {
         { name: "Orders database", status: "Operational", type: "Database" },
       ],
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: ORDERS_SLO_ID,
-          name: "Orders API availability",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99.9,
-          window: "Rolling 30d",
-          monitors: "Orders API",
-          sloStatus: "Healthy",
-          currentSliPercentage: 99.972,
-          errorBudgetRemainingPercentage: 72,
-          currentBurnRate: 9.8,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-04-14T02:14:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: ORDERS_SLO_ID,
+        name: "Orders API availability",
+        monitors: ["Orders API"],
+        targetPercentage: 99.9,
+        windowDays: 30,
+        sloStatus: "Healthy",
+        currentSliPercentage: 99.972,
+        errorBudgetRemainingPercentage: 72,
+        currentBurnRate: 9.8,
+        lastEvaluatedAt: "2026-04-14T02:14:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:

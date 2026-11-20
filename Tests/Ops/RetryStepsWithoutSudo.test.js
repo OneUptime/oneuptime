@@ -101,6 +101,10 @@ describe("nick-fields/retry steps", () => {
       "docker-build-kubernetes-cost-agent",
       "docker-build-kubernetes-log-tailer",
       "docker-build-test-server",
+      // Built for the Vulnerability gate, on pull requests into `release`.
+      "docker-build-nginx",
+      "docker-build-docker-agent",
+      "docker-build-podman-agent",
     ]);
   });
 

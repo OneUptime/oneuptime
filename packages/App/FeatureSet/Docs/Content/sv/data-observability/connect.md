@@ -147,7 +147,7 @@ Eller med en Dataverse-anslutningssträng, som dess SDK:er tar emot den: `AuthTy
 
 En miljö har hundratals egna tabeller, så bara dessa bevakas: de centrala affärstabellerna (`account`, `contact`, `lead`, `opportunity`, `quote`, `salesorder`, `invoice`, `product`, `incident`, `email`, `phonecall`, `appointment`, `task` och `annotation`) och dina egna anpassade tabeller. Tabellerna i Microsofts appar, vars namn börjar med `msdyn_`, `adx_` eller ett annat `ms`-prefix, utelämnas. Ange vilken annan tabell som helst med dess logiska namn för att bevaka den också: `"tables": ["msdyn_workorder", "systemuser"]`.
 
-Var femte minut ger Web API varje tabells definition, dess rader och dess nyaste `modifiedon`, som är när den senast ändrades. Raderna kommer från den räkning som Dataverse gör en gång per dygn, så de ligger upp till ett dygn efter. Kolumnerna läses en gång i timmen. Varje insamling gör två begäranden, och en till per bevakad tabell, mot appens gräns på 6 000 begäranden på fem minuter. När Dataverse ber den att sakta ner väntar resten av läsningarna till nästa insamling. Undanta en tabell för att sluta läsa den.
+Var femte minut ger Web API varje tabells definition, dess rader och dess nyaste `modifiedon`, som är när den senast ändrades. Raderna kommer från den räkning som Dataverse gör en gång per dygn, så de ligger upp till ett dygn efter. Kolumnerna läses en gång i timmen. Varje insamling gör två begäranden, och en till per bevakad tabell, mot appens gräns på 6 000 begäranden på fem minuter. En begäran som tillfälligt misslyckas hos Dataverse, eller där Dataverse ber om att vänta några sekunder, skickas igen, högst två gånger; när Dataverse ber om att vänta längre väntar resten av läsningarna till nästa insamling. Kan Dataverse inte läsa en tabell utelämnas bara den, med Dataverses egna felkod och meddelande, och den hoppas över till nästa försök: en timme senare, sedan två timmar, sedan fyra, upp till ett dygn. Databasens sida listar de överhoppade tabellerna under **Överhoppade tabeller**. **Samla in nu** frågar efter alla igen på en gång, och det gör även en ändring av miljöns tabeller eller av appen som läser dem. Undanta en tabell för att sluta läsa den.
 
 Kontroller körs som SQL med enbart läsbehörighet mot miljöns TDS-endpoint, på port 1433 eller 5558, inloggade som samma app. Den är påslagen om inte en administratör har stängt av den. Där åtkomstkontroll på användarnivå är påslagen för den behöver appens roll behörigheten **Allow user to access TDS endpoint**. Dess SQL har inga reguljära uttryck, inget `WITH` och inget stickprov, så en kontroll där läser varje rad.
 :::
@@ -160,7 +160,7 @@ Kontroller körs som SQL med enbart läsbehörighet mot miljöns TDS-endpoint, p
 | Kontroller | Var 15:e minut, varje timme, var 6:e timme eller varje dag, enligt vad var och en anger |
 | Härkomst och senaste läsningar från frågehistoriken | En gång i timmen, tillbaka till den senaste läsningen |
 
-Varje sats körs med enbart läsbehörighet, med en tidsgräns för satser och lås där motorn har sådana. Anslutningssträngen loggas aldrig och tas bort ur varje felmeddelande. En statistik som inloggningen inte får läsa utelämnas med en varning på databasen; insamlingen misslyckas aldrig på grund av det. Anslutningar till privata adresser nekas i OneUptime Cloud: använd en sond.
+Varje sats körs med enbart läsbehörighet, med en tidsgräns för satser och lås där motorn har sådana. En begäran som tillfälligt avvisas eller misslyckas hos Snowflake, Databricks, BigQuery, Athena, ClickHouse eller Dataverse, med en 429, en 503 eller tjänstens eget besked om att den är för upptagen, skickas igen, högst två gånger och inom en minuts väntan per insamling, och aldrig på ett sätt som skulle kunna köra en sats två gånger. Anslutningssträngen loggas aldrig och tas bort ur varje felmeddelande. En statistik som inloggningen inte får läsa utelämnas med en varning på databasen; insamlingen misslyckas aldrig på grund av det. Anslutningar till privata adresser nekas i OneUptime Cloud: använd en sond.
 
 ## Läsrepliker
 
@@ -174,11 +174,12 @@ Varje sökväg visas sedan under **Tabeller**: dess nyaste objekt är när den s
 
 ## Felsökning
 
-- **Databasen visar Misslyckades.** Dess meddelande säger varför: en värd som OneUptime inte kan nå, en inloggning som nekades, ett TLS-läge som servern inte accepterar. Anslut en databas inuti ditt nätverk via en sond.
+- **Databasen visar Misslyckades.** Dess meddelande säger varför: en värd som OneUptime inte kan nå, en inloggning som nekades, ett TLS-läge som servern inte accepterar. Anslut en databas inuti ditt nätverk via en sond. För Snowflake, Databricks, BigQuery, Athena, ClickHouse och Dataverse anger meddelandet vad som lästes, tjänstens egna felkod och felmeddelande, och id:t för begäran eller frågan som tjänstens support kan spåra, om tjänsten ger ett. **Samla in nu** försöker igen direkt, och sidan visar hur det gick.
 - **Tabeller visar ingen senaste ändring.** Inloggningen kan inte läsa motorns statistik: bevilja det som fliken för din motor listar, eller vänta tills en tabells rader har ändrats två gånger.
 - **En tabell saknas.** Den ligger i ett schema som inloggningen inte får använda, eller så är den undantagen i databasen. Bevilja `USAGE` på dess schema, eller ta bort undantaget.
 - **En MySQL-tabell har inga kolumner.** Inloggningen behöver `REFERENCES`, som ovan: den visar en tabells kolumner utan att ge någon läsning av dess rader.
 - **En Dataverse-miljö säger att den nekade appen.** Lägg till appen i miljön som en programanvändare, med en säkerhetsroll som får läsa tabellerna, som på fliken Microsoft Dataverse.
+- **En Dataverse-tabell hoppas över.** Dataverse kunde inte läsa den, och **Överhoppade tabeller** på databasens sida säger varför, med Dataverses egna ord. Om appens säkerhetsroll inte får läsa tabellen ger du rollen läsåtkomst och väljer sedan **Samla in nu**: alla överhoppade tabeller efterfrågas igen på en gång.
 - **En Dataverse-tabell saknas.** Bara de centrala affärstabellerna och dina egna anpassade tabeller bevakas. Ange den i `tables`, med dess logiska namn.
 
 ## Nästa steg

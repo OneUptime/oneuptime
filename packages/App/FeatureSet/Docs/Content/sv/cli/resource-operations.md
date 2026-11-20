@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 En lista ber OneUptime om varje fält i varje post som nyckeln får läsa. `--fields` ber i stället om de fält den nämner, och efter en punkt om ett fält i en kopplad post, som i `currentIncidentState.name`. En tabell visar sex fält; JSON visar alla (se [Utdataformat](/docs/cli/output-formats)). `--all` läser varje sida, 100 poster åt gången, upp till 100 000; `count` säger hur många det finns.
 
-Etiketter listas efter namn i stället för de nyaste först: etiketter vars namn börjar med en siffra kommer först, i ordning efter talet (`2. Team` före `10. Owner`), sedan de övriga i bokstavsordning. Vill du ha dem i en annan ordning anger du `--sort`.
+Etiketter listas efter namn i stället för de nyaste först: etiketter vars namn börjar med en siffra kommer först, i ordning efter talet (`2. Team` före `10. Owner`), sedan de övriga i bokstavsordning. Poster som du ordnar genom att dra dem, som incidenttillstånd, listas i den ordningen. Vill du ha dem i en annan ordning anger du `--sort`.
 
 ### Filtrera en lista
 
@@ -206,6 +206,20 @@ Den svarar `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` 
 
 > [!CAUTION]
 > `delete` tar bort posten direkt. CLI:n ber dig inte bekräfta, och det går inte att ångra. Den godtar `--force`, för skript som skrivits med det, och `--force` ändrar ingenting.
+
+### En anpassad roll som arbetsflöden körs som
+
+OneUptime tar bara bort en anpassad roll som arbetsflöden körs som när borttagningen säger vad de ska köras som i stället, och nekar en borttagning som inte gör det, med namnen på arbetsflödena. Säg det med `--workflows-run-as`: `Default`, standardbehörigheterna, eller `CustomRole`, en annan anpassad roll du kunde ge ett team, med dess ID i `--workflows-run-as-custom-role-id`. Aldrig Projektägare: att ta bort en roll ger aldrig ett arbetsflöde fler behörigheter.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+En nekad borttagning skriver ut OneUptimes nekande, som namnger arbetsflödena, och sedan flaggorna du ska köra den igen med. En roll som inget arbetsflöde körs som behöver ingen av dem.
 
 ## Räkna poster
 

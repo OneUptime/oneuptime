@@ -41,7 +41,7 @@ Haz clic en tu foto, arriba a la derecha, y elige **Perfil**. La página **Vista
 
 Haz clic en **Editar Usuario** y cambia lo que necesites:
 
-- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, vuelves a verificar la nueva dirección.
+- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, OneUptime envía un enlace a la nueva dirección, y tu dirección cambia cuando lo abres. Hasta entonces inicias sesión con la actual, y **Cancelar cambio** detiene el cambio. La dirección propia de un administrador principal cambia de inmediato.
 - **Nombre completo**: el nombre que tu equipo ve en todo OneUptime.
 - **Zona horaria**: la zona horaria en la que el panel muestra y lee las horas, y la de las horas de las notificaciones que se te envían.
 - **Idioma**: el idioma del panel en cada navegador en el que inicies sesión, y el de tus avisos de guardia. Sin definir, tus avisos están en inglés y el panel sigue a tu navegador.
@@ -105,24 +105,46 @@ El enlace funciona una sola vez, durante 15 minutos, y un enlace más reciente l
 
 ### Activar la autenticación de dos factores
 
-La autenticación de dos factores se aplica cuando inicias sesión con tu contraseña o con un enlace enviado por correo. Añade primero un segundo paso y luego actívala.
+La autenticación de dos factores se aplica cuando inicias sesión con tu contraseña o con un enlace enviado por correo. Solo se activa cuando tu segundo paso funciona, así que nunca te pide un paso que no tienes.
 
 :::steps
-### Añadir una aplicación de autenticación
+### Elegir tu segundo paso
 
-Abre **Seguridad → Autenticación de dos factores**. En **Aplicaciones de autenticación**, añade una aplicación y ponle un nombre. Escanea el código QR con una aplicación como 1Password, Google Authenticator o Microsoft Authenticator, escribe el código de 6 dígitos que muestra y haz clic en **Verificar y terminar**. Para usar una llave USB o NFC en su lugar, añádela en **Llaves de seguridad**.
+Abre **Seguridad → Autenticación de dos factores** y haz clic en **Habilitar la autenticación de dos factores**. Elige **Aplicación de autenticación** o **Llave de seguridad** y haz clic en **Continuar**.
+
+### Configurarlo
+
+Para una aplicación de autenticación, escanea el código QR con una aplicación como 1Password, Google Authenticator o Microsoft Authenticator, introduce el código de 6 dígitos que muestra y haz clic en **Verificar y terminar**. Para una llave USB o NFC, ponle un nombre y sigue las indicaciones de tu navegador. La autenticación de dos factores queda entonces activada y la tarjeta muestra **Habilitado**. Desde tu próximo inicio de sesión con contraseña o con un enlace enviado por correo, OneUptime te pide tu segundo paso.
 
 ### Guardar tus códigos de respaldo
 
 La primera vez que añades una aplicación, una llave o una llave de acceso, OneUptime muestra **Tus códigos de respaldo**. Cada código te permite iniciar sesión una vez si pierdes tu aplicación o tu llave. Cópialos o descárgalos, marca la casilla que confirma que los has guardado y haz clic en **Hecho**.
-
-### Activarla
-
-Arriba en la página, haz clic en **Habilitar la autenticación de dos factores** y confirma. La tarjeta muestra ahora **Habilitado**. Desde tu próximo inicio de sesión con contraseña o con un enlace enviado por correo, OneUptime te pide tu segundo paso.
 :::
+
+Si ya tienes una aplicación en **Aplicaciones de autenticación** o una llave en **Llaves de seguridad**, **Habilitar la autenticación de dos factores** solo te pide que lo confirmes. Mientras está activada, no se puede quitar tu última aplicación, llave o llave de acceso: añade otra primero o desactiva la autenticación de dos factores. Si la tarjeta muestra **Configuración pendiente**, la autenticación de dos factores está activada sin nada configurado, a menudo porque un administrador la exigió: haz clic en **Terminar la configuración**, o se te pedirá que la configures en tu próximo inicio de sesión.
+
+### Configurar la autenticación de dos factores al iniciar sesión
+
+Cuando un administrador exige la autenticación de dos factores y aún no tienes nada configurado, tu próximo inicio de sesión con una contraseña o un enlace enviado por correo te pide que la configures antes de dejarte entrar. Elige **Aplicación de autenticación** o **Llave de seguridad** y haz clic en **Continuar**:
+
+- **Aplicación de autenticación**: escanea el código QR, introduce el código de 6 dígitos que muestra tu aplicación y haz clic en **Verificar e iniciar sesión**.
+- **Llave de seguridad**: haz clic en **Registrar llave de seguridad** y sigue las indicaciones de tu navegador. Toca una llave USB o NFC, o usa la huella dactilar, el rostro o el bloqueo de pantalla de tu teléfono o tu ordenador.
+
+Si aún no tienes códigos de respaldo, OneUptime te los muestra entonces una sola vez, y ya has iniciado sesión. **Elegir otro método** vuelve a la elección. Un navegador que no puede registrar una llave de seguridad, como uno en una página sin HTTPS, solo ofrece la aplicación de autenticación.
 
 > [!TIP]
 > ¿Te quedan pocos códigos de respaldo? **Regenerar códigos** en la misma página te da un juego nuevo, y los códigos anteriores dejan de funcionar al instante.
+
+### Cuando tu organización gestiona tu inicio de sesión
+
+En un servidor que exige el inicio de sesión único, solo inicias sesión a través del proveedor de identidad de tu organización, como Okta o Microsoft Entra ID, y OneUptime no configura para ti ninguna contraseña, llave de acceso ni autenticación de dos factores. El **Perfil de usuario** no tiene entonces la sección **Seguridad**, y su **Vista general** indica tu proveedor en **Inicio de sesión único**. Cambia tu contraseña y tu segundo paso con tu proveedor de identidad. Lo que configuraste antes sigue guardado: solo vuelve a funcionar si el servidor deja de exigir el inicio de sesión único, salvo que un administrador del servidor lo borre, y en ese caso recibes un correo. Los administradores principales conservan sus propios ajustes de **Seguridad**.
+
+Lo mismo ocurre cuando todos los proyectos a los que perteneces exigen el inicio de sesión único y tienen activado **Gestionar el inicio de sesión con SSO**. Tu contraseña sigue iniciando tu sesión en OneUptime, pero cada proyecto pide SSO, así que OneUptime no configura para ti ninguna contraseña, llave de acceso ni segundo paso nuevos:
+
+- **Un proyecto que no lo hace**: en cuanto eres miembro de un proyecto, o te invitan a uno, que no exige SSO o no tiene activado **Gestionar el inicio de sesión con SSO**, tu sección **Seguridad** vuelve. **Vista general** nombra entonces esos proyectos en **Inicio de sesión único**, como el motivo de que tus ajustes sean tuyos. Salir de ese proyecto te los vuelve a quitar.
+- **Proyectos con proveedores distintos**: si todos tus proyectos gestionan el inicio de sesión, cada uno con su propio proveedor de identidad, **Vista general** nombra cada proveedor.
+- **Los administradores principales** conservan siempre sus propios ajustes de **Seguridad**.
+- **Lo que configuraste antes** sigue guardado. Un administrador del servidor puede borrarlo, y también un propietario de todos los proyectos a los que perteneces; recibes un correo cuando lo hacen.
 
 ## Tus proyectos
 
@@ -162,6 +184,14 @@ Abre **Zona de peligro → Eliminar cuenta**. Solo puedes eliminar tu cuenta cua
 
 :::details No recibí el correo para verificar mi dirección
 Volver a iniciar sesión envía un enlace nuevo: revisa también tu carpeta de spam. Si no puedes iniciar sesión, usa **¿Olvidó su contraseña?** en la página de inicio de sesión. Su enlace de restablecimiento también verifica tu dirección.
+:::
+
+:::details Al registrarme recibí un correo que dice que ya tengo una cuenta
+Esa dirección ya tiene una cuenta de OneUptime, así que el registro no creó ni cambió nada. Inicia sesión con ella, o usa **¿Olvidó su contraseña?** en la página de inicio de sesión si no recuerdas tu contraseña. La página de registro dice lo mismo para cualquier dirección, así que no le dice a nadie qué direcciones tienen una cuenta.
+:::
+
+:::details Mi dirección de correo electrónico no ha cambiado
+Tu dirección cambia solo cuando abres el enlace que OneUptime envió a la nueva dirección. El enlace funciona durante 24 horas: si ha caducado, vuelve a cambiar tu correo para recibir uno nuevo. Si otra cuenta ya usa esa dirección, el correo enviado allí lo dice, y tu dirección se queda como está.
 :::
 
 :::details Perdí mi aplicación de autenticación

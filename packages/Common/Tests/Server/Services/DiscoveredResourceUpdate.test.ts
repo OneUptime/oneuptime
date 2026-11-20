@@ -22,10 +22,10 @@ import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
+import EmailVerificationTokenService from "../../../Server/Services/EmailVerificationTokenService";
 import HostService from "../../../Server/Services/HostService";
 import IoTFleetService from "../../../Server/Services/IoTFleetService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import LabelService from "../../../Server/Services/LabelService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import ServiceService from "../../../Server/Services/ServiceService";
@@ -805,15 +805,16 @@ describe("DatabaseService.onBeforeUpdateUniqueCheck", () => {
     expect(hook).not.toHaveBeenCalled();
   });
 
+  // A token has no name or identifier to hold to one row (labels do: #9674).
   test("does nothing in a service that does not override it", async () => {
     expect(
-      (LabelService as any).onBeforeUpdateUniqueCheck ===
+      (EmailVerificationTokenService as any).onBeforeUpdateUniqueCheck ===
         (DatabaseService.prototype as any).onBeforeUpdateUniqueCheck,
     ).toBe(true);
 
     await expect(
       (DatabaseService.prototype as any).onBeforeUpdateUniqueCheck.call(
-        LabelService,
+        EmailVerificationTokenService,
         { query: {}, data: {}, props: memberProps() },
       ),
     ).resolves.toBeUndefined();

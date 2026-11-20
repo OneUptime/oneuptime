@@ -113,8 +113,10 @@ export class Service extends DatabaseService<IncidentState> {
   }
 
   /*
-   * A state can be moved - dragged on the settings page, or given another
-   * number through the API - as long as the created, acknowledged and resolved states keep their order.
+   * A state can be given another number through the API, or another built-in
+   * flag, as long as the created, acknowledged and resolved states keep their
+   * order. The number written places it and moves no other state; a drag on the
+   * settings page is a move (onBeforeMoveInList).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -134,6 +136,25 @@ export class Service extends DatabaseService<IncidentState> {
     });
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A move of a state - a drag on the settings page, or POST <list>/:id/move -
+   * keeps the created, acknowledged and resolved states in their order too,
+   * checked on the list as the move renumbers it.
+   */
+  @CaptureSpan()
+  protected override async onBeforeMoveInList(data: {
+    id: ObjectID;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await StateOrderGuard.beforeMove({
+      service: this,
+      definition: STATE_LISTS[StateListType.IncidentState],
+      changedRows: data.changedRows,
+      props: data.props,
+    });
   }
 
   /*
@@ -158,6 +179,20 @@ export class Service extends DatabaseService<IncidentState> {
   ): Promise<OnUpdate<IncidentState>> {
     await this.forgetProjectsOf(updatedItemIds);
     return onUpdate;
+  }
+
+  /*
+   * A state moved in its list: the project's list kept in every process is
+   * read again, and what its monitors knew of their open incidents no
+   * longer counts, as after any change of a state's number.
+   */
+  @CaptureSpan()
+  protected override async onMoveInListSuccess(data: {
+    row: IncidentState;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await this.forgetProjects([data.row.projectId]);
   }
 
   @CaptureSpan()

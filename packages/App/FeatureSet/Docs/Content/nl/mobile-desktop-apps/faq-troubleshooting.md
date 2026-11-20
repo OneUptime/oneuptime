@@ -42,7 +42,7 @@ Al het andere vindt u in het dashboard.
 :::
 
 :::details Kan ik een oproep vanuit de melding bevestigen?
-Nee. Tik op de melding: de app opent het incident, de waarschuwing, de episode of de beveiligingszaak waar het om gaat, in het juiste project, en daar bevestigt u. Is de app vergrendeld of bent u afgemeld, dan opent hij de oproep zodra u binnen bent.
+Ja. Druk op een iPhone lang op de melding, of klap hem op Android uit: een bereikbaarheidsoproep biedt **Acknowledge** en **Escalate**, een oproep die u alleen op de hoogte houdt biedt **I've seen it**, en een testoproep biedt **Acknowledge test page**. Elke actie opent de app bij het record zodra de telefoon ontgrendeld is en doet wat de eigen knop van het record doet; voor het escaleren vraagt hij eerst. Tikt u op de melding zelf, dan opent de app het incident, de waarschuwing, de episode of de beveiligingszaak waar het om gaat, in het juiste project. Is de app vergrendeld of bent u afgemeld, dan opent hij de oproep zodra u binnen bent.
 :::
 
 :::details Is mijn aanmelding veilig op de telefoon?
@@ -109,7 +109,7 @@ De app kon `https://<your-oneuptime>/api/status` niet bereiken. Controleer het a
 :::
 
 :::details „No SSO configuration found for the email”
-Geen van de projecten waarvan dat e-mailadres lid is, heeft single sign-on ingesteld, of het e-mailadres heeft geen account op dit OneUptime. Controleer het e-mailadres, of meld u aan met uw wachtwoord. Providers die uw beheerder voor de hele installatie heeft ingesteld, staan vóór het e-mailveld.
+Geen enkel project op dit OneUptime biedt nog single sign-on voor het domein van dat e-mailadres: een Projecteigenaar of Projectbeheerder voegt het domein toe aan de SSO-provider van het project, van wie het e-mailadres ook is. Controleer het e-mailadres, of meld u aan met uw wachtwoord. Providers die uw beheerder voor de hele installatie heeft ingesteld, staan vóór het e-mailveld.
 :::
 
 :::details Een beveiligingssleutel is uw enige tweede factor

@@ -858,9 +858,12 @@ describe("what a tab adds up to", () => {
     await renderPage();
     await openTab("On-Call");
 
-    // On-Call (seven events) and Incoming Call Policies (one).
+    /*
+     * On-Call (seven events), On-Call Policies and Schedules (two) and
+     * Incoming Call Policies (two): the owner events of #9700 among them.
+     */
     expect(summary()).toHaveTextContent(
-      "You hear about 8 of 8 events on this tab, by Email.",
+      "You hear about 11 of 11 events on this tab, by Email.",
     );
   });
 

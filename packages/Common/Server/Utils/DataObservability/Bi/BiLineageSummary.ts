@@ -14,6 +14,7 @@ import { buildConnectionExample } from "../DataSourceSuggestions";
 import { UsageAsset, UsageStore } from "../TableUsageMatching";
 import {
   BiCatalog,
+  isEntitySetUnknown,
   isSameBiHost,
   matchBiTable,
   readBiHost,
@@ -35,8 +36,12 @@ import { BiTableRef, getBiTableKey, getBiTableName } from "./BiTables";
  *    database connected; Power BI describing its datasets without their
  *    tables (a tenant setting) or without the queries behind them (the
  *    other); databases OneUptime does not watch; tables a watched
- *    database does not watch; dataflows; datasets Power BI could not
- *    describe; files and web pages, which are no database's tables.
+ *    database does not watch; Dataverse tables named by an entity set in
+ *    an environment that keeps none yet (an older probe collects it, or it
+ *    has not been collected since, #9696); dataflows whose definitions Power BI would
+ *    not export, or that are still being read within its hourly limit;
+ *    datasets Power BI could not describe; files and web pages, which are
+ *    no database's tables.
  *
  * A source is a watched database when one of the project's databases is
  * the same engine and, where both name one, the same database; a server
@@ -163,6 +168,7 @@ export function getBiLineageProblems(data: {
   datasets: DataBiDatasetFacts | null;
   sources: Array<DataBiLineageSource>;
   unwatchedTableCount: number;
+  unknownEntitySetCount?: number | undefined;
 }): Array<DataBiLineageProblem> {
   const problems: Array<DataBiLineageProblem> = [];
   const datasets: DataBiDatasetFacts | null = data.datasets;
@@ -203,7 +209,17 @@ export function getBiLineageProblems(data: {
     problems.push(DataBiLineageProblem.TablesNotWatched);
   }
 
-  if (datasets && datasets.readingDataflows > 0) {
+  // Dataverse tables named by an entity set no collection has kept yet (#9696).
+  if ((data.unknownEntitySetCount || 0) > 0) {
+    problems.push(DataBiLineageProblem.EntitySetsUnknown);
+  }
+
+  // A dataflow whose tables could not be read, or are still being read within Power BI's limit.
+  if (
+    datasets &&
+    ((datasets.withUnreadDataflows || 0) > 0 ||
+      (datasets.withPendingDataflows || 0) > 0)
+  ) {
     problems.push(DataBiLineageProblem.Dataflows);
   }
 
@@ -273,6 +289,8 @@ export function summarizeBiLineage(data: {
       }),
     );
   const unwatched: Array<string> = [];
+  // Tables named by a Dataverse entity set their watched environment keeps no name of yet (#9696).
+  const unknownEntitySets: Array<string> = [];
   const sources: Array<DataBiLineageSource> = reads
     .map((read: BiSourceRead): DataBiLineageSource => {
       const store: UsageStore | null = findBiSourceStore(
@@ -286,6 +304,8 @@ export function summarizeBiLineage(data: {
 
         if (asset) {
           matched.add(asset.dataAssetId);
+        } else if (isEntitySetUnknown(ref, data.catalog)) {
+          unknownEntitySets.push(ref.table);
         } else if (store) {
           unwatched.push(getBiTableName(ref));
         }
@@ -324,12 +344,17 @@ export function summarizeBiLineage(data: {
       0,
       MAX_DATA_BI_UNWATCHED_TABLES,
     ),
+    unknownEntitySets: Array.from(new Set(unknownEntitySets)).slice(
+      0,
+      MAX_DATA_BI_UNWATCHED_TABLES,
+    ),
     problems: getBiLineageProblems({
       dashboardCount: data.dashboards.length,
       storeCount: data.catalog.stores.length,
       datasets,
       sources,
       unwatchedTableCount: unwatched.length,
+      unknownEntitySetCount: unknownEntitySets.length,
     }),
   };
 }

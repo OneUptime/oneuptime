@@ -30,6 +30,8 @@ import DatabaseServerAiAgent from "../Pages/Database/View/AI/Agent";
 import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
 import DatabaseServerDelete from "../Pages/Database/View/Delete";
 import DatabaseServerAuditLogs from "../Pages/Database/View/AuditLogs";
+import DatabaseServerDataSecurity from "../Pages/Database/View/DataSecurity";
+import DatabaseServerCompliance from "../Pages/Database/View/Compliance";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -229,6 +231,36 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE
                 ] as Route
+              }
+            />
+          }
+        />
+
+        {/* Data Security: what this database holds, and what to fix on it */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY,
+          )}
+          element={
+            <DatabaseServerDataSecurity
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY] as Route
+              }
+            />
+          }
+        />
+
+        {/* Compliance: how this database stands against each framework */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_COMPLIANCE,
+          )}
+          element={
+            <DatabaseServerCompliance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_COMPLIANCE] as Route
               }
             />
           }

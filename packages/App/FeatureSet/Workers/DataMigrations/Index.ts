@@ -128,6 +128,8 @@ import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAnd
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedAboutWaitingPublicNotes";
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
+import MoveMonitorsOffRetiredCloudMetrics from "./MoveMonitorsOffRetiredCloudMetrics";
+import MoveChartsAndSlosOffRetiredCloudMetrics from "./MoveChartsAndSlosOffRetiredCloudMetrics";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
@@ -141,12 +143,14 @@ import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
 import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
+import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -200,6 +204,7 @@ import BackfillNetworkDeviceManufacturer from "./BackfillNetworkDeviceManufactur
 import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledgedBeforeFirstSteps";
 import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilestonesFromClickhouse";
 import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
+import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1461,6 +1466,61 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillProductAnalyticsFromKeptSessions(),
+  /*
+   * Ties the Ping, IP, Port, NTP, Website, API and SSL Certificate monitors
+   * people made before issue #9545 to the network device they check
+   * (Monitor.networkDeviceId, added by AddMonitorNetworkDeviceId1809184900000),
+   * when the monitor's probes see one device at the address every step
+   * checks (#9677) - the rule a monitor created today is tied by. Postgres
+   * only, idempotent, a page of monitors at a time by id; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself, and before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before it (the two are independent).
+   */
+  new LinkMonitorsToTheirNetworkDevices(),
+  /*
+   * What a workflow's step ran as, and with whose permissions (#9766): adds
+   * the five audit-log columns that say it (AuditLogV2.workflowRunAs and
+   * the four beside it). Metadata-only and idempotent; rows written before
+   * it read NULL. After AddAuditLogWorkflowColumns; before the last slot
+   * AddAuditLogMcpClientColumns keeps, and before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before it (the two are independent).
+   */
+  new AddAuditLogWorkflowRunAsColumns(),
+  /*
+   * Moves the Metrics monitors that read a metric its cloud deprecates -
+   * a Pub/Sub topic's send_message_operation_count, a Cosmos DB account's
+   * ServerSideLatency - to what replaces it, which the cloud connections
+   * read since #9565, as they stop reading the old ones (#9739); a monitor
+   * left on one is told in its feed what to read instead. Postgres and the
+   * metric store's reads only, idempotent, a page of monitors at a time by
+   * id; before BackfillIncidentCallTranscriptSignInAccount, which keeps the
+   * slot just before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new MoveMonitorsOffRetiredCloudMetrics(),
+  /*
+   * Moves the dashboard widgets and SLOs that read one of the same two
+   * metrics as MoveMonitorsOffRetiredCloudMetrics moves monitors (#9980):
+   * a Cosmos DB account's latency by what it reported, Pub/Sub's thresholds
+   * 60 times what they were. One it cannot move stays, read for what still
+   * reads it, and is moved again every hour (MoveOffRetiredCloudMetrics).
+   * Postgres and the metric store's reads only, idempotent, a page at a
+   * time by id; after the monitors' move, before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new MoveChartsAndSlosOffRetiredCloudMetrics(),
+  /*
+   * Names the account whose sign-in read each incident call transcript an
+   * earlier release read from Zoom, Google Meet or Microsoft Teams
+   * (IncidentVideoCall.transcriptSignInAccountId, #9289), and marks for
+   * deletion those read through a sign-in Zoom already removed. After the
+   * schema migration that adds the column; idempotent. It keeps the slot
+   * just before the last one, which AddAuditLogMcpClientColumns asserts for
+   * itself: a migration added after it goes before it.
+   */
+  new BackfillIncidentCallTranscriptSignInAccount(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

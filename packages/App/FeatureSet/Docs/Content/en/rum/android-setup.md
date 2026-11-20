@@ -107,6 +107,10 @@ OpenTelemetry Android records all of this on its own. The device attributes it s
 
 Crashes and ANRs reach **Exceptions** as unhandled, grouped by their stack traces, with the session they happened in. The agent saves a crash to disk as the app dies and sends it from there, so a crash that happens offline still arrives once the app runs again with a network.
 
+The application's **Overview** reads these for you: **Sessions**, **Crash-free sessions**, **Crashes**, **ANRs**, **App starts**, **Cold start (p95)** and **Frozen frames**, each opening the exceptions, spans or events it counts. Until the app sends app starts or frames, their charts say what turns them on. Its **Recommendations** offer monitors for crashes, ANRs, slow cold starts, frozen frames, and an app or one of its devices that stops reporting.
+
+Under **Crash-free sessions**, the line reads the same share of installs: the `app.installation.id` OpenTelemetry Android 1.1 and later set on every span and log, an id kept for as long as the app stays installed, so it stands in for the app's users. For an app with hundreds of sessions an hour, where a crash a day is normal, **App Crash Rate** and **App ANR Rate** alert on the share of an hour's sessions that crashed or froze, above Android vitals' 1.09% and 0.47%, instead of on each one.
+
 A session ends after 15 minutes in the background, or after 4 hours. An app that never goes to the background, such as a kiosk, keeps one session for 4 hours, so trace each customer's visit as a span of its own, as [Trace your own workflows](#trace-your-own-workflows) shows.
 
 Your app's own `android.util.Log` calls become logs too when you add `android-log-library` and `android-log-agent` beside the OkHttp modules below: each call's tag goes in `android.log.tag`, and a call with a throwable is an exception in **Exceptions**. OpenTelemetry Android does not read Logcat.
@@ -219,7 +223,36 @@ resource {
 }
 ```
 
-The app's telemetry stays with its RUM application, and the device does not become a host in **Hosts**: an app reports no host metrics, so there would be nothing to show there. The device's page in **Inventory** shows its own logs, traces and exceptions, and `@resource.host.name:` finds them in **Traces** and **Logs**. A device that sends nothing for 30 days leaves **Inventory**.
+The app's telemetry stays with its RUM application, and the device does not become a host in **Hosts**: an app reports no host metrics, so there would be nothing to show there. The device's page in **Inventory** shows its own logs, traces and exceptions, and `@resource.host.name:` finds them in **Traces** and **Logs**. A device that sends nothing for 30 days leaves **Inventory**. To see the device itself, its memory, storage and restarts and the crashes of every app on it, add the [Android Agent](/docs/telemetry/android-agent) and give it the same name in its `device_name`: the device is then a host in **Hosts** as well, and still one item in **Inventory**.
+
+### Hear when a device goes quiet
+
+The application's **Recommendations** offer **Device Stopped Reporting**: an alert for each device that sends no spans for an hour after sending some in the past week, told apart by the `app.installation.id` the agent sets. Each device's alert names its install, and resolves once the device reports again. When every device goes quiet at once, such as when a store's network goes down, no device alerts: **App Stopped Reporting** reports it once for the whole app.
+
+A kiosk left on one screen sends nothing until someone uses it. Send a span every few minutes while the app runs, so that an idle kiosk is not taken for a quiet one:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Start it once the agent has started, with `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. A span every five minutes keeps a working kiosk well inside the hour.
 
 ### Configure the fleet from your MDM
 
@@ -246,6 +279,12 @@ Then hand `token` to `baseHeaders` in place of `BuildConfig.ONEUPTIME_TOKEN`, an
 ```
 
 Converge the devices after a change, so they read the new values. Declare the same keys in an `app_restrictions.xml` if your MDM asks for a schema. Esper refuses an APK that has no v1 signature, so sign the release with the v1 scheme as well as v2 or v3.
+
+### Import the fleet from Esper
+
+Connect your Esper tenant to Inventory, and every device Esper enrolls is listed, including the devices whose app never started, with what only Esper knows: its group, Android version, security patch level, serial number, battery, storage, installed apps and last check-in. A device that stops checking in shows as offline, with how long ago it last did. See [Import devices from Esper](/docs/inventory/overview#import-devices-from-esper).
+
+A device whose app names it as above is one item with what the app sends: `host.name` is its name in Esper. OneUptime finds a device's item by `host.name`, then by `host.serial_number`, so give each device the same name and serial number in every app that reports from it, and in the Android Agent's `device_name` and `device_serial` settings.
 
 ### Keep what is recorded while offline
 
@@ -279,6 +318,7 @@ Only a device whose app sets `host.name` is listed. Check the value in a span's 
 
 :::cards
 - [Mobile Setup](/docs/rum/mobile-setup): iOS, React Native and the other platforms.
+- [Android Agent](/docs/telemetry/android-agent): Monitor the device itself: its health, restarts, installed apps and every app's crashes.
 - [Exceptions](/docs/telemetry/exceptions): Triage the crashes and ANRs your app reports.
 - [Traces Explorer](/docs/telemetry/traces-explorer): Follow an order from the kiosk to the kitchen.
 - [Managing Applications](/docs/rum/applications): Names, labels, owners and retention.

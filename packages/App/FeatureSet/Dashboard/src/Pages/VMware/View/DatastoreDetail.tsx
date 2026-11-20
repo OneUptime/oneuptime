@@ -32,7 +32,7 @@ import {
   VMwareResourceKind,
   externalIdFromRouteParam,
   fetchVMwareInventoryRow,
-  formatBytes,
+  formatBytesForChart,
   displayNameForResource,
   identityAttributesForResource,
 } from "../Utils/VMwareResourceUtils";
@@ -50,6 +50,8 @@ import {
   VMwarePartRoutes,
   getVMwarePartRoutes,
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
 
 /*
  * Window for the client-side linear growth fit — same 24 h window as
@@ -301,7 +303,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const availableQuery: MetricQueryConfigData = {
@@ -325,7 +327,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   const utilizationQuery: MetricQueryConfigData = {
@@ -357,6 +359,15 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
 
   const now: Date = OneUptimeDate.getCurrentDate();
   const routes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getVMwarePartAttention({
+    kind: VMwareResourceKind.Datastore,
+    externalId: externalId,
+    row: row,
+    now: now,
+    routeFor: routes.getPartRoute,
+    listRouteFor: routes.getListRoute,
+  });
 
   const tabs: Array<Tab> = [
     {
@@ -375,6 +386,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
           vcenterName={vcenterName}
           externalId={externalId}
           row={row}
+          attention={attention}
           routes={routes}
           daysToFull={
             daysToFull !== null &&
@@ -384,7 +396,6 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
               : null
           }
           forecastWindowHours={PROJECTION_WINDOW_HOURS}
-          now={now}
         />
       ),
     },
@@ -416,6 +427,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
         datacenters={[]}
         hosts={[]}
         now={now}
+        attention={attention}
       />
       <Tabs label="Datastore" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>

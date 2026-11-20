@@ -62,10 +62,18 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** ऊपर बताए अनुसार kubeadm के `--listen-metrics-urls` (पोर्ट 2381, नोड का पता जोड़ने तक `127.0.0.1` से बँधा) पर सादे HTTP में अपने मेट्रिक्स देता है। या उसके HTTPS क्लाइंट पोर्ट 2379 को उस क्लाइंट सर्टिफ़िकेट से स्क्रैप करें जो वह माँगता है: `ca.crt`, `tls.crt` और `tls.key` को `oneuptime-agent` के एक Secret में रखें और `controlPlane.etcd.clientCertSecret` में उसका नाम दें।",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "सिर्फ़ सेल्फ़-मैनेज्ड क्लस्टर के लिए: मैनेज्ड सर्विस (EKS, GKE, AKS) अपने कंट्रोल प्लेन के मेट्रिक्स नहीं दिखातीं।",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "बस इतना ही एक पूरा इंस्टॉल है: chart में ओपन-सोर्स OpenCost इंजन (और उसे चाहिए छोटा Prometheus) शामिल है और यह आपके क्लाउड प्रोवाइडर की सार्वजनिक सूची-कीमतों से आपके नोड और वॉल्यूम की क़ीमत तय करता है, किसी क्रेडेंशियल के बिना। यह दो छोटे पॉड जोड़ता है; पहला पूरा घंटा बीतने के बाद पहला डेटा दिखता है।",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **पहले से Kubecost या OpenCost चला रहे हैं?** इसके बजाय एजेंट को उसकी ओर इंगित करें, फिर कुछ भी साथ में नहीं जोड़ा जाता: `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (या अपनी Kubecost सर्विस) जोड़ें।",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "लागत निगरानी डिफ़ॉल्ट रूप से चालू है: एजेंट में ओपन-सोर्स OpenCost इंजन (और उसे चाहिए छोटा Prometheus) शामिल है, यह आपके क्लाउड प्रोवाइडर की सार्वजनिक सूची-कीमतों से आपके नोड और वॉल्यूम की क़ीमत तय करता है, किसी क्रेडेंशियल के बिना, और भेजता है कि हर नेमस्पेस और वर्कलोड की लागत कितनी है। पहला पूरा घंटा बीतने के बाद पहला डेटा क्लस्टर के अवलोकन और लागत पेज पर दिखता है।",
+  "On an agent installed before it was on by default, upgrade it:":
+    "जो एजेंट इसके डिफ़ॉल्ट रूप से चालू होने से पहले इंस्टॉल हुआ था, उसे अपग्रेड करें:",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **इसे बंद करें:** उसी अपग्रेड में `--set cost.enabled=false` जोड़ें।",
+  "Cost monitoring is off by default on this platform: it bills every pod by what it requests, so the three cost pods would add to your bill, and OpenCost prices nodes rather than pods. To turn it on anyway:":
+    "इस प्लेटफ़ॉर्म पर लागत निगरानी डिफ़ॉल्ट रूप से बंद है: यह हर पॉड का बिल उसके request के हिसाब से बनाता है, इसलिए तीन लागत पॉड आपका बिल बढ़ा देते, और OpenCost पॉड की नहीं, नोड की क़ीमत तय करता है। फिर भी इसे चालू करने के लिए:",
+  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
+    "बस इतना ही एक पूरा इंस्टॉल है: chart में ओपन-सोर्स OpenCost इंजन (और उसे चाहिए छोटा Prometheus) शामिल है और यह आपके क्लाउड प्रोवाइडर की सार्वजनिक सूची-कीमतों से आपके नोड और वॉल्यूम की क़ीमत तय करता है, किसी क्रेडेंशियल के बिना। यह तीन छोटे पॉड जोड़ता है; पहला पूरा घंटा बीतने के बाद पहला डेटा दिखता है।",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **पहले से Kubecost या OpenCost चला रहे हैं?** एजेंट उसे ढूँढ लेता है और chart में शामिल इंजन के बजाय उसी को पढ़ता है, और क्लस्टर का अवलोकन यह बताता है: दूसरा इंजन शामिल करना बंद करने के लिए `--set cost.engine.url=auto` जोड़ें।",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **ऑन-प्रेम या बेयर मेटल?** `--set cost.opencost.customPricing.enabled=true` से एक रेट कार्ड सेट करें (प्रति रिसोर्स-घंटा USD; chart का `values.yaml` देखें)।",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":
@@ -123,6 +131,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **नेटवर्क फ़्लो** *(eBPF)* | पॉड-से-पॉड TCP/UDP बाइट और पैकेट काउंटर |",
   "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
     "| **वर्कलोड लागत** *(वैकल्पिक, `cost.enabled=true`)* | हर नेमस्पेस, वर्कलोड और पॉड का ख़र्च, खाली क्षमता और दक्षता के साथ |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **वर्कलोड लागत** *(डिफ़ॉल्ट रूप से चालू)* | हर नेमस्पेस, वर्कलोड और पॉड का ख़र्च, खाली क्षमता और दक्षता के साथ, अलर्ट के लिए मेट्रिक्स के रूप में भी |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "आपका क्लस्टर `hostPath` वॉल्यूम या विशेषाधिकार वाले पॉड रोकता है। **GKE Autopilot** और **EKS Fargate** पर यह सामान्य है: इस गाइड में सबसे ऊपर वह प्लेटफ़ॉर्म चुनें और उसके चरणों का पालन करें। इसके उलट **OpenShift** पर इंस्टॉल सफल होता है, लेकिन एजेंट के नोड पॉड कभी शुरू नहीं होते: **Red Hat OpenShift** चुनें।",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

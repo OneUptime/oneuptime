@@ -155,13 +155,15 @@ export default class ModelAPI {
   }
 
   /*
-   * Moves a row of a numbered list - escalation rules, schedule layers and
-   * their people, status page groups and resources - to the place another
-   * row of its list holds: the rows between step one place towards where it
-   * was (POST <the list's path>/:id/move, Types/Database/MoveInList). What a
-   * drag, or Move up and Move down, sends. A write of the row's `order`
-   * (updateById) places that row alone, as Terraform needs, and never moves
-   * the others. Throws what the server answered when it refused.
+   * Moves a row of an ordered list - escalation rules, schedule layers and
+   * their people, status page groups and resources, and every list people
+   * drag into order (@ListOrderColumn: severities, states, rules,
+   * pipelines...) - to the place another row of its list holds: the rows
+   * between step one place towards where it was (POST <the list's
+   * path>/:id/move, Types/Database/MoveInList). What a drag, or Move up and
+   * Move down, sends. A write of the row's number (updateById) places that
+   * row alone, as Terraform needs, and never moves the others. Throws what
+   * the server answered when it refused.
    */
   public static async moveInList<TBaseModel extends BaseModel>(data: {
     modelType: { new (): TBaseModel };
@@ -169,9 +171,11 @@ export default class ModelAPI {
     placeOfId: ObjectID;
     requestOptions?: RequestOptions;
   }): Promise<MoveInListResult> {
-    const apiPath: Route | null = new data.modelType().getCrudApiPath();
+    const model: TBaseModel = new data.modelType();
+    const apiPath: Route | null = model.getCrudApiPath();
+    const column: string | null = MoveInListUtil.getListColumn(model);
 
-    if (!apiPath) {
+    if (!apiPath || !column) {
       throw new BadDataException("This list's rows cannot be moved.");
     }
 
@@ -193,7 +197,7 @@ export default class ModelAPI {
       });
 
     if (result.isSuccess()) {
-      return MoveInListUtil.resultFromJSON(result.data);
+      return MoveInListUtil.resultFromJSON(result.data, column);
     }
 
     this.checkStatusCode(result);
@@ -642,6 +646,12 @@ export default class ModelAPI {
     modelType: { new (): TBaseModel };
     id: ObjectID;
     requestOptions?: RequestOptions | undefined;
+    /*
+     * Choices beside the id the delete's hooks read (the server's
+     * DeleteOneBy.miscDataProps): what the workflows that run as a custom
+     * role run as once it is deleted, for one. Sent in the request's body.
+     */
+    miscDataProps?: JSONObject | undefined;
   }): Promise<void> {
     const apiPath: Route | null = new data.modelType().getCrudApiPath();
     if (!apiPath) {
@@ -669,6 +679,9 @@ export default class ModelAPI {
         method: HTTPMethod.DELETE,
         url: apiUrl,
         headers: headers,
+        ...(data.miscDataProps
+          ? { data: { miscDataProps: data.miscDataProps } }
+          : {}),
         ...(data.requestOptions?.apiRequestOptions
           ? { options: data.requestOptions.apiRequestOptions }
           : {}),

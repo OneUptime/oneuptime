@@ -103,7 +103,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-रिकॉर्ड सूचीबद्ध करती है, सबसे नए पहले। लेबल इसके बजाय नाम के क्रम में सूचीबद्ध होते हैं, संख्या वाले लेबल पहले (`2. Team` पहले, `10. Owner` बाद में)।
+रिकॉर्ड सूचीबद्ध करती है, सबसे नए पहले। लेबल इसके बजाय नाम के क्रम में सूचीबद्ध होते हैं, संख्या वाले लेबल पहले (`2. Team` पहले, `10. Owner` बाद में)। जिन रिकॉर्ड का क्रम आप खींचकर तय करते हैं, जैसे घटना स्थितियाँ, वे उसी क्रम में सूचीबद्ध होते हैं।
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 रिकॉर्ड को तुरंत हटाती है, बिना पूछे।
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है |
 | --- | --- | --- |
 | `<id>` | हाँ | रिकॉर्ड की ID |
 | `--force` | नहीं | स्वीकार होता है और कुछ नहीं बदलता: `delete` कभी पुष्टि नहीं माँगता |
+| `--workflows-run-as <value>` | नहीं | केवल कस्टम भूमिकाएँ: भूमिका मिटने के बाद, उसके रूप में चलने वाले वर्कफ़्लो किस रूप में चलें, `Default` या `CustomRole`। जिस भूमिका के रूप में वर्कफ़्लो चलते हैं, वह इसी फ़्लैग के साथ मिटती है |
+| `--workflows-run-as-custom-role-id <id>` | नहीं | केवल कस्टम भूमिकाएँ: `--workflows-run-as CustomRole` के साथ, वह दूसरी कस्टम भूमिका जिसके रूप में वे चलें |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ CLI, OneUptime के साथ रिलीज़ होता है, इस�
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | कोई नहीं |
+| `delete` | `DELETE /api/<path>/<id>/` | कोई नहीं, या `--workflows-run-as` के साथ `miscDataProps` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 कोई कार्रवाई आपके प्रोजेक्ट की स्थितियाँ और रिकॉर्ड पढ़ती है, फिर रिकॉर्ड की स्थिति टाइमलाइन में एक पंक्ति बनाती है, जैसे डैशबोर्ड का बटन करता है: किसी घटना पर `acknowledge` एक `incident-state-timeline` बनाता है। `add-note` एक `incident-internal-note` बनाता है, या `--public` के साथ एक `incident-public-note`। ईमेल फ़्लैग पहले उस पते वाले प्रोजेक्ट के टीम सदस्यों को सूचीबद्ध करता है। जब OneUptime कोई ऐसा फ़ील्ड अस्वीकार करता है जिसे कुंजी पढ़ नहीं सकती, तो list या get उसके बिना फिर से माँगता है।

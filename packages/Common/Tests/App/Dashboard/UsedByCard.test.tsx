@@ -481,10 +481,129 @@ describe("the card", () => {
     expect(await screen.findByTestId("used-by-row-detail")).toHaveTextContent(
       "First line, Second line",
     );
+    /*
+     * The policy opens where the schedule is named: its Escalation Rules,
+     * the rules its line names (#9701).
+     */
     expect(screen.getByText("Primary").closest("a")?.getAttribute("href")).toBe(
       RouteUtil.populateRouteParams(
-        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route,
         { modelId: new ObjectID(row(1).id) },
+      ).toString(),
+    );
+  });
+
+  test("a policy that pages a team opens on its Escalation Rules too; one the team owns, on its overview", async () => {
+    getSummary.mockResolvedValue({
+      recordKind: UsedByRecordKind.Team,
+      recordId: RECORD.toString(),
+      groups: [
+        group({
+          relation: UsedByRelation.TeamOnCallPolicies,
+          rowKind: UsedByRowKind.OnCallDutyPolicy,
+          count: 1,
+          rows: [row(1, { name: "Payments", detail: "Level 1" })],
+        }),
+        group({
+          relation: UsedByRelation.TeamOwnedOnCallPolicies,
+          rowKind: UsedByRowKind.OnCallDutyPolicy,
+          count: 1,
+          rows: [row(2, { name: "Billing" })],
+        }),
+      ],
+    });
+    renderCard(UsedByRecordKind.Team);
+
+    expect(
+      (await screen.findByText("Payments")).closest("a")?.getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route,
+        { modelId: new ObjectID(row(1).id) },
+      ).toString(),
+    );
+    expect(screen.getByText("Billing").closest("a")?.getAttribute("href")).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
+        { modelId: new ObjectID(row(2).id) },
+      ).toString(),
+    );
+  });
+
+  test("See all lists a schedule's policies on their Escalation Rules as well", async () => {
+    getPage.mockResolvedValue({
+      recordKind: UsedByRecordKind.OnCallSchedule,
+      recordId: RECORD.toString(),
+      relation: UsedByRelation.ScheduleOnCallPolicies,
+      rowKind: UsedByRowKind.OnCallDutyPolicy,
+      count: 1,
+      hiddenCount: 0,
+      pageStart: 0,
+      pageSize: USED_BY_PAGE_SIZE,
+      rows: [row(3, { name: "Checkout", detail: "Level 1, Level 2" })],
+    });
+
+    render(
+      <MemoryRouter>
+        <UsedByDialog
+          recordKind={UsedByRecordKind.OnCallSchedule}
+          recordId={RECORD}
+          relation={UsedByRelation.ScheduleOnCallPolicies}
+          onClose={() => {
+            return undefined;
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(
+      (await screen.findByText("Checkout")).closest("a")?.getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route,
+        { modelId: new ObjectID(row(3).id) },
+      ).toString(),
+    );
+    expect(screen.getByTestId("used-by-row-detail")).toHaveTextContent(
+      "Level 1, Level 2",
+    );
+  });
+
+  test("a row's route is its relation's page where the relation names one, its kind's otherwise", () => {
+    const id: string = row(4).id;
+
+    expect(
+      getUsedByRowRoute(
+        UsedByRowKind.OnCallDutyPolicy,
+        id,
+        undefined,
+        UsedByRelation.ScheduleOnCallPolicies,
+      )?.toString(),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route,
+        { modelId: new ObjectID(id) },
+      ).toString(),
+    );
+    expect(
+      getUsedByRowRoute(UsedByRowKind.OnCallDutyPolicy, id)?.toString(),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW] as Route,
+        { modelId: new ObjectID(id) },
+      ).toString(),
+    );
+    expect(
+      getUsedByRowRoute(
+        UsedByRowKind.StatusPage,
+        id,
+        undefined,
+        UsedByRelation.MonitorStatusPages,
+      )?.toString(),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
+        { modelId: new ObjectID(id) },
       ).toString(),
     );
   });

@@ -178,8 +178,34 @@ next, and how to change it last.
   own words (a container's reason and exit code, the scheduler's message), which one it is (its
   namespace, its owner, its node), since when, what it reported lately, and View, a step from its
   page. A hero's health is `ResourceHealthPill`, handed what needs attention; a count is
-  `ResourceAttentionPill`, which reads its parts only when it is pressed. Enforced by
+  `ResourceAttentionPill`, which reads its parts only when it is pressed. A part's own page says
+  it too: "Offline" or "CrashLoopBackOff" in its hero opens what its Needs attention card lists,
+  the part itself named as the card names it ("This node"), so every page that draws
+  `ResourcePartHero` hands it that list (`attention`), and a chip that counts something wrong
+  ("3 pods failed") is a pill of its own (#9594, #9595). A count in a tile or a bar opens its
+  parts without making the tile or the bar a control around another: a pill under the tile's
+  figure (`GoldenMetricTile`'s `attention`), the bar's legend entry (`StackedProgressBar`'s
+  `onClick`), as a Ceph cluster's Degraded placement groups open the pools that hold them
+  (#9727). A list says it the same way: Ceph's ERR and WARN on its Clusters list and a bare
+  metal class's "Failed: 3" open which ones and why, and App Platforms' "2 environments
+  disconnected" opens its list with its Status filter set (#9751). A failed systemd unit says why
+  as systemd said it: its result, its exit code or the signal that killed it, since when and what
+  it printed last, from its journal (#9748). A count opens its parts only while the resource's
+  agent reports: a disconnected resource's last snapshot is no longer the truth, so its counts of
+  what is wrong say what stopped and list no part - an IoT fleet whose collector went away says
+  "fleet disconnected" where it counted its devices online, rather than calling every device
+  offline (#9730). Enforced by
   [ResourceHeroLayoutGuard](../../packages/App/Tests/Dashboard/ResourceHeroLayoutGuard.test.ts).
+- **An error rate opens the requests that failed.** On a service's, a function's, a cloud
+  environment's and app's, a RUM application's, a queue's and a database's Overview, the Error rate
+  was the one tile with no link, beside a Requests tile that opened the traces: it said something
+  failed, never what (#9593). It opens the resource's traces on exactly the spans it counted that
+  failed (`FailedSpansRoute`): the failed status as a chip the reader can take off, the kind of span
+  it counted (every span, entry spans, a database's client calls) and its window. LLM Usage's "AI
+  calls" tile said its error rate with nothing to open either (#9750): it opens Calls, every AI
+  call as the tile counts them, on those of its range that failed, Status and Seen At set in the
+  list's own filters (`LlmCallsRoute`), each failed call saying its error under its status. Enforced by
+  [ErrorRateTilesOpenFailuresGuard](../../packages/App/Tests/Dashboard/ErrorRateTilesOpenFailuresGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
   one "ID" line under the other fields, with a copy button. Enforced by
   [RecordIdLineGuard](../../packages/App/Tests/RecordIdLineGuard.test.ts).
@@ -195,8 +221,12 @@ next, and how to change it last.
   Notes page. Enforced by
   [FeedNotesUseNotesComposerGuard](../../packages/App/Tests/Dashboard/FeedNotesUseNotesComposerGuard.test.ts).
 - **An outdated agent says so where its version is shown,** with how to upgrade it one click away.
-  Enforced by
-  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts).
+  So does a custom probe older than the OneUptime it reports to: Custom Probes says "Update
+  available" under its release, and its page says what it misses until it is updated, both linked
+  to Update a probe (#9815). Enforced by
+  [AgentVersionDisplayGuard](../../packages/App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts)
+  and
+  [ProbeVersionDisplayGuard](../../packages/App/Tests/Dashboard/ProbeVersionDisplayGuard.test.ts).
 
 ### Settings and danger
 
@@ -320,8 +350,14 @@ work out, starts from a default for everything else, and folds what most people 
   [LabelsFormFieldGuard](../../packages/Common/Tests/UI/Components/Forms/LabelsFormFieldGuard.test.ts).
 - **Order is set by dragging,** not typed as numbers. A new item goes to the end. Enforced by
   [DragOrderedListsGuard](../../packages/App/Tests/Dashboard/DragOrderedListsGuard.test.ts).
-- **No control inside another control,** such as a button inside a link. Enforced by
-  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **No control inside another control,** such as a button inside a link. A list row that opens
+  a page and holds a control of its own - a region's health pill that opens why, an (i) - is
+  never one link around it: the row's name is its link, stretched over the row so a press
+  anywhere still opens the page, and the control sits beside the name, above the stretch
+  (`ResourcePartRow`'s `hasControls`, as the OpenStack Regions card draws it, #9728). Enforced by
+  [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts)
+  and
+  [ResourcePartRowControlsGuard](../../packages/App/Tests/Dashboard/ResourcePartRowControlsGuard.test.ts).
 - **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
   `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
   focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:
@@ -1382,7 +1418,15 @@ then `npm run i18n:validate` from the root.
 ### What never to write
 
 - **Never say something happened when it did not.** "Copied!" only after the copy worked, and "Sent"
-  only when it was sent. Enforced by
+  only when it was sent. Nor that it will happen when it will not: a public note's composer said
+  "Visible on your status page" and "Subscribers will be notified" of an incident no status page
+  showed (#9735). It now asks the server what is true for the event, says why not when nothing
+  will be, and promises nothing while it does not know (`PublicNoteReachCopy`). Create Announcement
+  said "Subscribers are notified when it starts showing." whatever status pages were picked, and
+  asks the same of the pages picked now (`useAnnouncementReach`, #9775). Schedule Maintenance Event
+  said subscribers are notified whatever pages were picked; it asks too now, and names only the
+  moments that will be sent (`useScheduledMaintenanceReach`, #9920). An announcement's Edit says
+  when an update is skipped for the announcement's own state (#9921). Enforced by
   [ClipboardWritesGuard](../../packages/Common/Tests/UI/ClipboardWritesGuard.test.ts) for copy buttons;
   for everything else, not enforced: use judgement.
 - **Never ask for a click that does nothing where it is drawn.** A dashboard widget is drawn on the

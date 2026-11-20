@@ -124,19 +124,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-// Every invite form checks whether the email has an account; this one has.
-jest.mock("../../../UI/Utils/UserEmailRegistrationStatus", () => {
-  return {
-    __esModule: true,
-    useUserEmailRegistrationStatus: () => {
-      return {
-        isEmailRegistered: true,
-        checkEmail: (): void => {},
-      };
-    },
-  };
-});
-
 type MockProps = Record<string, unknown>;
 
 const mockTables: Array<MockProps> = [];
@@ -388,6 +375,7 @@ import Permission from "../../../Types/Permission";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
+import InviteSuggestionsApi from "../../../UI/Utils/InviteSuggestionsApi";
 import Navigation from "../../../UI/Utils/Navigation";
 import User from "../../../UI/Utils/User";
 import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
@@ -559,6 +547,12 @@ beforeEach(() => {
       return { data: request.model };
     },
   );
+
+  /*
+   * Invite User's email box suggests people as an address is typed
+   * (#9826, AdminInviteSuggestions): here, nobody.
+   */
+  jest.spyOn(InviteSuggestionsApi, "suggest").mockResolvedValue([]);
 
   jest.spyOn(Navigation, "navigate").mockImplementation((): void => {
     return;

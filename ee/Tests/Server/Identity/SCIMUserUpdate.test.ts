@@ -102,6 +102,7 @@ jest.mock("Common/Server/Services/UserService", () => {
   return {
     __esModule: true,
     default: {
+      findOneBy: jest.fn(),
       findOneById: jest.fn(),
       updateOneById: jest.fn(),
       deleteOneById: jest.fn(),
@@ -175,11 +176,13 @@ interface MockUserService {
 const privateUserService: MockUserService =
   StatusPagePrivateUserService as unknown as MockUserService;
 const projectUserService: {
+  findOneBy: jest.Mock;
   findOneById: jest.Mock;
   updateOneById: jest.Mock;
   deleteOneById: jest.Mock;
   deleteBy: jest.Mock;
 } = UserService as unknown as {
+  findOneBy: jest.Mock;
   findOneById: jest.Mock;
   updateOneById: jest.Mock;
   deleteOneById: jest.Mock;
@@ -357,6 +360,8 @@ beforeEach(() => {
   teamMemberService.deleteBy.mockResolvedValue(undefined);
   projectUserService.findOneById.mockResolvedValue(projectUser);
   projectUserService.updateOneById.mockResolvedValue(undefined);
+  // No other account signs in with the address a test changes to.
+  projectUserService.findOneBy.mockResolvedValue(null);
 });
 
 interface UpdateCase {

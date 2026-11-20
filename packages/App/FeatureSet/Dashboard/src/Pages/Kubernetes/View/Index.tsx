@@ -57,9 +57,14 @@ import {
   OpenShiftClusterHealth,
 } from "../Utils/KubernetesOpenShiftHealth";
 import {
+  KUBERNETES_FAILED_PODS_PROBLEM,
+  KUBERNETES_NODES_NOT_READY_PROBLEM,
+  KUBERNETES_PENDING_PODS_PROBLEM,
   KubernetesPodStatusCountsRead,
   KubernetesStatusChip,
+  KubernetesStatusChipProblem,
   countKubernetesPodsThatCannotRun,
+  getKubernetesCannotRunProblem,
   getKubernetesStatusChipValues,
   getKubernetesStatusChips,
   parseKubernetesPodStatusCounts,
@@ -76,6 +81,7 @@ import ResourceHealthPill, {
   ResourceHealthDialogWords,
 } from "../../../Components/ResourcePart/ResourceHealthPill";
 import KubernetesRecentWarningsCard from "../../../Components/Kubernetes/KubernetesRecentWarningsCard";
+import KubernetesCostOverviewCard from "./KubernetesCostOverviewCard";
 import OpenShiftHealthCard from "../../../Components/Kubernetes/OpenShiftHealthCard";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
@@ -480,6 +486,14 @@ const KubernetesClusterOverview: FunctionComponent<
     useState<KubernetesPodStatusCountsRead>(NO_POD_STATUS_COUNTS);
   // The Cluster Health card's dialog: why the cluster is Degraded.
   const [isHealthExplained, setIsHealthExplained] = useState<boolean>(false);
+  /*
+   * The Pod Health bar's segment that was pressed - Can't run, Pending,
+   * Failed - and how many it counted: its dialog lists exactly those pods.
+   */
+  const [openPodHealthProblem, setOpenPodHealthProblem] = useState<{
+    problem: KubernetesStatusChipProblem;
+    count: number;
+  } | null>(null);
   const [nodeHealthSummary, setNodeHealthSummary] = useState<{
     ready: number;
     notReady: number;
@@ -1626,8 +1640,26 @@ const KubernetesClusterOverview: FunctionComponent<
   /*
    * The pods as the hero counts them, each once (KubernetesPodStatus): a
    * pod whose container cannot run is its own segment, never Running. The
-   * bar draws its labels as given, so they are looked up here.
+   * bar draws its labels as given, so they are looked up here. A segment
+   * that counts something wrong opens exactly those pods, why and since
+   * when - the dialog the hero's chip for it opens (#9595).
    */
+  const podHealthPress: (
+    problem: KubernetesStatusChipProblem,
+    count: number,
+  ) => Pick<StackedProgressBarSegment, "onClick" | "clickHint"> = (
+    problem: KubernetesStatusChipProblem,
+    count: number,
+  ): Pick<StackedProgressBarSegment, "onClick" | "clickHint"> => {
+    return {
+      onClick: (): void => {
+        setOpenPodHealthProblem({ problem: problem, count: count });
+      },
+      clickHint: translator.translateText(problem.hint) || problem.hint,
+    };
+  };
+  const podsThatCannotRun: number =
+    countKubernetesPodsThatCannotRun(podStatusCounts);
   const podHealthSegments: Array<StackedProgressBarSegment> = [
     {
       value: podStatusCounts.running,
@@ -1635,9 +1667,10 @@ const KubernetesClusterOverview: FunctionComponent<
       label: translator.translateText("Running") || "Running",
     },
     {
-      value: countKubernetesPodsThatCannotRun(podStatusCounts),
+      value: podsThatCannotRun,
       color: "bg-rose-700",
       label: translator.translateText("Can't run") || "Can't run",
+      ...podHealthPress(getKubernetesCannotRunProblem(), podsThatCannotRun),
     },
     {
       value: podStatusCounts.succeeded,
@@ -1648,11 +1681,16 @@ const KubernetesClusterOverview: FunctionComponent<
       value: podStatusCounts.pending,
       color: "bg-amber-500",
       label: translator.translateText("Pending") || "Pending",
+      ...podHealthPress(
+        KUBERNETES_PENDING_PODS_PROBLEM,
+        podStatusCounts.pending,
+      ),
     },
     {
       value: podStatusCounts.failed,
       color: "bg-red-500",
       label: translator.translateText("Failed") || "Failed",
+      ...podHealthPress(KUBERNETES_FAILED_PODS_PROBLEM, podStatusCounts.failed),
     },
   ];
 
@@ -2566,15 +2604,50 @@ const KubernetesClusterOverview: FunctionComponent<
                 <EmptyFigure />
               </span>
             ) : (
-              <span className="text-2xl font-semibold">
-                {translator.formatNumber(nodeCount)}
+              <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-2xl font-semibold">
+                  {translator.formatNumber(nodeCount)}
+                </span>
+                {/*
+                 * Opens exactly the nodes that are not ready, and why, where
+                 * the card opens every node (#9595). Lifted above the card's
+                 * own button, as its (i) is: side by side, never one inside
+                 * the other.
+                 */}
                 {nodeHealthSummary.notReady > 0 && (
-                  <span className="text-sm text-red-500 ml-1">
-                    {translator.translateTemplate("({{notReady}} not ready)", {
-                      notReady: translator.formatNumber(
+                  <span className="relative z-10">
+                    <ResourceAttentionPill
+                      testId="kubernetes-nodes-card-not-ready"
+                      label={translator.translatePlural(
+                        {
+                          one: "{{count}} not ready",
+                          other: "{{count}} not ready",
+                        },
                         nodeHealthSummary.notReady,
-                      ),
-                    })}
+                      )}
+                      tone="danger"
+                      hint={KUBERNETES_NODES_NOT_READY_PROBLEM.hint}
+                      dialog={{
+                        title: translator.translatePlural(
+                          KUBERNETES_NODES_NOT_READY_PROBLEM.title,
+                          nodeHealthSummary.notReady,
+                        ),
+                        description:
+                          KUBERNETES_NODES_NOT_READY_PROBLEM.description,
+                        load: () => {
+                          return loadKubernetesProblemItems({
+                            clusterId: modelId,
+                            clusterIdentifier: cluster.clusterIdentifier || "",
+                            query: KUBERNETES_NODES_NOT_READY_PROBLEM.query,
+                          });
+                        },
+                        emptyMessage:
+                          KUBERNETES_NODES_NOT_READY_PROBLEM.emptyMessage,
+                        whatFailed:
+                          KUBERNETES_NODES_NOT_READY_PROBLEM.whatFailed,
+                        showKind: false,
+                      }}
+                    />
                   </span>
                 )}
               </span>
@@ -2660,6 +2733,31 @@ const KubernetesClusterOverview: FunctionComponent<
           read={aiAccessStatus}
         />
       </div>
+      {openPodHealthProblem ? (
+        <ResourceAttentionDialog
+          testId="kubernetes-pod-health-dialog"
+          title={translator.translatePlural(
+            openPodHealthProblem.problem.title,
+            openPodHealthProblem.count,
+          )}
+          description={openPodHealthProblem.problem.description}
+          load={() => {
+            return loadKubernetesProblemItems({
+              clusterId: modelId,
+              clusterIdentifier: cluster.clusterIdentifier || "",
+              query: openPodHealthProblem.problem.query,
+            });
+          }}
+          emptyMessage={openPodHealthProblem.problem.emptyMessage}
+          whatFailed={openPodHealthProblem.problem.whatFailed}
+          showKind={false}
+          onClose={() => {
+            setOpenPodHealthProblem(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {isHealthExplained ? (
         <ResourceAttentionDialog
           testId="kubernetes-cluster-health-card-dialog"
@@ -3006,6 +3104,16 @@ const KubernetesClusterOverview: FunctionComponent<
           </div>
         )}
       </Card>
+
+      {/*
+       * What the cluster costs, beside what its pods use: spend, idle
+       * spend, efficiency and the costliest namespaces and workloads, or
+       * how to turn cost monitoring on (KubernetesCostOverviewCard).
+       */}
+      <KubernetesCostOverviewCard
+        clusterId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
 
       {/*
        * What the cluster reported about itself, and only that

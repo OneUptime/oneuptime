@@ -150,8 +150,12 @@ const SUPPORT_BLOCK_CALL: RegExp = /\{\{>\s*SupportBlock\b/;
  * added here on purpose (the first test fails until it is).
  */
 const TEMPLATES_WITH_A_HELP_LINE: ReadonlyArray<string> = [
+  "AccountAlreadyExists",
   "CompleteRegistration",
+  // A new address's link, and the word that it has an account already (#9821).
+  "ConfirmEmailChange",
   "ConfirmProjectSsoSignIn",
+  "EmailChangeAddressTaken",
   "EmailChanged",
   "EmailVerified",
   "ForgotPassword",

@@ -121,6 +121,7 @@ async function executeMonitor(
     screenSizeType: config.screenSizeType,
     args: config.args,
     timeoutInMs: config.timeoutInMs,
+    totpSecrets: config.totpSecrets,
   });
 
   const screenshots: Record<string, string> = {};
@@ -128,13 +129,19 @@ async function executeMonitor(
     screenshots[name] = screenshot.toString("base64");
   }
 
-  return {
+  const result: SyntheticMonitorWorkerResult = {
     returnValue: execution.returnValue,
     logMessages: execution.logMessages,
     capturedMetrics: execution.capturedMetrics,
     screenshots,
     scriptError: execution.scriptError,
   };
+
+  if (execution.totpWaitInMs !== undefined) {
+    result.totpWaitInMs = execution.totpWaitInMs;
+  }
+
+  return result;
 }
 
 async function closeForSignal(signal: "SIGTERM" | "SIGINT"): Promise<void> {

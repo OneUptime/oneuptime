@@ -6,10 +6,22 @@ import {
   LOOKBACK_WINDOWS,
   WINDOW_SECONDS,
 } from "./Config";
+import {
+  CostPrometheus,
+  CostPrometheusSource,
+  redactUrl,
+} from "./EnginePrometheus";
 import Logger from "./Logger";
 import { Poller } from "./Poller";
 import { Shipper } from "./Shipper";
-import { HealthReport, PollerStatus, ShipperStatus } from "./Types";
+import {
+  CostEngineSource,
+  EngineMetricsSource,
+  HealthReport,
+  KubernetesCostEngineInfo,
+  PollerStatus,
+  ShipperStatus,
+} from "./Types";
 
 /*
  * Is the cost pipeline actually working?
@@ -129,7 +141,7 @@ export const assessHealth: (args: {
 };
 
 /*
- * Two routes, deliberately:
+ * Three routes, deliberately:
  *
  *   /healthz (and /) — readiness. Degraded answers 503, so a pod whose cost
  *     pipeline is dead reads 0/1 Ready instead of silently green.
@@ -137,22 +149,94 @@ export const assessHealth: (args: {
  *     restarting the agent cannot fix an engine that is down, and a restart
  *     loop would both hide the diagnostic in /healthz and lose the poller's
  *     in-memory checkpoint every time.
+ *   /scrape-targets — where the engine in use serves its price metrics, in
+ *     the JSON Prometheus' http_sd reads (EngineMetrics): the collector's
+ *     cost-engine job asks here when cost.engine.url is auto or a URL
+ *     (#9776). An empty list until the agent has found them. Always 200,
+ *     whatever the readiness: the price metrics do not wait on the
+ *     allocations.
  *
  * The JSON keys status / lastPollError / lastShipError are parsed by the
  * chart's troubleshoot.sh — keep them.
  */
+/*
+ * Where the memory peaks come from (#9777), for /healthz: the Prometheus in
+ * use, without anything secret in its address, or why there is none.
+ */
+export const describeCostPrometheus: (
+  source: CostPrometheusSource | undefined,
+) => {
+  costPrometheusUrl?: string;
+  costPrometheus?: {
+    origin: string;
+    source: string;
+    cadvisorJob: string;
+    cluster?: { label: string; value: string };
+    note?: string;
+  };
+  costPrometheusError?: string;
+} = (
+  source: CostPrometheusSource | undefined,
+): {
+  costPrometheusUrl?: string;
+  costPrometheus?: {
+    origin: string;
+    source: string;
+    cadvisorJob: string;
+    cluster?: { label: string; value: string };
+    note?: string;
+  };
+  costPrometheusError?: string;
+} => {
+  if (!source) {
+    return {};
+  }
+
+  const prometheus: CostPrometheus | null = source.current();
+
+  if (!prometheus) {
+    const reason: string = source.reason();
+    return reason ? { costPrometheusError: reason } : {};
+  }
+
+  return {
+    costPrometheusUrl: redactUrl(prometheus.url),
+    costPrometheus: {
+      origin: prometheus.origin,
+      source: prometheus.source,
+      cadvisorJob: prometheus.cadvisorJob,
+      ...(prometheus.cluster ? { cluster: prometheus.cluster } : {}),
+      ...(prometheus.note ? { note: prometheus.note } : {}),
+    },
+  };
+};
+
 export const startHealthServer: (args: {
   poller: Poller;
   shipper: Shipper;
+  engine?: CostEngineSource | undefined;
+  metrics?: EngineMetricsSource | undefined;
+  prometheus?: CostPrometheusSource | undefined;
 }) => http.Server = (args: {
   poller: Poller;
   shipper: Shipper;
+  engine?: CostEngineSource | undefined;
+  metrics?: EngineMetricsSource | undefined;
+  prometheus?: CostPrometheusSource | undefined;
 }): http.Server => {
   const server: http.Server = http.createServer(
     (req: http.IncomingMessage, res: http.ServerResponse): void => {
       if (req.url === "/livez") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ status: "alive" }));
+        return;
+      }
+
+      if (req.url === "/scrape-targets") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(args.metrics ? args.metrics.targetGroups() : []),
+        );
         return;
       }
 
@@ -165,7 +249,57 @@ export const startHealthServer: (args: {
         res.writeHead(report.healthy ? 200 : 503, {
           "Content-Type": "application/json",
         });
-        res.end(JSON.stringify(report));
+
+        /*
+         * Which engine the agent reads, and where its prices come from, so
+         * `kubectl port-forward` to /healthz answers "which engine?".
+         */
+        const costEngine: KubernetesCostEngineInfo | undefined =
+          args.engine && typeof args.engine.describe === "function"
+            ? args.engine.describe()
+            : undefined;
+        const costEngineUrl: string | undefined =
+          args.engine && typeof args.engine.engineUrl === "function"
+            ? args.engine.engineUrl()
+            : undefined;
+
+        // Where its price metrics are scraped, or why they are not.
+        const costEngineMetricsUrl: string | null = args.metrics
+          ? args.metrics.url()
+          : null;
+        const costEngineMetricsError: string = args.metrics
+          ? args.metrics.reason()
+          : "";
+
+        // Where the memory peaks are read, or why they are not (#9777).
+        const prometheus: {
+          costPrometheusUrl?: string;
+          costPrometheus?: unknown;
+          costPrometheusError?: string;
+        } = describeCostPrometheus(args.prometheus);
+
+        res.end(
+          /*
+           * The engine first: troubleshoot.sh reads only the start of a
+           * long answer, and the reasons can run long.
+           */
+          JSON.stringify({
+            ...(costEngineUrl ? { costEngineUrl } : {}),
+            ...(costEngineMetricsUrl ? { costEngineMetricsUrl } : {}),
+            ...(prometheus.costPrometheusUrl
+              ? { costPrometheusUrl: prometheus.costPrometheusUrl }
+              : {}),
+            ...(costEngine ? { costEngine } : {}),
+            ...report,
+            ...(prometheus.costPrometheus
+              ? { costPrometheus: prometheus.costPrometheus }
+              : {}),
+            ...(costEngineMetricsError ? { costEngineMetricsError } : {}),
+            ...(prometheus.costPrometheusError
+              ? { costPrometheusError: prometheus.costPrometheusError }
+              : {}),
+          }),
+        );
         return;
       }
 

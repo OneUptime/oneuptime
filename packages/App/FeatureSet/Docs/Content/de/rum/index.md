@@ -77,15 +77,15 @@ OneUptime findet die Anwendung über `service.name`, ohne Rücksicht auf Groß- 
 
 | Wo | Was es zeigt |
 | --- | --- |
-| **Übersicht** | Kacheln für **Seitenaufrufe**, **Seitenladezeit (p95)**, **Ereignisse**, **Fehlerrate**, **Ereignisdauer (p95)**, **Ausnahmen**, **Clients** und **Aufgezeichnete Sitzungen** sowie Verlaufsdiagramme für den gewählten Zeitraum. |
-| **Core Web Vitals** | Eine Karte in der Übersicht mit LCP, INP, CLS, FCP und TTFB, jeweils an Googles Grenzwerten gemessen, und INP für jede Route einer Single-Page-App. Siehe [Core Web Vitals](/docs/rum/web-vitals) und [Single-Page-Apps](/docs/rum/web-vitals#single-page-apps). |
+| **Übersicht** | Bei einer Web-App Kacheln für **Seitenaufrufe**, **Seitenladezeit (p95)**, **Ereignisse**, **Fehlerrate**, **Ereignisdauer (p95)**, **Ausnahmen**, **Clients** und **Aufgezeichnete Sitzungen**, bei einer mobilen App für **Sitzungen**, **Absturzfreie Sitzungen** mit ihren absturzfreien Installationen, **Abstürze**, **ANRs**, **App-Starts**, **Kaltstart (p95)**, **Eingefrorene Frames** und **Fehlerrate**, dazu Verlaufsdiagramme für den gewählten Zeitraum. |
+| **Core Web Vitals** | Eine Karte in der Übersicht einer Web-App mit LCP, INP, CLS, FCP und TTFB, jeweils an Googles Grenzwerten gemessen, und INP für jede Route einer Single-Page-App. Siehe [Core Web Vitals](/docs/rum/web-vitals) und [Single-Page-Apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metriken**, **Protokolle**, **Traces** | Die Telemetrie-Explorer, auf diese Anwendung beschränkt. |
 | **Clients** | Die Browser-Plattformen und Gerätemodelle, auf denen die Anwendung genutzt wurde: eine kurze Liste nach Plattform, nie eine Zeile pro Benutzer. |
 | **Produktanalyse** | Aktive, neue, wiederkehrende und inaktive Benutzer und Sitzungen nach Gerät, Browser, Land und Seite, gezählt aus den aufgezeichneten Sitzungen, sowie die Ereignisse, die Ihre App sendet, als Verläufe, Trichter und Bindung: siehe [Produktanalyse](/docs/rum/product-analytics). |
 | **Sitzungswiedergabe** | Aufzeichnungen echter Sitzungen neben ihren Fehlern, Traces und Logs: siehe [Sitzungswiedergabe](/docs/telemetry/session-replay). |
-| **Empfehlungen** | Fertige Monitore für die Anwendung: schlechte Core Web Vitals, fehlgeschlagene Anfragen, Browser-Ausnahmen und, sobald sie aufzeichnet, Budgets der Sitzungswiedergabe. |
+| **Empfehlungen** | Fertige Monitore, die zur Anwendung passen: schlechte Core Web Vitals und Browser-Ausnahmen für eine Web-App; Abstürze, ANRs, langsame Kaltstarts, eingefrorene Frames und eine App, die nicht mehr meldet, für eine mobile App; fehlgeschlagene Anfragen für beide; und, sobald sie aufzeichnet, Budgets der Sitzungswiedergabe. |
 
-Die Zahlen stammen aus den Spans, die Ihre Instrumentierung sendet. **Seitenaufrufe** zählt den Span `documentLoad`, den die Seitenlade-Instrumentierung bei jedem vollständigen Laden aufzeichnet; ein Routenwechsel innerhalb einer Single-Page-App ist also kein Seitenaufruf.
+Die Zahlen stammen aus den Spans, die Ihre Instrumentierung sendet. **Seitenaufrufe** zählt den Span `documentLoad`, den die Seitenlade-Instrumentierung bei jedem vollständigen Laden aufzeichnet; ein Routenwechsel innerhalb einer Single-Page-App ist also kein Seitenaufruf. Die Kacheln einer mobilen App zählen, was [OpenTelemetry Android](/docs/rum/android-setup) von sich aus sendet: ihre Sitzungen, Abstürze, ANRs, App-Starts sowie langsamen und eingefrorenen Frames.
 
 Eine Anwendung zeigt **Empfängt Daten**, solange Telemetrie eintrifft, und **Kein aktueller Datenverkehr** nach 15 Minuten ohne Telemetrie, was normal ist, solange niemand die App nutzt. Eine von Hand angelegte Anwendung zeigt **Warten auf Daten**, bis ihre ersten Daten eintreffen. Zeit, in der OneUptime selbst ausgefallen war oder seine Eingangswarteschlange abarbeitete, zählt nicht zu diesen 15 Minuten.
 

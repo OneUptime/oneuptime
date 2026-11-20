@@ -103,7 +103,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Liste des enregistrements, les plus récents d'abord. Les étiquettes sont plutôt listées par nom, les étiquettes numérotées d'abord (`2. Team` avant `10. Owner`).
+Liste des enregistrements, les plus récents d'abord. Les étiquettes sont plutôt listées par nom, les étiquettes numérotées d'abord (`2. Team` avant `10. Owner`). Les enregistrements que vous ordonnez en les faisant glisser, comme les états d'incident, sont listés dans cet ordre.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Supprime un enregistrement immédiatement, sans demander.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Argument ou option | Obligatoire | Ce que c'est |
 | --- | --- | --- |
 | `<id>` | Oui | L'ID de l'enregistrement |
 | `--force` | Non | Accepté et ne change rien : `delete` ne demande jamais de confirmation |
+| `--workflows-run-as <value>` | Non | Rôles personnalisés uniquement : sous quoi s'exécutent, une fois le rôle supprimé, les flux de travail qui s'exécutent sous ce rôle, `Default` ou `CustomRole`. Un rôle sous lequel s'exécutent des flux de travail n'est supprimé qu'avec cette option |
+| `--workflows-run-as-custom-role-id <id>` | Non | Rôles personnalisés uniquement : avec `--workflows-run-as CustomRole`, l'autre rôle personnalisé sous lequel ils s'exécutent |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ Chaque opération est une requête à l'API, avec la clé dans l'en-tête `APIKe
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | Aucun |
+| `delete` | `DELETE /api/<path>/<id>/` | Aucun, ou `miscDataProps` avec `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 Une action lit les états de votre projet et l'enregistrement, puis crée une ligne de la chronologie des états de l'enregistrement, comme le fait le bouton du tableau de bord : `acknowledge` sur un incident crée un `incident-state-timeline`. `add-note` crée un `incident-internal-note`, ou avec `--public` un `incident-public-note`. Une option d'e-mail liste d'abord les membres d'équipe du projet qui ont cette adresse. Quand OneUptime refuse un champ que la clé ne peut pas lire, une liste ou une lecture redemande sans lui.

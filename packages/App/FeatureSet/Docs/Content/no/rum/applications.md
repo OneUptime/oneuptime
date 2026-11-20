@@ -163,19 +163,21 @@ En nyttig fordeling: gi en supportmedarbeider `ReadRumApplication` og `ReadRumSe
 
 ## Varsler på RUM-data
 
-RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RUM-monitor: de vanlige monitorene virker med den. Den raskeste starten er applikasjonens side **Anbefalinger**, som tilbyr monitorer som allerede er avgrenset til applikasjonen:
+RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RUM-monitor: de vanlige monitorene virker med den. Den raskeste starten er applikasjonens side **Anbefalinger**, som tilbyr monitorer som allerede er avgrenset til applikasjonen, de som passer en webapp eller en mobilapp:
 
 | Gruppe | Anbefalinger |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint og Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
-| Feil | Failed User Operations og Unhandled Browser Exceptions. |
+| Core Web Vitals | For en webapp: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint og Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
+| Feil | App Crashes og App Not Responding (ANR) for en mobilapp, og ratene deres, App Crash Rate og App ANR Rate, for en app med hundrevis av økter i timen; Failed User Operations for begge, og Unhandled Browser Exceptions for en webapp. |
+| Ytelse | For en mobilapp: Slow Cold Start, når en kaldstart tar 5 sekunder eller mer, noe Android vitals regner som overdrevent, og Frozen Frames, når en ramme tar lenger enn 700 ms å tegne. |
+| Tilgjengelighet | For en mobilapp: App Stopped Reporting, når appen ikke sender noen spenn på 30 minutter, og Device Stopped Reporting, når en av enhetene dens ikke sender noen på en time etter å ha sendt noen den siste uken. |
 | Øktavspilling | De fire [varslene for lagringsbudsjettet](/docs/telemetry/session-replay#varsler-for-lagringsbudsjettet), som advarer før prosjektets daglige grense eller applikasjonens månedlige budsjett er brukt opp. De tilbys så snart applikasjonen har tatt opp en avspilling, og det månedlige paret når den også har et månedlig budsjett. |
 
 For å lage din egen monitor velger du den som leser signalet:
 
 - [Målingsmonitor](/docs/monitor/metrics-monitor): en Core Web Vital eller en annen måling appen din sender.
-- [Trase-monitor](/docs/monitor/traces-monitor): feilrate eller ventetid på klientsiden.
-- [Logg-monitor](/docs/monitor/logs-monitor): et mønster i nettleserlogger.
+- [Trase-monitor](/docs/monitor/traces-monitor): feilrate eller ventetid på klientsiden, eller appoppstarter som er tregere enn en varighet du angir.
+- [Logg-monitor](/docs/monitor/logs-monitor): et mønster i nettleserlogger, eller en mobilapps hendelser `app.crash`, `device.anr` og `app.jank`.
 - [Unntak-monitor](/docs/monitor/exceptions-monitor): nye eller raskt økende unntak på klientsiden.
 
 Avgrens monitoren du lager, til applikasjonen, slik at en backend-tjeneste med en lignende signatur ikke utløser den.

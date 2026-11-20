@@ -12,6 +12,7 @@ import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
+import SetupActionAPI from "Common/Server/API/SetupActionAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
@@ -657,6 +658,15 @@ import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityCon
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
+import DeviceManagementConnectionAPI from "Common/Server/API/DeviceManagementConnectionAPI";
+import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
+import ManagedDeviceService, {
+  Service as ManagedDeviceServiceType,
+} from "Common/Server/Services/ManagedDeviceService";
+import ManagedDeviceApp from "Common/Models/DatabaseModels/ManagedDeviceApp";
+import ManagedDeviceAppService, {
+  Service as ManagedDeviceAppServiceType,
+} from "Common/Server/Services/ManagedDeviceAppService";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import AuditLogExportService, {
@@ -747,6 +757,9 @@ import DataSecurityCustomDataTypeService, {
 import DataSecurityCheckSettingService, {
   Service as DataSecurityCheckSettingServiceType,
 } from "Common/Server/Services/DataSecurityCheckSettingService";
+import DataSecurityComplianceSettingService, {
+  Service as DataSecurityComplianceSettingServiceType,
+} from "Common/Server/Services/DataSecurityComplianceSettingService";
 import DataSecurityResidencyRuleService, {
   Service as DataSecurityResidencyRuleServiceType,
 } from "Common/Server/Services/DataSecurityResidencyRuleService";
@@ -801,6 +814,9 @@ import DataPipelineOwnerUserService, {
 import DataPipelineOwnerTeamService, {
   Service as DataPipelineOwnerTeamServiceType,
 } from "Common/Server/Services/DataPipelineOwnerTeamService";
+import DataPipelineOwnerRuleService, {
+  Service as DataPipelineOwnerRuleServiceType,
+} from "Common/Server/Services/DataPipelineOwnerRuleService";
 import DataAssetLabelRuleService, {
   Service as DataAssetLabelRuleServiceType,
 } from "Common/Server/Services/DataAssetLabelRuleService";
@@ -1125,6 +1141,9 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
+import HostLogSessionService, {
+  Service as HostLogSessionServiceType,
+} from "Common/Server/Services/HostLogSessionService";
 import HostCollectorConfigService, {
   Service as HostCollectorConfigServiceType,
 } from "Common/Server/Services/HostCollectorConfigService";
@@ -1209,7 +1228,6 @@ import MonitorTimelineStatusService, {
 // user override
 import OnCallDutyPolicyUserOverrideAPI from "Common/Server/API/OnCallDutyPolicyUserOverrideAPI";
 import OnCallDutyPolicyScheduleAPI from "Common/Server/API/OnCallDutyPolicyScheduleAPI";
-import MoveInListAPI from "Common/Server/API/MoveInListAPI";
 import OnCallDutyPolicyCustomFieldService, {
   Service as OnCallDutyPolicyCustomFieldServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyCustomFieldService";
@@ -1763,6 +1781,7 @@ import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabe
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
+import HostLogSession from "Common/Models/DatabaseModels/HostLogSession";
 import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
 import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -1890,12 +1909,9 @@ import WorkspaceNotificationLogService, {
 } from "Common/Server/Services/WorkspaceNotificationLogService";
 
 // scheduled maintenance template
-import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateAPI from "Common/Server/API/ScheduledMaintenanceTemplateAPI";
 import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
-import ScheduledMaintenanceTemplateService, {
-  Service as ScheduledMaintenanceTemplateServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService, {
   Service as ScheduledMaintenanceTemplateOwnerTeamServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
@@ -1940,6 +1956,7 @@ import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssu
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
+import DataSecurityComplianceSetting from "Common/Models/DatabaseModels/DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataAssetFeed from "Common/Models/DatabaseModels/DataAssetFeed";
@@ -1958,6 +1975,7 @@ import DataAssetOwnerTeam from "Common/Models/DatabaseModels/DataAssetOwnerTeam"
 import DataAssetOwnerRule from "Common/Models/DatabaseModels/DataAssetOwnerRule";
 import DataPipelineOwnerUser from "Common/Models/DatabaseModels/DataPipelineOwnerUser";
 import DataPipelineOwnerTeam from "Common/Models/DatabaseModels/DataPipelineOwnerTeam";
+import DataPipelineOwnerRule from "Common/Models/DatabaseModels/DataPipelineOwnerRule";
 import DataAssetLabelRule from "Common/Models/DatabaseModels/DataAssetLabelRule";
 import DataObservabilitySetting from "Common/Models/DatabaseModels/DataObservabilitySetting";
 import DataAssetLineage from "Common/Models/DatabaseModels/DataAssetLineage";
@@ -2083,6 +2101,11 @@ import ServiceFeed from "Common/Models/DatabaseModels/ServiceFeed";
 import ServiceFeedService, {
   Service as ServiceFeedServiceType,
 } from "Common/Server/Services/ServiceFeedService";
+import ServiceAINote from "Common/Models/DatabaseModels/ServiceAINote";
+import ServiceAINoteService, {
+  Service as ServiceAINoteServiceType,
+} from "Common/Server/Services/ServiceAINoteService";
+import ServiceKnowledgeAPI from "Common/Server/API/ServiceKnowledgeAPI";
 
 // MetricType.
 import MetricTypeService, {
@@ -2092,6 +2115,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
@@ -2831,6 +2855,21 @@ const BaseAPIFeatureSet: FeatureSet = {
         ServiceFeedService,
       ).getRouter(),
     );
+
+    // What a service's team tells OneUptime AI about it (#7672).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceAINote, ServiceAINoteServiceType>(
+        ServiceAINote,
+        ServiceAINoteService,
+      ).getRouter(),
+    );
+
+    /*
+     * What OneUptime AI learned about a service (ServiceKnowledgeAPI,
+     * #7672): its recurring failures, read with the viewer's permissions.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ServiceKnowledgeAPI);
 
     // MetricType
     app.use(
@@ -3826,6 +3865,32 @@ const BaseAPIFeatureSet: FeatureSet = {
       new NetworkControllerConnectionAPI().getRouter(),
     );
 
+    /*
+     * Device management connections: Esper tenants whose Android devices
+     * are imported into Inventory on a schedule, and the devices and apps
+     * they import (read-only: written by the reads).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DeviceManagementConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ManagedDevice, ManagedDeviceServiceType>(
+        ManagedDevice,
+        ManagedDeviceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ManagedDeviceApp, ManagedDeviceAppServiceType>(
+        ManagedDeviceApp,
+        ManagedDeviceAppService,
+      ).getRouter(),
+    );
+
     // External MCP servers OneUptime AI may use, and their connection test.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4049,16 +4114,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // scheduled maintenance template
+    /*
+     * scheduled maintenance template: its CRUD, and whether an event made
+     * from it on the status pages picked notifies anyone (#9920).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateServiceType
-      >(
-        ScheduledMaintenanceTemplate,
-        ScheduledMaintenanceTemplateService,
-      ).getRouter(),
+      new ScheduledMaintenanceTemplateAPI().getRouter(),
     );
 
     app.use(
@@ -4327,7 +4389,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A schedule's layers, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyScheduleLayer,
         OnCallDutyPolicyScheduleLayerServiceType
       >(
@@ -4339,7 +4401,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A layer's people, and moving one to another's turn (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyScheduleLayerUser,
         OnCallDutyPolicyScheduleLayerUserServiceType
       >(
@@ -4839,6 +4901,17 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
+        DataSecurityComplianceSetting,
+        DataSecurityComplianceSettingServiceType
+      >(
+        DataSecurityComplianceSetting,
+        DataSecurityComplianceSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
         DataSecurityResidencyRule,
         DataSecurityResidencyRuleServiceType
       >(
@@ -4987,6 +5060,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataPipelineOwnerTeam, DataPipelineOwnerTeamServiceType>(
         DataPipelineOwnerTeam,
         DataPipelineOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // Owner rules that name a pipeline's owners (#9527).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataPipelineOwnerRule, DataPipelineOwnerRuleServiceType>(
+        DataPipelineOwnerRule,
+        DataPipelineOwnerRuleService,
       ).getRouter(),
     );
 
@@ -5194,7 +5276,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A status page's resources, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<StatusPageResource, StatusPageResourceServiceType>(
+      new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
         StatusPageResource,
         StatusPageResourceService,
       ).getRouter(),
@@ -5400,7 +5482,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A status page's groups, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<StatusPageGroup, StatusPageGroupServiceType>(
+      new BaseAPI<StatusPageGroup, StatusPageGroupServiceType>(
         StatusPageGroup,
         StatusPageGroupService,
       ).getRouter(),
@@ -6358,6 +6440,19 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     /*
+     * Log sessions (#9806): every app's logs from an Android device for a
+     * while, asked for and cancelled here; the device moves them on through
+     * the Android agent's own route (Telemetry, AndroidAgentLogSessions).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostLogSession, HostLogSessionServiceType>(
+        HostLogSession,
+        HostLogSessionService,
+      ).getRouter(),
+    );
+
+    /*
      * Collector Configs (Hosts > Collector Configs): the config OneUptime
      * sends to the hosts it manages, checked on every save, and the versions
      * every save makes - written only by the config's service, so their
@@ -6606,6 +6701,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Which teams, on-call policies and on-call schedules of a project share
+     * a name (SharedNamesAPI, #9746), for their lists to mark. A bare router
+     * for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
 
     /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member
@@ -7453,7 +7555,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // An on-call policy's escalation rules, and moving one to another's place (move).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new MoveInListAPI<
+      new BaseAPI<
         OnCallDutyPolicyEscalationRule,
         OnCallDutyPolicyEscalationRuleServiceType
       >(
@@ -7492,6 +7594,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
+
+    /*
+     * Ask AI's setup actions, one call each, outside the chat: the MCP
+     * server's outcome-level tools (#7241).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupActionAPI);
 
     // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);

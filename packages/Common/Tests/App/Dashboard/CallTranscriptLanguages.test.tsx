@@ -51,7 +51,15 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import CallSummarySection from "../../../../App/FeatureSet/Dashboard/src/Components/AI/CallSummary/CallSummarySection";
-import { getTranscriptUnavailableHeadline } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallTranscriptBlock";
+import {
+  REMOVE_TRANSCRIPT_DESCRIPTION,
+  TRANSCRIPT_MESSAGES_LEFT,
+  TRANSCRIPT_MESSAGES_LEFT_TITLE,
+  TRANSCRIPT_MESSAGES_MAY_BE_LEFT,
+  TRANSCRIPT_MESSAGES_MAY_BE_LEFT_TITLE,
+  TRANSCRIPT_REMOVED,
+  getTranscriptUnavailableHeadline,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallTranscriptBlock";
 import { formatCallTranscriptTime } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallTranscriptState";
 import EventVideoCallsCard from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/EventVideoCallsCard";
 import { VideoCallEventKind } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/useEventVideoCalls";
@@ -351,6 +359,74 @@ describe("in every language the Dashboard ships", () => {
       }
 
       expect(locale["Review it"]).not.toBe(locale["View transcript"]);
+    },
+  );
+});
+
+/*
+ * What Remove transcript says it removes, and what it says after (#9290):
+ * the dialog's promise and each toast, worded in every language - with the
+ * placeholders the sentence fills kept - and the feed's name for the line
+ * that says a transcript was removed.
+ */
+describe("removing a transcript, in every language the Dashboard ships", () => {
+  const REMOVAL_KEYS: Array<string> = [
+    REMOVE_TRANSCRIPT_DESCRIPTION,
+    TRANSCRIPT_REMOVED,
+    TRANSCRIPT_MESSAGES_LEFT_TITLE,
+    TRANSCRIPT_MESSAGES_LEFT,
+    TRANSCRIPT_MESSAGES_MAY_BE_LEFT_TITLE,
+    TRANSCRIPT_MESSAGES_MAY_BE_LEFT,
+    "Video Call Transcript Removed",
+  ];
+
+  test("the dialog no longer says only the incident: it names the feed and the channels", () => {
+    // The channels by kind, within a dialog description's two short lines (ShortDescriptionsGuard).
+    expect(REMOVE_TRANSCRIPT_DESCRIPTION).toContain(
+      "from the feed and chat channels too",
+    );
+    expect(
+      EN[
+        "The transcript of the {{call}} and what OneUptime AI read in it are removed from this incident. The incident's root cause is kept."
+      ],
+    ).toBeUndefined();
+  });
+
+  test.each(LANGUAGES)(
+    "%s words what the removal does and says",
+    (language: string) => {
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(
+          path.join(LOCALES_DIRECTORY, `${language}.json`),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+
+      for (const key of REMOVAL_KEYS) {
+        expect({ key, english: EN[key] }).toEqual({ key, english: key });
+
+        const value: string | undefined = locale[key];
+
+        expect({ key, worded: Boolean(value) && value !== key }).toEqual({
+          key,
+          worded: true,
+        });
+
+        for (const placeholder of ["{{call}}", "{{places}}"]) {
+          expect({
+            key,
+            placeholder,
+            kept: value!.includes(placeholder),
+          }).toEqual({ key, placeholder, kept: key.includes(placeholder) });
+        }
+      }
+
+      // The old promise is gone from every language.
+      expect(
+        locale[
+          "The transcript of the {{call}} and what OneUptime AI read in it are removed from this incident. The incident's root cause is kept."
+        ],
+      ).toBeUndefined();
     },
   );
 });

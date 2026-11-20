@@ -22,6 +22,7 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | `This project has been blocked` | Be en huvudadministratör att häva blockeringen av projektet: se [Ett blockerat projekt](#ett-blockerat-projekt) |
 | `references records that are not in this project` | Använd ID:t för en post i ditt eget projekt: se [ID:n från ett annat projekt](#idn-från-ett-annat-projekt) |
 | `Not Found` eller `Ambiguous Match` från en datakälla | Rätta uppslagningens argument: se [Uppslagningar som hittar ingen eller flera](#uppslagningar-som-hittar-ingen-eller-flera) |
+| `There is already a team called` (en etikett, en jourpolicy, ett jourschema) | Ge den ett namn som ingen annan av samma slag har, eller byt först namn på den andra: se [Namn som en annan post redan har](#namn-som-en-annan-post-redan-har) |
 | `Cannot import non-existent remote object` | Kontrollera ID:t och nyckelns behörigheter: se [Importera resurser](/docs/terraform/importing-resources#felsökning) |
 | `Provider produced inconsistent result after apply` | Uppgradera providern: se [Inkonsekvent resultat efter apply](#inkonsekvent-resultat-efter-apply) |
 | En plan skapar en resurs som du inte har lagt till | Nyckeln kan inte längre läsa den, och OneUptime svarade `404`: ge nyckeln dess läsåtkomst tillbaka, och importera sedan resursen med `terraform import`: se [En resurs lämnar state, och nästa apply skapar den igen](#en-resurs-lämnar-state-och-nästa-apply-skapar-den-igen) |
@@ -103,6 +104,12 @@ Det betyder oftast att ett ID har kopierats från ett annat projekts konfigurati
 
 En datakälla hittar exakt en post, eller så stoppar den planen. `Not Found` säger att ingen post har det `id`, eller att ingen matchar argumenten som du har angett; `Ambiguous Match` säger att flera gör det. Rätta argumenten, ange fler av dem för att begränsa uppslagningen till en, eller slå upp posten via `id`. [Läs det som redan finns](/docs/terraform/complete-guide#läs-det-som-redan-finns) har reglerna.
 
+### Namn som en annan post redan har
+
+Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett projekt, oavsett stora och små bokstäver och mellanslag. En begäran som skapar eller byter namn på en post till ett namn som en annan post av samma slag redan har får svaret `400`, till exempel `There is already an on-call policy called Primary in this project. Pick another name.` En arkiverad jourpolicy behåller sitt namn: avarkivera den, eller välj ett annat namn. Poster som redan delade ett namn behåller det, och instrumentpanelens listor över team, jourpolicyer och jourscheman märker dem.
+
+Terraform gör ändringarna i en apply sida vid sida, så ett namnbyte till ett namn som en annan resurs lämnar i samma apply kan nekas medan den andra fortfarande har det: tillämpa igen, eller lägg till ett `depends_on` från resursen som tar namnet till den som lämnar det. Ett byte, A till B och B till A, eller en kedja av namnbyten som slutar där den började, kan inte göras i en apply: byt namn på en av dem till ett namn som ingen har, tillämpa och gör sedan resten av ändringen.
+
 ## Planer som inte stabiliseras
 
 ### Inkonsekvent resultat efter apply
@@ -131,9 +138,13 @@ Det händer när nyckeln som hanterar en resurs inte längre kan läsa den: dess
 
 ### En prioritet eller ordning som flyttar sig
 
-Monitorstatusar, tillstånd och allvarlighetsgrader för incidenter och larm, och de andra listor som du sorterar i instrumentpanelen, har varje nummer en gång. Ett nummer som ingen annan har behålls som det är skrivet. Ett nummer som en annan redan har tas över, och de som står i vägen flyttar ner en plats, som när du drar i instrumentpanelen. Så två av dem som är konfigurerade med samma nummer byter plats vid varje apply.
+Varje lista som du sorterar i instrumentpanelen behåller det nummer som varje resurs får: monitorstatusar (`priority`), tillstånd och allvarlighetsgrader för incidenter och larm, anpassade fält, loggpipelines och släppfilter (`sort_order`), grupper och resurser på statussidor, eskaleringsregler, lager i scheman och resten. Ett nummer som anges placerar den resursen och flyttar ingen annan, så en konfiguration som numrerar en hel lista, som `order = index(local.severities, each.key) + 1` över en `for_each` av `local.severities`, tillämpas precis som den är skriven, i vilken ordning providerns skrivningar än kommer fram, och nästa plan är tom.
 
-Ge var och en sitt eget nummer med luckor emellan, som `101`, `102` och `103`, och ändra ordningen på dem som Terraform hanterar i Terraform, inte genom att dra dem i instrumentpanelen.
+- Ge varje resurs ett eget nummer: två med samma nummer behåller det båda, sida vid sida, i en ordning som du inte väljer.
+- En resurs som skapas utan nummer hamnar sist i sin lista. Ett nytt tillstånd för incidenter eller larm hamnar i stället precis ovanför det lösta tillståndet, och en ny monitorstatus precis ovanför offline-statusen.
+- Att ta bort en resurs lämnar en lucka i numren, vilket inte ändrar något: en lista går efter sina nummer, inte efter räkning.
+- Att dra en resurs i OneUptimes instrumentpanel numrerar om hela dess lista från toppen, och nästa plan visar det som ändringar. Ordna de resurser som Terraform hanterar i Terraform.
+- De inbyggda tillstånden behåller sin ordning: en ändring som skulle ge två av dem samma nummer eller rubba deras ordning nekas, med skälet. När en apply flyttar inbyggda tillstånd förbi varandras gamla nummer kan en av dess skrivningar komma fram först och möta det nekandet; kör apply igen så blir den klar.
 
 ### Skrivskyddade attribut
 

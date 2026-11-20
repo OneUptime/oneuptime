@@ -9,9 +9,13 @@ import {
 } from "@jest/globals";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import useRemediationRounds, {
+  getRemediationRoundBackoffMs,
+  REMEDIATION_ROUND_BACKOFF_MAX_MS,
+  REMEDIATION_ROUND_BACKOFF_MIN_MS,
   REMEDIATION_ROUND_POLL_INTERVAL_MS,
   RemediationRounds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/useRemediationRounds";
+import { REMEDIATION_ROUND_READ_TOO_OFTEN } from "../../../Types/AutoRemediation/RemediationRound";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -52,6 +56,11 @@ function fix(data: {
 // The run status the server answers, by fix.
 let runStatusByFix: Record<string, AIRunStatus> = {};
 let isServerDown: boolean = false;
+/*
+ * While set, every read is refused as one too many (#6525), with this
+ * Retry-After (null: none at all).
+ */
+let tooManyRetryAfter: string | null | undefined = undefined;
 let postSpy: ReturnType<typeof jest.spyOn>;
 
 function readsOf(fixId: string): number {
@@ -67,12 +76,21 @@ beforeEach(() => {
   jest.useFakeTimers();
   runStatusByFix = {};
   isServerDown = false;
+  tooManyRetryAfter = undefined;
   jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
   postSpy = jest.spyOn(API, "post").mockImplementation((async (request: {
     data: { suggestionId: string };
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
     if (isServerDown) {
       return new HTTPErrorResponse(500, { message: "down" }, {});
+    }
+
+    if (tooManyRetryAfter !== undefined) {
+      return new HTTPErrorResponse(
+        429,
+        { message: REMEDIATION_ROUND_READ_TOO_OFTEN },
+        tooManyRetryAfter === null ? {} : { "retry-after": tooManyRetryAfter },
+      );
     }
 
     return new HTTPResponse<JSONObject>(
@@ -342,5 +360,235 @@ describe("useRemediationRounds", () => {
     });
 
     expect(result.current.rounds.size).toBe(0);
+  });
+});
+
+/*
+ * READS REFUSED AS TOO MANY (#6525): the server holds a person to 1,800
+ * reads of rounds in 15 minutes (AutoRemediationRoundRateLimit). A refused
+ * read shows nothing - the step keeps what it drew - and no round is read
+ * again until the time the refusal's Retry-After names: then what was left
+ * unread is read, and the rounds at work are polled again.
+ */
+describe("useRemediationRounds, refused as reading too often", () => {
+  function renderLiveRound(): {
+    result: { current: RemediationRounds };
+    rerender: (props: HookProps) => void;
+  } {
+    runStatusByFix[FIX_A] = AIRunStatus.Running;
+
+    return renderHook(
+      (props: HookProps): RemediationRounds => {
+        return useRemediationRounds(props);
+      },
+      {
+        initialProps: {
+          suggestions: [
+            fix({
+              id: FIX_A,
+              status: AutoRemediationSuggestionStatus.Planning,
+              aiRunId: RUN_A,
+            }),
+          ],
+          subjectKey: "incident-1",
+        },
+      },
+    );
+  }
+
+  test("a round at work waits the refusal's Retry-After, then is polled again every few seconds", async () => {
+    const { result } = renderLiveRound();
+    await settle();
+    expect(readsOf(FIX_A)).toBe(1);
+
+    // The next poll is refused: wait two minutes.
+    tooManyRetryAfter = "120";
+    await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS);
+    expect(readsOf(FIX_A)).toBe(2);
+
+    // Nothing shown for it: the round is still what the step read before.
+    expect(result.current.rounds.get(FIX_A)?.run?.status).toBe(
+      AIRunStatus.Running,
+    );
+
+    // No poll while it waits, though its 15-second polls come round.
+    tooManyRetryAfter = undefined;
+    await advance(120 * 1000 - 1);
+    expect(readsOf(FIX_A)).toBe(2);
+
+    // The wait is over: the round it did not read is read at once.
+    await advance(1);
+    expect(readsOf(FIX_A)).toBe(3);
+
+    // And it is polled at its usual pace again.
+    await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS);
+    expect(readsOf(FIX_A)).toBe(4);
+  });
+
+  test("a fix whose status changes while the step waits is read once the wait is over", async () => {
+    const { rerender, result } = renderLiveRound();
+    await settle();
+
+    tooManyRetryAfter = "60";
+    await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS);
+    expect(readsOf(FIX_A)).toBe(2);
+
+    // The fix settles meanwhile: not read until the wait is over.
+    tooManyRetryAfter = undefined;
+    runStatusByFix[FIX_A] = AIRunStatus.Error;
+    rerender({
+      suggestions: [
+        fix({
+          id: FIX_A,
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          aiRunId: RUN_A,
+        }),
+      ],
+      subjectKey: "incident-1",
+    });
+    await settle();
+    expect(readsOf(FIX_A)).toBe(2);
+
+    await advance(60 * 1000);
+    expect(readsOf(FIX_A)).toBe(3);
+    expect(result.current.rounds.get(FIX_A)?.run?.status).toBe(
+      AIRunStatus.Error,
+    );
+
+    // A settled round is not polled.
+    await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS * 4);
+    expect(readsOf(FIX_A)).toBe(3);
+  });
+
+  test("a settled fix whose first read was refused is read once the wait is over, and then never again by itself", async () => {
+    tooManyRetryAfter = "90";
+    const { result } = renderHook(
+      (props: HookProps): RemediationRounds => {
+        return useRemediationRounds(props);
+      },
+      {
+        initialProps: {
+          suggestions: [
+            fix({
+              id: FIX_A,
+              status: AutoRemediationSuggestionStatus.NoneApplicable,
+              aiRunId: RUN_A,
+            }),
+          ],
+          subjectKey: "incident-1",
+        },
+      },
+    );
+    await settle();
+    expect(readsOf(FIX_A)).toBe(1);
+    expect(result.current.rounds.size).toBe(0);
+
+    tooManyRetryAfter = undefined;
+    await advance(90 * 1000 - 1);
+    expect(readsOf(FIX_A)).toBe(1);
+
+    await advance(1);
+    expect(readsOf(FIX_A)).toBe(2);
+    expect(result.current.rounds.get(FIX_A)?.run?.status).toBe(
+      AIRunStatus.Error,
+    );
+
+    await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS * 8);
+    expect(readsOf(FIX_A)).toBe(2);
+  });
+
+  test("a refusal that keeps coming keeps the step waiting, never polling every few seconds", async () => {
+    renderLiveRound();
+    await settle();
+
+    tooManyRetryAfter = "60";
+
+    /*
+     * Ten minutes of refusals, each answered before the next poll is due:
+     * one read a minute (about 11), never one every 15 seconds (41).
+     */
+    for (let step: number = 0; step < 40; step++) {
+      await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS);
+    }
+
+    expect(readsOf(FIX_A)).toBeLessThanOrEqual(12);
+    expect(readsOf(FIX_A)).toBeGreaterThanOrEqual(10);
+  });
+
+  test("a read that failed for any other reason does not wait: the round at work is polled on", async () => {
+    renderLiveRound();
+    await settle();
+
+    isServerDown = true;
+    await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS);
+    await advance(REMEDIATION_ROUND_POLL_INTERVAL_MS);
+
+    expect(readsOf(FIX_A)).toBe(3);
+  });
+
+  test("how long it waits: the Retry-After, held between a minute and the limit's window", () => {
+    const tooMany: (headers: Record<string, string>) => HTTPErrorResponse = (
+      headers: Record<string, string>,
+    ): HTTPErrorResponse => {
+      return new HTTPErrorResponse(
+        429,
+        { message: REMEDIATION_ROUND_READ_TOO_OFTEN },
+        headers,
+      );
+    };
+
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "retry-after": "120" })),
+    ).toBe(120 * 1000);
+    // Whatever its case.
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "Retry-After": "300" })),
+    ).toBe(300 * 1000);
+    expect(getRemediationRoundBackoffMs(tooMany({ "retry-after": "5" }))).toBe(
+      REMEDIATION_ROUND_BACKOFF_MIN_MS,
+    );
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "retry-after": "86400" })),
+    ).toBe(REMEDIATION_ROUND_BACKOFF_MAX_MS);
+    expect(getRemediationRoundBackoffMs(tooMany({}))).toBe(
+      REMEDIATION_ROUND_BACKOFF_MIN_MS,
+    );
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "retry-after": "soon" })),
+    ).toBe(REMEDIATION_ROUND_BACKOFF_MIN_MS);
+    /*
+     * Read as RFC 9110 writes it (Common's RetryAfter): an exponent or a
+     * sign is no wait, though Number() read a thousand seconds and two
+     * minutes in them, and an HTTP-date is the time until it.
+     */
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "retry-after": "1e3" })),
+    ).toBe(REMEDIATION_ROUND_BACKOFF_MIN_MS);
+    expect(
+      getRemediationRoundBackoffMs(tooMany({ "retry-after": "+120" })),
+    ).toBe(REMEDIATION_ROUND_BACKOFF_MIN_MS);
+    jest.setSystemTime(new Date("2026-11-19T12:00:00Z"));
+    expect(
+      getRemediationRoundBackoffMs(
+        tooMany({ "retry-after": "Thu, 19 Nov 2026 12:10:00 GMT" }),
+      ),
+    ).toBe(10 * 60 * 1000);
+    expect(REMEDIATION_ROUND_BACKOFF_MIN_MS).toBe(60 * 1000);
+    expect(REMEDIATION_ROUND_BACKOFF_MAX_MS).toBe(15 * 60 * 1000);
+
+    // Any other failure is not waited on.
+    for (const statusCode of [400, 401, 403, 404, 500, 502, 503]) {
+      expect(
+        getRemediationRoundBackoffMs(
+          new HTTPErrorResponse(
+            statusCode,
+            { message: "No." },
+            {
+              "retry-after": "120",
+            },
+          ),
+        ),
+      ).toBeNull();
+    }
   });
 });

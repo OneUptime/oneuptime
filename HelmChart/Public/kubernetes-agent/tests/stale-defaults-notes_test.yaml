@@ -85,7 +85,7 @@ tests:
       - matchRegexRaw:
           pattern: "\n\nWARNING: this release did not get this chart's defaults\\.\nIt renders with an older chart's defaults \\(its values have no\nchartDefaultsVersion\\), not with those of this chart, 14\\.0\\.15\\.\n`helm upgrade --reuse-values` does that: it keeps the previous release's\nvalues, the old chart's defaults included\\. So does a values file copied from\nan older chart's values\\.yaml \\(or from `helm get values --all`\\)\\. Either way, a\ndefault this chart added or changed never applies\\.\n"
       - matchRegexRaw:
-          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.161\\.0\"\n    \\(the OpenTelemetry Collector, with security fixes the older one lacks\\)\\.\n    Kept if you set it yourself\\.\n  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
+          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.165\\.0\"\n    \\(the OpenTelemetry Collector, with security fixes the older one lacks\\)\\.\n    Kept if you set it yourself\\.\n  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
       # 14.0.10 had no ebpf.routes.disabledHarvesters, so OBI still harvests Node.js routes.
       - matchRegexRaw:
           pattern: "\n  - ebpf\\.routes\\.disabledHarvesters is not set, so OBI reads each Node\\.js\n"
@@ -124,7 +124,7 @@ tests:
       image.tag: "0.96.0"
     asserts:
       - matchRegexRaw:
-          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.161\\.0\"\n    \\(the OpenTelemetry Collector, with security fixes the older one lacks\\)\\.\n    Kept if you set it yourself\\.\nAfter --reuse-values"
+          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.165\\.0\"\n    \\(the OpenTelemetry Collector, with security fixes the older one lacks\\)\\.\n    Kept if you set it yourself\\.\nAfter --reuse-values"
       - notMatchRegexRaw:
           pattern: "ebpf\\.image\\.tag"
 
@@ -226,7 +226,7 @@ tests:
       - matchRegexRaw:
           pattern: "\nWARNING: this release did not get this chart's defaults\\.\n"
       - matchRegexRaw:
-          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.161\\.0\"\n"
+          pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.165\\.0\"\n"
       - notMatchRegexRaw:
           pattern: "ebpf\\.image\\.tag"
       - matchRegexRaw:

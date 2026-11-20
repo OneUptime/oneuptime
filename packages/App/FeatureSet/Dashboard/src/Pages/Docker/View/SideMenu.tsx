@@ -31,6 +31,12 @@ import React, {
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  ResourceDataSecurityMenu,
+  useResourceDataSecurityMenu,
+  useResourceSecurityEventsMenu,
+} from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
+import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -40,6 +46,14 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Security Events inside the host (#9628).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
+  const dataSecurityMenu: ResourceDataSecurityMenu | null =
+    useResourceDataSecurityMenu({
+      kind: DataStoreResourceKind.DockerHost,
+      modelId: props.modelId,
+    });
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -222,6 +236,25 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Terminal}
         />
+        {/*
+         * The security events about this host, beside the logs they are
+         * often read from (#9628): read from its containers' logs, or naming it. Only
+         * in a project that uses Security Events, for whoever may read them.
+         */}
+        {showSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Traces",
@@ -311,6 +344,34 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {/*
+       * What Data Security says about the databases running on this host
+       * (#9547), and how they stand against each framework, with what does
+       * not apply to this host turned off (#9555): only for a host with a
+       * data store, in a project that uses Data Security. Folded by its
+       * title, and open by itself on its own pages.
+       */}
+      {dataSecurityMenu ? (
+        <SideMenuSection title="Security">
+          <SideMenuItem
+            link={{
+              title: "Data Security",
+              to: dataSecurityMenu.dataSecurityRoute,
+            }}
+            icon={IconProp.Fingerprint}
+          />
+          <SideMenuItem
+            link={{
+              title: "Compliance",
+              to: dataSecurityMenu.complianceRoute,
+            }}
+            icon={IconProp.ClipboardDocumentCheck}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       {getDeveloperSideMenuSection({
         modelType: DockerHost,

@@ -9,18 +9,19 @@ import {
   floorToWindow,
   mapAllocationToRow,
 } from "./AllocationMapper";
-import { CostEngineClient } from "./CostEngineClient";
 import Logger from "./Logger";
 import { PrometheusClient } from "./PrometheusClient";
 import { Shipper } from "./Shipper";
 import {
+  CostEngineSource,
   EngineAllocation,
   KubernetesCostAllocationIngestRow,
+  KubernetesCostEngineInfo,
   PollerStatus,
 } from "./Types";
 
 export class Poller {
-  private readonly engine: CostEngineClient;
+  private readonly engine: CostEngineSource;
   private readonly shipper: Shipper;
   private readonly prometheus: PrometheusClient;
 
@@ -52,7 +53,7 @@ export class Poller {
   private consecutivePollFailures: number = 0;
 
   public constructor(
-    engine: CostEngineClient,
+    engine: CostEngineSource,
     shipper: Shipper,
     prometheus?: PrometheusClient,
   ) {
@@ -132,6 +133,24 @@ export class Poller {
         const allocations: Array<EngineAllocation> =
           await this.engine.fetchAllocations({ windowStart, windowEnd });
 
+        /*
+         * A Kubecost answers from what its aggregator has collected, in
+         * batches behind the clock: on kind, two minutes after 17:00, the
+         * hour that had just closed was there up to 16:15 or 16:20, and an
+         * hour is shipped once. Read it again at a later tick until it is
+         * whole, without counting a failure (EngineCollection).
+         */
+        if (
+          typeof this.engine.isWindowComplete === "function" &&
+          !(await this.engine.isWindowComplete({
+            windowStart,
+            windowEnd,
+            allocations,
+          }))
+        ) {
+          break;
+        }
+
         if (allocations.length > 0) {
           const rows: Array<KubernetesCostAllocationIngestRow> =
             allocations.map(
@@ -173,7 +192,16 @@ export class Poller {
 
           attachMemoryPeaks({ rows, peaks });
 
-          await this.shipper.ship(rows);
+          /*
+           * Which engine priced the rows, and where its prices come from
+           * (CostEngineResolver): the pages say so beside the figures.
+           */
+          const costEngine: KubernetesCostEngineInfo | undefined =
+            typeof this.engine.describe === "function"
+              ? this.engine.describe()
+              : undefined;
+
+          await this.shipper.ship(rows, costEngine);
 
           Logger.info("shipped cost window", {
             windowStart: windowStart.toISOString(),

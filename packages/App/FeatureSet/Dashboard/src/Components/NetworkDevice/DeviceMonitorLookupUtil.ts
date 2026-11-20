@@ -12,7 +12,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { DEVICE_ADDRESS_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import { DEVICE_TARGET_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import DeviceWebUiUtil from "Common/Utils/NetworkDevice/DeviceWebUiUtil";
 import Search from "Common/Types/BaseDatabase/Search";
 import API from "Common/UI/Utils/API/API";
@@ -42,6 +42,20 @@ export const WEB_UI_MONITOR_CANDIDATES_LIMIT: number = 50;
 export interface DeviceMonitorContext {
   monitors: Array<Monitor>;
   isMonitorBacked: boolean;
+  /*
+   * The monitors listed only because a person tied them to the device
+   * (Monitor.networkDeviceId, issues #9545 and #9676), by id: the ones the
+   * Monitors card can take off the device. One made for it, bound to it,
+   * watching it, or its web UI monitor is the device's for that reason, and
+   * stays listed whatever its tie.
+   */
+  removableMonitorIds: Set<string>;
+}
+
+// The monitors listed for a device, and which of them only by a person's tie.
+export interface DeviceMonitorListing {
+  monitors: Array<Monitor>;
+  removableMonitorIds: Set<string>;
 }
 
 /*
@@ -94,9 +108,12 @@ export const WATCHING_MONITORS_PER_READ: number = 500;
  *    (1) can never find it.
  *
  * 3. A monitor was MADE FOR the device (Monitor.autoProvisionedNetworkDeviceId)
- *    from a Ping, IP, Port or NTP template, by a discovery import
- *    (OneUptime issue #5145): it checks the device's address, so it too is
- *    not of type NetworkDevice. Its provenance is queryable and indexed.
+ *    from a Ping, IP, Port or NTP template - or, since issue #9546, a
+ *    Website, API or SSL Certificate one - by a discovery import (OneUptime
+ *    issue #5145): it checks the device's address, or a URL on it, so it too
+ *    is not of type NetworkDevice. Its provenance is queryable and indexed.
+ *    A monitor a person made and TIED to the device (Monitor.networkDeviceId,
+ *    issue #9545) is read by that tie the same way.
  *
  * Returning only (1) is what made a ping-only device that HAS a bound monitor
  * still render "No monitors are alerting on this device yet" next to a green
@@ -181,12 +198,16 @@ export default class DeviceMonitorLookupUtil {
     const binding: DeviceBinding =
       await DeviceMonitorLookupUtil.getDeviceBinding(networkDeviceId);
 
-    return {
-      monitors: await DeviceMonitorLookupUtil.listMonitorsForDevice({
+    const listing: DeviceMonitorListing =
+      await DeviceMonitorLookupUtil.listMonitorsForDevice({
         networkDeviceId,
         binding: binding,
-      }),
+      });
+
+    return {
+      monitors: listing.monitors,
       isMonitorBacked: binding.isMonitorBacked,
+      removableMonitorIds: listing.removableMonitorIds,
     };
   }
 
@@ -196,10 +217,48 @@ export default class DeviceMonitorLookupUtil {
     const binding: DeviceBinding =
       await DeviceMonitorLookupUtil.getDeviceBinding(networkDeviceId);
 
-    return DeviceMonitorLookupUtil.listMonitorsForDevice({
-      networkDeviceId,
-      binding: binding,
-    });
+    return (
+      await DeviceMonitorLookupUtil.listMonitorsForDevice({
+        networkDeviceId,
+        binding: binding,
+      })
+    ).monitors;
+  }
+
+  /*
+   * Which of the listed monitors a person's tie alone puts on the device
+   * (issue #9676): in the tied list and in no other. React-free and
+   * request-free, so the rule is tested on its own.
+   */
+  public static getRemovableMonitorIds(data: {
+    tiedToDevice: ReadonlyArray<Monitor>;
+    listedForOtherReasons: ReadonlyArray<Monitor | null | undefined>;
+  }): Set<string> {
+    const idOf: (monitor: Monitor | null | undefined) => string = (
+      monitor: Monitor | null | undefined,
+    ): string => {
+      return (monitor?._id?.toString() || monitor?.id?.toString() || "")
+        .trim()
+        .toLowerCase();
+    };
+
+    const otherReasons: Set<string> = new Set<string>(
+      data.listedForOtherReasons.map(idOf).filter((id: string): boolean => {
+        return Boolean(id);
+      }),
+    );
+
+    const removable: Set<string> = new Set<string>();
+
+    for (const monitor of data.tiedToDevice) {
+      const id: string = idOf(monitor);
+
+      if (id && !otherReasons.has(id)) {
+        removable.add(id);
+      }
+    }
+
+    return removable;
   }
 
   /*
@@ -355,7 +414,7 @@ export default class DeviceMonitorLookupUtil {
   private static async listMonitorsForDevice(data: {
     networkDeviceId: ObjectID;
     binding: DeviceBinding;
-  }): Promise<Array<Monitor>> {
+  }): Promise<DeviceMonitorListing> {
     const networkDeviceId: ObjectID = data.networkDeviceId;
     const boundMonitor: Monitor | null = data.binding.boundMonitor;
 
@@ -379,8 +438,9 @@ export default class DeviceMonitorLookupUtil {
       },
     };
 
-    const [watching, madeForDevice, webUiMonitors]: [
+    const [watching, madeForDevice, tiedToDevice, webUiMonitors]: [
       Array<Monitor>,
+      ListResult<Monitor>,
       ListResult<Monitor>,
       Array<Monitor>,
     ] = await Promise.all([
@@ -390,17 +450,37 @@ export default class DeviceMonitorLookupUtil {
         select: select,
       }),
       /*
-       * 3. A monitor made FOR the device from a Ping, IP, Port or NTP
-       *    template - a discovery import gives each device one (OneUptime
-       *    issue #5145) - checks the device's address. Its steps name an
-       *    address, not the device; its provenance names the device: the
-       *    column that finds it again and deletes it with the device.
+       * 3. A monitor made FOR the device from a Ping, IP, Port, NTP,
+       *    Website, API or SSL Certificate template - a discovery import
+       *    gives each device one (OneUptime issues #5145, #9546) - checks
+       *    the device's address, or a URL on it. Its steps name an address,
+       *    not the device; its provenance names the device: the column that
+       *    finds it again and deletes it with the device.
        */
       ModelAPI.getList<Monitor>({
         modelType: Monitor,
         query: {
           autoProvisionedNetworkDeviceId: networkDeviceId,
-          monitorType: new Includes([...DEVICE_ADDRESS_MONITOR_TYPES]),
+          monitorType: new Includes([...DEVICE_TARGET_MONITOR_TYPES]),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: select,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      }),
+      /*
+       * 5. A monitor a person TIED to the device (Monitor.networkDeviceId,
+       *    issue #9545): made by hand from Monitors > Create, from this
+       *    device's page, or on an address its probes see as this device
+       *    (issue #9677) - of any kind. Nothing in its steps names the
+       *    device either. Remove unties it (issue #9676).
+       */
+      ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          networkDeviceId: networkDeviceId,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -429,6 +509,7 @@ export default class DeviceMonitorLookupUtil {
       ...(boundMonitor ? [boundMonitor] : []),
       ...watching,
       ...madeForDevice.data,
+      ...tiedToDevice.data,
       ...webUiMonitors,
     ]) {
       const monitorId: string = monitor._id?.toString() || "";
@@ -444,6 +525,18 @@ export default class DeviceMonitorLookupUtil {
       listed.push(monitor);
     }
 
-    return listed;
+    return {
+      monitors: listed,
+      // A person's tie alone lists these (issue #9676): Remove unties them.
+      removableMonitorIds: DeviceMonitorLookupUtil.getRemovableMonitorIds({
+        tiedToDevice: tiedToDevice.data,
+        listedForOtherReasons: [
+          boundMonitor,
+          ...watching,
+          ...madeForDevice.data,
+          ...webUiMonitors,
+        ],
+      }),
+    };
   }
 }

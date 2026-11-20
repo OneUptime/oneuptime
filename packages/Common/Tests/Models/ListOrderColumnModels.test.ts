@@ -359,6 +359,23 @@ describe("drag-ordered lists (@ListOrderColumn)", () => {
       );
     });
 
+    /*
+     * The description is what the API Reference, the Terraform registry
+     * pages and the MCP tools say the number does: a write places its row
+     * and moves no other (issue #9609), never that the rows in the way
+     * step aside.
+     */
+    test("its order column says a number written places the row and moves no other", () => {
+      const description: string = column.description || "";
+
+      expect(description).toMatch(/places (it|the \w+|this rule) there/);
+      expect(description).toMatch(/moves no other/);
+      expect(description).toContain("at one number are read the older first");
+      expect(description).not.toMatch(
+        /in the way|shift by one|one place along|takes? (its|that) place/,
+      );
+    });
+
     test("whoever can edit a row can move it", () => {
       const access: ColumnAccessControl | null =
         model.getColumnAccessControlFor(settings.column);

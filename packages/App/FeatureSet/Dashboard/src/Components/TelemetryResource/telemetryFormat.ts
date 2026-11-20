@@ -1,4 +1,5 @@
 import { Translator } from "Common/Types/Translator";
+import OneUptimeDate from "Common/Types/Date";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { writeFigureInLanguage } from "Common/Types/DateLanguage";
 import {
@@ -139,4 +140,32 @@ export const formatBytes: (
     `${reading.value.toFixed(reading.decimals)}\u00A0${reading.unit}`,
     translator,
   );
+};
+
+/*
+ * When a histogram or analytics bucket starts, as epoch milliseconds, or
+ * null for a time that is none. The telemetry endpoints hand a bucket's
+ * time over as ClickHouse writes it ("2026-09-24 10:00:00"), in UTC with no
+ * zone, and `new Date` reads that form as the BROWSER's local time: an
+ * overview's Exceptions and Logs charts were drawn hours away from its span
+ * charts and their own time axis everywhere but UTC (4 hours early in New
+ * York). OneUptimeDate.fromString reads it as UTC, and an ISO time with its
+ * zone as written.
+ */
+export const parseBucketTimeMs: (time: unknown) => number | null = (
+  time: unknown,
+): number | null => {
+  if (typeof time !== "string" || time.trim().length === 0) {
+    return null;
+  }
+
+  let ms: number = NaN;
+
+  try {
+    ms = OneUptimeDate.fromString(time).getTime();
+  } catch {
+    return null;
+  }
+
+  return Number.isNaN(ms) ? null : ms;
 };

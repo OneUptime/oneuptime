@@ -21,6 +21,12 @@ import {
 export interface TwoFactorMethod {
   _id: string;
   name: string;
+  /*
+   * A passkey rather than a security key: this app signs in with a passkey
+   * through the phone's browser (Sign in with a passkey), which it cannot do
+   * for a security key's challenge. Left out by servers before #9817.
+   */
+  isPasskey?: boolean;
 }
 
 export interface LoginResponse {
@@ -69,6 +75,13 @@ export interface LoginResponse {
   /* The pending enrolment to quote back with the first working code. */
   twoFactorAuthId?: string;
   twoFactorOtpUrl?: string;
+
+  /*
+   * The server offers a passkey for that setup, beside the authenticator app
+   * (#9817): only a server reached over HTTPS does, and only one with this
+   * release. Whether this phone can make one is the app's to decide.
+   */
+  passkeyEnrolmentOffered?: boolean;
 
   /*
    * Recovery codes the server minted behind an enrolment, in PLAINTEXT.
@@ -219,12 +232,17 @@ function credentialPayload(
 async function postIdentity(
   route: string,
   data: Record<string, unknown>,
+  /*
+   * Beside `data`, at the top of the body: what the request asks for rather
+   * than who it is for (`mobileHandOff`, #9817).
+   */
+  extra?: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   const serverUrl: string = await getServerUrl();
 
   const response: AxiosResponse = await apiClient.post(
     `${serverUrl}/identity/${route}`,
-    { data },
+    { ...(extra || {}), data },
     {
       /*
        * The URL above is already absolute, so no base is needed. The empty
@@ -260,6 +278,7 @@ function methodList(value: unknown): Array<TwoFactorMethod> {
     return {
       _id: String(row["_id"] ?? ""),
       name: String(row["name"] ?? ""),
+      ...(row["isPasskey"] === true ? { isPasskey: true } : {}),
     };
   });
 }
@@ -341,6 +360,9 @@ export async function login(
       twoFactorEnrolmentRequired: true,
       twoFactorAuthId: String(misc["twoFactorAuthId"] || ""),
       twoFactorOtpUrl: String(misc["twoFactorOtpUrl"] || ""),
+      ...(misc["mobilePasskeyEnrolment"] === true
+        ? { passkeyEnrolmentOffered: true }
+        : {}),
     };
   }
 
@@ -434,6 +456,56 @@ export async function verifyTotpEnrolment(data: {
       ...credentialPayload(data.email, data.password),
       code: data.code,
       twoFactorAuthId: data.twoFactorAuthId,
+    },
+  );
+
+  return await completeSession(responseData);
+}
+
+/**
+ * Start setting up a passkey for a setup an administrator made mandatory
+ * (#9817, passkeys/enrolment): the server checks the email and password as
+ * /login does, keeps a passkey's options for the phone's browser, and
+ * answers only the id that page reads them with. Nobody is signed in.
+ */
+export async function requestPasskeyEnrolment(data: {
+  email: string;
+  password: string;
+}): Promise<string> {
+  const responseData: Record<string, unknown> = await postIdentity(
+    "security-key-enrolment-options",
+    credentialPayload(data.email, data.password),
+    { mobileHandOff: true },
+  );
+
+  const handOffId: unknown = (responseData || {})["handOffId"];
+
+  if (typeof handOffId !== "string" || !handOffId) {
+    throw new Error(
+      "The server did not start the passkey setup. Please try again.",
+    );
+  }
+
+  return handOffId;
+}
+
+/**
+ * Finish that setup with the passkey the phone's browser made, and sign in:
+ * the request the web sign-in page sends, the email and password with it.
+ * The server saves the passkey for the account the password proves, and the
+ * response carries the recovery codes minted behind it - see `backupCodes`
+ * on LoginResponse.
+ */
+export async function verifySecurityKeyEnrolment(data: {
+  email: string;
+  password: string;
+  credential: Record<string, unknown>;
+}): Promise<LoginResponse> {
+  const responseData: Record<string, unknown> = await postIdentity(
+    "verify-security-key-enrolment",
+    {
+      ...credentialPayload(data.email, data.password),
+      credential: data.credential,
     },
   );
 

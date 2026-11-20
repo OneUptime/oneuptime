@@ -31,6 +31,7 @@ import {
   SignInFailureReason,
 } from "../../../Types/AuditLog/AuditLogSignInFailure";
 import { StatusPageSessionAuditEvent } from "../../../Types/AuditLog/AuditLogStatusPageSession";
+import { SignInSettingsClearedAuditEvent } from "../../../Types/AuditLog/AuditLogSignInSettingsCleared";
 import { SignInMethod } from "../../../Types/UserSession/SessionSignIn";
 
 /*
@@ -159,9 +160,31 @@ type EntryPoint = {
     | "recordDownload"
     | "recordSessionEvents"
     | "recordSignInFailures"
+    | "recordSignInSettingsCleared"
     | "recordStatusPageSessionEvents";
   call: (service: AuditLogService) => Promise<void>;
 };
+
+/*
+ * A master admin clearing someone's sign-in settings, as LocalSignInClearing
+ * hands it over (issue #9762).
+ */
+const signInSettingsCleared: () => Array<SignInSettingsClearedAuditEvent> =
+  (): Array<SignInSettingsClearedAuditEvent> => {
+    return [
+      {
+        userId: new ObjectID("12121212-1212-4212-8212-121212121212"),
+        clearedByUserId: new ObjectID("17171717-1717-4717-8717-171717171717"),
+        cleared: {
+          hasPassword: true,
+          isTwoFactorAuthEnabled: true,
+          authenticatorAppCount: 1,
+          passkeyAndSecurityKeyCount: 2,
+          backupCodeCount: 8,
+        },
+      },
+    ];
+  };
 
 // A failed sign-in, as FailedSignInAuditLog hands it over (issue #6788).
 const signInFailures: () => Array<SignInFailureAuditEvent> =
@@ -246,6 +269,12 @@ const RECORD_ENTRY_POINTS: Array<EntryPoint> = [
     name: "recordSignInFailures",
     call: (service: AuditLogService): Promise<void> => {
       return service.recordSignInFailures(signInFailures());
+    },
+  },
+  {
+    name: "recordSignInSettingsCleared",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordSignInSettingsCleared(signInSettingsCleared());
     },
   },
   {
@@ -437,6 +466,37 @@ describe("with the Enterprise Edition loaded", () => {
     );
   });
 
+  test("recordSignInSettingsCleared hands the recorder the very clears it was given", async () => {
+    const events: Array<SignInSettingsClearedAuditEvent> =
+      signInSettingsCleared();
+
+    await AuditLogServiceInstance.recordSignInSettingsCleared(events);
+
+    expect(recorder.recordSignInSettingsCleared).toHaveBeenCalledTimes(1);
+    expect(recorder.recordSignInSettingsCleared.mock.calls[0]![0]).toBe(events);
+    expect(recorder.recordUpdate).not.toHaveBeenCalled();
+    expect(recorder.recordSessionEvents).not.toHaveBeenCalled();
+  });
+
+  test("recordSignInSettingsCleared with none asks the recorder nothing, and never throws when it fails: the settings are gone", async () => {
+    await AuditLogServiceInstance.recordSignInSettingsCleared([]);
+
+    expect(recorder.recordSignInSettingsCleared).not.toHaveBeenCalled();
+
+    recorder.recordSignInSettingsCleared.mockRejectedValue(
+      new Error("recorder broke its promise") as never,
+    );
+
+    await expect(
+      AuditLogServiceInstance.recordSignInSettingsCleared(
+        signInSettingsCleared(),
+      ),
+    ).resolves.toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "AuditLog: failed to record cleared sign-in settings",
+    );
+  });
+
   test("recordStatusPageSessionEvents hands the recorder the very events it was given", async () => {
     const events: Array<StatusPageSessionAuditEvent> =
       statusPageSessionEvents();
@@ -610,6 +670,7 @@ describe("what core's AuditLogService still is", () => {
       "recordDownload",
       "recordSessionEvents",
       "recordSignInFailures",
+      "recordSignInSettingsCleared",
       "recordStatusPageSessionEvents",
       "invalidateProjectSettings",
     ]) {

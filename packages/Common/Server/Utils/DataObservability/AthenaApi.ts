@@ -1,9 +1,29 @@
+import crypto from "crypto";
+import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
-import { AwsCredentials, sendAwsRequest } from "../CloudConnection/Aws/AwsApi";
+import {
+  awsErrorCodeOf,
+  AwsCredentials,
+  classifyAwsAnswer,
+  signAwsRequest,
+} from "../CloudConnection/Aws/AwsApi";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../DataSource/HttpFetch";
+import {
+  DataSourceBusyError,
+  DataSourceUnreachedError,
+  failedAnswerError,
+  readBodyText,
+  readErrorCode,
+  readRequestIdHeader,
+  unreachedError,
+} from "../DataSource/HttpFailure";
+import DataSourceHttpRetry, {
+  busyOfExchange,
+  HttpRetryExchange,
+} from "../DataSource/HttpRetry";
 
 /*
  * AMAZON ATHENA AND THE AWS GLUE DATA CATALOG, OVER THEIR APIS.
@@ -19,6 +39,18 @@ import DataSourceHttpFetch, {
  * sessionToken?, database, catalog?, workgroup?, outputLocation? } - the
  * keys of an IAM user or role that may read the Glue database and run
  * Athena queries in the workgroup.
+ *
+ * An answer that may pass is asked again (DataSourceHttpRetry), read as the
+ * AWS SDKs' standard retry mode reads it, by the classifier every AWS call
+ * of OneUptime shares (AwsApi's classifyAwsAnswer): a throttling error code
+ * (Athena's TooManyRequestsException, Glue's ThrottlingException, which
+ * come as 400s, and the others the SDKs list) is waited out, and a
+ * transient one - an InternalServerException, a ServiceUnavailable, any
+ * 500, 502, 503 or 504 - is asked again with backoff. Every call reads, but StartQueryExecution,
+ * which starts a query: it carries a ClientRequestToken, kept for every
+ * sending, so Athena starts the query once and answers again with the same
+ * QueryExecutionId. Without one, Athena's reference says, a caller that is
+ * not an AWS SDK is refused.
  */
 
 export interface AthenaConnection {
@@ -37,6 +69,11 @@ export type AthenaTransport = (
 ) => Promise<DataSourceHttpResponse>;
 
 const PROVIDER_TITLE: string = "Amazon Athena";
+const GLUE_TITLE: string = "AWS Glue";
+
+// The error types Athena's error catalog calls "Query timed out": one would time out again.
+export const ATHENA_TIMED_OUT_ERROR_TYPES: ReadonlyArray<number> = [206, 210];
+
 const REGION_PATTERN: RegExp = /^[a-z]{2}(-[a-z]+)+-\d$/;
 const NAME_PATTERN: RegExp = /^[A-Za-z0-9_-]{1,255}$/;
 const MAX_TABLE_PAGES: number = 100;
@@ -166,9 +203,10 @@ export function readAthenaRows(
 
 export default class AthenaApi {
   private readonly connection: AthenaConnection;
-  private readonly transport: AthenaTransport;
   private readonly now: () => number;
   private readonly wait: (ms: number) => Promise<void>;
+  // Every request of the collection, asked again within one budget (DataSourceHttpRetry).
+  private readonly retry: DataSourceHttpRetry;
 
   public constructor(data: {
     connection: AthenaConnection;
@@ -177,8 +215,6 @@ export default class AthenaApi {
     wait?: ((ms: number) => Promise<void>) | undefined;
   }) {
     this.connection = data.connection;
-    this.transport =
-      data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch);
     this.now =
       data.now ||
       ((): number => {
@@ -187,41 +223,137 @@ export default class AthenaApi {
     this.wait =
       data.wait ||
       ((ms: number): Promise<void> => {
-        return new Promise((resolve: () => void) => {
-          setTimeout(resolve, ms);
-        });
+        return DataSourceHttpRetry.sleep(ms);
       });
+    this.retry = new DataSourceHttpRetry({
+      transport:
+        data.transport || DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
+      classify: classifyAwsAnswer,
+      provider: PROVIDER_TITLE,
+      now: this.now,
+      sleep: this.wait,
+    });
   }
 
   public get database(): string {
     return this.connection.database;
   }
 
+  // What an answer could repeat that no error may: the secret key and the session token.
+  private secrets(): Array<string> {
+    return [
+      this.connection.credentials.secretAccessKey,
+      this.connection.credentials.sessionToken || "",
+    ];
+  }
+
+  /*
+   * One call of Athena's or Glue's API, signed again for each try and asked
+   * again while its answer may pass. Every call is a read or idempotent
+   * (StartQueryExecution's ClientRequestToken, StopQueryExecution), so each
+   * is safe to send again. An answer that is no success says what was being
+   * read, AWS's error code and message, and its request ID.
+   */
   private async call(
     service: "glue" | "athena",
     target: string,
     body: JSONObject,
+    operation: string,
   ): Promise<JSONObject> {
-    const answer: { json: JSONObject; text: string } = await sendAwsRequest({
-      transport: this.transport,
-      credentials: this.connection.credentials,
-      service,
-      region: this.connection.region,
-      target,
-      jsonVersion: "1.1",
-      body,
-      step: target,
-      providerTitle: PROVIDER_TITLE,
-    });
+    const provider: string = service === "glue" ? GLUE_TITLE : PROVIDER_TITLE;
+    const action: string = target.split(".").pop() || target;
+    const said: string = `${operation} (${action})`;
+    let exchange: HttpRetryExchange;
 
-    return answer.json;
+    try {
+      exchange = await this.retry.exchange({
+        build: (): DataSourceHttpRequest => {
+          const signed: {
+            url: string;
+            headers: Dictionary<string>;
+            body: string;
+          } = signAwsRequest({
+            credentials: this.connection.credentials,
+            service,
+            region: this.connection.region,
+            target,
+            jsonVersion: "1.1",
+            body,
+            now: (): Date => {
+              return new Date(this.now());
+            },
+          });
+
+          return {
+            method: "POST",
+            url: signed.url,
+            headers: signed.headers,
+            body: signed.body,
+            acceptAnyStatus: true,
+          };
+        },
+        isSafeToRepeat: true,
+      });
+    } catch (error) {
+      // A failure of the request's own making (a sign-in refused) says itself.
+      if (!(error instanceof DataSourceUnreachedError)) {
+        throw error;
+      }
+
+      throw unreachedError({
+        provider,
+        operation: said,
+        error,
+        secrets: this.secrets(),
+      });
+    }
+
+    const response: DataSourceHttpResponse = exchange.response;
+    const json: JSONObject =
+      response.bodyJson &&
+      typeof response.bodyJson === "object" &&
+      !Array.isArray(response.bodyJson)
+        ? (response.bodyJson as JSONObject)
+        : {};
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      const errorCode: string | null = readErrorCode(
+        awsErrorCodeOf(response.bodyText || ""),
+      );
+
+      throw failedAnswerError({
+        provider,
+        statusCode: response.statusCode,
+        errorCode,
+        operation: said,
+        message:
+          readText(json["message"]) ||
+          readText(json["Message"]) ||
+          (response.bodyJson === undefined
+            ? readBodyText(response.bodyText)
+            : ""),
+        attempts: exchange.attempts,
+        requestId: readRequestIdHeader(response.headers, [
+          "x-amzn-requestid",
+          "x-amz-request-id",
+        ]),
+        secrets: this.secrets(),
+        // A throttle or a transient error whose tries ran out may pass (#9679).
+        busy: busyOfExchange(exchange, { code: errorCode, nowMs: this.now() }),
+      });
+    }
+
+    return json;
   }
 
   // The Glue database itself: a connection that cannot read it cannot collect.
   public async getDatabase(): Promise<JSONObject> {
-    return await this.call("glue", "AWSGlue.GetDatabase", {
-      Name: this.connection.database,
-    });
+    return await this.call(
+      "glue",
+      "AWSGlue.GetDatabase",
+      { Name: this.connection.database },
+      "reading the Glue database",
+    );
   }
 
   // Every table and view of the Glue database, with its columns and parameters.
@@ -230,11 +362,16 @@ export default class AthenaApi {
     let nextToken: string = "";
 
     for (let page: number = 0; page < MAX_TABLE_PAGES; page++) {
-      const body: JSONObject = await this.call("glue", "AWSGlue.GetTables", {
-        DatabaseName: this.connection.database,
-        MaxResults: 100,
-        ...(nextToken ? { NextToken: nextToken } : {}),
-      });
+      const body: JSONObject = await this.call(
+        "glue",
+        "AWSGlue.GetTables",
+        {
+          DatabaseName: this.connection.database,
+          MaxResults: 100,
+          ...(nextToken ? { NextToken: nextToken } : {}),
+        },
+        "listing the tables",
+      );
 
       for (const table of readArray(body["TableList"])) {
         if (tables.length >= maxTables) {
@@ -264,7 +401,10 @@ export default class AthenaApi {
     params?: Array<string> | undefined;
     // Athena has no limit to send with a query: it is followed, and stopped past this.
     maxBytesScanned?: number | undefined;
+    // What the query reads, as a failure says it: "running a check".
+    operation?: string | undefined;
   }): Promise<Array<Record<string, unknown>>> {
+    const operation: string = data.operation || "running a query";
     const params: Array<string> = data.params || [];
     let index: number = 0;
     const statement: string = data.statement.replace(/\?/g, (): string => {
@@ -276,6 +416,8 @@ export default class AthenaApi {
       "athena",
       "AmazonAthena.StartQueryExecution",
       {
+        // The same for every sending of this query: Athena starts it once.
+        ClientRequestToken: crypto.randomUUID(),
         QueryString: statement,
         QueryExecutionContext: {
           Database: this.connection.database,
@@ -290,6 +432,7 @@ export default class AthenaApi {
             }
           : {}),
       },
+      operation,
     );
     const executionId: string = readText(started["QueryExecutionId"]);
     const startedAt: number = this.now();
@@ -297,9 +440,12 @@ export default class AthenaApi {
     for (;;) {
       const execution: JSONObject = readObject(
         (
-          await this.call("athena", "AmazonAthena.GetQueryExecution", {
-            QueryExecutionId: executionId,
-          })
+          await this.call(
+            "athena",
+            "AmazonAthena.GetQueryExecution",
+            { QueryExecutionId: executionId },
+            operation,
+          )
         )["QueryExecution"],
       );
       const status: JSONObject = readObject(execution["Status"]);
@@ -310,9 +456,27 @@ export default class AthenaApi {
       }
 
       if (state === "FAILED" || state === "CANCELLED") {
-        throw new Error(
-          `The Athena query ${state.toLowerCase()}: ${readText(status["StateChangeReason"]).slice(0, 300) || "no reason given"}`,
-        );
+        const message: string = `The Athena query ${state.toLowerCase()}: ${readText(status["StateChangeReason"]).slice(0, 300) || "no reason given"}`;
+        const athenaError: JSONObject = readObject(status["AthenaError"]);
+        const errorType: number = Number(athenaError["ErrorType"]);
+
+        /*
+         * Athena says the query "might succeed if resubmitted" (#9679): a
+         * check starts it again, under a ClientRequestToken of its own, as
+         * the old one would answer this failed query again. Not a query
+         * that timed out (ErrorType 206 or 210), which would again.
+         */
+        if (
+          state === "FAILED" &&
+          athenaError["Retryable"] === true &&
+          !ATHENA_TIMED_OUT_ERROR_TYPES.includes(errorType)
+        ) {
+          throw new DataSourceBusyError(message, {
+            code: Number.isFinite(errorType) ? `ErrorType ${errorType}` : null,
+          });
+        }
+
+        throw new Error(message);
       }
 
       const scanned: number = Number(
@@ -325,9 +489,12 @@ export default class AthenaApi {
 
       if (isOverLimit || this.now() - startedAt > ATHENA_QUERY_DEADLINE_IN_MS) {
         try {
-          await this.call("athena", "AmazonAthena.StopQueryExecution", {
-            QueryExecutionId: executionId,
-          });
+          await this.call(
+            "athena",
+            "AmazonAthena.StopQueryExecution",
+            { QueryExecutionId: executionId },
+            "stopping a query",
+          );
         } catch {
           // The workgroup's own limit ends it either way.
         }
@@ -353,6 +520,7 @@ export default class AthenaApi {
           QueryExecutionId: executionId,
           ...(nextToken ? { NextToken: nextToken } : {}),
         },
+        operation,
       );
 
       rows.push(...readAthenaRows(readObject(result["ResultSet"]), page === 0));

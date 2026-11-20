@@ -103,7 +103,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Toont records, de nieuwste eerst. Labels worden in plaats daarvan op naam getoond, genummerde labels eerst (`2. Team` vóór `10. Owner`).
+Toont records, de nieuwste eerst. Labels worden in plaats daarvan op naam getoond, genummerde labels eerst (`2. Team` vóór `10. Owner`). Records die je door slepen ordent, zoals incidentstatussen, worden in die volgorde getoond.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Verwijdert een record meteen, zonder te vragen.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Argument of optie | Verplicht | Wat het is |
 | --- | --- | --- |
 | `<id>` | Ja | De ID van het record |
 | `--force` | Nee | Wordt geaccepteerd en verandert niets: `delete` vraagt nooit om bevestiging |
+| `--workflows-run-as <value>` | Nee | Alleen aangepaste rollen: waarmee de workflows die met de rol draaien, draaien zodra die is verwijderd, `Default` of `CustomRole`. Een rol waarmee workflows draaien, wordt alleen hiermee verwijderd |
+| `--workflows-run-as-custom-role-id <id>` | Nee | Alleen aangepaste rollen: met `--workflows-run-as CustomRole` de andere aangepaste rol waarmee ze draaien |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ Elke bewerking is één verzoek aan de API, met de sleutel in de header `APIKey`
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | Geen |
+| `delete` | `DELETE /api/<path>/<id>/` | Geen, of `miscDataProps` met `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 Een actie leest de statussen van je project en het record, en maakt dan een rij in de statustijdlijn van het record, net als de knop in het dashboard: `acknowledge` op een incident maakt een `incident-state-timeline`. `add-note` maakt een `incident-internal-note`, of met `--public` een `incident-public-note`. Een e-mailvlag toont eerst de teamleden van het project met dat adres. Als OneUptime een veld weigert dat de sleutel niet mag lezen, vraagt een lijst of een leesbewerking opnieuw zonder dat veld.

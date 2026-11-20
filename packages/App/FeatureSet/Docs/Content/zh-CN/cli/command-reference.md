@@ -103,7 +103,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-列出记录，最新的在前。标签则按名称排列，带编号的标签在前（`2. Team` 在 `10. Owner` 之前）。
+列出记录，最新的在前。标签则按名称排列，带编号的标签在前（`2. Team` 在 `10. Owner` 之前）。通过拖动排序的记录（例如事件状态）按该顺序列出。
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 立即删除一条记录，不会询问。
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | 参数或选项 | 必需 | 说明 |
 | --- | --- | --- |
 | `<id>` | 是 | 记录的 ID |
 | `--force` | 否 | 会被接受，但不改变任何行为：`delete` 从不请求确认 |
+| `--workflows-run-as <value>` | 否 | 仅限自定义角色：删除角色后，以该角色身份运行的工作流改以什么身份运行，`Default` 或 `CustomRole`。工作流以其身份运行的角色，只有加上它才会被删除 |
+| `--workflows-run-as-custom-role-id <id>` | 否 | 仅限自定义角色：与 `--workflows-run-as CustomRole` 一起，给出它们改以其身份运行的另一个自定义角色 |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ CLI 与 OneUptime 一同发布，因此 `oneuptime resources` 列出的是你所
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | 无 |
+| `delete` | `DELETE /api/<path>/<id>/` | 无，或在给出 `--workflows-run-as` 时为 `miscDataProps` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 动作会读取项目的各个状态和该记录，然后像仪表盘按钮那样在记录的状态时间线上创建一行：对事件执行 `acknowledge` 会创建一个 `incident-state-timeline`。`add-note` 创建一个 `incident-internal-note`，加上 `--public` 时则创建一个 `incident-public-note`。电子邮件标志会先列出项目中使用该地址的团队成员。当 OneUptime 拒绝密钥无法读取的字段时，列表或读取会去掉该字段重新请求。

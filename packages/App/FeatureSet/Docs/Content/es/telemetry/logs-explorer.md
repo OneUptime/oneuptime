@@ -63,7 +63,7 @@ Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip: 
 Haga clic en una fila. Sus detalles se abren junto a la lista.
 :::
 
-Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros.
+Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos registros. Un enlace a una sola línea de registro, como **Ver línea de registro** de un evento de seguridad, abre esa línea encima de la lista, leída con sus propios permisos. **Copiar enlace**, en los detalles de una línea, copia un enlace así, con debajo la lista de la que lo copió, en el mismo intervalo de tiempo.
 
 ## Leer un registro
 
@@ -170,7 +170,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 ### Ver lo que hizo
 
 - **Registros → IA → Hallazgos** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Registros**, que abre las líneas de las que trata, de la hora en que se encontró, en el **Visor**. Un fallo que no escribe ninguna línea de registro no tiene líneas que abrir: **Abrir en Trazas** abre en su lugar sus spans fallidos. En un registro de error, **Crear monitor** configura un monitor de registros que cuenta las líneas del mensaje.
-- **Registros → IA → Actividad** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una. Una investigación terminada también dice lo que encontró la IA de OneUptime, como la causa de un error fuera del código, y por eso ese registro de error no recibió ninguna pull request por su cuenta.
+- **Registros → IA → Actividad** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una. Una investigación terminada también dice lo que encontró la IA de OneUptime, como la causa de un error fuera del código, y por eso ese registro de error no recibió ninguna pull request por su cuenta. Una pull request dice cómo está ahora su tarea en Code: una corrección que se volvió a pedir con Volver a intentar después de fallar ya no aparece como fallida y nombra la pull request que abrió.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 
 ## Qué les pasa a los registros al llegar

@@ -31,6 +31,11 @@ import React, {
 import DatabaseServerModel from "Common/Models/DatabaseModels/DatabaseServer";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  ResourceDataSecurityMenu,
+  useResourceDataSecurityMenu,
+} from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
+import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -40,6 +45,11 @@ const DatabaseServerSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const dataSecurityMenu: ResourceDataSecurityMenu | null =
+    useResourceDataSecurityMenu({
+      kind: DataStoreResourceKind.DatabaseServer,
+      modelId: props.modelId,
+    });
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -287,6 +297,34 @@ const DatabaseServerSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
         />
       </SideMenuSection>
+
+      {/*
+       * What Data Security says about this database (#9547): the sensitive
+       * data it holds and what to fix on it, and how it stands against
+       * each framework (#9555) - only once Data Security has read it, in a
+       * project that uses Data Security. Folded by its title, and open by
+       * itself on its own pages.
+       */}
+      {dataSecurityMenu ? (
+        <SideMenuSection title="Security">
+          <SideMenuItem
+            link={{
+              title: "Data Security",
+              to: dataSecurityMenu.dataSecurityRoute,
+            }}
+            icon={IconProp.Fingerprint}
+          />
+          <SideMenuItem
+            link={{
+              title: "Compliance",
+              to: dataSecurityMenu.complianceRoute,
+            }}
+            icon={IconProp.ClipboardDocumentCheck}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       {getDeveloperSideMenuSection({
         modelType: DatabaseServerModel,

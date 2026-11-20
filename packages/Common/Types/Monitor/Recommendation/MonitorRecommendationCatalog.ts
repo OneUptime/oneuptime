@@ -31,7 +31,10 @@ import {
 import {
   HostAlertTemplate,
   getAllHostAlertTemplates,
+  getAndroidHostAlertTemplates,
+  getHostAlertTemplatesFor,
 } from "../HostAlertTemplates";
+import HostOperatingSystem from "../../../Utils/Host/HostOperatingSystem";
 import {
   IoTAlertTemplate,
   getAllIoTAlertTemplates,
@@ -118,6 +121,10 @@ import {
   getAllMessageQueueAlertTemplates,
   getMessageQueueAlertTemplatesFor,
 } from "../MessageQueueAlertTemplates";
+import {
+  ManagedDeviceAlertTemplate,
+  getAllManagedDeviceAlertTemplates,
+} from "../ManagedDeviceAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -153,7 +160,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "cloudResourceId"
     | "cloudAppId"
     | "serverlessFunctionId"
-    | "messageQueueId";
+    | "messageQueueId"
+    | "deviceManagementConnectionId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -342,8 +350,10 @@ function getAllKubernetesRecommendations(): Array<MonitorRecommendation> {
   return [...getKubernetesRecommendations(), ...getOpenShiftRecommendations()];
 }
 
-function getHostRecommendations(): Array<MonitorRecommendation> {
-  return getAllHostAlertTemplates().map((template: HostAlertTemplate) => {
+function getHostRecommendationsFrom(
+  templates: Array<HostAlertTemplate>,
+): Array<MonitorRecommendation> {
+  return templates.map((template: HostAlertTemplate) => {
     return normalize({
       resourceType: MonitorRecommendationResourceType.Host,
       monitorType: MonitorType.Host,
@@ -360,6 +370,28 @@ function getHostRecommendations(): Array<MonitorRecommendation> {
       },
     });
   });
+}
+
+/*
+ * A server is offered every host template; an Android device the ones it
+ * answers and its own (#9802), its CPU one only once it reports CPU use.
+ */
+function getHostRecommendationsFor(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getHostRecommendationsFrom(
+    getHostAlertTemplatesFor({
+      isAndroid: HostOperatingSystem.isAndroid(context?.hostOsType),
+      reportsCpu: context?.hostReportsCpu,
+    }),
+  );
+}
+
+function getAllHostRecommendations(): Array<MonitorRecommendation> {
+  return getHostRecommendationsFrom([
+    ...getAllHostAlertTemplates(),
+    ...getAndroidHostAlertTemplates(),
+  ]);
 }
 
 function getDockerRecommendations(): Array<MonitorRecommendation> {
@@ -677,12 +709,13 @@ function getIoTRecommendations(): Array<MonitorRecommendation> {
  * The RUM adapter — two functions for the same reason as Service's.
  *
  * `getRumRecommendations` answers "what should THIS application be offered":
- * everything except the session replay budget alerts, which wait until the
- * application records replays (and, for the monthly pair, has a monthly
- * budget), because only then does the sweep write the series they watch.
- * `getAllRumRecommendations` answers "what can an application ever be
- * offered" — without it, a dismissed or created budget alert could not be
- * resolved back from its id.
+ * the templates for its kind of app, browser or mobile (#9589), less the
+ * session replay budget alerts, which wait until the application records
+ * replays (and, for the monthly pair, has a monthly budget), because only
+ * then does the sweep write the series they watch. `getAllRumRecommendations`
+ * answers "what can an application ever be offered" — without it, a dismissed
+ * or created budget alert, or a mobile template on an application that turned
+ * out to be a browser app, could not be resolved back from its id.
  */
 function normalizeRumTemplate(
   template: RumAlertTemplate,
@@ -711,6 +744,8 @@ function getRumRecommendations(
     sessionReplayEnabled: context?.sessionReplayEnabled,
     sessionReplayHasRecorded: context?.sessionReplayHasRecorded,
     sessionReplayMonthlyBudgetInGB: context?.sessionReplayMonthlyBudgetInGB,
+    clientKind: context?.rumClientKind,
+    customSignals: context?.customSignals,
   }).map((template: RumAlertTemplate) => {
     return normalizeRumTemplate(template);
   });
@@ -910,6 +945,7 @@ function normalizeCloudTemplate(
         readings: context?.cloudReadings,
         allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
         connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
+        resourceName: context?.cloudResourceName,
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         offlineMonitorStatusId: args.offlineMonitorStatusId,
         defaultIncidentSeverityId: args.defaultIncidentSeverityId,
@@ -1094,6 +1130,37 @@ function getAllMessageQueueRecommendations(): Array<MonitorRecommendation> {
   );
 }
 
+/*
+ * The device management connection adapter (#9835): a connection's monitors
+ * read the check-ins its reads write for its devices, filtered on the
+ * connection's id, which is the resource identifier.
+ */
+function normalizeManagedDeviceTemplate(
+  template: ManagedDeviceAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
+    monitorType: MonitorType.Metrics,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        deviceManagementConnectionId: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getManagedDeviceRecommendations(): Array<MonitorRecommendation> {
+  return getAllManagedDeviceAlertTemplates().map(
+    normalizeManagedDeviceTemplate,
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -1112,7 +1179,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       resourceLabel: "Host",
       identifierFieldName: "hostIdentifier",
       icon: IconProp.Server,
-      getRecommendations: getHostRecommendations,
+      getRecommendations: getHostRecommendationsFor,
+      getAllPossibleRecommendations: getAllHostRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.Docker,
@@ -1192,9 +1260,14 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.RumApplication,
+      /*
+       * Logs too: a mobile app's crashes, ANRs and frozen frames are log
+       * events (RumAlertTemplates' mobile templates, #9589).
+       */
       monitorTypes: [
         MonitorType.Metrics,
         MonitorType.Traces,
+        MonitorType.Logs,
         MonitorType.Exceptions,
       ],
       resourceLabel: "RUM Application",
@@ -1281,6 +1354,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.QueueList,
       getRecommendations: getMessageQueueRecommendations,
       getAllPossibleRecommendations: getAllMessageQueueRecommendations,
+    },
+    {
+      resourceType:
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Esper Connection",
+      identifierFieldName: "deviceManagementConnectionId",
+      icon: IconProp.DevicePhoneMobile,
+      getRecommendations: getManagedDeviceRecommendations,
     },
   ];
 

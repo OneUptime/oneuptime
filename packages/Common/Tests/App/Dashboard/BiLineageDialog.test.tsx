@@ -86,6 +86,7 @@ import {
   BiSourceStanding,
   POWER_BI_DETAILED_METADATA_SETTING,
   POWER_BI_EXPRESSIONS_SETTING,
+  POWER_BI_READ_ONLY_ADMIN_APIS_SETTING,
   getBiLineageFacts,
   getBiLineageReason,
   getBiLineageStep,
@@ -195,8 +196,19 @@ describe("the words of a tool's summary", () => {
       }),
     ).toBe("2 tables not watched");
     expect(reason([DataBiLineageProblem.Dataflows])).toBe(
-      "Some data comes from dataflows",
+      "Reading the datasets' dataflows",
     );
+    expect(
+      reason([DataBiLineageProblem.Dataflows], {
+        datasets: {
+          ...summary().datasets!,
+          readingDataflows: 4,
+          withUnreadDataflows: 3,
+          dataflowError: "Power BI answered 403: Forbidden.",
+          withPendingDataflows: 1,
+        },
+      }),
+    ).toBe("3 datasets on unread dataflows");
     expect(reason([DataBiLineageProblem.NotDatabases])).toBe(
       "Some data comes from files and web pages",
     );
@@ -255,6 +267,115 @@ describe("the words of a tool's summary", () => {
     ).toContain("Sales.dbo.Orders");
   });
 
+  /*
+   * Datasets built on dataflows are read through the dataflows' own
+   * definitions (#9551): a step says why one could not be read, in Power
+   * BI's words, and the setting a service principal needs to export one -
+   * or that they are still being read, within Power BI's hourly limit.
+   */
+  test("a dataflow OneUptime could not read says why, and what lets it; one still being read says so", () => {
+    const translator: ReturnType<typeof getGlobalTranslator> =
+      getGlobalTranslator();
+    const refused: { title: string; text: string } = getBiLineageStep(
+      translator,
+      DataBiLineageProblem.Dataflows,
+      summary({
+        datasets: {
+          ...summary().datasets!,
+          readingDataflows: 2,
+          withUnreadDataflows: 1,
+          dataflowError:
+            "Power BI answered 403: API is not accessible for application.",
+          withPendingDataflows: 0,
+        },
+      }),
+    );
+
+    expect(refused.title).toBe("Data From Dataflows");
+    expect(refused.text).toBe(
+      `1 dataset reads a Power BI dataflow whose tables OneUptime could not read: Power BI answered 403: API is not accessible for application. OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while ${POWER_BI_READ_ONLY_ADMIN_APIS_SETTING} is on for its security group, under Tenant settings > Admin API settings.`,
+    );
+
+    expect(
+      getBiLineageStep(
+        translator,
+        DataBiLineageProblem.Dataflows,
+        summary({
+          datasets: {
+            ...summary().datasets!,
+            readingDataflows: 12,
+            withUnreadDataflows: 0,
+            dataflowError: null,
+            withPendingDataflows: 12,
+          },
+        }),
+      ).text,
+    ).toBe(
+      "12 datasets read Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
+    );
+
+    // A summary kept before a dataflow's tables were read: they are read at the next read.
+    expect(
+      getBiLineageStep(
+        translator,
+        DataBiLineageProblem.Dataflows,
+        summary({
+          datasets: { ...summary().datasets!, readingDataflows: 3 },
+        }),
+      ).text,
+    ).toContain("3 datasets read Power BI dataflows whose definitions");
+  });
+
+  /*
+   * A report on Dataverse's OData connectors names its tables by entity set
+   * (#9696): in an environment whose tables keep no entity set name yet,
+   * See Why says so, and that a probe that collects it is to be updated -
+   * not that the tables are not watched.
+   */
+  test("Dataverse tables named by an entity set no collection kept yet: the reason, and the probe to update", () => {
+    const translator: ReturnType<typeof getGlobalTranslator> =
+      getGlobalTranslator();
+    const two: DataBiLineageSummary = summary({
+      unknownEntitySets: ["accounts", "contacts"],
+      problems: [DataBiLineageProblem.EntitySetsUnknown],
+    });
+    const one: DataBiLineageSummary = summary({
+      unknownEntitySets: ["accounts"],
+      problems: [DataBiLineageProblem.EntitySetsUnknown],
+    });
+
+    expect(getBiLineageReason(translator, two)).toBe(
+      "2 Dataverse tables not matched yet",
+    );
+    expect(getBiLineageReason(translator, one)).toBe(
+      "1 Dataverse table not matched yet",
+    );
+
+    const step: { title: string; text: string } = getBiLineageStep(
+      translator,
+      DataBiLineageProblem.EntitySetsUnknown,
+      two,
+    );
+
+    expect(step.title).toBe("Dataverse Tables Named by Entity Set");
+    expect(step.text).toBe(
+      "Power BI names 2 Dataverse tables by their entity set (accounts, contacts), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+    );
+    expect(
+      getBiLineageStep(translator, DataBiLineageProblem.EntitySetsUnknown, one)
+        .text,
+    ).toBe(
+      "Power BI names 1 Dataverse table by its entity set (accounts), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
+    );
+    // A summary kept before these were told apart names none, and says nothing wrong.
+    expect(
+      getBiLineageReason(
+        translator,
+        summary({ problems: [DataBiLineageProblem.EntitySetsUnknown] }),
+      ),
+    ).toBe("0 Dataverse tables not matched yet");
+  });
+
   test("what the read found, in a line, and each source's standing", () => {
     const translator: ReturnType<typeof getGlobalTranslator> =
       getGlobalTranslator();
@@ -275,9 +396,10 @@ describe("the words of a tool's summary", () => {
         }),
       ),
     ).toEqual(["1 dashboard read", "4 of 5 tables watched"]);
+    // Not the bare "Watched": that is the replay audit's watching time (#9658).
     expect(getBiSourceStanding(translator, SALES)).toEqual({
       standing: BiSourceStanding.Watched,
-      text: "Watched",
+      text: "Watched by OneUptime",
     });
     expect(getBiSourceStanding(translator, FACILITIES)).toEqual({
       standing: BiSourceStanding.NotConnected,
@@ -393,7 +515,9 @@ describe("the Tables Matched dialog", () => {
     expect(sources[2]).toHaveTextContent(
       "SQL Server · 3 datasets · 4 of 5 tables watched",
     );
-    expect(within(sources[2]!).getByText("Watched")).toBeInTheDocument();
+    expect(
+      within(sources[2]!).getByText("Watched by OneUptime"),
+    ).toBeInTheDocument();
     // Only a database OneUptime can watch, and does not, is offered to connect.
     expect(screen.getAllByTestId("bi-lineage-connect")).toHaveLength(1);
     expect(screen.getByText("And 2 more data sources.")).toBeInTheDocument();

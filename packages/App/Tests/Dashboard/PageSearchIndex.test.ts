@@ -39,6 +39,10 @@ import {
   PHONE_FOR_ON_CALL_PLACE,
   PHONE_FOR_ON_CALL_TITLE,
 } from "../../FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
+import {
+  VOICEMAIL_DETECTION_PLACE,
+  VOICEMAIL_DETECTION_TITLE,
+} from "../../FeatureSet/Dashboard/src/Components/NotificationMethods/VoicemailDetectionWords";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
 import HeldPermissionsUtil from "Common/Types/HeldPermissions";
@@ -668,11 +672,12 @@ describe("buildPageSearchCommandDescriptors", () => {
       },
     );
 
+    // Every item that went quiet: discovered ones and managed devices alike.
     expect(goneQuiet?.routePath).toBe(
-      "/dashboard/project-a/inventory_items?source=discovered&stale=true",
+      "/dashboard/project-a/inventory_items?stale=true",
     );
     expect(goneQuiet?.id).toBe(
-      "page-dashboard-projectid-inventory-items-source-discovered-stale-true",
+      "page-dashboard-projectid-inventory-items-stale-true",
     );
   });
 });
@@ -788,6 +793,11 @@ describe("results for what is folded under More settings", () => {
       id: "phone-for-people-on-call",
       title: PHONE_FOR_ON_CALL_TITLE,
       place: PHONE_FOR_ON_CALL_PLACE,
+    },
+    {
+      id: "voicemail-on-on-call-calls",
+      title: VOICEMAIL_DETECTION_TITLE,
+      place: VOICEMAIL_DETECTION_PLACE,
     },
     {
       id: "custom-smtp-configs",

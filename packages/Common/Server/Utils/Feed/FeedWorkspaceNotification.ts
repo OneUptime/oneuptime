@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import SavedChatMessage from "../../../Types/Workspace/SavedChatMessage";
+import WorkspacePostedMessage from "../../../Types/Workspace/WorkspacePostedMessage";
 import {
   MessageBlocksByWorkspaceType,
   WorkspaceChannelToSkip,
@@ -64,6 +65,12 @@ export interface FeedWorkspaceNotification {
    * severity. Left out, it is its feed type's (FeedUpdateKinds).
    */
   updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
+  /*
+   * Told where the entry's message was posted, once it is: an entry
+   * OneUptime may take back later - what OneUptime AI read in a call's
+   * transcript, deleted with the transcript (IncidentCallSummaryFeed).
+   */
+  onPosted?: ((messages: Array<WorkspacePostedMessage>) => void) | undefined;
 }
 
 /*
@@ -149,6 +156,7 @@ export default class FeedWorkspaceNotificationUtil {
     authorUserId?: ObjectID | undefined;
     authorApiKeyName?: string | undefined;
     updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
+    onPosted?: ((messages: Array<WorkspacePostedMessage>) => void) | undefined;
   } {
     return {
       sendWorkspaceNotification:
@@ -161,6 +169,9 @@ export default class FeedWorkspaceNotificationUtil {
       authorUserId: data.author?.authorUserId,
       authorApiKeyName: data.author?.authorApiKeyName,
       ...(data.updateKinds ? { updateKinds: data.updateKinds } : {}),
+      ...(data.workspaceNotification.onPosted
+        ? { onPosted: data.workspaceNotification.onPosted }
+        : {}),
     };
   }
 }

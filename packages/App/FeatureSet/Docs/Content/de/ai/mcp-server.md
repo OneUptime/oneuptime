@@ -41,7 +41,7 @@ Der Server ist zustandslos: Er vergibt keine Sitzungs-IDs, und jede Anfrage steh
 - **Geplante Wartung**: Wartungsereignisse anlegen und verwalten.
 - **Telemetrie**: Logs, Metriken, Traces, Ausnahmen, Monitor-Logs, Sicherheitsereignisse und mehr abfragen, nur lesend.
 
-Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 54 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Nur lesende Tools tragen `readOnlyHint`, jedes Tool, das etwas ändert, trägt `destructiveHint`, und nur die Tools für öffentliche Statusseiten tragen `openWorldHint`, sodass ein Client nur lesende Aufrufe selbstständig ausführen und Sie vor jeder Änderung fragen kann. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
+Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 55 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Eine Art von Datensatz ohne ein Feld, das Sie nach dem Anlegen ändern können, etwa die Verknüpfung eines Vorfalls mit einer Warnung, hat kein Tool zum Aktualisieren. Nur lesende Tools tragen `readOnlyHint` und jedes Tool, das etwas ändert, trägt `destructiveHint`, sodass ein Client nur lesende Aufrufe selbstständig ausführen und Sie vor jeder Änderung fragen kann. `openWorldHint` kennzeichnet die Tools, die über Ihr Projekt hinausreichen: die Tools für öffentliche Statusseiten und die Änderungen, die auf einer Statusseite angezeigt und an ihre Abonnenten gesendet werden, etwa ein neuer Vorfall, eine Änderung seines Zustands oder eine öffentliche Notiz. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
 
 ## Bevor Sie beginnen
 
@@ -341,6 +341,20 @@ Das Tool **`get_data_table_freshness`** sagt einem Agenten, ob eine Tabelle, die
 
 Das Tool **`get_data_table_lineage`** sagt einem Agenten, woraus eine überwachte Tabelle erstellt wird und was aus ihr erstellt wird, bevor er die Tabelle ändert oder ihren Daten vertraut: die vor- und nachgelagerten Tabellen, die verspätet oder gelöscht sind, offene Alerts haben oder deren Pipeline beim letzten Lauf fehlgeschlagen ist, die nächsten zuerst, jede mit der Zahl der Schritte bis zu ihr, dann die übrigen, die Pipelines, die ihre Quellen von außerhalb laden, und die BI-Dashboards, die auf ihr aufbauen. Es geht drei Schritte in jede Richtung, mit `depth` bis zu fünf. Übergeben Sie `table` wie für `get_data_table_freshness`. Es ändert nichts.
 
+Das Tool **`oneuptime_move_in_list`** verschiebt eine Zeile einer geordneten Liste, etwa einen Schweregrad, einen Vorfallstatus oder einen Monitorstatus, an die Stelle einer anderen Zeile, wie es das Ziehen im Dashboard tut: Die Zeilen dazwischen rücken um eine Stelle, und es antwortet mit jeder Zeile, deren Nummer sich geändert hat. Übergeben Sie `resource` (etwa `Incident Severity`), die `id` der Zeile und `placeOfId`, die ID der Zeile, deren Stelle sie einnimmt. Wer die Nummer einer Zeile mit ihrem `update_`-Tool schreibt, platziert nur diese Zeile, neben jeder Zeile, die diese Nummer schon hat.
+
+## Tools zum Einrichten
+
+Der Server hat auch die Einrichtungsaktionen von KI fragen, je ein Aufruf: das, was Sie einrichten, statt eines Datensatzes nach dem anderen. Jede legt die Datensätze an, die KI fragen und die geführten Einrichtungen für dieselben Antworten anlegen, mit denselben Prüfungen:
+
+- **`set_up_website_monitoring`**: eine Website- oder API-Überwachung für eine Adresse, die einen Vorfall eröffnet, wenn die Adresse nicht antwortet oder mit einem Fehler antwortet. Sie gehört Ihnen, und eine Adresse, die bereits ein Monitor prüft, bekommt keinen zweiten
+- **`set_up_paging`**: in einem Projekt, das noch niemanden alarmiert, seine erste Bereitschaftsrichtlinie, die Sie und die genannten Personen und Teams bei jedem neuen Vorfall und jeder neuen Warnung alarmiert
+- **`publish_status_page`**: eine öffentliche Statusseite, die die genannten Monitore zeigt
+- **`add_monitors_to_status_page`**: Monitore auf einer Statusseite, die das Projekt bereits hat
+- **`who_is_told`**: wer informiert wird, wenn ein Monitor ausfällt, und was verhindern würde, dass jemand erreicht wird. Es ändert nichts
+
+Sie handeln als Sie, angemeldet mit OAuth: Ein API-Schlüssel eines Projekts kann die vier nicht nutzen, die etwas anlegen. Ihr Client fragt Sie vor jedem davon, und seine Antwort sagt, was angelegt wurde. Was fehlt, etwa eine Berechtigung, eine Adresse oder Platz im Tarif, wird gesagt, bevor etwas angelegt wird.
+
 ## Telemetrie abfragen
 
 Logs, Metriken, Traces (Spans), Ausnahmen, Monitor-Logs und die anderen Arten von Telemetrie gibt es als nur lesende Tools `list_` und `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie kommt über OpenTelemetry herein, daher gibt es keine Tools zum Anlegen.
@@ -489,7 +503,7 @@ Der MCP-Server ist zustandslos: Er vergibt und verfolgt keine Sitzungs-IDs, soda
 | Teams und Bereitschaft | Team, On-Call Policy |
 | Labels | Label |
 | Sicherheit | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Datensicherheit | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Datensicherheit | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Datenbeobachtbarkeit | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Cloud | Cloud Budget |
 

@@ -1,6 +1,6 @@
 # Gevoelige gegevens in telemetrie
 
-Telemetrie bevat wat je code ook schrijft: een e-mailadres in een logregel, een kaartnummer in een span-attribuut, een token in een stacktrace, de vraag van een klant in een prompt. Gegevensbeveiliging behandelt de logs, traces, uitzonderingen en AI-gesprekken van elke service, en de sessies van elke RUM-applicatie, als eigen gegevensopslagen. Het neemt er elk uur een steekproef van, vindt er gevoelige gegevens in zoals in een bucket, en **Opschonen** maakt van een bevinding een opschoonregel die die gegevens vanaf dan bij de inname maskeert.
+Telemetrie bevat wat je code ook schrijft: een e-mailadres in een logregel, een kaartnummer in een span-attribuut, een token in een stacktrace, de vraag van een klant in een prompt, het IP-adres van een gebruiker in het label van een metriek. Gegevensbeveiliging behandelt de logs, traces, metrieken, uitzonderingen en AI-gesprekken van elke service, en de sessies van elke RUM-applicatie, als eigen gegevensopslagen. Het neemt er elk uur een steekproef van, vindt er gevoelige gegevens in zoals in een bucket, en **Opschonen** maakt van een bevinding een regel die die gegevens vanaf dan bij de inname maskeert.
 
 Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand, tenzij **Telemetrie scannen** uit staat in de instellingen van het project. Wil je de logs, traces of een ander signaal van één service overslaan, zet dan **Inhoud scannen** uit in de **Instellingen** van die opslag: vanaf de volgende scan wordt er niets van gelezen.
 
@@ -8,6 +8,7 @@ Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand,
 - [Wat wordt gelezen](#wat-wordt-gelezen): De attributen, bodies, berichten en prompts van elk signaal.
 - [Hoe een scan bemonstert](#hoe-een-scan-bemonstert): De nieuwste records van elke service, elk uur.
 - [Opschonen](#opschonen): Maskeer een bevinding bij de inname, met één klik.
+- [Deze metriek verwerpen](#deze-metriek-verwerpen): Sla de metrieken waarvan de naam gevoelige gegevens bevat niet meer op.
 - [Wat telt als opgeschoond](#wat-telt-als-opgeschoond): Wanneer een opschoonregel een bevinding al dekt.
 :::
 
@@ -34,8 +35,20 @@ Een bevinding die een opschoonregel dekt, wordt als opgeschoond gemarkeerd: wat 
 | Uitzonderingen | Het bericht, de stacktrace en de attributen | `message`, `stackTrace`, `attributes.<key>` |
 | AI-gesprekken | De prompts en antwoorden van elke AI-aanroep, onder de sleutels waarin de GenAI-conventies ze zetten, en elk ander attribuut | De sleutel waarin ze staan, zoals `gen_ai.input.messages` of `gen_ai.prompt[].content` |
 | Sessieherhalingen | De attributen van de spans en logs van een RUM-applicatie, de attributen van haar sessies, de kenmerken die `identify()` aan haar gebruikers gaf en de gebruikersverwijzing die haar werd meegegeven | `spans.attributes.<key>`, `logs.attributes.<key>`, `sessions.attributes.<key>`, `sessions.identifiedUserTraits.<key>`, `sessions.identifiedUserLabel` |
+| Metrieken | Elk attribuut van een datapunt, ook die van zijn resource, en de namen van de metrieken | `attributes.<key>`, `attributes.resource.<key>`, `name` |
 
 Genummerde sleutels worden samengevoegd tot één locatie: `gen_ai.prompt.3.content` is `gen_ai.prompt[].content`, dus de twintig berichten van een chat zijn één bevinding, niet twintig. Attributen die OneUptime zelf toevoegt, die met `oneuptime.` beginnen, worden niet gelezen.
+
+### Metrieken
+
+De attributen van een metriek zijn de labels van haar reeksen. Ze zijn op elk datapunt van een reeks gelijk, dus een metriek die duizend punten per minuut schrijft, bevat misschien maar drie waarden, en een label dat het e-mailadres van een gebruiker lekt, voegt een reeks toe, geen punt. Daarom wordt een metriek per reeks bemonsterd, niet per punt:
+
+- **Een punt van elke reeks.** Elke metriek wordt gelezen in de nieuwste minuut die ze in het laatste uur schreef: één datapunt van elk van maximaal 100 reeksen van die minuut, hoe vaak de metriek ook wordt verstuurd, zodat een drukke reeks nooit een rustige verdringt. Een waarde wordt één keer geclassificeerd, hoeveel reeksen haar ook herhalen, dus een bevinding telt de verschillende waarden op haar plek.
+- **Nieuwe metrieken eerst, dan de rest om de beurt.** Welke metrieken een service schreef, en wanneer elke metriek de afgelopen dag voor het eerst schreef, komt uit het overzicht per minuut dat de metriektabel bijhoudt, nooit uit de punten zelf. Elke scan leest de drukste metrieken van een service, die de meeste kans hebben op veel reeksen. Dan komen de metrieken die de service de afgelopen 2 uur is gaan schrijven, omdat een nieuw lek meestal uit nieuwe code komt, en daarna de volgende van haar andere metrieken, in een vaste volgorde, vanaf waar de vorige scan stopte. Nieuwe metrieken nemen hoogstens de helft van die beurten, zodat de andere altijd de hunne houden.
+- **Elke metriek binnen een vaste tijd.** Bij een service met M metrieken, waarvan elke scan er 10 leest, wordt elke metriek minstens eens per M ÷ 5 uur gelezen, naar boven afgerond: 60 uur voor een service met 300 metrieken. Zolang ze elk uur nieuwe metrieken begint, is het hoogstens twee keer zo lang.
+- **Het eigen bereik van elke metriek.** De metrieken worden samen gelezen, elke metriek via haar eigen bereik van de primaire sleutel van de tabel. Een metriek waarvan de nieuwste minuut meer dan 16.384 punten bevat, zoals een metriek met het e-mailadres van elke gebruiker als label, wordt apart gelezen, en de leesbeurt stopt bij haar eerste punten, zodat ze niet meer kost dan elke andere metriek.
+
+Een bevinding noemt het attribuut, zoals `attributes.user.email`, of `name` voor gegevens in de naam van een metriek. Haar records zijn de datapunten waarin ze is gevonden: elk toont zijn metriek en de waarde van het attribuut, gemaskeerd, en opent in **Metrieken** op die metriek, gegroepeerd op dat attribuut. Bevat de naam van een metriek gevoelige gegevens, dan wordt ook de naam gemaskeerd, en opent het record in plaats daarvan de metrieken van de service.
 
 ### Waarom de opname van een herhaling nooit wordt gelezen
 
@@ -62,6 +75,9 @@ Elk uur worden van elk signaal de nieuwste records van het laatste uur gelezen, 
 | Attributen van één record | 128; 64 voor een AI-aanroep |
 | Events van één span, en attributen van één event | 16 en 32 |
 | Locaties van één opslag | 500 |
+| Metrieken die in één scan worden gelezen | 100, verdeeld over de services, minstens één van elke service; hoogstens 10 van één service, de helft de drukste en de helft om de beurt de nieuwe en de andere |
+| Een nieuwe metriek | Een metriek waarvan het eerste punt van de afgelopen 24 uur in de afgelopen 2 uur binnenkwam |
+| Reeksen van één metriek | Eén datapunt van elke reeks, uit de nieuwste minuut, hoogstens 100 |
 
 Elke waarde wordt al in de database ingekort, zodat er geen lange waarde uit vertrekt, en elke leesbeurt stopt na 30 seconden. Een leesbeurt die mislukt, is een waarschuwing op de opslagen waarvoor ze bedoeld was; de scan gaat verder met de volgende.
 
@@ -69,16 +85,16 @@ Om iets over te slaan, voeg je het toe aan de **Scanuitsluitingen** van de opsla
 
 ## Opschonen
 
-**Opschonen** op een bevinding maakt de opschoonregel die dat gegevenstype op die locatie vanaf dan verbergt, of wijst naar de ingeschakelde regel die dat al doet:
+**Opschonen** op een bevinding maakt de regel die dat gegevenstype op die locatie vanaf dan verbergt, of wijst naar de ingeschakelde regel die dat al doet:
 
 :::steps
 ### Open de bevinding
 
-Open de telemetrieopslag - bijvoorbeeld de **Logboeken** van een service - en de bevinding.
+Open het probleem - **Waar het is gevonden** toont elke bevinding erachter - of **Gegevensbeveiliging > In uw telemetrie**, waar **Records tonen** de records waarin een bevinding is gevonden naast de lijst opent.
 
 ### Druk op Opschonen
 
-Klik op **Opschonen**. OneUptime maakt voor logs, en de logs van een RUM-applicatie, een opschoonregel voor logs, en voor spans, uitzonderingen en AI-aanroepen een opschoonregel voor traces, op het deel van het record waarin de bevinding staat.
+Klik op **Opschonen**. OneUptime maakt voor logs, en de logs van een RUM-applicatie, een opschoonregel voor logs, voor spans, uitzonderingen en AI-aanroepen een opschoonregel voor traces, op het deel van het record waarin de bevinding staat, en voor het attribuut van een metriek een pipelineregel voor metrieken.
 
 ### Herstel ook de code
 
@@ -92,16 +108,29 @@ De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email addres
 | E-mailadres, kaartnummer, Amerikaans socialezekerheidsnummer, telefoonnummer of IP-adres | Het ingebouwde patroon van dat type. Kaartnummers, socialezekerheidsnummers en telefoonnummers worden gemaskeerd, de rest wordt weggelakt. |
 | Een waarde onder een sleutel die gevoelig lijkt, zoals `password` of `token` | Een regel **Gevoelige attribuutsleutels**, die de hele waarde van elk zulk attribuut weglakt |
 | Elk ander gegevenstype dat een patroon kan vinden | Een regel **Aangepaste reguliere expressie**, gemaakt van de eigen patronen van het gegevenstype, die elke waarde van die vorm weglakt |
+| Elk gegevenstype in het attribuut van een metriek | Een pipelineregel **Kenmerk weglakken** voor de metrieken van de service, die de waarden van het attribuut met de vorm van het gegevenstype vervangt door `[REDACTED]`, of elke waarde van het attribuut wanneer geen patroon het gegevenstype vindt |
 
-Sommige bevindingen kan geen regel opschonen, en **Opschonen** zegt waarom:
+Sommige bevindingen kan geen regel opschonen, en **Opschonen** zegt waarom. Het attribuut van een metriek kan altijd worden opgeschoond, omdat de regel ervoor elke waarde van het attribuut kan verbergen:
 
 - Een gegevenstype dat alleen op veldnamen wordt gevonden, zoals de naam van een persoon: geen patroon kan het vinden. Hernoem het attribuut naar een sleutel die een regel voor gevoelige sleutels verbergt, of stop met het versturen ervan.
 - Een gegevenstype dat alleen door de woorden eromheen van andere waarden te onderscheiden is, zoals een routingnummer: een regel zou veel meer verbergen dan dat gegevenstype.
 - Een documentmarkering: het woord verbergen verbergt het document niet.
 - Een van je eigen gegevenstypen: voeg zelf een aangepaste opschoonregel met zijn patroon toe.
 - De eigen gegevens van een sessie (`sessions.*`): de inname van sessieherhalingen voert geen opschoonregels uit.
+- De naam van een metriek (`name`): de code die de metriek maakt, stelt hem in, en een pipelineregel kan een metriek alleen als geheel hernoemen. Hernoem de metriek, en stuur wat in de naam varieert in plaats daarvan als attribuut. Tot dan kan **Deze metriek verwerpen** het opslaan van die metrieken stoppen.
 
-**Opschonen** maakt de regel namens jou, met je eigen machtigingen: Projecteigenaren en Projectbeheerders kunnen erop drukken, en ook een team dat opschoonregels voor logs mag maken, en opschoonregels voor traces voor spans, uitzonderingen en AI-aanroepen.
+**Opschonen** maakt de regel namens jou, met je eigen machtigingen: Projecteigenaren en Projectbeheerders kunnen erop drukken, en ook een team dat opschoonregels voor logs mag maken, opschoonregels voor traces voor spans, uitzonderingen en AI-aanroepen, en pipelineregels voor metrieken.
+
+## Deze metriek verwerpen
+
+Geen regel haalt de gegevens uit de naam van een metriek, dus tot de code die de metriek een naam geeft is gerepareerd, blijven de gegevens binnenkomen. **Deze metriek verwerpen** op een bevinding in de naam van een metriek stopt het opslaan van de metrieken waarvan de naam ze bevat, ten koste van hun gegevens, en gebeurt dus alleen als je erom vraagt:
+
+- **De metrieken van één service.** Het maakt een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding: elk nieuw datapunt van een metriek waarvan de naam dat gegevenstype bevat, wordt verworpen voordat het wordt opgeslagen. Het filter is het patroon dat **Opschonen** voor het type gebruikt, dus een type dat geen patroon kan vinden, zoals de naam van een persoon, kan niet worden verworpen, en het dialoogvenster zegt waarom.
+- **Gezegd voordat het gebeurt.** Het dialoogvenster zegt dat die datapunten voorgoed verloren gaan, hoeveel van de metrieken van de service die de afgelopen dag zijn geschreven zo'n naam hebben, welke monitoren en dashboards ze lezen en dus geen nieuwe gegevens meer krijgen, dat wat al is opgeslagen blijft tot de bewaartermijn afloopt, en hoe je het ongedaan maakt. Er wordt niets verworpen voordat je aanvinkt dat je het begrijpt.
+- **Namens jou, en vastgelegd.** De regel wordt gemaakt met je eigen machtiging om pipelineregels voor metrieken te maken: Projecteigenaren en Projectbeheerders kunnen hem maken, en ook een team dat pipelineregels voor metrieken mag maken. De auditlogboeken leggen vast wie hem heeft gemaakt.
+- **Ongedaan te maken door de regel te verwijderen.** De regel krijgt de naam van wat hij verwerpt, zoals "Data Security: drop metrics named with Email address", en staat bij je andere pipelineregels voor metrieken onder **Metrieken → Instellingen → Pipelineregels**. Verwijder hem of zet hem uit, en die metrieken worden vanaf dan weer opgeslagen. Wat in de tussentijd is verworpen, komt niet terug.
+
+De bevinding wordt dan gemarkeerd als **Verworpen** en telt als opgeschoond: van die gegevens wordt niets meer opgeslagen.
 
 ## Wat telt als opgeschoond
 
@@ -111,6 +140,8 @@ Een bevinding wordt alleen als opgeschoond gemarkeerd wanneer de inname er een i
 - **Het juiste deel.** De **Te wissen velden** van de regel bevatten het deel van het record waarin de bevinding staat, of de regel laat ze op hun standaardwaarde.
 - **Een patroon dat het type vindt.** Een ingebouwd **Patroontype** vindt zijn eigen gegevenstype: **E-mailadres** vindt e-mailadressen, **Creditcardnummer** kaartnummers, **SSN (burgerservicenummer)** Amerikaanse socialezekerheidsnummers, **Telefoonnummer** telefoonnummers en **IP-adres** IP-adressen. **Gevoelige attribuutsleutels** dekt elke waarde onder een sleutel die gevoelig lijkt, wat de waarde ook is.
 - **Je eigen aangepaste patronen tellen nooit.** Een **Aangepaste reguliere expressie** dekt een bevinding alleen als ze precies het patroon is dat **Opschonen** voor haar type maakt. Een bevinding bewaart alleen gemaskeerde voorbeelden, waarop geen patroon kan worden uitgeprobeerd, dus OneUptime kan niet bewijzen dat je patroon de gegevens verbergt, en een bevinding die ten onrechte opgeschoond heet, is een lek waar niemand naar kijkt.
+- **Het attribuut van een metriek.** Een pipelineregel voor metrieken van het type **Kenmerk weglakken** of **Kenmerk verwijderen** op de sleutel van dat attribuut, voor de service van de bevinding of voor het hele project, dekt haar als de regel geen filter heeft, of precies het filter dat **Opschonen** maakt. Een filter dat je zelf schreef, telt nooit, om dezelfde reden.
+- **De naam van een metriek.** Een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding of voor het hele project dekt haar als de regel precies het filter heeft dat **Deze metriek verwerpen** maakt, of helemaal geen filter, waarmee hij geen enkele metriek van de service opslaat. Zo'n regel zonder filter dekt elke bevinding in die metrieken.
 
 Een regel die uit staat, of die niets opschoont, telt nooit. De dekking wordt na elke scan opnieuw bepaald, dus een regel die je met de hand toevoegt of verwijdert, verandert binnen het uur wat als opgeschoond is gemarkeerd.
 

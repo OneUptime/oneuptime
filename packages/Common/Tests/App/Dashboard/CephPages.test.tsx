@@ -577,6 +577,141 @@ describe("a Ceph cluster's Overview", () => {
     );
   });
 
+  /*
+   * "Degraded PGs (12)" said something was wrong and nothing of where
+   * (#9727): pressed, it opens the pools that hold them, how many each,
+   * and what Ceph is doing about it - read when it opens.
+   */
+  test("the Placement Group States bar's Degraded opens the pools that hold them, and Ceph's reason", async () => {
+    mockMetrics["ceph_pg_recovering"] = perPool({ "1": 4 });
+    mockMetrics["ceph_pg_backfill_wait"] = perPool({ "1": 8 });
+    await openOverview();
+
+    const legend: HTMLElement = screen
+      .getAllByTestId("stacked-progress-bar-legend-button")
+      .find((button: HTMLElement): boolean => {
+        return (button.textContent || "").includes("Degraded PGs");
+      })!;
+    expect(legend.tagName).toBe("BUTTON");
+    expect(legend).toHaveTextContent("Degraded PGs (12)");
+    expect(legend).toHaveAttribute("aria-haspopup", "dialog");
+    expect(legend).toHaveAttribute("title", "Show which pools and why");
+    // Undersized counts none here: it has no legend entry to press.
+    expect(
+      screen.queryAllByTestId("stacked-progress-bar-legend-button"),
+    ).toHaveLength(1);
+
+    fireEvent.click(legend);
+    await settle();
+
+    const dialog: HTMLElement = screen.getByTestId("ceph-pg-degraded-dialog");
+    expect(
+      screen.getByText("12 degraded placement groups"),
+    ).toBeInTheDocument();
+    const rows: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "ceph-pg-degraded-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["Pool:1"]);
+    const rbd: HTMLElement = rows[0]!;
+    expect(rbd).toHaveTextContent("rbd");
+    expect(
+      within(rbd).getAllByTestId("ceph-pg-degraded-dialog-reason")[0],
+    ).toHaveTextContent("12 placement groups degraded");
+    // How many it has, and what Ceph is doing: in our words and in Ceph's.
+    expect(
+      within(rbd).getByTestId("ceph-pg-degraded-dialog-fact"),
+    ).toHaveTextContent("Placement Groups:128");
+    expect(
+      within(rbd).getByTestId("ceph-pg-degraded-dialog-explanation"),
+    ).toHaveTextContent("Ceph is copying the missing data back.");
+    expect(
+      within(rbd).getByTestId("ceph-pg-degraded-dialog-message"),
+    ).toHaveTextContent("4 recovering, 8 backfill_wait");
+    // A step from the pool's page.
+    expect(
+      within(rbd).getByTestId("ceph-pg-degraded-dialog-view"),
+    ).toHaveAttribute("href", `${BASE}/pools/1`);
+  });
+
+  test("Ceph's reason that was not read never hides the pools: they still say which", async () => {
+    // The pools' counts read, but none of the states that say why.
+    await openOverview();
+
+    fireEvent.click(
+      screen.getAllByTestId("stacked-progress-bar-legend-button")[0]!,
+    );
+    await settle();
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "ceph-pg-degraded-dialog-item",
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent("rbd");
+    expect(rows[0]).toHaveTextContent("12 placement groups degraded");
+    expect(
+      within(rows[0]!).queryByTestId("ceph-pg-degraded-dialog-explanation"),
+    ).toBeNull();
+  });
+
+  test("read, and nothing under way: Ceph says nothing is copying the data back", async () => {
+    mockMetrics["ceph_pg_recovering"] = perPool({ "1": 0 });
+    mockMetrics["ceph_pg_backfilling"] = perPool({ "1": 0 });
+    await openOverview();
+
+    fireEvent.click(
+      screen.getAllByTestId("stacked-progress-bar-legend-button")[0]!,
+    );
+    await settle();
+
+    const row: HTMLElement = screen.getByTestId("ceph-pg-degraded-dialog-item");
+    expect(
+      within(row).getByTestId("ceph-pg-degraded-dialog-explanation"),
+    ).toHaveTextContent(
+      "Ceph reports nothing under way to copy the missing data back.",
+    );
+    // No state of Ceph's own to name: nothing is in one.
+    expect(
+      within(row).queryByTestId("ceph-pg-degraded-dialog-message"),
+    ).toBeNull();
+  });
+
+  test("a Ceph that counts placement groups for the whole cluster only never says which pools: its legend stays words", async () => {
+    mockMetrics["ceph_pg_total"] = [
+      { time: minutesAgo(1), value: 224, attributes: {} },
+    ];
+    mockMetrics["ceph_pg_active"] = [
+      { time: minutesAgo(1), value: 224, attributes: {} },
+    ];
+    mockMetrics["ceph_pg_clean"] = [
+      { time: minutesAgo(1), value: 212, attributes: {} },
+    ];
+    mockMetrics["ceph_pg_degraded"] = [
+      { time: minutesAgo(1), value: 12, attributes: {} },
+    ];
+    mockMetrics["ceph_pg_undersized"] = [
+      { time: minutesAgo(1), value: 0, attributes: {} },
+    ];
+    await openOverview();
+
+    expect(screen.getByText("Degraded PGs")).toBeInTheDocument();
+    expect(
+      screen.queryAllByTestId("stacked-progress-bar-legend-button"),
+    ).toHaveLength(0);
+  });
+
+  test("a disconnected cluster's placement groups open nothing: its last picture is not the truth", async () => {
+    mockCluster = { ...CLUSTER, otelCollectorStatus: "disconnected" };
+    await openOverview();
+
+    expect(
+      screen.queryAllByTestId("stacked-progress-bar-legend-button"),
+    ).toHaveLength(0);
+  });
+
   test("the count chips open their lists", async () => {
     await openOverview();
 
@@ -649,16 +784,24 @@ describe("the OSDs list", () => {
     ).toHaveTextContent("Apply latency 150 ms");
   });
 
-  test("Used and latency are coloured at their alerts' lines", async () => {
+  test("Used is the shared storage bar, coloured at Ceph's ratios, and latency at its alert's line", async () => {
     await openList();
 
-    expect(within(rowOf("osd.5")).getByText(/\(96\.0%\)$/)).toHaveAttribute(
-      "data-tone",
-      "danger",
-    );
-    expect(within(rowOf("osd.0")).getByText(/\(40\.0%\)$/)).not.toHaveAttribute(
-      "data-tone",
-    );
+    // 96% is past the full ratio (95%): red; 40% is calm (#9646).
+    expect(
+      within(rowOf("osd.5")).getByTestId("storage-usage-fill"),
+    ).toHaveAttribute("data-level", "critical");
+    expect(
+      within(rowOf("osd.5")).getByTestId("storage-usage"),
+    ).toHaveTextContent("96%");
+    expect(
+      within(rowOf("osd.0")).getByTestId("storage-usage-fill"),
+    ).toHaveAttribute("data-level", "normal");
+    expect(
+      within(rowOf("osd.0")).getByTestId("storage-usage"),
+    ).toHaveTextContent("40%");
+    // No English-digit "used / total (x%)" text is left.
+    expect(within(rowOf("osd.5")).queryByText(/\(96\.0%\)$/)).toBeNull();
     expect(within(rowOf("osd.4")).getByText("150 ms / 160 ms")).toHaveAttribute(
       "data-tone",
       "warning",
@@ -688,10 +831,12 @@ describe("the Pools list", () => {
     expect(
       within(cold).getByTestId("resource-status-reason"),
     ).toHaveTextContent("97% of its writable space used");
-    expect(within(cold).getByText("97.0%")).toHaveAttribute(
-      "data-tone",
-      "danger",
+    // STORED of STORED + MAX AVAIL, as the shared bar: red past 95%.
+    expect(within(cold).getByTestId("storage-usage-fill")).toHaveAttribute(
+      "data-level",
+      "critical",
     );
+    expect(within(cold).getByTestId("storage-usage")).toHaveTextContent("97%");
 
     const rbd: HTMLElement = rowOf("rbd");
     expect(within(rbd).getByText("Available")).toHaveAttribute(
@@ -702,7 +847,11 @@ describe("the Pools list", () => {
       "12 placement groups degraded",
     );
     expect(within(rbd).getByText("116 of 128 clean")).toBeInTheDocument();
-    expect(within(rbd).getByText("30.0%")).not.toHaveAttribute("data-tone");
+    expect(within(rbd).getByTestId("storage-usage-fill")).toHaveAttribute(
+      "data-level",
+      "normal",
+    );
+    expect(within(rbd).getByTestId("storage-usage")).toHaveTextContent("30%");
 
     expect(within(rowOf("cephfs_data")).getByText("Available")).toHaveAttribute(
       "data-tone",
@@ -774,6 +923,40 @@ describe("an OSD's page", () => {
       "This OSD",
     );
     expect(screen.queryByTestId("ceph-osd-tiles")).toBeNull();
+  });
+
+  /*
+   * "Down" in red beside the OSD's name said nothing of why it matters -
+   * still in the cluster, its data unreachable: that was Needs attention,
+   * under the tabs (#9594). Pressed, the status opens the same list.
+   */
+  test("its Down opens why: This OSD, still in the cluster, with no View", async () => {
+    await openOsd("osd.3");
+
+    const status: HTMLElement = screen.getByTestId("ceph-osd-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveAttribute("aria-haspopup", "dialog");
+    fireEvent.click(status);
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "ceph-osd-hero-status-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["Osd:osd.3"]);
+    expect(rows[0]!).toHaveAttribute("data-current", "true");
+    expect(
+      within(rows[0]!).getByTestId("ceph-osd-hero-status-dialog-name"),
+    ).toHaveTextContent("This OSD");
+    expect(rows[0]!).toHaveTextContent("Down, still in the cluster");
+    expect(
+      within(rows[0]!).queryByTestId("ceph-osd-hero-status-dialog-view"),
+    ).toBeNull();
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "What about this OSD is broken or needs a look.",
+    );
   });
 
   test("one past the full ratio: Up in red, its tiles at their lines, its chips and its details", async () => {
@@ -956,6 +1139,23 @@ describe("a pool's page", () => {
     expect(tiles).toHaveTextContent("300 GiB of 1000 GiB");
     expect(tiles).toHaveTextContent("128");
     expect(tiles).toHaveTextContent("12 not active + clean");
+  });
+
+  test("its amber Available opens why: This pool's degraded placement groups", async () => {
+    await openPool("1");
+
+    const status: HTMLElement = screen.getByTestId("ceph-pool-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    fireEvent.click(status);
+
+    const row: HTMLElement = screen.getByTestId(
+      "ceph-pool-hero-status-dialog-item",
+    );
+    expect(row).toHaveAttribute("data-key", "Pool:1");
+    expect(
+      within(row).getByTestId("ceph-pool-hero-status-dialog-name"),
+    ).toHaveTextContent("This pool");
+    expect(row).toHaveTextContent("12 placement groups degraded");
   });
 
   test("one past 95% of its writable space: Available in red", async () => {

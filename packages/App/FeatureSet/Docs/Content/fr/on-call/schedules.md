@@ -18,7 +18,7 @@ Lorsque vous créez un planning sur la page **Plannings d'astreinte**, le formul
 
 :::steps
 1. Allez dans **Astreinte** > **Plannings d'astreinte** et cliquez sur **Créer un planning d'astreinte**.
-2. Saisissez un **Nom**.
+2. Saisissez un **Nom**. Un nom que porte déjà un autre planning du projet est refusé, quels que soient sa casse ou ses espaces, afin que chaque sélecteur distingue les plannings.
 3. Sous **Qui assure l'astreinte à tour de rôle ?**, cliquez sur **Ajouter un utilisateur** et choisissez les personnes, dans l'ordre de leurs tours.
 4. Si vous le souhaitez, ouvrez **Plus de champs** pour changer la durée de chaque tour, le fuseau horaire, la description ou les étiquettes.
 5. Cliquez sur **Créer un planning d'astreinte**. Le nouveau planning s'ouvre ensuite sur sa page **Couches**, où vous pouvez modifier la rotation ou ajouter d'autres couches.
@@ -40,7 +40,7 @@ Tout le reste se trouve sous **Plus de champs**, replié jusqu'à ce que vous l'
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Chaque tour dure** | **1 jour**, **1 semaine**, **2 semaines** ou **1 mois**, et **1 semaine** si vous ne le changez pas. Il est demandé dès que quelqu'un assure l'astreinte à tour de rôle. Chaque personne est d'astreinte pendant cette durée, puis la suivante prend le relais, à l'heure de la journée à laquelle le planning a été créé. |
-| **Fuseau horaire** | Le fuseau horaire des heures de passation et des heures d'astreinte. Il commence avec le vôtre. |
+| **Fuseau horaire** | Le fuseau horaire des heures de passation et des heures d'astreinte. Il commence avec le vôtre. Chaque fuseau horaire suit les règles actuelles de sa région : America/Vancouver (Colombie-Britannique) reste à UTC-7 toute l'année à partir de 2026. |
 | **Description** | Des notes sur le planning. |
 | **Étiquettes** | Des étiquettes pour retrouver et regrouper le planning. |
 
@@ -97,11 +97,11 @@ Pendant son absence :
 
 Choisissez plutôt quelqu'un sous **Qui remplace ?**, et cette personne reçoit toutes ses alertes, de chaque planning et de chaque politique, au lieu que la rotation reprenne ses tours.
 
-Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte, si bien qu'elle demande la permission des remplacements sur tout le projet. Si le rôle de votre équipe est limité à ses propres politiques ou à certaines étiquettes, elle s'ajoute à la place sur les politiques de ce planning sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, listé sur la page **Remplacements d'utilisateur** de chaque politique ; s'il y en a plusieurs, vous les cochez sous **Politiques d'astreinte**. **Passer son tour jusqu'au…** n'est verrouillé et ne dit pourquoi que là où vous n'en avez aucune. Elle figure dans **Astreinte** > **Avancé** > **Remplacements d'utilisateur**, ainsi que parmi les remplacements d'utilisateur du planning sur sa page **Couches**, où **Terminer maintenant** fait revenir la personne plus tôt. Pour faire passer son tour à quelqu'un dans une seule politique, ajoutez le remplacement sur la page **Remplacements d'utilisateur** de cette politique et laissez **Qui remplace ?** tel quel. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
+Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte, si bien qu'elle demande la permission des remplacements sur tout le projet. Si le rôle de votre équipe est limité à ses propres politiques ou à certaines étiquettes, elle s'ajoute à la place sur les politiques de ce planning sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, listé sur la page **Remplacements d'utilisateur** de chaque politique ; s'il y en a plusieurs, vous les cochez sous **Politiques d'astreinte**. **Passer son tour jusqu'au…** n'est verrouillé et ne dit pourquoi que là où vous n'en avez aucune. Elle figure dans **Astreinte** > **Plannings** > **Remplacements d'utilisateur**, ainsi que parmi les remplacements d'utilisateur du planning sur sa page **Couches**, où **Terminer maintenant** fait revenir la personne plus tôt. Pour faire passer son tour à quelqu'un dans une seule politique, ajoutez le remplacement sur la page **Remplacements d'utilisateur** de cette politique et laissez **Qui remplace ?** tel quel. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
 
 Avec l'API, un remplacement d'utilisateur (`/api/on-call-duty-policy-user-override`) créé sans `routeAlertsToUserId` fait passer son tour à la personne de `overrideUserId` de `startsAt` à `endsAt`.
 
-La **Vue d'ensemble** d'un planning a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent la personne d'astreinte, avec les règles qui le font. Quand aucune ne le fait, elle le dit et renvoie aux politiques d'astreinte. Supprimer le planning, sur sa page ou depuis la liste, dit d'abord quelles politiques appellent via lui. Les politiques que vous ne pouvez pas ouvrir sont comptées, pas nommées.
+La **Vue d'ensemble** d'un planning a une carte **Utilisé par** : les politiques d'astreinte dont les règles d'escalade appellent la personne d'astreinte, avec les règles qui le font. Quand aucune ne le fait, elle le dit et renvoie aux politiques d'astreinte. Supprimer le planning, sur sa page ou depuis la liste, dit d'abord quelles politiques appellent via lui. Les politiques que vous ne pouvez pas ouvrir sont comptées, pas nommées. Un planning qui porte le même nom qu'un autre planning, datant d'avant l'obligation de noms distincts, est marqué **Même nom qu'un autre planning** dans la liste **Plannings d'astreinte**, qui indique combien il y en a : comparez leurs couches, puis renommez l'un d'eux avec **Renommer** sur sa ligne.
 
 ## Créer des plannings avec l'API ou Terraform
 

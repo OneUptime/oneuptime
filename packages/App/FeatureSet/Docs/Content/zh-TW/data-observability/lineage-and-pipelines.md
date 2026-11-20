@@ -38,7 +38,7 @@
 
 搜尋資料表、服務、管線或儀表板，即可保留符合的內容及其所有上游和下游。選取一張卡片，可醒目提示其完整血緣，查看它來自哪裡、流向哪裡，並開啟它的頁面；**僅顯示其血緣** 會讓地圖上只留下這些內容。搜尋框旁的開關可以關閉服務、管線或儀表板的顯示。**清單** 將每個箭頭顯示為一行，手機上預設開啟的就是它。
 
-一張地圖最多繪製 400 張卡片，優先繪製最近發現的資料流；當你的專案超出時，地圖會說明這一點。同一張地圖也可透過 `POST /api/data-observability/lineage/map` 取得，適用於有權讀取資料資產的使用者及其 API 金鑰。 超出時，地圖會說明它略去了多少個資料表（每個只計一次），還可以從別處開始：選擇一個資料庫，繪製其資料表的資料流以及這些資料流連接的卡片；或者輸入名稱並選擇 **搜尋整個專案**，繪製名稱中包含它的每個資料表、管道、服務和儀表板的資料流，無論多舊。**顯示整張地圖** 可返回。要讓 API 的地圖從別處開始，請傳送 `{ "dataStoreId": "<database ID>" }` 或 `{ "search": "orders" }`。
+一張地圖最多繪製 400 張卡片，優先繪製最近發現的資料流；當你的專案超出時，地圖會說明這一點。同一張地圖也可透過 `POST /api/data-observability/lineage/map` 取得，適用於有權讀取資料資產的使用者及其 API 金鑰。 超出時，地圖會說明它略去了多少個資料表（每個只計一次），還可以從別處開始：選擇一個資料庫，繪製其資料表的資料流、以這些資料表為基礎的儀表板，以及這些資料流連接的卡片；或者輸入名稱並選擇 **搜尋整個專案**，繪製名稱中包含它的每個資料表、管道、服務、儀表板、資料集和資料來源的資料流，無論多舊。**顯示整張地圖** 可返回。要讓 API 的地圖從別處開始，請傳送 `{ "dataStoreId": "<database ID>" }` 或 `{ "search": "orders" }`。
 
 ## OpenLineage
 
@@ -132,15 +132,83 @@ Hightouch 和 Census 是反向 ETL 工具：把資料表複製到 CRM 的同步�
 
 ## 管線
 
-每個作業、dbt 專案和同步都會連同其執行顯示在 **管道** 下：每次執行何時開始和結束、花了多久、排程器指出的第幾次嘗試（Airflow 的 try number），以及失敗執行的錯誤。累積五次執行後，每個管線都會從自己的執行中學習一次執行通常需要多久，以及依其排程兩次執行之間通常間隔多久。管線的頁面會建議三個監測器：
+每個作業、dbt 專案和同步都會連同其執行顯示在 **管道** 下：每次執行何時開始和結束、花了多久、排程器指出的第幾次嘗試（Airflow 的 try number），以及失敗執行的錯誤。累積五次執行後，每個管線都會從自己的執行中學習一次執行通常需要多久，以及依其排程兩次執行之間通常間隔多久。管線的頁面會建議四個監測器：
 
 - **Pipeline Run Failed**：某次執行失敗或遭到中止。
 - **Pipeline Run Unusually Long**：某次執行的時間已達其典型時間的兩倍或更多；執行期間每五分鐘檢查一次，因此停滯的執行在結束之前就會被發現。
 - **Pipeline Is Late**：超過其排程所允許的時間，仍沒有任何執行開始。
+- **Pipeline Stopped by Circuit Breaker**：斷路器回答了 stop，停止會一直持續到它回答 go 或有執行開始。
 
 管道的 **擁有者** 分頁列出負責它的人員和團隊，它的警示會傳給他們。**概覽** 和 **問題** 會列出失敗或延遲的管道的擁有者，或顯示 **無擁有者**，並提供新增擁有者的方式。
 
+**擁有者規則** 可以替你指定管道的擁有者。在其 **管道規則** 分頁中，規則用規則運算式依管道的名稱（例如 `orders_daily.load_orders`）或命名空間（即它執行的位置，例如 `airflow://prod`）比對管道，並在 OneUptime 首次看到該管道時，把規則中的人員和團隊新增為管道的擁有者。若要把他們新增到既有的管道，請開啟該規則並選擇 **立即執行**。
+
 管線的頁面有一張 **血緣** 卡片，是執行失敗或延遲時首先要看的地方：左邊是它讀取的資料表，右邊是它寫入的資料表，管線位於兩者之間，每張卡片都會顯示目前狀態。選擇更多步數，即可看到這些資料表由什麼建置，以及由它們建置了什麼；開啟任一資料表，即可查看它自己的 **血緣** 索引標籤。管線卡片或資料表卡片上未繪製資料表的數量，在這裡同樣可以在原處畫出更多。 選擇它寫入的某一欄位，即可跨管道追蹤該欄位：向上追蹤到它讀取的每個資料表中建置該欄位的欄位，向下追蹤到它寫入該欄位的每個資料表。
+
+## 斷路器
+
+檢查失敗或資料表延遲會通知其擁有者，但讀取該資料表的管道仍會照常執行，把錯誤的資料複製到下游。斷路器會搶先攔住它們：管道的第一步詢問 OneUptime 它讀取的資料表是否健康，只有答案為 go 時其餘步驟才會執行。
+
+- 管道讀取的資料表有檢查失敗時，一律會停止該管道：警示處於開啟狀態的檢查，或失敗的 dbt 測試。
+- 在管道的 **斷路器** 頁面開啟 **它讀取的資料表延遲時停止** 後，延遲的資料表也會停止它。每個管道預設都關閉此項，因為資料表延遲可能只代表今天比較清閒。
+- 無法執行或尚未執行的檢查，以及沒有任何檢查的資料表，都不會停止任何東西。
+
+該步驟使用可讀取資料可觀測性的專案 API 金鑰發出詢問，並以 `namespace/name`、僅名稱或 ID 指定管道。斷路器從管道的血緣中讀取它所讀取的資料表。請求也可以指定 `tables`，或只指定這些資料表，每張以 `schema.table`、僅名稱或 ID 表示；沒有比對到任何資料表的名稱會在 `notFound` 中傳回，絕不會被算作通過的資料表。只評判 API 金鑰可以讀取的資料表。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+回應中的 `verdict` 為 `go` 或 `stop`。`reasons` 列出每個失敗的檢查及其資料表，以及每張延遲的資料表及其延遲時長；`tables` 列出評判過的每張資料表；`answer` 用幾句話說明同樣的內容，供步驟的記錄使用。使用 `failWithStatusCode` 時，停止會以 HTTP 412 回應，因此 `curl -f` 會讓該步驟失敗。將 `stopsOnLateTables` 設為 `true` 或 `false` 可只為一次請求做決定，將 `dryRun` 設為 `true` 可在不保留回應的情況下詢問。
+
+在 Airflow 中，把 `ShortCircuitOperator` 放在讀取這些資料表的工作之前：當它的函式傳回 false 時，其後的所有工作都會被略過。
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt 的 `on-run-start` 掛鉤在你的資料倉儲中執行 SQL，而不是發出網路請求，所以請在啟動 dbt 的步驟中詢問：CI 工作、cron 行或執行它的工作。dbt 專案的管道名稱是 `dbt/` 後接專案名稱。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+指定了管道的請求會保留在該管道上，除非它是試執行。在斷路器停止某個管道期間，該管道的 **斷路器** 頁面會說明從何時起以及為何停止，其 **概覽** 會以停止開頭，**需要處理** 和 **問題** 會將它列為已停止，取代其失敗或延遲的執行。當斷路器下一次回答 go，或在停止之後有執行開始時，停止就會結束。同一頁面還有 **立即測試**，它會詢問斷路器但不保留回應，以及已填好管道名稱的 curl、Airflow 和 dbt 步驟。
+
+若要得知停止，請從管道的 **建議** 中新增 **Pipeline Stopped by Circuit Breaker**。當斷路器回答 stop 時，它的警示會開啟並傳給管道的擁有者，在停止被保留期間保持開啟，並在停止結束後解決。它讀取管道的 `oneuptime.data.pipeline.circuit_breaker_stopped` 指標：斷路器停止管道期間為 1，否則為 0，在斷路器回答時寫入，之後每五分鐘寫入一次。
+
+當伺服器上關閉了資料可觀測性時，斷路器會回答 go 並且不保留任何內容：關閉產品絕不會停止管道。
 
 ## 一個原因，一個警示
 
@@ -157,7 +225,7 @@ Hightouch 和 Census 是反向 ETL 工具：把資料表複製到 CRM 的同步�
 
 ## Power BI 血緣
 
-每個 BI 工具上的 **相符的資料表** 顯示其儀表板以多少張受監控的資料表為基礎，下方顯示阻止其餘資料表相符的第一個原因。**See Why** 列出上次讀取發現了什麼以及該怎麼做：你的儀表板讀取但未連線到 OneUptime 的資料庫，每個都只需按一下 **Connect Database**，類型和位址已經填好；已連線的資料庫未監控的資料表，它們可能被排除在掃描之外，或尚未收集；以及不是資料庫的來源，例如檔案和網頁。對於 Power BI，它還會指出已關閉的租用戶設定、從資料流程讀取的資料集，以及 Power BI 無法描述的資料集。每個儀表板的 **基於** 依 Power BI 的說法列出它呈現的資料集及其資料的來源。
+每個 BI 工具上的 **相符的資料表** 顯示其儀表板以多少張受監控的資料表為基礎，下方顯示阻止其餘資料表相符的第一個原因。**See Why** 列出上次讀取發現了什麼以及該怎麼做：你的儀表板讀取但未連線到 OneUptime 的資料庫，每個都只需按一下 **Connect Database**，類型和位址已經填好；已連線的資料庫未監控的資料表，它們可能被排除在掃描之外，或尚未收集；以及不是資料庫的來源，例如檔案和網頁。對於 Power BI，它還會指出已關閉的租用戶設定、Power BI 不予匯出其定義或仍在讀取中的資料流程，以及 Power BI 無法描述的資料集。每個儀表板的 **基於** 依 Power BI 的說法列出它呈現的資料集及其資料的來源。
 
 OneUptime 從 Power BI 的中繼資料掃描中讀取每個 Power BI 資料集，以及其每張資料表背後的 Power Query：
 
@@ -165,6 +233,8 @@ OneUptime 從 Power BI 的中繼資料掃描中讀取每個 Power BI 資料集�
 - **查詢執行的 SQL**：連接器的 **SQL statement** 選項、`Value.NativeQuery` 和 `Odbc.Query`，以及每個 `FROM` 和 `JOIN` 之後的資料表。
 - **參數和共用查詢**：參數在其被引用的任何位置都會代入，讀取暫存查詢的資料表會讀取該查詢所讀取的內容。
 - **複合模型** 呈現其所建立在的資料集中的資料表。
+- **資料流程**：以資料流程為基礎的資料集，會讀取該資料流程的實體所讀取的內容。OneUptime 透過 Power BI 的管理 API 匯出每個資料流程的定義（除上述管理 API 存取權外不需要其他任何東西），並以讀取資料集查詢的相同方式讀取其中實體的查詢，包括連結的實體。資料流程會匯出一次，之後在它變更時或匯出失敗一天後再次匯出：每次讀取最多匯出 60 個，在 Power BI 每小時 200 個的限制之內，因此資料流程很多的租用戶需要幾個小時才能全部讀取完畢。
+- **Dataverse 的 OData 連接器**：舊版 Common Data Service 連接器的 `Cds.Entities` 和 `Cds.Contents`，以及 `Dataverse.Contents`，會以實體集（`accounts`）指定資料表，而 OneUptime 則以邏輯名稱（`account`）保存 Dataverse 資料表。每次收集 Dataverse 環境時，無論是由 OneUptime 還是探測器收集，都會隨資料表保存每個資料表的實體集名稱，報表的資料表就透過這些名稱比對。舊版探測器不會傳送這些名稱：在更新探測器之前，**See Why** 會列出因此無法比對的資料表。
 
 報表呈現其資料集中的資料表，儀表板呈現其磚所用資料集中的資料表。資料來自哪裡（資料庫的伺服器和名稱、檔案的路徑、網址）取自掃描的資料來源，除上述管理 API 存取權外不需要其他任何東西。
 
@@ -173,9 +243,11 @@ OneUptime 從 Power BI 的中繼資料掃描中讀取每個 Power BI 資料集�
 - **Enhance admin APIs responses with detailed metadata**：每個資料集的資料表。
 - **Enhance admin APIs responses with DAX and mashup expressions**：載入這些資料表的查詢，它們說明讀取了哪些資料庫資料表。
 
-之後，資料集經過重新整理或重新發佈後，Power BI 才會描述它；僅使用 DirectQuery 的資料集，要等有人開啟以它為基礎的報表之後。它從不描述即時資料集、即時連線到 Analysis Services 的資料集、Excel 活頁簿，或共用容量上超過 1 GB 的資料集。從資料流程讀取的資料集只讀取到資料流程為止：OneUptime 尚未讀取資料流程載入了哪些資料表。
+之後，資料集經過重新整理或重新發佈後，Power BI 才會描述它；僅使用 DirectQuery 的資料集，要等有人開啟以它為基礎的報表之後。它從不描述即時資料集、即時連線到 Analysis Services 的資料集、Excel 活頁簿，或共用容量上超過 1 GB 的資料集。
 
 每張資料表依名稱、結構描述和資料庫與受監控的資料表比對，伺服器則依短名稱或完整名稱比對。其他引擎的資料表從不比對，其他資料庫中的資料表也不比對：如果只監控 `Archive`，以 `Sales.dbo.Orders` 為基礎的報表不會與 `Archive.dbo.Orders` 關聯。
+
+第一次讀取會掃描整個租用戶。之後，每小時的讀取只會掃描自上次讀取以來有變更的工作區。每天一次，讀取還會取得整個租用戶的清單，藉此移除已不存在的報表和工作區，並掃描資料集傳回時缺少資料表或載入這些資料表之查詢的工作區，讓 Power BI 描述這些資料集後就能取得它們，以及上次掃描最早的工作區，讓每個工作區至少每週掃描一次；**立即讀取** 只會掃描有變更的內容。OneUptime 會依 Power BI 允許的上限，同時執行最多 16 個掃描，每個掃描最多涵蓋 100 個工作區，而大型租用戶的掃描可能需要數分鐘：每小時的讀取最多等待 20 分鐘，**立即讀取** 最多等待 4 分鐘。掃描失敗或未完成的工作區會保留已從中讀取的內容，BI 工具的警告也會說明這一點。如果掃描失敗，下一次讀取會再次掃描它；未完成的掃描不會重新開始，而是接續處理：在 Power BI 保留掃描結果的 24 小時內，一旦 Power BI 完成該掃描，就會讀取其結果。在租用戶過大、無法完整保留每個工作區的掃描時，OneUptime 會完整保留其儀表板所需工作區的掃描，並照樣接續處理未完成的掃描。
 
 [重新整理](#power-bi-中的檢視與重新整理) 與資料表分開讀取：提示某些資料集的重新整理無法讀取的警告，並不說明它們的資料表的任何情況。
 

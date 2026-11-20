@@ -27,6 +27,9 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 import { securityCaseGroupingKey } from "./SecurityCaseIngest";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Red500, Yellow500 } from "../../../Types/BrandColors";
@@ -40,6 +43,7 @@ import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
+import { hasWhatsAppTemplate } from "../../../Types/WhatsApp/WhatsAppEventTemplates";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
@@ -1034,7 +1038,13 @@ export default class SecurityCaseNotifications {
       );
 
       // Someone who switched every channel off is not asked about.
-      if (setting && !this.hasChannelOn(setting)) {
+      if (
+        setting &&
+        !this.hasChannelOn(
+          setting,
+          NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+        )
+      ) {
         continue;
       }
 
@@ -1599,7 +1609,13 @@ export default class SecurityCaseNotifications {
         member.userId.toString(),
       );
 
-      if (setting && !this.hasChannelOn(setting)) {
+      if (
+        setting &&
+        !this.hasChannelOn(
+          setting,
+          NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+        )
+      ) {
         continue;
       }
 
@@ -1941,6 +1957,41 @@ export default class SecurityCaseNotifications {
     return user ? this.toRecipient(userId, user) : null;
   }
 
+  /*
+   * Whom a case is assigned to, as the project names them: someone only
+   * invited to it by the name typed for them, else their address - never
+   * their account's own name, which it does not see until they join
+   * (#9823). Empty for a person who is gone.
+   */
+  private static async getAssigneeName(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<string> {
+    const user: SecurityCaseRecipient | null = await this.getUser(data.userId);
+
+    if (!user) {
+      return "";
+    }
+
+    const withheld: Map<string, WithheldProfile> =
+      await PendingInviteeProfiles.readWithheldProfilesInProject({
+        userIds: [data.userId.toString()],
+        projectId: data.projectId,
+      });
+
+    return PendingInviteeProfiles.getWithheldProfile({
+      userId: data.userId,
+      withheld: withheld,
+    })
+      ? PendingInviteeProfiles.getNameInProject({
+          userId: data.userId,
+          name: null,
+          email: user.email,
+          withheld: withheld,
+        })
+      : user.name;
+  }
+
   private static async getTeamName(teamId: ObjectID): Promise<string> {
     const team: Team | null = await TeamService.findOneById({
       id: teamId,
@@ -2005,13 +2056,23 @@ export default class SecurityCaseNotifications {
     return settings;
   }
 
-  private static hasChannelOn(setting: UserNotificationSetting): boolean {
+  /*
+   * Whether the setting has a channel on that can send its event. WhatsApp
+   * switched on for an event it has no approved template for - every
+   * security case event - sends nothing (Types/WhatsApp/WhatsAppEventTemplates,
+   * #9715), so a person whose only switch is that one is told nothing, and
+   * is not counted as told.
+   */
+  private static hasChannelOn(
+    setting: UserNotificationSetting,
+    eventType: NotificationSettingEventType,
+  ): boolean {
     return Boolean(
       setting.alertByEmail ||
         setting.alertBySMS ||
         setting.alertByCall ||
         setting.alertByPush ||
-        setting.alertByWhatsApp ||
+        (setting.alertByWhatsApp && hasWhatsAppTemplate(eventType)) ||
         setting.alertByTelegram ||
         setting.alertBySlack ||
         setting.alertByMicrosoftTeams ||
@@ -2104,7 +2165,10 @@ export default class SecurityCaseNotifications {
 
     if (securityCase.assignedToUserId) {
       assignee =
-        (await this.getUser(securityCase.assignedToUserId))?.name || assignee;
+        (await this.getAssigneeName({
+          userId: securityCase.assignedToUserId,
+          projectId: projectId,
+        })) || assignee;
     } else if (securityCase.assignedToTeamId) {
       assignee = await this.getTeamName(securityCase.assignedToTeamId);
     }

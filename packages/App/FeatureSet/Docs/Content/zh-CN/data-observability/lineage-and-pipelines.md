@@ -38,7 +38,7 @@
 
 搜索表、服务、管道或仪表板，即可保留匹配的内容及其所有上游和下游。选择一张卡片，可高亮其完整血缘，查看它来自哪里、流向哪里，并打开它的页面；**仅显示其血缘** 会让地图上只留下这些内容。搜索框旁的开关可以关闭服务、管道或仪表板的显示。**列表** 将每个箭头显示为一行，手机上默认打开的就是它。
 
-一张地图最多绘制 400 张卡片，优先绘制最近发现的数据流；当你的项目超出时，地图会说明这一点。同一张地图也可通过 `POST /api/data-observability/lineage/map` 获取，适用于有权读取数据资产的用户及其 API 密钥。 超出时，地图会说明它略去了多少个表（每个只计一次），还可以从别处开始：选择一个数据库，绘制其表的数据流以及这些数据流连接的卡片；或者输入名称并选择 **搜索整个项目**，绘制名称中包含它的每个表、管道、服务和仪表板的数据流，无论多旧。**显示整张地图** 可返回。要让 API 的地图从别处开始，请发送 `{ "dataStoreId": "<database ID>" }` 或 `{ "search": "orders" }`。
+一张地图最多绘制 400 张卡片，优先绘制最近发现的数据流；当你的项目超出时，地图会说明这一点。同一张地图也可通过 `POST /api/data-observability/lineage/map` 获取，适用于有权读取数据资产的用户及其 API 密钥。 超出时，地图会说明它略去了多少个表（每个只计一次），还可以从别处开始：选择一个数据库，绘制其表的数据流、基于这些表的仪表板，以及这些数据流连接的卡片；或者输入名称并选择 **搜索整个项目**，绘制名称中包含它的每个表、管道、服务、仪表板、数据集和数据源的数据流，无论多旧。**显示整张地图** 可返回。要让 API 的地图从别处开始，请发送 `{ "dataStoreId": "<database ID>" }` 或 `{ "search": "orders" }`。
 
 ## OpenLineage
 
@@ -132,15 +132,83 @@ Hightouch 和 Census 是反向 ETL 工具：把表复制到 CRM 的同步，与�
 
 ## 管道
 
-每个作业、dbt 项目和同步都会连同其运行显示在 **管道** 下：每次运行何时开始和结束、耗时多久、在调度器给出的情况下它是第几次尝试（Airflow 的尝试次数），以及失败运行的错误。积累五次运行后，每个管道都会从自己的运行中学习一次运行通常需要多久，以及按其计划两次运行之间通常间隔多久。管道的页面会推荐三个监视器：
+每个作业、dbt 项目和同步都会连同其运行显示在 **管道** 下：每次运行何时开始和结束、耗时多久、在调度器给出的情况下它是第几次尝试（Airflow 的尝试次数），以及失败运行的错误。积累五次运行后，每个管道都会从自己的运行中学习一次运行通常需要多久，以及按其计划两次运行之间通常间隔多久。管道的页面会推荐四个监视器：
 
 - **Pipeline Run Failed**：某次运行失败或被中止。
 - **Pipeline Run Unusually Long**：某次运行的耗时已达到其典型时间的两倍或更多；运行期间每五分钟检查一次，因此挂起的运行在结束之前就会被发现。
 - **Pipeline Is Late**：超过其计划所允许的时间仍没有任何运行开始。
+- **Pipeline Stopped by Circuit Breaker**：熔断器回答了 stop，停止会一直持续到它回答 go 或有运行开始。
 
 管道的 **所有者** 标签页列出负责它的人员和团队，它的警报会发给他们。**概览** 和 **问题** 会列出失败或延迟的管道的所有者，或显示 **无所有者**，并提供添加所有者的方式。
 
+**所有者规则** 可以替你指定管道的所有者。在其 **管道规则** 选项卡中，规则用正则表达式按管道的名称（例如 `orders_daily.load_orders`）或命名空间（即它运行的位置，例如 `airflow://prod`）匹配管道，并在 OneUptime 首次看到该管道时，把规则中的人员和团队添加为管道的所有者。要把他们添加到已有的管道，请打开该规则并选择 **立即运行**。
+
 管道的页面有一张 **血缘** 卡片，是运行失败或延迟时首先要看的地方：左边是它读取的表，右边是它写入的表，管道位于两者之间，每张卡片都会显示当前状态。选择更多步数，可以看到这些表由什么构建，以及由它们构建了什么；打开任意一张表，即可查看它自己的 **血缘** 标签页。管道卡片或表卡片上未绘制表的数量，在这里同样可以在原处画出更多。 选择它写入的某一列，即可跨管道追踪该列：向上追踪到它读取的每个表中构建该列的列，向下追踪到它写入该列的每个表。
+
+## 熔断器
+
+检查失败或表延迟会通知其所有者，但读取该表的管道仍会照常运行，把错误的数据复制到下游。熔断器会抢先拦住它们：管道的第一步询问 OneUptime 它读取的表是否健康，只有答案为 go 时其余步骤才会运行。
+
+- 管道读取的表有检查失败时，总会停止该管道：警报处于打开状态的检查，或失败的 dbt 测试。
+- 在管道的 **熔断器** 页面打开 **它读取的表延迟时停止** 后，延迟的表也会停止它。每个管道默认都关闭此项，因为表延迟可能只说明今天比较清闲。
+- 无法运行或尚未运行的检查，以及没有任何检查的表，都不会停止任何东西。
+
+该步骤使用可读取数据可观测性的项目 API 密钥发起询问，并以 `namespace/name`、仅名称或 ID 指定管道。熔断器从管道的血缘中读取它所读取的表。请求也可以指定 `tables`，或只指定这些表，每张表以 `schema.table`、仅名称或 ID 表示；没有匹配任何表的名称会在 `notFound` 中返回，绝不会被算作通过的表。只评判 API 密钥可以读取的表。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+应答中的 `verdict` 为 `go` 或 `stop`。`reasons` 列出每个失败的检查及其表，以及每张延迟的表及其延迟时长；`tables` 列出评判过的每张表；`answer` 用几句话说明同样的内容，供步骤的日志使用。使用 `failWithStatusCode` 时，停止会以 HTTP 412 应答，因此 `curl -f` 会让该步骤失败。将 `stopsOnLateTables` 设为 `true` 或 `false` 可只为一次请求做决定，将 `dryRun` 设为 `true` 可在不保留应答的情况下询问。
+
+在 Airflow 中，把 `ShortCircuitOperator` 放在读取这些表的任务之前：当它的函数返回 false 时，其后的所有任务都会被跳过。
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt 的 `on-run-start` 钩子在你的数据仓库中运行 SQL，而不是发出网络请求，所以请在启动 dbt 的步骤中询问：CI 作业、cron 行或运行它的任务。dbt 项目的管道名称是 `dbt/` 后接项目名称。
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+指定了管道的请求会保留在该管道上，除非它是试运行。在熔断器停止某个管道期间，该管道的 **熔断器** 页面会说明从何时起以及为何停止，其 **概览** 会以停止开头，**需要处理** 和 **问题** 会将它列为已停止，取代其失败或延迟的运行。当熔断器下一次回答 go，或在停止之后有运行开始时，停止就会结束。同一页面还有 **立即测试**，它会询问熔断器但不保留应答，以及已填好管道名称的 curl、Airflow 和 dbt 步骤。
+
+要获知停止，请从管道的 **建议** 中添加 **Pipeline Stopped by Circuit Breaker**。当熔断器回答 stop 时，它的警报会打开并发给管道的所有者，在停止被保留期间保持打开，并在停止结束后解决。它读取管道的 `oneuptime.data.pipeline.circuit_breaker_stopped` 指标：熔断器停止管道期间为 1，否则为 0，在熔断器回答时写入，此后每五分钟写入一次。
+
+当服务器上关闭了数据可观测性时，熔断器会回答 go 并且不保留任何内容：关闭产品绝不会停止管道。
 
 ## 一个原因，一个警报
 
@@ -157,7 +225,7 @@ Hightouch 和 Census 是反向 ETL 工具：把表复制到 CRM 的同步，与�
 
 ## Power BI 血缘
 
-每个 BI 工具上的 **匹配的表** 显示其仪表板基于多少张受监控的表，下方显示阻止其余表匹配的第一个原因。**See Why** 列出上次读取发现了什么以及该怎么做：你的仪表板读取但未连接到 OneUptime 的数据库，每个都只需点一下 **Connect Database**，类型和地址已经填好；已连接的数据库未监控的表，它们可能被排除在扫描之外，或尚未收集；以及不是数据库的来源，例如文件和网页。对于 Power BI，它还会指出已关闭的租户设置、从数据流读取的数据集，以及 Power BI 无法描述的数据集。每个仪表板的 **基于** 按 Power BI 的说法列出它展示的数据集及其数据的来源。
+每个 BI 工具上的 **匹配的表** 显示其仪表板基于多少张受监控的表，下方显示阻止其余表匹配的第一个原因。**See Why** 列出上次读取发现了什么以及该怎么做：你的仪表板读取但未连接到 OneUptime 的数据库，每个都只需点一下 **Connect Database**，类型和地址已经填好；已连接的数据库未监控的表，它们可能被排除在扫描之外，或尚未收集；以及不是数据库的来源，例如文件和网页。对于 Power BI，它还会指出已关闭的租户设置、Power BI 不予导出其定义或仍在读取中的数据流，以及 Power BI 无法描述的数据集。每个仪表板的 **基于** 按 Power BI 的说法列出它展示的数据集及其数据的来源。
 
 OneUptime 从 Power BI 的元数据扫描中读取每个 Power BI 数据集，以及其每张表背后的 Power Query：
 
@@ -165,6 +233,8 @@ OneUptime 从 Power BI 的元数据扫描中读取每个 Power BI 数据集，�
 - **查询运行的 SQL**：连接器的 **SQL statement** 选项、`Value.NativeQuery` 和 `Odbc.Query`，以及每个 `FROM` 和 `JOIN` 之后的表。
 - **参数和共享查询**：参数在其被引用的任何位置都会代入，读取暂存查询的表会读取该查询所读取的内容。
 - **复合模型** 展示其所基于的数据集中的表。
+- **数据流**：基于数据流的数据集会读取该数据流的实体所读取的内容。OneUptime 通过 Power BI 的管理 API 导出每个数据流的定义（除上述管理 API 访问权限外不需要任何其他内容），并像读取数据集的查询一样读取其中实体的查询，包括链接实体。数据流会导出一次，之后在它发生更改时或导出失败一天后再次导出：每次读取最多导出 60 个，在 Power BI 每小时 200 个的限制之内，因此数据流很多的租户需要几个小时才能全部读完。
+- **Dataverse 的 OData 连接器**：旧版 Common Data Service 连接器的 `Cds.Entities` 和 `Cds.Contents`，以及 `Dataverse.Contents`，按实体集（`accounts`）指定表，而 OneUptime 按逻辑名称（`account`）保存 Dataverse 表。每次收集 Dataverse 环境时，无论由 OneUptime 还是探测器收集，都会随表保存每个表的实体集名称，报表的表通过这些名称进行匹配。旧版探测器不发送这些名称：在更新探测器之前，**See Why** 会列出因此未能匹配的表。
 
 报表展示其数据集中的表，仪表板展示其磁贴所用数据集中的表。数据来自哪里（数据库的服务器和名称、文件的路径、网址）取自扫描的数据源，除上述管理 API 访问权限外不需要任何其他内容。
 
@@ -173,9 +243,11 @@ OneUptime 从 Power BI 的元数据扫描中读取每个 Power BI 数据集，�
 - **Enhance admin APIs responses with detailed metadata**：每个数据集的表。
 - **Enhance admin APIs responses with DAX and mashup expressions**：加载这些表的查询，它们说明读取了哪些数据库表。
 
-之后，数据集经过刷新或重新发布后，Power BI 才会描述它；仅使用 DirectQuery 的数据集，要等有人打开基于它的报表之后。它从不描述实时数据集、实时连接到 Analysis Services 的数据集、Excel 工作簿，或共享容量上超过 1 GB 的数据集。从数据流读取的数据集只读取到数据流为止：OneUptime 尚未读取数据流加载了哪些表。
+之后，数据集经过刷新或重新发布后，Power BI 才会描述它；仅使用 DirectQuery 的数据集，要等有人打开基于它的报表之后。它从不描述实时数据集、实时连接到 Analysis Services 的数据集、Excel 工作簿，或共享容量上超过 1 GB 的数据集。
 
 每张表按名称、架构和数据库与受监控的表匹配，服务器则按短名称或完整名称匹配。其他引擎的表从不匹配，其他数据库中的表也不匹配：如果只监控 `Archive`，基于 `Sales.dbo.Orders` 的报表不会与 `Archive.dbo.Orders` 关联。
+
+第一次读取会扫描整个租户。此后，每小时的读取只扫描自上次读取以来有变化的工作区。每天一次，读取还会获取整个租户的列表，从而移除已不存在的报表和工作区，并扫描数据集返回时缺少表或加载这些表的查询的工作区，以便 Power BI 描述这些数据集后就能获得它们，以及上次扫描最早的工作区，使每个工作区至少每周扫描一次；**立即读取** 只扫描有变化的内容。OneUptime 按 Power BI 允许的上限，同时最多运行 16 个扫描，每个扫描最多包含 100 个工作区，大型租户的扫描可能需要几分钟：每小时的读取最多等待 20 分钟，**立即读取** 最多等待 4 分钟。扫描失败或未完成的工作区会保留已从中读取的内容，BI 工具的警告会说明这一点。如果扫描失败，下一次读取会再次扫描它；未完成的扫描不会从头开始，而是继续跟进：在 Power BI 保留扫描结果的 24 小时内，一旦 Power BI 完成该扫描，就会读取其结果。在租户过大、无法完整保留每个工作区的扫描时，OneUptime 会完整保留其仪表板所需工作区的扫描，并照样继续跟进未完成的扫描。
 
 [刷新](#power-bi-中的查看与刷新) 与表分开读取：提示某些数据集的刷新无法读取的警告，并不说明它们的表的任何情况。
 

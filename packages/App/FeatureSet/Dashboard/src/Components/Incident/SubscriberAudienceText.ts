@@ -175,13 +175,22 @@ export interface BuildSubscriberAudienceViewData {
    * (isHeldBackByStatusPageScope).
    */
   saysWhenNobodyIsNotified?: boolean | undefined;
+  /*
+   * The form above it says already why nothing will be sent: the public
+   * note composer, under its notify box (PublicNoteReachCopy). The summary
+   * then leaves out what would only say it again - a hidden incident, and
+   * pages that all send their subscribers nothing - and keeps who will be
+   * told and the pages the incident's scope keeps from being told.
+   */
+  isNothingSentSaidAbove?: boolean | undefined;
 }
 
 /*
  * What the summary says, or null when it has nothing to say: no one will be
  * notified, and nothing about the incident's status page scope is why (see
- * the header). A hidden incident is always said: whoever ticks "notify" on a
- * note cannot see from there that the incident is hidden.
+ * the header). A hidden incident is said, unless the form above says it
+ * (isNothingSentSaidAbove): whoever ticks "notify" cannot see from there
+ * that the incident is hidden.
  */
 export const buildSubscriberAudienceView: (
   data: BuildSubscriberAudienceViewData,
@@ -192,6 +201,10 @@ export const buildSubscriberAudienceView: (
   const translate: TranslateFunction = data.translate;
 
   if (audience.isHiddenFromStatusPages) {
+    if (data.isNothingSentSaidAbove) {
+      return null;
+    }
+
     return {
       tone: "warning",
       headline: translate(IncidentStatusPageScopeCopy.audienceHiddenIncident),
@@ -244,8 +257,15 @@ export const buildSubscriberAudienceView: (
     audience.statusPages.length + audience.hiddenStatusPageCount;
 
   if (!IncidentSubscriberAudience.reachesAnyone(audience)) {
-    // Every page that shows it sends its subscribers nothing: said always.
+    /*
+     * Every page that shows it sends its subscribers nothing: said always,
+     * unless the form above says it.
+     */
     if (isSilencedByStatusPages(audience)) {
+      if (data.isNothingSentSaidAbove) {
+        return null;
+      }
+
       return {
         tone: "info",
         headline: translate(
@@ -264,7 +284,11 @@ export const buildSubscriberAudienceView: (
       return null;
     }
 
-    // No page will show it - with no monitor, no page can.
+    /*
+     * No page will be sent it. Nothing is said of which pages show it: the
+     * pages left out say why each one is, and one may show it all the same
+     * (it sends its subscribers nothing, or a Retry sent it in full).
+     */
     if (pageCount === 0) {
       return {
         tone: "warning",

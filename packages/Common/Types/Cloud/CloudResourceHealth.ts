@@ -1,9 +1,20 @@
 import { translationKey } from "../Translator";
 import {
+  StorageUsage,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "../../Utils/Storage/StorageUsage";
+import {
   AWS_DEFAULT_PERIOD_SECONDS,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
+  AZURE_HOURLY_GRAIN,
+  AZURE_KEY_METRICS,
   AwsKeyMetric,
   GCP_ALIGNMENT_PERIOD_SECONDS,
+  GCP_OPS_AGENT_INSTALL_URL,
   getAwsKeyMetrics,
+  getAzureStoredMetricName,
 } from "./CloudKeyMetrics";
 import { CloudProvider } from "./CloudPlatform";
 
@@ -29,9 +40,10 @@ import { CloudProvider } from "./CloudPlatform";
  *   Warning - needs a look soon:
  *     unhealthy hosts behind a load balancer, 5% or more of requests
  *     failing, throttling, a database or a cache at 95% of its CPU or
- *     memory or 90% of its storage, failed executions, runs, deliveries or
- *     connections, dead-lettered messages, a queue whose oldest message
- *     waits an hour, availability under 99.9%.
+ *     memory or 90% of its storage, a Compute Engine VM at 95% of its
+ *     memory or 90% of a disk (as its Ops Agent reports them), failed
+ *     executions, runs, deliveries or connections, dead-lettered messages,
+ *     a queue whose oldest message waits an hour, availability under 99.9%.
  *
  * What is never a problem by itself: a busy virtual machine (an instance at
  * 100% CPU is doing its work - as on a host, its status checks say when it
@@ -65,10 +77,40 @@ export const CLOUD_CPU_HIGH_PERCENT: number = 95;
 export const CLOUD_MEMORY_HIGH_PERCENT: number = 95;
 export const CLOUD_STORAGE_HIGH_PERCENT: number = 90;
 export const CLOUD_STORAGE_FULL_PERCENT: number = 95;
+/*
+ * Where a cloud store's bar turns amber and red (StorageUsageBar): the
+ * lines above, at them, as the storage rules read them.
+ */
+export const CLOUD_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: CLOUD_STORAGE_HIGH_PERCENT,
+  criticalPercent: CLOUD_STORAGE_FULL_PERCENT,
+};
 export const CLOUD_AVAILABILITY_LOW_PERCENT: number = 99.9;
+/*
+ * An Elastic Beanstalk environment's EnvironmentHealth, as enhanced health
+ * reporting writes it: 0 OK, 1 Info, 5 Unknown, 10 No data, 15 Warning,
+ * 20 Degraded, 25 Severe. Degraded is a warning, Severe critical.
+ */
+export const CLOUD_BEANSTALK_HEALTH_DEGRADED: number = 20;
+export const CLOUD_BEANSTALK_HEALTH_SEVERE: number = 25;
+/*
+ * The share of a WAF web ACL's requests it may block before someone looks:
+ * half of them is an attack, or a rule turning real users away.
+ */
+export const CLOUD_BLOCKED_SHARE_WARNING_PERCENT: number = 50;
 export const CLOUD_AVAILABILITY_DOWN_PERCENT: number = 90;
 // A queue's oldest message, or a stream's consumers, this far behind.
 export const CLOUD_BACKLOG_AGE_SECONDS: number = 60 * 60;
+/*
+ * An App Service app's Health check, as Azure Monitor reports it
+ * (HealthCheckStatus): the share of its instances whose health check
+ * passes. Under 100 an instance was deemed unhealthy, and is out of the
+ * load balancer; under half, App Service keeps unhealthy instances in it
+ * (WEBSITE_HEALTHCHECK_MAXUNHEALTHYWORKERPERCENT, 50 by default), so some
+ * requests reach one: critical.
+ */
+export const APP_SERVICE_HEALTH_CHECK_KEY: string = "healthcheckstatus";
+export const CLOUD_HEALTH_CHECK_CRITICAL_PERCENT: number = 50;
 
 export enum CloudHealthSeverity {
   Critical = "critical",
@@ -284,6 +326,33 @@ export const REASON_SERVER_ERRORS: { one: string; other: string } = {
   one: translationKey("{{count}} server error"),
   other: translationKey("{{count}} server errors"),
 };
+export const REASON_UNHEALTHY_ENDPOINTS: { one: string; other: string } = {
+  one: translationKey("{{count}} unhealthy endpoint"),
+  other: translationKey("{{count}} unhealthy endpoints"),
+};
+export const REASON_SHORT_OF_DESIRED_CAPACITY: {
+  one: string;
+  other: string;
+} = {
+  one: translationKey("{{count}} instance short of desired capacity"),
+  other: translationKey("{{count}} instances short of desired capacity"),
+};
+export const REASON_PACKETS_DROPPED_OUTSIDE_RULES: {
+  one: string;
+  other: string;
+} = {
+  one: translationKey("{{count}} packet dropped outside its rules"),
+  other: translationKey("{{count}} packets dropped outside its rules"),
+};
+export const REASON_REQUESTS_BLOCKED: string = translationKey(
+  "{{percent}} of requests blocked",
+);
+export const REASON_ENVIRONMENT_HEALTH_DEGRADED: string = translationKey(
+  "Environment health degraded",
+);
+export const REASON_ENVIRONMENT_HEALTH_SEVERE: string = translationKey(
+  "Environment health severe",
+);
 export const REASON_RESTARTS: { one: string; other: string } = {
   one: translationKey("{{count}} restart"),
   other: translationKey("{{count}} restarts"),
@@ -722,40 +791,140 @@ function backlogAge(data: {
 }
 
 const RDS_ALLOCATED_STORAGE_PROPERTY: string = "AllocatedStorage";
+const RDS_FREE_STORAGE_READING: string = "aws/rds/freestoragespace";
 const GIB: number = 1024 * 1024 * 1024;
 
 /*
  * A database's storage, from what is free (FreeStorageSpace, bytes) and
- * what was allocated (the inventory's AllocatedStorage, GiB). Without the
- * allocation there is nothing to compare with, and nothing is said.
+ * what was allocated (the inventory's AllocatedStorage, GiB), as the shared
+ * storage reading reads it - the one its page draws (getCloudResourceStorage)
+ * and its rule judges. Without both there is nothing to compare.
+ */
+export function getCloudDatabaseStorageUsage(data: {
+  freeBytes: number | null;
+  allocatedGib: number | null;
+}): StorageUsage | null {
+  if (
+    data.freeBytes === null ||
+    data.allocatedGib === null ||
+    data.allocatedGib <= 0
+  ) {
+    return null;
+  }
+  return getStorageUsage(
+    { capacity: data.allocatedGib * GIB, available: data.freeBytes },
+    CLOUD_STORAGE_USAGE_THRESHOLDS,
+  );
+}
+
+/*
+ * A database's storage past the storage lines. Without the allocation there
+ * is nothing to compare with, and nothing is said.
  */
 function storageFromFreeBytes(key: string): CloudHealthRule {
   return {
     readings: [key],
     evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
-      const free: number | null = reader.value(key);
-      const allocatedGib: number | null = reader.property(
-        RDS_ALLOCATED_STORAGE_PROPERTY,
-      );
+      const usage: StorageUsage | null = getCloudDatabaseStorageUsage({
+        freeBytes: reader.value(key),
+        allocatedGib: reader.property(RDS_ALLOCATED_STORAGE_PROPERTY),
+      });
 
-      if (free === null || allocatedGib === null || allocatedGib <= 0) {
+      if (!usage) {
         return null;
       }
 
-      const used: number = Math.max(
-        0,
-        Math.min(100, 100 - (free / (allocatedGib * GIB)) * 100),
-      );
-
-      if (used >= CLOUD_STORAGE_FULL_PERCENT) {
-        return critical(percentText(REASON_STORAGE_FULL, used));
+      if (usage.usedPercent >= CLOUD_STORAGE_FULL_PERCENT) {
+        return critical(percentText(REASON_STORAGE_FULL, usage.usedPercent));
       }
 
-      return used >= CLOUD_STORAGE_HIGH_PERCENT
-        ? warning(percentText(REASON_STORAGE_FULL, used))
+      return usage.usedPercent >= CLOUD_STORAGE_HIGH_PERCENT
+        ? warning(percentText(REASON_STORAGE_FULL, usage.usedPercent))
         : null;
     },
   };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A resource's storage, as its page draws it (#9648)
+ * ---------------------------------------------------------------------------
+ *
+ * Where its cloud says how big a store is - an RDS database's allocated
+ * storage, an EBS volume's or an Azure managed disk's size - its page draws
+ * it with the shared storage bar. A database's free space is in its
+ * metrics, so it reads how full it is. How much of a disk is used is known
+ * only inside the machine it is attached to (the guest's filesystem), so a
+ * disk's page says its size and says so, never an empty bar. An Aurora
+ * instance keeps its data in its cluster's volume, which grows as it needs:
+ * it has no allocation to fill.
+ */
+export interface CloudResourceStorage {
+  // How full it is, where its cloud says what is free.
+  usage: StorageUsage | null;
+  // Its size, whatever is known of what it holds.
+  capacityBytes: number;
+  // English, looked up where it is drawn: why there is no reading.
+  noUsageText?: string | undefined;
+}
+
+export const CLOUD_DISK_USAGE_INSIDE_GUEST: string = translationKey(
+  "How much of it is used is known only inside the machine it is attached to.",
+);
+export const CLOUD_STORAGE_NOT_REPORTED: string =
+  translationKey("Not reported");
+
+// A disk's size as its inventory keeps it, in GiB, by its type.
+const CLOUD_DISK_SIZE_GIB_PROPERTIES: Record<string, string> = {
+  "AWS::EC2::Volume": "Size",
+  "Microsoft.Compute/disks": "diskSizeGB",
+};
+
+export function getCloudResourceStorage(data: {
+  type: string;
+  properties: unknown;
+  readings: CloudResourceReadings;
+}): CloudResourceStorage | null {
+  if (data.type === "AWS::RDS::DBInstance") {
+    const engine: string = String(
+      ((data.properties || {}) as Record<string, unknown>)["Engine"] || "",
+    );
+    if (engine.toLowerCase().startsWith("aurora")) {
+      return null;
+    }
+    const allocatedGib: number | null = readProperty(
+      data.properties,
+      RDS_ALLOCATED_STORAGE_PROPERTY,
+    );
+    if (allocatedGib === null || allocatedGib <= 0) {
+      return null;
+    }
+    const usage: StorageUsage | null = getCloudDatabaseStorageUsage({
+      freeBytes: data.readings[RDS_FREE_STORAGE_READING]?.value ?? null,
+      allocatedGib: allocatedGib,
+    });
+    return {
+      usage: usage,
+      capacityBytes: allocatedGib * GIB,
+      noUsageText: usage ? undefined : CLOUD_STORAGE_NOT_REPORTED,
+    };
+  }
+
+  const sizeProperty: string | undefined =
+    CLOUD_DISK_SIZE_GIB_PROPERTIES[data.type];
+  if (sizeProperty) {
+    const sizeGib: number | null = readProperty(data.properties, sizeProperty);
+    if (sizeGib === null || sizeGib <= 0) {
+      return null;
+    }
+    return {
+      usage: null,
+      capacityBytes: sizeGib * GIB,
+      noUsageText: CLOUD_DISK_USAGE_INSIDE_GUEST,
+    };
+  }
+
+  return null;
 }
 
 function storagePercent(key: string, scale?: number): CloudHealthRule {
@@ -798,6 +967,35 @@ function availability(key: string, reason?: string): CloudHealthRule {
 const AWS: CloudProvider = CloudProvider.AWS;
 const AZURE: CloudProvider = CloudProvider.Azure;
 const GCP: CloudProvider = CloudProvider.GCP;
+
+/*
+ * A Compute Engine VM's memory and disks, as the Ops Agent on it reports
+ * them (CloudKeyMetrics): the share of each in use, 0 to 100.
+ */
+export const GCP_OPS_AGENT_MEMORY_KEY: string =
+  "agent.googleapis.com/memory/percent_used";
+export const GCP_OPS_AGENT_DISK_KEY: string =
+  "agent.googleapis.com/disk/percent_used";
+
+/*
+ * Readings of a metric a resource reports as several series of one time,
+ * one for each part of it - the Ops Agent's disk use, a series for each of
+ * a VM's disks - that read as the highest of them: the fullest disk is the
+ * one its rule judges and its page leads with. Any other metric's reading
+ * is its first series of the newest time, or, split by a dimension, their
+ * sum (CloudResourceReadings).
+ */
+const CLOUD_READINGS_OF_THEIR_HIGHEST_SERIES: ReadonlySet<string> =
+  new Set<string>([`${GCP}|${GCP_OPS_AGENT_DISK_KEY}`]);
+
+export function isCloudReadingTheHighestOfItsSeries(
+  provider: string,
+  key: string,
+): boolean {
+  return CLOUD_READINGS_OF_THEIR_HIGHEST_SERIES.has(
+    `${(provider || "").toLowerCase()}|${(key || "").toLowerCase()}`,
+  );
+}
 
 export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
   // ---- AWS ----------------------------------------------------------------
@@ -1012,10 +1210,22 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
   },
   {
     provider: AWS,
-    types: ["AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"],
+    types: ["AWS::ApiGateway::RestApi"],
     rules: [
       failedShare({
         failures: ["aws/apigateway/5xxerror"],
+        total: "aws/apigateway/count",
+        reason: REASON_REQUESTS_FAILED,
+      }),
+    ],
+  },
+  {
+    // An HTTP API counts its server errors as 5xx, a REST API as 5XXError.
+    provider: AWS,
+    types: ["AWS::ApiGatewayV2::Api"],
+    rules: [
+      failedShare({
+        failures: ["aws/apigateway/5xx"],
         total: "aws/apigateway/count",
         reason: REASON_REQUESTS_FAILED,
       }),
@@ -1040,6 +1250,195 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
       failsWhenZero("aws/kafka/activecontrollercount", REASON_NO_CONTROLLER),
     ],
   },
+  /*
+   * The types read since #9567 (#9692): each judged by what its key
+   * metrics say of it being well.
+   */
+  {
+    provider: AWS,
+    types: ["AWS::AppRunner::Service"],
+    rules: [
+      failedShare({
+        failures: ["aws/apprunner/5xxstatusresponses"],
+        total: "aws/apprunner/requests",
+        reason: REASON_REQUESTS_FAILED,
+      }),
+    ],
+  },
+  {
+    /*
+     * An accelerator with no healthy endpoint sends its traffic nowhere; one
+     * with some unhealthy sends it to fewer.
+     */
+    provider: AWS,
+    types: ["AWS::GlobalAccelerator::Accelerator"],
+    rules: [
+      failsWhenZero(
+        "aws/globalaccelerator/healthyendpointcount",
+        REASON_NOT_AVAILABLE,
+      ),
+      warnsOnCount(
+        "aws/globalaccelerator/unhealthyendpointcount",
+        REASON_UNHEALTHY_ENDPOINTS,
+      ),
+    ],
+  },
+  {
+    provider: AWS,
+    types: ["AWS::ElasticBeanstalk::Environment"],
+    rules: [
+      {
+        readings: ["aws/elasticbeanstalk/environmenthealth"],
+        evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
+          const health: number | null = reader.value(
+            "aws/elasticbeanstalk/environmenthealth",
+          );
+
+          if (health !== null && health >= CLOUD_BEANSTALK_HEALTH_SEVERE) {
+            return critical({ text: REASON_ENVIRONMENT_HEALTH_SEVERE });
+          }
+
+          return health !== null && health >= CLOUD_BEANSTALK_HEALTH_DEGRADED
+            ? warning({ text: REASON_ENVIRONMENT_HEALTH_DEGRADED })
+            : null;
+        },
+      },
+    ],
+  },
+  {
+    /*
+     * A group with fewer instances in service than it wants, in one period:
+     * a whole instance short, so a period half spent launching one is not.
+     */
+    provider: AWS,
+    types: ["AWS::AutoScaling::AutoScalingGroup"],
+    rules: [
+      {
+        readings: [
+          "aws/autoscaling/groupinserviceinstances",
+          "aws/autoscaling/groupdesiredcapacity",
+        ],
+        evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
+          const desired: number | null = reader.value(
+            "aws/autoscaling/groupdesiredcapacity",
+          );
+          const inService: number | null = reader.value(
+            "aws/autoscaling/groupinserviceinstances",
+          );
+
+          if (desired === null || inService === null) {
+            return null;
+          }
+
+          // Two periods' readings say nothing of each other.
+          if (
+            inService > 0 &&
+            reader.aligned(
+              "aws/autoscaling/groupinserviceinstances",
+              "aws/autoscaling/groupdesiredcapacity",
+            ) !== inService
+          ) {
+            return null;
+          }
+
+          const short: number = Math.floor(desired - inService);
+
+          return short >= 1
+            ? warning(countText(REASON_SHORT_OF_DESIRED_CAPACITY, short))
+            : null;
+        },
+      },
+    ],
+  },
+  {
+    /*
+     * A web ACL blocking half its requests or more, once it blocked
+     * CLOUD_HEALTH_MIN_REQUESTS of them: an attack, or a rule turning real
+     * users away - a quiet ACL's few blocked scans are neither. Its requests
+     * are what it allowed and what it blocked; each is published only when
+     * it is not zero. Its recommended monitor judges the same.
+     */
+    provider: AWS,
+    types: ["AWS::WAFv2::WebACL"],
+    rules: [
+      {
+        readings: ["aws/wafv2/allowedrequests", "aws/wafv2/blockedrequests"],
+        evaluate: (reader: CloudReadingReader): CloudHealthFinding | null => {
+          const blocked: number | null = reader.value(
+            "aws/wafv2/blockedrequests",
+          );
+
+          if (blocked === null) {
+            return null;
+          }
+
+          const total: number =
+            blocked +
+            reader.aligned(
+              "aws/wafv2/allowedrequests",
+              "aws/wafv2/blockedrequests",
+            );
+
+          if (blocked < CLOUD_HEALTH_MIN_REQUESTS) {
+            return null;
+          }
+
+          const percent: number = Math.min(100, (blocked / total) * 100);
+
+          return percent >= CLOUD_BLOCKED_SHARE_WARNING_PERCENT
+            ? warning(percentText(REASON_REQUESTS_BLOCKED, percent))
+            : null;
+        },
+      },
+    ],
+  },
+  {
+    // An endpoint's invocations of each production variant, added up.
+    provider: AWS,
+    types: ["AWS::SageMaker::Endpoint"],
+    rules: [
+      failedShare({
+        failures: ["aws/sagemaker/invocation5xxerrors"],
+        total: "aws/sagemaker/invocations",
+        reason: REASON_INVOCATIONS_FAILED,
+      }),
+    ],
+  },
+  {
+    /*
+     * A firewall drops what its rules say to; OtherDroppedPackets are the
+     * packets it dropped for anything else - throttled by traffic it could
+     * not keep up with, among others.
+     */
+    provider: AWS,
+    types: ["AWS::NetworkFirewall::Firewall"],
+    rules: [
+      warnsOnCount(
+        "aws/networkfirewall/otherdroppedpackets",
+        REASON_PACKETS_DROPPED_OUTSIDE_RULES,
+      ),
+    ],
+  },
+  {
+    // A user pool's sign-ins, token refreshes or sign-ups turned away for its quota.
+    provider: AWS,
+    types: ["AWS::Cognito::UserPool"],
+    rules: [
+      warnsWhenAnyAboveZero(
+        [
+          "aws/cognito/signinthrottles",
+          "aws/cognito/tokenrefreshthrottles",
+          "aws/cognito/signupthrottles",
+        ],
+        REASON_THROTTLED,
+      ),
+    ],
+  },
+  {
+    provider: AWS,
+    types: ["AWS::AppSync::GraphQLApi"],
+    rules: [warnsOnCount("aws/appsync/5xxerror", REASON_SERVER_ERRORS)],
+  },
   // ---- Azure --------------------------------------------------------------
   {
     provider: AZURE,
@@ -1054,6 +1453,19 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
         failures: ["http5xx"],
         total: "requests",
         reason: REASON_REQUESTS_FAILED,
+      }),
+      /*
+       * Its Health check (#9740): the share of its instances whose health
+       * check passes, 100 while all do. Azure counts an instance failing
+       * only once it is deemed unhealthy - by default 10 failed pings, a
+       * minute apart - and takes it out of the load balancer then, up to
+       * half of them: past half, unhealthy instances still take requests.
+       */
+      percentBelow({
+        key: APP_SERVICE_HEALTH_CHECK_KEY,
+        reason: REASON_HEALTH_CHECK_FAILING,
+        warnBelow: 100,
+        criticalBelow: CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
       }),
     ],
   },
@@ -1253,6 +1665,19 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
   },
   // ---- Google Cloud -------------------------------------------------------
   {
+    /*
+     * How full a VM's memory and disks are, which only the Ops Agent on it
+     * reports: a VM without it is not judged by them. Its disks' reading is
+     * the fullest of them (CLOUD_READINGS_OF_THEIR_HIGHEST_SERIES).
+     */
+    provider: GCP,
+    types: ["gce_instance"],
+    rules: [
+      memoryHigh(GCP_OPS_AGENT_MEMORY_KEY),
+      storagePercent(GCP_OPS_AGENT_DISK_KEY),
+    ],
+  },
+  {
     provider: GCP,
     types: ["cloudsql_database"],
     rules: [
@@ -1325,6 +1750,21 @@ export type CloudHeadlineFormat =
   | "bytesPerSecond"
   | "bitsPerSecond";
 
+/*
+ * What a headline needs that its cloud does not report by itself, said in
+ * its tile while the last read did not bring it - "Needs the Ops Agent",
+ * with the provider's own instructions a click away - rather than "Not
+ * reported". English words, looked up in the reader's language.
+ */
+export interface CloudHeadlineRequirement {
+  // Drawn in place of the value.
+  note: string;
+  // The tile's (i): what it needs, and when it shows once it has it.
+  description: string;
+  // Where to get it: the provider's own instructions.
+  link: { url: string; label: string };
+}
+
 export interface CloudHeadlineReading {
   key: string;
   // The tile's title, in English: looked up in the reader's language.
@@ -1336,6 +1776,14 @@ export interface CloudHeadlineReading {
    * says nothing of it when the last read did not bring it.
    */
   onlySome?: boolean | undefined;
+  /*
+   * Readings the tile reads, in order, when the resource has none of `key`:
+   * a Cosmos DB account's latency is its direct-mode requests', else its
+   * gateway-mode ones' - each client connects one way or the other.
+   */
+  fallbackKeys?: Array<string> | undefined;
+  // What it needs to be reported at all, said while it is not.
+  needs?: CloudHeadlineRequirement | undefined;
 }
 
 interface CloudHeadlineTypeReadings {
@@ -1348,11 +1796,47 @@ function headline(
   key: string,
   label: string,
   format: CloudHeadlineFormat,
-  options: { onlySome?: boolean } = {},
+  options: {
+    onlySome?: boolean;
+    fallbackKeys?: Array<string>;
+    needs?: CloudHeadlineRequirement;
+  } = {},
 ): CloudHeadlineReading {
-  return options.onlySome
-    ? { key, label, format, onlySome: true }
-    : { key, label, format };
+  return {
+    key,
+    label,
+    format,
+    ...(options.onlySome ? { onlySome: true } : {}),
+    ...(options.fallbackKeys ? { fallbackKeys: options.fallbackKeys } : {}),
+    ...(options.needs ? { needs: options.needs } : {}),
+  };
+}
+
+// The keys a headline reads, in order: its own, then its fallbacks.
+export function getCloudHeadlineReadingKeys(
+  headlineReading: CloudHeadlineReading,
+): Array<string> {
+  return [headlineReading.key, ...(headlineReading.fallbackKeys || [])];
+}
+
+/*
+ * The reading a headline shows of a resource's readings, and its key: the
+ * first of its keys the resource has (getCloudHeadlineReadingKeys). Null when it
+ * has none of them.
+ */
+export function getCloudHeadlineReadingOf(
+  headlineReading: CloudHeadlineReading,
+  readings: CloudResourceReadings,
+): { key: string; reading: CloudResourceReading } | null {
+  for (const key of getCloudHeadlineReadingKeys(headlineReading)) {
+    const reading: CloudResourceReading | undefined = readings[key];
+
+    if (reading) {
+      return { key, reading };
+    }
+  }
+
+  return null;
 }
 
 /*
@@ -1381,6 +1865,26 @@ export function isCloudHeadlineExpected(
 ): boolean {
   return !headline.onlySome && CLOUD_LEVEL_FORMATS.has(headline.format);
 }
+
+/*
+ * A VM's memory and disk use, which Google Cloud reads only from the Ops
+ * Agent on the VM: what its tiles say while the last read brought neither.
+ */
+export const HEADLINE_NEEDS_OPS_AGENT: string = translationKey(
+  "Needs the Ops Agent",
+);
+export const HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION: string = translationKey(
+  "Google Cloud reads a VM's memory and disk use only from the Ops Agent on it. Once the agent runs, they show here within an hour.",
+);
+export const HEADLINE_INSTALL_OPS_AGENT: string = translationKey(
+  "Install the Ops Agent",
+);
+
+const NEEDS_OPS_AGENT: CloudHeadlineRequirement = {
+  note: HEADLINE_NEEDS_OPS_AGENT,
+  description: HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION,
+  link: { url: GCP_OPS_AGENT_INSTALL_URL, label: HEADLINE_INSTALL_OPS_AGENT },
+};
 
 export const HEADLINE_CPU: string = translationKey("CPU");
 export const HEADLINE_MEMORY: string = translationKey("Memory");
@@ -1434,6 +1938,24 @@ export const HEADLINE_QUEUE_LENGTH: string = translationKey("Queue length");
 export const HEADLINE_PORTS_USED: string = translationKey(
   "Outbound ports used",
 );
+export const HEADLINE_HEALTHY_ENDPOINTS: string =
+  translationKey("Healthy endpoints");
+export const HEADLINE_UNHEALTHY_ENDPOINTS: string = translationKey(
+  "Unhealthy endpoints",
+);
+export const HEADLINE_ALLOWED_REQUESTS: string =
+  translationKey("Allowed requests");
+export const HEADLINE_BLOCKED_REQUESTS: string =
+  translationKey("Blocked requests");
+export const HEADLINE_PACKETS_RECEIVED: string =
+  translationKey("Packets received");
+export const HEADLINE_PACKETS_DROPPED: string =
+  translationKey("Packets dropped");
+export const HEADLINE_SIGN_INS: string = translationKey("Sign-ins");
+// A Cosmos DB account's storage: its data, its indexes, its documents.
+export const HEADLINE_DATA_SIZE: string = translationKey("Data size");
+export const HEADLINE_INDEX_SIZE: string = translationKey("Index size");
+export const HEADLINE_DOCUMENTS: string = translationKey("Documents");
 
 /*
  * What each type's page leads with, in the order its tiles are drawn: what
@@ -1699,7 +2221,7 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
     },
     {
       provider: AWS,
-      types: ["AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api"],
+      types: ["AWS::ApiGateway::RestApi"],
       readings: [
         headline("aws/apigateway/count", HEADLINE_REQUESTS, "perPeriod"),
         headline("aws/apigateway/latency", HEADLINE_LATENCY, "milliseconds"),
@@ -1707,10 +2229,159 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       ],
     },
     {
+      // An HTTP API's server errors are its 5xx.
+      provider: AWS,
+      types: ["AWS::ApiGatewayV2::Api"],
+      readings: [
+        headline("aws/apigateway/count", HEADLINE_REQUESTS, "perPeriod"),
+        headline("aws/apigateway/latency", HEADLINE_LATENCY, "milliseconds"),
+        headline("aws/apigateway/5xx", HEADLINE_ERRORS, "perPeriod"),
+      ],
+    },
+    {
       provider: AWS,
       types: ["AWS::AmazonMQ::Broker"],
       readings: [
         headline("aws/amazonmq/cpuutilization", HEADLINE_CPU, "percent"),
+      ],
+    },
+    /*
+     * The types read since #9567 (#9692). An Elastic Beanstalk
+     * environment's one free metric is a health code (0 OK to 25 Severe),
+     * which its page's status already says in words: it has no tile.
+     */
+    {
+      provider: AWS,
+      types: ["AWS::AppRunner::Service"],
+      readings: [
+        headline("aws/apprunner/requests", HEADLINE_REQUESTS, "perPeriod"),
+        headline(
+          "aws/apprunner/requestlatency",
+          HEADLINE_RESPONSE_TIME,
+          "milliseconds",
+        ),
+        headline(
+          "aws/apprunner/5xxstatusresponses",
+          HEADLINE_ERRORS,
+          "perPeriod",
+        ),
+        headline("aws/apprunner/cpuutilization", HEADLINE_CPU, "percent"),
+        headline("aws/apprunner/memoryutilization", HEADLINE_MEMORY, "percent"),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::GlobalAccelerator::Accelerator"],
+      readings: [
+        headline(
+          "aws/globalaccelerator/healthyendpointcount",
+          HEADLINE_HEALTHY_ENDPOINTS,
+          "count",
+        ),
+        headline(
+          "aws/globalaccelerator/unhealthyendpointcount",
+          HEADLINE_UNHEALTHY_ENDPOINTS,
+          "count",
+        ),
+        headline(
+          "aws/globalaccelerator/newflowcount",
+          HEADLINE_CONNECTIONS,
+          "perPeriod",
+        ),
+        headline(
+          "aws/globalaccelerator/processedbytesin",
+          HEADLINE_NETWORK_IN,
+          "bytesPerPeriod",
+        ),
+        headline(
+          "aws/globalaccelerator/processedbytesout",
+          HEADLINE_NETWORK_OUT,
+          "bytesPerPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::AutoScaling::AutoScalingGroup"],
+      readings: [
+        headline(
+          "aws/autoscaling/groupinserviceinstances",
+          HEADLINE_INSTANCES,
+          "count",
+        ),
+        headline(
+          "aws/autoscaling/groupdesiredcapacity",
+          HEADLINE_CAPACITY,
+          "count",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::WAFv2::WebACL"],
+      readings: [
+        headline(
+          "aws/wafv2/allowedrequests",
+          HEADLINE_ALLOWED_REQUESTS,
+          "perPeriod",
+        ),
+        headline(
+          "aws/wafv2/blockedrequests",
+          HEADLINE_BLOCKED_REQUESTS,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::SageMaker::Endpoint"],
+      readings: [
+        headline(
+          "aws/sagemaker/invocations",
+          HEADLINE_INVOCATIONS,
+          "perPeriod",
+        ),
+        headline(
+          "aws/sagemaker/invocation5xxerrors",
+          HEADLINE_ERRORS,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::NetworkFirewall::Firewall"],
+      readings: [
+        headline(
+          "aws/networkfirewall/receivedpackets",
+          HEADLINE_PACKETS_RECEIVED,
+          "perPeriod",
+        ),
+        headline(
+          "aws/networkfirewall/droppedpackets",
+          HEADLINE_PACKETS_DROPPED,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::Cognito::UserPool"],
+      readings: [
+        headline("aws/cognito/signinsuccesses", HEADLINE_SIGN_INS, "perPeriod"),
+        headline(
+          "aws/cognito/signinthrottles",
+          HEADLINE_THROTTLED,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::AppSync::GraphQLApi"],
+      readings: [
+        headline("aws/appsync/latency", HEADLINE_LATENCY, "milliseconds"),
+        headline("aws/appsync/5xxerror", HEADLINE_ERRORS, "perPeriod"),
       ],
     },
     // ---- Azure ------------------------------------------------------------
@@ -1771,6 +2442,14 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("requests", HEADLINE_REQUESTS, "count"),
         headline("httpresponsetime", HEADLINE_RESPONSE_TIME, "seconds"),
         headline("http5xx", HEADLINE_ERRORS, "perPeriod"),
+        /*
+         * The share of its instances its Health check finds healthy, every
+         * 5 minutes (#9740). Only an app with a Health check path set
+         * reports it.
+         */
+        headline(APP_SERVICE_HEALTH_CHECK_KEY, HEADLINE_HEALTH, "percent", {
+          onlySome: true,
+        }),
         headline("memoryworkingset", HEADLINE_MEMORY, "bytes"),
         // Only a function app runs functions.
         headline("functionexecutioncount", HEADLINE_INVOCATIONS, "perPeriod", {
@@ -1842,9 +2521,27 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       provider: AZURE,
       types: ["Microsoft.DocumentDB/databaseAccounts"],
       readings: [
+        /*
+         * What it stores, first (#9740): its data, its indexes and its
+         * documents, every container's together - DataUsageV2, IndexUsageV2
+         * and DocumentCountV2, which Azure Monitor keeps at five minutes,
+         * kept between their reads.
+         */
+        headline("datausagev2", HEADLINE_DATA_SIZE, "bytes"),
+        headline("indexusagev2", HEADLINE_INDEX_SIZE, "bytes"),
+        headline("documentcountv2", HEADLINE_DOCUMENTS, "count"),
         headline("totalrequests", HEADLINE_REQUESTS, "perPeriod"),
         headline("normalizedruconsumption", HEADLINE_REQUEST_UNITS, "percent"),
-        headline("serversidelatency", HEADLINE_LATENCY, "milliseconds"),
+        /*
+         * The server's latency of its direct-mode requests - the API for
+         * NoSQL's and Table's SDKs connect directly by default - else of its
+         * gateway-mode ones, the only way MongoDB, Cassandra and Gremlin
+         * clients connect. ServerSideLatency, which Microsoft deprecates
+         * for these two, is no longer read for it.
+         */
+        headline("serversidelatencydirect", HEADLINE_LATENCY, "milliseconds", {
+          fallbackKeys: ["serversidelatencygateway"],
+        }),
       ],
     },
     {
@@ -1863,10 +2560,11 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("availability", HEADLINE_AVAILABILITY, "percent"),
         headline("transactions", HEADLINE_REQUESTS, "perPeriod"),
         headline("successe2elatency", HEADLINE_LATENCY, "milliseconds"),
-        // Written once an hour: a read between two writes may not bring it.
-        headline("usedcapacity", HEADLINE_STORAGE_USED, "bytes", {
-          onlySome: true,
-        }),
+        /*
+         * Kept at an hour at its finest, and read once an hour: held
+         * between those reads, its tile says how old it is (#9982).
+         */
+        headline("usedcapacity", HEADLINE_STORAGE_USED, "bytes"),
       ],
     },
     {
@@ -1994,6 +2692,16 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
           HEADLINE_CPU,
           "ratio",
         ),
+        /*
+         * How full its memory and its fullest disk are, from the Ops Agent
+         * on it: a VM without the agent says so in their tiles.
+         */
+        headline(GCP_OPS_AGENT_MEMORY_KEY, HEADLINE_MEMORY, "percent", {
+          needs: NEEDS_OPS_AGENT,
+        }),
+        headline(GCP_OPS_AGENT_DISK_KEY, HEADLINE_STORAGE_USED, "percent", {
+          needs: NEEDS_OPS_AGENT,
+        }),
         headline(
           "compute.googleapis.com/instance/network/received_bytes_count",
           HEADLINE_NETWORK_IN,
@@ -2118,10 +2826,15 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       provider: GCP,
       types: ["pubsub_topic"],
       readings: [
+        /*
+         * The messages published, each minute: the count of the topic's
+         * message sizes, as Google says to count them now that it
+         * deprecates topic/send_message_operation_count.
+         */
         headline(
-          "pubsub.googleapis.com/topic/send_message_operation_count",
+          "pubsub.googleapis.com/topic/message_sizes_count",
           HEADLINE_MESSAGES_IN,
-          "perSecond",
+          "perPeriod",
         ),
       ],
     },
@@ -2205,17 +2918,234 @@ const HEADLINES_BY_TYPE: ReadonlyMap<
 })();
 
 /*
+ * ---------------------------------------------------------------------------
+ * Readings read less often than every read (#9740)
+ * ---------------------------------------------------------------------------
+ *
+ * A resource's readings are what its last read brought (CloudResourceReadings).
+ * An Azure key metric Azure Monitor keeps at five minutes (AzureKeyMetric.
+ * grain: an App Service app's health check, a Cosmos DB account's storage)
+ * is read in a call of its own every AZURE_FIVE_MINUTE_READ_MINUTES - in one
+ * read of three - and one it keeps at an hour (a Storage account's used
+ * capacity, #9982) once an hour, so its reading, and a rule or a tile that
+ * reads it, would come and go. A read that brings no value of such a
+ * reading keeps the one before while its datapoint is younger than the
+ * reading's hold, and drops it after, so a metric that stops still goes
+ * stale; the resource's page says how old it is. A reading every read
+ * brings is never kept: a read that did not bring it says something
+ * (CloudHeadlineTiles' "Not reported").
+ */
+
+// Azure Monitor's five-minute grain, as seconds a point covers.
+export const AZURE_FIVE_MINUTE_READING_PERIOD_SECONDS: number = 5 * 60;
+
+/*
+ * How long a five-minute reading is kept: twice the 15 minutes between its
+ * calls, and the 10 minutes its newest point is old when it is read. A
+ * call reads once its window holds 15 minutes, so a connection read every
+ * 5 or 15 minutes brings it every 15, one read every 10 every 20 minutes;
+ * its newest point is 9 to 14 minutes old when it is read (Azure Monitor's
+ * 4 minutes behind, on a whole period), so up to 34 minutes old before the
+ * next call. Under CLOUD_READINGS_STALE_MS: a kept reading never outlives
+ * the resource's readings.
+ */
+export const AZURE_FIVE_MINUTE_READING_HOLD_MS: number =
+  (2 * AZURE_FIVE_MINUTE_READ_MINUTES + 10) * 60 * 1000;
+
+// Azure Monitor's hourly grain, as seconds a point covers.
+export const AZURE_HOURLY_READING_PERIOD_SECONDS: number = 60 * 60;
+
+/*
+ * How long an hourly reading is kept (#9982), by its datapoint's age. An
+ * hour's point is asked for once the hour after it has passed
+ * (CloudMetricWindows: an hourly window waits a whole period for Azure
+ * Monitor to publish it), so it is 2 hours old when it is read, and the
+ * next one comes an hour later, at the first read after it is there: up
+ * to 3 hours old then, plus the minutes between two reads of the
+ * connection - an hour at most. A bound of its own beside
+ * CLOUD_READINGS_STALE_MS, which says when a resource's readings as a whole
+ * are too old: a storage account's other readings come every read. One
+ * that stops coming is dropped after it, so its tile says "Not reported".
+ */
+export const AZURE_HOURLY_READING_HOLD_MS: number = 4 * 60 * 60 * 1000;
+
+// What a reading read less often than every read is read at, and kept for.
+interface SlowCloudReading {
+  holdMs: number;
+  periodSeconds: number;
+}
+
+const SLOW_GRAINS: ReadonlyMap<string, SlowCloudReading> = new Map<
+  string,
+  SlowCloudReading
+>([
+  [
+    AZURE_FIVE_MINUTE_GRAIN,
+    {
+      holdMs: AZURE_FIVE_MINUTE_READING_HOLD_MS,
+      periodSeconds: AZURE_FIVE_MINUTE_READING_PERIOD_SECONDS,
+    },
+  ],
+  [
+    AZURE_HOURLY_GRAIN,
+    {
+      holdMs: AZURE_HOURLY_READING_HOLD_MS,
+      periodSeconds: AZURE_HOURLY_READING_PERIOD_SECONDS,
+    },
+  ],
+]);
+
+// "<provider>|<type>|<reading key>" of every reading read less often than every read.
+const SLOW_READINGS: ReadonlyMap<string, SlowCloudReading> = (() => {
+  const slow: Map<string, SlowCloudReading> = new Map<
+    string,
+    SlowCloudReading
+  >();
+
+  for (const entry of AZURE_KEY_METRICS) {
+    for (const metric of entry.metrics) {
+      const reading: SlowCloudReading | undefined = metric.grain
+        ? SLOW_GRAINS.get(metric.grain)
+        : undefined;
+
+      if (!reading) {
+        continue;
+      }
+
+      // Its key leaves its aggregation out, so any one makes it.
+      const key: string | null = getCloudReadingKey(
+        CloudProvider.Azure,
+        getAzureStoredMetricName(metric.name, "average"),
+      );
+
+      if (key) {
+        slow.set(`${typeKey(CloudProvider.Azure, entry.type)}|${key}`, reading);
+      }
+    }
+  }
+
+  return slow;
+})();
+
+function getSlowCloudReading(data: {
+  provider: string;
+  type: string;
+  key: string;
+}): SlowCloudReading | undefined {
+  return SLOW_READINGS.get(
+    `${typeKey(data.provider, data.type)}|${(data.key || "").toLowerCase()}`,
+  );
+}
+
+function isSlowCloudReading(data: {
+  provider: string;
+  type: string;
+  key: string;
+}): boolean {
+  return Boolean(getSlowCloudReading(data));
+}
+
+/*
+ * How long a reading is kept after the last read that brought it, by its
+ * datapoint's age: AZURE_FIVE_MINUTE_READING_HOLD_MS for an Azure key metric
+ * read at five minutes, AZURE_HOURLY_READING_HOLD_MS for one read once an
+ * hour, null for a reading every read brings.
+ */
+export function getCloudReadingHoldMs(data: {
+  provider: string;
+  type: string;
+  key: string;
+}): number | null {
+  return getSlowCloudReading(data)?.holdMs ?? null;
+}
+
+/*
+ * A resource's readings as a read writes them: what the read brought, and of
+ * the readings it had, each one read less often than every read that this
+ * read did not bring, while its datapoint is younger than its hold - with
+ * its own time, so its page says how old it is. Of a reading both have, the
+ * newer.
+ */
+export function withHeldCloudReadings(data: {
+  provider: string;
+  type: string;
+  // What the resource's row held before this read.
+  previous: CloudResourceReadings;
+  // What this read brought.
+  current: CloudResourceReadings;
+  now: Date;
+}): CloudResourceReadings {
+  const readings: CloudResourceReadings = { ...data.current };
+
+  for (const [key, reading] of Object.entries(data.previous)) {
+    const holdMs: number | null = getCloudReadingHoldMs({
+      provider: data.provider,
+      type: data.type,
+      key,
+    });
+    const timeMs: number = Date.parse(reading.time);
+
+    if (holdMs === null || !Number.isFinite(timeMs)) {
+      continue;
+    }
+
+    const known: CloudResourceReading | undefined = readings[key];
+
+    if (known) {
+      // A read's own reading stands, unless the one kept is newer.
+      if (Date.parse(known.time) < timeMs) {
+        readings[key] = reading;
+      }
+
+      continue;
+    }
+
+    if (data.now.getTime() - timeMs < holdMs) {
+      readings[key] = reading;
+    }
+  }
+
+  return readings;
+}
+
+/*
+ * How old a reading read less often than every read is, for its page to
+ * say: null for one every read brings, whose age is the read's.
+ */
+export function getCloudReadingAgeMs(data: {
+  provider: string;
+  type: string;
+  key: string;
+  reading: CloudResourceReading;
+  now: Date;
+}): number | null {
+  const timeMs: number = Date.parse(data.reading.time);
+
+  if (!isSlowCloudReading(data) || !Number.isFinite(timeMs)) {
+    return null;
+  }
+
+  return Math.max(0, data.now.getTime() - timeMs);
+}
+
+/*
  * The seconds one datapoint of a reading covers: the period its metric is
  * read at (CloudKeyMetrics) - five minutes for most of CloudWatch's, a day
- * for S3's storage, a minute on Google Cloud and Azure. A sum over that
- * period is drawn per minute.
+ * for S3's storage, a minute on Google Cloud and Azure, but five for an
+ * Azure key metric read at five minutes (with its resource's type). A sum
+ * over that period is drawn per minute.
  */
 export function getCloudReadingPeriodSeconds(
   provider: string,
   key: string,
+  type?: string | undefined,
 ): number {
   if ((provider || "").toLowerCase() !== CloudProvider.AWS) {
-    return GCP_ALIGNMENT_PERIOD_SECONDS;
+    return (
+      (type
+        ? getSlowCloudReading({ provider, type, key })?.periodSeconds
+        : undefined) || GCP_ALIGNMENT_PERIOD_SECONDS
+    );
   }
 
   const parts: Array<string> = (key || "").split("/");
@@ -2266,7 +3196,9 @@ export function getCloudReadingKeysForType(
   }
 
   for (const reading of getCloudHeadlineReadings(provider, type)) {
-    keys.add(reading.key);
+    for (const key of getCloudHeadlineReadingKeys(reading)) {
+      keys.add(key);
+    }
   }
 
   return keys;

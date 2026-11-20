@@ -31,8 +31,13 @@
                           confirmed by the scanner.
                         %>
                         <form method="POST" action="<%= formAction %>" class="mt-6">
+                            <% if (typeof account !== 'undefined' && account) { %>
+                            <%# A link for an address no account uses yet: the signed sign-in it carries (#9824). %>
+                            <input type="hidden" name="account" value="<%= account %>" />
+                            <% } else { %>
                             <input type="hidden" name="token" value="<%= token %>" />
                             <input type="hidden" name="signature" value="<%= signature %>" />
+                            <% } %>
                             <button type="submit" data-testid="sso-confirmation-submit"
                                 class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
                                 <%= buttonText %>

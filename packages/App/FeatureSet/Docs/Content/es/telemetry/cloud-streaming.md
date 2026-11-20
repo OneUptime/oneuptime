@@ -24,7 +24,7 @@ flowchart TB
 
 - **Una pila en cada región.** El comando despliega una pila de CloudFormation en cada región desde la que transmites. Su flujo de métricas y sus filtros de suscripción de registros pasan todo a dos flujos de Firehose, y Firehose lo entrega a OneUptime por HTTPS.
 - **La clave de flujo dice de quién es.** Firehose envía la clave de flujo de la conexión con cada entrega. La clave nombra la conexión, y por tanto el proyecto: nada en una entrega decide dónde se escribe. OneUptime solo guarda el SHA-256 de la clave.
-- **Las lecturas dejan las métricas transmitidas al flujo.** Mientras un flujo entrega un espacio de nombres de una región, las lecturas de la conexión dejan de escribir las métricas de ese espacio de nombres, así que ningún punto de datos se cuenta dos veces. Siguen escribiendo las métricas clave que un flujo les deja, como el tamaño diario de un bucket de S3 y las métricas clave añadidas después de que empezaran los flujos, que una pila más antigua no incluye. Las lecturas siguen encontrando recursos, su estado y sus cambios, y retoman un espacio de nombres tras 15 minutos sin entregas.
+- **Las lecturas dejan las métricas transmitidas al flujo.** Mientras un flujo entrega un espacio de nombres de una región, las lecturas de la conexión dejan de leer y escribir cada métrica clave de ese espacio que la pila del flujo incluye, así que CloudWatch ya no cobra la lectura de lo que envía el flujo y ningún punto de datos se cuenta dos veces. El estado de un recurso y sus mosaicos principales también se juzgan a partir del flujo: cada valor es la estadística de la lectura sobre cinco minutos del flujo, así que es el valor que obtendría una lectura. Cuando el flujo de una región no ha entregado nada durante 10 minutos, las lecturas vuelven a leer esas métricas desde CloudWatch, y la última lectura de la conexión lo indica. Siguen escribiendo las métricas clave que un flujo les deja, como el tamaño diario de un bucket de S3 y las que una pila creada antes que ellas no incluye. Las lecturas siguen encontrando recursos, su estado y sus cambios, y retoman un espacio de nombres tras 15 minutos sin entregas.
 - **No se pierde nada mientras OneUptime no puede aceptarlo.** Firehose vuelve a enviar un lote rechazado durante una hora como máximo y luego lo guarda 30 días en el bucket de S3 de la pila.
 
 ## Antes de empezar
@@ -140,6 +140,8 @@ Para una conexión que lee una AWS Organization, ejecute el comando del cuadro d
 
 Para cambiar lo que transmite una pila, vuelve a abrir **Transmitir métricas y registros**, elige **Crear una clave nueva** y ejecuta el nuevo comando. La clave que reemplaza sigue funcionando 24 horas, así que no se rechaza ninguna entrega mientras se actualizan las pilas. Como máximo 3 claves reemplazadas funcionan a la vez.
 
+Si la fila de la cuenta dice **Actualizar la transmisión**, es que sus pilas se crearon antes de que OneUptime transmitiera cada métrica clave, y hasta que se actualicen, la conexión lee desde CloudWatch las métricas clave que no incluyen, así que no falta ninguna. Elige **Actualizar la transmisión**: el cuadro muestra un comando que actualiza cada pila in situ, sin clave nueva. Recupera de CloudFormation la plantilla de la propia pila, da a su flujo de métricas los filtros de métricas clave actuales y a su flujo de Firehose de métricas los atributos comunes de la plantilla, y la despliega con la clave existente, así que la pila conserva sus grupos de registros. Necesita `jq`, que AWS CloudShell incluye. Para una conexión que lee una AWS Organization, ejecútalo en la cuenta de administración: también actualiza el StackSet y, con él, las pilas de cada cuenta miembro. AWS reinicia un flujo de métricas cuyos filtros cambian, y solo envía los puntos de datos que llegan después.
+
 ## Configurarlo de otra forma
 
 Da a cada flujo de Firehose un destino de endpoint HTTP con estos valores, y al flujo de métricas el formato de salida OpenTelemetry 1.0:
@@ -152,8 +154,9 @@ Da a cada flujo de Firehose un destino de endpoint HTTP con estos valores, y al 
 | Codificación del contenido | `GZIP` |
 | Búfer | 1 MiB o 60 segundos |
 | Duración de los reintentos | 3600 segundos, con un bucket de S3 para lo que no se pudo entregar |
+| Atributos comunes | En el flujo de Firehose de métricas, `oneuptime-stream-template` con el valor `3` y `oneuptime-stream-metrics` con el valor `key`, o `all` para un flujo de todas las métricas. Solo cuando los filtros del flujo de métricas son los de la plantilla, que **Descargar la plantilla** ofrece para copiar |
 
-En un OneUptime autoalojado, sustituye `https://oneuptime.com` por la dirección HTTPS de tu OneUptime. El endpoint de métricas también acepta un flujo de métricas en el formato JSON.
+En un OneUptime autoalojado, sustituye `https://oneuptime.com` por la dirección HTTPS de tu OneUptime. El endpoint de métricas también acepta un flujo de métricas en el formato JSON. Sin los atributos comunes, OneUptime entiende que un flujo de métricas configurado así solo incluye las métricas clave con las que empezaron los flujos, y lee las demás desde CloudWatch. Con ellos, deja al flujo cada métrica clave que incluye la plantilla, como hace con una pila creada por el comando.
 
 OneUptime responde a cada entrega como Firehose espera:
 

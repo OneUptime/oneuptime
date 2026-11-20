@@ -7,9 +7,11 @@ import {
   HEADLINE_CAPACITY,
   HEADLINE_CONNECTIONS,
   HEADLINE_CPU,
+  HEADLINE_DATA_SIZE,
   HEADLINE_DEAD_LETTERED,
   HEADLINE_DISK_READ,
   HEADLINE_DISK_WRITE,
+  HEADLINE_DOCUMENTS,
   HEADLINE_DURATION,
   HEADLINE_ERRORS,
   HEADLINE_FAILED_RUNS,
@@ -17,6 +19,7 @@ import {
   HEADLINE_FREE_STORAGE,
   HEADLINE_HEALTH,
   HEADLINE_HEALTHY_BACKENDS,
+  HEADLINE_INDEX_SIZE,
   HEADLINE_INSTANCES,
   HEADLINE_INVOCATIONS,
   HEADLINE_LATENCY,
@@ -46,7 +49,9 @@ import {
   HEADLINE_UNHEALTHY_HOSTS,
   HEADLINE_WRITE_LATENCY,
   HEADLINE_WRITE_OPERATIONS,
+  getCloudHeadlineReadingOf,
   getCloudHeadlineReadings,
+  getCloudReadingAgeMs,
   getCloudReadingPeriodSeconds,
   isCloudHeadlineExpected,
 } from "Common/Types/Cloud/CloudResourceHealth";
@@ -56,6 +61,7 @@ import {
   formatDurationInUnit,
   formatMilliseconds,
 } from "../../Utils/Milliseconds";
+import { formatMinutesAgo } from "../Inventory/InventoryLiveness";
 
 /*
  * WHAT A CLOUD RESOURCE'S PAGE LEADS WITH.
@@ -71,9 +77,16 @@ import {
  * A level every resource of the type reports (its CPU, its free memory,
  * its connections) that a fresh read did not bring is said plainly - "Not
  * reported" in its tile - rather than left out, so a page never leaves the
- * reader wondering where a number went (isCloudHeadlineExpected). A sum
- * over the period is left out: the cloud writes none for a period it is
- * zero in.
+ * reader wondering where a number went (isCloudHeadlineExpected). One its
+ * cloud reports only with something installed says what, with the
+ * provider's instructions a click away: a Compute Engine VM's memory and
+ * disks "Need the Ops Agent" (CloudHeadlineReading.needs). A sum over the
+ * period is left out: the cloud writes none for a period it is zero in.
+ *
+ * A reading read less often than every read - an Azure metric kept at five
+ * minutes, read every 15, which the read keeps between its reads (#9740) -
+ * says how old it is under its value ("12m ago"), so a figure from a
+ * quarter of an hour ago never reads as the resource's now.
  *
  * React-free (the page maps these to its tiles), so App tests can read it.
  */
@@ -98,6 +111,11 @@ export interface CloudHeadlineTile {
   valueNote?: string | undefined;
   // The (i) beside the title: what a missing value means (English).
   description?: string | undefined;
+  /*
+   * Where to get what would give it a value, drawn in place of the line
+   * under it: the provider's own instructions (an English label).
+   */
+  link?: { url: string; label: string } | undefined;
   // For a percent: the tile's bar.
   percent?: number | null | undefined;
   // A share that is better the fuller it is: availability, healthy backends.
@@ -186,6 +204,9 @@ const ICONS: Record<
   [HEADLINE_FAILED_RUNS]: { icon: IconProp.Alert, color: "rose" },
   [HEADLINE_THROTTLED]: { icon: IconProp.Stop, color: "amber" },
   [HEADLINE_PORTS_USED]: { icon: IconProp.Signal, color: "violet" },
+  [HEADLINE_DATA_SIZE]: { icon: IconProp.Database, color: "amber" },
+  [HEADLINE_INDEX_SIZE]: { icon: IconProp.QueueList, color: "amber" },
+  [HEADLINE_DOCUMENTS]: { icon: IconProp.DocumentText, color: "sky" },
 };
 
 const BYTE_UNITS: ReadonlyArray<string> = [
@@ -352,6 +373,32 @@ function formatValue(data: {
 }
 
 /*
+ * The line under a tile's value: what its figure is per ("per minute"),
+ * and - for a reading read less often than every read - how old it is,
+ * as an age in the reader's words ("12m ago"), the two set apart by " · ".
+ */
+export function getCloudHeadlineSublabel(data: {
+  sublabel: string | undefined;
+  ageMs: number | null;
+  translator: Translator;
+}): string | undefined {
+  if (data.ageMs === null) {
+    return data.sublabel;
+  }
+
+  const age: string = formatMinutesAgo(
+    Math.floor(data.ageMs / 60_000),
+    data.translator,
+  );
+
+  if (!data.sublabel) {
+    return age;
+  }
+
+  return `${data.translator.translateText(data.sublabel) || data.sublabel} · ${age}`;
+}
+
+/*
  * The tiles of a resource of this type, in the catalog's order: one per
  * headline reading the last read kept, and a "Not reported" one for each
  * level every resource of its type reports that the read did not bring -
@@ -364,10 +411,14 @@ export function getCloudHeadlineTiles(data: {
   readings: CloudResourceReadings;
   hasFreshReadings: boolean;
   translator: Translator;
+  // When the page is read: a slow reading's age is said from it.
+  now?: Date | undefined;
 }): Array<CloudHeadlineTile> {
   if (!data.hasFreshReadings) {
     return [];
   }
+
+  const now: Date = data.now || new Date();
 
   const tiles: Array<CloudHeadlineTile> = [];
 
@@ -376,13 +427,25 @@ export function getCloudHeadlineTiles(data: {
       break;
     }
 
-    const reading: CloudResourceReading | undefined =
-      data.readings[headline.key];
+    const found: { key: string; reading: CloudResourceReading } | null =
+      getCloudHeadlineReadingOf(headline, data.readings);
     const look: { icon: IconProp; color: CloudHeadlineTile["iconColor"] } =
       ICONS[headline.label] || { icon: IconProp.ChartBar, color: "slate" };
 
-    if (!reading) {
-      if (isCloudHeadlineExpected(headline)) {
+    if (!found) {
+      if (headline.needs) {
+        // What its cloud needs installed to report it, and where to get it.
+        tiles.push({
+          key: headline.key,
+          title: headline.label,
+          value: "",
+          valueNote: headline.needs.note,
+          description: headline.needs.description,
+          link: headline.needs.link,
+          icon: look.icon,
+          iconColor: "slate",
+        });
+      } else if (isCloudHeadlineExpected(headline)) {
         tiles.push({
           key: headline.key,
           title: headline.label,
@@ -402,8 +465,12 @@ export function getCloudHeadlineTiles(data: {
       percent?: number;
     } = formatValue({
       format: headline.format,
-      reading,
-      periodSeconds: getCloudReadingPeriodSeconds(data.provider, headline.key),
+      reading: found.reading,
+      periodSeconds: getCloudReadingPeriodSeconds(
+        data.provider,
+        found.key,
+        data.type,
+      ),
       translator: data.translator,
     });
 
@@ -414,7 +481,17 @@ export function getCloudHeadlineTiles(data: {
       key: headline.key,
       title: headline.label,
       value: formatted.value,
-      sublabel: formatted.sublabel,
+      sublabel: getCloudHeadlineSublabel({
+        sublabel: formatted.sublabel,
+        ageMs: getCloudReadingAgeMs({
+          provider: data.provider,
+          type: data.type,
+          key: found.key,
+          reading: found.reading,
+          now,
+        }),
+        translator: data.translator,
+      }),
       percent: formatted.percent,
       higherIsBetter: bar?.higherIsBetter,
       thresholds: bar?.thresholds,

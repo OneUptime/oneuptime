@@ -38,7 +38,7 @@ Jeder Pfeil ist etwas, das OneUptime aufgezeichnet hat, nie eine Vermutung. Die 
 
 Suchen Sie nach einer Tabelle, einem Dienst, einer Pipeline oder einem Dashboard, um zu behalten, was passt, und alles stromaufwärts und stromabwärts davon. Wählen Sie eine Karte aus, um ihre gesamte Datenherkunft hervorzuheben, zu sehen, woher sie stammt und wohin sie fließt, und ihre Seite zu öffnen; **Nur die zugehörige Datenherkunft anzeigen** lässt nur diese auf der Karte. Mit den Schaltern neben der Suche lassen Sie Dienste, Pipelines oder Dashboards weg. **Liste** zeigt jeden Pfeil als Zeile und ist das, was ein Smartphone öffnet.
 
-Eine Karte zeichnet bis zu 400 Karten, die zuletzt gesehenen Datenflüsse zuerst; hat Ihr Projekt mehr, sagt die Karte das. Dieselbe Karte liefert `POST /api/data-observability/lineage/map`, für alle, die Datenobjekte lesen dürfen, und ihre API-Schlüssel. Eine Karte mit mehr sagt, wie viele Tabellen sie ausgelassen hat, jede einmal gezählt, und kann anderswo beginnen: Wählen Sie eine Datenbank, um die Datenflüsse ihrer Tabellen und die Karten, die sie verbinden, zu zeichnen, oder geben Sie einen Namen ein und wählen Sie **Ganzes Projekt durchsuchen**, um die Datenflüsse jeder Tabelle, Pipeline, jedes Dienstes und Dashboards mit diesem Namen zu zeichnen, wie alt sie auch sind. **Ganze Karte anzeigen** geht zurück. Um die Karte der API anderswo beginnen zu lassen, senden Sie `{ "dataStoreId": "<database ID>" }` oder `{ "search": "orders" }`.
+Eine Karte zeichnet bis zu 400 Karten, die zuletzt gesehenen Datenflüsse zuerst; hat Ihr Projekt mehr, sagt die Karte das. Dieselbe Karte liefert `POST /api/data-observability/lineage/map`, für alle, die Datenobjekte lesen dürfen, und ihre API-Schlüssel. Eine Karte mit mehr sagt, wie viele Tabellen sie ausgelassen hat, jede einmal gezählt, und kann anderswo beginnen: Wählen Sie eine Datenbank, um die Datenflüsse ihrer Tabellen, die auf ihnen aufbauenden Dashboards und die Karten, die sie verbinden, zu zeichnen, oder geben Sie einen Namen ein und wählen Sie **Ganzes Projekt durchsuchen**, um die Datenflüsse aller Tabellen, Pipelines, Dienste, Dashboards, Datasets und Datenquellen zu zeichnen, deren Name ihn enthält, wie alt sie auch sind. **Ganze Karte anzeigen** geht zurück. Um die Karte der API anderswo beginnen zu lassen, senden Sie `{ "dataStoreId": "<database ID>" }` oder `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -132,15 +132,83 @@ Fehlgeschlagene Aktualisierungen verwenden nicht die Pipeline-Monitore. Ein Data
 
 ## Pipelines
 
-Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte, der wievielte Versuch er war, wo der Scheduler das sagt (die Try-Nummer von Airflow), und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt drei Monitore:
+Jeder Job, jedes dbt-Projekt und jeder Sync erscheint unter **Pipelines**, mit seinen Läufen: wann jeder begann und endete, wie lange er dauerte, der wievielte Versuch er war, wo der Scheduler das sagt (die Try-Nummer von Airflow), und der Fehler eines fehlgeschlagenen Laufs. Jede Pipeline lernt nach fünf Läufen aus ihren eigenen Läufen, wie lange ein Lauf üblicherweise dauert und wie viel Zeit nach ihrem Zeitplan zwischen zwei Läufen vergeht. Die Seite einer Pipeline empfiehlt vier Monitore:
 
 - **Pipeline Run Failed**: Ein Lauf ist fehlgeschlagen oder wurde abgebrochen.
 - **Pipeline Run Unusually Long**: Ein Lauf dauert doppelt so lange wie üblich oder länger, geprüft alle fünf Minuten, während er läuft, sodass ein hängender Lauf erkannt wird, bevor er endet.
 - **Pipeline Is Late**: Seit längerer Zeit, als ihr Zeitplan erlaubt, hat kein Lauf begonnen.
+- **Pipeline Stopped by Circuit Breaker**: Der Schutzschalter hat stop geantwortet, und der Stopp dauert, bis er go antwortet oder ein Lauf beginnt.
 
 Der Tab **Eigentümer** einer Pipeline nennt die Personen und Teams, die sich um sie kümmern, und ihre Warnungen gehen an sie. Die **Übersicht** und **Probleme** nennen die Eigentümer einer fehlgeschlagenen oder verspäteten Pipeline, oder zeigen **Kein Eigentümer** und einen Weg, einen hinzuzufügen.
 
+**Eigentümerregeln** können die Eigentümer einer Pipeline für Sie benennen. Auf ihrem Tab **Pipeline-Regeln** gleicht eine Regel eine Pipeline per regulärem Ausdruck mit ihrem Namen ab, etwa `orders_daily.load_orders`, oder mit ihrem Namespace, also wo sie läuft, etwa `airflow://prod`, und fügt ihre Personen und Teams als Eigentümer der Pipeline hinzu, wenn OneUptime die Pipeline zum ersten Mal sieht. Um sie den Pipelines hinzuzufügen, die Sie schon haben, öffnen Sie die Regel und wählen Sie **Jetzt ausführen**.
+
 Die Seite einer Pipeline zeichnet ihre **Datenherkunft**, die erste Anlaufstelle, wenn ein Lauf fehlschlägt oder sich verspätet: links die Tabellen, die sie liest, rechts die Tabellen, die sie schreibt, dazwischen die Pipeline, und wie es jetzt um jede steht. Wählen Sie mehr Schritte, um zu sehen, woraus diese Tabellen erstellt werden und was aus ihnen erstellt wird, und öffnen Sie eine beliebige Tabelle, um ihren eigenen Tab **Datenherkunft** zu sehen. Eine Zahl nicht gezeichneter Tabellen, auf der Karte der Pipeline oder einer Tabelle, zeichnet auch hier weitere davon an Ort und Stelle. Wählen Sie eine der Spalten, die sie schreibt, um ihr über die Pipeline hinweg zu folgen: hinauf zur Spalte jeder gelesenen Tabelle, aus der sie erstellt wurde, und hinunter zu jeder Tabelle, in die sie sie schreibt.
+
+## Schutzschalter
+
+Eine fehlschlagende Prüfung oder eine verspätete Tabelle benachrichtigt ihre Eigentümer, doch die Pipelines, die die Tabelle lesen, würden trotzdem laufen und die fehlerhaften Daten weiter nach unten kopieren. Ein Schutzschalter hält sie vorher an: Der erste Schritt der Pipeline fragt OneUptime, ob die Tabellen, die sie liest, in Ordnung sind, und der Rest läuft nur, wenn die Antwort go lautet.
+
+- Eine fehlschlagende Prüfung einer Tabelle, die die Pipeline liest, stoppt sie immer: eine Prüfung, deren Warnung offen ist, oder ein fehlgeschlagener dbt-Test.
+- Eine verspätete Tabelle stoppt sie ebenfalls, sobald **Stoppen, wenn eine gelesene Tabelle verspätet ist** auf der Seite **Schutzschalter** der Pipeline eingeschaltet ist. Für jede Pipeline ist es ausgeschaltet, denn eine verspätete Tabelle kann auch nur einen ruhigen Tag bedeuten.
+- Eine Prüfung, die nicht laufen konnte oder noch nicht gelaufen ist, und eine Tabelle ohne Prüfungen stoppen nichts.
+
+Der Schritt fragt mit einem Projekt-API-Schlüssel, der Data Observability lesen darf, und nennt die Pipeline als `namespace/name`, nur mit ihrem Namen oder mit ihrer ID. Der Schutzschalter liest die Tabellen, die die Pipeline liest, aus ihrer Datenherkunft. Eine Anfrage kann zusätzlich `tables` nennen, oder nur diese, jeweils als `schema.table`, nur mit ihrem Namen oder mit ihrer ID; ein Name, der zu keiner Tabelle passt, kommt in `notFound` zurück und zählt nie als Tabelle, die bestanden hat. Beurteilt werden nur die Tabellen, die der API-Schlüssel lesen darf.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Das `verdict` der Antwort ist `go` oder `stop`. `reasons` listet jede fehlschlagende Prüfung mit ihrer Tabelle und jede verspätete Tabelle mit ihrer Verspätung; `tables` listet jede beurteilte Tabelle; und `answer` sagt dasselbe in wenigen Sätzen, für das Log des Schritts. Mit `failWithStatusCode` antwortet ein Stopp mit HTTP 412, sodass `curl -f` den Schritt fehlschlagen lässt. Senden Sie `stopsOnLateTables` als `true` oder `false`, um für eine einzelne Anfrage zu entscheiden, und `dryRun` als `true`, um zu fragen, ohne dass die Antwort gespeichert wird.
+
+Setzen Sie in Airflow einen `ShortCircuitOperator` vor die Aufgaben, die die Tabellen lesen: Gibt seine Funktion false zurück, wird jede Aufgabe nach ihm übersprungen.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Die `on-run-start`-Hooks von dbt führen SQL in Ihrem Warehouse aus, keine Webanfragen. Fragen Sie daher in dem Schritt, der dbt startet: ein CI-Job, eine Cron-Zeile oder die Aufgabe, die es ausführt. Die Pipeline eines dbt-Projekts heißt `dbt/`, gefolgt vom Namen des Projekts.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Eine Anfrage, die eine Pipeline nennt, wird an ihr gespeichert, außer bei einem Probelauf. Solange der Schutzschalter eine Pipeline gestoppt hat, sagt ihre Seite **Schutzschalter**, seit wann und warum, ihre **Übersicht** öffnet mit dem Stopp, und **Handlungsbedarf** und **Probleme** führen sie als gestoppt statt mit ihrem fehlgeschlagenen oder verspäteten Lauf. Der Stopp endet, wenn der Schutzschalter das nächste Mal go antwortet oder ein Lauf nach ihm beginnt. Dieselbe Seite hat **Jetzt testen**, das den Schutzschalter fragt, ohne dass die Antwort gespeichert wird, und den Schritt für curl, Airflow und dbt mit dem Namen der Pipeline schon eingetragen.
+
+Um von einem Stopp zu erfahren, fügen Sie **Pipeline Stopped by Circuit Breaker** aus den **Empfehlungen** der Pipeline hinzu. Seine Warnung öffnet sich, wenn der Schutzschalter stop antwortet, geht an die Eigentümer der Pipeline, bleibt offen, solange der Stopp gespeichert ist, und wird aufgelöst, sobald der Stopp endet. Er liest die Metrik `oneuptime.data.pipeline.circuit_breaker_stopped` der Pipeline: 1, solange der Schutzschalter sie gestoppt hat, und 0, sobald nicht mehr, geschrieben, wenn der Schutzschalter antwortet, und danach alle fünf Minuten.
+
+Solange Data Observability auf dem Server ausgeschaltet ist, antwortet der Schutzschalter go und speichert nichts: Ein ausgeschaltetes Produkt stoppt nie eine Pipeline.
 
 ## Eine Meldung pro Ursache
 
@@ -157,7 +225,7 @@ Wer die Warnung, die sie verursacht hat, nicht sehen darf, bekommt weder die Kar
 
 ## Lineage in Power BI
 
-**Zugeordnete Tabellen** sagt bei jedem BI-Tool, auf wie vielen überwachten Tabellen seine Dashboards aufbauen, und darunter das Erste, was die übrigen an einer Zuordnung hindert. **See Why** listet auf, was das letzte Lesen gefunden hat und was zu tun ist: Datenbanken, die Ihre Dashboards lesen und die nicht mit OneUptime verbunden sind, jede nur ein **Connect Database** entfernt, mit ihrer Art und Adresse schon ausgefüllt; Tabellen, die eine verbundene Datenbank nicht überwacht und die womöglich von ihrem Scan ausgelassen oder noch nicht erfasst wurden; und Quellen, die keine Datenbank sind, etwa Dateien und Webseiten. Für Power BI nennt es außerdem eine ausgeschaltete Mandanteneinstellung, Datasets, die aus Dataflows lesen, und Datasets, die Power BI nicht beschreiben kann. **Basiert auf** sagt bei jedem Dashboard, welche Datasets es darstellt und woher deren Daten kommen, so wie Power BI es angibt.
+**Zugeordnete Tabellen** sagt bei jedem BI-Tool, auf wie vielen überwachten Tabellen seine Dashboards aufbauen, und darunter das Erste, was die übrigen an einer Zuordnung hindert. **See Why** listet auf, was das letzte Lesen gefunden hat und was zu tun ist: Datenbanken, die Ihre Dashboards lesen und die nicht mit OneUptime verbunden sind, jede nur ein **Connect Database** entfernt, mit ihrer Art und Adresse schon ausgefüllt; Tabellen, die eine verbundene Datenbank nicht überwacht und die womöglich von ihrem Scan ausgelassen oder noch nicht erfasst wurden; und Quellen, die keine Datenbank sind, etwa Dateien und Webseiten. Für Power BI nennt es außerdem eine ausgeschaltete Mandanteneinstellung, Dataflows, deren Definitionen Power BI nicht exportieren wollte oder die noch gelesen werden, und Datasets, die Power BI nicht beschreiben kann. **Basiert auf** sagt bei jedem Dashboard, welche Datasets es darstellt und woher deren Daten kommen, so wie Power BI es angibt.
 
 OneUptime liest jedes Power-BI-Dataset aus dem Metadatenscan von Power BI, mit der Power Query hinter jeder seiner Tabellen:
 
@@ -165,6 +233,8 @@ OneUptime liest jedes Power-BI-Dataset aus dem Metadatenscan von Power BI, mit d
 - **SQL, das eine Abfrage ausführt**: die Option **SQL statement** eines Connectors, `Value.NativeQuery` und `Odbc.Query`, und die Tabellen nach jedem `FROM` und `JOIN`.
 - **Parameter und gemeinsam genutzte Abfragen**: Ein Parameter steht überall dort, wo er genannt wird, und eine Tabelle, die eine Staging-Abfrage liest, liest, was diese Abfrage liest.
 - **Zusammengesetzte Modelle** stellen die Tabellen der Datasets dar, auf denen sie aufbauen.
+- **Dataflows**: Ein Dataset, das auf einem Dataflow aufbaut, liest, was die Entität des Dataflows liest. OneUptime exportiert die Definition jedes Dataflows über die Admin-API von Power BI, die nichts über den Admin-API-Zugriff oben hinaus braucht, und liest darin die Abfrage der Entität so, wie es die eines Datasets liest, verknüpfte Entitäten eingeschlossen. Ein Dataflow wird einmal exportiert, und erneut, wenn er sich ändert oder einen Tag nach einem fehlgeschlagenen Export: höchstens 60 pro Lesevorgang, im Rahmen des Power-BI-Limits von 200 pro Stunde, sodass ein Mandant mit vielen Dataflows über einige Stunden hinweg vollständig gelesen wird.
+- **OData-Connectors von Dataverse**: `Cds.Entities` und `Cds.Contents` des Legacy-Connectors Common Data Service sowie `Dataverse.Contents` nennen eine Tabelle nach ihrer Entitätsmenge (`accounts`), während OneUptime eine Dataverse-Tabelle unter ihrem logischen Namen (`account`) führt. Jede Erfassung einer Dataverse-Umgebung speichert zu jeder Tabelle den Namen ihrer Entitätsmenge, gleich ob OneUptime oder eine Sonde die Umgebung erfasst, und die Tabellen eines Berichts werden über diese Namen zugeordnet. Eine ältere Sonde sendet keine: Bis sie aktualisiert ist, nennt **See Why** die Tabellen, die dadurch ohne Zuordnung bleiben.
 
 Ein Bericht stellt die Tabellen seines Datasets dar, ein Dashboard die der Datasets seiner Kacheln. Woher die Daten kommen - der Server und Name einer Datenbank, der Pfad einer Datei, eine Webadresse -, stammt aus den Datenquellen des Scans, die nichts über den Admin-API-Zugriff oben hinaus brauchen.
 
@@ -173,9 +243,11 @@ Power BI gibt die Tabellen eines Datasets erst zurück, wenn ein Fabric-Administ
 - **Enhance admin APIs responses with detailed metadata**: die Tabellen jedes Datasets.
 - **Enhance admin APIs responses with DAX and mashup expressions**: die Abfragen, die sie laden und die sagen, welche Datenbanktabellen sie lesen.
 
-Power BI beschreibt ein Dataset dann, sobald es aktualisiert oder erneut veröffentlicht wurde; eines, das nur DirectQuery verwendet, sobald jemand einen Bericht darauf geöffnet hat. Nie beschreibt es Echtzeit-Datasets, Datasets mit einer Liveverbindung zu Analysis Services, Excel-Arbeitsmappen oder Datasets über 1 GB auf gemeinsam genutzter Kapazität. Ein Dataset, das aus einem Dataflow liest, wird bis zum Dataflow gelesen: Welche Tabellen ein Dataflow lädt, liest OneUptime noch nicht.
+Power BI beschreibt ein Dataset dann, sobald es aktualisiert oder erneut veröffentlicht wurde; eines, das nur DirectQuery verwendet, sobald jemand einen Bericht darauf geöffnet hat. Nie beschreibt es Echtzeit-Datasets, Datasets mit einer Liveverbindung zu Analysis Services, Excel-Arbeitsmappen oder Datasets über 1 GB auf gemeinsam genutzter Kapazität.
 
 Jede Tabelle wird einer überwachten Tabelle über ihren Namen, ihr Schema und ihre Datenbank zugeordnet, ein Server über seinen Kurznamen oder seinen vollständigen Namen. Eine Tabelle eines anderen Datenbanksystems wird nie zugeordnet, ebenso wenig eine in einer anderen Datenbank: Ein Bericht auf `Sales.dbo.Orders` wird nicht mit `Archive.dbo.Orders` verknüpft, weil nur `Archive` überwacht wird.
+
+Das erste Lesen scannt den gesamten Mandanten. Danach scannt jedes stündliche Lesen nur die Arbeitsbereiche, die sich seit dem letzten Lesen geändert haben. Einmal am Tag ruft es außerdem die Liste des gesamten Mandanten ab, wodurch Berichte und Arbeitsbereiche wegfallen, die es nicht mehr gibt, und scannt die Arbeitsbereiche, deren Datasets ohne ihre Tabellen oder die Abfragen dahinter kamen, damit diese kommen, sobald Power BI die Datasets beschreibt, sowie die, deren letzter Scan am ältesten ist, sodass jeder Arbeitsbereich mindestens einmal pro Woche gescannt wird; **Jetzt lesen** scannt nur, was sich geändert hat. OneUptime führt bis zu 16 Scans gleichzeitig aus, mit jeweils bis zu 100 Arbeitsbereichen, wie Power BI es erlaubt, und die Scans eines großen Mandanten können Minuten dauern: Das stündliche Lesen wartet bis zu 20 Minuten auf sie und **Jetzt lesen** bis zu 4. Ein Arbeitsbereich, dessen Scan fehlgeschlagen ist oder nicht fertig wurde, behält, was von ihm gelesen wurde, und der Hinweis des BI-Tools sagt das. Das nächste Lesen scannt ihn erneut, wenn sein Scan fehlgeschlagen ist; ein Scan, der nicht fertig wurde, wird nicht neu gestartet, sondern wieder aufgegriffen, und sein Ergebnis wird gelesen, sobald Power BI ihn abgeschlossen hat, innerhalb der 24 Stunden, die Power BI das Ergebnis eines Scans aufbewahrt. In einem Mandanten, der zu groß ist, um den Scan jedes Arbeitsbereichs vollständig zu behalten, behält OneUptime die Scans der Arbeitsbereiche vollständig, die seine Dashboards brauchen, und greift nicht fertige Scans trotzdem wieder auf.
 
 [Aktualisierungen](#aufrufe-und-aktualisierungen-in-power-bi) werden getrennt von den Tabellen gelesen: Ein Hinweis, dass die Aktualisierungen einiger Datasets nicht gelesen werden konnten, sagt nichts über ihre Tabellen.
 

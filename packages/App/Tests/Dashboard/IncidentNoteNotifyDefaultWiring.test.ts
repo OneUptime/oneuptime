@@ -122,8 +122,12 @@ describe("Incident change state", () => {
 
   test("finds the modal form and builds it with the shared state change fields", () => {
     expect(modal).not.toBe("");
+    // The note's fields, then a resolve's folded root cause (#7765).
     expect(modal).toContain(
-      "fields: getStateChangeFormFields<IncidentStateTimeline>({",
+      "fields: [ ...getStateChangeFormFields<IncidentStateTimeline>({",
+    );
+    expect(modal).toContain(
+      "...getStateChangeRootCauseFields<IncidentStateTimeline>(",
     );
     expect(modal).toContain("noteType: BulkStateChangeNoteType.Public,");
     expect(checkbox).not.toBe("");
@@ -220,9 +224,14 @@ describePublicNotesTab({
   resolveArgument: "incident",
   helperCall: "shouldNotifyForIncident",
   quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
+  /*
+   * The composer says above it why nothing is sent (#9735), so the summary
+   * under the box leaves that out.
+   */
   audienceSummary:
-    '( <SubscriberAudienceSummary request={{ incidentId: incidentId }} dataTestId="incident-public-note-audience" />',
+    '( <SubscriberAudienceSummary request={{ incidentId: incidentId }} dataTestId="incident-public-note-audience" isNothingSentSaidAbove={true} />',
   canBePrivate: true,
+  statusPageReachApiPath: "/incident",
 });
 
 describeSharedPublicNoteWiring();

@@ -38,7 +38,7 @@ Chaque flèche est quelque chose que OneUptime a enregistré, jamais une supposi
 
 Recherchez une table, un service, un pipeline ou un tableau de bord pour ne garder que ce qui correspond, ainsi que tout ce qui est en amont et en aval. Sélectionnez une carte pour mettre en évidence tout son lignage, voir d'où elle vient et où elle va, et ouvrir sa page ; **Afficher uniquement son lignage** ne laisse que cela sur la carte. Les interrupteurs à côté de la recherche permettent d'exclure les services, les pipelines ou les tableaux de bord. **Liste** affiche chaque flèche sur une ligne, et c'est ce qu'ouvre un téléphone.
 
-Une carte dessine jusqu'à 400 cartes, les flux vus le plus récemment en premier ; quand votre projet en a davantage, la carte le dit. La même carte est servie par `POST /api/data-observability/lineage/map`, pour quiconque peut lire les actifs de données, et leurs clés API. Une carte qui en a plus indique combien de tables elle a laissées de côté, chacune comptée une fois, et peut partir d'ailleurs : choisissez une base de données pour cartographier les flux de ses tables et les cartes qu'ils relient, ou saisissez un nom et choisissez **Rechercher dans tout le projet** pour cartographier les flux de chaque table, pipeline, service et tableau de bord dont le nom le contient, aussi anciens soient-ils. **Afficher toute la carte** revient en arrière. Pour faire partir la carte de l'API d'ailleurs, envoyez `{ "dataStoreId": "<database ID>" }` ou `{ "search": "orders" }`.
+Une carte dessine jusqu'à 400 cartes, les flux vus le plus récemment en premier ; quand votre projet en a davantage, la carte le dit. La même carte est servie par `POST /api/data-observability/lineage/map`, pour quiconque peut lire les actifs de données, et leurs clés API. Une carte qui en a plus indique combien de tables elle a laissées de côté, chacune comptée une fois, et peut partir d'ailleurs : choisissez une base de données pour cartographier les flux de ses tables, les tableaux de bord construits sur elles et les cartes qu'ils relient, ou saisissez un nom et choisissez **Rechercher dans tout le projet** pour cartographier les flux de chaque table, pipeline, service, tableau de bord, jeu de données et source de données dont le nom le contient, aussi anciens soient-ils. **Afficher toute la carte** revient en arrière. Pour faire partir la carte de l'API d'ailleurs, envoyez `{ "dataStoreId": "<database ID>" }` ou `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -132,15 +132,83 @@ Les actualisations en échec n'utilisent pas les moniteurs de pipeline. Un jeu d
 
 ## Pipelines
 
-Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses exécutions : quand chacune a commencé et s'est terminée, combien de temps elle a duré, quelle tentative c'était là où le planificateur l'indique (le numéro d'essai d'Airflow), et l'erreur d'une exécution en échec. Après cinq exécutions, chaque pipeline apprend de ses propres exécutions combien de temps dure habituellement une exécution et combien de temps s'écoule entre deux exécutions selon sa planification. La page d'un pipeline recommande trois moniteurs :
+Chaque job, projet dbt et synchronisation apparaît sous **Pipelines**, avec ses exécutions : quand chacune a commencé et s'est terminée, combien de temps elle a duré, quelle tentative c'était là où le planificateur l'indique (le numéro d'essai d'Airflow), et l'erreur d'une exécution en échec. Après cinq exécutions, chaque pipeline apprend de ses propres exécutions combien de temps dure habituellement une exécution et combien de temps s'écoule entre deux exécutions selon sa planification. La page d'un pipeline recommande quatre moniteurs :
 
 - **Pipeline Run Failed** : une exécution a échoué ou a été interrompue.
 - **Pipeline Run Unusually Long** : une exécution a pris deux fois sa durée habituelle ou plus, vérifié toutes les cinq minutes pendant qu'elle tourne, si bien qu'une exécution bloquée est repérée avant qu'elle ne se termine.
 - **Pipeline Is Late** : aucune exécution n'a démarré depuis plus longtemps que sa planification ne le permet.
+- **Pipeline Stopped by Circuit Breaker** : le disjoncteur a répondu stop, et l'arrêt dure jusqu'à ce qu'il réponde go ou qu'une exécution démarre.
 
 L'onglet **Propriétaires** d'un pipeline nomme les personnes et les équipes qui s'en occupent, et ses alertes leur sont envoyées. La **Vue d'ensemble** et **Problèmes** nomment les propriétaires d'un pipeline en échec ou en retard, ou affichent **Aucun propriétaire**, avec un moyen d'en ajouter un.
 
+Les **Règles de propriétaire** peuvent nommer pour vous les propriétaires d'un pipeline. Dans leur onglet **Règles de pipeline**, une règle fait correspondre un pipeline par une expression régulière sur son nom, comme `orders_daily.load_orders`, ou sur son espace de noms, là où il s'exécute, comme `airflow://prod`, et ajoute ses personnes et ses équipes comme propriétaires du pipeline quand OneUptime voit le pipeline pour la première fois. Pour les ajouter aux pipelines que vous avez déjà, ouvrez la règle et sélectionnez **Exécuter maintenant**.
+
 La page d'un pipeline dessine son **Lignage**, le premier endroit où regarder quand une exécution échoue ou est en retard : à gauche les tables qu'il lit, à droite les tables qu'il écrit, le pipeline entre les deux, et chaque carte indique son état actuel. Choisissez plus d'étapes pour voir à partir de quoi ces tables sont construites et ce qui est construit à partir d'elles, et ouvrez n'importe quelle table pour voir son propre onglet **Lignage**. Un nombre de tables non dessinées, sur la carte du pipeline ou sur celle d'une table, en dessine d'autres sur place ici aussi. Choisissez l'une des colonnes qu'il écrit pour la suivre à travers le pipeline : en amont jusqu'à la colonne de chaque table lue à partir de laquelle elle a été construite, et en aval jusqu'à chaque table où il l'écrit.
+
+## Disjoncteurs
+
+Un contrôle en échec ou une table en retard prévient ses propriétaires, mais les pipelines qui lisent la table s'exécuteraient quand même et recopieraient les mauvaises données en aval. Un disjoncteur les arrête avant : la première étape du pipeline demande à OneUptime si les tables qu'il lit sont saines, et le reste ne s'exécute que si la réponse est go.
+
+- Un contrôle en échec d'une table que le pipeline lit l'arrête toujours : un contrôle dont l'alerte est ouverte, ou un test dbt qui a échoué.
+- Une table en retard l'arrête aussi dès que **Arrêter quand une table qu'il lit est en retard** est activé, sur la page **Disjoncteur** du pipeline. C'est désactivé pour chaque pipeline, car une table en retard peut simplement signifier une journée calme.
+- Un contrôle qui n'a pas pu s'exécuter ou ne s'est pas encore exécuté, et une table sans contrôle, n'arrêtent rien.
+
+L'étape interroge avec une clé API de projet qui peut lire l'Observabilité des données, et nomme le pipeline sous la forme `namespace/name`, par son seul nom ou par son ID. Le disjoncteur lit les tables que lit le pipeline dans son lignage. Une requête peut aussi nommer des `tables`, ou seulement celles-ci, chacune sous la forme `schema.table`, par son seul nom ou par son ID ; un nom qui ne correspond à aucune table revient dans `notFound`, et ne compte jamais comme une table qui a réussi. Seules les tables que la clé API peut lire sont jugées.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Le `verdict` de la réponse est `go` ou `stop`. `reasons` liste chaque contrôle en échec avec sa table, et chaque table en retard avec son retard ; `tables` liste chaque table jugée ; et `answer` dit la même chose en quelques phrases, pour le journal de l'étape. Avec `failWithStatusCode`, un arrêt répond HTTP 412, donc `curl -f` fait échouer l'étape. Envoyez `stopsOnLateTables` à `true` ou `false` pour décider pour une seule requête, et `dryRun` à `true` pour demander sans que la réponse soit conservée.
+
+Dans Airflow, placez un `ShortCircuitOperator` avant les tâches qui lisent les tables : quand sa fonction renvoie false, toutes les tâches qui le suivent sont ignorées.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Les hooks `on-run-start` de dbt exécutent du SQL dans votre entrepôt, pas des requêtes web : interrogez donc dans l'étape qui lance dbt, une tâche de CI, une ligne cron ou la tâche qui l'exécute. Le pipeline d'un projet dbt se nomme `dbt/` suivi du nom du projet.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Une requête qui nomme un pipeline est conservée sur celui-ci, sauf s'il s'agit d'un essai. Tant que le disjoncteur a arrêté un pipeline, sa page **Disjoncteur** dit depuis quand et pourquoi, sa **Vue d'ensemble** s'ouvre sur l'arrêt, et **À traiter** et **Problèmes** le listent comme arrêté, à la place de son exécution en échec ou en retard. L'arrêt prend fin quand le disjoncteur répond go la fois suivante, ou quand une exécution démarre après lui. La même page propose **Tester maintenant**, qui interroge le disjoncteur sans que la réponse soit conservée, et l'étape pour curl, Airflow et dbt avec le nom du pipeline déjà rempli.
+
+Pour être prévenu d'un arrêt, ajoutez **Pipeline Stopped by Circuit Breaker** depuis les **Recommandations** du pipeline. Son alerte s'ouvre quand le disjoncteur répond stop, est envoyée aux propriétaires du pipeline, reste ouverte tant que l'arrêt est conservé et se résout dès que l'arrêt prend fin. Elle lit la métrique `oneuptime.data.pipeline.circuit_breaker_stopped` du pipeline : 1 tant que le disjoncteur l'a arrêté et 0 dès que ce n'est plus le cas, écrite quand le disjoncteur répond, puis toutes les cinq minutes.
+
+Tant que l'Observabilité des données est désactivée sur le serveur, le disjoncteur répond go et ne conserve rien : désactiver un produit n'arrête jamais un pipeline.
 
 ## Un seul signalement par cause
 
@@ -157,7 +225,7 @@ Une personne qui ne peut pas voir l'alerte qui l'a causée n'a ni la carte **Don
 
 ## Lignage de Power BI
 
-**Tables associées**, sur chaque outil BI, indique sur combien de tables surveillées ses tableaux de bord sont construits, et en dessous la première chose qui empêche les autres d'être associées. **See Why** liste ce que la dernière lecture a trouvé et ce qu'il faut faire : les bases de données que lisent vos tableaux de bord et qui ne sont pas connectées à OneUptime, chacune à un **Connect Database** près, avec son type et son adresse déjà remplis ; les tables qu'une base de données connectée ne surveille pas, qui peuvent être exclues de son analyse ou pas encore collectées ; et les sources qui ne sont pas une base de données, comme des fichiers et des pages web. Pour Power BI, il nomme aussi un paramètre de locataire désactivé, les jeux de données qui lisent des dataflows et les jeux de données que Power BI ne peut pas décrire. **Basé sur**, pour chaque tableau de bord, indique les jeux de données qu'il représente et d'où viennent leurs données, comme Power BI le dit.
+**Tables associées**, sur chaque outil BI, indique sur combien de tables surveillées ses tableaux de bord sont construits, et en dessous la première chose qui empêche les autres d'être associées. **See Why** liste ce que la dernière lecture a trouvé et ce qu'il faut faire : les bases de données que lisent vos tableaux de bord et qui ne sont pas connectées à OneUptime, chacune à un **Connect Database** près, avec son type et son adresse déjà remplis ; les tables qu'une base de données connectée ne surveille pas, qui peuvent être exclues de son analyse ou pas encore collectées ; et les sources qui ne sont pas une base de données, comme des fichiers et des pages web. Pour Power BI, il nomme aussi un paramètre de locataire désactivé, les dataflows dont Power BI a refusé d'exporter les définitions ou qui sont encore en cours de lecture, et les jeux de données que Power BI ne peut pas décrire. **Basé sur**, pour chaque tableau de bord, indique les jeux de données qu'il représente et d'où viennent leurs données, comme Power BI le dit.
 
 OneUptime lit chaque jeu de données Power BI depuis l'analyse des métadonnées de Power BI, avec la requête Power Query derrière chacune de ses tables :
 
@@ -165,6 +233,8 @@ OneUptime lit chaque jeu de données Power BI depuis l'analyse des métadonnées
 - **Le SQL qu'exécute une requête** : l'option **SQL statement** d'un connecteur, `Value.NativeQuery` et `Odbc.Query`, et les tables après chaque `FROM` et `JOIN`.
 - **Les paramètres et les requêtes partagées** : un paramètre vaut partout où il est nommé, et une table qui lit une requête intermédiaire lit ce que cette requête lit.
 - **Les modèles composites** représentent les tables des jeux de données sur lesquels ils sont construits.
+- **Les dataflows** : un jeu de données construit sur un dataflow lit ce que lit l'entité du dataflow. OneUptime exporte la définition de chaque dataflow par l'API d'administration de Power BI, qui ne demande rien de plus que l'accès aux API d'administration ci-dessus, et y lit la requête de l'entité comme il lit celle d'un jeu de données, entités liées comprises. Un dataflow est exporté une fois, puis de nouveau quand il change ou un jour après l'échec d'une exportation : au plus 60 par lecture, dans la limite de 200 par heure fixée par Power BI, si bien qu'un locataire qui compte beaucoup de dataflows est lu en entier en quelques heures.
+- **Les connecteurs OData de Dataverse** : `Cds.Entities` et `Cds.Contents`, ceux de l'ancien connecteur Common Data Service, et `Dataverse.Contents` nomment une table par son jeu d'entités (`accounts`), alors que OneUptime garde une table Dataverse sous son nom logique (`account`). Chaque collecte d'un environnement Dataverse conserve le nom du jeu d'entités de chaque table, que l'environnement soit collecté par OneUptime ou par une sonde, et les tables d'un rapport sont associées grâce à ces noms. Une sonde plus ancienne n'en envoie aucun : tant qu'elle n'est pas mise à jour, **See Why** nomme les tables qu'elle laisse non associées.
 
 Un rapport représente les tables de son jeu de données, et un tableau de bord celles des jeux de données de ses vignettes. D'où viennent les données - le serveur et le nom d'une base de données, le chemin d'un fichier, une adresse web - vient des sources de données de l'analyse, qui ne demandent rien de plus que l'accès aux API d'administration ci-dessus.
 
@@ -173,9 +243,11 @@ Power BI ne renvoie les tables d'un jeu de données qu'une fois qu'un administra
 - **Enhance admin APIs responses with detailed metadata** : les tables de chaque jeu de données.
 - **Enhance admin APIs responses with DAX and mashup expressions** : les requêtes qui les chargent, qui disent quelles tables de base de données elles lisent.
 
-Power BI décrit ensuite un jeu de données une fois qu'il a été actualisé ou republié ; celui qui n'utilise que DirectQuery, une fois que quelqu'un a ouvert un rapport dessus. Il ne décrit jamais les jeux de données en temps réel, les jeux de données en connexion active à Analysis Services, les classeurs Excel, ni les jeux de données de plus de 1 Go sur une capacité partagée. Un jeu de données qui lit un dataflow est lu jusqu'au dataflow : OneUptime ne lit pas encore quelles tables un dataflow charge.
+Power BI décrit ensuite un jeu de données une fois qu'il a été actualisé ou republié ; celui qui n'utilise que DirectQuery, une fois que quelqu'un a ouvert un rapport dessus. Il ne décrit jamais les jeux de données en temps réel, les jeux de données en connexion active à Analysis Services, les classeurs Excel, ni les jeux de données de plus de 1 Go sur une capacité partagée.
 
 Chaque table est associée à une table surveillée par son nom, son schéma et sa base de données, et un serveur par son nom court ou son nom complet. Une table d'un autre moteur n'est jamais associée, pas plus qu'une table d'une autre base de données : un rapport sur `Sales.dbo.Orders` n'est pas lié à `Archive.dbo.Orders` parce que seule `Archive` est surveillée.
+
+La première lecture analyse tout le locataire. Ensuite, chaque lecture horaire n'analyse que les espaces de travail qui ont changé depuis la dernière lecture. Une fois par jour, elle récupère aussi la liste de tout le locataire, ce qui retire les rapports et les espaces de travail qui n'existent plus, et analyse les espaces de travail dont les jeux de données sont arrivés sans leurs tables ou les requêtes qui les chargent, pour que celles-ci arrivent dès que Power BI décrit les jeux de données, ainsi que ceux dont la dernière analyse est la plus ancienne, pour que chaque espace de travail soit analysé au moins une fois par semaine ; **Lire maintenant** n'analyse que ce qui a changé. OneUptime lance jusqu'à 16 analyses à la fois, de 100 espaces de travail chacune au plus, comme Power BI le permet, et les analyses d'un grand locataire peuvent prendre plusieurs minutes : la lecture horaire les attend jusqu'à 20 minutes et **Lire maintenant** jusqu'à 4. Un espace de travail dont l'analyse a échoué ou ne s'est pas terminée garde ce qui en a été lu, et l'avertissement de l'outil BI le signale. La lecture suivante l'analyse de nouveau si son analyse a échoué ; une analyse qui ne s'est pas terminée n'est pas relancée, mais reprise, et son résultat est lu une fois que Power BI l'a terminée, dans les 24 heures pendant lesquelles Power BI conserve le résultat d'une analyse. Dans un locataire trop grand pour garder entière l'analyse de chaque espace de travail, OneUptime garde entières les analyses des espaces de travail dont ses tableaux de bord ont besoin, et reprend quand même les analyses non terminées.
 
 Les [actualisations](#vues-et-actualisations-dans-power-bi) sont lues à part des tables : un avertissement indiquant que les actualisations de certains jeux de données n'ont pas pu être lues ne dit rien de leurs tables.
 

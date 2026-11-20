@@ -35,7 +35,7 @@ Quando la sostituzione finisce, gli avvisi tornano alla persona. La **Cronologia
 :::steps
 ### Aprire le sostituzioni
 
-Andate in **Reperibilità → Avanzato → Sostituzioni utente** per sostituire qualcuno in tutte le policy di reperibilità, oppure nella pagina **Sostituzioni utente** di una policy, in **Avanzato**, per sostituirlo solo in quella policy. Fate clic su **Aggiungi: Sostituzione utente**.
+Andate in **Reperibilità → Pianificazioni → Sostituzioni utente** per sostituire qualcuno in tutte le policy di reperibilità, oppure nella pagina **Sostituzioni utente** di una policy, in **Avanzato**, per sostituirlo solo in quella policy. Fate clic su **Aggiungi: Sostituzione utente**.
 
 ### Indicare chi è assente
 
@@ -72,7 +72,7 @@ Per far tornare qualcuno prima che la sua sostituzione termini, fate clic su **T
 
 | Aggiunta in | Scheda | Si applica a |
 | --- | --- | --- |
-| **Reperibilità → Avanzato → Sostituzioni utente** | **Sostituzioni utente globali** | Tutte le policy di reperibilità del progetto |
+| **Reperibilità → Pianificazioni → Sostituzioni utente** | **Sostituzioni utente globali** | Tutte le policy di reperibilità del progetto |
 | **Sostituzioni utente** di una policy | **Sostituzioni utente della policy di reperibilità** | Solo quella policy |
 
 Due sostituzioni per la stessa persona non possono sovrapporsi sulla stessa policy, né quando sono entrambe globali. Il modulo, e **Salta fino a…** nei livelli di una pianificazione, lo dicono accanto agli orari appena vengono scelti, con **Modifica quella sostituzione** per modificare invece quella. Una può terminare quando inizia la successiva.
@@ -92,7 +92,9 @@ Quando qualcuno lascia il progetto, ogni sostituzione che lo nomina e che non è
 
 **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono aggiungere, modificare ed eliminare sostituzioni; **Visualizzatore** e **Visualizzatore della reperibilità** possono vederle. In un ruolo personalizzato, i permessi sono **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** e **Read On-Call Policy User Override**. Nella **Cronologia delle reperibilità**, solo chi può leggere le sostituzioni vede di chi è il turno sostituito.
 
-Una sostituzione su una policy segue l'ambito della policy. Date a un team **Membro della reperibilità** limitato alle policy di sua proprietà, o alla sua etichetta, e i suoi membri aggiungono, modificano ed eliminano sostituzioni solo su quelle policy. Una sostituzione globale si applica a ogni policy, comprese quelle di un altro team, quindi aggiungerla, modificarla o eliminarla richiede il permesso per le sostituzioni sull'intero progetto. Con uno più ristretto, **Aggiungi: Sostituzione utente**, **Modifica**, **Termina ora** ed **Elimina** in **Reperibilità → Avanzato → Sostituzioni utente** sono bloccati e dicono perché. **Salta fino a…** nei livelli di una pianificazione e **Trova una copertura** sui vostri prossimi turni, che aggiungono sostituzioni globali, offrono invece le policy su cui potete aggiungere sostituzioni, con una sostituzione per policy, e così fa la copertura dell'app mobile; dove non potete su nessuna, sono bloccati e dicono perché. Il team aggiunge le sue sostituzioni nella pagina **Sostituzioni utente** di ciascuna policy. Lo stesso vale per l'API: una sostituzione senza `onCallDutyPolicyId` viene rifiutata per un permesso limitato a etichette o alle policy possedute.
+Una sostituzione su una policy segue l'ambito della policy. Date a un team **Membro della reperibilità** limitato alle policy di sua proprietà, o alla sua etichetta, e i suoi membri aggiungono, modificano ed eliminano sostituzioni solo su quelle policy. Una sostituzione globale si applica a ogni policy, comprese quelle di un altro team, quindi aggiungerla, modificarla o eliminarla richiede il permesso per le sostituzioni sull'intero progetto. Con uno più ristretto, **Aggiungi: Sostituzione utente**, **Modifica**, **Termina ora** ed **Elimina** in **Reperibilità → Pianificazioni → Sostituzioni utente** sono bloccati e dicono perché. **Salta fino a…** nei livelli di una pianificazione e **Trova una copertura** sui vostri prossimi turni, che aggiungono sostituzioni globali, offrono invece le policy su cui potete aggiungere sostituzioni, con una sostituzione per policy, e così fa la copertura dell'app mobile; dove non potete su nessuna, sono bloccati e dicono perché. Il team aggiunge le sue sostituzioni nella pagina **Sostituzioni utente** di ciascuna policy. Lo stesso vale per l'API: una sostituzione senza `onCallDutyPolicyId` viene rifiutata per un permesso limitato a etichette o alle policy possedute.
+
+Per lasciare che un team organizzi le sostituzioni solo tra le proprie persone, dagli **Manage On-Call Policy User Overrides for Own Team**, direttamente o tramite un ruolo personalizzato. I suoi membri aggiungono, modificano ed eliminano sostituzioni solo quando la persona assente e la persona che sostituisce sono ciascuna in uno dei loro team a cui è dato questo permesso; i loro altri team non contano. **Chi è assente?** e **Chi sostituisce?** elencano solo le persone di quei team e dicono perché, e **Modifica**, **Termina ora** ed **Elimina** sono bloccati, dicendo perché, su una sostituzione che nomina chiunque altro. Per vedere le sostituzioni serve comunque **Read On-Call Policy User Override**, o un ruolo che lo includa, come **Visualizzatore della reperibilità**. L'API, Terraform e l'app mobile seguono la stessa regola; una chiave API, che non fa parte di alcun team, non raggiunge nessuno con esso. Chi ha anche **Membro della reperibilità**, o un altro permesso che raggiunge tutti, non ne è limitato.
 
 Su OneUptime Cloud, le sostituzioni utente richiedono il piano **Growth**.
 
@@ -131,7 +133,7 @@ Per terminare una sostituzione in corso, inviate `POST /api/on-call-duty-policy-
 ## Risoluzione dei problemi
 
 :::details La persona in ferie è stata avvisata lo stesso
-Controllate dove è stata aggiunta la sostituzione. Una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy, e le altre policy la avvisano ancora: aggiungetela in **Reperibilità → Avanzato → Sostituzioni utente** per coprire tutte le policy. Controllate anche **Inizia** e **Termina**: gli orari sono mostrati nel vostro fuso orario.
+Controllate dove è stata aggiunta la sostituzione. Una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy, e le altre policy la avvisano ancora: aggiungetela in **Reperibilità → Pianificazioni → Sostituzioni utente** per coprire tutte le policy. Controllate anche **Inizia** e **Termina**: gli orari sono mostrati nel vostro fuso orario.
 :::
 
 :::details Neanche il sostituto è stato avvisato

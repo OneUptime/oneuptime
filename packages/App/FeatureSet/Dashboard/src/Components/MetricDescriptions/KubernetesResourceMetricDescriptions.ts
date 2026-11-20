@@ -64,9 +64,20 @@ export type KubernetesResourceMetric =
   | "hpaDesiredReplicas"
   | "pvcCapacity"
   | "pvCapacity"
+  // The Persistent Volume Claims and Persistent Volumes lists' usage.
+  | "pvcUsed"
+  | "pvcFree"
+  | "pvUsed"
+  | "pvFree"
+  // The Nodes list's disk columns.
+  | "nodeDiskUsed"
+  | "nodeDiskFree"
+  | "nodeDiskCapacity"
+  | "nodeImageDisk"
   // Detail pages: Overview summary fields.
   | "nodeCpuCapacity"
   | "nodeMemoryCapacity"
+  | "nodeEphemeralStorageCapacity"
   | "nodePodCapacity"
   | "nodeNetworkThroughput"
   | "podRestarts"
@@ -206,12 +217,39 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
   pvCapacity: translationKey(
     "The total size of this persistent volume, in Kubernetes units: Gi is gibibytes and Mi is mebibytes (1 Gi = 1,024 Mi).",
   ),
+  pvcUsed: translationKey(
+    "How much of the claim's filesystem is used, as the kubelet last measured it while a pod mounted it. Amber from 80% full, red from 90%.",
+  ),
+  pvcFree: translationKey(
+    "How much can still be written to the claim's filesystem, as the kubelet last measured it.",
+  ),
+  pvUsed: translationKey(
+    "How much of the volume is used, measured on the claim bound to it while a pod mounted it. Amber from 80% full, red from 90%.",
+  ),
+  pvFree: translationKey(
+    "How much can still be written to the volume, measured on the claim bound to it.",
+  ),
+  nodeDiskUsed: translationKey(
+    "How much of this node's root filesystem is used, as the kubelet last measured it: its pods' logs, emptyDir volumes and, unless they have a disk of their own, container images. Amber from 80% full, red from 90%, where the kubelet starts evicting pods by default.",
+  ),
+  nodeDiskFree: translationKey(
+    "How much can still be written to this node's root filesystem, as the kubelet last measured it.",
+  ),
+  nodeDiskCapacity: translationKey(
+    "The size of this node's root filesystem, as the kubelet measures it.",
+  ),
+  nodeImageDisk: translationKey(
+    "On a node whose container images have a disk of their own, how much of that disk is used. When it fills, new images stop pulling: the kubelet removes unused images from 85% full and evicts pods when less than 15% is free.",
+  ),
 
   nodeCpuCapacity: translationKey(
     "Capacity is the node's total CPU; allocatable is what is left for pods after the operating system and Kubernetes take their reservation. Values are in cores, and an m suffix means thousandths of a core (500m is half a core).",
   ),
   nodeMemoryCapacity: translationKey(
     "Capacity is the node's total memory; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
+  ),
+  nodeEphemeralStorageCapacity: translationKey(
+    "Capacity is the size of the node's root filesystem, which pods' logs, emptyDir volumes and writable layers use; allocatable is what pods can use after the system's reservation. Shown in Kubernetes units: Ki, Mi and Gi are kibibytes, mebibytes and gibibytes (1 Gi = 1,024 Mi).",
   ),
   nodePodCapacity: translationKey(
     "The most pods this node is configured to run at once. It caps how many pods fit here even when CPU and memory are still free.",

@@ -90,7 +90,7 @@ const resolveReadPermissions: () => Array<Permission> =
  * lastEvaluatedAt and never recomputes them live, so the note below travels
  * with every non-empty result to keep the model honest about freshness.
  */
-const COMPLIANCE_NOTE: string =
+export const COMPLIANCE_NOTE: string =
   "Note: compliance figures (currentSliPercentage, errorBudgetRemaining*, currentBurnRate, sloStatus) are the platform's persisted values from the last worker evaluation (see lastEvaluatedAt) — not recomputed live. Rows without these fields have not been evaluated yet.\n";
 
 /*
@@ -286,7 +286,7 @@ const POLICY_TIERS_NOTE: string =
  * "deploymentsAllowed: true" on an SLO with no policy as a decision someone
  * made.
  */
-const DEPLOYMENT_GATE_NOTE: string =
+export const DEPLOYMENT_GATE_NOTE: string =
   "Note: deploymentsAllowed on an SLO row is the deploy gate CI/CD pipelines read before they release: it is false while the SLO is in an error budget policy tier that freezes deployments (deploymentsFrozenAt says since when), and true otherwise - also for an SLO with no policy. A Paused or Misconfigured SLO keeps the answer it had.\n";
 
 // The most tiers one SLO read returns; a policy has a handful.

@@ -4,6 +4,7 @@ import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
 import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
 import DataSensitivity from "./DataSensitivity";
+import { DataStoreResourceKind } from "./DataStoreResource";
 
 /*
  * WHAT DATA SECURITY'S OWN API ROUTES ANSWER.
@@ -19,10 +20,14 @@ import DataSensitivity from "./DataSensitivity";
 export const DATA_SECURITY_API_ROUTES: {
   overview: string;
   compliance: string;
+  resourceScope: string;
+  resourceCompliance: string;
   recordOfProcessing: string;
   scanNow: (dataStoreId: string) => string;
   checkNow: (dataStoreId: string) => string;
   scrubFinding: (findingId: string) => string;
+  dropMetricImpact: (findingId: string) => string;
+  dropMetric: (findingId: string) => string;
   findingOccurrences: (findingId: string) => string;
   explainIssue: (issueId: string) => string;
   fixIssueWithAi: (issueId: string) => string;
@@ -31,6 +36,10 @@ export const DATA_SECURITY_API_ROUTES: {
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
+  // The stores a resource's pages show: { kind, id } (DataStoreResource.ts).
+  resourceScope: "/data-security/resource-scope",
+  // How a resource's own stores stand against each framework: { kind, id }.
+  resourceCompliance: "/data-security/resource-compliance",
   recordOfProcessing: "/data-security/record-of-processing",
   scanNow: (dataStoreId: string): string => {
     return `/data-store/${dataStoreId}/scan-now`;
@@ -40,6 +49,17 @@ export const DATA_SECURITY_API_ROUTES: {
   },
   scrubFinding: (findingId: string): string => {
     return `/data-store-finding/${findingId}/scrub`;
+  },
+  /*
+   * A metric's name that holds sensitive data (#9757): what dropping the
+   * service's metrics named so would drop and stop, before it is asked for.
+   */
+  dropMetricImpact: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/drop-metric-impact`;
+  },
+  // ...and the drop itself, { confirmDataLoss: true }: a metric pipeline Drop rule.
+  dropMetric: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/drop-metric`;
   },
   // The newest records a telemetry finding's data was seen in.
   findingOccurrences: (findingId: string): string => {
@@ -101,14 +121,98 @@ export interface DataSecurityOverview {
   hasCloudConnection: boolean;
 }
 
+/*
+ * What one resource turned off of a framework, and why (#9629): the whole
+ * framework or one of its requirements, with the reason written for it and
+ * who turned it off, when. The resource is named as the reader may read it:
+ * by its kind alone ("") when they may not.
+ */
+export interface DataSecurityComplianceTurnedOff {
+  // The setting's own id, which its reason is written to.
+  id: string;
+  resource: DataSecurityResourceRef;
+  // The requirement, as the catalog names it; null for the whole framework.
+  requirement: string | null;
+  // Why it does not apply there, as written; "" when nobody said.
+  note: string;
+  // When it was last turned off; null when not known.
+  turnedOffAt: string | null;
+  // Who turned it off, by name or email; null for an API key, or when not known.
+  turnedOffBy: string | null;
+}
+
+// The most of a framework's turned-off settings an answer lists, the latest first.
+export const MAX_COMPLIANCE_TURNED_OFF: number = 200;
+
 export interface DataSecurityComplianceFramework
   extends ComplianceFrameworkResult {
   fullName: string;
   scope: string;
+  /*
+   * What is turned off of it, the latest first (#9629): on the project's
+   * Compliance page every resource's, on a resource's what is turned off
+   * where its compliance is set. Absent from an older server's answer.
+   */
+  turnedOff?: Array<DataSecurityComplianceTurnedOff> | undefined;
 }
 
 export interface DataSecurityComplianceResponse {
   frameworks: Array<DataSecurityComplianceFramework>;
+}
+
+// A resource, as the resource routes are asked about one.
+export interface DataSecurityResourceRef {
+  kind: DataStoreResourceKind;
+  id: string;
+  name: string;
+}
+
+/*
+ * What a resource's Data Security and Compliance pages read under
+ * (DataStoreResource.ts): every store its pages show - its own, or the
+ * databases' running on it - and the ones whose compliance is set on it.
+ * A database running on a cluster or a container host shows its store,
+ * whose compliance is set on that cluster or host (complianceOwner).
+ */
+export interface DataSecurityResourceScope {
+  kind: DataStoreResourceKind;
+  id: string;
+  name: string;
+  dataStoreIds: Array<string>;
+  ownedDataStoreIds: Array<string>;
+  // Where the compliance of its stores is set, when that is another resource.
+  complianceOwner: DataSecurityResourceRef | null;
+  // More stores than a scope lists (MAX_RESOURCE_SCOPE_STORES): the first are listed.
+  isTruncated: boolean;
+}
+
+// The most stores one resource's scope lists.
+export const MAX_RESOURCE_SCOPE_STORES: number = 500;
+
+/*
+ * One framework on a resource's Compliance page: scored over the resource's
+ * stores, with what is turned off of it where the resource's compliance is
+ * set (the resource, or the cluster or container host a database runs on).
+ */
+export interface DataSecurityResourceComplianceFramework
+  extends DataSecurityComplianceFramework {
+  isTurnedOff: boolean;
+  turnedOffRequirements: Array<string>;
+}
+
+export interface DataSecurityResourceComplianceResponse {
+  kind: DataStoreResourceKind;
+  id: string;
+  name: string;
+  // The stores the resource's pages show, which its frameworks are scored over.
+  storeCount: number;
+  /*
+   * Where its frameworks are turned on and off, when that is another
+   * resource: the cluster or container host a database runs on. Null when
+   * the resource sets them itself.
+   */
+  complianceOwner: DataSecurityResourceRef | null;
+  frameworks: Array<DataSecurityResourceComplianceFramework>;
 }
 
 export interface DataSecurityRecordOfProcessingRow {
@@ -131,11 +235,78 @@ export interface DataSecurityRecordOfProcessingResponse {
   rows: Array<DataSecurityRecordOfProcessingRow>;
 }
 
+/*
+ * Which kind of rule Scrub It made: a log or a trace scrub rule, or - for
+ * a metric's attribute - a metric pipeline rule that redacts it.
+ */
+export type DataSecurityScrubSignal = "log" | "trace" | "metric";
+
 export interface DataSecurityScrubResult {
-  // "log" or "trace": which kind of scrub rule was made.
-  signal: "log" | "trace";
+  signal: DataSecurityScrubSignal;
   scrubRuleId: string;
   scrubRuleName: string;
+}
+
+/*
+ * DROPPING THE METRICS WHOSE NAMES HOLD A FINDING'S DATA (issue #9757).
+ *
+ * No rule can take the data out of a metric's name: a pipeline rule only
+ * renames a metric whole. What one can do, until the code is fixed, is drop
+ * the new data points of every metric of the service whose name has the data
+ * type's shape - a metric pipeline Drop rule. That loses them for good, so it
+ * is an action of its own, asked for deliberately, after the page has said
+ * what it drops and which monitors and dashboards that leaves without data.
+ */
+
+// Why the metrics named with a finding's data cannot be dropped by a rule.
+export enum DataSecurityDropMetricUnavailableReason {
+  // The finding is not in a metric's name.
+  NotAMetricName = "NotAMetricName",
+  /*
+   * Its data type has no pattern a rule could find it in a name by: found by
+   * field names, or only by the words around it, or one of the project's own.
+   */
+  NoPattern = "NoPattern",
+  // The service the metrics were sent under is gone.
+  NoService = "NoService",
+}
+
+// A monitor or a dashboard that reads a metric the drop would empty.
+export interface DataSecurityMetricUser {
+  id: string;
+  name: string;
+}
+
+export interface DataSecurityDropMetricImpact {
+  isAvailable: boolean;
+  unavailableReason?: DataSecurityDropMetricUnavailableReason | undefined;
+  // The enabled rule that already drops them, when one does.
+  existingRule?: { id: string; name: string } | undefined;
+  // The name the rule would be given.
+  ruleName?: string | undefined;
+  /*
+   * How many of the service's metrics written in the last day have a name
+   * the rule drops - their names never leave the server - and whether there
+   * were more than were counted. metricsCounted is false when they could not
+   * be read just now: metricsMatched is then no count at all.
+   */
+  metricsMatched: number;
+  isMetricsMatchedCapped: boolean;
+  metricsCounted: boolean;
+  /*
+   * The monitors and dashboards that read a metric whose name the rule
+   * drops (of that service, or of every service): they get no new data.
+   * Only those the reader may read; Checked false when they may read none.
+   */
+  monitors: Array<DataSecurityMetricUser>;
+  dashboards: Array<DataSecurityMetricUser>;
+  monitorsChecked: boolean;
+  dashboardsChecked: boolean;
+}
+
+export interface DataSecurityDropMetricResult {
+  ruleId: string;
+  ruleName: string;
 }
 
 // What kind of record a telemetry finding's data was seen in.
@@ -145,6 +316,8 @@ export enum DataSecurityOccurrenceRecordKind {
   Exception = "Exception",
   AiCall = "AI call",
   Session = "Session",
+  // A metric's data point: one series of the metric, at one moment.
+  Metric = "Metric",
 }
 
 // Why a telemetry finding's records are not shown.
@@ -215,8 +388,23 @@ export interface DataSecurityFindingOccurrence {
   rumApplicationId?: string | undefined;
   traceId?: string | undefined;
   spanId?: string | undefined;
-  // A span's or an AI call's name, an exception's type.
+  /*
+   * A span's or an AI call's name, an exception's type, a metric's name -
+   * a metric's with every sensitive value in it masked, as an excerpt's.
+   */
   name?: string | undefined;
+  /*
+   * A metric's data point: its metric's name as the table keys it, to open
+   * it in the metrics explorer - only when no sensitive data is in the
+   * name, so no value ever goes into an address.
+   */
+  metricName?: string | undefined;
+  /*
+   * A log line's own id (the Log row's _id): the logs explorer opens that
+   * very line by it, with its time (#9793). Absent from a server of the
+   * release before, whose links open the line's request or second instead.
+   */
+  logId?: string | undefined;
   // A log line's severity.
   severity?: string | undefined;
   // An exception's group.

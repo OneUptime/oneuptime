@@ -25,6 +25,7 @@ import {
   EXAMPLE_PERSON_EMAIL,
   MembershipKind,
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
 import path from "path";
 import fs from "fs";
 
@@ -121,6 +122,16 @@ const ORDER_GUIDE: { title: string; anchor: string; attribute: string } = {
   attribute: "order",
 };
 
+/*
+ * What a delete of the record says besides its ID (#9832,
+ * TerraformResource.deleteChoices): a custom role's
+ * workflows_run_as_on_delete. Each such attribute links to it.
+ */
+export const DELETE_CHOICES_GUIDE: { title: string; anchor: string } = {
+  title: "Deleting it",
+  anchor: "deleting-it",
+};
+
 const ON_CALL_SCHEDULE_LAYERS_ALONGSIDE: (provider: string) => string = (
   provider: string,
 ): string => {
@@ -175,6 +186,74 @@ export const ORDERED_LIST_PAGES: Readonly<Record<string, OrderedListPage>> = {
     localName: "people",
     alongside: ON_CALL_SCHEDULE_LAYERS_ALONGSIDE,
   },
+};
+
+/*
+ * THE RESOURCES OF A DRAG-ORDERED LIST (issues #9609, #9652): severities,
+ * states, monitor statuses, custom fields, a status page's links, pipelines,
+ * filters and rules - every model marked @ListOrderColumn, whose tag the
+ * spec marks x-oneuptime-list-order (TerraformResource.listOrder). Writing
+ * the number places one row and moves no other, as on the five lists above,
+ * so a configuration that numbers a whole list is applied exactly as
+ * written. Their pages say so in an Order section written from the spec's
+ * facts (Common/Utils/DeveloperDocs/ListOrderFacts): the number's attribute
+ * (`order`, `sort_order` or `priority`), which end is the top, what holds
+ * the list, where a row created without a number goes, and which built-in
+ * rows keep their order.
+ */
+
+// A name that takes "an".
+const STARTS_WITH_VOWEL: RegExp = /^[aeiou]/i;
+
+// "an incident state", "a rule": a name with its article.
+const withArticle: (name: string) => string = (name: string): string => {
+  return `${STARTS_WITH_VOWEL.test(name) ? "an" : "a"} ${name}`;
+};
+
+// A sentence that starts with a name: "An incident state", "A rule".
+const capitalized: (text: string) => string = (text: string): string => {
+  return text.length > 0 ? text[0]!.toUpperCase() + text.slice(1) : text;
+};
+
+// "a, b and c".
+const listOfWords: (words: Array<string>) => string = (
+  words: Array<string>,
+): string => {
+  if (words.length <= 1) {
+    return words.join("");
+  }
+
+  return `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]!}`;
+};
+
+/*
+ * Lines of "  name = value" with their equals signs in one column, as
+ * terraform fmt writes a run of assignments.
+ */
+const alignAssignments: (lines: Array<string>) => Array<string> = (
+  lines: Array<string>,
+): Array<string> => {
+  const width: number = Math.max(
+    0,
+    ...lines.map((line: string) => {
+      return line.trim().split(" = ")[0]!.length;
+    }),
+  );
+
+  return lines.map((line: string) => {
+    const [key, ...rest] = line.trim().split(" = ");
+
+    return `  ${key!.padEnd(width)} = ${rest.join(" = ")}`;
+  });
+};
+
+// The number's attribute, as the provider names an API field.
+export const getListOrderAttribute: (facts: ListOrderFacts) => string = (
+  facts: ListOrderFacts,
+): string => {
+  return StringUtils.toTerraformAttributeName(
+    StringUtils.toLegacySnakeCase(facts.column),
+  );
 };
 
 export class DocumentationGenerator {
@@ -1157,13 +1236,20 @@ ${importSection}`;
 
   /*
    * The prose a page carries between its example and its schema, for
-   * attributes whose JSON shape the API's schema does not describe. Empty for
-   * every other page, which keeps its layout byte for byte.
+   * attributes whose JSON shape the API's schema does not describe, and
+   * for what its delete takes. Empty for every other page, which keeps its
+   * layout byte for byte.
    */
   private getResourceGuide(resource: TerraformResource): string {
+    return `${this.getAttributeGuide(resource)}${this.getDeleteChoicesGuide(resource)}`;
+  }
+
+  private getAttributeGuide(resource: TerraformResource): string {
     const orderGuide: string = ORDERED_LIST_PAGES[resource.name]
       ? `\n${this.getOrderGuide(ORDERED_LIST_PAGES[resource.name]!)}\n`
-      : "";
+      : resource.listOrder
+        ? `\n${this.getListOrderGuide(resource.listOrder)}\n`
+        : "";
 
     if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
       return `\n${this.getOnCallScheduleLayerGuide()}\n${orderGuide}`;
@@ -1200,6 +1286,177 @@ order = index(local.${page.localName}, each.key) + 1
 - Deleting a ${page.thing} leaves a gap in the numbers, which changes nothing: ${page.things} go by their numbers, not by counting.
 - Moving a ${page.thing} in the OneUptime Dashboard numbers the ${page.parent}'s ${page.things} 1..n again; the next plan shows that as changes to \`order\`.
 ${page.alongside ? `\n${page.alongside(provider)}\n` : ""}`;
+  }
+
+  /*
+   * What the number means on a page of a drag-ordered list (the spec's
+   * x-oneuptime-list-order), as the server keeps it since #9650: the row's
+   * place, written as is and moving no other, so a whole list numbered in
+   * one configuration applies as written and the next plan is empty; two
+   * rows at one number shown the older first; where a row created without
+   * a number goes (the end, or for a state just above the resolved one,
+   * taking its place); which built-in rows keep their order; a deleted row's
+   * gap; and a move in the Dashboard, which numbers the list again.
+   */
+  private getListOrderGuide(facts: ListOrderFacts): string {
+    const attribute: string = getListOrderAttribute(facts);
+    const thing: string = facts.singular;
+    const things: string = facts.plural;
+    const localName: string = StringUtils.toLegacySnakeCase(facts.plural);
+    const parentOf: string = facts.sameAs
+      ? `its ${facts.parent} with the same ${facts.sameAs}`
+      : `its ${facts.parent}`;
+    const parentsList: string = facts.sameAs
+      ? `the ${things} of the ${facts.parent} with that ${facts.sameAs}`
+      : `the ${facts.parent}'s ${things}`;
+    const whole: string = facts.sameAs
+      ? `${withArticle(facts.parent)} and ${facts.sameAs}`
+      : withArticle(facts.parent);
+    const example: string = facts.descending
+      ? `${attribute} = length(local.${localName}) - index(local.${localName}, each.key)`
+      : `${attribute} = index(local.${localName}, each.key) + 1`;
+
+    const leftOut: string = facts.insertsAbove
+      ? `goes just above the ${facts.insertsAbove}: it takes the ${facts.insertsAbove}'s number, and the ${facts.insertsAbove} and the ${things} right below it step down one. Give it \`${attribute}\` when the configuration numbers the others, or the next plan shows theirs changed`
+      : facts.descending
+        ? `goes below the last one of ${parentOf}, one number lower`
+        : `goes after the last one of ${parentOf}`;
+
+    const keepsInOrder: string =
+      facts.keepsInOrder && facts.keepsInOrder.length > 1
+        ? `- The ${listOfWords(facts.keepsInOrder)} stay in that order, from the top: a write that would put two of them at one number, or out of order, is refused. An apply that moves them past each other's numbers can meet that refusal on one write; apply again and it finishes.\n`
+        : "";
+
+    return `<a id="${ORDER_GUIDE.anchor}"></a>
+## ${ORDER_GUIDE.title}
+
+\`${attribute}\` is this ${thing}'s place among the ${things} of ${parentOf}, ${facts.descending ? "the highest number first" : "lowest first"}. Setting it places this ${thing} and moves no other, so a configuration that numbers every ${thing} of ${whole} is applied exactly as written, whatever order the provider's writes land in, and the next plan is empty. For example, over a \`for_each\` of \`local.${localName}\`:
+
+\`\`\`terraform
+${example}
+\`\`\`
+
+- Give each ${thing} a number of its own: two ${things} at one number are shown the older first.
+- ${capitalized(withArticle(thing))} created without \`${attribute}\` ${leftOut}.
+${keepsInOrder}- Deleting ${withArticle(thing)} leaves a gap in the numbers, which changes nothing: ${things} go by their numbers, not by counting.
+- Moving ${withArticle(thing)} in the OneUptime Dashboard numbers ${parentsList} ${facts.descending ? "n..1" : "1..n"} again; the next plan shows that as changes to \`${attribute}\`.
+`;
+  }
+
+  /*
+   * WHAT A DELETE OF IT SAYS (#9832): why OneUptime needs it, the
+   * attributes that say it with a whole example of each way, and the one
+   * thing Terraform users trip on - a delete sends what state holds, so the
+   * value is applied before the destroy. Empty for a resource whose delete
+   * takes nothing.
+   */
+  public getDeleteChoicesGuide(resource: TerraformResource): string {
+    const choices: TerraformResource["deleteChoices"] = resource.deleteChoices;
+
+    if (!choices || choices.attributes.length === 0) {
+      return "";
+    }
+
+    const provider: string = this.config.providerName;
+    const noun: string = choices.noun;
+    const attributeOf: (name: string) => TerraformAttribute | undefined = (
+      name: string,
+    ): TerraformAttribute | undefined => {
+      return resource.schema[name];
+    };
+    const main: Array<string> = choices.attributes.filter((name: string) => {
+      return !attributeOf(name)?.deleteChoice?.requiredWith;
+    });
+    const companions: Array<string> = choices.attributes.filter(
+      (name: string) => {
+        return Boolean(attributeOf(name)?.deleteChoice?.requiredWith);
+      },
+    );
+
+    // The resource's required attributes, as its own example writes them.
+    const required: Array<string> = Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]) => {
+        return name !== "id" && Boolean(attr.required);
+      })
+      .map(([name, attr]: [string, TerraformAttribute]) => {
+        return `  ${StringUtils.toTerraformAttributeName(name)} = ${this.getExampleValue(name, attr, resource)}`;
+      });
+
+    const block: (lines: Array<string>) => string = (
+      lines: Array<string>,
+    ): string => {
+      return `\`\`\`terraform
+resource "${provider}_${resource.name}" "example" {
+${alignAssignments(required).join("\n")}
+
+${alignAssignments(lines).join("\n")}
+}
+\`\`\``;
+    };
+
+    const examples: Array<string> = [];
+
+    for (const name of main) {
+      const first: string | undefined = attributeOf(name)?.enumValues?.find(
+        (value: string) => {
+          return !companions.some((companion: string) => {
+            return (
+              attributeOf(companion)?.deleteChoice?.requiredWith?.value ===
+              value
+            );
+          });
+        },
+      );
+
+      if (first !== undefined) {
+        examples.push(
+          block([`  ${name} = ${DocumentationGenerator.hclString(first)}`]),
+        );
+      }
+    }
+
+    const selfNotes: Array<string> = [];
+
+    for (const companion of companions) {
+      const attr: TerraformAttribute = attributeOf(companion)!;
+      const requiredWith: { attribute: string; value: string } =
+        attr.deleteChoice!.requiredWith!;
+      const value: string = attr.relation
+        ? `${provider}_${attr.relation.name}.other.id`
+        : DocumentationGenerator.hclString("<value>");
+
+      examples.push(
+        block([
+          `  ${requiredWith.attribute} = ${DocumentationGenerator.hclString(requiredWith.value)}`,
+          `  ${companion} = ${value}`,
+        ]),
+      );
+
+      // It names another record of its own kind: the order of a destroy of both.
+      if (attr.relation?.name === resource.name) {
+        selfNotes.push(
+          `- When this ${noun} and the one in \`${companion}\` are destroyed together, Terraform deletes this one first, since it refers to the other, and what depended on it moves to the other ${noun}. Give that ${noun} its own \`${requiredWith.attribute}\` too, or its delete is refused.`,
+        );
+      }
+    }
+
+    return `
+<a id="${DELETE_CHOICES_GUIDE.anchor}"></a>
+## ${DELETE_CHOICES_GUIDE.title}
+
+${choices.whenNeeded} In Terraform, ${main
+      .map((name: string) => {
+        return `\`${name}\``;
+      })
+      .join(" or ")} says it:
+
+${examples.join("\n\nor\n\n")}
+
+- Set it, and run \`terraform apply\`, before you destroy the ${noun} or remove its block. Terraform deletes a resource with what its state holds, so a value set in the same apply that deletes or replaces the ${noun} is not sent yet.
+- Nothing is sent until the delete: setting or changing it never changes the ${noun} or anything that depends on it.
+- Left unset, the delete says nothing more, as before. When OneUptime needs it, the destroy is refused, the ${noun} stays in state, and the error says what to set.
+- OneUptime keeps none of it, so an import leaves it unset: the first plan after an import sets it in state, and changes nothing in OneUptime.
+${selfNotes.join("\n")}${selfNotes.length > 0 ? "\n" : ""}`;
   }
 
   /*
@@ -1397,6 +1654,21 @@ If your identity provider manages your people over SCIM, let it: while SCIM Push
 
     if (ORDERED_LIST_PAGES[resource.name]) {
       guides.push(ORDER_GUIDE);
+    } else if (resource.listOrder) {
+      guides.push({
+        title: ORDER_GUIDE.title,
+        anchor: ORDER_GUIDE.anchor,
+        attribute: getListOrderAttribute(resource.listOrder),
+      });
+    }
+
+    // What its delete takes: each attribute that says it.
+    for (const attribute of resource.deleteChoices?.attributes || []) {
+      guides.push({
+        title: DELETE_CHOICES_GUIDE.title,
+        anchor: DELETE_CHOICES_GUIDE.anchor,
+        attribute: attribute,
+      });
     }
 
     if (guides.length === 0) {

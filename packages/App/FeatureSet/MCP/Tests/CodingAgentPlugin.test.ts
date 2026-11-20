@@ -121,10 +121,11 @@ const NO_CREDENTIAL_NEEDED: string =
 
 /*
  * What a tool is called: a verb the server's tools start with, then the rest
- * of a snake_case name. Nothing else in a skill is lower-case snake_case.
+ * of a snake_case name - Ask AI's setup tools' set_up_, publish_ and who_
+ * among them (#7241). Nothing else in a skill is lower-case snake_case.
  */
 const TOOL_NAME_PATTERN: RegExp =
-  /\b(?:acknowledge|add|count|create|delete|get|list|oneuptime|resolve|update)_[a-z][a-z_]*\b/g;
+  /\b(?:acknowledge|add|count|create|delete|get|list|oneuptime|publish|resolve|set|update|who)_[a-z][a-z_]*\b/g;
 
 // A JSON example of a call: its info string names the tool after the language.
 const TOOL_EXAMPLE_PATTERN: RegExp = /```json ([a-z_]+)\n([\s\S]*?)\n```/g;
@@ -1023,18 +1024,52 @@ describe("the coding agent plugin", () => {
     });
 
     /*
-     * If this fails, the server has learned to do what the skill sends the
-     * reader to the dashboard for: change step 7 of the skill.
+     * Since #7241 the server puts a monitor on a status page itself (Ask
+     * AI's setup actions as tools, Tools/SetupTools): the skill does it with
+     * them, and sends the person to the dashboard for none of it.
      */
-    test("is right that no tool puts a monitor on a status page", () => {
-      expect(
-        [...TOOLS.keys()].filter((name: string): boolean => {
-          return STATUS_PAGE_RESOURCE_TOOL_PATTERN.test(name);
+    test("puts the monitor on the status page with a tool, and sends nobody to the dashboard for it", () => {
+      for (const tool of [
+        "publish_status_page",
+        "add_monitors_to_status_page",
+      ]) {
+        expect([tool, TOOLS.has(tool)]).toEqual([tool, true]);
+        expect([tool, skill.text.includes(`json ${tool}`)]).toEqual([
+          tool,
+          true,
+        ]);
+      }
+
+      expect(skill.text).not.toContain("tell the person to do it");
+      expect(skill.text).not.toContain("**Add Monitor**");
+      expect(skill.text).not.toContain("no tool that puts a monitor");
+      expect(skill.text).not.toMatch(STATUS_PAGE_RESOURCE_TOOL_PATTERN);
+    });
+
+    test("sets a website or an API up, and who is paged, one call each, in its order", () => {
+      const order: Array<string> = [
+        "oneuptime_whoami",
+        "set_up_website_monitoring",
+        "create_monitor",
+        "set_up_paging",
+        "who_is_told",
+        "publish_status_page",
+      ];
+      // Where each is called: its example, or else where it is first named.
+      const places: Array<number> = order.map((tool: string): number => {
+        return skill.text.indexOf(`json ${tool}`) === -1
+          ? skill.text.indexOf(tool)
+          : skill.text.indexOf(`json ${tool}`);
+      });
+
+      expect(places).not.toContain(-1);
+      expect(places).toEqual(
+        [...places].sort((a: number, b: number): number => {
+          return a - b;
         }),
-      ).toEqual([]);
-      expect(readText(CLI_DIRECTORY, "README.md")).not.toContain(
-        "status-page-resource",
       );
+      // They act as the person signed in: the skill says so.
+      expect(skill.text).toContain("act as the person signed in");
     });
   });
 

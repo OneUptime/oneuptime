@@ -34,17 +34,23 @@ import {
 } from "../Identity/License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
 import {
+  AUDIT_LOG_WORKFLOW_RAN_AS_FILTER_OPTIONS,
   ResourceLink,
   ResourceMeta,
   getActorCredentialLabel,
   getActorInitials,
   getActorTypeLabel,
+  getAuditLogWorkflowRanAs,
   getAuditLogsQuery,
   getResourceLink,
   getResourceMeta,
   getResourceTypeFilterOptions,
   getResourceTypeLabel,
 } from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
+import {
+  WorkflowRunRanAs,
+  describeWorkflowRunRanAs,
+} from "Common/UI/Components/Workflow/WorkflowRunRanAs";
 import { AuditLogsTableProps } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import {
@@ -393,6 +399,11 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     mcpOAuthGrantId: true,
     workflowName: true,
     workflowId: true,
+    // What a workflow's step ran as, and with whose permissions (#9766).
+    workflowRunAs: true,
+    workflowRunAsCustomRoleName: true,
+    workflowRunAsGivenByName: true,
+    workflowRunAsGivenByApiKeyId: true,
     changes: true,
   };
 
@@ -600,6 +611,22 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
             title: "User Email",
           },
           {
+            /*
+             * What a workflow's step ran as (#9766): every change made with
+             * Project Owner, say, whatever workflow made it.
+             */
+            field: { workflowRunAs: true },
+            type: FieldType.Dropdown,
+            title: "Workflow Ran As",
+            filterDropdownOptions: AUDIT_LOG_WORKFLOW_RAN_AS_FILTER_OPTIONS,
+          },
+          {
+            // Whose permissions it ran with: a person's or an API key's name.
+            field: { workflowRunAsGivenByName: true },
+            type: FieldType.Text,
+            title: "Workflow Permissions Given By",
+          },
+          {
             field: { createdAt: true },
             type: FieldType.DateTime,
             title: "Time",
@@ -772,11 +799,15 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
 
               /*
                * A step of one of the project's workflows: no person, so the
-               * workflow itself is the actor, named as it was at the time.
+               * workflow itself is the actor, named as it was at the time,
+               * with what it ran as and whose permissions those were
+               * (#9766) - for an entry recorded once entries said it.
                */
               if (userType === "Workflow") {
                 const workflowName: string =
                   item.workflowName || translate(words.workflow);
+                const ranAs: WorkflowRunRanAs | null =
+                  getAuditLogWorkflowRanAs(item);
                 return (
                   <div
                     className="flex items-center gap-2.5 min-w-0"
@@ -797,6 +828,16 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       <span className="text-xs text-gray-500">
                         {translate(words.workflow)}
                       </span>
+                      {ranAs ? (
+                        <span
+                          className="text-xs text-gray-600 break-words"
+                          data-testid="audit-log-workflow-ran-as"
+                        >
+                          {describeWorkflowRunRanAs(translator, ranAs)}
+                        </span>
+                      ) : (
+                        <Fragment />
+                      )}
                     </div>
                   </div>
                 );

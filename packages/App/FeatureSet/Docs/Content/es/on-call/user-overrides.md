@@ -35,7 +35,7 @@ Cuando termina la sustitución, los avisos vuelven a ser suyos. La **Cronología
 :::steps
 ### Abrir las sustituciones
 
-Ve a **Guardia → Avanzado → Sustituciones de usuarios** para cubrir a alguien en todas las políticas de guardia, o a la página **Sustituciones de usuarios** de una política, en **Avanzado**, para cubrirlo solo en esa política. Haz clic en **Añadir Sustitución de usuario**.
+Ve a **Guardia → Programaciones → Sustituciones de usuarios** para cubrir a alguien en todas las políticas de guardia, o a la página **Sustituciones de usuarios** de una política, en **Avanzado**, para cubrirlo solo en esa política. Haz clic en **Añadir Sustitución de usuario**.
 
 ### Indicar quién está ausente
 
@@ -72,7 +72,7 @@ Para traer de vuelta a alguien antes de que termine su sustitución, haz clic en
 
 | Añadida en | Tarjeta | Se aplica a |
 | --- | --- | --- |
-| **Guardia → Avanzado → Sustituciones de usuarios** | **Sustituciones globales de usuarios** | Todas las políticas de guardia del proyecto |
+| **Guardia → Programaciones → Sustituciones de usuarios** | **Sustituciones globales de usuarios** | Todas las políticas de guardia del proyecto |
 | **Sustituciones de usuarios** de una política | **Sustituciones de usuarios de la política de guardia** | Solo esa política |
 
 Dos sustituciones de la misma persona no pueden solaparse en la misma política, ni cuando las dos son globales. El formulario, y **Omitir hasta…** en las capas de una programación, lo dicen junto a las horas en cuanto se eligen, con **Editar esa sustitución** para cambiar esa en su lugar. Una puede terminar justo cuando empieza la siguiente.
@@ -92,7 +92,9 @@ Cuando alguien deja el proyecto, se elimina cada sustitución que lo nombra y qu
 
 **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de guardias** y **Miembro de guardias** pueden añadir, editar y eliminar sustituciones; **Visor** y **Visor de guardias** pueden verlas. En un rol personalizado, los permisos son **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** y **Read On-Call Policy User Override**. En la **Cronología de la programación**, solo quien puede leer sustituciones ve qué turno se está cubriendo.
 
-Una sustitución en una política sigue el alcance de la política. Da a un equipo **Miembro de guardias** limitado a las políticas que le pertenecen, o a su etiqueta, y sus miembros añaden, editan y eliminan sustituciones solo en esas políticas. Una sustitución global se aplica a todas las políticas, incluidas las de otro equipo, así que añadirla, editarla o eliminarla requiere el permiso de sustituciones sobre todo el proyecto. Con uno más limitado, **Añadir Sustitución de usuario**, **Editar**, **Terminar ahora** y **Eliminar** en **Guardia → Avanzado → Sustituciones de usuarios** están bloqueados y dicen por qué. **Omitir hasta…** en las capas de una programación y **Buscar cobertura** en tus próximos turnos, que añaden sustituciones globales, ofrecen en su lugar las políticas en las que puedes añadir sustituciones, con una sustitución por política, igual que la cobertura de la aplicación móvil; donde no puedes en ninguna, están bloqueados y dicen por qué. El equipo añade sus sustituciones en la página **Sustituciones de usuarios** de cada política. Lo mismo vale para la API: una sustitución sin `onCallDutyPolicyId` se rechaza para un permiso limitado a etiquetas o a las políticas propias.
+Una sustitución en una política sigue el alcance de la política. Da a un equipo **Miembro de guardias** limitado a las políticas que le pertenecen, o a su etiqueta, y sus miembros añaden, editan y eliminan sustituciones solo en esas políticas. Una sustitución global se aplica a todas las políticas, incluidas las de otro equipo, así que añadirla, editarla o eliminarla requiere el permiso de sustituciones sobre todo el proyecto. Con uno más limitado, **Añadir Sustitución de usuario**, **Editar**, **Terminar ahora** y **Eliminar** en **Guardia → Programaciones → Sustituciones de usuarios** están bloqueados y dicen por qué. **Omitir hasta…** en las capas de una programación y **Buscar cobertura** en tus próximos turnos, que añaden sustituciones globales, ofrecen en su lugar las políticas en las que puedes añadir sustituciones, con una sustitución por política, igual que la cobertura de la aplicación móvil; donde no puedes en ninguna, están bloqueados y dicen por qué. El equipo añade sus sustituciones en la página **Sustituciones de usuarios** de cada política. Lo mismo vale para la API: una sustitución sin `onCallDutyPolicyId` se rechaza para un permiso limitado a etiquetas o a las políticas propias.
+
+Para que un equipo organice coberturas solo entre su propia gente, dale **Manage On-Call Policy User Overrides for Own Team**, directamente o mediante un rol personalizado. Sus miembros añaden, editan y eliminan sustituciones solo cuando la persona ausente y la persona que cubre están cada una en uno de sus equipos con este permiso; sus otros equipos no cuentan. **¿Quién está ausente?** y **¿Quién cubre?** muestran solo a la gente de esos equipos y dicen por qué, y **Editar**, **Terminar ahora** y **Eliminar** quedan bloqueados, diciendo por qué, en una sustitución que nombre a cualquier otra persona. Para ver las sustituciones, siguen necesitando **Read On-Call Policy User Override**, o un rol que lo tenga, como **Visor de guardias**. La API, Terraform y la aplicación móvil siguen la misma regla; una clave de API, que no está en ningún equipo, no alcanza a nadie con él. Quien además tenga **Miembro de guardias**, u otro permiso que alcance a todos, no queda limitado por él.
 
 En OneUptime Cloud, las sustituciones de usuarios necesitan el plan **Growth**.
 
@@ -131,7 +133,7 @@ Para terminar una sustitución en curso, envía `POST /api/on-call-duty-policy-u
 ## Solución de problemas
 
 :::details La persona de vacaciones recibió avisos igualmente
-Comprueba dónde se añadió la sustitución. Una en la página **Sustituciones de usuarios** de una política cubre solo esa política, y las demás políticas siguen avisándola: añádela en **Guardia → Avanzado → Sustituciones de usuarios** para cubrir todas las políticas. Comprueba también **Empieza** y **Finaliza**: las horas se muestran en tu zona horaria.
+Comprueba dónde se añadió la sustitución. Una en la página **Sustituciones de usuarios** de una política cubre solo esa política, y las demás políticas siguen avisándola: añádela en **Guardia → Programaciones → Sustituciones de usuarios** para cubrir todas las políticas. Comprueba también **Empieza** y **Finaliza**: las horas se muestran en tu zona horaria.
 :::
 
 :::details Tampoco se avisó a quien cubría

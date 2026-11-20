@@ -17,6 +17,7 @@ import {
 import { readCustomSignals } from "./CustomSignals";
 import {
   ProductAnalyticsRecorderConfig,
+  normalizeProductAnalyticsUserPropertyKeys,
   readProductAnalyticsRecorderConfig,
 } from "./ProductAnalyticsContract";
 import { ReplayStorage } from "./Storage";
@@ -84,7 +85,7 @@ export interface ReplayConnectivity {
 
 /*
  * The part of the application's frustration settings this recorder acts on:
- * its own page, event and error signals (issue #6443). Kept under the
+ * its own tap, page, event and error signals (issues #6443, #6517). Kept under the
  * response's own field name so a cached policy is read back by the same
  * normalizeReplayConfig as a fresh one.
  */
@@ -110,6 +111,13 @@ export interface ResolvedReplayConfig {
    * frustrationSignals, so a cached policy reads back the same.
    */
   productAnalytics: ProductAnalyticsRecorderConfig;
+  /*
+   * Readable event properties (issue #7501): the keys whose short token
+   * values a track() property or a metric() attribute keeps as written,
+   * though this recorder masks all text. Kept under the response's own
+   * field name too; a cached policy from before it reads as none.
+   */
+  readableEventPropertyKeys: Array<string>;
   disabledReason?: string;
 }
 
@@ -294,6 +302,7 @@ function failClosed(reason: string): ResolvedReplayConfig {
     isTargeted: false,
     frustrationSignals: { customSignals: [] },
     productAnalytics: { enabled: false, userPropertyKeys: [] },
+    readableEventPropertyKeys: [],
     disabledReason: reason,
   };
 }
@@ -351,6 +360,13 @@ export function normalizeReplayConfig(value: unknown): ResolvedReplayConfig {
      */
     productAnalytics: readProductAnalyticsRecorderConfig(
       config.productAnalytics,
+    ),
+    /*
+     * Read as product analytics reads the traits it keeps, as Common's
+     * normalizeSessionReplayReadablePropertyKeys does: absent, none.
+     */
+    readableEventPropertyKeys: normalizeProductAnalyticsUserPropertyKeys(
+      config.readableEventPropertyKeys,
     ),
   };
   if (typeof config.disabledReason === "string") {

@@ -40,6 +40,8 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
 const isEmailKnownNotSetUp: jest.Mock = jest.fn();
+// Whether the server can say it sends email: never while it is not set up.
+const canSendEmailPublicly: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Utils/ServerSending/ServerSendingStatus", () => {
   return {
@@ -48,8 +50,41 @@ jest.mock("Common/Server/Utils/ServerSending/ServerSendingStatus", () => {
       isEmailKnownNotSetUp: (...args: Array<unknown>): unknown => {
         return isEmailKnownNotSetUp(...args);
       },
+      canSendEmailPublicly: (...args: Array<unknown>): unknown => {
+        return canSendEmailPublicly(...args);
+      },
     },
   };
+});
+
+/*
+ * OneUptime Cloud or a self-hosted server, as the environment says (CI runs
+ * the suites as Cloud), unless a test names the server. A server with no
+ * email set up is a self-hosted one: OneUptime Cloud always sends email,
+ * and proves every sign-up's address with it, answering every address
+ * alike (#9816, EmailProvedSignUp.isProvedByEmail).
+ */
+let mockIsSelfHosted: boolean = false;
+
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/Server/EnvironmentConfig",
+  ) as Record<string, unknown>;
+
+  const mocked: Record<string, unknown> = { ...actual, __esModule: true };
+
+  Object.defineProperty(mocked, "IsBillingEnabled", {
+    get: (): boolean => {
+      // Read by some modules as they load, before the line above has run.
+      try {
+        return mockIsSelfHosted ? false : Boolean(actual["IsBillingEnabled"]);
+      } catch {
+        return Boolean(actual["IsBillingEnabled"]);
+      }
+    },
+  });
+
+  return mocked;
 });
 
 jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
@@ -58,6 +93,21 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
       "./SsoNotRequiredStandIn",
     ) as typeof import("./SsoNotRequiredStandIn")
   ).ssoNotRequired();
+});
+
+/*
+ * Single sign-on manages nobody's sign-in here: setting up a second step at
+ * sign-in, claiming an invited account with a password and a password reset
+ * link each ask SsoManagedSignIn first, which reads the server's rule and,
+ * since #9763, every project the person is in. Driven for real in
+ * SignInMatrixSsoAndTwoFactor.test.ts and ForgotPasswordSsoManaged.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoManagedSignInStandIn",
+    ) as typeof import("./SsoManagedSignInStandIn")
+  ).ssoManagesNobody();
 });
 
 // No counter store: the emails go out uncounted.
@@ -356,8 +406,11 @@ function signUp(email: string): Promise<Answer> {
 
 beforeEach(() => {
   accounts = [REGISTERED, INVITED];
+  mockIsSelfHosted = false;
   isEmailKnownNotSetUp.mockReset();
   isEmailKnownNotSetUp.mockResolvedValue(false);
+  canSendEmailPublicly.mockReset();
+  canSendEmailPublicly.mockResolvedValue(true);
   consumeRegistrationToken.mockReset();
   consumeRegistrationToken.mockResolvedValue(false);
   userFindOneBy.mockClear();
@@ -372,7 +425,10 @@ afterEach(() => {
 
 describe("on a server with no email set up", () => {
   beforeEach(() => {
+    // Self-hosted: the only kind of server that can be without email.
+    mockIsSelfHosted = true;
     isEmailKnownNotSetUp.mockResolvedValue(true);
+    canSendEmailPublicly.mockResolvedValue(false);
   });
 
   it("Forgot password says who can reset it - for an account, and for an address with none, alike", async () => {

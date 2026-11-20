@@ -41,7 +41,7 @@ Cliquez sur votre photo en haut à droite et choisissez **Profil**. La page **Vu
 
 Cliquez sur **Modifier : Utilisateur** et changez ce dont vous avez besoin :
 
-- **E-mail** : l'adresse avec laquelle vous vous connectez. Si vous la changez, vous vérifiez à nouveau la nouvelle adresse.
+- **E-mail** : l'adresse avec laquelle vous vous connectez. Si vous la changez, OneUptime envoie un lien à la nouvelle adresse, et votre adresse change dès que vous l'ouvrez. D'ici là, vous vous connectez avec l'adresse actuelle, et **Annuler la modification** arrête la modification. L'adresse d'un administrateur principal change aussitôt.
 - **Nom complet** : le nom que votre équipe voit partout dans OneUptime.
 - **Fuseau horaire** : le fuseau dans lequel le tableau de bord affiche et lit les heures, et celui des heures indiquées dans les notifications qui vous sont envoyées.
 - **Langue** : la langue du tableau de bord dans chaque navigateur où vous vous connectez, et celle de vos alertes d'astreinte. Non définie, vos alertes sont en anglais et le tableau de bord suit votre navigateur.
@@ -105,24 +105,46 @@ Le lien fonctionne une seule fois, pendant 15 minutes, et un lien plus récent l
 
 ### Activer l'authentification à deux facteurs
 
-L'authentification à deux facteurs s'applique quand vous vous connectez avec votre mot de passe ou un lien envoyé par e-mail. Ajoutez d'abord une deuxième étape, puis activez-la.
+L'authentification à deux facteurs s'applique quand vous vous connectez avec votre mot de passe ou un lien envoyé par e-mail. Elle ne s'active qu'une fois votre deuxième étape opérationnelle : elle ne vous demande donc jamais une étape que vous n'avez pas.
 
 :::steps
-### Ajouter une application d'authentification
+### Choisir votre deuxième étape
 
-Ouvrez **Sécurité → Authentification à deux facteurs**. Sous **Applications d'authentification**, ajoutez une application et donnez-lui un nom. Scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Vérifier et terminer**. Pour utiliser plutôt une clé USB ou NFC, ajoutez-la sous **Clés de sécurité**.
+Ouvrez **Sécurité → Authentification à deux facteurs** et cliquez sur **Activer l'authentification à deux facteurs**. Choisissez **Application d'authentification** ou **Clé de sécurité**, puis cliquez sur **Continuer**.
+
+### La configurer
+
+Pour une application d'authentification, scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Vérifier et terminer**. Pour une clé USB ou NFC, donnez-lui un nom et suivez les instructions de votre navigateur. L'authentification à deux facteurs est alors activée, et la carte indique **Activé**. Dès votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail, OneUptime vous demande votre deuxième étape.
 
 ### Conserver vos codes de secours
 
 La première fois que vous ajoutez une application, une clé ou une clé d'accès, OneUptime affiche **Vos codes de secours**. Chaque code vous connecte une fois si vous perdez votre application ou votre clé. Copiez-les ou téléchargez-les, cochez la case indiquant que vous les avez conservés et cliquez sur **Terminé**.
-
-### L'activer
-
-En haut de la page, cliquez sur **Activer l'authentification à deux facteurs** et confirmez. La carte indique maintenant **Activé**. Dès votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail, OneUptime vous demande votre deuxième étape.
 :::
+
+Si vous avez déjà une application sous **Applications d'authentification** ou une clé sous **Clés de sécurité**, **Activer l'authentification à deux facteurs** vous demande simplement de confirmer. Tant qu'elle est activée, votre dernière application, clé ou clé d'accès ne peut pas être supprimée : ajoutez-en d'abord une autre, ou désactivez l'authentification à deux facteurs. Si la carte indique **Configuration requise**, l'authentification à deux facteurs est activée sans rien de configuré, souvent parce qu'un administrateur l'a exigée : cliquez sur **Terminer la configuration**, sinon cela vous sera demandé à votre prochaine connexion.
+
+### Configurer l'authentification à deux facteurs à la connexion
+
+Quand un administrateur exige l'authentification à deux facteurs et que vous n'avez encore rien configuré, votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail vous demande de la configurer avant de vous laisser entrer. Choisissez **Application d'authentification** ou **Clé de sécurité**, puis cliquez sur **Continuer** :
+
+- **Application d'authentification** : scannez le code QR, saisissez le code à 6 chiffres affiché par votre application et cliquez sur **Vérifier et se connecter**.
+- **Clé de sécurité** : cliquez sur **Enregistrer la clé de sécurité** et suivez les instructions de votre navigateur. Touchez une clé USB ou NFC, ou utilisez l'empreinte digitale, le visage ou le verrouillage d'écran de votre téléphone ou de votre ordinateur.
+
+Si vous n'avez pas encore de codes de secours, OneUptime vous les affiche alors une seule fois, et vous êtes connecté. **Choisir une autre méthode** revient au choix. Un navigateur qui ne peut pas enregistrer de clé de sécurité, par exemple sur une page sans HTTPS, ne propose que l'application d'authentification.
 
 > [!TIP]
 > Il vous reste peu de codes de secours ? **Régénérer les codes** sur la même page vous donne un nouveau jeu, et les anciens codes cessent aussitôt de fonctionner.
+
+### Quand votre organisation gère votre connexion
+
+Sur un serveur qui exige l'authentification unique, vous vous connectez uniquement via le fournisseur d'identité de votre organisation, comme Okta ou Microsoft Entra ID, et OneUptime ne définit pour vous ni mot de passe, ni clé d'accès, ni authentification à deux facteurs. Le **Profil utilisateur** n'a alors pas de section **Sécurité**, et sa **Vue d'ensemble** indique votre fournisseur sous **Authentification unique**. Changez votre mot de passe et votre deuxième étape auprès de votre fournisseur d'identité. Ce que vous aviez configuré avant reste enregistré : cela ne fonctionne de nouveau que si le serveur cesse d'exiger l'authentification unique, sauf si un administrateur du serveur l'efface, et vous recevez alors un e-mail. Les administrateurs principaux conservent leurs propres réglages de **Sécurité**.
+
+Il en va de même quand chaque projet auquel vous appartenez exige l'authentification unique et a activé **Gérer la connexion avec le SSO**. Votre mot de passe vous connecte toujours à OneUptime, mais chaque projet demande le SSO ; OneUptime ne définit donc pour vous ni nouveau mot de passe, ni nouvelle clé d'accès, ni nouvelle deuxième étape :
+
+- **Un projet qui ne le fait pas** : dès que vous êtes membre d'un projet, ou invité dans un projet, qui n'exige pas le SSO ou n'a pas activé **Gérer la connexion avec le SSO**, votre section **Sécurité** revient. La **Vue d'ensemble** nomme alors ces projets sous **Authentification unique**, comme la raison pour laquelle vos réglages vous appartiennent. Quitter ce projet vous les retire de nouveau.
+- **Des projets avec des fournisseurs différents** : si tous vos projets gèrent la connexion, chacun avec son propre fournisseur d'identité, la **Vue d'ensemble** nomme chaque fournisseur.
+- **Les administrateurs principaux** gardent toujours leurs propres réglages de **Sécurité**.
+- **Ce que vous aviez configuré avant** reste enregistré. Un administrateur du serveur peut l'effacer, tout comme un propriétaire de tous les projets auxquels vous appartenez ; vous recevez alors un e-mail.
 
 ## Vos projets
 
@@ -162,6 +184,14 @@ Ouvrez **Zone de danger → Supprimer le compte**. Vous ne pouvez supprimer votr
 
 :::details Je n'ai pas reçu l'e-mail de vérification de mon adresse
 Se connecter à nouveau envoie un nouveau lien : vérifiez aussi votre dossier de courrier indésirable. Si vous ne pouvez pas vous connecter, utilisez **Mot de passe oublié ?** sur la page de connexion. Son lien de réinitialisation vérifie aussi votre adresse.
+:::
+
+:::details L'inscription m'a envoyé un e-mail disant que j'ai déjà un compte
+Cette adresse a déjà un compte OneUptime, donc l'inscription n'a rien créé ni rien changé. Connectez-vous avec elle, ou utilisez **Mot de passe oublié ?** sur la page de connexion si vous ne vous souvenez plus de votre mot de passe. La page d'inscription dit la même chose pour toutes les adresses, et n'apprend donc à personne quelles adresses ont un compte.
+:::
+
+:::details Mon adresse e-mail n'a pas changé
+Votre adresse ne change qu'une fois ouvert le lien envoyé par OneUptime à la nouvelle adresse. Le lien fonctionne pendant 24 heures. S'il a expiré, changez à nouveau votre e-mail pour en recevoir un nouveau. Si un autre compte utilise déjà cette adresse, l'e-mail envoyé à celle-ci le dit, et votre adresse reste telle quelle.
 :::
 
 :::details J'ai perdu mon application d'authentification

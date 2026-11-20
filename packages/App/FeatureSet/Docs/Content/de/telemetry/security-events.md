@@ -218,6 +218,7 @@ Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** 
 - Jeder Datensatz wird so gelesen, wie **Ihre Protokolle** ihn aus einer Pipeline liest, sodass die CloudTrail-, Google Cloud- und Azure-Regeln der Regelbibliothek auf ihn passen.
 - Ein Ereignis erhält den Zeitpunkt, zu dem es gespeichert wird, und die eigene Zeit des Datensatzes steht in `oneuptime.cloud.record_time`: Ein Audit-Log erreicht OneUptime Minuten verspätet, und eine Regel liest Ereignisse nach ihrer Zeit.
 - Mehr bringt der Lesevorgang des Kontos nicht: Datenereignisse, Data Access-Logs und die Logs von Microsoft Entra ID brauchen weiterhin **Ihre Protokolle** oder eine [Verbindung](/docs/integrations/microsoft-entra-id).
+- Jedes Ereignis nennt die Cloud-Ressourcen, um die es in seinem Eintrag geht, mit ihren eigenen IDs - einem ARN, einer Azure-Ressourcen-ID, einem Ressourcennamen von Google Cloud -, daher erscheint es auf der Seite **Sicherheitsereignisse** jeder dieser Ressourcen und auf der einer Serverless-Funktion, sobald ihre Telemetrie `cloud.account.id` und `cloud.region` setzt.
 
 ### Ein Sicherheitsprodukt verbinden
 
@@ -371,7 +372,7 @@ flowchart TB
 3. Der **Name** füllt sich aus dem `title` der Regel: Überschreiben Sie ihn, um die Regel anders zu nennen. Eine neue Regel läuft; **Aktiviert** steht in ihrem Bearbeitungsformular.
 4. Lassen Sie unter **Bei Treffer** die Option **Bei Treffer einen Fall eröffnen** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
 5. Wählen Sie unter **Warnungen und Vorfälle**, was ein Treffer sonst noch auslöst: **Warnung erstellen** (Standard), **Vorfall melden**, **Beide** oder **Keines von beiden**, mit optionalem **Warnungsschweregrad** oder **Vorfallsschweregrad**.
-6. **Weitere Felder** enthält die **Beschreibung**, **Bei Treffer Erkennungsbefund schreiben** (an), **In Echtzeit ausführen** (aus) und wie Treffer gezählt werden; siehe [Auswertungseinstellungen](#auswertungseinstellungen).
+6. **Weitere Felder** enthält die **Beschreibung**, **Bei Treffer Erkennungsbefund schreiben** (an), **In Echtzeit ausführen** (aus), wie Treffer gezählt werden, und **Reaktionsschritte**: was zu tun ist, wenn die Regel einen Fall eröffnet, jeder Schritt unter dem von Ihnen gewählten Teil des Reaktionsplans des Falls, höchstens 10. Ziehen Sie einen Schritt an seinem Griff oder verwenden Sie **Nach oben** und **Nach unten**: Der Plan des Falls zeigt die Schritte jedes Teils in der Reihenfolge, die Sie ihnen geben. Siehe [Auswertungseinstellungen](#auswertungseinstellungen).
 :::
 
 Eine erste Regel, die auf fehlgeschlagene Anmeldungen von außerhalb von `10.x.x.x` passt:

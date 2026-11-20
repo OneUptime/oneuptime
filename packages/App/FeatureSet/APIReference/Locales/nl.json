@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Dit endpoint beëindigt een lopende overschrijving volgens de klok van de server: haar einde wordt nu, en vanaf dan zijn de oproepen weer van de afwezige persoon. Het vraagt hetzelfde recht als een update en geeft het nieuwe endsAt van de overschrijving terug.",
       "userOverrideEndNowRequestTitle": "Verzoek om nu te beëindigen",
       "userOverrideIdDescription": "ID van de gebruikersoverschrijving",
-      "userOverrideEndNowRefused": "400 Bad Request: de overschrijving is nog niet begonnen (verwijder haar in plaats daarvan), is al afgelopen of eindigt hoe dan ook binnen de minuut."
+      "userOverrideEndNowRefused": "400 Bad Request: de overschrijving is nog niet begonnen (verwijder haar in plaats daarvan), is al afgelopen of eindigt hoe dan ook binnen de minuut.",
+      "moveInListHeading": "Verplaatsen",
+      "moveInListIntro": "Dit endpoint verplaatst het record naar de plaats van het record dat placeOfId noemt, in de lijst die ze delen: omhoog verplaatst komt het net boven dat record; omlaag verplaatst net eronder; de records ertussen schuiven één plaats op naar waar het stond. Daarna wordt de lijst vanaf boven genummerd, 1, 2, 3 enzovoort (vanaf het hoogste getal omlaag, voor een lijst die aftelt), in één transactie, zodat gelijktijdige verplaatsingen nooit twee records op hetzelfde getal achterlaten. Het antwoordt met changedRows: elk record dat een ander getal kreeg, met zijn _id en zijn nieuwe getal onder de getalkolom van de lijst zelf. Een aanmaak of update die dat getal schrijft, plaatst het record alleen en verplaatst geen ander, wat Terraform nodig heeft; om een record voorbij andere te verplaatsen, stuur je dit verzoek. Het vraagt dezelfde rechten als een update van het getal van het record.",
+      "moveInListRequestTitle": "Verzoek om te verplaatsen",
+      "moveInListIdDescription": "ID van het record dat wordt verplaatst",
+      "placeOfIdDescription": "Het ID van het record in dezelfde lijst waarvan dit record de plaats inneemt.",
+      "moveInListPlaceRefused": "400 Bad Request: placeOfId ontbreekt of is geen ID, of noemt een record dat niet in dezelfde lijst staat als het verplaatste record: dat van een andere bovenliggende, een ander project of een andere soort.",
+      "moveInListRecordNotFound": "404 Not Found: het record is er niet om te verplaatsen: het is verwijderd, of de aanroeper mag het niet lezen.",
+      "moveInListNotAllowed": "422 Unprocessable Entity: de aanroeper mag het record lezen maar het getal niet wijzigen, zoals een update ervan geweigerd zou worden.",
+      "moveInListBuiltInOrder": "400 Bad Request: de verplaatsing zou de ingebouwde statussen van het project uit hun volgorde halen, zoals de opgeloste status op of boven de bevestigde. Het antwoord noemt ze."
     },
     "dataType": {
       "enumBadge": "Enum",

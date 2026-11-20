@@ -1,10 +1,11 @@
 # Conformidade da Segurança de dados
 
-A Segurança de dados pontua nove estruturas de conformidade a partir do que as varreduras dela encontraram. Cada estrutura cobre os repositórios de que tratam as regras dela - o RGPD, os repositórios que guardam dados pessoais; o PCI DSS, os repositórios em que foram encontrados dados de cartão; o SOC 2, todo repositório - e cada um dos requisitos dela é atendido ou não pelas verificações que servem de evidência para ele. **Segurança de dados → Conformidade** mostra a pontuação de cada estrutura, quantos repositórios ela cobre e cada requisito com quantos problemas abertos o reprovam. Uma pontuação é evidência para uma auditoria, não um certificado: ela diz o que o OneUptime consegue ver dos repositórios que lê.
+A Segurança de dados pontua nove estruturas de conformidade a partir do que as varreduras dela encontraram. Cada estrutura cobre os repositórios de que tratam as regras dela - o RGPD, os repositórios que guardam dados pessoais; o PCI DSS, os repositórios em que foram encontrados dados de cartão; o SOC 2, todo repositório - e cada um dos requisitos dela é atendido ou não pelas verificações que servem de evidência para ele. **Segurança de dados → Conformidade** mostra a pontuação de cada estrutura, quantos repositórios ela cobre e cada requisito com quantos problemas abertos o reprovam. Cada recurso que contém repositórios de dados - um cluster do Kubernetes, um host do Docker ou do Podman, um banco de dados, um serviço ou um recurso de nuvem - tem a sua própria página igual a esta, onde você pode desativar o que não se aplica a ele. Uma pontuação é evidência para uma auditoria, não um certificado: ela diz o que o OneUptime consegue ver dos repositórios que lê.
 
 :::cards
 - [As estruturas de conformidade](#as-estruturas-de-conformidade): As nove, e quais repositórios cada uma cobre.
 - [Como uma estrutura é pontuada](#como-uma-estrutura-é-pontuada): Requisitos aprovados, reprovados e não avaliados.
+- [Na página de um recurso](#na-página-de-um-recurso): A conformidade de um cluster, host, banco de dados, serviço ou recurso de nuvem, e o que está desativado para ele.
 - [Requisitos e as suas verificações](#requisitos-e-as-suas-verificações): Cada requisito, e as verificações que são evidência para ele.
 - [Registro das atividades de tratamento](#registro-das-atividades-de-tratamento): O Artigo 30 do RGPD, escrito a partir dos seus repositórios.
 :::
@@ -47,9 +48,35 @@ flowchart TB
 - **Um requisito é aprovado** quando nenhum problema aberto das verificações mapeadas para ele está em um repositório do escopo da estrutura, e **é reprovado** quando algum está.
 - **Ele não é avaliado** enquanto nenhum repositório no escopo teve a configuração lida ou o conteúdo varrido.
 - **Dois requisitos são atendidos pela própria Segurança de dados**: o Artigo 30 do RGPD, registros das atividades de tratamento, e o A.5.12 da ISO 27001, classificação da informação. Eles são aprovados assim que todo repositório no escopo foi lido ou varrido, e reprovados enquanto algum não foi.
-- **A pontuação** é a parcela dos requisitos avaliados de uma estrutura que são aprovados, como uma porcentagem inteira. Uma estrutura sem nada avaliado não tem pontuação.
+- **Ele está desativado** quando todo repositório no escopo pertence a um recurso que desativou o requisito (veja [Na página de um recurso](#na-página-de-um-recurso)).
+- **A pontuação** é a parcela dos requisitos avaliados de uma estrutura que são aprovados, como uma porcentagem inteira: um requisito desativado não conta nem a favor nem contra. Uma estrutura sem nada avaliado não tem pontuação.
 
 Só os problemas abertos contam. Um problema cujo risco foi aceito, ou que não é um problema, não reprova os seus requisitos, então um risco aceito é uma decisão que a sua auditoria pode ver no problema: quem o aceitou, por quê e até quando.
+
+## Na página de um recurso
+
+O menu de um recurso tem uma seção **Segurança**, recolhida até você abri-la, quando o recurso contém um repositório de dados que a Segurança de dados conhece, em um projeto que usa a Segurança de dados e para quem pode ler repositórios de dados:
+
+| Recurso | Os repositórios de dados dele |
+| --- | --- |
+| Cluster do Kubernetes | Os bancos de dados executados nele |
+| Host do Docker ou do Podman | Os bancos de dados executados nele |
+| Banco de dados | O próprio banco de dados |
+| Serviço | A telemetria dele: os logs, traces e exceções que ele envia |
+| Recurso de nuvem | O próprio recurso: um bucket, um banco de dados ou um data warehouse |
+
+- **Segurança de dados** lista esses repositórios, os de maior risco primeiro, e os problemas abertos neles. Cada um abre na Segurança de dados, onde é tratado.
+- **Conformidade** pontua as estruturas só para esses repositórios. As estruturas que os dados deles trazem para o escopo vêm primeiro; as desativadas, e aquelas para as quais nenhum desses repositórios guarda dados, ficam recolhidas abaixo.
+
+Cada estrutura tem um interruptor, **Aplica-se aqui**, e cada um dos requisitos dela também. Desativar um deles deixa os repositórios do recurso fora dessa estrutura, ou desse requisito, na página do recurso e em **Segurança de dados → Conformidade**, que diz quantos repositórios foram desativados nos seus recursos. Ativá-lo de novo os traz de volta. Cada interruptor é salvo na hora, e cada mudança fica nos [Registros de auditoria](/docs/configuration/audit-logs) do projeto.
+
+Desativar um deles faz aparecer, logo abaixo, a pergunta **Por que isto não se aplica aqui?** O motivo é opcional: escreva um motivo curto e escolha **Salvar motivo**, ou **Agora não** para deixar para depois. A partir daí, abaixo dele aparecem quem o desativou e quando, além do motivo, com **Adicionar motivo** ou **Editar motivo** para escrevê-lo ou alterá-lo depois. Assim como o interruptor, o motivo fica nos registros de auditoria.
+
+**Segurança de dados → Conformidade** diz o mesmo para cada recurso. Uma estrutura escolhida lista, em **Desativado para a estrutura inteira**, os recursos que a desativaram por completo, e cada requisito mostra, abaixo do seu status, os recursos que desativaram esse requisito: cada um com um link para a própria página de Conformidade, com quem o desativou, quando e por quê. O **Exportar CSV** dela os traz em uma coluna `Turned Off On`, e o **Exportar JSON**, em uma lista `turnedOff`.
+
+Um repositório segue os interruptores de um único recurso. Um banco de dados executado em um cluster do Kubernetes, ou em um host do Docker ou do Podman, segue os desse cluster ou host: desative uma estrutura para o cluster, e ela fica desativada para todo banco de dados nele. A própria página de Conformidade do banco de dados diz isso e leva à do cluster ou do host, com os interruptores dela bloqueados.
+
+As funções Membro de segurança, Administrador de segurança, Administrador do projeto e Proprietário do projeto podem ativar e desativar estruturas e requisitos, como podem ajustar uma verificação. A função Visualizador de segurança vê o que está desativado e por quê.
 
 ## Requisitos e as suas verificações
 
@@ -162,7 +189,7 @@ O Artigo 30 do RGPD pede que você mantenha um registro das suas atividades de t
 | Retenção | O que você escreve em **Retenção** no repositório: por quanto tempo os dados ficam nele |
 | Estruturas de conformidade | As estruturas que os tipos de dados dele trazem para o escopo |
 
-Preencha **Finalidade** e **Retenção** nas **Configurações** de cada repositório: são as duas coisas que nenhuma varredura consegue saber. O registro e as pontuações também são fornecidos pela API da Segurança de dados, em `/data-security/record-of-processing` e `/data-security/compliance`, para quem pode ler repositórios de dados (veja [Integrações da Segurança de dados](/docs/data-security/integrations#api-terraform-e-mcp)).
+Preencha **Finalidade** e **Retenção** nas **Configurações** de cada repositório: são as duas coisas que nenhuma varredura consegue saber. O registro e as pontuações também são fornecidos pela API da Segurança de dados, em `/data-security/record-of-processing`, `/data-security/compliance` e, para um único recurso, `/data-security/resource-compliance`, para quem pode ler repositórios de dados (veja [Integrações da Segurança de dados](/docs/data-security/integrations#api-terraform-e-mcp)).
 
 ## Próximos passos
 

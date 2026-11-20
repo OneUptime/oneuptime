@@ -17,6 +17,8 @@ import MonitorStepKubernetesMonitor, {
 } from "./MonitorStepKubernetesMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { KubernetesCostMetric } from "../Kubernetes/KubernetesCostMetrics";
+import { KUBERNETES_STORAGE_USAGE_THRESHOLDS } from "../Kubernetes/KubernetesStorageHealth";
 
 export type KubernetesAlertTemplateCategory =
   | "Availability"
@@ -24,7 +26,8 @@ export type KubernetesAlertTemplateCategory =
   | "Node"
   | "ControlPlane"
   | "Storage"
-  | "Scheduling";
+  | "Scheduling"
+  | "Cost";
 
 export type KubernetesAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -331,6 +334,14 @@ export function buildKubernetesRatioMonitorConfig(args: {
    * rescales query results, never a formula's.
    */
   resultLegendUnit?: string | undefined;
+  /*
+   * An attribute both queries must match - the same on each, so the two
+   * sides still join by fingerprint. PVC Almost Full reads only the volumes
+   * the agent says a claim backs (k8s.volume.type persistentVolumeClaim):
+   * every other volume of a pod - a configMap, a token - names no claim,
+   * and would otherwise fold into one group with no claim's name.
+   */
+  attributes?: Record<string, string> | undefined;
 }): MonitorStepKubernetesMonitor {
   const aggregationType: MetricsAggregationType =
     args.aggregationType || MetricsAggregationType.Sum;
@@ -350,7 +361,7 @@ export function buildKubernetesRatioMonitorConfig(args: {
       metricQueryData: {
         filterData: {
           metricName: metricName,
-          attributes: {},
+          attributes: { ...(args.attributes || {}) },
           aggegationType: aggregationType,
           aggregateBy: {},
         },
@@ -1646,12 +1657,21 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * The line a Kubernetes disk is almost out of space at, where both storage
+ * templates fire: the critical line the claims list and the Nodes list draw
+ * their bars red at, and the cluster's Needs attention lists a claim or a
+ * node as critical at (KubernetesStorageHealth), so the alert and the pages
+ * never disagree.
+ */
+const DISK_ALMOST_FULL_PERCENT: number =
+  KUBERNETES_STORAGE_USAGE_THRESHOLDS.criticalPercent;
+
 const highDiskUsageTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-disk-usage",
   name: "High Node Disk Usage",
-  summary: "A node's filesystem is more than 90% full.",
-  description:
-    "Alert when a node's filesystem is more than 90% full. Computed per node as k8s.node.filesystem.usage / (k8s.node.filesystem.usage + k8s.node.filesystem.available) x 100 — both are bytes from the same kubeletstats node scrape, so this is a true percentage and matches what df reports as Use%.",
+  summary: `A node's filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full.`,
+  description: `Alert when a node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full. Computed per node as (k8s.node.filesystem.capacity - k8s.node.filesystem.available) / k8s.node.filesystem.capacity x 100 — all bytes from the same kubeletstats node scrape. That is the kubelet's own reading: it starts evicting pods at nodefs.available<10% by default, which is this monitor's line, and the Nodes list and the cluster's Needs attention read a node's disk the same way.`,
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
@@ -1661,30 +1681,33 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
       kubernetesMonitor: buildKubernetesRatioMonitorConfig({
         clusterIdentifier: args.clusterIdentifier,
         /*
-         * `k8s.node.filesystem.usage` is BYTES (KubernetesMetricCatalog
-         * declares `unit: "bytes"`, and nothing converts it — the query
+         * `k8s.node.filesystem.*` are BYTES (KubernetesMetricCatalog
+         * declares `unit: "bytes"`, and nothing converts them — the query
          * configs carry no `legendUnit`, so MetricResultUnitConverter
-         * passes the raw value through). This template used to hand that
-         * gauge straight to a `> 90` comparison, so every node in every
-         * cluster breached on its first evaluation and the healthy
-         * criterion — "90 bytes or less used" — was unreachable: a
-         * permanently red monitor with an unresolvable incident.
+         * passes the raw value through). This template once handed
+         * `k8s.node.filesystem.usage` straight to a `> 90` comparison, so
+         * every node in every cluster breached on its first evaluation and
+         * the healthy criterion — "90 bytes or less used" — was
+         * unreachable: a permanently red monitor with an unresolvable
+         * incident.
          *
-         * The denominator is built from the one companion series this
-         * repo has actually ingested, `k8s.node.filesystem.available`
-         * (KubernetesMetricCatalog, and the cluster dashboard's node
-         * fill tile in App/FeatureSet/Dashboard/src/Pages/Kubernetes/
-         * View/Index.tsx). usage / (usage + available) is what `df`
-         * reports as Use%.
+         * Used is everything that is not available, as the kubelet reads
+         * nodefs.available against the filesystem's capacity for its
+         * evictions, and as the claims list and PVC Almost Full read a
+         * claim: a filesystem's reserved blocks count as used, since
+         * nothing can write to them. It used to read
+         * usage / (usage + available), df's Use%, which leaves them out
+         * and read 89.5% on an ext4 node the kubelet was already
+         * evicting from.
          */
-        numeratorMetricName: "k8s.node.filesystem.usage",
-        denominatorMetricName: "k8s.node.filesystem.available",
+        numeratorMetricName: "k8s.node.filesystem.available",
+        denominatorMetricName: "k8s.node.filesystem.capacity",
         groupByAttributeKeys: ["resource.k8s.node.name"],
-        numeratorAlias: "used_disk",
-        denominatorAlias: "avail_disk",
+        numeratorAlias: "free_disk",
+        denominatorAlias: "capacity_disk",
         resultAlias: metricAlias,
         resultLegend: "Node Disk Usage (%)",
-        formula: `(used_disk / (used_disk + avail_disk)) * 100`,
+        formula: `((capacity_disk - free_disk) / capacity_disk) * 100`,
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
         /*
@@ -1702,18 +1725,93 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
         monitorName: args.monitorName,
         metricAlias,
         filterType: FilterType.GreaterThan,
-        value: 90,
-        incidentTitle: `[K8s] High Disk Usage (>90%) - ${args.monitorName}`,
-        incidentDescription: `A node's filesystem is more than 90% full, sustained across the whole monitoring window. High disk usage leads to DiskPressure evictions, failure to pull new container images, and eventually a NotReady node. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
-        criteriaName: "High Disk - Usage > 90%",
-        criteriaDescription:
-          "Triggers when a node's used bytes exceed 90% of used + available for every sample in the monitoring window.",
+        value: DISK_ALMOST_FULL_PERCENT,
+        incidentTitle: `[K8s] High Disk Usage (>${DISK_ALMOST_FULL_PERCENT}%) - ${args.monitorName}`,
+        incidentDescription: `A node's root filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full, sustained across the whole monitoring window. The kubelet evicts pods once less than 10% is free (DiskPressure), new container images stop pulling, and the node can go NotReady. Free space on it (unused images, old logs, pods' emptyDir volumes) or give it a bigger disk. The affected node is named under "Affected resource" below, with the kubectl commands to inspect it under "Start here".`,
+        criteriaName: `High Disk - Usage > ${DISK_ALMOST_FULL_PERCENT}%`,
+        criteriaDescription: `Triggers when a node's used bytes exceed ${DISK_ALMOST_FULL_PERCENT}% of its root filesystem's capacity for every sample in the monitoring window.`,
       }),
       onlineCriteriaInstance: buildOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
         metricAlias,
         filterType: FilterType.LessThanOrEqualTo,
-        value: 90,
+        value: DISK_ALMOST_FULL_PERCENT,
+      }),
+    });
+  },
+};
+
+/*
+ * A persistent volume claim filling up (#9539): what its row on the claims
+ * list draws in red. A database that runs out of disk stops taking writes,
+ * and the volume was otherwise watched by nothing - its size was all
+ * OneUptime showed.
+ */
+const pvcAlmostFullTemplate: KubernetesAlertTemplate = {
+  id: "k8s-pvc-almost-full",
+  name: "PVC Almost Full",
+  summary: `A persistent volume claim is more than ${DISK_ALMOST_FULL_PERCENT}% full.`,
+  description: `Alert when a persistent volume claim's filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full for five minutes, one alert per claim. Computed per claim as (k8s.volume.capacity - k8s.volume.available) / k8s.volume.capacity x 100, from the volume stats the kubelet reports and the agent names by claim (k8s.persistentvolumeclaim.name; a generic ephemeral volume's claim is named at ingest). The kubelet measures a claim only while a running pod mounts it, a raw block device reports nothing, and an agent older than the one that names each volume's claim, or one with kubeletstats.volumeMetrics.enabled set to false, sends nothing for this monitor to read.`,
+  category: "Storage",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "pvc_usage";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.volume.available",
+        denominatorMetricName: "k8s.volume.capacity",
+        /*
+         * Per claim, in its namespace: claim names repeat across
+         * namespaces, and the alert names the one to grow or clean up. The
+         * kubeletstats receiver stamps both keys itself on both metrics, from
+         * the pod's spec (extra_metadata_labels k8s.volume.type), so the
+         * formula's fingerprint join holds.
+         */
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.persistentvolumeclaim.name",
+        ],
+        attributes: {
+          "resource.k8s.volume.type": "persistentVolumeClaim",
+        },
+        numeratorAlias: "free_bytes",
+        denominatorAlias: "capacity_bytes",
+        resultAlias: metricAlias,
+        resultLegend: "PVC Usage (%)",
+        /*
+         * Used is everything that is not available, as df's Avail and the
+         * claims list read it: 100% means nothing more can be written.
+         */
+        formula: "((capacity_bytes - free_bytes) / capacity_bytes) * 100",
+        resourceScope: KubernetesResourceScope.Namespace,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Both from the same kubeletstats volume scrape, one series per pod
+         * that mounts the claim, every one the same filesystem: Avg is that
+         * filesystem's value whatever the number of pods and scrapes.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: DISK_ALMOST_FULL_PERCENT,
+        incidentTitle: `[K8s] PVC Almost Full (>${DISK_ALMOST_FULL_PERCENT}%) - ${args.monitorName}`,
+        incidentDescription: `A persistent volume claim's filesystem is more than ${DISK_ALMOST_FULL_PERCENT}% full. When it fills, the workload writing to it fails: a database stops taking writes, a queue stops accepting messages. Free space on it (delete old data, logs or snapshots), or expand the claim if its storage class allows volume expansion. The claim and its namespace are named under "Affected resource" below.`,
+        criteriaName: `PVC Almost Full - Usage > ${DISK_ALMOST_FULL_PERCENT}%`,
+        criteriaDescription: `Triggers when a claim's used bytes exceed ${DISK_ALMOST_FULL_PERCENT}% of its capacity for every sample in the monitoring window.`,
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: DISK_ALMOST_FULL_PERCENT,
       }),
     });
   },
@@ -2220,6 +2318,214 @@ const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * --- Cost templates (#9548) ---
+ *
+ * They read the metrics OneUptime writes from the cost agent's hourly
+ * allocations (Common/Types/Kubernetes/KubernetesCostMetrics): one point per
+ * hour, stamped at the hour's start and written about an hour after it
+ * closes. So each watches the past day, a window of 24 points, and sums
+ * them - a day's cost is the sum of its hours. The newest hour or two are
+ * still on their way when the window is read, so "the past day" is about 22
+ * hours of cost; a budget is set with that in mind.
+ *
+ * The two budgets are absolute, like Database Size Above Budget: 100 a day
+ * for the cluster and 20 for a namespace, in the cluster's currency (USD
+ * unless the agent says otherwise) - a starting point to set to your own.
+ * The idle share is relative, and its 40% is where the Costs page's Idle %
+ * tile turns red.
+ *
+ * Cost monitoring is on by default in the agent, except on the gke-autopilot
+ * and eks-fargate presets: there, or with cost.enabled=false, these
+ * templates find no data.
+ */
+export const KUBERNETES_CLUSTER_DAILY_COST_BUDGET: number = 100;
+export const KUBERNETES_NAMESPACE_DAILY_COST_BUDGET: number = 20;
+export const KUBERNETES_IDLE_COST_SHARE_THRESHOLD: number = 40;
+
+const clusterDailyCostTemplate: KubernetesAlertTemplate = {
+  id: "k8s-cluster-daily-cost",
+  name: "Cluster Daily Cost Over Budget",
+  summary: `The cluster costs more than ${KUBERNETES_CLUSTER_DAILY_COST_BUDGET} a day: a starting budget to set to your own.`,
+  description: `Alert when what the cluster cost over the past day passes a budget, ${KUBERNETES_CLUSTER_DAILY_COST_BUDGET} in the cluster's currency (USD unless the cost agent says otherwise) until you set your own. Sums oneuptime.kubernetes.cost.total, what each hour cost, idle capacity included, as the cluster's cost engine priced it. An hour's cost arrives about an hour after it closes, so the window holds about the last 22 hours. Needs the Kubernetes agent's cost monitoring, on by default except on the gke-autopilot and eks-fargate presets.`,
+  category: "Cost",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "cluster_cost";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: metricAlias,
+            title: "Cluster Cost",
+            metricName: KubernetesCostMetric.Total,
+            // Each point is one hour's cost: added up, not averaged.
+            aggregationType: MetricsAggregationType.Sum,
+          },
+        ],
+        formulas: [],
+        // One series, the cluster's, which the alert then names.
+        groupByAttributeKeys: ["resource.k8s.cluster.name"],
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past1Hours,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: KUBERNETES_CLUSTER_DAILY_COST_BUDGET,
+        // A day's cost is the sum of its hours.
+        metricAggregationType: EvaluateOverTimeType.Sum,
+        incidentTitle: `[K8s] Cluster Daily Cost Over Budget (>${KUBERNETES_CLUSTER_DAILY_COST_BUDGET} a day) - ${args.monitorName}`,
+        incidentDescription: `What the cluster cost over the past day has passed its budget. Open the cluster's Costs page for what drove it - the namespaces and workloads that cost the most, how much was idle capacity, and the Right-Sizing card's requests to shrink. A deliberate scale-up only needs a new budget.`,
+        criteriaName: `Cluster Daily Cost - Past Day > ${KUBERNETES_CLUSTER_DAILY_COST_BUDGET}`,
+        criteriaDescription:
+          "Triggers when the cluster's cost summed over the past day passes the budget.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: KUBERNETES_CLUSTER_DAILY_COST_BUDGET,
+        // Must match the unhealthy side: a sum of hourly costs.
+        metricAggregationType: EvaluateOverTimeType.Sum,
+      }),
+    });
+  },
+};
+
+const namespaceDailyCostTemplate: KubernetesAlertTemplate = {
+  id: "k8s-namespace-daily-cost",
+  name: "Namespace Daily Cost Over Budget",
+  summary: `A namespace costs more than ${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET} a day: a starting budget to set to your own.`,
+  description: `Alert when what a namespace cost over the past day passes a budget, ${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET} in the cluster's currency (USD unless the cost agent says otherwise) until you set your own. Sums oneuptime.kubernetes.cost.workload, what each workload cost each hour, per namespace: idle capacity is never charged to one. An hour's cost arrives about an hour after it closes, so the window holds about the last 22 hours. One incident per namespace; a Namespace scope watches only the one you name. Needs the Kubernetes agent's cost monitoring, on by default except on the gke-autopilot and eks-fargate presets.`,
+  category: "Cost",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "namespace_cost";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: metricAlias,
+            title: "Namespace Cost",
+            metricName: KubernetesCostMetric.Workload,
+            /*
+             * Sum WITHIN each namespace: its workloads' costs in the hour,
+             * which the criteria then add up over the day.
+             */
+            aggregationType: MetricsAggregationType.Sum,
+          },
+        ],
+        formulas: [],
+        // Per namespace: one over budget must not hide the next.
+        groupByAttributeKeys: ["resource.k8s.namespace.name"],
+        resourceScope: KubernetesResourceScope.Namespace,
+        rollingTime: RollingTime.Past1Hours,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: KUBERNETES_NAMESPACE_DAILY_COST_BUDGET,
+        metricAggregationType: EvaluateOverTimeType.Sum,
+        incidentTitle: `[K8s] Namespace Daily Cost Over Budget (>${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET} a day) - ${args.monitorName}`,
+        incidentDescription: `What a namespace cost over the past day has passed its budget. The namespace is named under "Affected resource" below. Its row on the cluster's Costs page splits the cost into CPU, memory and storage, and Spend by Workload shows which of its workloads drove it; the Right-Sizing card lists the requests to shrink.`,
+        criteriaName: `Namespace Daily Cost - Past Day > ${KUBERNETES_NAMESPACE_DAILY_COST_BUDGET}`,
+        criteriaDescription:
+          "Triggers when a namespace's cost summed over the past day passes the budget.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: KUBERNETES_NAMESPACE_DAILY_COST_BUDGET,
+        metricAggregationType: EvaluateOverTimeType.Sum,
+      }),
+    });
+  },
+};
+
+const highIdleCostTemplate: KubernetesAlertTemplate = {
+  id: "k8s-high-idle-cost",
+  name: "High Idle Spend",
+  summary: `More than ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% of what the cluster cost over the past day was idle capacity.`,
+  description: `Alert when more than ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% of the cluster's cost over the past day paid for capacity no workload used. Divides oneuptime.kubernetes.cost.idle, node capacity nothing requested or used plus cost the engine could not allocate, by oneuptime.kubernetes.cost.total, hour by hour, and averages the hours. ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% is where the Costs page's Idle % turns red. Fewer or smaller nodes, or a cluster autoscaler that scales down, bring it down. Needs the Kubernetes agent's cost monitoring, on by default except on the gke-autopilot and eks-fargate presets.`,
+  category: "Cost",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "idle_cost_share";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesMultiQueryMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        queries: [
+          {
+            alias: "idle_cost",
+            title: "Idle Cost",
+            metricName: KubernetesCostMetric.Idle,
+            aggregationType: MetricsAggregationType.Sum,
+          },
+          {
+            alias: "cluster_cost",
+            title: "Cluster Cost",
+            metricName: KubernetesCostMetric.Total,
+            aggregationType: MetricsAggregationType.Sum,
+          },
+        ],
+        formulas: [
+          {
+            alias: metricAlias,
+            legend: "Idle Share",
+            formula: "(idle_cost / cluster_cost) * 100",
+            legendUnit: "%",
+          },
+        ],
+        /*
+         * Both metrics are written with the cluster's name, in the same
+         * window, so the two halves of the share meet on it.
+         */
+        groupByAttributeKeys: ["resource.k8s.cluster.name"],
+        resourceScope: KubernetesResourceScope.Cluster,
+        rollingTime: RollingTime.Past1Hours,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: KUBERNETES_IDLE_COST_SHARE_THRESHOLD,
+        // The share of each hour, averaged over the day.
+        metricAggregationType: EvaluateOverTimeType.Average,
+        incidentTitle: `[K8s] High Idle Spend (>${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}%) - ${args.monitorName}`,
+        incidentDescription: `More than ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}% of what the cluster cost over the past day paid for node capacity that no workload requested or used. Look at the cluster's Nodes page for nodes with little scheduled on them, check that a cluster autoscaler can scale down, and right-size node pools whose machines are larger than the pods on them need.`,
+        criteriaName: `High Idle Spend - Idle Share > ${KUBERNETES_IDLE_COST_SHARE_THRESHOLD}%`,
+        criteriaDescription:
+          "Triggers when idle capacity is more than the threshold's share of the cluster's cost over the past day.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: KUBERNETES_IDLE_COST_SHARE_THRESHOLD,
+        metricAggregationType: EvaluateOverTimeType.Average,
+      }),
+    });
+  },
+};
+
 export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate> {
   return [
     clusterStoppedReportingTemplate,
@@ -2236,6 +2542,7 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     apiServerThrottlingTemplate,
     schedulerBacklogTemplate,
     highDiskUsageTemplate,
+    pvcAlmostFullTemplate,
     daemonSetPodsNotReadyTemplate,
     daemonSetUnavailableTemplate,
     nodeCpuRequestUtilizationTemplate,
@@ -2243,6 +2550,9 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     hpaAtMaxReplicasTemplate,
     podMemoryLimitSaturationTemplate,
     podCpuLimitSaturationTemplate,
+    clusterDailyCostTemplate,
+    namespaceDailyCostTemplate,
+    highIdleCostTemplate,
   ];
 }
 

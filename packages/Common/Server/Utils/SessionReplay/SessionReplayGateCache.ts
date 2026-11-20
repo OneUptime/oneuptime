@@ -17,12 +17,19 @@ import SessionReplayMaskingMode, {
 } from "../../../Types/Rum/SessionReplayMaskingMode";
 import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "../../../Types/Rum/SessionReplay";
 import {
+  SessionReplayFrustrationSettings,
   SessionReplayFrustrationSignalsConfig,
   normalizeSessionReplayFrustrationSettings,
   toSessionReplayFrustrationSignalsConfig,
 } from "../../../Types/Rum/SessionReplayFrustrationSignals";
+import { getSessionReplaySignalIdsByName } from "../../../Types/Rum/SessionReplaySignalMetric";
 import OriginAllowList from "../../../Utils/Telemetry/OriginAllowList";
 import { normalizeProductAnalyticsUserPropertyKeys } from "../../../Types/Rum/ProductAnalyticsEvents";
+import {
+  SessionReplayPageRules,
+  readSessionReplayPageRules,
+} from "../../../Types/Rum/SessionReplayPageRules";
+import { normalizeSessionReplayReadablePropertyKeys } from "../../../Types/Rum/SessionReplayReadableProperties";
 import { getApplicationSessionReplayRetentionInDays } from "./SessionReplayRetention";
 
 /*
@@ -82,6 +89,9 @@ const RUM_APPLICATION_POLICY_COLUMNS: ReadonlyArray<string> = [
   "sessionReplayMaskingMode",
   "sessionReplayMaskSelectors",
   "sessionReplayBlockSelectors",
+  "sessionReplayRecordOnlyPages",
+  "sessionReplayNeverRecordPages",
+  "sessionReplayReadableEventProperties",
   "sessionReplayAllowedOrigins",
   "sessionReplayConsentMode",
   "sessionReplayCaptureTrigger",
@@ -150,6 +160,19 @@ export interface SessionReplayGatePolicy {
   maskSelectors: Array<string>;
   blockSelectors: Array<string>;
 
+  /*
+   * The pages a recording may hold (issue #7502): Record only these pages
+   * and Never record these pages. Read so that a damaged row records no
+   * page rather than every page (readSessionReplayPageRules).
+   */
+  pageRules: SessionReplayPageRules;
+
+  /*
+   * Readable event properties (issue #7501): the keys whose short token
+   * values stay readable under every masking mode. Empty: none.
+   */
+  readableEventPropertyKeys: Array<string>;
+
   recordCanvas: boolean;
   captureUserIdentity: boolean;
   captureGeo: boolean;
@@ -196,6 +219,16 @@ export interface SessionReplayGatePolicy {
    * a damaged row records what an untouched application records.
    */
   frustrationSignals: SessionReplayFrustrationSignalsConfig;
+
+  /*
+   * The id of each signal of the application's own, by its name in lower
+   * case (getSessionReplaySignalIdsByName): how the ingest files a hit the
+   * recorders report by name under the signal it belongs to, so the alert
+   * a recommendation created on a signal keeps counting it after a rename
+   * (issue #6518). Optional, because a policy cached before it existed has
+   * none, and reads as no ids.
+   */
+  customSignalIds?: Record<string, string> | undefined;
 
   /*
    * Product analytics events (issue #6444, part two): whether the recorders
@@ -488,6 +521,11 @@ export default class SessionReplayGateCache {
       DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
     );
 
+    const frustrationSettings: SessionReplayFrustrationSettings =
+      normalizeSessionReplayFrustrationSettings(
+        appView["sessionReplayFrustrationSignals"],
+      );
+
     /*
      * Null-column fallbacks are the MODEL defaults (RumApplication.ts:
      * consent NotRequired, trigger Always, sample 100), not the refusing
@@ -532,6 +570,13 @@ export default class SessionReplayGateCache {
         blockSelectors: this.readStringArray(
           appView["sessionReplayBlockSelectors"],
         ),
+        pageRules: readSessionReplayPageRules({
+          recordOnly: appView["sessionReplayRecordOnlyPages"],
+          neverRecord: appView["sessionReplayNeverRecordPages"],
+        }),
+        readableEventPropertyKeys: normalizeSessionReplayReadablePropertyKeys(
+          appView["sessionReplayReadableEventProperties"],
+        ),
         recordCanvas: appView["sessionReplayRecordCanvas"] === true,
         captureUserIdentity:
           appView["sessionReplayCaptureUserIdentity"] === true,
@@ -566,10 +611,10 @@ export default class SessionReplayGateCache {
           appView["sessionReplaySlowRequestBudgetMs"],
           0,
         ),
-        frustrationSignals: toSessionReplayFrustrationSignalsConfig(
-          normalizeSessionReplayFrustrationSettings(
-            appView["sessionReplayFrustrationSignals"],
-          ),
+        frustrationSignals:
+          toSessionReplayFrustrationSignalsConfig(frustrationSettings),
+        customSignalIds: getSessionReplaySignalIdsByName(
+          frustrationSettings.customSignals,
         ),
         /*
          * Only an explicit true: the column defaults to false, and a row

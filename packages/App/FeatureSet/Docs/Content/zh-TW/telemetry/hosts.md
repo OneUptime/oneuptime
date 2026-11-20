@@ -205,7 +205,7 @@ Restart-Service oneuptime-collector
 | `--key KEY` | `-Key KEY` | 你專案的遙測擷取金鑰。 |
 | `--label KEY=VALUE` | `-Label KEY=VALUE` | 為主機加上標籤。多個標籤請重複此選項；在 Windows 上以逗號列出。 |
 | `--env NAME=VALUE` | `-EnvVar NAME=VALUE` | 為讀取 `${env:NAME}` 的設定提供收集器一個環境變數。 |
-| `--version VERSION` | `-Version VERSION` | 要安裝的收集器發行版本，預設為 0.161.0。 |
+| `--version VERSION` | `-Version VERSION` | 要安裝的收集器發行版本，預設為 0.165.0。 |
 | `--download-url URL` | `-DownloadUrl URL` | 從與 GitHub 資料夾結構相同的鏡像下載發行版本。 |
 | `--proxy URL` | `-Proxy URL` | 讓下載與收集器的所有流量都透過 HTTP 代理伺服器。 |
 | `--replace-existing` | `-ReplaceExisting` | 停止並停用手動安裝的收集器。 |

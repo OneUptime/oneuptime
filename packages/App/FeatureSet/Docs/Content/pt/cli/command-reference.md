@@ -103,7 +103,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Lista registros, os mais recentes primeiro. Os rótulos, por sua vez, são listados por nome, primeiro os numerados (`2. Team` antes de `10. Owner`).
+Lista registros, os mais recentes primeiro. Os rótulos, por sua vez, são listados por nome, primeiro os numerados (`2. Team` antes de `10. Owner`). Os registros que você ordena arrastando-os, como os estados de incidente, são listados nessa ordem.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 Exclui um registro na hora, sem perguntar.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | Argumento ou opção | Obrigatório | O que é |
 | --- | --- | --- |
 | `<id>` | Sim | O ID do registro |
 | `--force` | Não | Aceita e não muda nada: `delete` nunca pede confirmação |
+| `--workflows-run-as <value>` | Não | Só funções personalizadas: com o que são executados, depois que a função é excluída, os workflows executados com ela, `Default` ou `CustomRole`. Uma função com a qual workflows são executados só é excluída com esta flag |
+| `--workflows-run-as-custom-role-id <id>` | Não | Só funções personalizadas: com `--workflows-run-as CustomRole`, a outra função personalizada com a qual eles são executados |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ Cada operação é uma requisição à API, com a chave no cabeçalho `APIKey`. 
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | Nenhum |
+| `delete` | `DELETE /api/<path>/<id>/` | Nenhum, ou `miscDataProps` com `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 Uma ação lê os estados do seu projeto e o registro, e depois cria uma linha na linha do tempo de estados do registro, como faz o botão do painel: `acknowledge` em um incidente cria um `incident-state-timeline`. `add-note` cria um `incident-internal-note`, ou, com `--public`, um `incident-public-note`. Uma flag de e-mail lista primeiro os membros de equipe do projeto com esse endereço. Quando o OneUptime recusa um campo que a chave não pode ler, uma listagem ou uma leitura pede de novo sem ele.

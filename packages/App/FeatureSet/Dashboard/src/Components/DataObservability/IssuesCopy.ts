@@ -56,6 +56,9 @@ export interface IssuesFilter {
 export const ISSUE_KIND_LABELS: Readonly<Record<DataAttentionKind, string>> = {
   [DataAttentionKind.CollectionFailed]: translationKey("Collection Failed"),
   [DataAttentionKind.PipelineFailed]: translationKey("Pipeline Run Failed"),
+  [DataAttentionKind.PipelineStopped]: translationKey(
+    "Pipeline Stopped by Circuit Breaker",
+  ),
   [DataAttentionKind.CheckFailing]: translationKey("Check Failing"),
   [DataAttentionKind.ReconciliationDrifted]: translationKey(
     "Reconciliation Drifted",

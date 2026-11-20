@@ -17,6 +17,7 @@ import path from "path";
 const APP: string = path.join(__dirname, "..", "..", "FeatureSet");
 const DASHBOARD: string = path.join(APP, "Dashboard", "src");
 const ADMIN: string = path.join(APP, "AdminDashboard", "src");
+const COMMON: string = path.join(__dirname, "..", "..", "..", "Common");
 
 // Source with comments dropped and whitespace collapsed.
 function read(...segments: Array<string>): string {
@@ -74,10 +75,17 @@ describe("the welcome page of someone who may not create a project", () => {
 
 describe("Users > Invite User", () => {
   const page: string = read(DASHBOARD, "Pages", "Users", "Index.tsx");
+  // The Name row's words, which every invite form shares (#9745).
+  const inviteeName: string = read(COMMON, "UI", "Utils", "InviteeName.ts");
 
   test("asks a newcomer's name in a line", () => {
-    expect(page).toContain(
-      '"They have no OneUptime account yet. It is set up with this name."',
+    /*
+     * The form no longer learns whether the address has an account
+     * (#9745), so the line says what the name is for without saying so.
+     */
+    expect(page).toContain("description: INVITEE_NAME_DESCRIPTION,");
+    expect(inviteeName).toContain(
+      '"If they have no OneUptime account yet, it is set up with this name."',
     );
     expect(page).not.toContain("we will use it to set up their new account");
   });
@@ -376,23 +384,40 @@ describe("Project Settings > SSO names what each card holds", () => {
     }
   });
 
-  test("draws the test link once there is a provider to try, in the card's body", () => {
+  test("draws the SSO sign-in link once there is a provider to try, in the card's body", () => {
     const card: string = read(
       DASHBOARD,
       "Components",
       "Sso",
-      "ProjectSignInTestCard.tsx",
+      "ProjectSsoSignInLinkCard.tsx",
     );
 
     expect(page).toContain(
       "const hasProviderToTest: boolean = samlProviderCount + oidcProviderCount > 0;",
     );
-    expect(page).toContain("{hasProviderToTest ? ( <ProjectSignInTestCard");
+    expect(page).toContain("{hasProviderToTest ? ( <ProjectSsoSignInLinkCard");
     expect(page).toContain("isTestLinkShown={hasProviderToTest}");
     expect(oidc).toContain("props.onProviderCountChange?.(totalCount);");
     // The sentence and link are the body: a description is hidden on a phone.
-    expect(card).toContain("<Card title={ProjectSsoCopy.testTitle}>");
+    expect(card).toContain("<Card title={ProjectSsoCopy.signInLinkTitle}>");
     expect(card).not.toContain("description=");
+    // It was the Test Single Sign On (SSO) card (#9918).
+    expect(copy).toContain(
+      'signInLinkTitle: translationKey("SSO Sign-in Link")',
+    );
+    expect(copy).not.toContain('translationKey("Test Single Sign On (SSO)")');
+  });
+
+  test("names each provider's verified domains in a column of their own, after its teams", () => {
+    for (const source of [page, oidc]) {
+      expect(source).toContain("title: ProjectSsoCopy.domainsColumn");
+      expect(source).toContain("<SsoProviderDomainsElement");
+      expect(
+        source.indexOf("title: ProjectSsoCopy.domainsColumn"),
+      ).toBeGreaterThan(source.indexOf("title: ProjectSsoCopy.teamsColumn"));
+    }
+
+    expect(copy).toContain('domainsColumn: translationKey("Domains")');
   });
 });
 

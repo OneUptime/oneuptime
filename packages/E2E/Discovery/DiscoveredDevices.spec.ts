@@ -607,7 +607,10 @@ test("a device with no address yet cannot be added, and its row says why", async
     "Add 1 device",
   );
 
-  // Selected alone, it leaves nothing to add, and the window says why.
+  /*
+   * Selected alone, it leaves nothing to add, and the window says why: a
+   * device added already is left out only when it has a monitor (#9675).
+   */
   await page.getByTestId("modal-footer-close-button").click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await selectBox(page, "00:1a:2b:3c:00:03").check();
@@ -615,7 +618,7 @@ test("a device with no address yet cannot be added, and its row says why", async
   await expect(
     dialog(page).getByTestId("discovered-device-import-nothing"),
   ).toContainText(
-    "None of the selected devices can be added: each one is monitored already or has no IP address yet.",
+    "None of the selected devices can be added: each one already has a monitor or has no IP address yet.",
   );
   await expect(page.getByTestId("modal-footer-submit-button")).toBeDisabled();
   expect(await importStarts(page)).toEqual([]);

@@ -53,7 +53,18 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-// The table of every rule kind: every model built on RuleBaseModel.
+/*
+ * Rule tables created after this migration shipped, each with emptiedLimits
+ * in its own CREATE TABLE (the drift check holds it to the model): a
+ * migration is a snapshot, never edited to cover a table it predates. Only
+ * ever append here.
+ */
+const RULE_TABLES_CREATED_AFTER_MIGRATION: ReadonlyArray<string> = [
+  // 1809184860000-AddDataPipelineOwnerRules
+  "DataPipelineOwnerRule",
+];
+
+// The table of every rule kind this migration covers: every model built on RuleBaseModel.
 const RULE_TABLES: Array<string> = (
   AllModelTypes as Array<{ new (): BaseModel }>
 )
@@ -65,6 +76,9 @@ const RULE_TABLES: Array<string> = (
   })
   .map((model: BaseModel): string => {
     return model.tableName!;
+  })
+  .filter((tableName: string): boolean => {
+    return !RULE_TABLES_CREATED_AFTER_MIGRATION.includes(tableName);
   })
   .sort();
 

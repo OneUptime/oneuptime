@@ -107,6 +107,10 @@ OpenTelemetry Android 會自行記錄以上所有內容。它設定的裝置屬�
 
 當機和 ANR 會作為未處理的例外進入 **例外** ，依堆疊追蹤分組，並附上它們發生時所在的工作階段。代理程式會在應用程式終止時把當機儲存到磁碟，再從那裡傳送，因此離線時發生的當機，也會在應用程式再次連上網路執行時抵達。
 
+應用程式的 **概覽** 會替你彙整這些資料： **工作階段** 、 **無當機工作階段** 、 **當機** 、 **ANR** 、 **應用程式啟動** 、 **冷啟動（p95）** 和 **凍結影格** ，每一項都能開啟它所計算的例外、span 或事件。在應用程式傳送應用程式啟動或影格資料之前，對應的圖表會說明如何開啟這些資料。它的 **建議** 提供針對當機、ANR、緩慢冷啟動、凍結影格，以及應用程式或其某台裝置停止回報的監測器。
+
+**無當機工作階段** 下方的那一行顯示按安裝計算的同一比例：OpenTelemetry Android 1.1 及更新版本會在每個 span 和日誌上設定 `app.installation.id` ，這個 ID 在應用程式保持安裝期間都不會改變，因此可以代表應用程式的使用者。對於每小時有數百個工作階段、每天當機一次也屬正常的應用程式， **App Crash Rate** 和 **App ANR Rate** 會在一小時內當機或卡頓的工作階段佔比超過 Android vitals 的 1.09% 和 0.47% 時發出警示，而不是針對每一次當機或卡頓發出警示。
+
 工作階段在背景停留 15 分鐘後結束，或在 4 小時後結束。從不進入背景的應用程式（例如自助服務機）會讓一個工作階段持續 4 小時，因此請把每位顧客的造訪追蹤為一個獨立的 span，如 [追蹤你自己的工作流程](#追蹤你自己的工作流程) 所示。
 
 在下方的 OkHttp 模組旁加入 `android-log-library` 和 `android-log-agent` 後，應用程式自己的 `android.util.Log` 呼叫也會變成日誌：每次呼叫的標籤會放在 `android.log.tag` 中，帶有 Throwable 的呼叫會成為 **例外** 中的一個例外。OpenTelemetry Android 不會讀取 Logcat。
@@ -219,7 +223,36 @@ resource {
 }
 ```
 
-應用程式的遙測仍歸屬於它的 RUM 應用程式，裝置也不會成為 **主機** 中的主機：應用程式不會回報主機指標，因此那裡沒有可顯示的內容。裝置在 **資產清單** 中的頁面會顯示它自己的日誌、追蹤和例外，而 `@resource.host.name:` 可以在 **追蹤** 和 **日誌** 中找到它們。30 天內沒有傳送任何資料的裝置會從 **資產清單** 中移除。
+應用程式的遙測仍歸屬於它的 RUM 應用程式，裝置也不會成為 **主機** 中的主機：應用程式不會回報主機指標，因此那裡沒有可顯示的內容。裝置在 **資產清單** 中的頁面會顯示它自己的日誌、追蹤和例外，而 `@resource.host.name:` 可以在 **追蹤** 和 **日誌** 中找到它們。30 天內沒有傳送任何資料的裝置會從 **資產清單** 中移除。若要查看裝置本身，也就是它的記憶體、儲存空間和重新啟動，以及其上每個應用程式的當機，請加入 [Android 代理程式](/docs/telemetry/android-agent) ，並在它的 `device_name` 中使用相同的名稱：這樣裝置也會成為 **主機** 中的一台主機，並且在 **資產清單** 中仍然只是一個項目。
+
+### 在裝置沉默時收到通知
+
+應用程式的 **建議** 提供 **Device Stopped Reporting** ：過去一週內傳送過 span 的裝置如果一小時沒有傳送任何 span，就為該裝置發出一個警示，裝置以代理程式設定的 `app.installation.id` 區分。每台裝置的警示都會寫明它的安裝，並在裝置重新回報後解決。當所有裝置同時沉默時（例如門市的網路中斷），不會有任何裝置發出警示： **App Stopped Reporting** 會為整個應用程式回報一次。
+
+停留在同一個畫面上的自助服務機在有人使用之前不會傳送任何資料。請在應用程式執行期間每隔幾分鐘傳送一個 span，這樣閒置的自助服務機就不會被當成沉默的裝置：
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+在代理程式啟動之後，用 `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()` 啟動它。每五分鐘一個 span，能讓正常運作的自助服務機遠遠保持在一小時的期限之內。
 
 ### 從 MDM 設定裝置群
 
@@ -246,6 +279,12 @@ val serialNumber = restrictions.getString("device_serial").orEmpty()
 ```
 
 變更後對裝置執行 Converge，讓它們讀取新的值。如果你的 MDM 要求提供結構描述，請在 `app_restrictions.xml` 中宣告相同的鍵。Esper 會拒絕沒有 v1 簽章的 APK，因此除了 v2 或 v3 之外，也要以 v1 配置為發行版本簽署。
+
+### 從 Esper 匯入裝置群
+
+將你的 Esper 租用戶連線到資產清單後，Esper 註冊的每台裝置都會列在其中，包括應用程式從未啟動過的裝置，並帶有只有 Esper 才知道的資訊：它的群組、Android 版本、安全性修補程式等級、序號、電池、儲存空間、已安裝的應用程式和上次簽入。不再簽入的裝置會顯示為離線，並註明它上次簽入是多久以前。請參閱 [從 Esper 匯入裝置](/docs/inventory/overview#從-esper-匯入裝置)。
+
+如果裝置上的應用程式依上文所述為其命名，該裝置就是一個項目，並帶有應用程式傳送的內容：`host.name` 就是它在 Esper 中的名稱。OneUptime 先依 `host.name` 尋找裝置的項目，再依 `host.serial_number` 尋找，因此請在每個從該裝置回報資料的應用程式中，以及在 Android Agent 的 `device_name` 和 `device_serial` 設定中，為每台裝置使用相同的名稱和序號。
 
 ### 保留離線期間記錄的資料
 
@@ -279,6 +318,7 @@ OpenTelemetry Android 會自行設定 `device.model.identifier` ，所以應用�
 
 :::cards
 - [行動端設定](/docs/rum/mobile-setup): iOS、React Native 和其他平台。
+- [Android 代理程式](/docs/telemetry/android-agent): 監控裝置本身：它的健康狀態、重新啟動、已安裝的應用程式以及每個應用程式的當機。
 - [例外](/docs/telemetry/exceptions): 分類處理你的應用程式回報的當機和 ANR。
 - [追蹤瀏覽器](/docs/telemetry/traces-explorer): 追蹤一筆訂單從自助服務機到廚房的全程。
 - [管理應用程式](/docs/rum/applications): 名稱、標籤、擁有者和保留期。

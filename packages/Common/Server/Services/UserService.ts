@@ -65,6 +65,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import NewPasswordRule from "../Utils/NewPasswordRule";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
 import {
   PASSWORD_RESET_LINK_CANNOT_BE_EMAILED_MESSAGE,
   RESET_PASSWORD_PAGE_ROUTE,
@@ -79,6 +82,14 @@ import {
 } from "../../Types/UserLanguage";
 import UserAuthenticationStatus from "../../Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "../../Types/TwoFactorAuthStatus";
+import TwoFactorAuthSetupUtil, {
+  TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE,
+  TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE,
+  TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE,
+  TwoFactorAuthSetup,
+} from "../../Types/TwoFactorAuthSetup";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import { SsoManagedBy } from "../../Types/SSO/SsoManagedSignIn";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsNull, MoreThan, UpdateResult } from "typeorm";
@@ -89,6 +100,34 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import EmailChangeConfirmation from "../Utils/EmailChange/EmailChangeConfirmation";
+import RequestOrigin from "../../Types/RequestOrigin";
+
+/*
+ * A person's own change of address, held for the new address to confirm
+ * (#9821, Utils/EmailChange/EmailChangeConfirmation): found by
+ * onBeforeUpdate, sent for by onUpdateSuccess once the update has been
+ * answered. Keyed by the update, which both hooks are handed.
+ */
+interface PendingEmailChange {
+  userId: ObjectID;
+  newEmail: Email;
+  timezone: Timezone | null | undefined;
+  origin: RequestOrigin | undefined;
+}
+
+const pendingEmailChanges: WeakMap<
+  UpdateBy<Model>,
+  PendingEmailChange
+> = new WeakMap<UpdateBy<Model>, PendingEmailChange>();
+
+// What a person is told who writes a pending address themselves.
+export const PENDING_EMAIL_NOT_WRITABLE_MESSAGE: string =
+  "A new email address waits until it is confirmed, so it cannot be set directly. Change your email address to send a new address a link.";
+
+// What a person is told who names an account other than their own.
+export const OWN_EMAIL_ONLY_MESSAGE: string =
+  "You can only change your own email address.";
 
 /*
  * Names the Redis mutex that serializes the first-Master-Admin election across
@@ -349,6 +388,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * Someone only invited to the project is named as the project knows
+     * them - the name typed for them, else their address - never by their
+     * account's own name, which it does not see until they join (#9823).
+     * Whoever acted in the project has joined it, so only the people a line
+     * is about can be named so.
+     */
+    const withheld: Map<string, WithheldProfile> = data.projectId
+      ? await PendingInviteeProfiles.readWithheldProfilesInProject({
+          userIds: [data.userId.toString()],
+          projectId: data.projectId,
+        })
+      : new Map<string, WithheldProfile>();
+
+    /*
      * A user's name is theirs to set, and it is placed inside the link's own
      * text in feed items and chat messages, so every Markdown character in it
      * is escaped: a "]" cannot end the text early and point the rest of the
@@ -356,7 +409,12 @@ export class Service extends DatabaseService<Model> {
      * mentions nobody. The name still reads exactly as typed.
      */
     const displayName: string =
-      user.name?.toString() || user.email?.toString() || "User";
+      PendingInviteeProfiles.getNameInProject({
+        userId: data.userId,
+        name: user.name,
+        email: user.email,
+        withheld: withheld,
+      }) || "User";
 
     return mdText`[${displayName}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }
@@ -577,11 +635,77 @@ export class Service extends DatabaseService<Model> {
     this.normalizeLanguage(updateBy.data as unknown as JSONObject);
 
     /*
+     * Two factor authentication is switched by its owner alone, outside the
+     * Admin Dashboard: this hook runs before row scoping, so the update must
+     * name the caller's own account by an exact predicate. A master admin
+     * requires it of someone else, or stops requiring it, with the routes
+     * built for that (setTwoFactorAuthRequired), whose writes are root and
+     * sign the person out when it is turned on.
+     *
+     * Turning it on asks one thing more (issue #9666): a second step set up
+     * behind it, and a sign-in that is not managed by single sign-on
+     * (assertTwoFactorAuthMayBeTurnedOn). Turning it off asks nothing more,
+     * so somebody can always step down from a requirement they cannot meet.
+     *
+     * Asked before anything below writes, so a refused update changes nothing.
+     */
+    const turnsTwoFactorAuthOn: boolean =
+      updateBy.data.enableTwoFactorAuth === true;
+    const turnsTwoFactorAuthOff: boolean =
+      updateBy.data.enableTwoFactorAuth === false;
+
+    if (
+      !updateBy.props.isRoot &&
+      (turnsTwoFactorAuthOn || turnsTwoFactorAuthOff)
+    ) {
+      if (
+        !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+          Model,
+          updateBy.query,
+          updateBy.props,
+        )
+      ) {
+        throw new BadDataException(
+          turnsTwoFactorAuthOn
+            ? TWO_FACTOR_AUTH_OWN_ACCOUNT_ON_MESSAGE
+            : "You can only turn off two factor authentication for your own account.",
+        );
+      }
+
+      if (turnsTwoFactorAuthOn) {
+        await this.assertTwoFactorAuthMayBeTurnedOn(updateBy.props.userId!);
+      }
+    }
+
+    /*
+     * A password set by the person it signs in (issue #9688): refused while
+     * the server requires single sign-on of them (SsoManagedSignIn), when it
+     * could only lie dormant until the requirement was turned off. It is the
+     * caller who is asked: a person may only write their own account, so
+     * the caller is the account here, unless they are a master admin -
+     * who is exempt, whoever's password they set. A root write (a reset
+     * link, Set Password in the Admin Dashboard) is not the profile's.
+     *
+     * Before the password rule, so somebody who cannot set one is not told
+     * to make it longer.
+     */
+    if (
+      updateBy.data.password &&
+      !updateBy.props.isRoot &&
+      updateBy.props.userId
+    ) {
+      await SsoManagedSignIn.assertMayChangeLocalSignIn(updateBy.props.userId);
+    }
+
+    /*
      * The one password rule, for a new password however it came: a reset
      * link, Update Password, a master admin's Set Password, the API
      * (Utils/NewPasswordRule). Only a new one: signing in writes none.
      */
     NewPasswordRule.assertMet(updateBy.data.password);
+
+    // A new address waiting for its link is OneUptime's to write (#9821).
+    this.assertPendingEmailIsNotWritten(updateBy);
 
     let carryForward: Array<Model> = [];
 
@@ -605,6 +729,15 @@ export class Service extends DatabaseService<Model> {
       carryForward = users;
     }
 
+    /*
+     * A person's own new address waits for the address to confirm it
+     * (#9821): it is kept as pending and the email is left as it is, so the
+     * answer is the same whether or not another account has the address.
+     * Before anything below acts on `email`, which it may take out: the
+     * address does not change yet, so neither do the links sent to it.
+     */
+    await this.holdOwnEmailChangeForConfirmation(updateBy, carryForward);
+
     if (updateBy.data.email) {
       await this.expirePasswordResetTokensForEmailChange({
         newEmail: updateBy.data.email as Email,
@@ -612,27 +745,139 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    /*
-     * Users may turn off two factor authentication for their own account.
-     * This hook runs before row scoping, so require an exact owner predicate.
-     * Changes to other accounts still use the master-admin endpoints, whose
-     * root writes retain session revocation when enabling the requirement.
-     */
+    return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * CHANGING YOUR OWN EMAIL ADDRESS SAYS NOTHING ABOUT THE NEW ONE (#9821).
+   *
+   * Somebody signed in who writes a new `email` to their own account (the
+   * profile's Basic Info, or PUT /api/user/:id) no longer has it written:
+   * an address another account uses was refused on the unique index, and
+   * that refusal told any signed-in account - on OneUptime Cloud, anybody -
+   * which addresses have an account. Instead:
+   *
+   *   - the change is counted, for the account and for the address, and
+   *     refused on a server that cannot send the email that confirms it
+   *     (EmailChangeConfirmation.assertMayAsk) - the same for every address;
+   *   - `email` is taken out of the write, and `newUnverifiedTemporaryEmail`
+   *     put in, so the account keeps its address and the profile shows the
+   *     new one waiting. The update succeeds as any other does;
+   *   - once it has been answered (onUpdateSuccess), the new address is
+   *     emailed: a link that confirms it (Identity's /verify-email swaps the
+   *     account to it), or, when another account has it, word that it
+   *     cannot be used.
+   *
+   * Not held: the address the account already has (every save of the
+   * profile's form sends it), a master admin's change (they see every
+   * account already, and the Admin Dashboard changes it at once), and a
+   * change the server makes itself (root: SCIM, single sign-on, the
+   * confirmation's own swap).
+   *
+   * `rows` are the update's rows, as onBeforeUpdate read them: only those
+   * the caller may write, so a person's own.
+   */
+  private async holdOwnEmailChangeForConfirmation(
+    updateBy: UpdateBy<Model>,
+    rows: Array<Model>,
+  ): Promise<void> {
     if (
-      updateBy.data.enableTwoFactorAuth === false &&
-      !updateBy.props.isRoot &&
-      !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
-        Model,
-        updateBy.query,
-        updateBy.props,
-      )
+      !updateBy.data.email ||
+      updateBy.props.isRoot ||
+      updateBy.props.isMasterAdmin
     ) {
-      throw new BadDataException(
-        "You can only turn off two factor authentication for your own account.",
-      );
+      return;
     }
 
-    return { updateBy, carryForward: carryForward };
+    const requested: Email = new Email(String(updateBy.data.email));
+
+    const changing: Array<Model> = rows.filter((row: Model): boolean => {
+      return (
+        row.email?.toString().toLowerCase() !==
+        requested.toString().toLowerCase()
+      );
+    });
+
+    // The address it already has: nothing to confirm, and nothing changes.
+    if (changing.length === 0) {
+      return;
+    }
+
+    const own: Model | undefined = changing[0];
+
+    if (
+      changing.length !== 1 ||
+      !own?.id ||
+      !updateBy.props.userId ||
+      own.id.toString().toLowerCase() !==
+        updateBy.props.userId.toString().toLowerCase()
+    ) {
+      throw new BadDataException(OWN_EMAIL_ONLY_MESSAGE);
+    }
+
+    await EmailChangeConfirmation.assertMayAsk({
+      userId: own.id,
+      newEmail: requested,
+    });
+
+    delete (updateBy.data as unknown as Record<string, unknown>)["email"];
+    (updateBy.data as unknown as Record<string, unknown>)[
+      "newUnverifiedTemporaryEmail"
+    ] = requested;
+
+    pendingEmailChanges.set(updateBy, {
+      userId: own.id,
+      newEmail: requested,
+      timezone: own.timezone,
+      origin: updateBy.props.requestOrigin,
+    });
+  }
+
+  /*
+   * `newUnverifiedTemporaryEmail` is OneUptime's to set: a person may clear
+   * it (Cancel Change), never write an address into it, or they could name
+   * an address the link would then move their account to unproven.
+   */
+  private assertPendingEmailIsNotWritten(updateBy: UpdateBy<Model>): void {
+    const pendingAddress: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["newUnverifiedTemporaryEmail"];
+
+    if (
+      !updateBy.props.isRoot &&
+      pendingAddress !== undefined &&
+      pendingAddress !== null &&
+      pendingAddress !== ""
+    ) {
+      throw new BadDataException(PENDING_EMAIL_NOT_WRITABLE_MESSAGE);
+    }
+  }
+
+  /*
+   * What a held change of address sends, after the update that asked for
+   * it has been answered: whether another account has the address is read
+   * only now, so the answer could not wait on it. Never throws.
+   */
+  private async sendForPendingEmailChange(
+    pending: PendingEmailChange,
+  ): Promise<void> {
+    try {
+      const holder: Model | null = await this.findOneBy({
+        query: { email: pending.newEmail },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      await EmailChangeConfirmation.sendForPendingChange({
+        userId: pending.userId,
+        newEmail: pending.newEmail,
+        isTaken: Boolean(holder),
+        origin: pending.origin,
+        timezone: pending.timezone,
+      });
+    } catch (err) {
+      logger.error(err, { userId: pending.userId.toString() } as LogAttributes);
+    }
   }
 
   /*
@@ -1126,7 +1371,50 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    if (onUpdate && onUpdate.updateBy.data.email) {
+    /*
+     * A person's own new address, held for confirmation (#9821): the new
+     * address is emailed once this update has been answered - not awaited,
+     * so how long the answer takes says nothing about whether another
+     * account has the address.
+     */
+    const pendingEmailChange: PendingEmailChange | undefined = onUpdate
+      ? pendingEmailChanges.get(onUpdate.updateBy)
+      : undefined;
+
+    if (onUpdate && pendingEmailChange) {
+      pendingEmailChanges.delete(onUpdate.updateBy);
+
+      // Only once the account's row has the new address waiting.
+      const isWritten: boolean = updatedItemIds.some(
+        (id: ObjectID): boolean => {
+          return (
+            id.toString().toLowerCase() ===
+            pendingEmailChange.userId.toString().toLowerCase()
+          );
+        },
+      );
+
+      if (isWritten) {
+        void this.sendForPendingEmailChange(pendingEmailChange);
+      }
+    }
+
+    /*
+     * An address written straight away - by a master admin, single sign-on,
+     * SCIM - is proven by a link to it, as before. Except:
+     *   - one the write itself says is verified: the swap a confirmed change
+     *     makes (#9821), whose link proved the mailbox;
+     *   - on a server that cannot send email, which cannot ask for proof:
+     *     marking the address unverified there would lock its person out,
+     *     as signing in would wait for a link that never comes. Its
+     *     addresses are taken as verified, as its sign-ups are.
+     */
+    if (
+      onUpdate &&
+      onUpdate.updateBy.data.email &&
+      onUpdate.updateBy.data.isEmailVerified !== true &&
+      (await EmailChangeConfirmation.canSendEmail())
+    ) {
       const newUsers: Array<Model> = await this.findBy({
         query: onUpdate.updateBy.query,
         select: {
@@ -1486,6 +1774,7 @@ export class Service extends DatabaseService<Model> {
         enableTwoFactorAuth: true,
         resetPasswordToken: true,
         resetPasswordExpires: true,
+        isMasterAdmin: true,
       },
       props: {
         isRoot: true,
@@ -1494,6 +1783,31 @@ export class Service extends DatabaseService<Model> {
 
     if (!user) {
       throw new NotFoundException("User not found.");
+    }
+
+    const isMasterAdmin: boolean = user.isMasterAdmin === true;
+
+    /*
+     * Why SSO manages their sign-in, for the page's warnings: a password or
+     * a second step given to them now opens none of their projects. A rule
+     * that cannot be read is logged and reads as not managed - this is what
+     * the page says, never what the server allows, and it still refuses
+     * what it must.
+     */
+    let signInManagedBy: SsoManagedBy | null = null;
+
+    try {
+      signInManagedBy = (
+        await SsoManagedSignIn.getStateFor({
+          userId: userId,
+          isMasterAdmin: isMasterAdmin,
+        })
+      ).managedBy;
+    } catch (err) {
+      logger.error(
+        "Could not read whether SSO manages a person's sign-in, for the Admin Dashboard.",
+      );
+      logger.error(err);
     }
 
     /*
@@ -1535,6 +1849,8 @@ export class Service extends DatabaseService<Model> {
       verifiedTwoFactorAuthMethodCount: verifiedTwoFactorAuthMethodCount,
       unusedTwoFactorBackupCodeCount: unusedTwoFactorBackupCodeCount,
       hasPendingPasswordResetLink: hasPendingPasswordResetLink,
+      isMasterAdmin: isMasterAdmin,
+      signInManagedBy: signInManagedBy,
     };
   }
 
@@ -1605,15 +1921,159 @@ export class Service extends DatabaseService<Model> {
     isTwoFactorAuthEnabled: boolean;
     verifiedMethodCount: number;
   }): TwoFactorAuthStatus {
-    if (!data.isTwoFactorAuthEnabled) {
-      return TwoFactorAuthStatus.NotEnabled;
+    return TwoFactorAuthSetupUtil.getStatus(data);
+  }
+
+  /**
+   * Where one person stands on two factor authentication, for their own
+   * profile (GET /user/two-factor-auth-status): the requirement and how many
+   * second steps are set up behind it, counted as the checks below count
+   * them. Throws NotFoundException for an account that does not exist.
+   */
+  @CaptureSpan()
+  public async getTwoFactorAuthSetup(
+    userId: ObjectID,
+  ): Promise<TwoFactorAuthSetup> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: userId,
+      },
+      select: {
+        _id: true,
+        enableTwoFactorAuth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
     }
 
-    if (data.verifiedMethodCount > 0) {
-      return TwoFactorAuthStatus.EnabledConfigured;
+    const verifiedMethodCount: number =
+      await this.countVerifiedTwoFactorAuthMethods(userId);
+
+    return {
+      status: TwoFactorAuthSetupUtil.getStatus({
+        isTwoFactorAuthEnabled: Boolean(user.enableTwoFactorAuth),
+        verifiedMethodCount: verifiedMethodCount,
+      }),
+      verifiedMethodCount: verifiedMethodCount,
+    };
+  }
+
+  /**
+   * Refuses a person turning two factor authentication on for themselves
+   * (issue #9666, Types/TwoFactorAuthSetup) unless both hold:
+   *
+   *  - their sign-in is not managed by single sign-on (SsoManagedSignIn): a
+   *    second step guards a password or an emailed link, and the server
+   *    signs them in with neither;
+   *  - something is set up for the second step to ask for: an authenticator
+   *    app whose code was entered, a security key or a passkey. Turned on
+   *    with nothing, the profile said "Enabled" while the account had no
+   *    second factor at all, and the next sign-in with the password -
+   *    anybody's - enrolled an app of that person's choosing.
+   *
+   * Asked in that order: an SSO-managed person is told why nothing here is
+   * theirs to set, not to go and add an app first.
+   *
+   * A master admin requiring it of somebody (setTwoFactorAuthRequired) asks
+   * neither: "required, nothing set up yet" is the state that sends that
+   * person through enrolment at their next sign-in.
+   */
+  @CaptureSpan()
+  public async assertTwoFactorAuthMayBeTurnedOn(
+    userId: ObjectID,
+  ): Promise<void> {
+    await SsoManagedSignIn.assertMayChangeLocalSignIn(userId);
+
+    const verifiedMethodCount: number =
+      await this.countVerifiedTwoFactorAuthMethods(userId);
+
+    if (verifiedMethodCount < 1) {
+      throw new BadDataException(TWO_FACTOR_AUTH_NEEDS_A_METHOD_MESSAGE);
+    }
+  }
+
+  /**
+   * Refuses a delete that would take away the last second step an account
+   * with two factor authentication on can be asked for (issue #9666,
+   * TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE): its authenticator apps
+   * (UserTotpAuthService) or its security keys and passkeys
+   * (UserWebAuthnService). `rows` are the rows the delete removes, read with
+   * findRowsAndHoldDeleteToThem; only the verified ones count, so a setup
+   * that was never finished can always go.
+   *
+   * Removing the last one used to leave "Enabled" on an account with nothing
+   * behind it - the state this issue is about. Turning two factor
+   * authentication off instead is the owner's own, confirmed decision, so
+   * the delete is refused with what to do, rather than quietly turning it
+   * off: replace the phone first, or turn it off first.
+   *
+   * Counted over the whole delete, per account: a delete of two rows that
+   * leaves none is refused as a delete of the last one is. Only the caller's
+   * own writes ask (their services skip a root delete): a master admin's
+   * Reset two factor authentication removes everything on purpose, and the
+   * enrolment at sign-in sweeps only unfinished rows.
+   *
+   * Two deletes of an account's last two second steps at the same moment can
+   * each see the other's row still there. The account is then left as a
+   * master admin's requirement leaves one - on, with nothing set up - which
+   * the profile shows as Setup needed and the next sign-in with a password
+   * walks through enrolment: never a lockout.
+   */
+  @CaptureSpan()
+  public async assertTwoFactorAuthKeepsASecondStep(
+    rowsRemoved: Array<{
+      userId?: ObjectID | undefined;
+      isVerified?: boolean | undefined;
+    }>,
+  ): Promise<void> {
+    const verifiedRemovedByUser: Map<string, number> = new Map<
+      string,
+      number
+    >();
+
+    for (const row of rowsRemoved) {
+      if (row.isVerified !== true || !row.userId) {
+        continue;
+      }
+
+      const userId: string = row.userId.toString();
+
+      verifiedRemovedByUser.set(
+        userId,
+        (verifiedRemovedByUser.get(userId) || 0) + 1,
+      );
     }
 
-    return TwoFactorAuthStatus.EnabledPendingSetup;
+    for (const [userId, verifiedRemoved] of verifiedRemovedByUser) {
+      const user: Model | null = await this.findOneBy({
+        query: {
+          _id: userId,
+        },
+        select: {
+          _id: true,
+          enableTwoFactorAuth: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!user?.enableTwoFactorAuth) {
+        continue;
+      }
+
+      const verifiedMethodCount: number =
+        await this.countVerifiedTwoFactorAuthMethods(new ObjectID(userId));
+
+      if (verifiedMethodCount - verifiedRemoved < 1) {
+        throw new BadDataException(TWO_FACTOR_AUTH_LAST_METHOD_MESSAGE);
+      }
+    }
   }
 
   /**

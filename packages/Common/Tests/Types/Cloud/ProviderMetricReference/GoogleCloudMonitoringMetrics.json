@@ -1,10 +1,12 @@
 {
-  "source": "https://cloud.google.com/monitoring/api/metrics_gcp (metrics_gcp_a_b, _c, _d_h, _i_o, _p_z)",
-  "readOn": "2026-11-18",
+  "source": "https://docs.cloud.google.com/monitoring/api/metrics_gcp (metrics_gcp_a_b, _c, _d_h, _i_o, _p_z), and https://docs.cloud.google.com/monitoring/api/metrics_agent for the Ops Agent's",
+  "readOn": "2026-11-19",
   "metrics": {
     "compute.googleapis.com/instance/cpu/utilization": {"displayName": "CPU utilization", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "10^2.%", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
     "compute.googleapis.com/instance/network/received_bytes_count": {"displayName": "Received bytes", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
     "compute.googleapis.com/instance/network/sent_bytes_count": {"displayName": "Sent bytes", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
+    "agent.googleapis.com/memory/percent_used": {"displayName": "Memory utilization", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "%", "monitoredResources": ["aws_ec2_instance", "baremetalsolution.googleapis.com/Instance", "gce_instance"], "page": "metrics_agent", "labels": ["state"]},
+    "agent.googleapis.com/disk/percent_used": {"displayName": "Disk utilization", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "%", "monitoredResources": ["aws_ec2_instance", "baremetalsolution.googleapis.com/Instance", "gce_instance"], "page": "metrics_agent", "labels": ["device", "state"]},
     "compute.googleapis.com/instance/memory/balloon/ram_used": {"displayName": "VM Memory Used", "launchStage": "GA", "kind": "GAUGE", "valueType": "INT64", "unit": "By", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
     "compute.googleapis.com/instance/disk/read_bytes_count": {"displayName": "Disk read bytes", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
     "compute.googleapis.com/instance/disk/write_bytes_count": {"displayName": "Disk write bytes", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
@@ -50,7 +52,6 @@
     "pubsub.googleapis.com/subscription/ack_message_count": {"displayName": "Ack message count", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "1", "monitoredResources": ["pubsub_subscription"], "page": "metrics_gcp_p_z"},
     "pubsub.googleapis.com/subscription/expired_ack_deadlines_count": {"displayName": "Expired ack deadlines count", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "1", "monitoredResources": ["pubsub_subscription"], "page": "metrics_gcp_p_z"},
     "pubsub.googleapis.com/subscription/dead_letter_message_count": {"displayName": "Dead letter message count", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "1", "monitoredResources": ["pubsub_subscription"], "page": "metrics_gcp_p_z"},
-    "pubsub.googleapis.com/topic/send_message_operation_count": {"displayName": "Publish message operations", "launchStage": "DEPRECATED", "kind": "DELTA", "valueType": "INT64", "unit": "1", "monitoredResources": ["pubsub_topic"], "page": "metrics_gcp_p_z"},
     "pubsub.googleapis.com/topic/send_request_count": {"displayName": "Publish requests", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "1", "monitoredResources": ["pubsub_topic"], "page": "metrics_gcp_p_z"},
     "pubsub.googleapis.com/topic/message_sizes": {"displayName": "Publish message size", "launchStage": "GA", "kind": "DELTA", "valueType": "DISTRIBUTION", "unit": "By", "monitoredResources": ["pubsub_topic"], "page": "metrics_gcp_p_z"},
     "redis.googleapis.com/stats/memory/usage_ratio": {"displayName": "Memory Usage Ratio", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "1", "monitoredResources": ["redis_instance"], "page": "metrics_gcp_p_z"},
@@ -95,5 +96,6 @@
     "file.googleapis.com/nfs/server/write_bytes_count": {"displayName": "Bytes written", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["filestore_instance"], "page": "metrics_gcp_d_h"},
     "file.googleapis.com/nfs/server/average_read_latency": {"displayName": "Average read latency", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "ms", "monitoredResources": ["filestore_instance"], "page": "metrics_gcp_d_h"},
     "file.googleapis.com/nfs/server/average_write_latency": {"displayName": "Average write latency", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "ms", "monitoredResources": ["filestore_instance"], "page": "metrics_gcp_d_h"}
-  }
+  },
+  "retired": {}
 }

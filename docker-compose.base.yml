@@ -425,7 +425,14 @@ services:
     # AggregatingMergeTree is an aggregate measure; staying on 25.7 here
     # diverged from production and let invalid aggregate schemas slip past the
     # E2E stack.
-    image: clickhouse/clickhouse-server:26.7
+    #
+    # Pinned to the patch, not the 26.7 line: ClickHouse builds its time zone
+    # data into the server, and it cuts charts' days, weeks and months in the
+    # reader's zone with it. 26.7.1 to 26.7.12 carry tzdata 2025a, in which
+    # British Columbia still falls back to UTC-8 on 2026-11-01 (#9999); an
+    # install that pulled "26.7" before 26.7.13 kept them. 26.7.38.18 carries
+    # 2026e. The Time Zone Data workflow says when a newer patch is needed.
+    image: clickhouse/clickhouse-server:26.7.38.18
     restart: always
     environment:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}
@@ -830,6 +837,11 @@ services:
       ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
       NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
       NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
+      # HTTP/2 for HOST on the HTTPS port, which the ingress serves itself only
+      # with PROVISION_SSL=true; OTLP over gRPC to HOST needs it. "on" here
+      # too, so a config.env from before the setting keeps it on. off in
+      # config.env turns it off (see config.example.env).
+      NGINX_HTTP2: ${NGINX_HTTP2:-on}
       # Per-request access logging for the high-volume ingest locations
       # (/otlp, /telemetry, /session-replay, /kubernetes-cost, /pyroscope).
       # Defaults to "on" here rather than to config.env, so an operator who has

@@ -13,7 +13,7 @@ An on-call policy decides who is paged about an incident or alert, and who is ne
 
 :::steps
 1. Go to **On-Call → On-Call Policies** and click **Create On-Call Policy**.
-2. Enter a **Name**, such as "Payments primary".
+2. Enter a **Name**, such as "Payments primary". A name another policy of the project has, an archived one included, is refused, whatever its case or spacing, so every picker tells the policies apart.
 3. Under **Who gets paged first?**, click **Add responder** and pick the on-call schedules, teams and people to page first.
 4. Click **Create On-Call Policy**. The policy opens on its **Escalation Rules** page, with **Level 1** in place.
 :::
@@ -26,7 +26,7 @@ The form also asks **Page this policy for every new incident and alert**, of peo
 
 To be walked through paging instead, from your phone to a test page, click **Guided setup**: on the empty **On-Call Policies** list, or under **How it works**. See [Get Paged by Phone, SMS or Push](/docs/guides/paging).
 
-The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
+The **On-Call Policies** list shows each policy's **Name**, **Paged First**, **Description**, **Labels** and **Owners**. **Paged First** is who the policy's first escalation rule pages: its schedules, each with who is on call in it now, its teams and its people, or **No escalation rules** or **No responders** where it pages nobody. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners. A policy that has the same name as another policy, from before names had to differ, is marked **Same name as another policy**, and the list says how many there are: compare their escalation rules, then rename one with **Rename** on its row.
 
 ## What runs a policy
 
@@ -157,7 +157,7 @@ Each row shows what triggered the run, when, its **Status** and who acknowledged
 Archiving takes a policy out of service and keeps everything: open the policy's **Settings** and click **Archive** on its archive card, or select policies in the list and choose **Archive**.
 
 - An archived policy pages no one. Incidents and alerts that use it skip it, and a run that is still escalating stops at its next step.
-- It leaves the **On-Call Policies** list for **On-Call → Advanced → Archived Policies**, where **Unarchive** puts it back in service.
+- It leaves the **On-Call Policies** list for **On-Call → Advanced → Archived Policies**, where **Unarchive** puts it back in service. It keeps its name: a new policy that asks for it is told to unarchive this one instead.
 
 **Delete Policy**, under **Advanced**, deletes the policy with its escalation rules and user overrides. The list's delete asks first, and suggests archiving instead.
 

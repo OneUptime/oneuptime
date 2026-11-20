@@ -3143,8 +3143,67 @@ jobs:
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
 
-  # Attaches the SBOMs, the infrastructure agent and the two apps to the
-  # draft, then publishes it. Nothing may write the release once it is
+  # The Android device agent's APK (agents/AndroidAgent), with the release's
+  # version, signed with apksigner (v1, v2 and v3: Esper refuses an APK with
+  # no v1 signature) from the ANDROID_AGENT_* secrets. Like the apps, it is
+  # waited for, not required: without the secrets, or with a failed build,
+  # the release goes out without the APK. agents/AndroidAgent/RELEASING.md
+  # says how the key and the secrets are made.
+  android-agent-build:
+    needs: [read-version]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install the Android SDK packages the agent builds with
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: Build the Android agent's release APK
+        working-directory: agents/AndroidAgent
+        run: ./gradlew assembleRelease -PagentVersion=${{ needs.read-version.outputs.major_minor }} --no-daemon --stacktrace
+
+      - name: Sign the Android agent's release APK
+        env:
+          ANDROID_AGENT_KEYSTORE_BASE64: ${{ secrets.ANDROID_AGENT_KEYSTORE_BASE64 }}
+          ANDROID_AGENT_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_AGENT_KEYSTORE_PASSWORD }}
+          ANDROID_AGENT_KEY_ALIAS: ${{ secrets.ANDROID_AGENT_KEY_ALIAS }}
+          ANDROID_AGENT_KEY_PASSWORD: ${{ secrets.ANDROID_AGENT_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_AGENT_KEYSTORE_BASE64" ]; then
+            echo "::error::The ANDROID_AGENT_KEYSTORE_BASE64 secret is not set, so this release has no Android agent APK. agents/AndroidAgent/RELEASING.md says how to make the key and set the secrets."
+            exit 1
+          fi
+          export ANDROID_AGENT_KEYSTORE_FILE="$RUNNER_TEMP/android-agent.jks"
+          printf '%s' "$ANDROID_AGENT_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_AGENT_KEYSTORE_FILE"
+          mkdir -p "$RUNNER_TEMP/release-android-agent"
+          agents/AndroidAgent/scripts/sign-release.sh \
+            agents/AndroidAgent/app/build/outputs/apk/release/app-release-unsigned.apk \
+            "$RUNNER_TEMP/release-android-agent/oneuptime-android-agent.apk"
+          rm -f "$ANDROID_AGENT_KEYSTORE_FILE"
+          (cd "$RUNNER_TEMP/release-android-agent" && sha256sum oneuptime-android-agent.apk > oneuptime-android-agent.apk.sha256)
+
+      - name: Keep the Android agent for the GitHub release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android-agent
+          path: ${{ runner.temp }}/release-android-agent/*
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+
+  # Attaches the SBOMs, the infrastructure agent, the Android agent and the
+  # two apps to the draft, then publishes it. Nothing may write the release once it is
   # published, so every attach is a step here, before the publish: 14.0.46
   # shipped without its Android APK (run 38267959528) when the upload job
   # finished three minutes after the publish, and GitHub answered the upload's
@@ -3168,7 +3227,7 @@ jobs:
   # all of this.
   finalize-github-release:
     name: Publish GitHub release
-    needs: [draft-github-release, helm-chart-deploy, generate-sboms, scan-sbom-vulnerabilities, infrastructure-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
+    needs: [draft-github-release, helm-chart-deploy, generate-sboms, scan-sbom-vulnerabilities, infrastructure-agent-build, android-agent-build, mobile-app-android-build, mobile-app-ios-build, generate-build-number, read-version]
     runs-on: ubuntu-latest
     if: >-
       ${{ !cancelled()
@@ -3239,6 +3298,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/infrastructure-agent/*
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
+
+      - name: Download the Android agent
+        if: needs.android-agent-build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-android-agent
+          path: release-assets/android-agent
+
+      - name: Attach the Android agent to release
+        if: needs.android-agent-build.result == 'success'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/android-agent/*
           fail_on_unmatched_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
@@ -3625,6 +3703,130 @@ jobs:
           WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
           WINGET_FORK_OWNER: ${{ vars.WINGET_FORK_OWNER }}
         run: bash ./Scripts/PackageManagers/PublishWingetManifests.sh
+
+  # ─── The Android device agent on Google Play ──────────────────────────
+  #
+  # This release's Android agent (agents/AndroidAgent) on Google Play, where
+  # managed Google Play lets every Android Enterprise device manager install
+  # it and keep it updated, and shows its managed configuration in the
+  # device manager's console: the release bundle, signed by
+  # scripts/sign-bundle.sh with the upload key from the ANDROID_AGENT_UPLOAD_*
+  # secrets, uploaded by Gradle Play Publisher with the service account in
+  # ANDROID_AGENT_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON, with the store listing in
+  # agents/AndroidAgent/app/src/main/play. It goes up as a draft on the
+  # internal testing track (agents/AndroidAgent/app/build.gradle.kts):
+  # nothing reaches a device until a maintainer rolls it out in the Play
+  # Console, and a re-run skips a version Play already has.
+  #
+  # It needs finalize-github-release, so Play gets a version only once it is
+  # released, and so runs only for `release`, after the e2e jobs pass. While
+  # its secrets are not set it is skipped with a notice: the Play app, the
+  # upload key and the service account are one-time setup only a maintainer
+  # can do (agents/AndroidAgent/RELEASING.md), and a release must not fail
+  # without them. Tests/Ops/AndroidAgentRelease.test.js holds all of this.
+  publish-android-agent-to-google-play:
+    name: Publish the Android agent to Google Play
+    needs: [read-version, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Each run opens an edit of the app on Play, and committing one throws
+    # away the others. One at a time; none cancelled.
+    concurrency:
+      group: android-agent-google-play
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secrets
+        id: secrets
+        env:
+          ANDROID_AGENT_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_AGENT_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_AGENT_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_AGENT_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_AGENT_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_AGENT_UPLOAD_KEY_ALIAS }}
+          ANDROID_AGENT_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_AGENT_UPLOAD_KEY_PASSWORD }}
+          ANDROID_AGENT_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.ANDROID_AGENT_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          missing=""
+          for secret in ANDROID_AGENT_UPLOAD_KEYSTORE_BASE64 ANDROID_AGENT_UPLOAD_KEYSTORE_PASSWORD ANDROID_AGENT_UPLOAD_KEY_ALIAS ANDROID_AGENT_UPLOAD_KEY_PASSWORD ANDROID_AGENT_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON; do
+            if [ -z "${!secret:-}" ]; then
+              missing="$missing $secret"
+            fi
+          done
+          if [ -z "$missing" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Google Play skipped::The Android agent was not published to Google Play, since these secrets are not set:$missing. See agents/AndroidAgent/RELEASING.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - uses: actions/setup-java@v4
+        if: steps.secrets.outputs.publish == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - name: Install the Android SDK packages the agent builds with
+        if: steps.secrets.outputs.publish == 'true'
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: Build the Android agent's release bundle
+        if: steps.secrets.outputs.publish == 'true'
+        working-directory: agents/AndroidAgent
+        env:
+          AGENT_VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: ./gradlew bundleRelease -PagentVersion="$AGENT_VERSION" --no-daemon --stacktrace
+
+      - name: Sign the bundle with the upload key
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          ANDROID_AGENT_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_AGENT_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_AGENT_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_AGENT_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_AGENT_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_AGENT_UPLOAD_KEY_ALIAS }}
+          ANDROID_AGENT_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_AGENT_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export ANDROID_AGENT_UPLOAD_KEYSTORE_FILE="$RUNNER_TEMP/android-agent-upload.jks"
+          # The keystore is gone when the step ends, whether it signed or not.
+          trap 'rm -f "$ANDROID_AGENT_UPLOAD_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_AGENT_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_AGENT_UPLOAD_KEYSTORE_FILE"
+          mkdir -p "$RUNNER_TEMP/android-agent-google-play"
+          agents/AndroidAgent/scripts/sign-bundle.sh \
+            agents/AndroidAgent/app/build/outputs/bundle/release/app-release.aab \
+            "$RUNNER_TEMP/android-agent-google-play/oneuptime-android-agent.aab"
+
+      # Kept whatever Play says next: the first bundle must be uploaded in
+      # the Play Console by hand (RELEASING.md), and this is one to upload.
+      - name: Keep the signed bundle
+        if: steps.secrets.outputs.publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-agent-google-play-bundle
+          path: ${{ runner.temp }}/android-agent-google-play/oneuptime-android-agent.aab
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+
+      # Gradle Play Publisher reads the service account's key from
+      # ANDROID_PUBLISHER_CREDENTIALS. --artifact-dir uploads the bundle
+      # signed above, as it is, instead of building one.
+      - name: Publish the bundle and the store listing to Google Play
+        if: steps.secrets.outputs.publish == 'true'
+        working-directory: agents/AndroidAgent
+        env:
+          AGENT_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_AGENT_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          ./gradlew \
+            publishReleaseBundle --artifact-dir "$RUNNER_TEMP/android-agent-google-play" \
+            publishReleaseListing \
+            -PagentVersion="$AGENT_VERSION" --no-daemon --stacktrace
 
   # Publish Android app to Google Play Store.
   # This job only runs when manually triggered via workflow_dispatch with publish_android_to_store=true.

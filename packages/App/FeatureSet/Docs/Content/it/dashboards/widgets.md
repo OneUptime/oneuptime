@@ -49,7 +49,11 @@ Questi quattro widget leggono una query di metriche, costruita come la costruisc
 
 ### Grafico
 
-Una serie temporale di una o più query di metriche nell'intervallo di tempo della dashboard. **Tipo di grafico** la disegna come grafico a linee, a barre, ad aree, ad aree sovrapposte o a torta. **Query aggiuntive** sovrappone altre metriche sugli stessi assi, e **Formule** le combina con `+`, `-`, `*`, `/`, `%`, `^` e parentesi, come in `(1 - a) * 100`. Le impostazioni di visualizzazione di ogni query aggiungono una legenda e un'unità, un colore, linee di avviso e critiche, e una frequenza al secondo per i contatori che crescono soltanto.
+Una serie temporale di una o più query di metriche nell'intervallo di tempo della dashboard. **Tipo di grafico** la disegna come grafico a linee, a barre, ad aree, ad aree sovrapposte o a torta. **Aggiungi query** aggiunge un'altra query di metriche, e **Aggiungi formula** una formula per combinarle con `+`, `-`, `*`, `/`, `%`, `^` e parentesi, come in `(1 - a) * 100`. Le **Impostazioni di visualizzazione** di ogni query aggiungono una legenda e un'unità, un colore, linee di avviso e critiche, e una frequenza al secondo per i contatori che crescono soltanto.
+
+Ogni query disegna un proprio grafico, uno sotto l'altro nel widget. Per disegnare invece una query sul grafico della query precedente, come altre linee sugli stessi assi, attiva **Sovrapponi alla query precedente** nelle sue **Impostazioni di visualizzazione**: per esempio `mem_used` e `mem_total` in un solo grafico. Ogni query dopo la prima ha questo interruttore, e ogni query che lo ha attivo si unisce allo stesso grafico, quindi tre o più query possono condividerne uno. Disattivalo per ridare alla query un grafico proprio.
+
+Un grafico sovrapposto prende il titolo, il tipo di grafico e l'asse dei valori dalla sua prima query, quindi ogni query al suo interno si legge nell'unità di quella query. Una query in un'altra unità dello stesso tipo viene disegnata nell'unità del grafico, come megabyte su un grafico in gigabyte, o secondi su un grafico in millisecondi. Un'unità di un altro tipo non si può leggere su quell'asse, come byte su un grafico in percentuale: la query viene comunque disegnata lì, e sia il grafico sia l'interruttore indicano che le unità sono diverse, quindi dai a una query del genere un grafico proprio.
 
 Usalo quando è la forma della linea a raccontare la storia: latenza, errori, throughput o profondità di una coda.
 

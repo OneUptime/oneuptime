@@ -5,6 +5,7 @@ Das Inventar ist eine einzige Liste von allem, was OneUptime über Ihre Umgebung
 :::cards
 - [Wie Elemente ins Inventar kommen](#wie-elemente-ins-inventar-kommen): Erkannt, gespiegelt oder von Ihnen hinzugefügt.
 - [Sich zurechtfinden](#sich-zurechtfinden): Die Seiten des Inventars und die eigenen Seiten jedes Elements.
+- [Geräte aus Esper importieren](#geräte-aus-esper-importieren): Jedes Android-Gerät, das Ihr Esper-Tenant registriert, stets aktuell.
 - [Etwas von Hand hinzufügen](#etwas-von-hand-hinzufügen): Eine Drittanbieter-API, eine externe Datenbank oder eine Appliance.
 - [Archivieren statt löschen](#archivieren-statt-löschen): Der Weg, die Liste aufzuräumen, der Bestand hat.
 :::
@@ -25,14 +26,14 @@ flowchart TB
 | Quelle | In der API | Woher es kommt | Wie lange es bleibt |
 | --- | --- | --- | --- |
 | **Erkannt** | `discovered` | OpenTelemetry-Ressourcenattribute, gelesen, sobald Telemetrie eintrifft: ein Dienst, ein Host, ein Kubernetes-Objekt oder eine virtuelle Maschine, die Telemetrie senden. | Wird mit jedem Batch erneut registriert. Wird entfernt, sobald es länger als das Zeitfenster seiner Art still war (siehe unten). |
-| **Gespiegelt** | `inventory` | Ein Datensatz, den ein OneUptime-Poller pflegt: Netzwerkgeräte, Cloud-Ressourcen, IoT-Geräte, Serverless-Funktionen, RUM-Anwendungen, Docker-Hosts und Podman-Hosts. Wird alle 15 Minuten kopiert. | So lange wie sein Datensatz. Löschen Sie den Datensatz, verschwindet das Element mit ihm. |
+| **Gespiegelt** | `inventory` | Ein Datensatz, den ein OneUptime-Poller pflegt: Netzwerkgeräte, Cloud-Ressourcen, IoT-Geräte, Serverless-Funktionen, RUM-Anwendungen, Docker-Hosts, Podman-Hosts und die Android-Geräte, die eine Esper-Verbindung importiert. Wird alle 15 Minuten kopiert, ein Esper-Gerät jedes Mal, wenn seine Verbindung gelesen wird. | So lange wie sein Datensatz. Löschen Sie den Datensatz, verschwindet das Element mit ihm. |
 | **Von Ihnen hinzugefügt** | `manual` | Von Ihnen hinzugefügt, für etwas, das OneUptime nicht sehen kann: eine Drittanbieter-API, eine vom Anbieter verwaltete Datenbank, eine Appliance im Rack. | Bis Sie es löschen. Nichts lässt es ablaufen. |
 
 Ein erkanntes oder gespiegeltes Element kann nicht umbenannt werden und keinen anderen Typ bekommen: Seine Quelle würde die Änderung beim nächsten Durchlauf überschreiben. Die Seite **Einstellungen** des Elements sagt stattdessen, wo eine dauerhafte Änderung hingehört. Was Sie jedem Element jederzeit hinzufügen können, egal aus welcher Quelle, sind Werte benutzerdefinierter Felder: siehe [Benutzerdefinierte Inventarfelder](/docs/inventory/custom-fields).
 
 ### Wie lange ein stilles Element bleibt
 
-Ein erkanntes Element hat einen Herzschlag. Jedes Mal, wenn Telemetrie für es eintrifft, rückt sein Zeitpunkt der letzten Sichtung vor, und die Spalte **Status** der Liste zeigt, wie aktuell das ist. Gespiegelte Elemente und die von Ihnen hinzugefügten haben keinen Herzschlag, also bleibt ihr Status leer, statt Alarm zu schlagen.
+Ein erkanntes Element hat einen Herzschlag. Jedes Mal, wenn Telemetrie für es eintrifft, rückt sein Zeitpunkt der letzten Sichtung vor, und die Spalte **Status** der Liste zeigt, wie aktuell das ist. Das gilt auch für ein Android-Gerät aus Esper: jedes Mal, wenn es sich bei Esper meldet. Andere gespiegelte Elemente und die von Ihnen hinzugefügten haben keinen Herzschlag, also bleibt ihr Status leer, statt Alarm zu schlagen.
 
 | Status | Bedeutung |
 | --- | --- |
@@ -58,8 +59,9 @@ Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lan
 | --- | --- |
 | **Übersicht** | Wie viele Elemente Sie haben, was sie sind, wie viele verstummt sind und was zuletzt hinzugekommen ist. |
 | **Alle Elemente** | Jedes Element. Suchen Sie nach Name, Beschreibung oder Identitätsschlüssel, grenzen Sie die Liste nach Typ, Quelle, Status oder benutzerdefiniertem Feld ein und fügen Sie ein Element von Hand hinzu. |
+| **Verwaltete Geräte** | Ihre Esper-Verbindungen und jedes Android-Gerät, das sie importieren, mit Status, Gruppe, Modell und Android-Version. |
 | **Topologiekarte** | Wie die Elemente verbunden sind: Dienste, was sie aufrufen, und die Hosts, Pods und Geräte, auf denen sie laufen. |
-| **Verstummt** | Die erkannten Elemente, die seit mehr als einem Tag keine Telemetrie gesendet haben. |
+| **Verstummt** | Die Elemente, von denen seit mehr als einem Tag nichts zu hören war: erkannte Elemente, die keine Telemetrie gesendet haben, und Geräte, die sich nicht mehr bei Esper melden. |
 | **Nach Quelle** | Die Elemente einer Quelle: **Erkannt**, **Gespiegelt** oder **Von Ihnen hinzugefügt**. |
 | **Einstellungen → Benutzerdefinierte Felder** | Die Felder, die Ihr Projekt an jedem Element führt. |
 | **Hilfe → Dokumentation** | Eine kurze Anleitung zum Inventar mit den Arten von Elementen, die es erkennt. |
@@ -69,7 +71,7 @@ Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lan
 
 ### Asset-Details
 
-Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
+Ein Host oder ein Netzwerkgerät hat eine Karte **Asset-Details**, die beide auf dieselbe Weise beschreibt: Hostname, IP-Adresse, MAC-Adresse, Seriennummer, Hersteller, Modell, Firmware-Version, Betriebssystem, Betriebssystemversion, Gerätetyp und Standort. Die Karte eines Android-Geräts enthält außerdem seine Sicherheitspatch-Ebene, vom Android-Agenten oder von Esper. Ein Fakt, den nichts gemeldet hat, lautet **Unbekannt**, und die Karte sagt, warum das so ist und wie die unbekannten ausgefüllt werden: ein Gerät, das sie nicht über SNMP meldet, ein noch nicht gelesenes Gerät oder ein Meraki-Gerät, dessen Dashboard sie enthält.
 
 - Die Fakten eines Hosts stammen aus den Ressourcenattributen seiner Telemetrie: seine IP- und MAC-Adressen, Architektur und Betriebssystem von Haus aus, und seine Seriennummer, Marke, Modell und Firmware, sobald Sie sie aufprägen.
 - Die Fakten eines Netzwerkgeräts stammen aus seiner SNMP-Abfrage, seiner Rolle und seinem Standort. Was seine Abfrage nicht gelesen hat, stammt aus der Erkennung: dem letzten Scan seiner Adresse, der ARP-Tabelle eines Routers oder der DNS-Abfrage seiner Sonde. Ein Gerät ohne ENTITY-MIB, etwa ein Meraki MX, erhält Marke, Modell und Betriebssystem trotzdem aus seiner Systembeschreibung und seine MAC-Adresse von seinen eigenen Ports. Seine IP-Adresse wird nie als sein Hostname angezeigt.
@@ -84,6 +86,53 @@ Dieselben Fakten sind Spalten der Liste **Alle Elemente**, ausgeblendet, bis Sie
 ### Verbindungen
 
 Die Seite **Verbindungen** eines Elements listet seine Nachbarn in beide Richtungen auf, gruppiert in **Aufrufe**, **Aufgerufen von**, **Läuft auf** und **Zugehörig**. Jede Gruppe zeigt ihre Gesamtzahl (eine Gruppe mit mehr als 100.000 Verbindungen zeigt „100.000+"), und **Mehr anzeigen** blättert durch den Rest, sodass ein ausgelasteter Cluster, Namespace oder Knoten jede Verbindung zeigt statt nur der ersten. Die Seite ist an keinen Zeitraum gebunden: Sie enthält Beziehungen, die von Hand über die API hinzugefügt wurden, und archivierte Nachbarn. Ein Nachbar, der nicht mehr im Inventar ist, wird mit seinem Schlüssel angezeigt.
+
+## Geräte aus Esper importieren
+
+Verbinden Sie einen Esper-Tenant, und jedes Android-Gerät, das er registriert, steht im Inventar, auch die Geräte, deren App nie gestartet wurde. Jedes Gerät ist ein Host, mit dem, was nur Esper darüber weiß: seine Gruppe, seine Android-Version, sein Build und seine Sicherheitspatch-Ebene, seine Seriennummer und IMEI, sein Akku und Speicher und seine installierten Apps. Esper sendet nichts von selbst, daher liest OneUptime es nach Zeitplan: die Geräte alle 15 Minuten und die Apps jedes Geräts alle 6 Stunden.
+
+:::steps
+### Einen API-Schlüssel in Esper erstellen
+
+Erstellen Sie in der Esper-Konsole einen Schlüssel unter API Key Management. OneUptime liest nur, daher genügt der Schlüssel eines Benutzers, dessen Esper-Rolle Geräte, Gruppen und Apps lesen darf. Ein Schlüssel funktioniert nicht mehr, sobald er ersetzt oder sein Benutzer gelöscht wird.
+
+### Den Tenant verbinden
+
+Gehen Sie zu **Produkte → Ressourcen → Inventar**, dann zu **Verwaltete Geräte**, und klicken Sie auf **Esper verbinden**. Geben Sie den **Tenant** ein, also den Namen vor `.esper.cloud` in der Adresse Ihrer Esper-Konsole (`acme` für `acme.esper.cloud`), und den **API-Schlüssel**. **Weitere Felder** enthält den Namen der Verbindung und wie oft sie gelesen wird.
+
+### Den ersten Lesevorgang prüfen
+
+**Verbinden** testet den Schlüssel, bevor etwas gespeichert wird, und zeigt, wie viele Android-Geräte ein Lesevorgang importieren wird, oder was falsch ist und wie es sich beheben lässt. Der erste Lesevorgang beginnt innerhalb einer Minute, und die Zeile der Verbindung zeigt, wie er verlaufen ist.
+:::
+
+| Was Esper meldet | Wo es erscheint |
+| --- | --- |
+| Modell, Hersteller, Seriennummer, Android-Version, Build sowie IP- und MAC-Adressen | Die Karte **Asset-Details** des Geräts und die Spalten von **Alle Elemente** |
+| Status, letzter Kontakt, Gruppe, Sicherheitspatch-Ebene, IMEI, Akku, Speicher und Esper-Agent | Die Karte **Esper** des Geräts und die Liste **Geräte** unter **Verwaltete Geräte** |
+| Apps und ihre Versionen | Die Liste **Installierte Apps** des Geräts |
+
+### Ein Gerät, nicht zwei
+
+Telemetrie, die eine App oder der Android-Agent von einem Gerät sendet, landet beim selben Element wie das Gerät, das Esper importiert, wenn sie das Gerät so benennt wie Esper. Setzen Sie diese Ressourcenattribute aus der verwalteten Konfiguration, die Esper auf jedem Gerät ausfüllt:
+
+| Ressourcenattribut | Wert der verwalteten Konfiguration | Was es ist |
+| --- | --- | --- |
+| `host.name` | `${esper.deviceName}` | Der Name des Geräts in Esper, etwa `ESP-ID-AAAAW`. Erforderlich. |
+| `host.serial_number` | `${esper.serialNumber}` | Die Seriennummer des Geräts. Optional. |
+
+OneUptime findet das Element eines Geräts über seinen Namen in Esper, dann über seine Seriennummer, und legt nur dann eines an, wenn keines passt. Der Android-Agent setzt beide aus seinen Einstellungen `device_name` und `device_serial`, und [Einrichtung für Android](/docs/rum/android-setup#die-flotte-aus-esper-importieren) zeigt die verwaltete Konfiguration einer App.
+
+### Wenn ein Gerät verstummt oder Esper verlässt
+
+Ein Gerät, das sich 30 Minuten lang nicht bei Esper gemeldet hat, ist **Offline** und zeigt, wie lange sein letzter Kontakt her ist. Der **Status** seines Elements folgt seinem letzten Kontakt oder seiner Telemetrie, wenn diese neuer ist, sodass ein Gerät, das einen Tag lang still war, auf der Seite **Verstummt** steht.
+
+Ein aus Esper entferntes Gerät wird als **Entfernt** markiert, und sein Element wird archiviert: Es verschwindet aus der Liste und wartet unter **Erweitert → Archiviert**. Ein Gerät, das zu Esper zurückkehrt, kehrt auch in die Liste zurück. 30 Tage, nachdem es Esper verlassen hat, wird das Gerät gelöscht und mit ihm sein Element, es sei denn, Telemetrie oder Sie haben dem Element etwas hinzugefügt.
+
+### Eine Warnung erhalten, wenn sich ein Gerät nicht mehr meldet
+
+Klicken Sie unter **Verwaltete Geräte** in der Zeile der Verbindung auf **Warnungen einrichten**, und erstellen Sie **Esper Device Stopped Checking In**. Der Monitor öffnet für jedes Gerät, das sich seit mehr als einer Stunde nicht bei Esper gemeldet hat, eine eigene Warnung, die nach dem Gerät benannt ist, und behebt sie, sobald sich das Gerät wieder meldet.
+
+Jeder Lesevorgang der Verbindung hält als Metrik `oneuptime.managed_device.check_in.age` fest, vor wie vielen Minuten sich jedes Gerät zuletzt gemeldet hat, und der Monitor prüft alle 5 Minuten den neuesten Wert jedes Geräts. Ein Gerät, auf dem auch der Android-Agent läuft, bleibt **Host Stopped Reporting** überlassen, sodass es nie doppelt warnt, und die Warnung eines aus Esper entfernten Geräts wird behoben. Ein fehlgeschlagener Lesevorgang hält nichts fest, sodass bis zum nächsten keine Warnung geöffnet oder behoben wird. Für eine Flotte, die nachts ausgeschaltet wird, erhöhen Sie den Schwellenwert des Monitors.
 
 ## Etwas von Hand hinzufügen
 

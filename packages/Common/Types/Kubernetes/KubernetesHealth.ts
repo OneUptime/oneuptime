@@ -1,4 +1,11 @@
 import { JSONObject } from "../JSON";
+import { StorageUsageLevel } from "../../Utils/Storage/StorageUsage";
+import {
+  KubernetesStorageRow,
+  KubernetesStorageVerdict,
+  assessKubernetesNodeStorage,
+  assessKubernetesVolumeClaimStorage,
+} from "./KubernetesStorageHealth";
 
 /*
  * WHAT IN A KUBERNETES CLUSTER NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -17,7 +24,8 @@ import { JSONObject } from "../JSON";
  *     CreateContainerConfigError, ...), its init containers too; a
  *     Deployment, StatefulSet or DaemonSet with none of its replicas
  *     available; a rollout past its progress deadline; a volume claim that
- *     lost its volume; a volume whose reclaim failed.
+ *     lost its volume; a volume whose reclaim failed; a claim's or a node's
+ *     disk almost out of space (90% used, or a claim with no inode free).
  *   Warning - needs a look soon:
  *     a node under memory, disk or PID pressure; a workload short of
  *     replicas while no rollout explains it; a DaemonSet on nodes it
@@ -25,7 +33,9 @@ import { JSONObject } from "../JSON";
  *     minutes (with the scheduler's reason); a container OOMKilled in the
  *     last hour; a pod evicted or failed in the last hour; a Job that
  *     failed (the newest run of a CronJob); a claim waiting for a volume;
- *     an autoscaler at its maximum or unable to scale.
+ *     an autoscaler at its maximum or unable to scale; a claim's or a
+ *     node's disk nearly full (80% used). A disk counts only by a fresh
+ *     reading, the metrics' not the snapshot's (KubernetesStorageHealth).
  *
  * What is never a problem by itself: a completed pod or Job, a workload
  * scaled to zero or paused, a suspended CronJob, a cordoned node (it is a
@@ -114,9 +124,12 @@ export interface KubernetesHealthAssessment {
 /*
  * An inventory row as the rules read it: the KubernetesResource columns,
  * whether they come from Postgres on the server or from ModelAPI in the
- * Dashboard. spec and status hold what KubernetesObjectParser parsed.
+ * Dashboard. spec and status hold what KubernetesObjectParser parsed. A
+ * claim's and a node's disk columns (KubernetesStorageRow) are what the
+ * metrics last reported; a reader that leaves them out gets the verdict of
+ * the snapshot alone.
  */
-export interface KubernetesHealthRow {
+export interface KubernetesHealthRow extends KubernetesStorageRow {
   kind?: string | null | undefined;
   namespaceKey?: string | null | undefined;
   name?: string | null | undefined;
@@ -224,6 +237,34 @@ const REASON_AT_MAXIMUM: { one: string; other: string } = {
 };
 const REASON_CANNOT_SCALE: string = translationKey("Can't scale: {{reason}}");
 const REASON_LAST_RUN_FAILED: string = translationKey("Last run failed");
+// A rollout OpenShift could not start or finish, for a reason of its own.
+const STATUS_ROLLOUT_FAILED: string = translationKey("Rollout failed");
+const REASON_ROLLOUT_FAILED: string = translationKey("Rollout failed");
+// Its controller cannot create its pods: a quota, an admission webhook.
+const REASON_CANNOT_CREATE_PODS: string = translationKey(
+  "Can't create pods: {{reason}}",
+);
+
+/*
+ * Why a namespace being deleted is still there, by the conditions the
+ * namespace controller sets on it while it deletes what is in it. The
+ * first three are failures; the last two say what it still waits for.
+ */
+const NAMESPACE_DELETION_FAILURES: Record<string, string> = {
+  NamespaceDeletionDiscoveryFailure: translationKey(
+    "Can't discover its resources",
+  ),
+  NamespaceDeletionGroupVersionParsingFailure: translationKey(
+    "Can't read its resource types",
+  ),
+  NamespaceDeletionContentFailure: translationKey("Can't delete its content"),
+};
+const NAMESPACE_DELETION_WAITS: Record<string, string> = {
+  NamespaceContentRemaining: translationKey("Resources remain"),
+  NamespaceFinalizersRemaining: translationKey("Finalizers remain"),
+};
+// The namespace controller's own finalizer: every namespace carries it.
+const NAMESPACE_CONTROLLER_FINALIZER: string = "kubernetes";
 
 /*
  * ---------------------------------------------------------------------------
@@ -264,6 +305,21 @@ function readNumber(source: Json, key: string): number | null {
 function readBoolean(source: Json, key: string): boolean {
   const value: unknown = source[key];
   return value === true || value === "true";
+}
+
+// A list of names, as the parsers keep one: blanks and anything else left out.
+function readStrings(source: Json, key: string): Array<string> {
+  const value: unknown = source[key];
+  return Array.isArray(value)
+    ? value
+        .filter((item: unknown): item is string => {
+          return typeof item === "string";
+        })
+        .map((item: string): string => {
+          return item.trim();
+        })
+        .filter(Boolean)
+    : [];
 }
 
 function toTime(value: unknown): number | null {
@@ -333,6 +389,7 @@ interface ContainerStatus {
   lastTerminationReason: string;
   lastTerminationExitCode: number | null;
   lastTerminatedAt: number | null;
+  restartCount: number;
 }
 
 function readContainerStatuses(
@@ -350,6 +407,7 @@ function readContainerStatuses(
       lastTerminationReason: readString(container, "lastTerminationReason"),
       lastTerminationExitCode: readNumber(container, "lastTerminationExitCode"),
       lastTerminatedAt: toTime(container["lastTerminatedAt"]),
+      restartCount: Math.max(0, readNumber(container, "restartCount") ?? 0),
     };
   });
 }
@@ -583,19 +641,76 @@ function worse(
   return a || b;
 }
 
-function lastRestartReason(container: ContainerStatus): KubernetesHealthText {
-  const reason: string = container.lastTerminationReason;
+function severityRank(severity: KubernetesHealthSeverity | null): number {
+  if (severity === KubernetesHealthSeverity.Critical) {
+    return 2;
+  }
+  return severity === KubernetesHealthSeverity.Warning ? 1 : 0;
+}
+
+/*
+ * An object's verdict with its disk's (KubernetesStorageHealth): the disk
+ * leads when it is the worse - a Ready node almost out of disk reads "Disk
+ * almost full" - and otherwise adds its reasons after the object's own, so
+ * a node not ready still reads "Not ready", with its full disk among why.
+ */
+function withStorage(
+  assessment: KubernetesHealthAssessment,
+  storage: KubernetesStorageVerdict | null,
+): KubernetesHealthAssessment {
+  if (!storage) {
+    return assessment;
+  }
+
+  const severity: KubernetesHealthSeverity =
+    storage.level === StorageUsageLevel.Critical
+      ? KubernetesHealthSeverity.Critical
+      : KubernetesHealthSeverity.Warning;
+
+  if (severityRank(severity) > severityRank(assessment.severity)) {
+    return {
+      ...assessment,
+      severity: severity,
+      status: storage.status,
+      tone:
+        severity === KubernetesHealthSeverity.Critical ? "danger" : "warning",
+      reasons: [...storage.reasons, ...assessment.reasons],
+    };
+  }
+
+  return {
+    ...assessment,
+    reasons: [...assessment.reasons, ...storage.reasons],
+  };
+}
+
+/*
+ * How a container's previous run ended, as a list says it under its state:
+ * "Last restart: Error, exit code 2". An OOM kill's code and a clean exit's
+ * add nothing to the word.
+ */
+export function getKubernetesLastRestartReason(termination: {
+  reason: string;
+  exitCode: number | null;
+}): KubernetesHealthText {
   if (
-    container.lastTerminationExitCode !== null &&
-    reason !== "OOMKilled" &&
-    container.lastTerminationExitCode !== 0
+    termination.exitCode !== null &&
+    termination.reason !== "OOMKilled" &&
+    termination.exitCode !== 0
   ) {
     return text(REASON_LAST_RESTART_WITH_CODE, {
-      reason: reason,
-      code: String(container.lastTerminationExitCode),
+      reason: termination.reason,
+      code: String(termination.exitCode),
     });
   }
-  return text(REASON_LAST_RESTART, { reason: reason });
+  return text(REASON_LAST_RESTART, { reason: termination.reason });
+}
+
+function lastRestartReason(container: ContainerStatus): KubernetesHealthText {
+  return getKubernetesLastRestartReason({
+    reason: container.lastTerminationReason,
+    exitCode: container.lastTerminationExitCode,
+  });
 }
 
 /*
@@ -885,7 +1000,221 @@ export function assessKubernetesPod(
   return healthy(text(STATUS_NO_DATA), "neutral");
 }
 
+/*
+ * ONE CONTAINER OF A POD, FOR ITS OWN PAGE.
+ *
+ * The pod's rules, for the container they are asked about: its waiting or
+ * terminated reason in Kubernetes' own word, its exit code, how its last
+ * run ended and since when, and its restarts - what a "NotReady" row of the
+ * Containers list opened on, where the page said only its name (#9595).
+ */
+export interface KubernetesContainerAssessment
+  extends KubernetesHealthAssessment {
+  // The container's own name, and whether it runs before the others.
+  container: string;
+  isInit: boolean;
+  restarts: number;
+  ready: boolean;
+  // Its state as the kubelet reports it: running, waiting or terminated.
+  state: string;
+  exitCode: number | null;
+  // How its previous run ended, and when: kubectl describe's Last State.
+  lastTermination: {
+    reason: string;
+    exitCode: number | null;
+    at?: number | undefined;
+  } | null;
+}
+
+export function assessKubernetesContainer(
+  row: KubernetesHealthRow,
+  container: { name: string; isInit?: boolean | undefined },
+  options?: KubernetesHealthOptions,
+): KubernetesContainerAssessment | null {
+  const status: Json = asObject(row.status);
+  const main: Array<ContainerStatus> = readContainerStatuses(
+    status,
+    "containerStatuses",
+  );
+  const init: Array<ContainerStatus> = readContainerStatuses(
+    status,
+    "initContainerStatuses",
+  );
+  const named: (statuses: Array<ContainerStatus>) => ContainerStatus | null = (
+    statuses: Array<ContainerStatus>,
+  ): ContainerStatus | null => {
+    return (
+      statuses.find((candidate: ContainerStatus): boolean => {
+        return candidate.name === container.name;
+      }) || null
+    );
+  };
+
+  // A name the page was not told the kind of: the main containers first.
+  const fromInit: ContainerStatus | null =
+    container.isInit === false ? null : named(init);
+  const fromMain: ContainerStatus | null =
+    container.isInit === true ? null : named(main);
+  const found: ContainerStatus | null =
+    container.isInit === true ? fromInit : fromMain || fromInit;
+
+  if (!found) {
+    return null;
+  }
+
+  const isInit: boolean = found === fromInit && found !== fromMain;
+  const clock: Clock = clockOf(row, options);
+  const conditions: Array<Condition> = readConditions(status);
+  const createdAt: number | null = toTime(row.resourceCreationTimestamp);
+
+  const lastTermination: KubernetesContainerAssessment["lastTermination"] =
+    found.lastTerminationReason
+      ? {
+          reason: found.lastTerminationReason,
+          exitCode: found.lastTerminationExitCode,
+          at: found.lastTerminatedAt ?? undefined,
+        }
+      : null;
+
+  const base: Omit<
+    KubernetesContainerAssessment,
+    "severity" | "status" | "tone" | "reasons"
+  > = {
+    container: found.name,
+    isInit: isInit,
+    restarts: found.restartCount,
+    ready: found.ready,
+    state: found.state,
+    exitCode: found.exitCode,
+    lastTermination: lastTermination,
+  };
+
+  // A run that ended in the last hour for its memory says so.
+  const isRecentOomKill: boolean =
+    found.lastTerminationReason === "OOMKilled" &&
+    found.lastTerminatedAt !== null &&
+    clock.observedAt - found.lastTerminatedAt <= KUBERNETES_HEALTH_RECENT_MS;
+
+  if (
+    found.state === "waiting" &&
+    KUBERNETES_FAILING_WAIT_REASONS.has(found.reason)
+  ) {
+    const reasons: Array<KubernetesHealthText> = [asWritten(found.reason)];
+    if (found.lastTerminationReason) {
+      reasons.push(lastRestartReason(found));
+    }
+    return {
+      ...base,
+      severity: KubernetesHealthSeverity.Critical,
+      status: asWritten(found.reason),
+      tone: "danger",
+      reasons: reasons,
+      message: found.message || undefined,
+      since: sinceOf(
+        notReadySinceOf(conditions),
+        found.lastTerminatedAt,
+        createdAt,
+      ),
+    };
+  }
+
+  if (found.state === "waiting") {
+    // ContainerCreating, PodInitializing: starting, in Kubernetes' word.
+    return {
+      ...base,
+      severity: null,
+      status: found.reason ? asWritten(found.reason) : text(STATUS_PENDING),
+      tone: "warning",
+      reasons: [],
+      message: found.message || undefined,
+    };
+  }
+
+  if (found.state === "terminated") {
+    if (!found.reason || found.reason === "Completed") {
+      return {
+        ...base,
+        severity: null,
+        status: text(STATUS_COMPLETED),
+        tone: "neutral",
+        reasons: [],
+      };
+    }
+    const ended: KubernetesHealthText = endedReason(
+      found.reason,
+      found.exitCode,
+    );
+    return {
+      ...base,
+      severity: KubernetesHealthSeverity.Warning,
+      status: ended,
+      tone: "danger",
+      reasons: [ended],
+      message: found.message || undefined,
+      since: sinceOf(notReadySinceOf(conditions)),
+    };
+  }
+
+  if (!found.ready) {
+    const ready: Condition | undefined = findCondition(conditions, "Ready");
+    const notReadySince: number | null = notReadySinceOf(conditions);
+    const isLong: boolean =
+      notReadySince === null
+        ? clock.age >= KUBERNETES_HEALTH_GRACE_MS
+        : clock.observedAt - notReadySince >= KUBERNETES_HEALTH_GRACE_MS;
+    const reasons: Array<KubernetesHealthText> = isLong
+      ? [text(REASON_NOT_READY)]
+      : [];
+    if (isRecentOomKill) {
+      reasons.push(lastRestartReason(found));
+    }
+    return {
+      ...base,
+      severity: reasons.length > 0 ? KubernetesHealthSeverity.Warning : null,
+      status: text(STATUS_NOT_READY),
+      tone: "warning",
+      reasons: reasons,
+      message: isLong ? ready?.message || undefined : undefined,
+      since: isLong ? sinceOf(notReadySince) : undefined,
+    };
+  }
+
+  if (isRecentOomKill) {
+    return {
+      ...base,
+      severity: KubernetesHealthSeverity.Warning,
+      status: text(STATUS_RUNNING),
+      tone: "positive",
+      reasons: [lastRestartReason(found)],
+      since: sinceOf(found.lastTerminatedAt),
+    };
+  }
+
+  return {
+    ...base,
+    severity: null,
+    status: text(STATUS_RUNNING),
+    tone: "positive",
+    reasons: [],
+  };
+}
+
+/*
+ * A node's verdict: its conditions (assessKubernetesNodeState) and, from a
+ * fresh reading, its disks.
+ */
 export function assessKubernetesNode(
+  row: KubernetesHealthRow,
+  options?: KubernetesHealthOptions,
+): KubernetesHealthAssessment {
+  return withStorage(
+    assessKubernetesNodeState(row),
+    assessKubernetesNodeStorage(row, clockOf(row, options).observedAt),
+  );
+}
+
+// What a node's conditions say about it: ready, reachable, under pressure.
+function assessKubernetesNodeState(
   row: KubernetesHealthRow,
 ): KubernetesHealthAssessment {
   const status: Json = asObject(row.status);
@@ -989,6 +1318,43 @@ export function assessKubernetesNode(
 }
 
 /*
+ * Its controller could not create its pods (a ReplicaFailure condition,
+ * as a Deployment and a DeploymentConfig report it): a quota exceeded, an
+ * admission webhook that refused them - why it is short of replicas, in
+ * Kubernetes' word ("FailedCreate"), its message saying the rest.
+ */
+function replicaFailureOf(conditions: Array<Condition>): Condition | undefined {
+  return conditions.find((condition: Condition): boolean => {
+    return condition.type === "ReplicaFailure" && condition.status === "True";
+  });
+}
+
+function cannotCreatePods(failure: Condition): KubernetesHealthText {
+  return text(REASON_CANNOT_CREATE_PODS, {
+    reason: failure.reason || failure.type,
+  });
+}
+
+/*
+ * A shortfall's verdict with the reason its pods are missing, when the
+ * controller says it could not create them.
+ */
+function withReplicaFailure(
+  assessment: KubernetesHealthAssessment,
+  failure: Condition | undefined,
+): KubernetesHealthAssessment {
+  if (!failure || !assessment.severity) {
+    return assessment;
+  }
+  return {
+    ...assessment,
+    reasons: [...assessment.reasons, cannotCreatePods(failure)],
+    message: assessment.message || failure.message || undefined,
+    since: assessment.since ?? sinceOf(failure.lastTransitionTime),
+  };
+}
+
+/*
  * Replicas short of the ones wanted: all of them gone is critical once the
  * workload has had time to start; some of them, a warning - unless a
  * rollout under way explains it.
@@ -1042,6 +1408,7 @@ export function assessKubernetesDeployment(
     conditions,
     "Progressing",
   );
+  const replicaFailure: Condition | undefined = replicaFailureOf(conditions);
 
   if (desired === null) {
     return healthy(text(STATUS_NO_DATA), "neutral");
@@ -1061,12 +1428,18 @@ export function assessKubernetesDeployment(
         }),
       );
     }
+    // Often why it is stuck: its new pods could not be created.
+    if (replicaFailure) {
+      reasons.push(cannotCreatePods(replicaFailure));
+    }
     return {
       severity: KubernetesHealthSeverity.Critical,
       status: text(STATUS_ROLLOUT_STUCK),
       tone: "danger",
       reasons: reasons,
-      message: progressing.message || undefined,
+      message: progressing.message || replicaFailure?.message || undefined,
+      // When Kubernetes gave up on it.
+      since: sinceOf(progressing.lastTransitionTime),
     };
   }
 
@@ -1091,17 +1464,20 @@ export function assessKubernetesDeployment(
     return healthy(text(STATUS_ROLLING_OUT), "neutral");
   }
 
-  return assessReplicaShortfall({
-    have: available,
-    want: desired,
-    clock: clock,
-    isRollingOut: isRollingOut,
-    shortfall: text(REASON_AVAILABLE_OF, {
-      available: String(available),
-      desired: String(desired),
+  return withReplicaFailure(
+    assessReplicaShortfall({
+      have: available,
+      want: desired,
+      clock: clock,
+      isRollingOut: isRollingOut,
+      shortfall: text(REASON_AVAILABLE_OF, {
+        available: String(available),
+        desired: String(desired),
+      }),
+      healthyStatus: isPaused ? text(STATUS_PAUSED) : text(STATUS_AVAILABLE),
     }),
-    healthyStatus: isPaused ? text(STATUS_PAUSED) : text(STATUS_AVAILABLE),
-  });
+    replicaFailure,
+  );
 }
 
 export function assessKubernetesStatefulSet(
@@ -1270,8 +1646,15 @@ export function assessKubernetesVolumeClaim(
     };
   }
 
+  /*
+   * A bound claim is fine until its disk is nearly full, by a reading a
+   * running pod reported lately.
+   */
   if (phase === "Bound") {
-    return healthy(text(STATUS_BOUND));
+    return withStorage(
+      healthy(text(STATUS_BOUND)),
+      assessKubernetesVolumeClaimStorage(row, clock.observedAt),
+    );
   }
 
   return healthy(phase ? asWritten(phase) : text(STATUS_NO_DATA), "neutral");
@@ -1368,10 +1751,22 @@ export function assessKubernetesAutoscaler(
 }
 
 /*
- * An OpenShift DeploymentConfig, from its stored state (the phase ingest
- * writes, OpenShiftObjectParser.getDeploymentConfigState): none of its
- * replicas available is critical once it has had time to start. A
- * partial one may be mid-rollout, and its page says so.
+ * A DeploymentConfig's rollout that ended on purpose: someone cancelled it
+ * (`oc rollout cancel`, which rolls back to the version before) or paused
+ * the config. Neither is a failure.
+ */
+const DEPLOYMENT_CONFIG_ROLLOUT_ENDED_ON_PURPOSE: ReadonlySet<string> =
+  new Set<string>(["RolloutCancelled", "DeploymentConfigPaused"]);
+
+/*
+ * An OpenShift DeploymentConfig: its rollout as OpenShift's conditions say
+ * it, then its replicas. A rollout that failed - past its deadline
+ * (ProgressDeadlineExceeded) or one OpenShift could not create
+ * (ReplicationControllerCreateError) - is critical, in OpenShift's words,
+ * with its message and when it failed: the page used to say "Unavailable"
+ * and nothing else (#9595). None of its replicas available is critical once
+ * it has had time to start; a partial one may be mid-rollout, unless its
+ * pods cannot be created (ReplicaFailure), which says why.
  */
 export function assessKubernetesDeploymentConfig(
   row: KubernetesHealthRow,
@@ -1382,41 +1777,197 @@ export function assessKubernetesDeploymentConfig(
   const status: Json = asObject(row.status);
   const desired: number = readNumber(spec, "replicas") ?? 0;
   const available: number = readNumber(status, "availableReplicas") ?? 0;
+  const conditions: Array<Condition> = readConditions(status);
+  const progressing: Condition | undefined = findCondition(
+    conditions,
+    "Progressing",
+  );
+  const replicaFailure: Condition | undefined = replicaFailureOf(conditions);
+  const shortfall: KubernetesHealthText = text(REASON_AVAILABLE_OF, {
+    available: String(available),
+    desired: String(desired),
+  });
 
   if (readBoolean(spec, "paused")) {
     return healthy(text(STATUS_PAUSED), "neutral");
   }
+
+  if (
+    progressing?.status === "False" &&
+    progressing.reason &&
+    !DEPLOYMENT_CONFIG_ROLLOUT_ENDED_ON_PURPOSE.has(progressing.reason)
+  ) {
+    const isPastDeadline: boolean =
+      progressing.reason === "ProgressDeadlineExceeded";
+    const reasons: Array<KubernetesHealthText> = isPastDeadline
+      ? [text(REASON_ROLLOUT_STUCK)]
+      : [text(REASON_ROLLOUT_FAILED), asWritten(progressing.reason)];
+    if (desired > 0 && available < desired) {
+      reasons.push(shortfall);
+    }
+    if (replicaFailure) {
+      reasons.push(cannotCreatePods(replicaFailure));
+    }
+    return {
+      severity: KubernetesHealthSeverity.Critical,
+      status: text(
+        isPastDeadline ? STATUS_ROLLOUT_STUCK : STATUS_ROLLOUT_FAILED,
+      ),
+      tone: "danger",
+      reasons: reasons,
+      message: progressing.message || replicaFailure?.message || undefined,
+      since: sinceOf(progressing.lastTransitionTime),
+    };
+  }
+
   if (desired === 0) {
     return healthy(text(STATUS_SCALED_TO_ZERO), "neutral");
   }
   if (available >= desired) {
     return healthy(text(STATUS_AVAILABLE));
   }
-  if (available > 0 || clock.age < KUBERNETES_HEALTH_GRACE_MS) {
-    return healthy(text(STATUS_ROLLING_OUT), "neutral");
+  if (available <= 0 && clock.age >= KUBERNETES_HEALTH_GRACE_MS) {
+    return withReplicaFailure(
+      {
+        severity: KubernetesHealthSeverity.Critical,
+        status: shortfall,
+        tone: "danger",
+        reasons: [shortfall],
+      },
+      replicaFailure,
+    );
   }
-  const shortfall: KubernetesHealthText = text(REASON_AVAILABLE_OF, {
-    available: String(available),
-    desired: String(desired),
-  });
-  return {
-    severity: KubernetesHealthSeverity.Critical,
-    status: shortfall,
-    tone: "danger",
-    reasons: [shortfall],
-  };
+  // Short, and its pods cannot be created: no rollout explains that.
+  if (replicaFailure && clock.age >= KUBERNETES_HEALTH_GRACE_MS) {
+    return withReplicaFailure(
+      {
+        severity: KubernetesHealthSeverity.Warning,
+        status: shortfall,
+        tone: "warning",
+        reasons: [shortfall],
+      },
+      replicaFailure,
+    );
+  }
+  return healthy(text(STATUS_ROLLING_OUT), "neutral");
 }
 
+/*
+ * A namespace is Active, or Terminating while Kubernetes deletes what is in
+ * it. A deletion takes seconds; one that is stuck says why, from the
+ * conditions the namespace controller sets on it (#9595): it could not
+ * discover, read or delete its content - a failure, at once - or resources
+ * or finalizers remain after the grace period, Kubernetes' message naming
+ * which ("Some resources are remaining: pods. has 2 resource instances").
+ * A finalizer an operator put on the namespace itself holds it too, after
+ * its content is gone. "Terminating since" is when the controller first
+ * marked the deletion.
+ */
 export function assessKubernetesNamespace(
   row: KubernetesHealthRow,
+  options?: KubernetesHealthOptions,
 ): KubernetesHealthAssessment {
-  const phase: string = readString(asObject(row.status), "phase");
-  if (phase === "Terminating") {
+  const status: Json = asObject(row.status);
+  const phase: string = readString(status, "phase");
+
+  if (phase !== "Terminating") {
+    return healthy(
+      phase === "Active" || !phase ? text(STATUS_ACTIVE) : asWritten(phase),
+    );
+  }
+
+  const clock: Clock = clockOf(row, options);
+  const conditions: Array<Condition> = readConditions(status);
+  const isDeletionCondition: (condition: Condition) => boolean = (
+    condition: Condition,
+  ): boolean => {
+    return Boolean(
+      NAMESPACE_DELETION_FAILURES[condition.type] ||
+        NAMESPACE_DELETION_WAITS[condition.type],
+    );
+  };
+  const failures: Array<Condition> = conditions.filter(
+    (condition: Condition): boolean => {
+      return (
+        condition.status === "True" &&
+        Boolean(NAMESPACE_DELETION_FAILURES[condition.type])
+      );
+    },
+  );
+  const waits: Array<Condition> = conditions.filter(
+    (condition: Condition): boolean => {
+      return (
+        condition.status === "True" &&
+        Boolean(NAMESPACE_DELETION_WAITS[condition.type])
+      );
+    },
+  );
+  // An operator's finalizer on the namespace itself, not the controller's.
+  const finalizers: Array<string> = readStrings(
+    asObject(row.spec),
+    "finalizers",
+  ).filter((finalizer: string): boolean => {
+    return finalizer !== NAMESPACE_CONTROLLER_FINALIZER;
+  });
+
+  const reasons: Array<KubernetesHealthText> = [
+    ...failures.map((condition: Condition): KubernetesHealthText => {
+      return text(NAMESPACE_DELETION_FAILURES[condition.type] as string);
+    }),
+    ...waits.map((condition: Condition): KubernetesHealthText => {
+      return text(NAMESPACE_DELETION_WAITS[condition.type] as string);
+    }),
+  ];
+  if (
+    finalizers.length > 0 &&
+    !waits.some((condition: Condition): boolean => {
+      return condition.type === "NamespaceFinalizersRemaining";
+    })
+  ) {
+    reasons.push(
+      text(NAMESPACE_DELETION_WAITS["NamespaceFinalizersRemaining"]!),
+    );
+  }
+
+  const markedAt: Array<number> = conditions
+    .filter(isDeletionCondition)
+    .map((condition: Condition): number | null => {
+      return condition.lastTransitionTime;
+    })
+    .filter((time: number | null): time is number => {
+      return time !== null;
+    });
+  const since: number | null =
+    markedAt.length > 0 ? Math.min(...markedAt) : null;
+
+  const isStuck: boolean =
+    reasons.length > 0 &&
+    (failures.length > 0 ||
+      (since !== null &&
+        clock.observedAt - since >= KUBERNETES_HEALTH_GRACE_MS));
+
+  if (!isStuck) {
     return healthy(text(STATUS_TERMINATING), "warning");
   }
-  return healthy(
-    phase === "Active" || !phase ? text(STATUS_ACTIVE) : asWritten(phase),
-  );
+
+  // Kubernetes' own words for what holds it, each as it wrote it.
+  const messages: Array<string> = [...failures, ...waits]
+    .map((condition: Condition): string => {
+      return condition.message;
+    })
+    .filter(Boolean);
+  if (messages.length === 0 && finalizers.length > 0) {
+    messages.push(finalizers.join(", "));
+  }
+
+  return {
+    severity: KubernetesHealthSeverity.Warning,
+    status: text(STATUS_TERMINATING),
+    tone: "warning",
+    reasons: reasons,
+    message: messages.length > 0 ? messages.join("; ") : undefined,
+    since: sinceOf(since),
+  };
 }
 
 /*
@@ -1432,7 +1983,7 @@ export function assessKubernetesResource(
     case "Pod":
       return assessKubernetesPod(row, options);
     case "Node":
-      return assessKubernetesNode(row);
+      return assessKubernetesNode(row, options);
     case "Deployment":
       return assessKubernetesDeployment(row, options);
     case "StatefulSet":
@@ -1452,7 +2003,7 @@ export function assessKubernetesResource(
     case "DeploymentConfig":
       return assessKubernetesDeploymentConfig(row, options);
     case "Namespace":
-      return assessKubernetesNamespace(row);
+      return assessKubernetesNamespace(row, options);
     default:
       return healthy(
         row.phase ? asWritten(row.phase) : text(STATUS_NO_DATA),
@@ -1504,6 +2055,12 @@ export interface KubernetesAttentionFinding {
   message?: string | undefined;
   // How many of its pods need attention, for a workload that has some.
   podCount?: number | undefined;
+  /*
+   * For a claim: a pod in its namespace that mounts it - the workload that
+   * writes to it - which the cluster's Needs attention read adds
+   * (KubernetesResourceService.getNeedsAttention). The rules leave it out.
+   */
+  pod?: string | undefined;
 }
 
 // The order the kinds are listed in at one severity.

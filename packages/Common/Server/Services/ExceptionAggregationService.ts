@@ -19,6 +19,13 @@ import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
+import { STORED_APP_INSTALLATION_ID_ATTRIBUTE } from "../../Types/Rum/MobileAppTelemetry";
+
+/*
+ * The install an occurrence names (#9716): the attribute ingest copies onto
+ * it from its span's or log's resource. A constant key, written inline.
+ */
+const INSTALL_EXPRESSION: string = `attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}']`;
 
 export interface HistogramBucket {
   time: string;
@@ -50,6 +57,35 @@ export interface HistogramRequest extends ExceptionFilters {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+}
+
+/*
+ * How many sessions the matching exceptions happened in, over a window: a
+ * mobile app's sessions a crash ended, for its crash-free share (#9588).
+ */
+export interface SessionCountRequest extends ExceptionFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  /*
+   * Count the installs too (#9716): the distinct `app.installation.id` an
+   * occurrence's span or log named, which ingest keeps on the occurrence.
+   */
+  countInstalls?: boolean | undefined;
+}
+
+export interface SessionCountResult {
+  // The distinct session ids; an occurrence with none ('') is no session.
+  sessions: number;
+  // Every matching occurrence, with a session or not.
+  occurrences: number;
+  // The distinct installs, when asked for; an occurrence with none is no install.
+  installs?: number | undefined;
+  /*
+   * The occurrences that name their install, when asked for: fewer than
+   * every occurrence means some installs could not be told.
+   */
+  occurrencesWithInstall?: number | undefined;
 }
 
 export interface FacetValue {
@@ -114,6 +150,83 @@ export class ExceptionAggregationService {
         count: Number(row["cnt"] || 0),
       };
     });
+  }
+
+  /*
+   * The sessions the matching exceptions happened in, and how many
+   * occurrences matched (SessionCountResult): one row, through the same
+   * filters as the histogram, so "unhandled, ANRs left out" counts the
+   * sessions a crash ended.
+   */
+  @CaptureSpan()
+  public static async getSessionCount(
+    request: SessionCountRequest,
+  ): Promise<SessionCountResult> {
+    const statement: Statement =
+      ExceptionAggregationService.buildSessionCountStatement(request);
+
+    const dbResult: Results =
+      await ExceptionInstanceService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const row: JSONObject = (response.data || [])[0] || {};
+
+    return {
+      sessions: Number(row["sessions"] || 0),
+      occurrences: Number(row["cnt"] || 0),
+      ...(request.countInstalls
+        ? {
+            installs: Number(row["installs"] || 0),
+            occurrencesWithInstall: Number(row["withInstall"] || 0),
+          }
+        : {}),
+    };
+  }
+
+  /*
+   * `uniqIf`, as TraceAggregationService counts a scope's sessions and
+   * installs, so the two counts a crash-free share divides are made the
+   * same way.
+   */
+  public static buildSessionCountStatement(
+    request: SessionCountRequest,
+  ): Statement {
+    const statement: Statement = new Statement();
+
+    statement.append(
+      "SELECT uniqIf(sessionId, sessionId != '') AS sessions, count() AS cnt",
+    );
+
+    if (request.countInstalls) {
+      statement.append(
+        `, uniqIf(${INSTALL_EXPRESSION}, ${INSTALL_EXPRESSION} != '') AS installs, countIf(${INSTALL_EXPRESSION} != '') AS withInstall`,
+      );
+    }
+
+    statement.append(SQL`
+      FROM ${ExceptionAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND time >= ${{
+          type: TableColumnType.Date,
+          value: request.startTime,
+        }}
+        AND time <= ${{
+          type: TableColumnType.Date,
+          value: request.endTime,
+        }}
+    `);
+
+    statement.append(" AND retentionDate >= now()");
+
+    ExceptionAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    return statement;
   }
 
   @CaptureSpan()

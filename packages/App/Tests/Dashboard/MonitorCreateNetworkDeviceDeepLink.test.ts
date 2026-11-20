@@ -496,3 +496,82 @@ describe("a device's web UI", () => {
     );
   });
 });
+
+/*
+ * ISSUE #9545: a monitor made by hand is tied to the network device it
+ * checks (Monitor.networkDeviceId) - what lists it on the device's pages and
+ * keeps an import from giving the device a second monitor like it.
+ */
+describe("a monitor made by hand is tied to its device (#9545)", () => {
+  test("a monitor made from a device's page is tied to that device, whichever shape the link opened", () => {
+    const linkBranch: string = sliceBetween({
+      code: readCode(CREATE_PAGE),
+      from: "preSeedFromNetworkDeviceLink(networkDeviceId).finally(() => {",
+      to: "setIsLoading(false);",
+    });
+
+    expect(linkBranch).toContain(
+      "if (ObjectID.isValidUUID(networkDeviceId) && canReadMonitorDevice()) {",
+    );
+    expect(linkBranch).toContain(
+      "setInitialValues((current: JSONObject): JSONObject => { return { ...current, networkDevice: networkDeviceId }; });",
+    );
+  });
+
+  test("Create Monitor asks the device under More fields, for a kind that checks a host, of a reader who may read devices", () => {
+    const field: string = sliceBetween({
+      code: readCode(CREATE_PAGE),
+      from: "...(canReadMonitorDevice() ? [ getMonitorNetworkDeviceFormField({",
+      to: "] : []),",
+    });
+
+    expect(field).toContain('stepId: "monitor-info",');
+    expect(field).toContain("collapsibleSection: MONITOR_INFO_MORE_FIELDS,");
+    expect(field).toContain(
+      "return isDeviceTargetMonitorType( values.monitorType as MonitorType | undefined, );",
+    );
+  });
+
+  test("the device's Monitors card adds a monitor someone made, by tying it to the device", () => {
+    const card: string = readCode(DEVICE_MONITORS_CARD);
+
+    expect(card).toContain('title="Add Existing Monitor"');
+    // Only the monitors a person made that check a host and are no device's yet.
+    expect(card).toContain(
+      "monitorType: new Includes([...DEVICE_TARGET_MONITOR_TYPES]), networkDeviceId: new IsNull(), autoProvisionedNetworkDeviceId: new IsNull(),",
+    );
+    expect(card).toContain("query: ADDABLE_MONITOR_QUERY,");
+    // The tie is the whole write: nothing else about the monitor changes.
+    expect(card).toContain(
+      "data: { networkDeviceId: new ObjectID(props.networkDeviceId), },",
+    );
+    // A refusal is said in the dialog, which stays open; nothing is read again.
+    expect(card).toContain(
+      "} catch (err) { setAddExistingError(API.getFriendlyMessage(err)); setIsSavingAddExisting(false); return; }",
+    );
+    // For a reader who may write the tie, on a page that reads the card again.
+    expect(card).toContain(
+      'PermissionGate.checkColumnUpdate(new Monitor(), "networkDeviceId") .isAllowed;',
+    );
+    expect(card).toContain("props.onMonitorAdded?.();");
+  });
+
+  // A page's one way to read its device's monitors again: bumping a count.
+  const READS_MONITORS_AGAIN: RegExp =
+    /const readMonitorsAgain: \(\) => void = \(\): void => \{ set\w*ReadCount\(/;
+
+  test("both device pages read their monitors again once one is added or removed (#9676)", () => {
+    for (const page of ["Index.tsx", "Monitors.tsx"]) {
+      const code: string = readCode(
+        path.join(DASHBOARD_SRC, "Pages", "NetworkDevice", "View", page),
+      );
+
+      expect({
+        page,
+        added: code.includes("onMonitorAdded={readMonitorsAgain}"),
+        removed: code.includes("onMonitorRemoved={readMonitorsAgain}"),
+        readsAgain: READS_MONITORS_AGAIN.test(code),
+      }).toEqual({ page, added: true, removed: true, readsAgain: true });
+    }
+  });
+});

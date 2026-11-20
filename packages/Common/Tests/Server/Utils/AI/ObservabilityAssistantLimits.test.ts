@@ -1,4 +1,5 @@
 import ObservabilityAssistant, {
+  ExtraToolCall,
   ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
@@ -1264,6 +1265,53 @@ describe("ObservabilityAssistant — run-scoped tools", () => {
       "llm_started",
       "llm_completed",
     ]);
+  });
+
+  /*
+   * Issue #6496: a command a run starts near its time limit waits no longer
+   * than the run has left. The loop hands each extra tool call the deadline
+   * it stops at itself, so a toolkit built without one still plans by it.
+   */
+  test("hands each extra tool call the deadline the loop stops at", async () => {
+    useClock();
+    const startedAtMs: number = nowMs;
+    const spies: ReturnType<typeof installSpies> = installSpies();
+    const calls: Array<ExtraToolCall | undefined> = [];
+
+    spies.execute
+      .mockImplementationOnce((async (): Promise<AILogResponse> => {
+        // The first model call took four minutes.
+        nowMs += 4 * MINUTE_MS;
+        return toolCallResponse("a", "run_kubectl", {
+          command: "kubectl get pods -n web",
+        });
+      }) as never)
+      .mockResolvedValueOnce(response({ content: "Answer." }) as never);
+
+    await ask({
+      runLimits: AIAgentRunLimitsHelper.fromSettings({
+        timeLimitInMinutes: 10,
+      }),
+      extraTools: [
+        {
+          definition: {
+            name: "run_kubectl",
+            description: "run_kubectl",
+            inputSchema: { type: "object", properties: {} },
+          },
+          execute: async (
+            _args: JSONObject,
+            call?: ExtraToolCall | undefined,
+          ): Promise<ToolCallOutcome> => {
+            calls.push(call);
+            return outcome("web-7d9f-abc Running");
+          },
+        },
+      ],
+    });
+
+    // Ten minutes from when the run started, not from when the call came.
+    expect(calls).toEqual([{ runDeadlineAtMs: startedAtMs + 10 * MINUTE_MS }]);
   });
 
   test("an excluded tool is refused even when the model names it", async () => {

@@ -107,6 +107,10 @@ OpenTelemetry Android registrerer alt dette av seg selv. Enhetsattributtene den 
 
 Krasj og ANR-er havner i **Unntak** som uhåndterte, gruppert etter stack trace, sammen med økten de skjedde i. Agenten lagrer et krasj på disk idet appen dør, og sender det derfra, så et krasj som skjer uten nett, kommer likevel inn når appen kjører igjen med nettverk.
 
+Applikasjonens side **Oversikt** leser av dette for deg: **Økter**, **Krasjfrie økter**, **Krasj**, **ANR-er**, **Appoppstarter**, **Kaldstart (p95)** og **Frosne rammer**, som hver åpner unntakene, spennene eller hendelsene den teller. Til appen sender appoppstarter eller rammer, forteller diagrammene deres hva som slår dem på. Siden **Anbefalinger** tilbyr monitorer for krasj, ANR-er, trege kaldstarter, frosne rammer, og en app eller en av enhetene dens som slutter å rapportere.
+
+Under **Krasjfrie økter** viser linjen den samme andelen av installasjonene: `app.installation.id` som OpenTelemetry Android 1.1 og nyere setter på hvert spenn og hver logg, en ID som beholdes så lenge appen er installert, og som derfor kan stå for appens brukere. For en app med hundrevis av økter i timen, der ett krasj om dagen er normalt, varsler **App Crash Rate** og **App ANR Rate** ved andelen av øktene i en time som krasjet eller frøs, over grensene til Android vitals på 1,09 % og 0,47 %, i stedet for ved hvert enkelt krasj.
+
 En økt avsluttes etter 15 minutter i bakgrunnen, eller etter 4 timer. En app som aldri går i bakgrunnen, for eksempel en kiosk, beholder én økt i 4 timer, så spor hver kundes besøk som et eget spenn, slik [Spor dine egne arbeidsflyter](#spor-dine-egne-arbeidsflyter) viser.
 
 Appens egne `android.util.Log`-kall blir også logger når du legger til `android-log-library` og `android-log-agent` ved siden av OkHttp-modulene nedenfor: Taggen til hvert kall havner i `android.log.tag`, og et kall med en throwable blir et unntak i **Unntak**. OpenTelemetry Android leser ikke Logcat.
@@ -219,7 +223,36 @@ resource {
 }
 ```
 
-Appens telemetri blir værende hos RUM-applikasjonen, og enheten blir ikke en vert under **Verter**: En app rapporterer ingen vertsmålinger, så det ville ikke vært noe å vise der. Enhetens side i **Inventar** viser dens egne logger, spor og unntak, og `@resource.host.name:` finner dem i **Spor** og **Logger**. En enhet som ikke sender noe på 30 dager, forsvinner fra **Inventar**.
+Appens telemetri blir værende hos RUM-applikasjonen, og enheten blir ikke en vert under **Verter**: En app rapporterer ingen vertsmålinger, så det ville ikke vært noe å vise der. Enhetens side i **Inventar** viser dens egne logger, spor og unntak, og `@resource.host.name:` finner dem i **Spor** og **Logger**. En enhet som ikke sender noe på 30 dager, forsvinner fra **Inventar**. For å se selve enheten, minnet, lagringen og omstartene dens og krasjene i alle appene på den, legger du til [Android-agent](/docs/telemetry/android-agent) og gir den samme navn i `device_name`: Enheten blir da også en vert under **Verter**, og er fortsatt ett element i **Inventar**.
+
+### Få vite når en enhet blir stille
+
+Applikasjonens side **Anbefalinger** tilbyr **Device Stopped Reporting**: et varsel for hver enhet som ikke sender spenn på en time etter å ha sendt noen den siste uken, skilt fra hverandre med `app.installation.id` som agenten setter. Varselet for hver enhet nevner installasjonen, og løses så snart enheten rapporterer igjen. Når alle enhetene blir stille samtidig, for eksempel når nettverket i en butikk går ned, varsler ingen enhet: **App Stopped Reporting** rapporterer det én gang for hele appen.
+
+En kiosk som står på én skjerm, sender ingenting før noen bruker den. Send et spenn med noen minutters mellomrom mens appen kjører, så en kiosk som står ubrukt, ikke forveksles med en som har blitt stille:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Start den når agenten har startet, med `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Et spenn hvert femte minutt holder en kiosk som virker, godt innenfor timen.
 
 ### Konfigurer flåten fra MDM-en
 
@@ -246,6 +279,12 @@ Gi deretter `token` til `baseHeaders` i stedet for `BuildConfig.ONEUPTIME_TOKEN`
 ```
 
 Kjør Converge på enhetene etter en endring, slik at de leser de nye verdiene. Deklarer de samme nøklene i en `app_restrictions.xml` hvis MDM-en din ber om et skjema. Esper avviser en APK uten v1-signatur, så signer utgivelsen med v1-signaturskjemaet i tillegg til v2 eller v3.
+
+### Importer flåten fra Esper
+
+Koble Esper-leieren din til inventaret, og alle enheter Esper registrerer, vises, også enhetene der appen aldri har startet, med det bare Esper vet: gruppe, Android-versjon, sikkerhetspatchnivå, serienummer, batteri, lagring, installerte apper og siste innsjekking. En enhet som slutter å sjekke inn, vises som offline, med hvor lenge siden den sist gjorde det. Se [Importer enheter fra Esper](/docs/inventory/overview#importer-enheter-fra-esper).
+
+En enhet som appen gir navn som ovenfor, er ett element med det appen sender: `host.name` er navnet i Esper. OneUptime finner elementet til en enhet etter `host.name` og deretter etter `host.serial_number`, så gi hver enhet samme navn og serienummer i alle apper som rapporterer fra den, og i innstillingene `device_name` og `device_serial` til Android Agent.
 
 ### Behold det som registreres uten nett
 
@@ -279,6 +318,7 @@ Bare en enhet der appen setter `host.name`, blir listet opp. Sjekk verdien i res
 
 :::cards
 - [Mobiloppsett](/docs/rum/mobile-setup): iOS, React Native og de andre plattformene.
+- [Android-agent](/docs/telemetry/android-agent): Overvåk selve enheten: tilstanden, omstartene, de installerte appene og krasjene i alle apper.
 - [Unntak](/docs/telemetry/exceptions): Gå gjennom krasjene og ANR-ene appen din rapporterer.
 - [Sporutforsker](/docs/telemetry/traces-explorer): Følg en bestilling fra kiosken til kjøkkenet.
 - [Administrere applikasjoner](/docs/rum/applications): Navn, etiketter, eiere og oppbevaring.

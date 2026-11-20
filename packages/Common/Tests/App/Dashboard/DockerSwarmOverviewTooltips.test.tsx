@@ -394,7 +394,10 @@ describe("Docker Swarm overview page", () => {
     );
     await flush();
 
-    expect(screen.getByText("prod-swarm")).toBeInTheDocument();
+    // The hero names it; a swarm's own row in Needs attention may too.
+    expect(
+      screen.getByRole("heading", { level: 1, name: "prod-swarm" }),
+    ).toBeInTheDocument();
 
     return result;
   }
@@ -416,6 +419,223 @@ describe("Docker Swarm overview page", () => {
       expect(href).toContain(CLUSTER_ID);
       expect(href.endsWith(path)).toBe(true);
     }
+  });
+
+  /*
+   * "1/2 nodes ready" said a node was not ready, never which or why
+   * (#9594): beside the chip, the count of what is wrong opens exactly
+   * those, and the chip still opens the whole list.
+   */
+  test("a node not ready and a task failing are counts beside their chips that open which, and why", async () => {
+    mockInventory = [
+      ...inventory().filter((candidate: DockerSwarmResource): boolean => {
+        return candidate.externalId !== "node/b";
+      }),
+      row({
+        kind: "Node",
+        externalId: "node/b",
+        name: "worker-1",
+        state: "down",
+        role: "worker",
+        isReady: false,
+        attributes: { availability: "active", message: "heartbeat failure" },
+      }),
+      row({
+        kind: "Task",
+        externalId: "task/t3",
+        name: "shop_web.3",
+        state: "failed",
+        isReady: false,
+        serviceName: "shop_web",
+        nodeHostname: "worker-1",
+        attributes: {
+          desiredState: "running",
+          error: "task: non-zero exit (1)",
+        },
+      }),
+    ];
+
+    await renderOverview();
+
+    // The chip still opens the whole list.
+    expect(
+      screen.getByTestId("docker-swarm-hero-nodes").getAttribute("href") || "",
+    ).toMatch(/\/nodes$/);
+
+    const notReady: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-nodes-not-ready",
+    );
+    expect(notReady.tagName).toBe("BUTTON");
+    expect(notReady).toHaveTextContent("1 node not ready");
+    expect(notReady).toHaveAttribute("data-tone", "danger");
+    expect(notReady).toHaveAttribute("title", "Show which nodes and why");
+
+    fireEvent.click(notReady);
+    const nodeRow: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-nodes-not-ready-dialog-item",
+    );
+    expect(nodeRow).toHaveTextContent("worker-1");
+    expect(nodeRow).toHaveTextContent("Down");
+    expect(nodeRow).toHaveTextContent("heartbeat failure");
+    expect(
+      within(nodeRow).getByTestId(
+        "docker-swarm-hero-nodes-not-ready-dialog-view",
+      ),
+    ).toHaveAttribute("href", expect.stringContaining(CLUSTER_ID));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]!);
+
+    const failing: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-tasks-failing",
+    );
+    expect(failing).toHaveTextContent("1 task failing");
+    fireEvent.click(failing);
+    const taskRow: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-tasks-failing-dialog-item",
+    );
+    expect(taskRow).toHaveTextContent("shop_web.3");
+    expect(taskRow).toHaveTextContent("task: non-zero exit (1)");
+    // Which service and node it is, each a step from its page.
+    expect(
+      within(taskRow)
+        .getAllByTestId("docker-swarm-hero-tasks-failing-dialog-fact")
+        .map((fact: HTMLElement): string => {
+          return fact.getAttribute("data-fact") || "";
+        }),
+    ).toEqual(["service", "node"]);
+  });
+
+  test("nothing wrong among the nodes and tasks: no count beside them", async () => {
+    await renderOverview();
+
+    expect(
+      screen.queryByTestId("docker-swarm-hero-nodes-not-ready"),
+    ).toBeNull();
+    expect(screen.queryByTestId("docker-swarm-hero-tasks-failing")).toBeNull();
+    // Its one manager leads: nothing to say beside "1 manager".
+    expect(
+      screen.queryByTestId("docker-swarm-hero-managers-out-of-reach"),
+    ).toBeNull();
+  });
+
+  /*
+   * A swarm that lost its managers' majority said "3 managers" and nothing
+   * else (#9729): after the chip, the managers it cannot count on open,
+   * with the swarm's row saying what that costs it.
+   */
+  function managerRow(
+    id: string,
+    name: string,
+    managerStatus: string,
+    init: RowInit = {},
+  ): DockerSwarmResource {
+    return row({
+      kind: "Node",
+      externalId: `node/${id}`,
+      name: name,
+      state: "ready",
+      role: "manager",
+      isReady: true,
+      ...init,
+      attributes: {
+        managerStatus: managerStatus,
+        isLeader: managerStatus === "Leader",
+        availability: "active",
+        ...(init.attributes || {}),
+      },
+    });
+  }
+
+  test("a swarm that lost its managers' majority: the managers chip is followed by which managers and why", async () => {
+    mockInventory = [
+      ...inventory(),
+      managerRow("m2", "manager-2", "Unreachable", {
+        attributes: { addr: "10.0.0.12" },
+      }),
+      managerRow("m3", "manager-3", "Reachable", {
+        state: "down",
+        isReady: false,
+        attributes: { message: "heartbeat failure" },
+      }),
+    ];
+
+    await renderOverview();
+
+    // The chip still opens the nodes.
+    const chip: HTMLElement = screen.getByTestId("docker-swarm-hero-managers");
+    expect(chip).toHaveTextContent("3 managers");
+    expect(chip.getAttribute("href") || "").toMatch(/\/nodes$/);
+
+    const pill: HTMLElement = screen.getByTestId(
+      "docker-swarm-hero-managers-out-of-reach",
+    );
+    expect(pill.tagName).toBe("BUTTON");
+    // Its own control, after the chip's link, never inside it.
+    expect(pill.closest("a")).toBeNull();
+    expect(pill).toHaveTextContent("2 managers unreachable");
+    expect(pill).toHaveAttribute("data-tone", "danger");
+    expect(pill).toHaveAttribute("aria-haspopup", "dialog");
+    expect(pill).toHaveAttribute("title", "Show which managers and why");
+
+    fireEvent.click(pill);
+
+    expect(
+      screen.getByText(
+        "A swarm schedules and changes nothing unless more than half of its managers can reach each other.",
+      ),
+    ).toBeInTheDocument();
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "docker-swarm-hero-managers-out-of-reach-dialog-item",
+    );
+    expect(
+      rows.map((one: HTMLElement): string | null => {
+        return one.getAttribute("data-key");
+      }),
+    ).toEqual(["Swarm", "Node:node/m2", "Node:node/m3"]);
+    // What it cost the swarm, first.
+    expect(rows[0]).toHaveTextContent("prod-swarm");
+    expect(rows[0]).toHaveTextContent("Manager quorum lost");
+    expect(rows[0]).toHaveTextContent("1 of 3 managers reachable");
+    // Each manager: why, Docker's word for its standing, its address.
+    expect(rows[1]).toHaveTextContent("Manager unreachable");
+    expect(rows[1]).toHaveTextContent("Unreachable");
+    expect(rows[1]).toHaveTextContent("10.0.0.12");
+    expect(rows[2]).toHaveTextContent("Down");
+    expect(rows[2]).toHaveTextContent("heartbeat failure");
+    // Each manager a step from its page; the swarm is the page itself.
+    expect(
+      within(rows[1]!).getByTestId(
+        "docker-swarm-hero-managers-out-of-reach-dialog-view",
+      ),
+    ).toHaveAttribute("href", expect.stringContaining(CLUSTER_ID));
+    expect(
+      within(rows[0]!).queryByTestId(
+        "docker-swarm-hero-managers-out-of-reach-dialog-view",
+      ),
+    ).toBeNull();
+
+    expectNoNestedControls(document.body);
+  });
+
+  test("a disconnected swarm names no manager out of reach: its last snapshot is not the truth", async () => {
+    getItemMock.mockImplementation(async () => {
+      const model: DockerSwarmCluster = cluster();
+      model.otelCollectorStatus = "disconnected";
+      return model;
+    });
+    mockInventory = [
+      ...inventory(),
+      managerRow("m2", "manager-2", "Unreachable"),
+      managerRow("m3", "manager-3", "Unreachable"),
+    ];
+
+    await renderOverview();
+
+    expect(screen.getByTestId("docker-swarm-hero-managers")).toHaveTextContent(
+      "3 managers",
+    );
+    expect(
+      screen.queryByTestId("docker-swarm-hero-managers-out-of-reach"),
+    ).toBeNull();
   });
 
   test("one (i) says what the chips count; it is named for them, never after a number", async () => {
@@ -535,21 +755,23 @@ describe("Docker Swarm overview page", () => {
    * The agent's files changed on the same collector (0.161.3: every
    * snapshot read again, the swarm's state as metrics), and an agent on the
    * older files reports their version, behind the files this release ships.
+   * Then the files moved to collector 0.165.0 (#9828) and their version
+   * started again at it, so the last files of the 0.161 line are behind too.
    */
-  test("an agent on the same collector with older files gets the sign", async () => {
-    expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
+  test("an agent on older files gets the sign", async () => {
+    expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.165.0");
     getItemMock.mockImplementation(async () => {
       const model: DockerSwarmCluster = cluster();
-      model.agentVersion = "0.161.2";
+      model.agentVersion = "0.161.4";
       return model;
     });
     await renderOverview();
 
     expect(
       screen.getByRole("button", {
-        name: `Agent 0.161.2 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
+        name: `Agent 0.161.4 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
       }),
-    ).toHaveTextContent("Agent 0.161.2");
+    ).toHaveTextContent("Agent 0.161.4");
     expect(screen.queryByTestId("agent-version-chip")).not.toBeInTheDocument();
   });
 

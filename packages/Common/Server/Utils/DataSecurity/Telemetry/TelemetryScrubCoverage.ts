@@ -1,4 +1,5 @@
 import LogScrubRule from "../../../../Models/DatabaseModels/LogScrubRule";
+import MetricPipelineRule from "../../../../Models/DatabaseModels/MetricPipelineRule";
 import TraceScrubRule from "../../../../Models/DatabaseModels/TraceScrubRule";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
@@ -12,10 +13,26 @@ import {
   isDataStoreKind,
   TELEMETRY_DATA_STORE_KINDS,
 } from "../../../../Types/DataSecurity/DataStoreKind";
+import {
+  getScrubTarget,
+  getScrubUnavailableReason,
+  isMetricNameFinding,
+  ScrubbedField,
+  ScrubRuleSignal,
+  ScrubTarget,
+  TelemetryScrubUnavailableReason,
+} from "../../../../Types/DataSecurity/TelemetryScrubTarget";
+import { DataSecurityDropMetricUnavailableReason } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import LogScrubAction from "../../../../Types/Log/LogScrubAction";
 import LogScrubField from "../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
+import MetricPipelineRuleFilterCondition, {
+  MetricPipelineRuleFilterCheckOn,
+  MetricPipelineRuleFilterConditionType,
+} from "../../../../Types/Metrics/MetricPipelineRuleFilterCondition";
+import MetricPipelineRuleType from "../../../../Types/Metrics/MetricPipelineRuleType";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   checkScrubRuleCustomRegex,
@@ -39,8 +56,19 @@ import { getBuiltInDetectorsOf } from "../../../../Utils/DataSecurity/Detectors/
 import { PatternProblemReason } from "../../../../Utils/LinearRegExp/PatternProblem";
 import { CORRELATION_ID_ATTRIBUTE_KEYS } from "../../../../Utils/Telemetry/CorrelationIdAttributes";
 import LogScrubRuleService from "../../../Services/LogScrubRuleService";
+import MetricPipelineRuleService from "../../../Services/MetricPipelineRuleService";
 import TraceScrubRuleService from "../../../Services/TraceScrubRuleService";
 import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthorization";
+
+// Which rule reaches a location is decided beside the store kinds, for the pages too.
+export {
+  getScrubTarget,
+  ScrubbedField,
+} from "../../../../Types/DataSecurity/TelemetryScrubTarget";
+export type {
+  ScrubRuleSignal,
+  ScrubTarget,
+} from "../../../../Types/DataSecurity/TelemetryScrubTarget";
 
 /*
  * WHETHER A SCRUB RULE ALREADY HIDES WHAT A TELEMETRY FINDING FOUND - AND
@@ -90,30 +118,32 @@ import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthori
  * looks sensitive, or else a custom pattern made from the type's own
  * detectors - each on the fields of the finding's location. A finding a
  * rule already covers gets that rule, not a second one.
+ *
+ * A metric's attribute is a series' label, and the metric pipeline's
+ * rules (App/FeatureSet/Telemetry/Services/MetricPipelineRuleService.ts)
+ * name an attribute by its key, which no scrub rule does. So "Scrub it" on
+ * a metric attribute makes a Redact Attribute rule for its service: it
+ * replaces the attribute's value with [REDACTED] - only the values of the
+ * data type's shape, where a pattern can find it (a "Matches Regex"
+ * filter of the pattern above, so the label keeps its other values), and
+ * every value under the key otherwise, since the key's name is what says
+ * it is sensitive. Such a rule covers the finding, as does a Redact or
+ * Remove Attribute rule of that key for the service or the whole project
+ * with no filter. A rule with filters a person wrote never counts, for the
+ * reason a person's pattern never does. A metric's name cannot be
+ * scrubbed: a pipeline rule renames a metric whole, so the name is fixed
+ * in the code that creates the metric.
+ *
+ * What a rule can do with such a name, until the code is fixed, is drop the
+ * new data points of every metric of the service whose name has the data
+ * type's shape (Drop This Metric, #9757): a Drop rule with a "Matches Regex"
+ * filter on the metric's name, of the pattern above. It loses those points
+ * for good, so it is never made by Scrub It, only when a person asks for it
+ * after reading what it drops (TelemetryMetricDrop). Such a rule covers the
+ * name finding, as does a Drop rule with no filter at all, for the service
+ * or the project, which stores none of its metrics - and so covers every
+ * finding in them.
  */
-
-export type ScrubRuleSignal = "log" | "trace";
-
-// Where in a record a finding sits, as scrub rules name the parts.
-export enum ScrubbedField {
-  Body = "body",
-  Attributes = "attributes",
-  Events = "events",
-  Name = "name",
-}
-
-// The rules that reach a finding, and the part of the record it sits in.
-export interface ScrubTarget {
-  signal: ScrubRuleSignal;
-  field: ScrubbedField;
-  /*
-   * For a value under a key - an attribute, an event's attribute - the key a
-   * sensitive-keys rule reads. For an event's attribute, the last part of
-   * the location: the key is at least that, so a match on it is a match on
-   * the whole key.
-   */
-  key?: string | undefined;
-}
 
 export interface CoveringScrubRule {
   id: string;
@@ -123,6 +153,12 @@ export interface CoveringScrubRule {
   customRegex?: string | undefined;
   // As ingest reads it: the default when the rule left it empty.
   fieldsToScrub: string;
+  // A metric pipeline rule's: the attribute it redacts or removes.
+  attributeKey?: string | undefined;
+  // A metric pipeline rule's: the service it is for; none for every service.
+  serviceId?: string | undefined;
+  // A metric pipeline rule's: the rows it applies to.
+  filters?: Array<MetricPipelineRuleFilterCondition> | undefined;
 }
 
 export interface ScrubCoverage {
@@ -133,7 +169,18 @@ export interface TelemetryFindingReference {
   kind: DataStoreKind;
   dataTypeId: string;
   location: string;
+  // The service the store is the telemetry of: a metric rule may be its own.
+  serviceId?: ObjectID | string | null | undefined;
 }
+
+// The metric pipeline rule types that hide an attribute's value.
+const METRIC_HIDING_RULE_TYPES: ReadonlySet<string> = new Set([
+  MetricPipelineRuleType.RedactAttribute,
+  MetricPipelineRuleType.RemoveAttribute,
+]);
+
+// What a metric attribute's value is replaced with ("Scrub it"'s, and ingest's default).
+export const METRIC_REDACT_REPLACEMENT: string = "[REDACTED]";
 
 export interface CreatedScrubRule {
   signal: ScrubRuleSignal;
@@ -215,134 +262,12 @@ const MAX_RULE_NAME_LENGTH: number = 50;
 const MAX_RULE_DESCRIPTION_LENGTH: number = 500;
 export const MAX_SCRUB_PATTERN_LENGTH: number = 500;
 
+// A metric pipeline rule's name and attribute key (character varying(100)).
+const MAX_METRIC_RULE_NAME_LENGTH: number = 100;
+export const MAX_METRIC_RULE_ATTRIBUTE_KEY_LENGTH: number = 100;
+
 // A count {n,m} wider than this is made open {n,} when a pattern is too large to run.
 const MAX_KEPT_REPEAT: number = 64;
-
-const ATTRIBUTES_PREFIX: string = "attributes.";
-const EVENTS_PREFIX: string = "events.";
-const RUM_LOGS_PREFIX: string = "logs.attributes.";
-const RUM_SPANS_PREFIX: string = "spans.attributes.";
-const RUM_SESSIONS_PREFIX: string = "sessions.";
-
-function keyAfter(location: string, prefix: string): string | null {
-  const key: string = location.slice(prefix.length);
-
-  return location.startsWith(prefix) && key.length > 0 ? key : null;
-}
-
-function eventTarget(location: string): ScrubTarget | null {
-  const rest: string | null = keyAfter(location, EVENTS_PREFIX);
-
-  if (rest === null) {
-    return null;
-  }
-
-  const dot: number = rest.lastIndexOf(".");
-
-  return {
-    signal: "trace",
-    field: ScrubbedField.Events,
-    key: dot > 0 && dot < rest.length - 1 ? rest.slice(dot + 1) : undefined,
-  };
-}
-
-function attributeTarget(
-  location: string,
-  prefix: string,
-  signal: ScrubRuleSignal,
-  field: ScrubbedField,
-): ScrubTarget | null {
-  const key: string | null = keyAfter(location, prefix);
-
-  return key === null ? null : { signal, field, key };
-}
-
-/*
- * Which rules reach a location of a telemetry store, and which part of the
- * record it is - or null when no scrub rule does: a session header
- * (sessions.*) is written by session replay ingest, which runs none.
- */
-export function getScrubTarget(
-  kind: DataStoreKind,
-  location: string,
-): ScrubTarget | null {
-  switch (kind) {
-    case DataStoreKind.TelemetryLogs:
-      if (location === "body") {
-        return { signal: "log", field: ScrubbedField.Body };
-      }
-
-      return attributeTarget(
-        location,
-        ATTRIBUTES_PREFIX,
-        "log",
-        ScrubbedField.Attributes,
-      );
-    case DataStoreKind.TelemetryTraces:
-      if (location === "name") {
-        return { signal: "trace", field: ScrubbedField.Name };
-      }
-
-      return (
-        attributeTarget(
-          location,
-          ATTRIBUTES_PREFIX,
-          "trace",
-          ScrubbedField.Attributes,
-        ) || eventTarget(location)
-      );
-    case DataStoreKind.TelemetryExceptions:
-      // An exception is its span's exception event: the events' rules scrub it.
-      if (location === "message" || location === "stackTrace") {
-        return { signal: "trace", field: ScrubbedField.Events };
-      }
-
-      return attributeTarget(
-        location,
-        ATTRIBUTES_PREFIX,
-        "trace",
-        ScrubbedField.Events,
-      );
-    case DataStoreKind.TelemetryAiConversations: {
-      if (location.startsWith(EVENTS_PREFIX)) {
-        return eventTarget(location);
-      }
-
-      const attribute: ScrubTarget | null = attributeTarget(
-        location,
-        ATTRIBUTES_PREFIX,
-        "trace",
-        ScrubbedField.Attributes,
-      );
-
-      if (attribute) {
-        return attribute;
-      }
-
-      // A prompt or answer, named for the span attribute it is in.
-      return location.length > 0
-        ? { signal: "trace", field: ScrubbedField.Attributes, key: location }
-        : null;
-    }
-    case DataStoreKind.TelemetrySessionReplays:
-      return (
-        attributeTarget(
-          location,
-          RUM_LOGS_PREFIX,
-          "log",
-          ScrubbedField.Attributes,
-        ) ||
-        attributeTarget(
-          location,
-          RUM_SPANS_PREFIX,
-          "trace",
-          ScrubbedField.Attributes,
-        )
-      );
-    default:
-      return null;
-  }
-}
 
 // Whether ingest runs a rule over a part of the record.
 function ruleScrubsField(
@@ -378,13 +303,173 @@ function ruleScrubsField(
   }
 }
 
+/*
+ * The filters "Scrub it" gives a metric rule for a data type under a key:
+ * the value has the type's shape (buildScrubPatternForDataType), so the
+ * label keeps its other values - or none, where no pattern can find the
+ * type: then every value under the key is redacted, since the key's name,
+ * or the words around the values, are what say it holds the type.
+ */
+export function buildMetricScrubFilters(
+  dataTypeId: string,
+  attributeKey: string,
+): Array<MetricPipelineRuleFilterCondition> {
+  const pattern: string | null = isCustomDataTypeId(dataTypeId)
+    ? null
+    : buildScrubPatternForDataType(dataTypeId);
+
+  return pattern === null
+    ? []
+    : [
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+          attributeKey,
+          conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+          value: pattern,
+        },
+      ];
+}
+
+function filterText(filter: MetricPipelineRuleFilterCondition): string {
+  return JSON.stringify([
+    filter?.checkOn || "",
+    (filter?.attributeKey || "").trim(),
+    filter?.conditionType || "",
+    filter?.value || "",
+  ]);
+}
+
+/*
+ * Whether a metric pipeline rule hides a metric attribute finding: it
+ * redacts or removes that key, for the finding's service or every
+ * service, on every row - or only on the rows "Scrub it" would pick. A
+ * filter a person wrote never counts: whether it lets the finding's values
+ * through cannot be told from masked samples.
+ */
+function metricRuleCovers(
+  rule: CoveringScrubRule,
+  target: ScrubTarget,
+  finding: TelemetryFindingReference,
+): boolean {
+  if (!target.key || rule.attributeKey !== target.key) {
+    return false;
+  }
+
+  const findingServiceId: string = finding.serviceId
+    ? finding.serviceId.toString().toLowerCase()
+    : "";
+
+  if (rule.serviceId && rule.serviceId.toLowerCase() !== findingServiceId) {
+    return false;
+  }
+
+  const filters: Array<MetricPipelineRuleFilterCondition> = rule.filters || [];
+
+  if (filters.length === 0) {
+    return true;
+  }
+
+  const scrubItFilters: Array<string> = buildMetricScrubFilters(
+    finding.dataTypeId,
+    target.key,
+  ).map(filterText);
+
+  return (
+    scrubItFilters.length > 0 &&
+    filters.length === scrubItFilters.length &&
+    filters.map(filterText).every((text: string, index: number): boolean => {
+      return text === scrubItFilters[index];
+    })
+  );
+}
+
+/*
+ * The filters a Drop rule for a metric's name holding a data type has: the
+ * name has the type's shape (buildScrubPatternForDataType) - or null when no
+ * pattern can find the type, so no rule can tell those metrics apart.
+ */
+export function buildMetricDropFilters(
+  dataTypeId: string,
+): Array<MetricPipelineRuleFilterCondition> | null {
+  const pattern: string | null = isCustomDataTypeId(dataTypeId)
+    ? null
+    : buildScrubPatternForDataType(dataTypeId);
+
+  return pattern === null
+    ? null
+    : [
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+          conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+          value: pattern,
+        },
+      ];
+}
+
+function isRuleOfService(
+  rule: CoveringScrubRule,
+  finding: TelemetryFindingReference,
+): boolean {
+  const findingServiceId: string = finding.serviceId
+    ? finding.serviceId.toString().toLowerCase()
+    : "";
+
+  return !rule.serviceId || rule.serviceId.toLowerCase() === findingServiceId;
+}
+
+/*
+ * Whether an enabled metric pipeline Drop rule keeps a metrics finding's data
+ * from being stored: one with no filter, for its service or the project,
+ * drops every point of the service's metrics; one with exactly the filter
+ * Drop This Metric makes drops those whose name holds the finding's type -
+ * which covers a finding in the name.
+ */
+function dropRuleCovers(
+  rule: CoveringScrubRule,
+  finding: TelemetryFindingReference,
+): boolean {
+  if (
+    rule.signal !== "metric" ||
+    rule.patternType !== MetricPipelineRuleType.Drop ||
+    finding.kind !== DataStoreKind.TelemetryMetrics ||
+    !isRuleOfService(rule, finding)
+  ) {
+    return false;
+  }
+
+  const filters: Array<MetricPipelineRuleFilterCondition> = rule.filters || [];
+
+  if (filters.length === 0) {
+    return true;
+  }
+
+  const dropFilters: Array<MetricPipelineRuleFilterCondition> | null =
+    isMetricNameFinding(finding.kind, finding.location)
+      ? buildMetricDropFilters(finding.dataTypeId)
+      : null;
+
+  return (
+    dropFilters !== null &&
+    filters.length === dropFilters.length &&
+    filters.map(filterText).every((text: string, index: number): boolean => {
+      return text === filterText(dropFilters[index]!);
+    })
+  );
+}
+
 function ruleCovers(
   rule: CoveringScrubRule,
   target: ScrubTarget,
-  dataTypeId: string,
+  finding: TelemetryFindingReference,
 ): boolean {
+  const dataTypeId: string = finding.dataTypeId;
+
   if (rule.signal !== target.signal) {
     return false;
+  }
+
+  if (rule.signal === "metric") {
+    return metricRuleCovers(rule, target, finding);
   }
 
   if (rule.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
@@ -405,7 +490,7 @@ function ruleCovers(
   return DATA_TYPE_OF_SCRUB_PATTERN_TYPE[rule.patternType] === dataTypeId;
 }
 
-// The first enabled rule that hides a finding at ingest, or null.
+// The first enabled rule that hides a finding at ingest - or drops it - or null.
 export function findCoveringScrubRule(
   coverage: ScrubCoverage,
   finding: TelemetryFindingReference,
@@ -415,12 +500,11 @@ export function findCoveringScrubRule(
     finding.location,
   );
 
-  if (!target) {
-    return null;
-  }
-
   for (const rule of coverage.rules) {
-    if (ruleCovers(rule, target, finding.dataTypeId)) {
+    if (
+      (target && ruleCovers(rule, target, finding)) ||
+      dropRuleCovers(rule, finding)
+    ) {
       return rule;
     }
   }
@@ -471,39 +555,101 @@ function toCoveringRule(
   };
 }
 
-// A project's enabled log and trace scrub rules, read as OneUptime itself.
+/*
+ * An enabled metric pipeline rule that hides an attribute's value (Redact
+ * or Remove Attribute), or drops points (Drop), as a covering rule, or null
+ * for any other rule.
+ */
+export function toCoveringMetricRule(
+  rule: MetricPipelineRule,
+): CoveringScrubRule | null {
+  const id: string | undefined = rule.id?.toString() || rule._id?.toString();
+  const attributeKey: string = (rule.addAttributeKey || "").trim();
+  const isDrop: boolean = rule.ruleType === MetricPipelineRuleType.Drop;
+
+  if (
+    !id ||
+    typeof rule.ruleType !== "string" ||
+    (!isDrop && (!attributeKey || !METRIC_HIDING_RULE_TYPES.has(rule.ruleType)))
+  ) {
+    return null;
+  }
+
+  const covering: CoveringScrubRule = {
+    id,
+    name: rule.name || "",
+    signal: "metric",
+    patternType: rule.ruleType,
+    // A Drop rule's filters name the metric: no attribute is its part.
+    fieldsToScrub: isDrop ? ScrubbedField.Name : ScrubbedField.Attributes,
+    filters: Array.isArray(rule.filters) ? rule.filters : [],
+  };
+
+  if (!isDrop) {
+    covering.attributeKey = attributeKey;
+  }
+  const serviceId: string = rule.serviceId ? rule.serviceId.toString() : "";
+
+  if (serviceId) {
+    covering.serviceId = serviceId;
+  }
+
+  return covering;
+}
+
+/*
+ * A project's enabled log and trace scrub rules, and the metric pipeline
+ * rules that hide an attribute, read as OneUptime itself.
+ */
 export async function getScrubCoverage(
   projectId: ObjectID,
 ): Promise<ScrubCoverage> {
-  const [logRules, traceRules]: [Array<LogScrubRule>, Array<TraceScrubRule>] =
-    await Promise.all([
-      LogScrubRuleService.findBy({
-        query: { projectId, isEnabled: true },
-        select: {
-          _id: true,
-          name: true,
-          patternType: true,
-          customRegex: true,
-          fieldsToScrub: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: { isRoot: true },
-      }),
-      TraceScrubRuleService.findBy({
-        query: { projectId, isEnabled: true },
-        select: {
-          _id: true,
-          name: true,
-          patternType: true,
-          customRegex: true,
-          fieldsToScrub: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: { isRoot: true },
-      }),
-    ]);
+  const [logRules, traceRules, metricRules]: [
+    Array<LogScrubRule>,
+    Array<TraceScrubRule>,
+    Array<MetricPipelineRule>,
+  ] = await Promise.all([
+    LogScrubRuleService.findBy({
+      query: { projectId, isEnabled: true },
+      select: {
+        _id: true,
+        name: true,
+        patternType: true,
+        customRegex: true,
+        fieldsToScrub: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    }),
+    TraceScrubRuleService.findBy({
+      query: { projectId, isEnabled: true },
+      select: {
+        _id: true,
+        name: true,
+        patternType: true,
+        customRegex: true,
+        fieldsToScrub: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    }),
+    MetricPipelineRuleService.findBy({
+      query: { projectId, isEnabled: true },
+      select: {
+        _id: true,
+        name: true,
+        ruleType: true,
+        addAttributeKey: true,
+        serviceId: true,
+        filters: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    }),
+  ]);
 
   const rules: Array<CoveringScrubRule> = [];
 
@@ -517,6 +663,14 @@ export async function getScrubCoverage(
 
   for (const rule of traceRules) {
     const covering: CoveringScrubRule | null = toCoveringRule(rule, "trace");
+
+    if (covering) {
+      rules.push(covering);
+    }
+  }
+
+  for (const rule of metricRules) {
+    const covering: CoveringScrubRule | null = toCoveringMetricRule(rule);
 
     if (covering) {
       rules.push(covering);
@@ -889,11 +1043,228 @@ async function propsFor(data: {
   });
 }
 
+// Why Scrub It cannot hide a metric's name, in a sentence a person can act on.
+export const METRIC_NAME_NOT_SCRUBBABLE: string =
+  "A metric's name is set by the code that creates the metric, and a pipeline rule can only rename a metric whole. Rename the metric so its name carries no data, and send what varies in it as an attribute instead.";
+
+// Why Scrub It cannot hide a session's own details.
+export const SESSION_DETAILS_NOT_SCRUBBABLE: string =
+  "Session details come from the RUM recorder, which scrub rules do not reach. Turn off user identity capture or leave this out of identify() and the session's attributes instead.";
+
 /*
- * "Scrub it" on a telemetry finding: the log or trace scrub rule that hides
- * its data type at its location from now on - or the enabled rule that
- * already does. Refuses (BadDataException) a store that is not telemetry,
- * a location no scrub rule reaches, and a data type no rule can find.
+ * The Redact Attribute rule "Scrub it" makes for a metric attribute: it
+ * hides the key's values in its service's new metrics - those of the data
+ * type's shape, or all of them where no pattern finds the type. Refuses a
+ * key longer than a rule can name, and a service that is gone.
+ */
+export function buildMetricScrubRule(data: {
+  projectId: ObjectID;
+  serviceId?: ObjectID | string | null | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+  target: ScrubTarget;
+}): MetricPipelineRule {
+  const key: string = data.target.key || "";
+  const serviceId: string = data.serviceId ? data.serviceId.toString() : "";
+
+  if (key.length > MAX_METRIC_RULE_ATTRIBUTE_KEY_LENGTH) {
+    throw new BadDataException(
+      `A metric pipeline rule names an attribute in at most ${MAX_METRIC_RULE_ATTRIBUTE_KEY_LENGTH} characters, and ${data.location} is longer. Rename the attribute, or stop sending it.`,
+    );
+  }
+
+  if (!ObjectID.isValidUUID(serviceId)) {
+    throw new BadDataException(
+      "The service these metrics were sent under no longer exists, so no new metrics of it are left to scrub.",
+    );
+  }
+
+  const filters: Array<MetricPipelineRuleFilterCondition> =
+    buildMetricScrubFilters(data.dataTypeId, key);
+  const dataTypeName: string = dataTypeNameOf(data.dataTypeId);
+  const name: string = cut(
+    `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${dataTypeName} in ${data.location}`,
+    MAX_METRIC_RULE_NAME_LENGTH,
+  );
+  const which: string =
+    filters.length > 0
+      ? `every value of ${key} that holds ${dataTypeName.toLowerCase()}`
+      : `every value of ${key}`;
+  const rule: MetricPipelineRule = new MetricPipelineRule();
+
+  rule.projectId = data.projectId;
+  rule.serviceId = new ObjectID(serviceId);
+  rule.name = name;
+  rule.description = cut(
+    `Made by Data Security ("Scrub it") from a finding of ${dataTypeName} in ${data.location} (${data.kind}). It replaces ${which} with ${METRIC_REDACT_REPLACEMENT} in this service's metrics from now on. What is stored already stays until its retention ends.`,
+    MAX_RULE_DESCRIPTION_LENGTH,
+  );
+  rule.ruleType = MetricPipelineRuleType.RedactAttribute;
+  rule.addAttributeKey = key;
+  rule.redactReplacement = METRIC_REDACT_REPLACEMENT;
+  rule.filterCondition = FilterCondition.All;
+  rule.filters = filters;
+  rule.isEnabled = true;
+
+  return rule;
+}
+
+// "Scrub it" on a metric attribute: its rule, made as the person who asked.
+async function createMetricScrubRule(data: {
+  projectId: ObjectID;
+  userId?: ObjectID | undefined;
+  serviceId?: ObjectID | string | null | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+  target: ScrubTarget;
+}): Promise<CreatedScrubRule> {
+  const rule: MetricPipelineRule = buildMetricScrubRule(data);
+  const created: MetricPipelineRule = await MetricPipelineRuleService.create({
+    data: rule,
+    props: await propsFor(data),
+  });
+
+  return {
+    signal: "metric",
+    scrubRuleId: idOf(created),
+    scrubRuleName: created.name || rule.name || "",
+  };
+}
+
+// What the name of the rule Drop This Metric makes says after the prefix.
+export const METRIC_DROP_RULE_NAME: string = "drop metrics named with ";
+
+/*
+ * Why the metrics whose names hold a finding's data cannot be dropped by a
+ * rule, or null when they can: a finding that is no metric's name, a data
+ * type no pattern finds (found by field names, by the words around it, or
+ * one of the project's own), a service that is gone.
+ */
+export function getMetricDropUnavailableReason(data: {
+  kind: DataStoreKind | string | null | undefined;
+  location: string | null | undefined;
+  dataTypeId: string;
+  serviceId?: ObjectID | string | null | undefined;
+}): DataSecurityDropMetricUnavailableReason | null {
+  if (!isMetricNameFinding(data.kind, data.location)) {
+    return DataSecurityDropMetricUnavailableReason.NotAMetricName;
+  }
+
+  if (!buildMetricDropFilters((data.dataTypeId || "").trim())) {
+    return DataSecurityDropMetricUnavailableReason.NoPattern;
+  }
+
+  const serviceId: string = data.serviceId ? data.serviceId.toString() : "";
+
+  return ObjectID.isValidUUID(serviceId)
+    ? null
+    : DataSecurityDropMetricUnavailableReason.NoService;
+}
+
+// Why no drop can be made, in a sentence a person can act on.
+export const METRIC_DROP_UNAVAILABLE_SENTENCES: Readonly<
+  Record<DataSecurityDropMetricUnavailableReason, string>
+> = {
+  [DataSecurityDropMetricUnavailableReason.NotAMetricName]:
+    "Drop This Metric is for findings in a metric's name. Scrub It hides the other findings in metrics.",
+  [DataSecurityDropMetricUnavailableReason.NoPattern]:
+    "No pattern can find this data type in a metric's name, so no rule could tell those metrics apart. Rename the metrics in your code, and send what varies in their names as an attribute instead.",
+  [DataSecurityDropMetricUnavailableReason.NoService]:
+    "The service these metrics were sent under no longer exists, so no new metrics of it are left to drop.",
+};
+
+/*
+ * The Drop rule "Drop This Metric" makes for a finding in a metric's name:
+ * every new data point of the service's metrics whose name has the data
+ * type's shape is dropped before it is stored. Refuses what
+ * getMetricDropUnavailableReason refuses.
+ */
+export function buildMetricDropRule(data: {
+  projectId: ObjectID;
+  serviceId?: ObjectID | string | null | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+}): MetricPipelineRule {
+  const reason: DataSecurityDropMetricUnavailableReason | null =
+    getMetricDropUnavailableReason(data);
+
+  if (reason) {
+    throw new BadDataException(METRIC_DROP_UNAVAILABLE_SENTENCES[reason]);
+  }
+
+  const dataTypeName: string = dataTypeNameOf(data.dataTypeId);
+  const rule: MetricPipelineRule = new MetricPipelineRule();
+
+  rule.projectId = data.projectId;
+  rule.serviceId = new ObjectID(data.serviceId!.toString());
+  rule.name = cut(
+    `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${METRIC_DROP_RULE_NAME}${dataTypeName}`,
+    MAX_METRIC_RULE_NAME_LENGTH,
+  );
+  rule.description = cut(
+    `Made by Data Security ("Drop This Metric") from a finding of ${dataTypeName} in this service's metric names. It drops every new data point of the service's metrics whose name holds ${dataTypeName.toLowerCase()} before it is stored: those points are lost for good. What is stored already stays until its retention ends. Delete this rule to store them again.`,
+    MAX_RULE_DESCRIPTION_LENGTH,
+  );
+  rule.ruleType = MetricPipelineRuleType.Drop;
+  rule.filterCondition = FilterCondition.All;
+  rule.filters = buildMetricDropFilters(data.dataTypeId)!;
+  rule.isEnabled = true;
+
+  return rule;
+}
+
+/*
+ * Drop This Metric on a finding in a metric's name: the Drop rule for its
+ * service, made as the person who asked - their permission to create metric
+ * pipeline rules checked by the service, and the rule's creation recorded
+ * in the project's audit log with them as its author - or the enabled rule
+ * that already drops those metrics. Refuses what buildMetricDropRule does.
+ */
+export async function createDropRuleForFinding(data: {
+  projectId: ObjectID;
+  userId?: ObjectID | undefined;
+  kind: DataStoreKind;
+  dataTypeId: string;
+  location: string;
+  serviceId?: ObjectID | string | null | undefined;
+}): Promise<{ ruleId: string; ruleName: string; isNew: boolean }> {
+  const location: string = (data.location || "").trim();
+  const dataTypeId: string = (data.dataTypeId || "").trim();
+  const rule: MetricPipelineRule = buildMetricDropRule({
+    ...data,
+    location,
+    dataTypeId,
+  });
+  const existing: CoveringScrubRule | null = findCoveringScrubRule(
+    await getScrubCoverage(data.projectId),
+    { kind: data.kind, dataTypeId, location, serviceId: data.serviceId },
+  );
+
+  if (existing) {
+    return { ruleId: existing.id, ruleName: existing.name, isNew: false };
+  }
+
+  const created: MetricPipelineRule = await MetricPipelineRuleService.create({
+    data: rule,
+    props: await propsFor(data),
+  });
+
+  return {
+    ruleId: idOf(created),
+    ruleName: created.name || rule.name || "",
+    isNew: true,
+  };
+}
+
+/*
+ * "Scrub it" on a telemetry finding: the log or trace scrub rule, or the
+ * metric pipeline rule, that hides its data type at its location from now
+ * on - or the enabled rule that already does. Refuses (BadDataException) a
+ * store that is not telemetry, a location no rule reaches (a session's own
+ * details, a metric's name), and a data type no rule can find.
  */
 export async function createScrubRuleForFinding(data: {
   projectId: ObjectID;
@@ -901,6 +1272,8 @@ export async function createScrubRuleForFinding(data: {
   kind: DataStoreKind;
   dataTypeId: string;
   location: string;
+  // The service the store is the telemetry of: a metric rule is its own.
+  serviceId?: ObjectID | string | null | undefined;
 }): Promise<CreatedScrubRule> {
   if (
     !isDataStoreKind(data.kind) ||
@@ -918,13 +1291,13 @@ export async function createScrubRuleForFinding(data: {
     throw new BadDataException("The finding has no data type or location.");
   }
 
-  if (
-    data.kind === DataStoreKind.TelemetrySessionReplays &&
-    location.startsWith(RUM_SESSIONS_PREFIX)
-  ) {
-    throw new BadDataException(
-      "Session details come from the RUM recorder, which scrub rules do not reach. Turn off user identity capture or leave this out of identify() and the session's attributes instead.",
-    );
+  switch (getScrubUnavailableReason(data.kind, location)) {
+    case TelemetryScrubUnavailableReason.SessionDetails:
+      throw new BadDataException(SESSION_DETAILS_NOT_SCRUBBABLE);
+    case TelemetryScrubUnavailableReason.MetricName:
+      throw new BadDataException(METRIC_NAME_NOT_SCRUBBABLE);
+    default:
+      break;
   }
 
   const target: ScrubTarget | null = getScrubTarget(data.kind, location);
@@ -937,7 +1310,7 @@ export async function createScrubRuleForFinding(data: {
 
   const existing: CoveringScrubRule | null = findCoveringScrubRule(
     await getScrubCoverage(data.projectId),
-    { kind: data.kind, dataTypeId, location },
+    { kind: data.kind, dataTypeId, location, serviceId: data.serviceId },
   );
 
   if (existing) {
@@ -946,6 +1319,15 @@ export async function createScrubRuleForFinding(data: {
       scrubRuleId: existing.id,
       scrubRuleName: existing.name,
     };
+  }
+
+  if (target.signal === "metric") {
+    return await createMetricScrubRule({
+      ...data,
+      dataTypeId,
+      location,
+      target,
+    });
   }
 
   const plan: ScrubRulePlan = planScrubRule({ dataTypeId, location, target });
@@ -1014,7 +1396,9 @@ export async function createScrubRuleForFinding(data: {
   };
 }
 
-function idOf(rule: LogScrubRule | TraceScrubRule): string {
+function idOf(
+  rule: LogScrubRule | TraceScrubRule | MetricPipelineRule,
+): string {
   const id: string | undefined = rule.id?.toString() || rule._id?.toString();
 
   if (!id) {

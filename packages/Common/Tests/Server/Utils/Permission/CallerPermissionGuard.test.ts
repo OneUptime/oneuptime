@@ -80,7 +80,7 @@ const ROW_READERS: Record<string, string> = {
   "packages/Common/Server/Utils/UserPermission/UserPermission.ts":
     "Caches the rows and adds the Project User row every member holds.",
   "packages/Common/Server/Utils/Workflow/WorkflowPrincipal.ts":
-    "Builds the rows a workflow step's requests carry: a member's defaults and Project Admin.",
+    "Builds the rows a workflow step's requests carry: a member's defaults and what the workflow runs as - Project Admin by default, Project Owner, or a copy of a custom role's rows (#9695).",
   "packages/Common/Server/Utils/NetworkDevice/NetworkSummaryCache.ts":
     "Fingerprints the rows - permission, scope, team, block and labels - into the cache key of a viewer whose reads the read-permission pipeline narrows, so only the same rows share a kept Network Overview; the pipeline decides what they may read (getViewerScope).",
 };
@@ -119,7 +119,7 @@ const USER_PERMISSIONS_CALLERS: Record<string, string> = {
   "packages/Common/Server/Services/OnCallDutyPolicyChildService.ts":
     "Builds the props a create runs with from the caller's rows for the table's create permissions, blocks kept; the CRUD path decides.",
   "packages/Common/Server/Utils/Permission/PropsHoldingOnly.ts":
-    "Builds the props a run reads the workflow or runbook with from the caller's rows for the grant that lets them run alone, blocks kept, after the rule let them in (WorkflowRunAccess, RunbookRunAccess); the CRUD path decides what the rows reach.",
+    "Builds the props a run reads the workflow or runbook with from the caller's rows for the grant that lets them run alone, blocks kept, after the rule let them in (WorkflowRunAccess, RunbookRunAccess) - and, the other way round, the props without some allow rows, to ask which user overrides a caller reaches without their team-scoped grant (OnCallDutyPolicyUserOverrideService); the CRUD path decides what the rows reach.",
 };
 
 // A type that is, or holds, a caller's rows.

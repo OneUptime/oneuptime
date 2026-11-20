@@ -1514,6 +1514,51 @@ describe("Sensitive Data in Telemetry", () => {
     expect(count(value("Locations of one store"))).toBe(
       constant(scanner, "TELEMETRY_SCAN_MAX_LOCATIONS_PER_STORE"),
     );
+    // A metric's sample: its series, few metrics a scan (#9604).
+    const metrics: string = section(page, "### Metrics");
+
+    expect(value("Metrics read in one scan")).toBe(
+      `${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_READ")} shared between the services, at least one of each; at most ${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER")} of one service, half its busiest and half its new and other metrics in turn`,
+    );
+    // New metrics first, the rest in turn within a stated time (#9755).
+    expect(value("A new metric")).toBe(
+      `One whose first point of the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_LOOKBACK_IN_HOURS")} hours came in the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS")} hours`,
+    );
+    expect(metrics).toContain(
+      `Then come the metrics it started writing in the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS")} hours`,
+    );
+    // The bound, worked out from the share as the planner splits it.
+    const share: number = constant(
+      scanner,
+      "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER",
+    );
+    const inTurn: number = share - Math.floor(share / 2);
+
+    expect(metrics).toContain(
+      `A service of M metrics, read ${share} a scan, has each of them read at least once every M ÷ ${inTurn} hours, rounded up: ${Math.ceil(300 / inTurn)} hours for a service of 300 metrics.`,
+    );
+    expect(metrics).toContain("it is at most twice that.");
+    expect(source(scanner)).toContain(
+      "return Math.floor(((hour + 1) * reads) / 2) - Math.floor((hour * reads) / 2);",
+    );
+    // A point of each series, however often a metric is sent (#9756).
+    expect(value("Series of one metric")).toBe(
+      `A data point of each, of its newest minute, at most ${constant(scanner, "TELEMETRY_SCAN_MAX_SERIES_PER_METRIC")}`,
+    );
+    expect(metrics).toContain(
+      `one data point of each of up to ${constant(scanner, "TELEMETRY_SCAN_MAX_SERIES_PER_METRIC")} of that minute's series, however often the metric is sent`,
+    );
+    expect(source(scanner)).toContain(
+      "LIMIT 1 BY cityHash64(primaryEntityId, name, attributes)",
+    );
+    expect(metrics).toContain(
+      `more than ${constant(scanner, "TELEMETRY_SCAN_MAX_BATCHED_METRIC_POINTS").toLocaleString("en-US")} points`,
+    );
+    // The busiest half, and the others in turn, as the planner picks them.
+    expect(source(scanner)).toContain(".slice(0, Math.floor(perOwner / 2));");
+    expect(source(scanner)).toContain(
+      "Math.min(whole(data.perOwner, 1), Math.floor(data.total / byOwner.size)),",
+    );
     expect(constant(scanner, "TELEMETRY_SCAN_READ_TIME_LIMIT_IN_SECONDS")).toBe(
       30,
     );
@@ -1524,8 +1569,9 @@ describe("Sensitive Data in Telemetry", () => {
     const what: Array<Array<string>> = rows(
       tables(section(page, "## What is read"))[0],
     );
+    // Which rule reaches which location is decided beside the store kinds.
     const scrub: string = source(
-      `${SERVER}/Telemetry/TelemetryScrubCoverage.ts`,
+      "Common/Types/DataSecurity/TelemetryScrubTarget.ts",
     );
 
     expect(
@@ -1538,7 +1584,24 @@ describe("Sensitive Data in Telemetry", () => {
       DataStoreKind.TelemetryExceptions,
       DataStoreKind.TelemetryAiConversations,
       DataStoreKind.TelemetrySessionReplays,
+      DataStoreKind.TelemetryMetrics,
     ]);
+    /*
+     * A metric's attribute, its resource's - which ingest stores under
+     * "resource." - and its name (#9604), which no rule reaches.
+     */
+    expect(what[5]?.[2]).toBe(
+      "`attributes.<key>`, `attributes.resource.<key>`, `name`",
+    );
+    expect(
+      source("App/FeatureSet/Telemetry/Services/OtelMetricsIngestService.ts"),
+    ).toContain('prefixKeysWithString: "resource",');
+    expect(scrub).toContain(
+      'export const METRIC_NAME_LOCATION: string = "name";',
+    );
+    expect(scrub).toContain(
+      "case DataStoreKind.TelemetryMetrics:\n      // A data point's or its resource's attribute: redacted by its key.\n      return attributeTarget(\n        location,\n        ATTRIBUTES_PREFIX,\n        \"metric\",",
+    );
 
     for (const prefix of [
       '"attributes."',
@@ -1885,10 +1948,98 @@ describe("Data Security Compliance", () => {
   });
 
   it("counts only open issues against a requirement, as the score does", () => {
+    // The project's scores and a resource's are read by the same code.
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "query: { projectId, status: DataSecurityIssueStatus.Open },",
+      "await ResourceDataSecurity.readProjectCompliance(",
     );
+    expect(
+      source("Common/Server/Utils/DataSecurity/ResourceDataSecurity.ts"),
+    ).toContain("status: DataSecurityIssueStatus.Open,");
     expect(page).toContain("Only open issues count.");
+  });
+
+  it("says what a resource's switches change, and whose switches a database follows", () => {
+    const onResource: string = section(page, "## On a resource's page");
+
+    expect(
+      rows(tables(onResource)[0]).map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      "Kubernetes cluster",
+      "Docker or Podman host",
+      "Database",
+      "Service",
+      "Cloud resource",
+    ]);
+    expect(onResource).toContain("**Applies Here**");
+    // A requirement every store of which is turned off reads Turned off, and is not scored.
+    expect(
+      source("Common/Types/DataSecurity/ComplianceRequirementCatalog.ts"),
+    ).toContain('TurnedOff = "Turned off",');
+    expect(section(page, "## How a framework is scored")).toContain(
+      "one turned off counts neither way",
+    );
+    // A database on a cluster or container host follows that resource's switches.
+    expect(source("Common/Types/DataSecurity/DataStoreResource.ts")).toContain(
+      "DATABASE_PLATFORM_KINDS",
+    );
+    expect(onResource).toContain(
+      "A database running on a Kubernetes cluster, or on a Docker or Podman host, follows that cluster's or host's",
+    );
+  });
+
+  it("says a switch turned off asks why, and where the reason, who and when are read (#9629)", () => {
+    const onResource: string = section(page, "## On a resource's page");
+    const model: string = source(
+      "App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ResourceComplianceModel.ts",
+    );
+    const note: string = source(
+      "App/FeatureSet/Dashboard/src/Components/ResourceDataSecurity/ComplianceTurnedOffNote.tsx",
+    );
+    const projectPage: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Compliance.tsx",
+    );
+    const exported: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/ComplianceExport.ts",
+    );
+
+    // The question, and the buttons that answer it or put it off, as drawn.
+    expect(model).toContain('"Why does this not apply here?"');
+    expect(onResource).toContain("**Why does this not apply here?**");
+    for (const button of [
+      "Save Reason",
+      "Not Now",
+      "Add Reason",
+      "Edit Reason",
+    ]) {
+      expect(note).toContain(`"${button}"`);
+      expect(onResource).toContain(`**${button}**`);
+    }
+
+    // The reason is the setting's note, which the audit log keeps.
+    expect(
+      source("Common/Models/DatabaseModels/DataSecurityComplianceSetting.ts"),
+    ).toMatch(/@EnableAuditLog\(\{[^)]*update: true/);
+    expect(onResource).toContain("the reason is kept in the audit log");
+
+    // The project's page: the whole framework's list, and each requirement's.
+    expect(projectPage).toContain('"Turned Off for the Whole Framework"');
+    expect(onResource).toContain("**Turned Off for the Whole Framework**");
+
+    // The exports: the CSV's column and the JSON's list, by their names.
+    expect(exported).toContain('"Turned Off On",');
+    expect(exported).toContain("turnedOff: framework.turnedOff || [],");
+    expect(projectPage).toContain('title: "Export CSV",');
+    expect(projectPage).toContain('title: "Export JSON",');
+    expect(onResource).toContain(
+      "Its **Export CSV** has them in a `Turned Off On` column, and **Export JSON** in a `turnedOff` list.",
+    );
+
+    // Whoever may read the page reads why; only who may change it writes it.
+    expect(onResource).toContain(
+      "Security Viewers see what is turned off, and why.",
+    );
   });
 });
 
@@ -2273,10 +2424,14 @@ describe("Data Security Integrations", () => {
     ).toEqual([
       DATA_SECURITY_API_ROUTES.overview,
       DATA_SECURITY_API_ROUTES.compliance,
+      DATA_SECURITY_API_ROUTES.resourceScope,
+      DATA_SECURITY_API_ROUTES.resourceCompliance,
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
       DATA_SECURITY_API_ROUTES.scanNow("<id>"),
       DATA_SECURITY_API_ROUTES.checkNow("<id>"),
       DATA_SECURITY_API_ROUTES.scrubFinding("<id>"),
+      DATA_SECURITY_API_ROUTES.dropMetricImpact("<id>"),
+      DATA_SECURITY_API_ROUTES.dropMetric("<id>"),
       DATA_SECURITY_API_ROUTES.explainIssue("<id>"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
       DATA_SECURITY_API_ROUTES.responseActions("<id>"),

@@ -93,21 +93,31 @@ Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter,
 
 ## Log også ud af identitetsudbyderen
 
-Når man logger ud af OneUptime, forbliver man logget ind hos identitetsudbyderen, så på en delt computer kommer den næste, der logger ind med den udbyder, ind som den, der gik. Klik på **Rediger konfiguration** ved en OpenID Connect-udbyder, og slå **Log også ud af identitetsudbyderen** til under **Flere felter**: Når man logger ud af OneUptime, afsluttes sessionen hos udbyderen så også, og udbyderen sender browseren tilbage til OneUptimes login-side. Den er slået fra som standard, da den på en personlig bærbar også ville logge personen ud af alle andre apps, der bruger udbyderen.
+Når man logger ud af OneUptime, forbliver man logget ind hos identitetsudbyderen, så på en delt computer kommer den næste, der logger ind med den udbyder, ind som den, der gik. Klik på **Rediger konfiguration** på en SAML- eller OpenID Connect-udbyder, og slå **Log også ud af identitetsudbyderen** til under **Flere felter**: Når man logger ud af OneUptime, afsluttes sessionen hos udbyderen så også, og udbyderen sender browseren tilbage til OneUptime. Den er slået fra som standard, da den på en personlig bærbar også ville logge personen ud af alle andre apps, der bruger udbyderen.
 
-Registrer den omdirigerings-URI efter log ud, som kortet **Identitetsudbyderens URL** viser, hos din udbyder som en tilladt post-logout redirect URI. En udbyder, hvis discovery-dokument ikke nævner noget `end_session_endpoint`, som Google, kan ikke slå den til.
+:::tabs
+@tab SAML
+Angiv din identitetsudbyders log ud-URL som **Log ud-URL** under **Flere felter**: Uden den kan kontakten ikke slås til. Giv derefter din identitetsudbyder den **Single Logout URL**, som kortet **Identitetsudbyderens URL'er** viser, og det certifikat, som OneUptime signerer sine log ud-anmodninger med, via **Download signeringscertifikat** på samme kort. Når personen logger ud hos identitetsudbyderen eller af en anden app, der bruger den, logger en identitetsudbyder, der sender log ud-anmodninger til sine apps, også personen ud af OneUptime.
+@tab OpenID Connect
+Registrer den omdirigerings-URI efter log ud, som kortet **Identitetsudbyderens URL** viser, hos din udbyder som tilladt post-logout redirect URI. En udbyder, hvis discovery-dokument ikke nævner noget `end_session_endpoint`, som Google, kan ikke slå den til.
+:::
+
+Hvor Okta, Microsoft Entra ID, Auth0 og Keycloak har disse indstillinger, står på siden [SSO](/docs/identity/sso).
 
 ## Gennemtving SSO
 
 At opsætte en global udbyder tvinger ingen til at bruge den; login med adgangskode virker stadig. For at kræve SSO skal du slå kravet til for et projekt eller for hele instansen:
 
-- **Pr. projekt:** et projekt kan kræve SSO og eventuelt en *bestemt* udbyder (projekt eller global). Se [Kræv SSO for dit projekt](/docs/identity/sso#kræv-sso-for-dit-projekt).
+- **Pr. projekt:** et projekt kan kræve SSO og eventuelt en *bestemt* udbyder (projekt eller global). Er **Styr login med SSO** også slået til, får personer, hvis projekter alle styrer login på den måde, ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse i OneUptime. Se [Kræv SSO for dit projekt](/docs/identity/sso#kræv-sso-for-dit-projekt).
 - **Hele instansen:** kortet **Kræv SSO** nederst på **Admin** > **Indstillinger** > **Single sign-on** har en kontakt **Kræv SSO for at logge ind**, der gennemtvinger SSO for alle brugere på instansen. Den beder om bekræftelse, før den slås til, og gemmer, så snart du bekræfter. Master-admins forbliver undtaget, så de ikke kan blive udelukket.
 
 Så længe hele instansen kræver SSO:
 
 - Loginsiden tilbyder kun SSO: en knap for hver global udbyder, der er slået til, og ingen adgangskode, adgangsnøgle, link sendt på e-mail, Google- eller Microsoft-login eller tilmelding. Den beholder opslaget via e-mail, der finder et projekts egen udbyder, kun så længe et projekt har en.
 - OneUptime afviser en adgangskode, en adgangsnøgle, et link sendt på e-mail, et Google- eller Microsoft-login og en tilmelding med "This server requires single sign-on (SSO). Sign in with SSO instead." Kun en master-admins adgangskode eller adgangsnøgle logger stadig vedkommende ind. Folk får deres konto ved at logge ind med SSO eller via en invitation.
+- Personer, der ikke er master-admins, kan ikke oprette en adgangskode, en adgangsnøgle, en sikkerhedsnøgle, en godkendelsesapp, backupkoder eller tofaktorgodkendelse, og en nulstilling af adgangskoden sender dem intet link. Deres **Brugerprofil** har ingen sektion **Sikkerhed**, og dens **Oversigt** nævner de udbydere, de logger ind med. Det, de har oprettet før, forbliver gemt, men ubrugt, indtil kravet slås fra.
+- Kortet **Kræv SSO** viser, hvor mange af dem der stadig har en adgangskode eller tofaktorgodkendelse gemt, som ville logge dem ind igen, hvis SSO ikke længere blev krævet. **Ryd loginindstillinger** sletter deres adgangskoder, adgangsnøgler, sikkerhedsnøgler, godkendelsesapps og backupkoder, slår tofaktorgodkendelse fra og afslutter de sessioner, de loggede ind i uden SSO, efter at have spurgt. Det kan ikke fortrydes, master-admins beholder deres, hver persons projekter registrerer det i deres auditlogs, og hver person får en e-mail om, hvad der blev fjernet, og hvordan vedkommende logger ind nu.
+- På en persons side **Godkendelse** under **Brugere** gør **Ryd loginindstillinger** det samme for den ene person, og **Angiv adgangskode** og **Send nulstillingslink** oplyser, at en adgangskode ikke vil logge vedkommende ind. Du kan ikke rydde dine egne der, og når du rydder en anden master-admins indstillinger, skal du bekræfte, at vedkommende er master-admin.
 - Den, der allerede er logget ind med en adgangskode, logger ind med SSO for at åbne et projekt. Vedkommende lander på projektets single sign-on-side, som tilbyder projektets egne udbydere og de globale udbydere, der logger folk ind i det. Kortet **Kræv SSO** viser, hvor mange der stadig er logget ind uden SSO, og **Log dem ud** afslutter deres sessioner på alle enheder på én gang. Hovedadministratorer forbliver logget ind.
 - Master-admins logger ind med deres adgangskode på `/accounts/admin-login`, en adresse loginsiden ikke linker til. Kortet **Kræv SSO** viser hele adressen under kontakten som **Login for hovedadministratorer**: gem den, så du kan slå kravet fra, hvis din identitetsudbyder holder op med at virke.
 

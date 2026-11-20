@@ -302,10 +302,13 @@ function drawnTiles(): Array<DrawnTile> {
     });
 }
 
-// The Filesystems table's use column: "96.0%" a row.
+/*
+ * The Filesystems table's Used column, the shared storage bar: its percent,
+ * then the amount used, "96%96 GiB" a row.
+ */
 function drawnFilesystemUse(): Array<string> {
   return screen
-    .queryAllByTestId("host-filesystem-utilization")
+    .queryAllByTestId("host-filesystem-usage")
     .map((cell: HTMLElement): string => {
       return withoutIsolateMarks(cell.textContent || "").trim();
     });
@@ -373,7 +376,7 @@ describe("a host's Overview on a Persian page", () => {
     const use: Array<string> = drawnFilesystemUse();
 
     expect(use.length).toBeGreaterThan(0);
-    expect(use).toContain("۹۶٫۰٪");
+    expect(use).toContain("۹۶٪۹۶ GiB");
 
     for (const cell of use) {
       expect({ cell, latin: LATIN_DIGIT.test(cell) }).toEqual({
@@ -448,7 +451,7 @@ describe("the same page in English and German (the negative control)", () => {
         return tile.value;
       }),
     ).toEqual(["40.0%", "50.0%", "96.0%", "1.00", "3"]);
-    expect(drawnFilesystemUse()).toContain("96.0%");
+    expect(drawnFilesystemUse()).toContain("96%96 GiB");
     expect(
       drawnFigures().some((text: string): boolean => {
         return PERSIAN_DIGIT.test(text);

@@ -1072,6 +1072,49 @@ import { AddBiLineageSummaryAndDashboardUpstream1809184620000 } from "./18091846
 import { AddDataStoreFindingSampleRecords1809184700000 } from "./1809184700000-AddDataStoreFindingSampleRecords";
 import { AddIdentityProviderSignOut1809184710000 } from "./1809184710000-AddIdentityProviderSignOut";
 import { AddSecurityCaseTaskResponseStepKey1809184720000 } from "./1809184720000-AddSecurityCaseTaskResponseStepKey";
+import { AddIncidentCallTranscriptPostsAndSignIn1809184830000 } from "./1809184830000-AddIncidentCallTranscriptPostsAndSignIn";
+import { AddIncidentCallTranscriptSignInIndexes1809184840000 } from "./1809184840000-AddIncidentCallTranscriptSignInIndexes";
+import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-AddDataSecurityComplianceSettings";
+import { AddKubernetesVolumeClaimUsage1809184859539 } from "./1809184859539-AddKubernetesVolumeClaimUsage";
+import { AddDataPipelineOwnerRules1809184860000 } from "./1809184860000-AddDataPipelineOwnerRules";
+import { AddDataPipelineCircuitBreaker1809184870000 } from "./1809184870000-AddDataPipelineCircuitBreaker";
+import { AddMonitorNetworkDeviceId1809184900000 } from "./1809184900000-AddMonitorNetworkDeviceId";
+import { AddMonitorNetworkDeviceIdIndexAndKey1809184900100 } from "./1809184900100-AddMonitorNetworkDeviceIdIndexAndKey";
+import { AddTableHealthSkippedTables1809184919541 } from "./1809184919541-AddTableHealthSkippedTables";
+import { AddDataBiConnectionReadState1809184920000 } from "./1809184920000-AddDataBiConnectionReadState";
+import { MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000 } from "./1809184930000-MarkDataOwnersAddedBeforeNotificationsAsTold";
+import { AddServiceOwnerIsOwnerNotified1809185000000 } from "./1809185000000-AddServiceOwnerIsOwnerNotified";
+import { MarkOwnersAddedBeforeNotificationsAsTold1809185010000 } from "./1809185010000-MarkOwnersAddedBeforeNotificationsAsTold";
+import { AddServiceOwnerIsOwnerNotifiedIndexes1809185020000 } from "./1809185020000-AddServiceOwnerIsOwnerNotifiedIndexes";
+import { AddMonitorSecretType1809185030000 } from "./1809185030000-AddMonitorSecretType";
+import { AddWorkflowRunAs1809185100000 } from "./1809185100000-AddWorkflowRunAs";
+import { AddWorkflowRunAsKeys1809185100100 } from "./1809185100100-AddWorkflowRunAsKeys";
+import { AddSessionReplayPageRulesAndReadableEventProperties1809185110000 } from "./1809185110000-AddSessionReplayPageRulesAndReadableEventProperties";
+import { MarkMonitorGroupAndRunnerOwnersAsTold1809185200000 } from "./1809185200000-MarkMonitorGroupAndRunnerOwnersAsTold";
+import { DropIncidentTemplateOwnerNotifiedFlag1809185210000 } from "./1809185210000-DropIncidentTemplateOwnerNotifiedFlag";
+import { AddComplianceSettingTurnedOffBy1809185300000 } from "./1809185300000-AddComplianceSettingTurnedOffBy";
+import { AddComplianceSettingTurnedOffByKey1809185300100 } from "./1809185300100-AddComplianceSettingTurnedOffByKey";
+import { AddCloudConnectionAddedMetrics1809185310000 } from "./1809185310000-AddCloudConnectionAddedMetrics";
+import { AddDetectionMatchedEventsAndRuleResponseSteps1809185320000 } from "./1809185320000-AddDetectionMatchedEventsAndRuleResponseSteps";
+import { AddProbeReportedVersion1809185330000 } from "./1809185330000-AddProbeReportedVersion";
+import { AddSuggestServerAccountsWhenInviting1809185347450 } from "./1809185347450-AddSuggestServerAccountsWhenInviting";
+import { AddWorkflowRunAsApiKey1809185400000 } from "./1809185400000-AddWorkflowRunAsApiKey";
+import { AddWorkflowRunAsApiKeyKey1809185400100 } from "./1809185400100-AddWorkflowRunAsApiKeyKey";
+import { AddProjectManageSignInWithSso1809185500000 } from "./1809185500000-AddProjectManageSignInWithSso";
+import { AddAIRunModelName1809185800000 } from "./1809185800000-AddAIRunModelName";
+import { AddDeviceManagementConnection1809185900000 } from "./1809185900000-AddDeviceManagementConnection";
+import { AddServiceAINote1809185918000 } from "./1809185918000-AddServiceAINote";
+import { AddKubernetesDiskReadings1809186000000 } from "./1809186000000-AddKubernetesDiskReadings";
+import { AddComplianceSettingNamespace1809186100000 } from "./1809186100000-AddComplianceSettingNamespace";
+import { AddTeamScimGroupLinkedAt1809186200000 } from "./1809186200000-AddTeamScimGroupLinkedAt";
+import { AddSamlSingleLogout1809186300000 } from "./1809186300000-AddSamlSingleLogout";
+import { AddDataAssetEntitySetName1809186396960 } from "./1809186396960-AddDataAssetEntitySetName";
+import { AddProjectAiRunCommandTimeLimit1809186466000 } from "./1809186466000-AddProjectAiRunCommandTimeLimit";
+import { AddSsoProviderDomains1809186480000 } from "./1809186480000-AddSsoProviderDomains";
+import { AddTeamMemberInviteeName1809186500000 } from "./1809186500000-AddTeamMemberInviteeName";
+import { AddHostLogSessions1809186600000 } from "./1809186600000-AddHostLogSessions";
+import { AddProjectDetectVoicemailOnCalls1809186610000 } from "./1809186610000-AddProjectDetectVoicemailOnCalls";
+import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-BackfillSsoProviderDomains";
 
 export default [
   InitialMigration,
@@ -2148,4 +2191,47 @@ export default [
   AddDataStoreFindingSampleRecords1809184700000,
   AddIdentityProviderSignOut1809184710000,
   AddSecurityCaseTaskResponseStepKey1809184720000,
+  AddIncidentCallTranscriptPostsAndSignIn1809184830000,
+  AddIncidentCallTranscriptSignInIndexes1809184840000,
+  AddDataSecurityComplianceSettings1809184850000,
+  AddKubernetesVolumeClaimUsage1809184859539,
+  AddDataPipelineOwnerRules1809184860000,
+  AddDataPipelineCircuitBreaker1809184870000,
+  AddMonitorNetworkDeviceId1809184900000,
+  AddMonitorNetworkDeviceIdIndexAndKey1809184900100,
+  AddTableHealthSkippedTables1809184919541,
+  AddDataBiConnectionReadState1809184920000,
+  MarkDataOwnersAddedBeforeNotificationsAsTold1809184930000,
+  AddServiceOwnerIsOwnerNotified1809185000000,
+  MarkOwnersAddedBeforeNotificationsAsTold1809185010000,
+  AddServiceOwnerIsOwnerNotifiedIndexes1809185020000,
+  AddMonitorSecretType1809185030000,
+  AddWorkflowRunAs1809185100000,
+  AddWorkflowRunAsKeys1809185100100,
+  AddSessionReplayPageRulesAndReadableEventProperties1809185110000,
+  MarkMonitorGroupAndRunnerOwnersAsTold1809185200000,
+  DropIncidentTemplateOwnerNotifiedFlag1809185210000,
+  AddComplianceSettingTurnedOffBy1809185300000,
+  AddComplianceSettingTurnedOffByKey1809185300100,
+  AddCloudConnectionAddedMetrics1809185310000,
+  AddDetectionMatchedEventsAndRuleResponseSteps1809185320000,
+  AddProbeReportedVersion1809185330000,
+  AddSuggestServerAccountsWhenInviting1809185347450,
+  AddWorkflowRunAsApiKey1809185400000,
+  AddWorkflowRunAsApiKeyKey1809185400100,
+  AddProjectManageSignInWithSso1809185500000,
+  AddAIRunModelName1809185800000,
+  AddDeviceManagementConnection1809185900000,
+  AddServiceAINote1809185918000,
+  AddKubernetesDiskReadings1809186000000,
+  AddComplianceSettingNamespace1809186100000,
+  AddTeamScimGroupLinkedAt1809186200000,
+  AddSamlSingleLogout1809186300000,
+  AddDataAssetEntitySetName1809186396960,
+  AddProjectAiRunCommandTimeLimit1809186466000,
+  AddSsoProviderDomains1809186480000,
+  AddTeamMemberInviteeName1809186500000,
+  AddHostLogSessions1809186600000,
+  AddProjectDetectVoicemailOnCalls1809186610000,
+  BackfillSsoProviderDomains1809186620000,
 ];

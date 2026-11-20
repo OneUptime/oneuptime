@@ -25,7 +25,17 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import StorageUsageBar, {
+  StorageUsageBarSize,
+} from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import {
+  StorageUsage,
+  formatStorageUsedPercent,
+} from "Common/Utils/Storage/StorageUsage";
+import { getCephOsdStorageUsage } from "../../../Pages/Ceph/Utils/CephPartFacts";
+import { toCephNumber } from "../../../Pages/Ceph/Utils/CephHealth";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * `ceph_daemon` is the datapoint label every per-OSD series carries
@@ -173,44 +183,19 @@ function getOsdState(r: CephResource): {
   };
 }
 
-function getUsedPercent(r: CephResource): number | null {
-  const total: number = Number(r.statBytes);
-  const used: number = Number(r.statBytesUsed);
-  if (!Number.isFinite(total) || !Number.isFinite(used) || total <= 0) {
-    return null;
-  }
-  return (used / total) * 100;
-}
-
-function getUsageBarColor(percent: number): string {
-  if (percent >= 85) {
-    return "#ef4444";
-  }
-  if (percent >= 70) {
-    return "#f59e0b";
-  }
-  return "#10b981";
-}
-
-function renderUsageBar(percent: number | null): ReactElement {
-  if (percent === null) {
-    return <TableEmptyValue isSmall={true} />;
-  }
-  const clamped: number = Math.max(0, Math.min(100, percent));
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="h-1.5 w-12 rounded-full bg-gray-100 overflow-hidden flex-shrink-0">
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${clamped}%`,
-            backgroundColor: getUsageBarColor(clamped),
-          }}
-        ></div>
-      </div>
-      <span className="text-xs text-gray-500">{clamped.toFixed(0)}%</span>
-    </div>
-  );
+/*
+ * How full the OSD's disk is, as the shared storage bar reads it (#9646):
+ * amber past Ceph's nearfull ratio and red past its full ratio - the lines
+ * the OSDs list and the cluster's Needs attention use - never this widget's
+ * own. Null when the OSD reported no size.
+ */
+export function getCephOsdWidgetUsage(
+  r: Pick<CephResource, "statBytes" | "statBytesUsed">,
+): StorageUsage | null {
+  return getCephOsdStorageUsage({
+    usedBytes: toCephNumber(r.statBytesUsed),
+    totalBytes: toCephNumber(r.statBytes),
+  });
 }
 
 function getOsdDisplayName(r: CephResource): string {
@@ -264,7 +249,12 @@ function renderOsdRow(r: CephResource): ReactElement {
           <span style={{ color: state.textColor }}>{state.text}</span>
         </span>
       </td>
-      <td className="px-3 py-2">{renderUsageBar(getUsedPercent(r))}</td>
+      <td className="px-3 py-2">
+        <StorageUsageBar
+          usage={getCephOsdWidgetUsage(r)}
+          size={StorageUsageBarSize.Inline}
+        />
+      </td>
       <ResourceListNameCell
         name={clusterName}
         className="px-3 py-2 text-xs text-gray-500 truncate"
@@ -273,13 +263,13 @@ function renderOsdRow(r: CephResource): ReactElement {
   );
 }
 
-function buildOsdTile(r: CephResource): HoneycombTile {
+function buildOsdTile(r: CephResource, language: string): HoneycombTile {
   const id: string = (r._id as string) || "";
   const name: string = getOsdDisplayName(r);
   const state: { text: string; color: string; textColor: string } =
     getOsdState(r);
   const clusterName: string | undefined = r.cephCluster?.name as string;
-  const usedPercent: number | null = getUsedPercent(r);
+  const usage: StorageUsage | null = getCephOsdWidgetUsage(r);
 
   return {
     id: id || name,
@@ -293,8 +283,8 @@ function buildOsdTile(r: CephResource): HoneycombTile {
         { label: "Class", value: r.deviceClass as string },
         {
           label: "Used",
-          value:
-            usedPercent === null ? undefined : `${usedPercent.toFixed(0)}%`,
+          // In the reader's digits, as the bar writes it.
+          value: usage ? formatStorageUsedPercent(usage, language) : undefined,
         },
         { label: "Cluster", value: clusterName },
       ],
@@ -305,6 +295,7 @@ function buildOsdTile(r: CephResource): HoneycombTile {
 const DashboardCephOsdListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const args: DashboardCephOsdListComponent["arguments"] =
     props.component.arguments;
   const stateFilter: string | undefined = args.stateFilter;
@@ -358,7 +349,9 @@ const DashboardCephOsdListComponentElement: FunctionComponent<
       attributeToColumn={ATTRIBUTE_TO_COLUMN}
       renderRow={renderOsdRow}
       viewMode={viewMode}
-      renderHoneycombTile={buildOsdTile}
+      renderHoneycombTile={(r: CephResource): HoneycombTile => {
+        return buildOsdTile(r, translator.language);
+      }}
       honeycombLegend={OSD_LEGEND}
     />
   );

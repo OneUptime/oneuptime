@@ -1,8 +1,6 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import AIRunStatus, {
-  AIRunStatusHelper,
-} from "../../../../Types/AI/AIRunStatus";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext, {
@@ -15,12 +13,12 @@ import {
   allowsAnyCodeRepository,
 } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import FixRunBudget from "../CodeFix/FixRunBudget";
+import CodeFixOnItsWay from "../CodeFix/CodeFixOnItsWay";
 import CodeFixRunRepository from "../CodeFix/CodeFixRunRepository";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -35,7 +33,7 @@ import { FINISHED_FIX_STATUSES } from "../../../../Utils/Suggestions/CodeFixSugg
  */
 const MAX_CONNECTION_REPOSITORIES_CHECKED: number = 200;
 
-interface SubjectCodeFixRunInput {
+export interface SubjectCodeFixRunInput {
   projectId: ObjectID;
   taskType: CodeFixTaskType;
   incidentId?: ObjectID | undefined;
@@ -154,69 +152,56 @@ export default class SubjectCodeFixRun {
 
   /*
    * Per-(subject, recipe) dedupe guard (mirrors the per-(exception,
-   * taskType) guard in TelemetryExceptionService): at most one non-terminal
-   * run of a recipe per incident/alert, so repeated triggers on the same
-   * subject never fan out into duplicate PRs. Exactly one of
-   * incidentId/alertId is expected.
+   * taskType) guard in TelemetryExceptionService): at most one task of a
+   * recipe on its way per incident/alert, so repeated triggers on the same
+   * subject never fan out into duplicate PRs. On its way is the rule every
+   * fix holds to (CodeFixOnItsWay): a turn queued or running of a task of
+   * the subject and the recipe - its first turn, a fix asked again, or a
+   * reply someone sent in Code. The turn found: its task is its codeTaskId
+   * for a later turn (taskIdOf). Exactly one of incidentId/alertId is
+   * expected.
    */
   @CaptureSpan()
   public static async findNonTerminalRunForSubject(data: {
+    projectId: ObjectID;
     taskType: CodeFixTaskType;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
   }): Promise<AIRun | null> {
-    if (Boolean(data.incidentId) === Boolean(data.alertId)) {
-      throw new BadDataException(
-        "Exactly one incident or alert subject is required to find an existing fix task.",
-      );
-    }
-
-    return AIRunService.findOneBy({
-      query: {
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: data.taskType,
-        ...(data.incidentId
-          ? { triggeredByIncidentId: data.incidentId }
-          : { triggeredByAlertId: data.alertId! }),
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: { _id: true },
-      props: { isRoot: true },
-    });
+    return await CodeFixOnItsWay.findTurn(CodeFixOnItsWay.ofSubject(data));
   }
 
   /*
    * Per-trace dedupe for the FixPerformance recipe: at most one
-   * non-terminal FixPerformance run per (project, traceId). The traceId
-   * lives inside the JSON taskContext, which the Query layer cannot filter
-   * on — so this scans the project's non-terminal FixPerformance runs
-   * (bounded and rare: they exist only between a user click and the PR)
-   * and matches the traceId in memory. Honest per-trace dedupe without a
-   * dedicated column.
+   * FixPerformance task on its way per (project, traceId), by the rule
+   * every fix holds to (CodeFixOnItsWay) - its turn queued or running, a
+   * reply in Code included. The traceId is read inside the JSON
+   * taskContext, of the turn or of its task's first turn.
    */
   @CaptureSpan()
   public static async findNonTerminalPerformanceFixRunForTrace(data: {
     projectId: ObjectID;
     traceId: string;
   }): Promise<AIRun | null> {
-    const activeRuns: Array<AIRun> = await AIRunService.findBy({
-      query: {
-        projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: CodeFixTaskType.FixPerformance,
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: { _id: true, taskContext: true },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    return await CodeFixOnItsWay.findTurn(CodeFixOnItsWay.ofTrace(data));
+  }
 
-    return (
-      activeRuns.find((run: AIRun): boolean => {
-        return run.taskContext?.traceId === data.traceId;
-      }) || null
-    );
+  /*
+   * The Code task a fix run is a turn of, by its first turn's id: the
+   * run's own for a task's first turn, the task's (codeTaskId) for a later
+   * one - a fix asked again from Code (Try again, #6509), or a reply
+   * someone sent in Code, which the lookups here find too
+   * (CodeFixOnItsWay). A page links to the task, and asks whether its
+   * reader may see the task, by this id - never by a later turn's.
+   */
+  public static taskIdOf(
+    run: Pick<AIRun, "id" | "codeTaskId"> | null | undefined,
+  ): ObjectID | null {
+    if (!run) {
+      return null;
+    }
+
+    return run.codeTaskId || run.id || null;
   }
 
   /*
@@ -248,7 +233,12 @@ export default class SubjectCodeFixRun {
         status: QueryHelper.any([...FINISHED_FIX_STATUSES]),
         taskContext: QueryHelper.jsonContains({ traceId: data.traceId }),
       } as never,
-      select: { _id: true, status: true, needsUserInput: true },
+      select: {
+        _id: true,
+        status: true,
+        needsUserInput: true,
+        codeTaskId: true,
+      },
       sort: { createdAt: SortOrder.Descending },
       props: { isRoot: true },
     });
@@ -256,11 +246,10 @@ export default class SubjectCodeFixRun {
 
   /*
    * Per-(service, recipe) dedupe for the service-scoped instrumentation
-   * recipes (ImproveLogging / ImproveTracing): at most one non-terminal
-   * run of a recipe per (project, telemetryServiceId). Same in-memory
-   * taskContext matching as the per-trace guard above — the id lives in
-   * JSON the Query layer cannot filter on, and the candidate set is
-   * bounded and rare.
+   * recipes (ImproveLogging / ImproveTracing): at most one task of a recipe
+   * on its way per (project, telemetryServiceId), by the rule every fix
+   * holds to (CodeFixOnItsWay) - a reply in Code included. The service's id
+   * is read inside the JSON taskContext, as for the per-trace guard above.
    */
   @CaptureSpan()
   public static async findNonTerminalRunForTelemetryService(data: {
@@ -268,24 +257,7 @@ export default class SubjectCodeFixRun {
     taskType: CodeFixTaskType;
     telemetryServiceId: string;
   }): Promise<AIRun | null> {
-    const activeRuns: Array<AIRun> = await AIRunService.findBy({
-      query: {
-        projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: data.taskType,
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-      },
-      select: { _id: true, taskContext: true },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    return (
-      activeRuns.find((run: AIRun): boolean => {
-        return run.taskContext?.telemetryServiceId === data.telemetryServiceId;
-      }) || null
-    );
+    return await CodeFixOnItsWay.findTurn(CodeFixOnItsWay.ofService(data));
   }
 
   /*
@@ -348,16 +320,21 @@ export default class SubjectCodeFixRun {
           alertId: data.alertId,
         },
         async (): Promise<AIRun> => {
-          const existingRun: AIRun | null =
-            await this.findNonTerminalRunForSubject({
-              taskType: data.taskType,
-              incidentId: data.incidentId,
-              alertId: data.alertId,
-            });
+          const subject: {
+            projectId: ObjectID;
+            taskType: CodeFixTaskType;
+            incidentId?: ObjectID | undefined;
+            alertId?: ObjectID | undefined;
+          } = {
+            projectId: data.projectId,
+            taskType: data.taskType,
+            incidentId: data.incidentId,
+            alertId: data.alertId,
+          };
 
-          if (existingRun) {
+          if (await this.findNonTerminalRunForSubject(subject)) {
             throw new BadDataException(
-              "A fix pull request task is already queued or running for this subject.",
+              CodeFixOnItsWay.getRefusal(CodeFixOnItsWay.ofSubject(subject)),
             );
           }
 
@@ -418,7 +395,14 @@ export default class SubjectCodeFixRun {
     });
   }
 
-  private static async assertLatestRecommendedInvestigationSource(
+  /*
+   * The investigation a FixFromIncident run's snapshot names is still the
+   * latest of its incident or alert, Completed and Recommended, with the
+   * analysis the snapshot holds - checked before the INSERT that creates
+   * one, and before a run's Try again asks it again (CodeTaskFixRetry),
+   * each under InvestigationSubjectLock.
+   */
+  public static async assertLatestRecommendedInvestigationSource(
     data: SubjectCodeFixRunInput,
   ): Promise<void> {
     const requestedSnapshot: InvestigationCodeFixTaskSnapshot | null =

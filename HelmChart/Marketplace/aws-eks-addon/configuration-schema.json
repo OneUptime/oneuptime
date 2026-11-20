@@ -89,13 +89,14 @@
     },
     "cost": {
       "type": "object",
-      "description": "Spend per namespace, workload and pod, priced with OpenCost.",
+      "description": "Spend per namespace, workload and pod, priced with OpenCost at AWS list prices.",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "type": "boolean",
-          "description": "Run OpenCost and the small Prometheus it needs, and send their cost allocations to OneUptime.",
-          "default": false
+          "type": ["boolean", "string"],
+          "enum": [true, false, "auto"],
+          "description": "Run OpenCost and the small Prometheus it needs, and send their cost allocations to OneUptime. auto: on with EC2 nodes (the standard preset), off on Fargate (the eks-fargate preset), which bills every pod by its requests. true or false: on or off with either preset.",
+          "default": "auto"
         }
       }
     }

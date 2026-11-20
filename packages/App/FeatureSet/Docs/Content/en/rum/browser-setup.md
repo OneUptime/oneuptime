@@ -40,7 +40,7 @@ flowchart TB
 
 ![The "Ingestion Keys" list, with "Create Ingestion Key" ringed](screen:ingestion-keys)
 
-The new key opens on its own page. Copy its **Secret Key**: it is the token the SDK sends as `x-oneuptime-token`.
+The new key opens on its own page. Copy its **Secret Key**: it is the token the SDK sends as `x-oneuptime-token`. A Browser key is meant to be public: it works only from the origins you list, sends only browser telemetry and session replays, and is rate-limited. Never put a Server key in a page.
 
 ![A telemetry ingestion key's page, showing its Secret Key](/docs/static/images/TelemetryIngestionKeyView.png)
 

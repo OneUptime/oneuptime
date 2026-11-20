@@ -165,6 +165,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a team or a label may not take a name (#9674): another one of the
+   * project has it. The server refuses in English, and the Dashboard says
+   * the refusal in the reader's language under the form's Name field.
+   */
+  {
+    directory: "packages/Common/Types/Database/UniqueName.ts",
+    kind: "keys",
+  },
+  /*
    * The rest of the Enterprise screens the Dashboard draws (#8634): custom
    * roles, the audit log export, the IP allowlists, the license pages, and
    * the status pages' access controls and branding. Every word they draw
@@ -203,6 +212,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
   /*
+   * A managed device's status - Online, Offline, Provisioning and the rest -
+   * as Inventory > Managed Devices and a device's Inventory page draw it.
+   * Only the names the file marks are read: the server words nothing here.
+   */
+  {
+    directory: "packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts",
+    kind: "keys",
+  },
+  /*
    * What a monitor's pages are told by the shared monitor helpers: the
    * overview's hero, facts and sections, its uptime windows and its metric
    * groups - each helper writes them with the reader's Translator.
@@ -223,6 +241,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   { directory: "packages/Common/Utils/Slo/SloMetricType.ts", kind: "keys" },
+  /*
+   * What is wrong with a one-time code (TOTP) monitor secret's setup key or
+   * otpauth:// link, which the secret's form says as it is typed (#9703).
+   * Only the sentences the file marks are read: the server and the probe
+   * read the same file.
+   */
+  { directory: "packages/Common/Utils/Totp/TotpSecret.ts", kind: "keys" },
   /*
    * What the server stores as each monitor series' description, which the
    * metrics list words under the series' name (#8356).
@@ -518,6 +543,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why an override that names somebody outside the reader's teams is
+   * refused, and why a picker offers only their teams' people (issue
+   * #9733): the server says them in English, the dashboard in the
+   * reader's language. Only the sentences the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/UserOverrideTeamAccess.ts",
+    kind: "keys",
+  },
+  /*
    * What a dashboard template's chart says while it draws its fallback
    * query - why, and where the fix is. Stored in the dashboard as written
    * and looked up where the chart draws it; only the hints the file marks
@@ -555,6 +591,27 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Kubernetes/KubernetesHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * When a claim's or a node's disk needs someone, by the same rules: its
+   * status ("Nearly full", "Disk almost full") and why ("91% used, 4.5 GiB
+   * free", "Full in about 3 days"), the sizes and percents as values.
+   */
+  {
+    directory: "packages/Common/Types/Kubernetes/KubernetesStorageHealth.ts",
+    kind: "keys",
+  },
+  /*
+   * The Pod Security Standards' and the CIS Kubernetes Benchmark's controls
+   * a cluster's Compliance page scores (#9627): each one's title, what it
+   * finds wrong and how to fix it, and why the benchmark's other controls
+   * are not scored. Only the words the file marks are read: field names and
+   * values are Kubernetes', drawn as written.
+   */
+  {
+    directory:
+      "packages/Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog.ts",
     kind: "keys",
   },
   /*
@@ -745,6 +802,28 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Cloud/CloudKeyMetricGroup.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a cloud resource did not report one of its key metrics (#9569):
+   * the catalog's conditions - "Only a replica reports it." - and the
+   * reasons and fixes its Metrics list opens to, in the reader's language.
+   * Only the words the files mark are read: a metric's name is the cloud's.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudKeyMetricCondition.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudUnreportedKeyMetrics.ts",
+    kind: "keys",
+  },
+  /*
+   * Why one of the other metrics a cloud resource publishes cannot be
+   * added (#9563), under it in the resource's More Metrics.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudPublishedMetrics.ts",
     kind: "keys",
   },
   /*

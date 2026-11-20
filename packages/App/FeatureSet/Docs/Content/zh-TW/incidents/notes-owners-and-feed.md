@@ -60,7 +60,7 @@ flowchart TB
 :::steps
 ### 開啟公開備註
 
-開啟事件，在它的側邊選單中選擇 **備註 → 公開備註**。備註上方的撰寫器會在你發布之前說明誰會讀到這則備註：**Public · Visible on your status page**。
+開啟事件，在它的側邊選單中選擇 **備註 → 公開備註**。備註上方的撰寫器會在你發布之前說明誰會讀到這則備註：**Public · Visible on your status page**；沒有狀態頁面顯示該事件時，顯示 **Public · No status page shows this incident yet**。
 
 ### 撰寫更新
 
@@ -88,7 +88,7 @@ flowchart TB
 
 **安靜的事件維持安靜。** 如果事件在宣告時關閉了 **通知狀態頁面訂閱者**（或是以私人事件宣告的），它的訂閱者從未得知此事，所以公開備註不應該成為他們聽到的第一則消息。在這樣的事件上，核取方塊以關閉狀態開始，下方有一行說明原因。你仍然可以勾選它，就這則備註通知訂閱者。沒有明確選擇而發布的備註也遵循同樣的規則：Slack 和 Microsoft Teams 中的備註、工作流程，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 請求。明確的 `true` 或 `false` 一律會被保留。[維護事件](/docs/status-pages/subscribers#維護事件) 和 [事件片段](/docs/status-pages/subscribers#事件片段) 上的公開備註遵循類似的規則，依據的是該維護事件或片段在建立時是否通知了訂閱者。私人事件或片段完全不能新增公開備註。
 
-**查看備註將觸及誰。** 當 **通知狀態頁面訂閱者** 處於勾選狀態時，它下方的 **將通知** 列會列出備註將傳往的狀態頁面，每個管道附上「最多」訂閱者數量，以及那些列出了事件監測器但不會收到通知的頁面和原因。沒有人會收到通知時它什麼都不顯示，除非事件在狀態頁面上隱藏，或原因是事件的狀態頁面範圍。它遵循事件的狀態頁面範圍，因此限定到兩個站點頁面的事件上的備註，會顯示它將觸及這兩個頁面。請參閱 [每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)。
+**查看備註將觸及誰。** 當 **通知狀態頁面訂閱者** 處於勾選狀態時，它下方的 **將通知** 列會列出備註將傳往的狀態頁面，每個管道附上「最多」訂閱者數量，以及那些列出了事件監測器但不會收到通知的頁面和原因。沒有人會收到通知時它什麼都不顯示，除非原因是事件的狀態頁面範圍；為什麼沒有人會收到通知（事件已隱藏、沒有狀態頁面顯示它，或顯示它的狀態頁面什麼都不傳送）由核取方塊下方的那一行說明。它遵循事件的狀態頁面範圍，因此限定到兩個站點頁面的事件上的備註，會顯示它將觸及這兩個頁面。請參閱 [每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)。
 
 **查看他們將收到什麼。** 在同一個核取方塊旁邊，**預覽** 會顯示每個狀態頁面的訂閱者針對你正在撰寫的備註將收到的電子郵件，以及它使用哪個範本、為什麼使用。在備註有文字之前它保持灰色。**傳送測試郵件給我** 只會把這封電子郵件傳送到你自己的帳戶電子郵件，不會傳給其他任何人。請參閱 [訂閱者與公告](/docs/status-pages/subscribers#傳送前預覽電子郵件)。
 
@@ -302,9 +302,9 @@ flowchart TB
 - **已連結的警示** —— `AlertLinked` 和 `AlertUnlinked`，顯示為 **警示已連結** 和 **警示已取消連結**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
-- **視訊通話** —— `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded` 和 `VideoCallSummary`：為事件發起的通話及其加入連結、提供者無法發起通話的原因、由某人新增或從提供者讀取的通話逐字稿，或 OneUptime AI 從逐字稿中讀出的內容，後者也會發布到事件的頻道。請參閱 [視訊通話](/docs/workspace-connections/video-calls)。
+- **視訊通話** —— `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded`、 `VideoCallTranscriptRemoved` 和 `VideoCallSummary`：為事件發起的通話及其加入連結、提供者無法發起通話的原因、由某人新增、從提供者讀取或已移除的通話逐字稿，或 OneUptime AI 從逐字稿中讀出的內容，後者也會發布到事件的頻道。請參閱 [視訊通話](/docs/workspace-connections/video-calls)。
 
-待命條目說明每次呼叫的經過。一次呼叫的條目會寫出其通知所經由的管道："On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 此人自己的待命規則稍後發送的通知（例如十分鐘後的電話）有自己的條目（"… paged Nitin Kumar again via phone call …"），未能發送的通知也一樣（"… could not page Nitin Kumar via SMS …"）。當 Twilio 回報電話無人接聽或忙線時，未接的電話也會有自己的項目："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 每個管道在一次呼叫中只寫一次，因此在有人回應之前不斷重複的推播不會每分鐘增加一行。回應會寫出它來自哪則通知："Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." 以其他方式確認的呼叫，例如在 OneUptime 本身或 OneUptime On-Call 應用程式中確認的，不會寫出管道。Feed 從不寫出通知未能發送的原因，因為服務商給出的原因可能包含電話號碼或電子郵件地址：原因會顯示在事件的 **通知日誌** 和此人自己的 **待命日誌** 中。
+待命條目說明每次呼叫的經過。一次呼叫的條目會寫出其通知所經由的管道："On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 此人自己的待命規則稍後發送的通知（例如十分鐘後的電話）有自己的條目（"… paged Nitin Kumar again via phone call …"），未能發送的通知也一樣（"… could not page Nitin Kumar via SMS …"）。當 Twilio 回報電話無人接聽或忙線時，未接的電話也會有自己的項目："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 語音信箱接聽的電話同樣算作未接聽，其項目會說明是否留下了留言："… It went to voicemail, and a message was left." 每個管道在一次呼叫中只寫一次，因此在有人回應之前不斷重複的推播不會每分鐘增加一行。回應會寫出它來自哪則通知："Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." 以其他方式確認的呼叫，例如在 OneUptime 本身或 OneUptime On-Call 應用程式中確認的，不會寫出管道。Feed 從不寫出通知未能發送的原因，因為服務商給出的原因可能包含電話號碼或電子郵件地址：原因會顯示在事件的 **通知日誌** 和此人自己的 **待命日誌** 中。
 
 每種類型都有自己的圖示，所以你可以快速瀏覽一條很長的動態，從閒聊中挑出狀態變更。AI 產生的根本原因分析會另外標記，並以受限的 Markdown 模式轉譯。**已建立事件** 項目、記錄新標題的項目，以及加入或離開片段的項目，會完全依輸入的樣子顯示標題：它們會跳脫其中的 `\`、`[`、`]`、`*`、`_`、`~`、反引號和 \<，因此標題不會變成圖片、原始 HTML、像 \<!here\> 這樣的 Slack 提及、隱藏了目的地的連結，或粗體、斜體或程式碼。標題中的位址仍會顯示為指向該位址的連結。
 

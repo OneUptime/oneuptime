@@ -14,7 +14,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import { getAllCephAlertTemplates } from "../../../../Types/Monitor/CephAlertTemplates";
 import { getAllDockerAlertTemplates } from "../../../../Types/Monitor/DockerAlertTemplates";
 import { getAllDockerSwarmAlertTemplates } from "../../../../Types/Monitor/DockerSwarmAlertTemplates";
-import { getAllHostAlertTemplates } from "../../../../Types/Monitor/HostAlertTemplates";
+import {
+  getAllHostAlertTemplates,
+  getAndroidHostAlertTemplates,
+} from "../../../../Types/Monitor/HostAlertTemplates";
 import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
@@ -58,6 +61,7 @@ import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertT
 import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
 import { getAllServerlessAlertTemplates } from "../../../../Types/Monitor/ServerlessAlertTemplates";
 import { getAllMessageQueueAlertTemplates } from "../../../../Types/Monitor/MessageQueueAlertTemplates";
+import { getAllManagedDeviceAlertTemplates } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -163,7 +167,9 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   {
     resourceType: MonitorRecommendationResourceType.Host,
     monitorTypes: [MonitorType.Host],
-    templateCount: getAllHostAlertTemplates().length,
+    // An Android device's own are offered to a host whose OS is Android alone (#9802).
+    templateCount:
+      getAllHostAlertTemplates().length + getAndroidHostAlertTemplates().length,
     contextFreeTemplateCount: getAllHostAlertTemplates().length,
     identifierFieldName: "hostIdentifier",
   },
@@ -254,17 +260,20 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.RumApplication,
+    // Logs for a mobile app's crash, ANR and frame events (#9589).
     monitorTypes: [
       MonitorType.Metrics,
       MonitorType.Traces,
+      MonitorType.Logs,
       MonitorType.Exceptions,
     ],
     templateCount: getAllRumAlertTemplates().length,
     /*
-     * Everything but the session replay budget alerts, which wait until the
-     * application is known to record replays. `getRumAlertTemplates(undefined)`
-     * is the module's own answer to "what applies to an application we know
-     * nothing about".
+     * The browser set, less the session replay budget alerts, which wait
+     * until the application is known to record replays: an application of
+     * no known kind gets the browser templates, and none of a mobile app's.
+     * `getRumAlertTemplates(undefined)` is the module's own answer to "what
+     * applies to an application we know nothing about".
      */
     contextFreeTemplateCount: getRumAlertTemplates(undefined).length,
     identifierFieldName: "rumApplicationId",
@@ -354,6 +363,15 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
     contextFreeTemplateCount: 0,
     identifierFieldName: "messageQueueId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
+    // Every template reads the check-ins the connection's reads write (#9835).
+    monitorTypes: [MonitorType.Metrics],
+    templateCount: getAllManagedDeviceAlertTemplates().length,
+    // A constant set: every connection is an Esper tenant.
+    contextFreeTemplateCount: getAllManagedDeviceAlertTemplates().length,
+    identifierFieldName: "deviceManagementConnectionId",
   },
 ];
 
@@ -1399,11 +1417,54 @@ describe("MonitorRecommendationCatalog", () => {
       }
     });
 
-    it("offers all eleven, in the module's order, to an application that records and has a budget", () => {
+    it("offers all eleven browser ones, in the module's order, to an application that records and has a budget", () => {
       const offered: Array<string> = rumRecommendationIds(FULL_REPLAY_CONTEXT);
 
       expect(offered).toHaveLength(11);
-      expect(offered).toEqual(idsOf(getAllRumAlertTemplates()));
+      expect(offered).toEqual(idsOf(getRumAlertTemplates(FULL_REPLAY_CONTEXT)));
+      expect(offered).toEqual(
+        rumRecommendationIds({
+          ...FULL_REPLAY_CONTEXT,
+          rumClientKind: "browser",
+        }),
+      );
+    });
+
+    /*
+     * The application's kind reaches the module as `clientKind`: forgotten,
+     * a mobile app would be offered the Web Vitals and none of its own
+     * monitors, while every other test stays green (#9589).
+     */
+    it("forwards the application's kind, so a mobile app gets its own set", () => {
+      const mobile: Array<string> = rumRecommendationIds({
+        rumClientKind: "mobile",
+      });
+
+      expect(mobile).toEqual(
+        idsOf(getRumAlertTemplates({ clientKind: "mobile" })),
+      );
+      expect(mobile).toHaveLength(9);
+      expect(mobile).toContain(
+        buildRecommendationId(
+          MonitorRecommendationResourceType.RumApplication,
+          "rum-app-crashes",
+        ),
+      );
+      expect(mobile).not.toContain(
+        buildRecommendationId(
+          MonitorRecommendationResourceType.RumApplication,
+          "rum-poor-lcp",
+        ),
+      );
+      expect(
+        rumRecommendationIds({
+          ...FULL_REPLAY_CONTEXT,
+          rumClientKind: "mobile",
+        }),
+      ).toHaveLength(13);
+      expect(rumRecommendationIds({ rumClientKind: null })).toEqual(
+        rumRecommendationIds(),
+      );
     });
 
     /*
@@ -1462,7 +1523,8 @@ describe("MonitorRecommendationCatalog", () => {
           MonitorRecommendationResourceType.RumApplication,
         );
 
-      expect(all).toHaveLength(11);
+      // 5 web vitals, 2 shared, 8 mobile, 4 budgets.
+      expect(all).toHaveLength(19);
       expect(all.length).toBe(getAllRumAlertTemplates().length);
 
       for (const templateId of BUDGET_TEMPLATE_IDS) {

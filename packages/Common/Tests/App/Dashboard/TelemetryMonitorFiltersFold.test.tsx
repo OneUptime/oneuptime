@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -520,15 +521,83 @@ describe("Trace monitor filters", () => {
     expect(screen.queryByText("Filter by Span Status")).not.toBeInTheDocument();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    /*
+     * Its five fields: the first four by name - a duration floor, such as
+     * a slow cold start's (#9589), among them - and the group-by (#9711),
+     * one alert per install of a mobile app, as "1 more".
+     */
     expect(listedNames(moreFields())).toEqual([
       "Filter by Service",
       "Filter by Infrastructure Entity",
       "Filter by Attributes",
+      "Takes at least (ms)",
+      "Group by Attributes",
     ]);
     expect(setChips(moreFields())).toEqual([]);
     expect(fieldLabel("Filter by Attributes")).not.toBeVisible();
+    expect(fieldLabel("Takes at least (ms)")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
+  });
+
+  /*
+   * #9711: a Traces monitor grouped by an attribute raises one alert per
+   * value of it - Device Stopped Reporting, one per install of a mobile
+   * app. Folded with the filters, shown as a chip once set.
+   */
+  test("a saved group-by stays folded, shown as a chip, and reaches the step as it was", () => {
+    const recorder: Recorder = renderForm({
+      groupByAttributes: ["resource.app.installation.id"],
+    });
+
+    expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFields())).toEqual(["Group by Attributes: 1"]);
+
+    fireEvent.click(moreFields());
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Span name contains" }),
+      {
+        target: { value: "Resumed" },
+      },
+    );
+
+    expect(recorder.latest).toMatchObject({
+      spanName: "Resumed",
+      groupByAttributes: ["resource.app.installation.id"],
+    });
+  });
+
+  test("a duration floor typed under More fields reaches the step, and shows folded as a chip", () => {
+    const recorder: Recorder = renderForm({ spanName: "AppStart" });
+
+    fireEvent.click(moreFields());
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: "Takes at least (ms)" }),
+      { target: { value: "5000" } },
+    );
+
+    expect(recorder.latest).toMatchObject({ spanName: "AppStart" });
+    expect(
+      MonitorStepTraceMonitorUtil.getMinimumDurationInMs(recorder.latest!),
+    ).toBe(5000);
+
+    fireEvent.click(moreFields());
+
+    expect(setChips(moreFields())).toEqual(["Takes at least (ms): 5000"]);
+  });
+
+  test("a saved duration floor scopes the spans the preview reads", () => {
+    renderForm({ spanName: "AppStart", minimumDurationInMs: 5000 });
+
+    expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFields())).toEqual(["Takes at least (ms): 5000"]);
+
+    openMatching("Matching spans");
+
+    expect(mockPreviews.traces[mockPreviews.traces.length - 1]).toMatchObject({
+      spanName: "AppStart",
+      minimumDurationInMs: 5000,
+    });
   });
 
   test("an edited monitor keeps More fields folded, its filters in force shown as chips", () => {
@@ -641,16 +710,85 @@ describe("Exception monitor filters", () => {
     ).not.toBeInTheDocument();
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    // The first four by name, the resolved and archived switches as "2 more".
     expect(listedNames(moreFields())).toEqual([
       "Filter by Service",
       "Filter by Infrastructure Entity",
-      "Include Resolved Exceptions",
-      "Include Archived Exceptions",
+      "Only Unhandled Exceptions",
+      "Leave Out Exception Types",
     ]);
+    expect(
+      within(moreFields()).getByTestId("folded-section-more"),
+    ).toHaveTextContent("2 more");
     expect(setChips(moreFields())).toEqual([]);
     expect(fieldLabel("Filter by Service")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
+  });
+
+  /*
+   * #9713: unhandled only, and the types to leave out, fold with the other
+   * filters: an App Crashes monitor opened for editing shows both as
+   * chips, and the preview counts what the check counts.
+   */
+  test("App Crashes' two filters stay folded, shown as chips, and narrow the preview", () => {
+    renderForm({
+      unhandledOnly: true,
+      excludedExceptionTypes: ["ANR", "Hang"],
+    });
+
+    expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(setChips(moreFields())).toEqual([
+      "Only Unhandled Exceptions: On",
+      "Leave Out Exception Types: ANR, Hang",
+    ]);
+
+    openMatching("Matching exceptions");
+
+    const previewQuery: JSONObject | undefined =
+      mockPreviews.exceptions[mockPreviews.exceptions.length - 1];
+
+    expect(previewQuery?.["escaped"]).toBe(true);
+    expect(previewQuery?.["exceptionType"]).toEqual({
+      _type: "IncludesNone",
+      value: ["ANR", "Hang"],
+    });
+  });
+
+  test("switching unhandled only on, and typing types to leave out, reach the step", () => {
+    const recorder: Recorder = renderForm({ exceptionTypes: ["TypeError"] });
+
+    fireEvent.click(moreFields());
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Only Unhandled Exceptions" }),
+    );
+    fireEvent.change(screen.getByPlaceholderText("ANR, Hang"), {
+      target: { value: "ANR, , Hang, ANR" },
+    });
+
+    expect(recorder.latest).toMatchObject({
+      exceptionTypes: ["TypeError"],
+      unhandledOnly: true,
+      excludedExceptionTypes: ["ANR", "Hang"],
+    });
+  });
+
+  test("cleared, both leave the step as a monitor without them is", () => {
+    const recorder: Recorder = renderForm({
+      unhandledOnly: true,
+      excludedExceptionTypes: ["ANR"],
+    });
+
+    fireEvent.click(moreFields());
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Only Unhandled Exceptions" }),
+    );
+    fireEvent.change(screen.getByPlaceholderText("ANR, Hang"), {
+      target: { value: "" },
+    });
+
+    expect(recorder.latest).not.toHaveProperty("unhandledOnly");
+    expect(recorder.latest).not.toHaveProperty("excludedExceptionTypes");
   });
 
   test("its list of matching exceptions asks for nothing until it is opened", async () => {

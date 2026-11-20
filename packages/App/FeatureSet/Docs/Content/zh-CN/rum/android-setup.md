@@ -107,6 +107,10 @@ OpenTelemetry Android 会自行记录以上所有内容。它设置的设备属�
 
 崩溃和 ANR 会作为未处理异常进入 **异常** ，按堆栈追踪分组，并附带它们发生时所在的会话。代理会在应用终止时把崩溃保存到磁盘，再从那里发送，因此离线时发生的崩溃也会在应用再次联网运行时到达。
 
+应用程序的 **概览** 会替你汇总这些数据： **会话** 、 **无崩溃会话** 、 **崩溃** 、 **ANR** 、 **应用启动** 、 **冷启动（p95）** 和 **冻结帧** ，每一项都能打开它所统计的异常、span 或事件。在应用发送应用启动或帧数据之前，对应的图表会说明如何开启这些数据。它的 **建议** 提供针对崩溃、ANR、缓慢冷启动、冻结帧，以及应用或其某台设备停止上报的监视器。
+
+**无崩溃会话** 下方的那一行显示按安装计算的同一比例：OpenTelemetry Android 1.1 及更高版本会在每个 span 和日志上设置 `app.installation.id` ，这个 ID 在应用保持安装期间一直不变，因此可以代表应用的用户。对于每小时有数百个会话、每天崩溃一次也属正常的应用， **App Crash Rate** 和 **App ANR Rate** 会在一小时内崩溃或卡顿的会话占比超过 Android vitals 的 1.09% 和 0.47% 时发出警报，而不是对每一次崩溃或卡顿都发出警报。
+
 会话在后台停留 15 分钟后结束，或在 4 小时后结束。从不进入后台的应用（例如自助终端）会让一个会话持续 4 小时，因此请把每位顾客的到访追踪为一个独立的 span，如 [追踪你自己的工作流](#追踪你自己的工作流) 所示。
 
 在下面的 OkHttp 模块旁添加 `android-log-library` 和 `android-log-agent` 后，应用自己的 `android.util.Log` 调用也会变成日志：每次调用的标签放在 `android.log.tag` 中，带有 Throwable 的调用会成为 **异常** 中的一个异常。OpenTelemetry Android 不读取 Logcat。
@@ -219,7 +223,36 @@ resource {
 }
 ```
 
-应用的遥测仍归属于它的 RUM 应用程序，设备也不会成为 **主机** 中的主机：应用不上报主机指标，因此那里没有可显示的内容。设备在 **资产清单** 中的页面会显示它自己的日志、追踪和异常，而 `@resource.host.name:` 可以在 **追踪** 和 **日志** 中找到它们。30 天内没有发送任何数据的设备会从 **资产清单** 中移除。
+应用的遥测仍归属于它的 RUM 应用程序，设备也不会成为 **主机** 中的主机：应用不上报主机指标，因此那里没有可显示的内容。设备在 **资产清单** 中的页面会显示它自己的日志、追踪和异常，而 `@resource.host.name:` 可以在 **追踪** 和 **日志** 中找到它们。30 天内没有发送任何数据的设备会从 **资产清单** 中移除。要查看设备本身，即它的内存、存储和重启，以及其上每个应用的崩溃，请添加 [Android 代理](/docs/telemetry/android-agent) ，并在它的 `device_name` 中使用相同的名称：这样设备也会成为 **主机** 中的一台主机，并且在 **资产清单** 中仍然只是一个条目。
+
+### 在设备沉默时收到通知
+
+应用程序的 **建议** 提供 **Device Stopped Reporting** ：过去一周内发送过 span 的设备如果一小时没有发送任何 span，就为该设备发出一个警报，设备按代理设置的 `app.installation.id` 区分。每台设备的警报都会写明它的安装，并在设备重新上报后解决。当所有设备同时沉默时（例如门店的网络中断），不会有任何设备发出警报： **App Stopped Reporting** 会为整个应用报告一次。
+
+停留在同一屏幕上的自助终端在有人使用之前不会发送任何数据。请在应用运行期间每隔几分钟发送一个 span，这样空闲的自助终端就不会被当作沉默的设备：
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+在代理启动之后，用 `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()` 启动它。每五分钟一个 span，能让正常工作的自助终端远远保持在一小时的期限之内。
 
 ### 从 MDM 配置设备群
 
@@ -246,6 +279,12 @@ val serialNumber = restrictions.getString("device_serial").orEmpty()
 ```
 
 更改后对设备执行 Converge，让它们读取新值。如果你的 MDM 要求提供架构，请在 `app_restrictions.xml` 中声明相同的键。Esper 会拒绝没有 v1 签名的 APK，因此除了 v2 或 v3 之外，还要用 v1 方案为发布版本签名。
+
+### 从 Esper 导入设备群
+
+将你的 Esper 租户连接到资产清单后，Esper 注册的每台设备都会列在其中，包括应用从未启动过的设备，并带有只有 Esper 才知道的信息：它的组、Android 版本、安全补丁级别、序列号、电池、存储、已安装的应用和上次签入。不再签入的设备会显示为离线，并注明它上次签入是多久以前。请参阅 [从 Esper 导入设备](/docs/inventory/overview#从-esper-导入设备)。
+
+如果设备上的应用按上文所述为其命名，该设备就是一个条目，并带有应用发送的内容：`host.name` 就是它在 Esper 中的名称。OneUptime 先按 `host.name` 查找设备的条目，再按 `host.serial_number` 查找，因此请在每个从该设备上报数据的应用中，以及在 Android Agent 的 `device_name` 和 `device_serial` 设置中，为每台设备使用相同的名称和序列号。
 
 ### 保留离线期间记录的数据
 
@@ -279,6 +318,7 @@ OpenTelemetry Android 会自行设置 `device.model.identifier` ，所以应用�
 
 :::cards
 - [移动端设置](/docs/rum/mobile-setup): iOS、React Native 和其他平台。
+- [Android 代理](/docs/telemetry/android-agent): 监视设备本身：它的健康状况、重启、已安装的应用以及每个应用的崩溃。
 - [异常](/docs/telemetry/exceptions): 分诊你的应用上报的崩溃和 ANR。
 - [追踪浏览器](/docs/telemetry/traces-explorer): 追踪一笔订单从自助终端到厨房的全过程。
 - [管理应用程序](/docs/rum/applications): 名称、标签、所有者和保留期。

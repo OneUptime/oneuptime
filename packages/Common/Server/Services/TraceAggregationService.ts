@@ -25,6 +25,7 @@ import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
+import { STORED_APP_INSTALLATION_ID_ATTRIBUTE } from "../../Types/Rum/MobileAppTelemetry";
 import {
   appendResourceScopeFilters,
   ResourceEntityScope,
@@ -125,6 +126,15 @@ export interface TraceFilters {
   minDurationNano?: number | undefined;
   maxDurationNano?: number | undefined;
   exactDurationNano?: number | undefined;
+  /*
+   * Inclusive bounds (`>=` / `<=`): `duration:>=N` and `duration:<=N`, and
+   * a Traces monitor's "Takes at least (ms)", which counts the spans of
+   * exactly that duration too (MonitorStepTraceMonitorUtil.toQuery writes
+   * GreaterThanOrEqual). Strict bounds above could not carry it: a span
+   * of exactly 5 s is a slow cold start to the monitor.
+   */
+  atLeastDurationNano?: number | undefined;
+  atMostDurationNano?: number | undefined;
   rootOnly?: boolean | undefined;
   /*
    * Only the spans where work enters a service (isEntrySpan: a root span, or
@@ -144,6 +154,35 @@ export interface HistogramRequest extends TraceFilters {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+}
+
+/*
+ * How many sessions the spans of a scope belong to, over a window (#9588:
+ * a mobile app's Sessions tile and the share of them a crash ended).
+ */
+export interface SessionCountRequest extends TraceFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  /*
+   * Count the installs too (#9716): the distinct `app.installation.id` of
+   * the spans' resources, which OpenTelemetry Android sets. Asked for only
+   * by a mobile app's Overview, as it reads each span's attribute map.
+   */
+  countInstalls?: boolean | undefined;
+}
+
+export interface SessionCountResult {
+  // The distinct session ids of the spans; a span with none ('') is no session.
+  sessions: number;
+  /*
+   * Every span read, with a session or not: spans that name no session
+   * mean the SDK sets no `session.id`, which reads differently from no
+   * spans at all.
+   */
+  spans: number;
+  // The distinct installs, when asked for; a span with none is no install.
+  installs?: number | undefined;
 }
 
 export type TraceAnalyticsChartType = "timeseries" | "toplist" | "table";
@@ -467,6 +506,86 @@ export class TraceAggregationService {
         count: Number(row["cnt"] || 0),
       };
     });
+  }
+
+  /*
+   * The sessions a scope's spans belong to in a window, and the spans read
+   * (SessionCountResult). One row, from the same filters every other read
+   * here takes, so a caller scoped to a RUM application counts that app's
+   * sessions only.
+   */
+  @CaptureSpan()
+  public static async getSessionCount(
+    request: SessionCountRequest,
+  ): Promise<SessionCountResult> {
+    const statement: Statement =
+      TraceAggregationService.buildSessionCountStatement(request);
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const row: JSONObject = (response.data || [])[0] || {};
+
+    return {
+      sessions: Number(row["sessions"] || 0),
+      spans: Number(row["cnt"] || 0),
+      ...(request.countInstalls
+        ? { installs: Number(row["installs"] || 0) }
+        : {}),
+    };
+  }
+
+  /*
+   * `uniqIf`, not `uniqExactIf`: exact while a window holds fewer than
+   * 65,536 sessions, and within about a percent beyond that, in a fixed
+   * amount of memory - where an exact count of a busy app's month would
+   * hold every session id at once. A share of sessions (crash-free) reads
+   * the same to a tenth of a percent either way.
+   */
+  public static buildSessionCountStatement(
+    request: SessionCountRequest,
+  ): Statement {
+    const statement: Statement = new Statement();
+
+    statement.append(
+      "SELECT uniqIf(sessionId, sessionId != '') AS sessions, count() AS cnt",
+    );
+
+    // An install as a crash's occurrence names it (ExceptionAggregationService).
+    if (request.countInstalls) {
+      const install: string = `attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}']`;
+
+      statement.append(`, uniqIf(${install}, ${install} != '') AS installs`);
+    }
+
+    statement.append(` FROM ${TraceAggregationService.TABLE_NAME}`);
+
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND startTime >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND startTime <= ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
+    TraceAggregationService.appendCommonFilters(statement, request);
+
+    statement.append(
+      getQuerySettings({
+        ...INTERACTIVE_READ_TIME_LIMIT,
+      }),
+    );
+
+    return statement;
   }
 
   @CaptureSpan()
@@ -1507,6 +1626,30 @@ export class TraceAggregationService {
         SQL` AND durationUnixNano = ${{
           type: TableColumnType.LongNumber,
           value: request.exactDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.atLeastDurationNano !== undefined &&
+      !isNaN(request.atLeastDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano >= ${{
+          type: TableColumnType.LongNumber,
+          value: request.atLeastDurationNano,
+        }}`,
+      );
+    }
+
+    if (
+      request.atMostDurationNano !== undefined &&
+      !isNaN(request.atMostDurationNano)
+    ) {
+      statement.append(
+        SQL` AND durationUnixNano <= ${{
+          type: TableColumnType.LongNumber,
+          value: request.atMostDurationNano,
         }}`,
       );
     }

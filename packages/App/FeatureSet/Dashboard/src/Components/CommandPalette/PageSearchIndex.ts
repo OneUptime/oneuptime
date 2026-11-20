@@ -711,10 +711,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               { name: "Auto Recharge", gate: PageSearchGate.Billing },
             ],
             /*
-             * How members are paged by default (#7449), and the project's
-             * own mail servers and Twilio accounts, folded under the page's
-             * More settings (ProjectPagingDefaultsWords, OwnSendersFold): each
-             * result opens the fold at its card.
+             * How members are paged by default (#7449), whether on-call calls
+             * tell voicemail from a person (#6594), and the project's own mail
+             * servers and Twilio accounts, folded under the page's More
+             * settings (ProjectPagingDefaultsWords, VoicemailDetectionWords,
+             * OwnSendersFold): each result opens the fold at its card.
              */
             actions: [
               {
@@ -742,6 +743,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                   "on-call phone",
                 ],
                 anchor: "phone-for-people-on-call",
+              },
+              {
+                id: "voicemail-on-on-call-calls",
+                title: "Voicemail on On-Call Calls",
+                icon: IconProp.Call,
+                keywords: [
+                  "voicemail",
+                  "detect voicemail",
+                  "answering machine",
+                  "answering machine detection",
+                  "missed call",
+                ],
+                anchor: "voicemail-on-on-call-calls",
               },
               {
                 id: "custom-smtp-configs",
@@ -1002,13 +1016,29 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                */
               "require sso for login",
               "force sso for login",
+              /*
+               * The verified domains each provider serves, by which Sign in
+               * with SSO finds it (#9824).
+               */
+              "sso domains",
+              "email domains",
+              // The SSO Sign-in Link card's old name, and what it is for (#9918).
+              "test single sign on",
+              "sso link",
             ],
             settings: [
               "SAML",
               "OpenID Connect (OIDC)",
-              "Test Single Sign On (SSO)",
+              /*
+               * The project's SSO sign-in link, to share and to test with
+               * (#9918). It was the Test Single Sign On (SSO) card: its
+               * old name is a keyword above.
+               */
+              "SSO Sign-in Link",
               "SSO Settings",
               "Require SSO to Sign In",
+              // Under Require SSO to Sign In while it is on (#9763).
+              "Manage Sign-In with SSO",
             ],
           },
           {
@@ -1738,6 +1768,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Timeline,
             keywords: ["rota", "who is on call", "calendar"],
           },
+          // Under Schedules since #9701; under Advanced before.
+          {
+            page: PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES,
+            title: "User Overrides",
+            icon: IconProp.User,
+            keywords: ["vacation", "time off", "cover", "swap shift"],
+          },
           {
             page: PageMap.ON_CALL_DUTY_CALENDAR_FEEDS,
             title: "Calendar Feeds",
@@ -1749,12 +1786,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Advanced",
         pages: [
-          {
-            page: PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES,
-            title: "User Overrides",
-            icon: IconProp.User,
-            keywords: ["vacation", "time off", "cover", "swap shift"],
-          },
           {
             page: PageMap.ON_CALL_DUTY_EXECUTION_LOGS,
             title: "Execution Logs",
@@ -3237,6 +3268,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           allListPage(PageMap.INVENTORY_ITEMS, "All Items"),
           {
+            page: PageMap.INVENTORY_MANAGED_DEVICES,
+            title: "Managed Devices",
+            icon: IconProp.DevicePhoneMobile,
+            keywords: [
+              "esper",
+              "mdm",
+              "device management",
+              "android devices",
+              "kiosks",
+              "connect esper",
+            ],
+          },
+          {
             page: PageMap.TOPOLOGY,
             title: "Topology Map",
             icon: IconProp.FlowDiagram,
@@ -3246,11 +3290,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.INVENTORY_ITEMS,
             title: "Gone Quiet",
             icon: IconProp.ExclaimationCircle,
-            queryString: buildInventoryScopeQueryString({
-              source: EntitySource.Discovered,
-              staleOnly: true,
-            }),
-            keywords: ["stale", "no recent telemetry"],
+            queryString: buildInventoryScopeQueryString({ staleOnly: true }),
+            keywords: ["stale", "no recent telemetry", "offline devices"],
           },
         ],
       },

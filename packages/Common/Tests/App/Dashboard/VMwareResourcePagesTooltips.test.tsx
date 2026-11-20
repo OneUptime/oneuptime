@@ -584,7 +584,7 @@ describe("VMware list pages: metric column headers", () => {
     expectNoInfoOn(["Name", "Datacenter", "Cluster"]);
   });
 
-  test("Virtual Machines: Status, CPU Ready, CPU and memory - no Power State or Age to repeat it", async () => {
+  test("Virtual Machines: Status, CPU Ready, CPU, memory and storage - no Power State or Age to repeat it", async () => {
     mockRowsByKind["VirtualMachine"] = [
       inventoryRow({
         kind: "VirtualMachine",
@@ -609,12 +609,14 @@ describe("VMware list pages: metric column headers", () => {
         ["CPU Ready", D.vmListCpuReady],
         ["CPU", D.vmListCpu],
         ["Memory", D.vmListMemory],
+        // The datastore space its files take (#9646), as its Disk tile says.
+        ["Storage", D.vmDisk],
       ]),
     );
     expectNoInfoOn(["Name", "Host", "Cluster", "Resource Pool"]);
   });
 
-  test("Datastores: Used / Capacity", async () => {
+  test("Datastores: Used and Free", async () => {
     mockRowsByKind["Datastore"] = [
       inventoryRow({
         kind: "Datastore",
@@ -626,10 +628,13 @@ describe("VMware list pages: metric column headers", () => {
       }),
     ];
 
-    await renderList(DatastoresPage, "datastores", "Used / Capacity");
+    await renderList(DatastoresPage, "datastores", "Used");
 
     expect(await explainedLabels()).toEqual(
-      asDrawn([["Used / Capacity", D.datastoreListUsedCapacity]]),
+      asDrawn([
+        ["Used", D.datastoreListUsedCapacity],
+        ["Free", D.datastoreFree],
+      ]),
     );
   });
 

@@ -10,11 +10,52 @@ import { tables } from "./DocsPageShape";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   AZURE_ENTITY_NAME_DIMENSION,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AzureTypeKeyMetrics,
+  GCP_OPS_AGENT_INSTALL_URL,
+  GcpReadMetric,
+  getAzureKeyMetricNames,
   getAzureKeyMetrics,
+  getAzureReadMetricNames,
+  getGcpReadMetrics,
+  getGcpRetiredMetricCount,
+  hasAzureFiveMinuteKeyMetrics,
 } from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  AZURE_FIVE_MINUTE_READING_HOLD_MS,
+  AZURE_HOURLY_READING_HOLD_MS,
+  CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
+  CLOUD_MEMORY_HIGH_PERCENT,
+  CLOUD_STORAGE_FULL_PERCENT,
+  CLOUD_STORAGE_HIGH_PERCENT,
+  CloudHeadlineReading,
+  getCloudHeadlineReadings,
+} from "Common/Types/Cloud/CloudResourceHealth";
+import {
+  CLOUD_ALERT_WINDOWS,
+  CLOUD_FIVE_MINUTE_METRIC_WINDOW,
+  CloudAlertTemplate,
+  getCloudAlertTemplate,
+  getAllCloudAlertTemplates,
+  getGceSshCommand,
+  isCloudAlertTemplateOfOpsAgent,
+} from "Common/Types/Monitor/CloudAlertTemplates";
+import RollingTime from "Common/Types/RollingTime/RollingTime";
+import {
+  PUBSUB_MESSAGES_PUBLISHED_METRIC,
+  PUBSUB_PUBLISH_OPERATIONS_METRIC,
+  PUBSUB_PUBLISH_OPERATIONS_SCALE,
+  RetiredCloudMetricKeptReason,
+} from "Common/Utils/Metrics/RetiredCloudMetricMoves";
+import { GCP_OPS_AGENT_ASK_EVERY_MS } from "Common/Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
+import {
+  CLOUD_MAX_ADDED_METRICS_PER_CONNECTION,
+  CLOUD_MAX_ADDED_METRICS_PER_RESOURCE,
+} from "Common/Types/Cloud/CloudAddedMetrics";
+import { CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION } from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
   CloudConnectionAuthMethod,
   CloudConnectionCatalog,
@@ -57,6 +98,7 @@ import {
   AZURE_USD_PER_THOUSAND_METRIC_READS,
   GCP_FREE_TIME_SERIES_PER_MONTH,
   GCP_USD_PER_MILLION_TIME_SERIES,
+  getAzureFiveMinuteReadsPerMonth,
 } from "Common/Types/CloudConnection/CloudConnectionCost";
 import {
   CLOUD_BUDGET_DEFAULT_THRESHOLDS,
@@ -117,6 +159,10 @@ import {
   getAwsInventoryRowTypes,
   getAwsInventoryType,
 } from "Common/Server/Utils/CloudConnection/Aws/AwsInventoryCatalog";
+import {
+  GLOBAL_ACCELERATOR_REGION,
+  WAF_CLOUDFRONT_REGION,
+} from "Common/Server/Utils/CloudConnection/Aws/AwsServiceListings";
 import { AZURE_LISTED_ONLY_TYPES } from "Common/Server/Utils/CloudConnection/Azure/AzureInventory";
 import { isInventoryOnlyCloudResourceType } from "Common/Types/Cloud/CloudResourceCatalog";
 import { describe, expect, it } from "@jest/globals";
@@ -178,6 +224,15 @@ const SOURCES: Record<string, string> = {
   awsCommitments: `${SERVER}/Utils/CloudConnection/Aws/AwsCommitments.ts`,
   gcpCommitments: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
   cliReadme: "packages/CLI/README.md",
+  moreMetrics: `${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics.tsx`,
+  resourceSideMenu: `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`,
+  monitorActivity: `${DASHBOARD}/Components/Monitor/Overview/MonitorActivityCard.tsx`,
+  dataMigrations: "packages/App/FeatureSet/Workers/DataMigrations/Index.ts",
+  workers: "packages/App/FeatureSet/Workers/Index.ts",
+  retiredMetricNotice: `${DASHBOARD}/Components/Metrics/RetiredCloudMetricNotice.tsx`,
+  monitorMetricsCard: `${DASHBOARD}/Components/Monitor/MetricMonitor/MonitorMetricsCard.tsx`,
+  retiredMetricMoves:
+    "packages/App/FeatureSet/Workers/DataMigrations/MoveMonitorsOffRetiredCloudMetrics.ts",
 };
 
 const BASH_FENCE: RegExp = /```bash\n([\s\S]*?)\n```/g;
@@ -354,6 +409,32 @@ describe("Connect a Cloud Account", () => {
       "the subnet and VPC each resource runs in and the security groups that guard it, what each load balancer sends traffic to, and the network and node instances of each EKS cluster",
     );
     expect(aws).toContain("run the command again to list that type too");
+
+    /*
+     * #9692: the types each service lists itself (AwsServiceListings), on
+     * the account's page before they report a metric - each quiet when a
+     * role set up before is refused.
+     */
+    for (const [type, words] of [
+      ["AWS::WAFv2::WebACL", "WAF web ACLs"],
+      ["AWS::NetworkFirewall::Firewall", "Network Firewall firewalls"],
+      [
+        "AWS::GlobalAccelerator::Accelerator",
+        "Global Accelerator accelerators",
+      ],
+      ["AWS::Cognito::UserPool", "Cognito user pools"],
+      ["AWS::AppSync::GraphQLApi", "AppSync GraphQL APIs"],
+      ["AWS::SageMaker::Endpoint", "SageMaker endpoints"],
+    ] as Array<[string, string]>) {
+      expect(getAwsInventoryRowTypes()).toContain(type);
+      expect(getAwsInventoryType(type)?.quietWhenRefused).toBe(true);
+      expect(aws).toContain(words);
+    }
+
+    expect(aws).toContain(
+      `CloudFront distributions and their web ACLs once, in ${WAF_CLOUDFRONT_REGION}, and Global Accelerator accelerators once, in ${GLOBAL_ACCELERATOR_REGION}.`,
+    );
+    expect(aws).toContain("which are then listed before they report a metric");
   });
 
   it("says what an Azure connection lists in each subscription and how it connects them, with no role but Monitoring Reader", () => {
@@ -619,6 +700,342 @@ describe("Connect a Cloud Account", () => {
     expect(paragraph).toContain(
       "where that receiver also reads a metric of a queue, its figures are kept and the connection's left out",
     );
+  });
+
+  /*
+   * A metric Azure Monitor keeps at five minutes at its finest takes a call
+   * of its own (#9566): the few marked as earning it are read every 15
+   * minutes, three points a call, which the page states with what it costs
+   * an hour at the default read interval.
+   */
+  it("says which Azure metrics are read at five minutes, how often and what that costs an hour", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A few key metrics Azure Monitor keeps");
+      });
+    const minutes: number = definition(
+      CloudProvider.Azure,
+    ).defaultReadIntervalInMinutes;
+
+    expect(paragraph).toBeDefined();
+    expect(AZURE_FIVE_MINUTE_GRAIN).toBe("PT5M");
+    expect(paragraph).toContain(
+      "keeps at five minutes at their finest, such as an App Service app's health check and an Azure Cosmos DB account's storage",
+    );
+    expect(hasAzureFiveMinuteKeyMetrics("Microsoft.Web/sites")).toBe(true);
+    expect(
+      hasAzureFiveMinuteKeyMetrics("Microsoft.DocumentDB/databaseAccounts"),
+    ).toBe(true);
+    expect(paragraph).toContain(
+      `are read in a call of their own every ${AZURE_FIVE_MINUTE_READ_MINUTES} minutes, ${AZURE_FIVE_MINUTE_READ_MINUTES / 5} points a call`,
+    );
+    // An hour's reads at the default interval: one five-minute call each 15.
+    expect(
+      (60 / (60 * 24 * 30)) * getAzureFiveMinuteReadsPerMonth(minutes),
+    ).toBe(60 / AZURE_FIVE_MINUTE_READ_MINUTES);
+    expect(paragraph).toContain(
+      `read every ${minutes} minutes, such a resource costs ${60 / AZURE_FIVE_MINUTE_READ_MINUTES} more calls an hour, and a resource without them nothing more`,
+    );
+    // Its row on the resource's page says so (CloudMonitoredResourceScope).
+    expect(paragraph).toContain(
+      `says it comes ${CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION}`,
+    );
+  });
+
+  /*
+   * Between their calls (#9740), a five-minute reading is kept for as long
+   * as AZURE_FIVE_MINUTE_READING_HOLD_MS, an App Service app is judged by
+   * its health check on the lines its rule draws, and a Cosmos DB account's
+   * page leads with what it stores.
+   */
+  it("says how long a five-minute reading is kept, how a health check judges an app, and what a Cosmos DB account's page leads with", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A few key metrics Azure Monitor keeps");
+      });
+
+    expect(paragraph).toBeDefined();
+    expect(AZURE_FIVE_MINUTE_READING_HOLD_MS % (60 * 1000)).toBe(0);
+    expect(paragraph).toContain(
+      `Between their calls, a resource keeps their last values until those are ${AZURE_FIVE_MINUTE_READING_HOLD_MS / (60 * 1000)} minutes old, so they do not come and go from its page and its health, and the tile of each says how old its value is.`,
+    );
+
+    // Degraded under every instance passing, Unhealthy under half of them.
+    expect(CLOUD_HEALTH_CHECK_CRITICAL_PERCENT).toBe(50);
+    expect(paragraph).toContain(
+      "An App Service app with a health check is judged by it: **Degraded** once an instance fails it, and **Unhealthy** once fewer than half of its instances pass it.",
+    );
+
+    expect(
+      getCloudHeadlineReadings(
+        CloudProvider.Azure,
+        "Microsoft.DocumentDB/databaseAccounts",
+      )
+        .slice(0, 3)
+        .map((reading: CloudHeadlineReading): string => {
+          return reading.label;
+        }),
+    ).toEqual(["Data size", "Index size", "Documents"]);
+    expect(paragraph).toContain(
+      "An Azure Cosmos DB account's page leads with its data size, its index size and its documents.",
+    );
+  });
+
+  /*
+   * A Compute Engine VM's memory and disks come from the Ops Agent (#9568):
+   * the page says so with Google's install link, and how often a project
+   * without it is asked.
+   */
+  it("says a VM's memory and disk use need the Ops Agent, with Google's install link, and how often a project without it is asked", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A Compute Engine VM's memory and disk use");
+      });
+
+    expect(paragraph).toBeDefined();
+    expect(paragraph).toContain(`[Ops Agent](${GCP_OPS_AGENT_INSTALL_URL})`);
+    expect(paragraph).toContain(
+      "and links to Google's instructions for installing it",
+    );
+    expect(GCP_OPS_AGENT_ASK_EVERY_MS).toBe(60 * 60 * 1000);
+    expect(paragraph).toContain(
+      "A project none of whose VMs runs it is asked once an hour, not every read.",
+    );
+  });
+
+  /*
+   * The recommended monitors of a VM's memory and disks (#9741): the three
+   * templates of what only the Ops Agent reports, offered to a VM that
+   * reports it, on the window and the lines the page states, each with a
+   * command over SSH from Cloud Shell.
+   */
+  it("says which recommended monitors a VM running the Ops Agent is offered, on what lines, and that one without it is offered none", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A Compute Engine VM's memory and disk use");
+      });
+    const templates: Array<CloudAlertTemplate> =
+      getAllCloudAlertTemplates().filter(isCloudAlertTemplateOfOpsAgent);
+
+    expect(paragraph).toBeDefined();
+    expect(
+      templates.map((template: CloudAlertTemplate): string => {
+        return `${template.name} at ${template.threshold}`;
+      }),
+    ).toEqual([
+      `Memory Nearly Full at ${CLOUD_MEMORY_HIGH_PERCENT}`,
+      `Disk Nearly Full at ${CLOUD_STORAGE_HIGH_PERCENT}`,
+      `Disk Full at ${CLOUD_STORAGE_FULL_PERCENT}`,
+    ]);
+
+    for (const template of templates) {
+      // Offered only to a VM that reports what it reads.
+      expect({
+        id: template.id,
+        requiresReading: template.requiresReading,
+      }).toEqual({ id: template.id, requiresReading: true });
+    }
+
+    expect(CLOUD_ALERT_WINDOWS[CloudProvider.GCP]).toBe(
+      RollingTime.Past15Minutes,
+    );
+    expect(paragraph).toContain(
+      `A VM that reports them is offered three more recommended monitors, each over 15 minutes: its memory at ${CLOUD_MEMORY_HIGH_PERCENT}% or more, and any one of its disks at ${CLOUD_STORAGE_HIGH_PERCENT}% or more and at ${CLOUD_STORAGE_FULL_PERCENT}% or more.`,
+    );
+
+    expect(
+      getGceSshCommand({
+        attributes: {
+          "resource.project_id": "shop-prod",
+          "resource.zone": "us-central1-a",
+        },
+        resourceName: "web-1",
+        command: "df -h",
+      }),
+    ).toBe(
+      "gcloud compute ssh web-1 --zone us-central1-a --project shop-prod --command 'df -h'",
+    );
+    expect(paragraph).toContain(
+      "Each one's incident gives the `gcloud compute ssh` command that shows what fills the VM, to run in Google Cloud Shell.",
+    );
+    expect(paragraph).toContain(
+      "A VM without the agent is offered none of the three.",
+    );
+  });
+
+  /*
+   * The two key metrics their clouds deprecate (#9739): no longer read,
+   * what replaces each, how a moved Metrics monitor's thresholds changed,
+   * where it says so, and that its criteria want a review.
+   */
+  it("says which deprecated metrics are no longer read, what replaces them, and that a moved monitor's criteria want a review", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith(
+          "Two key metrics their clouds deprecate are no longer read",
+        );
+      });
+    const cosmos: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.DocumentDB/databaseAccounts",
+    ) as AzureTypeKeyMetrics;
+    const gcpRead: Array<string> = getGcpReadMetrics().map(
+      (metric: GcpReadMetric): string => {
+        return metric.storedName;
+      },
+    );
+
+    expect(paragraph).toBeDefined();
+
+    // Azure Cosmos DB: ServerSideLatency is not read, its two successors are.
+    expect(getAzureReadMetricNames(cosmos)).not.toContain("ServerSideLatency");
+    expect(
+      getAzureKeyMetricNames("Microsoft.DocumentDB/databaseAccounts"),
+    ).toEqual(
+      expect.arrayContaining([
+        "ServerSideLatencyDirect",
+        "ServerSideLatencyGateway",
+      ]),
+    );
+    expect(paragraph).toContain(
+      "an Azure Cosmos DB account's `ServerSideLatency`, which `ServerSideLatencyDirect` and `ServerSideLatencyGateway` replace",
+    );
+
+    // Pub/Sub: the publish operations are not read, the messages published are.
+    expect(gcpRead).not.toContain(PUBSUB_PUBLISH_OPERATIONS_METRIC);
+    expect(gcpRead).toContain(PUBSUB_MESSAGES_PUBLISHED_METRIC);
+    expect(getGcpRetiredMetricCount("pubsub_topic")).toBe(0);
+    expect(paragraph).toContain(
+      `a Pub/Sub topic's \`${PUBSUB_PUBLISH_OPERATIONS_METRIC}\`, which \`${PUBSUB_MESSAGES_PUBLISHED_METRIC}\` replaces`,
+    );
+    expect(paragraph).toContain(
+      `so each threshold compared with it is ${PUBSUB_PUBLISH_OPERATIONS_SCALE} times what it was`,
+    );
+
+    // The data migration that moved them, and the feed item each one gets.
+    expect(source("dataMigrations")).toContain(
+      "new MoveMonitorsOffRetiredCloudMetrics()",
+    );
+    expect(source("retiredMetricMoves")).toContain(
+      "Review its criteria: its thresholds were set against the metric it read before.",
+    );
+    expect(source("monitorActivity")).toContain(
+      'MONITOR_ACTIVITY_TITLE: string = "Recent activity"',
+    );
+    expect(paragraph).toContain(
+      "A Metrics monitor that read one now reads what replaces it, and **Recent activity** on its **Overview** says what changed",
+    );
+    expect(paragraph).toContain("Review the criteria of a moved monitor.");
+
+    // Charts and SLOs move as monitors do (#9980).
+    expect(source("dataMigrations")).toContain(
+      "new MoveChartsAndSlosOffRetiredCloudMetrics()",
+    );
+    expect(paragraph).toContain(
+      "A dashboard's charts and an SLO's metric move the same way.",
+    );
+
+    /*
+     * A monitor left on one is still read for (#9739's gap), says so on its
+     * Overview (its Metrics card), and is moved once it can be: every hour.
+     */
+    expect(RetiredCloudMetricKeptReason.ResponseCode).toBeDefined();
+    expect(source("monitorMetricsCard")).toContain(
+      "<RetiredCloudMetricNotice queryConfigs={reads.queryConfigs} />",
+    );
+    expect(source("retiredMetricNotice")).toContain(
+      "OneUptime still reads it for saved monitors and charts",
+    );
+    expect(source("workers")).toContain(
+      'import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";',
+    );
+    expect(paragraph).toContain(
+      "One that could not be moved, such as a Pub/Sub monitor that reads publishes by their response code, still has its metric read for it, and its **Overview** says what to read instead; one of a Cosmos DB account that had reported neither latency moves within an hour of the account reporting one.",
+    );
+    expect(paragraph).not.toContain("reads nothing new");
+  });
+
+  /*
+   * #9982: an Azure key metric kept at an hour, such as a Storage account's
+   * used capacity, is kept between its hourly reads until it is 4 hours old.
+   */
+  it("says how long an hourly reading is kept", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A few key metrics Azure Monitor keeps");
+      });
+
+    expect(AZURE_HOURLY_READING_HOLD_MS).toBe(4 * 60 * 60 * 1000);
+    expect(paragraph).toContain(
+      `Azure Monitor keeps a few key metrics at an hour, such as an Azure Storage account's used capacity: they are read once an hour, when they are 2 hours old, and kept until they are ${AZURE_HOURLY_READING_HOLD_MS / (60 * 60 * 1000)} hours old.`,
+    );
+  });
+
+  /*
+   * #9981: an App Service app with a health check is offered two monitors,
+   * over the 30 minutes a metric Azure Monitor keeps at five minutes needs.
+   */
+  it("says which monitors an App Service app's health check is offered, over what window, and their first command", () => {
+    const bullet: string | undefined = section("What you see in OneUptime")
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- **Recommended monitors.**");
+      });
+    const failing: CloudAlertTemplate | undefined = getCloudAlertTemplate(
+      "cloud-azure-appservice-health-check-failing",
+    );
+    const mostFailing: CloudAlertTemplate | undefined = getCloudAlertTemplate(
+      "cloud-azure-appservice-health-check-most-failing",
+    );
+
+    expect(CLOUD_FIVE_MINUTE_METRIC_WINDOW).toBe(RollingTime.Past30Minutes);
+    expect(failing?.rollingTime).toBe(RollingTime.Past30Minutes);
+    expect(mostFailing?.rollingTime).toBe(RollingTime.Past30Minutes);
+    expect(failing?.threshold).toBe(100);
+    expect(mostFailing?.threshold).toBe(CLOUD_HEALTH_CHECK_CRITICAL_PERCENT);
+    expect(failing?.requiresReading).toBe(true);
+    expect(failing?.firstCommand).toBeDefined();
+    expect(bullet).toContain(
+      "An App Service app with a health check is offered two more, over the last 30 minutes, as Azure Monitor keeps its metric at five minutes: one for an instance failing it, and one for fewer than half of its instances passing it, each incident giving the command for Azure Cloud Shell that names the instance that fails.",
+    );
+  });
+
+  /*
+   * A resource's other metrics (#9563) and the key metrics it did not
+   * report (#9569): where they are listed and added, in the card's own
+   * words, the caps the server keeps, and who may add them.
+   */
+  it("says where a resource's other metrics are listed and added, how many can be, and who may add them", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith(
+          "A resource's **Metrics** tab lists, under **More Metrics**",
+        );
+      });
+
+    expect(paragraph).toBeDefined();
+    expect(paragraph).toContain(
+      `At most ${CLOUD_MAX_ADDED_METRICS_PER_RESOURCE} added metrics are read for a resource, and ${CLOUD_MAX_ADDED_METRICS_PER_CONNECTION} for a connection`,
+    );
+    expect(paragraph).toContain(
+      "Project Owners and Project Admins can add and remove them",
+    );
+
+    // The tab, the card and its button, as the Dashboard names them.
+    expect(source("resourceSideMenu")).toContain('title: "Metrics"');
+    for (const words of [
+      '"More Metrics"',
+      '"List Metrics"',
+      "Project Owners and Project Admins can add and remove metrics.",
+    ]) {
+      expect(source("moreMetrics")).toContain(words);
+    }
   });
 
   /*

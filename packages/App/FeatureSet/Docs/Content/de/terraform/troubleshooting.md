@@ -22,6 +22,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | `This project has been blocked` | Bitten Sie einen Master-Administrator, das Projekt freizugeben: siehe [Ein gesperrtes Projekt](#ein-gesperrtes-projekt) |
 | `references records that are not in this project` | Verwenden Sie die ID eines Datensatzes Ihres eigenen Projekts: siehe [IDs aus einem anderen Projekt](#ids-aus-einem-anderen-projekt) |
 | `Not Found` oder `Ambiguous Match` aus einer Datenquelle | Korrigieren Sie die Argumente der Suche: siehe [Suchen, die keinen oder mehrere finden](#suchen-die-keinen-oder-mehrere-finden) |
+| `There is already a team called` (eine Beschriftung, eine Bereitschaftsrichtlinie, ein Bereitschaftsplan) | Geben Sie ihm einen Namen, den kein anderer Datensatz derselben Art hat, oder benennen Sie zuerst den anderen um: siehe [Namen, die schon ein anderer Datensatz hat](#namen-die-schon-ein-anderer-datensatz-hat) |
 | `Cannot import non-existent remote object` | Prüfen Sie die ID und die Berechtigungen des Schlüssels: siehe [Ressourcen importieren](/docs/terraform/importing-resources#fehlerbehebung) |
 | `Provider produced inconsistent result after apply` | Aktualisieren Sie den Provider: siehe [Inkonsistentes Ergebnis nach dem Apply](#inkonsistentes-ergebnis-nach-dem-apply) |
 | Ein Plan legt eine Ressource an, die Sie nicht hinzugefügt haben | Der Schlüssel kann sie nicht mehr lesen, und OneUptime hat mit `404` geantwortet: Geben Sie dem Schlüssel den Lesezugriff zurück, dann importieren Sie die Ressource mit `terraform import`: siehe [Eine Ressource verlässt den State, und das nächste Apply legt sie erneut an](#eine-ressource-verlässt-den-state-und-das-nächste-apply-legt-sie-erneut-an) |
@@ -103,6 +104,12 @@ Meist wurde eine ID aus der Konfiguration oder dem State eines anderen Projekts 
 
 Eine Datenquelle findet genau einen Datensatz, oder sie hält den Plan an. `Not Found` sagt, dass kein Datensatz die `id` hat oder keiner zu den gesetzten Argumenten passt; `Ambiguous Match` sagt, dass mehrere passen. Korrigieren Sie die Argumente, setzen Sie weitere, um die Suche auf einen einzugrenzen, oder suchen Sie den Datensatz über seine `id`. [Lesen, was schon existiert](/docs/terraform/complete-guide#lesen-was-schon-existiert) nennt die Regeln.
 
+### Namen, die schon ein anderer Datensatz hat
+
+Teams, Beschriftungen, Bereitschaftsrichtlinien und Bereitschaftspläne haben in einem Projekt jeweils einen eigenen Namen, unabhängig von Groß- und Kleinschreibung und Leerzeichen. Ein Anlegen oder Umbenennen auf einen Namen, den schon ein anderer Datensatz derselben Art hat, wird mit `400` beantwortet, etwa `There is already an on-call policy called Primary in this project. Pick another name.` Eine archivierte Bereitschaftsrichtlinie behält ihren Namen: Holen Sie sie aus dem Archiv, oder wählen Sie einen anderen Namen. Datensätze, die sich schon vorher einen Namen geteilt haben, behalten ihn, und die Listen der Teams, Bereitschaftsrichtlinien und Bereitschaftspläne im Dashboard markieren sie.
+
+Terraform nimmt die Änderungen eines Apply parallel vor, daher kann eine Umbenennung auf einen Namen, den eine andere Ressource im selben Apply aufgibt, abgelehnt werden, solange diese ihn noch hat: Wenden Sie erneut an, oder geben Sie der Ressource, die den Namen übernimmt, ein `depends_on` auf die Ressource, die ihn aufgibt. Ein Tausch, A zu B und B zu A, oder jede Kette von Umbenennungen, die dort endet, wo sie begann, lässt sich nicht in einem Apply ausführen: Benennen Sie eine davon in einen Namen um, den niemand hat, wenden Sie an, und nehmen Sie dann den Rest der Änderung vor.
+
 ## Pläne, die nicht zur Ruhe kommen
 
 ### Inkonsistentes Ergebnis nach dem Apply
@@ -131,9 +138,13 @@ Das passiert, wenn der Schlüssel, der eine Ressource verwaltet, sie nicht mehr 
 
 ### Eine Priorität oder Reihenfolge, die wandert
 
-Monitorstatus, Status und Schweregrade von Vorfällen und Warnungen sowie die anderen Listen, die Sie im Dashboard ordnen, vergeben jede Nummer nur einmal. Eine Nummer, die keine andere hat, bleibt so, wie sie geschrieben ist. Eine Nummer, die eine andere schon hat, wird übernommen, und die, die im Weg stehen, rücken eine Stelle nach unten, wie beim Ziehen im Dashboard. Zwei, die mit derselben Nummer konfiguriert sind, tauschen also bei jedem Apply die Plätze.
+Jede Liste, die Sie im Dashboard ordnen, behält die Nummer, die jede Ressource bekommt: Monitorstatus (`priority`), Status und Schweregrade von Vorfällen und Warnungen, benutzerdefinierte Felder, Log-Pipelines und Drop-Filter (`sort_order`), Gruppen und Ressourcen von Statusseiten, Eskalationsregeln, Ebenen von Dienstplänen und die übrigen. Eine gesetzte Nummer platziert diese Ressource und verschiebt keine andere, sodass eine Konfiguration, die eine ganze Liste nummeriert, etwa `order = index(local.severities, each.key) + 1` über ein `for_each` von `local.severities`, genau so angewendet wird, wie sie geschrieben ist, in welcher Reihenfolge die Schreibvorgänge des Providers auch ankommen, und der nächste Plan leer ist.
 
-Geben Sie jeder eine eigene Nummer mit Lücken dazwischen, etwa `101`, `102` und `103`, und ordnen Sie die, die Terraform verwaltet, in Terraform neu, nicht durch Ziehen im Dashboard.
+- Geben Sie jeder Ressource eine eigene Nummer: Zwei mit derselben Nummer behalten sie beide, nebeneinander, in einer Reihenfolge, die Sie nicht bestimmen.
+- Eine ohne Nummer angelegte Ressource kommt ans Ende ihrer Liste. Ein neuer Status von Vorfällen oder Warnungen kommt stattdessen direkt über den behobenen Status, ein neuer Monitorstatus direkt über den Offline-Status.
+- Das Löschen einer Ressource hinterlässt eine Lücke in den Nummern, was nichts ändert: Eine Liste richtet sich nach ihren Nummern, nicht nach dem Abzählen.
+- Das Ziehen einer Ressource im OneUptime-Dashboard nummeriert ihre ganze Liste von oben neu, und der nächste Plan zeigt das als Änderungen. Ordnen Sie die Ressourcen, die Terraform verwaltet, in Terraform.
+- Die eingebauten Status behalten ihre Reihenfolge: Eine Änderung, die zwei von ihnen auf dieselbe Nummer oder aus der Reihenfolge brächte, wird mit Begründung abgelehnt. Verschiebt ein Apply eingebaute Status über die alten Nummern der anderen hinweg, kann einer seiner Schreibvorgänge zuerst ankommen und auf diese Ablehnung treffen; führen Sie das Apply erneut aus, dann wird es abgeschlossen.
 
 ### Schreibgeschützte Attribute
 

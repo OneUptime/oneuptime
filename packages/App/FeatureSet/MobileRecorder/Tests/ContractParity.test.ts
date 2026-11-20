@@ -6,9 +6,11 @@ import {
   seededRandom,
 } from "../../../../Common/Tests/Helpers/SeededRandom";
 import {
+  isSessionReplayTapPatternUsable,
   matchesSessionReplayErrorText,
   matchesSessionReplayEventName,
   matchesSessionReplayPagePattern,
+  matchesSessionReplayTapTarget,
   readSessionReplayFrustrationSignalsConfig,
   SESSION_REPLAY_CUSTOM_SIGNAL_COOLDOWN_MS as COMMON_CUSTOM_SIGNAL_COOLDOWN_MS,
   SESSION_REPLAY_MAX_CUSTOM_SIGNAL_EVENT_NAME_LENGTH as COMMON_MAX_EVENT_NAME_LENGTH,
@@ -113,8 +115,18 @@ import {
   MAX_CUSTOM_EVENT_PROPERTY_KEYS,
   MAX_TRAIT_KEY_LENGTH,
   MAX_TRAIT_VALUE_LENGTH,
+  READABLE_VALUE_PATTERN,
+  maskStringMapValues,
+  maskTextValue,
   sanitizeRoute,
 } from "../src/Sanitize";
+import {
+  SESSION_REPLAY_READABLE_VALUE_PATTERN as COMMON_READABLE_VALUE_PATTERN,
+  isSessionReplayReadableValue,
+  maskSessionReplayProperties,
+  normalizeSessionReplayReadablePropertyKeys,
+} from "../../../../Common/Types/Rum/SessionReplayReadableProperties";
+import CommonMasking from "../../../../Common/Utils/Rum/Masking";
 import {
   CUSTOM_EVENT_TAG,
   CUSTOM_SIGNAL_CUSTOM_EVENT_TAG,
@@ -159,9 +171,11 @@ import {
   VISIBILITY_CUSTOM_EVENT_TAG,
 } from "../src/Contract";
 import {
+  isTapPatternUsable,
   matchesErrorText,
   matchesEventName,
   matchesPagePattern,
+  matchesTapTarget,
   readCustomSignals,
   readPathAsWritten,
 } from "../src/CustomSignals";
@@ -354,7 +368,7 @@ describe("published SDK wire contract", () => {
       expect(isSessionReplayCustomSignalPayload(marker)).toBe(true);
     });
 
-    test("reads a config's signals as Common does, less the clicks", () => {
+    test("reads a config's signals as Common does, less the clicks, taps included", () => {
       const random: SeededRandom = seededRandom(6443);
       const names: Array<unknown> = [
         "Checkout error",
@@ -368,6 +382,7 @@ describe("published SDK wire contract", () => {
       ];
       const triggers: Array<unknown> = [
         "click",
+        "tap",
         "page",
         "event",
         "error",
@@ -381,6 +396,10 @@ describe("published SDK wire contract", () => {
         " help_opened ",
         "card declined",
         "button.pay",
+        "pay-button",
+        "product-card-*",
+        "*",
+        "a*b",
         "",
         "e".repeat(64),
         "e".repeat(65),
@@ -426,6 +445,58 @@ describe("published SDK wire contract", () => {
 
       expect(readCustomSignals(null)).toEqual([]);
       expect(readCustomSignals({ customSignals: {} })).toEqual([]);
+    });
+
+    /*
+     * Tap signals (issue #6517): this recorder is the one that detects
+     * them, so its reading of a pattern and its match of a testID are
+     * Common's, input for input.
+     */
+    test("matches a tap's testIDs exactly as Common does", () => {
+      const random: SeededRandom = seededRandom(6517);
+      const patternAlphabet: string = "ab-AB**_ ";
+      const testIdAlphabet: string = "ab-AB*_";
+
+      const text: (alphabet: string, maxLength: number) => string = (
+        alphabet: string,
+        maxLength: number,
+      ): string => {
+        let value: string = "";
+        const length: number = random(maxLength + 1);
+        for (let index: number = 0; index < length; index++) {
+          value += alphabet.charAt(random(alphabet.length));
+        }
+        return value;
+      };
+
+      for (let iteration: number = 0; iteration < 3000; iteration++) {
+        const pattern: string = text(patternAlphabet, 7);
+        const testId: string = text(testIdAlphabet, 8);
+
+        expect([pattern, isTapPatternUsable(pattern)]).toEqual([
+          pattern,
+          isSessionReplayTapPatternUsable(pattern),
+        ]);
+        expect([pattern, testId, matchesTapTarget(pattern, testId)]).toEqual([
+          pattern,
+          testId,
+          matchesSessionReplayTapTarget(pattern, testId),
+        ]);
+      }
+
+      for (const [pattern, testId] of [
+        ["pay-button", "pay-button"],
+        ["Pay-Button", "pay-button"],
+        ["product-card-*", "product-card-42"],
+        ["product-card-*", "product-list"],
+        ["*", "anything"],
+        ["a*b", "a*b"],
+        [" pay ", "pay"],
+      ] as Array<[string, string]>) {
+        expect(matchesTapTarget(pattern, testId)).toBe(
+          matchesSessionReplayTapTarget(pattern, testId),
+        );
+      }
     });
 
     test("matches pages, events and errors exactly as Common does", () => {
@@ -815,6 +886,90 @@ describe("published SDK wire contract", () => {
       expect(readProductAnalyticsRecorderConfig(null)).toEqual(
         commonReadRecorderConfig(null),
       );
+    });
+  });
+
+  /*
+   * Readable event properties (issue #7501): the keys arrive on the config
+   * response in Common's shape, are read as Common reads them, and a value
+   * under a listed key is kept exactly when Common keeps it - so a funnel
+   * split by a listed property reads the same from a phone as from a
+   * browser, and no free text leaves either.
+   */
+  describe("readable event properties", () => {
+    test("carries Common's field, type for type, and Common's token shape", () => {
+      const responseFieldIsIdentical: IdenticalTypes<
+        SessionReplayConfigResponse["readableEventPropertyKeys"],
+        CommonConfigResponse["readableEventPropertyKeys"]
+      > = true;
+      expect(responseFieldIsIdentical).toBe(true);
+      expect(READABLE_VALUE_PATTERN.source).toBe(
+        COMMON_READABLE_VALUE_PATTERN.source,
+      );
+      expect(READABLE_VALUE_PATTERN.flags).toBe(
+        COMMON_READABLE_VALUE_PATTERN.flags,
+      );
+    });
+
+    test("reads the keys as Common does", () => {
+      for (const value of [
+        undefined,
+        null,
+        "step",
+        [" step ", "step", "Step", "", 7, "plan"],
+        ["k".repeat(60)],
+        ["__proto__", "ok"],
+      ]) {
+        expect(normalizeProductAnalyticsUserPropertyKeys(value)).toEqual(
+          normalizeSessionReplayReadablePropertyKeys(value),
+        );
+      }
+    });
+
+    test("keeps exactly the values Common keeps, and masks the rest as Common's mask does", () => {
+      const random: SeededRandom = seededRandom(7501);
+      const alphabet: string = "ab_.:/-Z9 @é";
+      const keys: Array<string> = ["step", "plan", "setup", "note"];
+
+      for (let iteration: number = 0; iteration < 2000; iteration++) {
+        const map: Record<string, string> = {};
+
+        for (const key of keys) {
+          let value: string = "";
+          const length: number = random(40);
+
+          for (let index: number = 0; index < length; index++) {
+            value += alphabet.charAt(random(alphabet.length));
+          }
+
+          map[key] = value;
+        }
+
+        const listed: Array<string> = keys.filter((): boolean => {
+          return random(2) === 0;
+        });
+
+        expect({ ...maskStringMapValues(map, listed) }).toEqual(
+          maskSessionReplayProperties(map, listed, (value: string): string => {
+            return CommonMasking.maskText(value);
+          }),
+        );
+
+        for (const key of keys) {
+          expect(READABLE_VALUE_PATTERN.test(map[key] as string)).toBe(
+            isSessionReplayReadableValue(map[key] as string),
+          );
+          expect(maskTextValue(map[key] as string)).toBe(
+            CommonMasking.maskText(map[key] as string),
+          );
+        }
+      }
+    });
+
+    test("with no key listed, every value is masked: the default", () => {
+      expect({
+        ...maskStringMapValues({ step: "billing", note: "Jane Doe" }),
+      }).toEqual({ step: "••••", note: "••••" });
     });
   });
 

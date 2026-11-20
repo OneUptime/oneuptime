@@ -13,7 +13,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 
 :::steps
 1. Gå til **Vagt → Vagtpolitikker**, og klik på **Opret vagtpolitik**.
-2. Angiv et **Navn**, fx "Betalinger primær".
+2. Angiv et **Navn**, fx "Betalinger primær". Et navn, som en anden politik i projektet allerede har, også en arkiveret, afvises, uanset store og små bogstaver og mellemrum, så politikkerne kan skelnes fra hinanden i enhver vælger.
 3. Klik under **Hvem tilkaldes først?** på **Tilføj modtager**, og vælg de vagtplaner, teams og personer, der skal tilkaldes først.
 4. Klik på **Opret vagtpolitik**. Politikken åbner på sin side **Eskaleringsregler**, med **Level 1** på plads.
 :::
@@ -26,7 +26,7 @@ Formularen spørger også **Udløs den ved hver ny hændelse og hver ny advarsel
 
 Vil du hellere guides trin for trin, fra din telefon til et testtilkald, så klik på **Guidet opsætning**: på den tomme liste **Vagtpolitikker** eller under **Sådan fungerer det**. Se [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
 
-Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Importér JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
+Listen **Vagtpolitikker** viser hver politiks **Navn**, **Tilkaldes først**, **Beskrivelse**, **Etiketter** og **Ejere**. **Tilkaldes først** viser, hvem politikkens første eskaleringsregel tilkalder: dens vagtplaner, hver med den, der har vagt i den lige nu, dens teams og de personer, den nævner, eller **Ingen eskaleringsregler** eller **Ingen modtagere**, når den ikke tilkalder nogen. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Importér JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere. En politik, der har samme navn som en anden politik fra dengang, navne ikke behøvede at være forskellige, er markeret med **Samme navn som en anden politik**, og listen viser, hvor mange der er: sammenlign deres eskaleringsregler, og omdøb så én af dem med **Omdøb** i dens række.
 
 ## Hvad der kører en politik
 
@@ -157,7 +157,7 @@ Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem
 Arkivering tager en politik ud af drift og beholder alt: åbn politikkens **Indstillinger**, og klik på **Arkiver** på dens arkiveringskort, eller vælg politikker i listen, og vælg **Arkiver**.
 
 - En arkiveret politik tilkalder ingen. Hændelser og advarsler, der bruger den, springer den over, og en kørsel, der stadig eskalerer, stopper ved sit næste skridt.
-- Den forlader listen **Vagtpolitikker** og flytter til **Vagt → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkivet** sætter den i drift igen.
+- Den forlader listen **Vagtpolitikker** og flytter til **Vagt → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkivet** sætter den i drift igen. Den beholder sit navn: den, der opretter en ny politik med det navn, bliver bedt om i stedet at fjerne denne fra arkivet.
 
 **Slet politik**, under **Avanceret**, sletter politikken med dens eskaleringsregler og brugertilsidesættelser. Sletning fra listen spørger først og foreslår at arkivere i stedet.
 

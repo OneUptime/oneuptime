@@ -49,7 +49,7 @@ In **Eccezioni da osservare**, impostate **Il messaggio contiene**, **Tipi di ec
 
 ### Restringere il campo (facoltativo)
 
-Aprite **Altri campi** per filtrare per servizio di telemetria o entità dell'infrastruttura, oppure per contare anche le eccezioni risolte e archiviate.
+Aprite **Altri campi** per filtrare per servizio di telemetria o entità dell'infrastruttura, per contare solo le eccezioni non gestite o escludere alcuni tipi, oppure per contare anche le eccezioni risolte e archiviate.
 
 ### Dire quando avvisare
 
@@ -74,6 +74,8 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Finestra temporale** (in **Quando avvisare**) | Eccezioni degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
 | **Filtra per servizio** (in **Altri campi**) | Eccezioni di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Eccezioni di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
+| **Solo eccezioni non gestite** (in **Altri campi**) | Solo le eccezioni che nulla ha intercettato, come un crash: quelle che l'esploratore delle eccezioni contrassegna come **Non gestito**. Un'eccezione che non dice se è stata intercettata conta come gestita. | Disattivato |
+| **Escludi tipi di eccezione** (in **Altri campi**) | Tutte le eccezioni tranne quelle di questi tipi, separati da virgole, come `ANR, Hang`. Il nome del tipo deve corrispondere esattamente. Un tipo elencato qui viene escluso anche quando **Tipi di eccezione** lo elenca. | Vuoto: nessun tipo escluso |
 | **Includi eccezioni risolte** (in **Altri campi**) | Contare anche le eccezioni contrassegnate come risolte. | Disattivato |
 | **Includi eccezioni archiviate** (in **Altri campi**) | Contare anche le eccezioni archiviate. | Disattivato |
 
@@ -103,6 +105,17 @@ Quando create il monitor tramite l'API, impostate `environments` nell'`exception
 }
 ```
 
+Tramite l'API, **Solo eccezioni non gestite** è `unhandledOnly` e **Escludi tipi di eccezione** è `excludedExceptionTypes`, un elenco di nomi di tipo. La raccomandazione **App Crashes** di un'app mobile li imposta entrambi, per contare i suoi crash e non i suoi blocchi:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Come viene valutato
 
 - **Ogni minuto.** Un monitor eccezioni non viene controllato da sonde, quindi non ha un intervallo da impostare né una pagina **Sonde e intervallo**.
@@ -116,7 +129,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **Numero di eccezioni**, il numero di eccezioni che hanno corrisposto nella finestra, e **Nuove eccezioni**, **Eccezioni in regressione** e **Aumento delle eccezioni (in %)**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
+I criteri di un monitor eccezioni hanno sei valori di **Tipo di filtro**: **Numero di eccezioni**, il numero di eccezioni che hanno corrisposto nella finestra, e **Nuove eccezioni**, **Eccezioni in regressione**, **Aumento delle eccezioni (in %)**, **Sessioni con eccezioni (in %)** e **Sessioni**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio delle eccezioni è… |
 | --- | --- |
@@ -160,6 +173,17 @@ Oltre al numero di eccezioni, un monitor eccezioni può avvisare su ciò che un 
 | **Aumento delle eccezioni (in %)** | Di quanto il numero di eccezioni corrispondenti supera il solito: il giorno prima della finestra, per finestra della stessa durata, almeno una. Dieci eccezioni dopo un giorno tranquillo danno 900%. |
 
 Le eccezioni nuove e tornate sono filtrate per servizio, tipo di eccezione, ambiente e messaggio, e anche per entità di infrastruttura: un'eccezione conta quando una delle sue occorrenze nella finestra è arrivata da una delle entità scelte.
+
+## Una quota di sessioni
+
+Un'app installata su migliaia di telefoni ha sempre qualche crash, quindi ciò che il suo team vuole sapere è se il tasso di crash sale. Per un'app i cui span portano `session.id`, come un'app mobile, un monitor eccezioni può avvisare sulla quota di sessioni in cui si è verificata un'eccezione. Entrambi vengono letti solo quando un criterio li controlla.
+
+| Tipo di filtro | Cosa legge nella finestra |
+| --- | --- |
+| **Sessioni con eccezioni (in %)** | La quota delle sessioni della finestra in cui si è verificata un'eccezione corrispondente. Senza sessioni nella finestra non c'è alcuna quota, e nessun criterio su di essa corrisponde. |
+| **Sessioni** | Le sessioni della finestra: i `session.id` distinti degli span dei servizi del monitor. Abbinatelo alla quota, così che una quota calcolata su poche sessioni non avvisi. |
+
+Con **Solo eccezioni non gestite** attivato e i tipi `ANR` e `Hang` esclusi, la quota è il tasso di crash di un'app mobile. La raccomandazione **App Crash Rate** di un'app mobile avvisa quando più dell'1,09% delle sessioni di un'ora va in crash, il tasso che Android vitals considera un comportamento scorretto, purché l'ora abbia almeno 250 sessioni. **App ANR Rate** conta solo `ANR` e `Hang`, sopra lo 0,47%. Per scrivere voi stessi una regola del genere, scegliete **Una quota di sessioni** in **Avvisa su** di **Quando avvisare**.
 
 ## Picchi rispetto alla norma
 

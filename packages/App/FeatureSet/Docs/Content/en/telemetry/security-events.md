@@ -218,6 +218,7 @@ An AWS account, Google Cloud project or Azure subscription [connected under **Cl
 - Each record is read as **Your logs** reads it from a pipeline, so the rule library's CloudTrail, Google Cloud and Azure rules match it.
 - An event is stamped when it is stored, with the record's own time in `oneuptime.cloud.record_time`: an audit log reaches OneUptime minutes late, and a rule reads events by their time.
 - The account's own read brings nothing more: data events, Data Access logs and Microsoft Entra ID's logs still take **Your logs** or a [connection](/docs/integrations/microsoft-entra-id).
+- Each event names the cloud resources its record is about by their own IDs - an ARN, an Azure resource ID, a Google Cloud resource name - so it shows on each one's **Security Events** page, and on a serverless function's once its telemetry sets `cloud.account.id` and `cloud.region`.
 
 ### Connect a security product
 
@@ -371,7 +372,7 @@ flowchart TB
 3. The **Name** fills in from the rule's `title`: type over it to call the rule something else. A new rule runs; **Enabled** is on its edit form.
 4. In **On Match**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
 5. Under **Alerts and Incidents**, choose what else a match raises: **Create an alert** (the default), **Declare an incident**, **Both** or **Neither**, with an optional **Alert Severity** or **Incident Severity**.
-6. **More fields** holds the **Description**, **Write Detection Finding on Match** (on), **Run in Real Time** (off) and how matches are counted; see [Evaluation settings](#evaluation-settings).
+6. **More fields** holds the **Description**, **Write Detection Finding on Match** (on), **Run in Real Time** (off), how matches are counted, and **Response Steps**: what to do when the rule opens a case, each step under the part of the case's Response Plan you pick, at most 10. Drag a step by its grip, or use **Move Up** and **Move Down**: the case's plan shows each part's steps in the order you give them. See [Evaluation settings](#evaluation-settings).
 :::
 
 A first rule, which matches failed logons from outside `10.x.x.x`:

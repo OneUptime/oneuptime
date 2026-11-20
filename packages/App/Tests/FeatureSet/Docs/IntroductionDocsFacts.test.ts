@@ -4222,6 +4222,12 @@ describe("Your Account", () => {
     expect(page).toContain(
       "an app such as 1Password, Google Authenticator, or Microsoft Authenticator",
     );
+    // Enable with nothing set up chooses a second step first (#9666).
+    expect(page).toContain(
+      'authenticatorApp: translationKey("Authenticator app")',
+    );
+    expect(page).toContain('securityKey: translationKey("Security key")');
+    expect(page).toContain('submitButtonText="Continue"');
     expect(page).toContain("enter its 6-digit code to finish setup");
     expect(page).toContain('submitButtonText="Verify and finish"');
     expect(keys).toContain(
@@ -4230,23 +4236,40 @@ describe("Your Account", () => {
     expect(backupCodes).toContain('title="Your backup codes"');
     expect(backupCodes).toContain('submitButtonText="Done"');
     expect(backupCodes).toContain('"Regenerate codes"');
-    expect(status).toContain('"Enable two-factor authentication"');
-    // The badge is looked up in the reader's language (#6658).
-    expect(status.replace(/\s+/g, " ")).toContain(
-      '{isEnabled ? translator.translateText("Enabled") : translator.translateText("Not enabled")}',
+    expect(status).toContain(
+      'enableAction: translationKey("Enable two-factor authentication")',
+    );
+    expect(status).toContain(
+      'finishSetupAction: translationKey("Finish setup")',
+    );
+    /*
+     * The badge is a Pill, which looks its words up in the reader's language
+     * (#6658): Enabled, or Setup needed while nothing is set up behind it.
+     */
+    expect(status).toContain('enabled: translationKey("Enabled")');
+    expect(status).toContain('setupNeeded: translationKey("Setup needed")');
+    expect(status).toContain("text={TWO_FACTOR_STATUS_COPY.enabled}");
+    expect(status).toContain("text={TWO_FACTOR_STATUS_COPY.setupNeeded}");
+    expect(readSource(COMMON_DIR, "UI/Components/Pill/Pill.tsx")).toContain(
+      "translateString(props.text)",
     );
 
     // The steps are headings of their own, so read the whole section.
     const turnOn: string = sectionOf(YOUR_ACCOUNT, "## Signing in securely");
 
     for (const label of [
-      "Authenticator apps",
+      "Enable two-factor authentication",
+      "Authenticator app",
+      "Security key",
+      "Continue",
       "Verify and finish",
-      "Security keys",
+      "Enabled",
       "Your backup codes",
       "Done",
-      "Enable two-factor authentication",
-      "Enabled",
+      "Authenticator apps",
+      "Security keys",
+      "Setup needed",
+      "Finish setup",
       "Regenerate codes",
     ]) {
       expect({ label: label, named: turnOn.includes(`**${label}**`) }).toEqual({
@@ -4254,6 +4277,130 @@ describe("Your Account", () => {
         named: true,
       });
     }
+  });
+
+  it("says what User Profile shows when the server requires SSO, as the profile and the server decide it (#9688)", () => {
+    const sideMenu: string = dashboard("Pages/Global/UserProfile/SideMenu.tsx");
+    const overview: string = dashboard("Pages/Global/UserProfile/Index.tsx");
+    const notice: string = dashboard(
+      "Components/UserProfile/SignInManagement.tsx",
+    );
+    const rule: string = readSource(
+      COMMON_DIR,
+      "Server/Utils/SsoRequiredSignIn.ts",
+    );
+    const managed: string = readSource(
+      COMMON_DIR,
+      "Server/Utils/SsoManagedSignIn.ts",
+    );
+
+    /*
+     * The rule is the server's own Require SSO, and master admins are exempt
+     * from it and from the projects' rule (#9763), never asked either.
+     */
+    expect(managed).toContain(
+      "await SsoRequiredSignIn.isNonSsoSignInRefused({",
+    );
+    expect(managed).toContain("if (account.isMasterAdmin === true) {");
+    expect(rule).toContain("if (account.isMasterAdmin === true) {");
+
+    // No Security section, and Overview names the provider under Single Sign-On.
+    expect(oneLine(sideMenu)).toContain(
+      "(props.signInManagement !== null && !props.signInManagement.isManagedBySso);",
+    );
+    expect(oneLine(sideMenu)).toContain(
+      '{showsSecurity ? ( <SideMenuSection title="Security">',
+    );
+    expect(oneLine(overview)).toContain(
+      "{signInManagement?.isManagedBySso || (signInManagement?.localSignInProjectNames.length || 0) > 0 ? (",
+    );
+    expect(overview).toContain("<SsoManagedSignInNotice");
+    expect(notice).toContain('title: translationKey("Single Sign-On")');
+
+    const managedSection: string = sectionOf(
+      YOUR_ACCOUNT,
+      "### When your organization manages your sign-in",
+    );
+
+    expect(managedSection).toContain(
+      "**User Profile** then has no **Security** section, and its **Overview** names your provider under **Single Sign-On**.",
+    );
+    expect(managedSection).toContain(
+      "Master admins keep their own **Security** settings.",
+    );
+  });
+
+  it("says when every project managing sign-in takes the Security settings away, and what gives them back, as the rule and the profile decide it (#9763)", () => {
+    const managed: string = readSource(
+      COMMON_DIR,
+      "Server/Utils/SsoManagedSignIn.ts",
+    );
+    const notice: string = dashboard(
+      "Components/UserProfile/SignInManagement.tsx",
+    );
+    const managedSection: string = sectionOf(
+      YOUR_ACCOUNT,
+      "### When your organization manages your sign-in",
+    );
+
+    // Every project requires SSO and has the switch on; any other gives them back.
+    expect(managed).toContain("project.manageSignInWithSso === true");
+    expect(managed).toContain("projects.otherProjects.length === 0");
+    expect(managedSection).toContain(
+      "The same happens when every project you belong to requires single sign-on and has **Manage Sign-In with SSO** on.",
+    );
+    expect(managedSection).toContain(
+      "- **A project that does not**: as soon as you are a member of, or invited to, a project that does not require SSO, or does not have **Manage Sign-In with SSO** on, your **Security** section comes back.",
+    );
+
+    // The profile names those projects as the reason.
+    expect(notice).toContain("localSignInProjectNames");
+    expect(notice).toContain(
+      "You keep your own password, passkeys and two-factor authentication because these projects don't: {{projects}}.",
+    );
+    expect(managedSection).toContain(
+      "**Overview** then names those projects under **Single Sign-On**, as the reason your settings are yours.",
+    );
+    expect(managedSection).toContain("- **Master admins** always keep");
+  });
+
+  it("walks through setting up a second step while signing in with the sign-in page's own words (#9764)", () => {
+    const accountsEnglish: {
+      login: {
+        submitButton: string;
+        twoFactorEnrolment: Record<string, string>;
+      };
+    } = JSON.parse(
+      readSource(ACCOUNTS_DIR, "Locales/en.json"),
+    ) as typeof accountsEnglish;
+    const words: Record<string, string> =
+      accountsEnglish.login.twoFactorEnrolment;
+    const section: string = sectionOf(
+      YOUR_ACCOUNT,
+      "### Set up two-factor authentication while signing in",
+    );
+
+    for (const label of [
+      words["authenticatorApp"]!,
+      words["securityKey"]!,
+      words["continue"]!,
+      words["submitButton"]!,
+      words["securityKeyButton"]!,
+      words["chooseAnotherWay"]!,
+    ]) {
+      expect({ label, named: section.includes(`**${label}**`) }).toEqual({
+        label,
+        named: true,
+      });
+    }
+
+    // A browser that cannot register a key is offered only the app.
+    expect(readSource(ACCOUNTS_DIR, "Pages/Login.tsx")).toContain(
+      "getSecondStepEnrolmentChoices(isPasskeySupported)",
+    );
+    expect(section).toContain(
+      "A browser that cannot register a security key, such as one on a page without HTTPS, offers only the authenticator app.",
+    );
   });
 
   it("creates, joins and leaves projects with the controls that do it", () => {

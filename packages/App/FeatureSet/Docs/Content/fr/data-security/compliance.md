@@ -1,10 +1,11 @@
 # Conformité de Sécurité des données
 
-Sécurité des données note neuf référentiels d'après ce que ses analyses ont trouvé. Chaque référentiel couvre les magasins de données dont traitent ses règles - le RGPD les magasins de données qui contiennent des données personnelles, PCI DSS ceux où des données de carte ont été trouvées, SOC 2 tous les magasins de données - et chacune de ses exigences est satisfaite ou en échec selon les contrôles qui en sont la preuve. **Sécurité des données → Conformité** montre le score de chaque référentiel, combien de magasins de données il couvre, et chaque exigence avec le nombre de problèmes ouverts qui la mettent en échec. Un score est une preuve pour un audit, pas un certificat : il dit ce que OneUptime peut voir des magasins de données qu'il lit.
+Sécurité des données note neuf référentiels d'après ce que ses analyses ont trouvé. Chaque référentiel couvre les magasins de données dont traitent ses règles - le RGPD les magasins de données qui contiennent des données personnelles, PCI DSS ceux où des données de carte ont été trouvées, SOC 2 tous les magasins de données - et chacune de ses exigences est satisfaite ou en échec selon les contrôles qui en sont la preuve. **Sécurité des données → Conformité** montre le score de chaque référentiel, combien de magasins de données il couvre, et chaque exigence avec le nombre de problèmes ouverts qui la mettent en échec. Chaque ressource qui contient des magasins de données - un cluster Kubernetes, un hôte Docker ou Podman, une base de données, un service ou une ressource cloud - a sa propre page de ce type, où vous pouvez désactiver ce qui ne la concerne pas. Un score est une preuve pour un audit, pas un certificat : il dit ce que OneUptime peut voir des magasins de données qu'il lit.
 
 :::cards
 - [Les référentiels](#les-référentiels): Les neuf, et les magasins de données que couvre chacun.
 - [Comment un référentiel est noté](#comment-un-référentiel-est-noté): Exigences satisfaites, en échec et non évaluées.
+- [Sur la page d'une ressource](#sur-la-page-dune-ressource): La conformité d'un cluster, d'un hôte, d'une base de données, d'un service ou d'une ressource cloud, et ce qui y est désactivé.
 - [Les exigences et leurs contrôles](#les-exigences-et-leurs-contrôles): Chaque exigence, et les contrôles qui en sont la preuve.
 - [Registre des traitements](#registre-des-traitements): L'article 30 du RGPD, rédigé à partir de vos magasins de données.
 :::
@@ -47,9 +48,35 @@ flowchart TB
 - **Une exigence est satisfaite** quand aucun problème ouvert des contrôles qui lui sont associés ne porte sur un magasin de données du périmètre du référentiel, et **en échec** quand il y en a un.
 - **Elle n'est pas évaluée** tant qu'aucun magasin de données du périmètre n'a eu sa configuration lue ou son contenu analysé.
 - **Deux exigences sont satisfaites par Sécurité des données elle-même** : l'article 30 du RGPD, registre des activités de traitement, et ISO 27001 A.5.12, classification des informations. Elles sont satisfaites dès que chaque magasin de données du périmètre a été lu ou analysé, et en échec tant que l'un ne l'a pas été.
-- **Le score** est la part des exigences évaluées d'un référentiel qui sont satisfaites, en pourcentage entier. Un référentiel dont rien n'est évalué n'a pas de score.
+- **Elle est désactivée** quand chaque magasin de données du périmètre appartient à une ressource qui a désactivé l'exigence (voir [Sur la page d'une ressource](#sur-la-page-dune-ressource)).
+- **Le score** est la part des exigences évaluées d'un référentiel qui sont satisfaites, en pourcentage entier : une exigence désactivée ne compte ni pour ni contre. Un référentiel dont rien n'est évalué n'a pas de score.
 
 Seuls les problèmes ouverts comptent. Un problème dont le risque est accepté, ou qui n'est pas un problème, ne met pas ses exigences en échec : un risque accepté est donc une décision que votre audit peut voir sur le problème, avec qui l'a accepté, pourquoi et jusqu'à quand.
+
+## Sur la page d'une ressource
+
+Le menu d'une ressource a une section **Sécurité**, repliée jusqu'à ce que vous l'ouvriez, dès que la ressource contient un magasin de données que Sécurité des données connaît, dans un projet qui utilise Sécurité des données et pour quiconque peut lire les magasins de données :
+
+| Ressource | Ses magasins de données |
+| --- | --- |
+| Cluster Kubernetes | Les bases de données qui s'y exécutent |
+| Hôte Docker ou Podman | Les bases de données qui s'y exécutent |
+| Base de données | La base de données elle-même |
+| Service | Sa télémétrie : les journaux, traces et exceptions qu'il envoie |
+| Ressource cloud | La ressource elle-même : un bucket, une base de données ou un entrepôt de données |
+
+- **Sécurité des données** liste ces magasins de données, les plus risqués d'abord, et les problèmes ouverts qui portent sur eux. Chacun s'ouvre dans Sécurité des données, où il est traité.
+- **Conformité** note les référentiels pour ces seuls magasins de données. Les référentiels que leurs données font entrer dans le périmètre viennent en premier ; ceux qui sont désactivés, et ceux pour lesquels aucun de ces magasins de données ne contient de données, sont repliés en dessous.
+
+Chaque référentiel a un interrupteur, **S'applique ici**, et chacune de ses exigences aussi. En désactiver un exclut de ce référentiel, ou de cette exigence, les magasins de données de la ressource, sur la page de la ressource comme sur **Sécurité des données → Conformité**, qui indique combien de magasins de données ont été exclus par leurs ressources. Le réactiver les y fait revenir. Chaque interrupteur s'enregistre aussitôt, et chaque modification est conservée dans les [Journaux d'audit](/docs/configuration/audit-logs) du projet.
+
+En désactiver un pose ensuite, juste en dessous, la question **Pourquoi cela ne s'applique-t-il pas ici ?** Le motif est facultatif : écrivez-en un court et choisissez **Enregistrer le motif**, ou **Pas maintenant** pour vous en passer. Dès lors, on y lit qui l'a désactivé et quand, ainsi que le motif, avec **Ajouter un motif** ou **Modifier le motif** pour l'écrire ou le modifier plus tard. Comme l'interrupteur, le motif est conservé dans le journal d'audit.
+
+**Sécurité des données → Conformité** en dit autant pour chaque ressource. Un référentiel sélectionné liste, sous **Désactivé pour tout le référentiel**, les ressources qui l'ont entièrement désactivé, et chaque exigence nomme, sous son statut, les ressources qui ont désactivé cette exigence : chacune reliée à sa propre page Conformité, avec qui l'a désactivé, quand et pourquoi. Son bouton **Exporter en CSV** les place dans une colonne `Turned Off On`, et **Exporter en JSON** dans une liste `turnedOff`.
+
+Un magasin de données suit les interrupteurs d'une seule ressource. Une base de données qui s'exécute sur un cluster Kubernetes, ou sur un hôte Docker ou Podman, suit ceux de ce cluster ou de cet hôte : désactivez un référentiel pour le cluster, et il est désactivé pour chaque base de données qui s'y exécute. La page Conformité propre à la base de données l'indique et renvoie vers celle du cluster ou de l'hôte, avec ses interrupteurs verrouillés.
+
+Les Membres de la sécurité, Administrateurs de la sécurité, Administrateurs du projet et Propriétaires du projet peuvent activer et désactiver les référentiels et les exigences, comme ils peuvent ajuster un contrôle. Les Lecteurs de la sécurité voient ce qui est désactivé, et pourquoi.
 
 ## Les exigences et leurs contrôles
 
@@ -162,7 +189,7 @@ L'article 30 du RGPD vous demande de tenir un registre de vos activités de trai
 | Conservation | Ce que vous écrivez dans la **Conservation** du magasin de données : combien de temps les données y sont conservées |
 | Référentiels | Les référentiels que ses types de données font entrer dans le périmètre |
 
-Remplissez **Finalité** et **Conservation** dans les **Paramètres** de chaque magasin de données : ce sont les deux choses qu'aucune analyse ne peut savoir. L'API de Sécurité des données fournit aussi le registre et les scores, à `/data-security/record-of-processing` et `/data-security/compliance`, à quiconque peut lire les magasins de données (voir [Intégrations de Sécurité des données](/docs/data-security/integrations#api-terraform-et-mcp)).
+Remplissez **Finalité** et **Conservation** dans les **Paramètres** de chaque magasin de données : ce sont les deux choses qu'aucune analyse ne peut savoir. L'API de Sécurité des données fournit aussi le registre et les scores, à `/data-security/record-of-processing`, `/data-security/compliance` et, pour une seule ressource, `/data-security/resource-compliance`, à quiconque peut lire les magasins de données (voir [Intégrations de Sécurité des données](/docs/data-security/integrations#api-terraform-et-mcp)).
 
 ## Prochaines étapes
 

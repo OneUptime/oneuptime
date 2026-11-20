@@ -152,13 +152,14 @@ export enum SessionReplayFidelityNotice {
  * how a chunk counts the signals it saw. ContractParity holds every type
  * and number here identical to Common's.
  *
- * This recorder detects the application's own page, event and error
+ * This recorder detects the application's own tap, page, event and error
  * signals. The built-in rules (rage, dead and error clicks, refresh rage)
  * and click signals are about a mouse on a web page, and only the browser
  * recorder detects them.
  */
 export type SessionReplayCustomSignalTrigger =
   | "click"
+  | "tap"
   | "page"
   | "event"
   | "error";
@@ -253,6 +254,12 @@ export interface SessionReplayConfigResponse {
     enabled: boolean;
     userPropertyKeys: Array<string>;
   };
+  /*
+   * Readable event properties (Common's SessionReplayConfigResponse
+   * .readableEventPropertyKeys, issue #7501): the property keys whose short
+   * token values stay as written. Absent reads as none.
+   */
+  readableEventPropertyKeys?: Array<string>;
 }
 
 export interface SessionReplaySignalCounts {
@@ -379,7 +386,10 @@ export interface SessionReplayCustomSignalPayload {
   trigger: SessionReplayCustomSignalTrigger;
   isFrustration: boolean;
   atUnixMs: number;
-  /* Present for click signals. Viewport coordinates, never content. */
+  /*
+   * Present for click signals, and for a tap signal whose touch was
+   * recorded. Viewport coordinates, never content.
+   */
   x?: number;
   y?: number;
 }

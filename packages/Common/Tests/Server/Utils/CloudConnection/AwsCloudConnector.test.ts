@@ -1,5 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
 import { storedAttributesOf } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
@@ -17,6 +25,11 @@ import {
   resolveCloudMonitoredResource,
 } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionAuthMethod } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import { CloudStreamMetricSource } from "../../../../Types/CloudConnection/CloudStream";
+import {
+  AwsStreamCoverage,
+  getAwsStreamCoverage,
+} from "../../../../Types/CloudConnection/CloudStreamStack";
 import { getAwsExternalIdForProject } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
@@ -24,6 +37,11 @@ import {
 } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+  getCloudAddedMetricKey,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
 import { everythingSent } from "../LlmObservability/FakeProviderApi";
 import {
   FAKE_ACCOUNT_ID,
@@ -225,6 +243,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  jest.restoreAllMocks();
 });
 
 function giveOneUptimeAnAwsIdentity(): void {
@@ -775,6 +794,8 @@ describe("read", () => {
   });
 
   test("throttling is waited out and retried", async () => {
+    // The jitter at its most: each wait is its whole backoff (AwsRetry).
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
     const fake: FakeAws = createFakeAws({
       regions: {
         "us-east-1": {
@@ -802,13 +823,49 @@ describe("read", () => {
     expect(result.pointsWritten).toBe(2);
   });
 
+  test("a 503 from CloudWatch for a moment is asked again, as the AWS SDKs ask, and the read goes on", async () => {
+    jest.spyOn(AwsRetry, "random").mockReturnValue(1);
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: ec2("i-0aaa", [10]),
+          getMetricDataAnswers: [
+            awsError(503, "ServiceUnavailable", "Please try again"),
+          ],
+        },
+      },
+    });
+    const waits: Array<number> = [];
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(fake),
+        sleep: async (milliseconds: number) => {
+          waits.push(milliseconds);
+        },
+      },
+    );
+
+    // A failure for now waits 50 ms at most before its first retry.
+    expect(waits).toEqual([50]);
+    expect(result.warnings).toEqual([]);
+    expect(result.pointsWritten).toBe(2);
+    expect(result.nextState.cursors?.["300"]).toBeDefined();
+  });
+
   test("a Region whose metrics fail keeps the whole window for the next read, so nothing is written twice", async () => {
+    // Every try fails: the failure is not one a retry gets past.
+    const failure: { status: number; body: string } = {
+      status: 500,
+      body: "Internal failure",
+    };
     const fake: FakeAws = createFakeAws({
       regions: {
         "us-east-1": { metrics: ec2("i-0aaa", [10]) },
         "eu-west-1": {
           metrics: ec2("i-0bbb", [20]),
-          getMetricDataAnswers: [{ status: 500, body: "Internal failure" }],
+          getMetricDataAnswers: [failure, failure, failure],
         },
       },
     });
@@ -1047,6 +1104,506 @@ describe("read", () => {
     expect(statOf("CPUCreditBalance")).toBe("Average");
     expect(statOf("EBSReadBytes")).toBe("Sum");
     expect(statOf("CPUUtilization")).toBe("Average");
+  });
+
+  /*
+   * #9564: an account that streams pays CloudWatch only for what its
+   * stream does not carry. A key metric its stack carries, of a namespace
+   * it delivered lately, is not read - but where the resource's health or
+   * headline is judged from it, so its health reads the same.
+   */
+  describe("of an account that streams", () => {
+    function metricsQueried(fake: FakeAws): Array<string> {
+      return fake.cloudWatchCalls
+        .filter((call: { action: string }): boolean => {
+          return call.action === "GetMetricData";
+        })
+        .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+          return call.body["MetricDataQueries"] as Array<JSONObject>;
+        })
+        .map((query: JSONObject): string => {
+          const metric: JSONObject = (query["MetricStat"] as JSONObject)[
+            "Metric"
+          ] as JSONObject;
+
+          return `${metric["Namespace"] as string}/${metric["MetricName"] as string}`;
+        })
+        .sort();
+    }
+
+    function streaming(
+      sources: Array<Partial<CloudStreamMetricSource>>,
+    ): AwsStreamCoverage {
+      return getAwsStreamCoverage({
+        summary: {
+          metricSources: sources.map(
+            (
+              source: Partial<CloudStreamMetricSource>,
+            ): CloudStreamMetricSource => {
+              return {
+                accountId: FAKE_ACCOUNT_ID,
+                region: "us-east-1",
+                namespaces: ["AWS/EC2"],
+                lastAt: new Date(NOW.getTime() - 60 * 1000).toISOString(),
+                ...source,
+              };
+            },
+          ),
+          logSources: [],
+        },
+        now: NOW,
+      });
+    }
+
+    function instanceWithNewerMetrics(): Array<FakeMetric> {
+      return [
+        ...ec2("i-0aaa", [10]),
+        {
+          namespace: "AWS/EC2",
+          metricName: "CPUCreditBalance",
+          dimensions: [["InstanceId", "i-0aaa"]],
+          values: [[WINDOW_START_S, 144]],
+        },
+        {
+          namespace: "AWS/EC2",
+          metricName: "EBSReadBytes",
+          dimensions: [["InstanceId", "i-0aaa"]],
+          values: [[WINDOW_START_S, 4096]],
+        },
+      ];
+    }
+
+    test("of template 2 reads only what the instance's health and headlines are judged from", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          awsStreamCoverage: streaming([
+            { templateVersion: 2, everyMetric: false },
+          ]),
+        },
+      );
+
+      // CPU and network lead the instance's page; its credits and EBS bytes do not.
+      expect(metricsQueried(fake)).toEqual([
+        "AWS/EC2/CPUUtilization",
+        "AWS/EC2/NetworkIn",
+      ]);
+      // It is still found, from its listed series.
+      expect(
+        result.resources.map((found: CloudDiscoveredResource) => {
+          return found.resource.resourceType;
+        }),
+      ).toEqual(["AWS::EC2::Instance"]);
+    });
+
+    /*
+     * #9690: where the stream's readings of an account and Region are
+     * fresh (CloudStreamReadings), the instance's health and headlines are
+     * judged from them: nothing its stack carries is read at all.
+     */
+    test("of template 2 whose streamed readings are fresh reads nothing it carries, health and headlines included", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          awsStreamCoverage: streaming([
+            { templateVersion: 2, everyMetric: false },
+          ]),
+          awsStreamedReadingSources: new Set<string>([
+            `${FAKE_ACCOUNT_ID}|us-east-1`,
+          ]),
+        },
+      );
+
+      expect(metricsQueried(fake)).toEqual([]);
+      expect(result.warnings).toEqual([]);
+      // Still found from its listed series, and its window done.
+      expect(result.resources).toHaveLength(1);
+      expect(result.nextState.cursors?.["300"]).toBe(
+        new Date(WINDOW_END_S * 1000).toISOString(),
+      );
+    });
+
+    test("of template 2 whose streamed readings are not fresh reads health and headlines from CloudWatch, and says so", async () => {
+      for (const fresh of [
+        new Set<string>(),
+        // Another Region's readings are fresh, not this one's.
+        new Set<string>([`${FAKE_ACCOUNT_ID}|eu-west-1`]),
+      ]) {
+        const fake: FakeAws = createFakeAws({
+          regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+        });
+
+        const result: CloudReadResult = await connector.read(
+          keySettings({ regions: "us-east-1" }),
+          {
+            ...readOptions(fake),
+            awsStreamCoverage: streaming([
+              { templateVersion: 2, everyMetric: false },
+            ]),
+            awsStreamedReadingSources: fresh,
+          },
+        );
+
+        expect(metricsQueried(fake)).toEqual([
+          "AWS/EC2/CPUUtilization",
+          "AWS/EC2/NetworkIn",
+        ]);
+        expect(result.warnings).toEqual([
+          "The streams sent no resource health from us-east-1 lately, so it was read from CloudWatch.",
+        ]);
+      }
+    });
+
+    test("of a stack that carries none of the health metrics, fresh readings or not, reads them as before", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          // Delivering another namespace: the instance's metrics are not its.
+          awsStreamCoverage: streaming([
+            { namespaces: ["AWS/RDS"], templateVersion: 2 },
+          ]),
+          awsStreamedReadingSources: new Set<string>(),
+        },
+      );
+
+      expect(metricsQueried(fake)).toHaveLength(4);
+      expect(result.warnings).toEqual([]);
+    });
+
+    test("of a stack that says no template reads what it does not carry, as if the account did not stream", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+      });
+
+      await connector.read(keySettings({ regions: "us-east-1" }), {
+        ...readOptions(fake),
+        awsStreamCoverage: streaming([{}]),
+      });
+
+      expect(metricsQueried(fake)).toEqual([
+        "AWS/EC2/CPUCreditBalance",
+        "AWS/EC2/CPUUtilization",
+        "AWS/EC2/EBSReadBytes",
+        "AWS/EC2/NetworkIn",
+      ]);
+    });
+
+    test("reads every key metric of a Region or namespace no stream delivered lately", async () => {
+      for (const coverage of [
+        streaming([{ region: "eu-west-1", templateVersion: 2 }]),
+        streaming([{ namespaces: ["AWS/RDS"], templateVersion: 2 }]),
+        streaming([
+          {
+            templateVersion: 2,
+            lastAt: new Date(NOW.getTime() - 60 * 60 * 1000).toISOString(),
+          },
+        ]),
+      ]) {
+        const fake: FakeAws = createFakeAws({
+          regions: { "us-east-1": { metrics: instanceWithNewerMetrics() } },
+        });
+
+        await connector.read(keySettings({ regions: "us-east-1" }), {
+          ...readOptions(fake),
+          awsStreamCoverage: coverage,
+        });
+
+        expect(metricsQueried(fake)).toHaveLength(4);
+      }
+    });
+
+    /*
+     * A Neptune cluster's metrics feed no reading: a stream of template 2
+     * writes them all, so nothing of the period is read - and its window
+     * is done all the same, so a stream that goes quiet is read from here,
+     * never again from the hours it wrote.
+     */
+    test("reads nothing of a period a stream writes whole, and moves its cursor on", async () => {
+      const fake: FakeAws = createFakeAws({
+        regions: {
+          "us-east-1": {
+            metrics: [
+              {
+                namespace: "AWS/Neptune",
+                metricName: "CPUUtilization",
+                dimensions: [["DBClusterIdentifier", "graph"]],
+                values: [[WINDOW_START_S, 12]],
+              },
+            ],
+          },
+        },
+      });
+
+      const result: CloudReadResult = await connector.read(
+        keySettings({ regions: "us-east-1" }),
+        {
+          ...readOptions(fake),
+          awsStreamCoverage: streaming([
+            { namespaces: ["AWS/Neptune"], templateVersion: 2 },
+          ]),
+        },
+      );
+
+      expect(metricsQueried(fake)).toEqual([]);
+      expect(result.payloads).toEqual([]);
+      expect(result.resources).toHaveLength(1);
+      expect(result.nextState.cursors?.["300"]).toBe(
+        new Date(WINDOW_END_S * 1000).toISOString(),
+      );
+    });
+  });
+
+  /*
+   * A Network Firewall publishes ReceivedPackets for each engine that saw a
+   * packet; only its Stateless (Classic policy) or System (Next Generation
+   * policy) series counts every one. The read reads those alone, and every
+   * engine's drops.
+   */
+  test("a firewall's received packets are read from the engine that counts every packet alone", async () => {
+    const firewallSeries: (metricName: string, engine: string) => FakeMetric = (
+      metricName: string,
+      engine: string,
+    ): FakeMetric => {
+      return {
+        namespace: "AWS/NetworkFirewall",
+        metricName,
+        dimensions: [
+          ["AvailabilityZone", "us-east-1a"],
+          ["Engine", engine],
+          ["FirewallName", "edge"],
+        ],
+        values: [[WINDOW_START_S, 100]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            firewallSeries("ReceivedPackets", "System"),
+            firewallSeries("ReceivedPackets", "Firewall"),
+            firewallSeries("DroppedPackets", "Firewall"),
+            firewallSeries("DroppedPackets", "IPS"),
+          ],
+        },
+      },
+    });
+
+    await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const engines: Array<string> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): string => {
+        const metric: JSONObject = (query["MetricStat"] as JSONObject)[
+          "Metric"
+        ] as JSONObject;
+        const engine: JSONObject | undefined = (
+          metric["Dimensions"] as Array<JSONObject>
+        ).find((dimension: JSONObject): boolean => {
+          return dimension["Name"] === "Engine";
+        });
+
+        return `${metric["MetricName"] as string} ${engine?.["Value"] as string}`;
+      })
+      .sort();
+
+    expect(engines).toEqual([
+      "DroppedPackets Firewall",
+      "DroppedPackets IPS",
+      "ReceivedPackets System",
+    ]);
+  });
+
+  /*
+   * #9691: a Glue job's own metrics are its JobRunId ALL series; each run's
+   * series has as many dimensions and would be read beside it, and its
+   * values added to the job's.
+   */
+  test("a Glue job is read from its JobRunId ALL series alone, never a run's", async () => {
+    const glueSeries: (
+      metricName: string,
+      run: string,
+      value: number,
+    ) => FakeMetric = (
+      metricName: string,
+      run: string,
+      value: number,
+    ): FakeMetric => {
+      return {
+        namespace: "Glue",
+        metricName,
+        dimensions: [
+          ["JobName", "nightly-orders"],
+          ["JobRunId", run],
+          ["Type", "count"],
+        ],
+        values: [[WINDOW_START_S, value]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            glueSeries("glue.driver.aggregate.numCompletedTasks", "ALL", 40),
+            glueSeries(
+              "glue.driver.aggregate.numCompletedTasks",
+              "jr_0a1b2c3d",
+              40,
+            ),
+            glueSeries("glue.driver.aggregate.numFailedTasks", "ALL", 2),
+            glueSeries(
+              "glue.driver.aggregate.numFailedTasks",
+              "jr_0a1b2c3d",
+              2,
+            ),
+          ],
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const runs: Array<string> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): string => {
+        const metric: JSONObject = (query["MetricStat"] as JSONObject)[
+          "Metric"
+        ] as JSONObject;
+        const run: JSONObject | undefined = (
+          metric["Dimensions"] as Array<JSONObject>
+        ).find((dimension: JSONObject): boolean => {
+          return dimension["Name"] === "JobRunId";
+        });
+
+        return `${metric["MetricName"] as string} ${run?.["Value"] as string}`;
+      })
+      .sort();
+
+    expect(runs).toEqual([
+      "glue.driver.aggregate.numCompletedTasks ALL",
+      "glue.driver.aggregate.numFailedTasks ALL",
+    ]);
+    expect(
+      result.resources.map((entry: CloudDiscoveredResource): string => {
+        return `${entry.resource.resourceType} ${entry.resource.name}`;
+      }),
+    ).toContain("AWS::Glue::Job nightly-orders");
+  });
+
+  /*
+   * #9691: an Athena workgroup's queries are counted, not timed: Athena
+   * publishes a query's TotalExecutionTime once, as it ends, so its
+   * SampleCount is how many ended - read with that statistic, a series per
+   * query state and type, and written in the read's own shape.
+   */
+  test("an Athena workgroup's queries are read as the SampleCount of TotalExecutionTime, of each state", async () => {
+    const athenaSeries: (state: string, count: number) => FakeMetric = (
+      state: string,
+      count: number,
+    ): FakeMetric => {
+      return {
+        namespace: "AWS/Athena",
+        metricName: "TotalExecutionTime",
+        dimensions: [
+          ["QueryState", state],
+          ["QueryType", "DML"],
+          ["WorkGroup", "analytics"],
+        ],
+        values: [[WINDOW_START_S, count]],
+      };
+    };
+    const fake: FakeAws = createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            {
+              namespace: "AWS/Athena",
+              metricName: "ProcessedBytes",
+              dimensions: [["WorkGroup", "analytics"]],
+              values: [[WINDOW_START_S, 1_048_576]],
+            },
+            athenaSeries("SUCCEEDED", 12),
+            athenaSeries("FAILED", 3),
+          ],
+        },
+      },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(fake),
+    );
+
+    const queries: Array<JSONObject> = fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }): Array<JSONObject> => {
+        return call.body["MetricDataQueries"] as Array<JSONObject>;
+      })
+      .map((query: JSONObject): JSONObject => {
+        return query["MetricStat"] as JSONObject;
+      });
+    const statOf: (metricName: string) => Array<string> = (
+      metricName: string,
+    ): Array<string> => {
+      return queries
+        .filter((stat: JSONObject): boolean => {
+          return (
+            ((stat["Metric"] as JSONObject)["MetricName"] as string) ===
+            metricName
+          );
+        })
+        .map((stat: JSONObject): string => {
+          return stat["Stat"] as string;
+        });
+    };
+
+    expect(statOf("TotalExecutionTime")).toEqual([
+      "SampleCount",
+      "SampleCount",
+    ]);
+    expect(statOf("ProcessedBytes")).toEqual(["Sum"]);
+
+    // Written under the metric's own name, as every key metric is.
+    expect(JSON.stringify(result.payloads)).toContain(
+      "amazonaws.com/AWS/Athena/TotalExecutionTime",
+    );
+    expect(
+      result.resources.map((entry: CloudDiscoveredResource): string => {
+        return `${entry.resource.resourceType} ${entry.resource.name}`;
+      }),
+    ).toContain("AWS::Athena::WorkGroup analytics");
   });
 
   test("S3's daily storage figures are read once a whole day has been published", async () => {
@@ -1318,5 +1875,334 @@ describe("read", () => {
         new Date((HOURLY_END_S + 3600) * 1000).toISOString(),
       );
     });
+  });
+});
+
+/*
+ * ---- Metrics a person added to the reads (#9563) -------------------------
+ *
+ * GetMetricData bills each metric read, so an addition is read only of the
+ * resources it is for, in the GetMetricData calls the key metrics are read
+ * in: a type's listed in its namespace like a key metric and kept for the
+ * resources of its type, a resource's own on the series its listing found,
+ * with no listing call each read. A stream of every metric writes it
+ * already, so the read leaves it to the stream.
+ */
+describe("metrics a person added to the reads", () => {
+  const INSTANCE: string = "AWS::EC2::Instance";
+
+  function added(overrides: Partial<CloudAddedMetric> = {}): CloudAddedMetric {
+    const metric: CloudAddedMetric = {
+      key: "",
+      provider: CloudProvider.AWS,
+      scope: CloudAddedMetricScope.Type,
+      resourceType: INSTANCE,
+      namespace: "AWS/EC2",
+      name: "MetadataNoToken",
+      aggregation: "Sum",
+      unit: "",
+      addedAt: NOW.toISOString(),
+      ...overrides,
+    };
+
+    return { ...metric, key: getCloudAddedMetricKey(metric) };
+  }
+
+  function ownAddition(
+    overrides: Partial<CloudAddedMetric> = {},
+  ): CloudAddedMetric {
+    return added({
+      scope: CloudAddedMetricScope.Resource,
+      cloudResourceId: "c1d2e3f4-0000-4000-8000-000000000001",
+      accountId: FAKE_ACCOUNT_ID,
+      region: "us-east-1",
+      dimensions: [{ name: "InstanceId", value: "i-0aaa" }],
+      ...overrides,
+    });
+  }
+
+  // Two instances, and an Auto Scaling group's own series of the metric.
+  function instances(): FakeAws {
+    return createFakeAws({
+      regions: {
+        "us-east-1": {
+          metrics: [
+            ...ec2("i-0aaa", [10]),
+            ...ec2("i-0bbb", [20]),
+            {
+              namespace: "AWS/EC2",
+              metricName: "MetadataNoToken",
+              dimensions: [["InstanceId", "i-0aaa"]],
+              values: [[WINDOW_START_S, 3]],
+            },
+            {
+              namespace: "AWS/EC2",
+              metricName: "MetadataNoToken",
+              dimensions: [["InstanceId", "i-0bbb"]],
+              values: [[WINDOW_START_S, 4]],
+            },
+            {
+              namespace: "AWS/EC2",
+              metricName: "MetadataNoToken",
+              dimensions: [["AutoScalingGroupName", "web-asg"]],
+              values: [[WINDOW_START_S, 7]],
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  function queriesOf(fake: FakeAws): Array<{
+    metricName: string;
+    dimensions: string;
+    stat: string;
+  }> {
+    return fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      })
+      .flatMap((call: { body: JSONObject }) => {
+        return (call.body["MetricDataQueries"] as Array<JSONObject>).map(
+          (query: JSONObject) => {
+            const stat: JSONObject = query["MetricStat"] as JSONObject;
+            const metric: JSONObject = stat["Metric"] as JSONObject;
+
+            return {
+              metricName: String(metric["MetricName"]),
+              dimensions: ((metric["Dimensions"] || []) as Array<JSONObject>)
+                .map((dimension: JSONObject): string => {
+                  return `${dimension["Name"]}=${dimension["Value"]}`;
+                })
+                .join(","),
+              stat: String(stat["Stat"]),
+            };
+          },
+        );
+      });
+  }
+
+  function listedNames(fake: FakeAws): Array<string> {
+    return fake.cloudWatchCalls
+      .filter((call: { action: string }): boolean => {
+        return call.action === "ListMetrics";
+      })
+      .map((call: { body: JSONObject }): string => {
+        return String(call.body["MetricName"] || "");
+      });
+  }
+
+  test("a type's addition is listed in its namespace and read for each resource of its type, in the same GetMetricData call", async () => {
+    const fake: FakeAws = instances();
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      { ...readOptions(fake), addedMetrics: [added()] },
+    );
+
+    expect(listedNames(fake)).toContain("MetadataNoToken");
+    expect(
+      queriesOf(fake).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toEqual([
+      {
+        metricName: "MetadataNoToken",
+        dimensions: "InstanceId=i-0aaa",
+        stat: "Sum",
+      },
+      {
+        metricName: "MetadataNoToken",
+        dimensions: "InstanceId=i-0bbb",
+        stat: "Sum",
+      },
+    ]);
+    // One call for every series of the period, key metrics and added.
+    expect(
+      fake.cloudWatchCalls.filter((call: { action: string }): boolean => {
+        return call.action === "GetMetricData";
+      }),
+    ).toHaveLength(1);
+
+    const written: Array<{ metricName: string; attributes: JSONObject }> =
+      resolvedFromPayloads(result).filter(
+        (entry: { metricName: string }): boolean => {
+          return entry.metricName === "amazonaws.com/AWS/EC2/MetadataNoToken";
+        },
+      );
+
+    expect(
+      written.map((entry: { attributes: JSONObject }) => {
+        return entry.attributes["Dimensions.InstanceId"];
+      }),
+    ).toEqual(["i-0aaa", "i-0bbb"]);
+  });
+
+  test("a resource's own addition is read on the series its listing found, with no listing call", async () => {
+    const fake: FakeAws = instances();
+
+    const result: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      { ...readOptions(fake), addedMetrics: [ownAddition()] },
+    );
+
+    expect(listedNames(fake)).not.toContain("MetadataNoToken");
+    expect(
+      queriesOf(fake).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toEqual([
+      {
+        metricName: "MetadataNoToken",
+        dimensions: "InstanceId=i-0aaa",
+        stat: "Sum",
+      },
+    ]);
+    expect(
+      resolvedFromPayloads(result)
+        .filter((entry: { metricName: string }): boolean => {
+          return entry.metricName === "amazonaws.com/AWS/EC2/MetadataNoToken";
+        })
+        .map((entry: { attributes: JSONObject }) => {
+          return entry.attributes["Dimensions.InstanceId"];
+        }),
+    ).toEqual(["i-0aaa"]);
+  });
+
+  test("a resource's own addition of another account, or of a Region or namespace the account has no resources in, is not read", async () => {
+    const fake: FakeAws = instances();
+
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(fake),
+      addedMetrics: [
+        ownAddition({ accountId: "999999999999" }),
+        ownAddition({ region: "eu-west-1", cloudResourceId: "other-row-1" }),
+        ownAddition({ namespace: "AWS/RDS", cloudResourceId: "other-row-2" }),
+      ],
+    });
+
+    expect(
+      queriesOf(fake).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toEqual([]);
+  });
+
+  test("an addition a stream of every metric writes already is left to it; a key-metric stream does not carry it", async () => {
+    const coverage: (everyMetric: boolean) => AwsStreamCoverage = (
+      everyMetric: boolean,
+    ): AwsStreamCoverage => {
+      return getAwsStreamCoverage({
+        summary: {
+          metricSources: [
+            {
+              accountId: FAKE_ACCOUNT_ID,
+              region: "us-east-1",
+              namespaces: ["AWS/EC2"],
+              lastAt: new Date(NOW.getTime() - 60 * 1000).toISOString(),
+              templateVersion: 2,
+              everyMetric,
+            },
+          ],
+          logSources: [],
+        },
+        now: NOW,
+      });
+    };
+
+    const whole: FakeAws = instances();
+    const wholeResult: CloudReadResult = await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      {
+        ...readOptions(whole),
+        awsStreamCoverage: coverage(true),
+        addedMetrics: [added(), ownAddition({ name: "DiskReadOps" })],
+      },
+    );
+
+    expect(
+      queriesOf(whole).filter((query: { metricName: string }): boolean => {
+        return (
+          query.metricName === "MetadataNoToken" ||
+          query.metricName === "DiskReadOps"
+        );
+      }),
+    ).toEqual([]);
+    expect(
+      resolvedFromPayloads(wholeResult).some(
+        (entry: { metricName: string }): boolean => {
+          return entry.metricName === "amazonaws.com/AWS/EC2/MetadataNoToken";
+        },
+      ),
+    ).toBe(false);
+
+    const keyOnly: FakeAws = instances();
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(keyOnly),
+      awsStreamCoverage: coverage(false),
+      addedMetrics: [added()],
+    });
+
+    expect(
+      queriesOf(keyOnly).filter((query: { metricName: string }): boolean => {
+        return query.metricName === "MetadataNoToken";
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("an addition that is a key metric of its namespace is read once, as the key metric", async () => {
+    // EC2's listing calls of CPUUtilization and NetworkIn in a read.
+    const ec2Listings: (fake: FakeAws) => Array<string> = (
+      fake: FakeAws,
+    ): Array<string> => {
+      return fake.cloudWatchCalls
+        .filter((call: { action: string; body: JSONObject }): boolean => {
+          return (
+            call.action === "ListMetrics" &&
+            call.body["Namespace"] === "AWS/EC2" &&
+            (call.body["MetricName"] === "CPUUtilization" ||
+              call.body["MetricName"] === "NetworkIn")
+          );
+        })
+        .map((call: { body: JSONObject }): string => {
+          return String(call.body["MetricName"]);
+        });
+    };
+
+    const without: FakeAws = instances();
+    await connector.read(
+      keySettings({ regions: "us-east-1" }),
+      readOptions(without),
+    );
+
+    const fake: FakeAws = instances();
+    await connector.read(keySettings({ regions: "us-east-1" }), {
+      ...readOptions(fake),
+      addedMetrics: [
+        added({ name: "CPUUtilization", aggregation: "Maximum" }),
+        ownAddition({ name: "NetworkIn" }),
+      ],
+    });
+
+    expect(
+      queriesOf(fake)
+        .filter((query: { metricName: string }): boolean => {
+          return (
+            query.metricName === "CPUUtilization" ||
+            query.metricName === "NetworkIn"
+          );
+        })
+        .map((query: { metricName: string; stat: string }): string => {
+          return `${query.metricName}:${query.stat}`;
+        })
+        .sort(),
+    ).toEqual([
+      "CPUUtilization:Average",
+      "CPUUtilization:Average",
+      "NetworkIn:Sum",
+      "NetworkIn:Sum",
+    ]);
+    // Listed as often as without the additions.
+    expect(ec2Listings(fake)).toEqual(ec2Listings(without));
   });
 });

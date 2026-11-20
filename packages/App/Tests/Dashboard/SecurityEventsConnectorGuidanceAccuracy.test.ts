@@ -1736,10 +1736,34 @@ describe("Full-error guidance matches retention, redaction and copy controls", (
     expect(clientSource).not.toMatch(DIAGNOSTIC_SLICE_PATTERN);
 
     for (const template of clientHttpErrorTemplates) {
+      /*
+       * #9983: a token exchange Google refused in its JSON is said as every
+       * Google sign-in says it - its code, its words and what to do - and
+       * anything else is kept whole and redacted, as every other template.
+       */
+      if (template.startsWith("Google token exchange failed (HTTP ")) {
+        expect(template).toContain(
+          "${GoogleSecOpsClient.describeTokenExchangeFailure(",
+        );
+        continue;
+      }
+
       expect(template).toContain(
         "${GoogleSecOpsClient.redactErrorBody(responseText)}",
       );
     }
+
+    const describer: string = sliceBetween(
+      clientSource,
+      "public static describeTokenExchangeFailure(",
+      "private static isGoogleErrorAnswer(",
+    );
+
+    expect(describer).toContain(
+      "return GoogleSecOpsClient.redactErrorBody(data.body);",
+    );
+    expect(describer).toContain("redactLogString(");
+    expect(describer).toContain("secrets: data.secrets");
   });
 
   test("streamed Google errors retain their structured details", () => {

@@ -17,6 +17,11 @@ import {
   generateSelectFromFields,
   getRefusedSelectColumn,
 } from "../Utils/SelectFieldGenerator";
+import {
+  addDeleteChoiceFlags,
+  getDeleteChoicesRefusalHint,
+  readDeleteChoiceFlags,
+} from "../Utils/DeleteChoiceFlags";
 import { addFieldFlags, readFieldFlags } from "../Utils/FieldFlags";
 import { resolvePeople, ResolvedPeople } from "../Utils/People";
 import { printResourceFields } from "../Utils/ResourceFieldsTable";
@@ -515,41 +520,70 @@ function registerDeleteCommand(
   resourceCmd: Command,
   resource: ResourceInfo,
 ): void {
-  resourceCmd
+  const command: Command = resourceCmd
     .command("delete <id>")
     .description(`Delete ${withIndefiniteArticle(resource.singularName)}`)
-    .option("--force", "Skip confirmation")
+    .option("--force", "Skip confirmation");
+
+  /*
+   * What the delete says besides the record, for a resource whose delete
+   * takes it: what the workflows that run as a custom role run as instead
+   * (Utils/DeleteChoiceFlags, #9949).
+   */
+  addDeleteChoiceFlags(command, resource);
+
+  command
     .addOption(createOutputOption())
     .addOption(createJsonOption())
-    .action(async (id: string, _options: { force?: boolean }, cmd: Command) => {
-      try {
-        const parentOpts: CLIOptions = getParentOptions(resourceCmd);
-        const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
+    .action(
+      async (
+        id: string,
+        options: { force?: boolean } & Record<string, unknown>,
+        cmd: Command,
+      ) => {
+        // Sent only when given: a delete that says nothing sends no body.
+        let miscDataProps: JSONObject = {};
 
-        await executeApiRequest({
-          apiUrl: creds.apiUrl,
-          apiKey: creds.apiKey,
-          apiPath: resource.apiPath,
-          operation: "delete" as ApiOperation,
-          id,
-        });
+        try {
+          miscDataProps = readDeleteChoiceFlags({ resource, options, id });
 
-        if (isJsonOutputRequested(cmd)) {
-          // eslint-disable-next-line no-console
-          console.log(
-            formatOutput({ _id: id, deleted: true }, resolveOutputFormat(cmd)),
-          );
-          return;
+          const parentOpts: CLIOptions = getParentOptions(resourceCmd);
+          const creds: ResolvedCredentials = getResolvedCredentials(parentOpts);
+
+          await executeApiRequest({
+            apiUrl: creds.apiUrl,
+            apiKey: creds.apiKey,
+            apiPath: resource.apiPath,
+            operation: "delete" as ApiOperation,
+            id,
+            miscDataProps,
+          });
+
+          if (isJsonOutputRequested(cmd)) {
+            // eslint-disable-next-line no-console
+            console.log(
+              formatOutput(
+                { _id: id, deleted: true },
+                resolveOutputFormat(cmd),
+              ),
+            );
+            return;
+          }
+
+          printSuccess(`${resource.singularName} ${id} deleted successfully.`);
+        } catch (error) {
+          handleError(error, {
+            resource: resource.name,
+            operation: CliOperation.Delete,
+            hint: getDeleteChoicesRefusalHint({
+              error,
+              resource,
+              sent: miscDataProps,
+            }),
+          });
         }
-
-        printSuccess(`${resource.singularName} ${id} deleted successfully.`);
-      } catch (error) {
-        handleError(error, {
-          resource: resource.name,
-          operation: CliOperation.Delete,
-        });
-      }
-    });
+      },
+    );
 }
 
 function registerCountCommand(

@@ -19,7 +19,11 @@ import {
 import Navigation from "Common/UI/Utils/Navigation";
 import AccountsTheme from "./Utils/AccountsTheme";
 import { isFormDomainPage } from "./Utils/FormDomainPage";
-import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
+import {
+  MASTER_ADMIN_SIGN_IN_PATH,
+  PROJECT_SSO_SIGN_IN_PATH,
+} from "Common/Types/SSO/SignInMethods";
+import { MOBILE_PASSKEY_ENROLMENT_PAGE_PATH } from "Common/Types/Accounts/SecondStepEnrolment";
 import Footer from "./Components/Footer/Footer";
 
 // Lazy load page components
@@ -52,12 +56,23 @@ const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/MobilePasskey");
   },
 );
+// A passkey the mobile app sets up when sign-in requires a second step (#9817).
+const MobilePasskeyEnrolmentPage: React.LazyExoticComponent<() => JSX.Element> =
+  lazy(() => {
+    return import("./Pages/MobilePasskeyEnrolment");
+  });
 // Drawn on its own here, with none of the props the sign-in page hands it.
 const LoginWithSSO: React.LazyExoticComponent<
   ComponentType<{ showEditionLabel?: boolean | undefined }>
 > = lazy(() => {
   return import("./Pages/LoginWithSSO");
 });
+// A project's SSO sign-in link: its providers, by the project's id alone.
+const LoginWithProjectSso: React.LazyExoticComponent<ComponentType> = lazy(
+  () => {
+    return import("./Pages/LoginWithProjectSso");
+  },
+);
 const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/NotFound");
 });
@@ -162,8 +177,22 @@ function App(): ReactElement {
               path="/accounts/mobile-passkey"
               element={<MobilePasskeyPage />}
             />
+            <Route
+              path={MOBILE_PASSKEY_ENROLMENT_PAGE_PATH}
+              element={<MobilePasskeyEnrolmentPage />}
+            />
             <Route path="/accounts/forbidden" element={<ForbiddenPage />} />
             <Route path="/accounts/sso" element={<LoginWithSSO />} />
+            {/*
+             * A project's SSO sign-in link (Common/Types/SSO/SignInMethods,
+             * #9918): the providers that sign people in to one project, for
+             * people whose address "Sign in with SSO" cannot find them by -
+             * an address on another domain, a domain not verified yet.
+             */}
+            <Route
+              path={PROJECT_SSO_SIGN_IN_PATH}
+              element={<LoginWithProjectSso />}
+            />
             <Route
               path="/accounts/forgot-password"
               element={<ForgotPasswordPage />}

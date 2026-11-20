@@ -7,6 +7,7 @@ import {
   ReachOrders,
   ResponderReach,
   getReachOrders,
+  toPolicyLevels,
 } from "./OnCallSetup";
 import OnCallTestPageApi from "../../OnCallTestPage/OnCallTestPageApi";
 import {
@@ -81,9 +82,16 @@ import {
   getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
 } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
-import { getFirstOnCallPolicyName } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  OnCallPolicyLevelCreate,
+  OnCallPolicyLevelMembers,
+  buildLevelMembers,
+  buildLevelWait,
+  buildOnCallPolicyLevel,
+  buildPolicyRepeat,
+  getFirstOnCallPolicyName,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import Phone from "Common/Types/Phone";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -92,6 +100,7 @@ import { announceModelSwitchSaved } from "Common/UI/Components/ModelSwitch/Model
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { createWithFreeName } from "Common/Types/Database/UniqueName";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
@@ -506,13 +515,28 @@ export default class OnCallSetupApi {
         data.translator.language;
     }
 
-    const id: string = createdId(
-      await ModelAPI.create<OnCallDutyPolicy>({
-        model: policy,
-        modelType: OnCallDutyPolicy,
-        miscDataProps: miscDataProps,
-      }),
-    );
+    /*
+     * A policy's name is one policy's (#9742): while another has it - an
+     * archived one, or one this person may not see - the policy is made
+     * numbered, as Duplicate numbers a copy ("Default on-call policy 2").
+     */
+    const { created } = await createWithFreeName<unknown>({
+      name: policy.name || "",
+      create: async (name: string): Promise<unknown> => {
+        policy.name = name;
+
+        return await ModelAPI.create<OnCallDutyPolicy>({
+          model: policy,
+          modelType: OnCallDutyPolicy,
+          miscDataProps: miscDataProps,
+        });
+      },
+      readRefusal: (error: unknown): string => {
+        return API.getFriendlyMessage(error);
+      },
+    });
+
+    const id: string = createdId(created);
 
     if (!id) {
       throw new Error("The on-call policy was made, but it can't be shown.");
@@ -620,25 +644,7 @@ export default class OnCallSetupApi {
       }),
     ]);
 
-    const levels: Array<PolicyLevel> = rules.data
-      .filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
-        return Boolean(rule.id);
-      })
-      .map(
-        (rule: OnCallDutyPolicyEscalationRule, index: number): PolicyLevel => {
-          return {
-            id: rule.id!.toString(),
-            order: rule.order || index + 1,
-            escalateAfterInMinutes:
-              typeof rule.escalateAfterInMinutes === "number"
-                ? rule.escalateAfterInMinutes
-                : DEFAULT_ESCALATE_AFTER_IN_MINUTES,
-            userIds: [],
-            names: [],
-            responderCount: 0,
-          };
-        },
-      );
+    const levels: Array<PolicyLevel> = toPolicyLevels(rules.data);
 
     const levelOf: (ruleId: unknown) => PolicyLevel | undefined = (
       ruleId: unknown,
@@ -718,6 +724,8 @@ export default class OnCallSetupApi {
   /*
    * Adds people and teams to a policy's first escalation rule, or makes
    * that rule when the policy has none (Level 1, FirstResponders' wait).
+   * The records are Common's (OnCallPolicyRecords), which Ask AI's
+   * add_to_on_call_policy writes too (#7244).
    */
   public static async addToFirstLevel(data: {
     policyId: string;
@@ -729,45 +737,38 @@ export default class OnCallSetupApi {
     const policyId: ObjectID = new ObjectID(data.policyId);
 
     if (!data.firstLevelId) {
-      const rule: OnCallDutyPolicyEscalationRule =
-        new OnCallDutyPolicyEscalationRule();
-      rule.projectId = projectId;
-      rule.onCallDutyPolicyId = policyId;
-      rule.escalateAfterInMinutes = DEFAULT_ESCALATE_AFTER_IN_MINUTES;
+      const level: OnCallPolicyLevelCreate = buildOnCallPolicyLevel({
+        projectId: projectId,
+        policyId: policyId,
+        userIds: data.userIds,
+        teamIds: data.teamIds,
+      });
 
       await ModelAPI.create<OnCallDutyPolicyEscalationRule>({
-        model: rule,
+        model: level.rule,
         modelType: OnCallDutyPolicyEscalationRule,
-        miscDataProps: { users: data.userIds, teams: data.teamIds },
+        miscDataProps: level.miscDataProps,
       });
 
       return;
     }
 
-    const ruleId: ObjectID = new ObjectID(data.firstLevelId);
+    const members: OnCallPolicyLevelMembers = buildLevelMembers({
+      projectId: projectId,
+      policyId: policyId,
+      ruleId: new ObjectID(data.firstLevelId),
+      userIds: data.userIds,
+      teamIds: data.teamIds,
+    });
 
-    for (const userId of data.userIds) {
-      const row: OnCallDutyPolicyEscalationRuleUser =
-        new OnCallDutyPolicyEscalationRuleUser();
-      row.projectId = projectId;
-      row.onCallDutyPolicyId = policyId;
-      row.onCallDutyPolicyEscalationRuleId = ruleId;
-      row.userId = new ObjectID(userId);
-
+    for (const row of members.users) {
       await ModelAPI.create<OnCallDutyPolicyEscalationRuleUser>({
         model: row,
         modelType: OnCallDutyPolicyEscalationRuleUser,
       });
     }
 
-    for (const teamId of data.teamIds) {
-      const row: OnCallDutyPolicyEscalationRuleTeam =
-        new OnCallDutyPolicyEscalationRuleTeam();
-      row.projectId = projectId;
-      row.onCallDutyPolicyId = policyId;
-      row.onCallDutyPolicyEscalationRuleId = ruleId;
-      row.teamId = new ObjectID(teamId);
-
+    for (const row of members.teams) {
       await ModelAPI.create<OnCallDutyPolicyEscalationRuleTeam>({
         model: row,
         modelType: OnCallDutyPolicyEscalationRuleTeam,
@@ -833,13 +834,14 @@ export default class OnCallSetupApi {
     await ModelAPI.updateById<OnCallDutyPolicyEscalationRule>({
       modelType: OnCallDutyPolicyEscalationRule,
       id: new ObjectID(data.firstLevel.id),
-      data: { escalateAfterInMinutes: data.waitMinutes },
+      data: buildLevelWait(data.waitMinutes),
     });
   }
 
   /*
    * Someone else, after the wait: the first rule waits that long, and a
-   * second rule pages the people and teams picked.
+   * second rule pages the people and teams picked - Common's records
+   * (OnCallPolicyRecords), which Ask AI's set_up_paging writes too (#7244).
    */
   public static async addSecondLevel(data: {
     policyId: string;
@@ -850,16 +852,17 @@ export default class OnCallSetupApi {
   }): Promise<void> {
     await OnCallSetupApi.setFirstLevelWait(data);
 
-    const rule: OnCallDutyPolicyEscalationRule =
-      new OnCallDutyPolicyEscalationRule();
-    rule.projectId = currentProjectId();
-    rule.onCallDutyPolicyId = new ObjectID(data.policyId);
-    rule.escalateAfterInMinutes = DEFAULT_ESCALATE_AFTER_IN_MINUTES;
+    const level: OnCallPolicyLevelCreate = buildOnCallPolicyLevel({
+      projectId: currentProjectId(),
+      policyId: new ObjectID(data.policyId),
+      userIds: data.userIds,
+      teamIds: data.teamIds,
+    });
 
     await ModelAPI.create<OnCallDutyPolicyEscalationRule>({
-      model: rule,
+      model: level.rule,
       modelType: OnCallDutyPolicyEscalationRule,
-      miscDataProps: { users: data.userIds, teams: data.teamIds },
+      miscDataProps: level.miscDataProps,
     });
   }
 
@@ -875,10 +878,7 @@ export default class OnCallSetupApi {
     await ModelAPI.updateById<OnCallDutyPolicy>({
       modelType: OnCallDutyPolicy,
       id: new ObjectID(data.policyId),
-      data: {
-        repeatPolicyIfNoOneAcknowledges: true,
-        repeatPolicyIfNoOneAcknowledgesNoOfTimes: data.times,
-      },
+      data: buildPolicyRepeat(data.times),
     });
   }
 

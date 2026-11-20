@@ -231,6 +231,27 @@ const FriendlyLabelNames: Record<string, string> = {
   "device.name": "Device",
 
   /*
+   * --- Managed devices ---
+   *
+   * The check-ins each read of a device management connection writes
+   * (ManagedDeviceCheckIn, #9835): a device by its name in the service, which
+   * Esper Device Stopped Checking In groups by, one alert per device; its
+   * alias and its group, for a monitor of someone's own.
+   */
+  "oneuptime.managed_device.name": "Device",
+  "oneuptime.managed_device.alias": "Device Alias",
+  "oneuptime.managed_device.group": "Device Group",
+
+  /*
+   * --- Mobile apps ---
+   *
+   * The install OpenTelemetry Android names on its resource (#9711): what a
+   * mobile app's Device Stopped Reporting groups by, one per phone or
+   * kiosk the app is installed on.
+   */
+  "app.installation.id": "Install",
+
+  /*
    * --- Network events ---
    *
    * What a device's syslog and its standard traps are read into
@@ -310,6 +331,12 @@ const FriendlyLabelNames: Record<string, string> = {
   "http.route": "Route",
   "browser.name": "Browser",
   "os.name": "OS",
+  /*
+   * An Android device's API level, which the OneUptime Android agent sends
+   * and the Android host templates group by: the device's Android version in
+   * the alert, and the sign that its first commands are adb's (#9802).
+   */
+  "android.os.api_level": "Android API Level",
   region: "Region",
   "cloud.region": "Region",
   "cloud.availability_zone": "Zone",
@@ -355,6 +382,11 @@ const LabelPriority: Record<string, number> = {
   host: 30,
   "device.id": 25,
   "device.name": 25,
+  // A managed device first, then the name people gave it, then its group.
+  "oneuptime.managed_device.name": 25,
+  "oneuptime.managed_device.alias": 26,
+  "oneuptime.managed_device.group": 40,
+  "app.installation.id": 25,
   /*
    * Network events: what the event happened to (the interface, the
    * tunnel, the neighbour) first, then the device that reported it.
@@ -496,6 +528,8 @@ const LabelPriority: Record<string, number> = {
   "iot.fleet.name": 80,
   "k8s.pod.uid": 95,
   "container.id": 95,
+  // After the device's name: a version, never what names the device.
+  "android.os.api_level": 90,
 };
 
 const DefaultLabelPriority: number = 70;

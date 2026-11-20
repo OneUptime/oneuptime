@@ -343,6 +343,15 @@ const SERVER_RETURNED: string = writeProbeFailureCause(
   { status: 503 },
 );
 
+/*
+ * #9759: a step that needs a one-time code, kept from a custom probe too
+ * old to make one, whose result OneUptime writes for the probe.
+ */
+const TOO_OLD_FOR_ONE_TIME_CODES: string = writeProbeFailureCause(
+  ProbeFailureCause.ProbeTooOldForOneTimeCodes,
+  { version: "17.0.1" },
+);
+
 const EVERY_STORED: ReadonlyArray<string> = [
   ...AS_WRITTEN_BY_HAND.map((entry: { english: string }): string => {
     return entry.english;
@@ -354,6 +363,7 @@ const EVERY_STORED: ReadonlyArray<string> = [
     },
   ),
   SERVER_RETURNED,
+  TOO_OLD_FOR_ONE_TIME_CODES,
 ];
 
 describe("the probe writes every cause from the table, byte for byte as it did by hand", () => {
@@ -1004,6 +1014,22 @@ describe("the other causes the checks write (#8656)", () => {
       expect(readProbeFailureCause(entry.english)).not.toBeNull();
     },
   );
+
+  test("a step kept from a probe too old to make one-time codes (#9759)", () => {
+    expect(TOO_OLD_FOR_ONE_TIME_CODES).toBe(
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17.0.1 or later.",
+    );
+    expect(readProbeFailureCause(TOO_OLD_FOR_ONE_TIME_CODES)).toEqual({
+      cause: ProbeFailureCause.ProbeTooOldForOneTimeCodes,
+      values: { version: "17.0.1" },
+    });
+    // A release holds no space: anything else in its place is not the sentence.
+    expect(
+      readProbeFailureCause(
+        "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17 point 1 or later.",
+      ),
+    ).toBeNull();
+  });
 
   test("an attempt the server answered with an error", () => {
     expect(SERVER_RETURNED).toBe("Server returned 503");

@@ -1,6 +1,7 @@
 import type { AxiosResponse } from "axios";
 import apiClient from "./client";
 import { isRefusedSelect } from "./refusedSelect";
+import { postFilteredList, type ListFilter } from "./recordFilters";
 import type {
   ListResponse,
   MonitorItem,
@@ -101,17 +102,40 @@ async function postMonitorList(data: {
  */
 export async function fetchMonitors(
   projectId: string,
-  options: { skip?: number; limit?: number } = {},
+  options: {
+    skip?: number;
+    limit?: number;
+    // The list's filters, asked of the server (api/recordFilters.ts).
+    filter?: ListFilter;
+  } = {},
 ): Promise<ListResponse<MonitorItem>> {
-  const { skip = 0, limit = 100 } = options;
+  const { skip = 0, limit = 100, filter } = options;
 
-  const response: AxiosResponse = await postMonitorList({
-    projectId: projectId,
-    url: `/api/monitor/get-list?skip=${skip}&limit=${limit}`,
-    getQuery: getListedMonitorsQuery,
-    sort: { createdAt: "DESC" },
-    withProjectId: true,
-  });
+  const post: (query: Record<string, unknown>) => Promise<AxiosResponse> = (
+    query: Record<string, unknown>,
+  ): Promise<AxiosResponse> => {
+    return postMonitorList({
+      projectId: projectId,
+      url: `/api/monitor/get-list?skip=${skip}&limit=${limit}`,
+      getQuery: (): Record<string, unknown> => {
+        return { ...query };
+      },
+      sort: { createdAt: "DESC" },
+      withProjectId: true,
+    });
+  };
+
+  const response: AxiosResponse = filter
+    ? await postFilteredList({
+        projectId: projectId,
+        list: "monitors",
+        filters: filter.filters,
+        owners: filter.owners,
+        baseQuery: getListedMonitorsQuery(),
+        post: post,
+        limit: limit,
+      })
+    : await post(getListedMonitorsQuery());
   return response.data;
 }
 

@@ -809,10 +809,12 @@ const OVERVIEW_TITLES: Array<[string, CephMetric]> = [
   ["Fullest Pools", "fullestPools"],
 ];
 
+// The shared storage columns (#9646): Used, and Free (its MeaningKey's word).
 const OSD_LIST_TITLES: Array<[string, CephMetric]> = [
   ["Status", "osdStatusColumn"],
+  ["Used", "osdUsedColumn"],
+  ["Free", "osdFreeColumn"],
   ["In / Out", "osdInOutColumn"],
-  ["Used / Total", "osdUsedColumn"],
   ["PGs", "osdPgsColumn"],
   ["Apply / Commit Latency", "osdLatencyColumn"],
 ];
@@ -825,11 +827,11 @@ const OSD_DETAIL_TITLES: Array<[string, CephMetric]> = [
   ["Placement", "osdPlacement"],
 ];
 
+// Free is Ceph's MAX AVAIL, the shared column's word (#9646).
 const POOL_LIST_TITLES: Array<[string, CephMetric]> = [
   ["Status", "poolStatusColumn"],
   ["Used", "poolUsedColumn"],
-  ["Stored", "poolStoredColumn"],
-  ["Max Avail", "poolMaxAvailColumn"],
+  ["Free", "poolMaxAvailColumn"],
   ["PGs", "poolPgsColumn"],
   ["Objects", "poolObjectsColumn"],
   ["Read IOPS", "poolReadIopsColumn"],
@@ -940,11 +942,7 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
   );
 
   test("pool STORED is described as the data before replication, never after", () => {
-    for (const key of [
-      "largestPools",
-      "poolStoredColumn",
-      "poolStored",
-    ] as Array<CephMetric>) {
+    for (const key of ["largestPools", "poolStored"] as Array<CephMetric>) {
       expect(CEPH_METRIC_DESCRIPTIONS[key]).toMatch(/before replication/);
     }
     for (const text of Object.values(CEPH_METRIC_DESCRIPTIONS)) {
@@ -968,7 +966,6 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
     for (const key of [
       "largestPools",
       "osdUsedColumn",
-      "poolStoredColumn",
       "poolStored",
       // The OSD figures blank to a dash on the same cut-off.
       "osdPgsColumn",
@@ -1393,7 +1390,18 @@ describe("Ceph cluster overview: the count chips", () => {
     ).toBeInTheDocument();
     expect(within(chipRow()).getByText("3 pools")).toBeInTheDocument();
     expect(within(chipRow()).getByText("18.2.4")).toBeInTheDocument();
-    expect(within(chipRow()).getAllByRole("button")).toHaveLength(1);
+    /*
+     * One (i) for the counts, and beside "3/4 OSDs up" the pill that opens
+     * the OSD that is down and why (#9594): the only two buttons.
+     */
+    const buttons: Array<HTMLElement> =
+      within(chipRow()).getAllByRole("button");
+    expect(
+      buttons.map((button: HTMLElement): string | null => {
+        return button.getAttribute("data-testid");
+      }),
+    ).toEqual(["ceph-hero-osds-down", null]);
+    expect(buttons[0]!).toHaveTextContent("1 down");
     await expectExplained("Cluster inventory counts", "inventoryCounts");
   });
 
@@ -1489,7 +1497,7 @@ describe("OSD list", () => {
     await renderAndSettle(<CephClusterOsds {...PAGE_PROPS} />);
     await screen.findByText("osd.0");
 
-    for (const title of ["Name", "Host", "Class"]) {
+    for (const title of ["Name", "Host", "Class", "Capacity"]) {
       expectNoInfo(title);
     }
     expect(allInfoButtons()).toHaveLength(OSD_LIST_TITLES.length);
@@ -1518,22 +1526,28 @@ describe("OSD list", () => {
       "Name",
       "Host",
       "Status",
+      "Used",
+      "Free",
       "In / Out",
       "Class",
-      "Used / Total",
+      "Capacity",
       "PGs",
       "Apply / Commit Latency",
     ]);
   });
 
-  test("an OSD that has not reported in 15 minutes shows a dash, as the text says", async () => {
+  test("an OSD that has not reported in 15 minutes says so, as the text says", async () => {
     await renderAndSettle(<CephClusterOsds {...PAGE_PROPS} />);
     const row: HTMLElement = (await screen.findByText("osd.3")).closest(
       "tr",
     ) as HTMLElement;
 
-    // Used / Total, PGs and latency all fall back to a dash.
-    expect(within(row).getAllByText("—").length).toBeGreaterThanOrEqual(3);
+    // Used says why in words, never 0%; PGs and latency fall back to a dash.
+    expect(within(row).getByTestId("storage-usage-none")).toHaveTextContent(
+      "Not reported",
+    );
+    expect(CEPH_METRIC_DESCRIPTIONS.osdUsedColumn).toMatch(/Not reported/);
+    expect(within(row).getAllByText("—").length).toBeGreaterThanOrEqual(2);
     expect(within(row).getByText("Down")).toBeInTheDocument();
     // Its placement, in Ceph's own words (not the network legend's In).
     expect(within(row).getByText("In cluster")).toBeInTheDocument();
@@ -1541,9 +1555,12 @@ describe("OSD list", () => {
     const fresh: HTMLElement = screen
       .getByText("osd.1")
       .closest("tr") as HTMLElement;
-    expect(
-      within(fresh).getByText("500 GiB / 2.0 TiB (25.0%)"),
-    ).toBeInTheDocument();
+    // The shared bar: 25% and the amount used, what is free, and its size.
+    expect(within(fresh).getByTestId("storage-usage")).toHaveTextContent(
+      "25%500 GiB",
+    );
+    // Free 1.5 TiB, then its size (Capacity) 2 TiB, each held to its unit.
+    expect(fresh).toHaveTextContent(/1\.5\sTiB.*hdd2\sTiB/);
     expect(within(fresh).getByText("12 ms / 13 ms")).toBeInTheDocument();
   });
 });
@@ -1592,8 +1609,8 @@ describe("Pool list", () => {
       "tr",
     ) as HTMLElement;
 
-    // 300 / (300 + 700)
-    expect(within(row).getByText("30.0%")).toBeInTheDocument();
+    // 300 / (300 + 700), as the shared bar: STORED used, MAX AVAIL free.
+    expect(within(row).getByTestId("storage-usage")).toHaveTextContent("30%");
     expect(CEPH_METRIC_DESCRIPTIONS.poolUsedColumn).toMatch(
       /Stored divided by Stored plus Max Avail/,
     );
@@ -1691,10 +1708,14 @@ describe("Pool detail", () => {
     for (const title of ["Pool", "Pool ID", "Last report"]) {
       expectNoInfo(title);
     }
-    expect(screen.getByTestId("ceph-pool-hero-status")).toHaveAttribute(
-      "title",
-      CEPH_METRIC_DESCRIPTIONS.poolStatus,
-    );
+    /*
+     * Amber, its status opens why (#9594): what the word means is read
+     * after it, and a pointer is told what a press shows.
+     */
+    const status: HTMLElement = screen.getByTestId("ceph-pool-hero-status");
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveTextContent(CEPH_METRIC_DESCRIPTIONS.poolStatus);
+    expect(status).toHaveAttribute("title", "Show why");
   });
 
   test("Time to Full projects the 24-hour stored trend to Stored plus Max Available", async () => {

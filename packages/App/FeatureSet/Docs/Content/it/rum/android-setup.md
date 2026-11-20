@@ -107,6 +107,10 @@ OpenTelemetry Android registra tutto questo da solo. Gli attributi del dispositi
 
 Crash e ANR arrivano in **Eccezioni** come non gestiti, raggruppati per stack trace, con la sessione in cui sono avvenuti. L'agente salva un crash su disco mentre l'app muore e lo invia da lì, quindi un crash avvenuto offline arriva comunque quando l'app torna a girare con una rete.
 
+La **Panoramica** dell'applicazione li riassume per te: **Sessioni**, **Sessioni senza crash**, **Crash**, **ANR**, **Avvii dell'app**, **Avvio a freddo (p95)** e **Frame bloccati**, e ognuno apre le eccezioni, gli span o gli eventi che conta. Finché l'app non invia avvii o frame, i loro grafici dicono cosa li attiva. Le sue **Raccomandazioni** offrono monitor per crash, ANR, avvii a freddo lenti, frame bloccati, e un'app o uno dei suoi dispositivi che smette di inviare dati.
+
+Sotto **Sessioni senza crash**, la riga indica la stessa quota per le installazioni: l'`app.installation.id` che OpenTelemetry Android 1.1 e successivi impostano su ogni span e log, un identificativo che resta lo stesso finché l'app rimane installata, quindi rappresenta i suoi utenti. Per un'app con centinaia di sessioni all'ora, dove un crash al giorno è normale, **App Crash Rate** e **App ANR Rate** avvisano sulla quota delle sessioni di un'ora che sono andate in crash o si sono bloccate, oltre l'1,09% e lo 0,47% di Android vitals, invece di avvisare ogni volta.
+
 Una sessione termina dopo 15 minuti in background, o dopo 4 ore. Un'app che non va mai in background, come un chiosco, mantiene una sola sessione per 4 ore, quindi traccia la visita di ogni cliente come uno span a sé, come mostra [Tracciare i propri flussi di lavoro](#tracciare-i-propri-flussi-di-lavoro).
 
 Anche le chiamate `android.util.Log` della tua app diventano log quando aggiungi `android-log-library` e `android-log-agent` accanto ai moduli OkHttp qui sotto: il tag di ogni chiamata va in `android.log.tag`, e una chiamata con un throwable è un'eccezione in **Eccezioni**. OpenTelemetry Android non legge Logcat.
@@ -219,7 +223,36 @@ resource {
 }
 ```
 
-La telemetria dell'app resta con la sua applicazione RUM, e il dispositivo non diventa un host in **Host**: un'app non invia metriche di host, quindi non ci sarebbe nulla da mostrare lì. La pagina del dispositivo in **Inventario** mostra i suoi log, le sue tracce e le sue eccezioni, e `@resource.host.name:` li trova in **Tracce** e **Log**. Un dispositivo che non invia nulla per 30 giorni esce da **Inventario**.
+La telemetria dell'app resta con la sua applicazione RUM, e il dispositivo non diventa un host in **Host**: un'app non invia metriche di host, quindi non ci sarebbe nulla da mostrare lì. La pagina del dispositivo in **Inventario** mostra i suoi log, le sue tracce e le sue eccezioni, e `@resource.host.name:` li trova in **Tracce** e **Log**. Un dispositivo che non invia nulla per 30 giorni esce da **Inventario**. Per vedere il dispositivo stesso, la sua memoria, lo spazio di archiviazione e i riavvii, e i crash di ogni app installata, aggiungi l'[Agent Android](/docs/telemetry/android-agent) e dagli lo stesso nome nel suo `device_name`: il dispositivo è allora anche un host in **Host**, e resta un solo elemento in **Inventario**.
+
+### Essere avvisati quando un dispositivo tace
+
+Le **Raccomandazioni** dell'applicazione offrono **Device Stopped Reporting**: un avviso per ogni dispositivo che non invia span per un'ora dopo averne inviati nell'ultima settimana, distinti dall'`app.installation.id` che l'agente imposta. L'avviso di ogni dispositivo nomina la sua installazione e si risolve quando il dispositivo torna a inviare dati. Quando tutti i dispositivi tacciono insieme, ad esempio quando cade la rete di un negozio, nessun dispositivo avvisa: **App Stopped Reporting** lo segnala una sola volta per tutta l'app.
+
+Un chiosco lasciato su una schermata non invia nulla finché qualcuno non lo usa. Invia uno span ogni pochi minuti mentre l'app è in esecuzione, così che un chiosco inattivo non venga scambiato per uno che tace:
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Avvialo dopo che l'agente si è avviato, con `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Con uno span ogni cinque minuti, un chiosco funzionante resta ben al di sotto dell'ora.
 
 ### Configurare la flotta dal tuo MDM
 
@@ -246,6 +279,12 @@ Poi passa `token` a `baseHeaders` al posto di `BuildConfig.ONEUPTIME_TOKEN`, e `
 ```
 
 Dopo una modifica, esegui un Converge dei dispositivi, così leggono i nuovi valori. Dichiara le stesse chiavi in un `app_restrictions.xml` se il tuo MDM richiede uno schema. Esper rifiuta un APK senza firma v1, quindi firma il rilascio con lo schema v1 oltre che con v2 o v3.
+
+### Importare la flotta da Esper
+
+Collega il tuo tenant Esper all'inventario, e ogni dispositivo registrato da Esper compare nell'elenco, compresi i dispositivi la cui app non è mai partita, con ciò che solo Esper sa: il suo gruppo, la versione di Android, il livello patch di sicurezza, il numero di serie, la batteria, l'archiviazione, le app installate e l'ultimo contatto. Un dispositivo che smette di contattare Esper risulta offline, con il tempo trascorso dal suo ultimo contatto. Vedi [Importare dispositivi da Esper](/docs/inventory/overview#importare-dispositivi-da-esper).
+
+Un dispositivo a cui la sua app dà un nome come sopra è un unico elemento con ciò che l'app invia: `host.name` è il suo nome in Esper. OneUptime trova l'elemento di un dispositivo per `host.name`, poi per `host.serial_number`, quindi dai a ogni dispositivo lo stesso nome e lo stesso numero di serie in ogni app che invia dati da esso, e nelle impostazioni `device_name` e `device_serial` dell'Agent Android.
 
 ### Conservare ciò che viene registrato offline
 
@@ -279,6 +318,7 @@ Viene elencato solo un dispositivo la cui app imposta `host.name`. Controlla il 
 
 :::cards
 - [Configurazione mobile](/docs/rum/mobile-setup): iOS, React Native e le altre piattaforme.
+- [Agent Android](/docs/telemetry/android-agent): Monitorare il dispositivo stesso: il suo stato, i riavvii, le app installate e i crash di ogni app.
 - [Eccezioni](/docs/telemetry/exceptions): Smistare i crash e gli ANR che la tua app segnala.
 - [Esploratore tracce](/docs/telemetry/traces-explorer): Seguire un ordine dal chiosco alla cucina.
 - [Gestire le applicazioni](/docs/rum/applications): Nomi, etichette, proprietari e conservazione.

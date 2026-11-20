@@ -127,7 +127,7 @@ Tutto ciò che conserva Sicurezza dei dati è un record dell'API di OneUptime, l
 | Archivi dati, le loro cronologie, i loro risultati, chi può raggiungerli e ogni identità che può farlo | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemi, le loro cronologie e i flussi di dati | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scansioni | `/data-security-scan` |
-| Tipi di dati personalizzati, impostazioni dei controlli e regole di residenza | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità e regole di residenza | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Le impostazioni del progetto | `/data-security-setting` |
 | Proprietari, regole del proprietario e regole etichette | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 | --- | --- |
 | `/data-security/overview` | I dati della Panoramica: archivi per sensibilità e categoria, problemi aperti per gravità, i problemi più rischiosi e gli ultimi 30 giorni di problemi |
 | `/data-security/compliance` | Il punteggio e i requisiti di ogni framework |
+| `/data-security/resource-scope` | Gli archivi dati di una risorsa - un cluster Kubernetes, un host Docker o Podman, un database, un servizio o una risorsa cloud - e la risorsa di cui seguono gli interruttori di conformità |
+| `/data-security/resource-compliance` | I framework di una risorsa: i loro punteggi per i suoi archivi, e ciò che è disattivato per essa |
 | `/data-security/record-of-processing` | Il registro dei trattamenti del GDPR, una riga per ogni archivio che contiene dati personali |
 | `/data-store/<id>/scan-now` | **Scansiona ora**: campiona subito il contenuto dell'archivio |
 | `/data-store/<id>/check-now` | **Controlla ora**: rilegge la configurazione dell'archivio ed esegue i suoi controlli |
 | `/data-store-finding/<id>/scrub` | **Ripulisci** su un risultato della telemetria |
+| `/data-store-finding/<id>/drop-metric-impact` | Cosa scarterebbe **Scarta questa metrica** per un risultato nel nome di una metrica: quante metriche, e i monitor e le dashboard che le leggono |
+| `/data-store-finding/<id>/drop-metric` | **Scarta questa metrica**: una regola della pipeline delle metriche che scarta per sempre i nuovi punti dati di quelle metriche del servizio. Riceve `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Spiega con l'IA** su un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Correggi con l'IA** su un problema |
 | `/data-store/<id>/response-actions` | Quali azioni di risposta l'archivio può eseguire ora, e perché no |
 | `/data-store/<id>/respond` | Un'azione di risposta sull'archivio, come **Blocca l'accesso pubblico** o **Attiva il controllo delle versioni**, con il problema da cui è stata eseguita |
 
-Il [provider Terraform](/docs/terraform/index) ha una risorsa per ogni tipo di record che crei - archivi dati che aggiungi tu, tipi di dati personalizzati, impostazioni dei controlli, regole di residenza, regole del proprietario e regole etichette - che prende il nome dal record, come `oneuptime_residency_rule`.
+Il [provider Terraform](/docs/terraform/index) ha una risorsa per ogni tipo di record che crei - archivi dati che aggiungi tu, tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità, regole di residenza, regole del proprietario e regole etichette - che prende il nome dal record, come `oneuptime_residency_rule`.
 
-Il [server MCP](/docs/ai/mcp-server) ha strumenti per creare, leggere, elencare, aggiornare, eliminare e contare questi record: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule e Data Security Setting. Un assistente IA può allora chiedere, con i tuoi permessi, quali archivi contengono numeri di carta, o cosa è aperto su un bucket.
+Il [server MCP](/docs/ai/mcp-server) ha strumenti per creare, leggere, elencare, aggiornare, eliminare e contare questi record: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule e Data Security Setting. Un assistente IA può allora chiedere, con i tuoi permessi, quali archivi contengono numeri di carta, o cosa è aperto su un bucket.
 
 ## Passaggi successivi
 

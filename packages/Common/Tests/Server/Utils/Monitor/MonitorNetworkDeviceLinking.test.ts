@@ -409,7 +409,57 @@ describe("the devices a monitor reports on without its steps naming them", () =>
     expect(lookup.select).toEqual({
       _id: true,
       autoProvisionedNetworkDeviceId: true,
+      networkDeviceId: true,
     });
+  });
+
+  /*
+   * A monitor a person tied to a device (Monitor.networkDeviceId, issue
+   * #9545): made by hand on the device's address, or from its page. What
+   * it raises lands on that device, as what a monitor made for a device
+   * raises does.
+   */
+  test("the device a person tied the monitor to, read in the monitor's project", async () => {
+    madeFor = [device(MADE_FOR_DEVICE_ID)];
+    const monitor: Monitor = websiteMonitor();
+    monitor.networkDeviceId = new ObjectID(MADE_FOR_DEVICE_ID);
+
+    const resolved: SeriesResolvedResourceIds = await read(monitor);
+
+    expect(resolved.networkDeviceIds).toEqual([MADE_FOR_DEVICE_ID]);
+
+    const tiedQuery: JSONObject | undefined = deviceQueries().find(
+      (query: JSONObject): boolean => {
+        return Boolean(query["_id"]);
+      },
+    );
+
+    expect(tiedQuery!["projectId"]).toBe(PROJECT_ID);
+    expect(String(tiedQuery!["_id"])).toBe(MADE_FOR_DEVICE_ID);
+    // On the monitor already: its row is not read again.
+    expect(findMonitor).not.toHaveBeenCalled();
+  });
+
+  test("a monitor read without the columns has the tie read off its row too", async () => {
+    const row: Monitor = new Monitor();
+    row.networkDeviceId = new ObjectID(MADE_FOR_DEVICE_ID);
+    findMonitor.mockResolvedValue(row);
+    madeFor = [device(MADE_FOR_DEVICE_ID)];
+
+    const resolved: SeriesResolvedResourceIds = await read(websiteMonitor());
+
+    expect(resolved.networkDeviceIds).toEqual([MADE_FOR_DEVICE_ID]);
+  });
+
+  test("a device bound to the monitor and tied to it is listed once", async () => {
+    bound = [device(DEVICE_ID)];
+    madeFor = [device(DEVICE_ID)];
+    const monitor: Monitor = websiteMonitor();
+    monitor.networkDeviceId = new ObjectID(DEVICE_ID);
+
+    const resolved: SeriesResolvedResourceIds = await read(monitor);
+
+    expect(resolved.networkDeviceIds).toEqual([DEVICE_ID]);
   });
 
   test("a device both bound to the monitor and made for it is listed once", async () => {

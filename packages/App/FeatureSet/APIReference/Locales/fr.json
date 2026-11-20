@@ -318,7 +318,16 @@
       "userOverrideEndNowIntro": "Ce point de terminaison termine un remplacement en cours, selon l'horloge du serveur : sa fin devient maintenant, et les alertes reviennent dès lors à la personne absente. Il demande la même permission qu'une mise à jour, et renvoie le nouveau endsAt du remplacement.",
       "userOverrideEndNowRequestTitle": "Requête Terminer maintenant",
       "userOverrideIdDescription": "ID du remplacement d'utilisateur",
-      "userOverrideEndNowRefused": "400 Bad Request : le remplacement n'a pas encore commencé (supprimez-le plutôt), est déjà terminé, ou se termine de toute façon dans la minute."
+      "userOverrideEndNowRefused": "400 Bad Request : le remplacement n'a pas encore commencé (supprimez-le plutôt), est déjà terminé, ou se termine de toute façon dans la minute.",
+      "moveInListHeading": "Déplacer",
+      "moveInListIntro": "Ce endpoint déplace l'enregistrement à la place de l'enregistrement que nomme placeOfId, dans la liste qu'ils partagent : déplacé vers le haut, il se place juste au-dessus de cet enregistrement ; vers le bas, juste en dessous ; les enregistrements intermédiaires avancent d'un rang vers son ancienne place. La liste est ensuite numérotée depuis le haut, 1, 2, 3 et ainsi de suite (de son plus grand nombre vers le bas, pour une liste qui compte à rebours), en une seule transaction, si bien que des déplacements simultanés ne laissent jamais deux enregistrements au même nombre. Il répond par changedRows : chaque enregistrement qui a reçu un autre nombre, par son _id, avec son nouveau nombre sous la colonne de nombre de la liste. Une création ou une mise à jour qui écrit ce nombre place l'enregistrement seul et n'en déplace aucun autre, ce dont Terraform a besoin ; pour déplacer un enregistrement au-delà d'autres, envoyez cette requête. Il demande la même permission qu'une mise à jour du nombre de l'enregistrement.",
+      "moveInListRequestTitle": "Requête de déplacement",
+      "moveInListIdDescription": "ID de l'enregistrement à déplacer",
+      "placeOfIdDescription": "L'ID de l'enregistrement de la même liste dont cet enregistrement prend la place.",
+      "moveInListPlaceRefused": "400 Bad Request : placeOfId manque ou n'est pas un ID, ou nomme un enregistrement qui n'est pas dans la même liste que l'enregistrement déplacé : celui d'un autre parent, d'un autre projet ou d'un autre type.",
+      "moveInListRecordNotFound": "404 Not Found : l'enregistrement n'est pas là pour être déplacé : il a été supprimé, ou l'appelant ne peut pas le lire.",
+      "moveInListNotAllowed": "422 Unprocessable Entity : l'appelant peut lire l'enregistrement mais pas changer son nombre, comme une mise à jour serait refusée.",
+      "moveInListBuiltInOrder": "400 Bad Request : le déplacement mettrait les états intégrés du projet hors de leur ordre, comme l'état résolu au niveau de l'état acquitté ou au-dessus. La réponse les nomme."
     },
     "dataType": {
       "enumBadge": "Énumération",

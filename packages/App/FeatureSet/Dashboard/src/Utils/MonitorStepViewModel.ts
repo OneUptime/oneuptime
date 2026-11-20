@@ -11,6 +11,7 @@ import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorSte
 import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepProbeStatusMonitorUtil } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
+import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MonitorStepLlmMonitor, {
   LlmBadAnswerRule,
   MonitorStepLlmMonitorUtil,
@@ -1455,12 +1456,36 @@ export default class MonitorStepViewModel {
         placeholder: "No span status entered. All statuses will be monitored.",
       }),
       optional({
+        key: "minimumDurationInMs",
+        title: "Takes at least (ms)",
+        description: "Only spans that took this long or longer.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(
+          traceMonitor
+            ? MonitorStepTraceMonitorUtil.getMinimumDurationInMs(
+                traceMonitor,
+              ) ?? undefined
+            : undefined,
+        ),
+        placeholder: "Any duration",
+      }),
+      optional({
         key: "spanAttributes",
         title: "Span Attributes",
         description: "Attributes of the spans to monitor.",
         valueType: MonitorStepViewValueType.AttributeFilters,
         value: toAttributeFilters(traceMonitor?.attributes),
         placeholder: "No attributes entered",
+      }),
+      // One alert per group, as a Logs monitor's (#9711).
+      optional({
+        key: "traceGroupByAttributes",
+        title: "Group by Attributes",
+        description:
+          "One alert or incident is raised per distinct combination of these attribute values.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepTraceMonitorUtil.getGroupByAttributes(traceMonitor),
+        placeholder: "Not grouped",
       }),
       optional({
         key: "traceEntityKeys",
@@ -1509,6 +1534,16 @@ export default class MonitorStepViewModel {
         placeholder: "All exception types",
       }),
       optional({
+        key: "excludedExceptionTypes",
+        title: "Leave Out Exception Types",
+        description: "Exception types this monitor does not count.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepExceptionMonitorUtil.normalizeExceptionTypes(
+          exceptionMonitor?.excludedExceptionTypes,
+        ),
+        placeholder: "No exception type left out",
+      }),
+      optional({
         key: "exceptionEnvironments",
         title: "Environments",
         description: "Deployment environments this monitor watches.",
@@ -1525,6 +1560,17 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.Text,
         value: toDuration(exceptionMonitor?.lastXSecondsOfExceptions),
         placeholder: "1 minute",
+      },
+      {
+        key: "unhandledOnly",
+        title: "Only Unhandled Exceptions",
+        description:
+          "Whether only the exceptions nothing caught count towards criteria.",
+        valueType: MonitorStepViewValueType.Boolean,
+        value: exceptionMonitor
+          ? MonitorStepExceptionMonitorUtil.isUnhandledOnly(exceptionMonitor)
+          : false,
+        placeholder: "No",
       },
       {
         key: "includeResolved",

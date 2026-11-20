@@ -1,0 +1,273 @@
+# Using the cost engine a cluster already runs (issue #9633).
+#
+# Cost is on by default, so a cluster that already ran Kubecost or OpenCost
+# got a second engine on upgrade, unless someone set cost.engine.url. The
+# chart cannot look for one while it renders - Helm's `lookup` comes back
+# empty under `helm template`, Argo CD and dry runs - so the cost agent looks,
+# in the cluster, through the Kubernetes API:
+#
+#   - cost.engine.url empty (the default): the chart bundles OpenCost as
+#     before, and the agent reads the cluster's own engine instead when it
+#     finds one that answers (COST_PREFER_EXISTING_ENGINE). Off with
+#     cost.engine.preferExisting=false, and with a rate card of the bundled
+#     engine's own, whose rates someone chose.
+#   - cost.engine.url: auto: nothing is bundled; the agent finds the engine,
+#     and the collector scrapes its price metrics where the agent says they
+#     are (http_sd, #9776: cost-engine-metrics_test.yaml). With the agent off,
+#     the collector finds engines itself, by the same labels, through
+#     Kubernetes service discovery.
+#   - cost.engine.url: a URL: that engine, as before.
+suite: the cost agent reads the cluster's own cost engine
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/deployment-cost-agent.yaml
+  - templates/opencost.yaml
+  - templates/prometheus-cost.yaml
+  - templates/configmap-deployment.yaml
+  - templates/rbac.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- The default: bundled, the cluster's own engine preferred ----------------
+  - it: bundles OpenCost and has the agent prefer an engine the cluster already runs
+    asserts:
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 2
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: http://oneuptime-agent-kubernetes-agent-opencost.oneuptime.svc.cluster.local:9003
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PREFER_EXISTING_ENGINE
+            value: "true"
+      # So the agent can say where the bundled engine's prices come from.
+      - template: templates/deployment-cost-agent.yaml
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_RATE_CARD
+            value: "false"
+
+  - it: keeps the agent on the bundled engine with preferExisting set to false
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.preferExisting: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PREFER_EXISTING_ENGINE
+            value: "false"
+
+  - it: keeps the agent on the bundled engine when it has a rate card someone chose
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.opencost.customPricing.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PREFER_EXISTING_ENGINE
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_RATE_CARD
+            value: "true"
+
+  # The agent looks for the engine as the chart's ServiceAccount, which may
+  # already list Services cluster-wide for the collector: nothing new granted.
+  - it: lets the agent list Services across the cluster, as the collector already may
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules[0].resources
+          content: services
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "list", "watch"]
+
+  # --- auto: nothing bundled, the agent finds the engine --------------------------
+  - it: bundles nothing with cost.engine.url set to auto
+    set:
+      cost.engine.url: auto
+    asserts:
+      - template: templates/opencost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/prometheus-cost.yaml
+        hasDocuments:
+          count: 0
+      - template: templates/deployment-cost-agent.yaml
+        hasDocuments:
+          count: 1
+
+  - it: tells the agent to find the engine, and nothing about a bundled one
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.url: auto
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: auto
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PREFER_EXISTING_ENGINE
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_RATE_CARD
+          any: true
+      # No bundled Prometheus to read memory peaks from.
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_URL
+          any: true
+
+  - it: reads auto however it is written
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.url: " Auto "
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: auto
+
+  - it: reads memory peaks from a Prometheus of your own with auto
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.url: auto
+      cost.engine.prometheusUrl: http://prometheus.monitoring.svc:9090
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PROMETHEUS_URL
+            value: http://prometheus.monitoring.svc:9090
+
+  - it: grants nothing for a bundled OpenCost with auto
+    template: templates/rbac.yaml
+    set:
+      cost.engine.url: auto
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["storage.k8s.io"]
+          any: true
+
+  # --- auto with the agent off: the collector finds the engine's price metrics --
+  # With the agent on, the collector asks it where they are instead
+  # (cost-engine-metrics_test.yaml).
+  - it: finds the engine's price metrics through service discovery, narrowed by the API server
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.engine.url: auto
+      cost.agent.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - job_name: cost-engine\\n          scrape_interval: 60s\\n          kubernetes_sd_configs:\\n            - role: service\\n              selectors:\\n                - role: service\\n                  label: \"app\\.kubernetes\\.io/name=opencost\"\\n            - role: service\\n              selectors:\\n                - role: service\\n                  label: \"app in \\(opencost,cost-analyzer\\)\"\\n            - role: service\\n              selectors:\\n                - role: service\\n                  field: \"metadata\\.name=opencost\"\\n"
+      # Never the word auto taken for a host.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\"auto\""
+
+  - it: scrapes OpenCost's API port and Kubecost's cost model, never a OneUptime agent's bundled engine
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.engine.url: auto
+      cost.agent.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- source_labels: \\[__meta_kubernetes_service_label_app_kubernetes_io_part_of\\]\\n\\s+regex: oneuptime\\n\\s+action: drop\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- __meta_kubernetes_service_label_app_kubernetes_io_name\\n\\s+- __meta_kubernetes_service_label_app\\n\\s+- __meta_kubernetes_service_name\\n\\s+regex: \"\\(\\?:\\.\\*;\\)\\?opencost\\(\\?:;\\.\\*\\)\\?\"\\n\\s+target_label: __tmp_cost_engine\\n\\s+replacement: opencost\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- source_labels: \\[__meta_kubernetes_service_label_app\\]\\n\\s+regex: cost-analyzer\\n\\s+target_label: __tmp_cost_engine\\n\\s+replacement: kubecost\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- __tmp_cost_engine\\n\\s+- __meta_kubernetes_service_port_number\\n\\s+- __meta_kubernetes_service_port_name\\n\\s+regex: \"opencost;9003;\\.\\*\\|kubecost;\\[0-9\\]\\+;tcp-model\"\\n\\s+action: keep\\n"
+
+  - it: forwards the same price series it does from a bundled engine
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.engine.url: auto
+      cost.agent.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "action: keep\\n\\s+metric_relabel_configs:\\n\\s+- source_labels: \\[__name__\\]\\n\\s+regex: \"\\^\\(node_cpu_hourly_cost\\|node_gpu_hourly_cost\\|node_ram_hourly_cost\\|node_total_hourly_cost\\|pv_hourly_cost\\|"
+
+  - it: scrapes a metrics endpoint of your own as set, even with auto
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.engine.url: auto
+      cost.metrics.endpoint: http://kubecost-cost-analyzer.kubecost.svc:9003/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- job_name: cost-engine\\n\\s+scrape_interval: 60s\\n\\s+static_configs:\\n\\s+- targets:\\n(?:\\s+#[^\\n]*\\n)*\\s+- \"kubecost-cost-analyzer\\.kubecost\\.svc:9003\"\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "__tmp_cost_engine"
+
+  - it: scrapes nothing of the engine with auto when cost.metrics is off
+    template: templates/configmap-deployment.yaml
+    set:
+      cost.engine.url: auto
+      cost.metrics.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "job_name: cost-engine"
+
+  - it: keeps service discovery out of the default install, which asks the cost agent
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "__tmp_cost_engine"
+
+  # --- an engine of your own: as before -------------------------------------------
+  - it: names nothing to look for with an engine of your own
+    template: templates/deployment-cost-agent.yaml
+    set:
+      cost.engine.url: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_ENGINE_URL
+            value: http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: COST_PREFER_EXISTING_ENGINE
+          any: true

@@ -44,8 +44,8 @@ import AthenaApi, {
   describeScanLimit,
   readAthenaConnection,
 } from "./AthenaApi";
+import { asSentence } from "../DataSource/HttpFailure";
 import DataverseApi, {
-  asSentence,
   DATAVERSE_CORE_TABLES,
   DataverseRequestError,
   DataverseSkippedTables,
@@ -59,6 +59,17 @@ import DataverseApi, {
   readDataverseConnection,
   selectDataverseTables,
 } from "./DataverseApi";
+import SkippedTableMemory, { fingerprintOf } from "./SkippedTableMemory";
+import DataCheckRestarts, {
+  DataCheckRun,
+  describeCheckFailure,
+  MAX_RESTARTED_AFTER_LENGTH,
+} from "./DataCheckRestart";
+import {
+  SkippedTable,
+  SkippedTableRead,
+  SkippedTables,
+} from "../../../Types/DataObservability/SkippedTables";
 import { MongoCheckStatement, readMongoCheckStatement } from "./MongoDbChecks";
 import { isMongoSystemDatabase, readMongoUri } from "./MongoUri";
 import { MAX_SEGMENTS_PER_CHECK } from "../../../Types/DataObservability/DataCheckType";
@@ -266,6 +277,14 @@ export interface CollectedTable {
    * last read stand, compared again at the next read.
    */
   columnsNotRead?: boolean | undefined;
+  /*
+   * A Dataverse table's entity set: the name its Web API, and Power BI's
+   * OData connectors, call it by (accounts for account), kept with the
+   * table so a report that names it is matched to it (#9696). Unset for
+   * every other engine, and from a probe older than it, which keeps the
+   * name the table had.
+   */
+  entitySetName?: string | undefined;
 }
 
 // Where the database itself shows one table feeding another.
@@ -321,6 +340,12 @@ export interface TableHealthSnapshot {
    * hour; unset when it was not read this time.
    */
   spend?: Array<CollectedJobSpend> | undefined;
+  /*
+   * The tables the database refused, skipped until their next try (#9541):
+   * null when none is; unset when the collection keeps none (an engine
+   * other than Dataverse, an older probe), so the store keeps what it had.
+   */
+  skippedTables?: SkippedTables | null | undefined;
 }
 
 export interface TableHealthCollectOptions {
@@ -340,6 +365,11 @@ export interface TableHealthCollectOptions {
    * collection), reads no lineage.
    */
   queryHistoryLookbackInSeconds?: number | undefined;
+  /*
+   * The tables the database refused at earlier collections (#9541), which
+   * this one skips until their next try. Only Dataverse keeps them.
+   */
+  skippedTables?: SkippedTables | null | undefined;
 }
 
 export const DEFAULT_COLLECT_OPTIONS: TableHealthCollectOptions = {
@@ -362,6 +392,8 @@ interface RawTable {
   // The engine's change time is its data's (Dataverse's modifiedon): see CollectedTable.
   isChangeTimeFromData?: boolean | undefined;
   columnsNotRead?: boolean | undefined;
+  // A Dataverse table's entity set name: see CollectedTable.
+  entitySetName?: string | undefined;
 }
 
 interface RawColumn {
@@ -383,6 +415,8 @@ interface CatalogRead {
    * from the read is unread, never dropped.
    */
   isTableListPartial?: boolean | undefined;
+  // The tables the database refused, skipped until their next try (SkippedTables); unset for an engine that keeps none.
+  skippedTables?: SkippedTables | null | undefined;
 }
 
 interface LineageRead {
@@ -1871,6 +1905,7 @@ class SnowflakeCatalog implements CatalogSession {
     // A connection that cannot list its database's schemas cannot collect.
     await session.api.query({
       statement: `SHOW SCHEMAS IN DATABASE ${snowflakeIdentifier(connection.database)} LIMIT 1`,
+      operation: "checking the connection (SHOW SCHEMAS)",
     });
 
     return session;
@@ -1884,6 +1919,7 @@ class SnowflakeCatalog implements CatalogSession {
       statement: sql,
       bindings: params,
       useWarehouse: true,
+      operation: "running a check",
     });
   }
 
@@ -1915,6 +1951,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: SNOWFLAKE_VIEW_LINEAGE_QUERY,
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading view lineage (OBJECT_DEPENDENCIES)",
       });
 
       for (const row of rows) {
@@ -1945,6 +1982,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: buildSnowflakeQueryLineageQuery(window),
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading query lineage (ACCESS_HISTORY)",
       })) {
         const upstream: ReturnType<typeof readSnowflakeObjectParts> =
           readSnowflakeObjectParts(row["upstream_object"], this.database);
@@ -1982,6 +2020,7 @@ class SnowflakeCatalog implements CatalogSession {
           statement: buildSnowflakeColumnLineageQuery(window),
           bindings: [this.database],
           useWarehouse: true,
+          operation: "reading column lineage (ACCESS_HISTORY)",
         })) {
           const edge: CollectedLineageEdge | undefined = queryEdges.get(
             `${row["upstream_object"]}\u0000${row["downstream_object"]}`.toUpperCase(),
@@ -2026,6 +2065,7 @@ class SnowflakeCatalog implements CatalogSession {
 
     for (const row of await this.api.query({
       statement: `SHOW TABLES IN DATABASE ${database} LIMIT ${limit}`,
+      operation: "listing the tables (SHOW TABLES)",
     })) {
       const kind: DataAssetKind | null = readSnowflakeTableKind(row);
       const schema: string = readText(
@@ -2054,6 +2094,7 @@ class SnowflakeCatalog implements CatalogSession {
     try {
       for (const row of await this.api.query({
         statement: `SHOW VIEWS IN DATABASE ${database} LIMIT ${limit}`,
+        operation: "listing the views (SHOW VIEWS)",
       })) {
         const schema: string = readText(
           row["schema_name"],
@@ -2105,6 +2146,7 @@ class SnowflakeCatalog implements CatalogSession {
 
         for (const row of await this.api.query({
           statement: `SHOW COLUMNS IN SCHEMA ${database}.${snowflakeIdentifier(schema)}`,
+          operation: `reading the columns of ${schema.slice(0, 60)} (SHOW COLUMNS)`,
         })) {
           const table: string = readText(
             row["table_name"],
@@ -2176,6 +2218,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: buildSnowflakeSpendQuery(true),
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading credits per job (QUERY_ATTRIBUTION_HISTORY)",
       });
     } catch (attributionError) {
       try {
@@ -2183,6 +2226,7 @@ class SnowflakeCatalog implements CatalogSession {
           statement: buildSnowflakeSpendQuery(false),
           bindings: [this.database],
           useWarehouse: true,
+          operation: "reading warehouse spend (QUERY_HISTORY)",
         });
         warnings.push(
           `Credits per job were left out (QUERY_ATTRIBUTION_HISTORY could not be read): ${describeError(attributionError).slice(0, 200)}`,
@@ -2207,6 +2251,7 @@ class SnowflakeCatalog implements CatalogSession {
         statement: SNOWFLAKE_WRITTEN_TABLES_QUERY,
         bindings: [this.database],
         useWarehouse: true,
+        operation: "reading the tables jobs wrote (ACCESS_HISTORY)",
       })) {
         const table: { schema: string; table: string } | null =
           readSnowflakeObjectName(row["object_name"], this.database);
@@ -2583,6 +2628,7 @@ class BigQueryCatalog implements CatalogSession {
         statement: sql,
         params,
         maximumBytesBilled: limits?.maxBytesScanned,
+        operation: "running a check",
       });
     } catch (error) {
       if (
@@ -2620,7 +2666,10 @@ class BigQueryCatalog implements CatalogSession {
     }
 
     try {
-      const rows: Array<Record<string, unknown>> = await this.api.query(query);
+      const rows: Array<Record<string, unknown>> = await this.api.query({
+        ...query,
+        operation: "reading lineage (INFORMATION_SCHEMA.JOBS)",
+      });
 
       return {
         edges: readLineageRows(rows, DataAssetLineageSource.QueryHistory),
@@ -2648,6 +2697,7 @@ class BigQueryCatalog implements CatalogSession {
         FROM ${this.datasetReference()}.__TABLES__
         ORDER BY table_id
         LIMIT ${options.maxTables}`,
+      operation: "listing the tables (__TABLES__)",
     })) {
       const kind: DataAssetKind | null = readBigQueryKind(row["type"]);
       const name: string = readText(row["table_id"], MAX_IDENTIFIER_LENGTH);
@@ -2682,6 +2732,7 @@ class BigQueryCatalog implements CatalogSession {
             FROM ${this.datasetReference()}.INFORMATION_SCHEMA.COLUMNS
             ORDER BY table_name, ordinal_position
             LIMIT ${options.maxColumns}`,
+          operation: "reading the columns (INFORMATION_SCHEMA.COLUMNS)",
         })
       )
         .map((row: Record<string, unknown>): RawColumn | null => {
@@ -2722,7 +2773,10 @@ class BigQueryCatalog implements CatalogSession {
     }
 
     try {
-      const rows: Array<Record<string, unknown>> = await this.api.query(query);
+      const rows: Array<Record<string, unknown>> = await this.api.query({
+        ...query,
+        operation: "reading warehouse spend (INFORMATION_SCHEMA.JOBS)",
+      });
 
       return {
         jobs: rows
@@ -2969,7 +3023,10 @@ class ClickHouseCatalog implements CatalogSession {
     );
 
     // A login that cannot read the server's catalog cannot collect.
-    await session.api.query({ statement: "SELECT 1 AS reachable" });
+    await session.api.query({
+      statement: "SELECT 1 AS reachable",
+      operation: "checking the connection",
+    });
 
     return session;
   }
@@ -2978,7 +3035,11 @@ class ClickHouseCatalog implements CatalogSession {
     sql: string,
     params: Array<string>,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    return await this.api.query({
+      statement: sql,
+      params,
+      operation: "running a check",
+    });
   }
 
   // The databases read: the connection's one, or every one but the server's own.
@@ -3026,11 +3087,13 @@ class ClickHouseCatalog implements CatalogSession {
       rows = await this.api.query({
         statement: tablesSql(true),
         params: filter.params,
+        operation: "listing the tables (system.tables, system.parts)",
       });
     } catch (error) {
       rows = await this.api.query({
         statement: tablesSql(false),
         params: filter.params,
+        operation: "listing the tables (system.tables)",
       });
       warnings.push(
         `Inserts are seen by a table's rows alone (system.parts could not be read): ${describeError(error).slice(0, 200)}`,
@@ -3051,6 +3114,7 @@ class ClickHouseCatalog implements CatalogSession {
           WHERE event_date >= yesterday() AND event_type = 'NewPart' AND ${partLogFilter.sql}
           GROUP BY database, table`,
         params: partLogFilter.params,
+        operation: "reading insert times (system.part_log)",
       })) {
         const seconds: number | null = readCount(row["seconds_since_change"]);
 
@@ -3124,6 +3188,7 @@ class ClickHouseCatalog implements CatalogSession {
             ORDER BY database, table, position
             LIMIT ${options.maxColumns}`,
           params: columnFilter.params,
+          operation: "reading the columns (system.columns)",
         })
       )
         .map((row: Record<string, unknown>): RawColumn | null => {
@@ -3167,6 +3232,7 @@ class ClickHouseCatalog implements CatalogSession {
             AND type = 'QueryFinish' AND query_kind = 'Select' AND user != currentUser()
           GROUP BY full_name
           LIMIT ${MAX_TABLES_PER_COLLECTION * 2}`,
+        operation: "reading when tables were read (system.query_log)",
       })) {
         const name: string = String(row["full_name"] ?? "");
         const dot: number = name.indexOf(".");
@@ -3206,6 +3272,7 @@ class ClickHouseCatalog implements CatalogSession {
             WHERE ${filter.sql} AND length(dependencies_table) > 0
             LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
           params: filter.params,
+          operation: "reading view lineage (system.tables)",
         })) {
           const databases: Array<unknown> = Array.isArray(
             row["dependencies_database"],
@@ -3234,6 +3301,7 @@ class ClickHouseCatalog implements CatalogSession {
             WHERE ${filter.sql} AND engine = 'MaterializedView'
             LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
           params: filter.params,
+          operation: "reading materialized view lineage (system.tables)",
         })) {
           const target: { schema: string; table: string } | null =
             readMaterializedViewTarget(
@@ -3272,6 +3340,7 @@ class ClickHouseCatalog implements CatalogSession {
           GROUP BY normalized_query_hash
           ORDER BY seconds_since_seen
           LIMIT ${MAX_LINEAGE_EDGES_PER_COLLECTION}`,
+        operation: "reading insert lineage (system.query_log)",
       });
 
       return {
@@ -3587,7 +3656,11 @@ class DatabricksCatalog implements CatalogSession {
     sql: string,
     params: Array<string>,
   ): Promise<Array<Record<string, unknown>>> {
-    return await this.api.query({ statement: sql, params });
+    return await this.api.query({
+      statement: sql,
+      params,
+      operation: "running a check",
+    });
   }
 
   public async read(options: TableHealthCollectOptions): Promise<CatalogRead> {
@@ -3680,6 +3753,7 @@ class DatabricksCatalog implements CatalogSession {
             await this.api.query({
               statement: buildDatabricksLineageQuery(lookback),
               namedParams: { catalog: this.api.catalog },
+              operation: "reading lineage (system.access.table_lineage)",
             }),
             this.api.catalog,
           );
@@ -3857,6 +3931,7 @@ class AthenaCatalog implements CatalogSession {
       statement: sql,
       params,
       maxBytesScanned: limits?.maxBytesScanned,
+      operation: "running a check",
     });
   }
 
@@ -4992,6 +5067,54 @@ export function describeSkippedDataverseTables(
   return `${what} of ${countDataverseTables(names.length)} could not be read (${nameDataverseTables(names)}): ${skipped[0]!.reason.slice(0, MAX_DATAVERSE_REASON_LENGTH)}`;
 }
 
+/*
+ * One warning for the tables a collection skipped without asking, because
+ * Dataverse refused them before and their next try has not come (#9541):
+ * how many, which, and how to ask again at once. Null when none was.
+ */
+export function describeWaitingDataverseTables(
+  waiting: Array<SkippedTable>,
+): string | null {
+  const names: Array<string> = Array.from(
+    new Set(
+      waiting.map((entry: SkippedTable): string => {
+        return entry.table;
+      }),
+    ),
+  );
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return names.length === 1
+    ? `1 table Dataverse refused before is skipped until its next try (${nameDataverseTables(names)}). Collect Now asks it again at once.`
+    : `${names.length} tables Dataverse refused before are skipped until their next try (${nameDataverseTables(names)}). Collect Now asks them again at once.`;
+}
+
+/*
+ * The refusals of a read worth remembering: a table asked alone that
+ * Dataverse answered about (never a group whose read failed as a whole,
+ * nor tables left out unasked), and only when the same read answered for
+ * another table in the collection, so the read itself works.
+ */
+function rememberRefusals(data: {
+  memory: SkippedTableMemory;
+  read: SkippedTableRead;
+  skipped: Array<DataverseSkippedTables>;
+  hasAnswered: boolean;
+}): void {
+  if (!data.hasAnswered) {
+    return;
+  }
+
+  for (const entry of data.skipped) {
+    if (entry.logicalNames.length === 1) {
+      data.memory.refused(entry.logicalNames[0]!, data.read, entry.reason);
+    }
+  }
+}
+
 // The tables a collection reads definitions of: its definitions, whether they are all of them, and the tables Dataverse could not describe.
 interface DataverseDefinitionList {
   definitions: Array<JSONObject>;
@@ -5040,7 +5163,7 @@ class DataverseCatalog implements CatalogSession {
     );
   }
 
-  // Leaves the reads after a 429 to the next collection, and says so once.
+  // Leaves the reads after a 429 to the next collection, and says so once; false for anything else, null among it.
   private noteThrottled(error: unknown, warnings: Array<string>): boolean {
     if (!(error instanceof DataverseThrottledError)) {
       return false;
@@ -5054,26 +5177,6 @@ class DataverseCatalog implements CatalogSession {
     }
 
     return true;
-  }
-
-  // Says what a read of many tables left out, and notes the throttle that stopped it, if one did.
-  private noteTablesRead(
-    what: string,
-    read: Omit<DataverseTablesRead<unknown>, "result">,
-    warnings: Array<string>,
-  ): void {
-    const warning: string | null = describeSkippedDataverseTables(
-      what,
-      read.skipped,
-    );
-
-    if (warning) {
-      warnings.push(warning);
-    }
-
-    if (read.throttle) {
-      this.noteThrottled(read.throttle, warnings);
-    }
   }
 
   /*
@@ -5167,34 +5270,119 @@ class DataverseCatalog implements CatalogSession {
     }
   }
 
+  /*
+   * The environment's fingerprint, as the skipped tables remember it: its
+   * host, the app reading it, the tables the connection names, and every
+   * table the list holds. Another fingerprint starts every skipped table
+   * over (#9541).
+   */
+  private fingerprintOf(definitions: Array<JSONObject>): string {
+    return fingerprintOf([
+      this.api.host,
+      this.api.clientId,
+      ...[...this.api.namedTables].sort(),
+      ...definitions
+        .map((definition: JSONObject): string => {
+          return `${String(definition["LogicalName"] || "").toLowerCase()}:${String(definition["EntitySetName"] || "")}`;
+        })
+        .sort(),
+    ]);
+  }
+
+  /*
+   * Each table's rows. The tables Dataverse refused before are left out of
+   * the groups, so a healthy group is never split for them again: one whose
+   * next try has come is counted on its own, one whose has not is skipped.
+   */
   private async readRows(
     watched: Array<DataverseTable>,
     warnings: Array<string>,
+    memory: SkippedTableMemory,
   ): Promise<Map<string, number>> {
+    const read: SkippedTableRead = SkippedTableRead.RowCount;
     const counted: Array<string> = watched
       .filter(isCountedDataverseTable)
       .map((table: DataverseTable): string => {
         return table.logicalName;
       });
 
+    memory.keepOnly(read, counted);
+
     if (counted.length === 0 || this.isThrottled) {
       return new Map();
     }
 
+    const counts: Map<string, number> = new Map();
+    const skipped: Array<DataverseSkippedTables> = [];
+    // Tables refused before whose count answered this time.
+    const answered: Array<string> = [];
+
     try {
-      const read: DataverseTablesRead<Map<string, number>> =
-        await this.api.countRows(counted);
+      const grouped: DataverseTablesRead<Map<string, number>> =
+        await this.api.countRows(
+          counted.filter((name: string): boolean => {
+            return !memory.isRemembered(name, read);
+          }),
+        );
 
-      this.noteTablesRead("The row counts", read, warnings);
+      grouped.result.forEach((count: number, name: string) => {
+        counts.set(name, count);
+      });
+      skipped.push(...grouped.skipped);
+      this.noteThrottled(grouped.throttle, warnings);
 
-      return read.result;
+      for (const name of counted.filter((table: string): boolean => {
+        return memory.isDue(table, read);
+      })) {
+        if (this.isThrottled) {
+          break;
+        }
+
+        const alone: DataverseTablesRead<Map<string, number>> =
+          await this.api.countRows([name]);
+
+        alone.result.forEach((count: number, table: string) => {
+          counts.set(table, count);
+        });
+        skipped.push(...alone.skipped);
+
+        if (this.noteThrottled(alone.throttle, warnings)) {
+          break;
+        }
+
+        if (alone.skipped.length === 0) {
+          answered.push(name);
+        }
+      }
     } catch (error) {
       if (!this.noteThrottled(error, warnings)) {
         warnings.push(`Row counts were left out: ${dataverseReasonOf(error)}`);
       }
 
-      return new Map();
+      return counts;
     }
+
+    for (const name of answered) {
+      memory.answered(name, read);
+    }
+
+    rememberRefusals({
+      memory,
+      read,
+      skipped,
+      hasAnswered: counts.size > 0 || answered.length > 0,
+    });
+
+    const warning: string | null = describeSkippedDataverseTables(
+      "The row counts",
+      skipped,
+    );
+
+    if (warning) {
+      warnings.push(warning);
+    }
+
+    return counts;
   }
 
   // How long ago each table last changed, a few tables at once; null for an empty table.
@@ -5202,9 +5390,27 @@ class DataverseCatalog implements CatalogSession {
     watched: Array<DataverseTable>,
     now: Date,
     warnings: Array<string>,
+    memory: SkippedTableMemory,
   ): Promise<Map<string, number | null>> {
+    const read: SkippedTableRead = SkippedTableRead.LastChange;
+
+    memory.keepOnly(
+      read,
+      watched.map((table: DataverseTable): string => {
+        return table.logicalName;
+      }),
+    );
+
+    // A table Dataverse refused before, whose next try has not come, is not asked.
+    const asked: Array<DataverseTable> = watched.filter(
+      (table: DataverseTable): boolean => {
+        return !memory.isWaiting(table.logicalName, read);
+      },
+    );
     const ages: Map<string, number | null> = new Map();
     const failed: Array<string> = [];
+    // The tables Dataverse answered about with a refusal of their own, and its words.
+    const refused: Array<DataverseSkippedTables> = [];
     let firstError: string = "";
     let next: number = 0;
     // Tables in a row Dataverse could not be asked about at all: no answer of its own, as when a network is down.
@@ -5214,9 +5420,9 @@ class DataverseCatalog implements CatalogSession {
       while (
         !this.isThrottled &&
         outagesInARow < MAX_DATAVERSE_OUTAGES_IN_A_ROW &&
-        next < watched.length
+        next < asked.length
       ) {
-        const table: DataverseTable = watched[next]!;
+        const table: DataverseTable = asked[next]!;
 
         next++;
 
@@ -5226,6 +5432,7 @@ class DataverseCatalog implements CatalogSession {
           );
 
           outagesInARow = 0;
+          memory.answered(table.logicalName, read);
           ages.set(
             table.logicalName,
             changedAt
@@ -5243,24 +5450,38 @@ class DataverseCatalog implements CatalogSession {
           // A table Dataverse fails is left out alone; one that timed out may be only slow.
           failed.push(table.logicalName);
           firstError = firstError || dataverseReasonOf(error);
-          outagesInARow = isTableLevelDataverseError(error)
-            ? 0
-            : outagesInARow + 1;
+
+          if (isTableLevelDataverseError(error)) {
+            outagesInARow = 0;
+            refused.push({
+              logicalNames: [table.logicalName],
+              reason: dataverseReasonOf(error),
+            });
+          } else {
+            outagesInARow++;
+          }
         }
       }
     };
 
     await Promise.all(
       Array.from(
-        { length: Math.min(DATAVERSE_PARALLEL_READS, watched.length) },
+        { length: Math.min(DATAVERSE_PARALLEL_READS, asked.length) },
         (): Promise<void> => {
           return readNext();
         },
       ),
     );
 
+    rememberRefusals({
+      memory,
+      read,
+      skipped: refused,
+      hasAnswered: ages.size > 0,
+    });
+
     if (failed.length > 0) {
-      const unasked: number = this.isThrottled ? 0 : watched.length - next;
+      const unasked: number = this.isThrottled ? 0 : asked.length - next;
 
       warnings.push(
         `When ${countDataverseTables(failed.length)} last changed could not be read (${nameDataverseTables(failed)}): ${asSentence(firstError)}${unasked > 0 ? ` ${unasked === 1 ? "1 more table was" : `${unasked} more tables were`} not asked this time.` : ""}`,
@@ -5273,29 +5494,70 @@ class DataverseCatalog implements CatalogSession {
   /*
    * The tables' columns, and which tables Dataverse returned the columns
    * of; null when none were read. A table it did not return is unread,
-   * never a table with no columns.
+   * never a table with no columns. The tables Dataverse refused before are
+   * left out of the groups: one whose next try has come is read on its
+   * own, one whose has not keeps the columns last read.
    */
   private async readColumns(
     watched: Array<DataverseTable>,
     maxColumns: number,
     warnings: Array<string>,
+    memory: SkippedTableMemory,
   ): Promise<{ columns: Array<RawColumn>; tables: Set<string> } | null> {
+    const read: SkippedTableRead = SkippedTableRead.Columns;
+    const names: Array<string> = watched.map(
+      (table: DataverseTable): string => {
+        return table.logicalName;
+      },
+    );
+
+    memory.keepOnly(read, names);
+
     if (this.isThrottled || watched.length === 0) {
       return null;
     }
 
-    let definitions: Map<string, Array<JSONObject>>;
+    const definitions: Map<string, Array<JSONObject>> = new Map();
+    const skipped: Array<DataverseSkippedTables> = [];
+    const answered: Array<string> = [];
 
     try {
-      const read: DataverseTablesRead<Map<string, Array<JSONObject>>> =
+      const grouped: DataverseTablesRead<Map<string, Array<JSONObject>>> =
         await this.api.listColumns(
-          watched.map((table: DataverseTable): string => {
-            return table.logicalName;
+          names.filter((name: string): boolean => {
+            return !memory.isRemembered(name, read);
           }),
         );
 
-      this.noteTablesRead("The columns", read, warnings);
-      definitions = read.result;
+      grouped.result.forEach((attributes: Array<JSONObject>, name: string) => {
+        definitions.set(name, attributes);
+      });
+      skipped.push(...grouped.skipped);
+      this.noteThrottled(grouped.throttle, warnings);
+
+      for (const name of names.filter((table: string): boolean => {
+        return memory.isDue(table, read);
+      })) {
+        if (this.isThrottled) {
+          break;
+        }
+
+        const alone: DataverseTablesRead<Map<string, Array<JSONObject>>> =
+          await this.api.listColumns([name]);
+
+        alone.result.forEach((attributes: Array<JSONObject>, table: string) => {
+          definitions.set(table, attributes);
+        });
+        skipped.push(...alone.skipped);
+
+        if (this.noteThrottled(alone.throttle, warnings)) {
+          break;
+        }
+
+        if (alone.skipped.length === 0) {
+          answered.push(name);
+        }
+      }
     } catch (error) {
       if (!this.noteThrottled(error, warnings)) {
         warnings.push(
@@ -5304,6 +5566,26 @@ class DataverseCatalog implements CatalogSession {
       }
 
       return null;
+    }
+
+    for (const name of answered) {
+      memory.answered(name, read);
+    }
+
+    rememberRefusals({
+      memory,
+      read,
+      skipped,
+      hasAnswered: definitions.size > 0,
+    });
+
+    const warning: string | null = describeSkippedDataverseTables(
+      "The columns",
+      skipped,
+    );
+
+    if (warning) {
+      warnings.push(warning);
     }
 
     const columns: Array<RawColumn> = [];
@@ -5339,6 +5621,14 @@ class DataverseCatalog implements CatalogSession {
     const excluded: Set<string> = readExclusions(options.exclusions);
     const listed: DataverseDefinitionList =
       await this.listDefinitions(warnings);
+    // What Dataverse refused at earlier collections; a list read in smaller requests changes nothing of it.
+    const memory: SkippedTableMemory = new SkippedTableMemory({
+      previous: options.skippedTables,
+      fingerprint: listed.isPartial
+        ? null
+        : this.fingerprintOf(listed.definitions),
+      now,
+    });
     const selection: ReturnType<typeof selectDataverseTables> =
       selectDataverseTables(listed.definitions, this.api.namedTables);
     // A named table Dataverse could not describe this time is unread, not missing.
@@ -5359,17 +5649,34 @@ class DataverseCatalog implements CatalogSession {
         return !isExcluded(DATAVERSE_SCHEMA, table.logicalName, excluded);
       })
       .slice(0, options.maxTables);
-    const rows: Map<string, number> = await this.readRows(watched, warnings);
+    const isColumnRead: boolean = readLookback(options) > 0;
+    // The tables skipped without being asked this time, said once below.
+    const waiting: Array<SkippedTable> = this.waitingOf(
+      memory,
+      watched,
+      isColumnRead,
+    );
+    const rows: Map<string, number> = await this.readRows(
+      watched,
+      warnings,
+      memory,
+    );
     const changes: Map<string, number | null> = this.isThrottled
       ? new Map()
-      : await this.readChanges(watched, now, warnings);
+      : await this.readChanges(watched, now, warnings, memory);
     const columnRead: {
       columns: Array<RawColumn>;
       tables: Set<string>;
-    } | null =
-      readLookback(options) > 0
-        ? await this.readColumns(watched, options.maxColumns, warnings)
-        : null;
+    } | null = isColumnRead
+      ? await this.readColumns(watched, options.maxColumns, warnings, memory)
+      : null;
+    const waitingWarning: string | null =
+      describeWaitingDataverseTables(waiting);
+
+    if (waitingWarning) {
+      warnings.push(waitingWarning);
+    }
+
     const columnsUnknown: Array<string> = [];
     const tables: Array<RawTable> = watched.map(
       (table: DataverseTable): RawTable => {
@@ -5395,6 +5702,8 @@ class DataverseCatalog implements CatalogSession {
           secondsSinceRead: null,
           isChangeTimeFromData: true,
           ...(isColumnsRead ? {} : { columnsNotRead: true }),
+          // What Power BI's OData connectors name it by (#9696): the definition every collection reads says it.
+          entitySetName: table.entitySetName,
         };
       },
     );
@@ -5406,7 +5715,32 @@ class DataverseCatalog implements CatalogSession {
       secondsSinceStatsReset: null,
       columnsUnknown,
       isTableListPartial: listed.isPartial,
+      skippedTables: memory.toSkippedTables(),
     };
+  }
+
+  /*
+   * The tables this collection skips without asking: refused before, their
+   * next try not come, among the tables watched and the reads it makes -
+   * the columns only when it reads them.
+   */
+  private waitingOf(
+    memory: SkippedTableMemory,
+    watched: Array<DataverseTable>,
+    isColumnRead: boolean,
+  ): Array<SkippedTable> {
+    const names: Set<string> = new Set(
+      watched.map((table: DataverseTable): string => {
+        return table.logicalName;
+      }),
+    );
+
+    return memory.waiting().filter((entry: SkippedTable): boolean => {
+      return (
+        names.has(entry.table) &&
+        (entry.read !== SkippedTableRead.Columns || isColumnRead)
+      );
+    });
   }
 
   // The TDS endpoint, signed in with the app's token: port 1433, else 5558 where no server answered.
@@ -5629,6 +5963,9 @@ export function assembleSnapshot(data: {
       data.read.isTableListPartial !== true,
     warnings: warnings.slice(0, MAX_COLLECTION_WARNINGS),
     secondsSinceStatsReset: data.read.secondsSinceStatsReset,
+    ...(data.read.skippedTables !== undefined
+      ? { skippedTables: data.read.skippedTables }
+      : {}),
   };
 
   if (data.lineage) {
@@ -5776,31 +6113,38 @@ export async function readCheckValues(
   );
   const catalog: CatalogSession = await openCatalog(connection);
   const results: Array<DataCheckRunResult> = [];
+  // A check the warehouse failed for a moment is started again once (#9679).
+  const restarts: DataCheckRestarts = new DataCheckRestarts();
 
   try {
     for (const check of checks) {
       try {
+        const run: DataCheckRun<Array<Record<string, unknown>>> =
+          await restarts.run((): Promise<Array<Record<string, unknown>>> => {
+            return catalog.readAggregate(check.sql, check.params, check.limits);
+          });
+
         results.push({
           checkId: check.checkId,
           values: readCheckRows({
             type: check.type,
             isSegmented: check.isSegmented,
-            rows: await catalog.readAggregate(
-              check.sql,
-              check.params,
-              check.limits,
-            ),
+            rows: run.value,
           }),
           error: null,
+          ...restartedAfterOf(run, secrets),
         });
       } catch (error) {
         results.push({
           checkId: check.checkId,
           values: [],
-          error: sanitizeErrorMessage(error, secrets).slice(
-            0,
-            MAX_CHECK_ERROR_LENGTH,
-          ),
+          error: describeCheckFailure({
+            error,
+            sanitize: (failure: unknown): string => {
+              return sanitizeErrorMessage(failure, secrets);
+            },
+            maxLength: MAX_CHECK_ERROR_LENGTH,
+          }),
         });
       }
     }
@@ -5809,6 +6153,21 @@ export async function readCheckValues(
   }
 
   return results;
+}
+
+// Why a check that ran at its second try failed its first (#9679), never holding a secret.
+function restartedAfterOf(
+  run: DataCheckRun<unknown>,
+  secrets: Array<string>,
+): Pick<DataCheckRunResult, "restartedAfter"> {
+  return run.restartedAfter
+    ? {
+        restartedAfter: sanitizeErrorMessage(
+          new Error(run.restartedAfter),
+          secrets,
+        ).slice(0, MAX_RESTARTED_AFTER_LENGTH),
+      }
+    : {};
 }
 
 export async function collectTableHealth(
@@ -5865,33 +6224,44 @@ export async function collectTableHealth(
       (await isCatalogBusy(catalog));
     const waitWarnings: Array<string> = waits ? [BUSY_DATABASE_WARNING] : [];
 
+    // A check the warehouse failed for a moment is started again once (#9679).
+    const restarts: DataCheckRestarts = new DataCheckRestarts();
+
     // Each check on its own: one that cannot run never stops the others.
     for (const check of waits ? [] : options.checks || []) {
       try {
+        const run: DataCheckRun<Array<Record<string, unknown>>> =
+          await restarts.run((): Promise<Array<Record<string, unknown>>> => {
+            return catalog!.readAggregate(
+              check.sql,
+              check.params,
+              check.limits,
+            );
+          });
         const values: Array<DataCheckSegmentValue> = readCheckRows({
           type: check.type,
           isSegmented: check.isSegmented,
-          rows: await catalog.readAggregate(
-            check.sql,
-            check.params,
-            check.limits,
-          ),
+          rows: run.value,
         });
 
         checkResults.push({
           checkId: check.checkId,
           values,
           error: null,
+          ...restartedAfterOf(run, secrets),
           ...(await readFailingRowsOf(catalog, check, values)),
         });
       } catch (error) {
         checkResults.push({
           checkId: check.checkId,
           values: [],
-          error: sanitizeErrorMessage(error, secrets).slice(
-            0,
-            MAX_CHECK_ERROR_LENGTH,
-          ),
+          error: describeCheckFailure({
+            error,
+            sanitize: (failure: unknown): string => {
+              return sanitizeErrorMessage(failure, secrets);
+            },
+            maxLength: MAX_CHECK_ERROR_LENGTH,
+          }),
         });
       }
     }

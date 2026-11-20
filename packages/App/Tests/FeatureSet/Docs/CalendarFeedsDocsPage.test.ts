@@ -21,6 +21,12 @@ import {
   PREVIOUS_TOKEN_GRACE_DAYS,
 } from "Common/Types/OnCallDutyPolicy/CalendarFeedWindow";
 import { strayMarkers } from "./DocsTranslationChecks";
+import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
+import {
+  getWhatsAppTemplateIdOfEvent,
+  hasWhatsAppTemplate,
+} from "Common/Types/WhatsApp/WhatsAppEventTemplates";
+import { WhatsAppTemplateIds } from "Common/Types/WhatsApp/WhatsAppTemplates";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -713,13 +719,27 @@ describe("Calendar Feeds docs page", () => {
         "Common/Server/Utils/OnCall/OnCallShiftReminderRunner.ts",
       );
 
-      // The reminder rides the approved template; anything else gets undefined.
+      /*
+       * The reminder rides the approved template; anything else gets
+       * undefined. Which template is the one map the server sends by and
+       * Notification Settings offers WhatsApp from (#9715).
+       */
       expect(runner).toMatch(
-        /buildWhatsAppMessage[\s\S]*?message\.eventType !==\s*NotificationSettingEventType\.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS[\s\S]*?return undefined;/,
+        /buildWhatsAppMessage[\s\S]*?if \(!hasWhatsAppTemplate\(message\.eventType\)\) \{\s*return undefined;/,
       );
       expect(runner).toMatch(
-        /buildWhatsAppMessage[\s\S]*?templateKey:\s*WhatsAppTemplateIds\.OnCallUserIsNextNotification/,
+        /buildWhatsAppMessage[\s\S]*?createWhatsAppMessageFromTemplate\(\{\s*eventType: message\.eventType,/,
       );
+      expect(
+        getWhatsAppTemplateIdOfEvent(
+          NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+        ),
+      ).toBe(WhatsAppTemplateIds.OnCallUserIsNextNotification);
+      expect(
+        hasWhatsAppTemplate(
+          NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+        ),
+      ).toBe(false);
 
       const templates: string = readRepoFile(
         "Common/Types/WhatsApp/WhatsAppTemplates.ts",

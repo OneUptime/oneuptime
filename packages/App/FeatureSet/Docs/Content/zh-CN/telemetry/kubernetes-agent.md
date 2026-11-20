@@ -9,6 +9,7 @@ OneUptime Kubernetes 代理是一个 Helm chart，它采集集群的指标、事
 - [安装代理](#安装代理): 使用 Helm 的四个步骤。
 - [作为 Amazon EKS 附加组件安装](#作为-amazon-eks-附加组件安装): 从 EKS 控制台安装，无需 Helm。
 - [OpenShift](#openshift): 预设、它创建的安全上下文约束，以及 OpenShift 自带的警报。
+- [集群加固](#集群加固): Pod 安全标准和 CIS Benchmark 评分，以及代理自身的权限。
 - [配置选项](#配置选项): 过滤器、采样、控制平面、服务网格、成本和标签。
 - [Kubernetes AI 代理](#kubernetes-ai-代理): 供 OneUptime AI 使用的只读 `kubectl`，以及在你允许时进行的修复。
 - [减少发送量](#减少采集的数据量): 按影响大小排列的调节手段。
@@ -32,7 +33,7 @@ flowchart TB
 | eBPF 插桩（OBI） | DaemonSet | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis 追踪与请求指标，以及服务地图。 | 默认运行，GKE Autopilot 和 EKS Fargate 除外 |
 | Kubernetes AI 代理 | Deployment | OneUptime AI 调查事件或警报时使用的只读 `kubectl`。 | 默认运行 |
 | 日志尾随器 | Deployment | 在节点 Collector 无法读取时，通过 Kubernetes API 获取 Pod 日志。 | 使用 `gke-autopilot`、`eks-fargate` 和 `openshift-restricted` 预设时 |
-| 成本引擎和轮询器 | Deployments | 按命名空间、工作负载和 Pod 统计的支出。 | 设置 `cost.enabled=true` 时 |
+| 成本引擎和轮询器 | Deployments | 按命名空间、工作负载和 Pod 统计的支出。 | 默认运行，GKE Autopilot 和 EKS Fargate 除外 |
 
 所有代理镜像都只支持 Linux，因此所有工作负载都被固定在 Linux 节点上。
 
@@ -199,7 +200,8 @@ kubectl get pods -n oneuptime-agent
 - `oneuptime.labels`：附加到此集群发送的所有数据上的项目标签，例如 `{"team": "payments"}`。
 - `preset`：仅在 Fargate 上运行的集群使用 `eks-fargate`，否则使用默认值 `standard`。
 - `logs.enabled`、`ebpf.enabled` 和 `aiAgent.enabled`：Pod 日志、eBPF 追踪和 [Kubernetes AI 代理](#kubernetes-ai-代理)，均默认开启。
-- `kubeStateMetrics.enabled` 和 `cost.enabled`：kube-state-metrics 和 [成本可观测性](/docs/telemetry/kubernetes-cost)，均默认关闭。
+- `kubeStateMetrics.enabled`：kube-state-metrics，默认关闭。
+- `cost.enabled`：[成本可观测性](/docs/telemetry/kubernetes-cost)，默认为 `auto`：开启，但使用 `eks-fargate` 预设时除外。
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -266,12 +268,13 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | Kubernetes 事件 | 来自每个命名空间、每种对象的每个事件（Warning 和 Normal）：请参阅 [Kubernetes 事件](#kubernetes-事件) |
 | Pod 日志 | 每个容器的 stdout 和 stderr（标准集群上通过 `hostPath`，Autopilot 和 Fargate 上通过 Kubernetes API） |
 | OpenShift 对象（OpenShift 预设） | ClusterOperator、ClusterVersion、Route、DeploymentConfig 和 Service：请参阅 [OpenShift](#openshift) |
+| RBAC、服务账号和 NetworkPolicy | Role、ClusterRole 及其绑定、ServiceAccount 和 NetworkPolicy，只读，每隔 `resourceSpecs.interval` 读取一次，用于为集群加固评分：请参阅 [集群加固](#集群加固)。从不读取任何 Secret |
 | 应用追踪（eBPF，默认开启） | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis Span，无需 SDK 或修改代码 |
 | HTTP RED 指标（eBPF） | 每个服务的 `http.server.request.duration`，以及请求和响应的正文大小 |
 | 服务图（eBPF） | 调用方到被调用方的请求速率、延迟和错误边，用于绘制服务地图 |
 | 网络流指标（eBPF） | Pod 之间的 TCP 和 UDP 字节与数据包计数器，附带 Kubernetes 元数据 |
 | TCP 统计（eBPF） | 节点级的往返时间、连接失败和重传计数器 |
-| 工作负载成本（需选择启用，`cost.enabled=true`） | 按命名空间、工作负载和 Pod 统计的支出（含空闲和效率），以及节点和卷的每小时成本：见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost) |
+| 工作负载成本（默认开启，GKE Autopilot 和 EKS Fargate 除外） | 按命名空间、工作负载和 Pod 统计的支出（含空闲和效率，也以可设置警报的指标形式提供），以及节点和卷的每小时成本：见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes 事件
 
@@ -310,6 +313,49 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.namespace.name` | `default` |
 
 可以在 **日志** 中搜索它们，或用丢弃过滤器丢弃不需要的事件。要在事件发生时收到通知，请在集群的 **建议** 页面开启 **Warning Events**，或在其 **事件** 页面底部选择 **开启警告警报**：这是一个针对集群警告的 [日志监视器](/docs/monitor/logs-monitor)，每个对象和原因一条警报，5 分钟内没有新的相关警告即自动解决。只想收到部分原因的通知时，请在其过滤器中加入 `k8s.event.reason`。
+
+## 集群加固
+
+集群的 **合规** 页面（在 **安全** 下）在其 **集群加固** 部分中依据三个框架为集群本身评分。它读取的是代理已经发送的数据：集群的 Pod 和命名空间，以及用于 CIS Benchmark 的 RBAC、服务账号和 NetworkPolicy。只要代理上报了集群的 Pod，集群的菜单中就会显示该页面，无论集群上是否运行着数据库。
+
+| 框架 | 评分对象 |
+| --- | --- |
+| **Pod 安全标准：Baseline** | 集群上运行的每个工作负载，依据集群 Kubernetes 版本的 Baseline 策略评估：特权容器、主机的命名空间、端口和路径、添加的 capability，以及该策略列出的其他所有字段，均从每个 Pod 的规格中读取 |
+| **Pod 安全标准：Restricted** | 同样的工作负载，依据 Restricted 策略评估：Baseline 的各项控制项，外加只使用它允许的卷类型、以非 root 用户运行、禁止权限提升、使用 seccomp 配置文件，以及移除所有 capability |
+| **CIS Kubernetes Benchmark v2.0** | 第 5 节中 Kubernetes API 能够判断的 27 个控制项：授予 cluster-admin、Secret、`nodes/proxy` 以及其控制项列出的其他权限的角色绑定、含通配符的角色、默认服务账号、每个命名空间中的 Pod Security Admission 或策略引擎、NetworkPolicy，以及每个 Pod 运行的内容 |
+
+每个框架的磁贴会显示其评分，以及它评估了多少个工作负载、其中有多少个未通过。其控制项会先列出未通过的项：每一项都会说明发现了什么问题以及如何修复，并列出未通过该项的工作负载、角色、角色绑定、服务账号或命名空间，每一个都链接到其页面，并具体到容器或卷以及字段，例如 `securityContext.privileged`。如果数据安全为集群上运行的数据库评分，这些数据库仍会显示在下方的 **此集群上的数据库** 中。
+
+Pod 安全标准按集群自身的 Kubernetes 版本评分，即集群中最新的 kubelet 的版本，最高到 OneUptime 已知的最新版本。较新版本新增的控制项只从该版本起计入，页面也会说明评分所依据的版本。
+
+该基准的其余 104 个控制项检查的是节点的文件和 kubelet，或控制平面的命令行标志，或者需要人工审查。没有任何 API 能判断它们，因此它们按原因分组列在 **不在此处评分** 下，既不算通过，也不算未通过。在 EKS、GKE 或 AKS 等托管控制平面上，页面会说明这些控制项以提供商的基准为准。
+
+### 关闭框架、控制项或命名空间
+
+关闭不适用于集群的项。每个开关都只属于该集群，关闭时会询问原因，页面会记录是谁、在何时、因何关闭的：
+
+- 框架的 **适用于此处** 开关会把集群排除在该框架之外。该框架会折叠到 **已关闭** 下，并附有重新开启它的开关。
+- 控制项的开关会把该控制项排除在集群的评分之外。
+- 每个框架下的命名空间开关会把该命名空间中的所有内容排除在该框架之外，就像 Pod Security Admission 豁免命名空间一样。
+
+### 导出框架
+
+**导出 CSV** 和 **导出 JSON** 会下载框架的报告：每个控制项、是否通过、哪些对象未通过以及如何修复，还有评分所依据的 Kubernetes 版本。
+
+### 代理为此读取的内容
+
+`resourceSpecs.compliance`（默认开启）每隔 `resourceSpecs.interval` 读取一次 Role、ClusterRole 及其绑定、ServiceAccount 和 NetworkPolicy，对它们只使用 `get`、`list` 和 `watch`，别无其他。它从不读取任何 Secret：ServiceAccount 只会列出其令牌 Secret 的名称，而 OneUptime 连这些名称也会丢弃。关闭它（`--set resourceSpecs.compliance=false`）后，该基准的 RBAC、服务账号和 NetworkPolicy 控制项会显示为 *未评估*，而 Pod 安全标准仍会根据 Pod 评分。
+
+### 代理自身的权限
+
+代理通过 kubelet 为其各个路径授权时所用的子资源读取每个 kubelet：统计信息用 `nodes/stats`，cAdvisor 用 `nodes/metrics`，节点的 Pod 列表用 `nodes/pods`（kubelet 从 Kubernetes 1.33 起才允许这样读取）。`nodes/proxy` 可以访问整个 kubelet API，而 CIS 5.1.10 会判定授予它的角色绑定未通过，因此代理只在更窄的权限都行不通时才授予它：
+
+| 值 | 代理何时授予 `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto`（默认）在集群运行早于 1.36 的 Kubernetes 时授予它，因为这类集群的 kubelet 可能早于 1.33，只有凭 `nodes/proxy` 才能列出节点的 Pod。所有节点都运行 1.33 或更高版本后，设为 `false`；对于关闭了 `KubeletFineGrainedAuthz` 的 kubelet，设为 `true` |
+| `cost.prometheus.nodesProxy` | `auto`（默认）仅在 `eks-fargate` 预设上授予它：该预设上没有 Pod 能访问节点的 kubelet，用于成本的 Prometheus 通过 API 服务器读取 cAdvisor。在其他所有地方，它通过端口 10250 读取每个节点的 kubelet |
+
+当代理自身的角色绑定未通过 5.1.10 时，页面会说明该角色绑定属于代理、它为什么授予 `nodes/proxy`，以及去掉它的值。
 
 ## 配置选项
 
@@ -409,7 +455,7 @@ Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有
 丢弃几个嘈杂的指标（拒绝列表，通常是你想要的）：
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 只发送一组固定的指标（允许列表：其他所有指标都会被丢弃）：
@@ -594,7 +640,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 启用成本可观测性
 
-在集群的 **成本** 页面上查看每个命名空间、工作负载和 Pod 的成本，以及空闲容量和每个 request 的使用比例：
+成本可观测性默认开启：集群的概览和它的 **成本** 页面会显示每个命名空间、工作负载和 Pod 的成本，以及空闲容量和每个 request 的使用比例，成本指标也可以绘制成图表并设置警报。在按每个 Pod 的 request 计费的 `gke-autopilot` 和 `eks-fargate` 预设下，以及在默认开启之前安装的代理上，它默认关闭。在这些地方这样开启它：
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +649,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-仅此一项就是完整的安装：chart 内置了开源的 [OpenCost](https://opencost.io) 引擎（以及它所需的小型 Prometheus），无需凭据即可根据云厂商的公开价格为你的节点和卷定价。它会增加两个小 Pod，第一批成本会在第一个小时结束后出现。已经在运行 Kubecost 或 OpenCost？改为添加 `--set cost.engine.url=<its service URL>`，就不会内置任何东西。本地集群可以用 `cost.opencost.customPricing` 设置费率卡。包含本地定价和故障排查的完整指南见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)。
+仅此一项就是完整的安装：chart 内置了开源的 [OpenCost](https://opencost.io) 引擎（以及它所需的小型 Prometheus），无需凭据即可根据云厂商的公开价格为你的节点和卷定价。它会增加三个小 Pod，第一批成本会在第一个小时结束后出现。要关闭它，以同样的方式设置 `--set cost.enabled=false`。已经在运行 Kubecost 或 OpenCost？成本代理会找到它，并读取它而不是内置的引擎；添加 `--set cost.engine.url=auto` 即可不再内置第二个引擎。本地集群可以用 `cost.opencost.customPricing` 设置费率卡。包含本地定价和故障排查的完整指南见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)。
 
 ### 使用项目标签自动打标签
 
@@ -824,6 +870,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 
 如果升级以 `namespaces "<name>" not found` 失败，说明 `aiAgent.remediation.namespaces`（或较旧的 `aiAccess.remediation.namespaces`）列出了一个不存在（或已不再存在）的命名空间：chart 会在每个列出的命名空间中放置一个 RoleBinding，但从不创建命名空间。请创建该命名空间，或用去掉该命名空间的列表进行升级（`--set "aiAgent.remediation.namespaces={web}"`），或使用 `--set-json 'aiAgent.remediation.namespaces=[]'` 恢复为整个集群范围的绑定。在 `--reuse-values` 下，`--set aiAgent.remediation.namespaces=null` 不会重置已存储的列表，因此会以同样的错误失败。
 
+> **CIS Benchmark 的 RBAC 控制项需要升级后的代理。** `resourceSpecs.compliance` 推出之前的代理不会发送 RBAC、服务账号或 NetworkPolicy，因此集群的 **合规** 页面会显示该基准的 RBAC、服务账号和 NetworkPolicy 控制项为 *未评估*，并说明如何解决。请在开启 `resourceSpecs.compliance` 的情况下升级代理（它默认即开启）：这需要 Collector 0.125.0 或更高版本。升级后，在没有节点需要 `nodes/proxy` 的地方也不再授予它：请参阅 [代理自身的权限](#代理自身的权限)。
+
 > **eBPF Span 指标有了新名称。** `ebpf.features.spanMetrics` 现在发送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），而不是 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：同样的序列，使用 OBI 保留的名称（它已弃用旧名称）。基于旧名称的仪表板、图表或指标监视器在升级后不会再收到新数据，也不会报错——请把它迁移到新名称，并更新任何引用旧名称的 `filters.metrics` 条目。
 
 ### 升级到 Kubernetes AI 代理
@@ -959,7 +1007,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 基数，即不同序列的数量，与频率同样重要，因为每个序列都会单独存储和计费。
 
 - cAdvisor 有意采用允许列表。cAdvisor 接收器（默认开启）可以发出数百个指标；chart 只转发 `cadvisor.metricsAllowlist` 中的 CPU 限流和 OOM kill 计数器，供你自己的图表和指标监视器使用：没有内置模板读取它们。请保持列表简短：每个条目都按容器保存，因此多一个指标就会乘以集群的容器数量。kube-state-metrics 默认关闭；如果你开启它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也以同样的方式工作，并且每个条目都必须与指标的完整名称匹配。
-- 每个 PVC 的卷指标（`kubeletstats.volumeMetrics.enabled`，默认开启）会为每个 Pod 的每个 PVC 发出一个序列：对大多数集群来说没问题，但在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上会很多。如果你不监视 PVC 磁盘空间，请在那里用 `--set kubeletstats.volumeMetrics.enabled=false` 关闭它们。
+- 卷指标（`kubeletstats.volumeMetrics.enabled`，默认开启）会为每个 Pod 中每个存放数据的卷（声明、emptyDir、hostPath）发出五个序列，用于持久卷声明页面上的已用、可用和容量、集群“需要关注”中即将占满的声明，以及 PVC Almost Full 模板。Pod 的 configMap、secret、downwardAPI 和服务账号令牌卷曾占这些序列的大部分，它们会在节点上被丢弃。在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上仍然很多：如果你不监视 PVC 磁盘空间，请在那里用 `--set kubeletstats.volumeMetrics.enabled=false` 关闭它们。
 - 饱和度指标（`kubeletstats.utilizationMetrics.enabled`，默认开启）会增加 8 个派生的“占 request 或 limit 的 %”指标族。它们不需要额外的抓取，但如果你不使用针对 limit 的 CPU 和内存监视器，请用 `--set kubeletstats.utilizationMetrics.enabled=false` 丢弃它们。
 - 对于接收器允许列表无法表达的内容，用作用于所有接收器的 `filters.metrics.exclude` 按名称丢弃指标（见 [按名称包含或排除指标](#按名称包含或排除指标)）：
 
@@ -990,7 +1038,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled` | CrashLoop、ImagePull 和调度原因指标（增加一个 kube-state-metrics Deployment 和一项抓取） |
 | `ebpf.features.networkInterZoneMetrics` | 网络流序列翻倍 |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 更多 Prometheus 抓取任务 |
-| `cost.enabled` | 工作负载成本（内置 OpenCost 和一个小型 Prometheus；每小时成本行和严格限定允许列表的指标抓取；摄取量适中，多两个 Pod） |
+
+而成本可观测性（`cost.enabled`）是默认开启的：三个小 Pod、每个容器每小时一行成本，以及对每个节点、卷和负载均衡器各一个价格序列的抓取。如果你不用它，请用 `--set cost.enabled=false` 关闭它。
 
 ### 对追踪采样而不是丢弃
 
@@ -1058,7 +1107,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 按需进一步收紧：把 `minSeverity` 提高到 `ERROR`，把 `metrics` 加入命名空间规则的作用域，或者如果你已经通过 OpenTelemetry SDK 发送追踪，就设置 `ebpf.enabled=false`。
 
 > [!CAUTION]
-> 注意你削减的内容。有些监视器依赖特定的信号：关闭 `kubeletstats.utilizationMetrics` 会让两个按容器限制衡量 Pod 的模板失效，关闭日志会移除基于日志的警报，关闭 `cadvisor` 或 `kubeletstats.volumeMetrics` 会移除你自己的图表和指标监视器可能读取的限流、OOM kill 和 PVC 序列。`sampling.traces.percentage` 不会移除任何监视器，但会按比例缩小基于 Span 的监视器（针对 `Span Count` 的 **追踪**、针对 `Exception Count` 的 **异常**），因此请重新调整它们的阈值。削减你不会据此采取行动的信号，而不是监视器正在监视的信号。
+> 注意你削减的内容。有些监视器依赖特定的信号：关闭 `kubeletstats.utilizationMetrics` 会让两个按容器限制衡量 Pod 的模板失效，关闭日志会移除基于日志的警报，关闭 `kubeletstats.volumeMetrics` 会让 PVC Almost Full 模板失效，持久卷声明页面也不再显示用量，关闭 `cadvisor` 会移除你自己的图表和指标监视器可能读取的限流和 OOM kill 序列。`sampling.traces.percentage` 不会移除任何监视器，但会按比例缩小基于 Span 的监视器（针对 `Span Count` 的 **追踪**、针对 `Exception Count` 的 **异常**），因此请重新调整它们的阈值。削减你不会据此采取行动的信号，而不是监视器正在监视的信号。
 
 ### 衡量效果
 

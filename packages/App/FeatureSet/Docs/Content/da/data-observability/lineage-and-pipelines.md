@@ -38,7 +38,7 @@ Hver pil er noget, OneUptime har registreret, aldrig et gæt. Kortene står fra 
 
 Søg efter en tabel, tjeneste, pipeline eller dashboard for at beholde det, der matcher, og alt opstrøms og nedstrøms for det. Vælg et kort for at fremhæve hele dets afstamning, se, hvad det kommer fra, og hvad det går til, og åbn dets side; **Vis kun dens afstamning** lader kun det blive tilbage på kortet. Kontakterne ved siden af søgningen lader tjenester, pipelines eller dashboards være slået fra. **Liste** viser hver pil som en linje og er det, en telefon åbner med.
 
-Ét kort tegner op til 400 kort, de senest sete flows først; når dit projekt har flere, siger kortet det. Det samme kort leveres af `POST /api/data-observability/lineage/map`, til alle, der må læse dataaktiver, og deres API-nøgler. Et kort med flere siger, hvor mange tabeller det har udeladt, hver talt én gang, og kan begynde et andet sted: vælg en database for at kortlægge flows fra dens tabeller og de kort, de forbinder, eller skriv et navn, og vælg **Søg i hele projektet** for at kortlægge flows fra hver tabel, pipeline, tjeneste og dashboard med det i navnet, uanset hvor gamle de er. **Vis hele kortet** går tilbage. Send `{ "dataStoreId": "<database ID>" }` eller `{ "search": "orders" }` for at lade API'ets kort begynde et andet sted.
+Ét kort tegner op til 400 kort, de senest sete flows først; når dit projekt har flere, siger kortet det. Det samme kort leveres af `POST /api/data-observability/lineage/map`, til alle, der må læse dataaktiver, og deres API-nøgler. Et kort med flere siger, hvor mange tabeller det har udeladt, hver talt én gang, og kan begynde et andet sted: vælg en database for at kortlægge flows fra dens tabeller, de dashboards, der er bygget på dem, og de kort, de forbinder, eller skriv et navn, og vælg **Søg i hele projektet** for at kortlægge flows fra alle tabeller, pipelines, tjenester, dashboards, datasæt og datakilder med det i navnet, uanset hvor gamle de er. **Vis hele kortet** går tilbage. Send `{ "dataStoreId": "<database ID>" }` eller `{ "search": "orders" }` for at lade API'ets kort begynde et andet sted.
 
 ## OpenLineage
 
@@ -132,15 +132,83 @@ Mislykkede opdateringer bruger ikke pipeline-monitorerne. Et datasæt, hvis opda
 
 ## Pipelines
 
-Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sine kørsler: hvornår hver startede og sluttede, hvor lang tid den tog, hvilket forsøg den var, hvor planlæggeren oplyser det (Airflows try number), og fejlen for en mislykket kørsel. Efter fem kørsler lærer hver pipeline af sine egne kørsler, hvor lang tid en kørsel plejer at tage, og hvor lang tid der går mellem kørslerne efter dens tidsplan. En pipelines side anbefaler tre monitorer:
+Hvert job, dbt-projekt og hver synkronisering vises under **Pipelines**, med sine kørsler: hvornår hver startede og sluttede, hvor lang tid den tog, hvilket forsøg den var, hvor planlæggeren oplyser det (Airflows try number), og fejlen for en mislykket kørsel. Efter fem kørsler lærer hver pipeline af sine egne kørsler, hvor lang tid en kørsel plejer at tage, og hvor lang tid der går mellem kørslerne efter dens tidsplan. En pipelines side anbefaler fire monitorer:
 
 - **Pipeline Run Failed**: en kørsel mislykkedes eller blev afbrudt.
 - **Pipeline Run Unusually Long**: en kørsel har taget dobbelt så lang tid som normalt eller mere, tjekket hvert femte minut, mens den kører, så en kørsel, der hænger, opdages, før den slutter.
 - **Pipeline Is Late**: ingen kørsel er startet i længere tid, end tidsplanen tillader.
+- **Pipeline Stopped by Circuit Breaker**: circuit breakeren svarede stop, og stoppet varer, indtil den svarer go, eller en kørsel starter.
 
 En pipelines fane **Ejere** nævner de personer og teams, der passer den, og dens advarsler går til dem. **Oversigt** og **Problemer** nævner ejerne af en pipeline, der fejlede eller er forsinket, eller viser **Ingen ejer** med en måde at tilføje en på.
 
+**Ejerregler** kan navngive en pipelines ejere for dig. På deres fane **Pipelineregler** matcher en regel en pipeline med et regulært udtryk på dens navn, som `orders_daily.load_orders`, eller på dens navnerum, hvor den kører, som `airflow://prod`, og tilføjer sine personer og teams som pipelinens ejere, når OneUptime første gang ser pipelinen. For at tilføje dem til de pipelines, du allerede har, skal du åbne reglen og vælge **Kør nu**.
+
 En pipelines side tegner dens **Afstamning**, det første sted at kigge, når en kørsel mislykkes eller er forsinket: til venstre de tabeller, den læser, til højre de tabeller, den skriver, pipelinen imellem, og hvert kort viser, hvordan det står til nu. Vælg flere trin for at se, hvad tabellerne er bygget af, og hvad der er bygget af dem, og åbn en hvilken som helst tabel for at se dens egen fane **Afstamning**. Et tal for tabeller, der ikke er tegnet, på pipelinens kort eller på en tabels, tegner også her flere af dem på stedet. Vælg en af de kolonner, den skriver, for at følge den hen over pipelinen: op til kolonnen i hver læst tabel, den er bygget fra, og ned til hver tabel, den skriver den til.
+
+## Circuit breakers
+
+En kontrol, der fejler, eller en forsinket tabel giver dens ejere besked, men de pipelines, der læser tabellen, ville stadig køre og kopiere de dårlige data videre. En circuit breaker stopper dem først: pipelinens første trin spørger OneUptime, om de tabeller, den læser, er sunde, og resten kører kun, når svaret er go.
+
+- En kontrol, der fejler, på en tabel, som pipelinen læser, stopper den altid: en kontrol, hvis alarm er åben, eller en dbt-test, der fejlede.
+- En forsinket tabel stopper den også, så snart **Stop, når en tabel, den læser, er forsinket** er slået til på pipelinens side **Circuit breaker**. Det er slået fra for alle pipelines, da en forsinket tabel også bare kan betyde en stille dag.
+- En kontrol, der ikke kunne køre eller ikke har kørt endnu, og en tabel uden kontroller, stopper intet.
+
+Trinnet spørger med en projekt-API-nøgle, der må læse Dataobservabilitet, og navngiver pipelinen som `namespace/name`, kun med dens navn eller med dens ID. Circuit breakeren læser de tabeller, pipelinen læser, ud fra dens afstamning. En forespørgsel kan også navngive `tables`, eller kun dem, hver som `schema.table`, kun med dens navn eller med dens ID; et navn, der ikke matcher nogen tabel, kommer tilbage i `notFound` og tælles aldrig som en tabel, der bestod. Kun de tabeller, som API-nøglen må læse, bliver vurderet.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+Svarets `verdict` er `go` eller `stop`. `reasons` viser hver kontrol, der fejler, med dens tabel, og hver forsinket tabel med hvor forsinket den er; `tables` viser hver vurderet tabel; og `answer` siger det samme i et par sætninger til trinnets log. Med `failWithStatusCode` svarer et stop med HTTP 412, så `curl -f` får trinnet til at fejle. Send `stopsOnLateTables` som `true` eller `false` for at bestemme for én forespørgsel, og `dryRun` som `true` for at spørge, uden at svaret gemmes.
+
+Sæt i Airflow en `ShortCircuitOperator` før de opgaver, der læser tabellerne: når dens funktion returnerer false, springes alle opgaver efter den over.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbts `on-run-start`-hooks kører SQL i dit warehouse, ikke webforespørgsler, så spørg i det trin, der starter dbt: et CI-job, en cron-linje eller den opgave, der kører det. Et dbt-projekts pipeline hedder `dbt/` efterfulgt af projektets navn.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+En forespørgsel, der navngiver en pipeline, gemmes på den, medmindre det er en prøvekørsel. Så længe circuit breakeren har stoppet en pipeline, siger dens side **Circuit breaker**, siden hvornår og hvorfor, dens **Oversigt** åbner med stoppet, og **Kræver handling** og **Problemer** viser den som stoppet i stedet for dens fejlede eller forsinkede kørsel. Stoppet slutter, når circuit breakeren næste gang svarer go, eller når en kørsel starter efter det. Samme side har **Test nu**, som spørger circuit breakeren, uden at svaret gemmes, og trinnet til curl, Airflow og dbt med pipelinens navn udfyldt.
+
+For at høre om et stop skal du tilføje **Pipeline Stopped by Circuit Breaker** fra pipelinens **Anbefalinger**. Dens advarsel åbner, når circuit breakeren svarer stop, går til pipelinens ejere, forbliver åben, så længe stoppet gemmes, og løses, når stoppet slutter. Den læser pipelinens metrik `oneuptime.data.pipeline.circuit_breaker_stopped`: 1, så længe circuit breakeren har stoppet den, og 0, når den ikke har, skrevet når circuit breakeren svarer og derefter hvert femte minut.
+
+Så længe Dataobservabilitet er slået fra på serveren, svarer circuit breakeren go og gemmer intet: at slå et produkt fra stopper aldrig en pipeline.
 
 ## Én advarsel pr. årsag
 
@@ -157,7 +225,7 @@ Den, der ikke må se den advarsel, der forårsagede den, får hverken **Data**-k
 
 ## Afstamning i Power BI
 
-**Matchede tabeller** på hvert BI-værktøj siger, hvor mange overvågede tabeller dets dashboards er bygget på, og under det det første, der forhindrer resten i at blive matchet. **See Why** viser, hvad den seneste læsning fandt, og hvad du skal gøre: databaser, som dine dashboards læser, og som ikke er forbundet til OneUptime, hver kun en **Connect Database** væk med sin type og adresse udfyldt; tabeller, som en forbundet database ikke overvåger, og som kan være udeladt af dens scanning eller ikke indsamlet endnu; og kilder, der ikke er en database, såsom filer og websider. For Power BI nævner den også en lejerindstilling, der er slået fra, datasæt, der læser fra dataflows, og datasæt, som Power BI ikke kan beskrive. **Bygger på** på hvert dashboard siger, hvilke datasæt det viser, og hvor deres data kommer fra, som Power BI angiver det.
+**Matchede tabeller** på hvert BI-værktøj siger, hvor mange overvågede tabeller dets dashboards er bygget på, og under det det første, der forhindrer resten i at blive matchet. **See Why** viser, hvad den seneste læsning fandt, og hvad du skal gøre: databaser, som dine dashboards læser, og som ikke er forbundet til OneUptime, hver kun en **Connect Database** væk med sin type og adresse udfyldt; tabeller, som en forbundet database ikke overvåger, og som kan være udeladt af dens scanning eller ikke indsamlet endnu; og kilder, der ikke er en database, såsom filer og websider. For Power BI nævner den også en lejerindstilling, der er slået fra, dataflows, hvis definitioner Power BI ikke ville eksportere, eller som stadig er ved at blive læst, og datasæt, som Power BI ikke kan beskrive. **Bygger på** på hvert dashboard siger, hvilke datasæt det viser, og hvor deres data kommer fra, som Power BI angiver det.
 
 OneUptime læser hvert Power BI-datasæt fra Power BI's metadatascanning med den Power Query, der ligger bag hver af dets tabeller:
 
@@ -165,6 +233,8 @@ OneUptime læser hvert Power BI-datasæt fra Power BI's metadatascanning med den
 - **SQL, som en forespørgsel kører**: en connectors indstilling **SQL statement**, `Value.NativeQuery` og `Odbc.Query`, og tabellerne efter hver `FROM` og `JOIN`.
 - **Parametre og delte forespørgsler**: en parameter gælder overalt, hvor den nævnes, og en tabel, der læser en staging-forespørgsel, læser det, den forespørgsel læser.
 - **Sammensatte modeller** viser tabellerne i de datasæt, de er bygget på.
+- **Dataflows**: et datasæt, der er bygget på et dataflow, læser det, dataflowets entitet læser. OneUptime eksporterer definitionen af hvert dataflow gennem Power BI's administrator-API, som ikke kræver mere end administrator-API-adgangen ovenfor, og læser entitetens forespørgsel i definitionen på samme måde som et datasæts, sammenkædede entiteter medregnet. Et dataflow eksporteres én gang og igen, når det ændres, eller en dag efter, at en eksport er mislykkedes: højst 60 pr. læsning, inden for Power BI's grænse på 200 i timen, så en lejer med mange dataflows bliver læst igennem i løbet af nogle timer.
+- **Dataverses OData-connectorer**: `Cds.Entities` og `Cds.Contents` fra den ældre Common Data Service-connector samt `Dataverse.Contents` navngiver en tabel efter dens entitetssæt (`accounts`), mens OneUptime gemmer en Dataverse-tabel under dens logiske navn (`account`). Hver indsamling fra et Dataverse-miljø gemmer navnet på hver tabels entitetssæt sammen med tabellen, uanset om det er OneUptime eller en sonde, der indsamler miljøet, og en rapports tabeller matches via disse navne. En ældre sonde sender dem ikke med: indtil den er opdateret, nævner **See Why** de tabeller, der derfor ikke bliver matchet.
 
 En rapport viser sit datasæts tabeller, og et dashboard tabellerne i datasættene bag dets felter. Hvor dataene kommer fra - en databases server og navn, en fils sti, en webadresse - kommer fra scanningens datakilder, som ikke kræver mere end administrator-API-adgangen ovenfor.
 
@@ -173,9 +243,11 @@ Power BI returnerer først et datasæts tabeller, når en Fabric-administrator s
 - **Enhance admin APIs responses with detailed metadata**: hvert datasæts tabeller.
 - **Enhance admin APIs responses with DAX and mashup expressions**: de forespørgsler, der indlæser dem, og som siger, hvilke databasetabeller de læser.
 
-Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet. Et datasæt, der læser fra et dataflow, læses op til dataflowet: OneUptime læser endnu ikke, hvilke tabeller et dataflow indlæser.
+Power BI beskriver så et datasæt, når det er blevet opdateret eller genudgivet; et, der kun bruger DirectQuery, når nogen har åbnet en rapport på det. Det beskriver aldrig realtidsdatasæt, datasæt med en liveforbindelse til Analysis Services, Excel-projektmapper eller datasæt over 1 GB på delt kapacitet.
 
 Hver tabel matches med en overvåget tabel ud fra sit navn, sit skema og sin database, og en server ud fra sit korte eller fulde navn. En tabel fra en anden databasemotor matches aldrig, og det gør en tabel i en anden database heller ikke: en rapport på `Sales.dbo.Orders` knyttes ikke til `Archive.dbo.Orders`, fordi kun `Archive` overvåges.
+
+Den første læsning scanner hele lejeren. Derefter scanner hver timelig læsning kun de arbejdsområder, der er ændret siden den forrige læsning. Én gang om dagen henter den også listen over hele lejeren, hvilket fjerner rapporter og arbejdsområder, der ikke længere findes, og scanner de arbejdsområder, hvis datasæt kom uden deres tabeller eller de forespørgsler, der indlæser dem, så de kommer, når Power BI beskriver datasættene, og dem, hvis seneste scanning er ældst, så hvert arbejdsområde scannes mindst én gang om ugen; **Læs nu** scanner kun det, der er ændret. OneUptime kører op til 16 scanninger ad gangen med op til 100 arbejdsområder i hver, som Power BI tillader, og scanningerne af en stor lejer kan tage flere minutter: den timelige læsning venter op til 20 minutter på dem, og **Læs nu** op til 4. Et arbejdsområde, hvis scanning mislykkedes eller ikke blev færdig, beholder det, der blev læst af det, og BI-værktøjets besked siger det. Den næste læsning scanner det igen, hvis scanningen mislykkedes; en scanning, der ikke blev færdig, startes ikke forfra, men samles op, og dens resultat læses, når Power BI har gjort den færdig, inden for de 24 timer, Power BI gemmer resultatet af en scanning. I en lejer, der er for stor til at gemme hvert arbejdsområdes scanning helt, gemmer OneUptime hele scanningerne af de arbejdsområder, som dets dashboards har brug for, og samler stadig scanninger op, der ikke blev færdige.
 
 [Opdateringer](#visninger-og-opdateringer-i-power-bi) læses adskilt fra tabellerne: en besked om, at nogle datasæts opdateringer ikke kunne læses, siger intet om deres tabeller.
 

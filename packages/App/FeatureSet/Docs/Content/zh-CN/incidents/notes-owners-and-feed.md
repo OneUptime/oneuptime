@@ -60,7 +60,7 @@ flowchart TB
 :::steps
 ### 打开公开备注
 
-打开事件，在它的侧边菜单中选择 **备注 → 公开备注**。备注上方的编辑器会在你发布之前说明谁会读到这条备注：**Public · Visible on your status page**。
+打开事件，在它的侧边菜单中选择 **备注 → 公开备注**。备注上方的编辑器会在你发布之前说明谁会读到这条备注：**Public · Visible on your status page**；没有状态页面显示该事件时，显示 **Public · No status page shows this incident yet**。
 
 ### 撰写更新
 
@@ -88,7 +88,7 @@ flowchart TB
 
 **安静的事件保持安静。** 如果事件在声明时关闭了 **通知状态页订阅者**（或者是作为私密事件声明的），它的订阅者从未得知此事，所以公开备注不应该成为他们听到的第一条消息。在这样的事件上，复选框以关闭状态开始，下方有一行说明原因。你仍然可以勾选它，就这条备注通知订阅者。没有明确选择而发布的备注也遵循同样的规则：Slack 和 Microsoft Teams 中的备注、工作流，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 请求。明确的 `true` 或 `false` 总会被保留。[维护事件](/docs/status-pages/subscribers#维护事件) 和 [事件片段](/docs/status-pages/subscribers#事件片段) 上的公开备注遵循类似的规则，依据的是该维护事件或片段在创建时是否通知了订阅者。私密事件或片段完全不能添加公开备注。
 
-**查看备注将触达谁。** 当 **通知状态页订阅者** 处于勾选状态时，它下方的 **将通知** 行会列出备注将发往的状态页，每个渠道附上“最多”订阅者数量，以及那些列出了事件监视器但不会得到通知的页面和原因。没有人会得到通知时它什么都不显示，除非事件在状态页上隐藏，或者原因是事件的状态页范围。它遵循事件的状态页范围，因此限定到两个站点页面的事件上的备注，会显示它将触达这两个页面。参见 [每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)。
+**查看备注将触达谁。** 当 **通知状态页订阅者** 处于勾选状态时，它下方的 **将通知** 行会列出备注将发往的状态页，每个渠道附上“最多”订阅者数量，以及那些列出了事件监视器但不会得到通知的页面和原因。没有人会得到通知时它什么都不显示，除非原因是事件的状态页范围；为什么没有人会得到通知（事件已隐藏、没有状态页显示它，或显示它的状态页什么都不发送）由复选框下方的那一行说明。它遵循事件的状态页范围，因此限定到两个站点页面的事件上的备注，会显示它将触达这两个页面。参见 [每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)。
 
 **查看他们将收到什么。** 在同一个复选框旁边，**预览** 会显示每个状态页的订阅者针对你正在撰写的备注将收到的邮件，以及它使用哪个模板、为什么使用。在备注有文字之前它保持灰色。**发送测试邮件给我** 只会把这封邮件发送到你自己的账户邮箱，不会发给其他任何人。参见 [订阅者与公告](/docs/status-pages/subscribers#发送前预览邮件)。
 
@@ -302,9 +302,9 @@ flowchart TB
 - **关联的警报** —— `AlertLinked` 和 `AlertUnlinked`，显示为 **警报已关联** 和 **警报已取消关联**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自动化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
-- **视频通话** —— `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded` 和 `VideoCallSummary`：为事件发起的通话及其加入链接、提供方无法发起通话的原因、由某人添加或从提供方读取的通话转录，或 OneUptime AI 从转录中读到的内容，后者也会发布到事件的频道。参见 [视频通话](/docs/workspace-connections/video-calls)。
+- **视频通话** —— `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded`、 `VideoCallTranscriptRemoved` 和 `VideoCallSummary`：为事件发起的通话及其加入链接、提供方无法发起通话的原因、由某人添加、从提供方读取或已删除的通话转录，或 OneUptime AI 从转录中读到的内容，后者也会发布到事件的频道。参见 [视频通话](/docs/workspace-connections/video-calls)。
 
-值班条目说明每次呼叫的经过。一次呼叫的条目会写出其通知所经由的渠道："On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 此人自己的值班规则稍后发送的通知（例如十分钟后的电话）有自己的条目（"… paged Nitin Kumar again via phone call …"），未能发送的通知也一样（"… could not page Nitin Kumar via SMS …"）。当 Twilio 报告电话无人接听或占线时，未接的电话也会有自己的条目："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 每个渠道在一次呼叫中只写一次，因此在有人应答之前不断重复的推送不会每分钟增加一行。应答会写出它来自哪条通知："Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." 以其他方式确认的呼叫，例如在 OneUptime 本身或 OneUptime On-Call 应用中确认的，不写渠道。Feed 从不写出通知未能发送的原因，因为服务商给出的原因可能包含电话号码或电子邮件地址：原因显示在事件的 **通知日志** 和此人自己的 **值班日志** 中。
+值班条目说明每次呼叫的经过。一次呼叫的条目会写出其通知所经由的渠道："On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 此人自己的值班规则稍后发送的通知（例如十分钟后的电话）有自己的条目（"… paged Nitin Kumar again via phone call …"），未能发送的通知也一样（"… could not page Nitin Kumar via SMS …"）。当 Twilio 报告电话无人接听或占线时，未接的电话也会有自己的条目："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 语音信箱接听的电话同样算作未接听，其条目会说明是否留下了留言："… It went to voicemail, and a message was left." 每个渠道在一次呼叫中只写一次，因此在有人应答之前不断重复的推送不会每分钟增加一行。应答会写出它来自哪条通知："Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." 以其他方式确认的呼叫，例如在 OneUptime 本身或 OneUptime On-Call 应用中确认的，不写渠道。Feed 从不写出通知未能发送的原因，因为服务商给出的原因可能包含电话号码或电子邮件地址：原因显示在事件的 **通知日志** 和此人自己的 **值班日志** 中。
 
 每种类型都有自己的图标，所以你可以快速浏览一条很长的信息流，从闲聊中挑出状态变化。AI 生成的根本原因分析会被单独标记，并以受限的 Markdown 模式渲染。**事件已创建** 条目、记录新标题的条目，以及加入或离开片段的条目，会完全按输入的样子显示标题：它们会转义其中的 `\`、`[`、`]`、`*`、`_`、`~`、反引号和 \<，因此标题不会变成图片、原始 HTML、像 \<!here\> 这样的 Slack 提及、隐藏了目标的链接，或粗体、斜体或代码。标题中的地址仍会显示为指向该地址的链接。
 

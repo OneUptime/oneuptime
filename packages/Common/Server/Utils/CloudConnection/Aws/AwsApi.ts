@@ -1,8 +1,15 @@
 import { createHash } from "crypto";
 import Dictionary from "../../../../Types/Dictionary";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
-import { DataSourceHttpResponse } from "../../DataSource/HttpFetch";
+import RetryAfter from "../../../../Utils/RetryAfter";
+import {
+  DataSourceHttpResponse,
+  getDataSourceHttpStatusError,
+} from "../../DataSource/HttpFetch";
+import { asSentence, withAttempts } from "../../DataSource/HttpFailure";
+import { HttpRetryReason, HttpRetryVerdict } from "../../DataSource/HttpRetry";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import LlmProviderHttp, {
   LLM_PROVIDER_DEFAULT_TIMEOUT_IN_MS,
@@ -16,15 +23,23 @@ import {
   CloudReadBudget,
   CloudReadBudgetSpent,
 } from "../CloudConnectorTypes";
+import {
+  AWS_RETRY_AFTER_HEADER,
+  AwsRetryExchange,
+  exchangeWithAwsRetries,
+  getAwsRetryQuota,
+  isAwsReadAction,
+} from "./AwsRetry";
 
 /*
  * ONE SIGNED REQUEST TO AN AWS API, the way every AWS call of a cloud
  * connection is made: signed with Signature Version 4 (the signer the AWS
  * Security Hub connector checks against AWS's published test vectors),
- * sent through the injected transport, retried a few times when AWS asks
- * to slow down, and answered as a JSON object - or an LlmProviderError
- * whose message names the step and carries no secret, classified by the
- * error code AWS answered with.
+ * sent through the injected transport, asked again as the AWS SDKs'
+ * standard retry mode asks - after a throttle, and after a failure for now
+ * when sending it again is safe (AwsRetry) - and answered as a JSON object
+ * - or an LlmProviderError whose message names the step and carries no
+ * secret, classified by the error code AWS answered with.
  *
  * Two protocols are spoken:
  *
@@ -92,18 +107,56 @@ const PERMISSION_CODES: Array<string> = [
   "AuthorizationError",
 ];
 
-const THROTTLING_CODES: Array<string> = [
+/*
+ * The error codes the AWS SDKs' standard retry mode waits out as throttling
+ * ("Retry behavior", AWS SDKs and Tools Reference Guide): the service
+ * turned the request away before doing it. Athena answers
+ * TooManyRequestsException and Glue ThrottlingException, both as 400s, and
+ * S3 SlowDown as a 503. A 5xx with one of these is a throttle.
+ */
+export const AWS_THROTTLING_ERROR_CODES: ReadonlyArray<string> = [
   "Throttling",
   "ThrottlingException",
   "ThrottledException",
+  "RequestThrottledException",
   "TooManyRequestsException",
-  "RequestLimitExceeded",
+  "ProvisionedThroughputExceededException",
+  "TransactionInProgressException",
   "LimitExceededException",
+  "PriorRequestNotComplete",
+  "RequestThrottled",
+  "EC2ThrottledException",
+  "RequestLimitExceeded",
+  "SlowDown",
+  "BandwidthLimitExceeded",
 ];
 
-// Retries after a throttled answer, and the first wait.
-const THROTTLE_RETRIES: number = 3;
-const THROTTLE_FIRST_WAIT_MS: number = 1000;
+/*
+ * The error codes asked again as failures for now: those the standard retry
+ * mode calls transient (RequestTimeout, RequestTimeoutException,
+ * InternalError, STS's IDPCommunicationError), the common errors that say
+ * to try again later (InternalFailure, ServiceUnavailable), Athena's
+ * InternalServerException ("a transient condition or outage"), Glue's
+ * InternalServiceException, and Glue's FederationSourceRetryableException
+ * ("the operation may be retried"). Any other 500, 502, 503 or 504 is one
+ * too, whatever its code.
+ */
+export const AWS_TRANSIENT_ERROR_CODES: ReadonlyArray<string> = [
+  "RequestTimeout",
+  "RequestTimeoutException",
+  "InternalError",
+  "IDPCommunicationError",
+  "InternalFailure",
+  "ServiceUnavailable",
+  "InternalServerException",
+  "InternalServiceException",
+  "FederationSourceRetryableException",
+];
+
+// The statuses asked again whatever their code: a server or a gateway failing for now.
+export const AWS_TRANSIENT_STATUS_CODES: ReadonlyArray<number> = [
+  500, 502, 503, 504,
+];
 
 /*
  * The text between <tag> and </tag>, first occurrence, with the five XML
@@ -170,6 +223,70 @@ export function awsErrorCodeOf(body: string): string {
   return readXmlTag(text, "Code");
 }
 
+/*
+ * The error code a REST-JSON API (Lambda, EKS, OpenSearch Service) names in
+ * its x-amzn-ErrorType header, before any ":" and the URL after it - or ""
+ * when it names none.
+ */
+export function awsErrorTypeHeaderOf(
+  headers: Dictionary<string> | undefined,
+): string {
+  for (const name of Object.keys(headers || {})) {
+    if (name.toLowerCase() === "x-amzn-errortype") {
+      return (headers![name] || "").split(":")[0]!.trim();
+    }
+  }
+
+  return "";
+}
+
+/*
+ * Whether an answer of AWS may pass, read as the AWS SDKs' standard retry
+ * mode reads it: by its error code first (a JSON answer's "__type", an XML
+ * answer's <Code>, a REST-JSON API's x-amzn-ErrorType), then by its
+ * status. A 5xx with a throttling code is a throttle; a 429 is one
+ * whatever its code. A wait AWS names in x-amz-retry-after (milliseconds)
+ * comes with the verdict. Null for a success, and for an answer asking
+ * again would only repeat: a refusal, a request AWS will not take.
+ */
+export function classifyAwsAnswer(
+  response: DataSourceHttpResponse,
+): HttpRetryVerdict | null {
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    return null;
+  }
+
+  const code: string =
+    awsErrorCodeOf(response.bodyText || "") ||
+    awsErrorTypeHeaderOf(response.headers);
+  const namedWait: string | undefined = Object.keys(
+    response.headers || {},
+  ).find((name: string): boolean => {
+    return name.toLowerCase() === AWS_RETRY_AFTER_HEADER;
+  });
+  const waitInMs: number = namedWait
+    ? Number((response.headers![namedWait] || "").trim())
+    : NaN;
+  const withWait: { waitInMs?: number } =
+    Number.isFinite(waitInMs) && waitInMs > 0 ? { waitInMs } : {};
+
+  if (
+    AWS_THROTTLING_ERROR_CODES.includes(code) ||
+    response.statusCode === 429
+  ) {
+    return { reason: HttpRetryReason.Throttled, ...withWait };
+  }
+
+  if (
+    AWS_TRANSIENT_ERROR_CODES.includes(code) ||
+    AWS_TRANSIENT_STATUS_CODES.includes(response.statusCode)
+  ) {
+    return { reason: HttpRetryReason.Unavailable, ...withWait };
+  }
+
+  return null;
+}
+
 // What a failed AWS call means, read from the code it answered with.
 export function classifyAwsError(data: {
   error: unknown;
@@ -195,7 +312,7 @@ export function classifyAwsError(data: {
     kind = CloudConnectionFailureKind.Authentication;
   } else if (PERMISSION_CODES.includes(code)) {
     kind = CloudConnectionFailureKind.Permission;
-  } else if (THROTTLING_CODES.includes(code)) {
+  } else if (AWS_THROTTLING_ERROR_CODES.includes(code)) {
     kind = CloudConnectionFailureKind.RateLimited;
   }
 
@@ -203,6 +320,99 @@ export function classifyAwsError(data: {
     message: failure.message,
     kind,
     statusCode: failure.statusCode,
+    retryAfterSeconds: failure.retryAfterSeconds,
+    responseBody: failure.responseBody,
+  });
+}
+
+// What a transport that throws for a status outside 2xx says of an answer (DataSourceHttpFetch).
+function transportErrorOf(response: DataSourceHttpResponse): BadDataException {
+  return getDataSourceHttpStatusError(
+    response.statusCode,
+    response.bodyText || "",
+  );
+}
+
+/*
+ * A transport's answer to a request that asked for every status
+ * (acceptAnyStatus): the answer itself, or - from a transport that throws
+ * for a status outside 2xx all the same, as a test's fake does - the status
+ * and body its error keeps. Anything else it throws is no answer: it is
+ * thrown on, as the step's failure.
+ */
+function answerOf(data: {
+  error: unknown;
+  step: string;
+  providerTitle: string;
+  secretValues: Array<string>;
+  classify: typeof classifyAwsError;
+}): DataSourceHttpResponse {
+  const failure: LlmProviderError = data.classify({
+    error: data.error,
+    step: data.step,
+    providerTitle: data.providerTitle,
+    secretValues: data.secretValues,
+  });
+
+  if (
+    failure.statusCode === undefined ||
+    failure.responseBody === undefined ||
+    failure.statusCode < 300
+  ) {
+    throw failure;
+  }
+
+  let bodyJson: unknown = undefined;
+
+  try {
+    bodyJson = JSON.parse(failure.responseBody);
+  } catch {
+    bodyJson = undefined;
+  }
+
+  return {
+    statusCode: failure.statusCode,
+    bodyText: failure.responseBody,
+    bodyJson,
+    headers: {},
+  };
+}
+
+/*
+ * The error an answer that is no success ends a call with: the words a
+ * transport's error would have had (classified by AWS's code), the wait
+ * AWS named, and how many times the request was asked, once more than one.
+ */
+function answerError(data: {
+  exchange: AwsRetryExchange;
+  step: string;
+  providerTitle: string;
+  secretValues: Array<string>;
+  classify: typeof classifyAwsError;
+}): LlmProviderError {
+  const failure: LlmProviderError = data.classify({
+    error: transportErrorOf(data.exchange.response),
+    step: data.step,
+    providerTitle: data.providerTitle,
+    secretValues: data.secretValues,
+  });
+  const retryAfterSeconds: number | undefined =
+    RetryAfter.secondsFromHeaders(data.exchange.response.headers) ??
+    (data.exchange.verdict?.waitInMs
+      ? Math.ceil(data.exchange.verdict.waitInMs / 1000)
+      : undefined);
+
+  return new LlmProviderError({
+    message:
+      data.exchange.attempts > 1
+        ? LlmProviderError.redact(
+            withAttempts(asSentence(failure.message), data.exchange.attempts),
+            data.secretValues,
+          )
+        : failure.message,
+    kind: failure.kind,
+    statusCode: failure.statusCode,
+    retryAfterSeconds,
     responseBody: failure.responseBody,
   });
 }
@@ -230,6 +440,36 @@ export interface AwsRequest {
   timeoutInMs?: number | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   budget?: CloudReadBudget | undefined;
+  /*
+   * Whether sending it again after a failure for now cannot do its work
+   * twice. A read is (isAwsReadAction: Describe..., Get..., List...), and
+   * so is a write that sets a setting to one value, which its caller says:
+   * sending it again changes nothing more. When left out, a call whose
+   * action is no read is asked again after a throttle only (AwsRetry).
+   */
+  isSafeToRepeat?: boolean | undefined;
+}
+
+// The action an AWS JSON or Query call names: its X-Amz-Target's, else its form's Action.
+export function getAwsRequestAction(
+  request: Pick<AwsRequest, "target" | "body">,
+): string {
+  if (request.target) {
+    return request.target.split(".").pop() || request.target;
+  }
+
+  const action: unknown = (request.body as Dictionary<string>)["Action"];
+
+  return typeof action === "string" ? action : "";
+}
+
+// Whether the call may be sent again after a failure for now: what it says, else whether it only reads.
+export function isAwsRequestSafeToRepeat(
+  request: Pick<AwsRequest, "target" | "body" | "isSafeToRepeat">,
+): boolean {
+  return (
+    request.isSafeToRepeat ?? isAwsReadAction(getAwsRequestAction(request))
+  );
 }
 
 function formEncode(fields: Dictionary<string>): string {
@@ -242,13 +482,29 @@ function formEncode(fields: Dictionary<string>): string {
     .join("&");
 }
 
+// What one AWS call is, to be signed: AwsRequest without how it is sent.
+export type AwsRequestToSign = Pick<
+  AwsRequest,
+  | "credentials"
+  | "service"
+  | "region"
+  | "host"
+  | "target"
+  | "jsonVersion"
+  | "body"
+  | "now"
+>;
+
 /*
- * Sends one signed request; JSON protocol answers are parsed, query
- * protocol answers are returned as text (XML).
+ * One AWS call, signed with Signature Version 4 at the time now: its URL,
+ * its signed headers and its body. Signed again for each try, so a retry
+ * is never refused as a request too old (RequestExpired).
  */
-export async function sendAwsRequest(
-  request: AwsRequest,
-): Promise<{ json: JSONObject; text: string }> {
+export function signAwsRequest(request: AwsRequestToSign): {
+  url: string;
+  headers: Dictionary<string>;
+  body: string;
+} {
   const isJson: boolean = Boolean(request.target);
   const host: string =
     request.host || getAwsHost(request.service, request.region);
@@ -265,74 +521,101 @@ export async function sendAwsRequest(
         "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
         Accept: "application/xml",
       };
+  const signed: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
+    method: "POST",
+    host,
+    path: "/",
+    headers,
+    body,
+    accessKeyId: request.credentials.accessKeyId.trim(),
+    secretAccessKey: request.credentials.secretAccessKey,
+    sessionToken: request.credentials.sessionToken,
+    region: request.region.trim(),
+    service: request.service,
+    date: request.now ? request.now() : new Date(),
+  });
+
+  return { url: `https://${host}/`, headers: signed.headers, body };
+}
+
+/*
+ * Sends one signed request; JSON protocol answers are parsed, query
+ * protocol answers are returned as text (XML).
+ */
+export async function sendAwsRequest(
+  request: AwsRequest,
+): Promise<{ json: JSONObject; text: string }> {
   const secrets: Array<string> = [
     request.credentials.secretAccessKey,
     ...(request.credentials.sessionToken
       ? [request.credentials.sessionToken]
       : []),
   ];
-  const sleep: (milliseconds: number) => Promise<void> =
-    request.sleep || CLOUD_DEFAULT_SLEEP;
-
-  for (let attempt: number = 0; ; attempt++) {
-    if (request.budget && !request.budget.take()) {
-      throw new CloudReadBudgetSpent();
-    }
-
-    const signed: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
-      method: "POST",
-      host,
-      path: "/",
-      headers,
-      body,
-      accessKeyId: request.credentials.accessKeyId.trim(),
-      secretAccessKey: request.credentials.secretAccessKey,
-      sessionToken: request.credentials.sessionToken,
-      region: request.region.trim(),
-      service: request.service,
-      date: request.now ? request.now() : new Date(),
-    });
-
-    try {
-      const response: DataSourceHttpResponse = await LlmProviderHttp.send({
-        transport: request.transport,
-        method: "POST",
-        url: `https://${host}/`,
-        headers: signed.headers,
-        body,
-        timeoutInMs: request.timeoutInMs,
-        step: request.step,
-        providerTitle: request.providerTitle,
-        secretValues: secrets,
-      });
-
-      const json: JSONObject =
-        response.bodyJson &&
-        typeof response.bodyJson === "object" &&
-        !Array.isArray(response.bodyJson)
-          ? (response.bodyJson as JSONObject)
-          : {};
-
-      return { json, text: response.bodyText || "" };
-    } catch (error) {
-      const failure: LlmProviderError = classifyAwsError({
-        error,
-        step: request.step,
-        providerTitle: request.providerTitle,
-        secretValues: secrets,
-      });
-
-      if (
-        failure.kind === CloudConnectionFailureKind.RateLimited &&
-        attempt < THROTTLE_RETRIES
-      ) {
-        await sleep(THROTTLE_FIRST_WAIT_MS * Math.pow(2, attempt));
-        continue;
+  const exchange: AwsRetryExchange = await exchangeWithAwsRetries({
+    send: async (): Promise<DataSourceHttpResponse> => {
+      // Every try is a request of the read's budget, signed at the time it is sent.
+      if (request.budget && !request.budget.take()) {
+        throw new CloudReadBudgetSpent();
       }
 
-      throw failure;
-    }
+      const signed: {
+        url: string;
+        headers: Dictionary<string>;
+        body: string;
+      } = signAwsRequest(request);
+
+      try {
+        return await LlmProviderHttp.send({
+          transport: request.transport,
+          method: "POST",
+          url: signed.url,
+          headers: signed.headers,
+          body: signed.body,
+          timeoutInMs: request.timeoutInMs,
+          acceptAnyStatus: true,
+          step: request.step,
+          providerTitle: request.providerTitle,
+          secretValues: secrets,
+        });
+      } catch (error) {
+        return answerOf({
+          error,
+          step: request.step,
+          providerTitle: request.providerTitle,
+          secretValues: secrets,
+          classify: classifyAwsError,
+        });
+      }
+    },
+    classify: classifyAwsAnswer,
+    isSafeToRepeat: isAwsRequestSafeToRepeat(request),
+    isDynamoDb: request.service === "dynamodb",
+    quota: getAwsRetryQuota(request.budget),
+    sleep: request.sleep || CLOUD_DEFAULT_SLEEP,
+    now: (): number => {
+      return (request.now ? request.now() : new Date()).getTime();
+    },
+  });
+  const response: DataSourceHttpResponse = exchange.response;
+
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw answerError({
+      exchange,
+      step: request.step,
+      providerTitle: request.providerTitle,
+      secretValues: secrets,
+      classify: classifyAwsError,
+    });
   }
+
+  const json: JSONObject =
+    response.bodyJson &&
+    typeof response.bodyJson === "object" &&
+    !Array.isArray(response.bodyJson)
+      ? (response.bodyJson as JSONObject)
+      : {};
+
+  return { json, text: response.bodyText || "" };
 }
 
 /*
@@ -590,9 +873,10 @@ export function readXmlChildren(xml: string, tag: string): Array<string> {
  * sent with the Content-MD5 S3 asks such a write for.
  *
  * Signed like every other call (Signature Version 4, the payload's hash in
- * x-amz-content-sha256 as S3 requires), retried while AWS asks to slow
- * down - S3 says SlowDown - and held to the read's budget, one request per
- * try. The answer is its status, the few headers a reader uses, and the
+ * x-amz-content-sha256 as S3 requires), asked again as every other call is
+ * (AwsRetry: after a throttle - S3 says SlowDown - and, for a GET or a
+ * request its caller says is safe to send again, after a failure for now),
+ * and held to the read's budget, one request per try. The answer is its status, the few headers a reader uses, and the
  * body as text and as bytes, at most maxBodyBytes of it. The bytes are
  * the body's own when the request keeps them (keepBytes: an object's
  * content, which need not be text - a gzip, a spreadsheet); a
@@ -604,13 +888,12 @@ export function readXmlChildren(xml: string, tag: string): Array<string> {
  * the REST-JSON APIs name only in their message.
  */
 
-// S3's codes for a credential it does not accept, and for "slow down".
+// S3's codes for a credential it does not accept ("slow down" is a throttle: AWS_THROTTLING_ERROR_CODES).
 const REST_AUTHENTICATION_CODES: Array<string> = [
   "InvalidAccessKeyId",
   "InvalidToken",
   "TokenRefreshRequired",
 ];
-const REST_THROTTLING_CODES: Array<string> = ["SlowDown"];
 
 /*
  * What the REST-JSON APIs say of a credential they refuse, in the body's
@@ -671,6 +954,14 @@ export interface AwsRestRequest {
   timeoutInMs?: number | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   budget?: CloudReadBudget | undefined;
+  /*
+   * Whether sending it again after a failure for now cannot do its work
+   * twice: a GET can't, and neither can a POST that only reads (OpenSearch
+   * Service's DescribeDomains) or a PUT that sets a setting to one value,
+   * which their callers say. When left out, anything but a GET is asked
+   * again after a throttle only (AwsRetry).
+   */
+  isSafeToRepeat?: boolean | undefined;
 }
 
 export interface AwsRestResponse {
@@ -733,8 +1024,6 @@ export function classifyAwsRestError(data: {
     })
   ) {
     kind = CloudConnectionFailureKind.Authentication;
-  } else if (REST_THROTTLING_CODES.includes(code)) {
-    kind = CloudConnectionFailureKind.RateLimited;
   }
 
   if (kind === failure.kind) {
@@ -745,6 +1034,7 @@ export function classifyAwsRestError(data: {
     message: failure.message,
     kind,
     statusCode: failure.statusCode,
+    retryAfterSeconds: failure.retryAfterSeconds,
     responseBody: failure.responseBody,
   });
 }
@@ -792,6 +1082,7 @@ async function sendPut(data: {
         headers: data.headers,
         body: data.body,
         timeoutInMs,
+        acceptAnyStatus: true,
       }),
       deadline,
     ]);
@@ -851,33 +1142,31 @@ export async function sendAwsRestRequest(
       ? [request.credentials.sessionToken]
       : []),
   ];
-  const sleep: (milliseconds: number) => Promise<void> =
-    request.sleep || CLOUD_DEFAULT_SLEEP;
+  const exchange: AwsRetryExchange = await exchangeWithAwsRetries({
+    send: async (): Promise<DataSourceHttpResponse> => {
+      // Every try is a request of the read's budget, signed at the time it is sent.
+      if (request.budget && !request.budget.take()) {
+        throw new CloudReadBudgetSpent();
+      }
 
-  for (let attempt: number = 0; ; attempt++) {
-    if (request.budget && !request.budget.take()) {
-      throw new CloudReadBudgetSpent();
-    }
+      const signed: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
+        method,
+        host,
+        path: request.path || "/",
+        query,
+        headers,
+        body,
+        payloadHash,
+        accessKeyId: request.credentials.accessKeyId.trim(),
+        secretAccessKey: request.credentials.secretAccessKey,
+        sessionToken: request.credentials.sessionToken,
+        region: request.region.trim(),
+        service: request.service,
+        date: request.now ? request.now() : new Date(),
+      });
 
-    const signed: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
-      method,
-      host,
-      path: request.path || "/",
-      query,
-      headers,
-      body,
-      payloadHash,
-      accessKeyId: request.credentials.accessKeyId.trim(),
-      secretAccessKey: request.credentials.secretAccessKey,
-      sessionToken: request.credentials.sessionToken,
-      region: request.region.trim(),
-      service: request.service,
-      date: request.now ? request.now() : new Date(),
-    });
-
-    try {
-      const response: DataSourceHttpResponse =
-        method === "PUT"
+      try {
+        return method === "PUT"
           ? await sendPut({
               transport: request.transport,
               url,
@@ -896,59 +1185,70 @@ export async function sendAwsRestRequest(
               body: method === "POST" ? body : undefined,
               timeoutInMs: request.timeoutInMs,
               ...(request.keepBytes ? { keepBodyBytes: true } : {}),
+              acceptAnyStatus: true,
               step: request.step,
               providerTitle: request.providerTitle,
               secretValues: secrets,
             });
-
-      // The body as stored when it was kept, else its text's UTF-8.
-      const whole: Buffer =
-        request.keepBytes && response.bodyBytes
-          ? response.bodyBytes
-          : Buffer.from(response.bodyText || "", "utf8");
-      const truncated: boolean = whole.length > maxBodyBytes;
-      const kept: Buffer = truncated ? whole.subarray(0, maxBodyBytes) : whole;
-      const answerHeaders: Dictionary<string> = {};
-
-      for (const name of REST_RESPONSE_HEADERS) {
-        const value: string | undefined = (response.headers || {})[name];
-
-        if (value !== undefined) {
-          answerHeaders[name] = value;
-        }
+      } catch (error) {
+        return answerOf({
+          error,
+          step: request.step,
+          providerTitle: request.providerTitle,
+          secretValues: secrets,
+          classify: classifyAwsRestError,
+        });
       }
+    },
+    classify: classifyAwsAnswer,
+    isSafeToRepeat: request.isSafeToRepeat ?? method === "GET",
+    quota: getAwsRetryQuota(request.budget),
+    sleep: request.sleep || CLOUD_DEFAULT_SLEEP,
+    now: (): number => {
+      return (request.now ? request.now() : new Date()).getTime();
+    },
+  });
+  const response: DataSourceHttpResponse = exchange.response;
 
-      return {
-        status: response.statusCode,
-        headers: answerHeaders,
-        text: truncated ? kept.toString("utf8") : response.bodyText || "",
-        bytes: new Uint8Array(kept),
-        json:
-          !truncated &&
-          response.bodyJson &&
-          typeof response.bodyJson === "object" &&
-          !Array.isArray(response.bodyJson)
-            ? (response.bodyJson as JSONObject)
-            : undefined,
-        truncated,
-      };
-    } catch (error) {
-      const failure: LlmProviderError = classifyAwsRestError({
-        error,
-        step: request.step,
-        providerTitle: request.providerTitle,
-        secretValues: secrets,
-      });
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw answerError({
+      exchange,
+      step: request.step,
+      providerTitle: request.providerTitle,
+      secretValues: secrets,
+      classify: classifyAwsRestError,
+    });
+  }
 
-      if (
-        failure.kind === CloudConnectionFailureKind.RateLimited &&
-        attempt < THROTTLE_RETRIES
-      ) {
-        await sleep(THROTTLE_FIRST_WAIT_MS * Math.pow(2, attempt));
-        continue;
-      }
+  // The body as stored when it was kept, else its text's UTF-8.
+  const whole: Buffer =
+    request.keepBytes && response.bodyBytes
+      ? response.bodyBytes
+      : Buffer.from(response.bodyText || "", "utf8");
+  const truncated: boolean = whole.length > maxBodyBytes;
+  const kept: Buffer = truncated ? whole.subarray(0, maxBodyBytes) : whole;
+  const answerHeaders: Dictionary<string> = {};
 
-      throw failure;
+  for (const name of REST_RESPONSE_HEADERS) {
+    const value: string | undefined = (response.headers || {})[name];
+
+    if (value !== undefined) {
+      answerHeaders[name] = value;
     }
   }
+
+  return {
+    status: response.statusCode,
+    headers: answerHeaders,
+    text: truncated ? kept.toString("utf8") : response.bodyText || "",
+    bytes: new Uint8Array(kept),
+    json:
+      !truncated &&
+      response.bodyJson &&
+      typeof response.bodyJson === "object" &&
+      !Array.isArray(response.bodyJson)
+        ? (response.bodyJson as JSONObject)
+        : undefined,
+    truncated,
+  };
 }

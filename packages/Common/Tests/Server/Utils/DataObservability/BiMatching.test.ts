@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   BiCatalog,
+  isEntitySetUnknown,
   isSameBiHost,
   matchBiTable,
   matchBiTables,
@@ -289,6 +290,212 @@ describe("what narrows the rest", () => {
 
   test("a name that still fits two tables matches neither", () => {
     expect(matched(ref({ table: "Customers" }))).toBeNull();
+  });
+});
+
+/*
+ * Power BI's OData connectors to Dataverse name a table by its entity set
+ * (#9554). It is the watched table whose collection keeps that entity set
+ * name (#9696) - in the environment at the host the connector named - and
+ * nothing when no table keeps it: an entity set's name is never read as a
+ * table's. Kept by every collection, whether OneUptime or a probe collects
+ * the environment.
+ */
+describe("a Dataverse table named by its entity set", () => {
+  const DATAVERSE: BiCatalog = {
+    stores: [
+      {
+        dataStoreId: "contoso",
+        kind: DataStoreKind.Dataverse,
+        databaseName: "contoso",
+        serverAddress: "contoso.crm.dynamics.com",
+      },
+      {
+        dataStoreId: "contoso-dev",
+        kind: DataStoreKind.Dataverse,
+        databaseName: "contoso-dev",
+        serverAddress: "contoso-dev.crm.dynamics.com",
+      },
+      {
+        dataStoreId: "sql",
+        kind: DataStoreKind.SqlServer,
+        databaseName: "Sales",
+        serverAddress: "sql01",
+      },
+    ],
+    assets: [
+      {
+        dataAssetId: "contoso-account",
+        dataStoreId: "contoso",
+        schemaName: "dbo",
+        name: "account",
+        entitySetName: "accounts",
+      },
+      {
+        dataAssetId: "contoso-opportunity",
+        dataStoreId: "contoso",
+        schemaName: "dbo",
+        name: "opportunity",
+        entitySetName: "opportunities",
+      },
+      // An entity set a maker renamed: its name is not its table's plural.
+      {
+        dataAssetId: "contoso-deal",
+        dataStoreId: "contoso",
+        schemaName: "dbo",
+        name: "cr123_deal",
+        entitySetName: "cr123_bargains",
+      },
+      {
+        dataAssetId: "dev-account",
+        dataStoreId: "contoso-dev",
+        schemaName: "dbo",
+        name: "account",
+        entitySetName: "accounts",
+      },
+      // A SQL Server table spelled as an entity set: never an entity set's table.
+      {
+        dataAssetId: "sql-accounts",
+        dataStoreId: "sql",
+        schemaName: "dbo",
+        name: "accounts",
+      },
+    ],
+  };
+
+  function entitySet(table: string, host: string | null): BiTableRef {
+    return ref({ table, engine: "dataverse", host, isEntitySet: true });
+  }
+
+  test("is the table whose collection keeps that entity set name, at the connector's host", () => {
+    expect(
+      matchBiTable(entitySet("accounts", "contoso.crm.dynamics.com"), DATAVERSE)
+        ?.dataAssetId,
+    ).toBe("contoso-account");
+    expect(
+      matchBiTable(
+        entitySet("Opportunities", "contoso.crm.dynamics.com"),
+        DATAVERSE,
+      )?.dataAssetId,
+    ).toBe("contoso-opportunity");
+  });
+
+  test("two environments with the same entity set: each its own table", () => {
+    expect(
+      matchBiTable(
+        entitySet("accounts", "contoso-dev.crm.dynamics.com"),
+        DATAVERSE,
+      )?.dataAssetId,
+    ).toBe("dev-account");
+  });
+
+  test("a renamed entity set is its table's, and its plural is no other's", () => {
+    expect(
+      matchBiTable(
+        entitySet("cr123_bargains", "contoso.crm.dynamics.com"),
+        DATAVERSE,
+      )?.dataAssetId,
+    ).toBe("contoso-deal");
+    expect(
+      matchBiTable(
+        entitySet("cr123_deals", "contoso.crm.dynamics.com"),
+        DATAVERSE,
+      ),
+    ).toBeNull();
+  });
+
+  test("another environment, an unknown host, a table not watched or no names kept: no table", () => {
+    expect(
+      matchBiTable(
+        entitySet("accounts", "fabrikam.crm.dynamics.com"),
+        DATAVERSE,
+      ),
+    ).toBeNull();
+    expect(matchBiTable(entitySet("accounts", null), DATAVERSE)).toBeNull();
+    // An entity set no watched table keeps is not guessed from its letters.
+    expect(
+      matchBiTable(
+        entitySet("contacts", "contoso.crm.dynamics.com"),
+        DATAVERSE,
+      ),
+    ).toBeNull();
+    // Tables collected before the names were kept, or by an older probe: no name, no match.
+    expect(
+      matchBiTable(entitySet("accounts", "contoso.crm.dynamics.com"), {
+        stores: DATAVERSE.stores,
+        assets: DATAVERSE.assets.map((asset: UsageAsset): UsageAsset => {
+          return { ...asset, entitySetName: null };
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  test("an environment whose tables keep no entity set name is told apart from one that does not watch the table", () => {
+    const unnamed: BiCatalog = {
+      stores: DATAVERSE.stores,
+      assets: DATAVERSE.assets.map((asset: UsageAsset): UsageAsset => {
+        return asset.dataStoreId === "contoso"
+          ? { ...asset, entitySetName: undefined }
+          : asset;
+      }),
+    };
+
+    // Its tables were collected by an older probe, or before the names were kept.
+    expect(
+      isEntitySetUnknown(
+        entitySet("accounts", "contoso.crm.dynamics.com"),
+        unnamed,
+      ),
+    ).toBe(true);
+    // An environment that keeps them does not watch the table: no reason to wait.
+    expect(
+      isEntitySetUnknown(
+        entitySet("contacts", "contoso-dev.crm.dynamics.com"),
+        unnamed,
+      ),
+    ).toBe(false);
+    // No environment watched at the host, a logical name, or no host: not this.
+    expect(
+      isEntitySetUnknown(
+        entitySet("accounts", "fabrikam.crm.dynamics.com"),
+        unnamed,
+      ),
+    ).toBe(false);
+    expect(
+      isEntitySetUnknown(
+        ref({ table: "account", host: "contoso.crm.dynamics.com" }),
+        unnamed,
+      ),
+    ).toBe(false);
+    expect(isEntitySetUnknown(entitySet("accounts", null), unnamed)).toBe(
+      false,
+    );
+  });
+
+  test("Power BI's own M, read and matched end to end", () => {
+    const tables: Array<BiTableRef> = readPowerQueryTables(
+      'let Source = Cds.Entities("https://contoso.crm.dynamics.com/", [ReorderColumns=null, UseFormattedValue=null]), entities = Source{[Group="entities"]}[Data], accounts = entities{[EntitySetName="accounts"]}[Data] in accounts',
+    );
+
+    expect(
+      matchBiTables(tables, DATAVERSE).map((asset: UsageAsset): string => {
+        return asset.dataAssetId;
+      }),
+    ).toEqual(["contoso-account"]);
+  });
+
+  test("a table named by its logical name still matches as before", () => {
+    expect(
+      matchBiTable(
+        ref({
+          schema: "dbo",
+          table: "account",
+          engine: "dataverse",
+          host: "contoso.crm.dynamics.com",
+        }),
+        DATAVERSE,
+      )?.dataAssetId,
+    ).toBe("contoso-account");
   });
 });
 

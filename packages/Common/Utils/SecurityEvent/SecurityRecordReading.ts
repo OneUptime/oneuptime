@@ -7,6 +7,7 @@ import {
 import OcsfSeverity, {
   OcsfSeverityId,
 } from "../../Types/SecurityEvent/OcsfSeverity";
+import { MAX_RESOURCE_ID_LENGTH } from "../SecurityCase/SecurityConnectionMatch";
 import { buildObservables, contentHashEventUid } from "./NormalizerHelpers";
 
 /*
@@ -43,9 +44,37 @@ export interface SecurityRecordReading {
   targetIp?: string | undefined;
   targetPort?: number | undefined;
   targetResource?: string | undefined;
+  /*
+   * The cloud resources the record is about, by the id their Cloud
+   * Resource keeps (an ARN, an Azure resource ID, a Google Cloud full
+   * resource name - LogParsers/CloudAuditResources): named among the
+   * event's observables, so the resource's own page finds it (#9779).
+   */
+  resourceIds?: Array<string> | undefined;
   mitreTactics?: Array<string> | undefined;
   mitreTechniques?: Array<string> | undefined;
   attributes: JSONObject;
+}
+
+// The most cloud resources one event names among its observables.
+export const MAX_EVENT_RESOURCE_IDS: number = 10;
+
+/*
+ * A record's cloud resource ids as observables: trimmed, each at most
+ * MAX_RESOURCE_ID_LENGTH long - a longer one is left out, never cut, as a
+ * cut id would name another resource - and at most MAX_EVENT_RESOURCE_IDS.
+ */
+export function getResourceIdObservables(
+  resourceIds: Array<string> | undefined,
+): Array<string> {
+  return (resourceIds || [])
+    .map((id: string): string => {
+      return typeof id === "string" ? id.trim() : "";
+    })
+    .filter((id: string): boolean => {
+      return id.length > 0 && id.length <= MAX_RESOURCE_ID_LENGTH;
+    })
+    .slice(0, MAX_EVENT_RESOURCE_IDS);
 }
 
 // The longest message an event made from a record keeps.
@@ -126,6 +155,7 @@ export function toNormalizedSecurityEvent(data: {
       targetHost,
       principalIp,
       targetIp,
+      ...getResourceIdObservables(reading.resourceIds),
     ]),
     attributes: reading.attributes,
   };

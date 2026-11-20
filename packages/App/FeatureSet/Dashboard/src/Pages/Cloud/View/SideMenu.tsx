@@ -29,6 +29,12 @@ import React, {
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  ResourceDataSecurityMenu,
+  useResourceDataSecurityMenu,
+  useResourceSecurityEventsMenu,
+} from "../../../Components/ResourceDataSecurity/UseResourceSecurityMenu";
+import { DataStoreResourceKind } from "Common/Types/DataSecurity/DataStoreResource";
 import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
@@ -46,6 +52,13 @@ export interface ComponentProps {
    * role's would only ever say there are none.
    */
   hasRecommendations?: boolean | undefined;
+  /*
+   * A resource an event can reach: one its cloud's audit log names by its
+   * own ID, with logs of its own, or answering on a name or address of its
+   * own (canCloudResourceHaveSecurityEvents). Its menu has Security
+   * Events, after Logs.
+   */
+  hasSecurityEvents?: boolean | undefined;
 }
 
 /*
@@ -61,6 +74,13 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  // Security Events inside the resource (#9779).
+  const showSecurityEvents: boolean = useResourceSecurityEventsMenu();
+  const dataSecurityMenu: ResourceDataSecurityMenu | null =
+    useResourceDataSecurityMenu({
+      kind: DataStoreResourceKind.CloudResource,
+      modelId: props.modelId,
+    });
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -183,6 +203,26 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {/*
+         * The security events about this resource (#9779): what its
+         * cloud's audit log names it in, and what was read from its own
+         * logs. Only in a project that uses Security Events, for whoever may
+         * read them, and for a resource an event can reach at all.
+         */}
+        {showSecurityEvents && props.hasSecurityEvents ? (
+          <SideMenuItem
+            link={{
+              title: "Security Events",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.ShieldCheck}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "Feed",
@@ -285,6 +325,34 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Activity}
         />
       </SideMenuSection>
+
+      {/*
+       * What Data Security says about this resource (#9547): the sensitive
+       * data a bucket or a database holds and what to fix on it, and how it
+       * stands against each framework (#9555) - only for a resource Data
+       * Security has read, in a project that uses Data Security. Folded by
+       * its title, and open by itself on its own pages.
+       */}
+      {dataSecurityMenu ? (
+        <SideMenuSection title="Security">
+          <SideMenuItem
+            link={{
+              title: "Data Security",
+              to: dataSecurityMenu.dataSecurityRoute,
+            }}
+            icon={IconProp.Fingerprint}
+          />
+          <SideMenuItem
+            link={{
+              title: "Compliance",
+              to: dataSecurityMenu.complianceRoute,
+            }}
+            icon={IconProp.ClipboardDocumentCheck}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       {getDeveloperSideMenuSection({
         modelType: CloudResource,

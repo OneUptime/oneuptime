@@ -1,9 +1,22 @@
 import ProjectReferencesService from "./ProjectReferencesService";
+import WorkflowService from "./WorkflowService";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
+import WorkflowRunAsAuthority, {
+  WorkflowRunAsAction,
+  WorkflowRunAsGiver,
+} from "../Utils/Workflow/WorkflowRunAsAuthority";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import {
+  WorkflowRunAs,
+  readWorkflowRunAs,
+} from "../../Types/Workflow/WorkflowRunAs";
+import Workflow from "../../Models/DatabaseModels/Workflow";
 import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -33,6 +46,9 @@ import Model from "../../Models/DatabaseModels/WorkflowVariable";
 function isSecretValue(value: unknown): boolean {
   return toStoredBoolean(value) === true;
 }
+
+// The workflow a variable is of, under either of its names.
+const WORKFLOW_KEYS: Array<string> = ["workflowId", "workflow"];
 
 /*
  * The settings of an OAuth 2.0 variable a person can change after creating it.
@@ -156,8 +172,222 @@ function normalizeSettingForComparison(
 }
 
 export class Service extends ProjectReferencesService<Model> {
+  /*
+   * The raised workflows each update writes variables of, read once the
+   * update may be made (onUpdatePermitted) and given anew by its person
+   * once it is (onUpdateSuccess). See holdVariablesToWorkflowHolders.
+   */
+  private raisedWorkflowsOfUpdates: WeakMap<UpdateBy<Model>, Array<ObjectID>> =
+    new WeakMap<UpdateBy<Model>, Array<ObjectID>>();
+
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A VARIABLE OF A WORKFLOW THAT RUNS AS MORE THAN DEFAULT (#9695) is part
+   * of what the workflow does: its steps read it. So it is created, changed
+   * and deleted only by who may change the workflow - a person or a project
+   * API key that holds what it runs as (WorkflowRunAsAuthority.assertMayAct)
+   * - and they give the workflow their permissions, as saving its steps does
+   * (renewGivers). The project's global variables belong to no workflow,
+   * and no such workflow reads them (RunWorkflow), so they ask nothing.
+   * OneUptime's own writes are its business. Answers the raised workflows
+   * among `workflowIds`.
+   */
+  private async holdVariablesToWorkflowHolders(data: {
+    workflowIds: Array<ObjectID | null | undefined>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<ObjectID>> {
+    if (data.props.isRoot) {
+      return [];
+    }
+
+    const ids: Array<ObjectID> = [];
+
+    for (const workflowId of data.workflowIds) {
+      if (
+        workflowId &&
+        !ids.some((id: ObjectID): boolean => {
+          return id.toString() === workflowId.toString();
+        })
+      ) {
+        ids.push(workflowId);
+      }
+    }
+
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const workflows: Array<Workflow> = await WorkflowService.findBy({
+      query: {
+        _id: QueryHelper.any(ids),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+      },
+      skip: 0,
+      limit: ids.length,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const raised: Array<ObjectID> = [];
+
+    for (const workflow of workflows) {
+      if (
+        !workflow.id ||
+        !workflow.projectId ||
+        readWorkflowRunAs(workflow.runAs) === WorkflowRunAs.Default
+      ) {
+        continue;
+      }
+
+      await WorkflowRunAsAuthority.assertMayAct({
+        setting: {
+          runAs: workflow.runAs,
+          customRoleId: workflow.runAsCustomRoleId,
+        },
+        projectId: workflow.projectId,
+        props: data.props,
+        action: WorkflowRunAsAction.ChangeVariable,
+      });
+
+      raised.push(workflow.id);
+    }
+
+    return raised;
+  }
+
+  /*
+   * Whoever changed a raised workflow's variables - a person, or a project
+   * API key (#9765) - gives it their permissions from now on
+   * (WorkflowService.recordRunAsGiven): they held them, or the change was
+   * refused. Never fails the change, which is made.
+   */
+  private async renewGivers(data: {
+    workflowIds: Array<ObjectID> | null | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const giver: WorkflowRunAsGiver | null = WorkflowRunAsAuthority.getGiver(
+      data.props,
+    );
+
+    if (!data.workflowIds?.length || !giver) {
+      return;
+    }
+
+    try {
+      await WorkflowService.recordRunAsGiven({
+        workflowIds: data.workflowIds,
+        giver: giver,
+      });
+    } catch (error) {
+      logger.error(
+        `Could not record who gave workflows their permissions after a change to their variables: ${error}`,
+      );
+    }
+  }
+
+  // A raised workflow's variable, created by who may change the workflow.
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    onCreate.carryForward = await this.holdVariablesToWorkflowHolders({
+      workflowIds: [
+        RelationIdUtil.readConsistent(
+          onCreate.createBy.data as unknown as Record<string, unknown>,
+          WORKFLOW_KEYS,
+          "Workflow",
+        ),
+      ],
+      props: onCreate.createBy.props,
+    });
+  }
+
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await this.renewGivers({
+      workflowIds: onCreate.carryForward as Array<ObjectID> | null,
+      props: onCreate.createBy.props,
+    });
+
+    return createdItem;
+  }
+
+  // A raised workflow's variable, changed by who may change the workflow.
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        workflowId: true,
+      },
+    );
+
+    this.raisedWorkflowsOfUpdates.set(
+      updateBy,
+      await this.holdVariablesToWorkflowHolders({
+        workflowIds: rows.map((row: Model): ObjectID | undefined => {
+          return row.workflowId;
+        }),
+        props: updateBy.props,
+      }),
+    );
+  }
+
+  // A raised workflow's variable, deleted by who may change the workflow.
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    await super.onBeforeDelete(deleteBy);
+
+    if (deleteBy.props.isRoot) {
+      return { deleteBy: deleteBy, carryForward: null };
+    }
+
+    const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        workflowId: true,
+      },
+    );
+
+    return {
+      deleteBy: deleteBy,
+      carryForward: await this.holdVariablesToWorkflowHolders({
+        workflowIds: rows.map((row: Model): ObjectID | undefined => {
+          return row.workflowId;
+        }),
+        props: deleteBy.props,
+      }),
+    };
+  }
+
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await this.renewGivers({
+      workflowIds: onDelete.carryForward as Array<ObjectID> | null,
+      props: onDelete.deleteBy.props,
+    });
+
+    return await super.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
   }
 
   /*
@@ -322,6 +552,19 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // Whoever changed a raised workflow's variables gives it their permissions.
+    const raisedWorkflowIds: Array<ObjectID> | undefined =
+      this.raisedWorkflowsOfUpdates.get(onUpdate.updateBy);
+
+    this.raisedWorkflowsOfUpdates.delete(onUpdate.updateBy);
+
+    if (updatedItemIds.length > 0) {
+      await this.renewGivers({
+        workflowIds: raisedWorkflowIds,
+        props: onUpdate.updateBy.props,
+      });
+    }
+
     const carryForward: UpdateCarryForward | null =
       (onUpdate.carryForward as UpdateCarryForward | null) || null;
 

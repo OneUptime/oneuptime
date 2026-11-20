@@ -521,7 +521,7 @@ CloudWatch 메트릭은 네임스페이스에 따라 달라지는 차원으로 �
 | `AWS/GlobalAccelerator` | `Accelerator` (without `Listener`, `EndpointGroup`) | Global Accelerator | `AWS::GlobalAccelerator::Accelerator` | IaaS |
 | `AWS/Route53` | `HealthCheckId` | Route 53 Health Check | `AWS::Route53::HealthCheck` | IaaS |
 | `AWS/NetworkFirewall` | `FirewallName` | Network Firewall | `AWS::NetworkFirewall::Firewall` | IaaS |
-| `AWS/WAFV2` | `WebACL` (without `Rule`, `RuleGroup`) | WAF Web ACL | `AWS::WAFv2::WebACL` | PaaS |
+| `AWS/WAFV2` | `WebACL` with `Rule` `ALL` (without `RuleGroup`) | WAF Web ACL | `AWS::WAFv2::WebACL` | PaaS |
 | `AWS/S3` | `BucketName` | S3 Bucket | `AWS::S3::Bucket` | IaaS |
 | `AWS/EFS` | `FileSystemId` | EFS File System | `AWS::EFS::FileSystem` | IaaS |
 | `AWS/FSx` | `FileSystemId` | FSx File System | `AWS::FSx::FileSystem` | IaaS |
@@ -551,6 +551,8 @@ CloudWatch 메트릭은 네임스페이스에 따라 달라지는 차원으로 �
 | `AWS/AmazonMQ` | `Broker` | Amazon MQ Broker | `AWS::AmazonMQ::Broker` | PaaS |
 | `AWS/Kafka` | `Cluster Name` | MSK Cluster | `AWS::MSK::Cluster` | PaaS |
 | `AWS/Events` | `RuleName` | EventBridge Rule | `AWS::Events::Rule` | PaaS |
+| `Glue` | `JobName` with `JobRunId` `ALL` | Glue Job | `AWS::Glue::Job` | PaaS |
+| `AWS/Athena` | `WorkGroup` | Athena Workgroup | `AWS::Athena::WorkGroup` | PaaS |
 | `AWS/ApiGateway` | `ApiName` | API Gateway REST API | `AWS::ApiGateway::RestApi` | PaaS |
 | `AWS/ApiGateway` | `ApiId` (without `ApiName`) | API Gateway HTTP or WebSocket API | `AWS::ApiGatewayV2::Api` | PaaS |
 | `AWS/AppSync` | `GraphQLAPIId` | AppSync GraphQL API | `AWS::AppSync::GraphQLApi` | PaaS |

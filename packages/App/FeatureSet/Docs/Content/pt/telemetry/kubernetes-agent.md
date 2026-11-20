@@ -9,6 +9,7 @@ O agente Kubernetes do OneUptime é um chart Helm que coleta as métricas, os ev
 - [Instale o agente](#instale-o-agente): Quatro etapas com Helm.
 - [Instale como complemento do Amazon EKS](#instale-como-complemento-do-amazon-eks): Pelo console do EKS, sem Helm.
 - [OpenShift](#openshift): O preset, as security context constraints que ele cria e os alertas do próprio OpenShift.
+- [Reforço de segurança do cluster](#reforço-de-segurança-do-cluster): Pontuações dos Padrões de Segurança de Pods e do CIS Benchmark, e as permissões do próprio agente.
 - [Opções de configuração](#opções-de-configuração): Filtros, amostragem, plano de controle, service mesh, custos e rótulos.
 - [Agente de IA do Kubernetes](#agente-de-ia-do-kubernetes): `kubectl` somente leitura para a OneUptime AI, e correções quando você as permitir.
 - [Envie menos](#reduzindo-o-volume-de-dados-coletados): As alavancas, em ordem de impacto.
@@ -32,7 +33,7 @@ flowchart TB
 | Instrumentação eBPF (OBI) | DaemonSet | Traces e métricas de requisições HTTP, gRPC, SQL e Redis de cada pod, e o mapa de serviços. | Por padrão, exceto no GKE Autopilot e no EKS Fargate |
 | Agente de IA do Kubernetes | Deployment | `kubectl` somente leitura para a OneUptime AI enquanto ela investiga um incidente ou alerta. | Por padrão |
 | Leitor de logs | Deployment | Logs de pods pela API do Kubernetes, onde o coletor de nó não consegue lê-los. | Com os presets `gke-autopilot`, `eks-fargate` e `openshift-restricted` |
-| Motor de custos e coletor de custos | Deployments | Gastos por namespace, carga de trabalho e pod. | Com `cost.enabled=true` |
+| Motor de custos e coletor de custos | Deployments | Gastos por namespace, carga de trabalho e pod. | Por padrão, exceto no GKE Autopilot e no EKS Fargate |
 
 Toda imagem do agente é só para Linux, então toda carga de trabalho fica fixada em nós Linux.
 
@@ -199,7 +200,8 @@ Defina-os em **Optional configuration settings**, no console do EKS, ou com `--c
 - `oneuptime.labels`: rótulos do projeto para tudo o que este cluster envia, como `{"team": "payments"}`.
 - `preset`: `eks-fargate` para um cluster que roda só no Fargate; caso contrário, `standard`, o padrão.
 - `logs.enabled`, `ebpf.enabled` e `aiAgent.enabled`: logs de pods, traces de eBPF e o [agente de IA do Kubernetes](#agente-de-ia-do-kubernetes), os três ativados por padrão.
-- `kubeStateMetrics.enabled` e `cost.enabled`: kube-state-metrics e a [observabilidade de custos](/docs/telemetry/kubernetes-cost), os dois desativados por padrão.
+- `kubeStateMetrics.enabled`: kube-state-metrics, desativado por padrão.
+- `cost.enabled`: [observabilidade de custos](/docs/telemetry/kubernetes-cost), `auto` por padrão: ativada, exceto com o preset `eks-fargate`.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -266,12 +268,13 @@ Para recuperá-los, mude para `openshift` com `--set preset=openshift` em um upg
 | Eventos do Kubernetes | Cada evento, Warning e Normal, de cada namespace e tipo de objeto: veja [Eventos do Kubernetes](#eventos-do-kubernetes) |
 | Logs de pods | stdout e stderr de cada contêiner (via `hostPath` em clusters padrão, pela API do Kubernetes no Autopilot e no Fargate) |
 | Objetos do OpenShift (os presets do OpenShift) | ClusterOperators, a ClusterVersion, Routes, DeploymentConfigs e Services: veja [OpenShift](#openshift) |
+| RBAC, contas de serviço e NetworkPolicies | Roles, ClusterRoles e as vinculações deles, ServiceAccounts e NetworkPolicies, com acesso somente leitura, a cada `resourceSpecs.interval`, para pontuar o reforço de segurança do cluster: veja [Reforço de segurança do cluster](#reforço-de-segurança-do-cluster). Nenhum Secret é lido em momento algum |
 | Traces de aplicação (eBPF, ativados por padrão) | Spans HTTP, gRPC, SQL e Redis de cada pod, sem SDK nem mudanças de código |
 | Métricas RED de HTTP (eBPF) | `http.server.request.duration` e os tamanhos dos corpos de requisição e resposta, por serviço |
 | Grafo de serviços (eBPF) | Arestas de taxa de requisições, latência e erros entre chamador e chamado, que desenham o mapa de serviços |
 | Métricas de fluxo de rede (eBPF) | Contadores de bytes e pacotes TCP e UDP de pod para pod, com metadados do Kubernetes |
 | Estatísticas de TCP (eBPF) | Contadores de tempo de ida e volta, conexões com falha e retransmissões por nó |
-| Custos de cargas de trabalho (opcional, `cost.enabled=true`) | Gastos por namespace, carga de trabalho e pod, com ociosidade e eficiência, e custos por hora de nós e volumes: veja [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost) |
+| Custos de cargas de trabalho (ativados por padrão, exceto no GKE Autopilot e no EKS Fargate) | Gastos por namespace, carga de trabalho e pod, com ociosidade e eficiência, também como métricas para alertas, e custos por hora de nós e volumes: veja [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost) |
 
 ## Eventos do Kubernetes
 
@@ -310,6 +313,49 @@ Cada evento também é um registro. Um aviso é guardado com a gravidade **Aviso
 | `k8s.namespace.name` | `default` |
 
 Pesquise-os em **Registros**, ou descarte os que não quer com um filtro de descarte. Para ser avisado quando um acontecer, ative **Warning Events** na página **Recomendações** do cluster, ou selecione **Ativar alertas de avisos** no fim da página **Eventos** dele: um [monitor de registros](/docs/monitor/logs-monitor) sobre os avisos do cluster que gera um alerta por objeto e motivo, e o resolve quando 5 minutos passam sem um novo aviso sobre ele. Para ser avisado só de alguns motivos, adicione `k8s.event.reason` ao filtro dele.
+
+## Reforço de segurança do cluster
+
+A página **Conformidade** de um cluster, em **Segurança**, pontua o próprio cluster na seção **Reforço de segurança do cluster**, em relação a três estruturas. Ela lê o que o agente já envia: os pods do cluster, os namespaces dele e, para o CIS Benchmark, o RBAC, as contas de serviço e as NetworkPolicies dele. O menu do cluster mostra a página assim que o agente informa os pods do cluster, quer o cluster execute um banco de dados, quer não.
+
+| Estrutura | O que ela pontua |
+| --- | --- |
+| **Padrões de Segurança de Pods: Baseline** | Cada carga de trabalho em execução no cluster, em relação à política Baseline da versão do Kubernetes do cluster: contêineres privilegiados, os namespaces, as portas e os caminhos do host, capacidades adicionadas e todos os outros campos que a política cita, lidos da especificação de cada pod |
+| **Padrões de Segurança de Pods: Restricted** | As mesmas cargas de trabalho, em relação à política Restricted: os controles da Baseline e, além deles, só os tipos de volume que ela permite, execução como um usuário diferente de root, nenhum escalonamento de privilégios, um perfil seccomp e todas as capacidades removidas |
+| **CIS Kubernetes Benchmark v2.0** | Os 27 controles da seção 5 que a API do Kubernetes consegue responder: vinculações que concedem cluster-admin, acesso a Secrets, `nodes/proxy` e os outros direitos que os controles dele citam, funções com curingas, as contas de serviço padrão, o Pod Security Admission ou um motor de políticas em cada namespace, NetworkPolicies, e o que cada pod executa |
+
+O bloco de cada estrutura mostra a pontuação dela, e quantas cargas de trabalho ela avaliou e quantas falham. Os controles dela listam primeiro os que falham: cada um diz o que encontra de errado e como corrigir isso, e lista as cargas de trabalho, funções, vinculações, contas de serviço ou namespaces que falham nele, cada um com um link para a própria página, até o contêiner ou o volume e o campo, como `securityContext.privileged`. Onde a Segurança de dados pontua os bancos de dados executados no cluster, eles continuam abaixo, em **Bancos de dados deste cluster**.
+
+Os Padrões de Segurança de Pods são pontuados para a própria versão do Kubernetes do cluster: a do kubelet mais recente dele, até a versão mais recente que o OneUptime conhece. Um controle que uma versão posterior adicionou só conta a partir dessa versão, e a página diz com base em qual versão pontuou.
+
+Os outros 104 controles do benchmark verificam os arquivos e os kubelets dos nós ou as flags do plano de controle, ou precisam da revisão de uma pessoa. Nenhuma API os responde, então eles são listados em **Sem pontuação aqui**, agrupados pelo motivo, e nunca são aprovados nem reprovados. Em um plano de controle gerenciado, como EKS, GKE ou AKS, a página diz que eles são do benchmark do provedor.
+
+### Desative uma estrutura, um controle ou um namespace
+
+Desative o que não se aplica a um cluster. Cada interruptor é do próprio cluster e pergunta o motivo, e a página guarda quem o desativou, quando e por quê:
+
+- O interruptor **Aplica-se aqui** de uma estrutura deixa o cluster fora dela. A estrutura fica recolhida em **Desativadas**, com o interruptor dela para ativá-la de novo.
+- O interruptor de um controle deixa esse controle fora da pontuação do cluster.
+- O interruptor de um namespace, em cada estrutura, deixa tudo o que está no namespace fora dessa estrutura, assim como o Pod Security Admission isenta um namespace.
+
+### Exporte uma estrutura
+
+**Exportar CSV** e **Exportar JSON** baixam o relatório de uma estrutura: cada controle, se ele é aprovado, o que o reprova e como corrigir isso, e a versão do Kubernetes com base na qual ele foi pontuado.
+
+### O que o agente lê para isso
+
+`resourceSpecs.compliance` (ativado por padrão) lê Roles, ClusterRoles e as vinculações deles, ServiceAccounts e NetworkPolicies a cada `resourceSpecs.interval`, com `get`, `list` e `watch` sobre eles e nada mais. Nenhum Secret é lido em momento algum: uma ServiceAccount só cita os Secrets de token dela, e o OneUptime descarta até os nomes. Com ele desativado (`--set resourceSpecs.compliance=false`), os controles de RBAC, conta de serviço e NetworkPolicy do benchmark ficam *não avaliados*, e os Padrões de Segurança de Pods continuam sendo pontuados a partir dos pods.
+
+### As permissões do próprio agente
+
+O agente lê cada kubelet pelos sub-recursos com que o kubelet autoriza os caminhos dele: `nodes/stats` para as estatísticas, `nodes/metrics` para o cAdvisor e `nodes/pods` para a lista de pods de um nó, o que um kubelet permite a partir do Kubernetes 1.33. `nodes/proxy` dá acesso à API inteira do kubelet, e o CIS 5.1.10 reprova toda vinculação que o conceda, então o agente só o concede onde nada mais restrito funciona:
+
+| Valor | Quando o agente concede `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (o padrão) o concede enquanto o cluster executa uma versão do Kubernetes anterior à 1.36, cujos kubelets podem ser anteriores à 1.33 e só permitir listar os pods de um nó com `nodes/proxy`. Defina `false` quando todos os nós executarem a 1.33 ou posterior, ou `true` para kubelets com `KubeletFineGrainedAuthz` desativado |
+| `cost.prometheus.nodesProxy` | `auto` (o padrão) o concede só no preset `eks-fargate`, onde nenhum pod alcança o kubelet de um nó e o Prometheus de custos lê o cAdvisor pelo API server. Em todos os outros casos, ele lê o kubelet de cada nó na porta 10250 |
+
+Onde a própria vinculação do agente é reprovada no 5.1.10, a página diz que a vinculação é do agente, por que ela concede `nodes/proxy` e o valor que o remove.
 
 ## Opções de configuração
 
@@ -409,7 +455,7 @@ Eventos de várias linhas são remontados antes da filtragem nos dois modos, ent
 Descarte algumas métricas barulhentas (uma denylist, geralmente o que você quer):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Envie só um conjunto fixo (uma allowlist: todo o resto é descartado):
@@ -594,7 +640,7 @@ Alguns gráficos mostram métricas para as quais o agente não tem coleta: **kub
 
 ### Ative a observabilidade de custos
 
-Veja na página **Custos** do cluster quanto custa cada namespace, carga de trabalho e pod, com a capacidade ociosa e quanto de cada request é usado:
+A observabilidade de custos vem ativada por padrão: a visão geral do cluster e a página **Custos** dele mostram quanto custa cada namespace, carga de trabalho e pod, com a capacidade ociosa e quanto de cada request é usado, e as métricas de custo podem ser exibidas em gráficos e usadas em alertas. Ela vem desativada por padrão nos presets `gke-autopilot` e `eks-fargate`, que cobram cada pod pelos requests dele, e em um agente instalado antes de ela vir ativada por padrão. Ative-a nesses casos:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +649,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-Só isso já é uma instalação completa: o chart traz o motor de código aberto [OpenCost](https://opencost.io) (com o pequeno Prometheus de que ele precisa) e precifica os seus nós e volumes a partir dos preços de tabela públicos do seu provedor de nuvem, sem credenciais. Ele adiciona dois pods pequenos, e os primeiros custos aparecem depois da primeira hora fechada. Já usa Kubecost ou OpenCost? Adicione `--set cost.engine.url=<its service URL>` em vez disso, e nada é incluído. Clusters on-premises podem definir uma tabela de preços com `cost.opencost.customPricing`. O guia completo, com preços on-premises e solução de problemas, é [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost).
+Só isso já é uma instalação completa: o chart traz o motor de código aberto [OpenCost](https://opencost.io) (com o pequeno Prometheus de que ele precisa) e precifica os seus nós e volumes a partir dos preços de tabela públicos do seu provedor de nuvem, sem credenciais. Ele adiciona três pods pequenos, e os primeiros custos aparecem depois da primeira hora fechada. Para desativar a observabilidade de custos, defina `--set cost.enabled=false` da mesma forma. Já usa Kubecost ou OpenCost? O agente de custos o encontra e o lê no lugar do incluído; adicione `--set cost.engine.url=auto` para deixar de incluir um segundo motor. Clusters on-premises podem definir uma tabela de preços com `cost.opencost.customPricing`. O guia completo, com preços on-premises e solução de problemas, é [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost).
 
 ### Rotule automaticamente com rótulos do projeto
 
@@ -824,6 +870,8 @@ Não use `--reuse-values`: ele também mantém os padrões do chart a partir do 
 
 Se a atualização falhar com `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (ou o antigo `aiAccess.remediation.namespaces`) lista um namespace que não existe (ou não existe mais): o chart coloca um RoleBinding em cada namespace listado e nunca cria um. Crie o namespace, ou atualize com a lista sem esse namespace (`--set "aiAgent.remediation.namespaces={web}"`), ou com `--set-json 'aiAgent.remediation.namespaces=[]'` para voltar à vinculação no cluster inteiro. `--set aiAgent.remediation.namespaces=null` não redefine uma lista armazenada com `--reuse-values`, então falha com o mesmo erro.
 
+> **Os controles de RBAC do CIS Benchmark precisam de um agente atualizado.** Um agente anterior a `resourceSpecs.compliance` não envia RBAC, contas de serviço nem NetworkPolicies, então a página **Conformidade** do cluster mostra os controles de RBAC, conta de serviço e NetworkPolicy do benchmark como *não avaliados*, e diz como corrigir isso. Atualize o agente com `resourceSpecs.compliance` ativado, como vem por padrão: ele precisa do coletor 0.125.0 ou posterior. A atualização também deixa de conceder `nodes/proxy` onde nenhum nó precisa dele: veja [As permissões do próprio agente](#as-permissões-do-próprio-agente).
+
 > **As métricas de span do eBPF têm nomes novos.** `ebpf.features.spanMetrics` agora envia `traces.span.metrics.calls` e `traces.span.metrics.duration` (segundos) em vez de `traces_spanmetrics_calls_total` e `traces_spanmetrics_latency`: as mesmas séries, com os nomes que o OBI mantém (ele tornou os antigos obsoletos). Um dashboard, gráfico ou monitor de métricas sobre um nome antigo não recebe dados novos depois da atualização, sem erro nenhum — passe-o para o novo nome e atualize qualquer entrada `filters.metrics` que cite um antigo.
 
 ### Atualizando para o agente de IA do Kubernetes
@@ -959,7 +1007,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 A cardinalidade, o número de séries distintas, importa tanto quanto a frequência, porque cada série é armazenada e cobrada separadamente.
 
 - O cAdvisor usa uma allowlist de propósito. O receiver do cAdvisor (ativado por padrão) pode emitir centenas de métricas; o chart encaminha só os contadores de throttling de CPU e de OOM kills da `cadvisor.metricsAllowlist`, para os seus próprios gráficos e monitores de métricas: nenhum modelo integrado os lê. Mantenha a lista curta: cada entrada é mantida por contêiner, então uma métrica a mais se multiplica pelo número de contêineres do cluster. O kube-state-metrics vem desativado por padrão; se você o ativar (`kubeStateMetrics.enabled=true`), a `kubeStateMetrics.metricsAllowlist` dele funciona do mesmo jeito, e cada entrada precisa corresponder ao nome inteiro de uma métrica.
-- As métricas de volume por PVC (`kubeletstats.volumeMetrics.enabled`, ativadas por padrão) emitem uma série por PVC por pod: tudo bem na maioria dos clusters, mas é muito em cargas de trabalho com estado (Kafka, bancos de dados) com milhares de PVCs. Desative-as ali, se você não acompanha o espaço em disco dos PVCs, com `--set kubeletstats.volumeMetrics.enabled=false`.
+- As métricas de volume (`kubeletstats.volumeMetrics.enabled`, ativadas por padrão) emitem cinco séries para cada volume com dados de cada pod (uma reivindicação, um emptyDir, um hostPath), e alimentam o uso, o espaço livre e a capacidade nas páginas de reivindicações de volume persistente, uma reivindicação quase cheia em Requer atenção do cluster e o modelo PVC Almost Full. Os volumes configMap, secret, downwardAPI e de token de service account de um pod, que eram a maior parte dessas séries, são descartados no nó. Ainda é muito em cargas de trabalho com estado (Kafka, bancos de dados) com milhares de PVCs: desative-as ali, se você não acompanha o espaço em disco dos PVCs, com `--set kubeletstats.volumeMetrics.enabled=false`.
 - As métricas de saturação (`kubeletstats.utilizationMetrics.enabled`, ativadas por padrão) adicionam 8 famílias derivadas de "% do request ou do limit". Elas não custam coleta extra, mas, se você não usa os monitores de CPU e memória em relação ao limit, descarte-as com `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Descarte métricas por nome com `filters.metrics.exclude`, que vale para todos os receivers, para tudo o que as allowlists dos receivers não conseguem expressar (veja [Incluindo ou excluindo métricas por nome](#incluindo-ou-excluindo-métricas-por-nome)):
 
@@ -990,7 +1038,8 @@ Eles vêm desativados por padrão porque adicionam carga. Ative um só quando us
 | `kubeStateMetrics.enabled` | Métricas de CrashLoop, ImagePull e motivos de agendamento (adiciona um Deployment do kube-state-metrics e uma coleta) |
 | `ebpf.features.networkInterZoneMetrics` | Dobra as séries de fluxo de rede |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Mais jobs de coleta do Prometheus |
-| `cost.enabled` | Custos de cargas de trabalho (traz o OpenCost e um Prometheus pequeno; linhas de custo por hora e uma coleta de métricas com allowlist restrita; ingestão modesta, dois pods a mais) |
+
+Já a observabilidade de custos (`cost.enabled`) vem ativada por padrão: três pods pequenos, uma linha de custo por hora para cada contêiner e uma coleta de uma série de preço por nó, volume e load balancer. Desative-a com `--set cost.enabled=false` se você não a usa.
 
 ### Amostre traces em vez de descartá-los
 
@@ -1058,7 +1107,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Aperte mais conforme precisar: suba `minSeverity` para `ERROR`, adicione `metrics` aos escopos de uma regra de namespace, ou defina `ebpf.enabled=false` se você já envia traces de SDKs do OpenTelemetry.
 
 > [!CAUTION]
-> Cuidado com o que você corta. Alguns monitores dependem de sinais específicos: desativar `kubeletstats.utilizationMetrics` silencia os dois modelos que observam os pods em relação aos limites dos seus contêineres, desativar os logs remove os alertas baseados em logs, e desativar `cadvisor` ou `kubeletstats.volumeMetrics` remove as séries de throttling, OOM kill e PVC que os seus próprios gráficos e monitores de métricas podem ler. `sampling.traces.percentage` não remove nenhum monitor, mas reduz os baseados em spans (**Traços** em `Span Count`, **Exceções** em `Exception Count`), então reajuste os limites deles. Corte os sinais sobre os quais você não age, não os que um monitor observa.
+> Cuidado com o que você corta. Alguns monitores dependem de sinais específicos: desativar `kubeletstats.utilizationMetrics` silencia os dois modelos que observam os pods em relação aos limites dos seus contêineres, desativar os logs remove os alertas baseados em logs, desativar `kubeletstats.volumeMetrics` silencia o modelo PVC Almost Full e deixa as páginas de reivindicações sem o seu uso, e desativar `cadvisor` remove as séries de throttling e OOM kill que os seus próprios gráficos e monitores de métricas podem ler. `sampling.traces.percentage` não remove nenhum monitor, mas reduz os baseados em spans (**Traços** em `Span Count`, **Exceções** em `Exception Count`), então reajuste os limites deles. Corte os sinais sobre os quais você não age, não os que um monitor observa.
 
 ### Meça o efeito
 

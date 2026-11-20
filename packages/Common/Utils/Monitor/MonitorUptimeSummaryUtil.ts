@@ -649,12 +649,13 @@ export default class MonitorUptimeSummaryUtil {
 
   /*
    * The zone to cut day buckets in, as one parseTimezone accepts. A browser
-   * can carry newer zone data than the bundled moment-timezone (for example
-   * America/Coyhaique, added in tzdata 2025b); the server would refuse such
-   * a zone on every load, so it is swapped for moment's own guess, which
-   * matches the browser's offsets from the data it has. The page labels
-   * days with moment too, so both cut days on the same boundaries. UTC is
-   * the last resort.
+   * can carry newer zone data than the bundled moment-timezone (as it did
+   * America/Coyhaique, added in tzdata 2025b, until moment-timezone 0.6.6
+   * brought tzdata 2026f); the server would refuse such a zone on every
+   * load, so it is swapped for moment's own guess, which matches the
+   * browser's offsets from the data it has. The page labels days with
+   * moment too, so both cut days on the same boundaries. UTC is the last
+   * resort.
    */
   public static getBrowserTimezone(): string {
     let zone: string | undefined = undefined;

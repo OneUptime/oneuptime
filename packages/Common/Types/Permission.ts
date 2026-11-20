@@ -403,6 +403,12 @@ enum Permission {
   EditDataAssetOwnerRule = "EditDataAssetOwnerRule",
   ReadDataAssetOwnerRule = "ReadDataAssetOwnerRule",
 
+  // Pipeline Owner Rules: owners assigned to matching pipelines (#9527)
+  CreateDataPipelineOwnerRule = "CreateDataPipelineOwnerRule",
+  DeleteDataPipelineOwnerRule = "DeleteDataPipelineOwnerRule",
+  EditDataPipelineOwnerRule = "EditDataPipelineOwnerRule",
+  ReadDataPipelineOwnerRule = "ReadDataPipelineOwnerRule",
+
   // Table Label Rules: labels added to matching stores
   CreateDataAssetLabelRule = "CreateDataAssetLabelRule",
   DeleteDataAssetLabelRule = "DeleteDataAssetLabelRule",
@@ -1403,6 +1409,12 @@ enum Permission {
   EditServiceFeed = "EditServiceFeed",
   ReadServiceFeed = "ReadServiceFeed",
 
+  // What a service's team tells OneUptime AI about it (#7672).
+  CreateServiceAINote = "CreateServiceAINote",
+  EditServiceAINote = "EditServiceAINote",
+  DeleteServiceAINote = "DeleteServiceAINote",
+  ReadServiceAINote = "ReadServiceAINote",
+
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateMonitorStatusTimeline = "CreateMonitorStatusTimeline",
   EditMonitorStatusTimeline = "EditMonitorStatusTimeline",
@@ -1571,6 +1583,13 @@ enum Permission {
   EditOnCallDutyPolicyUserOverride = "EditOnCallDutyPolicyUserOverride",
   DeleteOnCallDutyPolicyUserOverride = "DeleteOnCallDutyPolicyUserOverride",
   ReadOnCallDutyPolicyUserOverride = "ReadOnCallDutyPolicyUserOverride",
+  /*
+   * Adds, edits and deletes user overrides only for the people in the team
+   * that gives it (issue #9733): the person who is away and the person who
+   * covers both have to be in that team. See
+   * Types/OnCallDutyPolicy/UserOverrideTeamAccess.
+   */
+  ManageTeamOnCallDutyPolicyUserOverride = "ManageTeamOnCallDutyPolicyUserOverride",
 
   ReadOnCallDutyPolicyTimeLog = "ReadOnCallDutyPolicyTimeLog",
 
@@ -4609,6 +4628,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateServiceAINote,
+        title: "Create Service AI Note",
+        description:
+          "This permission can write notes for OneUptime AI on a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.EditServiceAINote,
+        title: "Edit Service AI Note",
+        description:
+          "This permission can edit the notes for OneUptime AI on a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.DeleteServiceAINote,
+        title: "Delete Service AI Note",
+        description:
+          "This permission can delete the notes for OneUptime AI on a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.ReadServiceAINote,
+        title: "Read Service AI Note",
+        description:
+          "This permission can read the notes for OneUptime AI on a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+
+      {
         permission: Permission.CreateAlertFeed,
         title: "Create Alert Feed",
         description:
@@ -7581,6 +7641,21 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
+      /*
+       * Not a role (isRolePermission false), so no default role gains it:
+       * the roles that manage overrides already manage everyone's, and
+       * the people a team may cover for are given on purpose.
+       */
+      {
+        permission: Permission.ManageTeamOnCallDutyPolicyUserOverride,
+        title: "Manage On-Call Policy User Overrides for Own Team",
+        description:
+          "This permission can add, edit and delete user overrides for the people in the team it is given to: the person who is away and the person who covers must both be in that team. An API key is in no team, so it reaches nobody. Seeing the overrides takes Read On-Call Policy User Override.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
 
       {
         permission: Permission.CreateProjectOnCallDutyPolicy,
@@ -9854,6 +9929,48 @@ export class PermissionHelper {
         title: "Read Table Owner Rule",
         description:
           "This permission can read Table Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Pipeline Owner Rule Permissions
+      {
+        permission: Permission.CreateDataPipelineOwnerRule,
+        title: "Create Pipeline Owner Rule",
+        description:
+          "This permission can create Pipeline Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteDataPipelineOwnerRule,
+        title: "Delete Pipeline Owner Rule",
+        description:
+          "This permission can delete Pipeline Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDataPipelineOwnerRule,
+        title: "Edit Pipeline Owner Rule",
+        description:
+          "This permission can edit Pipeline Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDataPipelineOwnerRule,
+        title: "Read Pipeline Owner Rule",
+        description:
+          "This permission can read Pipeline Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

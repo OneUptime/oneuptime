@@ -118,9 +118,14 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import MonitorDeviceLink, {
+  MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN,
+} from "../Utils/NetworkDevice/MonitorDeviceLink";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
@@ -165,6 +170,9 @@ const AUTO_PROVISIONED_NETWORK_DEVICE_KEYS: Array<string> = [
   "autoProvisionedNetworkDeviceId",
   "autoProvisionedNetworkDevice",
 ];
+
+// The network device a person's monitor checks (issue #9545), by both names.
+const NETWORK_DEVICE_KEYS: Array<string> = ["networkDeviceId", "networkDevice"];
 
 /*
  * A global or shared probe can be attached to thousands of monitors. Work
@@ -885,6 +893,7 @@ export class Service extends ProjectReferencesService<Model> {
           monitorSteps: true,
           monitorTemplateId: true,
           autoProvisionedNetworkDeviceId: true,
+          networkDeviceId: true,
         },
       );
 
@@ -1007,9 +1016,10 @@ export class Service extends ProjectReferencesService<Model> {
 
           /*
            * A monitor made for a device stays one: a Network Device monitor
-           * keeps naming that device, and a Ping, IP, Port or NTP one made
-           * from a template by a discovery import (issue #5145) keeps
-           * checking an address in every step.
+           * keeps naming that device, a Ping, IP, Port or NTP one made from a
+           * template by a discovery import (issue #5145) keeps checking an
+           * address in every step, and a Website, API or SSL Certificate one
+           * (#9546) a URL with a host in every step.
            */
           if (monitor.autoProvisionedNetworkDeviceId) {
             DeviceMonitorTemplateUtil.assertProvenanceFits({
@@ -1049,6 +1059,56 @@ export class Service extends ProjectReferencesService<Model> {
           }
         }
       }
+
+      /*
+       * A monitor tied to the device at the address it checked follows the
+       * address when its steps move to another (issue #9545): to the device
+       * its probes see at the new address (issue #9677), or to none. A tie
+       * the write names itself, or one a person made to a device at another
+       * address, stays as it is (MonitorDeviceLink.followAddressChange).
+       * One monitor's edit only - a form's - since each monitor would follow
+       * to its own device.
+       */
+      const onlyMonitor: Model | undefined =
+        monitors.length === 1 ? monitors[0] : undefined;
+
+      if (
+        isMonitorStepsWritten &&
+        onlyMonitor?.networkDeviceId &&
+        onlyMonitor.projectId &&
+        !onlyMonitor.autoProvisionedNetworkDeviceId &&
+        !RelationIdUtil.isWritten(updateDataKeys, NETWORK_DEVICE_KEYS)
+      ) {
+        const followed: ObjectID | null | undefined =
+          await MonitorDeviceLink.followAddressChange({
+            projectId: onlyMonitor.projectId,
+            monitorType:
+              (isMonitorTypeWritten
+                ? (updateBy.data.monitorType as MonitorType | undefined)
+                : undefined) || onlyMonitor.monitorType,
+            storedSteps: onlyMonitor.monitorSteps,
+            writtenSteps: updateBy.data.monitorSteps as
+              | MonitorSteps
+              | JSONObject
+              | null
+              | undefined,
+            linkedDeviceId: onlyMonitor.networkDeviceId,
+            getProbeIds: async (): Promise<Array<ObjectID>> => {
+              return await this.getProbeIdsOfMonitor({
+                projectId: onlyMonitor.projectId!,
+                monitorId: onlyMonitor.id,
+              });
+            },
+          });
+
+        if (followed !== undefined) {
+          RelationIdUtil.stamp(
+            updateBy.data as unknown as Record<string, unknown>,
+            NETWORK_DEVICE_KEYS,
+            followed,
+          );
+        }
+      }
     }
 
     /*
@@ -1085,6 +1145,46 @@ export class Service extends ProjectReferencesService<Model> {
       payload: updateBy.data,
       getProjectIds: getProjectsToCheckIn,
     });
+
+    /*
+     * A person ties a monitor only to a network device they can see (issue
+     * #9545), as on create. Untying it (null) asks nothing.
+     */
+    if (RelationIdUtil.isWritten(updateDataKeys, NETWORK_DEVICE_KEYS)) {
+      const writtenNetworkDeviceId: ObjectID | null =
+        RelationIdUtil.readIntoIdColumn(
+          updateBy.data as unknown as Record<string, unknown>,
+          NETWORK_DEVICE_KEYS,
+          "Network Device",
+        );
+
+      if (writtenNetworkDeviceId) {
+        for (const projectId of await getProjectsToCheckIn()) {
+          await MonitorDeviceLink.assertPersonMayReadDevice({
+            networkDeviceId: writtenNetworkDeviceId,
+            projectId: projectId,
+            props: updateBy.props,
+          });
+        }
+
+        /*
+         * A monitor an import, an auto import rule or an alert policy made
+         * for a device is that device's already, by its provenance.
+         */
+        const tiedMonitors: Array<Model> =
+          await this.findRowsAndHoldUpdateToThem(updateBy, {
+            autoProvisionedNetworkDeviceId: true,
+          });
+
+        if (
+          tiedMonitors.some((monitor: Model): boolean => {
+            return Boolean(monitor.autoProvisionedNetworkDeviceId);
+          })
+        ) {
+          throw new BadDataException(MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN);
+        }
+      }
+    }
 
     if (
       updateBy.data.dependsOnMonitors !== undefined ||
@@ -2441,6 +2541,57 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    /*
+     * The network device a person's monitor is of (issue #9545): the one
+     * the write names, which the person must be able to see - or, for a
+     * Ping, IP, Port, NTP, Website, API or SSL Certificate monitor, the
+     * device at the address it checks that its probes see: two sites can
+     * each have a 10.0.0.5 (issue #9677, MonitorDeviceLink). A monitor made
+     * for a device carries provenance instead, and is that device's
+     * already. The project check above has already held a named device to
+     * this project (ProjectReferencesService).
+     */
+    const networkDeviceId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      NETWORK_DEVICE_KEYS,
+      "Network Device",
+    );
+
+    if (networkDeviceId) {
+      if (autoProvisionedNetworkDeviceId) {
+        throw new BadDataException(MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN);
+      }
+
+      await MonitorDeviceLink.assertPersonMayReadDevice({
+        networkDeviceId: networkDeviceId,
+        projectId: createBy.props.tenantId,
+        props: createBy.props,
+      });
+    } else if (!autoProvisionedNetworkDeviceId) {
+      const projectId: ObjectID = createBy.props.tenantId;
+      const deviceAtAddress: ObjectID | null =
+        await MonitorDeviceLink.findDeviceOfNewMonitor({
+          projectId: projectId,
+          monitorType: createBy.data.monitorType,
+          monitorSteps: createBy.data.monitorSteps,
+          // The probes onCreateSuccess attaches, read only when it matters.
+          getProbeIds: async (): Promise<Array<ObjectID>> => {
+            return await this.getProbeIdsOfNewMonitor({
+              projectId: projectId,
+              miscDataProps: createBy.miscDataProps,
+            });
+          },
+        });
+
+      if (deviceAtAddress) {
+        RelationIdUtil.stamp(
+          createBy.data as unknown as Record<string, unknown>,
+          NETWORK_DEVICE_KEYS,
+          deviceAtAddress,
+        );
+      }
+    }
+
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId,
@@ -3181,9 +3332,12 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the monitor are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the monitor are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: MonitorOwnerUserService,
       ownerTeamService: MonitorOwnerTeamService,
       resourceIdColumn: "monitorId",
@@ -3295,11 +3449,79 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     });
   }
 
+  /*
+   * The probes a monitor being created will run on, as onCreateSuccess
+   * attaches them (addProbesToMonitor): the ones the person picked that the
+   * project may use, else the project's defaults. Read before the monitor
+   * exists, for the device it checks (issue #9677: which of two sites'
+   * 10.0.0.5 a monitor checks depends on where its probes are).
+   */
   @CaptureSpan()
-  public async addDefaultProbesToMonitor(
+  public async getProbeIdsOfNewMonitor(data: {
+    projectId: ObjectID;
+    miscDataProps: JSONObject | undefined;
+  }): Promise<Array<ObjectID>> {
+    const selectedProbeIds: Array<ObjectID> | undefined =
+      this.getSelectedProbeIdsFromMiscDataProps(data.miscDataProps);
+
+    const probes: Array<Probe> =
+      selectedProbeIds === undefined
+        ? await this.getDefaultProbesForNewMonitor(data.projectId)
+        : await ProbeService.getProbesAttachableToProject({
+            probeIds: selectedProbeIds,
+            projectId: data.projectId,
+          });
+
+    return probes
+      .map((probe: Probe): ObjectID | null => {
+        return probe.id;
+      })
+      .filter((probeId: ObjectID | null): probeId is ObjectID => {
+        return Boolean(probeId);
+      });
+  }
+
+  // The probes a monitor runs on now, enabled or not: where its checks look.
+  @CaptureSpan()
+  public async getProbeIdsOfMonitor(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID | null | undefined;
+  }): Promise<Array<ObjectID>> {
+    if (!data.monitorId) {
+      return [];
+    }
+
+    const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy(
+      {
+        query: {
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+        },
+        select: { probeId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      },
+    );
+
+    return monitorProbes
+      .map((monitorProbe: MonitorProbe): ObjectID | undefined => {
+        return monitorProbe.probeId;
+      })
+      .filter((probeId: ObjectID | undefined): probeId is ObjectID => {
+        return Boolean(probeId);
+      });
+  }
+
+  /*
+   * The probes a new monitor gets when nobody picked any: the global probes
+   * that switch themselves on for new monitors (unless the project opted
+   * out of them), and the project's own that do.
+   */
+  @CaptureSpan()
+  public async getDefaultProbesForNewMonitor(
     projectId: ObjectID,
-    monitorId: ObjectID,
-  ): Promise<void> {
+  ): Promise<Array<Probe>> {
     // Fetch project to see if global probes should be added automatically.
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -3350,10 +3572,18 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       },
     });
 
+    return [...globalProbes, ...projectProbes];
+  }
+
+  @CaptureSpan()
+  public async addDefaultProbesToMonitor(
+    projectId: ObjectID,
+    monitorId: ObjectID,
+  ): Promise<void> {
     await this.createMonitorProbes({
       projectId: projectId,
       monitorId: monitorId,
-      probes: [...globalProbes, ...projectProbes],
+      probes: await this.getDefaultProbesForNewMonitor(projectId),
     });
   }
 

@@ -53,6 +53,17 @@ import useProductFirstRun, {
 } from "../../Components/ProductOnboarding/UseProductFirstRun";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import usePagedFirst, {
+  PagedFirstOfPolicies,
+} from "../../Components/OnCallPolicy/PagedFirst/UsePagedFirst";
+import PagedFirstCell, {
+  PAGED_FIRST_COLUMN_TITLE,
+  getPagedFirstExportText,
+} from "../../Components/OnCallPolicy/PagedFirst/PagedFirstCell";
+import useSharedNames, {
+  SharedNamesOfList,
+} from "../../Components/SharedName/UseSharedNames";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
 
 /*
  * Whether the user may add escalation rules, which "Who gets paged first?"
@@ -90,6 +101,19 @@ const OnCallDutyPage: FunctionComponent<
    */
   const usedBy: UsedByListActions<OnCallDutyPolicy> =
     getUsedByListActions<OnCallDutyPolicy>(UsedByRecordKind.OnCallPolicy);
+
+  /*
+   * Policies that share a name with another policy (#9746): made before a
+   * policy's name was one policy's (#9742), they keep it, and every picker
+   * draws them alike. Marked beside their name, counted above the list with
+   * how to tell them apart, and each given Rename. The other may be
+   * archived: an archived policy keeps its name.
+   */
+  const sharedNames: SharedNamesOfList<OnCallDutyPolicy> =
+    useSharedNames<OnCallDutyPolicy>({
+      kind: SharedNameKind.OnCallPolicy,
+      modelType: OnCallDutyPolicy,
+    });
 
   // Archived policies leave this list; they are on the Archived page.
   const { archiveBulkActions, archiveRowActions } =
@@ -144,6 +168,14 @@ const OnCallDutyPage: FunctionComponent<
     useEveryNewEventRulesOffer();
 
   /*
+   * Who each policy pages first - its first escalation rule's schedules,
+   * teams and people, a schedule with who is on call in it now - read for
+   * each page the list shows (#9701, Components/OnCallPolicy/PagedFirst), so
+   * nobody opens every policy to find out.
+   */
+  const pagedFirst: PagedFirstOfPolicies = usePagedFirst();
+
+  /*
    * Name, who gets paged first, and the description and labels folded under
    * Advanced (OnCallPolicyCreateForm.ts). Built once, not on every render of
    * the page - and again only when the switch's start changes: on while the
@@ -163,9 +195,14 @@ const OnCallDutyPage: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Above the list while records share a name (#9746): how many, and
+       * how to tell them apart. Nothing otherwise.
+       */}
+      {sharedNames.note}
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
-        refreshToggle={firstRun.refreshToken}
+        refreshToggle={`${firstRun.refreshToken}-${sharedNames.refreshToken}`}
         showCreateForm={firstRun.showCreateForm}
         /*
          * Search's Create On-Call Policy opens this list with ?create=1, and the table
@@ -173,7 +210,7 @@ const OnCallDutyPage: FunctionComponent<
          */
         opensCreateFormFromAddress={true}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
-        actionButtons={[...archiveRowActions]}
+        actionButtons={[sharedNames.renameAction, ...archiveRowActions]}
         enableJsonImportExport={true}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
@@ -194,6 +231,8 @@ const OnCallDutyPage: FunctionComponent<
         onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
           onResourcesFetched(data);
           everyNewEventRules.onPoliciesListed(data.length);
+          pagedFirst.onPoliciesFetched(data);
+          sharedNames.onListFetched();
         }}
         saveFilterProps={{
           tableId: "on-call-policies-table",
@@ -270,12 +309,34 @@ const OnCallDutyPage: FunctionComponent<
           },
         ]}
         columns={[
+          // The policy's name, marked when another policy shares it (#9746).
+          sharedNames.nameColumn,
+          /*
+           * Right after the name: who gets paged first is what the list is
+           * opened for, on a phone's card too. Drawn from the policy's id,
+           * so it does not sort (a column of several people would not), and
+           * exported as the names it shows.
+           */
           {
             field: {
-              name: true,
+              _id: true,
             },
-            title: "Name",
-            type: FieldType.Text,
+            title: PAGED_FIRST_COLUMN_TITLE,
+            type: FieldType.Element,
+            getExportValue: (item: OnCallDutyPolicy): string => {
+              return getPagedFirstExportText(
+                pagedFirst.getPagedFirst(item),
+                translator,
+              );
+            },
+            getElement: (item: OnCallDutyPolicy): ReactElement => {
+              return (
+                <PagedFirstCell
+                  pagedFirst={pagedFirst.getPagedFirst(item)}
+                  isLoading={pagedFirst.isLoading}
+                />
+              );
+            },
           },
           {
             field: {
@@ -326,6 +387,7 @@ const OnCallDutyPage: FunctionComponent<
       )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
+      {sharedNames.renameModal}
     </Fragment>
   );
 };

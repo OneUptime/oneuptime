@@ -1,6 +1,9 @@
 import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
+import CodeFixOnItsWay, {
+  CodeFixProblemKind,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
@@ -74,6 +77,13 @@ function fakeLegacyRunWithoutRecommendation(): AIRun {
 }
 
 describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
+  /*
+   * A fix of the subject on its way - a turn of its task queued or running,
+   * a reply in Code included - by the one rule (CodeFixOnItsWay, which has
+   * its own suites): none unless a test says.
+   */
+  let onItsWay: jest.SpyInstance;
+
   beforeEach(() => {
     jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
     jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
@@ -81,6 +91,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     jest
       .spyOn(PostedRootCause, "getForInvestigation")
       .mockResolvedValue(analysisMarkdown);
+    onItsWay = jest.spyOn(CodeFixOnItsWay, "findTurn").mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -383,10 +394,8 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
   });
 
   test("an existing live FixFromIncident run blocks a duplicate", async () => {
-    jest
-      .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValueOnce(fakeRun())
-      .mockResolvedValueOnce(fakeRun());
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValueOnce(fakeRun());
+    onItsWay.mockResolvedValue(fakeRun());
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
@@ -405,11 +414,9 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
   });
 
   test("the locked second dedupe check closes a concurrent enqueue race", async () => {
-    jest
-      .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValueOnce(fakeRun())
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(fakeRun());
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValueOnce(fakeRun());
+    // Nothing on its way at the gate; one by the time the lock is held.
+    onItsWay.mockResolvedValueOnce(null).mockResolvedValueOnce(fakeRun());
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
@@ -422,7 +429,9 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
         investigationRunId,
         userId,
       }),
-    ).rejects.toThrow(/already queued or running/i);
+    ).rejects.toThrow(
+      "OneUptime AI is already writing a fix pull request for this incident. Follow it in Code.",
+    );
 
     expect(Semaphore.lock).toHaveBeenCalledWith({
       key: getInvestigationSubjectLockKey({ projectId, incidentId }),
@@ -444,8 +453,6 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     jest
       .spyOn(AIRunService, "findOneBy")
       .mockResolvedValueOnce(fakeRun())
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(newerInvestigation);
     jest
       .spyOn(CodeRepositoryService, "countBy")
@@ -499,8 +506,6 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
       .mockResolvedValueOnce(latestRecommended)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(latestRecommended);
     jest
       .spyOn(CodeRepositoryService, "countBy")
@@ -537,7 +542,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       }),
     );
     expect(findOneBy).toHaveBeenNthCalledWith(
-      4,
+      2,
       expect.objectContaining({
         query: expect.objectContaining({
           projectId,
@@ -547,7 +552,21 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       }),
     );
     expect(create.mock.invocationCallOrder[0]).toBeGreaterThan(
-      findOneBy.mock.invocationCallOrder[3]!,
+      findOneBy.mock.invocationCallOrder[1]!,
+    );
+    /*
+     * No fix of the incident on its way, asked twice by the one rule: at the
+     * gate, and again under the subject's lock.
+     */
+    expect(onItsWay).toHaveBeenCalledTimes(2);
+    expect(onItsWay).toHaveBeenLastCalledWith({
+      projectId,
+      kind: CodeFixProblemKind.Incident,
+      recordId: incidentId.toString(),
+      taskTypes: [CodeFixTaskType.FixFromIncident],
+    });
+    expect(create.mock.invocationCallOrder[0]).toBeGreaterThan(
+      onItsWay.mock.invocationCallOrder[1]!,
     );
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -573,8 +592,6 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     jest
       .spyOn(AIRunService, "findOneBy")
       .mockResolvedValueOnce(latestRecommended)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(latestRecommended);
     jest
       .spyOn(CodeRepositoryService, "countBy")

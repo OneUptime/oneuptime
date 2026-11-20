@@ -42,7 +42,7 @@ Tutto il resto è nella dashboard.
 :::
 
 :::details Posso confermare un avviso dalla notifica?
-No. Tocca la notifica: l'app apre l'incidente, l'avviso, l'episodio o il caso di sicurezza a cui si riferisce, nel progetto giusto, e lo confermi lì. Se l'app è bloccata o non hai effettuato l'accesso, apre l'avviso appena entri.
+Sì. Tieni premuta la notifica su un iPhone, o espandila su Android: un avviso di reperibilità offre **Acknowledge** ed **Escalate**, un avviso che ti tiene solo informato offre **I've seen it**, e un avviso di prova offre **Acknowledge test page**. Ogni azione apre l'app sul record appena il telefono è sbloccato e fa ciò che fa il pulsante del record stesso; prima di inoltrare al livello successivo, chiede conferma. Se tocchi la notifica stessa, l'app apre l'incidente, l'avviso, l'episodio o il caso di sicurezza a cui si riferisce, nel progetto giusto. Se l'app è bloccata o non hai effettuato l'accesso, apre l'avviso appena entri.
 :::
 
 :::details Il mio accesso è al sicuro sul telefono?
@@ -109,7 +109,7 @@ L'app non è riuscita a raggiungere `https://<your-oneuptime>/api/status`. Contr
 :::
 
 :::details «No SSO configuration found for the email»
-Nessuno dei progetti di cui fa parte quell'email ha configurato il single sign-on, oppure l'email non ha un account su questo OneUptime. Controlla l'email, o accedi con la password. I provider che l'amministratore ha configurato per tutta l'installazione sono elencati prima del campo email.
+Nessun progetto di questo OneUptime offre ancora il single sign-on per il dominio di quell'email: un Proprietario del progetto o un Amministratore del progetto aggiunge il dominio al provider SSO del progetto, chiunque sia il titolare dell'email. Controlla l'email, o accedi con la password. I provider che l'amministratore ha configurato per tutta l'installazione sono elencati prima del campo email.
 :::
 
 :::details Una chiave di sicurezza è il tuo unico secondo fattore

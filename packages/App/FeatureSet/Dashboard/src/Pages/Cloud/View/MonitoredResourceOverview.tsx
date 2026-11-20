@@ -10,6 +10,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -35,13 +36,20 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
-import { GetMetricRowGroup } from "../../../Components/Metrics/Utils/MetricRowScope";
+import {
+  GetMetricRowGroup,
+  GetMetricRowGroupGaps,
+  MetricRowGroupGap,
+} from "../../../Components/Metrics/Utils/MetricRowScope";
+import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
   getCloudMonitoredResourceAttributeFilters,
   getCloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceRowGroup,
+  getCloudMonitoredResourceRowGroupGaps,
+  getCloudResourceAddedStoredNames,
 } from "../Utils/CloudMonitoredResourceScope";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -54,9 +62,12 @@ import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnec
 import {
   CloudHealthAssessment,
   CloudHealthState,
+  CloudResourceStorage,
   assessCloudResourceHealth,
+  getCloudResourceStorage,
   readCloudResourceReadings,
 } from "Common/Types/Cloud/CloudResourceHealth";
+import ResourceStorageCard from "../../../Components/ResourcePart/ResourceStorageCard";
 import {
   CloudHeadlineTile,
   getCloudHeadlineTiles,
@@ -69,6 +80,7 @@ import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionC
 import CloudResourceSpendCards from "../../../Components/Cloud/CloudResourceSpendCards";
 import { getCloudRightSizingProfile } from "Common/Types/Cloud/CloudRightSizing";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { canCloudResourceHaveSecurityEvents } from "Common/Utils/SecurityEvent/LogParsers/CloudAuditResources";
 
 /*
  * The Overview of a Cloud Resource - one a cloud connection lists from its
@@ -175,6 +187,8 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           cloudConnectionId: true,
           cloudConnection: {
             name: true,
+            // What it reads for this resource besides its key metrics.
+            addedMetrics: true,
           },
           labels: {
             name: true,
@@ -219,13 +233,46 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       return getCloudMonitoredResourceRowAggregation(cloudResource);
     }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
 
+  // What someone added for it, by the names they are stored under.
+  const addedStoredNames: Array<string> = useMemo(() => {
+    return getCloudResourceAddedStoredNames(cloudResource);
+  }, [cloudResource]);
+  const addedNamesKey: string = addedStoredNames.join("\n");
+
   /*
    * Its key metrics in sections - Availability, Traffic, Errors, Latency
-   * and the rest, most telling first - and its other metrics after them.
+   * and the rest, most telling first - then what someone added for it,
+   * and its other metrics after them.
    */
   const getRowGroup: GetMetricRowGroup | undefined = useMemo(() => {
-    return getCloudMonitoredResourceRowGroup(cloudResource);
-  }, [cloudResource?.cloudProvider, cloudResource?.cloudResourceType]);
+    return getCloudMonitoredResourceRowGroup(cloudResource, addedStoredNames);
+  }, [
+    cloudResource?.cloudProvider,
+    cloudResource?.cloudResourceType,
+    addedNamesKey,
+  ]);
+
+  // The key metrics each section did not get in the range, and why (#9569).
+  const getRowGroupGaps: GetMetricRowGroupGaps | undefined = useMemo(() => {
+    return getCloudMonitoredResourceRowGroupGaps(cloudResource);
+  }, [
+    cloudResource?.cloudProvider,
+    cloudResource?.cloudResourceType,
+    cloudResource?.telemetryAttributes,
+  ]);
+
+  const renderRowGroupGap: (gap: MetricRowGroupGap) => ReactElement =
+    useCallback(
+      (gap: MetricRowGroupGap): ReactElement => {
+        return (
+          <CloudUnreportedKeyMetricsList
+            cloudResourceId={modelId}
+            keys={gap.keys}
+          />
+        );
+      },
+      [modelId.toString()],
+    );
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -261,6 +308,8 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       // "Not reported", where the last read brought no value: never a figure.
       valueNote: tile.valueNote,
       description: tile.description,
+      // Where to get what is missing: "Install the Ops Agent".
+      link: tile.link,
       percent: tile.percent,
       // An availability's bar is at its best full, not at its worst.
       higherIsBetter: tile.higherIsBetter,
@@ -272,6 +321,39 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const hasNoMetrics: boolean =
     isInventoryOnlyCloudResourceType(provider, type) &&
     Object.keys(attributeFilters).length === 0;
+  /*
+   * How full it is, where its cloud says how big it is (#9648): a
+   * database's allocated storage against what is free, a disk's size.
+   */
+  const storage: CloudResourceStorage | null = getCloudResourceStorage({
+    type: type,
+    properties: r.cloudProperties,
+    readings: readCloudResourceReadings(r.cloudReadings),
+  });
+  const storageCard: ReactElement | null = storage ? (
+    <ResourceStorageCard
+      testId="cloud-resource-storage"
+      description={
+        storage.usage || type === "AWS::RDS::DBInstance"
+          ? "How much of its allocated storage the database uses, from its latest reading."
+          : "The disk's size, as its cloud reports it."
+      }
+      usage={storage.usage}
+      capacityBytes={storage.capacityBytes}
+      noUsageText={storage.noUsageText}
+      measuredAt={
+        r.cloudReadingsAt ? new Date(r.cloudReadingsAt as Date) : undefined
+      }
+    />
+  ) : null;
+  const spendCards: ReactElement | null =
+    ProjectUtil.getCurrentProjectId() &&
+    (r.providerResourceId || getCloudRightSizingProfile(provider, type)) ? (
+      <CloudResourceSpendCards
+        projectId={ProjectUtil.getCurrentProjectId()!}
+        resource={r}
+      />
+    ) : null;
 
   const chips: Array<ResourceOverviewChip> = [];
   if (provider) {
@@ -430,13 +512,11 @@ const CloudMonitoredResourceOverview: FunctionComponent<
          * neither.
          */
         charts={
-          ProjectUtil.getCurrentProjectId() &&
-          (r.providerResourceId ||
-            getCloudRightSizingProfile(provider, type)) ? (
-            <CloudResourceSpendCards
-              projectId={ProjectUtil.getCurrentProjectId()!}
-              resource={r}
-            />
+          storageCard || spendCards ? (
+            <>
+              {storageCard ? <div className="mb-6">{storageCard}</div> : null}
+              {spendCards}
+            </>
           ) : undefined
         }
         detailRows={detailRows}
@@ -457,12 +537,24 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         />
         {/*
          * What Security Events found about it this week, for whoever may
-         * read it (Components/SecurityConnections).
+         * read it (Components/SecurityConnections) - for a resource an
+         * event can reach, as its menu's Security Events is (#9779). One
+         * known only by a stand-in, with no logs and no name or address of
+         * its own, would always say nothing named it.
          */}
-        <ResourceSecurityCard
-          kind={SecurityConnectionKind.CloudResource}
-          modelId={modelId}
-        />
+        {canCloudResourceHaveSecurityEvents({
+          provider: r.cloudProvider,
+          type: r.cloudResourceType,
+          providerResourceId: r.providerResourceId,
+          cloudEndpoints: r.cloudEndpoints,
+        }) ? (
+          <ResourceSecurityCard
+            kind={SecurityConnectionKind.CloudResource}
+            modelId={modelId}
+          />
+        ) : (
+          <></>
+        )}
       </div>
 
       <CloudResourceInventoryCards resource={r} />
@@ -486,6 +578,8 @@ const CloudMonitoredResourceOverview: FunctionComponent<
                 eventScope={eventScope}
                 getRowAggregation={rowAggregation?.getRowAggregation}
                 getRowGroup={getRowGroup}
+                getRowGroupGaps={getRowGroupGaps}
+                renderRowGroupGap={renderRowGroupGap}
                 defaultRowValueCaption={rowAggregation?.defaultRowValueCaption}
                 disableUrlSync={true}
               />

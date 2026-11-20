@@ -27,8 +27,8 @@
 # path, so even a server that old answers a bad token with
 # `400 Invalid service token` there (a current one answers 401/422).
 #
-# When the chart is installed with `cost.enabled=true` it also diagnoses the
-# cost pipeline (Section 9), which fails the same silent way: the cost-agent /
+# When cost monitoring runs (on by default: `cost.enabled: auto`) it also
+# diagnoses the cost pipeline (Section 9), which fails the same silent way: the cost-agent /
 # OpenCost / Prometheus pods, the poller's own /healthz (it reports its last
 # poll and ship error), and whether the cost engine's Allocation API answers.
 #
@@ -244,6 +244,20 @@ METRICS_DEPLOY=$(kubectl get deploy -n "$NS" -l "$SEL,component=metrics-collecto
   -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null \
   | grep -iE 'agent|collector|otel' | grep -viE 'state-metrics|ebpf|profil|log' | head -1)
 
+# The agent's pods carry the chart's selector labels - its name and release -
+# and their component, never part-of, which only the workloads carry: so a pod
+# is found by the name and release its metrics-collector Deployment has.
+POD_SEL="$SEL"
+if [ -n "$METRICS_DEPLOY" ]; then
+  POD_NAME_LABEL=$(kubectl get deploy "$METRICS_DEPLOY" -n "$NS" \
+    -o jsonpath='{.metadata.labels.app\.kubernetes\.io/name}' 2>/dev/null)
+  POD_RELEASE_LABEL=$(kubectl get deploy "$METRICS_DEPLOY" -n "$NS" \
+    -o jsonpath='{.metadata.labels.app\.kubernetes\.io/instance}' 2>/dev/null)
+  if [ -n "$POD_NAME_LABEL" ] && [ -n "$POD_RELEASE_LABEL" ]; then
+    POD_SEL="app.kubernetes.io/name=$POD_NAME_LABEL,app.kubernetes.io/instance=$POD_RELEASE_LABEL"
+  fi
+fi
+
 # ----------------------------------------------------------------------------
 section "3. Pod health"
 # ----------------------------------------------------------------------------
@@ -264,7 +278,7 @@ else
 fi
 
 # Per-pod state for every agent pod; surface crashloops / config errors / pending.
-PODS=$(kubectl get pods -n "$NS" -l "$SEL" \
+PODS=$(kubectl get pods -n "$NS" -l "$POD_SEL" \
   -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null)
 [ -z "$PODS" ] && PODS=$(kubectl get pods -n "$NS" -o name 2>/dev/null | sed 's#pod/##' | grep -iE 'agent|collector|otel')
 
@@ -324,7 +338,7 @@ fi
 [ -n "$SIDECAR_POD" ] && info "debug sidecar detected in $SIDECAR_POD — egress test will use the collector's exact network path."
 
 # Pick one metrics-collector pod for port-forward checks.
-PRIMARY_POD=$(kubectl get pods -n "$NS" -l "$SEL,component=metrics-collector" \
+PRIMARY_POD=$(kubectl get pods -n "$NS" -l "$POD_SEL,component=metrics-collector" \
   -o jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' 2>/dev/null | awk '{print $1}')
 [ -z "$PRIMARY_POD" ] && PRIMARY_POD=$(printf '%s\n' "$PODS" | head -1)
 
@@ -613,11 +627,38 @@ if [ -n "$PRIMARY_POD" ]; then
   fi
 fi
 
+# The node collectors' kubeletstats reads each node's pod list from its
+# kubelet (/pods), and sends nothing at all from a node whose kubelet refuses
+# it: no node, pod or container metrics. A kubelet from Kubernetes 1.33 on
+# allows it with nodes/pods, which the chart always grants; an older one only
+# with nodes/proxy, which kubeletstats.nodesProxy grants (auto: on a cluster
+# older than 1.36).
+PODS_REFUSED_NODES=""
+while read -r npod nnode; do
+  [ -z "$npod" ] && continue
+  # Read whole, then matched: under pipefail, grep -q would stop reading at
+  # the first match and fail the pipe with the logs' SIGPIPE.
+  NODE_LOG=$(kubectl logs -n "$NS" "$npod" -c otel-collector --tail=300 2>/dev/null)
+  case "$NODE_LOG" in
+    *'call to /pods endpoint failed'*)
+      PODS_REFUSED_NODES="$PODS_REFUSED_NODES ${nnode:-$npod}"
+      ;;
+  esac
+done <<EOF
+$(kubectl get pods -n "$NS" -l "$POD_SEL,component=log-collector" \
+  -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.nodeName}{"\n"}{end}' 2>/dev/null)
+EOF
+if [ -n "$PODS_REFUSED_NODES" ]; then
+  fail "The node collector could not read the kubelet's pod list on:$PODS_REFUSED_NODES"
+  add_finding "The kubelet refused the node collector its pod list (/pods) on:$PODS_REFUSED_NODES — so no kubelet metrics (node, pod and container CPU, memory, disk and network) come from those nodes. A kubelet older than Kubernetes 1.33 allows the list only with nodes/proxy: upgrade the agent with --set kubeletstats.nodesProxy=true, or with auto on a cluster older than 1.36, until those nodes run 1.33 or later. kubectl get nodes -o wide shows each node's kubelet version."
+fi
+
 # ----------------------------------------------------------------------------
 section "9. Cost pipeline"
 # ----------------------------------------------------------------------------
-# Everything below is gated on the cost-agent Deployment existing — i.e. on the
-# chart having been installed with `--set cost.enabled=true`.
+# Everything below is gated on the cost-agent Deployment existing — i.e. on
+# cost monitoring running: on by default (`cost.enabled: auto`) except on the
+# gke-autopilot and eks-fargate presets, and with `--set cost.enabled=true`.
 #
 # Cost fails the same silent way the ingestion token does: nothing crashes, the
 # workloads above stay green, and the Kubernetes Cost dashboard just never grows
@@ -665,7 +706,7 @@ cost_deploy_check() {
   # The waiting reason decides which failure this is — ImagePullBackOff gets
   # named on the failing line itself rather than left as a generic "not ready",
   # because among a dozen healthy pods it is the one nobody goes looking for.
-  reasons=$(kubectl get pods -n "$NS" -l "$SEL,component=$comp" \
+  reasons=$(kubectl get pods -n "$NS" -l "$POD_SEL,component=$comp" \
     -o jsonpath='{range .items[*]}{.status.containerStatuses[*].state.waiting.reason}{" "}{end}' 2>/dev/null | tr -s ' ')
   reasons=$(printf '%s' "$reasons" | xargs)
   case "$reasons" in
@@ -733,8 +774,9 @@ if [ -z "$COST_AGENT_DEPLOY" ]; then
     warn "A cost engine is deployed, but there is no cost-agent Deployment (cost.agent.enabled=false)."
     add_finding "The bundled cost engine runs but nothing polls it — cost.agent.enabled is false, so allocations are computed in-cluster and never shipped to OneUptime. Re-run with --set cost.agent.enabled=true."
   else
-    info "Cost collection is not enabled here (no component=cost-agent Deployment) — skipping."
-    detail "Enable it with: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.enabled=true"
+    info "Cost collection is not running here (no component=cost-agent Deployment) — skipping."
+    detail "It is on by default, except on the gke-autopilot and eks-fargate presets; cost.enabled=false, or a chart from before it was on by default, leaves it off."
+    detail "Turn it on with: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.enabled=true"
   fi
 else
   COST_ENABLED=1
@@ -756,6 +798,13 @@ else
     COST_BUNDLED=1
     cost_deploy_check opencost "opencost (bundled cost engine)"
     cost_deploy_check cost-prometheus "cost-prometheus (engine's TSDB)"
+  elif [ "$(printf '%s' "$COST_ENGINE_URL" | tr '[:upper:]' '[:lower:]')" = "auto" ]; then
+    # cost.engine.url: auto - nothing is bundled, and the agent finds the
+    # cluster's own OpenCost or Kubecost by itself. Its /healthz (9a) names
+    # the engine it found and where, which is what 9b then probes.
+    COST_ENGINE_URL=""
+    info "cost.engine.url is auto: the cost agent finds the cluster's own OpenCost or Kubecost; nothing is bundled."
+    detail "Its /healthz below names the engine it found. With none installed, nothing is priced."
   else
     info "External cost engine configured: ${COST_ENGINE_URL:-?}"
     detail "The bundled OpenCost/Prometheus are intentionally not installed in this mode."
@@ -797,7 +846,7 @@ else
 
   # 9a. The poller's own /healthz. This is the only place the poll loop's error
   # surfaces: it does not crash, does not fail its probes, and logs at info.
-  COST_POD_IP=$(kubectl get pods -n "$NS" -l "$SEL,component=cost-agent" \
+  COST_POD_IP=$(kubectl get pods -n "$NS" -l "$POD_SEL,component=cost-agent" \
     -o jsonpath='{.items[?(@.status.phase=="Running")].status.podIP}' 2>/dev/null | awk '{print $1}')
   if [ "$COST_PROBE_OK" = 1 ] && [ -z "$COST_POD_IP" ]; then
     warn "No Running cost-agent pod — skipping the /healthz check."
@@ -809,6 +858,57 @@ else
       add_finding "The cost-agent's health endpoint on :13134 is unreachable from inside the cluster, so the pod is failing its own readiness probe. Check: kubectl logs -n $NS deploy/$COST_AGENT_DEPLOY"
     else
       COST_STATUS=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p' | head -1)
+      # Which engine the agent reads (agents that find the cluster's own
+      # engine say so here; older ones say nothing, and the URL stands).
+      COST_READ_URL=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineUrl":"\([^"]*\)".*/\1/p' | head -1)
+      COST_READ_SERVICE=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"service":"\([^"]*\)".*/\1/p' | head -1)
+      COST_READ_ENGINE=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"engine":"\([^"]*\)".*/\1/p' | head -1)
+      if [ -n "$COST_READ_URL" ]; then
+        COST_ENGINE_URL=${COST_READ_URL%/}
+      fi
+      if [ -n "$COST_READ_SERVICE" ]; then
+        info "The cost agent reads the cluster's own ${COST_READ_ENGINE:-cost engine} at $COST_READ_SERVICE."
+        if [ "$COST_BUNDLED" = 1 ]; then
+          detail "The bundled OpenCost is not needed. To stop running it: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.engine.url=auto"
+        fi
+      elif [ -z "$COST_ENGINE_URL" ]; then
+        warn "The cost agent has not found an OpenCost or Kubecost in this cluster yet; its last poll error below says why."
+      fi
+      # Where the engine serves its price metrics, which the collector asks
+      # the agent for whenever the chart renders the agent's Service: with
+      # cost.engine.url auto or a URL (#9776), and with the bundled engine
+      # while the agent may read the cluster's own instead (#9852). A Kubecost
+      # frontend answers /metrics with its web page. Without that Service the
+      # bundled engine is scraped where the chart put it, so it is not
+      # reported here.
+      COST_METRICS_FROM_AGENT=0
+      if kubectl get svc -n "$NS" -l "$SEL,component=cost-agent" -o name 2>/dev/null | grep -q .; then
+        COST_METRICS_FROM_AGENT=1
+      fi
+      COST_METRICS_URL=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineMetricsUrl":"\([^"]*\)".*/\1/p' | head -1)
+      COST_METRICS_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costEngineMetricsError":"\([^"]*\)".*/\1/p' | head -1)
+      if [ "$COST_METRICS_FROM_AGENT" = 1 ] && [ -n "$COST_METRICS_URL" ]; then
+        info "The collector scrapes the engine's price metrics at $COST_METRICS_URL, where the cost agent found them."
+      elif [ "$COST_METRICS_FROM_AGENT" = 1 ] && [ -n "$COST_METRICS_ERR" ]; then
+        warn "The cost agent has not found the engine's price metrics, so the Kubernetes Cost dashboard gets none."
+        detail "$COST_METRICS_ERR"
+        add_finding "The cost agent found no price metrics for the engine at ${COST_ENGINE_URL:-?}, so the collector has nothing to scrape for the Kubernetes Cost dashboard and Metric Explorer. It tried: $COST_METRICS_ERR. Name them yourself with --set cost.metrics.endpoint=<url> (Kubecost 3 keeps them on its finops agent: http://<release>-finopsagent.<namespace>.svc.cluster.local:80/metrics)."
+      fi
+      # Where the memory peaks for right-sizing are read (#9777): the bundled
+      # Prometheus, cost.engine.prometheusUrl, or the Prometheus the
+      # cluster's own engine reads, which the agent finds. Older agents say
+      # nothing here.
+      COST_PROM_URL=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costPrometheusUrl":"\([^"]*\)".*/\1/p' | head -1)
+      COST_PROM_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costPrometheusError":"\([^"]*\)".*/\1/p' | head -1)
+      COST_PROM_NOTE=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costPrometheus":{[^}]*"note":"\([^"]*\)".*/\1/p' | head -1)
+      if [ -n "$COST_PROM_URL" ]; then
+        info "Memory peaks for right-sizing are read from the Prometheus at $COST_PROM_URL."
+        [ -n "$COST_PROM_NOTE" ] && detail "$COST_PROM_NOTE"
+      elif [ -n "$COST_PROM_ERR" ]; then
+        warn "The cost agent found no Prometheus to read memory peaks from, so the Right-Sizing card leaves memory requests unsized."
+        detail "$COST_PROM_ERR"
+        add_finding "The cost agent found no Prometheus to read per-container memory peaks from, so memory right-sizing is unavailable (CPU still works). It looked: $COST_PROM_ERR. Name one that scrapes this cluster's cAdvisor with --set cost.engine.prometheusUrl=<url>."
+      fi
       COST_POLL_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastPollError":"\([^"]*\)".*/\1/p' | head -1)
       COST_SHIP_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastShipError":"\([^"]*\)".*/\1/p' | head -1)
       info "cost-agent /healthz → HTTP $RESP_CODE (status=${COST_STATUS:-?})"
@@ -938,7 +1038,7 @@ else
             fail "cost-prometheus has no '$pjob' target at all."
             COST_OK=0
             if [ "$pjob" = "kubernetes-nodes-cadvisor" ]; then
-              add_finding "The cost Prometheus discovered no cAdvisor targets — node discovery is failing (the agent ServiceAccount needs nodes + nodes/proxy). Without container usage, OpenCost can only produce empty or idle-only allocations."
+              add_finding "The cost Prometheus discovered no cAdvisor targets — node discovery is failing (the agent ServiceAccount needs list and watch on nodes). Without container usage, OpenCost can only produce empty or idle-only allocations."
             else
               add_finding "The cost Prometheus has no 'opencost' scrape target — its config didn't render or the pod is running an older ConfigMap. Restart it: kubectl rollout restart -n $NS deploy/$PROM_SVC"
             fi
@@ -949,7 +1049,7 @@ else
             [ -n "$PROM_ERR" ] && detail "lastError: $(printf '%s' "$PROM_ERR" | head -c 200)"
             COST_OK=0
             if [ "$pjob" = "kubernetes-nodes-cadvisor" ]; then
-              add_finding "$((PROM_TOTAL - PROM_UP)) of $PROM_TOTAL cAdvisor targets are down, so those nodes' containers get no usage series and their workloads will be missing (or priced as idle) in the cost data. lastError: ${PROM_ERR:-see the target page}"
+              add_finding "$((PROM_TOTAL - PROM_UP)) of $PROM_TOTAL cAdvisor targets are down, so those nodes' containers get no usage series and their workloads will be missing (or priced as idle) in the cost data. It reads each node's kubelet on port 10250 (nodes/metrics) unless cost.prometheus.nodesProxy sends it through the API server (nodes/proxy): a 403 means the agent's ClusterRole lacks that grant; a timeout or a refused connection means the network keeps pods from the nodes' port 10250 - allow it, or set cost.prometheus.nodesProxy=true. lastError: ${PROM_ERR:-see the target page}"
             else
               add_finding "The cost Prometheus cannot scrape OpenCost (${PROM_UP}/${PROM_TOTAL} up), so node/PV prices never enter the TSDB and allocations come back without cost. lastError: ${PROM_ERR:-see the target page}"
             fi

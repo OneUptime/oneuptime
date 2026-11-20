@@ -34,6 +34,7 @@ export enum CloudResourceViewTab {
   Apps = "apps",
   Metrics = "metrics",
   Logs = "logs",
+  SecurityEvents = "security-events",
   Traces = "traces",
   Instances = "instances",
   Feed = "feed",
@@ -42,6 +43,8 @@ export enum CloudResourceViewTab {
   ScheduledMaintenance = "scheduled-maintenance",
   Changes = "changes",
   Recommendations = "recommendations",
+  DataSecurity = "data-security",
+  Compliance = "compliance",
   Documentation = "documentation",
   Settings = "settings",
   Owners = "owners",
@@ -65,6 +68,7 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   [CloudResourceViewTab.Apps]: "apps",
   [CloudResourceViewTab.Metrics]: "metrics",
   [CloudResourceViewTab.Logs]: "logs",
+  [CloudResourceViewTab.SecurityEvents]: "security-events",
   [CloudResourceViewTab.Traces]: "traces",
   [CloudResourceViewTab.Instances]: "instances",
   [CloudResourceViewTab.Feed]: "feed",
@@ -73,6 +77,8 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   [CloudResourceViewTab.ScheduledMaintenance]: "scheduled-maintenance",
   [CloudResourceViewTab.Changes]: "changes",
   [CloudResourceViewTab.Recommendations]: "recommendations",
+  [CloudResourceViewTab.DataSecurity]: "data-security",
+  [CloudResourceViewTab.Compliance]: "compliance",
   [CloudResourceViewTab.Documentation]: "documentation",
   [CloudResourceViewTab.Settings]: "settings",
   [CloudResourceViewTab.Owners]: "owners",
@@ -140,8 +146,13 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
  * delivers from the log group AWS names after it (CloudLogGroups) - its side
  * menu shows Logs only for a kind of resource a log group names - the
  * monitors OneUptime recommends for it, from the metrics its connection
- * reads (Recommendations), and the scheduled maintenance events that hold
- * it, which silence those monitors while they are in progress.
+ * reads (Recommendations), the scheduled maintenance events that hold it,
+ * which silence those monitors while they are in progress, and what Data
+ * Security reads of a bucket or a database it is (Data Security and
+ * Compliance, #9547 and #9555) - its side menu shows those two only for a
+ * resource that holds a data store - and the security events about it
+ * (#9779), which its side menu shows only for a resource an event can
+ * reach (canCloudResourceHaveSecurityEvents).
  */
 export const RESOURCE_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
@@ -149,6 +160,8 @@ export const RESOURCE_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.Overview]: PageMap.CLOUD_RESOURCE_VIEW,
   [CloudResourceViewTab.Metrics]: PageMap.CLOUD_RESOURCE_VIEW_METRICS,
   [CloudResourceViewTab.Logs]: PageMap.CLOUD_RESOURCE_VIEW_LOGS,
+  [CloudResourceViewTab.SecurityEvents]:
+    PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
   [CloudResourceViewTab.Feed]: PageMap.CLOUD_RESOURCE_VIEW_FEED,
   [CloudResourceViewTab.Incidents]: PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
   [CloudResourceViewTab.Alerts]: PageMap.CLOUD_RESOURCE_VIEW_ALERTS,
@@ -157,6 +170,9 @@ export const RESOURCE_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.Changes]: PageMap.CLOUD_RESOURCE_VIEW_CHANGES,
   [CloudResourceViewTab.Recommendations]:
     PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS,
+  [CloudResourceViewTab.DataSecurity]:
+    PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+  [CloudResourceViewTab.Compliance]: PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE,
   [CloudResourceViewTab.Documentation]:
     PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION,
   [CloudResourceViewTab.Settings]: PageMap.CLOUD_RESOURCE_VIEW_SETTINGS,

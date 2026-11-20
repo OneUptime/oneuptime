@@ -93,21 +93,31 @@ Com **Todos os projetos**, fazer login com o provedor atende à exigência de SS
 
 ## Sair também do provedor de identidade
 
-Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, a próxima pessoa que entra com esse provedor entra como quem saiu. Em um provedor OpenID Connect, clique em **Editar configuração** e ative **Sair também do provedor de identidade** em **Mais campos**: sair do OneUptime passa a encerrar também a sessão no provedor, e o provedor devolve o navegador à página de entrada do OneUptime. Vem desativado, pois em um notebook pessoal também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
+Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, a próxima pessoa que entra com esse provedor entra como quem saiu. Em um provedor SAML ou OpenID Connect, clique em **Editar configuração** e ative **Sair também do provedor de identidade** em **Mais campos**: sair do OneUptime passa então a encerrar também a sessão no provedor, e o provedor devolve o navegador ao OneUptime. Vem desativado, pois em um notebook pessoal também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
 
-Registre no seu provedor a URI de redirecionamento após sair que o cartão **URL do provedor de identidade** mostra, como post-logout redirect URI permitida. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la.
+:::tabs
+@tab SAML
+Informe a URL de saída do seu provedor de identidade como **URL de saída**, em **Mais campos**: sem ela, a opção não pode ser ativada. Depois, informe ao seu provedor de identidade a **Single Logout URL** que o cartão **URLs do provedor de identidade** mostra e o certificado com que o OneUptime assina suas solicitações de saída, em **Baixar certificado de assinatura** no mesmo cartão. Quando a pessoa sai no provedor de identidade, ou de outro app que o usa, um provedor de identidade que envia solicitações de saída aos seus apps também a tira do OneUptime.
+@tab OpenID Connect
+Registre no seu provedor o URI de redirecionamento após sair que o cartão **URL do provedor de identidade** mostra, como post-logout redirect URI permitido. Um provedor cujo documento de descoberta não nomeia nenhum `end_session_endpoint`, como o Google, não pode ativá-la.
+:::
+
+Onde o Okta, o Microsoft Entra ID, o Auth0 e o Keycloak guardam essas configurações está na página [SSO](/docs/identity/sso).
 
 ## Impor o SSO
 
 Configurar um provedor global não obriga ninguém a usá-lo; o login com senha continua funcionando. Para exigir SSO, ligue a exigência em um projeto ou na instância inteira:
 
-- **Por projeto:** um projeto pode exigir SSO e, opcionalmente, um provedor *específico* (de projeto ou global). Veja [Exigir SSO no seu projeto](/docs/identity/sso#exigir-sso-no-seu-projeto).
+- **Por projeto:** um projeto pode exigir SSO e, opcionalmente, um provedor *específico* (de projeto ou global). Com **Gerenciar o login com SSO** também ligado, as pessoas cujos projetos gerenciam todos o login assim não recebem no OneUptime senha, chave de acesso nem autenticação de dois fatores. Veja [Exigir SSO no seu projeto](/docs/identity/sso#exigir-sso-no-seu-projeto).
 - **Na instância inteira:** o cartão **Exigir SSO** no fim de **Admin** > **Configurações** > **Login único** tem um interruptor **Exigir SSO para entrar** que impõe o SSO a todos os usuários da instância. Ele pede confirmação antes de ligar e salva assim que você confirma. Os administradores mestres continuam isentos para nunca ficarem sem acesso.
 
 Enquanto a instância inteira exige SSO:
 
 - A página de login oferece só SSO: um botão para cada provedor global ligado, e nada de senha, chave de acesso, link enviado por e-mail, login com o Google ou a Microsoft, ou cadastro. Ela mantém a busca por e-mail, que encontra o provedor próprio de um projeto, só enquanto algum projeto tiver um.
 - O OneUptime recusa uma senha, uma chave de acesso, um link enviado por e-mail, um login com o Google ou a Microsoft e um cadastro com "This server requires single sign-on (SSO). Sign in with SSO instead." Só a senha ou a chave de acesso de um administrador mestre ainda fazem o login dele. As pessoas recebem a conta fazendo login com SSO ou por convite.
+- Quem não é administrador mestre não pode definir senha, chave de acesso, chave de segurança, aplicativo autenticador, códigos de backup nem autenticação de dois fatores, e a redefinição de senha não lhe envia nenhum link. O **Perfil do usuário** dessa pessoa não tem a seção **Segurança**, e a **Visão geral** dele mostra os provedores com que ela faz login. O que ela configurou antes continua salvo, mas sem uso, até que a exigência seja desligada.
+- O cartão **Exigir SSO** diz quantas dessas pessoas ainda têm uma senha ou a autenticação de dois fatores salva, que as faria entrar de novo se o SSO deixasse de ser exigido. **Limpar configurações de login** exclui suas senhas, chaves de acesso, chaves de segurança, aplicativos autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que elas abriram sem SSO, depois de pedir confirmação. Não dá para desfazer, os administradores mestres mantêm as suas, os projetos de cada pessoa registram isso em seus registros de auditoria, e cada pessoa recebe um e-mail com o que foi removido e como entra agora.
+- Na página **Autenticação** de uma pessoa em **Usuários**, **Limpar configurações de login** faz o mesmo só para essa pessoa, e **Definir senha** e **Enviar link de redefinição de senha** avisam que uma senha não fará o login dela. Ali você não pode limpar as suas, e limpar as de outro administrador mestre pede que você confirme que ele é um.
 - Quem já fez login com uma senha faz login com SSO para abrir um projeto. Essa pessoa chega à página de login único do projeto, que oferece os provedores próprios do projeto e os provedores globais que fazem login nele. O cartão **Exigir SSO** diz quantas pessoas ainda estão conectadas sem SSO, e **Desconectá-las** encerra as sessões delas em todos os dispositivos de uma vez. Os administradores principais continuam conectados.
 - Os administradores mestres fazem login com a senha em `/accounts/admin-login`, um endereço para o qual a página de login não aponta. O cartão **Exigir SSO** mostra o endereço completo abaixo do interruptor, como **Login de administrador principal**: guarde-o, para desligar a exigência se o seu provedor de identidade parar de funcionar.
 

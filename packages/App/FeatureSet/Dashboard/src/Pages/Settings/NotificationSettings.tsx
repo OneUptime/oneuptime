@@ -5,6 +5,8 @@ import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/Advanc
 import ProjectNotificationChannelsCard from "../../Components/NotificationMethods/ProjectNotificationChannelsCard";
 import DefaultPagingLadderCard from "../../Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
 import PhoneForOnCallCard from "../../Components/NotificationRule/PagingLadder/PhoneForOnCallCard";
+import VoicemailDetectionCard from "../../Components/NotificationMethods/VoicemailDetectionCard";
+import { getVoicemailDetectionFoldedItem } from "../../Components/NotificationMethods/VoicemailDetectionWords";
 import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import {
   getCurrentProjectBillingMarketplace,
@@ -77,9 +79,11 @@ import React, {
  * So do how members are paged by default (#7449): the project's default
  * ladder for new members, and its ask for a phone method from everyone on
  * call (Components/NotificationRule/PagingLadder/DefaultPagingLadderCard and
- * PhoneForOnCallCard) - first, as what an on-call admin comes for. Each is a
- * card of its own module, so the card-in-card guard reads it as a whole card
- * drawn as a section of the fold (#9464).
+ * PhoneForOnCallCard) - first, as what an on-call admin comes for - and
+ * whether its on-call calls tell a voicemail from a person answering
+ * (#6594, VoicemailDetectionCard), on for every project. Each is a card of
+ * its own module, so the card-in-card guard reads it as a whole card drawn
+ * as a section of the fold (#9464).
  */
 export const NOTIFICATION_SETTINGS_MORE_TEST_ID: string =
   "notification-settings-more";
@@ -106,6 +110,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // The default ladder's steps, and whether a phone is asked for, once read.
   const [defaultStepCount, setDefaultStepCount] = useState<number>(0);
   const [isPhoneAsked, setIsPhoneAsked] = useState<boolean>(false);
+  // Whether on-call calls tell voicemail apart, once read: on, as projects start.
+  const [isDetectingVoicemail, setIsDetectingVoicemail] =
+    useState<boolean>(true);
 
   /*
    * Read on every render rather than remembered: the permission snapshot
@@ -271,6 +278,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             defaultStepCount: defaultStepCount,
             isPhoneAsked: isPhoneAsked,
           }),
+          getVoicemailDetectionFoldedItem(isDetectingVoicemail),
           ...getOwnSendersFoldedItems({
             smtpConfigCount: smtpConfigCount,
             twilioConfigCount: twilioConfigCount,
@@ -288,6 +296,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           projectId={ProjectUtil.getCurrentProjectId()!}
           onChange={(isOn: boolean) => {
             setIsPhoneAsked(isOn);
+          }}
+        />
+        <VoicemailDetectionCard
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          onChange={(isOn: boolean) => {
+            setIsDetectingVoicemail(isOn);
           }}
         />
         <CustomSMTPTable

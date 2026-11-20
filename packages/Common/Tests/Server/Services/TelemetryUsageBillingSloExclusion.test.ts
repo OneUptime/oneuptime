@@ -47,6 +47,11 @@ import {
   ProductAnalyticsDerivedMetric,
   isProductAnalyticsDerivedMetricName,
 } from "../../../Types/Rum/ProductAnalyticsEvents";
+import {
+  KubernetesCostMetric,
+  isKubernetesCostMetricName,
+} from "../../../Types/Kubernetes/KubernetesCostMetrics";
+import { SESSION_REPLAY_SIGNAL_SESSIONS_METRIC } from "../../../Types/Rum/SessionReplaySignalMetric";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
@@ -78,7 +83,7 @@ const INCIDENT_ID: string = "66666666-6666-4666-8666-666666666666";
 const HOST_ID: string = "77777777-7777-4777-8777-777777777777";
 
 describe("TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES", () => {
-  test("is exactly OneUptime's own operational data: monitors, alerts, incidents, SLOs, table health, pipeline runs, data products, reconciliations and BI refreshes", () => {
+  test("is exactly OneUptime's own operational data: monitors, alerts, incidents, SLOs, table health, pipeline runs, data products, reconciliations, BI refreshes and managed devices' check-ins", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES].sort()).toEqual(
       [
         ServiceType.Monitor,
@@ -90,8 +95,21 @@ describe("TELEMETRY_BILLING_EXCLUDED_ENTITY_TYPES", () => {
         ServiceType.DataProduct,
         ServiceType.DataReconciliation,
         ServiceType.DataBiConnection,
+        ServiceType.DeviceManagementConnection,
       ].sort(),
     );
+  });
+
+  // #9835: how long since each device checked in, written at every read.
+  test("never bills the minutes since each managed device checked in, which OneUptime writes itself", () => {
+    expect(
+      isTelemetryBillingExcludedEntityType(
+        ServiceType.DeviceManagementConnection,
+      ),
+    ).toBe(true);
+    expect(
+      isTelemetryBillingExcludedEntityType("DeviceManagementConnection"),
+    ).toBe(true);
   });
 
   test("never bills Data Observability's oneuptime.data.table.*, oneuptime.data.pipeline.* or oneuptime.data.product.* rows", () => {
@@ -357,10 +375,20 @@ const EVERY_BUDGET_METRIC_NAME: Array<string> = [
 const EVERY_EXCLUDED_METRIC_NAME: Array<string> = [
   ...EVERY_BUDGET_METRIC_NAME,
   ...(Object.values(ProductAnalyticsDerivedMetric) as Array<string>),
+  /*
+   * And the Kubernetes cost metrics (#9548), worked out from allocation rows
+   * the cluster already sent.
+   */
+  ...(Object.values(KubernetesCostMetric) as Array<string>),
+  /*
+   * And the sessions that hit each of an application's own signals (#6518),
+   * counted from recordings the project already sent.
+   */
+  SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
 ].sort();
 
 describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
-  test("is exactly the session replay and ingestion budget series and the product analytics event counts, every one of them", () => {
+  test("is exactly the session replay and ingestion budget series, the product analytics event counts, the Kubernetes cost metrics and the signal session counts, every one of them", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort()).toEqual(
       EVERY_EXCLUDED_METRIC_NAME,
     );
@@ -371,7 +399,8 @@ describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
       expect(
         SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name) ||
           TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name) ||
-          isProductAnalyticsDerivedMetricName(name),
+          isProductAnalyticsDerivedMetricName(name) ||
+          isKubernetesCostMetricName(name),
       ).toBe(true);
     }
   });

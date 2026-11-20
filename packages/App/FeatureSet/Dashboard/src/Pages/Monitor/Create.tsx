@@ -50,6 +50,7 @@ import MonitorSteps, {
 } from "../../Components/Form/Monitor/MonitorSteps";
 import MonitorDraftWhoIsTold from "../../Components/Monitor/Overview/MonitorDraftWhoIsTold";
 import { toProbeIds } from "../../Components/Form/Monitor/MonitorTest";
+import OneTimeCodeProbesWarning from "../../Components/Monitor/OneTimeCodeProbesWarning";
 import {
   getMonitorAddressFormFields,
   getMonitorAddressSeed,
@@ -59,6 +60,11 @@ import {
 } from "../../Components/Form/Monitor/MonitorAddressField";
 import { hasMonitorAddress } from "../../Utils/Form/Monitor/MonitorDestinationFieldCopy";
 import URL from "Common/Types/API/URL";
+import { isDeviceTargetMonitorType } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
+import {
+  canReadMonitorDevice,
+  getMonitorNetworkDeviceFormField,
+} from "../../Components/Monitor/MonitorNetworkDeviceField";
 import DeviceWebUiUtil, {
   DEVICE_MONITOR_CHECK_QUERY_PARAM,
   DeviceMonitorCheck,
@@ -356,11 +362,13 @@ interface MetricViewThresholdSource {
 }
 
 /*
- * What to Monitor's More fields: the description and the labels, folded at
- * the end of the step. Neither is needed on the way to a first monitor - the
- * step asks only what to monitor, where it is and what to call it - and the
- * section says "Configured" once either is filled in (a template's labels,
- * say). Built once, so both fields fold under the one header.
+ * What to Monitor's More fields: the description, the labels and - for a
+ * monitor that checks a host - the network device it checks (issue #9545),
+ * folded at the end of the step. None is needed on the way to a first
+ * monitor - the step asks only what to monitor, where it is and what to call
+ * it - and the section says "Configured" once one is filled in (a
+ * template's labels, a device's page's device). Built once, so the fields
+ * fold under the one header.
  */
 const MONITOR_INFO_MORE_FIELDS: FormFieldCollapsibleSection<Monitor> =
   getAdvancedFormSection<Monitor>();
@@ -1610,6 +1618,18 @@ const MonitorCreate: FunctionComponent<
     if (networkDeviceId) {
       setIsLoading(true);
       preSeedFromNetworkDeviceLink(networkDeviceId).finally(() => {
+        /*
+         * A monitor made from a device's page is that device's (issue
+         * #9545): tied to it, so its pages list it and the duplicate check
+         * counts it, whichever shape the link opened. Only for a reader the
+         * form asks the device of: the server checks they may read it.
+         */
+        if (ObjectID.isValidUUID(networkDeviceId) && canReadMonitorDevice()) {
+          setInitialValues((current: JSONObject): JSONObject => {
+            return { ...current, networkDevice: networkDeviceId };
+          });
+        }
+
         setIsLoading(false);
       });
       return;
@@ -2099,6 +2119,29 @@ const MonitorCreate: FunctionComponent<
                   stepId: "monitor-info",
                   collapsibleSection: MONITOR_INFO_MORE_FIELDS,
                 }),
+                /*
+                 * The network device the monitor checks (issue #9545), for a
+                 * kind that checks a host: what lists it on the device's
+                 * pages and keeps an import from giving the device a second
+                 * one like it. Folded, as most monitors check no device;
+                 * opened from a device's page it is that device already, and
+                 * left empty the server ties the monitor to the one device
+                 * at its address, when only one is there.
+                 */
+                ...(canReadMonitorDevice()
+                  ? [
+                      getMonitorNetworkDeviceFormField({
+                        stepId: "monitor-info",
+                        placeholder: "The one device at this address",
+                        collapsibleSection: MONITOR_INFO_MORE_FIELDS,
+                        showIf: (values: FormValues<Monitor>): boolean => {
+                          return isDeviceTargetMonitorType(
+                            values.monitorType as MonitorType | undefined,
+                          );
+                        },
+                      }),
+                    ]
+                  : []),
                 {
                   field: {
                     monitorSteps: true,
@@ -2241,6 +2284,23 @@ const MonitorCreate: FunctionComponent<
                   showIf: () => {
                     // Nothing to choose from - keep the step uncluttered.
                     return probeOptions.length > 0;
+                  },
+                  /*
+                   * A picked probe too old to make the one-time codes the
+                   * monitor's steps need is named under the picker (#9759).
+                   */
+                  getFooterElement: (
+                    values: FormValues<Monitor>,
+                  ): ReactElement => {
+                    return (
+                      <OneTimeCodeProbesWarning
+                        monitorSteps={
+                          values.monitorSteps as MonitorStepsType | undefined
+                        }
+                        monitorType={values.monitorType as MonitorType}
+                        probeIds={toProbeIds((values as JSONObject)["probes"])}
+                      />
+                    );
                   },
                 },
                 {

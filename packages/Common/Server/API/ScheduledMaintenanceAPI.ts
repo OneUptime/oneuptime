@@ -29,6 +29,10 @@ import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import PublicNoteReachRoute from "./PublicNoteReachRoute";
+import { PublicNoteReachEvent } from "../../Types/StatusPage/PublicNoteReach";
+import PickedStatusPagesReachRoute from "./PickedStatusPagesReachRoute";
+import { SCHEDULED_MAINTENANCE_RECORD } from "../Utils/StatusPage/ScheduledMaintenanceReachBuilder";
 
 export default class ScheduledMaintenanceAPI extends BaseAPI<
   ScheduledMaintenance,
@@ -53,6 +57,31 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * Whether a public note posted now is on a status page, and whether it
+     * notifies anyone (Types/StatusPage/PublicNoteReach): what the note
+     * composer says.
+     */
+    PublicNoteReachRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      event: PublicNoteReachEvent.ScheduledMaintenance,
+    });
+
+    /*
+     * Whether a maintenance event on the status pages picked on its form
+     * shows on one of them and notifies anyone (Types/StatusPage
+     * /PickedStatusPagesReach): what Schedule Maintenance Event's
+     * Subscriber Notifications line says (#9920).
+     */
+    PickedStatusPagesReachRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      answer: PickedStatusPagesReachRoute.answerFor(
+        SCHEDULED_MAINTENANCE_RECORD,
+      ),
+    });
   }
 
   private async generateNoteFromAI(

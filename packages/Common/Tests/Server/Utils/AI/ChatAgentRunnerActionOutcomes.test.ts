@@ -247,17 +247,24 @@ function pausedStateOf(spies: Spies): AIRunPausedState {
   throw new Error("The run was never paused for approval.");
 }
 
-// The declare, asked for and paused; then resumed with the person's yes.
+/*
+ * The declare, asked for and paused; then resumed with the person's yes.
+ * `props` are theirs when they approve it - and, unless `proposedAs` says
+ * otherwise, when it was proposed: a role can change while a card waits.
+ */
 async function approveTheDeclare(data: {
   createFails?: Error | undefined;
   props?: DatabaseCommonInteractionProps | undefined;
+  proposedAs?: DatabaseCommonInteractionProps | undefined;
 }): Promise<Spies> {
   const first: Spies = installSpies();
   first.executeWithLogging.mockResolvedValueOnce(
     response({ stopReason: "tool_use", toolCalls: [DECLARE_CALL] }) as never,
   );
+  const proposedAs: DatabaseCommonInteractionProps | undefined =
+    data.proposedAs || data.props;
   await ChatAgentRunner.runTurn(
-    buildRequest(data.props ? { props: data.props } : {}),
+    buildRequest(proposedAs ? { props: proposedAs } : {}),
   );
   const paused: AIRunPausedState = pausedStateOf(first);
   jest.restoreAllMocks();
@@ -344,8 +351,14 @@ describe("an approved action that was refused, or failed", () => {
     },
   );
 
-  test("a person whose role may not create incidents: refused at the gate, for their role", async () => {
+  /*
+   * A person whose role may not create incidents never sees the card
+   * (#7248, ChatAgentRunnerRefusedBeforeTheCard); a role taken away while
+   * the card waited is refused when it runs, by the same gate.
+   */
+  test("a person whose role changed while the card waited: refused at the gate when it runs, for their role", async () => {
     const spies: Spies = await approveTheDeclare({
+      proposedAs: memberProps(),
       props: memberProps([Permission.Viewer]),
     });
 

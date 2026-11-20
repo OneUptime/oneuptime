@@ -11,7 +11,16 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  drawInviteeEmailField,
+  getInviteeEmailError,
+} from "Common/UI/Components/InviteeEmailField/InviteeEmailFormField";
+import {
+  INVITEE_NAME_DESCRIPTION,
+  shouldAskForInviteeName,
+} from "Common/UI/Utils/InviteeName";
+import { InviteSuggestion } from "Common/Types/Team/InviteSuggestions";
 import { JSONObject } from "Common/Types/JSON";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -81,11 +90,12 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
   const invitationEmailsNotSent: InvitationEmailsNotSent =
     useInvitationEmailsNotSent(!cannotSendEmail, { isAcrossProjects: true });
 
-  const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
-    getRequestHeaders: () => {
-      return AdminModelAPI.getCommonHeaders();
-    },
-  });
+  /*
+   * The address of the person last picked from the email box's
+   * suggestions: someone with an account, so inviting them to this team
+   * asks no name for them (Common/UI/Utils/InviteeName).
+   */
+  const [pickedInviteeEmail, setPickedInviteeEmail] = useState<string>("");
 
   return (
     <ModelPage<Project>
@@ -282,30 +292,53 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
               description: cannotSendEmail
                 ? INVITATION_LINK_COPY.inviteDescriptionForAdmin
                 : "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to this team.",
-              fieldType: FormFieldSchemaType.Email,
+              /*
+               * The form's text box, which suggests people as it is typed
+               * in, as the Dashboard's team members form does, each with
+               * where they stand for this team (#9826,
+               * Common/UI/Components/InviteeEmailField): the project's
+               * people, and on a server somebody runs its other accounts.
+               */
+              fieldType: FormFieldSchemaType.CustomComponent,
               required: true,
               placeholder: "member@company.com",
               overrideFieldKey: "email",
-              onChange: (value: string) => {
-                checkEmail(value);
+              customValidation: getInviteeEmailError,
+              getCustomElement: (
+                _values: FormValues<TeamMember>,
+                customProps: CustomElementProps,
+              ): ReactElement => {
+                return drawInviteeEmailField({
+                  customProps: customProps,
+                  projectId: projectId.toString(),
+                  teamId: teamId.toString(),
+                  onPick: (suggestion: InviteSuggestion) => {
+                    setPickedInviteeEmail(suggestion.email);
+                  },
+                });
               },
             },
             {
               field: {
                 user: true,
               },
+              /*
+               * Asked for every address typed, as the Dashboard's forms ask
+               * it (#9745): the server uses it only for an account nobody
+               * has signed up to yet. Not for the person picked from the
+               * suggestions, who has an account and a name.
+               */
               title: "Name",
-              description:
-                "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+              description: INVITEE_NAME_DESCRIPTION,
               fieldType: FormFieldSchemaType.Text,
               required: false,
               placeholder: "John Smith",
               overrideFieldKey: "name",
               showIf: (values: FormValues<TeamMember>): boolean => {
-                return (
-                  Boolean((values as JSONObject)["email"]) &&
-                  isEmailRegistered === false
-                );
+                return shouldAskForInviteeName({
+                  email: (values as JSONObject)["email"],
+                  pickedEmail: pickedInviteeEmail,
+                });
               },
             },
             {

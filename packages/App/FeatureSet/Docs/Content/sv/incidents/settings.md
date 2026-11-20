@@ -381,7 +381,7 @@ Varje `to` måste vara ett av fältets alternativ när det har sparats, och varj
 
 Inställningarna finns på resursen `oneuptime_incident_custom_field` som `sort_order`, `show_on_create`, `is_required_on_create` och `include_in_subscriber_notifications`. `variable_key` är skrivskyddad: nyckeln som OneUptime bildade när fältet skapades.
 
-Utelämna `sort_order`, så hamnar ett nytt fält sist i listan. Ge det talet som ett annat fält redan har, så tar det den platsen, medan fälten i vägen flyttas ett steg. Ett tal som inget annat fält har behålls som du skrev det.
+Utelämna `sort_order`, så hamnar ett nytt fält sist i listan. Ett tal du anger behålls som du skrev det, och inget annat fält flyttas för det, inte ens när ett annat fält redan har det: av de två visas det äldsta först.
 
 ## Mätningar
 

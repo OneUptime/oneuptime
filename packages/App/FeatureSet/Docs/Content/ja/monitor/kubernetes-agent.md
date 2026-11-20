@@ -35,6 +35,7 @@ flowchart LR
 | ノードコレクター | DaemonSet | `/var/log/pods` からの Pod ログ、kubelet と cAdvisor のメトリクス、ノードの OS メトリクス。 | はい |
 | eBPF インストルメンテーション (OBI) | DaemonSet | すべての Pod からの HTTP、gRPC、SQL、Redis のトレースとリクエストメトリクス、およびサービスマップ。 | はい |
 | Kubernetes AI エージェント | Deployment | OneUptime AI がこのクラスターのインシデントやアラートを調査するときに、読み取り専用の `kubectl` を実行できるようにします。 | はい |
+| コストエンジンとポーラー | Deployments | 各名前空間とワークロードのコスト: OpenCost、それが必要とする小さな Prometheus、そしてそれらが算出した結果を送信するコストエージェント。 | はい (`gke-autopilot` と `eks-fargate` のプリセットを除く) |
 | ログテイラー | Deployment | ノードコレクターが読めない場合に、Kubernetes API 経由で Pod ログを取得します。 | `gke-autopilot`、`eks-fargate`、`openshift-restricted` のプリセットで有効 |
 | eBPF プロファイラー | DaemonSet | すべてのプロセスの継続的な CPU フレームグラフ。 | いいえ |
 | kube-state-metrics | Deployment | Pod のフェーズ、コンテナーの待機理由、リソースクォータ。 | いいえ |
@@ -357,14 +358,14 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | --- | --- | --- |
 | `hostMetrics.enabled` | オン | `/proc` と `/sys` からの各ノードの OS メトリクス: ディスク I/O キュー、ファイルシステムの inode、ネットワークインターフェイスのエラー、ページング、ロードアベレージ。ノードコレクターの中で動作し、追加の Pod は不要です。 |
 | `kubeletstats.utilizationMetrics.enabled` | オン | コンテナーと Pod の CPU とメモリを、request と limit に対する割合で。Pod CPU Saturating Container Limit と Pod Memory Saturating Container Limit のテンプレートがこれを読み取ります。limit (または request) のないコンテナーにはこれらのシリーズがなく、Pod にはそのすべてのコンテナーにある場合にだけあります。 |
-| `kubeletstats.volumeMetrics.enabled` | オン | 各 PVC の空き容量と合計容量 (`k8s.volume.available`、`k8s.volume.capacity`)。独自のグラフやメトリクスモニター向けで、組み込みのテンプレートはこれを読み取りません。PVC と Pod の組ごとに 1 シリーズです。 |
+| `kubeletstats.volumeMetrics.enabled` | オン | 各 PVC の空き容量と合計容量 (`k8s.volume.available`、`k8s.volume.capacity`) を、そのクレーム名付きで送ります。永続ボリュームクレームのページの使用量・空き容量・容量と、PVC Almost Full テンプレートが読む値です。使用率が 80% 以上のクレームは、クラスターの「対応が必要」に表示されます。データを保持するボリューム (クレーム、emptyDir、hostPath) について、ボリュームと Pod ごとに数個のシリーズです。Pod の configMap、secret、downwardAPI、サービスアカウントトークンのボリュームはノード上で破棄されます。 |
 | `cadvisor.enabled` | オン | 各 kubelet の `/metrics/cadvisor` からの CPU スロットリングと OOM kill: `container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total`、`container_oom_events_total` だけです。 |
 | `kubeStateMetrics.enabled` | オフ | kube-state-metrics からの Pod のフェーズ (Pending、Terminating)、スケジュールできない Pod、コンテナーの待機理由 (CrashLoopBackOff、ImagePullBackOff)、リソースクォータの使用量。`kubeStateMetrics.mode: bundled` (デフォルト) は小さな kube-state-metrics を実行し、`external` はすでに実行しているものを `kubeStateMetrics.endpoint` で読み取ります。 |
 | `auditLogs.enabled` | オフ | Kubernetes の監査ログ `/var/log/kubernetes/audit.log`: API へのすべてのリクエストと、誰が何に対して行ったか。セルフマネージドのクラスターのみ: マネージドのクラスター (EKS、GKE、AKS、DOKS) はこれをクラウドプロバイダーに送ります。 |
 | `csi.enabled` | オフ | `app=csi-driver` または `app.kubernetes.io/component=csi-driver` のラベルが付いた Pod からの CSI ストレージドライバーのメトリクス: ボリュームのアタッチとデタッチの時間、プロビジョニングの失敗、IOPS。 |
 | `coreDns.enabled` | オフ | `:9153/metrics` 上の CoreDNS のメトリクス: クエリレート、レイテンシ、キャッシュヒット、エラー。 |
 | `controlPlane.enabled` | オフ | クラスター内のアドレスにある API サーバーと、指定したエンドポイントにある etcd、スケジューラー、コントローラーマネージャー ([コントロールプレーンの監視を有効にする](/docs/telemetry/kubernetes-agent#コントロールプレーンの監視を有効にする))。セルフマネージドのクラスターのみ: マネージドのクラスターはこれらを公開しません。 |
-| `cost.enabled` | オフ | 各ワークロードのコスト。[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照してください。 |
+| `cost.enabled` | `auto` | 各名前空間とワークロードのコスト。アイドル容量と効率を含み、アラートを設定できるメトリクスとしても送られます。`gke-autopilot` と `eks-fargate` のプリセットを除いて有効で、`false` にすると無効になります。[Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照してください。 |
 
 ## よく使うオプション
 

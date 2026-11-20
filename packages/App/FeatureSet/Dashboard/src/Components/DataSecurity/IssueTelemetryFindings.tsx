@@ -5,18 +5,40 @@ import { SensitivityPill } from "./DataSecurityPills";
 import FindingOccurrences from "./FindingOccurrences";
 import { getTelemetryStoreOwnerRoute } from "./FindingOccurrenceLinks";
 import { DataTypeNamer, useDataTypeNamer } from "./IssueDataTypes";
+import {
+  DROP_METRIC,
+  DROP_NOTICE,
+  DROPPED,
+  DROPPED_TOOLTIP,
+  DropMetricState,
+  getDropMetricState,
+  getRulesRoute,
+  getScrubItGates,
+  getScrubItState,
+  SCRUB_IT,
+  SCRUB_NOTICES,
+  SCRUB_UNAVAILABLE_SENTENCES,
+  ScrubItGates,
+  ScrubItState,
+} from "./TelemetryScrubIt";
+import TelemetryRuleNotice from "./TelemetryRuleNotice";
+import DropMetricModal from "./DropMetricModal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
-import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import Route from "Common/Types/API/Route";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green500 } from "Common/Types/BrandColors";
-import { DataSecurityScrubResult } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DataSecurityDropMetricResult,
+  DataSecurityScrubResult,
+  DataSecurityScrubSignal,
+} from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { isMetricNameFinding } from "Common/Types/DataSecurity/TelemetryScrubTarget";
 import {
   FINDING_FRESHNESS_IN_DAYS,
   getTelemetryCheckIdOfDataType,
@@ -24,11 +46,13 @@ import {
   isFindingCounted,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
-import { getDataStoreKindInfo } from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  getDataStoreKindInfo,
+} from "Common/Types/DataSecurity/DataStoreKind";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -37,10 +61,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionGate, {
-  ModelAction,
-  PermissionGateResult,
-} from "Common/UI/Utils/PermissionGate";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import {
   PluralTemplate,
   Translator,
@@ -102,17 +123,6 @@ const SCRUBBED: string = translationKey("Scrubbed");
 const SCRUBBED_TOOLTIP: string = translationKey(
   "A scrub rule masks this data at ingest. What was stored before keeps it until its retention ends.",
 );
-const SCRUB_IT: string = translationKey("Scrub It");
-const SCRUB_LOCKED: string = translationKey(
-  "You do not have permission to create scrub rules.",
-);
-const SCRUBBED_LOGS: string = translationKey(
-  "The scrub rule {{name}} now masks this data in new logs.",
-);
-const SCRUBBED_TRACES: string = translationKey(
-  "The scrub rule {{name}} now masks this data in new traces.",
-);
-const VIEW_SCRUB_RULES: string = translationKey("View scrub rules");
 const RESOLVES_WHEN_SCRUBBED: string = translationKey(
   "The issue resolves once every finding here is scrubbed and the store is checked again.",
 );
@@ -128,7 +138,9 @@ const MORE_IN_STORE: string = translationKey(
 
 interface ScrubNotice {
   ruleName: string;
-  signal: "log" | "trace";
+  signal: DataSecurityScrubSignal;
+  // A Drop rule Drop This Metric made, rather than Scrub It's rule.
+  isDrop?: boolean | undefined;
 }
 
 export interface ComponentProps {
@@ -190,10 +202,114 @@ export function getFindingsBehindIssue(
   ];
 }
 
+// What a telemetry store's owner line and its records read of the store.
+export interface TelemetryStoreOfFindings {
+  kind?: string | null | undefined;
+  name?: string | null | undefined;
+  serviceId?: ObjectID | string | null | undefined;
+  storeKey?: string | null | undefined;
+}
+
+/*
+ * The service or RUM application a telemetry store's data is sent under:
+ * its name is the first part of the store's ("checkout · Logs").
+ */
+export function getTelemetryStoreOwnerName(
+  store: TelemetryStoreOfFindings | undefined,
+): string {
+  return (store?.name || "").split(" · ")[0] || "";
+}
+
+/*
+ * "In the traces of checkout": the store's signal, named mid-sentence,
+ * and its owner, opening the owner at that signal when it can be named.
+ */
+export const TelemetryStoreOwnerLine: FunctionComponent<{
+  store: TelemetryStoreOfFindings | undefined;
+}> = (props: { store: TelemetryStoreOfFindings | undefined }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const signal: string = props.store?.kind || "";
+  const ownerName: string = getTelemetryStoreOwnerName(props.store);
+  const ownerRoute: Route | null = props.store
+    ? getTelemetryStoreOwnerRoute(props.store)
+    : null;
+
+  if (!signal || !ownerName) {
+    return <></>;
+  }
+
+  const whereItIs: string = translator.translateTemplate(WHERE_IT_IS, {
+    signal: translatableTerm(signal, { inSentence: true }),
+    owner: ownerName,
+  });
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-1.5 text-sm text-gray-600"
+      data-testid="data-security-issue-findings-owner"
+    >
+      <Icon
+        icon={getDataStoreKindInfo(signal)?.icon || IconProp.Logs}
+        className="h-4 w-4 shrink-0 text-gray-400"
+      />
+      {ownerRoute ? (
+        <AppLink
+          className="font-medium text-indigo-600 hover:underline [overflow-wrap:anywhere]"
+          to={ownerRoute}
+        >
+          {whereItIs}
+        </AppLink>
+      ) : (
+        <span className="[overflow-wrap:anywhere]">{whereItIs}</span>
+      )}
+    </div>
+  );
+};
+
+// A finding's masked samples, read defensively from its column.
+export function getMaskedSamples(finding: DataStoreFinding): Array<string> {
+  return Array.isArray(finding.maskedSamples)
+    ? finding.maskedSamples.filter((sample: unknown): sample is string => {
+        return typeof sample === "string" && sample.length > 0;
+      })
+    : [];
+}
+
+/*
+ * Why Scrub It cannot hide a finding, where the button would be: no rule
+ * of ingest reaches its place (TelemetryScrubIt).
+ */
+export const ScrubUnavailableNote: FunctionComponent<{
+  scrubIt: ScrubItState;
+}> = (props: { scrubIt: ScrubItState }): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (!props.scrubIt.unavailableReason) {
+    return <></>;
+  }
+
+  const sentence: string =
+    SCRUB_UNAVAILABLE_SENTENCES[props.scrubIt.unavailableReason];
+
+  // A div: the icon draws one, which a paragraph cannot hold.
+  return (
+    <div
+      className="flex items-start gap-1.5 text-xs text-gray-600"
+      data-testid="data-security-finding-scrub-unavailable"
+    >
+      <Icon
+        icon={IconProp.Info}
+        className="mt-px h-4 w-4 shrink-0 text-gray-400"
+      />
+      <span>{translator.translateText(sentence) || sentence}</span>
+    </div>
+  );
+};
+
 // A finding's masked samples, in a line of their own.
-const MaskedSamples: FunctionComponent<{ samples: Array<string> }> = (props: {
+export const MaskedSamples: FunctionComponent<{
   samples: Array<string>;
-}): ReactElement => {
+}> = (props: { samples: Array<string> }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
@@ -218,15 +334,116 @@ const MaskedSamples: FunctionComponent<{ samples: Array<string> }> = (props: {
   );
 };
 
+/*
+ * What a finding is and where it sits: its data type with its sensitivity
+ * (and Scrubbed, once a rule hides it - Dropped, once a Drop rule keeps the
+ * metrics named with it from being stored), its location and its kind, how
+ * many sampled values matched and when a scan last saw it. An issue's
+ * finding and In Your Telemetry's records panel draw it alike.
+ */
+export const FindingSummary: FunctionComponent<{
+  finding: DataStoreFinding;
+  namer: DataTypeNamer;
+  // The kind of the store it is in: a metric's name is dropped, not scrubbed.
+  storeKind?: string | null | undefined;
+}> = (props: {
+  finding: DataStoreFinding;
+  namer: DataTypeNamer;
+  storeKind?: string | null | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const finding: DataStoreFinding = props.finding;
+  const matches: number = finding.matchCount || 0;
+  const sampled: number = finding.valueCount || 0;
+  const isDropped: boolean = isMetricNameFinding(
+    props.storeKind,
+    finding.location,
+  );
+
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]"
+          data-testid="data-security-issue-finding-type"
+        >
+          {props.namer(finding.dataTypeId || "", finding.dataTypeName)}
+        </span>
+        {finding.sensitivity ? (
+          <SensitivityPill sensitivity={finding.sensitivity} />
+        ) : (
+          <></>
+        )}
+        {finding.isScrubbed ? (
+          <Pill
+            text={isDropped ? DROPPED : SCRUBBED}
+            color={Green500}
+            tooltip={isDropped ? DROPPED_TOOLTIP : SCRUBBED_TOOLTIP}
+          />
+        ) : (
+          <></>
+        )}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
+        <code
+          className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere] [box-decoration-break:clone]"
+          data-testid="data-security-issue-finding-location"
+        >
+          {finding.location || ""}
+        </code>
+        {finding.locationKind ? (
+          <span className="text-xs text-gray-500">
+            {translator.translateText(finding.locationKind) ||
+              finding.locationKind}
+          </span>
+        ) : (
+          <></>
+        )}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+        <span>
+          {matches > 0 && sampled > 0
+            ? translator.translateTemplate(VALUES_MATCHED, {
+                matches: translator.formatNumber(matches),
+                sampled: translator.formatNumber(sampled),
+              })
+            : matches > 0
+              ? translator.translatePlural(MATCHES_ONLY, matches)
+              : translator.translateText(CONFIRMED_BY_A_PERSON)}
+        </span>
+        {finding.lastSeenAt ? (
+          <span
+            title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              finding.lastSeenAt,
+            )}
+          >
+            {translator.translateTemplate(LAST_SEEN, {
+              time: OneUptimeDate.fromNow(finding.lastSeenAt),
+            })}
+          </span>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const FindingBlock: FunctionComponent<{
   finding: DataStoreFinding;
   namer: DataTypeNamer;
   canReadSamples: boolean;
   isOpen: boolean;
   onToggle: () => void;
-  scrubGate: PermissionGateResult;
+  // Scrub It on this finding: the rule it takes, and whether the reader may.
+  scrubIt: ScrubItState;
   isScrubbing: boolean;
   onScrub: () => void;
+  // Drop This Metric on a finding in a metric's name, and whether the reader may.
+  dropMetric: DropMetricState;
+  onDropMetric: () => void;
+  // The kind of the store the finding is in.
+  storeKind?: string | null | undefined;
   // The service or RUM application the store's telemetry is sent under.
   ownerName: string;
 }> = (props: {
@@ -235,24 +452,20 @@ const FindingBlock: FunctionComponent<{
   canReadSamples: boolean;
   isOpen: boolean;
   onToggle: () => void;
-  scrubGate: PermissionGateResult;
+  scrubIt: ScrubItState;
   isScrubbing: boolean;
   onScrub: () => void;
+  dropMetric: DropMetricState;
+  onDropMetric: () => void;
+  storeKind?: string | null | undefined;
   ownerName: string;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const finding: DataStoreFinding = props.finding;
   const findingId: string = finding._id?.toString() || "";
-  const samples: Array<string> = Array.isArray(finding.maskedSamples)
-    ? finding.maskedSamples.filter((sample: unknown): sample is string => {
-        return typeof sample === "string" && sample.length > 0;
-      })
-    : [];
-  const showScrub: boolean =
-    !finding.isScrubbed &&
-    (props.scrubGate.isAllowed || Boolean(props.scrubGate.disabledReason));
-  const matches: number = finding.matchCount || 0;
-  const sampled: number = finding.valueCount || 0;
+  const samples: Array<string> = getMaskedSamples(finding);
+  const showScrub: boolean = !finding.isScrubbed && props.scrubIt.isShown;
+  const showDrop: boolean = !finding.isScrubbed && props.dropMetric.isShown;
 
   return (
     <li
@@ -264,82 +477,20 @@ const FindingBlock: FunctionComponent<{
       data-testid="data-security-issue-finding"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className="text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]"
-              data-testid="data-security-issue-finding-type"
-            >
-              {props.namer(finding.dataTypeId || "", finding.dataTypeName)}
-            </span>
-            {finding.sensitivity ? (
-              <SensitivityPill sensitivity={finding.sensitivity} />
-            ) : (
-              <></>
-            )}
-            {finding.isScrubbed ? (
-              <Pill
-                text={SCRUBBED}
-                color={Green500}
-                tooltip={SCRUBBED_TOOLTIP}
-              />
-            ) : (
-              <></>
-            )}
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
-            <code
-              className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere] [box-decoration-break:clone]"
-              data-testid="data-security-issue-finding-location"
-            >
-              {finding.location || ""}
-            </code>
-            {finding.locationKind ? (
-              <span className="text-xs text-gray-500">
-                {translator.translateText(finding.locationKind) ||
-                  finding.locationKind}
-              </span>
-            ) : (
-              <></>
-            )}
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-            <span>
-              {matches > 0 && sampled > 0
-                ? translator.translateTemplate(VALUES_MATCHED, {
-                    matches: translator.formatNumber(matches),
-                    sampled: translator.formatNumber(sampled),
-                  })
-                : matches > 0
-                  ? translator.translatePlural(MATCHES_ONLY, matches)
-                  : translator.translateText(CONFIRMED_BY_A_PERSON)}
-            </span>
-            {finding.lastSeenAt ? (
-              <span
-                title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                  finding.lastSeenAt,
-                )}
-              >
-                {translator.translateTemplate(LAST_SEEN, {
-                  time: OneUptimeDate.fromNow(finding.lastSeenAt),
-                })}
-              </span>
-            ) : (
-              <></>
-            )}
-          </div>
-        </div>
+        <FindingSummary
+          finding={finding}
+          namer={props.namer}
+          storeKind={props.storeKind}
+        />
         {showScrub ? (
           <Button
             title={SCRUB_IT}
             icon={IconProp.EyeSlash}
             buttonStyle={ButtonStyleType.OUTLINE}
             isLoading={props.isScrubbing}
-            disabled={!props.scrubGate.isAllowed || props.isScrubbing}
+            disabled={!props.scrubIt.isAllowed || props.isScrubbing}
             tooltip={
-              props.scrubGate.isAllowed
-                ? undefined
-                : props.scrubGate.disabledReason
+              props.scrubIt.isAllowed ? undefined : props.scrubIt.disabledReason
             }
             dataTestId="data-security-issue-finding-scrub"
             onClick={props.onScrub}
@@ -347,7 +498,40 @@ const FindingBlock: FunctionComponent<{
         ) : (
           <></>
         )}
+        {/*
+         * A metric's name: no rule scrubs it, but its metrics can be dropped
+         * - which loses their data, so the dialog says what first.
+         */}
+        {showDrop ? (
+          <Button
+            title={DROP_METRIC}
+            icon={IconProp.Trash}
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            disabled={!props.dropMetric.isAllowed}
+            tooltip={
+              props.dropMetric.isAllowed
+                ? undefined
+                : props.dropMetric.disabledReason
+            }
+            dataTestId="data-security-issue-finding-drop-metric"
+            onClick={props.onDropMetric}
+          />
+        ) : (
+          <></>
+        )}
       </div>
+
+      {/*
+       * No rule reaches this place - a metric's name, a session's own
+       * details: why, and what to do, where the button would be.
+       */}
+      {!finding.isScrubbed && props.scrubIt.unavailableReason ? (
+        <div className="mt-2">
+          <ScrubUnavailableNote scrubIt={props.scrubIt} />
+        </div>
+      ) : (
+        <></>
+      )}
 
       {/*
        * The samples while the records are folded; open, the records show
@@ -416,11 +600,8 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
     new DataStoreFinding(),
     "maskedSamples",
   );
-  const scrubGate: PermissionGateResult = PermissionGate.check(
-    new LogScrubRule(),
-    ModelAction.Create,
-    { sentence: SCRUB_LOCKED },
-  );
+  // Who may make each kind of rule Scrub It makes.
+  const scrubGates: ScrubItGates = getScrubItGates();
 
   const [findings, setFindings] = useState<Array<DataStoreFinding> | null>(
     null,
@@ -433,6 +614,8 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
   const [scrubError, setScrubError] = useState<string>("");
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
+  // The finding in a metric's name whose metrics the reader is asked about dropping.
+  const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -530,19 +713,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
     setIsScrubbing(false);
   };
 
-  const ownerRoute: Route | null = props.store
-    ? getTelemetryStoreOwnerRoute(props.store)
-    : null;
-  const signal: string = props.store?.kind || "";
-  const ownerName: string = (props.store?.name || "").split(" · ")[0] || "";
-  // "In the traces of oneuptime-app": the signal named mid-sentence.
-  const whereItIs: string =
-    signal && ownerName
-      ? translator.translateTemplate(WHERE_IT_IS, {
-          signal: translatableTerm(signal, { inSentence: true }),
-          owner: ownerName,
-        })
-      : "";
+  const ownerName: string = getTelemetryStoreOwnerName(props.store);
   const unscrubbed: number = (findings || []).filter(
     (finding: DataStoreFinding): boolean => {
       return !finding.isScrubbed;
@@ -587,7 +758,11 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
               onToggle={() => {
                 toggle(findingId);
               }}
-              scrubGate={scrubGate}
+              scrubIt={getScrubItState({
+                kind: props.store?.kind,
+                location: finding.location,
+                gates: scrubGates,
+              })}
               isScrubbing={
                 isScrubbing && scrubbing?._id?.toString() === findingId
               }
@@ -595,6 +770,15 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
                 setScrubError("");
                 setScrubbing(finding);
               }}
+              dropMetric={getDropMetricState({
+                kind: props.store?.kind,
+                location: finding.location,
+                gates: scrubGates,
+              })}
+              onDropMetric={() => {
+                setDropping(finding);
+              }}
+              storeKind={props.store?.kind}
               ownerName={ownerName}
             />
           );
@@ -610,29 +794,18 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4" data-testid={ISSUE_TELEMETRY_FINDINGS_TEST_ID}>
         {notice ? (
-          <Alert
-            type={AlertType.SUCCESS}
-            dataTestId="data-security-issue-findings-scrub-notice"
-            title={
-              <span>
-                {translator.translateTemplate(
-                  notice.signal === "trace" ? SCRUBBED_TRACES : SCRUBBED_LOGS,
-                  { name: notice.ruleName || "" },
-                )}{" "}
-                <AppLink
-                  className="font-medium underline"
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[
-                      notice.signal === "trace"
-                        ? PageMap.TRACES_SETTINGS_SCRUB_RULES
-                        : PageMap.LOGS_SETTINGS_SCRUB_RULES
-                    ] as Route,
-                  )}
-                >
-                  {translator.translateText(VIEW_SCRUB_RULES) ||
-                    VIEW_SCRUB_RULES}
-                </AppLink>
-              </span>
+          <TelemetryRuleNotice
+            template={
+              notice.isDrop
+                ? DROP_NOTICE
+                : SCRUB_NOTICES[notice.signal] || SCRUB_NOTICES.log
+            }
+            ruleName={notice.ruleName}
+            rulesRoute={getRulesRoute(notice.signal)}
+            dataTestId={
+              notice.isDrop
+                ? "data-security-issue-findings-drop-notice"
+                : "data-security-issue-findings-scrub-notice"
             }
             onClose={() => {
               setNotice(null);
@@ -642,29 +815,7 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {whereItIs ? (
-          <div
-            className="flex flex-wrap items-center gap-1.5 text-sm text-gray-600"
-            data-testid="data-security-issue-findings-owner"
-          >
-            <Icon
-              icon={getDataStoreKindInfo(signal)?.icon || IconProp.Logs}
-              className="h-4 w-4 shrink-0 text-gray-400"
-            />
-            {ownerRoute ? (
-              <AppLink
-                className="font-medium text-indigo-600 hover:underline [overflow-wrap:anywhere]"
-                to={ownerRoute}
-              >
-                {whereItIs}
-              </AppLink>
-            ) : (
-              <span className="[overflow-wrap:anywhere]">{whereItIs}</span>
-            )}
-          </div>
-        ) : (
-          <></>
-        )}
+        <TelemetryStoreOwnerLine store={props.store} />
 
         {body}
 
@@ -703,7 +854,11 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
       {scrubbing ? (
         <ConfirmModal
           title="Scrub This Data at Ingest"
-          description="OneUptime adds a scrub rule that masks this kind of data at this place in new telemetry, before it is stored. What is already stored does not change."
+          description={
+            props.store?.kind === DataStoreKind.TelemetryMetrics
+              ? "OneUptime adds a metric pipeline rule that redacts this kind of data in this attribute of the service's new metrics. Stored data does not change."
+              : "OneUptime adds a scrub rule that masks this kind of data at this place in new telemetry, before it is stored. What is already stored does not change."
+          }
           submitButtonText="Scrub It"
           isLoading={isScrubbing}
           error={scrubError || undefined}
@@ -713,6 +868,31 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
           }}
           onSubmit={() => {
             void scrub();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dropping?._id ? (
+        <DropMetricModal
+          findingId={new ObjectID(dropping._id.toString())}
+          dataTypeName={namer(dropping.dataTypeId || "", dropping.dataTypeName)}
+          serviceName={ownerName}
+          onClose={() => {
+            setDropping(null);
+          }}
+          onDropped={(result: DataSecurityDropMetricResult) => {
+            setNotice({
+              ruleName: result.ruleName,
+              signal: "metric",
+              isDrop: true,
+            });
+            setDropping(null);
+            setReadCount((count: number): number => {
+              return count + 1;
+            });
+            props.onChanged();
           }}
         />
       ) : (

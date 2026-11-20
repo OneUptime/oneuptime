@@ -1,5 +1,7 @@
 import ProductKey from "../../../Types/Product/ProductKey";
 import { SWITCHABLE_PRODUCTS } from "../../../Types/Product/ServerProducts";
+import { SETUP_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AISetupActions";
+import { getToolProducts } from "../../../Server/Utils/AI/Toolbox/ToolProducts";
 import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
   PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
@@ -123,6 +125,17 @@ interface ProductRouteFile {
 
 // A refusal the file may hold whatever its product: a rule's table names it.
 const ANY_PRODUCT: ReadonlyArray<ProductKey> = SWITCHABLE_PRODUCTS;
+
+// The products of every setup action the API runs outside Ask AI's chat (#7241).
+const SETUP_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
+  new Set<ProductKey>(
+    SETUP_ACTIONS_RUN_OUTSIDE_CHAT.flatMap(
+      (action: string): ReadonlyArray<ProductKey> => {
+        return getToolProducts(action);
+      },
+    ),
+  ),
+);
 
 const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/StatusPageAPI.ts": {
@@ -364,6 +377,10 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  "packages/Common/Server/API/DeviceManagementConnectionAPI.ts": {
+    products: [ProductKey.Inventory],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/NetworkDeviceDiscoveryImportAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},
@@ -549,6 +566,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-classes/:cloudId`":
         READ,
+      // A class's failed nodes, which its "Failed: N" opens (#9751).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/bare-metal-failed-nodes/:cloudId`":
+        READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/needs-attention/:cloudId`":
         READ,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/blast-radius/:cloudId`":
@@ -655,6 +675,15 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     },
   },
   /*
+   * Ask AI's setup actions, one call each, for the MCP server (#7241): the
+   * products of the action the body names, as Ask AI's tool names them
+   * (ProductsOfRequest.setupAction).
+   */
+  "packages/Common/Server/API/SetupActionAPI.ts": {
+    products: SETUP_ACTION_PRODUCTS,
+    leftAlone: {},
+  },
+  /*
    * OneUptime AI on an incident or an alert: the record's product
    * (ProductsOfRequest.incidentOrAlert), and Code for the pull request a
    * fix task opens.
@@ -703,6 +732,8 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "INCIDENT_ALERT_AI_LOGS_PATHS[subjectKind]": READ,
       "INCIDENT_ALERT_AI_INSIGHTS_PATHS[subjectKind]": READ,
       AI_OUTCOMES_PATH: READ,
+      // The records one of AI Results' numbers counts (#7768).
+      AI_OUTCOMES_RECORDS_PATH: READ,
     },
   },
   "packages/Common/Server/API/TelemetryAiAPI.ts": {
@@ -725,6 +756,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         '"/code-task/list"': READ,
         '"/code-task/branches/:repositoryId"': READ,
         '"/code-task/get/:taskId"': READ,
+        '"/code-task/turns/:taskId"': READ,
         '"/code-task/progress/:taskId"': READ,
         '"/code-task/summaries"': READ,
         '"/code-task/source-links"': READ,
@@ -989,16 +1021,25 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Signing in, and keeping a session, which every product needs: what a person proves to get in is of no one product.",
       {
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 18,
+        /*
+         * #9764: a security key set up at sign-in - its options, and the
+         * key's answer. #9822: a security key's sign-in options, asked for
+         * with the password again rather than by an address alone. #9817:
+         * the phone's browser reads a mobile app's passkey options once,
+         * by the one-time hand-off the app was given at sign-in.
+         */
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 22,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
-        "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 1,
+        // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
+        "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
         "packages/App/FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts": 1,
         "packages/App/FeatureSet/Identity/API/Reseller.ts": 1,
-        "packages/App/FeatureSet/Identity/API/SSO.ts": 1,
+        "packages/App/FeatureSet/Identity/API/SSO.ts": 2,
         "packages/App/FeatureSet/MCP/OAuth/OAuthRoutes.ts": 7,
         "packages/Common/Server/API/UserTotpAuthAPI.ts": 1,
         "packages/Common/Server/API/UserTwoFactorBackupCodeAPI.ts": 1,
-        "packages/Common/Server/API/UserWebAuthnAPI.ts": 3,
+        // #9822: the anonymous authentication options are gone.
+        "packages/Common/Server/API/UserWebAuthnAPI.ts": 2,
       },
     ),
     ...decided(
@@ -1032,12 +1073,22 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       "The project, its people and its settings - Users, Teams and Project Settings, which are always on.",
       {
         "packages/Common/Server/API/ApiKeyAPI.ts": 1,
-        "packages/Common/Server/API/ProjectAPI.ts": 8,
+        /*
+         * #9820: a project's owners counting and clearing the sign-in
+         * settings its people saved before it managed sign-in with SSO.
+         */
+        "packages/Common/Server/API/ProjectAPI.ts": 9,
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,
-        "packages/Common/Server/API/TeamMemberAPI.ts": 10,
-        "packages/Common/Server/API/UserAPI.ts": 7,
+        /*
+         * Its invite suggestions read only (#9701), and so do the Admin
+         * Dashboard's, in the project the path names (#9826);
+         * is-user-registered is gone (#9745).
+         */
+        "packages/Common/Server/API/TeamMemberAPI.ts": 11,
+        // #9762: a master admin clearing one person's sign-in settings.
+        "packages/Common/Server/API/UserAPI.ts": 8,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
     ),
@@ -1067,7 +1118,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "The server's own setup, which a master admin changes or the server reads - switching a product on again among it.",
       {
-        "packages/Common/Server/API/GlobalConfigAPI.ts": 6,
+        // #9762: clearing the sign-in settings of everyone the server's SSO requirement covers.
+        "packages/Common/Server/API/GlobalConfigAPI.ts": 7,
         "packages/Common/Server/API/ProbeAPI.ts": 1,
         "packages/Common/Server/API/RunnerAPI.ts": 1,
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,
@@ -1087,7 +1139,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "How OneUptime sends a message - a call, a text, an email, a push, a chat - for every product, and what the provider says of how it went.",
       {
-        "packages/App/FeatureSet/Notification/API/Call.ts": 3,
+        /*
+         * #6594: Twilio's answering machine callback - who answered an
+         * on-call call, a person or voicemail - beside its status callback.
+         * Twilio calls it for a call already placed, as it calls an incoming
+         * call policy's routes: what already runs keeps running while On-Call
+         * is switched off.
+         */
+        "packages/App/FeatureSet/Notification/API/Call.ts": 4,
         "packages/App/FeatureSet/Notification/API/SMS.ts": 3,
         "packages/App/FeatureSet/Notification/API/Mail.ts": 1,
         "packages/App/FeatureSet/Notification/API/Webhook.ts": 1,
@@ -1162,6 +1221,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "Telemetry arriving, by its ingestion key: it keeps arriving while its product is switched off, unless the server stops ingestion (DISABLE_TELEMETRY_INGESTION), as switching a product off promises.",
       {
+        "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
@@ -1188,30 +1248,26 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
+      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
       {
-        "packages/Common/Server/API/TelemetryAPI.ts": 70,
+        "packages/Common/Server/API/TelemetryAPI.ts": 72,
       },
     ),
     ...decided(
-      "Every table's CRUD API: a write refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 8,
+        "packages/Common/Server/API/BaseAPI.ts": 9,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
       },
     ),
     ...decided(
-      "A numbered list's move (issue #9573), the CRUD API of the tables it serves beside it: the move refuses a record of a product that is off before anything else (assertProductIsOn, see below), as the CRUD API's writes do.",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone.",
       {
-        "packages/Common/Server/API/MoveInListAPI.ts": 1,
-      },
-    ),
-    ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage.",
-      {
+        "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,
+        "packages/Common/Server/API/PublicNoteReachRoute.ts": 1,
         "packages/Common/Server/API/UsedByAPI.ts": 1,
         "packages/Common/Server/API/WhoIsToldAPI.ts": 1,
         "packages/Common/Server/API/AffectedResourceSearchAPI.ts": 1,
@@ -1454,6 +1510,7 @@ const productsOfRefusal: (
       "ProductsOfRequest.aiResource": Object.values(
         PRODUCT_OF_AI_RESOURCE_TYPE,
       ),
+      "ProductsOfRequest.setupAction": SETUP_ACTION_PRODUCTS,
     };
 
     return resolvers[refusal.argument] || handed[refusal.argument] || null;
@@ -1705,6 +1762,14 @@ describe("what the decisions stand on", () => {
    * the columns its runs moved (#6854), each answering only about what its
    * caller may read (#9526) - reads all the same, left working.
    */
+  /*
+   * And a pipeline's circuit breaker (#6548): a pipeline step outside
+   * OneUptime asks it before it runs - what already runs keeps running -
+   * and it decides from what is known, so it is a read. While the product
+   * is off it answers go and keeps nothing (DataCircuitBreaker), so
+   * switching Data Observability off never stops a pipeline. How a
+   * pipeline's breaker stands, for its page, only reads.
+   */
   test.each([
     ["attentionCount"],
     ["issues"],
@@ -1713,6 +1778,8 @@ describe("what the decisions stand on", () => {
     ["tableLineage"],
     ["lineageExpand"],
     ["tableLineageAnswer"],
+    ["circuitBreaker"],
+    ['pipelineCircuitBreaker(":id")'],
   ])(
     "packages/Common/Server/API/DataObservabilityAPI.ts: %s is a read, left working while the product is off",
     (route: string) => {
@@ -1832,12 +1899,13 @@ describe("what the decisions stand on", () => {
   );
 
   /*
-   * MoveInListAPI is decided as a whole for the same reason: its one write,
-   * a move in a numbered list, refuses first thing in moveItem.
+   * The move of an ordered list's row (issues #9573, #9609), the one write
+   * BaseAPI answers beside the CRUD routes, refuses first thing in moveItem
+   * for the same reason.
    */
-  test("packages/Common/Server/API/MoveInListAPI.ts: a move refuses a record of a product that is off before anything else", () => {
+  test("packages/Common/Server/API/BaseAPI.ts: a move refuses a record of a product that is off before anything else", () => {
     const source: ts.SourceFile = parse(
-      "packages/Common/Server/API/MoveInListAPI.ts",
+      "packages/Common/Server/API/BaseAPI.ts",
     );
     const firstStatements: Record<string, string> = {};
 

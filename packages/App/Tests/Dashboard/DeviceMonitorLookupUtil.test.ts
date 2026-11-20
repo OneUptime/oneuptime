@@ -59,6 +59,7 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import DeviceMonitorLookupUtil, {
   DeviceBinding,
+  DeviceMonitorContext,
   NETWORK_DEVICE_WATCHING_MONITORS_ROUTE,
   WATCHING_MONITORS_PER_READ,
   WEB_UI_MONITOR_CANDIDATES_LIMIT,
@@ -86,11 +87,14 @@ const TENANT_HEADERS: Dictionary<string> = {
  *    device. API.post answers their ids, and the Monitor read by those ids
  *    answers the monitors themselves;
  *  - `madeForDevice`: the monitors a discovery import made for this device
- *    from a Ping, IP, Port or NTP template (issue #5145), found by their
- *    provenance.
+ *    from a Ping, IP, Port, NTP, Website, API or SSL Certificate template
+ *    (issues #5145, #9546), found by their provenance;
+ *  - `tiedToDevice`: the monitors a person made and tied to this device
+ *    (issue #9545), found by that tie.
  */
 let watchedBy: Array<Monitor> = [];
 let madeForDevice: Array<Monitor> = [];
+let tiedToDevice: Array<Monitor> = [];
 
 function isMadeForDeviceQuery(request: {
   query?: Record<string, unknown>;
@@ -98,6 +102,12 @@ function isMadeForDeviceQuery(request: {
   return Boolean(
     request.query && "autoProvisionedNetworkDeviceId" in request.query,
   );
+}
+
+function isTiedToDeviceQuery(request: {
+  query?: Record<string, unknown>;
+}): boolean {
+  return Boolean(request.query && "networkDeviceId" in request.query);
 }
 
 // The Monitor read of the watching monitors, by the ids the server named.
@@ -138,6 +148,15 @@ function answerLists(): void {
         return {
           data: madeForDevice,
           count: madeForDevice.length,
+          skip: 0,
+          limit: 100,
+        };
+      }
+
+      if (isTiedToDeviceQuery(request)) {
+        return {
+          data: tiedToDevice,
+          count: tiedToDevice.length,
           skip: 0,
           limit: 100,
         };
@@ -188,6 +207,7 @@ function resetLookup(): void {
   getCommonHeadersMock.mockReturnValue(TENANT_HEADERS);
   watchedBy = [];
   madeForDevice = [];
+  tiedToDevice = [];
   answerWatching([]);
   answerLists();
 }
@@ -384,7 +404,7 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
     expect(result).toEqual([watching]);
   });
 
-  test("reads the watching monitors by id, and the ones made for this device - never the project's every Network Device monitor", async () => {
+  test("reads the watching monitors by id, and the ones made for or tied to this device - never the project's every Network Device monitor", async () => {
     const watching: Monitor = networkDeviceMonitor(
       "9f1b6b0e-0000-4000-8000-00000000ab02",
       "core-sw-01 health",
@@ -393,7 +413,7 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
 
     await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
 
-    expect(getListMock).toHaveBeenCalledTimes(2);
+    expect(getListMock).toHaveBeenCalledTimes(3);
 
     const queries: Array<Record<string, unknown>> = getListMock.mock.calls.map(
       (call: Array<unknown>): Record<string, unknown> => {
@@ -403,13 +423,16 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
 
     /*
      * THE REGRESSION (#8101): every Monitor read names the monitors it
-     * wants, by id or by provenance. The project-wide list of Network
-     * Device monitors, steps and all, is gone.
+     * wants, by id, by provenance or by the device a person tied them to.
+     * The project-wide list of Network Device monitors, steps and all, is
+     * gone.
      */
     for (const query of queries) {
-      expect("_id" in query || "autoProvisionedNetworkDeviceId" in query).toBe(
-        true,
-      );
+      expect(
+        "_id" in query ||
+          "autoProvisionedNetworkDeviceId" in query ||
+          "networkDeviceId" in query,
+      ).toBe(true);
     }
 
     const reads: ReturnType<typeof watchingReads> = watchingReads();
@@ -439,12 +462,50 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
       DEVICE_ID.toString(),
     );
     expect(madeFor!["monitorType"]).toBeInstanceOf(Includes);
+    // Every kind an import makes for a device: its address, or a URL on it (#9546).
     expect((madeFor!["monitorType"] as Includes).values).toEqual([
       MonitorType.Ping,
       MonitorType.IP,
       MonitorType.Port,
       MonitorType.NTP,
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
     ]);
+
+    /*
+     * A monitor a person tied to the device (issue #9545) is read by that
+     * tie alone, of whatever kind: a monitor made by hand names the device
+     * nowhere in its steps.
+     */
+    const tied: Record<string, unknown> | undefined = queries.find(
+      (query: Record<string, unknown>): boolean => {
+        return "networkDeviceId" in query;
+      },
+    );
+    expect(tied).toEqual({ networkDeviceId: DEVICE_ID });
+  });
+
+  test("a monitor tied to the device is listed once, beside the ones made for it", async () => {
+    const tiedMonitor: Monitor = new Monitor();
+    tiedMonitor._id = "9f1b6b0e-0000-4000-8000-00000000ab31";
+    tiedMonitor.name = "core-sw-01 ping (by hand)";
+    tiedMonitor.monitorType = MonitorType.Ping;
+    tiedMonitor.networkDeviceId = DEVICE_ID;
+
+    answerWatching([]);
+    tiedToDevice = [tiedMonitor];
+    // The made-for read answers the same monitor: listed once all the same.
+    madeForDevice = [tiedMonitor];
+
+    const monitors: Array<Monitor> =
+      await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
+
+    expect(
+      monitors.map((monitor: Monitor): string => {
+        return monitor._id!.toString();
+      }),
+    ).toEqual([tiedMonitor._id!.toString()]);
   });
 
   test("a device nothing watches reads no watching monitor at all", async () => {
@@ -784,6 +845,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
     ).resolves.toEqual({
       monitors: [bound],
       isMonitorBacked: true,
+      removableMonitorIds: new Set<string>(),
     });
 
     /*
@@ -891,7 +953,11 @@ describe("DeviceMonitorLookupUtil - the monitors a discovery import made for the
 
     await expect(
       DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
-    ).resolves.toEqual({ monitors: [ntp], isMonitorBacked: false });
+    ).resolves.toEqual({
+      monitors: [ntp],
+      isMonitorBacked: false,
+      removableMonitorIds: new Set<string>(),
+    });
   });
 });
 
@@ -1074,12 +1140,117 @@ describe("DeviceMonitorLookupUtil - the device's web UI monitor", () => {
 
     await expect(
       DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
-    ).resolves.toEqual({ monitors: [ntp], isMonitorBacked: false });
+    ).resolves.toEqual({
+      monitors: [ntp],
+      isMonitorBacked: false,
+      removableMonitorIds: new Set<string>(),
+    });
   });
 
   test("the device's page context lists it", async () => {
     await expect(
       DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
-    ).resolves.toEqual({ monitors: [WEB_UI], isMonitorBacked: false });
+    ).resolves.toEqual({
+      monitors: [WEB_UI],
+      isMonitorBacked: false,
+      removableMonitorIds: new Set<string>(),
+    });
+  });
+});
+
+/*
+ * ISSUE #9676: the monitors the device's Monitors card can take off the
+ * device are the ones a person's tie alone lists there. One made for the
+ * device, bound to it, watching it, or its web UI monitor is listed for that
+ * reason, and untying it would change nothing on the card.
+ */
+describe("DeviceMonitorLookupUtil - the monitors a person tied to the device", () => {
+  beforeEach(() => {
+    resetLookup();
+    getItemMock.mockResolvedValue(deviceRow({}));
+  });
+
+  function tiedPing(id: string, name: string): Monitor {
+    const monitor: Monitor = new Monitor();
+    monitor._id = id;
+    monitor.name = name;
+    monitor.monitorType = MonitorType.Ping;
+    monitor.networkDeviceId = DEVICE_ID;
+    return monitor;
+  }
+
+  test("a monitor only a person's tie lists is one the card can remove", async () => {
+    const tied: Monitor = tiedPing(
+      "9F1B6B0E-0000-4000-8000-00000000AB41",
+      "kiosk ping (by hand)",
+    );
+    tiedToDevice = [tied];
+
+    const context: DeviceMonitorContext =
+      await DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID);
+
+    expect(context.monitors).toEqual([tied]);
+    expect(Array.from(context.removableMonitorIds)).toEqual([
+      "9f1b6b0e-0000-4000-8000-00000000ab41",
+    ]);
+  });
+
+  test("a tied monitor listed for another reason stays: made for the device, bound to it, or watching it", async () => {
+    const madeAndTied: Monitor = tiedPing(
+      "9f1b6b0e-0000-4000-8000-00000000ab42",
+      "made for it",
+    );
+    const boundAndTied: Monitor = tiedPing(
+      "9f1b6b0e-0000-4000-8000-00000000ab43",
+      "bound to it",
+    );
+    const watchingAndTied: Monitor = networkDeviceMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ab44",
+      "watching it",
+    );
+    watchingAndTied.networkDeviceId = DEVICE_ID;
+    const onlyTied: Monitor = tiedPing(
+      "9f1b6b0e-0000-4000-8000-00000000ab45",
+      "only tied",
+    );
+
+    getItemMock.mockResolvedValue(deviceRow({ monitor: boundAndTied }));
+    answerWatching([watchingAndTied]);
+    madeForDevice = [madeAndTied];
+    tiedToDevice = [madeAndTied, boundAndTied, watchingAndTied, onlyTied];
+
+    const context: DeviceMonitorContext =
+      await DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID);
+
+    expect(context.monitors).toHaveLength(4);
+    expect(Array.from(context.removableMonitorIds)).toEqual([
+      "9f1b6b0e-0000-4000-8000-00000000ab45",
+    ]);
+  });
+
+  test("the rule on its own: tied, and in no other list", () => {
+    const tied: Monitor = tiedPing(
+      "9f1b6b0e-0000-4000-8000-00000000ab46",
+      "tied",
+    );
+    const webUi: Monitor = tiedPing(
+      "9f1b6b0e-0000-4000-8000-00000000ab47",
+      "web UI",
+    );
+
+    expect(
+      Array.from(
+        DeviceMonitorLookupUtil.getRemovableMonitorIds({
+          tiedToDevice: [tied, webUi],
+          listedForOtherReasons: [null, undefined, webUi],
+        }),
+      ),
+    ).toEqual(["9f1b6b0e-0000-4000-8000-00000000ab46"]);
+    expect(
+      DeviceMonitorLookupUtil.getRemovableMonitorIds({
+        tiedToDevice: [],
+        listedForOtherReasons: [tied],
+      }).size,
+    ).toBe(0);
   });
 });

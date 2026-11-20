@@ -218,6 +218,7 @@ Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati i
 - Ogni record viene letto come lo legge **I tuoi log** da una pipeline, così le regole CloudTrail, Google Cloud e Azure della libreria delle regole lo riconoscono.
 - Un evento riceve l'ora in cui viene salvato, con l'ora propria del record in `oneuptime.cloud.record_time`: un log di audit raggiunge OneUptime con minuti di ritardo, e una regola legge gli eventi in base alla loro ora.
 - La lettura dell'account non porta altro: gli eventi di dati, i log Data Access e i log di Microsoft Entra ID richiedono ancora **I tuoi log** o una [connessione](/docs/integrations/microsoft-entra-id).
+- Ogni evento nomina le risorse cloud di cui parla il suo record con i loro ID - un ARN, un ID di risorsa Azure, un nome di risorsa Google Cloud - quindi compare nella pagina **Eventi di sicurezza** di ciascuna, e in quella di una funzione serverless non appena la sua telemetria imposta `cloud.account.id` e `cloud.region`.
 
 ### Collegare un prodotto di sicurezza
 
@@ -371,7 +372,7 @@ flowchart TB
 3. Il **Nome** si compila dal `title` della regola: scrivici sopra per chiamarla in un altro modo. Una nuova regola gira; **Abilitato** è nel suo modulo di modifica.
 4. In **In caso di corrispondenza**, lascia attivo **Apri un caso in caso di corrispondenza** per raggruppare le sue corrispondenze in casi, in base al valore per cui raggruppa la regola.
 5. In **Avvisi e incidenti**, scegli cos'altro genera una corrispondenza: **Crea un avviso** (predefinito), **Dichiara un incidente**, **Entrambi** o **Nessuno dei due**, con una **Gravità avviso** o una **Gravità incidente** facoltativa.
-6. **Altri campi** contiene la **Descrizione**, **Scrivi un Detection Finding in caso di corrispondenza** (attivo), **Esegui in tempo reale** (disattivo) e il modo in cui si contano le corrispondenze; vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
+6. **Altri campi** contiene la **Descrizione**, **Scrivi un Detection Finding in caso di corrispondenza** (attivo), **Esegui in tempo reale** (disattivo), il modo in cui si contano le corrispondenze e i **Passaggi di risposta**: cosa fare quando la regola apre un caso, ciascun passaggio sotto la parte che scegli del Piano di risposta del caso, al massimo 10. Trascina un passaggio dalla sua maniglia, oppure usa **Sposta su** e **Sposta giù**: il piano del caso mostra i passaggi di ogni parte nell'ordine che gli dai. Vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
 :::
 
 Una prima regola, che corrisponde agli accessi falliti da fuori `10.x.x.x`:

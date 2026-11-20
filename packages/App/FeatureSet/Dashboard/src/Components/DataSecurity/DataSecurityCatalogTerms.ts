@@ -190,6 +190,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Exceptions"),
   translationKey("Session Replays"),
   translationKey("AI Conversations"),
+  translationKey("Metrics"),
   // Families, each as the noun it is drawn with
   ...Object.values(DATA_STORE_FAMILY_TITLES),
   // Environments, each as the noun it is drawn with (Unknown is an exposure's too, above)
@@ -808,14 +809,14 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   ),
   translationKey("Sensitive data is reaching your telemetry"),
   translationKey(
-    "Logs, traces, exceptions, replays or AI conversations carry sensitive data that no scrub rule masks.",
+    "Logs, traces, metrics, exceptions, replays or AI conversations carry sensitive data that no rule masks at ingest.",
   ),
   translationKey(
     "Telemetry is copied to many places and read by many people; personal data in it widens every privacy obligation.",
   ),
   translationKey("Secrets are reaching your telemetry"),
   translationKey(
-    "Passwords, API keys or tokens appear in logs, traces, exceptions or AI conversations.",
+    "Passwords, API keys or tokens appear in logs, traces, metrics, exceptions or AI conversations.",
   ),
   translationKey(
     "Anyone who can read the telemetry can use the secret; rotate it and stop the code that logs it.",
@@ -1098,6 +1099,8 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Passing"),
   translationKey("Failing"),
   translationKey("Not evaluated"),
+  // A requirement every store of which a resource turned off (#9555)
+  translationKey("Turned off"),
   // What each response action changes, by the kind of store it acts on
   translationKey(
     "Turns off anonymous blob access on the storage account, so no container is readable by anyone on the internet. Anything that reads it without a key stops working. No blob is changed.",

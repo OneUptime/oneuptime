@@ -127,7 +127,7 @@ Everything Data Security keeps is a record of the OneUptime API, read with the s
 | Data stores, their timelines, their findings, who can reach them and each identity that does | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Issues, their timelines and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
-| Custom data types, check settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Custom data types, check settings, compliance settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | The project's settings | `/data-security-setting` |
 | Owners, owner rules and label rules | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | --- | --- |
 | `/data-security/overview` | The Overview's figures: stores by sensitivity and category, open issues by severity, the riskiest issues and the last 30 days of them |
 | `/data-security/compliance` | Every framework's score and requirements |
+| `/data-security/resource-scope` | The data stores of one resource - a Kubernetes cluster, a Docker or Podman host, a database, a service or a cloud resource - and whose compliance switches they follow |
+| `/data-security/resource-compliance` | One resource's frameworks: their scores for its stores, and what is turned off for it |
 | `/data-security/record-of-processing` | The GDPR record of processing, a row for each store that holds personal data |
 | `/data-store/<id>/scan-now` | **Scan Now**: samples the store's content now |
 | `/data-store/<id>/check-now` | **Check Now**: reads the store's configuration again and runs its checks |
 | `/data-store-finding/<id>/scrub` | **Scrub It** on a telemetry finding |
+| `/data-store-finding/<id>/drop-metric-impact` | What **Drop This Metric** would drop for a finding in a metric's name: how many metrics, and the monitors and dashboards that read them |
+| `/data-store-finding/<id>/drop-metric` | **Drop This Metric**: a metric pipeline rule that drops the service's new data points of those metrics for good. It takes `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Explain with AI** on an issue |
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |
 | `/data-store/<id>/response-actions` | Which response actions the store can take now, and why not |
 | `/data-store/<id>/respond` | One response action on the store, such as **Block Public Access** or **Turn On Versioning**, with the issue it was run from |
 
-The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
+The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, compliance settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 
-The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions.
+The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions.
 
 ## Next steps
 

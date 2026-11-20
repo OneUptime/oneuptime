@@ -35,6 +35,7 @@ flowchart LR
 | Node-collector | DaemonSet | Pod-logger fra `/var/log/pods`, kubelet- og cAdvisor-målinger og nodens operativsystemmålinger. | Ja |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-spor og forespørselsmålinger fra hver pod, og tjenestekartet. | Ja |
 | Kubernetes AI-agent | Deployment | Lar OneUptime AI kjøre skrivebeskyttet `kubectl` mens den undersøker en hendelse eller et varsel på dette clusteret. | Ja |
+| Kostnadsmotor og poller | Deployments | Hva hvert namespace og hver workload koster: OpenCost, den lille Prometheus-en den trenger, og kostnadsagenten som sender det de regner ut. | Ja, unntatt med presetene `gke-autopilot` og `eks-fargate` |
 | Logg-tailer | Deployment | Pod-logger gjennom Kubernetes-API-et, der node-collectoren ikke kan lese dem. | Med presetene `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
 | eBPF-profiler | DaemonSet | Kontinuerlige CPU-flammegrafer for hver prosess. | Nei |
 | kube-state-metrics | Deployment | Pod-faser, containeres venteårsaker og ressurskvoter. | Nei |
@@ -357,14 +358,14 @@ Profilering krever **Linux 5.10** eller nyere og en privilegert pod med nodens p
 | --- | --- | --- |
 | `hostMetrics.enabled` | på | Hver nodes operativsystemmålinger fra `/proc` og `/sys`: diskens I/O-køer, filsystemenes inoder, feil på nettverksgrensesnitt, paging og load average. Kjører i node-collectoren, uten ekstra pods. |
 | `kubeletstats.utilizationMetrics.enabled` | på | CPU og minne for containere og pods i prosent av request og limit, som malene Pod CPU Saturating Container Limit og Pod Memory Saturating Container Limit leser. En container uten limit (eller request) får ingen av disse seriene, og en pod bare når hver container i den har en. |
-| `kubeletstats.volumeMetrics.enabled` | på | Ledig og total plass for hver PVC (`k8s.volume.available`, `k8s.volume.capacity`), for egne grafer og målingsmonitorer: ingen innebygd mal leser dem. Én serie per PVC per pod. |
+| `kubeletstats.volumeMetrics.enabled` | på | Ledig og total plass for hver PVC (`k8s.volume.available`, `k8s.volume.capacity`), navngitt etter claimet sitt: brukt, ledig og kapasitet på sidene for Persistent Volume Claims, og det malen PVC Almost Full leser. Fra 80 % fullt vises et claim under klyngens Krever oppmerksomhet. Noen få serier per volum per pod, for volumene som har data (claims, emptyDirs, hostPaths): en pods configMap-, secret-, downwardAPI- og serviceaccount-token-volumer droppes på noden. |
 | `cadvisor.enabled` | på | CPU-struping og OOM-avslutninger fra hver kubelets `/metrics/cadvisor`: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` og `container_oom_events_total`, og ingenting annet. |
 | `kubeStateMetrics.enabled` | av | Pod-faser (Pending, Terminating), pods som ikke kan planlegges, containeres venteårsaker (CrashLoopBackOff, ImagePullBackOff) og bruk av ressurskvoter, fra kube-state-metrics. `kubeStateMetrics.mode: bundled` (standarden) kjører en liten kube-state-metrics for deg; `external` leser en du allerede kjører, på `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | av | Kubernetes' revisjonslogg, `/var/log/kubernetes/audit.log`: hver forespørsel til API-et, fra hvem og på hva. Bare selvadministrerte clustere: administrerte (EKS, GKE, AKS, DOKS) sender den til skyleverandøren. |
 | `csi.enabled` | av | Målinger fra CSI-lagringsdrivere, fra pods med etiketten `app=csi-driver` eller `app.kubernetes.io/component=csi-driver`: tider for å koble til og fra volumer, klargjøringsfeil, IOPS. |
 | `coreDns.enabled` | av | CoreDNS' målinger på `:9153/metrics`: spørringsrate, latens, treff i hurtigbufferen og feil. |
 | `controlPlane.enabled` | av | API-serveren på adressen sin inne i klyngen, og etcd, scheduleren og controller manageren på endepunktene du oppgir ([Aktiver overvåking av kontrollplanet](/docs/telemetry/kubernetes-agent#aktiver-overvåking-av-kontrollplanet)). Bare selvadministrerte clustere: administrerte eksponerer dem ikke. |
-| `cost.enabled` | av | Hva hver workload koster. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Hva hvert namespace og hver workload koster, med ledig kapasitet og effektivitet, også som målinger å varsle på: på, unntatt med presetene `gke-autopilot` og `eks-fargate`; `false` slår det av. Se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost). |
 
 ## Vanlige innstillinger
 

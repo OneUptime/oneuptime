@@ -26,7 +26,9 @@ import StatusPageOwnerTeamService from "../../../Server/Services/StatusPageOwner
 import StatusPageOwnerUserService from "../../../Server/Services/StatusPageOwnerUserService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
-import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../../../Server/Utils/Rules/OwnerRuleAssignment";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -75,7 +77,7 @@ type AnyService = any;
 
 interface PositionalCase {
   name: string;
-  addOwners: (notifyOwners: boolean) => Promise<void>;
+  addOwners: (notifyOwners: boolean) => Promise<OwnersAdded>;
   ownerUserService: AnyService;
   ownerTeamService: AnyService;
   resourceIdColumn: string;
@@ -91,7 +93,7 @@ function positional(
       teamIds: Array<ObjectID>,
       notifyOwners: boolean,
       props: DatabaseCommonInteractionProps,
-    ) => Promise<void>;
+    ) => Promise<OwnersAdded>;
   },
   ownerUserService: AnyService,
   ownerTeamService: AnyService,
@@ -99,7 +101,7 @@ function positional(
 ): PositionalCase {
   return {
     name,
-    addOwners: (notifyOwners: boolean): Promise<void> => {
+    addOwners: (notifyOwners: boolean): Promise<OwnersAdded> => {
       return service.addOwners(
         PROJECT_ID,
         RESOURCE_ID,
@@ -152,13 +154,6 @@ const POSITIONAL_CASES: Array<PositionalCase> = [
     "statusPageId",
   ),
   positional(
-    "IncidentTemplateService",
-    IncidentTemplateService,
-    IncidentTemplateOwnerUserService,
-    IncidentTemplateOwnerTeamService,
-    "incidentTemplateId",
-  ),
-  positional(
     "AlertEpisodeService",
     AlertEpisodeService,
     AlertEpisodeOwnerUserService,
@@ -179,7 +174,7 @@ beforeEach(() => {
   stubProjectDirectory({});
   delegate = jest
     .spyOn(OwnerRuleAssignment, "addOwners")
-    .mockResolvedValue({ userIds: [], teamIds: [] });
+    .mockResolvedValue(OwnerRuleAssignment.noOwnersAdded());
   // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
   jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
@@ -236,37 +231,90 @@ describe.each(
   );
 });
 
-describe("ScheduledMaintenanceTemplateService.addOwners", () => {
-  test("adds owners through the helper and leaves the notify flag alone", async () => {
-    await ScheduledMaintenanceTemplateService.addOwners(
-      PROJECT_ID,
-      RESOURCE_ID,
-      [USER_A],
-      [TEAM_A],
-      PROPS,
-    );
+/*
+ * A template's owners are never told they were made its owners: they hear
+ * of each incident or event declared from it, as its owners. So a template's
+ * owner tables have no isOwnerNotified column, and addOwners asks for none -
+ * an incident template's lost the column nothing read (#9758).
+ */
+describe.each([
+  {
+    name: "ScheduledMaintenanceTemplateService",
+    service: ScheduledMaintenanceTemplateService,
+    ownerUserService: ScheduledMaintenanceTemplateOwnerUserService,
+    ownerTeamService: ScheduledMaintenanceTemplateOwnerTeamService,
+    resourceIdColumn: "scheduledMaintenanceTemplateId",
+  },
+  {
+    name: "IncidentTemplateService",
+    service: IncidentTemplateService,
+    ownerUserService: IncidentTemplateOwnerUserService,
+    ownerTeamService: IncidentTemplateOwnerTeamService,
+    resourceIdColumn: "incidentTemplateId",
+  },
+])(
+  "$name.addOwners",
+  (template: {
+    name: string;
+    service: {
+      addOwners: (
+        projectId: ObjectID,
+        resourceId: ObjectID,
+        userIds: Array<ObjectID>,
+        teamIds: Array<ObjectID>,
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<OwnersAdded>;
+    };
+    ownerUserService: AnyService;
+    ownerTeamService: AnyService;
+    resourceIdColumn: string;
+  }) => {
+    test("adds owners through the helper and leaves the notify flag alone", async () => {
+      await template.service.addOwners(
+        PROJECT_ID,
+        RESOURCE_ID,
+        [USER_A],
+        [TEAM_A],
+        PROPS,
+      );
 
-    const args: Record<string, unknown> = delegatedArgs();
+      const args: Record<string, unknown> = delegatedArgs();
 
-    expect(args["ownerUserService"]).toBe(
-      ScheduledMaintenanceTemplateOwnerUserService,
-    );
-    expect(args["ownerTeamService"]).toBe(
-      ScheduledMaintenanceTemplateOwnerTeamService,
-    );
-    expect(args["resourceIdColumn"]).toBe("scheduledMaintenanceTemplateId");
-    expect(args["resourceId"]).toBe(RESOURCE_ID);
-    expect(args["projectId"]).toBe(PROJECT_ID);
-    expect(args["props"]).toBe(PROPS);
-    // These template tables have no isOwnerNotified column.
-    expect(args["isOwnerNotified"]).toBeUndefined();
-    expect(
-      ScheduledMaintenanceTemplateOwnerTeamService.getModel().hasColumn(
-        "isOwnerNotified",
-      ),
-    ).toBe(false);
-  });
-});
+      expect(args["ownerUserService"]).toBe(template.ownerUserService);
+      expect(args["ownerTeamService"]).toBe(template.ownerTeamService);
+      expect(args["resourceIdColumn"]).toBe(template.resourceIdColumn);
+      expect(args["resourceId"]).toBe(RESOURCE_ID);
+      expect(args["projectId"]).toBe(PROJECT_ID);
+      expect(args["userIds"]).toEqual([USER_A]);
+      expect(args["teamIds"]).toEqual([TEAM_A]);
+      expect(args["props"]).toBe(PROPS);
+      // These template tables have no isOwnerNotified column.
+      expect(args["isOwnerNotified"]).toBeUndefined();
+
+      for (const ownerService of [
+        template.ownerUserService,
+        template.ownerTeamService,
+      ]) {
+        expect(ownerService.getModel().hasColumn("isOwnerNotified")).toBe(
+          false,
+        );
+      }
+    });
+
+    test("the resource column really is a column of both owner tables", () => {
+      expect(
+        template.ownerUserService
+          .getModel()
+          .hasColumn(template.resourceIdColumn),
+      ).toBe(true);
+      expect(
+        template.ownerTeamService
+          .getModel()
+          .hasColumn(template.resourceIdColumn),
+      ).toBe(true);
+    });
+  },
+);
 
 describe("IncidentEpisodeService.addOwners", () => {
   test("adds owners through the helper as root, crediting the acting user", async () => {
@@ -433,6 +481,11 @@ describe("IncidentService.addOwners end to end (the monitor criteria path)", () 
   test("a team added concurrently does not stop the other owners being added", async () => {
     const tables: OwnerTables = stubOwnerTables({ racedTeamIds: [TEAM_A] });
 
+    /*
+     * Answered with the owners it wrote (#9933): the team another writer
+     * added a moment ago is the incident's already - neither added by this
+     * call, nor skipped.
+     */
     await expect(
       IncidentService.addOwners(
         PROJECT_ID,
@@ -442,7 +495,11 @@ describe("IncidentService.addOwners end to end (the monitor criteria path)", () 
         true,
         { isRoot: true },
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({
+      userIds: [USER_A, USER_B],
+      teamIds: [TEAM_B],
+      notAdded: [],
+    });
 
     expect(
       tables.teamCreates.map((row: IncidentOwnerTeam) => {

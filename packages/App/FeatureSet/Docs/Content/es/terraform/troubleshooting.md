@@ -22,6 +22,7 @@ Busque en la tabla de abajo el mensaje que imprimió Terraform, o lo que vio que
 | `This project has been blocked` | Pida a un administrador maestro que desbloquee el proyecto: consulte [Un proyecto bloqueado](#un-proyecto-bloqueado) |
 | `references records that are not in this project` | Use el ID de un registro de su propio proyecto: consulte [ID de otro proyecto](#id-de-otro-proyecto) |
 | `Not Found` o `Ambiguous Match` de una fuente de datos | Corrija los argumentos de la búsqueda: consulte [Búsquedas que no encuentran ninguno o encuentran varios](#búsquedas-que-no-encuentran-ninguno-o-encuentran-varios) |
+| `There is already a team called` (una etiqueta, una política de guardia, una programación de guardia) | Dele un nombre que no tenga ningún otro de su tipo, o cambie primero el nombre del otro: consulte [Nombres que ya tiene otro registro](#nombres-que-ya-tiene-otro-registro) |
 | `Cannot import non-existent remote object` | Compruebe el ID y los permisos de la clave: consulte [Importar recursos](/docs/terraform/importing-resources#solución-de-problemas) |
 | `Provider produced inconsistent result after apply` | Actualice el proveedor: consulte [Resultado incoherente tras el apply](#resultado-incoherente-tras-el-apply) |
 | Un plan crea un recurso que usted no añadió | La clave ya no puede leerlo, y OneUptime respondió `404`: devuelva a la clave el acceso de lectura y luego importe el recurso con `terraform import`: consulte [Un recurso sale del estado, y el siguiente apply lo vuelve a crear](#un-recurso-sale-del-estado-y-el-siguiente-apply-lo-vuelve-a-crear) |
@@ -103,6 +104,12 @@ Suele significar que se copió un ID de la configuración o del estado de otro p
 
 Una fuente de datos encuentra exactamente un registro, o detiene el plan. `Not Found` dice que ningún registro tiene el `id`, o que ninguno coincide con los argumentos que definió; `Ambiguous Match` dice que coinciden varios. Corrija los argumentos, defina más para reducir la búsqueda a uno, o busque el registro por su `id`. [Leer lo que ya existe](/docs/terraform/complete-guide#leer-lo-que-ya-existe) tiene las reglas.
 
+### Nombres que ya tiene otro registro
+
+Los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia tienen cada uno un nombre propio en un proyecto, sin importar mayúsculas, minúsculas ni espacios. Una creación, o un cambio de nombre, a un nombre que ya tiene otro registro de su tipo recibe como respuesta un `400`, por ejemplo `There is already an on-call policy called Primary in this project. Pick another name.` Una política de guardia archivada conserva su nombre: desarchívela o elija otro nombre. Los registros que ya compartían un nombre lo conservan, y las listas de equipos, de políticas de guardia y de programaciones de guardia del panel los marcan.
+
+Terraform hace los cambios de un apply en paralelo, así que un cambio de nombre a un nombre que otro recurso deja en el mismo apply puede rechazarse mientras ese otro aún lo tenga: vuelva a aplicar, o añada un `depends_on` del recurso que toma el nombre al que lo deja. Un intercambio, A a B y B a A, o cualquier cadena de cambios de nombre que termine donde empezó, no se puede hacer en un solo apply: cambie el nombre de uno de ellos a un nombre que nadie tenga, aplique y luego haga el resto del cambio.
+
 ## Planes que no se estabilizan
 
 ### Resultado incoherente tras el apply
@@ -131,9 +138,13 @@ Eso ocurre cuando la clave que gestiona un recurso ya no puede leerlo: su permis
 
 ### Una prioridad o un orden que se mueve
 
-Los estados de monitor, los estados y severidades de incidentes y alertas, y las demás listas que ordena en el panel, tienen cada número una sola vez. Un número que no tiene ningún otro se conserva tal como se escribió. Un número que otro ya tiene se toma, y los que están en medio bajan un puesto, como hace un arrastre en el panel. Así, dos de ellos configurados con el mismo número intercambian sus puestos en cada apply.
+Cada lista que ordena en el panel conserva el número que recibe cada recurso: los estados de monitor (`priority`), los estados y severidades de incidentes y alertas, los campos personalizados, las canalizaciones de registros y los filtros de descarte (`sort_order`), los grupos y recursos de las páginas de estado, las reglas de escalado, las capas de las programaciones y el resto. Fijar un número coloca ese recurso y no mueve ningún otro, así que una configuración que numera una lista entera, como `order = index(local.severities, each.key) + 1` sobre un `for_each` de `local.severities`, se aplica exactamente como está escrita, lleguen en el orden que lleguen las escrituras del proveedor, y el siguiente plan queda vacío.
 
-Dé a cada uno su propio número con huecos entre ellos, como `101`, `102` y `103`, y reordene los que gestiona Terraform en Terraform, no arrastrándolos en el panel.
+- Dé a cada recurso su propio número: dos con el mismo número lo conservan ambos, uno junto al otro, en un orden que usted no elige.
+- Un recurso creado sin número va al final de su lista. Un estado nuevo de incidente o de alerta va en cambio justo por encima del estado resuelto, y un estado de monitor nuevo justo por encima del estado sin conexión.
+- Eliminar un recurso deja un hueco en los números, lo que no cambia nada: una lista se rige por sus números, no por la cuenta.
+- Arrastrar un recurso en el panel de OneUptime vuelve a numerar toda su lista desde arriba, y el siguiente plan lo muestra como cambios. Ordene en Terraform los recursos que gestiona Terraform.
+- Los estados integrados conservan su orden: un cambio que pondría a dos de ellos en el mismo número, o fuera de orden, se rechaza, explicando por qué. Cuando un apply mueve estados integrados más allá de los números antiguos de los otros, una de sus escrituras puede llegar primero y encontrarse con ese rechazo; vuelva a ejecutar el apply y termina.
 
 ### Atributos de solo lectura
 

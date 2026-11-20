@@ -33,10 +33,14 @@ import {
   countDockerSwarmTasks,
   getDockerSwarmAttentionItems,
   getDockerSwarmAttentionKey,
+  getDockerSwarmFailingTaskItems,
   getDockerSwarmHealth,
+  getDockerSwarmNodesNotReadyItems,
   getDockerSwarmIssueTarget,
   getDockerSwarmManagerQuorum,
+  getDockerSwarmManagersOutOfReachItems,
   getDockerSwarmNodeLoad,
+  getDockerSwarmQuorumItem,
   getDockerSwarmNodeRows,
   getDockerSwarmServiceRows,
   getDockerSwarmStatusReasons,
@@ -46,6 +50,7 @@ import {
   isCurrentDockerSwarmTask,
   isDockerSwarmIssueAbout,
   isDockerSwarmJobService,
+  isDockerSwarmManagerOutOfReach,
   keepLatestDockerSwarmSnapshot,
   sortDockerSwarmNodesForGlance,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DockerSwarmHealth";
@@ -79,7 +84,8 @@ type RowInit = Partial<{
   name: string;
   state: string;
   role: string;
-  isReady: boolean;
+  // Undefined is a node that has not said yet: its own case.
+  isReady: boolean | undefined;
   serviceMode: string;
   runningReplicas: number;
   desiredReplicas: number;
@@ -1252,5 +1258,380 @@ describe("a reason's counts, drawn in the sentence's digits", () => {
         values: { running: "2", desired: "3" },
       }),
     ).toBe("2 of 3 replicas in a sentence no locale has");
+  });
+});
+
+/*
+ * "2/3 nodes ready" and "4/6 tasks running" said a part was wrong and never
+ * which or why (#9594). The counts beside them open exactly those parts,
+ * by the rules Needs attention uses.
+ */
+describe("what the hero's counts of what is wrong open", () => {
+  test("the nodes not ready: each with why, Swarm's word and which one it is, a step from its page", () => {
+    const rows: Array<DockerSwarmResource> = [
+      node("worker-1"),
+      node("worker-2", {
+        state: "down",
+        isReady: false,
+        attributes: { message: "heartbeat failure", addr: "10.0.0.12" },
+      }),
+      manager("manager-2", "Unreachable", {
+        state: "unknown",
+        isReady: false,
+      }),
+      service("web"),
+    ];
+
+    const items: Array<ResourceAttentionItem> =
+      getDockerSwarmNodesNotReadyItems({ rows: rows, routeFor: routeFor });
+
+    // Both critical; by name, as people number them.
+    expect(keys(items)).toEqual([
+      "Node:node/manager-2-id",
+      "Node:node/worker-2-id",
+    ]);
+
+    const unknown: ResourceAttentionItem = items[0]!;
+    expect(unknown.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(texts(unknown.reasons)).toEqual([
+      "State unknown",
+      "Manager unreachable",
+    ]);
+    // A manager says its role in Docker's own word.
+    expect(unknown.facts).toEqual([
+      { key: "role", label: "Role", value: "Unreachable" },
+    ]);
+
+    const down: ResourceAttentionItem = items[1]!;
+    expect(down.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(texts(down.reasons)).toEqual(["Down"]);
+    expect(down.message).toBe("heartbeat failure");
+    expect(down.route?.toString()).toBe("/swarm/node/node/worker-2-id");
+    expect(down.facts).toEqual([
+      { key: "address", label: "Address", value: "10.0.0.12" },
+    ]);
+  });
+
+  test("a node with no state yet is listed with its status as its reason, never left out of its count", () => {
+    const items: Array<ResourceAttentionItem> =
+      getDockerSwarmNodesNotReadyItems({
+        rows: [node("worker-3", { state: "", isReady: undefined })],
+        routeFor: routeFor,
+      });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(texts(items[0]!.reasons)).toEqual(["No data yet"]);
+  });
+
+  test("every node ready: nothing to open", () => {
+    expect(
+      getDockerSwarmNodesNotReadyItems({
+        rows: [node("worker-1"), manager("manager-1", "Leader")],
+        routeFor: routeFor,
+      }),
+    ).toEqual([]);
+  });
+
+  test("the tasks failing: Docker's error, their service and node, each a step from its page", () => {
+    const rows: Array<DockerSwarmResource> = [
+      node("worker-1"),
+      service("web"),
+      service("db"),
+      task("web.1", { state: "running" }),
+      task("web.2", {
+        state: "failed",
+        attributes: {
+          desiredState: "running",
+          error: "task: non-zero exit (137)",
+        },
+      }),
+      task("db.1", {
+        state: "pending",
+        nodeHostname: "",
+        attributes: {
+          desiredState: "running",
+          error: "no suitable node (insufficient resources on 3 nodes)",
+        },
+      }),
+      // Swarm is still placing it: no problem yet.
+      task("db.2", { state: "pending", nodeHostname: "" }),
+      // A task a slot replaced is history.
+      task("web.3", {
+        state: "failed",
+        attributes: { desiredState: "shutdown", error: "old" },
+      }),
+      // Busy is not failing: the rules flag it, the count does not.
+      task("web.4", {
+        state: "running",
+        latestMemoryPercent: 97,
+        metricsUpdatedAt: minutesBefore(1),
+      }),
+    ];
+
+    const items: Array<ResourceAttentionItem> = getDockerSwarmFailingTaskItems({
+      rows: rows,
+      routeFor: routeFor,
+      now: NOW,
+    });
+
+    expect(keys(items).sort()).toEqual([
+      "Task:task/db.1-id",
+      "Task:task/web.2-id",
+    ]);
+
+    const failed: ResourceAttentionItem = items.find(
+      (item: ResourceAttentionItem): boolean => {
+        return item.key === "Task:task/web.2-id";
+      },
+    )!;
+    expect(texts(failed.reasons)).toEqual(["Failed"]);
+    expect(failed.message).toBe("task: non-zero exit (137)");
+    // Its node is a fact, not the line under its name.
+    expect(failed.detail).toBeUndefined();
+    expect(
+      (failed.facts || []).map(
+        (fact: { key: string; value: string }): Array<string> => {
+          return [fact.key, fact.value];
+        },
+      ),
+    ).toEqual([
+      ["service", "web"],
+      ["node", "worker-1"],
+    ]);
+    expect(failed.facts![0]!.route?.toString()).toBe(
+      "/swarm/service/service/web-id",
+    );
+    expect(failed.facts![1]!.route?.toString()).toBe(
+      "/swarm/node/node/worker-1-id",
+    );
+
+    const pending: ResourceAttentionItem = items.find(
+      (item: ResourceAttentionItem): boolean => {
+        return item.key === "Task:task/db.1-id";
+      },
+    )!;
+    expect(pending.message).toBe(
+      "no suitable node (insufficient resources on 3 nodes)",
+    );
+    // Placed on no node yet: no node to name.
+    expect(
+      (pending.facts || []).map((fact: { key: string }): string => {
+        return fact.key;
+      }),
+    ).toEqual(["service"]);
+  });
+
+  /*
+   * "3 managers" said nothing while the swarm lost its majority (#9729):
+   * it opens the managers the majority cannot count on, by the rule the
+   * quorum counts them with, and the swarm's own row when that put the
+   * majority at risk.
+   */
+  test("a manager is out of reach when its node is not Ready or the others cannot reach it", () => {
+    expect(isDockerSwarmManagerOutOfReach(manager("m-1", "Leader"))).toBe(
+      false,
+    );
+    expect(isDockerSwarmManagerOutOfReach(manager("m-2", "Reachable"))).toBe(
+      false,
+    );
+    expect(isDockerSwarmManagerOutOfReach(manager("m-3", "Unreachable"))).toBe(
+      true,
+    );
+    expect(
+      isDockerSwarmManagerOutOfReach(
+        manager("m-4", "Reachable", { state: "down", isReady: false }),
+      ),
+    ).toBe(true);
+    expect(
+      isDockerSwarmManagerOutOfReach(
+        manager("m-5", "Reachable", { state: "unknown" }),
+      ),
+    ).toBe(true);
+    // A worker has no standing among the managers.
+    expect(
+      isDockerSwarmManagerOutOfReach(
+        node("worker-1", { state: "down", isReady: false }),
+      ),
+    ).toBe(false);
+  });
+
+  test("the managers out of reach: the majority lost first, then each manager with why, Docker's word and its address", () => {
+    const rows: Array<DockerSwarmResource> = [
+      manager("manager-1", "Leader"),
+      manager("manager-2", "Unreachable", {
+        attributes: { addr: "10.0.0.12" },
+      }),
+      manager("manager-3", "Reachable", {
+        state: "down",
+        isReady: false,
+        attributes: { message: "heartbeat failure", addr: "10.0.0.13" },
+      }),
+      node("worker-1", { state: "down", isReady: false }),
+      service("web"),
+    ];
+
+    const items: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: rows,
+        clusterName: "prod-swarm",
+        routeFor: routeFor,
+      });
+
+    // A worker that is down is the nodes count's, never a manager's.
+    expect(keys(items)).toEqual([
+      DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+      "Node:node/manager-2-id",
+      "Node:node/manager-3-id",
+    ]);
+
+    const swarm: ResourceAttentionItem = items[0]!;
+    expect(swarm.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(swarm.name).toBe("prod-swarm");
+    expect(texts(swarm.reasons)).toEqual([
+      "Manager quorum lost",
+      "{{reachable}} of {{total}} managers reachable",
+    ]);
+    expect(swarm.reasons[1]!.values).toEqual({ reachable: "1", total: "3" });
+
+    const unreachable: ResourceAttentionItem = items[1]!;
+    expect(unreachable.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(texts(unreachable.reasons)).toEqual(["Manager unreachable"]);
+    expect(unreachable.facts).toEqual([
+      { key: "role", label: "Role", value: "Unreachable" },
+      { key: "address", label: "Address", value: "10.0.0.12" },
+    ]);
+    expect(unreachable.route?.toString()).toBe("/swarm/node/node/manager-2-id");
+
+    const down: ResourceAttentionItem = items[2]!;
+    expect(texts(down.reasons)).toEqual(["Down"]);
+    expect(down.message).toBe("heartbeat failure");
+    expect(down.facts).toEqual([
+      { key: "role", label: "Role", value: "Reachable" },
+      { key: "address", label: "Address", value: "10.0.0.13" },
+    ]);
+  });
+
+  test("one manager from losing the majority: the swarm's row is a warning; with one to spare there is none", () => {
+    const edge: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          manager("manager-3", "Unreachable"),
+        ],
+        clusterName: "prod-swarm",
+        routeFor: routeFor,
+      });
+    // The unreachable manager is critical, so it comes first.
+    expect(keys(edge)).toEqual([
+      "Node:node/manager-3-id",
+      DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+    ]);
+    expect(edge[1]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(texts(edge[1]!.reasons)).toEqual([
+      "Can lose no more managers",
+      "{{reachable}} of {{total}} managers reachable",
+    ]);
+
+    const spare: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          manager("manager-3", "Reachable"),
+          manager("manager-4", "Reachable"),
+          manager("manager-5", "Unreachable"),
+        ],
+        routeFor: routeFor,
+      });
+    expect(keys(spare)).toEqual(["Node:node/manager-5-id"]);
+  });
+
+  test("a manager in a state Swarm does not know is a warning, and one with no state yet says so", () => {
+    const items: Array<ResourceAttentionItem> =
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          manager("manager-3", "Reachable"),
+          manager("manager-4", "Reachable"),
+          manager("manager-5", "Reachable", { state: "unknown" }),
+          manager("manager-6", "Reachable"),
+          manager("manager-7", "Reachable", { state: "", isReady: undefined }),
+        ],
+        routeFor: routeFor,
+      });
+    expect(keys(items)).toEqual([
+      "Node:node/manager-5-id",
+      "Node:node/manager-7-id",
+    ]);
+    expect(items[0]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(texts(items[0]!.reasons)).toEqual(["State unknown"]);
+    expect(items[1]!.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(texts(items[1]!.reasons)).toEqual(["No data yet"]);
+  });
+
+  test("every manager in reach, or no manager reported: nothing to open", () => {
+    expect(
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [
+          manager("manager-1", "Leader"),
+          manager("manager-2", "Reachable"),
+          node("worker-1", { state: "down", isReady: false }),
+        ],
+        routeFor: routeFor,
+      }),
+    ).toEqual([]);
+    expect(
+      getDockerSwarmManagersOutOfReachItems({
+        rows: [node("worker-1")],
+        routeFor: routeFor,
+      }),
+    ).toEqual([]);
+  });
+
+  test("Needs attention's swarm row is the managers list's own", () => {
+    const rows: Array<DockerSwarmResource> = [
+      manager("manager-1", "Leader"),
+      manager("manager-2", "Unreachable"),
+      manager("manager-3", "Unreachable"),
+    ];
+    const attention: Array<ResourceAttentionItem> =
+      getDockerSwarmAttentionItems({
+        rows: rows,
+        clusterName: "prod-swarm",
+        routeFor: routeFor,
+        now: NOW,
+      });
+    expect(attention[0]).toEqual(
+      getDockerSwarmQuorumItem({ rows: rows, clusterName: "prod-swarm" }),
+    );
+    expect(
+      getDockerSwarmQuorumItem({
+        rows: [manager("manager-1", "Leader")],
+        clusterName: "prod-swarm",
+      }),
+    ).toBeNull();
+  });
+
+  test("a task whose service or node the inventory does not hold is named, a step from nowhere", () => {
+    const items: Array<ResourceAttentionItem> = getDockerSwarmFailingTaskItems({
+      rows: [
+        task("api.1", {
+          state: "rejected",
+          nodeHostname: "gone-node",
+          attributes: { desiredState: "running", error: "image not found" },
+        }),
+      ],
+      routeFor: routeFor,
+      now: NOW,
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]!.facts).toEqual([
+      { key: "service", label: "Service", value: "api", route: undefined },
+      { key: "node", label: "Node", value: "gone-node", route: undefined },
+    ]);
   });
 });

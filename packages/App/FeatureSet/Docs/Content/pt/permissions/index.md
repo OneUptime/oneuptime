@@ -95,13 +95,13 @@ Crie quantas equipes adicionais quiser — «Plantão de Frontend», «Suporte»
 
 :::steps
 1. Abra **Equipes** no menu **Produtos**, em **Configurações**, e clique em **Criar equipe**.
-2. Digite o **Nome** da equipe e escolha o **Acesso** dela. A descrição fica em **Mais campos**.
+2. Digite o **Nome** da equipe e escolha o **Acesso** dela. Um nome que outra equipe do projeto já tem é recusado, sem diferenciar maiúsculas de minúsculas nem espaços, para que todo seletor de equipes distinga as equipes. A descrição fica em **Mais campos**.
 3. Crie a equipe. Uma equipe com uma função abre na página **Membros** dela, pronta para você convidar pessoas; com **Escolher as permissões depois**, ela abre na página **Permissões** dela, onde você adiciona uma função mais restrita, como `IncidentMember`, ou permissões avulsas.
 :::
 
 A função que você escolher se torna a primeira permissão da equipe, para todos os recursos do projeto, assim que a equipe existe — exatamente como se você a tivesse adicionado com **Adicionar função** na página Permissões da equipe. Só são oferecidas as funções que você mesmo tem, porque todos que você convidar para a equipe recebem as permissões dela, e quem pode criar equipes mas não alterar o que elas podem fazer não é consultado. Se a função não puder ser adicionada, a equipe é criada mesmo assim e um aviso acima da lista leva até ela.
 
-Onde encontrar: abra uma equipe em **Equipes** para chegar a **Membros** e **Permissões**; as funções personalizadas dela e **Bloquear permissões** ficam em **Mais configurações**, no fim da página Permissões, cujo cabeçalho recolhido mostra quantas de cada a equipe tem.
+Onde encontrar: abra uma equipe em **Equipes** para chegar a **Membros** e **Permissões**; as funções personalizadas dela e **Bloquear permissões** ficam em **Mais configurações**, no fim da página Permissões, cujo cabeçalho recolhido mostra quantas de cada a equipe tem. A lista **Equipes** marca com **Mesmo nome que outra equipe** uma equipe que tem o mesmo nome que outra equipe, de antes de os nomes precisarem ser diferentes, e diz quantas são: compare os membros delas e depois renomeie uma com **Renomear** na linha dela.
 
 A página de uma equipe tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam a equipe, e tudo o que a equipe possui, de monitores e páginas de status a SLOs, painéis, infraestrutura e incidentes. Excluir uma equipe, em sua página ou pela lista, diz isso primeiro: suas políticas deixam de acionar seus membros, e ela deixa de possuí-los. O que você não pode abrir é contado, não nomeado.
 
@@ -151,7 +151,7 @@ Uma função personalizada é um conjunto de permissões que você nomeia uma ve
 :::
 
 - Os membros de uma equipe recebem cada permissão das funções personalizadas dela, com o mesmo escopo e os mesmos rótulos, exatamente como se a equipe as tivesse. Um bloqueio na equipe continua vencendo.
-- Uma função continua ligada às equipes e chaves de API que a têm: uma alteração nela chega a todas na hora, e a página da função diz quantas equipes, pessoas e chaves são. **Remover** tira a função de uma equipe ou chave. Excluir a própria função tira as permissões dela de cada equipe e chave que a tem; elas mantêm tudo o mais que têm.
+- Uma função continua ligada às equipes e chaves de API que a têm: uma alteração nela chega a todas na hora, e a página da função diz quantas equipes, pessoas e chaves são. Ela também chega aos workflows executados com a função, que a página da função lista em **Fluxos de trabalho executados como esta função**. **Remover** tira a função de uma equipe ou chave. Excluir a própria função tira as permissões dela de cada equipe e chave que a tem; elas mantêm tudo o mais que têm. Workflows executados com a função parariam, então a exclusão dela os lista e pergunta com o que eles são executados daqui em diante: as permissões padrão ou outra função que você poderia dar a uma equipe. Quem não pode editar workflows não pode excluí-la até que eles sejam alterados.
 - Você só pode pôr em uma função, e dar como função a uma equipe ou a uma chave de API, o que poderia dar a ela diretamente: uma função com uma permissão que você não tem com o mesmo escopo ou um mais amplo é recusada, e a recusa nomeia a permissão. Uma função nunca contém `ProjectOwner`, e **Owners** e **Admin** nunca recebem uma.
 - A página **Permissões** de uma equipe e a página de uma chave de API listam suas funções personalizadas em **Mais configurações**, depois das permissões próprias; o cabeçalho recolhido diz quantas elas têm. O que uma função dá é alterado na página da função, não na da equipe nem na da chave.
 - Uma chave de API recebe cada permissão das funções personalizadas dela, com os mesmos rótulos, como se a chave as tivesse, e um bloqueio na chave continua vencendo. Uma permissão que a função limita ao que alguém possui não dá nada a uma chave: uma chave não possui nada.

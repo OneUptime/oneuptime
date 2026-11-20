@@ -99,6 +99,12 @@ import {
   getRealTimeCountWindow,
 } from "Common/Types/SecurityEvent/RealTimeDetection";
 import { DETECTION_RULE_REAL_TIME } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
+import {
+  RESPONSE_STEPS_TITLE,
+  RESPONSE_STEP_MOVE_DOWN,
+  RESPONSE_STEP_MOVE_UP,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsCopy";
+import { DETECTION_RULE_RESPONSE_STEPS_MAX } from "Common/Types/SecurityEvent/DetectionRuleResponseSteps";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
   normalizeOcsfSeverity,
@@ -1348,7 +1354,23 @@ describe("the Security Events page", () => {
       }),
     ).toBe(SecurityMatchRaises.Alert);
     expect(steps[5]).toContain(
-      "**Write Detection Finding on Match** (on), **Run in Real Time** (off) and how matches are counted",
+      "**Write Detection Finding on Match** (on), **Run in Real Time** (off), how matches are counted, and **Response Steps**",
+    );
+    /*
+     * A rule's own response steps (#9621): a field of the On Match step,
+     * folded under More fields, at most as many as a rule carries.
+     */
+    expect(page_).toContain(
+      'field: { responseSteps: true, }, title: RESPONSE_STEPS_TITLE, stepId: "on-match",',
+    );
+    expect(RESPONSE_STEPS_TITLE).toBe("Response Steps");
+    expect(steps[5]).toContain(`at most ${DETECTION_RULE_RESPONSE_STEPS_MAX}.`);
+    /*
+     * Put in order on the form (#9796): a step's grip, and its Move Up
+     * and Move Down, as the field names them.
+     */
+    expect(steps[5]).toContain(
+      `Drag a step by its grip, or use **${RESPONSE_STEP_MOVE_UP}** and **${RESPONSE_STEP_MOVE_DOWN}**: the case's plan shows each part's steps in the order you give them.`,
     );
     // A new rule runs on its interval.
     expect(page_).toContain("isRealTime: false,");

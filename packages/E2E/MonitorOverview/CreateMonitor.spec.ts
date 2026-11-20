@@ -2044,11 +2044,12 @@ test.describe("Quick Setup's alert templates", () => {
    * Every template getAllKubernetesAlertTemplates() returns
    * (Common/Types/Monitor/KubernetesAlertTemplates): twenty-one since #5518
    * added node pressure, a StatefulSet's replica mismatch and a DaemonSet's
-   * pods not ready. The spec cannot import
+   * pods not ready, twenty-four since #9548 added the cost templates, and
+   * twenty-five since #9539 added PVC Almost Full. The spec cannot import
    * the list: it loads Common's TypeORM models, whose decorators Playwright's
    * transpiler does not run.
    */
-  const KUBERNETES_TEMPLATE_COUNT: number = 21;
+  const KUBERNETES_TEMPLATE_COUNT: number = 25;
   const ETCD_DESCRIPTION_START: string =
     "Requires the agent's control-plane scrape";
 
@@ -2153,7 +2154,7 @@ test.describe("Quick Setup's alert templates", () => {
       .getByRole("radio");
     await expect(rows).toHaveCount(KUBERNETES_TEMPLATE_COUNT);
 
-    // Under the picker's headings, in its order.
+    // Under the picker's headings, in its order: Cost last, since #9548.
     await expect(
       page.getByTestId("alert-template-picker").getByRole("heading"),
     ).toHaveText([
@@ -2163,6 +2164,7 @@ test.describe("Quick Setup's alert templates", () => {
       "Control Plane",
       "Storage",
       "Scheduling",
+      "Cost",
     ]);
 
     // Two to a line: the first two Workload templates share a top.
@@ -3077,10 +3079,11 @@ test.describe("Create Monitor's Probes definition", () => {
  * named by its word - was drawn inside the card's heading, beside the word,
  * and a heading is named by the words inside it: while it showed, Chromium
  * named the heading "Criteria Criteria", and a screen reader's list of
- * headings read it so. It is drawn right after the heading now
- * (Glossary/DefinitionsDrawnAfter): the heading holds its title alone, the
- * definition still shows by the word, and Tab goes from the word to Read
- * more, then on to the card's Learn more.
+ * headings read it so. It is drawn on the page's body now, as every
+ * tooltip is (Tooltip/TooltipLayer, #9863): the heading holds its title
+ * alone, the definition still shows by the word, and Tab goes from the word
+ * to Read more, then on from the word to the card's Learn more
+ * (keepTabOrder).
  */
 test.describe("Create Monitor's Criteria definition", () => {
   // The glossary is read from the product's host, as for Probes above.

@@ -22,6 +22,7 @@
 | `This project has been blocked` | 請主管理員解除專案的封鎖：請參閱[被封鎖的專案](#被封鎖的專案) |
 | `references records that are not in this project` | 使用你自己專案中記錄的 ID：請參閱[來自其他專案的 ID](#來自其他專案的-id) |
 | 資料來源傳回的 `Not Found` 或 `Ambiguous Match` | 修正查詢的引數：請參閱[找不到或找到多筆結果的查詢](#找不到或找到多筆結果的查詢) |
+| `There is already a team called`（標籤、待命策略、待命排程） | 改用同類其他記錄都沒有的名稱，或先為另一個重新命名：請參閱[其他記錄已在使用的名稱](#其他記錄已在使用的名稱) |
 | `Cannot import non-existent remote object` | 檢查 ID 和金鑰的權限：請參閱[匯入資源](/docs/terraform/importing-resources#疑難排解) |
 | `Provider produced inconsistent result after apply` | 升級提供者：請參閱[apply 之後結果不一致](#apply-之後結果不一致) |
 | 計畫建立了一個你沒有新增的資源 | 金鑰已無法讀取它，OneUptime 回應了 `404`：先恢復金鑰的讀取權限，再用 `terraform import` 匯入該資源：請參閱[資源離開 state，下一次 apply 又建立了它](#資源離開-state下一次-apply-又建立了它) |
@@ -103,6 +104,12 @@ This network device references records that are not in this project: Network Sit
 
 資料來源要嘛剛好找到一筆記錄，要嘛讓計畫停止。`Not Found` 表示沒有記錄具有該 `id`，或者沒有記錄與你設定的引數相符；`Ambiguous Match` 表示有多筆記錄相符。請修正引數，設定更多引數把查詢範圍縮小到一筆，或依 `id` 查詢記錄。[讀取已有的內容](/docs/terraform/complete-guide#讀取已有的內容)中列出了規則。
 
+### 其他記錄已在使用的名稱
+
+團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已封存的待命策略會保留其名稱：請取消封存，或另選一個名稱。先前就同名的記錄會保留名稱，儀表板中團隊、待命策略和待命排程的清單會標示它們。
+
+Terraform 會平行執行同一次 apply 中的變更，因此如果重新命名為另一個資源在同一次 apply 中讓出的名稱，在那個資源仍占用該名稱時可能會被拒絕：請再次套用，或在接收名稱的資源上新增一個指向讓出名稱之資源的 `depends_on`。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，都無法在一次 apply 中完成：先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
+
 ## 無法穩定的計畫
 
 ### apply 之後結果不一致
@@ -131,9 +138,13 @@ This network device references records that are not in this project: Network Sit
 
 ### 會移動的優先順序或順序
 
-監測器狀態、事件和警示的狀態與嚴重程度，以及你在儀表板中排序的其他清單，每個編號只保存一次。其他項目都沒有的編號會依所寫保留。已被其他項目占用的編號會被接管，擋在中間的項目會像在儀表板中拖曳時那樣依序後移一位。因此，設定了相同編號的兩個項目會在每次 apply 時互換位置。
+你在儀表板中排序的每個清單都會保留每個資源被賦予的編號：監測器狀態（`priority`）、事件和警示的狀態與嚴重程度、自訂欄位、日誌管線和捨棄篩選器（`sort_order`）、狀態頁的群組和資源、升級規則、排班的層級等等。設定一個編號只會放置該資源，不會移動其他任何資源，因此為整個清單編號的設定，例如在 `local.severities` 的 `for_each` 上使用 `order = index(local.severities, each.key) + 1`，無論 provider 的寫入以什麼順序到達，都會完全依所寫的樣子套用，下一次 plan 為空。
 
-請為每一項指派各自的編號，並在編號之間留出間隔，例如 `101`、`102` 和 `103`；Terraform 管理的項目請在 Terraform 中調整順序，而不是在儀表板中拖曳。
+- 請為每個資源指派各自的編號：編號相同的兩個資源都會保留該編號並排在一起，但它們的先後不由你決定。
+- 建立時沒有編號的資源會排到其清單最後。不過，新的事件或警示狀態會放在解決狀態的正上方，新的監測器狀態會放在離線狀態的正上方。
+- 刪除資源會在編號中留下空缺，但這不會改變任何事：清單依據的是編號，而不是計數。
+- 在 OneUptime 儀表板中拖曳資源，會從頂端重新為其整個清單編號，下一次 plan 會把這顯示為變更。Terraform 管理的資源請在 Terraform 中排序。
+- 內建狀態會保持各自的順序：會讓其中兩個處於同一編號或打亂它們順序的變更會被拒絕，並說明原因。當某次 apply 讓內建狀態越過彼此的舊編號時，它的某個寫入可能先到達並遇到這個拒絕；再執行一次 apply 即可完成。
 
 ### 唯讀屬性
 

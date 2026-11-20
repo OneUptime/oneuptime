@@ -1,0 +1,30 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Table: " tableName) }}
+
+{{> InfoBlock info="You have been added as an owner of this table."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Table:" plainText=tableName }}
+{{> DetailBoxField title="Database:" plainText=databaseName }}
+{{> DetailBoxField title="Description:" text=tableDescription }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this table by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=tableViewLink buttonText="View on Dashboard"}}
+
+{{> LinkBlock linkUrl=tableViewLink linkLabel="You can also copy and paste this link:"}}
+
+{{> InfoBlock info="Alerts on this table, such as a late table or a failing check, now come to you."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

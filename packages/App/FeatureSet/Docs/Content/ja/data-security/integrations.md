@@ -127,7 +127,7 @@ flowchart TB
 | データストアとそのタイムライン、検出結果、アクセスできる人、到達する各 ID | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access`、`/data-security-identity` |
 | 問題とそのタイムライン、データフロー | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-flow` |
 | スキャン | `/data-security-scan` |
-| カスタムデータタイプ、チェックの設定、データ所在地ルール | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-residency-rule` |
+| カスタムデータタイプ、チェックの設定、コンプライアンスの設定、データ所在地ルール | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | プロジェクトの設定 | `/data-security-setting` |
 | 所有者、所有者ルール、ラベルルール | `/data-store-owner-user`、`/data-store-owner-team`、`/data-store-owner-rule`、`/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ flowchart TB
 | --- | --- |
 | `/data-security/overview` | 概要の数値: 機密度別とカテゴリ別のデータストア、重大度別の未解決の問題、リスクの最も高い問題、そして直近 30 日間の問題 |
 | `/data-security/compliance` | すべてのフレームワークのスコアと要件 |
+| `/data-security/resource-scope` | 1 つのリソース (Kubernetes クラスター、Docker または Podman ホスト、データベース、サービス、クラウドリソース) のデータストアと、それらがどのリソースのコンプライアンスのスイッチに従うか |
+| `/data-security/resource-compliance` | 1 つのリソースのフレームワーク: そのリソースのデータストアについてのスコアと、そのリソースでオフにされているもの |
 | `/data-security/record-of-processing` | GDPR の処理の記録。個人データを保持するデータストアごとに 1 行 |
 | `/data-store/<id>/scan-now` | **今すぐスキャン**: データストアのコンテンツをすぐにサンプリングします |
 | `/data-store/<id>/check-now` | **今すぐチェック**: データストアの設定を再度読み取り、チェックを実行します |
 | `/data-store-finding/<id>/scrub` | テレメトリの検出結果での **スクラブ** |
+| `/data-store-finding/<id>/drop-metric-impact` | メトリクスの名前にある検出結果で **このメトリクスを破棄** が破棄するもの: メトリクスの数と、それらを読み取るモニターとダッシュボード |
+| `/data-store-finding/<id>/drop-metric` | **このメトリクスを破棄**: サービスのそれらのメトリクスの新しいデータポイントを完全に破棄するメトリクスのパイプラインルール。 `{"confirmDataLoss": true}` を受け取ります |
 | `/data-security-issue/<id>/explain` | 問題での **AI で説明** |
 | `/data-security-issue/<id>/fix-with-ai` | 問題での **AI で修正** |
 | `/data-store/<id>/response-actions` | データストアでいま実行できる対応アクションと、実行できない場合はその理由 |
 | `/data-store/<id>/respond` | 実行元の問題を指定して、データストアに対応アクションを 1 つ実行します ( **パブリックアクセスをブロック** や **バージョニングを有効にする** など) |
 
-[Terraform プロバイダー](/docs/terraform/index) には、作成する各種類のレコード (自分で追加するデータストア、カスタムデータタイプ、チェックの設定、データ所在地ルール、所有者ルールとラベルルール) ごとに、 `oneuptime_residency_rule` のようにレコードにちなんだ名前のリソースがあります。
+[Terraform プロバイダー](/docs/terraform/index) には、作成する各種類のレコード (自分で追加するデータストア、カスタムデータタイプ、チェックの設定、コンプライアンスの設定、データ所在地ルール、所有者ルールとラベルルール) ごとに、 `oneuptime_residency_rule` のようにレコードにちなんだ名前のリソースがあります。
 
-[MCP サーバー](/docs/ai/mcp-server) には、次のレコードの作成・取得・一覧・更新・削除・件数のツールがあります: Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Residency Rule、Data Security Setting。これにより AI アシスタントは、どのデータストアがカード番号を保持しているか、あるバケットで何が未解決かを、あなたの権限で尋ねられます。
+[MCP サーバー](/docs/ai/mcp-server) には、次のレコードの作成・取得・一覧・更新・削除・件数のツールがあります: Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Compliance Setting、Residency Rule、Data Security Setting。これにより AI アシスタントは、どのデータストアがカード番号を保持しているか、あるバケットで何が未解決かを、あなたの権限で尋ねられます。
 
 ## 次のステップ
 

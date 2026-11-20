@@ -103,7 +103,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-رکوردها را فهرست می‌کند، تازه‌ترین‌ها در ابتدا. برچسب‌ها در عوض به ترتیب نام فهرست می‌شوند، برچسب‌های شماره‌دار اول (`2. Team` پیش از `10. Owner`).
+رکوردها را فهرست می‌کند، تازه‌ترین‌ها در ابتدا. برچسب‌ها در عوض به ترتیب نام فهرست می‌شوند، برچسب‌های شماره‌دار اول (`2. Team` پیش از `10. Owner`). رکوردهایی که با کشیدن مرتب می‌کنید، مانند وضعیت‌های حادثه، به همان ترتیب فهرست می‌شوند.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]
@@ -167,13 +167,15 @@ oneuptime <resource> update <id> [--<field> <value>]... [--data <json>] [--file 
 یک رکورد را بی‌درنگ و بدون پرسش حذف می‌کند.
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime <resource> delete <id> [--force] [--workflows-run-as <value>] [--workflows-run-as-custom-role-id <id>]
 ```
 
 | آرگومان یا گزینه | الزامی | چیست |
 | --- | --- | --- |
 | `<id>` | بله | شناسهٔ رکورد |
 | `--force` | خیر | پذیرفته می‌شود و چیزی را تغییر نمی‌دهد: `delete` هرگز تأیید نمی‌خواهد |
+| `--workflows-run-as <value>` | خیر | فقط نقش‌های سفارشی: گردش‌های کاری‌ای که به‌عنوان این نقش اجرا می‌شوند، پس از حذف آن به چه عنوانی اجرا شوند، `Default` یا `CustomRole`. نقشی که گردش‌های کاری به‌عنوان آن اجرا می‌شوند فقط با این پرچم حذف می‌شود |
+| `--workflows-run-as-custom-role-id <id>` | خیر | فقط نقش‌های سفارشی: همراه با `--workflows-run-as CustomRole`، نقش سفارشی دیگری که به‌عنوان آن اجرا شوند |
 
 ### `oneuptime <resource> count`
 
@@ -275,7 +277,7 @@ CLI همراه با OneUptime منتشر می‌شود، پس `oneuptime resourc
 | `get` | `POST /api/<path>/<id>/get-item` | `select` |
 | `create` | `POST /api/<path>` | `{"data": ...}` |
 | `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
-| `delete` | `DELETE /api/<path>/<id>/` | هیچ |
+| `delete` | `DELETE /api/<path>/<id>/` | هیچ، یا `miscDataProps` با `--workflows-run-as` |
 | `count` | `POST /api/<path>/count` | `query` |
 
 یک کنش وضعیت‌های پروژهٔ شما و رکورد را می‌خواند، سپس همان‌طور که دکمهٔ داشبورد می‌کند، یک سطر در خط زمانی وضعیت رکورد می‌سازد: `acknowledge` روی یک حادثه یک `incident-state-timeline` می‌سازد. `add-note` یک `incident-internal-note` می‌سازد، یا با `--public` یک `incident-public-note`. یک پرچم ایمیل نخست اعضای تیم پروژه را که آن نشانی را دارند فهرست می‌کند. وقتی OneUptime فیلدی را که کلید نمی‌تواند بخواند رد کند، یک list یا یک get بدون آن دوباره می‌خواهد.

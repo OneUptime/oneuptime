@@ -1,4 +1,5 @@
 import TeamsElement from "../Team/TeamsElement";
+import SsoProviderDomainsElement from "./SsoProviderDomainsElement";
 import { getSsoTeamsGrantNote } from "./SsoTeamsGrantNote";
 import ProjectSsoCopy from "./ProjectSsoCopy";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -43,9 +44,10 @@ interface OidcConfigDialogTarget {
  * (Settings > OIDC), which told nobody that requiring SSO lived on the
  * other page; that address forwards to SSO now (MovedPagePaths).
  *
- * Adding one asks for its name, issuer, client ID and secret, and the teams
- * newcomers join (the members team to start with); everything else is
- * filled in under Advanced (Common/UI/Components/Sso/OidcProviderFormFields).
+ * Adding one asks for its name, issuer, client ID and secret, the teams
+ * newcomers join (the members team to start with) and the project's
+ * verified domains it serves at "Sign in with SSO" (#9824); everything else
+ * is filled in under Advanced (Common/UI/Components/Sso/OidcProviderFormFields).
  * Once it is saved, the dialog with the redirect URI to give the identity
  * provider opens straight away: that is the next thing to do.
  */
@@ -61,6 +63,11 @@ export interface ComponentProps {
    * the page's test link waits for a provider of either kind to try.
    */
   onProviderCountChange?: ((count: number) => void) | undefined;
+  /*
+   * After each load of the list: the page's notice reads again which
+   * providers "Sign in with SSO" finds by nobody's email (#9918).
+   */
+  onProviderListLoaded?: (() => void) | undefined;
 }
 
 const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
@@ -110,11 +117,13 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
           totalCount: number,
         ): void => {
           props.onProviderCountChange?.(totalCount);
+          props.onProviderListLoaded?.();
         }}
         viewPageRoute={Navigation.getCurrentRoute()}
         formFields={getOidcProviderFormFields<ProjectOIDC>({
           withTeams: true,
           getTeamsFooterElement: getSsoTeamsGrantNote,
+          withDomains: true,
           withIdentityProviderSignOut: true,
         })}
         createInitialValues={createInitialValues}
@@ -191,6 +200,26 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: ProjectOIDC): ReactElement => {
               return <TeamsElement teams={item["teams"] || []} />;
+            },
+          },
+          {
+            field: {
+              domains: {
+                _id: true,
+                domain: true,
+                isVerified: true,
+              },
+            },
+            /*
+             * The verified domains "Sign in with SSO" finds it by, or that it
+             * has none (#9918).
+             */
+            title: ProjectSsoCopy.domainsColumn,
+            type: FieldType.Text,
+            getElement: (item: ProjectOIDC): ReactElement => {
+              return (
+                <SsoProviderDomainsElement domains={item["domains"] || []} />
+              );
             },
           },
           {

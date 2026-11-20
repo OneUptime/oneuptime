@@ -93,6 +93,10 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Resource",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
+      ["Project", "Cloud", "View Resource", "Security Events"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_FEED, [
       "Project",
       "Cloud",
@@ -149,6 +153,18 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Cloud", "View Resource", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY, [
+      "Project",
+      "Cloud",
+      "View Resource",
+      "Data Security",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE, [
+      "Project",
+      "Cloud",
+      "View Resource",
+      "Compliance",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNTS, [
       "Project",
       "Cloud",

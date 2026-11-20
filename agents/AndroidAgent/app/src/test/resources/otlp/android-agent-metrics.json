@@ -1,0 +1,757 @@
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "host.name",
+            "value": {
+              "stringValue": "store-0412-kiosk-02"
+            }
+          },
+          {
+            "key": "host.id",
+            "value": {
+              "stringValue": "3f2a9c1b7d4e5a60"
+            }
+          },
+          {
+            "key": "host.arch",
+            "value": {
+              "stringValue": "arm64"
+            }
+          },
+          {
+            "key": "host.ip",
+            "value": {
+              "arrayValue": {
+                "values": [
+                  {
+                    "stringValue": "10.20.30.40"
+                  },
+                  {
+                    "stringValue": "fd00::40"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "key": "host.serial_number",
+            "value": {
+              "stringValue": "ELO123456"
+            }
+          },
+          {
+            "key": "os.type",
+            "value": {
+              "stringValue": "linux"
+            }
+          },
+          {
+            "key": "os.name",
+            "value": {
+              "stringValue": "Android"
+            }
+          },
+          {
+            "key": "os.version",
+            "value": {
+              "stringValue": "14"
+            }
+          },
+          {
+            "key": "os.build_id",
+            "value": {
+              "stringValue": "UP1A.231005.007"
+            }
+          },
+          {
+            "key": "os.description",
+            "value": {
+              "stringValue": "Android Version 14 (Build UP1A.231005.007 API level 34)"
+            }
+          },
+          {
+            "key": "android.os.api_level",
+            "value": {
+              "stringValue": "34"
+            }
+          },
+          {
+            "key": "android.os.security_patch",
+            "value": {
+              "stringValue": "2024-06-05"
+            }
+          },
+          {
+            "key": "device.manufacturer",
+            "value": {
+              "stringValue": "Elo Touch Solutions"
+            }
+          },
+          {
+            "key": "device.model.name",
+            "value": {
+              "stringValue": "Elo-i3-15"
+            }
+          },
+          {
+            "key": "device.firmware.version",
+            "value": {
+              "stringValue": "ELO-I3-15-14.0.0-2024.06"
+            }
+          },
+          {
+            "key": "device.type",
+            "value": {
+              "stringValue": "kiosk"
+            }
+          },
+          {
+            "key": "device.location",
+            "value": {
+              "stringValue": "Store 0412"
+            }
+          },
+          {
+            "key": "oneuptime.agent.version",
+            "value": {
+              "stringValue": "17.0.12"
+            }
+          },
+          {
+            "key": "oneuptime.label.store",
+            "value": {
+              "stringValue": "0412"
+            }
+          },
+          {
+            "key": "oneuptime.label.region",
+            "value": {
+              "stringValue": "emea"
+            }
+          }
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {
+            "name": "oneuptime-android-agent",
+            "version": "17.0.12"
+          },
+          "metrics": [
+            {
+              "name": "system.uptime",
+              "description": "The time the system has been running.",
+              "unit": "s",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 259200.0
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.cpu.logical.count",
+              "description": "Number of available logical CPUs.",
+              "unit": "{cpu}",
+              "sum": {
+                "aggregationTemporality": 2,
+                "isMonotonic": false,
+                "dataPoints": [
+                  {
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "8"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.cpu.utilization",
+              "description": "Difference in system.cpu.time since the last measurement per logical CPU, divided by the elapsed time.",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "cpu",
+                        "value": {
+                          "stringValue": "cpu0"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "user"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.3
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "cpu",
+                        "value": {
+                          "stringValue": "cpu0"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "system"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.1
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "cpu",
+                        "value": {
+                          "stringValue": "cpu0"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "idle"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.6
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "cpu",
+                        "value": {
+                          "stringValue": "cpu1"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "user"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.5
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "cpu",
+                        "value": {
+                          "stringValue": "cpu1"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "system"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.2
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "cpu",
+                        "value": {
+                          "stringValue": "cpu1"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "idle"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.3
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.memory.usage",
+              "description": "Bytes of memory in use.",
+              "unit": "By",
+              "sum": {
+                "aggregationTemporality": 2,
+                "isMonotonic": false,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "used"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "2600000000"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "free"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "400000000"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "cached"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "1000000000"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.memory.utilization",
+              "description": "Percentage of memory bytes in use.",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "used"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.65
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "free"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.1
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "cached"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.25
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.filesystem.usage",
+              "description": "Filesystem bytes used.",
+              "unit": "By",
+              "sum": {
+                "aggregationTemporality": 2,
+                "isMonotonic": false,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "/dev/block/dm-40"
+                        }
+                      },
+                      {
+                        "key": "mode",
+                        "value": {
+                          "stringValue": "rw"
+                        }
+                      },
+                      {
+                        "key": "mountpoint",
+                        "value": {
+                          "stringValue": "/data"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "f2fs"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "used"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "44000000000"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "/dev/block/dm-40"
+                        }
+                      },
+                      {
+                        "key": "mode",
+                        "value": {
+                          "stringValue": "rw"
+                        }
+                      },
+                      {
+                        "key": "mountpoint",
+                        "value": {
+                          "stringValue": "/data"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "f2fs"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "free"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "19000000000"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "/dev/block/dm-40"
+                        }
+                      },
+                      {
+                        "key": "mode",
+                        "value": {
+                          "stringValue": "rw"
+                        }
+                      },
+                      {
+                        "key": "mountpoint",
+                        "value": {
+                          "stringValue": "/data"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "f2fs"
+                        }
+                      },
+                      {
+                        "key": "state",
+                        "value": {
+                          "stringValue": "reserved"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "1000000000"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.filesystem.utilization",
+              "description": "Fraction of filesystem bytes used.",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "/dev/block/dm-40"
+                        }
+                      },
+                      {
+                        "key": "mode",
+                        "value": {
+                          "stringValue": "rw"
+                        }
+                      },
+                      {
+                        "key": "mountpoint",
+                        "value": {
+                          "stringValue": "/data"
+                        }
+                      },
+                      {
+                        "key": "type",
+                        "value": {
+                          "stringValue": "f2fs"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.6984126984126984
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.network.io",
+              "description": "The number of bytes transmitted and received.",
+              "unit": "By",
+              "sum": {
+                "aggregationTemporality": 2,
+                "isMonotonic": true,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "all"
+                        }
+                      },
+                      {
+                        "key": "direction",
+                        "value": {
+                          "stringValue": "receive"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "5000000000"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "all"
+                        }
+                      },
+                      {
+                        "key": "direction",
+                        "value": {
+                          "stringValue": "transmit"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "800000000"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "system.network.packets",
+              "description": "The number of packets transferred.",
+              "unit": "{packet}",
+              "sum": {
+                "aggregationTemporality": 2,
+                "isMonotonic": true,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "all"
+                        }
+                      },
+                      {
+                        "key": "direction",
+                        "value": {
+                          "stringValue": "receive"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "4000000"
+                  },
+                  {
+                    "attributes": [
+                      {
+                        "key": "device",
+                        "value": {
+                          "stringValue": "all"
+                        }
+                      },
+                      {
+                        "key": "direction",
+                        "value": {
+                          "stringValue": "transmit"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1794817657467000000",
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "1500000"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "hw.battery.charge",
+              "description": "Remaining fraction of battery charge.",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "hw.id",
+                        "value": {
+                          "stringValue": "battery"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 1.0
+                  }
+                ]
+              }
+            },
+            {
+              "name": "hw.temperature",
+              "description": "Temperature in degrees Celsius.",
+              "unit": "Cel",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "hw.id",
+                        "value": {
+                          "stringValue": "battery"
+                        }
+                      },
+                      {
+                        "key": "hw.sensor_location",
+                        "value": {
+                          "stringValue": "battery"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 31.5
+                  }
+                ]
+              }
+            },
+            {
+              "name": "android.battery.plugged",
+              "description": "1 while the device is on external power, 0 while it runs on its battery.",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "android.battery.power_source",
+                        "value": {
+                          "stringValue": "ac"
+                        }
+                      }
+                    ],
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "1"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "android.thermal.status",
+              "description": "Android's thermal status: 0 none, 1 light, 2 moderate, 3 severe, 4 critical, 5 emergency, 6 shutdown.",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "0"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "android.thermal.headroom",
+              "description": "How close the device is to thermal throttling: 1.0 is throttling.",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1795076857467000000",
+                    "asDouble": 0.42
+                  }
+                ]
+              }
+            },
+            {
+              "name": "android.boot.recent_count",
+              "description": "The device's boots in the last hour: 3 or more is a restart loop.",
+              "unit": "{boot}",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1795076857467000000",
+                    "asInt": "1"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

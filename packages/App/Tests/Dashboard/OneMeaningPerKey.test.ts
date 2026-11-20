@@ -10,7 +10,7 @@ import {
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
 import { getDefaultContext } from "../../FeatureSet/Dashboard/scripts/i18n/I18n";
 import { REPLAY_TAB_COUNT } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTabs";
-import { MEANING_KEYS } from "Common/Types/MeaningKeys";
+import { MEANING_KEYS, getWordOfMeaningKey } from "Common/Types/MeaningKeys";
 import { LABELS_DRAWN_BY_OWN_KEY } from "../FeatureSet/Docs/DocsDashboardLabels";
 
 /*
@@ -241,6 +241,20 @@ describe("one meaning per key", () => {
         looksUpCreated: false,
       });
     }
+  });
+
+  /*
+   * #9588: a mobile app's screens (app.screen.name) are its menu, its cart,
+   * its checkout - not a device's display, which the bare "Screen" names.
+   * zh-TW words them 畫面 and 螢幕.
+   */
+  test("an app's screen is its own key, looked up only by the frames-by-screen card", () => {
+    expect(filesLookingUp("Screen (app screen)")).toEqual([
+      "Components/Rum/MobileOverview/FramesByScreenCard.tsx",
+    ]);
+    expect(filesLookingUp("Screen")).not.toContain(
+      "Components/Rum/MobileOverview/FramesByScreenCard.tsx",
+    );
   });
 
   /*
@@ -574,12 +588,64 @@ describe("one meaning per key", () => {
    * only by the two storage widgets; nothing in the Dashboard looks up the
    * bare word now, so a data array that needs it gets a meaning of its own.
    */
+  /*
+   * #9658: the Tables Matched dialog marked a data source OneUptime watches
+   * with the bare "Watched", the session replay audit's column of time
+   * spent watching a replay, so the source read "Durée de visionnage" in
+   * French and "مدة المشاهدة" in Arabic. Its standing has a key of its own,
+   * and only the replay audit looks up the bare word.
+   */
+  test("a BI data source's watched standing is its own key, and only the replay audit looks up the bare Watched", () => {
+    expect(filesLookingUp("Watched by OneUptime")).toEqual([
+      "Components/DataObservability/BiLineageWords.ts",
+    ]);
+    expect(filesLookingUp("Watched")).toEqual([
+      "Pages/Rum/View/SessionReplayAudit.tsx",
+    ]);
+  });
+
   test("a storage array is its own key, looked up only by the storage widgets, and nothing looks up the bare Array", () => {
     expect(filesLookingUp("Array (storage array)")).toEqual([
       "Components/Dashboard/Components/DashboardStorageArrayHardwareListComponent.tsx",
       "Components/Dashboard/Components/DashboardStorageArrayVolumeListComponent.tsx",
     ]);
     expect(filesLookingUp("Array")).toEqual([]);
+  });
+
+  /*
+   * #9838: a device's Model read 模型 in Chinese, a machine-learning model,
+   * on Inventory's Asset Details card, the Managed Devices list and a managed
+   * device's Esper card. A machine's model - an Android device's, a network
+   * device's, a storage array controller's, and the models' columns the
+   * lists filter by - is its own key; the bare Model stays an AI model's.
+   */
+  test("a machine's model is its own key, looked up by the machines' pages, and the bare Model only by the AI pages", () => {
+    expect(filesLookingUp("Model (hardware model)")).toEqual([
+      "Components/DeviceManagement/ManagedDeviceCard.tsx",
+      "Components/DeviceManagement/ManagedDevicesTable.tsx",
+      "Components/Inventory/InventoryAssetLabels.ts",
+      "Components/NetworkDevice/DeviceInventoryCard.tsx",
+      "Components/Topology/NetworkDeviceDetailPanel.tsx",
+      "Pages/StorageArray/View/Hardware.tsx",
+      "packages/Common/Models/DatabaseModels/ManagedDevice.ts",
+      "packages/Common/Models/DatabaseModels/NetworkDevice.ts",
+      "packages/Common/Models/DatabaseModels/StorageArrayResource.ts",
+    ]);
+    expect(filesLookingUp("Model")).toEqual([
+      "Components/AI/LlmCallsTable.tsx",
+      "Components/AI/LlmProviderUsageQuery.ts",
+      "Components/AI/LlmUsageBreakdown.tsx",
+      "Components/Form/Monitor/LlmMonitor/LlmMonitorStepForm.tsx",
+      "Components/ProductOnboarding/Showcases/ObservabilityShowcases.ts",
+      "Components/Traces/LlmSpanPanel.tsx",
+      "Pages/Llm/Pricing.tsx",
+      "Pages/Settings/LlmProviders.tsx",
+      "Utils/MonitorStepViewModel.ts",
+      // A workflow's AI step, and the fallback name of a record type.
+      "packages/Common/Types/Workflow/Components/AI.ts",
+      "packages/Common/UI/Components/Workflow/Utils.ts",
+    ]);
+    expect(MEANING_KEYS).toContain("Model (hardware model)");
   });
 
   /*
@@ -737,13 +803,16 @@ describe("one meaning per key", () => {
       ).toBe(true);
 
       for (const [label, key] of Object.entries(labels)) {
-        expect({ page, label, key, own: key in OWN_KEYS }).toEqual({
+        expect({ page, label, key, own: MEANING_KEYS.includes(key) }).toEqual({
           page,
           label,
           key,
           own: true,
         });
-        expect(OWN_KEYS[key]!.bare).toBe(label);
+        expect({ key, word: getWordOfMeaningKey(key) }).toEqual({
+          key,
+          word: label,
+        });
       }
     }
 
@@ -870,6 +939,35 @@ describe("the locales word each meaning as its own", () => {
     expect(readLocale("fa")["Open"]).toBe("باز کردن");
   });
 
+  /*
+   * #9658: a data source OneUptime watches is worded as each language's
+   * Tables Watched words a watched table, never as a replay's watching time.
+   */
+  test("a data source OneUptime watches is never worded as a replay's watching time", () => {
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        worded:
+          Boolean(locale["Watched by OneUptime"]) &&
+          locale["Watched by OneUptime"] !== ENGLISH["Watched by OneUptime"],
+        same: locale["Watched by OneUptime"] === locale["Watched"],
+      }).toEqual({ language, worded: true, same: false });
+    }
+
+    expect(readLocale("fr")["Watched"]).toBe("Durée de visionnage");
+    expect(readLocale("fr")["Tables Watched"]).toBe("Tables surveillées");
+    expect(readLocale("fr")["Watched by OneUptime"]).toBe(
+      "Surveillé par OneUptime",
+    );
+    expect(readLocale("ar")["Watched"]).toBe("مدة المشاهدة");
+    expect(readLocale("ar")["Tables Watched"]).toBe("الجداول المراقَبة");
+    expect(readLocale("ar")["Watched by OneUptime"]).toBe("يراقبه OneUptime");
+  });
+
   // #8078: a data asset of kind View read "Ver", "Anzeigen", "Voir".
   test("a database's view is never worded as the View buttons' verb", () => {
     for (const language of LANGUAGES.filter((code: string): boolean => {
@@ -982,6 +1080,40 @@ describe("the locales word each meaning as its own", () => {
       readLocale("es")["Table"],
     );
     expect(readLocale("de")["Table (database object)"]).toBe("Tabelle");
+  });
+
+  /*
+   * #9838: Chinese named a device's model 模型, a machine-learning model,
+   * and Arabic النموذج; a device's model is 型号 / 型號 (as Android's own
+   * About phone screen says) and الطراز. Every other language names both
+   * with one word, so a machine's model is worded as its bare Model there.
+   */
+  test("a machine's model is worded as a device's model, never an AI model's, where a language words them apart", () => {
+    const words: Record<string, { ai: string; machine: string }> = {
+      "zh-CN": { ai: "模型", machine: "型号" },
+      "zh-TW": { ai: "模型", machine: "型號" },
+      ar: { ai: "النموذج", machine: "الطراز" },
+    };
+
+    for (const language of LANGUAGES) {
+      const locale: Record<string, string> = readLocale(language);
+      const expected: { ai: string; machine: string } = words[language] || {
+        ai: locale["Model"] as string,
+        machine: locale["Model"] as string,
+      };
+
+      expect({
+        language,
+        ai: locale["Model"],
+        machine: locale["Model (hardware model)"],
+      }).toEqual({ language, ...expected });
+
+      // Worded, never left as its English key.
+      expect({
+        language,
+        worded: locale["Model (hardware model)"] !== "Model (hardware model)",
+      }).toEqual({ language, worded: true });
+    }
   });
 
   /*

@@ -5,7 +5,13 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import { JSONObject } from "Common/Types/JSON";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "./Milliseconds";
 import {
   TelemetryScopeAttributeValue,
   getFilterAttributes,
@@ -14,6 +20,10 @@ import {
   getFilterStringValues,
   isEmptyFilterValue,
 } from "./TelemetryQueryFilterValues";
+import {
+  TraceDurationFilter,
+  hasTraceDurationFilter,
+} from "../Components/Traces/TracesSearchCompile";
 
 /*
  * Read a stored `Query<Span>` — the slice a trace monitor evaluated, kept on
@@ -95,6 +105,15 @@ export interface SpanQueryScope {
   spanKinds: Array<string>;
   /** Tri-state: null when the query said nothing about it. */
   hasException: boolean | null;
+  /**
+   * The span duration bounds, in nanoseconds: a Traces monitor's "Takes at
+   * least (ms)" (`durationUnixNano >= N`), the floor the mobile Slow Cold
+   * Start recommendation alerts on. Null when the query set none. Both
+   * transports carry it - the list as the same comparison, the payload as
+   * its bound (`atLeastDurationNano`) - so the chart and the list count only
+   * the slow spans the monitor counted.
+   */
+  duration: TraceDurationFilter | null;
   /** True when the query pinned `isRootSpan`. */
   rootOnly: boolean;
   /** The evaluation window, off `startTime`. Null when none was stored. */
@@ -134,6 +153,7 @@ export const EMPTY_SPAN_QUERY_SCOPE: SpanQueryScope = {
   spanIds: [],
   spanKinds: [],
   hasException: null,
+  duration: null,
   rootOnly: false,
   window: null,
   chips: [],
@@ -141,6 +161,188 @@ export const EMPTY_SPAN_QUERY_SCOPE: SpanQueryScope = {
   passthrough: {},
   hasScope: false,
 };
+
+/*
+ * The facet key of a duration chip: the span column, as the explorer's own
+ * `duration:` token compiles to (TRACE_FIELD_ALIAS_MAP).
+ */
+export const DURATION_FACET_KEY: string = "durationUnixNano";
+
+const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
+
+// English, as a chip's seed is written: the explorer words it for the reader.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * A stored comparison as its wire shape: a deserialized GreaterThanOrEqual
+ * (the pages restore the query) or the `{_type, value}` JSON (a raw reader).
+ */
+function toWireShape(value: unknown): JSONObject | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate: { toJSON?: unknown } = value as { toJSON?: unknown };
+
+  if (typeof candidate.toJSON === "function") {
+    const json: unknown = (candidate.toJSON as () => unknown).call(value);
+
+    return json && typeof json === "object" && !Array.isArray(json)
+      ? (json as JSONObject)
+      : null;
+  }
+
+  return value as JSONObject;
+}
+
+// A nanosecond bound, from a number or a numeric string; null otherwise.
+function toNanoBound(value: unknown): number | null {
+  const parsed: number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim().length > 0
+        ? Number(value)
+        : NaN;
+
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+/**
+ * A stored `durationUnixNano` predicate as duration bounds, or null when it
+ * is not one this reader models (an Includes, an operator a monitor never
+ * writes). What a Traces monitor stores is `GreaterThanOrEqual` of the floor
+ * in nanoseconds (MonitorStepTraceMonitorUtil.toQuery); the explorer's own
+ * `duration:` filter compiles to GreaterThan, LessThan, their inclusive
+ * forms and an exact number, and every one of them is read back here.
+ */
+export function readStoredDurationFilter(
+  stored: unknown,
+): TraceDurationFilter | null {
+  if (typeof stored === "number" || typeof stored === "string") {
+    const exact: number | null = toNanoBound(stored);
+
+    return exact === null ? null : { exactDurationNano: exact };
+  }
+
+  const wire: JSONObject | null = toWireShape(stored);
+
+  if (!wire) {
+    return null;
+  }
+
+  const type: unknown = wire["_type"];
+
+  if (type === "InBetween") {
+    const start: number | null = toNanoBound(wire["startValue"]);
+    const end: number | null = toNanoBound(wire["endValue"]);
+
+    return start === null || end === null
+      ? null
+      : { atLeastDurationNano: start, atMostDurationNano: end };
+  }
+
+  const bound: number | null = toNanoBound(wire["value"]);
+
+  if (bound === null) {
+    return null;
+  }
+
+  switch (type) {
+    case "GreaterThanOrEqual":
+      return { atLeastDurationNano: bound };
+    case "GreaterThan":
+      return { minDurationNano: bound };
+    case "LessThanOrEqual":
+      return { atMostDurationNano: bound };
+    case "LessThan":
+      return { maxDurationNano: bound };
+    default:
+      return null;
+  }
+}
+
+// Milliseconds as the search bar spells them: no trailing zeros.
+function formatSearchMilliseconds(nano: number): string {
+  const milliseconds: number = nano / NANOSECONDS_PER_MILLISECOND;
+
+  return String(Math.round(milliseconds * 1000) / 1000);
+}
+
+/**
+ * The value a `duration:` token spells a filter with (`>=5000`, `<200`,
+ * `750`), in milliseconds, or null when the filter has two bounds: one token
+ * holds one comparison, and the explorer reads only a token's first value.
+ */
+export function toDurationSearchValue(
+  filter: TraceDurationFilter,
+): string | null {
+  const parts: Array<string> = [];
+
+  if (filter.exactDurationNano !== undefined) {
+    parts.push(formatSearchMilliseconds(filter.exactDurationNano));
+  }
+
+  if (filter.atLeastDurationNano !== undefined) {
+    parts.push(`>=${formatSearchMilliseconds(filter.atLeastDurationNano)}`);
+  }
+
+  if (filter.minDurationNano !== undefined) {
+    parts.push(`>${formatSearchMilliseconds(filter.minDurationNano)}`);
+  }
+
+  if (filter.atMostDurationNano !== undefined) {
+    parts.push(`<=${formatSearchMilliseconds(filter.atMostDurationNano)}`);
+  }
+
+  if (filter.maxDurationNano !== undefined) {
+    parts.push(`<${formatSearchMilliseconds(filter.maxDurationNano)}`);
+  }
+
+  return parts.length === 1 ? parts[0]! : null;
+}
+
+/**
+ * How a duration chip says its bounds, before the explorer words the
+ * durations in the reader's language: a comparison symbol, which no
+ * language translates, before each bound. "≥ 5,000 ms" for a monitor's
+ * floor of five seconds.
+ */
+export function describeDurationBounds(
+  filter: TraceDurationFilter,
+  formatMilliseconds: (milliseconds: number) => string,
+): string {
+  const describe: (symbol: string, nano: number) => string = (
+    symbol: string,
+    nano: number,
+  ): string => {
+    // A no-break space: the symbol stays on the line of its number.
+    return `${symbol}\u00A0${formatMilliseconds(nano / NANOSECONDS_PER_MILLISECOND)}`;
+  };
+
+  const parts: Array<string> = [];
+
+  if (filter.exactDurationNano !== undefined) {
+    parts.push(describe("=", filter.exactDurationNano));
+  }
+
+  if (filter.atLeastDurationNano !== undefined) {
+    parts.push(describe("≥", filter.atLeastDurationNano));
+  }
+
+  if (filter.minDurationNano !== undefined) {
+    parts.push(describe(">", filter.minDurationNano));
+  }
+
+  if (filter.atMostDurationNano !== undefined) {
+    parts.push(describe("≤", filter.atMostDurationNano));
+  }
+
+  if (filter.maxDurationNano !== undefined) {
+    parts.push(describe("<", filter.maxDurationNano));
+  }
+
+  return parts.join(", ");
+}
 
 /*
  * Keys the scope consumes itself, so the passthrough loop does not forward
@@ -161,6 +363,7 @@ const CONSUMED_QUERY_KEYS: Set<string> = new Set<string>([
   "kind",
   "hasException",
   "isRootSpan",
+  DURATION_FACET_KEY,
 ]);
 
 /** Human labels for the keys a hint may have to name. */
@@ -470,6 +673,49 @@ export function buildSpanQueryScope(
     );
   }
 
+  /*
+   * A Traces monitor's duration floor ("Takes at least (ms)"): read once, so
+   * the list keeps the same comparison and the payload carries its bound.
+   * A predicate this reader cannot model rides the list as it was stored,
+   * and is named in the hint, as it always was.
+   */
+  const storedDuration: unknown = record[DURATION_FACET_KEY];
+
+  if (
+    storedDuration !== undefined &&
+    storedDuration !== null &&
+    !isEmptyFilterValue(storedDuration)
+  ) {
+    const duration: TraceDurationFilter | null =
+      readStoredDurationFilter(storedDuration);
+
+    if (duration && hasTraceDurationFilter(duration)) {
+      scope.duration = duration;
+
+      /*
+       * The seed reads "≥ 5,000 ms"; the explorer words the durations in the
+       * reader's language as it draws the chip. Its value is the search
+       * bar's spelling (`>=5000`), which the chip's tooltip offers to copy.
+       */
+      const seed: string = describeDurationBounds(
+        duration,
+        (milliseconds: number): string => {
+          return formatMilliseconds(ENGLISH, milliseconds);
+        },
+      );
+
+      addChip(
+        DURATION_FACET_KEY,
+        toDurationSearchValue(duration) || seed,
+        "Duration",
+        seed,
+      );
+    } else {
+      scope.passthrough[DURATION_FACET_KEY] = storedDuration as never;
+      pushUniqueLabel(scope.notCarried, labelForKey(DURATION_FACET_KEY));
+    }
+  }
+
   scope.rootOnly = readBoolean(record["isRootSpan"]) === true;
 
   for (const key of Object.keys(record)) {
@@ -501,6 +747,7 @@ export function buildSpanQueryScope(
     scope.spanIds.length > 0 ||
     scope.spanKinds.length > 0 ||
     scope.hasException !== null ||
+    scope.duration !== null ||
     scope.rootOnly ||
     Object.keys(scope.passthrough).length > 0;
 

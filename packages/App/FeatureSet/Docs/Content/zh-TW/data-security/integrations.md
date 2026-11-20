@@ -127,7 +127,7 @@ flowchart TB
 | 資料儲存區、其時間軸、其發現、誰可以存取它們，以及每個可以存取的身分 | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access`、`/data-security-identity` |
 | 問題、其時間軸和資料流 | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-flow` |
 | 掃描 | `/data-security-scan` |
-| 自訂資料類型、檢查設定和資料落地規則 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-residency-rule` |
+| 自訂資料類型、檢查設定、合規設定和資料落地規則 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | 專案的設定 | `/data-security-setting` |
 | 擁有者、擁有者規則和標籤規則 | `/data-store-owner-user`、`/data-store-owner-team`、`/data-store-owner-rule`、`/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ flowchart TB
 | --- | --- |
 | `/data-security/overview` | 概覽的數據：依敏感度和類別劃分的資料儲存區、依嚴重性劃分的未解決問題、風險最高的問題，以及最近 30 天的問題 |
 | `/data-security/compliance` | 每個框架的分數和要求 |
+| `/data-security/resource-scope` | 單一資源（Kubernetes 叢集、Docker 或 Podman 主機、資料庫、服務或雲端資源）的資料儲存區，以及它們遵循哪個資源的合規開關 |
+| `/data-security/resource-compliance` | 單一資源的框架：它們針對該資源資料儲存區的分數，以及為該資源關閉了哪些內容 |
 | `/data-security/record-of-processing` | GDPR 處理活動記錄，每個保存個人資料的資料儲存區一列 |
 | `/data-store/<id>/scan-now` | **立即掃描**：立即對資料儲存區的內容抽樣 |
 | `/data-store/<id>/check-now` | **立即檢查**：重新讀取資料儲存區的設定並執行其檢查 |
 | `/data-store-finding/<id>/scrub` | 遙測發現上的 **清除** |
+| `/data-store-finding/<id>/drop-metric-impact` | 對指標名稱中的發現執行 **捨棄此指標** 會捨棄什麼：多少個指標，以及讀取它們的監測器和儀表板 |
+| `/data-store-finding/<id>/drop-metric` | **捨棄此指標**：一條永久捨棄該服務這些指標新資料點的指標管道規則。它接受 `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | 問題上的 **用 AI 說明** |
 | `/data-security-issue/<id>/fix-with-ai` | 問題上的 **用 AI 修正** |
 | `/data-store/<id>/response-actions` | 資料儲存區目前可以執行哪些回應動作，以及不能執行的原因 |
 | `/data-store/<id>/respond` | 對資料儲存區執行一項回應動作，例如 **封鎖公開存取** 或 **開啟版本控制**，並附上執行它的問題 |
 
-[Terraform 提供者](/docs/terraform/index) 為你建立的每種記錄（你自己新增的資料儲存區、自訂資料類型、檢查設定、資料落地規則、擁有者規則和標籤規則）都提供一個以該記錄命名的資源，例如 `oneuptime_residency_rule`。
+[Terraform 提供者](/docs/terraform/index) 為你建立的每種記錄（你自己新增的資料儲存區、自訂資料類型、檢查設定、合規設定、資料落地規則、擁有者規則和標籤規則）都提供一個以該記錄命名的資源，例如 `oneuptime_residency_rule`。
 
-[MCP 伺服器](/docs/ai/mcp-server) 為這些記錄提供建立、取得、列出、更新、刪除和計數工具：Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Residency Rule 和 Data Security Setting。如此一來，AI 助理就能以你的權限詢問哪些資料儲存區保存卡號，或某個儲存貯體上有哪些未解決的問題。
+[MCP 伺服器](/docs/ai/mcp-server) 為這些記錄提供建立、取得、列出、更新、刪除和計數工具：Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Compliance Setting、Residency Rule 和 Data Security Setting。如此一來，AI 助理就能以你的權限詢問哪些資料儲存區保存卡號，或某個儲存貯體上有哪些未解決的問題。
 
 ## 後續步驟
 

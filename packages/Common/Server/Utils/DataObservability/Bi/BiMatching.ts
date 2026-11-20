@@ -28,6 +28,16 @@ import { UsageAsset, UsageStore } from "../TableUsageMatching";
  * instance, and a short name (sql01) is the same server as its full one
  * (sql01.corp.acme.com).
  *
+ * A Dataverse table named by its entity set (accounts), as Power BI's OData
+ * connectors name it, is the watched table whose collection keeps that
+ * entity set name (account, #9696) - in the environment at the host the
+ * connector named, never another's - whether OneUptime or a probe collects
+ * it. With no such name kept, it matches nothing: an entity set's name is
+ * not a table's. An environment whose tables keep no entity set name at
+ * all - a probe older than these names collects it, or it has not been
+ * collected since - is told apart (isEntitySetUnknown), so the tool says
+ * why its tables do not match rather than that they are not watched.
+ *
  * A project's catalog is indexed by table name once, and each table is
  * matched once per catalog, however many dashboards read it.
  */
@@ -36,6 +46,10 @@ export type BiCatalog = Pick<ProjectCatalog, "stores" | "assets">;
 
 interface BiCatalogIndex {
   byName: Map<string, Array<UsageAsset>>;
+  // Each Dataverse table by its entity set name, in lower case.
+  byEntitySet: Map<string, Array<UsageAsset>>;
+  // The stores whose tables keep an entity set name: those collected since names were kept.
+  storesNamingEntitySets: Set<string>;
   storesById: Map<string, UsageStore>;
   matches: Map<string, UsageAsset | null>;
 }
@@ -163,6 +177,8 @@ function indexOf(catalog: BiCatalog): BiCatalogIndex {
   }
 
   const byName: Map<string, Array<UsageAsset>> = new Map();
+  const byEntitySet: Map<string, Array<UsageAsset>> = new Map();
+  const storesNamingEntitySets: Set<string> = new Set();
 
   for (const asset of catalog.assets) {
     const name: string = lower(asset.name);
@@ -170,10 +186,22 @@ function indexOf(catalog: BiCatalog): BiCatalogIndex {
 
     list.push(asset);
     byName.set(name, list);
+
+    const entitySet: string = lower(asset.entitySetName);
+
+    if (entitySet) {
+      byEntitySet.set(entitySet, [
+        ...(byEntitySet.get(entitySet) || []),
+        asset,
+      ]);
+      storesNamingEntitySets.add(asset.dataStoreId);
+    }
   }
 
   const index: BiCatalogIndex = {
     byName,
+    byEntitySet,
+    storesNamingEntitySets,
     storesById: new Map(
       catalog.stores.map((store: UsageStore): [string, UsageStore] => {
         return [store.dataStoreId, store];
@@ -197,11 +225,85 @@ function narrow(
   return kept.length > 0 ? kept : candidates;
 }
 
+// The watched Dataverse environments at the host a connector named.
+function entitySetStoresOf(
+  ref: BiTableRef,
+  index: BiCatalogIndex,
+): Array<UsageStore> {
+  return Array.from(index.storesById.values()).filter(
+    (store: UsageStore): boolean => {
+      return (
+        getCollectorEngineOfKind(store.kind) === "dataverse" &&
+        isSameBiHost(store.serverAddress, ref.host)
+      );
+    },
+  );
+}
+
+/*
+ * A Dataverse entity set's table: in each watched environment at the host
+ * the connector named, the table whose collection keeps that entity set
+ * name - one in all, or none.
+ */
+function findEntitySetMatch(
+  ref: BiTableRef,
+  index: BiCatalogIndex,
+): UsageAsset | null {
+  const entitySet: string = lower(ref.table);
+
+  if (!entitySet || !ref.host) {
+    return null;
+  }
+
+  const stores: Set<string> = new Set(
+    entitySetStoresOf(ref, index).map((store: UsageStore): string => {
+      return store.dataStoreId;
+    }),
+  );
+  const found: Array<UsageAsset> = (
+    index.byEntitySet.get(entitySet) || []
+  ).filter((asset: UsageAsset): boolean => {
+    return stores.has(asset.dataStoreId);
+  });
+
+  return found.length === 1 ? found[0]! : null;
+}
+
+/*
+ * Whether a table named by its Dataverse entity set cannot be matched yet
+ * because the environment at its host keeps no entity set name at all: a
+ * probe older than these names collects it, or it has not been collected
+ * since (#9696). False for an environment that keeps them - a table it
+ * does not name is one it does not watch - and where none is watched.
+ */
+export function isEntitySetUnknown(
+  ref: BiTableRef,
+  catalog: BiCatalog,
+): boolean {
+  if (!ref.isEntitySet || !ref.host || !ref.table) {
+    return false;
+  }
+
+  const index: BiCatalogIndex = indexOf(catalog);
+  const stores: Array<UsageStore> = entitySetStoresOf(ref, index);
+
+  return (
+    stores.length > 0 &&
+    stores.every((store: UsageStore): boolean => {
+      return !index.storesNamingEntitySets.has(store.dataStoreId);
+    })
+  );
+}
+
 function findMatch(ref: BiTableRef, index: BiCatalogIndex): UsageAsset | null {
   const table: string = lower(ref.table);
 
   if (!table) {
     return null;
+  }
+
+  if (ref.isEntitySet) {
+    return findEntitySetMatch(ref, index);
   }
 
   const storeOf: (asset: UsageAsset) => UsageStore | undefined = (

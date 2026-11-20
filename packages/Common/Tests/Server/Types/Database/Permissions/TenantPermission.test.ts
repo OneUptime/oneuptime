@@ -30,6 +30,13 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 
+/*
+ * Whether a person's sign-in is managed by single sign-on (#9688) has a
+ * suite of its own (Tests/Server/Utils/SsoManagedSignIn.test.ts): here it
+ * lets everyone through, so the scope is what refuses a broad update.
+ */
+jest.mock("../../../../../Server/Utils/SsoManagedSignIn");
+
 @TableAccessControl({
   create: [Permission.CurrentUser],
   read: [Permission.CurrentUser],

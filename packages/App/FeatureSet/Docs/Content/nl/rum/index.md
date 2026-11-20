@@ -77,15 +77,15 @@ OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te lett
 
 | Waar | Wat het toont |
 | --- | --- |
-| **Overzicht** | Tegels voor **Paginaladingen**, **Paginalaadtijd (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Gebeurtenisduur (p95)**, **Uitzonderingen**, **Clients** en **Opgenomen sessies**, en trendgrafieken over het tijdsbereik dat je kiest. |
-| **Core Web Vitals** | Een kaart in het overzicht met LCP, INP, CLS, FCP en TTFB, elk beoordeeld tegen de grenzen van Google, en de INP van elke route van een single-page-app. Zie [Core Web Vitals](/docs/rum/web-vitals) en [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
+| **Overzicht** | De tegels van een web-app voor **Paginaladingen**, **Paginalaadtijd (p95)**, **Gebeurtenissen**, **Foutpercentage**, **Gebeurtenisduur (p95)**, **Uitzonderingen**, **Clients** en **Opgenomen sessies**, of die van een mobiele app voor **Sessies**, **Crashvrije sessies** met de crashvrije installaties, **Crashes**, **ANR's**, **App-starts**, **Koude start (p95)**, **Bevroren frames** en **Foutpercentage**, en trendgrafieken over het tijdsbereik dat je kiest. |
+| **Core Web Vitals** | Een kaart in het overzicht van een web-app met LCP, INP, CLS, FCP en TTFB, elk beoordeeld tegen de grenzen van Google, en de INP van elke route van een single-page-app. Zie [Core Web Vitals](/docs/rum/web-vitals) en [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrieken**, **Logboeken**, **Traces** | De telemetrieverkenners, beperkt tot deze applicatie. |
 | **Clients** | De browserplatforms en apparaatmodellen waarop de applicatie is gebruikt: een korte lijst per platform, nooit een rij per gebruiker. |
 | **Productanalyse** | Actieve, nieuwe, terugkerende en inactieve gebruikers en sessies per apparaat, browser, land en pagina, geteld uit de opgenomen sessies, en de gebeurtenissen die je app verzendt, als trends, trechters en retentie: zie [Productanalyse](/docs/rum/product-analytics). |
 | **Sessieherhaling** | Opnames van echte sessies, naast hun fouten, traces en logs: zie [Sessieherhaling](/docs/telemetry/session-replay). |
-| **Aanbevelingen** | Kant-en-klare monitors voor de applicatie: slechte Core Web Vitals, mislukte verzoeken, browseruitzonderingen en, zodra ze opneemt, budgetten voor Session Replay. |
+| **Aanbevelingen** | Kant-en-klare monitors die bij de applicatie passen: slechte Core Web Vitals en browseruitzonderingen voor een web-app; crashes, ANR's, trage koude starts, bevroren frames en een app die stopt met rapporteren voor een mobiele app; mislukte verzoeken voor beide; en, zodra ze opneemt, budgetten voor Session Replay. |
 
-De tellingen komen uit de spans die je instrumentatie verstuurt. **Paginaladingen** telt de span `documentLoad` die de instrumentatie voor paginaladingen bij elke volledige lading vastlegt, dus een routewissel binnen een single-page-app is geen paginalading.
+De tellingen komen uit de spans die je instrumentatie verstuurt. **Paginaladingen** telt de span `documentLoad` die de instrumentatie voor paginaladingen bij elke volledige lading vastlegt, dus een routewissel binnen een single-page-app is geen paginalading. De tegels van een mobiele app tellen wat [OpenTelemetry Android](/docs/rum/android-setup) uit zichzelf verstuurt: de sessies, crashes, ANR's, app-starts en trage en bevroren frames van de app.
 
 Een applicatie toont **Ontvangt gegevens** zolang er telemetrie binnenkomt en **Geen recent verkeer** na 15 minuten zonder, wat normaal is zolang niemand de app gebruikt. Een met de hand toegevoegde applicatie toont **Wachten op gegevens** tot haar eerste gegevens binnenkomen. Tijd waarin OneUptime zelf plat lag of zijn innamewachtrij inhaalde, telt niet mee voor die 15 minuten.
 

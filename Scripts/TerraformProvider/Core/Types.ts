@@ -1,4 +1,5 @@
 import { MembershipKind } from "Common/Utils/DeveloperDocs/PeopleByEmail";
+import { ListOrderFacts } from "Common/Utils/DeveloperDocs/ListOrderFacts";
 
 export interface TerraformProviderConfig {
   outputDir: string;
@@ -85,6 +86,12 @@ export interface OpenAPISpec {
      * keeps for a while, which the provider reads but never manages.
      */
     "x-oneuptime-telemetry"?: boolean;
+    /*
+     * A drag-ordered list's (@ListOrderColumn): which column numbers a row,
+     * and what a write of it does (Common/Utils/DeveloperDocs/
+     * ListOrderFacts). The resource's page says so in its Order section.
+     */
+    "x-oneuptime-list-order"?: ListOrderFacts;
   }>;
 }
 
@@ -124,6 +131,11 @@ export interface TerraformResource {
    * from it instead.
    */
   movedFrom?: string | undefined;
+  /*
+   * A drag-ordered list's facts, from its tag (x-oneuptime-list-order): its
+   * page gets an Order section, and the number attribute links to it.
+   */
+  listOrder?: ListOrderFacts | undefined;
   goTypeName: string;
   description?: string; // Human description from the spec's tag (model tableDescription)
   operations: {
@@ -145,6 +157,38 @@ export interface TerraformResource {
    * well as by its own ID.
    */
   membershipImport?: TerraformMembershipImport | undefined;
+  /*
+   * What a delete of the record says besides its ID
+   * (Common/Utils/DeveloperDocs/DeleteChoices.ts): a custom role that
+   * workflows run as is deleted only by a delete that says what they run
+   * as instead. The attributes that say it carry deleteChoice.
+   */
+  deleteChoices?: TerraformDeleteChoices | undefined;
+}
+
+export interface TerraformDeleteChoices {
+  // The record in a sentence's middle: "custom role".
+  noun: string;
+  // Why a delete of it says more than the record, in a sentence.
+  whenNeeded: string;
+  // The attributes that say it, in the order the choices are given.
+  attributes: Array<string>;
+}
+
+/*
+ * An attribute that is a choice the record's delete takes: never sent by a
+ * create or an update, never read back - the provider keeps what the
+ * configuration says, and sends it in the body of the DELETE, as
+ * miscDataProps[key].
+ */
+export interface TerraformDeleteChoice {
+  // Its key in the delete's miscDataProps: workflowsRunAs.
+  key: string;
+  /*
+   * The attribute it goes with, and that one's value then: given only
+   * while workflows_run_as_on_delete is "CustomRole", and needed then.
+   */
+  requiredWith?: { attribute: string; value: string } | undefined;
 }
 
 export interface TerraformMembershipImport {
@@ -204,6 +248,17 @@ export interface TerraformAttribute {
    * Terraform created; an imported one has none.
    */
   shownOnce?: boolean;
+  /*
+   * The attribute whose new value a change of this one needs in the same
+   * apply (the spec's x-oneuptime-changes-only-with): a monitor secret's
+   * secret_type changes only together with a new secret_value, which
+   * OneUptime reads for the new type. The parser reads the API's name of
+   * that attribute and resolves it to its Terraform name once the
+   * resource's schema is known; the resource's ModifyPlan then refuses a
+   * plan that changes this attribute and keeps that one, before anything
+   * is written (StaticFiles/changestogether.go, #9814).
+   */
+  changesOnlyWith?: string | undefined;
   forceNew?: boolean;
   default?: any;
   apiFieldName?: string; // Original OpenAPI field name for API requests
@@ -255,6 +310,12 @@ export interface TerraformAttribute {
    * It is never sent to the API: the provider finds the person by it.
    */
   personEmailOf?: string | undefined;
+  /*
+   * A choice the record's delete takes (TerraformResource.deleteChoices):
+   * workflows_run_as_on_delete. Only ever in `schema`, never in a request
+   * schema.
+   */
+  deleteChoice?: TerraformDeleteChoice | undefined;
 }
 
 export interface TerraformPersonAttribute {

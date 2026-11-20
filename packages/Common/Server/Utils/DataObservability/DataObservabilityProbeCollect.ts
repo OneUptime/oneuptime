@@ -48,7 +48,12 @@ import {
   MAX_SEGMENTS_PER_CHECK,
 } from "../../../Types/DataObservability/DataCheckType";
 import { MAX_CUSTOM_SQL_LENGTH } from "./DataCheckSql";
+import { MAX_RESTARTED_AFTER_LENGTH } from "./DataCheckRestart";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  readSkippedTables,
+  SkippedTables,
+} from "../../../Types/DataObservability/SkippedTables";
 
 /*
  * A DATABASE ONLY A CUSTOMER'S PROBE CAN REACH, COLLECTED FROM THAT PROBE.
@@ -121,6 +126,8 @@ export interface DataObservabilityProbeStoreWork {
   waitWhenBusy?: boolean | undefined;
   // How far back to read the query history for lineage; 0 reads no lineage this time.
   queryHistoryLookbackInSeconds?: number | undefined;
+  // The tables the database refused at earlier collections, skipped until their next try (#9541).
+  skippedTables?: SkippedTables | undefined;
 }
 
 // The most checks one work item carries, and one report records.
@@ -313,15 +320,28 @@ export function readCheckResults(value: unknown): Array<DataCheckRunResult> {
       }
     }
 
+    const error: string | null =
+      typeof item["error"] === "string" && item["error"].length > 0
+        ? item["error"].slice(0, MAX_CHECK_ERROR_LENGTH)
+        : null;
+    const restartedAfter: unknown = item["restartedAfter"];
+
     results.push({
       checkId,
       values,
-      error:
-        typeof item["error"] === "string" && item["error"].length > 0
-          ? item["error"].slice(0, MAX_CHECK_ERROR_LENGTH)
-          : null,
+      error,
       ...(Array.isArray(item["failingRows"])
         ? { failingRows: readFailingRows(item["failingRows"]) }
+        : {}),
+      // Why a check that ran at its second try failed its first (#9679); an older probe says nothing.
+      ...(!error &&
+      typeof restartedAfter === "string" &&
+      restartedAfter.trim().length > 0
+        ? {
+            restartedAfter: restartedAfter
+              .trim()
+              .slice(0, MAX_RESTARTED_AFTER_LENGTH),
+          }
         : {}),
     });
   }
@@ -414,7 +434,20 @@ export function readProbeCollectWork(
       0,
       MAX_QUERY_HISTORY_LOOKBACK_IN_SECONDS,
     ),
+    ...readSkippedTablesOf(item["skippedTables"]),
   };
+}
+
+// The skipped tables a work item hands the probe, read strictly; none from an older server.
+function readSkippedTablesOf(
+  value: unknown,
+): Pick<DataObservabilityProbeStoreWork, "skippedTables"> {
+  const skippedTables: SkippedTables | null = readSkippedTables(
+    value,
+    OneUptimeDate.getCurrentDate(),
+  );
+
+  return skippedTables ? { skippedTables } : {};
 }
 
 export function buildProbeCollectOptions(
@@ -428,6 +461,7 @@ export function buildProbeCollectOptions(
     ...(work.freshnessReads ? { freshnessReads: work.freshnessReads } : {}),
     ...(work.waitWhenBusy ? { waitWhenBusy: true } : {}),
     queryHistoryLookbackInSeconds: work.queryHistoryLookbackInSeconds || 0,
+    ...(work.skippedTables ? { skippedTables: work.skippedTables } : {}),
   };
 }
 
@@ -459,6 +493,7 @@ function readCollectedTable(value: unknown): CollectedTable | null {
   }
 
   const columns: unknown = item["columns"];
+  const entitySetName: string | null = readName(item["entitySetName"]);
 
   return {
     schema,
@@ -476,6 +511,18 @@ function readCollectedTable(value: unknown): CollectedTable | null {
     ...(item["isChangeTimeFromData"] === true
       ? { isChangeTimeFromData: true }
       : {}),
+    /*
+     * Columns a Dataverse collection leaves unread by design, between its
+     * hourly reads: the columns last read stand, and the next read is
+     * compared with them. Dropped here, a probe's Dataverse table read as
+     * one whose columns could not be read, so a column changed between
+     * two hourly reads was compared with nothing and never said.
+     */
+    ...(item["columnsNotRead"] === true && columns === null
+      ? { columnsNotRead: true }
+      : {}),
+    // What Power BI's OData connectors name a Dataverse table by (#9696); an older probe says nothing.
+    ...(entitySetName ? { entitySetName } : {}),
     columns:
       columns === null
         ? null
@@ -630,6 +677,14 @@ export function readTableHealthSnapshot(
             return warning.slice(0, MAX_WARNING_LENGTH);
           })
       : [],
+    /*
+     * The tables the database refused (#9541): null when the probe says
+     * none is; unset when it says nothing (an older probe), so the store
+     * keeps what it had.
+     */
+    ...(item["skippedTables"] !== undefined
+      ? { skippedTables: readSkippedTables(item["skippedTables"], now) }
+      : {}),
   };
 }
 

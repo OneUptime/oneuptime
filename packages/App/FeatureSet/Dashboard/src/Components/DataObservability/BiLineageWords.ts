@@ -30,6 +30,9 @@ export const POWER_BI_EXPRESSIONS_SETTING: string =
   "Enhance admin APIs responses with DAX and mashup expressions";
 export const POWER_BI_SETTINGS_PLACE: string =
   "Tenant settings > Admin API settings";
+// What lets a service principal call Power BI's read-only admin APIs, a dataflow's export among them.
+export const POWER_BI_READ_ONLY_ADMIN_APIS_SETTING: string =
+  "Service principals can access read-only admin APIs";
 
 // A fixed sentence in the reader's language, or in English when it has none.
 function translated(translator: Translator, text: string): string {
@@ -47,7 +50,17 @@ const TABLES_NOT_WATCHED: PluralTemplate = {
   one: "{{count}} table not watched",
   other: "{{count}} tables not watched",
 };
-const FROM_DATAFLOWS: string = translationKey("Some data comes from dataflows");
+const ENTITY_SETS_UNKNOWN: PluralTemplate = {
+  one: "{{count}} Dataverse table not matched yet",
+  other: "{{count}} Dataverse tables not matched yet",
+};
+const DATAFLOWS_UNREAD: PluralTemplate = {
+  one: "{{count}} dataset on an unread dataflow",
+  other: "{{count}} datasets on unread dataflows",
+};
+const DATAFLOWS_PENDING: string = translationKey(
+  "Reading the datasets' dataflows",
+);
 const NOT_DESCRIBED: PluralTemplate = {
   one: "{{count}} dataset Power BI cannot describe",
   other: "{{count}} datasets Power BI cannot describe",
@@ -65,6 +78,32 @@ function databasesNotConnected(summary: DataBiLineageSummary): number {
   return summary.sources.filter((source: DataBiLineageSource): boolean => {
     return Boolean(source.engine) && !source.dataStoreId;
   }).length;
+}
+
+/*
+ * Tables named by a Dataverse entity set their environment keeps no name
+ * of yet (#9696): a summary kept before they were told apart has none.
+ */
+function unknownEntitySets(summary: DataBiLineageSummary): Array<string> {
+  return summary.unknownEntitySets || [];
+}
+
+// Datasets on a dataflow whose tables could not be read (#9551).
+function datasetsOnUnreadDataflows(summary: DataBiLineageSummary): number {
+  return summary.datasets?.withUnreadDataflows || 0;
+}
+
+/*
+ * Datasets on dataflows still being read, within Power BI's limit; a
+ * summary kept before they were counted said only that datasets read
+ * dataflows, which the next read reads through.
+ */
+function datasetsOnPendingDataflows(summary: DataBiLineageSummary): number {
+  return (
+    summary.datasets?.withPendingDataflows ||
+    summary.datasets?.readingDataflows ||
+    0
+  );
 }
 
 // The line under Tables Matched: the first thing keeping dashboards off their tables; null when nothing does.
@@ -91,8 +130,18 @@ export function getBiLineageReason(
         TABLES_NOT_WATCHED,
         summary.unwatchedTables.length,
       );
+    case DataBiLineageProblem.EntitySetsUnknown:
+      return translator.translatePlural(
+        ENTITY_SETS_UNKNOWN,
+        unknownEntitySets(summary).length,
+      );
     case DataBiLineageProblem.Dataflows:
-      return translated(translator, FROM_DATAFLOWS);
+      return datasetsOnUnreadDataflows(summary) > 0
+        ? translator.translatePlural(
+            DATAFLOWS_UNREAD,
+            datasetsOnUnreadDataflows(summary),
+          )
+        : translated(translator, DATAFLOWS_PENDING);
     case DataBiLineageProblem.SchemaErrors:
       return translator.translatePlural(
         NOT_DESCRIBED,
@@ -118,6 +167,9 @@ const STEP_TITLES: Readonly<Record<DataBiLineageProblem, string>> = {
   ),
   [DataBiLineageProblem.TablesNotWatched]: translationKey(
     "Watch the Tables Your Dashboards Read",
+  ),
+  [DataBiLineageProblem.EntitySetsUnknown]: translationKey(
+    "Dataverse Tables Named by Entity Set",
   ),
   [DataBiLineageProblem.Dataflows]: translationKey("Data From Dataflows"),
   [DataBiLineageProblem.SchemaErrors]: translationKey(
@@ -147,10 +199,20 @@ const DATABASES_NOT_CONNECTED_TEXT: PluralTemplate = {
 const TABLES_NOT_WATCHED_TEXT: string = translationKey(
   "These tables are in databases OneUptime watches, but are not watched: {{tables}}. They may be left out of the database's scan, or not collected yet.",
 );
-const DATAFLOWS_TEXT: PluralTemplate = {
-  one: "{{count}} dataset reads from Power BI dataflows. OneUptime does not read which tables a dataflow loads yet, so its tables are not matched.",
+const ENTITY_SETS_UNKNOWN_TEXT: PluralTemplate = {
+  one: "Power BI names {{count}} Dataverse table by its entity set ({{tables}}), and the environment it is in keeps no entity set names yet. Each collection of an environment keeps them, and the next read matches the table. If a probe collects the environment, update the probe: an older one does not send them.",
   other:
-    "{{count}} datasets read from Power BI dataflows. OneUptime does not read which tables a dataflow loads yet, so their tables are not matched.",
+    "Power BI names {{count}} Dataverse tables by their entity set ({{tables}}), and the environments they are in keep no entity set names yet. Each collection of an environment keeps them, and the next read matches the tables. If a probe collects an environment, update the probe: an older one does not send them.",
+};
+const DATAFLOWS_UNREAD_TEXT: PluralTemplate = {
+  one: "{{count}} dataset reads a Power BI dataflow whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}.",
+  other:
+    "{{count}} datasets read Power BI dataflows whose tables OneUptime could not read: {{reason}} OneUptime reads a dataflow's definition through Power BI's admin API, which the service principal may call while {{setting}} is on for its security group, under {{place}}.",
+};
+const DATAFLOWS_PENDING_TEXT: PluralTemplate = {
+  one: "{{count}} dataset reads Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
+  other:
+    "{{count}} datasets read Power BI dataflows whose definitions OneUptime is still reading. It reads a few at a time, within Power BI's limit of 200 an hour, and matches their tables as it reads them.",
 };
 const SCHEMA_ERRORS_TEXT: PluralTemplate = {
   one: "Power BI could not describe {{count}} dataset, and said: {{error}} It does not describe real-time datasets, datasets on a live connection to Analysis Services, Excel workbooks, or datasets over 1 GB on shared capacity.",
@@ -206,14 +268,36 @@ export function getBiLineageStep(
           tables: summary.unwatchedTables.join(", "),
         }),
       };
-    case DataBiLineageProblem.Dataflows:
+    case DataBiLineageProblem.EntitySetsUnknown:
       return {
         title,
         text: translator.translatePlural(
-          DATAFLOWS_TEXT,
-          summary.datasets?.readingDataflows || 0,
+          ENTITY_SETS_UNKNOWN_TEXT,
+          unknownEntitySets(summary).length,
+          { tables: unknownEntitySets(summary).join(", ") },
         ),
       };
+    case DataBiLineageProblem.Dataflows:
+      return datasetsOnUnreadDataflows(summary) > 0
+        ? {
+            title,
+            text: translator.translatePlural(
+              DATAFLOWS_UNREAD_TEXT,
+              datasetsOnUnreadDataflows(summary),
+              {
+                reason: summary.datasets?.dataflowError || "",
+                setting: POWER_BI_READ_ONLY_ADMIN_APIS_SETTING,
+                place: POWER_BI_SETTINGS_PLACE,
+              },
+            ),
+          }
+        : {
+            title,
+            text: translator.translatePlural(
+              DATAFLOWS_PENDING_TEXT,
+              datasetsOnPendingDataflows(summary),
+            ),
+          };
     case DataBiLineageProblem.SchemaErrors:
       return {
         title,
@@ -269,7 +353,13 @@ export enum BiSourceStanding {
   Elsewhere = "Elsewhere",
 }
 
-const WATCHED: string = translationKey("Watched");
+/*
+ * A key of its own (#9658): the bare "Watched" is the session replay
+ * audit's column of time spent watching a replay, worded as watching time
+ * in every language ("Durée de visionnage", "مدة المشاهدة"). A source
+ * OneUptime watches is worded as each language's Tables Watched.
+ */
+const WATCHED: string = translationKey("Watched by OneUptime");
 const NOT_CONNECTED: string = translationKey("Not connected");
 const NOT_WATCHABLE: string = translationKey("Not a database OneUptime reads");
 const DATASETS: PluralTemplate = {

@@ -5,6 +5,8 @@ import {
   AZURE_DIMENSION_ATTRIBUTE_PREFIX,
   AZURE_ENTITY_NAME_ATTRIBUTE,
   AZURE_ENTITY_NAME_DIMENSION,
+  AZURE_FIVE_MINUTE_GRAIN,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
@@ -15,7 +17,10 @@ import {
   DAILY_PERIOD_SECONDS,
   HOURLY_PERIOD_SECONDS,
   GCP_KEY_METRICS,
+  GCP_OPS_AGENT,
+  GCP_OPS_AGENT_INSTALL_URL,
   GcpKeyMetric,
+  GcpReadMetric,
   GcpTypeKeyMetrics,
   getAwsKeyMetrics,
   getAwsNamespaceOfType,
@@ -23,10 +28,15 @@ import {
   getAzureKeyMetricNames,
   getAzureKeyMetricOfStoredName,
   getAzureKeyMetrics,
+  getAzureReadMetricNames,
   getAzureStoredMetricName,
+  hasAzureFiveMinuteKeyMetrics,
+  isAzureFiveMinuteKeyMetric,
   getCloudKeyMetricOfStoredName,
   getGcpKeyMetricTypes,
+  getGcpReadMetrics,
   getGcpResourceTypesOfMetric,
+  getGcpStoredMetricName,
   getKeyMetricCount,
   compareCloudKeyMetrics,
   parseAwsStoredMetricName,
@@ -35,6 +45,15 @@ import {
   isAzureKeyMetricStoredName,
   isAzureStreamedKeyMetric,
   isAzureStreamedKeyMetricStoredName,
+  AWS_STREAM_TEMPLATE_UNVERSIONED,
+  AWS_STREAM_TEMPLATE_VERSION,
+  countAwsKeyMetricsAddedSince,
+  getAwsKeyMetric,
+  getAwsKeyMetricOfStoredName,
+  getAwsProbeMetricNames,
+  isAwsKeyMetricInTemplate,
+  isAwsKeyMetricSeries,
+  isAwsKeyMetricStreamable,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { MESSAGE_QUEUE_METRICS } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
@@ -103,9 +122,13 @@ describe("AWS", () => {
   test("each metric reads one statistic, every 5 minutes, once an hour or once a day", () => {
     for (const entry of AWS_KEY_METRICS) {
       for (const metric of entry.metrics) {
-        expect(["Average", "Sum", "Maximum", "Minimum"]).toContain(
-          metric.statistic,
-        );
+        expect([
+          "Average",
+          "Sum",
+          "Maximum",
+          "Minimum",
+          "SampleCount",
+        ]).toContain(metric.statistic);
         expect([
           AWS_DEFAULT_PERIOD_SECONDS,
           HOURLY_PERIOD_SECONDS,
@@ -146,7 +169,8 @@ describe("AWS", () => {
           unit: "None",
           group: CloudKeyMetricGroup.Availability,
           periodSeconds: HOURLY_PERIOD_SECONDS,
-          isStreamed: true,
+          // No stream writes it: an hour sooner is nothing to a count of days.
+          streamedSince: null,
         },
       ],
     });
@@ -220,6 +244,217 @@ describe("AWS", () => {
   });
 });
 
+/*
+ * A stream's stack is made once, from the template of its day, and carries
+ * the key metrics of its template's version (AwsKeyMetric.streamedSince):
+ * 1 for those every stack has carried since streams began, 2 for every
+ * other one read every five minutes. A metric read once an hour or a day
+ * is the read's alone.
+ */
+describe("AWS key metrics a stream carries", () => {
+  test("each is streamed since template 1, 2 or 3 - or, read less often than every five minutes, never", () => {
+    expect(AWS_STREAM_TEMPLATE_UNVERSIONED).toBe(1);
+    expect(AWS_STREAM_TEMPLATE_VERSION).toBe(3);
+
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        const where: string = `${entry.namespace}/${metric.metricName}`;
+
+        if (metric.periodSeconds > AWS_DEFAULT_PERIOD_SECONDS) {
+          expect({ where, streamedSince: metric.streamedSince }).toEqual({
+            where,
+            streamedSince: null,
+          });
+          expect(isAwsKeyMetricStreamable(metric)).toBe(false);
+          continue;
+        }
+
+        expect({
+          where,
+          known: [1, 2, 3].includes(metric.streamedSince as number),
+        }).toEqual({ where, known: true });
+        expect(isAwsKeyMetricStreamable(metric)).toBe(true);
+      }
+    }
+  });
+
+  test("a template carries its own version's metrics and every older one's, never a newer one's", () => {
+    const cpu: AwsKeyMetric = getAwsKeyMetric("AWS/EC2", "CPUUtilization")!;
+    const credits: AwsKeyMetric = getAwsKeyMetric(
+      "AWS/EC2",
+      "CPUCreditBalance",
+    )!;
+    const size: AwsKeyMetric = getAwsKeyMetric("AWS/S3", "BucketSizeBytes")!;
+
+    expect(cpu.streamedSince).toBe(1);
+    expect(credits.streamedSince).toBe(2);
+    expect(isAwsKeyMetricInTemplate(cpu, 1)).toBe(true);
+    expect(isAwsKeyMetricInTemplate(cpu, 2)).toBe(true);
+    expect(isAwsKeyMetricInTemplate(credits, 1)).toBe(false);
+    expect(isAwsKeyMetricInTemplate(credits, 2)).toBe(true);
+    expect(isAwsKeyMetricInTemplate(credits, 3)).toBe(true);
+    // S3's daily storage is in no template.
+    expect(isAwsKeyMetricInTemplate(size, AWS_STREAM_TEMPLATE_VERSION)).toBe(
+      false,
+    );
+  });
+
+  test("running the command again streams every metric added since the stack's template", () => {
+    let addedIn2: number = 0;
+    let addedIn3: number = 0;
+
+    for (const entry of AWS_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        if (metric.streamedSince === 2) {
+          addedIn2++;
+        }
+
+        if (metric.streamedSince === 3) {
+          addedIn3++;
+        }
+      }
+    }
+
+    expect(addedIn2).toBeGreaterThan(100);
+    // Glue's seven and Athena's four (#9691).
+    expect(addedIn3).toBe(11);
+    expect(countAwsKeyMetricsAddedSince(1)).toBe(addedIn2 + addedIn3);
+    expect(countAwsKeyMetricsAddedSince(2)).toBe(addedIn3);
+    expect(countAwsKeyMetricsAddedSince(AWS_STREAM_TEMPLATE_VERSION)).toBe(0);
+  });
+});
+
+describe("an AWS key metric by its stored name, and the series it is read from", () => {
+  test("a stored name's key metric and its namespace as the catalog spells them, whatever the case", () => {
+    expect(
+      getAwsKeyMetricOfStoredName("amazonaws.com/aws/ec2/cpuutilization"),
+    ).toEqual({
+      namespace: "AWS/EC2",
+      metric: getAwsKeyMetric("AWS/EC2", "CPUUtilization"),
+    });
+    // A metric name with dots: the namespace ends at the last slash.
+    expect(
+      getAwsKeyMetricOfStoredName(
+        "amazonaws.com/AWS/Kinesis/GetRecords.IteratorAgeMilliseconds",
+      )?.metric.metricName,
+    ).toBe("GetRecords.IteratorAgeMilliseconds");
+    expect(
+      getAwsKeyMetricOfStoredName("amazonaws.com/AWS/EC2/DiskReadOps"),
+    ).toBeNull();
+    expect(getAwsKeyMetricOfStoredName("system.cpu.utilization")).toBeNull();
+  });
+
+  test("an HTTP API's errors and a REST API's are each their own metric", () => {
+    expect(getAwsKeyMetric("AWS/ApiGateway", "5xx")?.metricName).toBe("5xx");
+    expect(getAwsKeyMetric("AWS/ApiGateway", "5XXError")?.metricName).toBe(
+      "5XXError",
+    );
+    expect(getAwsKeyMetric("AWS/ApiGateway", "4xx")?.metricName).toBe("4xx");
+  });
+
+  test("a metric read from some series only is read from those, or from a series without the dimension", () => {
+    const received: AwsKeyMetric = getAwsKeyMetric(
+      "AWS/NetworkFirewall",
+      "ReceivedPackets",
+    )!;
+    const dropped: AwsKeyMetric = getAwsKeyMetric(
+      "AWS/NetworkFirewall",
+      "DroppedPackets",
+    )!;
+    const place: Record<string, string> = {
+      FirewallName: "edge",
+      AvailabilityZone: "eu-west-1a",
+    };
+
+    expect(received.onlyDimensionValues).toEqual({
+      Engine: ["Stateless", "System"],
+    });
+    // A Classic policy's Stateless engine, a Next Generation policy's System.
+    expect(
+      isAwsKeyMetricSeries(received, { ...place, Engine: "Stateless" }),
+    ).toBe(true);
+    expect(isAwsKeyMetricSeries(received, { ...place, Engine: "System" })).toBe(
+      true,
+    );
+    // The Firewall engine's would count some of the packets again.
+    expect(
+      isAwsKeyMetricSeries(received, { ...place, Engine: "Firewall" }),
+    ).toBe(false);
+    expect(
+      isAwsKeyMetricSeries(received, { ...place, Engine: "Stateful" }),
+    ).toBe(false);
+    expect(isAwsKeyMetricSeries(received, place)).toBe(true);
+    // A packet is dropped by one engine: every engine's drops are read.
+    expect(isAwsKeyMetricSeries(dropped, { ...place, Engine: "IPS" })).toBe(
+      true,
+    );
+  });
+});
+
+/*
+ * #9567: services customers run widely that read no metrics before, each
+ * from its own CloudWatch reference (CloudKeyMetricsProviderReference).
+ */
+describe("AWS services read since #9567", () => {
+  test("each has its namespace, swept for with what every resource of it publishes", () => {
+    const expected: Record<string, Array<string>> = {
+      "AWS/WAFV2": ["AllowedRequests", "BlockedRequests"],
+      "AWS/NetworkFirewall": ["ReceivedPackets"],
+      "AWS/AppRunner": ["CPUUtilization"],
+      "AWS/AutoScaling": ["GroupInServiceInstances"],
+      "AWS/GlobalAccelerator": ["HealthyEndpointCount"],
+      "AWS/Cognito": [
+        "SignInSuccesses",
+        "TokenRefreshSuccesses",
+        "SignUpSuccesses",
+      ],
+      "AWS/ElasticBeanstalk": ["EnvironmentHealth"],
+      "AWS/AppSync": ["Latency"],
+      "AWS/SageMaker": ["Invocations"],
+    };
+
+    for (const [namespace, probes] of Object.entries(expected)) {
+      const entry: AwsNamespaceKeyMetrics | undefined =
+        getAwsKeyMetrics(namespace);
+
+      expect({ namespace, read: Boolean(entry) }).toEqual({
+        namespace,
+        read: true,
+      });
+      expect(getAwsProbeMetricNames(entry!)).toEqual(probes);
+
+      // Added since streams began: template 2 on carries them.
+      for (const metric of entry!.metrics) {
+        expect(metric.streamedSince).toBe(2);
+      }
+    }
+  });
+
+  test("Global Accelerator is read where it publishes, in US West (Oregon) alone", () => {
+    expect(getAwsKeyMetrics("AWS/GlobalAccelerator")?.onlyRegion).toBe(
+      "us-west-2",
+    );
+  });
+
+  test("each new type is read from its own namespace, and counted for the cost estimate", () => {
+    for (const [type, namespace] of [
+      ["AWS::WAFv2::WebACL", "AWS/WAFV2"],
+      ["AWS::NetworkFirewall::Firewall", "AWS/NetworkFirewall"],
+      ["AWS::AppRunner::Service", "AWS/AppRunner"],
+      ["AWS::GlobalAccelerator::Accelerator", "AWS/GlobalAccelerator"],
+      ["AWS::Cognito::UserPool", "AWS/Cognito"],
+      ["AWS::ElasticBeanstalk::Environment", "AWS/ElasticBeanstalk"],
+      ["AWS::AppSync::GraphQLApi", "AWS/AppSync"],
+      ["AWS::SageMaker::Endpoint", "AWS/SageMaker"],
+    ] as Array<[string, string]>) {
+      expect(getAwsNamespaceOfType(type)).toBe(namespace);
+      expect(getKeyMetricCount(CloudProvider.AWS, type)).toBe(
+        getAwsKeyMetrics(namespace)!.metrics.length,
+      );
+    }
+  });
+});
+
 describe("Azure", () => {
   test("every type read is one the catalog lists", () => {
     for (const entry of AZURE_KEY_METRICS) {
@@ -266,6 +501,125 @@ describe("Azure", () => {
     expect(
       getAzureStoredMetricName("Composite Disk Read Bytes/sec", "Average"),
     ).toBe("azure_composite_disk_read_bytes/sec_average");
+  });
+});
+
+/*
+ * A metric Azure Monitor keeps at five minutes at its finest takes a call
+ * of its own beside its type's minute metrics, so it is read only where it
+ * is marked as earning it (#9566), and a deprecated one still read rides
+ * in the type's call (#9565).
+ */
+describe("Azure metrics read at five minutes, and deprecated ones still read", () => {
+  test("a metric is marked by its type, whatever its case, and a type knows it has one", () => {
+    expect(
+      isAzureFiveMinuteKeyMetric("Microsoft.Web/sites", "HealthCheckStatus"),
+    ).toBe(true);
+    expect(
+      isAzureFiveMinuteKeyMetric("microsoft.web/SITES", "healthcheckstatus"),
+    ).toBe(true);
+    // A minute metric of the type, a marked name of another type, nothing.
+    expect(isAzureFiveMinuteKeyMetric("Microsoft.Web/sites", "Requests")).toBe(
+      false,
+    );
+    expect(
+      isAzureFiveMinuteKeyMetric(
+        "Microsoft.Web/serverfarms",
+        "HealthCheckStatus",
+      ),
+    ).toBe(false);
+    expect(isAzureFiveMinuteKeyMetric("", "")).toBe(false);
+    expect(hasAzureFiveMinuteKeyMetrics("Microsoft.Web/sites")).toBe(true);
+    expect(
+      hasAzureFiveMinuteKeyMetrics("Microsoft.DocumentDB/databaseAccounts"),
+    ).toBe(true);
+    // A Static Web App's are all five minutes: its one call, not marked.
+    expect(hasAzureFiveMinuteKeyMetrics("Microsoft.Web/staticSites")).toBe(
+      false,
+    );
+    expect(
+      hasAzureFiveMinuteKeyMetrics("Microsoft.Compute/virtualMachines"),
+    ).toBe(false);
+    expect(AZURE_FIVE_MINUTE_GRAIN).toBe("PT5M");
+    expect(AZURE_FIVE_MINUTE_READ_MINUTES).toBe(15);
+  });
+
+  test("a five-minute key metric says its points are five minutes apart; a minute one says nothing", () => {
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.Web/sites",
+        metricName: "azure_healthcheckstatus_average",
+      }),
+    ).toEqual({
+      name: "HealthCheckStatus",
+      group: CloudKeyMetricGroup.Availability,
+      rank: 4,
+      intervalSeconds: 300,
+    });
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.DocumentDB/databaseAccounts",
+        metricName: "azure_datausagev2_total",
+      })?.intervalSeconds,
+    ).toBe(300);
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.Web/sites",
+        metricName: "azure_requests_total",
+      }),
+    ).toEqual({
+      name: "Requests",
+      group: CloudKeyMetricGroup.Traffic,
+      rank: 0,
+    });
+  });
+
+  test("a read asks for a type's key metrics, then the deprecated ones it still reads", () => {
+    const cosmos: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.DocumentDB/databaseAccounts",
+    )!;
+
+    // ServerSideLatency is read no more: its monitors moved (#9739).
+    expect(getAzureReadMetricNames(cosmos)).toEqual(namesOf(cosmos));
+    expect(namesOf(cosmos)).not.toContain("ServerSideLatency");
+    // A metric kept for its monitors comes after the key metrics.
+    expect(
+      getAzureReadMetricNames({
+        ...cosmos,
+        retired: [
+          {
+            name: "ServerSideLatency",
+            replacedBy: ["ServerSideLatencyDirect", "ServerSideLatencyGateway"],
+          },
+        ],
+      }),
+    ).toEqual([...namesOf(cosmos), "ServerSideLatency"]);
+    // One call's worth, retired ones included.
+    for (const entry of AZURE_KEY_METRICS) {
+      expect(getAzureReadMetricNames(entry).length).toBeLessThanOrEqual(
+        AZURE_MAX_METRICS_PER_RESOURCE,
+      );
+    }
+    // A type with none reads its key metrics alone.
+    const vm: AzureTypeKeyMetrics = getAzureKeyMetrics(
+      "Microsoft.Compute/virtualMachines",
+    )!;
+    expect(getAzureReadMetricNames(vm)).toEqual(namesOf(vm));
+  });
+
+  test("a deprecated metric is no key metric: a stream never writes it in the read's place", () => {
+    const type: string = "Microsoft.DocumentDB/databaseAccounts";
+
+    expect(
+      getAzureKeyMetricOfStoredName(type, "azure_serversidelatency_average"),
+    ).toBeNull();
+    expect(
+      isAzureKeyMetricStoredName(type, "azure_serversidelatency_average"),
+    ).toBe(false);
+    expect(isAzureStreamedKeyMetric(type, "ServerSideLatency")).toBe(false);
   });
 });
 
@@ -609,10 +963,10 @@ describe("Google Cloud", () => {
     }
   });
 
-  test("every metric type belongs to its resource type's service, once", () => {
+  test("every metric is read once by the name it is stored under, of a service of Google's", () => {
     const all: Array<string> = getGcpKeyMetricTypes().map(
       (metric: GcpKeyMetric): string => {
-        return metric.metricType;
+        return getGcpStoredMetricName(metric);
       },
     );
 
@@ -625,10 +979,120 @@ describe("Google Cloud", () => {
           "ALIGN_MEAN",
           "ALIGN_MAX",
           "ALIGN_RATE",
+          "ALIGN_SUM",
           "ALIGN_PERCENTILE_95",
         ]).toContain(metric.aligner);
+        // A distribution's count is read from its sum, and only its count.
+        expect({
+          metric: metric.metricType,
+          sum: metric.aligner === "ALIGN_SUM",
+        }).toEqual({
+          metric: metric.metricType,
+          sum: metric.readAs === "count",
+        });
       }
     }
+  });
+
+  test("a type's two reads of one distribution are two calls: its count and its percentile", () => {
+    const reads: Array<GcpReadMetric> = getGcpReadMetrics().filter(
+      (metric: GcpReadMetric): boolean => {
+        return (
+          metric.metricType === "pubsub.googleapis.com/topic/message_sizes"
+        );
+      },
+    );
+
+    expect(
+      reads.map((metric: GcpReadMetric) => {
+        return [metric.storedName, metric.aligner, metric.readAs];
+      }),
+    ).toEqual([
+      ["pubsub.googleapis.com/topic/message_sizes_count", "ALIGN_SUM", "count"],
+      [
+        "pubsub.googleapis.com/topic/message_sizes",
+        "ALIGN_PERCENTILE_95",
+        undefined,
+      ],
+    ]);
+    expect(
+      getGcpResourceTypesOfMetric(
+        "pubsub.googleapis.com/topic/message_sizes_count",
+      ),
+    ).toEqual(["pubsub_topic"]);
+  });
+
+  test("no deprecated metric is read any more: the publish operations' monitors moved (#9739)", () => {
+    const reads: Array<GcpReadMetric> = getGcpReadMetrics();
+
+    expect(
+      reads
+        .filter((metric: GcpReadMetric): boolean => {
+          return metric.isRetired;
+        })
+        .map((metric: GcpReadMetric) => {
+          return [metric.storedName, metric.resourceTypes];
+        }),
+    ).toEqual([]);
+    expect(
+      reads.some((metric: GcpReadMetric): boolean => {
+        return (
+          metric.storedName ===
+          "pubsub.googleapis.com/topic/send_message_operation_count"
+        );
+      }),
+    ).toBe(false);
+    // Never a key metric of its type.
+    expect(
+      getGcpKeyMetricTypes().some((metric: GcpKeyMetric): boolean => {
+        return (
+          metric.metricType ===
+          "pubsub.googleapis.com/topic/send_message_operation_count"
+        );
+      }),
+    ).toBe(false);
+  });
+
+  test("a VM's memory and disks come from the Ops Agent, in their used state, read where it runs", () => {
+    const agent: Array<GcpReadMetric> = getGcpReadMetrics().filter(
+      (metric: GcpReadMetric): boolean => {
+        return metric.reportedBy === GCP_OPS_AGENT;
+      },
+    );
+
+    expect(
+      agent.map((metric: GcpReadMetric) => {
+        return [
+          metric.storedName,
+          metric.resourceTypes,
+          metric.group,
+          metric.unit,
+          metric.metricLabels,
+        ];
+      }),
+    ).toEqual([
+      [
+        "agent.googleapis.com/memory/percent_used",
+        ["gce_instance"],
+        CloudKeyMetricGroup.Memory,
+        "%",
+        { state: "used" },
+      ],
+      [
+        "agent.googleapis.com/disk/percent_used",
+        ["gce_instance"],
+        CloudKeyMetricGroup.Storage,
+        "%",
+        { state: "used" },
+      ],
+    ]);
+    // Never a type's first metric: what every read asks every project.
+    for (const entry of GCP_KEY_METRICS) {
+      expect(entry.metrics[0]!.reportedBy).toBeUndefined();
+    }
+    expect(GCP_OPS_AGENT_INSTALL_URL).toBe(
+      "https://docs.cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation",
+    );
   });
 
   test("a count is read as a rate per second", () => {
@@ -666,7 +1130,16 @@ describe("key metric counts", () => {
         "Microsoft.Compute/virtualMachines",
       ),
     ).toBe(17);
+    /*
+     * Not its two Ops Agent metrics: read only from a VM that runs the
+     * agent, they cost nothing where none does.
+     */
     expect(getKeyMetricCount(CloudProvider.GCP, "gce_instance")).toBe(9);
+    expect(
+      GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
+        return entry.resourceType === "gce_instance";
+      })?.metrics,
+    ).toHaveLength(11);
     expect(getKeyMetricCount(CloudProvider.GCP, "nope")).toBe(0);
   });
 });
@@ -967,13 +1440,85 @@ describe("a key metric by its stored name", () => {
       group: CloudKeyMetricGroup.Compute,
       rank: 0,
     });
+    // A VM's memory, as the Ops Agent on it reports it: a key metric of its own.
     expect(
       getCloudKeyMetricOfStoredName({
         provider: CloudProvider.GCP,
         type: "gce_instance",
         metricName: "agent.googleapis.com/memory/percent_used",
       }),
+    ).toEqual({
+      name: "agent.googleapis.com/memory/percent_used",
+      group: CloudKeyMetricGroup.Memory,
+      rank: 3,
+    });
+    // A metric no connection reads is none.
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "gce_instance",
+        metricName: "agent.googleapis.com/swap/percent_used",
+      }),
     ).toBeNull();
+  });
+
+  test("Google Cloud: a distribution read for its count by the name it is stored under, its percentile by its type's", () => {
+    const sizes: string = "pubsub.googleapis.com/topic/message_sizes";
+
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: `${sizes}_count`,
+      }),
+    ).toEqual({
+      name: `${sizes}_count`,
+      group: CloudKeyMetricGroup.Traffic,
+      rank: 0,
+    });
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: sizes,
+      }),
+    ).toEqual({ name: sizes, group: CloudKeyMetricGroup.Traffic, rank: 2 });
+    // Whatever the case ingest stored it in.
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: `${sizes}_count`.toUpperCase(),
+      })?.rank,
+    ).toBe(0);
+    expect(getGcpStoredMetricName({ metricType: sizes, readAs: "count" })).toBe(
+      `${sizes}_count`,
+    );
+    expect(getGcpStoredMetricName({ metricType: sizes })).toBe(sizes);
+  });
+
+  test("a deprecated metric still read is no key metric: its page lists it with the others", () => {
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.GCP,
+        type: "pubsub_topic",
+        metricName: "pubsub.googleapis.com/topic/send_message_operation_count",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.DocumentDB/databaseAccounts",
+        metricName: "azure_serversidelatency_average",
+      }),
+    ).toBeNull();
+    expect(
+      getCloudKeyMetricOfStoredName({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.DocumentDB/databaseAccounts",
+        metricName: "azure_serversidelatencydirect_average",
+      })?.group,
+    ).toBe(CloudKeyMetricGroup.Latency);
   });
 
   test("nothing for an unknown provider, or no name", () => {

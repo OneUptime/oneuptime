@@ -48,7 +48,7 @@ Jede Antwort gilt für genau eine Anmeldung. Wird sie erneut gesendet, etwa weil
 Wer sich zum ersten Mal anmeldet, kommt in die **Teams** des Anbieters, und diese bestimmen, was die Person tun darf: siehe [Rollen und Teams für SSO-Benutzer](#rollen-und-teams-für-sso-benutzer).
 
 > [!NOTE]
-> Auf OneUptime Cloud meldet OneUptime jemanden, der sich zum ersten Mal mit einem SAML- oder OIDC-Anbieter des Projekts anmeldet, nicht sofort an, sondern schickt ihm einen Link per E-Mail. Die Person öffnet ihn, bestätigt, dass das Single Sign-On des Projekts sie anmelden darf, und setzt die Anmeldung fort. Der Link gilt 24 Stunden. Das geschieht einmal pro Projekt und erneut, wenn jemand das Projekt verlässt und zurückkommt. Selbst gehostete Installationen melden Personen sofort an.
+> Auf OneUptime Cloud meldet OneUptime jemanden, der sich zum ersten Mal mit einem SAML- oder OIDC-Anbieter des Projekts anmeldet, nicht sofort an, sondern schickt ihm einen Link per E-Mail. Die Person öffnet ihn, bestätigt, dass das Single Sign-On des Projekts sie anmelden darf, und setzt die Anmeldung fort. Der Link gilt 24 Stunden. Das geschieht einmal pro Projekt und erneut, wenn jemand das Projekt verlässt und zurückkommt. Selbst gehostete Installationen melden Personen sofort an. Jede Anmeldung, die nicht direkt durchgeht, erhält auf OneUptime Cloud diese selbe Antwort, ob die Adresse ein Konto hat oder nicht: Wer noch kein Konto hat, erhält die E-Mail ebenfalls, und das Konto wird angelegt, wenn die Person bestätigt, während ein gesperrtes Konto oder ein OneUptime-Administrator keine E-Mail erhält. Eine selbst gehostete Installation weist diese beiden stattdessen mit einer einzigen Meldung ab.
 
 Auf OneUptime Cloud belegt jemand, der über SSO in das Projekt kommt, einen Platz, genau wie jemand, den Sie einladen. Enthält Ihr Plan eine feste Anzahl an Plätzen und sind alle belegt, können neue Personen erst über SSO beitreten, wenn ein Platz frei wird.
 
@@ -79,7 +79,7 @@ Sie brauchen die Berechtigung, SSO-Anbieter hinzuzufügen – **Projektinhaber**
    - Ein neuer Anbieter ist zunächst ausgeschaltet. Sobald Ihr IdP diese beiden Werte hat, bearbeiten Sie den Anbieter und schalten **Aktiviert** ein
 
 4. **Den Anbieter testen**
-   - Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie auf der Seite, die sich öffnet, den Anbieter. Sie werden zur Anmeldeseite Ihres Identitätsanbieters geleitet und kommen angemeldet zu OneUptime zurück
+   - Öffnen Sie den Link in der Karte **SSO-Anmeldelink** und wählen Sie auf der Seite, die sich öffnet, den Anbieter. Sie werden zur Anmeldeseite Ihres Identitätsanbieters geleitet und kommen angemeldet zu OneUptime zurück
    - Sobald das klappt, können Sie für das Projekt [SSO verlangen](#sso-für-ihr-projekt-verlangen)
 :::
 
@@ -127,11 +127,11 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
 4. **Die Client-Einstellungen anpassen**
 
    - Setzen Sie **Name ID Format** auf `email` und schalten Sie **Force Name ID Format** ein, damit Keycloak die E-Mail immer als Name ID sendet
-   - Schalten Sie auf dem Tab **Keys** des Clients **Client signature required** (unter **Signing keys config**) aus: OneUptime signiert seine Anfragen nicht
+   - Schalten Sie auf dem Tab **Keys** des Clients **Client signature required** (unter **Signing keys config**) aus: OneUptime signiert seine Anmeldeanfragen nicht
 
 5. **Den Anbieter einschalten und testen**
 
-   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Keycloak-Anmeldeseite und zurück zu OneUptime geleitet werden.
+   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter. Sie sollten zur Keycloak-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitätsdienst von Microsoft. Sie brauchen einen Tenant, der Unternehmensanwendungen mit SAML-SSO unterstützt, sowie Administratorzugriff auf Entra ID und OneUptime. Führt der Microsoft-Entra-Anwendungskatalog OneUptime auf, fügen Sie die App auf OneUptime Cloud von dort hinzu: Sie bringt die Claims, die OneUptime liest, und die Muster der URLs von OneUptime schon mit.
@@ -182,7 +182,7 @@ Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitä
 
 7. **Den Anbieter einschalten und testen**
 
-   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Microsoft-Anmeldeseite und zurück zu OneUptime geleitet werden.
+   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter. Sie sollten zur Microsoft-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Okta
 Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen eine Okta-Organisation mit Administratorzugriff sowie Administratorzugriff auf OneUptime. Führt das Okta Integration Network OneUptime auf, fügen Sie die App auf OneUptime Cloud von dort hinzu: Sie meldet Personen über die OneUptime-Seite **Mit SSO anmelden** und über ihr Okta-Dashboard an, gibt ihnen bei der ersten Anmeldung ein Konto und fragt statt nach den URLs von OneUptime nach zwei IDs.
@@ -232,7 +232,7 @@ Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen e
 
 6. **Den Anbieter einschalten und testen**
 
-   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Okta-Anmeldeseite und zurück zu OneUptime geleitet werden.
+   Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter. Sie sollten zur Okta-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Andere
 Das SSO von OneUptime nutzt SAML 2.0 und funktioniert mit jedem konformen Identitätsanbieter:
@@ -242,7 +242,7 @@ Das SSO von OneUptime nutzt SAML 2.0 und funktioniert mit jedem konformen Identi
 2. Legen Sie in OneUptime den Anbieter mit diesen Werten an und kopieren Sie die **Kennung (Entity ID)** und die **Antwort-URL (Assertion Consumer Service URL)** aus dem Dialog **SSO-Konfiguration** (oder über **SSO-Konfiguration anzeigen**).
 3. Setzen Sie in der SAML-Anwendung Ihres Identitätsanbieters die **Assertion Consumer Service URL / Reply URL** und die **Entity ID / Audience URI** auf die Werte von OneUptime und das **Name ID Format** auf die E-Mail-Adresse.
 4. **Signaturmethode** (`RSA-SHA256`) und **Digest-Methode** (`SHA256`) sind bereits unter **Weitere Felder** gesetzt; ändern Sie sie nur, wenn Ihr Identitätsanbieter anders signiert
-5. Schalten Sie für den Anbieter **Aktiviert** ein und testen Sie ihn mit dem Link in der Karte **Single Sign-On (SSO) testen**.
+5. Schalten Sie für den Anbieter **Aktiviert** ein und testen Sie ihn mit dem Link in der Karte **SSO-Anmeldelink**.
 :::
 :::
 
@@ -256,14 +256,36 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 3. Geben Sie einen **Name** (das, was Personen auf der Anmeldeseite sehen), die **Aussteller-URL**, die **Client-ID** und das **Client-Secret** ein. Sie können stattdessen auch die Discovery-URL des Anbieters in **Aussteller-URL** einfügen.
 4. Im Schritt **Anmeldung** beginnt **Teams** mit dem Mitglieder-Team Ihres Projekts: Wer sich zum ersten Mal anmeldet, kommt in diese Teams. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller, gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung ("Sign in with" und der Name). Ändern Sie sie nur, wenn Ihr Anbieter es verlangt. Angenommen werden nur Teams, in die Sie selbst jemanden einladen könnten: Ein Team, das mehr Zugriff gibt, als Sie haben, wird unter **Teams** genannt.
 5. Speichern Sie. Der Dialog **OIDC-Konfiguration** öffnet sich mit der **Weiterleitungs-URI**: Fügen Sie sie den erlaubten Weiterleitungs-URIs Ihrer App hinzu. Ein neuer Anbieter ist zunächst ausgeschaltet; bearbeiten Sie ihn deshalb danach und schalten Sie **Aktiviert** ein.
-6. Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
+6. Öffnen Sie den Link in der Karte **SSO-Anmeldelink** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
-### Auch beim Identitätsanbieter abmelden
+## Auch beim Identitätsanbieter abmelden
 
-Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt.
+Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer, etwa einem NOC-Bildschirm oder einem Kiosk, kommt die nächste Person, die auf der Anmeldeseite den Anbieter wählt, deshalb als die Person hinein, die gegangen ist. Schalten Sie bei einem SAML- oder OIDC-Anbieter **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein, damit eine Abmeldung von OneUptime auch die Sitzung beim Anbieter beendet. Die Einstellung ist standardmäßig aus: Auf einem persönlichen Laptop würde sie die Person auch bei jeder anderen App abmelden, die den Anbieter nutzt. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab.
 
-Ist sie eingeschaltet, geht der Browser zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet hat, und der Anbieter schickt ihn zur Anmeldeseite von OneUptime zurück. Registrieren Sie diese Seite bei Ihrem Anbieter: Der Dialog **OIDC-Konfiguration** zeigt sie als Weiterleitungs-URI nach der Abmeldung, die Anbieter Post-Logout-Redirect-URI nennen. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten. Sie gilt für Personen, die sich nach dem Einschalten in einem Browser anmelden; die mobile App meldet nur von OneUptime ab. SAML-Anbieter melden niemanden beim Identitätsanbieter ab.
+:::tabs
+@tab SAML
+Tragen Sie die Abmelde-URL Ihres Identitätsanbieters als **Abmelde-URL** des Anbieters unter **Weitere Felder** ein: Ohne sie lässt sich der Schalter nicht einschalten. Geben Sie Ihrem Identitätsanbieter dann die **Single-Logout-URL** aus dem Dialog **SSO-Konfiguration** und das Zertifikat, mit dem OneUptime seine Abmeldeanfragen signiert, über **Signaturzertifikat herunterladen** im selben Dialog.
+
+| Identitätsanbieter | Abmelde-URL | Wohin die Single-Logout-URL und das Zertifikat gehören |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, unter **View SAML setup instructions** auf dem Tab **Sign On** | Bearbeiten Sie auf dem Tab **General** die **SAML Settings**, klicken Sie auf **Show Advanced Settings** und wählen Sie **Allow application to initiate Single Logout**. Setzen Sie **Single Logout URL** auf die Single-Logout-URL und **SP Issuer** auf die Kennung (Entity ID), und laden Sie das Zertifikat als **Signature Certificate** hoch. |
+| Microsoft Entra ID | **Logout URL**, unter **Set up OneUptime** | Setzen Sie in **Basic SAML Configuration** die **Logout Url (Optional)** auf die Single-Logout-URL. Entra ID braucht kein Zertifikat. |
+| Keycloak | Der SAML-Endpunkt des Realms, derselbe wie die Anmelde-URL | Setzen Sie auf dem Tab **Advanced** des Clients die **Logout Service Redirect Binding URL** auf die Single-Logout-URL. Lassen Sie **Front channel logout** eingeschaltet. Keycloak braucht kein Zertifikat, solange **Client signature required** aus ist, wie oben eingerichtet. |
+
+Nach einer Abmeldung dort schickt der Identitätsanbieter den Browser zur Single-Logout-URL zurück, die die Anmeldeseite öffnet oder meldet, dass der Identitätsanbieter die Abmeldung nicht bestätigt hat. Meldet sich die Person beim Identitätsanbieter oder bei einer anderen App ab, die ihn nutzt, meldet ein Identitätsanbieter, der seinen Apps Abmeldeanfragen schickt, wie Keycloak und Microsoft Entra ID, sie auch von OneUptime ab. OneUptime nimmt nur eine Anfrage an, die der Identitätsanbieter signiert hat.
+@tab OpenID Connect
+Der Browser geht zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet hat, und der Anbieter schickt ihn zur Anmeldeseite von OneUptime zurück. Registrieren Sie diese Seite bei Ihrem Anbieter: Der Dialog **OIDC-Konfiguration** zeigt sie als Weiterleitungs-URI nach der Abmeldung, die Anbieter Post-Logout-Redirect-URI nennen. Ein Anbieter, dessen Discovery-Dokument keinen `end_session_endpoint` nennt, wie Google, kann sie nicht einschalten.
+
+| Identitätsanbieter | Wo die Weiterleitungs-URI nach der Abmeldung registriert wird |
+| --- | --- |
+| Okta | Klicken Sie auf dem Tab **General** der App-Integration in **General Settings** auf **Edit** und fügen Sie sie zu **Sign-out redirect URIs** hinzu. |
+| Microsoft Entra ID | Fügen Sie sie in der App-Registrierung unter **Authentication** zu den **Redirect URIs** der Plattform **Web** hinzu. Die **Front-channel logout URL** ist eine andere Einstellung, die OneUptime nicht nutzt. |
+| Auth0 | Fügen Sie sie in den **Settings** der Anwendung zu **Allowed Logout URLs** hinzu. Ein Tenant, der vor dem 14. November 2023 angelegt wurde, braucht außerdem **RP-Initiated Logout End Session Endpoint Discovery** in seinen **Advanced**-Einstellungen eingeschaltet, damit sein Discovery-Dokument einen `end_session_endpoint` nennt. |
+| Keycloak | Fügen Sie sie in den Einstellungen des Clients zu **Valid post logout redirect URIs** hinzu (Keycloak 19 und neuer). |
+
+Ein Anbieter, bei dem sie nicht registriert ist, zeigt nach einer Abmeldung von OneUptime seine eigene Fehlerseite, statt die Person zurückzuschicken; von OneUptime ist sie trotzdem abgemeldet.
+:::
 
 ## Rollen und Teams für SSO-Benutzer
 
@@ -271,12 +293,27 @@ OneUptime übernimmt keine Rollen oder Gruppen aus Ihrem Identitätsanbieter. Wa
 
 Die Teams eines Anbieters bestimmen, was Personen tun dürfen, die sich mit ihm anmelden. Deshalb wird ein Anbieter nur mit Teams gespeichert, in die die speichernde Person jemanden einladen könnte. Jedes Speichern prüft sie erneut: Einen Anbieter, dessen Teams mehr Zugriff geben, als Sie haben, kann nur jemand ändern, dessen Zugriff sie abdeckt, etwa ein Projektinhaber. Anbieter, die vor dieser Prüfung gespeichert wurden, melden Personen weiter in ihren Teams an. Wer einen Anbieter bearbeiten darf, kann ihn weiterhin ausschalten, sodass er sich sofort stoppen lässt.
 
+## Domänen
+
+**Mit SSO anmelden** fragt nach einer E-Mail-Adresse und bietet die Anbieter an, die die Domain dieser Adresse bedienen. Es liest kein Konto: Eine Adresse mit einem Konto in Ihrem Projekt und eine ganz ohne Konto erhalten dieselbe Antwort, die Seite verrät also nicht, wer ein Konto hat. Damit ein Anbieter dort angeboten wird, nennt er die Domänen, die er bedient:
+
+1. Fügen Sie Ihre Domain unter **Projekteinstellungen** > **Erweitert** > **Domänen** hinzu, klicken Sie in ihrer Zeile auf **Domain verifizieren** und tragen Sie den angezeigten TXT-Eintrag in das DNS der Domain ein. Sobald der Eintrag gefunden wird, ist die Domain verifiziert.
+2. Bearbeiten Sie den Anbieter und wählen Sie die Domain im Schritt **Anmeldung** unter **Domänen** aus. Nur die verifizierten Domänen des Projekts werden aufgeführt.
+
+**Mit SSO anmelden** bietet den Anbieter dann jeder Adresse in dieser Domain an, egal wer sie eingibt. Die Domain muss genau übereinstimmen: `acme.com` umfasst nicht `eu.acme.com`, fügen Sie also jede Domain hinzu, mit der sich Personen anmelden.
+
+Anbieter, die eingerichtet wurden, bevor es Domänen gab, haben beim Upgrade von OneUptime die verifizierten Domänen ihres Projekts erhalten: jede Domäne, die das Projekt verifiziert hatte, außer einer, die auch ein anderes Projekt verifiziert hatte. Wählen Sie eine solche Domäne selbst aus, wenn sie Ihre ist. Eine Domäne, die hinzugefügt, aber nie verifiziert wurde, hat kein Anbieter erhalten.
+
+Ein Anbieter, der keine verifizierte Domäne nennt, wird dort niemandem angeboten. Seine Spalte **Domänen** zeigt **Keine verifizierte Domäne**, und ein Hinweis über Ihren Anbietern nennt ihn und sagt, was zu tun ist. Solange das Projekt keine verifizierte Domäne hat, öffnet **Eine Domäne verifizieren** im Hinweis die Seite **Domänen**.
+
+Wer eine E-Mail-Adresse auf einer anderen Domäne hat, etwa ein externer Mitarbeiter, findet dort ebenfalls keinen Anbieter. Teilen Sie den SSO-Anmeldelink Ihres Projekts mit dieser Person: Kopieren Sie ihn aus der Karte **SSO-Anmeldelink** unter Ihren Anbietern. Er listet die Anbieter des Projekts auf und fragt nach keiner E-Mail-Adresse, verrät also nicht, wer ein Konto hat. Eine Anmeldung, die bei Ihrem Identitätsanbieter beginnt, funktioniert ebenfalls, egal auf welcher Domäne.
+
 ## SSO für Ihr Projekt verlangen
 
 Ein eingerichteter Anbieter hält niemanden davon ab, sich mit einem Passwort anzumelden. Um SSO zum einzigen Weg ins Projekt zu machen, verwenden Sie den Schalter **SSO für die Anmeldung erzwingen** unter **Projekteinstellungen** > **Sicherheit** > **SSO**, unterhalb Ihrer Anbieter:
 
 :::steps
-1. Testen Sie zuerst Ihren Anbieter mit dem Link in der Karte **Single Sign-On (SSO) testen**.
+1. Testen Sie zuerst Ihren Anbieter mit dem Link in der Karte **SSO-Anmeldelink**.
 2. Schalten Sie **SSO für die Anmeldung erzwingen** ein. OneUptime fragt nach, bevor etwas gespeichert wird: Von da an muss sich jeder im Projekt, Sie eingeschlossen, mit SSO anmelden, um es zu öffnen, und wer mit einem Passwort angemeldet ist, ist aus dem Projekt ausgesperrt, bis er sich mit SSO anmeldet.
 3. Klicken Sie zur Bestätigung auf **SSO erzwingen**. Der Schalter speichert sofort; eine eigene Schaltfläche zum Speichern gibt es nicht.
 :::
@@ -293,6 +330,33 @@ Das Ausschalten von **SSO für die Anmeldung erzwingen** speichert, sobald Sie d
 
 > [!NOTE]
 > Auf OneUptime Cloud braucht das Verlangen von SSO den Plan **Scale**; das Ausschalten funktioniert in jedem Plan. Unterhalb von Scale zeigt **Projekteinstellungen** > **Sicherheit** > **SSO** das Upgrade-Angebot des Plans; ein Projekt, das nach einer Scale-Testphase noch SSO verlangt, findet dort unter dem Angebot auch **SSO für die Anmeldung erzwingen**, damit es ausgeschaltet werden kann. Wieder einschalten erfordert **Scale**.
+
+### Die Anmeldung Ihrer Mitglieder mit SSO verwalten
+
+Das Verlangen von SSO hält die Daten Ihres Projekts hinter Ihrem Identitätsanbieter, doch Ihre Mitglieder können in OneUptime weiterhin ein Passwort, Passkeys und die Zwei-Faktor-Authentifizierung einrichten, wonach Ihr Projekt nie fragt. Solange **SSO für die Anmeldung erzwingen** eingeschaltet ist, verhindert das ein zweiter Schalter darunter, **Anmeldung mit SSO verwalten**.
+
+Die Anmeldung einer Person wird von SSO verwaltet, wenn jedes Projekt, zu dem sie gehört, einschließlich jedes Projekts, zu dem sie eingeladen ist, SSO verlangt und **Anmeldung mit SSO verwalten** eingeschaltet hat. Sie kann dann kein Passwort, keinen Passkey, keinen Sicherheitsschlüssel, keine Authenticator-App, keine Backup-Codes und keine Zwei-Faktor-Authentifizierung einrichten, **Passwort vergessen?** schickt ihr keinen Link, und ihr **Benutzerprofil** nennt ihren Identitätsanbieter, statt diese Einstellungen anzubieten. An der Anmeldung selbst ändert sich nichts: Mit ihrem Passwort meldet sie sich weiterhin bei OneUptime an, und Ihr Projekt verlangt wie bisher SSO.
+
+Die Regel wird jedes Mal geprüft, daher gilt:
+
+- **Jemand in einem Projekt, das die Anmeldung nicht verwaltet**: Sobald die Person Mitglied eines Projekts ist oder zu einem Projekt eingeladen wird, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, erhält sie ihre Einstellungen zurück, und ihr **Benutzerprofil** nennt dieses Projekt als Grund. Verlässt sie es, wird ihre Anmeldung wieder verwaltet. Ein Konto kann zu vielen Organisationen gehören, daher entscheidet eine Organisation nie über die Projekte einer anderen.
+- **Projekte mit unterschiedlichen Anbietern**: Wer in zwei Projekten ist, die beide die Anmeldung verwalten, jedes mit seinem eigenen Identitätsanbieter, wird verwaltet, und sein Profil nennt beide Anbieter.
+- **Master-Admins** behalten immer ihre eigenen Einstellungen.
+- **Was Personen vorher eingerichtet haben**, bleibt gespeichert und wird von Ihrem Projekt nicht genutzt, bis es gelöscht wird: von den Projektinhabern Ihres Projekts (siehe unten) oder von einem Server-Admin auf der Seite **Authentifizierung** der Person im Admin Dashboard mit **Anmeldeeinstellungen löschen**.
+
+**Anmeldung mit SSO verwalten** speichert, sobald Sie den Schalter umlegen, löscht nichts, und das Ausschalten gibt allen ihre Einstellungen sofort zurück. Wer **SSO für die Anmeldung erzwingen** ändern kann, kann auch diesen Schalter ändern, in denselben Plänen. Ist **SSO für die Anmeldung erzwingen** ausgeschaltet, ist er ausgeblendet und ändert nichts.
+
+### Löschen, was Ihre Mitglieder vorher gespeichert haben
+
+Solange **Anmeldung mit SSO verwalten** eingeschaltet ist, sehen die Projektinhaber Ihres Projekts darunter, wie viele seiner Mitglieder noch ein Passwort oder eine Zwei-Faktor-Authentifizierung in OneUptime gespeichert haben. **Anmeldeeinstellungen löschen** löscht nach einer Rückfrage ihre Passwörter samt allen Links zum Zurücksetzen oder Anmelden, ihre Passkeys, Sicherheitsschlüssel, Authenticator-Apps und Backup-Codes, schaltet die Zwei-Faktor-Authentifizierung aus und beendet die Sitzungen, in denen sie sich ohne SSO angemeldet haben. Das lässt sich nicht rückgängig machen.
+
+Ein Konto kann zu vielen Organisationen gehören, daher können Sie nur die Einstellungen der Personen löschen, für die Ihre Organisation zuständig ist. Ihre Organisation sind die Projekte, die Ihnen gehören: Die Einstellungen einer Person werden nur gelöscht, wenn jedes Projekt, zu dem sie gehört, einschließlich jedes Projekts, zu dem sie eingeladen ist, eines ist, dessen **Projektinhaber** Sie sind, und **Anmeldung mit SSO verwalten** eingeschaltet hat. Alle anderen behalten ihre Einstellungen:
+
+- wer Mitglied eines Projekts ist oder zu einem Projekt eingeladen ist, das Ihnen nicht gehört oder das die Anmeldung nicht mit SSO verwaltet;
+- wer zu Ihrem Projekt nur eingeladen ist und ihm noch nicht beigetreten ist;
+- Master-Admins und Sie selbst: Ihre eigenen ändern Sie in Ihrem **Benutzerprofil**.
+
+Jede Person, deren Einstellungen gelöscht wurden, erhält eine E-Mail darüber, was entfernt wurde und dass sie sich jetzt mit SSO anmeldet, und die Audit-Protokolle Ihrer Projekte verzeichnen das Löschen unter Ihrem Namen. Löschen kann nur ein **Projektinhaber**, der im Dashboard angemeldet ist, nie mit einem API-Schlüssel.
 
 ## Einen Anbieter ausschalten oder löschen
 

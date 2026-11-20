@@ -5,8 +5,10 @@ import {
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
   CLOUD_STREAM_TEMPLATE_FILE,
+  CloudStreamMetricsMode,
   getAwsCloudStreamCommand,
   getAwsCloudStreamTemplate,
+  getAwsCloudStreamUpdateCommand,
   getCloudStreamNames,
 } from "Common/Types/CloudConnection/CloudStreamTemplate";
 import { getAwsOrganizationManagementAccountId } from "Common/Types/CloudConnection/CloudOrganizationAgents";
@@ -14,8 +16,14 @@ import {
   CLOUD_STREAM_ORGANIZATION_LOG_GROUPS_REFUSAL,
   CLOUD_STREAM_ORGANIZATION_WHAT_IT_MAKES,
   getAwsCloudStreamOrganizationCommand,
+  getAwsCloudStreamOrganizationUpdateCommand,
   isCloudStreamOrganizationPossible,
 } from "Common/Types/CloudConnection/CloudStreamOrganization";
+import {
+  CLOUD_STREAM_METRICS_ATTRIBUTE,
+  CLOUD_STREAM_TEMPLATE_ATTRIBUTE,
+} from "Common/Types/CloudConnection/CloudStreamStack";
+import { AWS_STREAM_TEMPLATE_VERSION } from "Common/Types/Cloud/CloudKeyMetrics";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -30,7 +38,12 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/Fo
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  composedValue,
+  formatList,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import { getConfiguredOneUptimeUrl } from "../../SetupGuide/ConfiguredOneUptimeUrl";
@@ -71,9 +84,14 @@ import {
 } from "./CloudStreamParts";
 import {
   CloudStreamStatusWords,
+  CloudStreamUpdateWords,
+  STREAM_OLDER_STACKS_SENTENCE,
+  STREAM_UPDATE_IN_PLACE_ORGANIZATION_SENTENCE,
+  STREAM_UPDATE_IN_PLACE_SENTENCE,
   getCloudStreamDefaultRegions,
   getCloudStreamSourceWords,
   getCloudStreamStatusWords,
+  getCloudStreamUpdateWords,
 } from "./CloudStreamWords";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
@@ -104,6 +122,13 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
  * account and every account that joins later (CloudStreamOrganization).
  * Named log groups are one account's, so it streams every log group or
  * none.
+ *
+ * Stacks made before OneUptime streamed every key metric are said on top,
+ * with a command of their own that updates each in place (#9693): its own
+ * template read back, given today's key-metric filters and the template's
+ * common attributes, so it keeps its log groups and its key - nothing to
+ * choose again, no new key. For an organization, it updates the StackSet
+ * too, from the management account, as Stop streaming deletes it.
  */
 
 export { CLOUD_STREAM_DIALOG_TEST_ID };
@@ -243,6 +268,32 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
   ).map((source: CloudTemplate): string => {
     return drawCloudTemplate(translator, source);
   });
+  /*
+   * Stacks made before OneUptime streamed every key metric, and the command
+   * that updates them in place, keeping what each streams of its logs and
+   * its key.
+   */
+  const stacksToUpdate: CloudStreamUpdateWords | null =
+    getCloudStreamUpdateWords({
+      provider: props.connection.provider,
+      streamKeyCreatedAt: status.streamKeyCreatedAt,
+      streamSummary: status.streamSummary,
+      now,
+    });
+  let updateCommand: string = "";
+
+  if (stacksToUpdate) {
+    updateCommand = managementAccountId
+      ? getAwsCloudStreamOrganizationUpdateCommand({
+          connectionId,
+          regions: stacksToUpdate.regions,
+          managementAccountId,
+        })
+      : getAwsCloudStreamUpdateCommand({
+          connectionId,
+          regions: stacksToUpdate.regions,
+        });
+  }
 
   /*
    * Step 1: the key. Made here it is in the command, and shown once; one
@@ -532,6 +583,51 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {stacksToUpdate ? (
+          <div
+            className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3"
+            data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-update`}
+          >
+            <div className="flex items-start gap-2 text-sm text-amber-900">
+              <Icon
+                icon={IconProp.Alert}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+              />
+              <div className="min-w-0 space-y-1">
+                <p data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-update-why`}>
+                  {translator.translateTemplate(STREAM_OLDER_STACKS_SENTENCE, {
+                    regions: composedValue((sentence: Translator): string => {
+                      return formatList(stacksToUpdate.regions, sentence);
+                    }),
+                  })}
+                </p>
+                <p data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-update-how`}>
+                  {managementAccountId
+                    ? translator.translateTemplate(
+                        STREAM_UPDATE_IN_PLACE_ORGANIZATION_SENTENCE,
+                        { shell: shell.title, account: managementAccountId },
+                        { setsValuesApart: true },
+                      )
+                    : translator.translateTemplate(
+                        STREAM_UPDATE_IN_PLACE_SENTENCE,
+                        { shell: shell.title },
+                      )}
+                </p>
+              </div>
+            </div>
+            <div data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-update-command`}>
+              <CodeBlock
+                code={updateCommand}
+                language="bash"
+                wrapLongLines={true}
+                maxHeight={CLOUD_STREAM_COMMAND_MAX_HEIGHT}
+              />
+            </div>
+          </div>
+        ) : (
+          <></>
+        )}
+
         {/*
          * The guide's one question, above its steps: the command is
          * written from the answer.
@@ -769,6 +865,43 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
               </div>
+              {streamsMetrics(choices.what) ? (
+                /*
+                 * What the template's metrics Firehose stream says of itself
+                 * (CloudStreamStack): a stream set up another way that says
+                 * it too has the key metrics it carries left to it.
+                 */
+                <div
+                  className="space-y-3"
+                  data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-common-attributes`}
+                >
+                  <p className="text-xs text-gray-600">
+                    {say(
+                      translationKey(
+                        "Only if its metric stream's filters are the template's, give the metrics Firehose stream these common attributes too, so OneUptime stops reading what it carries.",
+                      ),
+                    )}
+                  </p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <CloudStreamCopyRow
+                      label={CLOUD_STREAM_TEMPLATE_ATTRIBUTE}
+                      value={String(AWS_STREAM_TEMPLATE_VERSION)}
+                      dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-template-attribute`}
+                    />
+                    <CloudStreamCopyRow
+                      label={CLOUD_STREAM_METRICS_ATTRIBUTE}
+                      value={
+                        choices.everyMetric
+                          ? CloudStreamMetricsMode.All
+                          : CloudStreamMetricsMode.Key
+                      }
+                      dataTestId={`${CLOUD_STREAM_DIALOG_TEST_ID}-metrics-attribute`}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <></>
+              )}
               <a
                 href={cloudConnectionDocsUrl(CLOUD_STREAM_DOCS_PATH).toString()}
                 target="_blank"

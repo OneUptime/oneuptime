@@ -70,6 +70,21 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
 });
 
 /*
+ * Single sign-on manages nobody's sign-in here: setting up a second step at
+ * sign-in, claiming an invited account with a password and a password reset
+ * link each ask SsoManagedSignIn first, which reads the server's rule and,
+ * since #9763, every project the person is in. Driven for real in
+ * SignInMatrixSsoAndTwoFactor.test.ts and ForgotPasswordSsoManaged.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoManagedSignInStandIn",
+    ) as typeof import("./SsoManagedSignInStandIn")
+  ).ssoManagesNobody();
+});
+
+/*
  * Served through a getter so one file can run as both deployment shapes. See
  * SignupMasterAdminElection.test.ts for why defineProperty, not a spread.
  */
@@ -122,6 +137,7 @@ jest.mock("Common/Server/Utils/Express", () => {
 
 const createEmailVerificationToken: jest.Mock = jest.fn();
 const findEmailVerificationToken: jest.Mock = jest.fn();
+const deleteEmailVerificationToken: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/EmailVerificationTokenService", () => {
   return {
@@ -133,7 +149,9 @@ jest.mock("Common/Server/Services/EmailVerificationTokenService", () => {
       create: (...args: Array<unknown>): unknown => {
         return createEmailVerificationToken(...args);
       },
-      deleteOneBy: jest.fn(),
+      deleteOneBy: (...args: Array<unknown>): unknown => {
+        return deleteEmailVerificationToken(...args);
+      },
     },
   };
 });
@@ -144,6 +162,7 @@ const userUpdateOneById: jest.Mock = jest.fn();
 const userUpdateOneByIdAndFetch: jest.Mock = jest.fn();
 const userCreateUserOnSignup: jest.Mock = jest.fn();
 const userVerifyHashedColumnValue: jest.Mock = jest.fn();
+const userFindOneById: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/UserService", () => {
   return {
@@ -151,6 +170,9 @@ jest.mock("Common/Server/Services/UserService", () => {
     default: {
       findOneBy: (...args: Array<unknown>): unknown => {
         return userFindOneBy(...args);
+      },
+      findOneById: (...args: Array<unknown>): unknown => {
+        return userFindOneById(...args);
       },
       updateOneBy: (...args: Array<unknown>): unknown => {
         return userUpdateOneBy(...args);
@@ -714,7 +736,7 @@ describe("POST /signup on the hosted service (billing enabled)", () => {
     expect(apiPost).not.toHaveBeenCalled();
   });
 
-  it("still refuses an address that has already registered", async () => {
+  it("answers an address that has already registered as it answers a new one, and makes nothing (#9816)", async () => {
     userFindOneBy.mockResolvedValue({
       _id: NEW_USER_ID,
       id: new ObjectID(NEW_USER_ID),
@@ -723,7 +745,8 @@ describe("POST /signup on the hosted service (billing enabled)", () => {
 
     await invoke("/signup", signupBody());
 
-    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+    expect(entityResponse().miscData["emailVerificationRequired"]).toBe(true);
     expect(userCreateUserOnSignup).not.toHaveBeenCalled();
     expect(createEmailVerificationToken).not.toHaveBeenCalled();
     expectNobodySignedIn();
@@ -1284,6 +1307,180 @@ describe("POST /verify-email -- the welcome link", () => {
 
     expect(refusalMessage()).toContain("Invalid link.");
     expect(userUpdateOneBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /verify-email -- a link that confirms a new address (#9821)", () => {
+  /*
+   * A person's own change of address waits for the new address to confirm
+   * it: the account keeps `newUnverifiedTemporaryEmail` until the link the
+   * new address was sent is opened. Opening it moves the account - as
+   * OneUptime, verified, the pending address cleared - and spends the link.
+   * A link whose change was cancelled or replaced moves nothing, and one
+   * whose address another account took meanwhile says so: only the
+   * mailbox's owner holds it.
+   */
+  const TOKEN: string = "66666666-6666-4666-8666-666666666666";
+  const ACCOUNT_ID: string = "77777777-7777-4777-8777-777777777777";
+  const NEW_ADDRESS: string = "river@new-mailbox.example.com";
+
+  const verifyBody: () => unknown = (): unknown => {
+    return {
+      data: {
+        token: { _type: "ObjectID", value: TOKEN },
+      },
+    };
+  };
+
+  const changeLink: () => Record<string, unknown> = (): Record<
+    string,
+    unknown
+  > => {
+    return {
+      _id: "change-token-row",
+      userId: new ObjectID(ACCOUNT_ID),
+      email: NEW_ADDRESS,
+      expires: OneUptimeDate.getOneDayAfter(),
+    };
+  };
+
+  const waitingAccount: (pending: string | null) => Record<string, unknown> = (
+    pending: string | null,
+  ): Record<string, unknown> => {
+    return {
+      _id: ACCOUNT_ID,
+      id: new ObjectID(ACCOUNT_ID),
+      newUnverifiedTemporaryEmail: pending,
+    };
+  };
+
+  it("moves the account to the address it was waiting for, verified, and spends the link", async () => {
+    findEmailVerificationToken.mockResolvedValue(changeLink());
+    // Nobody has the address yet.
+    userFindOneBy.mockResolvedValue(null);
+    userFindOneById.mockResolvedValue(waitingAccount(NEW_ADDRESS));
+
+    await invoke("/verify-email", verifyBody());
+
+    expect(userUpdateOneById).toHaveBeenCalledTimes(1);
+
+    const move: Record<string, any> = userUpdateOneById.mock
+      .calls[0]![0] as Record<string, any>;
+
+    expect(move["id"].toString()).toBe(ACCOUNT_ID);
+    expect(String(move["data"]["email"])).toBe(NEW_ADDRESS);
+    expect(move["data"]["isEmailVerified"]).toBe(true);
+    expect(move["data"]["newUnverifiedTemporaryEmail"]).toBeNull();
+    // OneUptime's own write: the person could never write their address.
+    expect(move["props"]["isRoot"]).toBe(true);
+
+    expect(deleteEmailVerificationToken).toHaveBeenCalledTimes(1);
+    expect(
+      (deleteEmailVerificationToken.mock.calls[0]![0] as Record<string, any>)[
+        "query"
+      ]["_id"],
+    ).toBe("change-token-row");
+
+    // The page is told the address changed, rather than that it was verified.
+    expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+    expect(sendEntityResponse.mock.calls[0]![4]).toEqual({
+      miscData: { emailChanged: true },
+    });
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+    expectNobodySignedIn();
+  });
+
+  it("matches the waiting address without regard to case", async () => {
+    findEmailVerificationToken.mockResolvedValue(changeLink());
+    userFindOneBy.mockResolvedValue(null);
+    userFindOneById.mockResolvedValue(
+      waitingAccount(NEW_ADDRESS.toUpperCase()),
+    );
+
+    await invoke("/verify-email", verifyBody());
+
+    expect(userUpdateOneById).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves nothing once the change was cancelled", async () => {
+    findEmailVerificationToken.mockResolvedValue(changeLink());
+    userFindOneBy.mockResolvedValue(null);
+    userFindOneById.mockResolvedValue(waitingAccount(null));
+
+    await invoke("/verify-email", verifyBody());
+
+    expect(refusalMessage()).toContain("Invalid link.");
+    expect(userUpdateOneById).not.toHaveBeenCalled();
+    expect(deleteEmailVerificationToken).not.toHaveBeenCalled();
+  });
+
+  it("moves nothing once the change was replaced by another address", async () => {
+    findEmailVerificationToken.mockResolvedValue(changeLink());
+    userFindOneBy.mockResolvedValue(null);
+    userFindOneById.mockResolvedValue(
+      waitingAccount("river@a-third-mailbox.example.com"),
+    );
+
+    await invoke("/verify-email", verifyBody());
+
+    expect(refusalMessage()).toContain("Invalid link.");
+    expect(userUpdateOneById).not.toHaveBeenCalled();
+  });
+
+  it("says the address now belongs to another account, and neither account changes", async () => {
+    findEmailVerificationToken.mockResolvedValue(changeLink());
+    // Another account signed up with the address after the link was sent.
+    userFindOneBy.mockResolvedValue(
+      storedUser({
+        _id: "88888888-8888-4888-8888-888888888888",
+        id: new ObjectID("88888888-8888-4888-8888-888888888888"),
+      }),
+    );
+
+    await invoke("/verify-email", verifyBody());
+
+    expect(refusalMessage()).toContain(
+      "This email address now belongs to another account",
+    );
+    expect(userUpdateOneById).not.toHaveBeenCalled();
+    // The other account is not verified on this link's strength.
+    expect(userUpdateOneBy).not.toHaveBeenCalled();
+  });
+
+  it("says the same when another account takes the address while the link is opened", async () => {
+    findEmailVerificationToken.mockResolvedValue(changeLink());
+    userFindOneBy
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(storedUser({ _id: "the-other-account" }));
+    userFindOneById.mockResolvedValue(waitingAccount(NEW_ADDRESS));
+    // The address's unique index refuses the move.
+    userUpdateOneById.mockRejectedValueOnce(
+      new Error("duplicate key value violates unique constraint"),
+    );
+
+    const result: InvokeResult = await invoke("/verify-email", verifyBody());
+
+    expect(result.nextError).toBeNull();
+    expect(refusalMessage()).toContain(
+      "This email address now belongs to another account",
+    );
+    expect(deleteEmailVerificationToken).not.toHaveBeenCalled();
+  });
+
+  it("still verifies a new account's own address, as before", async () => {
+    findEmailVerificationToken.mockResolvedValue({
+      _id: "token-row",
+      userId: new ObjectID(NEW_USER_ID),
+      email: NEW_USER_EMAIL,
+      expires: OneUptimeDate.getOneDayAfter(),
+    });
+    userFindOneBy.mockResolvedValue(storedUser());
+
+    await invoke("/verify-email", verifyBody());
+
+    expect(userUpdateOneBy).toHaveBeenCalledTimes(1);
+    expect(userFindOneById).not.toHaveBeenCalled();
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
   });
 });
 

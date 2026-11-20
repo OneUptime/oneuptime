@@ -1,6 +1,10 @@
 import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
+import {
+  MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+  ManagedDeviceCheckInAttribute,
+} from "../../DeviceManagement/ManagedDeviceCheckIn";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -103,6 +107,13 @@ export default class SeriesDebugHints {
     const hpa: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
       "k8s.hpa.name",
     ]);
+    const persistentVolumeClaim: string = SeriesLabelDisplay.findLabelValue(
+      seriesLabels,
+      ["k8s.persistentvolumeclaim.name"],
+    );
+    const cluster: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "k8s.cluster.name",
+    ]);
 
     /*
      * `-n <ns>` is omitted rather than guessed when the series has no
@@ -187,6 +198,28 @@ export default class SeriesDebugHints {
       });
     }
 
+    /*
+     * A claim filling up (PVC Almost Full) is fixed one of two ways: free
+     * space on it, or grow it. The claim's own page answers the first half
+     * - its capacity, its storage class and the pods that mount it - and
+     * the storage classes answer the second: a claim can only be expanded
+     * when its class says ALLOWVOLUMEEXPANSION true.
+     */
+    if (persistentVolumeClaim) {
+      commands.push({
+        purpose:
+          "The claim's capacity, storage class, the pods that mount it and recent events",
+        command: `kubectl describe pvc ${SeriesDebugHints.quoteForShell(
+          persistentVolumeClaim,
+        )}${namespaceFlag}`,
+      });
+      commands.push({
+        purpose:
+          "Whether the claim's storage class lets it grow (ALLOWVOLUMEEXPANSION)",
+        command: `kubectl get storageclass`,
+      });
+    }
+
     if (node) {
       const quotedNode: string = SeriesDebugHints.quoteForShell(node);
 
@@ -199,6 +232,18 @@ export default class SeriesDebugHints {
         purpose: "Everything scheduled on this node",
         command: `kubectl get pods --all-namespaces --field-selector spec.nodeName=${quotedNode} -o wide`,
       });
+
+      /*
+       * The kubelet's own reading, as the agent collects it: the node's
+       * root and image filesystems, and each pod's ephemeral storage - the
+       * pod filling a node's disk (High Node Disk Usage), or using its
+       * memory. Read-only, through the API server's node proxy.
+       */
+      commands.push({
+        purpose:
+          "The kubelet's reading of the node's disks, memory and CPU, and of each pod's ephemeral storage on it",
+        command: `kubectl get --raw /api/v1/nodes/${quotedNode}/proxy/stats/summary`,
+      });
     }
 
     if (pod) {
@@ -210,7 +255,79 @@ export default class SeriesDebugHints {
       });
     }
 
+    /*
+     * A series that names nothing narrower than a namespace or a cluster -
+     * Namespace Daily Cost Over Budget, Cluster Daily Cost Over Budget, High
+     * Idle Spend, or a monitor of your own grouped that way - still gets a
+     * first command, as a vCenter-only VMware series does: what runs there
+     * and how much of it is used. A series that names a pod, a workload, a
+     * claim or a node keeps its own commands only: the namespace's or the
+     * cluster's would just push them down the list.
+     */
+    if (commands.length === 0 && namespace) {
+      commands.push(...SeriesDebugHints.kubernetesNamespaceCommands(namespace));
+    }
+
+    if (commands.length === 0 && cluster) {
+      commands.push(...SeriesDebugHints.kubernetesClusterCommands());
+    }
+
     return commands;
+  }
+
+  /*
+   * What a namespace runs, and what it uses and reserves. A cost engine
+   * charges a pod for the larger of what it requests and what it uses, so
+   * the requests are half of why a namespace costs what it does, and a
+   * Deployment scaled up is the other usual half.
+   */
+  private static kubernetesNamespaceCommands(
+    namespace: string,
+  ): Array<SeriesDebugCommand> {
+    const namespaceFlag: string = ` -n ${SeriesDebugHints.quoteForShell(
+      namespace,
+    )}`;
+
+    return [
+      {
+        purpose:
+          "Live CPU and memory use of each pod in the namespace, the busiest first",
+        command: `kubectl top pods${namespaceFlag} --sort-by=cpu`,
+      },
+      {
+        purpose: "The CPU and memory each pod in the namespace requests",
+        /*
+         * Quoted: unquoted, `[*]` is a glob that zsh refuses to run when it
+         * matches no file.
+         */
+        command: `kubectl get pods${namespaceFlag} -o custom-columns='NAME:.metadata.name,CPU_REQUESTS:.spec.containers[*].resources.requests.cpu,MEMORY_REQUESTS:.spec.containers[*].resources.requests.memory,NODE:.spec.nodeName'`,
+      },
+      {
+        purpose: "The namespace's workloads and how many replicas each runs",
+        command: `kubectl get deployments,statefulsets,daemonsets${namespaceFlag}`,
+      },
+    ];
+  }
+
+  /*
+   * A cluster costs what its nodes cost, and idle spend is node capacity
+   * nothing uses: the nodes, their machine types and when each joined (a
+   * scale-up shows as the newest at the bottom), then how much of each is in
+   * use. Neither command takes the cluster's name: kubectl reads the cluster
+   * from its current context, as every command here does.
+   */
+  private static kubernetesClusterCommands(): Array<SeriesDebugCommand> {
+    return [
+      {
+        purpose:
+          "The cluster's nodes with their machine type and zone, the newest last",
+        command: `kubectl get nodes -L node.kubernetes.io/instance-type -L topology.kubernetes.io/zone --sort-by=.metadata.creationTimestamp`,
+      },
+      {
+        purpose: "Live CPU and memory use of each node",
+        command: `kubectl top nodes`,
+      },
+    ];
   }
 
   private static containerCommands(input: {
@@ -300,9 +417,68 @@ export default class SeriesDebugHints {
     return commands;
   }
 
+  /*
+   * An Android device - the series carries its Android API level, which the
+   * Android host templates group by and only the Android agent sends, or
+   * says `os.name: Android` - has no shell to ssh into, but adb, which
+   * Esper's Secure Remote ADB and other device managers' remote ADB reach.
+   * Each command reads and changes nothing.
+   */
+  private static androidCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "mountpoint",
+    ]);
+
+    if (mountpoint) {
+      commands.push({
+        purpose: "Free space on the device's storage",
+        command: `adb shell df -h ${SeriesDebugHints.quoteForShell(mountpoint)}`,
+      });
+      commands.push({
+        purpose: "What fills it: apps, their data and caches",
+        command: "adb shell dumpsys diskstats",
+      });
+    }
+
+    commands.push({
+      purpose: "Battery, charger and temperature, as Android sees them",
+      command: "adb shell dumpsys battery",
+    });
+    commands.push({
+      purpose: "Thermal status, and what Android throttles",
+      command: "adb shell dumpsys thermalservice",
+    });
+    commands.push({
+      purpose: "Why the device last rebooted",
+      command: "adb shell getprop sys.boot.reason",
+    });
+    commands.push({
+      purpose: "The crashes and reboots Android kept, newest last",
+      command: "adb shell dumpsys dropbox",
+    });
+
+    return commands;
+  }
+
   private static hostCommands(
     seriesLabels: JSONObject,
   ): Array<SeriesDebugCommand> {
+    const osName: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "os.name",
+    ]);
+    const androidApiLevel: string = SeriesLabelDisplay.findLabelValue(
+      seriesLabels,
+      ["android.os.api_level"],
+    );
+
+    if (androidApiLevel || osName.trim().toLowerCase() === "android") {
+      return SeriesDebugHints.androidCommands(seriesLabels);
+    }
+
     const commands: Array<SeriesDebugCommand> = [];
 
     const mountpoint: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
@@ -1074,15 +1250,97 @@ export default class SeriesDebugHints {
         return SeriesDebugHints.storageArrayCommands(seriesLabels);
 
       /*
-       * Metrics / IoT / RUM / Traces and friends deliberately return
-       * nothing: their series identify an application-level entity
-       * (a service, a device, a route), and there is no command that is
-       * both universally correct and read-only for those. The resource
-       * block still names the entity.
+       * A Traces monitor grouped by a mobile app's install (#9711): the
+       * OneUptime CLI can name what that install last sent. Any other
+       * grouping of spans has no command, as below.
+       */
+      case MonitorType.Traces:
+        return SeriesDebugHints.mobileInstallCommands(seriesLabels);
+
+      /*
+       * A Metrics monitor grouped by a managed device (Esper Device Stopped
+       * Checking In, #9835): the OneUptime CLI can show what the device's
+       * connection last read of it. Any other metric series has no command,
+       * as below.
+       */
+      case MonitorType.Metrics:
+        return SeriesDebugHints.managedDeviceCommands(seriesLabels);
+
+      /*
+       * IoT / RUM and friends deliberately return nothing: their series
+       * identify an application-level entity (a service, a device, a
+       * route), and there is no command that is both universally correct
+       * and read-only for those. The resource block still names the entity.
        */
       default:
         return [];
     }
+  }
+
+  /*
+   * A managed device that stopped checking in: the readings its
+   * connection's last reads took of it, newest first, with the OneUptime CLI
+   * - how long it had been quiet at each read, so when it went quiet, and its
+   * alias and group on their attributes. Read-only; only for a series that
+   * names the device.
+   */
+  private static managedDeviceCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const device: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      ManagedDeviceCheckInAttribute.DeviceName,
+    ]);
+
+    if (!device) {
+      return [];
+    }
+
+    const query: string = JSON.stringify({
+      name: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+      attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
+    });
+
+    return [
+      {
+        purpose:
+          "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
+        command: `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
+          query,
+        )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
+    ];
+  }
+
+  /*
+   * A mobile app's install that went quiet (Device Stopped Reporting): the
+   * spans it sent last, newest first, with the OneUptime CLI - when it went
+   * quiet, on which screen, and the device's model and name on their
+   * attributes. Read-only; only for a series that names the install.
+   */
+  private static mobileInstallCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const install: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "app.installation.id",
+    ]);
+
+    if (!install) {
+      return [];
+    }
+
+    const query: string = JSON.stringify({
+      attributes: { "resource.app.installation.id": install },
+    });
+
+    return [
+      {
+        purpose:
+          "The install's last spans: when it went quiet, on which screen, and its device",
+        command: `oneuptime span list --query ${SeriesDebugHints.quoteForShell(
+          query,
+        )} --sort '{"startTime":"DESC"}' --limit 5 --fields startTime,name,attributes`,
+      },
+    ];
   }
 
   /*

@@ -35,6 +35,7 @@ flowchart LR
 | گردآورنده گره | DaemonSet | لاگ‌های پاد از `/var/log/pods`، متریک‌های kubelet و cAdvisor، و متریک‌های سیستم‌عامل گره. | بله |
 | ابزارگذاری eBPF (OBI) | DaemonSet | ترِیس‌ها و متریک‌های درخواست HTTP، gRPC، SQL و Redis از هر پاد، و نقشه سرویس. | بله |
 | عامل AI در Kubernetes | Deployment | به OneUptime AI اجازه می‌دهد هنگام بررسی یک حادثه یا هشدار روی این خوشه، `kubectl` فقط‌خواندنی اجرا کند. | بله |
+| موتور و پرسشگر هزینه | Deployments | اینکه هر namespace و بار کاری چقدر هزینه دارد: OpenCost، Prometheus کوچکی که لازم دارد، و عامل هزینه که حاصل محاسبه آن‌ها را می‌فرستد. | بله، جز با پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate` |
 | دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که گردآورنده گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot`، `eks-fargate` و `openshift-restricted` |
 | پروفایلر eBPF | DaemonSet | نمودارهای شعله‌ای پیوسته CPU از هر فرایند. | خیر |
 | kube-state-metrics | Deployment | فازهای پاد، دلیل‌های انتظار کانتینر و سهمیه‌های منابع. | خیر |
@@ -357,14 +358,14 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | --- | --- | --- |
 | `hostMetrics.enabled` | روشن | متریک‌های سیستم‌عامل هر گره از `/proc` و `/sys`: صف‌های I/O دیسک، inodeهای سیستم فایل، خطاهای رابط شبکه، صفحه‌بندی و میانگین بار. در گردآورنده گره اجرا می‌شود، بدون پاد اضافه. |
 | `kubeletstats.utilizationMetrics.enabled` | روشن | CPU و حافظه کانتینر و پاد به‌صورت درصدی از request و limit آن‌ها، که قالب‌های Pod CPU Saturating Container Limit و Pod Memory Saturating Container Limit می‌خوانند. کانتینری بدون limit (یا request) هیچ‌یک از این سری‌ها را ندارد، و پاد فقط وقتی دارد که همه کانتینرهایش داشته باشند. |
-| `kubeletstats.volumeMetrics.enabled` | روشن | فضای آزاد و کل هر PVC (`k8s.volume.available`، `k8s.volume.capacity`)، برای نمودارها و مانیتورهای متریک خودتان: هیچ قالب داخلی آن‌ها را نمی‌خواند. یک سری به ازای هر PVC در هر پاد. |
+| `kubeletstats.volumeMetrics.enabled` | روشن | فضای آزاد و کل هر PVC (`k8s.volume.available`، `k8s.volume.capacity`)، با نام Claim آن: مصرف، فضای آزاد و ظرفیت در صفحه‌های Persistent Volume Claimها، و آن‌چه قالب PVC Almost Full می‌خواند. Claimی که ۸۰٪ یا بیشتر پر باشد، زیر **نیاز به توجه** خوشه فهرست می‌شود. چند سری برای هر Volume و هر Pod، برای Volumeهایی که داده نگه می‌دارند (Claimها، emptyDirها، hostPathها): Volumeهای configMap، secret، downwardAPI و توکن service account یک Pod روی همان گره کنار گذاشته می‌شوند. |
 | `cadvisor.enabled` | روشن | throttling در CPU و کشته شدن‌های OOM از `/metrics/cadvisor` هر kubelet: `container_cpu_cfs_throttled_seconds_total`، `container_cpu_cfs_periods_total` و `container_oom_events_total`، و هیچ چیز دیگر. |
 | `kubeStateMetrics.enabled` | خاموش | فازهای پاد (Pending، Terminating)، پادهایی که زمان‌بندی نمی‌شوند، دلیل‌های انتظار کانتینر (CrashLoopBackOff، ImagePullBackOff) و مصرف سهمیه منابع، از kube-state-metrics. `kubeStateMetrics.mode: bundled` (پیش‌فرض) یک kube-state-metrics کوچک برایتان اجرا می‌کند؛ `external` نمونه‌ای را که خودتان اجرا می‌کنید، در `kubeStateMetrics.endpoint`، می‌خواند. |
 | `auditLogs.enabled` | خاموش | لاگ ممیزی Kubernetes، `/var/log/kubernetes/audit.log`: هر درخواست به API، از سوی چه کسی، روی چه چیزی. فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده (EKS، GKE، AKS، DOKS) آن را به ارائه‌دهنده ابر می‌فرستند. |
 | `csi.enabled` | خاموش | متریک‌های درایورهای ذخیره‌سازی CSI، از پادهایی با برچسب `app=csi-driver` یا `app.kubernetes.io/component=csi-driver`: زمان‌های attach و detach حجم، شکست‌های تأمین، IOPS. |
 | `coreDns.enabled` | خاموش | متریک‌های CoreDNS روی `:9153/metrics`: نرخ پرس‌وجو، تأخیر، برخوردهای حافظه نهان و خطاها. |
 | `controlPlane.enabled` | خاموش | سرور API در نشانی‌اش درون خوشه، و etcd، زمان‌بند و controller manager در نقطه‌های پایانی‌ای که فهرست می‌کنید ([روشن کردن پایش صفحه کنترل](/docs/telemetry/kubernetes-agent#روشن-کردن-پایش-صفحه-کنترل)). فقط خوشه‌های خودمدیریت: خوشه‌های مدیریت‌شده آن‌ها را در دسترس نمی‌گذارند. |
-| `cost.enabled` | خاموش | هزینه هر بار کاری. [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) را ببینید. |
+| `cost.enabled` | `auto` | هزینه هر namespace و بار کاری، با ظرفیت بیکار و کارایی، همچنین به‌صورت متریک‌هایی برای هشدار: روشن، جز با پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate`؛ `false` آن را خاموش می‌کند. [مشاهده‌پذیری هزینه Kubernetes](/docs/telemetry/kubernetes-cost) را ببینید. |
 
 ## گزینه‌های رایج
 

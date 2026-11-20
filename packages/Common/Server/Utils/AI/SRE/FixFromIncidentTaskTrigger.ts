@@ -1,8 +1,6 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import AIRunStatus, {
-  AIRunStatusHelper,
-} from "../../../../Types/AI/AIRunStatus";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import CodeFixTaskContext, {
   getInvestigationCodeFixTaskSnapshot,
@@ -293,6 +291,7 @@ export default class FixFromIncidentTaskTrigger {
      */
     const existingRun: AIRun | null =
       await SubjectCodeFixRun.findNonTerminalRunForSubject({
+        projectId: data.projectId,
         taskType: CodeFixTaskType.FixFromIncident,
         incidentId: data.incidentId,
         alertId: data.alertId,
@@ -393,20 +392,23 @@ export default class FixFromIncidentTaskTrigger {
       return NO_INVESTIGATION_CODE_FIX_SUGGESTION;
     }
 
-    const activeRun: AIRun | null = await AIRunService.findOneBy({
-      query: {
+    /*
+     * The fix on its way, or the newest that did its work: a turn of a fix
+     * task of this record - its first, the fix asked again from Code (Try
+     * again, #6509), which is a later turn of the same task with the same
+     * recipe and record, or a reply someone sent in Code, which carries
+     * neither. On its way is the rule the create path holds to
+     * (SubjectCodeFixRun.findNonTerminalRunForSubject, CodeFixOnItsWay), so
+     * a fix asked again or a reply working is on its way here too, and the
+     * step never offers a second fix beside it.
+     */
+    const activeRun: AIRun | null =
+      await SubjectCodeFixRun.findNonTerminalRunForSubject({
         projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: CodeFixTaskType.FixFromIncident,
-        // A task's first turn: its replies are the same task.
-        codeTaskId: QueryHelper.isNull(),
-        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
-        ...subjectQuery,
-      },
-      select: { _id: true, userId: true },
-      sort: { createdAt: SortOrder.Descending },
-      props: { isRoot: true },
-    });
+        taskType: CodeFixTaskType.FixFromIncident,
+        incidentId: data.incidentId,
+        alertId: data.incidentId ? undefined : data.alertId,
+      });
 
     const finishedRun: AIRun | null = activeRun
       ? null
@@ -415,7 +417,6 @@ export default class FixFromIncidentTaskTrigger {
             projectId: data.projectId,
             runType: AIRunType.CodeFix,
             codeFixTaskType: CodeFixTaskType.FixFromIncident,
-            codeTaskId: QueryHelper.isNull(),
             status: QueryHelper.any([...FINISHED_FIX_STATUSES]),
             ...subjectQuery,
           },
@@ -424,6 +425,7 @@ export default class FixFromIncidentTaskTrigger {
             status: true,
             needsUserInput: true,
             userId: true,
+            codeTaskId: true,
           },
           sort: { createdAt: SortOrder.Descending },
           props: { isRoot: true },
@@ -433,16 +435,18 @@ export default class FixFromIncidentTaskTrigger {
      * The fix the step would show, read as its task's own page reads it: a
      * task a reply carried a private incident or alert into, which the
      * reader does not see, says it is there - so no second one is offered -
-     * and nothing of how it stands, nor where it is.
+     * and nothing of how it stands, nor where it is. A task is named by its
+     * first turn's id: a later turn's names it (codeTaskId).
      */
     const fixRun: AIRun | null = activeRun || finishedRun;
+    const fixTaskId: ObjectID | null = SubjectCodeFixRun.taskIdOf(fixRun);
 
     if (
-      fixRun?.id &&
+      fixTaskId &&
       (
         await CodeTaskThread.findTasksHiddenFrom({
           projectId: data.projectId,
-          taskIds: [fixRun.id],
+          taskIds: [fixTaskId],
           reader: data.reader,
         })
       ).size > 0
@@ -452,14 +456,22 @@ export default class FixFromIncidentTaskTrigger {
 
     let finishedFix: InvestigationCodeFixSuggestionInput["finishedFix"] = null;
 
-    if (finishedRun?.id) {
+    if (finishedRun?.id && fixTaskId) {
+      // The task's latest turn: a later turn's task is its first turn.
+      let task: AIRun = finishedRun;
+
+      if (finishedRun.codeTaskId) {
+        task = new AIRun();
+        task.id = finishedRun.codeTaskId;
+      }
+
       const latestTurn: AIRun = await CodeTaskRuns.getLatestTurn({
         projectId: data.projectId,
-        task: finishedRun,
+        task,
       });
 
       finishedFix = {
-        aiRunId: finishedRun.id.toString(),
+        aiRunId: fixTaskId.toString(),
         isAutomatic: !finishedRun.userId,
         outcome: getFinishedFixOutcome({ fix: finishedRun, latestTurn }),
       };
@@ -497,9 +509,13 @@ export default class FixFromIncidentTaskTrigger {
     return getInvestigationCodeFixSuggestion({
       isAiEnabled: true,
       isCodeFixRecommended,
-      activeFix: activeRun?.id
-        ? { aiRunId: activeRun.id.toString(), isAutomatic: !activeRun.userId }
-        : null,
+      activeFix:
+        activeRun?.id && fixTaskId
+          ? {
+              aiRunId: fixTaskId.toString(),
+              isAutomatic: !activeRun.userId,
+            }
+          : null,
       finishedFix,
       hasConnectedRepository,
       blocker,
@@ -853,6 +869,7 @@ export default class FixFromIncidentTaskTrigger {
 
       const existingRun: AIRun | null =
         await SubjectCodeFixRun.findNonTerminalRunForSubject({
+          projectId,
           taskType: CodeFixTaskType.FixFromIncident,
           incidentId: data.incidentId,
           alertId: data.alertId,

@@ -57,6 +57,7 @@ Two containers start as root, on purpose:
 - **Sign-in links.** The sign-in page offers to email people a link that signs them in without their password; two-factor authentication still applies. Turn off **Let people sign in with an emailed link** in **Admin Dashboard > Settings > Authentication** to take it off the page and stop links already sent. See [Sign in with an emailed link](/docs/introduction/your-account#使用电子邮件链接登录).
 - **Two factors.** People who sign in with a password can add an authenticator app or a security key as a second factor.
 - **Accounts.** Create and remove accounts from your identity provider with [SCIM](/docs/identity/scim) (Enterprise Edition), so someone who leaves loses access when their account goes.
+- **Invite suggestions.** As people type an address to invite, OneUptime suggests their project's own people, and offers every account on the server to master admins alone. Leave **Suggest every account on this server** off in **Admin Dashboard > Settings > Authentication** if the server hosts more than one organization: turned on, it shows anyone who may invite people to a project the name and email of every account on the server.
 - **Sessions.** Limit how long a sign-in lasts, and how long it may sit unused, with [Session Length](/docs/self-hosted/session-length) (Enterprise Edition).
 - **Least privilege.** Give each person, team and API key only the permissions it needs, and an expiry date to each API key. See [Permissions](/docs/permissions/index).
 
@@ -77,6 +78,59 @@ OneUptime keeps configuration in PostgreSQL, telemetry in ClickHouse, and the ca
 ## Patch
 
 Check each release before it runs, as [Supply Chain Security](/docs/self-hosted/supply-chain-security) shows, and read its notes in [Upgrading](/docs/installation/upgrading). OneUptime publishes its security advisories on GitHub; on a network without internet access, the [update check](/docs/self-hosted/update-checks) can read them from a mirror and tell your master admins when one affects the version you run.
+
+The ingress gateway runs nginx, which OneUptime builds into its `nginx` image, so nginx's security fixes reach you in OneUptime's releases. To see which nginx your gateway runs (on Docker Compose, from the folder you installed OneUptime in):
+
+:::tabs
+@tab Docker Compose
+```bash
+sh Scripts/Install/WithConfig.sh docker compose exec ingress nginx -v
+```
+@tab Kubernetes
+```bash
+kubectl exec -n <namespace> deploy/<release>-nginx -- nginx -v
+```
+:::
+
+### Turn HTTP/2 off until you can upgrade
+
+The gateway speaks HTTP/2 only on the HTTPS port of your install's own address, and only when it terminates TLS for that address itself: with `PROVISION_SSL=true` on Docker Compose, or `ssl.provision: true` on Kubernetes. When a load balancer or ingress of your own terminates TLS in front of it, the gateway speaks HTTP/1.1 only.
+
+So when nginx fixes a vulnerability in HTTP/2 and you cannot upgrade OneUptime yet, turn HTTP/2 off on a gateway that terminates TLS. Upgrading is the fix, and this setting closes HTTP/2 until you can. For example, nginx 1.30.7 fixed CVE-2026-123007 and CVE-2026-123633, which let anyone who can reach the gateway crash its worker processes, and possibly run code in them. A gateway on an older nginx has both, and comes from a release that does not have this setting yet: upgrade it.
+
+:::tabs
+@tab Docker Compose
+```bash title="config.env"
+NGINX_HTTP2=off
+```
+
+Then recreate the containers with the new `config.env`:
+
+```bash
+npm run start
+```
+@tab Kubernetes
+```yaml title="values.yaml"
+nginx:
+  http2: false
+```
+
+Then apply it:
+
+```bash
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+:::
+
+The gateway's log then says `HTTP/2 is off`. A request that asks for HTTP/2 gets HTTP/1.1: this prints `1.1` while HTTP/2 is off, and `2` while it is on.
+
+```bash
+curl -s -o /dev/null -w '%{http_version}\n' --http2 https://oneuptime.example.com
+```
+
+- **What stops working.** OTLP over gRPC to your install's address. gRPC needs HTTP/2, so the gateway refuses an exporter's connection, and the exporter reports a TLS error about the application protocol. OTLP over HTTP keeps working, and browsers switch to HTTP/1.1.
+- **How long it lasts.** Until you set it back: `NGINX_HTTP2=on`, or `nginx.http2: true` on Kubernetes. Restarts and upgrades keep it, so set it back once your gateway runs a fixed nginx.
+- **What it does not fix.** Anything outside HTTP/2. nginx 1.30.7 also fixed CVE-2026-118899, a denial of service over TLS 1.3 that reaches every HTTPS listener with a certificate, including those of status pages on domains of their own. Only upgrading fixes that.
 
 ## Cryptography and FIPS 140
 

@@ -22,6 +22,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `This project has been blocked` | Bed en masteradministrator om at fjerne blokeringen af projektet: se [Et blokeret projekt](#et-blokeret-projekt) |
 | `references records that are not in this project` | Brug ID'et på en post i dit eget projekt: se [ID'er fra et andet projekt](#ider-fra-et-andet-projekt) |
 | `Not Found` eller `Ambiguous Match` fra en datakilde | Ret opslagets argumenter: se [Opslag, der finder ingen eller flere](#opslag-der-finder-ingen-eller-flere) |
+| `There is already a team called` (en etiket, en vagtpolitik, en vagtplan) | Giv den et navn, som ingen anden af samme slags har, eller omdøb den anden først: se [Navne, som en anden post allerede har](#navne-som-en-anden-post-allerede-har) |
 | `Cannot import non-existent remote object` | Kontrollér ID'et og nøglens tilladelser: se [Import af ressourcer](/docs/terraform/importing-resources#fejlfinding) |
 | `Provider produced inconsistent result after apply` | Opgradér provideren: se [Inkonsistent resultat efter apply](#inkonsistent-resultat-efter-apply) |
 | En plan opretter en ressource, du ikke har tilføjet | Nøglen kan ikke længere læse den, og OneUptime svarede `404`: giv nøglen dens læseadgang tilbage, og importér derefter ressourcen med `terraform import`: se [En ressource forlader state, og næste apply opretter den igen](#en-ressource-forlader-state-og-næste-apply-opretter-den-igen) |
@@ -103,6 +104,12 @@ Det betyder som regel, at et ID er kopieret fra et andet projekts konfiguration 
 
 En datakilde finder præcis én post, eller den stopper planen. `Not Found` siger, at ingen post har det `id`, eller at ingen passer til de argumenter, du har angivet; `Ambiguous Match` siger, at flere gør. Ret argumenterne, angiv flere af dem for at indsnævre opslaget til én, eller slå posten op via `id`. [Læs det, der allerede findes](/docs/terraform/complete-guide#læs-det-der-allerede-findes) har reglerne.
 
+### Navne, som en anden post allerede har
+
+Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et projekt, uanset store og små bogstaver og mellemrum. En oprettelse eller en omdøbning til et navn, som en anden post af samme slags allerede har, besvares med `400`, fx `There is already an on-call policy called Primary in this project. Pick another name.` En arkiveret vagtpolitik beholder sit navn: fjern den fra arkivet, eller vælg et andet navn. Poster, der allerede delte et navn, beholder det, og dashboardets lister over teams, vagtpolitikker og vagtplaner markerer dem.
+
+Terraform foretager ændringerne i én apply side om side, så en omdøbning til et navn, som en anden ressource opgiver i samme apply, kan blive afvist, mens den anden stadig har det: anvend igen, eller tilføj en `depends_on` fra den ressource, der tager navnet, til den, der opgiver det. Et bytte, A til B og B til A, eller en hvilken som helst kæde af omdøbninger, der ender, hvor den begyndte, kan ikke laves i én apply: omdøb én af dem til et navn, som ingen har, anvend, og lav så resten af ændringen.
+
 ## Planer, der ikke falder til ro
 
 ### Inkonsistent resultat efter apply
@@ -131,9 +138,13 @@ Det sker, når den nøgle, der styrer en ressource, ikke længere kan læse den:
 
 ### En prioritet eller rækkefølge, der flytter sig
 
-Monitorstatusser, hændelses- og alarmtilstande og -alvorligheder, og de andre lister, du sætter i rækkefølge i dashboardet, har hvert nummer én gang. Et nummer, som ingen anden har, beholdes, som det er skrevet. Et nummer, som en anden allerede har, overtages, og dem, der står i vejen, rykker én plads ned, som når du trækker i dashboardet. Så to af dem, der er konfigureret med det samme nummer, bytter plads ved hver apply.
+Hver liste, du sætter i rækkefølge i dashboardet, beholder det nummer, hver ressource får: monitorstatusser (`priority`), hændelses- og alarmtilstande og -alvorligheder, brugerdefinerede felter, logpipelines og drop-filtre (`sort_order`), statussidegrupper og -ressourcer, eskaleringsregler, vagtplanlag og resten. Et nummer, der sættes, placerer den ressource og flytter ingen anden, så en konfiguration, der nummererer en hel liste, som `order = index(local.severities, each.key) + 1` over en `for_each` af `local.severities`, anvendes præcis som skrevet, uanset i hvilken rækkefølge providerens skrivninger lander, og den næste plan er tom.
 
-Giv hver enkelt sit eget nummer med mellemrum imellem, som `101`, `102` og `103`, og ændr rækkefølgen af dem, Terraform styrer, i Terraform, ikke ved at trække dem i dashboardet.
+- Giv hver ressource sit eget nummer: to med samme nummer beholder det begge, side om side, i en rækkefølge, du ikke vælger.
+- En ressource, der oprettes uden nummer, kommer sidst i sin liste. En ny hændelses- eller alarmtilstand kommer i stedet lige over den løste tilstand, og en ny monitorstatus lige over offline-statussen.
+- Sletter du en ressource, efterlader det et hul i numrene, hvilket intet ændrer: en liste går efter sine numre, ikke efter optælling.
+- Trækker du en ressource i OneUptime-dashboardet, nummereres hele dens liste igen fra toppen, og den næste plan viser det som ændringer. Sæt de ressourcer, Terraform styrer, i rækkefølge i Terraform.
+- De indbyggede tilstande beholder deres rækkefølge: en ændring, der ville give to af dem samme nummer eller bringe dem ud af rækkefølge, afvises med en begrundelse. Når en apply flytter indbyggede tilstande forbi hinandens gamle numre, kan en af dens skrivninger lande først og møde den afvisning; kør apply igen, så bliver den færdig.
 
 ### Skrivebeskyttede attributter
 

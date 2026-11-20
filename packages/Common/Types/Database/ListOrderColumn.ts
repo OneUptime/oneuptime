@@ -8,16 +8,21 @@ import GenericFunction from "../GenericFunction";
  *   @ListOrderColumn({ column: "order", scopeColumns: ["statusPageId"] })
  *
  * With it, DatabaseService keeps that column for every caller - the dashboard,
- * the API, workflows and seed data alike:
+ * the API, workflows and seed data alike (issue #9609):
  *
- *   - a row created without a number goes to the end of its list;
- *   - a row created or updated WITH a number keeps it, and if another row of
- *     its list held that number, that row steps one place aside to make room
- *     (and the next one, along a run of neighbours) - so a drop in a
- *     reorderable table, which sends the number of the row it was dropped
- *     onto, takes that row's place;
- *   - numbers nobody collides with are never rewritten, so an API or
- *     Terraform caller reads back exactly what it wrote.
+ *   - a row created without a number goes to the end of its list (a new
+ *     state just above the resolved state: Utils/StateOrder);
+ *   - a row created or updated WITH a number keeps it and moves no other,
+ *     even when another row of its list holds it: the two share it, and
+ *     are shown the older first. So an API or Terraform caller that numbers
+ *     a whole list, one write per row in any order, reads back exactly what
+ *     it wrote;
+ *   - moving a row past others is a request of its own (POST
+ *     <path>/:id/move, Types/Database/MoveInList), which a drop in a
+ *     reorderable table sends;
+ *   - the rows are read in the list's order when a read asks for none, and
+ *     two rows at one number the older first (DatabaseService.getReadSort),
+ *     so a lookup of a project's built-in row by its flag is the topmost.
  *
  * The arithmetic lives in Common/Utils/ListOrder.ts, shared with the table, so
  * the two cannot disagree. Nothing in a form should ask for this number: the

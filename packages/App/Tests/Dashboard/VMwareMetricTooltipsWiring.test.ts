@@ -360,6 +360,16 @@ describe("the VMware pages and the description record agree", () => {
     expect(Object.fromEntries(reused)).toEqual({
       clusterCpuInUse: ["clusterOverview", "clusters"],
       clusterMemoryInUse: ["clusterOverview", "clusters"],
+      /*
+       * A datastore's Free tile and the Datastores list's Free column are
+       * the same measure, its capacity minus what is used (#9539).
+       */
+      datastoreFree: ["datastoreOverview", "datastores"],
+      /*
+       * A VM's Disk tile and the VMs lists' Storage column are the same
+       * measure, its datastore space of what is provisioned (#9646).
+       */
+      vmDisk: ["vmOverview", "resourceTables"],
     });
   });
 });
@@ -986,9 +996,11 @@ describe("VMware list pages: column headers", () => {
   test("Datastores", () => {
     const code: string = readCode(PAGES["datastores"]!);
 
-    expect(columnPairs(code)).toEqual([
-      ["Used / Capacity", "datastoreListUsedCapacity"],
-    ]);
+    // Its size, beside the shared Used and Free columns (#9539).
+    expect(columnPairs(code)).toEqual([["Capacity", null]]);
+    expect(code).toContain(
+      "storageUsageColumns={{ usedDescription: VMWARE_METRIC_DESCRIPTIONS.datastoreListUsedCapacity, freeDescription: VMWARE_METRIC_DESCRIPTIONS.datastoreFree, }}",
+    );
     expect(code).toContain("showStatus={false}");
     expect(code).toContain("showResourceMetrics={false}");
     expect(builtInDescriptions(code)).toEqual({});
@@ -1046,6 +1058,44 @@ describe("VMware list pages: column headers", () => {
     );
     expect(table).toContain(
       "headerTooltip: props.builtInColumnDescriptions?.age,",
+    );
+  });
+});
+
+/*
+ * "1/2 ESXi hosts connected" said a host was out of reach, never which or
+ * why (#9594): beside the hosts chip, a count per state that needs
+ * attention opens exactly those hosts, by the vCenter's rules.
+ */
+describe("VMware overview: the hosts out of reach open which, and why", () => {
+  const code: string = readCode("Pages/VMware/View/Index.tsx");
+
+  test("one count per state that needs attention, from the vCenter's rules, while it reports", () => {
+    expect(code).toContain(
+      'import ResourceAttentionPill, { ComponentProps as ResourceAttentionPillProps, } from "../../../Components/ResourcePart/ResourceAttentionPill";',
+    );
+    const problems: string = between(
+      code,
+      "const hostProblems: Array<ResourceAttentionPillProps> = [];",
+      "const specChips",
+    );
+    expect(problems).toContain("if (inventory && isVCenterConnected) {");
+    expect(problems).toContain("state: VMwareHostState.NotResponding,");
+    expect(problems).toContain("state: VMwareHostState.NoUsage,");
+    expect(problems).toContain('testId: "vmware-hero-hosts-not-responding"');
+    expect(problems).toContain('testId: "vmware-hero-hosts-no-usage"');
+    expect(problems).toContain('hint: "Show which hosts and why"');
+  });
+
+  test("the counts follow the hosts chip, which still opens every host", () => {
+    expect(code).toContain(
+      'route: hostsRoute, testId: "vmware-hero-hosts", problems: hostProblems,',
+    );
+    // After the chip's link, never inside it.
+    const chip: string = between(code, "</Link>", "</React.Fragment>");
+    expect(chip).toContain("{(chip.problems || []).map(");
+    expect(chip).toContain(
+      "<ResourceAttentionPill key={problem.testId} {...problem} />",
     );
   });
 });

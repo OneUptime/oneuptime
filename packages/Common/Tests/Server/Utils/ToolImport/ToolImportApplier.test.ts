@@ -22,6 +22,7 @@ import {
   ToolImportProjectState,
 } from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
 import Errors from "../../../../Server/Utils/Errors";
+import ServerSetColumns from "../../../../Server/Utils/Database/ServerSetColumns";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
@@ -31,6 +32,16 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import ObjectID from "../../../../Types/ObjectID";
 import { RestrictionType } from "../../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import { ToolImportNoteCode } from "../../../../Types/ToolImport/ToolImportNote";
+import {
+  ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL,
+  TEAM_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+  isSameName,
+} from "../../../../Types/Database/UniqueName";
+import { RefusalWithValues } from "../../../../Types/Exception/RefusalWithValues";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   ToolImportAction,
   ToolImportOutcome,
@@ -513,6 +524,46 @@ describe("ToolImportApplier: a whole import", () => {
     );
   });
 
+  /*
+   * #9700: services, on-call policies and on-call schedules have owner-added
+   * jobs now, which tell every member of a team made an owner. An import
+   * reports what it made once; the owner teams it gives each record are
+   * written told, as an imported monitor's owners are, so nobody gets a
+   * message per imported record. The value is OneUptime's, marked on the
+   * row, and the row is still written as the person importing.
+   */
+  test("writes the owner teams it gives services, policies and schedules already told, as the person importing", async () => {
+    const world: ApplierWorld = new ApplierWorld();
+    await runImport({});
+
+    const ownerCreates: Array<RecordedCreate> = [
+      ...world.createsOf("ServiceOwnerTeam"),
+      ...world.createsOf("OnCallDutyPolicyOwnerTeam"),
+      ...world.createsOf("OnCallDutyPolicyScheduleOwnerTeam"),
+    ];
+
+    // A service's, a policy's and both schedules'.
+    expect(ownerCreates).toHaveLength(4);
+
+    for (const create of ownerCreates) {
+      expect({
+        service: create.service,
+        isOwnerNotified: (
+          create.data as unknown as { isOwnerNotified: unknown }
+        ).isOwnerNotified,
+        isMarked: ServerSetColumns.isMarked(create.data, "isOwnerNotified"),
+        isRoot: Boolean(create.props.isRoot),
+        userId: create.props.userId?.toString(),
+      }).toEqual({
+        service: create.service,
+        isOwnerNotified: true,
+        isMarked: true,
+        isRoot: false,
+        userId: PERSON_PROPS.userId!.toString(),
+      });
+    }
+  });
+
   test("services, severities, states, roles and custom fields are created with what OneUptime needs of each", async () => {
     const world: ApplierWorld = new ApplierWorld();
     await runImport({});
@@ -974,6 +1025,206 @@ describe("ToolImportApplier: when OneUptime refuses", () => {
       outcome: ToolImportOutcome.Failed,
       error: "You have reached the member limit.",
     });
+  });
+});
+
+/*
+ * #9742: a team's, a schedule's and a policy's name is one record's in its
+ * project, and another tool may call two alike - two escalation policies
+ * "Primary", each with its own levels. The second is made numbered, as
+ * Duplicate numbers a copy, and its report says the name it was made with;
+ * matching it to the first would drop its levels and page the first's
+ * people in its place. A name an archived policy, or a record the person may
+ * not see, has is numbered past the same way. Any other refusal still fails
+ * the item with OneUptime's words.
+ */
+describe("ToolImportApplier: names another record of the project has (#9742)", () => {
+  // The server's check (UniqueNameInProject): a name another record of the kind has is refused.
+  function refuseTakenNames(data: {
+    world: ApplierWorld;
+    service: string;
+    refusal: RefusalWithValues;
+    // Names the project has already: an archived policy's, one the person may not see.
+    alsoTaken?: Array<string>;
+  }): ApplierWorld {
+    return data.world.refuse(data.service, (record: BaseModel) => {
+      const name: string | undefined = (record as unknown as { name?: string })
+        .name;
+      const taken: Array<string | undefined> = [
+        ...(data.alsoTaken || []),
+        ...data.world
+          .dataOf<BaseModel>(data.service)
+          .map((created: BaseModel): string | undefined => {
+            return (created as unknown as { name?: string }).name;
+          }),
+      ];
+
+      return taken.some((other: string | undefined): boolean => {
+        return isSameName(other, name);
+      })
+        ? new BadDataException(getNameTakenRefusalText(data.refusal, name))
+        : null;
+    });
+  }
+
+  function namesOf(world: ApplierWorld, service: string): Array<string> {
+    return world
+      .dataOf<BaseModel>(service)
+      .map((created: BaseModel): string => {
+        return (created as unknown as { name: string }).name;
+      });
+  }
+
+  function numbered(name: string): {
+    code: ToolImportNoteCode;
+    values: { name: string };
+  } {
+    return { code: ToolImportNoteCode.NameNumbered, values: { name } };
+  }
+
+  test("two policies called alike: the second is made numbered, with its own levels, and says so", async () => {
+    const world: ApplierWorld = refuseTakenNames({
+      world: new ApplierWorld(),
+      service: "OnCallDutyPolicy",
+      refusal: ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+    });
+
+    const { report } = await runImport({
+      snapshot: snapshot({
+        people: [person("alice"), person("bob")],
+        policies: [
+          policy("first", "Primary", [level({ people: ["alice"] })]),
+          policy("second", "PRIMARY ", [level({ people: ["bob"] })]),
+        ],
+      }),
+      state: projectState(),
+    });
+
+    expect(namesOf(world, "OnCallDutyPolicy")).toEqual([
+      "Primary",
+      "PRIMARY 2",
+    ]);
+    expect(outcomeOf(report, "OnCallPolicy:first").outcome).toBe(
+      ToolImportOutcome.Created,
+    );
+    expect(outcomeOf(report, "OnCallPolicy:first").notes).not.toContainEqual(
+      expect.objectContaining({ code: ToolImportNoteCode.NameNumbered }),
+    );
+    expect(outcomeOf(report, "OnCallPolicy:second")).toMatchObject({
+      outcome: ToolImportOutcome.Created,
+      notes: expect.arrayContaining([numbered("PRIMARY 2")]),
+    });
+
+    // Each policy pages its own people: nothing was matched to the other.
+    const policies: Array<OnCallDutyPolicy> =
+      world.dataOf<OnCallDutyPolicy>("OnCallDutyPolicy");
+    const rules: Array<RecordedCreate> = world.createsOf(
+      "OnCallDutyPolicyEscalationRule",
+    );
+
+    expect(rules).toHaveLength(2);
+    expect(
+      rules.map((rule: RecordedCreate): string => {
+        return (
+          rule.data as OnCallDutyPolicyEscalationRule
+        ).onCallDutyPolicyId!.toString();
+      }),
+    ).toEqual([policies[0]!.id!.toString(), policies[1]!.id!.toString()]);
+  });
+
+  test("two schedules called alike: the second is made numbered", async () => {
+    const world: ApplierWorld = refuseTakenNames({
+      world: new ApplierWorld(),
+      service: "OnCallDutyPolicySchedule",
+      refusal: ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL,
+    });
+
+    const { report } = await runImport({
+      snapshot: snapshot({
+        people: [person("alice"), person("bob")],
+        schedules: [
+          schedule("first", "Weekdays", [rotation("a", ["alice"])]),
+          schedule("second", "Weekdays", [rotation("b", ["bob"])]),
+        ],
+      }),
+      state: projectState(),
+    });
+
+    expect(namesOf(world, "OnCallDutyPolicySchedule")).toEqual([
+      "Weekdays",
+      "Weekdays 2",
+    ]);
+    expect(outcomeOf(report, "OnCallSchedule:second")).toMatchObject({
+      outcome: ToolImportOutcome.Created,
+      notes: expect.arrayContaining([numbered("Weekdays 2")]),
+    });
+
+    // Remembered by the name it was made with.
+    expect(
+      world.records.map((record: ToolImportRecord): string | undefined => {
+        return record.name;
+      }),
+    ).toEqual(expect.arrayContaining(["Weekdays", "Weekdays 2"]));
+  });
+
+  test("two teams called alike: the second is made numbered, with its own members", async () => {
+    const world: ApplierWorld = refuseTakenNames({
+      world: new ApplierWorld(),
+      service: "Team",
+      refusal: TEAM_NAME_TAKEN_REFUSAL,
+    });
+
+    const { report } = await runImport({
+      snapshot: snapshot({
+        people: [person("alice"), person("bob")],
+        teams: [
+          team("first", "Platform", ["alice"]),
+          team("second", "platform", ["bob"]),
+        ],
+      }),
+      state: projectState(),
+    });
+
+    expect(namesOf(world, "Team")).toEqual(["Platform", "platform 2"]);
+    expect(outcomeOf(report, "Team:second")).toMatchObject({
+      outcome: ToolImportOutcome.Created,
+      notes: expect.arrayContaining([numbered("platform 2")]),
+    });
+  });
+
+  test("a name an archived policy has is numbered past: unarchived, it would be a twin", async () => {
+    const world: ApplierWorld = refuseTakenNames({
+      world: new ApplierWorld(),
+      service: "OnCallDutyPolicy",
+      refusal: ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+      alsoTaken: ["Escalation", "Escalation 2"],
+    });
+
+    const { report } = await runImport({});
+
+    expect(namesOf(world, "OnCallDutyPolicy")).toEqual(["Escalation 3"]);
+    expect(outcomeOf(report, "OnCallPolicy:escalation")).toMatchObject({
+      outcome: ToolImportOutcome.Created,
+      notes: expect.arrayContaining([numbered("Escalation 3")]),
+    });
+  });
+
+  test("a policy refused for anything but its name still fails, tried once", async () => {
+    let tries: number = 0;
+    new ApplierWorld().refuse("OnCallDutyPolicy", () => {
+      tries++;
+      return new BadDataException(
+        "Acknowledgement timeout must be between 1 and 1440 minutes.",
+      );
+    });
+
+    const { report } = await runImport({});
+
+    expect(outcomeOf(report, "OnCallPolicy:escalation")).toMatchObject({
+      outcome: ToolImportOutcome.Failed,
+      error: "Acknowledgement timeout must be between 1 and 1440 minutes.",
+    });
+    expect(tries).toBe(1);
   });
 });
 

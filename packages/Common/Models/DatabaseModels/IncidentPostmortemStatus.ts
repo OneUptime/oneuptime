@@ -622,7 +622,7 @@ export default class IncidentPostmortemStatus extends BaseModel {
     title: "Order",
     required: false,
     description:
-      "Where this status sits in the project's list of postmortem statuses: 1 is the top. A postmortem in the completed status, or in a status below it, counts as done; one above it is still owed. So the not started, draft and completed statuses have to stay in that order. A new status without a number goes just above the completed status. Setting a number moves the status to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
+      "Where this status sits in the project's list of postmortem statuses: 1 is the top. A postmortem in the completed status, or in a status below it, counts as done; one above it is still owed. So the not started, draft and completed statuses have to stay in that order. A new status without a number goes just above the completed status. Setting a number places the status there and moves no other: two at one number are read the older first. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.SmallNumber,

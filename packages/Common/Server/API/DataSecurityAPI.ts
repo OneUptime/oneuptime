@@ -22,15 +22,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import SecuritySeverity from "../../Types/SecuritySeverity";
-import ComplianceFramework, {
-  ALL_COMPLIANCE_FRAMEWORKS,
-  COMPLIANCE_FRAMEWORK_INFO,
-} from "../../Types/DataSecurity/ComplianceFramework";
-import {
-  ComplianceIssueInput,
-  ComplianceStoreInput,
-  scoreComplianceFramework,
-} from "../../Types/DataSecurity/ComplianceRequirementCatalog";
+import ComplianceFramework from "../../Types/DataSecurity/ComplianceFramework";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
   isPersonalDataCategory,
@@ -48,6 +40,8 @@ import {
   DataSecurityOverviewIssue,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
+  DataSecurityResourceComplianceResponse,
+  DataSecurityResourceScope,
 } from "../../Types/DataSecurity/DataSecurityApiTypes";
 import { getBuiltInDataType } from "../../Types/DataSecurity/DataTypeCatalog";
 import {
@@ -110,7 +104,12 @@ import {
   OccurrencePlan,
   planOccurrenceRead,
 } from "../Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
-import { createScrubRuleForFinding } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  createDropRuleForFinding,
+  createScrubRuleForFinding,
+  CreatedScrubRule,
+} from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import { getDropMetricImpact } from "../Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
@@ -129,6 +128,12 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ResourceDataSecurity from "../Utils/DataSecurity/ResourceDataSecurity";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import {
+  DataStoreResourceKind,
+  isDataStoreResourceKind,
+} from "../../Types/DataSecurity/DataStoreResource";
 import ProductKey from "../../Types/Product/ProductKey";
 
 /*
@@ -139,12 +144,17 @@ import ProductKey from "../../Types/Product/ProductKey";
  *
  *  - the Overview's figures, the compliance scores and the GDPR record of
  *    processing, for anyone who may read data stores;
+ *  - a resource's own stores and compliance - a Kubernetes cluster's, a
+ *    container host's, a database's, a cloud resource's or a service's
+ *    (ResourceDataSecurity) - for anyone who may read data stores and
+ *    that resource;
  *  - Scan Now and Check Now on a store, for anyone who may edit it;
  *  - Scrub It on a telemetry finding, for anyone who may create scrub
- *    rules - the rule is theirs, made under their own permissions;
+ *    rules, or metric pipeline rules for a metric's attribute - the rule is
+ *    theirs, made under their own permissions;
  *  - a telemetry finding's newest records, read now
  *    (TelemetryFindingOccurrences), for anyone who may read its masked
- *    samples and the store's telemetry itself - its logs, traces,
+ *    samples and the store's telemetry itself - its logs, traces, metrics,
  *    exceptions or sessions, as the explorers would let them;
  *  - Explain and Fix With AI on an issue, under the project's OneUptime AI
  *    switches and limits, sending the issue, its evidence and how to fix
@@ -178,15 +188,30 @@ const OPERATE_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
- * Who may make a scrub rule of either signal; the rule itself is made with
- * the person's own permissions, so a log rule still needs the log
- * permission and a trace rule the trace one.
+ * Who may make a scrub rule of any signal - a log or trace scrub rule, or
+ * the metric pipeline rule that redacts a metric's attribute; the rule
+ * itself is made with the person's own permissions, so a log rule still
+ * needs the log permission, a trace rule the trace one and a metric rule
+ * the metric pipeline rule one.
  */
 const SCRUB_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.CreateProjectLogScrubRule,
   Permission.CreateProjectTraceScrubRule,
+  Permission.CreateProjectMetricPipelineRule,
+];
+
+/*
+ * Who may drop the metrics whose names hold a finding's data (#9757): who
+ * may change metric pipeline rules - the Drop rule is made with the
+ * person's own permissions and recorded in the audit log as theirs, and
+ * removing it from the pipeline rules undoes it.
+ */
+const DROP_METRIC_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.CreateProjectMetricPipelineRule,
 ];
 
 /*
@@ -241,10 +266,73 @@ export default class DataSecurityAPI extends BaseAPI<
     this.post(
       DATA_SECURITY_API_ROUTES.compliance,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
+      async (
+        projectId: ObjectID,
+        _req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
         return (await DataSecurityAPI.getCompliance(
           projectId,
+          props,
         )) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A resource's Data Security and Compliance pages (#9547, #9555): the
+     * stores its pages show, and how the ones whose compliance it owns
+     * stand. The resource is read with the caller's own props: one they
+     * may not read is not found.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.resourceScope,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const resource: { kind: DataStoreResourceKind; id: ObjectID } =
+          DataSecurityAPI.readResourceRequest(req);
+        const scope: DataSecurityResourceScope | null =
+          await ResourceDataSecurity.readScope({
+            projectId,
+            kind: resource.kind,
+            id: resource.id,
+            props,
+          });
+
+        if (!scope) {
+          throw new NotFoundException("This resource could not be found.");
+        }
+
+        return scope as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.resourceCompliance,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const resource: { kind: DataStoreResourceKind; id: ObjectID } =
+          DataSecurityAPI.readResourceRequest(req);
+        const compliance: DataSecurityResourceComplianceResponse | null =
+          await ResourceDataSecurity.readCompliance({
+            projectId,
+            kind: resource.kind,
+            id: resource.id,
+            props,
+          });
+
+        if (!compliance) {
+          throw new NotFoundException("This resource could not be found.");
+        }
+
+        return compliance as unknown as JSONObject;
       },
     );
 
@@ -396,47 +484,17 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const finding: DataStoreFinding | null =
-          await DataStoreFindingService.findOneBy({
-            query: { _id: DataSecurityAPI.readId(req), projectId },
-            select: {
-              _id: true,
-              dataTypeId: true,
-              location: true,
-              dataStoreId: true,
-              dataStore: { kind: true },
-            },
-            props: { isRoot: true },
-          });
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
 
-        if (
-          !finding?.dataTypeId ||
-          !finding.location ||
-          !finding.dataStore?.kind
-        ) {
-          throw new BadDataException("Finding not found.");
-        }
-
-        if (
-          !TELEMETRY_DATA_STORE_KINDS.includes(
-            finding.dataStore.kind as DataStoreKind,
-          )
-        ) {
-          throw new BadDataException(
-            "Scrub It masks telemetry at ingest; this finding is in a data store.",
-          );
-        }
-
-        const created: {
-          signal: "log" | "trace";
-          scrubRuleId: string;
-          scrubRuleName: string;
-        } = await createScrubRuleForFinding({
+        const created: CreatedScrubRule = await createScrubRuleForFinding({
           projectId,
           userId: props.userId || undefined,
-          kind: finding.dataStore.kind as DataStoreKind,
-          dataTypeId: finding.dataTypeId,
-          location: finding.location,
+          kind: finding.dataStore!.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId!,
+          location: finding.location!,
+          // A metric's rule is its service's.
+          serviceId: finding.dataStore!.serviceId || null,
         });
 
         await DataStoreFindingService.updateColumnsByIdWithoutHooks({
@@ -446,6 +504,75 @@ export default class DataSecurityAPI extends BaseAPI<
         await queueDataSecurityEvaluation(projectId);
 
         return created as unknown as JSONObject;
+      },
+    );
+
+    // What dropping the metrics named with a finding's data would do (#9757).
+    this.post(
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      DROP_METRIC_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+
+        return (await getDropMetricImpact({
+          projectId,
+          kind: finding.dataStore!.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId!,
+          location: finding.location!,
+          serviceId: finding.dataStore!.serviceId || null,
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * The drop itself: a metric pipeline Drop rule for the service, made as
+     * the person who asked. Its data points are lost for good, so it is
+     * made only when the request says so in as many words.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
+      DROP_METRIC_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        if (body["confirmDataLoss"] !== true) {
+          throw new BadDataException(
+            "Dropping these metrics loses their new data points for good. Confirm that you want them dropped.",
+          );
+        }
+
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+        const created: { ruleId: string; ruleName: string } =
+          await createDropRuleForFinding({
+            projectId,
+            userId: props.userId || undefined,
+            kind: finding.dataStore!.kind as DataStoreKind,
+            dataTypeId: finding.dataTypeId!,
+            location: finding.location!,
+            serviceId: finding.dataStore!.serviceId || null,
+          });
+
+        await DataStoreFindingService.updateColumnsByIdWithoutHooks({
+          id: finding.id!,
+          data: { isScrubbed: true },
+        });
+        await queueDataSecurityEvaluation(projectId);
+
+        return {
+          ruleId: created.ruleId,
+          ruleName: created.ruleName,
+        } as unknown as JSONObject;
       },
     );
 
@@ -653,6 +780,28 @@ export default class DataSecurityAPI extends BaseAPI<
     );
   }
 
+  // The resource a resource route is asked about: { kind, id } in its body.
+  private static readResourceRequest(req: ExpressRequest): {
+    kind: DataStoreResourceKind;
+    id: ObjectID;
+  } {
+    const body: JSONObject = (req.body || {}) as JSONObject;
+    const kind: unknown = body["kind"];
+    const id: string = typeof body["id"] === "string" ? body["id"].trim() : "";
+
+    if (!isDataStoreResourceKind(kind)) {
+      throw new BadDataException(
+        "Name the kind of resource: a Kubernetes cluster, a Docker or Podman host, a database, a cloud resource or a service.",
+      );
+    }
+
+    if (!ObjectID.isValidUUID(id)) {
+      throw new BadDataException("A valid resource ID is required.");
+    }
+
+    return { kind, id: new ObjectID(id) };
+  }
+
   private static readId(req: ExpressRequest): ObjectID {
     const id: string = String(req.params["id"] || "");
 
@@ -661,6 +810,45 @@ export default class DataSecurityAPI extends BaseAPI<
     }
 
     return new ObjectID(id);
+  }
+
+  /*
+   * The telemetry finding a route acts on - Scrub It, Drop This Metric -
+   * with its data type, its place and its store's kind and service. Another
+   * project's finding, or one in a data store, is refused.
+   */
+  private static async readTelemetryFinding(
+    projectId: ObjectID,
+    req: ExpressRequest,
+  ): Promise<DataStoreFinding> {
+    const finding: DataStoreFinding | null =
+      await DataStoreFindingService.findOneBy({
+        query: { _id: DataSecurityAPI.readId(req), projectId },
+        select: {
+          _id: true,
+          dataTypeId: true,
+          location: true,
+          dataStoreId: true,
+          dataStore: { kind: true, serviceId: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!finding?.dataTypeId || !finding.location || !finding.dataStore?.kind) {
+      throw new BadDataException("Finding not found.");
+    }
+
+    if (
+      !TELEMETRY_DATA_STORE_KINDS.includes(
+        finding.dataStore.kind as DataStoreKind,
+      )
+    ) {
+      throw new BadDataException(
+        "Scrub It masks telemetry at ingest; this finding is in a data store.",
+      );
+    }
+
+    return finding;
   }
 
   private static async readStore(
@@ -1244,60 +1432,21 @@ export default class DataSecurityAPI extends BaseAPI<
     };
   }
 
+  /*
+   * Every framework, scored over the project's stores and their open
+   * issues, with what each store's resource turned off
+   * (ResourceDataSecurity, Types/DataSecurity/ComplianceScope) - and,
+   * for a reader, why and by whom, each resource named as they may see it
+   * (#9629).
+   */
   public static async getCompliance(
     projectId: ObjectID,
+    props?: DatabaseCommonInteractionProps | undefined,
   ): Promise<DataSecurityComplianceResponse> {
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        dataTypeIds: true,
-        subjectCountries: true,
-        configurationReadAt: true,
-        contentScannedAt: true,
-      },
-      skip: 0,
-      limit: 10000,
-      props: { isRoot: true },
-    });
-    const issues: Array<DataSecurityIssue> =
-      await DataSecurityIssueService.findBy({
-        query: { projectId, status: DataSecurityIssueStatus.Open },
-        select: { dataStoreId: true, checkId: true },
-        skip: 0,
-        limit: 20000,
-        props: { isRoot: true },
-      });
-    const storeInputs: Array<ComplianceStoreInput> = stores.map(
-      (store: DataStore): ComplianceStoreInput => {
-        return {
-          id: store.id!.toString(),
-          dataTypeIds: store.dataTypeIds || [],
-          subjectCountries: store.subjectCountries || [],
-          isEvaluated: Boolean(
-            store.configurationReadAt || store.contentScannedAt,
-          ),
-        };
-      },
-    );
-    const issueInputs: Array<ComplianceIssueInput> = issues.map(
-      (issue: DataSecurityIssue): ComplianceIssueInput => {
-        return {
-          storeId: issue.dataStoreId?.toString() || "",
-          checkId: issue.checkId || "",
-        };
-      },
-    );
-
     return {
-      frameworks: ALL_COMPLIANCE_FRAMEWORKS.map(
-        (framework: ComplianceFramework) => {
-          return {
-            ...scoreComplianceFramework(framework, storeInputs, issueInputs),
-            fullName: COMPLIANCE_FRAMEWORK_INFO[framework].fullName,
-            scope: COMPLIANCE_FRAMEWORK_INFO[framework].scope,
-          };
-        },
+      frameworks: await ResourceDataSecurity.readProjectCompliance(
+        projectId,
+        props,
       ),
     };
   }

@@ -18,7 +18,7 @@ When you create a schedule on the **On-Call Schedules** page, the form asks for 
 
 :::steps
 1. Go to **On-Call** > **On-Call Schedules** and click **Create On-Call Schedule**.
-2. Enter a **Name**.
+2. Enter a **Name**. A name another schedule of the project has is refused, whatever its case or spacing, so every picker tells the schedules apart.
 3. Under **Who takes turns?**, click **Add user** and pick the people, in the order they take turns.
 4. Optionally, open **More fields** to change how long each turn lasts, the time zone, the description or the labels.
 5. Click **Create On-Call Schedule**. The new schedule then opens on its **Layers** page, where you can change the rotation or add more layers.
@@ -40,7 +40,7 @@ Everything else waits under **More fields**, folded until you open it:
 | Field | What it does |
 | --- | --- |
 | **Each turn lasts** | **1 day**, **1 week**, **2 weeks** or **1 month**, and **1 week** unless you change it. It is asked once somebody takes turns. Each person is on call that long, then the next one takes over, at the time of day the schedule was created. |
-| **Timezone** | The time zone hand-off times and on-call hours are kept in. It starts at yours. |
+| **Timezone** | The time zone hand-off times and on-call hours are kept in. It starts at yours. Each zone follows its region's current rules: America/Vancouver (British Columbia) stays on UTC-7 all year from 2026. |
 | **Description** | Notes about the schedule. |
 | **Labels** | Labels for finding and grouping the schedule. |
 
@@ -97,11 +97,11 @@ While they are away:
 
 Pick someone under **Who covers?** instead, and that person gets all of their pages, from every schedule and every policy, rather than the rotation taking their turns.
 
-Time away added this way applies to every on-call policy, so it takes the override permission over the whole project. If your team's role is limited to its own policies or to some labels, it goes instead on the policies of this schedule you may cover, one override on each, listed on each policy's own **User Overrides** page; with several, you tick them under **On-call policies**. **Skip until…** is locked and says why only where you may cover none of them. It is listed under **On-Call** > **Advanced** > **User Overrides**, and with the schedule's user overrides on its **Layers** page, where **End Now** brings them back early. To skip someone in one policy only, add the override on that policy's **User Overrides** page and leave **Who covers?** as it is. See [User Overrides](/docs/on-call/user-overrides).
+Time away added this way applies to every on-call policy, so it takes the override permission over the whole project. If your team's role is limited to its own policies or to some labels, it goes instead on the policies of this schedule you may cover, one override on each, listed on each policy's own **User Overrides** page; with several, you tick them under **On-call policies**. **Skip until…** is locked and says why only where you may cover none of them. It is listed under **On-Call** > **Schedules** > **User Overrides**, and with the schedule's user overrides on its **Layers** page, where **End Now** brings them back early. To skip someone in one policy only, add the override on that policy's **User Overrides** page and leave **Who covers?** as it is. See [User Overrides](/docs/on-call/user-overrides).
 
 With the API, a user override (`/api/on-call-duty-policy-user-override`) created without `routeAlertsToUserId` skips the person in `overrideUserId` from `startsAt` to `endsAt`.
 
-A schedule's **Overview** has a **Used by** card: the on-call policies whose escalation rules page whoever is on call, with the rules that do. When none does, it says so and links to the on-call policies. Deleting the schedule, on its page or from the list, says first which policies page it. Policies you may not open are counted, not named.
+A schedule's **Overview** has a **Used by** card: the on-call policies whose escalation rules page whoever is on call, with the rules that do. When none does, it says so and links to the on-call policies. Deleting the schedule, on its page or from the list, says first which policies page it. Policies you may not open are counted, not named. A schedule that has the same name as another schedule, from before names had to differ, is marked **Same name as another schedule** on the **On-Call Schedules** list, which says how many there are: compare their layers, then rename one with **Rename** on its row.
 
 ## Creating schedules with the API or Terraform
 

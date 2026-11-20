@@ -11,6 +11,7 @@ import CloudResourceOverview from "../Pages/Cloud/View/MonitoredResourceOverview
 import CloudResourceSettings from "../Pages/Cloud/View/Settings";
 import CloudResourceMetrics from "../Pages/Cloud/View/Metrics";
 import CloudResourceLogs from "../Pages/Cloud/View/Logs";
+import CloudResourceSecurityEvents from "../Pages/Cloud/View/SecurityEvents";
 import CloudResourceFeed from "../Pages/Cloud/View/Feed";
 import CloudResourceOwners from "../Pages/Cloud/View/Owners";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
@@ -21,6 +22,8 @@ import CloudResourceAlerts from "../Pages/Cloud/View/Alerts";
 import CloudResourceChanges from "../Pages/Cloud/View/Changes";
 import CloudResourceRecommendations from "../Pages/Cloud/View/Recommendations";
 import CloudResourceScheduledMaintenance from "../Pages/Cloud/View/ScheduledMaintenance";
+import CloudResourceDataSecurity from "../Pages/Cloud/View/DataSecurity";
+import CloudResourceCompliance from "../Pages/Cloud/View/Compliance";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
 import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 import CloudArchived from "../Pages/Cloud/Archived";
@@ -436,6 +439,20 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
+          )}
+          element={
+            <CloudResourceSecurityEvents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
           )}
           element={
@@ -481,6 +498,36 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE
                 ] as Route
+              }
+            />
+          }
+        />
+
+        {/* Data Security: what this resource holds, and what to fix on it */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY,
+          )}
+          element={
+            <CloudResourceDataSecurity
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY] as Route
+              }
+            />
+          }
+        />
+
+        {/* Compliance: how this resource stands against each framework */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE,
+          )}
+          element={
+            <CloudResourceCompliance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE] as Route
               }
             />
           }

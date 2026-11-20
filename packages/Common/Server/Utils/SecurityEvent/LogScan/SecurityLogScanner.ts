@@ -84,6 +84,16 @@ import SecurityLogCases, {
 
 export const SECURITY_LOGS_SERVICE_NAME: string = "OneUptime Logs";
 
+/*
+ * The events a scan stored - the ones another way had not stored first
+ * (SecurityEventStoreOnce) - and the rows they were stored as: a threat's
+ * detection keeps its own (#9619).
+ */
+export interface SecurityLogStoredEvents {
+  events: Array<NormalizedSecurityEvent>;
+  rows: Array<JSONObject>;
+}
+
 export const SECURITY_LOG_SCAN_PROJECT_WORK: SecurityProjectWorkDefinition = {
   jobName: "SecurityEvents:ScanProjectLogs",
   key: "security-log-scan",
@@ -413,13 +423,12 @@ export default class SecurityLogScanner {
               projectId,
             }));
 
-          const stored: Array<NormalizedSecurityEvent> = await this.storeEvents(
-            {
-              projectId,
-              events,
-              serviceMetadata,
-            },
-          );
+          const storedEvents: SecurityLogStoredEvents = await this.storeEvents({
+            projectId,
+            events,
+            serviceMetadata,
+          });
+          const stored: Array<NormalizedSecurityEvent> = storedEvents.events;
 
           for (const event of stored) {
             const format: string = String(
@@ -440,6 +449,7 @@ export default class SecurityLogScanner {
                 projectId,
                 caseMinimumSeverity: source.caseMinimumSeverity,
                 events: stored,
+                rows: storedEvents.rows,
                 limit: threatDetectionsLeft,
               });
 
@@ -503,7 +513,7 @@ export default class SecurityLogScanner {
     projectId: ObjectID;
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
-  }): Promise<Array<NormalizedSecurityEvent>> {
+  }): Promise<SecurityLogStoredEvents> {
     // An OpenStack event says which project by ID: this names it, as a case will.
     await OpenStackAuditJoin.enrichEvents({
       projectId: data.projectId,
@@ -585,6 +595,6 @@ export default class SecurityLogScanner {
       await RealTimeDetections.screen({ projectId: data.projectId, rows });
     }
 
-    return stored;
+    return { events: stored, rows };
   }
 }

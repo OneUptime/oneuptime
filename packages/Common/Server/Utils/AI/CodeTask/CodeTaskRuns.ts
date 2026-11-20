@@ -4,7 +4,9 @@ import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CodeFixOnItsWay, { CodeFixProblem } from "../CodeFix/CodeFixOnItsWay";
 import FixRunBudget from "../CodeFix/FixRunBudget";
+import CodeTaskFixRetry from "./CodeTaskFixRetry";
 import CodeTaskLive from "./CodeTaskLive";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -27,6 +29,10 @@ import {
   CodeTaskStateUtil,
   CodeTaskTitle,
 } from "../../../../Types/AI/CodeTask";
+import {
+  CODE_TASK_TRY_AGAIN_NOT_IN_CODE_MESSAGE,
+  CODE_TASK_TRY_AGAIN_ONLY_FAILED_MESSAGE,
+} from "../../../../Types/AI/CodeTaskTryAgain";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -35,10 +41,12 @@ import ObjectID from "../../../../Types/ObjectID";
 /*
  * STARTS, CONTINUES AND STOPS CODE TASKS.
  *
- * Every turn is a Queued code-fix run of the CodeRequest recipe, written as
- * root (runs are server-written only), for a Runner to claim like any other
- * code fix. The caller has already been allowed to ask (CodeTaskAccess) and
- * AI has been found able to work (CodeTaskGate); this records the work.
+ * Every turn is a Queued code-fix run of the CodeRequest recipe - or, for a
+ * fix OneUptime started that is asked again, of its own recipe
+ * (CodeTaskFixRetry) - written as root (runs are server-written only), for
+ * a Runner to claim like any other code fix. The caller has already been
+ * allowed to ask (CodeTaskAccess) and AI has been found able to work
+ * (CodeTaskGate); this records the work.
  *
  * A task takes one turn at a time. A reply, or a retry, while a turn is still
  * queued or running is refused: two turns on the same branch at once would
@@ -114,6 +122,12 @@ export default class CodeTaskRuns {
      * (AIRunService).
      */
     carries?: CarriedRecordIds | undefined;
+    /*
+     * The problems the request is a fix of, when a path starts it as one: a
+     * profile's slow function (ProfileFixTaskTrigger). It is written only
+     * while no fix of them is on its way (CodeFixOnItsWay.createHeldTo).
+     */
+    holdsTo?: Array<CodeFixProblem> | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
@@ -153,10 +167,7 @@ export default class CodeTaskRuns {
       CarriedRecords.writeTo(run, data.carries);
     }
 
-    return await AIRunService.create({
-      data: run,
-      props: { isRoot: true },
-    });
+    return await CodeTaskRuns.createFirstTurn(run, data.holdsTo);
   }
 
   /*
@@ -177,6 +188,8 @@ export default class CodeTaskRuns {
     context: Array<CodeTaskContextItem>;
     triggeredByAiInsightId: ObjectID;
     llmProviderId?: ObjectID | undefined;
+    // The problems it is a fix of beyond its insight (start's holdsTo).
+    holdsTo?: Array<CodeFixProblem> | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
@@ -196,9 +209,33 @@ export default class CodeTaskRuns {
       run.llmProviderId = data.llmProviderId;
     }
 
-    return await AIRunService.create({
-      data: run,
-      props: { isRoot: true },
+    return await CodeTaskRuns.createFirstTurn(run, data.holdsTo);
+  }
+
+  /*
+   * A task's first turn, written as root - held, when a path starts it as a
+   * fix of problems it names in no column, to no fix of them being on its
+   * way (CodeFixOnItsWay.createHeldTo).
+   */
+  private static async createFirstTurn(
+    run: AIRun,
+    holdsTo: Array<CodeFixProblem> | undefined,
+  ): Promise<AIRun> {
+    const create: () => Promise<AIRun> = async (): Promise<AIRun> => {
+      return await AIRunService.create({
+        data: run,
+        props: { isRoot: true },
+      });
+    };
+
+    if (!holdsTo || holdsTo.length === 0) {
+      return await create();
+    }
+
+    return await CodeFixOnItsWay.createHeldTo({
+      run,
+      problems: holdsTo,
+      create,
     });
   }
 
@@ -213,7 +250,7 @@ export default class CodeTaskRuns {
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
-    return await CodeTaskRuns.addTurn({
+    return await CodeTaskRuns.addRequestTurn({
       projectId: data.projectId,
       userId: data.userId,
       task: data.task,
@@ -223,8 +260,11 @@ export default class CodeTaskRuns {
 
   /*
    * Ask again what the latest turn asked, when it failed or was stopped: a
-   * new turn with the same request, so the conversation keeps the failed
-   * one. Only a request from Code can be asked again this way.
+   * new turn, so the conversation keeps the failed one. A request from
+   * Code is asked in the same words; a fix OneUptime started, with the
+   * context it started with, while nothing says it may already have
+   * written (CodeTaskFixRetry, #6509). A task asked for on GitHub, or a
+   * production review, is not asked again here.
    *
    * A latest turn that waits to be tried again by itself
    * (CodeFixAutoRetry) is started now instead: its wait ends, and the next
@@ -263,9 +303,29 @@ export default class CodeTaskRuns {
     const state: CodeTaskState = CodeTaskStateUtil.fromRun(latest);
 
     if (state !== CodeTaskState.Failed && state !== CodeTaskState.Stopped) {
-      throw new BadDataException(
-        "Only a turn that failed or was stopped can be tried again.",
-      );
+      throw new BadDataException(CODE_TASK_TRY_AGAIN_ONLY_FAILED_MESSAGE);
+    }
+
+    // A fix OneUptime started: asked again with its own context.
+    if (
+      latest.id &&
+      CodeFixTaskTypeHelper.isFixAskedAgain(latest.codeFixTaskType) &&
+      !CodeFixTaskTypeHelper.isProductionReview(data.task.codeFixTaskType)
+    ) {
+      const turnId: ObjectID = latest.id;
+
+      return await CodeTaskRuns.addTurn({
+        projectId: data.projectId,
+        task: data.task,
+        createTurn: async (): Promise<AIRun> => {
+          return await CodeTaskFixRetry.createTurn({
+            projectId: data.projectId,
+            userId: data.userId,
+            task: data.task,
+            turnId,
+          });
+        },
+      });
     }
 
     const request: CodeTaskRequest | null = CodeFixTaskTypeHelper.isCodeRequest(
@@ -275,16 +335,14 @@ export default class CodeTaskRuns {
       : null;
 
     if (!request) {
-      throw new BadDataException(
-        "This turn was not asked for in Code, so it cannot be asked again. Reply with what you want AI to do instead.",
-      );
+      throw new BadDataException(CODE_TASK_TRY_AGAIN_NOT_IN_CODE_MESSAGE);
     }
 
     /*
      * The same words and context. The branch the task starts from stays on
      * its first turn, where every turn reads it.
      */
-    return await CodeTaskRuns.addTurn({
+    return await CodeTaskRuns.addRequestTurn({
       projectId: data.projectId,
       userId: data.userId,
       task: data.task,
@@ -422,11 +480,45 @@ export default class CodeTaskRuns {
     return data.task;
   }
 
-  private static async addTurn(data: {
+  // A request's next turn: a reply, or a request asked again.
+  private static async addRequestTurn(data: {
     projectId: ObjectID;
     userId: ObjectID;
     task: AIRun;
     request: CodeTaskRequest;
+  }): Promise<AIRun> {
+    return await CodeTaskRuns.addTurn({
+      projectId: data.projectId,
+      task: data.task,
+      createTurn: async (): Promise<AIRun> => {
+        await FixRunBudget.assertWithinBudget(data.projectId, {});
+
+        const run: AIRun = CodeTaskRuns.newTurn({
+          projectId: data.projectId,
+          userId: data.userId,
+          codeRepositoryId: data.task.codeRepositoryId!,
+          request: data.request,
+        });
+
+        run.codeTaskId = data.task.id!;
+
+        return await AIRunService.create({
+          data: run,
+          props: { isRoot: true },
+        });
+      },
+    });
+  }
+
+  /*
+   * The task's next turn, made by `createTurn` while the task is held: a
+   * task takes one turn at a time, so it is made only once the latest turn
+   * is no longer working, and two asked the same moment make one.
+   */
+  private static async addTurn(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    createTurn: () => Promise<AIRun>;
   }): Promise<AIRun> {
     if (!data.task.codeRepositoryId) {
       throw new BadDataException(
@@ -452,21 +544,7 @@ export default class CodeTaskRuns {
         throw new BadDataException(CODE_TASK_BUSY_MESSAGE);
       }
 
-      await FixRunBudget.assertWithinBudget(data.projectId, {});
-
-      const run: AIRun = CodeTaskRuns.newTurn({
-        projectId: data.projectId,
-        userId: data.userId,
-        codeRepositoryId: data.task.codeRepositoryId,
-        request: data.request,
-      });
-
-      run.codeTaskId = data.task.id!;
-
-      return await AIRunService.create({
-        data: run,
-        props: { isRoot: true },
-      });
+      return await data.createTurn();
     } finally {
       await CodeTaskRuns.unlockTask(mutex);
     }

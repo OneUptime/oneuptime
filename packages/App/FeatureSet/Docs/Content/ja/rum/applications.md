@@ -163,19 +163,21 @@ const resource = defaultResource().merge(
 
 ## RUM データのアラート
 
-RUM のテレメトリは通常のログ、メトリクス、トレースなので、RUM 専用のモニターはありません。通常のモニターがそのまま使えます。最も手早く始めるには、アプリケーションの **推奨事項** ページを使います。アプリケーションにスコープ済みのモニターが提案されます。
+RUM のテレメトリは通常のログ、メトリクス、トレースなので、RUM 専用のモニターはありません。通常のモニターがそのまま使えます。最も手早く始めるには、アプリケーションの **推奨事項** ページを使います。アプリケーションにスコープ済みのモニターのうち、Web アプリまたはモバイルアプリに合うものが提案されます。
 
 | グループ | 推奨事項 |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint、Slow Time to First Byte。 [Core Web Vitals](/docs/rum/web-vitals) を参照してください。 |
-| エラー | Failed User Operations と Unhandled Browser Exceptions。 |
+| Core Web Vitals | Web アプリ向け: Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint、Slow Time to First Byte。 [Core Web Vitals](/docs/rum/web-vitals) を参照してください。 |
+| エラー | モバイルアプリ向けの App Crashes と App Not Responding (ANR)、毎時数百のセッションがあるアプリ向けのそれらの割合である App Crash Rate と App ANR Rate、両方向けの Failed User Operations、Web アプリ向けの Unhandled Browser Exceptions。 |
+| パフォーマンス | モバイルアプリ向け: コールドスタートに 5 秒以上かかったとき（Android vitals が過剰とみなす長さ）の Slow Cold Start と、フレームの描画に 700 ms より長くかかったときの Frozen Frames。 |
+| 可用性 | モバイルアプリ向け: アプリから 30 分間スパンが届かないときの App Stopped Reporting と、過去一週間にスパンを送っていたデバイスのいずれかから一時間スパンが届かないときの Device Stopped Reporting。 |
 | セッションリプレイ | 四つの [ストレージ予算のアラート](/docs/telemetry/session-replay#ストレージ予算のアラート) で、プロジェクトの日次の上限やアプリケーションの月間予算を使い切る前に警告します。アプリケーションがリプレイを録画すると提案され、月間のペアは月間予算も設定されると提案されます。 |
 
 独自のモニターを作るには、そのシグナルを読むモニターを選びます。
 
 - [メトリクス モニター](/docs/monitor/metrics-monitor): Core Web Vitals の指標や、アプリが送信する任意のメトリクス。
-- [トレース モニター](/docs/monitor/traces-monitor): クライアント側のエラー率やレイテンシ。
-- [ログ モニター](/docs/monitor/logs-monitor): ブラウザーのログ内のパターン。
+- [トレース モニター](/docs/monitor/traces-monitor): クライアント側のエラー率やレイテンシ、または設定した時間より遅いアプリの起動。
+- [ログ モニター](/docs/monitor/logs-monitor): ブラウザーのログ内のパターン、またはモバイルアプリの `app.crash` 、 `device.anr` 、 `app.jank` イベント。
 - [例外モニター](/docs/monitor/exceptions-monitor): クライアント側の新しい例外や急増した例外。
 
 作成するモニターはアプリケーションにスコープしてください。そうすれば、似たシグネチャを持つバックエンドサービスでトリガーされることはありません。

@@ -42,7 +42,7 @@ Alles andere finden Sie im Dashboard.
 :::
 
 :::details Kann ich einen Alarm direkt in der Benachrichtigung bestätigen?
-Nein. Tippen Sie auf die Benachrichtigung: Die App öffnet den Vorfall, die Warnung, die Episode oder den Sicherheitsfall, um den es geht, im richtigen Projekt, und dort bestätigen Sie. Ist die App gesperrt oder sind Sie abgemeldet, öffnet sie die Warnung, sobald Sie drin sind.
+Ja. Drücken Sie auf einem iPhone lange auf die Benachrichtigung, oder klappen Sie sie unter Android auf: Ein Bereitschaftsalarm bietet **Acknowledge** und **Escalate**, eine Alarmierung, die Sie nur auf dem Laufenden hält, bietet **I've seen it**, und ein Testalarm bietet **Acknowledge test page**. Jede Aktion öffnet die App beim Eintrag, sobald das Telefon entsperrt ist, und tut dort, was dessen eigene Schaltfläche tut; vor dem Eskalieren fragt sie nach. Tippen Sie auf die Benachrichtigung selbst, öffnet die App den Vorfall, die Warnung, die Episode oder den Sicherheitsfall, um den es geht, im richtigen Projekt. Ist die App gesperrt oder sind Sie abgemeldet, öffnet sie die Warnung, sobald Sie drin sind.
 :::
 
 :::details Ist meine Anmeldung auf dem Telefon sicher?
@@ -109,7 +109,7 @@ Die App konnte `https://<your-oneuptime>/api/status` nicht erreichen. Prüfen Si
 :::
 
 :::details „No SSO configuration found for the email“
-Keines der Projekte, denen diese E-Mail-Adresse angehört, hat Single Sign-On eingerichtet, oder die Adresse hat kein Konto auf diesem OneUptime. Prüfen Sie die E-Mail-Adresse, oder melden Sie sich mit Ihrem Passwort an. Anbieter, die Ihr Administrator für die ganze Installation eingerichtet hat, stehen vor dem E-Mail-Feld.
+Kein Projekt auf diesem OneUptime bietet bisher Single Sign-On für die Domain dieser E-Mail-Adresse an: Ein Projektinhaber oder Projektadministrator fügt die Domain dem SSO-Anbieter des Projekts hinzu, egal wem die Adresse gehört. Prüfen Sie die E-Mail-Adresse, oder melden Sie sich mit Ihrem Passwort an. Anbieter, die Ihr Administrator für die ganze Installation eingerichtet hat, stehen vor dem E-Mail-Feld.
 :::
 
 :::details Ein Sicherheitsschlüssel ist Ihr einziger zweiter Faktor

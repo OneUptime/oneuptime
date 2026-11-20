@@ -1,0 +1,329 @@
+import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
+import OneUptimeDate from "Common/Types/Date";
+import { readDeviceManagementConfig } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import { isManagedDeviceHostMatch } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import Card from "Common/UI/Components/Card/Card";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
+import AgentVersion from "../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../Components/AgentVersion/AgentKind";
+import { getManagedDeviceMatchWords } from "./DeviceManagementWords";
+import ManagedDeviceStatusPill from "./ManagedDeviceStatusPill";
+
+/*
+ * What Esper knows about a device, on the device's Inventory page: whether
+ * it is there (online, or offline and since when), its group, its Android
+ * version, build and security patch, its serial number and IMEI, its
+ * battery and storage, its Esper agent, and whether its apps or agent send
+ * telemetry under its name. Read from the device's own row
+ * (ManagedDevice), current to its connection's last read.
+ *
+ * A device that left Esper says so, and when: its item is archived, and
+ * goes 30 days after it left.
+ */
+
+export interface ComponentProps {
+  managedDeviceId: ObjectID;
+}
+
+interface Fact {
+  label: string;
+  value: ReactNode;
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/*
+ * An amount with the unit Esper reports it in ("64 GB"), joined by a
+ * no-break space so a narrow card never leaves the unit alone on a line.
+ */
+function withUnit(amount: string, unit: string): string {
+  return unit ? `${amount}\u00A0${unit}` : amount;
+}
+
+const ManagedDeviceCard: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const [device, setDevice] = useState<ManagedDevice | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    setIsLoading(true);
+    ModelAPI.getItem<ManagedDevice>({
+      modelType: ManagedDevice,
+      id: props.managedDeviceId,
+      select: {
+        deviceName: true,
+        alias: true,
+        serialNumber: true,
+        imei: true,
+        manufacturer: true,
+        model: true,
+        osVersion: true,
+        buildNumber: true,
+        securityPatchLevel: true,
+        agentVersion: true,
+        providerState: true,
+        lastCheckInAt: true,
+        groupName: true,
+        groupPath: true,
+        isKioskMode: true,
+        batteryLevel: true,
+        details: true,
+        provisionedAt: true,
+        removedAt: true,
+        appCount: true,
+        inventoryMatch: true,
+        connection: { name: true, config: true },
+      },
+    })
+      .then((loaded: ManagedDevice | null) => {
+        if (isCurrent) {
+          setDevice(loaded);
+          setError("");
+        }
+      })
+      .catch((err: unknown) => {
+        if (isCurrent) {
+          setError(API.getFriendlyMessage(err as Error));
+        }
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [props.managedDeviceId.toString()]);
+
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  const body: () => ReactElement = (): ReactElement => {
+    if (isLoading) {
+      return <DetailListSkeleton fields={8} columns={3} />;
+    }
+
+    if (error) {
+      return <ErrorMessage message={error} />;
+    }
+
+    if (!device) {
+      return (
+        <p className="text-sm text-gray-500">
+          {translator.translateText(
+            "This device is no longer imported from Esper.",
+          )}
+        </p>
+      );
+    }
+
+    const details: JSONObject =
+      device.details && typeof device.details === "object"
+        ? (device.details as JSONObject)
+        : {};
+    const units: string = text(details["memoryUnits"]);
+    const totalStorage: string = text(details["totalStorage"]);
+    const totalRam: string = text(details["totalRam"]);
+    const matchWords: string | undefined = getManagedDeviceMatchWords(
+      isManagedDeviceHostMatch(device.inventoryMatch)
+        ? device.inventoryMatch
+        : undefined,
+    );
+    const hasAgentVersion: boolean = Boolean(device.agentVersion);
+
+    const facts: Array<Fact> = [
+      {
+        label: "Last Check-In",
+        value: device.lastCheckInAt
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              device.lastCheckInAt,
+            )
+          : undefined,
+      },
+      {
+        label: "Esper Name",
+        value: text(device.deviceName) ? (
+          <IsolatedLine text={text(device.deviceName)} />
+        ) : undefined,
+      },
+      {
+        label: "Group",
+        value:
+          text(device.groupPath) || text(device.groupName) ? (
+            <IsolatedLine
+              text={text(device.groupPath) || text(device.groupName)}
+            />
+          ) : undefined,
+      },
+      {
+        label: "Android Version",
+        value: text(device.osVersion) || undefined,
+      },
+      {
+        label: "Build Number",
+        value: text(device.buildNumber) || undefined,
+      },
+      {
+        label: "Security Patch Level",
+        value: text(device.securityPatchLevel) || undefined,
+      },
+      {
+        label: "Serial Number",
+        value: text(device.serialNumber) || undefined,
+      },
+      { label: "IMEI", value: text(device.imei) || undefined },
+      {
+        label: "Model (hardware model)",
+        value:
+          [text(device.manufacturer), text(device.model)]
+            .filter(Boolean)
+            .join(" ") || undefined,
+      },
+      {
+        label: "Battery",
+        value:
+          typeof device.batteryLevel === "number"
+            ? translator.translateTemplate("{{percent}}%", {
+                percent: translator.formatNumber(device.batteryLevel),
+              })
+            : undefined,
+      },
+      {
+        label: "Storage",
+        value: totalStorage ? withUnit(totalStorage, units) : undefined,
+      },
+      {
+        label: "Memory",
+        value: totalRam ? withUnit(totalRam, units) : undefined,
+      },
+      {
+        label: "Kiosk Mode",
+        value:
+          device.isKioskMode === true
+            ? translator.translateText("On")
+            : device.isKioskMode === false
+              ? translator.translateText("Off")
+              : undefined,
+      },
+      {
+        label: "Esper Agent",
+        /*
+         * Drawn as every agent version is (AgentVersion): Esper releases
+         * and updates its agent, so it is never called outdated.
+         */
+        value: hasAgentVersion ? (
+          <AgentVersion
+            kind={AgentKind.EsperAgent}
+            version={device.agentVersion}
+          />
+        ) : undefined,
+      },
+      {
+        label: "Enrolled",
+        value: device.provisionedAt
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              device.provisionedAt,
+            )
+          : undefined,
+      },
+      {
+        label: "Telemetry",
+        value: matchWords ? translator.translateText(matchWords) : undefined,
+      },
+    ];
+
+    const connectionName: string = text(device.connection?.name);
+    const tenant: string = readDeviceManagementConfig(
+      device.connection?.config,
+    ).tenant;
+
+    return (
+      <div className="space-y-4">
+        <ManagedDeviceStatusPill
+          providerState={device.providerState}
+          lastCheckInAt={device.lastCheckInAt}
+          removedAt={device.removedAt}
+          now={now}
+          showAge={true}
+        />
+
+        {device.removedAt ? (
+          <p
+            className="text-sm text-gray-700"
+            data-testid="managed-device-removed"
+          >
+            {translator.translateTemplate(
+              "Removed from Esper {{time}}. Its item is archived, and goes 30 days after the device left.",
+              {
+                time: OneUptimeDate.fromNow(device.removedAt),
+              },
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+
+        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {facts.map((fact: Fact): ReactElement => {
+            return (
+              <div key={fact.label}>
+                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  {translator.translateText(fact.label)}
+                </dt>
+                <dd className="mt-1 break-words text-sm text-gray-900">
+                  {fact.value === undefined ? <EmptyValue /> : fact.value}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+
+        {connectionName ? (
+          <p className="text-xs text-gray-500">
+            {translator.translateTemplate(
+              "Imported by the Esper connection {{name}} ({{tenant}}.esper.cloud).",
+              { name: connectionName, tenant: tenant },
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card
+      title="Esper"
+      description="What Esper, the device management service that enrolls this device, knows about it."
+    >
+      {body()}
+    </Card>
+  );
+};
+
+export default ManagedDeviceCard;

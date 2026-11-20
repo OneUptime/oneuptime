@@ -19,6 +19,7 @@ flowchart TB
 ```
 
 - Chaque ligne est un événement, et chaque colonne un canal : E-mail, SMS, Appel, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost et Webhook. Slack, Microsoft Teams et Mattermost ne sont des colonnes que si le projet les a connectés. Un canal que vous n'avez pas encore configuré n'est pas une colonne : il est listé sous **Canaux pas encore configurés**, au-dessus des onglets, comme un lien pour le configurer.
+- WhatsApp ne distribue que des messages approuvés par Meta, et OneUptime en a pour les nouvelles concernant les incidents, les alertes, les épisodes, les moniteurs, les sondes, les agents IA, les pages de statut, les événements de maintenance et la plupart des permanences. Les autres nouvelles, comme le statut d'un SLO, un appel manqué, un cas de sécurité ou le fait de devenir propriétaire d'un service, n'ont pas d'interrupteur WhatsApp, et leur carte indique que WhatsApp n'est pas disponible. Elles vous parviennent par vos autres canaux.
 - Un canal activé envoie à chaque méthode vérifiée que vous avez dessus dans ce projet, pas à une seule.
 - Un canal activé sans méthode vérifiée derrière lui n'envoie rien. Sa colonne affiche **Configurer** sous son nom, et ses interrupteurs ne peuvent qu'être désactivés. **Your setup checklist** le signale aussi, sous **Staying informed**.
 - Une nouvelle va aux propriétaires de l'élément : les personnes nommées comme propriétaires, et les membres de ses équipes propriétaires. Quand un élément n'a pas de propriétaire, elle va plutôt aux Propriétaires du projet. Quelqu'un que l'appel d'astreinte d'un nouvel incident, d'une nouvelle alerte ou d'un nouvel épisode a déjà atteint n'est pas notifié à nouveau de sa création. Un événement indiquant que vous avez été ajouté comme propriétaire ne va qu'à la personne ajoutée. Si OneUptime s'arrête pendant qu'il envoie une nouvelle aux propriétaires d'un élément, les personnes qu'il n'avait pas encore atteintes la reçoivent quand OneUptime revient, quelques minutes plus tard, et personne ne la reçoit deux fois.
@@ -49,23 +50,28 @@ Quand vous rejoignez un projet, ces événements sont activés, par e-mail. Tout
 | --- | --- | --- |
 | **Incidents** | **Incident créé**, **État de l'incident modifié**, **Rappel d'incident**, **SLA d'incident non respecté**, **Épisode d'incident créé**, **État de l'épisode d'incident modifié**, **Incident ajouté à l'épisode d'incident** | **Note d'incident publiée**, **Ajouté comme propriétaire de l'incident**, **Affecté à un incident**, **Note d'épisode d'incident publiée**, **Ajouté comme propriétaire de l'épisode d'incident** |
 | **Alertes** | **Alerte créée**, **État de l'alerte modifié**, **Rappel d'alerte**, **Épisode d'alerte créé**, **État de l'épisode d'alerte modifié**, **Alerte ajoutée à l'épisode d'alerte** | **Note d'alerte publiée**, **Ajouté comme propriétaire de l'alerte**, **Note d'épisode d'alerte publiée**, **Ajouté comme propriétaire de l'épisode d'alerte** |
-| **Surveillance** | **Statut de la sonde modifié pour votre moniteur**, **Le moniteur n'a aucune sonde active**, **Statut du SLO modifié**, **Ajouté comme propriétaire du SLO**, **Exception qui m'est attribuée**, **Statut de la sonde modifié**, **Ajouté comme propriétaire de la sonde** | **Moniteur créé**, **Statut du moniteur modifié**, **Ajouté comme propriétaire du moniteur**, **Statut de l'agent IA modifié**, **Ajouté comme propriétaire de l'agent IA** |
+| **Surveillance** | **Statut de la sonde modifié pour votre moniteur**, **Le moniteur n'a aucune sonde active**, **Statut du SLO modifié**, **Ajouté comme propriétaire du SLO**, **Exception qui m'est attribuée**, **Statut de la sonde modifié**, **Ajouté comme propriétaire de la sonde**, **Ajouté comme propriétaire de la table**, **Ajouté comme propriétaire du pipeline**, **Ajouté comme propriétaire d'un service ou d'une infrastructure**, **Ajouté comme propriétaire du tableau de bord**, **Ajouté comme propriétaire du flux de travail**, **Ajouté comme propriétaire du runbook**, **Ajouté comme propriétaire du groupe de moniteurs**, **Ajouté comme propriétaire de l'agent Runbook** | **Moniteur créé**, **Statut du moniteur modifié**, **Ajouté comme propriétaire du moniteur**, **Statut de l'agent IA modifié**, **Ajouté comme propriétaire de l'agent IA** |
 | **Pages de statut** | **Ma note publique approuvée ou rejetée**, et aussi par push : **Note publique en attente de mon approbation** | **Page de statut créée**, **Annonce de page de statut publiée**, **Ajouté comme propriétaire de la page de statut** |
 | **Maintenance planifiée** | **Rappel de maintenance** | **Événement de maintenance créé**, **État de la maintenance modifié**, **Note de maintenance publiée**, **Ajouté comme propriétaire de la maintenance** |
-| **Astreinte** | **Vous prenez l'astreinte**, **Vous êtes le prochain d'astreinte**, **Vous quittez l'astreinte**, **Ajouté à la politique d'astreinte**, **Retiré de la politique d'astreinte**, **Appel manqué**, et aussi par push : **Avant le début de ma permanence d'astreinte**, **Ma prochaine permanence d'astreinte est réattribuée** | Aucun |
-| **Sécurité** | Aussi par push : **Nouveau dossier de sécurité** (dossiers de priorité Élevé et Critique), **Dossier de sécurité qui m'est attribué**, **Étape de playbook en attente de mon approbation**, **Objectif de réponse d'un dossier de sécurité**, **Tâche d'un dossier de sécurité qui m'est attribuée**, **Une chasse a trouvé des événements de sécurité** | Aucun |
+| **Astreinte** | **Vous prenez l'astreinte**, **Vous êtes le prochain d'astreinte**, **Vous quittez l'astreinte**, **Ajouté à la politique d'astreinte**, **Retiré de la politique d'astreinte**, **Appel manqué**, **Ajouté comme propriétaire de la politique d'astreinte**, **Ajouté comme propriétaire du planning d'astreinte**, **Ajouté comme propriétaire de la politique d'appels entrants**, et aussi par push : **Avant le début de ma permanence d'astreinte**, **Ma prochaine permanence d'astreinte est réattribuée** | Aucun |
+| **Sécurité** | **Ajouté comme propriétaire du magasin de données**, et aussi par push : **Nouveau dossier de sécurité** (dossiers de priorité Élevé et Critique), **Dossier de sécurité qui m'est attribué**, **Étape de playbook en attente de mon approbation**, **Objectif de réponse d'un dossier de sécurité**, **Tâche d'un dossier de sécurité qui m'est attribuée**, **Une chasse a trouvé des événements de sécurité** | Aucun |
 
 > [!IMPORTANT]
 > **Statut du moniteur modifié** démarre désactivé. Pour savoir quand un moniteur dont vous êtes propriétaire tombe ou revient, activez-le dans l'onglet **Surveillance**.
 
+**Ajouté comme propriétaire d'un service ou d'une infrastructure**, dans la carte **Services et infrastructure**, est un seul interrupteur pour chaque service, application RUM, base de données, file d'attente, hôte, cluster, ressource cloud et autre élément d'infrastructure dont vous devenez propriétaire. Le message dit duquel il s'agit.
+
+**Ajouté comme propriétaire du groupe de moniteurs**, dans la carte **Moniteurs**, et **Ajouté comme propriétaire de l'agent Runbook**, dans la carte **Tableaux de bord et automatisation**, vous préviennent quand quelqu'un vous ajoute comme propriétaire d'un groupe de moniteurs ou d'un agent Runbook.
+
 ## Vos permanences
 
-L'onglet **Astreinte** parle de vous, pas des éléments dont vous êtes propriétaire :
+L'onglet **Astreinte** parle de vous, et des éléments d'astreinte dont vous êtes propriétaire :
 
 - **Vous prenez l'astreinte**, **Vous êtes le prochain d'astreinte** et **Vous quittez l'astreinte** suivent vos tours dans les plannings d'astreinte dont vous faites partie.
 - **Ajouté à la politique d'astreinte** et **Retiré de la politique d'astreinte** vous disent quand une politique d'astreinte commence ou cesse de vous nommer.
 - **Avant le début de ma permanence d'astreinte** envoie des rappels aux moments que vous choisissez dans **Paramètres utilisateur → Profil et calendrier → Flux de calendrier**, et **Ma prochaine permanence d'astreinte est réattribuée** vous dit quand quelqu'un d'autre couvre une permanence dont vous aviez reçu un rappel. Voir [Flux de calendrier](/docs/on-call/calendar-feeds#rappels-et-avis-de-réaffectation).
 - **Appel manqué**, dans la carte **Politiques d'appels entrants**, dit aux propriétaires d'une politique d'appels entrants qu'un appelant n'a joint personne. Voir [Politique d'appels entrants](/docs/on-call/incoming-call-policy#appels-manqués).
+- **Ajouté comme propriétaire de la politique d'astreinte**, **Ajouté comme propriétaire du planning d'astreinte** et **Ajouté comme propriétaire de la politique d'appels entrants** vous disent quand vous devenez propriétaire de l'un d'eux, par une règle de propriétaires ou par une personne sur sa page Propriétaires.
 
 ## Dossiers de sécurité
 
@@ -99,6 +105,10 @@ Voir [Regroupement des notifications](/docs/emails/notification-rollup).
 
 :::details Un interrupteur est activé, mais rien n'arrive
 Vérifiez que vous avez une méthode vérifiée sur ce canal dans **Paramètres utilisateur → Méthodes de notification**. Pour les SMS, les appels, WhatsApp et Telegram, le projet doit aussi avoir activé le canal.
+:::
+
+:::details Il n'y a pas d'interrupteur WhatsApp pour une nouvelle
+WhatsApp ne distribue que des messages approuvés par Meta, et OneUptime n'en a pas pour cette nouvelle : sa carte indique donc que WhatsApp n'est pas disponible. Choisissez un autre canal pour elle, comme les SMS ou Push.
 :::
 
 :::details Je suis propriétaire d'un moniteur, mais je ne sais jamais quand il tombe

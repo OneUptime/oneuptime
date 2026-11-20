@@ -9,6 +9,7 @@ OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 
 - [에이전트 설치](#에이전트-설치): Helm으로 네 단계.
 - [Amazon EKS 추가 기능으로 설치](#amazon-eks-추가-기능으로-설치): Helm 없이 EKS 콘솔에서.
 - [OpenShift](#openshift): 프리셋, 프리셋이 만드는 보안 컨텍스트 제약 조건, OpenShift 자체 경고.
+- [클러스터 보안 강화](#클러스터-보안-강화): 파드 보안 표준과 CIS Benchmark 점수, 그리고 에이전트 자체의 권한.
 - [구성 옵션](#구성-옵션): 필터, 샘플링, 컨트롤 플레인, 서비스 메시, 비용, 레이블.
 - [Kubernetes AI 에이전트](#kubernetes-ai-에이전트): OneUptime AI를 위한 읽기 전용 `kubectl`과, 허용할 때의 수정.
 - [전송량 줄이기](#수집하는-데이터양-줄이기): 효과가 큰 순서로 정리한 조정 수단.
@@ -32,7 +33,7 @@ flowchart TB
 | eBPF 계측 (OBI) | DaemonSet | 모든 Pod의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 기본값 (GKE Autopilot과 EKS Fargate 제외) |
 | Kubernetes AI 에이전트 | Deployment | OneUptime AI가 인시던트나 경고를 조사하는 동안 사용하는 읽기 전용 `kubectl`. | 기본값 |
 | 로그 테일러 | Deployment | 노드 Collector가 읽을 수 없는 경우 Kubernetes API를 통한 Pod 로그. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋 |
-| 비용 엔진과 폴러 | Deployments | 네임스페이스, 워크로드, Pod별 지출. | `cost.enabled=true`일 때 |
+| 비용 엔진과 폴러 | Deployments | 네임스페이스, 워크로드, Pod별 지출. | 기본값 (GKE Autopilot과 EKS Fargate 제외) |
 
 모든 에이전트 이미지는 Linux 전용이므로 모든 워크로드는 Linux 노드에 고정됩니다.
 
@@ -199,7 +200,8 @@ EKS 콘솔의 **Optional configuration settings** 섹션에서 설정하거나, 
 - `oneuptime.labels`: 이 클러스터가 보내는 모든 데이터에 붙는 프로젝트 레이블(예: `{"team": "payments"}`).
 - `preset`: Fargate에서만 실행되는 클러스터에는 `eks-fargate`, 그 밖에는 기본값인 `standard`.
 - `logs.enabled`, `ebpf.enabled`, `aiAgent.enabled`: Pod 로그, eBPF 트레이스, [Kubernetes AI 에이전트](#kubernetes-ai-에이전트). 모두 기본적으로 켜져 있습니다.
-- `kubeStateMetrics.enabled`, `cost.enabled`: kube-state-metrics와 [비용 옵저버빌리티](/docs/telemetry/kubernetes-cost). 모두 기본적으로 꺼져 있습니다.
+- `kubeStateMetrics.enabled`: kube-state-metrics. 기본적으로 꺼져 있습니다.
+- `cost.enabled`: [비용 옵저버빌리티](/docs/telemetry/kubernetes-cost). 기본값은 `auto`이며, `eks-fargate` 프리셋을 제외하면 켜져 있습니다.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -266,12 +268,13 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | Kubernetes 이벤트 | 모든 네임스페이스와 모든 종류의 객체에서 온 모든 이벤트(Warning과 Normal): [Kubernetes 이벤트](#kubernetes-이벤트) 참고 |
 | Pod 로그 | 모든 컨테이너의 stdout과 stderr (표준 클러스터에서는 `hostPath`를 통해, Autopilot과 Fargate에서는 Kubernetes API를 통해) |
 | OpenShift 객체 (OpenShift 프리셋) | ClusterOperator, ClusterVersion, Route, DeploymentConfig, Service: [OpenShift](#openshift) 참고 |
+| RBAC, 서비스 계정, NetworkPolicy | Role, ClusterRole과 그 바인딩, ServiceAccount, NetworkPolicy (읽기 전용, `resourceSpecs.interval`마다). 클러스터 보안 강화의 점수를 매기는 데 쓰입니다: [클러스터 보안 강화](#클러스터-보안-강화) 참고. Secret은 절대 읽지 않습니다 |
 | 애플리케이션 트레이스 (eBPF, 기본적으로 켜짐) | 모든 Pod의 HTTP, gRPC, SQL, Redis 스팬 (SDK나 코드 변경 불필요) |
 | HTTP RED 메트릭 (eBPF) | 서비스별 `http.server.request.duration`, 그리고 요청 및 응답 본문 크기 |
 | 서비스 그래프 (eBPF) | 호출자에서 피호출자로의 요청 속도, 지연 시간, 오류 엣지. 서비스 맵을 그립니다 |
 | 네트워크 흐름 메트릭 (eBPF) | Kubernetes 메타데이터가 붙은 Pod 간 TCP 및 UDP 바이트·패킷 카운터 |
 | TCP 통계 (eBPF) | 노드 수준의 왕복 시간, 연결 실패, 재전송 카운터 |
-| 워크로드 비용 (옵트인, `cost.enabled=true`) | 유휴 및 효율을 포함한 네임스페이스, 워크로드, Pod별 지출, 그리고 노드와 볼륨의 시간당 비용: [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost) 참조 |
+| 워크로드 비용 (기본적으로 켜짐, GKE Autopilot과 EKS Fargate 제외) | 유휴 및 효율을 포함한 네임스페이스, 워크로드, Pod별 지출(경고를 설정할 수 있는 메트릭으로도 제공), 그리고 노드와 볼륨의 시간당 비용: [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost) 참조 |
 
 ## Kubernetes 이벤트
 
@@ -310,6 +313,49 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | `k8s.namespace.name` | `default` |
 
 **로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 경고를 받으려면 클러스터의 **권장 사항** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **Warning 이벤트 경고 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 경고를 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 경고를 받으려면 필터에 `k8s.event.reason`을 추가하세요.
+
+## 클러스터 보안 강화
+
+클러스터의 **규정 준수** 페이지(**보안** 아래)는 **클러스터 보안 강화** 섹션에서 세 가지 프레임워크를 기준으로 클러스터 자체의 점수를 매깁니다. 읽는 것은 에이전트가 이미 보내는 데이터로, 클러스터의 Pod와 네임스페이스, 그리고 CIS Benchmark의 경우 클러스터의 RBAC, 서비스 계정, NetworkPolicy입니다. 이 페이지는 에이전트가 클러스터의 Pod를 보고하는 즉시 클러스터 메뉴에 나타나며, 클러스터에서 데이터베이스가 실행되는지와는 관계없습니다.
+
+| 프레임워크 | 점수를 매기는 대상 |
+| --- | --- |
+| **파드 보안 표준: Baseline** | 클러스터에서 실행 중인 모든 워크로드. 클러스터 Kubernetes 버전의 Baseline 정책을 기준으로, privileged 컨테이너, 호스트의 네임스페이스·포트·경로, 추가된 capability 등 정책이 정한 모든 필드를 각 Pod의 사양에서 읽어 평가합니다 |
+| **파드 보안 표준: Restricted** | 같은 워크로드. Restricted 정책을 기준으로, Baseline의 통제 항목에 더해 허용된 볼륨 유형만 쓰는지, root가 아닌 사용자로 실행하는지, 권한 상승이 없는지, seccomp 프로필이 있는지, 모든 capability를 제거했는지를 평가합니다 |
+| **CIS Kubernetes Benchmark v2.0** | 섹션 5의 통제 항목 중 Kubernetes API로 판단할 수 있는 27개. cluster-admin, Secret, `nodes/proxy` 등 통제 항목이 명시한 권한을 부여하는 역할 바인딩, 와일드카드가 있는 역할, 기본 서비스 계정, 각 네임스페이스의 Pod Security Admission 또는 정책 엔진, NetworkPolicy, 각 Pod가 실행하는 것을 평가합니다 |
+
+각 프레임워크의 타일에는 점수와 함께, 평가한 워크로드 수와 그중 실패한 수가 표시됩니다. 통제 항목은 실패한 것부터 나열됩니다. 각 통제 항목은 무엇이 문제인지와 수정 방법을 알려 주고, 실패한 워크로드, 역할, 역할 바인딩, 서비스 계정, 네임스페이스를 각각의 페이지 링크와 함께 나열하며, 컨테이너나 볼륨, 그리고 `securityContext.privileged` 같은 필드까지 짚어 줍니다. 데이터 보안이 클러스터에서 실행되는 데이터베이스의 점수를 매기는 경우, 그 데이터베이스는 아래의 **이 클러스터의 데이터베이스**에 그대로 표시됩니다.
+
+파드 보안 표준은 클러스터 자체의 Kubernetes 버전, 즉 클러스터에서 가장 새로운 kubelet의 버전을 기준으로 점수를 매기며, 상한은 OneUptime이 아는 최신 버전입니다. 이후 버전에서 추가된 통제 항목은 그 버전부터만 반영되며, 페이지에는 어느 버전을 기준으로 점수를 매겼는지 표시됩니다.
+
+벤치마크의 나머지 통제 항목 104개는 노드의 파일과 kubelet 또는 컨트롤 플레인의 플래그를 확인하거나, 사람의 검토가 필요합니다. 어떤 API로도 판단할 수 없으므로 **여기서 점수를 매기지 않음** 아래에 이유별로 묶여 표시되며, 통과로도 실패로도 보지 않습니다. EKS, GKE, AKS 같은 관리형 컨트롤 플레인에서는 이 통제 항목들이 해당 제공업체의 벤치마크를 따른다고 페이지에 표시됩니다.
+
+### 프레임워크, 통제 항목, 네임스페이스 끄기
+
+클러스터에 해당되지 않는 것은 끄세요. 각 스위치는 그 클러스터만의 것이며 끌 때 이유를 묻고, 페이지에는 누가, 언제, 왜 껐는지가 남습니다:
+
+- 프레임워크의 **여기에 적용** 스위치는 클러스터를 그 프레임워크의 대상에서 뺍니다. 그 프레임워크는 **꺼짐** 아래로 접히며, 그곳의 스위치로 다시 켤 수 있습니다.
+- 통제 항목의 스위치는 그 통제 항목을 클러스터 점수에서 뺍니다.
+- 각 프레임워크 아래에 있는 네임스페이스의 스위치는, Pod Security Admission이 네임스페이스를 예외로 두듯이 그 네임스페이스의 모든 것을 그 프레임워크의 대상에서 뺍니다.
+
+### 프레임워크 내보내기
+
+**CSV 내보내기**와 **JSON 내보내기**는 프레임워크의 보고서를 다운로드합니다. 보고서에는 모든 통제 항목과 각 항목의 통과 여부, 무엇이 실패했는지와 수정 방법, 그리고 점수를 매길 때 기준으로 삼은 Kubernetes 버전이 들어 있습니다.
+
+### 이를 위해 에이전트가 읽는 것
+
+`resourceSpecs.compliance`(기본적으로 켜짐)는 Role, ClusterRole과 그 바인딩, ServiceAccount, NetworkPolicy를 `resourceSpecs.interval`마다 읽으며, 이들에 대해 `get`, `list`, `watch`만 쓰고 그 이상은 쓰지 않습니다. Secret은 절대 읽지 않습니다. ServiceAccount는 토큰 Secret의 이름만 가리키며, OneUptime은 그 이름조차 버립니다. 이 값을 끄면(`--set resourceSpecs.compliance=false`) 벤치마크의 RBAC, 서비스 계정, NetworkPolicy 통제 항목은 *평가 안 됨*이 되며, 파드 보안 표준은 여전히 Pod를 바탕으로 점수를 매깁니다.
+
+### 에이전트 자체의 권한
+
+에이전트는 kubelet이 각 경로를 인가할 때 쓰는 하위 리소스를 통해 각 kubelet을 읽습니다. 통계에는 `nodes/stats`, cAdvisor에는 `nodes/metrics`, 노드의 Pod 목록에는 `nodes/pods`를 쓰는데, kubelet은 Kubernetes 1.33부터 이를 허용합니다. `nodes/proxy`는 kubelet API 전체에 접근할 수 있고 CIS 5.1.10은 이를 부여하는 역할 바인딩을 실패로 판정하므로, 에이전트는 더 좁은 권한으로는 안 되는 곳에서만 이를 부여합니다:
+
+| 값 | 에이전트가 `nodes/proxy`를 부여하는 경우 |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto`(기본값)는 클러스터가 1.36보다 오래된 Kubernetes를 실행하는 동안 이를 부여합니다. 그런 클러스터의 kubelet은 1.33보다 오래되었을 수 있는데, 이런 kubelet은 노드의 Pod 목록을 `nodes/proxy` 권한에만 내주기 때문입니다. 모든 노드가 1.33 이상을 실행하면 `false`로, `KubeletFineGrainedAuthz`가 꺼진 kubelet에서는 `true`로 설정하세요 |
+| `cost.prometheus.nodesProxy` | `auto`(기본값)는 `eks-fargate` 프리셋에서만 이를 부여합니다. 이 프리셋에서는 어떤 Pod도 노드의 kubelet에 도달할 수 없어, 비용 계산에 쓰는 Prometheus가 API 서버를 통해 cAdvisor를 읽습니다. 그 밖의 모든 곳에서는 포트 10250으로 각 노드의 kubelet을 읽습니다 |
+
+에이전트 자체의 역할 바인딩이 5.1.10에서 실패하면, 페이지는 그 역할 바인딩이 에이전트의 것이라는 점, `nodes/proxy`를 부여하는 이유, 그리고 이를 없애는 값을 알려 줍니다.
 
 ## 구성 옵션
 
@@ -409,7 +455,7 @@ Kubernetes 이벤트는 에이전트에서 네임스페이스로 필터링되지
 시끄러운 메트릭 몇 개 버리기(거부 목록, 보통 이쪽을 원합니다):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 고정된 집합만 보내기(허용 목록: 나머지는 모두 버려집니다):
@@ -594,7 +640,7 @@ Istio의 경우 모든 `istio-proxy` 사이드카의 Envoy 통계(포트 `15090`
 
 ### 비용 옵저버빌리티 활성화
 
-클러스터의 **비용** 페이지에서 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 확인하세요:
+비용 옵저버빌리티는 기본적으로 켜져 있습니다. 클러스터의 개요와 **비용** 페이지가 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 보여 주며, 비용 메트릭은 차트로 그리고 경고를 설정할 수 있습니다. 모든 Pod에 그 request만큼 요금을 매기는 `gke-autopilot`과 `eks-fargate` 프리셋, 그리고 기본으로 켜지기 전에 설치한 에이전트에서는 꺼져 있습니다. 그런 곳에서는 다음과 같이 켜세요:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +649,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-이것만으로 완전한 설치입니다. 차트는 오픈 소스 [OpenCost](https://opencost.io) 엔진(필요한 작은 Prometheus 포함)을 번들로 제공하며, 자격 증명 없이 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 작은 Pod 두 개가 추가되며, 첫 비용은 첫 1시간이 마감된 뒤에 나타납니다. 이미 Kubecost나 OpenCost를 실행하고 있다면 대신 `--set cost.engine.url=<its service URL>`을 추가하세요. 그러면 아무것도 번들되지 않습니다. 온프레미스 클러스터는 `cost.opencost.customPricing`으로 요금표를 설정할 수 있습니다. 온프레미스 가격 책정과 문제 해결을 포함한 전체 가이드는 [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)입니다.
+이것만으로 완전한 설치입니다. 차트는 오픈 소스 [OpenCost](https://opencost.io) 엔진(필요한 작은 Prometheus 포함)을 번들로 제공하며, 자격 증명 없이 클라우드 제공업체의 공개 정가로 노드와 볼륨의 가격을 매깁니다. 작은 Pod 세 개가 추가되며, 첫 비용은 첫 1시간이 마감된 뒤에 나타납니다. 끄려면 같은 방법으로 `--set cost.enabled=false`를 설정하세요. 이미 Kubecost나 OpenCost를 실행하고 있다면 비용 에이전트가 그것을 찾아 번들 엔진 대신 읽습니다. 두 번째 엔진을 번들하지 않으려면 `--set cost.engine.url=auto`를 추가하세요. 온프레미스 클러스터는 `cost.opencost.customPricing`으로 요금표를 설정할 수 있습니다. 온프레미스 가격 책정과 문제 해결을 포함한 전체 가이드는 [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost)입니다.
 
 ### 프로젝트 레이블로 자동 태그 지정
 
@@ -824,6 +870,8 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 
 업그레이드가 `namespaces "<name>" not found`로 실패하면 `aiAgent.remediation.namespaces`(또는 이전 `aiAccess.remediation.namespaces`)에 존재하지 않는(또는 더 이상 존재하지 않는) 네임스페이스가 있는 것입니다. 차트는 나열된 각 네임스페이스에 RoleBinding을 두지만 네임스페이스는 만들지 않습니다. 네임스페이스를 만들거나, 그 네임스페이스를 뺀 목록으로 업그레이드하거나(`--set "aiAgent.remediation.namespaces={web}"`), `--set-json 'aiAgent.remediation.namespaces=[]'`로 클러스터 전체 바인딩으로 되돌리세요. `--reuse-values`에서는 `--set aiAgent.remediation.namespaces=null`로 저장된 목록이 재설정되지 않으므로 같은 오류로 실패합니다.
 
+> **CIS Benchmark의 RBAC 통제 항목에는 업그레이드된 에이전트가 필요합니다.** `resourceSpecs.compliance` 이전의 에이전트는 RBAC, 서비스 계정, NetworkPolicy를 보내지 않으므로, 클러스터의 **규정 준수** 페이지에는 벤치마크의 RBAC, 서비스 계정, NetworkPolicy 통제 항목이 *평가 안 됨*으로 표시되고 해결 방법이 안내됩니다. `resourceSpecs.compliance`를 켠 상태로(기본적으로 켜져 있습니다) 에이전트를 업그레이드하세요. Collector 0.125.0 이상이 필요합니다. 또한 업그레이드하면 `nodes/proxy`가 필요한 노드가 없는 곳에서는 더 이상 이를 부여하지 않습니다. [에이전트 자체의 권한](#에이전트-자체의-권한)을 참고하세요.
+
 > **eBPF 스팬 메트릭의 이름이 바뀌었습니다.** `ebpf.features.spanMetrics`는 이제 `traces_spanmetrics_calls_total`과 `traces_spanmetrics_latency` 대신 `traces.span.metrics.calls`와 `traces.span.metrics.duration`(초)을 보냅니다. 같은 시계열이며, OBI가 유지하는 이름입니다(이전 이름은 OBI에서 더 이상 사용되지 않음). 이전 이름을 사용하는 대시보드, 차트, 메트릭 모니터는 업그레이드 후 오류 없이 새 데이터를 받지 못합니다. 새 이름으로 옮기고, 이전 이름을 지정한 `filters.metrics` 항목도 업데이트하세요.
 
 ### Kubernetes AI 에이전트로 업그레이드
@@ -959,7 +1007,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 고유 시계열 수인 카디널리티는 빈도만큼 중요합니다. 각 시계열이 따로 저장되고 과금되기 때문입니다.
 
 - cAdvisor는 의도적으로 허용 목록 방식입니다. cAdvisor 리시버(기본적으로 켜짐)는 수백 개의 메트릭을 내보낼 수 있지만, 차트는 `cadvisor.metricsAllowlist`에 있는 CPU 스로틀링 및 OOM kill 카운터만 직접 만드는 차트와 메트릭 모니터를 위해 전달합니다. 기본 제공 템플릿은 이를 읽지 않습니다. 목록을 짧게 유지하세요. 각 항목은 컨테이너별로 유지되므로 메트릭 하나를 더하면 클러스터의 컨테이너 수만큼 곱해집니다. kube-state-metrics는 기본적으로 꺼져 있으며, 켜면(`kubeStateMetrics.enabled=true`) 그 `kubeStateMetrics.metricsAllowlist`도 같은 방식으로 작동하고, 각 항목은 메트릭 이름 전체와 일치해야 합니다.
-- PVC별 볼륨 메트릭(`kubeletstats.volumeMetrics.enabled`, 기본적으로 켜짐)은 Pod별·PVC별로 시계열 하나를 내보냅니다. 대부분의 클러스터에는 괜찮지만, PVC가 수천 개인 상태 저장 워크로드(Kafka, 데이터베이스)에서는 많아집니다. PVC 디스크 공간을 감시하지 않는다면 그곳에서 `--set kubeletstats.volumeMetrics.enabled=false`로 끄세요.
+- 볼륨 메트릭(`kubeletstats.volumeMetrics.enabled`, 기본적으로 켜짐)은 각 Pod에서 데이터를 담는 볼륨(클레임, emptyDir, hostPath)마다 시계열 5개를 내보내며, 영구 볼륨 클레임 페이지의 사용량, 여유 공간, 용량, 클러스터의 "확인 필요"에 표시되는 거의 가득 찬 클레임, PVC Almost Full 템플릿에 쓰입니다. 이 시계열의 대부분을 차지하던 Pod의 configMap, secret, downwardAPI, 서비스 계정 토큰 볼륨은 노드에서 버려집니다. 그래도 PVC가 수천 개인 상태 저장 워크로드(Kafka, 데이터베이스)에서는 여전히 많습니다. PVC 디스크 공간을 감시하지 않는다면 그곳에서 `--set kubeletstats.volumeMetrics.enabled=false`로 끄세요.
 - 포화도 메트릭(`kubeletstats.utilizationMetrics.enabled`, 기본적으로 켜짐)은 "request 또는 limit 대비 %"의 파생 패밀리 8개를 추가합니다. 추가 스크레이프는 들지 않지만, limit 대비 CPU 및 메모리 모니터를 사용하지 않는다면 `--set kubeletstats.utilizationMetrics.enabled=false`로 버리세요.
 - 리시버 허용 목록으로 표현할 수 없는 것은 모든 리시버에 적용되는 `filters.metrics.exclude`로 이름을 지정해 메트릭을 버리세요([이름으로 메트릭 포함 또는 제외](#이름으로-메트릭-포함-또는-제외) 참조):
 
@@ -990,7 +1038,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled` | CrashLoop, ImagePull, 스케줄링 사유 메트릭(kube-state-metrics Deployment와 스크레이프 추가) |
 | `ebpf.features.networkInterZoneMetrics` | 네트워크 흐름 시계열이 두 배가 됨 |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 더 많은 Prometheus 스크레이프 작업 |
-| `cost.enabled` | 워크로드 비용(OpenCost와 작은 Prometheus를 번들로 제공. 시간당 비용 행과 엄격하게 허용 목록으로 제한한 메트릭 스크레이프. 적당한 수집량, Pod 두 개 추가) |
+
+반면 비용 옵저버빌리티(`cost.enabled`)는 기본적으로 켜져 있습니다. 작은 Pod 세 개, 컨테이너마다 시간당 비용 행 하나, 그리고 노드, 볼륨, 로드 밸런서마다 가격 시계열 하나의 스크레이프가 추가됩니다. 사용하지 않는다면 `--set cost.enabled=false`로 끄세요.
 
 ### 트레이스를 버리는 대신 샘플링
 
@@ -1058,7 +1107,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 필요에 따라 더 조이세요. `minSeverity`를 `ERROR`로 올리거나, 네임스페이스 규칙의 범위에 `metrics`를 추가하거나, 이미 OpenTelemetry SDK로 트레이스를 보내고 있다면 `ebpf.enabled=false`를 설정하세요.
 
 > [!CAUTION]
-> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `kubeletstats.utilizationMetrics`를 끄면 Pod를 컨테이너 한도와 비교하는 두 템플릿이 멈추고, 로그를 끄면 로그 기반 경고가 없어지며, `cadvisor` 또는 `kubeletstats.volumeMetrics`를 끄면 직접 만든 차트와 메트릭 모니터가 읽을 수 있는 스로틀링, OOM kill, PVC 시리즈가 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
+> 무엇을 줄이는지 주의하세요. 일부 모니터는 특정 신호에 의존합니다. `kubeletstats.utilizationMetrics`를 끄면 Pod를 컨테이너 한도와 비교하는 두 템플릿이 멈추고, 로그를 끄면 로그 기반 경고가 없어지며, `kubeletstats.volumeMetrics`를 끄면 PVC Almost Full 템플릿이 멈추고 영구 볼륨 클레임 페이지에 사용량이 표시되지 않으며, `cadvisor`를 끄면 직접 만든 차트와 메트릭 모니터가 읽을 수 있는 스로틀링과 OOM kill 시리즈가 없어집니다. `sampling.traces.percentage`는 모니터를 없애지 않지만 스팬 기반 모니터(`Span Count`에 대한 **트레이스**, `Exception Count`에 대한 **예외**)의 값을 줄이므로 임계값을 다시 조정하세요. 대응에 쓰지 않는 신호를 줄이고, 모니터가 감시하는 신호는 줄이지 마세요.
 
 ### 효과 측정
 

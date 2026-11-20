@@ -218,6 +218,7 @@ Een AWS-account, Google Cloud-project of Azure-abonnement dat [onder **Cloud** i
 - Elk record wordt gelezen zoals **Uw logboeken** het uit een pijplijn leest, zodat de CloudTrail-, Google Cloud- en Azure-regels van de regelbibliotheek erop matchen.
 - Een gebeurtenis krijgt het tijdstip waarop ze wordt opgeslagen, met de eigen tijd van het record in `oneuptime.cloud.record_time`: een auditlog bereikt OneUptime minuten te laat, en een regel leest gebeurtenissen op hun tijd.
 - De leesbeurt van het account zelf levert niets meer op: data-events, Data Access-logs en de logs van Microsoft Entra ID hebben nog steeds **Uw logboeken** of een [verbinding](/docs/integrations/microsoft-entra-id) nodig.
+- Elke gebeurtenis noemt de cloud-resources waar de record over gaat bij hun eigen ID's - een ARN, een Azure-resource-ID, een resourcenaam van Google Cloud - en staat dus op de pagina **Beveiligingsgebeurtenissen** van elk ervan, en op die van een serverless functie zodra de telemetrie ervan `cloud.account.id` en `cloud.region` instelt.
 
 ### Een beveiligingsproduct koppelen
 
@@ -371,7 +372,7 @@ flowchart TB
 3. De **Naam** vult zich met de `title` van de regel: typ eroverheen om de regel anders te noemen. Een nieuwe regel draait; **Ingeschakeld** staat in zijn bewerkformulier.
 4. Laat in **Bij overeenkomst** de optie **Zaak openen bij overeenkomst** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
 5. Kies onder **Waarschuwingen en incidenten** wat een match verder oplevert: **Een waarschuwing maken** (standaard), **Een incident melden**, **Beide** of **Geen van beide**, met een optionele **Ernst van waarschuwing** of **Ernst van incident**.
-6. **Meer velden** bevat de **Beschrijving**, **Detection Finding schrijven bij overeenkomst** (aan), **In realtime uitvoeren** (uit) en hoe matches worden geteld; zie [Evaluatie-instellingen](#evaluatie-instellingen).
+6. **Meer velden** bevat de **Beschrijving**, **Detection Finding schrijven bij overeenkomst** (aan), **In realtime uitvoeren** (uit), hoe matches worden geteld, en **Responsstappen**: wat er moet gebeuren als de regel een zaak opent, elke stap onder het deel van het Responsplan van de zaak dat je kiest, hoogstens 10. Sleep een stap aan zijn greep, of gebruik **Omhoog** en **Omlaag**: het plan van de zaak toont de stappen van elk deel in de volgorde die je ze geeft. Zie [Evaluatie-instellingen](#evaluatie-instellingen).
 :::
 
 Een eerste regel, die matcht op mislukte aanmeldingen van buiten `10.x.x.x`:

@@ -2,6 +2,13 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { IDENTITY_URL, APP_API_URL } from "Common/UI/Config";
 import { SIGN_UP_INVITATION_ROUTE } from "Common/Types/Accounts/SignUpInvitation";
+import {
+  MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
+  SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
+  VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
+} from "Common/Types/Accounts/SecondStepEnrolment";
+import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
+import { getProjectSignInMethodsRoute } from "Common/Types/SSO/SignInMethods";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/signup"),
@@ -51,6 +58,29 @@ export const VERIFY_TOTP_ENROLMENT_API_URL: URL = URL.fromURL(
 ).addRoute(new Route("/verify-totp-enrolment"));
 
 /*
+ * The other way to finish that setup (#9764,
+ * Common/Types/Accounts/SecondStepEnrolment): a security key. The options
+ * for the browser's prompt, then the key's answer to them, which signs the
+ * user in. Like the route above, both carry the email and password again
+ * (or the sign-in link's token): there is no session until the key works.
+ */
+export const SECURITY_KEY_ENROLMENT_OPTIONS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE));
+
+export const VERIFY_SECURITY_KEY_ENROLMENT_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(VERIFY_SECURITY_KEY_ENROLMENT_ROUTE));
+
+/*
+ * The options for a passkey the mobile app sets up in the phone's browser
+ * (#9817), read once by the page it opened with the id the app was given.
+ */
+export const MOBILE_PASSKEY_ENROLMENT_OPTIONS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE));
+
+/*
  * Signs a user in with one of their single-use recovery codes, for the day the
  * authenticator app or security key is not available. Reached only from the
  * two factor challenge screen, and only when /login reported that the account
@@ -61,9 +91,15 @@ export const VERIFY_BACKUP_CODE_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/verify-backup-code"));
 
+/*
+ * The options for a security key's prompt at the second step (#9822,
+ * Types/Accounts/SecurityKeySignIn). A sign-in route like the two around
+ * it: the request carries the email and password again (or the sign-in
+ * link's token), and only the account they prove gets its keys' options.
+ */
 export const GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL: URL = URL.fromURL(
-  APP_API_URL,
-).addRoute(new Route("/user-webauthn/generate-authentication-options"));
+  IDENTITY_URL,
+).addRoute(new Route(SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE));
 
 /*
  * Mints a set of recovery codes for the user who is ALREADY signed in.
@@ -100,6 +136,20 @@ export const SERVICE_PROVIDER_LOGIN_OIDC_URL: URL = URL.fromURL(
 export const SIGN_IN_METHODS_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/sign-in-methods"),
 );
+
+/*
+ * The providers that sign people in to one project - its own and the
+ * instance-wide ones that reach it - for the page a project's SSO sign-in
+ * link opens (Pages/LoginWithProjectSso, #9918). Asked by the project's id
+ * alone: no address, so the answer says nothing about accounts.
+ */
+export const getProjectSignInMethodsApiUrl: (projectId: string) => URL = (
+  projectId: string,
+): URL => {
+  return URL.fromURL(IDENTITY_URL).addRoute(
+    new Route(getProjectSignInMethodsRoute(projectId)),
+  );
+};
 
 export const GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,

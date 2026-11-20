@@ -5,6 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../AppLink/AppLink";
 import { formatReplayOffsetPreciseInLanguage } from "../ReplayTimeFormat";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getListSeparator } from "Common/Types/Translator";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getLineDirection,
@@ -95,7 +96,8 @@ function sourceTag(signal: ReplaySignal): string | null {
 /*
  * What a screen reader reads for the row. aria-label replaces the button's
  * text, so everything the eye gets from the row has to be in it: the
- * repeat count, the client/server tag and the right-hand meta included.
+ * repeat count, the client/server tag and the right-hand meta included -
+ * in the reader's language, each part a whole phrase (#6516).
  */
 function rowLabel(
   props: ReplayRailRowProps,
@@ -106,17 +108,27 @@ function rowLabel(
 ): string {
   const signal: ReplaySignal = props.row.signal;
   const parts: Array<string> = [
-    `${glyph.description} at ${time}: ${signal.title}`,
+    translator.translateTemplate("{{kind}} at {{time}}: {{title}}", {
+      kind: glyph.description,
+      time: time,
+      title: signal.title,
+    }),
   ];
 
   if (props.row.repeatCount > 1) {
     parts.push(
-      `repeated ${translator.formatNumber(props.row.repeatCount)} times`,
+      translator.translatePlural(
+        {
+          one: "repeated {{count}} time",
+          other: "repeated {{count}} times",
+        },
+        props.row.repeatCount,
+      ),
     );
   }
 
   if (tag) {
-    parts.push(tag);
+    parts.push(translator.translateText(tag) || tag);
   }
 
   if (props.counterpartNote) {
@@ -128,10 +140,14 @@ function rowLabel(
   }
 
   if (props.uncertaintyLabel) {
-    parts.push(`server-stamped, ${props.uncertaintyLabel}`);
+    parts.push(
+      translator.translateTemplate("server-stamped, {{uncertainty}}", {
+        uncertainty: props.uncertaintyLabel,
+      }),
+    );
   }
 
-  return parts.join(", ");
+  return parts.join(getListSeparator(translator.language));
 }
 
 const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
@@ -139,7 +155,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const signal: ReplaySignal = props.row.signal;
-  const glyph: ReplayRailGlyph = glyphForSignal(signal, translator.language);
+  const glyph: ReplayRailGlyph = glyphForSignal(signal, translator);
   // The row's moment in the reader's digits: "۰:۰۳٫۰" in Persian (#7318).
   const time: string = formatReplayOffsetPreciseInLanguage(
     signal.offsetMs,

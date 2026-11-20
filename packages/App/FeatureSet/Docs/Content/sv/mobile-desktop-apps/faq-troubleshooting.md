@@ -42,7 +42,7 @@ Allt annat finns i instrumentpanelen.
 :::
 
 :::details Kan jag bekräfta ett larm från aviseringen?
-Nej. Tryck på aviseringen: appen öppnar incidenten, larmet, episoden eller säkerhetsärendet den gäller, i rätt projekt, och där bekräftar du. Är appen låst eller du utloggad öppnar det larmet så snart du är inne.
+Ja. Tryck länge på aviseringen på en iPhone, eller fäll ut den på Android: ett jourlarm erbjuder **Acknowledge** och **Escalate**, ett larm som bara håller dig informerad erbjuder **I've seen it**, och ett testlarm erbjuder **Acknowledge test page**. Varje åtgärd öppnar appen på posten så snart telefonen är upplåst och gör det postens egen knapp gör; innan den eskalerar frågar den först. Trycker du på själva aviseringen öppnar appen incidenten, larmet, episoden eller säkerhetsärendet den gäller, i rätt projekt. Är appen låst eller du utloggad öppnar det larmet så snart du är inne.
 :::
 
 :::details Är min inloggning säker på telefonen?
@@ -109,7 +109,7 @@ Appen nådde inte `https://<your-oneuptime>/api/status`. Kontrollera adressen, i
 :::
 
 :::details ”No SSO configuration found for the email”
-Inget av de projekt som e-postadressen är medlem i har konfigurerat enkel inloggning, eller så har e-postadressen inget konto på det här OneUptime. Kontrollera e-postadressen, eller logga in med ditt lösenord. Leverantörer som din administratör har konfigurerat för hela installationen visas före e-postfältet.
+Inget projekt på det här OneUptime erbjuder ännu enkel inloggning för den e-postadressens domän: en Projektägare eller Projektadministratör lägger till domänen i projektets SSO-leverantör, oavsett vem e-postadressen tillhör. Kontrollera e-postadressen, eller logga in med ditt lösenord. Leverantörer som din administratör har konfigurerat för hela installationen visas före e-postfältet.
 :::
 
 :::details En säkerhetsnyckel är din enda andra faktor

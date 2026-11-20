@@ -48,7 +48,7 @@ In **Span da osservare**, impostate **Stato dello span** e **Il nome dello span 
 
 ### Restringere il campo (facoltativo)
 
-Aprite **Altri campi** per filtrare per servizio di telemetria, entità dell'infrastruttura o attributo.
+Aprite **Altri campi** per filtrare per servizio di telemetria, entità dell'infrastruttura o attributo, per contare solo gli span che sono durati almeno un certo tempo, oppure per generare un avviso per ogni valore di un attributo con **Raggruppa per attributi**.
 
 ### Dire quando avvisare
 
@@ -76,8 +76,10 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Filtra per servizio** (in **Altri campi**) | Span di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Span di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Filtra per attributi** (in **Altri campi**) | Span i cui attributi soddisfano ogni condizione. Ogni condizione ha il proprio operatore, come «uguale a» o «contiene». | Vuoto: nessuna condizione |
+| **Dura almeno (ms)** (in **Altri campi**) | Span che sono durati almeno questo tempo, in millisecondi, ad esempio 5000 per un avvio a freddo di cinque secondi. | Vuoto: qualsiasi durata |
+| **Raggruppa per attributi** (in **Altri campi**) | Non è un filtro: un conteggio, e un avviso o un incidente, per ogni combinazione dei valori di questi attributi. Vedete [Un avviso per gruppo](#un-avviso-per-gruppo). | Vuoto: tutti gli span corrispondenti contano insieme |
 
-Tutti i filtri che impostate devono corrispondere perché uno span venga contato.
+Tutti i filtri che impostate devono corrispondere perché uno span venga contato. Gli span all'origine di un avviso o di un incidente aperto dal monitor sono elencati con gli stessi filtri, compreso **Dura almeno (ms)** come filtro **Durata**, quindi sono proprio gli span che ha contato.
 
 ### Codici di Stato degli Span
 
@@ -98,6 +100,14 @@ Se si desidera che le richieste riuscite vengano mostrate come OK, aggiungere un
 - **Criteri dall'alto verso il basso.** Decide il primo criterio che corrisponde, quindi mettete per primo il più grave.
 
 Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di stato** del monitor.
+
+## Un avviso per gruppo
+
+Con **Raggruppa per attributi** impostato, il monitor conta gli span corrispondenti per ogni combinazione dei valori degli attributi, e ogni gruppo genera il proprio avviso o incidente e lo risolve per conto suo. La raccomandazione **Device Stopped Reporting** di un'app mobile raggruppa per `resource.app.installation.id`, un gruppo per ogni installazione dell'app.
+
+Un dispositivo che smette di inviare span non lascia nella finestra alcuno span con cui formare un gruppo. Perciò un monitor raggruppato la cui regola può corrispondere anche senza alcuno span, come **Meno di** `1`, conta come 0 anche ogni gruppo che ha inviato span nella settimana precedente la finestra e nessuno in essa. Un gruppo silenzioso da più di quella settimana esce dal conteggio, e il suo avviso si risolve.
+
+Quando nessuno dei gruppi invia uno span, è l'intera app a essere rimasta in silenzio, non un dispositivo: nessun gruppo avvisa, e gli avvisi aperti restano aperti finché non arrivano span. Un monitor non raggruppato, come **App Stopped Reporting**, avvisa in questo caso. In un controllo vengono valutati al massimo 100 gruppi, prima quelli silenziosi.
 
 ## Criteri
 

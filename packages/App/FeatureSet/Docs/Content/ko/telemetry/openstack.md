@@ -1714,7 +1714,7 @@ sudo userdel oneuptime-openstack
 
 | 이미지 | 출처 | 용도 |
 | --- | --- | --- |
-| `otel/opentelemetry-collector-contrib:0.161.0` | Docker Hub | collector. 항상 필요하며, [logs](#서비스-로그)와 [traces](#컨트롤-플레인-요청-추적) 프로필도 같은 것을 실행함 |
+| `otel/opentelemetry-collector-contrib:0.165.0` | Docker Hub | collector. 항상 필요하며, [logs](#서비스-로그)와 [traces](#컨트롤-플레인-요청-추적) 프로필도 같은 것을 실행함 |
 | `ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a` | GitHub Container Registry | 번들 exporter이자 프로젝트 할당량을 읽는 exporter. [자체 exporter를 실행](#에이전트-설치-및-시작)하면 필요 없음 |
 | `oneuptime/resource-ai-agent:release` | Docker Hub | [AI 에이전트](#ai-에이전트). `docker-compose.yml`에서 해당 서비스를 제거하면 필요 없음. `release` 태그는 OneUptime 릴리스마다 바뀌므로 업그레이드할 때 다시 복사하세요 |
 | `ghcr.io/vexxhost/openstack-database-exporter:v1.2.0@sha256:cae2c794f14f84f697d802a60b866ce69a99ebcffade7dd5e6e0e46f44457508` | GitHub Container Registry | [데이터베이스 경로](/docs/telemetry/openstack-very-large-clouds#데이터베이스-경로)에서만 |
@@ -1722,7 +1722,7 @@ sudo userdel oneuptime-openstack
 다이제스트가 지정된 두 이미지는 다이제스트로 복사되므로, 다이제스트를 유지하는 미러는 같은 바이트를 보유합니다. 인터넷과 사용자의 레지스트리에 모두 접근할 수 있는 머신에서 `crane copy`가 이를 유지합니다(`skopeo copy --all --preserve-digests`도 마찬가지). 또는 `docker save`로 파일에 저장해 옮긴 다음 에이전트 머신에서 `docker load`하세요.
 
 ```bash
-crane copy otel/opentelemetry-collector-contrib:0.161.0 registry.example.com/otel/opentelemetry-collector-contrib:0.161.0
+crane copy otel/opentelemetry-collector-contrib:0.165.0 registry.example.com/otel/opentelemetry-collector-contrib:0.165.0
 crane copy ghcr.io/openstack-exporter/openstack-exporter:2.0.0-alpha@sha256:2a864f41db28a1656a5034e8a17831fb37986e8856fd3f5361586a05f928950a registry.example.com/openstack-exporter/openstack-exporter:2.0.0-alpha
 crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/resource-ai-agent:release
 ```

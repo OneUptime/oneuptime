@@ -1,4 +1,6 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/ProjectSso";
 import ObjectID from "../../Types/ObjectID";
@@ -16,11 +18,26 @@ import SsoProviderTeamGrant, {
   SsoProviderKind,
 } from "../Utils/SsoProviderTeamGrant";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import IdentityProviderSignOutCheck from "../Utils/IdentityProviderSignOutCheck";
 import Exception from "../../Types/Exception/Exception";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * What a provider names must be its own project's: its teams are held to
+   * that by SsoProviderTeamGrant, in its own words, for every caller; the
+   * rest - the verified domains it serves at Sign in with SSO (#9824) - by
+   * the project check every service whose records name others makes
+   * (ProjectReferencesService), which answers another project's domain as
+   * one that does not exist.
+   */
+  protected override getListsCheckedByService(
+    _write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return ["teams"];
   }
 
   /*
@@ -56,6 +73,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     fillSamlProviderDefaults(createBy.data);
 
     await SsoProviderTeamGrant.assertCanCreate({
@@ -69,6 +88,20 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Once every permission check has passed: a provider created with "Sign
+   * out of the identity provider too" on needs a Sign Out URL
+   * (Utils/IdentityProviderSignOutCheck).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    IdentityProviderSignOutCheck.beforeSamlProviderCreate(
+      onCreate.createBy.data,
+    );
+  }
+
+  /*
    * Every save, by the same rule as a create (Utils/SsoProviderTeamGrant).
    * Turning a provider off ends the sign-ins it gave, and a project that
    * requires SSO keeps a provider to sign in with
@@ -78,6 +111,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const checkedUpdateBy: UpdateBy<Model> =
       await SsoProviderTeamGrant.checkUpdate<Model>({
         kind: SsoProviderKind.Saml,
@@ -98,11 +133,21 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  // Turning a provider off writes when, in the same write.
+  /*
+   * Turning a provider off writes when, in the same write. Turning "Sign out
+   * of the identity provider too" on, or clearing the Sign Out URL while it
+   * is on, is refused without a Sign Out URL first
+   * (Utils/IdentityProviderSignOutCheck).
+   */
   @CaptureSpan()
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    await IdentityProviderSignOutCheck.beforeSamlProviderUpdate<Model>({
+      service: this,
+      updateBy: updateBy,
+    });
+
     await ProjectSsoProviderChanges.beforeWrite<Model>({
       service: this,
       updateBy: updateBy,

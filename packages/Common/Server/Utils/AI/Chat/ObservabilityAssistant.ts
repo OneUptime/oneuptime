@@ -265,6 +265,8 @@ export interface ObservabilityAssistantModelReply {
   tokenCount: number;
   providerName?: string | undefined;
   modelName?: string | undefined;
+  // The provider's type (LlmType), when the transport knows it.
+  providerType?: string | undefined;
 }
 
 export interface ObservabilityAssistantTransport {
@@ -292,7 +294,24 @@ export interface ObservabilityAssistantTransport {
  */
 export interface ObservabilityAssistantExtraTool {
   definition: LLMToolDefinition;
-  execute: (args: JSONObject) => Promise<ToolCallOutcome>;
+  execute: (
+    args: JSONObject,
+    call?: ExtraToolCall | undefined,
+  ) => Promise<ToolCallOutcome>;
+}
+
+/*
+ * What the loop that calls an extra tool knows at the call (issue #6496):
+ * when the run's time limit ends, in epoch milliseconds - the deadline the
+ * loop itself stops at. A tool that waits on something outside OneUptime
+ * (a kubectl or infrastructure command) plans its wait to end before it.
+ * An Ask AI turn hands it each call, since its clock starts again when it
+ * resumes after an approval and its tools are built before its loop reads
+ * its limits; a runner that knows its deadline when it builds a toolkit
+ * passes it there too (runDeadlineAtMs), and the earlier of the two holds.
+ */
+export interface ExtraToolCall {
+  runDeadlineAtMs?: number | undefined;
 }
 
 export interface ObservabilityAssistantResult {
@@ -301,8 +320,15 @@ export interface ObservabilityAssistantResult {
   totalTokens: number;
   llmCallCount: number;
   toolCallCount: number;
+  /*
+   * The provider and model that wrote the answer: those of the loop's last
+   * model call (#7762). A run whose provider changed while it ran - its
+   * rule's provider removed, the project's default switched - names the one
+   * whose words it ends with, which is what people read and judge.
+   */
   providerName?: string | undefined;
   modelName?: string | undefined;
+  providerType?: string | undefined;
   /*
    * Set when a limit stopped the run (or loop detection did): which one,
    * and the sentence OneUptime writes under the answer to say so, linked to
@@ -468,6 +494,7 @@ export default class ObservabilityAssistant {
     let totalTokens: number = 0;
     let providerName: string | undefined = undefined;
     let modelName: string | undefined = undefined;
+    let providerType: string | undefined = undefined;
     let finalContent: string = "";
     // The tokens of the latest call: the least the next one adds.
     let lastCallTokens: number = 0;
@@ -607,9 +634,14 @@ export default class ObservabilityAssistant {
         totalTokens: callTokens,
       });
 
-      if (!providerName) {
+      /*
+       * The latest call that names its model: the last one writes the
+       * answer, so the answer is said to be its model's.
+       */
+      if (response.providerName || response.modelName) {
         providerName = response.providerName;
         modelName = response.modelName;
+        providerType = response.providerType;
       }
 
       if (
@@ -706,7 +738,17 @@ export default class ObservabilityAssistant {
             };
           } else if (extraTool) {
             try {
-              outcome = await extraTool.execute(toolCall.arguments);
+              /*
+               * The deadline this loop stops at, which a command plans its
+               * wait by (issue #6496): the runner may have built the tool
+               * with its own, and the earlier holds.
+               */
+              outcome = await extraTool.execute(toolCall.arguments, {
+                runDeadlineAtMs: AIAgentRunLimitsHelper.getDeadlineAtMs(
+                  runLimits,
+                  startedAtMs,
+                ),
+              });
             } catch (err) {
               const errorMessage: string =
                 err instanceof Error ? err.message : String(err);
@@ -912,6 +954,7 @@ export default class ObservabilityAssistant {
       toolCallCount: toolCallCount,
       providerName: providerName,
       modelName: modelName,
+      ...(providerType ? { providerType } : {}),
       ...(stopReason
         ? {
             stopReason,
@@ -966,6 +1009,7 @@ export default class ObservabilityAssistant {
       tokenCount: AiTokenCount.count(response.llmLog),
       providerName: response.llmLog.llmProviderName,
       modelName: response.llmLog.modelName,
+      providerType: response.llmLog.llmType,
     };
   }
 }

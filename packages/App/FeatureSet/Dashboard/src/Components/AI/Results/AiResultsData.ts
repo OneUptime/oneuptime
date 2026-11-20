@@ -4,8 +4,13 @@ import {
 } from "../ActivityInsights/AiActivityInsightsData";
 import {
   AI_OUTCOMES_SCAN_LIMIT,
+  AI_OUTCOMES_UNKNOWN_MODEL,
   AiOutcomes,
+  AiOutcomesModelChange,
+  AiOutcomesModelResult,
+  AiOutcomesModels,
   AiOutcomesPages,
+  AiOutcomesPart,
   AiOutcomesPullRequestFixes,
   AiOutcomesRemediationFixes,
   AiOutcomesRootCauses,
@@ -40,13 +45,18 @@ import {
  *      pull requests it opened whose check finished, how many worked.
  *   3. Root Causes Confirmed - was it right? Of the investigations that were
  *      judged, by a responder on the AI card or against the root cause
- *      written when the incident was resolved, how many found it.
+ *      written when the incident or alert was resolved, how many found it.
  *
  * Each card says its number out of what it counts ("12 of 40"), never a
  * bare count; shows the 12 weeks one bar a week, so a team sees whether it
  * is getting better; and breaks the number down. A card with nothing to
  * count yet says, in words, how it starts. A part the reader may not read
  * (Types/AI/AiOutcomes: null) is no card at all.
+ *
+ * Each part of a breakdown opens the records it counts (#7768:
+ * AiResultsRecordsData). Root Causes Confirmed and Fixes Verified also say
+ * how each model OneUptime AI ran on did, once more than one did, and the
+ * weeks mark where its investigations moved to another model (#7762).
  *
  * Import-clean (Common types and the translation helpers only), so the
  * suites read it without a browser.
@@ -220,6 +230,92 @@ function parseWeek(value: unknown): AiOutcomesWeek | null {
   return counts ? { weekStart, ...counts } : null;
 }
 
+// One model's results, or null for one this page cannot read.
+function parseModelResult(value: unknown): AiOutcomesModelResult | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const modelName: unknown = value["modelName"];
+
+  if (
+    typeof modelName !== "string" ||
+    !isCount(value["value"]) ||
+    !isCount(value["total"]) ||
+    value["value"] > value["total"]
+  ) {
+    return null;
+  }
+
+  return { modelName, value: value["value"], total: value["total"] };
+}
+
+function parseModelResults(
+  value: unknown,
+): Array<AiOutcomesModelResult> | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const results: Array<AiOutcomesModelResult> = [];
+
+  for (const item of value) {
+    const result: AiOutcomesModelResult | null = parseModelResult(item);
+
+    if (!result) {
+      return null;
+    }
+
+    results.push(result);
+  }
+
+  return results;
+}
+
+/*
+ * The models part (#7762): null when the reader may not see models, or
+ * when the server sent something this page cannot read - the cards still
+ * draw, without their By model.
+ */
+function parseModels(value: unknown): AiOutcomesModels | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const rootCauses: Array<AiOutcomesModelResult> | null = parseModelResults(
+    value["rootCauses"],
+  );
+  const fixes: Array<AiOutcomesModelResult> | null = parseModelResults(
+    value["fixes"],
+  );
+  const changesValue: unknown = value["changes"];
+
+  if (!rootCauses || !fixes || !Array.isArray(changesValue)) {
+    return null;
+  }
+
+  const changes: Array<AiOutcomesModelChange> = [];
+
+  for (const change of changesValue) {
+    if (
+      !isObject(change) ||
+      typeof change["weekStart"] !== "string" ||
+      !WEEK_START_REGEX.test(change["weekStart"]) ||
+      typeof change["modelName"] !== "string" ||
+      !change["modelName"]
+    ) {
+      return null;
+    }
+
+    changes.push({
+      weekStart: change["weekStart"],
+      modelName: change["modelName"],
+    });
+  }
+
+  return { rootCauses, fixes, changes };
+}
+
 // The server's AiOutcomes, or null when it is not something this page can draw.
 export function parseAiOutcomes(data: unknown): AiOutcomes | null {
   if (!isObject(data)) {
@@ -283,6 +379,7 @@ export function parseAiOutcomes(data: unknown): AiOutcomes | null {
     remediationFixes,
     pullRequestFixes,
     rootCauses,
+    models: parseModels(data["models"]),
     weeks,
     isPartial: data["isPartial"] === true,
   };
@@ -347,6 +444,31 @@ export interface AiResultsSegment {
   value: number;
   // A Tailwind background class, as StackedProgressBar takes it.
   color: string;
+  // The records it counts, which its legend entry opens (#7768).
+  records: AiResultsRecordsTarget;
+}
+
+// What a part of a breakdown counts: its part and outcome (AiOutcomesRecords).
+export interface AiResultsRecordsTarget {
+  part: AiOutcomesPart;
+  outcome: string;
+}
+
+/*
+ * One model's line under By model (#7762): its name as the provider named
+ * it, or null for work done before OneUptime recorded models, and how it
+ * did - what went well out of what was counted.
+ */
+export interface AiResultsModelRow {
+  modelName: string | null;
+  value: number;
+  total: number;
+}
+
+export interface AiResultsByModel {
+  rows: Array<AiResultsModelRow>;
+  // Under the heading, how the card counts by model (a translation key).
+  note?: string | undefined;
 }
 
 export interface AiResultsBreakdown {
@@ -369,6 +491,11 @@ export interface AiResultsWeekBar {
   total: number;
   // The bar's hover and screen-reader words, translated.
   description: string;
+  /*
+   * When most of the week's investigations moved to another model (#7762):
+   * the change in words, translated. The bar is marked.
+   */
+  modelChange?: string | undefined;
 }
 
 /*
@@ -401,6 +528,13 @@ export interface AiResultsCard {
   weekLegend: AiResultsWeekLegend;
   // The line under the bars: the last weeks against the weeks before, translated.
   recentWeeks: string;
+  /*
+   * How each model did, once more than one ran in the window (#7762); null
+   * otherwise, and for a card that is not counted by model.
+   */
+  byModel: AiResultsByModel | null;
+  // The weeks marked as a change of model, said in words, translated.
+  modelChanges: Array<string>;
 }
 
 /*
@@ -471,6 +605,7 @@ export const PAGES_WEEK_LEGEND: AiResultsWeekLegend = {
 function getPagesCard(
   pages: AiOutcomesPages,
   weeks: Array<AiOutcomesWeek>,
+  changes: Array<AiOutcomesModelChange>,
 ): AiResultsCard {
   const total: number = getHeldPageCount(pages);
   const startNotes: Array<string> = [];
@@ -513,31 +648,55 @@ function getPagesCard(
                   label: PAGE_OUTCOME_LABELS.resolvedByAi,
                   value: pages.resolvedByAi,
                   color: COLOR_WORKED,
+                  records: {
+                    part: AiOutcomesPart.Pages,
+                    outcome: "resolvedByAi",
+                  },
                 },
                 {
                   label: PAGE_OUTCOME_LABELS.recoveredOnItsOwn,
                   value: pages.recoveredOnItsOwn,
                   color: COLOR_RECOVERED,
+                  records: {
+                    part: AiOutcomesPart.Pages,
+                    outcome: "recoveredOnItsOwn",
+                  },
                 },
                 {
                   label: PAGE_OUTCOME_LABELS.handledByPerson,
                   value: pages.handledByPerson,
                   color: COLOR_HANDLED_BY_PERSON,
+                  records: {
+                    part: AiOutcomesPart.Pages,
+                    outcome: "handledByPerson",
+                  },
                 },
                 {
                   label: PAGE_OUTCOME_LABELS.handedOff,
                   value: pages.handedOff,
                   color: COLOR_HANDED_OFF,
+                  records: {
+                    part: AiOutcomesPart.Pages,
+                    outcome: "handedOff",
+                  },
                 },
                 {
                   label: PAGE_OUTCOME_LABELS.holdTimeRanOut,
                   value: pages.holdTimeRanOut,
                   color: COLOR_HOLD_TIME_RAN_OUT,
+                  records: {
+                    part: AiOutcomesPart.Pages,
+                    outcome: "holdTimeRanOut",
+                  },
                 },
                 {
                   label: PAGE_OUTCOME_LABELS.pageNowPressed,
                   value: pages.pageNowPressed,
                   color: COLOR_PAGE_NOW_PRESSED,
+                  records: {
+                    part: AiOutcomesPart.Pages,
+                    outcome: "pageNowPressed",
+                  },
                 },
               ],
             },
@@ -548,30 +707,36 @@ function getPagesCard(
         ? [{ label: STILL_HELD_LABEL, value: pages.holding }]
         : [],
     weekLegend: PAGES_WEEK_LEGEND,
-    weeks: weeks.map((week: AiOutcomesWeek): AiResultsWeekBar => {
-      return {
-        weekStart: week.weekStart,
-        value: week.pagesAvoided,
-        total: week.pagesHeld,
-        description:
-          week.pagesHeld > 0
-            ? translatePlural(
-                {
-                  one: "Week of {{date}}: {{value}} of {{count}} held page ended with OneUptime AI's fix",
-                  other:
-                    "Week of {{date}}: {{value}} of {{count}} held pages ended with OneUptime AI's fix",
-                },
-                week.pagesHeld,
-                {
+    byModel: null,
+    modelChanges: describeModelChanges(getDrawnChanges(changes, weeks)),
+    weeks: markModelChanges(
+      changes,
+      weeks,
+      (week: AiOutcomesWeek): AiResultsWeekBar => {
+        return {
+          weekStart: week.weekStart,
+          value: week.pagesAvoided,
+          total: week.pagesHeld,
+          description:
+            week.pagesHeld > 0
+              ? translatePlural(
+                  {
+                    one: "Week of {{date}}: {{value}} of {{count}} held page ended with OneUptime AI's fix",
+                    other:
+                      "Week of {{date}}: {{value}} of {{count}} held pages ended with OneUptime AI's fix",
+                  },
+                  week.pagesHeld,
+                  {
+                    date: describeTrendDate(week.weekStart),
+                    value: formatCount(week.pagesAvoided),
+                  },
+                )
+              : translateTemplate("Week of {{date}}: no held pages", {
                   date: describeTrendDate(week.weekStart),
-                  value: formatCount(week.pagesAvoided),
-                },
-              )
-            : translateTemplate("Week of {{date}}: no held pages", {
-                date: describeTrendDate(week.weekStart),
-              }),
-      };
-    }),
+                }),
+        };
+      },
+    ),
     recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
       return { value: week.pagesAvoided, total: week.pagesHeld };
     }),
@@ -628,6 +793,7 @@ export const FIXES_WEEK_LEGEND: AiResultsWeekLegend = {
 function getFixesCard(
   outcomes: AiOutcomes,
   weeks: Array<AiOutcomesWeek>,
+  changes: Array<AiOutcomesModelChange>,
 ): AiResultsCard {
   const total: number = getCheckedFixCount(outcomes);
   const beingChecked: number = getFixesBeingCheckedCount(outcomes);
@@ -695,21 +861,37 @@ function getFixesCard(
           label: REMEDIATION_FIX_LABELS.verified,
           value: remediation.verified,
           color: COLOR_WORKED,
+          records: {
+            part: AiOutcomesPart.RemediationFixes,
+            outcome: "verified",
+          },
         },
         {
           label: REMEDIATION_FIX_LABELS.failed,
           value: remediation.failed,
           color: COLOR_DID_NOT_WORK,
+          records: {
+            part: AiOutcomesPart.RemediationFixes,
+            outcome: "failed",
+          },
         },
         {
           label: REMEDIATION_FIX_LABELS.pending,
           value: remediation.pending,
           color: COLOR_CHECKING,
+          records: {
+            part: AiOutcomesPart.RemediationFixes,
+            outcome: "pending",
+          },
         },
         {
           label: REMEDIATION_FIX_LABELS.skipped,
           value: remediation.skipped,
           color: COLOR_NOT_CHECKED,
+          records: {
+            part: AiOutcomesPart.RemediationFixes,
+            outcome: "skipped",
+          },
         },
       ],
     });
@@ -723,26 +905,46 @@ function getFixesCard(
           label: PULL_REQUEST_FIX_LABELS.verified,
           value: pullRequests.verified,
           color: COLOR_WORKED,
+          records: {
+            part: AiOutcomesPart.PullRequestFixes,
+            outcome: "verified",
+          },
         },
         {
           label: PULL_REQUEST_FIX_LABELS.regressed,
           value: pullRequests.regressed,
           color: COLOR_DID_NOT_WORK,
+          records: {
+            part: AiOutcomesPart.PullRequestFixes,
+            outcome: "regressed",
+          },
         },
         {
           label: PULL_REQUEST_FIX_LABELS.watching,
           value: pullRequests.watching,
           color: COLOR_CHECKING,
+          records: {
+            part: AiOutcomesPart.PullRequestFixes,
+            outcome: "watching",
+          },
         },
         {
           label: PULL_REQUEST_FIX_LABELS.awaitingDeploy,
           value: pullRequests.awaitingDeploy,
           color: COLOR_WAITING,
+          records: {
+            part: AiOutcomesPart.PullRequestFixes,
+            outcome: "awaitingDeploy",
+          },
         },
         {
           label: PULL_REQUEST_FIX_LABELS.unverifiable,
           value: pullRequests.unverifiable,
           color: COLOR_NOT_CHECKED,
+          records: {
+            part: AiOutcomesPart.PullRequestFixes,
+            outcome: "unverifiable",
+          },
         },
       ],
     });
@@ -760,30 +962,39 @@ function getFixesCard(
     breakdowns: total > 0 ? breakdowns : [],
     facts: [],
     weekLegend: FIXES_WEEK_LEGEND,
-    weeks: weeks.map((week: AiOutcomesWeek): AiResultsWeekBar => {
-      return {
-        weekStart: week.weekStart,
-        value: week.fixesVerified,
-        total: week.fixesChecked,
-        description:
-          week.fixesChecked > 0
-            ? translatePlural(
-                {
-                  one: "Week of {{date}}: {{value}} of {{count}} checked fix worked",
-                  other:
-                    "Week of {{date}}: {{value}} of {{count}} checked fixes worked",
-                },
-                week.fixesChecked,
-                {
+    byModel:
+      total > 0
+        ? getByModel(outcomes.models?.fixes, FIXES_BY_MODEL_NOTE)
+        : null,
+    modelChanges: describeModelChanges(getDrawnChanges(changes, weeks)),
+    weeks: markModelChanges(
+      changes,
+      weeks,
+      (week: AiOutcomesWeek): AiResultsWeekBar => {
+        return {
+          weekStart: week.weekStart,
+          value: week.fixesVerified,
+          total: week.fixesChecked,
+          description:
+            week.fixesChecked > 0
+              ? translatePlural(
+                  {
+                    one: "Week of {{date}}: {{value}} of {{count}} checked fix worked",
+                    other:
+                      "Week of {{date}}: {{value}} of {{count}} checked fixes worked",
+                  },
+                  week.fixesChecked,
+                  {
+                    date: describeTrendDate(week.weekStart),
+                    value: formatCount(week.fixesVerified),
+                  },
+                )
+              : translateTemplate("Week of {{date}}: no checked fixes", {
                   date: describeTrendDate(week.weekStart),
-                  value: formatCount(week.fixesVerified),
-                },
-              )
-            : translateTemplate("Week of {{date}}: no checked fixes", {
-                date: describeTrendDate(week.weekStart),
-              }),
-      };
-    }),
+                }),
+        };
+      },
+    ),
     recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
       return { value: week.fixesVerified, total: week.fixesChecked };
     }),
@@ -797,7 +1008,7 @@ export const ROOT_CAUSES_CONFIRMED_TITLE: string = translationKey(
 );
 
 export const ROOT_CAUSES_CONFIRMED_DESCRIPTION: string = translationKey(
-  "Investigations OneUptime AI finished over the last 12 weeks, judged by a responder or against the root cause written when the incident was resolved.",
+  "Investigations OneUptime AI finished over the last 12 weeks, judged by a responder or against the root cause written when the incident or alert was resolved.",
 );
 
 export const ROOT_CAUSES_CONFIRMED_HEADLINE: PluralTemplate = {
@@ -824,7 +1035,7 @@ export const ROOT_CAUSE_FACT_LABELS: Record<
   string
 > = {
   judgedByPeople: translationKey("Judged by a responder"),
-  graded: translationKey("Graded against the incident's root cause"),
+  graded: translationKey("Graded against the root cause people wrote"),
   notJudged: translationKey("Not judged yet"),
 };
 
@@ -835,13 +1046,15 @@ export const ROOT_CAUSES_WEEK_LEGEND: AiResultsWeekLegend = {
 
 // How an investigation comes to be judged, for a card with none judged yet.
 export const ROOT_CAUSES_HOW_JUDGED: string = translationKey(
-  "An investigation is judged when a responder confirms or rejects it on its AI card, or when someone writes the root cause as they resolve its incident.",
+  "An investigation is judged when a responder confirms or rejects it on its AI card, or when someone writes the root cause as they resolve its incident or alert.",
 );
 
 function getRootCausesCard(
   rootCauses: AiOutcomesRootCauses,
   weeks: Array<AiOutcomesWeek>,
+  models: AiOutcomesModels | null,
 ): AiResultsCard {
+  const changes: Array<AiOutcomesModelChange> = models?.changes || [];
   const total: number = getJudgedRootCauseCount(rootCauses);
   const startNotes: Array<string> = [];
 
@@ -878,16 +1091,28 @@ function getRootCausesCard(
                   label: ROOT_CAUSE_LABELS.confirmed,
                   value: rootCauses.confirmed,
                   color: COLOR_WORKED,
+                  records: {
+                    part: AiOutcomesPart.RootCauses,
+                    outcome: "confirmed",
+                  },
                 },
                 {
                   label: ROOT_CAUSE_LABELS.partial,
                   value: rootCauses.partial,
                   color: COLOR_IN_BETWEEN,
+                  records: {
+                    part: AiOutcomesPart.RootCauses,
+                    outcome: "partial",
+                  },
                 },
                 {
                   label: ROOT_CAUSE_LABELS.wrong,
                   value: rootCauses.wrong,
                   color: COLOR_DID_NOT_WORK,
+                  records: {
+                    part: AiOutcomesPart.RootCauses,
+                    outcome: "wrong",
+                  },
                 },
               ],
             },
@@ -911,30 +1136,39 @@ function getRootCausesCard(
           ]
         : [],
     weekLegend: ROOT_CAUSES_WEEK_LEGEND,
-    weeks: weeks.map((week: AiOutcomesWeek): AiResultsWeekBar => {
-      return {
-        weekStart: week.weekStart,
-        value: week.rootCausesConfirmed,
-        total: week.rootCausesJudged,
-        description:
-          week.rootCausesJudged > 0
-            ? translatePlural(
-                {
-                  one: "Week of {{date}}: {{value}} of {{count}} judged investigation found the right root cause",
-                  other:
-                    "Week of {{date}}: {{value}} of {{count}} judged investigations found the right root cause",
-                },
-                week.rootCausesJudged,
-                {
-                  date: describeTrendDate(week.weekStart),
-                  value: formatCount(week.rootCausesConfirmed),
-                },
-              )
-            : translateTemplate("Week of {{date}}: no judged investigations", {
-                date: describeTrendDate(week.weekStart),
-              }),
-      };
-    }),
+    byModel: total > 0 ? getByModel(models?.rootCauses) : null,
+    modelChanges: describeModelChanges(getDrawnChanges(changes, weeks)),
+    weeks: markModelChanges(
+      changes,
+      weeks,
+      (week: AiOutcomesWeek): AiResultsWeekBar => {
+        return {
+          weekStart: week.weekStart,
+          value: week.rootCausesConfirmed,
+          total: week.rootCausesJudged,
+          description:
+            week.rootCausesJudged > 0
+              ? translatePlural(
+                  {
+                    one: "Week of {{date}}: {{value}} of {{count}} judged investigation found the right root cause",
+                    other:
+                      "Week of {{date}}: {{value}} of {{count}} judged investigations found the right root cause",
+                  },
+                  week.rootCausesJudged,
+                  {
+                    date: describeTrendDate(week.weekStart),
+                    value: formatCount(week.rootCausesConfirmed),
+                  },
+                )
+              : translateTemplate(
+                  "Week of {{date}}: no judged investigations",
+                  {
+                    date: describeTrendDate(week.weekStart),
+                  },
+                ),
+        };
+      },
+    ),
     recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
       return { value: week.rootCausesConfirmed, total: week.rootCausesJudged };
     }),
@@ -1006,20 +1240,140 @@ export function describeRecentWeeks(
   return `${recentText} ${beforeText}`;
 }
 
+// By model and changes of model (#7762) --------------------------------------
+
+export const BY_MODEL_TITLE: string = translationKey("By model");
+
+// The line of investigations, or fixes, done before models were recorded.
+export const UNKNOWN_MODEL_LABEL: string = translationKey("Model not recorded");
+
+// A model's line: what went well out of what was counted.
+export const MODEL_RESULT_TEMPLATE: string = translationKey(
+  "{{value}} of {{total}}",
+);
+
+export const FIXES_BY_MODEL_NOTE: string = translationKey(
+  "Each fix counts under the model of the investigation it came from.",
+);
+
+// The mark on a week's bar, named under the bars.
+export const MODEL_CHANGE_LEGEND: string = translationKey(
+  "Investigations moved to another model",
+);
+
+export const MODEL_CHANGE_TEMPLATE: string = translationKey(
+  "From the week of {{date}}, most investigations ran on {{model}}.",
+);
+
+/*
+ * A card's By model: every model with something counted, the most counted
+ * first and work done before models were recorded last - shown once at
+ * least two models ran in the window, since one model alone compares with
+ * nothing.
+ */
+export function getByModel(
+  results: Array<AiOutcomesModelResult> | undefined,
+  note?: string | undefined,
+): AiResultsByModel | null {
+  const rows: Array<AiResultsModelRow> = (results || [])
+    .filter((result: AiOutcomesModelResult): boolean => {
+      return result.total > 0;
+    })
+    .map((result: AiOutcomesModelResult): AiResultsModelRow => {
+      return {
+        modelName:
+          result.modelName === AI_OUTCOMES_UNKNOWN_MODEL
+            ? null
+            : result.modelName,
+        value: result.value,
+        total: result.total,
+      };
+    });
+
+  const knownModels: number = rows.filter((row: AiResultsModelRow): boolean => {
+    return row.modelName !== null;
+  }).length;
+
+  if (knownModels < 2) {
+    return null;
+  }
+
+  return { rows, ...(note ? { note } : {}) };
+}
+
+// A model's line in the reader's words: "23 of 27".
+export function describeModelResult(
+  row: AiResultsModelRow,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  return translator.translateTemplate(MODEL_RESULT_TEMPLATE, {
+    value: translator.formatNumber(row.value),
+    total: translator.formatNumber(row.total),
+  });
+}
+
+// Each change of model in words, oldest first, translated.
+export function describeModelChanges(
+  changes: Array<AiOutcomesModelChange>,
+): Array<string> {
+  return changes.map((change: AiOutcomesModelChange): string => {
+    return translateTemplate(MODEL_CHANGE_TEMPLATE, {
+      date: describeTrendDate(change.weekStart),
+      model: change.modelName,
+    });
+  });
+}
+
+// The changes on the weeks a card draws: the others have no bar to mark.
+function getDrawnChanges(
+  changes: Array<AiOutcomesModelChange>,
+  weeks: Array<AiOutcomesWeek>,
+): Array<AiOutcomesModelChange> {
+  return changes.filter((change: AiOutcomesModelChange): boolean => {
+    return weeks.some((week: AiOutcomesWeek): boolean => {
+      return week.weekStart === change.weekStart;
+    });
+  });
+}
+
+// A card's week bars, the weeks investigations changed model marked.
+function markModelChanges(
+  changes: Array<AiOutcomesModelChange>,
+  weeks: Array<AiOutcomesWeek>,
+  toBar: (week: AiOutcomesWeek) => AiResultsWeekBar,
+): Array<AiResultsWeekBar> {
+  return weeks.map((week: AiOutcomesWeek): AiResultsWeekBar => {
+    const bar: AiResultsWeekBar = toBar(week);
+    const change: AiOutcomesModelChange | undefined = changes.find(
+      (candidate: AiOutcomesModelChange): boolean => {
+        return candidate.weekStart === week.weekStart;
+      },
+    );
+
+    return change
+      ? { ...bar, modelChange: describeModelChanges([change])[0]! }
+      : bar;
+  });
+}
+
 // The cards the reader may read, in the page's order.
 export function getAiResultsCards(outcomes: AiOutcomes): Array<AiResultsCard> {
   const cards: Array<AiResultsCard> = [];
+  // The weeks investigations changed model mark every card's weeks (#7762).
+  const changes: Array<AiOutcomesModelChange> = outcomes.models?.changes || [];
 
   if (outcomes.pages) {
-    cards.push(getPagesCard(outcomes.pages, outcomes.weeks));
+    cards.push(getPagesCard(outcomes.pages, outcomes.weeks, changes));
   }
 
   if (outcomes.remediationFixes || outcomes.pullRequestFixes) {
-    cards.push(getFixesCard(outcomes, outcomes.weeks));
+    cards.push(getFixesCard(outcomes, outcomes.weeks, changes));
   }
 
   if (outcomes.rootCauses) {
-    cards.push(getRootCausesCard(outcomes.rootCauses, outcomes.weeks));
+    cards.push(
+      getRootCausesCard(outcomes.rootCauses, outcomes.weeks, outcomes.models),
+    );
   }
 
   return cards;

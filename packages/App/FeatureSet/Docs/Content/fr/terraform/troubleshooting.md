@@ -22,6 +22,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | `This project has been blocked` | Demandez à un administrateur principal de débloquer le projet : voir [Un projet bloqué](#un-projet-bloqué) |
 | `references records that are not in this project` | Utilisez l'ID d'un enregistrement de votre propre projet : voir [Des ID d'un autre projet](#des-id-dun-autre-projet) |
 | `Not Found` ou `Ambiguous Match` venant d'une source de données | Corrigez les arguments de la recherche : voir [Des recherches qui ne trouvent rien ou en trouvent plusieurs](#des-recherches-qui-ne-trouvent-rien-ou-en-trouvent-plusieurs) |
+| `There is already a team called` (une étiquette, une politique d'astreinte, un planning d'astreinte) | Donnez-lui un nom qu'aucun autre de son type ne porte, ou renommez d'abord l'autre : voir [Des noms qu'un autre enregistrement porte déjà](#des-noms-quun-autre-enregistrement-porte-déjà) |
 | `Cannot import non-existent remote object` | Vérifiez l'ID et les permissions de la clé : voir [Importer des ressources](/docs/terraform/importing-resources#dépannage) |
 | `Provider produced inconsistent result after apply` | Mettez à jour le fournisseur : voir [Résultat incohérent après l'apply](#résultat-incohérent-après-lapply) |
 | Un plan crée une ressource que vous n'avez pas ajoutée | La clé ne peut plus la lire, et OneUptime a répondu `404` : rendez à la clé son accès en lecture, puis importez la ressource avec `terraform import` : voir [Une ressource quitte l'état, et l'apply suivant la recrée](#une-ressource-quitte-létat-et-lapply-suivant-la-recrée) |
@@ -103,6 +104,12 @@ Cela signifie généralement qu'un ID a été copié depuis la configuration ou 
 
 Une source de données trouve exactement un enregistrement, ou arrête le plan. `Not Found` indique qu'aucun enregistrement n'a l'`id`, ou qu'aucun ne correspond aux arguments que vous avez définis ; `Ambiguous Match` indique que plusieurs correspondent. Corrigez les arguments, définissez-en davantage pour réduire la recherche à un seul, ou cherchez l'enregistrement par son `id`. [Lire ce qui existe déjà](/docs/terraform/complete-guide#lire-ce-qui-existe-déjà) en donne les règles.
 
+### Des noms qu'un autre enregistrement porte déjà
+
+Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte ont chacun un nom bien à eux dans un projet, quels que soient sa casse ou ses espaces. Une création, ou un renommage, vers un nom que porte déjà un autre enregistrement du même type reçoit la réponse `400`, par exemple `There is already an on-call policy called Primary in this project. Pick another name.` Une politique d'astreinte archivée garde son nom : désarchivez-la, ou choisissez un autre nom. Les enregistrements qui partageaient déjà un nom le gardent, et les listes des équipes, des politiques d'astreinte et des plannings d'astreinte du tableau de bord les signalent.
+
+Terraform effectue en parallèle les changements d'un même apply, si bien qu'un renommage vers un nom qu'une autre ressource abandonne dans le même apply peut être refusé tant que celle-ci le porte encore : appliquez de nouveau, ou ajoutez un `depends_on` de la ressource qui prend le nom vers celle qui l'abandonne. Un échange, A vers B et B vers A, ou toute chaîne de renommages qui finit là où elle a commencé, ne peut pas se faire en un seul apply : renommez l'une d'elles vers un nom que personne ne porte, appliquez, puis faites le reste du changement.
+
 ## Des plans qui ne se stabilisent pas
 
 ### Résultat incohérent après l'apply
@@ -131,9 +138,13 @@ Cela arrive quand la clé qui gère une ressource ne peut plus la lire : sa perm
 
 ### Une priorité ou un ordre qui bouge
 
-Les statuts de moniteur, les états et gravités d'incidents et d'alertes, et les autres listes que vous ordonnez dans le tableau de bord ne détiennent chaque numéro qu'une fois. Un numéro qu'aucun autre ne détient est conservé tel qu'écrit. Un numéro qu'un autre détient déjà est repris, et ceux qui se trouvent sur le chemin descendent d'un rang, comme le fait un glisser-déposer dans le tableau de bord. Ainsi, deux d'entre eux configurés avec le même numéro échangent leurs places à chaque apply.
+Chaque liste que vous ordonnez dans le tableau de bord garde le numéro que reçoit chaque ressource : les statuts de moniteur (`priority`), les états et gravités d'incidents et d'alertes, les champs personnalisés, les pipelines de journaux et les filtres de rejet (`sort_order`), les groupes et ressources des pages de statut, les règles d'escalade, les couches des plannings et les autres. Fixer un numéro place cette ressource et n'en déplace aucune autre, si bien qu'une configuration qui numérote une liste entière, comme `order = index(local.severities, each.key) + 1` sur un `for_each` de `local.severities`, s'applique exactement telle qu'écrite, dans quelque ordre qu'arrivent les écritures du provider, et le plan suivant est vide.
 
-Donnez à chacun son propre numéro avec des écarts entre eux, comme `101`, `102` et `103`, et réordonnez ceux que gère Terraform dans Terraform, pas en les faisant glisser dans le tableau de bord.
+- Donnez à chaque ressource son propre numéro : deux au même numéro le gardent toutes les deux, côte à côte, dans un ordre que vous ne choisissez pas.
+- Une ressource créée sans numéro va à la fin de sa liste. Un nouvel état d'incident ou d'alerte se place plutôt juste au-dessus de l'état résolu, et un nouveau statut de moniteur juste au-dessus du statut hors ligne.
+- Supprimer une ressource laisse un trou dans les numéros, ce qui ne change rien : une liste suit ses numéros, pas un décompte.
+- Faire glisser une ressource dans le tableau de bord de OneUptime renumérote toute sa liste depuis le haut, et le plan suivant le montre comme des changements. Ordonnez dans Terraform les ressources que gère Terraform.
+- Les états intégrés gardent leur ordre : un changement qui mettrait deux d'entre eux au même numéro, ou hors de leur ordre, est refusé, avec la raison. Quand un apply déplace des états intégrés au-delà des anciens numéros des autres, l'une de ses écritures peut arriver la première et se heurter à ce refus ; relancez l'apply et il se termine.
 
 ### Attributs en lecture seule
 

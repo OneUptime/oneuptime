@@ -22,7 +22,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 :::steps
 ### Open Code
 
-Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first; filter them by how they stand, each filter with its count, or search them by title or number. With no repository yet, it offers **Connect GitHub** instead, with GitLab, Forgejo or Gitea and any Git server under it (see [Connect a repository](#connect-a-repository)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those OneUptime no longer reaches under **Not connected**. Each repository's page has the same box for that repository, and there you can tick the requests that failed or were stopped and try them all again with **Retry selected**.
+Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first; filter them by how they stand, each filter with its count, or search them by title or number. With no repository yet, it offers **Connect GitHub** instead, with GitLab, Forgejo or Gitea and any Git server under it (see [Connect a repository](#connect-a-repository)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those OneUptime no longer reaches under **Not connected**. Each repository's page has the same box for that repository. On both pages you can tick the tasks that failed or were stopped, in the repositories where you may ask AI, and try them all again with **Retry selected**; a task that cannot be tried again says why.
 
 ### Pick the repository and the branch
 
@@ -66,10 +66,10 @@ A task's page is a conversation: what was asked and the context added, then AI's
 | **Working…** | AI is on it. **Stop** stops it; what it pushed stays on the branch. |
 | **Waiting for you** | AI asked a question. Answer it in the box below. |
 | **Done** | AI finished: its reply, and the pull request when it changed code. |
-| **Failed** | The turn could not finish, and says why, and after how many attempts when AI tried it again by itself. **Try again** asks the same again. |
+| **Failed** | The turn could not finish, and says why, and after how many attempts when AI tried it again by itself. **Try again** asks the same again. A fix OneUptime started is asked again with what it started from, unless it may already have pushed a branch or opened a pull request: then the turn says so instead. |
 | **Stopped** | Someone stopped it. **Try again** asks the same again. |
 
-To follow up, write in the box at the bottom, which stays in view as the conversation scrolls: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did. On a task with more than one turn, a picker at the top of the **Log** page moves between its turns. A task with more than 200 turns shows its first turn and its newest 199, with a line between them that says how many earlier turns are not shown. The top of the page still counts every turn.
+To follow up, write in the box at the bottom, which stays in view as the conversation scrolls: answer AI, add context, or ask for changes. Each reply is the next turn of the same task: it works on the same branch and pushes to the same pull request while that is open. A task takes one turn at a time, so the box waits while AI works. Each turn's **Log** is the verbatim record of what it did. On a task with more than one turn, a picker at the top of the **Log** page moves between its turns. A task with more than 200 turns shows its first turn and its newest 199, with a line between them that says how many earlier turns are not shown. The top of the page still counts every turn. **Show earlier turns**, under that line, shows the 50 turns before the ones shown, each time you press it, and the **Log** page's picker lists them too. A task opens at its top; while its newest turn is out of view, **Jump to newest** above the reply box takes you there.
 
 Anyone who can read a repository reads its tasks. Asking AI, replying and stopping a task take permission to edit the repository, and so does seeing a change's diff: everyone else sees which files changed. The tasks OneUptime starts on its own (below) are in their repository too, as conversations you can reply in.
 
@@ -190,7 +190,7 @@ A repository says how it is built and tested in an `AGENTS.md` at its root, the 
 
 | Where AI works | What it does with the repository's build and tests |
 | --- | --- |
-| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets 2 minutes, or up to 10 for a slow install, build or test suite, without the Runner's own credentials in its environment. |
+| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets 2 minutes, or up to 10 for a slow install, build or test suite, without the Runner's own credentials in its environment. **Time Limit per Command (Minutes)**, in the project's **Limits per run**, lets a command run up to 120 minutes, never past the run's time limit. |
 | **Global Runner** | Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it. |
 
 Nothing from a pull request that comes from a fork is ever read as the repository's instructions: a revision refuses such a pull request, and a review reads the base branch.
@@ -330,7 +330,7 @@ Everything else matches the button:
 
 - The pull request opens ready for review, written from the posted analysis, and needs a connected repository, one the matching rules name when they name some, and a Runner online to work in it: the one the repository picks, or a global Runner.
 - It counts toward that signal's daily fix-task limit (**Daily Incident AI Fix Task Limit** or **Daily Alert AI Fix Task Limit**, under **More settings** on its AI settings page) and toward the repository's cap on open pull requests, when either is set. Unset, neither limits anything.
-- Every trigger first looks for a fix task already queued or running for the same incident or alert, so an automatic trigger and a click normally become one task, not two pull requests. The check is a read before the write, not a lock, so two triggers at the very same moment can still both get through.
+- Every trigger first looks for a fix task already queued or running for the same incident or alert, also when what runs is a reply in the task, so an automatic trigger and a click become one task, not two pull requests. The check is made again as the task is written, under a lock, so two triggers at the very same moment start one task.
 - The run is written by the system, not credited to anyone, and nothing merges on its own.
 
 On a private incident or alert, **Open fix pull request** takes what approving the record's fixes takes, through the teams that own it, and is locked for anyone else, saying why. Everyone with access to the repository reads the pull request, so its title, its commit and its description say what the change does and nothing of the record, and the code agent is asked to leave the record out of its summary and of the comments it writes. A Runner from before this change is refused such a fix, and the task fails saying to update the Runner.

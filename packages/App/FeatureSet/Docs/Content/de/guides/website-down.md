@@ -28,7 +28,7 @@ Die Adresse wird von der eigenen Sonde Ihres Servers geprüft, daher muss sie vo
 
 ![Die Startseite fragt „Was möchten Sie zuerst tun?“, „Wissen, wenn meine Website oder API ausfällt“ ist angehakt](screen:home-goal-website)
 
-Die **Startseite** eines neuen Projekts fragt zunächst **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt** an und klicken Sie auf **Weiter**. Klicken Sie dann in der Checkliste **Willkommen bei OneUptime 👋** auf **Ersten Monitor erstellen**. Zeigt die Checkliste diesen Schritt nicht, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `website down` ein und wählen Sie **Wissen, wenn meine Website oder API ausfällt**. **Monitore** bietet sie auch an: **Geführte Einrichtung** in der leeren Liste und unter **So funktioniert es**, und eine Zeile in **Monitor erstellen**, sobald Sie **Website** oder **API** wählen.
+Die **Startseite** eines neuen Projekts fragt zunächst **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt** an und klicken Sie auf **Weiter**. Klicken Sie dann in der Checkliste **Willkommen bei OneUptime 👋** auf **Ersten Monitor erstellen**. Zeigt die Checkliste diesen Schritt nicht, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `website down` ein und wählen Sie **Wissen, wenn meine Website oder API ausfällt**. **Monitore** bietet sie auch an: **Geführte Einrichtung** in der leeren Liste und unter **So funktioniert es**, und eine Zeile in **Monitor erstellen**, sobald Sie **Website** oder **API** wählen. Oder klicken Sie auf **Stattdessen beschreiben**: KI fragen öffnet sich mit der Aufgabe in seinem Eingabefeld, bereit zum Senden.
 
 ### Die Adresse eingeben
 

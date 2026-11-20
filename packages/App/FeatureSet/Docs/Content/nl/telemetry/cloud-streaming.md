@@ -24,7 +24,7 @@ flowchart TB
 
 - **Eén stack in elke regio.** De opdracht implementeert een CloudFormation-stack in elke regio waaruit u streamt. De metriekstream en de abonnementsfilters voor logboeken geven alles door aan twee Firehose-streams, en Firehose levert het via HTTPS aan OneUptime.
 - **De streamsleutel zegt van wie het is.** Firehose stuurt de streamsleutel van de koppeling mee met elke levering. De sleutel noemt de koppeling, en daarmee het project: niets in een levering bepaalt waar die wordt weggeschreven. OneUptime bewaart alleen de SHA-256 van de sleutel.
-- **De leesacties laten gestreamde metrieken aan de stream over.** Zolang een stream een namespace van een regio levert, schrijven de leesacties van de koppeling de metrieken van die namespace niet meer weg, zodat geen datapunt dubbel wordt geteld. De belangrijke metrieken die een stream aan hen overlaat, schrijven ze nog wel weg, zoals de dagelijkse grootte van een S3-bucket en de belangrijke metrieken die na de start van de streams zijn toegevoegd en die een oudere stack niet bevat. De leesacties blijven resources, hun status en hun wijzigingen vinden, en nemen een namespace weer over na 15 minuten zonder levering.
+- **De leesacties laten gestreamde metrieken aan de stream over.** Zolang een stream een namespace van een regio levert, lezen en schrijven de leesacties van de koppeling geen belangrijke metriek daarvan meer die de stack van de stream bevat, zodat CloudWatch het lezen van wat de stream stuurt niet meer in rekening brengt en geen datapunt dubbel wordt geteld. Ook de status van een resource en de tegels bovenaan zijn pagina worden op basis van de stream beoordeeld: elke waarde is de statistiek die de leesactie gebruikt, over vijf minuten van de stream, en dus de waarde die een leesactie zou krijgen. Heeft de stream van een regio 10 minuten niets geleverd, dan lezen de leesacties die metrieken weer uit CloudWatch, en de laatste leesactie van de koppeling meldt dat. De belangrijke metrieken die een stream aan hen overlaat, schrijven ze nog wel weg, zoals de dagelijkse grootte van een S3-bucket en die welke een stack die vóór hen is gemaakt niet bevat. De leesacties blijven resources, hun status en hun wijzigingen vinden, en nemen een namespace weer over na 15 minuten zonder levering.
 - **Er gaat niets verloren zolang OneUptime het niet kan aannemen.** Firehose verstuurt een geweigerde batch tot een uur lang opnieuw en bewaart die daarna 30 dagen in de S3-bucket van de stack.
 
 ## Voordat u begint
@@ -140,6 +140,8 @@ Voer bij een koppeling die een AWS Organization leest de opdracht van het dialoo
 
 Om te wijzigen wat een stack streamt, opent u opnieuw **Metrieken en logboeken streamen**, kiest u **Nieuwe sleutel maken** en voert u de nieuwe opdracht uit. De sleutel die hij vervangt, blijft 24 uur werken, zodat geen levering wordt geweigerd terwijl de stacks worden bijgewerkt. Hoogstens 3 vervangen sleutels werken tegelijk.
 
+Wanneer de rij van het account **Stream bijwerken** zegt, zijn de stacks ervan gemaakt voordat OneUptime elke belangrijke metriek streamde, en tot ze zijn bijgewerkt, leest de koppeling de belangrijke metrieken die ze niet bevatten uit CloudWatch, zodat er geen ontbreekt. Kies deze optie: het venster toont een opdracht die elke stack ter plekke bijwerkt, zonder nieuwe sleutel. Hij leest het eigen sjabloon van de stack terug uit CloudFormation, geeft de metriekstream ervan de huidige filters voor belangrijke metrieken en de Firehose-stream voor metrieken de gemeenschappelijke attributen van het sjabloon, en implementeert het met de sleutel die de stack al heeft, zodat de stack zijn loggroepen houdt. Hij heeft `jq` nodig, dat AWS CloudShell heeft. Voer hem bij een koppeling die een AWS Organization leest uit in het beheeraccount: hij werkt de StackSet bij, en daarmee ook de stacks van elk lidaccount. AWS herstart een metriekstream waarvan de filters veranderen, en stuurt alleen de datapunten die daarna komen.
+
 ## Op een andere manier instellen
 
 Geef elke Firehose-stream een HTTP-endpointbestemming met deze waarden, en de metriekstream de uitvoerindeling OpenTelemetry 1.0:
@@ -152,8 +154,9 @@ Geef elke Firehose-stream een HTTP-endpointbestemming met deze waarden, en de me
 | Inhoudscodering | `GZIP` |
 | Buffer | 1 MiB of 60 seconden |
 | Duur van nieuwe pogingen | 3600 seconden, met een S3-bucket voor wat niet geleverd kon worden |
+| Gemeenschappelijke attributen | Op de Firehose-stream voor metrieken `oneuptime-stream-template` ingesteld op `3` en `oneuptime-stream-metrics` ingesteld op `key`, of `all` voor een stream van elke metriek. Alleen als de filters van de metriekstream die van het sjabloon zijn, te kopiëren uit **Sjabloon downloaden** |
 
-Vervang bij een zelf gehoste OneUptime `https://oneuptime.com` door het HTTPS-adres van uw OneUptime. Het metriek-endpoint neemt ook een metriekstream in de JSON-indeling aan.
+Vervang bij een zelf gehoste OneUptime `https://oneuptime.com` door het HTTPS-adres van uw OneUptime. Het metriek-endpoint neemt ook een metriekstream in de JSON-indeling aan. Zonder de gemeenschappelijke attributen neemt OneUptime van een metriekstream die zo is ingericht aan dat hij alleen de belangrijke metrieken bevat waarmee de streams begonnen, en leest het de overige uit CloudWatch. Met die attributen laat het elke belangrijke metriek die het sjabloon bevat aan de stream over, zoals bij een stack die de opdracht heeft gemaakt.
 
 OneUptime beantwoordt elke levering zoals Firehose verwacht:
 

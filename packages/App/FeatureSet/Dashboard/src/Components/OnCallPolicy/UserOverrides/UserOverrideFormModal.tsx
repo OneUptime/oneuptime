@@ -1,8 +1,18 @@
 import {
+  UserOverrideFormTeamLimit,
   getUserOverrideFormFields,
   prepareUserOverrideForCreate,
   prepareUserOverrideForUpdate,
 } from "./UserOverrideForm";
+import {
+  UserOverrideTeamLimit,
+  getUserOverrideTeamHint,
+  getUserOverrideTeamLimit,
+} from "./UserOverrideTeamLimit";
+import useUserOverrideTeamPeople, {
+  UserOverrideTeamPeople,
+} from "./UseUserOverrideTeamPeople";
+import { ModelAction } from "Common/UI/Utils/PermissionGate";
 import {
   UserOverrideDialogTarget,
   getUserOverrideOverlapCandidate,
@@ -171,6 +181,45 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
       };
 
   /*
+   * For a reader who manages the user overrides of their own team's people
+   * only (issue #9733): the pickers offer those people, saying why above
+   * each list, and a person the form holds outside them is said under the
+   * field (UserOverrideTeamLimit).
+   */
+  const teamLimit: UserOverrideTeamLimit | null = getUserOverrideTeamLimit({
+    action: editTarget ? ModelAction.Update : ModelAction.Create,
+    isGlobal: !target.onCallDutyPolicyId,
+  });
+
+  const teamPeople: UserOverrideTeamPeople = useUserOverrideTeamPeople({
+    teamIds: teamLimit ? teamLimit.teamIds : null,
+    withMembers: true,
+  });
+
+  const formTeamLimit: UserOverrideFormTeamLimit | undefined = teamLimit
+    ? {
+        teamIds: teamLimit.teamIds,
+        hint: teamPeople.teamNames
+          ? getUserOverrideTeamHint({
+              translator: translator,
+              teamNames: teamPeople.teamNames,
+            })
+          : null,
+        memberIds: teamPeople.memberIds,
+      }
+    : undefined;
+
+  /*
+   * What the fields are rebuilt for when the team limit is known: its teams,
+   * its hint and how many people it holds, nothing while they are not read.
+   */
+  const teamLimitSignature: string = formTeamLimit
+    ? `${formTeamLimit.teamIds.join(",")}|${formTeamLimit.hint || ""}|${
+        formTeamLimit.memberIds ? formTeamLimit.memberIds.size : ""
+      }`
+    : "";
+
+  /*
    * What each question asked under Ends found: whether those times overlap
    * an override they may not. Ends is checked against it when the form is
    * sent.
@@ -220,6 +269,7 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
       return getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
         currentUserId: currentUserId,
         editing: saved ? { saved: saved, now: openedAt } : undefined,
+        teamLimit: formTeamLimit,
         isKnownOverlap: (values: unknown): boolean => {
           const candidate: UserOverrideTimes | null = candidateOf(values);
 
@@ -271,7 +321,12 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
           );
         },
       });
-    }, [currentUserId, editTarget?.id, props.onCallDutyPolicyId?.toString()]);
+    }, [
+      currentUserId,
+      editTarget?.id,
+      props.onCallDutyPolicyId?.toString(),
+      teamLimitSignature,
+    ]);
 
   const title: string = translateNamedAction(translator, {
     template: editTarget ? "Edit {{itemName}}" : "Add New {{itemName}}",

@@ -122,6 +122,10 @@ const RAW_SQL_READERS: Record<string, Classification> = {
     kind: "oneUptimesOwn",
     why: "Which queued run a Runner claims next, and how many it may: read for the Runner's key, never answered to a person.",
   },
+  "packages/Common/Server/Utils/AI/CodeFix/CodeFixOnItsWay.ts": {
+    kind: "actsOnIt",
+    why: "Whether a fix of the same exception, incident, alert, insight, trace, service or function is on its way, so OneUptime refuses or skips a second one (#9882): the task it finds is shown to a person only by a page that asks the rule of it first (CodeTaskThread.findTasksHiddenFrom).",
+  },
   "packages/Common/Server/Utils/AI/CodeFix/CodeFixAutoRetry.ts": {
     kind: "oneUptimesOwn",
     why: "Whether a task opened a pull request, for retrying its turn by itself: a yes or no OneUptime acts on.",
@@ -191,11 +195,16 @@ const API_READERS: Record<string, Classification> = {
     mustContain: [
       // An exception's fix tasks, each read as its own page reads it.
       "const hiddenRunIds: Set<string> = await CodeTaskThread.findTasksHiddenFrom({ projectId: telemetryException.projectId,",
-      "}), reader: props, });",
+      // Asked of the task - a fix asked again from Code is a later turn of it.
+      "taskIds: runs.map(taskIdOf), reader: props, });",
+      "return hiddenRunIds.has(taskIdOf(run).toString().toLowerCase());",
       // A hidden one: its type alone - no state, verdict or link.
       "if (isHidden(run)) { return {",
       "isHidden: true,",
-      "await this.readFixProduction( runs.filter((run: AIRun): boolean => { return !isHidden(run); }), );",
+      // Nothing more is read of a hidden one: its turns nor its verdict.
+      "const visibleRuns: Array<AIRun> = runs.filter((run: AIRun): boolean => { return !isHidden(run); });",
+      "taskIds: visibleRuns.map(taskIdOf),",
+      "for (const turn of [...visibleRuns, ...visibleRuns.map(latestOf)]) {",
       "!isHidden(latestRunOverall) &&",
     ],
   },
@@ -254,7 +263,9 @@ const TASK_STATE_READERS: Record<string, Classification> = {
     mustContain: [
       "reader: DatabaseCommonInteractionProps;",
       "const fixRun: AIRun | null = activeRun || finishedRun;",
-      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixRun.id], reader: data.reader, })",
+      // Asked of the task - a fix asked again from Code is a later turn of it.
+      "const fixTaskId: ObjectID | null = SubjectCodeFixRun.taskIdOf(fixRun);",
+      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixTaskId], reader: data.reader, })",
       "return HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION;",
     ],
   },
@@ -262,7 +273,9 @@ const TASK_STATE_READERS: Record<string, Classification> = {
     kind: "asksTheRule",
     mustContain: [
       "reader: DatabaseCommonInteractionProps;",
-      "activeRun?.id?.toString() || finishedFix?.aiRunId || null;",
+      // Asked of the task - a fix asked again from Code is a later turn of it.
+      "SubjectCodeFixRun.taskIdOf(activeRun)?.toString() || null;",
+      "activeTaskId || finishedFix?.aiRunId || null;",
       "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [fixTaskId], reader: data.reader, })",
       "finishedFix: FinishedFixOutcome.Hidden,",
     ],
@@ -322,6 +335,35 @@ const TASK_STATE_READERS: Record<string, Classification> = {
     kind: "actsOnIt",
     why: "Whether a person's fix of the same function, from the Profiler, is already on its way, so OneUptime starts no second one of its own: what OneUptime does next, told to no one.",
   },
+  /*
+   * The AI activity pages state a fix task by its newest turn, which may be
+   * a reply (#9812): each reads its tasks through the rule, for the person.
+   */
+  "packages/Common/Server/Utils/AI/TelemetryAi/TelemetryAiActivityReader.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      // A telemetry lane's AI Logs, page and count alike.
+      "const query: Record<string, unknown> = AIRunOutputReadFilter.applyToRunRow( {",
+      "} as Record<string, unknown>, data.props, );",
+      "AIRunService.countBy({ query, props: { isRoot: true } })",
+    ],
+  },
+  "packages/Common/Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiLogsReader.ts":
+    {
+      kind: "afterTheRecordAndTheRule",
+      why: "The incidents' and alerts' AI Logs: each fix pull request shown only beside an incident or alert the person read under their own props, and read through the rule for them, so a task a reply carried a private record into is left out.",
+      mustContain: [
+        ": AIRunOutputReadFilter.applyToRunRow(query, options.props)) as never,",
+      ],
+    },
+  "packages/Common/Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsReader.ts":
+    {
+      kind: "afterTheRecordAndTheRule",
+      why: "The incidents' and alerts' AI Insights: fix pull requests counted only beside an incident or alert the person read under their own props, and read through the rule for them, so a task a reply carried a private record into counts for none of theirs.",
+      mustContain: [
+        "? AIRunOutputReadFilter.applyToRunRow( { ...query, codeTaskId: QueryHelper.isNull() }, options.props, )",
+      ],
+    },
 };
 
 // SQL of a file's own that names the AIRun or AIAgentTaskPullRequest table.

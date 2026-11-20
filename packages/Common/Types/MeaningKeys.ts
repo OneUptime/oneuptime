@@ -43,6 +43,12 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   // What an import did with a row (ImportResultWords).
   "Created (import result)",
   /*
+   * A mobile app's screen, as app.screen.name names it: the column of the
+   * mobile Overview's frames-by-screen card (#9588). The bare "Screen" is a
+   * device's display (the Playlist player's keys).
+   */
+  "Screen (app screen)",
+  /*
    * A data asset's kind: a database's view and table (DataAssetKindWords).
    * The table is also the title over Data Observability's lists of tables,
    * a table's page and its side menu (#8176).
@@ -125,6 +131,33 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "Call (phone call)",
   "Push (push notification)",
+  /*
+   * The room left on a store - a volume, a disk, a datastore: the Free
+   * column of the storage lists and the Free figure of a store's usage
+   * (StorageUsageBar, #9539). The bare "Free" is the price, free of charge
+   * (a plan's "Free"), worded so in French ("Gratuit") and Spanish
+   * ("Gratis"), which no disk is.
+   */
+  "Free (storage space)",
+  /*
+   * The Pod Security Standards' Baseline control on what a container may add
+   * of Linux's capabilities (CAP_NET_ADMIN, CAP_SYS_ADMIN...), on a
+   * cluster's Compliance page (#9877). The bare "Capabilities" is what a
+   * Runner or a session recording can do, worded as features in most
+   * languages - Japanese 機能, Chinese 功能, Swedish "Funktioner" - which
+   * no Linux capability is.
+   */
+  "Capabilities (Linux capabilities)",
+  /*
+   * A machine's make and model, as its maker names it: the Model of
+   * Inventory's Asset Details card, of the Managed Devices list (its column
+   * and its filter) and of a managed device's Esper card, a network device's
+   * and a storage array controller's (#9838). The bare "Model" is an AI
+   * model's - the AI / LLM pages, an LLM monitor, a workflow's AI step -
+   * worded so in Chinese (模型, a machine-learning model) and Arabic
+   * (النموذج), where a device's model is 型号 / 型號 and الطراز.
+   */
+  "Model (hardware model)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

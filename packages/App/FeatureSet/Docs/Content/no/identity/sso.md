@@ -48,7 +48,7 @@ Hvert svar logger inn bare én gang. Sendes det på nytt, for eksempel når du g
 Personer som logger inn for første gang, blir med i leverandørens **Team**, og de avgjør hva personen kan gjøre: se [Roller og team for SSO-brukere](#roller-og-team-for-sso-brukere).
 
 > [!NOTE]
-> På OneUptime Cloud logger ikke OneUptime inn en person som logger inn i prosjektet for første gang med en av prosjektets SAML- eller OIDC-leverandører; i stedet sender OneUptime en lenke på e-post. Personen åpner lenken, bekrefter at prosjektets single sign-on får logge vedkommende inn, og fortsetter påloggingen. Lenken gjelder i 24 timer. Dette skjer én gang per prosjekt, og på nytt hvis personen forlater prosjektet og kommer tilbake. Selvhostede installasjoner logger personer inn med en gang.
+> På OneUptime Cloud logger ikke OneUptime inn en person som logger inn i prosjektet for første gang med en av prosjektets SAML- eller OIDC-leverandører; i stedet sender OneUptime en lenke på e-post. Personen åpner lenken, bekrefter at prosjektets single sign-on får logge vedkommende inn, og fortsetter påloggingen. Lenken gjelder i 24 timer. Dette skjer én gang per prosjekt, og på nytt hvis personen forlater prosjektet og kommer tilbake. Selvhostede installasjoner logger personer inn med en gang. På OneUptime Cloud får enhver pålogging som ikke går rett gjennom, det samme svaret, enten adressen har en konto eller ikke: den som ikke har en konto ennå, får også e-posten, og kontoen opprettes når personen bekrefter, mens en blokkert konto eller en OneUptime-administrator ikke får noen e-post. En selvhostet installasjon avviser i stedet disse to med én melding.
 
 På OneUptime Cloud tar en person som blir med i prosjektet via SSO en plass, akkurat som en person du inviterer. Hvis planen din har et fast antall plasser og alle er tatt, kan nye personer ikke bli med via SSO før en plass blir ledig.
 
@@ -79,7 +79,7 @@ Du trenger tillatelse til å legge til SSO-leverandører — **Prosjekteier**, *
    - En ny leverandør starter avslått. Når IdP-en din har disse to verdiene, redigerer du leverandøren og slår på **Aktivert**
 
 4. **Test leverandøren**
-   - Åpne lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren på siden som åpnes. Du sendes til påloggingssiden til identitetsleverandøren din og tilbake til OneUptime, innlogget
+   - Åpne lenken i kortet **SSO-påloggingslenke**, og velg leverandøren på siden som åpnes. Du sendes til påloggingssiden til identitetsleverandøren din og tilbake til OneUptime, innlogget
    - Når det fungerer, kan du [kreve SSO](#krev-sso-for-prosjektet-ditt) for prosjektet
 :::
 
@@ -127,11 +127,11 @@ Keycloak er en populær åpen kildekode-løsning for identitets- og tilgangsstyr
 4. **Juster klientinnstillingene**
 
    - Sett **Name ID Format** til `email`, og slå på **Force Name ID Format**, slik at Keycloak alltid sender e-posten som Name ID
-   - Slå av **Client signature required** (under **Signing keys config**) på klientens fane **Keys**: OneUptime signerer ikke forespørslene sine
+   - Slå av **Client signature required** (under **Signing keys config**) på klientens fane **Keys**: OneUptime signerer ikke påloggingsforespørslene sine
 
 5. **Slå på leverandøren, og test den**
 
-   Rediger leverandøren i OneUptime og slå på **Aktivert**, åpne deretter lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren. Du skal bli sendt til påloggingssiden til Keycloak og tilbake til OneUptime.
+   Rediger leverandøren i OneUptime og slå på **Aktivert**, åpne deretter lenken i kortet **SSO-påloggingslenke**, og velg leverandøren. Du skal bli sendt til påloggingssiden til Keycloak og tilbake til OneUptime.
 :::
 @tab Microsoft Entra ID
 Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts skybaserte identitetstjeneste. Du trenger en leietaker som støtter bedriftsapplikasjoner med SAML-SSO, og administratortilgang til både Entra ID og OneUptime. Finnes OneUptime i Microsoft Entra-applikasjonsgalleriet, legger du til appen derfra på OneUptime Cloud: den leveres med kravene OneUptime leser, og mønstrene for URL-ene til OneUptime.
@@ -182,7 +182,7 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts skybase
 
 7. **Slå på leverandøren, og test den**
 
-   Rediger leverandøren i OneUptime og slå på **Aktivert**, åpne deretter lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren. Du skal bli sendt til påloggingssiden til Microsoft og tilbake til OneUptime.
+   Rediger leverandøren i OneUptime og slå på **Aktivert**, åpne deretter lenken i kortet **SSO-påloggingslenke**, og velg leverandøren. Du skal bli sendt til påloggingssiden til Microsoft og tilbake til OneUptime.
 :::
 @tab Okta
 Okta er en mye brukt identitetsplattform med SAML-SSO. Du trenger en Okta-organisasjon med administratortilgang, og administratortilgang til OneUptime. Finnes OneUptime i Okta Integration Network, legger du til appen derfra på OneUptime Cloud: den logger personer inn fra OneUptime-siden **Logg inn med SSO** og fra Okta-dashbordet deres, gir dem en konto ved første pålogging og ber om to ID-er i stedet for URL-ene til OneUptime.
@@ -232,7 +232,7 @@ Okta er en mye brukt identitetsplattform med SAML-SSO. Du trenger en Okta-organi
 
 6. **Slå på leverandøren, og test den**
 
-   Rediger leverandøren i OneUptime og slå på **Aktivert**, åpne deretter lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren. Du skal bli sendt til påloggingssiden til Okta og tilbake til OneUptime.
+   Rediger leverandøren i OneUptime og slå på **Aktivert**, åpne deretter lenken i kortet **SSO-påloggingslenke**, og velg leverandøren. Du skal bli sendt til påloggingssiden til Okta og tilbake til OneUptime.
 :::
 @tab Andre
 SSO i OneUptime bruker SAML 2.0 og fungerer med alle kompatible identitetsleverandører:
@@ -242,7 +242,7 @@ SSO i OneUptime bruker SAML 2.0 og fungerer med alle kompatible identitetslevera
 2. Opprett leverandøren i OneUptime med disse verdiene, og kopier **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service-URL)** fra dialogen **SSO-konfigurasjon** (eller via **Vis SSO-konfigurasjon**).
 3. Sett **Assertion Consumer Service URL / Reply URL** og **Entity ID / Audience URI** til verdiene fra OneUptime i SAML-applikasjonen hos identitetsleverandøren din, og sett **Name ID Format** til e-postadresse.
 4. **Signaturmetode** (`RSA-SHA256`) og **Digest-metode** (`SHA256`) er allerede angitt under **Flere felt**; endre dem bare hvis identitetsleverandøren din signerer på en annen måte
-5. Slå på **Aktivert** for leverandøren, og test den med lenken i kortet **Test Single Sign On (SSO)**.
+5. Slå på **Aktivert** for leverandøren, og test den med lenken i kortet **SSO-påloggingslenke**.
 :::
 :::
 
@@ -256,14 +256,36 @@ Et prosjekt kan også logge inn via en OpenID Connect-leverandør, for eksempel 
 3. Skriv inn et **Navn** (det personer ser på påloggingssiden), **Utsteder-URL**, **Klient-ID** og **Klienthemmelighet**. Du kan også lime inn oppdagelses-URL-en til leverandøren i **Utsteder-URL** i stedet.
 4. I steget **Pålogging** starter **Team** med medlemsteamet i prosjektet: personer som logger inn for første gang, blir med i disse teamene. Resten er allerede fylt ut under **Flere felt**: **Oppdagelses-URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse ("Sign in with" og navnet). Endre dem bare hvis leverandøren din krever det. Bare team du selv kunne invitert noen til, godtas: et team som gir mer tilgang enn du har, nevnes under **Team**.
 5. Lagre. Dialogen **OIDC-konfigurasjon** åpnes med **Redirect URI**: legg den til i appens tillatte redirect-URI-er. En ny leverandør starter avslått, så rediger den etterpå og slå på **Aktivert**.
-6. Åpne lenken i kortet **Test Single Sign On (SSO)**, og velg leverandøren for å logge inn via den før du krever SSO for prosjektet.
+6. Åpne lenken i kortet **SSO-påloggingslenke**, og velg leverandøren for å logge inn via den før du krever SSO for prosjektet.
 :::
 
-### Logg også ut av identitetsleverandøren
+## Logg også ut av identitetsleverandøren
 
-Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin, som en NOC-skjerm eller en kiosk, kommer den neste som velger leverandøren på påloggingssiden, inn som den som gikk. Slå på **Logg også ut av identitetsleverandøren** under **Flere felt** for å avslutte økten hos leverandøren når noen logger ut av OneUptime. Den er slått av som standard: På en personlig bærbar ville den også logge personen ut av alle andre apper som bruker leverandøren.
+Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin, som en NOC-skjerm eller en kiosk, kommer den neste som velger leverandøren på påloggingssiden, inn som den som gikk. Slå på **Logg også ut av identitetsleverandøren** under **Flere felt** på en SAML- eller OIDC-leverandør for å avslutte økten hos leverandøren når noen logger ut av OneUptime. Den er slått av som standard: På en personlig bærbar ville den også logge personen ut av alle andre apper som bruker leverandøren. Den gjelder for personer som logger inn i en nettleser etter at den er slått på; mobilappen logger bare ut av OneUptime.
 
-Når den er slått på, går nettleseren til leverandørens egen utlogging så snart OneUptime har logget den ut, og leverandøren sender den tilbake til påloggingssiden til OneUptime. Registrer den siden hos leverandøren din: Dialogen **OIDC-konfigurasjon** viser den som omdirigerings-URI etter utlogging, som leverandører kaller en post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på. Den gjelder for personer som logger inn i en nettleser etter at den er slått på; mobilappen logger bare ut av OneUptime. SAML-leverandører logger aldri noen ut av identitetsleverandøren.
+:::tabs
+@tab SAML
+Skriv inn utloggings-URL-en til identitetsleverandøren din som leverandørens **Utloggings-URL** under **Flere felt**: Uten den kan bryteren ikke slås på. Gi deretter identitetsleverandøren **Single Logout-URL** fra dialogen **SSO-konfigurasjon** og sertifikatet som OneUptime signerer utloggingsforespørslene sine med, via **Last ned signeringssertifikat** i samme dialog.
+
+| Identitetsleverandør | Utloggings-URL | Hvor Single Logout-URL-en og sertifikatet skal |
+| --- | --- | --- |
+| Okta | **Identity Provider Single Logout URL**, under **View SAML setup instructions** på fanen **Sign On** | Rediger **SAML Settings** på fanen **General**, klikk på **Show Advanced Settings**, og velg **Allow application to initiate Single Logout**. Sett **Single Logout URL** til Single Logout-URL-en og **SP Issuer** til identifikatoren (Entity ID), og last opp sertifikatet som **Signature Certificate**. |
+| Microsoft Entra ID | **Logout URL**, under **Set up OneUptime** | Sett **Logout Url (Optional)** i **Basic SAML Configuration** til Single Logout-URL-en. Entra ID trenger ikke noe sertifikat. |
+| Keycloak | Realmens SAML-endepunkt, det samme som påloggings-URL-en | Sett **Logout Service Redirect Binding URL** på klientens fane **Advanced** til Single Logout-URL-en. La **Front channel logout** være slått på. Keycloak trenger ikke noe sertifikat så lenge **Client signature required** er slått av, som satt opp ovenfor. |
+
+Etter en utlogging der sender identitetsleverandøren nettleseren tilbake til Single Logout-URL-en, som åpner påloggingssiden eller sier at identitetsleverandøren ikke bekreftet utloggingen. Når personen logger ut hos identitetsleverandøren eller av en annen app som bruker den, logger en identitetsleverandør som sender utloggingsforespørsler til appene sine, slik Keycloak og Microsoft Entra ID gjør, også personen ut av OneUptime. OneUptime tar bare imot en forespørsel som identitetsleverandøren har signert.
+@tab OpenID Connect
+Nettleseren går til leverandørens egen utlogging så snart OneUptime har logget den ut, og leverandøren sender den tilbake til påloggingssiden til OneUptime. Registrer den siden hos leverandøren din: Dialogen **OIDC-konfigurasjon** viser den som omdirigerings-URI etter utlogging, som leverandører kaller en post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på.
+
+| Identitetsleverandør | Hvor omdirigerings-URI-en etter utlogging registreres |
+| --- | --- |
+| Okta | Klikk på **Edit** i **General Settings** på fanen **General** i appintegrasjonen, og legg den til i **Sign-out redirect URIs**. |
+| Microsoft Entra ID | Legg den til i appregistreringens **Authentication** under **Redirect URIs** for plattformen **Web**. **Front-channel logout URL** er en annen innstilling, som OneUptime ikke bruker. |
+| Auth0 | Legg den til i applikasjonens **Settings** under **Allowed Logout URLs**. En tenant som ble opprettet før 14. november 2023, må også ha **RP-Initiated Logout End Session Endpoint Discovery** slått på i **Advanced**-innstillingene, slik at oppdagelsesdokumentet nevner et `end_session_endpoint`. |
+| Keycloak | Legg den til i klientens innstillinger under **Valid post logout redirect URIs** (Keycloak 19 og nyere). |
+
+En leverandør der den ikke er registrert, viser sin egen feilside etter at noen har logget ut av OneUptime, i stedet for å sende dem tilbake; de er logget ut av OneUptime likevel.
+:::
 
 ## Roller og team for SSO-brukere
 
@@ -271,12 +293,27 @@ OneUptime overtar ikke roller eller grupper fra identitetsleverandøren din. Hva
 
 Teamene til en leverandør avgjør hva personene som logger inn med den, kan gjøre, så en leverandør lagres bare med team som den som lagrer den, kunne invitert noen til. Hver lagring kontrollerer dem på nytt: en leverandør der teamene gir mer tilgang enn du har, kan bare endres av noen som har tilgang som dekker dem, for eksempel en Prosjekteier. Leverandører som ble lagret før denne kontrollen, fortsetter å logge personer inn i teamene sine. Alle som får redigere en leverandør, kan fortsatt slå den av, slik at den kan stoppes umiddelbart.
 
+## Domener
+
+**Logg inn med SSO** ber om en e-postadresse og tilbyr leverandørene som betjener domenet til adressen. Den leser ingen konto: en adresse med konto i prosjektet ditt og en adresse helt uten konto får samme svar, så siden sier ingenting om hvem som har konto. For å bli tilbudt der oppgir en leverandør domenene den betjener:
+
+1. Legg til domenet ditt under **Prosjektinnstillinger** > **Avansert** > **Domener**, klikk på **Verifiser domene** i raden, og legg TXT-posten som vises, til DNS-en for domenet. Så snart posten er funnet, er domenet verifisert.
+2. Rediger leverandøren, og velg domenet under **Domener** i trinnet **Pålogging**. Bare prosjektets verifiserte domener vises.
+
+**Logg inn med SSO** tilbyr deretter leverandøren til alle adresser på det domenet, uansett hvem som skriver dem. Domenet må stemme nøyaktig: `acme.com` dekker ikke `eu.acme.com`, så legg til hvert domene folk logger på med.
+
+Leverandører som ble satt opp før domener fantes, fikk prosjektets verifiserte domener da OneUptime ble oppgradert: hvert domene prosjektet hadde verifisert, med mindre et annet prosjekt også hadde verifisert det. Velg et slikt domene selv hvis det er ditt. Et domene som ble lagt til, men aldri verifisert, ble ikke gitt til noen leverandør.
+
+En leverandør som ikke oppgir noe verifisert domene, tilbys ikke til noen der. Kolonnen **Domener** viser **Ingen verifisert domene**, og et varsel over leverandørene dine nevner den og sier hva du skal gjøre. Så lenge prosjektet ikke har noe verifisert domene, åpner **Verifiser et domene** i varselet **Domener**.
+
+Den som har e-posten på et annet domene, for eksempel en innleid konsulent, finner heller ingen leverandør der. Del prosjektets SSO-påloggingslenke med vedkommende: kopier den fra kortet **SSO-påloggingslenke** under leverandørene dine. Den viser prosjektets leverandører og ber ikke om noen e-postadresse, så den sier ingenting om hvem som har en konto. En pålogging som starter hos identitetsleverandøren din, fungerer også, uansett domene.
+
 ## Krev SSO for prosjektet ditt
 
 En oppsatt leverandør hindrer ingen i å logge inn med passord. For å gjøre SSO til den eneste veien inn i prosjektet bruker du bryteren **Krev SSO for å logge på** under **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, under leverandørene dine:
 
 :::steps
-1. Test leverandøren din først med lenken i kortet **Test Single Sign On (SSO)**.
+1. Test leverandøren din først med lenken i kortet **SSO-påloggingslenke**.
 2. Slå på **Krev SSO for å logge på**. OneUptime spør før noe lagres: fra da av må alle i prosjektet, også du, logge inn med SSO for å åpne det, og alle som er logget inn med passord, er utestengt fra prosjektet til de logger inn med SSO.
 3. Klikk på **Krev SSO** for å bekrefte. Bryteren lagres med en gang; det finnes ingen egen lagreknapp.
 :::
@@ -293,6 +330,33 @@ Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pål
 
 > [!NOTE]
 > På OneUptime Cloud krever det planen **Scale** å kreve SSO, mens det fungerer på alle planer å slå det av. Under Scale viser **Prosjektinnstillinger** > **Sikkerhet** > **SSO** planens oppgraderingstilbud; et prosjekt som en Scale-prøveperiode etterlot med krav om SSO, finner også **Krev SSO for å logge på** der, under tilbudet, slik at det kan slås av. Å slå det på igjen krever **Scale**.
+
+### Styr påloggingen til brukerne dine med SSO
+
+Å kreve SSO holder prosjektets data bak identitetsleverandøren din, men brukerne dine kan fortsatt sette opp passord, passnøkler og tofaktorautentisering i OneUptime, noe prosjektet ditt aldri ber om. Så lenge **Krev SSO for å logge på** er slått på, hindrer en andre bryter under den, **Styr pålogging med SSO**, dette.
+
+En persons pålogging styres av SSO når alle prosjektene vedkommende hører til, inkludert alle prosjekter vedkommende er invitert til, krever SSO og har **Styr pålogging med SSO** slått på. Vedkommende kan da ikke sette opp passord, passnøkkel, sikkerhetsnøkkel, autentiseringsapp, reservekoder eller tofaktorautentisering, **Glemt passord?** sender ingen lenke, og vedkommendes **Brukerprofil** viser identitetsleverandøren i stedet for å tilby disse innstillingene. Ingenting ved påloggingen endres: Passordet logger fortsatt vedkommende på OneUptime, og prosjektet ditt ber om SSO som før.
+
+Regelen sjekkes hver gang, så:
+
+- **Noen i et prosjekt som ikke styrer påloggingen**: Så snart vedkommende er medlem av eller invitert til et prosjekt som ikke krever SSO eller ikke har **Styr pålogging med SSO** slått på, får vedkommende innstillingene sine tilbake, og vedkommendes **Brukerprofil** viser det prosjektet som grunnen. Forlater vedkommende det, styres påloggingen igjen. En konto kan høre til mange organisasjoner, så én organisasjon bestemmer aldri over en annens prosjekter.
+- **Prosjekter med ulike leverandører**: Noen i to prosjekter som begge styrer påloggingen, hvert med sin egen identitetsleverandør, blir styrt, og profilen viser begge leverandørene.
+- **Master-admins** beholder alltid sine egne innstillinger.
+- **Det folk har satt opp før**, blir beholdt, ubrukt av prosjektet ditt, til det blir fjernet: av Prosjekteierne i prosjektet ditt (se nedenfor), eller av en serveradministrator på personens side **Autentisering** i Admin Dashboard, med **Fjern påloggingsinnstillinger**.
+
+**Styr pålogging med SSO** lagres så snart du slår om bryteren, sletter ingenting, og slår du den av, får alle innstillingene sine tilbake med en gang. Den som kan endre **Krev SSO for å logge på**, kan endre den, på de samme planene. Når **Krev SSO for å logge på** er slått av, er den skjult og endrer ingenting.
+
+### Fjerne det brukerne dine har lagret før
+
+Mens **Styr pålogging med SSO** er slått på, ser Prosjekteierne i prosjektet ditt under den hvor mange av brukerne der som fortsatt har et passord eller tofaktorautentisering lagret i OneUptime. **Fjern påloggingsinnstillinger** sletter, etter å ha spurt, passordene deres med eventuelle lenker for tilbakestilling eller pålogging, passnøklene, sikkerhetsnøklene, autentiseringsappene og reservekodene, slår av tofaktorautentisering og avslutter øktene de logget på uten SSO. Det kan ikke angres.
+
+En konto kan høre til mange organisasjoner, så du kan bare fjerne innstillingene til personene organisasjonen din har ansvar for. Organisasjonen din er prosjektene du eier: En persons innstillinger fjernes bare når alle prosjektene vedkommende hører til, inkludert alle prosjekter vedkommende er invitert til, er prosjekter du er **Prosjekteier** for, og har **Styr pålogging med SSO** slått på. Alle andre beholder innstillingene sine:
+
+- noen som er medlem av eller invitert til et prosjekt du ikke eier, eller et prosjekt som ikke styrer pålogging med SSO;
+- noen som bare er invitert til prosjektet ditt og ikke har blitt med ennå;
+- master-admins, og deg selv: endre dine egne i **Brukerprofil**.
+
+Hver person som får innstillingene fjernet, får en e-post om hva som ble fjernet og at vedkommende nå logger på med SSO, og revisjonsloggene til prosjektene dine registrerer fjerningen som din. Bare en **Prosjekteier** kan fjerne, pålogget i dashbordet: aldri med en API-nøkkel.
 
 ## Slå av eller slette en leverandør
 

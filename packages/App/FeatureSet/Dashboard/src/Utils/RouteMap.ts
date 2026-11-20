@@ -66,6 +66,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVICE_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.SERVICE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
@@ -74,6 +75,8 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.SERVICE_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.SERVICE_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.SERVICE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SERVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.SERVICE_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
@@ -136,6 +139,9 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL]: `${RouteParams.ModelID}/services/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: `${RouteParams.ModelID}/ai`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
@@ -281,11 +287,14 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.DOCKER_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.DOCKER_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.DOCKER_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.DOCKER_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.DOCKER_HOST_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.DOCKER_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DOCKER_HOST_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
@@ -311,11 +320,14 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PODMAN_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PODMAN_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.PODMAN_HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.PODMAN_HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.PODMAN_HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.PODMAN_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.PODMAN_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.PODMAN_HOST_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
@@ -427,6 +439,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.OPENSTACK_CLOUD_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.OPENSTACK_CLOUD_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.OPENSTACK_CLOUD_VIEW_CHECKS]: `${RouteParams.ModelID}/checks`,
   [PageMap.OPENSTACK_CLOUD_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -633,6 +646,7 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW_SYSTEMD_UNITS]: `${RouteParams.ModelID}/systemd`,
   [PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW]: `${RouteParams.ModelID}/systemd/${RouteParams.SubModelID}`,
   [PageMap.HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.HOST_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.HOST_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
@@ -658,6 +672,7 @@ export const ServerlessRoutePath: Dictionary<string> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -707,6 +722,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]: `${RouteParams.ModelID}/security-events`,
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -728,6 +744,8 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
   [PageMap.CLOUD_RESOURCE_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.CLOUD_ACCOUNTS]: `accounts`,
   [PageMap.CLOUD_ACCOUNT_VIEW]: `accounts/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES]: `accounts/${RouteParams.ModelID}/resources`,
@@ -751,6 +769,8 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.DATABASE_SERVER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: `${RouteParams.ModelID}/data-security`,
+  [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.DATABASE_SERVER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.DATABASE_SERVER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: `${RouteParams.ModelID}/endpoints`,
@@ -1130,6 +1150,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW]: `pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_RECOMMENDATIONS]: `pipelines/${RouteParams.ModelID}/recommendations`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_OWNERS]: `pipelines/${RouteParams.ModelID}/owners`,
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER]: `pipelines/${RouteParams.ModelID}/circuit-breaker`,
   [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_AUDIT_LOGS]: `pipelines/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_ISSUES]: "issues",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCTS]: "data-products",
@@ -1138,6 +1159,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_STORAGE_PATHS]: "storage-paths",
   [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW]: `settings/owner-rules/pipelines/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: "bi-dashboards",
@@ -1220,6 +1242,8 @@ export const InventoryRoutePath: Dictionary<string> = {
   [PageMap.INVENTORY_VIEW_SETTINGS]: `item/${RouteParams.ModelID}/settings`,
   [PageMap.INVENTORY_VIEW_DELETE]: `item/${RouteParams.ModelID}/delete`,
   [PageMap.INVENTORY_ARCHIVED]: "archived",
+  [PageMap.INVENTORY_MANAGED_DEVICES]: "managed-devices",
+  [PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS]: `managed-devices/${RouteParams.ModelID}/recommendations`,
   [PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
 };
 
@@ -3308,6 +3332,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVICE_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.SERVICE_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_TRACES]
@@ -3359,6 +3389,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_COMPLIANCE]
     }`,
   ),
 
@@ -3656,6 +3698,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_COMPLIANCE]
     }`,
   ),
 
@@ -4393,6 +4453,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_TRACES]
@@ -4420,6 +4486,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.DOCKER_HOST_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_COMPLIANCE]
     }`,
   ),
 
@@ -4564,6 +4642,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.PODMAN_HOST_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_TRACES]
@@ -4591,6 +4675,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_COMPLIANCE]
     }`,
   ),
 
@@ -5237,6 +5333,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.OPENSTACK_CLOUD_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS]
     }`,
   ),
 
@@ -6379,6 +6481,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.HOST_VIEW_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_TRACES]
@@ -6516,6 +6624,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/${
       ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS]
     }`,
   ),
 
@@ -6792,6 +6906,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS]
+    }`,
+  ),
+
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_FEED]
@@ -6884,6 +7004,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_COMPLIANCE]
     }`,
   ),
 
@@ -7013,6 +7145,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_DATA_SECURITY]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_COMPLIANCE]
     }`,
   ),
 
@@ -8963,6 +9107,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER
+      ]
+    }`,
+  ),
+
   [PageMap.DATA_OBSERVABILITY_ISSUES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_ISSUES]
@@ -8999,6 +9151,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_SETTINGS_OWNER_RULE_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_SETTINGS_PIPELINE_OWNER_RULE_VIEW
       ]
     }`,
   ),
@@ -10274,6 +10434,20 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INVENTORY_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/inventory/${
       InventoryRoutePath[PageMap.INVENTORY_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_MANAGED_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_MANAGED_DEVICES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[
+        PageMap.INVENTORY_MANAGED_DEVICE_CONNECTION_RECOMMENDATIONS
+      ]
     }`,
   ),
 

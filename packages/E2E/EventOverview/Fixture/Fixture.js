@@ -372,6 +372,11 @@
  *            it ruled out, with their commands and why not - beside the
  *            commands it checked with (one refused by kubectl) and four
  *            queries of the project's telemetry.
+ *            mcp-no-fix (#6526): OneUptime AI's fix through the project's
+ *            MCP servers found no safe fix and said why - the scale-out it
+ *            ruled out - beside what it read on the AWS server (two tools
+ *            that answered, one the server throttled) and two queries of
+ *            the project's telemetry.
  *   ?approvals= on | first | mine: with ?fixes=many, the project asks two
  *            people to approve a riskier fix (requireTwoApprovalsForRiskier
  *            Fixes, #6148's follow-ups), and the kubectl fix holds one (its
@@ -853,9 +858,18 @@ const codeFixMode = CODE_FIX_MODES.includes(params.get("codefix"))
  * back (rolled-back, issue #5598), a runbook that waits with its track
  * record beside a fix approved in Slack (runbook, #5519's follow-ups), or
  * one round of an AI fix that stopped before it found one (unfinished) or
- * found no safe fix and said why (no-fix, issues #6436 and #6487).
+ * found no safe fix and said why (no-fix, issues #6436 and #6487), or a fix
+ * through MCP servers that found none and lists what it read on them
+ * (mcp-no-fix, #6526).
  */
-const FIXES_MODES = ["many", "rolled-back", "runbook", "unfinished", "no-fix"];
+const FIXES_MODES = [
+  "many",
+  "rolled-back",
+  "runbook",
+  "unfinished",
+  "no-fix",
+  "mcp-no-fix",
+];
 const fixesMode = FIXES_MODES.includes(params.get("fixes"))
   ? params.get("fixes")
   : "";
@@ -5962,8 +5976,10 @@ if (fixesMode === "rolled-back") {
  */
 const UNFINISHED_ROUND_SUGGESTION_ID = uuid("93000000", 10);
 const NO_FIX_ROUND_SUGGESTION_ID = uuid("93000000", 11);
+const MCP_NO_FIX_ROUND_SUGGESTION_ID = uuid("93000000", 12);
 const UNFINISHED_ROUND_RUN_ID = ID.aiRun(11);
 const NO_FIX_ROUND_RUN_ID = ID.aiRun(12);
+const MCP_NO_FIX_ROUND_RUN_ID = ID.aiRun(14);
 // The run Try again starts.
 const TRIED_AGAIN_ROUND_RUN_ID = ID.aiRun(13);
 const ROUND_PROVIDER_TIMEOUT_ERROR =
@@ -5995,6 +6011,26 @@ if (fixesMode === "no-fix") {
     aiRunId: new ObjectID(NO_FIX_ROUND_RUN_ID),
     rationaleMarkdown:
       "checkout-api's pods are healthy and the HPA has room to scale. The latency began with the 17:52 rollout, and rolling it back is not safe, so OneUptime AI proposes no change.",
+    createdAt: at("18:04", 10),
+  });
+}
+
+/*
+ * mcp-no-fix (#6526): with no AI rule set up, OneUptime AI worked on the
+ * incident through the project's MCP servers and found no safe fix. Its
+ * plan holds no change: the scale-out it considered is one it ruled out.
+ */
+if (fixesMode === "mcp-no-fix") {
+  insert(AutoRemediationSuggestion, {
+    _id: MCP_NO_FIX_ROUND_SUGGESTION_ID,
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    status: "NoneApplicable",
+    suggestionType: "McpToolCalls",
+    ruleNameSnapshot: "OneUptime AI",
+    aiRunId: new ObjectID(MCP_NO_FIX_ROUND_RUN_ID),
+    mcpToolCallPlan: { calls: [] },
+    rationaleMarkdown:
+      "checkout-api already runs the 8 tasks its service allows, and every task is healthy, so scaling out is not possible and would not help. OneUptime AI proposes no change.",
     createdAt: at("18:04", 10),
   });
 }
@@ -6158,6 +6194,21 @@ function roundCheck(command, why, status, when, error) {
   return { command, why, status, at: iso(when), error: error || "" };
 }
 
+/*
+ * A read of one of the project's MCP servers, as the round lists it
+ * (#6526): its server and tool, never what it was called with.
+ */
+function roundMcpCheck(server, tool, why, status, when, error) {
+  return {
+    command: "",
+    mcpTool: { server, tool },
+    why,
+    status,
+    at: iso(when),
+    error: error || "",
+  };
+}
+
 function remediationRound(suggestionId) {
   const record = table(AutoRemediationSuggestion).find((row) => {
     return String(row._id) === String(suggestionId);
@@ -6213,6 +6264,62 @@ function remediationRound(suggestionId) {
       appliedSteps: ROUND_APPLIED_NOTHING,
       // It changed nothing: the incident's state is all that is left.
       mayTryAgain: !isResolved,
+    };
+  }
+
+  // A fix through MCP servers that found no safe fix (#6526).
+  if (runId === MCP_NO_FIX_ROUND_RUN_ID) {
+    return {
+      run: roundRunJson({
+        runId,
+        status: AIRunStatus.Completed,
+        createdAt: at("18:04", 10),
+        startedAt: at("18:04", 12),
+        completedAt: at("18:06", 5),
+      }),
+      events: roundEventsJson(runId, [
+        { eventType: AIRunEventType.RunStarted, at: at("18:04", 12) },
+        { eventType: AIRunEventType.RunCompleted, at: at("18:06", 5) },
+      ]),
+      checks: [
+        roundMcpCheck(
+          "AWS",
+          "ecs_describe_services",
+          "See how many tasks checkout-api runs, and its most.",
+          "ran",
+          at("18:04", 38),
+        ),
+        roundMcpCheck(
+          "AWS",
+          "cloudwatch_get_metric_data",
+          "Compare the tasks' CPU and memory with their limits.",
+          "ran",
+          at("18:05", 2),
+        ),
+        roundMcpCheck(
+          "AWS",
+          "logs_filter_log_events",
+          "Look for the timeouts in the service's logs.",
+          "failed",
+          at("18:05", 25),
+          "ThrottlingException: Rate exceeded",
+        ),
+      ],
+      otherCheckCount: 2,
+      explanation: {
+        reason:
+          "checkout-api already runs the 8 tasks its service allows, and every task is healthy, so scaling out is not possible and would not help.",
+        ruledOutFixes: [
+          {
+            fix: "Scale the ECS service checkout-api out to 12 tasks",
+            commands: [],
+            whyNot:
+              "Not allowed: the service's auto scaling caps it at 8 tasks, and raising the cap is a change for a person to make.",
+          },
+        ],
+      },
+      appliedSteps: ROUND_APPLIED_NOTHING,
+      mayTryAgain: false,
     };
   }
 
@@ -9862,8 +9969,8 @@ async function handleApi(method, options) {
   }
 
   /*
-   * A fix's round (?fixes=unfinished | no-fix), and Try again on one that
-   * stopped: started again, or refused.
+   * A fix's round (?fixes=unfinished | no-fix | mcp-no-fix), and Try again
+   * on one that stopped: started again, or refused.
    */
   if (method === "POST" && url.endsWith("/auto-remediation/round")) {
     return ok(remediationRound(body.suggestionId));
@@ -9914,6 +10021,30 @@ async function handleApi(method, options) {
    */
   if (method === "POST" && url.endsWith("/approval/policy")) {
     return ok({ isRequired: false, steps: [] });
+  }
+
+  /*
+   * Whether a public note posted now is on a status page and notifies anyone
+   * (POST /<event>/public-note-reach, Types/StatusPage/PublicNoteReach),
+   * asked by the feed's Add Public Note: incident #1042, episode #12 and
+   * maintenance event #58 are each on a status page that notifies its
+   * subscribers, so a note posted now is shown there and tells them - no
+   * reason.
+   */
+  if (method === "POST" && url.endsWith("/public-note-reach")) {
+    return ok({ nothingSentReason: null });
+  }
+
+  /*
+   * Whether the status pages #58 is on show maintenance events and notify
+   * their subscribers (POST /scheduled-maintenance/reach,
+   * Types/StatusPage/PickedStatusPagesReach), asked by its header's band
+   * while it waits to be published (?publish=later): Acme Commerce Status
+   * does both, so its subscribers are told it is scheduled when it is
+   * published - no reason.
+   */
+  if (method === "POST" && url.endsWith("/scheduled-maintenance/reach")) {
+    return ok({ nothingSentReason: null });
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

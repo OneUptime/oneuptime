@@ -235,9 +235,17 @@ describe("the Security card's count on a device opens the device's own page", ()
     ).toBeNull();
   });
 
-  test("only a device has a page of its own: a host still opens the Events explorer", () => {
+  test("a device, a host, a cluster, a container host, an OpenStack cloud, a service, a cloud resource and a serverless function have a page of their own (#9547, #9628, #9779, #9780): an inventory item still opens the Events explorer", () => {
     expect(Object.keys(model.RECORD_SECURITY_EVENTS_PAGES)).toEqual([
       SecurityConnectionKind.NetworkDevice,
+      SecurityConnectionKind.Host,
+      SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.DockerHost,
+      SecurityConnectionKind.PodmanHost,
+      SecurityConnectionKind.OpenStackCloud,
+      SecurityConnectionKind.Service,
+      SecurityConnectionKind.CloudResource,
+      SecurityConnectionKind.ServerlessFunction,
     ]);
 
     const host: { path: string; query: Record<string, string> } = open(
@@ -253,8 +261,60 @@ describe("the Security card's count on a device opens the device's own page", ()
       }),
     );
 
-    expect(host.path).toBe(`${BASE}/security-events`);
-    expect(decodeURIComponent(host.query["search"]!)).toBe("observable:web-1");
+    expect(host.path).toBe(`${BASE}/host/${HOST_ID}/security-events`);
+    expect(host.query["search"]).toBeUndefined();
+
+    const dockerHost: { path: string; query: Record<string, string> } = open(
+      model.getRecordSecurityEventsRoute({
+        security: {
+          kind: SecurityConnectionKind.DockerHost,
+          id: HOST_ID,
+          values: ["web-1"],
+          windowDays: 7,
+          isSearchedByLogs: false,
+        },
+        now,
+      }),
+    );
+
+    expect(dockerHost.path).toBe(`${BASE}/docker/${HOST_ID}/security-events`);
+    expect(dockerHost.query["search"]).toBeUndefined();
+
+    // A cloud resource's own page, beside its Logs (#9779).
+    const cloudResource: { path: string; query: Record<string, string> } = open(
+      model.getRecordSecurityEventsRoute({
+        security: {
+          kind: SecurityConnectionKind.CloudResource,
+          id: HOST_ID,
+          values: ["arn:aws:ec2:us-east-1:111122223333:instance/i-0abc123"],
+          windowDays: 7,
+          isSearchedByLogs: false,
+        },
+        now,
+      }),
+    );
+
+    expect(cloudResource.path).toBe(`${BASE}/cloud/${HOST_ID}/security-events`);
+    expect(cloudResource.query["search"]).toBeUndefined();
+
+    // A record of no page of its own: the explorer, on what names it.
+    const item: { path: string; query: Record<string, string> } = open(
+      model.getRecordSecurityEventsRoute({
+        security: {
+          kind: SecurityConnectionKind.InventoryItem,
+          id: HOST_ID,
+          values: ["i-0abc123"],
+          windowDays: 7,
+          isSearchedByLogs: false,
+        },
+        now,
+      }),
+    );
+
+    expect(item.path).toBe(`${BASE}/security-events`);
+    expect(decodeURIComponent(item.query["search"]!)).toBe(
+      "observable:i-0abc123",
+    );
   });
 });
 
@@ -408,11 +468,22 @@ describe("the page's wiring", () => {
     const page: string = readCode(
       "Pages/NetworkDevice/View/SecurityEvents.tsx",
     );
+    // The record's own Security Events page every resource shares (#9547).
+    const shared: string = readCode(
+      "Components/ResourceSecurity/ResourceSecurityEventsPage.tsx",
+    );
 
-    expect(page).toContain("SecurityCaseApi.getResourceSecurityScope({");
-    expect(page).toContain("kind: SecurityConnectionKind.NetworkDevice");
-    expect(page).toContain("<SecurityEventsViewer");
-    expect(page).toContain("scope={viewerScope}");
+    expect(page).toContain("<ResourceSecurityEventsPage");
+    expect(page).toContain("kind={SecurityConnectionKind.NetworkDevice}");
+    // In a device's own words, with its own empty state.
+    expect(page).toContain("chipWords={DEVICE_CHIP_WORDS}");
+    expect(page).toContain(
+      "emptyContent={<DeviceSecurityEventsEmptyState modelId={modelId} />}",
+    );
+    expect(shared).toContain("SecurityCaseApi.getResourceSecurityScope({");
+    expect(shared).toContain("kind: props.kind");
+    expect(shared).toContain("<SecurityEventsViewer");
+    expect(shared).toContain("scope={viewerScope}");
   });
 
   test("the scope is asked of its own route, as the Security card's answer is", () => {

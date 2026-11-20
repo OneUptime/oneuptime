@@ -35,7 +35,7 @@ Quando a substituição termina, os acionamentos voltam a ser dela. A **Linha do
 :::steps
 ### Abrir as substituições
 
-Vá para **Plantão → Avançado → Substituições de usuário** para cobrir alguém em todas as políticas de plantão, ou para a página **Substituições de usuário** de uma política, em **Avançado**, para cobrir a pessoa só nessa política. Clique em **Adicionar: Substituição de usuário**.
+Vá para **Plantão → Agendamentos → Substituições de usuário** para cobrir alguém em todas as políticas de plantão, ou para a página **Substituições de usuário** de uma política, em **Avançado**, para cobrir a pessoa só nessa política. Clique em **Adicionar: Substituição de usuário**.
 
 ### Dizer quem está ausente
 
@@ -72,7 +72,7 @@ Para trazer alguém de volta antes de a substituição terminar, clique em **Enc
 
 | Adicionada em | Cartão | Vale para |
 | --- | --- | --- |
-| **Plantão → Avançado → Substituições de usuário** | **Substituições de usuário globais** | Todas as políticas de plantão do projeto |
+| **Plantão → Agendamentos → Substituições de usuário** | **Substituições de usuário globais** | Todas as políticas de plantão do projeto |
 | **Substituições de usuário** de uma política | **Substituições de usuário da política de plantão** | Só essa política |
 
 Duas substituições da mesma pessoa não podem se sobrepor na mesma política, nem quando as duas são globais. O formulário, e **Pular até…** nas camadas de um agendamento, avisam ao lado dos horários assim que eles são escolhidos, com **Editar essa substituição** para alterar aquela em vez disso. Uma pode terminar quando a próxima começa.
@@ -92,7 +92,9 @@ Quando alguém sai do projeto, cada substituição que nomeia essa pessoa e que 
 
 **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão** podem adicionar, editar e excluir substituições; **Visualizador** e **Visualizador de plantão** podem vê-las. Em uma função personalizada, as permissões são **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** e **Read On-Call Policy User Override**. Na **Linha do tempo de plantões**, só quem pode ler substituições vê de quem é o turno coberto.
 
-Uma substituição em uma política segue o escopo da política. Dê a uma equipe **Membro de plantão** limitado às políticas que ela possui, ou ao seu rótulo, e seus membros adicionam, editam e excluem substituições só nessas políticas. Uma substituição global se aplica a todas as políticas, inclusive às de outra equipe, então adicioná-la, editá-la ou excluí-la exige a permissão de substituições no projeto inteiro. Com uma mais restrita, **Adicionar: Substituição de usuário**, **Editar**, **Encerrar agora** e **Excluir** em **Plantão → Avançado → Substituições de usuário** ficam bloqueados e dizem por quê. **Pular até…** nas camadas de um agendamento e **Obter cobertura** nos seus próximos turnos, que adicionam substituições globais, oferecem em vez disso as políticas em que você pode adicionar substituições, com uma substituição por política, assim como a cobertura do app para celular; onde você não pode em nenhuma, ficam bloqueados e dizem por quê. A equipe adiciona suas substituições na página **Substituições de usuário** de cada política. O mesmo vale para a API: uma substituição sem `onCallDutyPolicyId` é recusada para uma permissão limitada a rótulos ou a políticas próprias.
+Uma substituição em uma política segue o escopo da política. Dê a uma equipe **Membro de plantão** limitado às políticas que ela possui, ou ao seu rótulo, e seus membros adicionam, editam e excluem substituições só nessas políticas. Uma substituição global se aplica a todas as políticas, inclusive às de outra equipe, então adicioná-la, editá-la ou excluí-la exige a permissão de substituições no projeto inteiro. Com uma mais restrita, **Adicionar: Substituição de usuário**, **Editar**, **Encerrar agora** e **Excluir** em **Plantão → Agendamentos → Substituições de usuário** ficam bloqueados e dizem por quê. **Pular até…** nas camadas de um agendamento e **Obter cobertura** nos seus próximos turnos, que adicionam substituições globais, oferecem em vez disso as políticas em que você pode adicionar substituições, com uma substituição por política, assim como a cobertura do app para celular; onde você não pode em nenhuma, ficam bloqueados e dizem por quê. A equipe adiciona suas substituições na página **Substituições de usuário** de cada política. O mesmo vale para a API: uma substituição sem `onCallDutyPolicyId` é recusada para uma permissão limitada a rótulos ou a políticas próprias.
+
+Para deixar uma equipe organizar coberturas só entre as próprias pessoas, dê a ela **Manage On-Call Policy User Overrides for Own Team**, diretamente ou por uma função personalizada. Os membros dela só adicionam, editam e excluem substituições quando a pessoa ausente e a pessoa que cobre estão, cada uma, em uma das equipes deles que recebeu essa permissão; as outras equipes deles não contam. **Quem está ausente?** e **Quem cobre?** listam só as pessoas dessas equipes e dizem por quê, e **Editar**, **Encerrar agora** e **Excluir** ficam bloqueados, dizendo por quê, numa substituição que cita qualquer outra pessoa. Para ver as substituições, eles ainda precisam de **Read On-Call Policy User Override**, ou de uma função que a tenha, como **Visualizador de plantão**. A API, o Terraform e o aplicativo móvel seguem a mesma regra; uma chave de API, que não está em nenhuma equipe, não alcança ninguém com ela. Quem também tem **Membro de plantão**, ou outra permissão que alcança todos, não fica limitado por ela.
 
 No OneUptime Cloud, as substituições de usuário precisam do plano **Growth**.
 
@@ -131,7 +133,7 @@ Para encerrar uma substituição em andamento, envie `POST /api/on-call-duty-pol
 ## Solução de problemas
 
 :::details A pessoa de férias foi acionada mesmo assim
-Confira onde a substituição foi adicionada. Uma na página **Substituições de usuário** de uma política cobre só essa política, e as outras políticas continuam acionando a pessoa: adicione-a em **Plantão → Avançado → Substituições de usuário** para cobrir todas as políticas. Confira também **Começa** e **Termina**: os horários aparecem no seu fuso horário.
+Confira onde a substituição foi adicionada. Uma na página **Substituições de usuário** de uma política cobre só essa política, e as outras políticas continuam acionando a pessoa: adicione-a em **Plantão → Agendamentos → Substituições de usuário** para cobrir todas as políticas. Confira também **Começa** e **Termina**: os horários aparecem no seu fuso horário.
 :::
 
 :::details Quem cobria também não foi acionado

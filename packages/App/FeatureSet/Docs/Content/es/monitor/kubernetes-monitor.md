@@ -5,7 +5,7 @@ Un monitor de Kubernetes alerta sobre las métricas que el agente de Kubernetes 
 :::cards
 - [Instalar el agente](/docs/monitor/kubernetes-agent): Un solo comando de Helm lleva el clúster a OneUptime.
 - [Crear el monitor](#crear-un-monitor-de-kubernetes): Elegir el clúster y luego una plantilla, una métrica o una consulta.
-- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Veintiuna alertas listas para usar, de un clúster silencioso a etcd.
+- [Plantillas de alerta](#plantillas-de-alerta-listas-para-usar): Veinticinco alertas listas para usar, de un clúster silencioso a etcd.
 - [Criterios](#criterios-de-monitoreo): Umbrales estáticos y detección de anomalías.
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - El agente de Kubernetes de OneUptime en ejecución en el clúster. Consulte [Agente de Kubernetes (instalación con Helm)](/docs/monitor/kubernetes-agent); el clúster aparece en **Kubernetes** unos minutos después de la instalación.
 - Para las plantillas del plano de control (**etcd No Leader**, **API Server Request Saturation**, **Scheduler Backlog**): la recopilación del plano de control del agente, `controlPlane.enabled`, que lee el API server desde el primer momento; etcd y el scheduler también necesitan que se indiquen sus endpoints (consulte [Activar la supervisión del plano de control](/docs/telemetry/kubernetes-agent#activar-la-supervisión-del-plano-de-control)). Los clústeres gestionados (EKS, GKE, AKS) no exponen estos endpoints, así que esos monitores nunca reciben datos allí.
+- Para las plantillas de costos (**Cluster Daily Cost Over Budget**, **Namespace Daily Cost Over Budget**, **High Idle Spend**): el monitoreo de costos del agente, activado por defecto excepto con los presets `gke-autopilot` y `eks-fargate` (consulte [Observabilidad de costos de Kubernetes](/docs/telemetry/kubernetes-cost)).
 
 ## Crear un monitor de Kubernetes
 
@@ -85,12 +86,13 @@ La pestaña **Custom Metric** ofrece estas métricas, agrupadas por tipo de recu
 
 | Categoría | Métricas |
 | --- | --- |
-| Pod | Consumo de CPU del pod, Uso de memoria del pod, Fase del pod (código), Uso del sistema de archivos del pod, Utilización del límite de memoria del pod, Utilización del límite de CPU del pod, E/S de red del pod (acumulada, ambas direcciones) |
-| Nodo | Consumo de CPU del nodo, CPU asignable del nodo, Uso de memoria del nodo, Working set de memoria del nodo, Uso del sistema de archivos del nodo, Memoria asignable del nodo, Condición Ready del nodo, Condición MemoryPressure del nodo, Condición DiskPressure del nodo, Condición PIDPressure del nodo, Sistema de archivos disponible del nodo |
+| Pod | Consumo de CPU del pod, Uso de memoria del pod, Fase del pod (código), Uso del sistema de archivos del pod, Capacidad del volumen, Espacio libre del volumen, Utilización del límite de memoria del pod, Utilización del límite de CPU del pod, E/S de red del pod (acumulada, ambas direcciones) |
+| Nodo | Consumo de CPU del nodo, CPU asignable del nodo, Uso de memoria del nodo, Working set de memoria del nodo, Uso del sistema de archivos del nodo, Memoria asignable del nodo, Condición Ready del nodo, Condición MemoryPressure del nodo, Condición DiskPressure del nodo, Condición PIDPressure del nodo, Sistema de archivos disponible del nodo, Capacidad del sistema de archivos del nodo |
 | Contenedor | Reinicios del contenedor, Reinicios del contenedor (aumento), Límite de CPU del contenedor, Solicitud de CPU del contenedor, Límite de memoria del contenedor, Solicitud de memoria del contenedor, Contenedor listo |
 | Carga de trabajo | Réplicas disponibles del Deployment, Réplicas deseadas del Deployment, Nodos deseados del DaemonSet, Nodos mal programados del DaemonSet, Nodos listos del DaemonSet, Réplicas deseadas del StatefulSet, Réplicas listas del StatefulSet, Pods fallidos del Job, Pods fallidos del Job (aumento), Pods correctos del Job |
 | HPA | Réplicas actuales del HPA, Réplicas deseadas del HPA, Réplicas máximas del HPA, Réplicas mínimas del HPA |
 | Plano de control | etcd tiene líder, Solicitudes en curso del servidor de API, Pods pendientes del programador |
+| Costo | Costo del clúster, Costo en inactividad, Costo de la carga de trabajo, Eficiencia de costos de la carga de trabajo |
 
 > [!NOTE]
 > **Consumo de CPU del pod** y **Consumo de CPU del nodo** están en núcleos, no en porcentaje: `0.18` es 0,18 de un núcleo. **Fase del pod (código)** es un código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): agréguelo con Máximo o Mínimo, nunca con Suma. Las métricas del plano de control solo llegan cuando la recopilación del plano de control del agente está activada. **Condición Ready del nodo** vale 1 con Ready, 0 con NotReady y -1 con Unknown, que es lo que informa un nodo caído: alerte por debajo de 1. **Reinicios del contenedor** es el contador acumulado de reinicios del contenedor; **Reinicios del contenedor (aumento)** es lo que el agente envía con cada muestra: los reinicios desde su muestra anterior del contenedor, así que su suma en una ventana son los reinicios que hubo en ella. Lleva lo que lleva **Reinicios del contenedor**, incluidos los nombres de las cargas de trabajo del pod del contenedor, pero no el ID del contenedor, que cambia con cada reinicio. **Pods fallidos del Job** es el contador acumulado de pods fallidos de un Job; **Pods fallidos del Job (aumento)** es lo que el agente envía con cada muestra: los pods del Job que fallaron desde su muestra anterior del Job, así que su suma en una ventana son los fallos que hubo en ella. Lleva lo que lleva **Pods fallidos del Job**: el nombre y el espacio de nombres del Job.
@@ -148,6 +150,7 @@ La lista de **Sobre qué alertar** enumera estas plantillas, agrupadas por categ
 | API Server Request Saturation | Plano de control | El servidor de API mantiene 200 o más solicitudes en curso durante toda la ventana | Crítico |
 | Scheduler Backlog | Programación | La cola de pods pendientes del scheduler no está vacía durante 5 minutos | Advertencia |
 | High Node Disk Usage | Almacenamiento | El sistema de archivos de un nodo está lleno en más del 90 % | Advertencia |
+| PVC Almost Full | Almacenamiento | Una reclamación de volumen persistente está llena en más del 90 % | Advertencia |
 | DaemonSet Pods Not Ready | Carga de trabajo | Un DaemonSet tiene nodos sin un pod suyo listo durante 15 minutos | Advertencia |
 | DaemonSet Misscheduled Nodes | Carga de trabajo | Un DaemonSet ejecuta pods en nodos que ya no coinciden con su selector de nodos, su afinidad o sus tolerancias | Advertencia |
 | High Node CPU Request Commitment | Nodo | La suma de las solicitudes de CPU de los contenedores de un nodo supera el 90 % de su CPU asignable | Advertencia |
@@ -155,8 +158,13 @@ La lista de **Sobre qué alertar** enumera estas plantillas, agrupadas por categ
 | HPA Saturated at Max Replicas | Carga de trabajo | Un HPA escalado por encima de su `minReplicas` funciona al 90 % o más de su `maxReplicas` | Crítico |
 | Pod Memory Saturating Container Limit | Carga de trabajo | Un pod usa más del 90 % del límite de memoria de sus contenedores | Crítico |
 | Pod CPU Saturating Container Limit | Carga de trabajo | Un pod usa más del 90 % del límite de CPU de sus contenedores | Advertencia |
+| Cluster Daily Cost Over Budget | Costo | El costo del clúster durante el último día supera 100, un presupuesto que debe ajustar al suyo | Advertencia |
+| Namespace Daily Cost Over Budget | Costo | El costo de un espacio de nombres durante el último día supera 20, un presupuesto que debe ajustar al suyo | Advertencia |
+| High Idle Spend | Costo | Más del 40 % del costo del clúster durante el último día se pagó por capacidad ociosa | Advertencia |
 
 Las plantillas sobre métricas por objeto evalúan cada nodo, pod, deployment, job, DaemonSet o HPA por separado, de modo que un clúster con varios pods en mal estado recibe un incidente por pod en lugar de uno para todo el clúster.
+
+Las plantillas de costos leen las métricas que OneUptime escribe a partir de las filas de costos por hora del agente, un punto por hora, así que suman el último día; sus presupuestos están en la moneda del clúster, USD por defecto.
 
 **High Node CPU Request Commitment** y **High Node Memory Request Commitment** solo cuentan las solicitudes (requests) de los pods que no han terminado, como hace el planificador. El clúster sigue informando las solicitudes de un pod en Succeeded o Failed, como el de un Job terminado, hasta que se elimina el pod: esas no se cuentan.
 

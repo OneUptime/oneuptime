@@ -25,7 +25,10 @@ import CloudConnectionResourceSync, {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectionResourceSync";
 import CloudConnectionLanes from "../../../../Server/Utils/CloudConnection/CloudConnectionLanes";
 import CloudConnectorRegistry from "../../../../Server/Utils/CloudConnection/CloudConnectorRegistry";
-import CloudResourceReadingsWriter from "../../../../Server/Utils/CloudConnection/CloudResourceReadings";
+import CloudResourceReadingsWriter, {
+  CollectedCloudReadings,
+} from "../../../../Server/Utils/CloudConnection/CloudResourceReadings";
+import CloudStreamReadings from "../../../../Server/Utils/CloudConnection/CloudStreamReadings";
 import {
   CloudConnectionSettings,
   CloudConnector,
@@ -35,8 +38,15 @@ import {
 import LlmConnectionPullRunner from "../../../../Server/Utils/LlmObservability/LlmConnectionPullRunner";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
+import {
+  CloudAddedMetric,
+  CloudAddedMetricScope,
+} from "../../../../Types/Cloud/CloudAddedMetrics";
+import CloudRetiredMetricReads from "../../../../Server/Utils/CloudConnection/CloudRetiredMetricReads";
+import logger from "../../../../Server/Utils/Logger";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
+import { AwsStreamCoverage } from "../../../../Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -313,6 +323,120 @@ describe("a read that works", () => {
     ).toContain(
       "More resources were found than one read adds: the next read adds the rest.",
     );
+  });
+});
+
+/*
+ * #9739's gap: a deprecated metric a monitor or a chart of the project
+ * still reads is read of the resources it reads, until it is moved
+ * (CloudRetiredMetricReads): the connector gets it as one more addition.
+ */
+describe("a deprecated metric what still reads it", () => {
+  const RETIRED: CloudAddedMetric = {
+    key: "resource|microsoft.documentdb/databaseaccounts|azure:abc||serversidelatency",
+    provider: CloudProvider.Azure,
+    scope: CloudAddedMetricScope.Resource,
+    resourceType: "Microsoft.DocumentDB/databaseAccounts",
+    cloudResourceId: "azure:abc",
+    azureResourceId:
+      "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.DocumentDB/databaseAccounts/orders",
+    name: "ServerSideLatency",
+    aggregation: "Average",
+    grain: "PT1M",
+    unit: "MilliSeconds",
+    addedAt: "2026-11-19T00:00:00.000Z",
+  };
+  const OWN: JSONObject = {
+    key: "type|microsoft.documentdb/databaseaccounts|||totalrequestunits",
+    provider: CloudProvider.Azure,
+    scope: CloudAddedMetricScope.Type,
+    resourceType: "Microsoft.DocumentDB/databaseAccounts",
+    name: "TotalRequestUnits",
+    aggregation: "Total",
+    grain: "PT1M",
+    unit: "Count",
+    addedAt: "2026-11-01T00:00:00.000Z",
+  };
+
+  async function runWith(
+    find: (data: {
+      projectId: ObjectID;
+      provider: unknown;
+      now: Date;
+    }) => Promise<Array<CloudAddedMetric>>,
+  ): Promise<CloudConnectionPullOutcome> {
+    return await CloudConnectionPullRunner.run(CONNECTION, {
+      importMetrics,
+      now: () => {
+        return NOW;
+      },
+      findRetiredMetricReads: find as never,
+    });
+  }
+
+  test("are handed to the connector after the connection's own additions, for the project, the provider and the read's time", async () => {
+    connection.provider = CloudProvider.Azure;
+    connection.addedMetrics = { metrics: [OWN] };
+    const asked: Array<JSONObject> = [];
+
+    await runWith(
+      async (data: { projectId: ObjectID; provider: unknown; now: Date }) => {
+        asked.push({
+          projectId: data.projectId.toString(),
+          provider: String(data.provider),
+          now: data.now.toISOString(),
+        });
+        return [RETIRED];
+      },
+    );
+
+    expect(asked).toEqual([
+      {
+        projectId: PROJECT.toString(),
+        provider: CloudProvider.Azure,
+        now: NOW.toISOString(),
+      },
+    ]);
+    expect(
+      (readCalls[0]!.addedMetrics || []).map((metric: CloudAddedMetric) => {
+        return metric.name;
+      }),
+    ).toEqual(["TotalRequestUnits", "ServerSideLatency"]);
+    expect(readCalls[0]!.addedMetrics![1]).toEqual(RETIRED);
+    // Never stored on the connection: a person's additions stay theirs.
+    expect(
+      recorded.some((data: JSONObject): boolean => {
+        return "addedMetrics" in data;
+      }),
+    ).toBe(false);
+  });
+
+  test("a lookup that fails reads none this time: the read goes on, and says why in the log", async () => {
+    connection.provider = CloudProvider.GCP;
+    const logged: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {}) as never);
+
+    const outcome: CloudConnectionPullOutcome = await runWith(async () => {
+      throw new Error("Postgres is away");
+    });
+
+    expect(outcome.status).toBe("success");
+    expect(readCalls).toHaveLength(1);
+    expect(readCalls[0]!.addedMetrics).toEqual([]);
+    expect(logged).toHaveBeenCalled();
+  });
+
+  test("without a finder of its own, an AWS connection asks for none and reads as it always has", async () => {
+    const find: jest.SpyInstance = jest.spyOn(
+      CloudRetiredMetricReads,
+      "findQueries",
+    );
+
+    await run();
+
+    expect(find).not.toHaveBeenCalled();
+    expect(readCalls[0]!.addedMetrics).toEqual([]);
   });
 });
 
@@ -820,6 +944,93 @@ describe("the namespaces the connection's streams deliver", () => {
 
     expect(imported).toHaveLength(1);
     expect(imported[0]!.payload).toBe(PAYLOAD);
+  });
+
+  /*
+   * #9564: what each stack carries decides what the read reads and writes.
+   * The connector is handed it, and a key metric added since streams began
+   * is the stream's only from a stack of template 2.
+   */
+  test("hands the connector what each stack carries, and leaves to a stack of template 2 the key metrics added since streams began", async () => {
+    const credits: JSONObject = {
+      resourceMetrics: [
+        {
+          resource: (
+            (PAYLOAD["resourceMetrics"] as Array<JSONObject>)[0] as JSONObject
+          )["resource"],
+          scopeMetrics: [
+            {
+              metrics: [
+                {
+                  name: "amazonaws.com/AWS/EC2/CPUCreditBalance",
+                  gauge: { dataPoints: [point("AWS/EC2")] },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as JSONObject;
+
+    for (const [stack, written] of [
+      [{}, 1],
+      [{ templateVersion: 1 }, 1],
+      [{ templateVersion: 2, everyMetric: false }, 0],
+      [{ templateVersion: 1, everyMetric: true }, 0],
+    ] as Array<[JSONObject, number]>) {
+      imported.length = 0;
+      readCalls.length = 0;
+      connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+      connection.streamSummary = {
+        metricSources: [
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespaces: ["AWS/EC2"],
+            lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+            ...stack,
+          },
+        ],
+        logSources: [],
+      };
+      readResult = async () => {
+        return result({ payloads: [credits], pointsWritten: 1 });
+      };
+
+      await run();
+
+      const coverage: AwsStreamCoverage = readCalls[0]!.awsStreamCoverage!;
+
+      expect(Array.from(coverage.keys())).toEqual(["123456789012|us-east-1"]);
+      expect(coverage.get("123456789012|us-east-1")!.stack).toEqual({
+        templateVersion: (stack["templateVersion"] as number) || 1,
+        everyMetric: stack["everyMetric"] === true,
+      });
+      expect(imported).toHaveLength(written);
+    }
+  });
+
+  test("hands the connector nothing streamed while the connection has no stream key", async () => {
+    connection.streamSummary = {
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+          templateVersion: 2,
+          everyMetric: false,
+        },
+      ],
+      logSources: [],
+    };
+    readResult = async () => {
+      return result({ payloads: [PAYLOAD] });
+    };
+
+    await run();
+
+    expect(readCalls[0]!.awsStreamCoverage!.size).toBe(0);
   });
 
   test("another account's or Region's stream leaves this one's metrics to the read", async () => {
@@ -1487,5 +1698,131 @@ describe("an Azure read while its event hubs deliver", () => {
     expect(
       (lastRecord()["lastPullResult"] as JSONObject)["pointsWritten"],
     ).toBe(3);
+  });
+});
+
+/*
+ * #9690: a streaming AWS account's resources are judged from its streams.
+ * Before it reads, a read asks what the streams said of the resources'
+ * readings (CloudStreamReadings): the accounts and Regions whose readings
+ * are fresh are handed to the connector, which then reads nothing their
+ * stack carries, and the readings are written beside the read's own.
+ */
+describe("a streaming account's readings, from its streams", () => {
+  const STREAMED: Map<string, CollectedCloudReadings> = new Map([
+    [
+      "aws:streamed",
+      {
+        provider: "aws",
+        resourceType: "AWS::EC2::Instance",
+        readings: {
+          "aws/ec2/statuscheckfailed": {
+            value: 1,
+            time: "2026-10-21T11:55:00.000Z",
+          },
+        },
+      },
+    ],
+  ]);
+
+  function streams(): void {
+    connection.streamKeyCreatedAt = new Date(NOW.getTime() - 60 * MINUTE);
+    connection.streamSummary = {
+      metricSources: [
+        {
+          accountId: "123456789012",
+          region: "us-east-1",
+          namespaces: ["AWS/EC2"],
+          lastAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+          templateVersion: 2,
+          everyMetric: false,
+        },
+      ],
+      logSources: [],
+    };
+  }
+
+  test("are asked of a connection that streams: its fresh sources handed to the connector, its readings written with the read's", async () => {
+    streams();
+    const loads: Array<{ connectionId: string; now: Date }> = [];
+    jest
+      .spyOn(CloudStreamReadings, "load")
+      .mockImplementation(async (data: { connectionId: string; now: Date }) => {
+        loads.push(data);
+        return {
+          readings: STREAMED,
+          freshSources: new Set<string>(["123456789012|us-east-1"]),
+        };
+      });
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    await run();
+
+    expect(loads).toEqual([{ connectionId: CONNECTION.toString(), now: NOW }]);
+    expect(Array.from(readCalls[0]!.awsStreamedReadingSources || [])).toEqual([
+      "123456789012|us-east-1",
+    ]);
+    expect(written).toHaveLength(1);
+    expect(written[0]!["streamedReadings"]).toBe(STREAMED);
+  });
+
+  test("are not asked of a connection that does not stream: it reads as it always has", async () => {
+    const load: jest.SpiedFunction<typeof CloudStreamReadings.load> =
+      jest.spyOn(CloudStreamReadings, "load");
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    await run();
+
+    expect(load).not.toHaveBeenCalled();
+    expect(readCalls[0]!.awsStreamedReadingSources).toBeUndefined();
+    expect(written[0]!["streamedReadings"]).toBeUndefined();
+  });
+
+  test("are not asked of another cloud's connection, whatever its streams deliver", async () => {
+    streams();
+    connection.provider = CloudProvider.Azure;
+    const load: jest.SpiedFunction<typeof CloudStreamReadings.load> =
+      jest.spyOn(CloudStreamReadings, "load");
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockResolvedValue({ written: 1, needingAttention: 0, cleared: 0 });
+
+    await run();
+
+    expect(load).not.toHaveBeenCalled();
+    expect(readCalls[0]!.awsStreamedReadingSources).toBeUndefined();
+  });
+
+  test("a stream whose readings could not be had leaves every reading to the read", async () => {
+    streams();
+    jest.spyOn(CloudStreamReadings, "load").mockResolvedValue({
+      readings: new Map(),
+      freshSources: new Set<string>(),
+    });
+    const written: Array<JSONObject> = [];
+    jest
+      .spyOn(CloudResourceReadingsWriter, "writeFromPayloads")
+      .mockImplementation((async (data: JSONObject) => {
+        written.push(data);
+        return { written: 1, needingAttention: 0, cleared: 0 };
+      }) as never);
+
+    await run();
+
+    // Told none is fresh: the connector reads health from CloudWatch, and says so.
+    expect(readCalls[0]!.awsStreamedReadingSources?.size).toBe(0);
+    expect(written[0]!["streamedReadings"]).toBeUndefined();
   });
 });

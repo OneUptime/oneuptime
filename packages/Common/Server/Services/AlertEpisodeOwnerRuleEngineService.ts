@@ -2,31 +2,27 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeOwnerRule from "../../Models/DatabaseModels/AlertEpisodeOwnerRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import Label from "../../Models/DatabaseModels/Label";
-import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import AlertEpisodeOwnerRuleService from "./AlertEpisodeOwnerRuleService";
 import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
 import AlertEpisodeService from "./AlertEpisodeService";
-import TeamService from "./TeamService";
-import UserService from "./UserService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import OwnerRuleAssignment, {
+  OwnersAdded,
   OwnersToAssign,
 } from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleFeed from "../Utils/Rules/OwnerRuleFeed";
 import {
   ApplyRulesToExistingResourceData,
   RuleApplicationResult,
@@ -283,8 +279,13 @@ class AlertEpisodeOwnerRuleEngineServiceClass
       }),
     );
 
-    const addedUserIds: Array<string> = [];
-    const addedTeamIds: Array<string> = [];
+    /*
+     * What addOwners actually did: the owners it wrote, and the ones it
+     * skipped and why - a user who has left the project, a team that is not
+     * one of its teams (#9933). The feed item, the log lines and the count
+     * are made from these, never from the ids the rules asked for.
+     */
+    const outcome: OwnersAdded = OwnerRuleAssignment.noOwnersAdded();
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -306,90 +307,63 @@ class AlertEpisodeOwnerRuleEngineServiceClass
         continue;
       }
 
-      await AlertEpisodeService.addOwners(
-        episode.projectId,
-        episode.id,
-        userIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        teamIds.map((id: string) => {
-          return new ObjectID(id);
-        }),
-        notify,
-        RuleRunWriteProps.get(data.props),
+      OwnerRuleAssignment.addUp(
+        outcome,
+        await AlertEpisodeService.addOwners(
+          episode.projectId,
+          episode.id,
+          userIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          teamIds.map((id: string) => {
+            return new ObjectID(id);
+          }),
+          notify,
+          RuleRunWriteProps.get(data.props),
+        ),
       );
-
-      addedUserIds.push(...userIds);
-      addedTeamIds.push(...teamIds);
     }
 
-    const ownersAdded: number = addedUserIds.length + addedTeamIds.length;
-
-    if (ownersAdded === 0) {
+    if (OwnerRuleFeed.isEmpty(outcome)) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
-    logger.debug(
-      `AlertEpisodeOwnerRuleEngine added owners to episode ${episode.id}`,
-      { projectId: episode.projectId.toString() } as LogAttributes,
-    );
+    OwnerRuleFeed.log({
+      engine: "AlertEpisodeOwnerRuleEngine",
+      record: `episode ${episode.id.toString()}`,
+      outcome: outcome,
+      logAttributes: {
+        projectId: episode.projectId.toString(),
+      } as LogAttributes,
+    });
 
     await this.createRuleExecutedFeedItem({
       episode,
       matchedRules,
-      userIds: addedUserIds,
-      teamIds: addedTeamIds,
+      outcome: outcome,
     });
 
-    return RuleApplicationResultUtil.updated(ownersAdded);
+    return OwnerRuleFeed.getResult(outcome);
   }
 
   @CaptureSpan()
   private async createRuleExecutedFeedItem(data: {
     episode: AlertEpisode;
     matchedRules: Array<AlertEpisodeOwnerRule>;
-    userIds: Array<string>;
-    teamIds: Array<string>;
+    // The owners added, and the ones skipped with why.
+    outcome: OwnersAdded;
   }): Promise<void> {
-    const { episode, matchedRules, userIds, teamIds } = data;
+    const { episode, matchedRules, outcome } = data;
     if (
       !episode.id ||
       !episode.projectId ||
       matchedRules.length === 0 ||
-      (userIds.length === 0 && teamIds.length === 0)
+      OwnerRuleFeed.isEmpty(outcome)
     ) {
       return;
     }
 
     try {
-      const userObjectIds: Array<ObjectID> = userIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-      const teamObjectIds: Array<ObjectID> = teamIds.map((id: string) => {
-        return new ObjectID(id);
-      });
-
-      const [users, teams]: [Array<User>, Array<Team>] = await Promise.all([
-        userObjectIds.length > 0
-          ? UserService.findBy({
-              query: { _id: QueryHelper.any(userObjectIds) },
-              select: { name: true, email: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<User>),
-        teamObjectIds.length > 0
-          ? TeamService.findBy({
-              query: { _id: QueryHelper.any(teamObjectIds) },
-              select: { name: true },
-              props: { isRoot: true },
-              limit: LIMIT_MAX,
-              skip: 0,
-            })
-          : Promise.resolve([] as Array<Team>),
-      ]);
-
       const ruleNames: Array<string> = matchedRules
         .map((r: AlertEpisodeOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -404,9 +378,11 @@ class AlertEpisodeOwnerRuleEngineServiceClass
           ruleKind: "Alert Episode Owner Rule",
           ruleNames: ruleNames,
         },
-      )}\n\nAssigned the following owner${
-        users.length + teams.length === 1 ? "" : "s"
-      } to the episode:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}`;
+      )}\n\n${await OwnerRuleFeed.readOutcome({
+        projectId: episode.projectId,
+        recordNoun: "episode",
+        outcome: outcome,
+      })}`;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id,

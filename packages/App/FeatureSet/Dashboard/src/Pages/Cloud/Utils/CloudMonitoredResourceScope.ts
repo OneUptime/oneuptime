@@ -26,16 +26,30 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   CloudKeyMetricReference,
   getCloudKeyMetricOfStoredName,
+  hasAzureFiveMinuteKeyMetrics,
 } from "Common/Types/Cloud/CloudKeyMetrics";
 import {
   CLOUD_KEY_METRIC_GROUP_LABELS,
+  CLOUD_KEY_METRIC_GROUP_ORDER,
   getCloudKeyMetricGroupOrder,
 } from "Common/Types/Cloud/CloudKeyMetricGroup";
 import {
+  CloudAddedMetric,
+  getCloudAddedMetricStoredName,
+  getCloudAddedMetricsOfResource,
+  readCloudAddedMetrics,
+} from "Common/Types/Cloud/CloudAddedMetrics";
+import {
+  getCloudKeyMetricsOfResource,
+  getCloudUnreportedKeyMetrics,
+} from "Common/Types/Cloud/CloudUnreportedKeyMetrics";
+import {
   GetMetricRowAggregation,
   GetMetricRowGroup,
+  GetMetricRowGroupGaps,
   MetricRowAggregation,
   MetricRowGroup,
+  MetricRowGroupGap,
 } from "../../../Components/Metrics/Utils/MetricRowScope";
 
 /*
@@ -157,18 +171,35 @@ export function getCloudMonitoredResourceAttributeDisplayKeys(
  * range, an amount held (messages waiting) over a range read by the minute,
  * up to 3 hours. A summed row shows the intervals its cloud has delivered
  * whole (getSummedRowSettleMs). Each other row says it is the "average of
- * series". Undefined for every other resource, whose rows read and caption
- * exactly as they did.
+ * series". A key metric whose points come five minutes apart - an Azure
+ * metric kept at five minutes at its finest, an App Service app's health
+ * check (CloudKeyMetricReference.intervalSeconds) - says so, "every 5
+ * minutes", so its line is never read as a minute's. Undefined for every
+ * other resource, whose rows read and caption exactly as they did.
  */
 export interface CloudMonitoredResourceRowAggregation {
   getRowAggregation: GetMetricRowAggregation;
-  defaultRowValueCaption: string;
+  // The caption of every other row; unset: none.
+  defaultRowValueCaption?: string | undefined;
 }
 
 export const CLOUD_RESOURCE_SUMMED_ROW_CAPTION: string =
   translationKey("total of series");
 export const CLOUD_RESOURCE_AVERAGED_ROW_CAPTION: string =
   translationKey("average of series");
+export const CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION: string =
+  translationKey("every 5 minutes");
+
+// Seconds between two points of a key metric read at five minutes.
+const FIVE_MINUTES_IN_SECONDS: number = 300;
+
+// Whether a type has a key metric whose points come five minutes apart.
+function hasFiveMinuteKeyMetrics(provider: string, type: string): boolean {
+  return (
+    provider.trim().toLowerCase() === CloudProvider.Azure &&
+    hasAzureFiveMinuteKeyMetrics(type)
+  );
+}
 
 export interface CloudMonitoredResourceAggregationSource {
   cloudProvider?: unknown;
@@ -210,7 +241,12 @@ export function getCloudMonitoredResourceRowAggregation(
       ? source.cloudResourceType
       : "";
 
-  if (!hasCloudResourceSummedMetrics({ provider, type })) {
+  const hasSummedMetrics: boolean = hasCloudResourceSummedMetrics({
+    provider,
+    type,
+  });
+
+  if (!hasSummedMetrics && !hasFiveMinuteKeyMetrics(provider, type)) {
     return undefined;
   }
 
@@ -225,32 +261,51 @@ export function getCloudMonitoredResourceRowAggregation(
           startDate: startAndEndDate.startValue,
           endDate: startAndEndDate.endValue,
         });
-      const aggregationType: AggregationType | undefined =
-        getCloudResourceMetricAggregation({
+      const aggregationType: AggregationType | undefined = hasSummedMetrics
+        ? getCloudResourceMetricAggregation({
+            provider,
+            type,
+            metricName,
+            aggregationInterval,
+          })
+        : undefined;
+
+      if (aggregationType) {
+        const settleMs: number = getSummedRowSettleMs({
           provider,
-          type,
-          metricName,
           aggregationInterval,
         });
 
-      if (!aggregationType) {
-        return undefined;
+        return {
+          aggregationType: aggregationType,
+          caption: CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
+          ...(settleMs > 0 ? { settleMs } : {}),
+        };
       }
 
-      const settleMs: number = getSummedRowSettleMs({
-        provider,
-        aggregationInterval,
-      });
+      // Read as every row is, saying its points come five minutes apart.
+      if (
+        getCloudKeyMetricOfStoredName({ provider, type, metricName })
+          ?.intervalSeconds === FIVE_MINUTES_IN_SECONDS
+      ) {
+        return {
+          aggregationType: AggregationType.Avg,
+          caption: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+        };
+      }
 
-      return {
-        aggregationType: aggregationType,
-        caption: CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
-        ...(settleMs > 0 ? { settleMs } : {}),
-      };
+      return undefined;
     },
-    defaultRowValueCaption: CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+    ...(hasSummedMetrics
+      ? { defaultRowValueCaption: CLOUD_RESOURCE_AVERAGED_ROW_CAPTION }
+      : {}),
   };
 }
+
+// The section of the metrics someone added to what the connection reads (#9563).
+export const CLOUD_ADDED_METRICS_GROUP_KEY: string = "added";
+export const CLOUD_ADDED_METRICS_GROUP_TITLE: string =
+  translationKey("Added metrics");
 
 /*
  * The sections a resource's metric rows read in (MetricsViewer's
@@ -258,11 +313,15 @@ export function getCloudMonitoredResourceRowAggregation(
  * resource's type (CloudKeyMetrics) in its group - Availability, Traffic,
  * Errors, Latency, Compute, Memory, Storage, Network, Connections, Cache,
  * Backlog, Replication, in that order - the type's most telling first in
- * each; any other metric (a collector's, an app's) after them, under
- * "Other". Undefined without a provider: the list reads as one, as before.
+ * each; then the metrics someone added to what the connection reads for it
+ * (`addedStoredNames`, getCloudResourceAddedStoredNames), under "Added
+ * metrics", in the order they were added; any other metric (a collector's,
+ * an app's) after them, under "Other". Undefined without a provider: the
+ * list reads as one, as before.
  */
 export function getCloudMonitoredResourceRowGroup(
   source: CloudMonitoredResourceAggregationSource | null | undefined,
+  addedStoredNames: ReadonlyArray<string> = [],
 ): GetMetricRowGroup | undefined {
   const provider: string =
     typeof source?.cloudProvider === "string" ? source.cloudProvider : "";
@@ -275,12 +334,33 @@ export function getCloudMonitoredResourceRowGroup(
     return undefined;
   }
 
+  const added: Map<string, number> = new Map();
+
+  addedStoredNames.forEach((name: string, rank: number) => {
+    const key: string = name.trim().toLowerCase();
+
+    if (key && !added.has(key)) {
+      added.set(key, rank);
+    }
+  });
+
   return (metricName: string): MetricRowGroup | undefined => {
     const reference: CloudKeyMetricReference | null =
       getCloudKeyMetricOfStoredName({ provider, type, metricName });
 
     if (!reference) {
-      return undefined;
+      const rank: number | undefined = added.get(
+        metricName.trim().toLowerCase(),
+      );
+
+      return rank === undefined
+        ? undefined
+        : {
+            key: CLOUD_ADDED_METRICS_GROUP_KEY,
+            title: CLOUD_ADDED_METRICS_GROUP_TITLE,
+            order: CLOUD_KEY_METRIC_GROUP_ORDER.length,
+            rank,
+          };
     }
 
     return {
@@ -289,5 +369,108 @@ export function getCloudMonitoredResourceRowGroup(
       order: getCloudKeyMetricGroupOrder(reference.group),
       rank: reference.rank,
     };
+  };
+}
+
+export interface CloudMonitoredResourceAddedSource {
+  _id?: unknown;
+  cloudResourceType?: unknown;
+  cloudConnection?: { addedMetrics?: unknown } | null | undefined;
+}
+
+/*
+ * The names the metrics someone added for this resource are stored under -
+ * its type's additions and its own (CloudAddedMetrics), in the order they
+ * were added - from its connection's additions.
+ */
+export function getCloudResourceAddedMetrics(
+  source: CloudMonitoredResourceAddedSource | null | undefined,
+): Array<CloudAddedMetric> {
+  return getCloudAddedMetricsOfResource({
+    added: readCloudAddedMetrics(source?.cloudConnection?.addedMetrics),
+    resourceType:
+      typeof source?.cloudResourceType === "string"
+        ? source.cloudResourceType
+        : "",
+    cloudResourceId: source?._id ? String(source._id) : undefined,
+  });
+}
+
+export function getCloudResourceAddedStoredNames(
+  source: CloudMonitoredResourceAddedSource | null | undefined,
+): Array<string> {
+  return getCloudResourceAddedMetrics(source).map(
+    (metric: CloudAddedMetric): string => {
+      return getCloudAddedMetricStoredName(metric);
+    },
+  );
+}
+
+export interface CloudMonitoredResourceGapSource
+  extends CloudMonitoredResourceAggregationSource {
+  telemetryAttributes?: unknown;
+}
+
+/*
+ * The key metrics of each section the resource did not report in the
+ * list's range (MetricsViewer's getRowGroupGaps, #9569): its type's key
+ * metrics (CloudUnreportedKeyMetrics) - an AWS resource's of its own
+ * namespace, which its attributes name - none of the reported names is,
+ * each section's in its order. Undefined for a resource of a type with no
+ * key metrics.
+ */
+export function getCloudMonitoredResourceRowGroupGaps(
+  source: CloudMonitoredResourceGapSource | null | undefined,
+): GetMetricRowGroupGaps | undefined {
+  const provider: string =
+    typeof source?.cloudProvider === "string" ? source.cloudProvider : "";
+  const type: string =
+    typeof source?.cloudResourceType === "string"
+      ? source.cloudResourceType
+      : "";
+  const attributes: unknown = source?.telemetryAttributes;
+  const namespace: string =
+    attributes && typeof attributes === "object" && !Array.isArray(attributes)
+      ? String(
+          (attributes as Record<string, unknown>)[
+            AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE
+          ] || "",
+        )
+      : "";
+
+  if (
+    getCloudKeyMetricsOfResource({ provider, type, namespace }).length === 0
+  ) {
+    return undefined;
+  }
+
+  return (reportedNames: ReadonlyArray<string>): Array<MetricRowGroupGap> => {
+    const gaps: Map<string, MetricRowGroupGap> = new Map();
+
+    for (const metric of getCloudUnreportedKeyMetrics({
+      provider,
+      type,
+      namespace,
+      reportedMetricNames: reportedNames,
+    })) {
+      let gap: MetricRowGroupGap | undefined = gaps.get(metric.group);
+
+      if (!gap) {
+        gap = {
+          group: {
+            key: metric.group,
+            title: CLOUD_KEY_METRIC_GROUP_LABELS[metric.group],
+            order: getCloudKeyMetricGroupOrder(metric.group),
+            rank: 0,
+          },
+          keys: [],
+        };
+        gaps.set(metric.group, gap);
+      }
+
+      gap.keys.push(metric.key);
+    }
+
+    return Array.from(gaps.values());
   };
 }

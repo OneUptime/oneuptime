@@ -22,6 +22,7 @@ Cerca nella tabella qui sotto il messaggio che Terraform ha stampato, o ciò che
 | `This project has been blocked` | Chiedi a un amministratore principale di sbloccare il progetto: vedi [Un progetto bloccato](#un-progetto-bloccato) |
 | `references records that are not in this project` | Usa l'ID di un record del tuo stesso progetto: vedi [ID di un altro progetto](#id-di-un-altro-progetto) |
 | `Not Found` o `Ambiguous Match` da una sorgente dati | Correggi gli argomenti della ricerca: vedi [Ricerche che non trovano nulla o ne trovano diversi](#ricerche-che-non-trovano-nulla-o-ne-trovano-diversi) |
+| `There is already a team called` (un'etichetta, una policy di reperibilità, una pianificazione di reperibilità) | Dagli un nome che nessun altro del suo tipo abbia, o rinomina prima l'altro: vedi [Nomi che un altro record ha già](#nomi-che-un-altro-record-ha-già) |
 | `Cannot import non-existent remote object` | Controlla l'ID e le autorizzazioni della chiave: vedi [Importare risorse](/docs/terraform/importing-resources#risoluzione-dei-problemi) |
 | `Provider produced inconsistent result after apply` | Aggiorna il provider: vedi [Risultato incoerente dopo l'apply](#risultato-incoerente-dopo-lapply) |
 | Un piano crea una risorsa che non hai aggiunto | La chiave non può più leggerla, e OneUptime ha risposto `404`: restituisci alla chiave l'accesso in lettura, poi importa la risorsa con `terraform import`: vedi [Una risorsa lascia lo stato, e l'apply successivo la crea di nuovo](#una-risorsa-lascia-lo-stato-e-lapply-successivo-la-crea-di-nuovo) |
@@ -103,6 +104,12 @@ Di solito significa che un ID è stato copiato dalla configurazione o dallo stat
 
 Una sorgente dati trova esattamente un record, oppure ferma il piano. `Not Found` dice che nessun record ha l'`id`, o che nessuno corrisponde agli argomenti che hai impostato; `Ambiguous Match` dice che ne corrispondono diversi. Correggi gli argomenti, impostane altri per restringere la ricerca a uno solo, oppure cerca il record per `id`. [Leggere ciò che esiste già](/docs/terraform/complete-guide#leggere-ciò-che-esiste-già) ne dà le regole.
 
+### Nomi che un altro record ha già
+
+Team, etichette, policy di reperibilità e pianificazioni di reperibilità hanno ciascuno un nome tutto loro in un progetto, comunque siano scritte maiuscole, minuscole e spazi. Una creazione, o una ridenominazione, verso un nome che ha già un altro record del suo tipo riceve come risposta `400`, per esempio `There is already an on-call policy called Primary in this project. Pick another name.` Una policy di reperibilità archiviata mantiene il suo nome: annullane l'archiviazione o scegli un altro nome. I record che condividevano già un nome lo mantengono, e gli elenchi di team, policy di reperibilità e pianificazioni di reperibilità nella dashboard li contrassegnano.
+
+Terraform esegue in parallelo le modifiche di un apply, quindi una ridenominazione verso un nome che un'altra risorsa lascia nello stesso apply può essere rifiutata finché quella lo ha ancora: applica di nuovo, oppure aggiungi un `depends_on` dalla risorsa che prende il nome a quella che lo lascia. Uno scambio, A in B e B in A, o qualunque catena di ridenominazioni che finisce dove è iniziata, non si può fare in un solo apply: rinomina una delle risorse con un nome che nessuno ha, applica, poi fai il resto della modifica.
+
 ## Piani che non si stabilizzano
 
 ### Risultato incoerente dopo l'apply
@@ -131,9 +138,13 @@ Succede quando la chiave che gestisce una risorsa non può più leggerla: la sua
 
 ### Una priorità o un ordine che si sposta
 
-Gli stati dei monitor, gli stati e le gravità di incidenti e avvisi, e gli altri elenchi che metti in ordine nella dashboard tengono ogni numero una sola volta. Un numero che nessun altro ha viene mantenuto come scritto. Un numero che un altro ha già viene preso, e quelli che si trovano in mezzo scendono di un posto, come fa un trascinamento nella dashboard. Così due di essi configurati con lo stesso numero si scambiano di posto a ogni apply.
+Ogni elenco che metti in ordine nella dashboard mantiene il numero che riceve ciascuna risorsa: gli stati dei monitor (`priority`), gli stati e le gravità di incidenti e avvisi, i campi personalizzati, le pipeline dei log e i filtri di scarto (`sort_order`), i gruppi e le risorse delle pagine di stato, le regole di escalation, i livelli delle pianificazioni e il resto. Impostare un numero colloca quella risorsa e non ne sposta nessun'altra, così una configurazione che numera un intero elenco, come `order = index(local.severities, each.key) + 1` su un `for_each` di `local.severities`, viene applicata esattamente come è scritta, in qualunque ordine arrivino le scritture del provider, e il piano successivo è vuoto.
 
-Dai a ciascuno il proprio numero con degli spazi tra l'uno e l'altro, come `101`, `102` e `103`, e riordina quelli che Terraform gestisce in Terraform, non trascinandoli nella dashboard.
+- Dai a ciascuna risorsa il proprio numero: due con lo stesso numero lo mantengono entrambe, una accanto all'altra, in un ordine che non scegli tu.
+- Una risorsa creata senza numero va in fondo al suo elenco. Un nuovo stato di incidente o di avviso va invece appena sopra lo stato risolto, e un nuovo stato del monitor appena sopra lo stato offline.
+- Eliminare una risorsa lascia un vuoto nei numeri, il che non cambia nulla: un elenco segue i suoi numeri, non il conteggio.
+- Trascinare una risorsa nella dashboard di OneUptime rinumera tutto il suo elenco dall'alto, e il piano successivo lo mostra come modifiche. Metti in ordine in Terraform le risorse che Terraform gestisce.
+- Gli stati predefiniti mantengono il loro ordine: una modifica che metterebbe due di essi allo stesso numero, o fuori ordine, viene rifiutata, spiegando il perché. Quando un apply sposta stati predefiniti oltre i vecchi numeri degli altri, una delle sue scritture può arrivare per prima e incontrare quel rifiuto; esegui di nuovo l'apply e si completa.
 
 ### Attributi di sola lettura
 

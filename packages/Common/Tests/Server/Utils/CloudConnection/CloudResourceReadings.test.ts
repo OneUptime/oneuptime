@@ -178,6 +178,105 @@ describe("collectCloudResourceReadings", () => {
     });
   });
 
+  /*
+   * #9692: SageMaker publishes an endpoint's invocations per production
+   * variant, never for the endpoint alone, and the read reads every
+   * variant's series. A count's series add up to the endpoint's: its rule
+   * divides the endpoint's errors by its invocations.
+   */
+  test("an AWS count published only per part of its resource reads the sum of its parts", () => {
+    const variant: (
+      metricName: string,
+      name: string,
+      value: number,
+    ) => {
+      namespace: string;
+      metricName: string;
+      dimensions: Array<{ name: string; value: string }>;
+      points: Array<{ timeMs: number; value: number }>;
+    } = (metricName: string, name: string, value: number) => {
+      return {
+        namespace: "AWS/SageMaker",
+        metricName,
+        dimensions: [
+          { name: "EndpointName", value: "recommender" },
+          { name: "VariantName", value: name },
+        ],
+        points: [
+          { timeMs: T1, value: 1 },
+          { timeMs: T2, value },
+        ],
+      };
+    };
+    const group: CloudMetricGroup = awsGroup([
+      variant("Invocations", "blue", 300),
+      variant("Invocations", "green", 100),
+      variant("Invocation5XXErrors", "blue", 20),
+      variant("Invocation5XXErrors", "green", 30),
+    ]);
+
+    const collected: Map<string, CollectedCloudReadings> =
+      collectCloudResourceReadings(buildMetricsPayloads([group]));
+    const readings: CollectedCloudReadings = collected.get(
+      identifierOf(resourceOf(group)),
+    )!;
+
+    expect(readings.resourceType).toBe("AWS::SageMaker::Endpoint");
+    expect(readings.readings["aws/sagemaker/invocations"]).toEqual({
+      value: 400,
+      time: new Date(T2).toISOString(),
+    });
+    expect(readings.readings["aws/sagemaker/invocation5xxerrors"]?.value).toBe(
+      50,
+    );
+  });
+
+  test("an AWS level's series of one time do not add up: each is one part's level", () => {
+    // An Auto Scaling group's own series, twice in one payload: never 6.
+    const series: {
+      namespace: string;
+      metricName: string;
+      dimensions: Array<{ name: string; value: string }>;
+      points: Array<{ timeMs: number; value: number }>;
+    } = {
+      namespace: "AWS/AutoScaling",
+      metricName: "GroupDesiredCapacity",
+      dimensions: [{ name: "AutoScalingGroupName", value: "web" }],
+      points: [{ timeMs: T2, value: 3 }],
+    };
+    const group: CloudMetricGroup = awsGroup([series, series]);
+
+    expect(
+      collectCloudResourceReadings(buildMetricsPayloads([group])).get(
+        identifierOf(resourceOf(group)),
+      )!.readings["aws/autoscaling/groupdesiredcapacity"]?.value,
+    ).toBe(3);
+  });
+
+  test("an AWS count's one series repeated is counted once", () => {
+    const series: {
+      namespace: string;
+      metricName: string;
+      dimensions: Array<{ name: string; value: string }>;
+      points: Array<{ timeMs: number; value: number }>;
+    } = {
+      namespace: "AWS/Cognito",
+      metricName: "SignInThrottles",
+      dimensions: [
+        { name: "UserPool", value: "us-east-1_AbCdEf" },
+        { name: "UserPoolClient", value: "web" },
+      ],
+      points: [{ timeMs: T2, value: 4 }],
+    };
+    const group: CloudMetricGroup = awsGroup([series, series]);
+
+    expect(
+      collectCloudResourceReadings(buildMetricsPayloads([group])).get(
+        identifierOf(resourceOf(group)),
+      )!.readings["aws/cognito/signinthrottles"]?.value,
+    ).toBe(4);
+  });
+
   test("leaves out a metric no rule reads and no page leads with", () => {
     /*
      * A stream's incoming records: read for its charts, while its rules
@@ -717,6 +816,208 @@ describe("CloudResourceReadingsWriter", () => {
     expect(result).toEqual({ written: 1, needingAttention: 1, cleared: 0 });
     expect(writes()[0]!.parameters[4]).toEqual([CloudHealthSeverity.Critical]);
   });
+
+  /*
+   * #9740: a reading read less often than every read - an Azure key metric
+   * kept at five minutes, read every 15 - is kept from what the row held
+   * while its datapoint is younger than its hold, so its rule and its tile
+   * read it between its reads.
+   */
+  describe("a five-minute reading, kept between its reads", () => {
+    const APP_ID: string = "00000000-0000-4000-8000-0000000000a1";
+    const MINUTE_MS: number = 60 * 1000;
+
+    function appRow(cloudReadings: JSONObject | undefined): CloudResource {
+      const model: CloudResource = new CloudResource();
+      model.id = new ObjectID(APP_ID);
+      model.resourceIdentifier = "azure:app";
+      model.cloudProvider = "azure";
+      model.cloudResourceType = "Microsoft.Web/sites";
+
+      if (cloudReadings) {
+        model.cloudReadings = cloudReadings;
+      }
+
+      return model;
+    }
+
+    function at(minutesBeforeNow: number): string {
+      return new Date(
+        NOW.getTime() - minutesBeforeNow * MINUTE_MS,
+      ).toISOString();
+    }
+
+    function appEntry(
+      readings: JSONObject,
+    ): Map<string, CollectedCloudReadings> {
+      return collectedOf([
+        [
+          "azure:app",
+          {
+            provider: "azure",
+            resourceType: "Microsoft.Web/sites",
+            readings: readings as unknown as CollectedCloudReadings["readings"],
+          },
+        ],
+      ]);
+    }
+
+    function writtenReadings(): JSONObject {
+      return JSON.parse(
+        (writes()[0]!.parameters[3] as Array<string>)[0]!,
+      ) as JSONObject;
+    }
+
+    test("what the row held is read with the rest of it", async () => {
+      rows = [appRow(undefined)];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({ requests: { value: 10, time: at(4) } }),
+      });
+
+      expect(findBy.mock.calls[0]![0].select).toMatchObject({
+        cloudReadings: true,
+      });
+    });
+
+    test("a read without the health check keeps the one the row held, and judges it", async () => {
+      rows = [
+        appRow({
+          healthcheckstatus: {
+            value: 0,
+            time: at(14),
+            metric: "azure_healthcheckstatus_average",
+          },
+          requests: { value: 900, time: at(9) },
+        }),
+      ];
+
+      const result: CloudReadingsWriteResult =
+        await CloudResourceReadingsWriter.write({
+          projectId: PROJECT,
+          connectionId: CONNECTION,
+          writtenAt: NOW,
+          collected: appEntry({ requests: { value: 1200, time: at(4) } }),
+        });
+
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1200, time: at(4) },
+        // Kept with its own time and its stored name.
+        healthcheckstatus: {
+          value: 0,
+          time: at(14),
+          metric: "azure_healthcheckstatus_average",
+        },
+      });
+      // Every instance failing its health check: critical, between its reads too.
+      expect(writes()[0]!.parameters[4]).toEqual([
+        CloudHealthSeverity.Critical,
+      ]);
+      expect(result.needingAttention).toBe(1);
+    });
+
+    test("one as old as its hold is dropped, and judged no more", async () => {
+      rows = [
+        appRow({
+          healthcheckstatus: { value: 0, time: at(40) },
+        }),
+      ];
+
+      const result: CloudReadingsWriteResult =
+        await CloudResourceReadingsWriter.write({
+          projectId: PROJECT,
+          connectionId: CONNECTION,
+          writtenAt: NOW,
+          collected: appEntry({ requests: { value: 1200, time: at(4) } }),
+        });
+
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1200, time: at(4) },
+      });
+      expect(writes()[0]!.parameters[4]).toEqual([null]);
+      expect(result.needingAttention).toBe(0);
+    });
+
+    test("a reading every read brings is not kept from the row", async () => {
+      rows = [
+        appRow({
+          http5xx: { value: 300, time: at(9) },
+          requests: { value: 400, time: at(9) },
+        }),
+      ];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({ requests: { value: 1200, time: at(4) } }),
+      });
+
+      // The failed share of an old period never meets a new one's requests.
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1200, time: at(4) },
+      });
+      expect(writes()[0]!.parameters[4]).toEqual([null]);
+    });
+
+    test("a read that brings it writes its own", async () => {
+      rows = [appRow({ healthcheckstatus: { value: 0, time: at(24) } })];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({
+          healthcheckstatus: { value: 100, time: at(9) },
+        }),
+      });
+
+      expect(writtenReadings()).toEqual({
+        healthcheckstatus: { value: 100, time: at(9) },
+      });
+      expect(writes()[0]!.parameters[4]).toEqual([null]);
+    });
+
+    test("a row whose readings are no readings keeps nothing, and writes the read's", async () => {
+      rows = [appRow({ healthcheckstatus: "broken" } as unknown as JSONObject)];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: appEntry({ requests: { value: 1, time: at(4) } }),
+      });
+
+      expect(writtenReadings()).toEqual({
+        requests: { value: 1, time: at(4) },
+      });
+    });
+
+    test("a resource this read brought nothing of is not written: its row keeps all it had", async () => {
+      rows = [appRow({ healthcheckstatus: { value: 0, time: at(14) } })];
+
+      await CloudResourceReadingsWriter.write({
+        projectId: PROJECT,
+        connectionId: CONNECTION,
+        writtenAt: NOW,
+        collected: collectedOf([
+          [
+            "azure:another",
+            {
+              provider: "azure",
+              resourceType: "Microsoft.Web/sites",
+              readings: { requests: { value: 1, time: at(4) } },
+            },
+          ],
+        ]),
+      });
+
+      expect(writes()).toHaveLength(0);
+    });
+  });
 });
 
 describe("a Service Bus namespace's readings, read split per queue", () => {
@@ -853,5 +1154,127 @@ describe("a Service Bus namespace's readings, read split per queue", () => {
       ]),
     ).toBe("");
     expect(getSplitSeriesSignature([])).toBe("");
+  });
+});
+
+/*
+ * A Compute Engine VM's disks, as the Ops Agent on it reports them: a
+ * series per disk (#9568). Its reading is the fullest, the one its "disk
+ * nearly full" rule judges and its page shows.
+ */
+describe("a VM's disks, read as the Ops Agent reports each", () => {
+  const DISK: string = "agent.googleapis.com/disk/percent_used";
+  const MEMORY: string = "agent.googleapis.com/memory/percent_used";
+
+  function vmGroup(metrics: CloudMetricGroup["metrics"]): CloudMetricGroup {
+    return {
+      resourceAttributes: [
+        ...connectionResourceAttributes({
+          serviceName: "Google Cloud",
+          connectionId: CONNECTION.toString(),
+          cloudProvider: CloudProvider.GCP,
+        }),
+        stringAttribute("gcp.resource_type", "gce_instance"),
+        stringAttribute("instance_id", "1001"),
+        stringAttribute("project_id", "acme-prod"),
+        stringAttribute("zone", "us-central1-a"),
+      ],
+      metrics,
+    };
+  }
+
+  function diskSet(
+    device: string,
+    points: Array<{ timeMs: number; value: number }>,
+  ): CloudMetricGroup["metrics"][number]["datapointSets"][number] {
+    return {
+      attributes: [
+        stringAttribute("device", device),
+        stringAttribute("state", "used"),
+      ],
+      points,
+    };
+  }
+
+  function readingsOf(
+    metrics: CloudMetricGroup["metrics"],
+  ): CollectedCloudReadings | undefined {
+    return Array.from(
+      collectCloudResourceReadings(
+        buildMetricsPayloads([vmGroup(metrics)]),
+      ).values(),
+    )[0];
+  }
+
+  test("is the fullest disk at the newest time, whichever comes first", () => {
+    for (const order of [
+      ["/dev/sda1", "/dev/sdb"],
+      ["/dev/sdb", "/dev/sda1"],
+    ]) {
+      const values: Record<string, number> = {
+        "/dev/sda1": 62,
+        "/dev/sdb": 91.5,
+      };
+      const entry: CollectedCloudReadings | undefined = readingsOf([
+        {
+          name: DISK,
+          unit: "%",
+          datapointSets: order.map((device: string) => {
+            return diskSet(device, [
+              { timeMs: T1, value: 99 },
+              { timeMs: T2, value: values[device]! },
+            ]);
+          }),
+        },
+      ]);
+
+      expect(entry?.provider).toBe(CloudProvider.GCP);
+      expect(entry?.resourceType).toBe("gce_instance");
+      // An older point, however full, is not now.
+      expect(entry?.readings[DISK]).toEqual({
+        value: 91.5,
+        time: new Date(T2).toISOString(),
+      });
+    }
+  });
+
+  test("a disk whose newest point is older is left out of the newest time's", () => {
+    expect(
+      readingsOf([
+        {
+          name: DISK,
+          unit: "%",
+          datapointSets: [
+            diskSet("/dev/sdb", [{ timeMs: T1, value: 97 }]),
+            diskSet("/dev/sda1", [{ timeMs: T2, value: 40 }]),
+          ],
+        },
+      ])?.readings[DISK],
+    ).toEqual({ value: 40, time: new Date(T2).toISOString() });
+  });
+
+  test("its memory, one series, is read as it is; both are kept for its rules and its page", () => {
+    const entry: CollectedCloudReadings | undefined = readingsOf([
+      {
+        name: MEMORY,
+        unit: "%",
+        datapointSets: [
+          {
+            attributes: [stringAttribute("state", "used")],
+            points: [{ timeMs: T2, value: 96.2 }],
+          },
+        ],
+      },
+      {
+        name: DISK,
+        unit: "%",
+        datapointSets: [diskSet("/dev/sda1", [{ timeMs: T2, value: 50 }])],
+      },
+    ]);
+
+    expect(entry?.readings).toEqual({
+      [MEMORY]: { value: 96.2, time: new Date(T2).toISOString() },
+      [DISK]: { value: 50, time: new Date(T2).toISOString() },
+    });
   });
 });

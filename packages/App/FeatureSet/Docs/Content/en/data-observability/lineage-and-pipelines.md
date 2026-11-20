@@ -38,7 +38,7 @@ Every arrow is something OneUptime recorded, never a guess. Cards sit left to ri
 
 Search for a table, service, pipeline or dashboard to keep what matches and everything upstream and downstream of it. Select a card to highlight its whole lineage, see what it comes from and what it goes to, and open its page; **Show Only Its Lineage** leaves only that on the map. The switches beside the search leave services, pipelines or dashboards off. **List** shows every arrow as a line, and is what a phone opens on.
 
-One map draws up to 400 cards, the most recently seen flows first; when your project has more, the map says so. The same map is served by `POST /api/data-observability/lineage/map`, for anyone who may read data assets and their API keys. A map with more says how many tables it left out, each counted once, and can start somewhere else: pick a database to map the flows of its tables and the cards they join, or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service and dashboard whose name holds it, however old they are. **Show Whole Map** goes back. To start the API's map somewhere, send `{ "dataStoreId": "<database ID>" }` or `{ "search": "orders" }`.
+One map draws up to 400 cards, the most recently seen flows first; when your project has more, the map says so. The same map is served by `POST /api/data-observability/lineage/map`, for anyone who may read data assets and their API keys. A map with more says how many tables it left out, each counted once, and can start somewhere else: pick a database to map the flows of its tables, the dashboards built on them and the cards they join, or type a name and choose **Search Whole Project** to map the flows of every table, pipeline, service, dashboard, dataset and data source whose name holds it, however old they are. **Show Whole Map** goes back. To start the API's map somewhere, send `{ "dataStoreId": "<database ID>" }` or `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -132,15 +132,83 @@ Failed refreshes do not use the pipeline monitors. A dataset whose refresh faile
 
 ## Pipelines
 
-Each job, dbt project and sync appears under **Pipelines**, with its runs: when each started and ended, how long it took, which attempt it was where the scheduler says (Airflow's try number), and a failed run's error. Each pipeline learns from its own runs how long a run usually takes and how long it goes between runs on its schedule, after five runs. A pipeline's page recommends three monitors:
+Each job, dbt project and sync appears under **Pipelines**, with its runs: when each started and ended, how long it took, which attempt it was where the scheduler says (Airflow's try number), and a failed run's error. Each pipeline learns from its own runs how long a run usually takes and how long it goes between runs on its schedule, after five runs. A pipeline's page recommends four monitors:
 
 - **Pipeline Run Failed**: a run failed or was aborted.
 - **Pipeline Run Unusually Long**: a run has taken twice its typical time or more, checked every five minutes while it runs, so a run that hangs is seen before it ends.
 - **Pipeline Is Late**: no run has started for longer than its schedule allows.
+- **Pipeline Stopped by Circuit Breaker**: the circuit breaker answered stop, and the stop lasts until it answers go or a run starts.
 
 A pipeline's **Owners** tab names the people and teams who look after it, and its alerts go to them. The **Overview** and **Issues** name a failed or late pipeline's owners, or say it has **No owner**, with a way to add one.
 
+**Owner Rules** can name a pipeline's owners for you. On their **Pipeline Rules** tab, a rule matches a pipeline by a regular expression on its name, such as `orders_daily.load_orders`, or on its namespace, where it runs, such as `airflow://prod`, and adds its people and teams as the pipeline's owners when OneUptime first sees the pipeline. To add them to the pipelines you already have, open the rule and select **Run Now**.
+
 A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab. A count of tables not drawn, on the pipeline's card or a table's, draws more of them in place here too. Pick one of the columns it writes to follow it across the pipeline: up to the column of each table it reads that it was built from, and down to each table it writes it to.
+
+## Circuit breakers
+
+A failing check or a late table tells its owners, but the pipelines that read the table would still run and copy the bad data downstream. A circuit breaker stops them first: the pipeline's first step asks OneUptime whether the tables it reads are healthy, and the rest runs only when the answer is go.
+
+- A failing check of a table the pipeline reads always stops it: a check whose alert is open, or a dbt test that failed.
+- A late table stops it too once **Stop when a table it reads is late** is on, on the pipeline's **Circuit Breaker** page. It is off for every pipeline, since a late table may only mean a quiet day.
+- A check that could not run or has not run yet, and a table with no checks, stop nothing.
+
+The step asks with a project API key that may read Data Observability, and names the pipeline as `namespace/name`, by its name alone or by its ID. The circuit breaker reads the tables the pipeline reads from its lineage. A request can also name `tables`, or name only those, each as `schema.table`, by its name alone or by its ID; a name that matches no table comes back in `notFound`, and is never counted as a table that passed. Only the tables the API key may read are judged.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+The answer's `verdict` is `go` or `stop`. `reasons` lists each failing check with its table, and each late table with how late it is; `tables` lists every table judged; and `answer` says the same in a few sentences, for the step's log. With `failWithStatusCode`, a stop answers HTTP 412, so `curl -f` fails the step. Send `stopsOnLateTables` as `true` or `false` to decide for one request, and `dryRun` as `true` to ask without the answer being kept.
+
+In Airflow, put a `ShortCircuitOperator` before the tasks that read the tables: when its function returns false, every task after it is skipped.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+dbt's `on-run-start` hooks run SQL in your warehouse, not web requests, so ask in the step that starts dbt: a CI job, a cron line or the task that runs it. A dbt project's pipeline is named `dbt/` followed by the project's name.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+A request that names a pipeline is kept on it, unless it is a dry run. While the circuit breaker has stopped a pipeline, its **Circuit Breaker** page says since when and why, its **Overview** opens on the stop, and **Needs Attention** and **Issues** list it as stopped, in place of its failed or late run. The stop ends when the circuit breaker next answers go, or when a run starts after it. The same page has **Test Now**, which asks the circuit breaker without the answer being kept, and the step for curl, Airflow and dbt with the pipeline's name filled in.
+
+To hear of a stop, add **Pipeline Stopped by Circuit Breaker** from the pipeline's **Recommendations**. Its alert opens when the circuit breaker answers stop, goes to the pipeline's owners, stays open while the stop is kept, and resolves once the stop ends. It reads the pipeline's `oneuptime.data.pipeline.circuit_breaker_stopped` metric: 1 while the circuit breaker has stopped it and 0 once it has not, written as the circuit breaker answers and every five minutes after.
+
+While Data Observability is switched off on the server, the circuit breaker answers go and keeps nothing: switching a product off never stops a pipeline.
 
 ## One issue per cause
 
@@ -157,7 +225,7 @@ Someone who may not see the alert that caused it gets neither the **Data** card 
 
 ## Power BI lineage
 
-**Tables Matched** on each BI tool says how many watched tables its dashboards are built on, and under it the first thing keeping the rest from matching. **See Why** lists what the last read found and what to do: databases your dashboards read that are not connected to OneUptime, each one **Connect Database** away with its kind and address filled in; tables a connected database does not watch, which may be left out of its scan or not collected yet; and sources that are no database, such as files and web pages. For Power BI it also names a tenant setting that is off, datasets that read from dataflows, and datasets Power BI cannot describe. Each dashboard's **Built On** says the datasets it charts and where their data comes from, as Power BI says.
+**Tables Matched** on each BI tool says how many watched tables its dashboards are built on, and under it the first thing keeping the rest from matching. **See Why** lists what the last read found and what to do: databases your dashboards read that are not connected to OneUptime, each one **Connect Database** away with its kind and address filled in; tables a connected database does not watch, which may be left out of its scan or not collected yet; and sources that are no database, such as files and web pages. For Power BI it also names a tenant setting that is off, dataflows whose definitions Power BI would not export or that are still being read, and datasets Power BI cannot describe. Each dashboard's **Built On** says the datasets it charts and where their data comes from, as Power BI says.
 
 OneUptime reads each Power BI dataset from Power BI's metadata scan, with the Power Query behind each of its tables:
 
@@ -165,6 +233,8 @@ OneUptime reads each Power BI dataset from Power BI's metadata scan, with the Po
 - **SQL a query runs**: a connector's **SQL statement** option, `Value.NativeQuery` and `Odbc.Query`, and the tables after each `FROM` and `JOIN`.
 - **Parameters and shared queries**: a parameter stands wherever it is named, and a table that reads a staging query reads what that query reads.
 - **Composite models** chart the tables of the datasets they are built on.
+- **Dataflows**: a dataset built on a dataflow reads what the dataflow's entity reads. OneUptime exports each dataflow's definition through Power BI's admin API, which needs nothing more than the admin API access above, and reads the entity's query in it as it reads a dataset's, linked entities included. A dataflow is exported once, and again when it changes or a day after an export failed: at most 60 in one read, within Power BI's limit of 200 an hour, so a tenant with many dataflows is read through over a few hours.
+- **Dataverse's OData connectors**: `Cds.Entities` and `Cds.Contents`, the legacy Common Data Service connector's, and `Dataverse.Contents` name a table by its entity set (`accounts`), while OneUptime keeps a Dataverse table under its logical name (`account`). Each collection of a Dataverse environment keeps every table's entity set name with it, whether OneUptime or a probe collects it, and a report's tables are matched through those names. An older probe sends none: until it is updated, **See Why** names the tables it leaves unmatched.
 
 A report charts its dataset's tables, and a dashboard its tiles' datasets'. Where the data comes from - a database's server and name, a file's path, a web address - comes from the scan's data sources, which need nothing more than the admin API access above.
 
@@ -173,9 +243,11 @@ Power BI returns a dataset's tables only once a Fabric administrator turns on tw
 - **Enhance admin APIs responses with detailed metadata**: each dataset's tables.
 - **Enhance admin APIs responses with DAX and mashup expressions**: the queries that load them, which say which database tables they read.
 
-Power BI then describes a dataset once it has been refreshed or republished; one that only uses DirectQuery, once someone has opened a report on it. It never describes real-time datasets, datasets on a live connection to Analysis Services, Excel workbooks, or datasets over 1 GB on shared capacity. A dataset that reads from a dataflow is read up to the dataflow: OneUptime does not read which tables a dataflow loads yet.
+Power BI then describes a dataset once it has been refreshed or republished; one that only uses DirectQuery, once someone has opened a report on it. It never describes real-time datasets, datasets on a live connection to Analysis Services, Excel workbooks, or datasets over 1 GB on shared capacity.
 
 Each table is matched to a watched table by its name, schema and database, and a server by its short name or its full one. A table of another engine is never matched, and neither is one in another database: a report on `Sales.dbo.Orders` is not tied to `Archive.dbo.Orders` because only `Archive` is watched.
+
+The first read scans the whole tenant. After it, each hourly read scans only the workspaces that changed since the last read. Once a day it also lists the whole tenant, which drops reports and workspaces that are gone, and scans the workspaces whose datasets came without their tables or the queries behind them, so these come in once Power BI describes the datasets, and those whose last scan is oldest, so each workspace is scanned at least once a week; **Read Now** scans only what changed. OneUptime runs up to 16 scans at once, of up to 100 workspaces each, as Power BI allows, and a big tenant's scans can take minutes: the hourly read waits up to 20 minutes for them and **Read Now** up to 4. A workspace whose scan failed or did not finish keeps what was read of it, and the BI tool's warning says so. The next read scans it again if its scan failed; a scan that did not finish is not started over, but picked up, and its result read once Power BI has finished it, within the 24 hours Power BI keeps a scan's result. In a tenant too big to keep every workspace's scan in full, OneUptime keeps in full the scans of the workspaces its dashboards need, and still picks up unfinished scans.
 
 [Refreshes](#views-and-refreshes-in-power-bi) are read apart from the tables: a warning that some datasets' refreshes could not be read says nothing about their tables.
 

@@ -48,7 +48,7 @@ Dans **Spans à surveiller**, renseignez **Statut du span** et **Le nom du span 
 
 ### Affiner (facultatif)
 
-Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut.
+Ouvrez **Plus de champs** pour filtrer par service de télémétrie, entité d'infrastructure ou attribut, pour ne compter que les spans qui ont duré au moins un temps donné, ou pour lever une alerte par valeur d'un attribut avec **Regrouper par attributs**.
 
 ### Dire quand alerter
 
@@ -76,8 +76,10 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Filtrer par service** (sous **Plus de champs**) | Les spans de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les spans de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Filtrer par attributs** (sous **Plus de champs**) | Les spans dont les attributs remplissent chaque condition. Chaque condition a son propre opérateur, comme « égal à » ou « contient ». | Vide : aucune condition |
+| **Dure au moins (ms)** (sous **Plus de champs**) | Les spans d'une durée égale ou supérieure à cette valeur, en millisecondes, comme 5000 pour un démarrage à froid de cinq secondes. | Vide : toute durée |
+| **Regrouper par attributs** (sous **Plus de champs**) | Pas un filtre : un décompte, et une alerte ou un incident, par combinaison des valeurs de ces attributs. Voir [Une alerte par groupe](#une-alerte-par-groupe). | Vide : tous les spans correspondants comptent ensemble |
 
-Tous les filtres que vous définissez doivent correspondre pour qu'un span soit compté.
+Tous les filtres que vous définissez doivent correspondre pour qu'un span soit compté. Les spans à l'origine d'une alerte ou d'un incident ouvert par le moniteur sont listés avec les mêmes filtres, **Dure au moins (ms)** compris, sous la forme d'un filtre **Durée** : ce sont donc bien les spans qu'il a comptés.
 
 ### Codes de statut de span
 
@@ -98,6 +100,14 @@ Si vous souhaitez que les requêtes réussies s'affichent comme OK, ajoutez un p
 - **Les critères de haut en bas.** Le premier critère qui correspond décide ; placez donc le plus grave en premier.
 
 Chaque changement de statut est enregistré, avec sa raison, dans la **Chronologie de statut** du moniteur.
+
+## Une alerte par groupe
+
+Quand **Regrouper par attributs** est défini, le moniteur compte les spans correspondants par combinaison des valeurs des attributs, et chaque groupe lève sa propre alerte ou son propre incident et le résout de son côté. La recommandation **Device Stopped Reporting** d'une application mobile regroupe par `resource.app.installation.id`, soit un groupe par installation de l'application.
+
+Un appareil qui cesse d'envoyer des spans ne laisse dans la fenêtre aucun span dont faire un groupe. Un moniteur regroupé dont la règle peut correspondre en l'absence de span, comme **Moins de** `1`, compte donc aussi pour 0 chaque groupe qui a envoyé des spans dans la semaine précédant la fenêtre et aucun dans celle-ci. Un groupe silencieux depuis plus longtemps que cette semaine disparaît, et son alerte se résout.
+
+Quand aucun des groupes n'envoie de span, c'est toute l'application qui s'est tue, pas un appareil : aucun groupe n'alerte, et les alertes ouvertes restent ouvertes jusqu'à l'arrivée de spans. Un moniteur non regroupé, comme **App Stopped Reporting**, alerte dans ce cas. Au plus 100 groupes sont évalués à chaque vérification, les silencieux en premier.
 
 ## Critères
 

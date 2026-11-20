@@ -21,11 +21,22 @@ import { getStatusPageSuggestionsFooter } from "../StatusPage/StatusPageSuggesti
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import { getNotifySubscribersOfUpdateFormField } from "../StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 import {
+  ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY,
+  ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
   AnnouncementFormKind,
   getAnnouncementEndsAtError,
+  getAnnouncementReachQuestion,
   getAnnouncementScheduleSection,
+  getAnnouncementScheduleSectionSummary,
   readRecordIds,
 } from "./AnnouncementForm";
+import {
+  AnnouncementNoMonitorsLine,
+  AnnouncementNotifyBoxReason,
+  AnnouncementScheduleLine,
+  AnnouncementUpdateBoxReason,
+} from "./AnnouncementReachLines";
+import { getKeptAnnouncementReach } from "./useAnnouncementReach";
 
 /*
  * THE ANNOUNCEMENT FORMS' FIELDS, in one place: Create Announcement and the
@@ -62,32 +73,72 @@ export const ANNOUNCEMENT_TITLE_PLACEHOLDER: string = translationKey(
 const advancedSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
   getAdvancedFormSection<StatusPageAnnouncement>();
 
-const createScheduleSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
-  getAnnouncementScheduleSection<StatusPageAnnouncement>(
-    AnnouncementFormKind.Create,
-  );
-
-const editScheduleSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
-  getAnnouncementScheduleSection<StatusPageAnnouncement>(
-    AnnouncementFormKind.Edit,
-  );
+/*
+ * The schedule's folded section (AnnouncementForm), with its line drawn by
+ * AnnouncementScheduleLine: what the server says of the status pages
+ * picked, asked for as the line is drawn (#9775). Its sentences, which
+ * decide that it has a line, read the answer the line was given.
+ */
+const getScheduleSection: (data: {
+  kind: AnnouncementFormKind;
+  announcementId: ObjectID | string | null;
+}) => FormFieldCollapsibleSection<StatusPageAnnouncement> = (data: {
+  kind: AnnouncementFormKind;
+  announcementId: ObjectID | string | null;
+}): FormFieldCollapsibleSection<StatusPageAnnouncement> => {
+  return {
+    ...getAnnouncementScheduleSection<StatusPageAnnouncement>(data.kind),
+    getSummary: (values: FormValues<StatusPageAnnouncement>): Array<string> => {
+      return getAnnouncementScheduleSectionSummary(
+        values,
+        data.kind,
+        getKeptAnnouncementReach(
+          getAnnouncementReachQuestion({
+            values: values,
+            announcementId: data.announcementId,
+          }),
+        ),
+      );
+    },
+    getSummaryElement: (
+      values: FormValues<StatusPageAnnouncement>,
+    ): ReactElement => {
+      return (
+        <AnnouncementScheduleLine
+          values={values}
+          kind={data.kind}
+          announcementId={data.announcementId}
+        />
+      );
+    },
+  };
+};
 
 /*
  * Create Announcement's fields (kind Create), or the details card Edit's
- * (kind Edit). They differ in what each form can say about subscribers:
- * Create asks whether they are told when it starts showing (folded with the
- * schedule); the Edit cannot change that, and asks instead whether this
- * edit is sent, right under the description it is about.
+ * (kind Edit, handed the announcement it edits). They differ in what each
+ * form can say about subscribers: Create asks whether they are told when it
+ * starts showing (folded with the schedule); the Edit cannot change that,
+ * and asks instead whether this edit is sent, right under the description
+ * it is about. Both say what is true for the status pages picked: the
+ * folded line, and why nobody would be told under a ticked box.
  */
 export const getAnnouncementFormFields: (
   kind: AnnouncementFormKind,
+  options?: {
+    announcementId?: ObjectID | string | null | undefined;
+  },
 ) => Array<ModelField<StatusPageAnnouncement>> = (
   kind: AnnouncementFormKind,
+  options?: {
+    announcementId?: ObjectID | string | null | undefined;
+  },
 ): Array<ModelField<StatusPageAnnouncement>> => {
+  const announcementId: ObjectID | string | null =
+    kind === AnnouncementFormKind.Edit ? options?.announcementId || null : null;
+
   const scheduleSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
-    kind === AnnouncementFormKind.Create
-      ? createScheduleSection
-      : editScheduleSection;
+    getScheduleSection({ kind: kind, announcementId: announcementId });
 
   const fields: Array<ModelField<StatusPageAnnouncement>> = [
     {
@@ -119,13 +170,30 @@ export const getAnnouncementFormFields: (
   ];
 
   if (kind === AnnouncementFormKind.Edit) {
-    fields.push(
-      getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>({
+    fields.push({
+      ...getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>({
         stepId: "announcement",
         description:
           "Send subscribers the edited announcement, marked as an update. Leave this unticked for small fixes such as typos.",
       }),
-    );
+      /*
+       * Ticked, why nobody would be sent it: the announcement's own state
+       * first - not shown until its start, or its own notification not gone
+       * out yet (#9921) - then the pages picked, which the update goes to
+       * as the announcement itself did.
+       */
+      getFooterElement: (
+        values: FormValues<StatusPageAnnouncement>,
+      ): ReactElement => {
+        return (
+          <AnnouncementUpdateBoxReason
+            values={values}
+            announcementId={announcementId}
+            dataTestId="announcement-update-notify-reason"
+          />
+        );
+      },
+    });
   }
 
   fields.push(
@@ -208,13 +276,17 @@ export const getAnnouncementFormFields: (
       ): ReactElement => {
         const monitorIds: Array<string> = readRecordIds(item.monitors);
 
+        /*
+         * That every subscriber is told only while the line says subscribers
+         * are notified: the pages picked may tell nobody (#9775).
+         */
         if (monitorIds.length === 0) {
           return (
-            <p>
-              {translateText(
-                "No monitors selected. All subscribers will be notified.",
-              )}
-            </p>
+            <AnnouncementNoMonitorsLine
+              values={item}
+              kind={kind}
+              announcementId={announcementId}
+            />
           );
         }
 
@@ -232,7 +304,8 @@ export const getAnnouncementFormFields: (
     /*
      * Folded to one line that says what happens: it shows now and stays
      * until someone ends it (and, on Create, its subscribers are told when
-     * it starts showing - the model's defaults).
+     * it starts showing - the model's defaults), as far as the status pages
+     * picked show announcements and send notifications (#9775).
      */
     {
       field: {
@@ -279,12 +352,26 @@ export const getAnnouncementFormFields: (
       },
       title: "Notify Status Page Subscribers",
       stepId: "status-pages",
+      // What ticking it asks for; whether that happens is the pages' to say.
       description:
-        "Subscribers of these status pages are told when the announcement starts showing.",
+        "Tell the subscribers of these status pages when the announcement starts showing.",
       fieldType: FormFieldSchemaType.Checkbox,
       collapsibleSection: scheduleSection,
       defaultValue: true,
       required: false,
+      // Ticked, why nobody would be told: the pages picked say (#9775).
+      getFooterElement: (
+        values: FormValues<StatusPageAnnouncement>,
+      ): ReactElement => {
+        return (
+          <AnnouncementNotifyBoxReason
+            values={values}
+            fieldKey={ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY}
+            isTickedByDefault={true}
+            dataTestId="announcement-notify-subscribers-reason"
+          />
+        );
+      },
     });
   }
 
@@ -403,14 +490,18 @@ export const getAnnouncementTemplateFormFields: () => Array<
       required: false,
       placeholder: "Select Monitors",
     },
+    /*
+     * What ticking it asks for, as Create's switch says it: whether the
+     * subscribers are told is the status pages' to say, which Create
+     * Announcement does for an announcement made from it (#9921).
+     */
     {
       field: {
         shouldStatusPageSubscribersBeNotified: true,
       },
       title: "Notify Status Page Subscribers",
       stepId: "status-pages",
-      description:
-        "Subscribers of these status pages are told when an announcement made from this template starts showing.",
+      description: ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
       fieldType: FormFieldSchemaType.Checkbox,
       required: false,
     },

@@ -1,6 +1,7 @@
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { KUBERNETES_COST_METRICS } from "../../../../Types/Kubernetes/KubernetesCostMetrics";
 
 /*
  * The metric names the kubernetes-agent chart's collectors actually send,
@@ -19,8 +20,8 @@ import path from "path";
  * own receiver config adds — copied from each receiver's metadata.yaml at
  * the collector version the chart pins:
  *
- *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/k8sclusterreceiver/metadata.yaml
- *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/kubeletstatsreceiver/metadata.yaml
+ *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.165.0/receiver/k8sclusterreceiver/metadata.yaml
+ *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.165.0/receiver/kubeletstatsreceiver/metadata.yaml
  *
  * They go stale the moment the chart moves to another collector, which is
  * why AGENT_COLLECTOR_IMAGE_TAG is checked against values.yaml: bumping the
@@ -28,9 +29,12 @@ import path from "path";
  * this one. Receivers do rename metrics between versions (the
  * semantic-conventions work moved several k8s.* names, and the CPU rename
  * above is one), so that re-read is the point. At 0.161.0 both lists are
- * what they were at 0.96.0.
+ * what they were at 0.96.0. At 0.165.0 (#9828) both receivers enable
+ * exactly the metrics they did at 0.161.0, and k8s_cluster names a node's
+ * conditions and allocatables as it did: kubeletstats only adds
+ * k8s.node.pid.limit and k8s.node.pid.usage, both off.
  */
-export const AGENT_COLLECTOR_IMAGE_TAG: string = "0.161.0";
+export const AGENT_COLLECTOR_IMAGE_TAG: string = "0.165.0";
 
 /*
  * k8s_cluster — the agent Deployment's receiver
@@ -136,7 +140,7 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "container.filesystem.capacity",
   "container.filesystem.usage",
   /*
-   * On upstream at 0.161.0 (off at 0.96.0); the chart turns them on all
+   * On upstream at 0.165.0 (off at 0.96.0); the chart turns them on all
    * the same, with no flag, because k8s-high-cpu and the Kubernetes
    * dashboard template read them. The chart's
    * tests/kubeletstats-cpu-usage_test.yaml pins that on the rendered
@@ -157,6 +161,18 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "k8s.pod.cpu_request_utilization",
   "k8s.pod.memory_limit_utilization",
   "k8s.pod.memory_request_utilization",
+  /*
+   * The `volume` group, on while kubeletstats.volumeMetrics.enabled, which
+   * values.yaml defaults to true: each mounted volume's, a persistent volume
+   * claim's named by k8s.persistentvolumeclaim.name (the chart's
+   * extra_metadata_labels k8s.volume.type; tests/volume-claim-usage_test.yaml).
+   * The PVC Almost Full template reads the first two.
+   */
+  "k8s.volume.available",
+  "k8s.volume.capacity",
+  "k8s.volume.inodes",
+  "k8s.volume.inodes.free",
+  "k8s.volume.inodes.used",
 ];
 
 /*
@@ -224,10 +240,22 @@ export const CHART_DERIVED_METRICS: ReadonlyArray<string> = [
   "k8s.job.failed_pods.increase",
 ];
 
+/*
+ * Not the agent's collector's either: OneUptime's cost ingest writes them
+ * from the allocation rows the agent's cost poller sends (#9548), under the
+ * cluster, with the cluster's, namespace's and workload's resource
+ * attributes - so for a Kubernetes monitor they arrive like any metric the
+ * agent sends, from an agent with cost monitoring on (its default).
+ */
+export const COST_INGEST_METRICS: ReadonlyArray<string> = [
+  ...KUBERNETES_COST_METRICS,
+];
+
 export const AGENT_EMITTED_METRIC_NAMES: ReadonlySet<string> = new Set<string>([
   ...K8S_CLUSTER_RECEIVER_METRICS,
   ...KUBELETSTATS_RECEIVER_METRICS,
   ...CONTROL_PLANE_SCRAPE_METRICS,
   ...ALLOWLISTED_SCRAPE_METRICS,
   ...CHART_DERIVED_METRICS,
+  ...COST_INGEST_METRICS,
 ]);

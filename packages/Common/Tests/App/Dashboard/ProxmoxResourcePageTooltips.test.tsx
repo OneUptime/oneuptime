@@ -789,18 +789,27 @@ function rowOf(name: string): HTMLElement {
 }
 
 describe("Proxmox nodes list", () => {
-  test("Status, Guests, CPU, Memory and Age headers each explain their column", async () => {
+  test("Status, Guests, CPU, Memory, Disk and Age headers each explain their column", async () => {
     await renderPage(ProxmoxClusterNodes, CLUSTER_ID, "pve1");
 
-    expect(infoLabels()).toEqual(["Status", "Guests", "CPU", "Memory", "Age"]);
+    // Disk, beside CPU and Memory: each node's root filesystem (#9646).
+    expect(infoLabels()).toEqual([
+      "Status",
+      "Guests",
+      "CPU",
+      "Memory",
+      "Disk",
+      "Age",
+    ]);
     await expectExplained([
       ["Status", "nodesTableStatus"],
       ["Guests", "nodesTableGuests"],
       ["CPU", "nodesTableCpu"],
       ["Memory", "nodesTableMemory"],
+      ["Disk", "nodesTableDisk"],
       ["Age", "nodesTableUptime"],
     ]);
-    for (const title of ["Status", "Guests", "CPU", "Memory", "Age"]) {
+    for (const title of ["Status", "Guests", "CPU", "Memory", "Disk", "Age"]) {
       expect(columnHeader(title)).toBeTruthy();
     }
     expectNoNestedInfoButtons();
@@ -838,12 +847,14 @@ describe("Proxmox guests list", () => {
   test("every metric column explains itself; identity columns do not", async () => {
     await renderPage(ProxmoxClusterGuests, CLUSTER_ID, "web");
 
+    // Disk, beside CPU and Memory: each guest's root disk (#9646).
     expect(infoLabels()).toEqual([
       "Status",
       "HA State",
       "Backup",
       "CPU",
       "Memory",
+      "Disk",
       "Age",
     ]);
     await expectExplained([
@@ -852,6 +863,7 @@ describe("Proxmox guests list", () => {
       ["Backup", "guestsTableBackup"],
       ["CPU", "guestsTableCpu"],
       ["Memory", "guestsTableMemory"],
+      ["Disk", "guestsTableDisk"],
       ["Age", "guestsTableUptime"],
     ]);
     for (const title of ["VMID", "Type", "Node", "Name"]) {
@@ -940,22 +952,31 @@ describe("Proxmox guests list", () => {
 });
 
 describe("Proxmox storage list", () => {
-  test("Status and Used / Total explain themselves; there are no CPU, memory or Age columns", async () => {
+  test("Status, Used and Free explain themselves; there are no CPU, memory or Age columns", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    expect(infoLabels()).toEqual(["Status", "Used / Total"]);
+    expect(infoLabels()).toEqual(["Status", "Used", "Free"]);
     await expectExplained([
       ["Status", "storageTableStatus"],
-      ["Used / Total", "storageTableUsage"],
+      ["Used", "storageUsedPercent"],
+      ["Free", "storageFree"],
     ]);
     expect(screen.queryByText("CPU")).not.toBeInTheDocument();
   });
 
-  test("usage shows used, total and percentage, or N/A when a figure is missing", async () => {
+  test("usage is a bar and a percent, what is free and the total, or says it was not reported (#9539)", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    expect(rowOf("local")).toHaveTextContent("50.0 GiB / 100 GiB (50.0%)");
-    expect(rowOf("backup")).toHaveTextContent("N/A");
+    const local: HTMLElement = rowOf("local");
+    expect(within(local).getByRole("meter")).toHaveAttribute(
+      "aria-valuenow",
+      "50",
+    );
+    expect(local.textContent).toContain("50%");
+    // Used and free, then the total, each held to its unit.
+    expect(local.textContent).toContain("50\u00A0GiB");
+    expect(local.textContent).toContain("100\u00A0GiB");
+    expect(rowOf("backup")).toHaveTextContent("Not reported");
   });
 
   test("storage reports no uptime, so there is no Age column of dashes", async () => {

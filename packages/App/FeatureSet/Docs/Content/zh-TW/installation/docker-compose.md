@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | 執行監控檢查的全域探測器。它使用主機的網路。 |
 | `global-runner` | `oneuptime/runner` | 內建的全域 Runner，為所有專案執行運行手冊的 JavaScript 步驟與 OneUptime AI 的程式碼修正。 |
 | `postgres` | `postgres:15` | 設定與狀態：監控、事件、使用者。儲存在 `postgres` 磁碟區中。 |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遙測資料：日誌、指標、追蹤與例外。儲存在 `clickhouse` 磁碟區中。 |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | 遙測資料：日誌、指標、追蹤與例外。儲存在 `clickhouse` 磁碟區中。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | 快取與佇列。它不在磁碟上保存任何資料。 |
 
 > [!NOTE]

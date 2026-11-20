@@ -6,6 +6,7 @@ import { getJestSpyOn } from "../../Spy";
 import { FindOperator } from "typeorm";
 import { getPhoneLineSql } from "../../../Server/Utils/StatusPage/SubscriberContactSql";
 import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
+import { getNameKey, getNameKeySql } from "../../../Types/Database/UniqueName";
 
 /*
  * A table in memory behind a DatabaseService, for tests that drive the real
@@ -17,7 +18,8 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  * TypeORM's In / Equal / Not / IsNull / And operators, and the Raw SQL that
  * QueryHelper and the permission layer write (equality, IN, NOT IN, NOT IN
  * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE),
- * a phone number's line (SubscriberContactSql.onPhoneLine), and a column
+ * a phone number's line (SubscriberContactSql.onPhoneLine), a name as it
+ * reads (QueryHelper.findWithSameName), and a column
  * naming a private incident, alert or episode (PrivateRecordReadFilter),
  * answered from the private records a test says there are
  * (setPrivateRecords). A condition it does not understand fails the test
@@ -179,6 +181,33 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     return (
       storedText !== null &&
       SubscriberContactKey.forPhone(String(stored)) === String(parameters[name])
+    );
+  }
+
+  /*
+   * A name as it reads, the stored one and the one asked for alike
+   * (QueryHelper.findWithSameName): each read here as getNameKey reads it,
+   * which is how the SQL reads it.
+   */
+  match = sql.match(
+    /^\(LOWER\(BTRIM\(REGEXP_REPLACE\(c, :(\w+), ' ', 'g'\)\)\) = LOWER\(BTRIM\(REGEXP_REPLACE\(CAST\(:(\w+) AS TEXT\), :(\w+), ' ', 'g'\)\)\)\)$/,
+  );
+  if (match) {
+    const askedFor: string = getNameKeySql({
+      textSql: `CAST(:${match[2]!} AS TEXT)`,
+      patternSql: `:${match[1]!}`,
+    });
+
+    if (!sql.includes(askedFor) || match[1] !== match[3]) {
+      throw new Error(
+        `InMemoryRepository: a name compared with two patterns "${sql}"`,
+      );
+    }
+
+    const storedKey: string = getNameKey(stored);
+
+    return (
+      storedKey.length > 0 && storedKey === getNameKey(parameters[match[2]!])
     );
   }
 
@@ -557,4 +586,32 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
   getJestSpyOn(service, "onTriggerRealtime").mockResolvedValue(undefined);
 
   return table;
+}
+
+/*
+ * Answers `service`'s hook-free writes of one row by id
+ * (updateColumnsByIdWithoutHooks) from `table`, as the UPDATE it sends would
+ * write the row - for a suite whose service writes rows that way as part of
+ * a write under test (a drag-ordered list puts a row at the end of its list
+ * this way). The statement itself is built from TypeORM's metadata, which an
+ * in-memory table has none of. Each write is recorded in `updates`.
+ */
+export function useInMemoryHookFreeWrites<TBaseModel extends BaseModel>(
+  service: DatabaseService<TBaseModel>,
+  table: InMemoryTable,
+): void {
+  getJestSpyOn(service, "updateColumnsByIdWithoutHooks").mockImplementation(
+    async (input: { id: ObjectID; data: unknown }): Promise<void> => {
+      const row: StoredRow | undefined = table.get(input.id);
+
+      if (!row) {
+        return;
+      }
+
+      const written: StoredRow = { ...(input.data as StoredRow) };
+
+      Object.assign(row, written);
+      table.updates.push({ id: String(row["_id"]), set: written });
+    },
+  );
 }

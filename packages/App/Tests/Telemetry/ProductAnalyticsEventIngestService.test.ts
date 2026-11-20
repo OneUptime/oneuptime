@@ -277,6 +277,8 @@ function buildPolicy(
     frustrationSignals: readSessionReplayFrustrationSignalsConfig(null),
     isProductAnalyticsEnabled: true,
     productAnalyticsUserPropertyKeys: ["plan"],
+    pageRules: { recordOnly: [], neverRecord: [] },
+    readableEventPropertyKeys: [],
     configEpoch: 1,
     ...overrides,
   };

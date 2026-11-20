@@ -16,6 +16,8 @@
     "The questions OneUptime asks and Admin > Feedback's suite of 2026-11-18 (#7362: 17 tests) took 19 s locally, its two bundles built: 0.4 minutes times 1.26, until App Test's runs measure it.",
     "Saved funnels and retention tables' suite of 2026-11-18 (#6718: 12 tests, at 1280 and on a 390px touch screen) took 38.9 s locally, its bundle built: 0.8 minutes times 1.26, until App Test's runs measure it.",
     "The security cases and detections suite's looks at a case's Why This Case Was Opened card and Response Plan of 2026-11-18 (CaseWork.spec.ts, #9556, #9557: 3 tests, 16.4 s locally) are added to its minutes the same way, times 1.26: 14.9 to 15.2, until App Test's runs measure it.",
+    "The sign-in options suite's look at setting up a security key while signing in, with a virtual authenticator, of 2026-11-19 (SecurityKeyEnrolment.spec.ts, #9764: 8 tests, 20 s locally) is added to its minutes the same way, times 1.26: 1.2 to 1.6, until App Test's runs measure it.",
+    "The accounts theme suite's looks at a required second step's choice and its security key, in dark and light, of 2026-11-19 (#9764: 4 tests, 5 s locally) are added to its minutes the same way, times 1.26: 2.6 to 2.7, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
   ],
   "measuredOn": "2026-11-17",
@@ -24,7 +26,7 @@
     44004371592, 44011347321, 44018668404
   ],
   "minutes": {
-    "test-accounts-theme-ui": 2.6,
+    "test-accounts-theme-ui": 2.7,
     "test-acknowledgement-timeout-ui": 0.6,
     "test-admin-health-ui": 0.3,
     "test-ai-context-ui": 1.5,
@@ -138,7 +140,7 @@
     "test-server-setup-ui": 0.6,
     "test-shared-ui-ui": 2.8,
     "test-side-by-side-pages-ui": 1.1,
-    "test-sign-in-options-ui": 1.2,
+    "test-sign-in-options-ui": 1.6,
     "test-slo-burn-rate-ui": 2.9,
     "test-snmp-walk-ui": 1.7,
     "test-status-page-search-ui": 1.6,

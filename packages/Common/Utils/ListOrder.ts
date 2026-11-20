@@ -6,22 +6,30 @@ import SortOrder from "../Types/BaseDatabase/SortOrder";
  * no React in it, so the server that keeps the numbers and the table that
  * shows them agree on what every number means.
  *
- * The contract, for every such list:
+ * The contract, for every such list (issue #9609):
  *
  *   - Lower numbers come first: 1 is the top (a list whose top is its HIGHEST
  *     number - site assignment rules, where the higher priority wins - counts
  *     the other way).
  *   - A new row without a number goes to the end of its list.
- *   - A number is kept as it was written. When a row is given a number that
- *     another row of its list already holds, that row moves one step to make
- *     room - down the list for a row moving up, up the list for a row moving
- *     down - and so on along any run of neighbours, until the step lands on a
- *     free number. In a list numbered 1..n that is exactly "take the place of
- *     the row holding that number, and shift the ones in between", which is
- *     what a drop in a reorderable table sends: the number of the row it was
- *     dropped onto. Numbers nobody collides with are never rewritten, so an
- *     API or Terraform caller that writes 10, 20, 30 reads 10, 20, 30 back.
- *   - So no two rows of a list share a number, and the order is total.
+ *   - A WRITE PLACES ITS OWN ROW, AND MOVES NO OTHER. A number is kept as it
+ *     was written, even one another row of the list holds: the two then
+ *     share it, and are read the older first (compareListOrderItems), so the
+ *     order is still total. Terraform - and anything else that keeps a whole
+ *     list's numbering - writes every changed row's number on its own, all
+ *     at once, in no set order, and every row must end at the number
+ *     written. When a write of a held number made the row holding it step
+ *     aside, each write moved rows another had just placed, and the next
+ *     plan never came back empty. Writes that each change one row cannot
+ *     undo each other, whatever order they land in.
+ *   - A MOVE IS ITS OWN REQUEST (getListOrderMoveChanges; POST
+ *     <list>/:id/move, Types/Database/MoveInList), which a drop in a
+ *     reorderable table sends: the row takes the place of the row it was
+ *     dropped on, the rows between step one place towards where it was, and
+ *     the list is numbered 1..n from the top (n..1 for a list that counts
+ *     down). In a list numbered 1..n that changes only the rows between the
+ *     two places, as a drag always did; a list with gaps or shared numbers
+ *     comes out tidy.
  */
 
 export interface ListOrderItem {
@@ -90,6 +98,41 @@ const toTime: (value: Date | string | null | undefined) => number | null = (
 };
 
 /**
+ * Two rows' numbers in the order the list is shown in: the top first
+ * (lower numbers, or higher ones in a list that counts down), and a row
+ * without a number after every row that has one - never at a number made up
+ * for it, such as 0 or its place in a read, which would put it among the
+ * numbered rows. Zero for two rows at one place, or two without a number:
+ * the caller breaks that tie (compareListOrderItems: the older first; a
+ * reader that has no age keeps the order it read them in).
+ *
+ * The one rule for "no number" (issue #9655): every reader of a
+ * drag-ordered list that compares numbers itself compares them with this.
+ */
+export const compareListOrderValues: (
+  a: unknown,
+  b: unknown,
+  sortOrder: SortOrder,
+) => number = (a: unknown, b: unknown, sortOrder: SortOrder): number => {
+  const aValue: number | null = toListOrderNumber(a);
+  const bValue: number | null = toListOrderNumber(b);
+
+  if (aValue !== null && bValue === null) {
+    return -1;
+  }
+
+  if (aValue === null && bValue !== null) {
+    return 1;
+  }
+
+  if (aValue !== null && bValue !== null && aValue !== bValue) {
+    return toRank(aValue, sortOrder) - toRank(bValue, sortOrder);
+  }
+
+  return 0;
+};
+
+/**
  * The order a list is shown in: by number (rows without one at the bottom,
  * whichever way the list counts), then the older row first, then by id so
  * that two calls can never disagree.
@@ -103,19 +146,10 @@ export const compareListOrderItems: (
   b: ListOrderItem,
   sortOrder: SortOrder,
 ): number => {
-  const aValue: number | null = toListOrderNumber(a.value);
-  const bValue: number | null = toListOrderNumber(b.value);
+  const byValue: number = compareListOrderValues(a.value, b.value, sortOrder);
 
-  if (aValue !== null && bValue === null) {
-    return -1;
-  }
-
-  if (aValue === null && bValue !== null) {
-    return 1;
-  }
-
-  if (aValue !== null && bValue !== null && aValue !== bValue) {
-    return toRank(aValue, sortOrder) - toRank(bValue, sortOrder);
+  if (byValue !== 0) {
+    return byValue;
   }
 
   const aTime: number | null = toTime(a.createdAt);
@@ -138,6 +172,94 @@ export const compareListOrderItems: (
   }
 
   return a.id < b.id ? -1 : 1;
+};
+
+// A sort's direction for one column, as TypeORM reads it, or null.
+const toSortDirection: (value: unknown) => SortOrder | null = (
+  value: unknown,
+): SortOrder | null => {
+  const direction: unknown =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)["direction"]
+      : value;
+
+  if (typeof direction !== "string") {
+    return null;
+  }
+
+  const upper: string = direction.toUpperCase();
+
+  if (upper === SortOrder.Ascending) {
+    return SortOrder.Ascending;
+  }
+
+  return upper === SortOrder.Descending ? SortOrder.Descending : null;
+};
+
+/**
+ * The order the server reads a drag-ordered list's rows in, given the sort
+ * its caller asked for (DatabaseService.getReadSort), so that a read agrees
+ * with the list as it is shown (compareListOrderItems; issue #9654):
+ *
+ *   - asked for no order: the list's own, top first, two rows at one
+ *     number the older first. So "the project's created state" - a lookup
+ *     by a flag alone, findOneBy({ isCreatedState: true }) - is the
+ *     topmost row carrying it, as every rule and the Dashboard take it,
+ *     never the newest one, which a read in no order used to give;
+ *   - asked for the list's number last, in the list's direction: two rows
+ *     at that number the older first, as the list shows them, rather than
+ *     by id;
+ *   - asked for it against the list's direction - from the bottom up, as
+ *     "the least severe severity" is read: the newer of two rows at one
+ *     number first, and by id from the highest, so the first row read is
+ *     the last row the list shows.
+ *
+ * Any other order is read as asked, and so is one that already says how
+ * its ties go (by createdAt or _id).
+ */
+export const getListOrderReadSort: (data: {
+  sort: Record<string, unknown> | null | undefined;
+  column: string;
+  sortOrder: SortOrder;
+}) => Record<string, unknown> = (data: {
+  sort: Record<string, unknown> | null | undefined;
+  column: string;
+  sortOrder: SortOrder;
+}): Record<string, unknown> => {
+  const entries: Array<[string, unknown]> = Object.entries(
+    data.sort || {},
+  ).filter((entry: [string, unknown]): boolean => {
+    return entry[1] !== undefined && entry[1] !== null;
+  });
+
+  if (entries.length === 0) {
+    return {
+      [data.column]: data.sortOrder,
+      createdAt: SortOrder.Ascending,
+    };
+  }
+
+  const [lastColumn, lastValue] = entries[entries.length - 1]!;
+  const direction: SortOrder | null = toSortDirection(lastValue);
+  const saysHowTiesGo: boolean = entries.some(
+    (entry: [string, unknown]): boolean => {
+      return entry[0] === "createdAt" || entry[0] === "_id";
+    },
+  );
+
+  if (lastColumn !== data.column || direction === null || saysHowTiesGo) {
+    return data.sort || {};
+  }
+
+  if (direction === data.sortOrder) {
+    return { ...data.sort, createdAt: SortOrder.Ascending };
+  }
+
+  return {
+    ...data.sort,
+    createdAt: SortOrder.Descending,
+    _id: SortOrder.Descending,
+  };
 };
 
 /** A copy of the rows, top of the list first. */
@@ -193,7 +315,13 @@ export const getListOrderAppendValue: (data: {
 };
 
 /**
- * The other rows that have to move when one row is given `requestedValue`.
+ * The other rows that have to step aside for a row to be put AT
+ * `requestedValue` rather than beside the row holding it.
+ *
+ * A write of a number never does this (see the contract above): only a row
+ * whose place the server itself picks, because its caller named none - a
+ * state created without a number goes just above the resolved state
+ * (Common/Utils/StateOrder) - makes room for itself this way.
  *
  * `siblings` are the rows of the list as they are now (the row being placed
  * may be among them; it is ignored). `previousValue` is the number the row
@@ -386,32 +514,79 @@ export const moveListItem: <T>(
   return moved;
 };
 
-/**
- * What a table sends when a row is dropped: the number held by the row that
- * sat where it was dropped. Null when that cannot be known (no row there, or
- * the row has no number yet), in which case the caller has nothing honest to
- * send.
+/*
+ * What a move of one row of a list to another row's place comes to: the rows
+ * given another number, or why it is no move of this list - the moved row is
+ * not in it (deleted, or moved to another list, since it was read), or the
+ * row whose place it takes is not.
  */
-export const getDropTargetValue: <T>(data: {
-  items: Array<T>;
-  sourceIndex: number;
-  destinationIndex: number;
-  getValue: (item: T) => unknown;
-}) => number | null = <T>(data: {
-  items: Array<T>;
-  sourceIndex: number;
-  destinationIndex: number;
-  getValue: (item: T) => unknown;
-}): number | null => {
-  if (data.sourceIndex === data.destinationIndex) {
-    return null;
+export type ListOrderMove =
+  | { kind: "moved"; changes: Array<ListOrderChange> }
+  | { kind: "rowNotInList" }
+  | { kind: "placeNotInList" };
+
+// Ids as Postgres writes a uuid, however a caller wrote them.
+const sameListOrderId: (a: string, b: string) => boolean = (
+  a: string,
+  b: string,
+): boolean => {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+};
+
+/**
+ * Moves row `itemId` to the place of row `placeOfId`: the list in the order
+ * it is shown (sortListOrderItems), the moved row taken out and put where the
+ * named row stands - just above it when it came from below, just below it
+ * when it came from above - and the list numbered from scratch, 1..n from
+ * the top (n..1 for a list that counts down). Only the rows whose number
+ * changes are given; a move to the row's own place changes none.
+ *
+ * A drop in a reorderable table, and the move request (POST <list>/:id/move)
+ * it sends: the row it was dropped on is named by its id, so a list with
+ * gaps, rows without a number or two rows at one number moves exactly where
+ * it was dropped all the same.
+ */
+export const getListOrderMoveChanges: (data: {
+  items: Array<ListOrderItem>;
+  itemId: string;
+  placeOfId: string;
+  sortOrder: SortOrder;
+}) => ListOrderMove = (data: {
+  items: Array<ListOrderItem>;
+  itemId: string;
+  placeOfId: string;
+  sortOrder: SortOrder;
+}): ListOrderMove => {
+  const list: Array<ListOrderItem> = sortListOrderItems(
+    data.items,
+    data.sortOrder,
+  );
+
+  const from: number = list.findIndex((item: ListOrderItem): boolean => {
+    return sameListOrderId(item.id, data.itemId);
+  });
+
+  if (from < 0) {
+    return { kind: "rowNotInList" };
   }
 
-  const target: T | undefined = data.items[data.destinationIndex];
+  const to: number = list.findIndex((item: ListOrderItem): boolean => {
+    return sameListOrderId(item.id, data.placeOfId);
+  });
 
-  if (target === undefined) {
-    return null;
+  if (to < 0) {
+    return { kind: "placeNotInList" };
   }
 
-  return toListOrderNumber(data.getValue(target));
+  if (from === to) {
+    return { kind: "moved", changes: [] };
+  }
+
+  return {
+    kind: "moved",
+    changes: getListOrderChanges({
+      orderedItems: moveListItem(list, from, to),
+      sortOrder: data.sortOrder,
+    }),
+  };
 };

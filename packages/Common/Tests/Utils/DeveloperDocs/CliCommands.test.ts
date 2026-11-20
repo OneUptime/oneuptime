@@ -21,6 +21,7 @@ import {
   CLI_RESERVED_FLAGS,
   CLI_STATE_MACHINES,
   CliAction,
+  CliDeleteChoiceFlag,
   CliFieldFlag,
   CliNoteTarget,
   CliOperation,
@@ -30,6 +31,8 @@ import {
   getCliAnalyticsFields,
   getCliAnalyticsOperations,
   getCliDatabaseOperations,
+  getCliDeleteChoiceFlagName,
+  getCliDeleteChoiceFlags,
   getCliFieldFlagHelp,
   getCliFieldFlags,
   getCliFieldFlagsFor,
@@ -704,5 +707,75 @@ describe("telemetry's fields", () => {
     expect(isAnalyticsColumnReadable("body", [Permission.ProjectMember])).toBe(
       true,
     );
+  });
+});
+
+/*
+ * WHAT A DELETE SAYS BESIDES THE RECORD (#9949): a flag of the resource's
+ * delete for each choice its table's delete takes (DeleteChoices.ts), named
+ * for its key in miscDataProps as a field's flag is for its column.
+ */
+describe("a delete's choices and their flags", () => {
+  test("a custom role's delete takes one flag for each choice, named for its key", () => {
+    const flags: Array<CliDeleteChoiceFlag> =
+      getCliDeleteChoiceFlags("CustomRole");
+
+    expect(
+      flags.map((flag: CliDeleteChoiceFlag) => {
+        return {
+          key: flag.key,
+          flag: flag.flag,
+          valueName: flag.valueName,
+          values: flag.values,
+          relatedTableName: flag.relatedTableName,
+          requiredWith: flag.requiredWith,
+        };
+      }),
+    ).toEqual([
+      {
+        key: "workflowsRunAs",
+        flag: "--workflows-run-as",
+        valueName: "<value>",
+        values: ["Default", "CustomRole"],
+        relatedTableName: undefined,
+        requiredWith: undefined,
+      },
+      {
+        key: "workflowsRunAsCustomRoleId",
+        flag: "--workflows-run-as-custom-role-id",
+        valueName: "<id>",
+        values: undefined,
+        relatedTableName: "CustomRole",
+        requiredWith: { flag: "--workflows-run-as", value: "CustomRole" },
+      },
+    ]);
+  });
+
+  test("each is named as a field's flag would be, and no flag the CLI keeps for itself", () => {
+    for (const flag of getCliDeleteChoiceFlags("CustomRole")) {
+      expect(getCliDeleteChoiceFlagName(flag.key)).toBe(toCliFlag(flag.key));
+      expect(flag.flag).toBe(toCliFlag(flag.key));
+      expect(isCliFieldFlagAllowed(flag.flag)).toBe(true);
+      expect(CLI_RESERVED_FLAGS).not.toContain(flag.flag);
+      // Commander stores each under the key itself.
+      expect(toCommanderAttributeName(flag.flag)).toBe(flag.key);
+    }
+  });
+
+  test("each says what it is, naming the other by its flag", () => {
+    const [runAs, role] = getCliDeleteChoiceFlags("CustomRole");
+
+    expect(runAs!.description).toBe(
+      'What the workflows that run as this custom role run as once it is deleted: "Default", the default permissions, or "CustomRole", another custom role you could give a team, named in --workflows-run-as-custom-role-id. Never Project Owner: deleting a role never raises what a workflow can do.',
+    );
+    expect(role!.description).toBe(
+      'The ID of the other custom role the workflows run as, when --workflows-run-as is "CustomRole": one you could give a team, and not the role being deleted.',
+    );
+  });
+
+  test("a table whose delete takes no choices has no such flags", () => {
+    for (const tableName of ["Team", "Incident", "Workflow", "", null]) {
+      expect(getCliDeleteChoiceFlags(tableName)).toEqual([]);
+    }
   });
 });

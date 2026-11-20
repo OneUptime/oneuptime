@@ -1,6 +1,13 @@
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import ProjectLimitLock from "../../../Server/Utils/Database/ProjectLimitLock";
+import PendingInviteeProfiles from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import { DataSource, EntityManager } from "typeorm";
+
+// The statements that read who is only invited, for a person and for a project.
+const PENDING_MEMBERSHIPS_STATEMENTS: Array<string> = [
+  PendingInviteeProfiles.getPendingMembershipsStatement({ userId: "" }),
+  PendingInviteeProfiles.getPendingMembershipsStatement({ projectId: "" }),
+];
 
 /*
  * THE TRANSACTION A CREATE HELD TO A LIMIT IS INSERTED IN, FOR A SUITE
@@ -61,6 +68,15 @@ export function useInMemoryLimitTransactions(data: {
 
       log.events.push(sql);
 
+      /*
+       * Who is only invited, read in the transaction by a check that names
+       * people under its lock (an override's refusal): nobody, as outside
+       * one below.
+       */
+      if (PENDING_MEMBERSHIPS_STATEMENTS.includes(sql)) {
+        return [];
+      }
+
       return [{ count: data.count(sql, parameters || []) }];
     },
     getRepository: (tableName: string): unknown => {
@@ -105,6 +121,21 @@ export function useInMemoryLimitTransactions(data: {
     ): Promise<unknown> => {
       log.opened++;
       return await run(manager);
+    },
+    /*
+     * Who of some people is only invited to a project, asked to name them
+     * as the project knows them (PendingInviteeProfiles, #9823): nobody,
+     * where the tables are in memory. Any other read outside a transaction
+     * is one these tables cannot answer.
+     */
+    query: async (sql: string): Promise<Array<unknown>> => {
+      if (PENDING_MEMBERSHIPS_STATEMENTS.includes(sql)) {
+        return [];
+      }
+
+      throw new Error(
+        `LimitTransactionsInMemory: no read outside a transaction for ${sql}`,
+      );
     },
   } as unknown as DataSource);
 

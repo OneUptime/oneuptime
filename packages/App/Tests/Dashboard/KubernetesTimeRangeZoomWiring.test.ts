@@ -471,9 +471,10 @@ describe("resource detail Metrics tabs: the tab's card keeps the zoom", () => {
       KUBERNETES_METRICS_TAB,
       'export { default } from "../Infrastructure/ResourceMetricsTab";',
     );
+    // A claim's formula charts (its used percent, #9539) ride in the same card.
     expectCode(
       RESOURCE_METRICS_TAB,
-      "<EmbeddedMetricCard hideCard={true} queryConfigs={props.queryConfigs} renderExtraCharts={props.renderExtraCharts} />",
+      "<EmbeddedMetricCard hideCard={true} queryConfigs={props.queryConfigs} formulaConfigs={props.formulaConfigs} renderExtraCharts={props.renderExtraCharts} />",
     );
     // No range from the page: the card is uncontrolled, and zooms its own.
     expectNoCode(RESOURCE_METRICS_TAB, "timeRange=");

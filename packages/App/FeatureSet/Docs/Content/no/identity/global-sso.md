@@ -93,21 +93,31 @@ Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle
 
 ## Logg også ut av identitetsleverandøren
 
-Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin kommer den neste som logger inn med den leverandøren, inn som den som gikk. Klikk på **Rediger konfigurasjon** for en OpenID Connect-leverandør, og slå på **Logg også ut av identitetsleverandøren** under **Flere felt**: Når man logger ut av OneUptime, avsluttes da også økten hos leverandøren, og leverandøren sender nettleseren tilbake til påloggingssiden til OneUptime. Den er slått av som standard, siden den på en personlig bærbar også ville logge personen ut av alle andre apper som bruker leverandøren.
+Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin kommer den neste som logger inn med den leverandøren, inn som den som gikk. Klikk på **Rediger konfigurasjon** på en SAML- eller OpenID Connect-leverandør, og slå på **Logg også ut av identitetsleverandøren** under **Flere felt**: Utlogging av OneUptime avslutter da også økten hos leverandøren, og leverandøren sender nettleseren tilbake til OneUptime. Den er slått av som standard, siden den på en personlig bærbar også ville logge personen ut av alle andre apper som bruker leverandøren.
 
-Registrer omdirigerings-URI-en etter utlogging som kortet **URL-en til identitetsleverandøren** viser, hos leverandøren din som en tillatt post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på.
+:::tabs
+@tab SAML
+Skriv inn utloggings-URL-en til identitetsleverandøren din som **Utloggings-URL** under **Flere felt**: Uten den kan bryteren ikke slås på. Gi deretter identitetsleverandøren **Single Logout URL** som kortet **URL-ene til identitetsleverandøren** viser, og sertifikatet som OneUptime signerer utloggingsforespørslene sine med, via **Last ned signeringssertifikat** på samme kort. Når personen logger ut hos identitetsleverandøren eller av en annen app som bruker den, logger en identitetsleverandør som sender utloggingsforespørsler til appene sine, også personen ut av OneUptime.
+@tab OpenID Connect
+Registrer omdirigerings-URI-en etter utlogging som kortet **URL-en til identitetsleverandøren** viser, hos leverandøren din som tillatt post-logout redirect URI. En leverandør med et oppdagelsesdokument som ikke nevner noe `end_session_endpoint`, som Google, kan ikke slå den på.
+:::
+
+Hvor Okta, Microsoft Entra ID, Auth0 og Keycloak har disse innstillingene, står på siden [SSO](/docs/identity/sso).
 
 ## Håndhev SSO
 
 Å sette opp en global leverandør tvinger ingen til å bruke den; pålogging med passord fungerer fortsatt. For å kreve SSO slår du på kravet for et prosjekt eller for hele instansen:
 
-- **Per prosjekt:** et prosjekt kan kreve SSO, og eventuelt kreve en *bestemt* leverandør (prosjekt eller global). Se [Krev SSO for prosjektet ditt](/docs/identity/sso#krev-sso-for-prosjektet-ditt).
+- **Per prosjekt:** et prosjekt kan kreve SSO, og eventuelt kreve en *bestemt* leverandør (prosjekt eller global). Er **Styr pålogging med SSO** også slått på, får personer der alle prosjektene styrer påloggingen slik, ikke passord, passnøkkel eller tofaktorautentisering i OneUptime. Se [Krev SSO for prosjektet ditt](/docs/identity/sso#krev-sso-for-prosjektet-ditt).
 - **Hele instansen:** kortet **Krev SSO** nederst på **Admin** > **Innstillinger** > **Enkel pålogging** har en bryter **Krev SSO for å logge på** som håndhever SSO for alle brukere på instansen. Den ber om bekreftelse før den slås på, og lagres så snart du bekrefter. Master-admins forblir unntatt, slik at de ikke kan bli utestengt.
 
 Så lenge hele instansen krever SSO:
 
 - Påloggingssiden tilbyr bare SSO: en knapp for hver global leverandør som er slått på, og ikke passord, passnøkkel, lenke på e-post, Google- eller Microsoft-pålogging eller registrering. Den beholder oppslaget via e-post, som finner et prosjekts egen leverandør, bare så lenge et prosjekt har en.
 - OneUptime avviser et passord, en passnøkkel, en lenke på e-post, en Google- eller Microsoft-pålogging og en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bare en master-admins passord eller passnøkkel logger fortsatt vedkommende inn. Folk får kontoen sin ved å logge inn med SSO eller gjennom en invitasjon.
+- Personer som ikke er master-admins, kan ikke sette opp passord, passnøkkel, sikkerhetsnøkkel, autentiseringsapp, reservekoder eller tofaktorautentisering, og en tilbakestilling av passordet sender dem ingen lenke. **Brukerprofil** deres har ingen del som heter **Sikkerhet**, og **Oversikt** der viser leverandørene de logger på med. Det de har satt opp før, blir lagret, men ubrukt, til kravet slås av.
+- Kortet **Krev SSO** viser hvor mange av dem som fortsatt har et passord eller tofaktorautentisering lagret, som ville logget dem på igjen hvis SSO ikke lenger var påkrevd. **Fjern påloggingsinnstillinger** sletter passordene, passnøklene, sikkerhetsnøklene, autentiseringsappene og reservekodene deres, slår av tofaktorautentisering og avslutter øktene de logget på uten SSO, etter å ha spurt. Det kan ikke angres, master-admins beholder sine, prosjektene til hver person registrerer det i revisjonsloggene sine, og hver person får en e-post om hva som ble fjernet og hvordan vedkommende logger på nå.
+- På siden **Autentisering** for en person under **Brukere** gjør **Fjern påloggingsinnstillinger** det samme for den ene personen, og **Angi passord** og **Send tilbakestillingslenke** sier at et passord ikke vil logge vedkommende på. Du kan ikke fjerne dine egne der, og når du fjerner innstillingene til en annen master-admin, må du bekrefte at vedkommende er master-admin.
 - Den som allerede er logget inn med passord, logger inn med SSO for å åpne et prosjekt. Vedkommende havner på prosjektets side for enkel pålogging, som tilbyr prosjektets egne leverandører og de globale leverandørene som logger folk inn i det. Kortet **Krev SSO** viser hvor mange som fortsatt er logget inn uten SSO, og **Logg dem ut** avslutter øktene deres på alle enheter på én gang. Hovedadministratorer forblir pålogget.
 - Master-admins logger inn med passordet sitt på `/accounts/admin-login`, en adresse påloggingssiden ikke lenker til. Kortet **Krev SSO** viser hele adressen under bryteren som **Innlogging for hovedadministratorer**: ta vare på den, så du kan slå av kravet hvis identitetsleverandøren din slutter å virke.
 

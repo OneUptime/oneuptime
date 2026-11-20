@@ -38,8 +38,12 @@ import {
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import CorrelationRuleMatcher, {
   CorrelationMatchResult,
+  getCorrelationMatchedEventsStart,
 } from "./Correlation/CorrelationRuleMatcher";
-import { CORRELATION_TEMPORAL_CANDIDATE_LIMIT } from "./Correlation/CorrelationQueries";
+import {
+  CORRELATION_TEMPORAL_CANDIDATE_LIMIT,
+  buildCorrelationEventsRead,
+} from "./Correlation/CorrelationQueries";
 import ProjectSigmaRules from "./Correlation/ProjectSigmaRules";
 import DetectionRuleService from "../../Services/DetectionRuleService";
 import OTelIngestService, {
@@ -53,7 +57,10 @@ import SecurityEventService, {
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import { Statement } from "../AnalyticsDatabase/Statement";
+import { SQL, Statement } from "../AnalyticsDatabase/Statement";
+import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import { SecurityDetectionMatchedEvents } from "../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
+import SecurityDetectionMatchedEventsReader from "../SecurityCase/SecurityDetectionMatchedEventsReader";
 import ConnectorErrorMessage from "./ConnectorErrorMessage";
 import {
   AlertableMatch,
@@ -861,11 +868,29 @@ export default class DetectionRuleEvaluator {
        * detections are already recorded as alerts and findings.
        */
       if (setupTest || rule.shouldCreateCase !== false) {
+        /*
+         * The events behind each group the run opens, as the run counted
+         * them: its case keeps them (#9619).
+         */
+        const matchedEvents: Map<string, SecurityDetectionMatchedEvents> =
+          await this.readMatchedEvents({
+            rule,
+            definition,
+            parsedRule,
+            matchedGroups: split.opened,
+            startTime,
+            endTime,
+            restrictTo: setupTest?.restrictTo || realTime?.restrictTo,
+            exceptionsFilter,
+            arrival: countWindow?.arrival,
+          });
+
         const signals: Array<SecurityDetectionSignal> = this.buildCaseSignals({
           rule,
           parsedRule,
           matchedGroups: split.opened,
           findingEventUids,
+          matchedEvents,
           startTime,
           endTime: coveredUntil,
         });
@@ -1192,6 +1217,8 @@ export default class DetectionRuleEvaluator {
     parsedRule: SigmaRule;
     matchedGroups: Array<DetectionMatchGroup>;
     findingEventUids: Map<string, string>;
+    // What each group matched, by its value (readMatchedEvents).
+    matchedEvents?: Map<string, SecurityDetectionMatchedEvents> | undefined;
     startTime: Date;
     endTime: Date;
   }): Array<SecurityDetectionSignal> {
@@ -1237,10 +1264,117 @@ export default class DetectionRuleEvaluator {
           detectionRuleId: rule.id!,
           sampleMessage: matchGroup.sampleMessage || undefined,
           eventUid: data.findingEventUids.get(matchGroup.groupValue),
+          matchedEvents: data.matchedEvents?.get(matchGroup.groupValue),
           seenAt: data.endTime,
         };
       },
     );
+  }
+
+  /*
+   * The events behind each group a run opens (#9619), read as the run read
+   * them, for every group at once - one read, whatever the number of
+   * groups, each group keeping its share of what one firing keeps
+   * (SecurityDetectionMatchedEventsReader): a single rule's condition -
+   * with the run's watchlists, its exceptions and the events it was handed,
+   * up to where a write's events came in - by its Group By Field; a
+   * correlation's steps, by its own group-by, from where the events it
+   * matched start (#9795). A read that fails keeps nothing.
+   */
+  public static async readMatchedEvents(data: {
+    rule: DetectionRule;
+    definition: DetectionRuleDefinition;
+    parsedRule: SigmaRule;
+    matchedGroups: Array<DetectionMatchGroup>;
+    startTime: Date;
+    endTime: Date;
+    restrictTo: Statement | undefined;
+    exceptionsFilter: Statement | null;
+    arrival?: DetectionArrivalRead | undefined;
+  }): Promise<Map<string, SecurityDetectionMatchedEvents>> {
+    const { rule } = data;
+
+    if (data.matchedGroups.length === 0 || !rule.projectId) {
+      return new Map();
+    }
+
+    // What the run ANDed into its reads, beside the rule's own condition.
+    const restrict: (condition: Statement) => Statement = (
+      condition: Statement,
+    ): Statement => {
+      let restricted: Statement =
+        andRestrictions(
+          andRestrictions(condition, data.restrictTo),
+          data.exceptionsFilter,
+        ) || condition;
+
+      if (data.arrival) {
+        restricted = andRestrictions(
+          restricted,
+          SQL`_id <= ${{
+            type: TableColumnType.Text,
+            value: data.arrival.lastId,
+          }}`,
+        )!;
+      }
+
+      return restricted;
+    };
+
+    if (data.definition.kind !== "correlation") {
+      return SecurityDetectionMatchedEventsReader.readForGroups({
+        projectId: rule.projectId,
+        start: data.startTime,
+        end: data.endTime,
+        condition: restrict(SigmaClickhouseCompiler.compile(data.parsedRule)),
+        groupExpression: rule.groupByField
+          ? buildSigmaFieldExpression(rule.groupByField)
+          : null,
+        groupValues: data.matchedGroups.map(
+          (matchGroup: DetectionMatchGroup): string => {
+            return matchGroup.groupValue;
+          },
+        ),
+      });
+    }
+
+    /*
+     * Every group the correlation fired for, in one read - grouped as its
+     * own reads group them (buildCorrelationEventsRead) - where it used to
+     * read its first ten one by one, and the rest kept nothing.
+     */
+    let correlationRead: ReturnType<typeof buildCorrelationEventsRead>;
+
+    try {
+      correlationRead = buildCorrelationEventsRead({
+        correlation: data.definition.correlation,
+        steps: data.definition.steps,
+      });
+    } catch (error) {
+      // A step it cannot read: nothing to keep, and the run goes on.
+      logger.warn(
+        `DetectionRuleEvaluator: rule ${rule.id?.toString()} keeps no matched events: ${error}`,
+      );
+
+      return new Map();
+    }
+
+    return SecurityDetectionMatchedEventsReader.readForGroups({
+      projectId: rule.projectId,
+      start: getCorrelationMatchedEventsStart({
+        correlation: data.definition.correlation,
+        steps: data.definition.steps,
+        startTime: data.startTime,
+      }),
+      end: data.endTime,
+      condition: restrict(correlationRead.condition),
+      groupExpression: correlationRead.groupExpression,
+      groupValues: data.matchedGroups.map(
+        (matchGroup: DetectionMatchGroup): string => {
+          return matchGroup.groupValue;
+        },
+      ),
+    });
   }
 
   private static async openAlertsForMatches(data: {

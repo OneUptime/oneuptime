@@ -9,6 +9,7 @@ import {
   RESOURCE_SECURITY_DESCRIPTION,
   RESOURCE_SECURITY_MONITOR_DESCRIPTION,
   RESOURCE_SECURITY_MONITOR_QUIET,
+  RESOURCE_SECURITY_OWN_LOGS_QUIET,
   RESOURCE_SECURITY_QUIET,
   RESOURCE_SECURITY_SERVICE_DESCRIPTION,
   RESOURCE_SECURITY_SERVICE_QUIET,
@@ -405,10 +406,13 @@ function readCases(
     );
 }
 
-// The kinds of record only ever searched for by their logs.
+/*
+ * The kinds of record only ever searched for by their logs. A serverless
+ * function is not one since #9780: its events are the ones carrying its
+ * faas.name, and naming its ARN.
+ */
 export const SEARCHED_BY_LOGS_KINDS: ReadonlyArray<SecurityConnectionKind> = [
   SecurityConnectionKind.Service,
-  SecurityConnectionKind.ServerlessFunction,
 ];
 
 export function parseResourceSecurity(json: JSONObject): ResourceSecurityJson {
@@ -438,6 +442,8 @@ export function parseResourceSecurity(json: JSONObject): ResourceSecurityJson {
       typeof json["isSearchedByLogs"] === "boolean"
         ? json["isSearchedByLogs"]
         : SEARCHED_BY_LOGS_KINDS.includes(kind),
+    // An older server's answer does not say: its own logs are not said to count.
+    isReadFromOwnLogs: json["isReadFromOwnLogs"] === true,
     entity: entities[0] || null,
     eventCount: readNumber(json["eventCount"]),
     findingCount: readNumber(json["findingCount"]),
@@ -884,6 +890,26 @@ export const RECORD_SECURITY_EVENTS_PAGES: Partial<
 > = {
   [SecurityConnectionKind.NetworkDevice]:
     PageMap.NETWORK_DEVICE_VIEW_SECURITY_EVENTS,
+  // A host's and a cluster's own page, beside their Logs (#9547).
+  [SecurityConnectionKind.Host]: PageMap.HOST_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.KubernetesCluster]:
+    PageMap.KUBERNETES_CLUSTER_VIEW_SECURITY_EVENTS,
+  // A Docker or Podman host's, an OpenStack cloud's and a service's (#9628).
+  [SecurityConnectionKind.DockerHost]: PageMap.DOCKER_HOST_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.PodmanHost]: PageMap.PODMAN_HOST_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.OpenStackCloud]:
+    PageMap.OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.Service]: PageMap.SERVICE_VIEW_SECURITY_EVENTS,
+  /*
+   * A cloud resource's (#9779): its account's audit log names it by its own
+   * ID, and its own streamed logs carry it. A serverless function's (#9780):
+   * its logs and traces carry its faas.name, whatever service they are
+   * filed under, and its audit log names it by its ARN where it is known.
+   */
+  [SecurityConnectionKind.CloudResource]:
+    PageMap.CLOUD_RESOURCE_VIEW_SECURITY_EVENTS,
+  [SecurityConnectionKind.ServerlessFunction]:
+    PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS,
 };
 
 /*
@@ -951,15 +977,21 @@ export function getRecordSecurityEventsRoute(data: {
 
 /*
  * What a record's Security card says it is about: what named the record,
- * what was read from its logs (a service, a serverless function, a cloud
- * resource with no name or address of its own), or - a monitor - what
- * named the hosts it checks.
+ * what was read from its logs (a service, a cloud resource with no name or
+ * address of its own, a function whose ARN is not known), both (a device,
+ * a container host, an OpenStack cloud, a cloud resource, a function), or -
+ * a monitor - what named the hosts it checks.
  */
 export function getResourceSecurityDescription(data: {
   kind: SecurityConnectionKind;
   isSearchedByLogs: boolean;
+  // Whether its own logs count too, and the identities naming it is searched by.
+  isReadFromOwnLogs?: boolean | undefined;
+  values?: ReadonlyArray<string> | undefined;
 }): { news: string; quiet: string } {
-  if (data.isSearchedByLogs) {
+  const isNamed: boolean = (data.values || []).length > 0;
+
+  if (data.isSearchedByLogs || (data.isReadFromOwnLogs && !isNamed)) {
     return {
       news: RESOURCE_SECURITY_SERVICE_DESCRIPTION,
       quiet: RESOURCE_SECURITY_SERVICE_QUIET,
@@ -975,7 +1007,9 @@ export function getResourceSecurityDescription(data: {
 
   return {
     news: RESOURCE_SECURITY_DESCRIPTION,
-    quiet: RESOURCE_SECURITY_QUIET,
+    quiet: data.isReadFromOwnLogs
+      ? RESOURCE_SECURITY_OWN_LOGS_QUIET
+      : RESOURCE_SECURITY_QUIET,
   };
 }
 

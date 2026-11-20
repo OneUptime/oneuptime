@@ -51,6 +51,9 @@ const KIND_ICONS: Record<string, IconProp> = {
   PersistentVolumeClaim: IconProp.Disc,
   PersistentVolume: IconProp.Disc,
   HorizontalPodAutoscaler: IconProp.ChartBar,
+  Namespace: IconProp.Folder,
+  // A container of a pod: the pod's own cube is its parts'.
+  Container: IconProp.Cube,
 };
 
 // The kinds that live in a namespace: their pages need it to find them.
@@ -81,6 +84,8 @@ export const KUBERNETES_CURRENT_PART_LABELS: Record<string, string> = {
   Job: translationKey("This Job"),
   CronJob: translationKey("This CronJob"),
   DeploymentConfig: translationKey("This DeploymentConfig"),
+  Namespace: translationKey("This namespace"),
+  Container: translationKey("This container"),
 };
 
 export function getKubernetesKindChip(kind: string): string {
@@ -95,6 +100,8 @@ export type KubernetesPartRouteFor = (part: {
   kind: string;
   name: string;
   namespace: string;
+  // A container's pod: its page is named by it (#9732).
+  pod?: string | undefined;
 }) => Route | undefined;
 
 function toAttentionText(text: KubernetesHealthText): ResourceAttentionText {
@@ -108,11 +115,19 @@ function toAttentionText(text: KubernetesHealthText): ResourceAttentionText {
   return result;
 }
 
+/*
+ * A claim's pod - one that mounts it, the workload writing to it - as a
+ * fact under the claim: a step to its page in the list a count opens
+ * (ResourceAttentionDialog), its name on the card, whose row opens the
+ * claim.
+ */
+export const KUBERNETES_CLAIM_POD_FACT_LABEL: string = translationKey("Pod");
+
 export function toKubernetesAttentionItem(
   finding: KubernetesAttentionFinding,
   routeFor: KubernetesPartRouteFor,
 ): ResourceAttentionItem {
-  return {
+  const item: ResourceAttentionItem = {
     key: finding.key,
     kind: getKubernetesKindChip(finding.kind),
     kindAsWritten: true,
@@ -131,6 +146,23 @@ export function toKubernetesAttentionItem(
       namespace: finding.namespace,
     }),
   };
+
+  if (finding.pod) {
+    item.facts = [
+      {
+        key: "pod",
+        label: KUBERNETES_CLAIM_POD_FACT_LABEL,
+        value: finding.pod,
+        route: routeFor({
+          kind: "Pod",
+          name: finding.pod,
+          namespace: finding.namespace,
+        }),
+      },
+    ];
+  }
+
+  return item;
 }
 
 /*
@@ -225,6 +257,9 @@ export function parseKubernetesAttentionFindings(
     }
     if (typeof source["podCount"] === "number") {
       finding.podCount = source["podCount"];
+    }
+    if (typeof source["pod"] === "string" && source["pod"]) {
+      finding.pod = source["pod"];
     }
     findings.push(finding);
   }

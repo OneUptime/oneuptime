@@ -42,7 +42,7 @@ Alt annet finner du i dashbordet.
 :::
 
 :::details Kan jeg bekrefte en varsling fra varslingen?
-Nei. Trykk på varslingen: appen åpner hendelsen, varselet, episoden eller sikkerhetssaken den gjelder, i riktig prosjekt, og du bekrefter der. Er appen låst, eller er du logget ut, åpner den varselet så snart du er inne.
+Ja. Trykk lenge på varslingen på en iPhone, eller utvid den på Android: en vaktvarsling tilbyr **Acknowledge** og **Escalate**, en varsling som bare holder deg orientert, tilbyr **I've seen it**, og en testvarsling tilbyr **Acknowledge test page**. Hver av dem åpner appen på saken så snart telefonen er låst opp, og gjør det sakens egen knapp gjør; før den eskalerer, spør den først. Trykker du på selve varslingen, åpner appen hendelsen, varselet, episoden eller sikkerhetssaken den gjelder, i riktig prosjekt. Er appen låst, eller er du logget ut, åpner den varselet så snart du er inne.
 :::
 
 :::details Er innloggingen min trygg på telefonen?
@@ -109,7 +109,7 @@ Appen nådde ikke `https://<your-oneuptime>/api/status`. Sjekk adressen, inklude
 :::
 
 :::details «No SSO configuration found for the email»
-Ingen av prosjektene den e-postadressen er medlem av, har satt opp single sign-on, eller e-postadressen har ingen konto på dette OneUptime. Sjekk e-postadressen, eller logg inn med passordet ditt. Leverandører som administratoren din har satt opp for hele installasjonen, står foran e-postfeltet.
+Ingen prosjekter på dette OneUptime tilbyr ennå single sign-on for domenet til den e-postadressen: en Prosjekteier eller Prosjektadministrator legger domenet til prosjektets SSO-leverandør, uansett hvem e-postadressen tilhører. Sjekk e-postadressen, eller logg inn med passordet ditt. Leverandører som administratoren din har satt opp for hele installasjonen, står foran e-postfeltet.
 :::
 
 :::details En sikkerhetsnøkkel er din eneste andre faktor

@@ -18,7 +18,7 @@ Wanneer u op de pagina **Bereikbaarheidsschema's** een schema maakt, vraagt het 
 
 :::steps
 1. Ga naar **Bereikbaarheid** > **Bereikbaarheidsschema's** en klik op **Bereikbaarheidsschema maken**.
-2. Vul een **Naam** in.
+2. Vul een **Naam** in. Een naam die een ander schema van het project al heeft, wordt geweigerd, ongeacht hoofdletters en spaties, zodat elke keuzelijst de schema's uit elkaar houdt.
 3. Klik onder **Wie wisselen elkaar af?** op **Gebruiker toevoegen** en kies de mensen, in de volgorde waarin ze elkaar afwisselen.
 4. Open desgewenst **Meer velden** om te wijzigen hoe lang elke beurt duurt, de tijdzone, de beschrijving of de labels.
 5. Klik op **Bereikbaarheidsschema maken**. Het nieuwe schema opent daarna op de pagina **Lagen** ervan, waar u de rotatie kunt wijzigen of meer lagen kunt toevoegen.
@@ -40,7 +40,7 @@ Al het andere staat onder **Meer velden**, ingeklapt tot u het opent:
 | Veld | Wat het doet |
 | --- | --- |
 | **Elke beurt duurt** | **1 dag**, **1 week**, **2 weken** of **1 maand**, en **1 week** als u het niet wijzigt. Het wordt gevraagd zodra iemand elkaar afwisselt. Elke persoon heeft zo lang dienst, daarna neemt de volgende het over, op het tijdstip van de dag waarop het schema is gemaakt. |
-| **Tijdzone** | De tijdzone waarin overdrachtstijden en diensturen worden bijgehouden. Hij begint op de uwe. |
+| **Tijdzone** | De tijdzone waarin overdrachtstijden en diensturen worden bijgehouden. Hij begint op de uwe. Elke tijdzone volgt de huidige regels van haar regio: America/Vancouver (Brits-Columbia) blijft vanaf 2026 het hele jaar op UTC-7. |
 | **Beschrijving** | Notities over het schema. |
 | **Labels** | Labels om het schema te vinden en te groeperen. |
 
@@ -97,11 +97,11 @@ Zolang die persoon afwezig is:
 
 Kies je in plaats daarvan iemand onder **Wie vervangt?**, dan krijgt die alle oproepen van de persoon, uit elk schema en elk beleid, in plaats van dat de rotatie de beurten overneemt.
 
-Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraagt ze het recht voor overrides over het hele project. Is de rol van je team beperkt tot zijn eigen beleid of tot enkele labels, dan komt ze in plaats daarvan op het beleid van dit schema waarvoor je overrides mag toevoegen, met één override per beleid, vermeld op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid; zijn het er meer, dan vink je ze aan onder **Bereikbaarheidsbeleid**. **Overslaan tot…** is alleen vergrendeld en zegt waarom waar je dat voor geen enkel beleid mag. Ze staat onder **Bereikbaarheid** > **Geavanceerd** > **Gebruikersoverschrijvingen**, en bij de gebruikersoverschrijvingen van het schema op zijn pagina **Lagen**, waar **Nu beëindigen** de persoon eerder terughaalt. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
+Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraagt ze het recht voor overrides over het hele project. Is de rol van je team beperkt tot zijn eigen beleid of tot enkele labels, dan komt ze in plaats daarvan op het beleid van dit schema waarvoor je overrides mag toevoegen, met één override per beleid, vermeld op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid; zijn het er meer, dan vink je ze aan onder **Bereikbaarheidsbeleid**. **Overslaan tot…** is alleen vergrendeld en zegt waarom waar je dat voor geen enkel beleid mag. Ze staat onder **Bereikbaarheid** > **Schema's** > **Gebruikersoverschrijvingen**, en bij de gebruikersoverschrijvingen van het schema op zijn pagina **Lagen**, waar **Nu beëindigen** de persoon eerder terughaalt. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
-Het **Overzicht** van een schema heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels oproepen wie er bereikbaar is, met de regels die dat doen. Doet geen enkel dat, dan zegt de kaart het en linkt naar het bereikbaarheidsbeleid. Het schema verwijderen, op zijn pagina of vanuit de lijst, zegt eerst welk beleid via het schema oproept. Beleid dat u niet mag openen, wordt geteld maar niet genoemd.
+Het **Overzicht** van een schema heeft een kaart **Gebruikt door**: de bereikbaarheidsbeleidsregels waarvan de escalatieregels oproepen wie er bereikbaar is, met de regels die dat doen. Doet geen enkel dat, dan zegt de kaart het en linkt naar het bereikbaarheidsbeleid. Het schema verwijderen, op zijn pagina of vanuit de lijst, zegt eerst welk beleid via het schema oproept. Beleid dat u niet mag openen, wordt geteld maar niet genoemd. Een schema met dezelfde naam als een ander schema, uit de tijd dat namen nog niet hoefden te verschillen, is in de lijst **Bereikbaarheidsschema's** gemarkeerd met **Zelfde naam als een ander schema**, en die lijst zegt hoeveel het er zijn: vergelijk hun lagen en hernoem er dan één met **Hernoemen** in de rij ervan.
 
 ## Schema's maken met de API of Terraform
 

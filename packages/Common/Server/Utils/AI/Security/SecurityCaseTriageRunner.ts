@@ -161,6 +161,7 @@ export default class SecurityCaseTriageRunner {
        */
       await AIInvestigationQueue.failOrRequeue({
         aiRunId,
+        projectId,
         attemptCount,
         errorMessage: `Failed to build the security case context: ${message}`,
         isPermanent: message.includes("Security case not found"),

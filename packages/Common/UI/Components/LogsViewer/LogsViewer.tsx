@@ -51,6 +51,7 @@ import {
 } from "../Date/TimeRangePickerDropdown";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
+import OpenedLogLine, { LogsViewerOpenedLog } from "./components/OpenedLogLine";
 import LogsHistogram from "./components/LogsHistogram";
 import LogsFacetSidebar from "./components/LogsFacetSidebar";
 import ActiveFilterChips from "./components/ActiveFilterChips";
@@ -181,6 +182,16 @@ export interface ComponentProps {
     | undefined;
   // A section the app adds to an opened line (LogDetailsPanel).
   renderLogExtraSection?: ((log: Log) => ReactNode) | undefined;
+  /*
+   * The link that opens one line (#9794): a row's details and the line a
+   * link opened both offer Copy Link with it (LogDetailsPanel).
+   */
+  getLogLink?: ((log: Log) => string | null | undefined) | undefined;
+  /*
+   * One line a link opened by its id (#9620), drawn above the list in the
+   * panel a row opens: the Logs page's `log` param (OpenedLogLine).
+   */
+  openedLog?: LogsViewerOpenedLog | undefined;
   projectId?: ObjectID | undefined;
   /*
    * How many logs the query matches — or the lower bound the logs list
@@ -285,6 +296,22 @@ const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
 
 export const LOGS_VIEWER_MAIN_AREA_TEST_ID: string = "logs-viewer-main-area";
 export const LOGS_VIEWER_LIST_TEST_ID: string = "logs-viewer-list";
+
+// What Enter presses by itself: a button, a link, or a control drawn as one.
+const PRESSABLE_CONTROL_SELECTOR: string =
+  "button, a[href], [role='button'], [role='link'], [role='tab'], [role='menuitem'], [role='option'], [role='checkbox'], [role='switch'], summary";
+
+/*
+ * Whether a key pressed on `target` is a control's own: Enter presses a
+ * focused button or link, so the list's Enter (open or close the row its
+ * focus is on) leaves it be.
+ */
+export function isPressableControl(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest(PRESSABLE_CONTROL_SELECTOR) !== null
+  );
+}
 
 const severityWeight: Record<string, number> = {
   fatal: 6,
@@ -1206,6 +1233,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       }
 
       if (e.key === "Enter") {
+        /*
+         * Enter on a button or a link presses it, and is no more than that:
+         * on an opened row's Copy Link or Close it also opened or closed the
+         * row the list's own focus was on, so the panel it was pressed in
+         * closed under the reader.
+         */
+        if (isPressableControl(target)) {
+          return;
+        }
+
         if (focusedRowIndex >= 0 && focusedRowIndex < logCount) {
           const log: Log = displayedLogs[focusedRowIndex]!;
           const rowId: string = resolveLogIdentifier(log, focusedRowIndex);
@@ -1624,6 +1661,38 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 </div>
               )}
 
+              {props.openedLog ? (
+                <OpenedLogLine
+                  opened={props.openedLog}
+                  renderLog={(log: Log): ReactElement => {
+                    return (
+                      <LogDetailsPanel
+                        log={log}
+                        serviceMap={drawnServiceMap}
+                        resourceEntityMaps={entityLookupMaps}
+                        entityNameMap={entityNameMap}
+                        onClose={() => {
+                          props.openedLog?.onClose();
+                        }}
+                        getTraceRoute={props.getTraceRoute}
+                        getSpanRoute={props.getSpanRoute}
+                        resolveSpanRoute={props.resolveSpanRoute}
+                        getSessionRoute={props.getSessionRoute}
+                        renderExtraSection={props.renderLogExtraSection}
+                        getLogLink={props.getLogLink}
+                        variant="embedded"
+                        projectId={props.projectId}
+                        onFilterByAttribute={
+                          handleFieldValueSelectWithServiceResolve
+                        }
+                      />
+                    );
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+
               {props.listError ? (
                 <TelemetryLoadErrorMessage
                   error={props.listError}
@@ -1683,6 +1752,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                         resolveSpanRoute={props.resolveSpanRoute}
                         getSessionRoute={props.getSessionRoute}
                         renderExtraSection={props.renderLogExtraSection}
+                        getLogLink={props.getLogLink}
                         variant="embedded"
                         projectId={props.projectId}
                         onFilterByAttribute={

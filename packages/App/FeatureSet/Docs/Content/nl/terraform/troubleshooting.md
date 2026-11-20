@@ -22,6 +22,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | `This project has been blocked` | Vraag een hoofdbeheerder om het project te deblokkeren: zie [Een geblokkeerd project](#een-geblokkeerd-project) |
 | `references records that are not in this project` | Gebruik het ID van een record van je eigen project: zie [ID's van een ander project](#ids-van-een-ander-project) |
 | `Not Found` of `Ambiguous Match` van een data source | Corrigeer de argumenten van de zoekopdracht: zie [Zoekopdrachten die niets of meerdere vinden](#zoekopdrachten-die-niets-of-meerdere-vinden) |
+| `There is already a team called` (een label, een bereikbaarheidsbeleid, een bereikbaarheidsschema) | Geef het een naam die geen ander record van die soort heeft, of hernoem eerst het andere: zie [Namen die een ander record al heeft](#namen-die-een-ander-record-al-heeft) |
 | `Cannot import non-existent remote object` | Controleer het ID en de machtigingen van de sleutel: zie [Resources importeren](/docs/terraform/importing-resources#probleemoplossing) |
 | `Provider produced inconsistent result after apply` | Upgrade de provider: zie [Inconsistent resultaat na apply](#inconsistent-resultaat-na-apply) |
 | Een plan maakt een resource aan die je niet hebt toegevoegd | De sleutel kan hem niet meer lezen, en OneUptime antwoordde `404`: geef de sleutel zijn leestoegang terug, en importeer de resource daarna met `terraform import`: zie [Een resource verlaat de state, en de volgende apply maakt hem opnieuw aan](#een-resource-verlaat-de-state-en-de-volgende-apply-maakt-hem-opnieuw-aan) |
@@ -103,6 +104,12 @@ Meestal betekent het dat een ID is gekopieerd uit de configuratie of state van e
 
 Een data source vindt precies één record, of stopt het plan. `Not Found` zegt dat geen enkel record het `id` heeft, of dat geen enkel record overeenkomt met de argumenten die je hebt ingesteld; `Ambiguous Match` zegt dat er meerdere overeenkomen. Corrigeer de argumenten, stel er meer in om de zoekopdracht tot één te beperken, of zoek het record op via `id`. [Lezen wat al bestaat](/docs/terraform/complete-guide#lezen-wat-al-bestaat) geeft de regels.
 
+### Namen die een ander record al heeft
+
+Teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's hebben in een project elk een eigen naam, ongeacht hoofdletters en spaties. Aanmaken of hernoemen naar een naam die een ander record van dezelfde soort al heeft, krijgt `400` als antwoord, zoals `There is already an on-call policy called Primary in this project. Pick another name.` Een gearchiveerd bereikbaarheidsbeleid houdt zijn naam: haal het uit het archief, of kies een andere naam. Records die al eerder een naam deelden, houden die, en de lijsten van teams, bereikbaarheidsbeleid en bereikbaarheidsschema's in het dashboard markeren ze.
+
+Terraform voert de wijzigingen van één apply naast elkaar uit, dus een hernoeming naar een naam die een andere resource in dezelfde apply opgeeft, kan worden geweigerd zolang die andere de naam nog heeft: pas opnieuw toe, of voeg een `depends_on` toe van de resource die de naam overneemt naar de resource die hem opgeeft. Een ruil, A naar B en B naar A, of elke keten van hernoemingen die eindigt waar hij begon, kan niet in één apply: hernoem er één naar een naam die niemand heeft, pas toe, en voer dan de rest van de wijziging uit.
+
 ## Plannen die niet tot rust komen
 
 ### Inconsistent resultaat na apply
@@ -131,9 +138,13 @@ Dat gebeurt wanneer de sleutel die een resource beheert, hem niet meer kan lezen
 
 ### Een prioriteit of volgorde die verschuift
 
-Monitorstatussen, statussen en ernstniveaus van incidenten en waarschuwingen, en de andere lijsten die je in het dashboard op volgorde zet, bevatten elk nummer één keer. Een nummer dat niemand anders heeft, blijft zoals het geschreven is. Een nummer dat een ander al heeft, wordt overgenomen, en de items die in de weg staan, schuiven één plaats op, zoals slepen in het dashboard doet. Twee items die met hetzelfde nummer zijn geconfigureerd, wisselen dus bij elke apply van plaats.
+Elke lijst die je in het dashboard op volgorde zet, houdt het nummer dat elke resource krijgt: monitorstatussen (`priority`), statussen en ernstniveaus van incidenten en waarschuwingen, aangepaste velden, logpijplijnen en dropfilters (`sort_order`), groepen en resources van statuspagina's, escalatieregels, lagen van roosters en de rest. Een nummer instellen plaatst die resource en verplaatst geen andere, dus een configuratie die een hele lijst nummert, zoals `order = index(local.severities, each.key) + 1` over een `for_each` van `local.severities`, wordt precies zo toegepast als ze geschreven is, in welke volgorde de schrijfacties van de provider ook aankomen, en het volgende plan is leeg.
 
-Geef elk een eigen nummer met ruimte ertussen, zoals `101`, `102` en `103`, en orden de items die Terraform beheert opnieuw in Terraform, niet door ze in het dashboard te slepen.
+- Geef elke resource een eigen nummer: twee met hetzelfde nummer houden het allebei, naast elkaar, in een volgorde die je niet kiest.
+- Een resource die zonder nummer wordt aangemaakt, komt aan het eind van zijn lijst. Een nieuwe status van een incident of waarschuwing komt in plaats daarvan net boven de opgeloste status, en een nieuwe monitorstatus net boven de offline-status.
+- Een resource verwijderen laat een gat in de nummers achter, wat niets verandert: een lijst gaat uit van zijn nummers, niet van tellen.
+- Een resource slepen in het OneUptime-dashboard nummert zijn hele lijst opnieuw vanaf boven, en het volgende plan toont dat als wijzigingen. Zet de resources die Terraform beheert in Terraform op volgorde.
+- De ingebouwde statussen houden hun volgorde: een wijziging die er twee op hetzelfde nummer of uit hun volgorde zou zetten, wordt geweigerd, met de reden. Als een apply ingebouwde statussen voorbij elkaars oude nummers verplaatst, kan een van zijn schrijfacties als eerste aankomen en op die weigering stuiten; voer de apply opnieuw uit en hij wordt afgerond.
 
 ### Alleen-lezen attributen
 

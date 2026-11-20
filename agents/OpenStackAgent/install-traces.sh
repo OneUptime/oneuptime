@@ -51,9 +51,9 @@ SERVICE_NAME="oneuptime-openstack-traces"
 # The release the native service runs: the version docker-compose.traces.yml pins, each
 # archive held to a sha256 kept here rather than one fetched from the same release.
 # Tests/Ops/OpenStackAgentTraces.test.js holds these to install.sh, so bump them together.
-COLLECTOR_VERSION="0.161.0"
-COLLECTOR_SHA256_AMD64="778c689efa681ff6e4722ce9f66b9b7f57c3ba009ab2e2b43dc2e0315862c731"
-COLLECTOR_SHA256_ARM64="cd5de93213a0dbb90e4998b3b9e4e15ed691ec635cf7cf4147f95799fb16b676"
+COLLECTOR_VERSION="0.165.0"
+COLLECTOR_SHA256_AMD64="bd6e73d94bf3359ad6fac25529a8ee308adb9b0b8a0e8af034ed3891fbe5aa33"
+COLLECTOR_SHA256_ARM64="376420729c862230807bc89811d07d10031eaeca3f6481fe371a2bdcefd2c8fa"
 
 # ----------------------------------------------------------------------------
 # .env quoting: see install.sh, whose helpers these are

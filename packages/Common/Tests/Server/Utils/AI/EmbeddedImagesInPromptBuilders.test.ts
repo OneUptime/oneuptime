@@ -474,9 +474,11 @@ describe("grading an investigation against the recorded root cause", () => {
       id: ObjectID.generate(),
       completedAt: new Date(),
     } as unknown as AIRun);
+    // Declared by a person, so the root cause it holds is theirs (#7765).
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
       id: incidentId,
       rootCause: withScreenshot("The CDN purge failed."),
+      createdByUserId: ObjectID.generate(),
     } as unknown as Incident);
     jest
       .spyOn(PostedRootCause, "getForInvestigation")

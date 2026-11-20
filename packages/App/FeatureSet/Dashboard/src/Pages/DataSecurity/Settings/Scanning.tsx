@@ -328,7 +328,7 @@ const READ_SWITCHES: Array<ScanningSwitch> = [
     column: "isTelemetryScanEnabled",
     title: translationKey("Scan telemetry"),
     description: translationKey(
-      "Sample the project's logs, traces, exceptions, replays and AI conversations for sensitive data.",
+      "Sample the project's logs, traces, metrics, exceptions, replays and AI conversations for sensitive data.",
     ),
     dataTestId: "data-security-scan-telemetry",
   },

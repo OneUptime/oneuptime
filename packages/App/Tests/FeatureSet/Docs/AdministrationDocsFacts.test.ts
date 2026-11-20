@@ -230,7 +230,7 @@ const EMAIL_NOT_SENT_ANSWER: string =
  * (#7471), and of the link handed out where no email went (#7169).
  */
 const SIGN_UP_JOINS: string =
-  "**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept.";
+  "**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept. **Sign In with SSO** opens the same page, offering single sign-on instead of a password: signing in there with one of the project's identity providers joins the project.";
 const NO_EMAIL_ACCEPT: string =
   "On a self-hosted server that cannot send email yet, nobody is emailed: the invitation link they are sent instead opens the same sign-up page, or the sign-in page for someone who already has an account.";
 
@@ -609,17 +609,32 @@ describe("Inviting People", () => {
     );
   });
 
-  it("asks for a Name only for an address no account uses yet", () => {
+  /*
+   * #9745: the dialog no longer asks the server whether an address has an
+   * account; it offers an optional Name for any address typed, and the
+   * server uses it only for an account nobody has signed up to yet.
+   */
+  it("asks for an optional Name for any address typed, never only for one no account uses", () => {
     const nameField: string = between(
       users,
       'title: "Name"',
       "},\n              {",
     );
 
-    expect(nameField).toContain("isEmailRegistered === false");
+    expect(nameField).toContain("shouldAskForInviteeName");
+    expect(nameField).toContain("description: INVITEE_NAME_DESCRIPTION");
     expect(nameField).toContain("required: false");
+    expect(nameField).not.toContain("isEmailRegistered");
     expect(page).toContain(
-      "If no OneUptime account uses it yet, the dialog also asks for a **Name**",
+      "For an address you type, the dialog also asks for a **Name**, which is optional: if they have no OneUptime account yet, it is set up with that name.",
+    );
+    expect(page).not.toContain("If no OneUptime account uses it yet");
+  });
+
+  // #9744: anyone who may invite, once a master admin allows it.
+  it("says who else is offered the server's other accounts on a self-hosted server", () => {
+    expect(page).toContain(
+      "marked **Not in this project yet**, and so is anyone who may invite people, once a master admin allows it in the Admin Dashboard.",
     );
   });
 
@@ -775,16 +790,114 @@ describe("Inviting People", () => {
     expect(register).toContain(
       "miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY] = invitation.projectId;",
     );
-    // The server accepts it once the token has claimed the account.
+    /*
+     * The server accepts it once the token has claimed the account
+     * (claimInvitedAccount, where sign-up claims an invited account, #9816).
+     */
     expect(authentication).toContain(
-      "await SignUpInvitationUtil.acceptForClaimedAccount({ userId: alreadySavedUser.id!, projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY], });",
+      "await SignUpInvitationUtil.acceptForClaimedAccount({ userId: account.id!, projectId: miscDataProps[SIGN_UP_INVITATION_PROJECT_KEY], });",
     );
     expect(signUpInvitation).toContain(
       "hasAcceptedInvitation: true, invitationAcceptedAt: OneUptimeDate.getCurrentDate(),",
     );
 
     expect(accept[1]).toBe(SIGN_UP_JOINS);
-    expect(boldNames(SIGN_UP_JOINS)).toEqual(["Create Your Account"]);
+    expect(boldNames(SIGN_UP_JOINS)).toEqual([
+      "Create Your Account",
+      "Sign In with SSO",
+    ]);
+  });
+
+  /*
+   * #9819: someone whose sign-in SSO will manage once they join - the
+   * project manages its people's sign-in with SSO and so does every other
+   * project they are in, or the whole server requires SSO - is invited to
+   * sign in with SSO, never to choose a password: the email's button, and
+   * the page it opens, which offers the project's providers. Signing in
+   * through one of them accepts the invitation.
+   */
+  it("says an invitation for someone SSO will sign in offers SSO, and that signing in with it joins", () => {
+    const template: string = readPackageFile(
+      "App/FeatureSet/Notification/Templates/InviteMember.hbs",
+    );
+    const service: string = collapsed(
+      readCommonSource("Server/Services/TeamMemberService.ts"),
+    );
+    const rule: string = collapsed(
+      readCommonSource("Server/Utils/SsoManagedSignIn.ts"),
+    );
+    const register: string = collapsed(
+      readPackageFile("App/FeatureSet/Accounts/src/Pages/Register.tsx"),
+    );
+    const gate: string = collapsed(
+      readPackageFile("App/FeatureSet/Identity/Utils/ProjectSsoSignInGate.ts"),
+    );
+    const accept: Array<string> = paragraphs(
+      section(page, "## Accept an invitation"),
+    );
+
+    // The email: its own words and button, by the managed sign-in rule.
+    expect(template).toContain('{{#ifCond isSsoSignIn "true"}}');
+    expect(template).toContain('buttonText="Sign In with SSO"');
+    expect(service).toContain(
+      "return await SsoManagedSignIn.getManagedByOnceIn({",
+    );
+    expect(rule).toContain("public static async getManagedByOnceIn(data: {");
+    // The page: the project's providers, and no password.
+    expect(register).toContain(
+      "if (invitation?.ssoSignIn) { return <InvitedSsoSignIn invitation={invitation} />; }",
+    );
+    // Signing in through the project's SSO accepts the invitation.
+    expect(gate).toContain(
+      "hasAcceptedInvitation: false, }, data: { hasAcceptedInvitation: true, invitationAcceptedAt: OneUptimeDate.getCurrentDate(), },",
+    );
+
+    expect(accept[0]).toContain(
+      "or because the whole server requires SSO, the email says so instead, and its button is **Sign In with SSO**.",
+    );
+  });
+
+  /*
+   * #9823: until someone accepts, the project sees what it invited - the
+   * address, and the name typed for them - never their account's own name
+   * or picture, wherever it reads them. #9826: the Admin Dashboard's
+   * invitation forms draw the Dashboard's email box.
+   */
+  it("says the project knows someone only invited by the name typed for them, and that the Admin Dashboard suggests people too", () => {
+    const database: string = collapsed(
+      readCommonSource("Server/Services/DatabaseService.ts"),
+    );
+    const withheld: string = collapsed(
+      readCommonSource("Server/Utils/TeamMember/PendingInviteeProfiles.ts"),
+    );
+    const adminUsers: string = readPackageFile(
+      "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
+    );
+    const adminTeam: string = readPackageFile(
+      "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/TeamView.tsx",
+    );
+
+    expect(database).toContain(
+      "await PendingInviteeProfiles.withholdFromRows({",
+    );
+    expect(withheld).toContain(
+      '"name", "profilePictureId", "twoFactorAuthEnabled",',
+    );
+    expect(withheld).toContain(
+      'data.person["name"] = profile.inviteeName ? new Name(profile.inviteeName) : undefined;',
+    );
+    for (const adminPage of [adminUsers, adminTeam]) {
+      expect(adminPage).toContain(
+        'from "Common/UI/Components/InviteeEmailField/InviteeEmailFormField";',
+      );
+    }
+
+    expect(page).toContain(
+      "Until they accept, the project shows them by that name, or by their address alone, never by the name or picture of their own account. The Admin Dashboard's invitation forms suggest people in the same way.",
+    );
+    expect(page).toContain(
+      "| **User** | Their name and email address. Until they accept, the name you typed for them, if any. |",
+    );
   });
 
   it("says the link handed out where no email went opens the same sign-up page, or the sign-in page for an account", () => {
@@ -1121,17 +1234,25 @@ describe("Inviting People", () => {
     });
 
     it("says signing up cannot email a new link there, and tells them to ask for their invitation link", () => {
+      /*
+       * A server that cannot send email cannot prove an address either, so
+       * its sign-ups go through signUpWithoutProvingTheAddress (#9816),
+       * which answers an invitation nobody has claimed.
+       */
       const authentication: string = collapsed(
         readPackageFile("App/FeatureSet/Identity/API/Authentication.ts"),
       );
-      const refusal: number = authentication.indexOf(
+      const withoutProof: string = authentication.slice(
+        authentication.indexOf("const signUpWithoutProvingTheAddress"),
+      );
+      const refusal: number = withoutProof.indexOf(
         "if (await ServerSendingStatus.isEmailKnownNotSetUp()) { return Response.sendErrorResponse( req, res, new BadDataException(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE), ); }",
       );
 
       // Refused before the new link would be emailed.
       expect(refusal).toBeGreaterThan(-1);
       expect(refusal).toBeLessThan(
-        authentication.indexOf(
+        withoutProof.indexOf(
           "AuthenticationEmail.sendCompleteRegistrationEmail({",
         ),
       );
@@ -3144,10 +3265,16 @@ describe("Audit Logs", () => {
       "Resource Name",
       "Action",
       "User Email",
+      // What a workflow's step ran as, and whose permissions (#9766).
+      "Workflow Ran As",
+      "Workflow Permissions Given By",
       "Time",
     ]);
     expect(section(page, "## Read the audit log")).toContain(
-      "Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**.",
+      "Filter by **Resource Type**, **Resource Name**, **Action**, **User Email**, **Workflow Ran As**, **Workflow Permissions Given By** or **Time**.",
+    );
+    expect(section(page, "## Read the audit log")).toContain(
+      "A workflow's change says what it ran as and with whose permissions.",
     );
     expect(table).toContain("sortOrder={SortOrder.Descending}");
     // A change OneUptime made by itself is drawn as System.

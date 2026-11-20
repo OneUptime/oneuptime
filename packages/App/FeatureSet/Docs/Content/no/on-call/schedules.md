@@ -18,7 +18,7 @@ Når du oppretter en vaktplan på siden **Vaktplaner**, spør skjemaet om **Navn
 
 :::steps
 1. Gå til **Vakt** > **Vaktplaner**, og klikk på **Opprett vaktplan**.
-2. Skriv inn et **Navn**.
+2. Skriv inn et **Navn**. Et navn som en annen vaktplan i prosjektet allerede har, avvises uavhengig av store og små bokstaver og mellomrom, slik at hver velger skiller vaktplanene fra hverandre.
 3. Klikk på **Legg til bruker** under **Hvem bytter på å ha vakt?**, og velg personene i den rekkefølgen de bytter på.
 4. Åpne eventuelt **Flere felt** for å endre hvor lenge hver vakt varer, tidssonen, beskrivelsen eller etikettene.
 5. Klikk på **Opprett vaktplan**. Den nye vaktplanen åpnes deretter på siden **Lag**, der du kan endre rotasjonen eller legge til flere lag.
@@ -40,7 +40,7 @@ Alt annet ligger under **Flere felt**, slått sammen til du åpner det:
 | Felt | Hva det gjør |
 | --- | --- |
 | **Hver vakt varer** | **1 dag**, **1 uke**, **2 uker** eller **1 måned**, og **1 uke** hvis du ikke endrer det. Det spørres om så snart noen bytter på. Hver person har vakt så lenge, og så tar den neste over, på det tidspunktet på dagen da vaktplanen ble opprettet. |
-| **Tidssone** | Tidssonen overleveringstider og vakttimer holdes i. Den starter på din. |
+| **Tidssone** | Tidssonen overleveringstider og vakttimer holdes i. Den starter på din. Hver tidssone følger de gjeldende reglene i sin region: America/Vancouver (British Columbia) holder seg på UTC-7 hele året fra 2026. |
 | **Beskrivelse** | Notater om vaktplanen. |
 | **Etiketter** | Etiketter for å finne og gruppere vaktplanen. |
 
@@ -97,11 +97,11 @@ Mens de er borte:
 
 Velg i stedet noen under **Hvem dekker?**, så får den personen alle varslene deres fra alle vaktplaner og alle policyer, i stedet for at rotasjonen tar vaktene deres.
 
-Fravær som legges til på denne måten, gjelder for alle vaktpolicyer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne policyer eller til noen etiketter, legges det i stedet på policyene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per policy, som står på hver policys egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakt** > **Avansert** > **Brukeroverstyringer**, og blant vaktplanens brukeroverstyringer på siden **Lag**, der **Avslutt nå** får dem tilbake tidligere. For å hoppe over noen i bare én policy legger du til overstyringen på den policyens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Fravær som legges til på denne måten, gjelder for alle vaktpolicyer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne policyer eller til noen etiketter, legges det i stedet på policyene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per policy, som står på hver policys egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakt** > **Tidsplaner** > **Brukeroverstyringer**, og blant vaktplanens brukeroverstyringer på siden **Lag**, der **Avslutt nå** får dem tilbake tidligere. For å hoppe over noen i bare én policy legger du til overstyringen på den policyens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Via API-et hopper en brukeroverstyring (`/api/on-call-duty-policy-user-override`) som opprettes uten `routeAlertsToUserId`, over personen i `overrideUserId` fra `startsAt` til `endsAt`.
 
-**Oversikt** for en vaktplan har kortet **Brukes av**: vaktpolicyene der eskaleringsreglene varsler den som har vakt, med reglene som gjør det. Gjør ingen det, sier kortet det og lenker til vaktpolicyene. Når du sletter vaktplanen, på siden dens eller fra listen, sies det først hvilke policyer som varsler via den. Policyer du ikke kan åpne, telles, men navngis ikke.
+**Oversikt** for en vaktplan har kortet **Brukes av**: vaktpolicyene der eskaleringsreglene varsler den som har vakt, med reglene som gjør det. Gjør ingen det, sier kortet det og lenker til vaktpolicyene. Når du sletter vaktplanen, på siden dens eller fra listen, sies det først hvilke policyer som varsler via den. Policyer du ikke kan åpne, telles, men navngis ikke. En vaktplan som har samme navn som en annen vaktplan fra før navn måtte være forskjellige, er merket med **Samme navn som en annen tidsplan** i listen **Vaktplaner**, som viser hvor mange det er: sammenlign lagene deres, og gi så én av dem nytt navn med **Gi nytt navn** på raden til vaktplanen.
 
 ## Opprett vaktplaner med API-et eller Terraform
 

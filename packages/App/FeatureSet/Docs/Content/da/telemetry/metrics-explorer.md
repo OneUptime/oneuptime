@@ -149,7 +149,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 ### Se, hvad den gjorde
 
 - **Metrikker → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Metrikker**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
-- **Metrikker → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
+- **Metrikker → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt. En pull request siger, hvordan dens opgave i Code står nu: en rettelse, der blev bedt om igen med Prøv igen, efter at den mislykkedes, står ikke længere som mislykket og nævner den pull request, den åbnede.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ### Registrer anmodningsmetrikker uden at ændre kode

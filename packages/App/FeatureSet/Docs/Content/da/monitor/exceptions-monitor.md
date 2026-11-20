@@ -49,7 +49,7 @@ I **Undtagelser at holde øje med** angiver du **Beskeden indeholder**, **Undtag
 
 ### Indsnævr dem (valgfrit)
 
-Åbn **Flere felter** for at filtrere efter telemetritjeneste eller infrastrukturentitet eller for også at tælle løste og arkiverede undtagelser.
+Åbn **Flere felter** for at filtrere efter telemetritjeneste eller infrastrukturentitet, for kun at tælle ikke-håndterede undtagelser eller udelade nogle typer, eller for også at tælle løste og arkiverede undtagelser.
 
 ### Sig, hvornår der skal advares
 
@@ -74,6 +74,8 @@ Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, og dens 
 | **Tidsvindue** (i **Hvornår der advares**) | Undtagelser fra de seneste 5 sekunder op til de seneste 24 timer. | **Seneste 5 minutter** |
 | **Filtrer efter tjeneste** (under **Flere felter**) | Undtagelser fra en af de valgte tjenester. | Tom: alle tjenester |
 | **Filtrér efter infrastrukturenhed** (under **Flere felter**) | Undtagelser fra en af de valgte værter, pods, containere og andre entiteter. | Tom: alle entiteter |
+| **Kun ikke-håndterede undtagelser** (under **Flere felter**) | Kun de undtagelser, som ikke blev fanget, fx et nedbrud: dem, som undtagelses-explorer markerer som **Ikke håndteret**. En undtagelse, der ikke angiver, om den blev fanget, tæller som håndteret. | Fra |
+| **Udelad undtagelsestyper** (under **Flere felter**) | Ikke undtagelserne af disse typer, adskilt af kommaer, såsom `ANR, Hang`. Typenavnet skal matche præcist. En type, der står her, udelades, selv når **Undtagelsestyper** også nævner den. | Tom: ingen type udelades |
 | **Inkluder løste undtagelser** (under **Flere felter**) | Tæl også undtagelser, der er markeret som løst. | Fra |
 | **Inkluder arkiverede undtagelser** (under **Flere felter**) | Tæl også arkiverede undtagelser. | Fra |
 
@@ -103,6 +105,17 @@ Når du opretter monitoren via API'et, sætter du `environments` på trinnets `e
 }
 ```
 
+Gennem API'et er **Kun ikke-håndterede undtagelser** `unhandledOnly`, og **Udelad undtagelsestyper** er `excludedExceptionTypes`, en liste over typenavne. En mobilapps anbefaling **App Crashes** sætter begge for at tælle appens nedbrud og ikke dens hæng:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Sådan evalueres den
 
 - **Hvert minut.** En undtagelse-monitor tjekkes ikke af sonder, så den har intet interval at angive og ingen side **Sonder og interval**.
@@ -116,7 +129,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En undtagelse-monitors kriterier har fire slags **Filtertype**: **Antal undtagelser**, antallet af undtagelser, der matchede i vinduet, samt **Nye undtagelser**, **Genopståede undtagelser** og **Stigning i undtagelser (i %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
+En undtagelse-monitors kriterier har seks slags **Filtertype**: **Antal undtagelser**, antallet af undtagelser, der matchede i vinduet, samt **Nye undtagelser**, **Genopståede undtagelser**, **Stigning i undtagelser (i %)**, **Sessioner med undtagelser (i %)** og **Sessioner**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
@@ -160,6 +173,17 @@ Ud over hvor mange undtagelser der skete, kan en undtagelse-monitor advare ved d
 | **Stigning i undtagelser (i %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
 
 Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, miljø og meddelelse og også efter infrastrukturentitet: en undtagelse tæller med, når en af dens forekomster i vinduet kom fra en af de valgte entiteter.
+
+## En andel af sessionerne
+
+En app på tusindvis af telefoner har altid nogle nedbrud, så det, teamet vil høre om, er, at raten stiger. For en app, hvis spans bærer `session.id`, såsom en mobilapp, kan en undtagelse-monitor advare ved andelen af sessioner, som en undtagelse skete i. Begge læses kun, når et kriterium tjekker dem.
+
+| Filtertype | Hvad den læser i vinduet |
+| --- | --- |
+| **Sessioner med undtagelser (i %)** | Andelen af vinduets sessioner, hvor en matchende undtagelse skete. Uden nogen session i vinduet er der ingen andel, og intet kriterium på den matcher. |
+| **Sessioner** | Vinduets sessioner: de forskellige `session.id` på spans fra monitorens tjenester. Kombinér denne filtertype med andelen, så en andel af nogle få sessioner ikke udløser en advarsel. |
+
+Med **Kun ikke-håndterede undtagelser** slået til og typerne `ANR` og `Hang` udeladt er andelen en mobilapps nedbrudsrate. En mobilapps anbefaling **App Crash Rate** advarer, når mere end 1,09 % af en times sessioner går ned, den rate, som Android vitals kalder dårlig adfærd, så snart timen har mindst 250 sessioner. **App ANR Rate** tæller kun `ANR` og `Hang`, over 0,47 %. For selv at skrive sådan en regel vælger du **En andel af sessionerne** under **Advar ved** i **Hvornår der advares**.
 
 ## Toppe i forhold til det normale
 

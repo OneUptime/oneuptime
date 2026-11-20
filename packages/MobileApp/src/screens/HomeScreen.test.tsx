@@ -25,7 +25,7 @@ import {
   loadProductsOffOnServer,
   resetProductsOffOnServer,
 } from "../hooks/useProductsOffOnServer";
-import { WindowLayoutProvider } from "../layout/WindowLayout";
+import { WindowLayoutProvider } from "../layout/WindowLayoutProvider";
 import { TABLETOP_FOLD_GAP } from "../layout/windowLayout";
 import { getScreenBottomPadding } from "../theme/layout";
 import {

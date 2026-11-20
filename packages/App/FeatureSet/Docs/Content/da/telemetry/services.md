@@ -57,13 +57,14 @@ For at tilføje en tjeneste, før dens telemetri ankommer, for eksempel for at a
 
 ## En tjenestes sider
 
-En tjenestes sidemenu har fem sektioner:
+En tjenestes sidemenu har seks sektioner:
 
 | Sektion | Sider |
 | --- | --- |
 | **Grundlæggende** | **Oversigt**: forespørgsler, fejlrate og p95-latens fra dens spans, diagrammer og dens detaljer. **Anbefalinger**: færdige monitorer til tjenesten, valgt efter dens sprog. **SLOs**: de SLO'er, der måler dens anmodninger, hvor du kan oprette et, der allerede måler tjenesten. **Ejere**: de personer og teams, der har ansvaret for den. **Feed**: alt, hvad der er sket med den, fra hvordan den blev oprettet, til hver ændring siden. |
-| **Telemetri** | Dens **Protokoller**, **Spor**, **Metrikker**, **Profiler**, **Undtagelser** og **Source maps**, allerede filtreret til denne tjeneste. |
+| **Telemetri** | Dens **Protokoller**, **Sikkerhedshændelser**, **Spor**, **Metrikker**, **Profiler**, **Undtagelser** og **Source maps**, allerede filtreret til denne tjeneste. |
 | **Aktivitet** | De **Hændelser**, **Advarsler** og begivenheder under **Planlagt vedligeholdelse**, der berører den. |
+| **Sikkerhed** | **Datasikkerhed**: de følsomme data, som tjenestens logs, traces og undtagelser indeholder, og hvad der skal rettes ([Følsomme data i telemetri](/docs/data-security/telemetry)). **Overholdelse**: hvordan de data står i forhold til hver ramme, med en kontakt, der slår en ramme eller et krav fra for denne tjeneste ([Overholdelse i Datasikkerhed](/docs/data-security/compliance#på-en-ressources-side)). Sektionen vises, når Datasikkerhed har scannet tjenestens telemetri, og er foldet sammen fra start. |
 | **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |
 | **Avanceret** | **Indstillinger**, **Auditlogs** og **Slet tjeneste**. **Avanceret** er foldet sammen fra start: fold den ud først. |
 

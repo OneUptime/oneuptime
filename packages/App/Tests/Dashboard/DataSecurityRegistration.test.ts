@@ -78,6 +78,43 @@ describe("Data Security registry wiring", () => {
     }
   });
 
+  /*
+   * What a resource turns off of a compliance framework (#9555) came after
+   * Data Security's first migration: its model and service are registered,
+   * its CRUD API mounted, and its own migration creates its table.
+   */
+  test("the compliance settings a resource makes are registered, mounted and made by their own migration", () => {
+    const model: string = "DataSecurityComplianceSetting";
+
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      `${model},`,
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      `${model}Service,`,
+    );
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      new RegExp(
+        `new BaseAPI<\\s*${model},\\s*${model}ServiceType\\s*>\\(\\s*${model},\\s*${model}Service,?\\s*\\)`,
+      ),
+    );
+
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(migrations).toContain(
+      'import { AddDataSecurityComplianceSettings1809184850000 } from "./1809184850000-AddDataSecurityComplianceSettings";',
+    );
+    expect(migrations).toContain(
+      "AddDataSecurityComplianceSettings1809184850000,",
+    );
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809184850000-AddDataSecurityComplianceSettings.ts",
+      ),
+    ).toContain(`CREATE TABLE "${model}"`);
+  });
+
   test("the stores' own API (with its actions) and every other model's CRUD API are mounted", () => {
     const baseApi: string = readSquashed("App/FeatureSet/BaseAPI/Index.ts");
 
@@ -115,10 +152,14 @@ describe("Data Security registry wiring", () => {
     for (const key of [
       "overview",
       "compliance",
+      "resourceScope",
+      "resourceCompliance",
       "recordOfProcessing",
       "scanNow",
       "checkNow",
       "scrubFinding",
+      "dropMetricImpact",
+      "dropMetric",
       "explainIssue",
       "fixIssueWithAi",
     ]) {
@@ -130,10 +171,14 @@ describe("Data Security registry wiring", () => {
     const paths: Array<string> = [
       DATA_SECURITY_API_ROUTES.overview,
       DATA_SECURITY_API_ROUTES.compliance,
+      DATA_SECURITY_API_ROUTES.resourceScope,
+      DATA_SECURITY_API_ROUTES.resourceCompliance,
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
       DATA_SECURITY_API_ROUTES.scanNow(":id"),
       DATA_SECURITY_API_ROUTES.checkNow(":id"),
       DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      DATA_SECURITY_API_ROUTES.dropMetricImpact(":id"),
+      DATA_SECURITY_API_ROUTES.dropMetric(":id"),
       DATA_SECURITY_API_ROUTES.explainIssue(":id"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi(":id"),
     ];

@@ -197,6 +197,8 @@ const MOUNTED_VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Topology.tsx", "OPENSTACK_CLOUD_VIEW_TOPOLOGY"],
   ["Metrics.tsx", "OPENSTACK_CLOUD_VIEW_METRICS"],
   ["Logs.tsx", "OPENSTACK_CLOUD_VIEW_LOGS"],
+  // Its audit trail and what names it (#9628).
+  ["SecurityEvents.tsx", "OPENSTACK_CLOUD_VIEW_SECURITY_EVENTS"],
   ["Traces.tsx", "OPENSTACK_CLOUD_VIEW_TRACES"],
   ["Checks.tsx", "OPENSTACK_CLOUD_VIEW_CHECKS"],
   ["Incidents.tsx", "OPENSTACK_CLOUD_VIEW_INCIDENTS"],
@@ -973,6 +975,81 @@ describe("no Proxmox concept leaked into the OpenStack pages", () => {
   });
 });
 
+/*
+ * A region's Degraded or Unhealthy on the Regions card opens why (#9728). It sat inside the
+ * row's link, with its (i), and a control inside a link is lost to a screen reader: the row
+ * is now a box whose name is the link, and the pill sits beside the name.
+ */
+describe("the Regions card", () => {
+  const card: string = squash(
+    stripComments(
+      readSource("Components", "OpenStack", "OpenStackRegionsCard.tsx"),
+    ),
+  );
+  const overview: string = squash(
+    stripComments(readSource("Pages", "OpenStack", "View", "Index.tsx")),
+  );
+
+  test("a region's row is a box whose name is its link, with its health and (i) beside it", () => {
+    expect(card).toContain(
+      '<ResourcePartRow to={props.route} hasControls={true} className="flex items-start gap-3" >',
+    );
+    expect(card).toContain(
+      '<ResourcePartRowName dataTestId="openstack-regions-card-name"',
+    );
+    expect(card).toContain("describedBy={factsId}");
+    expect(card).toContain(
+      'ariaCurrent={props.isSelected ? "true" : undefined}',
+    );
+    // The pill and the (i) are the row's controls, never inside its name.
+    const controls: string = card.slice(
+      card.indexOf("<ResourcePartRowControls"),
+      card.indexOf("</ResourcePartRowControls>"),
+    );
+    expect(controls).toContain("<ResourceHealthPill");
+    expect(controls).toContain('<InfoTooltip label="Region health"');
+    const name: string = card.slice(
+      card.indexOf("<ResourcePartRowName"),
+      card.indexOf("</ResourcePartRowName>"),
+    );
+    expect(name).not.toContain("<ResourceHealthPill");
+    expect(name).not.toContain("<InfoTooltip");
+    // The name comes first: the controls are painted over its stretch.
+    expect(card.indexOf("<ResourcePartRowName")).toBeLessThan(
+      card.indexOf("<ResourcePartRowControls"),
+    );
+  });
+
+  test("its pill is the shared health pill, opening that region's parts under the region's name", () => {
+    expect(card).toContain(
+      'items={props.items} testId="openstack-regions-card-health" words={{ ...OPENSTACK_REGION_HEALTH_WORDS, titleValues: { name: region.regionName }, }}',
+    );
+    expect(card).toContain(
+      "items={props.attentionByRegion[region.regionName] || []}",
+    );
+  });
+
+  test("each region's list is the Overview's, from the rows as this credential reads them", () => {
+    expect(overview).toContain(
+      "const rowsAsRead: Array<OpenStackResource> = asCredentialReadsThem( attention?.rows || [], );",
+    );
+    expect(overview).toContain(
+      "const rows: Array<OpenStackResource> = rowsAsRead.filter(inScope);",
+    );
+    expect(overview).toContain(
+      "const regionItems: Array<ResourceAttentionItem> = attentionItemsOf( rowsAsRead.filter((row: OpenStackResource): boolean => {",
+    );
+    expect(overview).toContain(
+      "attentionByRegion[one.regionName] = regionItems; healthByRegion[one.regionName] = getOpenStackHealth(regionItems);",
+    );
+    expect(overview).toContain("attentionByRegion={attentionByRegion}");
+    // One way to list what needs attention, for the cloud and for each region.
+    expect(overview).toContain(
+      "const items: Array<ResourceAttentionItem> = attentionItemsOf(rows);",
+    );
+  });
+});
+
 describe("the All Clouds list", () => {
   const clouds: string = squash(readSource("Pages", "OpenStack", "Clouds.tsx"));
 
@@ -1177,6 +1254,40 @@ describe("the inventory lists read on the server", () => {
       );
     },
   );
+
+  /*
+   * "APIs up · 3 workers down" and "up · 2 lost" said how many and nothing
+   * else (#9594): each tile opens the workers and hypervisors it counts,
+   * as Needs attention lists them, while the read is current.
+   */
+  test("the Control plane and Hypervisors tiles open which workers and hosts, and why", () => {
+    const overview: string = dense(
+      readSource("Pages", "OpenStack", "View", "Index.tsx"),
+    );
+
+    expect(overview).toContain(
+      "constcanSayWhich:boolean=isCurrent&&!attentionError;",
+    );
+    expect(overview).toContain(
+      'testId:"openstack-tile-workers-down",items:getOpenStackWorkersDownItems({items:items,workers:workers,}),count:workerCounts.down,',
+    );
+    expect(overview).toContain(
+      'testId:"openstack-tile-hypervisors-lost",items:getOpenStackLostHypervisorItems({items:items,rows:rows,hypervisors:hypervisors,now:now,routeFor:routes.routeFor,}),',
+    );
+    // A count the read holds only some of says so under its list.
+    expect(overview).toContain(
+      "isPartial:workerCounts.down>getOpenStackWorkerCounts(workers).down,",
+    );
+    expect(overview).toContain(
+      "isPartial:hypervisorCounts.lost>getOpenStackHypervisorCounts(hypervisors).lost,",
+    );
+    expect(overview).toContain(
+      "description={OPENSTACK_METRIC_DESCRIPTIONS.controlPlane}attention={workersDownPill}/>",
+    );
+    expect(overview).toContain(
+      "description={OPENSTACK_METRIC_DESCRIPTIONS.hypervisors}attention={hypervisorsLostPill}/>",
+    );
+  });
 
   test("a cloud with nothing reported shows the guide, not zeros", () => {
     const overview: string = squash(

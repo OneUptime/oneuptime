@@ -61,6 +61,14 @@ import CloudStreamActivity from "Common/Server/Utils/CloudConnection/CloudStream
 import CloudStreamAuthenticator from "Common/Server/Utils/CloudConnection/CloudStreamAuthentication";
 import CloudStreamKeyedConnections from "Common/Server/Utils/CloudConnection/CloudStreamKeyedConnections";
 import CloudStreamKeys from "Common/Server/Utils/CloudConnection/CloudStreamKeys";
+import CloudStreamReadings, {
+  REDIS_STREAM_READINGS_STORE,
+  getStreamedReadingsPeriodKey,
+} from "Common/Server/Utils/CloudConnection/CloudStreamReadings";
+import {
+  MemoryStreamReadingsStore,
+  createMemoryStreamReadingsStore,
+} from "Common/Tests/Helpers/MemoryStreamReadingsStore";
 import {
   createExpressApp,
   ExpressApplication,
@@ -231,6 +239,7 @@ async function deliver(data: {
   sourceArn?: string;
   gzip?: boolean;
   chunked?: boolean;
+  headers?: Record<string, string>;
 }): Promise<FirehoseReply> {
   const requestId: string = data.requestId || nextRequestId();
 
@@ -243,6 +252,7 @@ async function deliver(data: {
     body: firehoseEnvelope({ requestId, records: data.records }),
     gzip: data.gzip,
     chunked: data.chunked,
+    headers: data.headers,
   });
 }
 
@@ -375,6 +385,8 @@ beforeEach(() => {
   CloudStreamActivity.reset();
   // What earlier tests' deliveries carried never decides this one's.
   STREAMED_SERIES_MEMORY.clear();
+  // What deliveries keep for the read, held here rather than in Redis.
+  CloudStreamReadings.store = createMemoryStreamReadingsStore();
 
   jest
     .spyOn(CloudConnectionService, "findOneById")
@@ -478,6 +490,7 @@ afterEach(() => {
   jest.restoreAllMocks();
   (MetricsQueueService.addMetricIngestJob as jest.Mock).mockReset();
   (LogsQueueService.addLogIngestJob as jest.Mock).mockReset();
+  CloudStreamReadings.store = REDIS_STREAM_READINGS_STORE;
 });
 
 async function settle(): Promise<void> {
@@ -976,9 +989,9 @@ describe("the key metrics, as the connection's read writes them", () => {
 });
 
 /*
- * A key metric added since streams began (AwsKeyMetric.isStreamed false):
- * a stack's key-metric filters were made before it, so the connection's
- * read writes it whether the account streams or not, and a stream of every
+ * A key metric added since streams began (AwsKeyMetric.streamedSince 2):
+ * a stack that says no template was made before it, so the connection's
+ * read writes it as if the account did not stream, and a stream of every
  * metric that brings it leaves it to the read - one series, of one shape.
  */
 describe("a key metric the read writes, in a stream of every metric", () => {
@@ -1017,6 +1030,158 @@ describe("a key metric the read writes, in a stream of every metric", () => {
 
     expect(points.has("amazonaws.com/AWS/EC2/CPUCreditBalance")).toBe(false);
     expect(points.get("amazonaws.com/AWS/EC2/CPUUtilization")).toHaveLength(1);
+  });
+});
+
+/*
+ * #9564: the template's metrics Firehose stream says, with every delivery,
+ * the template its stack was made from (Firehose's common attributes). A
+ * stack of template 2 carries every key metric read every five minutes:
+ * the stream writes the newer ones too, in the read's shape, and the
+ * connection keeps what the stack carries, which the reads leave to it.
+ */
+describe("a delivery from a stack of template 2", () => {
+  const TEMPLATE_2: Record<string, string> = {
+    "X-Amz-Firehose-Common-Attributes": JSON.stringify({
+      commonAttributes: {
+        "oneuptime-stream-template": "2",
+        "oneuptime-stream-metrics": "key",
+      },
+    }),
+  };
+
+  test("has its newer key metrics written as the read's gauge, and its stack kept on the connection", async () => {
+    const reply: FirehoseReply = await deliver({
+      headers: TEMPLATE_2,
+      records: [
+        openTelemetryRecord([
+          openTelemetryRequest([
+            openTelemetryMetric({
+              namespace: "AWS/EC2",
+              metricName: "CPUCreditBalance",
+              dimensions: { InstanceId: "i-0abc123def" },
+              unit: "1",
+              count: 5,
+              sum: 390,
+              min: 76,
+              max: 80,
+            }),
+          ]),
+        ]),
+      ],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+
+    const points: Map<string, Array<JSONObject>> = queuedPoints();
+    const credits: Array<JSONObject> | undefined = points.get(
+      "amazonaws.com/AWS/EC2/CPUCreditBalance",
+    );
+
+    expect(credits).toHaveLength(1);
+    // The read's statistic, the Average: 390 over 5.
+    expect(credits![0]!["asDouble"]).toBe(78);
+
+    await settle();
+
+    const summary: CloudStreamSummary | undefined = summaries.get(
+      CONNECTION_A.toString(),
+    );
+
+    expect(summary?.metricSources[0]).toMatchObject({
+      namespaces: ["AWS/EC2"],
+      templateVersion: 2,
+      everyMetric: false,
+    });
+  });
+
+  test("a stack that says no template is kept as one of template 1", async () => {
+    await deliver({
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+    await settle();
+
+    expect(
+      summaries.get(CONNECTION_A.toString())?.metricSources[0],
+    ).toMatchObject({ templateVersion: 1, everyMetric: false });
+  });
+});
+
+/*
+ * #9690: a delivery keeps, for its connection's read, each minute of a
+ * metric its resources' health and headlines read (CloudStreamReadings),
+ * so the read judges them from the stream rather than read them again.
+ */
+describe("what a delivery keeps for its connection's read", () => {
+  let store: MemoryStreamReadingsStore;
+
+  beforeEach(() => {
+    store = createMemoryStreamReadingsStore();
+    CloudStreamReadings.store = store;
+  });
+
+  test("its instance's CPU, which the read takes as its five-minute reading, its account and Region fresh", async () => {
+    const reply: FirehoseReply = await deliver({
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expectFirehoseAnswer(reply, { status: 200 });
+
+    // 09:59 is the last minute of 09:55 to 10:00, which has settled by 10:06.
+    const loaded: Awaited<ReturnType<typeof CloudStreamReadings.load>> =
+      await CloudStreamReadings.load({
+        connectionId: CONNECTION_A.toString(),
+        now: new Date(MINUTE_START_MS + 7 * 60 * 1000),
+      });
+
+    expect(Array.from(loaded.freshSources)).toEqual([
+      `${ACCOUNT_ID}|${REGION}`.toLowerCase(),
+    ]);
+    expect(Array.from(loaded.readings.values())).toEqual([
+      {
+        provider: CloudProvider.AWS,
+        resourceType: "AWS::EC2::Instance",
+        readings: {
+          "aws/ec2/cpuutilization": {
+            value: 12.5,
+            time: new Date(MINUTE_START_MS - 4 * 60 * 1000).toISOString(),
+          },
+        },
+      },
+    ]);
+  });
+
+  test("nothing of a delivery Firehose must send again; sent again and taken, its minute counted once", async () => {
+    const requestId: string = nextRequestId();
+    queueFails = true;
+
+    await deliver({
+      requestId,
+      records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+    });
+
+    expect(store.hashes.size).toBe(0);
+
+    queueFails = false;
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      expectFirehoseAnswer(
+        await deliver({
+          requestId,
+          records: [openTelemetryRecord([openTelemetryRequest([EC2_CPU])])],
+        }),
+        { status: 200, requestId },
+      );
+    }
+
+    const period: Record<string, string> | undefined = store.hashes.get(
+      getStreamedReadingsPeriodKey(
+        CONNECTION_A.toString(),
+        MINUTE_START_MS - 4 * 60 * 1000,
+      ),
+    );
+
+    expect(Object.values(period || {})).toEqual(["00001,1,12.5,12.5,12.5"]);
   });
 });
 

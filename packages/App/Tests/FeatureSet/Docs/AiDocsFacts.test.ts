@@ -33,8 +33,30 @@ import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
-import { DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES } from "Common/Types/AI/AIAgentRunLimits";
+import {
+  DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+  DEFAULT_AI_RUN_TIME_LIMIT_IN_MINUTES,
+  MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES,
+} from "Common/Types/AI/AIAgentRunLimits";
+import { PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiRunLimits";
+import {
+  PROJECT_AI_RUN_LIMIT_FIELDS,
+  ProjectAiRunLimitField,
+  ProjectAiRunLimitsCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
+  RemediationRoundTryAgainRefusal,
+} from "Common/Types/AutoRemediation/RemediationRound";
+import AutoRemediationRoundRateLimit, {
+  AutoRemediationRoundRateLimitBucket,
+} from "Common/Server/Middleware/AutoRemediationRoundRateLimit";
+import {
+  REMEDIATION_FIX_STEP_COPY,
+  REMEDIATION_ROUND_COPY,
+} from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
+import { REMEDIATION_STEP_STATUS_TEXT } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepStatus";
 import {
   CODE_TASK_LIMITS,
   CODE_TASK_LOG_WINDOWS_IN_HOURS,
@@ -760,6 +782,40 @@ describe("Code", () => {
     );
   });
 
+  /*
+   * Issue #9882: one fix at a time sees a reply working in the task, and is
+   * decided again with the task's INSERT, under the project's lock.
+   */
+  it("says every trigger finds a fix task on its way, a reply in it too, and that two at the same moment start one", () => {
+    const rule: string = flat(
+      readRepoFile("Common/Server/Utils/AI/CodeFix/CodeFixOnItsWay.ts"),
+    );
+    const subject: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/SubjectCodeFixRun.ts"),
+    );
+    const runs: string = flat(
+      readRepoFile("Common/Server/Services/AIRunService.ts"),
+    );
+
+    // A turn on its way that is a fix of the record, or whose task's first turn is: a reply.
+    expect(rule).toContain(
+      "AND ($" + '{isFixOf("turn")} OR $' + '{isFixOf("task")})',
+    );
+    // The incident's and alert's triggers and their button ask that rule.
+    expect(subject).toContain(
+      "return await CodeFixOnItsWay.findTurn(CodeFixOnItsWay.ofSubject(data));",
+    );
+    // And it is asked again as the task is written, under the project's lock.
+    expect(runs).toContain(
+      "return CodeFixOnItsWay.getCreateLimit(createBy.data);",
+    );
+    expect(rule).toContain("limitName: CODE_FIX_ON_ITS_WAY_LIMIT_NAME,");
+
+    expect(flat(englishPage(CODE_PAGE))).toContain(
+      "Every trigger first looks for a fix task already queued or running for the same incident or alert, also when what runs is a reply in the task, so an automatic trigger and a click become one task, not two pull requests. The check is made again as the task is written, under a lock, so two triggers at the very same moment start one task.",
+    );
+  });
+
   // Issue #6529: a task kept open past what one read of its turns takes.
   it("says a long task's page shows its first turn and its newest, with a line for the turns between, and counts every turn", () => {
     const thread: string = flat(
@@ -793,7 +849,45 @@ describe("Code", () => {
       'other: "{{count}} earlier turns are not shown",',
     );
     expect(conversation).toContain(
-      "{index === 0 && data.turnsNotShown ? ( <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />",
+      "const entries: Array<CodeTaskConversationEntry> = getConversationEntries({ turns, turnsNotShown: data.turnsNotShown?.count || 0, earlier, });",
+    );
+    expect(conversation).toContain("count={entry.count}");
+
+    /*
+     * Show earlier turns (#7128): the line reads the turns before the ones
+     * shown, MAX_EARLIER_TURNS_PER_READ at a time, and the Log page's
+     * picker lists them; Jump to newest (#7129) takes the reader to the
+     * newest turn.
+     */
+    const types: string = flat(readRepoFile("Common/Types/AI/CodeTask.ts"));
+    const perRead: string =
+      "export const MAX_EARLIER_TURNS_PER_READ: number = ";
+    const perReadAt: number = types.indexOf(perRead);
+    expect(perReadAt).toBeGreaterThanOrEqual(0);
+    const turnsPerRead: number = parseInt(
+      types.substring(perReadAt + perRead.length),
+      10,
+    );
+    expect(turnsPerRead).toBeGreaterThan(1);
+    expect(notShown).toContain(
+      'CODE_TASK_SHOW_EARLIER_TURNS: string = translationKey("Show earlier turns");',
+    );
+    expect(conversation).toContain(
+      "void showEarlierTurns(entry.beforeRunId, line);",
+    );
+    expect(flat(dashboardSource("Pages/Code/Task/Log.tsx"))).toContain(
+      "earlierTurns: task ? getKeptEarlierTurns(taskKey) : [],",
+    );
+    expect(
+      flat(dashboardSource("Components/Code/CodeTaskJumpToNewest.tsx")),
+    ).toContain(
+      'CODE_TASK_JUMP_TO_NEWEST: string = translationKey("Jump to newest");',
+    );
+    expect(conversation).toContain("<CodeTaskJumpToNewest");
+    expect(
+      flat(englishSection(CODE_PAGE, "## A task's conversation")),
+    ).toContain(
+      `${bold("Show earlier turns")}, under that line, shows the ${turnsPerRead} turns before the ones shown, each time you press it, and the ${bold("Log")} page's picker lists them too. A task opens at its top; while its newest turn is out of view, ${bold("Jump to newest")} above the reply box takes you there.`,
     );
 
     // The top of the page counts every turn: the ones not shown too.
@@ -991,6 +1085,21 @@ describe("Code", () => {
     );
     expect(rowStartingWith(states, bold("Failed"))[1]).toContain(
       `${bold("Try again")} asks the same again.`,
+    );
+
+    /*
+     * A fix OneUptime started is asked again too (#6509), unless it may
+     * already have written: the server's own words say why
+     * (CodeTaskFixRetry).
+     */
+    expect(rowStartingWith(states, bold("Failed"))[1]).toContain(
+      "A fix OneUptime started is asked again with what it started from, unless it may already have pushed a branch or opened a pull request: then the turn says so instead.",
+    );
+    expect(readRepoFile("Common/Types/AI/CodeFixTaskType.ts")).toContain(
+      "public static getTaskTypesAskedAgain(): Array<CodeFixTaskType> {",
+    );
+    expect(readRepoFile("Common/Types/AI/CodeTaskTryAgain.ts")).toContain(
+      '"OneUptime AI may already have pushed a branch or opened a pull request for this task, so it does not start it again: that could open a second one. Reply with what you want AI to do instead.";',
     );
   });
 
@@ -1297,7 +1406,7 @@ describe("Code", () => {
     );
   });
 
-  it("has a Runner of the project's own build and test the change, 2 minutes a command or up to 10 when asked, without its credentials, and Global Runner run no command", () => {
+  it("has a Runner of the project's own build and test the change, 2 minutes a command or up to 10 when asked - or the project's Time Limit per Command - without its credentials, and Global Runner run no command", () => {
     const agent: string = readRepoFile("Runner/CodeAgents/InHouseCodeAgent.ts");
     const limits: string = readRepoFile("Runner/Utils/AgentCommandLimits.ts");
     const checks: Array<Array<string>> = tableWithHeader(
@@ -1306,8 +1415,26 @@ describe("Code", () => {
     );
     const minutes: number =
       numberConstant(limits, "DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS") / 60;
-    const mostMinutes: number =
-      numberConstant(limits, "MAX_AGENT_COMMAND_TIMEOUT_SECONDS") / 60;
+    // Ten minutes unless the project set its own (issue #6532).
+    const mostMinutes: number = DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES;
+    const commandField: ProjectAiRunLimitField =
+      PROJECT_AI_RUN_LIMIT_FIELDS.find(
+        (field: ProjectAiRunLimitField): boolean => {
+          return field.column === PROJECT_AI_RUN_COMMAND_TIME_LIMIT_COLUMN;
+        },
+      )!;
+
+    // The Runner's most is the setting's default, and its ceiling the setting's.
+    expect(flat(limits)).toContain(
+      "export const MAX_AGENT_COMMAND_TIMEOUT_SECONDS: number = DEFAULT_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES * 60;",
+    );
+    expect(flat(limits)).toContain(
+      "export const CEILING_AGENT_COMMAND_TIMEOUT_SECONDS: number = MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES * 60;",
+    );
+    // The agent holds each command to the project's setting, as the server sends it.
+    expect(flat(agent)).toContain(
+      "commandTimeLimitInMinutes: this.runLimits?.commandTimeLimitInMinutes,",
+    );
 
     // The agent's commands take their time from the limits, and may ask for more.
     expect(agent).toContain("getAgentCommandTimeoutMs(");
@@ -1325,6 +1452,9 @@ describe("Code", () => {
 
     expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
       `Each command it runs gets ${minutes} minutes, or up to ${mostMinutes} for a slow install, build or test suite, without the Runner's own credentials in its environment.`,
+    );
+    expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
+      `${bold(commandField.title)}, in the project's ${bold(ProjectAiRunLimitsCopy.cardTitle)}, lets a command run up to ${MAX_AI_RUN_COMMAND_TIME_LIMIT_IN_MINUTES} minutes, never past the run's time limit.`,
     );
     expect(rowStartingWith(checks, bold("Global Runner"))[1]).toBe(
       "Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it.",
@@ -1450,12 +1580,22 @@ describe("Code", () => {
       "and after how many attempts when AI tried it again by itself.",
     );
 
-    // The list's filters, its search and Retry selected on a repository's page.
+    /*
+     * The list's filters, its search and Retry selected - on Code's own
+     * page too, across repositories (#6508): a row offers it where the
+     * server says the reader may try its task again (CodeTaskTryAgain).
+     */
     expect(ask).toContain(
       "filter them by how they stand, each filter with its count, or search them by title or number.",
     );
     expect(ask).toContain(
-      `and there you can tick the requests that failed or were stopped and try them all again with ${bold("Retry selected")}.`,
+      `On both pages you can tick the tasks that failed or were stopped, in the repositories where you may ask AI, and try them all again with ${bold("Retry selected")}; a task that cannot be tried again says why.`,
+    );
+    expect(flat(dashboardSource("Components/Code/CodeTaskList.tsx"))).toContain(
+      "task.canTryAgain === true &&",
+    );
+    expect(flat(readRepoFile("Common/Server/API/CodeTaskAPI.ts"))).toContain(
+      "await CodeTaskTryAgain.markWhoMayTryAgain({",
     );
     // The shared Button translates its title (302656298df).
     expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toMatch(
@@ -2188,11 +2328,18 @@ describe("MCP Server", () => {
      * dashboards, and warehouse jobs; and Cloud's monthly budgets (Cloud
      * Budget), so agents manage them as people do; and a postmortem's action
      * items (Postmortem Action Item, #6801), so an agent can track what an
-     * incident's postmortem says the team will do.
+     * incident's postmortem says the team will do; and the compliance
+     * frameworks and requirements a resource turned off (Compliance Setting,
+     * #9555, #9708), a Data Security setting like Check Setting, so an agent
+     * can say what is off where and why, as Data Security's Integrations
+     * page promises.
      */
-    expect(records()).toHaveLength(54);
+    expect(records()).toHaveLength(55);
     expect(namesIn(0)).toEqual(records());
-    // Every database model with MCP on gets all six tools.
+    /*
+     * Every database model with MCP on gets these tools, the update tool
+     * when it has a field to change (Tools/ToolGenerator).
+     */
     for (const tool of [
       "createCreateTool(",
       "createReadTool(",
@@ -2277,6 +2424,42 @@ describe("MCP Server", () => {
         });
       }
     }
+  });
+
+  /*
+   * The move of a row of an ordered list (#9651): one tool for every list,
+   * named by the server's constant, taking the arguments the page names, and
+   * doing what the page says - the API's move, as the dashboard's drag.
+   */
+  it("names the tool that moves a row of an ordered list by the server's own name, with the arguments it takes", () => {
+    const move: string = readRepoFile("App/FeatureSet/MCP/Tools/MoveInList.ts");
+    const paragraph: string =
+      englishSection(MCP_SERVER, "## Tools for incident response")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("**`oneuptime_move_in_list`**");
+        }) || "";
+
+    expect(move).toContain(
+      'MOVE_IN_LIST_TOOL_NAME: string = "oneuptime_move_in_list"',
+    );
+    expect(move).toContain('required: ["resource", "id", "placeOfId"]');
+    // The API's move request, as the dashboard's drag sends it.
+    expect(move).toContain("${getMoveInListRoute(id)}");
+    expect(move).toContain("body: { placeOfId: placeOfId }");
+
+    for (const argument of ["`resource`", "`id`", "`placeOfId`"]) {
+      expect({ argument, named: paragraph.includes(argument) }).toEqual({
+        argument,
+        named: true,
+      });
+    }
+
+    expect(paragraph).toContain("as dragging it in the dashboard does");
+    expect(paragraph).toContain("such as `Incident Severity`");
+    expect(paragraph).toContain(
+      "Writing a row's number with its `update_` tool places only that row",
+    );
   });
 
   it("pages lists with the server's default and largest limit", () => {
@@ -3023,6 +3206,195 @@ describe("Production review of pull requests", () => {
     );
     expect(app).toContain(
       `turn on ${bold("Review Pull Requests Against Production")} in the repository's settings: see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).`,
+    );
+  });
+});
+
+/*
+ * WHY ONEUPTIME AI FOUND NO FIX, OR STOPPED (#6522): the part of What
+ * auto-remediation did that says how the Remediation step explains a fix
+ * that found no safe fix (#6436), and Try again on one that stopped
+ * (#6487). Its words are the card's own, read from the Dashboard's source,
+ * and its refusals are the server's, so the page cannot drift from the
+ * card. AiDocsTranslations holds every language to the English lines.
+ */
+describe("AI SRE: a fix that found no safe fix, or stopped", () => {
+  const HEADING: string = "### Why OneUptime AI found no fix, or stopped";
+
+  function part(): string {
+    return flat(englishSection(AI_SRE, HEADING));
+  }
+
+  it("sits under What auto-remediation did, right before Before you approve a fix", () => {
+    const lines: Array<string> = englishPage(AI_SRE).split("\n");
+    const at: number = lines.indexOf(HEADING);
+    const section: number = lines.lastIndexOf(
+      "## What auto-remediation did",
+      at,
+    );
+
+    expect(at).toBeGreaterThan(0);
+    expect(section).toBeGreaterThan(0);
+    expect(
+      lines.slice(section + 1, at).some((line: string): boolean => {
+        return line.startsWith("## ");
+      }),
+    ).toBe(false);
+    expect(
+      lines.slice(at + 1).find((line: string): boolean => {
+        return line.startsWith("#");
+      }),
+    ).toBe("### Before you approve a fix");
+  });
+
+  it("names the plan step and what opens under it in the card's own words, in the card's order", () => {
+    const words: string = part();
+
+    for (const label of [
+      REMEDIATION_FIX_STEP_COPY.noSafeFix,
+      REMEDIATION_FIX_STEP_COPY.noRunbook,
+      REMEDIATION_ROUND_COPY.showFullReasoning,
+      REMEDIATION_ROUND_COPY.ruledOutHeading,
+      REMEDIATION_ROUND_COPY.checksHeading,
+      REMEDIATION_ROUND_COPY.unfinishedFix,
+      REMEDIATION_ROUND_COPY.unfinishedRunbook,
+      REMEDIATION_STEP_STATUS_TEXT.didNotFinish,
+    ]) {
+      expect({ label, named: words.includes(bold(label)) }).toEqual({
+        label,
+        named: true,
+      });
+    }
+
+    // The fixes it ruled out come before what it checked, as on the card.
+    expect(
+      words.indexOf(bold(REMEDIATION_ROUND_COPY.ruledOutHeading)),
+    ).toBeLessThan(words.indexOf(bold(REMEDIATION_ROUND_COPY.checksHeading)));
+    expect(
+      flat(
+        dashboardSource(
+          "Components/AutoRemediation/RemediationRoundDetails.tsx",
+        ),
+      ),
+    ).toContain(
+      "{ruledOutFixes.length > 0 ? ( <RuledOutFixList fixes={ruledOutFixes} /> ) : ( <></> )} {round && (round.checks.length > 0 || round.otherCheckCount > 0) ? (",
+    );
+  });
+
+  it("says that nothing ran and nobody was asked, in the step's words", () => {
+    const sentence: string = REMEDIATION_ROUND_COPY.nothingAskedNoFix;
+
+    expect(sentence).toBe(
+      "No fix ran, and nobody was asked to approve one: OneUptime AI asks for approval only when it proposes a fix.",
+    );
+    expect(part()).toContain(
+      `the step says that no fix ran and nobody was asked to approve one: ${sentence.slice(sentence.indexOf(": ") + 2)}`,
+    );
+  });
+
+  it("says the failure notice's Details and Try again as the card draws them, and who may press it", () => {
+    const notice: string = dashboardSource(
+      "Components/AI/AiRunFailureNotice.tsx",
+    );
+    const button: string = dashboardSource(
+      "Components/AI/AiRunTryAgainButton.tsx",
+    );
+
+    expect(notice).toContain('translator.translateText("Details")');
+    expect(button).toContain('props.label || "Try again"');
+    expect(part()).toContain(
+      `the provider's own error under ${bold("Details")}`,
+    );
+    expect(part()).toContain(
+      `${bold("Try again")} starts the fix again with a new run, for anyone who may edit the incident or alert.`,
+    );
+    // Who may: who may edit the incident or alert, as the server checks it.
+    expect(
+      readRepoFile("Common/Server/Utils/AutoRemediation/RemediationRound.ts"),
+    ).toContain("await IncidentService.findOneUpdatableById({");
+  });
+
+  it("says What it checked lists the reads of the project's MCP servers too, as the round's read lists them", () => {
+    const round: string = readRepoFile(
+      "Common/Server/Utils/AutoRemediation/RemediationRound.ts",
+    );
+
+    expect(part()).toContain(
+      "each command it ran on the cluster or resource and each tool of the project's MCP servers it read with, with why, when and how it went, and how many times it queried the project's telemetry besides.",
+    );
+    expect(flat(round)).toContain(
+      "const CHECK_TOOL_NAMES: ReadonlyArray<string> = [ ...COMMAND_CHECK_TOOL_NAMES, CALL_MCP_TOOL_TOOL_NAME, ];",
+    );
+  });
+
+  /*
+   * Every refusal of a round's Try again (RemediationRoundTryAgainRefusal)
+   * a person can meet once it is offered, each said on the page. A fix no
+   * AI run worked out offers no Try again (NoRound), and a queue that took
+   * nothing for no reason it could name (NotStarted) says to try again in a
+   * few minutes, as any failure does.
+   */
+  it("lists every reason Try again is refused, from the server's refusals and its limit", () => {
+    const words: string = part();
+    const limit: { perUserLimit: number; windowSeconds: number } =
+      AutoRemediationRoundRateLimit.getConfig(
+        AutoRemediationRoundRateLimitBucket.TryAgain,
+      );
+    const said: Record<RemediationRoundTryAgainRefusal, string | null> = {
+      [RemediationRoundTryAgainRefusal.NoRound]: null,
+      [RemediationRoundTryAgainRefusal.NotStarted]: null,
+      [RemediationRoundTryAgainRefusal.PartlyApplied]:
+        "- when the fix made a change before it stopped, since starting it again could make the same change twice: check what it changed, then finish the fix yourself;",
+      [RemediationRoundTryAgainRefusal.StillWorking]:
+        "- while the fix is still working, or once it has finished;",
+      [RemediationRoundTryAgainRefusal.Finished]:
+        "- while the fix is still working, or once it has finished;",
+      [RemediationRoundTryAgainRefusal.IncidentResolved]:
+        "- when the incident or alert is resolved;",
+      [RemediationRoundTryAgainRefusal.AlertResolved]:
+        "- when the incident or alert is resolved;",
+      [RemediationRoundTryAgainRefusal.AiOff]: "- when AI is off,",
+      [RemediationRoundTryAgainRefusal.NoProvider]:
+        "the project has no LLM provider,",
+      [RemediationRoundTryAgainRefusal.CreditsUsedUp]:
+        "its AI credits are used up",
+      [RemediationRoundTryAgainRefusal.LimitReached]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.IncidentTokenLimitPaused]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.IncidentTokenLimitUsedUp]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.AlertTokenLimitPaused]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.AlertTokenLimitUsedUp]:
+        "or it reached a daily AI limit;",
+      [RemediationRoundTryAgainRefusal.AlreadyStarted]:
+        "- when someone else has just pressed it,",
+      [RemediationRoundTryAgainRefusal.TooManyTries]: `or you have pressed Try again ${limit.perUserLimit} times in ${limit.windowSeconds / 60} minutes.`,
+    };
+
+    expect(Object.keys(said).sort()).toEqual(
+      Object.values(RemediationRoundTryAgainRefusal).sort(),
+    );
+
+    for (const [refusal, phrase] of Object.entries(said)) {
+      if (phrase === null) {
+        continue;
+      }
+
+      expect({ refusal, said: words.includes(phrase) }).toEqual({
+        refusal,
+        said: true,
+      });
+    }
+
+    // The server's own reason for refusing a fix that made a change.
+    expect(
+      REMEDIATION_ROUND_TRY_AGAIN_REFUSALS[
+        RemediationRoundTryAgainRefusal.PartlyApplied
+      ],
+    ).toContain(
+      "that could make the same change twice. Check what it changed, then finish the fix yourself.",
     );
   });
 });

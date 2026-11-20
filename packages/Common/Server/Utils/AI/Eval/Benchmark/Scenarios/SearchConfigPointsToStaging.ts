@@ -1,4 +1,5 @@
 import { BenchmarkFaultKind, BenchmarkScenario } from "../BenchmarkScenario";
+import ScenarioSlos from "../ScenarioSlos";
 
 /*
  * A config release meant for staging changed search-service's
@@ -679,27 +680,20 @@ const scenario: BenchmarkScenario = {
         },
       ],
     },
-    {
-      toolName: "query_slos",
-      citationLabel: "SLOs (1 found)",
-      rows: [
-        {
-          id: SEARCH_SLO_ID,
-          name: "Search availability",
-          isEnabled: true,
-          sliType: "Monitor Uptime",
-          targetPercentage: 99.9,
-          window: "Rolling 30d",
-          monitors: "Search API",
-          sloStatus: "Healthy",
-          currentSliPercentage: 99.981,
-          errorBudgetRemainingPercentage: 81,
-          currentBurnRate: 48.3,
-          deploymentsAllowed: true,
-          lastEvaluatedAt: "2026-08-17T10:45:00.000Z",
-        },
-      ],
-    },
+    ...ScenarioSlos.getResponses([
+      {
+        id: SEARCH_SLO_ID,
+        name: "Search availability",
+        monitors: ["Search API"],
+        targetPercentage: 99.9,
+        windowDays: 30,
+        sloStatus: "Healthy",
+        currentSliPercentage: 99.981,
+        errorBudgetRemainingPercentage: 81,
+        currentBurnRate: 48.3,
+        lastEvaluatedAt: "2026-08-17T10:45:00.000Z",
+      },
+    ]),
   ],
   expectation: {
     rootCause:

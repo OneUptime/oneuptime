@@ -12,7 +12,12 @@ import TimezoneUtil from "Common/UI/Utils/Timezone";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import { getUserChosenLanguage } from "Common/Types/UserLanguage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
 import {
@@ -24,6 +29,14 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { isDashboardRecordingConfigured } from "../../../Utils/DashboardRecording/DashboardRecordingConfig";
 import { PERSON_RECORDING_COPY } from "../../../Components/DashboardRecording/DashboardRecordingCopy";
+import {
+  SignInManagementState,
+  SsoManagedSignInNotice,
+  useSignInManagement,
+} from "../../../Components/UserProfile/SignInManagement";
+import PendingEmailChange, {
+  PENDING_EMAIL_CHANGE_COPY,
+} from "../../../Components/UserProfile/PendingEmailChange";
 
 /*
  * "Ask me how things went" (#6832): the person's own switch for the
@@ -59,6 +72,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const feedbackSettings: ProductFeedbackSettings | null =
     useProductFeedbackSettings();
+  const signInManagement: SignInManagementState = useSignInManagement();
+  // Read Basic Info again once a change of email address is cancelled.
+  const [basicInfoRefresher, setBasicInfoRefresher] = useState<boolean>(false);
 
   return (
     <Fragment>
@@ -69,6 +85,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.",
         }}
         name="User Profile > Basic Info"
+        refresher={basicInfoRefresher}
         onSaveSuccess={(user: User) => {
           if (user.timezone) {
             UserUtil.setSavedUserTimezone(user.timezone);
@@ -91,8 +108,13 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder: "jeff@example.com",
             required: true,
             title: "Email",
-            description:
-              "You will have to verify your email again if you change it",
+            /*
+             * A new address waits for a link to it (#9821). A master admin's
+             * own changes at once, and is verified again with a link.
+             */
+            description: UserUtil.isMasterAdmin()
+              ? PENDING_EMAIL_CHANGE_COPY.masterAdminFormDescription
+              : PENDING_EMAIL_CHANGE_COPY.formDescription,
             disableSpellCheck: true,
           },
           {
@@ -147,6 +169,23 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Email",
               placeholder: "No email added",
+              fieldType: FieldType.Element,
+              // With a new address waiting to be confirmed, if there is one.
+              getElement: (user: User) => {
+                return (
+                  <PendingEmailChange
+                    email={user.email?.toString() || ""}
+                    pendingEmail={
+                      user.newUnverifiedTemporaryEmail?.toString() || null
+                    }
+                    onCancelled={() => {
+                      setBasicInfoRefresher((value: boolean) => {
+                        return !value;
+                      });
+                    }}
+                  />
+                );
+              },
             },
             {
               field: {
@@ -199,10 +238,31 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
             },
           ],
-
+          selectMoreFields: {
+            newUnverifiedTemporaryEmail: true,
+          },
           modelId: UserUtil.getUserId(),
         }}
       />
+      {/*
+       * Who manages the person's sign-in, when their organization does
+       * (#9688): their side menu has no Security section, and this says why.
+       * When only some of their projects manage it (#9763), this says why
+       * their Security section is still there: the projects that keep it.
+       */}
+      {signInManagement?.isManagedBySso ||
+      (signInManagement?.localSignInProjectNames.length || 0) > 0 ? (
+        <SsoManagedSignInNotice
+          ssoProviderNames={signInManagement!.ssoProviderNames}
+          localSignInProjectNames={
+            signInManagement!.isManagedBySso
+              ? []
+              : signInManagement!.localSignInProjectNames
+          }
+        />
+      ) : (
+        <></>
+      )}
       {feedbackSettings?.isOn ? (
         <ModelSwitchCard<User>
           modelType={User}

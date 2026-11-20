@@ -343,7 +343,7 @@ export default class SecurityCasePriority extends BaseModel {
     title: "Order",
     required: false,
     description:
-      "Where this priority ranks among the project's security case priorities: 1 is the most urgent. Detections open their cases at the critical, high, medium, low and informational priorities, so those have to stay in that order. A new priority without a number goes to the end of the list. Setting a number moves the priority to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
+      "Where this priority ranks among the project's security case priorities: 1 is the most urgent. Detections open their cases at the critical, high, medium, low and informational priorities, so those have to stay in that order. A new priority without a number goes to the end of the list. Setting a number places the priority there and moves no other: two at one number are read the older first. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.SmallNumber,

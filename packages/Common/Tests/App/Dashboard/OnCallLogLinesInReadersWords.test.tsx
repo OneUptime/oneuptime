@@ -177,7 +177,10 @@ import { getOnCallPageRecordDeletedMessage } from "../../../Types/OnCallDutyPoli
 import {
   CALL_ANSWERED_MESSAGE,
   CALL_BUSY_MESSAGE,
+  CALL_FAX_MESSAGE,
   CALL_NOT_CONNECTED_MESSAGE,
+  CALL_VOICEMAIL_MESSAGE_LEFT_MESSAGE,
+  CALL_VOICEMAIL_NO_MESSAGE_MESSAGE,
   CALL_RANG_OUT_MESSAGE,
   CallOutcomeLine,
   EMAIL_SENT_STATUS_MESSAGE,
@@ -2385,6 +2388,13 @@ describe.each(LANGUAGES)(
       [CALL_RANG_OUT_MESSAGE, CallOutcomeLine.RangOut],
       [CALL_BUSY_MESSAGE, CallOutcomeLine.Busy],
       [CALL_NOT_CONNECTED_MESSAGE, CallOutcomeLine.NotConnected],
+      // Twilio's answering machine detection (#6594).
+      [
+        CALL_VOICEMAIL_MESSAGE_LEFT_MESSAGE,
+        CallOutcomeLine.VoicemailMessageLeft,
+      ],
+      [CALL_VOICEMAIL_NO_MESSAGE_MESSAGE, CallOutcomeLine.VoicemailNoMessage],
+      [CALL_FAX_MESSAGE, CallOutcomeLine.Fax],
     ] as Array<[string, CallOutcomeLine]>)(
       "%s, after the call's id, set apart",
       async (sentence: string, outcome: CallOutcomeLine) => {
@@ -2409,7 +2419,7 @@ describe.each(LANGUAGES)(
 
         if (language !== "en") {
           expect(text(line).split(CALL_SID).join("")).not.toMatch(
-            /\b(call|answered|rang|busy|declined|connected)\b/i,
+            /\b(call|answered|rang|busy|declined|connected|voicemail|message|fax machine)\b/i,
           );
         }
       },
@@ -2451,8 +2461,9 @@ describe("a call's outcome, in every Dashboard language (#8576)", () => {
     `${LOG_CALL_ANSWERED_AND_LASTED.other}_one`,
   ];
 
-  test("seven keys, each its own", () => {
-    expect(new Set(KEYS).size).toBe(7);
+  // Answered, rang out, busy, not connected, voicemail with a message left or not, a fax (#6594).
+  test("ten keys, each its own", () => {
+    expect(new Set(KEYS).size).toBe(10);
   });
 
   test.each([...DASHBOARD_LANGUAGES])(

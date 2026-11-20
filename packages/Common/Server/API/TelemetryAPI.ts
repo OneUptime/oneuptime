@@ -32,6 +32,7 @@ import LogAggregationService, {
   AnalyticsRequest,
   AnalyticsChartType,
   AnalyticsAggregation,
+  ANALYTICS_AGGREGATIONS,
   AnalyticsTimeseriesRow,
   AnalyticsTopItem,
   AnalyticsTableRow,
@@ -53,6 +54,7 @@ import TraceAggregationService, {
   TraceAnalyticsTableRow,
   TraceAnalyticsTableSort,
   parseTraceAnalyticsTableSort,
+  SessionCountResult as TraceSessionCountResult,
 } from "../Services/TraceAggregationService";
 import TraceHealthService from "../Services/TraceHealthService";
 import {
@@ -66,6 +68,7 @@ import ExceptionAggregationService, {
   HistogramRequest as ExceptionHistogramRequest,
   FacetValue as ExceptionFacetValue,
   FacetRequest as ExceptionFacetRequest,
+  SessionCountResult as ExceptionSessionCountResult,
 } from "../Services/ExceptionAggregationService";
 import { getMetricReadPermissions } from "../Utils/Telemetry/MetricReadPermissions";
 import MetricAggregationService, {
@@ -1490,6 +1493,15 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
       typeof body["exactDurationNano"] === "number"
         ? (body["exactDurationNano"] as number)
         : undefined,
+    // Inclusive: `duration:>=N`, and a Traces monitor's Takes at least (ms).
+    atLeastDurationNano:
+      typeof body["atLeastDurationNano"] === "number"
+        ? (body["atLeastDurationNano"] as number)
+        : undefined,
+    atMostDurationNano:
+      typeof body["atMostDurationNano"] === "number"
+        ? (body["atMostDurationNano"] as number)
+        : undefined,
     rootOnly:
       body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
     // The explorer's default list: where work enters a service.
@@ -2169,6 +2181,78 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         data: data as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * How many sessions the spans of a scope belong to in a window, and how
+ * many spans were read (TraceAggregationService.getSessionCount): a mobile
+ * RUM application's Sessions tile, and the sessions its crash-free share is
+ * of (#9588). With `countInstalls: true`, the installs too, for its
+ * crash-free installs (#9716). The same filters, read access and service
+ * scope as the analytics above.
+ */
+router.post(
+  "/telemetry/traces/session-count",
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "A session count needs a project: send its ID in the tenantid header.",
+          ),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(now, -1);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : now;
+
+      const traceFilters: TraceFilters = scopeTraceFilters(
+        {
+          ...parseTraceFilterBody(body),
+          resourceScopes: await resolveResourceScopesFromBody(
+            body,
+            databaseProps.tenantId,
+          ),
+        },
+        await TelemetryReadAccess.getScope(Span, databaseProps),
+      );
+
+      const result: TraceSessionCountResult =
+        await TraceAggregationService.getSessionCount({
+          projectId: databaseProps.tenantId,
+          startTime,
+          endTime,
+          ...traceFilters,
+          countInstalls: body["countInstalls"] === true,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: result.sessions,
+        spans: result.spans,
+        ...(result.installs !== undefined ? { installs: result.installs } : {}),
       });
     } catch (err: unknown) {
       next(err);
@@ -2889,6 +2973,100 @@ router.post(
   },
 );
 
+/*
+ * How many sessions the matching exceptions happened in, and how many
+ * occurrences matched (ExceptionAggregationService.getSessionCount): the
+ * sessions a mobile app's crashes ended, for its crash-free share (#9588).
+ * With `countInstalls: true`, the installs they happened on too, and how
+ * many occurrences named theirs (#9716). The histogram's filters, read
+ * access and service scope.
+ */
+router.post(
+  "/telemetry/exceptions/session-count",
+  ...requireExceptionReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "A session count needs a project: send its ID in the tenantid header.",
+          ),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveHours(now, -24);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : now;
+
+      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+        ? (body["serviceIds"] as Array<string>).map((id: string) => {
+            return new ObjectID(id);
+          })
+        : undefined;
+
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: ExceptionInstance,
+          props: databaseProps,
+          requested: serviceIds,
+          excluded: readExcludedServiceIds(body),
+        });
+
+      const result: ExceptionSessionCountResult =
+        await ExceptionAggregationService.getSessionCount({
+          projectId: databaseProps.tenantId,
+          startTime,
+          endTime,
+          ...serviceFilter,
+          exceptionTypes: readStringListField(body, "exceptionTypes"),
+          excludedExceptionTypes: readStringListField(
+            body,
+            "excludedExceptionTypes",
+          ),
+          environments: readStringListField(body, "environments"),
+          excludedEnvironments: readStringListField(
+            body,
+            "excludedEnvironments",
+          ),
+          escaped:
+            body["escaped"] === undefined
+              ? undefined
+              : Boolean(body["escaped"]),
+          countInstalls: body["countInstalls"] === true,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: result.sessions,
+        occurrences: result.occurrences,
+        ...(result.installs !== undefined
+          ? {
+              installs: result.installs,
+              occurrencesWithInstall: result.occurrencesWithInstall || 0,
+            }
+          : {}),
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
 // --- Exception Facets Endpoint ---
 
 router.post(
@@ -3271,7 +3449,7 @@ router.post(
       const aggregation: AnalyticsAggregation =
         (body["aggregation"] as AnalyticsAggregation) || "count";
 
-      if (!["count", "unique"].includes(aggregation)) {
+      if (!ANALYTICS_AGGREGATIONS.includes(aggregation)) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -3325,6 +3503,17 @@ router.post(
         ? (body["aggregationField"] as string)
         : undefined;
 
+      // A sum needs the field it adds up: there is no total of nothing.
+      if (aggregation === "sum" && !aggregationField) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "A sum needs an aggregationField: the attribute to add up.",
+          ),
+        );
+      }
+
       const limit: number | undefined = body["limit"]
         ? (body["limit"] as number)
         : undefined;
@@ -3360,6 +3549,7 @@ router.post(
         traceIds,
         spanIds,
         sessionIds,
+        attributes: parseAttributeFilterRecord(body["attributes"]),
         limit,
       };
 

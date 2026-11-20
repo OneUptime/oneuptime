@@ -32,6 +32,7 @@ import {
 } from "../../Types/AI/AIChatTypes";
 import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
+import LlmType from "../../Types/LLM/LlmType";
 
 /*
  * One AI agent execution (a chat turn today; an investigation later). Runs
@@ -1046,6 +1047,67 @@ export default class AIRun extends BaseModel {
     default: 0,
   })
   public totalCostInUSDCents?: number = undefined;
+
+  /*
+   * The model that wrote the run's answer - the model of its last LLM call,
+   * as its provider named it (the provider's Model Name, or the one the
+   * provider chose for a blank one) - recorded when the run completes, so
+   * AI Results can tell what each model's investigations came to (#7762).
+   * A run whose calls used more than one model, because its provider was
+   * changed or removed while it ran, has the one that wrote the answer
+   * people judged. Empty for a run that completed before OneUptime recorded
+   * it, and for a run that never completed. Each call's own model is on its
+   * LlmLog row. Written by OneUptime only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Model Name",
+    description:
+      "The model that wrote this run's answer, as its LLM provider named it. Recorded when the run completes; empty for runs that completed before OneUptime recorded it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public modelName?: string = undefined;
+
+  // The type of the LLM provider whose model wrote the answer (LlmType).
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(LlmType),
+    title: "LLM Provider Type",
+    description:
+      "The type of the LLM provider whose model wrote this run's answer (OpenAI, Anthropic, Ollama...). Recorded when the run completes.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public llmProviderType?: LlmType = undefined;
 
   @ColumnAccessControl({
     create: [],

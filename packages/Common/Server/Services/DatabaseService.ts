@@ -191,6 +191,7 @@ import {
   shouldBypassRecordPrivacy,
 } from "../Utils/PrivacyFilterUtil";
 import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 import ArchivedValueCheck, {
   ArchivableValueColumn,
@@ -206,8 +207,10 @@ import ListOrderMaintainer, {
   ListOrderCreatePlan,
   ListOrderScope,
 } from "../Utils/Database/ListOrderMaintainer";
+import { ContiguousOrderMoved } from "../Utils/Database/ContiguousOrder";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
-import { toListOrderNumber } from "../../Utils/ListOrder";
+import { MoveInListResult } from "../../Types/Database/MoveInList";
+import { getListOrderReadSort, toListOrderNumber } from "../../Utils/ListOrder";
 import CustomFieldFiles, {
   CustomFieldFileQuery,
   CustomFieldFileRow,
@@ -2755,8 +2758,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * A method of its own rather than an onBeforeFind override: BaseAPI
    * reads a list and its count side by side only for a service on the
    * stock onBeforeFind, and an order changes nothing the count reads.
+   *
+   * The rows of a drag-ordered list (@ListOrderColumn) are read in the
+   * list's own order when the caller asks for none, and two rows at one
+   * number the way the list shows them (Common/Utils/ListOrder's
+   * getListOrderReadSort, issue #9654). So a lookup of "the project's
+   * created state" by its flag alone is the topmost created state, as the
+   * rules and the Dashboard take it, not the newest one.
    */
   protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> {
+    const listOrder: ListOrderSettings | null = this.model.getListOrder();
+
+    if (listOrder?.column) {
+      return getListOrderReadSort({
+        sort: sort as Record<string, unknown> | undefined,
+        column: listOrder.column,
+        sortOrder: listOrder.sortOrder,
+      }) as Sort<TBaseModel>;
+    }
+
     if (!sort || Object.keys(sort).length === 0) {
       return {
         createdAt: SortOrder.Descending,
@@ -2876,7 +2896,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * Once the record is saved: handed the create's one OnCreate, the very
-   * object onCreatePermitted was handed (see onCreateError).
+   * object onCreatePermitted was handed (see onCreateError). The record is
+   * in the audit log already, as it was inserted. One that throws fails the
+   * create, whose record stays: open pages still hear of it, and no
+   * workflow starts on it (_create, #9616).
    */
   protected async onCreateSuccess(
     _onCreate: OnCreate<TBaseModel>,
@@ -2937,6 +2960,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve(error);
   }
 
+  /*
+   * Once the rows are deleted, last: they are in the audit log already, and
+   * their workflow and realtime events went. One that throws fails the
+   * delete, whose rows stay deleted (_deleteBy, #9616).
+   */
   protected async onDeleteSuccess(
     onDelete: OnDelete<TBaseModel>,
     _itemIdsBeforeDelete: Array<ObjectID>,
@@ -7430,6 +7458,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whether the row was written: a rule's then changes its project's rules.
     let isRowWritten: boolean = false;
 
+    /*
+     * Whether the record is there to stay: its row written, and not taken
+     * out again because its creator could not be made its owner
+     * (makeCreatorOwnerOrUndo). From then on it is in the audit log, and
+     * open pages hear of it, however the create ends (#9616).
+     */
+    let isRecordKept: boolean = false;
+
+    // Whether open pages were told of the record (its realtime event).
+    let isRealtimeEventSent: boolean = false;
+
     try {
       /*
        * The INSERT itself, in save()'s own transaction - or, held to a
@@ -7470,6 +7509,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (isOwnedByCreatorFirst) {
         await this.makeCreatorOwnerOrUndo(createBy.data, createBy.props);
       }
+
+      isRecordKept = true;
+
+      // In the audit log at once, as it was inserted. See the helper.
+      await this.recordCreateInAuditLog(createBy);
 
       // The rows that make room for it, now that it exists.
       await this.applyListOrderCreatePlan(listOrderPlan);
@@ -7535,15 +7579,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         await this.autoOwnerOnCreate(createBy.data, createBy.props);
       }
 
-      let tenantId: ObjectID | undefined = createBy.props.tenantId;
+      const tenantId: ObjectID | undefined = this.getTenantIdOfCreate(createBy);
 
-      if (!tenantId && this.getModel().getTenantColumn()) {
-        tenantId = createBy.data.getValue<ObjectID>(
-          this.getModel().getTenantColumn()!,
-        );
-      }
-
-      // hit workflow, never failing the create, whose row is written. See the helper.
+      /*
+       * hit workflow, never failing the create, whose row is written. See
+       * the helper. After the hooks: a run reads the record as they leave it.
+       */
       if (this.getModel().enableWorkflowOn?.create && tenantId) {
         await this.triggerWorkflowAfterWrite({
           id: createBy.data.id!,
@@ -7552,36 +7593,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         });
       }
 
-      if (tenantId) {
-        await this.onTriggerRealtime(
-          createBy.data.id!,
-          tenantId,
-          ModelEventType.Create,
-        );
-      }
-
-      if (
-        !createBy.props.ignoreHooks &&
-        this.getModel().enableAuditLogOn?.create
-      ) {
-        /*
-         * Lazy require to avoid circular dependency between DatabaseService and
-         * AuditLogService (which depends on ProjectService/UserService, both of
-         * which extend DatabaseService). A top-level import leaves
-         * DatabaseService undefined at class-extension time for subclasses.
-         */
-        const auditLogService: typeof AuditLogServiceType =
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require("./AuditLogService").default;
-        await auditLogService.recordCreate({
-          model: this.getModel(),
-          createdItem: createBy.data,
-          props: createBy.props,
-        });
-      }
+      // Open pages hear of it last, as its hooks leave it.
+      isRealtimeEventSent = true;
+      await this.triggerRealtimeOfCreate(createBy);
 
       return createBy.data;
     } catch (error) {
+      /*
+       * A create that fails once its record is there to stay - a service's
+       * onCreateSuccess that threw, a step after the INSERT - still fails:
+       * create() hands its error to onCreateError (WriteStep.AroundWrite),
+       * as it does every failure of a create. But its record was made, so
+       * it is in the audit log already (above), and open pages hear of it
+       * as of any record created: nobody is left looking at a list without
+       * a record that is there, and its creator, told the create failed,
+       * can see that it was made (#9616). A page hearing of one a hook took
+       * out again reads the list as it is. No workflow starts on it: a run
+       * reads the record as the hooks leave it, and they did not finish
+       * with it.
+       */
+      if (isRecordKept && !isRealtimeEventSent) {
+        isRealtimeEventSent = true;
+
+        try {
+          await this.triggerRealtimeOfCreate(createBy);
+        } catch (realtimeError) {
+          // Never in place of the failure the caller is told of.
+          logger.error(realtimeError, {
+            projectId: this.getTenantIdOfCreate(createBy)?.toString(),
+          } as LogAttributes);
+        }
+      }
+
       /*
        * The database's own refusal, in words its caller can act on; create()
        * hands it to onCreateError, as it does every failure of a create.
@@ -7602,6 +7645,81 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         });
       }
     }
+  }
+
+  /*
+   * The audit log's entry of a create (#9616): recorded once the record is
+   * there to stay (_create), as it was inserted, before anything else
+   * happens to it. Nothing in the entry depends on what comes after - the
+   * list it joins, the caches, the service's own onCreateSuccess, its
+   * owners - so none of those failing leaves a record that the audit log
+   * never saw created, though the create itself still fails. And what the
+   * hooks change of the record once it exists - its status set, a secret
+   * filled in, the record taken out again when its first verification
+   * code cannot be sent - is in the audit log after its create, as the
+   * changes they are, never before it. Skipped with ignoreHooks, as it
+   * always was. Never throws (AuditLogService).
+   */
+  private async recordCreateInAuditLog(
+    createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    if (
+      createBy.props.ignoreHooks ||
+      !this.getModel().enableAuditLogOn?.create
+    ) {
+      return;
+    }
+
+    /*
+     * Lazy require to avoid circular dependency between DatabaseService and
+     * AuditLogService (which depends on ProjectService/UserService, both of
+     * which extend DatabaseService). A top-level import leaves
+     * DatabaseService undefined at class-extension time for subclasses.
+     */
+    const auditLogService: typeof AuditLogServiceType =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("./AuditLogService").default;
+
+    await auditLogService.recordCreate({
+      model: this.getModel(),
+      createdItem: createBy.data,
+      props: createBy.props,
+    });
+  }
+
+  // The project of a record created: the create's own, or the record's.
+  private getTenantIdOfCreate(
+    createBy: CreateBy<TBaseModel>,
+  ): ObjectID | undefined {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (createBy.props.tenantId || !tenantColumn) {
+      return createBy.props.tenantId;
+    }
+
+    return createBy.data.getValue<ObjectID>(tenantColumn);
+  }
+
+  /*
+   * Tells the open pages listening for this table that the record was
+   * created (onTriggerRealtime): once, at the end of a create that
+   * succeeds, or of one that failed once its record was there to stay
+   * (_create).
+   */
+  private async triggerRealtimeOfCreate(
+    createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    const tenantId: ObjectID | undefined = this.getTenantIdOfCreate(createBy);
+
+    if (!tenantId) {
+      return;
+    }
+
+    await this.onTriggerRealtime(
+      createBy.data.id!,
+      tenantId,
+      ModelEventType.Create,
+    );
   }
 
   /*
@@ -8000,12 +8118,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * ---------------------------------------------------------------------
    *
    * A model marked with @ListOrderColumn is a list people put in order by
-   * dragging its rows, and its number column is kept here for every caller:
-   * a new row without a number goes to the end of its list, and a row given a
-   * number another row of its list holds takes that place while the rows in
-   * the way step aside. Numbers nobody collides with are kept as written. The
-   * arithmetic is Common/Utils/ListOrder, the database work
-   * ListOrderMaintainer. None of it runs for any other model.
+   * dragging its rows, and its number column is kept here for every caller
+   * (issue #9609): a new row without a number goes to the end of its list,
+   * and a row created or given a number keeps it and moves no other row -
+   * even when another row of its list holds it, so Terraform's writes, every
+   * changed row's number at once, land exactly as written. Moving a row past
+   * others is a request of its own (moveInList), which renumbers the list in
+   * one transaction. The arithmetic is Common/Utils/ListOrder, the database
+   * work ListOrderMaintainer. None of it runs for any other model.
    */
   private async planListOrderForCreate(
     data: TBaseModel,
@@ -8033,9 +8153,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The new row is saved; now the rows in its way step aside. Never fails the
-   * create that already happened: a list left with a shared number still
-   * shows every row, and the next move in it sorts the pair out.
+   * The new row is saved; now the rows in its way step aside - only for a
+   * row whose place the server picked (ListOrderMaintainer.placeOnCreate).
+   * Never fails the create that already happened: a list left with a shared
+   * number still shows every row, and the next move in it sorts the pair
+   * out.
    */
   private async applyListOrderCreatePlan(
     plan: ListOrderCreatePlan | null,
@@ -8115,10 +8237,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * After an update wrote a row's number: the rows of its list that held that
-   * number step aside. A row that moved to another list takes the number it
-   * was given there (with the same stepping aside), or the end of that list
-   * when it was given none.
+   * After an update: a row whose number was cleared goes to the end of its
+   * list, and a row that moved to another list without a number goes to the
+   * end of that list. A number written is kept as written, and no other row
+   * moves for it.
    *
    * Like the create, it never fails the update that already happened.
    */
@@ -8184,43 +8306,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           continue;
         }
 
-        const previousValue: unknown = isNewToList
-          ? null
-          : before[settings.column];
-
-        const requestedValue: unknown = dataRecord[settings.column];
-
-        if (
-          !isNewToList &&
-          toListOrderNumber(requestedValue) !== null &&
-          toListOrderNumber(requestedValue) === toListOrderNumber(previousValue)
-        ) {
-          // Saved where it already was - an edit form re-sending it, say.
+        /*
+         * A number written stays as written, whoever else holds it: the
+         * row is placed, and no other row moves (issue #9609).
+         */
+        if (toListOrderNumber(dataRecord[settings.column]) !== null) {
           continue;
         }
 
-        if (toListOrderNumber(requestedValue) === null) {
-          /*
-           * The number was cleared: the row goes to the end of its list, as
-           * a row created without one does.
-           */
-          await ListOrderMaintainer.appendRow({
-            service: this,
-            settings: settings,
-            scope: nextScope,
-            id: id,
-          });
-
-          continue;
-        }
-
-        await ListOrderMaintainer.makeRoomForRow({
+        /*
+         * The number was cleared: the row goes to the end of its list, as a
+         * row created without one does.
+         */
+        await ListOrderMaintainer.appendRow({
           service: this,
           settings: settings,
           scope: nextScope,
           id: id,
-          previousValue: previousValue,
-          requestedValue: requestedValue,
         });
       } catch (err) {
         logger.error(
@@ -8253,6 +8355,93 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       service: this,
       settings: settings,
     });
+  }
+
+  /*
+   * Moves a row of one of this table's lists to the place of another row of
+   * its list (POST <list>/:id/move, Types/Database/MoveInList): the rows
+   * between step one place towards where it was, and the list is numbered
+   * 1..n (n..1 for a list that counts down) in its new order, in one
+   * transaction holding the list's rows. What the Dashboard's drag sends; a
+   * write of the row's number places it alone. The caller must be allowed to
+   * give the row another number. This is a drag-ordered list's move
+   * (@ListOrderColumn); the services of the five numbered lists move their
+   * rows their own way (ContiguousOrder), and a table that is no list
+   * refuses.
+   */
+  @CaptureSpan()
+  public async moveInList(data: {
+    id: ObjectID;
+    placeOfId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<MoveInListResult> {
+    const settings: ListOrderSettings | null = ListOrderMaintainer.getSettings(
+      this.getModel(),
+    );
+
+    if (!settings) {
+      throw new BadDataException(
+        `The rows of ${this.getModel().pluralName || "this table"} are not a list that can be put in another order.`,
+      );
+    }
+
+    const moved: ContiguousOrderMoved<TBaseModel> =
+      await ListOrderMaintainer.move({
+        service: this,
+        settings: settings,
+        rowId: data.id,
+        placeOfId: data.placeOfId,
+        props: data.props,
+        beforeWrite: async (
+          changedRows: Array<{ id: string; order: number }>,
+        ): Promise<void> => {
+          await this.onBeforeMoveInList({
+            id: data.id,
+            changedRows: changedRows,
+            props: data.props,
+          });
+        },
+      });
+
+    if (moved.changedRows.length > 0) {
+      await this.onMoveInListSuccess({
+        row: moved.row,
+        changedRows: moved.changedRows,
+        props: data.props,
+      });
+    }
+
+    return { changedRows: moved.changedRows };
+  }
+
+  /*
+   * Before a move in one of this table's lists is written - inside its
+   * transaction, the list held - with the rows the move would give another
+   * number, the moved row among them. A refusal thrown here undoes the
+   * move. Nothing by default: a project's states keep their built-in ones
+   * in order (StateOrderGuard.beforeMove).
+   */
+  protected async onBeforeMoveInList(_data: {
+    id: ObjectID;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    // Most lists take any order.
+  }
+
+  /*
+   * After a move in one of this table's lists gave `changedRows` another
+   * number: what a write of their numbers sets off beside the list itself
+   * (as onUpdateSuccess does for a write) - a cache of the list to forget,
+   * schedules to work out again. `row` is the moved row, as read before it
+   * moved: its list and project. Nothing by default.
+   */
+  protected async onMoveInListSuccess(_data: {
+    row: TBaseModel;
+    changedRows: Array<{ id: string; order: number }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    // Most lists are read as they are.
   }
 
   private async checkTotalItemsBy(
@@ -8882,6 +9071,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       } as any,
       deletedByUser: deleteById.deletedByUser,
       deletionReason: deleteById.deletionReason,
+      ...(deleteById.miscDataProps
+        ? { miscDataProps: deleteById.miscDataProps }
+        : {}),
       props: deleteById.props,
     });
   }
@@ -9457,6 +9649,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           },
         );
 
+        // In the audit log at once, as read before the DELETE. See the helper.
+        await this.recordDeleteInAuditLog(items, deleteBy.props);
+
         /*
          * Their attached files go with them, unless something still holds
          * them. See AttachedFiles.
@@ -9547,6 +9742,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      /*
+       * The service's own hook, last. One that throws fails the delete
+       * (onDeleteError, WriteStep.AroundWrite), whose rows are gone: they
+       * are in the audit log already, and their workflow and realtime events
+       * went, above (#9616).
+       */
       if (!deleteBy.props.ignoreHooks) {
         await this.onDeleteSuccess(
           { deleteBy, carryForward },
@@ -9554,22 +9755,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             return new ObjectID(i._id!);
           }),
         );
-      }
-
-      if (this.getModel().enableAuditLogOn?.delete && items.length > 0) {
-        const auditLogService: typeof AuditLogServiceType =
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require("./AuditLogService").default;
-        for (const item of items) {
-          if (item.id) {
-            await auditLogService.recordDelete({
-              model: this.getModel(),
-              deletedItem: item,
-              itemId: item.id,
-              props: deleteBy.props,
-            });
-          }
-        }
       }
 
       return numberOfDocsAffected;
@@ -9586,6 +9771,40 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         tableName: this.model.tableName,
         rows: rowsOfDelete,
       });
+    }
+  }
+
+  /*
+   * The audit log's entry of each row a delete removed (#9616): recorded
+   * right after the DELETE (_deleteBy), from the row as it was read before
+   * it - whole, when the table's deletes are audited. Nothing in an entry
+   * depends on what comes after - the files let go of, the caches, the
+   * workflow and realtime events, the service's own onDeleteSuccess - so
+   * none of those failing leaves rows deleted that the audit log never saw
+   * go, though the delete itself still fails. Never throws
+   * (AuditLogService).
+   */
+  private async recordDeleteInAuditLog(
+    items: Array<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    if (!this.getModel().enableAuditLogOn?.delete || items.length === 0) {
+      return;
+    }
+
+    const auditLogService: typeof AuditLogServiceType =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("./AuditLogService").default;
+
+    for (const item of items) {
+      if (item.id) {
+        await auditLogService.recordDelete({
+          model: this.getModel(),
+          deletedItem: item,
+          itemId: item.id,
+          props: props,
+        });
+      }
     }
   }
 
@@ -10757,6 +10976,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * PrivateRecordReadFilter.keepSeenRelatedRecords.
        */
       await PrivateRecordReadFilter.keepSeenRelatedRecords({
+        modelType: this.modelType,
+        rows: decryptedItems,
+        select: onBeforeFind.select,
+        props: narrowed.asker,
+      });
+
+      /*
+       * A person reached through a relation, only as the asker may see
+       * them: someone only invited to the asker's projects shows the name
+       * typed for them, not their own profile, and nobody's account dates
+       * are anyone else's to read (#9823). See PendingInviteeProfiles.
+       */
+      await PendingInviteeProfiles.withholdFromRows({
         modelType: this.modelType,
         rows: decryptedItems,
         select: onBeforeFind.select,

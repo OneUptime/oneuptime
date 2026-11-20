@@ -18,7 +18,7 @@ Ao criar um agendamento na página **Agendamentos de plantão**, o formulário p
 
 :::steps
 1. Vá em **Plantão** > **Agendamentos de plantão** e clique em **Criar agendamento de plantão**.
-2. Digite um **Nome**.
+2. Digite um **Nome**. Um nome que outro agendamento do projeto já tem é recusado, sem diferenciar maiúsculas de minúsculas nem espaços, para que todo seletor distinga os agendamentos.
 3. Em **Quem se reveza?**, clique em **Adicionar usuário** e escolha as pessoas, na ordem em que se revezam.
 4. Se quiser, abra **Mais campos** para mudar quanto dura cada turno, o fuso horário, a descrição ou os rótulos.
 5. Clique em **Criar agendamento de plantão**. O novo agendamento abre depois na página **Camadas** dele, onde você pode mudar a rotação ou adicionar mais camadas.
@@ -40,7 +40,7 @@ Todo o resto fica em **Mais campos**, recolhido até você abrir:
 | Campo | O que faz |
 | --- | --- |
 | **Cada turno dura** | **1 dia**, **1 semana**, **2 semanas** ou **1 mês**, e **1 semana** se você não mudar. É perguntado assim que alguém se reveza. Cada pessoa fica de plantão por esse tempo, e depois a próxima assume, no horário do dia em que o agendamento foi criado. |
-| **Fuso horário** | O fuso horário em que os horários de passagem e os horários de plantão são guardados. Começa com o seu. |
+| **Fuso horário** | O fuso horário em que os horários de passagem e os horários de plantão são guardados. Começa com o seu. Cada fuso horário segue as regras atuais da sua região: America/Vancouver (Colúmbia Britânica) fica em UTC-7 o ano todo a partir de 2026. |
 | **Descrição** | Notas sobre o agendamento. |
 | **Rótulos** | Rótulos para encontrar e agrupar o agendamento. |
 
@@ -97,11 +97,11 @@ Enquanto ela está ausente:
 
 Se, em vez disso, você escolher alguém em **Quem cobre?**, essa pessoa recebe todos os acionamentos dela, de todo agendamento e de toda política, em vez de a rotação ficar com os turnos dela.
 
-Uma ausência adicionada assim vale para todas as políticas de plantão, então exige a permissão de substituições no projeto inteiro. Se a função da sua equipe é limitada às próprias políticas ou a alguns rótulos, ela é adicionada em vez disso nas políticas deste agendamento em que você pode adicionar substituições, com uma substituição por política, listada na página **Substituições de usuário** de cada política; se forem várias, você as marca em **Políticas de plantão**. **Pular até…** só fica bloqueado e diz por quê onde você não pode em nenhuma. Ela aparece em **Plantão** > **Avançado** > **Substituições de usuário**, e entre as substituições de usuário do agendamento na página **Camadas** dele, onde **Encerrar agora** traz a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está. Veja [Substituições de usuário](/docs/on-call/user-overrides).
+Uma ausência adicionada assim vale para todas as políticas de plantão, então exige a permissão de substituições no projeto inteiro. Se a função da sua equipe é limitada às próprias políticas ou a alguns rótulos, ela é adicionada em vez disso nas políticas deste agendamento em que você pode adicionar substituições, com uma substituição por política, listada na página **Substituições de usuário** de cada política; se forem várias, você as marca em **Políticas de plantão**. **Pular até…** só fica bloqueado e diz por quê onde você não pode em nenhuma. Ela aparece em **Plantão** > **Agendamentos** > **Substituições de usuário**, e entre as substituições de usuário do agendamento na página **Camadas** dele, onde **Encerrar agora** traz a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 
 Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 
-A **Visão geral** de um agendamento tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam quem está de plantão, com as regras que fazem isso. Quando nenhuma faz, ele diz isso e leva às políticas de plantão. Excluir o agendamento, em sua página ou pela lista, diz primeiro quais políticas acionam por ele. As políticas que você não pode abrir são contadas, não nomeadas.
+A **Visão geral** de um agendamento tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam quem está de plantão, com as regras que fazem isso. Quando nenhuma faz, ele diz isso e leva às políticas de plantão. Excluir o agendamento, em sua página ou pela lista, diz primeiro quais políticas acionam por ele. As políticas que você não pode abrir são contadas, não nomeadas. Um agendamento que tem o mesmo nome que outro agendamento, de antes de os nomes precisarem ser diferentes, é marcado com **Mesmo nome que outro agendamento** na lista **Agendamentos de plantão**, que diz quantos são: compare as camadas deles e depois renomeie um com **Renomear** na linha dele.
 
 ## Criar agendamentos com a API ou o Terraform
 

@@ -4,6 +4,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  StorageUsage,
+  StorageUsageLevel,
+  StorageUsageThresholds,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
   ResourceAttentionText,
@@ -12,7 +18,9 @@ import {
   mergeResourceAttentionSeverity,
   sortResourceAttention,
 } from "../../../Components/ResourcePart/ResourceAttention";
+import { ResourcePartBadge } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../../Components/ResourceTopology/ResourceTopologyIssues";
+import { getProxmoxLockBadge } from "./ProxmoxPartFacts";
 
 /*
  * WHAT ON A PROXMOX VE CLUSTER NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -25,11 +33,12 @@ import { OpenIssueRecord } from "../../../Components/ResourceTopology/ResourceTo
  *
  *   Critical - broken, or about to be:
  *     a node offline; a node or guest HA fenced or in error; a storage no
- *     longer available, or more than 95% full; the cluster not quorate.
+ *     longer available, or more than 95% full; a node's or a container's
+ *     root disk more than 95% full; the cluster not quorate.
  *   Warning - needs a look soon:
  *     a guest stopped although it starts on boot; a guest in no backup job;
- *     a guest whose last backup failed; a storage more than 85% full; a
- *     replication job failing.
+ *     a guest whose last backup failed; a storage, or a node's or a
+ *     container's root disk, more than 85% full; a replication job failing.
  *
  * A template never runs and is never "stopped": it is left out of every
  * rule a running guest is held to. A lock is not a problem by itself - a
@@ -42,6 +51,18 @@ import { OpenIssueRecord } from "../../../Components/ResourceTopology/ResourceTo
 
 export const PROXMOX_STORAGE_NEAR_FULL_PERCENT: number = 85;
 export const PROXMOX_STORAGE_FULL_PERCENT: number = 95;
+
+/*
+ * Where the shared storage bar turns amber and red, and the rules below
+ * call a disk nearly full and full: a storage, a node's root filesystem and
+ * a container's root disk alike. Only past a line, as the rules read it: a
+ * storage at exactly 85% has not crossed it.
+ */
+export const PROXMOX_STORAGE_USAGE_THRESHOLDS: StorageUsageThresholds = {
+  warningPercent: PROXMOX_STORAGE_NEAR_FULL_PERCENT,
+  criticalPercent: PROXMOX_STORAGE_FULL_PERCENT,
+  isPastLineOnly: true,
+};
 
 export type ProxmoxPartKind = "Node" | "Guest" | "Storage";
 
@@ -71,6 +92,9 @@ const REASON_NO_BACKUP_JOB: string = translationKey("In no backup job");
 const REASON_BACKUP_FAILED: string = translationKey("Last backup failed");
 const REASON_UNAVAILABLE: string = translationKey("Unavailable");
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
+const REASON_ROOT_DISK_FULL: string = translationKey(
+  "Root disk {{percent}} full",
+);
 const REASON_FAILED_SYNCS: { one: string; other: string } = {
   one: "{{count}} failed sync",
   other: "{{count}} failed syncs",
@@ -121,6 +145,57 @@ function formatPercentForReason(percent: number): string {
   return `${Math.round(percent)}%`;
 }
 
+/*
+ * How full a node's root filesystem or a guest's root disk is, as the
+ * shared storage bar reads it: what Proxmox VE reports used (disk) of its
+ * size (maxdisk), at Proxmox's own lines. Null when it reported nothing to
+ * measure: a QEMU VM's root image reads 0 used, since Proxmox cannot see
+ * inside the guest, and a stopped container's 0 too - a page says so in
+ * words, never 0%. A storage has its own bar (its list's Used column).
+ */
+export function getProxmoxDiskUsage(
+  row: Pick<
+    ProxmoxResource,
+    "kind" | "latestDiskBytes" | "maxDiskBytes" | "isTemplate"
+  >,
+): StorageUsage | null {
+  if (row.kind !== "Node" && row.kind !== "Guest") {
+    return null;
+  }
+  if (row.kind === "Guest" && row.isTemplate === true) {
+    return null;
+  }
+  const used: number | null = finite(row.latestDiskBytes);
+  if (used === null || used <= 0) {
+    return null;
+  }
+  return getStorageUsage(
+    { capacity: row.maxDiskBytes, used: used },
+    PROXMOX_STORAGE_USAGE_THRESHOLDS,
+  );
+}
+
+// A node's or a container's root disk past Proxmox's lines, with why.
+function rootDiskFinding(row: ProxmoxResource): {
+  severity: ResourceAttentionSeverity;
+  reason: ResourceAttentionText;
+} | null {
+  const usage: StorageUsage | null = getProxmoxDiskUsage(row);
+  if (!usage || usage.level === StorageUsageLevel.Normal) {
+    return null;
+  }
+  return {
+    severity:
+      usage.level === StorageUsageLevel.Critical
+        ? ResourceAttentionSeverity.Critical
+        : ResourceAttentionSeverity.Warning,
+    reason: {
+      text: REASON_ROOT_DISK_FULL,
+      values: { percent: formatPercentForReason(usage.usedPercent) },
+    },
+  };
+}
+
 function haReason(row: ProxmoxResource): ResourceAttentionText | null {
   if (row.haState && HA_CRITICAL_STATES.has(row.haState)) {
     return { text: REASON_HA_STATE, values: { state: row.haState } };
@@ -130,15 +205,29 @@ function haReason(row: ProxmoxResource): ResourceAttentionText | null {
 
 export function assessProxmoxNode(row: ProxmoxResource): ProxmoxAssessment {
   const reasons: Array<ResourceAttentionText> = [];
+  const severities: Array<ResourceAttentionSeverity> = [];
   if (row.isUp === false) {
     reasons.push({ text: REASON_OFFLINE });
+    severities.push(ResourceAttentionSeverity.Critical);
   }
   const ha: ResourceAttentionText | null = haReason(row);
   if (ha) {
     reasons.push(ha);
+    severities.push(ResourceAttentionSeverity.Critical);
+  }
+  // An offline node's last reading is no reading of its disk now.
+  if (row.isUp !== false) {
+    const disk: {
+      severity: ResourceAttentionSeverity;
+      reason: ResourceAttentionText;
+    } | null = rootDiskFinding(row);
+    if (disk) {
+      reasons.push(disk.reason);
+      severities.push(disk.severity);
+    }
   }
   return {
-    severity: reasons.length > 0 ? ResourceAttentionSeverity.Critical : null,
+    severity: mergeResourceAttentionSeverity(severities),
     reasons: reasons,
   };
 }
@@ -166,6 +255,19 @@ export function assessProxmoxGuest(row: ProxmoxResource): ProxmoxAssessment {
     if (row.lastBackupStatus === "failed") {
       reasons.push({ text: REASON_BACKUP_FAILED });
       severities.push(ResourceAttentionSeverity.Warning);
+    }
+    /*
+     * A container's root disk filling up: services inside it start to
+     * fail (the Container Root Disk Near Full alert's concern). A VM's is
+     * never read here - Proxmox cannot see inside it.
+     */
+    const disk: {
+      severity: ResourceAttentionSeverity;
+      reason: ResourceAttentionText;
+    } | null = rootDiskFinding(row);
+    if (disk) {
+      reasons.push(disk.reason);
+      severities.push(disk.severity);
     }
   }
 
@@ -345,6 +447,242 @@ export function getProxmoxClusterHealth(
   items: Array<ResourceAttentionItem>,
 ): ResourceHealth {
   return getResourceAttentionHealth(items);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What the Overview's counts open
+ * ---------------------------------------------------------------------------
+ *
+ * The Overview counts what is wrong - nodes offline, HA resources in error
+ * or fence, guests whose last backup failed or that no backup job includes
+ * - and each count opens exactly those parts, why (the count's own reason
+ * first, then whatever else the rules say), which node a guest is on and
+ * when its backup failed, each a step from its page (#9594). By the same
+ * rules as Needs attention, so a part reads the same in both.
+ */
+export type ProxmoxProblem =
+  | { kind: "nodesOffline" }
+  | { kind: "haState"; state: string }
+  | { kind: "backupFailed" }
+  | { kind: "noBackupJob" }
+  /*
+   * Guests "8/10 guests running" leaves out that should be running: stopped
+   * although they start on boot, or HA gave up on them (error) or cut their
+   * node off (fence). A guest someone stopped and left off is not one.
+   */
+  | { kind: "guestsStopped" };
+
+const FACT_NODE: string = translationKey("Node");
+// When a guest's last backup failed: "Failed 2 hours ago".
+const SINCE_BACKUP_FAILED: string = translationKey("Failed {{time}}");
+/*
+ * Why a guest that should run is not running, where the inventory says:
+ * the node it is on is offline (the guest went with it).
+ */
+const REASON_NODE_OFFLINE: string = translationKey("Its node is offline");
+
+function isHaCritical(row: ProxmoxResource): boolean {
+  return Boolean(row.haState && HA_CRITICAL_STATES.has(row.haState));
+}
+
+/*
+ * Whether a row is one the count counts - the very test the Overview's
+ * summary counts it by, so the dialog lists what the number said.
+ */
+export function isProxmoxProblemRow(
+  row: ProxmoxResource,
+  problem: ProxmoxProblem,
+): boolean {
+  switch (problem.kind) {
+    case "nodesOffline":
+      return row.kind === "Node" && row.isUp === false;
+    case "haState":
+      return Boolean(row.haState) && row.haState === problem.state;
+    case "backupFailed":
+      return (
+        row.kind === "Guest" &&
+        !isProxmoxTemplate(row) &&
+        row.lastBackupStatus === "failed"
+      );
+    case "noBackupJob":
+      return (
+        row.kind === "Guest" &&
+        !isProxmoxTemplate(row) &&
+        row.isBackedUp === false
+      );
+    case "guestsStopped":
+      /*
+       * Not counted running (isUp true is what "8/10 running" counts), and
+       * flagged by the rules for it: stopped though it starts on boot, or
+       * in an HA state HA gave up in.
+       */
+      return (
+        row.kind === "Guest" &&
+        !isProxmoxTemplate(row) &&
+        row.isUp !== true &&
+        ((row.onboot === true && row.isUp === false) || isHaCritical(row))
+      );
+    default:
+      return false;
+  }
+}
+
+function problemReasonOf(
+  row: ProxmoxResource,
+  problem: ProxmoxProblem,
+): ResourceAttentionText {
+  switch (problem.kind) {
+    case "nodesOffline":
+      return { text: REASON_OFFLINE };
+    case "haState":
+      return { text: REASON_HA_STATE, values: { state: row.haState || "" } };
+    case "backupFailed":
+      return { text: REASON_BACKUP_FAILED };
+    case "guestsStopped":
+      // HA's verdict says more than the stop it led to.
+      return isHaCritical(row)
+        ? { text: REASON_HA_STATE, values: { state: row.haState || "" } }
+        : { text: REASON_STOPPED_ON_BOOT };
+    case "noBackupJob":
+    default:
+      return { text: REASON_NO_BACKUP_JOB };
+  }
+}
+
+/*
+ * Why a guest that should run is not, where the inventory can tell: its
+ * node is offline, or a task holds it (a backup that stops it while it
+ * runs, a migration) in Proxmox's lock, worded as the guest's page words it.
+ */
+function guestStoppedCauses(
+  row: ProxmoxResource,
+  nodesByName: Map<string, ProxmoxResource>,
+): Array<ResourceAttentionText> {
+  const causes: Array<ResourceAttentionText> = [];
+  const node: ProxmoxResource | undefined = row.parentNodeName
+    ? nodesByName.get(row.parentNodeName)
+    : undefined;
+  if (node && node.isUp === false) {
+    causes.push({ text: REASON_NODE_OFFLINE });
+  }
+  const lock: ResourcePartBadge | null = getProxmoxLockBadge(row.lockState);
+  if (lock) {
+    causes.push(
+      lock.values
+        ? { text: lock.label, values: lock.values }
+        : { text: lock.label },
+    );
+  }
+  return causes;
+}
+
+function sameReason(
+  a: ResourceAttentionText,
+  b: ResourceAttentionText,
+): boolean {
+  return (
+    a.text === b.text &&
+    JSON.stringify(a.values || {}) === JSON.stringify(b.values || {})
+  );
+}
+
+export function getProxmoxProblemItems(data: {
+  rows: Array<ProxmoxResource>;
+  problem: ProxmoxProblem;
+  routeFor: ProxmoxRouteFor;
+  now: Date;
+  // A row older than this has stopped being reported: when it last was says so.
+  staleMs: number;
+}): Array<ResourceAttentionItem> {
+  const nodesByName: Map<string, ProxmoxResource> = new Map();
+  for (const row of data.rows) {
+    if (row.kind === "Node" && row.name) {
+      nodesByName.set(row.name, row);
+    }
+  }
+
+  const items: Array<ResourceAttentionItem> = [];
+
+  for (const row of data.rows) {
+    const kind: ProxmoxPartKind | null =
+      row.kind === "Node" || row.kind === "Guest" || row.kind === "Storage"
+        ? row.kind
+        : null;
+    if (!kind || !isProxmoxProblemRow(row, data.problem)) {
+      continue;
+    }
+
+    const assessment: ProxmoxAssessment = assessProxmoxResource(row);
+    const first: ResourceAttentionText = problemReasonOf(row, data.problem);
+    const externalId: string = row.externalId || "";
+    // Why a guest that should run is not, right after the count's reason.
+    const causes: Array<ResourceAttentionText> =
+      data.problem.kind === "guestsStopped"
+        ? guestStoppedCauses(row, nodesByName)
+        : [];
+
+    const item: ResourceAttentionItem = {
+      key: `${kind}:${externalId}`,
+      kind: kindWordOf(kind),
+      icon: iconOf(kind),
+      name: getProxmoxDisplayName(row),
+      detail: kind === "Node" ? undefined : externalId,
+      severity: assessment.severity || ResourceAttentionSeverity.Warning,
+      // The count's own reason first, then the rest of what the rules say.
+      reasons: [
+        first,
+        ...causes,
+        ...assessment.reasons.filter((reason: ResourceAttentionText) => {
+          return !sameReason(reason, first);
+        }),
+      ],
+      route: externalId ? data.routeFor(kind, externalId) : undefined,
+    };
+
+    // Which node a guest runs on, a step from the node's page.
+    if (kind === "Guest" && row.parentNodeName) {
+      const node: ProxmoxResource | undefined = nodesByName.get(
+        row.parentNodeName,
+      );
+      item.facts = [
+        {
+          key: "node",
+          label: FACT_NODE,
+          value: row.parentNodeName,
+          route: node?.externalId
+            ? data.routeFor("Node", node.externalId)
+            : undefined,
+        },
+      ];
+    }
+
+    if (data.problem.kind === "backupFailed" && row.lastBackupAt) {
+      const failedAt: Date = new Date(row.lastBackupAt);
+      if (Number.isFinite(failedAt.getTime())) {
+        item.since = { at: failedAt, template: SINCE_BACKUP_FAILED };
+      }
+    }
+
+    /*
+     * A node that has stopped being reported says when it last was; one
+     * its siblings still report as down is reported now, which says
+     * nothing.
+     */
+    if (data.problem.kind === "nodesOffline" && row.lastSeenAt) {
+      const seenAt: Date = new Date(row.lastSeenAt);
+      if (
+        Number.isFinite(seenAt.getTime()) &&
+        data.now.getTime() - seenAt.getTime() > data.staleMs
+      ) {
+        item.lastReportAt = seenAt;
+      }
+    }
+
+    items.push(item);
+  }
+
+  return sortResourceAttention(items, PROXMOX_ATTENTION_KIND_ORDER);
 }
 
 /*

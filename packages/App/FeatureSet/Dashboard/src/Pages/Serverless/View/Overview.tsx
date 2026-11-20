@@ -42,6 +42,8 @@ import ResourceOverview, {
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import { getFailedSpansRoute } from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import {
@@ -307,6 +309,12 @@ const ServerlessFunctionOverview: FunctionComponent<
         : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
+      // The invocations it counts that failed: every span of the function.
+      to: getFailedSpansRoute({
+        tracesRoute: populate(PageMap.SERVERLESS_FUNCTION_VIEW_TRACES),
+        timeRange: timeRange,
+        spanType: TraceSpanType.All,
+      }),
       description: SERVERLESS_METRIC_DESCRIPTIONS.errorRate,
     },
     {

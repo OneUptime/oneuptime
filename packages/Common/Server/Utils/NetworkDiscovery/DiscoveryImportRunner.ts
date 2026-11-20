@@ -16,6 +16,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   ACTIVE_DISCOVERY_IMPORT_STATUSES,
+  DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON,
   DISCOVERY_IMPORT_MONITOR_BACKED_REASON,
   DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
   DISCOVERY_IMPORT_STOPPED_REASON,
@@ -44,10 +45,11 @@ import { DeviceNamingPreview } from "../../../Types/NetworkDevice/DeviceNaming";
 import ObjectID from "../../../Types/ObjectID";
 import DeviceMonitorTemplateUtil, {
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
-  isDeviceAddressMonitorType,
+  isDeviceTargetMonitorType,
   isDeviceMonitorTemplateType,
 } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import { DeviceMonitorFacts } from "../../../Utils/Monitor/DeviceMonitorDuplicates";
+import { WhenReachUnknown } from "../../../Utils/NetworkDevice/DeviceAddressScope";
 import {
   buildDeviceName,
   buildFallbackDeviceName,
@@ -107,7 +109,8 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  *            refused is refused here, at once and in one sentence - no
  *            right to create devices or monitors, a scan the person cannot
  *            read, a template no device's monitor can be made from (any but
- *            a Network Device, Ping, IP, Port or NTP one), a plan with no
+ *            a Network Device, Ping, IP, Port, NTP, Website, API or SSL
+ *            Certificate one), a plan with no
  *            room for another monitor - and the import is recorded and
  *            queued.
  *   (worker) creates each host's device, then its monitor, acting as the
@@ -271,6 +274,17 @@ export const MONITOR_SKIPPED_DEVICE_NOT_IMPORTED: string =
   DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON;
 export const MONITOR_SKIPPED_MONITOR_BACKED: string =
   DISCOVERY_IMPORT_MONITOR_BACKED_REASON;
+export const MONITOR_SKIPPED_AMBIGUOUS_DEVICE: string =
+  DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON;
+
+/*
+ * A scan's host at an address whose devices its probe cannot tell apart
+ * (issue #9677): a device is there, but which one this host is is not known.
+ */
+const AMBIGUOUS_DEVICE: unique symbol = Symbol("AmbiguousDevice");
+
+// What looking for the device a host already is finds.
+type FoundDevice = NetworkDevice | typeof AMBIGUOUS_DEVICE | null;
 export const DEVICE_NOT_REACHED_STOPPED: string =
   DISCOVERY_IMPORT_STOPPED_REASON;
 export const DEVICE_NOT_REACHED_FAILED: string =
@@ -279,9 +293,10 @@ export const DEVICE_NOT_REACHED_FAILED: string =
 /*
  * What the import reads of a device it created or found: its name and
  * address for its monitor, how its health is established, the probe that
- * polls it - the probe a Ping, IP, Port or NTP monitor made for it runs on -
- * and the monitor bound to it, which a second Ping or IP monitor would
- * duplicate (DeviceMonitorDuplicateCheck).
+ * polls it - the probe a Ping, IP, Port, NTP, Website, API or SSL
+ * Certificate monitor made for it runs on - and the monitor bound to it,
+ * which a second monitor checking the same thing would duplicate
+ * (DeviceMonitorDuplicateCheck).
  */
 const IMPORTED_DEVICE_SELECT: {
   _id: true;
@@ -1582,8 +1597,9 @@ export default class DiscoveryImportRunner {
     /*
      * A Network Device template's monitor reads each device's polls; a
      * Ping, IP, Port or NTP template's checks each device's address
-     * (#5145). No other kind of template has anything of a device's to
-     * check.
+     * (#5145), and a Website, API or SSL Certificate template's checks its
+     * URL with each device's address as the host (#9546). No other kind of
+     * template has anything of a device's to check.
      */
     if (!isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
@@ -1958,7 +1974,7 @@ export default class DiscoveryImportRunner {
 
     if (!template || !isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(
-        "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
+        "The monitor template this import uses was deleted, or is no longer a kind of template that can check a device. Start the import again with another template.",
       );
     }
 
@@ -2039,19 +2055,58 @@ export default class DiscoveryImportRunner {
     return device;
   }
 
+  /*
+   * The device a scan's host already is: the one the scan's probe sees at
+   * its address (issue #9677) - the device it polls there, else the one in
+   * a site it looks into. Two sites can each have a 10.0.0.5, and another
+   * site's is not this host. AMBIGUOUS_DEVICE when devices there cannot be
+   * told apart from the probe: the host is a device, but which one is not
+   * known. Where the probe's site cannot be known, the one device at the
+   * address is this host's, as before, so an import never adds a box twice.
+   */
   private static async findDeviceAt(
     state: ImportRunState,
     address: string,
-  ): Promise<NetworkDevice | null> {
+  ): Promise<FoundDevice> {
+    const ambiguous: Set<string> = new Set<string>();
+
     const found: Map<string, NetworkDevice> =
       await NetworkDeviceService.getDevicesByHostnames({
         projectId: state.projectId,
         hostnames: [address],
         select: IMPORTED_DEVICE_SELECT,
         props: { isRoot: true },
+        seenFrom: {
+          probeIds: state.scan?.probeId ? [state.scan.probeId] : [],
+          whenReachUnknown: WhenReachUnknown.OnlyDeviceAnywhere,
+        },
+        ambiguousHostnames: ambiguous,
       });
 
+    if (ambiguous.has(address)) {
+      return AMBIGUOUS_DEVICE;
+    }
+
     return found.get(address) || null;
+  }
+
+  /*
+   * A host at an address whose devices its scan's probe cannot tell apart:
+   * a device is there, so none is created, and none is given a monitor,
+   * since which one this host is cannot be known.
+   */
+  private static recordAmbiguousDevice(
+    result: DiscoveryImportHostResult,
+  ): null {
+    result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
+    delete result.deviceId;
+
+    if (result.monitor === DiscoveryImportMonitorOutcome.Pending) {
+      result.monitor = DiscoveryImportMonitorOutcome.Skipped;
+      result.monitorError = MONITOR_SKIPPED_AMBIGUOUS_DEVICE;
+    }
+
+    return null;
   }
 
   /*
@@ -2128,18 +2183,23 @@ export default class DiscoveryImportRunner {
     }
 
     /*
-     * A scan's host is found at its address. A discovered device by its MAC
-     * first - it names one box wherever it is - then at its address in its
-     * own site, the way the map recognises it.
+     * A scan's host is found at its address, as its probe sees it (issue
+     * #9677). A discovered device by its MAC first - it names one box
+     * wherever it is - then at its address in its own site, the way the map
+     * recognises it.
      */
-    const findExisting: () => Promise<NetworkDevice | null> =
-      async (): Promise<NetworkDevice | null> => {
+    const findExisting: () => Promise<FoundDevice> =
+      async (): Promise<FoundDevice> => {
         return facts
           ? await this.findDiscoveredDevice(state, host.ipAddress, facts)
           : await this.findDeviceAt(state, host.ipAddress);
       };
 
-    const existing: NetworkDevice | null = await findExisting();
+    const existing: FoundDevice = await findExisting();
+
+    if (existing === AMBIGUOUS_DEVICE) {
+      return this.recordAmbiguousDevice(result);
+    }
 
     if (existing?.id) {
       result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
@@ -2210,7 +2270,11 @@ export default class DiscoveryImportRunner {
           return null;
         }
 
-        const meanwhile: NetworkDevice | null = await findExisting();
+        const meanwhile: FoundDevice = await findExisting();
+
+        if (meanwhile === AMBIGUOUS_DEVICE) {
+          return this.recordAmbiguousDevice(result);
+        }
 
         if (meanwhile?.id) {
           result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
@@ -2248,7 +2312,11 @@ export default class DiscoveryImportRunner {
         }
 
         // Another import, a rule or a person created it meanwhile.
-        const meanwhile: NetworkDevice | null = await findExisting();
+        const meanwhile: FoundDevice = await findExisting();
+
+        if (meanwhile === AMBIGUOUS_DEVICE) {
+          return this.recordAmbiguousDevice(result);
+        }
 
         if (meanwhile?.id) {
           result.device = DiscoveryImportDeviceOutcome.AlreadyAdded;
@@ -2451,7 +2519,7 @@ export default class DiscoveryImportRunner {
             return {
               created: await MonitorService.create({
                 data: monitor,
-                ...(isDeviceAddressMonitorType(template.monitorType)
+                ...(isDeviceTargetMonitorType(template.monitorType)
                   ? {
                       miscDataProps: this.getAddressMonitorProbes({
                         device: device,

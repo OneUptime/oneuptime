@@ -6,8 +6,10 @@ import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommen
 import Link from "Common/UI/Components/Link/Link";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
-import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import GoldenMetricTile, {
+  STORAGE_USAGE_TILE_TONES,
+} from "../../Infrastructure/GoldenMetricTile";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
@@ -16,17 +18,17 @@ import ResourcePartDetailsCard, {
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import {
-  getProxmoxAttentionItems,
+  getProxmoxDiskUsage,
   isProxmoxIssueAbout,
 } from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import {
   PROXMOX_NODE_ALERT_TEMPLATE_IDS,
   ProxmoxBusyGuest,
   ProxmoxGuestSummary,
   getProxmoxBusiestGuests,
-  getProxmoxDiskPercent,
   getProxmoxMemoryPercent,
   getProxmoxNodeName,
   summarizeProxmoxGuests,
@@ -56,9 +58,6 @@ import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
  * a part's own page says when it last reported, in its hero).
  */
 
-// How the node's own row reads in its Needs attention card.
-const THIS_NODE: string = translationKey("This node");
-
 export interface ComponentProps {
   clusterId: ObjectID;
   clusterName: string;
@@ -66,6 +65,12 @@ export interface ComponentProps {
   row: ProxmoxResource | null;
   // The guests and storage the node reports.
   nodeRows: Array<ProxmoxResource>;
+  /*
+   * What needs attention on the node, its guests and its storage: the
+   * page reads it once (getProxmoxPartAttention) for this card and for the
+   * hero's status, which opens it.
+   */
+  attention: ResourcePartAttention;
   routes: ProxmoxPartRoutes;
   onShowGuests: () => void;
   refreshToken?: number | undefined;
@@ -91,13 +96,6 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
   );
   const guestSummary: ProxmoxGuestSummary = summarizeProxmoxGuests(guests);
 
-  const attentionItems: Array<ResourceAttentionItem> = getProxmoxAttentionItems(
-    {
-      rows: [...(row ? [row] : []), ...props.nodeRows],
-      routeFor: props.routes.getPartRoute,
-    },
-  );
-
   const busiest: Array<ProxmoxBusyGuest> = getProxmoxBusiestGuests({
     rows: guests,
     now: OneUptimeDate.getCurrentDate(),
@@ -112,9 +110,8 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
     : null;
   const memoryUsed: number | null = toProxmoxNumber(row?.latestMemoryBytes);
   const memoryTotal: number | null = toProxmoxNumber(row?.maxMemoryBytes);
-  const diskPercent: number | null = row ? getProxmoxDiskPercent(row) : null;
-  const diskUsed: number | null = toProxmoxNumber(row?.latestDiskBytes);
-  const diskTotal: number | null = toProxmoxNumber(row?.maxDiskBytes);
+  // Its root filesystem as the Nodes list's bar and Needs attention read it.
+  const diskUsage: StorageUsage | null = row ? getProxmoxDiskUsage(row) : null;
 
   const nodeIssueRow: Pick<
     ProxmoxResource,
@@ -216,9 +213,9 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="proxmox-node-overview">
       <NeedsAttentionCard
         testId="proxmox-node-attention"
-        items={attentionItems}
-        current={{ key: `Node:${props.externalId}`, label: THIS_NODE }}
-        description="What on this node, its guests and its storage is broken or needs a look, the most urgent first."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -263,17 +260,19 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
           title="Root Disk"
           icon={IconProp.Database}
           iconColor="amber"
-          value={formatPercent(diskPercent)}
+          value={diskUsage ? formatPercent(diskUsage.usedPercent) : undefined}
           sublabel={
-            diskUsed !== null && diskTotal !== null
+            diskUsage
               ? translator.translateTemplate("{{used}} of {{total}}", {
-                  used: formatBytes(diskUsed),
-                  total: formatBytes(diskTotal),
+                  used: formatBytes(diskUsage.used),
+                  total: formatBytes(diskUsage.capacity),
                 })
               : undefined
           }
-          percent={diskPercent}
-          thresholds={{ warn: 80, danger: 90 }}
+          percent={diskUsage ? diskUsage.usedPercent : null}
+          tone={
+            diskUsage ? STORAGE_USAGE_TILE_TONES[diskUsage.level] : undefined
+          }
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeRootDisk}
         />
         <GoldenMetricTile

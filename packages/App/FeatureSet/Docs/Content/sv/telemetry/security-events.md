@@ -218,6 +218,7 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 - Varje post läses som **Dina loggar** läser den från en pipeline, så regelbibliotekets CloudTrail-, Google Cloud- och Azure-regler träffar den.
 - En händelse får tiden då den lagras, med postens egen tid i `oneuptime.cloud.record_time`: en granskningslogg når OneUptime minuter för sent, och en regel läser händelser efter deras tid.
 - Kontots egen läsning ger inget mer: datahändelser, Data Access-loggar och Microsoft Entra ID:s loggar behöver fortfarande **Dina loggar** eller en [anslutning](/docs/integrations/microsoft-entra-id).
+- Varje händelse nämner de molnresurser som dess post gäller med deras egna ID:n - ett ARN, ett Azure-resurs-ID, ett resursnamn från Google Cloud - så den visas på sidan **Säkerhetshändelser** för var och en av dem, och på en serverlös funktions sida så snart dess telemetri anger `cloud.account.id` och `cloud.region`.
 
 ### Anslut en säkerhetsprodukt
 
@@ -371,7 +372,7 @@ flowchart TB
 3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
 4. Låt **Öppna ett ärende vid matchning** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
 5. Välj under **Larm och incidenter** vad en träff mer ska utlösa: **Skapa ett larm** (standard), **Deklarera en incident**, **Båda** eller **Ingetdera**, med valfri **Larmallvar** eller **Incidentallvar**.
-6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på), **Kör i realtid** (av) och hur träffar räknas; se [Utvärderingsinställningar](#utvärderingsinställningar).
+6. **Fler fält** innehåller **Beskrivning**, **Skriv Detection Finding vid matchning** (på), **Kör i realtid** (av), hur träffar räknas och **Responssteg**: vad som ska göras när regeln öppnar ett ärende, varje steg under den del av ärendets responsplan som du väljer, högst 10. Dra ett steg i dess handtag, eller använd **Flytta upp** och **Flytta ned**: ärendets plan visar varje dels steg i den ordning du ger dem. Se [Utvärderingsinställningar](#utvärderingsinställningar).
 :::
 
 En första regel, som träffar misslyckade inloggningar utanför `10.x.x.x`:

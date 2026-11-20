@@ -1,4 +1,7 @@
 import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import ServiceKnowledgeCard from "../../../Components/ServiceAiMemory/ServiceKnowledgeCard";
+import ServiceAiNotesTable from "../../../Components/ServiceAiMemory/ServiceAiNotesTable";
+import useAiOffered from "../../../Utils/UseAiOffered";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageComponentProps from "../../PageComponentProps";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -42,6 +45,11 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
+import {
+  getCountedSpansRoute,
+  getFailedSpansRoute,
+} from "../../../Components/TelemetryResource/FailedSpansRoute";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import OneUptimeDate from "Common/Types/Date";
@@ -89,6 +97,8 @@ const meanOf: (series: Array<TimePoint>) => number | null = (
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  // OneUptime AI's memory of the service shows while the project uses AI.
+  const isAiOffered: boolean = useAiOffered();
 
   const [service, setService] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -364,7 +374,12 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       iconColor: "sky",
       loading: metricsLoading,
       sublabel: "spans, selected range",
-      to: populate(PageMap.SERVICE_VIEW_TRACES),
+      // Every span it counts, over the range it counts them in.
+      to: getCountedSpansRoute({
+        tracesRoute: populate(PageMap.SERVICE_VIEW_TRACES),
+        timeRange: timeRange,
+        spanType: TraceSpanType.All,
+      }),
       description: SERVICE_METRIC_DESCRIPTIONS.requests,
     },
     {
@@ -376,6 +391,12 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       sublabel: "of spans errored",
       percent: m?.errorRatePercent,
       thresholds: { warn: 1, danger: 5 },
+      // The spans it counts: every span of the service that failed.
+      to: getFailedSpansRoute({
+        tracesRoute: populate(PageMap.SERVICE_VIEW_TRACES),
+        timeRange: timeRange,
+        spanType: TraceSpanType.All,
+      }),
       description: SERVICE_METRIC_DESCRIPTIONS.errorRate,
     },
     {
@@ -656,6 +677,21 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             { modelId: modelId },
           )}
         />
+        {/*
+         * What OneUptime AI learned about the service from its resolved
+         * incidents and alerts, read with the viewer's own permissions,
+         * and what the team told it (#7672): while the project uses AI.
+         * Read once a visit, not on every auto-refresh: it changes as
+         * incidents and alerts are resolved, not by the minute.
+         */}
+        {isAiOffered ? (
+          <>
+            <ServiceKnowledgeCard serviceId={modelId} />
+            <ServiceAiNotesTable serviceId={modelId} />
+          </>
+        ) : (
+          <></>
+        )}
         {/*
          * What Security Events found about it this week, for whoever
          * may read it (Components/SecurityConnections).

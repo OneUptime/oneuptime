@@ -41,8 +41,8 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A severity created without a place goes to the end of the list - the
-   * least severe - and one created with a number takes that place, the ones
-   * in the way stepping down: DatabaseService keeps the order
+   * least severe - and one created with a number keeps it, moving no other
+   * severity (issue #9609): DatabaseService keeps the order
    * (@ListOrderColumn), for the dashboard, the API and Terraform alike.
    */
   @CaptureSpan()

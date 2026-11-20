@@ -24,10 +24,80 @@ export const CLUSTER_NAME: string = required("CLUSTER_NAME");
  * Base URL of the in-cluster cost engine, e.g.
  *   http://opencost.opencost.svc.cluster.local:9003          (OpenCost)
  *   http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090  (Kubecost)
+ *
+ * Or "auto": the agent finds the OpenCost or Kubecost the cluster already
+ * runs (EngineDiscovery) and reads that, and keeps looking until there is
+ * one. The chart sets it when cost.engine.url is auto and bundles nothing.
  */
-export const COST_ENGINE_URL: string = required("COST_ENGINE_URL").replace(
-  /\/+$/,
+export const COST_ENGINE_URL: string = required("COST_ENGINE_URL")
+  .trim()
+  .replace(/\/+$/, "");
+
+export const COST_ENGINE_AUTO: string = "auto";
+
+export const IS_COST_ENGINE_AUTO: boolean =
+  COST_ENGINE_URL.toLowerCase() === COST_ENGINE_AUTO;
+
+/*
+ * "true" when COST_ENGINE_URL is the engine the chart bundled with the agent
+ * and the cluster may already run one of its own: the agent then looks for
+ * that one first and reads it if it answers, so the person's own engine -
+ * their rate card, their cloud billing integration - prices the cluster, and
+ * falls back to the bundled one otherwise. The chart leaves it off when the
+ * bundled engine has a rate card of its own (cost.opencost.customPricing):
+ * someone chose those rates.
+ */
+export const COST_PREFER_EXISTING_ENGINE: boolean =
+  optional("COST_PREFER_EXISTING_ENGINE", "false").trim().toLowerCase() ===
+  "true";
+
+/*
+ * What the chart knows about the bundled engine's prices: "true" when it
+ * gave it a rate card (cost.opencost.customPricing.enabled), "false" when it
+ * did not, empty for an engine the chart did not bundle. A fallback only:
+ * the agent asks the engine itself first (EnginePricing).
+ */
+export const COST_ENGINE_RATE_CARD: string = optional(
+  "COST_ENGINE_RATE_CARD",
   "",
+)
+  .trim()
+  .toLowerCase();
+
+/*
+ * How often to look for the cluster's own engine again once one is chosen
+ * (or the bundled one is in use), so an engine installed later is found. An
+ * engine that keeps failing is looked for again sooner
+ * (COST_ENGINE_FAILURES_BEFORE_REDISCOVERY ticks in a row), and in auto mode
+ * every tick looks until one is found.
+ */
+export const COST_ENGINE_REDISCOVERY_SECONDS: number = parseInt(
+  optional("COST_ENGINE_REDISCOVERY_SECONDS", "3600"),
+  10,
+);
+
+export const COST_ENGINE_FAILURES_BEFORE_REDISCOVERY: number = parseInt(
+  optional("COST_ENGINE_FAILURES_BEFORE_REDISCOVERY", "3"),
+  10,
+);
+
+/*
+ * The Kubernetes API, for finding the cluster's own engine. Empty: the
+ * in-cluster address and the pod's ServiceAccount. Set it to run the agent
+ * outside a cluster against `kubectl proxy` (http://127.0.0.1:8001).
+ */
+export const KUBERNETES_API_URL: string = optional("KUBERNETES_API_URL", "")
+  .trim()
+  .replace(/\/+$/, "");
+
+export const KUBERNETES_TOKEN_PATH: string = optional(
+  "KUBERNETES_TOKEN_PATH",
+  "/var/run/secrets/kubernetes.io/serviceaccount/token",
+);
+
+export const KUBERNETES_CA_PATH: string = optional(
+  "KUBERNETES_CA_PATH",
+  "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
 );
 
 /*
@@ -38,23 +108,49 @@ export const COST_ENGINE_URL: string = required("COST_ENGINE_URL").replace(
  * that right-sizing needs and the Allocation API cannot give: the engines
  * report averages over the window, and sizing a memory request off an
  * average is how you get OOMKills, because the spike that kills a container
- * disappears into an hourly mean. Installs pointing at an external cost
- * engine have no bundled Prometheus, so an empty value simply means "ship
- * allocations without peaks" — never a fatal error.
+ * disappears into an hourly mean. An empty value means the agent finds the
+ * Prometheus the engine it reads uses (EnginePrometheus, #9777), and ships
+ * allocations without peaks when there is none - never a fatal error.
+ *
+ * Set, it is cost.engine.prometheusUrl, which the agent reads whatever the
+ * engine - unless COST_PROMETHEUS_BUNDLED says it is the chart's bundled
+ * Prometheus.
  */
 export const COST_PROMETHEUS_URL: string = optional("COST_PROMETHEUS_URL", "")
   .trim()
   .replace(/\/+$/, "");
 
 /*
+ * "true" when COST_PROMETHEUS_URL is the Prometheus the chart bundled beside
+ * its OpenCost, not one someone named: the agent then reads it for the
+ * bundled engine, and for the cluster's own engine only when that engine's
+ * own Prometheus cannot be found. An agent older than this reads it always,
+ * as before.
+ */
+export const COST_PROMETHEUS_BUNDLED: boolean =
+  optional("COST_PROMETHEUS_BUNDLED", "false").trim().toLowerCase() === "true";
+
+/*
  * Prometheus job label of the cAdvisor scrape. The bundled config names it
- * kubernetes-nodes-cadvisor; point this at your own job when reusing an
- * existing Prometheus.
+ * kubernetes-nodes-cadvisor, as Kubecost's and the community chart's
+ * Prometheus do. Unset, the agent reads the job off the Prometheus it uses
+ * (kubernetes-nodes-cadvisor when it has one, else the job its cAdvisor
+ * memory series carry: kubelet in kube-prometheus-stack's); set it to name
+ * one.
  */
 export const COST_PROMETHEUS_CADVISOR_JOB: string = optional(
   "COST_PROMETHEUS_CADVISOR_JOB",
   "kubernetes-nodes-cadvisor",
 ).trim();
+
+// The job the bundled Prometheus, Kubecost's and the community chart's use.
+export const DEFAULT_PROMETHEUS_CADVISOR_JOB: string =
+  "kubernetes-nodes-cadvisor";
+
+// Whether COST_PROMETHEUS_CADVISOR_JOB was set rather than left to default.
+export const IS_COST_PROMETHEUS_CADVISOR_JOB_SET: boolean = Boolean(
+  (process.env["COST_PROMETHEUS_CADVISOR_JOB"] || "").trim(),
+);
 
 /*
  * Allocation API path on the engine. Empty (default) auto-detects by

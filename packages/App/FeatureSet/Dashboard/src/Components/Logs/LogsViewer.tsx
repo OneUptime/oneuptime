@@ -194,6 +194,9 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
 import SecurityEventsInSignal from "../SecurityEvents/SecurityEventsInSignal";
 import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
+import { LogsViewerOpenedLog } from "Common/UI/Components/LogsViewer/components/OpenedLogLine";
+import useOpenedLogLine from "./useOpenedLogLine";
+import { buildLogLineLink } from "./LogLineLink";
 
 export interface ComponentProps {
   id: string;
@@ -1118,6 +1121,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       attributes: true,
     };
   }, []);
+
+  /*
+   * The one line the Logs page's address opens by its id, above the list
+   * (#9620): read with the list's columns, as the reader.
+   */
+  const openedLog: LogsViewerOpenedLog | undefined = useOpenedLogLine({
+    isEnabled: Boolean(props.syncUrlState),
+    select,
+  });
 
   /*
    * The host's ids for the API calls, by value. Pages hand over new arrays on
@@ -2550,6 +2562,47 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * Copy Link on a line's details (#9794): the Logs page's address that
+   * opens this very line, with the list it was copied from under it - this
+   * list's chips over the window its rows were read in, pinned
+   * (LogLineLink). Built as the line's details draw.
+   */
+  const getLogLink: (log: Log) => string | null = useCallback(
+    (log: Log): string | null => {
+      if (typeof window === "undefined") {
+        return null;
+      }
+
+      const listTime: unknown = (filterOptionsRef.current as any)?.time;
+      const listWindow: InBetween<Date> =
+        listTime instanceof InBetween
+          ? (listTime as InBetween<Date>)
+          : RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const time: Date | null = log.time ? new Date(log.time) : null;
+
+      return buildLogLineLink({
+        logsPageUrl: `${window.location.origin}${RouteUtil.populateRouteParams(
+          RouteMap[PageMap.LOGS] as Route,
+        ).toString()}`,
+        line: {
+          id: log._id?.toString() || log.id?.toString() || "",
+          time: time && !Number.isNaN(time.getTime()) ? time : null,
+          primaryEntityId: log.primaryEntityId?.toString() || "",
+        },
+        list: {
+          facetFilters: appliedFacetFilters,
+          window: {
+            start: new Date(listWindow.startValue),
+            end: new Date(listWindow.endValue),
+          },
+          isLogsPage: Boolean(props.syncUrlState),
+        },
+      });
+    },
+    [appliedFacetFilters, timeRange, props.syncUrlState],
+  );
+
+  /*
    * Cross-signal pivots: carry the CURRENT view (base scope, applied facet
    * chips, attribute filters, time window) to the traces / metrics explorer
    * through the CrossSignalScope serializers. Fields the target grammar
@@ -3168,6 +3221,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           getSpanRoute={getSpanRoute}
           resolveSpanRoute={resolveSpanRoute}
           getSessionRoute={getSessionRoute}
+          openedLog={openedLog}
+          getLogLink={getLogLink}
           /*
            * A line that is part of an attack says so where it is read: the
            * security events of the request it was written in, or of the line

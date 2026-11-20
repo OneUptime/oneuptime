@@ -48,6 +48,7 @@ import PushNotificationMessage from "../../../Types/PushNotification/PushNotific
 import { SMSMessage } from "../../../Types/SMS/SMS";
 import TelegramMessage from "../../../Types/Telegram/TelegramMessage";
 import { WhatsAppMessagePayload } from "../../../Types/WhatsApp/WhatsAppMessage";
+import { WhatsAppTemplateIds } from "../../../Types/WhatsApp/WhatsAppTemplates";
 import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
@@ -148,7 +149,11 @@ function notificationData(
     smsMessage: { message: SMS_BODY } as SMSMessage,
     callRequestMessage: {} as CallRequestMessage,
     pushNotificationMessage: {} as PushNotificationMessage,
-    whatsAppMessage: {} as WhatsAppMessagePayload,
+    // A message WhatsApp can deliver: an approved template (#9715).
+    whatsAppMessage: {
+      body: "",
+      templateKey: WhatsAppTemplateIds.IncidentCreatedOwnerNotification,
+    } as WhatsAppMessagePayload,
     incidentId: INCIDENT_ID,
     ...overrides,
   } as SendUserNotificationData;

@@ -35,6 +35,7 @@ flowchart LR
 | Knoten-Collector | DaemonSet | Pod-Logs aus `/var/log/pods`, Kubelet- und cAdvisor-Metriken und die Betriebssystem-Metriken des Knotens. | Ja |
 | eBPF-Instrumentierung (OBI) | DaemonSet | HTTP-, gRPC-, SQL- und Redis-Traces und Anfragemetriken jedes Pods sowie die Service-Map. | Ja |
 | Kubernetes-KI-Agent | Deployment | Lässt OneUptime AI nur lesendes `kubectl` ausführen, während sie einen Vorfall oder eine Warnung auf diesem Cluster untersucht. | Ja |
+| Kosten-Engine und Poller | Deployments | Was jeder Namespace und jeder Workload kostet: OpenCost, das kleine Prometheus, das es braucht, und der Kosten-Agent, der sendet, was sie berechnen. | Ja, außer mit den Presets `gke-autopilot` und `eks-fargate` |
 | Log-Tailer | Deployment | Pod-Logs über die Kubernetes-API, wo der Knoten-Collector sie nicht lesen kann. | Mit den Presets `gke-autopilot`, `eks-fargate` und `openshift-restricted` |
 | eBPF-Profiler | DaemonSet | Fortlaufende CPU-Flammengrafiken jedes Prozesses. | Nein |
 | kube-state-metrics | Deployment | Pod-Phasen, Wartegründe von Containern und Ressourcenkontingente. | Nein |
@@ -357,14 +358,14 @@ Profiling braucht **Linux 5.10** oder neuer und einen privilegierten Pod mit den
 | --- | --- | --- |
 | `hostMetrics.enabled` | an | Die Betriebssystem-Metriken jedes Knotens aus `/proc` und `/sys`: E/A-Warteschlangen der Festplatten, Inodes der Dateisysteme, Fehler der Netzwerkschnittstellen, Paging und Load Average. Läuft im Knoten-Collector, ohne zusätzliche Pods. |
 | `kubeletstats.utilizationMetrics.enabled` | an | CPU und Speicher von Containern und Pods als Prozentsatz ihrer Anforderung und ihres Limits, die die Vorlagen Pod CPU Saturating Container Limit und Pod Memory Saturating Container Limit lesen. Ein Container ohne Limit (oder Anforderung) bekommt keine dieser Serien, ein Pod nur dann, wenn jeder seiner Container eines hat. |
-| `kubeletstats.volumeMetrics.enabled` | an | Der freie und gesamte Platz jedes PVC (`k8s.volume.available`, `k8s.volume.capacity`), für eigene Diagramme und Metrik-Monitore: Keine eingebaute Vorlage liest sie. Eine Serie pro PVC und Pod. |
+| `kubeletstats.volumeMetrics.enabled` | an | Der freie und gesamte Platz jedes PVC (`k8s.volume.available`, `k8s.volume.capacity`), nach seinem Claim benannt: die belegten, freien und gesamten Werte auf den Seiten der Persistent Volume Claims, und was die Vorlage PVC Almost Full liest. Ein Claim ab 80 % Belegung erscheint beim Cluster unter Erfordert Aufmerksamkeit. Einige Serien pro Volume und Pod, für die Volumes, die Daten enthalten (Claims, emptyDirs, hostPaths): Die configMap-, secret-, downwardAPI- und Service-Account-Token-Volumes eines Pods werden auf dem Knoten verworfen. |
 | `cadvisor.enabled` | an | CPU-Drosselung und OOM-Kills aus dem `/metrics/cadvisor` jedes Kubelets: `container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total` und `container_oom_events_total`, und sonst nichts. |
 | `kubeStateMetrics.enabled` | aus | Pod-Phasen (Pending, Terminating), Pods, die nicht eingeplant werden können, Wartegründe von Containern (CrashLoopBackOff, ImagePullBackOff) und die Nutzung von Ressourcenkontingenten, aus kube-state-metrics. `kubeStateMetrics.mode: bundled` (der Standard) führt ein kleines kube-state-metrics für Sie aus; `external` liest eines, das Sie bereits betreiben, unter `kubeStateMetrics.endpoint`. |
 | `auditLogs.enabled` | aus | Das Kubernetes-Audit-Log, `/var/log/kubernetes/audit.log`: jede Anfrage an die API, von wem, auf was. Nur selbst verwaltete Cluster: verwaltete (EKS, GKE, AKS, DOKS) senden es an den Cloud-Anbieter. |
 | `csi.enabled` | aus | Die Metriken von CSI-Speichertreibern, aus Pods mit dem Label `app=csi-driver` oder `app.kubernetes.io/component=csi-driver`: Zeiten zum Anhängen und Lösen von Volumes, Bereitstellungsfehler, IOPS. |
 | `coreDns.enabled` | aus | Die Metriken von CoreDNS unter `:9153/metrics`: Abfragerate, Latenz, Cache-Treffer und Fehler. |
 | `controlPlane.enabled` | aus | Der API-Server unter seiner Adresse im Cluster, und etcd, der Scheduler und der Controller-Manager unter den Endpunkten, die Sie angeben ([Control-Plane-Überwachung aktivieren](/docs/telemetry/kubernetes-agent#control-plane-überwachung-aktivieren)). Nur selbst verwaltete Cluster: verwaltete stellen sie nicht bereit. |
-| `cost.enabled` | aus | Was jeder Workload kostet. Siehe [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost). |
+| `cost.enabled` | `auto` | Was jeder Namespace und jeder Workload kostet, mit Leerlaufkapazität und Effizienz, auch als Metriken für Warnungen: an, außer mit den Presets `gke-autopilot` und `eks-fargate`; `false` schaltet es aus. Siehe [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost). |
 
 ## Häufige Optionen
 

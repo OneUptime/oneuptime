@@ -6,9 +6,9 @@ import AIRunAutoGrade from "../../../../Types/AI/AIRunAutoGrade";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import PostedRootCause from "./PostedRootCause";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
-import Incident from "../../../../Models/DatabaseModels/Incident";
 import AIRunService from "../../../Services/AIRunService";
 import IncidentService from "../../../Services/IncidentService";
+import AlertService from "../../../Services/AlertService";
 import AIService, {
   AILogResponse,
   AI_INVESTIGATION_GRADING_FEATURE,
@@ -18,28 +18,46 @@ import { LLMMessage } from "../../LLM/LLMService";
 import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { isWhoOpenedItRootCause } from "../../../../Utils/Incident/WhoOpenedItRootCause";
+
+/*
+ * How the root cause a monitor writes when its criteria opens an incident or
+ * an alert begins (MonitorCriteriaEvaluator), trimmed.
+ */
+export const MONITOR_ROOT_CAUSE_OPENING: string =
+  "**Created because the following criteria was met**";
 
 /*
  * AI SRE — on-resolve investigation grading (Phase 2 measurement layer).
  *
- * When an incident resolves with a human-recorded root cause AND a completed
- * AI investigation exists for it, ONE constrained LLM call compares the
- * investigation's posted analysis (the RootCause feed item — the only
- * persisted copy, the same source the fix recipes read) with
- * Incident.rootCause and stores MATCH / PARTIAL / MISMATCH on the run
+ * When an incident or an alert resolves with a root cause people wrote AND
+ * a completed AI investigation exists for it, ONE constrained LLM call
+ * compares the investigation's posted analysis (the RootCause feed item —
+ * the only persisted copy, the same source the fix recipes read) with that
+ * root cause and stores MATCH / PARTIAL / MISMATCH on the run
  * (AIRun.autoGrade + autoGradeAt). This feeds the vision §8 accuracy metrics
  * and the G3 eval work.
  *
  * Trigger idiom mirrors IncidentPostmortemRunner: fired (fire-and-forget)
- * from IncidentStateTimelineService when the incident enters a resolved
- * state; never throws, never blocks the resolve. Deduped via autoGrade — a
- * run is graded at most once. Budgeted: the feature is in
- * AUTONOMOUS_AI_FEATURES, so the daily autonomous token budget covers it.
+ * from IncidentStateTimelineService and AlertStateTimelineService when the
+ * record enters a resolved state; never throws, never blocks the resolve.
+ * Deduped via autoGrade — a run is graded at most once. Budgeted: the
+ * feature is in AUTONOMOUS_AI_FEATURES, so the daily autonomous token
+ * budget covers it.
  *
- * Incidents only for now: alerts do have a rootCause column, but no
- * human-authored resolution flow populates it the way incident resolution
- * does — grade quality there is unproven, so the alert side is deliberately
- * skipped (noted in the roadmap).
+ * Which root cause is people's (#7765), the same for incidents and alerts:
+ *
+ *  - the one written as the record was resolved: the Resolve dialog's "Add
+ *    the root cause", or writtenRootCause on the state change over the API
+ *    (StateChangeRootCause);
+ *  - else, for a record a person declared, the root cause it holds - unless
+ *    it is the line OneUptime used to write to say who opened it;
+ *  - never the root cause of a record OneUptime opened - a monitor, a rule,
+ *    a budget, a workflow or an integration - unless written as it was
+ *    resolved: that one is what OneUptime wrote ("Created because the
+ *    following criteria was met: Response Status Code was 503"), and graded
+ *    against it, a right analysis reads as a miss. Somebody may have edited
+ *    it since, but nothing says so; the Resolve dialog asks.
  */
 
 /*
@@ -114,8 +132,9 @@ export default class InvestigationGrader {
 
   /*
    * Pure gating decision (exported for tests): grade only when a completed
-   * investigation run exists, it has not been graded yet (dedupe), and the
-   * incident carries a non-empty human-recorded root cause to grade against.
+   * investigation run exists, it has not been graded yet (dedupe), and there
+   * is a non-empty root cause people wrote to grade against - not one
+   * OneUptime wrote itself (isWrittenByOneUptime).
    */
   public static shouldGradeInvestigation(data: GradeGateInput): boolean {
     if (!data.run || !data.run.id) {
@@ -131,7 +150,48 @@ export default class InvestigationGrader {
       return false;
     }
 
+    if (this.isWrittenByOneUptime(data.rootCause)) {
+      return false;
+    }
+
     return true;
+  }
+
+  /*
+   * The root cause a record holds, when people wrote it (pure, exported for
+   * tests): a record a person declared - its createdByUserId - holds their
+   * words. A record OneUptime opened holds what OneUptime wrote: "".
+   */
+  public static getPeoplesRootCause(
+    record: {
+      rootCause?: string | undefined;
+      createdByUserId?: ObjectID | undefined;
+    } | null,
+  ): string {
+    if (!record || !record.createdByUserId) {
+      return "";
+    }
+
+    return (record.rootCause || "").trim();
+  }
+
+  /*
+   * Whether a root cause is one OneUptime wrote, not people (pure, exported
+   * for tests): what a monitor's criteria wrote when it opened the record -
+   * the Markdown that opens "**Created because the following criteria was
+   * met**" (MonitorCriteriaEvaluator) - or the line OneUptime used to write
+   * to say who opened it (WhoOpenedItRootCause). It says which check failed,
+   * not why; graded against it, a right analysis reads as a miss.
+   */
+  public static isWrittenByOneUptime(
+    rootCause: string | null | undefined,
+  ): boolean {
+    const text: string = (rootCause || "").trim();
+
+    return (
+      text.startsWith(MONITOR_ROOT_CAUSE_OPENING) ||
+      isWhoOpenedItRootCause(text)
+    );
   }
 
   /*
@@ -173,26 +233,43 @@ export default class InvestigationGrader {
 
   /*
    * Entry point called (fire-and-forget) from IncidentStateTimelineService
-   * when an incident enters a resolved state. Never throws — all failures
-   * are logged and swallowed so the resolve flow can never be affected.
+   * and AlertStateTimelineService when the record enters a resolved state.
+   * Never throws — all failures are logged and swallowed so the resolve flow
+   * can never be affected.
    */
   @CaptureSpan()
   public static async gradeInvestigationOnResolve(data: {
-    incidentId: ObjectID;
+    // The resolved record: an incident or an alert.
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
     projectId: ObjectID;
+    /*
+     * The root cause written as it was resolved (StateChangeRootCause),
+     * when one was. Without one, the root cause a record a person declared
+     * holds is graded against; a record OneUptime opened is not graded.
+     */
+    writtenRootCause?: string | undefined;
   }): Promise<void> {
-    const { incidentId, projectId } = data;
+    const { incidentId, alertId, projectId } = data;
+    const subject: string = incidentId
+      ? `incident ${incidentId.toString()}`
+      : `alert ${alertId?.toString()}`;
+    const writtenRootCause: string = (data.writtenRootCause || "").trim();
 
     try {
+      if (!incidentId && !alertId) {
+        return;
+      }
+
       /*
        * The project's AI kill switch, checked the non-throwing way.
        *
-       * This runs fire-and-forget off an incident resolve, inside a catch
-       * that logs at error level. "This project switched AI off" is a
-       * setting, not a failure, so letting the backstop in
-       * executeWithLogging throw would file a permanent error for every
-       * incident such a project ever resolves. It is a silent skip instead —
-       * the same posture the sibling on-resolve job takes via
+       * This runs fire-and-forget off a resolve, inside a catch that logs at
+       * error level. "This project switched AI off" is a setting, not a
+       * failure, so letting the backstop in executeWithLogging throw would
+       * file a permanent error for every incident or alert such a project
+       * ever resolves. It is a silent skip instead — the same posture the
+       * sibling on-resolve job takes via
        * AIIncidentPostmortemRunner.isEnabledForProject.
        */
       if (!(await AIService.isProjectAIEnabled(projectId))) {
@@ -214,12 +291,14 @@ export default class InvestigationGrader {
         return;
       }
 
-      // The latest completed investigation for this incident (if any).
+      // The latest completed investigation of the record (if any).
       const run: AIRun | null = await AIRunService.findOneBy({
         query: {
           runType: AIRunType.Investigation,
           status: AIRunStatus.Completed,
-          triggeredByIncidentId: incidentId,
+          ...(incidentId
+            ? { triggeredByIncidentId: incidentId }
+            : { triggeredByAlertId: alertId! }),
         },
         select: {
           _id: true,
@@ -237,19 +316,30 @@ export default class InvestigationGrader {
         return;
       }
 
-      const incident: Incident | null = await IncidentService.findOneById({
-        id: incidentId,
-        select: {
-          _id: true,
-          rootCause: true,
-        },
-        props: { isRoot: true },
-      });
+      /*
+       * The root cause written as it was resolved, else the one a record a
+       * person declared holds (getPeoplesRootCause).
+       */
+      const rootCause: string =
+        writtenRootCause ||
+        this.getPeoplesRootCause(
+          incidentId
+            ? await IncidentService.findOneById({
+                id: incidentId,
+                select: { _id: true, rootCause: true, createdByUserId: true },
+                props: { isRoot: true },
+              })
+            : await AlertService.findOneById({
+                id: alertId!,
+                select: { _id: true, rootCause: true, createdByUserId: true },
+                props: { isRoot: true },
+              }),
+        );
 
       if (
         !this.shouldGradeInvestigation({
           run,
-          rootCause: incident?.rootCause,
+          rootCause,
         })
       ) {
         return;
@@ -262,19 +352,17 @@ export default class InvestigationGrader {
        */
       const analysisMarkdown: string | null =
         await PostedRootCause.getForInvestigation({
-          incidentId,
+          ...(incidentId ? { incidentId } : { alertId: alertId! }),
           aiRunId: run.id!,
           runCompletedAt: run.completedAt,
         });
 
       if (!analysisMarkdown) {
         logger.debug(
-          `AI grading: no posted analysis found for incident ${incidentId.toString()} — skipping.`,
+          `AI grading: no posted analysis found for ${subject} — skipping.`,
         );
         return;
       }
-
-      const rootCause: string = incident!.rootCause!.trim();
 
       /*
        * The grade is part of the investigation: it uses the LLM provider
@@ -289,7 +377,7 @@ export default class InvestigationGrader {
       const response: AILogResponse = await AIService.executeWithLogging({
         projectId,
         feature: FEATURE_NAME,
-        incidentId,
+        ...(incidentId ? { incidentId } : { alertId: alertId! }),
         aiRunId: run.id!,
         llmProviderId: llmProviderChoice.llmProviderId,
         // Grades are stored on the run; no need to persist prompt previews.
@@ -305,7 +393,7 @@ export default class InvestigationGrader {
 
       if (!grade) {
         logger.warn(
-          `AI grading: unparseable grade response for incident ${incidentId.toString()} (run ${run.id!.toString()}) — no grade stored.`,
+          `AI grading: unparseable grade response for ${subject} (run ${run.id!.toString()}) — no grade stored.`,
         );
         return;
       }
@@ -319,13 +407,9 @@ export default class InvestigationGrader {
         props: { isRoot: true },
       });
 
-      logger.debug(
-        `AI grading: incident ${incidentId.toString()} investigation graded ${grade}.`,
-      );
+      logger.debug(`AI grading: ${subject} investigation graded ${grade}.`);
     } catch (error) {
-      logger.error(
-        `AI grading: failed for incident ${incidentId.toString()}: ${error}`,
-      );
+      logger.error(`AI grading: failed for ${subject}: ${error}`);
     }
   }
 }

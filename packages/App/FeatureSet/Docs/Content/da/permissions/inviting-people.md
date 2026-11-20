@@ -43,7 +43,7 @@ Klik på **Inviter bruger**. Dialogen **Inviter ny bruger** åbner.
 
 ### Skriv e-mailadressen
 
-Skriv adressen i **E-mail**. Hvis ingen OneUptime-konto bruger den endnu, beder dialogen også om et **Navn**, som den nye konto starter med.
+Skriv adressen i **E-mail**. Mens du skriver, foreslår **E-mail** projektets personer ud fra navn eller adresse og viser, hvem der er **Inviteret**, og hvem der er **Allerede i dette team**: klik på en af dem for at udfylde adressen. På en selvhostet server får en masteradministrator også serverens andre konti foreslået, markeret med **Ikke i dette projekt endnu**, og det gør alle, der må invitere personer, når en masteradministrator tillader det i Admin Dashboard. For en adresse, du selv skriver, beder dialogen også om et **Navn**, som er valgfrit: har personen endnu ingen OneUptime-konto, oprettes den med det navn. Indtil personen accepterer, viser projektet personen med det navn eller kun med adressen, aldrig med navnet eller billedet fra personens egen konto. Invitationsformularerne i Admin Dashboard foreslår personer på samme måde.
 
 ### Vælg teamet
 
@@ -61,9 +61,9 @@ På en selvhostet server, der endnu ikke kan sende e-mails, sendes der ingen e-m
 
 ## Accepter en invitation
 
-Invitationsmailen nævner projektet og hvem der inviterede personen. Dens knap er **Create Your Account** for den, der ikke har en OneUptime-konto endnu, og **Sign In to OneUptime** for den, der har en.
+Invitationsmailen nævner projektet og hvem der inviterede personen. Dens knap er **Create Your Account** for den, der ikke har en OneUptime-konto endnu, og **Sign In to OneUptime** for den, der har en. Når SSO kommer til at styre personens login, fordi projektet styrer sine personers login med SSO, og det gør alle de andre projekter, personen hører til, også, eller fordi hele serveren kræver SSO, siger mailen det i stedet, og dens knap er **Sign In with SSO**.
 
-**Create Your Account** åbner tilmeldingssiden med personens adresse og det navn, du skrev, allerede udfyldt, og siger, hvilket projekt der inviterede personen, og hvem. Den, der tilmelder sig der, kommer med i projektet uden mere at acceptere.
+**Create Your Account** åbner tilmeldingssiden med personens adresse og det navn, du skrev, allerede udfyldt, og siger, hvilket projekt der inviterede personen, og hvem. Den, der tilmelder sig der, kommer med i projektet uden mere at acceptere. **Sign In with SSO** åbner samme side, der tilbyder single sign-on i stedet for en adgangskode: den, der logger ind der med en af projektets identitetsudbydere, kommer med i projektet.
 
 På en selvhostet server, der endnu ikke kan sende e-mails, får ingen en e-mail: Invitationslinket, som personen får i stedet, åbner den samme tilmeldingsside, eller login-siden for den, der allerede har en konto.
 
@@ -82,7 +82,7 @@ Når personen accepterer, er den med i projektet med det samme, med teamets till
 
 | Kolonne | Hvad den viser |
 | --- | --- |
-| **Bruger** | Navn og e-mailadresse. |
+| **Bruger** | Navn og e-mailadresse. Indtil personen accepterer, det navn, du skrev til personen, hvis der er et. |
 | **Teams** | Hvert af projektets teams, personen er med i eller inviteret til. |
 | **Status** | **Medlem**, når personen er kommet med, med antallet af invitationer til andre teams, der ikke er accepteret endnu. **Invitation sendt** indtil da, eller **E-mail ikke sendt**, når mailtjenesten afviste den seneste invitationsmail. På en selvhostet server, der endnu ikke kan sende e-mails, **Inviteret** i stedet: invitationen oprettes, men der sendes ingen e-mail. |
 

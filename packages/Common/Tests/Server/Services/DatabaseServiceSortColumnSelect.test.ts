@@ -188,6 +188,12 @@ describe("DatabaseService._findBy selects the columns it sorts by", () => {
     expect(callerSelect["order"]).toBeUndefined();
   });
 
+  /*
+   * Reminder rules are a drag-ordered list, so a read that asks for no
+   * order reads them the way the list shows them: by their number, top
+   * first, two rules at one number the older first (issue #9654). Both
+   * columns of that order are filled in, and hidden, like any other.
+   */
   it("still fills in and hides createdAt for callers that pass no sort", async () => {
     const rules: Array<IncidentReminderRule> = await findBy({
       select: {
@@ -196,12 +202,17 @@ describe("DatabaseService._findBy selects the columns it sorts by", () => {
       },
     });
 
+    expect(selectPassedToDatabase()["order"]).toBe(true);
     expect(selectPassedToDatabase()["createdAt"]).toBe(true);
+    expect((find.mock.calls[0]![0] as FindArgs).order?.["order"]).toBe(
+      SortOrder.Ascending,
+    );
     expect((find.mock.calls[0]![0] as FindArgs).order?.["createdAt"]).toBe(
-      SortOrder.Descending,
+      SortOrder.Ascending,
     );
 
     for (const rule of rules) {
+      expect(rule.order).toBeUndefined();
       expect(rule.createdAt).toBeUndefined();
     }
   });

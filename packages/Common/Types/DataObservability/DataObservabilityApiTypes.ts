@@ -1,5 +1,7 @@
 import { WatchedTablePricing } from "../Billing/PayAsYouGoPricing";
+import { SkippedTableRead } from "./SkippedTables";
 import { DataCheckAlertCondition } from "./DataCheckType";
+import { DataCircuitBreakerReason } from "./DataCircuitBreaker";
 import {
   DataAttentionItem,
   DataAttentionKind,
@@ -55,6 +57,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   storagePathsSave: (dataStoreId: string) => string;
   sourceSuggestions: string;
   spendSummary: string;
+  circuitBreaker: string;
+  pipelineCircuitBreaker: (dataPipelineId: string) => string;
 } = {
   overview: "/data-observability/overview",
   /*
@@ -160,7 +164,33 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   },
   // What the project's warehouses spent over the last day: by team, by table, and where it is wasted.
   spendSummary: "/data-observability/spend/summary",
+  /*
+   * Should a pipeline run, given the tables it reads? Go, or stop with why
+   * (DataCircuitBreaker): what a pipeline step asks before it runs, with a
+   * project API key.
+   */
+  circuitBreaker: "/data-observability/circuit-breaker",
+  // How a pipeline's circuit breaker stands: what its page shows.
+  pipelineCircuitBreaker: (dataPipelineId: string): string => {
+    return `/data-observability/pipelines/${dataPipelineId}/circuit-breaker`;
+  },
 };
+
+/*
+ * How a pipeline's circuit breaker stands (DataCircuitBreaker.readState):
+ * whether a late table stops it, when it was last asked, and since when it
+ * has stopped the pipeline and why - each reason about a table its reader
+ * may read.
+ */
+export interface DataPipelineCircuitBreakerState {
+  dataPipelineId: string;
+  stopsOnLateTables: boolean;
+  // When it was last asked, ISO 8601; null before it ever was.
+  checkedAt: string | null;
+  // Since when it has stopped the pipeline, ISO 8601; null while it says go.
+  stoppedAt: string | null;
+  reasons: Array<DataCircuitBreakerReason>;
+}
 
 export interface DataObservabilitySpendTable {
   dataAssetId: string;
@@ -296,6 +326,24 @@ export interface DataObservabilityStoreSummary {
   lateAssetCount: number;
   // The monitors on, scoped to the whole database: its recommended alerts, or its own.
   alertMonitorCount: number;
+  /*
+   * The tables the database keeps refusing, skipped until their next try
+   * (#9541): a Dataverse table the app may not read, or one Dataverse
+   * cannot count or describe. Empty when none is; left out by an older
+   * server.
+   */
+  skippedTables?: Array<DataObservabilitySkippedTable> | undefined;
+}
+
+// One table a database keeps refusing, as the database's page lists it.
+export interface DataObservabilitySkippedTable {
+  table: string;
+  // What is not read of it.
+  read: SkippedTableRead;
+  // The database's answer, in its own words.
+  reason: string;
+  // When it is asked again, ISO 8601.
+  nextTryAt: string;
 }
 
 export interface DataObservabilityOverviewAsset {

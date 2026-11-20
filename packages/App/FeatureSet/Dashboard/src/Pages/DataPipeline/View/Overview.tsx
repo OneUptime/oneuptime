@@ -4,6 +4,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PipelineLineageDiagram from "../../../Components/DataObservability/PipelineLineageDiagram";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
+import { CIRCUIT_BREAKER_COPY } from "../../../Components/DataObservability/CircuitBreakerCopy";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import {
   formatRunDuration,
@@ -22,6 +23,8 @@ import { DataPipelineLateness } from "Common/Types/DataObservability/DataPipelin
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Navigation from "Common/UI/Utils/Navigation";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -43,7 +46,12 @@ import TableEmptyValue, {
  * whether its next run is on time, and how many it has run - then its
  * lineage: the tables it reads and writes, with how each is now. Then every
  * run, newest first: how it went, how long it took, its error, what it wrote.
+ * While its circuit breaker has stopped it (#6548), the page opens on that,
+ * with the way to why.
  */
+export const PIPELINE_STOPPED_BANNER_TEST_ID: string =
+  "pipeline-circuit-breaker-stopped";
+
 const PipelineOverviewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -69,6 +77,7 @@ const PipelineOverviewPage: FunctionComponent<
         typicalRunDurationInSeconds: true,
         expectedRunIntervalInSeconds: true,
         runCount: true,
+        circuitBreakerStoppedAt: true,
       },
     })
       .then((item: DataPipeline | null): void => {
@@ -91,6 +100,39 @@ const PipelineOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-5">
+      {pipeline?.circuitBreakerStoppedAt ? (
+        <Alert
+          type={AlertType.DANGER}
+          title={
+            // Worded here, with its time: an element, so it is not looked up again.
+            <span>
+              {translator.translateTemplate(
+                CIRCUIT_BREAKER_COPY.overviewBanner,
+                {
+                  time: OneUptimeDate.fromNow(
+                    OneUptimeDate.fromString(pipeline.circuitBreakerStoppedAt),
+                  ),
+                },
+              )}
+            </span>
+          }
+          textOnRight={CIRCUIT_BREAKER_COPY.openCircuitBreaker}
+          dataTestId={PIPELINE_STOPPED_BANNER_TEST_ID}
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_PIPELINE_VIEW_CIRCUIT_BREAKER
+                ] as Route,
+                { modelId: dataPipelineId },
+              ),
+            );
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       <EventStatBar
         columns={4}
         ariaLabel="Pipeline health"

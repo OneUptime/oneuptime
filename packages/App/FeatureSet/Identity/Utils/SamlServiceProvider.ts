@@ -40,6 +40,15 @@ export interface SamlServiceProvider {
    * by its Recipient, which has always been the provider's own Reply URL.
    */
   serverAddress: string;
+
+  /*
+   * The Single Logout URL (the service provider's SingleLogoutService,
+   * #9603): where the identity provider answers a sign-out OneUptime asked
+   * for, with a LogoutResponse, and sends its own sign-out requests. Only a
+   * provider people sign in to OneUptime with has one - a project's or the
+   * instance's, not a status page's.
+   */
+  singleLogoutUrl?: string | undefined;
 }
 
 // A URL longer than this is not one OneUptime gave anybody.
@@ -57,6 +66,7 @@ export default class SamlServiceProviders {
       entityId: `${SamlServiceProviders.getServerAddress()}/${projectId}/${projectSsoId}`,
       replyUrl: `${SamlServiceProviders.getIdentityAddress()}/idp-login/${projectId}/${projectSsoId}`,
       serverAddress: SamlServiceProviders.getServerAddress(),
+      singleLogoutUrl: `${SamlServiceProviders.getIdentityAddress()}/idp-logout/${projectId}/${projectSsoId}`,
     };
   }
 
@@ -83,6 +93,7 @@ export default class SamlServiceProviders {
       entityId: `${SamlServiceProviders.getServerAddress()}/global-sso/${globalSsoId}`,
       replyUrl: `${SamlServiceProviders.getIdentityAddress()}/global-idp-login/${globalSsoId}`,
       serverAddress: SamlServiceProviders.getServerAddress(),
+      singleLogoutUrl: `${SamlServiceProviders.getIdentityAddress()}/global-idp-logout/${globalSsoId}`,
     };
   }
 

@@ -35,12 +35,14 @@ import {
   ProxmoxPartRoutes,
   getProxmoxPartRoutes,
 } from "../../../Components/Proxmox/Part/ProxmoxPartRoutes";
+import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { getProxmoxPartAttention } from "../Utils/ProxmoxPartAttention";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import {
   externalIdFromRouteParam,
   fetchProxmoxInventoryRow,
-  formatBytes,
+  formatBytesForChart,
   displayNameForResource,
 } from "../Utils/ProxmoxResourceUtils";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -192,6 +194,13 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
 
   const clusterName: string = cluster.name;
   const routes: ProxmoxPartRoutes = getProxmoxPartRoutes(modelId);
+  // Read once: the Overview's card lists it, the hero's status opens it.
+  const attention: ResourcePartAttention = getProxmoxPartAttention({
+    kind: "Guest",
+    externalId: externalId,
+    row: row,
+    routeFor: routes.getPartRoute,
+  });
   const guestName: string = row
     ? displayNameForResource(row)
     : externalId.replace(/^(qemu|lxc)\//, "");
@@ -250,7 +259,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
         attributes: true,
       },
     },
-    yAxisValueFormatter: formatBytes,
+    yAxisValueFormatter: formatBytesForChart,
   };
 
   /*
@@ -331,6 +340,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
           clusterName={clusterName}
           externalId={externalId}
           row={row}
+          attention={attention}
           routes={routes}
           footer={row?.isTemplate ? undefined : renderHostCrossLink()}
         />
@@ -428,6 +438,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
         clusterName={clusterName}
         clusterRoute={routes.clusterRoute}
         getPartRoute={routes.getPartRoute}
+        attention={attention}
       />
       <Tabs label="Guest" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>

@@ -63,7 +63,7 @@ Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme pu
 Cliquez sur une ligne. Ses détails s'ouvrent à côté de la liste.
 :::
 
-Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux.
+Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux. Un lien vers une seule ligne de journal, comme **Voir la ligne de journal** d'un événement de sécurité, ouvre cette ligne au-dessus de la liste, lue avec vos propres permissions. **Copier le lien**, dans le détail d'une ligne, copie un tel lien, avec en dessous la liste d'où vous l'avez copié, sur la même plage de temps.
 
 ## Lire un journal
 
@@ -170,7 +170,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 ### Voir ce qu'il a fait
 
 - **Journaux → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Journaux**, qui ouvre les lignes concernées, de l'heure où il a été trouvé, dans le **Lecteur**. Un échec qui n'écrit aucune ligne de journal n'a pas de lignes à ouvrir : **Ouvrir dans Traces** ouvre plutôt ses spans en échec. Sur un journal d'erreur, **Créer un moniteur** configure un moniteur de journaux qui compte les lignes du message.
-- **Journaux → IA → Activité** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune. Une investigation terminée dit aussi ce qu'OneUptime AI a trouvé, par exemple la cause d'une erreur en dehors du code, ce qui explique que ce journal d'erreur n'ait reçu aucune pull request de lui-même.
+- **Journaux → IA → Activité** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune. Une investigation terminée dit aussi ce qu'OneUptime AI a trouvé, par exemple la cause d'une erreur en dehors du code, ce qui explique que ce journal d'erreur n'ait reçu aucune pull request de lui-même. Une pull request dit où en est sa tâche dans Code : un correctif redemandé avec Réessayer après un échec n'apparaît plus comme en échec, avec la pull request qu'il a ouverte.
 - Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
 
 ## Ce qui arrive aux journaux à leur arrivée

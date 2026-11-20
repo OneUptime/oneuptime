@@ -9,7 +9,16 @@ import {
   InfrastructureResource,
   ResourceColumn,
   ResourceColumnTone,
+  ResourceStorageUsageColumns,
 } from "../Infrastructure/ResourceTable";
+import {
+  formatStorageBytes,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import {
+  PROXMOX_STORAGE_USAGE_THRESHOLDS,
+  getProxmoxDiskUsage,
+} from "../../Pages/Proxmox/Utils/ProxmoxHealth";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../MetricDescriptions/ProxmoxMetricDescriptions";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import {
@@ -20,10 +29,7 @@ import {
   summarizeProxmoxGuests,
   ProxmoxGuestSummary,
 } from "../../Pages/Proxmox/Utils/ProxmoxPartFacts";
-import {
-  formatBytes,
-  toInfrastructureResource,
-} from "../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
+import { toInfrastructureResource } from "../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
 
 /*
  * The columns of the Proxmox lists - a cluster's nodes, guests and storage,
@@ -44,6 +50,37 @@ const BACKUP_IN_JOB: string = translationKey("In a backup job");
 const BACKUP_NOT_IN_JOB: string = translationKey("In no backup job");
 const STORAGE_SHARED: string = translationKey("Shared");
 const STORAGE_LOCAL: string = translationKey("Local");
+const STORAGE_NOT_REPORTED: string = translationKey("Not reported");
+
+/*
+ * The Used and Free columns of a storage list (ResourceTable): how full each
+ * storage is as a bar, and what is left, in place of the plain
+ * "Used / Total" text the list drew with English digits.
+ */
+export const PROXMOX_STORAGE_USAGE_COLUMNS: ResourceStorageUsageColumns = {
+  usedDescription: PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent,
+  freeDescription: PROXMOX_METRIC_DESCRIPTIONS.storageFree,
+};
+
+/*
+ * A node's or a guest's root disk in its list, beside its CPU and Memory
+ * (#9646): the same bar and lines as a storage's (ProxmoxHealth), so the
+ * fullest one is a click away. A VM says Not reported: Proxmox cannot see
+ * inside it.
+ */
+export const PROXMOX_NODE_DISK_COLUMNS: ResourceStorageUsageColumns = {
+  usedDescription: PROXMOX_METRIC_DESCRIPTIONS.nodesTableDisk,
+  usedTitle: "Disk",
+  isAfterResourceMetrics: true,
+  isFreeOnlyWhenReported: true,
+};
+
+export const PROXMOX_GUEST_DISK_COLUMNS: ResourceStorageUsageColumns = {
+  usedDescription: PROXMOX_METRIC_DESCRIPTIONS.guestsTableDisk,
+  usedTitle: "Disk",
+  isAfterResourceMetrics: true,
+  isFreeOnlyWhenReported: true,
+};
 
 const NO_VALUE: string = EMPTY_VALUE_MARK;
 
@@ -122,6 +159,14 @@ export function toProxmoxListResource(
     attributes["guestKind"] = getProxmoxGuestKind(row);
   }
 
+  // A node's root filesystem and a guest's root disk: the Disk column.
+  if (row.kind === "Node" || row.kind === "Guest") {
+    resource.storageUsage = {
+      usage: getProxmoxDiskUsage(row),
+      noUsageText: STORAGE_NOT_REPORTED,
+    };
+  }
+
   if (row.kind === "Storage") {
     if (row.storageType) {
       attributes["storageType"] = row.storageType;
@@ -129,6 +174,14 @@ export function toProxmoxListResource(
     if (row.isShared !== null && row.isShared !== undefined) {
       attributes["shared"] = row.isShared ? "true" : "false";
     }
+    // Used of its total, at its latest report: the Used and Free columns.
+    resource.storageUsage = {
+      usage: getStorageUsage(
+        { capacity: row.maxDiskBytes, used: row.latestDiskBytes },
+        PROXMOX_STORAGE_USAGE_THRESHOLDS,
+      ),
+      noUsageText: STORAGE_NOT_REPORTED,
+    };
   }
 
   return resource;
@@ -233,7 +286,27 @@ export function getProxmoxStorageColumns(data: {
     return data.translator.translateText(text) || text;
   };
 
-  const columns: Array<ResourceColumn> = [];
+  /*
+   * Its total size, after the Used and Free columns the table draws from
+   * each row's storageUsage (PROXMOX_STORAGE_USAGE_COLUMNS).
+   */
+  const columns: Array<ResourceColumn> = [
+    {
+      title: "Total",
+      key: "maxDiskBytes",
+      foldInto: "storageUsage",
+      showTitleWhenFolded: true,
+      getValue: (resource: InfrastructureResource): string => {
+        const total: number = Number(
+          resource.additionalAttributes["maxDiskBytes"] || "",
+        );
+        if (!Number.isFinite(total) || total <= 0) {
+          return NO_VALUE;
+        }
+        return formatStorageBytes(total, data.translator.language);
+      },
+    },
+  ];
 
   if (hasAttribute(data.resources, "storageType")) {
     columns.push({
@@ -260,27 +333,6 @@ export function getProxmoxStorageColumns(data: {
       },
     });
   }
-
-  columns.push({
-    title: "Used / Total",
-    key: "diskBytes",
-    description: PROXMOX_METRIC_DESCRIPTIONS.storageTableUsage,
-    getValue: (resource: InfrastructureResource): string => {
-      const usedRaw: string = resource.additionalAttributes["diskBytes"] || "";
-      const totalRaw: string =
-        resource.additionalAttributes["maxDiskBytes"] || "";
-      if (!usedRaw || !totalRaw) {
-        return "N/A";
-      }
-      const used: number = Number(usedRaw);
-      const total: number = Number(totalRaw);
-      if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
-        return "N/A";
-      }
-      const pct: number = (used / total) * 100;
-      return `${formatBytes(used)} / ${formatBytes(total)} (${pct.toFixed(1)}%)`;
-    },
-  });
 
   return columns;
 }

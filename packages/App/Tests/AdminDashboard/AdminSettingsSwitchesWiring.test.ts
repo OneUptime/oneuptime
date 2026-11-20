@@ -93,17 +93,30 @@ function keysAskedFor(code: string, block: string): Array<string> {
 const AUTHENTICATION: string = readCode(
   "Pages/Settings/Authentication/Index.tsx",
 );
+// Its fourth switch, a card of its own, drawn off OneUptime Cloud (#9744).
+const INVITE_SUGGESTIONS: string = readCode(
+  "Pages/Settings/Authentication/InviteSuggestionsCard.tsx",
+);
 const SINGLE_SIGN_ON: string = readCode("Pages/Settings/SSO/Index.tsx");
 const USER_SETTINGS: string = readCode("Pages/Users/View/Settings.tsx");
 const PROJECT_SUPPORT: string = readCode("Pages/Projects/View/Support.tsx");
 
 describe("Settings > Authentication", () => {
-  test("is three switch cards on the one GlobalConfig row, through the admin API, and no Edit dialog", () => {
+  test("is three switch cards on the one GlobalConfig row, through the admin API, and no Edit dialog, then Invite Suggestions'", () => {
     expect(
       AUTHENTICATION.split("<ModelSwitchCard<GlobalConfig>").length - 1,
     ).toBe(3);
     expect(AUTHENTICATION.split("modelAPI={AdminModelAPI}").length - 1).toBe(3);
     expect(AUTHENTICATION.split("modelId={globalConfigId}").length - 1).toBe(3);
+    expect(AUTHENTICATION.split("<InviteSuggestionsCard />").length - 1).toBe(
+      1,
+    );
+    expect(
+      INVITE_SUGGESTIONS.split("<ModelSwitchCard<GlobalConfig>").length - 1,
+    ).toBe(1);
+    expect(INVITE_SUGGESTIONS).toContain(
+      'modelId={ObjectID.getZeroObjectID()} column="suggestServerAccountsWhenInviting" modelAPI={AdminModelAPI}',
+    );
     expect(AUTHENTICATION).toContain(
       "const globalConfigId: ObjectID = ObjectID.getZeroObjectID();",
     );
@@ -123,7 +136,7 @@ describe("Settings > Authentication", () => {
     );
   });
 
-  test("in the order sign up, sign-in links, project creation; Require SSO is not here", () => {
+  test("in the order sign up, sign-in links, project creation, invite suggestions; Require SSO is not here", () => {
     const signUp: number = AUTHENTICATION.indexOf('column="disableSignup"');
     const signInLinks: number = AUTHENTICATION.indexOf(
       'column="disableMagicLinkLogin"',
@@ -131,13 +144,45 @@ describe("Settings > Authentication", () => {
     const projects: number = AUTHENTICATION.indexOf(
       'column="disableUserProjectCreation"',
     );
+    const inviteSuggestions: number = AUTHENTICATION.indexOf(
+      "<InviteSuggestionsCard />",
+    );
 
     expect(signUp).toBeGreaterThan(-1);
     expect(signUp).toBeLessThan(signInLinks);
     expect(signInLinks).toBeLessThan(projects);
+    expect(projects).toBeLessThan(inviteSuggestions);
     expect(AUTHENTICATION).not.toContain('column="requireSsoForLogin"');
-    // Neither asks.
+    // None of the page's own asks; Invite Suggestions does (below).
     expect(AUTHENTICATION).not.toContain("getConfirmation=");
+  });
+
+  /*
+   * #9744: on = suggest every account, over a column that says so (not a
+   * disable column), asked before it turns on, and drawn only off
+   * OneUptime Cloud, where the server never applies it.
+   */
+  test("Invite Suggestions reads on = suggest every account, asks before it turns on, and is not drawn on Cloud", () => {
+    expect(INVITE_SUGGESTIONS).toMatch(
+      /column="suggestServerAccountsWhenInviting" (?!isInverted)/,
+    );
+    expect(INVITE_SUGGESTIONS).toContain(
+      "getConfirmation={getInviteSuggestionsSwitchConfirmation}",
+    );
+    expect(INVITE_SUGGESTIONS).toContain(
+      "dataTestId={INVITE_SUGGESTIONS_SWITCH_TEST_ID}",
+    );
+    expect(INVITE_SUGGESTIONS).toContain(
+      "if (BILLING_ENABLED) { return <></>; }",
+    );
+
+    const copy: string = readCode(
+      "Pages/Settings/Authentication/AuthenticationSwitchesCopy.ts",
+    );
+
+    expect(copy).toContain(
+      "return isTurningOn ? TURN_ON_INVITE_SUGGESTIONS_CONFIRMATION : undefined;",
+    );
   });
 
   // Sign Up reads whether the server requires SSO, to say that nobody signs up then.
@@ -236,6 +281,7 @@ describe("a project's Support", () => {
 describe("the locale keys these pages ask for", () => {
   const asked: Array<string> = [
     ...keysAskedFor(AUTHENTICATION, "settings.authentication"),
+    ...keysAskedFor(INVITE_SUGGESTIONS, "settings.authentication"),
     ...keysAskedFor(USER_SETTINGS, "userView"),
     ...keysAskedFor(PROJECT_SUPPORT, "projectSupport"),
   ];
@@ -250,6 +296,11 @@ describe("the locale keys these pages ask for", () => {
     "pages.settings.authentication.projectCreationSwitchTitle",
     "pages.settings.authentication.projectCreationSwitchOnDescription",
     "pages.settings.authentication.projectCreationSwitchOffDescription",
+    "pages.settings.authentication.inviteSuggestionsCardTitle",
+    "pages.settings.authentication.inviteSuggestionsCardDescription",
+    "pages.settings.authentication.inviteSuggestionsSwitchTitle",
+    "pages.settings.authentication.inviteSuggestionsSwitchOnDescription",
+    "pages.settings.authentication.inviteSuggestionsSwitchOffDescription",
     "pages.userView.masterAdminSwitchTitle",
     "pages.userView.masterAdminSwitchOnDescription",
     "pages.userView.masterAdminSwitchOffDescription",

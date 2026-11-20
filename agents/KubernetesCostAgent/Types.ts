@@ -56,9 +56,50 @@ export interface KubernetesCostAllocationIngestRow {
   totalEfficiency?: number | undefined;
 }
 
+/*
+ * Where an engine's prices come from (EnginePricing): a cloud's public list
+ * prices, the same with a Kubecost that reconciles them with the cloud's bill
+ * later (billing-integration), rates someone set, the engine's built-in
+ * defaults, or unknown.
+ */
+export type KubernetesCostPricingSource =
+  | "list-prices"
+  | "billing-integration"
+  | "rate-card"
+  | "default-rates"
+  | "unknown";
+
+/*
+ * Which engine priced a shipment's rows, and how. See
+ * Common/Types/Kubernetes/KubernetesCostIngest.ts.
+ */
+export interface KubernetesCostEngineInfo {
+  // "OpenCost" or "Kubecost"; empty when the agent cannot tell.
+  engine: string;
+  /*
+   * The cluster's own engine the agent found and read, as
+   * "<namespace>/<service>"; empty for the bundled one or one set in
+   * cost.engine.url.
+   */
+  service: string;
+  /*
+   * True when the chart bundled an engine the agent is not reading, because
+   * it found the cluster's own: a second engine the cluster need not run.
+   */
+  bundledEngineUnused: boolean;
+  pricingSource: KubernetesCostPricingSource;
+  /*
+   * The cloud whose list prices apply ("AWS"), with list-prices and
+   * billing-integration; empty otherwise.
+   */
+  pricingProvider: string;
+}
+
 export interface KubernetesCostIngestPayload {
   clusterName: string;
   currency?: string | undefined;
+  // Which engine priced these rows, and how. Absent on older agents.
+  costEngine?: KubernetesCostEngineInfo | undefined;
   /*
    * Shipment identity — see Common/Types/Kubernetes/KubernetesCostIngest.ts
    * for the full rationale. shipmentId is a content hash over the window's
@@ -169,6 +210,47 @@ export interface EngineAllocation {
   cpuEfficiency?: number;
   ramEfficiency?: number;
   totalEfficiency?: number;
+}
+
+/*
+ * What the poller reads windows from: an engine's client, or the resolver
+ * that picks the engine (CostEngineResolver) and says which it picked.
+ */
+export interface CostEngineSource {
+  fetchAllocations(data: {
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<Array<EngineAllocation>>;
+  describe?(): KubernetesCostEngineInfo | undefined;
+  // Where the engine in use answers, for /healthz and troubleshoot.sh.
+  engineUrl?(): string | undefined;
+  /*
+   * Whether the allocations just read hold the whole of a closed window
+   * (EngineCollection): false holds the window for a later tick, unshipped,
+   * without counting as a failure. Absent: always.
+   */
+  isWindowComplete?(data: {
+    windowStart: Date;
+    windowEnd: Date;
+    allocations: Array<EngineAllocation>;
+  }): Promise<boolean>;
+}
+
+// One http_sd target group, as Prometheus reads it.
+export interface ScrapeTargetGroup {
+  targets: Array<string>;
+  labels: Record<string, string>;
+}
+
+/*
+ * Where the engine in use serves its price metrics (EngineMetrics): what the
+ * collector's http_sd asks for, and what /healthz says.
+ */
+export interface EngineMetricsSource {
+  url(): string | null;
+  // Why no address is known, once a look has failed.
+  reason(): string;
+  targetGroups(): Array<ScrapeTargetGroup>;
 }
 
 /*

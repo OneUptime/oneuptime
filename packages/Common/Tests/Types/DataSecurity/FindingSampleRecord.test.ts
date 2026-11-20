@@ -4,6 +4,7 @@ import {
   getFindingSampleRecordKey,
   MAX_FINDING_SAMPLE_RECORDS,
   MAX_SAMPLE_RECORD_ID_LENGTH,
+  MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH,
   readFindingSampleRecords,
   toFindingSampleRecord,
 } from "../../../Types/DataSecurity/FindingSampleRecord";
@@ -112,5 +113,147 @@ describe("what a finding keeps, read back", () => {
         },
       ]),
     ).toEqual([{ time: "2026-10-27T11:59:58.123Z", traceId: "t" }]);
+  });
+});
+
+/*
+ * A LOG LINE (issue #9793): kept with its own id, the Log row's _id, so the
+ * logs explorer opens that very line - not its request's lines, nor its
+ * service's second, which the reader then had to pick it out of.
+ */
+describe("a log line as a reference", () => {
+  const LOG_ID: string = "0192f1a0-0000-7000-8000-00000009793a";
+
+  test("keeps its own id, as written", () => {
+    expect(
+      toFindingSampleRecord({
+        time: TIME,
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        logId: ` ${LOG_ID} `,
+      }),
+    ).toEqual({
+      time: "2026-10-27T11:59:58.123Z",
+      traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+      logId: LOG_ID,
+    });
+    // An id in capitals is kept in capitals: the lookup matches it exactly.
+    expect(
+      toFindingSampleRecord({ time: TIME, logId: LOG_ID.toUpperCase() })?.logId,
+    ).toBe(LOG_ID.toUpperCase());
+  });
+
+  test("an id that is not one - not a UUID, not text - is none", () => {
+    for (const logId of [
+      "",
+      "   ",
+      "log-1",
+      "0192f1a0-0000-7000-8000",
+      `${LOG_ID}x`,
+      "jane.doe@acme-corp.com",
+      42,
+      null,
+      { id: LOG_ID },
+    ] as Array<unknown>) {
+      expect(toFindingSampleRecord({ time: TIME, logId })).toEqual({
+        time: "2026-10-27T11:59:58.123Z",
+      });
+    }
+  });
+
+  test("two lines of one millisecond and one request are two records; the same line is kept once", () => {
+    const first: FindingSampleRecord = {
+      time: "2026-10-27T11:59:58.123Z",
+      traceId: "t",
+      spanId: "s",
+      logId: LOG_ID,
+    };
+    const second: FindingSampleRecord = {
+      ...first,
+      logId: "0192f1a0-0000-7000-8000-00000009793b",
+    };
+
+    expect(getFindingSampleRecordKey(first)).not.toBe(
+      getFindingSampleRecordKey(second),
+    );
+    expect(readFindingSampleRecords([first, second, { ...first }])).toEqual([
+      first,
+      second,
+    ]);
+  });
+
+  test("a finding's kept lines are read back with their ids, and one kept before ids were reads as it always did", () => {
+    expect(
+      readFindingSampleRecords([
+        { time: TIME, traceId: "t", logId: LOG_ID },
+        // Kept before #9793: no id.
+        { time: TIME - 1000, traceId: "t" },
+        { time: TIME - 2000, logId: "not-an-id" },
+      ]),
+    ).toEqual([
+      { time: "2026-10-27T11:59:58.123Z", traceId: "t", logId: LOG_ID },
+      { time: "2026-10-27T11:59:57.123Z", traceId: "t" },
+      { time: "2026-10-27T11:59:56.123Z" },
+    ]);
+  });
+});
+
+/*
+ * A METRIC'S DATA POINT (issue #9604): every series of a metric is written
+ * in the same millisecond, so a point is kept with the metric it is a
+ * point of - which the metrics table is keyed by before the time.
+ */
+describe("a metric's data point as a reference", () => {
+  test("keeps its metric's name as written, spaces and case and all", () => {
+    expect(
+      toFindingSampleRecord({ time: TIME, metricName: "http.server.Duration" }),
+    ).toEqual({
+      time: "2026-10-27T11:59:58.123Z",
+      metricName: "http.server.Duration",
+    });
+    // Matched exactly by the read: never trimmed.
+    expect(
+      toFindingSampleRecord({ time: TIME, metricName: " padded " })?.metricName,
+    ).toBe(" padded ");
+  });
+
+  test("a blank name, a name too long to be a key, or not a name, is none", () => {
+    for (const metricName of [
+      "",
+      "   ",
+      "m".repeat(MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH + 1),
+      42,
+      null,
+      ["user.logins"],
+    ] as Array<unknown>) {
+      expect(toFindingSampleRecord({ time: TIME, metricName })).toEqual({
+        time: "2026-10-27T11:59:58.123Z",
+      });
+    }
+
+    expect(
+      toFindingSampleRecord({
+        time: TIME,
+        metricName: "m".repeat(MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH),
+      })?.metricName?.length,
+    ).toBe(MAX_SAMPLE_RECORD_METRIC_NAME_LENGTH);
+  });
+
+  test("two metrics' points of the same millisecond are two records; the same point is kept once", () => {
+    const logins: FindingSampleRecord = {
+      time: "2026-10-27T11:59:58.123Z",
+      metricName: "user.logins",
+    };
+    const signups: FindingSampleRecord = {
+      ...logins,
+      metricName: "user.signups",
+    };
+
+    expect(getFindingSampleRecordKey(logins)).not.toBe(
+      getFindingSampleRecordKey(signups),
+    );
+    expect(readFindingSampleRecords([logins, signups, { ...logins }])).toEqual([
+      logins,
+      signups,
+    ]);
   });
 });

@@ -41,6 +41,12 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "View Service",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_SECURITY_EVENTS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Security Events",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_TRACES, [
       "Project",
       "Services",
@@ -75,6 +81,18 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Services", "View Service", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_DATA_SECURITY, [
+      "Project",
+      "Services",
+      "View Service",
+      "Data Security",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_COMPLIANCE, [
+      "Project",
+      "Services",
+      "View Service",
+      "Compliance",
+    ]),
 
     // Service Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_SETTINGS_OWNER_RULES, [

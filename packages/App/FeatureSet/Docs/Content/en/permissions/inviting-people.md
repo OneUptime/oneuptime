@@ -43,7 +43,7 @@ Click **Invite User**. The **Invite New User** dialog opens.
 
 ### Enter their email address
 
-Type their address in **Email**. If no OneUptime account uses it yet, the dialog also asks for a **Name**, which their new account starts with.
+Type their address in **Email**. As you type, **Email** suggests the project's people by name or address, and says who is **Invited** and who is **Already in this team**: click one to fill in their address. On a self-hosted server, a master admin is also offered the server's other accounts, marked **Not in this project yet**, and so is anyone who may invite people, once a master admin allows it in the Admin Dashboard. For an address you type, the dialog also asks for a **Name**, which is optional: if they have no OneUptime account yet, it is set up with that name. Until they accept, the project shows them by that name, or by their address alone, never by the name or picture of their own account. The Admin Dashboard's invitation forms suggest people in the same way.
 
 ### Pick their team
 
@@ -61,9 +61,9 @@ On a self-hosted server that cannot send email yet, no email goes out, and they 
 
 ## Accept an invitation
 
-The invitation email names the project and who invited them. Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one.
+The invitation email names the project and who invited them. Its button is **Create Your Account** for someone who has no OneUptime account yet, and **Sign In to OneUptime** for someone who has one. If SSO will manage their sign-in, because the project manages its people's sign-in with SSO and so does every other project they are in, or because the whole server requires SSO, the email says so instead, and its button is **Sign In with SSO**.
 
-**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept.
+**Create Your Account** opens the sign-up page with their address and the name you typed filled in, and says which project invited them and who. Signing up there joins the project, with nothing more to accept. **Sign In with SSO** opens the same page, offering single sign-on instead of a password: signing in there with one of the project's identity providers joins the project.
 
 On a self-hosted server that cannot send email yet, nobody is emailed: the invitation link they are sent instead opens the same sign-up page, or the sign-in page for someone who already has an account.
 
@@ -82,7 +82,7 @@ Accepting puts them in the project straight away, with their team's permissions 
 
 | Column | What it shows |
 | --- | --- |
-| **User** | Their name and email address. |
+| **User** | Their name and email address. Until they accept, the name you typed for them, if any. |
 | **Teams** | Every team of the project they are in, or invited to. |
 | **Status** | **Member** once they have joined, with a count of any invitations to other teams they have not accepted yet. **Invitation Sent** until then, or **Email Not Sent** when the mail service refused their latest invitation email. On a self-hosted server that cannot send email yet, **Invited** instead: the invitation is created, but no email goes out. |
 

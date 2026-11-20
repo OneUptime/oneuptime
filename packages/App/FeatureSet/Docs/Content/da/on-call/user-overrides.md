@@ -35,7 +35,7 @@ Når tilsidesættelsen slutter, er tilkaldene deres igen. **Tidslinje for vagtpl
 :::steps
 ### Åbn tilsidesættelserne
 
-Gå til **Vagt → Avanceret → Brugertilsidesættelser** for at dække for nogen i alle vagtpolitikker, eller til en politiks egen side **Brugertilsidesættelser**, under **Avanceret**, for kun at dække for dem i den politik. Klik på **Tilføj Brugertilsidesættelse**.
+Gå til **Vagt → Tidsplaner → Brugertilsidesættelser** for at dække for nogen i alle vagtpolitikker, eller til en politiks egen side **Brugertilsidesættelser**, under **Avanceret**, for kun at dække for dem i den politik. Klik på **Tilføj Brugertilsidesættelse**.
 
 ### Angiv, hvem der er fraværende
 
@@ -72,7 +72,7 @@ For at få nogen tilbage, før tilsidesættelsen slutter, skal du klikke på **A
 
 | Tilføjet under | Kort | Gælder for |
 | --- | --- | --- |
-| **Vagt → Avanceret → Brugertilsidesættelser** | **Globale brugertilsidesættelser** | Alle vagtpolitikker i projektet |
+| **Vagt → Tidsplaner → Brugertilsidesættelser** | **Globale brugertilsidesættelser** | Alle vagtpolitikker i projektet |
 | En politiks **Brugertilsidesættelser** | **Vagtpolitikkens brugertilsidesættelser** | Kun den politik |
 
 To tilsidesættelser for den samme person må ikke overlappe i den samme politik, heller ikke når begge er globale. Formularen og **Spring over indtil…** i en vagtplans lag siger det ved siden af tidspunkterne, så snart de er valgt, med **Rediger den tilsidesættelse** for i stedet at ændre den anden. Den ene kan slutte, når den næste starter.
@@ -92,7 +92,9 @@ Når nogen forlader projektet, slettes hver tilsidesættelse, der nævner dem og
 
 **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må tilføje, redigere og slette tilsidesættelser; **Seer** og **Vagtseer** må se dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** og **Read On-Call Policy User Override**. På **Tidslinje for vagtplaner** ser kun folk, der må læse tilsidesættelser, hvis vagt der dækkes.
 
-En tilsidesættelse i en politik følger politikkens omfang. Giv et team **Vagtmedlem** begrænset til de politikker, det ejer, eller til dets label, så tilføjer, redigerer og sletter dets medlemmer kun tilsidesættelser i de politikker. En global tilsidesættelse gælder for alle politikker, også et andet teams, så det at tilføje, redigere eller slette en kræver tilladelsen til tilsidesættelser over hele projektet. Med en snævrere tilladelse er **Tilføj Brugertilsidesættelse**, **Rediger**, **Afslut nu** og **Slet** under **Vagt → Avanceret → Brugertilsidesættelser** låst og siger hvorfor. **Spring over indtil…** i en vagtplans lag og **Find afløser** på dine kommende vagter, som tilføjer globale tilsidesættelser, tilbyder i stedet de politikker, du må tilføje tilsidesættelser på, med én tilsidesættelse pr. politik, og det samme gør afløsningen i mobilappen; hvor du ikke må på nogen af dem, er de låst og siger hvorfor. Teamet tilføjer sine tilsidesættelser på hver politiks egen side **Brugertilsidesættelser**. Det samme gælder for API'et: en tilsidesættelse uden `onCallDutyPolicyId` afvises for en tilladelse begrænset til labels eller til ejede politikker.
+En tilsidesættelse i en politik følger politikkens omfang. Giv et team **Vagtmedlem** begrænset til de politikker, det ejer, eller til dets label, så tilføjer, redigerer og sletter dets medlemmer kun tilsidesættelser i de politikker. En global tilsidesættelse gælder for alle politikker, også et andet teams, så det at tilføje, redigere eller slette en kræver tilladelsen til tilsidesættelser over hele projektet. Med en snævrere tilladelse er **Tilføj Brugertilsidesættelse**, **Rediger**, **Afslut nu** og **Slet** under **Vagt → Tidsplaner → Brugertilsidesættelser** låst og siger hvorfor. **Spring over indtil…** i en vagtplans lag og **Find afløser** på dine kommende vagter, som tilføjer globale tilsidesættelser, tilbyder i stedet de politikker, du må tilføje tilsidesættelser på, med én tilsidesættelse pr. politik, og det samme gør afløsningen i mobilappen; hvor du ikke må på nogen af dem, er de låst og siger hvorfor. Teamet tilføjer sine tilsidesættelser på hver politiks egen side **Brugertilsidesættelser**. Det samme gælder for API'et: en tilsidesættelse uden `onCallDutyPolicyId` afvises for en tilladelse begrænset til labels eller til ejede politikker.
+
+Vil du lade et team ordne dækning kun blandt sine egne folk, så giv det **Manage On-Call Policy User Overrides for Own Team**, direkte eller gennem en brugerdefineret rolle. Dets medlemmer tilføjer, redigerer og sletter så kun tilsidesættelser, når den fraværende person og den person, der dækker, hver især er på et af deres teams, der har fået tilladelsen; deres andre teams tæller ikke. **Hvem er fraværende?** og **Hvem dækker?** viser kun folkene på de teams og siger hvorfor, og **Rediger**, **Afslut nu** og **Slet** er låst og siger hvorfor på en tilsidesættelse, der nævner andre. For at se tilsidesættelserne skal de stadig have **Read On-Call Policy User Override** eller en rolle, der har den, som **Vagtseer**. API'et, Terraform og mobilappen holdes til samme regel; en API-nøgle er ikke på noget team og når ingen med den. Den, der også har **Vagtmedlem** eller en anden tilladelse, der når alle, begrænses ikke af den.
 
 I OneUptime Cloud kræver brugertilsidesættelser abonnementet **Growth**.
 
@@ -131,7 +133,7 @@ For at afslutte en igangværende tilsidesættelse skal du sende `POST /api/on-ca
 ## Fejlfinding
 
 :::details Personen på ferie blev stadig tilkaldt
-Tjek, hvor tilsidesættelsen blev tilføjet. En på en politiks side **Brugertilsidesættelser** dækker kun den politik, og andre politikker tilkalder stadig personen: tilføj den under **Vagt → Avanceret → Brugertilsidesættelser** for at dække alle politikker. Tjek også **Starter** og **Slutter**: tidspunkter vises i din tidszone.
+Tjek, hvor tilsidesættelsen blev tilføjet. En på en politiks side **Brugertilsidesættelser** dækker kun den politik, og andre politikker tilkalder stadig personen: tilføj den under **Vagt → Tidsplaner → Brugertilsidesættelser** for at dække alle politikker. Tjek også **Starter** og **Slutter**: tidspunkter vises i din tidszone.
 :::
 
 :::details Den, der dækker, blev heller ikke tilkaldt

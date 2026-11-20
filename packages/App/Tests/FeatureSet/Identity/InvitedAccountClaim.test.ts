@@ -9,9 +9,13 @@ import {
   withSecretColumns,
 } from "./IdentityRouterTestUtil";
 import User from "Common/Models/DatabaseModels/User";
+import { SignUpInvitation } from "Common/Types/Accounts/SignUpInvitation";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ExpressRequest,
@@ -59,6 +63,27 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
       "./SsoNotRequiredStandIn",
     ) as typeof import("./SsoNotRequiredStandIn")
   ).ssoNotRequired();
+});
+
+/*
+ * Whether single sign-on manages the invited person's sign-in (#9763,
+ * SsoManagedSignIn): a claim gives the account its first password, so it
+ * asks first - not, unless a test says so.
+ */
+const assertMayChangeLocalSignInFor: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return {
+    __esModule: true,
+    default: {
+      assertMayChangeLocalSignInFor: (...args: Array<unknown>): unknown => {
+        return assertMayChangeLocalSignInFor(...args);
+      },
+      isManagedBySsoFor: (): Promise<boolean> => {
+        return Promise.resolve(false);
+      },
+    },
+  };
 });
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -302,6 +327,7 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
 });
 
 const sendCompleteRegistrationEmail: jest.Mock = jest.fn();
+const sendAccountAlreadyExistsEmail: jest.Mock = jest.fn();
 
 jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
@@ -310,6 +336,9 @@ jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
       sendVerificationEmail: jest.fn(),
       sendCompleteRegistrationEmail: (...args: Array<unknown>): unknown => {
         return sendCompleteRegistrationEmail(...args);
+      },
+      sendAccountAlreadyExistsEmail: (...args: Array<unknown>): unknown => {
+        return sendAccountAlreadyExistsEmail(...args);
       },
     },
   };
@@ -451,10 +480,12 @@ function expectNothingHappened(): void {
 beforeEach(() => {
   jest.clearAllMocks();
 
+  assertMayChangeLocalSignInFor.mockResolvedValue(undefined);
   acceptForClaimedAccount.mockResolvedValue(null);
   userFindOneBy.mockResolvedValue(unclaimedInvitedUser());
   consumeRegistrationToken.mockResolvedValue(false);
   sendCompleteRegistrationEmail.mockResolvedValue(undefined);
+  sendAccountAlreadyExistsEmail.mockResolvedValue(undefined);
   createSession.mockResolvedValue({
     session: { id: "session-id" },
     refreshToken: "refresh-token",
@@ -611,9 +642,24 @@ describe("Identity /signup - claiming an invited account without the invitation"
 
     // Third argument is the entity: null, so no user is echoed back.
     expect(args[2]).toBeNull();
-    expect(
-      (args[4] as Record<string, any>)["miscData"]["registrationEmailSent"],
-    ).toBe(true);
+
+    const miscData: Record<string, unknown> = (args[4] as Record<string, any>)[
+      "miscData"
+    ];
+
+    /*
+     * Where the server proves an address by email (OneUptime Cloud, #9816),
+     * the answer every address gets - check your email to finish signing
+     * up - and the invitation's link goes out after it. A server that
+     * cannot email the address answers an unclaimed invitation with its own
+     * check-your-email, as before.
+     */
+    if (IsBillingEnabled) {
+      expect(miscData["emailVerificationRequired"]).toBe(true);
+      expect(miscData["registrationEmailSent"]).toBeUndefined();
+    } else {
+      expect(miscData["registrationEmailSent"]).toBe(true);
+    }
   });
 
   it("never puts a registration token in the response", async () => {
@@ -794,7 +840,7 @@ describe("Identity /signup - the invited person following their own invitation",
 });
 
 describe("Identity /signup - the paths that must not have changed", () => {
-  it("still refuses an address that has finished registering", async () => {
+  it("never signs up an address that has finished registering: refused as taken where the server cannot email it, answered as every address is where it can (#9816)", async () => {
     userFindOneBy.mockResolvedValue(registeredUser());
 
     await invoke(
@@ -805,17 +851,44 @@ describe("Identity /signup - the paths that must not have changed", () => {
       }),
     );
 
-    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    if (IsBillingEnabled) {
+      /*
+       * OneUptime Cloud proves every sign-up's address by email: the
+       * caller gets the answer every address gets, and the account's owner
+       * is told by email that somebody tried to sign up with it.
+       */
+      expect(sendErrorResponse).not.toHaveBeenCalled();
+      expect(sendAccountAlreadyExistsEmail).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          sendAccountAlreadyExistsEmail.mock.calls[0]![0] as {
+            user: { _id: string };
+          }
+        ).user._id,
+      ).toBe(INVITED_USER_ID);
+    } else {
+      expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+      expect(sendAccountAlreadyExistsEmail).not.toHaveBeenCalled();
+    }
+
+    // Either way the account is left as it was, and nobody is signed in.
     expectNothingHappened();
+    expect(userCreateUserOnSignup).not.toHaveBeenCalled();
   });
 
-  it("does not go looking for a token when the account already has a password", async () => {
+  it("never claims an account that already has a password, even with a valid token", async () => {
     /*
-     * A registered account is not claimable at all, so the token branch must be
-     * unreachable -- otherwise a valid token for one's own old invitation would
-     * be a way back into an account that has since been given a password.
+     * A registered account is not claimable at all -- otherwise a valid token
+     * for one's own old invitation would be a way back into an account that
+     * has since been given a password.
+     *
+     * The token is still looked up, and spent, as every token sent with a
+     * sign-up is (#9816): one lookup by the token, whoever the address
+     * belongs to, so how long the answer takes says nothing about whether the
+     * address had an account. Spending it claims nothing here.
      */
     userFindOneBy.mockResolvedValue(registeredUser());
+    consumeRegistrationToken.mockResolvedValue(true);
 
     await invoke(
       "/signup",
@@ -826,8 +899,38 @@ describe("Identity /signup - the paths that must not have changed", () => {
       }),
     );
 
-    expect(consumeRegistrationToken).not.toHaveBeenCalled();
+    expect(consumeRegistrationToken).toHaveBeenCalledTimes(1);
     expect(sendCompleteRegistrationEmail).not.toHaveBeenCalled();
+    expectNothingHappened();
+  });
+
+  it("looks a token up the same way whether or not the address has an account", async () => {
+    consumeRegistrationToken.mockResolvedValue(false);
+
+    userFindOneBy.mockResolvedValue(null);
+    await invoke(
+      "/signup",
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "a-long-enough-passphrase",
+        registrationToken: VALID_TOKEN,
+      }),
+    );
+
+    userFindOneBy.mockResolvedValue(registeredUser());
+    await invoke(
+      "/signup",
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "a-long-enough-passphrase",
+        registrationToken: VALID_TOKEN,
+      }),
+    );
+
+    expect(consumeRegistrationToken).toHaveBeenCalledTimes(2);
+    expect(consumeRegistrationToken.mock.calls[0]).toEqual(
+      consumeRegistrationToken.mock.calls[1],
+    );
   });
 
   it("signs a brand-new person up with no token in sight", async () => {
@@ -919,13 +1022,17 @@ describe("Identity /signup - the paths that must not have changed", () => {
  */
 describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
   it("hands the address and the token to SignUpInvitation, and answers with what it read", async () => {
-    readSignUpInvitation.mockResolvedValue({
+    const invitation: SignUpInvitation = {
       projectId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       projectName: "Walk Co",
       inviterName: "Ada Walker",
       name: "Grace Member",
       isAccepted: false,
-    });
+      // An ordinary invitation: SSO does not manage their sign-in (#9819).
+      ssoSignIn: null,
+    };
+
+    readSignUpInvitation.mockResolvedValue(invitation);
 
     await invoke("/sign-up-invitation", {
       email: VICTIM_EMAIL,
@@ -943,6 +1050,7 @@ describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
         inviterName: "Ada Walker",
         name: "Grace Member",
         isAccepted: false,
+        ssoSignIn: null,
       },
     });
     expect(setNoCacheHeaders).toHaveBeenCalled();
@@ -1066,6 +1174,125 @@ describe("Identity /signup - joining the project the sign-up page named", () => 
       ],
     ).toBeUndefined();
     // The account is still claimed, and signed in.
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A CLAIM IS A FIRST PASSWORD, REFUSED WHILE SINGLE SIGN-ON MANAGES THE
+ * PERSON'S SIGN-IN (#9763).
+ *
+ * Somebody invited only to projects that require SSO and manage sign-in with
+ * it sets no password in OneUptime: claiming the invitation with one is
+ * refused, and they sign in with SSO instead, as the message says. The
+ * refusal comes only once the registration token has proved the mailbox,
+ * like the block before it, so whoever typed the address learns nothing
+ * about the account from it - and on a refusal nothing happened: no
+ * password, no session, no invitation accepted.
+ * ---------------------------------------------------------------------------
+ */
+describe("Identity /signup - claiming an invitation while single sign-on manages the person's sign-in (#9763)", () => {
+  function claim(registrationToken?: string): Promise<InvokeResult> {
+    return invoke(
+      "/signup",
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "alice-chosen-passphrase",
+        ...(registrationToken !== undefined ? { registrationToken } : {}),
+      }),
+    );
+  }
+
+  beforeEach(() => {
+    consumeRegistrationToken.mockResolvedValue(true);
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new BadDataException(SSO_MANAGED_SIGN_IN_MESSAGE),
+    );
+  });
+
+  it("refuses with the reason, writing no password and issuing no session", async () => {
+    const result: InvokeResult = await claim(VALID_TOKEN);
+
+    expect(result.nextError?.message).toBe(SSO_MANAGED_SIGN_IN_MESSAGE);
+    expectNothingHappened();
+    expect(acceptForClaimedAccount).not.toHaveBeenCalled();
+    expect(sendCompleteRegistrationEmail).not.toHaveBeenCalled();
+  });
+
+  it("asks with the invited account and its master-admin standing, which the sign-up reads", async () => {
+    await claim(VALID_TOKEN);
+
+    expect(assertMayChangeLocalSignInFor).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      userId: { toString: () => string };
+      isMasterAdmin: boolean;
+    } = assertMayChangeLocalSignInFor.mock.calls[0]![0] as {
+      userId: { toString: () => string };
+      isMasterAdmin: boolean;
+    };
+
+    expect(asked.userId.toString()).toBe(INVITED_USER_ID);
+    expect(asked.isMasterAdmin).toBe(false);
+
+    const select: Record<string, unknown> = (
+      userFindOneBy.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["isMasterAdmin"]).toBe(true);
+  });
+
+  it("is not asked before a token proves the mailbox: the owner is mailed a link, as before", async () => {
+    await claim();
+
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expect(sendCompleteRegistrationEmail).toHaveBeenCalledTimes(1);
+    expectNothingHappened();
+  });
+
+  it("is not asked for a token the token service refuses", async () => {
+    consumeRegistrationToken.mockResolvedValue(false);
+
+    await claim(VALID_TOKEN);
+
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expectNothingHappened();
+  });
+
+  it("a blocked invited account is refused as blocked, before the rule is asked", async () => {
+    userFindOneBy.mockResolvedValue({
+      ...unclaimedInvitedUser(),
+      isBlocked: true,
+    });
+
+    await claim(VALID_TOKEN);
+
+    expect(
+      (sendErrorResponse.mock.calls[0]![2] as Exception | undefined)?.message,
+    ).toBe(ExceptionMessages.UserBlocked);
+    expect(assertMayChangeLocalSignInFor).not.toHaveBeenCalled();
+    expectNothingHappened();
+  });
+
+  it("a rule that cannot be read refuses the claim as well", async () => {
+    assertMayChangeLocalSignInFor.mockRejectedValue(
+      new Error("connection refused"),
+    );
+
+    const result: InvokeResult = await claim(VALID_TOKEN);
+
+    expect(result.nextError?.message).toBe("connection refused");
+    expectNothingHappened();
+  });
+
+  it("someone single sign-on does not manage claims their invitation as before", async () => {
+    assertMayChangeLocalSignInFor.mockResolvedValue(undefined);
+
+    const result: InvokeResult = await claim(VALID_TOKEN);
+
+    expect(result.nextError).toBeNull();
+    expect(userUpdateOneByIdAndFetch).toHaveBeenCalledTimes(1);
     expect(createSession).toHaveBeenCalledTimes(1);
   });
 });

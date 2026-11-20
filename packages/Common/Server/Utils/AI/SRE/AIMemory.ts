@@ -33,6 +33,7 @@ import {
 import ServiceKnowledge, { NamedService } from "./ServiceKnowledge";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudiencePermission";
+import MemoryReads, { MemoryReader } from "./MemoryReader";
 
 /*
  * AI SRE — episodic memory (Phase 4, "I've seen this before").
@@ -130,6 +131,31 @@ const CONFIRMED_ANALYSIS_LABEL: string =
 
 // The kinds of subject OneUptime AI investigates and remembers.
 export type MemorySubjectKind = "incident" | "alert";
+
+/*
+ * How OneUptime AI fixed a record, when its fix was verified: the line a
+ * prompt reads (describeFix), and what a page draws in the reader's
+ * language - the runbook it started, or the commands of its plan that ran.
+ */
+export interface VerifiedFix {
+  text: string;
+  runbookName: string | null;
+  commands: Array<string>;
+}
+
+// One past incident, as an incident's recurrence context lists it.
+export interface IncidentRecurrenceCase {
+  incidentNumber?: number | undefined;
+  title?: string | undefined;
+  // The root cause people recorded, or OneUptime AI's analysis they confirmed.
+  cause: string;
+  isConfirmedAnalysis: boolean;
+  monitorNames: Array<string>;
+  // Its "Matched on: ..." line (describeMatch); null when it shares nothing.
+  matchedOn: string | null;
+  // How OneUptime AI fixed it, when its fix was verified (describeFix).
+  fix?: string | undefined;
+}
 
 // What a past case shares with the subject, for its "Matched on" line.
 interface MatchReasons {
@@ -264,12 +290,13 @@ export default class AIMemory {
    * verdict is Confirmed. Empty when none was, or on any error - what is
    * remembered stands without it.
    */
-  public static async readConfirmedAnalyses(data: {
-    projectId: ObjectID;
-    kind: MemorySubjectKind;
-    ids: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
+  public static async readConfirmedAnalyses(
+    data: {
+      projectId: ObjectID;
+      kind: MemorySubjectKind;
+      ids: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, string>> {
     const analyses: Map<string, string> = new Map<string, string>();
 
     if (data.ids.length === 0) {
@@ -280,25 +307,27 @@ export default class AIMemory {
       data.kind === "incident" ? "triggeredByIncidentId" : "triggeredByAlertId";
 
     try {
-      const runs: Array<AIRun> = await AIRunService.findBy({
-        query: {
-          projectId: data.projectId,
-          [column]: QueryHelper.any(data.ids),
-          runType: AIRunType.Investigation,
-          humanVerdict: AIRunHumanVerdict.Confirmed,
-          analysisTldr: QueryHelper.notNull(),
-        } as never,
-        select: {
-          _id: true,
-          triggeredByIncidentId: true,
-          triggeredByAlertId: true,
-          analysisTldr: true,
-          createdAt: true,
-        },
-        sort: { createdAt: SortOrder.Descending },
-        limit: MAX_ANALYSES_READ,
-        skip: 0,
-        props: ReadAudiencePermission.getReadProps(data.readAudience),
+      const runs: Array<AIRun> = await MemoryReads.orNothing(() => {
+        return AIRunService.findBy({
+          query: {
+            projectId: data.projectId,
+            [column]: QueryHelper.any(data.ids),
+            runType: AIRunType.Investigation,
+            humanVerdict: AIRunHumanVerdict.Confirmed,
+            analysisTldr: QueryHelper.notNull(),
+          } as never,
+          select: {
+            _id: true,
+            triggeredByIncidentId: true,
+            triggeredByAlertId: true,
+            analysisTldr: true,
+            createdAt: true,
+          },
+          sort: { createdAt: SortOrder.Descending },
+          limit: MAX_ANALYSES_READ,
+          skip: 0,
+          props: MemoryReads.propsOf(data),
+        });
       });
 
       for (const run of runs) {
@@ -325,30 +354,57 @@ export default class AIMemory {
    * commands of its plan that ran. Empty when nothing was, or on any error -
    * the recurrence context stands without it.
    */
-  public static async readVerifiedFixes(data: {
-    projectId: ObjectID;
-    incidentIds: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
-    return await AIMemory.readVerifiedFixesOf({
-      projectId: data.projectId,
-      column: "incidentId",
-      ids: data.incidentIds,
-      readAudience: data.readAudience,
-    });
+  public static async readVerifiedFixes(
+    data: {
+      projectId: ObjectID;
+      incidentIds: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, string>> {
+    return AIMemory.textsOf(
+      await AIMemory.readVerifiedFixDetails({
+        ...MemoryReads.readerOf(data),
+        projectId: data.projectId,
+        kind: "incident",
+        ids: data.incidentIds,
+      }),
+    );
   }
 
   // The alert twin of readVerifiedFixes, by alert id (lower case).
-  public static async readVerifiedAlertFixes(data: {
-    projectId: ObjectID;
-    alertIds: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
+  public static async readVerifiedAlertFixes(
+    data: {
+      projectId: ObjectID;
+      alertIds: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, string>> {
+    return AIMemory.textsOf(
+      await AIMemory.readVerifiedFixDetails({
+        ...MemoryReads.readerOf(data),
+        projectId: data.projectId,
+        kind: "alert",
+        ids: data.alertIds,
+      }),
+    );
+  }
+
+  /*
+   * How OneUptime AI fixed each of `ids` - incidents or alerts - by id
+   * (lower case), when its fix was verified: the line a prompt reads, and
+   * the runbook or the commands a page draws. Empty when nothing was, or
+   * on any error.
+   */
+  public static async readVerifiedFixDetails(
+    data: {
+      projectId: ObjectID;
+      kind: MemorySubjectKind;
+      ids: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, VerifiedFix>> {
     return await AIMemory.readVerifiedFixesOf({
+      ...MemoryReads.readerOf(data),
       projectId: data.projectId,
-      column: "alertId",
-      ids: data.alertIds,
-      readAudience: data.readAudience,
+      column: data.kind === "incident" ? "incidentId" : "alertId",
+      ids: data.ids,
     });
   }
 
@@ -356,12 +412,22 @@ export default class AIMemory {
   public static describeFix(
     suggestion: AutoRemediationSuggestion,
   ): string | null {
+    return AIMemory.describeFixDetails(suggestion)?.text || null;
+  }
+
+  /*
+   * One fix: its runbook, or the commands of its plan that ran - in a line
+   * for a prompt, and apart for a page. Null when it ran neither.
+   */
+  public static describeFixDetails(
+    suggestion: AutoRemediationSuggestion,
+  ): VerifiedFix | null {
     if (
       suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
     ) {
       const plan: AiRemediationCommandPlan | null =
         AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
-      const ran: Array<string> = (plan?.commands || [])
+      const commands: Array<string> = (plan?.commands || [])
         .filter((command: AiRemediationCommand): boolean => {
           return (
             command.execution?.status ===
@@ -370,21 +436,40 @@ export default class AIMemory {
         })
         .slice(0, MAX_FIX_COMMANDS)
         .map((command: AiRemediationCommand): string => {
-          return `\`${PromptText.field(command.command, {
+          return PromptText.field(command.command, {
             maxLength: MAX_FIX_COMMAND_CHARS,
-          })
-            .split("`")
-            .join("'")}\``;
+          });
         });
 
-      return ran.length > 0 ? `ran ${ran.join("; ")}` : null;
+      if (commands.length === 0) {
+        return null;
+      }
+
+      return {
+        text: `ran ${commands
+          .map((command: string): string => {
+            return `\`${command.split("`").join("'")}\``;
+          })
+          .join("; ")}`,
+        runbookName: null,
+        commands,
+      };
     }
 
     if (
       suggestion.suggestionType === AutoRemediationSuggestionType.Runbook &&
       suggestion.runbookNameSnapshot
     ) {
-      return `ran the runbook "${PromptText.field(suggestion.runbookNameSnapshot, { maxLength: 120 })}"`;
+      const runbookName: string = PromptText.field(
+        suggestion.runbookNameSnapshot,
+        { maxLength: 120 },
+      );
+
+      return {
+        text: `ran the runbook "${runbookName}"`,
+        runbookName,
+        commands: [],
+      };
     }
 
     return null;
@@ -624,49 +709,74 @@ export default class AIMemory {
         }),
     });
 
+    return AIMemory.writeIncidentRecurrence({
+      isFallback,
+      cases: chosen.map(
+        (item: {
+          incident: Incident;
+          cause: string;
+          isConfirmedAnalysis: boolean;
+          match: MatchReasons;
+        }): IncidentRecurrenceCase => {
+          return {
+            incidentNumber: item.incident.incidentNumber,
+            title: item.incident.title,
+            cause: item.cause,
+            isConfirmedAnalysis: item.isConfirmedAnalysis,
+            monitorNames: (item.incident.monitors || [])
+              .map((m: Monitor) => {
+                return m.name || "";
+              })
+              .filter(Boolean),
+            matchedOn: isFallback ? null : AIMemory.describeMatch(item.match),
+            fix: fixes.get(item.incident.id?.toString().toLowerCase() || ""),
+          };
+        },
+      ),
+    });
+  }
+
+  /*
+   * An incident's recurrence context, as an investigation reads it: the
+   * heading, what to do with a match, then each past case with its cause,
+   * its monitors, what it shares with the incident (or that it is one of
+   * the most recent, when none matched) and OneUptime AI's verified fix.
+   * Pure, so the benchmark's scenarios write their project history in the
+   * product's own words (Eval/Benchmark, #7766).
+   */
+  public static writeIncidentRecurrence(data: {
+    cases: Array<IncidentRecurrenceCase>;
+    // None of them matched the incident: they are the most recent resolved ones.
+    isFallback: boolean;
+  }): string {
     let markdown: string =
       `\n\n${PAST_RESOLVED_INCIDENTS_HEADING}\n` +
       "If the current signal matches one of these, this may be a recurrence — say so explicitly and reference the incident number and how it was resolved. When OneUptime AI's fix of one was verified, say in the next steps whether the same fix applies now. Each says what it has in common with this incident; a match by meaning alone is a lead to check, not proof.\n";
 
-    for (const item of chosen) {
-      const incident: Incident = item.incident;
+    for (const item of data.cases) {
       // A past incident's screenshot is a note here too, not its base64.
       const shortRootCause: string = PromptText.field(item.cause, {
         maxLength: MAX_ROOT_CAUSE_CHARS,
       });
 
-      markdown += `\n- **#${incident.incidentNumber} — ${incident.title || "Untitled"}**`;
+      markdown += `\n- **#${item.incidentNumber} — ${item.title || "Untitled"}**`;
       markdown += `\n  Previously resolved. ${
         item.isConfirmedAnalysis ? CONFIRMED_ANALYSIS_LABEL : "Root cause"
       }: ${shortRootCause}`;
 
-      const monitorNames: Array<string> = (incident.monitors || [])
-        .map((m: Monitor) => {
-          return m.name || "";
-        })
-        .filter(Boolean);
-
-      if (monitorNames.length > 0) {
-        markdown += `\n  Monitors: ${monitorNames.join(", ")}`;
+      if (item.monitorNames.length > 0) {
+        markdown += `\n  Monitors: ${item.monitorNames.join(", ")}`;
       }
 
-      if (isFallback) {
+      if (data.isFallback) {
         markdown +=
           "\n  Nothing in it matched this incident: it is one of the project's most recent resolved incidents.";
-      } else {
-        const matchedOn: string | null = AIMemory.describeMatch(item.match);
-
-        if (matchedOn) {
-          markdown += `\n  ${matchedOn}`;
-        }
+      } else if (item.matchedOn) {
+        markdown += `\n  ${item.matchedOn}`;
       }
 
-      const fix: string | undefined = fixes.get(
-        incident.id?.toString().toLowerCase() || "",
-      );
-
-      if (fix) {
-        markdown += `\n  Fixed by OneUptime AI (verified): ${fix}`;
+      if (item.fix) {
+        markdown += `\n  Fixed by OneUptime AI (verified): ${item.fix}`;
       }
     }
 
@@ -999,6 +1109,17 @@ export default class AIMemory {
     );
   }
 
+  // The line each fix reads as in a prompt, by the same key.
+  private static textsOf(fixes: Map<string, VerifiedFix>): Map<string, string> {
+    const texts: Map<string, string> = new Map<string, string>();
+
+    for (const [key, fix] of fixes) {
+      texts.set(key, fix.text);
+    }
+
+    return texts;
+  }
+
   private static lowerCased(names: Array<string>): Set<string> {
     return new Set<string>(
       names
@@ -1009,13 +1130,14 @@ export default class AIMemory {
     );
   }
 
-  private static async readVerifiedFixesOf(data: {
-    projectId: ObjectID;
-    column: "incidentId" | "alertId";
-    ids: Array<ObjectID>;
-    readAudience: ReadAudience;
-  }): Promise<Map<string, string>> {
-    const fixes: Map<string, string> = new Map<string, string>();
+  private static async readVerifiedFixesOf(
+    data: {
+      projectId: ObjectID;
+      column: "incidentId" | "alertId";
+      ids: Array<ObjectID>;
+    } & MemoryReader,
+  ): Promise<Map<string, VerifiedFix>> {
+    const fixes: Map<string, VerifiedFix> = new Map<string, VerifiedFix>();
 
     if (data.ids.length === 0) {
       return fixes;
@@ -1023,25 +1145,27 @@ export default class AIMemory {
 
     try {
       const suggestions: Array<AutoRemediationSuggestion> =
-        await AutoRemediationSuggestionService.findBy({
-          query: {
-            projectId: data.projectId,
-            [data.column]: QueryHelper.any(data.ids),
-            verificationStatus: AutoRemediationVerificationStatus.Verified,
-          } as never,
-          select: {
-            _id: true,
-            incidentId: true,
-            alertId: true,
-            suggestionType: true,
-            runbookNameSnapshot: true,
-            commandPlan: true,
-            createdAt: true,
-          },
-          sort: { createdAt: SortOrder.Descending },
-          limit: MAX_FIXES_READ,
-          skip: 0,
-          props: ReadAudiencePermission.getReadProps(data.readAudience),
+        await MemoryReads.orNothing(() => {
+          return AutoRemediationSuggestionService.findBy({
+            query: {
+              projectId: data.projectId,
+              [data.column]: QueryHelper.any(data.ids),
+              verificationStatus: AutoRemediationVerificationStatus.Verified,
+            } as never,
+            select: {
+              _id: true,
+              incidentId: true,
+              alertId: true,
+              suggestionType: true,
+              runbookNameSnapshot: true,
+              commandPlan: true,
+              createdAt: true,
+            },
+            sort: { createdAt: SortOrder.Descending },
+            limit: MAX_FIXES_READ,
+            skip: 0,
+            props: MemoryReads.propsOf(data),
+          });
         });
 
       for (const suggestion of suggestions) {
@@ -1053,7 +1177,8 @@ export default class AIMemory {
           continue;
         }
 
-        const described: string | null = AIMemory.describeFix(suggestion);
+        const described: VerifiedFix | null =
+          AIMemory.describeFixDetails(suggestion);
 
         if (described) {
           fixes.set(key, described);

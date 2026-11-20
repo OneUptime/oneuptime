@@ -32,7 +32,9 @@ import {
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
 import IncidentScopeAddedPagesNotification from "../../Types/StatusPage/IncidentScopeAddedPagesNotification";
@@ -381,7 +383,6 @@ export class Service extends ProjectReferencesService<Model> {
           [],
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
-        false,
         onCreate.createBy.props,
         true,
       );
@@ -447,13 +448,18 @@ export class Service extends ProjectReferencesService<Model> {
     };
   }
 
+  /*
+   * Nobody is told they were made an owner of a template (#9758): its owners
+   * hear of each incident declared from it, as that incident's owners, and
+   * of nothing before. So its owner rows have no "told yet" flag, as a
+   * scheduled maintenance template's have none, and none waits for a job.
+   */
   @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     incidentTemplateId: ObjectID,
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
-    notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
     /*
      * True for the owners picked in the form that created the resource:
@@ -461,9 +467,12 @@ export class Service extends ProjectReferencesService<Model> {
      * new resource (OwnerRuleAssignment.createOwner).
      */
     onCreatorsBehalf: boolean = false,
-  ): Promise<void> {
-    // Owners already on the template are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the template are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: IncidentTemplateOwnerUserService,
       ownerTeamService: IncidentTemplateOwnerTeamService,
       resourceIdColumn: "incidentTemplateId",
@@ -471,7 +480,6 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       userIds: userIds,
       teamIds: teamIds,
-      isOwnerNotified: !notifyOwners,
       props: props,
       onCreatorsBehalf: onCreatorsBehalf,
     });

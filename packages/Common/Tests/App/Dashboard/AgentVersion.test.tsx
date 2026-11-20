@@ -191,6 +191,7 @@ describe("an up-to-date or unknown version looks exactly as before", () => {
     [AgentKind.IoTExporter],
     [AgentKind.ServerlessSdk],
     [AgentKind.RumSdk],
+    [AgentKind.EsperAgent],
   ])(
     "%s: an agent OneUptime does not release never shows a sign, however old",
     (kind: AgentKind) => {
@@ -722,7 +723,8 @@ describe("the hero chip", () => {
  * AgentFilesVersion tells a cluster on the older files to upgrade.
  */
 describe("the agents that report the collector they pin", () => {
-  const COLLECTOR_RELEASE: string = "0.161.0";
+  // The collector every agent runs since #9828.
+  const COLLECTOR_RELEASE: string = "0.165.0";
 
   function outdatedName(pin: string): string {
     return `Agent 0.154.0 is outdated. A newer agent is available: ${pin}. Show how to upgrade.`;
@@ -755,7 +757,7 @@ describe("the agents that report the collector they pin", () => {
   test.each(PINS)(
     "%s: the pinned release, or a newer one, is drawn exactly as before",
     (kind: AgentKind, pin: string) => {
-      for (const version of [pin, "0.162.0"]) {
+      for (const version of [pin, "0.166.0"]) {
         const { container }: RenderResult = render(
           <AgentVersion kind={kind} version={version} />,
         );
@@ -1006,7 +1008,7 @@ describe("the agents that report the collector they pin", () => {
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(
-        "This agent runs version 0.154.0. Version 0.161.0 is available.",
+        "This agent runs version 0.154.0. Version 0.165.0 is available.",
       ),
     ).toBeInTheDocument();
     expect(

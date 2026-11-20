@@ -127,7 +127,7 @@ flowchart TB
 | 数据存储、它们的时间线、它们的发现、谁可以访问它们，以及每个可以访问的身份 | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access`、`/data-security-identity` |
 | 问题、它们的时间线以及数据流 | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-flow` |
 | 扫描 | `/data-security-scan` |
-| 自定义数据类型、检查设置和数据驻留规则 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-residency-rule` |
+| 自定义数据类型、检查设置、合规设置和数据驻留规则 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | 项目的设置 | `/data-security-setting` |
 | 所有者、所有者规则和标签规则 | `/data-store-owner-user`、`/data-store-owner-team`、`/data-store-owner-rule`、`/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ flowchart TB
 | --- | --- |
 | `/data-security/overview` | 概览中的数据：按敏感度和类别统计的数据存储、按严重程度统计的未解决问题、风险最高的问题，以及它们最近 30 天的情况 |
 | `/data-security/compliance` | 每个框架的分数和要求 |
+| `/data-security/resource-scope` | 单个资源（Kubernetes 集群、Docker 或 Podman 主机、数据库、服务或云资源）的数据存储，以及它们遵循哪个资源的合规开关 |
+| `/data-security/resource-compliance` | 单个资源的框架：它们针对该资源数据存储的分数，以及为该资源关闭了哪些内容 |
 | `/data-security/record-of-processing` | GDPR 处理活动记录，每个保存个人数据的数据存储对应一行 |
 | `/data-store/<id>/scan-now` | **立即扫描**：立即对数据存储的内容采样 |
 | `/data-store/<id>/check-now` | **立即检查**：重新读取数据存储的配置并运行其检查 |
 | `/data-store-finding/<id>/scrub` | 对遥测发现执行 **清除** |
+| `/data-store-finding/<id>/drop-metric-impact` | 对指标名称中的发现执行 **丢弃此指标** 会丢弃什么：多少个指标，以及读取它们的监视器和仪表板 |
+| `/data-store-finding/<id>/drop-metric` | **丢弃此指标**：一条永久丢弃该服务这些指标新数据点的指标管道规则。它接受 `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | 对问题执行 **用 AI 解释** |
 | `/data-security-issue/<id>/fix-with-ai` | 对问题执行 **用 AI 修复** |
 | `/data-store/<id>/response-actions` | 数据存储当前可以执行哪些响应操作，以及不能执行的原因 |
 | `/data-store/<id>/respond` | 对数据存储执行一项响应操作，例如 **阻止公开访问** 或 **开启版本控制**，并附上发起它的问题 |
 
-[Terraform 提供程序](/docs/terraform/index) 为你创建的每种记录（你自己添加的数据存储、自定义数据类型、检查设置、数据驻留规则、所有者规则和标签规则）都提供一个以该记录命名的资源，例如 `oneuptime_residency_rule`。
+[Terraform 提供程序](/docs/terraform/index) 为你创建的每种记录（你自己添加的数据存储、自定义数据类型、检查设置、合规设置、数据驻留规则、所有者规则和标签规则）都提供一个以该记录命名的资源，例如 `oneuptime_residency_rule`。
 
-[MCP 服务器](/docs/ai/mcp-server) 为以下记录提供创建、获取、列出、更新、删除和计数工具：数据存储、数据存储发现、数据存储访问条目、数据安全身份、数据流、数据安全问题、数据安全扫描、自定义数据类型、检查设置、数据驻留规则和数据安全设置。这样，AI 助手就能以你的权限询问哪些数据存储保存着卡号，或者某个存储桶上有哪些未解决的问题。
+[MCP 服务器](/docs/ai/mcp-server) 为以下记录提供创建、获取、列出、更新、删除和计数工具：数据存储、数据存储发现、数据存储访问条目、数据安全身份、数据流、数据安全问题、数据安全扫描、自定义数据类型、检查设置、合规设置、数据驻留规则和数据安全设置。这样，AI 助手就能以你的权限询问哪些数据存储保存着卡号，或者某个存储桶上有哪些未解决的问题。
 
 ## 后续步骤
 

@@ -86,7 +86,7 @@ Las conexiones que iniciaron sesión con la misma cuenta comparten un único ini
 
 Eliminar una conexión retira el acceso de OneUptime en Zoom y Google en cuanto ninguna otra conexión usa ese inicio de sesión. En Microsoft, quita OneUptime en **My Apps** (myapps.microsoft.com) de la cuenta. Quitar OneUptime de tu cuenta de Zoom en el Zoom App Marketplace elimina su inicio de sesión de todas las conexiones que lo usaban con esa cuenta, y muestran **No funciona** hasta que se reconectan.
 
-Las transcripciones que OneUptime ya leyó se quedan en sus incidentes: eliminar una conexión conserva las llamadas que inició, con sus transcripciones, y lo mismo pasa al quitar OneUptime de la cuenta en Zoom, Google o Microsoft. **Eliminar transcripción** en una llamada elimina su transcripción y lo que la IA de OneUptime leyó en ella, pero no lo que la IA de OneUptime publicó en el feed del incidente y en sus canales. Eliminar un incidente elimina sus llamadas y sus transcripciones.
+Quitar OneUptime de tu cuenta de Zoom también elimina, en pocos minutos, las transcripciones de llamadas que OneUptime leyó con su inicio de sesión, y lo que la IA de OneUptime leyó en ellas: de sus llamadas, de los feeds de los incidentes y de los mensajes que OneUptime publicó en los canales de Slack, Microsoft Teams y Mattermost de los incidentes. El feed de cada incidente lo indica, y una transcripción que alguien añadió se queda. Eliminar una conexión conserva las llamadas que inició, con sus transcripciones, y lo mismo pasa al quitar OneUptime de una cuenta de Google o Microsoft. **Eliminar transcripción** en una llamada elimina su transcripción y lo que la IA de OneUptime leyó en ella de esos mismos lugares. Si OneUptime ya no puede eliminar un mensaje allí, porque su espacio de trabajo se desconectó o la app se quitó del canal, indica dónde se queda el mensaje. Una causa raíz o un post mortem que alguien escribió a partir de la llamada se queda. Eliminar un incidente elimina sus llamadas y sus transcripciones.
 
 ### Si Microsoft pide un administrador
 
@@ -100,7 +100,7 @@ Para conectar con una identidad de servicio en lugar del inicio de sesión de un
 
 La tarjeta **Videollamada** de la página de un incidente o de una alerta tiene **Iniciar llamada** (o **Iniciar otra** cuando ya hay una). Elige una de las conexiones del proyecto, la huddle del canal de Slack del incidente, o pega un enlace de reunión propio. La llamada se publica en los canales y el feed del incidente igual que una que inicia una regla.
 
-**Eliminar** en la tarjeta quita una llamada de la página del incidente. La reunión en sí no se elimina, y cualquiera que tenga el enlace puede seguir uniéndose.
+**Eliminar** en la tarjeta quita una llamada de la página del incidente, con su transcripción y lo que la IA de OneUptime leyó en ella. La reunión en sí no se elimina, y cualquiera que tenga el enlace puede seguir uniéndose.
 
 Iniciar y quitar llamadas requiere permiso para trabajar en incidentes (o alertas): **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de incidentes** o **Miembro de incidentes**, o **Create Incident Video Call** y **Delete Incident Video Call** en un rol personalizado. Todas las personas que pueden leer el incidente ven sus llamadas.
 
@@ -152,7 +152,7 @@ Obtener, añadir, reemplazar y eliminar una transcripción, hacer que se vuelva 
 
 ### Qué lee la IA de OneUptime
 
-Leer una transcripción es trabajo de IA como una investigación: solo se ejecuta mientras la IA está activada para el proyecto, y cuenta para el uso de IA y los límites diarios del proyecto (consulta [Control de costes](/docs/ai/ai-sre#control-de-costes)). Una transcripción larga se lee por partes. Cuando la IA está desactivada, la transcripción se conserva y la tarjeta dice que no se leyó. Eliminar una transcripción elimina lo que la IA de OneUptime leyó en ella, y conserva la causa raíz del incidente. Un borrador de post mortem de la IA también lee lo que se dijo en las llamadas del incidente (consulta [Post mortems](/docs/incidents/postmortems)).
+Leer una transcripción es trabajo de IA como una investigación: solo se ejecuta mientras la IA está activada para el proyecto, y cuenta para el uso de IA y los límites diarios del proyecto (consulta [Control de costes](/docs/ai/ai-sre#control-de-costes)). Una transcripción larga se lee por partes. Cuando la IA está desactivada, la transcripción se conserva y la tarjeta dice que no se leyó. Eliminar una transcripción elimina lo que la IA de OneUptime leyó en ella, de la llamada, del feed del incidente y de sus canales, y conserva la causa raíz del incidente. Un borrador de post mortem de la IA también lee lo que se dijo en las llamadas del incidente (consulta [Post mortems](/docs/incidents/postmortems)).
 
 ## Proveedores
 

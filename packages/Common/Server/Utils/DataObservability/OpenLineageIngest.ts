@@ -113,6 +113,24 @@ export function isFailedState(state: string | undefined | null): boolean {
   return FAILED_RUN_STATES.includes(state as OpenLineageRunState);
 }
 
+/*
+ * Whether a run ends a stop of the pipeline's circuit breaker (#6548): it
+ * started after the stop. A run that started before it - the run a
+ * breaker inside it stopped, or a late event of an older run - does not.
+ */
+export function isCircuitBreakerStopEndedBy(data: {
+  stoppedAt: Date | string | undefined | null;
+  runStartedAt: Date;
+}): boolean {
+  if (!data.stoppedAt) {
+    return false;
+  }
+
+  const stoppedAt: number = new Date(data.stoppedAt).getTime();
+
+  return Number.isFinite(stoppedAt) && data.runStartedAt.getTime() > stoppedAt;
+}
+
 // How precisely a pipeline's edge keeps its last sighting: a busy pipeline writes it hourly.
 export const PIPELINE_EDGE_SEEN_PRECISION_IN_SECONDS: number = 60 * 60;
 
@@ -347,6 +365,7 @@ export default class OpenLineageIngest {
         lastRunStartedAt: true,
         typicalRunDurationInSeconds: true,
         expectedRunIntervalInSeconds: true,
+        circuitBreakerStoppedAt: true,
       },
       props: { isRoot: true },
     });
@@ -532,6 +551,15 @@ export default class OpenLineageIngest {
       expectedRunIntervalInSeconds:
         expectedRunIntervalInSeconds ?? pipeline.expectedRunIntervalInSeconds,
     });
+    /*
+     * A run that started after the circuit breaker stopped the pipeline
+     * ends the stop (#6548): the pipeline ran, whatever held it before.
+     * A late event of a run that started before the stop leaves it.
+     */
+    const endsCircuitBreakerStop: boolean = isCircuitBreakerStopEndedBy({
+      stoppedAt: pipeline.circuitBreakerStoppedAt,
+      runStartedAt: startedAt,
+    });
 
     await DataPipelineService.updateColumnsByIdWithoutHooks({
       id: pipeline.id!,
@@ -563,6 +591,9 @@ export default class OpenLineageIngest {
               lastFailureAt: event.eventTime,
               lastErrorMessage: errorMessage,
             }
+          : {}),
+        ...(endsCircuitBreakerStop
+          ? { circuitBreakerStoppedAt: null, circuitBreakerReasons: null }
           : {}),
       } as never,
     });
@@ -908,7 +939,14 @@ export default class OpenLineageIngest {
 
     const assets: Array<DataAsset> = await DataAssetService.findBy({
       query: { projectId, isDropped: false },
-      select: { _id: true, dataStoreId: true, schemaName: true, name: true },
+      select: {
+        _id: true,
+        dataStoreId: true,
+        schemaName: true,
+        name: true,
+        // What Power BI's OData connectors name a Dataverse table by (#9696).
+        entitySetName: true,
+      },
       limit: MAX_ASSETS_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
@@ -927,6 +965,9 @@ export default class OpenLineageIngest {
             dataStoreId: asset.dataStoreId!.toString(),
             schemaName: asset.schemaName || "",
             name: asset.name!,
+            ...(asset.entitySetName
+              ? { entitySetName: asset.entitySetName }
+              : {}),
           };
         }),
     };

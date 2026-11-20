@@ -3,10 +3,11 @@ import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import Route from "Common/Types/API/Route";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ResourceTable, {
   InfrastructureResource,
   ResourceColumn,
+  ResourceStorageUsageColumns,
 } from "../Infrastructure/ResourceTable";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/VMwareMetricDescriptions";
 import {
@@ -21,6 +22,38 @@ import {
   toVMwareListResources,
 } from "./VMwareResourceColumns";
 import { isVMwareRootResourcePool } from "../../Pages/VMware/Utils/VMwarePartFacts";
+import { getVMwareVmStorageUsage } from "../../Pages/VMware/Utils/VMwareHealth";
+
+const VM_STORAGE_NOT_REPORTED: string = translationKey("Not reported");
+
+/*
+ * A VM's storage, after its CPU and Memory (#9646): the datastore space its
+ * files take of all that is provisioned for it, as a bar that sorts, and
+ * what its disks may still grow into. Calm at any level - a thick disk
+ * takes all of its space from the start (VMWARE_VM_STORAGE_USAGE_THRESHOLDS).
+ */
+export const VMWARE_VM_STORAGE_COLUMNS: ResourceStorageUsageColumns = {
+  usedDescription: VMWARE_METRIC_DESCRIPTIONS.vmDisk,
+  usedTitle: "Storage",
+  isAfterResourceMetrics: true,
+  isFreeOnlyWhenReported: true,
+};
+
+// A VM's row with its storage, from what the inventory row carried.
+export function withVMwareVmStorage(
+  resource: InfrastructureResource,
+): InfrastructureResource {
+  return {
+    ...resource,
+    storageUsage: {
+      usage: getVMwareVmStorageUsage({
+        usedBytes: resource.additionalAttributes["diskBytes"],
+        provisionedBytes: resource.additionalAttributes["maxDiskBytes"],
+      }),
+      noUsageText: VM_STORAGE_NOT_REPORTED,
+    },
+  };
+}
 
 /*
  * The ESXi hosts and the virtual machines of a vCenter as a table - on its
@@ -148,7 +181,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
   const resources: Array<InfrastructureResource> = toVMwareListResources(
     props.rows,
     props.context,
-  );
+  ).map(withVMwareVmStorage);
 
   const columns: Array<ResourceColumn> = [];
   if (props.scope === "vcenter") {
@@ -242,6 +275,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
         cpu: VMWARE_USAGE_BAR_THRESHOLDS,
         memory: VMWARE_USAGE_BAR_THRESHOLDS,
       }}
+      storageUsageColumns={VMWARE_VM_STORAGE_COLUMNS}
       columns={columns}
       getViewRoute={(resource: InfrastructureResource): Route => {
         return (

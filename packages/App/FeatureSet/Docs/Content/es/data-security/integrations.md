@@ -127,7 +127,7 @@ Todo lo que guarda Seguridad de datos es un registro de la API de OneUptime, que
 | Los almacenes de datos, sus cronologías, sus hallazgos, quién puede acceder a ellos y cada identidad que puede | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Los problemas, sus cronologías y los flujos de datos | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Los escaneos | `/data-security-scan` |
-| Los tipos de datos personalizados, los ajustes de las comprobaciones y las reglas de residencia | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Los tipos de datos personalizados, los ajustes de las comprobaciones, los ajustes de cumplimiento y las reglas de residencia | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Los ajustes del proyecto | `/data-security-setting` |
 | Los propietarios, las reglas del propietario y las reglas de etiquetas | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ Algunas respuestas se calculan bajo demanda en lugar de guardarse. Cada una es u
 | --- | --- |
 | `/data-security/overview` | Las cifras de la Vista general: almacenes por sensibilidad y categoría, problemas abiertos por gravedad, los problemas de mayor riesgo y sus últimos 30 días |
 | `/data-security/compliance` | La puntuación y los requisitos de cada marco |
+| `/data-security/resource-scope` | Los almacenes de datos de un recurso (un clúster de Kubernetes, un host de Docker o Podman, una base de datos, un servicio o un recurso en la nube) y de qué recurso siguen los interruptores de cumplimiento |
+| `/data-security/resource-compliance` | Los marcos de un recurso: sus puntuaciones para los almacenes del recurso, y lo que está desactivado para él |
 | `/data-security/record-of-processing` | El registro de actividades de tratamiento del RGPD, una fila por cada almacén que contiene datos personales |
 | `/data-store/<id>/scan-now` | **Escanear ahora**: muestrea el contenido del almacén al momento |
 | `/data-store/<id>/check-now` | **Comprobar ahora**: vuelve a leer la configuración del almacén y ejecuta sus comprobaciones |
 | `/data-store-finding/<id>/scrub` | **Depurar** en un hallazgo de telemetría |
+| `/data-store-finding/<id>/drop-metric-impact` | Lo que **Descartar esta métrica** descartaría para un hallazgo en el nombre de una métrica: cuántas métricas, y los monitores y paneles que las leen |
+| `/data-store-finding/<id>/drop-metric` | **Descartar esta métrica**: una regla de canalización de métricas que descarta para siempre los nuevos puntos de datos de esas métricas del servicio. Recibe `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Explicar con IA** en un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Corregir con IA** en un problema |
 | `/data-store/<id>/response-actions` | Qué acciones de respuesta admite el almacén ahora, y por qué no |
 | `/data-store/<id>/respond` | Una acción de respuesta en el almacén, como **Bloquear el acceso público** o **Activar el control de versiones**, con el problema desde el que se ejecutó |
 
-El [proveedor de Terraform](/docs/terraform/index) tiene un recurso para cada tipo de registro que creas (los almacenes de datos que añades tú mismo, los tipos de datos personalizados, los ajustes de las comprobaciones, las reglas de residencia, las reglas del propietario y las de etiquetas) con el nombre del registro, como `oneuptime_residency_rule`.
+El [proveedor de Terraform](/docs/terraform/index) tiene un recurso para cada tipo de registro que creas (los almacenes de datos que añades tú mismo, los tipos de datos personalizados, los ajustes de las comprobaciones, los ajustes de cumplimiento, las reglas de residencia, las reglas del propietario y las de etiquetas) con el nombre del registro, como `oneuptime_residency_rule`.
 
-El [servidor MCP](/docs/ai/mcp-server) tiene herramientas para crear, obtener, listar, actualizar, eliminar y contar estos registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule y Data Security Setting. Un asistente de IA puede entonces preguntar qué almacenes contienen números de tarjeta, o qué hay abierto en un bucket, con tus permisos.
+El [servidor MCP](/docs/ai/mcp-server) tiene herramientas para crear, obtener, listar, actualizar, eliminar y contar estos registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule y Data Security Setting. Un asistente de IA puede entonces preguntar qué almacenes contienen números de tarjeta, o qué hay abierto en un bucket, con tus permisos.
 
 ## Próximos pasos
 

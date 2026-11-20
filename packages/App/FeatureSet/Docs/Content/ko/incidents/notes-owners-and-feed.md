@@ -60,7 +60,7 @@ flowchart TB
 :::steps
 ### 공개 노트 열기
 
-인시던트를 열고 사이드 메뉴에서 **노트 → 공개 노트**를 고릅니다. 노트 위의 작성기는 게시하기 전에 누가 노트를 읽을지 알려 줍니다: **Public · Visible on your status page**.
+인시던트를 열고 사이드 메뉴에서 **노트 → 공개 노트**를 고릅니다. 노트 위의 작성기는 게시하기 전에 누가 노트를 읽을지 알려 줍니다: **Public · Visible on your status page**. 어떤 상태 페이지도 인시던트를 표시하지 않는 동안에는 **Public · No status page shows this incident yet**라고 표시합니다.
 
 ### 업데이트 쓰기
 
@@ -88,7 +88,7 @@ flowchart TB
 
 **조용한 인시던트는 조용히 유지됩니다.** 인시던트가 **상태 페이지 구독자에게 알림**을 끈 채로(또는 비공개 인시던트로) 선언되었다면 구독자는 그 인시던트에 대해 아무것도 듣지 못했으므로, 공개 노트가 그들이 처음 듣는 소식이 되어서는 안 됩니다. 그런 인시던트에서는 확인란이 꺼진 채로 시작하며, 그 아래 줄에 이유가 설명됩니다. 그래도 선택하면 그 노트에 대해 구독자에게 알릴 수 있습니다. 명시적인 선택 없이 게시된 노트도 같은 규칙을 따릅니다. Slack과 Microsoft Teams의 노트, 워크플로우, 그리고 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`를 빠뜨린 API 요청입니다. 명시적인 `true` 또는 `false`는 항상 유지됩니다. [유지 관리 이벤트](/docs/status-pages/subscribers#유지-관리-이벤트)와 [인시던트 에피소드](/docs/status-pages/subscribers#인시던트-에피소드)의 공개 노트도, 이벤트나 에피소드 자체가 생성될 때 구독자에게 알렸는지에 따른 비슷한 규칙을 따릅니다. 비공개 인시던트나 에피소드에는 공개 노트를 전혀 추가할 수 없습니다.
 
-**노트가 누구에게 닿을지 확인하세요.** **상태 페이지 구독자에게 알리기**가 선택되어 있는 동안 그 아래의 **알림 대상** 줄에는 노트가 갈 상태 페이지와 채널별 "최대" 구독자 수, 그리고 인시던트의 모니터를 나열하지만 알림을 받지 않을 페이지와 그 이유가 표시됩니다. 아무에게도 알리지 않으면 아무것도 표시하지 않지만, 인시던트가 상태 페이지에서 숨겨져 있거나 인시던트의 상태 페이지 범위가 원인이면 표시합니다. 인시던트의 상태 페이지 범위를 따르므로, 두 사이트 페이지로 제한된 인시던트의 노트는 그 둘에 닿는다고 말합니다. [대상별 상태 페이지](/docs/status-pages/one-status-page-per-audience)를 참고하세요.
+**노트가 누구에게 닿을지 확인하세요.** **상태 페이지 구독자에게 알리기**가 선택되어 있는 동안 그 아래의 **알림 대상** 줄에는 노트가 갈 상태 페이지와 채널별 "최대" 구독자 수, 그리고 인시던트의 모니터를 나열하지만 알림을 받지 않을 페이지와 그 이유가 표시됩니다. 아무에게도 알리지 않으면 아무것도 표시하지 않지만, 인시던트의 상태 페이지 범위가 원인이면 표시합니다. 아무에게도 알리지 않는 이유(인시던트가 숨겨져 있거나, 어떤 상태 페이지도 표시하지 않거나, 표시하는 페이지가 아무것도 보내지 않음)는 확인란 아래 줄에 표시됩니다. 인시던트의 상태 페이지 범위를 따르므로, 두 사이트 페이지로 제한된 인시던트의 노트는 그 둘에 닿는다고 말합니다. [대상별 상태 페이지](/docs/status-pages/one-status-page-per-audience)를 참고하세요.
 
 **그들이 무엇을 받을지 확인하세요.** 같은 확인란 옆의 **미리 보기**는 쓰고 있는 노트에 대해 각 상태 페이지의 구독자가 받을 이메일과, 어떤 템플릿을 쓰는지와 그 이유를 보여 줍니다. 노트에 글이 들어가기 전까지는 회색으로 남습니다. **나에게 테스트 보내기**는 그 이메일을 내 계정 이메일로만 보냅니다. [구독자 및 공지](/docs/status-pages/subscribers#보내기-전에-이메일-미리-보기)를 참고하세요.
 
@@ -302,9 +302,9 @@ flowchart TB
 - **연결된 경고** — `AlertLinked`와 `AlertUnlinked`로, **경고 연결됨**과 **경고 연결 해제됨**으로 표시됩니다.
 - **알림** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **자동화** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
-- **화상 통화** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded`, `VideoCallSummary`. 인시던트를 위해 시작한 통화와 참여 링크, 제공자가 통화를 시작하지 못한 이유, 누군가 추가했거나 제공자에게서 읽어 온 통화 녹취록, 또는 OneUptime AI가 그 안에서 읽은 내용입니다. OneUptime AI가 읽은 내용은 인시던트의 채널에도 게시됩니다. [화상 통화](/docs/workspace-connections/video-calls)를 참고하세요.
+- **화상 통화** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded`, `VideoCallTranscriptRemoved`, `VideoCallSummary`. 인시던트를 위해 시작한 통화와 참여 링크, 제공자가 통화를 시작하지 못한 이유, 누군가 추가했거나 제공자에게서 읽어 왔거나 제거된 통화 녹취록, 또는 OneUptime AI가 그 안에서 읽은 내용입니다. OneUptime AI가 읽은 내용은 인시던트의 채널에도 게시됩니다. [화상 통화](/docs/workspace-connections/video-calls)를 참고하세요.
 
-온콜 항목은 각 호출이 어떻게 되었는지 알려 줍니다. 호출의 항목은 그 알림이 나간 채널을 밝힙니다: "On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 본인의 온콜 규칙이 나중에 보내는 알림(예: 10분 뒤의 전화)은 자체 항목이 되며("… paged Nitin Kumar again via phone call …"), 보내지 못한 알림도 마찬가지입니다("… could not page Nitin Kumar via SMS …"). 받지 않은 전화도 Twilio가 신호가 울리다 끊겼거나 통화 중이었다고 알리면 자체 항목을 얻습니다: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 각 채널은 호출마다 한 번만 밝혀지므로, 누군가 응답할 때까지 반복되는 푸시 알림이 매분 줄을 더하지 않습니다. 응답은 그것이 온 알림을 밝힙니다: "Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." OneUptime 자체나 OneUptime On-Call 앱처럼 다른 방법으로 확인된 호출은 채널을 밝히지 않습니다. 제공자의 사유에는 전화번호나 이메일 주소가 들어 있을 수 있으므로, 피드는 알림을 보내지 못한 이유를 절대 말하지 않습니다. 이유는 인시던트의 **알림 로그** 와 본인의 **온콜 로그** 에 표시됩니다.
+온콜 항목은 각 호출이 어떻게 되었는지 알려 줍니다. 호출의 항목은 그 알림이 나간 채널을 밝힙니다: "On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 본인의 온콜 규칙이 나중에 보내는 알림(예: 10분 뒤의 전화)은 자체 항목이 되며("… paged Nitin Kumar again via phone call …"), 보내지 못한 알림도 마찬가지입니다("… could not page Nitin Kumar via SMS …"). 받지 않은 전화도 Twilio가 신호가 울리다 끊겼거나 통화 중이었다고 알리면 자체 항목을 얻습니다: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 음성사서함이 받은 전화도 받지 않은 것으로 처리되며, 메시지를 남겼는지가 항목에 표시됩니다: "… It went to voicemail, and a message was left." 각 채널은 호출마다 한 번만 밝혀지므로, 누군가 응답할 때까지 반복되는 푸시 알림이 매분 줄을 더하지 않습니다. 응답은 그것이 온 알림을 밝힙니다: "Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." OneUptime 자체나 OneUptime On-Call 앱처럼 다른 방법으로 확인된 호출은 채널을 밝히지 않습니다. 제공자의 사유에는 전화번호나 이메일 주소가 들어 있을 수 있으므로, 피드는 알림을 보내지 못한 이유를 절대 말하지 않습니다. 이유는 인시던트의 **알림 로그** 와 본인의 **온콜 로그** 에 표시됩니다.
 
 유형마다 고유한 아이콘이 있어, 긴 피드를 훑어보며 잡담 속에서 상태 변경을 골라낼 수 있습니다. AI가 생성한 근본 원인 분석은 따로 표시되며 제한된 Markdown 모드로 렌더링됩니다. **인시던트 생성됨** 항목, 새 제목을 기록하는 항목, 에피소드 합류나 이탈 항목은 제목을 입력한 그대로 보여 줍니다. 제목 안의 `\`, `[`, `]`, `*`, `_`, `~`, 백틱, \<를 이스케이프하므로, 제목이 이미지, 원시 HTML, \<!here\> 같은 Slack 멘션, 링크 대상을 숨기는 텍스트의 링크, 굵은 글씨, 기울임, 코드가 되는 일은 없습니다. 제목 안의 주소는 여전히 같은 주소로의 링크로 표시됩니다.
 

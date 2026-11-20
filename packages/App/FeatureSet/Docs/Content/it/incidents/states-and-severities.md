@@ -130,7 +130,7 @@ Un solo passaggio risale l'elenco: la riapertura da parte di una regola di raggr
 
 Per correggere uno stato impostato per errore, eliminate la sua riga nella pagina della cronologia degli stati del record (vedete [La cronologia degli stati](#la-cronologia-degli-stati)). Il record torna allo stato della sua ultima riga rimasta; un episodio di cui eliminate la riga di risoluzione torna aperto, e il suo orario di risoluzione viene cancellato.
 
-Tramite l'API e Terraform l'ordine è la colonna `order`: i numeri più bassi vengono prima. Uno stato creato senza ordine va appena sopra lo stato risolto; uno creato o aggiornato con un numero prende quel posto, e gli stati che lo intralciano scendono di una posizione. I numeri che nessun altro ha vengono mantenuti come scritti, così uno stato gestito con Terraform rilegge il numero che gli è stato dato.
+Tramite l'API e Terraform l'ordine è la colonna `order`: i numeri più bassi vengono prima. Uno stato creato senza ordine va appena sopra lo stato risolto. Un numero che scrivete viene mantenuto come scritto e non sposta nessun altro stato, così uno stato gestito con Terraform rilegge il numero che gli è stato dato; di due stati con lo stesso numero si mostra prima il più vecchio. Gli stati predefiniti mantengono comunque il loro ordine: una scrittura che metterebbe due di essi allo stesso numero, o fuori ordine, viene rifiutata.
 
 ## Le gravità predefinite
 
@@ -178,9 +178,9 @@ Un incidente cambia stato in cinque modi:
 
 | Modo                           | Dove                                                                                        | Che cosa chiede                                                                                                                                                                                              |
 | ------------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Pulsanti dell'intestazione** | L'intestazione dell'incidente: **Riconosci** e **Risolvi**, e **Cambia stato in** nel suo menu **⋯** | Una breve conferma — **Riconosci incidente** o **Risolvi incidente** — con **Notifica gli iscritti alla pagina di stato** e, ripiegata sotto **Aggiungi una nota pubblica**, la **Nota pubblica** facoltativa e il suo selettore **Seleziona modello di nota** (quando il progetto ha modelli di note). |
+| **Pulsanti dell'intestazione** | L'intestazione dell'incidente: **Riconosci** e **Risolvi**, e **Cambia stato in** nel suo menu **⋯** | Una breve conferma — **Riconosci incidente** o **Risolvi incidente** — con **Notifica gli iscritti alla pagina di stato** e, ripiegata sotto **Aggiungi una nota pubblica**, la **Nota pubblica** facoltativa e il suo selettore **Seleziona modello di nota** (quando il progetto ha modelli di note). Una risoluzione comprime anche una causa principale facoltativa sotto **Aggiungi la causa principale**. |
 | **Cronologia stato**           | **Cronologia stato** nel menu laterale dell'incidente                                       | Una riga aggiunta a mano, con **Stato dell'incidente**, **Inizia il** e **Notifica gli iscritti alla pagina di stato**.                                                                                     |
-| **Riga dell'elenco** | Il menu **⋯** sulla riga di un incidente nell'elenco degli incidenti: **Riconosci**, **Risolvi** e **Cambia stato** | La conferma dell'intestazione, con il nome dell'incidente. Un incidente che un'altra modifica ha già spostato resta com'è, e la finestra dice perché. |
+| **Riga dell'elenco** | Il menu **⋯** sulla riga di un incidente nell'elenco degli incidenti: **Riconosci**, **Risolvi** e **Cambia stato** | La conferma dell'intestazione, con il nome dell'incidente. Un incidente che un'altra modifica ha già spostato resta com'è, e la finestra dice perché. Non chiede la causa principale. |
 | **Modifica di massa**          | **Riconosci**, **Risolvi** o **Cambia stato** su una selezione nell'elenco degli incidenti                               | Una pagina con lo stato, **Notifica gli iscritti alla pagina di stato** e lo stesso **Aggiungi una nota pubblica** ripiegato.                                                                               |
 | **Automaticamente**            | Un criterio di monitor, o il vostro codice                                                  | Un criterio con **Risoluzione automatica dell'incidente** attiva risolve il suo incidente quando il criterio non è più soddisfatto. L'API cambia lo stato creando una riga in `/api/incident-state-timeline`. |
 
@@ -208,6 +208,12 @@ Un incidente viene risolto quando passa da uno stato sopra il vostro stato risol
 - **Segna lo SLA come risolto** e, quando le bozze di post-mortem di OneUptime AI sono attive, stende un post-mortem.
 
 Passare da **Risolto** a uno stato successivo — **Closed**, ad esempio — non è una seconda risoluzione: nulla di tutto ciò viene eseguito di nuovo, e non parte alcuno SLA nuovo. Un incidente dichiarato prima che OneUptime iniziasse a registrare questo restituisce i suoi monitor alla prossima risoluzione, come prima.
+
+## Scrivere la causa principale mentre si risolve
+
+Quando l'intestazione dell'incidente lo risolve, con **Risolvi** o con **Cambia stato in** uno stato risolto, la conferma comprime una **Causa principale** facoltativa sotto **Aggiungi la causa principale**: perché è successo. Ciò che scrivi lì diventa la causa principale dell'incidente, come se l'avessi scritto nella sua pagina **Causa principale**, e l'indagine di OneUptime AI sull'incidente viene valutata rispetto a esso (vedi [Come se la cava OneUptime AI](/docs/ai/ai-sre#come-se-la-cava-oneuptime-ai)). Se lo lasci vuoto, l'incidente viene risolto come prima e mantiene la causa principale che ha.
+
+Scriverla richiede il permesso di modificare l'incidente, oltre a quello di cambiarne lo stato: a chi non ce l'ha **Aggiungi la causa principale** non viene offerto, e un cambio di stato che invia con una causa principale viene rifiutato per intero, così l'incidente mantiene il suo stato. Tramite l'API, inviala con la riga che crei in `/api/incident-state-timeline`, come `writtenRootCause` in `miscDataProps`.
 
 ## La cronologia degli stati
 

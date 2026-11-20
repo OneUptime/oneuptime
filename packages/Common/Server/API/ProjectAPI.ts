@@ -55,6 +55,14 @@ import {
   RecordNumbering,
 } from "../../Utils/Project/NextNumber";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import ProjectSignInClearing from "../Utils/ProjectSignInClearing";
+import {
+  CLEAR_PROJECT_SIGN_IN_OWNERS_ONLY_MESSAGE,
+  ClearSavedSignInSettingsAnswer,
+  PROJECT_CLEAR_SAVED_SIGN_IN_SETTINGS_ACTION,
+  PROJECT_SAVED_SIGN_IN_SETTINGS_ACTION,
+  SavedSignInSettingsAnswer,
+} from "../../Types/SSO/LocalSignInClearing";
 import ResolvedRecordRetention, {
   DueRecordsCount,
 } from "../Utils/Retention/ResolvedRecordRetention";
@@ -489,6 +497,72 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           }
         } catch (err) {
           next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /project/:id/saved-sign-in-settings - how many of the project's
+     * people the signed-in owner may clear the saved sign-in settings of
+     * (#9820, Server/Utils/ProjectSignInClearing): people whose every
+     * project manages sign-in with SSO and is one this owner owns, master
+     * admins never. What Project Settings > Security > SSO says under
+     * Manage Sign-In with SSO before it offers to clear them.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/${PROJECT_SAVED_SIGN_IN_SETTINGS_ACTION}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
+            await ProjectAPI.assertSignInClearingOwner(req);
+
+          Response.setNoCacheHeaders(res);
+
+          const answer: SavedSignInSettingsAnswer = {
+            peopleCount:
+              await ProjectSignInClearing.countClearablePeople(caller),
+          };
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /project/:id/saved-sign-in-settings/clear - the owner clearing
+     * those people's saved sign-in settings (#9820,
+     * ProjectSignInClearing.clearForProject): never anybody with a project
+     * this owner does not own, never a master admin, never the owner;
+     * each person recorded in their projects' audit logs and emailed.
+     * Refused while the project does not manage sign-in with SSO. It cannot
+     * be undone, and the card asks first. Takes no body.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/${PROJECT_CLEAR_SAVED_SIGN_IN_SETTINGS_ACTION}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
+            await ProjectAPI.assertSignInClearingOwner(req);
+
+          const answer: ClearSavedSignInSettingsAnswer = {
+            peopleCleared: await ProjectSignInClearing.clearForProject(caller),
+          };
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
         }
       },
     );
@@ -1224,5 +1298,47 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
     });
 
     return projectId;
+  }
+
+  /*
+   * Who may count and clear the sign-in settings a project's people saved
+   * (#9820): a signed-in person - never a project API key, which a leak
+   * would turn into a way to strip people's sign-in - who is a Project
+   * Owner of the project in the path, read from their own permission rows
+   * (CallerPermission: a team's block is no grant) and never from
+   * master-admin standing, which has the Admin Dashboard's clears instead.
+   * The project in the path must be the one the request is authorized for.
+   */
+  private static async assertSignInClearingOwner(
+    req: ExpressRequest,
+  ): Promise<{ projectId: ObjectID; ownerUserId: ObjectID }> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    // A signed-in member: 401 without credentials, refused for an API key.
+    const projectId: ObjectID =
+      CommonAPI.assertAuthenticatedProjectMember(props);
+
+    const idParam: string = String(req.params["id"] || "");
+
+    if (
+      !ObjectID.isValidUUID(idParam) ||
+      idParam.toLowerCase() !== projectId.toString().toLowerCase()
+    ) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
+      );
+    }
+
+    if (
+      !props.userId ||
+      !CallerPermission.holdsAnyOf(props, [Permission.ProjectOwner])
+    ) {
+      throw new NotAuthorizedException(
+        CLEAR_PROJECT_SIGN_IN_OWNERS_ONLY_MESSAGE,
+      );
+    }
+
+    return { projectId: projectId, ownerUserId: props.userId };
   }
 }

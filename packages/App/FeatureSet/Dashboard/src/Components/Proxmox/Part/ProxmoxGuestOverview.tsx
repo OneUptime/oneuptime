@@ -7,12 +7,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  composedValue,
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
-import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
+import GoldenMetricTile, {
+  STORAGE_USAGE_TILE_TONES,
+} from "../../Infrastructure/GoldenMetricTile";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -21,16 +19,16 @@ import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../../ResourcePart/ResourcePartDetailsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
-import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import { ResourcePartAttention } from "../../ResourcePart/ResourcePartTypes";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
-  getProxmoxAttentionItems,
+  getProxmoxDiskUsage,
   isProxmoxIssueAbout,
 } from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import {
   ProxmoxGuestBackup,
   formatProxmoxDuration,
-  getProxmoxDiskPercent,
   getProxmoxGuestAlertTemplateIds,
   getProxmoxGuestBackup,
   getProxmoxGuestKind,
@@ -59,14 +57,16 @@ import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
  * the QEMU guest agent in a guest that never starts - only its last backup.
  */
 
-// How the guest's own row reads in its Needs attention card.
-const THIS_GUEST: string = translationKey("This guest");
-
 export interface ComponentProps {
   clusterId: ObjectID;
   clusterName: string;
   externalId: string;
   row: ProxmoxResource | null;
+  /*
+   * What needs attention on the guest: the page reads it once
+   * (getProxmoxPartAttention) for this card and for the hero's status.
+   */
+  attention: ResourcePartAttention;
   routes: ProxmoxPartRoutes;
   refreshToken?: number | undefined;
   // Drawn last: the linked host, or how to see inside the guest.
@@ -113,13 +113,6 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const attentionItems: Array<ResourceAttentionItem> = getProxmoxAttentionItems(
-    {
-      rows: [row],
-      routeFor: props.routes.getPartRoute,
-    },
-  );
-
   const isQemu: boolean =
     row.guestType === "qemu" || props.externalId.startsWith("qemu/");
   const cpu: number | null = toProxmoxNumber(row.latestCpuPercent);
@@ -127,8 +120,11 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
   const memoryPercent: number | null = getProxmoxMemoryPercent(row);
   const memoryUsed: number | null = toProxmoxNumber(row.latestMemoryBytes);
   const memoryTotal: number | null = toProxmoxNumber(row.maxMemoryBytes);
-  const diskPercent: number | null = getProxmoxDiskPercent(row);
-  const diskUsed: number | null = toProxmoxNumber(row.latestDiskBytes);
+  /*
+   * Its root disk as the Guests list's bar and Needs attention read it: a
+   * VM's 0 is Proxmox not seeing inside it, never an empty disk (#9646).
+   */
+  const diskUsage: StorageUsage | null = getProxmoxDiskUsage(row);
   const diskTotal: number | null = toProxmoxNumber(row.maxDiskBytes);
   const backup: ProxmoxGuestBackup = getProxmoxGuestBackup(row);
 
@@ -318,9 +314,9 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
     <div data-testid="proxmox-guest-overview">
       <NeedsAttentionCard
         testId="proxmox-guest-attention"
-        items={attentionItems}
-        current={{ key: `Guest:${props.externalId}`, label: THIS_GUEST }}
-        description="What about this guest is broken or needs a look, the most urgent first."
+        items={props.attention.items}
+        current={props.attention.current}
+        description={props.attention.description}
       />
 
       <div
@@ -370,22 +366,28 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
               icon={IconProp.Database}
               iconColor="amber"
               value={
-                diskUsed === null && isQemu
-                  ? tx("N/A")
-                  : formatPercent(diskPercent)
-              }
-              sublabel={
-                diskUsed === null && isQemu
-                  ? tx("install the QEMU guest agent for disk usage")
-                  : diskUsed !== null && diskTotal !== null
-                    ? translator.translateTemplate("{{used}} of {{total}}", {
-                        used: formatBytes(diskUsed),
-                        total: formatBytes(diskTotal),
-                      })
+                diskUsage
+                  ? formatPercent(diskUsage.usedPercent)
+                  : isQemu
+                    ? tx("N/A")
                     : undefined
               }
-              percent={diskPercent}
-              thresholds={{ warn: 80, danger: 90 }}
+              sublabel={
+                diskUsage
+                  ? translator.translateTemplate("{{used}} of {{total}}", {
+                      used: formatBytes(diskUsage.used),
+                      total: formatBytes(diskUsage.capacity),
+                    })
+                  : isQemu
+                    ? tx("install the QEMU guest agent for disk usage")
+                    : undefined
+              }
+              percent={diskUsage ? diskUsage.usedPercent : null}
+              tone={
+                diskUsage
+                  ? STORAGE_USAGE_TILE_TONES[diskUsage.level]
+                  : undefined
+              }
               description={PROXMOX_METRIC_DESCRIPTIONS.guestDisk}
             />
           </>

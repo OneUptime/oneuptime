@@ -10,6 +10,10 @@ import AnalyticsTableColumn, {
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import {
+  KUBERNETES_COST_EFFICIENCY_WEIGHT_DEFAULT_EXPRESSION,
+  KUBERNETES_COST_WEIGHTED_EFFICIENCY_DEFAULT_EXPRESSION,
+} from "../../Types/Kubernetes/KubernetesCostEfficiency";
 
 /*
  * One cost-allocation record for a Kubernetes workload over a time window,
@@ -485,6 +489,55 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
       });
     });
 
+    /*
+     * Efficiency is shown cost-weighted everywhere (#9635): a group's figure
+     * is sum(weightedEfficiency) / sum(efficiencyWeight) over its rows, with
+     * each row weighed by what its CPU and memory cost, and idle capacity by
+     * nothing (Types/Kubernetes/KubernetesCostEfficiency). Two plain sums
+     * give it for any grouping, which a weighted average of totalEfficiency
+     * could not.
+     *
+     * Ingest writes both. Rows stored before the columns existed read their
+     * DEFAULT expressions, worked out from the row's own namespace, costs and
+     * efficiency, so they weigh exactly as new rows do with no backfill.
+     */
+    const efficiencyWeightColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "efficiencyWeight",
+        title: "Efficiency Weight",
+        description:
+          "What this row's efficiency counts for in a cost-weighted efficiency: its CPU cost plus its RAM cost (a negative one counted as 0), and 0 for idle and unallocated capacity. A group's efficiency is the sum of weightedEfficiency over the sum of this.",
+        required: true,
+        defaultValue: 0,
+        defaultExpression: KUBERNETES_COST_EFFICIENCY_WEIGHT_DEFAULT_EXPRESSION,
+        type: TableColumnType.Decimal,
+        codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    const weightedEfficiencyColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "weightedEfficiency",
+        title: "Weighted Efficiency",
+        description:
+          "totalEfficiency times efficiencyWeight. Summed over a group of rows and divided by their summed efficiencyWeight, it gives the group's efficiency weighted by what its CPU and memory cost.",
+        required: true,
+        defaultValue: 0,
+        defaultExpression:
+          KUBERNETES_COST_WEIGHTED_EFFICIENCY_DEFAULT_EXPRESSION,
+        type: TableColumnType.Decimal,
+        codec: [{ codec: "Gorilla" }, { codec: "ZSTD", level: 1 }],
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
     const currencyColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "currency",
       isLowCardinality: true,
@@ -544,6 +597,96 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * Which engine priced the row and where its prices came from (#9633,
+     * #9634): what the cost agent said of the shipment that carried it, read
+     * through Common/Types/Kubernetes/KubernetesCostPricing. Every hour says
+     * how it was priced, and the Costs page and the overview's Cost card
+     * read the newest row's. Empty (and false) on rows from an agent older
+     * than these columns, and on rows stored before them.
+     */
+    const costEngineColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "costEngine",
+      isLowCardinality: true,
+      title: "Cost Engine",
+      description:
+        'The cost engine that priced this row: "OpenCost" or "Kubecost". Empty when the agent could not tell, or is older than this column.',
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const costEngineServiceColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "costEngineService",
+        isLowCardinality: true,
+        title: "Cost Engine Service",
+        description:
+          "The cluster's own cost engine the agent found and read this row from, as namespace/name of its Service. Empty when the agent read the engine the chart bundled, or one named in cost.engine.url.",
+        required: true,
+        defaultValue: "",
+        type: TableColumnType.Text,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    const bundledEngineUnusedColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "bundledEngineUnused",
+        title: "Bundled Engine Unused",
+        description:
+          "Whether the chart bundled an OpenCost this row was not priced by, because the agent found the cluster's own engine and read that: a second engine the cluster need not run (cost.engine.url: auto stops bundling it).",
+        required: true,
+        defaultValue: false,
+        type: TableColumnType.Boolean,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    const pricingSourceColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "pricingSource",
+      isLowCardinality: true,
+      title: "Pricing Source",
+      description:
+        "Where the engine's prices for this row came from: list-prices (a cloud's public list prices), billing-integration (the same list prices, from a Kubecost that reconciles them with the cloud's bill later), rate-card (rates someone set), default-rates (the engine's built-in default rates) or unknown. Empty on rows from an agent older than this column.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const pricingProviderColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "pricingProvider",
+        isLowCardinality: true,
+        title: "Pricing Provider",
+        description:
+          'The cloud whose list prices priced this row, as the engine names it ("AWS", "GCP", "Azure", ...). Empty unless pricingSource is list-prices or billing-integration.',
+        required: true,
+        defaultValue: "",
+        type: TableColumnType.Text,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
@@ -588,9 +731,16 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
         labelsColumn,
         labelKeysColumn,
         ...measureColumns,
+        efficiencyWeightColumn,
+        weightedEfficiencyColumn,
         currencyColumn,
         shipmentIdColumn,
         shipmentChunkColumn,
+        costEngineColumn,
+        costEngineServiceColumn,
+        bundledEngineUnusedColumn,
+        pricingSourceColumn,
+        pricingProviderColumn,
         retentionDateColumn,
       ],
       sortKeys: [
@@ -920,6 +1070,62 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
 
   public set totalEfficiency(v: number | undefined) {
     this.setColumnValue("totalEfficiency", v);
+  }
+
+  public get efficiencyWeight(): number | undefined {
+    return this.getColumnValue("efficiencyWeight") as number | undefined;
+  }
+
+  public set efficiencyWeight(v: number | undefined) {
+    this.setColumnValue("efficiencyWeight", v);
+  }
+
+  public get costEngine(): string | undefined {
+    return this.getColumnValue("costEngine") as string | undefined;
+  }
+
+  public set costEngine(v: string | undefined) {
+    this.setColumnValue("costEngine", v);
+  }
+
+  public get costEngineService(): string | undefined {
+    return this.getColumnValue("costEngineService") as string | undefined;
+  }
+
+  public set costEngineService(v: string | undefined) {
+    this.setColumnValue("costEngineService", v);
+  }
+
+  public get bundledEngineUnused(): boolean | undefined {
+    return this.getColumnValue("bundledEngineUnused") as boolean | undefined;
+  }
+
+  public set bundledEngineUnused(v: boolean | undefined) {
+    this.setColumnValue("bundledEngineUnused", v);
+  }
+
+  public get pricingSource(): string | undefined {
+    return this.getColumnValue("pricingSource") as string | undefined;
+  }
+
+  public set pricingSource(v: string | undefined) {
+    this.setColumnValue("pricingSource", v);
+  }
+
+  public get pricingProvider(): string | undefined {
+    return this.getColumnValue("pricingProvider") as string | undefined;
+  }
+
+  public set pricingProvider(v: string | undefined) {
+    this.setColumnValue("pricingProvider", v);
+  }
+
+  public get weightedEfficiency(): number | undefined {
+    return this.getColumnValue("weightedEfficiency") as number | undefined;
+  }
+
+  public set weightedEfficiency(v: number | undefined) {
+    this.setColumnValue("weightedEfficiency", v);
   }
 
   public get currency(): string | undefined {

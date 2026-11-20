@@ -60,7 +60,7 @@ flowchart TB
 :::steps
 ### 公開メモを開く
 
-インシデントを開き、サイドメニューで **メモ → 公開メモ** を選びます。メモの上にある入力欄は、投稿する前に誰がメモを読むかを示しています: **Public · Visible on your status page**。
+インシデントを開き、サイドメニューで **メモ → 公開メモ** を選びます。メモの上にある入力欄は、投稿する前に誰がメモを読むかを示しています: **Public · Visible on your status page**。どのステータスページにもインシデントが表示されていない間は、**Public · No status page shows this incident yet** と表示されます。
 
 ### 更新を書く
 
@@ -88,7 +88,7 @@ flowchart TB
 
 **静かなインシデントは静かなままです。** インシデントが **ステータスページの購読者に通知** をオフにして（またはプライベートインシデントとして）宣言された場合、購読者はそのインシデントについて何も知らされていないので、公開メモがその最初の知らせになるべきではありません。そうしたインシデントではチェックボックスがオフで始まり、その下に理由を説明する行が表示されます。それでもチェックを入れれば、そのメモについて購読者に通知できます。明示的に選ばずに投稿されたメモも同じルールに従います。Slack と Microsoft Teams からのメモ、ワークフロー、そして `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` を省略した API リクエストです。明示的な `true` または `false` は常に保たれます。[メンテナンスイベント](/docs/status-pages/subscribers#メンテナンスイベント) と [インシデントエピソード](/docs/status-pages/subscribers#インシデントエピソード) の公開メモも、イベントやエピソード自体が作成時に購読者に通知したかどうかに基づく同様のルールに従います。プライベートなインシデントやエピソードには、公開メモを一切追加できません。
 
-**メモが誰に届くかを確認する。** **ステータスページの購読者に通知** がオンの間、その下の **通知先** 行には、メモが送られるステータスページとチャネルごとの購読者数の上限（「最大」の人数）、そしてインシデントのモニターを掲載していても知らされないページとその理由が表示されます。誰にも知らされない場合は何も表示されませんが、インシデントがステータスページで非表示の場合や、インシデントのステータスページの範囲が原因の場合は表示されます。インシデントのステータスページの範囲に従うので、2 つの拠点のページに限定したインシデントのメモには、その 2 つに届くと表示されます。[対象者ごとのステータス ページ](/docs/status-pages/one-status-page-per-audience) を参照してください。
+**メモが誰に届くかを確認する。** **ステータスページの購読者に通知** がオンの間、その下の **通知先** 行には、メモが送られるステータスページとチャネルごとの購読者数の上限（「最大」の人数）、そしてインシデントのモニターを掲載していても知らされないページとその理由が表示されます。誰にも知らされない場合は何も表示されませんが、インシデントのステータスページの範囲が原因の場合は表示されます。誰にも知らされない理由（インシデントが非表示、どのステータスページにも表示されていない、表示しているページが何も送信しない）は、チェックボックスの下の行に表示されます。インシデントのステータスページの範囲に従うので、2 つの拠点のページに限定したインシデントのメモには、その 2 つに届くと表示されます。[対象者ごとのステータス ページ](/docs/status-pages/one-status-page-per-audience) を参照してください。
 
 **何が届くかを確認する。** 同じチェックボックスの横の **プレビュー** には、書いているメモについて各ステータスページの購読者が受け取るメールと、使われるテンプレートとその理由が表示されます。メモに文字が入るまではグレーのままです。**自分にテスト送信** は、そのメールを自分のアカウントのメールアドレスにだけ送ります。[購読者とお知らせ](/docs/status-pages/subscribers#送信前にメールをプレビューする) を参照してください。
 
@@ -302,9 +302,9 @@ flowchart TB
 - **リンクされたアラート** — `AlertLinked` と `AlertUnlinked`。**アラートリンク済み** と **アラートリンク解除済み** として表示されます。
 - **通知** — `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** — `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
-- **ビデオ通話** — `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded`、 `VideoCallSummary`。インシデントのために開始した通話とその参加リンク、プロバイダーが通話を開始できなかった理由、誰かが追加した、あるいはプロバイダーから読み取った通話の文字起こし、またはそこから OneUptime AI が読み取った内容です。OneUptime AI が読み取った内容は、インシデントのチャネルにも投稿されます。[ビデオ通話](/docs/workspace-connections/video-calls) を参照してください。
+- **ビデオ通話** — `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded`、 `VideoCallTranscriptRemoved`、 `VideoCallSummary`。インシデントのために開始した通話とその参加リンク、プロバイダーが通話を開始できなかった理由、誰かが追加した、プロバイダーから読み取った、あるいは削除された通話の文字起こし、またはそこから OneUptime AI が読み取った内容です。OneUptime AI が読み取った内容は、インシデントのチャネルにも投稿されます。[ビデオ通話](/docs/workspace-connections/video-calls) を参照してください。
 
-オンコールのエントリーは、それぞれの呼び出しがどうなったかを伝えます。呼び出しのエントリーには、その通知が送られたチャネルが示されます: "On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 本人のオンコールルールが後から送る通知 (たとえば 10 分後の電話) は独自のエントリーになり ("… paged Nitin Kumar again via phone call …")、送信できなかった通知も同様です ("… could not page Nitin Kumar via SMS …")。本人が出なかった電話も、呼び出し音が鳴り続けたか話し中だったと Twilio が知らせた時点で、独自のエントリーになります: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 各チャネルは 1 回の呼び出しにつき一度だけ示されるため、誰かが応答するまで繰り返されるプッシュ通知が毎分行を増やすことはありません。応答には、それが来た通知が示されます: "Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." OneUptime 自体や OneUptime On-Call アプリなど、別の方法で承認された呼び出しにはチャネルが示されません。プロバイダーの理由には電話番号やメールアドレスが含まれることがあるため、フィードは通知を送信できなかった理由を決して示しません: 理由はインシデントの **通知ログ** と本人の **オンコールログ** に表示されます。
+オンコールのエントリーは、それぞれの呼び出しがどうなったかを伝えます。呼び出しのエントリーには、その通知が送られたチャネルが示されます: "On-call policy Payments paged Nitin Kumar via push notification and email at Level 1 of 3." 本人のオンコールルールが後から送る通知 (たとえば 10 分後の電話) は独自のエントリーになり ("… paged Nitin Kumar again via phone call …")、送信できなかった通知も同様です ("… could not page Nitin Kumar via SMS …")。本人が出なかった電話も、呼び出し音が鳴り続けたか話し中だったと Twilio が知らせた時点で、独自のエントリーになります: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3." 留守番電話が応答した電話も応答なしとして扱われ、メッセージを残したかどうかがエントリーに示されます: "… It went to voicemail, and a message was left." 各チャネルは 1 回の呼び出しにつき一度だけ示されるため、誰かが応答するまで繰り返されるプッシュ通知が毎分行を増やすことはありません。応答には、それが来た通知が示されます: "Nitin Kumar acknowledged the page from on-call policy Payments at Level 1 of 3 via phone call." OneUptime 自体や OneUptime On-Call アプリなど、別の方法で承認された呼び出しにはチャネルが示されません。プロバイダーの理由には電話番号やメールアドレスが含まれることがあるため、フィードは通知を送信できなかった理由を決して示しません: 理由はインシデントの **通知ログ** と本人の **オンコールログ** に表示されます。
 
 種類ごとに独自のアイコンがあるので、長いフィードを見渡して、雑談の中から状態の変更を見つけ出せます。AI が生成した根本原因の分析は区別して印が付けられ、制限された Markdown モードで表示されます。**インシデント作成済み** の項目、新しいタイトルを記録する項目、エピソードへの参加や離脱の項目は、タイトルを入力したとおりに表示します。タイトル内の `\`、`[`、`]`、`*`、`_`、`~`、バッククォート、\< をエスケープするので、タイトルが画像、生の HTML、\<!here\> のような Slack のメンション、リンク先を隠すテキストのリンク、太字、斜体、コードになることはありません。タイトル内のアドレスは、引き続きそのアドレスへのリンクとして表示されます。
 

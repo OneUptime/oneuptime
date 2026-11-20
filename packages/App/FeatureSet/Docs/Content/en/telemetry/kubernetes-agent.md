@@ -9,6 +9,7 @@ The OneUptime Kubernetes agent is a Helm chart that collects your cluster's metr
 - [Install the agent](#install-the-agent): Four steps with Helm.
 - [Install as an Amazon EKS add-on](#install-as-an-amazon-eks-add-on): From the EKS console, with no Helm.
 - [OpenShift](#openshift): The preset, the security context constraints it creates, and OpenShift's own alerts.
+- [Cluster hardening](#cluster-hardening): Pod Security Standards and CIS Benchmark scores, and the agent's own permissions.
 - [Configuration options](#configuration-options): Filters, sampling, control plane, service mesh, costs and labels.
 - [Kubernetes AI agent](#kubernetes-ai-agent): Read-only `kubectl` for OneUptime AI, and fixes when you allow them.
 - [Reduce what you send](#reducing-the-volume-of-data-collected): The levers, in order of impact.
@@ -32,7 +33,7 @@ flowchart TB
 | eBPF instrumentation (OBI) | DaemonSet | HTTP, gRPC, SQL and Redis traces and request metrics from every pod, and the service map. | By default, except on GKE Autopilot and EKS Fargate |
 | Kubernetes AI agent | Deployment | Read-only `kubectl` for OneUptime AI while it investigates an incident or alert. | By default |
 | Log tailer | Deployment | Pod logs through the Kubernetes API, where the node collector cannot read them. | With the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets |
-| Cost engine and poller | Deployments | Spend per namespace, workload and pod. | With `cost.enabled=true` |
+| Cost engine and poller | Deployments | Spend per namespace, workload and pod. | By default, except on GKE Autopilot and EKS Fargate |
 
 Every agent image is Linux-only, so every workload is pinned to Linux nodes.
 
@@ -199,7 +200,8 @@ Set them in the EKS console's **Optional configuration settings**, or with `--co
 - `oneuptime.labels`: project labels for everything this cluster sends, such as `{"team": "payments"}`.
 - `preset`: `eks-fargate` for a cluster that runs only on Fargate, otherwise `standard`, the default.
 - `logs.enabled`, `ebpf.enabled` and `aiAgent.enabled`: pod logs, eBPF traces and the [Kubernetes AI agent](#kubernetes-ai-agent), each on by default.
-- `kubeStateMetrics.enabled` and `cost.enabled`: kube-state-metrics and [cost observability](/docs/telemetry/kubernetes-cost), each off by default.
+- `kubeStateMetrics.enabled`: kube-state-metrics, off by default.
+- `cost.enabled`: [cost observability](/docs/telemetry/kubernetes-cost), `auto` by default: on, except with the `eks-fargate` preset.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -266,12 +268,13 @@ To get them back, move to `openshift` with `--set preset=openshift` on an upgrad
 | Kubernetes events | Every event, Warning and Normal, of every namespace and kind of object: see [Kubernetes events](#kubernetes-events) |
 | Pod logs | The stdout and stderr of every container (through `hostPath` on standard clusters, through the Kubernetes API on Autopilot and Fargate) |
 | OpenShift objects (the OpenShift presets) | ClusterOperators, the ClusterVersion, Routes, DeploymentConfigs and Services: see [OpenShift](#openshift) |
+| RBAC, service accounts and NetworkPolicies | Roles, ClusterRoles and their bindings, ServiceAccounts and NetworkPolicies, read-only, every `resourceSpecs.interval`, to score the cluster's hardening: see [Cluster hardening](#cluster-hardening). No Secret is ever read |
 | Application traces (eBPF, on by default) | HTTP, gRPC, SQL and Redis spans from every pod, with no SDK or code changes |
 | HTTP RED metrics (eBPF) | `http.server.request.duration`, and request and response body sizes, per service |
 | Service graph (eBPF) | Caller-to-callee request rate, latency and error edges, which draw the service map |
 | Network flow metrics (eBPF) | Pod-to-pod TCP and UDP byte and packet counters, with Kubernetes metadata |
 | TCP stats (eBPF) | Node-level round-trip time, failed-connection and retransmit counters |
-| Workload costs (opt-in, `cost.enabled=true`) | Spend per namespace, workload and pod, with idle and efficiency, and node and volume hourly costs: see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost) |
+| Workload costs (on by default, except on GKE Autopilot and EKS Fargate) | Spend per namespace, workload and pod, with idle and efficiency, also as metrics to alert on, and node and volume hourly costs: see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost) |
 
 ## Kubernetes events
 
@@ -310,6 +313,49 @@ Every event is also a log. A warning is stored with the **Warning** severity, an
 | `k8s.namespace.name` | `default` |
 
 Search them in **Logs**, or drop the ones you do not want with a drop filter. To be told when one happens, turn on **Warning Events** on the cluster's **Recommendations** page, or select **Turn on warning alerts** at the foot of its **Events** page: a [Logs monitor](/docs/monitor/logs-monitor) on the cluster's warnings that raises one alert per object and reason, and resolves it once 5 minutes pass without a new warning about it. To be told about some reasons only, add `k8s.event.reason` to its filter.
+
+## Cluster hardening
+
+A cluster's **Compliance** page, under **Security**, scores the cluster itself in its **Cluster Hardening** section, against three frameworks. It reads what the agent already sends: the cluster's pods, its namespaces and, for the CIS Benchmark, its RBAC, service accounts and NetworkPolicies. The cluster's menu shows the page as soon as the agent reports the cluster's pods, whether or not the cluster runs a database.
+
+| Framework | What it scores |
+| --- | --- |
+| **Pod Security Standards: Baseline** | Every workload running on the cluster, against the Baseline policy of the cluster's Kubernetes version: privileged containers, the host's namespaces, ports and paths, added capabilities and every other field the policy names, read from each pod's spec |
+| **Pod Security Standards: Restricted** | The same workloads, against the Restricted policy: Baseline's controls, and only the volume types it allows, running as a user other than root, no privilege escalation, a seccomp profile and every capability dropped |
+| **CIS Kubernetes Benchmark v2.0** | The 27 controls of section 5 the Kubernetes API can answer: bindings that grant cluster-admin, Secrets, `nodes/proxy` and the other rights its controls name, roles with wildcards, the default service accounts, Pod Security Admission or a policy engine in each namespace, NetworkPolicies, and what each pod runs |
+
+Each framework's tile shows its score, and how many workloads it evaluated and how many fail. Its controls list the failing ones first: each says what it finds wrong and how to fix it, and lists the workloads, roles, bindings, service accounts or namespaces that fail it, each linked to its page, down to the container or volume and the field, such as `securityContext.privileged`. Where Data Security scores the databases running on the cluster, they stay below, under **Databases on This Cluster**.
+
+The Pod Security Standards are scored for the cluster's own Kubernetes version: its newest kubelet's, up to the newest version OneUptime knows. A control that a later version added counts only from that version on, and the page says which version it scored against.
+
+The benchmark's other 104 controls check the nodes' files and kubelets or the control plane's flags, or need a person's review. No API answers them, so they are listed under **Not Scored Here**, grouped by why, and are never passing or failing. On a managed control plane, such as EKS, GKE or AKS, the page says they are the provider's benchmark's.
+
+### Turn a framework, a control or a namespace off
+
+Turn off what does not apply to a cluster. Each switch is the cluster's own and asks why, and the page keeps who turned it off, when and why:
+
+- A framework's **Applies Here** switch leaves the cluster out of it. The framework folds away under **Turned Off**, with its switch to turn it on again.
+- A control's switch leaves that control out of the cluster's score.
+- A namespace's switch, under each framework, leaves everything in the namespace out of that framework, as Pod Security Admission exempts a namespace.
+
+### Export a framework
+
+**Export CSV** and **Export JSON** download a framework's report: every control, whether it passes, what fails it and how to fix it, and the Kubernetes version it was scored against.
+
+### What the agent reads for it
+
+`resourceSpecs.compliance` (on by default) reads Roles, ClusterRoles and their bindings, ServiceAccounts and NetworkPolicies every `resourceSpecs.interval`, with `get`, `list` and `watch` on them and nothing more. No Secret is ever read: a ServiceAccount only names its token Secrets, and OneUptime drops even the names. With it off (`--set resourceSpecs.compliance=false`), the benchmark's RBAC, service account and NetworkPolicy controls are *not evaluated*, and the Pod Security Standards are still scored from the pods.
+
+### The agent's own permissions
+
+The agent reads each kubelet through the subresources the kubelet authorizes its paths as: `nodes/stats` for its stats, `nodes/metrics` for cAdvisor, and `nodes/pods` for a node's pod list, which a kubelet allows from Kubernetes 1.33. `nodes/proxy` reaches the whole kubelet API, and CIS 5.1.10 fails a binding that grants it, so the agent grants it only where nothing narrower works:
+
+| Value | When the agent grants `nodes/proxy` |
+| --- | --- |
+| `kubeletstats.nodesProxy` | `auto` (the default) grants it while the cluster runs Kubernetes older than 1.36, whose kubelets may be older than 1.33 and list a node's pods only for `nodes/proxy`. Set `false` once every node runs 1.33 or later, or `true` for kubelets with `KubeletFineGrainedAuthz` off |
+| `cost.prometheus.nodesProxy` | `auto` (the default) grants it on the `eks-fargate` preset only, where no pod reaches a node's kubelet and the cost Prometheus reads cAdvisor through the API server. Everywhere else it reads each node's kubelet on port 10250 |
+
+Where the agent's own binding fails 5.1.10, the page says the binding is the agent's, why it grants `nodes/proxy`, and the value that drops it.
 
 ## Configuration options
 
@@ -409,7 +455,7 @@ Multi-line events are put back together before filtering in both modes, so a Jav
 Drop a few noisy metrics (a denylist, usually what you want):
 
 ```bash
-  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+  --set-json 'filters.metrics.exclude=["k8s.pod.network.errors","k8s.node.network.errors"]'
 ```
 
 Send only a fixed set (an allowlist: everything else is dropped):
@@ -594,7 +640,7 @@ Some charts show metrics the agent has no scrape for: **kube-proxy** on the **Co
 
 ### Enable cost observability
 
-See what every namespace, workload and pod costs, with idle capacity and how much of each request is used, on the cluster's **Costs** page:
+Cost observability is on by default: the cluster's overview and its **Costs** page show what every namespace, workload and pod costs, with idle capacity and how much of each request is used, and the cost metrics can be charted and alerted on. It is off by default on the `gke-autopilot` and `eks-fargate` presets, which bill every pod by what it requests, and on an agent installed before it was on by default. Turn it on there:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -603,7 +649,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set cost.enabled=true
 ```
 
-That alone is a complete install: the chart bundles the open-source [OpenCost](https://opencost.io) engine (with the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices, with no credentials. It adds two small pods, and the first costs appear after the first closed hour. Already running Kubecost or OpenCost? Add `--set cost.engine.url=<its service URL>` instead, and nothing is bundled. On-prem clusters can set a rate card with `cost.opencost.customPricing`. The full guide, with on-prem pricing and troubleshooting, is [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
+That alone is a complete install: the chart bundles the open-source [OpenCost](https://opencost.io) engine (with the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices, with no credentials. It adds three small pods, and the first costs appear after the first closed hour. To turn it off, set `--set cost.enabled=false` the same way. Already running Kubecost or OpenCost? The cost agent finds it and reads it instead of the bundled one; add `--set cost.engine.url=auto` to stop bundling a second engine. On-prem clusters can set a rate card with `cost.opencost.customPricing`. The full guide, with on-prem pricing and troubleshooting, is [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
 
 ### Auto-tag with project labels
 
@@ -824,6 +870,8 @@ Don't use `--reuse-values`: it also keeps the defaults of the chart you upgrade 
 
 If the upgrade fails with `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (or the older `aiAccess.remediation.namespaces`) lists a namespace that does not exist (or no longer does): the chart puts a RoleBinding in each listed namespace and never creates one. Create the namespace, or upgrade with the list minus that namespace (`--set "aiAgent.remediation.namespaces={web}"`), or with `--set-json 'aiAgent.remediation.namespaces=[]'` to go back to the cluster-wide binding. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`, so it fails with the same error.
 
+> **The CIS Benchmark's RBAC controls need an upgraded agent.** An agent from before `resourceSpecs.compliance` sends no RBAC, service accounts or NetworkPolicies, so the cluster's **Compliance** page says the benchmark's RBAC, service account and NetworkPolicy controls are *not evaluated*, and how to fix that. Upgrade the agent with `resourceSpecs.compliance` on, as it is by default: it needs collector 0.125.0 or later. The upgrade also stops granting `nodes/proxy` where no node needs it: see [The agent's own permissions](#the-agents-own-permissions).
+
 > **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
 
 ### Upgrading to the Kubernetes AI agent
@@ -959,7 +1007,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Cardinality, the number of distinct series, matters as much as frequency, because each series is stored and billed on its own.
 
 - cAdvisor is allowlisted on purpose. The cAdvisor receiver (on by default) can emit hundreds of metrics; the chart forwards only the CPU throttling and OOM-kill counters in `cadvisor.metricsAllowlist`, for your own charts and metric monitors: no built-in template reads them. Keep the list short: each entry is kept per container, so one more metric multiplies by the cluster's container count. kube-state-metrics is off by default; if you turn it on (`kubeStateMetrics.enabled=true`), its `kubeStateMetrics.metricsAllowlist` works the same way, and each entry must match a metric's whole name.
-- Per-PVC volume metrics (`kubeletstats.volumeMetrics.enabled`, on by default) emit one series per PVC per pod: fine for most clusters, a lot on stateful workloads (Kafka, databases) with thousands of PVCs. Turn them off there if you do not watch PVC disk space, with `--set kubeletstats.volumeMetrics.enabled=false`.
+- Volume metrics (`kubeletstats.volumeMetrics.enabled`, on by default) emit five series for each volume of each pod that holds data (a claim, an emptyDir, a hostPath), and fill the used, free and capacity on the Persistent Volume Claims pages, a nearly full claim under the cluster's Needs attention and the PVC Almost Full template. A pod's configMap, secret, downwardAPI and service account token volumes, which were most of these series, are dropped on the node. Still a lot on stateful workloads (Kafka, databases) with thousands of PVCs: turn them off there if you do not watch PVC disk space, with `--set kubeletstats.volumeMetrics.enabled=false`.
 - Saturation metrics (`kubeletstats.utilizationMetrics.enabled`, on by default) add 8 derived "% of request or limit" families. They cost no extra scrape, but if you do not use the CPU and memory-against-limit monitors, drop them with `--set kubeletstats.utilizationMetrics.enabled=false`.
 - Drop metrics by name with `filters.metrics.exclude`, which spans every receiver, for anything the receiver allowlists cannot say (see [Including or excluding metrics by name](#including-or-excluding-metrics-by-name)):
 
@@ -990,7 +1038,8 @@ These are off by default because they add load. Turn one on only when you use wh
 | `kubeStateMetrics.enabled` | CrashLoop, ImagePull and scheduling-reason metrics (adds a kube-state-metrics Deployment and a scrape) |
 | `ebpf.features.networkInterZoneMetrics` | Doubles the network flow series |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | More Prometheus scrape jobs |
-| `cost.enabled` | Workload costs (bundles OpenCost and a small Prometheus; hourly cost rows and a tightly allowlisted metrics scrape; modest ingest, two more pods) |
+
+Cost observability (`cost.enabled`) is on by default instead: three small pods, an hourly cost row per container, and a scrape of one price series per node, volume and load balancer. Turn it off with `--set cost.enabled=false` if you do not use it.
 
 ### Sample traces instead of dropping them
 
@@ -1058,7 +1107,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Tighten further as you need: raise `minSeverity` to `ERROR`, add `metrics` to a namespace rule's scopes, or set `ebpf.enabled=false` if you already send traces from OpenTelemetry SDKs.
 
 > [!CAUTION]
-> Watch what you cut. Some monitors depend on particular signals: turning off `kubeletstats.utilizationMetrics` silences the two templates that watch pods against their container limits, turning off logs removes log-based alerts, and turning off `cadvisor` or `kubeletstats.volumeMetrics` removes the throttling, OOM-kill and PVC series your own charts and metric monitors may read. `sampling.traces.percentage` removes no monitor but scales down the span-based ones (**Traces** on `Span Count`, **Exceptions** on `Exception Count`), so retune their thresholds. Trim the signals you do not act on, not the ones a monitor is watching.
+> Watch what you cut. Some monitors depend on particular signals: turning off `kubeletstats.utilizationMetrics` silences the two templates that watch pods against their container limits, turning off logs removes log-based alerts, turning off `kubeletstats.volumeMetrics` silences the PVC Almost Full template and leaves the claims pages without their usage, and turning off `cadvisor` removes the throttling and OOM-kill series your own charts and metric monitors may read. `sampling.traces.percentage` removes no monitor but scales down the span-based ones (**Traces** on `Span Count`, **Exceptions** on `Exception Count`), so retune their thresholds. Trim the signals you do not act on, not the ones a monitor is watching.
 
 ### Measure the effect
 

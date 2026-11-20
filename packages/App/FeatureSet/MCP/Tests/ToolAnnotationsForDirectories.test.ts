@@ -12,8 +12,13 @@
  *
  * The rule they are held to here is Tools/ToolAnnotations': every tool
  * states all three, a tool is destructive exactly when it is not read-only,
- * and only the public status page tools, which read any public status page
- * on the instance, are open-world. No directory or client is left to guess.
+ * and a tool is open-world exactly when it reaches past the caller's project:
+ * the public status page tools, which read any public status page on the
+ * instance, and the writes that are published - shown on a status page and
+ * sent to its subscribers. No directory or client is left to guess.
+ *
+ * OpenAI's plugin review also flags an update tool that takes nothing but an
+ * id, so every update tool here has a field to change.
  *
  * The tools are read the way a client reads them: tools/list, answered by
  * the handlers ToolHandler registers, through the MCP SDK's own Client over
@@ -61,9 +66,24 @@ import { registerToolHandlers } from "../Handlers/ToolHandler";
 import RequestGate, { McpToolAccess } from "../OAuth/RequestGate";
 import { McpServer, createMCPServerInstance } from "../Server/MCPServer";
 import { isPublicStatusPageTool } from "../Tools/PublicStatusPageTools";
+import { isPublishedTable } from "../Tools/ToolAnnotations";
 import { generateAllTools } from "../Tools/ToolGenerator";
 import McpCredentialUtil from "../Types/McpCredential";
 import { McpToolInfo } from "../Types/McpTypes";
+import OneUptimeOperation from "../Types/OneUptimeOperation";
+
+/*
+ * The tools written by hand that publish: acknowledging or resolving an
+ * incident moves it to another state, a note can be a public one, and Ask
+ * AI's setup actions publish a status page, or put monitors on one (#7241).
+ */
+const PUBLISHING_WORKFLOW_TOOLS: Array<string> = [
+  "acknowledge_incident",
+  "resolve_incident",
+  "add_incident_note",
+  "publish_status_page",
+  "add_monitors_to_status_page",
+];
 
 // The longest tool name the Claude Connectors Directory accepts.
 const MAX_TOOL_NAME_LENGTH: number = 64;
@@ -231,17 +251,92 @@ describe("every tool carries the title and the hints MCP directories ask for", (
     }
   });
 
-  test("only the public status page tools reach past the caller's project", () => {
+  test("a tool is open-world exactly when it reads public status pages or publishes what it writes", () => {
     const openWorld: Array<string> = listed()
       .filter((tool: Tool): boolean => {
         return tool.annotations?.openWorldHint === true;
       })
       .map(nameOf);
 
-    expect(openWorld).toEqual(
-      listed().map(nameOf).filter(isPublicStatusPageTool),
+    const reachesPastTheProject: Array<string> = tools
+      .filter((tool: McpToolInfo): boolean => {
+        return (
+          isPublicStatusPageTool(tool.name) ||
+          PUBLISHING_WORKFLOW_TOOLS.includes(tool.name) ||
+          (tool.annotations?.readOnlyHint === false &&
+            isPublishedTable(tool.tableName))
+        );
+      })
+      .map(nameOf);
+
+    expect(openWorld).toEqual(reachesPastTheProject);
+
+    // The writes OpenAI's plugin review flagged as reaching past the project.
+    for (const name of [
+      "get_public_status_page_overview",
+      "create_status_page",
+      "update_status_page",
+      "create_status_page_announcement",
+      "update_status_page_announcement",
+      "create_incident",
+      "update_incident",
+      "create_incident_state_timeline",
+      "create_incident_public_note",
+      "update_incident_public_note",
+      "create_scheduled_maintenance_event",
+      "update_scheduled_maintenance_event",
+      "create_scheduled_maintenance_state_timeline",
+      "add_incident_note",
+      "acknowledge_incident",
+      "resolve_incident",
+      "publish_status_page",
+      "add_monitors_to_status_page",
+    ]) {
+      expect([name, openWorld.includes(name)]).toEqual([name, true]);
+    }
+
+    // Writes that stay inside the project, and reads of it.
+    for (const name of [
+      "create_alert",
+      "add_alert_note",
+      "resolve_alert",
+      "create_incident_internal_note",
+      "create_monitor",
+      "update_team",
+      "list_incidents",
+      "oneuptime_whoami",
+      "set_up_website_monitoring",
+      "set_up_paging",
+      "who_is_told",
+    ]) {
+      expect([name, openWorld.includes(name)]).toEqual([name, false]);
+    }
+  });
+
+  test("every update tool has a field to change besides the id", () => {
+    const updates: Array<McpToolInfo> = tools.filter(
+      (tool: McpToolInfo): boolean => {
+        return tool.operation === OneUptimeOperation.Update;
+      },
     );
-    expect(openWorld).toContain("get_public_status_page_overview");
+
+    const idOnly: Array<string> = updates
+      .filter((tool: McpToolInfo): boolean => {
+        return (
+          Object.keys(tool.inputSchema.properties || {}).filter(
+            (field: string): boolean => {
+              return field !== "id";
+            },
+          ).length === 0
+        );
+      })
+      .map(nameOf);
+
+    expect(idOnly).toEqual([]);
+    expect(updates.map(nameOf)).toContain("update_incident");
+    // An incident's link to an alert has nothing to change once it is made.
+    expect(tools.map(nameOf)).toContain("get_incident_alert");
+    expect(tools.map(nameOf)).not.toContain("update_incident_alert");
   });
 
   test("the check flags a tool that lacks any of them, and only that tool", () => {

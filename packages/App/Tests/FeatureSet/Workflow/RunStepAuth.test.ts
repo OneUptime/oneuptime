@@ -515,7 +515,12 @@ describe("POST /workflow/run-step/:workflowId", () => {
         props: Dictionary<boolean>;
       };
 
-      expect(projectRead.select).toEqual({ projectId: true });
+      // Its project, and what it runs as, which decides who may run it (#9695).
+      expect(projectRead.select).toEqual({
+        projectId: true,
+        runAs: true,
+        runAsCustomRoleId: true,
+      });
       expect(projectRead.props["isRoot"]).toBe(true);
     });
   });

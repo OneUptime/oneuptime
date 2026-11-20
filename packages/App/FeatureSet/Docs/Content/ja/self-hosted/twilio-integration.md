@@ -147,6 +147,12 @@ SMS だけ、または通話だけに使うアカウントには、もう一方�
 
 ステータスページで選べるのは、SMS を送る設定だけです。 **テスト SMS を送信** と **テスト通話を発信** は、その設定が送るものについてだけ表示されます。既存の設定はすべて、これまでどおり **通話と SMS** に使われます。API と Terraform では、この選択は `usedFor` フィールドで、選んだ用途に必要な番号がない設定は拒否されます。
 
+### オンコール通話の留守番電話
+
+Twilio にとって、留守番電話が応答した電話は、人が応答した電話と同じく応答ありです。そのため各オンコールの電話は、応答したのが人か留守番電話かを、 [留守番電話の検出](https://www.twilio.com/docs/voice/answering-machine-detection) でバックグラウンドで Twilio に確認します。電話に出た人には、呼び出しの内容がすぐに聞こえます。留守番電話が応答した電話は、呼び出し音が鳴り続けた電話と同じく応答なしとして扱われ、呼び出しは不在着信のときと同じように続きます。応答メッセージが終わると、OneUptime は電話の内容を短いメッセージとして残します。メッセージを残したかどうかは通話のログに示され、インシデントのフィードにも示されます: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."
+
+Twilio は、確認した応答済みの通話ごとに、留守番電話の検出の料金を電話をかけるアカウントに請求します。インストール全体のアカウント、またはプロジェクト独自の設定です。この機能はすべてのプロジェクトでオンです。オフにするには、 **プロジェクト設定 > 通知 > 通知チャネル** の **その他の設定** にある **オンコール通話の留守番電話** をオフにします。留守番電話が応答した電話は、以前と同じく応答ありとして扱われます。 **テスト通話を発信** と着信は確認されません。通話の結果と同じく、Twilio がサーバーに到達できる必要があります。次のセクションを参照してください。
+
 ## 3. ネットワークアクセスを設定する
 
 送信は外向きのアクセスだけで動きます。配信状況の更新、通話の結果、キーパッドでの確認応答、着信には、Twilio からサーバーへの到達が必要です。
@@ -171,7 +177,7 @@ sequenceDiagram
 | --- | --- |
 | SMS の送信 | いいえ。ただし配信ステータスの更新にはコールバックが必要です。 |
 | 単純なテスト用の音声通話 | いいえ。OneUptime は読み上げの指示を外向きの API リクエストに含めて送ります。 |
-| オンコールの電話に応答があったかどうか | はい。Twilio が各通話の終わり方を知らせるので、応答がなかったことをインシデントのフィードで伝えられます。なくても電話は発信されます。 |
+| オンコールの電話に応答があったかどうか | はい。Twilio が各通話の終わり方と、応答したのが人か留守番電話かを知らせるので、応答がなかったことをインシデントのフィードで伝えられます。なくても電話は発信されます。 |
 | 1 を押してオンコールのアラートに確認応答する | はい。Twilio がキーパッド入力を OneUptime に送ります。 |
 | 着信ポリシー | はい。Twilio が通話の指示を要求し、発信の結果を報告します。 |
 
@@ -181,13 +187,17 @@ sequenceDiagram
 | --- | --- | --- |
 | POST | `/notification/sms/status-callback/:smsLogId/:token` | SMS の配信ステータス |
 | POST | `/notification/call/status-callback/:callLogId/:token` | 通話の結果 |
+| POST | `/notification/call/amd-callback/:callLogId/:token` | オンコールの電話に応答したのが人か留守番電話か |
 | POST | `/api/user-notification-log-timeline/call/gather-input/:itemId?token=...` | キーパッドでの確認応答 |
 | POST | `/notification/incoming-call/voice` | 任意: 着信の指示 |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | 任意: 着信のルーティング結果 |
 
 SMS、通話の結果、確認応答の URL は OneUptime が自動で生成します。そのトークンを固定の Webhook URL に置き換えないでください。着信については [着信ポリシー](/docs/on-call/incoming-call-policy)の手順に従ってください。番号を割り当てると、その番号の Webhook が設定されます。
 
-Twilio は [公開されていて到達できる Webhook URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview) を必要とします。公的に信頼された TLS 証明書を使い、プロキシを通しても元のホスト、プロトコル、パス、クエリパラメーター、本文、 `X-Twilio-Signature` ヘッダーを保ってください。着信のハンドラーは Twilio の署名を検証します。SMS の配信と通話の結果ではメッセージや通話ごとの URL トークン、キーパッドでの確認応答では署名付きのクエリトークンを使います。トークンを共有のログやスクリーンショットに含めないでください。[Twilio の Webhook のセキュリティ](https://www.twilio.com/docs/usage/webhooks/webhooks-security)を参照してください。
+Twilio は [公開されていて到達できる Webhook URL](https://www.twilio.com/docs/usage/webhooks/webhooks-overview) を必要とします。公的に信頼された TLS 証明書を使い、プロキシを通しても元のホスト、プロトコル、パス、クエリパラメーター、本文、 `X-Twilio-Signature` ヘッダーを保ってください。表のすべてのコールバックは Twilio の署名を確認します。署名は、SMS を送信した、または通話を発信した Twilio アカウントの Auth Token で作られます。そのアカウントは、プロジェクトの Twilio 設定か、インストール全体のアカウントです。SMS の配信、通話の結果、留守番電話の各コールバックは URL のトークンも確認し、キーパッドでの確認応答はクエリの署名付きトークンも確認します。署名はリクエストが Twilio から来たことを示し、トークンはどの SMS や通話についてのリクエストかを示します。署名が一致しないコールバックは 403 で拒否され、何も変更しません。トークンを共有のログやスクリーンショットに含めないでください。[Twilio の Webhook のセキュリティ](https://www.twilio.com/docs/usage/webhooks/webhooks-security)を参照してください。
+
+> [!IMPORTANT]
+> Twilio は、呼び出す URL そのものと、送信するすべてのパラメーターに署名します。そのため、途中でプロキシが変更したコールバックを OneUptime は拒否し、SMS の配信ステータス、通話の結果、キーパッドでの確認応答が更新されなくなります。Twilio と OneUptime の間のすべてのプロキシが、パス、クエリ文字列、本文、 `X-Twilio-Signature` ヘッダーを変更せず、リダイレクトもせずに渡していることを確認してください。OneUptime は、 `HOST` と `HTTP_PROTOCOL` から生成される URL と、リクエストの `Host` 、 `X-Forwarded-Host` 、 `X-Forwarded-Proto` ヘッダーが示す URL の両方で署名を確認します。どちらか一方が Twilio の呼び出した公開 URL であれば十分です。拒否したコールバックごとに、サーバーのログには `Twilio callback refused` で始まり理由を示す行が記録されます。トークンや Auth Token は含まれません。
 
 ### プライベートなデプロイからコールバックを公開する
 
@@ -224,7 +234,7 @@ Twilio の通常の Webhook の送信元アドレスは変わるため、SIP や
 | 何も送信されない | 認証情報、番号の機能、アカウントの制限、外向きの接続。 |
 | Twilio がエラー 21606 で SMS を拒否する | その番号は SMS を送れません。SMS を送れる番号を **Twilio SMS 電話番号** に追加してください。詳しくは [通話と SMS で番号を分ける](#通話と-sms-で番号を分ける) を参照してください。 |
 | 通話や SMS がプロジェクトのものとは別のアカウントから送られる | どの設定もそれらのプロジェクトのデフォルトになっていません。**プロジェクトのデフォルト** 列に各設定が何のデフォルトかが表示されます。詳しくは [SMS だけ、または通話だけに使うアカウント](#sms-だけまたは通話だけに使うアカウント) を参照してください。 |
-| SMS や通話は届くが、ステータスや確認応答が更新されない | コールバックの URL と公開 ingress のログ。Twilio の [HTTP 取得エラーのガイド](https://www.twilio.com/docs/api/errors/11200)は、到達できないコールバック、TLS の問題、HTTP エラーの診断に役立ちます。 |
+| SMS や通話は届くが、ステータスや確認応答が更新されない | コールバックの URL と公開 ingress のログ。Twilio の [HTTP 取得エラーのガイド](https://www.twilio.com/docs/api/errors/11200)は、到達できないコールバック、TLS の問題、HTTP エラーの診断に役立ちます。403 は OneUptime がコールバックを拒否したことを意味します。理由は、サーバーのログの `Twilio callback refused` で始まる行に示されます。 |
 
 テスト通話が成功しただけでは、コールバックに到達できることの確認にはなりません。
 

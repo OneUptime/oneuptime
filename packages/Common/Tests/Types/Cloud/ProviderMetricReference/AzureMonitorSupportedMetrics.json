@@ -1,6 +1,6 @@
 {
   "source": "https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/metrics-index (the generated tables, from github.com/MicrosoftDocs/azure-monitor-docs, articles/azure-monitor/reference/supported-metrics)",
-  "readOn": "2026-11-18",
+  "readOn": "2026-11-19",
   "types": {
     "Microsoft.Compute/virtualMachines": {
       "page": "microsoft-compute-virtualmachines-metrics.md",
@@ -65,6 +65,7 @@
         "Http5xx": {"displayName": "Http Server Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "Http4xx": {"displayName": "Http 4xx", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "HttpResponseTime": {"displayName": "Response Time", "unit": "Seconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "HealthCheckStatus": {"displayName": "Health check status", "unit": "Count", "aggregations": ["Average"], "timeGrains": ["PT5M", "PT1H", "P1D"], "dsExport": true, "advanced": false},
         "CpuTime": {"displayName": "CPU Time", "unit": "Seconds", "aggregations": ["Count", "Total", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "MemoryWorkingSet": {"displayName": "Memory working set", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "FunctionExecutionCount": {"displayName": "Function Execution Count", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
@@ -207,12 +208,14 @@
         "TotalRequests": {"displayName": "Total Requests", "unit": "Count", "aggregations": ["Count"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
         "TotalRequestUnits": {"displayName": "Total Request Units", "unit": "Count", "aggregations": ["Total", "Average", "Maximum"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
         "NormalizedRUConsumption": {"displayName": "Normalized RU Consumption", "unit": "Percent", "aggregations": ["Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
-        "ServerSideLatency": {"displayName": "(deprecated) Server Side Latency", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
         "ServerSideLatencyGateway": {"displayName": "Server Side Latency Gateway", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
         "ServerSideLatencyDirect": {"displayName": "Server Side Latency Direct", "unit": "MilliSeconds", "aggregations": ["Average", "Minimum", "Maximum", "Total"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
         "ThrottledRequestPercentage": {"displayName": "Throttled Request Percentage", "unit": "Percent", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
         "ReplicationLatency": {"displayName": "P99 Replication Latency", "unit": "MilliSeconds", "aggregations": ["Minimum", "Maximum", "Average"], "timeGrains": ["PT1M"], "dsExport": false, "advanced": false},
-        "ServiceAvailability": {"displayName": "Service Availability", "unit": "Percent", "aggregations": ["Minimum", "Average", "Maximum"], "timeGrains": ["PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false}
+        "ServiceAvailability": {"displayName": "Service Availability", "unit": "Percent", "aggregations": ["Minimum", "Average", "Maximum"], "timeGrains": ["PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false},
+        "DataUsageV2": {"displayName": "Data Usage", "unit": "Bytes", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false},
+        "IndexUsageV2": {"displayName": "Index Usage", "unit": "Bytes", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false},
+        "DocumentCountV2": {"displayName": "Document Count", "unit": "Count", "aggregations": ["Total", "Average"], "timeGrains": ["PT5M", "PT15M", "PT30M", "PT1H", "PT6H", "PT12H", "P1D"], "dsExport": false, "advanced": false}
       }
     },
     "Microsoft.Cache/redis": {

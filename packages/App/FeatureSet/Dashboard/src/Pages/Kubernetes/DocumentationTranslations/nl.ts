@@ -62,10 +62,18 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **etcd** serveert zijn metrieken via gewoon HTTP op de `--listen-metrics-urls` van kubeadm (poort 2381, gebonden aan `127.0.0.1` tot je het adres van de node toevoegt), zoals hierboven. Of lees zijn HTTPS-clientpoort 2379 uit met het clientcertificaat dat hij vraagt: zet `ca.crt`, `tls.crt` en `tls.key` in een Secret in `oneuptime-agent` en noem dat in `controlPlane.etcd.clientCertSecret`.",
   "Only for self-managed clusters: managed services (EKS, GKE, AKS) do not expose their control plane metrics.":
     "Alleen voor zelfbeheerde clusters: beheerde diensten (EKS, GKE, AKS) stellen hun control-plane-metrieken niet beschikbaar.",
-  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds two small pods; the first data appears after the first full hour.":
-    "Dat alleen is al een volledige installatie: de chart levert de opensource-engine OpenCost mee (plus de kleine Prometheus die hij nodig heeft) en prijst je nodes en volumes op basis van de openbare catalogusprijzen van je cloudprovider, zonder inloggegevens. Hij voegt twee kleine pods toe; de eerste gegevens verschijnen na het eerste volle uur.",
-  "- **Already running Kubecost or OpenCost?** Point the agent at it instead, and nothing is bundled: add `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` (or your Kubecost service).":
-    "- **Draai je al Kubecost of OpenCost?** Wijs de agent er dan naar, en er wordt niets meegeleverd: voeg `--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003` toe (of je Kubecost-service).",
+  "Cost monitoring is on by default: the agent bundles the open-source OpenCost engine (plus the small Prometheus it needs), prices your nodes and volumes from your cloud provider's public list prices — no credentials required — and sends what each namespace and workload costs. The first data appears on the cluster's overview and Costs page after the first full hour.":
+    "Kostenmonitoring staat standaard aan: de agent levert de opensource-engine OpenCost mee (plus de kleine Prometheus die hij nodig heeft), prijst je nodes en volumes op basis van de openbare catalogusprijzen van je cloudprovider, zonder inloggegevens, en stuurt wat elke namespace en workload kost. De eerste gegevens verschijnen na het eerste volle uur op het overzicht en de pagina Kosten van het cluster.",
+  "On an agent installed before it was on by default, upgrade it:":
+    "Is de agent geïnstalleerd voordat dit standaard aan stond, upgrade hem dan:",
+  "- **Turn it off:** add `--set cost.enabled=false` to the same upgrade.":
+    "- **Uitzetten:** voeg `--set cost.enabled=false` toe aan dezelfde upgrade.",
+  "Cost monitoring is off by default on this platform: it bills every pod by what it requests, so the three cost pods would add to your bill, and OpenCost prices nodes rather than pods. To turn it on anyway:":
+    "Kostenmonitoring staat op dit platform standaard uit: het rekent elke pod af op wat hij aanvraagt, dus de drie kostenpods zouden je rekening verhogen, en OpenCost prijst nodes in plaats van pods. Om het toch aan te zetten:",
+  "That alone is a complete install: the chart bundles the open-source OpenCost engine (plus the small Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. It adds three small pods; the first data appears after the first full hour.":
+    "Dat alleen is al een volledige installatie: de chart levert de opensource-engine OpenCost mee (plus de kleine Prometheus die hij nodig heeft) en prijst je nodes en volumes op basis van de openbare catalogusprijzen van je cloudprovider, zonder inloggegevens. Hij voegt drie kleine pods toe; de eerste gegevens verschijnen na het eerste volle uur.",
+  "- **Already running Kubecost or OpenCost?** The agent finds it and reads it instead of the bundled engine, and the cluster's overview says so: add `--set cost.engine.url=auto` to stop bundling a second one.":
+    "- **Draai je al Kubecost of OpenCost?** De agent vindt je engine en leest die uit in plaats van de meegeleverde engine, en het overzicht van het cluster meldt dat: voeg `--set cost.engine.url=auto` toe, dan wordt er geen tweede engine meer meegeleverd.",
   "- **On-prem or bare metal?** Set a rate card with `--set cost.opencost.customPricing.enabled=true` (USD per resource-hour — see the chart's `values.yaml`).":
     "- **On-premises of bare metal?** Stel een tarieflijst in met `--set cost.opencost.customPricing.enabled=true` (USD per resource-uur; zie de `values.yaml` van de chart).",
   "Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).":
@@ -123,6 +131,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **Netwerkflows** *(eBPF)* | Tellers voor TCP/UDP-bytes en -pakketten van pod naar pod |",
   "| **Workload costs** *(opt-in, `cost.enabled=true`)* | Spend per namespace, workload and pod, with idle capacity and efficiency |":
     "| **Workloadkosten** *(optioneel, `cost.enabled=true`)* | Uitgaven per namespace, workload en pod, met ongebruikte capaciteit en efficiëntie |",
+  "| **Workload costs** *(on by default)* | Spend per namespace, workload and pod, with idle capacity and efficiency, also as metrics to alert on |":
+    "| **Workloadkosten** *(standaard aan)* | Uitgaven per namespace, workload en pod, met ongebruikte capaciteit en efficiëntie, ook als metrieken om op te waarschuwen |",
   "Your cluster blocks `hostPath` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.":
     "Je cluster blokkeert `hostPath`-volumes of geprivilegieerde pods. Dat is normaal op **GKE Autopilot** en **EKS Fargate**: kies dat platform bovenaan deze handleiding en volg de stappen ervan. Op **OpenShift** slaagt de installatie juist, maar starten de nodepods van de agent nooit: kies **Red Hat OpenShift**.",
   "On any other cluster with a restrictive Pod Security policy, remove the failed release:":

@@ -107,6 +107,10 @@ OpenTelemetry Android enregistre tout cela de lui-même. Les attributs d'apparei
 
 Les plantages et les ANR arrivent dans **Exceptions** comme non gérés, regroupés par stack trace, avec la session dans laquelle ils se sont produits. L'agent enregistre un plantage sur le disque au moment où l'application meurt et l'envoie à partir de là : un plantage survenu hors ligne arrive donc quand même dès que l'application tourne à nouveau avec un réseau.
 
+La page **Vue d'ensemble** de l'application les lit pour vous : **Sessions**, **Sessions sans plantage**, **Plantages**, **ANR**, **Démarrages de l'application**, **Démarrage à froid (p95)** et **Images figées**, chaque tuile ouvrant les exceptions, les spans ou les événements qu'elle compte. Tant que l'application n'envoie ni démarrages ni images, leurs graphiques indiquent ce qui les active. Sa page **Recommandations** propose des moniteurs pour les plantages, les ANR, les démarrages à froid lents, les images figées, et une application ou l'un de ses appareils qui cesse d'envoyer des données.
+
+Sous **Sessions sans plantage**, la ligne donne la même part pour les installations : l'`app.installation.id` qu'OpenTelemetry Android 1.1 et les versions ultérieures définissent sur chaque span et chaque journal, un identifiant conservé tant que l'application reste installée, qui représente donc ses utilisateurs. Pour une application qui compte des centaines de sessions par heure, où un plantage par jour est normal, **App Crash Rate** et **App ANR Rate** alertent sur la part des sessions d'une heure qui ont planté ou se sont bloquées, au-delà des 1,09 % et 0,47 % d'Android vitals, au lieu d'alerter à chaque fois.
+
 Une session se termine après 15 minutes en arrière-plan, ou après 4 heures. Une application qui ne passe jamais en arrière-plan, comme une borne, garde une seule session pendant 4 heures : tracez donc la visite de chaque client comme un span à part entière, comme le montre [Tracer vos propres flux de travail](#tracer-vos-propres-flux-de-travail).
 
 Les propres appels `android.util.Log` de votre application deviennent aussi des journaux quand vous ajoutez `android-log-library` et `android-log-agent` à côté des modules OkHttp ci-dessous : le tag de chaque appel va dans `android.log.tag`, et un appel avec un throwable est une exception dans **Exceptions**. OpenTelemetry Android ne lit pas Logcat.
@@ -219,7 +223,36 @@ resource {
 }
 ```
 
-La télémétrie de l'application reste avec son application RUM, et l'appareil ne devient pas un hôte dans **Hôtes** : une application ne signale aucune métrique d'hôte, il n'y aurait donc rien à y montrer. La page de l'appareil dans **Inventaire** montre ses propres journaux, traces et exceptions, et `@resource.host.name:` les retrouve dans **Traces** et **Journaux**. Un appareil qui n'envoie rien pendant 30 jours quitte **Inventaire**.
+La télémétrie de l'application reste avec son application RUM, et l'appareil ne devient pas un hôte dans **Hôtes** : une application ne signale aucune métrique d'hôte, il n'y aurait donc rien à y montrer. La page de l'appareil dans **Inventaire** montre ses propres journaux, traces et exceptions, et `@resource.host.name:` les retrouve dans **Traces** et **Journaux**. Un appareil qui n'envoie rien pendant 30 jours quitte **Inventaire**. Pour voir l'appareil lui-même, sa mémoire, son stockage et ses redémarrages, ainsi que les plantages de chaque application qui y tourne, ajoutez l'[Agent Android](/docs/telemetry/android-agent) et donnez-lui le même nom dans son `device_name` : l'appareil est alors aussi un hôte dans **Hôtes**, et toujours un seul élément dans **Inventaire**.
+
+### Être prévenu quand un appareil se tait
+
+La page **Recommandations** de l'application propose **Device Stopped Reporting** : une alerte pour chaque appareil qui n'envoie aucun span pendant une heure après en avoir envoyé au cours de la semaine écoulée, les appareils étant distingués par l'`app.installation.id` que définit l'agent. L'alerte de chaque appareil nomme son installation et se résout dès que l'appareil envoie de nouveau des données. Quand tous les appareils se taisent en même temps, par exemple quand le réseau d'un magasin tombe, aucun appareil n'alerte : **App Stopped Reporting** le signale une seule fois pour toute l'application.
+
+Une borne laissée sur un écran n'envoie rien tant que personne ne l'utilise. Envoyez un span toutes les quelques minutes pendant que l'application tourne, pour qu'une borne inactive ne soit pas prise pour une borne qui s'est tue :
+
+```kotlin title="KioskHeartbeat.kt"
+import android.os.Handler
+import android.os.Looper
+import io.opentelemetry.api.trace.Tracer
+
+class KioskHeartbeat(private val tracer: Tracer) {
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val beat = object : Runnable {
+        override fun run() {
+            tracer.spanBuilder("kiosk.heartbeat").startSpan().end()
+            handler.postDelayed(this, 5 * 60 * 1000L)
+        }
+    }
+
+    fun start() = handler.post(beat)
+
+    fun stop() = handler.removeCallbacks(beat)
+}
+```
+
+Démarrez-le une fois l'agent démarré, avec `KioskHeartbeat(otelRum.openTelemetry.getTracer("kiosk.heartbeat")).start()`. Avec un span toutes les cinq minutes, une borne qui fonctionne reste largement en deçà de l'heure.
 
 ### Configurer le parc depuis votre MDM
 
@@ -246,6 +279,12 @@ Passez ensuite `token` à `baseHeaders` à la place de `BuildConfig.ONEUPTIME_TO
 ```
 
 Après une modification, lancez un Converge des appareils pour qu'ils lisent les nouvelles valeurs. Déclarez les mêmes clés dans un `app_restrictions.xml` si votre MDM demande un schéma. Esper refuse un APK sans signature v1 : signez donc la version avec le schéma v1 en plus de v2 ou v3.
+
+### Importer le parc depuis Esper
+
+Connectez votre tenant Esper à l'inventaire, et chaque appareil qu'enrôle Esper est listé, y compris les appareils dont l'application n'a jamais démarré, avec ce que seul Esper sait : son groupe, sa version d'Android, son niveau de correctif de sécurité, son numéro de série, sa batterie, son stockage, ses applications installées et son dernier contact. Un appareil qui cesse de contacter Esper apparaît hors ligne, avec le temps écoulé depuis son dernier contact. Voir [Importer des appareils depuis Esper](/docs/inventory/overview#importer-des-appareils-depuis-esper).
+
+Un appareil que son application nomme comme ci-dessus ne forme qu'un seul élément avec ce que l'application envoie : `host.name` est son nom dans Esper. OneUptime trouve l'élément d'un appareil par `host.name`, puis par `host.serial_number` : donnez donc à chaque appareil le même nom et le même numéro de série dans chaque application qui envoie des données depuis cet appareil, ainsi que dans les paramètres `device_name` et `device_serial` de l'Agent Android.
 
 ### Conserver ce qui est enregistré hors ligne
 
@@ -279,6 +318,7 @@ Seul un appareil dont l'application définit `host.name` est listé. Vérifiez l
 
 :::cards
 - [Configuration mobile](/docs/rum/mobile-setup): iOS, React Native et les autres plateformes.
+- [Agent Android](/docs/telemetry/android-agent): Surveiller l'appareil lui-même : son état de santé, ses redémarrages, ses applications installées et les plantages de chaque application.
 - [Exceptions](/docs/telemetry/exceptions): Trier les plantages et les ANR que signale votre application.
 - [Explorateur de traces](/docs/telemetry/traces-explorer): Suivre une commande de la borne jusqu'à la cuisine.
 - [Gérer les applications](/docs/rum/applications): Noms, étiquettes, propriétaires et rétention.

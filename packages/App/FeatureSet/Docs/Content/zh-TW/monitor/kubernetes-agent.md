@@ -35,6 +35,7 @@ flowchart LR
 | 節點收集器 | DaemonSet | 來自 `/var/log/pods` 的 Pod 日誌、kubelet 和 cAdvisor 指標，以及節點的作業系統指標。 | 是 |
 | eBPF 檢測(OBI) | DaemonSet | 來自每個 Pod 的 HTTP、gRPC、SQL 和 Redis 追蹤與請求指標，以及服務地圖。 | 是 |
 | Kubernetes AI 代理程式 | Deployment | 讓 OneUptime AI 在調查此叢集上的事件或警示時執行唯讀的 `kubectl`。 | 是 |
+| 成本引擎和輪詢器 | Deployments | 每個命名空間和工作負載的成本：OpenCost、它所需的小型 Prometheus，以及傳送它們計算結果的成本代理程式。 | 是，但 `gke-autopilot` 和 `eks-fargate` 預設組合除外 |
 | 日誌追蹤器 | Deployment | 在節點收集器無法讀取的地方，透過 Kubernetes API 取得 Pod 日誌。 | 在 `gke-autopilot`、`eks-fargate` 和 `openshift-restricted` 預設組合中 |
 | eBPF 剖析器 | DaemonSet | 每個處理程序的持續 CPU 火焰圖。 | 否 |
 | kube-state-metrics | Deployment | Pod 階段、容器等待原因和資源配額。 | 否 |
@@ -357,14 +358,14 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | --- | --- | --- |
 | `hostMetrics.enabled` | 開啟 | 每個節點來自 `/proc` 和 `/sys` 的作業系統指標：磁碟 I/O 佇列、檔案系統 inode、網路介面錯誤、分頁和平均負載。在節點收集器中執行，不需要額外的 Pod。 |
 | `kubeletstats.utilizationMetrics.enabled` | 開啟 | 容器和 Pod 的 CPU 與記憶體佔其 request 和 limit 的百分比，Pod CPU Saturating Container Limit 和 Pod Memory Saturating Container Limit 範本會讀取這些資料。沒有 limit（或 request）的容器沒有這些序列，Pod 只有在其每個容器都設定了時才有。 |
-| `kubeletstats.volumeMetrics.enabled` | 開啟 | 每個 PVC 的可用空間和總空間(`k8s.volume.available`、`k8s.volume.capacity`)，供你自己的圖表和指標監測器使用：沒有內建範本會讀取它們。每個 Pod 的每個 PVC 一個序列。 |
+| `kubeletstats.volumeMetrics.enabled` | 開啟 | 每個 PVC 的可用空間和總空間(`k8s.volume.available`、`k8s.volume.capacity`)，依其宣告命名：持久卷宣告頁面上的已用、可用和容量，以及 PVC Almost Full 範本讀取的資料。使用率達到 80% 的宣告會列在叢集的「需要注意」中。僅針對存放資料的磁碟區（宣告、emptyDir、hostPath），每個磁碟區、每個 Pod 幾個序列：Pod 的 configMap、secret、downwardAPI 和服務帳戶權杖磁碟區會在節點上被捨棄。 |
 | `cadvisor.enabled` | 開啟 | 來自每個 kubelet 的 `/metrics/cadvisor` 的 CPU 節流和 OOM 終止：`container_cpu_cfs_throttled_seconds_total`、`container_cpu_cfs_periods_total` 和 `container_oom_events_total`，沒有其他內容。 |
 | `kubeStateMetrics.enabled` | 關閉 | 來自 kube-state-metrics 的 Pod 階段(Pending、Terminating)、無法排程的 Pod、容器等待原因(CrashLoopBackOff、ImagePullBackOff)和資源配額使用情況。`kubeStateMetrics.mode: bundled`(預設)會為你執行一個小型 kube-state-metrics；`external` 則讀取你已在執行的執行個體，位於 `kubeStateMetrics.endpoint`。 |
 | `auditLogs.enabled` | 關閉 | Kubernetes 稽核日誌 `/var/log/kubernetes/audit.log`：對 API 的每個請求，由誰發出、針對什麼。僅限自行管理的叢集：受管理的叢集(EKS、GKE、AKS、DOKS)會把它傳送給雲端供應商。 |
 | `csi.enabled` | 關閉 | 來自帶有 `app=csi-driver` 或 `app.kubernetes.io/component=csi-driver` 標籤之 Pod 的 CSI 儲存驅動程式指標：磁碟區掛接和卸離時間、佈建失敗、IOPS。 |
 | `coreDns.enabled` | 關閉 | `:9153/metrics` 上的 CoreDNS 指標：查詢速率、延遲、快取命中和錯誤。 |
 | `controlPlane.enabled` | 關閉 | API 伺服器（在其叢集內位址上），以及 etcd、排程器和控制器管理員（在你列出的端點上）（[啟用控制平面監控](/docs/telemetry/kubernetes-agent#啟用控制平面監控)）。僅限自行管理的叢集：受管理的叢集不會公開這些元件。 |
-| `cost.enabled` | 關閉 | 每個工作負載的成本。請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。 |
+| `cost.enabled` | `auto` | 每個命名空間和工作負載的成本，含閒置容量和效率，也以可設定警示的指標形式提供：除 `gke-autopilot` 和 `eks-fargate` 預設組合外皆為開啟；設為 `false` 即可關閉。請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。 |
 
 ## 常用選項
 

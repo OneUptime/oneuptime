@@ -35,8 +35,8 @@ import ResourcePartAlertsCard from "../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartDetailsCard, {
   ResourcePartDetailRow,
 } from "../ResourcePart/ResourcePartDetailsCard";
-import { ResourceAttentionItem } from "../ResourcePart/ResourceAttention";
 import {
+  ResourcePartAttention,
   ResourcePartChip,
   ResourcePartStatus,
 } from "../ResourcePart/ResourcePartTypes";
@@ -60,6 +60,8 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../MetricDescriptions/Storage
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { chartWordsInReadersLanguage } from "../Metrics/Utils/ChartWordsInReadersLanguage";
+import ResourceStorageCard from "../ResourcePart/ResourceStorageCard";
+import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 
 export interface ComponentProps {
   kind: StorageArrayResourceKind;
@@ -81,6 +83,25 @@ export interface ComponentProps {
   metricsTitleTemplate: string;
   // The Metrics card's description.
   description: string;
+  /*
+   * How full the part is, for a part that holds data against a size - a
+   * bucket's quota, a file system's provisioned size - drawn in a Storage
+   * card under Needs attention (#9647). readings carries what the
+   * inventory has no column for (a file system's available share).
+   */
+  storage?:
+    | {
+        description: string;
+        getUsage: (
+          row: StorageArrayResource,
+          readings: { availableRatio: number | null },
+        ) => StorageUsage | null;
+        // English: why there is no reading ("No quota", "Not reported").
+        getNoUsageText?:
+          | ((row: StorageArrayResource) => string | undefined)
+          | undefined;
+      }
+    | undefined;
 }
 
 /*
@@ -328,6 +349,28 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
     ? getHeroChips(props.kind, row, translator)
     : [];
 
+  /*
+   * What needs attention on the part, read once by the array's rules: the
+   * Overview's card lists it, and the hero's status opens it when it says
+   * something is wrong (#9594).
+   */
+  const attention: ResourcePartAttention = {
+    items: row
+      ? getStorageArrayAttentionItems({
+          arrayName: arrayName,
+          array: {},
+          parts: [row],
+          readingsFor: () => {
+            return readings;
+          },
+        })
+      : [],
+    description: texts.attentionDescription,
+    current: row
+      ? { key: getStorageArrayAttentionKey(row), label: texts.current }
+      : undefined,
+  };
+
   const hero: ReactElement = (
     <ResourcePartHero
       testId="storage-array-part-hero"
@@ -353,6 +396,7 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
         row?.lastSeenAt ? OneUptimeDate.fromString(row.lastSeenAt) : null
       }
       chips={chips}
+      attention={attention}
     />
   );
 
@@ -385,16 +429,6 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const attentionItems: Array<ResourceAttentionItem> =
-      getStorageArrayAttentionItems({
-        arrayName: arrayName,
-        array: {},
-        parts: [row],
-        readingsFor: () => {
-          return readings;
-        },
-      });
-
     /*
      * A fact only once the array reported it, as on every resource's
      * Details: a FlashBlade file system that sends no latency or IOPS had
@@ -421,13 +455,26 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
       <div data-testid="storage-array-part-overview">
         <NeedsAttentionCard
           testId="storage-array-part-attention"
-          items={attentionItems}
-          current={{
-            key: getStorageArrayAttentionKey(row),
-            label: texts.current,
-          }}
-          description={texts.attentionDescription}
+          items={attention.items}
+          current={attention.current}
+          description={attention.description}
         />
+
+        {props.storage ? (
+          <ResourceStorageCard
+            testId="storage-array-part-storage"
+            description={props.storage.description}
+            usage={props.storage.getUsage(row, readings)}
+            noUsageText={props.storage.getNoUsageText?.(row)}
+            measuredAt={
+              row.metricsUpdatedAt
+                ? new Date(row.metricsUpdatedAt as Date)
+                : undefined
+            }
+          />
+        ) : (
+          <></>
+        )}
 
         <ResourcePartOpenEventsCard
           testId="storage-array-part-open"

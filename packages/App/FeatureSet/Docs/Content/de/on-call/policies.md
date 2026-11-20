@@ -13,7 +13,7 @@ Eine Bereitschaftsrichtlinie entscheidet, wer zu einem Vorfall oder einer Warnun
 
 :::steps
 1. Gehen Sie zu **Bereitschaft → Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
-2. Geben Sie einen **Name** ein, etwa „Zahlungen primär“.
+2. Geben Sie einen **Name** ein, etwa „Zahlungen primär“. Ein Name, den schon eine andere Richtlinie des Projekts trägt, auch eine archivierte, wird abgelehnt, unabhängig von Groß- und Kleinschreibung und Leerzeichen, damit sich die Richtlinien in jeder Auswahlliste unterscheiden lassen.
 3. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie die Bereitschaftspläne, Teams und Personen, die zuerst alarmiert werden.
 4. Klicken Sie auf **Bereitschaftsrichtlinie erstellen**. Die Richtlinie öffnet sich auf ihrer Seite **Eskalationsregeln**, mit **Level 1** an seinem Platz.
 :::
@@ -26,7 +26,7 @@ Das Formular fragt außerdem **Bei jedem neuen Vorfall und jeder neuen Warnung a
 
 Wenn Sie sich lieber durch die Alarmierung führen lassen, von Ihrem Telefon bis zu einer Testalarmierung, klicken Sie auf **Geführte Einrichtung**: in der leeren Liste **Bereitschaftsrichtlinien** oder unter **So funktioniert es**. Siehe [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
 
-Die Liste **Bereitschaftsrichtlinien** zeigt für jede Richtlinie **Name**, **Beschreibung**, **Beschriftungen** und **Eigentümer**. Wählen Sie Richtlinien aus, um **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Archivieren** oder **JSON exportieren** auszuführen oder sie zu löschen. **JSON importieren** legt Richtlinien aus einem Export an: Ein Export enthält die eigenen Einstellungen einer Richtlinie, nicht ihre Eskalationsregeln oder Eigentümer.
+Die Liste **Bereitschaftsrichtlinien** zeigt für jede Richtlinie **Name**, **Zuerst alarmiert**, **Beschreibung**, **Beschriftungen** und **Eigentümer**. **Zuerst alarmiert** zeigt, wen die erste Eskalationsregel der Richtlinie alarmiert: ihre Bereitschaftspläne, jeweils mit der Person, die darin gerade Bereitschaft hat, ihre Teams und die Personen, die sie nennt, oder, wenn die Richtlinie niemanden alarmiert, **Keine Eskalationsregeln** oder **Keine Bearbeiter**. Wählen Sie Richtlinien aus, um **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Archivieren** oder **JSON exportieren** auszuführen oder sie zu löschen. **JSON importieren** legt Richtlinien aus einem Export an: Ein Export enthält die eigenen Einstellungen einer Richtlinie, nicht ihre Eskalationsregeln oder Eigentümer. Eine Richtlinie, die noch aus der Zeit, bevor Namen verschieden sein mussten, denselben Namen wie eine andere Richtlinie hat, ist mit **Gleicher Name wie eine andere Richtlinie** markiert, und die Liste zeigt, wie viele es sind: Vergleichen Sie ihre Eskalationsregeln, und benennen Sie dann eine davon über **Umbenennen** in ihrer Zeile um.
 
 ## Was eine Richtlinie ausführt
 
@@ -157,7 +157,7 @@ Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer i
 Archivieren stellt eine Richtlinie außer Dienst und behält alles: Öffnen Sie die **Einstellungen** der Richtlinie und klicken Sie auf ihrer Archivkarte auf **Archivieren**, oder wählen Sie Richtlinien in der Liste aus und wählen Sie **Archivieren**.
 
 - Eine archivierte Richtlinie alarmiert niemanden. Vorfälle und Warnungen, die sie verwenden, überspringen sie, und ein Lauf, der noch eskaliert, endet bei seinem nächsten Schritt.
-- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaft → Erweitert → Archivierte Richtlinien**, wo **Aus dem Archiv holen** sie wieder in Dienst stellt.
+- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaft → Erweitert → Archivierte Richtlinien**, wo **Aus dem Archiv holen** sie wieder in Dienst stellt. Sie behält ihren Namen: Wer eine neue Richtlinie mit diesem Namen anlegen will, wird aufgefordert, stattdessen diese aus dem Archiv zu holen.
 
 **Richtlinie löschen**, unter **Erweitert**, löscht die Richtlinie mitsamt ihren Eskalationsregeln und Benutzerüberschreibungen. Das Löschen aus der Liste fragt vorher nach und schlägt vor, stattdessen zu archivieren.
 

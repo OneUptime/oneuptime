@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Una lista pide a OneUptime cada campo de cada registro que la clave puede leer. `--fields` pide en su lugar los que nombra y, tras un punto, un campo de un registro relacionado, como en `currentIncidentState.name`. Una tabla muestra seis campos; JSON los muestra todos (consulte [Formatos de salida](/docs/cli/output-formats)). `--all` lee cada página, 100 registros cada vez, hasta 100.000; `count` dice cuántos hay.
 
-Las etiquetas se listan por nombre en lugar de las más recientes primero: primero las etiquetas cuyo nombre empieza por un número, en el orden de ese número (`2. Team` antes que `10. Owner`), y después las demás por orden alfabético. Para listarlas en otro orden, indique `--sort`.
+Las etiquetas se listan por nombre en lugar de las más recientes primero: primero las etiquetas cuyo nombre empieza por un número, en el orden de ese número (`2. Team` antes que `10. Owner`), y después las demás por orden alfabético. Los registros que ordena arrastrándolos, como los estados de incidente, se listan en ese orden. Para listarlos en otro orden, indique `--sort`.
 
 ### Filtrar una lista
 
@@ -206,6 +206,20 @@ Responde `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.` Co
 
 > [!CAUTION]
 > `delete` elimina el registro de inmediato. La CLI no le pide confirmación, y no se puede deshacer. Acepta `--force`, para los scripts escritos con él, y `--force` no cambia nada.
+
+### Un rol personalizado con el que se ejecutan flujos de trabajo
+
+OneUptime elimina un rol personalizado con el que se ejecutan flujos de trabajo solo cuando la eliminación dice con qué se ejecutan en su lugar, y rechaza la que no lo dice, nombrando los flujos de trabajo. Dígalo con `--workflows-run-as`: `Default`, los permisos predeterminados, o `CustomRole`, otro rol personalizado que usted podría dar a un equipo, con su ID en `--workflows-run-as-custom-role-id`. Nunca Propietario del proyecto: eliminar un rol nunca amplía lo que puede hacer un flujo de trabajo.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+Una eliminación rechazada imprime el rechazo de OneUptime, que nombra los flujos de trabajo, y después las opciones con las que volver a ejecutarla. Un rol con el que no se ejecuta ningún flujo de trabajo no necesita ninguna de las dos.
 
 ## Contar registros
 

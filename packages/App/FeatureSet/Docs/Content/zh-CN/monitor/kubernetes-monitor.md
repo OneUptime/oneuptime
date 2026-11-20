@@ -5,7 +5,7 @@ Kubernetes 监视器根据 OneUptime Kubernetes 代理从集群发送的指标�
 :::cards
 - [安装代理](/docs/monitor/kubernetes-agent): 一条 Helm 命令即可把集群接入 OneUptime。
 - [创建监视器](#创建-kubernetes-监视器): 选择集群，然后选择模板、指标或查询。
-- [警报模板](#现成的警报模板): 二十一个现成的警报，从停止报告的集群到 etcd。
+- [警报模板](#现成的警报模板): 二十五个现成的警报，从停止报告的集群到 etcd。
 - [条件](#监控条件): 静态阈值和异常检测。
 :::
 
@@ -24,6 +24,7 @@ flowchart TB
 
 - 集群中运行着 OneUptime Kubernetes 代理。参见 [Kubernetes 代理(Helm 安装)](/docs/monitor/kubernetes-agent)；安装后几分钟，集群就会出现在 **Kubernetes** 下。
 - 对于控制平面模板（**etcd No Leader**、**API Server Request Saturation**、**Scheduler Backlog**）：需要代理的控制平面抓取，即 `controlPlane.enabled`，它开箱即可读取 API 服务器；etcd 和调度器还需要列出它们的端点（参见 [启用控制平面监控](/docs/telemetry/kubernetes-agent#启用控制平面监控)）。托管集群（EKS、GKE、AKS）不公开这些端点，因此在那里这些监视器永远收不到数据。
+- 对于成本模板（**Cluster Daily Cost Over Budget**、**Namespace Daily Cost Over Budget**、**High Idle Spend**）：需要代理的成本监控，它默认开启，但 `gke-autopilot` 和 `eks-fargate` 预设除外（参见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost)）。
 
 ## 创建 Kubernetes 监视器
 
@@ -85,12 +86,13 @@ flowchart TB
 
 | 类别 | 指标 |
 | --- | --- |
-| Pod | Pod CPU 使用量, Pod 内存使用, Pod 阶段（代码）, Pod 文件系统使用量, Pod 内存限制使用率, Pod CPU 限制使用率, Pod 网络 I/O（累计，双向） |
-| 节点 | 节点 CPU 使用量, 节点可分配 CPU, 节点内存使用率, 节点内存工作集, 节点文件系统使用率, 节点可分配内存, 节点 Ready 状况, 节点 MemoryPressure 状况, 节点 DiskPressure 状况, 节点 PIDPressure 状况, 节点文件系统可用空间 |
+| Pod | Pod CPU 使用量, Pod 内存使用, Pod 阶段（代码）, Pod 文件系统使用量, 卷容量, 卷可用空间, Pod 内存限制使用率, Pod CPU 限制使用率, Pod 网络 I/O（累计，双向） |
+| 节点 | 节点 CPU 使用量, 节点可分配 CPU, 节点内存使用率, 节点内存工作集, 节点文件系统使用率, 节点可分配内存, 节点 Ready 状况, 节点 MemoryPressure 状况, 节点 DiskPressure 状况, 节点 PIDPressure 状况, 节点文件系统可用空间, 节点文件系统容量 |
 | 容器 | 容器重启次数, 容器重启次数（增量）, 容器 CPU 限制, 容器 CPU 请求, 容器内存限制, 容器内存请求, 容器就绪 |
 | 工作负载 | Deployment 可用副本数, Deployment 期望副本数, DaemonSet 期望节点数, DaemonSet 错误调度的节点数, DaemonSet 就绪节点数, StatefulSet 期望副本数, StatefulSet 就绪副本数, Job 失败的 Pod 数, Job 失败的 Pod 数（增量）, Job 成功的 Pod 数 |
 | HPA | HPA 当前副本数, HPA 期望副本数, HPA 最大副本数, HPA 最小副本数 |
 | 控制平面 | etcd 有领导者, API 服务器进行中的请求, 调度器待处理的 Pod |
+| 费用 | 集群费用, 空闲费用, 工作负载费用, 工作负载成本效率 |
 
 > [!NOTE]
 > **Pod CPU 使用量** 和 **节点 CPU 使用量** 的单位是核心而不是百分比：`0.18` 表示 0.18 个核心。**Pod 阶段（代码）** 指标是一个代码（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），请用最大值或最小值聚合，切勿使用总和。只有在代理的控制平面抓取开启时，才会收到控制平面指标。**节点 Ready 状况** 在 Ready 时为 1，NotReady 时为 0，Unknown 时为 -1，宕机的节点报告的正是 Unknown：请在小于 1 时警报。 **容器重启次数** 是容器的累计重启计数；**容器重启次数（增量）** 是代理随每个样本发送的值，即自它上一次采样该容器以来的重启次数，所以它在一个窗口内的总和就是该窗口内的重启次数。它带有 **容器重启次数** 带有的属性，包括容器所在 Pod 的工作负载名称，但不包括每次重启都会变化的容器 ID。**Job 失败的 Pod 数** 是 Job 的累计失败 Pod 计数；**Job 失败的 Pod 数（增量）** 是代理随每个样本发送的值，即自它上一次采样该 Job 以来失败的 Pod 数，所以它在一个窗口内的总和就是该窗口内的失败次数。它和 **Job 失败的 Pod 数** 一样，带有 Job 的名称和命名空间。
@@ -148,6 +150,7 @@ flowchart TB
 | API Server Request Saturation | 控制平面 | API 服务器在整个窗口内持有 200 个或更多正在处理的请求 | 严重 |
 | Scheduler Backlog | 正在调度 | 调度器的待处理 Pod 队列在 5 分钟内一直不为空 | 警告 |
 | High Node Disk Usage | 存储 | 节点的文件系统使用率超过 90% | 警告 |
+| PVC Almost Full | 存储 | 持久卷声明的使用率超过 90% | 警告 |
 | DaemonSet Pods Not Ready | 工作负载 | DaemonSet 在 15 分钟内一直有节点上没有它的就绪 Pod | 警告 |
 | DaemonSet Misscheduled Nodes | 工作负载 | DaemonSet 在不再匹配其节点选择器、亲和性或容忍度的节点上运行 Pod | 警告 |
 | High Node CPU Request Commitment | 节点 | 节点上容器的 CPU 请求总和超过其可分配 CPU 的 90% | 警告 |
@@ -155,8 +158,13 @@ flowchart TB
 | HPA Saturated at Max Replicas | 工作负载 | 扩容到高于其 `minReplicas` 的 HPA 运行在其 `maxReplicas` 的 90% 或以上 | 严重 |
 | Pod Memory Saturating Container Limit | 工作负载 | Pod 使用了超过其容器内存限制的 90% | 严重 |
 | Pod CPU Saturating Container Limit | 工作负载 | Pod 使用了超过其容器 CPU 限制的 90% | 警告 |
+| Cluster Daily Cost Over Budget | 费用 | 集群过去一天的成本超过 100，这是一个需要你按自己的情况设置的预算 | 警告 |
+| Namespace Daily Cost Over Budget | 费用 | 某个命名空间过去一天的成本超过 20，这是一个需要你按自己的情况设置的预算 | 警告 |
+| High Idle Spend | 费用 | 集群过去一天的成本中有超过 40% 花在了空闲容量上 | 警告 |
 
 基于单个对象指标的模板会分别评估每个节点、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多个不健康 Pod 的集群会为每个 Pod 创建一个事件，而不是为整个集群只创建一个。
+
+成本模板读取 OneUptime 根据代理每小时的成本行写入的指标，每小时一个数据点，因此它们会把过去一天的数据加总；它们的预算以集群的货币计，默认为 USD。
 
 **High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 与调度器一样，只计算尚未结束的 Pod 的请求（request）。处于 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被删除之前，集群仍会上报其请求：这些不计入。
 

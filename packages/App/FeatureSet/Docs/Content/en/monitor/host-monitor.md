@@ -125,6 +125,21 @@ A criteria fires only when the condition holds for every minute of its window, a
 - **Process count** compares the largest single process state (`running`, `sleeping`, …), not the host's total, so it will not match a process listing. The processes scraper reports on Linux, macOS and BSD, not on Windows.
 - **Systemd Unit Failed** opens one alert per systemd service in the `failed` state, from the collector's `systemd` receiver, which OneUptime's default config reads on Linux hosts with systemd. It resolves when the unit runs again, or once `systemctl reset-failed` clears it.
 
+## Android devices
+
+A host whose OS is Android, such as a kiosk or a POS terminal that runs the [Android agent](/docs/telemetry/android-agent), is offered templates of its own, which read what the agent sends, with Host Stopped Reporting, Host Restarted and High Memory Utilization. It is not offered the templates over what a device never sends, such as swap, inodes, load or systemd units.
+
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| Device Unplugged | Warning | `android.battery.plugged`, Max, past 10 minutes | The device runs on its battery for the whole window | It is on power again |
+| Low Battery | Warning | `hw.battery.charge`, Min, as a percentage, past 5 minutes | Below 20% | At or above 20% |
+| Device Overheating | Warning | `android.thermal.status`, Max, past 5 minutes | 3 (severe) or worse | Below 3 |
+| Restart Loop | Critical | `android.boot.recent_count`, Max, past hour | Any value is 3 or more | Every value is below 3 |
+| Storage Nearly Full | Critical | `system.filesystem.utilization`, Max per `mountpoint`, as a percentage, past 5 minutes | Above 90% | At or below 90% |
+| High CPU Utilization | Warning | `system.cpu.utilization` for the `idle` state, busy as 1 minus idle, as a percentage, past 5 minutes | Above 80% | At or below 80% |
+
+High CPU Utilization is offered once the device reports CPU use, which on Android 8 and later takes the agent being its device owner. An Android device's alert starts with adb commands to run first, such as `adb shell dumpsys battery` or `adb shell getprop sys.boot.reason`, rather than a server's shell commands.
+
 ## Collected Metrics
 
 The **Host Metric** list offers these metrics. Each carries `resource.host.name`, which is how the monitor scopes its queries to one host. Picked there, CPU counts the `user` state, memory and filesystem usage the `used` state, and filesystems and processes give one series per mount and status.

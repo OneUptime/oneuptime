@@ -42,7 +42,7 @@ Todo lo demás está en el panel.
 :::
 
 :::details ¿Puedo reconocer un aviso desde la notificación?
-No. Toque la notificación: la aplicación abre el incidente, la alerta, el episodio o el caso de seguridad del que se trata, en el proyecto correcto, y lo reconoce allí. Si la aplicación está bloqueada o usted no ha iniciado sesión, abre el aviso en cuanto entra.
+Sí. Mantenga pulsada la notificación en un iPhone, o despliéguela en Android: un aviso de guardia ofrece **Acknowledge** y **Escalate**, un aviso que solo le mantiene informado ofrece **I've seen it**, y un aviso de prueba ofrece **Acknowledge test page**. Cada acción abre la aplicación en el registro en cuanto el teléfono está desbloqueado y hace lo mismo que el botón del propio registro; antes de escalar, pregunta. Si toca la notificación en sí, la aplicación abre el incidente, la alerta, el episodio o el caso de seguridad del que se trata, en el proyecto correcto. Si la aplicación está bloqueada o usted no ha iniciado sesión, abre el aviso en cuanto entra.
 :::
 
 :::details ¿Mi inicio de sesión está seguro en el teléfono?
@@ -109,7 +109,7 @@ La aplicación no pudo llegar a `https://<your-oneuptime>/api/status`. Compruebe
 :::
 
 :::details «No SSO configuration found for the email»
-Ninguno de los proyectos de los que es miembro ese correo tiene configurado el inicio de sesión único, o el correo no tiene cuenta en este OneUptime. Compruebe el correo, o inicie sesión con su contraseña. Los proveedores que su administrador configuró para toda la instalación aparecen antes del campo de correo.
+Ningún proyecto de este OneUptime ofrece todavía el inicio de sesión único para el dominio de ese correo: un Propietario del proyecto o un Administrador del proyecto añade el dominio al proveedor de SSO del proyecto, sea de quien sea el correo. Compruebe el correo, o inicie sesión con su contraseña. Los proveedores que su administrador configuró para toda la instalación aparecen antes del campo de correo.
 :::
 
 :::details Una llave de seguridad es su único segundo factor

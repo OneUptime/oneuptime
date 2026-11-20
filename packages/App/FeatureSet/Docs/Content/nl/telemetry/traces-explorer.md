@@ -150,7 +150,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Traces → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Traces**, dat de spans waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent. Bij een falende bewerking stelt **Monitor maken** een tracesmonitor in op haar mislukte spans.
-- **Traces → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
+- **Traces → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond. Een pull request zegt hoe de taak ervan nu in Code staat: een fix die na een mislukking met Opnieuw proberen nog eens is gevraagd, staat niet langer als mislukt en noemt de pull request die hij opende.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met spans gebeurt als ze binnenkomen

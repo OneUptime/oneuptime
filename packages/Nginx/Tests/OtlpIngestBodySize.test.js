@@ -22,7 +22,9 @@
  *     arrives, and send real batches at and around the limit over HTTP/1.1,
  *     HTTP/2 and gRPC, under the names the primary answers to and under
  *     names only the default servers catch. Skipped without nginx >= 1.25.1
- *     and envsubst on PATH; the TLS suites also need openssl.
+ *     and envsubst on PATH; the TLS suites also need openssl. One TLS suite
+ *     runs with HTTP/2 turned off for the primary host (NGINX_HTTP2=off):
+ *     OTLP over gRPC is refused there, and OTLP over HTTP is not.
  *
  * Tests named "KNOWN BUG" document gaps the fix leaves; see expectKnownBug().
  */
@@ -47,6 +49,7 @@ const {
   getLocationBlocks,
   getServerBlocks,
   ingressListenEnvironment,
+  primaryHttp2Environment,
   primaryServerNameEnvironment,
   readNginxConf,
   readTemplate,
@@ -292,7 +295,10 @@ function forwardsToApp(location) {
   );
 }
 
-/** Whether HTTP/2 is on for `serverBlock`: its own setting, else http{}'s. */
+/**
+ * Whether HTTP/2 is on for `serverBlock`: its own setting, else http{}'s. The
+ * primary's reads the NGINX_HTTP2 setting, taken here at its default (on).
+ */
 function http2Enabled(serverBlock) {
   if (/\shttp2\b/.test(plaintextIngressListen(serverBlock) || "")) {
     // The pre-1.25.1 spelling, `listen ... http2`.
@@ -304,7 +310,12 @@ function http2Enabled(serverBlock) {
     ownDirectives(nginxHttpBlock().body, "http2"),
   ]) {
     if (directives.length > 0) {
-      return directives[directives.length - 1] === "http2 on;";
+      return (
+        directives[directives.length - 1].replace(
+          "${NGINX_HTTP2}",
+          primaryHttp2Environment().NGINX_HTTP2,
+        ) === "http2 on;"
+      );
     }
   }
 
@@ -450,7 +461,8 @@ const hasOpenssl = isOnPath("openssl", ["version"]);
 /*
  * The config uses `http2 on;`, which nginx added in 1.25.1 and older builds
  * reject outright (Ubuntu runners carry 1.24), so a live run needs at least
- * this. The shipped image is nginx 1.30.5 (Nginx/Dockerfile.tpl).
+ * this. The shipped image runs the nginx Nginx/Dockerfile.tpl's base stage
+ * names, which Tests/Ops/NginxVersion.test.js holds to a fixed release.
  */
 const MINIMUM_NGINX_VERSION = [1, 25, 1];
 
@@ -618,7 +630,8 @@ const INGRESS_HOST = "oneuptime.example.com";
  * deployment, with `overrides` on top. The listen directives are the ones
  * envsubst-on-templates.sh exports for the NGINX_LISTEN_ADDRESS it ends up
  * with, on a kernel with IPv6, and the primary server's name the one it
- * exports for HOST; an override names them to differ.
+ * exports for HOST; an override names them to differ. NGINX_HTTP2 is what the
+ * script exports for the setting (on unless an override says off).
  */
 function baseEnvironment(overrides = {}) {
   const environment = {};
@@ -658,6 +671,7 @@ function baseEnvironment(overrides = {}) {
     ...ingressListenEnvironment({ listenAddress }),
     ...primaryServerNameEnvironment(host),
     ...overrides,
+    ...primaryHttp2Environment(overrides.NGINX_HTTP2),
   };
 }
 
@@ -1940,7 +1954,9 @@ async function startIngress({
  * chunked and no Content-Length, in 64 KiB writes, so nginx has to count it
  * as it arrives rather than refuse it from the header. `tls` sends it over
  * TLS with SNI for the Host's name (HTTP/1.1, which is all the status-page
- * TLS server offers), and reports the name on the certificate that answered.
+ * TLS server offers), and reports the name on the certificate that answered
+ * and the protocol ALPN agreed. `alpnProtocols` offers those in the
+ * handshake, as an exporter that speaks HTTP/2 too offers h2 and HTTP/1.1.
  */
 function postHttp1({
   port,
@@ -1950,6 +1966,7 @@ function postHttp1({
   chunked,
   id,
   tls = false,
+  alpnProtocols,
 }) {
   return new Promise((resolve, reject) => {
     const headers = {
@@ -1978,6 +1995,7 @@ function postHttp1({
           ...options,
           servername: hostName(host),
           ca: trustedTestCertificates(),
+          ...(alpnProtocols ? { ALPNProtocols: alpnProtocols } : {}),
         })
       : http.request(options);
     let answered = false;
@@ -1987,6 +2005,7 @@ function postHttp1({
       const certificateName = tls
         ? response.socket.getPeerCertificate().subject.CN
         : undefined;
+      const alpnProtocol = tls ? response.socket.alpnProtocol : undefined;
 
       response.on("data", (chunk) => {
         chunks.push(chunk);
@@ -1998,6 +2017,7 @@ function postHttp1({
           headers: response.headers,
           text: Buffer.concat(chunks).toString("utf8"),
           certificateName,
+          alpnProtocol,
         });
       });
     });
@@ -3132,5 +3152,114 @@ describe(
         assert.equal(deliveredWholeMessage(record), false);
       }
     });
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Live: HTTP/2 turned off for the primary host (NGINX_HTTP2=off)
+// ---------------------------------------------------------------------------
+
+describe(
+  "live: OTLP through the rendered ingress with TLS provisioned and NGINX_HTTP2=off",
+  { skip: tlsSkipReason, timeout: 120000 },
+  () => {
+    /*
+     * NGINX_HTTP2=off turns HTTP/2 off for the primary host (#9846), for an
+     * install that has to close it when nginx fixes a vulnerability in HTTP/2
+     * and OneUptime cannot be upgraded yet (PrimaryServerHttp2.test.js holds
+     * the setting itself). What it costs is OTLP over gRPC: an exporter
+     * offers h2 alone in its TLS handshake, which nginx refuses, so nothing
+     * reaches the App's gRPC server. OTLP over HTTP goes on over HTTP/1.1,
+     * also from an exporter that offers h2 first, under the same 4M limit.
+     */
+    let appStub;
+    let grpcStub;
+    let ingress;
+
+    before(async () => {
+      appStub = await startAppStub();
+      grpcStub = await startGrpcStub();
+      ingress = await startIngress({
+        appPort: appStub.port,
+        grpcPort: grpcStub.port,
+        tls: true,
+        environment: { NGINX_HTTP2: "off" },
+      });
+    });
+
+    after(async () => {
+      await ingress?.stop();
+      await appStub?.close();
+      await grpcStub?.close();
+    });
+
+    test("an OTLP/gRPC export is refused in the TLS handshake, and nothing reaches the App's gRPC server", async () => {
+      for (const exportPath of appGrpcExportPaths()) {
+        const id = newRequestId();
+
+        const response = await postHttp2({
+          origin: `https://127.0.0.1:${ingress.tlsPort}`,
+          uri: exportPath,
+          body: grpcFrame(crypto.randomBytes(1024)),
+          id,
+          grpc: true,
+        });
+
+        assert.ok(response.error, `${exportPath}: the export was not refused`);
+        assert.match(
+          `${response.error.code} ${response.error.message}`,
+          /no.application.protocol/i,
+          exportPath,
+        );
+        assert.equal(response.alpnProtocol, undefined, exportPath);
+        assert.equal(response.status, undefined, exportPath);
+        assert.deepEqual(grpcStub.requestsFor(id), [], exportPath);
+      }
+    });
+
+    for (const { location, uri } of OTLP_HTTP_ENTRY_POINTS) {
+      test(`${uri}: OTLP/HTTP still takes 2 MiB and exactly 4 MiB whole over HTTP/1.1, from an exporter that offers h2 first; past 4M is nginx's 413`, async () => {
+        for (const [bytes, expectAdmitted] of [
+          [2 * MIB, true],
+          [OTLP_BATCH_LIMIT_BYTES, true],
+          [OTLP_BATCH_LIMIT_BYTES + 1, false],
+        ]) {
+          for (const alpnProtocols of [undefined, ["h2", "http/1.1"]]) {
+            const what = `${location}, ${bytes} bytes, ALPN ${alpnProtocols ? alpnProtocols.join(",") : "none"}`;
+            const id = newRequestId();
+            const body = crypto.randomBytes(bytes);
+
+            const response = await postHttp1({
+              port: ingress.tlsPort,
+              uri,
+              body,
+              id,
+              tls: true,
+              alpnProtocols,
+            });
+
+            assert.equal(response.certificateName, INGRESS_HOST, what);
+
+            if (alpnProtocols) {
+              assert.equal(response.alpnProtocol, "http/1.1", what);
+            }
+
+            if (expectAdmitted) {
+              assertAnsweredByApp(response, what);
+              assert.equal(appStub.requestsFor(id).length, 1, what);
+              assert.equal(appStub.requestsFor(id)[0].url, uri, what);
+              assert.equal(
+                appStub.requestsFor(id)[0].sha256,
+                sha256(body),
+                what,
+              );
+            } else {
+              assertRefusedByNginx(response, what);
+              assert.deepEqual(appStub.requestsFor(id), [], what);
+            }
+          }
+        }
+      });
+    }
   },
 );

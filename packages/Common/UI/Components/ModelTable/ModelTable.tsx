@@ -443,6 +443,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
             });
           },
 
+          // A drop in a list people drag into order: a move, not a write.
+          moveInList: async (args: { id: ObjectID; placeOfId: ObjectID }) => {
+            await modelAPI.moveInList({
+              modelType: props.modelType,
+              id: args.id,
+              placeOfId: args.placeOfId,
+            });
+          },
+
           toJSONArray: (items: TBaseModel[]): JSONObject[] => {
             return BaseModel.toJSONObjectArray(items, props.modelType);
           },
@@ -625,11 +634,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
             return BaseModel.fromJSON(item, props.modelType) as TBaseModel;
           },
 
-          deleteItem: async (item: TBaseModel) => {
+          deleteItem: async (
+            item: TBaseModel,
+            miscDataProps?: JSONObject | undefined,
+          ) => {
             await modelAPI.deleteItem({
               modelType: props.modelType,
               id: item.id as ObjectID,
               requestOptions: props.deleteRequestOptions,
+              ...(miscDataProps ? { miscDataProps: miscDataProps } : {}),
             });
           },
         }}

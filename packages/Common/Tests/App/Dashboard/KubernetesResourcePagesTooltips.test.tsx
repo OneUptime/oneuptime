@@ -707,9 +707,13 @@ interface ListCase {
 const LIST_CASES: Array<ListCase> = [
   {
     page: "Nodes",
+    // Its disk beside its CPU and memory (#9645).
     explained: [
       ["CPU", "nodeCpu"],
       ["Memory", "nodeMemory"],
+      ["Disk", "nodeDiskUsed"],
+      ["Disk Free", "nodeDiskFree"],
+      ["Disk Capacity", "nodeDiskCapacity"],
     ],
     plain: ["Name", "Status", "Age"],
   },
@@ -801,7 +805,12 @@ const LIST_CASES: Array<ListCase> = [
   },
   {
     page: "PersistentVolumeClaims",
-    explained: [["Capacity", "pvcCapacity"]],
+    // How full each claim is (#9539): its Used and Free.
+    explained: [
+      ["Capacity", "pvcCapacity"],
+      ["Used", "pvcUsed"],
+      ["Free", "pvcFree"],
+    ],
     plain: [
       "Name",
       "Namespace",
@@ -814,7 +823,12 @@ const LIST_CASES: Array<ListCase> = [
   },
   {
     page: "PersistentVolumes",
-    explained: [["Capacity", "pvCapacity"]],
+    // A volume's Used and Free are its claim's.
+    explained: [
+      ["Capacity", "pvCapacity"],
+      ["Used", "pvUsed"],
+      ["Free", "pvFree"],
+    ],
     plain: [
       "Name",
       "Status",
@@ -934,6 +948,10 @@ const DETAIL_CASES: Array<DetailCase> = [
     explained: [
       ["CPU (Capacity / Allocatable)", "nodeCpuCapacity"],
       ["Memory (Capacity / Allocatable)", "nodeMemoryCapacity"],
+      [
+        "Ephemeral Storage (Capacity / Allocatable)",
+        "nodeEphemeralStorageCapacity",
+      ],
       ["Pods (Capacity)", "nodePodCapacity"],
     ],
     plain: ["Node Name", "Internal IP", "Created"],

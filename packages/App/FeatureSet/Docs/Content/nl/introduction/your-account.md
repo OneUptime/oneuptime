@@ -41,7 +41,7 @@ Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent m
 
 Klik op **Gebruiker bewerken** en wijzig wat u nodig hebt:
 
-- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, verifieert u het nieuwe adres opnieuw.
+- **E-mail**: het adres waarmee u inlogt. Als u het wijzigt, stuurt OneUptime een link naar het nieuwe adres, en uw adres verandert zodra u die opent. Tot die tijd logt u in met het huidige adres, en **Wijziging annuleren** stopt de wijziging. Het eigen adres van een hoofdbeheerder verandert meteen.
 - **Volledige naam**: de naam die uw team overal in OneUptime ziet.
 - **Tijdzone**: de tijdzone waarin het dashboard tijden toont en leest, en die van de tijden in meldingen aan u.
 - **Taal**: de taal van het dashboard in elke browser waarin u inlogt, en van uw oproepen voor dienst. Niet ingesteld: uw oproepen zijn in het Engels en het dashboard volgt uw browser.
@@ -105,24 +105,46 @@ De link werkt één keer, gedurende 15 minuten, en een nieuwere link vervangt he
 
 ### Tweefactorauthenticatie inschakelen
 
-Tweefactorauthenticatie geldt wanneer u met uw wachtwoord of een gemailde link inlogt. Voeg eerst een tweede stap toe, en schakel haar dan in.
+Tweefactorauthenticatie geldt wanneer u zich aanmeldt met uw wachtwoord of met een gemailde link. Ze wordt pas ingeschakeld als uw tweede stap werkt, dus ze vraagt nooit om een stap die u niet hebt.
 
 :::steps
-### Een authenticator-app toevoegen
+### Uw tweede stap kiezen
 
-Open **Beveiliging → Tweefactorauthenticatie**. Voeg onder **Authenticator-apps** een app toe en geef die een naam. Scan de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voer de 6-cijferige code in die ze toont, en klik op **Verifiëren en afronden**. Wilt u liever een USB- of NFC-sleutel gebruiken, voeg die dan toe onder **Beveiligingssleutels**.
+Open **Beveiliging → Tweefactorauthenticatie** en klik op **Tweefactorauthenticatie inschakelen**. Kies **Authenticator-app** of **Beveiligingssleutel** en klik op **Doorgaan**.
+
+### Instellen
+
+Voor een authenticator-app scant u de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voert u de 6-cijferige code in die de app toont en klikt u op **Verifiëren en afronden**. Een USB- of NFC-sleutel geeft u een naam, waarna u de aanwijzingen van uw browser volgt. Tweefactorauthenticatie is daarna ingeschakeld en de kaart toont **Ingeschakeld**. Vanaf uw volgende aanmelding met een wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 
 ### Uw back-upcodes bewaren
 
 De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUptime **Uw back-upcodes**. Elke code laat u één keer inloggen als u uw app of sleutel kwijtraakt. Kopieer of download ze, vink het vakje aan dat u ze hebt bewaard, en klik op **Klaar**.
-
-### Haar inschakelen
-
-Klik bovenaan de pagina op **Tweefactorauthenticatie inschakelen** en bevestig. De kaart toont nu **Ingeschakeld**. Vanaf uw volgende aanmelding met wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 :::
+
+Hebt u al een app onder **Authenticator-apps** of een sleutel onder **Beveiligingssleutels**, dan vraagt **Tweefactorauthenticatie inschakelen** alleen om een bevestiging. Zolang ze is ingeschakeld, kunt u uw laatste app, sleutel of passkey niet verwijderen: voeg eerst een andere toe, of schakel tweefactorauthenticatie uit. Toont de kaart **Instellen vereist**, dan is tweefactorauthenticatie ingeschakeld zonder dat er iets is ingesteld, vaak omdat een beheerder het vereiste: klik op **Instellen afronden**, anders wordt u daar bij uw volgende aanmelding om gevraagd.
+
+### Tweefactorauthenticatie instellen tijdens het aanmelden
+
+Als een beheerder tweefactorauthenticatie vereist en u nog niets hebt ingesteld, vraagt uw volgende aanmelding met een wachtwoord of een gemailde link u om die in te stellen voordat u binnenkomt. Kies **Authenticator-app** of **Beveiligingssleutel** en klik op **Doorgaan**:
+
+- **Authenticator-app**: scan de QR-code, voer de 6-cijferige code in die uw app toont en klik op **Verifiëren en aanmelden**.
+- **Beveiligingssleutel**: klik op **Beveiligingssleutel registreren** en volg de aanwijzingen van uw browser. Raak een USB- of NFC-sleutel aan, of gebruik de vingerafdruk, het gezicht of de schermvergrendeling van uw telefoon of computer.
+
+Hebt u nog geen back-upcodes, dan toont OneUptime ze daarna één keer, en bent u aangemeld. **Een andere manier kiezen** gaat terug naar de keuze. Een browser die geen beveiligingssleutel kan registreren, zoals een op een pagina zonder HTTPS, biedt alleen de authenticator-app aan.
 
 > [!TIP]
 > Raken uw back-upcodes op? **Codes opnieuw genereren** op dezelfde pagina geeft u een nieuwe set, en de oude codes werken meteen niet meer.
+
+### Als uw organisatie uw aanmelding beheert
+
+Op een server die single sign-on vereist, meldt u zich alleen aan via de identiteitsprovider van uw organisatie, zoals Okta of Microsoft Entra ID, en stelt OneUptime voor u geen wachtwoord, passkey of tweefactorauthenticatie in. Het **Gebruikersprofiel** heeft dan geen sectie **Beveiliging**, en het **Overzicht** noemt uw provider onder **Single Sign-On**. Wijzig uw wachtwoord en uw tweede stap bij uw identiteitsprovider. Wat u eerder hebt ingesteld, blijft bewaard: het werkt pas weer als de server geen single sign-on meer vereist, tenzij een serverbeheerder het wist, en dan krijgt u een e-mail. Hoofdbeheerders houden hun eigen instellingen onder **Beveiliging**.
+
+Hetzelfde gebeurt als elk project waartoe u behoort single sign-on vereist en **Aanmelden beheren met SSO** heeft ingeschakeld. Uw wachtwoord meldt u nog steeds aan bij OneUptime, maar elk project vraagt om SSO, dus stelt OneUptime voor u geen nieuw wachtwoord, nieuwe passkey of nieuwe tweede stap in:
+
+- **Een project dat dat niet doet**: zodra u lid bent van, of uitgenodigd bent voor, een project dat geen SSO vereist of **Aanmelden beheren met SSO** niet heeft ingeschakeld, komt uw sectie **Beveiliging** terug. Het **Overzicht** noemt die projecten dan onder **Single Sign-On**, als de reden dat uw instellingen van uzelf zijn. Verlaat u dat project, dan raakt u ze weer kwijt.
+- **Projecten met verschillende providers**: als al uw projecten het aanmelden beheren, elk met een eigen identiteitsprovider, noemt het **Overzicht** elke provider.
+- **Hoofdbeheerders** houden altijd hun eigen instellingen onder **Beveiliging**.
+- **Wat u eerder hebt ingesteld**, blijft bewaard. Een serverbeheerder kan het wissen, en ook een eigenaar van alle projecten waartoe u behoort; u krijgt een e-mail als dat gebeurt.
 
 ## Uw projecten
 
@@ -162,6 +184,14 @@ Open **Gevarenzone → Account verwijderen**. U kunt uw account pas verwijderen 
 
 :::details Ik heb de e-mail om mijn adres te verifiëren niet ontvangen
 Opnieuw inloggen stuurt een nieuwe link: kijk ook in uw spammap. Kunt u niet inloggen, gebruik dan **Wachtwoord vergeten?** op de inlogpagina. De resetlink verifieert uw adres ook.
+:::
+
+:::details Na het registreren kreeg ik een e-mail dat ik al een account heb
+Dat adres heeft al een OneUptime-account, dus het registreren heeft niets aangemaakt en niets gewijzigd. Log ermee in, of gebruik **Wachtwoord vergeten?** op de inlogpagina als u uw wachtwoord niet meer weet. De registratiepagina zegt voor elk adres hetzelfde, en vertelt dus niemand welke adressen een account hebben.
+:::
+
+:::details Mijn e-mailadres is niet gewijzigd
+Uw adres verandert pas zodra u de link opent die OneUptime naar het nieuwe adres stuurde. De link werkt 24 uur: is hij verlopen, wijzig uw e-mail dan opnieuw om een nieuwe te krijgen. Gebruikt een ander account dat adres al, dan staat dat in de e-mail die daarheen ging, en blijft uw adres zoals het is.
 :::
 
 :::details Ik ben mijn authenticator-app kwijt

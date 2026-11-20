@@ -5,8 +5,8 @@ import { InMemoryTable, StoredRow } from "./InMemoryRepository";
 import { EntityManager } from "typeorm";
 
 /*
- * THE TRANSACTION A MOVE IN A NUMBERED LIST RUNS IN, FOR A SUITE WHOSE TABLE
- * LIVES IN MEMORY (ContiguousOrder.move, issue #9573).
+ * THE TRANSACTION A MOVE IN AN ORDERED LIST RUNS IN, FOR A SUITE WHOSE TABLE
+ * LIVES IN MEMORY (ContiguousOrder.move, issues #9573 and #9609).
  *
  * A move locks every row of its list (SELECT ... FOR UPDATE), works out the
  * new numbers from the rows as the lock hands them over, and writes the
@@ -17,6 +17,10 @@ import { EntityManager } from "typeorm";
  * it. A write the transaction makes is recorded in the table's `updates`,
  * as any other write of a row is.
  *
+ * The list's number column is the statements' own (`order`, `priority`,
+ * `sortOrder`), and a list may be named by a kind as well as by ids (a
+ * public note approval step's event type, compared as text).
+ *
  * Every statement is recorded in `statements`, in order; `opened` counts
  * the transactions. A statement it does not know fails the test loudly.
  */
@@ -25,9 +29,15 @@ export interface ListMoveTransactions {
   opened: number;
 }
 
-const LIST_CONDITION: RegExp = /"(\w+)" = \$(\d+)::uuid/g;
+// A column holding the value a parameter names: an id, or a kind.
+const LIST_CONDITION: RegExp = /"(\w+)" = \$(\d+)(?:::uuid)?(?=\s|$)/g;
 const NULL_CONDITION: RegExp = /"(\w+)" IS NULL/g;
 const MOVED_VALUE: RegExp = /\(\$(\d+)::uuid, \$(\d+)::integer\)/g;
+// The lock of a list's rows: its number column, read as "order".
+const LOCK: RegExp =
+  /^SELECT "_id", "(\w+)" AS "order", "createdAt" FROM "(\w+)" WHERE .* FOR UPDATE$/;
+// The write of the rows given another number: its number column.
+const WRITE: RegExp = /^UPDATE "(\w+)" AS "row" SET "(\w+)" = "moved"\."order"/;
 
 const sameId: (a: unknown, b: unknown) => boolean = (
   a: unknown,
@@ -89,16 +99,21 @@ export function useInMemoryListMoves<TBaseModel extends BaseModel>(data: {
     ): Promise<unknown> => {
       log.statements.push(sql);
 
-      if (
-        sql.startsWith(`SELECT "_id", "order" FROM "${tableName}" WHERE`) &&
-        sql.endsWith("FOR UPDATE")
-      ) {
+      const lock: RegExpMatchArray | null = sql.match(LOCK);
+
+      if (lock && lock[2] === tableName) {
+        const column: string = lock[1]!;
+
         return data.table.rows
           .filter((row: StoredRow): boolean => {
             return inList(row, sql, parameters || []);
           })
           .map((row: StoredRow): StoredRow => {
-            return { _id: row["_id"], order: row["order"] };
+            return {
+              _id: row["_id"],
+              order: row[column],
+              createdAt: row["createdAt"],
+            };
           })
           .sort((a: StoredRow, b: StoredRow): number => {
             const aId: string = String(a["_id"]).toLowerCase();
@@ -107,7 +122,10 @@ export function useInMemoryListMoves<TBaseModel extends BaseModel>(data: {
           });
       }
 
-      if (sql.startsWith(`UPDATE "${tableName}" AS "row" SET "order"`)) {
+      const write: RegExpMatchArray | null = sql.match(WRITE);
+
+      if (write && write[1] === tableName) {
+        const column: string = write[2]!;
         const where: string = sql.slice(sql.indexOf(" WHERE "));
         let affected: number = 0;
 
@@ -127,10 +145,10 @@ export function useInMemoryListMoves<TBaseModel extends BaseModel>(data: {
           );
 
           if (row) {
-            row["order"] = order;
+            row[column] = order;
             data.table.updates.push({
               id: String(row["_id"]),
-              set: { order: order },
+              set: { [column]: order },
             });
             affected++;
           }

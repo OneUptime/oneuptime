@@ -1,8 +1,18 @@
 import {
+  UserOverrideFormTeamLimit,
   getUserOverrideFormFields,
   prepareUserOverrideForCreate,
   readUserOverridePeople,
 } from "../UserOverrides/UserOverrideForm";
+import {
+  UserOverrideTeamLimit,
+  getUserOverrideTeamHint,
+  getUserOverrideTeamLimit,
+} from "../UserOverrides/UserOverrideTeamLimit";
+import useUserOverrideTeamPeople, {
+  UserOverrideTeamPeople,
+} from "../UserOverrides/UseUserOverrideTeamPeople";
+import { ModelAction } from "Common/UI/Utils/PermissionGate";
 import {
   UserOverrideEditTarget,
   toUserOverrideEditTarget,
@@ -54,9 +64,9 @@ import React, {
  *
  * The override applies to every on-call policy (none is named): somebody on
  * holiday is away from all of them. It is listed with the others under
- * On-Call Duty > Advanced > User Overrides, where it can be deleted to bring
- * them back early. Advanced is a folded section of that menu, so the way
- * there names it. So it takes a permission to add overrides over the whole
+ * On-Call > Schedules > User Overrides, where it can be deleted to bring
+ * them back early. The way there names the section it is in, as a menu
+ * path does (#9701 moved it there from the folded Advanced section). So it takes a permission to add overrides over the whole
  * project (GlobalUserOverrideLock).
  *
  * A reader whose permission covers only some policies is handed the
@@ -216,6 +226,45 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
     useRef<ComponentProps["onEditOverride"]>(props.onEditOverride);
   onEditOverrideRef.current = props.onEditOverride;
 
+  /*
+   * For a reader who manages the user overrides of their own team's people
+   * only (issue #9733): the pickers offer those people, saying why, and
+   * somebody outside them - the person whose row it was opened from - is
+   * said under "Who is away?" before anything is sent (UserOverrideTeamLimit).
+   */
+  const teamLimit: UserOverrideTeamLimit | null = getUserOverrideTeamLimit({
+    action: ModelAction.Create,
+    isGlobal: policies.length === 0,
+  });
+
+  const teamPeople: UserOverrideTeamPeople = useUserOverrideTeamPeople({
+    teamIds: teamLimit ? teamLimit.teamIds : null,
+    withMembers: true,
+  });
+
+  const formTeamLimit: UserOverrideFormTeamLimit | undefined = teamLimit
+    ? {
+        teamIds: teamLimit.teamIds,
+        hint: teamPeople.teamNames
+          ? getUserOverrideTeamHint({
+              translator: translator,
+              teamNames: teamPeople.teamNames,
+            })
+          : null,
+        memberIds: teamPeople.memberIds,
+      }
+    : undefined;
+
+  /*
+   * What the fields are rebuilt for when the team limit is known: its teams,
+   * its hint and how many people it holds, nothing while they are not read.
+   */
+  const teamLimitSignature: string = formTeamLimit
+    ? `${formTeamLimit.teamIds.join(",")}|${formTeamLimit.hint || ""}|${
+        formTeamLimit.memberIds ? formTeamLimit.memberIds.size : ""
+      }`
+    : "";
+
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
       // The overrides the values would add: one, global, or one per policy.
@@ -237,6 +286,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
         getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
           currentUserId: currentUserId,
           awayUserId: props.userId,
+          teamLimit: formTeamLimit,
           /*
            * Under Ends, as Add User Override says it: what the times picked
            * overlap, as soon as they are picked - a conflict holds the form
@@ -314,7 +364,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
       });
 
       return fields;
-    }, [currentUserId, props.userId, props.policies]);
+    }, [currentUserId, props.userId, props.policies, teamLimitSignature]);
 
   const skippedName: string | null = getSkippedPersonName({
     awayUserId,
@@ -336,7 +386,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
    * policies ticked below.
    */
   let description: string = translationKey(
-    "This applies to every on-call policy. To end it early, delete it under On-Call > Advanced > User Overrides.",
+    "This applies to every on-call policy. To end it early, delete it under On-Call > Schedules > User Overrides.",
   );
 
   if (policies.length === 1) {

@@ -191,6 +191,8 @@ const verbose = {{monitorSecrets.Verbose}};
 
 सीक्रेट बनाने और यह चुनने के लिए कि कौन से मॉनिटर उसका उपयोग कर सकते हैं, देखें [मॉनिटर रहस्य](/docs/monitor/monitor-secrets)।
 
+वन-टाइम कोड सीक्रेट में कोई मान नहीं, बल्कि साइट की दो-कारक सेटअप कुंजी होती है। उसका `{{monitorSecrets.NAME}}` उस पल का कोड होता है जब स्क्रिप्ट शुरू होती है, और `await oneuptime.getTotpCode("NAME")` स्क्रिप्ट के माँगने पर नया कोड बनाता है, जो ऐसे साइन इन के लिए ठीक है जो कुछ पेज बाद कोड वाले चरण तक पहुँचता है। देखें [वन-टाइम कोड से साइन इन करना](/docs/monitor/monitor-secrets#वन-टाइम-कोड-से-साइन-इन-करना)।
+
 ## कस्टम मेट्रिक्स
 
 आप `oneuptime.captureMetric()` फ़ंक्शन से अपनी स्क्रिप्ट में कस्टम मेट्रिक्स दर्ज कर सकते हैं। ये मेट्रिक्स OneUptime में संग्रहीत होते हैं और Metric Explorer से डैशबोर्ड पर चार्ट के रूप में दिखाए जा सकते हैं।
@@ -258,6 +260,7 @@ return {
 | `crypto` | SHA-256 hashes, HMAC-SHA-256, `randomBytes`, `randomInt` और `randomUUID` का browser-worker implementation। |
 | `console` | `console.log`, `info`, `warn` और `error`। संदेश हर रन के साथ रखे जाते हैं। |
 | `oneuptime.captureMetric` | एक कस्टम मेट्रिक दर्ज करता है। देखें [कस्टम मेट्रिक्स](#कस्टम-मेट्रिक्स)। |
+| `oneuptime.getTotpCode` | वन-टाइम कोड सीक्रेट का वर्तमान कोड बनाता है: `await oneuptime.getTotpCode("NAME")`। देखें [मॉनिटर सीक्रेट का उपयोग](#मॉनिटर-सीक्रेट-का-उपयोग)। |
 | `http` | एक buffered, केवल-client compatibility facade जो `request`, `get` और `Agent` का समर्थन करता है। |
 | `https` | केवल-client `http` facade का HTTPS रूप। |
 | `Buffer`, `setTimeout`, `setInterval` | और उनके `clear` functions। |

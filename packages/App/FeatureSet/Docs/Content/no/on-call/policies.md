@@ -13,7 +13,7 @@ En vaktpolicy avgjør hvem som tilkalles om en hendelse eller et varsel, og hvem
 
 :::steps
 1. Gå til **Vakt → Vaktpolicyer**, og klikk på **Opprett vaktpolicy**.
-2. Skriv inn et **Navn**, for eksempel "Betalinger primær".
+2. Skriv inn et **Navn**, for eksempel "Betalinger primær". Et navn som en annen policy i prosjektet allerede har, også en arkivert, avvises uavhengig av store og små bokstaver og mellomrom, slik at hver velger skiller policyene fra hverandre.
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal tilkalles først.
 4. Klikk på **Opprett vaktpolicy**. Policyen åpner på siden **Eskaleringsregler**, med **Level 1** på plass.
 :::
@@ -26,7 +26,7 @@ Skjemaet spør også **Utløs den ved hver nye hendelse og hvert nye varsel**, h
 
 Vil du heller bli veiledet steg for steg, fra telefonen din til et testtilkall, klikker du på **Veiledet oppsett**: på den tomme listen **Vaktpolicyer** eller under **Slik fungerer det**. Se [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 
-Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver policy. Velg policyer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter policyer fra en eksport: en eksport inneholder policyens egne innstillinger, ikke eskaleringsreglene eller eierne.
+Listen **Vaktpolicyer** viser **Navn**, **Varsles først**, **Beskrivelse**, **Etiketter** og **Eiere** for hver policy. **Varsles først** viser hvem den første eskaleringsregelen i policyen tilkaller: vaktplanene dens, hver med den som har vakt i den akkurat nå, teamene dens og personene den nevner, eller **Ingen eskaleringsregler** eller **Ingen mottakere** når den ikke tilkaller noen. Velg policyer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter policyer fra en eksport: en eksport inneholder policyens egne innstillinger, ikke eskaleringsreglene eller eierne. En policy som har samme navn som en annen policy fra før navn måtte være forskjellige, er merket med **Samme navn som en annen policy**, og listen viser hvor mange det er: sammenlign eskaleringsreglene deres, og gi så én av dem nytt navn med **Gi nytt navn** på raden til policyen.
 
 ## Hva som kjører en policy
 
@@ -157,7 +157,7 @@ Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekrefte
 Arkivering tar en policy ut av drift og beholder alt: åpne **Innstillinger** for policyen og klikk på **Arkiver** på arkivkortet, eller velg policyer i listen og velg **Arkiver**.
 
 - En arkivert policy tilkaller ingen. Hendelser og varsler som bruker den, hopper over den, og en kjøring som fortsatt eskalerer, stopper ved neste steg.
-- Den forlater listen **Vaktpolicyer** og flyttes til **Vakt → Avansert → Arkiverte policyer**, der **Fjern fra arkivet** setter den i drift igjen.
+- Den forlater listen **Vaktpolicyer** og flyttes til **Vakt → Avansert → Arkiverte policyer**, der **Fjern fra arkivet** setter den i drift igjen. Den beholder navnet sitt: den som oppretter en ny policy med det navnet, blir bedt om å fjerne denne fra arkivet i stedet.
 
 **Slett policy**, under **Avansert**, sletter policyen sammen med eskaleringsreglene og brukeroverstyringene. Sletting fra listen spør først og foreslår å arkivere i stedet.
 

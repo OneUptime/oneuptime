@@ -118,6 +118,7 @@ import {
   ResourceAttentionSeverity,
   countResourceAttention,
   getResourceAttentionHealth,
+  getResourceAttentionTone,
   mergeResourceAttentionSeverity,
   sortResourceAttention,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
@@ -127,7 +128,11 @@ import ResourcePartOpenEventsCard, {
   RESOURCE_PART_OPEN_EVENTS_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartOpenEventsCard";
 import ResourcePartAlertsCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertsCard";
-import ResourcePartRow from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartRow";
+import ResourcePartRow, {
+  ResourcePartRowControls,
+  ResourcePartRowName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartRow";
+import { findNestedControls } from "../../Helpers/NestedControls";
 import ResourcePartTabs from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartTabs";
 import { RecommendationStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationViewModel";
 import { OpenIssueRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyIssues";
@@ -200,6 +205,24 @@ describe("what needs attention, ordered and counted", () => {
         item("c", ResourceAttentionSeverity.Warning),
       ]),
     ).toEqual({ critical: 1, warning: 2 });
+  });
+
+  // One rule for every count that opens what failed (#9594).
+  test("a count's tone is red while any part it lists is broken, amber while they only need a look", () => {
+    expect(
+      getResourceAttentionTone([
+        item("a", ResourceAttentionSeverity.Warning),
+        item("b", ResourceAttentionSeverity.Critical),
+      ]),
+    ).toBe("danger");
+    expect(
+      getResourceAttentionTone([
+        item("a", ResourceAttentionSeverity.Warning),
+        item("b", ResourceAttentionSeverity.Warning),
+      ]),
+    ).toBe("warning");
+    // Nothing listed: a look at most, never red.
+    expect(getResourceAttentionTone([])).toBe("warning");
   });
 
   test("a part's findings merge to the worst severity", () => {
@@ -559,6 +582,78 @@ describe("a row that opens a page", () => {
     expect(screen.getByTestId("row").querySelector("svg")).toBeNull();
     expect(screen.getByTestId("row")).toHaveTextContent("pve1");
   });
+
+  /*
+   * A row with controls of its own is never one link around them (#9728):
+   * its name is the link, stretched over the row; its controls sit beside
+   * the name, above the stretch.
+   */
+  test("a row with controls of its own: its name is the link, its controls beside it, none inside another", () => {
+    const pressed: Array<string> = [];
+    render(
+      <ResourcePartRow
+        to={new Route("/regions/RegionTwo")}
+        hasControls={true}
+        dataTestId="row"
+      >
+        <ResourcePartRowName dataTestId="row-name" describedBy="row-facts">
+          RegionTwo
+        </ResourcePartRowName>
+        <ResourcePartRowControls>
+          <button
+            type="button"
+            onClick={() => {
+              pressed.push("pill");
+            }}
+          >
+            Degraded
+          </button>
+        </ResourcePartRowControls>
+        <span id="row-facts">2 of 2 APIs up</span>
+      </ResourcePartRow>,
+    );
+
+    const row: HTMLElement = screen.getByTestId("row");
+    // The row is a box, not a link: one link inside it, its name.
+    expect(row.tagName).toBe("DIV");
+    expect(row).toHaveClass("relative");
+    expect(row).toHaveClass("hover:bg-gray-50");
+    const link: HTMLElement = screen.getByRole("link");
+    expect(link).toBe(screen.getByTestId("row-name"));
+    expect(link).toHaveAccessibleName("RegionTwo");
+    expect(link).toHaveAttribute("href", "/regions/RegionTwo");
+    expect(link).toHaveAttribute("aria-describedby", "row-facts");
+    expect(link).toHaveAccessibleDescription("2 of 2 APIs up");
+    // Stretched over the row, with the row's focus ring.
+    expect(link).toHaveClass("after:absolute");
+    expect(link).toHaveClass("after:inset-0");
+    expect(link).toHaveClass("focus-visible:after:ring-2");
+    // The control is not in the link, and its press is its own.
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Degraded",
+    });
+    expect(button.closest("a")).toBeNull();
+    fireEvent.click(button);
+    expect(pressed).toEqual(["pill"]);
+    // The chevron still ends the row, a picture.
+    expect(row.lastElementChild?.querySelector("svg")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(findNestedControls(row)).toEqual([]);
+  });
+
+  test("a row's name outside a row that opens a page is its words alone", () => {
+    render(
+      <ResourcePartRow dataTestId="row">
+        <ResourcePartRowName dataTestId="row-name">pve1</ResourcePartRowName>
+      </ResourcePartRow>,
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByTestId("row-name").tagName).toBe("SPAN");
+    expect(screen.getByTestId("row-name")).toHaveTextContent("pve1");
+  });
 });
 
 describe("a part's hero", () => {
@@ -647,6 +742,255 @@ describe("a part's hero", () => {
     ]) {
       expect(screen.queryByTestId(testId)).toBeNull();
     }
+  });
+
+  /*
+   * "Offline" beside a node's name said something was wrong and nothing
+   * else: why was the Overview's Needs attention card, a scroll away
+   * (#9594). Pressed, the status opens that list.
+   */
+  test("a status that says something is wrong opens what needs attention, its own row named as its card names it", () => {
+    const node: ResourceAttentionItem = item(
+      "pve2",
+      ResourceAttentionSeverity.Critical,
+      {
+        key: "Node:pve2",
+        kind: "Node",
+        reasons: [{ text: "Offline" }],
+        route: new Route("/dashboard/proxmox/nodes/pve2"),
+      },
+    );
+    const guest: ResourceAttentionItem = item(
+      "web-1",
+      ResourceAttentionSeverity.Warning,
+      { route: new Route("/dashboard/proxmox/guests/web-1") },
+    );
+
+    render(
+      <ResourcePartHero
+        testId="hero"
+        icon={IconProp.ServerStack}
+        name="pve2"
+        status={{
+          label: "Offline",
+          tone: "danger",
+          description: "Online or Offline, as Proxmox last reported.",
+        }}
+        attention={{
+          items: [node, guest],
+          description: "What on this node is broken or needs a look.",
+          current: { key: "Node:pve2", label: "This node" },
+        }}
+      />,
+    );
+
+    const status: HTMLElement = screen.getByTestId("hero-status");
+    // A real button, in its tone, that says it opens a dialog.
+    expect(status.tagName).toBe("BUTTON");
+    expect(status).toHaveAttribute("type", "button");
+    expect(status).toHaveAttribute("data-tone", "danger");
+    expect(status).toHaveAttribute("aria-haspopup", "dialog");
+    expect(status).toHaveAttribute("aria-expanded", "false");
+    expect(status).toHaveAttribute("title", "Show why");
+    // Its word, then what the word means for a screen reader.
+    expect(status).toHaveTextContent(
+      "Offline Online or Offline, as Proxmox last reported.",
+    );
+
+    fireEvent.click(status);
+
+    const dialog: HTMLElement = screen.getByTestId("hero-status-dialog");
+    expect(screen.getByText("Needs attention")).toBeInTheDocument();
+    expect(
+      screen.getByText("What on this node is broken or needs a look."),
+    ).toBeInTheDocument();
+    const rows: Array<HTMLElement> = within(dialog).getAllByTestId(
+      "hero-status-dialog-item",
+    );
+    expect(
+      rows.map((row: HTMLElement) => {
+        return row.getAttribute("data-key");
+      }),
+    ).toEqual(["Node:pve2", "Guest:web-1"]);
+    // The node itself reads as its card names it, with no step to this page.
+    expect(rows[0]!).toHaveAttribute("data-current", "true");
+    expect(
+      within(rows[0]!).getByTestId("hero-status-dialog-name"),
+    ).toHaveTextContent("This node");
+    expect(
+      within(rows[0]!).queryByTestId("hero-status-dialog-view"),
+    ).toBeNull();
+    // A guest on it is a step from its own page.
+    expect(rows[1]!).not.toHaveAttribute("data-current");
+    expect(
+      within(rows[1]!).getByTestId("hero-status-dialog-view"),
+    ).toHaveAttribute("href", "/dashboard/proxmox/guests/web-1");
+  });
+
+  test("without a description of its own, the dialog says what the card says", () => {
+    render(
+      <ResourcePartHero
+        testId="hero"
+        icon={IconProp.Cube}
+        name="web-1"
+        status={{ label: "Stopped", tone: "warning" }}
+        attention={{
+          items: [item("web-1", ResourceAttentionSeverity.Warning)],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("hero-status"));
+
+    expect(
+      screen.getByText(
+        "What is broken or needs a look, the most urgent first.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test.each([
+    [
+      "a status that is fine",
+      { label: "Online", tone: "positive" as const },
+      [item("web-1", ResourceAttentionSeverity.Warning)],
+    ],
+    [
+      "a neutral status",
+      { label: "Template", tone: "neutral" as const },
+      [item("web-1", ResourceAttentionSeverity.Warning)],
+    ],
+    [
+      "a status that says something is wrong, with nothing listed",
+      { label: "Offline", tone: "danger" as const },
+      [],
+    ],
+  ])(
+    "%s is a plain pill, with its meaning on hover",
+    (
+      _name: string,
+      status: { label: string; tone: "positive" | "neutral" | "danger" },
+      items: Array<ResourceAttentionItem>,
+    ) => {
+      render(
+        <ResourcePartHero
+          testId="hero"
+          icon={IconProp.Cube}
+          name="web-1"
+          status={{ ...status, description: "What it means." }}
+          attention={{ items: items }}
+        />,
+      );
+
+      const pill: HTMLElement = screen.getByTestId("hero-status");
+      expect(pill.tagName).toBe("SPAN");
+      expect(pill).toHaveAttribute("title", "What it means.");
+      expect(pill).toHaveAttribute("data-tone", status.tone);
+    },
+  );
+
+  test("a hero handed no list keeps a plain status, whatever it says", () => {
+    render(
+      <ResourcePartHero
+        testId="hero"
+        icon={IconProp.Cube}
+        name="web-1"
+        status={{ label: "Offline", tone: "danger" }}
+      />,
+    );
+
+    expect(screen.getByTestId("hero-status").tagName).toBe("SPAN");
+  });
+
+  test("a chip that counts something wrong opens exactly what it counts; the others stay chips", () => {
+    const failed: ResourceAttentionItem = item(
+      "report-28h7k",
+      ResourceAttentionSeverity.Warning,
+      {
+        key: "Pod:shop/report-28h7k",
+        kind: "Pod",
+        reasons: [
+          {
+            text: "{{reason}}, exit code {{code}}",
+            values: { reason: "Error", code: "1" },
+          },
+        ],
+      },
+    );
+
+    render(
+      <ResourcePartHero
+        testId="hero"
+        icon={IconProp.Play}
+        name="report"
+        chips={[
+          { key: "succeeded", icon: IconProp.Check, label: "2 pods succeeded" },
+          {
+            key: "failed",
+            icon: IconProp.Close,
+            label: "1 pod failed",
+            attention: {
+              tone: "danger",
+              hint: "Show which pods and why",
+              dialog: {
+                title: "1 failed pod",
+                items: [failed],
+                emptyMessage: "No failed pods now.",
+                showKind: false,
+              },
+            },
+          },
+        ]}
+      />,
+    );
+
+    const chips: HTMLElement = screen.getByTestId("hero-chips");
+    expect(chips).toHaveTextContent("2 pods succeeded1 pod failed");
+
+    const pill: HTMLElement = screen.getByTestId("hero-chip-failed");
+    expect(pill.tagName).toBe("BUTTON");
+    expect(pill).toHaveAttribute("data-chip", "failed");
+    expect(pill).toHaveAttribute("data-tone", "danger");
+    expect(pill).toHaveAttribute("title", "Show which pods and why");
+    // The succeeded count is a fact, not a button.
+    expect(screen.queryByTestId("hero-chip-succeeded")).toBeNull();
+
+    fireEvent.click(pill);
+
+    const dialog: HTMLElement = screen.getByTestId("hero-chip-failed-dialog");
+    expect(screen.getByText("1 failed pod")).toBeInTheDocument();
+    expect(
+      within(dialog).getByTestId("hero-chip-failed-dialog-reason"),
+    ).toHaveTextContent("Error, exit code 1");
+  });
+
+  test("a chip can name its own test id", () => {
+    render(
+      <ResourcePartHero
+        testId="hero"
+        icon={IconProp.Play}
+        name="report"
+        chips={[
+          {
+            key: "failed",
+            icon: IconProp.Close,
+            label: "1 pod failed",
+            attention: {
+              tone: "danger",
+              hint: "Show which pods and why",
+              testId: "job-failed-pods",
+              dialog: {
+                title: "1 failed pod",
+                items: [],
+                emptyMessage: "None.",
+              },
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("job-failed-pods").tagName).toBe("BUTTON");
   });
 });
 

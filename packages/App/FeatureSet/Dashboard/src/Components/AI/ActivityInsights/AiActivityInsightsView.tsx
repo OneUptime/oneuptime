@@ -6,6 +6,19 @@ import {
   getRemediationFixActGate,
   getRemediationFixWhoMayAct,
 } from "../../AutoRemediation/RemediationFixActGate";
+import { ResourceAttentionItem } from "../../ResourcePart/ResourceAttention";
+import ResourceAttentionPill from "../../ResourcePart/ResourceAttentionPill";
+import {
+  AI_INSIGHTS_COMMANDS_NEVER_RAN,
+  AI_INSIGHTS_FAILED_COMMANDS_DESCRIPTION,
+  AI_INSIGHTS_FAILED_COMMANDS_EMPTY,
+  AI_INSIGHTS_FAILED_COMMANDS_HINT,
+  AI_INSIGHTS_FAILED_COMMANDS_LABEL,
+  AI_INSIGHTS_FAILED_COMMANDS_TITLE,
+  AI_INSIGHTS_FAILED_COMMANDS_TRUNCATED,
+  getFailedCommandItems,
+  getFailedCommands,
+} from "./AiActivityFailedCommands";
 import {
   AI_INSIGHTS_FINDING_LABEL,
   AI_INSIGHTS_FIX_APPROVAL_PLACES_TITLE,
@@ -50,6 +63,7 @@ import {
 } from "./AiActivityInsightsData";
 import {
   AiActivityCoverage,
+  AiActivityFailedCommand,
   AiActivityFinding,
   AiActivityFixOutcomes,
   AiActivityHotspot,
@@ -82,7 +96,12 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
@@ -116,6 +135,17 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
  * link one of its parts to its own page.
  */
 
+/*
+ * A part of the scope's own page, or null for one without. `namedWith` is
+ * what the same problem or insight names beside it: a container's page is
+ * its pod's, so a container named with one pod links to that pod's
+ * (#9732).
+ */
+export type AiActivityObjectRoute = (
+  object: AiActivityObject,
+  namedWith?: ReadonlyArray<AiActivityObject>,
+) => Route | null;
+
 export interface ComponentProps {
   insights: AiActivityInsights;
   // The scope in sentences: "cluster", "Docker host".
@@ -134,7 +164,7 @@ export interface ComponentProps {
    */
   settingsRoute?: Route | undefined;
   // A part of the scope's own page, when it has one (a cluster's node).
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }
 
 // Where an insight may send the reader.
@@ -144,7 +174,7 @@ export interface AiInsightsRoutes {
   settingsRoute?: Route | undefined;
   // The incidents' or alerts' own page: whose AI settings a skip points at.
   subjectKind?: "incident" | "alert" | undefined;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }
 
 export function getSubjectRoute(subject: AiActivitySubject): Route {
@@ -443,11 +473,13 @@ function InvestigationWords(props: {
 function ObjectChip(props: {
   object: AiActivityObject;
   count?: number | undefined;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
+  // What the same problem or insight names beside it.
+  namedWith?: ReadonlyArray<AiActivityObject> | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const route: Route | null = props.getObjectRoute
-    ? props.getObjectRoute(props.object)
+    ? props.getObjectRoute(props.object, props.namedWith)
     : null;
   // How many times it came up, in the reader's digits.
   const text: string = `${describeObject(props.object)}${
@@ -645,6 +677,7 @@ function InsightItem(props: {
                   key={`${object.name}-${object.value}`}
                   object={object}
                   getObjectRoute={props.routes.getObjectRoute}
+                  namedWith={objects}
                 />
               );
             })}
@@ -772,7 +805,7 @@ function InsightsCard(props: {
 function ProblemRow(props: {
   problem: AiActivityProblem;
   context: AiInsightWordingContext;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }): ReactElement {
   const problem: AiActivityProblem = props.problem;
   const fixes: string | null = describeProblemFixes(problem);
@@ -831,6 +864,7 @@ function ProblemRow(props: {
                   object={object}
                   count={object.count}
                   getObjectRoute={props.getObjectRoute}
+                  namedWith={problem.objects}
                 />
               );
             },
@@ -919,7 +953,7 @@ function ProblemsCard(props: {
   insights: AiActivityInsights;
   problems: Array<AiActivityProblem>;
   context: AiInsightWordingContext;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const isTheRest: boolean =
@@ -967,7 +1001,7 @@ function ProblemsCard(props: {
 function HotspotsCard(props: {
   insights: AiActivityInsights;
   noun: string;
-  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
+  getObjectRoute?: AiActivityObjectRoute | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
 
@@ -1194,7 +1228,8 @@ function Stat(props: {
    * reader may not see is no value: the figure's quiet dash (#8264).
    */
   value?: number | string | undefined;
-  detail?: string | undefined;
+  // What it is made of, in words - or a pill that opens it ("3 failed").
+  detail?: string | ReactElement | undefined;
   testId: string;
 }): ReactElement {
   const translator: Translator = useTranslator();
@@ -1215,6 +1250,87 @@ function Stat(props: {
         <></>
       )}
     </div>
+  );
+}
+
+/*
+ * How the commands went (#9749): how many failed - a pill that opens which,
+ * and why - then how many no agent picked up in time. Nothing when every
+ * command ran.
+ */
+function CommandOutcomes(props: {
+  insights: AiActivityInsights;
+  routes: AiInsightsRoutes;
+}): ReactElement | null {
+  const translator: Translator = useTranslator();
+  const totals: AiActivityInsights["totals"] = props.insights.totals;
+  const failed: {
+    commands: Array<AiActivityFailedCommand>;
+    isTruncated: boolean;
+  } = getFailedCommands(props.insights);
+  // The dialog's rows: the same list while the page holds the same insights.
+  const items: Array<ResourceAttentionItem> = useMemo(() => {
+    return getFailedCommandItems({
+      insights: props.insights,
+      translator,
+      routes: { getSubjectRoute, logsRoute: props.routes.logsRoute },
+    });
+  }, [props.insights, translator, props.routes.logsRoute]);
+
+  if (totals.failedCommands <= 0 && totals.timedOutCommands <= 0) {
+    return null;
+  }
+
+  const failedLabel: string = translator.translatePlural(
+    AI_INSIGHTS_FAILED_COMMANDS_LABEL,
+    totals.failedCommands,
+  );
+
+  return (
+    <span
+      className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
+      data-testid="ai-insights-command-outcomes"
+    >
+      {totals.failedCommands > 0 && failed.commands.length > 0 ? (
+        <ResourceAttentionPill
+          label={failedLabel}
+          tone="danger"
+          testId="ai-insights-failed-commands"
+          hint={AI_INSIGHTS_FAILED_COMMANDS_HINT}
+          dialog={{
+            title: translator.translatePlural(
+              AI_INSIGHTS_FAILED_COMMANDS_TITLE,
+              totals.failedCommands,
+            ),
+            description: AI_INSIGHTS_FAILED_COMMANDS_DESCRIPTION,
+            items,
+            isTruncated: failed.isTruncated,
+            // The newest of them, as the list is ordered - not the most urgent.
+            truncatedMessage: AI_INSIGHTS_FAILED_COMMANDS_TRUNCATED,
+            emptyMessage: AI_INSIGHTS_FAILED_COMMANDS_EMPTY,
+            // Every row is a command: no kind chip on each.
+            showKind: false,
+          }}
+        />
+      ) : totals.failedCommands > 0 ? (
+        // A server that did not list them: the count, with nothing to open.
+        <span data-testid="ai-insights-failed-commands-count">
+          {failedLabel}
+        </span>
+      ) : (
+        <></>
+      )}
+      {totals.timedOutCommands > 0 ? (
+        <span data-testid="ai-insights-commands-never-ran">
+          {translator.translatePlural(
+            AI_INSIGHTS_COMMANDS_NEVER_RAN,
+            totals.timedOutCommands,
+          )}
+        </span>
+      ) : (
+        <></>
+      )}
+    </span>
   );
 }
 
@@ -1595,18 +1711,9 @@ function ActivityCard(props: {
               label="Commands"
               value={totals.commands}
               detail={
-                totals.failedCommands + totals.timedOutCommands > 0
-                  ? translator.translateTemplate(
-                      "{{failed}} failed, {{timedOut}} never ran",
-                      countsInReaderDigits(
-                        {
-                          failed: totals.failedCommands,
-                          timedOut: totals.timedOutCommands,
-                        },
-                        translator,
-                      ),
-                    )
-                  : undefined
+                totals.failedCommands + totals.timedOutCommands > 0 ? (
+                  <CommandOutcomes insights={insights} routes={props.routes} />
+                ) : undefined
               }
               testId="ai-insights-stat-commands"
             />

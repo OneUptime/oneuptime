@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 56513,
-    "untranslated": 1040
+    "keys": 58633,
+    "untranslated": 1279
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -39,6 +39,7 @@
     "AI / LLM",
     "AI: {{prompt}}",
     "AND",
+    "ANR, Hang",
     "API URL",
     "AWS ECS · us-east-1 · 123456789012",
     "AWS Lambda",
@@ -50,6 +51,7 @@
     "Anthropic",
     "Apache Kafka · kafka-1:9092",
     "App Store",
+    "AppArmor",
     "Atmosphere",
     "Azure AKS",
     "Azure CLI",
@@ -60,6 +62,7 @@
     "Bash",
     "CC",
     "CIDR",
+    "CIS Kubernetes Benchmark v2.0",
     "CPU Ready",
     "CPU Ready {{percent}}",
     "CPU.*high",
@@ -126,6 +129,7 @@
     "HackerBay, Inc.",
     "Hello world",
     "Horizontal Pod Autoscalers",
+    "HostProcess",
     "INP 120 ms",
     "INP 168 ms",
     "INP 190 ms",
@@ -141,6 +145,7 @@
     "KeyDB",
     "Keystone",
     "Kolla-Ansible",
+    "Kubelet",
     "Kubernetes Deployment",
     "Kubernetes Namespace",
     "Kubernetes Pod",
@@ -220,6 +225,7 @@
     "Runner ID",
     "SCIM (System for Cross-domain Identity Management)",
     "SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED'",
+    "SELinux",
     "SHA",
     "SHA-256",
     "SHA-512",
@@ -231,6 +237,8 @@
     "SQL Server",
     "SSH",
     "SSH: {{command}}",
+    "Seccomp",
+    "Seccomp (Restricted)",
     "Shift + Enter",
     "Stripe Payments API",
     "Swarm ID",

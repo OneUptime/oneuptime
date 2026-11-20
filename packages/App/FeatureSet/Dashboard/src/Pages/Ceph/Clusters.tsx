@@ -49,6 +49,9 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
+import { getStorageUsage } from "Common/Utils/Storage/StorageUsage";
+import CephClusterHealthPill from "../../Components/Ceph/CephClusterHealthPill";
 
 /*
  * Health pill rendered from the CephCluster.healthStatus snapshot column
@@ -113,39 +116,28 @@ const renderHealthPill: (data: {
   );
 };
 
+/*
+ * How full a cluster is, as the shared storage bar draws it (#9539): amber
+ * and red at the Cluster Near Full and Cluster Full alerts' lines, the
+ * percent in the reader's digits. Only the share is reported here, so no
+ * amounts under it.
+ */
 const renderCapacityBar: (
   capacityUsedPercent: number | undefined,
 ) => ReactElement = (capacityUsedPercent: number | undefined): ReactElement => {
-  if (
-    capacityUsedPercent === null ||
-    capacityUsedPercent === undefined ||
-    !Number.isFinite(Number(capacityUsedPercent))
-  ) {
-    return <TableEmptyValue />;
-  }
-
-  const pct: number = Number(capacityUsedPercent);
-  const clamped: number = Math.min(100, Math.max(0, pct));
-  // The Cluster Near Full and Cluster Full alerts' lines.
-  const barColor: string =
-    pct > CEPH_CLUSTER_FULL_PERCENT
-      ? "bg-red-500"
-      : pct > CEPH_CLUSTER_NEARFULL_PERCENT
-        ? "bg-amber-500"
-        : "bg-emerald-500";
-
   return (
-    <div className="flex items-center gap-2 min-w-[120px]">
-      <div className="flex-1 bg-gray-200 rounded-full h-2">
-        <div
-          className={`h-2 rounded-full ${barColor}`}
-          style={{ width: `${clamped}%` }}
-        />
-      </div>
-      <span className="text-xs text-gray-600 whitespace-nowrap w-12 text-right">
-        {pct.toFixed(1)}%
-      </span>
-    </div>
+    <StorageUsageBar
+      usage={getStorageUsage(
+        { capacity: 100, used: capacityUsedPercent },
+        {
+          warningPercent: CEPH_CLUSTER_NEARFULL_PERCENT,
+          criticalPercent: CEPH_CLUSTER_FULL_PERCENT,
+          // "Past 85%": a cluster at exactly the ratio has not crossed it.
+          isPastLineOnly: true,
+        },
+      )}
+      showAmount={false}
+    />
   );
 };
 
@@ -322,9 +314,38 @@ const CephClusters: FunctionComponent<
             headerTooltip: CEPH_METRIC_DESCRIPTIONS.clusterHealth,
             type: FieldType.Element,
             getElement: (item: CephCluster): ReactElement => {
+              const isConnected: boolean =
+                item.otelCollectorStatus === "connected";
+
+              /*
+               * WARN and ERR open what Ceph reports and why, as the
+               * cluster's Overview lists it (#9751); OK and a verdict no
+               * longer true (a cluster that stopped reporting) say no more.
+               */
+              if (
+                isConnected &&
+                item._id &&
+                typeof item.healthStatus === "number" &&
+                item.healthStatus >= 1
+              ) {
+                return (
+                  <CephClusterHealthPill
+                    cluster={{
+                      id: new ObjectID(item._id.toString()),
+                      name: (item.name as string) || "",
+                      healthStatus: item.healthStatus,
+                      capacityUsedPercent:
+                        typeof item.capacityUsedPercent === "number"
+                          ? item.capacityUsedPercent
+                          : null,
+                    }}
+                  />
+                );
+              }
+
               return renderHealthPill({
                 healthStatus: item.healthStatus,
-                isConnected: item.otelCollectorStatus === "connected",
+                isConnected: isConnected,
                 translator: translator,
               });
             },

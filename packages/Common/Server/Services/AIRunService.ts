@@ -17,6 +17,7 @@ import CodeFixTaskContext, {
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
 import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
+import LlmType from "../../Types/LLM/LlmType";
 import CarriedRecords, {
   CarriedRecordIds,
 } from "../../Types/AI/CarriedRecords";
@@ -24,6 +25,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnFind } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -36,6 +38,7 @@ import CodeFixClaimQuery, {
   CodeFixClaimQueryFacts,
   CodeFixClaimStatement,
 } from "../Utils/AI/CodeFix/CodeFixClaimQuery";
+import CodeFixOnItsWay from "../Utils/AI/CodeFix/CodeFixOnItsWay";
 import { CodeWorker } from "../../Types/Runner/CodeRepositoryRunner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
@@ -66,6 +69,9 @@ export interface AIRunTransitionSet {
   llmCallCount?: number | undefined;
   toolCallCount?: number | undefined;
   totalTokens?: number | undefined;
+  // The model that wrote a completed run's answer, and its provider's type.
+  modelName?: string | undefined;
+  llmProviderType?: LlmType | undefined;
   codeFixRecommendation?: AIRunCodeFixRecommendation | undefined;
   // The claiming agent's id as a string (ObjectID.toString()) — see above.
   aiAgentId?: string | undefined;
@@ -599,7 +605,9 @@ export class Service extends DatabaseService<Model> {
    * run side by side, not just whichever was created last.
    *
    * codeFixTaskType is normalized on the returned models: legacy null rows
-   * come back as FixException.
+   * come back as FixException. A run may be a later turn of its Code task -
+   * a fix asked again from Code (Try again) carries the exception and the
+   * recipe too - and names its task in codeTaskId.
    */
   @CaptureSpan()
   public async getLatestCodeFixRunPerTaskType(data: {
@@ -625,6 +633,7 @@ export class Service extends DatabaseService<Model> {
             errorMessage: true,
             createdAt: true,
             codeFixTaskType: true,
+            codeTaskId: true,
           },
           sort: {
             createdAt: SortOrder.Descending,
@@ -792,6 +801,23 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * One fix at a time of the same problem (CodeFixOnItsWay, #9882): a fix's
+   * run - a task's first turn, or a fix asked again - is written only while
+   * no fix of the exception, incident, alert, insight, trace or service it
+   * is a fix of is queued or running, a reply in Code included. Decided
+   * with the INSERT, in its transaction, under the project's lock, so two
+   * fixes asked at once cannot both be written; every path that creates a
+   * fix asks the same rule first, in its own words. Asked of every create,
+   * one that skips its hooks too. A reply, a request, a chat or an
+   * investigation is a fix of nothing: null.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<Model>,
+  ): Promise<CreateLimit | null> {
+    return CodeFixOnItsWay.getCreateLimit(createBy.data);
   }
 
   /*

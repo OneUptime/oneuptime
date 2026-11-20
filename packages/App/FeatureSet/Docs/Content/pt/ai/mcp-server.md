@@ -41,7 +41,7 @@ O servidor não guarda estado: ele não emite ids de sessão e cada requisição
 - **Manutenção programada**: criar e gerenciar eventos de manutenção.
 - **Telemetria**: consultar logs, métricas, traces, exceções, logs de monitores, eventos de segurança e mais, somente leitura.
 
-Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 54 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. As ferramentas somente leitura levam `readOnlyHint`, toda ferramenta que altera algo leva `destructiveHint` e só as ferramentas de páginas de status públicas levam `openWorldHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
+Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 55 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. Um tipo de registro sem nenhum campo que você possa alterar depois de criado, como o vínculo de um incidente com um alerta, não tem ferramenta de atualizar. As ferramentas somente leitura levam `readOnlyHint` e toda ferramenta que altera algo leva `destructiveHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. `openWorldHint` marca as ferramentas que vão além do seu projeto: as ferramentas de páginas de status públicas e as alterações exibidas em uma página de status e enviadas aos seus assinantes, como um novo incidente, uma mudança do seu estado ou uma nota pública. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
 
 ## Antes de começar
 
@@ -341,6 +341,20 @@ A ferramenta **`get_data_table_freshness`** diz a um agente se uma tabela que o 
 
 A ferramenta **`get_data_table_lineage`** diz a um agente a partir do que uma tabela observada é construída e o que é construído a partir dela, antes de alterar a tabela ou confiar nos dados: as tabelas a montante e a jusante que estão atrasadas, foram removidas, têm alertas abertos ou cujo pipeline falhou na última execução, as mais próximas primeiro, cada uma com quantos passos a separam, depois as demais, os pipelines que carregam as fontes dela de fora e os painéis de BI construídos sobre ela. Ela vai três passos em cada direção, ou até cinco com `depth`. Passe `table` como para `get_data_table_freshness`. Ela não altera nada.
 
+A ferramenta **`oneuptime_move_in_list`** move uma linha de uma lista ordenada, como uma severidade de incidente, um estado de incidente ou um status de monitor, para o lugar de outra linha, como faz arrastá-la no painel: as linhas entre elas se deslocam um lugar, e ela responde com cada linha cujo número mudou. Passe `resource` (como `Incident Severity`), o `id` da linha e `placeOfId`, o ID da linha cujo lugar ela ocupa. Escrever o número de uma linha com a ferramenta `update_` dela posiciona só essa linha, ao lado de qualquer linha que já tenha esse número.
+
+## Ferramentas para configurar
+
+O servidor também tem as ações de configuração do Pergunte à IA, uma chamada cada: o que você configura, em vez de um registro por vez. Cada uma cria os registros que o Pergunte à IA e as configurações guiadas criam para as mesmas respostas, com as mesmas verificações:
+
+- **`set_up_website_monitoring`**: um monitor de site ou de API para um endereço, que abre um incidente quando o endereço não responde ou responde com um erro. Ele é seu, e um endereço que um monitor já verifica não ganha um segundo
+- **`set_up_paging`**: em um projeto que ainda não aciona ninguém, sua primeira política de plantão, que aciona você e as pessoas e equipes que você nomear a cada novo incidente e a cada novo alerta
+- **`publish_status_page`**: uma página de status pública que mostra os monitores que você nomear
+- **`add_monitors_to_status_page`**: monitores adicionados a uma página de status que o projeto já tem
+- **`who_is_told`**: quem é avisado quando um monitor cai, e o que impediria que alguém fosse alcançado. Não muda nada
+
+Elas agem como você, conectado com OAuth: uma chave de API de projeto não pode usar as quatro que criam algo. Seu cliente pergunta a você antes de cada uma, e a resposta diz o que foi criado. O que falta, como uma permissão, um endereço ou espaço no plano, é dito antes de qualquer coisa ser criada.
+
 ## Consultar a telemetria
 
 Logs, métricas, traces (spans), exceções, logs de monitores e os outros tipos de telemetria vêm como ferramentas `list_` e `count_` somente leitura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e as gêmeas `count_` delas). A telemetria chega pelo OpenTelemetry, então não há ferramentas de criação.
@@ -489,7 +503,7 @@ O servidor MCP não guarda estado: ele nem emite nem rastreia ids de sessão, en
 | Equipes e plantão | Team, On-Call Policy |
 | Rótulos | Label |
 | Segurança | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
-| Segurança de dados | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Custom Data Type, Residency Rule |
+| Segurança de dados | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Observabilidade de dados | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
 | Nuvem | Cloud Budget |
 

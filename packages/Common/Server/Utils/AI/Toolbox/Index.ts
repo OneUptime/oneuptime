@@ -23,7 +23,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
-import { QueryAlertsTool } from "./AlertTools";
+import { QueryAlertsTool, SearchAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
 import { QueryRumApplicationsTool, QueryRumWebVitalsTool } from "./RumTools";
 import {
@@ -129,8 +129,12 @@ import {
 } from "./AIActionTools";
 import {
   AddMonitorsToStatusPageTool,
+  AddToOnCallPolicyTool,
+  InvitePeopleTool,
   PublishStatusPageTool,
+  SetHowToReachMeTool,
   SetUpPagingTool,
+  SetUpServiceMonitorTool,
   SetUpWebsiteMonitoringTool,
 } from "./SetupTools";
 import { WhoIsToldTool } from "./WhoIsToldTools";
@@ -175,6 +179,7 @@ export default class AIToolbox {
     GetIncidentTimelineTool,
     GetAlertTimelineTool,
     QueryAlertsTool,
+    SearchAlertsTool,
     QueryMonitorsTool,
     QueryRumApplicationsTool,
     QueryRumWebVitalsTool,
@@ -332,10 +337,16 @@ export default class AIToolbox {
      * Setting things up by conversation (#6829): a website monitor, who is
      * paged, a status page and the monitors on it - the guided setups'
      * records, as the person, each part of a plan approved on one card in
-     * every mode (SetupTools).
+     * every mode (SetupTools). And people invited to the project (#7242),
+     * people added to a policy it has (#7244), how pages reach the person
+     * (#7454) and a service's recommended monitors (#7243).
      */
+    InvitePeopleTool,
     SetUpPagingTool,
+    AddToOnCallPolicyTool,
+    SetHowToReachMeTool,
     SetUpWebsiteMonitoringTool,
+    SetUpServiceMonitorTool,
     PublishStatusPageTool,
     AddMonitorsToStatusPageTool,
   ];
@@ -365,13 +376,30 @@ export default class AIToolbox {
   }
 
   /*
-   * WHY A SETUP ACTION IS NOT PROPOSED AT ALL, before its card is shown
-   * (#6829): the gates a run checks - the request is for this project, there
-   * is a signed-in person to act as, and they hold the permissions - and
-   * then the tool's own check of what is missing (an address, monitors,
-   * paging the project has already). A refused setup is never shown to be
-   * approved and then refused: the model is told what is needed, and says
-   * it. Null when nothing stops it, and for any other tool.
+   * WHY AN ACTION IS NOT PROPOSED AT ALL, before its approval card is shown
+   * (#6829 for the setup actions, #7248 for every action): the gates a run
+   * checks - the request is for this project, there is a signed-in person
+   * to act as, and they hold the tool's permissions (for its arguments,
+   * with no team of theirs blocking them) - then the server's switch for
+   * the tool's products, and then, for a setup action, its own check of
+   * what is missing (an address, monitors, paging the project has
+   * already).
+   *
+   * They are the very checks executeTool makes before it runs the tool -
+   * refuseByGates and refuseProductsOffOnServer, asked with the arguments
+   * it would run with - so the card and the run cannot disagree: an action
+   * the person may not take is never shown to be approved and then
+   * refused ("Not done: your role does not allow it"). The model is told
+   * what is needed, and says it. They are asked again when the action runs:
+   * a role can change while a card waits.
+   *
+   * A record the person's labels do not reach is refused by the record's
+   * own service when the action runs, in the service's words, as before:
+   * the label rules are the service's, and a second copy of them here could
+   * disagree with it.
+   *
+   * Null when nothing stops it, and for a tool that only reads (it runs at
+   * once, through the same gates).
    */
   public static async checkBeforeApproval(data: {
     name: string;
@@ -380,7 +408,7 @@ export default class AIToolbox {
   }): Promise<ToolCallOutcome | null> {
     const tool: ObservabilityTool | undefined = this.getToolByName(data.name);
 
-    if (!tool?.setupAction) {
+    if (!tool?.isMutation) {
       return null;
     }
 
@@ -402,7 +430,8 @@ export default class AIToolbox {
       return refusedAsOff;
     }
 
-    if (!tool.checkBeforeApproval) {
+    // Only a setup action has a check of its own (ObservabilityTool).
+    if (!tool.setupAction || !tool.checkBeforeApproval) {
       return null;
     }
 
@@ -665,8 +694,8 @@ export default class AIToolbox {
    * request is for this one project, the arguments are an object, a change
    * has a signed-in person to be made as, and they hold the tool's
    * permissions - and the refusal of the first it fails, or null. Shared by
-   * executeTool and checkBeforeApproval, which asks them before a setup
-   * action's card is shown and never runs the tool.
+   * executeTool and checkBeforeApproval, which asks them before an action's
+   * card is shown and never runs the tool.
    */
   private static refuseByGates(
     tool: ObservabilityTool,

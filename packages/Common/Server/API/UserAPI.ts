@@ -25,11 +25,26 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  OneUptimeRequest,
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
+import UserMiddleware, {
+  RequestSession,
+} from "../Middleware/UserAuthorization";
+import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import LocalSignInClearing from "../Utils/LocalSignInClearing";
+import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import {
+  CLEAR_LOCAL_SIGN_IN_ACTION,
+  ClearLocalSignInAnswer,
+} from "../../Types/SSO/LocalSignInClearing";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import { SignInManagement } from "../../Types/SSO/SsoManagedSignIn";
+import { TwoFactorAuthSetup } from "../../Types/TwoFactorAuthSetup";
 
 const BLANK_PROFILE_PICTURE_PATH: string =
   "/usr/src/Common/UI/Images/users/blank-profile.svg";
@@ -37,6 +52,74 @@ const BLANK_PROFILE_PICTURE_PATH: string =
 export default class UserAPI extends BaseAPI<User, UserServiceType> {
   public constructor() {
     super(User, UserService);
+
+    /*
+     * Whether the signed-in person's organization manages how they sign in
+     * (Types/SSO/SsoManagedSignIn, #9688, #9763), for User Profile: while it
+     * does, the profile has no Security section and names the SSO providers
+     * instead; while only some of their projects do, it names the others,
+     * which keep their settings theirs. The caller's own answer only - there
+     * is no user id to name, so there is none to substitute - and nothing
+     * secret in it: the providers' names are what the sign-in pages show
+     * anyone, and the projects are the caller's own.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/sign-in-management`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getCurrentUserId(req);
+
+          const answer: SignInManagement =
+            await SsoManagedSignIn.getSignInManagement(userId);
+
+          // It changes the moment a master admin flips the requirement.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            isManagedBySso: answer.isManagedBySso,
+            ssoProviderNames: answer.ssoProviderNames,
+            localSignInProjectNames: answer.localSignInProjectNames,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Where the signed-in person stands on two factor authentication
+     * (Types/TwoFactorAuthSetup, #9666): whether it is on, and how many
+     * second steps are set up behind it, counted as the checks that refuse
+     * turning it on with none, or removing the last one, count them. The
+     * profile reads it to offer what those checks allow, and to say "Setup
+     * needed" rather than "Enabled" over nothing. The caller's own answer
+     * only, as above.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/two-factor-auth-status`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getCurrentUserId(req);
+
+          const setup: TwoFactorAuthSetup =
+            await UserService.getTwoFactorAuthSetup(userId);
+
+          // A stale "Not enabled" after turning it on reads as a button that did nothing.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            status: setup.status,
+            verifiedMethodCount: setup.verifiedMethodCount,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
 
     /*
      * Every project one user belongs to, one row per project, for the Admin
@@ -447,6 +530,60 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
       },
     );
 
+    /*
+     * Clear one person's sign-in settings (#9762, Types/SSO/
+     * LocalSignInClearing): their password and its links, passkeys and
+     * security keys, authenticator apps, backup codes and two-factor
+     * authentication, with their sessions not signed in with SSO. It cannot
+     * be undone, and the Authentication page asks first.
+     *
+     * Session-only middleware, like every write here: a leaked static key
+     * that could strip people's sign-in would be a lockout of everyone. The
+     * master admin is the session's own person, never one named in the
+     * body; their own account is refused (LocalSignInClearing says why), and
+     * another master admin's only with `isMasterAdminConfirmed: true` - the
+     * dialog sends it only after naming them as one. Type-checked, so a
+     * string "true" confirms nothing.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/${CLEAR_LOCAL_SIGN_IN_ACTION}`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+          const clearedByUserId: ObjectID =
+            await UserAPI.getMasterAdminSessionUserId(req);
+
+          const isMasterAdminConfirmed: unknown =
+            req.body?.["isMasterAdminConfirmed"];
+
+          if (
+            isMasterAdminConfirmed !== undefined &&
+            typeof isMasterAdminConfirmed !== "boolean"
+          ) {
+            throw new BadDataException(
+              "Say whether you confirm clearing a master admin's sign-in settings with true or false (isMasterAdminConfirmed).",
+            );
+          }
+
+          const answer: ClearLocalSignInAnswer =
+            await LocalSignInClearing.clearForPerson({
+              userId: userId,
+              clearedByUserId: clearedByUserId,
+              isMasterAdminConfirmed: isMasterAdminConfirmed === true,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/profile-picture/:userId`,
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -465,6 +602,30 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
         }
 
         try {
+          /*
+           * A person's picture is shown to those who know them: themselves,
+           * a master admin, and the people of a project they have joined -
+           * never to a project that has only invited them, nor to anyone
+           * holding their id (#9823, PendingInviteeProfiles.maySeePicture).
+           * Everyone else gets the blank picture a person with none has.
+           */
+          const reader: JSONWebTokenData | null =
+            await UserMiddleware.getSessionUser(req);
+
+          if (
+            !(await PendingInviteeProfiles.maySeePicture({
+              personUserId: userId,
+              reader: reader
+                ? {
+                    userId: reader.userId,
+                    isMasterAdmin: reader.isMasterAdmin === true,
+                  }
+                : null,
+            }))
+          ) {
+            return this.sendBlankProfile(req, res);
+          }
+
           const profilePictureSelect: {
             profilePictureFile: {
               _id: boolean;
@@ -529,6 +690,44 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
    * the value flows into a query, and a malformed id should fail as bad input
    * rather than reach the database layer.
    */
+  /*
+   * The signed-in person, as the validated access token names them
+   * (UserMiddleware.getUserMiddleware): never an id from the request.
+   */
+  private static getCurrentUserId(req: ExpressRequest): ObjectID {
+    const userId: ObjectID | undefined = (req as OneUptimeRequest)
+      .userAuthorization?.userId;
+
+    if (!userId) {
+      throw new NotAuthenticatedException(
+        "Sign in to see how you sign in to OneUptime.",
+      );
+    }
+
+    return userId;
+  }
+
+  /*
+   * The master admin a master-admin route was asked by, as their session
+   * names them (UserMiddleware.readRequestSession, as MasterAdminAuthorization
+   * read it before the handler, which sets no userAuthorization for the
+   * handler to read): never an id from the request.
+   */
+  private static async getMasterAdminSessionUserId(
+    req: ExpressRequest,
+  ): Promise<ObjectID> {
+    const session: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    if (session.kind !== "user" || !session.session.userId) {
+      throw new NotAuthenticatedException(
+        "Sign in as a master admin to clear someone's sign-in settings.",
+      );
+    }
+
+    return new ObjectID(session.session.userId.toString());
+  }
+
   private static getUserIdFromParams(req: ExpressRequest): ObjectID {
     const userIdParam: string = ((req.params["userId"] as string) || "").trim();
 

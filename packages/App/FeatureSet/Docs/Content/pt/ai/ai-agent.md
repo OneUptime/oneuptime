@@ -22,7 +22,7 @@ Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, 
 :::steps
 ### Abra o Código
 
-Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro; filtre-as por como estão, cada filtro com sua contagem, ou busque-as por título ou número. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar, com GitLab, Forgejo ou Gitea e qualquer servidor Git abaixo (veja [Conectar um repositório](#conectar-um-repositório)). **Repositórios**, no menu lateral, lista os repositórios em que a IA pode trabalhar, e agrupa em **Não conectado** os que o OneUptime não alcança mais. A página de cada repositório tem a mesma caixa para aquele repositório, e lá você pode marcar os pedidos que falharam ou foram parados e tentar todos de novo com **Tentar novamente as selecionadas**.
+Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro; filtre-as por como estão, cada filtro com sua contagem, ou busque-as por título ou número. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar, com GitLab, Forgejo ou Gitea e qualquer servidor Git abaixo (veja [Conectar um repositório](#conectar-um-repositório)). **Repositórios**, no menu lateral, lista os repositórios em que a IA pode trabalhar, e agrupa em **Não conectado** os que o OneUptime não alcança mais. A página de cada repositório tem a mesma caixa para aquele repositório. Nas duas páginas, você pode marcar as tarefas que falharam ou foram paradas, nos repositórios em que pode pedir à IA, e tentar todas de novo com **Tentar novamente as selecionadas**; uma tarefa que não pode ser tentada de novo diz por quê.
 
 ### Escolha o repositório e o branch
 
@@ -57,19 +57,19 @@ Um pedido leva no máximo 10 itens de contexto. Tokens, chaves, senhas e endere�
 
 ## A conversa de uma tarefa
 
-A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionado, depois a vez da IA – os passos que ela dá à medida que os dá (os arquivos que leu e editou, o que procurou, os comandos que executou), a resposta dela, os arquivos que alterou com o diff deles, e o pull request. O topo da página diz onde a tarefa trabalha (o repositório dela e o branch de onde partiu), quantos arquivos e linhas ela alterou, quanto tempo a IA trabalhou nela, com um botão para o pull request dela, e como a tarefa está:
+A página de uma tarefa é uma conversa: o que foi pedido e o contexto adicionado, depois o turno da IA – os passos que ela dá à medida que os dá (os arquivos que leu e editou, o que procurou, os comandos que executou), a resposta dela, os arquivos que alterou com o diff deles, e o pull request. O topo da página diz onde a tarefa trabalha (o repositório dela e o branch de onde partiu), quantos arquivos e linhas ela alterou, quanto tempo a IA trabalhou nela, com um botão para o pull request dela, e como a tarefa está:
 
 | Estado | O que significa |
 | --- | --- |
 | **Na fila** | Espera que um Runner a assuma. |
-| **Tentando novamente** | Se a IA tenta a vez de novo sozinha, a página diz qual tentativa vem a seguir e quando; **Tentar novamente agora** a inicia na hora. |
+| **Tentando novamente** | Se a IA tenta o turno de novo sozinha, a página diz qual tentativa vem a seguir e quando; **Tentar novamente agora** a inicia na hora. |
 | **Trabalhando…** | A IA está trabalhando nela. **Parar** a interrompe; o que ela enviou continua no branch. |
 | **Aguardando você** | A IA fez uma pergunta. Responda na caixa abaixo. |
 | **Concluído** | A IA terminou: a resposta dela, e o pull request quando alterou código. |
-| **Falhou** | A vez não pôde terminar, e diz por quê, e depois de quantas tentativas quando a IA tentou de novo sozinha. **Tentar novamente** pede o mesmo outra vez. |
+| **Falhou** | O turno não pôde terminar, e diz por quê, e depois de quantas tentativas quando a IA tentou de novo sozinha. **Tentar novamente** pede o mesmo outra vez. Uma correção que o OneUptime iniciou é pedida de novo com aquilo de que partiu, a menos que talvez já tenha enviado um branch ou aberto um pull request: então o turno diz isso no lugar. |
 | **Parado** | Alguém a interrompeu. **Tentar novamente** pede o mesmo outra vez. |
 
-Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa rola: responda à IA, adicione contexto ou peça alterações. Cada resposta é a próxima vez da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz uma vez de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada vez é o registro literal do que ela fez. Em uma tarefa com mais de uma vez, um seletor no topo da página **Registro** passa de uma vez para outra. Uma tarefa com mais de 200 vezes mostra a primeira vez e as 199 mais recentes, com uma linha entre elas que diz quantas vezes anteriores não são mostradas. O topo da página continua contando cada vez.
+Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa rola: responda à IA, adicione contexto ou peça alterações. Cada resposta é o próximo turno da mesma tarefa: ela trabalha no mesmo branch e envia para o mesmo pull request enquanto ele estiver aberto. Uma tarefa faz um turno de cada vez, então a caixa espera enquanto a IA trabalha. O **Registro** de cada turno é o registro literal do que ela fez. Em uma tarefa com mais de um turno, um seletor no topo da página **Registro** passa de um turno para outro. Uma tarefa com mais de 200 turnos mostra o primeiro turno e os 199 mais recentes, com uma linha entre eles que diz quantos turnos anteriores não são mostrados. O topo da página continua contando cada turno. **Mostrar turnos anteriores**, sob essa linha, mostra os 50 turnos anteriores aos mostrados, sempre que você clica nele, e o seletor da página **Registro** também os lista. Uma tarefa abre no topo; enquanto o turno mais recente está fora de vista, **Ir para o mais recente** acima da caixa leva você até lá.
 
 Quem pode ler um repositório lê as tarefas dele. Pedir à IA, responder e parar uma tarefa exigem permissão para editar o repositório, assim como ver o diff de uma alteração: os demais veem quais arquivos mudaram. As tarefas que o OneUptime inicia por conta própria (abaixo) também ficam no repositório delas, como conversas em que você pode responder.
 
@@ -100,7 +100,7 @@ flowchart TB
 6. Em um Runner próprio, o agente de código compila e testa a alteração como diz o `AGENTS.md` do repositório antes de qualquer commit, e corrige o que falha (veja [Verificação antes do pull request](#verificação-antes-do-pull-request)).
 7. O Runner faz o commit, envia o branch, abre o pull request (para um pedido, só quando alterou código) e apaga o espaço de trabalho.
 
-A página de onde a tarefa foi iniciada mostra o status dela ao vivo. Toda tarefa aparece no repositório dela, em **Produtos → Código**: a página dela é a conversa, e o **Registro** de cada vez tem uma linha para cada arquivo que o Runner leu ou escreveu e cada comando que executou.
+A página de onde a tarefa foi iniciada mostra o status dela ao vivo. Toda tarefa aparece no repositório dela, em **Produtos → Código**: a página dela é a conversa, e o **Registro** de cada turno tem uma linha para cada arquivo que o Runner leu ou escreveu e cada comando que executou.
 
 Uma execução faz quantas chamadas ao LLM e consultas de telemetria de produção o seu trabalho precisar, dentro do seu tempo limite: 120 minutos, a menos que o projeto defina outro. O projeto pode limitar mais cada execução em **Limites por execução**, em **Mais configurações** de **Configurações do projeto → IA → Recursos de IA**; uma execução que atinge um limite termina com um resumo do trabalho feito até ali. Um Runner anterior a esta versão ainda interrompe uma execução em 40 chamadas ao LLM e 100.000 tokens de saída: atualize-o para remover esses limites. As execuções de correção também contam para os limites diários de IA do projeto, quando o projeto os define.
 
@@ -190,7 +190,7 @@ Um repositório diz como é compilado e testado em um `AGENTS.md` na raiz, o arq
 
 | Onde a IA trabalha | O que ela faz com o build e os testes do repositório |
 | --- | --- |
-| Um dos seus Runners | Compila e testa a alteração antes de o pull request abrir, corrige o que falha e verifica de novo, e diz no resumo quais verificações executou. Cada comando que executa tem 2 minutos, ou até 10 para uma instalação, um build ou uma suíte de testes lenta, sem as credenciais do próprio Runner no ambiente. |
+| Um dos seus Runners | Compila e testa a alteração antes de o pull request abrir, corrige o que falha e verifica de novo, e diz no resumo quais verificações executou. Cada comando que executa tem 2 minutos, ou até 10 para uma instalação, um build ou uma suíte de testes lenta, sem as credenciais do próprio Runner no ambiente. **Tempo limite por comando (minutos)**, nos **Limites por execução** do projeto, deixa um comando durar até 120 minutos, nunca além do tempo limite da execução. |
 | **Runner global** | Não executa nenhum comando: escreve a mudança e abre o pull request, e a CI do seu repositório a verifica. |
 
 Nada de um pull request que vem de um fork é lido como instruções do repositório: uma revisão recusa esse pull request, e uma avaliação lê o branch base.
@@ -330,7 +330,7 @@ Todo o resto é igual ao botão:
 
 - O pull request abre pronto para revisão, escrito a partir da análise publicada, e precisa de um repositório conectado, um dos que as regras correspondentes nomeiam quando nomeiam algum, e de um Runner online para trabalhar nele: o que o repositório escolhe, ou um Runner global.
 - Ele conta para o limite diário de tarefas de correção daquele sinal (**Limite diário de tarefas de correção com IA para incidentes** ou **Limite diário de tarefas de correção com IA para alertas**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
-- Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, então um gatilho automático e um clique normalmente viram uma única tarefa, não dois pull requests. A verificação é uma leitura antes da escrita, não um bloqueio, então dois gatilhos no mesmo instante ainda podem passar os dois.
+- Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, também quando o que está em execução é uma resposta na tarefa, então um gatilho automático e um clique viram uma única tarefa, não dois pull requests. A verificação é feita de novo quando a tarefa é gravada, sob um bloqueio, então dois gatilhos no mesmo instante iniciam uma única tarefa.
 - A execução é escrita pelo sistema, não é atribuída a ninguém, e nada é mesclado sozinho.
 
 Em um incidente ou alerta privado, **Abrir pull request de correção** exige o mesmo que aprovar as correções do registro, por meio das equipes que são donas dele, e fica bloqueado para qualquer outra pessoa, dizendo por quê. Todos com acesso ao repositório leem o pull request, então o título, o commit e a descrição dele dizem o que a alteração faz e nada sobre o registro, e o agente de código é instruído a deixar o registro fora do resumo e dos comentários que escreve. Um Runner anterior a esta mudança não recebe uma correção assim, e a tarefa falha dizendo para atualizar o Runner.
@@ -338,7 +338,7 @@ Em um incidente ou alerta privado, **Abrir pull request de correção** exige o 
 ## Quando uma correção falha
 
 :::details A execução falha
-A correção não pôde ser aplicada, o repositório ou o branch de onde um pedido partiu não pôde ser acessado, ou a chamada ao LLM falhou. Uma falha passageira (o provedor do modelo de IA ocupado ou fora do ar, uma chamada que excedeu o tempo, a rede) é tentada de novo sozinha, até 3 tentativas no total, a segunda depois de 1 minuto e a terceira depois de 4, a menos que a execução possa já ter enviado um branch ou aberto um pull request. Uma falha que se repetiria, como uma chave que o provedor recusa ou a falta de créditos, não é tentada de novo. Quando a vez falha definitivamente, a conversa da tarefa, e a página de onde ela foi iniciada, mostram o motivo e oferecem tentar de novo. O **Registro** da vez tem o log completo da execução.
+A correção não pôde ser aplicada, o repositório ou o branch de onde um pedido partiu não pôde ser acessado, ou a chamada ao LLM falhou. Uma falha passageira (o provedor do modelo de IA ocupado ou fora do ar, uma chamada que excedeu o tempo, a rede) é tentada de novo sozinha, até 3 tentativas no total, a segunda depois de 1 minuto e a terceira depois de 4, a menos que a execução possa já ter enviado um branch ou aberto um pull request. Uma falha que se repetiria, como uma chave que o provedor recusa ou a falta de créditos, não é tentada de novo. Quando o turno falha definitivamente, a conversa da tarefa, e a página de onde ela foi iniciada, mostram o motivo e oferecem tentar de novo. O **Registro** do turno tem o log completo da execução.
 :::
 
 :::details O Runner para no meio de uma execução

@@ -73,6 +73,7 @@ import {
 } from "../../../Types/VideoCall/VideoCallTranscript";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import API from "../../../UI/Utils/API/API";
+import Toast, { ToastItem, ToastType } from "../../../UI/Utils/Toast";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
@@ -93,6 +94,8 @@ const EVENT_ID: ObjectID = new ObjectID("2c1b0a9f-8e7d-4c6b-9a5f-4e3d2c1b0a9f");
 let allowed: Record<ModelAction, boolean>;
 let post: ReturnType<typeof jest.spyOn>;
 let remove: ReturnType<typeof jest.spyOn>;
+// What removing a transcript answered: where a message stays, if anywhere.
+let removeAnswer: JSONObject;
 let postAnswer: (url: string) => HTTPResponse<JSONObject> | HTTPErrorResponse;
 
 interface SentRequest {
@@ -182,9 +185,15 @@ beforeEach(() => {
     return postAnswer(request.url.toString());
   }) as never);
 
+  removeAnswer = {
+    removed: true,
+    messagesLeftIn: [],
+    mayHaveMessagesLeft: false,
+  };
   remove = jest.spyOn(API, "delete").mockImplementation((async () => {
-    return new HTTPResponse<JSONObject>(200, {}, {});
+    return new HTTPResponse<JSONObject>(200, removeAnswer, {});
   }) as never);
+  Toast.dismissAll();
 });
 
 afterEach(() => {
@@ -1125,7 +1134,12 @@ describe("the transcript's menu", () => {
     expect(screen.getByTestId("call-transcript-remove")).toBeVisible();
   });
 
-  test("Remove asks first, keeps the incident's root cause, then removes it", async () => {
+  /*
+   * The dialog says what the removal does (#9290): the transcript and what
+   * OneUptime AI read in it go from the call, its feed and the incident's
+   * channels, and the root cause someone saved stays.
+   */
+  test("Remove asks first, says it removes the reading from the feed and the channels too, keeps the root cause, then removes it", async () => {
     const { onChanged } = renderCard({ calls: [suggestedCall()] });
 
     fireEvent.click(screen.getByTestId("call-transcript-menu-button"));
@@ -1134,7 +1148,7 @@ describe("the transcript's menu", () => {
     expect(screen.getByText("Remove the transcript?")).toBeVisible();
     expect(
       screen.getByText(
-        "The transcript of the Zoom meeting and what OneUptime AI read in it are removed from this incident. The incident's root cause is kept.",
+        "The transcript of the Zoom meeting and what OneUptime AI read in it are removed, from the feed and chat channels too. The incident's root cause is kept.",
       ),
     ).toBeVisible();
     expect(remove).not.toHaveBeenCalled();
@@ -1147,6 +1161,121 @@ describe("the transcript's menu", () => {
     expect((remove.mock.calls[0]![0] as SentRequest).url.toString()).toContain(
       `/incident-video-call/${CALL_ID}/transcript`,
     );
+  });
+
+  async function removeIt(): Promise<Array<ToastItem>> {
+    const shown: Array<Array<ToastItem>> = [];
+    const stop: () => void = Toast.subscribe(
+      (toasts: ReadonlyArray<ToastItem>): void => {
+        shown.push([...toasts]);
+      },
+    );
+    const { onChanged } = renderCard({ calls: [suggestedCall()] });
+
+    fireEvent.click(screen.getByTestId("call-transcript-menu-button"));
+    fireEvent.click(screen.getByTestId("call-transcript-remove"));
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(onChanged).toHaveBeenCalledTimes(1);
+    });
+    stop();
+
+    return shown[shown.length - 1] || [];
+  }
+
+  test("once nothing about it stays, says so in a toast that goes by itself", async () => {
+    const toasts: Array<ToastItem> = await removeIt();
+
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0]!.type).toBe(ToastType.Success);
+    expect(toasts[0]!.title).toBe("Transcript removed");
+    expect(toasts[0]!.durationInMs).not.toBeNull();
+  });
+
+  test("names where a message stays that OneUptime could not delete, in a toast that stays until it is closed", async () => {
+    removeAnswer = {
+      removed: true,
+      messagesLeftIn: ["#inc-42 (Slack)", "Incidents (Microsoft Teams)"],
+      mayHaveMessagesLeft: false,
+    };
+
+    const toasts: Array<ToastItem> = await removeIt();
+
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0]!.type).toBe(ToastType.Error);
+    expect(toasts[0]!.title).toBe("Some messages were not deleted");
+    expect(toasts[0]!.description).toBe(
+      "The transcript is removed, but OneUptime could not delete what it posted about it in #inc-42 (Slack), Incidents (Microsoft Teams). Delete it there.",
+    );
+    expect(toasts[0]!.durationInMs).toBeNull();
+  });
+
+  test("says a reading posted before OneUptime kept track of its messages may still be in the channels", async () => {
+    removeAnswer = {
+      removed: true,
+      messagesLeftIn: [],
+      mayHaveMessagesLeft: true,
+    };
+
+    const toasts: Array<ToastItem> = await removeIt();
+
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0]!.type).toBe(ToastType.Error);
+    expect(toasts[0]!.title).toBe("Some messages may still be posted");
+    expect(toasts[0]!.description).toBe(
+      "The transcript is removed. What OneUptime AI read in it was posted before OneUptime kept track of its messages, so it may still be in the incident's Slack, Microsoft Teams or Mattermost channels. Delete it there.",
+    );
+  });
+
+  test("an answer from an older server, with nothing in it, is a removal with nothing left", async () => {
+    removeAnswer = {};
+
+    const toasts: Array<ToastItem> = await removeIt();
+
+    expect(
+      toasts.map((toast: ToastItem): string => {
+        return toast.title;
+      }),
+    ).toEqual(["Transcript removed"]);
+  });
+
+  test("a removal the server refuses says why in the dialog, and no toast says it worked", async () => {
+    remove.mockImplementation((async () => {
+      return new HTTPErrorResponse(
+        403,
+        {
+          message:
+            "You do not have permission to work on this incident's calls.",
+        },
+        {},
+      );
+    }) as never);
+    const shown: Array<Array<ToastItem>> = [];
+    const stop: () => void = Toast.subscribe(
+      (toasts: ReadonlyArray<ToastItem>): void => {
+        shown.push([...toasts]);
+      },
+    );
+    const { onChanged } = renderCard({ calls: [suggestedCall()] });
+
+    fireEvent.click(screen.getByTestId("call-transcript-menu-button"));
+    fireEvent.click(screen.getByTestId("call-transcript-remove"));
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    expect(
+      await screen.findByText(
+        "You do not have permission to work on this incident's calls.",
+      ),
+    ).toBeVisible();
+    stop();
+
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(
+      (shown[shown.length - 1] || []).filter((toast: ToastItem): boolean => {
+        return toast.type === ToastType.Success;
+      }),
+    ).toEqual([]);
   });
 
   test("is not there without permission to work on the incident's calls", () => {

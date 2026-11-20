@@ -13,6 +13,7 @@ import {
   getAwsStoredMetricName,
   getAzureKeyMetricNames,
   getAzureStoredMetricName,
+  getGcpStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
@@ -31,11 +32,17 @@ import {
   CLOUD_STATUS_NOT_REPORTING,
   CLOUD_STATUS_REPORTING,
   CLOUD_STATUS_UNHEALTHY,
+  CloudHeadlineReading,
   CloudHealthAssessment,
   CloudHealthRow,
   CloudHealthSeverity,
   CloudHealthText,
   CloudResourceReadings,
+  GCP_OPS_AGENT_DISK_KEY,
+  GCP_OPS_AGENT_MEMORY_KEY,
+  HEADLINE_INSTALL_OPS_AGENT,
+  HEADLINE_NEEDS_OPS_AGENT,
+  HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION,
   REASON_CONSUMERS_BEHIND,
   REASON_INVOCATIONS_FAILED,
   REASON_NOT_AVAILABLE,
@@ -49,6 +56,8 @@ import {
   findCloudHealthProblems,
   formatCloudPercent,
   getCloudBacklogText,
+  getCloudHeadlineReadingKeys,
+  getCloudHeadlineReadingOf,
   getCloudHeadlineReadings,
   getCloudHealthSeverity,
   getCloudReadingKey,
@@ -57,6 +66,7 @@ import {
   hasCloudHealthRules,
   hasFreshCloudReadings,
   isCloudHeadlineExpected,
+  isCloudReadingTheHighestOfItsSeries,
   readCloudResourceReadings,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import { fillTemplate } from "../../../Types/Translator";
@@ -214,7 +224,8 @@ describe("CloudResourceHealth", () => {
 
     for (const entry of GCP_KEY_METRICS as ReadonlyArray<GcpTypeKeyMetrics>) {
       for (const metric of entry.metrics as Array<GcpKeyMetric>) {
-        readKeys["gcp"]!.add(metric.metricType);
+        // A distribution read for its count is stored as its own.
+        readKeys["gcp"]!.add(getGcpStoredMetricName(metric).toLowerCase());
       }
     }
 
@@ -249,13 +260,15 @@ describe("CloudResourceHealth", () => {
       }
     });
 
-    test("each headline reading is a key metric its cloud's connection reads", () => {
+    test("each headline reading is a key metric its cloud's connection reads, its fallbacks too", () => {
       for (const entry of CLOUD_HEADLINE_READINGS) {
         for (const headline of entry.readings) {
-          expect({
-            key: headline.key,
-            read: readKeys[entry.provider]!.has(headline.key),
-          }).toEqual({ key: headline.key, read: true });
+          for (const key of getCloudHeadlineReadingKeys(headline)) {
+            expect({
+              key,
+              read: readKeys[entry.provider]!.has(key),
+            }).toEqual({ key, read: true });
+          }
         }
 
         for (const type of entry.types) {
@@ -450,6 +463,61 @@ describe("CloudResourceHealth", () => {
       expect(share(499, 1000).severity).toBe(CloudHealthSeverity.Warning);
       expect(share(500, 1000).severity).toBe(CloudHealthSeverity.Critical);
       expect(share(500, 1000).reasons[0]!.text).toBe(REASON_REQUESTS_FAILED);
+    });
+
+    /*
+     * An HTTP API counts its server errors as 5xx, a REST API as 5XXError:
+     * the HTTP API's rule and headline read 5XXError, which it never
+     * publishes, so its server errors were never judged or shown.
+     */
+    test("an HTTP API's server errors are its 5xx, a REST API's its 5XXError", () => {
+      const at: Date = minutesAgo(5);
+      const apis: Array<{ type: string; key: string; other: string }> = [
+        {
+          type: "AWS::ApiGatewayV2::Api",
+          key: "aws/apigateway/5xx",
+          other: "aws/apigateway/5xxerror",
+        },
+        {
+          type: "AWS::ApiGateway::RestApi",
+          key: "aws/apigateway/5xxerror",
+          other: "aws/apigateway/5xx",
+        },
+      ];
+
+      for (const api of apis) {
+        expect(
+          assess({
+            provider: CloudProvider.AWS,
+            type: api.type,
+            readings: {
+              "aws/apigateway/count": reading(1000, at),
+              [api.key]: reading(80, at),
+            },
+          }).reasons.map(english),
+        ).toEqual(["8% of requests failed"]);
+        // The other kind's errors are none of its own.
+        expect(
+          assess({
+            provider: CloudProvider.AWS,
+            type: api.type,
+            readings: {
+              "aws/apigateway/count": reading(1000, at),
+              [api.other]: reading(80, at),
+            },
+          }).state,
+        ).toBe("healthy");
+        expect(getCloudReadingKeysForType("aws", api.type).has(api.key)).toBe(
+          true,
+        );
+        expect(
+          getCloudHeadlineReadings("aws", api.type).map(
+            (headline: { key: string }) => {
+              return headline.key;
+            },
+          ),
+        ).toEqual(["aws/apigateway/count", "aws/apigateway/latency", api.key]);
+      }
     });
 
     test("the load balancer's own 5xx count with its targets'", () => {
@@ -919,5 +987,481 @@ describe("CloudResourceHealth", () => {
         getCloudReadingPeriodSeconds("gcp", "run.googleapis.com/request_count"),
       ).toBe(60);
     });
+  });
+});
+
+/*
+ * A Compute Engine VM's memory and disks, from the Ops Agent on it
+ * (#9568): judged when the agent reports them, said plainly when it does
+ * not.
+ */
+describe("a Compute Engine VM's memory and disks", () => {
+  const VM: string = "gce_instance";
+  const CPU: string = "compute.googleapis.com/instance/cpu/utilization";
+
+  test("memory 95% used or more is a warning; a disk 90% full a warning, 95% critical", () => {
+    expect(
+      reasonsOf({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_MEMORY_KEY]: reading(96.2) },
+      }),
+    ).toEqual(["Memory 96% used"]);
+    expect(
+      assess({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_MEMORY_KEY]: reading(94.9) },
+      }).state,
+    ).toBe("healthy");
+    expect(
+      assess({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_DISK_KEY]: reading(92) },
+      }).severity,
+    ).toBe(CloudHealthSeverity.Warning);
+    expect(
+      reasonsOf({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_DISK_KEY]: reading(96) },
+      }),
+    ).toEqual(["96% full"]);
+    expect(
+      assess({
+        provider: CloudProvider.GCP,
+        type: VM,
+        readings: { [GCP_OPS_AGENT_DISK_KEY]: reading(96) },
+      }).severity,
+    ).toBe(CloudHealthSeverity.Critical);
+  });
+
+  test("a VM without the agent is not judged by them: it reads Reporting, never Healthy", () => {
+    const assessment: CloudHealthAssessment = assess({
+      provider: CloudProvider.GCP,
+      type: VM,
+      readings: { [CPU]: reading(0.99) },
+    });
+
+    expect(assessment.state).toBe("reporting");
+    expect(assessment.isChecked).toBe(false);
+    // A busy VM is doing its work.
+    expect(assessment.reasons).toEqual([]);
+  });
+
+  test("its page leads with its CPU, memory and fullest disk, then its network, and keeps them", () => {
+    expect(
+      getCloudHeadlineReadings("gcp", VM).map(
+        (headline: CloudHeadlineReading): string => {
+          return headline.key;
+        },
+      ),
+    ).toEqual([
+      CPU,
+      GCP_OPS_AGENT_MEMORY_KEY,
+      GCP_OPS_AGENT_DISK_KEY,
+      "compute.googleapis.com/instance/network/received_bytes_count",
+      "compute.googleapis.com/instance/network/sent_bytes_count",
+    ]);
+
+    const keys: ReadonlySet<string> = getCloudReadingKeysForType("gcp", VM);
+
+    expect(keys.has(GCP_OPS_AGENT_MEMORY_KEY)).toBe(true);
+    expect(keys.has(GCP_OPS_AGENT_DISK_KEY)).toBe(true);
+  });
+
+  test("its memory and disk say they need the Ops Agent, with Google's install instructions", () => {
+    for (const key of [GCP_OPS_AGENT_MEMORY_KEY, GCP_OPS_AGENT_DISK_KEY]) {
+      const headline: CloudHeadlineReading = getCloudHeadlineReadings(
+        "gcp",
+        VM,
+      ).find((candidate: CloudHeadlineReading): boolean => {
+        return candidate.key === key;
+      })!;
+
+      expect(headline.format).toBe("percent");
+      expect(headline.needs).toEqual({
+        note: HEADLINE_NEEDS_OPS_AGENT,
+        description: HEADLINE_NEEDS_OPS_AGENT_DESCRIPTION,
+        link: {
+          url: "https://docs.cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation",
+          label: HEADLINE_INSTALL_OPS_AGENT,
+        },
+      });
+    }
+
+    expect(HEADLINE_NEEDS_OPS_AGENT).toBe("Needs the Ops Agent");
+    expect(HEADLINE_INSTALL_OPS_AGENT).toBe("Install the Ops Agent");
+    // Nothing else needs anything installed.
+    expect(
+      CLOUD_HEADLINE_READINGS.flatMap(
+        (entry: { readings: Array<CloudHeadlineReading> }) => {
+          return entry.readings;
+        },
+      ).filter((headline: CloudHeadlineReading): boolean => {
+        return Boolean(headline.needs);
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("its disks read as the fullest of them; no other reading does", () => {
+    expect(
+      isCloudReadingTheHighestOfItsSeries("gcp", GCP_OPS_AGENT_DISK_KEY),
+    ).toBe(true);
+    expect(
+      isCloudReadingTheHighestOfItsSeries(
+        "GCP",
+        GCP_OPS_AGENT_DISK_KEY.toUpperCase(),
+      ),
+    ).toBe(true);
+    expect(
+      isCloudReadingTheHighestOfItsSeries("gcp", GCP_OPS_AGENT_MEMORY_KEY),
+    ).toBe(false);
+    expect(
+      isCloudReadingTheHighestOfItsSeries("aws", GCP_OPS_AGENT_DISK_KEY),
+    ).toBe(false);
+  });
+});
+
+/*
+ * The headlines that read deprecated metrics read their replacements
+ * (#9565): a Cosmos DB account's latency, and a Pub/Sub topic's messages.
+ */
+describe("headlines off deprecated metrics", () => {
+  const COSMOS: string = "Microsoft.DocumentDB/databaseAccounts";
+
+  function latency(): CloudHeadlineReading {
+    return getCloudHeadlineReadings("azure", COSMOS).find(
+      (headline: CloudHeadlineReading): boolean => {
+        return headline.label === "Latency";
+      },
+    )!;
+  }
+
+  test("a Cosmos DB account's latency is its direct-mode requests', else its gateway-mode ones'", () => {
+    expect(getCloudHeadlineReadingKeys(latency())).toEqual([
+      "serversidelatencydirect",
+      "serversidelatencygateway",
+    ]);
+    expect(
+      getCloudHeadlineReadingOf(latency(), {
+        serversidelatencydirect: reading(4),
+        serversidelatencygateway: reading(30),
+      }),
+    ).toEqual({ key: "serversidelatencydirect", reading: reading(4) });
+    // A MongoDB account connects through the gateway alone.
+    expect(
+      getCloudHeadlineReadingOf(latency(), {
+        serversidelatencygateway: reading(12),
+      }),
+    ).toEqual({ key: "serversidelatencygateway", reading: reading(12) });
+    expect(getCloudHeadlineReadingOf(latency(), {})).toBeNull();
+    // Both are kept; the deprecated one is not.
+    const keys: ReadonlySet<string> = getCloudReadingKeysForType(
+      "azure",
+      COSMOS,
+    );
+
+    expect(keys.has("serversidelatencydirect")).toBe(true);
+    expect(keys.has("serversidelatencygateway")).toBe(true);
+    expect(keys.has("serversidelatency")).toBe(false);
+  });
+
+  test("a Pub/Sub topic's messages in are the count of its message sizes, each minute", () => {
+    expect(getCloudHeadlineReadings("gcp", "pubsub_topic")).toEqual([
+      {
+        key: "pubsub.googleapis.com/topic/message_sizes_count",
+        label: "Messages in",
+        format: "perPeriod",
+      },
+    ]);
+    expect(
+      getCloudReadingKeysForType("gcp", "pubsub_topic").has(
+        "pubsub.googleapis.com/topic/send_message_operation_count",
+      ),
+    ).toBe(false);
+  });
+
+  test("a headline without fallbacks reads its own key alone", () => {
+    const cpu: CloudHeadlineReading = getCloudHeadlineReadings(
+      "aws",
+      "AWS::EC2::Instance",
+    )[0]!;
+
+    expect(getCloudHeadlineReadingKeys(cpu)).toEqual([cpu.key]);
+    expect(cpu.fallbackKeys).toBeUndefined();
+    expect(cpu.needs).toBeUndefined();
+  });
+});
+
+/*
+ * #9692: the types read since #9567 lead their pages with numbers and are
+ * judged by what their key metrics say of them being well, so their status
+ * reads Healthy, Degraded or Unhealthy rather than Reporting.
+ */
+describe("the types read since #9567, judged", () => {
+  const at: Date = minutesAgo(5);
+
+  function judged(
+    type: string,
+    readings: CloudResourceReadings,
+  ): { severity: CloudHealthSeverity | null; reasons: Array<string> } {
+    const assessment: CloudHealthAssessment = assess({
+      provider: CloudProvider.AWS,
+      type,
+      readings,
+    });
+
+    return {
+      severity: assessment.severity,
+      reasons: assessment.reasons.map(english),
+    };
+  }
+
+  test("an App Runner service: the share of its requests answered 5xx", () => {
+    expect(
+      judged("AWS::AppRunner::Service", {
+        "aws/apprunner/requests": reading(1000, at),
+        "aws/apprunner/5xxstatusresponses": reading(60, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["6% of requests failed"],
+    });
+    expect(
+      judged("AWS::AppRunner::Service", {
+        "aws/apprunner/requests": reading(1000, at),
+        "aws/apprunner/5xxstatusresponses": reading(600, at),
+      }).severity,
+    ).toBe(CloudHealthSeverity.Critical);
+    // Too few requests to say: a quiet test service's two errors of three.
+    expect(
+      judged("AWS::AppRunner::Service", {
+        "aws/apprunner/requests": reading(3, at),
+        "aws/apprunner/5xxstatusresponses": reading(2, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a Global Accelerator: unavailable with no healthy endpoint, a warning with unhealthy ones", () => {
+    expect(
+      judged("AWS::GlobalAccelerator::Accelerator", {
+        "aws/globalaccelerator/healthyendpointcount": reading(0, at),
+        "aws/globalaccelerator/unhealthyendpointcount": reading(2, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Critical,
+      reasons: ["Not available", "2 unhealthy endpoints"],
+    });
+    expect(
+      judged("AWS::GlobalAccelerator::Accelerator", {
+        "aws/globalaccelerator/healthyendpointcount": reading(3, at),
+        "aws/globalaccelerator/unhealthyendpointcount": reading(1, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["1 unhealthy endpoint"],
+    });
+    expect(
+      judged("AWS::GlobalAccelerator::Accelerator", {
+        "aws/globalaccelerator/healthyendpointcount": reading(3, at),
+        "aws/globalaccelerator/unhealthyendpointcount": reading(0, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("an Elastic Beanstalk environment: Degraded a warning, Severe critical, Warning and below well", () => {
+    const health: (value: number) => {
+      severity: CloudHealthSeverity | null;
+      reasons: Array<string>;
+    } = (value: number) => {
+      return judged("AWS::ElasticBeanstalk::Environment", {
+        "aws/elasticbeanstalk/environmenthealth": reading(value, at),
+      });
+    };
+
+    expect(health(25)).toEqual({
+      severity: CloudHealthSeverity.Critical,
+      reasons: ["Environment health severe"],
+    });
+    expect(health(20)).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["Environment health degraded"],
+    });
+
+    for (const value of [0, 1, 5, 10, 15]) {
+      expect({ value, severity: health(value).severity }).toEqual({
+        value,
+        severity: null,
+      });
+    }
+  });
+
+  test("an Auto Scaling group: whole instances short of its desired capacity, in one period", () => {
+    const group: (
+      inService: number,
+      desired: number,
+    ) => {
+      severity: CloudHealthSeverity | null;
+      reasons: Array<string>;
+    } = (inService: number, desired: number) => {
+      return judged("AWS::AutoScaling::AutoScalingGroup", {
+        "aws/autoscaling/groupinserviceinstances": reading(inService, at),
+        "aws/autoscaling/groupdesiredcapacity": reading(desired, at),
+      });
+    };
+
+    expect(group(2, 4)).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["2 instances short of desired capacity"],
+    });
+    expect(group(0, 1).reasons).toEqual([
+      "1 instance short of desired capacity",
+    ]);
+    // A period half spent launching an instance is not one short.
+    expect(group(3.5, 4).severity).toBeNull();
+    expect(group(4, 4).severity).toBeNull();
+    // Two periods' readings say nothing of each other.
+    expect(
+      judged("AWS::AutoScaling::AutoScalingGroup", {
+        "aws/autoscaling/groupinserviceinstances": reading(2, minutesAgo(10)),
+        "aws/autoscaling/groupdesiredcapacity": reading(4, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a WAF web ACL: half its requests or more blocked, once 20 were", () => {
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/allowedrequests": reading(40, at),
+        "aws/wafv2/blockedrequests": reading(60, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["60% of requests blocked"],
+    });
+    // Allowed is published only when it is not zero: none means all blocked.
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/blockedrequests": reading(30, at),
+      }).reasons,
+    ).toEqual(["100% of requests blocked"]);
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/allowedrequests": reading(900, at),
+        "aws/wafv2/blockedrequests": reading(100, at),
+      }).severity,
+    ).toBeNull();
+    expect(
+      judged("AWS::WAFv2::WebACL", {
+        "aws/wafv2/blockedrequests": reading(10, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a SageMaker endpoint: the share of its invocations that failed", () => {
+    expect(
+      judged("AWS::SageMaker::Endpoint", {
+        "aws/sagemaker/invocations": reading(400, at),
+        "aws/sagemaker/invocation5xxerrors": reading(50, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["13% of invocations failed"],
+    });
+  });
+
+  test("a Network Firewall dropping packets outside its rules", () => {
+    expect(
+      judged("AWS::NetworkFirewall::Firewall", {
+        "aws/networkfirewall/otherdroppedpackets": reading(12, at),
+        "aws/networkfirewall/droppedpackets": reading(500, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["12 packets dropped outside its rules"],
+    });
+    // Dropping what its rules say to is its work.
+    expect(
+      judged("AWS::NetworkFirewall::Firewall", {
+        "aws/networkfirewall/droppedpackets": reading(500, at),
+      }).severity,
+    ).toBeNull();
+  });
+
+  test("a Cognito user pool throttled, and an AppSync API's server errors", () => {
+    expect(
+      judged("AWS::Cognito::UserPool", {
+        "aws/cognito/signinsuccesses": reading(900, at),
+        "aws/cognito/tokenrefreshthrottles": reading(3, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["Throttled"],
+    });
+    expect(
+      judged("AWS::AppSync::GraphQLApi", {
+        "aws/appsync/5xxerror": reading(4, at),
+      }),
+    ).toEqual({
+      severity: CloudHealthSeverity.Warning,
+      reasons: ["4 server errors"],
+    });
+  });
+
+  test("each leads its page with numbers it reads, but an Elastic Beanstalk environment's health code", () => {
+    const leads: (type: string) => Array<string> = (type: string) => {
+      return getCloudHeadlineReadings("aws", type).map(
+        (headline: { key: string }) => {
+          return headline.key;
+        },
+      );
+    };
+
+    expect(leads("AWS::AppRunner::Service")).toEqual([
+      "aws/apprunner/requests",
+      "aws/apprunner/requestlatency",
+      "aws/apprunner/5xxstatusresponses",
+      "aws/apprunner/cpuutilization",
+      "aws/apprunner/memoryutilization",
+    ]);
+    expect(leads("AWS::GlobalAccelerator::Accelerator")[0]).toBe(
+      "aws/globalaccelerator/healthyendpointcount",
+    );
+    expect(leads("AWS::AutoScaling::AutoScalingGroup")).toEqual([
+      "aws/autoscaling/groupinserviceinstances",
+      "aws/autoscaling/groupdesiredcapacity",
+    ]);
+    expect(leads("AWS::WAFv2::WebACL")).toEqual([
+      "aws/wafv2/allowedrequests",
+      "aws/wafv2/blockedrequests",
+    ]);
+    expect(leads("AWS::SageMaker::Endpoint")).toEqual([
+      "aws/sagemaker/invocations",
+      "aws/sagemaker/invocation5xxerrors",
+    ]);
+    expect(leads("AWS::NetworkFirewall::Firewall")).toHaveLength(2);
+    expect(leads("AWS::Cognito::UserPool")).toHaveLength(2);
+    expect(leads("AWS::AppSync::GraphQLApi")).toHaveLength(2);
+    expect(leads("AWS::ElasticBeanstalk::Environment")).toEqual([]);
+
+    // Each is read as a reading of its type, so the read keeps it.
+    for (const type of [
+      "AWS::AppRunner::Service",
+      "AWS::GlobalAccelerator::Accelerator",
+      "AWS::ElasticBeanstalk::Environment",
+      "AWS::AutoScaling::AutoScalingGroup",
+      "AWS::WAFv2::WebACL",
+      "AWS::SageMaker::Endpoint",
+      "AWS::NetworkFirewall::Firewall",
+      "AWS::Cognito::UserPool",
+      "AWS::AppSync::GraphQLApi",
+    ]) {
+      expect({
+        type,
+        keys: getCloudReadingKeysForType("aws", type).size > 0,
+      }).toEqual({ type, keys: true });
+    }
   });
 });

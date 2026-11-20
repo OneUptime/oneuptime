@@ -130,7 +130,7 @@ En flytt går uppåt i listan igen: en grupperingsregels återöppning. En regel
 
 För att rätta ett tillstånd som satts av misstag tar du bort dess rad på sidan med postens tillståndstidslinje (se [Tillståndstidslinjen](#tillståndstidslinjen)). Posten går tillbaka till tillståndet i dess senaste återstående rad; en episod där du tar bort raden som löste den är öppen igen, och dess lösningstid rensas.
 
-Via API:t och Terraform är ordningen kolumnen `order`: lägre tal kommer först. Ett tillstånd som skapas utan hamnar precis ovanför det lösta tillståndet; ett som skapas eller uppdateras med ett tal tar den platsen, och tillstånden i vägen flyttar ner ett steg. Tal som ingen annan har behålls som de skrevs, så ett tillstånd som hanteras av Terraform läser tillbaka talet det fick.
+Via API:t och Terraform är ordningen kolumnen `order`: lägre tal kommer först. Ett tillstånd som skapas utan hamnar precis ovanför det lösta tillståndet. Ett tal du skriver behålls som det skrevs och flyttar inget annat tillstånd, så ett tillstånd som hanteras av Terraform läser tillbaka talet det fick; av två tillstånd med samma tal visas det äldsta först. De inbyggda tillstånden behåller ändå sin ordning: en skrivning som skulle ge två av dem samma tal eller rubba deras ordning nekas.
 
 ## De förskapade allvarlighetsgraderna
 
@@ -178,9 +178,9 @@ Det finns fem sätt som en incident byter tillstånd på:
 
 | Sätt                | Var                                                                                         | Vad det frågar efter                                                                                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knappar i rubriken** | Incidentens rubrik: **Bekräfta** och **Lös**, och **Ändra tillstånd till** i dess meny **⋯**  | En kort bekräftelse — **Bekräfta incident** eller **Lös incident** — med **Meddela statussideprenumeranter** och, hopfällt under **Lägg till en offentlig anteckning**, den valfria **Offentlig anteckning** med väljaren **Välj anteckningsmall** (när projektet har anteckningsmallar). |
+| **Knappar i rubriken** | Incidentens rubrik: **Bekräfta** och **Lös**, och **Ändra tillstånd till** i dess meny **⋯**  | En kort bekräftelse — **Bekräfta incident** eller **Lös incident** — med **Meddela statussideprenumeranter** och, hopfällt under **Lägg till en offentlig anteckning**, den valfria **Offentlig anteckning** med väljaren **Välj anteckningsmall** (när projektet har anteckningsmallar). En lösning fäller även ihop en valfri rotorsak under **Lägg till rotorsaken**. |
 | **Tillståndstidslinje** | **Tillståndstidslinje** i incidentens sidomeny                                          | En rad som läggs till för hand, med **Incidentstatus**, **Börjar den** och **Meddela statussideprenumeranter**.                                                                                             |
-| **Rad i listan** | Menyn **⋯** på en incidents rad i listan över incidenter: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med incidentens namn. En incident som en annan ändring har flyttat under tiden lämnas som den är, och dialogen säger varför. |
+| **Rad i listan** | Menyn **⋯** på en incidents rad i listan över incidenter: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med incidentens namn. En incident som en annan ändring har flyttat under tiden lämnas som den är, och dialogen säger varför. Den frågar inte efter rotorsaken. |
 | **Massändring**     | **Bekräfta**, **Lös** eller **Ändra tillstånd** på ett urval i listan över incidenter                                   | En sida med tillståndet, **Meddela statussideprenumeranter** och samma hopfällda **Lägg till en offentlig anteckning**.                                                                                     |
 | **Automatiskt**     | Ett monitorkriterium eller din egen kod                                                     | Ett kriterium med **Lös incident automatiskt** påslaget löser sin incident när kriteriet inte längre uppfylls. API:t ändrar tillståndet genom att skapa en rad på `/api/incident-state-timeline`.            |
 
@@ -208,6 +208,12 @@ En incident är löst när den går från ett tillstånd ovanför ditt lösta ti
 - **Markerar SLA:n som löst** och skriver, när OneUptime AI:s utkast till efteranalyser är påslagna, ett utkast till en efteranalys.
 
 Att gå vidare från **Löst** till ett senare tillstånd — **Closed** till exempel — är inte en andra lösning: inget av detta körs igen, och ingen ny SLA startar. En incident som deklarerades innan OneUptime började registrera detta släpper sina monitorer vid sin nästa lösning, som tidigare.
+
+## Ange rotorsaken när du löser
+
+När incidentens rubrik löser den, med **Lös** eller med **Ändra tillstånd till** ett löst tillstånd, fäller bekräftelsen ihop en valfri **Rotorsak** under **Lägg till rotorsaken**: varför den inträffade. Det du skriver där blir incidentens rotorsak, som om du hade skrivit det på dess sida **Rotorsak**, och OneUptime AI:s utredning av incidenten jämförs med det (se [Hur bra OneUptime AI klarar sig](/docs/ai/ai-sre#hur-bra-oneuptime-ai-klarar-sig)). Lämnar du det tomt löses incidenten som tidigare och behåller den rotorsak den har.
+
+Att ange den kräver behörighet att redigera incidenten, utöver behörigheten att ändra dess tillstånd: den som saknar den erbjuds inte **Lägg till rotorsaken**, och en tillståndsändring som den personen skickar med en rotorsak avvisas helt, så incidenten behåller sitt tillstånd. Via API:et skickar du den med raden du skapar på `/api/incident-state-timeline`, som `writtenRootCause` i `miscDataProps`.
 
 ## Tillståndstidslinjen
 

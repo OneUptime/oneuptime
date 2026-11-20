@@ -163,19 +163,21 @@ En användbar uppdelning: ge en supporttekniker `ReadRumApplication` och `ReadRu
 
 ## Larm på RUM-data
 
-RUM-telemetri är vanliga loggar, mätvärden och spår, så det finns ingen separat RUM-övervakning: de vanliga övervakningarna fungerar med den. Det snabbaste sättet att komma igång är applikationens sida **Rekommendationer**, som erbjuder övervakningar som redan är avgränsade till applikationen:
+RUM-telemetri är vanliga loggar, mätvärden och spår, så det finns ingen separat RUM-övervakning: de vanliga övervakningarna fungerar med den. Det snabbaste sättet att komma igång är applikationens sida **Rekommendationer**, som erbjuder övervakningar som redan är avgränsade till applikationen, de som passar en webbapp eller en mobilapp:
 
 | Grupp | Rekommendationer |
 | --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint och Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
-| Fel | Failed User Operations och Unhandled Browser Exceptions. |
+| Core Web Vitals | För en webbapp: Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint och Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
+| Fel | App Crashes och App Not Responding (ANR) för en mobilapp, och deras frekvenser, App Crash Rate och App ANR Rate, för en app med hundratals sessioner i timmen; Failed User Operations för båda, och Unhandled Browser Exceptions för en webbapp. |
+| Prestanda | För en mobilapp: Slow Cold Start, när en kallstart tar 5 sekunder eller mer, vilket Android vitals räknar som överdrivet, och Frozen Frames, när en bildruta tar längre än 700 ms att rita. |
+| Tillgänglighet | För en mobilapp: App Stopped Reporting, när appen inte skickar några spans på 30 minuter, och Device Stopped Reporting, när en av dess enheter inte skickar några på en timme efter att ha skickat några den senaste veckan. |
 | Sessionsuppspelning | De fyra [larmen för lagringsbudgeten](/docs/telemetry/session-replay#larm-för-lagringsbudgeten), som varnar innan projektets dagliga gräns eller applikationens månadsbudget är förbrukad. De erbjuds så snart applikationen har spelat in en uppspelning, och månadsparet när den också har en månadsbudget. |
 
 För att skapa en egen övervakning väljer du den som läser signalen:
 
 - [Metrikövervakning](/docs/monitor/metrics-monitor): en Core Web Vital, eller något annat mätvärde som din app skickar.
-- [Spårningsövervakning](/docs/monitor/traces-monitor): felfrekvens eller latens på klientsidan.
-- [Loggövervakning](/docs/monitor/logs-monitor): ett mönster i webbläsarloggar.
+- [Spårningsövervakning](/docs/monitor/traces-monitor): felfrekvens eller latens på klientsidan, eller appstarter som är långsammare än en varaktighet du anger.
+- [Loggövervakning](/docs/monitor/logs-monitor): ett mönster i webbläsarloggar, eller en mobilapps händelser `app.crash`, `device.anr` och `app.jank`.
 - [Undantagsövervakning](/docs/monitor/exceptions-monitor): nya eller snabbt ökande undantag på klientsidan.
 
 Avgränsa övervakningen du skapar till applikationen, så att en backend-tjänst med en liknande signatur inte utlöser den.

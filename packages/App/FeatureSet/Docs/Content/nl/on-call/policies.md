@@ -13,7 +13,7 @@ Een bereikbaarheidsbeleid bepaalt wie wordt opgeroepen voor een incident of waar
 
 :::steps
 1. Ga naar **Bereikbaarheid → Bereikbaarheidsbeleid** en klik op **Bereikbaarheidsbeleid aanmaken**.
-2. Vul een **Naam** in, bijvoorbeeld "Betalingen primair".
+2. Vul een **Naam** in, bijvoorbeeld "Betalingen primair". Een naam die een ander beleid van het project al heeft, ook een gearchiveerd beleid, wordt geweigerd, ongeacht hoofdletters en spaties, zodat elke keuzelijst ze uit elkaar houdt.
 3. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies de bereikbaarheidsschema's, teams en personen die als eerste worden opgeroepen.
 4. Klik op **Bereikbaarheidsbeleid aanmaken**. Het beleid opent op de pagina **Escalatieregels**, met **Level 1** al op zijn plek.
 :::
@@ -26,7 +26,7 @@ Het formulier vraagt ook **Activeren bij elk nieuw incident en elke nieuwe waars
 
 Wilt u liever stap voor stap begeleid worden, van uw telefoon tot een testoproep, klik dan op **Begeleide installatie**: in de lege lijst **Bereikbaarheidsbeleid** of onder **Hoe het werkt**. Zie [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
 
-De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
+De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Eerst opgeroepen**, **Beschrijving**, **Labels** en **Eigenaren**. **Eerst opgeroepen** geeft aan wie de eerste escalatieregel van het beleid oproept: de bereikbaarheidsschema's ervan, elk met wie er nu dienst heeft, de teams ervan en de personen die de regel noemt, of **Geen escalatieregels** of **Geen ontvangers** als het beleid niemand oproept. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan. Een beleid met dezelfde naam als een ander beleid, uit de tijd dat namen nog niet hoefden te verschillen, is gemarkeerd met **Zelfde naam als een ander beleid**, en de lijst zegt hoeveel het er zijn: vergelijk hun escalatieregels en hernoem er dan één met **Hernoemen** in de rij ervan.
 
 ## Wat een beleid uitvoert
 
@@ -157,7 +157,7 @@ Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie ha
 Archiveren neemt een beleid uit dienst en bewaart alles: open de **Instellingen** van het beleid en klik op **Archiveren** op de archiefkaart ervan, of selecteer beleid in de lijst en kies **Archiveren**.
 
 - Een gearchiveerd beleid roept niemand op. Incidenten en waarschuwingen die het gebruiken slaan het over, en een uitvoering die nog escaleert, stopt bij haar volgende stap.
-- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit het archief halen** het weer in dienst neemt.
+- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit het archief halen** het weer in dienst neemt. Het houdt zijn naam: wie een nieuw beleid met die naam aanmaakt, krijgt de melding dit beleid in plaats daarvan uit het archief te halen.
 
 **Beleid verwijderen**, onder **Geavanceerd**, verwijdert het beleid samen met de escalatieregels en gebruikersoverschrijvingen ervan. Verwijderen vanuit de lijst vraagt eerst om bevestiging en stelt voor om in plaats daarvan te archiveren.
 

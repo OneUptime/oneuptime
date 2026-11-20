@@ -34,6 +34,9 @@ import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import NetworkDeviceNamingRule from "./NetworkDeviceNamingRule";
 import NetworkControllerConnection from "./NetworkControllerConnection";
+import DeviceManagementConnection from "./DeviceManagementConnection";
+import ManagedDevice from "./ManagedDevice";
+import ManagedDeviceApp from "./ManagedDeviceApp";
 import NetworkAddressName from "./NetworkAddressName";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -81,6 +84,7 @@ import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
+import HostLogSession from "./HostLogSession";
 // The config OneUptime sends to the hosts it manages, and its versions
 import HostCollectorConfig from "./HostCollectorConfig";
 import HostCollectorConfigVersion from "./HostCollectorConfigVersion";
@@ -148,6 +152,7 @@ import ServerEmailLog from "./ServerEmailLog";
 import ProductFeedback from "./ProductFeedback";
 import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
+import InstanceSamlSigningKey from "./InstanceSamlSigningKey";
 // Incidents
 import Incident from "./Incident";
 import IncidentFeed from "./IncidentFeed";
@@ -218,6 +223,7 @@ import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
 import DataSecurityScan from "./DataSecurityScan";
 import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
+import DataSecurityComplianceSetting from "./DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
 import DataSecuritySetting from "./DataSecuritySetting";
 import DataAsset from "./DataAsset";
@@ -237,6 +243,7 @@ import DataAssetOwnerTeam from "./DataAssetOwnerTeam";
 import DataAssetOwnerRule from "./DataAssetOwnerRule";
 import DataPipelineOwnerUser from "./DataPipelineOwnerUser";
 import DataPipelineOwnerTeam from "./DataPipelineOwnerTeam";
+import DataPipelineOwnerRule from "./DataPipelineOwnerRule";
 import DataAssetLabelRule from "./DataAssetLabelRule";
 import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
@@ -646,6 +653,7 @@ import VMwareVCenterFeed from "./VMwareVCenterFeed";
 import HostFeed from "./HostFeed";
 import CloudResourceFeed from "./CloudResourceFeed";
 import ServiceFeed from "./ServiceFeed";
+import ServiceAINote from "./ServiceAINote";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
@@ -731,6 +739,7 @@ const AllModelTypes: Array<{
   DataSecurityScan,
   DataSecurityCustomDataType,
   DataSecurityCheckSetting,
+  DataSecurityComplianceSetting,
   DataSecurityResidencyRule,
   DataSecuritySetting,
   DataAsset,
@@ -750,6 +759,7 @@ const AllModelTypes: Array<{
   DataAssetOwnerRule,
   DataPipelineOwnerUser,
   DataPipelineOwnerTeam,
+  DataPipelineOwnerRule,
   DataAssetLabelRule,
   DataObservabilitySetting,
   DataAssetLineage,
@@ -1077,6 +1087,7 @@ const AllModelTypes: Array<{
   ProductFeedback,
   InstanceReceivingPeriod,
   InstanceTokenSigningKey,
+  InstanceSamlSigningKey,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,
@@ -1196,6 +1207,7 @@ const AllModelTypes: Array<{
   HostFeed,
   CloudResourceFeed,
   ServiceFeed,
+  ServiceAINote,
 
   MetricType,
 
@@ -1240,6 +1252,9 @@ const AllModelTypes: Array<{
   NetworkSiteAssignmentRule,
   NetworkDeviceNamingRule,
   NetworkControllerConnection,
+  DeviceManagementConnection,
+  ManagedDevice,
+  ManagedDeviceApp,
   NetworkAddressName,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
@@ -1287,6 +1302,7 @@ const AllModelTypes: Array<{
   Host,
   HostOwnerTeam,
   HostOwnerUser,
+  HostLogSession,
   HostCollectorConfig,
   HostCollectorConfigVersion,
   ServerlessFunction,

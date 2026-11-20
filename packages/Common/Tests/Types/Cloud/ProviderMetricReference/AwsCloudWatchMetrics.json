@@ -1,6 +1,6 @@
 {
   "source": "The CloudWatch metrics pages of each service's AWS user guide (docs.aws.amazon.com), as each metric's page names it",
-  "readOn": "2026-11-18",
+  "readOn": "2026-11-19",
   "namespaces": {
     "AWS/EC2": {
       "pages": ["https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html", "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/US_SingleMetricPerInstance.html", "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/manage-detailed-monitoring.html"],
@@ -323,7 +323,9 @@
         "5XXError": {"exists": true, "exactName": "5XXError", "unit": "Count", "statistics": ["Sum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
         "Latency": {"exists": true, "exactName": "Latency", "unit": "Milliseconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
         "4XXError": {"exists": true, "exactName": "4XXError", "unit": "Count", "statistics": ["Sum", "Average"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
-        "IntegrationLatency": {"exists": true, "exactName": "IntegrationLatency", "unit": "Milliseconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"}
+        "IntegrationLatency": {"exists": true, "exactName": "IntegrationLatency", "unit": "Milliseconds", "statistics": null, "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-metrics-and-dimensions.html"},
+        "5xx": {"exists": true, "exactName": "5xx", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-metrics.html"},
+        "4xx": {"exists": true, "exactName": "4xx", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-metrics.html"}
       }
     },
     "AWS/Events": {
@@ -356,6 +358,111 @@
         "UnderReplicatedPartitions": {"exists": true, "exactName": "UnderReplicatedPartitions", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"},
         "KafkaDataLogsDiskUsed": {"exists": true, "exactName": "KafkaDataLogsDiskUsed", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"},
         "CpuUser": {"exists": true, "exactName": "CpuUser", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/msk/latest/developerguide/metrics-details.html"}
+      }
+    },
+    "AWS/WAFV2": {
+      "pages": ["https://docs.aws.amazon.com/waf/latest/developerguide/waf-metrics.html"],
+      "metrics": {
+        "AllowedRequests": {"exists": true, "exactName": "AllowedRequests", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/waf/latest/developerguide/waf-metrics.html"},
+        "BlockedRequests": {"exists": true, "exactName": "BlockedRequests", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/waf/latest/developerguide/waf-metrics.html"},
+        "CountedRequests": {"exists": true, "exactName": "CountedRequests", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/waf/latest/developerguide/waf-metrics.html"},
+        "CaptchaRequests": {"exists": true, "exactName": "CaptchaRequests", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/waf/latest/developerguide/waf-metrics.html"},
+        "ChallengeRequests": {"exists": true, "exactName": "ChallengeRequests", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/waf/latest/developerguide/waf-metrics.html"}
+      }
+    },
+    "AWS/NetworkFirewall": {
+      "pages": ["https://docs.aws.amazon.com/network-firewall/latest/developerguide/monitoring-cloudwatch.html"],
+      "metrics": {
+        "ReceivedPackets": {"exists": true, "exactName": "ReceivedPackets", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/monitoring-cloudwatch.html"},
+        "DroppedPackets": {"exists": true, "exactName": "DroppedPackets", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/monitoring-cloudwatch.html"},
+        "OtherDroppedPackets": {"exists": true, "exactName": "OtherDroppedPackets", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/monitoring-cloudwatch.html"},
+        "InvalidDroppedPackets": {"exists": true, "exactName": "InvalidDroppedPackets", "unit": null, "statistics": ["Sum"], "identitySeries": null, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/monitoring-cloudwatch.html"}
+      }
+    },
+    "AWS/AppRunner": {
+      "pages": ["https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"],
+      "metrics": {
+        "CPUUtilization": {"exists": true, "exactName": "CPUUtilization", "unit": null, "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"},
+        "Requests": {"exists": true, "exactName": "Requests", "unit": null, "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"},
+        "5xxStatusResponses": {"exists": true, "exactName": "5xxStatusResponses", "unit": null, "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"},
+        "4xxStatusResponses": {"exists": true, "exactName": "4xxStatusResponses", "unit": null, "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"},
+        "RequestLatency": {"exists": true, "exactName": "RequestLatency", "unit": null, "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"},
+        "MemoryUtilization": {"exists": true, "exactName": "MemoryUtilization", "unit": null, "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"},
+        "ActiveInstances": {"exists": true, "exactName": "ActiveInstances", "unit": null, "statistics": null, "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/apprunner/latest/dg/monitor-cw.html"}
+      }
+    },
+    "AWS/AutoScaling": {
+      "pages": ["https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-metrics.html"],
+      "metrics": {
+        "GroupInServiceInstances": {"exists": true, "exactName": "GroupInServiceInstances", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-metrics.html"},
+        "GroupDesiredCapacity": {"exists": true, "exactName": "GroupDesiredCapacity", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-metrics.html"},
+        "GroupPendingInstances": {"exists": true, "exactName": "GroupPendingInstances", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-metrics.html"},
+        "GroupTerminatingInstances": {"exists": true, "exactName": "GroupTerminatingInstances", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-metrics.html"}
+      }
+    },
+    "AWS/GlobalAccelerator": {
+      "pages": ["https://docs.aws.amazon.com/global-accelerator/latest/dg/cloudwatch-monitoring.html"],
+      "metrics": {
+        "HealthyEndpointCount": {"exists": true, "exactName": "HealthyEndpointCount", "unit": null, "statistics": ["Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/global-accelerator/latest/dg/cloudwatch-monitoring.html"},
+        "UnhealthyEndpointCount": {"exists": true, "exactName": "UnhealthyEndpointCount", "unit": null, "statistics": ["Minimum", "Maximum"], "identitySeries": true, "publishedBy": "default", "page": "https://docs.aws.amazon.com/global-accelerator/latest/dg/cloudwatch-monitoring.html"},
+        "NewFlowCount": {"exists": true, "exactName": "NewFlowCount", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/global-accelerator/latest/dg/cloudwatch-monitoring.html"},
+        "ProcessedBytesIn": {"exists": true, "exactName": "ProcessedBytesIn", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/global-accelerator/latest/dg/cloudwatch-monitoring.html"},
+        "ProcessedBytesOut": {"exists": true, "exactName": "ProcessedBytesOut", "unit": null, "statistics": ["Sum"], "identitySeries": true, "publishedBy": "only-when-nonzero", "page": "https://docs.aws.amazon.com/global-accelerator/latest/dg/cloudwatch-monitoring.html"}
+      }
+    },
+    "AWS/Cognito": {
+      "pages": ["https://docs.aws.amazon.com/cognito/latest/developerguide/metrics-for-cognito-user-pools.html"],
+      "metrics": {
+        "SignInSuccesses": {"exists": true, "exactName": "SignInSuccesses", "unit": "Count", "statistics": ["Average", "SampleCount", "Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/cognito/latest/developerguide/metrics-for-cognito-user-pools.html"},
+        "SignInThrottles": {"exists": true, "exactName": "SignInThrottles", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/cognito/latest/developerguide/metrics-for-cognito-user-pools.html"},
+        "TokenRefreshSuccesses": {"exists": true, "exactName": "TokenRefreshSuccesses", "unit": "Count", "statistics": ["Average", "SampleCount", "Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/cognito/latest/developerguide/metrics-for-cognito-user-pools.html"},
+        "TokenRefreshThrottles": {"exists": true, "exactName": "TokenRefreshThrottles", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/cognito/latest/developerguide/metrics-for-cognito-user-pools.html"},
+        "SignUpSuccesses": {"exists": true, "exactName": "SignUpSuccesses", "unit": "Count", "statistics": ["Average", "SampleCount", "Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/cognito/latest/developerguide/metrics-for-cognito-user-pools.html"},
+        "SignUpThrottles": {"exists": true, "exactName": "SignUpThrottles", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/cognito/latest/developerguide/metrics-for-cognito-user-pools.html"}
+      }
+    },
+    "AWS/ElasticBeanstalk": {
+      "pages": ["https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-cloudwatch.html"],
+      "metrics": {
+        "EnvironmentHealth": {"exists": true, "exactName": "EnvironmentHealth", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "only-some-resources", "page": "https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-cloudwatch.html"}
+      }
+    },
+    "AWS/AppSync": {
+      "pages": ["https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html"],
+      "metrics": {
+        "Latency": {"exists": true, "exactName": "Latency", "unit": "Millisecond", "statistics": ["Average"], "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html"},
+        "5XXError": {"exists": true, "exactName": "5XXError", "unit": "Count", "statistics": ["Sum"], "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html"},
+        "4XXError": {"exists": true, "exactName": "4XXError", "unit": "Count", "statistics": ["Sum"], "identitySeries": null, "publishedBy": "default", "page": "https://docs.aws.amazon.com/appsync/latest/devguide/monitoring.html"}
+      }
+    },
+    "AWS/SageMaker": {
+      "pages": ["https://docs.aws.amazon.com/sagemaker/latest/dg/monitoring-cloudwatch.html"],
+      "metrics": {
+        "Invocations": {"exists": true, "exactName": "Invocations", "unit": "None", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sagemaker/latest/dg/monitoring-cloudwatch.html"},
+        "Invocation5XXErrors": {"exists": true, "exactName": "Invocation5XXErrors", "unit": "None", "statistics": ["Average", "Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sagemaker/latest/dg/monitoring-cloudwatch.html"},
+        "Invocation4XXErrors": {"exists": true, "exactName": "Invocation4XXErrors", "unit": "None", "statistics": ["Average", "Sum"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sagemaker/latest/dg/monitoring-cloudwatch.html"},
+        "ModelLatency": {"exists": true, "exactName": "ModelLatency", "unit": "Microseconds", "statistics": ["Average", "Sum", "Minimum", "Maximum", "SampleCount"], "identitySeries": false, "publishedBy": "default", "page": "https://docs.aws.amazon.com/sagemaker/latest/dg/monitoring-cloudwatch.html"}
+      }
+    },
+    "Glue": {
+      "pages": ["https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"],
+      "metrics": {
+        "glue.driver.aggregate.numCompletedTasks": {"exists": true, "exactName": "glue.driver.aggregate.numCompletedTasks", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.numFailedTasks": {"exists": true, "exactName": "glue.driver.aggregate.numFailedTasks", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.numKilledTasks": {"exists": true, "exactName": "glue.driver.aggregate.numKilledTasks", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.recordsRead": {"exists": true, "exactName": "glue.driver.aggregate.recordsRead", "unit": "Count", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.aggregate.bytesRead": {"exists": true, "exactName": "glue.driver.aggregate.bytesRead", "unit": "Bytes", "statistics": ["Sum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors": {"exists": true, "exactName": "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors", "unit": "Count", "statistics": ["Average"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"},
+        "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors": {"exists": true, "exactName": "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors", "unit": "Count", "statistics": ["Maximum"], "identitySeries": false, "publishedBy": "custom-once-turned-on", "page": "https://docs.aws.amazon.com/glue/latest/dg/monitoring-awsglue-with-cloudwatch-metrics.html"}
+      }
+    },
+    "AWS/Athena": {
+      "pages": ["https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html", "https://docs.aws.amazon.com/athena/latest/ug/athena-cloudwatch-metrics-enable.html"],
+      "metrics": {
+        "ProcessedBytes": {"exists": true, "exactName": "ProcessedBytes", "unit": null, "statistics": null, "identitySeries": true, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"},
+        "TotalExecutionTime": {"exists": true, "exactName": "TotalExecutionTime", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"},
+        "EngineExecutionTime": {"exists": true, "exactName": "EngineExecutionTime", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"},
+        "QueryQueueTime": {"exists": true, "exactName": "QueryQueueTime", "unit": null, "statistics": null, "identitySeries": false, "publishedBy": "free-once-turned-on", "page": "https://docs.aws.amazon.com/athena/latest/ug/query-metrics-viewing.html"}
       }
     },
     "AWS/CertificateManager": {

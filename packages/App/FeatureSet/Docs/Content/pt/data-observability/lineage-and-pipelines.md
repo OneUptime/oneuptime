@@ -38,7 +38,7 @@ Cada seta é algo que o OneUptime registrou, nunca um palpite. Os cartões ficam
 
 Pesquise uma tabela, um serviço, um pipeline ou um painel para manter o que corresponde e tudo o que está acima e abaixo dele no fluxo. Selecione um cartão para destacar toda a linhagem dele, ver de onde ele vem e para onde vai, e abrir a página dele; **Mostrar só a linhagem dela** deixa só isso no mapa. As chaves ao lado da pesquisa deixam de fora serviços, pipelines ou painéis. **Lista** mostra cada seta como uma linha, e é o que um celular abre.
 
-Um mapa desenha até 400 cartões, começando pelos fluxos vistos mais recentemente; quando o seu projeto tem mais, o mapa avisa. O mesmo mapa é servido por `POST /api/data-observability/lineage/map`, para quem puder ler os ativos de dados, e as chaves de API deles. Um mapa com mais diz quantas tabelas deixou de fora, cada uma contada uma vez, e pode começar em outro lugar: escolha um banco de dados para mapear os fluxos das tabelas dele e os cartões que eles ligam, ou digite um nome e escolha **Pesquisar em todo o projeto** para mapear os fluxos de cada tabela, pipeline, serviço e painel cujo nome o contém, por mais antigos que sejam. **Mostrar o mapa inteiro** volta. Para começar o mapa da API em outro lugar, envie `{ "dataStoreId": "<database ID>" }` ou `{ "search": "orders" }`.
+Um mapa desenha até 400 cartões, começando pelos fluxos vistos mais recentemente; quando o seu projeto tem mais, o mapa avisa. O mesmo mapa é servido por `POST /api/data-observability/lineage/map`, para quem puder ler os ativos de dados, e as chaves de API deles. Um mapa com mais diz quantas tabelas deixou de fora, cada uma contada uma vez, e pode começar em outro lugar: escolha um banco de dados para mapear os fluxos das tabelas dele, os painéis construídos sobre elas e os cartões que eles ligam, ou digite um nome e escolha **Pesquisar em todo o projeto** para mapear os fluxos de cada tabela, pipeline, serviço, painel, conjunto de dados e fonte de dados cujo nome o contém, por mais antigos que sejam. **Mostrar o mapa inteiro** volta. Para começar o mapa da API em outro lugar, envie `{ "dataStoreId": "<database ID>" }` ou `{ "search": "orders" }`.
 
 ## OpenLineage
 
@@ -132,15 +132,83 @@ Atualizações com falha não usam os monitores de pipeline. Um conjunto de dado
 
 ## Pipelines
 
-Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas execuções: quando cada uma começou e terminou, quanto tempo levou, qual tentativa ela foi onde o agendador informa (o número da tentativa do Airflow) e o erro de uma execução com falha. Depois de cinco execuções, cada pipeline aprende com as próprias execuções quanto tempo uma execução costuma levar e quanto tempo ele costuma ficar entre execuções no seu agendamento. A página de um pipeline recomenda três monitores:
+Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas execuções: quando cada uma começou e terminou, quanto tempo levou, qual tentativa ela foi onde o agendador informa (o número da tentativa do Airflow) e o erro de uma execução com falha. Depois de cinco execuções, cada pipeline aprende com as próprias execuções quanto tempo uma execução costuma levar e quanto tempo ele costuma ficar entre execuções no seu agendamento. A página de um pipeline recomenda quatro monitores:
 
 - **Pipeline Run Failed**: uma execução falhou ou foi abortada.
 - **Pipeline Run Unusually Long**: uma execução levou o dobro do tempo típico ou mais, verificado a cada cinco minutos enquanto ela roda, para que uma execução travada seja notada antes de terminar.
 - **Pipeline Is Late**: nenhuma execução começa há mais tempo do que o agendamento dele permite.
+- **Pipeline Stopped by Circuit Breaker**: o disjuntor respondeu stop, e a parada dura até ele responder go ou uma execução começar.
 
 A aba **Proprietários** de um pipeline nomeia as pessoas e equipes que cuidam dele, e os alertas dele vão para elas. A **Visão geral** e **Problemas** nomeiam os proprietários de um pipeline que falhou ou está atrasado, ou mostram **Sem proprietário**, com uma forma de adicionar um.
 
+As **Regras de proprietário** podem nomear por você os proprietários de um pipeline. Na guia **Regras de pipeline**, uma regra compara um pipeline por uma expressão regular com o nome dele, como `orders_daily.load_orders`, ou com o namespace dele, onde ele é executado, como `airflow://prod`, e adiciona as pessoas e equipes dela como proprietárias do pipeline quando o OneUptime vê o pipeline pela primeira vez. Para adicioná-las aos pipelines que você já tem, abra a regra e selecione **Executar agora**.
+
 A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela. Um número de tabelas não desenhadas, no cartão do pipeline ou no de uma tabela, desenha mais delas no lugar aqui também. Escolha uma das colunas que ele grava para segui-la através do pipeline: para cima até a coluna de cada tabela lida a partir da qual ela foi construída, e para baixo até cada tabela em que ele a grava.
+
+## Disjuntores
+
+Uma verificação com falha ou uma tabela atrasada avisa seus proprietários, mas os pipelines que leem a tabela continuariam sendo executados e copiariam os dados ruins adiante. Um disjuntor os para antes: a primeira etapa do pipeline pergunta ao OneUptime se as tabelas que ele lê estão saudáveis, e o resto só é executado quando a resposta é go.
+
+- Uma verificação com falha de uma tabela que o pipeline lê sempre o para: uma verificação com o alerta aberto, ou um teste do dbt que falhou.
+- Uma tabela atrasada também o para assim que **Parar quando uma tabela que ele lê estiver atrasada** é ativado, na página **Disjuntor** do pipeline. Fica desativado em todo pipeline, porque uma tabela atrasada pode significar apenas um dia tranquilo.
+- Uma verificação que não pôde ser executada ou ainda não foi executada, e uma tabela sem verificações, não param nada.
+
+A etapa pergunta com uma chave de API do projeto que possa ler Observabilidade de dados, e nomeia o pipeline como `namespace/name`, só pelo nome ou pelo ID. O disjuntor lê da linhagem do pipeline as tabelas que ele lê. Uma requisição também pode nomear `tables`, ou somente elas, cada uma como `schema.table`, só pelo nome ou pelo ID; um nome que não corresponde a nenhuma tabela volta em `notFound`, e nunca conta como uma tabela que passou. Só são julgadas as tabelas que a chave de API pode ler.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "airflow://prod/orders_daily.load_orders", "failWithStatusCode": true}'
+```
+
+O `verdict` da resposta é `go` ou `stop`. `reasons` lista cada verificação com falha com sua tabela, e cada tabela atrasada com o atraso dela; `tables` lista cada tabela julgada; e `answer` diz o mesmo em poucas frases, para o log da etapa. Com `failWithStatusCode`, uma parada responde HTTP 412, então o `curl -f` faz a etapa falhar. Envie `stopsOnLateTables` como `true` ou `false` para decidir em uma única requisição, e `dryRun` como `true` para perguntar sem que a resposta seja guardada.
+
+No Airflow, coloque um `ShortCircuitOperator` antes das tarefas que leem as tabelas: quando a função dele retorna false, todas as tarefas depois dele são puladas.
+
+```python title="orders_daily.py"
+import os
+
+import requests
+from airflow.operators.python import ShortCircuitOperator
+
+
+def inputs_are_healthy() -> bool:
+    response = requests.post(
+        "https://oneuptime.com/api/data-observability/circuit-breaker",
+        headers={"ApiKey": os.environ["ONEUPTIME_API_KEY"]},
+        json={"pipeline": "airflow://prod/orders_daily.load_orders"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    answer = response.json()
+    print(answer["answer"])
+    return answer["verdict"] == "go"
+
+
+check_inputs = ShortCircuitOperator(
+    task_id="check_inputs",
+    python_callable=inputs_are_healthy,
+)
+
+check_inputs >> load_orders
+```
+
+Os hooks `on-run-start` do dbt executam SQL no seu warehouse, não requisições web, então pergunte na etapa que inicia o dbt: um job de CI, uma linha de cron ou a tarefa que o executa. O pipeline de um projeto do dbt se chama `dbt/` seguido do nome do projeto.
+
+```bash
+curl -sSf https://oneuptime.com/api/data-observability/circuit-breaker \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline": "dbt/analytics", "failWithStatusCode": true}' \
+  && dbt build
+```
+
+Uma requisição que nomeia um pipeline é guardada nele, a menos que seja um teste. Enquanto o disjuntor mantiver um pipeline parado, a página **Disjuntor** dele diz desde quando e por quê, a **Visão geral** dele abre com a parada, e **Requer atenção** e **Problemas** o listam como parado, no lugar da execução com falha ou atrasada. A parada termina quando o disjuntor responde go novamente, ou quando uma execução começa depois dela. A mesma página tem **Testar agora**, que pergunta ao disjuntor sem que a resposta seja guardada, e a etapa para curl, Airflow e dbt com o nome do pipeline já preenchido.
+
+Para saber de uma parada, adicione **Pipeline Stopped by Circuit Breaker** a partir das **Recomendações** do pipeline. O alerta dele abre quando o disjuntor responde stop, vai para os proprietários do pipeline, fica aberto enquanto a parada é guardada e é resolvido assim que a parada termina. Ele lê a métrica `oneuptime.data.pipeline.circuit_breaker_stopped` do pipeline: 1 enquanto o disjuntor o mantém parado e 0 assim que não, escrita quando o disjuntor responde e depois a cada cinco minutos.
+
+Enquanto a Observabilidade de dados estiver desativada no servidor, o disjuntor responde go e não guarda nada: desativar um produto nunca para um pipeline.
 
 ## Um alerta por causa
 
@@ -157,7 +225,7 @@ Quem não pode ver o alerta que o causou não recebe nem o cartão **Dados** nem
 
 ## Linhagem do Power BI
 
-**Tabelas correspondentes**, em cada ferramenta de BI, diz sobre quantas tabelas monitoradas os painéis dela são construídos e, abaixo, a primeira coisa que impede as demais de corresponderem. **See Why** lista o que a última leitura encontrou e o que fazer: bancos de dados que os seus painéis leem e que não estão conectados ao OneUptime, cada um a um **Connect Database** de distância, com o tipo e o endereço já preenchidos; tabelas que um banco de dados conectado não monitora, que podem ter ficado de fora da verificação dele ou ainda não ter sido coletadas; e fontes que não são um banco de dados, como arquivos e páginas da web. No Power BI, também nomeia uma configuração de locatário desativada, conjuntos de dados que leem de fluxos de dados e conjuntos de dados que o Power BI não consegue descrever. **Baseado em**, em cada painel, diz os conjuntos de dados que ele representa e de onde vêm os dados deles, como o Power BI diz.
+**Tabelas correspondentes**, em cada ferramenta de BI, diz sobre quantas tabelas monitoradas os painéis dela são construídos e, abaixo, a primeira coisa que impede as demais de corresponderem. **See Why** lista o que a última leitura encontrou e o que fazer: bancos de dados que os seus painéis leem e que não estão conectados ao OneUptime, cada um a um **Connect Database** de distância, com o tipo e o endereço já preenchidos; tabelas que um banco de dados conectado não monitora, que podem ter ficado de fora da verificação dele ou ainda não ter sido coletadas; e fontes que não são um banco de dados, como arquivos e páginas da web. No Power BI, também nomeia uma configuração de locatário desativada, fluxos de dados cujas definições o Power BI não quis exportar ou que ainda estão sendo lidos, e conjuntos de dados que o Power BI não consegue descrever. **Baseado em**, em cada painel, diz os conjuntos de dados que ele representa e de onde vêm os dados deles, como o Power BI diz.
 
 O OneUptime lê cada conjunto de dados do Power BI a partir da verificação de metadados do Power BI, com o Power Query por trás de cada uma das tabelas dele:
 
@@ -165,6 +233,8 @@ O OneUptime lê cada conjunto de dados do Power BI a partir da verificação de 
 - **O SQL que uma consulta executa**: a opção **SQL statement** de um conector, `Value.NativeQuery` e `Odbc.Query`, e as tabelas depois de cada `FROM` e `JOIN`.
 - **Parâmetros e consultas compartilhadas**: um parâmetro vale onde quer que seja nomeado, e uma tabela que lê uma consulta de preparo lê o que essa consulta lê.
 - **Modelos compostos** representam as tabelas dos conjuntos de dados sobre os quais são construídos.
+- **Fluxos de dados**: um conjunto de dados construído sobre um fluxo de dados lê o que a entidade do fluxo de dados lê. O OneUptime exporta a definição de cada fluxo de dados pela API de administração do Power BI, que não precisa de nada além do acesso às APIs de administração acima, e lê nela a consulta da entidade como lê a de um conjunto de dados, incluindo entidades vinculadas. Um fluxo de dados é exportado uma vez, e de novo quando muda ou um dia depois de uma exportação falhar: no máximo 60 por leitura, dentro do limite do Power BI de 200 por hora, então um locatário com muitos fluxos de dados é lido por inteiro ao longo de algumas horas.
+- **Conectores OData do Dataverse**: `Cds.Entities` e `Cds.Contents`, do conector legado do Common Data Service, e `Dataverse.Contents` nomeiam uma tabela pelo seu conjunto de entidades (`accounts`), enquanto o OneUptime guarda uma tabela do Dataverse pelo seu nome lógico (`account`). Cada coleta de um ambiente do Dataverse mantém com cada tabela o nome do seu conjunto de entidades, seja o OneUptime ou uma sonda que o colete, e as tabelas de um relatório são associadas por esses nomes. Uma sonda mais antiga não envia nenhum: até ser atualizada, **See Why** nomeia as tabelas que ela deixa sem correspondência.
 
 Um relatório representa as tabelas do seu conjunto de dados, e um painel as dos conjuntos de dados dos seus blocos. De onde vêm os dados - o servidor e o nome de um banco de dados, o caminho de um arquivo, um endereço da web - vem das fontes de dados da verificação, que não precisam de nada além do acesso às APIs de administração acima.
 
@@ -173,9 +243,11 @@ O Power BI só retorna as tabelas de um conjunto de dados depois que um administ
 - **Enhance admin APIs responses with detailed metadata**: as tabelas de cada conjunto de dados.
 - **Enhance admin APIs responses with DAX and mashup expressions**: as consultas que as carregam, que dizem quais tabelas de banco de dados elas leem.
 
-O Power BI então descreve um conjunto de dados depois que ele é atualizado ou republicado; um que só usa DirectQuery, depois que alguém abre um relatório sobre ele. Ele nunca descreve conjuntos de dados em tempo real, conjuntos de dados com conexão dinâmica ao Analysis Services, pastas de trabalho do Excel nem conjuntos de dados com mais de 1 GB em capacidade compartilhada. Um conjunto de dados que lê de um fluxo de dados é lido até o fluxo de dados: o OneUptime ainda não lê quais tabelas um fluxo de dados carrega.
+O Power BI então descreve um conjunto de dados depois que ele é atualizado ou republicado; um que só usa DirectQuery, depois que alguém abre um relatório sobre ele. Ele nunca descreve conjuntos de dados em tempo real, conjuntos de dados com conexão dinâmica ao Analysis Services, pastas de trabalho do Excel nem conjuntos de dados com mais de 1 GB em capacidade compartilhada.
 
 Cada tabela é associada a uma tabela monitorada pelo nome, pelo esquema e pelo banco de dados, e um servidor pelo nome curto ou pelo nome completo. Uma tabela de outro mecanismo nunca é associada, nem uma de outro banco de dados: um relatório sobre `Sales.dbo.Orders` não é ligado a `Archive.dbo.Orders` porque só `Archive` é monitorado.
+
+A primeira leitura verifica o locatário inteiro. Depois dela, cada leitura de hora em hora verifica só os workspaces que mudaram desde a última leitura. Uma vez por dia ela também busca a lista do locatário inteiro, o que remove relatórios e workspaces que não existem mais, e verifica os workspaces cujos conjuntos de dados vieram sem as tabelas ou as consultas que as carregam, para que elas cheguem assim que o Power BI descrever os conjuntos de dados, e aqueles cuja última verificação é a mais antiga, para que cada workspace seja verificado pelo menos uma vez por semana; **Ler agora** verifica só o que mudou. O OneUptime executa até 16 verificações ao mesmo tempo, de até 100 workspaces cada uma, como o Power BI permite, e as verificações de um locatário grande podem levar minutos: a leitura de hora em hora espera por elas até 20 minutos e **Ler agora** até 4. Um workspace cuja verificação falhou ou não terminou mantém o que foi lido dele, e o aviso da ferramenta de BI diz isso. A próxima leitura o verifica de novo se a verificação dele falhou; uma verificação que não terminou não é reiniciada, mas retomada, e o resultado dela é lido assim que o Power BI a conclui, dentro das 24 horas em que o Power BI guarda o resultado de uma verificação. Em um locatário grande demais para guardar inteira a verificação de cada workspace, o OneUptime guarda inteiras as verificações dos workspaces de que os painéis dele precisam, e ainda assim retoma as verificações que não terminaram.
 
 As [atualizações](#visualizações-e-atualizações-no-power-bi) são lidas à parte das tabelas: um aviso de que as atualizações de alguns conjuntos de dados não puderam ser lidas não diz nada sobre as tabelas deles.
 

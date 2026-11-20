@@ -5,6 +5,7 @@ Inventory is one list of everything OneUptime knows about your estate: services,
 :::cards
 - [How items get into Inventory](#how-items-get-into-inventory): Discovered, mirrored, or added by you.
 - [Find your way around](#find-your-way-around): The Inventory pages, and each item's own pages.
+- [Import devices from Esper](#import-devices-from-esper): Every Android device your Esper tenant enrolls, kept current.
 - [Add something by hand](#add-something-by-hand): A third-party API, an external database or an appliance.
 - [Archive instead of deleting](#archive-instead-of-deleting): The way to tidy the list that sticks.
 :::
@@ -25,14 +26,14 @@ flowchart TB
 | Source | In the API | Where it comes from | How long it stays |
 | --- | --- | --- | --- |
 | **Discovered** | `discovered` | OpenTelemetry resource attributes, read as telemetry arrives: a service, host, Kubernetes object or virtual machine that sends telemetry. | Registered again with each batch. Removed once it has been silent for longer than its kind's window (see below). |
-| **Mirrored** | `inventory` | A record a OneUptime poller keeps: network devices, cloud resources, IoT devices, serverless functions, RUM applications, Docker hosts and Podman hosts. Copied every 15 minutes. | As long as its record. Delete the record, and the item goes with it. |
+| **Mirrored** | `inventory` | A record a OneUptime poller keeps: network devices, cloud resources, IoT devices, serverless functions, RUM applications, Docker hosts, Podman hosts and the Android devices an Esper connection imports. Copied every 15 minutes. An Esper device, each time its connection is read. | As long as its record. Delete the record, and the item goes with it. |
 | **Added by you** | `manual` | Added by you, for something OneUptime cannot see: a third-party API, a vendor-managed database, an appliance in a rack. | Until you delete it. Nothing expires it. |
 
 A discovered or mirrored item cannot be renamed or given another type: its source would overwrite the change on its next pass. The item's **Settings** page says where to make a lasting change instead. What you can always add to any item, whatever its source, is custom field values: see [Inventory Custom Fields](/docs/inventory/custom-fields).
 
 ### How long a silent item stays
 
-A discovered item has a heartbeat. Each time telemetry arrives for it, its last-seen time moves forward, and the **Status** column of the list says how recent that is. Mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.
+A discovered item has a heartbeat. Each time telemetry arrives for it, its last-seen time moves forward, and the **Status** column of the list says how recent that is. So does an Android device from Esper: each time it checks in with Esper. Other mirrored items and the ones you added have no heartbeat, so their status stays blank rather than alarming.
 
 | Status | What it means |
 | --- | --- |
@@ -58,8 +59,9 @@ Open **Products → Resources → Inventory**. Its side menu has these pages. **
 | --- | --- |
 | **Overview** | How many items you have, what they are, how many have gone quiet, and what was added most recently. |
 | **All Items** | Every item. Search by name, description or identity key, narrow the list by type, source, status or custom field, and add an item by hand. |
+| **Managed Devices** | Your Esper connections, and every Android device they import with its status, group, model and Android version. |
 | **Topology Map** | How the items connect: services, what they call, and the hosts, pods and devices they run on. |
-| **Gone Quiet** | The discovered items that have not sent telemetry for more than a day. |
+| **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with Esper. |
 | **By Source** | The items of one source: **Discovered**, **Mirrored** or **Added by You**. |
 | **Settings → Custom Fields** | The fields your project keeps on every item. |
 | **Help → Documentation** | A short guide to Inventory, with the kinds of item it recognises. |
@@ -69,7 +71,7 @@ Open an item, and its own side menu has its **Overview** (its type, source and s
 
 ### Asset details
 
-A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
+A host or a network device has an **Asset Details** card that describes both the same way: hostname, IP address, MAC address, serial number, manufacturer, model, firmware version, operating system, OS version, device type and location. An Android device's card also has its security patch level, from the Android agent or Esper. A fact nothing has reported reads **Unknown**, and the card says why and how the unknown ones get filled in: a device that does not report them over SNMP, a device not read yet, or a Meraki device whose dashboard holds them.
 
 - A host's facts come from the resource attributes on its telemetry: its IP and MAC addresses, architecture and operating system out of the box, and its serial number, make, model and firmware once you stamp them on.
 - A network device's facts come from its SNMP poll, its role and its site. What its poll has not read comes from discovery: the last scan of its address, a router's ARP table, or its probe's DNS lookup. A device without ENTITY-MIB, such as a Meraki MX, still gets its make, model and operating system from its system description, and its MAC address from its own ports. Its IP address is never shown as its hostname.
@@ -84,6 +86,53 @@ The same facts are columns of the **All Items** list, hidden until you turn them
 ### Connections
 
 An item's **Connections** page lists its neighbours in both directions, grouped into **Calls**, **Called by**, **Runs on** and **Related**. Each group shows its total (a group with more than 100,000 connections shows "100,000+"), and **Show more** pages through the rest, so a busy cluster, namespace or node shows every connection rather than the first few. The page is not limited to a time range: it includes relationships added by hand through the API, and neighbours that have been archived. A neighbour that is no longer in Inventory is shown by its key.
+
+## Import devices from Esper
+
+Connect an Esper tenant, and every Android device it enrolls is in Inventory, including the devices whose app never started. Each device is one host, with what only Esper knows about it: its group, its Android version, build and security patch level, its serial number and IMEI, its battery and storage, and its installed apps. Esper sends nothing on its own, so OneUptime reads it on a schedule: the devices every 15 minutes, and each device's apps every 6 hours.
+
+:::steps
+### Make an API key in Esper
+
+In the Esper console, create a key under API Key Management. OneUptime only reads, so the key of a user whose Esper role can read devices, groups and apps is enough. A key stops working once it is replaced, or once its user is deleted.
+
+### Connect the tenant
+
+Go to **Products → Resources → Inventory**, then **Managed Devices**, and click **Connect Esper**. Enter the **Tenant**, the name before `.esper.cloud` in your Esper console's address (`acme` for `acme.esper.cloud`), and the **API Key**. **More fields** holds the connection's name and how often it is read.
+
+### Check the first read
+
+**Connect** tests the key before it saves anything: it says how many Android devices a read will import, or what is wrong and how to fix it. The first read starts within a minute, and the connection's row says how it went.
+:::
+
+| What Esper reports | Where it shows |
+| --- | --- |
+| Model, manufacturer, serial number, Android version, build, and IP and MAC addresses | The device's **Asset Details** card, and the columns of **All Items** |
+| Status, last check-in, group, security patch level, IMEI, battery, storage and Esper agent | The device's **Esper** card, and the **Devices** list of **Managed Devices** |
+| Apps and their versions | The device's **Installed Apps** list |
+
+### One device, not two
+
+An app or the Android Agent that sends telemetry from a device joins the device Esper imports as one item when it names the device the way Esper does. Set these resource attributes from the managed configuration Esper fills in on each device:
+
+| Resource attribute | Managed configuration value | What it is |
+| --- | --- | --- |
+| `host.name` | `${esper.deviceName}` | The device's name in Esper, like `ESP-ID-AAAAW`. Needed. |
+| `host.serial_number` | `${esper.serialNumber}` | The device's serial number. Optional. |
+
+OneUptime finds a device's item by its name in Esper, then by its serial number, and makes one only when none matches. The Android Agent sets both from its `device_name` and `device_serial` settings, and [Android Setup](/docs/rum/android-setup#import-the-fleet-from-esper) shows an app's managed configuration.
+
+### When a device goes quiet, or leaves Esper
+
+A device that has not checked in for 30 minutes is **Offline**, and says how long ago it last did. Its item's **Status** follows its last check-in, or its telemetry when that is newer, so a device silent for a day is on the **Gone Quiet** page.
+
+A device removed from Esper is marked **Removed**, and its item is archived: it leaves the list, and waits under **Advanced → Archived**. A device that comes back to Esper comes back to the list. 30 days after it left, the device is deleted, and so is its item, unless telemetry or you added something to it.
+
+### Get an alert when a device stops checking in
+
+On **Managed Devices**, click **Set up alerts** on the connection's row, and create **Esper Device Stopped Checking In**. It opens one alert for each device that has not checked in with Esper for more than an hour, named after the device, and resolves it once the device checks in again.
+
+Each read of the connection records how many minutes ago each device last checked in, as the metric `oneuptime.managed_device.check_in.age`, and the monitor checks each device's latest reading every 5 minutes. A device that also runs the Android Agent is left to **Host Stopped Reporting**, so it never alerts twice, and a device removed from Esper resolves its alert. A read that fails records nothing, so no alert opens or resolves until the next one. For a fleet that is switched off at night, raise the monitor's threshold.
 
 ## Add something by hand
 

@@ -156,6 +156,14 @@ export type LogsTableSortField = "time" | "severityText";
 export const LOGS_TABLE_TEST_ID: string = "logs-table";
 
 /*
+ * A row's own action (Copy log message): out of sight until the pointer is
+ * on the row, or the keyboard's focus is in it - never a focus ring on
+ * something unseen.
+ */
+export const LOGS_TABLE_ROW_ACTION_CLASS_NAME: string =
+  "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100";
+
+/*
  * A log's message: its own line breaks kept, a run too long for the column
  * broken where it must, and never narrower than 8rem.
  */
@@ -789,13 +797,18 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                   </div>
                                 )}
                               </div>
+                              {/*
+                               * Shown under the pointer, and to the keyboard
+                               * as Tab reaches it: it was there to Tab to but
+                               * stayed unseen, a focus ring on nothing.
+                               */}
                               <CopyTextButton
                                 textToBeCopied={message}
                                 size="xs"
                                 variant="ghost"
                                 iconOnly={true}
                                 title="Copy log message"
-                                className="opacity-0 transition-opacity group-hover:opacity-100"
+                                className={LOGS_TABLE_ROW_ACTION_CLASS_NAME}
                               />
                             </div>
                           </td>

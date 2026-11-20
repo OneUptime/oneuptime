@@ -49,7 +49,7 @@ I **Unntak å følge med på** angir du **Meldingen inneholder**, **Unntakstyper
 
 ### Snevre dem inn (valgfritt)
 
-Åpne **Flere felt** for å filtrere etter telemetritjeneste eller infrastrukturentitet, eller for også å telle løste og arkiverte unntak.
+Åpne **Flere felt** for å filtrere etter telemetritjeneste eller infrastrukturentitet, for å telle bare uhåndterte unntak eller utelate noen typer, eller for også å telle løste og arkiverte unntak.
 
 ### Si når det skal varsles
 
@@ -74,6 +74,8 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Tidsvindu** (i **Når det skal varsles**) | Unntak fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 5 minutter** |
 | **Filtrer etter tjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Unntak fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
+| **Bare uhåndterte unntak** (under **Flere felt**) | Bare unntakene som ingenting fanget, for eksempel et krasj: de som unntaksutforskeren merker som **Uhåndtert**. Et unntak som ikke sier om det ble fanget, telles som håndtert. | Av |
+| **Utelat unntakstyper** (under **Flere felt**) | Ikke unntakene av disse typene, atskilt med komma, som `ANR, Hang`. Typenavnet må samsvare nøyaktig. En type som står her, utelates selv om **Unntakstyper** også har den med. | Tom: ingen type utelates |
 | **Inkluder løste unntak** (under **Flere felt**) | Tell også unntak som er merket som løst. | Av |
 | **Inkluder arkiverte unntak** (under **Flere felt**) | Tell også arkiverte unntak. | Av |
 
@@ -103,6 +105,17 @@ Når du oppretter monitoren via API-et, setter du `environments` på trinnets `e
 }
 ```
 
+Via API-et er **Bare uhåndterte unntak** `unhandledOnly` og **Utelat unntakstyper** `excludedExceptionTypes`, en liste med typenavn. Anbefalingen **App Crashes** for en mobilapp setter begge, slik at den teller appens krasj og ikke når appen fryser:
+
+```json
+{
+  "exceptionMonitor": {
+    "unhandledOnly": true,
+    "excludedExceptionTypes": ["ANR", "Hang"]
+  }
+}
+```
+
 ## Slik evalueres den
 
 - **Hvert minutt.** En unntaksmonitor sjekkes ikke av sonder, så den har ikke noe intervall å angi og ingen side **Sonder og intervall**.
@@ -116,7 +129,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en unntaksmonitor har fire slags **Filtertype**: **Antall unntak**, antallet unntak som samsvarte i vinduet, og **Nye unntak**, **Unntak med regresjon** og **Økning i unntak (i %)**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
+Kriteriene til en unntaksmonitor har seks slags **Filtertype**: **Antall unntak**, antallet unntak som samsvarte i vinduet, og **Nye unntak**, **Unntak med regresjon**, **Økning i unntak (i %)**, **Økter med unntak (i %)** og **Økter**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet unntak er… |
 | --- | --- |
@@ -160,6 +173,17 @@ I tillegg til hvor mange unntak som skjedde, kan en unntaksmonitor varsle ved de
 | **Økning i unntak (i %)** | Hvor langt antallet samsvarende unntak ligger over det vanlige: dagen før vinduet, per vindu av samme lengde, minst ett. Ti unntak etter en rolig dag gir 900 %. |
 
 Nye og tilbakevendte unntak filtreres etter tjeneste, unntakstype, miljø og melding, og også etter infrastrukturenhet: et unntak telles når en av forekomstene i vinduet kom fra en av de valgte enhetene.
+
+## En andel av øktene
+
+En app på tusenvis av telefoner har alltid noen krasj, så det teamet vil høre om, er at raten stiger. For en app der spans har `session.id`, for eksempel en mobilapp, kan en unntaksmonitor varsle ved andelen av øktene der et unntak skjedde. Begge filtertypene leses bare når et kriterium sjekker dem.
+
+| Filtertype | Hva den leser i vinduet |
+| --- | --- |
+| **Økter med unntak (i %)** | Andelen av vinduets økter der et samsvarende unntak skjedde. Uten økter i vinduet finnes det ingen andel, og ingen kriterier på den samsvarer. |
+| **Økter** | Vinduets økter: de distinkte `session.id` i spans fra monitorens tjenester. Kombiner den med andelen, så en andel av noen få økter ikke varsler. |
+
+Med **Bare uhåndterte unntak** slått på og typene `ANR` og `Hang` utelatt er andelen en mobilapps krasjrate. Anbefalingen **App Crash Rate** for en mobilapp varsler når mer enn 1,09 % av øktene i en time krasjer, raten Android vitals kaller dårlig oppførsel, så snart timen har minst 250 økter. **App ANR Rate** teller bare `ANR` og `Hang`, over 0,47 %. For å skrive en slik regel selv velger du **En andel av øktene** under **Varsle ved** i **Når det skal varsles**.
 
 ## Topper sammenlignet med det normale
 

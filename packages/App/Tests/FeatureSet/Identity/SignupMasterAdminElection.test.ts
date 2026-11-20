@@ -63,6 +63,21 @@ jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
 });
 
 /*
+ * Single sign-on manages nobody's sign-in here: setting up a second step at
+ * sign-in, claiming an invited account with a password and a password reset
+ * link each ask SsoManagedSignIn first, which reads the server's rule and,
+ * since #9763, every project the person is in. Driven for real in
+ * SignInMatrixSsoAndTwoFactor.test.ts and ForgotPasswordSsoManaged.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoManagedSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoManagedSignInStandIn",
+    ) as typeof import("./SsoManagedSignInStandIn")
+  ).ssoManagesNobody();
+});
+
+/*
  * IsBillingEnabled is a module-level constant read from process.env at import
  * time, and the test runner exports BILLING_ENABLED=true. Both deployment
  * shapes have to be reachable from one file, so it is served through a getter

@@ -41,7 +41,7 @@ Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt**
 
 Klik på **Rediger Bruger**, og ret det, du har brug for:
 
-- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, bekræfter du den nye adresse igen.
+- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, sender OneUptime et link til den nye adresse, og din adresse ændres, når du åbner det. Indtil da logger du ind med den nuværende, og **Annuller ændring** stopper ændringen. En hovedadministrators egen adresse ændres med det samme.
 - **Fulde navn**: det navn, dit team ser overalt i OneUptime.
 - **Tidszone**: den tidszone, dashboardet viser og læser tider i, og den, der bruges til tiderne i notifikationer til dig.
 - **Sprog**: sproget i dashboardet i alle browsere, du logger ind i, og i dine vagttilkald. Ikke valgt: dine tilkald er på engelsk, og dashboardet følger din browser.
@@ -105,24 +105,46 @@ Linket virker én gang, i 15 minutter, og et nyere link erstatter det. Du kan å
 
 ### Slå tofaktorgodkendelse til
 
-Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et link sendt på e-mail. Tilføj først et andet trin, og slå den så til.
+Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et link i en e-mail. Den slås først til, når dit andet trin virker, så den beder aldrig om et trin, du ikke har.
 
 :::steps
-### Tilføj en godkendelsesapp
+### Vælg dit andet trin
 
-Åbn **Sikkerhed → Tofaktorgodkendelse**. Under **Godkendelsesapps** tilføjer du en app og giver den et navn. Scan QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtast den sekscifrede kode, den viser, og klik på **Bekræft og afslut**. Vil du hellere bruge en USB- eller NFC-nøgle, tilføjer du den under **Sikkerhedsnøgler**.
+Åbn **Sikkerhed → Tofaktorgodkendelse** og klik på **Aktivér tofaktorgodkendelse**. Vælg **Godkendelsesapp** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**.
+
+### Opsæt det
+
+For en godkendelsesapp scanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtaster den 6-cifrede kode, den viser, og klikker på **Bekræft og afslut**. En USB- eller NFC-nøgle giver du et navn og følger din browsers vejledning. Tofaktorgodkendelse er derefter slået til, og kortet viser **Aktiveret**. Fra dit næste login med adgangskode eller et link i en e-mail beder OneUptime om dit andet trin.
 
 ### Gem dine backupkoder
 
 Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUptime **Dine backupkoder**. Hver kode logger dig ind én gang, hvis du mister din app eller nøgle. Kopiér eller download dem, sæt flueben ved, at du har gemt dem, og klik på **Færdig**.
-
-### Slå den til
-
-Øverst på siden klikker du på **Aktivér tofaktorgodkendelse** og bekræfter. Kortet viser nu **Aktiveret**. Fra dit næste login med adgangskode eller et link sendt på e-mail beder OneUptime om dit andet trin.
 :::
+
+Har du allerede en app under **Godkendelsesapps** eller en nøgle under **Sikkerhedsnøgler**, beder **Aktivér tofaktorgodkendelse** dig bare om at bekræfte. Mens den er slået til, kan din sidste app, nøgle eller adgangsnøgle ikke fjernes: Tilføj først en anden, eller slå tofaktorgodkendelse fra. Viser kortet **Opsætning mangler**, er tofaktorgodkendelse slået til, uden at noget er opsat, ofte fordi en administrator har krævet det: Klik på **Afslut opsætningen**, ellers bliver du bedt om det ved dit næste login.
+
+### Opsæt tofaktorgodkendelse, når du logger ind
+
+Når en administrator kræver tofaktorgodkendelse, og du endnu ikke har opsat noget, beder dit næste login med adgangskode eller et link i en e-mail dig om at opsætte det, før du bliver lukket ind. Vælg **Autentifikator-app** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**:
+
+- **Autentifikator-app**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**.
+- **Sikkerhedsnøgle**: Klik på **Registrer sikkerhedsnøgle**, og følg din browsers vejledning. Rør ved en USB- eller NFC-nøgle, eller brug din telefons eller computers fingeraftryk, ansigt eller skærmlås.
+
+Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er logget ind. **Vælg en anden måde** går tilbage til valget. En browser, der ikke kan registrere en sikkerhedsnøgle, fx på en side uden HTTPS, tilbyder kun autentifikator-appen.
 
 > [!TIP]
 > Er du ved at løbe tør for backupkoder? **Generér nye koder** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
+
+### Når din organisation styrer dit login
+
+På en server, der kræver single sign-on, logger du kun ind gennem din organisations identitetsudbyder, fx Okta eller Microsoft Entra ID, og OneUptime opsætter ingen adgangskode, adgangsnøgle eller tofaktorgodkendelse for dig. **Brugerprofil** har så ingen sektion **Sikkerhed**, og dens **Oversigt** nævner din udbyder under **Single sign-on**. Skift din adgangskode og dit andet trin hos din identitetsudbyder. Det, du har opsat før, forbliver gemt: Det virker først igen, hvis serveren holder op med at kræve single sign-on, medmindre en serveradministrator rydder det, og så får du en e-mail. Hovedadministratorer beholder deres egne indstillinger under **Sikkerhed**.
+
+Det samme sker, når alle de projekter, du hører til, kræver single sign-on og har **Styr login med SSO** slået til. Din adgangskode logger dig stadig ind i OneUptime, men alle projekter beder om SSO, så OneUptime opsætter ingen ny adgangskode, adgangsnøgle eller andet trin for dig:
+
+- **Et projekt, der ikke gør det**: Så snart du er medlem af eller inviteret til et projekt, der ikke kræver SSO eller ikke har **Styr login med SSO** slået til, kommer din sektion **Sikkerhed** tilbage. **Oversigt** nævner så de projekter under **Single sign-on** som grunden til, at dine indstillinger er dine egne. Forlader du det projekt, mister du dem igen.
+- **Projekter med forskellige udbydere**: Styrer alle dine projekter login, hver med sin egen identitetsudbyder, nævner **Oversigt** hver udbyder.
+- **Hovedadministratorer** beholder altid deres egne indstillinger under **Sikkerhed**.
+- **Det, du har opsat før**, forbliver gemt. En serveradministrator kan rydde det, og det kan en ejer af alle de projekter, du hører til, også; du får en e-mail, når det sker.
 
 ## Dine projekter
 
@@ -162,6 +184,14 @@ Dit tema gemmes i din browser, så indstil det igen i en anden browser eller på
 
 :::details Jeg har ikke fået e-mailen til at bekræfte min adresse
 Logger du ind igen, sendes et nyt link: tjek også din spam-mappe. Kan du ikke logge ind, så brug **Glemt adgangskode?** på loginsiden. Nulstillingslinket bekræfter også din adresse.
+:::
+
+:::details Tilmeldingen sendte mig en e-mail om, at jeg allerede har en konto
+Den adresse har allerede en OneUptime-konto, så tilmeldingen oprettede og ændrede intet. Log ind med den, eller brug **Glemt adgangskode?** på loginsiden, hvis du ikke kan huske din adgangskode. Tilmeldingssiden siger det samme for alle adresser, så den fortæller ingen, hvilke adresser der har en konto.
+:::
+
+:::details Min e-mailadresse er ikke ændret
+Din adresse ændres først, når du åbner linket, som OneUptime sendte til den nye adresse. Linket virker i 24 timer: Er det udløbet, så ændr din e-mail igen for at få et nyt. Bruger en anden konto allerede den adresse, står det i e-mailen dertil, og din adresse forbliver, som den er.
 :::
 
 :::details Jeg har mistet min godkendelsesapp

@@ -63,7 +63,7 @@ Click a value in the **Filters** sidebar to add it as a chip: a severity, a serv
 Click a row. Its details open beside the list.
 :::
 
-Your search, your chips and the time range are kept in the page's address, so a refresh, a bookmark or a shared link opens the same logs.
+Your search, your chips and the time range are kept in the page's address, so a refresh, a bookmark or a shared link opens the same logs. A link to one log line, such as a security event's **View log line**, opens that line above the list, read with your own permissions. **Copy Link** on a line's details copies such a link, with the list you copied it from under it, over the same time range.
 
 ## Read a log
 
@@ -170,7 +170,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 ### See what it did
 
 - **Logs → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Logs**, which opens the lines it is about, from the hour it was found in, in the **Viewer**. A failure that writes no log line has no lines to open: **Open in Traces** opens its failed spans instead. On an error log, **Create Monitor** sets up a Logs monitor that counts the message's lines.
-- **Logs → AI → Activity** lists every investigation and pull request, newest first, with how each one stands. A finished investigation also says what OneUptime AI found, such as an error's cause outside the code, which is why that error log got no pull request on its own.
+- **Logs → AI → Activity** lists every investigation and pull request, newest first, with how each one stands. A finished investigation also says what OneUptime AI found, such as an error's cause outside the code, which is why that error log got no pull request on its own. A pull request says how its task in Code stands now: a fix asked again with Try again after it failed no longer reads as failed, and names the pull request it opened.
 - In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## What happens to logs as they arrive

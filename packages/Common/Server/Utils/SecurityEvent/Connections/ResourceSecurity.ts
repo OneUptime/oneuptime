@@ -28,9 +28,14 @@ import {
   ResourceSecurityCaseJson,
   ResourceSecurityJson,
   ResourceSecurityScopeJson,
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
+  SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SecurityConnectionKind,
 } from "../../../../Types/SecurityCase/SecurityConnection";
+import { getServerlessFunctionCloudResourceId } from "../../../../Utils/SecurityEvent/LogParsers/CloudAuditResources";
 import { NETWORK_DEVICE_ID_ATTRIBUTE } from "../../../../Types/NetworkDevice/NetworkDeviceTelemetryAttribute";
 import { SecurityEventScope } from "../../../../Types/SecurityEvent/SecurityEventScope";
 import {
@@ -44,6 +49,7 @@ import {
   getObservableSearchValues,
   getRecordSecurityValues,
   getSecurityAddressScope,
+  isCloudResourceIdLike,
   readCloudEndpointHosts,
   readRecordAddresses,
   recordReportsAddress,
@@ -68,6 +74,7 @@ import TeamMemberService from "../../../Services/TeamMemberService";
 import UserService from "../../../Services/UserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
+import PendingInviteeProfiles from "../../TeamMember/PendingInviteeProfiles";
 import SecurityCaseValues from "../../SecurityCase/SecurityCaseValues";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
@@ -89,10 +96,16 @@ import {
  * on, the hosts a monitor checks, a member's email) and its public
  * addresses - for a host or a device the ones no other host or device of
  * the project holds, for a cloud resource the ones no other cloud resource
- * answers on, for a monitor every public address it checks. A service and
- * a serverless function are searched for by their logs: the events "Your
- * logs" read from them; so is a cloud resource with no ID, name or address
- * of its own. Possible connections - a short name, a private or shared
+ * answers on, for a monitor every public address it checks. A service is
+ * searched for by its logs: the events "Your logs" read from them. A
+ * network device, an OpenStack cloud, a Docker or Podman host, a cloud
+ * resource and a serverless function are searched for both ways: by their
+ * names - a cloud resource's and a function's being their cloud's own ID
+ * for them, as its audit log names them (#9779, #9780) - and by the events
+ * read from their own logs: a container host's being its containers' logs,
+ * a cloud resource's the logs its connection's stream stamps with its ID,
+ * a function's the logs and traces that carry its faas.name.
+ * Possible connections - a short name, a private or shared
  * address - are left out here: a guess must never put a case on the wrong
  * host's page. A case's Connected Signals still shows them, said to be
  * possible.
@@ -289,6 +302,8 @@ export default class ResourceSecurity {
       windowDays: RESOURCE_SECURITY_WINDOW_IN_DAYS,
       values: [],
       isSearchedByLogs: identity.isSearchedByLogs,
+      isReadFromOwnLogs:
+        identity.isSearchedByLogs || Boolean(identity.logAttribute),
       entity: identity.entity,
       eventCount: 0,
       findingCount: 0,
@@ -317,6 +332,8 @@ export default class ResourceSecurity {
 
     result.values = values;
     result.isSearchedByLogs = isSearchedByLogs;
+    result.isReadFromOwnLogs =
+      isSearchedByLogs || Boolean(identity.logAttribute);
 
     const summary: SecurityEventsNamingSummary =
       await SecurityEventService.countEventsNaming({
@@ -491,12 +508,30 @@ export default class ResourceSecurity {
         }
 
         const main: string = host.hostIdentifier || host.name || "";
+        const hostIdentifier: string = (host.hostIdentifier || "").trim();
 
         return {
           name: host.name || host.hostIdentifier || "",
           names: [host.hostIdentifier, host.name],
           entity: main ? { type: SecurityEntityType.Host, value: main } : null,
           isSearchedByLogs: false,
+          /*
+           * And the events read from its containers' logs (#9628), which
+           * are filed under each container's service: every such event
+           * names the host its line was written on, by the host name the
+           * agent stamps, as the host's Logs page reads them.
+           */
+          ...(hostIdentifier
+            ? {
+                logAttribute: {
+                  key:
+                    data.kind === SecurityConnectionKind.DockerHost
+                      ? SECURITY_LOG_DOCKER_HOST_ATTRIBUTE
+                      : SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
+                  value: hostIdentifier,
+                },
+              }
+            : {}),
         };
       }
       case SecurityConnectionKind.KubernetesCluster: {
@@ -538,16 +573,24 @@ export default class ResourceSecurity {
 
         return {
           name: cloud.name || "",
-          /*
-           * An audit event names its cloud by openstack.cloud.name, and what the events
-           * read from its logs name is why they were read: its users, its projects.
-           */
+          // Anything that names the cloud by its openstack.cloud.name.
           names: [cloud.name],
           entity: cloud.name
             ? { type: SecurityEntityType.Host, value: cloud.name }
             : null,
           isSearchedByLogs: false,
-          isSearchedByLogsWithoutValues: true,
+          /*
+           * And its own audit trail (#9628). An OpenStack audit event keeps
+           * its cloud's name in an attribute of its own, never among what it
+           * names - its users, its projects - so searching for the name
+           * alone found none of the cloud's own events. The OpenStack agent
+           * files the cloud's logs under the cloud, and every event read
+           * from them carries its id, whatever it names.
+           */
+          logAttribute: {
+            key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+            value: data.id.toString(),
+          },
         };
       }
       case SecurityConnectionKind.NetworkDevice: {
@@ -616,6 +659,15 @@ export default class ResourceSecurity {
         const providerResourceId: string = (
           resource.providerResourceId || ""
         ).trim();
+        /*
+         * Its ID is searched for only when an event can name it: an ARN,
+         * an Azure resource ID or a Google Cloud full resource name, never
+         * the readable stand-in a resource whose metrics do not name it in
+         * full is kept by ("AWS/AmazonMQ Broker=orders").
+         */
+        const ownId: string = isCloudResourceIdLike(providerResourceId)
+          ? providerResourceId
+          : "";
         const publicAddress: string | undefined = endpoints.addresses.find(
           (address: string): boolean => {
             return (
@@ -631,25 +683,47 @@ export default class ResourceSecurity {
           ? { type: SecurityEntityType.Host, value: endpoints.names[0] }
           : publicAddress
             ? { type: SecurityEntityType.IpAddress, value: publicAddress }
-            : providerResourceId
-              ? { type: SecurityEntityType.Other, value: providerResourceId }
+            : ownId
+              ? { type: SecurityEntityType.Other, value: ownId }
               : null;
 
         return {
           name: resource.name || providerResourceId,
-          names: [providerResourceId, ...endpoints.names],
+          // Its cloud's audit log names it by its ID (#9779): its ARN, resource ID or resource name.
+          names: [ownId, ...endpoints.names],
           addresses: endpoints.addresses,
           addressOwnership: ResourceAddressOwnership.CloudResources,
           entity,
           isSearchedByLogs: false,
-          isSearchedByLogsWithoutValues: true,
+          /*
+           * And the events read from its own logs (#9779): a stream files
+           * them under its connection's service, and stamps each with the
+           * resource's ID, as its Logs page reads them. A row with no ID at
+           * all is read by the logs filed under it instead.
+           */
+          ...(providerResourceId
+            ? {
+                logAttribute: {
+                  key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+                  value: providerResourceId,
+                },
+              }
+            : { isSearchedByLogsWithoutValues: true }),
         };
       }
       case SecurityConnectionKind.ServerlessFunction: {
         const serverlessFunction: ServerlessFunction | null =
           await ServerlessFunctionService.findOneBy({
             query,
-            select: { _id: true, name: true, functionIdentifier: true },
+            select: {
+              _id: true,
+              name: true,
+              functionIdentifier: true,
+              cloudProvider: true,
+              cloudPlatform: true,
+              cloudRegion: true,
+              cloudAccountId: true,
+            },
             props: data.props,
           });
 
@@ -657,14 +731,43 @@ export default class ResourceSecurity {
           return null;
         }
 
+        const functionIdentifier: string = (
+          serverlessFunction.functionIdentifier || ""
+        ).trim();
+        /*
+         * Its cloud's audit log names it by its own ID, where its telemetry
+         * says it in full: a Lambda's ARN, a Cloud Function's resource name.
+         */
+        const cloudId: string | null = getServerlessFunctionCloudResourceId({
+          functionIdentifier,
+          cloudProvider: serverlessFunction.cloudProvider,
+          cloudPlatform: serverlessFunction.cloudPlatform,
+          cloudRegion: serverlessFunction.cloudRegion,
+          cloudAccountId: serverlessFunction.cloudAccountId,
+        });
+
         return {
-          name:
-            serverlessFunction.name ||
-            serverlessFunction.functionIdentifier ||
-            "",
-          names: [],
-          entity: null,
-          isSearchedByLogs: true,
+          name: serverlessFunction.name || functionIdentifier,
+          names: cloudId ? [cloudId] : [],
+          entity: cloudId
+            ? { type: SecurityEntityType.Other, value: cloudId }
+            : null,
+          isSearchedByLogs: false,
+          /*
+           * And the events read from its own logs and traces (#9780),
+           * whatever service they are filed under: a Lambda layer names its
+           * service after the function, and the service wins at ingest.
+           * Each carries the function's faas.name, as its Logs and Traces
+           * pages read them.
+           */
+          ...(functionIdentifier
+            ? {
+                logAttribute: {
+                  key: SECURITY_LOG_FUNCTION_ATTRIBUTE,
+                  value: functionIdentifier,
+                },
+              }
+            : { isSearchedByLogsWithoutValues: true }),
         };
       }
       case SecurityConnectionKind.Monitor: {
@@ -804,6 +907,18 @@ export default class ResourceSecurity {
         if (!email) {
           return null;
         }
+
+        /*
+         * Named as the project knows them: a membership can be an
+         * invitation not accepted yet, whose person the project sees only
+         * by the name typed for them, else their address - never by their
+         * account's own name (#9823, #9934). Searched for by the address
+         * either way: the project typed it.
+         */
+        await PendingInviteeProfiles.nameInProject({
+          users: [user],
+          projectId: data.projectId,
+        });
 
         return {
           name: user?.name?.toString() || email,

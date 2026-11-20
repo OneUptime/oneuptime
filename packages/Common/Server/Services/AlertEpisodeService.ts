@@ -53,7 +53,9 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import AlertEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/AlertEpisode";
-import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
+import OwnerRuleAssignment, {
+  OwnersAdded,
+} from "../Utils/Rules/OwnerRuleAssignment";
 import {
   MessageBlocksByWorkspaceType,
   WorkspaceChannelsCreated,
@@ -1689,28 +1691,14 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    // Get the created state
-    const createdState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: episode.projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!createdState || !createdState.id) {
-      throw new BadDataException("Created state not found for this project.");
-    }
+    // The project's created state: the topmost, as a new episode starts in.
+    const createdAlertStateId: ObjectID =
+      await AlertStateService.getCreatedAlertStateId(episode.projectId);
 
     await this.changeEpisodeState({
       projectId: episode.projectId,
       episodeId: episodeId,
-      alertStateId: createdState.id,
+      alertStateId: createdAlertStateId,
       notifyOwners: true,
       rootCause: "Episode reopened due to new alert added.",
       props: {
@@ -1959,9 +1947,12 @@ export class Service extends ProjectReferencesService<Model> {
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
-  ): Promise<void> {
-    // Owners already on the episode are skipped, not added a second time.
-    await OwnerRuleAssignment.addOwners({
+  ): Promise<OwnersAdded> {
+    /*
+     * Owners already on the episode are skipped, not added a second time.
+     * Resolves to the owners added, and the ones skipped and why (#9933).
+     */
+    return await OwnerRuleAssignment.addOwners({
       ownerUserService: AlertEpisodeOwnerUserService,
       ownerTeamService: AlertEpisodeOwnerTeamService,
       resourceIdColumn: "alertEpisodeId",

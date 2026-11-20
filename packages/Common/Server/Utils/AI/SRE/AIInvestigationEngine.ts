@@ -62,6 +62,7 @@ import ObservabilityAssistant, {
   ObservabilityAssistantToolOutcome,
 } from "../Chat/ObservabilityAssistant";
 import InvestigationRecorder from "../Eval/InvestigationRecorder";
+import LlmType from "../../../../Types/LLM/LlmType";
 import AIRunRecordingService from "../../../Services/AIRunRecordingService";
 import { InvestigationRecordingInputs } from "../../../../Types/AI/InvestigationRecording";
 import logger from "../../Logger";
@@ -196,6 +197,27 @@ export const AI_RUN_HEARTBEAT_INTERVAL_IN_MS: number = 60 * 1000;
  */
 export const AI_RUN_ATTEMPT_SUPERSEDED_MESSAGE: string =
   "This attempt stopped: the run was handed to another attempt or ended while it was working.";
+
+/*
+ * What a completed run keeps of the model that wrote its answer (#7762):
+ * its name as the provider named it, and the provider's type when it is one
+ * OneUptime knows. Nothing for a loop whose calls named no model.
+ */
+export function getRunModelColumns(
+  result: Pick<ObservabilityAssistantResult, "modelName" | "providerType">,
+): { modelName?: string; llmProviderType?: LlmType } {
+  const modelName: string = (result.modelName || "").trim();
+  const providerType: LlmType | undefined = Object.values(LlmType).find(
+    (type: LlmType): boolean => {
+      return type === result.providerType;
+    },
+  );
+
+  return {
+    ...(modelName ? { modelName } : {}),
+    ...(providerType ? { llmProviderType: providerType } : {}),
+  };
+}
 
 // The heading of every report but a runner's own (reportHeading).
 export const AI_ROOT_CAUSE_REPORT_HEADING: string =
@@ -1072,6 +1094,11 @@ export default class AIInvestigationEngine {
             llmCallCount: result.llmCallCount,
             toolCallCount: result.toolCallCount,
             totalTokens: result.totalTokens,
+            /*
+             * The model that wrote the answer, so AI Results can tell what
+             * each model's investigations came to (#7762).
+             */
+            ...getRunModelColumns(result),
           },
         },
       );
@@ -1124,6 +1151,12 @@ export default class AIInvestigationEngine {
               ? { providerName: result.providerName }
               : {}),
             ...(result.modelName ? { modelName: result.modelName } : {}),
+            /*
+             * Its tools read for its readers (request.readAudience): what
+             * it recorded is theirs to read, so a replay shown to them may
+             * use it (#9811).
+             */
+            ...(request.readAudience ? { readForItsReaders: true } : {}),
           },
         });
       }

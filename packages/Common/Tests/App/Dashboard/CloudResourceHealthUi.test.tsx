@@ -324,8 +324,21 @@ describe("what a resource's page leads with", () => {
       "requests",
       "httpresponsetime",
       "http5xx",
+      // Its Health check, where one is set (#9740).
+      "healthcheckstatus",
       "memoryworkingset",
       "functionexecutioncount",
+    ]);
+    // What it stores leads a Cosmos DB account's page (#9740).
+    expect(
+      getCloudHeadlineKeys("azure", "Microsoft.DocumentDB/databaseAccounts"),
+    ).toEqual([
+      "datausagev2",
+      "indexusagev2",
+      "documentcountv2",
+      "totalrequests",
+      "normalizedruconsumption",
+      "serversidelatencydirect",
     ]);
     expect(
       getCloudHeadlineKeys("azure", "Microsoft.Storage/storageAccounts"),
@@ -340,8 +353,11 @@ describe("what a resource's page leads with", () => {
       "aws/ec2/networkin",
       "aws/ec2/networkout",
     ]);
+    // Its memory and fullest disk, from the Ops Agent on it (#9568).
     expect(getCloudHeadlineKeys("gcp", "gce_instance")).toEqual([
       "compute.googleapis.com/instance/cpu/utilization",
+      "agent.googleapis.com/memory/percent_used",
+      "agent.googleapis.com/disk/percent_used",
       "compute.googleapis.com/instance/network/received_bytes_count",
       "compute.googleapis.com/instance/network/sent_bytes_count",
     ]);

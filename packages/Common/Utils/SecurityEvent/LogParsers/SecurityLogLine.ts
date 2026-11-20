@@ -6,9 +6,17 @@ import {
 } from "../../../Types/NetworkDevice/NetworkDeviceTelemetryAttribute";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+  SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_ATTRIBUTE,
+  SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+  SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
+  SECURITY_LOG_ROW_FUNCTION_KEY,
 } from "../../../Types/SecurityCase/SecurityConnection";
+import { MAX_RESOURCE_ID_LENGTH } from "../../SecurityCase/SecurityConnectionMatch";
+import { getResourceIdObservables } from "../SecurityRecordReading";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   ocsfCategoryForClassUid,
@@ -294,6 +302,109 @@ export function readLogNetworkDevice(
   return device;
 }
 
+// The Docker or Podman runtime a container's line names, and the attribute it puts on its events.
+const CONTAINER_HOST_ATTRIBUTES: Readonly<Record<string, string>> = {
+  docker: SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
+  podman: SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
+};
+
+/*
+ * The Docker or Podman host a container's line was written on (#9628): the
+ * host name its agent stamps on every line, under the runtime that ran the
+ * container. A container's logs are filed under its own service, so this is
+ * how an event read from one reaches the host's Security Events page - the
+ * same lines its Logs page shows. A line of any other runtime, or of no
+ * container, names no container host.
+ */
+export function readLogContainerHost(
+  attributes: JSONObject | undefined | null,
+): JSONObject {
+  if (!attributes || typeof attributes !== "object") {
+    return {};
+  }
+
+  const runtime: string = readAttribute(attributes, [
+    "resource.container.runtime",
+    "container.runtime",
+  ]).toLowerCase();
+  const attribute: string | undefined = Object.prototype.hasOwnProperty.call(
+    CONTAINER_HOST_ATTRIBUTES,
+    runtime,
+  )
+    ? CONTAINER_HOST_ATTRIBUTES[runtime]
+    : undefined;
+  const host: string = readAttribute(attributes, [
+    "resource.host.name",
+    "host.name",
+  ]);
+
+  // readAttribute bounds the host name, which DNS keeps to 253 characters.
+  if (!attribute || !host) {
+    return {};
+  }
+
+  return { [attribute]: host };
+}
+
+// The longest function name a line's faas.name is read as.
+export const MAX_LOG_FUNCTION_NAME_LENGTH: number = 255;
+
+// A row's text attribute, trimmed: "" when it is none, or longer than `limit` - never cut.
+function readExactAttribute(
+  attributes: JSONObject | undefined | null,
+  key: string,
+  limit: number,
+): string {
+  if (!attributes || typeof attributes !== "object") {
+    return "";
+  }
+
+  const value: unknown = Object.prototype.hasOwnProperty.call(attributes, key)
+    ? attributes[key]
+    : undefined;
+  const text: string = typeof value === "string" ? value.trim() : "";
+
+  return text.length <= limit ? text : "";
+}
+
+/*
+ * The cloud resource a line is of (#9779): its resource.cloud.resource_id,
+ * exactly as the stream stamped it - the value the resource's Logs page
+ * filters on - so every event read from the line reaches that resource's
+ * Security Events page. Kept whole: a value cut to fit would name another
+ * resource, so one longer than any cloud's ID is left out.
+ */
+export function readLogCloudResource(
+  attributes: JSONObject | undefined | null,
+): JSONObject {
+  const id: string = readExactAttribute(
+    attributes,
+    SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
+    MAX_RESOURCE_ID_LENGTH,
+  );
+
+  return id ? { [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: id } : {};
+}
+
+/*
+ * The serverless function a line is of (#9780): its resource.faas.name,
+ * which ingest stamps on every row of a function's telemetry and the
+ * function's Logs page filters on, whatever Service the line is filed
+ * under. Every event read from the line carries it, which puts the event
+ * on that function's Security Events page.
+ */
+export function readLogFunction(
+  attributes: JSONObject | undefined | null,
+): JSONObject {
+  const name: string = readExactAttribute(
+    attributes,
+    SECURITY_LOG_ROW_FUNCTION_KEY,
+    MAX_LOG_FUNCTION_NAME_LENGTH,
+  );
+
+  return name ? { [SECURITY_LOG_FUNCTION_ATTRIBUTE]: name } : {};
+}
+
 export interface LogSecurityEventInput {
   line: SecurityLogLine;
   format: SecurityLogFormat;
@@ -334,6 +445,11 @@ export interface LogSecurityEventInput {
   targetIp?: string | undefined;
   targetPort?: number | undefined;
   targetResource?: string | undefined;
+  /*
+   * The cloud resources the record is about, by the id their Cloud
+   * Resource keeps (CloudAuditResources): named among the observables.
+   */
+  resourceIds?: Array<string> | undefined;
   // What the parser read, already flat: the attributes rules match on.
   attributes: JSONObject;
   mitreTactics?: Array<string> | undefined;
@@ -394,6 +510,9 @@ export function buildLogSecurityEvent(
   }
 
   Object.assign(attributes, readLogNetworkDevice(input.line.attributes));
+  Object.assign(attributes, readLogContainerHost(input.line.attributes));
+  Object.assign(attributes, readLogCloudResource(input.line.attributes));
+  Object.assign(attributes, readLogFunction(input.line.attributes));
 
   const recordSuffix: string =
     input.recordIndex !== undefined ? `:${input.recordIndex}` : "";
@@ -444,6 +563,7 @@ export function buildLogSecurityEvent(
       targetHost,
       principalIp,
       targetIp,
+      ...getResourceIdObservables(input.resourceIds),
     ]),
     attributes,
     traceId: readTelemetryId(input.line.traceId),

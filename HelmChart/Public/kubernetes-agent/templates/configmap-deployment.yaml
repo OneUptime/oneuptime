@@ -129,8 +129,48 @@ data:
             mode: pull
             interval: {{ .Values.resourceSpecs.interval }}
       {{- end }}
+      {{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
 
-      {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
+      # What the CIS Kubernetes Benchmark's policy controls read, for the
+      # cluster's Compliance page: RBAC (Roles, ClusterRoles and their
+      # bindings), ServiceAccounts and NetworkPolicies. Pulled with the other
+      # resource specs, never watched, as inventory keeps an object only while
+      # its snapshots arrive; read-only, and never a Secret. OneUptime keeps
+      # only what the controls read: a role's rules, a binding's role and
+      # subjects, whether a service account mounts its token, which pods a
+      # NetworkPolicy selects. A receiver of their own, with error_mode:
+      # ignore, so a cluster that refuses one of them skips it instead of
+      # stopping the events and every other spec
+      # (kubernetes-agent.complianceObjectsEnabled).
+      k8sobjects/compliance:
+        error_mode: ignore
+        objects:
+          - name: roles
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: rolebindings
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: clusterroles
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: clusterrolebindings
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: rbac.authorization.k8s.io
+          - name: serviceaccounts
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+          - name: networkpolicies
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: networking.k8s.io
+      {{- end }}
+
+      {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") }}
       # Scrape metrics via Prometheus endpoints (control plane, service
       # mesh, CSI drivers, CoreDNS, kube-state-metrics, cost engine)
       prometheus:
@@ -380,14 +420,97 @@ data:
                   regex: "^({{ join "|" .Values.kubeStateMetrics.metricsAllowlist }})$"
                   action: keep
             {{- end }}
-            {{- if and .Values.cost.enabled .Values.cost.metrics.enabled }}
-            {{- /* Resolution order: the explicit metrics endpoint, else
-                   <engine URL>/metrics, the engine being the external one or the
-                   bundled OpenCost. The engine URL is a base URL, so a path of
-                   its own (a reverse proxy's /model prefix, say) goes in front
-                   of /metrics rather than standing in for it. One that already
-                   ends in /metrics is not given a second. */}}
+            {{- if eq (include "kubernetes-agent.costMetricsEnabled" .) "true" }}
             {{- $costMetricsUrl := .Values.cost.metrics.endpoint | default "" | toString | trim }}
+            {{- if eq (include "kubernetes-agent.costMetricsFromAgent" .) "true" }}
+            {{- /* The agent builds the scrape from the engine URL, so a URL
+                   the static job below would refuse (credentials, a query
+                   string, a fragment, a % or $ in the path) is refused here
+                   too, with the same words. */}}
+            {{- if ne (include "kubernetes-agent.costEngineAuto" .) "true" }}
+            {{- $_ := include "kubernetes-agent.scrapeEndpoint" (dict "url" (include "kubernetes-agent.costEngineUrl" .) "setting" "cost.engine.url") }}
+            {{- end }}
+            # Cost metrics from wherever the engine the cost agent reads
+            # serves them, which the agent finds and the job asks it for
+            # (http_sd): the engine's /metrics (OpenCost, Kubecost's cost
+            # model), the /model/metrics its frontend proxies (Kubecost 2,
+            # OpenCost's UI), or Kubecost 3's finops agent. A Kubecost
+            # frontend answers /metrics with its web page, which this job
+            # cannot parse. With the bundled OpenCost, the agent answers with
+            # it until it reads the cluster's own engine instead, so the
+            # dashboard's prices are always those of the engine the Costs
+            # pages are priced by (#9852). Nothing is scraped until the agent
+            # answers; its /healthz says why not.
+            - job_name: cost-engine
+              scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
+              http_sd_configs:
+                - url: {{ include "kubernetes-agent.costScrapeTargetsUrl" . | quote }}
+                  refresh_interval: 60s
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
+                  action: keep
+            {{- else if and (eq (include "kubernetes-agent.costEngineAuto" .) "true") (not $costMetricsUrl) }}
+            # Cost metrics from the cluster's own cost engine
+            # (cost.engine.url: auto) while the cost agent is off
+            # (cost.agent.enabled: false), found the way the agent finds
+            # it: Services labelled for OpenCost or Kubecost 2's cost
+            # analyzer, or OpenCost's manifest's Service named opencost, in
+            # any namespace. Each read is narrowed by the API server, so
+            # nothing else in the cluster is watched. Scraped at OpenCost's
+            # API port (9003) or Kubecost's cost model (tcp-model), never a
+            # OneUptime agent's own bundled engine; Kubecost 3 keeps its
+            # prices on its finops agent, which only the agent finds. A
+            # cluster that runs both engines has both scraped: set
+            # cost.engine.url or cost.metrics.endpoint to pick one.
+            - job_name: cost-engine
+              scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: service
+                  selectors:
+                    - role: service
+                      label: "app.kubernetes.io/name=opencost"
+                - role: service
+                  selectors:
+                    - role: service
+                      label: "app in (opencost,cost-analyzer)"
+                - role: service
+                  selectors:
+                    - role: service
+                      field: "metadata.name=opencost"
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_part_of]
+                  regex: oneuptime
+                  action: drop
+                - source_labels:
+                    - __meta_kubernetes_service_label_app_kubernetes_io_name
+                    - __meta_kubernetes_service_label_app
+                    - __meta_kubernetes_service_name
+                  regex: "(?:.*;)?opencost(?:;.*)?"
+                  target_label: __tmp_cost_engine
+                  replacement: opencost
+                - source_labels: [__meta_kubernetes_service_label_app]
+                  regex: cost-analyzer
+                  target_label: __tmp_cost_engine
+                  replacement: kubecost
+                - source_labels:
+                    - __tmp_cost_engine
+                    - __meta_kubernetes_service_port_number
+                    - __meta_kubernetes_service_port_name
+                  regex: "opencost;9003;.*|kubecost;[0-9]+;tcp-model"
+                  action: keep
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
+                  action: keep
+            {{- else }}
+            {{- /* Resolution order: the explicit metrics endpoint, else
+                   <engine URL>/metrics, the engine being the bundled OpenCost,
+                   or an external one while the cost agent, which would find
+                   its endpoint, is off. The engine URL is a base URL, so a
+                   path of its own (a reverse proxy's /model prefix, say) goes
+                   in front of /metrics rather than standing in for it. One
+                   that already ends in /metrics is not given a second. */}}
             {{- $costEndpoint := include "kubernetes-agent.scrapeEndpoint" (dict "url" ($costMetricsUrl | default (include "kubernetes-agent.costEngineUrl" .)) "setting" (ternary "cost.metrics.endpoint" "cost.engine.url" (ne $costMetricsUrl ""))) | fromJson }}
             {{- if and $costEndpoint.path (not $costMetricsUrl) }}
             {{- $_ := set $costEndpoint "path" (printf "%s/metrics" ($costEndpoint.path | trimSuffix "/metrics")) }}
@@ -419,6 +542,7 @@ data:
                 - source_labels: [__name__]
                   regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
                   action: keep
+            {{- end }}
             {{- end }}
             {{- if .Values.coreDns.enabled }}
             # CoreDNS metrics. By default CoreDNS exposes a Prometheus
@@ -884,7 +1008,7 @@ data:
             # path to OneUptime.
             - otlp
             {{- end }}
-            {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
+            {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (eq (include "kubernetes-agent.costMetricsEnabled" .) "true") }}
             - prometheus
             {{- end }}
           processors:
@@ -916,6 +1040,9 @@ data:
             - k8sobjects
             {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
             - k8sobjects/openshift
+            {{- end }}
+            {{- if eq (include "kubernetes-agent.complianceObjectsEnabled" .) "true" }}
+            - k8sobjects/compliance
             {{- end }}
           processors:
             - memory_limiter

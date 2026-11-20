@@ -73,6 +73,7 @@ import splitActionButtons, {
 } from "../../../UI/Components/ActionButton/SplitActionButtons";
 import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import { AWS_STREAM_TEMPLATE_VERSION } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
@@ -1087,6 +1088,91 @@ describe("streaming an AWS connection's metrics and logs", () => {
         item: streaming,
       }).primary?.button.title,
     ).toBe("Read now");
+  });
+
+  /*
+   * A stack made before OneUptime streamed every key metric streams only
+   * the first ones, and the connection reads the rest from CloudWatch
+   * until the command is run again: while it streams, its row says Update
+   * the stream, which opens the streaming dialog.
+   */
+  test("a stream of an older template's stacks says Update the stream, which opens the dialog", async () => {
+    renderTable();
+
+    const older: CloudConnection = connection({
+      streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+      streamSummary: {
+        lastDeliveryAt: minutesAgo(1),
+        metricSources: [
+          {
+            accountId: "123456789012",
+            region: "us-east-1",
+            namespaces: ["AWS/EC2"],
+            lastAt: minutesAgo(1),
+          },
+        ],
+        logSources: [],
+      },
+    });
+    const cell: HTMLElement = drawCell("Status", older);
+    const update: HTMLElement = within(cell).getByTestId(
+      "cloud-connection-stream-update",
+    );
+
+    expect(update).toHaveTextContent("Update the stream");
+    expect(update).toHaveAttribute(
+      "title",
+      "The stacks in us-east-1 were made before OneUptime streamed every key metric, so it reads the newer ones from CloudWatch, which bills each read. Update them to stream those every minute too.",
+    );
+
+    await act(async () => {
+      update.click();
+    });
+
+    expect(screen.getByTestId("cloud-stream")).toBeInTheDocument();
+  });
+
+  test("a stream of the current template's stacks, or one gone quiet, says nothing of updating", () => {
+    renderTable();
+
+    const source: (fields: JSONObject) => CloudConnection = (
+      fields: JSONObject,
+    ): CloudConnection => {
+      return connection({
+        streamKeyCreatedAt: STREAM_KEY_MADE_AT,
+        streamSummary: {
+          lastDeliveryAt: (fields["lastAt"] as string) || minutesAgo(1),
+          metricSources: [
+            {
+              accountId: "123456789012",
+              region: "us-east-1",
+              namespaces: ["AWS/EC2"],
+              lastAt: minutesAgo(1),
+              ...fields,
+            },
+          ],
+          logSources: [],
+        },
+      });
+    };
+
+    for (const item of [
+      source({
+        templateVersion: AWS_STREAM_TEMPLATE_VERSION,
+        everyMetric: false,
+      }),
+      source({ templateVersion: 1, everyMetric: true }),
+      source({ lastAt: minutesAgo(30) }),
+    ]) {
+      cleanup();
+      renderTable();
+
+      expect(
+        within(drawCell("Status", item)).queryByTestId(
+          "cloud-connection-stream-update",
+        ),
+      ).not.toBeInTheDocument();
+    }
   });
 
   test("Stream metrics and logs opens the dialog on the connection, and closing it reads the list again", async () => {

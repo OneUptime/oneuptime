@@ -218,6 +218,7 @@ Uma conta da AWS, um projeto do Google Cloud ou uma assinatura do Azure [conecta
 - Cada registro é lido como **Seus logs** o lê de um pipeline, então as regras de CloudTrail, Google Cloud e Azure da biblioteca de regras correspondem a ele.
 - Um evento recebe o horário em que é salvo, com o horário do próprio registro em `oneuptime.cloud.record_time`: um log de auditoria chega ao OneUptime com minutos de atraso, e uma regra lê os eventos pelo horário deles.
 - A leitura da conta não traz mais nada: eventos de dados, logs Data Access e os logs do Microsoft Entra ID ainda precisam de **Seus logs** ou de uma [conexão](/docs/integrations/microsoft-entra-id).
+- Cada evento nomeia os recursos de nuvem de que o seu registro trata pelos próprios IDs - um ARN, um ID de recurso do Azure, um nome de recurso do Google Cloud -, então ele aparece na página **Eventos de segurança** de cada um, e na de uma função serverless assim que a telemetria dela define `cloud.account.id` e `cloud.region`.
 
 ### Conecte um produto de segurança
 
@@ -371,7 +372,7 @@ flowchart TB
 3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
 4. Em **Ao corresponder**, deixe **Abrir um caso ao corresponder** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
 5. Em **Alertas e incidentes**, escolha o que mais uma correspondência gera: **Criar um alerta** (o padrão), **Declarar um incidente**, **Ambos** ou **Nenhum**, com uma **Severidade do alerta** ou uma **Severidade do incidente** opcionais.
-6. **Mais campos** guarda a **Descrição**, **Gravar Detection Finding ao corresponder** (ativado), **Executar em tempo real** (desativado) e como as correspondências são contadas; veja [Configurações de avaliação](#configurações-de-avaliação).
+6. **Mais campos** guarda a **Descrição**, **Gravar Detection Finding ao corresponder** (ativado), **Executar em tempo real** (desativado), como as correspondências são contadas e as **Etapas de resposta**: o que fazer quando a regra abre um caso, cada etapa sob a parte que você escolher do Plano de resposta do caso, no máximo 10. Arraste uma etapa pela alça, ou use **Mover para cima** e **Mover para baixo**: o plano do caso mostra as etapas de cada parte na ordem que você der a elas. Veja [Configurações de avaliação](#configurações-de-avaliação).
 :::
 
 Uma primeira regra, que corresponde a logins com falha vindos de fora de `10.x.x.x`:

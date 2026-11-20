@@ -12,8 +12,16 @@ import {
 import {
   CEPH_CLUSTER_FULL_PERCENT,
   CEPH_CLUSTER_NEARFULL_PERCENT,
+  CEPH_OSD_FULL_PERCENT,
+  CEPH_OSD_NEARFULL_PERCENT,
+  CEPH_OSD_USAGE_THRESHOLDS,
   CEPH_READINGS_STALE_MS,
 } from "../../FeatureSet/Dashboard/src/Pages/Ceph/Utils/CephHealth";
+import {
+  StorageUsageLevel,
+  StorageUsageThresholds,
+  getStorageUsageLevel,
+} from "Common/Utils/Storage/StorageUsage";
 
 /*
  * Source-level pins for the (i) tooltips on the IoT and Ceph pages: every
@@ -240,6 +248,32 @@ describe("IoT fleet overview", () => {
     ).toBe(4);
   });
 
+  /*
+   * "3/5 devices online" said how many and nothing else (#9594): the chip
+   * and the Online Devices tile open the devices offline, by the rule the
+   * Devices needing attention card lists them with.
+   */
+  test("the devices-online chip and tile open the devices offline, by the attention card's own rule", () => {
+    expect(code).toContain(
+      "setAtRiskDevices(getIoTAtRiskDevices({ rows: rows, now: Date.now() }));",
+    );
+    expect(code).toContain(
+      "const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading || !isFleetConnected ? [] : getIoTOfflineDeviceItems({ devices: atRiskDevices, routeFor: getDeviceRoute, });",
+    );
+    expect(code).toContain('testId: "iot-hero-devices-offline",');
+    expect(code).toContain(
+      "{totalDevices > 0 && offlineDevicesPill ? ( <ResourceAttentionPill {...offlineDevicesPill} /> ) : ( <></> )}",
+    );
+    expect(code).toContain(
+      'higherIsBetter={true} attention={getIoTOfflineDevicesPill({ testId: "iot-tile-devices-offline", items: offlineDeviceItems, translator: translator, })} />',
+    );
+    // The rule lives in one place now, not in the page.
+    expect(code).not.toContain("const LOW_BATTERY_PERCENT");
+    expect(code).toContain(
+      "thresholds={{ warn: 40, danger: IOT_LOW_BATTERY_PERCENT }}",
+    );
+  });
+
   test("the Devices needing attention card title carries its (i)", () => {
     expect(code).toContain(
       'const ATTENTION_TITLE: string = translationKey("Devices needing attention");',
@@ -257,16 +291,20 @@ describe("IoT fleet overview", () => {
     );
 
     expect(chips).toContain(
-      '{hasCountChips && ( <InfoTooltip label="Devices online" text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline} /> )}',
+      '{hasCountChips && isConnected && ( <InfoTooltip label="Devices online" text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline} /> )}',
+    );
+    // While the fleet is disconnected the chip counts its devices, as Total Devices does.
+    expect(chips).toContain(
+      '{hasCountChips && !isConnected && ( <InfoTooltip label="Total Devices" text={IOT_METRIC_DESCRIPTIONS.totalDevices} /> )}',
     );
     // The agent version chip sits in the row, after the count chip, before the (i).
     const agentChip: number = chips.indexOf(
       '<AgentVersion kind={AgentKind.IoTExporter} version={fleet.agentVersion} variant="chip" />',
     );
     expect(agentChip).toBeGreaterThan(chips.indexOf("{specChips.map("));
-    expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && ("));
-    // The attention card title and this chip row are the only (i)s here.
-    expect(count(code, INFO_TOOLTIP)).toBe(2);
+    expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && "));
+    // The attention card title and this chip row's one (i) of two are the only (i)s here.
+    expect(count(code, INFO_TOOLTIP)).toBe(3);
   });
 
   /*
@@ -278,7 +316,7 @@ describe("IoT fleet overview", () => {
     const hero: string = segment(code, "const specChips: Array<{", "return (");
 
     expect(hero).toMatch(
-      /if \(totalDevices > 0\) \{ specChips\.push\(\{ icon: IconProp\.Cube, label: translator\.translatePlural\( \{ one: "\{\{online\}\}\/\{\{count\}\} device online"/,
+      /if \(totalDevices > 0\) \{ specChips\.push\(\{ icon: IconProp\.Cube, label: isConnected \? translator\.translatePlural\( \{ one: "\{\{online\}\}\/\{\{count\}\} device online"/,
     );
     expect(
       hero.indexOf("const hasCountChips: boolean = specChips.length > 0;"),
@@ -297,13 +335,62 @@ describe("IoT fleet overview", () => {
     );
     // No reading is no value: the tile draws its figure's quiet dash (#8264).
     expect(code).toContain(
-      "value={ onlinePct === null ? undefined : `${onlineDevices}/${totalDevices}` }",
+      "value={ !isFleetConnected || onlinePct === null ? undefined : `${onlineDevices}/${totalDevices}` }",
     );
     expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toContain(
       "counted like the Online Devices tile",
     );
     expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toContain(
       "the fleet's most recent data",
+    );
+  });
+
+  /*
+   * While the fleet itself is disconnected its devices' last states are not the truth, and
+   * when the collector is what went away every device can read offline (#9730). The choice:
+   * its counts say the fleet is disconnected and blame no device - as every other product's
+   * counts of what is wrong wait for its agent - and the connection pill and card say why.
+   */
+  test("while the fleet is disconnected, its counts say so and blame no device", () => {
+    expect(code).toContain(
+      "const isFleetConnected: boolean = isIoTFleetConnected( fleet.otelCollectorStatus as string | undefined, );",
+    );
+    // The hero's connection pill reads the same rule.
+    expect(code).toContain("const isConnected: boolean = isFleetConnected;");
+
+    // No device is listed as offline: the chip's and the tile's pills read nothing.
+    expect(code).toContain(
+      "const offlineDeviceItems: Array<ResourceAttentionItem> = isInventoryLoading || !isFleetConnected ? [] :",
+    );
+
+    // The chip says how many devices the fleet has, not how many are online.
+    const hero: string = segment(code, "const specChips: Array<{", "return (");
+    expect(hero).toContain(
+      ': translator.translatePlural( { one: "{{count}} device", other: "{{count}} devices" }, totalDevices, ),',
+    );
+
+    // The tile says the fleet is disconnected, with no figure and no bar.
+    const tile: string = segment(
+      code,
+      '<GoldenMetricTile title="Online Devices"',
+      "/>",
+    );
+    expect(tile).toContain(
+      'sublabel={ isFleetConnected ? "devices reporting up" : IOT_FLEET_DISCONNECTED }',
+    );
+    expect(tile).toContain("percent={isFleetConnected ? onlinePct : null}");
+    expect(code).toContain(
+      'export const IOT_FLEET_DISCONNECTED: string = translationKey("fleet disconnected");',
+    );
+
+    // The card of devices needing attention folds away.
+    const card: string = segment(
+      code,
+      "const renderAtRiskDevices: () => ReactElement",
+      "return (",
+    );
+    expect(card).toContain(
+      "if (isInventoryLoading || !isFleetConnected || atRiskDevices.length === 0) { return <Fragment />; }",
     );
   });
 });
@@ -597,7 +684,86 @@ describe("Ceph cluster overview", () => {
       "const cells: Array<OsdStateCell> = buildOsdStateCells(osdMatrix);",
     );
     expect(code).toContain(
-      "return <OsdStateCellView key={cell.label} cell={cell} />;",
+      "return ( <OsdStateCellView key={cell.label} cell={cell} attention={ isAttentionCurrent ? getOsdStateCellPill({ cell: cell, items: attentionItems, rows: inventoryRows, translator: translator, }) : undefined } /> );",
+    );
+  });
+
+  /*
+   * A count of OSDs or pools that are not well said how many and nothing
+   * else (#9594): each now opens the parts it counts, as Needs attention
+   * lists them - while the agent reports, as Needs attention is drawn.
+   */
+  test("the counts of OSDs and pools that are not well open which and why, while the agent reports", () => {
+    expect(code).toContain(
+      "const isAttentionCurrent: boolean = isConnected && !isInventoryLoading && !inventoryError;",
+    );
+    expect(code).toContain(
+      "const downOsdItems: Array<ResourceAttentionItem> = isAttentionCurrent ? getCephDownOsdItems({ items: attentionItems, rows: inventoryRows }) : [];",
+    );
+    // Beside "5/6 OSDs up" in the hero, and on the OSDs Up tile.
+    expect(code).toContain(
+      'route: routes.osdsRoute, testId: "ceph-hero-osds", label: translator.translatePlural( { one: "{{up}}/{{count}} OSD up", other: "{{up}}/{{count}} OSDs up" }, cluster.osdCount, { up: formatCount(cluster.osdUpCount || 0) }, ), attention: getDownOsdsPill("ceph-hero-osds-down"),',
+    );
+    expect(code).toContain(
+      "{chip.attention ? ( <ResourceAttentionPill {...chip.attention} /> ) : ( <></> )}",
+    );
+    expect(code).toContain(
+      'higherIsBetter={true} attention={getDownOsdsPill("ceph-tile-osds-down")} />',
+    );
+    // Problem PGs: the pools that hold them.
+    expect(code).toContain(
+      'testId: "ceph-tile-problem-pg-pools", items: problemPgPoolItems,',
+    );
+    expect(code).toContain(
+      "const problemPgPoolItems: Array<ResourceAttentionItem> = isAttentionCurrent ? getCephProblemPgPoolItems({ items: attentionItems, rows: inventoryRows, pgStatesByPool: pgStatesByPool, }) : [];",
+    );
+    // The card's counts and the OSDs its states open follow one rule.
+    expect(code).toContain("matrix[getCephOsdQuadrant(row)]++;");
+  });
+
+  /*
+   * The Placement Group States bar's Degraded and Undersized said how many
+   * and nothing of where (#9727): each is a legend button that opens the
+   * pools that hold them, read when pressed, while the agent reports and
+   * only on a Ceph that counts placement groups per pool.
+   */
+  test("the bar's Degraded and Undersized open the pools that hold them, and Ceph's reason", () => {
+    expect(code).toContain(
+      "const canOpenPgPools: boolean = isAttentionCurrent && Boolean(pgStatesByPool && pgStatesByPool.size > 0);",
+    );
+    const bar: string = segment(
+      code,
+      "const renderPgDistribution: () => ReactElement",
+      "const renderGoldenCharts",
+    );
+    expect(bar).toContain("if (!canOpenPgPools) { return {}; }");
+    expect(bar).toContain(
+      'label: tx("Degraded PGs"), ...pressToOpenPools("degraded"),',
+    );
+    expect(bar).toContain(
+      'label: tx("Undersized PGs"), ...pressToOpenPools("undersized"),',
+    );
+    expect(bar).toContain("clickHint: tx(CEPH_POOL_HINT),");
+    // The rest of the bar stays words.
+    expect(bar).toContain('label: tx("Active + Clean"), },');
+
+    // Read when it opens: Ceph's states for them, then the pools by the rules.
+    const read: string = segment(
+      code,
+      "const loadPgStatePools:",
+      "const renderHero",
+    );
+    expect(read).toContain(
+      "reasonsByPool = await loadCephPgReasonStates(clusterName);",
+    );
+    expect(read).toContain(
+      "items: getCephPgStatePoolItems({ items: attentionItems, rows: inventoryRows, pgStatesByPool: pgStatesByPool, state: state, reasonsByPool: reasonsByPool, translator: translator, }),",
+    );
+    expect(code).toContain(
+      "<ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
+    );
+    expect(code).toContain(
+      "load={(): Promise<ResourceAttentionDialogRead> => { return loadPgStatePools(openPgState); }}",
     );
   });
 
@@ -688,7 +854,6 @@ describe("Ceph OSD list", () => {
 
   test.each([
     ['title: "In / Out", key: "in"', "osdInOutColumn"],
-    ['title: "Used / Total", key: "used"', "osdUsedColumn"],
     ['title: "PGs", key: "pgs"', "osdPgsColumn"],
     ['title: "Apply / Commit Latency", key: "latency"', "osdLatencyColumn"],
   ] as Array<[string, CephMetric]>)(
@@ -699,6 +864,54 @@ describe("Ceph OSD list", () => {
       );
     },
   );
+
+  // The shared Used and Free columns (#9646), each with its own (i).
+  test("the shared storage columns carry their descriptions", () => {
+    expect(code).toContain(
+      "storageUsageColumns={{ usedDescription: CEPH_METRIC_DESCRIPTIONS.osdUsedColumn, freeDescription: CEPH_METRIC_DESCRIPTIONS.osdFreeColumn, }}",
+    );
+    expect(segment(code, 'title: "Capacity",', "},")).toContain(
+      'foldInto: "storageUsage",',
+    );
+  });
+
+  /*
+   * Used is the shared bar at Ceph's own nearfull and full ratios, past the
+   * line, as Ceph's ratios work: the lines its text names.
+   */
+  test("the Used column's lines are Ceph's nearfull and full ratios, the ones its text names", () => {
+    expect(
+      segment(
+        readCode("Pages/Ceph/Utils/CephPartFacts.ts"),
+        "export function getCephOsdStorageUsage(",
+        ");",
+      ),
+    ).toContain(
+      "getStorageUsage( { capacity: readings.totalBytes, used: readings.usedBytes }, CEPH_OSD_USAGE_THRESHOLDS,",
+    );
+    expect(CEPH_OSD_USAGE_THRESHOLDS).toEqual({
+      warningPercent: CEPH_OSD_NEARFULL_PERCENT,
+      criticalPercent: CEPH_OSD_FULL_PERCENT,
+      isPastLineOnly: true,
+    });
+    expect(CEPH_OSD_NEARFULL_PERCENT).toBe(85);
+    expect(CEPH_OSD_FULL_PERCENT).toBe(95);
+    expect(getStorageUsageLevel(85, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Normal,
+    );
+    expect(getStorageUsageLevel(85.1, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Warning,
+    );
+    expect(getStorageUsageLevel(95, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Warning,
+    );
+    expect(getStorageUsageLevel(95.1, CEPH_OSD_USAGE_THRESHOLDS)).toBe(
+      StorageUsageLevel.Critical,
+    );
+    expect(CEPH_METRIC_DESCRIPTIONS.osdUsedColumn).toContain(
+      "amber past Ceph's nearfull ratio (85%) and red past its full ratio (95%)",
+    );
+  });
 
   test("the built-in Status column is explained, and Class is not a metric", () => {
     expect(code).toContain(
@@ -782,7 +995,6 @@ describe("Ceph OSD list", () => {
     expect(code).not.toMatch(/row\.(statBytes|pgCount|applyLatencyMs)\b/);
     expect(CEPH_READINGS_STALE_MS).toBe(15 * 60 * 1000);
     for (const key of [
-      "osdUsedColumn",
       "osdPgsColumn",
       "osdLatencyColumn",
     ] as Array<CephMetric>) {
@@ -790,6 +1002,10 @@ describe("Ceph OSD list", () => {
         "has not reported in the last 15 minutes",
       );
     }
+    // Used says it in words where a figure would be a dash.
+    expect(CEPH_METRIC_DESCRIPTIONS.osdUsedColumn).toContain(
+      "Not reported when the OSD sent nothing for 15 minutes",
+    );
   });
 
   // A row's status, and its cells' colours, are the rules'.
@@ -797,7 +1013,8 @@ describe("Ceph OSD list", () => {
     expect(code).toContain(
       "assessCephOsd(row, { now: now, newestSeenAt: newestSeenAt }),",
     );
-    expect(code).toContain("return getCephOsdUsedTone(");
+    // How full it is: the shared reading at Ceph's ratios (CephPartFacts).
+    expect(code).toContain("usage: getCephOsdStorageUsage(readings),");
     expect(code).toContain("return getCephOsdLatencyTone(");
   });
 });
@@ -806,9 +1023,6 @@ describe("Ceph pool list", () => {
   const code: string = readCode(PAGES["cephPools"]!);
 
   test.each([
-    ['title: "Used", key: "usedPercent"', "poolUsedColumn"],
-    ['title: "Stored", key: "stored"', "poolStoredColumn"],
-    ['title: "Max Avail", key: "maxAvail"', "poolMaxAvailColumn"],
     ['title: "PGs", key: "pgs"', "poolPgsColumn"],
     ['title: "Objects", key: "objects"', "poolObjectsColumn"],
     ['title: "Read IOPS", key: "readIops"', "poolReadIopsColumn"],
@@ -822,6 +1036,13 @@ describe("Ceph pool list", () => {
     },
   );
 
+  // The shared Used and Free columns (#9646): STORED used, MAX AVAIL free.
+  test("the shared storage columns carry their descriptions", () => {
+    expect(code).toContain(
+      "storageUsageColumns={{ usedDescription: CEPH_METRIC_DESCRIPTIONS.poolUsedColumn, freeDescription: CEPH_METRIC_DESCRIPTIONS.poolMaxAvailColumn, }}",
+    );
+  });
+
   test("the built-in Status column is explained, and the list draws no Age", () => {
     expect(code).toContain(
       "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.poolStatusColumn, }}",
@@ -834,12 +1055,9 @@ describe("Ceph pool list", () => {
    * Folded under the name, Objects left a long pool name a column too
    * narrow to read ("cephfs_metad" / "ata") and cut its own count.
    */
-  test("Max Avail and Objects fold under Stored, and nothing folds under the name", () => {
-    expect(segment(code, 'title: "Max Avail",', "},")).toContain(
-      'foldInto: "stored",',
-    );
+  test("Objects folds under how full the pool is, and nothing folds under the name", () => {
     expect(segment(code, 'title: "Objects",', "},")).toContain(
-      'foldInto: "stored",',
+      'foldInto: "storageUsage",',
     );
     expect(code).not.toContain('foldInto: "name"');
   });
@@ -856,7 +1074,7 @@ describe("Ceph pool list", () => {
       "assessCephPool(row, { now: now, newestSeenAt: newestSeenAt, pgStates: pgStates, }),",
     );
     expect(code).toContain("loadCephPgStates(clusterName)");
-    expect(code).toContain("return getCephPoolUsedTone(");
+    expect(code).toContain("usage: getCephPoolStorageUsage(readings),");
   });
 });
 
@@ -1003,12 +1221,33 @@ describe("Ceph daemons, Insights and Clusters list", () => {
     },
   );
 
+  /*
+   * The Capacity cell is the shared storage bar (#9539), at the Cluster Near
+   * Full and Cluster Full alerts' lines, past the line, as Ceph's ratios
+   * work - with no colours of its own beside the bar's. Read the way the bar
+   * reads them, those are the lines its text names.
+   */
   test("the Clusters list capacity lines are the alerts' ones its text names", () => {
     const code: string = readCode(PAGES["cephClusters"]!);
 
-    expect(code).toContain(
-      'pct > CEPH_CLUSTER_FULL_PERCENT ? "bg-red-500" : pct > CEPH_CLUSTER_NEARFULL_PERCENT ? "bg-amber-500" : "bg-emerald-500";',
+    expect(segment(code, 'title: "Capacity",', "},")).toContain(
+      "return renderCapacityBar(item.capacityUsedPercent);",
     );
+    const capacityBar: string = segment(code, "const renderCapacityBar", "};");
+    expect(capacityBar).toContain(
+      "<StorageUsageBar usage={getStorageUsage( { capacity: 100, used: capacityUsedPercent }, { warningPercent: CEPH_CLUSTER_NEARFULL_PERCENT, criticalPercent: CEPH_CLUSTER_FULL_PERCENT, isPastLineOnly: true, }, )} showAmount={false} />",
+    );
+    expect(capacityBar).not.toMatch(/bg-(red|amber|emerald)-\d+/);
+
+    const lines: StorageUsageThresholds = {
+      warningPercent: CEPH_CLUSTER_NEARFULL_PERCENT,
+      criticalPercent: CEPH_CLUSTER_FULL_PERCENT,
+      isPastLineOnly: true,
+    };
+    expect(getStorageUsageLevel(85, lines)).toBe(StorageUsageLevel.Normal);
+    expect(getStorageUsageLevel(85.1, lines)).toBe(StorageUsageLevel.Warning);
+    expect(getStorageUsageLevel(95, lines)).toBe(StorageUsageLevel.Warning);
+    expect(getStorageUsageLevel(95.1, lines)).toBe(StorageUsageLevel.Critical);
     expect(CEPH_METRIC_DESCRIPTIONS.clusterCapacity).toContain(
       "amber past 85% and red past 95%",
     );

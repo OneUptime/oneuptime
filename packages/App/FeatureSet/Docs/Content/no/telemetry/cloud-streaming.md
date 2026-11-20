@@ -24,7 +24,7 @@ flowchart TB
 
 - **Én stakk i hver region.** Kommandoen ruller ut en CloudFormation-stakk i hver region du strømmer fra. Målingsstrømmen og abonnementsfiltrene for logger gir alt videre til to Firehose-strømmer, og Firehose leverer det til OneUptime over HTTPS.
 - **Strømnøkkelen sier hvem det tilhører.** Firehose sender tilkoblingens strømnøkkel med hver levering. Nøkkelen navngir tilkoblingen, og dermed prosjektet: ingenting i en levering avgjør hvor den skrives. OneUptime lagrer bare nøkkelens SHA-256.
-- **Lesingene overlater strømmede målinger til strømmen.** Så lenge en strøm leverer et navnerom i en region, slutter tilkoblingens lesinger å skrive målingene i det navnerommet, så ingen datapunkter telles to ganger. De skriver fortsatt de viktige målingene en strøm overlater til dem, som den daglige størrelsen på en S3-bøtte og de viktige målingene som kom til etter at strømmene startet, og som en eldre stakk ikke inneholder. Lesingene fortsetter å finne ressurser, tilstanden deres og endringene deres, og tar et navnerom tilbake etter 15 minutter uten levering.
+- **Lesingene overlater strømmede målinger til strømmen.** Så lenge en strøm leverer et navnerom i en region, slutter tilkoblingens lesinger å lese og skrive hver viktig måling i det som strømmens stakk inneholder, så CloudWatch ikke lenger tar betalt for å lese det strømmen sender, og ingen datapunkter telles to ganger. Tilstanden til en ressurs og flisene øverst på siden dens vurderes også ut fra strømmen: hver verdi er den statistikken lesingen bruker, over fem av strømmens minutter, så det er verdien en lesing ville fått. Når strømmen i en region ikke har levert noe på 10 minutter, henter lesingene disse målingene fra CloudWatch igjen, og tilkoblingens siste lesing sier fra om det. De skriver fortsatt de viktige målingene en strøm overlater til dem, som den daglige størrelsen på en S3-bøtte og dem en stakk laget før dem ikke inneholder. Lesingene fortsetter å finne ressurser, tilstanden deres og endringene deres, og tar et navnerom tilbake etter 15 minutter uten levering.
 - **Ingenting går tapt mens OneUptime ikke kan ta imot det.** Firehose sender en avvist pakke på nytt i opptil en time og tar så vare på den i 30 dager i stakkens S3-bøtte.
 
 ## Før du begynner
@@ -140,6 +140,8 @@ For en tilkobling som leser en AWS Organization, kjører du dialogens kommando i
 
 For å endre hva en stakk strømmer, åpner du **Strøm målinger og logger** igjen, velger **Lag en ny nøkkel** og kjører den nye kommandoen. Nøkkelen den erstatter, virker i 24 timer til, så ingen levering avvises mens stakkene oppdateres. Høyst 3 erstattede nøkler virker samtidig.
 
+Når kontoens rad viser **Oppdater strømmen**, ble stakkene laget før OneUptime strømmet alle viktige målinger, og til de er oppdatert, leser tilkoblingen de viktige målingene de ikke inneholder, fra CloudWatch, så ingen mangler. Velg dette alternativet: dialogen viser en kommando som oppdaterer hver stakk på stedet, uten ny nøkkel. Den leser stakkens egen mal tilbake fra CloudFormation, gir målingsstrømmen dagens filtre for viktige målinger og Firehose-strømmen for målinger malens felles attributter, og ruller den ut med nøkkelen den har, så stakken beholder logggruppene sine. Den trenger `jq`, som AWS CloudShell har. For en tilkobling som leser en AWS Organization, kjører du den i administrasjonskontoen: den oppdaterer StackSet, og dermed også stakkene i hver medlemskonto. AWS starter en målingsstrøm på nytt når filtrene endres, og sender bare datapunktene som kommer etterpå.
+
 ## Sett det opp på en annen måte
 
 Gi hver Firehose-strøm et HTTP-endepunktmål med disse verdiene, og målingsstrømmen utdataformatet OpenTelemetry 1.0:
@@ -152,8 +154,9 @@ Gi hver Firehose-strøm et HTTP-endepunktmål med disse verdiene, og målingsstr
 | Innholdskoding | `GZIP` |
 | Buffer | 1 MiB eller 60 sekunder |
 | Varighet for nye forsøk | 3600 sekunder, med en S3-bøtte for det som ikke kunne leveres |
+| Felles attributter | På Firehose-strømmen for målinger settes `oneuptime-stream-template` til `3` og `oneuptime-stream-metrics` til `key`, eller `all` for en strøm av alle målinger. Bare når filtrene i målingsstrømmen er malens, som du kan kopiere fra **Last ned malen** |
 
-På en selvdriftet OneUptime bytter du ut `https://oneuptime.com` med HTTPS-adressen til OneUptime-en din. Endepunktet for målinger tar også imot en målingsstrøm i JSON-formatet.
+På en selvdriftet OneUptime bytter du ut `https://oneuptime.com` med HTTPS-adressen til OneUptime-en din. Endepunktet for målinger tar også imot en målingsstrøm i JSON-formatet. Uten de felles attributtene regner OneUptime med at en målingsstrøm satt opp på denne måten bare inneholder de viktige målingene strømmene startet med, og leser de andre fra CloudWatch. Med dem overlater OneUptime hver viktig måling malen inneholder, til strømmen, slik den gjør for en stakk kommandoen har laget.
 
 OneUptime svarer på hver levering slik Firehose forventer:
 

@@ -836,11 +836,12 @@ describe("where a connection's links go", () => {
 
   test("Security Events on the events naming a record over the card's week", () => {
     const now: Date = new Date("2026-10-25T12:00:00.000Z");
-    const host: { path: string; query: Record<string, string> } = open(
+    // A record with no page of its own: the explorer, on what names it.
+    const item: { path: string; query: Record<string, string> } = open(
       model.getRecordSecurityEventsRoute({
         security: {
-          kind: SecurityConnectionKind.Host,
-          id: HOST_ID,
+          kind: SecurityConnectionKind.InventoryItem,
+          id: ITEM_ID,
           values: ["web-1", "203.0.113.9"],
           windowDays: 7,
           isSearchedByLogs: false,
@@ -849,10 +850,41 @@ describe("where a connection's links go", () => {
       }),
     );
 
-    expect(host.path).toBe(`${BASE}/security-events`);
-    expect(decodeURIComponent(host.query["search"]!)).toBe(
+    expect(item.path).toBe(`${BASE}/security-events`);
+    expect(decodeURIComponent(item.query["search"]!)).toBe(
       "observable:(web-1 OR 203.0.113.9)",
     );
+
+    /*
+     * A record with a page of its own (#9547, #9628, #9779, #9780): that
+     * page, over the card's week, with nothing searched - the page reads
+     * its own scope.
+     */
+    for (const [kind, root] of [
+      [SecurityConnectionKind.Host, "host"],
+      [SecurityConnectionKind.DockerHost, "docker"],
+      [SecurityConnectionKind.PodmanHost, "podman"],
+      [SecurityConnectionKind.OpenStackCloud, "openstack"],
+      [SecurityConnectionKind.Service, "service"],
+      [SecurityConnectionKind.CloudResource, "cloud"],
+      [SecurityConnectionKind.ServerlessFunction, "serverless"],
+    ] as Array<[SecurityConnectionKind, string]>) {
+      const own: { path: string; query: Record<string, string> } = open(
+        model.getRecordSecurityEventsRoute({
+          security: {
+            kind,
+            id: HOST_ID,
+            values: kind === SecurityConnectionKind.Service ? [] : ["web-1"],
+            windowDays: 7,
+            isSearchedByLogs: kind === SecurityConnectionKind.Service,
+          },
+          now,
+        }),
+      );
+
+      expect(own.path).toBe(`${BASE}/${root}/${HOST_ID}/security-events`);
+      expect(own.query["search"]).toBeUndefined();
+    }
 
     const one: { path: string; query: Record<string, string> } = open(
       model.getRecordSecurityEventsRoute({
@@ -871,29 +903,23 @@ describe("where a connection's links go", () => {
       "observable:kim@acme.example",
     );
 
-    // A service's, a function's, a cloud resource's searched by its logs: the events read from its logs.
-    for (const kind of [
-      SecurityConnectionKind.Service,
-      SecurityConnectionKind.ServerlessFunction,
-      SecurityConnectionKind.CloudResource,
-    ]) {
-      const service: { path: string; query: Record<string, string> } = open(
-        model.getRecordSecurityEventsRoute({
-          security: {
-            kind,
-            id: SERVICE_ID,
-            values: [],
-            windowDays: 7,
-            isSearchedByLogs: true,
-          },
-          now,
-        }),
-      );
+    // A record of no page of its own searched by its logs: the events read from its logs.
+    const byLogs: { path: string; query: Record<string, string> } = open(
+      model.getRecordSecurityEventsRoute({
+        security: {
+          kind: SecurityConnectionKind.InventoryItem,
+          id: SERVICE_ID,
+          values: [],
+          windowDays: 7,
+          isSearchedByLogs: true,
+        },
+        now,
+      }),
+    );
 
-      expect(decodeURIComponent(service.query["search"]!)).toBe(
-        `@${SECURITY_LOG_RESOURCE_ID_ATTRIBUTE}:${SERVICE_ID}`,
-      );
-    }
+    expect(decodeURIComponent(byLogs.query["search"]!)).toBe(
+      `@${SECURITY_LOG_RESOURCE_ID_ATTRIBUTE}:${SERVICE_ID}`,
+    );
 
     // A monitor's: the events naming the hosts it checks.
     expect(
@@ -913,12 +939,12 @@ describe("where a connection's links go", () => {
       ),
     ).toBe("observable:shop.acme.example");
 
-    // Nothing to search for opens nothing.
+    // Nothing to search for opens nothing, on a record with no page of its own.
     expect(
       model.getRecordSecurityEventsRoute({
         security: {
-          kind: SecurityConnectionKind.Host,
-          id: HOST_ID,
+          kind: SecurityConnectionKind.InventoryItem,
+          id: ITEM_ID,
           values: [],
           windowDays: 7,
           isSearchedByLogs: false,
@@ -1119,10 +1145,65 @@ describe("what a record's Security card says it is about", () => {
     });
   });
 
+  test("a record its own logs are read for too says so (#9779, #9780)", () => {
+    // Named by its ARN, and read from its own logs.
+    expect(
+      model.getResourceSecurityDescription({
+        kind: SecurityConnectionKind.CloudResource,
+        isSearchedByLogs: false,
+        isReadFromOwnLogs: true,
+        values: ["arn:aws:lambda:us-east-1:111122223333:function:checkout"],
+      }),
+    ).toEqual({
+      news: "What Security Events found about it in the last 7 days.",
+      quiet:
+        "No security event named it or was read from its logs in the last 7 days.",
+    });
+
+    // Read from its own logs alone: a function its telemetry does not name in full.
+    expect(
+      model.getResourceSecurityDescription({
+        kind: SecurityConnectionKind.ServerlessFunction,
+        isSearchedByLogs: false,
+        isReadFromOwnLogs: true,
+        values: [],
+      }),
+    ).toEqual({
+      news: "What Security Events found in its logs in the last 7 days.",
+      quiet: "No security event was read from its logs in the last 7 days.",
+    });
+
+    // Named, and no logs of its own read: the plain words.
+    expect(
+      model.getResourceSecurityDescription({
+        kind: SecurityConnectionKind.CloudResource,
+        isSearchedByLogs: false,
+        isReadFromOwnLogs: false,
+        values: ["arn:aws:s3:::payments-bucket"],
+      }).quiet,
+    ).toBe("No security event named it in the last 7 days.");
+
+    // Only an answer that says so is read as reading its own logs.
+    expect(
+      model.parseResourceSecurity({
+        kind: SecurityConnectionKind.CloudResource,
+        id: HOST_ID,
+        isReadFromOwnLogs: true,
+      } as JSONObject).isReadFromOwnLogs,
+    ).toBe(true);
+    expect(
+      model.parseResourceSecurity({
+        kind: SecurityConnectionKind.ServerlessFunction,
+        id: HOST_ID,
+      } as JSONObject).isReadFromOwnLogs,
+    ).toBe(false);
+  });
+
   test("an answer that does not say how it was searched is read as its kind always is", () => {
     for (const [kind, searchedByLogs] of [
       [SecurityConnectionKind.Service, true],
-      [SecurityConnectionKind.ServerlessFunction, true],
+      // A function's logs are read by its faas.name, not filed under it (#9780).
+      [SecurityConnectionKind.ServerlessFunction, false],
       [SecurityConnectionKind.Host, false],
       [SecurityConnectionKind.Monitor, false],
       [SecurityConnectionKind.CloudResource, false],

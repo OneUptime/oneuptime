@@ -4,6 +4,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
   ResourceAttentionText,
@@ -166,6 +167,12 @@ const REASON_NO_TOLERANCE: string = translationKey("Can lose no more managers");
 const REASON_MANAGERS_REACHABLE: string = translationKey(
   "{{reachable}} of {{total}} managers reachable",
 );
+
+// What a part is besides its name, in a list of what failed.
+const FACT_ROLE: string = translationKey("Role");
+const FACT_ADDRESS: string = translationKey("Address");
+const FACT_SERVICE: string = translationKey("Service");
+const FACT_NODE: string = translationKey("Node");
 
 export const DOCKER_SWARM_KIND_CLUSTER: string = translationKey("Swarm");
 export const DOCKER_SWARM_KIND_NODE: string = translationKey("Node");
@@ -685,6 +692,22 @@ export interface DockerSwarmManagerQuorum {
   canLose: number;
 }
 
+/*
+ * A manager the swarm's majority cannot count on: its node is not Ready
+ * (down, disconnected, or in a state Swarm does not know) or the other
+ * managers cannot reach it. The one rule for the quorum and for the
+ * managers the hero's count opens.
+ */
+export function isDockerSwarmManagerOutOfReach(
+  row: Pick<DockerSwarmResource, "kind" | "role" | "state" | "attributes">,
+): boolean {
+  return (
+    isDockerSwarmManager(row) &&
+    ((row.state || "").toLowerCase() !== "ready" ||
+      isDockerSwarmManagerUnreachable(row))
+  );
+}
+
 export function getDockerSwarmManagerQuorum(
   rows: Array<DockerSwarmResource>,
 ): DockerSwarmManagerQuorum | null {
@@ -698,10 +721,7 @@ export function getDockerSwarmManagerQuorum(
   }
   const reachable: number = managers.filter(
     (row: DockerSwarmResource): boolean => {
-      return (
-        (row.state || "").toLowerCase() === "ready" &&
-        !isDockerSwarmManagerUnreachable(row)
-      );
+      return !isDockerSwarmManagerOutOfReach(row);
     },
   ).length;
   const majority: number = Math.floor(managers.length / 2) + 1;
@@ -712,6 +732,52 @@ export function getDockerSwarmManagerQuorum(
     hasQuorum: reachable >= majority,
     canLose: Math.max(0, reachable - majority),
   };
+}
+
+/*
+ * The swarm's own row when its managers put it at risk: critical once it
+ * has lost their majority, a warning while it can lose no more. Nothing
+ * while it can stand to lose one, or has no manager reported. Needs
+ * attention and the hero's managers count list it alike.
+ */
+export function getDockerSwarmQuorumItem(data: {
+  rows: Array<DockerSwarmResource>;
+  clusterName?: string | undefined;
+}): ResourceAttentionItem | null {
+  const quorum: DockerSwarmManagerQuorum | null = getDockerSwarmManagerQuorum(
+    data.rows,
+  );
+  if (!quorum || quorum.reachable >= quorum.total) {
+    return null;
+  }
+  const managers: ResourceAttentionText = {
+    text: REASON_MANAGERS_REACHABLE,
+    values: {
+      reachable: String(quorum.reachable),
+      total: String(quorum.total),
+    },
+  };
+  if (!quorum.hasQuorum) {
+    return {
+      key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+      kind: DOCKER_SWARM_KIND_CLUSTER,
+      icon: IconProp.DockerSwarm,
+      name: data.clusterName || "",
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [{ text: REASON_QUORUM_LOST }, managers],
+    };
+  }
+  if (quorum.canLose === 0) {
+    return {
+      key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
+      kind: DOCKER_SWARM_KIND_CLUSTER,
+      icon: IconProp.DockerSwarm,
+      name: data.clusterName || "",
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_NO_TOLERANCE }, managers],
+    };
+  }
+  return null;
 }
 
 /*
@@ -799,36 +865,12 @@ export function getDockerSwarmAttentionItems(data: {
   }
 
   if (scope === "cluster") {
-    const quorum: DockerSwarmManagerQuorum | null = getDockerSwarmManagerQuorum(
-      data.rows,
-    );
-    if (quorum && quorum.reachable < quorum.total) {
-      const managers: ResourceAttentionText = {
-        text: REASON_MANAGERS_REACHABLE,
-        values: {
-          reachable: String(quorum.reachable),
-          total: String(quorum.total),
-        },
-      };
-      if (!quorum.hasQuorum) {
-        items.push({
-          key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
-          kind: DOCKER_SWARM_KIND_CLUSTER,
-          icon: IconProp.DockerSwarm,
-          name: data.clusterName || "",
-          severity: ResourceAttentionSeverity.Critical,
-          reasons: [{ text: REASON_QUORUM_LOST }, managers],
-        });
-      } else if (quorum.canLose === 0) {
-        items.push({
-          key: DOCKER_SWARM_CLUSTER_ATTENTION_KEY,
-          kind: DOCKER_SWARM_KIND_CLUSTER,
-          icon: IconProp.DockerSwarm,
-          name: data.clusterName || "",
-          severity: ResourceAttentionSeverity.Warning,
-          reasons: [{ text: REASON_NO_TOLERANCE }, managers],
-        });
-      }
+    const quorumItem: ResourceAttentionItem | null = getDockerSwarmQuorumItem({
+      rows: data.rows,
+      clusterName: data.clusterName,
+    });
+    if (quorumItem) {
+      items.push(quorumItem);
     }
   }
 
@@ -1071,6 +1113,221 @@ export function getDockerSwarmHealth(
   items: Array<ResourceAttentionItem>,
 ): ResourceHealth {
   return getResourceAttentionHealth(items);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * What the Overview's counts open
+ * ---------------------------------------------------------------------------
+ *
+ * The hero says "2/3 nodes ready" and "4/6 tasks running", and the counts
+ * of what is wrong beside them open exactly those parts, why and which one
+ * each is (#9594): by the same rules as Needs attention, so a node reads
+ * the same in the dialog, in the card and on its own page.
+ */
+
+// Which one a node is, beyond its name: its address, and a manager's role.
+function nodeFacts(row: DockerSwarmResource): Array<ResourceAttentionFact> {
+  const facts: Array<ResourceAttentionFact> = [];
+  if (isDockerSwarmManager(row)) {
+    facts.push({
+      key: "role",
+      label: FACT_ROLE,
+      // Docker's own word for the manager: Leader, Reachable, Unreachable.
+      value: getDockerSwarmAttribute(row, "managerStatus") || row.role || "",
+    });
+  }
+  const address: string = getDockerSwarmAttribute(row, "addr");
+  if (address) {
+    facts.push({ key: "address", label: FACT_ADDRESS, value: address });
+  }
+  return facts.filter((fact: ResourceAttentionFact): boolean => {
+    return Boolean(fact.value);
+  });
+}
+
+/*
+ * The nodes the hero counts as not ready - every node whose state is not
+ * Ready, as summarized there - with why: Down, Disconnected or State
+ * unknown, Swarm's own word on it, a manager's role. A node that has
+ * reported no state yet says so as its reason.
+ */
+export function getDockerSwarmNodesNotReadyItems(data: {
+  rows: Array<DockerSwarmResource>;
+  routeFor: DockerSwarmRouteFor;
+}): Array<ResourceAttentionItem> {
+  const items: Array<ResourceAttentionItem> = [];
+  for (const row of data.rows) {
+    if (row.kind !== "Node" || (row.state || "").toLowerCase() === "ready") {
+      continue;
+    }
+    const assessment: DockerSwarmAssessment = assessDockerSwarmNode(row);
+    const item: ResourceAttentionItem = toAttentionItem({
+      row: row,
+      kind: "Node",
+      assessment: {
+        ...assessment,
+        severity: assessment.severity || ResourceAttentionSeverity.Warning,
+        reasons:
+          assessment.reasons.length > 0
+            ? assessment.reasons
+            : [
+                {
+                  text: assessment.status.label,
+                  values: assessment.status.values,
+                },
+              ],
+      },
+      routeFor: data.routeFor,
+    });
+    item.facts = nodeFacts(row);
+    items.push(item);
+  }
+  return sortResourceAttention(items, DOCKER_SWARM_ATTENTION_KIND_ORDER);
+}
+
+/*
+ * What the hero's "3 managers" opens while a manager is out of reach
+ * (#9729): each manager its majority cannot count on - the ones "2 of 3
+ * managers reachable" leaves out - with why (Down, Disconnected, State
+ * unknown, Manager unreachable), Docker's own words on it, its role as
+ * `docker node ls` says it and its address. The swarm's own row comes
+ * with them when that put its majority at risk (lost, or one manager from
+ * lost): what the managers it lost cost it. Nothing while every manager is
+ * in reach.
+ */
+export function getDockerSwarmManagersOutOfReachItems(data: {
+  rows: Array<DockerSwarmResource>;
+  clusterName?: string | undefined;
+  routeFor: DockerSwarmRouteFor;
+}): Array<ResourceAttentionItem> {
+  const managers: Array<ResourceAttentionItem> = [];
+  for (const row of data.rows) {
+    if (!isDockerSwarmManagerOutOfReach(row)) {
+      continue;
+    }
+    const assessment: DockerSwarmAssessment = assessDockerSwarmNode(row);
+    const item: ResourceAttentionItem = toAttentionItem({
+      row: row,
+      kind: "Node",
+      assessment: {
+        ...assessment,
+        severity: assessment.severity || ResourceAttentionSeverity.Warning,
+        // A manager that has reported no state yet says so as its reason.
+        reasons:
+          assessment.reasons.length > 0
+            ? assessment.reasons
+            : [
+                {
+                  text: assessment.status.label,
+                  values: assessment.status.values,
+                },
+              ],
+      },
+      routeFor: data.routeFor,
+    });
+    item.facts = nodeFacts(row);
+    managers.push(item);
+  }
+  if (managers.length === 0) {
+    return [];
+  }
+  const quorumItem: ResourceAttentionItem | null = getDockerSwarmQuorumItem({
+    rows: data.rows,
+    clusterName: data.clusterName,
+  });
+  return sortResourceAttention(
+    quorumItem ? [quorumItem, ...managers] : managers,
+    DOCKER_SWARM_ATTENTION_KIND_ORDER,
+  );
+}
+
+// Tasks Swarm wanted running that are not: what "N/M tasks running" is short of.
+const FAILING_TASK_STATES: ReadonlySet<string> = new Set<string>([
+  "failed",
+  "rejected",
+  "orphaned",
+  "pending",
+]);
+
+/*
+ * The current tasks that are failing - failed, rejected, lost their node,
+ * or pending with Swarm's error that no node can run them - with Docker's
+ * error, the service each belongs to and the node it was placed on, each a
+ * step from its page. A task still being placed, or one that runs, is not
+ * one: the rules flag neither.
+ */
+export function getDockerSwarmFailingTaskItems(data: {
+  rows: Array<DockerSwarmResource>;
+  routeFor: DockerSwarmRouteFor;
+  now: Date;
+}): Array<ResourceAttentionItem> {
+  const servicesByName: Map<string, DockerSwarmResource> = new Map();
+  const nodesByHostname: Map<string, DockerSwarmResource> = new Map();
+  for (const row of data.rows) {
+    if (row.kind === "Service" && row.name) {
+      servicesByName.set(row.name, row);
+    } else if (row.kind === "Node" && row.name) {
+      nodesByHostname.set(row.name.toLowerCase(), row);
+    }
+  }
+
+  const items: Array<ResourceAttentionItem> = [];
+  for (const row of data.rows) {
+    if (
+      row.kind !== "Task" ||
+      !isCurrentDockerSwarmTask(row) ||
+      !FAILING_TASK_STATES.has((row.state || "").toLowerCase())
+    ) {
+      continue;
+    }
+    const assessment: DockerSwarmAssessment = assessDockerSwarmTask(
+      row,
+      data.now,
+    );
+    if (!assessment.severity) {
+      continue;
+    }
+    const item: ResourceAttentionItem = toAttentionItem({
+      row: row,
+      kind: "Task",
+      assessment: assessment,
+      routeFor: data.routeFor,
+    });
+    // Its node is a fact of its own here, a step from the node's page.
+    delete item.detail;
+
+    const facts: Array<ResourceAttentionFact> = [];
+    if (row.serviceName) {
+      const service: DockerSwarmResource | undefined = servicesByName.get(
+        row.serviceName,
+      );
+      facts.push({
+        key: "service",
+        label: FACT_SERVICE,
+        value: row.serviceName,
+        route: service?.externalId
+          ? data.routeFor("Service", service.externalId)
+          : undefined,
+      });
+    }
+    if (row.nodeHostname) {
+      const node: DockerSwarmResource | undefined = nodesByHostname.get(
+        row.nodeHostname.toLowerCase(),
+      );
+      facts.push({
+        key: "node",
+        label: FACT_NODE,
+        value: row.nodeHostname,
+        route: node?.externalId
+          ? data.routeFor("Node", node.externalId)
+          : undefined,
+      });
+    }
+    item.facts = facts;
+    items.push(item);
+  }
+  return sortResourceAttention(items, DOCKER_SWARM_ATTENTION_KIND_ORDER);
 }
 
 /*

@@ -75,6 +75,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "certificate orders for the instance's ACME account",
   "packages/Common/Server/Utils/TwoFactorWrongCodes.ts":
     "wrong two factor codes per account, wherever they come from",
+  "packages/Common/Server/Utils/EmailChange/EmailChangeConfirmation.ts":
+    "changes of email address per signed-in account, and per new address, an hour (#9821)",
   "packages/Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector.ts":
     "deploys and rollouts recorded per service or workload and hour",
   "packages/Common/Server/Utils/CloudConnection/LiveRead/CloudLiveReadRateLimit.ts":
@@ -169,6 +171,18 @@ const REDIS_LIMITS: Array<string> = [
 ];
 
 /*
+ * The limits that count only keys that are not a client - a signed-in
+ * person, say - through ClientRateLimitCounter.countFixed, with what they
+ * count. A limit that counts a client as well (count or countDifferent) is
+ * in REDIS_LIMITS above. Listed so that a fixed key is never quietly a
+ * client's address: none of them may read one.
+ */
+const FIXED_KEY_LIMITS: Record<string, string> = {
+  "packages/Common/Server/Middleware/AutoRemediationRoundRateLimit.ts":
+    "reads of an AI fix's round and presses of Try again, per signed-in user (#6525)",
+};
+
+/*
  * The limits that count a client in a process's memory: each reads the
  * client's /64 from getRateLimitClient and counts it.
  */
@@ -198,6 +212,9 @@ const CLIENT_ADDRESS_READ: RegExp =
  */
 const COUNTS_THROUGH_COUNTER: RegExp =
   /\bClientRateLimitCounter\.count(?:Different)?(?:<[^<>()]*>)?\(/;
+// ClientRateLimitCounter.countFixed(...), with or without its type argument.
+const COUNTS_FIXED_KEYS: RegExp =
+  /\bClientRateLimitCounter\.countFixed(?:<[^<>()]*>)?\(/;
 // From any folder, or from its own (a limit next to it in RateLimit/).
 const IMPORTS_COUNTER: RegExp =
   /from\s+["'](?:[^"']*\/)?(?:RateLimit\/|\.\/)ClientRateLimitCounter["']/;
@@ -315,6 +332,31 @@ describe("every Redis counter is the client counter, or counts something that is
         relativePath,
         REDIS_INCREMENT.test(codeOf(relativePath)),
       ]).toEqual([relativePath, false]);
+    }
+  });
+
+  test("the limits that count only fixed keys through the counter are listed with what they count, and read no client address", () => {
+    const fixedOnly: Array<string> = productFilesWhoseCodeMatches(
+      COUNTS_FIXED_KEYS,
+    ).filter((relativePath: string): boolean => {
+      return !REDIS_LIMITS.includes(relativePath);
+    });
+
+    expect(fixedOnly).toEqual(
+      Object.keys(FIXED_KEY_LIMITS).filter(isCheckedOut).sort(),
+    );
+
+    for (const relativePath of fixedOnly) {
+      const code: string = codeOf(relativePath);
+
+      expect([relativePath, CLIENT_ADDRESS_READ.test(code)]).toEqual([
+        relativePath,
+        false,
+      ]);
+      expect([relativePath, REDIS_INCREMENT.test(code)]).toEqual([
+        relativePath,
+        false,
+      ]);
     }
   });
 });
@@ -502,5 +544,22 @@ describe("the guard's own patterns", () => {
         "await ClientRateLimitCounter.countDifferentThings({",
       ),
     ).toBe(false);
+  });
+
+  test("see a count of fixed keys, with or without its type argument", () => {
+    for (const code of [
+      "await ClientRateLimitCounter.countFixed({",
+      "await ClientRateLimitCounter.countFixed<AutoRemediationRoundRateLimitBucket>(",
+    ]) {
+      expect([code, COUNTS_FIXED_KEYS.test(code)]).toEqual([code, true]);
+    }
+
+    for (const code of [
+      "await ClientRateLimitCounter.count({",
+      "await ClientRateLimitCounter.uncountFixed({",
+      "await ClientRateLimitCounter.countFixedKeys({",
+    ]) {
+      expect([code, COUNTS_FIXED_KEYS.test(code)]).toEqual([code, false]);
+    }
   });
 });

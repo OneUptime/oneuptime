@@ -310,6 +310,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataIssueReport",
     "DataObservabilitySetting",
     "DataPipeline",
+    "DataPipelineOwnerRule",
     "DataPipelineOwnerTeam",
     "DataPipelineOwnerUser",
     "DataPipelineRun",
@@ -357,6 +358,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   ],
   [ProductKey.DataSecurity]: [
     "DataSecurityCheckSetting",
+    "DataSecurityComplianceSetting",
     "DataSecurityCustomDataType",
     "DataSecurityFlow",
     "DataSecurityIdentity",
@@ -387,12 +389,16 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "RunnerOwnerUser",
   ],
   [ProductKey.Inventory]: [
+    "DeviceManagementConnection",
     "InventoryItem",
     "InventoryItemCustomField",
     "InventoryItemRelationship",
+    "ManagedDevice",
+    "ManagedDeviceApp",
   ],
   [ProductKey.Services]: [
     "Service",
+    "ServiceAINote",
     "ServiceFeed",
     "ServiceLabelRule",
     "ServiceOwnerRule",
@@ -439,6 +445,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "HostCollectorConfigVersion",
     "HostFeed",
     "HostLabelRule",
+    "HostLogSession",
     "HostOwnerRule",
     "HostOwnerTeam",
     "HostOwnerUser",
@@ -454,6 +461,12 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "KubernetesResource",
     "KubernetesAiAgent",
     AnalyticsTableName.KubernetesCostAllocation,
+    /*
+     * A cluster's Compliance page turns its own frameworks off here too
+     * (#9627): the Pod Security Standards and the CIS Kubernetes Benchmark
+     * are Kubernetes', so the switches work while Data Security is off.
+     */
+    "DataSecurityComplianceSetting",
   ],
   [ProductKey.Docker]: [
     "DockerHost",
@@ -834,6 +847,7 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
         "InstanceHealthLog",
         "InstanceReceivingPeriod",
         "InstanceTokenSigningKey",
+        "InstanceSamlSigningKey",
       ],
     ),
   ]);

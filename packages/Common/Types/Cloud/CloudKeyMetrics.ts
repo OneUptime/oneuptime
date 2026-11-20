@@ -7,6 +7,7 @@ import {
   CloudKeyMetricGroup,
   getCloudKeyMetricGroupOrder,
 } from "./CloudKeyMetricGroup";
+import { CloudKeyMetricCondition } from "./CloudKeyMetricCondition";
 
 /*
  * THE KEY METRICS A CLOUD CONNECTION READS, PER RESOURCE TYPE.
@@ -32,13 +33,23 @@ import {
  *
  *   - Azure Monitor answers up to 20 metrics of a resource in one call,
  *     and bills per call, so each type reads up to 20 at no extra cost -
- *     each at its finest grain, never two sub-hourly grains (two calls) for
- *     one type;
+ *     each at its finest grain, one grain finer than an hour a type (one
+ *     call a read), but for the few metrics kept at five minutes at their
+ *     finest that are marked as earning a call of their own, read every 15
+ *     minutes (AzureKeyMetric.grain);
  *   - CloudWatch bills each metric of each resource, so AWS reads fewer:
  *     the ones that say whether it is up, busy, failing, slow or full;
  *   - Cloud Monitoring answers one metric type for every resource of a
  *     project in one call, and a read only asks the types of resources a
- *     project has (GcpCloudConnector).
+ *     project has (GcpCloudConnector) - and an agent's metrics only of the
+ *     projects where an agent reports them.
+ *
+ * A metric its provider deprecates is no key metric: a type that read one
+ * reads what replaces it. It can stay read for a while as `retired`, so a
+ * monitor someone built on it keeps working until it is moved; then it is
+ * read no more. Cosmos DB's ServerSideLatency and Pub/Sub's
+ * send_message_operation_count were, until their monitors were moved to
+ * what replaces them (#9739, MoveMonitorsOffRetiredCloudMetrics).
  *
  * Each metric is filed under a CloudKeyMetricGroup, and a type's metrics
  * come most telling first within it: a resource's Metrics card shows them
@@ -52,6 +63,19 @@ import {
  */
 
 const G: typeof CloudKeyMetricGroup = CloudKeyMetricGroup;
+const C: typeof CloudKeyMetricCondition = CloudKeyMetricCondition;
+
+/*
+ * A key metric only the resources a condition holds for report: a replica's
+ * lag, a burstable VM's credits (CloudKeyMetricCondition). A resource's page
+ * says so beside one it did not report (CloudUnreportedKeyMetrics).
+ */
+function when<T extends { onlyWhen?: CloudKeyMetricCondition | undefined }>(
+  condition: CloudKeyMetricCondition,
+  metric: T,
+): T {
+  return { ...metric, onlyWhen: condition };
+}
 
 /*
  * ---- AWS: CloudWatch -----------------------------------------------------
@@ -70,7 +94,19 @@ const G: typeof CloudKeyMetricGroup = CloudKeyMetricGroup;
  * resource of it reports.
  */
 
-export type AwsStatistic = "Average" | "Sum" | "Maximum" | "Minimum";
+/*
+ * The statistic a key metric is read with. SampleCount is how many values
+ * were published in the period ("the number of data points during the
+ * period", CloudWatch's Statistics definitions): Athena publishes a query's
+ * times once, as it ends, so the SampleCount of its TotalExecutionTime is
+ * how many queries ended. A metric stream carries it as each minute's count.
+ */
+export type AwsStatistic =
+  | "Average"
+  | "Sum"
+  | "Maximum"
+  | "Minimum"
+  | "SampleCount";
 
 export interface AwsKeyMetric {
   metricName: string;
@@ -88,18 +124,46 @@ export interface AwsKeyMetric {
    */
   periodSeconds: number;
   /*
-   * Whether a metric stream of the account writes it in place of the read,
-   * while one streams (CloudStreamedMetrics): the key metrics a stream's
-   * CloudFormation stack carries (CloudStreamTemplate), as every stack made
-   * since streams began carries them, and ACM's DaysToExpiry, which a
-   * stream of every metric carries. False for a metric no stack carries -
-   * S3's daily storage, and every key metric added since (awsRead): a stack
-   * made before them does not carry them, so the read keeps writing them
-   * whether the account streams or not, and a stream of every metric that
-   * delivers one is left to the read (CloudWatchMetricStream), so nothing
-   * is written twice.
+   * The first version of the stream template whose key-metric filters
+   * carry it (AWS_STREAM_TEMPLATE_VERSION, CloudStreamTemplate): 1 for the
+   * key metrics every stack has carried since streams began, 2 for those
+   * added since. A stack is made once, from the template of its day, so a
+   * stack of an older template does not carry a metric added after it, and
+   * the read keeps reading and writing that metric for its account
+   * (AwsStreamStack, CloudStreamedMetrics) until the stack is made again
+   * from a newer template. Null for a metric no stream writes: S3's daily
+   * storage, which a metric stream does not carry, and ACM's DaysToExpiry,
+   * published twice a day and read once an hour - a stream would bring it
+   * an hour sooner, which is nothing to a count of days. The read always
+   * writes those, and a stream of every metric that delivers one leaves it
+   * to the read (CloudWatchMetricStream), so nothing is written twice.
    */
-  isStreamed: boolean;
+  streamedSince: number | null;
+  /*
+   * Only the series whose named dimensions hold one of these values, or do
+   * not carry the dimension at all, are this metric's: a Network
+   * Firewall's ReceivedPackets is published once for each engine that saw
+   * a packet, and only its Stateless (Classic policy) or System (Next
+   * Generation policy) engine's series counts every packet the firewall
+   * received - summed with the Firewall engine's, a packet would count
+   * twice. The read lists and reads only these (AwsCloudConnector), and a
+   * stream's other series of it are left out (CloudWatchMetricStream).
+   */
+  onlyDimensionValues?: Readonly<Record<string, ReadonlyArray<string>>>;
+  /*
+   * Only some resources of the namespace report it, and this is the
+   * condition, from the service's own CloudWatch page: a metric published
+   * only when it is not zero, or only by some resources
+   * (CloudKeyMetricsProviderReference.test holds each to it).
+   */
+  onlyWhen?: CloudKeyMetricCondition | undefined;
+  /*
+   * Only resources of these types report it, of the several a namespace's
+   * series are filed under (CloudResourceCatalog): an ECS cluster's
+   * reservations and not its services', a REST API's 5XXError and an HTTP
+   * API's 5xx. Unset: every type of the namespace.
+   */
+  onlyTypes?: ReadonlyArray<string> | undefined;
 }
 
 export interface AwsNamespaceKeyMetrics {
@@ -135,7 +199,31 @@ export const AWS_DEFAULT_PERIOD_SECONDS: number = 300;
 export const HOURLY_PERIOD_SECONDS: number = 3600;
 export const DAILY_PERIOD_SECONDS: number = 86400;
 
-// A key metric a stream writes in place of the read (isStreamed), but a daily one.
+/*
+ * THE VERSIONS OF THE STREAM TEMPLATE (CloudStreamTemplate).
+ *
+ * The template a stream's stack is made from says its version to OneUptime
+ * with every delivery (CloudStreamStack), and its key-metric filters carry
+ * every key metric of a version up to its own (AwsKeyMetric.streamedSince).
+ *
+ *   - 1: the key metrics every stack has carried since streams began. A
+ *     stack that says no version is held to these: one made before stacks
+ *     said theirs, or one set up another way, with Terraform or the
+ *     console, whose filters OneUptime cannot know.
+ *   - 2: every key metric read every five minutes, the ones added since
+ *     streams began too.
+ *   - 3: AWS Glue jobs' and Amazon Athena workgroups' key metrics too
+ *     (#9691).
+ *
+ * A key metric added to the catalog after a version is written is streamed
+ * since the next one, never the current one: stacks of the current version
+ * are out there and do not carry it. CloudStreamTemplate.test pins what
+ * each version carries.
+ */
+export const AWS_STREAM_TEMPLATE_UNVERSIONED: number = 1;
+export const AWS_STREAM_TEMPLATE_VERSION: number = 3;
+
+// A key metric every key-metric stack carries, since streams began - but a daily or hourly one.
 function aws(
   metricName: string,
   statistic: AwsStatistic,
@@ -149,16 +237,46 @@ function aws(
     unit,
     group,
     periodSeconds,
-    isStreamed: periodSeconds < DAILY_PERIOD_SECONDS,
+    streamedSince:
+      periodSeconds <= AWS_DEFAULT_PERIOD_SECONDS
+        ? AWS_STREAM_TEMPLATE_UNVERSIONED
+        : null,
   };
 }
 
 /*
- * A key metric the read writes whether the account streams or not
- * (isStreamed false): every one added since streams began. Read every five
- * minutes.
+ * A key metric added since streams began, read every five minutes: the
+ * stacks of template 2 on carry it, and an older stack's account has it
+ * read and written by the read.
  */
-function awsRead(
+function aws2(
+  metricName: string,
+  statistic: AwsStatistic,
+  unit: string,
+  group: CloudKeyMetricGroup,
+  options: {
+    onlyDimensionValues?: Readonly<Record<string, ReadonlyArray<string>>>;
+  } = {},
+): AwsKeyMetric {
+  return {
+    metricName,
+    statistic,
+    unit,
+    group,
+    periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
+    streamedSince: 2,
+    ...(options.onlyDimensionValues
+      ? { onlyDimensionValues: options.onlyDimensionValues }
+      : {}),
+  };
+}
+
+/*
+ * A key metric added since template 2 was written, read every five
+ * minutes: the stacks of template 3 on carry it, and an older stack's
+ * account has it read and written by the read.
+ */
+function aws3(
   metricName: string,
   statistic: AwsStatistic,
   unit: string,
@@ -170,9 +288,21 @@ function awsRead(
     unit,
     group,
     periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
-    isStreamed: false,
+    streamedSince: 3,
   };
 }
+
+// A key metric only resources of these types of its namespace report.
+function onlyOf(
+  types: ReadonlyArray<string>,
+  metric: AwsKeyMetric,
+): AwsKeyMetric {
+  return { ...metric, onlyTypes: types };
+}
+
+const ECS_CLUSTER: ReadonlyArray<string> = ["AWS::ECS::Cluster"];
+const REST_API: ReadonlyArray<string> = ["AWS::ApiGateway::RestApi"];
+const HTTP_API: ReadonlyArray<string> = ["AWS::ApiGatewayV2::Api"];
 
 export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
   {
@@ -183,9 +313,12 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("NetworkOut", "Sum", "Bytes", G.Network),
       aws("StatusCheckFailed", "Maximum", "Count", G.Availability),
       // A burstable (T) instance's credits; a Nitro instance's EBS throughput.
-      awsRead("CPUCreditBalance", "Average", "Count", G.Compute),
-      awsRead("EBSReadBytes", "Sum", "Bytes", G.Storage),
-      awsRead("EBSWriteBytes", "Sum", "Bytes", G.Storage),
+      when(
+        C.Burstable,
+        aws2("CPUCreditBalance", "Average", "Count", G.Compute),
+      ),
+      when(C.Kind, aws2("EBSReadBytes", "Sum", "Bytes", G.Storage)),
+      when(C.Kind, aws2("EBSWriteBytes", "Sum", "Bytes", G.Storage)),
     ],
   },
   {
@@ -194,37 +327,49 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("VolumeReadOps", "Sum", "Count", G.Storage),
       aws("VolumeWriteOps", "Sum", "Count", G.Storage),
       aws("VolumeQueueLength", "Average", "Count", G.Storage),
-      awsRead("VolumeReadBytes", "Sum", "Bytes", G.Storage),
-      awsRead("VolumeWriteBytes", "Sum", "Bytes", G.Storage),
+      aws2("VolumeReadBytes", "Sum", "Bytes", G.Storage),
+      aws2("VolumeWriteBytes", "Sum", "Bytes", G.Storage),
       // gp2, st1 and sc1 volumes only.
-      awsRead("BurstBalance", "Average", "Percent", G.Storage),
+      when(C.Tier, aws2("BurstBalance", "Average", "Percent", G.Storage)),
     ],
   },
   {
     namespace: "AWS/ELB",
     metrics: [
-      aws("RequestCount", "Sum", "Count", G.Traffic),
-      aws("Latency", "Average", "Seconds", G.Latency),
-      aws("HTTPCode_Backend_5XX", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws("RequestCount", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws("Latency", "Average", "Seconds", G.Latency)),
+      when(C.NonZero, aws("HTTPCode_Backend_5XX", "Sum", "Count", G.Errors)),
       aws("UnHealthyHostCount", "Maximum", "Count", G.Availability),
-      awsRead("HealthyHostCount", "Average", "Count", G.Availability),
-      awsRead("HTTPCode_ELB_5XX", "Sum", "Count", G.Errors),
-      awsRead("SurgeQueueLength", "Maximum", "Count", G.Backlog),
-      awsRead("SpilloverCount", "Sum", "Count", G.Errors),
+      aws2("HealthyHostCount", "Average", "Count", G.Availability),
+      when(C.NonZero, aws2("HTTPCode_ELB_5XX", "Sum", "Count", G.Errors)),
+      when(C.NonZero, aws2("SurgeQueueLength", "Maximum", "Count", G.Backlog)),
+      when(C.NonZero, aws2("SpilloverCount", "Sum", "Count", G.Errors)),
     ],
   },
   {
     namespace: "AWS/ApplicationELB",
     metrics: [
       aws("RequestCount", "Sum", "Count", G.Traffic),
-      aws("TargetResponseTime", "Average", "Seconds", G.Latency),
+      when(
+        C.NonZero,
+        aws("TargetResponseTime", "Average", "Seconds", G.Latency),
+      ),
       aws("HTTPCode_Target_5XX_Count", "Sum", "Count", G.Errors),
-      aws("HTTPCode_ELB_5XX_Count", "Sum", "Count", G.Errors),
-      awsRead("HTTPCode_Target_4XX_Count", "Sum", "Count", G.Errors),
-      awsRead("RejectedConnectionCount", "Sum", "Count", G.Errors),
-      awsRead("TargetConnectionErrorCount", "Sum", "Count", G.Errors),
-      awsRead("ActiveConnectionCount", "Sum", "Count", G.Connections),
-      awsRead("ProcessedBytes", "Sum", "Bytes", G.Traffic),
+      when(C.NonZero, aws("HTTPCode_ELB_5XX_Count", "Sum", "Count", G.Errors)),
+      aws2("HTTPCode_Target_4XX_Count", "Sum", "Count", G.Errors),
+      when(
+        C.NonZero,
+        aws2("RejectedConnectionCount", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("TargetConnectionErrorCount", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("ActiveConnectionCount", "Sum", "Count", G.Connections),
+      ),
+      when(C.NonZero, aws2("ProcessedBytes", "Sum", "Bytes", G.Traffic)),
     ],
   },
   {
@@ -233,10 +378,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ActiveFlowCount", "Average", "Count", G.Connections),
       aws("NewFlowCount", "Sum", "Count", G.Connections),
       aws("ProcessedBytes", "Sum", "Bytes", G.Traffic),
-      awsRead("TCP_Client_Reset_Count", "Sum", "Count", G.Errors),
-      awsRead("TCP_Target_Reset_Count", "Sum", "Count", G.Errors),
-      awsRead("TCP_ELB_Reset_Count", "Sum", "Count", G.Errors),
-      awsRead("PortAllocationErrorCount", "Sum", "Count", G.Errors),
+      aws2("TCP_Client_Reset_Count", "Sum", "Count", G.Errors),
+      aws2("TCP_Target_Reset_Count", "Sum", "Count", G.Errors),
+      aws2("TCP_ELB_Reset_Count", "Sum", "Count", G.Errors),
+      aws2("PortAllocationErrorCount", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -245,10 +390,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ActiveConnectionCount", "Maximum", "Count", G.Connections),
       aws("BytesOutToDestination", "Sum", "Bytes", G.Network),
       aws("ErrorPortAllocation", "Sum", "Count", G.Errors),
-      awsRead("PacketsDropCount", "Sum", "Count", G.Errors),
-      awsRead("BytesInFromDestination", "Sum", "Bytes", G.Network),
-      awsRead("ConnectionAttemptCount", "Sum", "Count", G.Connections),
-      awsRead("IdleTimeoutCount", "Sum", "Count", G.Connections),
+      aws2("PacketsDropCount", "Sum", "Count", G.Errors),
+      aws2("BytesInFromDestination", "Sum", "Bytes", G.Network),
+      aws2("ConnectionAttemptCount", "Sum", "Count", G.Connections),
+      aws2("IdleTimeoutCount", "Sum", "Count", G.Connections),
     ],
   },
   {
@@ -262,19 +407,25 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
   {
     namespace: "AWS/TransitGateway",
     metrics: [
-      awsRead("BytesIn", "Sum", "Bytes", G.Network),
-      awsRead("BytesOut", "Sum", "Bytes", G.Network),
-      awsRead("PacketDropCountBlackhole", "Sum", "Count", G.Errors),
-      awsRead("PacketDropCountNoRoute", "Sum", "Count", G.Errors),
+      aws2("BytesIn", "Sum", "Bytes", G.Network),
+      aws2("BytesOut", "Sum", "Bytes", G.Network),
+      aws2("PacketDropCountBlackhole", "Sum", "Count", G.Errors),
+      aws2("PacketDropCountNoRoute", "Sum", "Count", G.Errors),
     ],
   },
   {
     namespace: "AWS/DX",
     metrics: [
-      awsRead("ConnectionState", "Minimum", "None", G.Availability),
-      awsRead("ConnectionBpsEgress", "Average", "Bits/Second", G.Network),
-      awsRead("ConnectionBpsIngress", "Average", "Bits/Second", G.Network),
-      awsRead("ConnectionErrorCount", "Sum", "Count", G.Errors),
+      aws2("ConnectionState", "Minimum", "None", G.Availability),
+      when(
+        C.Kind,
+        aws2("ConnectionBpsEgress", "Average", "Bits/Second", G.Network),
+      ),
+      when(
+        C.Kind,
+        aws2("ConnectionBpsIngress", "Average", "Bits/Second", G.Network),
+      ),
+      when(C.Kind, aws2("ConnectionErrorCount", "Sum", "Count", G.Errors)),
     ],
   },
   {
@@ -285,8 +436,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("4xxErrorRate", "Average", "Percent", G.Errors),
       aws("5xxErrorRate", "Average", "Percent", G.Errors),
       aws("BytesDownloaded", "Sum", "None", G.Network),
-      awsRead("TotalErrorRate", "Average", "Percent", G.Errors),
-      awsRead("BytesUploaded", "Sum", "None", G.Network),
+      aws2("TotalErrorRate", "Average", "Percent", G.Errors),
+      aws2("BytesUploaded", "Sum", "None", G.Network),
     ],
   },
   {
@@ -294,7 +445,15 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     onlyRegion: "us-east-1",
     metrics: [
       aws("HealthCheckStatus", "Minimum", "None", G.Availability),
-      aws("HealthCheckPercentageHealthy", "Average", "Percent", G.Availability),
+      when(
+        C.Kind,
+        aws(
+          "HealthCheckPercentageHealthy",
+          "Average",
+          "Percent",
+          G.Availability,
+        ),
+      ),
     ],
   },
   {
@@ -320,21 +479,21 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/EFS",
     metrics: [
       aws("ClientConnections", "Sum", "Count", G.Connections),
-      aws("PercentIOLimit", "Average", "Percent", G.Storage),
-      awsRead("BurstCreditBalance", "Average", "Bytes", G.Storage),
-      awsRead("DataReadIOBytes", "Sum", "Bytes", G.Storage),
-      awsRead("DataWriteIOBytes", "Sum", "Bytes", G.Storage),
+      when(C.Tier, aws("PercentIOLimit", "Average", "Percent", G.Storage)),
+      aws2("BurstCreditBalance", "Average", "Bytes", G.Storage),
+      aws2("DataReadIOBytes", "Sum", "Bytes", G.Storage),
+      aws2("DataWriteIOBytes", "Sum", "Bytes", G.Storage),
     ],
   },
   {
     namespace: "AWS/FSx",
     metrics: [
-      awsRead("DataReadBytes", "Sum", "Bytes", G.Storage),
-      awsRead("DataWriteBytes", "Sum", "Bytes", G.Storage),
-      awsRead("DataReadOperations", "Sum", "Count", G.Storage),
-      awsRead("DataWriteOperations", "Sum", "Count", G.Storage),
+      aws2("DataReadBytes", "Sum", "Bytes", G.Storage),
+      aws2("DataWriteBytes", "Sum", "Bytes", G.Storage),
+      aws2("DataReadOperations", "Sum", "Count", G.Storage),
+      aws2("DataWriteOperations", "Sum", "Count", G.Storage),
       // FSx for Windows File Server only.
-      awsRead("FreeStorageCapacity", "Average", "Bytes", G.Storage),
+      when(C.Kind, aws2("FreeStorageCapacity", "Average", "Bytes", G.Storage)),
     ],
   },
   {
@@ -342,9 +501,18 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("MemoryUtilization", "Average", "Percent", G.Memory),
-      // A cluster's own: what its tasks reserve of its instances.
-      awsRead("CPUReservation", "Average", "Percent", G.Compute),
-      awsRead("MemoryReservation", "Average", "Percent", G.Memory),
+      /*
+       * A cluster's own: what its tasks reserve of its instances. A cluster
+       * with only Fargate tasks reserves none.
+       */
+      onlyOf(
+        ECS_CLUSTER,
+        when(C.Kind, aws2("CPUReservation", "Average", "Percent", G.Compute)),
+      ),
+      onlyOf(
+        ECS_CLUSTER,
+        when(C.Kind, aws2("MemoryReservation", "Average", "Percent", G.Memory)),
+      ),
     ],
   },
   {
@@ -354,10 +522,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("Errors", "Sum", "Count", G.Errors),
       aws("Duration", "Average", "Milliseconds", G.Latency),
       aws("Throttles", "Sum", "Count", G.Errors),
-      awsRead("ConcurrentExecutions", "Maximum", "Count", G.Compute),
+      aws2("ConcurrentExecutions", "Maximum", "Count", G.Compute),
       // Stream and asynchronous event sources only.
-      awsRead("IteratorAge", "Maximum", "Milliseconds", G.Backlog),
-      awsRead("DeadLetterErrors", "Sum", "Count", G.Errors),
+      when(C.Setup, aws2("IteratorAge", "Maximum", "Milliseconds", G.Backlog)),
+      when(C.Setup, aws2("DeadLetterErrors", "Sum", "Count", G.Errors)),
     ],
   },
   {
@@ -366,10 +534,10 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ExecutionsStarted", "Sum", "Count", G.Traffic),
       aws("ExecutionsFailed", "Sum", "Count", G.Errors),
       aws("ExecutionTime", "Average", "Milliseconds", G.Latency),
-      awsRead("ExecutionsSucceeded", "Sum", "Count", G.Traffic),
-      awsRead("ExecutionsTimedOut", "Sum", "Count", G.Errors),
-      awsRead("ExecutionsAborted", "Sum", "Count", G.Errors),
-      awsRead("ExecutionThrottled", "Sum", "Count", G.Errors),
+      aws2("ExecutionsSucceeded", "Sum", "Count", G.Traffic),
+      aws2("ExecutionsTimedOut", "Sum", "Count", G.Errors),
+      aws2("ExecutionsAborted", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws2("ExecutionThrottled", "Sum", "Count", G.Errors)),
     ],
   },
   {
@@ -381,18 +549,13 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("FreeableMemory", "Average", "Bytes", G.Memory),
       aws("ReadLatency", "Average", "Seconds", G.Latency),
       aws("WriteLatency", "Average", "Seconds", G.Latency),
-      awsRead("ReadIOPS", "Average", "Count/Second", G.Storage),
-      awsRead("WriteIOPS", "Average", "Count/Second", G.Storage),
-      awsRead("DiskQueueDepth", "Average", "Count", G.Storage),
-      awsRead("NetworkReceiveThroughput", "Average", "Bytes/Second", G.Network),
-      awsRead(
-        "NetworkTransmitThroughput",
-        "Average",
-        "Bytes/Second",
-        G.Network,
-      ),
+      aws2("ReadIOPS", "Average", "Count/Second", G.Storage),
+      aws2("WriteIOPS", "Average", "Count/Second", G.Storage),
+      aws2("DiskQueueDepth", "Average", "Count", G.Storage),
+      aws2("NetworkReceiveThroughput", "Average", "Bytes/Second", G.Network),
+      aws2("NetworkTransmitThroughput", "Average", "Bytes/Second", G.Network),
       // A read replica's own.
-      awsRead("ReplicaLag", "Maximum", "Seconds", G.Replication),
+      when(C.Replica, aws2("ReplicaLag", "Maximum", "Seconds", G.Replication)),
     ],
   },
   {
@@ -401,20 +564,35 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("DatabaseConnections", "Average", "Count", G.Connections),
       aws("FreeableMemory", "Average", "Bytes", G.Memory),
-      awsRead("ReadLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("WriteLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("DBInstanceReplicaLag", "Maximum", "Milliseconds", G.Replication),
+      aws2("ReadLatency", "Average", "Milliseconds", G.Latency),
+      aws2("WriteLatency", "Average", "Milliseconds", G.Latency),
+      when(
+        C.Replica,
+        aws2("DBInstanceReplicaLag", "Maximum", "Milliseconds", G.Replication),
+      ),
     ],
   },
   {
     namespace: "AWS/Neptune",
     metrics: [
-      awsRead("CPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("FreeableMemory", "Average", "Bytes", G.Memory),
-      awsRead("MainRequestQueuePendingRequests", "Sum", "Count", G.Backlog),
-      awsRead("TotalServerErrorsPerSec", "Average", "Count/Second", G.Errors),
-      awsRead("TotalClientErrorsPerSec", "Average", "Count/Second", G.Errors),
-      awsRead("ClusterReplicaLag", "Average", "Milliseconds", G.Replication),
+      when(C.NonZero, aws2("CPUUtilization", "Average", "Percent", G.Compute)),
+      when(C.NonZero, aws2("FreeableMemory", "Average", "Bytes", G.Memory)),
+      when(
+        C.NonZero,
+        aws2("MainRequestQueuePendingRequests", "Sum", "Count", G.Backlog),
+      ),
+      when(
+        C.NonZero,
+        aws2("TotalServerErrorsPerSec", "Average", "Count/Second", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("TotalClientErrorsPerSec", "Average", "Count/Second", G.Errors),
+      ),
+      when(
+        C.NonZero,
+        aws2("ClusterReplicaLag", "Average", "Milliseconds", G.Replication),
+      ),
     ],
   },
   {
@@ -425,8 +603,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("ReadThrottleEvents", "Sum", "Count", G.Errors),
       aws("WriteThrottleEvents", "Sum", "Count", G.Errors),
       // A provisioned table's own.
-      awsRead("ProvisionedReadCapacityUnits", "Average", "Count", G.Compute),
-      awsRead("ProvisionedWriteCapacityUnits", "Average", "Count", G.Compute),
+      aws2("ProvisionedReadCapacityUnits", "Average", "Count", G.Compute),
+      aws2("ProvisionedWriteCapacityUnits", "Average", "Count", G.Compute),
     ],
   },
   {
@@ -435,23 +613,32 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("CurrConnections", "Average", "Count", G.Connections),
       aws("Evictions", "Sum", "Count", G.Cache),
-      aws("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
+      when(
+        C.Kind,
+        aws("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
+      ),
       // Valkey and Redis OSS nodes'.
-      awsRead("EngineCPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("CacheHits", "Sum", "Count", G.Cache),
-      awsRead("CacheMisses", "Sum", "Count", G.Cache),
+      when(
+        C.Kind,
+        aws2("EngineCPUUtilization", "Average", "Percent", G.Compute),
+      ),
+      when(C.Kind, aws2("CacheHits", "Sum", "Count", G.Cache)),
+      when(C.Kind, aws2("CacheMisses", "Sum", "Count", G.Cache)),
       // A read replica's own.
-      awsRead("ReplicationLag", "Maximum", "Seconds", G.Replication),
+      when(
+        C.Replica,
+        aws2("ReplicationLag", "Maximum", "Seconds", G.Replication),
+      ),
     ],
   },
   {
     namespace: "AWS/MemoryDB",
     metrics: [
-      awsRead("CPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("EngineCPUUtilization", "Average", "Percent", G.Compute),
-      awsRead("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
-      awsRead("CurrConnections", "Average", "Count", G.Connections),
-      awsRead("Evictions", "Sum", "Count", G.Cache),
+      aws2("CPUUtilization", "Average", "Percent", G.Compute),
+      aws2("EngineCPUUtilization", "Average", "Percent", G.Compute),
+      aws2("DatabaseMemoryUsagePercentage", "Average", "Percent", G.Memory),
+      aws2("CurrConnections", "Average", "Count", G.Connections),
+      aws2("Evictions", "Sum", "Count", G.Cache),
     ],
   },
   {
@@ -460,9 +647,9 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("PercentageDiskSpaceUsed", "Average", "Percent", G.Storage),
       aws("DatabaseConnections", "Average", "Count", G.Connections),
-      awsRead("HealthStatus", "Minimum", "Count", G.Availability),
-      awsRead("ReadLatency", "Average", "Seconds", G.Latency),
-      awsRead("WriteLatency", "Average", "Seconds", G.Latency),
+      aws2("HealthStatus", "Minimum", "Count", G.Availability),
+      aws2("ReadLatency", "Average", "Seconds", G.Latency),
+      aws2("WriteLatency", "Average", "Seconds", G.Latency),
     ],
   },
   {
@@ -471,27 +658,33 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
       aws("CPUUtilization", "Average", "Percent", G.Compute),
       aws("FreeStorageSpace", "Minimum", "Megabytes", G.Storage),
       aws("ClusterStatus.red", "Maximum", "Count", G.Availability),
-      awsRead("ClusterStatus.yellow", "Maximum", "Count", G.Availability),
-      awsRead("ClusterIndexWritesBlocked", "Maximum", "Count", G.Errors),
-      awsRead("5xx", "Sum", "Count", G.Errors),
-      awsRead("SearchLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("IndexingLatency", "Average", "Milliseconds", G.Latency),
-      awsRead("JVMMemoryPressure", "Maximum", "Percent", G.Memory),
+      aws2("ClusterStatus.yellow", "Maximum", "Count", G.Availability),
+      aws2("ClusterIndexWritesBlocked", "Maximum", "Count", G.Errors),
+      aws2("5xx", "Sum", "Count", G.Errors),
+      aws2("SearchLatency", "Average", "Milliseconds", G.Latency),
+      aws2("IndexingLatency", "Average", "Milliseconds", G.Latency),
+      aws2("JVMMemoryPressure", "Maximum", "Percent", G.Memory),
     ],
   },
   {
     namespace: "AWS/SQS",
     metrics: [
       aws("ApproximateNumberOfMessagesVisible", "Maximum", "Count", G.Backlog),
-      aws("ApproximateAgeOfOldestMessage", "Maximum", "Seconds", G.Backlog),
-      aws("NumberOfMessagesSent", "Sum", "Count", G.Traffic),
-      awsRead(
-        "ApproximateNumberOfMessagesNotVisible",
-        "Maximum",
-        "Count",
-        G.Backlog,
+      when(
+        C.NonZero,
+        aws("ApproximateAgeOfOldestMessage", "Maximum", "Seconds", G.Backlog),
       ),
-      awsRead("NumberOfMessagesDeleted", "Sum", "Count", G.Traffic),
+      aws("NumberOfMessagesSent", "Sum", "Count", G.Traffic),
+      when(
+        C.NonZero,
+        aws2(
+          "ApproximateNumberOfMessagesNotVisible",
+          "Maximum",
+          "Count",
+          G.Backlog,
+        ),
+      ),
+      aws2("NumberOfMessagesDeleted", "Sum", "Count", G.Traffic),
     ],
   },
   {
@@ -499,7 +692,7 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     metrics: [
       aws("NumberOfMessagesPublished", "Sum", "Count", G.Traffic),
       aws("NumberOfNotificationsFailed", "Sum", "Count", G.Errors),
-      awsRead("NumberOfNotificationsDelivered", "Sum", "Count", G.Traffic),
+      aws2("NumberOfNotificationsDelivered", "Sum", "Count", G.Traffic),
     ],
   },
   {
@@ -512,39 +705,52 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
         "Milliseconds",
         G.Backlog,
       ),
-      awsRead("IncomingBytes", "Sum", "Bytes", G.Traffic),
-      awsRead("WriteProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
-      awsRead("ReadProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
+      aws2("IncomingBytes", "Sum", "Bytes", G.Traffic),
+      aws2("WriteProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
+      aws2("ReadProvisionedThroughputExceeded", "Sum", "Count", G.Errors),
     ],
   },
   {
+    // A Direct PUT stream's incoming records, and an S3 destination's deliveries.
     namespace: "AWS/Firehose",
     metrics: [
-      aws("IncomingRecords", "Sum", "Count", G.Traffic),
-      aws("DeliveryToS3.Success", "Average", "Count", G.Availability),
-      awsRead("IncomingBytes", "Sum", "Bytes", G.Traffic),
-      awsRead("ThrottledRecords", "Sum", "Count", G.Errors),
-      awsRead("DeliveryToS3.DataFreshness", "Maximum", "Seconds", G.Backlog),
+      when(C.Kind, aws("IncomingRecords", "Sum", "Count", G.Traffic)),
+      when(
+        C.Kind,
+        aws("DeliveryToS3.Success", "Average", "Count", G.Availability),
+      ),
+      when(C.Kind, aws2("IncomingBytes", "Sum", "Bytes", G.Traffic)),
+      when(C.Kind, aws2("ThrottledRecords", "Sum", "Count", G.Errors)),
+      when(
+        C.Kind,
+        aws2("DeliveryToS3.DataFreshness", "Maximum", "Seconds", G.Backlog),
+      ),
     ],
   },
   {
     namespace: "AWS/ApiGateway",
     metrics: [
       aws("Count", "Sum", "Count", G.Traffic),
-      aws("5XXError", "Sum", "Count", G.Errors),
+      onlyOf(REST_API, aws("5XXError", "Sum", "Count", G.Errors)),
       aws("Latency", "Average", "Milliseconds", G.Latency),
-      awsRead("4XXError", "Sum", "Count", G.Errors),
-      awsRead("IntegrationLatency", "Average", "Milliseconds", G.Latency),
+      onlyOf(REST_API, aws2("4XXError", "Sum", "Count", G.Errors)),
+      aws2("IntegrationLatency", "Average", "Milliseconds", G.Latency),
+      /*
+       * An HTTP API's errors: it publishes 5xx and 4xx, a REST API 5XXError
+       * and 4XXError, so each is listed only for the APIs that publish it.
+       */
+      onlyOf(HTTP_API, when(C.Kind, aws2("5xx", "Sum", "Count", G.Errors))),
+      onlyOf(HTTP_API, when(C.Kind, aws2("4xx", "Sum", "Count", G.Errors))),
     ],
   },
   {
     namespace: "AWS/Events",
     metrics: [
-      aws("Invocations", "Sum", "Count", G.Traffic),
-      aws("FailedInvocations", "Sum", "Count", G.Errors),
-      awsRead("TriggeredRules", "Sum", "Count", G.Traffic),
-      awsRead("ThrottledRules", "Sum", "Count", G.Errors),
-      awsRead("DeadLetterInvocations", "Sum", "Count", G.Errors),
+      when(C.NonZero, aws("Invocations", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws("FailedInvocations", "Sum", "Count", G.Errors)),
+      aws2("TriggeredRules", "Sum", "Count", G.Traffic),
+      aws2("ThrottledRules", "Sum", "Count", G.Errors),
+      aws2("DeadLetterInvocations", "Sum", "Count", G.Errors),
     ],
   },
   {
@@ -555,26 +761,279 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
     namespace: "AWS/AmazonMQ",
     probeMetricNames: ["CpuUtilization", "SystemCpuUtilization"],
     metrics: [
-      aws("CpuUtilization", "Average", "Percent", G.Compute),
+      when(C.Kind, aws("CpuUtilization", "Average", "Percent", G.Compute)),
       // RabbitMQ.
-      awsRead("SystemCpuUtilization", "Average", "Percent", G.Compute),
-      awsRead("MessageCount", "Maximum", "Count", G.Backlog),
-      awsRead("ConnectionCount", "Maximum", "Count", G.Connections),
+      when(
+        C.Kind,
+        aws2("SystemCpuUtilization", "Average", "Percent", G.Compute),
+      ),
+      when(C.Kind, aws2("MessageCount", "Maximum", "Count", G.Backlog)),
+      when(C.Kind, aws2("ConnectionCount", "Maximum", "Count", G.Connections)),
       // ActiveMQ.
-      awsRead("HeapUsage", "Maximum", "Percent", G.Memory),
-      awsRead("StorePercentUsage", "Maximum", "Percent", G.Storage),
-      awsRead("CurrentConnectionsCount", "Maximum", "Count", G.Connections),
+      when(C.Kind, aws2("HeapUsage", "Maximum", "Percent", G.Memory)),
+      when(C.Kind, aws2("StorePercentUsage", "Maximum", "Percent", G.Storage)),
+      when(
+        C.Kind,
+        aws2("CurrentConnectionsCount", "Maximum", "Count", G.Connections),
+      ),
     ],
   },
   {
     namespace: "AWS/Kafka",
     metrics: [
       aws("ActiveControllerCount", "Maximum", "Count", G.Availability),
-      awsRead("OfflinePartitionsCount", "Maximum", "Count", G.Availability),
+      aws2("OfflinePartitionsCount", "Maximum", "Count", G.Availability),
       // Each broker's own (Broker ID): a series per broker of the cluster.
-      awsRead("UnderReplicatedPartitions", "Maximum", "Count", G.Replication),
-      awsRead("KafkaDataLogsDiskUsed", "Maximum", "Percent", G.Storage),
-      awsRead("CpuUser", "Average", "Percent", G.Compute),
+      aws2("UnderReplicatedPartitions", "Maximum", "Count", G.Replication),
+      aws2("KafkaDataLogsDiskUsed", "Maximum", "Percent", G.Storage),
+      aws2("CpuUser", "Average", "Percent", G.Compute),
+    ],
+  },
+  {
+    /*
+     * A web ACL's requests, by what its rules did with them: its own total
+     * is the series whose Rule is ALL (CloudResourceCatalog's rule), each
+     * published only when it is not zero. A CloudFront distribution's web
+     * ACL publishes in us-east-1, a Region's own in its Region.
+     */
+    namespace: "AWS/WAFV2",
+    probeMetricNames: ["AllowedRequests", "BlockedRequests"],
+    metrics: [
+      when(C.NonZero, aws2("AllowedRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("BlockedRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("CountedRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("CaptchaRequests", "Sum", "Count", G.Traffic)),
+      when(C.NonZero, aws2("ChallengeRequests", "Sum", "Count", G.Traffic)),
+    ],
+  },
+  {
+    /*
+     * A firewall's packets, per Availability Zone and inspection engine.
+     * The packets it received are the Stateless engine's (a Classic
+     * policy) or the System engine's (a Next Generation policy), which each
+     * count every packet - never also the Firewall engine's, which would
+     * count some again. A packet is dropped by one engine, so its drops
+     * are every engine's.
+     */
+    namespace: "AWS/NetworkFirewall",
+    metrics: [
+      when(
+        C.NonZero,
+        aws2("ReceivedPackets", "Sum", "Count", G.Traffic, {
+          onlyDimensionValues: { Engine: ["Stateless", "System"] },
+        }),
+      ),
+      when(C.NonZero, aws2("DroppedPackets", "Sum", "Count", G.Errors)),
+      // Throttled by bursting traffic, among others.
+      when(C.NonZero, aws2("OtherDroppedPackets", "Sum", "Count", G.Errors)),
+      when(C.NonZero, aws2("InvalidDroppedPackets", "Sum", "Count", G.Errors)),
+    ],
+  },
+  {
+    // A service's own, without its instances' (Instance).
+    namespace: "AWS/AppRunner",
+    metrics: [
+      aws2("CPUUtilization", "Average", "Percent", G.Compute),
+      aws2("Requests", "Sum", "Count", G.Traffic),
+      aws2("5xxStatusResponses", "Sum", "Count", G.Errors),
+      aws2("4xxStatusResponses", "Sum", "Count", G.Errors),
+      aws2("RequestLatency", "Average", "Milliseconds", G.Latency),
+      aws2("MemoryUtilization", "Average", "Percent", G.Memory),
+      aws2("ActiveInstances", "Average", "Count", G.Compute),
+    ],
+  },
+  {
+    /*
+     * An Auto Scaling group's size, once its group metrics collection is
+     * on: free, at a minute's grain. A group without it publishes none, so
+     * it is never listed and costs nothing to read.
+     */
+    namespace: "AWS/AutoScaling",
+    metrics: [
+      when(
+        C.Setup,
+        aws2("GroupInServiceInstances", "Average", "Count", G.Availability),
+      ),
+      when(
+        C.Setup,
+        aws2("GroupDesiredCapacity", "Average", "Count", G.Compute),
+      ),
+      when(
+        C.Setup,
+        aws2("GroupPendingInstances", "Maximum", "Count", G.Compute),
+      ),
+      when(
+        C.Setup,
+        aws2("GroupTerminatingInstances", "Maximum", "Count", G.Compute),
+      ),
+    ],
+  },
+  {
+    /*
+     * An accelerator's endpoints and traffic, on the accelerator's own
+     * series (Accelerator alone). Global Accelerator publishes to US West
+     * (Oregon) whatever the endpoints' Regions.
+     */
+    namespace: "AWS/GlobalAccelerator",
+    onlyRegion: "us-west-2",
+    metrics: [
+      aws2("HealthyEndpointCount", "Minimum", "Count", G.Availability),
+      aws2("UnhealthyEndpointCount", "Maximum", "Count", G.Availability),
+      when(C.NonZero, aws2("NewFlowCount", "Sum", "Count", G.Connections)),
+      when(C.NonZero, aws2("ProcessedBytesIn", "Sum", "Bytes", G.Network)),
+      when(C.NonZero, aws2("ProcessedBytesOut", "Sum", "Bytes", G.Network)),
+    ],
+  },
+  {
+    /*
+     * A user pool's sign-ins, token refreshes and sign-ups, and those
+     * throttled. Cognito publishes them for each app client of the pool
+     * (UserPool, UserPoolClient), never for the pool alone: a series per
+     * client, which add up to the pool's. A pool may only refresh tokens
+     * for hours, so a sweep asks for any of the three.
+     */
+    namespace: "AWS/Cognito",
+    probeMetricNames: [
+      "SignInSuccesses",
+      "TokenRefreshSuccesses",
+      "SignUpSuccesses",
+    ],
+    metrics: [
+      aws2("SignInSuccesses", "Sum", "Count", G.Traffic),
+      aws2("SignInThrottles", "Sum", "Count", G.Errors),
+      aws2("TokenRefreshSuccesses", "Sum", "Count", G.Traffic),
+      aws2("TokenRefreshThrottles", "Sum", "Count", G.Errors),
+      aws2("SignUpSuccesses", "Sum", "Count", G.Traffic),
+      aws2("SignUpThrottles", "Sum", "Count", G.Errors),
+    ],
+  },
+  {
+    /*
+     * An environment's health, the one metric enhanced health reporting
+     * publishes for free: 0 OK, 1 Info, 5 Unknown, 10 No data, 15
+     * Warning, 20 Degraded, 25 Severe. Its Maximum is the period's worst.
+     * The others are custom metrics CloudWatch charges for, published only
+     * when the environment is set to.
+     */
+    namespace: "AWS/ElasticBeanstalk",
+    metrics: [
+      when(
+        C.Setup,
+        aws2("EnvironmentHealth", "Maximum", "None", G.Availability),
+      ),
+    ],
+  },
+  {
+    // A GraphQL API's own (GraphQLAPIId); its requests are the Region's, not an API's.
+    namespace: "AWS/AppSync",
+    metrics: [
+      aws2("Latency", "Average", "Milliseconds", G.Latency),
+      aws2("5XXError", "Sum", "Count", G.Errors),
+      aws2("4XXError", "Sum", "Count", G.Errors),
+    ],
+  },
+  {
+    /*
+     * An endpoint's invocations, published for each production variant of
+     * it (EndpointName, VariantName): a series per variant, which add up
+     * to the endpoint's. A model's latency is in microseconds.
+     */
+    namespace: "AWS/SageMaker",
+    metrics: [
+      aws2("Invocations", "Sum", "None", G.Traffic),
+      aws2("Invocation5XXErrors", "Sum", "None", G.Errors),
+      aws2("Invocation4XXErrors", "Sum", "None", G.Errors),
+      aws2("ModelLatency", "Average", "Microseconds", G.Latency),
+    ],
+  },
+  {
+    /*
+     * An AWS Glue job's own, on its JobRunId ALL series (CloudResourceCatalog's
+     * rule): each run has a series of its own beside it, with as many
+     * dimensions, which is no job's. Glue publishes them every 30 seconds
+     * while a job runs, and only for a job whose job metrics are on
+     * (--enable-metrics), which its owner turns on for their own use -
+     * CloudWatch bills them as custom metrics - so a job without them is
+     * never listed and costs nothing to read. Each is the change since
+     * Glue's last report (a Sum over the period), but the executors, which
+     * are a count at a moment. A sweep asks for the tasks completed, which
+     * every running job reports.
+     */
+    namespace: "Glue",
+    metrics: [
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.aggregate.numCompletedTasks",
+          "Sum",
+          "Count",
+          G.Traffic,
+        ),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.numFailedTasks", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.numKilledTasks", "Sum", "Count", G.Errors),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.recordsRead", "Sum", "Count", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3("glue.driver.aggregate.bytesRead", "Sum", "Bytes", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.ExecutorAllocationManager.executors.numberAllExecutors",
+          "Average",
+          "Count",
+          G.Compute,
+        ),
+      ),
+      when(
+        C.Setup,
+        aws3(
+          "glue.driver.ExecutorAllocationManager.executors.numberMaxNeededExecutors",
+          "Maximum",
+          "Count",
+          G.Backlog,
+        ),
+      ),
+    ],
+  },
+  {
+    /*
+     * An Amazon Athena workgroup's queries, published as each query ends,
+     * by a workgroup whose "Publish query metrics to CloudWatch" is on (the
+     * console's default). The bytes a workgroup's queries scanned have a
+     * series of the workgroup's own; its query times only one per query
+     * state and type (WorkGroup, QueryState, QueryType), read side by side.
+     * A query publishes its times once, so the SampleCount of its
+     * TotalExecutionTime is how many queries ended - the failed and
+     * cancelled ones apart by their QueryState. A workgroup of DDL alone
+     * publishes no bytes, so a sweep asks for its queries too.
+     */
+    namespace: "AWS/Athena",
+    probeMetricNames: ["ProcessedBytes", "TotalExecutionTime"],
+    metrics: [
+      when(C.Setup, aws3("ProcessedBytes", "Sum", "Bytes", G.Traffic)),
+      when(
+        C.Setup,
+        aws3("TotalExecutionTime", "SampleCount", "Count", G.Traffic),
+      ),
+      when(
+        C.Setup,
+        aws3("EngineExecutionTime", "Average", "Milliseconds", G.Latency),
+      ),
+      when(
+        C.Setup,
+        aws3("QueryQueueTime", "Average", "Milliseconds", G.Backlog),
+      ),
     ],
   },
   {
@@ -582,9 +1041,8 @@ export const AWS_KEY_METRICS: ReadonlyArray<AwsNamespaceKeyMetrics> = [
      * The days a certificate has left. ACM publishes it twice a day for
      * every certificate until it expires, then stops: read once an hour,
      * and listed whatever its last point's age (isListedWhenQuiet). Its
-     * Minimum is the period's one point. The key metrics' stream leaves it
-     * to this read (CloudStreamTemplate): an hour sooner is nothing to a
-     * count of days.
+     * Minimum is the period's one point. No stream writes it
+     * (streamedSince null): an hour sooner is nothing to a count of days.
      */
     namespace: "AWS/CertificateManager",
     isListedWhenQuiet: true,
@@ -637,6 +1095,105 @@ export function getAwsStoredMetricName(
   return `amazonaws.com/${namespace}/${metricName}`;
 }
 
+// A namespace's key metric by its name, whatever its case.
+export function getAwsKeyMetric(
+  namespace: string,
+  metricName: string,
+): AwsKeyMetric | undefined {
+  const wanted: string = metricName.trim().toLowerCase();
+
+  return getAwsKeyMetrics(namespace)?.metrics.find(
+    (metric: AwsKeyMetric): boolean => {
+      return metric.metricName.toLowerCase() === wanted;
+    },
+  );
+}
+
+/*
+ * The key metric a stored CloudWatch name is ("amazonaws.com/AWS/EC2/
+ * CPUUtilization"), with its namespace as the catalog spells it, whatever
+ * the case it was stored in - or null for a name no connection reads.
+ */
+export function getAwsKeyMetricOfStoredName(storedMetricName: string): {
+  namespace: string;
+  metric: AwsKeyMetric;
+} | null {
+  const parsed: { namespace: string; metricName: string } | null =
+    parseAwsStoredMetricName(storedMetricName);
+  const entry: AwsNamespaceKeyMetrics | undefined = parsed
+    ? getAwsKeyMetrics(parsed.namespace)
+    : undefined;
+  const metric: AwsKeyMetric | undefined =
+    parsed && entry
+      ? getAwsKeyMetric(entry.namespace, parsed.metricName)
+      : undefined;
+
+  return entry && metric ? { namespace: entry.namespace, metric } : null;
+}
+
+/*
+ * Whether a series of the metric, on these dimensions, is one it is read
+ * from (AwsKeyMetric.onlyDimensionValues): every series of a metric that
+ * names none, and of one that does, each whose named dimensions are
+ * missing or hold one of their values.
+ */
+export function isAwsKeyMetricSeries(
+  metric: AwsKeyMetric,
+  dimensions: Readonly<Record<string, string>>,
+): boolean {
+  for (const [name, values] of Object.entries(
+    metric.onlyDimensionValues || {},
+  )) {
+    const value: string | undefined = dimensions[name];
+
+    if (value !== undefined && value !== "" && !values.includes(value)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Whether any stream writes the metric: none writes a daily or hourly one.
+export function isAwsKeyMetricStreamable(metric: AwsKeyMetric): boolean {
+  return metric.streamedSince !== null;
+}
+
+/*
+ * Whether the key-metric filters of a template version carry the metric:
+ * a stack made from that version streams it.
+ */
+export function isAwsKeyMetricInTemplate(
+  metric: AwsKeyMetric,
+  templateVersion: number,
+): boolean {
+  return (
+    metric.streamedSince !== null && metric.streamedSince <= templateVersion
+  );
+}
+
+/*
+ * How many key metrics the current template's filters carry that a
+ * stack of an older version does not: what running the command again
+ * streams in place of the read.
+ */
+export function countAwsKeyMetricsAddedSince(templateVersion: number): number {
+  let count: number = 0;
+
+  for (const entry of AWS_KEY_METRICS) {
+    for (const metric of entry.metrics) {
+      if (
+        isAwsKeyMetricInTemplate(metric, AWS_STREAM_TEMPLATE_VERSION) &&
+        !isAwsKeyMetricInTemplate(metric, templateVersion)
+      ) {
+        count++;
+      }
+    }
+  }
+
+  return count;
+}
+
 /*
  * ---- Azure: Azure Monitor ------------------------------------------------
  *
@@ -645,19 +1202,82 @@ export function getAwsStoredMetricName(
  * do not list it - a vCore database has no DTU) is left out; each is read
  * with the aggregation its definition calls primary, at the finest time
  * grain it offers from a minute up.
+ *
+ * One Azure Monitor call reads one grain, so each grain finer than an hour
+ * is a call of its own for every resource, each read. A type's metrics are
+ * read at one such grain - a minute for almost every type - and a metric
+ * whose finest grain is five minutes is read only where it is marked as
+ * earning the call it takes (AzureKeyMetric.grain): every 15 minutes, three
+ * points a call, a third of a call a resource for each five minutes.
  */
+
+/*
+ * The grain a key metric is marked with when Azure Monitor keeps it at five
+ * minutes at its finest, and how often it is read: the read asks for the
+ * last 15 minutes of it once they are all there, so each call brings three
+ * points (AzureCloudConnector).
+ */
+export const AZURE_FIVE_MINUTE_GRAIN: string = "PT5M";
+export const AZURE_FIVE_MINUTE_READ_MINUTES: number = 15;
+
+/*
+ * The grain a key metric is marked with when Azure Monitor keeps it at an
+ * hour at its finest (#9982): a Storage account's used capacity, a Cosmos
+ * DB account's availability, a DNS zone's queries, a registry's storage.
+ * It is read as it always was, in its hour's call once an hour (no call is
+ * added), and its reading is kept between those reads
+ * (AZURE_HOURLY_READING_HOLD_MS, CloudResourceHealth), where every other
+ * read would leave it out.
+ */
+export const AZURE_HOURLY_GRAIN: string = "PT1H";
 
 export interface AzureKeyMetric {
   // Azure Monitor's name for it, "Name in REST API" in Microsoft's tables.
   name: string;
   // What it is about, for the resource's Metrics card.
   group: CloudKeyMetricGroup;
+  /*
+   * AZURE_FIVE_MINUTE_GRAIN: Azure Monitor keeps it at five minutes at its
+   * finest (an App Service app's health check, a Cosmos DB account's data
+   * usage), and it earns the call of its own that grain takes beside its
+   * type's minute metrics: read in a five-minute call every
+   * AZURE_FIVE_MINUTE_READ_MINUTES, with the type's other five-minute
+   * metrics. Where its definition offers a minute, it is read with the
+   * minute metrics, at no cost. AZURE_HOURLY_GRAIN: Azure Monitor keeps it
+   * at an hour at its finest, and it is read once an hour, as every hourly
+   * metric is; the mark says so to the readings, which keep it between its
+   * reads. Unset for every other metric, which is read at its type's one
+   * grain finer than an hour.
+   */
+  grain?: string | undefined;
+  /*
+   * Only some resources of the type report it, and this is the condition:
+   * a B-series VM's credits, a DTU database's DTUs, a function app's
+   * executions. A resource's definitions say for certain which it
+   * publishes; this says why.
+   */
+  onlyWhen?: CloudKeyMetricCondition | undefined;
+}
+
+/*
+ * A metric a type no longer reads as a key metric because its provider
+ * deprecates it, still read - in the same call as the type's others, at no
+ * cost - so a monitor someone built on it keeps reading until it is moved
+ * to what replaces it. It is no key metric: its resource's page lists it
+ * with the other metrics, never in a section or a headline.
+ */
+export interface AzureRetiredKeyMetric {
+  name: string;
+  // The key metrics of its type that replace it.
+  replacedBy: Array<string>;
 }
 
 export interface AzureTypeKeyMetrics {
   // The ARM type, as CloudResourceCatalog spells it.
   type: string;
   metrics: Array<AzureKeyMetric>;
+  // Deprecated metrics still read for the monitors built on them.
+  retired?: Array<AzureRetiredKeyMetric> | undefined;
   /*
    * The dimension every metric of the type is split by, one series per
    * value, in the same one call: a Service Bus or Event Hubs namespace's
@@ -708,6 +1328,16 @@ function azure(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
   return { name, group };
 }
 
+// A metric Azure Monitor keeps at five minutes at its finest, read every 15 minutes.
+function azure5(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
+  return { name, group, grain: AZURE_FIVE_MINUTE_GRAIN };
+}
+
+// A metric Azure Monitor keeps at an hour at its finest, read once an hour.
+function azure60(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
+  return { name, group, grain: AZURE_HOURLY_GRAIN };
+}
+
 /*
  * Microsoft's tables marked a virtual machine's network totals "DS Export:
  * No" until 2026 and mark them Yes now. They stay marked here: a stream
@@ -731,7 +1361,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Disk Read Bytes", G.Storage),
       azure("Disk Write Bytes", G.Storage),
       azure("VmAvailabilityMetric", G.Availability),
-      azure("CPU Credits Remaining", G.Compute),
+      // A burstable (B-series) VM's own.
+      when(C.Burstable, azure("CPU Credits Remaining", G.Compute)),
       azure("Available Memory Percentage", G.Memory),
       azure("Disk Read Operations/Sec", G.Storage),
       azure("Disk Write Operations/Sec", G.Storage),
@@ -752,7 +1383,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Network In Total", G.Network),
       azure("Network Out Total", G.Network),
       azure("VmAvailabilityMetric", G.Availability),
-      azure("CPU Credits Remaining", G.Compute),
+      // A burstable (B-series) VM's own.
+      when(C.Burstable, azure("CPU Credits Remaining", G.Compute)),
       azure("Available Memory Percentage", G.Memory),
       azure("Disk Read Bytes", G.Storage),
       azure("Disk Write Bytes", G.Storage),
@@ -789,9 +1421,16 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Http5xx", G.Errors),
       azure("Http4xx", G.Errors),
       azure("HttpResponseTime", G.Latency),
+      /*
+       * Its Health check, where one is set: its instances' status, which
+       * reads a failure once an instance is deemed unhealthy. Kept at five
+       * minutes at its finest.
+       */
+      when(C.Setup, azure5("HealthCheckStatus", G.Availability)),
       azure("CpuTime", G.Compute),
       azure("MemoryWorkingSet", G.Memory),
-      azure("FunctionExecutionCount", G.Traffic),
+      // A function app's own.
+      when(C.Kind, azure("FunctionExecutionCount", G.Traffic)),
       azure("Http2xx", G.Traffic),
       azure("RequestsInApplicationQueue", G.Backlog),
       azure("PrivateBytes", G.Memory),
@@ -800,7 +1439,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("AppConnections", G.Connections),
       azure("BytesReceived", G.Network),
       azure("BytesSent", G.Network),
-      azure("FunctionExecutionUnits", G.Compute),
+      when(C.Kind, azure("FunctionExecutionUnits", G.Compute)),
       azure("FileSystemUsage", G.Storage),
     ],
   },
@@ -839,7 +1478,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     type: "Microsoft.Sql/servers/databases",
     metrics: [
       azure("cpu_percent", G.Compute),
-      azure("dtu_consumption_percent", G.Compute),
+      // A database or pool on the DTU purchasing model's own.
+      when(C.Tier, azure("dtu_consumption_percent", G.Compute)),
       azure("storage_percent", G.Storage),
       azure("connection_failed", G.Connections),
       azure("deadlock", G.Errors),
@@ -859,9 +1499,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     type: "Microsoft.Sql/servers/elasticpools",
     metrics: [
       azure("cpu_percent", G.Compute),
-      azure("eDTU_used", G.Compute),
+      when(C.Tier, azure("eDTU_used", G.Compute)),
       azure("storage_percent", G.Storage),
-      azure("dtu_consumption_percent", G.Compute),
+      // A database or pool on the DTU purchasing model's own.
+      when(C.Tier, azure("dtu_consumption_percent", G.Compute)),
       azure("workers_percent", G.Compute),
       azure("sessions_percent", G.Connections),
       azure("log_write_percent", G.Storage),
@@ -891,7 +1532,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("active_connections", G.Connections),
       azure("connections_failed", G.Connections),
       azure("is_db_alive", G.Availability),
-      azure("cpu_credits_remaining", G.Compute),
+      // A burstable server's own.
+      when(C.Burstable, azure("cpu_credits_remaining", G.Compute)),
       azure("storage_used", G.Storage),
       azure("txlogs_storage_used", G.Storage),
       azure("disk_iops_consumed_percentage", G.Storage),
@@ -902,7 +1544,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("maximum_used_transactionIDs", G.Storage),
       azure("network_bytes_ingress", G.Network),
       azure("network_bytes_egress", G.Network),
-      azure("physical_replication_delay_in_seconds", G.Replication),
+      when(
+        C.Replica,
+        azure("physical_replication_delay_in_seconds", G.Replication),
+      ),
     ],
   },
   {
@@ -922,7 +1567,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("lock_deadlocks", G.Errors),
       azure("network_bytes_ingress", G.Network),
       azure("network_bytes_egress", G.Network),
-      azure("replication_lag", G.Replication),
+      when(C.Replica, azure("replication_lag", G.Replication)),
     ],
   },
   {
@@ -931,23 +1576,44 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("TotalRequests", G.Traffic),
       azure("TotalRequestUnits", G.Traffic),
       azure("NormalizedRUConsumption", G.Compute),
-      azure("ServerSideLatency", G.Latency),
-      azure("ServerSideLatencyGateway", G.Latency),
-      azure("ServerSideLatencyDirect", G.Latency),
+      /*
+       * The server's latency, by how a client connects: direct (the API
+       * for NoSQL's and Table's SDKs in direct mode), else through the
+       * gateway (every API, MongoDB, Cassandra and Gremlin's always).
+       */
+      when(C.Kind, azure("ServerSideLatencyDirect", G.Latency)),
+      when(C.Kind, azure("ServerSideLatencyGateway", G.Latency)),
       azure("ThrottledRequestPercentage", G.Errors),
-      azure("ReplicationLatency", G.Replication),
-      azure("ServiceAvailability", G.Availability),
+      // An account replicated to more than one region's own.
+      when(C.Setup, azure("ReplicationLatency", G.Replication)),
+      azure60("ServiceAvailability", G.Availability),
+      /*
+       * What the account stores, kept at five minutes at its finest: its
+       * data, its indexes and its documents, every container's together.
+       * DataUsage, IndexUsage and DocumentCount are deprecated for these.
+       */
+      azure5("DataUsageV2", G.Storage),
+      azure5("IndexUsageV2", G.Storage),
+      azure5("DocumentCountV2", G.Storage),
     ],
+    /*
+     * ServerSideLatency, which Microsoft removes from Azure Monitor ("Please
+     * use Server Side Latency Direct and Server Side Latency Gateway to
+     * monitor the latency instead"), is read no more: the monitors built on
+     * it were moved to one of the two (#9739).
+     */
     notExportedByDiagnosticSettings: [
       "TotalRequests",
       "TotalRequestUnits",
       "NormalizedRUConsumption",
-      "ServerSideLatency",
-      "ServerSideLatencyGateway",
       "ServerSideLatencyDirect",
+      "ServerSideLatencyGateway",
       "ThrottledRequestPercentage",
       "ReplicationLatency",
       "ServiceAvailability",
+      "DataUsageV2",
+      "IndexUsageV2",
+      "DocumentCountV2",
     ],
   },
   {
@@ -968,7 +1634,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("totalkeys", G.Cache),
       azure("usedmemory", G.Memory),
       azure("LatencyP99", G.Latency),
-      azure("GeoReplicationHealthy", G.Replication),
+      when(C.Setup, azure("GeoReplicationHealthy", G.Replication)),
     ],
   },
   {
@@ -988,7 +1654,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("expiredkeys", G.Cache),
       azure("totalkeys", G.Cache),
       azure("cacheLatency", G.Latency),
-      azure("geoReplicationHealthy", G.Replication),
+      when(C.Setup, azure("geoReplicationHealthy", G.Replication)),
     ],
   },
   {
@@ -997,7 +1663,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Transactions", G.Traffic),
       azure("Availability", G.Availability),
       azure("SuccessE2ELatency", G.Latency),
-      azure("UsedCapacity", G.Storage),
+      azure60("UsedCapacity", G.Storage),
       azure("SuccessServerLatency", G.Latency),
       azure("Ingress", G.Network),
       azure("Egress", G.Network),
@@ -1144,15 +1810,16 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   },
   {
     type: "Microsoft.Network/loadBalancers",
+    // A Standard load balancer's: a Basic one publishes none.
     metrics: [
-      azure("VipAvailability", G.Availability),
-      azure("DipAvailability", G.Availability),
-      azure("ByteCount", G.Traffic),
-      azure("PacketCount", G.Traffic),
-      azure("SYNCount", G.Connections),
-      azure("SnatConnectionCount", G.Connections),
-      azure("UsedSnatPorts", G.Connections),
-      azure("AllocatedSnatPorts", G.Connections),
+      when(C.Tier, azure("VipAvailability", G.Availability)),
+      when(C.Tier, azure("DipAvailability", G.Availability)),
+      when(C.Tier, azure("ByteCount", G.Traffic)),
+      when(C.Tier, azure("PacketCount", G.Traffic)),
+      when(C.Tier, azure("SYNCount", G.Connections)),
+      when(C.Tier, azure("SnatConnectionCount", G.Connections)),
+      when(C.Tier, azure("UsedSnatPorts", G.Connections)),
+      when(C.Tier, azure("AllocatedSnatPorts", G.Connections)),
     ],
     notExportedByDiagnosticSettings: ["UsedSnatPorts", "AllocatedSnatPorts"],
   },
@@ -1169,8 +1836,9 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("CurrentConnections", G.Connections),
       azure("BytesReceived", G.Network),
       azure("BytesSent", G.Network),
-      azure("CapacityUnits", G.Compute),
-      azure("ComputeUnits", G.Compute),
+      // A v2 gateway's own.
+      when(C.Tier, azure("CapacityUnits", G.Compute)),
+      when(C.Tier, azure("ComputeUnits", G.Compute)),
     ],
     notExportedByDiagnosticSettings: [
       "ApplicationGatewayTotalTime",
@@ -1241,9 +1909,10 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("TunnelEgressBytes", G.Network),
       azure("TunnelIngressPacketDropCount", G.Errors),
       azure("TunnelEgressPacketDropCount", G.Errors),
-      azure("BgpPeerStatus", G.Availability),
-      azure("P2SConnectionCount", G.Connections),
-      azure("P2SBandwidth", G.Network),
+      // A gateway with BGP, or with point-to-site connections, set up.
+      when(C.Setup, azure("BgpPeerStatus", G.Availability)),
+      when(C.Setup, azure("P2SConnectionCount", G.Connections)),
+      when(C.Setup, azure("P2SBandwidth", G.Network)),
     ],
     notExportedByDiagnosticSettings: ["BgpPeerStatus"],
   },
@@ -1282,8 +1951,8 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
     type: "Microsoft.Network/dnszones",
     metrics: [
-      azure("QueryVolume", G.Traffic),
-      azure("RecordSetCapacityUtilization", G.Storage),
+      azure60("QueryVolume", G.Traffic),
+      azure60("RecordSetCapacityUtilization", G.Storage),
     ],
     notExportedByDiagnosticSettings: [
       "QueryVolume",
@@ -1328,12 +1997,13 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("Ratelimit", G.Errors),
       azure("DataIn", G.Network),
       azure("DataOut", G.Network),
-      azure("AzureOpenAIRequests", G.Traffic),
-      azure("AzureOpenAIAvailabilityRate", G.Availability),
-      azure("AzureOpenAITimeToResponse", G.Latency),
-      azure("ProcessedPromptTokens", G.Traffic),
-      azure("GeneratedTokens", G.Traffic),
-      azure("TokenTransaction", G.Traffic),
+      // An Azure OpenAI account's own.
+      when(C.Kind, azure("AzureOpenAIRequests", G.Traffic)),
+      when(C.Kind, azure("AzureOpenAIAvailabilityRate", G.Availability)),
+      when(C.Kind, azure("AzureOpenAITimeToResponse", G.Latency)),
+      when(C.Kind, azure("ProcessedPromptTokens", G.Traffic)),
+      when(C.Kind, azure("GeneratedTokens", G.Traffic)),
+      when(C.Kind, azure("TokenTransaction", G.Traffic)),
     ],
     notExportedByDiagnosticSettings: ["AzureOpenAIAvailabilityRate"],
   },
@@ -1342,7 +2012,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     metrics: [
       azure("TotalPullCount", G.Traffic),
       azure("TotalPushCount", G.Traffic),
-      azure("StorageUsed", G.Storage),
+      azure60("StorageUsed", G.Storage),
       azure("SuccessfulPullCount", G.Traffic),
       azure("SuccessfulPushCount", G.Traffic),
     ],
@@ -1451,8 +2121,12 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
       azure("exceptions/count", G.Errors),
       azure("dependencies/failed", G.Errors),
       azure("dependencies/duration", G.Latency),
-      azure("availabilityResults/availabilityPercentage", G.Availability),
-      azure("pageViews/count", G.Traffic),
+      // An availability test's, and the browser SDK's page views.
+      when(
+        C.Setup,
+        azure("availabilityResults/availabilityPercentage", G.Availability),
+      ),
+      when(C.Setup, azure("pageViews/count", G.Traffic)),
     ],
     notExportedByDiagnosticSettings: [
       "requests/count",
@@ -1503,6 +2177,59 @@ export function getAzureKeyMetricNames(type: string): Array<string> {
     (metric: AzureKeyMetric): string => {
       return metric.name;
     },
+  );
+}
+
+/*
+ * Every metric a read asks of a resource of the type, in order: its key
+ * metrics, then the deprecated ones it still reads for the monitors built
+ * on them (AzureTypeKeyMetrics.retired).
+ */
+export function getAzureReadMetricNames(
+  keyMetrics: AzureTypeKeyMetrics,
+): Array<string> {
+  return [
+    ...keyMetrics.metrics.map((metric: AzureKeyMetric): string => {
+      return metric.name;
+    }),
+    ...(keyMetrics.retired || []).map(
+      (metric: AzureRetiredKeyMetric): string => {
+        return metric.name;
+      },
+    ),
+  ];
+}
+
+/*
+ * Whether a key metric of the type is marked as read at five minutes
+ * (AzureKeyMetric.grain), whatever the case of its name.
+ */
+export function isAzureFiveMinuteKeyMetric(
+  type: string,
+  metricName: string,
+): boolean {
+  const wanted: string = (metricName || "").trim().toLowerCase();
+
+  return Boolean(
+    getAzureKeyMetrics(type || "")?.metrics.some(
+      (metric: AzureKeyMetric): boolean => {
+        return (
+          metric.grain === AZURE_FIVE_MINUTE_GRAIN &&
+          metric.name.toLowerCase() === wanted
+        );
+      },
+    ),
+  );
+}
+
+// Whether a type has a key metric read at five minutes: a call of its own.
+export function hasAzureFiveMinuteKeyMetrics(type: string): boolean {
+  return Boolean(
+    getAzureKeyMetrics(type || "")?.metrics.some(
+      (metric: AzureKeyMetric): boolean => {
+        return metric.grain === AZURE_FIVE_MINUTE_GRAIN;
+      },
+    ),
   );
 }
 
@@ -1685,13 +2412,35 @@ export function isAzureStreamedKeyMetricStoredName(
  * A metric type two resource types report (a Cloud Run container's CPU,
  * for a revision and a job) is listed under each and read once: the one
  * call answers both, and each series is filed on its own resource.
+ *
+ * A distribution is read as one of its percentiles, or as how many values
+ * it holds (GcpKeyMetric.readAs: a topic's messages are the count of its
+ * message sizes), which is stored under a name of its own
+ * (getGcpStoredMetricName). A VM's memory and disk use come from the Ops
+ * Agent running on it, not from Google Cloud: those are asked of a project
+ * only while one of its VMs reports them (GcpKeyMetric.reportedBy).
  */
 
 export type GcpAligner =
   | "ALIGN_MEAN"
   | "ALIGN_MAX"
   | "ALIGN_RATE"
-  | "ALIGN_PERCENTILE_95";
+  | "ALIGN_SUM"
+  | "ALIGN_PERCENTILE_95"
+  // A true-or-false gauge's share of true: only a metric someone added (CloudAddedMetrics).
+  | "ALIGN_FRACTION_TRUE";
+
+/*
+ * Who reports a metric when Google Cloud does not itself: the Ops Agent,
+ * installed on a Compute Engine VM, which publishes what the hypervisor
+ * cannot see - how full the VM's memory and disks are - under
+ * agent.googleapis.com.
+ */
+export const GCP_OPS_AGENT: string = "ops-agent";
+
+// Google's instructions for installing the Ops Agent on a VM.
+export const GCP_OPS_AGENT_INSTALL_URL: string =
+  "https://docs.cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/installation";
 
 export interface GcpKeyMetric {
   metricType: string;
@@ -1700,12 +2449,50 @@ export interface GcpKeyMetric {
   unit: string;
   // What it is about, for the resource's Metrics card.
   group: CloudKeyMetricGroup;
+  /*
+   * "count": a distribution read for how many values each period of it
+   * holds - its count, of the period's distribution its aligner (ALIGN_SUM)
+   * gives - stored as `<metric type>_count`, the way Cloud Monitoring's
+   * PromQL names a distribution's count. Unset: the aligned value itself.
+   */
+  readAs?: "count" | undefined;
+  /*
+   * Only the series whose metric labels hold these values: an Ops Agent's
+   * memory and disks in their "used" state, not their free, cached or
+   * reserved ones. Asked in the call's filter (metric.labels.<name>).
+   */
+  metricLabels?: Readonly<Record<string, string>> | undefined;
+  /*
+   * GCP_OPS_AGENT: reported by the Ops Agent on a VM, not by Google Cloud.
+   * A read asks a project for these only while one of its VMs reported one
+   * lately, and once an hour to find out whether one does now
+   * (GcpCloudConnector), so VMs without the agent cost no call a read.
+   */
+  reportedBy?: string | undefined;
+  // Only some resources of the type report it, and this is the condition.
+  onlyWhen?: CloudKeyMetricCondition | undefined;
+}
+
+/*
+ * A metric a type no longer reads as a key metric because Google
+ * deprecates it, still read - as the type's other metrics are, of the
+ * projects that have the type - so a monitor someone built on it keeps
+ * reading until it is moved to what replaces it. It is no key metric: its
+ * resource's page lists it with the other metrics, never in a section or
+ * a headline.
+ */
+export interface GcpRetiredKeyMetric {
+  metric: GcpKeyMetric;
+  // The stored name of the key metric that replaces it.
+  replacedBy: string;
 }
 
 export interface GcpTypeKeyMetrics {
   // The monitored resource type, as CloudResourceCatalog spells it.
   resourceType: string;
   metrics: Array<GcpKeyMetric>;
+  // Deprecated metrics still read for the monitors built on them.
+  retired?: Array<GcpRetiredKeyMetric> | undefined;
 }
 
 export const GCP_ALIGNMENT_PERIOD_SECONDS: number = 60;
@@ -1715,8 +2502,32 @@ function gcp(
   aligner: GcpAligner,
   unit: string,
   group: CloudKeyMetricGroup,
+  options: {
+    readAs?: "count";
+    metricLabels?: Readonly<Record<string, string>>;
+    reportedBy?: string;
+  } = {},
 ): GcpKeyMetric {
-  return { metricType, aligner, unit, group };
+  return {
+    metricType,
+    aligner,
+    unit,
+    group,
+    ...(options.readAs ? { readAs: options.readAs } : {}),
+    ...(options.metricLabels ? { metricLabels: options.metricLabels } : {}),
+    ...(options.reportedBy ? { reportedBy: options.reportedBy } : {}),
+  };
+}
+
+// Reported by the Ops Agent: a VM's own memory or disks, in their "used" state.
+function opsAgent(
+  metricType: string,
+  group: CloudKeyMetricGroup,
+): GcpKeyMetric {
+  return gcp(metricType, "ALIGN_MEAN", "%", group, {
+    metricLabels: { state: "used" },
+    reportedBy: GCP_OPS_AGENT,
+  });
 }
 
 export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
@@ -1741,12 +2552,21 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         "By/s",
         G.Network,
       ),
+      /*
+       * How full the VM's memory is, and each of its disks (a series per
+       * device): only the Ops Agent on the VM sees it.
+       */
+      opsAgent("agent.googleapis.com/memory/percent_used", G.Memory),
+      opsAgent("agent.googleapis.com/disk/percent_used", G.Storage),
       // Only an E2 instance reports it.
-      gcp(
-        "compute.googleapis.com/instance/memory/balloon/ram_used",
-        "ALIGN_MEAN",
-        "By",
-        G.Memory,
+      when(
+        C.Kind,
+        gcp(
+          "compute.googleapis.com/instance/memory/balloon/ram_used",
+          "ALIGN_MEAN",
+          "By",
+          G.Memory,
+        ),
       ),
       gcp(
         "compute.googleapis.com/instance/disk/read_bytes_count",
@@ -1844,11 +2664,14 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         G.Network,
       ),
       // Only a replica reports it.
-      gcp(
-        "cloudsql.googleapis.com/database/replication/replica_lag",
-        "ALIGN_MAX",
-        "s",
-        G.Replication,
+      when(
+        C.Replica,
+        gcp(
+          "cloudsql.googleapis.com/database/replication/replica_lag",
+          "ALIGN_MAX",
+          "s",
+          G.Replication,
+        ),
       ),
     ],
   },
@@ -2054,11 +2877,15 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         "1/s",
         G.Errors,
       ),
-      gcp(
-        "pubsub.googleapis.com/subscription/dead_letter_message_count",
-        "ALIGN_RATE",
-        "1/s",
-        G.Errors,
+      // A subscription with a dead-letter topic's own.
+      when(
+        C.Setup,
+        gcp(
+          "pubsub.googleapis.com/subscription/dead_letter_message_count",
+          "ALIGN_RATE",
+          "1/s",
+          G.Errors,
+        ),
       ),
     ],
   },
@@ -2066,15 +2893,16 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
     resourceType: "pubsub_topic",
     metrics: [
       /*
-       * Deprecated by Google for a count of topic/message_sizes, which a
-       * read cannot take yet (it reads a distribution as one percentile):
-       * kept while the topic's headline reads it (CloudResourceHealth).
+       * The messages published each minute: how many sizes the topic's
+       * message size distribution holds, as Google says to count them
+       * ("Apply a count aggregator on topic/message_sizes").
        */
       gcp(
-        "pubsub.googleapis.com/topic/send_message_operation_count",
-        "ALIGN_RATE",
-        "1/s",
+        "pubsub.googleapis.com/topic/message_sizes",
+        "ALIGN_SUM",
+        "1",
         G.Traffic,
+        { readAs: "count" },
       ),
       gcp(
         "pubsub.googleapis.com/topic/send_request_count",
@@ -2089,6 +2917,11 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         G.Traffic,
       ),
     ],
+    /*
+     * topic/send_message_operation_count, which Google deprecates ("Apply a
+     * count aggregator on topic/message_sizes instead"), is read no more:
+     * the monitors built on it were moved to the count above (#9739).
+     */
   },
   {
     resourceType: "redis_instance",
@@ -2142,11 +2975,15 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
         "By/s",
         G.Network,
       ),
-      gcp(
-        "redis.googleapis.com/replication/master/slaves/lag",
-        "ALIGN_MAX",
-        "s",
-        G.Replication,
+      // A Standard Tier instance's, with its read replicas.
+      when(
+        C.Tier,
+        gcp(
+          "redis.googleapis.com/replication/master/slaves/lag",
+          "ALIGN_MAX",
+          "s",
+          G.Replication,
+        ),
       ),
     ],
   },
@@ -2370,8 +3207,89 @@ export const GCP_KEY_METRICS: ReadonlyArray<GcpTypeKeyMetrics> = [
 ];
 
 /*
- * Every metric type read, once, with the first resource type it is listed
- * under: a type two resource types report is one call.
+ * The name a Google Cloud metric is stored under, as its readings, its
+ * monitors and its resource's page know it: its metric type - or, for a
+ * distribution read for its count (GcpKeyMetric.readAs), the type and
+ * "_count": "pubsub.googleapis.com/topic/message_sizes_count", the way
+ * Cloud Monitoring's PromQL names a distribution's count.
+ */
+export function getGcpStoredMetricName(
+  metric: Pick<GcpKeyMetric, "metricType" | "readAs">,
+): string {
+  return metric.readAs === "count"
+    ? `${metric.metricType}_count`
+    : metric.metricType;
+}
+
+// A metric a read asks for, with what it is read for.
+export interface GcpReadMetric extends GcpKeyMetric {
+  // The first resource type it is listed under.
+  resourceType: string;
+  // Every resource type it is listed under, in the catalog's order.
+  resourceTypes: Array<string>;
+  // What it is stored under (getGcpStoredMetricName): one call each.
+  storedName: string;
+  // A deprecated metric read for the monitors built on it (retired).
+  isRetired: boolean;
+}
+
+/*
+ * Every metric a read may ask a project for, once by the name it is stored
+ * under - a metric type two resource types report is one call, and a
+ * distribution read both for a percentile and for its count is two - with
+ * the resource types it is listed under: the key metrics in the catalog's
+ * order, then the deprecated ones still read (GcpTypeKeyMetrics.retired).
+ */
+export function getGcpReadMetrics(): Array<GcpReadMetric> {
+  const byName: Map<string, GcpReadMetric> = new Map();
+  const add: (
+    metric: GcpKeyMetric,
+    resourceType: string,
+    isRetired: boolean,
+  ) => void = (
+    metric: GcpKeyMetric,
+    resourceType: string,
+    isRetired: boolean,
+  ): void => {
+    const storedName: string = getGcpStoredMetricName(metric);
+    const known: GcpReadMetric | undefined = byName.get(storedName);
+
+    if (known) {
+      if (!known.resourceTypes.includes(resourceType)) {
+        known.resourceTypes.push(resourceType);
+      }
+
+      return;
+    }
+
+    byName.set(storedName, {
+      ...metric,
+      resourceType,
+      resourceTypes: [resourceType],
+      storedName,
+      isRetired,
+    });
+  };
+
+  for (const entry of GCP_KEY_METRICS) {
+    for (const metric of entry.metrics) {
+      add(metric, entry.resourceType, false);
+    }
+  }
+
+  for (const entry of GCP_KEY_METRICS) {
+    for (const retired of entry.retired || []) {
+      add(retired.metric, entry.resourceType, true);
+    }
+  }
+
+  return Array.from(byName.values());
+}
+
+/*
+ * Every key metric read, once by the name it is stored under, with the
+ * first resource type it is listed under: a type two resource types report
+ * is one call.
  */
 export function getGcpKeyMetricTypes(): Array<
   GcpKeyMetric & { resourceType: string }
@@ -2381,11 +3299,13 @@ export function getGcpKeyMetricTypes(): Array<
 
   for (const entry of GCP_KEY_METRICS) {
     for (const metric of entry.metrics) {
-      if (seen.has(metric.metricType)) {
+      const storedName: string = getGcpStoredMetricName(metric);
+
+      if (seen.has(storedName)) {
         continue;
       }
 
-      seen.add(metric.metricType);
+      seen.add(storedName);
       metrics.push({ ...metric, resourceType: entry.resourceType });
     }
   }
@@ -2393,15 +3313,30 @@ export function getGcpKeyMetricTypes(): Array<
   return metrics;
 }
 
-// The resource types a metric type is listed under, in the catalog's order.
-export function getGcpResourceTypesOfMetric(metricType: string): Array<string> {
-  return GCP_KEY_METRICS.filter((entry: GcpTypeKeyMetrics): boolean => {
-    return entry.metrics.some((metric: GcpKeyMetric): boolean => {
-      return metric.metricType === metricType;
-    });
-  }).map((entry: GcpTypeKeyMetrics): string => {
-    return entry.resourceType;
-  });
+/*
+ * How many deprecated metrics a Google Cloud type is still read for, beside
+ * its key metrics (GcpTypeKeyMetrics.retired): each a time series a
+ * resource a read, which the cost estimate counts.
+ */
+export function getGcpRetiredMetricCount(resourceType: string): number {
+  return (
+    GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
+      return entry.resourceType === resourceType;
+    })?.retired?.length || 0
+  );
+}
+
+/*
+ * The resource types a metric is listed under, by the name it is stored
+ * under (a metric type, for all but a distribution's count), in the
+ * catalog's order - a deprecated one still read among them.
+ */
+export function getGcpResourceTypesOfMetric(storedName: string): Array<string> {
+  return (
+    getGcpReadMetrics().find((metric: GcpReadMetric): boolean => {
+      return metric.storedName === storedName;
+    })?.resourceTypes || []
+  );
 }
 
 // The CloudWatch namespace an AWS resource type is read from.
@@ -2420,7 +3355,9 @@ export function getAwsNamespaceOfType(type: string): string | undefined {
 
 /*
  * How many key metrics a resource type has, for the docs and the cost
- * estimate. AWS takes a CloudFormation type or a namespace.
+ * estimate. AWS takes a CloudFormation type or a namespace. A Google Cloud
+ * type's Ops Agent metrics are not counted: they are read only from a VM
+ * that runs the agent, and cost nothing where none does.
  */
 export function getKeyMetricCount(
   provider: CloudProvider,
@@ -2440,7 +3377,9 @@ export function getKeyMetricCount(
   return (
     GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
       return entry.resourceType === typeOrNamespace;
-    })?.metrics.length || 0
+    })?.metrics.filter((metric: GcpKeyMetric): boolean => {
+      return !metric.reportedBy;
+    }).length || 0
   );
 }
 
@@ -2455,13 +3394,24 @@ export function getKeyMetricCount(
 export interface CloudKeyMetricReference {
   /*
    * The cloud's own name for it: Azure Monitor's ("Percentage CPU"),
-   * CloudWatch's ("CPUUtilization"), or the Cloud Monitoring metric type.
+   * CloudWatch's ("CPUUtilization"), or the Cloud Monitoring metric type it
+   * is stored under (getGcpStoredMetricName).
    */
   name: string;
   group: CloudKeyMetricGroup;
   // Its place among its type's (or namespace's) key metrics, most telling first.
   rank: number;
+  /*
+   * The seconds between two of its points where they are further apart
+   * than the minute its cloud's other key metrics are read at: an Azure
+   * metric read at five minutes (AzureKeyMetric.grain), 300. Its resource's
+   * page says how often it comes. Unset for every other key metric.
+   */
+  intervalSeconds?: number | undefined;
 }
+
+// Azure Monitor's five-minute grain, as seconds between two points.
+const AZURE_FIVE_MINUTE_GRAIN_SECONDS: number = 300;
 
 /*
  * The CloudWatch namespace and metric of a stored CloudWatch name
@@ -2539,7 +3489,16 @@ function findAzureKeyMetric(
     return null;
   }
 
-  return { name: metrics[rank]!.name, group: metrics[rank]!.group, rank };
+  const metric: AzureKeyMetric = metrics[rank]!;
+
+  return {
+    name: metric.name,
+    group: metric.group,
+    rank,
+    ...(metric.grain === AZURE_FIVE_MINUTE_GRAIN
+      ? { intervalSeconds: AZURE_FIVE_MINUTE_GRAIN_SECONDS }
+      : {}),
+  };
 }
 
 function findGcpKeyMetric(
@@ -2553,7 +3512,7 @@ function findGcpKeyMetric(
   for (const entry of GCP_KEY_METRICS) {
     const rank: number = entry.metrics.findIndex(
       (metric: GcpKeyMetric): boolean => {
-        return metric.metricType.toLowerCase() === wanted;
+        return getGcpStoredMetricName(metric).toLowerCase() === wanted;
       },
     );
 
@@ -2562,7 +3521,7 @@ function findGcpKeyMetric(
     }
 
     const reference: CloudKeyMetricReference = {
-      name: entry.metrics[rank]!.metricType,
+      name: getGcpStoredMetricName(entry.metrics[rank]!),
       group: entry.metrics[rank]!.group,
       rank,
     };

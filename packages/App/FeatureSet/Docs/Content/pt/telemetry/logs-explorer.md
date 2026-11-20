@@ -63,7 +63,7 @@ Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip: uma
 Clique em uma linha. Os detalhes dela abrem ao lado da lista.
 :::
 
-Sua pesquisa, seus chips e o intervalo de tempo ficam no endereço da página, então uma atualização, um favorito ou um link compartilhado abre os mesmos registros.
+Sua pesquisa, seus chips e o intervalo de tempo ficam no endereço da página, então uma atualização, um favorito ou um link compartilhado abre os mesmos registros. Um link para uma única linha de log, como **Ver linha de log** em um evento de segurança, abre essa linha acima da lista, e você a lê com as suas próprias permissões. **Copiar link**, nos detalhes de uma linha, copia um link assim, com a lista de onde você o copiou abaixo dela, no mesmo intervalo de tempo.
 
 ## Ler um registro
 
@@ -170,7 +170,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ### Ver o que ele fez
 
 - **Registros → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências e **Abrir em Registros**, que abre as linhas de que ela trata, da hora em que foi encontrada, no **Visualizador**. Uma falha que não escreve nenhuma linha de log não tem linhas a abrir: **Abrir em Traços** abre os seus spans com falha em vez disso. Em um log de erro, **Criar monitor** configura um monitor de logs que conta as linhas da mensagem.
-- **Registros → IA → Atividade** lista cada investigação e cada pull request, do mais recente, com a situação de cada um. Uma investigação concluída também diz o que o OneUptime AI encontrou, como a causa de um erro fora do código, e é por isso que aquele log de erro não recebeu pull request por conta própria.
+- **Registros → IA → Atividade** lista cada investigação e cada pull request, do mais recente, com a situação de cada um. Uma investigação concluída também diz o que o OneUptime AI encontrou, como a causa de um erro fora do código, e é por isso que aquele log de erro não recebeu pull request por conta própria. Um pull request diz como a tarefa dele está agora no Code: uma correção pedida de novo com Tentar novamente depois de falhar não aparece mais como falha e mostra o pull request que ela abriu.
 - Em Código, a tarefa diz que o OneUptime a iniciou, com um link para a constatação, e o pull request diz por que foi aberto.
 
 ## O que acontece com os registros quando chegam

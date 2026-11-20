@@ -1,6 +1,7 @@
 import {
   SubscriberEmailTemplateChoice,
   SubscriberEmailTemplateChoiceReason,
+  SubscriberNotificationPreviewEvent,
   SubscriberNotificationPreviewNothingSentReason,
   SubscriberNotificationPreviewStatusPage,
 } from "Common/Types/StatusPage/SubscriberNotificationPreview";
@@ -50,15 +51,69 @@ const TEMPLATE_CHOICE_TEXT: Record<
     SubscriberNotificationPreviewCopy.defaultCustomTemplateEmpty,
 };
 
-// Why nothing will be sent.
+/*
+ * The reasons that leave the incident on no status page at all. The others
+ * do not: with 'Notify Status Page Subscribers' off, or every page that
+ * shows it sending its subscribers nothing, the pages still show it.
+ */
+const SHOWN_ON_NO_STATUS_PAGE: ReadonlyArray<SubscriberNotificationPreviewNothingSentReason> =
+  [
+    SubscriberNotificationPreviewNothingSentReason.NoMonitors,
+    SubscriberNotificationPreviewNothingSentReason.HiddenFromStatusPages,
+    SubscriberNotificationPreviewNothingSentReason.PrivateIncident,
+    SubscriberNotificationPreviewNothingSentReason.NoStatusPages,
+  ];
+
+/*
+ * Why nothing will be sent. Each reason reads the same for both events but
+ * one: with no status page showing the incident, a note is told that none
+ * shows it yet, and a declare that none will when it is declared. Neither
+ * says "will show" of later: a page that lists one of its monitors then can
+ * show it (#9684).
+ */
 export const describeNothingSent: (
   reason: SubscriberNotificationPreviewNothingSentReason,
+  event: SubscriberNotificationPreviewEvent,
   translate: TranslateFunction,
 ) => string = (
   reason: SubscriberNotificationPreviewNothingSentReason,
+  event: SubscriberNotificationPreviewEvent,
   translate: TranslateFunction,
 ): string => {
+  if (
+    reason === SubscriberNotificationPreviewNothingSentReason.NoStatusPages &&
+    event === SubscriberNotificationPreviewEvent.IncidentPublicNoteCreated
+  ) {
+    return translate(SubscriberNotificationPreviewCopy.noStatusPagesForNote);
+  }
+
   return translate(NOTHING_SENT_TEXT[reason]);
+};
+
+/*
+ * What happens to a public note on an incident no status page shows, said
+ * after why nothing will be sent: it is posted all the same, and a status
+ * page that starts showing the incident shows it too, without notifying
+ * anyone. Null for an incident being declared, which has no note, and while
+ * a page shows the incident: the note is on it as soon as it is posted.
+ */
+export const describeNoteShownLater: (
+  reason: SubscriberNotificationPreviewNothingSentReason,
+  event: SubscriberNotificationPreviewEvent,
+  translate: TranslateFunction,
+) => string | null = (
+  reason: SubscriberNotificationPreviewNothingSentReason,
+  event: SubscriberNotificationPreviewEvent,
+  translate: TranslateFunction,
+): string | null => {
+  if (
+    event !== SubscriberNotificationPreviewEvent.IncidentPublicNoteCreated ||
+    !SHOWN_ON_NO_STATUS_PAGE.includes(reason)
+  ) {
+    return null;
+  }
+
+  return translate(SubscriberNotificationPreviewCopy.noteShownLater);
 };
 
 /*

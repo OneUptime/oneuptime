@@ -25,6 +25,7 @@ import HeldPermissionsUtil, {
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
+import { WorkflowRunAs } from "../../../../Types/Workflow/WorkflowRunAs";
 import { setTestBillingEnabled } from "../../Enterprise/TestBillingFlag";
 import {
   afterEach,
@@ -50,7 +51,7 @@ import type { SpyInstance } from "jest-mock";
  *     signed in, like an API key;
  *   - it carries the project's plan on a server with billing, read through
  *     ProjectService, and nothing is read without billing;
- *   - it names the workflow, for the audit trail;
+ *   - it names the workflow, and what it ran as, for the audit trail;
  *   - each step gets a fresh object, so nothing one step hands down reaches
  *     the next.
  */
@@ -266,7 +267,8 @@ describe("the principal", () => {
    * One thing a Project Admin may do that a step is not lent: read the
    * settings that hold credentials (RelationListPermission.mayReadTable).
    * The props carry nothing to ask about instead: no person, and nobody
-   * who saved the workflow.
+   * who saved the workflow. What the step ran as is there for the audit
+   * log alone (#9766): Default, naming no one who gave it.
    */
   test("holds Project Admin, yet is lent no read of a setting that holds credentials", () => {
     const props: DatabaseCommonInteractionProps = principal();
@@ -286,8 +288,12 @@ describe("the principal", () => {
         "userType",
         "workflowId",
         "workflowName",
+        "workflowRunAsAudit",
       ].sort(),
     );
+    expect(props.workflowRunAsAudit).toEqual({
+      runAs: WorkflowRunAs.Default,
+    });
 
     for (const modelType of [
       ProjectSmtpConfig,

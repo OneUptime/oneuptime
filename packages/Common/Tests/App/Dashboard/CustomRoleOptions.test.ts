@@ -14,7 +14,11 @@ import {
   loadCustomRoles,
   loadTeamIdsGivenCustomRole,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleOptions";
-import { loadCustomRoleReach } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleReach";
+import { getRoleReachSentence } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleCopy";
+import {
+  CustomRoleReachDetails,
+  loadCustomRoleReach,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleReach";
 import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
@@ -22,6 +26,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import Workflow from "../../../Models/DatabaseModels/Workflow";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -647,6 +652,139 @@ describe("who a role reaches", () => {
 
     expect(reach.teamCount).toBe(1);
     expect(reach.apiKeyCount).toBeNull();
+  });
+});
+
+/*
+ * THE WORKFLOWS THAT RUN AS A ROLE (#9831), counted for the role's page
+ * (includeWorkflows): a change to the role changes what their steps can do
+ * at once. As far as the reader may read them, and not at all when they
+ * may read none. A Delete dialog does not ask: it lists them itself.
+ */
+describe("who a role reaches, workflows counted", () => {
+  interface CountCall {
+    modelType: unknown;
+    query: Record<string, unknown>;
+  }
+
+  // listingModelAPI, with a count of the workflows that run as the role.
+  function countingModelAPI(data: {
+    rows?: Map<unknown, Array<unknown>>;
+    workflowCount?: number;
+    refuseWorkflows?: boolean;
+    countCalls: Array<CountCall>;
+  }): typeof ModelAPI {
+    const listing: typeof ModelAPI = listingModelAPI(
+      data.rows || new Map<unknown, Array<unknown>>(),
+      [],
+    );
+
+    return {
+      getList: listing.getList,
+      count: async (call: CountCall): Promise<number> => {
+        data.countCalls.push(call);
+
+        if (data.refuseWorkflows && call.modelType === Workflow) {
+          throw new Error(
+            "You do not have permissions to read Workflow. You need one of these permissions: Project Owner, Project Admin, Read Workflow.",
+          );
+        }
+
+        return call.modelType === Workflow ? data.workflowCount || 0 : 0;
+      },
+    } as unknown as typeof ModelAPI;
+  }
+
+  test("are counted by the role and the project, archived ones included", async () => {
+    const countCalls: Array<CountCall> = [];
+
+    const reach: Awaited<ReturnType<typeof loadCustomRoleReach>> =
+      await loadCustomRoleReach({
+        customRoleId: new ObjectID(RESPONDER_ID),
+        projectId: PROJECT_ID,
+        includeWorkflows: true,
+        modelAPI: countingModelAPI({ workflowCount: 3, countCalls }),
+      });
+
+    expect(reach.workflowCount).toBe(3);
+    expect(countCalls).toHaveLength(1);
+    expect(countCalls[0]!.modelType).toBe(Workflow);
+    expect(countCalls[0]!.query["projectId"]).toBe(PROJECT_ID);
+    expect(String(countCalls[0]!.query["runAsCustomRoleId"])).toBe(
+      new ObjectID(RESPONDER_ID).toString(),
+    );
+    // Unarchived, an archived workflow runs as the role again: it counts.
+    expect(Object.keys(countCalls[0]!.query).sort()).toEqual([
+      "projectId",
+      "runAsCustomRoleId",
+    ]);
+    expect(getRoleReachSentence(ENGLISH, reach as CustomRoleReachDetails)).toBe(
+      "3 workflows run as this role. A change here changes what they can do at once.",
+    );
+  });
+
+  test("are counted beside the teams given it", async () => {
+    const reach: Awaited<ReturnType<typeof loadCustomRoleReach>> =
+      await loadCustomRoleReach({
+        customRoleId: new ObjectID(RESPONDER_ID),
+        projectId: PROJECT_ID,
+        includeWorkflows: true,
+        modelAPI: countingModelAPI({
+          rows: new Map<unknown, Array<unknown>>([
+            [
+              TeamCustomRole,
+              [given({ teamId: TEAM_ID.toString(), teamName: "Support" })],
+            ],
+          ]),
+          workflowCount: 1,
+          countCalls: [],
+        }),
+      });
+
+    expect(reach.teamCount).toBe(1);
+    expect(reach.workflowCount).toBe(1);
+    expect(getRoleReachSentence(ENGLISH, reach as CustomRoleReachDetails)).toBe(
+      "Given to 1 team (0 people), and 1 workflow runs as it. A change here changes what they can do at once.",
+    );
+  });
+
+  test("are not counted, and named nowhere, when the reader may not read the project's workflows", async () => {
+    const reach: Awaited<ReturnType<typeof loadCustomRoleReach>> =
+      await loadCustomRoleReach({
+        customRoleId: new ObjectID(RESPONDER_ID),
+        projectId: PROJECT_ID,
+        includeWorkflows: true,
+        modelAPI: countingModelAPI({
+          workflowCount: 4,
+          refuseWorkflows: true,
+          countCalls: [],
+        }),
+      });
+
+    expect(reach.workflowCount).toBeNull();
+    expect(
+      getRoleReachSentence(ENGLISH, reach as CustomRoleReachDetails),
+    ).not.toMatch(/workflow/i);
+  });
+
+  test("are not asked for unless the page asks: a Delete dialog lists them itself", async () => {
+    const countCalls: Array<CountCall> = [];
+
+    const reach: Awaited<ReturnType<typeof loadCustomRoleReach>> =
+      await loadCustomRoleReach({
+        customRoleId: new ObjectID(RESPONDER_ID),
+        projectId: PROJECT_ID,
+        modelAPI: countingModelAPI({ workflowCount: 4, countCalls }),
+      });
+
+    expect(countCalls).toEqual([]);
+    expect(reach.workflowCount).toBeUndefined();
+    expect(reach).toEqual({
+      teams: [],
+      teamCount: 0,
+      memberCount: 0,
+      apiKeyCount: 0,
+    });
   });
 });
 

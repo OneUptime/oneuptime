@@ -127,7 +127,7 @@ Tudo o que a Segurança de dados guarda é um registro da API do OneUptime, lido
 | Repositórios de dados, as linhas do tempo deles, as descobertas deles, quem pode acessá-los e cada identidade que pode | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemas, as linhas do tempo deles e fluxos de dados | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Varreduras | `/data-security-scan` |
-| Tipos de dados personalizados, configurações das verificações e regras de residência | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
+| Tipos de dados personalizados, configurações das verificações, configurações de conformidade e regras de residência | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | As configurações do projeto | `/data-security-setting` |
 | Proprietários, regras de proprietário e regras de rótulos | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
 
@@ -137,18 +137,22 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | --- | --- |
 | `/data-security/overview` | Os números da Visão geral: repositórios por sensibilidade e categoria, problemas abertos por gravidade, os problemas de maior risco e os últimos 30 dias deles |
 | `/data-security/compliance` | A pontuação e os requisitos de cada estrutura de conformidade |
+| `/data-security/resource-scope` | Os repositórios de dados de um recurso - um cluster do Kubernetes, um host do Docker ou do Podman, um banco de dados, um serviço ou um recurso de nuvem - e de qual recurso eles seguem os interruptores de conformidade |
+| `/data-security/resource-compliance` | As estruturas de conformidade de um recurso: as pontuações delas para os repositórios dele, e o que está desativado para ele |
 | `/data-security/record-of-processing` | O registro das atividades de tratamento do RGPD, uma linha para cada repositório que guarda dados pessoais |
 | `/data-store/<id>/scan-now` | **Varrer agora**: amostra o conteúdo do repositório na hora |
 | `/data-store/<id>/check-now` | **Verificar agora**: lê a configuração do repositório de novo e executa as verificações dele |
 | `/data-store-finding/<id>/scrub` | **Limpar** em uma descoberta de telemetria |
+| `/data-store-finding/<id>/drop-metric-impact` | O que **Descartar esta métrica** descartaria para uma descoberta no nome de uma métrica: quantas métricas, e os monitores e painéis que as leem |
+| `/data-store-finding/<id>/drop-metric` | **Descartar esta métrica**: uma regra de pipeline de métricas que descarta para sempre os novos pontos de dados dessas métricas do serviço. Recebe `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Explicar com IA** em um problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Corrigir com IA** em um problema |
 | `/data-store/<id>/response-actions` | Quais ações de resposta o repositório pode receber agora, e por que não |
 | `/data-store/<id>/respond` | Uma ação de resposta no repositório, como **Bloquear acesso público** ou **Ativar o versionamento**, com o problema a partir do qual foi executada |
 
-O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
+O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, configurações de conformidade, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
 
-O [servidor MCP](/docs/ai/mcp-server) tem ferramentas de criar, obter, listar, atualizar, excluir e contar para estes registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule e Data Security Setting. Um assistente de IA pode então perguntar quais repositórios guardam números de cartão, ou o que está aberto em um bucket, com as suas permissões.
+O [servidor MCP](/docs/ai/mcp-server) tem ferramentas de criar, obter, listar, atualizar, excluir e contar para estes registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule e Data Security Setting. Um assistente de IA pode então perguntar quais repositórios guardam números de cartão, ou o que está aberto em um bucket, com as suas permissões.
 
 ## Próximos passos
 

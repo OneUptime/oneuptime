@@ -32,6 +32,7 @@ import MonitorStepMetricThresholds, {
 } from "Common/Utils/Monitor/MonitorStepMetricThresholds";
 import MetricInvestigation from "../../Metrics/Investigation/MetricInvestigation";
 import { MetricInvestigationTimeKind } from "../../Metrics/Investigation/MetricInvestigationTime";
+import RetiredCloudMetricNotice from "../../Metrics/RetiredCloudMetricNotice";
 import { MetricInvestigationThreshold } from "../../Metrics/Investigation/MetricInvestigationThresholds";
 import useMetricInvestigation, {
   MetricInvestigationState,
@@ -239,9 +240,15 @@ const MonitorStepMetrics: FunctionComponent<StepMetricsProps> = (
   /*
    * A Metrics monitor limited to some services charts those services only:
    * each of its queries carries them (MonitorStepMetricQueries, issue
-   * #6266), so there is nothing to explain here any more.
+   * #6266), so there is nothing to explain here any more. A query of a
+   * metric its cloud deprecates says so, and what replaces it (#9739).
    */
-  const beforeToolbar: ReactElement | undefined = props.stepPicker;
+  const beforeToolbar: ReactElement = (
+    <>
+      {props.stepPicker}
+      <RetiredCloudMetricNotice queryConfigs={reads.queryConfigs} />
+    </>
+  );
 
   return (
     <MetricInvestigation

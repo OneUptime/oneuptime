@@ -41,7 +41,7 @@ Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Profil**. Die Seite **Üb
 
 Klicken Sie auf **Benutzer bearbeiten** und ändern Sie, was Sie brauchen:
 
-- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, bestätigen Sie die neue Adresse erneut.
+- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, sendet OneUptime einen Link an die neue Adresse, und Ihre Adresse ändert sich, sobald Sie ihn öffnen. Bis dahin melden Sie sich mit der bisherigen an, und **Änderung abbrechen** beendet die Änderung. Die eigene Adresse eines Master-Admins ändert sich sofort.
 - **Vollständiger Name**: der Name, den Ihr Team überall in OneUptime sieht.
 - **Zeitzone**: die Zeitzone, in der das Dashboard Zeiten anzeigt und liest, und die für die Zeiten in Benachrichtigungen an Sie verwendet wird.
 - **Sprache**: die Sprache des Dashboards in jedem Browser, in dem Sie sich anmelden, und Ihrer Bereitschaftsalarme. Ohne Auswahl sind Ihre Alarme auf Englisch, und das Dashboard folgt Ihrem Browser.
@@ -105,24 +105,46 @@ Der Link funktioniert einmal, 15 Minuten lang, und ein neuerer Link ersetzt ihn.
 
 ### Die Zwei-Faktor-Authentifizierung einschalten
 
-Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort oder einem per E-Mail gesendeten Link anmelden. Fügen Sie zuerst einen zweiten Schritt hinzu, und schalten Sie sie dann ein.
+Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort oder einem per E-Mail gesendeten Link anmelden. Sie wird erst eingeschaltet, wenn Ihr zweiter Schritt funktioniert, und fragt so nie nach einem Schritt, den Sie nicht haben.
 
 :::steps
-### Eine Authenticator-App hinzufügen
+### Ihren zweiten Schritt wählen
 
-Öffnen Sie **Sicherheit → Zwei-Faktor-Authentifizierung**. Fügen Sie unter **Authenticator-Apps** eine App hinzu und geben Sie ihr einen Namen. Scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben Sie den sechsstelligen Code ein, den sie zeigt, und klicken Sie auf **Verifizieren und abschließen**. Um stattdessen einen USB- oder NFC-Schlüssel zu nutzen, fügen Sie ihn unter **Sicherheitsschlüssel** hinzu.
+Öffnen Sie **Sicherheit → Zwei-Faktor-Authentifizierung** und klicken Sie auf **Zwei-Faktor-Authentifizierung aktivieren**. Wählen Sie **Authenticator-App** oder **Sicherheitsschlüssel** und klicken Sie auf **Weiter**.
+
+### Ihn einrichten
+
+Für eine Authenticator-App scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben den sechsstelligen Code ein, den sie zeigt, und klicken auf **Verifizieren und abschließen**. Einem USB- oder NFC-Schlüssel geben Sie einen Namen und folgen der Aufforderung Ihres Browsers. Danach ist die Zwei-Faktor-Authentifizierung eingeschaltet, und die Karte zeigt **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
 
 ### Ihre Backup-Codes sichern
 
 Wenn Sie zum ersten Mal eine App, einen Schlüssel oder einen Passkey hinzufügen, zeigt OneUptime **Ihre Backup-Codes**. Jeder Code meldet Sie einmal an, falls Sie Ihre App oder Ihren Schlüssel verlieren. Kopieren oder laden Sie sie herunter, setzen Sie den Haken, dass Sie sie gesichert haben, und klicken Sie auf **Fertig**.
-
-### Sie einschalten
-
-Klicken Sie oben auf der Seite auf **Zwei-Faktor-Authentifizierung aktivieren** und bestätigen Sie. Die Karte zeigt nun **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
 :::
+
+Haben Sie unter **Authenticator-Apps** schon eine App oder unter **Sicherheitsschlüssel** schon einen Schlüssel, fragt **Zwei-Faktor-Authentifizierung aktivieren** stattdessen nur nach einer Bestätigung. Solange sie eingeschaltet ist, lässt sich Ihre letzte App, Ihr letzter Schlüssel oder Passkey nicht entfernen: Fügen Sie zuerst einen weiteren hinzu oder schalten Sie die Zwei-Faktor-Authentifizierung aus. Zeigt die Karte **Einrichtung erforderlich**, ist die Zwei-Faktor-Authentifizierung eingeschaltet, aber noch nichts eingerichtet, oft weil ein Administrator sie verlangt hat: Klicken Sie auf **Einrichtung abschließen**, sonst werden Sie bei Ihrer nächsten Anmeldung dazu aufgefordert.
+
+### Die Zwei-Faktor-Authentifizierung bei der Anmeldung einrichten
+
+Verlangt ein Administrator die Zwei-Faktor-Authentifizierung und haben Sie noch nichts eingerichtet, fordert Sie Ihre nächste Anmeldung mit Passwort oder einem per E-Mail gesendeten Link auf, sie einzurichten, bevor sie Sie hineinlässt. Wählen Sie **Authenticator-App** oder **Sicherheitsschlüssel** und klicken Sie auf **Weiter**:
+
+- **Authenticator-App**: Scannen Sie den QR-Code, geben Sie den sechsstelligen Code ein, den Ihre App zeigt, und klicken Sie auf **Bestätigen und anmelden**.
+- **Sicherheitsschlüssel**: Klicken Sie auf **Sicherheitsschlüssel registrieren** und folgen Sie der Aufforderung Ihres Browsers. Berühren Sie einen USB- oder NFC-Schlüssel, oder nutzen Sie den Fingerabdruck, das Gesicht oder die Displaysperre Ihres Smartphones oder Computers.
+
+Haben Sie noch keine Backup-Codes, zeigt OneUptime sie Ihnen danach einmal, und Sie sind angemeldet. **Andere Methode wählen** führt zurück zur Auswahl. Ein Browser, der keinen Sicherheitsschlüssel registrieren kann, etwa auf einer Seite ohne HTTPS, bietet nur die Authenticator-App an.
 
 > [!TIP]
 > Gehen Ihnen die Backup-Codes aus? **Codes neu erzeugen** auf derselben Seite gibt Ihnen einen neuen Satz, und die alten Codes funktionieren sofort nicht mehr.
+
+### Wenn Ihre Organisation Ihre Anmeldung verwaltet
+
+Auf einem Server, der Single Sign-On verlangt, melden Sie sich nur über den Identitätsanbieter Ihrer Organisation an, etwa Okta oder Microsoft Entra ID, und OneUptime richtet für Sie kein Passwort, keinen Passkey und keine Zwei-Faktor-Authentifizierung ein. Das **Benutzerprofil** hat dann keinen Abschnitt **Sicherheit**, und seine **Übersicht** nennt Ihren Anbieter unter **Single Sign-On**. Ändern Sie Ihr Passwort und Ihren zweiten Schritt bei Ihrem Identitätsanbieter. Was Sie vorher eingerichtet haben, bleibt gespeichert: Es funktioniert erst wieder, wenn der Server kein Single Sign-On mehr verlangt, es sei denn, ein Serveradministrator löscht es, und dann erhalten Sie eine E-Mail. Master-Admins behalten ihre eigenen Einstellungen unter **Sicherheit**.
+
+Dasselbe gilt, wenn jedes Projekt, zu dem Sie gehören, Single Sign-On verlangt und **Anmeldung mit SSO verwalten** eingeschaltet hat. Ihr Passwort meldet Sie weiterhin bei OneUptime an, aber jedes Projekt verlangt SSO, daher richtet OneUptime für Sie kein neues Passwort, keinen neuen Passkey und keinen neuen zweiten Schritt ein:
+
+- **Ein Projekt, das das nicht tut**: Sobald Sie Mitglied eines Projekts sind oder zu einem Projekt eingeladen werden, das kein SSO verlangt oder **Anmeldung mit SSO verwalten** nicht eingeschaltet hat, kommt Ihr Abschnitt **Sicherheit** zurück. Die **Übersicht** nennt diese Projekte dann unter **Single Sign-On** als Grund dafür, dass Ihre Einstellungen bei Ihnen liegen. Verlassen Sie dieses Projekt, werden sie Ihnen wieder entzogen.
+- **Projekte mit unterschiedlichen Anbietern**: Verwalten alle Ihre Projekte die Anmeldung, jedes mit seinem eigenen Identitätsanbieter, nennt die **Übersicht** jeden Anbieter.
+- **Master-Admins** behalten immer ihre eigenen Einstellungen unter **Sicherheit**.
+- **Was Sie vorher eingerichtet haben**, bleibt gespeichert. Ein Serveradministrator kann es löschen, ebenso ein Inhaber aller Projekte, zu denen Sie gehören; Sie erhalten eine E-Mail, wenn das geschieht.
 
 ## Ihre Projekte
 
@@ -162,6 +184,14 @@ Ihr Design wird in Ihrem Browser gespeichert; stellen Sie es also in einem ander
 
 :::details Ich habe die E-Mail zur Bestätigung meiner Adresse nicht erhalten
 Wenn Sie sich erneut anmelden, wird ein neuer Link gesendet: Prüfen Sie auch Ihren Spam-Ordner. Können Sie sich nicht anmelden, nutzen Sie **Passwort vergessen?** auf der Anmeldeseite. Der Link zum Zurücksetzen bestätigt Ihre Adresse ebenfalls.
+:::
+
+:::details Die Registrierung hat mir eine E-Mail geschickt, dass ich schon ein Konto habe
+Diese Adresse hat bereits ein OneUptime-Konto, daher hat die Registrierung nichts angelegt und nichts geändert. Melden Sie sich damit an, oder nutzen Sie **Passwort vergessen?** auf der Anmeldeseite, wenn Sie Ihr Passwort nicht mehr wissen. Die Registrierungsseite sagt für jede Adresse dasselbe und verrät so niemandem, welche Adressen ein Konto haben.
+:::
+
+:::details Meine E-Mail-Adresse hat sich nicht geändert
+Ihre Adresse ändert sich erst, wenn Sie den Link öffnen, den OneUptime an die neue Adresse gesendet hat. Der Link funktioniert 24 Stunden lang: Ist er abgelaufen, ändern Sie Ihre E-Mail erneut, um einen neuen zu erhalten. Nutzt bereits ein anderes Konto diese Adresse, steht das in der E-Mail dorthin, und Ihre Adresse bleibt, wie sie ist.
 :::
 
 :::details Ich habe meine Authenticator-App verloren

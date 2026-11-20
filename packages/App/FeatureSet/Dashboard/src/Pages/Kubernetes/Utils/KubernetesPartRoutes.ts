@@ -29,6 +29,46 @@ export function getKubernetesNamespaceParam(): string | undefined {
   );
 }
 
+/*
+ * A container is named within its pod - every pod of a Deployment runs an
+ * `app` - so a link to a container's page says whose with `?pod=` and its
+ * namespace; the page reads that pod's status for the container's own
+ * (#9595).
+ */
+export const KUBERNETES_POD_QUERY_PARAM: string = "pod";
+
+// The pod the address names, if it names one.
+export function getKubernetesPodParam(): string | undefined {
+  return (
+    Navigation.getQueryStringByName(KUBERNETES_POD_QUERY_PARAM) || undefined
+  );
+}
+
+export function getKubernetesContainerRoute(
+  clusterId: ObjectID,
+  container: {
+    name: string;
+    pod?: string | undefined;
+    namespace?: string | undefined;
+  },
+): Route {
+  const route: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_CONTAINER_DETAIL] as Route,
+    {
+      modelId: clusterId,
+      subModelId: new ObjectID(container.name),
+    },
+  );
+  const query: Record<string, string> = {};
+  if (container.pod) {
+    query[KUBERNETES_POD_QUERY_PARAM] = container.pod;
+  }
+  if (container.pod && container.namespace) {
+    query[KUBERNETES_NAMESPACE_QUERY_PARAM] = container.namespace;
+  }
+  return Object.keys(query).length > 0 ? route.addQueryParams(query) : route;
+}
+
 // The kinds OneUptime has a page for, and the page.
 export const KUBERNETES_PART_PAGES: Record<string, PageMap> = {
   Pod: PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL,
@@ -50,8 +90,28 @@ export const KUBERNETES_PART_PAGES: Record<string, PageMap> = {
 
 export function getKubernetesPartRoute(
   clusterId: ObjectID,
-  part: { kind: string; name: string; namespace?: string | undefined },
+  part: {
+    kind: string;
+    name: string;
+    namespace?: string | undefined;
+    // A container's pod: a container is named within it (#9732).
+    pod?: string | undefined;
+  },
 ): Route | undefined {
+  /*
+   * A container's page only with its pod named: a link by its name alone
+   * would open the list of every pod that runs a container of that name.
+   */
+  if (part.kind === "Container") {
+    return part.name && part.pod
+      ? getKubernetesContainerRoute(clusterId, {
+          name: part.name,
+          pod: part.pod,
+          namespace: part.namespace,
+        })
+      : undefined;
+  }
+
   const page: PageMap | undefined = KUBERNETES_PART_PAGES[part.kind];
 
   if (!page || !part.name) {
@@ -81,6 +141,7 @@ export interface KubernetesPartRoutes {
     kind: string;
     name: string;
     namespace?: string | undefined;
+    pod?: string | undefined;
   }) => Route | undefined;
   getIncidentRoute: (incidentId: ObjectID) => Route;
   getAlertRoute: (alertId: ObjectID) => Route;
@@ -114,6 +175,7 @@ export function getKubernetesPartRoutes(
       kind: string;
       name: string;
       namespace?: string | undefined;
+      pod?: string | undefined;
     }): Route | undefined => {
       return getKubernetesPartRoute(clusterId, part);
     },

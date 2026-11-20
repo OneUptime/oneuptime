@@ -115,7 +115,10 @@ import OnCallRuleKind, {
   ON_CALL_RULE_KINDS,
 } from "Common/Types/NotificationRule/OnCallRuleKind";
 import TimeRange from "Common/Types/Time/TimeRange";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ModelImportExport from "Common/Utils/ModelImportExport";
 import { EVERY_MINUTE, EVERY_WEEK } from "Common/Utils/CronTime";
@@ -690,7 +693,15 @@ describe("creating a policy", () => {
     });
 
     expect(list).toContain('title: "On-Call Policies"');
-    expect(columnTitles).toEqual(["Name", "Description", "Labels", "Owners"]);
+    /*
+     * The Name column comes first, from the hook that marks a policy that
+     * shares its name with another (#9746, Components/SharedName).
+     */
+    expect(columns.indexOf("sharedNames.nameColumn,")).toBeGreaterThan(0);
+    expect(
+      readDashboardSource("Components/SharedName/UseSharedNames.tsx"),
+    ).toContain('title: "Name",');
+    expect(columnTitles).toEqual(["Description", "Labels", "Owners"]);
     expect(list).toContain(
       "...labelBulkActions,\n            ...ownerBulkActions,\n            ...archiveBulkActions,",
     );
@@ -713,7 +724,7 @@ describe("creating a policy", () => {
     }
 
     expect(english(ON_CALL_POLICIES)).toContain(
-      "The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
+      "The **On-Call Policies** list shows each policy's **Name**, **Paged First**, **Description**, **Labels** and **Owners**. **Paged First** is who the policy's first escalation rule pages: its schedules, each with who is on call in it now, its teams and its people, or **No escalation rules** or **No responders** where it pages nobody. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export",
     );
   });
 
@@ -2253,8 +2264,9 @@ describe("user overrides", () => {
       "**Global User Overrides**",
       "**On-Call Policy User Overrides**",
     ]);
+    // The global page is under Schedules since #9701.
     expect(placement).toEqual([
-      "**On-Call → Advanced → User Overrides**",
+      "**On-Call → Schedules → User Overrides**",
       "A policy's **User Overrides**",
     ]);
     expect(english(USER_OVERRIDES)).toContain(
@@ -2722,6 +2734,8 @@ describe("user overrides", () => {
       Permission.EditOnCallDutyPolicyUserOverride,
       Permission.DeleteOnCallDutyPolicyUserOverride,
       Permission.ReadOnCallDutyPolicyUserOverride,
+      // A custom permission too, never a role's: its own paragraph names it.
+      Permission.ManageTeamOnCallDutyPolicyUserOverride,
     ];
     const changers: Array<string> = roleTitles(
       override.createRecordPermissions,
@@ -2794,7 +2808,7 @@ describe("user overrides", () => {
       "A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project.",
     );
     expect(page).toContain(
-      "**Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
+      "**Add User Override**, **Edit**, **End Now** and **Delete** on **On-Call → Schedules → User Overrides** are locked and say why",
     );
     expect(
       readDashboardSource(
@@ -2803,6 +2817,81 @@ describe("user overrides", () => {
     ).toContain("[ModelAction.Update]: GLOBAL_USER_OVERRIDE_EDIT_REFUSAL,");
     expect(page).toContain(
       "an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.",
+    );
+  });
+
+  /*
+   * Issue #9733: Manage On-Call Policy User Overrides for Own Team lets
+   * people add, edit and delete the overrides of the people of the teams
+   * that give it to them, and nobody else's. It is a custom permission, not
+   * a role's; it writes overrides but does not read them; the service
+   * refuses anyone else, and an API key, in no team, reaches nobody; the
+   * pickers list those teams' people, and an override naming anyone else
+   * has its buttons locked.
+   */
+  it("says Manage On-Call Policy User Overrides for Own Team reaches only the people of the teams given it, as the service and the pages hold it", () => {
+    const override: OnCallDutyPolicyUserOverride =
+      new OnCallDutyPolicyUserOverride();
+    const team: Permission = Permission.ManageTeamOnCallDutyPolicyUserOverride;
+    const props: PermissionProps | undefined =
+      PermissionHelper.getAllPermissionProps().find(
+        (candidate: PermissionProps): boolean => {
+          return candidate.permission === team;
+        },
+      );
+
+    expect(props?.isAssignableToTenant).toBe(true);
+    expect(props?.isRolePermission).toBe(false);
+    expect(override.createRecordPermissions).toContain(team);
+    expect(override.updateRecordPermissions).toContain(team);
+    expect(override.deleteRecordPermissions).toContain(team);
+    expect(override.readRecordPermissions).not.toContain(team);
+    expect(override.readRecordPermissions).toContain(Permission.OnCallViewer);
+
+    const service: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+
+    expect(service).toContain(
+      "UserOverrideTeamAccess.reachesEveryone(held, modelPermissions)",
+    );
+    expect(service).toContain("USER_OVERRIDE_TEAM_NO_TEAM_REFUSAL,");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/UserOverrides/UserOverrideForm.ts",
+      ),
+    ).toContain("onlyMembersOfTeamIds: teamLimit.teamIds,");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx",
+      ),
+    ).toContain("return getUserOverrideTeamLock({");
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      `give it **${PermissionHelper.getTitle(team)}**, directly or through a custom role.`,
+    );
+    expect(page).toContain(
+      "the person who is away and the person who covers are each in one of their teams given this permission; their other teams do not count.",
+    );
+    expect(page).toContain(
+      "**Who is away?** and **Who covers?** list only those teams' people and say why, and **Edit**, **End Now** and **Delete** are locked, saying why, on an override that names anyone else.",
+    );
+    expect(page).toContain(
+      `To see the overrides, they still need **${PermissionHelper.getTitle(
+        Permission.ReadOnCallDutyPolicyUserOverride,
+      )}**, or a role that has it, such as **${PermissionHelper.getTitle(
+        Permission.OnCallViewer,
+      )}**.`,
+    );
+    expect(page).toContain(
+      "an API key, which is in no team, reaches nobody with it.",
+    );
+    expect(page).toContain(
+      `Someone who also holds **${PermissionHelper.getTitle(
+        Permission.OnCallMember,
+      )}**, or another permission that reaches everyone, is not limited by it.`,
     );
   });
 

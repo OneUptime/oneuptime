@@ -75,7 +75,27 @@ export interface AIRunAttemptEnd {
   nextAttemptAt?: string | undefined;
   // ProviderTimeout: the response timeout the provider missed, in seconds.
   timeoutInSeconds?: number | undefined;
+  /*
+   * A provider's failure (it timed out, could not be reached, or refused
+   * the request) on the global LLM provider (issue #6494): the one the
+   * server's admin sets up (LlmProvider.isGlobalLlm), which a project's
+   * members cannot change. The fix is worded for them - ask the admin, or
+   * add a provider of their own - never "raise the provider's Response
+   * Timeout" on a page where it cannot be edited. Only ever true.
+   */
+  providerIsGlobal?: boolean | undefined;
 }
+
+/*
+ * The kinds of failure that are the provider's own, whose fix is made on
+ * the provider: whether it is the project's or the global one decides who
+ * can make it (providerIsGlobal).
+ */
+export const PROVIDER_FIXED_FAILURE_KINDS: ReadonlyArray<AIRunFailureKind> = [
+  AIRunFailureKind.ProviderTimeout,
+  AIRunFailureKind.ProviderUnavailable,
+  AIRunFailureKind.ProviderRejected,
+];
 
 const ATTEMPT_OUTCOMES: ReadonlyArray<string> =
   Object.values(AIRunAttemptOutcome);
@@ -142,6 +162,10 @@ export const parseAIRunAttemptEnd: (
 
   if (timeoutInSeconds !== undefined) {
     attemptEnd.timeoutInSeconds = timeoutInSeconds;
+  }
+
+  if (json["providerIsGlobal"] === true) {
+    attemptEnd.providerIsGlobal = true;
   }
 
   if (

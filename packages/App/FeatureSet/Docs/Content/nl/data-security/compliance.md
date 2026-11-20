@@ -1,10 +1,11 @@
 # Compliance van Gegevensbeveiliging
 
-Gegevensbeveiliging scoort negen kaders op basis van wat de scans vonden. Elk kader dekt de opslagen waarover zijn regels gaan - de AVG de opslagen met persoonsgegevens, PCI DSS de opslagen waarin kaartgegevens zijn gevonden, SOC 2 elke opslag - en of aan elk van zijn eisen wordt voldaan, volgt uit de controles die er bewijs voor leveren. **Gegevensbeveiliging → Compliance** toont de score van elk kader, hoeveel opslagen het dekt, en elke eis met het aantal openstaande problemen waardoor ze faalt. Een score is bewijs voor een audit, geen certificaat: hij zegt wat OneUptime kan zien van de opslagen die het leest.
+Gegevensbeveiliging scoort negen kaders op basis van wat de scans vonden. Elk kader dekt de opslagen waarover zijn regels gaan - de AVG de opslagen met persoonsgegevens, PCI DSS de opslagen waarin kaartgegevens zijn gevonden, SOC 2 elke opslag - en of aan elk van zijn eisen wordt voldaan, volgt uit de controles die er bewijs voor leveren. **Gegevensbeveiliging → Compliance** toont de score van elk kader, hoeveel opslagen het dekt, en elke eis met het aantal openstaande problemen waardoor ze faalt. Elke resource die gegevensopslagen bevat - een Kubernetes-cluster, een Docker- of Podman-host, een database, een service of een cloud-resource - heeft een eigen pagina van dezelfde soort, waarop je kunt uitschakelen wat er niet voor geldt. Een score is bewijs voor een audit, geen certificaat: hij zegt wat OneUptime kan zien van de opslagen die het leest.
 
 :::cards
 - [De kaders](#de-kaders): De negen, en welke opslagen elk ervan dekt.
 - [Hoe een kader wordt gescoord](#hoe-een-kader-wordt-gescoord): Eisen die slagen, falen of niet zijn beoordeeld.
+- [Op de pagina van een resource](#op-de-pagina-van-een-resource): De compliance van één cluster, host, database, service of cloud-resource, en wat ervoor is uitgeschakeld.
 - [Eisen en hun controles](#eisen-en-hun-controles): Elke eis, en de controles die er bewijs voor leveren.
 - [Verwerkingsregister](#verwerkingsregister): Artikel 30 van de AVG, opgesteld uit je opslagen.
 :::
@@ -47,9 +48,35 @@ flowchart TB
 - **Een eis slaagt** als geen openstaand probleem van de controles die eraan zijn gekoppeld op een opslag binnen de reikwijdte van het kader staat, en **faalt** als dat wel zo is.
 - **Ze wordt niet beoordeeld** zolang van geen enkele opslag binnen de reikwijdte de configuratie is uitgelezen of de inhoud is gescand.
 - **Aan twee eisen voldoet Gegevensbeveiliging zelf**: artikel 30 van de AVG, het register van verwerkingsactiviteiten, en ISO 27001 A.5.12, classificatie van informatie. Ze slagen zodra elke opslag binnen de reikwijdte is gelezen of gescand, en falen zolang dat voor een opslag niet zo is.
-- **De score** is het aandeel van de beoordeelde eisen van een kader dat slaagt, als geheel percentage. Een kader waarvan niets is beoordeeld, heeft geen score.
+- **Ze is uitgeschakeld** als elke opslag binnen de reikwijdte hoort bij een resource die de eis heeft uitgeschakeld (zie [Op de pagina van een resource](#op-de-pagina-van-een-resource)).
+- **De score** is het aandeel van de beoordeelde eisen van een kader dat slaagt, als geheel percentage: een uitgeschakelde eis telt niet voor en niet tegen. Een kader waarvan niets is beoordeeld, heeft geen score.
 
 Alleen openstaande problemen tellen mee. Een probleem waarvan het risico is geaccepteerd, of dat geen probleem is, laat zijn eisen niet falen, dus een geaccepteerd risico is een beslissing die je audit op het probleem kan zien: wie het accepteerde, waarom, en tot wanneer.
+
+## Op de pagina van een resource
+
+Het menu van een resource krijgt een sectie **Beveiliging**, ingeklapt tot je die opent, zodra de resource een gegevensopslag bevat die Gegevensbeveiliging kent, in een project dat Gegevensbeveiliging gebruikt en voor wie gegevensopslagen mag lezen:
+
+| Resource | De gegevensopslagen ervan |
+| --- | --- |
+| Kubernetes-cluster | De databases die erop draaien |
+| Docker- of Podman-host | De databases die erop draaien |
+| Database | De database zelf |
+| Service | De telemetrie ervan: de logs, traces en uitzonderingen die de service verstuurt |
+| Cloud-resource | De resource zelf: een bucket, een database of een datawarehouse |
+
+- **Gegevensbeveiliging** somt die opslagen op, de riskantste eerst, en de openstaande problemen erop. Elk ervan opent in Gegevensbeveiliging, waar het wordt afgehandeld.
+- **Compliance** scoort de kaders alleen voor die opslagen. De kaders die door hun gegevens van toepassing zijn, staan bovenaan; de uitgeschakelde, en die waarvoor geen van de opslagen gegevens bevat, zijn eronder ingeklapt.
+
+Elk kader heeft een schakelaar, **Hier van toepassing**, en elk van zijn eisen ook. Schakel je er een uit, dan vallen de opslagen van de resource buiten dat kader, of buiten die eis, op de pagina van de resource en op **Gegevensbeveiliging → Compliance**, waar staat hoeveel opslagen op hun resources zijn uitgeschakeld. Schakel je hem weer in, dan tellen ze weer mee. Elke schakelaar wordt meteen opgeslagen, en elke wijziging wordt bewaard in de [Auditlogboeken](/docs/configuration/audit-logs) van het project.
+
+Schakel je er een uit, dan verschijnt eronder de vraag **Waarom is dit hier niet van toepassing?** Een reden is optioneel: schrijf een korte en kies **Reden opslaan**, of **Niet nu** om het erbij te laten. Vanaf dan staat erbij wie hem heeft uitgeschakeld en wanneer, met de reden, en met **Reden toevoegen** of **Reden bewerken** om die later te schrijven of te wijzigen. Net als de schakelaar wordt de reden bewaard in het auditlogboek.
+
+**Gegevensbeveiliging → Compliance** zegt hetzelfde voor elke resource. Een gekozen kader toont onder **Uitgeschakeld voor het hele kader** de resources die het helemaal hebben uitgeschakeld, en elke eis noemt onder haar status de resources die deze eis hebben uitgeschakeld: elk met een link naar de eigen Compliance-pagina, en met wie het uitschakelde, wanneer en waarom. Daar zet **CSV exporteren** ze in een kolom `Turned Off On`, en **JSON exporteren** in een lijst `turnedOff`.
+
+Een opslag volgt de schakelaars van één resource. Een database die op een Kubernetes-cluster draait, of op een Docker- of Podman-host, volgt die van dat cluster of die host: schakel een kader uit voor het cluster, en het staat uit voor elke database erop. De eigen Compliance-pagina van de database zegt dat en linkt ernaartoe, met de schakelaars vergrendeld.
+
+Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren kunnen kaders en eisen in- en uitschakelen, zoals ze ook een controle kunnen afstellen. Beveiligingskijkers zien wat er is uitgeschakeld, en waarom.
 
 ## Eisen en hun controles
 
@@ -162,7 +189,7 @@ Artikel 30 van de AVG vraagt je een register van je verwerkingsactiviteiten bij 
 | Bewaartermijn | Wat je in de **Bewaartermijn** van de opslag schrijft: hoe lang gegevens erin worden bewaard |
 | Kaders | De kaders waaronder de opslag door zijn gegevenstypen valt |
 
-Vul **Doel** en **Bewaartermijn** in bij de **Instellingen** van elke opslag: dat zijn de twee dingen die geen scan kan weten. Het register en de scores worden ook geleverd door de API van Gegevensbeveiliging, op `/data-security/record-of-processing` en `/data-security/compliance`, voor iedereen die gegevensopslagen mag lezen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#api-terraform-en-mcp)).
+Vul **Doel** en **Bewaartermijn** in bij de **Instellingen** van elke opslag: dat zijn de twee dingen die geen scan kan weten. Het register en de scores worden ook geleverd door de API van Gegevensbeveiliging, op `/data-security/record-of-processing`, `/data-security/compliance` en, voor één resource, `/data-security/resource-compliance`, voor iedereen die gegevensopslagen mag lezen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#api-terraform-en-mcp)).
 
 ## Volgende stappen
 

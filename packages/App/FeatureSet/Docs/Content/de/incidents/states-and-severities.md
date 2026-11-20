@@ -130,7 +130,7 @@ Ein Wechsel führt in der Liste wieder nach oben: das Wiedereröffnen durch eine
 
 Um einen versehentlich gesetzten Status zu korrigieren, löschen Sie seine Zeile auf der Seite mit der Statuszeitachse des Datensatzes (siehe [Die Statuszeitachse](#die-statuszeitachse)). Der Datensatz kehrt in den Status seiner letzten verbleibenden Zeile zurück; löschen Sie bei einer Episode die Zeile, mit der sie behoben wurde, ist sie wieder offen, und ihr Behebungszeitpunkt wird geleert.
 
-Über die API und Terraform ist die Reihenfolge die Spalte `order`: Kleinere Zahlen kommen zuerst. Ein ohne Zahl angelegter Status kommt direkt über den behobenen Status; einer, der mit einer Zahl angelegt oder aktualisiert wird, nimmt diesen Platz ein, und die Status im Weg rücken eine Stufe nach unten. Zahlen, die sonst niemand hat, bleiben wie geschrieben, sodass ein von Terraform verwalteter Status die Zahl zurückliest, die er bekommen hat.
+Über die API und Terraform ist die Reihenfolge die Spalte `order`: Kleinere Zahlen kommen zuerst. Ein ohne Zahl angelegter Status kommt direkt über den behobenen Status. Eine Zahl, die Sie schreiben, bleibt wie geschrieben und verschiebt keinen anderen Status, sodass ein von Terraform verwalteter Status die Zahl zurückliest, die er bekommen hat; von zwei Status mit derselben Zahl wird der ältere zuerst angezeigt. Die eingebauten Status behalten trotzdem ihre Reihenfolge: Ein Schreibvorgang, der zwei von ihnen auf dieselbe Zahl oder aus der Reihenfolge brächte, wird abgelehnt.
 
 ## Die vorangelegten Schweregrade
 
@@ -178,9 +178,9 @@ Es gibt fünf Wege, auf denen ein Vorfall seinen Status ändert:
 
 | Weg                 | Wo | Was gefragt wird |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Schaltflächen der Kopfzeile** | Die Kopfzeile des Vorfalls: **Bestätigen** und **Beheben**, und **Status ändern in** in ihrem Menü **⋯** | Eine kurze Bestätigung – **Vorfall bestätigen** oder **Vorfall beheben** – mit **Statusseiten-Abonnenten benachrichtigen** und, eingeklappt unter **Öffentliche Notiz hinzufügen**, der optionalen **Öffentliche Notiz** und ihrer Auswahl **Notizvorlage auswählen** (wenn das Projekt Notizvorlagen hat). |
+| **Schaltflächen der Kopfzeile** | Die Kopfzeile des Vorfalls: **Bestätigen** und **Beheben**, und **Status ändern in** in ihrem Menü **⋯** | Eine kurze Bestätigung – **Vorfall bestätigen** oder **Vorfall beheben** – mit **Statusseiten-Abonnenten benachrichtigen** und, eingeklappt unter **Öffentliche Notiz hinzufügen**, der optionalen **Öffentliche Notiz** und ihrer Auswahl **Notizvorlage auswählen** (wenn das Projekt Notizvorlagen hat). Beim Beheben ist außerdem eine optionale Grundursache unter **Grundursache hinzufügen** eingeklappt. |
 | **Statuszeitachse** | **Zustands-Zeitachse** im Seitenmenü des Vorfalls | Eine von Hand hinzugefügte Zeile mit **Vorfallstatus**, **Beginnt am** und **Statusseiten-Abonnenten benachrichtigen**. |
-| **Listenzeile** | Das Menü **⋯** in der Zeile eines Vorfalls in der Vorfallliste: **Bestätigen**, **Beheben** und **Status ändern** | Die Bestätigung aus dem Kopfbereich, mit dem Namen des Vorfalls. Ein Vorfall, den eine andere Änderung inzwischen weiterbewegt hat, bleibt unverändert, und der Dialog sagt, warum. |
+| **Listenzeile** | Das Menü **⋯** in der Zeile eines Vorfalls in der Vorfallliste: **Bestätigen**, **Beheben** und **Status ändern** | Die Bestätigung aus dem Kopfbereich, mit dem Namen des Vorfalls. Ein Vorfall, den eine andere Änderung inzwischen weiterbewegt hat, bleibt unverändert, und der Dialog sagt, warum. Nach der Grundursache fragt sie nicht. |
 | **Massenänderung**  | **Bestätigen**, **Beheben** oder **Status ändern** für eine Auswahl in der Vorfallliste | Eine Seite mit dem Status, **Statusseiten-Abonnenten benachrichtigen** und demselben eingeklappten **Öffentliche Notiz hinzufügen**. |
 | **Automatisch**     | Ein Monitorkriterium oder Ihr eigener Code | Ein Kriterium mit eingeschaltetem **Vorfall automatisch beheben** behebt seinen Vorfall, wenn das Kriterium nicht mehr erfüllt ist. Die API ändert den Status, indem sie eine Zeile unter `/api/incident-state-timeline` anlegt. |
 
@@ -208,6 +208,12 @@ Ein Vorfall wird behoben, wenn er von einem Status über Ihrem behobenen Status 
 - **Markiert das SLA als behoben** und entwirft, wenn KI-Postmortem-Entwürfe von OneUptime eingeschaltet sind, ein Postmortem.
 
 Von **Behoben** in einen Status danach zu wechseln – etwa **Closed** – ist kein zweites Beheben: Nichts davon läuft erneut, und kein neues SLA beginnt. Ein Vorfall, der gemeldet wurde, bevor OneUptime dies aufzeichnete, gibt seine Monitore wie bisher beim nächsten Beheben frei.
+
+## Die Grundursache beim Beheben eintragen
+
+Wird der Vorfall über seine Kopfzeile behoben, mit **Beheben** oder mit **Status ändern in** einen behobenen Status, klappt die Bestätigung eine optionale **Grundursache** unter **Grundursache hinzufügen** ein: warum es dazu kam. Was Sie dort schreiben, wird die Grundursache des Vorfalls, als hätten Sie es auf seiner Seite **Grundursache** eingetragen, und die Untersuchung des Vorfalls durch OneUptime AI wird daran bewertet (siehe [Wie gut OneUptime AI abschneidet](/docs/ai/ai-sre#wie-gut-oneuptime-ai-abschneidet)). Bleibt das Feld leer, wird der Vorfall wie bisher behoben und behält seine Grundursache.
+
+Sie einzutragen braucht die Berechtigung, den Vorfall zu bearbeiten, getrennt von der Berechtigung, seinen Status zu ändern: Wer sie nicht hat, bekommt **Grundursache hinzufügen** nicht angeboten, und ein Statuswechsel, den er mit einer Grundursache sendet, wird ganz abgelehnt, sodass der Vorfall seinen Status behält. Über die API senden Sie sie mit der Zeile, die Sie unter `/api/incident-state-timeline` anlegen, als `writtenRootCause` in `miscDataProps`.
 
 ## Die Statuszeitachse
 

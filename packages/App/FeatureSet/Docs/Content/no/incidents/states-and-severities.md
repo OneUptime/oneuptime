@@ -130,7 +130,7 @@ En episode flytter bare hendelsene sine dit de kan gå. Når en episode endrer t
 
 For å rette opp en tilstand som er satt ved en feil, sletter du raden dens på siden med postens tilstandstidslinje (se [Tilstandstidslinjen](#tilstandstidslinjen)). Posten går tilbake til tilstanden i den siste gjenværende raden; en episode der du sletter raden som løste den, er åpen igjen, og løsningstidspunktet dens tømmes.
 
-Via API-et og Terraform er rekkefølgen kolonnen `order`: lavere tall kommer først. En tilstand som opprettes uten, havner rett over den løste tilstanden; en som opprettes eller oppdateres med et tall, tar den plassen, og tilstandene i veien flytter én plass ned. Tall ingen andre har, beholdes slik de er skrevet, så en tilstand som styres av Terraform, leser tilbake tallet den fikk.
+Via API-et og Terraform er rekkefølgen kolonnen `order`: lavere tall kommer først. En tilstand som opprettes uten, havner rett over den løste tilstanden. Et tall du skriver, beholdes slik det er skrevet, og flytter ingen annen tilstand, så en tilstand som styres av Terraform, leser tilbake tallet den fikk; av to tilstander med samme tall vises den eldste først. De innebygde tilstandene beholder likevel rekkefølgen sin: en skriving som ville gi to av dem samme tall eller bringe dem ut av rekkefølge, avvises.
 
 ## De forhåndsopprettede alvorlighetsgradene
 
@@ -178,9 +178,9 @@ Det er fem måter en hendelse skifter tilstand på:
 
 | Måte                | Hvor                                                                                        | Hva den spør om                                                                                                                                                                                              |
 | ------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knapper i overskriften** | Hendelsens overskrift: **Bekreft** og **Løs**, og **Endre tilstand til** i menyen **⋯** | En kort bekreftelse — **Bekreft hendelse** eller **Løs hendelse** — med **Varsle statussideabonnenter** og, brettet sammen under **Legg til et offentlig notat**, det valgfrie **Offentlig notat** med velgeren **Velg notatmal** (når prosjektet har notatmaler). |
+| **Knapper i overskriften** | Hendelsens overskrift: **Bekreft** og **Løs**, og **Endre tilstand til** i menyen **⋯** | En kort bekreftelse — **Bekreft hendelse** eller **Løs hendelse** — med **Varsle statussideabonnenter** og, brettet sammen under **Legg til et offentlig notat**, det valgfrie **Offentlig notat** med velgeren **Velg notatmal** (når prosjektet har notatmaler). En løsning folder også sammen en valgfri rotårsak under **Legg til rotårsaken**. |
 | **Tilstandstidslinje** | **Tilstandstidslinje** i hendelsens sidemeny                                             | En rad som legges til for hånd, med **Hendelsesstatus**, **Begynner den** og **Varsle statussideabonnenter**.                                                                                               |
-| **Rad i listen** | Menyen **⋯** på en hendelses rad i listen over hendelser: **Bekreft**, **Løs** og **Endre tilstand** | Bekreftelsen fra toppen, som nevner hendelsen. En hendelse som en annen endring har flyttet i mellomtiden, blir latt være, og dialogen sier hvorfor. |
+| **Rad i listen** | Menyen **⋯** på en hendelses rad i listen over hendelser: **Bekreft**, **Løs** og **Endre tilstand** | Bekreftelsen fra toppen, som nevner hendelsen. En hendelse som en annen endring har flyttet i mellomtiden, blir latt være, og dialogen sier hvorfor. Den spør ikke om rotårsaken. |
 | **Masseendring**    | **Bekreft**, **Løs** eller **Endre tilstand** på et utvalg i listen over hendelser                                     | Én side med tilstanden, **Varsle statussideabonnenter** og det samme sammenbrettede **Legg til et offentlig notat**.                                                                                        |
 | **Automatisk**      | Et monitorkriterium eller din egen kode                                                     | Et kriterium med **Løs hendelse automatisk** slått på løser hendelsen når kriteriet ikke lenger er oppfylt. API-et endrer tilstanden ved å opprette en rad på `/api/incident-state-timeline`.               |
 
@@ -208,6 +208,12 @@ En hendelse er løst når den går fra en tilstand over den løste tilstanden di
 - **Merker SLA-en som løst** og skriver, når OneUptime AIs utkast til etteranalyser er slått på, et utkast til en etteranalyse.
 
 Å gå videre fra **Løst** til en senere tilstand — **Closed** for eksempel — er ikke en ny løsning: ingenting av dette kjører igjen, og ingen ny SLA starter. En hendelse som ble erklært før OneUptime begynte å registrere dette, gir fra seg monitorene ved neste løsning, som før.
+
+## Skriv rotårsaken når du løser
+
+Når overskriften til hendelsen løser den, med **Løs** eller med **Endre tilstand til** en løst tilstand, folder bekreftelsen sammen en valgfri **Rotårsak** under **Legg til rotårsaken**: hvorfor den skjedde. Det du skriver der, blir hendelsens rotårsak, som om du hadde skrevet det på siden **Rotårsak**, og undersøkelsen til OneUptime AI av hendelsen måles mot det (se [Hvor godt OneUptime AI gjør det](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-gjør-det)). Lar du det stå tomt, løses hendelsen som før og beholder rotårsaken den har.
+
+Å skrive den krever tillatelse til å redigere hendelsen, i tillegg til tillatelsen til å endre tilstanden: den som ikke har den, får ikke tilbud om **Legg til rotårsaken**, og en tilstandsendring vedkommende sender med en rotårsak, avvises helt, så hendelsen beholder tilstanden. Via API-et sender du den med raden du oppretter på `/api/incident-state-timeline`, som `writtenRootCause` i `miscDataProps`.
 
 ## Tilstandstidslinjen
 

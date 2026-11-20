@@ -83,7 +83,7 @@ oneuptime incident list --all --fields title,currentIncidentState.name,createdAt
 
 Uma listagem pede ao OneUptime cada campo de cada registro que a chave pode ler. `--fields` pede, em vez disso, os que nomeia e, depois de um ponto, um campo de um registro relacionado, como em `currentIncidentState.name`. Uma tabela mostra seis campos; o JSON mostra todos (veja [Formatos de saída](/docs/cli/output-formats)). `--all` lê todas as páginas, 100 registros por vez, até 100.000; `count` diz quantos são.
 
-Os rótulos são listados por nome, e não dos mais recentes para os mais antigos: primeiro os rótulos cujo nome começa com um número, na ordem desse número (`2. Team` antes de `10. Owner`), depois os demais em ordem alfabética. Para listá-los em outra ordem, informe `--sort`.
+Os rótulos são listados por nome, e não dos mais recentes para os mais antigos: primeiro os rótulos cujo nome começa com um número, na ordem desse número (`2. Team` antes de `10. Owner`), depois os demais em ordem alfabética. Os registros que você ordena arrastando-os, como os estados de incidente, são listados nessa ordem. Para listá-los em outra ordem, informe `--sort`.
 
 ### Filtrar uma lista
 
@@ -206,6 +206,20 @@ Ela responde `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.
 
 > [!CAUTION]
 > `delete` remove o registro na hora. A CLI não pede confirmação, e não há como desfazer. Ela aceita `--force`, para os scripts escritos com ele, e `--force` não muda nada.
+
+### Uma função personalizada com a qual workflows são executados
+
+O OneUptime só exclui uma função personalizada com a qual workflows são executados quando a exclusão diz com o que eles são executados no lugar, e recusa a que não diz, nomeando os workflows. Diga isso com `--workflows-run-as`: `Default`, as permissões padrão, ou `CustomRole`, outra função personalizada que você poderia dar a uma equipe, com o ID dela em `--workflows-run-as-custom-role-id`. Nunca Proprietário do projeto: excluir uma função nunca amplia o que um workflow pode fazer.
+
+```bash
+# They run with the default permissions
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as Default
+
+# They run as another custom role
+oneuptime custom-role delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 --workflows-run-as CustomRole --workflows-run-as-custom-role-id 7d3b6c9e-8a0f-4b2c-8d5e-6f7a8b9c0d1e
+```
+
+Uma exclusão recusada imprime a recusa do OneUptime, que nomeia os workflows, e depois as flags com que executá-la de novo. Uma função com a qual nenhum workflow é executado não precisa de nenhuma das duas.
 
 ## Contar registros
 

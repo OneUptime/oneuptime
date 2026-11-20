@@ -2,9 +2,14 @@ import {
   ANNOUNCEMENT_ENDS_AT_KEY,
   ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
   ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
+  ANNOUNCEMENT_NOTHING_SENT,
+  ANNOUNCEMENT_NO_MONITORS,
+  ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED,
+  ANNOUNCEMENT_NOT_SHOWN,
   ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY,
   ANNOUNCEMENT_SCHEDULE_SUMMARIES,
   ANNOUNCEMENT_STARTS_AT_KEY,
+  ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
   ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM,
   ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
   ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
@@ -16,14 +21,25 @@ import {
   SCHEDULE_SECTION_TITLE,
   getAnnouncementCreateQueryParams,
   getAnnouncementEndsAtError,
+  getAnnouncementNoMonitorsSummary,
   getAnnouncementNotificationSummary,
+  getAnnouncementNotifyBoxReason,
+  getAnnouncementReachQuestion,
   getAnnouncementScheduleSection,
   getAnnouncementScheduleSectionSummary,
   getAnnouncementScheduleSummary,
+  getAnnouncementUpdateBoxReason,
+  ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
+  ANNOUNCEMENT_UPDATE_NOT_SHOWN_YET,
+  ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
   getStatusPageToReturnTo,
   readAnnouncementQueryId,
   readRecordIds,
 } from "../../FeatureSet/Dashboard/src/Components/Announcement/AnnouncementForm";
+import { AnnouncementReachResult } from "Common/Types/StatusPage/AnnouncementReach";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import { PublicNoteNothingSentReason } from "Common/Types/StatusPage/PublicNoteReach";
 import {
   CreateFromRecordKind,
   CreatedRecordKind,
@@ -349,30 +365,92 @@ describe("when the announcement shows", () => {
   });
 });
 
+/*
+ * What the server says of the status pages picked (#9775): a page picked
+ * shows announcements and sends notifications (null), the ones that show
+ * them send nothing (NotificationsOff), or none of them shows them
+ * (NoStatusPages). Undefined is not known yet.
+ */
+const NOTIFIES: AnnouncementReachResult = { nothingSentReason: null };
+const NEVER_NOTIFY: AnnouncementReachResult = {
+  nothingSentReason: PublicNoteNothingSentReason.NotificationsOff,
+};
+const HIDE_ANNOUNCEMENTS: AnnouncementReachResult = {
+  nothingSentReason: PublicNoteNothingSentReason.NoStatusPages,
+};
+
+const PICKED: Record<string, unknown> = {
+  statusPages: [STATUS_PAGE_ID, OTHER_STATUS_PAGE_ID],
+};
+
 describe("who is told, on Create", () => {
-  test("the subscribers are told unless the switch is off", () => {
-    expect(getAnnouncementNotificationSummary({})).toBe(
+  test("a page picked shows announcements and notifies: told when it starts showing", () => {
+    expect(getAnnouncementNotificationSummary(PICKED, NOTIFIES)).toBe(
       ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
     );
     expect(
-      getAnnouncementNotificationSummary({
-        [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: true,
-      }),
+      getAnnouncementNotificationSummary(
+        { ...PICKED, [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: true },
+        NOTIFIES,
+      ),
     ).toBe("Subscribers are notified when it starts showing.");
+  });
+
+  test("the pages picked never notify: why nobody is told", () => {
+    expect(getAnnouncementNotificationSummary(PICKED, NEVER_NOTIFY)).toBe(
+      "The status pages picked do not send notifications to their subscribers.",
+    );
+    expect(ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY).toBe(
+      "The status pages picked do not send notifications to their subscribers.",
+    );
+  });
+
+  test("the pages picked hide announcements: nobody is told (the line says why first)", () => {
+    expect(getAnnouncementNotificationSummary(PICKED, HIDE_ANNOUNCEMENTS)).toBe(
+      ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
+    );
+  });
+
+  test("switched off, nobody is told, whatever the pages", () => {
+    for (const reach of [NOTIFIES, NEVER_NOTIFY, HIDE_ANNOUNCEMENTS, null]) {
+      expect(
+        getAnnouncementNotificationSummary(
+          { ...PICKED, [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false },
+          reach,
+        ),
+      ).toBe("Subscribers are not notified.");
+    }
+
     expect(
       getAnnouncementNotificationSummary({
         [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false,
       }),
-    ).toBe("Subscribers are not notified.");
+    ).toBe(ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY);
+  });
+
+  test("not known yet, or not answered: no promise either way", () => {
+    expect(getAnnouncementNotificationSummary(PICKED)).toBeNull();
+    expect(getAnnouncementNotificationSummary(PICKED, null)).toBeNull();
+    expect(getAnnouncementNotificationSummary({})).toBeNull();
+  });
+
+  test("no page picked: no promise, whatever an answer for other pages said", () => {
+    for (const reach of [NOTIFIES, NEVER_NOTIFY, HIDE_ANNOUNCEMENTS]) {
+      expect(getAnnouncementNotificationSummary({}, reach)).toBeNull();
+      expect(
+        getAnnouncementNotificationSummary({ statusPages: [] }, reach),
+      ).toBeNull();
+    }
   });
 });
 
 describe("the folded schedule section", () => {
-  test("on Create, says when it shows, then who is told", () => {
+  test("pages that show and notify: when it shows, then that subscribers are told when it starts", () => {
     expect(
       getAnnouncementScheduleSectionSummary(
-        windowOf(NOW),
+        { ...windowOf(NOW), ...PICKED },
         AnnouncementFormKind.Create,
+        NOTIFIES,
       ),
     ).toEqual([
       "Shows now and stays until you end it.",
@@ -382,9 +460,11 @@ describe("the folded schedule section", () => {
       getAnnouncementScheduleSectionSummary(
         {
           ...windowOf("2026-10-04T08:00:00.000Z"),
+          ...PICKED,
           [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false,
         },
         AnnouncementFormKind.Create,
+        NOTIFIES,
       ),
     ).toEqual([
       `Shows from ${at("2026-10-04T08:00:00.000Z")} and stays until you end it.`,
@@ -392,11 +472,104 @@ describe("the folded schedule section", () => {
     ]);
     // Still says who is told while the window cannot be read.
     expect(
-      getAnnouncementScheduleSectionSummary({}, AnnouncementFormKind.Create),
+      getAnnouncementScheduleSectionSummary(
+        PICKED,
+        AnnouncementFormKind.Create,
+        NOTIFIES,
+      ),
     ).toEqual([ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY]);
   });
 
-  test("on Edit, says only when it shows: the notify switch takes no updates", () => {
+  test("pages that never notify: when it shows, then why nobody is told", () => {
+    expect(
+      getAnnouncementScheduleSectionSummary(
+        { ...windowOf(NOW), ...PICKED },
+        AnnouncementFormKind.Create,
+        NEVER_NOTIFY,
+      ),
+    ).toEqual([
+      ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded,
+      ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+    ]);
+    // Switched off, that nobody is told is all there is to say.
+    expect(
+      getAnnouncementScheduleSectionSummary(
+        {
+          ...windowOf(NOW),
+          ...PICKED,
+          [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false,
+        },
+        AnnouncementFormKind.Create,
+        NEVER_NOTIFY,
+      ),
+    ).toEqual([
+      ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded,
+      ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
+    ]);
+  });
+
+  test("pages that hide announcements: that it shows nowhere, in place of when, then that nobody is told", () => {
+    for (const notify of [true, false, undefined]) {
+      expect(
+        getAnnouncementScheduleSectionSummary(
+          {
+            ...windowOf("2026-10-04T08:00:00.000Z", "2026-10-05T08:00:00.000Z"),
+            ...PICKED,
+            [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: notify,
+          },
+          AnnouncementFormKind.Create,
+          HIDE_ANNOUNCEMENTS,
+        ),
+      ).toEqual([
+        "None of the status pages picked shows announcements.",
+        "Subscribers are not notified.",
+      ]);
+    }
+  });
+
+  test("no page picked: when it shows, and no promise that anyone is told", () => {
+    expect(
+      getAnnouncementScheduleSectionSummary(
+        windowOf(NOW),
+        AnnouncementFormKind.Create,
+      ),
+    ).toEqual([ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded]);
+
+    // An answer for pages unpicked since says nothing of none.
+    expect(
+      getAnnouncementScheduleSectionSummary(
+        { ...windowOf(NOW), statusPages: [] },
+        AnnouncementFormKind.Create,
+        HIDE_ANNOUNCEMENTS,
+      ),
+    ).toEqual([ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded]);
+    expect(
+      getAnnouncementScheduleSectionSummary(
+        {
+          ...windowOf(NOW),
+          [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false,
+        },
+        AnnouncementFormKind.Create,
+      ),
+    ).toEqual([
+      ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded,
+      ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
+    ]);
+  });
+
+  test("not known yet, or not answered: when it shows, and no promise that anyone is told", () => {
+    for (const reach of [undefined, null]) {
+      expect(
+        getAnnouncementScheduleSectionSummary(
+          { ...windowOf(NOW), ...PICKED },
+          AnnouncementFormKind.Create,
+          reach,
+        ),
+      ).toEqual([ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded]);
+    }
+  });
+
+  test("on Edit, says only when it shows - or that it shows nowhere: the notify switch takes no updates", () => {
     expect(
       getAnnouncementScheduleSectionSummary(
         { ...windowOf(NOW), [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false },
@@ -406,6 +579,24 @@ describe("the folded schedule section", () => {
     expect(
       getAnnouncementScheduleSectionSummary({}, AnnouncementFormKind.Edit),
     ).toEqual([]);
+
+    for (const reach of [NOTIFIES, NEVER_NOTIFY]) {
+      expect(
+        getAnnouncementScheduleSectionSummary(
+          { ...windowOf(NOW), ...PICKED },
+          AnnouncementFormKind.Edit,
+          reach,
+        ),
+      ).toEqual([ANNOUNCEMENT_SCHEDULE_SUMMARIES.nowUntilEnded]);
+    }
+
+    expect(
+      getAnnouncementScheduleSectionSummary(
+        { ...windowOf(NOW), ...PICKED },
+        AnnouncementFormKind.Edit,
+        HIDE_ANNOUNCEMENTS,
+      ),
+    ).toEqual([ANNOUNCEMENT_NOT_SHOWN]);
   });
 
   test("is Schedule & Notifications on Create and Schedule on Edit, always starting folded", () => {
@@ -458,6 +649,182 @@ describe("the folded schedule section", () => {
       model.getTableColumnMetadata(ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY)
         .defaultValue,
     ).toBe(true);
+  });
+});
+
+describe("under a ticked notify box", () => {
+  const CREATE_BOX: { fieldKey: string; isTickedByDefault: boolean } = {
+    fieldKey: ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY,
+    isTickedByDefault: true,
+  };
+  const UPDATE_BOX: { fieldKey: string; isTickedByDefault: boolean } = {
+    fieldKey: "notifySubscribersOfUpdate",
+    isTickedByDefault: false,
+  };
+
+  test("why nobody would be told, for each reason", () => {
+    expect(
+      getAnnouncementNotifyBoxReason({
+        ...CREATE_BOX,
+        values: PICKED,
+        reach: NEVER_NOTIFY,
+      }),
+    ).toBe(ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY);
+    expect(
+      getAnnouncementNotifyBoxReason({
+        ...CREATE_BOX,
+        values: PICKED,
+        reach: HIDE_ANNOUNCEMENTS,
+      }),
+    ).toBe(ANNOUNCEMENT_NOT_SHOWN);
+    expect(ANNOUNCEMENT_NOTHING_SENT).toEqual({
+      [PublicNoteNothingSentReason.NoStatusPages]:
+        "None of the status pages picked shows announcements.",
+      [PublicNoteNothingSentReason.NotificationsOff]:
+        "The status pages picked do not send notifications to their subscribers.",
+    });
+  });
+
+  test("nothing while a page picked tells its subscribers, or while that is not known", () => {
+    for (const reach of [NOTIFIES, null, undefined]) {
+      expect(
+        getAnnouncementNotifyBoxReason({
+          ...CREATE_BOX,
+          values: PICKED,
+          reach: reach,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("nothing while the box is unticked: its description says it all", () => {
+    expect(
+      getAnnouncementNotifyBoxReason({
+        ...CREATE_BOX,
+        values: { ...PICKED, [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false },
+        reach: NEVER_NOTIFY,
+      }),
+    ).toBeNull();
+    // The Edit's box starts unticked on every edit.
+    expect(
+      getAnnouncementNotifyBoxReason({
+        ...UPDATE_BOX,
+        values: PICKED,
+        reach: NEVER_NOTIFY,
+      }),
+    ).toBeNull();
+  });
+
+  test("Create's box is ticked until it is unticked; the Edit's once it is ticked", () => {
+    expect(
+      getAnnouncementNotifyBoxReason({
+        ...CREATE_BOX,
+        values: PICKED,
+        reach: NEVER_NOTIFY,
+      }),
+    ).toBe(ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY);
+    expect(
+      getAnnouncementNotifyBoxReason({
+        ...UPDATE_BOX,
+        values: { ...PICKED, notifySubscribersOfUpdate: true },
+        reach: HIDE_ANNOUNCEMENTS,
+      }),
+    ).toBe(ANNOUNCEMENT_NOT_SHOWN);
+  });
+
+  test("nothing while no page is picked", () => {
+    expect(
+      getAnnouncementNotifyBoxReason({
+        ...CREATE_BOX,
+        values: {},
+        reach: HIDE_ANNOUNCEMENTS,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("Monitors Affected on the review, with none picked", () => {
+  test("every subscriber is told only while the line says subscribers are notified", () => {
+    expect(
+      getAnnouncementNoMonitorsSummary(
+        PICKED,
+        AnnouncementFormKind.Create,
+        NOTIFIES,
+      ),
+    ).toBe("No monitors selected. All subscribers will be notified.");
+    expect(ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED).toBe(
+      "No monitors selected. All subscribers will be notified.",
+    );
+  });
+
+  test("otherwise only that no monitor is picked: switched off, pages that tell nobody, not known, or no page", () => {
+    const cases: Array<[unknown, AnnouncementReachResult | null | undefined]> =
+      [
+        [{ ...PICKED, [ANNOUNCEMENT_NOTIFY_SUBSCRIBERS_KEY]: false }, NOTIFIES],
+        [PICKED, NEVER_NOTIFY],
+        [PICKED, HIDE_ANNOUNCEMENTS],
+        [PICKED, null],
+        [PICKED, undefined],
+        [{}, NOTIFIES],
+      ];
+
+    for (const [values, reach] of cases) {
+      expect(
+        getAnnouncementNoMonitorsSummary(
+          values,
+          AnnouncementFormKind.Create,
+          reach,
+        ),
+      ).toBe("No monitors selected.");
+    }
+
+    expect(ANNOUNCEMENT_NO_MONITORS).toBe("No monitors selected.");
+  });
+
+  test("on the Edit, which sends nothing of its own when it starts showing, only that no monitor is picked", () => {
+    expect(
+      getAnnouncementNoMonitorsSummary(
+        PICKED,
+        AnnouncementFormKind.Edit,
+        NOTIFIES,
+      ),
+    ).toBe(ANNOUNCEMENT_NO_MONITORS);
+  });
+});
+
+describe("what the server is asked about the pages picked", () => {
+  test("their ids, each once, and on an Edit the announcement's own", () => {
+    expect(
+      getAnnouncementReachQuestion({
+        values: {
+          statusPages: [
+            STATUS_PAGE_ID,
+            { _id: OTHER_STATUS_PAGE_ID },
+            STATUS_PAGE_ID,
+          ],
+        },
+      }),
+    ).toEqual({
+      statusPageIds: [STATUS_PAGE_ID, OTHER_STATUS_PAGE_ID],
+      announcementId: null,
+    });
+    expect(
+      getAnnouncementReachQuestion({
+        values: PICKED,
+        announcementId: new ObjectID(TEMPLATE_ID),
+      }),
+    ).toEqual({
+      statusPageIds: [STATUS_PAGE_ID, OTHER_STATUS_PAGE_ID],
+      announcementId: TEMPLATE_ID,
+    });
+  });
+
+  test("nothing while no page is picked: there is nothing to ask", () => {
+    expect(getAnnouncementReachQuestion({ values: {} })).toBeNull();
+    expect(
+      getAnnouncementReachQuestion({ values: { statusPages: [] } }),
+    ).toBeNull();
+    expect(getAnnouncementReachQuestion({ values: null })).toBeNull();
   });
 });
 
@@ -532,11 +899,188 @@ describe("the end's own check", () => {
   });
 });
 
+/*
+ * #9921: on the Edit, under a ticked "Notify subscribers about this
+ * update", why the update would not be sent for the announcement's own
+ * state - not shown until its start, or its own notification not gone out
+ * yet - before why the pages picked would tell nobody. That each answer is
+ * what the update job does is App/Tests/Workers/Jobs/Announcement
+ * /SendNotificationToSubscribers's.
+ */
+describe("under the Edit's ticked update box", () => {
+  const LATER: Date = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const EARLIER: Date = new Date("2026-01-01T00:00:00.000Z");
+
+  function edit(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      statusPages: [STATUS_PAGE_ID],
+      [ANNOUNCEMENT_STARTS_AT_KEY]: EARLIER,
+      [SubscriberUpdateNotification.miscDataKey]: true,
+      ...overrides,
+    };
+  }
+
+  function answer(
+    reason: AnnouncementReachResult["nothingSentReason"],
+    originalNotificationStatus?: StatusPageSubscriberNotificationStatus | null,
+  ): AnnouncementReachResult {
+    return {
+      nothingSentReason: reason,
+      ...(originalNotificationStatus !== undefined
+        ? { originalNotificationStatus: originalNotificationStatus }
+        : {}),
+    };
+  }
+
+  test("its start still to come: it is not shown until then, whatever its own notification and its pages", () => {
+    for (const status of [
+      StatusPageSubscriberNotificationStatus.Pending,
+      StatusPageSubscriberNotificationStatus.Success,
+      undefined,
+    ]) {
+      for (const reason of [
+        null,
+        PublicNoteNothingSentReason.NotificationsOff,
+      ] as Array<AnnouncementReachResult["nothingSentReason"]>) {
+        expect(
+          getAnnouncementUpdateBoxReason({
+            values: edit({ [ANNOUNCEMENT_STARTS_AT_KEY]: LATER }),
+            reach: answer(reason, status),
+          }),
+        ).toBe(
+          `This announcement is not shown on status pages until ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(LATER)}, so this update is not sent.`,
+        );
+      }
+    }
+  });
+
+  test("its own notification not gone out yet, showing already: that, before what the pages do", () => {
+    for (const reason of [
+      null,
+      PublicNoteNothingSentReason.NotificationsOff,
+      PublicNoteNothingSentReason.NoStatusPages,
+    ] as Array<AnnouncementReachResult["nothingSentReason"]>) {
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(reason, StatusPageSubscriberNotificationStatus.Pending),
+        }),
+      ).toBe(ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET);
+    }
+  });
+
+  test.each([
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.Skipped,
+    StatusPageSubscriberNotificationStatus.Failed,
+    StatusPageSubscriberNotificationStatus.InProgress,
+    null,
+  ])(
+    "its own notification %s, showing already: only what the pages do",
+    (status: StatusPageSubscriberNotificationStatus | null) => {
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(null, status),
+        }),
+      ).toBeNull();
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(PublicNoteNothingSentReason.NotificationsOff, status),
+        }),
+      ).toBe(ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY);
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit(),
+          reach: answer(PublicNoteNothingSentReason.NoStatusPages, status),
+        }),
+      ).toBe(ANNOUNCEMENT_NOT_SHOWN);
+    },
+  );
+
+  test("an announcement that has ended still gets its update: nothing is said of it", () => {
+    expect(
+      getAnnouncementUpdateBoxReason({
+        values: edit({
+          [ANNOUNCEMENT_ENDS_AT_KEY]: new Date("2026-02-01T00:00:00.000Z"),
+        }),
+        reach: answer(null, StatusPageSubscriberNotificationStatus.Success),
+      }),
+    ).toBeNull();
+  });
+
+  test("while nothing is known, only what the form holds: its start", () => {
+    expect(
+      getAnnouncementUpdateBoxReason({ values: edit(), reach: null }),
+    ).toBeNull();
+    expect(
+      getAnnouncementUpdateBoxReason({
+        values: edit({ [ANNOUNCEMENT_STARTS_AT_KEY]: LATER }),
+        reach: null,
+      }),
+    ).toContain("is not shown on status pages until");
+  });
+
+  test("nothing while the box is unticked: an Edit's box starts unticked every time", () => {
+    for (const ticked of [false, undefined, "true"]) {
+      expect(
+        getAnnouncementUpdateBoxReason({
+          values: edit({
+            [ANNOUNCEMENT_STARTS_AT_KEY]: LATER,
+            [SubscriberUpdateNotification.miscDataKey]: ticked,
+          }),
+          reach: answer(
+            PublicNoteNothingSentReason.NotificationsOff,
+            StatusPageSubscriberNotificationStatus.Pending,
+          ),
+        }),
+      ).toBeNull();
+    }
+  });
+});
+
+describe("an announcement template's notify box", () => {
+  /*
+   * As Create's switch says it: "Tell the subscribers of these status pages
+   * when the announcement starts showing." The form draws it with the
+   * template's fields (Common's AnnouncementEditAndTemplateForms).
+   */
+  test("says what ticking it asks for, as Create's switch does, and promises nothing", () => {
+    expect(ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION).toBe(
+      "Tell the subscribers of these status pages when an announcement made from this template starts showing.",
+    );
+    expect(ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION).not.toMatch(
+      /are (told|notified)/,
+    );
+  });
+
+  test("the sentence that promised it is gone from every locale", () => {
+    for (const locale of ["en", ...OTHER_LOCALES]) {
+      expect(
+        readLocale(locale)[
+          "Subscribers of these status pages are told when an announcement made from this template starts showing."
+        ],
+      ).toBe(undefined);
+    }
+  });
+});
+
 describe("every sentence of it is translated", () => {
   const SENTENCES: Array<string> = [
+    ANNOUNCEMENT_UPDATE_NOT_SHOWN_YET,
+    ANNOUNCEMENT_UPDATE_ORIGINAL_NOT_SENT_YET,
+    ANNOUNCEMENT_TEMPLATE_NOTIFY_DESCRIPTION,
     ...Object.values(ANNOUNCEMENT_SCHEDULE_SUMMARIES),
     ANNOUNCEMENT_SUBSCRIBERS_NOTIFIED_SUMMARY,
     ANNOUNCEMENT_SUBSCRIBERS_NOT_NOTIFIED_SUMMARY,
+    ANNOUNCEMENT_NOT_SHOWN,
+    ANNOUNCEMENT_STATUS_PAGES_DO_NOT_NOTIFY,
+    ANNOUNCEMENT_NO_MONITORS,
+    ANNOUNCEMENT_NO_MONITORS_ALL_NOTIFIED,
+    "No status pages selected for this announcement.",
     ANNOUNCEMENT_ENDS_BEFORE_IT_STARTS_ERROR,
     ANNOUNCEMENT_ENDS_IN_THE_PAST_ERROR,
     SCHEDULE_AND_NOTIFICATIONS_SECTION_TITLE,
@@ -576,7 +1120,7 @@ describe("every sentence of it is translated", () => {
         expect(`${sentence}: ${Boolean(translated)}`).toBe(`${sentence}: true`);
         expect(translated).not.toBe(sentence);
 
-        for (const placeholder of ["{{startsAt}}", "{{endsAt}}"]) {
+        for (const placeholder of ["{{startsAt}}", "{{endsAt}}", "{{time}}"]) {
           expect(
             `${sentence} ${placeholder}: ${translated!.includes(placeholder)}`,
           ).toBe(

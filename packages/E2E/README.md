@@ -318,6 +318,10 @@ English, German, Arabic and Persian it checks that every card, row, status and
 button reads in the page's language, that the page fits its window and reads
 right to left in Arabic and Persian, a new account's empty states (Persian,
 dark), the regenerate dialog (German) and the Arabic page on a phone (#8796).
+It also walks a new account through Enable, which sets up an authenticator app
+before turning two-factor authentication on, shows Setup needed for an account
+required to use it with nothing set up (#9666), and shows both pages to someone
+whose sign-in the server's SSO manages, with no Security section (#9688).
 See `SecurityPage/README.md`. Screenshots of each are written to
 `output/playwright/security-page-ui/` at the repository root.
 
@@ -362,6 +366,13 @@ See `SecurityPage/README.md`. Screenshots of each are written to
   settled sees only how it ends; this holds a page to never drawing an
   element at a size it then leaves (DashboardWidgetSort's "each widget is
   drawn once").
+- `Popups.ts`: `expectDrawnWhole(popup, what)` holds a tooltip, a menu or a
+  glossary definition to being drawn whole: on the page's body (the tooltip layer,
+  or the part of the page shown full screen), inside the window, and showing at
+  its four corners - where a card, a table or a scrolling panel cuts a popup off,
+  the page shows through instead. `readDrawnPopup(popup)` reads the same in one
+  frame, with the side Popper put it on; `contrastOf` and `luminanceOf` read a
+  dark popup's colours.
 - `Edition.ts`: `readFixtureEdition(request)` asks a fixture which edition it
   bundled (`/edition.json`), and `skipUnlessEnterprise(edition, reason)` skips
   an Enterprise spec where `ee/` is not checked out - or fails it where
