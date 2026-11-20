@@ -5,6 +5,8 @@ import ProjectSsoSignInConfirmationAPI from "./API/ProjectSsoSignInConfirmation"
 import SsoAPI from "./API/SSO";
 import StatusPageOidcAPI from "./API/StatusPageOIDC";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
+import DashboardOidcAPI from "./API/DashboardOIDC";
+import DashboardSsoAPI from "./API/DashboardSSO";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
 
 /*
@@ -37,6 +39,13 @@ export const SSO_ROUTERS: ReadonlyArray<SsoRouterEntry> = [
   { name: "GlobalOIDC", router: GlobalOidcAPI },
   { name: "StatusPageSSO", router: StatusPageSsoAPI },
   { name: "StatusPageOIDC", router: StatusPageOidcAPI },
+  /*
+   * A dashboard's public link, for the people who sign in to it (#10250):
+   * its SAML ACS URL (/dashboard-idp-login/...) and OIDC redirect URI
+   * (/dashboard-oidc-callback/...) are pasted into identity providers too.
+   */
+  { name: "DashboardSSO", router: DashboardSsoAPI },
+  { name: "DashboardOIDC", router: DashboardOidcAPI },
   /*
    * Not configured in any identity provider: the page a project-SSO
    * confirmation email links to (only the hosted service sends that email).

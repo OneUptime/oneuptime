@@ -26,6 +26,7 @@ import {
   isDashboardMasterPasswordRequired,
 } from "../../Types/Dashboard/DashboardAccess";
 import {
+  PUBLIC_DASHBOARD_ACCESS_SELECT,
   PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
   PUBLIC_DASHBOARD_DEFAULT_TITLE,
   PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE,
@@ -519,6 +520,8 @@ export default class DashboardAPI extends BaseAPI<
      *                            theme
      *   ... and a password       the title and the theme (its password
      *                            prompt shows them)
+     *   only people who sign in  the title and the theme (its sign-in page
+     *                            shows them)
      *   an IP allowlist          the generic title and description: a
      *                            visitor outside the list sees nothing of the
      *                            dashboard, but the link still answers, so
@@ -785,6 +788,8 @@ export default class DashboardAPI extends BaseAPI<
      *   Granted           the whole answer
      *   PasswordRequired  only what the password prompt shows: the name, the
      *                     page title, the favicon and the theme
+     *   SignInRequired    only what the sign-in page shows: the same - and
+     *                     nothing of who may sign in (#10250)
      *   Forbidden         403, the IP allowlist's refusal
      *   NotFound          404 "Dashboard not found", word for word what an id
      *                     no dashboard has gets: a dashboard shared only with
@@ -852,6 +857,19 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
+          /*
+           * Who is signed in, once a private user is (#10250): their
+           * address, from their own row, for the page's Sign Out - and
+           * nothing for anybody else.
+           */
+          const signedInAs: string | null =
+            isUnlocked && access.isSignInRequired
+              ? await DashboardService.getSignedInPrivateUserEmail({
+                  dashboardId,
+                  req,
+                })
+              : null;
+
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
@@ -863,6 +881,12 @@ export default class DashboardAPI extends BaseAPI<
              * once this visitor has entered it.
              */
             enableMasterPassword: access.isMasterPasswordRequired,
+            /*
+             * Whether it asks its visitors to sign in instead, by the same
+             * rule - still true once this visitor has - and who has.
+             */
+            requireSignIn: access.isSignInRequired,
+            signedInAs: signedInAs,
             pageTitle: dashboard.pageTitle || "",
             // Its images only when they are files of its own project.
             faviconFile: DashboardAPI.getFileAsBase64JSONObject(
@@ -1767,14 +1791,13 @@ export default class DashboardAPI extends BaseAPI<
             await DashboardService.findOneById({
               id: dashboardId,
               select: {
-                _id: true,
-                projectId: true,
-                enableMasterPassword: true,
-                masterPassword: true,
+                /*
+                 * Everything the link's decision reads - whether it asks its
+                 * visitors to sign in too (#10250), so a dashboard that does
+                 * is never read as one the password opens.
+                 */
+                ...PUBLIC_DASHBOARD_ACCESS_SELECT,
                 masterPasswordSalt: true,
-                isPublicDashboard: true,
-                isArchived: true,
-                ipWhitelist: true,
               },
               props: {
                 isRoot: true,
@@ -1803,11 +1826,15 @@ export default class DashboardAPI extends BaseAPI<
             throw access.error;
           }
 
-          // Who can view it, by the rule the Sharing page shows and writes.
+          /*
+           * Who can view it, by the rule the Sharing page shows and writes: a
+           * dashboard that asks its visitors to sign in takes no password.
+           */
           const accessState: DashboardAccessState = {
             isPublicDashboard: dashboard.isPublicDashboard,
             enableMasterPassword: dashboard.enableMasterPassword,
             hasMasterPassword: Boolean(dashboard.masterPassword),
+            requireSignIn: dashboard.requireSignIn,
           };
 
           if (

@@ -89,6 +89,15 @@ enum EmailTemplateType {
    */
   StatusPagePrivateUserEmailAddressChanged = "StatusPagePrivateUserEmailAddressChanged.hbs",
   StatusPageWelcomeEmail = "StatusPageWelcomeEmail.hbs",
+  /*
+   * A private user of a dashboard's public link (#10250), or a form's: the
+   * invitation that sets their first password, a password reset link, and
+   * word that their password was changed. Named for the resource only, so
+   * one template serves every kind (Server/Services/PrivateUserServiceBase).
+   */
+  PrivateUserInvitation = "PrivateUserInvitation.hbs",
+  PrivateUserForgotPassword = "PrivateUserForgotPassword.hbs",
+  PrivateUserPasswordChanged = "PrivateUserPasswordChanged.hbs",
   SubscriberScheduledMaintenanceEventNoteCreated = "SubscriberScheduledMaintenanceEventNoteCreated.hbs",
   SubscriberScheduledMaintenanceEventNoteUpdated = "SubscriberScheduledMaintenanceEventNoteUpdated.hbs",
   SMTPTest = "SMTPTest.hbs",

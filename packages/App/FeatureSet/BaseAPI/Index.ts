@@ -1433,6 +1433,18 @@ import StatusPageSSOService, {
 import StatusPageOIDCService, {
   Service as StatusPageOIDCServiceType,
 } from "Common/Server/Services/StatusPageOidcService";
+import DashboardPrivateUserService, {
+  Service as DashboardPrivateUserServiceType,
+} from "Common/Server/Services/DashboardPrivateUserService";
+import DashboardSSOService, {
+  Service as DashboardSSOServiceType,
+} from "Common/Server/Services/DashboardSsoService";
+import DashboardOIDCService, {
+  Service as DashboardOIDCServiceType,
+} from "Common/Server/Services/DashboardOidcService";
+import DashboardPrivateUser from "Common/Models/DatabaseModels/DashboardPrivateUser";
+import DashboardSSO from "Common/Models/DatabaseModels/DashboardSso";
+import DashboardOIDC from "Common/Models/DatabaseModels/DashboardOidc";
 import TeamMemberAPI from "Common/Server/API/TeamMemberAPI";
 import TeamMemberCustomFieldService, {
   Service as TeamMemberCustomFieldServiceType,
@@ -7168,6 +7180,34 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new DashboardDomainAPI().getRouter(),
+    );
+
+    /*
+     * Who signs in to a dashboard's public link when it asks its visitors
+     * to (#10250): its private users, and its SAML and OIDC single sign-on.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardPrivateUser, DashboardPrivateUserServiceType>(
+        DashboardPrivateUser,
+        DashboardPrivateUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardSSO, DashboardSSOServiceType>(
+        DashboardSSO,
+        DashboardSSOService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardOIDC, DashboardOIDCServiceType>(
+        DashboardOIDC,
+        DashboardOIDCService,
+      ).getRouter(),
     );
 
     app.use(
