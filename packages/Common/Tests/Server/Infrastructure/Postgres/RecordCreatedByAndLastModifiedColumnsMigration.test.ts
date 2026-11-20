@@ -1,16 +1,17 @@
 import { describe, expect, test } from "@jest/globals";
-import { QueryRunner } from "typeorm";
+import { getMetadataArgsStorage, QueryRunner } from "typeorm";
+import { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddGuidedSetupRun1809187025300 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187025300-AddGuidedSetupRun";
 import {
-  AddRecordCreatedByAndLastModifiedColumns1809187100000,
+  AddRecordCreatedByAndLastModifiedColumns1809187200000,
   getAddRecordActorColumnsStatement,
   getDropRecordActorColumnsStatement,
   RECORD_ACTOR_COLUMN_DEFINITIONS,
   RECORD_ACTOR_TABLES,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187100000-AddRecordCreatedByAndLastModifiedColumns";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187200000-AddRecordCreatedByAndLastModifiedColumns";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import {
   LAST_MODIFIED_BY_USER_COLUMN,
@@ -64,11 +65,19 @@ function recordQueries(altered: Array<string> = []): Recorded {
   };
 }
 
-const MODEL_TABLES: Array<string> = (
-  AllModelTypes as Array<{ new (): DatabaseBaseModel }>
-)
-  .map((modelType: { new (): DatabaseBaseModel }): string => {
-    return new modelType().tableName || "";
+/*
+ * Every model's table, by the name TypeORM gives it - the entity's own name,
+ * which a few models spell otherwise in their table metadata ("Reseller
+ * Plan" is the ResellerPlan table).
+ */
+const MODEL_TYPES: Set<unknown> = new Set<unknown>(AllModelTypes);
+
+const MODEL_TABLES: Array<string> = getMetadataArgsStorage()
+  .tables.filter((table: TableMetadataArgs): boolean => {
+    return MODEL_TYPES.has(table.target);
+  })
+  .map((table: TableMetadataArgs): string => {
+    return table.name || (table.target as { name: string }).name || "";
   })
   .filter((table: string): boolean => {
     return table.length > 0;
@@ -133,14 +142,14 @@ describe("which tables and columns", () => {
 describe("up", () => {
   test("runs outside a transaction, so each table is held for its own statement alone", () => {
     expect(
-      new AddRecordCreatedByAndLastModifiedColumns1809187100000().transaction,
+      new AddRecordCreatedByAndLastModifiedColumns1809187200000().transaction,
     ).toBe(false);
   });
 
   test("alters each table once, with all six columns in one statement", async () => {
     const { runner, statements } = recordQueries();
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187100000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
       runner,
     );
 
@@ -158,7 +167,7 @@ describe("up", () => {
   test("asks which tables have every column already, by the six names", async () => {
     const { runner, lookups } = recordQueries();
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187100000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
       runner,
     );
 
@@ -177,7 +186,7 @@ describe("up", () => {
     const altered: Array<string> = RECORD_ACTOR_TABLES.slice(0, 200);
     const { runner, statements } = recordQueries(altered);
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187100000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
       runner,
     );
 
@@ -193,7 +202,7 @@ describe("up", () => {
   test("run again once every table is altered, alters nothing", async () => {
     const { runner, statements } = recordQueries([...RECORD_ACTOR_TABLES]);
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187100000().up(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().up(
       runner,
     );
 
@@ -205,7 +214,7 @@ describe("down", () => {
   test("drops the six columns of each table, in the order the generator drops them", async () => {
     const { runner, statements } = recordQueries();
 
-    await new AddRecordCreatedByAndLastModifiedColumns1809187100000().down(
+    await new AddRecordCreatedByAndLastModifiedColumns1809187200000().down(
       runner,
     );
 
@@ -224,18 +233,18 @@ describe("its place among the migrations", () => {
     expect(
       registered.filter((migration: unknown): boolean => {
         return (
-          migration === AddRecordCreatedByAndLastModifiedColumns1809187100000
+          migration === AddRecordCreatedByAndLastModifiedColumns1809187200000
         );
       }),
     ).toHaveLength(1);
     expect(
-      registered.indexOf(AddRecordCreatedByAndLastModifiedColumns1809187100000),
+      registered.indexOf(AddRecordCreatedByAndLastModifiedColumns1809187200000),
     ).toBeGreaterThan(registered.indexOf(AddGuidedSetupRun1809187025300));
   });
 
   test("is named for what it does, with its number", () => {
     expect(
-      new AddRecordCreatedByAndLastModifiedColumns1809187100000().name,
-    ).toBe("AddRecordCreatedByAndLastModifiedColumns1809187100000");
+      new AddRecordCreatedByAndLastModifiedColumns1809187200000().name,
+    ).toBe("AddRecordCreatedByAndLastModifiedColumns1809187200000");
   });
 });

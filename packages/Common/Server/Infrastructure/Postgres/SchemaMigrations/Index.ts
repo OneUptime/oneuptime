@@ -1130,7 +1130,7 @@ import { AddTeamMemberInviteeEmail1809186960000 } from "./1809186960000-AddTeamM
 import { BackfillTeamMemberInviteeEmail1809186970000 } from "./1809186970000-BackfillTeamMemberInviteeEmail";
 import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddNetworkSiteOwnersAndLabels";
 import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
-import { AddRecordCreatedByAndLastModifiedColumns1809187100000 } from "./1809187100000-AddRecordCreatedByAndLastModifiedColumns";
+import { AddRecordCreatedByAndLastModifiedColumns1809187200000 } from "./1809187200000-AddRecordCreatedByAndLastModifiedColumns";
 
 export default [
   InitialMigration,
@@ -2265,5 +2265,5 @@ export default [
   BackfillTeamMemberInviteeEmail1809186970000,
   AddNetworkSiteOwnersAndLabels1809187000000,
   AddGuidedSetupRun1809187025300,
-  AddRecordCreatedByAndLastModifiedColumns1809187100000,
+  AddRecordCreatedByAndLastModifiedColumns1809187200000,
 ];

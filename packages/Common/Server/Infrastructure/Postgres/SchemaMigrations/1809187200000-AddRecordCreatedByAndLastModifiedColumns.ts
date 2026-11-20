@@ -697,10 +697,10 @@ export const getDropRecordActorColumnsStatement: (table: string) => string = (
     .join(", ")}`;
 };
 
-export class AddRecordCreatedByAndLastModifiedColumns1809187100000
+export class AddRecordCreatedByAndLastModifiedColumns1809187200000
   implements MigrationInterface
 {
-  public name: string = "AddRecordCreatedByAndLastModifiedColumns1809187100000";
+  public name: string = "AddRecordCreatedByAndLastModifiedColumns1809187200000";
 
   // One table locked at a time, each for its own statement. See above.
   public transaction: boolean = false;
