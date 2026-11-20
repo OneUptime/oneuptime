@@ -143,6 +143,9 @@ const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   // 1809184550000-AddDataObservabilityAttentionColumnsAndPipelineOwners
   "DataPipelineOwnerTeam",
   "DataPipelineOwnerUser",
+  // 1809187000000-AddNetworkSiteOwnersAndLabels
+  "NetworkSiteOwnerTeam",
+  "NetworkSiteOwnerUser",
 ];
 
 const MIGRATED_OWNER_MODELS: Array<OwnerModel> = OWNER_MODELS.filter(

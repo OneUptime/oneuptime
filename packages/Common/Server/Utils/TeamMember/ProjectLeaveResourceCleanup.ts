@@ -36,6 +36,7 @@ import MessageQueueOwnerUserService from "../../Services/MessageQueueOwnerUserSe
 import MonitorGroupOwnerUserService from "../../Services/MonitorGroupOwnerUserService";
 import MonitorOwnerUserService from "../../Services/MonitorOwnerUserService";
 import NetworkDeviceOwnerUserService from "../../Services/NetworkDeviceOwnerUserService";
+import NetworkSiteOwnerUserService from "../../Services/NetworkSiteOwnerUserService";
 import OnCallDutyPolicyOwnerUserService from "../../Services/OnCallDutyPolicyOwnerUserService";
 import OnCallDutyPolicyScheduleOwnerUserService from "../../Services/OnCallDutyPolicyScheduleOwnerUserService";
 import PodmanHostOwnerUserService from "../../Services/PodmanHostOwnerUserService";
@@ -178,6 +179,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(MonitorGroupOwnerUserService, "monitorGroupId"),
       ownerUserTable(MonitorOwnerUserService, "monitorId"),
       ownerUserTable(NetworkDeviceOwnerUserService, "networkDeviceId"),
+      ownerUserTable(NetworkSiteOwnerUserService, "networkSiteId"),
       ownerUserTable(OnCallDutyPolicyOwnerUserService, "onCallDutyPolicyId"),
       ownerUserTable(
         OnCallDutyPolicyScheduleOwnerUserService,

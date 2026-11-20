@@ -221,6 +221,11 @@ const READ_IN_FULL: Array<string> = [
    * narrowed (#6561).
    */
   "Team",
+  /*
+   * A device is put in a site and a site under another, and the Sites page
+   * draws every site's parents (#10188): reading sites is never narrowed.
+   */
+  "NetworkSite",
 ];
 
 function read(language: string, page: string): string {
