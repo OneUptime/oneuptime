@@ -47,6 +47,9 @@ import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
  *     Allowed Origins, which a Browser key cannot work without, and the
  *     Pinned Service Name under Advanced. A guide that pins a Browser key
  *     asks for the origins on its one page instead.
+ *   - A Mobile key (issue #6457) asks for its app's service name on its
+ *     first page, required: the pin is what keeps a key copied out of the
+ *     app to that app's telemetry. A guide that knows the app fills it in.
  *   - Billing, on the Free plan only: the pay-as-you-go notice
  *     (PayAsYouGo.tsx), the last step, so it is read before Create - the
  *     same gate on both doors, because a gate with a way around it is not
@@ -63,6 +66,7 @@ import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
  */
 export const SERVER_INGESTION_KEY_NAME: string = translationKey("Server key");
 export const BROWSER_INGESTION_KEY_NAME: string = translationKey("Browser key");
+export const MOBILE_INGESTION_KEY_NAME: string = translationKey("Mobile key");
 
 export interface IngestionKeyFormOptions {
   /*
@@ -78,6 +82,12 @@ export interface IngestionKeyFormOptions {
    * out, the name says the key's type and follows it.
    */
   keyName?: string | undefined;
+  /*
+   * The service.name of the app a Mobile key is for, when the door knows it
+   * (an app's own Documentation tab): its Pinned Service Name starts filled
+   * in. Left out, the form asks for it.
+   */
+  pinnedServiceName?: string | undefined;
 }
 
 type IsBrowserKeyFunction = (
@@ -96,9 +106,16 @@ export const isBrowserIngestionKey: IsBrowserKeyFunction = (
   return values.keyType === TelemetryIngestionKeyType.Browser;
 };
 
+// A Mobile key (issue #6457), whose pinned service name is required.
+export const isMobileIngestionKey: IsBrowserKeyFunction = (
+  values: FormValues<TelemetryIngestionKey>,
+): boolean => {
+  return values.keyType === TelemetryIngestionKeyType.Mobile;
+};
+
 /**
  * The name a key of this type starts with on the Settings page, in the
- * reader's language: "Server key" or "Browser key".
+ * reader's language: "Server key", "Browser key" or "Mobile key".
  */
 export const getDefaultIngestionKeyName: (
   keyType: TelemetryIngestionKeyType | undefined,
@@ -106,7 +123,9 @@ export const getDefaultIngestionKeyName: (
   const name: string =
     keyType === TelemetryIngestionKeyType.Browser
       ? BROWSER_INGESTION_KEY_NAME
-      : SERVER_INGESTION_KEY_NAME;
+      : keyType === TelemetryIngestionKeyType.Mobile
+        ? MOBILE_INGESTION_KEY_NAME
+        : SERVER_INGESTION_KEY_NAME;
 
   return translateText(name) || name;
 };
@@ -240,6 +259,37 @@ const getAllowedOriginsField: GetAllowedOriginsFieldFunction = (data: {
   };
 };
 
+type GetMobileAppServiceNameFieldFunction = (data: {
+  showIf?: IsBrowserKeyFunction | undefined;
+  defaultValue?: string | undefined;
+}) => ModelField<TelemetryIngestionKey>;
+
+/*
+ * A Mobile key's app (issue #6457), required and on the first page: the
+ * pin is what keeps every copy of the key pulled out of the app to that
+ * app's telemetry, so a Mobile key is never made without it.
+ */
+const getMobileAppServiceNameField: GetMobileAppServiceNameFieldFunction =
+  (data: {
+    showIf?: IsBrowserKeyFunction | undefined;
+    defaultValue?: string | undefined;
+  }): ModelField<TelemetryIngestionKey> => {
+    return {
+      field: {
+        pinnedServiceName: true,
+      },
+      title: "Pinned Service Name",
+      stepId: "key",
+      showIf: data.showIf,
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "storefront-mobile",
+      description:
+        "The service.name your app sends. Everything sent with this key is filed under it, so a copy taken from the app can only write as this app.",
+      ...(data.defaultValue ? { defaultValue: data.defaultValue } : {}),
+    };
+  };
+
 type GetPinnedServiceNameFieldFunction = (data: {
   stepId: string;
   showIf?: IsBrowserKeyFunction | undefined;
@@ -286,6 +336,8 @@ export const getIngestionKeyFormFields: (
 
   const isPinnedToBrowser: boolean =
     options.keyType === TelemetryIngestionKeyType.Browser;
+  const isPinnedToMobile: boolean =
+    options.keyType === TelemetryIngestionKeyType.Mobile;
 
   /*
    * A name of the door's own stays put; the Settings page's follows the
@@ -336,6 +388,13 @@ export const getIngestionKeyFormFields: (
                 description:
                   "For websites and React Native session replay. Safe to publish: limited to the origins you list, and rate limited.",
               },
+              {
+                value: TelemetryIngestionKeyType.Mobile,
+                title: "Mobile",
+                icon: IconProp.DevicePhoneMobile,
+                description:
+                  "For an iOS, Android or React Native app. Safe to ship in the app: it sends only that app's traces, logs and metrics, and is rate limited.",
+              },
             ],
             required: true,
             defaultValue: TelemetryIngestionKeyType.Server,
@@ -357,6 +416,11 @@ export const getIngestionKeyFormFields: (
                 nextValues.pinnedServiceName = undefined;
               }
 
+              // A Mobile key has no origins: a Browser key's draft goes.
+              if (value === TelemetryIngestionKeyType.Mobile) {
+                nextValues.allowedOrigins = undefined;
+              }
+
               if (nameFollowsKeyType) {
                 const name: string | null = getIngestionKeyNameAfterTypeChange({
                   name: values.name,
@@ -376,6 +440,17 @@ export const getIngestionKeyFormFields: (
           } as ModelField<TelemetryIngestionKey>,
         ]),
     ...(isPinnedToBrowser ? [getAllowedOriginsField({ stepId: "key" })] : []),
+    ...(isPinnedToMobile
+      ? [
+          getMobileAppServiceNameField({
+            defaultValue: options.pinnedServiceName,
+          }),
+        ]
+      : []),
+    // The Settings page asks for it once Mobile is picked.
+    ...(options.keyType
+      ? []
+      : [getMobileAppServiceNameField({ showIf: isMobileIngestionKey })]),
     {
       field: {
         description: true,
@@ -422,7 +497,8 @@ export const getIngestionKeyFormFields: (
 /**
  * The key as it is sent: of the door's type when the door pins one, and
  * with nothing of a Browser key's settings on a Server key - a draft typed
- * before switching to Server never reaches the API.
+ * before switching to Server never reaches the API. A Mobile key keeps its
+ * pinned service name, and never sends origins.
  */
 export const prepareIngestionKeyForCreate: (
   item: TelemetryIngestionKey,
@@ -433,6 +509,11 @@ export const prepareIngestionKeyForCreate: (
 ): TelemetryIngestionKey => {
   if (options.keyType) {
     item.keyType = options.keyType;
+  }
+
+  if (item.keyType === TelemetryIngestionKeyType.Mobile) {
+    delete item.allowedOrigins;
+    return item;
   }
 
   if (item.keyType !== TelemetryIngestionKeyType.Browser) {

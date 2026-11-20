@@ -165,7 +165,7 @@ Tudo o que está no snippet vai para os seus visitantes, então qualquer pessoa 
 | Configuração | O que faz |
 | --- | --- |
 | **Origens permitidas** | As requisições só são aceitas destas origens, cada uma com seu esquema e a porta, se houver. Um host pode começar com um único curinga `*.`: `https://*.example.com` abrange todos os subdomínios de `example.com`, mas não o próprio `example.com`. |
-| **Requests Per Minute Limit** | Um único teto para todos os visitantes que usam a chave: 6000 requisições por minuto, a menos que você defina o seu. |
+| **Limite de solicitações por minuto** | Um único teto para todos os visitantes que usam a chave: 6000 requisições por minuto, a menos que você defina o seu. |
 | **Nome do serviço fixado** | Força `service.name` em tudo o que a chave grava, para que uma cópia não possa fazer a telemetria dela passar por um dos seus serviços de backend. |
 | **Expira em** | Depois desta data, a chave deixa de ser aceita. |
 | **Habilitado** | Desligue para interromper na hora uma chave vazada. |

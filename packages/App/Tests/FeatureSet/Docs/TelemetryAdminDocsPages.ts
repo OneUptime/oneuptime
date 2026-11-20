@@ -116,6 +116,11 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "On OneUptime Cloud, a payment method.",
     // The link to Ingestion Budgets (issue #5917).
     "A key can have budgets of its own.",
+    // What a Mobile key limits (issue #6457).
+    "It writes only as one app.",
+    "It sends only that app's telemetry.",
+    "It is rate limited.",
+    "You can stop it.",
   ],
   [TOPOLOGY]: [
     "Only what was active is drawn.",

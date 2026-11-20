@@ -4457,6 +4457,26 @@ jobs:
           Tests/Workers/DataMigrations/RedactLatestIncomingRequestsPostgres.test.ts
           --forceExit
 
+      # Explain with AI's rows of the AI Logs, written again as a call writes
+      # one now (#10361): each preview of a Data Security issue's explanation
+      # becomes the words a call that keeps none writes, and a failed call's
+      # error the words one that keeps no error details writes, deleted rows
+      # too; no other feature's row, and nothing else of the row, changes;
+      # it walks more rows than a page and changes nothing the second time.
+      # Clones the migrated LlmLog table into an isolated schema.
+      - name: Test taking Data Security issues out of the AI Logs on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_LLM_LOG_REDACTION_TESTS: "true"
+          LLM_LOG_REDACTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LLM_LOG_REDACTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LLM_LOG_REDACTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RedactDataSecurityIssueExplanationLogsPostgres.test.ts
+          --forceExit
+
       # The master API key through the upgrade that stores it hashed (#7901):
       # on the server's settings table as it was, with a key stored the old
       # way, the API takes the key as written before the schema migration,

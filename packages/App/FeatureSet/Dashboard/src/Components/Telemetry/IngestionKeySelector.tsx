@@ -156,6 +156,28 @@ const UNUSABLE_KEY_CAUTIONS: Readonly<
 };
 
 /*
+ * What the reader is told under a picked key's token: where the key may go,
+ * and what it can send from there (#6458, #6457). Plain words - what it
+ * sends, from where, and what the listed origins mean - in place of
+ * "intended for client distribution" and "self-asserted identities".
+ */
+export const BROWSER_KEY_CAUTION: string = translationKey(
+  "Browser key: safe to put in a web page. It can send traces, logs, metrics, session replays and Sentry events, and only from: {{identities}}. An app:// entry lets a React Native app send session replays only, and anyone who has the app can send as it.",
+);
+
+export const BROWSER_KEY_WITHOUT_ORIGINS_CAUTION: string = translationKey(
+  "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.",
+);
+
+export const MOBILE_KEY_CAUTION: string = translationKey(
+  "Mobile key: safe to ship in your app. It can send only traces, logs and metrics, all filed under {{service}}, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
+);
+
+export const SERVER_KEY_CAUTION: string = translationKey(
+  "Server key: keep it secret. It can send every kind of telemetry to this project from anywhere, so put it only in server environment variables and collector settings. Never put it in a web page or a mobile app: use a Browser key in a page and a Mobile key in an app.",
+);
+
+/*
  * "Which key do I send this with, and where do I send it?" — step one of
  * every ingestion guide in the product.
  *
@@ -195,6 +217,12 @@ export interface ComponentProps {
   newKeyName: string;
 
   /*
+   * The service.name a Mobile key created here is pinned to, when the
+   * guide knows the app (its Documentation tab). Left out, the form asks.
+   */
+  newKeyPinnedServiceName?: string | undefined;
+
+  /*
    * Fires with the key the snippets should be rendered with, and with
    * null while none is selectable (still loading, load failed, or the
    * project has no keys yet) so callers fall back to their placeholder
@@ -223,6 +251,8 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
 
   const isBrowserKeyOnly: boolean =
     props.keyTypeFilter === TelemetryIngestionKeyType.Browser;
+  const isMobileKeyOnly: boolean =
+    props.keyTypeFilter === TelemetryIngestionKeyType.Mobile;
 
   const loadIngestionKeys: () => Promise<void> = async (): Promise<void> => {
     try {
@@ -255,6 +285,8 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
              */
             keyType: true,
             allowedOrigins: true,
+            // A Mobile key's caution names the app it files everything under.
+            pinnedServiceName: true,
             // A key that is off or expired is refused: said, and not picked.
             isEnabled: true,
             expiresAt: true,
@@ -349,8 +381,14 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             },
           ),
         }),
+        pinnedServiceName: props.newKeyPinnedServiceName,
       };
-    }, [props.keyTypeFilter, props.newKeyName, ingestionKeys]);
+    }, [
+      props.keyTypeFilter,
+      props.newKeyName,
+      props.newKeyPinnedServiceName,
+      ingestionKeys,
+    ]);
 
   const createKeyFormSteps: Array<FormStep<TelemetryIngestionKey>> =
     useMemo((): Array<FormStep<TelemetryIngestionKey>> => {
@@ -394,10 +432,11 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
        */
       if (!key.allowedOrigins || key.allowedOrigins.length === 0) {
         return (
-          <div className="text-xs text-red-600 mt-2 leading-relaxed">
-            {translator.translateText(
-              "This browser key has no allowed origins, so every request made with it is refused. Add your web origins or exact app:// mobile identities in Project Settings > Telemetry & APM > Ingestion Keys before using this snippet.",
-            )}
+          <div
+            className="text-xs text-red-600 mt-2 leading-relaxed"
+            data-testid="ingestion-key-caution"
+          >
+            {translator.translateText(BROWSER_KEY_WITHOUT_ORIGINS_CAUTION)}
           </div>
         );
       }
@@ -407,9 +446,12 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
        * list of web addresses would otherwise pull its full stop away.
        */
       return (
-        <div className="text-xs text-gray-500 mt-2 leading-relaxed">
+        <div
+          className="text-xs text-gray-500 mt-2 leading-relaxed"
+          data-testid="ingestion-key-caution"
+        >
           {translator.translateTemplate(
-            "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
+            BROWSER_KEY_CAUTION,
             { identities: key.allowedOrigins.join(", ") },
             { setsValuesApart: true },
           )}
@@ -417,11 +459,31 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * A Mobile key (issue #6457) is public too, but bound to one app: say
+     * which, so the reader sees where everything it sends is filed.
+     */
+    if (key.keyType === TelemetryIngestionKeyType.Mobile) {
+      return (
+        <div
+          className="text-xs text-gray-500 mt-2 leading-relaxed"
+          data-testid="ingestion-key-caution"
+        >
+          {translator.translateTemplate(
+            MOBILE_KEY_CAUTION,
+            { service: key.pinnedServiceName || key.name || "" },
+            { setsValuesApart: true },
+          )}
+        </div>
+      );
+    }
+
     return (
-      <div className="text-xs text-amber-700 mt-2 leading-relaxed">
-        {translator.translateText(
-          "Server key — treat it as a secret. It can write every kind of telemetry into this project from anywhere, so it belongs in server environment variables and collector config only. Never paste it into browser JavaScript, a mobile app bundle, or anything else your users can read: use a Browser ingestion key there.",
-        )}
+      <div
+        className="text-xs text-amber-700 mt-2 leading-relaxed"
+        data-testid="ingestion-key-caution"
+      >
+        {translator.translateText(SERVER_KEY_CAUTION)}
       </div>
     );
   };
@@ -479,16 +541,22 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           <p className="text-sm font-medium text-gray-900 mb-1">
             {isBrowserKeyOnly
               ? translator.translateText("No browser ingestion keys yet")
-              : translator.translateText("No ingestion keys yet")}
+              : isMobileKeyOnly
+                ? translator.translateText("No mobile ingestion keys yet")
+                : translator.translateText("No ingestion keys yet")}
           </p>
           <p className="text-xs text-gray-500 mb-4">
             {isBrowserKeyOnly
               ? translator.translateText(
                   "A browser key is the one safe to publish in a page: it is accepted only from the origins you list, and it can only write browser telemetry.",
                 )
-              : translator.translateText(
-                  "Create an ingestion key to authenticate your telemetry data.",
-                )}
+              : isMobileKeyOnly
+                ? translator.translateText(
+                    "A mobile key is the one safe to ship in an app: it is pinned to the app, and it can only send that app's traces, logs and metrics.",
+                  )
+                : translator.translateText(
+                    "Create an ingestion key to authenticate your telemetry data.",
+                  )}
           </p>
           <Button
             title="Create Ingestion Key"
@@ -531,6 +599,12 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
               }}
               placeholder="Select an ingestion key"
               ariaLabel="Select ingestion key"
+              /*
+               * A refused key's "(turned off)" or "(expired)" follows its
+               * name, and a phone's narrow picker cut it off with an
+               * ellipsis (#6458): the pick wraps instead, whole.
+               */
+              wrapsPickedValue={true}
             />
           </div>
           <button
@@ -614,12 +688,16 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           title={
             isBrowserKeyOnly
               ? "Create Browser Ingestion Key"
-              : "Create Ingestion Key"
+              : isMobileKeyOnly
+                ? "Create Mobile Ingestion Key"
+                : "Create Ingestion Key"
           }
           description={
             isBrowserKeyOnly
               ? "Create a browser telemetry ingestion key. It is safe to publish in your page, and is accepted only from the origins you list below."
-              : "Create a new telemetry ingestion key for sending data to OneUptime."
+              : isMobileKeyOnly
+                ? "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to."
+                : "Create a new telemetry ingestion key for sending data to OneUptime."
           }
           onClose={() => {
             setShowCreateModal(false);

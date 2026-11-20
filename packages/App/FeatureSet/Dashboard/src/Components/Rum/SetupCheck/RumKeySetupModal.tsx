@@ -22,9 +22,9 @@ import { getRumKeySwapGuide } from "./RumKeySwapGuide";
  * another. Not the application's whole setup guide - it is set up - but the
  * steps a new key takes (RumKeySwapGuide): pick one that is not refused, or
  * create one; put it where the refused one is, the line shown with the new
- * key in it; deploy. A Browser key for a browser app, a Server key for a
- * mobile one. Opened from the setup check and from the empty Exceptions and
- * Logs.
+ * key in it; deploy. A Browser key for a browser app, a Mobile key, pinned
+ * to the app, for a mobile one (issue #6457). Opened from the setup check
+ * and from the empty Exceptions and Logs.
  */
 
 export const PICK_ANOTHER_KEY_DESCRIPTION: string = translationKey(
@@ -34,6 +34,8 @@ export const PICK_ANOTHER_KEY_DESCRIPTION: string = translationKey(
 export interface ComponentProps {
   // "browser" or "mobile", as ingest records it: which key type, which line.
   clientType?: string | undefined;
+  // The app's service.name: a Mobile key made here is pinned to it.
+  appName?: string | undefined;
   onClose: () => void;
 }
 
@@ -59,6 +61,7 @@ const RumKeySetupModal: FunctionComponent<ComponentProps> = (
           icon={IconProp.Key}
           // A key made here replaces the refused one, and says so by its name.
           newKeyName={translationKey("RUM replacement key")}
+          newKeyPinnedServiceName={props.appName}
           getKeyTypeFilter={(): TelemetryIngestionKeyType => {
             return getRumIngestionKeyType(client);
           }}

@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { writeReaderMoment } from "Common/UI/Utils/ReaderMoments";
 import {
   TelemetryIngestRefusalReason,
   UNNAMED_TELEMETRY_INGEST_SURFACE,
@@ -33,6 +34,9 @@ export const REFUSAL_REASON_WORDS: Readonly<
   ),
   [TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere]: translationKey(
     '"{{key}}" is a Browser key, and this endpoint takes only Server keys.',
+  ),
+  [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: translationKey(
+    '"{{key}}" is a Mobile key, which sends only a mobile app\'s traces, logs and metrics, never from a web page.',
   ),
   [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: translationKey(
     '"{{key}}" is pinned to one service, and this endpoint takes only unpinned keys.',
@@ -77,6 +81,9 @@ export const REFUSAL_REASON_LABELS: Readonly<
   [TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere]: translationKey(
     "Endpoint takes only Server keys",
   ),
+  [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: translationKey(
+    "Not a mobile app's traces, logs or metrics",
+  ),
   [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: translationKey(
     "Endpoint takes only unpinned keys",
   ),
@@ -120,7 +127,8 @@ export const ADD_A_PAYMENT_METHOD: string = translationKey(
  *   budgets   - the project's budgets (Settings > Usage);
  *   billing   - a payment method (Settings > Billing);
  *   null      - nothing here puts it right (a blocked project; a key on an
- *               endpoint that does not take its kind).
+ *               endpoint that does not take its kind). The key's page still
+ *               says the fix in words (KEY_PAGE_REFUSAL_FIX_WORDS).
  */
 export type IngestRefusalFix = "pick-key" | "open-key" | "budgets" | "billing";
 
@@ -131,6 +139,7 @@ export const INGEST_REFUSAL_FIXES: Readonly<
   [TelemetryIngestRefusalReason.KeyExpired]: "pick-key",
   [TelemetryIngestRefusalReason.OriginNotAllowed]: "open-key",
   [TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere]: null,
+  [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: null,
   [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: null,
   [TelemetryIngestRefusalReason.KeyRequestsPerMinute]: "open-key",
   [TelemetryIngestRefusalReason.KeyDailyBudget]: "open-key",
@@ -148,6 +157,58 @@ export const INGEST_REFUSAL_FIX_LABELS: Readonly<
   "open-key": OPEN_THE_KEY,
   budgets: SEE_BUDGETS,
   billing: ADD_A_PAYMENT_METHOD,
+};
+
+/*
+ * What puts each refusal right, in words, under its line on the key's own
+ * page (IngestionKeyRefusalsCard, #6458). Every reason has one: the card
+ * used to link only the fixes that live on another page (budgets,
+ * billing), so an origin refusal no longer said to add the origin, and a
+ * reason with nothing to link showed no fix at all. The key's own settings
+ * are on that page - its details above the card, its budgets below.
+ */
+export const KEY_PAGE_REFUSAL_FIX_WORDS: Readonly<
+  Record<TelemetryIngestRefusalReason, string>
+> = {
+  [TelemetryIngestRefusalReason.KeyDisabled]: translationKey(
+    "Turn this key back on in its details above, or send with another key.",
+  ),
+  [TelemetryIngestRefusalReason.KeyExpired]: translationKey(
+    "Set a later expiry date in this key's details above, or send with another key.",
+  ),
+  [TelemetryIngestRefusalReason.OriginNotAllowed]: translationKey(
+    "Add the origin the requests came from to this key's Allowed Origins above, with its scheme and any port.",
+  ),
+  [TelemetryIngestRefusalReason.BrowserKeyNotAllowedHere]: translationKey(
+    "Send to this endpoint with a Server key: a Browser key is only for a web page's telemetry.",
+  ),
+  [TelemetryIngestRefusalReason.MobileKeyNotAllowedHere]: translationKey(
+    "Use a Browser key in a web page and a Server key everywhere else: a Mobile key is only for its app's traces, logs and metrics, sent over HTTP.",
+  ),
+  [TelemetryIngestRefusalReason.PinnedKeyNotAllowedHere]: translationKey(
+    "Register the agent with a Server key that is not pinned to a service.",
+  ),
+  [TelemetryIngestRefusalReason.KeyRequestsPerMinute]: translationKey(
+    "Raise this key's Requests Per Minute Limit above, or send less often.",
+  ),
+  [TelemetryIngestRefusalReason.KeyDailyBudget]: translationKey(
+    "Raise this key's daily budgets under Ingestion Budgets below, or wait for the next budget day.",
+  ),
+  [TelemetryIngestRefusalReason.KeyIngestionRate]: translationKey(
+    "Raise this key's rate limits under Ingestion Budgets below, or send more slowly.",
+  ),
+  [TelemetryIngestRefusalReason.ProjectDailyBudget]: translationKey(
+    "Raise the project's daily ingestion budget, or wait for the next budget day.",
+  ),
+  [TelemetryIngestRefusalReason.ProjectIngestionRate]: translationKey(
+    "Raise the project's ingestion rate limit, or send more slowly.",
+  ),
+  [TelemetryIngestRefusalReason.PaymentRequired]: translationKey(
+    "Add a payment method to the project, and its telemetry is accepted again.",
+  ),
+  [TelemetryIngestRefusalReason.ProjectBlocked]: translationKey(
+    "Ask an administrator of this OneUptime server to unblock the project.",
+  ),
 };
 
 /*
@@ -243,6 +304,14 @@ export const REFUSALS_FAILED: string = translationKey(
 export const REFUSALS_LOADING: string = translationKey("Checking…");
 export const REFUSALS_CHECK_AGAIN: string = translationKey("Check again");
 
+// What puts a refusal right, in words, as the key's own page says it.
+export function getKeyPageRefusalFixText(
+  reason: TelemetryIngestRefusalReason,
+  translator: Translator,
+): string {
+  return translate(translator, KEY_PAGE_REFUSAL_FIX_WORDS[reason]);
+}
+
 // Whether a line's latest refusal is recent enough to draw as a problem.
 export function isIngestRefusalRecent(
   refusal: { lastRefusedAt: Date },
@@ -287,7 +356,15 @@ export function getIngestSurfaceLabel(
   );
 }
 
-// "{{count}} requests refused since {{date}}, the latest {{time}}."
+/*
+ * "{{count}} requests refused since {{date}}, the latest {{time}}."
+ *
+ * The "since" is one shape on every line (#6458): a moment in a sentence,
+ * the day and the time on the reader's clock and in their zone
+ * (writeReaderMoment). It was the day alone two days on and the day, the
+ * time and the zone before that, so a card read "Nov 04, 2026" on one line
+ * and "Nov 08 2026, 12:32 CET" on the next.
+ */
 export function getIngestRefusalCountText(
   refusal: { count: number; firstRefusedAt: Date; lastRefusedAt: Date },
   translator: Translator,
@@ -300,11 +377,7 @@ export function getIngestRefusalCountText(
   }
 
   return translator.translatePlural(REFUSED_COUNT_WORDS, refusal.count, {
-    date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-      refusal.firstRefusedAt,
-      Math.abs(now.getTime() - refusal.firstRefusedAt.getTime()) >=
-        2 * 24 * 60 * 60 * 1000,
-    ),
+    date: writeReaderMoment(refusal.firstRefusedAt),
     time: OneUptimeDate.fromNow(refusal.lastRefusedAt, now),
   });
 }

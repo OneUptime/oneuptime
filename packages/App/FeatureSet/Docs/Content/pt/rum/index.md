@@ -94,7 +94,7 @@ Uma aplicação mostra **Recebendo dados** enquanto a telemetria chega e **Sem t
 :::steps
 ### Criar uma chave de ingestão
 
-Abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**. Um aplicativo web precisa de uma chave **Navegador**, que só funciona a partir das origens que você listar. Um aplicativo móvel precisa de uma chave **Servidor**, porque um SDK móvel não envia o cabeçalho `Origin`.
+Abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**. Um aplicativo web precisa de uma chave **Navegador**, que só funciona a partir das origens que você listar. Um aplicativo móvel precisa de uma chave **Celular**, fixada ao `service.name` do aplicativo: ela vai dentro do aplicativo, então só pode enviar os traços, registros e métricas desse aplicativo.
 
 ### Instrumentar seu aplicativo
 
