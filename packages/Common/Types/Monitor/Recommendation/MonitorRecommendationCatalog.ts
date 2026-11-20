@@ -1156,12 +1156,20 @@ function getAllMessageQueueRecommendations(): Array<MonitorRecommendation> {
 
 /*
  * The device management connection adapter (#9835): a connection's monitors
- * read the check-ins its reads write for its devices, filtered on the
- * connection's id, which is the resource identifier.
+ * read the readings its reads write - of its devices, and of itself
+ * (#10006) - filtered on the connection's id, which is the resource
+ * identifier. Its read interval, where the context says it, is what
+ * Connection Stopped Reading waits three of; the default one otherwise.
  */
 function normalizeManagedDeviceTemplate(
   template: ManagedDeviceAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
 ): MonitorRecommendation {
+  const readIntervalInMinutes: number | undefined =
+    typeof context?.deviceManagementReadIntervalInMinutes === "number"
+      ? context.deviceManagementReadIntervalInMinutes
+      : undefined;
+
   return normalize({
     resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
     monitorType: MonitorType.Metrics,
@@ -1174,6 +1182,7 @@ function normalizeManagedDeviceTemplate(
         defaultIncidentSeverityId: args.defaultIncidentSeverityId,
         defaultAlertSeverityId: args.defaultAlertSeverityId,
         monitorName: args.monitorName,
+        readIntervalInMinutes,
       });
     },
   });
@@ -1189,12 +1198,16 @@ function getManagedDeviceRecommendations(
 ): Array<MonitorRecommendation> {
   return getManagedDeviceAlertTemplatesFor(
     context?.deviceManagementProvider,
-  ).map(normalizeManagedDeviceTemplate);
+  ).map((template: ManagedDeviceAlertTemplate): MonitorRecommendation => {
+    return normalizeManagedDeviceTemplate(template, context);
+  });
 }
 
 function getAllManagedDeviceRecommendations(): Array<MonitorRecommendation> {
   return getAllManagedDeviceAlertTemplates().map(
-    normalizeManagedDeviceTemplate,
+    (template: ManagedDeviceAlertTemplate): MonitorRecommendation => {
+      return normalizeManagedDeviceTemplate(template);
+    },
   );
 }
 

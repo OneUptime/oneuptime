@@ -6,6 +6,10 @@ import {
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
   ManagedDeviceCheckInAttribute,
 } from "../../DeviceManagement/ManagedDeviceCheckIn";
+import {
+  DeviceManagementConnectionReadingAttribute,
+  MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+} from "../../DeviceManagement/DeviceManagementConnectionReading";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -1269,8 +1273,9 @@ export default class SeriesDebugHints {
       /*
        * A Metrics monitor grouped by a managed device (Esper Device Stopped
        * Checking In, #9835): the OneUptime CLI can show what the device's
-       * connection last read of it. Any other metric series has no command,
-       * as below.
+       * connection last read of it. One grouped by the connection itself
+       * (Connection Stopped Reading, #10006): its last reads and the error
+       * each failed with. Any other metric series has no command, as below.
        */
       case MonitorType.Metrics:
         return SeriesDebugHints.managedDeviceCommands(seriesLabels);
@@ -1305,20 +1310,16 @@ export default class SeriesDebugHints {
     ]);
 
     if (!device) {
-      return [];
+      return SeriesDebugHints.managedDeviceConnectionCommands(seriesLabels);
     }
 
     const readingsOf: (metricName: string) => string = (
       metricName: string,
     ): string => {
-      const query: string = JSON.stringify({
-        name: metricName,
+      return SeriesDebugHints.metricReadingsCommand({
+        metricName,
         attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
       });
-
-      return `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
-        query,
-      )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`;
     };
 
     return [
@@ -1333,6 +1334,56 @@ export default class SeriesDebugHints {
         command: readingsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME),
       },
     ];
+  }
+
+  /*
+   * A device management connection that stopped reading (Connection Stopped
+   * Reading, #10006): its last readings, newest first, with the OneUptime
+   * CLI - how long since a read of it worked at each, what each read came
+   * to and, for one that failed, the error it failed with, its credentials
+   * removed. The error names what to fix: a refused key, a lost role, a
+   * service out of reach. Read-only; only for a series that names the
+   * connection.
+   */
+  private static managedDeviceConnectionCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const connection: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      DeviceManagementConnectionReadingAttribute.ConnectionName,
+    ]);
+
+    if (!connection) {
+      return [];
+    }
+
+    return [
+      {
+        purpose:
+          "The connection's last error, and how long since one of its reads worked, at each of its last reads",
+        command: SeriesDebugHints.metricReadingsCommand({
+          metricName: MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+          attributes: {
+            [DeviceManagementConnectionReadingAttribute.ConnectionName]:
+              connection,
+          },
+        }),
+      },
+    ];
+  }
+
+  // The last five readings of one metric that carry these attributes, newest first.
+  private static metricReadingsCommand(data: {
+    metricName: string;
+    attributes: Record<string, string>;
+  }): string {
+    const query: string = JSON.stringify({
+      name: data.metricName,
+      attributes: data.attributes,
+    });
+
+    return `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
+      query,
+    )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`;
   }
 
   /*

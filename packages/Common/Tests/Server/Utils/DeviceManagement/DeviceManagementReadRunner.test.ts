@@ -3,6 +3,7 @@ import DeviceManagementConnection from "../../../../Models/DatabaseModels/Device
 import DeviceManagementReadRunner, {
   APPS_NOT_READ_WARNING,
   CHECK_INS_NOT_RECORDED_WARNING,
+  CONNECTION_READ_NOT_RECORDED_WARNING,
   CHECK_IN_WINDOW_MAX_MS,
   CHECK_IN_WINDOW_OVERLAP_MS,
   DeviceManagementReadDependencies,
@@ -24,6 +25,8 @@ import {
   ManagedDeviceCheckInOutcome,
   ManagedDeviceCheckInRecordInput,
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceCheckInMetrics";
+import { DeviceManagementConnectionReadRecord } from "../../../../Server/Utils/DeviceManagement/DeviceManagementConnectionReadMetrics";
+import { DeviceManagementConnectionReadOutcome } from "../../../../Types/DeviceManagement/DeviceManagementConnectionReading";
 import { DeviceManagementReadSummary } from "../../../../Types/DeviceManagement/DeviceManagementReadSummary";
 import DeviceManagementProvider from "../../../../Types/DeviceManagement/DeviceManagementProvider";
 import {
@@ -143,6 +146,11 @@ function ipad(
  * tests of its own.
  */
 let checkInRecords: Array<ManagedDeviceCheckInRecordInput> = [];
+/*
+ * The connection's own readings (#10006), caught here likewise:
+ * DeviceManagementConnectionReadMetrics has tests of its own.
+ */
+let connectionReadings: Array<DeviceManagementConnectionReadRecord> = [];
 
 function dependencies(
   overrides: Partial<DeviceManagementReadDependencies> = {},
@@ -162,6 +170,12 @@ function dependencies(
     ): Promise<ManagedDeviceCheckInOutcome> => {
       checkInRecords.push(data);
       return { readingCount: 0, hostCount: 0, securityPatchReadingCount: 0 };
+    },
+    recordConnectionReadings: async (
+      records: ReadonlyArray<DeviceManagementConnectionReadRecord>,
+    ): Promise<number> => {
+      connectionReadings.push(...records);
+      return records.length;
     },
     ...overrides,
   };
@@ -276,6 +290,7 @@ beforeEach(() => {
 
   db = installFakeDeviceManagementDb(connection);
   checkInRecords = [];
+  connectionReadings = [];
 });
 
 afterEach(() => {
@@ -1494,6 +1509,139 @@ describe("a Microsoft Intune connection", () => {
       "refused the client secret",
     );
     expect(JSON.stringify(db.recorded)).not.toContain("Wrong8Q~");
+
+    // #10006: the connection's own reading, for its alert, says the same.
+    expect(connectionReadings).toHaveLength(1);
+    expect(connectionReadings[0]!.reading).toMatchObject({
+      provider: DeviceManagementProvider.Intune,
+      outcome: DeviceManagementConnectionReadOutcome.Failed,
+      failureKind: LlmConnectionFailureKind.Authentication,
+      lastError: lastRecord()["lastError"],
+    });
+    expect(JSON.stringify(connectionReadings)).not.toContain("Wrong8Q~");
+  });
+});
+
+/*
+ * #10006: every read writes the connection's own reading - 0 when it
+ * worked, and when it failed how long since one did, with why - which its
+ * Connection Stopped Reading monitor alerts on.
+ */
+describe("the connection's own reading", () => {
+  beforeEach(() => {
+    connection.createdAt = new Date(START.getTime() - 30 * 24 * HOUR);
+    connection.lastSuccessfulPullAt = new Date(START.getTime() - 80 * MINUTE);
+  });
+
+  test("a read that worked writes one: nothing overdue, as of the read", async () => {
+    const outcome: DeviceManagementReadOutcome = await run();
+
+    expect(outcome.status).toBe("success");
+    expect(connectionReadings).toHaveLength(1);
+    expect(connectionReadings[0]!.projectId.toString()).toBe(
+      PROJECT.toString(),
+    );
+    expect(connectionReadings[0]!.connectionId.toString()).toBe(
+      CONNECTION.toString(),
+    );
+    expect(connectionReadings[0]!.reading).toMatchObject({
+      connectionName: "Esper acme",
+      provider: DeviceManagementProvider.Esper,
+      readIntervalInMinutes: 15,
+      outcome: DeviceManagementConnectionReadOutcome.Success,
+      asOf: START,
+    });
+    expect(connectionReadings[0]!.reading.lastError).toBeUndefined();
+    expect((outcome.summary as DeviceManagementReadSummary).warnings).toEqual(
+      [],
+    );
+  });
+
+  test("a read that worked in part says so: it read, so nothing is overdue either", async () => {
+    // One device's apps fail to read: they wait a minute, a partial read.
+    api.fault(`/api/enterprise/${ESPER_ENTERPRISE_ID}/device/${KIOSK_B}/app/`, [
+      { status: 500 },
+      { status: 500 },
+      { status: 500 },
+    ]);
+
+    const outcome: DeviceManagementReadOutcome = await run();
+
+    expect(outcome.status).toBe("partial");
+    expect(connectionReadings).toHaveLength(1);
+    expect(connectionReadings[0]!.reading.outcome).toBe(
+      DeviceManagementConnectionReadOutcome.Partial,
+    );
+    expect(connectionReadings[0]!.reading.lastError).toBeUndefined();
+  });
+
+  test("a refused key writes how long since a read worked, why, and the error without the key", async () => {
+    connection.secrets = JSON.stringify({ apiKey: "revoked-key-0123456789" });
+
+    const outcome: DeviceManagementReadOutcome = await run();
+
+    expect(outcome.status).toBe("failed");
+    expect(connectionReadings).toHaveLength(1);
+
+    const reading: DeviceManagementConnectionReadRecord["reading"] =
+      connectionReadings[0]!.reading;
+
+    expect(reading).toMatchObject({
+      outcome: DeviceManagementConnectionReadOutcome.Failed,
+      failureKind: LlmConnectionFailureKind.Authentication,
+      lastSuccessfulReadAt: connection.lastSuccessfulPullAt,
+      createdAt: connection.createdAt,
+      asOf: START,
+    });
+    // The error the connection's row says, as the row says it.
+    expect(reading.lastError).toBe(lastRecord()["lastError"]);
+    expect(reading.lastError).toMatch(/HTTP 401/);
+    expect(JSON.stringify(connectionReadings)).not.toContain(
+      "revoked-key-0123456789",
+    );
+  });
+
+  test("a read that cannot write it keeps it a warning, never the read's failure", async () => {
+    const failing: DeviceManagementReadDependencies["recordConnectionReadings"] =
+      async (): Promise<number> => {
+        throw new Error("ClickHouse is not answering");
+      };
+
+    const worked: DeviceManagementReadOutcome = await run({
+      recordConnectionReadings: failing,
+    });
+
+    expect(worked.status).toBe("success");
+    expect((worked.summary as DeviceManagementReadSummary).warnings).toEqual([
+      CONNECTION_READ_NOT_RECORDED_WARNING,
+    ]);
+    expect(lastRecord()["lastSuccessfulPullAt"]).toBeTruthy();
+
+    connection.secrets = JSON.stringify({ apiKey: "revoked-key-0123456789" });
+    clock.advance(15 * MINUTE);
+
+    const failed: DeviceManagementReadOutcome = await run({
+      recordConnectionReadings: failing,
+    });
+
+    expect(failed.status).toBe("failed");
+    expect((failed.summary as DeviceManagementReadSummary).warnings).toEqual([
+      CONNECTION_READ_NOT_RECORDED_WARNING,
+    ]);
+    expect(lastRecord()["lastError"]).toMatch(/HTTP 401/);
+  });
+
+  test("a plan without telemetry, and a connection that is off, write none", async () => {
+    await run({
+      isTelemetryAllowed: async (): Promise<boolean> => {
+        return false;
+      },
+    });
+
+    connection.isEnabled = false;
+    await run();
+
+    expect(connectionReadings).toEqual([]);
   });
 });
 

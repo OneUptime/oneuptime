@@ -9,7 +9,16 @@ import MonitorType from "./MonitorType";
 import MonitorStepMetricMonitor from "./MonitorStepMetricMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
-import DeviceManagementProvider from "../DeviceManagement/DeviceManagementProvider";
+import DeviceManagementProvider, {
+  getDeviceManagementProviderShortTitle,
+} from "../DeviceManagement/DeviceManagementProvider";
+import { getDeviceManagementStaleAfterMinutes } from "../DeviceManagement/DeviceManagementConnectionHealth";
+import { DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES } from "../DeviceManagement/DeviceManagementConnectionSettings";
+import {
+  DeviceManagementConnectionReadingAttribute,
+  MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+  MANAGED_DEVICE_CONNECTION_READ_AGE_UNIT,
+} from "../DeviceManagement/DeviceManagementConnectionReading";
 import {
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
@@ -84,6 +93,20 @@ import {
  *     (MonitorResource.isSilentInfrastructureWindow); the connection's row
  *     on Managed Devices says why.
  *
+ * First of each service's, CONNECTION STOPPED READING (#10006): the
+ * connection itself, which every other template is fed by. Every read of
+ * it, and every read it falls due for, records how long since one worked
+ * (DeviceManagementConnectionReading), and the template alerts once no read
+ * has worked for longer than three of its read intervals and ten minutes -
+ * as long as its Status chip waits before it says Stale
+ * (getDeviceManagementStaleAfterMinutes), so a read that fails once and
+ * works at the next try never alerts - and resolves with the first read
+ * that works. One alert, for the connection, named after it; its first
+ * command lists the connection's last readings, each with the error its
+ * read failed with. Without it a revoked key or a service out of reach
+ * froze every device alert of the fleet, and nobody learned the fleet was
+ * unwatched.
+ *
  * And, for every service, SECURITY PATCH OUT OF DATE (#10098): an Android
  * device whose security patch level, as the service reports it, is more than
  * 90 days old - the rule Inventory's Security Patch Level filter and the
@@ -121,6 +144,38 @@ export const MANAGED_DEVICE_ALERT_MONITORING_INTERVAL: string = "*/5 * * * *";
 export const MANAGED_DEVICE_CHECK_IN_GROUP_BY_ATTRIBUTES: ReadonlyArray<string> =
   [ManagedDeviceCheckInAttribute.DeviceName];
 
+/*
+ * Connection Stopped Reading's window (#10006). A connection writes its
+ * reading at every read and whenever a read of it falls due: an interval
+ * apart at the longest while it reads, and an hour apart while a refused
+ * key waits for its retry. Two hours always holds one, and the connection
+ * is judged on its newest.
+ */
+export const MANAGED_DEVICE_CONNECTION_READ_ROLLING_TIME: RollingTime =
+  RollingTime.Past2Hours;
+
+/*
+ * One series, and one alert, per connection - the monitor reads one - by
+ * its name, as Managed Devices lists it, so the alert says which.
+ */
+export const MANAGED_DEVICE_CONNECTION_GROUP_BY_ATTRIBUTES: ReadonlyArray<string> =
+  [DeviceManagementConnectionReadingAttribute.ConnectionName];
+
+/*
+ * How long Connection Stopped Reading lets a connection go without a read
+ * that worked, at its read interval (the default one when not known): as
+ * long as its Status chip waits before it says Stale - three intervals and
+ * ten minutes, half an hour at the least - so a read that fails once and
+ * works at its retry never alerts.
+ */
+export function getManagedDeviceConnectionStoppedReadingMinutes(
+  readIntervalInMinutes?: number | undefined,
+): number {
+  return getDeviceManagementStaleAfterMinutes(
+    readIntervalInMinutes ?? DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
+  );
+}
+
 // Apple's platforms, as an Esper connection's Apple devices are read apart.
 export const MANAGED_DEVICE_APPLE_PLATFORMS: ReadonlyArray<ManagedDevicePlatform> =
   [
@@ -157,6 +212,11 @@ export interface ManagedDeviceAlertTemplateArgs {
   defaultIncidentSeverityId: ObjectID;
   defaultAlertSeverityId: ObjectID;
   monitorName: string;
+  /*
+   * How often the connection is read, in minutes: what Connection Stopped
+   * Reading waits three of. The default interval when not known.
+   */
+  readIntervalInMinutes?: number | undefined;
 }
 
 export interface ManagedDeviceAlertTemplate {
@@ -173,9 +233,17 @@ export interface ManagedDeviceAlertTemplate {
   category: ManagedDeviceAlertTemplateCategory;
   severity: ManagedDeviceAlertTemplateSeverity;
   monitoringInterval: string;
-  // The reading it reads, each device's latest: a check-in's, or a patch's.
+  /*
+   * The reading it reads, each device's latest - a check-in's, a patch's -
+   * or the connection's own (Connection Stopped Reading).
+   */
   metricName: string;
-  // A check-in template's: the minutes of silence it fires after.
+  /*
+   * A check-in template's: the minutes of silence it fires after.
+   * Connection Stopped Reading's: those a connection read at the default
+   * interval waits (getManagedDeviceConnectionStoppedReadingMinutes says
+   * how long at its own).
+   */
   thresholdInMinutes?: number | undefined;
   // A security patch template's: the days old a patch may be, and no more.
   maxSecurityPatchAgeInDays?: number | undefined;
@@ -519,6 +587,194 @@ const sotiAppleDeviceStoppedCheckingInTemplate: ManagedDeviceAlertTemplate =
       "Triggers when a device's latest reading says it has not checked in with MobiControl for more than a day, once for each such device.",
   });
 
+const CONNECTION_METRIC_ALIAS: string = "minutes_since_read";
+
+/*
+ * The query of a connection's own readings (#10006): the minutes since a
+ * read of it worked, of this connection alone, one series named after it.
+ * Min per minute: a read that worked and the claim that queued it, in one
+ * minute, say it read - the claim was taken before the read ended.
+ */
+export function buildManagedDeviceConnectionReadMetricMonitor(data: {
+  deviceManagementConnectionId: string;
+}): MonitorStepMetricMonitor {
+  return {
+    rollingTime: MANAGED_DEVICE_CONNECTION_READ_ROLLING_TIME,
+    judgeLatestReading: true,
+    metricViewConfig: {
+      queryConfigs: [
+        {
+          metricAliasData: {
+            metricVariable: CONNECTION_METRIC_ALIAS,
+            title: "Minutes since a read worked",
+            description:
+              "How long since a read of the connection last worked, at each read and whenever one is due.",
+            legend: "Minutes since a read worked",
+            legendUnit: MANAGED_DEVICE_CONNECTION_READ_AGE_UNIT,
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+              attributes: {
+                [DeviceManagementConnectionReadingAttribute.ConnectionId]:
+                  data.deviceManagementConnectionId,
+              },
+              aggegationType: MetricsAggregationType.Min,
+              aggregateBy: {},
+            },
+            groupByAttributeKeys: [
+              ...MANAGED_DEVICE_CONNECTION_GROUP_BY_ATTRIBUTES,
+            ],
+          },
+        },
+      ],
+      formulaConfigs: [],
+    },
+  };
+}
+
+// What a connection's own template says, in its service's words.
+interface ConnectionTemplateSpec {
+  id: string;
+  provider: DeviceManagementProvider;
+  name: string;
+  summary: string;
+  // The service as a sentence names it: "Esper", "Intune", "MobiControl".
+  serviceName: string;
+  // Why a read of it fails, most often first, in its service's words.
+  usualCauses: string;
+}
+
+/*
+ * Connection Stopped Reading, for one service's connections (#10006): the
+ * connection's latest reading of how long since a read of it worked, more
+ * than its Stale point fires, one alert for the connection; a read that
+ * works resolves it, with no dead band - the reading drops to 0 then, far
+ * under the threshold.
+ */
+function buildConnectionStoppedReadingTemplate(
+  spec: ConnectionTemplateSpec,
+): ManagedDeviceAlertTemplate {
+  return {
+    id: spec.id,
+    provider: spec.provider,
+    name: spec.name,
+    summary: spec.summary,
+    description: `Alert when no read of a ${spec.serviceName} connection has worked for longer than three of its read intervals and ten minutes, as long as its Status waits before it says Stale: 55 minutes at the default 15-minute interval. One alert for the connection, resolved by the first read that works. While it lasts, OneUptime sees nothing new of the connection's devices, so their alerts can neither open nor resolve. ${spec.usualCauses} Every read of the connection, and every read it falls due for, records how long since one worked.`,
+    category: "Availability",
+    severity: "Critical",
+    monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
+    metricName: MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+    thresholdInMinutes: getManagedDeviceConnectionStoppedReadingMinutes(),
+    getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
+      const thresholdInMinutes: number =
+        getManagedDeviceConnectionStoppedReadingMinutes(
+          args.readIntervalInMinutes,
+        );
+
+      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: args.monitorName,
+        monitorType: MonitorType.Metrics,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+      });
+
+      step.setMetricMonitor(
+        buildManagedDeviceConnectionReadMetricMonitor({
+          deviceManagementConnectionId: args.deviceManagementConnectionId,
+        }),
+      );
+
+      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
+        {
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          incidentSeverityId: args.defaultIncidentSeverityId,
+          alertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+          metricAlias: CONNECTION_METRIC_ALIAS,
+          filterType: FilterType.GreaterThan,
+          value: thresholdInMinutes,
+          // Tagged as its devices' alerts are: [Esper], [Intune], [Workspace ONE], [SOTI].
+          incidentTitle: `[${getDeviceManagementProviderShortTitle(spec.provider)}] Connection stopped reading`,
+          incidentDescription: `No read of this ${spec.serviceName} connection has worked for longer than three of its read intervals, so OneUptime sees nothing new of its devices: their alerts can neither open nor resolve until it reads again. ${spec.usualCauses} The connection's row on Inventory, Managed Devices says why its last read failed (View error); its first command below lists its last readings, each with the error its read failed with. If no read failed, OneUptime's workers may have stopped. This resolves on its own with the first read that works.`,
+          criteriaName: "The connection stopped reading",
+          criteriaDescription:
+            "Triggers when the connection's latest reading says no read of it has worked for longer than three of its read intervals.",
+          resourceNoun: "connection",
+          // One reading here, its latest (judgeLatestReading): Any Value is that reading.
+          metricAggregationType: EvaluateOverTimeType.AnyValue,
+        },
+      );
+
+      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias: CONNECTION_METRIC_ALIAS,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: thresholdInMinutes,
+        // No dead band: a read that works reads 0.
+        recoveryValue: thresholdInMinutes,
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      });
+
+      const criteria: MonitorCriteria = new MonitorCriteria();
+      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+      step.setMonitorCriteria(criteria);
+
+      return step;
+    },
+  };
+}
+
+const esperConnectionStoppedReadingTemplate: ManagedDeviceAlertTemplate =
+  buildConnectionStoppedReadingTemplate({
+    id: "esper-connection-stopped-reading",
+    provider: DeviceManagementProvider.Esper,
+    name: "Esper Connection Stopped Reading",
+    summary:
+      "No read of this Esper connection has worked for three read intervals.",
+    serviceName: "Esper",
+    usualCauses:
+      "Most often its API key was revoked or replaced, the Esper user it belongs to was deleted or lost the role that reads devices, or Esper could not be reached.",
+  });
+
+const intuneConnectionStoppedReadingTemplate: ManagedDeviceAlertTemplate =
+  buildConnectionStoppedReadingTemplate({
+    id: "intune-connection-stopped-reading",
+    provider: DeviceManagementProvider.Intune,
+    name: "Intune Connection Stopped Reading",
+    summary:
+      "No read of this Intune connection has worked for three read intervals.",
+    serviceName: "Intune",
+    usualCauses:
+      "Most often its client secret expired or was deleted, the app registration lost its admin consent to DeviceManagementManagedDevices.Read.All, or Microsoft Graph could not be reached.",
+  });
+
+const workspaceOneConnectionStoppedReadingTemplate: ManagedDeviceAlertTemplate =
+  buildConnectionStoppedReadingTemplate({
+    id: "workspace-one-connection-stopped-reading",
+    provider: DeviceManagementProvider.WorkspaceOne,
+    name: "Workspace ONE Connection Stopped Reading",
+    summary:
+      "No read of this Workspace ONE connection has worked for three read intervals.",
+    serviceName: "Workspace ONE",
+    usualCauses:
+      "Most often its OAuth client was deleted or its secret regenerated, its admin role lost Read on Devices and Apps, the tenant's daily API quota was used up, or its server could not be reached.",
+  });
+
+const sotiConnectionStoppedReadingTemplate: ManagedDeviceAlertTemplate =
+  buildConnectionStoppedReadingTemplate({
+    id: "soti-connection-stopped-reading",
+    provider: DeviceManagementProvider.Soti,
+    name: "SOTI Connection Stopped Reading",
+    summary:
+      "No read of this MobiControl connection has worked for three read intervals.",
+    serviceName: "MobiControl",
+    usualCauses:
+      "Most often its API client was removed or its secret changed, the MobiControl user's password changed or the user lost Web Console Access, or the server could not be reached.",
+  });
+
 // What a security patch template says, for its service.
 interface SecurityPatchTemplateSpec {
   id: string;
@@ -655,17 +911,22 @@ const sotiSecurityPatchOutOfDateTemplate: ManagedDeviceAlertTemplate =
   });
 
 /*
- * Each service's templates in the order its connection is offered them: its
- * check-ins first, then its Android devices' security patches.
+ * Each service's templates in the order its connection is offered them: the
+ * connection itself first, which feeds every other one, then its devices'
+ * check-ins, then its Android devices' security patches.
  */
 const ALL_TEMPLATES: ReadonlyArray<ManagedDeviceAlertTemplate> = [
+  esperConnectionStoppedReadingTemplate,
   esperAndroidDeviceStoppedCheckingInTemplate,
   esperAppleDeviceStoppedCheckingInTemplate,
   esperSecurityPatchOutOfDateTemplate,
+  intuneConnectionStoppedReadingTemplate,
   intuneDeviceStoppedCheckingInTemplate,
   intuneSecurityPatchOutOfDateTemplate,
+  workspaceOneConnectionStoppedReadingTemplate,
   workspaceOneDeviceStoppedCheckingInTemplate,
   workspaceOneSecurityPatchOutOfDateTemplate,
+  sotiConnectionStoppedReadingTemplate,
   sotiDeviceStoppedCheckingInTemplate,
   sotiAppleDeviceStoppedCheckingInTemplate,
   sotiSecurityPatchOutOfDateTemplate,
