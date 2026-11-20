@@ -199,19 +199,22 @@ beforeEach(() => {
       return { data: [], count: 0, skip: 0, limit: 10 };
     });
 
-  jest
-    .spyOn(ModelAPI, "updateById")
-    .mockImplementation(async (data: unknown): Promise<never> => {
-      const change: JSONObject = (data as { data: JSONObject }).data;
+  // The edit form saves through createOrUpdate, handing it the project as edited.
+  jest.spyOn(ModelAPI, "createOrUpdate").mockImplementation((async (args: {
+    model: Project;
+  }): Promise<never> => {
+    const change: JSONObject = {
+      securityTrustedProxies: args.model.securityTrustedProxies ?? null,
+    };
 
-      updates.push(change);
+    updates.push(change);
 
-      if (typeof change["securityTrustedProxies"] === "string") {
-        stored = change["securityTrustedProxies"] as string;
-      }
+    if (typeof change["securityTrustedProxies"] === "string") {
+      stored = change["securityTrustedProxies"] as string;
+    }
 
-      return new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never;
-    });
+    return { data: args.model } as never;
+  }) as never);
 
   jest.spyOn(API, "get").mockImplementation(async (): Promise<never> => {
     return new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never;
@@ -288,8 +291,9 @@ async function openDialog(fold: HTMLElement): Promise<HTMLElement> {
   return await screen.findByRole("dialog");
 }
 
-function typeList(dialog: HTMLElement, value: string): void {
-  const input: HTMLElement = within(dialog).getByRole("textbox");
+// The form loads the project before it draws the field.
+async function typeList(dialog: HTMLElement, value: string): Promise<void> {
+  const input: HTMLElement = await within(dialog).findByRole("textbox");
 
   fireEvent.change(input, { target: { value } });
   fireEvent.blur(input);
@@ -324,6 +328,10 @@ describe("Security Events > Connections: More settings", () => {
     );
     expect(listedNames(fold)).toEqual([TRUSTED_PROXIES_TITLE]);
     expect(setChips(fold)).toEqual([]);
+
+    // What it is for, under its title once it is open.
+    open(fold);
+    expect(header(fold)).toHaveAttribute("aria-expanded", "true");
     expect(fold).toHaveTextContent(CONNECTIONS_MORE_SETTINGS_DESCRIPTION);
   });
 
@@ -363,7 +371,7 @@ describe("Trusted Proxies", () => {
     const fold: HTMLElement = await renderPage();
     const dialog: HTMLElement = await openDialog(fold);
 
-    typeList(dialog, "203.0.113.0/24\n198.51.100.7");
+    await typeList(dialog, "203.0.113.0/24\n198.51.100.7");
     submit(dialog);
 
     await waitFor(() => {
@@ -379,7 +387,7 @@ describe("Trusted Proxies", () => {
     const fold: HTMLElement = await renderPage();
     const dialog: HTMLElement = await openDialog(fold);
 
-    typeList(dialog, "203.0.113.0/24\ncloudflare");
+    await typeList(dialog, "203.0.113.0/24\ncloudflare");
     submit(dialog);
 
     expect(
