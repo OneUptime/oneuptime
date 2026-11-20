@@ -4,6 +4,7 @@ import FormRateLimit, {
 } from "../Middleware/FormRateLimit";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import FormDomainService from "../Services/FormDomainService";
+import FormPrivateUserSessionService from "../Services/FormPrivateUserSessionService";
 import FormService, {
   Service as FormServiceType,
 } from "../Services/FormService";
@@ -195,7 +196,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
           const state: FormSignInState = await FormService.getSignInState({
             shareKey: req.params["shareKey"],
             clientIp: resolveClientIp(req),
-            req: req,
+            formSession: FormPrivateUserSessionService.getSessionReader(req),
           });
 
           return Response.sendJsonObjectResponse(
@@ -226,7 +227,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
           const form: PublicForm = await FormService.getPublicForm({
             shareKey: req.params["shareKey"],
             clientIp: resolveClientIp(req),
-            req: req,
+            formSession: FormPrivateUserSessionService.getSessionReader(req),
           });
 
           return Response.sendJsonObjectResponse(
@@ -267,7 +268,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
               request: request,
               clientIp: clientIp,
               captchaRemoteIp: clientIp,
-              req: req,
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
             });
 
           return Response.sendJsonObjectResponse(
@@ -312,7 +313,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
             await FormService.getSignInStateOnCustomDomain({
               hostname: getRequestHost(req),
               clientIp: resolveClientIp(req),
-              req: req,
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
             });
 
           return Response.sendJsonObjectResponse(
@@ -343,7 +344,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
             await FormService.getPublicFormOnCustomDomain({
               hostname: getRequestHost(req),
               clientIp: resolveClientIp(req),
-              req: req,
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
             });
 
           return Response.sendJsonObjectResponse(
@@ -381,7 +382,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
               request: request,
               clientIp: clientIp,
               captchaRemoteIp: clientIp,
-              req: req,
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
             });
 
           return Response.sendJsonObjectResponse(

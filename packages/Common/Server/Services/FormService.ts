@@ -41,6 +41,7 @@ import {
 } from "../../Types/Form/FormFileAnswer";
 import MimeType from "../../Types/File/MimeType";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
   BuiltPublicForm,
@@ -114,9 +115,9 @@ import MalwareScanner, {
   ScannedFile,
 } from "../Utils/MalwareScan/MalwareScanner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { ExpressRequest } from "../Utils/Express";
+
 import UsableCustomDomain from "../Utils/CustomDomain/UsableCustomDomain";
-import FormPrivateUserSessionService from "./FormPrivateUserSessionService";
+import { FormSessionReader } from "./FormPrivateUserSessionService";
 import FormDomain from "../../Models/DatabaseModels/FormDomain";
 import FormPrivateUserSession from "../../Models/DatabaseModels/FormPrivateUserSession";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -549,21 +550,23 @@ export class Service extends DatabaseService<Model> {
    * every check its questions are behind, and never by a file's id.
    *
    * clientIp is the trusted client address (resolveClientIp), or undefined
-   * when there is none; a form with an IP allowlist refuses the latter. req
-   * carries the session of a form that asks its visitors to sign in
-   * (#10249): without one of its private users', such a form is not shown.
+   * when there is none; a form with an IP allowlist refuses the latter.
+   * formSession reads the visitor's session of a form that asks its
+   * visitors to sign in (#10249) - from the form's own cookie, and nothing
+   * else of who is calling: without one of its private users', such a form
+   * is not shown.
    */
   @CaptureSpan()
   public async getPublicForm(data: {
     shareKey: string | undefined;
     clientIp: string | undefined;
-    req?: ExpressRequest | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicForm> {
     const form: Model = await this.getFormForPublicRequest({
       shareKey: data.shareKey,
       clientIp: data.clientIp,
       includeBranding: true,
-      req: data.req,
+      formSession: data.formSession,
     });
     const built: BuiltPublicForm = await this.buildPublicFormFor(form);
 
@@ -586,12 +589,12 @@ export class Service extends DatabaseService<Model> {
   public async getPublicFormOnCustomDomain(data: {
     hostname: string | null;
     clientIp: string | undefined;
-    req?: ExpressRequest | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicForm> {
     return await this.getPublicForm({
       shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
       clientIp: data.clientIp,
-      req: data.req,
+      formSession: data.formSession,
     });
   }
 
@@ -608,14 +611,14 @@ export class Service extends DatabaseService<Model> {
     request: PublicFormSubmissionRequest;
     clientIp: string | undefined;
     captchaRemoteIp?: string | undefined;
-    req?: ExpressRequest | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicFormSubmissionResult> {
     return await this.submitPublicForm({
       shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
       request: data.request,
       clientIp: data.clientIp,
       captchaRemoteIp: data.captchaRemoteIp,
-      req: data.req,
+      formSession: data.formSession,
     });
   }
 
@@ -708,12 +711,12 @@ export class Service extends DatabaseService<Model> {
      * The session of a form that asks its visitors to sign in (#10249):
      * without one of its private users', such a form takes nothing.
      */
-    req?: ExpressRequest | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicFormSubmissionResult> {
     const form: Model = await this.getFormForPublicRequest({
       shareKey: data.shareKey,
       clientIp: data.clientIp,
-      req: data.req,
+      formSession: data.formSession,
     });
 
     if (CaptchaUtil.isCaptchaEnabled()) {
@@ -1305,12 +1308,14 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The form a public request names, once the request has passed every
-   * check that comes before learning anything about it
-   * (getFormAccessForPublicRequest) - and, on a form that asks its visitors
-   * to sign in (#10249), once it carries a live session of one of the
-   * form's private users (FormPrivateUserSessionService): anyone else is
-   * answered FORM_SIGN_IN_REQUIRED_MESSAGE, and nothing the form asks or
-   * does is read. A request without `req` is answered so too.
+   * check that comes before learning anything about it: the link has a
+   * share key's shape, a form holds that key, the form is on, its
+   * project's plan includes forms, and the visitor's network is allowed -
+   * and, on a form that asks its visitors to sign in (#10249), the visitor
+   * holds a live session of one of the form's private users (formSession):
+   * anyone else is answered FORM_SIGN_IN_REQUIRED_MESSAGE, and nothing the
+   * form asks or does is used. Without a reader, the answer is the same.
+   * The form is read in the one lookup.
    *
    * includeBranding reads the form's logo and favicon - the images
    * themselves and the project each was uploaded in, through the form's own
@@ -1321,74 +1326,92 @@ export class Service extends DatabaseService<Model> {
     shareKey: string | undefined;
     clientIp: string | undefined;
     includeBranding?: boolean | undefined;
-    req?: ExpressRequest | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<Model> {
-    const access: Model = await this.getFormAccessForPublicRequest({
-      shareKey: data.shareKey,
+    // In the one lookup: nothing of it is used before every check below.
+    const form: Model = await this.assertPubliclyReachable({
+      form: await this.findFormByShareKey({
+        shareKey: data.shareKey,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          description: true,
+          isEnabled: true,
+          targetType: true,
+          fields: true,
+          targetSettings: true,
+          templates: true,
+          successMessage: true,
+          ipWhitelist: true,
+          requireSignIn: true,
+          requireSsoForLogin: true,
+          ...(data.includeBranding
+            ? {
+                logoAltText: true,
+                logoFile: {
+                  file: true,
+                  fileType: true,
+                  projectId: true,
+                },
+                faviconFile: {
+                  file: true,
+                  fileType: true,
+                  projectId: true,
+                },
+              }
+            : {}),
+        },
+      }),
       clientIp: data.clientIp,
     });
 
     if (
-      access.requireSignIn &&
-      !(await this.findSignedInSession({ req: data.req, form: access }))
+      form.requireSignIn &&
+      !(await this.findSignedInSession({ formSession: data.formSession, form: form }))
     ) {
       throw new NotAuthenticatedException(FORM_SIGN_IN_REQUIRED_MESSAGE);
-    }
-
-    const form: Model | null = await this.findOneById({
-      id: access.id!,
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-        description: true,
-        isEnabled: true,
-        targetType: true,
-        fields: true,
-        targetSettings: true,
-        templates: true,
-        successMessage: true,
-        ...(data.includeBranding
-          ? {
-              logoAltText: true,
-              logoFile: {
-                file: true,
-                fileType: true,
-                projectId: true,
-              },
-              faviconFile: {
-                file: true,
-                fileType: true,
-                projectId: true,
-              },
-            }
-          : {}),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!form || !form.id || !form.projectId || form.isEnabled !== true) {
-      throw new NotFoundException(FORM_NOT_AVAILABLE_MESSAGE);
     }
 
     return form;
   }
 
   /*
-   * Who may reach the form a public request names, read before anything the
-   * form asks or does. Checked in this order, each needing the one before:
-   * the link has a share key's shape (so junk never reaches Postgres), a
-   * form holds that key, the form is on, its project's plan includes forms,
-   * and the visitor's network is allowed. Returns the form's access columns
-   * only: its id, project and name, its allowlist, and whether - and how -
-   * it asks its visitors to sign in.
+   * Who may reach the form a public request names (#10249), for the routes
+   * that come before the form itself - its sign-in state and its page's
+   * title - with every check a visit makes but its sign-in. Returns the
+   * form's access columns only: its id, project and name, its allowlist,
+   * and whether - and how - it asks its visitors to sign in.
    */
   private async getFormAccessForPublicRequest(data: {
     shareKey: string | undefined;
     clientIp: string | undefined;
   }): Promise<Model> {
+    return await this.assertPubliclyReachable({
+      form: await this.findFormByShareKey({
+        shareKey: data.shareKey,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          isEnabled: true,
+          ipWhitelist: true,
+          requireSignIn: true,
+          requireSsoForLogin: true,
+        },
+      }),
+      clientIp: data.clientIp,
+    });
+  }
+
+  /*
+   * The form a link's share key names, or null - a value with no share
+   * key's shape is never looked up, so junk never reaches Postgres.
+   */
+  private async findFormByShareKey(data: {
+    shareKey: string | undefined;
+    select: Select<Model>;
+  }): Promise<Model | null> {
     const shareKey: string =
       typeof data.shareKey === "string"
         ? data.shareKey.trim().toLowerCase()
@@ -1398,27 +1421,14 @@ export class Service extends DatabaseService<Model> {
       throw new NotFoundException(FORM_NOT_AVAILABLE_MESSAGE);
     }
 
-    const form: Model | null = await this.findOneBy({
+    return await this.findOneBy({
       query: {
         shareKey: new ObjectID(shareKey),
       },
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-        isEnabled: true,
-        ipWhitelist: true,
-        requireSignIn: true,
-        requireSsoForLogin: true,
-      },
+      select: data.select,
       props: {
         isRoot: true,
       },
-    });
-
-    return await this.assertPubliclyReachable({
-      form: form,
-      clientIp: data.clientIp,
     });
   }
 
@@ -1462,21 +1472,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The live session of one of this form's private users the request
-   * carries, or null - read only for a form that asks its visitors to sign
-   * in, from the form's own cookie (FormPrivateUserSessionService).
+   * The live session of one of this form's private users the visitor
+   * holds, or null - read only for a form that asks its visitors to sign
+   * in, through the reader its route handed over: the form's own cookie
+   * (FormPrivateUserSessionService.getSessionReader), and nothing else of
+   * who is calling.
    */
   private async findSignedInSession(data: {
-    req: ExpressRequest | undefined;
+    formSession: FormSessionReader | undefined;
     form: Model;
     withEmail?: boolean | undefined;
   }): Promise<FormPrivateUserSession | null> {
-    if (!data.req || !data.form.id) {
+    if (!data.formSession || !data.form.id) {
       return null;
     }
 
-    return await FormPrivateUserSessionService.findSignedInSessionOnRequest({
-      req: data.req,
+    return await data.formSession({
       formId: data.form.id,
       requireSsoForLogin: data.form.requireSsoForLogin,
       withEmail: data.withEmail,
@@ -1496,7 +1507,7 @@ export class Service extends DatabaseService<Model> {
   public async getSignInState(data: {
     shareKey: string | undefined;
     clientIp: string | undefined;
-    req: ExpressRequest;
+    formSession: FormSessionReader;
   }): Promise<FormSignInState> {
     const access: Model = await this.getFormAccessForPublicRequest({
       shareKey: data.shareKey,
@@ -1509,7 +1520,7 @@ export class Service extends DatabaseService<Model> {
 
     const session: FormPrivateUserSession | null =
       await this.findSignedInSession({
-        req: data.req,
+        formSession: data.formSession,
         form: access,
         withEmail: true,
       });
@@ -1531,12 +1542,12 @@ export class Service extends DatabaseService<Model> {
   public async getSignInStateOnCustomDomain(data: {
     hostname: string | null;
     clientIp: string | undefined;
-    req: ExpressRequest;
+    formSession: FormSessionReader;
   }): Promise<FormSignInState> {
     return await this.getSignInState({
       shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
       clientIp: data.clientIp,
-      req: data.req,
+      formSession: data.formSession,
     });
   }
 

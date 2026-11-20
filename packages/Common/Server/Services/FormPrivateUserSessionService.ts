@@ -19,6 +19,20 @@ import ObjectID from "../../Types/ObjectID";
  * cookie (findSignedInSessionOnRequest), which every public form route
  * asks through FormService before it shows or takes the form.
  */
+/*
+ * What a public form route hands FormService of its visitor (#10249): a way
+ * to read the session one of the form's private users holds on it - from
+ * the form's own cookie, and nothing else of the request. The service is
+ * never told who is calling: not a OneUptime session, nor anything a
+ * visitor sent but that cookie.
+ */
+export type FormSessionReader = (form: {
+  formId: ObjectID;
+  requireSsoForLogin: boolean | undefined;
+  // The private user's address too, for the page that says who is signed in.
+  withEmail?: boolean | undefined;
+}) => Promise<Model | null>;
+
 export class Service extends PrivateUserSessionServiceBase<Model> {
   public constructor() {
     super(Model, {
@@ -88,6 +102,22 @@ export class Service extends PrivateUserSessionServiceBase<Model> {
         ? ["session._id", "session.additionalInfo", "privateUser.email"]
         : undefined,
     });
+  }
+
+  // The visitor's form session, as a public form route hands it on (FormSessionReader).
+  public getSessionReader(req: ExpressRequest): FormSessionReader {
+    return async (form: {
+      formId: ObjectID;
+      requireSsoForLogin: boolean | undefined;
+      withEmail?: boolean | undefined;
+    }): Promise<Model | null> => {
+      return await this.findSignedInSessionOnRequest({
+        req: req,
+        formId: form.formId,
+        requireSsoForLogin: form.requireSsoForLogin,
+        withEmail: form.withEmail,
+      });
+    };
   }
 }
 
