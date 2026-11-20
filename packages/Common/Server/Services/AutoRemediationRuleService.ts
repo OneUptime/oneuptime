@@ -17,6 +17,20 @@ import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
 import { getRuleExternalMcpServersProblem } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 import { getRuleCodeRepositoriesProblem } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import { getAiRuleShapeProblem } from "../../Types/AI/AiRule";
+import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY,
+  DATA_SECURITY_AI_WORK_COLUMN,
+  DATA_SECURITY_AI_WORK_COLUMNS,
+  DATA_SECURITY_AI_WORK_TITLES,
+  DATA_SECURITY_AI_WORKS,
+  DataSecurityAiWorkColumn,
+  getDataSecurityAiRuleProblem,
+} from "../../Types/DataSecurity/DataSecurityAi";
+import {
+  DATA_SECURITY_AI_RULE_CONDITION_LIST_FIELDS,
+  getDataSecurityAiRuleConditionsProblem,
+} from "../../Types/DataSecurity/DataSecurityAiRuleConditions";
 import {
   AI_RULE_CRITERIA_FIELDS,
   getAiRuleCriteriaProblem,
@@ -80,10 +94,18 @@ export class Service extends ProjectReferencesService<Model> {
    * API or Terraform client creates always did.
    */
   public static assertNewRuleFits(data: Model): void {
-    Service.assertShapeFits({
-      investigates: data.investigates,
-      fixes: data.fixes,
-    });
+    if (data.triggerEntityType === AutoRemediationTriggerEntity.DataSecurityIssue) {
+      Service.prepareNewDataSecurityRule(data);
+    } else {
+      Service.assertNoDataSecurityWork({
+        triggerEntityType: data.triggerEntityType,
+        data: data as unknown as Record<string, unknown>,
+      });
+      Service.assertShapeFits({
+        investigates: data.investigates,
+        fixes: data.fixes,
+      });
+    }
 
     Service.assertWaitFits(data.onlyIfOpenAfterMinutes);
 
@@ -159,6 +181,82 @@ export class Service extends ProjectReferencesService<Model> {
     if (problem) {
       throw new BadDataException(problem);
     }
+  }
+
+  /*
+   * A new Data Security AI rule (#10364, Types/DataSecurity/DataSecurityAi)
+   * says what it does in its four Data Security columns - analyze, contain,
+   * fix, judge - not in Investigates and Fixes, which are not read for it.
+   * Each column a create leaves out takes the rule's default, so the rule
+   * says all four; each one given must be an answer the work offers, at
+   * least one must be on, and its condition lists may hold only values
+   * that exist.
+   */
+  public static prepareNewDataSecurityRule(data: Model): void {
+    const written: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    Service.assertDataSecurityRuleFits(written);
+
+    for (const work of DATA_SECURITY_AI_WORKS) {
+      const column: DataSecurityAiWorkColumn = DATA_SECURITY_AI_WORK_COLUMN[work];
+
+      if (written[column] === undefined || written[column] === null) {
+        written[column] = DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY[work];
+      }
+    }
+  }
+
+  // What a Data Security AI rule says, over what it held: refused when it cannot be saved.
+  public static assertDataSecurityRuleFits(
+    values: Record<string, unknown>,
+  ): void {
+    const problem: string | null =
+      getDataSecurityAiRuleProblem(values) ||
+      getDataSecurityAiRuleConditionsProblem(values);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * Only a Data Security AI rule holds the Data Security columns: on an
+   * incident's or a profile's rule they would mean nothing, and say what
+   * the rule does not do. Their conditions are held to their trigger with
+   * every other criterion (assertCriteriaFitTrigger).
+   */
+  public static assertNoDataSecurityWork(data: {
+    triggerEntityType: unknown;
+    data: Record<string, unknown>;
+  }): void {
+    if (data.triggerEntityType === AutoRemediationTriggerEntity.DataSecurityIssue) {
+      return;
+    }
+
+    for (const work of DATA_SECURITY_AI_WORKS) {
+      const value: unknown = data.data[DATA_SECURITY_AI_WORK_COLUMN[work]];
+
+      if (value !== undefined && value !== null) {
+        throw new BadDataException(
+          `${DATA_SECURITY_AI_WORK_TITLES[work]} can only be used by Data Security AI rules.`,
+        );
+      }
+    }
+  }
+
+  // Whether an update writes what a Data Security AI rule does or matches.
+  public static doesUpdateChangeDataSecurityRule(
+    data: Record<string, unknown>,
+  ): boolean {
+    return [
+      ...DATA_SECURITY_AI_WORK_COLUMNS,
+      ...DATA_SECURITY_AI_RULE_CONDITION_LIST_FIELDS,
+    ].some((field: string): boolean => {
+      return data[field] !== undefined;
+    });
   }
 
   // Whether an update writes the rule's conditions.
@@ -319,8 +417,15 @@ export class Service extends ProjectReferencesService<Model> {
     >;
     const changesShape: boolean = Service.doesUpdateChangeShape(written);
     const changesCriteria: boolean = Service.doesUpdateChangeCriteria(written);
+    const changesDataSecurityRule: boolean =
+      Service.doesUpdateChangeDataSecurityRule(written);
 
-    if (agentRunners.length === 0 && !changesShape && !changesCriteria) {
+    if (
+      agentRunners.length === 0 &&
+      !changesShape &&
+      !changesCriteria &&
+      !changesDataSecurityRule
+    ) {
       await this.allowPickedRunners({
         updateBy,
         runnerIds: writtenRunnerIds,
@@ -343,11 +448,38 @@ export class Service extends ProjectReferencesService<Model> {
         triggerEntityType: true,
         investigates: true,
         fixes: true,
+        dataSecurityAnalyze: true,
+        dataSecurityContain: true,
+        dataSecurityFix: true,
+        dataSecurityJudge: true,
       },
     );
 
     for (const rule of rules) {
-      if (changesShape) {
+      const isDataSecurityRule: boolean =
+        rule.triggerEntityType ===
+        AutoRemediationTriggerEntity.DataSecurityIssue;
+
+      if (changesDataSecurityRule) {
+        if (isDataSecurityRule) {
+          // What the update says, over what the rule holds.
+          Service.assertDataSecurityRuleFits({
+            dataSecurityAnalyze: rule.dataSecurityAnalyze,
+            dataSecurityContain: rule.dataSecurityContain,
+            dataSecurityFix: rule.dataSecurityFix,
+            dataSecurityJudge: rule.dataSecurityJudge,
+            ...written,
+          });
+        } else {
+          Service.assertNoDataSecurityWork({
+            triggerEntityType: rule.triggerEntityType,
+            data: written,
+          });
+        }
+      }
+
+      // A Data Security AI rule says what it does in its own columns.
+      if (changesShape && !isDataSecurityRule) {
         Service.assertShapeFits({
           investigates:
             written["investigates"] !== undefined
