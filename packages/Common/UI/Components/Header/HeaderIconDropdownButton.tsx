@@ -12,10 +12,18 @@ import {
 } from "../KeyboardShortcut/KeyboardKey";
 import useSpokenKeyNames from "../KeyboardShortcut/SpokenKeyNames";
 import { HeaderMenuButtonIdContext } from "./HeaderMenuContext";
+import {
+  getHeaderMenuChoiceStep,
+  getHeaderMenuItemIndexAfterKey,
+  getHeaderMenuItems,
+  HEADER_MENU_ITEM_SELECTOR,
+  isHeaderMenuRightToLeft,
+} from "./HeaderMenuKeyboard";
 import IconProp from "../../../Types/Icon/IconProp";
 import PlatformUtil from "../../Utils/Platform";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   RefObject,
   useEffect,
@@ -69,8 +77,198 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
    * HeaderMenuContext): Help and the profile button sit side by side.
    */
   const buttonId: string = `header-menu-button-${useId()}`;
+  // The menu's own id, which IconDropdownMenu draws it with (aria-controls).
+  const menuId: string = `${buttonId}-menu`;
   const buttonRef: RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+
+  /*
+   * Which row takes the focus as the menu opens: the first, or the last
+   * when Up opened it (WAI-ARIA's menu button pattern).
+   */
+  const focusOnOpenRef: MutableRefObject<"first" | "last"> = useRef<
+    "first" | "last"
+  >("first");
+
+  // The open menu: the box the button draws its children in.
+  const getMenu: () => HTMLElement | null = (): HTMLElement | null => {
+    return ref.current as HTMLElement | null;
+  };
+
+  /*
+   * As the menu opens, the focus moves to its first row (its last, opened
+   * with Up), so the arrow keys go on from there: it used to stay on the
+   * button, and Down did nothing (#7237).
+   */
+  useEffect(() => {
+    if (!hasDropdown || !isComponentVisible) {
+      return;
+    }
+
+    const items: Array<HTMLElement> = getHeaderMenuItems(getMenu());
+    const target: HTMLElement | undefined =
+      focusOnOpenRef.current === "last" ? items[items.length - 1] : items[0];
+
+    focusOnOpenRef.current = "first";
+    target?.focus();
+  }, [hasDropdown, isComponentVisible]);
+
+  // Opens the menu as a click on its button does, its owner told too.
+  const openMenu: (focusOn: "first" | "last") => void = (
+    focusOn: "first" | "last",
+  ): void => {
+    focusOnOpenRef.current = focusOn;
+    props.onClick?.();
+    setIsComponentVisible(true);
+  };
+
+  /*
+   * Down opens the menu on its first row, Up on its last; on an open menu
+   * they move the focus into it. Enter and Space press the button, which
+   * opens the menu on its first row.
+   */
+  const handleButtonKeyDown: (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLButtonElement>): void => {
+    if (
+      !hasDropdown ||
+      (event.key !== "ArrowDown" && event.key !== "ArrowUp")
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const focusOn: "first" | "last" =
+      event.key === "ArrowUp" ? "last" : "first";
+
+    if (!isComponentVisible) {
+      openMenu(focusOn);
+      return;
+    }
+
+    const items: Array<HTMLElement> = getHeaderMenuItems(getMenu());
+
+    (focusOn === "last" ? items[items.length - 1] : items[0])?.focus();
+  };
+
+  // The row of the menu an event happened in, if any.
+  const getItemOf: (target: EventTarget | null) => HTMLElement | null = (
+    target: EventTarget | null,
+  ): HTMLElement | null => {
+    if (!(target instanceof Element)) {
+      return null;
+    }
+
+    const item: Element | null = target.closest(HEADER_MENU_ITEM_SELECTOR);
+    const menu: HTMLElement | null = getMenu();
+
+    return item instanceof HTMLElement && menu && menu.contains(item)
+      ? item
+      : null;
+  };
+
+  /*
+   * Enter and Space press the row the focus is on, as one click: a link's
+   * row too, which Space alone would not open, and an action drawn as a
+   * link, whose own key handler would act without a click. The click is
+   * what the rest hears (handleMenuClickCapture).
+   */
+  const handleMenuKeyDownCapture: (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    const item: HTMLElement | null = getItemOf(event.target);
+
+    if (!item) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    item.click();
+  };
+
+  /*
+   * Up and Down move between the rows, round from the last to the first,
+   * Home and End to the first and the last, and Left and Right along a row
+   * of choices (the theme's), the way the page reads. Tab closes the menu
+   * and goes on from its button, as from any other control.
+   */
+  const handleMenuKeyDown: (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (!isComponentVisible) {
+      return;
+    }
+
+    if (event.key === "Tab") {
+      buttonRef.current?.focus();
+      setIsComponentVisible(false);
+      return;
+    }
+
+    const items: Array<HTMLElement> = getHeaderMenuItems(getMenu());
+    const current: HTMLElement | null = getItemOf(document.activeElement);
+    const from: number = current ? items.indexOf(current) : -1;
+
+    const next: number | undefined = getHeaderMenuItemIndexAfterKey({
+      key: event.key,
+      from: from,
+      count: items.length,
+    });
+
+    if (next !== undefined) {
+      event.preventDefault();
+      items[next]?.focus();
+      return;
+    }
+
+    if (!current || current.getAttribute("role") !== "menuitemradio") {
+      return;
+    }
+
+    const step: number = getHeaderMenuChoiceStep({
+      key: event.key,
+      isRightToLeft: isHeaderMenuRightToLeft(current),
+    });
+    const choices: Array<HTMLElement> = current.parentElement
+      ? getHeaderMenuItems(current.parentElement).filter(
+          (choice: HTMLElement): boolean => {
+            return choice.getAttribute("role") === "menuitemradio";
+          },
+        )
+      : [];
+    const at: number = choices.indexOf(current);
+
+    if (step === 0 || at < 0) {
+      return;
+    }
+
+    event.preventDefault();
+    choices[(at + step + choices.length) % choices.length]?.focus();
+  };
+
+  /*
+   * A row that does something hands the focus back to the button before
+   * its own handler runs: the menu then closes with the focus on its
+   * button, as WAI-ARIA's pattern asks, and a dialog the row opens (How
+   * OneUptime works, Give feedback) gives the focus back there when it
+   * closes - drawn after the row was gone, it remembered nothing. A choice
+   * (the theme's) keeps the menu open and its focus where it is.
+   */
+  const handleMenuClickCapture: (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => void = (event: React.MouseEvent<HTMLDivElement>): void => {
+    const item: HTMLElement | null = getItemOf(event.target);
+
+    if (item && item.getAttribute("role") === "menuitem") {
+      buttonRef.current?.focus();
+    }
+  };
 
   /*
    * Escape puts an open menu away, as it does every other menu and dialog
@@ -146,7 +344,8 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           } ${sizeClassName}`}
           id={hasDropdown ? buttonId : undefined}
           aria-expanded={hasDropdown ? isDropdownVisible : undefined}
-          aria-haspopup={hasDropdown ? "true" : undefined}
+          aria-haspopup={hasDropdown ? "menu" : undefined}
+          aria-controls={hasDropdown && isComponentVisible ? menuId : undefined}
           aria-pressed={props.isPressed}
           aria-keyshortcuts={
             hasShortcut
@@ -154,9 +353,11 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
               : undefined
           }
           onClick={() => {
+            focusOnOpenRef.current = "first";
             props.onClick?.();
             setIsComponentVisible(!isDropdownVisible);
           }}
+          onKeyDown={handleButtonKeyDown}
         >
           {!hasLabel && <span className="sr-only">{props.name}</span>}
           {props.iconImageUrl && (
@@ -199,7 +400,12 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <div ref={ref}>
+      <div
+        ref={ref}
+        onKeyDownCapture={handleMenuKeyDownCapture}
+        onKeyDown={handleMenuKeyDown}
+        onClickCapture={handleMenuClickCapture}
+      >
         <HeaderMenuButtonIdContext.Provider value={buttonId}>
           {isComponentVisible && props.children}
         </HeaderMenuButtonIdContext.Provider>
