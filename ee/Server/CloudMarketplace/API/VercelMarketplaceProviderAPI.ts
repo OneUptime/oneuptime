@@ -57,6 +57,12 @@ type ProviderHandler = (
   caller: VercelMarketplaceCaller,
 ) => Promise<{ status: number; body?: JSONObject | undefined }>;
 
+// What a provider API route is registered with (providerCall).
+type ProviderRoute = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => Promise<void>;
+
 export default class VercelMarketplaceProviderAPI {
   private router: ExpressRouter;
   private auth: VercelMarketplaceAuth;
@@ -68,206 +74,225 @@ export default class VercelMarketplaceProviderAPI {
     const installation: string = `${BASE}/v1/installations/:installationId`;
     const resource: string = `${installation}/resources/:resourceId`;
 
-    this.route(
-      "put",
+    /*
+     * Each route registered one by one, never through router[method]:
+     * ProductCustomRoutesGuard reads the verb of every route a file
+     * registers, and refuses a route it cannot read (#10230).
+     */
+    this.router.put(
       installation,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        await VercelMarketplaceProvider.upsertInstallation({
-          caller: caller,
-          installationId: VercelMarketplaceProviderAPI.param(
-            req,
-            "installationId",
-          ),
-          body: VercelMarketplaceProviderAPI.body(req),
-        });
-        return { status: 204 };
-      },
-    );
-
-    this.route(
-      "get",
-      installation,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        return {
-          status: 200,
-          body: await VercelMarketplaceProvider.getInstallation({
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          await VercelMarketplaceProvider.upsertInstallation({
             caller: caller,
             installationId: VercelMarketplaceProviderAPI.param(
               req,
               "installationId",
             ),
-          }),
-        };
-      },
+            body: VercelMarketplaceProviderAPI.body(req),
+          });
+          return { status: 204 };
+        },
+      ),
+    );
+
+    this.router.get(
+      installation,
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          return {
+            status: 200,
+            body: await VercelMarketplaceProvider.getInstallation({
+              caller: caller,
+              installationId: VercelMarketplaceProviderAPI.param(
+                req,
+                "installationId",
+              ),
+            }),
+          };
+        },
+      ),
     );
 
     // Plans are per resource: an installation has none to change.
-    this.route(
-      "patch",
+    this.router.patch(
       installation,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        return {
-          status: 200,
-          body: await VercelMarketplaceProvider.getInstallation({
-            caller: caller,
-            installationId: VercelMarketplaceProviderAPI.param(
-              req,
-              "installationId",
-            ),
-          }),
-        };
-      },
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          return {
+            status: 200,
+            body: await VercelMarketplaceProvider.getInstallation({
+              caller: caller,
+              installationId: VercelMarketplaceProviderAPI.param(
+                req,
+                "installationId",
+              ),
+            }),
+          };
+        },
+      ),
     );
 
-    this.route(
-      "delete",
+    this.router.delete(
       installation,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        return {
-          status: 200,
-          body: await VercelMarketplaceProvider.deleteInstallation({
-            caller: caller,
-            installationId: VercelMarketplaceProviderAPI.param(
-              req,
-              "installationId",
-            ),
-          }),
-        };
-      },
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          return {
+            status: 200,
+            body: await VercelMarketplaceProvider.deleteInstallation({
+              caller: caller,
+              installationId: VercelMarketplaceProviderAPI.param(
+                req,
+                "installationId",
+              ),
+            }),
+          };
+        },
+      ),
     );
 
-    this.route(
-      "get",
+    this.router.get(
       `${installation}/plans`,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        VercelMarketplaceProvider.assertCallerOf(
-          caller,
-          VercelMarketplaceProviderAPI.param(req, "installationId"),
-        );
-        return { status: 200, body: { plans: [] } };
-      },
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          VercelMarketplaceProvider.assertCallerOf(
+            caller,
+            VercelMarketplaceProviderAPI.param(req, "installationId"),
+          );
+          return { status: 200, body: { plans: [] } };
+        },
+      ),
     );
 
     // Asked before anything is installed, too: the token then names no installation.
-    this.route("get", `${BASE}/v1/products/:productSlug/plans`, async () => {
-      return {
-        status: 200,
-        body: VercelMarketplaceProvider.listPlans() as unknown as JSONObject,
-      };
-    });
-
-    this.route(
-      "post",
-      `${installation}/resources`,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        return {
-          status: 200,
-          body: await VercelMarketplaceProvider.provisionResource({
-            caller: caller,
-            installationId: VercelMarketplaceProviderAPI.param(
-              req,
-              "installationId",
-            ),
-            body: VercelMarketplaceProviderAPI.body(req),
-            idempotencyKey: VercelMarketplaceProviderAPI.header(
-              req,
-              "idempotency-key",
-            ),
-          }),
-        };
-      },
-    );
-
-    this.route(
-      "get",
-      resource,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        return {
-          status: 200,
-          body: await VercelMarketplaceProvider.getResource({
-            caller: caller,
-            installationId: VercelMarketplaceProviderAPI.param(
-              req,
-              "installationId",
-            ),
-            resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
-          }),
-        };
-      },
-    );
-
-    this.route(
-      "patch",
-      resource,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        return {
-          status: 200,
-          body: await VercelMarketplaceProvider.updateResource({
-            caller: caller,
-            installationId: VercelMarketplaceProviderAPI.param(
-              req,
-              "installationId",
-            ),
-            resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
-            body: VercelMarketplaceProviderAPI.body(req),
-          }),
-        };
-      },
-    );
-
-    this.route(
-      "delete",
-      resource,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        await VercelMarketplaceProvider.deleteResource({
-          caller: caller,
-          installationId: VercelMarketplaceProviderAPI.param(
-            req,
-            "installationId",
-          ),
-          resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
-        });
-        return { status: 204 };
-      },
-    );
-
-    this.route(
-      "get",
-      `${resource}/plans`,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        await VercelMarketplaceProvider.getResource({
-          caller: caller,
-          installationId: VercelMarketplaceProviderAPI.param(
-            req,
-            "installationId",
-          ),
-          resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
-        });
-
+    this.router.get(
+      `${BASE}/v1/products/:productSlug/plans`,
+      this.providerCall(async () => {
         return {
           status: 200,
           body: VercelMarketplaceProvider.listPlans() as unknown as JSONObject,
         };
-      },
+      }),
     );
 
-    this.route(
-      "post",
-      `${resource}/secrets/rotate`,
-      async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
-        return {
-          status: 200,
-          body: await VercelMarketplaceProvider.rotateSecrets({
+    this.router.post(
+      `${installation}/resources`,
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          return {
+            status: 200,
+            body: await VercelMarketplaceProvider.provisionResource({
+              caller: caller,
+              installationId: VercelMarketplaceProviderAPI.param(
+                req,
+                "installationId",
+              ),
+              body: VercelMarketplaceProviderAPI.body(req),
+              idempotencyKey: VercelMarketplaceProviderAPI.header(
+                req,
+                "idempotency-key",
+              ),
+            }),
+          };
+        },
+      ),
+    );
+
+    this.router.get(
+      resource,
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          return {
+            status: 200,
+            body: await VercelMarketplaceProvider.getResource({
+              caller: caller,
+              installationId: VercelMarketplaceProviderAPI.param(
+                req,
+                "installationId",
+              ),
+              resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
+            }),
+          };
+        },
+      ),
+    );
+
+    this.router.patch(
+      resource,
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          return {
+            status: 200,
+            body: await VercelMarketplaceProvider.updateResource({
+              caller: caller,
+              installationId: VercelMarketplaceProviderAPI.param(
+                req,
+                "installationId",
+              ),
+              resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
+              body: VercelMarketplaceProviderAPI.body(req),
+            }),
+          };
+        },
+      ),
+    );
+
+    this.router.delete(
+      resource,
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          await VercelMarketplaceProvider.deleteResource({
             caller: caller,
             installationId: VercelMarketplaceProviderAPI.param(
               req,
               "installationId",
             ),
             resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
-            body: VercelMarketplaceProviderAPI.body(req),
-          }),
-        };
-      },
+          });
+          return { status: 204 };
+        },
+      ),
+    );
+
+    this.router.get(
+      `${resource}/plans`,
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          await VercelMarketplaceProvider.getResource({
+            caller: caller,
+            installationId: VercelMarketplaceProviderAPI.param(
+              req,
+              "installationId",
+            ),
+            resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
+          });
+
+          return {
+            status: 200,
+            body: VercelMarketplaceProvider.listPlans() as unknown as JSONObject,
+          };
+        },
+      ),
+    );
+
+    this.router.post(
+      `${resource}/secrets/rotate`,
+      this.providerCall(
+        async (req: ExpressRequest, caller: VercelMarketplaceCaller) => {
+          return {
+            status: 200,
+            body: await VercelMarketplaceProvider.rotateSecrets({
+              caller: caller,
+              installationId: VercelMarketplaceProviderAPI.param(
+                req,
+                "installationId",
+              ),
+              resourceId: VercelMarketplaceProviderAPI.param(req, "resourceId"),
+              body: VercelMarketplaceProviderAPI.body(req),
+            }),
+          };
+        },
+      ),
     );
 
     this.router.post(
@@ -282,82 +307,80 @@ export default class VercelMarketplaceProviderAPI {
     return this.router;
   }
 
-  private route(
-    method: "get" | "put" | "post" | "patch" | "delete",
-    path: string,
-    handler: ProviderHandler,
-  ): void {
-    this.router[method](
-      path,
-      async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-        if (!MarketplaceConfig.isVercelConfigured()) {
-          res.status(404).json({
-            error: {
-              code: "not_found",
-              message: "Vercel Marketplace is not available on this server.",
-            },
-          });
+  /*
+   * A provider API call's route handler: 404 on a server that does not sell
+   * through Vercel, 403 to a token that is not Vercel's, and otherwise what
+   * the handler answers - a refusal in Vercel's error shape, anything else
+   * as a 500 to retry.
+   */
+  private providerCall(handler: ProviderHandler): ProviderRoute {
+    return async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+      if (!MarketplaceConfig.isVercelConfigured()) {
+        res.status(404).json({
+          error: {
+            code: "not_found",
+            message: "Vercel Marketplace is not available on this server.",
+          },
+        });
+        return;
+      }
+
+      let caller: VercelMarketplaceCaller;
+
+      try {
+        caller = await this.auth.verifyAuthorizationHeader(
+          req.headers["authorization"],
+        );
+      } catch (err) {
+        logger.warn(
+          `Refused a Vercel Marketplace call to ${req.method} ${req.path}: ${(err as Error).message}`,
+        );
+
+        res.status(403).json({
+          error: {
+            code: "forbidden",
+            message:
+              err instanceof VercelAuthError
+                ? err.message
+                : "The request could not be authenticated.",
+          },
+        });
+        return;
+      }
+
+      try {
+        const result: { status: number; body?: JSONObject | undefined } =
+          await handler(req, caller);
+
+        if (result.body === undefined) {
+          res.status(result.status).end();
           return;
         }
 
-        let caller: VercelMarketplaceCaller;
-
-        try {
-          caller = await this.auth.verifyAuthorizationHeader(
-            req.headers["authorization"],
-          );
-        } catch (err) {
-          logger.warn(
-            `Refused a Vercel Marketplace call to ${req.method} ${req.path}: ${(err as Error).message}`,
-          );
-
-          res.status(403).json({
-            error: {
-              code: "forbidden",
-              message:
-                err instanceof VercelAuthError
-                  ? err.message
-                  : "The request could not be authenticated.",
-            },
-          });
+        res.status(result.status).json(result.body);
+      } catch (err) {
+        if (err instanceof VercelProviderError) {
+          res.status(err.getStatus()).json(err.toJSON());
           return;
         }
 
-        try {
-          const result: { status: number; body?: JSONObject | undefined } =
-            await handler(req, caller);
+        logger.error(
+          `Vercel Marketplace call ${req.method} ${req.path} failed.`,
+        );
+        logger.error(err);
 
-          if (result.body === undefined) {
-            res.status(result.status).end();
-            return;
-          }
-
-          res.status(result.status).json(result.body);
-        } catch (err) {
-          if (err instanceof VercelProviderError) {
-            res.status(err.getStatus()).json(err.toJSON());
-            return;
-          }
-
-          logger.error(
-            `Vercel Marketplace call ${req.method} ${req.path} failed.`,
-          );
-          logger.error(err);
-
-          res.status(500).json({
-            error: {
-              code: "internal_error",
+        res.status(500).json({
+          error: {
+            code: "internal_error",
+            message: "OneUptime could not complete the request. Please retry.",
+            user: {
               message:
-                "OneUptime could not complete the request. Please retry.",
-              user: {
-                message:
-                  "OneUptime could not complete this right now. Please try again in a minute.",
-              },
+                "OneUptime could not complete this right now. Please try again in a minute.",
             },
-          });
-        }
-      },
-    );
+          },
+        });
+      }
+    };
   }
 
   /*
