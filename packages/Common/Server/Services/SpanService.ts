@@ -20,6 +20,8 @@ import ObjectID from "../../Types/ObjectID";
 import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
 import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
+import HashedAddressSearch from "../Utils/Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../Types/Telemetry/HashedAddressSearch";
 import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "../../Types/JSON";
@@ -128,6 +130,22 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     });
 
     return countBy;
+  }
+
+  /*
+   * A search for an IP address also finds the spans whose address an IP
+   * Address rule hashed, by the project's token for it (#10418): every
+   * read of spans takes it (AnalyticsDatabaseService.bindReadQuery).
+   */
+  protected override async bindReadQuery(data: {
+    query: Query<Span>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Query<Span>> {
+    return await HashedAddressSearch.bindQuery({
+      query: data.query,
+      props: data.props,
+      signal: HashedAddressSignal.Traces,
+    });
   }
 
   /**
@@ -896,7 +914,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const permission: CheckReadPermissionType<Span> =
       await ModelPermission.checkReadPermission(
         this.modelType,
-        countBy.query,
+        await this.bindReadQueryOf(countBy.query, input.props),
         null,
         input.props,
       );
