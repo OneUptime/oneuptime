@@ -235,16 +235,27 @@ export class Service extends ProjectReferencesService<Model> {
    * the write that made them the giver has passed every check already. A
    * variable of a raised workflow saved by someone who holds its
    * permissions makes them the giver the same way (WorkflowVariableService).
+   * Each column is written out, so it is plain that none is one a project's
+   * listening triggers are read by (WorkflowListeners), nor one the audit
+   * log records: only OneUptime writes them. The change to the variables
+   * that made someone the giver is recorded, with who made it, on the
+   * workflow's own Audit Logs page.
    */
   public async recordRunAsGiven(data: {
     workflowIds: Array<ObjectID>;
     giver: WorkflowRunAsGiver;
   }): Promise<void> {
+    const givenBy: Record<
+      "runAsGivenByUserId" | "runAsGivenByApiKeyId",
+      ObjectID | null
+    > = WorkflowRunAsAuthority.getGivenByColumns(data.giver);
+
     for (const workflowId of data.workflowIds) {
       await this.updateColumnsByIdWithoutHooks({
         id: workflowId,
         data: {
-          ...WorkflowRunAsAuthority.getGivenByColumns(data.giver),
+          runAsGivenByUserId: givenBy.runAsGivenByUserId,
+          runAsGivenByApiKeyId: givenBy.runAsGivenByApiKeyId,
           runAsGivenAt: OneUptimeDate.getCurrentDate(),
         } as any,
         skipUpdateDateColumn: true,
@@ -304,6 +315,14 @@ export class Service extends ProjectReferencesService<Model> {
       string,
       unknown
     >;
+
+    // The custom role under either of its names (normalizeRunAsWrite keeps its id).
+    RelationIdUtil.readIntoIdColumn(
+      data,
+      RUN_AS_CUSTOM_ROLE_KEYS,
+      "Run As Custom Role",
+    );
+
     const written: Array<string> = this.getColumnsWrittenByCaller(data);
 
     if (written.length === 0) {
@@ -502,7 +521,15 @@ export class Service extends ProjectReferencesService<Model> {
 
     const role: WorkflowRunAsRole | null =
       await WorkflowRunAsAuthority.assertMayGive({
-        setting: { runAs: runAs, customRoleId: data.runAsCustomRoleId },
+        setting: {
+          runAs: runAs,
+          // The custom role under either of its names.
+          customRoleId: RelationIdUtil.readConsistent(
+            data as unknown as Record<string, unknown>,
+            RUN_AS_CUSTOM_ROLE_KEYS,
+            "Run As Custom Role",
+          ),
+        },
         projectId: projectId,
         props: createBy.props,
       });

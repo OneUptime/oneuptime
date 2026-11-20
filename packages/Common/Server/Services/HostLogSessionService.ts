@@ -31,6 +31,8 @@ import AndroidAgentLogSessions, {
   DeviceLogSessionRequest,
 } from "../../Utils/Host/AndroidAgentLogSessions";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
+import logger from "../Utils/Logger";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 export const NOT_AN_ANDROID_DEVICE_MESSAGE: string =
   "Log sessions are for Android devices that run the OneUptime Android agent. This host is not one.";
@@ -66,7 +68,8 @@ export class Service extends ProjectReferencesService<Model> {
    * A person asks: on an Android device, for a duration and a level
    * OneUptime offers, while no other session of the device is waiting or
    * running. OneUptime sets everything else - Requested, and how long the
-   * person at the device has to allow it.
+   * person at the device has to allow it - once they may ask
+   * (onCreatePermitted).
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -77,7 +80,19 @@ export class Service extends ProjectReferencesService<Model> {
     const data: Model = createBy.data;
     const projectId: ObjectID | undefined =
       data.projectId || createBy.props.tenantId;
-    const hostId: ObjectID | undefined = data.hostId;
+
+    /*
+     * The device, by either name a write can give it - the Dashboard sends
+     * hostId, an API caller may send the host - and refused when the two
+     * disagree (ReferenceNamesReadTogether). It is left in hostId, so the
+     * session is saved for the device checked here, and the hooks after
+     * this one read it there.
+     */
+    const hostId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      data as unknown as Record<string, unknown>,
+      ["hostId", "host"],
+      "Host",
+    );
 
     if (!projectId || !hostId) {
       throw new BadDataException(
@@ -117,31 +132,80 @@ export class Service extends ProjectReferencesService<Model> {
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    await this.settleStaleSessions({ hostId: hostId, now: now });
-
-    const open: Model | null = await this.findOneBy({
-      query: {
-        hostId: hostId,
-        status: QueryHelper.any([...HOST_LOG_SESSION_ACTIVE_STATUSES]),
-      },
-      select: { _id: true },
-      props: { isRoot: true },
+    /*
+     * A session the device stopped telling OneUptime about does not hold the
+     * device: one the clock has ended (AndroidAgentLogSessions.staleChange)
+     * is not open. It is only read here - a hook before the create's
+     * permission checks writes nothing a refused create would leave behind
+     * (HookWritesAfterPermissionGuard) - and ended once the new session is
+     * saved (onCreateSuccess).
+     */
+    const open: Array<Model> = await this.findOpenSessions({
+      hostId: hostId,
+      now: now,
     });
 
-    if (open) {
+    if (open.length > 0) {
       throw new BadDataException(SESSION_ALREADY_OPEN_MESSAGE);
     }
 
     data.projectId = projectId;
     data.durationMinutes = durationMinutes;
     data.minimumLevel = minimumLevel;
-    data.status = HostLogSessionStatus.Requested;
-    data.expiresAt = OneUptimeDate.addRemoveMinutes(
-      now,
-      HOST_LOG_SESSION_REQUEST_VALID_MINUTES,
-    );
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * What OneUptime sets on a new session - Requested, and how long the
+   * person at the device has to allow it - written once the request has
+   * passed its permission checks: nobody may write either column, so
+   * written before them it was held against the person and refused every
+   * request (HookWritesCallersMayMake).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const data: Model = onCreate.createBy.data;
+
+    data.status = HostLogSessionStatus.Requested;
+    data.expiresAt = OneUptimeDate.addRemoveMinutes(
+      OneUptimeDate.getCurrentDate(),
+      HOST_LOG_SESSION_REQUEST_VALID_MINUTES,
+    );
+  }
+
+  /*
+   * The new session is saved: the device's sessions the clock has ended,
+   * which did not hold it up (onBeforeCreate), are ended in their rows too,
+   * so its list reads Expired or Ended rather than still waiting. The
+   * device's next exchange ends them as well (exchangeWithDevice), so a
+   * failure here is logged and the request stands.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const created: Model = await super.onCreateSuccess(onCreate, createdItem);
+    // The saved row's device: onBeforeCreate left it in hostId, under either name it came.
+    const hostId: ObjectID | undefined = createdItem.hostId;
+
+    if (hostId) {
+      try {
+        await this.settleStaleSessions({
+          hostId: new ObjectID(hostId.toString()),
+          now: OneUptimeDate.getCurrentDate(),
+        });
+      } catch (err) {
+        logger.error(err);
+      }
+    }
+
+    return created;
   }
 
   /*
@@ -165,13 +229,16 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(ONLY_CANCEL_MESSAGE);
     }
 
-    const sessions: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: { _id: true, status: true },
-      skip: 0,
-      limit: 100,
-      props: updateBy.props,
-    });
+    /*
+     * The sessions the cancel writes, read in its own query and window -
+     * those the person may change - and the cancel held to them
+     * (findRowsAndHoldUpdateToThem): a session judged still open is the
+     * session cancelled.
+     */
+    const sessions: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { _id: true, status: true },
+    );
 
     for (const session of sessions) {
       if (!HostLogSessionUtil.isActive(session.status)) {
@@ -179,10 +246,29 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * When a person's cancel ended the session, and why, in OneUptime's
+   * words: written once the cancel has passed its permission checks, as
+   * nobody may write either column (HookWritesCallersMayMake). OneUptime's
+   * own writes (the device's reports) say what they write.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const data: Model = updateBy.data as unknown as Model;
+
     data.endedAt = OneUptimeDate.getCurrentDate();
     data.statusMessage = CANCELLED_MESSAGE;
-
-    return { updateBy, carryForward: null };
   }
 
   /*
@@ -195,9 +281,45 @@ export class Service extends ProjectReferencesService<Model> {
     hostId: ObjectID;
     now: Date;
   }): Promise<void> {
-    const sessions: Array<Model> = await this.findBy({
+    const sessions: Array<Model> = await this.findActiveSessions(data.hostId);
+
+    for (const session of sessions) {
+      const change: DeviceLogSessionChange | null =
+        AndroidAgentLogSessions.staleChange({ row: session, now: data.now });
+
+      if (change && session._id) {
+        await this.applyChange(new ObjectID(session._id.toString()), change);
+      }
+    }
+  }
+
+  /*
+   * The device's sessions that still hold it: waiting or running, and not
+   * ended by the clock (AndroidAgentLogSessions.staleChange). Only read.
+   */
+  private async findOpenSessions(data: {
+    hostId: ObjectID;
+    now: Date;
+  }): Promise<Array<Model>> {
+    const sessions: Array<Model> = await this.findActiveSessions(data.hostId);
+
+    return sessions.filter((session: Model): boolean => {
+      return !AndroidAgentLogSessions.staleChange({
+        row: session,
+        now: data.now,
+      });
+    });
+  }
+
+  /*
+   * The device's sessions OneUptime still has as waiting or running, the
+   * newest first, with what the clock rules read. A device has one at a
+   * time (onBeforeCreate), and a few the device went quiet on at most.
+   */
+  private async findActiveSessions(hostId: ObjectID): Promise<Array<Model>> {
+    return await this.findBy({
       query: {
-        hostId: data.hostId,
+        hostId: hostId,
         status: QueryHelper.any([...HOST_LOG_SESSION_ACTIVE_STATUSES]),
       },
       select: {
@@ -209,19 +331,11 @@ export class Service extends ProjectReferencesService<Model> {
         endsAt: true,
         durationMinutes: true,
       },
+      sort: { createdAt: SortOrder.Descending },
       skip: 0,
       limit: MAX_SESSIONS_FOR_DEVICE,
       props: { isRoot: true },
     });
-
-    for (const session of sessions) {
-      const change: DeviceLogSessionChange | null =
-        AndroidAgentLogSessions.staleChange({ row: session, now: data.now });
-
-      if (change && session._id) {
-        await this.applyChange(new ObjectID(session._id.toString()), change);
-      }
-    }
   }
 
   /*

@@ -37,7 +37,10 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
-import { CANCELLED_MESSAGE } from "../../../Utils/Host/AndroidAgentLogSessions";
+import {
+  CANCELLED_MESSAGE,
+  NOBODY_ALLOWED_MESSAGE,
+} from "../../../Utils/Host/AndroidAgentLogSessions";
 import {
   afterEach,
   beforeEach,
@@ -61,12 +64,41 @@ type Hooks = {
   onBeforeCreate: (
     createBy: CreateBy<HostLogSession>,
   ) => Promise<OnCreate<HostLogSession>>;
+  onCreatePermitted: (onCreate: OnCreate<HostLogSession>) => Promise<void>;
   onBeforeUpdate: (
     updateBy: UpdateBy<HostLogSession>,
   ) => Promise<OnUpdate<HostLogSession>>;
+  onUpdatePermitted: (updateBy: UpdateBy<HostLogSession>) => Promise<void>;
+  onCreateSuccess: (
+    onCreate: OnCreate<HostLogSession>,
+    createdItem: HostLogSession,
+  ) => Promise<HostLogSession>;
 };
 
 const hooks: Hooks = HostLogSessionService as unknown as Hooks;
+
+/*
+ * A create's hooks as DatabaseService runs them: onBeforeCreate, then -
+ * once the request has passed every permission check - onCreatePermitted.
+ */
+async function ask(
+  request: CreateBy<HostLogSession>,
+): Promise<OnCreate<HostLogSession>> {
+  const onCreate: OnCreate<HostLogSession> =
+    await hooks.onBeforeCreate(request);
+  await hooks.onCreatePermitted(onCreate);
+  return onCreate;
+}
+
+// An update's hooks the same way: onBeforeUpdate, then onUpdatePermitted.
+async function change(
+  request: UpdateBy<HostLogSession>,
+): Promise<OnUpdate<HostLogSession>> {
+  const onUpdate: OnUpdate<HostLogSession> =
+    await hooks.onBeforeUpdate(request);
+  await hooks.onUpdatePermitted(onUpdate.updateBy);
+  return onUpdate;
+}
 
 let host: Host | null = null;
 let sessions: Array<HostLogSession> = [];
@@ -160,6 +192,12 @@ beforeEach(() => {
   }) => {
     return matching(args.query);
   }) as never);
+  // The sessions a cancel writes, as the update path reads and holds them.
+  jest
+    .spyOn(HostLogSessionService, "findRowsAndHoldUpdateToThem")
+    .mockImplementation((async (updateBy: UpdateBy<HostLogSession>) => {
+      return matching(updateBy.query as Record<string, unknown>);
+    }) as never);
   jest
     .spyOn(HostLogSessionService, "updateOneById")
     .mockImplementation((async (args: {
@@ -194,7 +232,7 @@ function createBy(data: Partial<HostLogSession>): CreateBy<HostLogSession> {
 describe("asking for a log session", () => {
   test("is Requested, for the time asked, and the person at the device has an hour to allow it", async () => {
     const before: number = Date.now();
-    const result: OnCreate<HostLogSession> = await hooks.onBeforeCreate(
+    const result: OnCreate<HostLogSession> = await ask(
       createBy({
         durationMinutes: 60,
         minimumLevel: HostLogSessionLevel.Debug,
@@ -233,6 +271,47 @@ describe("asking for a log session", () => {
     );
   });
 
+  /*
+   * ReferenceNamesReadTogether: the device is a reference with two names, and
+   * a write may give either. Both are read, two that disagree are refused,
+   * and the device checked is the device saved.
+   */
+  test("is for the device named by the relation too, and saves it under its ID column", async () => {
+    const relation: Host = new Host();
+    relation._id = HOST_ID.toString();
+    const findHost: unknown = HostService.findOneBy;
+
+    const data: HostLogSession = (
+      await hooks.onBeforeCreate(
+        createBy({ hostId: undefined, host: relation } as never),
+      )
+    ).createBy.data;
+
+    expect(data.hostId?.toString()).toBe(HOST_ID.toString());
+    expect(findHost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ _id: expect.anything() }),
+      }),
+    );
+    const askedFor: unknown = (
+      (
+        findHost as {
+          mock: { calls: Array<Array<{ query: { _id: unknown } }>> };
+        }
+      ).mock.calls[0]![0]!.query._id as ObjectID
+    ).toString();
+    expect(askedFor).toBe(HOST_ID.toString());
+  });
+
+  test("a device named one way under hostId and another under host is refused", async () => {
+    const other: Host = new Host();
+    other._id = ObjectID.generate().toString();
+
+    await expect(
+      hooks.onBeforeCreate(createBy({ host: other } as never)),
+    ).rejects.toThrow("Conflicting Host references");
+  });
+
   test("is for a device of the project", async () => {
     host = null;
 
@@ -268,11 +347,136 @@ describe("asking for a log session", () => {
       }),
     ];
 
+    const data: HostLogSession = (await ask(createBy({}))).createBy.data;
+
+    expect(data.status).toBe(HostLogSessionStatus.Requested);
+  });
+
+  test("nor for one running well past its end with no word from the device", async () => {
+    sessions = [
+      session({
+        status: HostLogSessionStatus.Collecting,
+        startedAt: new Date(Date.now() - 70 * 60 * 1000),
+        endsAt: new Date(Date.now() - 40 * 60 * 1000),
+      }),
+    ];
+
+    const data: HostLogSession = (await ask(createBy({}))).createBy.data;
+
+    expect(data.status).toBe(HostLogSessionStatus.Requested);
+  });
+
+  test("waits for one whose request ran out only minutes ago: the device may still report it", async () => {
+    sessions = [
+      session({
+        status: HostLogSessionStatus.AwaitingApproval,
+        expiresAt: new Date(Date.now() - 5 * 60 * 1000),
+      }),
+    ];
+
+    await expect(hooks.onBeforeCreate(createBy({}))).rejects.toThrow(
+      SESSION_ALREADY_OPEN_MESSAGE,
+    );
+  });
+
+  /*
+   * A hook before the create's permission checks writes nothing a refused
+   * create would leave behind (HookWritesAfterPermissionGuard): the stale
+   * session is ended once the new one is saved, not while it is asked for.
+   */
+  test("writes nothing while it is asked for, refused or not", async () => {
+    const stale: HostLogSession = session({
+      status: HostLogSessionStatus.AwaitingApproval,
+      expiresAt: new Date(Date.now() - 30 * 60 * 1000),
+    });
+    sessions = [stale];
+
+    await hooks.onBeforeCreate(createBy({}));
+    await expect(
+      hooks.onBeforeCreate(createBy({ durationMinutes: 600 })),
+    ).rejects.toThrow("15, 30, 60, 120, 240 minutes");
+
+    expect(updates).toEqual([]);
+    expect(stale.status).toBe(HostLogSessionStatus.AwaitingApproval);
+  });
+
+  /*
+   * HookWritesCallersMayMake: the status and the expiry are nobody's to
+   * write, so the hook before the permission checks writes neither - the
+   * checks would hold them against the person and refuse every request.
+   */
+  test("sets nothing of OneUptime's before the permission checks", async () => {
     const data: HostLogSession = (await hooks.onBeforeCreate(createBy({})))
       .createBy.data;
 
-    expect(data.status).toBe(HostLogSessionStatus.Requested);
-    expect(sessions[0]!.status).toBe(HostLogSessionStatus.Expired);
+    expect(data.status).toBeUndefined();
+    expect(data.expiresAt).toBeUndefined();
+  });
+
+  test("once it is saved, the sessions the clock ended are ended in their rows", async () => {
+    const stale: HostLogSession = session({
+      status: HostLogSessionStatus.AwaitingApproval,
+      expiresAt: new Date(Date.now() - 30 * 60 * 1000),
+    });
+    sessions = [stale];
+
+    const onCreate: OnCreate<HostLogSession> = await hooks.onBeforeCreate(
+      createBy({}),
+    );
+    // The row the create wrote, as the database now holds it.
+    const created: HostLogSession = session({
+      status: HostLogSessionStatus.Requested,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+    sessions.push(created);
+    const result: HostLogSession = await hooks.onCreateSuccess(
+      onCreate,
+      created,
+    );
+
+    expect(result).toBe(created);
+    // The saved row's device is the one whose sessions are read.
+    expect(HostLogSessionService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ hostId: created.hostId }),
+      }),
+    );
+    expect(updates).toEqual([
+      {
+        id: stale._id!.toString(),
+        data: {
+          status: HostLogSessionStatus.Expired,
+          statusMessage: NOBODY_ALLOWED_MESSAGE,
+          endedAt: expect.any(Date),
+        },
+      },
+    ]);
+    expect(created.status).toBe(HostLogSessionStatus.Requested);
+  });
+
+  test("a session it could not end does not undo the request: the device's next exchange ends it", async () => {
+    sessions = [
+      session({
+        status: HostLogSessionStatus.AwaitingApproval,
+        expiresAt: new Date(Date.now() - 30 * 60 * 1000),
+      }),
+    ];
+    jest
+      .spyOn(HostLogSessionService, "updateOneById")
+      .mockImplementation((async () => {
+        throw new Error("The database is not reachable.");
+      }) as never);
+    const created: HostLogSession = session({
+      status: HostLogSessionStatus.Requested,
+    });
+
+    const onCreate: OnCreate<HostLogSession> = await hooks.onBeforeCreate(
+      createBy({}),
+    );
+
+    await expect(hooks.onCreateSuccess(onCreate, created)).resolves.toBe(
+      created,
+    );
   });
 });
 
@@ -294,7 +498,7 @@ describe("changing a log session", () => {
     });
     sessions = [open];
 
-    const result: OnUpdate<HostLogSession> = await hooks.onBeforeUpdate(
+    const result: OnUpdate<HostLogSession> = await change(
       updateBy(
         { status: HostLogSessionStatus.Cancelled },
         open._id!.toString(),
@@ -306,6 +510,83 @@ describe("changing a log session", () => {
     expect(data.status).toBe(HostLogSessionStatus.Cancelled);
     expect(data.statusMessage).toBe(CANCELLED_MESSAGE);
     expect(data.endedAt).toBeInstanceOf(Date);
+  });
+
+  // HookWritesCallersMayMake: nobody may write when it ended, or why.
+  test("when it ended, and why, are written only once the cancel may be made", async () => {
+    const open: HostLogSession = session({
+      status: HostLogSessionStatus.Collecting,
+    });
+    sessions = [open];
+
+    const result: OnUpdate<HostLogSession> = await hooks.onBeforeUpdate(
+      updateBy(
+        { status: HostLogSessionStatus.Cancelled },
+        open._id!.toString(),
+      ),
+    );
+    const data: HostLogSession = result.updateBy
+      .data as unknown as HostLogSession;
+
+    expect(data.endedAt).toBeUndefined();
+    expect(data.statusMessage).toBeUndefined();
+  });
+
+  test("the sessions it checks are the ones it cancels: read held, never by its query", async () => {
+    const open: HostLogSession = session({
+      status: HostLogSessionStatus.Collecting,
+    });
+    sessions = [open];
+
+    const update: UpdateBy<HostLogSession> = updateBy(
+      { status: HostLogSessionStatus.Cancelled },
+      open._id!.toString(),
+    );
+
+    await hooks.onBeforeUpdate(update);
+
+    // UpdateChecksReadHeldRows: the cancel is held to the sessions read.
+    expect(
+      HostLogSessionService.findRowsAndHoldUpdateToThem,
+    ).toHaveBeenCalledWith(update, { _id: true, status: true });
+    expect(HostLogSessionService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("a cancel that reaches no session the person may change judges none, and is held to none", async () => {
+    sessions = [];
+
+    const result: OnUpdate<HostLogSession> = await hooks.onBeforeUpdate(
+      updateBy(
+        { status: HostLogSessionStatus.Cancelled },
+        ObjectID.generate().toString(),
+      ),
+    );
+
+    expect(
+      HostLogSessionService.findRowsAndHoldUpdateToThem,
+    ).toHaveBeenCalledTimes(1);
+    expect((result.updateBy.data as unknown as HostLogSession).status).toBe(
+      HostLogSessionStatus.Cancelled,
+    );
+  });
+
+  test("OneUptime's own writes are not judged: the device's reports go through as they are", async () => {
+    const result: OnUpdate<HostLogSession> = await change({
+      query: { _id: ObjectID.generate().toString() },
+      data: { status: HostLogSessionStatus.Collecting },
+      props: { isRoot: true },
+    } as unknown as UpdateBy<HostLogSession>);
+
+    expect(
+      HostLogSessionService.findRowsAndHoldUpdateToThem,
+    ).not.toHaveBeenCalled();
+    expect((result.updateBy.data as unknown as HostLogSession).status).toBe(
+      HostLogSessionStatus.Collecting,
+    );
+    // Nothing of a person's cancel is added to them.
+    expect(result.updateBy.data).toEqual({
+      status: HostLogSessionStatus.Collecting,
+    });
   });
 
   test("cancelling is the only change a person makes", async () => {

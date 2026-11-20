@@ -285,13 +285,17 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const current: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: { _id: true, isEnabled: true },
-      skip: 0,
-      limit: 1000,
-      props: { isRoot: true },
-    });
+    /*
+     * Where each row the update writes stands now: the very rows it
+     * writes, read in its own query, window and project, and the update
+     * held to them (findRowsAndHoldUpdateToThem). So who and when are
+     * decided on the rows written - never on a row of another project, or
+     * one the caller may not change, that the query also names.
+     */
+    const current: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { _id: true, isEnabled: true },
+    );
 
     if (
       current.length > 0 &&

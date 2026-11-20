@@ -5,6 +5,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
 import WorkflowRunAsAuthority, {
   WorkflowRunAsAction,
@@ -45,6 +46,9 @@ import Model from "../../Models/DatabaseModels/WorkflowVariable";
 function isSecretValue(value: unknown): boolean {
   return toStoredBoolean(value) === true;
 }
+
+// The workflow a variable is of, under either of its names.
+const WORKFLOW_KEYS: Array<string> = ["workflowId", "workflow"];
 
 /*
  * The settings of an OAuth 2.0 variable a person can change after creating it.
@@ -295,7 +299,13 @@ export class Service extends ProjectReferencesService<Model> {
     onCreate: OnCreate<Model>,
   ): Promise<void> {
     onCreate.carryForward = await this.holdVariablesToWorkflowHolders({
-      workflowIds: [onCreate.createBy.data.workflowId],
+      workflowIds: [
+        RelationIdUtil.readConsistent(
+          onCreate.createBy.data as unknown as Record<string, unknown>,
+          WORKFLOW_KEYS,
+          "Workflow",
+        ),
+      ],
       props: onCreate.createBy.props,
     });
   }

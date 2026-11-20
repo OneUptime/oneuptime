@@ -567,7 +567,17 @@ describe("a person named by address is emailed as before, once", () => {
     expect(sentMail().toEmail.toString()).toBe(otherAddress.toString());
     // The by-id path is not asked: the address decides.
     expect(hasMembershipSpy).not.toHaveBeenCalled();
-    expect(findPersonSpy).not.toHaveBeenCalled();
+    /*
+     * The account is read by id only to ask whether it is a master admin,
+     * whom an invitation never sends to SSO (SsoManagedSignIn, #9819):
+     * never for the address and password the by-id path reads.
+     */
+    for (const call of findPersonSpy.mock.calls) {
+      expect((call[0] as { select: unknown }).select).toEqual({
+        _id: true,
+        isMasterAdmin: true,
+      });
+    }
   });
 
   /*
