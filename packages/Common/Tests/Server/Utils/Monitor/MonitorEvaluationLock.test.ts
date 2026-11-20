@@ -19,6 +19,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE LOCK A MONITOR'S EVALUATION HOLDS (issue #10108), unit by unit: what
@@ -119,7 +120,7 @@ describe("MonitorEvaluationLock", () => {
   });
 
   test("keep() asks Valkey nothing while the lock cannot have run out", async () => {
-    const keepLock: jest.SpiedFunction<typeof Semaphore.keepLock> = jest
+    const keepLock: SpyInstance<typeof Semaphore.keepLock> = jest
       .spyOn(Semaphore, "keepLock")
       .mockResolvedValue(true);
     const lock: MonitorEvaluationLock = await acquire();
@@ -131,7 +132,7 @@ describe("MonitorEvaluationLock", () => {
   });
 
   test("keep() re-asserts a lock not known held for four seconds, and carries on while it is", async () => {
-    const keepLock: jest.SpiedFunction<typeof Semaphore.keepLock> = jest
+    const keepLock: SpyInstance<typeof Semaphore.keepLock> = jest
       .spyOn(Semaphore, "keepLock")
       .mockResolvedValue(true);
     const lock: MonitorEvaluationLock = await acquire();

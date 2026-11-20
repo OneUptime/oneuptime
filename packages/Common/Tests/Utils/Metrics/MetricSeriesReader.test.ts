@@ -6,6 +6,7 @@ import MetricSeriesFingerprint, {
 } from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A GROUPED READ'S ROWS, EACH SERIES READ ONCE (issue #10108).
@@ -115,7 +116,7 @@ describe("MetricSeriesFingerprint.createSeriesReader", () => {
   });
 
   test("a series' later rows are its first's, and it is hashed once", () => {
-    const computeFingerprint: jest.SpiedFunction<
+    const computeFingerprint: SpyInstance<
       typeof MetricSeriesFingerprint.computeFingerprint
     > = jest.spyOn(MetricSeriesFingerprint, "computeFingerprint");
     const read: (sample: AggregatedModel) => MetricSeriesIdentity =

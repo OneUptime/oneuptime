@@ -11,6 +11,7 @@ import SlicedWork, { SlicedWorkSteps } from "../../../Utils/SlicedWork";
 import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A GROUPED FORMULA, A STEP AT A TIME (issue #10108).
@@ -416,7 +417,7 @@ describe("MetricFormulaEvaluator.evaluateFormulaInSteps", () => {
 
 describe("MetricFormulaEvaluator's parsed formulas", () => {
   test("a formula is parsed once, and evaluates every input it is given", () => {
-    const parseToRpn: jest.SpiedFunction<EvaluatorInternals["parseToRpn"]> =
+    const parseToRpn: SpyInstance<EvaluatorInternals["parseToRpn"]> =
       jest.spyOn(internals, "parseToRpn");
     // A text no other test parses.
     const formula: string = "a * 2 + b + 0 * 1234.5";
@@ -439,7 +440,7 @@ describe("MetricFormulaEvaluator's parsed formulas", () => {
   });
 
   test("a formula that does not parse is refused every time it is given", () => {
-    const parseToRpn: jest.SpiedFunction<EvaluatorInternals["parseToRpn"]> =
+    const parseToRpn: SpyInstance<EvaluatorInternals["parseToRpn"]> =
       jest.spyOn(internals, "parseToRpn");
 
     for (let attempt: number = 0; attempt < 3; attempt++) {

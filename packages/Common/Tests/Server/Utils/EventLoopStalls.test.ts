@@ -32,16 +32,18 @@ describe("EventLoopStalls", () => {
   });
 
   test("starts once, however often it is asked", () => {
-    const setIntervalSpy: jest.SpiedFunction<typeof setInterval> = jest.spyOn(
-      global,
-      "setInterval",
-    );
+    const timerOf: () => unknown = (): unknown => {
+      return (EventLoopStalls as unknown as { timer: unknown }).timer;
+    };
+
+    EventLoopStalls.start();
+    const first: unknown = timerOf();
 
     EventLoopStalls.start();
     EventLoopStalls.start();
-    EventLoopStalls.start();
 
-    expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+    expect(first).not.toBeNull();
+    expect(timerOf()).toBe(first);
     expect(EventLoopStalls.isStarted()).toBe(true);
   });
 

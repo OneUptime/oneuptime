@@ -41,6 +41,7 @@ import ProbeApiIngestResponse, {
 } from "../../../../../Types/Probe/ProbeApiIngestResponse";
 import RollingTime from "../../../../../Types/RollingTime/RollingTime";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * EVERY SERIES JUDGED ONCE BY EACH FILTER, A SLICE AT A TIME (issue #10108).
@@ -223,7 +224,7 @@ afterEach(() => {
 
 describe("a grouped check judges every series once per filter", () => {
   test("two matching criteria over 300 series: 600 judgements, not 1,200, and the same series matched", async () => {
-    const evaluateOneSeries: jest.SpiedFunction<
+    const evaluateOneSeries: SpyInstance<
       CriteriaInternals["evaluateOneSeries"]
     > = jest.spyOn(internals, "evaluateOneSeries");
 
@@ -245,7 +246,7 @@ describe("a grouped check judges every series once per filter", () => {
   });
 
   test("a criteria that matches nothing is judged once, and matches nothing", async () => {
-    const evaluateOneSeries: jest.SpiedFunction<
+    const evaluateOneSeries: SpyInstance<
       CriteriaInternals["evaluateOneSeries"]
     > = jest.spyOn(internals, "evaluateOneSeries");
 
@@ -280,7 +281,7 @@ describe("MetricMonitorCriteria.evaluateAllSeries", () => {
   }
 
   test("a filter judged for the check is not judged again; another filter is", async () => {
-    const evaluateOneSeries: jest.SpiedFunction<
+    const evaluateOneSeries: SpyInstance<
       CriteriaInternals["evaluateOneSeries"]
     > = jest.spyOn(internals, "evaluateOneSeries");
     const dataToProcess: DataToProcess = buildResponse();
@@ -307,7 +308,7 @@ describe("MetricMonitorCriteria.evaluateAllSeries", () => {
   });
 
   test("without the check's judgements, a filter is judged every time, as before", async () => {
-    const evaluateOneSeries: jest.SpiedFunction<
+    const evaluateOneSeries: SpyInstance<
       CriteriaInternals["evaluateOneSeries"]
     > = jest.spyOn(internals, "evaluateOneSeries");
     const dataToProcess: DataToProcess = buildResponse();

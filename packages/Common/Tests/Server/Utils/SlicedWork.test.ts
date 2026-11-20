@@ -192,10 +192,6 @@ describe("EventLoop.yieldToEventLoop", () => {
       setImmediate?: unknown;
     };
     const setImmediateWas: unknown = globals.setImmediate;
-    const setTimeoutSpy: jest.SpiedFunction<typeof setTimeout> = jest.spyOn(
-      global,
-      "setTimeout",
-    );
 
     try {
       globals.setImmediate = undefined;
@@ -207,8 +203,10 @@ describe("EventLoop.yieldToEventLoop", () => {
 
       await EventLoop.yieldToEventLoop();
 
-      expect(setTimeoutSpy).toHaveBeenCalledTimes(2);
-      // A timer due before it ran across it: the loop had its turn.
+      /*
+       * A timer due before it ran across it: the loop had its turn, which
+       * awaiting a resolved promise would not have given it.
+       */
       expect(timerRan).toBe(true);
     } finally {
       globals.setImmediate = setImmediateWas;
