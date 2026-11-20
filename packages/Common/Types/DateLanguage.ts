@@ -549,63 +549,277 @@ export const writeInDateDisplayLanguage: (
 };
 
 /*
- * DATE AND TIME OF DAY.
+ * DATE AND TIME OF DAY, ON ONEUPTIME'S OWN CLOCK (#10038).
+ *
+ * Intl reads a zone with its runtime's own tz data - the browser's on a
+ * page, Node.js's ICU on the server - while OneUptime works out every wall
+ * clock with moment-timezone, the copy of the IANA database it ships and
+ * checks every week (.github/workflows/time-zone-data.yml). The two part
+ * whenever a zone changes its rules: from 1 November 2026 British Columbia
+ * stays on UTC-7, and a browser whose data is older than tzdata 2026b put
+ * every date of a German or French reader in Vancouver an hour early, while
+ * the same page in English, written by moment, read the right time. Intl
+ * also names a zone from CLDR, which still files British Columbia under
+ * Pacific time: "PDT" where every other date on the page says "MST".
+ *
+ * So a formatter made here never hands Intl a zone. It works the wall
+ * clock out with moment-timezone, in the first of the zones asked for that
+ * moment knows (a zone and its legacy spellings), and has Intl write that
+ * wall clock in UTC: Intl gives only the words, their order and the
+ * digits. A zone's name, where the options ask for one, is moment's
+ * abbreviation (getZoneAbbreviation) in the language's digits. No zone at
+ * all is the runtime's own clock, read as a Date reads it
+ * (getTimezoneOffset): the clock a widget that lays its dates out on the
+ * browser's own wall clock drew them at (react-big-calendar). A zone
+ * moment does not know is Intl's to read, as before, and null when Intl
+ * does not know it either: the caller writes moment's English.
+ *
+ * Built once per locale, zone and shape: a table writes hundreds of dates.
  */
+export interface ReaderDateTimeFormat {
+  format: (date: Date) => string;
+  formatToParts: (date: Date) => Array<Intl.DateTimeFormatPart>;
+  // Intl's own, with the zone the wall clock is read in.
+  resolvedOptions: () => Intl.ResolvedDateTimeFormatOptions;
+}
 
-const dateTimeFormatCache: Map<string, Intl.DateTimeFormat | null> = new Map<
+const MILLISECONDS_IN_MINUTE: number = 60 * 1000;
+
+/*
+ * A zone's name at `date`, as every date OneUptime writes names it:
+ * moment's abbreviation - "EST" in winter and "EDT" in summer, "MST" in
+ * Vancouver from November 2026 - or its offset where the zone has no
+ * abbreviation ("GMT+08" for moment's "+08").
+ */
+export const getZoneAbbreviation: (zone: string, date: Date) => string = (
+  zone: string,
+  date: Date,
+): string => {
+  const abbreviation: string = moment(date).tz(zone).zoneAbbr();
+
+  return abbreviation.startsWith("+") || abbreviation.startsWith("-")
+    ? `GMT${abbreviation}`
+    : abbreviation;
+};
+
+/*
+ * The wall clock `date` reads in `zone` (moment's data), or on the
+ * runtime's own clock without one, as the same digits at UTC.
+ */
+const getWallClockAtUtc: (
+  date: Date,
+  zone: moment.MomentZone | null,
+) => Date = (date: Date, zone: moment.MomentZone | null): Date => {
+  const time: number = date.getTime();
+
+  // Both count minutes west of UTC: New York's winter is 300.
+  const minutesWest: number = zone
+    ? zone.utcOffset(time)
+    : date.getTimezoneOffset();
+
+  return new Date(time - minutesWest * MILLISECONDS_IN_MINUTE);
+};
+
+// The first of `timezones` moment's data knows, in the spelling asked for.
+const findMomentZone: (timezones: ReadonlyArray<string>) => string | null = (
+  timezones: ReadonlyArray<string>,
+): string | null => {
+  for (const name of timezones) {
+    if (name && moment.tz.zone(name)) {
+      return name;
+    }
+  }
+
+  return null;
+};
+
+const utcFormatCache: Map<string, Intl.DateTimeFormat | null> = new Map<
   string,
   Intl.DateTimeFormat | null
 >();
 
+// Intl's formatter for `options` in `locale`, in UTC; null when Intl refuses.
+const getUtcFormat: (
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+) => Intl.DateTimeFormat | null = (
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat | null => {
+  const key: string = `${locale}|${JSON.stringify(options)}`;
+
+  if (!utcFormatCache.has(key)) {
+    let format: Intl.DateTimeFormat | null = null;
+
+    try {
+      format = new Intl.DateTimeFormat(getNumberLocale(locale), {
+        ...options,
+        timeZone: "UTC",
+      });
+    } catch {
+      format = null;
+    }
+
+    utcFormatCache.set(key, format);
+  }
+
+  return utcFormatCache.get(key) || null;
+};
+
+// The options with no zone of their own: the zone is `timezones`'.
+const withoutZone: (
+  options: Intl.DateTimeFormatOptions,
+) => Intl.DateTimeFormatOptions = (
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormatOptions => {
+  const copy: Intl.DateTimeFormatOptions = { ...options };
+
+  delete copy.timeZone;
+
+  return copy;
+};
+
+const readerFormatCache: Map<string, ReaderDateTimeFormat | null> = new Map<
+  string,
+  ReaderDateTimeFormat | null
+>();
+
+// A formatter Intl reads its own zone in: for a zone moment does not know.
+const fromIntlFormat: (format: Intl.DateTimeFormat) => ReaderDateTimeFormat = (
+  format: Intl.DateTimeFormat,
+): ReaderDateTimeFormat => {
+  return {
+    format: (date: Date): string => {
+      return format.format(date);
+    },
+    formatToParts: (date: Date): Array<Intl.DateTimeFormatPart> => {
+      return format.formatToParts(date);
+    },
+    resolvedOptions: (): Intl.ResolvedDateTimeFormatOptions => {
+      return format.resolvedOptions();
+    },
+  };
+};
+
+// The old way, for zones moment's data does not hold: Intl reads the zone.
+const getIntlZoneFormat: (data: {
+  locale: string;
+  timezones: ReadonlyArray<string>;
+  options: Intl.DateTimeFormatOptions;
+}) => ReaderDateTimeFormat | null = (data: {
+  locale: string;
+  timezones: ReadonlyArray<string>;
+  options: Intl.DateTimeFormatOptions;
+}): ReaderDateTimeFormat | null => {
+  for (const zone of data.timezones) {
+    try {
+      return fromIntlFormat(
+        new Intl.DateTimeFormat(getNumberLocale(data.locale), {
+          ...data.options,
+          timeZone: zone,
+        }),
+      );
+    } catch {
+      // Unknown to this engine too: the next spelling.
+    }
+  }
+
+  return null;
+};
+
 /*
- * A formatter for `options` in `locale`, read in the first of `timezones`
- * this engine's Intl knows (an engine with older tzdata knows "Europe/Kiev"
- * but not "Europe/Kyiv"); none means the runtime's own zone. Null when no
- * zone works, so the caller writes the English moment knows how to write.
- * Built once per locale, zone and shape: a table writes hundreds of dates.
+ * A formatter for `options` in `locale`, its wall clock read in the first
+ * of `timezones` OneUptime's data knows; none means the runtime's own
+ * clock. Null when nothing can write it, so the caller writes the English
+ * moment knows how to write.
  */
 export const getDateTimeFormat: (data: {
   locale: string;
   timezones: Array<string>;
   options: Intl.DateTimeFormatOptions;
-}) => Intl.DateTimeFormat | null = (data: {
+}) => ReaderDateTimeFormat | null = (data: {
   locale: string;
   timezones: Array<string>;
   options: Intl.DateTimeFormatOptions;
-}): Intl.DateTimeFormat | null => {
-  const zones: Array<string | undefined> =
-    data.timezones.length > 0 ? data.timezones : [undefined];
-  const shape: string = JSON.stringify(data.options);
+}): ReaderDateTimeFormat | null => {
+  const options: Intl.DateTimeFormatOptions = withoutZone(data.options);
+  const zoneName: string | null = findMomentZone(data.timezones);
 
-  for (const zone of zones) {
-    const key: string = `${data.locale}|${zone || ""}|${shape}`;
-
-    if (dateTimeFormatCache.has(key)) {
-      const cached: Intl.DateTimeFormat | null =
-        dateTimeFormatCache.get(key) || null;
-
-      if (cached) {
-        return cached;
-      }
-
-      continue;
-    }
-
-    try {
-      const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-        getNumberLocale(data.locale),
-        zone ? { ...data.options, timeZone: zone } : data.options,
-      );
-
-      dateTimeFormatCache.set(key, format);
-
-      return format;
-    } catch {
-      dateTimeFormatCache.set(key, null);
-    }
+  if (data.timezones.length > 0 && !zoneName) {
+    return getIntlZoneFormat({
+      locale: data.locale,
+      timezones: data.timezones,
+      options: options,
+    });
   }
 
-  return null;
+  const key: string = `${data.locale}|${zoneName || ""}|${JSON.stringify(options)}`;
+
+  if (readerFormatCache.has(key)) {
+    return readerFormatCache.get(key) || null;
+  }
+
+  const utcFormat: Intl.DateTimeFormat | null = getUtcFormat(
+    data.locale,
+    options,
+  );
+
+  if (!utcFormat) {
+    readerFormatCache.set(key, null);
+
+    return null;
+  }
+
+  const zone: moment.MomentZone | null = zoneName
+    ? moment.tz.zone(zoneName)
+    : null;
+  const namesItsZone: boolean = Boolean(options.timeZoneName);
+  const locale: string = data.locale;
+
+  const formatToParts: (date: Date) => Array<Intl.DateTimeFormatPart> = (
+    date: Date,
+  ): Array<Intl.DateTimeFormatPart> => {
+    const parts: Array<Intl.DateTimeFormatPart> = utcFormat.formatToParts(
+      getWallClockAtUtc(date, zone),
+    );
+
+    if (!namesItsZone) {
+      return parts;
+    }
+
+    // Moment's name for the zone at that instant, never Intl's "UTC".
+    const name: string = writeDigitsInLocale(
+      getZoneAbbreviation(zoneName || moment.tz.guess(), date),
+      locale,
+    );
+
+    return parts.map(
+      (part: Intl.DateTimeFormatPart): Intl.DateTimeFormatPart => {
+        return part.type === "timeZoneName"
+          ? { type: part.type, value: name }
+          : part;
+      },
+    );
+  };
+
+  const format: ReaderDateTimeFormat = {
+    format: (date: Date): string => {
+      return namesItsZone
+        ? joinIntlParts(formatToParts(date))
+        : utcFormat.format(getWallClockAtUtc(date, zone));
+    },
+    formatToParts: formatToParts,
+    resolvedOptions: (): Intl.ResolvedDateTimeFormatOptions => {
+      return {
+        ...utcFormat.resolvedOptions(),
+        timeZone: zoneName || moment.tz.guess(),
+      };
+    },
+  };
+
+  readerFormatCache.set(key, format);
+
+  return format;
 };
 
 export interface DateTextShape {
@@ -1607,4 +1821,223 @@ export const writeDigitsInLocale: (text: string, locale: string) => string = (
   return text.replace(ASCII_DIGIT_REGEX, (digit: string): string => {
     return digits[Number(digit)] || digit;
   });
+};
+
+/*
+ * A TIME OF DAY'S MARKS ARE ITS LANGUAGE'S (#7914).
+ *
+ * Intl writes a time with the mark its language puts between the hours
+ * and the minutes, as CLDR records it: a colon in every language the
+ * Dashboard speaks but Danish, which writes a point - "kl. 10.05", as
+ * Danish orthography writes it, CLDR's "HH.mm", and the clock a Danish
+ * reader's own phone and computer show. Moment, and the times OneUptime
+ * writes by hand ("09:00" working hours), always wrote a colon, so one
+ * Danish page read "10.05" beside "10:05". A time OneUptime wrote itself
+ * is written here with its language's mark and digits: "10.05" in Danish,
+ * "۱۰:۰۵" in Persian, "10:05" in every other language.
+ *
+ * Milliseconds keep the point before them, as moment writes them, where
+ * the language's mark is the colon ("11:55:59.120", one shape in every
+ * such language, #7912). Where the language's mark is the point itself,
+ * a point before them would read as one more part of the time
+ * ("11.55.59.120"), so they take the language's decimal sign, as CLDR
+ * writes a fraction of a second: "11.55.59,120" in Danish.
+ */
+
+// "09:30", "9:30", "14:30:12", "11:55:59.120": a clock OneUptime wrote.
+const CLOCK_TEXT: RegExp = /^(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?$/;
+
+// A mark between two figures: one character that is no letter, digit or space.
+const CLOCK_MARK: RegExp = /^[^\p{L}\p{N}\s]$/u;
+
+const timeSeparatorCache: Map<string, string> = new Map<string, string>();
+
+/*
+ * The mark `locale` writes between the hours and the minutes of a time of
+ * day, read from Intl (CLDR's data): "." in Danish, ":" in every other
+ * language of the product. A language that writes a word there ("10 h 05")
+ * reads the colon.
+ */
+export const getTimeSeparator: (locale: string) => string = (
+  locale: string,
+): string => {
+  const cached: string | undefined = timeSeparatorCache.get(locale);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let separator: string = ":";
+
+  try {
+    const parts: Array<Intl.DateTimeFormatPart> = new Intl.DateTimeFormat(
+      getNumberLocale(locale),
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+        timeZone: "UTC",
+      } as Intl.DateTimeFormatOptions,
+    ).formatToParts(new Date(Date.UTC(2026, 0, 5, 10, 5)));
+    const hourAt: number = parts.findIndex(
+      (part: Intl.DateTimeFormatPart): boolean => {
+        return part.type === "hour";
+      },
+    );
+    const mark: Intl.DateTimeFormatPart | undefined = parts[hourAt + 1];
+
+    if (
+      hourAt >= 0 &&
+      mark &&
+      mark.type === "literal" &&
+      parts[hourAt + 2]?.type === "minute" &&
+      CLOCK_MARK.test(mark.value)
+    ) {
+      separator = mark.value;
+    }
+  } catch {
+    // A locale Intl refuses: the colon, as moment writes it.
+  }
+
+  timeSeparatorCache.set(locale, separator);
+
+  return separator;
+};
+
+const decimalSeparatorCache: Map<string, string> = new Map<string, string>();
+
+// The decimal sign `locale` writes: "," in Danish and German, "." in English.
+export const getDecimalSeparator: (locale: string) => string = (
+  locale: string,
+): string => {
+  const cached: string | undefined = decimalSeparatorCache.get(locale);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let decimal: string = ".";
+
+  try {
+    const part: Intl.NumberFormatPart | undefined = new Intl.NumberFormat(
+      getNumberLocale(locale),
+    )
+      .formatToParts(1.5)
+      .find((item: Intl.NumberFormatPart): boolean => {
+        return item.type === "decimal";
+      });
+
+    if (part && part.value) {
+      decimal = part.value;
+    }
+  } catch {
+    // A locale Intl refuses: the point.
+  }
+
+  decimalSeparatorCache.set(locale, decimal);
+
+  return decimal;
+};
+
+/*
+ * A clock OneUptime wrote itself - "09:30", "14:30:12", "11:55:59.120" -
+ * with `locale`'s mark between its parts and in its digits: "09.30" in
+ * Danish, "۰۹:۳۰" in Persian. Any other text only takes the digits
+ * (writeDigitsInLocale): never a name or anything someone typed.
+ */
+export const writeClockInLocale: (text: string, locale: string) => string = (
+  text: string,
+  locale: string,
+): string => {
+  const clock: RegExpMatchArray | null = text.match(CLOCK_TEXT);
+
+  if (!clock) {
+    return writeDigitsInLocale(text, locale);
+  }
+
+  const separator: string = getTimeSeparator(locale);
+  let written: string = `${clock[1]}${separator}${clock[2]}`;
+
+  if (clock[3] !== undefined) {
+    written += `${separator}${clock[3]}`;
+  }
+
+  if (clock[4] !== undefined) {
+    const fractionMark: string =
+      separator === "." ? getDecimalSeparator(locale) : ".";
+
+    written += `${fractionMark}${clock[4]}`;
+  }
+
+  return writeDigitsInLocale(written, locale);
+};
+
+/*
+ * A DAY'S NAME STANDING ALONE (#7660).
+ *
+ * Inside a sentence most European languages write a day's name in lower
+ * case ("lunes", "mandag"). Whether it takes a capital standing alone - on
+ * a button, above a calendar's column, as an item of a menu - is each
+ * language's own rule, which CLDR records in its contextTransforms
+ * ("day-format-except-narrow", "day-standalone-except-narrow"). CLDR 48's
+ * data, for the languages the Dashboard speaks:
+ *   - es, it, nl, pt, ru: "titlecase-firstword" standing alone and in a
+ *     list or menu: "Lunes", "Segunda-feira", "Понедельник";
+ *   - fr: standing alone only: "Lundi" on a button and over a column,
+ *     "lundi" in a menu;
+ *   - da, nb and sv: none, so "mandag" and "måndag" everywhere. Their data
+ *     does capitalise other words in a menu (a language's name, and in
+ *     Swedish a currency's), never a day's;
+ *   - de and en write a day with a capital everywhere, and ja, ko, zh, hi,
+ *     ar and fa have no capitals.
+ * The words are the locale's own; every day button, menu item and calendar
+ * header draws its day's name through this - its aria-label and title too,
+ * so the three agree.
+ */
+export type DayNameContext = "standAlone" | "menu";
+
+export const DAY_NAME_TITLECASE_CONTEXTS: Readonly<
+  Record<string, ReadonlyArray<DayNameContext>>
+> = {
+  es: ["standAlone", "menu"],
+  fr: ["standAlone"],
+  it: ["standAlone", "menu"],
+  nl: ["standAlone", "menu"],
+  pt: ["standAlone", "menu"],
+  ru: ["standAlone", "menu"],
+};
+
+/*
+ * A day's name, or a header that starts with one ("lun 16", "lunes, 16 de
+ * noviembre"), as `language` writes it standing alone in `context`: its
+ * first letter a capital where CLDR says so, as written everywhere else.
+ */
+export const writeStandAloneDayName: (data: {
+  name: string;
+  language: string | null | undefined;
+  context: DayNameContext;
+}) => string = (data: {
+  name: string;
+  language: string | null | undefined;
+  context: DayNameContext;
+}): string => {
+  const base: string =
+    (data.language || "")
+      .trim()
+      .toLowerCase()
+      .split(LANGUAGE_SUBTAG_SEPARATOR)[0] || "";
+  const contexts: ReadonlyArray<DayNameContext> | undefined =
+    DAY_NAME_TITLECASE_CONTEXTS[base];
+
+  if (!data.name || !contexts || !contexts.includes(data.context)) {
+    return data.name;
+  }
+
+  const first: string = data.name.charAt(0);
+
+  try {
+    return first.toLocaleUpperCase(base) + data.name.slice(1);
+  } catch {
+    return first.toUpperCase() + data.name.slice(1);
+  }
 };
