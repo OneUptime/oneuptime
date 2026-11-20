@@ -12,6 +12,7 @@ import {
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import { CloudPublishedMetricsListing } from "../../Types/Cloud/CloudPublishedMetrics";
 import { CloudUnreportedKeyMetricReport } from "../../Types/Cloud/CloudUnreportedKeyMetrics";
+import { CloudResourceMetricCollection } from "../../Types/Cloud/CloudResourceMetricCollection";
 import CloudResourceMetrics from "../Utils/CloudConnection/CloudResourceMetrics";
 import { CloudConnectionAwsRoleSetup } from "../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "../../Types/CloudConnection/CloudConnectionTest";
@@ -100,6 +101,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *   POST /cloud-connection/resource-metrics/:cloudResourceId/unreported
  *     { keys } -> { metrics: CloudUnreportedKeyMetricReport[] }: when each
  *        key metric the resource did not report last did, and why.
+ *   POST /cloud-connection/resource-metrics/:cloudResourceId/collection
+ *     -> { collection: CloudResourceMetricCollection | null }: when its
+ *        connection last read its metrics, and what it could not (#10291).
  *
  *   The resource-metrics routes list and explain for whoever may read the
  *   resource; Add, Remove and what reads an addition are for whoever may
@@ -646,6 +650,38 @@ export default class CloudConnectionAPI extends BaseAPI<
 
           return Response.sendJsonObjectResponse(req, res, {
             metrics: metrics as unknown as Array<JSONObject>,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * How the resource's metrics were collected (#10291): when its
+     * connection last read them, and what it could not read - for whoever
+     * may read the resource. Null for a resource whose reads keep none.
+     */
+    this.router.post(
+      `${basePath}/resource-metrics/:cloudResourceId/collection`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          const collection: CloudResourceMetricCollection | null =
+            await CloudResourceMetrics.collectionOf({
+              projectId,
+              cloudResourceId: this.readCloudResourceId(req),
+              props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            collection: collection as unknown as JSONObject | null,
           });
         } catch (error) {
           next(error);

@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "بازدیدکنندگان با ارائه‌دهنده OpenID Connect شما، مانند Google یا Okta، وارد می‌شوند.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "بازدیدکنندگان با ارائه‌دهنده هویت SAML شما، مانند Okta یا Microsoft Entra ID، وارد می‌شوند.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "ارائه‌دهندگان هویت SAML و OIDC شما، و «الزامی کردن SSO برای ورود».",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "فقط کاربران خصوصی آن و افرادی که ورود یکپارچهٔ شما راهشان می‌دهد آن را می‌بینند. از بقیه خواسته می‌شود روی پیوند و دامنه‌های سفارشی آن وارد شوند."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "فقط کاربران خصوصی آن و افرادی که ورود یکپارچهٔ شما راهشان می‌دهد آن را می‌بینند. از بقیه خواسته می‌شود روی پیوند و دامنه‌های سفارشی آن وارد شوند.",
+  "Couldn't load how this resource's metrics were collected.": "بارگیری چگونگی جمع‌آوری متریک‌های این منبع ممکن نشد.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "ابرش پاسخ داد که این متریک را برای این منبع ارائه نمی‌کند، بنابراین اتصالش تا یک روز آن را درخواست نمی‌کند.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "ابرش در آخرین خواندن آن‌قدر مشغول بود که نتوانست پاسخ دهد. خواندن بعدی دوباره آن را درخواست می‌کند.",
+  "Its metrics are read for the first time at its connection's next read.": "متریک‌هایش در خواندن بعدی اتصالش برای نخستین بار خوانده می‌شوند.",
+  "Its metrics could not be read at its connection's last read.": "متریک‌هایش در آخرین خواندن اتصالش خوانده نشدند.",
+  "Its metrics have not been read since {{time}}.": "متریک‌هایش از {{time}} خوانده نشده‌اند.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "متریک‌هایش {{time}} خوانده شدند، اما {{count}} مورد از آن‌ها خوانده نشد.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "متریک‌هایش {{time}} خوانده شدند، اما یکی از آن‌ها خوانده نشد.",
+  "Its metrics were read {{time}}.": "متریک‌هایش {{time}} خوانده شدند.",
+  "Not read since {{time}}.": "از {{time}} خوانده نشده است."
 }

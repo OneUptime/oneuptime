@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "I visitatori accedono con il tuo provider OpenID Connect, come Google o Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "I visitatori accedono con il tuo provider di identità SAML, come Okta o Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "I tuoi provider di identità SAML e OIDC, e \"Richiedi l'SSO per l'accesso\".",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Solo i suoi utenti privati e le persone ammesse dal tuo single sign-on la vedranno. A tutti gli altri viene chiesto di accedere, sul suo link e sui suoi domini personalizzati."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Solo i suoi utenti privati e le persone ammesse dal tuo single sign-on la vedranno. A tutti gli altri viene chiesto di accedere, sul suo link e sui suoi domini personalizzati.",
+  "Couldn't load how this resource's metrics were collected.": "Impossibile caricare come sono state raccolte le metriche di questa risorsa.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Il suo cloud ha risposto che non fornisce questa metrica per questa risorsa, quindi la sua connessione smette di richiederla per un giorno.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Il suo cloud era troppo occupato per rispondere durante l'ultima lettura. La prossima lettura la richiede di nuovo.",
+  "Its metrics are read for the first time at its connection's next read.": "Le sue metriche vengono lette per la prima volta alla prossima lettura della sua connessione.",
+  "Its metrics could not be read at its connection's last read.": "Le sue metriche non sono state lette all'ultima lettura della sua connessione.",
+  "Its metrics have not been read since {{time}}.": "Le sue metriche non vengono lette dal {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Le sue metriche sono state lette {{time}}, ma {{count}} di esse non è stato possibile leggerle.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Le sue metriche sono state lette {{time}}, ma una di esse non è stato possibile leggerla.",
+  "Its metrics were read {{time}}.": "Le sue metriche sono state lette {{time}}.",
+  "Not read since {{time}}.": "Non letta dal {{time}}."
 }

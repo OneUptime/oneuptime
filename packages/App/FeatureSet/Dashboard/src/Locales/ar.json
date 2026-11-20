@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "يسجّل الزوّار الدخول عبر موفّر OpenID Connect لديك، مثل Google أو Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "يسجّل الزوّار الدخول عبر موفّر هوية SAML لديك، مثل Okta أو Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "موفّرو هوية SAML وOIDC لديك، و«اشتراط SSO لتسجيل الدخول».",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "لن يراها إلا مستخدموها الخاصون والأشخاص الذين يسمح لهم تسجيل الدخول الموحّد لديك. ويُطلب من الجميع غيرهم تسجيل الدخول على رابطها ونطاقاتها المخصصة."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "لن يراها إلا مستخدموها الخاصون والأشخاص الذين يسمح لهم تسجيل الدخول الموحّد لديك. ويُطلب من الجميع غيرهم تسجيل الدخول على رابطها ونطاقاتها المخصصة.",
+  "Couldn't load how this resource's metrics were collected.": "تعذّر تحميل كيفية جمع مقاييس هذا المورد.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "أجابت سحابته بأنها لا تقدّم هذا المقياس لهذا المورد، لذا يتوقف اتصاله عن طلبه لمدة يوم.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "كانت سحابته مشغولة جدًا عن الإجابة عنه في آخر قراءة. تطلبه القراءة التالية مرة أخرى.",
+  "Its metrics are read for the first time at its connection's next read.": "تُقرأ مقاييسه لأول مرة في القراءة التالية لاتصاله.",
+  "Its metrics could not be read at its connection's last read.": "تعذّرت قراءة مقاييسه في آخر قراءة لاتصاله.",
+  "Its metrics have not been read since {{time}}.": "لم تُقرأ مقاييسه منذ {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "قُرئت مقاييسه {{time}}، لكن تعذّرت قراءة {{count}} منها.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "قُرئت مقاييسه {{time}}، لكن تعذّرت قراءة واحد منها.",
+  "Its metrics were read {{time}}.": "قُرئت مقاييسه {{time}}.",
+  "Not read since {{time}}.": "لم يُقرأ منذ {{time}}."
 }

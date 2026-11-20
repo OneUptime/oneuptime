@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Besucher melden sich über Ihren OpenID-Connect-Anbieter an, etwa Google oder Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Besucher melden sich über Ihren SAML-Identitätsanbieter an, etwa Okta oder Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Ihre SAML- und OIDC-Identitätsanbieter und „SSO für die Anmeldung erzwingen“.",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Nur seine privaten Benutzer und die Personen, die Ihr Single Sign-On einlässt, sehen es. Alle anderen werden zur Anmeldung aufgefordert, über seinen Link und seine benutzerdefinierten Domains."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Nur seine privaten Benutzer und die Personen, die Ihr Single Sign-On einlässt, sehen es. Alle anderen werden zur Anmeldung aufgefordert, über seinen Link und seine benutzerdefinierten Domains.",
+  "Couldn't load how this resource's metrics were collected.": "Wie die Metriken dieser Ressource erfasst wurden, konnte nicht geladen werden.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Die Cloud hat geantwortet, dass sie diese Metrik für diese Ressource nicht liefert, daher fragt die Verbindung einen Tag lang nicht mehr danach.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Die Cloud war beim letzten Lesevorgang zu ausgelastet, um dafür zu antworten. Der nächste Lesevorgang fragt erneut.",
+  "Its metrics are read for the first time at its connection's next read.": "Die Metriken werden beim nächsten Lesevorgang der Verbindung zum ersten Mal gelesen.",
+  "Its metrics could not be read at its connection's last read.": "Die Metriken konnten beim letzten Lesevorgang der Verbindung nicht gelesen werden.",
+  "Its metrics have not been read since {{time}}.": "Die Metriken wurden seit {{time}} nicht gelesen.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Die Metriken wurden {{time}} gelesen, {{count}} davon jedoch nicht.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Die Metriken wurden {{time}} gelesen, eine davon jedoch nicht.",
+  "Its metrics were read {{time}}.": "Die Metriken wurden {{time}} gelesen.",
+  "Not read since {{time}}.": "Seit {{time}} nicht gelesen."
 }
