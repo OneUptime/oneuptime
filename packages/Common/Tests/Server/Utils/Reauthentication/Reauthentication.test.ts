@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../Server/Infrastructure/Redis", () => {
   return {
@@ -213,20 +214,16 @@ class StandInValkey {
 
 let valkey: StandInValkey;
 let account: Account;
-let revokeSession: jest.SpiedFunction<
+let revokeSession: SpyInstance<
   typeof UserSessionService.revokeLiveSessionOfUser
 >;
-let verifyPassword: jest.SpiedFunction<
-  typeof UserService.verifyHashedColumnValue
->;
-let consumeBackupCode: jest.SpiedFunction<
+let verifyPassword: SpyInstance<typeof UserService.verifyHashedColumnValue>;
+let consumeBackupCode: SpyInstance<
   typeof UserTwoFactorBackupCodeService.consumeCode
 >;
-let verifyKey: jest.SpiedFunction<
-  typeof UserWebAuthnService.verifyReauthentication
->;
-let rateLimit: jest.SpiedFunction<typeof IdentityRateLimit.consume>;
-let wrongCodesOfSignIn: Array<jest.SpiedFunction<() => Promise<unknown>>>;
+let verifyKey: SpyInstance<typeof UserWebAuthnService.verifyReauthentication>;
+let rateLimit: SpyInstance<typeof IdentityRateLimit.consume>;
+let wrongCodesOfSignIn: Array<SpyInstance<() => Promise<unknown>>>;
 
 function useAccount(next: Account): void {
   account = next;
@@ -1226,7 +1223,7 @@ describe("rate limits", () => {
 describe("a key's options", () => {
   test("for a passkey the account has: made for this session", async () => {
     useAccount(PASSKEY_ONLY_ACCOUNT);
-    const generate: jest.SpiedFunction<
+    const generate: SpyInstance<
       typeof UserWebAuthnService.generateReauthenticationOptions
     > = jest
       .spyOn(UserWebAuthnService, "generateReauthenticationOptions")
@@ -1269,7 +1266,7 @@ describe("a key's options", () => {
       message: string,
     ) => {
       useAccount(next);
-      const generate: jest.SpiedFunction<
+      const generate: SpyInstance<
         typeof UserWebAuthnService.generateReauthenticationOptions
       > = jest.spyOn(UserWebAuthnService, "generateReauthenticationOptions");
 

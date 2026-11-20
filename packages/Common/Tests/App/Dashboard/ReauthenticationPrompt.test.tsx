@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as React from "react";
@@ -658,15 +659,12 @@ describe("an account that signs in with single sign-on only", () => {
   });
 
   test("Sign In Again remembers the page, signs out and opens the sign-in page", async () => {
-    const remember: jest.SpiedFunction<
-      typeof SessionEndReturn.rememberCurrentPage
-    > = jest
-      .spyOn(SessionEndReturn, "rememberCurrentPage")
-      .mockReturnValue(true);
-    const logout: jest.SpiedFunction<typeof UserUtil.logout> = jest
+    const remember: SpyInstance<typeof SessionEndReturn.rememberCurrentPage> =
+      jest.spyOn(SessionEndReturn, "rememberCurrentPage").mockReturnValue(true);
+    const logout: SpyInstance<typeof UserUtil.logout> = jest
       .spyOn(UserUtil, "logout")
       .mockResolvedValue(null);
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 

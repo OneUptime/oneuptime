@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Reauthentication from "../../../Server/Utils/Reauthentication/Reauthentication";
 
 /*
@@ -13,9 +14,9 @@ import Reauthentication from "../../../Server/Utils/Reauthentication/Reauthentic
  *
  * Returns the spy, so a suite can still assert the check was asked.
  */
-export const confirmEverySession: () => jest.SpiedFunction<
+export const confirmEverySession: () => SpyInstance<
   typeof Reauthentication.assertConfirmed
-> = (): jest.SpiedFunction<typeof Reauthentication.assertConfirmed> => {
+> = (): SpyInstance<typeof Reauthentication.assertConfirmed> => {
   return jest
     .spyOn(Reauthentication, "assertConfirmed")
     .mockResolvedValue(undefined);

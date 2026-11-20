@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import UserService from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
@@ -184,19 +185,13 @@ export function attemptsKeyOf(sessionId: ObjectID): string {
 
 // The spies standInAccount sets, for a suite to ask of.
 export interface StandInAccountSpies {
-  revokeSession: jest.SpiedFunction<
-    typeof UserSessionService.revokeLiveSessionOfUser
-  >;
-  verifyPassword: jest.SpiedFunction<
-    typeof UserService.verifyHashedColumnValue
-  >;
-  consumeBackupCode: jest.SpiedFunction<
+  revokeSession: SpyInstance<typeof UserSessionService.revokeLiveSessionOfUser>;
+  verifyPassword: SpyInstance<typeof UserService.verifyHashedColumnValue>;
+  consumeBackupCode: SpyInstance<
     typeof UserTwoFactorBackupCodeService.consumeCode
   >;
-  verifyKey: jest.SpiedFunction<
-    typeof UserWebAuthnService.verifyReauthentication
-  >;
-  rateLimit: jest.SpiedFunction<typeof IdentityRateLimit.consume>;
+  verifyKey: SpyInstance<typeof UserWebAuthnService.verifyReauthentication>;
+  rateLimit: SpyInstance<typeof IdentityRateLimit.consume>;
 }
 
 /*
@@ -217,7 +212,6 @@ export function standInAccount(
     user.email = new Email(REAUTH_EMAIL);
     user.enableTwoFactorAuth = account.isTwoFactorOn;
     user.isMasterAdmin = account.isMasterAdmin;
-    user.timezone = undefined;
 
     if (account.hasPassword) {
       user.password = new HashedString("stored-hash", true);

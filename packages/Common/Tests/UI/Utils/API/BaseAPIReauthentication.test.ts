@@ -215,14 +215,18 @@ describe("a change refused until the session confirms it's its person's", () => 
       },
     ]);
 
-    const both: Promise<Array<HTTPResponse<JSONObject> | HTTPErrorResponse>> =
-      Promise.all([
-        saveProfile(),
-        BaseAPI.post<JSONObject>({
-          url: URL.fromString(KEY_OPTIONS_URL),
-          data: { isPasskey: true },
-        }),
-      ]);
+    const both: Promise<
+      [
+        HTTPResponse<JSONObject> | HTTPErrorResponse,
+        HTTPResponse<JSONObject> | HTTPErrorResponse,
+      ]
+    > = Promise.all([
+      saveProfile(),
+      BaseAPI.post<JSONObject>({
+        url: URL.fromString(KEY_OPTIONS_URL),
+        data: { isPasskey: true },
+      }),
+    ]);
 
     await settle();
     answerConfirmation(true);

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Infrastructure/Redis", () => {
   return {
@@ -35,6 +36,7 @@ import EmailChangeConfirmation, {
 } from "../../../Server/Utils/EmailChange/EmailChangeConfirmation";
 import Reauthentication from "../../../Server/Utils/Reauthentication/Reauthentication";
 import SsoManagedSignIn from "../../../Server/Utils/SsoManagedSignIn";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import User from "../../../Models/DatabaseModels/User";
 import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
@@ -97,11 +99,11 @@ interface UserHooks {
   onBeforeUpdate: (updateBy: UpdateBy<User>) => Promise<OnUpdate<User>>;
 }
 
-interface CreateHooks<T> {
+interface CreateHooks<T extends DatabaseBaseModel> {
   onBeforeCreate: (createBy: CreateBy<T>) => Promise<OnCreate<T>>;
 }
 
-interface DeleteHooks<T> {
+interface DeleteHooks<T extends DatabaseBaseModel> {
   onBeforeDelete: (deleteBy: DeleteBy<T>) => Promise<OnDelete<T>>;
 }
 
@@ -112,9 +114,7 @@ const NEW_PASSWORD: string = "a much newer password, 2026";
 let valkey: StandInValkey;
 let account: StandInAccount;
 let spies: StandInAccountSpies;
-let assertMayAsk: jest.SpiedFunction<
-  typeof EmailChangeConfirmation.assertMayAsk
->;
+let assertMayAsk: SpyInstance<typeof EmailChangeConfirmation.assertMayAsk>;
 
 function ownRow(): User {
   const user: User = new User();

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { mockRouter } from "./Helpers";
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -144,7 +145,7 @@ async function call(
   request: JSONObject,
 ): Promise<Answer> {
   jest.mocked(Response.sendJsonObjectResponse).mockClear();
-  const next: jest.Mock = jest.fn();
+  const next: Mock<(error?: unknown) => void> = jest.fn();
 
   await mockRouter
     .match(method, uri)
@@ -388,7 +389,7 @@ describe("POST /user/reauthentication: a confirmation", () => {
 describe("POST /user/reauthentication/webauthn-options", () => {
   test("a passkey's options, for the request's session", async () => {
     account = PASSKEY_ONLY_ACCOUNT;
-    const generate: jest.SpiedFunction<
+    const generate: SpyInstance<
       typeof UserWebAuthnService.generateReauthenticationOptions
     > = jest
       .spyOn(UserWebAuthnService, "generateReauthenticationOptions")

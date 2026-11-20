@@ -62,7 +62,12 @@ interface MailOptions {
   timeoutInMs?: number;
 }
 
-function statusPage(overrides: Partial<StatusPage> = {}): StatusPage {
+// A column left out is written as undefined, as a read that did not select it leaves it.
+type StatusPageColumns = {
+  [K in keyof StatusPage]?: StatusPage[K] | undefined;
+};
+
+function statusPage(overrides: StatusPageColumns = {}): StatusPage {
   const page: StatusPage = new StatusPage();
   page.id = STATUS_PAGE_ID;
   page._id = STATUS_PAGE_ID.toString();
