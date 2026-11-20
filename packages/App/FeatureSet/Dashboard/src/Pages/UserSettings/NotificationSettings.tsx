@@ -576,6 +576,12 @@ const EVENT_LIBRARY: Record<
       label: "Security case task assigned to me",
       description: "A task on a security case is assigned to you.",
     },
+  [NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION]:
+    {
+      label: "Security case step stopped holding",
+      description:
+        "A step of a security case you are on that OneUptime saw done stops holding, such as a blocked address getting through again. When nobody is on the case, you hear it for cases at your chosen priority.",
+    },
   [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION]: {
     label: "Hunt found security events",
     description:
@@ -1002,7 +1008,7 @@ const security: Array<SectionDef> = [
   buildSection(
     translationKey("Security Cases"),
     translationKey(
-      "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.",
+      "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, tasks for me, and steps that stop holding.",
     ),
     [
       NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
@@ -1010,6 +1016,7 @@ const security: Array<SectionDef> = [
       NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
+      NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
     ],
   ),
   // Keys of their own, so the card says them in the reader's language.

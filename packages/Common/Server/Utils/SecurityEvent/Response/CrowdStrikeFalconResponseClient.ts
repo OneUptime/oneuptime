@@ -154,6 +154,74 @@ export default class CrowdStrikeFalconResponseClient {
       : [];
   }
 
+  /*
+   * Each device's network containment as Falcon reports it - "normal",
+   * "containment_pending", "contained", "lift_containment_pending" - read
+   * back by a Response Plan step's check (#10340). Needs Hosts: Read, as the
+   * lookup does.
+   */
+  public async getContainmentStatuses(
+    deviceIds: Array<string>,
+  ): Promise<Array<{ id: string; status: string }>> {
+    if (deviceIds.length === 0) {
+      return [];
+    }
+
+    const step: string = "CrowdStrike Falcon device details";
+    const params: URLSearchParams = new URLSearchParams();
+
+    for (const id of deviceIds.slice(0, DEVICE_QUERY_LIMIT)) {
+      params.append("ids", id);
+    }
+
+    const result: ResponseHttpResult = await this.sendAuthenticated(
+      step,
+      "GET",
+      `${this.baseUrl}/devices/entities/devices/v2?${params.toString()}`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw ResponseHttp.failure({
+        step,
+        result,
+        secrets: this.secrets(),
+        hint:
+          result.statusCode === 403
+            ? "The connection's API client needs the Hosts: Read scope."
+            : undefined,
+      });
+    }
+
+    const resources: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "resources"
+    ];
+
+    if (!Array.isArray(resources)) {
+      return [];
+    }
+
+    const statuses: Array<{ id: string; status: string }> = [];
+
+    for (const resource of resources) {
+      if (!resource || typeof resource !== "object") {
+        continue;
+      }
+
+      const device: JSONObject = resource as JSONObject;
+      const id: unknown = device["device_id"];
+      const status: unknown = device["status"];
+
+      if (typeof id === "string" && id) {
+        statuses.push({
+          id,
+          status: typeof status === "string" ? status.toLowerCase() : "",
+        });
+      }
+    }
+
+    return statuses;
+  }
+
   public async containDevices(deviceIds: Array<string>): Promise<void> {
     await this.sendDeviceAction({
       step: "CrowdStrike Falcon contain",

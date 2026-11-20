@@ -858,6 +858,8 @@ describe("the writes that change who is on duty for what", () => {
       .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findOneById")
       .mockResolvedValue(stored as never);
     jest.spyOn(TeamMemberService, "getUsersInTeam").mockResolvedValue([]);
+    // Its accepted members, who the team adds to the rule (#10464).
+    jest.spyOn(TeamMemberService, "getUsersInTeams").mockResolvedValue([]);
 
     await hooksOf(OnCallDutyPolicyEscalationRuleTeamService).onCreateSuccess(
       { createBy: { data: created, props: {} }, carryForward: null },

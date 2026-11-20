@@ -1,6 +1,14 @@
 import SecurityEventRequestOutcome, {
   getRequestOutcomeRank,
 } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  CLIENT_ADDRESS_ATTRIBUTE_KEYS,
+  ClientAddressReading,
+  NO_CLIENT_ADDRESS,
+  TrustedProxies,
+  readClientAddressEvidence,
+  resolveClientAddress,
+} from "./ClientAddressTrust";
 
 /*
  * HOW FAR A REQUEST GOT, read from what OneUptime holds about it: the status
@@ -218,7 +226,13 @@ export interface RequestTraceAssessment {
   method: string;
   url: string;
   route: string;
+  /*
+   * The client's verified address, as the server span says it ('' when it
+   * names none), and how it knew it: an address the request only claimed
+   * is in `client` as a claim, never here (ClientAddressTrust, #10416).
+   */
   clientAddress: string;
+  client: ClientAddressReading;
   userAgent: string;
   userId: string;
   durationMs: number;
@@ -236,7 +250,10 @@ export const REQUEST_SPAN_ATTRIBUTE_KEYS: {
   path: ReadonlyArray<string>;
   query: ReadonlyArray<string>;
   route: ReadonlyArray<string>;
-  clientAddress: ReadonlyArray<string>;
+  peerAddress: ReadonlyArray<string>;
+  forwardedClientAddress: ReadonlyArray<string>;
+  forwardedFor: ReadonlyArray<string>;
+  forwarded: ReadonlyArray<string>;
   userAgent: ReadonlyArray<string>;
   userId: ReadonlyArray<string>;
   databaseStatement: ReadonlyArray<string>;
@@ -248,13 +265,11 @@ export const REQUEST_SPAN_ATTRIBUTE_KEYS: {
   path: ["url.path", "http.target"],
   query: ["url.query"],
   route: ["http.route"],
-  clientAddress: [
-    "client.address",
-    "http.client_ip",
-    "net.peer.ip",
-    "network.peer.address",
-    "net.sock.peer.addr",
-  ],
+  // Read apart, so only an address the sender could not have written is the client's.
+  peerAddress: CLIENT_ADDRESS_ATTRIBUTE_KEYS.peer,
+  forwardedClientAddress: CLIENT_ADDRESS_ATTRIBUTE_KEYS.forwardedClient,
+  forwardedFor: CLIENT_ADDRESS_ATTRIBUTE_KEYS.forwardedFor,
+  forwarded: CLIENT_ADDRESS_ATTRIBUTE_KEYS.forwarded,
   userAgent: ["user_agent.original", "http.user_agent"],
   userId: ["enduser.id", "user.id"],
   databaseStatement: ["db.query.text", "db.statement"],
@@ -424,11 +439,20 @@ export function assessRequestTrace(data: {
   sqlMarkers: ReadonlyArray<string>;
   // The request as the event recorded it: read for a time-based delay.
   requestText: string;
+  // The proxies the project trusts to say who the client was.
+  trustedProxies?: TrustedProxies | undefined;
 }): RequestTraceAssessment {
   const serverSpan: RequestTraceSpan | undefined = findServerSpan({
     spans: data.spans,
     eventSpanId: data.eventSpanId,
   });
+
+  const client: ClientAddressReading = serverSpan
+    ? resolveClientAddress(
+        readClientAddressEvidence(serverSpan.attributes),
+        data.trustedProxies,
+      )
+    : NO_CLIENT_ADDRESS;
 
   const statusCode: number = serverSpan
     ? readStatusCode(
@@ -499,9 +523,8 @@ export function assessRequestTrace(data: {
     route: serverSpan
       ? readSpanAttribute(serverSpan, REQUEST_SPAN_ATTRIBUTE_KEYS.route)
       : "",
-    clientAddress: serverSpan
-      ? readSpanAttribute(serverSpan, REQUEST_SPAN_ATTRIBUTE_KEYS.clientAddress)
-      : "",
+    clientAddress: client.address,
+    client,
     userAgent: serverSpan
       ? readSpanAttribute(serverSpan, REQUEST_SPAN_ATTRIBUTE_KEYS.userAgent)
       : "",

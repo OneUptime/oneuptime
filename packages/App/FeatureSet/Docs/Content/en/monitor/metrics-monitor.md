@@ -116,7 +116,7 @@ The longer the window, the wider each time bucket, so one data point stands for 
 
 ## Criteria
 
-These monitors always evaluate the **Metric Value** — the aggregated value of the configured metric query or formula. **When to alert** sets up one criteria from **Measured as**, **Time window**, **Condition** and **Value**. When the metric has a unit, pick the value's unit next to it. Its **Condition** reads **Above**, **At or above**, **Below**, **At or below**, **Exactly**, **Unusually high**, **Unusually low**, **Unusually high or low**, **Forecast to rise above** or **Forecast to fall below**. For several criteria, such as severity bands, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Metric**, an **Aggregation**, a **Condition** and a **Threshold**.
+These monitors always evaluate the **Metric Value** — the aggregated value of the configured metric query or formula. **When to alert** sets up one criteria from **Measured as**, **Time window**, **Condition** and **Value**. When the metric has a unit, pick the value's unit next to it. Its **Condition** reads **Above**, **At or above**, **Below**, **At or below**, **Exactly**, **Anything but**, **Unusually high**, **Unusually low**, **Unusually high or low**, **Forecast to rise above** or **Forecast to fall below**. For several criteria, such as severity bands, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Metric**, an **Aggregation**, a **Condition** and a **Threshold**.
 
 | Condition | Matches when the value is… |
 | --- | --- |
@@ -125,6 +125,7 @@ These monitors always evaluate the **Metric Value** — the aggregated value of 
 | **Less Than** | below the threshold |
 | **Less Than Or Equal To** | the threshold or below |
 | **Equal To** | exactly the threshold |
+| **Not Equal To** | anything but the threshold |
 | **Anomalously High** | above the range expected for this hour of the week |
 | **Anomalously Low** | below that range |
 | **Anomalous** | outside that range, either way |

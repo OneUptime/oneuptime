@@ -23,6 +23,7 @@ import {
 } from "../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import CloudAppService from "../../Services/CloudAppService";
 import CloudConnectionService, {
   Service as CloudConnectionServiceClass,
 } from "../../Services/CloudConnectionService";
@@ -142,7 +143,16 @@ export interface CloudConnectionPullDependencies {
    * charts still on it: the project's (CloudRetiredMetricReads), unless a test's.
    */
   findRetiredMetricReads?: CloudRetiredMetricReadsFinder | undefined;
+  /*
+   * Ties the project's App Service apps to their sites once an Azure read
+   * has kept them (#10407): CloudAppService's, unless a test's.
+   */
+  linkAppPlatformResources?: AppPlatformResourceLinker | undefined;
 }
+
+export type AppPlatformResourceLinker = (data: {
+  projectId: ObjectID;
+}) => Promise<unknown>;
 
 export type CloudRetiredMetricReadsFinder = (data: {
   projectId: ObjectID;
@@ -261,6 +271,30 @@ export default class CloudConnectionPullRunner {
         queues: NO_COLLECTOR_QUEUES,
         warning: COLLECTOR_QUEUES_UNKNOWN_WARNING,
       };
+    }
+  }
+
+  /*
+   * The project's App Service apps tied to their sites (#10407), after an
+   * Azure read: a failure is logged, and the hourly sweep links again.
+   */
+  public static async linkAppPlatformResources(data: {
+    projectId: ObjectID;
+    link?: AppPlatformResourceLinker | undefined;
+  }): Promise<void> {
+    try {
+      await (
+        data.link ||
+        ((linkData: { projectId: ObjectID }): Promise<number> => {
+          return CloudAppService.linkPlatformResourcesSafely(linkData);
+        })
+      )({ projectId: data.projectId });
+    } catch (error) {
+      logger.error(
+        `Cloud connection read: the App Service apps of project ${data.projectId.toString()} could not be tied to their sites: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 
@@ -612,6 +646,19 @@ export default class CloudConnectionPullRunner {
           ? { streamedReadings: streamed.readings }
           : {}),
       });
+
+      /*
+       * The project's App Service apps tied to their sites again (#10407):
+       * a site this read listed or created is matched, and one it archived
+       * - gone from its subscription, or moved, which gives it a new id -
+       * lets its app go. Never fails the read.
+       */
+      if (definition.provider === CloudProvider.Azure) {
+        await CloudConnectionPullRunner.linkAppPlatformResources({
+          projectId: connection.projectId,
+          link: dependencies.linkAppPlatformResources,
+        });
+      }
 
       // What the connection holds after the last sync of this read.
       const held: CloudConnectionSyncResult = inventory.synced || synced;

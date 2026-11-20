@@ -116,7 +116,7 @@ Hoe langer het venster, hoe breder elk tijdsinterval, dus één datapunt staat v
 
 ## Criteria
 
-Deze monitoren evalueren altijd de **Metriekwaarde**: de geaggregeerde waarde van de ingestelde metriekquery of formule. **Wanneer waarschuwen** stelt één criterium in uit **Gemeten als**, **Tijdvenster**, **Voorwaarde** en **Waarde**. Heeft de metriek een eenheid, kies dan de eenheid van de waarde ernaast. De **Voorwaarde** is **Boven**, **Op of boven**, **Onder**, **Op of onder**, **Precies**, **Ongewoon hoog**, **Ongewoon laag**, **Ongewoon hoog of laag**, **Verwacht boven** of **Verwacht onder**. Voor meerdere criteria, zoals ernstbanden, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Metriek**, een **Aggregatie**, een **Voorwaarde** en een **Drempel**.
+Deze monitoren evalueren altijd de **Metriekwaarde**: de geaggregeerde waarde van de ingestelde metriekquery of formule. **Wanneer waarschuwen** stelt één criterium in uit **Gemeten als**, **Tijdvenster**, **Voorwaarde** en **Waarde**. Heeft de metriek een eenheid, kies dan de eenheid van de waarde ernaast. De **Voorwaarde** is **Boven**, **Op of boven**, **Onder**, **Op of onder**, **Precies**, **Alles behalve**, **Ongewoon hoog**, **Ongewoon laag**, **Ongewoon hoog of laag**, **Verwacht boven** of **Verwacht onder**. Voor meerdere criteria, zoals ernstbanden, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Metriek**, een **Aggregatie**, een **Voorwaarde** en een **Drempel**.
 
 | Voorwaarde | Komt overeen wanneer de waarde… |
 | --- | --- |
@@ -125,6 +125,7 @@ Deze monitoren evalueren altijd de **Metriekwaarde**: de geaggregeerde waarde va
 | **Kleiner dan** | onder de drempel ligt |
 | **Kleiner dan of gelijk aan** | gelijk is aan de drempel of lager |
 | **Gelijk aan** | precies de drempel is |
+| **Niet gelijk aan** | iets anders dan de drempel is |
 | **Afwijkend hoog** | boven het verwachte bereik voor dit uur van de week ligt |
 | **Afwijkend laag** | onder dat bereik ligt |
 | **Afwijkend** | buiten dat bereik ligt, in welke richting ook |

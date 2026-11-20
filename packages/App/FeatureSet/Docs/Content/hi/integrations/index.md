@@ -61,6 +61,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | [Okta System Log](/docs/integrations/okta) | इनबाउंड | Okta साइन-इन, खाते के बदलाव और खतरे के डिटेक्शन को सुरक्षा इवेंट में लाता है। |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | इनबाउंड | Microsoft Entra ID साइन-इन और डायरेक्टरी बदलाव, और Microsoft 365 ऑडिट लॉग को सुरक्षा इवेंट में लाता है। |
 | [Google Workspace](/docs/integrations/google-workspace) | इनबाउंड | Google Workspace साइन-इन, एडमिन बदलाव और Google के अपने डिटेक्शन को सुरक्षा इवेंट में लाता है। |
+| [Cloudflare](/docs/integrations/cloudflare) | इनबाउंड | Cloudflare के फ़ायरवॉल ने जो ब्लॉक किया, चुनौती दी और लॉग किया, उसे आपके ऐप तक पहुँचे अनुरोधों के बगल में सुरक्षा इवेंट में लाता है। |
 
 ### टिकटिंग और IT सर्विस मैनेजमेंट
 

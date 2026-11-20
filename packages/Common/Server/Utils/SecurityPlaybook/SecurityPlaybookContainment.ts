@@ -47,6 +47,94 @@ import type { PlaybookStepOutcome } from "./SecurityPlaybookActions";
 // The most users or hosts one containment step acts on.
 export const CONTAINMENT_ENTITY_LIMIT: number = 10;
 
+/*
+ * Where an account or a host stands in a product, read back - not acted on
+ * - for a Response Plan step's check (#10340): contained, on its way, not
+ * contained, or not found there at all.
+ */
+export enum ProductContainment {
+  Contained = "Contained",
+  Pending = "Pending",
+  NotContained = "NotContained",
+  NotFound = "NotFound",
+}
+
+// How a product holds an account or a host back.
+export enum ProductContainmentHow {
+  Suspended = "Suspended",
+  Disabled = "Disabled",
+  NetworkContained = "NetworkContained",
+  Isolated = "Isolated",
+}
+
+export interface ProductContainmentReading {
+  // The product, as it names itself: "Okta", "CrowdStrike Falcon".
+  provider: string;
+  containment: ProductContainment;
+  how?: ProductContainmentHow | undefined;
+  // Since when, when the product says.
+  since: Date | null;
+  // A Microsoft Entra ID account's sessions were last ended then.
+  sessionsEndedAt?: Date | null | undefined;
+  // The account's or the host's page in the product, https.
+  url?: string | undefined;
+}
+
+// The products a user is read back in, and a host, by the connection's provider.
+export const USER_STATE_PROVIDERS: ReadonlyArray<SecurityEventConnectorProvider> =
+  [
+    SecurityEventConnectorProvider.OktaSystemLog,
+    SecurityEventConnectorProvider.MicrosoftEntraId,
+    SecurityEventConnectorProvider.GoogleWorkspace,
+  ];
+
+export const HOST_STATE_PROVIDERS: ReadonlyArray<SecurityEventConnectorProvider> =
+  [
+    SecurityEventConnectorProvider.CrowdStrikeFalcon,
+    SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+  ];
+
+export const PRODUCT_NAMES: Partial<
+  Record<SecurityEventConnectorProvider, string>
+> = {
+  [SecurityEventConnectorProvider.OktaSystemLog]: "Okta",
+  [SecurityEventConnectorProvider.MicrosoftEntraId]: "Microsoft Entra ID",
+  [SecurityEventConnectorProvider.GoogleWorkspace]: "Google Workspace",
+  [SecurityEventConnectorProvider.CrowdStrikeFalcon]: "CrowdStrike Falcon",
+  [SecurityEventConnectorProvider.MicrosoftDefenderXdr]: "Microsoft Defender",
+};
+
+// An org's own admin console, on Okta's domains: acme.okta.com's is acme-admin.okta.com.
+const OKTA_ORG_HOST: RegExp =
+  /^([a-z0-9-]+?)(-admin)?\.(okta\.com|oktapreview\.com|okta-emea\.com)$/;
+
+// A user's admin page in Okta, for an org on Okta's own domains.
+export function getOktaUserUrl(
+  orgUrl: string,
+  userId: string,
+): string | undefined {
+  try {
+    const host: string = new URL(orgUrl).hostname.toLowerCase();
+    const match: RegExpMatchArray | null = host.match(OKTA_ORG_HOST);
+
+    if (!match) {
+      return undefined;
+    }
+
+    return `https://${match[1]}-admin.${match[3]}/admin/user/profile/view/${encodeURIComponent(userId)}`;
+  } catch {
+    return undefined;
+  }
+}
+
+// The Falcon console of each cloud a connection may be on.
+const FALCON_CONSOLES: Record<string, string> = {
+  "us-1": "https://falcon.crowdstrike.com",
+  "us-2": "https://falcon.us-2.crowdstrike.com",
+  "eu-1": "https://falcon.eu-1.crowdstrike.com",
+  "us-gov-1": "https://falcon.laggar.gcw.crowdstrike.com",
+};
+
 // What became of one target in the product.
 export interface ContainmentTargetOutcome {
   state:
@@ -247,6 +335,256 @@ export default class SecurityPlaybookContainment {
         return mdText`${FeedMarkdown.code(target.value)} is ${describeTarget(target)}`;
       }),
     )}.`;
+  }
+
+  /*
+   * Where a user's account or a host stands in the product a connection is
+   * to, read back without changing anything: what a Response Plan step's
+   * check shows as its evidence (#10340). Through the same clients as the
+   * containment steps, so every call OneUptime makes to these products is
+   * here. Throws when the product cannot be read.
+   */
+  public static async readState(data: {
+    provider: SecurityEventConnectorProvider;
+    settings: SecurityConnectorSettings;
+    value: string;
+    transport?: ConnectorTransport | undefined;
+  }): Promise<ProductContainmentReading> {
+    const transport: ConnectorTransport =
+      data.transport || DataSourceHttpFetch.fetch;
+    const provider: string = PRODUCT_NAMES[data.provider] || data.provider;
+    const value: string = data.value.trim();
+    const notFound: ProductContainmentReading = {
+      provider,
+      containment: ProductContainment.NotFound,
+      since: null,
+    };
+
+    switch (data.provider) {
+      case SecurityEventConnectorProvider.OktaSystemLog: {
+        const orgUrl: string = readSettingString(
+          data.settings.config,
+          "orgUrl",
+        );
+        const client: OktaResponseClient = new OktaResponseClient({
+          orgUrl,
+          apiToken: readSettingString(data.settings.secrets, "apiToken"),
+          transport,
+        });
+        const state: {
+          user: OktaUser;
+          statusChangedAt: Date | null;
+        } | null = await client.readUserState(value);
+
+        if (!state) {
+          return notFound;
+        }
+
+        const status: string = state.user.status.toUpperCase();
+        const isHeld: boolean =
+          status === "SUSPENDED" || status === "DEPROVISIONED";
+
+        return {
+          provider,
+          containment: isHeld
+            ? ProductContainment.Contained
+            : ProductContainment.NotContained,
+          ...(isHeld ? { how: ProductContainmentHow.Suspended } : {}),
+          since: isHeld ? state.statusChangedAt : null,
+          url: getOktaUserUrl(orgUrl, state.user.id),
+        };
+      }
+
+      case SecurityEventConnectorProvider.MicrosoftEntraId: {
+        const cloud: string =
+          readSettingString(data.settings.config, "cloud") || "public";
+        const client: MicrosoftEntraIdResponseClient =
+          new MicrosoftEntraIdResponseClient({
+            tenantId: readSettingString(data.settings.config, "tenantId"),
+            clientId: readSettingString(data.settings.config, "clientId"),
+            clientSecret: readSettingString(
+              data.settings.secrets,
+              "clientSecret",
+            ),
+            cloud,
+            transport,
+          });
+        const user: EntraIdUser | null = await client.findUser(value);
+
+        if (!user) {
+          return notFound;
+        }
+
+        const url: string | undefined =
+          cloud === "public"
+            ? `https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/${encodeURIComponent(user.id)}`
+            : undefined;
+
+        if (user.accountEnabled) {
+          return {
+            provider,
+            containment: ProductContainment.NotContained,
+            since: null,
+            url,
+          };
+        }
+
+        return {
+          provider,
+          containment: ProductContainment.Contained,
+          how: ProductContainmentHow.Disabled,
+          since: null,
+          sessionsEndedAt: await client.readSessionsValidFrom(user),
+          url,
+        };
+      }
+
+      case SecurityEventConnectorProvider.GoogleWorkspace: {
+        const client: GoogleWorkspaceResponseClient =
+          new GoogleWorkspaceResponseClient({
+            serviceAccountJson: readSettingString(
+              data.settings.secrets,
+              "serviceAccountJson",
+            ),
+            adminEmail: readSettingString(data.settings.config, "adminEmail"),
+            transport,
+          });
+        const user: GoogleWorkspaceUser | null = await client.findUser(value);
+
+        if (!user) {
+          return notFound;
+        }
+
+        return {
+          provider,
+          containment: user.suspended
+            ? ProductContainment.Contained
+            : ProductContainment.NotContained,
+          ...(user.suspended ? { how: ProductContainmentHow.Suspended } : {}),
+          since: null,
+          url: `https://admin.google.com/ac/users/${encodeURIComponent(user.id)}`,
+        };
+      }
+
+      case SecurityEventConnectorProvider.CrowdStrikeFalcon: {
+        const cloud: string =
+          readSettingString(data.settings.config, "cloud") || "us-1";
+        const client: CrowdStrikeFalconResponseClient =
+          new CrowdStrikeFalconResponseClient({
+            cloud,
+            clientId: readSettingString(data.settings.config, "clientId"),
+            clientSecret: readSettingString(
+              data.settings.secrets,
+              "clientSecret",
+            ),
+            transport,
+          });
+        const deviceIds: Array<string> = await client.findDeviceIds(value);
+
+        if (deviceIds.length === 0) {
+          return notFound;
+        }
+
+        const statuses: Array<{ id: string; status: string }> =
+          await client.getContainmentStatuses(deviceIds);
+        const falconConsole: string | undefined = FALCON_CONSOLES[cloud];
+        const url: string | undefined =
+          falconConsole && deviceIds[0]
+            ? `${falconConsole}/hosts/hosts/host/${encodeURIComponent(deviceIds[0])}`
+            : undefined;
+
+        // Every device with the hostname contained: one left out is a way in.
+        if (
+          statuses.length > 0 &&
+          statuses.every((device: { status: string }): boolean => {
+            return device.status === "contained";
+          })
+        ) {
+          return {
+            provider,
+            containment: ProductContainment.Contained,
+            how: ProductContainmentHow.NetworkContained,
+            since: null,
+            url,
+          };
+        }
+
+        return {
+          provider,
+          containment: statuses.some((device: { status: string }): boolean => {
+            return device.status === "containment_pending";
+          })
+            ? ProductContainment.Pending
+            : ProductContainment.NotContained,
+          since: null,
+          url,
+        };
+      }
+
+      case SecurityEventConnectorProvider.MicrosoftDefenderXdr: {
+        const cloud: string =
+          readSettingString(data.settings.config, "cloud") || "public";
+        const client: MicrosoftDefenderEndpointClient =
+          new MicrosoftDefenderEndpointClient({
+            tenantId: readSettingString(data.settings.config, "tenantId"),
+            clientId: readSettingString(data.settings.config, "clientId"),
+            clientSecret: readSettingString(
+              data.settings.secrets,
+              "clientSecret",
+            ),
+            cloud,
+            transport,
+          });
+        const machines: Array<DefenderMachine> =
+          await client.findMachines(value);
+
+        if (machines.length === 0) {
+          return notFound;
+        }
+
+        let since: Date | null = null;
+        let isEveryOneIsolated: boolean = true;
+
+        for (const machine of machines) {
+          const isolation: { isIsolated: boolean; since: Date | null } | null =
+            await client.getIsolation(machine.id);
+
+          if (!isolation?.isIsolated) {
+            isEveryOneIsolated = false;
+            break;
+          }
+
+          if (
+            isolation.since &&
+            (!since || isolation.since.getTime() > since.getTime())
+          ) {
+            since = isolation.since;
+          }
+        }
+
+        const portal: string =
+          cloud === "usgov"
+            ? "https://security.microsoft.us"
+            : "https://security.microsoft.com";
+
+        return {
+          provider,
+          containment: isEveryOneIsolated
+            ? ProductContainment.Contained
+            : ProductContainment.NotContained,
+          ...(isEveryOneIsolated
+            ? { how: ProductContainmentHow.Isolated }
+            : {}),
+          since: isEveryOneIsolated ? since : null,
+          url: `${portal}/machines/${encodeURIComponent(machines[0]!.id)}`,
+        };
+      }
+
+      default:
+        throw new Error(
+          `OneUptime cannot read an account or a host in ${provider}.`,
+        );
+    }
   }
 
   private static failure(error: string): PlaybookStepOutcome {

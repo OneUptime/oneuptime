@@ -8,7 +8,10 @@ import Text from "../../../Types/Text";
 import Typeof from "../../../Types/Typeof";
 import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
-import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
+import {
+  MAX_WILDCARD_PATTERNS,
+  toLikePattern,
+} from "../../../Types/BaseDatabase/WildcardPattern";
 import { OwnedByMatch } from "../../../Types/BaseDatabase/OwnedBy";
 import {
   NAME_WHITE_SPACE_RUN_PATTERN,
@@ -460,8 +463,17 @@ export default class QueryHelper {
     );
   }
 
+  /*
+   * Contains, starts with, ends with and does not contain read what was
+   * typed literally: a `%` or `_` in it is escaped, as ClickHouse's
+   * compiler escapes it (Statement.serializeValue) and as searchAllWords
+   * and the search grammar's own wildcard (`*`, toLikePattern) do. They
+   * read them as LIKE wildcards before, so "100% full" also matched
+   * "100 is not full" in a Postgres list while the ClickHouse chart beside
+   * it matched it literally (#10545).
+   */
   public static search(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -536,7 +548,7 @@ export default class QueryHelper {
     entityPropertyNames: Array<string>,
     value: string,
   ): FindWhereProperty<any> {
-    const trimmed: string = value.toLowerCase().trim();
+    const trimmed: string = escapeLikePattern(value.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
 
     return Raw(
@@ -620,7 +632,7 @@ export default class QueryHelper {
   }
 
   public static notContains(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -633,7 +645,7 @@ export default class QueryHelper {
   }
 
   public static startsWith(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -646,7 +658,7 @@ export default class QueryHelper {
   }
 
   public static endsWith(name: string): FindWhereProperty<any> {
-    name = name.toLowerCase().trim();
+    name = escapeLikePattern(name.toLowerCase().trim());
     const rid: string = Text.generateRandomText(10);
     return Raw(
       (alias: string) => {
@@ -693,6 +705,77 @@ export default class QueryHelper {
         [rid]: toLikePattern(glob.trim()),
       },
     );
+  }
+
+  /*
+   * Any of several globs - a search's `(a* OR b*)`, or a value and the same
+   * value with an IP address's Hash token in it (HashedAddressSearch,
+   * #10418): one ILIKE per glob, OR-ed in brackets, as ClickHouse compiles
+   * a Wildcard of several (StatementGenerator.buildIlikeDisjunction). A
+   * Wildcard of several used to reach Postgres as its toString(), one
+   * pattern "(a OR b)" that matched nothing.
+   */
+  public static wildcardAny(globs: Array<string>): FindWhereProperty<any> {
+    if (globs.length === 1) {
+      return QueryHelper.wildcard(globs[0]!);
+    }
+
+    const { names, parameters } = QueryHelper.likePatternParameters(globs);
+
+    return Raw((alias: string) => {
+      return `(${names
+        .map((rid: string): string => {
+          return `CAST(${alias} AS TEXT) ILIKE :${rid}`;
+        })
+        .join(" OR ")})`;
+    }, parameters);
+  }
+
+  /*
+   * None of several globs: a row that matches none of them, or has no value
+   * at all - which matches none - as notWildcard lets NULL through.
+   */
+  public static notWildcardAny(globs: Array<string>): FindWhereProperty<any> {
+    if (globs.length === 1) {
+      return QueryHelper.notWildcard(globs[0]!);
+    }
+
+    const { names, parameters } = QueryHelper.likePatternParameters(globs);
+
+    return Raw((alias: string) => {
+      return `((${names
+        .map((rid: string): string => {
+          return `CAST(${alias} AS TEXT) NOT ILIKE :${rid}`;
+        })
+        .join(" AND ")}) OR ${alias} IS NULL)`;
+    }, parameters);
+  }
+
+  // Each glob's LIKE pattern, bound under a name of its own; as many as one filter may carry.
+  private static likePatternParameters(globs: Array<string>): {
+    names: Array<string>;
+    parameters: Record<string, string>;
+  } {
+    if (globs.length > MAX_WILDCARD_PATTERNS) {
+      throw new BadDataException(
+        `A wildcard filter cannot carry more than ${MAX_WILDCARD_PATTERNS} patterns`,
+      );
+    }
+
+    const parameters: Record<string, string> = {};
+    const names: Array<string> = globs.map((glob: string): string => {
+      let rid: string = Text.generateRandomText(10);
+
+      while (Object.prototype.hasOwnProperty.call(parameters, rid)) {
+        rid = Text.generateRandomText(10);
+      }
+
+      parameters[rid] = toLikePattern(glob.trim());
+
+      return rid;
+    });
+
+    return { names, parameters };
   }
 
   public static all(values: Array<string | ObjectID>): FindWhereProperty<any> {

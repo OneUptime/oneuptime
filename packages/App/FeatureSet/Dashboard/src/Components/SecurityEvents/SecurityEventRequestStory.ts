@@ -18,11 +18,16 @@ import {
   readStatusCode,
 } from "Common/Utils/SecurityEvent/RequestOutcome";
 import {
+  ClaimedClientAddress,
+  ClientAddressReading,
+  readAddressText,
+  readClaimedClientAddress,
+} from "Common/Utils/SecurityEvent/ClientAddressTrust";
+import {
   HiddenClientAddress,
-  ScrubbedAddress,
   ScrubbedAddressPlace,
   readHiddenClientAddress,
-  readScrubbedAddress,
+  readScrubbedValue,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -65,6 +70,11 @@ export interface SecurityEventRequestFacts {
    * none: who sent it is said that way instead.
    */
   hiddenClientAddress: HiddenClientAddress | null;
+  /*
+   * An address the request claimed, which whoever sent it wrote (#10416):
+   * said as claimed, never as who sent it.
+   */
+  claimedClientAddress: ClaimedClientAddress | null;
   userAgent: string;
   userId: string;
   durationMs: number;
@@ -115,6 +125,10 @@ export function readSecurityEventRequestFacts(
     hiddenClientAddress: clientAddress
       ? null
       : readHiddenClientAddress({ principalIp: "", attributes }),
+    claimedClientAddress: readClaimedClientAddress({
+      principalIp: clientAddress,
+      attributes,
+    }),
     userAgent: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.userAgent),
     userId: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.userId),
     durationMs: readNumber(attributes, SECURITY_REQUEST_ATTRIBUTES.durationMs),
@@ -154,29 +168,53 @@ function firstOf(current: string, found: string): string {
 }
 
 /*
- * The client address a fresh read of the trace found, and what a trace
- * scrub rule left of it when one hid it: never "[REDACTED]" as an address.
+ * The client address a fresh read of the trace found - verified, never one
+ * the request only claimed (#10416) - and what a trace scrub rule left of
+ * it when one hid it: never "[REDACTED]" as an address.
  */
-function readFoundClientAddress(found: string): {
+function readFoundClientAddress(found: ClientAddressReading): {
   clientAddress: string;
   hidden: HiddenClientAddress | null;
 } {
-  const scrubbed: ScrubbedAddress | null = readScrubbedAddress(found || "");
-
-  if (!scrubbed) {
-    return { clientAddress: (found || "").trim(), hidden: null };
+  if (found.address || !found.scrubbed) {
+    return { clientAddress: found.address, hidden: null };
   }
 
   return {
     clientAddress: "",
     hidden: {
-      kind: scrubbed.kind,
-      value: scrubbed.value,
+      kind: found.scrubbed.kind,
+      value: found.scrubbed.value,
       place: ScrubbedAddressPlace.SpanAttributes,
       signal: "trace",
       ruleId: "",
       ruleName: "",
     },
+  };
+}
+
+// What a fresh read of the trace says the request claimed.
+function readFoundClaim(
+  found: ClientAddressReading,
+  clientAddress: string,
+): ClaimedClientAddress | null {
+  if (!found.claimed) {
+    return null;
+  }
+
+  const address: string = readAddressText(found.claimed.address);
+
+  if (address && address === clientAddress) {
+    return null;
+  }
+
+  return {
+    address,
+    scrubbedKind: address
+      ? null
+      : readScrubbedValue(found.claimed.scrubbed?.value || "")?.kind || null,
+    from: found.claimedFrom,
+    isOnlyAddress: !clientAddress,
   };
 }
 
@@ -199,7 +237,7 @@ export function mergeAssessment(
       ? assessment.outcome
       : facts.outcome;
   const found: { clientAddress: string; hidden: HiddenClientAddress | null } =
-    readFoundClientAddress(assessment.clientAddress);
+    readFoundClientAddress(assessment.client);
   const clientAddress: string = firstOf(
     facts.clientAddress,
     found.clientAddress,
@@ -216,6 +254,13 @@ export function mergeAssessment(
     hiddenClientAddress: clientAddress
       ? null
       : facts.hiddenClientAddress || found.hidden,
+    claimedClientAddress: facts.claimedClientAddress
+      ? {
+          ...facts.claimedClientAddress,
+          isOnlyAddress:
+            facts.claimedClientAddress.isOnlyAddress && !clientAddress,
+        }
+      : readFoundClaim(assessment.client, clientAddress),
     userAgent: firstOf(facts.userAgent, assessment.userAgent),
     userId: firstOf(facts.userId, assessment.userId),
     durationMs: facts.durationMs || assessment.durationMs,

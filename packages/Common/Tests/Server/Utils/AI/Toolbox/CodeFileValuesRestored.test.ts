@@ -46,8 +46,8 @@ const asShown: (fileContent: string) => string = (
 };
 
 const SERVERS: string = [
-  'export const PRIMARY_HOST = "10.0.0.12";',
-  'export const BACKUP_HOST = "10.0.0.13";',
+  'export const PRIMARY_HOST = "203.0.113.12";',
+  'export const BACKUP_HOST = "203.0.113.13";',
   'export const ON_CALL = "ops@acme.com";',
   "export const RETRIES = 3;",
   "",
@@ -107,7 +107,7 @@ describe("restoreCodeFileValuesHidden", () => {
   });
 
   test("two lines that show the same with different values: neither is written back", () => {
-    const fileContent: string = 'host = "10.0.0.1"\nhost = "10.0.0.2"\n';
+    const fileContent: string = 'host = "203.0.113.1"\nhost = "203.0.113.2"\n';
     const restored: CodeFileValuesRestored = restoreCodeFileValuesHidden({
       content: asShown(fileContent),
       fileContent,
@@ -128,7 +128,8 @@ describe("restoreCodeFileValuesHidden", () => {
   });
 
   test("two lines with the same value: one text, both written back", () => {
-    const fileContent: string = 'host = "10.0.0.1"\nx = 1\nhost = "10.0.0.1"\n';
+    const fileContent: string =
+      'host = "203.0.113.1"\nx = 1\nhost = "203.0.113.1"\n';
 
     expect(
       restoreCodeFileValuesHidden({
@@ -140,7 +141,7 @@ describe("restoreCodeFileValuesHidden", () => {
 
   test("placeholder text the file holds itself, shown as it is, makes a line that reads like it ambiguous", () => {
     const fileContent: string =
-      'ip = "10.0.0.1"\nexpect(x).toBe(1);\nip = "[redacted-ip]"\n';
+      'ip = "203.0.113.1"\nexpect(x).toBe(1);\nip = "[redacted-ip]"\n';
     const restored: CodeFileValuesRestored = restoreCodeFileValuesHidden({
       content: asShown(fileContent),
       fileContent,
@@ -210,7 +211,7 @@ describe("restoreCodeFileValuesHidden", () => {
       "c2Vjb25kIGxpbmU",
       "-----END PRIVATE KEY-----",
       "`;",
-      'const HOST = "10.0.0.9";',
+      'const HOST = "203.0.113.9";',
       "",
     ].join("\n");
     const shown: string = asShown(fileContent);
@@ -229,7 +230,7 @@ describe("restoreCodeFileValuesHidden", () => {
 
     expect(restored.content).toBe(
       fileContent.replace(
-        'HOST = "10.0.0.9";',
+        'HOST = "203.0.113.9";',
         'HOST = "[redacted-ip]"; // edge',
       ),
     );
@@ -274,7 +275,7 @@ describe("restoreCodeFileValuesHidden", () => {
   });
 
   test("a Windows file: a line ends as the model ended it", () => {
-    const fileContent: string = 'a = "10.0.0.1"\r\nb = 2\r\n';
+    const fileContent: string = 'a = "203.0.113.1"\r\nb = 2\r\n';
     const shown: string = asShown(fileContent);
 
     expect(shown).toBe('a = "[redacted-ip]"\r\nb = 2\r\n');
@@ -286,7 +287,7 @@ describe("restoreCodeFileValuesHidden", () => {
         content: shown.replace(/\r/g, ""),
         fileContent,
       }).content,
-    ).toBe('a = "10.0.0.1"\nb = 2\n');
+    ).toBe('a = "203.0.113.1"\nb = 2\n');
   });
 
   test("an empty file, or one without the line: nothing written back", () => {

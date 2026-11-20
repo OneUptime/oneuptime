@@ -21,6 +21,7 @@ enum SecurityEventConnectorProvider {
   GoogleSecOps = "google-secops",
   MicrosoftEntraId = "microsoft-entra-id",
   GoogleWorkspace = "google-workspace",
+  Cloudflare = "cloudflare",
 }
 
 export default SecurityEventConnectorProvider;
@@ -36,6 +37,7 @@ export const AllSecurityEventConnectorProviders: Array<SecurityEventConnectorPro
     SecurityEventConnectorProvider.OktaSystemLog,
     SecurityEventConnectorProvider.MicrosoftEntraId,
     SecurityEventConnectorProvider.GoogleWorkspace,
+    SecurityEventConnectorProvider.Cloudflare,
     SecurityEventConnectorProvider.GoogleSecOps,
   ];
 

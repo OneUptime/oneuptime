@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   DETECTION_RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   DETECTION_RETROHUNT_MAX_GROUPS,
@@ -53,6 +53,7 @@ function result(
     ],
     hasMoreGroups: false,
     candidateLimit: null,
+    uncounted: null,
     ...overrides,
   };
 }
@@ -203,7 +204,42 @@ describe("an answer through JSON", () => {
       groups: [],
       hasMoreGroups: false,
       candidateLimit: null,
+      uncounted: null,
     });
+  });
+
+  test("what a rule that counts per value left out travels whole, and none is no figure (#10415)", () => {
+    const answer: DetectionRetrohuntResult = result({
+      uncounted: {
+        field: "principalIp",
+        eventCount: 1204,
+        hiddenInLogsCount: 1180,
+        hiddenInTracesCount: 4,
+      },
+    });
+
+    expect(
+      parseDetectionRetrohuntResult(
+        JSON.parse(JSON.stringify(detectionRetrohuntResultToJSON(answer))),
+      ).uncounted,
+    ).toEqual({
+      field: "principalIp",
+      eventCount: 1204,
+      hiddenInLogsCount: 1180,
+      hiddenInTracesCount: 4,
+    });
+
+    const nothing: Array<JSONValue> = [
+      null,
+      "lots",
+      [1],
+      { eventCount: 0, field: "principalIp" },
+      { eventCount: "none" },
+    ];
+
+    for (const uncounted of nothing) {
+      expect(parseDetectionRetrohuntResult({ uncounted }).uncounted).toBeNull();
+    }
   });
 
   test("odd values read as the nearest sensible thing", () => {

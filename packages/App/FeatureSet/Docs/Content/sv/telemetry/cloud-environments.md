@@ -102,7 +102,7 @@ Intaget skapar miljöer åt dig, så det finns inget att fylla i. Öppna **Apppl
 
 ## Appar och distributioner
 
-Varje tjänst som en miljö kör är en app i den, namngiven så som plattformens konsol namnger den. **Appplattformar → Alla appar** listar varje app med den revision den kör och dess begäranden, felfrekvens och p95-latens under den senaste timmen, och en miljös flik **Appar** listar dess egna.
+Varje tjänst som en miljö kör är en app i den, namngiven så som plattformens konsol namnger den. **Appplattformar → Alla appar** listar varje app med den revision den kör och dess begäranden, felfrekvens och p95-latens under den senaste timmen, och en miljös flik **Appar** listar dess egna. En App Service-app som inte skickar spår visar där i stället webbplatsens siffror från Azure Monitor: de begäranden Azure räknade, andelen som besvarades med en 5xx-status och den genomsnittliga svarstiden.
 
 | Plattform | App | Hålls isär av | Revision |
 | --- | --- | --- | --- |

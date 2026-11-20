@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-SDK 检测器把平台写作带点号的 `azure.app_service`；OneUptime 收到时会把它改写为 `azure_app_service`。在 .NET 中添加 `OpenTelemetry.Resources.Azure` 并调用 `.ConfigureResource(r => r.AddAzureAppServiceDetector())`。其他语言需要把 `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` 添加到 `OTEL_RESOURCE_ATTRIBUTES`，并在代码中从 `WEBSITE_INSTANCE_ID` 获取 `service.instance.id`。
+SDK 检测器把平台写作带点号的 `azure.app_service`；OneUptime 收到时会把它改写为 `azure_app_service`。每种技术栈都有自己的 App Service 资源检测器，它会为每个实例命名，并把 `cloud.resource_id` 设为站点的 ID：正是它把应用与其站点的 Azure Monitor 数据关联起来。请开启你所用技术栈的检测器：
+
+| 技术栈 | 它的 App Service 资源检测器 |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure`，配合 `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | OpenTelemetry Java 代理，配合 `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node`，配合 `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure`，配合 `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. 开启应用的系统分配托管标识（**Settings → Identity**），并授予它对该保管库的 **Key Vault Secrets User**。将完整的标头 `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN` 保存为机密 `oneuptime-otlp-headers`。
@@ -182,9 +187,9 @@ SDK 检测器把平台写作带点号的 `azure.app_service`；OneUptime 收到�
 
 **网络：** 除非开启了 **VNet integration** 并启用 **Route All**，否则 App Service 可以直接访问互联网。开启后，VNet 需要 NAT 网关，或一条通往允许 TCP 443 访问 OneUptime 主机的防火墙的路由。
 
-**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪，因此只发送日志或指标的应用会在那里显示 **未收到追踪**，它的 **设置检查** 会说明需要添加什么。App Service 不会给应用分配自己的 CPU 或内存，应用的 CPU 和内存磁贴会说明这一点。在 **云 → 连接** 中连接订阅后，应用的 **概览** 会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的站点请求、服务器错误和客户端错误、响应时间、CPU 时间和内存。之后，应用的 **实例** 选项卡会列出 Azure 运行该应用的实例，**修订版本** 选项卡会列出 Azure 保留的部署。
+**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪，因此只发送日志或指标的应用会在那里显示 **未收到追踪**，它的 **设置检查** 会说明需要添加什么。App Service 不会给应用分配自己的 CPU 或内存，应用的 CPU 和内存磁贴会说明这一点。在 **云 → 连接** 中连接订阅后，应用的 **概览** 会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的站点请求、服务器错误和客户端错误、响应时间、CPU 时间和内存。之后，应用的 **实例** 选项卡会列出 Azure 运行该应用的实例，**修订版本** 选项卡会列出 Azure 保留的部署。在 **应用平台 → 所有应用** 和环境的 **应用** 选项卡中，不发送追踪的应用会改为显示 Azure Monitor 提供的其站点数据：Azure 统计的请求、以 5xx 状态响应的比例和平均响应时间。
 
-应用的 **设置** 选项卡会把这些设置以适用于 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令给出，每条命令中都有应用自己的名称、资源组和订阅。若还要查看站点自身的控制台、HTTP 和平台日志，请在 **云 → 连接** 中，在订阅所在行选择 **流式传输指标和日志**：这些日志会显示在应用的 **日志** 选项卡中的 **来自 Azure 诊断设置** 下。
+应用的 **设置** 选项卡会把这些设置以适用于 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令给出，每条命令中都有应用自己的名称、资源组和订阅。若还要查看站点自身的控制台、HTTP 和平台日志，请在 **云 → 连接** 中，在订阅所在行选择 **流式传输指标和日志**：这些日志会显示在应用的 **日志** 选项卡中的 **来自 Azure 诊断设置** 下。环境的设置指南也给出了每种技术栈的步骤，并用占位符代替应用的名称和资源组。
 
 ## Azure Container Instances
 

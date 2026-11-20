@@ -12,6 +12,10 @@ import {
   getSecurityTelemetrySourceDefinition,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import {
+  NO_TRUSTED_PROXIES,
+  TrustedProxies,
+} from "../../../../Utils/SecurityEvent/ClientAddressTrust";
+import {
   TRACE_SCAN_ATTRIBUTES_READ,
   TraceScanSpan,
   buildTraceSecurityEvents,
@@ -25,6 +29,7 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
+import SecurityTrustedProxies from "../SecurityTrustedProxies";
 import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
 import {
   TelemetryScanWindow,
@@ -59,6 +64,10 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  *     (AddressVault/SecurityAddressVaultLookup.ts, #10395);
  *   - a request whose client address is still hidden names the project's
  *     rule that hid it (ScrubbedClientAddresses, #10397).
+ *
+ * Each span's events are read with the proxies the project trusts
+ * (SecurityTrustedProxies, #10416): a client address one of them forwarded
+ * is the event's, one the request only claims is kept as a claim.
  *
  * Each of those reads is bounded and failure-tolerant: one that fails is
  * logged and the events are stored as the spans said them.
@@ -164,8 +173,20 @@ export default class TraceSecurityScan {
 
     const events: Array<NormalizedSecurityEvent> = [];
 
+    /*
+     * An attack is blamed on an address its sender could not have written:
+     * the connection's own, or one a proxy the project trusts forwarded
+     * (#10416).
+     */
+    const trustedProxies: TrustedProxies =
+      rows.length > 0
+        ? await SecurityTrustedProxies.getForProject(data.window.projectId)
+        : NO_TRUSTED_PROXIES;
+
     for (const row of rows) {
-      events.push(...buildTraceSecurityEvents(toTraceScanSpan(row)));
+      events.push(
+        ...buildTraceSecurityEvents(toTraceScanSpan(row), { trustedProxies }),
+      );
     }
 
     return {

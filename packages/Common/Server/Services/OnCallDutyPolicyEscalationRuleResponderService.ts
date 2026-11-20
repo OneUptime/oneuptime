@@ -11,6 +11,11 @@ import Query from "../Types/Database/Query";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
+/*
+ * A type alone: EscalationRuleReach reads the three services that extend
+ * this one, which must not be loaded before this class is.
+ */
+import type { EscalationRuleOfReach } from "../Utils/OnCall/EscalationRuleReach";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
@@ -175,6 +180,35 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
 
       throw refusal;
     }
+  }
+
+  /*
+   * The rule a row read back is on, as EscalationRuleReach asks for it: its
+   * project, its id and its policy's - from the relations the hooks select,
+   * or the columns.
+   */
+  protected getRuleOfRow(row: TBaseModel): EscalationRuleOfReach {
+    const values: {
+      projectId?: ObjectID | undefined;
+      onCallDutyPolicyEscalationRule?: BaseModel | undefined;
+      onCallDutyPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicy?: BaseModel | undefined;
+      onCallDutyPolicyId?: ObjectID | undefined;
+    } = row as unknown as {
+      projectId?: ObjectID | undefined;
+      onCallDutyPolicyEscalationRule?: BaseModel | undefined;
+      onCallDutyPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicy?: BaseModel | undefined;
+      onCallDutyPolicyId?: ObjectID | undefined;
+    };
+
+    return {
+      projectId: values.projectId!,
+      ruleId: (values.onCallDutyPolicyEscalationRule?.id ||
+        values.onCallDutyPolicyEscalationRuleId)!,
+      policyId:
+        values.onCallDutyPolicy?.id || values.onCallDutyPolicyId || null,
+    };
   }
 
   // The rule of a row, as `data` names it, under both of its names.
