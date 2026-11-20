@@ -185,8 +185,10 @@ export const BROWSER_ALLOWED_INGEST_SURFACES: ReadonlySet<TelemetryIngestSurface
  *   - OTLP over gRPC and MQTT are not here. Neither runs the per-key rate
  *     limit (it is an HTTP guard's), and a public key without its limit is
  *     what this key type exists to avoid. The mobile SDKs export over HTTP.
- *   - Sentry is not here: its events are not pinned to the key's service
- *     name, so a copied key could write them under any app's name.
+ *   - Sentry is not here: the mobile SDKs the guides set up export OTLP,
+ *     and an envelope carries profiles too, which a Mobile key does not
+ *     send. (What a key's envelopes do write is pinned like its OTLP: they
+ *     are queued as OTLP jobs, TelemetryQueueService.addTelemetryIngestJob.)
  *   - Session replay is not here: a React Native app records with a Browser
  *     key whose allowed origins list it as app://, the path built for it.
  *

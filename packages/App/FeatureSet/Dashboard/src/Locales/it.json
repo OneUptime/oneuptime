@@ -19739,7 +19739,7 @@
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Scegli i monitor da collegare a questo modello. I monitor collegati a un altro modello passano a questo.",
   "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.": "Scegli i monitor {{monitorType}} da collegare a questo modello. I monitor collegati a un altro modello passano a questo.",
-  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.",
+  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Invia la telemetria del browser / dell'app mobile perché {{application}} riporti il monitoraggio degli utenti reali a OneUptime.",
   "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.": "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",
   "Set a first report date to schedule one.": "Imposta la data del primo report per pianificarlo.",
   "Set up {{name}}": "Configura {{name}}",

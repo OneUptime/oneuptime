@@ -19739,7 +19739,7 @@
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Kies monitoren om aan dit sjabloon te koppelen. Monitoren die aan een ander sjabloon gekoppeld zijn, gaan naar dit sjabloon.",
   "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.": "Kies {{monitorType}}-monitoren om aan dit sjabloon te koppelen. Monitoren die aan een ander sjabloon gekoppeld zijn, gaan naar dit sjabloon.",
-  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.",
+  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Stuur browser- / mobiele telemetrie, zodat {{application}} Real User Monitoring aan OneUptime rapporteert.",
   "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.": "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",
   "Set a first report date to schedule one.": "Stel een datum voor het eerste rapport in om er een te plannen.",
   "Set up {{name}}": "{{name}} instellen",

@@ -332,10 +332,11 @@ describe("Creating an ingestion key from a setup guide", () => {
       });
       await waitFor(() => {
         expect(
-          (onSelectedKeyChange.mock.calls.at(-1)?.[0] as
-            | TelemetryIngestionKey
-            | null
-            | undefined)?.id?.toString(),
+          (
+            onSelectedKeyChange.mock.calls[
+              onSelectedKeyChange.mock.calls.length - 1
+            ]?.[0] as TelemetryIngestionKey | null | undefined
+          )?.id?.toString(),
         ).toBe(created.id!.toString());
       });
     });
@@ -389,7 +390,10 @@ describe("Creating an ingestion key from a setup guide", () => {
           name: "Storefront key",
           keyType: TelemetryIngestionKeyType.Browser,
         }),
-        BROWSER_KEY_CAUTION.replace("{{identities}}", "https://shop.example.com"),
+        BROWSER_KEY_CAUTION.replace(
+          "{{identities}}",
+          "https://shop.example.com",
+        ),
       ],
       [
         "a Mobile key",
@@ -412,11 +416,7 @@ describe("Creating an ingestion key from a setup guide", () => {
       ],
     ])(
       "%s",
-      async (
-        _name: string,
-        key: TelemetryIngestionKey,
-        expected: string,
-      ) => {
+      async (_name: string, key: TelemetryIngestionKey, expected: string) => {
         listedKeys = [key];
         await renderSelector({
           keyType: key.keyType!,
@@ -445,7 +445,7 @@ describe("Creating an ingestion key from a setup guide", () => {
      * A refused key's "(turned off)" follows its name, and a phone's narrow
      * picker cut it off with an ellipsis (#6458): the pick wraps, whole.
      */
-    test("a picked key's name is drawn whole, its \"(turned off)\" included", async () => {
+    test('a picked key\'s name is drawn whole, its "(turned off)" included', async () => {
       listedKeys = [
         makeKey({
           id: "88888888-8888-4888-8888-888888888888",

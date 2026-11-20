@@ -19739,7 +19739,7 @@
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "इस टेम्पलेट से जोड़ने के लिए मॉनिटर चुनें। किसी दूसरे टेम्पलेट से जुड़े मॉनिटर इस पर आ जाते हैं।",
   "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.": "इस टेम्पलेट से जोड़ने के लिए {{monitorType}} मॉनिटर चुनें। किसी दूसरे टेम्पलेट से जुड़े मॉनिटर इस पर आ जाते हैं।",
-  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.",
+  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "ब्राउज़र / मोबाइल टेलीमेट्री भेजें, ताकि {{application}} OneUptime को वास्तविक उपयोगकर्ता मॉनिटरिंग की रिपोर्ट भेजे।",
   "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.": "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",
   "Set a first report date to schedule one.": "रिपोर्ट शेड्यूल करने के लिए पहली रिपोर्ट की तारीख सेट करें।",
   "Set up {{name}}": "{{name}} सेट अप करें",

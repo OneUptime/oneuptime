@@ -19739,7 +19739,7 @@
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "이 템플릿에 연결할 모니터를 고르세요. 다른 템플릿에 연결된 모니터는 이 템플릿으로 옮겨집니다.",
   "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.": "이 템플릿에 연결할 {{monitorType}} 모니터를 고르세요. 다른 템플릿에 연결된 모니터는 이 템플릿으로 옮겨집니다.",
-  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.",
+  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "{{application}}의 실제 사용자 모니터링을 OneUptime에 보고하도록 브라우저 / 모바일 텔레메트리를 보내세요.",
   "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.": "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",
   "Set a first report date to schedule one.": "첫 보고서 날짜를 설정하면 예약됩니다.",
   "Set up {{name}}": "{{name}} 설정",

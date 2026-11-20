@@ -19739,7 +19739,7 @@
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "選擇要連結到此範本的監測器。已連結到其他範本的監測器會轉到此範本。",
   "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.": "選擇要連結到此範本的 {{monitorType}} 監測器。已連結到其他範本的監測器會轉到此範本。",
-  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.",
+  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "傳送瀏覽器 / 行動裝置遙測，讓 {{application}} 向 OneUptime 回報真實使用者監測資料。",
   "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.": "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",
   "Set a first report date to schedule one.": "設定第一份報告的日期即可排程。",
   "Set up {{name}}": "設定 {{name}}",

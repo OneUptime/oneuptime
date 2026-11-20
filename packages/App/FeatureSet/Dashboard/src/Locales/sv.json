@@ -19739,7 +19739,7 @@
   "Select all ({{count}})": "Select all ({{count}})",
   "Pick monitors to link to this template. Monitors linked to another template move to this one.": "Välj monitorer som ska kopplas till den här mallen. Monitorer som är kopplade till en annan mall flyttas hit.",
   "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.": "Välj {{monitorType}}-monitorer som ska kopplas till den här mallen. Monitorer som är kopplade till en annan mall flyttas hit.",
-  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.",
+  "Send browser / mobile telemetry so {{application}} reports real-user monitoring to OneUptime.": "Skicka telemetri från webbläsare / mobil så att {{application}} rapporterar övervakning av verkliga användare till OneUptime.",
   "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.": "Send readings to this fleet ({{fleetName}}) with OpenTelemetry or MQTT — use its name as the fleet name in the steps below so the data lands here.",
   "Set a first report date to schedule one.": "Ange ett datum för den första rapporten för att schemalägga en.",
   "Set up {{name}}": "Konfigurera {{name}}",
