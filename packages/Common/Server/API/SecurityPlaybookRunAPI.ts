@@ -63,6 +63,7 @@ import CommonAPI from "./CommonAPI";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import SecurityCaseStepChecks from "../Utils/SecurityCase/StepChecks/SecurityCaseStepChecks";
 
 // The longest comment an approval keeps.
 export const APPROVAL_COMMENT_MAX_LENGTH: number = 2000;
@@ -728,6 +729,12 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
         eventType: SecurityCaseFeedEventType.ResponseAction,
         displayColor: Green500,
         userId: data.props.userId,
+      });
+
+      // Let back in: the case's containment steps no longer hold, and OneUptime says so now.
+      await SecurityCaseStepChecks.requestCheck({
+        projectId: data.projectId,
+        securityCaseId: run.securityCaseId,
       });
     }
 

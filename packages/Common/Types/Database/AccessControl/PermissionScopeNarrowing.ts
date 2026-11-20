@@ -1021,6 +1021,7 @@ const NARROWED_BY_OWNERS: ReadonlyArray<Permission> = [
   Permission.ReadSecurityCaseEvidence,
   Permission.ReadSecurityCaseFeed,
   Permission.ReadSecurityCaseNote,
+  Permission.ReadSecurityCaseStepCheck,
   Permission.ReadSecurityCaseTask,
   Permission.ReadSecurityDetection,
   Permission.ReadSecurityPlaybookRun,

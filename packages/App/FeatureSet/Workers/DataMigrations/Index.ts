@@ -144,6 +144,8 @@ import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
+import BackfillSecurityCaseNextStepCheckAt from "./BackfillSecurityCaseNextStepCheckAt";
+import AddSecurityCaseStepRegressedNotificationSettingsForUsers from "./AddSecurityCaseStepRegressedNotificationSettingsForUsers";
 import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
 import KeepManagedDeviceCheckInMonitorsOnAndroid from "./KeepManagedDeviceCheckInMonitorsOnAndroid";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
@@ -731,6 +733,22 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the last slot.
    */
   new AddAuditLogWorkflowColumns(),
+  /*
+   * OneUptime checks the steps of a security case's Response Plan itself
+   * (#10340): schedules the first check of every case open before then,
+   * spread over half an hour (SecurityCase.nextStepCheckAt). Postgres-only,
+   * idempotent, never touches a closed case. No ordering requirement beyond
+   * the schema migration that adds the column, so it sits before the last
+   * slot.
+   */
+  new BackfillSecurityCaseNextStepCheckAt(),
+  /*
+   * Seeds the notification setting for a step of a security case that
+   * stops holding (email and push on) for existing members, so Notification
+   * Settings shows it the way it behaves. Postgres-only, idempotent. No
+   * ordering requirement, so it sits before the last slot.
+   */
+  new AddSecurityCaseStepRegressedNotificationSettingsForUsers(),
   /*
    * A person's own notification settings for a project (rules, methods,
    * settings, email rollup preference and pending rollup mail, routed call

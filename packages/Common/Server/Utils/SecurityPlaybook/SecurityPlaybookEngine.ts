@@ -58,6 +58,7 @@ import {
   playbookStoppedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import PartialEntity from "../../../Types/Database/PartialEntity";
+import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 
 export const SECURITY_PLAYBOOK_RUN_JOB: string =
   "SecurityPlaybooks:RunPlaybook";
@@ -575,6 +576,19 @@ export default class SecurityPlaybookEngine {
         currentStepIndex: index + 1,
         threatIntelMatched,
       });
+
+      /*
+       * A step that ran may have done one of the case's Response Plan steps
+       * - suspended the account, contained the host - or undone one:
+       * OneUptime checks them at once (#10340). A playbook's steps in a row
+       * are one check.
+       */
+      if (outcome.status !== SecurityPlaybookStepStatus.Skipped) {
+        await SecurityCaseStepChecks.requestCheck({
+          projectId,
+          securityCaseId,
+        });
+      }
 
       if (summaryText && !outcome.hasWrittenOwnFeed) {
         await SecurityCaseFeedService.createSecurityCaseFeedItem({

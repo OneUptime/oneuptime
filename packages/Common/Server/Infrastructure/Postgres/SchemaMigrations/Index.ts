@@ -1131,6 +1131,8 @@ import { BackfillTeamMemberInviteeEmail1809186970000 } from "./1809186970000-Bac
 import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddNetworkSiteOwnersAndLabels";
 import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
 import { AddDashboardPrivateUsersAndSingleSignOn1809187030250 } from "./1809187030250-AddDashboardPrivateUsersAndSingleSignOn";
+import { AddSecurityCaseStepChecks1809187103400 } from "./1809187103400-AddSecurityCaseStepChecks";
+import { AddSecurityCaseNextStepCheckIndex1809187103410 } from "./1809187103410-AddSecurityCaseNextStepCheckIndex";
 
 export default [
   InitialMigration,
@@ -2266,4 +2268,6 @@ export default [
   AddNetworkSiteOwnersAndLabels1809187000000,
   AddGuidedSetupRun1809187025300,
   AddDashboardPrivateUsersAndSingleSignOn1809187030250,
+  AddSecurityCaseStepChecks1809187103400,
+  AddSecurityCaseNextStepCheckIndex1809187103410,
 ];

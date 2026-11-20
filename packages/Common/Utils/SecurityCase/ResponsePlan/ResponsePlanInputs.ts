@@ -1,11 +1,18 @@
+import SecurityCaseStepCheck from "../../../Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
 import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
 import Select from "../../../Types/BaseDatabase/Select";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { JSONValue } from "../../../Types/JSON";
 import {
+  SecurityCaseStepCheckEvidence,
+  readStepCheckEvidence,
+} from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import { isSecurityCaseStepCheckState } from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
+import {
   ResponsePlaybook,
   ResponseStep,
+  ResponseStepCheck,
   ResponseTask,
 } from "./ResponsePlanTypes";
 
@@ -35,6 +42,47 @@ export const RESPONSE_PLAYBOOK_SELECT: Select<SecurityPlaybook> = {
   name: true,
   steps: true,
 };
+
+export const RESPONSE_STEP_CHECK_SELECT: Select<SecurityCaseStepCheck> = {
+  _id: true,
+  stepKey: true,
+  state: true,
+  evidence: true,
+  checkedAt: true,
+  stateSince: true,
+  nextCheckAt: true,
+};
+
+/*
+ * What OneUptime found of the case's steps (SecurityCaseStepCheck), as the
+ * plan reads it: a row with a state it does not know, or evidence with
+ * nothing to say, is left out - never read as a step done.
+ */
+export function readResponseStepChecks(
+  rows: ReadonlyArray<SecurityCaseStepCheck>,
+): Array<ResponseStepCheck> {
+  const read: Array<ResponseStepCheck> = [];
+
+  for (const row of rows) {
+    const stepKey: string = (row.stepKey || "").trim();
+    const evidence: SecurityCaseStepCheckEvidence | null =
+      readStepCheckEvidence(row.evidence);
+
+    if (!stepKey || !isSecurityCaseStepCheckState(row.state) || !evidence) {
+      continue;
+    }
+
+    read.push({
+      stepKey,
+      state: row.state,
+      evidence,
+      checkedAt: row.checkedAt ? new Date(row.checkedAt) : undefined,
+      stateSince: row.stateSince ? new Date(row.stateSince) : undefined,
+    });
+  }
+
+  return read;
+}
 
 // The case's tasks a step was made from: the ones that keep their step.
 export function readResponseTasks(

@@ -336,6 +336,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "SecurityCaseNoteTemplate",
     "SecurityCasePriority",
     "SecurityCaseStatus",
+    "SecurityCaseStepCheck",
     "SecurityCaseTask",
     "SecurityDetection",
     "SecurityEntityCriticality",

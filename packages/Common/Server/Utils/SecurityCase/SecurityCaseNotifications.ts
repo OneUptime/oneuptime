@@ -98,6 +98,15 @@ import FeedMarkdown, {
 } from "../../../Utils/Markdown/FeedMarkdown";
 import { securityCaseSummaryMarkdown } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
+import SecurityCaseStepCheck from "../../../Models/DatabaseModels/SecurityCaseStepCheck";
+import SecurityCaseStepCheckService from "../../Services/SecurityCaseStepCheckService";
+import {
+  SecurityCaseStepCheckEvidence,
+  readStepCheckEvidence,
+} from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
+import { createTranslator } from "../../../Types/Translator";
+import { wordStepCheckSentence } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckSentences";
 
 /*
  * TELLING PEOPLE ABOUT SECURITY CASES.
@@ -127,6 +136,12 @@ import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
  *    held back: it is about a deadline.
  *  - A task on a case is handed to a person (SecurityCaseTaskService):
  *    SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION, to that person.
+ *  - A step of the case's Response Plan that OneUptime saw done stops
+ *    holding - the address got through again, the account is active again
+ *    (SecurityCaseStepCheckRunner, #10340):
+ *    SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION, to the people on the
+ *    case or, when nobody is, to the people told about cases at its
+ *    priority. Never held back: the attacker is back.
  *
  * Each is also posted to the Slack and Microsoft Teams channels and chats the
  * project's Security Case rules name (WorkspaceNotificationRuleService), and
@@ -175,6 +190,7 @@ export enum SecurityCaseNotificationKind {
   ApprovalRequested = "ApprovalRequested",
   TargetAlert = "TargetAlert",
   TaskAssigned = "TaskAssigned",
+  StepRegressed = "StepRegressed",
 }
 
 export interface SecurityCaseRecipient {
@@ -623,6 +639,48 @@ export function buildTaskAssignedMessage(data: {
   };
 }
 
+/*
+ * What a person is told when a step of a case's Response Plan that
+ * OneUptime saw done stops holding: what it saw, in a sentence
+ * ("35.205.11.131 got through again at 11:05: the block is not holding."),
+ * and the step. Both are escaped wherever they are drawn: an address, a
+ * user or a host can be an attacker's own input.
+ */
+export function buildStepRegressedMessage(data: {
+  facts: SecurityCaseMessageFacts;
+  line: string;
+  stepTitle: string;
+  isOnCase: boolean;
+}): SecurityCaseMessage {
+  const { facts } = data;
+
+  return {
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+    subject: `[${facts.number}] A step stopped holding: ${data.line}`,
+    templateType: EmailTemplateType.SecurityCaseStepRegressed,
+    emailVars: {
+      ...getCaseEmailVars(facts),
+      emailTitle: `A step stopped holding on ${facts.number}`,
+      leadSentence: `A step of this ${facts.priority} security case's Response Plan that OneUptime saw done is not holding any more.`,
+      reasonSentence: data.isOnCase
+        ? "You are on this case. Change these emails in User Settings > Notification Settings."
+        : "Nobody is on this case, and you are told about cases at its priority. Change these emails in User Settings > Notification Settings.",
+      evidenceLine: data.line,
+      stepTitle: data.stepTitle,
+    },
+    smsText: buildNotificationSms(
+      `Security case ${facts.number}: a step stopped holding. ${data.line}`,
+    ),
+    callText: `This is a message from OneUptime. A step of security case ${facts.number}, priority ${facts.priority}, stopped holding. ${data.line} To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    pushTitle: `A step stopped holding on ${facts.number}`,
+    pushBody: data.line,
+    pushType: "security-case-step-regressed",
+    requireInteraction: facts.isCritical,
+    forceImmediate: true,
+  };
+}
+
 // The case's own rows of its emails.
 function getCaseEmailVars(facts: SecurityCaseMessageFacts): Dictionary<string> {
   return {
@@ -810,6 +868,31 @@ export default class SecurityCaseNotifications {
     );
   }
 
+  /*
+   * A step of the case's Response Plan that OneUptime saw done stopped
+   * holding (SecurityCaseStepCheckRunner, which wrote it so it is said
+   * once).
+   */
+  @CaptureSpan()
+  public static async stepRegressed(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    stepKey: string;
+    // The step as the plan says it, in English.
+    stepTitle: string;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.StepRegressed,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        stepKey: data.stepKey,
+        stepTitle: data.stepTitle,
+      },
+      0,
+    );
+  }
+
   // Never throws: a case's change must not fail because nobody could be told.
   private static async enqueue(
     data: JSONObject,
@@ -910,6 +993,19 @@ export default class SecurityCaseNotifications {
             taskId,
             userId,
             actorUserId: readId(data, "actorUserId"),
+          });
+        }
+        return;
+      }
+      case SecurityCaseNotificationKind.StepRegressed: {
+        const stepKey: string | undefined = readText(data, "stepKey");
+
+        if (stepKey) {
+          await this.notifyStepRegressed({
+            projectId,
+            securityCaseId,
+            stepKey,
+            stepTitle: readText(data, "stepTitle") || "",
           });
         }
         return;
@@ -1734,6 +1830,121 @@ export default class SecurityCaseNotifications {
       notified,
       feedInfo: mdText`🔔 Notified ${people(notified.length)} of the task **${taskTitle}**.`,
       displayColor: Gray500,
+    });
+
+    return notified;
+  }
+
+  // ---------- A step that stopped holding ----------
+
+  @CaptureSpan()
+  public static async notifyStepRegressed(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    stepKey: string;
+    stepTitle: string;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const securityCase: SecurityCase | null = await this.readCase(data);
+
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const check: SecurityCaseStepCheck | null =
+      await SecurityCaseStepCheckService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          stepKey: data.stepKey,
+        },
+        select: { _id: true, state: true, evidence: true },
+        props: { isRoot: true },
+      });
+    const evidence: SecurityCaseStepCheckEvidence | null =
+      readStepCheckEvidence(check?.evidence);
+
+    // Read again as it is now: a step that holds again since is not news.
+    if (
+      !check ||
+      check.state !== SecurityCaseStepCheckState.Regressed ||
+      !evidence
+    ) {
+      return [];
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+    const onCase: Array<SecurityCaseRecipient> = [];
+
+    if (securityCase.assignedToTeamId) {
+      onCase.push(
+        ...(await this.getTeamMembers(
+          data.projectId,
+          securityCase.assignedToTeamId,
+        )),
+      );
+    }
+
+    if (securityCase.assignedToUserId) {
+      const assignee: SecurityCaseRecipient | null = await this.getUser(
+        securityCase.assignedToUserId,
+      );
+
+      if (assignee) {
+        onCase.push(assignee);
+      }
+    }
+
+    const isOnCase: boolean = onCase.length > 0;
+    const recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      people: isOnCase
+        ? onCase
+        : (
+            await this.getPriorityWatchers({
+              projectId: data.projectId,
+              priorityId: securityCase.securityCasePriorityId,
+              priorities: values.priorities,
+            })
+          ).people,
+    });
+    const english: ReturnType<typeof createTranslator> =
+      createTranslator(undefined);
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients,
+      message: (recipient: SecurityCaseRecipient): SecurityCaseMessage => {
+        return buildStepRegressedMessage({
+          facts,
+          line: wordStepCheckSentence({
+            sentence: evidence.sentence,
+            translator: english,
+            // In the recipient's own time zone, as a due time is.
+            writeTime: (time: Date): string => {
+              return OneUptimeDate.getDateAsFormattedStringInTimezone({
+                date: time,
+                timezone: recipient.timezone || "UTC",
+                use12HourFormat: false,
+              });
+            },
+          }),
+          stepTitle: data.stepTitle,
+          isOnCase,
+        });
+      },
+    });
+
+    await this.recordInFeed({
+      facts,
+      notified,
+      feedInfo: mdText`🔔 Notified ${people(notified.length)} that a step of this case stopped holding.`,
+      displayColor: Red500,
     });
 
     return notified;

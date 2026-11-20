@@ -58,6 +58,11 @@ export function statusChangedMarkdown(data: {
    */
   reopens?: boolean | undefined;
   playbookName?: string | undefined;
+  /*
+   * OneUptime moved the case to Contained itself: it verified every step
+   * of the Response Plan that contains it (#10340).
+   */
+  byStepChecks?: boolean | undefined;
 }): MarkdownText {
   if (data.verdict) {
     return mdText`✅ Closed as **${data.verdict}**${byPlaybook(data.playbookName)}.`;
@@ -67,7 +72,29 @@ export function statusChangedMarkdown(data: {
     return mdText`↩️ Reopened as **${data.to}**${byPlaybook(data.playbookName)}.`;
   }
 
+  if (data.byStepChecks) {
+    return mdText`🛡️ Status changed from **${data.from}** to **${data.to}**: OneUptime verified every step of the Response Plan that contains the threat.`;
+  }
+
   return mdText`🔁 Status changed from **${data.from}** to **${data.to}**${byPlaybook(data.playbookName)}.`;
+}
+
+/*
+ * A step of the case's Response Plan that OneUptime saw done stopped
+ * holding (SecurityCaseStepCheckRunner): what it saw, in English, and the
+ * step. An address, a user or a host can be an attacker's own input, so
+ * both are escaped text.
+ */
+export function stepCheckRegressedMarkdown(data: {
+  line: string;
+}): MarkdownText {
+  return mdText`🚨 ${data.line}`;
+}
+
+export function stepCheckRegressedDetailMarkdown(data: {
+  step: string;
+}): MarkdownText {
+  return mdText`Response Plan step: **${data.step}**`;
 }
 
 export function priorityChangedMarkdown(data: {
