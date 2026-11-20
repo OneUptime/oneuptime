@@ -270,6 +270,7 @@
     "Dashboard Widgets": "대시보드 위젯",
     "Dashboard Variables & Filters": "대시보드 변수 및 필터",
     "External Data Sources": "외부 데이터 소스",
+    "Import from Grafana and Datadog": "Grafana 및 Datadog에서 가져오기",
     "Sharing & Public Dashboards": "공유 및 공개 대시보드",
     "Dashboard Playlists": "대시보드 재생 목록",
     "Dashboard Configuration & Permissions": "대시보드 설정 및 권한",

@@ -7,6 +7,7 @@ import {
   AIChatCitationTargetType,
 } from "../../../../Types/AI/AIChatTypes";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import Select from "../../../Types/Database/Select";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import {
   CheckRemediation,
@@ -40,6 +41,7 @@ import DataSecurityIssueService from "../../../Services/DataSecurityIssueService
 import DataStoreAccessService from "../../../Services/DataStoreAccessService";
 import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import DataStoreService from "../../../Services/DataStoreService";
+import QueryPermission from "../../../Types/Database/Permissions/QueryPermission";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
@@ -1010,40 +1012,53 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
   },
 };
 
-async function readOneIssue(
+// What the tool reads of one issue, and of the store it is on.
+export const ONE_ISSUE_SELECT: Select<DataSecurityIssue> = {
+  _id: true,
+  title: true,
+  checkId: true,
+  checkGroup: true,
+  evidence: true,
+  severity: true,
+  riskScore: true,
+  status: true,
+  dataTypeIds: true,
+  firstDetectedAt: true,
+  lastDetectedAt: true,
+  resolvedAt: true,
+  acceptedUntil: true,
+  securityCaseId: true,
+  alertId: true,
+  incidentId: true,
+  dataStoreId: true,
+  dataStore: {
+    name: true,
+    kind: true,
+    region: true,
+    sensitivity: true,
+    sensitivityOverride: true,
+    exposure: true,
+  },
+};
+
+export async function readOneIssue(
   issueId: ObjectID,
   ctx: ToolContext,
 ): Promise<ToolExecutionResult> {
   const issue: DataSecurityIssue | null =
     await DataSecurityIssueService.findOneBy({
       query: { _id: issueId, projectId: ctx.projectId },
-      select: {
-        _id: true,
-        title: true,
-        checkId: true,
-        checkGroup: true,
-        evidence: true,
-        severity: true,
-        riskScore: true,
-        status: true,
-        dataTypeIds: true,
-        firstDetectedAt: true,
-        lastDetectedAt: true,
-        resolvedAt: true,
-        acceptedUntil: true,
-        securityCaseId: true,
-        alertId: true,
-        incidentId: true,
-        dataStoreId: true,
-        dataStore: {
-          name: true,
-          kind: true,
-          region: true,
-          sensitivity: true,
-          sensitivityOverride: true,
-          exposure: true,
-        },
-      },
+      /*
+       * Of its store, what the caller may read through the issue: a store's
+       * region, sensitivity and exposure only by who may read the store
+       * (#10281). A custom role that reads issues and not stores is told
+       * the issue and its store's name and kind, not refused the issue.
+       */
+      select: QueryPermission.getSelectReadableThroughRelations({
+        modelType: DataSecurityIssue,
+        select: ONE_ISSUE_SELECT,
+        props: ctx.props,
+      }),
       props: ctx.props,
     });
 
@@ -1078,7 +1093,8 @@ async function readOneIssue(
     storeKind: kind || "",
     region: issue.dataStore?.region || "",
     dataStoreId: issue.dataStoreId?.toString() || "",
-    storeSensitivity: issue.dataStore
+    // Only a sensitivity read: one the caller may not read is not "Public".
+    storeSensitivity: issue.dataStore?.sensitivity
       ? effectiveSensitivity(issue.dataStore)
       : "",
     exposure: issue.dataStore?.exposure || "",

@@ -50,8 +50,8 @@ import {
  */
 
 const INSTANT: Date = new Date("2026-10-06T09:05:07Z");
-const ENGLISH_DATE: string = "Oct 06 2026, 10:05 BST";
-const GERMAN_DATE: string = "06. Okt. 2026, 10:05 BST";
+const ENGLISH_DATE: string = "Oct 6, 2026, 10:05 BST";
+const GERMAN_DATE: string = "6. Okt. 2026, 10:05 BST";
 
 // German words some sentences and not others.
 const GERMAN: Record<string, string> = {

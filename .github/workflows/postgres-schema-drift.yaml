@@ -2002,6 +2002,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkspaceHomeChoicePostgres.test.ts --forceExit
 
+      # Clones the migrated GuidedSetupRun table (with its unique index) into
+      # an isolated schema and runs GuidedSetupRunService against it: a
+      # guided setup's run kept on the server (#7253). The first change makes
+      # the run and another device reads it back, devices saving at once all
+      # keep what they saved in one row, a step tried again replaces its
+      # failure, one person's run is never another's, starting afresh deletes
+      # it, and the daily purge takes a run nobody changed for 30 days - and
+      # the migrated table is removed with its project and its person.
+      - name: Test guided setups' runs on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_GUIDED_SETUP_RUN_TESTS: "true"
+          GUIDED_SETUP_RUN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GUIDED_SETUP_RUN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GUIDED_SETUP_RUN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/GuidedSetupRunPostgres.test.ts --forceExit
+
       # Clones the migrated TeamComplianceSetting table and its two severity
       # join tables (with their migrated foreign keys) into an isolated schema.
       # Rules scoped by severity and channel must land as join rows whatever

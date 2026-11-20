@@ -38,7 +38,6 @@
   "packages/App/FeatureSet/Dashboard/src/Components/MonitorGroup/CurrentStatus.tsx": 1,
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkApplyVendorTemplate.tsx": 1,
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkCreatePingMonitors.tsx": 1,
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkDeviceRelationActions.tsx": 1,
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkOidTemplateActions.tsx": 1,
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkShortenDeviceNames.tsx": 1,
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkSnmpCredentialProfileActions.tsx": 1,

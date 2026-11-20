@@ -17,6 +17,7 @@ import {
   PromQLSeriesSource,
 } from "../../../Utils/PromQL/PromQLEngineTypes";
 import PromQLError from "../../../Utils/PromQL/PromQLError";
+import { applyGrafanaIntervalMacros } from "../../../Utils/PromQL/PromQLGrafanaMacros";
 import {
   parseInstantQueryResult,
   parseRangeQueryResult,
@@ -109,10 +110,25 @@ export const runProjectMetricsQuery: (
     timeoutMs: DATA_SOURCE_QUERY_TIMEOUT_IN_MS,
   });
 
+  const stepInSeconds: number =
+    request.stepInSeconds ??
+    DataSourceLimitsUtil.getStepInSeconds(request.startDate, request.endDate);
+
+  /*
+   * Grafana's $__interval, $__rate_interval and $__range, filled from the
+   * window and step the query runs at (PromQLGrafanaMacros), as Grafana
+   * fills them before a query reaches Prometheus (issue #7697).
+   */
+  const query: string = applyGrafanaIntervalMacros(request.query, {
+    startDate: request.startDate,
+    endDate: request.endDate,
+    stepInSeconds,
+  });
+
   try {
     if (request.resultKind === DataSourceResultKind.Table) {
       const result: PromQLQueryResult = await engine.instantQuery(
-        request.query,
+        query,
         request.endDate.getTime(),
       );
 
@@ -124,11 +140,8 @@ export const runProjectMetricsQuery: (
       };
     }
 
-    const stepInSeconds: number =
-      request.stepInSeconds ??
-      DataSourceLimitsUtil.getStepInSeconds(request.startDate, request.endDate);
     const result: PromQLQueryResult = await engine.rangeQuery(
-      request.query,
+      query,
       request.startDate.getTime(),
       request.endDate.getTime(),
       stepInSeconds * 1000,

@@ -414,7 +414,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
       { timeout: 30000 },
     );
     const sideMenu: Locator = page.locator(
-      "aside[role='navigation'][aria-label='Main navigation']",
+      "aside[role='navigation'][aria-label='Pages in this section']",
     );
     // An inventory item's name may carry its count badge after the title.
     for (const item of ["Volumes", "Hosts", "Hardware"]) {

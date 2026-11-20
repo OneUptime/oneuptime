@@ -439,10 +439,10 @@ describe("the top of a page at a tablet's width (900px)", () => {
 
     const glossary: HTMLElement = within(
       screen.getByTestId(HELP_LEARN_GROUP_TEST_ID),
-    ).getByRole("link", { name: "Glossary" });
+    ).getByRole("menuitem", { name: "Glossary" });
     const quickstart: HTMLElement = within(
       screen.getByTestId(HELP_LEARN_GROUP_TEST_ID),
-    ).getByRole("link", { name: "Quickstart" });
+    ).getByRole("menuitem", { name: "Quickstart" });
 
     expect(glossary).toHaveAttribute(
       "href",
@@ -518,7 +518,7 @@ describe("the top of a page at a tablet's width (900px)", () => {
       localeText(germanLocale, "help.documentation"),
     ]);
     expect(
-      within(learn).getByRole("link", {
+      within(learn).getByRole("menuitem", {
         name: localeText(germanLocale, "help.glossary"),
       }),
     ).toHaveAttribute("href", getDocsPageUrl(GLOSSARY_INDEX_DOCS_PAGE, "de"));
@@ -540,9 +540,12 @@ describe("the top of a page at a tablet's width (900px)", () => {
     fireEvent.click(headerHelp(help));
 
     expect(
-      within(screen.getByTestId(HELP_LEARN_GROUP_TEST_ID)).getByRole("link", {
-        name: localeText(arabicLocale, "help.glossary"),
-      }),
+      within(screen.getByTestId(HELP_LEARN_GROUP_TEST_ID)).getByRole(
+        "menuitem",
+        {
+          name: localeText(arabicLocale, "help.glossary"),
+        },
+      ),
     ).toHaveAttribute("href", getDocsPageUrl(GLOSSARY_INDEX_DOCS_PAGE, "ar"));
   });
 });
@@ -654,9 +657,12 @@ describe("Search and Help, at every width from 320 to 1920", () => {
       fireEvent.click(headerHelp());
 
       expect(
-        within(screen.getByTestId(HELP_LEARN_GROUP_TEST_ID)).getByRole("link", {
-          name: "Glossary",
-        }),
+        within(screen.getByTestId(HELP_LEARN_GROUP_TEST_ID)).getByRole(
+          "menuitem",
+          {
+            name: "Glossary",
+          },
+        ),
       ).toBeInTheDocument();
     });
   }

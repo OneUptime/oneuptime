@@ -569,7 +569,12 @@ export interface InMemoryTableOptions {
   answersOnlySelectedColumns?: boolean | undefined;
 }
 
-// The columns of `row` a find's `select` asks for, and the id.
+/*
+ * The columns of `row` a find's `select` asks for, and the id. A related
+ * record the row joins is narrowed to the columns asked of it too, as
+ * Postgres joins only those (#10281): a store's sensitivity the select left
+ * out of `dataStore: { name: true }` is not answered.
+ */
 function selectedColumnsOf(
   row: StoredRow,
   select: Record<string, unknown> | undefined,
@@ -581,12 +586,35 @@ function selectedColumnsOf(
   const selected: StoredRow = { _id: row["_id"] };
 
   for (const [column, isSelected] of Object.entries(select)) {
-    if (isSelected && column in row) {
-      selected[column] = row[column];
+    if (!isSelected || !(column in row)) {
+      continue;
     }
+
+    selected[column] =
+      typeof isSelected === "object" && !Array.isArray(isSelected)
+        ? joinedColumnsOf(row[column], isSelected as Record<string, unknown>)
+        : row[column];
   }
 
   return selected;
+}
+
+// A joined record, or each of a list of them, with the columns asked of it.
+function joinedColumnsOf(
+  joined: unknown,
+  select: Record<string, unknown>,
+): unknown {
+  if (Array.isArray(joined)) {
+    return joined.map((each: unknown): unknown => {
+      return joinedColumnsOf(each, select);
+    });
+  }
+
+  if (!joined || typeof joined !== "object") {
+    return joined;
+  }
+
+  return selectedColumnsOf(joined as StoredRow, select);
 }
 
 /*

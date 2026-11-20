@@ -60,14 +60,15 @@ describe("IconDropdownItem", () => {
     expect(onClick).toHaveBeenCalled();
   });
 
-  it("is reachable from the keyboard when it is an action rather than a link", () => {
-    /*
-     * An action row has no href, so Link renders it as a role="button" with a
-     * tab stop. Losing that would make the row mouse-only — a poor trade for a
-     * row whose whole subject is the keyboard.
-     */
+  /*
+   * A row of a header menu is a menu item (#7237): the menu's arrow keys
+   * move the focus to it (tabindex -1), and Enter runs an action. It was a
+   * role="button" with a tab stop of its own, in a role="menu" that then
+   * held no menu item for a screen reader to find.
+   */
+  it("is a menu item the menu's keys reach when it is an action rather than a link", () => {
     const onClick: MockFunction = getJestMockFunction();
-    const { container } = render(
+    const { container, getByRole } = render(
       <IconDropdownItem
         title="Keyboard shortcuts"
         icon={IconProp.Keyboard}
@@ -77,12 +78,47 @@ describe("IconDropdownItem", () => {
 
     const row: HTMLElement = container.querySelector("a") as HTMLElement;
 
-    expect(row).toHaveAttribute("role", "button");
-    expect(row).toHaveAttribute("tabindex", "0");
+    expect(getByRole("menuitem", { name: "Keyboard shortcuts" })).toBe(row);
+    expect(row).toHaveAttribute("tabindex", "-1");
+    expect(row).not.toHaveAttribute("href");
 
     fireEvent.keyDown(row, { key: "Enter" });
 
     expect(onClick).toHaveBeenCalled();
+  });
+
+  it("is a menu item that keeps its link when given a url: a new tab still opens it", () => {
+    const { getByRole } = render(
+      <IconDropdownItem
+        title="Documentation"
+        icon={IconProp.Book}
+        openInNewTab={true}
+        url={URL.fromString("https://oneuptime.com/docs")}
+      />,
+    );
+
+    const row: HTMLElement = getByRole("menuitem", { name: "Documentation" });
+
+    expect(row.tagName).toBe("A");
+    expect(row).toHaveAttribute("href", "https://oneuptime.com/docs");
+    expect(row).toHaveAttribute("target", "_blank");
+    expect(row).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("shows where the keyboard's focus is, as the pointer's hover does, with a ring", () => {
+    const { getByRole } = render(
+      <IconDropdownItem
+        title="Glossary"
+        icon={IconProp.BookOpen}
+        onClick={getJestMockFunction()}
+      />,
+    );
+
+    expect(getByRole("menuitem", { name: "Glossary" })).toHaveClass(
+      "hover:bg-gray-50",
+      "focus-visible:bg-gray-50",
+      "focus-visible:ring-2",
+    );
   });
 
   it("still renders a real link when given a url", () => {

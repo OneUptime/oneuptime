@@ -255,7 +255,16 @@ Teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's hebben in een pr
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Naast de melding bevat het antwoord `"refusalCode": "name_taken"`. Herken deze weigering aan die code, niet aan de zin, die anders geformuleerd kan worden. Er is niets geschreven, dus hetzelfde verzoek kan opnieuw worden gestuurd zodra het andere record de naam opgeeft: de Terraform-provider vraagt het tot 30 seconden lang opnieuw.
+Ook veel andere soorten hebben een eigen naam, zoals ernstniveaus van incidenten, monitorstatussen, statuspagina's en workflows, en weigeren een bezette naam op dezelfde manier:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Naast de melding bevat elke zulke weigering een `refusalCode` die zegt wat de naam heeft. Herken de weigering aan die code, niet aan de zin, die anders geformuleerd kan worden:
+
+- `"refusalCode": "name_taken"`: een record in dienst heeft hem. Er is niets geschreven, dus hetzelfde verzoek kan opnieuw worden gestuurd zodra dat record de naam opgeeft: de Terraform-provider vraagt het tot 30 seconden lang opnieuw.
+- `"refusalCode": "name_taken_by_archived"`: alleen een gearchiveerd record heeft hem. Haal dat record uit het archief, of kies een andere naam: het verzoek opnieuw sturen helpt niet, en de Terraform-provider doet dat niet.
 
 Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen. Voor teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `label`, `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden. Gearchiveerde labels en gearchiveerd bereikbaarheidsbeleid tellen niet mee.
 

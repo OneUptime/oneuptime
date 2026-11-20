@@ -571,6 +571,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "NetworkSite",
     "NetworkSiteAssignmentRule",
     "NetworkSiteLink",
+    "NetworkSiteOwnerTeam",
+    "NetworkSiteOwnerUser",
     "NetworkSiteStatusTimeline",
     "NetworkSiteType",
     "NetworkSnmpCredentialProfile",
@@ -686,6 +688,10 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
       "ProjectUserPreference",
       "ProjectUserProfile",
     ]),
+    ...noProduct(
+      "A person's own progress through a guided setup, which spans products.",
+      ["GuidedSetupRun"],
+    ),
     ...noProduct(
       "How to reach a person, which incidents, alerts and on-call all use.",
       [

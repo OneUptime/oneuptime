@@ -171,7 +171,7 @@ test.describe("Running a runbook on a schedule or from a webhook", () => {
       const runbookPath: string = `/dashboard/${projectId}/runbooks/${runbook._id}`;
       const scheduleCard: Locator = page.getByTestId("runbook-schedule-card");
       const sideMenu: Locator = page.locator(
-        "aside[role='navigation'][aria-label='Main navigation']",
+        "aside[role='navigation'][aria-label='Pages in this section']",
       );
       // A section's toggle, by its heading's text (drawn in capitals by CSS).
       const settingsSection: Locator = sideMenu.locator(

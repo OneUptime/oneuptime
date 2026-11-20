@@ -121,15 +121,29 @@ describe("the catalog of a connection's alerts", () => {
         },
       ),
     ).toEqual([
+      // #10006: each service's connection itself, first: it feeds the rest.
+      "esper-connection-stopped-reading",
       "esper-device-stopped-checking-in",
       "esper-apple-device-stopped-checking-in",
+      // #10008: its devices' batteries and storage, where it reports them.
+      "esper-low-battery",
+      "esper-storage-nearly-full",
       "esper-security-patch-out-of-date",
+      "intune-connection-stopped-reading",
       "intune-device-stopped-checking-in",
+      // Intune's device list says no battery: its storage alone.
+      "intune-storage-nearly-full",
       "intune-security-patch-out-of-date",
+      "workspace-one-connection-stopped-reading",
       "workspace-one-device-stopped-checking-in",
+      "workspace-one-low-battery",
+      "workspace-one-storage-nearly-full",
       "workspace-one-security-patch-out-of-date",
+      "soti-connection-stopped-reading",
       "soti-device-stopped-checking-in",
       "soti-apple-device-stopped-checking-in",
+      "soti-low-battery",
+      "soti-storage-nearly-full",
       "soti-security-patch-out-of-date",
     ]);
     expect(template().name).toBe("Esper Android Device Stopped Checking In");
@@ -166,8 +180,13 @@ describe("the catalog of a connection's alerts", () => {
           return recommendation.recommendationId;
         }),
       ).toEqual([
+        // #10006: the connection itself stopped reading.
+        "DeviceManagementConnection:esper-connection-stopped-reading",
         "DeviceManagementConnection:esper-device-stopped-checking-in",
         "DeviceManagementConnection:esper-apple-device-stopped-checking-in",
+        // #10008: its devices' batteries and storage.
+        "DeviceManagementConnection:esper-low-battery",
+        "DeviceManagementConnection:esper-storage-nearly-full",
         // #10098: its Android devices behind on their security patches.
         "DeviceManagementConnection:esper-security-patch-out-of-date",
       ]);
@@ -177,12 +196,18 @@ describe("the catalog of a connection's alerts", () => {
       MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.DeviceManagementConnection,
       );
+    const checkIns: MonitorRecommendation = recommendations.find(
+      (recommendation: MonitorRecommendation) => {
+        return recommendation.templateId === template().id;
+      },
+    )!;
 
-    expect(recommendations[0]!.monitorType).toBe(MonitorType.Metrics);
-    expect(recommendations[0]!.summary).toBe(template().summary);
+    expect(checkIns.monitorType).toBe(MonitorType.Metrics);
+    expect(checkIns.summary).toBe(template().summary);
     // Evaluated as often as a reading can arrive, not every minute.
-    expect(recommendations[0]!.monitoringInterval).toBe("*/5 * * * *");
-    expect(recommendations[1]!.monitoringInterval).toBe("*/5 * * * *");
+    for (const recommendation of recommendations) {
+      expect(recommendation.monitoringInterval).toBe("*/5 * * * *");
+    }
     expect(MANAGED_DEVICE_ALERT_MONITORING_INTERVAL).toBe("*/5 * * * *");
 
     // A service with no templates of its own is offered none of Esper's.
@@ -224,7 +249,9 @@ describe("the catalog of a connection's alerts", () => {
         return recommendation.recommendationId;
       }),
     ).toEqual([
+      "DeviceManagementConnection:intune-connection-stopped-reading",
       "DeviceManagementConnection:intune-device-stopped-checking-in",
+      "DeviceManagementConnection:intune-storage-nearly-full",
       "DeviceManagementConnection:intune-security-patch-out-of-date",
     ]);
     expect(intune.name).toBe("Intune Device Stopped Checking In");
@@ -337,7 +364,13 @@ describe("what the monitor reads", () => {
       Array.from(
         MonitorRecommendationUtil.getCoveredRecommendationIds({
           recommendations,
-          existingMonitorSteps: [recommendations[1]!.getMonitorStep(args)],
+          existingMonitorSteps: [
+            recommendations
+              .find((recommendation: MonitorRecommendation) => {
+                return recommendation.templateId === appleTemplate().id;
+              })!
+              .getMonitorStep(args),
+          ],
           args,
         }),
       ),
@@ -530,7 +563,17 @@ describe("the alert a device opens", () => {
           "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
         command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.check_in.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       },
-      // A series names the device alone, of either template (#10098).
+      // A series names the device alone, of any template (#10008, #10098).
+      {
+        purpose:
+          "The device's battery at each read, in percent, as its device manager last heard it",
+        command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.battery.level","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
+      {
+        purpose:
+          "The device's storage at each read: how much of it was in use, and how many bytes were free",
+        command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.storage.used","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
       {
         purpose:
           "An Android device's security patch at each read: how many days old it was, and its level",
@@ -555,7 +598,9 @@ describe("whether a monitor already covers it", () => {
   const recommendation: MonitorRecommendation =
     MonitorRecommendationCatalog.getRecommendations(
       MonitorRecommendationResourceType.DeviceManagementConnection,
-    )[0]!;
+    ).find((candidate: MonitorRecommendation) => {
+      return candidate.templateId === "esper-device-stopped-checking-in";
+    })!;
 
   test("names the connection as the resource the monitor watches", () => {
     const fingerprint: MonitorRecommendationFingerprint | undefined =
@@ -644,7 +689,10 @@ describe("a Workspace ONE or SOTI connection's alerts", () => {
       )!;
 
     expect(recommendedFor(DeviceManagementProvider.WorkspaceOne)).toEqual([
+      "DeviceManagementConnection:workspace-one-connection-stopped-reading",
       "DeviceManagementConnection:workspace-one-device-stopped-checking-in",
+      "DeviceManagementConnection:workspace-one-low-battery",
+      "DeviceManagementConnection:workspace-one-storage-nearly-full",
       "DeviceManagementConnection:workspace-one-security-patch-out-of-date",
     ]);
     expect(workspaceOne).toMatchObject({
@@ -670,8 +718,11 @@ describe("a Workspace ONE or SOTI connection's alerts", () => {
     )!;
 
     expect(recommendedFor(DeviceManagementProvider.Soti)).toEqual([
+      "DeviceManagementConnection:soti-connection-stopped-reading",
       "DeviceManagementConnection:soti-device-stopped-checking-in",
       "DeviceManagementConnection:soti-apple-device-stopped-checking-in",
+      "DeviceManagementConnection:soti-low-battery",
+      "DeviceManagementConnection:soti-storage-nearly-full",
       "DeviceManagementConnection:soti-security-patch-out-of-date",
     ]);
     expect(agents.name).toBe("SOTI Device Stopped Checking In");

@@ -10,6 +10,7 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -107,6 +108,7 @@ const KIND_MODELS: Readonly<Record<string, KindModel>> = {
   workflows: { modelType: Workflow },
   runbooks: { modelType: Runbook },
   teams: { modelType: Team },
+  "custom-roles": { modelType: CustomRole },
   "incoming-call-policies": { modelType: IncomingCallPolicy },
   "incident-episodes": { modelType: IncidentEpisode, titleField: "title" },
   "alert-episodes": { modelType: AlertEpisode, titleField: "title" },

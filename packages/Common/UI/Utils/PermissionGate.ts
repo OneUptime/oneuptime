@@ -13,7 +13,10 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import Select from "../../Types/BaseDatabase/Select";
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
+import RelationReadersUtil from "../../Types/Database/RelationReadersUtil";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PermissionUtil from "./Permission";
 import { getListSeparator } from "./ListSeparator";
 import { joinSentences } from "./SentenceSeparator";
@@ -1784,6 +1787,67 @@ export default class PermissionGate {
         columnPermissions: columnPermissions,
       },
     );
+  }
+
+  /*
+   * Whether the user may read one column of a record a relation reaches -
+   * `{ dataStore: { sensitivity: true } }` on a data asset - as the server
+   * decides a select through the relation (RelationReadersUtil
+   * .mayReadThroughRelation, QueryPermission.checkRelationQueryPermission):
+   * a label every reader of the relation reads; a column held to its own
+   * read only when the user may read it on the related record (#10281); an
+   * id or a time by the related record's read; nothing else. On a person's
+   * own records CurrentUser is never counted, as the server never counts it
+   * through a relation the read is not pinned to them by. A master admin
+   * reads everything.
+   *
+   * Before the snapshot has landed nothing tells a column the user may read
+   * from one they may not, so this answers yes and the server decides, as a
+   * table asks for its secondary fields (BaseModelTable): answering no would
+   * leave the column out of a read for the readers who may read it too,
+   * with nothing to read it again once the snapshot lands.
+   */
+  public static canReadThroughRelation(
+    relatedModel: BaseModel,
+    column: string,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    if (User.isMasterAdmin() || !this.hasPermissionSnapshot(options)) {
+      return true;
+    }
+
+    const isPersonsOwnRecord: boolean =
+      relatedModel.tableName === "User" ||
+      Boolean(relatedModel.getUserColumn());
+
+    return RelationReadersUtil.mayReadThroughRelation({
+      relatedModel: relatedModel,
+      column: column,
+      held: this.getHeldPermissions(options),
+      notCounted: isPersonsOwnRecord ? [Permission.CurrentUser] : [],
+    });
+  }
+
+  /*
+   * A select as this user sends it: every column of a related record that
+   * a relation reads only for those who may read it on the record itself,
+   * and this user may not (canReadThroughRelation), left out - so a page
+   * reads the rest in one request, rather than being refused all of it for
+   * one column (RelationReadersUtil.getSelectReadableThroughRelations,
+   * #10281). The select handed in is never changed.
+   */
+  public static getSelectReadableThroughRelations<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    select: Select<TBaseModel>,
+    options?: PermissionGateOptions | undefined,
+  ): Select<TBaseModel> {
+    return RelationReadersUtil.getSelectReadableThroughRelations<TBaseModel>({
+      model: new modelType(),
+      select: select,
+      mayRead: (relatedModel: BaseModel, column: string): boolean => {
+        return this.canReadThroughRelation(relatedModel, column, options);
+      },
+    });
   }
 
   /*

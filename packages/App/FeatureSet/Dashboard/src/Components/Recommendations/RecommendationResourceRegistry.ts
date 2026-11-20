@@ -22,6 +22,8 @@ import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
+import { readDeviceManagementConfig } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import { JSONObject } from "Common/Types/JSON";
 import { parseMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQueueIdentity";
 import {
   MessageQueueMetricDescriptor,
@@ -495,6 +497,28 @@ export function describeMessageQueueRecommendationContext(
  * (getManagedDeviceAlertTemplatesFor): nothing to say while there are some,
  * and why the list is empty when its service has none.
  */
+/*
+ * What a device management connection's row says that decides its
+ * recommendations: its service, which picks the templates (#9837), and how
+ * often it is read, which Connection Stopped Reading waits three of
+ * (#10006). A row with no settings says no interval: the default one's.
+ */
+export function readDeviceManagementRecommendationContext(
+  record: Record<string, unknown>,
+): MonitorRecommendationContext {
+  const provider: unknown = record["provider"];
+  const config: unknown = record["config"];
+
+  return {
+    deviceManagementProvider:
+      typeof provider === "string" && provider ? provider : null,
+    deviceManagementReadIntervalInMinutes:
+      config && typeof config === "object" && !Array.isArray(config)
+        ? readDeviceManagementConfig(config as JSONObject).readIntervalInMinutes
+        : null,
+  };
+}
+
 export function describeDeviceManagementRecommendationContext(
   context: MonitorRecommendationContext,
 ): string | undefined {
@@ -1805,32 +1829,28 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
   },
   /*
    * A device management connection (an Esper tenant, #9835): its monitors
-   * read the check-ins each read of it writes for its devices, filtered on
-   * the connection's id, so `_id` is the identifier, and its service picks
-   * the templates (#9837). Read by everyone who may read the project's
-   * Inventory; its page is opened from its row on Inventory > Managed
-   * Devices (Set up alerts).
+   * read what each read of it writes - of its devices, and of itself
+   * (#10006) - filtered on the connection's id, so `_id` is the
+   * identifier. Its service picks the templates (#9837), and how often it
+   * is read is what Connection Stopped Reading waits three of. Read by
+   * everyone who may read the project's Inventory; its page is opened from
+   * its row on Inventory > Managed Devices (Set up alerts).
    */
   {
     resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
     modelType: DeviceManagementConnection,
     identifierFieldName: "_id",
     displayNameFieldName: "name",
-    contextFieldNames: ["provider"],
+    contextFieldNames: ["provider", "config"],
     readContext: (model: BaseModel): MonitorRecommendationContext => {
-      const provider: unknown = (model as unknown as Record<string, unknown>)[
-        "provider"
-      ];
-
-      return {
-        deviceManagementProvider:
-          typeof provider === "string" && provider ? provider : null,
-      };
+      return readDeviceManagementRecommendationContext(
+        model as unknown as Record<string, unknown>,
+      );
     },
     describeContext: describeDeviceManagementRecommendationContext,
     getCardDescription: (): string | undefined => {
       return translateTemplate(
-        "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.",
+        "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.",
       );
     },
   },

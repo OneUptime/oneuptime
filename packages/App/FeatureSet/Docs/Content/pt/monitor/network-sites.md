@@ -44,6 +44,8 @@ O tipo, o nome, a descrição, o pai e a localização de um site são editados 
 
 Os sites que não contêm nada saem de uma vez: **Excluir sites vazios**, no menu no topo da lista **Sites**, lista cada site sem dispositivos (arquivados incluídos), sem sites abaixo dele e sem endpoint, link, regra ou evento de manutenção que o use. Ele nomeia os dez primeiros e, quando você confirma, exclui exatamente os sites listados: um site que recebe um dispositivo nesse meio-tempo é mantido. É para quem pode excluir sites.
 
+O cartão **Hierarchy** no topo da página **Sites** desenha a árvore. Ele fica recolhido até você clicar em **Mostrar a hierarquia**, e continua aberto na próxima vez se você o deixar aberto. Ele lista primeiro os sites do nível superior, cinquenta de cada vez, e os sites filhos de um site quando você o abre. **Pesquisar sites por nome** encontra um site em qualquer lugar da árvore e abre os sites acima dele, e **Ocultar os sites sem dispositivos** deixa de fora cada site sem nenhum dispositivo nele ou abaixo dele.
+
 Cada dispositivo se liga a um site. A subárvore de um site é o próprio site mais cada site abaixo dele, e os dispositivos da subárvore são de onde a saúde dele é resumida, então uma região sem dispositivos próprios ainda tem um status, porque as unidades abaixo dela têm.
 
 > [!NOTE]
@@ -81,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` e `siteType` são obrigatórios. `siteType` precisa ser um dos tipos de site do projeto.
 - `parentName` indica o site pai, que pode estar no mesmo arquivo: as linhas sem pai, ou com um pai que já existe, entram primeiro, e depois os filhos delas. Deixe vazio para um site de nível mais alto.
 - Uma linha cujo pai não é encontrado é ignorada, e os resultados a listam. **Pré-visualizar importação** mostra o que o arquivo vai criar antes de qualquer coisa ser gravada.
+
+## Alterar muitos sites de uma vez
+
+Uma importação de uma organização Meraki adiciona um site para cada uma das suas redes, todos no nível superior. Você não abre um por um: selecione-os na lista **Sites**, marcando linhas ou selecionando todos os sites que os filtros encontram, e abra **Ações em massa**.
+
+| Ação | O que faz |
+| --- | --- |
+| **Definir o site pai** / **Remover o site pai** | Move cada site selecionado para baixo do site que você escolher, com todos os sites abaixo dele, onde ele conta para a saúde desse site. **Remover o site pai** os move para o nível superior. Um site precisa de um tipo para ficar sob outro, e um site que uma importação Meraki adiciona não tem: quando alguns dos sites selecionados não têm tipo, a caixa de diálogo pede o tipo que eles recebem, e os outros mantêm o seu. |
+| **Definir a sonda padrão** / **Remover a sonda padrão** | Define a [sonda padrão](#padrões-de-monitoramento) de cada site selecionado, para os dispositivos adicionados a ele mais tarde. Os dispositivos que já estão nele mantêm as suas sondas. |
+| **Adicionar rótulos** / **Remover rótulos** | Os rótulos agrupam os sites para que você possa filtrá-los e selecioná-los juntos. Eles não decidem quem pode ver um site. |
+| **Adicionar proprietário** / **Remover proprietário** | Os proprietários de um site são os proprietários do alerta que ele gera quando não está íntegro. A página **Proprietários** de um site os lista. |
+
+Cada ação é uma caixa de diálogo e um salvamento para a seleção inteira, e cada site passa pelas mesmas verificações de uma edição na própria página de Configurações. Quando uma ação termina, ela lista quantos sites mudaram, quais falharam e por quê (um site não pode ir para baixo de si mesmo nem de um site abaixo dele, nem de um site de um tipo que só contém dispositivos), e quais não mudaram e por quê: um site que já estava sob esse pai, ou o site escolhido como pai.
 
 ## O mapa
 
@@ -213,7 +228,7 @@ Ligar um monitor ao mesmo evento continua fazendo o que sempre fez: o monitorame
 
 ## Alertas em um site
 
-O cartão **Alerting** na página **Configurações** de um site tem **Alert When Unhealthy**: um alerta é aberto quando o resumo do site passa para um status que não é operacional, e se resolve sozinho quando o site se recupera. **Severidade do alerta** define a severidade dele; deixado em branco, é a mais grave do projeto.
+O cartão **Alerting** na página **Configurações** de um site tem **Alert When Unhealthy**: um alerta é aberto quando o resumo do site passa para um status que não é operacional, e se resolve sozinho quando o site se recupera. **Severidade do alerta** define a severidade dele; deixado em branco, é a mais grave do projeto. Os proprietários do site, na página **Proprietários** dele, são os proprietários do alerta.
 
 Ele só alerta na mudança: ativá-lo em um site que já não está saudável arma a próxima mudança em vez de alertar sobre o passado. Degraded não é operacional, então um site com a política de porcentagem alerta assim que um dos dispositivos que informam fica fora do ar, como faz um site com a política do pior status; o alerta continua aberto, sem um segundo, enquanto o site passa entre Degraded e Offline, e o título dele indica o status a que o site chegou primeiro.
 

@@ -87,6 +87,7 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
@@ -1267,8 +1268,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
       ).toNumber();
     }
 
+    // With the code a program tells a taken name by (#10065).
     if (existingProjectWithSameNameCount > 0) {
-      throw new BadDataException(
+      throw new NameTakenException(
         "You already have a project with the same name. Choose another name.",
       );
     }

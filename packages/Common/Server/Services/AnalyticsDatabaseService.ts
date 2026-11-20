@@ -1815,8 +1815,9 @@ export default class AnalyticsDatabaseService<
    * a count of the same query would. The expression is SQL written in
    * code, never a request's: a mobile app's install, the first of two
    * attributes with a value (MobileAppTelemetry.STORED_APP_INSTALL_SQL,
-   * #9924). Exact, as countBy's distinct count is, and stopped as countBy's
-   * is when the time limit passes.
+   * #9924). Exact, as countBy's exact count is, and stopped as that one is
+   * when the time limit passes: with an error, a QueryTimeoutException,
+   * never a number counted from part of the rows.
    */
   @CaptureSpan()
   public async countDistinctNonEmpty(input: {
@@ -1877,10 +1878,20 @@ export default class AnalyticsDatabaseService<
       .append(SQL` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `)
       .append(this.statementGenerator.toWhereStatement(input.query))
       .append(this.getRetentionReadFilter());
+
+    /*
+     * 'throw', as an exact count stops (issue #4707). This count is one side
+     * of an Exceptions monitor's share of installs, which the monitor alerts
+     * on and shows ("6 of 400 installs"): one side counted from part of its
+     * rows makes the share wrong, and a denominator cut short reads more of
+     * the installs as crashed than were. 'break' never handed back part of
+     * the count anyway: ClickHouse answers a count it broke off with an
+     * empty body (see countBy), which executeQuery already reads as a stop.
+     */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: "throw",
       }),
     );
 
@@ -3751,7 +3762,8 @@ export default class AnalyticsDatabaseService<
    *
    * A service that narrows its reads further on its own (onBeforeFind, or a
    * findBy of its own) is not modelled here, so nobody hears about its rows
-   * rather than everybody.
+   * rather than everybody - unless its find hook is one that narrows no
+   * one's read (getFindHookThatNarrowsNoRead).
    */
   public getRealtimeReadAccess(): RealtimeReadAccess {
     if (this.realtimeReadAccess) {
@@ -3854,8 +3866,31 @@ export default class AnalyticsDatabaseService<
   }
 
   /*
+   * This service's find hook (onBeforeFind), when it narrows no one's read
+   * of a row: it keeps rows out of what a read lists, but leaves a read of
+   * rows by their _id as it was, so whoever may read a row - the read check
+   * and the read scope, which every read is held to after the hook - still
+   * reads it by asking. ExceptionInstanceService's keeps a crash's second
+   * report out of every list and count, and finds it by its _id or by the
+   * report it repeats (#9923). Such a hook changes what a list shows, not
+   * who may read a row, so the table's live updates are still decided by
+   * the read check and the read scope (getRealtimeReadAccess).
+   *
+   * Named as the hook itself, so a service that overrides it again narrows
+   * its reads on its own once more. Null for a service that keeps the base
+   * hook or narrows its reads in it. RealtimeEmitGuard holds every service
+   * whose model sends live updates to what its hook does.
+   */
+  public getFindHookThatNarrowsNoRead():
+    | ((findBy: FindBy<TBaseModel>) => Promise<OnFind<TBaseModel>>)
+    | null {
+    return null;
+  }
+
+  /*
    * Whether this service's reads are narrowed by the permission check
-   * alone: it adds nothing in onBeforeFind and replaces no read.
+   * alone: it adds nothing in onBeforeFind but a hook that narrows no one's
+   * read (getFindHookThatNarrowsNoRead), and replaces no read.
    */
   private readsThroughThePermissionCheck(): boolean {
     const service: Record<string, unknown> = this as unknown as Record<
@@ -3864,6 +3899,8 @@ export default class AnalyticsDatabaseService<
     >;
     const base: Record<string, unknown> =
       AnalyticsDatabaseService.prototype as unknown as Record<string, unknown>;
+    const findHookNarrowingNoRead: unknown =
+      this.getFindHookThatNarrowsNoRead();
 
     return [
       "findBy",
@@ -3872,7 +3909,12 @@ export default class AnalyticsDatabaseService<
       "onBeforeFind",
       "onFindSuccess",
     ].every((method: string): boolean => {
-      return service[method] === base[method];
+      return (
+        service[method] === base[method] ||
+        (method === "onBeforeFind" &&
+          findHookNarrowingNoRead !== null &&
+          service[method] === findHookNarrowingNoRead)
+      );
     });
   }
 }

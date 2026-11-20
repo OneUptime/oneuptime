@@ -5,10 +5,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * Inventory > Managed Devices > Recommendations: the monitors OneUptime
- * recommends for one Esper connection's devices (#9835) - today Esper Device
- * Stopped Checking In, one alert per device that stops checking in. Opened
- * from the connection's row (Set up alerts); the connection is the route's
- * own record, as every resource's Recommendations page reads it.
+ * recommends for one device management connection and its devices - the
+ * connection itself when it stops reading (#10006), then one alert per
+ * device that stops checking in (#9835), runs low on battery, fills its
+ * storage (#10008) or falls behind on security patches (#10098). Opened from
+ * the connection's row (Set up alerts); the connection is the route's own
+ * record, as every resource's Recommendations page reads it.
  */
 const ManagedDeviceConnectionRecommendations: FunctionComponent<
   PageComponentProps

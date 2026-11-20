@@ -49,12 +49,11 @@ import {
  * component and the real RouteMap:
  *
  *  - Roles left behind beside All Teams, or listed twice;
- *  - Settings staying folded on Roles or on a role's own page, which would
- *    hide the page the reader is on inside a closed section;
+ *  - Settings staying folded on Roles, which would hide the page the
+ *    reader is on inside a closed section;
  *  - Settings opening where it should not: on All Teams, on the Developer
  *    pages, or on a team's own pages whose addresses end like the Settings
  *    pages ("custom-fields");
- *  - a role's page no longer marking Roles;
  *  - the phone's one-line summary still naming the old section;
  *  - the breadcrumbs gaining a "Settings" level the address does not have:
  *    Settings is a fold in the menu, as it is for Custom Fields, not a
@@ -62,6 +61,10 @@ import {
  *
  * The expected menu is written out in full rather than read from the
  * component, so changing the component alone cannot make these pass.
+ *
+ * A role's own page is not drawn in this menu: it has its own, as a team's
+ * page has (RoleViewSideMenu, #10139), pinned in RoleViewSideMenu.test.tsx
+ * and, drawn by the Teams routes, in CustomRoleDeveloperPages.test.tsx.
  */
 
 const ROLE_ID: string = "6c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5";
@@ -403,22 +406,6 @@ describe("Teams side menu: Roles in Settings", () => {
       expect(activeLinkTitles()).toEqual(["Roles"]);
     });
 
-    test("a role's own page opens Settings by itself and keeps Roles marked", async () => {
-      goTo(recordPath(PageMap.TEAM_ROLE_VIEW, ROLE_ID));
-
-      await renderTeamsMenu();
-
-      expect(isExpanded("Settings")).toBe(true);
-      expect(sectionBody("Settings")).not.toHaveClass("invisible");
-      expect(isExpanded("Developer")).toBe(false);
-      expect(activeLinkTitles()).toEqual(["Roles"]);
-      // Marked, yet still a link back to the list of roles.
-      expect(findAnchor("Roles")).toHaveAttribute(
-        "href",
-        routeFor(PageMap.TEAM_ROLES),
-      );
-    });
-
     test("Custom Fields opens Settings by itself, as before, and is marked", async () => {
       goTo(routeFor(PageMap.TEAM_CUSTOM_FIELDS));
 
@@ -485,19 +472,6 @@ describe("Teams side menu: Roles in Settings", () => {
       expect(isExpanded("Settings")).toBe(true);
       expect(activeLinkTitles()).toEqual(["Roles"]);
     });
-
-    test("moving from Roles to a role's page keeps Settings open and Roles marked", async () => {
-      goTo(routeFor(PageMap.TEAM_ROLES));
-      const rendered: RenderResult = await renderTeamsMenu();
-
-      goTo(recordPath(PageMap.TEAM_ROLE_VIEW, ROLE_ID));
-      await act(async () => {
-        rendered.rerender(<TeamsSideMenu />);
-      });
-
-      expect(isExpanded("Settings")).toBe(true);
-      expect(activeLinkTitles()).toEqual(["Roles"]);
-    });
   });
 
   describe("on a phone", () => {
@@ -505,7 +479,6 @@ describe("Teams side menu: Roles in Settings", () => {
     test.each([
       [PageMap.TEAMS, "Teams / All Teams"],
       [PageMap.TEAM_ROLES, "Settings / Roles"],
-      [PageMap.TEAM_ROLE_VIEW, "Settings / Roles"],
       [PageMap.TEAM_CUSTOM_FIELDS, "Settings / Custom Fields"],
     ])(
       "on %s the menu's button reads %s",

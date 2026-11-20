@@ -379,7 +379,7 @@ export const getEventCreatorName: (input: EventCreatorInput) => string = (
 export const NON_BREAKING_SPACE: string = "\u00a0";
 
 export interface EventStartTileParts {
-  // "Sep 14, 06:01 PM": the date and the time, each held together.
+  // "Sep 14, 6:01 PM": the date and the time, each held together.
   dateTime: string;
   // "GMT": the reader's time zone at that moment, or "" when it has none.
   zone: string;
@@ -387,15 +387,15 @@ export interface EventStartTileParts {
 
 /*
  * When a record started, as the first tile of its stat bar says it: "Sep 14,
- * 06:01 PM" and "GMT", in the reader's time zone and clock, with the year
+ * 6:01 PM" and "GMT", in the reader's time zone and clock, with the year
  * only when it was not this year. The tile's neighbours say how long after
  * it the record was acknowledged and resolved, so this is the headline of
- * the three; the full stamp ("Sep 14 2026, 06:01 PM GMT", as their own dates
+ * the three; the full stamp ("Sep 14, 2026, 6:01 PM GMT", as their own dates
  * read) did not fit a tile of the episode's four-tile bar on one line.
  *
  * Where a tile is too narrow even for this (three tiles at 640px, four
  * beside the side menu at 1024px), it breaks after the date's comma - "Sep
- * 14," over "06:01 PM" - and then before the zone, never inside the date,
+ * 14," over "6:01 PM" - and then before the zone, never inside the date,
  * the time or the zone: each holds together with no-break spaces.
  */
 export const getEventStartTileParts: (
@@ -421,11 +421,11 @@ export const getEventStartTileParts: (
 
   const datePart: string = format(
     startedAt,
-    isThisYear ? "MMM DD" : "MMM DD YYYY",
+    isThisYear ? "MMM D" : "MMM D, YYYY",
   );
   const timePart: string = format(
     startedAt,
-    OneUptimeDate.getUserPrefers12HourFormat() ? "hh:mm A" : "HH:mm",
+    OneUptimeDate.getUserPrefers12HourFormat() ? "h:mm A" : "HH:mm",
   );
   const zone: string = OneUptimeDate.getZoneAbbrByTimezone(
     OneUptimeDate.getCurrentTimezone(),

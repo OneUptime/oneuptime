@@ -2,10 +2,16 @@ import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
 import {
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
   ManagedDeviceCheckInAttribute,
 } from "../../DeviceManagement/ManagedDeviceCheckIn";
+import {
+  DeviceManagementConnectionReadingAttribute,
+  MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+} from "../../DeviceManagement/DeviceManagementConnectionReading";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -1269,8 +1275,9 @@ export default class SeriesDebugHints {
       /*
        * A Metrics monitor grouped by a managed device (Esper Device Stopped
        * Checking In, #9835): the OneUptime CLI can show what the device's
-       * connection last read of it. Any other metric series has no command,
-       * as below.
+       * connection last read of it. One grouped by the connection itself
+       * (Connection Stopped Reading, #10006): its last reads and the error
+       * each failed with. Any other metric series has no command, as below.
        */
       case MonitorType.Metrics:
         return SeriesDebugHints.managedDeviceCommands(seriesLabels);
@@ -1288,14 +1295,16 @@ export default class SeriesDebugHints {
 
   /*
    * A managed device a connection's alert names - one that stopped checking
-   * in, or an Android device behind on its security patches (#10098): the
-   * readings its connection's last reads took of it, newest first, with the
-   * OneUptime CLI. Its check-ins first - how long it had been quiet at each
-   * read, so when it went quiet, and its alias and group on their
-   * attributes - then its security patch's age at each read, with the level
-   * on its attributes, which an Android device has. A series names the
-   * device alone, whichever template it is of, so both are offered.
-   * Read-only; only for a series that names the device.
+   * in, ran low on battery or filled its storage (#10008), or an Android
+   * device behind on its security patches (#10098): the readings its
+   * connection's last reads took of it, newest first, with the OneUptime
+   * CLI. Its check-ins first - how long it had been quiet at each read, so
+   * when it went quiet, and its alias and group on their attributes - then
+   * its battery, its storage with its free bytes, and its security patch's
+   * age with the level on its attributes. A series names the device alone,
+   * whichever template it is of, so each is offered (#10209 would narrow
+   * them to the one its monitor reads). Read-only; only for a series that
+   * names the device.
    */
   private static managedDeviceCommands(
     seriesLabels: JSONObject,
@@ -1305,20 +1314,16 @@ export default class SeriesDebugHints {
     ]);
 
     if (!device) {
-      return [];
+      return SeriesDebugHints.managedDeviceConnectionCommands(seriesLabels);
     }
 
     const readingsOf: (metricName: string) => string = (
       metricName: string,
     ): string => {
-      const query: string = JSON.stringify({
-        name: metricName,
+      return SeriesDebugHints.metricReadingsCommand({
+        metricName,
         attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
       });
-
-      return `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
-        query,
-      )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`;
     };
 
     return [
@@ -1329,10 +1334,70 @@ export default class SeriesDebugHints {
       },
       {
         purpose:
+          "The device's battery at each read, in percent, as its device manager last heard it",
+        command: readingsOf(MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME),
+      },
+      {
+        purpose:
+          "The device's storage at each read: how much of it was in use, and how many bytes were free",
+        command: readingsOf(MANAGED_DEVICE_STORAGE_USED_METRIC_NAME),
+      },
+      {
+        purpose:
           "An Android device's security patch at each read: how many days old it was, and its level",
         command: readingsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME),
       },
     ];
+  }
+
+  /*
+   * A device management connection that stopped reading (Connection Stopped
+   * Reading, #10006): its last readings, newest first, with the OneUptime
+   * CLI - how long since a read of it worked at each, what each read came
+   * to and, for one that failed, the error it failed with, its credentials
+   * removed. The error names what to fix: a refused key, a lost role, a
+   * service out of reach. Read-only; only for a series that names the
+   * connection.
+   */
+  private static managedDeviceConnectionCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const connection: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      DeviceManagementConnectionReadingAttribute.ConnectionName,
+    ]);
+
+    if (!connection) {
+      return [];
+    }
+
+    return [
+      {
+        purpose:
+          "The connection's last error, and how long since one of its reads worked, at each of its last reads",
+        command: SeriesDebugHints.metricReadingsCommand({
+          metricName: MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+          attributes: {
+            [DeviceManagementConnectionReadingAttribute.ConnectionName]:
+              connection,
+          },
+        }),
+      },
+    ];
+  }
+
+  // The last five readings of one metric that carry these attributes, newest first.
+  private static metricReadingsCommand(data: {
+    metricName: string;
+    attributes: Record<string, string>;
+  }): string {
+    const query: string = JSON.stringify({
+      name: data.metricName,
+      attributes: data.attributes,
+    });
+
+    return `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
+      query,
+    )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`;
   }
 
   /*

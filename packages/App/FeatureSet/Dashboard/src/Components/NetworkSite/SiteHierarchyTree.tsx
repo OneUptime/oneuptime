@@ -1,4 +1,28 @@
-import { SiteTreeNode, SiteTreeRow, buildSiteTree } from "./SiteTreeUtil";
+import {
+  SiteTreeNode,
+  SiteTreeRow,
+  FilteredSiteTree,
+  buildSiteTree,
+  countTreeNodes,
+  filterSiteTree,
+} from "./SiteTreeUtil";
+import {
+  HIDE_EMPTY_SITES,
+  HIDE_HIERARCHY,
+  HIERARCHY_ALL_EMPTY,
+  HIERARCHY_DESCRIPTION,
+  HIERARCHY_DEVICE_COUNT,
+  HIERARCHY_MATCH_COUNT,
+  HIERARCHY_NO_MATCH,
+  HIERARCHY_OPEN_STORAGE_KEY,
+  HIERARCHY_PAGE_SIZE,
+  HIERARCHY_SEARCH_PLACEHOLDER,
+  HIERARCHY_SHOW_MORE,
+  HIERARCHY_SITE_COUNT,
+  HIERARCHY_TITLE,
+  HIERARCHY_TOP_LEVEL_COUNT,
+  SHOW_HIERARCHY,
+} from "./SiteHierarchyWords";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -10,12 +34,17 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import { fetchSiteDeviceCounts } from "../Network/NetworkSummaryApi";
-import Card from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Input from "Common/UI/Components/Input/Input";
 import API from "Common/UI/Utils/API/API";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, formatInline } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import React, {
@@ -23,34 +52,75 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
- * Expandable hierarchy view for the Sites page — the drill-down mental
- * model (Region → Franchisee → Market → Unit) that a flat table hides.
- * Every row shows rollup status, subtree device count, and links into
- * the site. Levels beyond the second start collapsed so a thousand-unit
- * franchise still loads readable.
+ * THE SITES PAGE'S HIERARCHY: the drill-down mental model (Region ->
+ * Franchisee -> Market -> Unit) that a flat table hides, each row with its
+ * rollup status, its subtree's device count and a link into the site.
+ *
+ * At the size an import of a Meraki organization leaves - 700 sites, one a
+ * network, all at the top (#10188) - drawing every site made the page two
+ * very long lists, the table reachable only past the whole tree. So:
+ *
+ *   - it starts folded under its title, reads nothing until it is shown,
+ *     and remembers whether the reader keeps it shown;
+ *   - shown, it draws the sites at the top first, a page of them at a time
+ *     (Show more), and a site's children only when the site is opened;
+ *   - a search narrows it to the sites whose names hold every word typed,
+ *     with the sites above each drawn open; and "Hide sites with no
+ *     devices" leaves out every site whose subtree holds none.
  */
-
-const AUTO_EXPAND_DEPTH: number = 1;
 
 export interface ComponentProps {
   // Bumped by the parent whenever sites change (e.g. created via the table).
   refreshToggle?: string | undefined;
 }
 
+// Whether the reader chose to keep it shown; storage can be unavailable.
+export function readHierarchyOpenChoice(): boolean {
+  try {
+    const value: unknown = LocalStorage.getItem(HIERARCHY_OPEN_STORAGE_KEY);
+    return value === true || value === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeHierarchyOpenChoice(isOpen: boolean): void {
+  try {
+    LocalStorage.setItem(HIERARCHY_OPEN_STORAGE_KEY, isOpen);
+  } catch {
+    // Not remembering the choice is fine; the toggle still works.
+  }
+}
+
+// The key a level's "Show more" is kept by: the parent site, or the top.
+const TOP_LEVEL_KEY: string = "";
+
 const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [roots, setRoots] = useState<Array<SiteTreeNode>>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isOpen, setIsOpen] = useState<boolean>(readHierarchyOpenChoice);
+  const [roots, setRoots] = useState<Array<SiteTreeNode> | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(
-    new Set<string>(),
+  const [search, setSearch] = useState<string>("");
+  const [hideEmpty, setHideEmpty] = useState<boolean>(false);
+  /*
+   * The sites the reader opened or closed, by id: each is drawn the other
+   * way from how it starts - closed, or open above what a search found.
+   */
+  const [toggledIds, setToggledIds] = useState<Set<string>>(new Set<string>());
+  // How many sites the project has: none, and there is no tree to show.
+  const [projectSiteCount, setProjectSiteCount] = useState<number | null>(null);
+  // How many sites of each level are drawn, by its parent's id.
+  const [shownByParent, setShownByParent] = useState<Record<string, number>>(
+    {},
   );
 
   const fetchTree: PromiseVoidFunction = async (): Promise<void> => {
@@ -60,15 +130,9 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
       /*
-       * The sites themselves are fetched and rendered, so they have to come
-       * back as rows. The device COUNTS do not.
-       *
-       * This used to fetch every device in the project and tally `siteId`
-       * here. Capped at LIMIT_PER_PROJECT with no ORDER BY, that was not
-       * merely slow — on an 80,000-device estate it returned an arbitrary
-       * 10,000 rows, so every store in this tree printed "8 devices" for a
-       * store that had 65, and the estate read as one eighth of its real size.
-       * Nothing said so.
+       * The sites themselves are drawn, so they come back as rows. The device
+       * COUNTS do not: one row per site that has devices
+       * (fetchSiteDeviceCounts), never every device of the project.
        */
       const [siteResult, deviceCountBySiteId]: [
         ListResult<NetworkSite>,
@@ -117,28 +181,7 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
         },
       );
 
-      const tree: Array<SiteTreeNode> = buildSiteTree(
-        rows,
-        deviceCountBySiteId,
-      );
-
-      // Collapse everything deeper than AUTO_EXPAND_DEPTH by default.
-      const toCollapse: Set<string> = new Set<string>();
-      const stack: Array<SiteTreeNode> = [...tree];
-      while (stack.length > 0) {
-        const node: SiteTreeNode = stack.pop() as SiteTreeNode;
-        if (
-          node.depth >= AUTO_EXPAND_DEPTH &&
-          node.children.length > 0 &&
-          node.site._id
-        ) {
-          toCollapse.add(node.site._id);
-        }
-        stack.push(...node.children);
-      }
-
-      setRoots(tree);
-      setCollapsedIds(toCollapse);
+      setRoots(buildSiteTree(rows, deviceCountBySiteId));
       setError("");
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -147,32 +190,159 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
     setIsLoading(false);
   };
 
+  // Whether there are sites at all: one count, never the rows.
   useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    ModelAPI.count<NetworkSite>({
+      modelType: NetworkSite,
+      query: { projectId: projectId },
+    })
+      .then((count: number) => {
+        setProjectSiteCount(count);
+      })
+      .catch(() => {
+        // Unknown: the card stays, folded, as it is for any project.
+        setProjectSiteCount(null);
+      });
+  }, [props.refreshToggle]);
+
+  // Read only while shown, and again whenever the page's sites change.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     fetchTree().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     });
-  }, [props.refreshToggle]);
+  }, [isOpen, props.refreshToggle]);
 
-  type ToggleNodeFunction = (siteId: string) => void;
+  const filtered: FilteredSiteTree | null = useMemo(() => {
+    return roots
+      ? filterSiteTree(roots, { search: search, hideEmpty: hideEmpty })
+      : null;
+  }, [roots, search, hideEmpty]);
 
-  const toggleNode: ToggleNodeFunction = (siteId: string): void => {
-    setCollapsedIds((current: Set<string>) => {
+  // A new search, or hiding the empty sites, starts the tree afresh.
+  useEffect(() => {
+    setToggledIds(new Set<string>());
+    setShownByParent({});
+  }, [search, hideEmpty]);
+
+  // Open above what a search found, closed otherwise - or as the reader set it.
+  const isNodeOpen: (siteId: string) => boolean = (siteId: string): boolean => {
+    const isOpenAtFirst: boolean = Boolean(
+      filtered?.isSearching && filtered.openIds.has(siteId),
+    );
+
+    return toggledIds.has(siteId) ? !isOpenAtFirst : isOpenAtFirst;
+  };
+
+  const toggleOpen: () => void = (): void => {
+    const next: boolean = !isOpen;
+    setIsOpen(next);
+    writeHierarchyOpenChoice(next);
+  };
+
+  const toggleNode: (siteId: string) => void = (siteId: string): void => {
+    setToggledIds((current: Set<string>) => {
       const next: Set<string> = new Set<string>(current);
+
       if (next.has(siteId)) {
         next.delete(siteId);
       } else {
         next.add(siteId);
       }
+
       return next;
     });
   };
 
-  type RenderNodeFunction = (node: SiteTreeNode) => ReactElement;
+  const showMore: (parentKey: string) => void = (parentKey: string): void => {
+    setShownByParent((current: Record<string, number>) => {
+      return {
+        ...current,
+        [parentKey]:
+          (current[parentKey] || HIERARCHY_PAGE_SIZE) + HIERARCHY_PAGE_SIZE,
+      };
+    });
+  };
 
-  const renderNode: RenderNodeFunction = (node: SiteTreeNode): ReactElement => {
+  const renderStatusDot: (node: SiteTreeNode) => ReactElement = (
+    node: SiteTreeNode,
+  ): ReactElement => {
+    if (!node.site.statusName) {
+      return (
+        <span
+          title={translator.translateText("No health data yet")}
+          className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full bg-gray-300"
+        ></span>
+      );
+    }
+
+    return (
+      <span
+        title={node.site.statusName}
+        className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
+        style={{
+          backgroundColor: node.site.statusColor || "#9ca3af",
+        }}
+      ></span>
+    );
+  };
+
+  // One level of sites: a page of them, then Show more.
+  const renderLevel: (
+    nodes: Array<SiteTreeNode>,
+    parentKey: string,
+    depth: number,
+  ) => ReactElement = (
+    nodes: Array<SiteTreeNode>,
+    parentKey: string,
+    depth: number,
+  ): ReactElement => {
+    const shown: number = shownByParent[parentKey] || HIERARCHY_PAGE_SIZE;
+    const hidden: number = Math.max(0, nodes.length - shown);
+
+    return (
+      <>
+        {nodes.slice(0, shown).map((node: SiteTreeNode): ReactElement => {
+          return renderNode(node);
+        })}
+        {hidden > 0 ? (
+          <div style={{ paddingInlineStart: `${depth * 1.5 + 1.75}rem` }}>
+            <button
+              type="button"
+              className="my-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:underline"
+              onClick={() => {
+                showMore(parentKey);
+              }}
+              data-testid="site-hierarchy-show-more"
+            >
+              {translator.translatePlural(
+                HIERARCHY_SHOW_MORE,
+                Math.min(hidden, HIERARCHY_PAGE_SIZE),
+              )}
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
+      </>
+    );
+  };
+
+  const renderNode: (node: SiteTreeNode) => ReactElement = (
+    node: SiteTreeNode,
+  ): ReactElement => {
     const siteId: string = node.site._id || "";
-    const isCollapsed: boolean = collapsedIds.has(siteId);
+    const isOpenNow: boolean = isNodeOpen(siteId);
     const hasChildren: boolean = node.children.length > 0;
 
     const siteRoute: Route = RouteUtil.populateRouteParams(
@@ -180,49 +350,29 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
       { modelId: new ObjectID(siteId) },
     );
 
-    type GetStatusDotFunction = () => ReactElement;
-    const getStatusDot: GetStatusDotFunction = (): ReactElement => {
-      if (!node.site.statusName) {
-        return (
-          <span
-            title={translator.translateText("No health data yet")}
-            className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full bg-gray-300"
-          ></span>
-        );
-      }
-
-      return (
-        <span
-          title={node.site.statusName}
-          className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
-          style={{
-            backgroundColor: node.site.statusColor || "#9ca3af",
-          }}
-        ></span>
-      );
-    };
-
     return (
       <Fragment key={siteId}>
         <div
           className="flex items-center gap-2 rounded py-1.5 pr-2 hover:bg-gray-50"
           style={{ paddingInlineStart: `${node.depth * 1.5}rem` }}
+          data-testid="site-hierarchy-row"
+          data-site-id={siteId}
         >
           {hasChildren ? (
             <button
               type="button"
               aria-label={translator.translateText(
-                isCollapsed ? "Expand" : "Collapse",
+                isOpenNow ? "Collapse" : "Expand",
               )}
+              aria-expanded={isOpenNow}
               onClick={() => {
                 toggleNode(siteId);
               }}
               className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+              data-testid="site-hierarchy-toggle"
             >
               <Icon
-                icon={
-                  isCollapsed ? IconProp.ChevronRight : IconProp.ChevronDown
-                }
+                icon={isOpenNow ? IconProp.ChevronDown : IconProp.ChevronRight}
                 className="h-4 w-4"
               />
             </button>
@@ -230,7 +380,7 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
             <span className="h-5 w-5 flex-shrink-0"></span>
           )}
 
-          {getStatusDot()}
+          {renderStatusDot(node)}
 
           <AppLink
             to={siteRoute}
@@ -247,53 +397,124 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
 
           <span className="ml-auto flex-shrink-0 text-xs text-gray-500">
             {translator.translatePlural(
-              { one: "{{count}} device", other: "{{count}} devices" },
+              HIERARCHY_DEVICE_COUNT,
               node.subtreeDeviceCount,
             )}
           </span>
         </div>
 
-        {hasChildren && !isCollapsed && (
-          <div>
-            {node.children.map((child: SiteTreeNode): ReactElement => {
-              return renderNode(child);
-            })}
-          </div>
+        {hasChildren && isOpenNow ? (
+          renderLevel(node.children, siteId, node.depth + 1)
+        ) : (
+          <></>
         )}
       </Fragment>
     );
   };
 
-  if (isLoading) {
+  const button: CardButtonSchema = {
+    title: isOpen ? HIDE_HIERARCHY : SHOW_HIERARCHY,
+    buttonStyle: ButtonStyleType.NORMAL,
+    icon: isOpen ? IconProp.ChevronUp : IconProp.ChevronDown,
+    onClick: toggleOpen,
+  };
+
+  const renderBody: () => ReactElement = (): ReactElement => {
+    if (isLoading && !roots) {
+      return <CardListSkeleton count={3} lines={0} />;
+    }
+
+    if (error) {
+      return (
+        <p className="text-sm text-red-700" data-testid="site-hierarchy-error">
+          <ErrorInSentence message={error} />
+        </p>
+      );
+    }
+
+    // No site at all (the count could not say so beforehand): nothing to draw.
+    if (!roots || !filtered || roots.length === 0) {
+      return <></>;
+    }
+
+    const siteCount: number = countTreeNodes(roots);
+
+    const summary: string = filtered.isSearching
+      ? translator.translatePlural(HIERARCHY_MATCH_COUNT, filtered.matchCount)
+      : formatInline(
+          [
+            translator.translatePlural(HIERARCHY_SITE_COUNT, siteCount),
+            translator.translatePlural(HIERARCHY_TOP_LEVEL_COUNT, roots.length),
+          ],
+          translator,
+        );
+
     return (
-      <Card
-        title="Hierarchy"
-        description="Your sites as the tree they roll up through."
-      >
-        <CardListSkeleton count={3} lines={0} />
-      </Card>
+      <div data-testid="site-hierarchy-body">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="w-full sm:max-w-xs">
+            <Input
+              value={search}
+              placeholder={HIERARCHY_SEARCH_PLACEHOLDER}
+              ariaLabel={
+                translator.translateText(HIERARCHY_SEARCH_PLACEHOLDER) ||
+                HIERARCHY_SEARCH_PLACEHOLDER
+              }
+              onChange={(value: string) => {
+                setSearch(value);
+              }}
+              dataTestId="site-hierarchy-search"
+            />
+          </div>
+          <CheckboxElement
+            title={HIDE_EMPTY_SITES}
+            value={hideEmpty}
+            onChange={(value: boolean) => {
+              setHideEmpty(value);
+            }}
+            dataTestId="site-hierarchy-hide-empty"
+          />
+          <span
+            className="text-sm text-gray-500 sm:ml-auto"
+            data-testid="site-hierarchy-summary"
+          >
+            {summary}
+          </span>
+        </div>
+
+        {filtered.roots.length === 0 ? (
+          <p
+            className="py-2 text-sm text-gray-500"
+            data-testid="site-hierarchy-nothing"
+          >
+            {filtered.isSearching
+              ? translator.translateTemplate(HIERARCHY_NO_MATCH, {
+                  search: search.trim(),
+                })
+              : translator.translateText(HIERARCHY_ALL_EMPTY) ||
+                HIERARCHY_ALL_EMPTY}
+          </p>
+        ) : (
+          <div data-testid="site-hierarchy-tree" className="-mx-2">
+            {renderLevel(filtered.roots, TOP_LEVEL_KEY, 0)}
+          </div>
+        )}
+      </div>
     );
-  }
+  };
 
-  if (error) {
-    // The hierarchy is supplementary — the table below still works.
-    return <></>;
-  }
-
-  if (roots.length === 0) {
+  // A project with no site has no tree: the list below says so.
+  if (projectSiteCount === 0) {
     return <></>;
   }
 
   return (
     <Card
-      title="Hierarchy"
-      description="Your sites as the tree they roll up through — status and device counts include everything below each site."
+      title={HIERARCHY_TITLE}
+      description={HIERARCHY_DESCRIPTION}
+      buttons={[button]}
     >
-      <div data-testid="site-hierarchy-tree" className="-mx-2">
-        {roots.map((root: SiteTreeNode): ReactElement => {
-          return renderNode(root);
-        })}
-      </div>
+      {isOpen ? renderBody() : <></>}
     </Card>
   );
 };

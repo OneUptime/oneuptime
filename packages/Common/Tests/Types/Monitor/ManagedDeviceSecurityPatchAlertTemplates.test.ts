@@ -20,6 +20,7 @@ import DeviceManagementProvider, {
   DEVICE_MANAGEMENT_PROVIDERS,
 } from "../../../Types/DeviceManagement/DeviceManagementProvider";
 import { ManagedDevicePlatform } from "../../../Types/DeviceManagement/ManagedDevicePlatform";
+import { MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME } from "../../../Types/DeviceManagement/DeviceManagementConnectionReading";
 import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "../../../Types/Host/AndroidSecurityPatch";
 import { getHostAlertTemplateById } from "../../../Types/Monitor/HostAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -148,11 +149,17 @@ describe("every device manager's connection is offered one", () => {
         }),
       }).toEqual({ provider, patches: [PATCH_TEMPLATE_IDS[provider]] });
 
-      // The check-ins first: what a connection is set up for first.
+      /*
+       * The connection itself first (#10006), then its devices' check-ins:
+       * what a connection is set up for first.
+       */
       expect(offered[offered.length - 1]!.id).toBe(
         PATCH_TEMPLATE_IDS[provider],
       );
       expect(offered[0]!.metricName).toBe(
+        MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+      );
+      expect(offered[1]!.metricName).toBe(
         MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
       );
     }
