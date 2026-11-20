@@ -975,24 +975,18 @@ export default class CookieUtil {
   }
 
   @CaptureSpan()
-  public static getFormPrivateUserRefreshTokenKey(
-    formId: ObjectID,
-  ): string {
+  public static getFormPrivateUserRefreshTokenKey(formId: ObjectID): string {
     return `${CookieName.FormPrivateUserRefreshToken}-${formId.toString()}`;
   }
 
   @CaptureSpan()
-  public static getFormPrivateUserSignOutKey(
-    formId: ObjectID,
-  ): string {
+  public static getFormPrivateUserSignOutKey(formId: ObjectID): string {
     return `${CookieName.FormPrivateUserSignOut}-${formId.toString()}`;
   }
 
   // The only path a form's sign-out cookie is sent to: its own sign-out.
   @CaptureSpan()
-  public static getFormPrivateUserSignOutPath(
-    formId: ObjectID,
-  ): string {
+  public static getFormPrivateUserSignOutPath(formId: ObjectID): string {
     return `${FORM_PRIVATE_USER_SIGN_OUT_COOKIE_PATH_PREFIX}/${formId.toString()}`;
   }
 

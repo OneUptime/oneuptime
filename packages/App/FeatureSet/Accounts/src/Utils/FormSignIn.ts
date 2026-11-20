@@ -120,10 +120,14 @@ export const signInToForm: (
       ...target,
       route: FormPrivateUserApiRoutes.login,
     }),
-    body: { data: { email: credentials.email, password: credentials.password } },
+    body: {
+      data: { email: credentials.email, password: credentials.password },
+    },
   });
 
-  return typeof answer["email"] === "string" ? answer["email"] : credentials.email;
+  return typeof answer["email"] === "string"
+    ? answer["email"]
+    : credentials.email;
 };
 
 /*
@@ -152,12 +156,15 @@ export const renewFormSession: (
 };
 
 // Ends the session on this host; never throws - the page signs out either way.
-export const signOutOfForm: (target: FormSignInTarget) => Promise<void> = async (
+export const signOutOfForm: (
   target: FormSignInTarget,
-): Promise<void> => {
+) => Promise<void> = async (target: FormSignInTarget): Promise<void> => {
   try {
     await post({
-      url: getPrivateUserUrl({ ...target, route: FormPrivateUserApiRoutes.logout }),
+      url: getPrivateUserUrl({
+        ...target,
+        route: FormPrivateUserApiRoutes.logout,
+      }),
     });
   } catch {
     // The server cleared what it could.

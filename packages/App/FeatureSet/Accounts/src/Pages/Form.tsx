@@ -352,59 +352,61 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
     // Whether the form asks its visitors to sign in, once its state is read.
     let requiresSignIn: boolean = false;
 
-    const prepareSignIn: () => Promise<boolean> = async (): Promise<boolean> => {
-      const state: FormSignInState = await loadFormSignInState(shareKey);
+    const prepareSignIn: () => Promise<boolean> =
+      async (): Promise<boolean> => {
+        const state: FormSignInState = await loadFormSignInState(shareKey);
 
-      if (!state.requireSignIn || !state.formId) {
+        if (!state.requireSignIn || !state.formId) {
+          if (isCurrent) {
+            setSignIn(null);
+          }
+          return true;
+        }
+
+        requiresSignIn = true;
+
+        const target: FormSignInTarget = {
+          formId: state.formId,
+          isOnCustomDomain: isOnCustomDomain,
+        };
+
+        let error: string | null = null;
+        let signedInAs: string | null = state.signedInAs || null;
+
+        const loginCode: string | null = takeAddressParameter(
+          FORM_LOGIN_CODE_PARAMETER,
+        );
+
+        if (loginCode) {
+          try {
+            await exchangeFormLoginCode(target, loginCode);
+            signedInAs =
+              (await loadFormSignInState(shareKey)).signedInAs || null;
+          } catch (err) {
+            error = describeFormSignInError(err);
+          }
+        }
+
+        const resetToken: string | null = takeAddressParameter(
+          FORM_RESET_PASSWORD_PARAMETER,
+        );
+
+        if (!signedInAs && !resetToken) {
+          signedInAs = await renewFormSession(target);
+        }
+
         if (isCurrent) {
-          setSignIn(null);
+          setSignIn({
+            target: target,
+            name: state.name || "",
+            signedInAs: resetToken ? null : signedInAs,
+            resetToken: resetToken,
+            error: error,
+          });
         }
-        return true;
-      }
 
-      requiresSignIn = true;
-
-      const target: FormSignInTarget = {
-        formId: state.formId,
-        isOnCustomDomain: isOnCustomDomain,
+        return Boolean(signedInAs) && !resetToken;
       };
-
-      let error: string | null = null;
-      let signedInAs: string | null = state.signedInAs || null;
-
-      const loginCode: string | null = takeAddressParameter(
-        FORM_LOGIN_CODE_PARAMETER,
-      );
-
-      if (loginCode) {
-        try {
-          await exchangeFormLoginCode(target, loginCode);
-          signedInAs = (await loadFormSignInState(shareKey)).signedInAs || null;
-        } catch (err) {
-          error = describeFormSignInError(err);
-        }
-      }
-
-      const resetToken: string | null = takeAddressParameter(
-        FORM_RESET_PASSWORD_PARAMETER,
-      );
-
-      if (!signedInAs && !resetToken) {
-        signedInAs = await renewFormSession(target);
-      }
-
-      if (isCurrent) {
-        setSignIn({
-          target: target,
-          name: state.name || "",
-          signedInAs: resetToken ? null : signedInAs,
-          resetToken: resetToken,
-          error: error,
-        });
-      }
-
-      return Boolean(signedInAs) && !resetToken;
-    };
 
     prepareSignIn()
       .then((mayRead: boolean) => {

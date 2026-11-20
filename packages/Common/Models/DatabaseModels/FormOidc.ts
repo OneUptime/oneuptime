@@ -161,8 +161,7 @@ export default class FormOIDC extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Form,
     title: "Form",
-    description:
-      "Relation to the form this provider signs people in to.",
+    description: "Relation to the form this provider signs people in to.",
   })
   @ManyToOne(
     () => {

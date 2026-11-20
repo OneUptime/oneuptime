@@ -390,9 +390,8 @@ describe("the Private Users page", () => {
   test("a person added from the page belongs to the form and its project", async () => {
     await openPrivateUsers();
 
-    const created: FormPrivateUser = (await table(
-      "form-private-users-table",
-    ).onBeforeCreate!(new FormPrivateUser())) as FormPrivateUser;
+    const created: FormPrivateUser = (await table("form-private-users-table")
+      .onBeforeCreate!(new FormPrivateUser())) as FormPrivateUser;
 
     expect(asText(created.formId)).toBe(FORM_ID);
     expect(asText(created.projectId)).toBe(PROJECT_ID);
@@ -462,9 +461,7 @@ describe("the Private Users page", () => {
 
       expect(fold).toHaveTextContent(FormSignInCopy.foldTitle);
       expect(fold).toHaveTextContent(
-        FormSignInCopy.foldSummary[
-          FormSignInOnlyPage.PrivateUsers
-        ],
+        FormSignInCopy.foldSummary[FormSignInOnlyPage.PrivateUsers],
       );
       // Folded, and still there to set up first.
       expect(within(fold).getByRole("button")).toHaveAttribute(
@@ -582,10 +579,12 @@ describe("the Single Sign-On page", () => {
   test("a provider added from the page belongs to the form and its project", async () => {
     await openSingleSignOn();
 
-    const created: { formId?: unknown; projectId?: unknown } =
-      (await table("form-sso-table").onBeforeCreate!(
-        new FORM_PRIVATE_ACCESS.samlModel(),
-      )) as { formId?: unknown; projectId?: unknown };
+    const created: { formId?: unknown; projectId?: unknown } = (await table(
+      "form-sso-table",
+    ).onBeforeCreate!(new FORM_PRIVATE_ACCESS.samlModel())) as {
+      formId?: unknown;
+      projectId?: unknown;
+    };
 
     expect(asText(created.formId)).toBe(FORM_ID);
     expect(asText(created.projectId)).toBe(PROJECT_ID);
@@ -747,9 +746,7 @@ describe("the Single Sign-On page", () => {
 
     // The form's own providers, in the project the page is in.
     for (const leftovers of [SAML_LEFTOVERS_TEST_ID, OIDC_LEFTOVERS_TEST_ID]) {
-      expect(asText(table(leftovers).query?.["formId"])).toBe(
-        FORM_ID,
-      );
+      expect(asText(table(leftovers).query?.["formId"])).toBe(FORM_ID);
       expect(asText(table(leftovers).query?.["projectId"])).toBe(PROJECT_ID);
     }
   });
@@ -786,9 +783,7 @@ describe("the Single Sign-On page", () => {
       );
 
       expect(fold).toHaveTextContent(
-        FormSignInCopy.foldSummary[
-          FormSignInOnlyPage.SingleSignOn
-        ],
+        FormSignInCopy.foldSummary[FormSignInOnlyPage.SingleSignOn],
       );
       expect(
         within(fold).getByTestId(SINGLE_SIGN_ON_TABS_TEST_ID),

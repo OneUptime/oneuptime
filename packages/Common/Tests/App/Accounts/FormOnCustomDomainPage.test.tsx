@@ -200,10 +200,7 @@ describe("the form on its own domain", () => {
     const headers: Record<string, unknown> = server.requestsTo(
       HTTPMethod.GET,
       FORM_URL,
-    )[0]!.headers as Record<
-      string,
-      unknown
-    >;
+    )[0]!.headers as Record<string, unknown>;
 
     expect(headers[FORM_PAGE_HEADER]).toBe(FORM_PAGE_HEADER_VALUE);
     expect(headers["tenantid"]).toBe("");
@@ -312,9 +309,7 @@ describe("the form on its own domain", () => {
 describe("a form on its own domain that asks its visitors to sign in", () => {
   const FORM_ID: string = "0f000000-0000-4000-8000-000000000001";
 
-  const privateUserUrl: (route: string) => string = (
-    route: string,
-  ): string => {
+  const privateUserUrl: (route: string) => string = (route: string): string => {
     return `${PAGE_ORIGIN}/api/form${FORM_PRIVATE_USER_API_ROUTE}${route}/${FORM_ID}`;
   };
 

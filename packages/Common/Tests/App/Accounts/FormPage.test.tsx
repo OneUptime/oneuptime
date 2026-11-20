@@ -335,10 +335,7 @@ describe("the page reads the form behind its link", () => {
     const headers: Record<string, unknown> = server.requestsTo(
       HTTPMethod.GET,
       FORM_URL,
-    )[0]!.headers as Record<
-      string,
-      unknown
-    >;
+    )[0]!.headers as Record<string, unknown>;
 
     expect(headers[FORM_PAGE_HEADER]).toBe(FORM_PAGE_HEADER_VALUE);
     expect(headers["tenantid"]).toBe("");

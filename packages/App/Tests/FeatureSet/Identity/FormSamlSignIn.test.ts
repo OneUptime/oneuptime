@@ -206,7 +206,7 @@ let storedFormOnPlan: boolean = true;
 
 jest.mock("Common/Server/Services/FormService", () => {
   type Actual = {
-    default: object;
+    default: Record<string, unknown>;
     FORM_NOT_AVAILABLE_MESSAGE: string;
     FORM_NETWORK_NOT_ALLOWED_MESSAGE: string;
   };
@@ -245,10 +245,9 @@ jest.mock("Common/Server/Services/FormService", () => {
       getFormForSignIn: (data: unknown): Promise<Form> => {
         const stub: Record<string, unknown> = service();
 
-        return (stub["getFormForSignIn"] as (data: unknown) => Promise<Form>).call(
-          stub,
-          data,
-        );
+        return (
+          stub["getFormForSignIn"] as (data: unknown) => Promise<Form>
+        ).call(stub, data);
       },
       getPublicFormUrl: (): Promise<string> => {
         return Promise.resolve("https://forms.acme.example.com");
@@ -696,8 +695,8 @@ describe.each([
     expect(refusalMessage()).toBe(SAML_PROVIDER_NOT_SET_UP);
 
     // It was looked for on this form, enabled.
-    const lookup: { query: Record<string, unknown> } = formSsoFindOneBy
-      .mock.calls[0]![0] as { query: Record<string, unknown> };
+    const lookup: { query: Record<string, unknown> } = formSsoFindOneBy.mock
+      .calls[0]![0] as { query: Record<string, unknown> };
 
     expect(lookup.query["formId"]?.toString()).toBe(FORM_ID);
     expect(lookup.query["isEnabled"]).toBe(true);
@@ -735,9 +734,7 @@ describe.each([
       const nextError: unknown = await post(FRESH());
 
       expectNobodySignedIn();
-      expect((nextError as Exception).message).toBe(
-        FORM_NOT_AVAILABLE_MESSAGE,
-      );
+      expect((nextError as Exception).message).toBe(FORM_NOT_AVAILABLE_MESSAGE);
     },
   );
 

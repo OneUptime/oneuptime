@@ -19027,8 +19027,7 @@ export class PermissionHelper {
       {
         permission: Permission.CreateFormSSO,
         title: "Create Form SSO",
-        description:
-          "This permission can create Form SSO in this project.",
+        description: "This permission can create Form SSO in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -19037,8 +19036,7 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteFormSSO,
         title: "Delete Form SSO",
-        description:
-          "This permission can delete Form SSO in this project.",
+        description: "This permission can delete Form SSO in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -19067,8 +19065,7 @@ export class PermissionHelper {
       {
         permission: Permission.CreateFormOIDC,
         title: "Create Form OIDC",
-        description:
-          "This permission can create Form OIDC in this project.",
+        description: "This permission can create Form OIDC in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -19077,8 +19074,7 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteFormOIDC,
         title: "Delete Form OIDC",
-        description:
-          "This permission can delete Form OIDC in this project.",
+        description: "This permission can delete Form OIDC in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

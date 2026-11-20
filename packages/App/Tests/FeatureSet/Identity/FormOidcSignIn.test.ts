@@ -135,7 +135,10 @@ let storedForm: Form | null = null;
 let storedFormOnPlan: boolean = true;
 
 jest.mock("Common/Server/Services/FormService", () => {
-  type Actual = { default: object; FORM_NOT_AVAILABLE_MESSAGE: string };
+  type Actual = {
+    default: Record<string, unknown>;
+    FORM_NOT_AVAILABLE_MESSAGE: string;
+  };
 
   // Read when called: the real module is still loading when this runs.
   const actual: () => Actual = (): Actual => {
@@ -168,10 +171,9 @@ jest.mock("Common/Server/Services/FormService", () => {
       getFormForSignIn: (data: unknown): Promise<Form> => {
         const stub: Record<string, unknown> = service();
 
-        return (stub["getFormForSignIn"] as (data: unknown) => Promise<Form>).call(
-          stub,
-          data,
-        );
+        return (
+          stub["getFormForSignIn"] as (data: unknown) => Promise<Form>
+        ).call(stub, data);
       },
       getPublicFormUrl: (): Promise<string> => {
         return Promise.resolve("https://forms.acme.example.com");
@@ -247,8 +249,7 @@ function handlerFor(
 }
 
 const START_PATH: string = "/form-oidc/:formId/:formOidcId";
-const CALLBACK_PATH: string =
-  "/form-oidc-callback/:formId/:formOidcId";
+const CALLBACK_PATH: string = "/form-oidc-callback/:formId/:formOidcId";
 
 const PARAMS: Record<string, string> = {
   formId: FORM_ID,
@@ -720,8 +721,8 @@ describe("a form's OIDC sign-in, against a real provider", () => {
       "This OpenID Connect provider is not set up for this form, or is turned off. Ask the form's team to check its Single Sign-On settings.",
     );
 
-    const lookup: { query: Record<string, unknown> } = formOidcFindOneBy
-      .mock.calls[0]![0] as { query: Record<string, unknown> };
+    const lookup: { query: Record<string, unknown> } = formOidcFindOneBy.mock
+      .calls[0]![0] as { query: Record<string, unknown> };
 
     expect(lookup.query["formId"]?.toString()).toBe(FORM_ID);
     expect(lookup.query["isEnabled"]).toBe(true);

@@ -201,9 +201,11 @@ test.describe("a form that asks its visitors to sign in", () => {
       record.addresses.map((address: string): string => {
         return new URL(address).origin;
       }),
-    ).toEqual(record.addresses.map((): string => {
-      return origin;
-    }));
+    ).toEqual(
+      record.addresses.map((): string => {
+        return origin;
+      }),
+    );
     expect(record.requests).toContain(
       "POST /api/form/private-user/login/0f000000-0000-4000-8000-000000000001",
     );

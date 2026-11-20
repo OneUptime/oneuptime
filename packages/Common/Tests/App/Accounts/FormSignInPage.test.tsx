@@ -35,7 +35,10 @@ import {
   FORM_SIGN_IN_STATE_ROUTE,
   FormPrivateUserApiRoutes,
 } from "../../../Types/Form/FormPrivateUserSignIn";
-import { PublicForm, PublicFormFieldType } from "../../../Types/Form/FormPublic";
+import {
+  PublicForm,
+  PublicFormFieldType,
+} from "../../../Types/Form/FormPublic";
 import { JSONObject } from "../../../Types/JSON";
 import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import FormPage from "../../../../App/FeatureSet/Accounts/src/Pages/Form";
@@ -325,7 +328,9 @@ describe("a visitor without a session", () => {
     expect(bodyOf(HTTPMethod.POST, FORGOT_URL)).toEqual({
       data: { email: EMAIL },
     });
-    expect(screen.getByTestId(FORM_FORGOT_PASSWORD_SENT_TEST_ID)).toHaveTextContent(
+    expect(
+      screen.getByTestId(FORM_FORGOT_PASSWORD_SENT_TEST_ID),
+    ).toHaveTextContent(
       "If this address can sign in to this form, a link to choose a new password is on its way.",
     );
   });
@@ -490,7 +495,9 @@ describe("the links a form's emails and single sign-on send", () => {
     expect(bodyOf(HTTPMethod.POST, RESET_URL)).toEqual({
       data: { resetPasswordToken: "reset-token-1", password: PASSWORD },
     });
-    expect(screen.getByTestId(FORM_RESET_PASSWORD_DONE_TEST_ID)).toHaveTextContent(
+    expect(
+      screen.getByTestId(FORM_RESET_PASSWORD_DONE_TEST_ID),
+    ).toHaveTextContent(
       "Your password is saved. Sign in with it to open the form.",
     );
   });

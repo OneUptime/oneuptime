@@ -87,9 +87,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const formId: ObjectID = FormSignIn.readFormId(
-        req.params["formId"],
-      );
+      const formId: ObjectID = FormSignIn.readFormId(req.params["formId"]);
 
       if (
         !req.params["formOidcId"] ||
@@ -107,23 +105,22 @@ router.get(
       // A form whose link signs nobody in starts no sign-in.
       await FormSignIn.getFormForSignIn({ req, formId });
 
-      const formOidc: FormOIDC | null =
-        await FormOidcService.findOneBy({
-          query: {
-            formId: formId,
-            _id: req.params["formOidcId"],
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-            formId: true,
-            discoveryURL: true,
-            clientId: true,
-            clientSecret: true,
-            scopes: true,
-          },
-          props: { isRoot: true },
-        });
+      const formOidc: FormOIDC | null = await FormOidcService.findOneBy({
+        query: {
+          formId: formId,
+          _id: req.params["formOidcId"],
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          formId: true,
+          discoveryURL: true,
+          clientId: true,
+          clientSecret: true,
+          scopes: true,
+        },
+        props: { isRoot: true },
+      });
 
       if (!formOidc) {
         return Response.sendErrorResponse(
@@ -222,9 +219,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const formId: ObjectID = FormSignIn.readFormId(
-        req.params["formId"],
-      );
+      const formId: ObjectID = FormSignIn.readFormId(req.params["formId"]);
 
       if (
         !req.params["formOidcId"] ||
@@ -239,9 +234,7 @@ router.get(
         );
       }
 
-      const formOidcId: ObjectID = new ObjectID(
-        req.params["formOidcId"],
-      );
+      const formOidcId: ObjectID = new ObjectID(req.params["formOidcId"]);
 
       const stateCookieName: string = getOidcStateCookieName(formOidcId);
       const stateCookieValue: string | undefined =
@@ -282,27 +275,26 @@ router.get(
       // Each state cookie is used once.
       CookieUtil.removeCookie(res, stateCookieName);
 
-      const formOidc: FormOIDC | null =
-        await FormOidcService.findOneBy({
-          query: {
-            formId: formId,
-            _id: formOidcId,
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-            name: true,
-            discoveryURL: true,
-            issuerURL: true,
-            clientId: true,
-            clientSecret: true,
-            scopes: true,
-            emailClaimName: true,
-            nameClaimName: true,
-            projectId: true,
-          },
-          props: { isRoot: true },
-        });
+      const formOidc: FormOIDC | null = await FormOidcService.findOneBy({
+        query: {
+          formId: formId,
+          _id: formOidcId,
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          name: true,
+          discoveryURL: true,
+          issuerURL: true,
+          clientId: true,
+          clientSecret: true,
+          scopes: true,
+          emailClaimName: true,
+          nameClaimName: true,
+          projectId: true,
+        },
+        props: { isRoot: true },
+      });
 
       if (!formOidc) {
         return Response.sendErrorResponse(
@@ -442,8 +434,7 @@ router.get(
           requestOrigin: RequestOriginUtil.fromRequest(req),
         });
 
-      const formUrl: string =
-        await FormService.getPublicFormUrl(formId);
+      const formUrl: string = await FormService.getPublicFormUrl(formId);
 
       Response.setNoCacheHeaders(res);
 

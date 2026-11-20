@@ -84,9 +84,7 @@ import {
   PRIVATE_USER_SESSION_SIGNED_OUT_REASON,
   PRIVATE_USER_SIGN_IN_NO_LONGER_ACCEPTED_REASON,
 } from "Common/Server/Services/PrivateUserSessionServiceBase";
-import CookieUtil, {
-  FORM_API_COOKIE_PATH,
-} from "Common/Server/Utils/Cookie";
+import CookieUtil, { FORM_API_COOKIE_PATH } from "Common/Server/Utils/Cookie";
 import JSONWebToken, {
   FormPrivateUserSessionClaims,
 } from "Common/Server/Utils/JsonWebToken";
@@ -171,9 +169,7 @@ if (
  * ---------------------------------------------------------------------------
  */
 
-const FORM_ID: ObjectID = new ObjectID(
-  "7dab0000-0000-4000-8000-000000000001",
-);
+const FORM_ID: ObjectID = new ObjectID("7dab0000-0000-4000-8000-000000000001");
 const OTHER_FORM_ID: ObjectID = new ObjectID(
   "7dab0000-0000-4000-8000-000000000002",
 );
@@ -211,10 +207,7 @@ const formThatAsksVisitorsToSignIn: () => Form = (): Form => {
   return form;
 };
 
-const privateUser: (
-  email: string,
-  withPassword: boolean,
-) => FormPrivateUser = (
+const privateUser: (email: string, withPassword: boolean) => FormPrivateUser = (
   email: string,
   withPassword: boolean,
 ): FormPrivateUser => {
@@ -237,8 +230,7 @@ const sessionRow: (data?: {
 }) => FormPrivateUserSession = (data?: {
   formId?: ObjectID | undefined;
 }): FormPrivateUserSession => {
-  const session: FormPrivateUserSession =
-    new FormPrivateUserSession();
+  const session: FormPrivateUserSession = new FormPrivateUserSession();
   session.id = SESSION_ID;
   session._id = SESSION_ID.toString();
   session.formId = data?.formId || FORM_ID;
@@ -369,8 +361,7 @@ function isCleared(header: string | undefined): boolean {
   );
 }
 
-const TOKEN_COOKIE: string =
-  CookieUtil.getFormPrivateUserTokenKey(FORM_ID);
+const TOKEN_COOKIE: string = CookieUtil.getFormPrivateUserTokenKey(FORM_ID);
 const REFRESH_COOKIE: string =
   CookieUtil.getFormPrivateUserRefreshTokenKey(FORM_ID);
 const SIGN_OUT_COOKIE: string =
@@ -444,9 +435,7 @@ beforeEach(() => {
         : null;
     },
   );
-  getJestSpyOn(FormService, "getPublicFormUrl").mockResolvedValue(
-    FORM_ADDRESS,
-  );
+  getJestSpyOn(FormService, "getPublicFormUrl").mockResolvedValue(FORM_ADDRESS);
   // The form's project is on a plan with forms.
   getJestSpyOn(FormService, "isProjectOnPlan").mockResolvedValue(true);
   getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
@@ -621,9 +610,7 @@ describe("signing in with a password", () => {
 
     // The two with no password to check spend as long as a check takes.
     expect(PasswordHash.spendVerificationTime).toHaveBeenCalledTimes(2);
-    expect(
-      FormPrivateUserSessionService.createSession,
-    ).not.toHaveBeenCalled();
+    expect(FormPrivateUserSessionService.createSession).not.toHaveBeenCalled();
   });
 
   it("looks the address up on this form alone: a private user of another form is nobody here", async () => {
@@ -633,9 +620,7 @@ describe("signing in with a password", () => {
       FormPrivateUserService.findOneBy as unknown as jest.Mock
     ).mock.calls[0]![0] as { query: Record<string, unknown> };
 
-    expect(lookup.query["formId"]?.toString()).toBe(
-      FORM_ID.toString(),
-    );
+    expect(lookup.query["formId"]?.toString()).toBe(FORM_ID.toString());
   });
 
   it("takes no password on a form that takes only single sign-on, before looking anybody up", async () => {
@@ -802,13 +787,12 @@ describe("signing out", () => {
         sessionId: SESSION_ID,
         expiresInSeconds: 3600,
       });
-    const accessToken: string =
-      JSONWebToken.signFormPrivateUserSessionToken({
-        formId: FORM_ID,
-        userId: PRIVATE_USER_ID,
-        sessionId: SESSION_ID,
-        expiresInSeconds: 900,
-      });
+    const accessToken: string = JSONWebToken.signFormPrivateUserSessionToken({
+      formId: FORM_ID,
+      userId: PRIVATE_USER_ID,
+      sessionId: SESSION_ID,
+      expiresInSeconds: 900,
+    });
 
     for (const token of [otherForms, accessToken]) {
       const result: HttpResult = await send({
@@ -886,9 +870,7 @@ describe("renewing a session", () => {
 
     expect(result.status).toBe(401);
     expect(errorMessageOf(result)).toBe(FORM_SESSION_EXPIRED_MESSAGE);
-    expect(
-      FormPrivateUserSessionService.revokeSessionById,
-    ).toHaveBeenCalled();
+    expect(FormPrivateUserSessionService.revokeSessionById).toHaveBeenCalled();
     expect(
       FormPrivateUserSessionService.renewSessionWithNewRefreshToken,
     ).not.toHaveBeenCalled();
@@ -912,16 +894,12 @@ describe("renewing a session", () => {
   });
 
   it("ends a session whose private user was removed", async () => {
-    getJestSpyOn(FormPrivateUserService, "findOneById").mockResolvedValue(
-      null,
-    );
+    getJestSpyOn(FormPrivateUserService, "findOneById").mockResolvedValue(null);
 
     const result: HttpResult = await refresh(`${REFRESH_COOKIE}=refresh-1`);
 
     expect(result.status).toBe(401);
-    expect(
-      FormPrivateUserSessionService.revokeSessionById,
-    ).toHaveBeenCalled();
+    expect(FormPrivateUserSessionService.revokeSessionById).toHaveBeenCalled();
   });
 
   it("renews nothing once the form stops asking its visitors to sign in, and clears the cookies", async () => {
@@ -1189,9 +1167,7 @@ describe("a single sign-on code, exchanged on the form's own host", () => {
 
     for (const answer of [notACode, spent]) {
       expect(answer.status).toBe(400);
-      expect(errorMessageOf(answer)).toBe(
-        FORM_SIGN_IN_CODE_INVALID_MESSAGE,
-      );
+      expect(errorMessageOf(answer)).toBe(FORM_SIGN_IN_CODE_INVALID_MESSAGE);
       expect(answer.setCookie).toEqual([]);
     }
   });
@@ -1207,9 +1183,7 @@ describe("a single sign-on code, exchanged on the form's own host", () => {
     );
 
     expect(errorMessageOf(result)).toBe(FORM_SIGN_IN_CODE_INVALID_MESSAGE);
-    expect(
-      FormPrivateUserSessionService.revokeSessionById,
-    ).toHaveBeenCalled();
+    expect(FormPrivateUserSessionService.revokeSessionById).toHaveBeenCalled();
     expect(result.setCookie).toEqual([]);
   });
 });
@@ -1278,16 +1252,13 @@ describe("the ways in the sign-in page is told of", () => {
     const lookup: {
       query: Record<string, unknown>;
       select: Record<string, unknown>;
-    } = (FormSsoService.findBy as unknown as jest.Mock).mock
-      .calls[0]![0] as {
+    } = (FormSsoService.findBy as unknown as jest.Mock).mock.calls[0]![0] as {
       query: Record<string, unknown>;
       select: Record<string, unknown>;
     };
 
     expect(lookup.query["isEnabled"]).toBe(true);
-    expect(lookup.query["formId"]?.toString()).toBe(
-      FORM_ID.toString(),
-    );
+    expect(lookup.query["formId"]?.toString()).toBe(FORM_ID.toString());
     expect(Object.keys(lookup.select).sort()).toEqual(
       ["_id", "description", "name"].sort(),
     );

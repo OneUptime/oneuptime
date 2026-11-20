@@ -148,15 +148,13 @@ beforeEach(() => {
   };
 
   jest.spyOn(FormService, "findOneBy").mockImplementation(lookUp as never);
-  jest
-    .spyOn(FormService, "findOneById")
-    .mockImplementation((async (findBy: {
-      id: ObjectID;
-      select: Record<string, unknown>;
-    }): Promise<Form | null> => {
-      selects.push(findBy.select);
-      return findBy.id.toString() === FORM_ID ? buildForm() : null;
-    }) as never);
+  jest.spyOn(FormService, "findOneById").mockImplementation((async (findBy: {
+    id: ObjectID;
+    select: Record<string, unknown>;
+  }): Promise<Form | null> => {
+    selects.push(findBy.select);
+    return findBy.id.toString() === FORM_ID ? buildForm() : null;
+  }) as never);
 
   // Every project is on a plan with forms.
   jest
@@ -172,7 +170,9 @@ beforeEach(() => {
   // What a visit is shown, once it may be: none of this suite's business.
   buildPublicForm = jest
     .spyOn(FormService as never, "buildPublicFormFor" as never)
-    .mockResolvedValue({ form: { name: "Access request", fields: [] } } as never);
+    .mockResolvedValue({
+      form: { name: "Access request", fields: [] },
+    } as never);
 
   jest.spyOn(CaptchaUtil, "isCaptchaEnabled").mockReturnValue(true);
   jest
@@ -480,10 +480,9 @@ describe("the form a sign-in is for", () => {
 
 describe("a form's public link", () => {
   test("is its usable custom domain, else /accounts/form/<share key>", async () => {
-    const getAddress: SpyInstance<typeof UsableCustomDomain.getAddress> =
-      jest
-        .spyOn(UsableCustomDomain, "getAddress")
-        .mockResolvedValue("https://forms.acme.example" as never);
+    const getAddress: SpyInstance<typeof UsableCustomDomain.getAddress> = jest
+      .spyOn(UsableCustomDomain, "getAddress")
+      .mockResolvedValue("https://forms.acme.example" as never);
     jest
       .spyOn(FormDomainService, "findBy")
       .mockResolvedValue([new FormDomain()] as never);

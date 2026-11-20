@@ -67,7 +67,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Form SSO",
   pluralName: "Form SSO",
   icon: IconProp.Lock,
-  tableDescription: "Configure SAML single sign-on for a form that asks its visitors to sign in",
+  tableDescription:
+    "Configure SAML single sign-on for a form that asks its visitors to sign in",
 })
 @OwnedThrough("formId", Form)
 @Entity({
@@ -162,8 +163,7 @@ export default class FormSSO extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Form,
     title: "Form",
-    description:
-      "Relation to the form this provider signs people in to.",
+    description: "Relation to the form this provider signs people in to.",
   })
   @ManyToOne(
     () => {

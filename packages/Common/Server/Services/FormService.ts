@@ -1368,7 +1368,10 @@ export class Service extends DatabaseService<Model> {
 
     if (
       form.requireSignIn &&
-      !(await this.findSignedInSession({ formSession: data.formSession, form: form }))
+      !(await this.findSignedInSession({
+        formSession: data.formSession,
+        form: form,
+      }))
     ) {
       throw new NotAuthenticatedException(FORM_SIGN_IN_REQUIRED_MESSAGE);
     }

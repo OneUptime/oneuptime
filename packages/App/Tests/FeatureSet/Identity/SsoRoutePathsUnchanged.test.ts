@@ -91,12 +91,15 @@ jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
 // A form's sign-in on its public link (#10249), mounted after the dashboard's.
-jest.mock("../../../FeatureSet/Identity/API/FormPrivateUserAuthentication", () => {
-  return {
-    __esModule: true,
-    default: { coreRouter: "form-private-user" },
-  };
-});
+jest.mock(
+  "../../../FeatureSet/Identity/API/FormPrivateUserAuthentication",
+  () => {
+    return {
+      __esModule: true,
+      default: { coreRouter: "form-private-user" },
+    };
+  },
+);
 // A dashboard's sign-in on its public link (#10250), mounted after the rest.
 jest.mock(
   "../../../FeatureSet/Identity/API/DashboardPrivateUserAuthentication",

@@ -237,9 +237,7 @@ const getFormForSignIn: (data: {
   return await FormSignIn.getFormForSignIn(data);
 };
 
-const getFormName: (form: Form) => string = (
-  form: Form,
-): string => {
+const getFormName: (form: Form) => string = (form: Form): string => {
   return FormSignIn.getFormName(form);
 };
 
@@ -324,9 +322,7 @@ router.post(
   `${FormPrivateUserApiRoutes.login}/:formId`,
   refuseForeignPageRequests,
   requireJsonBody,
-  IdentityRateLimit.getMiddleware(
-    IdentityRateLimitBucket.FormPrivateUserLogin,
-  ),
+  IdentityRateLimit.getMiddleware(IdentityRateLimitBucket.FormPrivateUserLogin),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -383,12 +379,11 @@ router.post(
       let isPasswordValid: boolean = false;
 
       if (privateUser && privateUser.password) {
-        isPasswordValid =
-          await FormPrivateUserService.verifyHashedColumnValue({
-            item: privateUser,
-            columnName: "password",
-            plainValue: password!,
-          });
+        isPasswordValid = await FormPrivateUserService.verifyHashedColumnValue({
+          item: privateUser,
+          columnName: "password",
+          plainValue: password!,
+        });
       } else {
         await PasswordHash.spendVerificationTime(password!);
       }
@@ -476,9 +471,7 @@ router.post(
         if (signOutToken) {
           try {
             sessionToSignOut =
-              JSONWebToken.decodeFormPrivateUserSessionToSignOut(
-                signOutToken,
-              );
+              JSONWebToken.decodeFormPrivateUserSessionToSignOut(signOutToken);
           } catch {
             // Not a sign-out cookie OneUptime signed, or one that ran out.
             sessionToSignOut = null;
@@ -645,14 +638,12 @@ router.post(
       }
 
       const renewedSession: PrivateUserSessionMetadata<FormPrivateUserSession> | null =
-        await FormPrivateUserSessionService.renewSessionWithNewRefreshToken(
-          {
-            session,
-            ipAddress: getClientIp(req),
-            userAgent: headerValueToString(req.headers["user-agent"]),
-            ...extractDeviceInfo(req),
-          },
-        );
+        await FormPrivateUserSessionService.renewSessionWithNewRefreshToken({
+          session,
+          ipAddress: getClientIp(req),
+          userAgent: headerValueToString(req.headers["user-agent"]),
+          ...extractDeviceInfo(req),
+        });
 
       // Ended while this request was on its way: it stays ended.
       if (!renewedSession) {
@@ -758,8 +749,7 @@ router.post(
           },
         });
 
-        const formUrl: string =
-          await FormService.getPublicFormUrl(formId);
+        const formUrl: string = await FormService.getPublicFormUrl(formId);
 
         MailService.sendMail(
           {
@@ -879,9 +869,7 @@ router.post(
             templateType: EmailTemplateType.PrivateUserPasswordChanged,
             vars: {
               resourceName: getFormName(form),
-              homeURL: await FormService.getPublicFormUrl(
-                formId,
-              ),
+              homeURL: await FormService.getPublicFormUrl(formId),
               // When, from where and on which device the password was changed.
               ...RequestOriginUtil.getEmailVars({
                 origin: RequestOriginUtil.fromRequest(req),
@@ -969,10 +957,9 @@ router.post(
           sessionId: session.id,
         }))
       ) {
-        await FormPrivateUserSessionService.revokeSessionById(
-          session.id,
-          { reason: PRIVATE_USER_SIGN_IN_NO_LONGER_ACCEPTED_REASON },
-        );
+        await FormPrivateUserSessionService.revokeSessionById(session.id, {
+          reason: PRIVATE_USER_SIGN_IN_NO_LONGER_ACCEPTED_REASON,
+        });
 
         throw new BadDataException(FORM_SIGN_IN_CODE_INVALID_MESSAGE);
       }
@@ -1016,41 +1003,39 @@ router.post(
         formId,
       });
 
-      const samlProviders: Array<FormSSO> =
-        await FormSsoService.findBy({
-          query: {
-            formId: formId,
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-            name: true,
-            description: true,
-          },
-          skip: 0,
-          limit: 50,
-          props: {
-            isRoot: true,
-          },
-        });
+      const samlProviders: Array<FormSSO> = await FormSsoService.findBy({
+        query: {
+          formId: formId,
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          name: true,
+          description: true,
+        },
+        skip: 0,
+        limit: 50,
+        props: {
+          isRoot: true,
+        },
+      });
 
-      const oidcProviders: Array<FormOIDC> =
-        await FormOidcService.findBy({
-          query: {
-            formId: formId,
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-            name: true,
-            description: true,
-          },
-          skip: 0,
-          limit: 50,
-          props: {
-            isRoot: true,
-          },
-        });
+      const oidcProviders: Array<FormOIDC> = await FormOidcService.findBy({
+        query: {
+          formId: formId,
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          name: true,
+          description: true,
+        },
+        skip: 0,
+        limit: 50,
+        props: {
+          isRoot: true,
+        },
+      });
 
       const toProvider: (provider: FormSSO | FormOIDC) => FormSignInProvider = (
         provider: FormSSO | FormOIDC,

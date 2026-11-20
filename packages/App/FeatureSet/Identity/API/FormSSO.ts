@@ -73,9 +73,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const formId: ObjectID = FormSignIn.readFormId(
-        req.params["formId"],
-      );
+      const formId: ObjectID = FormSignIn.readFormId(req.params["formId"]);
 
       if (
         !req.params["formSsoId"] ||
@@ -93,22 +91,21 @@ router.get(
       // A form whose link signs nobody in starts no sign-in.
       await FormSignIn.getFormForSignIn({ req, formId });
 
-      const formSSO: FormSSO | null =
-        await FormSsoService.findOneBy({
-          query: {
-            formId: formId,
-            _id: req.params["formSsoId"],
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-            signOnURL: true,
-            formId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      const formSSO: FormSSO | null = await FormSsoService.findOneBy({
+        query: {
+          formId: formId,
+          _id: req.params["formSsoId"],
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          signOnURL: true,
+          formId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
       if (!formSSO) {
         return Response.sendErrorResponse(
@@ -181,9 +178,7 @@ router.post(
       let issuerUrl: string = "";
       let email: Email | null = null;
 
-      const formId: ObjectID = FormSignIn.readFormId(
-        req.params["formId"],
-      );
+      const formId: ObjectID = FormSignIn.readFormId(req.params["formId"]);
 
       if (
         !req.params["formSsoId"] ||
@@ -198,25 +193,24 @@ router.post(
         );
       }
 
-      const formSSO: FormSSO | null =
-        await FormSsoService.findOneBy({
-          query: {
-            formId: formId,
-            _id: req.params["formSsoId"],
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-            name: true,
-            signOnURL: true,
-            issuerURL: true,
-            publicCertificate: true,
-            projectId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      const formSSO: FormSSO | null = await FormSsoService.findOneBy({
+        query: {
+          formId: formId,
+          _id: req.params["formSsoId"],
+          isEnabled: true,
+        },
+        select: {
+          _id: true,
+          name: true,
+          signOnURL: true,
+          issuerURL: true,
+          publicCertificate: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
       if (!formSSO) {
         return Response.sendErrorResponse(
@@ -392,8 +386,7 @@ router.post(
           requestOrigin: RequestOriginUtil.fromRequest(req),
         });
 
-      const formUrl: string =
-        await FormService.getPublicFormUrl(formId);
+      const formUrl: string = await FormService.getPublicFormUrl(formId);
 
       Response.setNoCacheHeaders(res);
 
