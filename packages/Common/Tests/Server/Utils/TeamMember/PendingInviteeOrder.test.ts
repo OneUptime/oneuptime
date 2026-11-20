@@ -285,22 +285,107 @@ describe("every list of people, sorted by a person's name", () => {
     ]);
   });
 
-  test("an order by a person's address is the read's own: the project typed it", () => {
-    const options: FindManyOptions<TeamMember> = {
-      order: { user: { email: "ASC" } },
-      take: 10,
-    } as FindManyOptions<TeamMember>;
-
-    const typeOrm: SelectQueryBuilder<TeamMember> =
-      PagedFind.createQueryBuilder(repositoryOf(TeamMember), options);
-    const adjusted: SelectQueryBuilder<TeamMember> =
+  /*
+   * A person's address, as their row shows it (#10175): someone pending is
+   * ordered by the address they were invited at, else their account's -
+   * never by the one their account has moved to, which where they fall
+   * would otherwise spell out against addresses an inviter controls.
+   */
+  test("an order by a person's address orders someone pending by the address they were invited at", () => {
+    const builder: SelectQueryBuilder<TeamMember> =
       PagedFind.createQueryBuilder(
         repositoryOf(TeamMember),
-        options,
+        {
+          order: { user: { email: "DESC" } },
+          take: 10,
+        } as FindManyOptions<TeamMember>,
         adjusterFor(member()),
       );
 
-    expect(adjusted.getQuery()).toBe(typeOrm.getQuery());
+    const key: string = Object.keys(builder.expressionMap.orderBys)[0]!;
+    const value: string = orderedValueOf(builder, key);
+
+    expect(key).toMatch(/^pending_invitee_order_0_/);
+    expect(value).toMatch(/^\(CASE WHEN "([^"]+)"\."_id" IN \(SELECT "pending/);
+    expect(value).toMatch(
+      /THEN COALESCE\(\(SELECT BTRIM\("invited[A-Za-z]{10}"\."inviteeEmail"\)/,
+    );
+    expect(value).toMatch(/, "[^"]+"\."email"\) ELSE "[^"]+"\."email" END\)$/);
+    // The name typed for someone is no address.
+    expect(value).not.toContain("inviteeName");
+    expect(builder.expressionMap.orderBys[key]).toBe("DESC");
+    expect(builder.getQuery()).not.toMatch(/"[^"]+"\."email" DESC/);
+  });
+
+  test("every to-one relation to a person, in every model, orders a pending person by the address their row shows", () => {
+    const notRewritten: Array<string> = [];
+
+    for (const { metadata, relation } of relationsToPeople()) {
+      const repository: Repository<ObjectLiteral> = dataSource.getRepository(
+        metadata.target,
+      );
+      const options: FindManyOptions<ObjectLiteral> = {
+        order: { [relation.propertyName]: { email: "ASC" } },
+        take: 10,
+      } as FindManyOptions<ObjectLiteral>;
+
+      const [typeOrmKey] = typeOrmOrderKeys(repository, options);
+      const personAlias: string = aliasOfOrder(typeOrmKey!);
+
+      const builder: SelectQueryBuilder<ObjectLiteral> =
+        PagedFind.createQueryBuilder(
+          repository,
+          options,
+          adjusterFor(member()),
+        );
+
+      const keys: Array<string> = Object.keys(builder.expressionMap.orderBys);
+      const value: string | undefined = keys[0]
+        ? builder.expressionMap.selects.find(
+            (select: { selection: string; aliasName?: string }): boolean => {
+              return select.aliasName === keys[0];
+            },
+          )?.selection
+        : undefined;
+
+      const isRewritten: boolean =
+        keys.length === 1 &&
+        keys[0]!.startsWith("pending_invitee_order_0_") &&
+        Boolean(value) &&
+        value!.startsWith(
+          `(CASE WHEN "${personAlias}"."_id" IN (SELECT "pending`,
+        ) &&
+        value!.includes(`BTRIM("invited`) &&
+        value!.endsWith(`ELSE "${personAlias}"."email" END)`) &&
+        !builder.getQuery().includes(`"${personAlias}"."email" ASC`);
+
+      if (!isRewritten) {
+        notRewritten.push(`${metadata.name}.${relation.propertyName}`);
+      }
+    }
+
+    expect(notRewritten).toEqual([]);
+  });
+
+  test("an order by a person's name falls back to the address they were invited at, when no name was typed", () => {
+    const builder: SelectQueryBuilder<TeamMember> =
+      PagedFind.createQueryBuilder(
+        repositoryOf(TeamMember),
+        {
+          order: { user: { name: "ASC" } },
+          take: 10,
+        } as FindManyOptions<TeamMember>,
+        adjusterFor(member()),
+      );
+
+    const value: string = orderedValueOf(
+      builder,
+      Object.keys(builder.expressionMap.orderBys)[0]!,
+    );
+
+    expect(value).toMatch(
+      /THEN COALESCE\(\(SELECT BTRIM\("typed[A-Za-z]{10}"\."inviteeName"\)[\s\S]*\), COALESCE\(\(SELECT BTRIM\("invited[A-Za-z]{10}"\."inviteeEmail"\)/,
+    );
   });
 
   test("a read ordered by its own columns, or by a related record that is no person, is TypeORM's to the character", () => {

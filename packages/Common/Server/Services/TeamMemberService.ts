@@ -941,6 +941,21 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       }
 
       /*
+       * The address this project invited, kept on a membership that waits
+       * for the person (#10175): what the project sees of them, beside the
+       * name typed for them, until they accept - never the address their
+       * account moves to meanwhile (PendingInviteeProfiles). OneUptime's
+       * alone to write: the address it was sent to. A membership made with
+       * no address - another team of someone invited already - keeps none,
+       * and is read beside the invitation that has one.
+       */
+      if (!isInvitationAcceptedOnCreate && invitationAddress) {
+        createBy.data.inviteeEmail = invitationAddress;
+      } else {
+        delete createBy.data.inviteeEmail;
+      }
+
+      /*
        * A member of the project who has signed up, named by address for
        * another of its teams, is not emailed (#8568). They are in the
        * project and sign in as ever, with nothing to accept or claim, and
@@ -1481,6 +1496,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         teamId: true,
         userId: true,
         hasAcceptedInvitation: true,
+        inviteeEmail: true,
       },
       props: {
         isRoot: true,
@@ -1547,7 +1563,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       throw new NotFoundException(RESEND_INVITATION_REFUSALS.notInvited);
     }
 
-    const userEmail: Email = user.email;
+    /*
+     * Sent again to the address the project invited (#10175), as the row
+     * shows it: the answer, and the project's email log, say where it went,
+     * and the address their account has moved to since is not the
+     * project's to learn. An invitation made before the address was kept
+     * goes to the account's.
+     */
+    const userEmail: Email =
+      membership.inviteeEmail &&
+      Email.isValid(membership.inviteeEmail.toString())
+        ? new Email(membership.inviteeEmail.toString())
+        : user.email;
 
     if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
       throw new BadDataException(

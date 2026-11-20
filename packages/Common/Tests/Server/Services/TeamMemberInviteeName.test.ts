@@ -491,6 +491,108 @@ describe("the name typed is kept on the membership, whoever the address belongs 
   });
 });
 
+describe("the address invited is kept on the membership, whoever the address belongs to (#10175)", () => {
+  /*
+   * Until the person accepts, the project sees the address it invited, not
+   * the one their account moves to meanwhile (PendingInviteeProfiles reads
+   * it in place of the account's). So it is the address the invitation was
+   * sent to, whether the address had an account, an unclaimed one, or none,
+   * and OneUptime's alone to write.
+   */
+  test.each([
+    ["nobody", null],
+    [
+      "an unclaimed invitation",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: false });
+      },
+    ],
+    [
+      "someone signed up",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: true });
+      },
+    ],
+  ])(
+    "an address that belongs to %s: the membership keeps the address invited",
+    async (_case: string, account: (() => User) | null) => {
+      findUserSpy.mockResolvedValue(account ? account() : null);
+
+      const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy("Grace Hopper"),
+      )) as { createBy: CreateBy<TeamMember> };
+
+      expect(result.createBy.data.inviteeEmail?.toString()).toBe(
+        INVITEE_EMAIL.toString(),
+      );
+    },
+  );
+
+  test("an address typed with capitals and spaces is kept as it was sent", async () => {
+    const typed: CreateBy<TeamMember> = inviteBy();
+    typed.miscDataProps = { email: "  Grace@Company.COM " };
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      typed,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeEmail?.toString()).toBe(
+      "grace@company.com",
+    );
+  });
+
+  test("an API client's own inviteeEmail is never kept: the address the invitation went to is", async () => {
+    const fromApi: CreateBy<TeamMember> = inviteBy();
+    fromApi.data.inviteeEmail = new Email("somebody.else@elsewhere.com");
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      fromApi,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeEmail?.toString()).toBe(
+      INVITEE_EMAIL.toString(),
+    );
+  });
+
+  test("a membership accepted as it is made keeps none: the project sees a member's own address", async () => {
+    // Someone in the project already, added to another of its teams.
+    findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
+    (TeamMemberService.isUserMemberOfProject as jest.Mock).mockResolvedValue(
+      true,
+    );
+
+    const added: CreateBy<TeamMember> = inviteBy();
+    added.data.inviteeEmail = new Email("somebody.else@elsewhere.com");
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      added,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.hasAcceptedInvitation).toBe(true);
+    expect("inviteeEmail" in result.createBy.data).toBe(false);
+  });
+
+  test("no caller may send it: OneUptime writes it", () => {
+    const member: TeamMember = new TeamMember();
+
+    expect(member.getColumnAccessControlFor("inviteeEmail")!.create).toEqual(
+      [],
+    );
+    expect(member.getColumnAccessControlFor("inviteeEmail")!.update).toEqual(
+      [],
+    );
+    expect(member.getTableColumnMetadata("inviteeEmail").computed).toBe(true);
+  });
+});
+
 describe("an invitation into a project that manages sign-in with SSO is emailed as one (#9819)", () => {
   // The email the hook asked the mail service for: its variables.
   function emailVars(): Record<string, string> {

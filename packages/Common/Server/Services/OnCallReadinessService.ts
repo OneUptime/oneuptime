@@ -1937,6 +1937,12 @@ export default class OnCallReadinessService {
             email: user.email,
             withheld: withheld,
           }) || "Unknown User";
+        // The address they were invited at, not the one their account has moved to (#10175).
+        one.userEmail = PendingInviteeProfiles.getAddressInProject({
+          userId: userIdString,
+          email: user.email,
+          withheld: withheld,
+        });
         one.userProfilePictureId = undefined;
       }
 
