@@ -13,7 +13,10 @@ import DeviceManagementProvider, {
   getDeviceManagementProviderShortTitle,
 } from "../DeviceManagement/DeviceManagementProvider";
 import { getDeviceManagementStaleAfterMinutes } from "../DeviceManagement/DeviceManagementConnectionHealth";
-import { DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES } from "../DeviceManagement/DeviceManagementConnectionSettings";
+import {
+  DEFAULT_DEVICE_MANAGEMENT_READ_INTERVAL_IN_MINUTES,
+  DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES,
+} from "../DeviceManagement/DeviceManagementConnectionSettings";
 import {
   DeviceManagementConnectionReadingAttribute,
   MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
@@ -291,6 +294,12 @@ export interface ManagedDeviceAlertTemplate {
   maxStorageUsedPercent?: number | undefined;
   // The platforms it reads; none is every device of the connection.
   platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
+  /*
+   * Connection Stopped Reading's: its step waits as long as the
+   * connection's read interval says, so a monitor made at another interval
+   * is still it (getManagedDeviceAlertTemplateEquivalentSteps).
+   */
+  followsReadInterval?: boolean | undefined;
   getMonitorStep: (args: ManagedDeviceAlertTemplateArgs) => MonitorStep;
 }
 
@@ -345,9 +354,11 @@ export function buildManagedDeviceSecurityPatchMetricMonitor(data: {
  */
 export function buildManagedDeviceBatteryMetricMonitor(data: {
   deviceManagementConnectionId: string;
+  provider: DeviceManagementProvider;
 }): MonitorStepMetricMonitor {
   return buildManagedDeviceReadingMetricMonitor({
     deviceManagementConnectionId: data.deviceManagementConnectionId,
+    provider: data.provider,
     metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
     metricAlias: BATTERY_METRIC_ALIAS,
     title: "Battery",
@@ -365,9 +376,11 @@ export function buildManagedDeviceBatteryMetricMonitor(data: {
  */
 export function buildManagedDeviceStorageMetricMonitor(data: {
   deviceManagementConnectionId: string;
+  provider: DeviceManagementProvider;
 }): MonitorStepMetricMonitor {
   return buildManagedDeviceReadingMetricMonitor({
     deviceManagementConnectionId: data.deviceManagementConnectionId,
+    provider: data.provider,
     metricName: MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
     metricAlias: STORAGE_METRIC_ALIAS,
     title: "Storage used",
@@ -381,9 +394,16 @@ export function buildManagedDeviceStorageMetricMonitor(data: {
  * A connection's readings of its devices, of one metric: the devices no
  * agent reports, of the given platforms, one series per device. Max per
  * minute unless the metric says otherwise.
+ *
+ * The service, where it is given, is read as well (#10008): it changes no
+ * reading the connection's id does not already pick, and it keeps each
+ * service's template of a metric apart from the others' in the
+ * recommendations' fingerprint (MonitorRecommendationUtil), so a monitor
+ * made from Esper's is never another service's.
  */
 function buildManagedDeviceReadingMetricMonitor(data: {
   deviceManagementConnectionId: string;
+  provider?: DeviceManagementProvider | undefined;
   platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
   metricName: string;
   metricAlias: string;
@@ -401,6 +421,10 @@ function buildManagedDeviceReadingMetricMonitor(data: {
      */
     [ManagedDeviceCheckInAttribute.IsHost]: "false",
   };
+
+  if (data.provider) {
+    attributes[ManagedDeviceCheckInAttribute.Provider] = data.provider;
+  }
 
   if (data.platforms && data.platforms.length === 1) {
     attributes[ManagedDeviceCheckInAttribute.Platform] = data.platforms[0]!;
@@ -677,10 +701,13 @@ const CONNECTION_METRIC_ALIAS: string = "minutes_since_read";
  * The query of a connection's own readings (#10006): the minutes since a
  * read of it worked, of this connection alone, one series named after it.
  * Min per minute: a read that worked and the claim that queued it, in one
- * minute, say it read - the claim was taken before the read ended.
+ * minute, say it read - the claim was taken before the read ended. Its
+ * service is read too, as the devices' battery and storage are: it keeps
+ * each service's template apart in the recommendations' fingerprint.
  */
 export function buildManagedDeviceConnectionReadMetricMonitor(data: {
   deviceManagementConnectionId: string;
+  provider: DeviceManagementProvider;
 }): MonitorStepMetricMonitor {
   return {
     rollingTime: MANAGED_DEVICE_CONNECTION_READ_ROLLING_TIME,
@@ -702,6 +729,8 @@ export function buildManagedDeviceConnectionReadMetricMonitor(data: {
               attributes: {
                 [DeviceManagementConnectionReadingAttribute.ConnectionId]:
                   data.deviceManagementConnectionId,
+                [DeviceManagementConnectionReadingAttribute.Provider]:
+                  data.provider,
               },
               aggegationType: MetricsAggregationType.Min,
               aggregateBy: {},
@@ -750,6 +779,7 @@ function buildConnectionStoppedReadingTemplate(
     monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
     metricName: MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
     thresholdInMinutes: getManagedDeviceConnectionStoppedReadingMinutes(),
+    followsReadInterval: true,
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
       const thresholdInMinutes: number =
         getManagedDeviceConnectionStoppedReadingMinutes(
@@ -768,6 +798,7 @@ function buildConnectionStoppedReadingTemplate(
       step.setMetricMonitor(
         buildManagedDeviceConnectionReadMetricMonitor({
           deviceManagementConnectionId: args.deviceManagementConnectionId,
+          provider: spec.provider,
         }),
       );
 
@@ -1040,6 +1071,7 @@ function buildLowBatteryTemplate(
       step.setMetricMonitor(
         buildManagedDeviceBatteryMetricMonitor({
           deviceManagementConnectionId: args.deviceManagementConnectionId,
+          provider: spec.provider,
         }),
       );
 
@@ -1116,6 +1148,7 @@ function buildStorageNearlyFullTemplate(
       step.setMetricMonitor(
         buildManagedDeviceStorageMetricMonitor({
           deviceManagementConnectionId: args.deviceManagementConnectionId,
+          provider: spec.provider,
         }),
       );
 
@@ -1287,4 +1320,42 @@ export function getManagedDeviceAlertTemplateById(
       return template.id === id;
     },
   );
+}
+
+/*
+ * The other steps a monitor made from a template may have and still be it
+ * (MonitorRecommendation.getEquivalentMonitorSteps): Connection Stopped
+ * Reading's at each wait another read interval a connection may have gives
+ * it, for a monitor made before its connection's interval changed, which
+ * keeps the wait it was made with and is never offered a second time. No
+ * other template's step follows the interval.
+ */
+export function getManagedDeviceAlertTemplateEquivalentSteps(
+  template: ManagedDeviceAlertTemplate,
+  args: ManagedDeviceAlertTemplateArgs,
+): Array<MonitorStep> {
+  if (!template.followsReadInterval) {
+    return [];
+  }
+
+  const waits: Set<number> = new Set<number>([
+    getManagedDeviceConnectionStoppedReadingMinutes(args.readIntervalInMinutes),
+  ]);
+  const steps: Array<MonitorStep> = [];
+
+  for (const interval of DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES) {
+    const wait: number =
+      getManagedDeviceConnectionStoppedReadingMinutes(interval);
+
+    if (waits.has(wait)) {
+      continue;
+    }
+
+    waits.add(wait);
+    steps.push(
+      template.getMonitorStep({ ...args, readIntervalInMinutes: interval }),
+    );
+  }
+
+  return steps;
 }

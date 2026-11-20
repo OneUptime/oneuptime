@@ -152,7 +152,8 @@ export interface MonitorRecommendationContext {
    * How often the connection is read, in minutes (its config's
    * readIntervalInMinutes): Connection Stopped Reading waits three of them
    * (#10006). `null` / `undefined` is the default interval. A monitor made
-   * before the interval changed keeps the wait it was made with.
+   * before the interval changed keeps the wait it was made with, and is
+   * still the recommendation (getEquivalentMonitorSteps).
    */
   deviceManagementReadIntervalInMinutes?: number | null | undefined;
   /*

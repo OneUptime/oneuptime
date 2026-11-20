@@ -125,7 +125,9 @@ import {
 } from "../MessageQueueAlertTemplates";
 import {
   ManagedDeviceAlertTemplate,
+  ManagedDeviceAlertTemplateArgs,
   getAllManagedDeviceAlertTemplates,
+  getManagedDeviceAlertTemplateEquivalentSteps,
   getManagedDeviceAlertTemplatesFor,
 } from "../ManagedDeviceAlertTemplates";
 
@@ -1196,23 +1198,49 @@ function normalizeManagedDeviceTemplate(
     typeof context?.deviceManagementReadIntervalInMinutes === "number"
       ? context.deviceManagementReadIntervalInMinutes
       : undefined;
-
-  return normalize({
+  const toTemplateArgs: (
+    args: MonitorRecommendationArgs,
+  ) => ManagedDeviceAlertTemplateArgs = (
+    args: MonitorRecommendationArgs,
+  ): ManagedDeviceAlertTemplateArgs => {
+    return {
+      deviceManagementConnectionId: args.resourceIdentifier,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      readIntervalInMinutes,
+    };
+  };
+  const recommendation: MonitorRecommendation = normalize({
     resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
     monitorType: MonitorType.Metrics,
     template: template,
     getMonitorStep: (args: MonitorRecommendationArgs) => {
-      return template.getMonitorStep({
-        deviceManagementConnectionId: args.resourceIdentifier,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-        readIntervalInMinutes,
-      });
+      return template.getMonitorStep(toTemplateArgs(args));
     },
   });
+
+  if (!template.followsReadInterval) {
+    return recommendation;
+  }
+
+  return {
+    ...recommendation,
+    /*
+     * A monitor made before its connection's interval changed keeps the
+     * wait it was made with, and is still this recommendation.
+     */
+    getEquivalentMonitorSteps: (
+      args: MonitorRecommendationArgs,
+    ): Array<MonitorStep> => {
+      return getManagedDeviceAlertTemplateEquivalentSteps(
+        template,
+        toTemplateArgs(args),
+      );
+    },
+  };
 }
 
 /*

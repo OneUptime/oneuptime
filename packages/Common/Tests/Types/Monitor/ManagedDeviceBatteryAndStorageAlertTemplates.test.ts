@@ -294,9 +294,11 @@ describe("what the monitors read", () => {
     expect(query.metricQueryData.filterData.metricName).toBe(
       MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
     );
+    // Its service too, which keeps each service's template apart in the catalog.
     expect(query.metricQueryData.filterData.attributes).toEqual({
       [ManagedDeviceCheckInAttribute.ConnectionId]: CONNECTION_ID,
       [ManagedDeviceCheckInAttribute.IsHost]: "false",
+      [ManagedDeviceCheckInAttribute.Provider]: DeviceManagementProvider.Esper,
     });
     expect(query.metricQueryData.groupByAttributeKeys).toEqual([
       ...MANAGED_DEVICE_CHECK_IN_GROUP_BY_ATTRIBUTES,
@@ -320,6 +322,7 @@ describe("what the monitors read", () => {
     expect(query.metricQueryData.filterData.attributes).toEqual({
       [ManagedDeviceCheckInAttribute.ConnectionId]: CONNECTION_ID,
       [ManagedDeviceCheckInAttribute.IsHost]: "false",
+      [ManagedDeviceCheckInAttribute.Provider]: DeviceManagementProvider.Soti,
     });
     expect(query.metricQueryData.filterData.aggegationType).toBe(
       MetricsAggregationType.Max,

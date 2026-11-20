@@ -6,6 +6,7 @@ import {
   ManagedDeviceAlertTemplateArgs,
   getAllManagedDeviceAlertTemplates,
   getManagedDeviceAlertTemplateById,
+  getManagedDeviceAlertTemplateEquivalentSteps,
   getManagedDeviceAlertTemplatesFor,
   getManagedDeviceConnectionStoppedReadingMinutes,
 } from "../../../Types/Monitor/ManagedDeviceAlertTemplates";
@@ -210,9 +211,15 @@ describe("what the monitor reads", () => {
     expect(query.metricQueryData.filterData.metricName).toBe(
       MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
     );
-    // No device filter: the connection is no device, and no host.
+    /*
+     * No device filter: the connection is no device, and no host. Its
+     * service, which keeps each service's template apart in the
+     * recommendations' fingerprint.
+     */
     expect(query.metricQueryData.filterData.attributes).toEqual({
       [DeviceManagementConnectionReadingAttribute.ConnectionId]: CONNECTION_ID,
+      [DeviceManagementConnectionReadingAttribute.Provider]:
+        DeviceManagementProvider.Esper,
     });
     expect(query.metricQueryData.groupByAttributeKeys).toEqual([
       DeviceManagementConnectionReadingAttribute.ConnectionName,
@@ -358,6 +365,8 @@ describe("the recommendation", () => {
     expect(Number(filterOf(instancesOf(fallback)[0]!).value)).toBe(55);
     expect(queryOf(hourly).metricQueryData.filterData.attributes).toEqual({
       [DeviceManagementConnectionReadingAttribute.ConnectionId]: CONNECTION_ID,
+      [DeviceManagementConnectionReadingAttribute.Provider]:
+        DeviceManagementProvider.Esper,
     });
   });
 
@@ -394,18 +403,127 @@ describe("the recommendation", () => {
     );
   });
 
-  test("a monitor made at another interval keeps the wait it was made with, and is told apart", () => {
+  /*
+   * A connection read hourly whose monitor was made, then read every 15
+   * minutes: the monitor keeps the 190 minutes it was made with, and is
+   * still the connection's Connection Stopped Reading - the page never
+   * offers a second one beside it.
+   */
+  test("a monitor made at another interval keeps the wait it was made with, and is still the recommendation", () => {
     const madeHourly: MonitorStep = connectionRecommendation(60).getMonitorStep(
       argsFor(CONNECTION_ID),
     );
+    const now: MonitorRecommendation = connectionRecommendation(15);
 
+    expect(Number(filterOf(instancesOf(madeHourly)[0]!).value)).toBe(190);
     expect(
       MonitorRecommendationUtil.getCoveredRecommendationIds({
-        recommendations: [connectionRecommendation(15)],
+        recommendations: [now],
         existingMonitorSteps: [madeHourly],
+        args: argsFor(CONNECTION_ID),
+      }),
+    ).toEqual(new Set([now.recommendationId]));
+
+    // At every interval a connection may have, one wait each.
+    for (const interval of DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES) {
+      const made: MonitorStep = connectionRecommendation(
+        interval,
+      ).getMonitorStep(argsFor(CONNECTION_ID));
+
+      expect({
+        interval,
+        covered: MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations: [now],
+          existingMonitorSteps: [made],
+          args: argsFor(CONNECTION_ID),
+        }).has(now.recommendationId),
+      }).toEqual({ interval, covered: true });
+    }
+
+    // Another connection's monitor, made at any interval, is still not this one's.
+    expect(
+      MonitorRecommendationUtil.getCoveredRecommendationIds({
+        recommendations: [now],
+        existingMonitorSteps: [
+          connectionRecommendation(60).getMonitorStep(
+            argsFor(ObjectID.generate().toString()),
+          ),
+        ],
         args: argsFor(CONNECTION_ID),
       }).size,
     ).toBe(0);
+  });
+
+  test("its other steps are its waits at the other intervals, each once, and no other template has any", () => {
+    const template: ManagedDeviceAlertTemplate = templateOf(
+      DeviceManagementProvider.Esper,
+    );
+    const waits: Array<number> = getManagedDeviceAlertTemplateEquivalentSteps(
+      template,
+      args({ readIntervalInMinutes: 15 }),
+    ).map((step: MonitorStep): number => {
+      return Number(filterOf(instancesOf(step)[0]!).value);
+    });
+
+    // 5 minutes waits half an hour, as Stale does: max(30, 5 * 3 + 10).
+    expect(waits).toEqual([30, 40, 100, 190]);
+    expect(
+      getManagedDeviceAlertTemplateEquivalentSteps(template, args()).map(
+        (step: MonitorStep): number => {
+          return Number(filterOf(instancesOf(step)[0]!).value);
+        },
+      ),
+    ).toEqual([30, 40, 100, 190]);
+
+    for (const other of getAllManagedDeviceAlertTemplates().filter(
+      (candidate: ManagedDeviceAlertTemplate): boolean => {
+        return (
+          candidate.metricName !==
+          MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME
+        );
+      },
+    )) {
+      expect({
+        id: other.id,
+        steps: getManagedDeviceAlertTemplateEquivalentSteps(other, args())
+          .length,
+      }).toEqual({ id: other.id, steps: 0 });
+    }
+  });
+
+  /*
+   * The services' templates of one metric read the same readings, so each
+   * reads its own service as well: their fingerprints differ, and a monitor
+   * made from one service's is never counted as another's
+   * (MonitorRecommendationCoverage).
+   */
+  test("each service's connection, battery and storage templates fingerprint apart", () => {
+    const families: Array<Array<string>> = [
+      Object.values(CONNECTION_TEMPLATE_IDS),
+      ["esper-low-battery", "workspace-one-low-battery", "soti-low-battery"],
+      [
+        "esper-storage-nearly-full",
+        "intune-storage-nearly-full",
+        "workspace-one-storage-nearly-full",
+        "soti-storage-nearly-full",
+      ],
+    ];
+    const shared: ManagedDeviceAlertTemplateArgs = args();
+
+    for (const family of families) {
+      const fingerprints: Array<string> = family.map((id: string): string => {
+        return MonitorRecommendationUtil.serializeFingerprint(
+          MonitorRecommendationUtil.getFingerprintFromMonitorStep(
+            getManagedDeviceAlertTemplateById(id)!.getMonitorStep(shared),
+          )!,
+        );
+      });
+
+      expect({ family, distinct: new Set(fingerprints).size }).toEqual({
+        family,
+        distinct: family.length,
+      });
+    }
   });
 
   test("the catalog of every template holds one per service", () => {
