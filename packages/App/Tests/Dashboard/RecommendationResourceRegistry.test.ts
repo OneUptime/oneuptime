@@ -3424,12 +3424,12 @@ describe("RecommendationResourceRegistry", () => {
       return model;
     }
 
-    test("selects the connection's service with its name", () => {
+    test("selects the connection's service and settings with its name", () => {
       expect(
         RecommendationResourceRegistry.getSelect(
           MonitorRecommendationResourceType.DeviceManagementConnection,
         ),
-      ).toEqual({ _id: true, name: true, provider: true });
+      ).toEqual({ _id: true, name: true, provider: true, config: true });
     });
 
     test("reads the service off the row, and none as none", () => {
@@ -3439,14 +3439,82 @@ describe("RecommendationResourceRegistry", () => {
             MonitorRecommendationResourceType.DeviceManagementConnection,
           model: connectionRow("esper"),
         }),
-      ).toEqual({ deviceManagementProvider: "esper" });
+      ).toEqual({
+        deviceManagementProvider: "esper",
+        deviceManagementReadIntervalInMinutes: null,
+      });
       expect(
         RecommendationResourceRegistry.readContext({
           resourceType:
             MonitorRecommendationResourceType.DeviceManagementConnection,
           model: connectionRow(undefined),
         }),
-      ).toEqual({ deviceManagementProvider: null });
+      ).toEqual({
+        deviceManagementProvider: null,
+        deviceManagementReadIntervalInMinutes: null,
+      });
+    });
+
+    /*
+     * #10006: Connection Stopped Reading waits three of the connection's
+     * read intervals, so how often it is read is its context too.
+     */
+    test("reads how often the connection is read off its settings, an interval it does not take as the default", () => {
+      const row: (config: unknown) => BaseModel = (
+        config: unknown,
+      ): BaseModel => {
+        const model: BaseModel = connectionRow("soti");
+        (model as unknown as Record<string, unknown>)["config"] = config;
+        return model;
+      };
+
+      for (const [config, interval] of [
+        [
+          { tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 60 },
+          60,
+        ],
+        [{ tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 5 }, 5],
+        [{ tenant: "acme.mobicontrolcloud.com", readIntervalInMinutes: 7 }, 15],
+        [{ tenant: "acme.mobicontrolcloud.com" }, 15],
+      ] as Array<[Record<string, unknown>, number]>) {
+        expect(
+          RecommendationResourceRegistry.readContext({
+            resourceType:
+              MonitorRecommendationResourceType.DeviceManagementConnection,
+            model: row(config),
+          }),
+        ).toEqual({
+          deviceManagementProvider: "soti",
+          deviceManagementReadIntervalInMinutes: interval,
+        });
+      }
+
+      // The page's context reaches the template: an hourly connection waits 190 minutes.
+      const step: MonitorStep = MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DeviceManagementConnection,
+        RecommendationResourceRegistry.readContext({
+          resourceType:
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+          model: row({
+            tenant: "acme.mobicontrolcloud.com",
+            readIntervalInMinutes: 60,
+          }),
+        }),
+      )[0]!.getMonitorStep({
+        resourceIdentifier: "55555555-5555-4555-8555-555555555555",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "MobiControl stores",
+      });
+
+      expect(
+        Number(
+          step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!
+            .data!.filters[0]!.value,
+        ),
+      ).toBe(190);
     });
 
     test("says nothing while its service has templates, and why the list is empty when it has none", () => {
