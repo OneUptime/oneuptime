@@ -52,6 +52,8 @@ const PRIVATE_USER_BASE: string =
   "packages/Common/Server/Services/PrivateUserServiceBase.ts";
 const DASHBOARD_PRIVATE_USER_SERVICE: string =
   "packages/Common/Server/Services/DashboardPrivateUserService.ts";
+const FORM_PRIVATE_USER_SERVICE: string =
+  "packages/Common/Server/Services/FormPrivateUserService.ts";
 
 const TEAM_SENDERS: Array<TeamSender> = [
   {
@@ -111,13 +113,16 @@ const TEAM_SENDERS: Array<TeamSender> = [
  * each. A subscriber's confirmation and welcome go out from its service
  * alone - to a sign-up and to a subscriber the team adds alike.
  */
-const TEAM_EMAILS: Record<string, string> = {
+const TEAM_EMAILS: Record<string, string | Array<string>> = {
   "EmailTemplateType.InviteMember": TEAM_MEMBER_SERVICE,
   "EmailTemplateType.StatusPageWelcomeEmail": PRIVATE_USER_SERVICE,
   "EmailTemplateType.ConfirmStatusPageSubscription": SUBSCRIBER_SERVICE,
   "EmailTemplateType.SubscribedToStatusPage": SUBSCRIBER_SERVICE,
-  // The invitation PRIVATE_USER_BASE counts, which a dashboard's service mails.
-  "EmailTemplateType.PrivateUserInvitation": DASHBOARD_PRIVATE_USER_SERVICE,
+  // The invitation PRIVATE_USER_BASE counts, which each kind's service mails (#10250, #10249).
+  "EmailTemplateType.PrivateUserInvitation": [
+    DASHBOARD_PRIVATE_USER_SERVICE,
+    FORM_PRIVATE_USER_SERVICE,
+  ],
 };
 
 /*
@@ -361,7 +366,7 @@ describe("the team's emails go out from their services only", () => {
 
   test.each(Object.entries(TEAM_EMAILS))(
     "%s is sent from %s alone",
-    (template: string, sender: string) => {
+    (template: string, sender: string | Array<string>) => {
       const senders: Array<string> = productFiles.filter(
         (relativePath: string): boolean => {
           const text: string = fs.readFileSync(
@@ -389,7 +394,7 @@ describe("the team's emails go out from their services only", () => {
             !Object.prototype.hasOwnProperty.call(readers, relativePath)
           );
         }),
-      ).toEqual([sender]);
+      ).toEqual(Array.isArray(sender) ? [...sender].sort() : [sender]);
     },
   );
 

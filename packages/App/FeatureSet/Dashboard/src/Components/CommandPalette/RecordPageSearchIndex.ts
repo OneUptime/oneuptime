@@ -4012,6 +4012,18 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Custom Domains",
       },
       {
+        page: PageMap.FORM_VIEW_PRIVATE_USERS,
+        section: "Form",
+        title: "Private Users",
+        keywords: ["sign in", "invite"],
+      },
+      {
+        page: PageMap.FORM_VIEW_SINGLE_SIGN_ON,
+        section: "Form",
+        title: "Single Sign-On",
+        keywords: ["sso", "saml", "oidc"],
+      },
+      {
         page: PageMap.FORM_VIEW_SUBMISSIONS,
         section: "Form",
         title: "Submissions",

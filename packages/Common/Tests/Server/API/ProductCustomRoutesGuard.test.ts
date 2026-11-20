@@ -922,6 +922,25 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       '"/dashboard-idp-login/:dashboardId/:dashboardSsoId"': PUBLIC_PAGE,
     },
   },
+  // A form's sign-in on its public link (#10249), as a dashboard's.
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts": {
+    products: [ProductKey.Forms],
+    leftAlone: {
+      "`${FormPrivateUserApiRoutes.login}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.logout}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.refreshToken}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.forgotPassword}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.resetPassword}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.exchangeLoginCode}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.signInMethods}/:formId`": READ,
+    },
+  },
+  "packages/App/FeatureSet/Identity/API/FormSSO.ts": {
+    products: [ProductKey.Forms],
+    leftAlone: {
+      '"/form-idp-login/:formId/:formSsoId"': PUBLIC_PAGE,
+    },
+  },
   "packages/Common/Server/API/WorkflowVariableAPI.ts": {
     products: [ProductKey.Workflows],
     leftAlone: {},

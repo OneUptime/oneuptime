@@ -6,7 +6,7 @@ import path from "path";
  * ---------------------------------------------------------------------------
  * EVERY SAML REPLY URL HOLDS A RESPONSE TO ITS OWN PROVIDER, AND USES IT ONCE.
  *
- * SamlSignInRoutes.test.ts and DashboardSamlSignIn.test.ts run the four SAML
+ * SamlSignInRoutes.test.ts, DashboardSamlSignIn.test.ts and FormSamlSignIn.test.ts run the SAML
  * Reply URLs that exist today. This guard reads the source, so the rule also
  * holds for the next one:
  *
@@ -96,6 +96,18 @@ const SAML_ROUTES: Array<SamlRoute> = [
     issuerRefusal:
       '"The identity provider that signed this response is not the one this dashboard trusts.',
   },
+  // A form shared with only the people who sign in (#10249).
+  {
+    file: "FormSSO.ts",
+    builder: "SamlServiceProviders.forFormSso(",
+    providerKind: "SamlProviderKind.FormSso",
+    storedProviderId: "formSSO.id!",
+    firstLookup: "FormPrivateUserService.findOneBy(",
+    startRoute: '"/form-sso/:formId/:formSsoId"',
+    replyRoute: '"/form-idp-login/:formId/:formSsoId"',
+    issuerRefusal:
+      '"The identity provider that signed this response is not the one this form trusts.',
+  },
 ];
 
 // A select whose first column is the record's own id.
@@ -145,7 +157,7 @@ function between(text: string, start: string, end: string): string {
 }
 
 describe("SAML responses are verified only where this guard knows of", () => {
-  test("getSamlResponseFromXML is called by the four SAML Reply URLs and nothing else", () => {
+  test("getSamlResponseFromXML is called by the five SAML Reply URLs and nothing else", () => {
     const callers: Array<string> = [];
 
     const roots: Array<string> = [
@@ -184,7 +196,7 @@ describe("SAML responses are verified only where this guard knows of", () => {
     );
   });
 
-  test("every route a SAML response is posted to is one of the four", () => {
+  test("every route a SAML response is posted to is one of the five", () => {
     const replyRoutes: Array<string> = [];
 
     for (const file of sourceFiles(API_DIR)) {

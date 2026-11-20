@@ -249,8 +249,9 @@ describe("Sharing & Security - branding", () => {
       "What protects a form",
     );
 
+    // The first five: on a form that asks its visitors to sign in, the fifth is the sign-in (#10249).
     expect(protects).toContain(
-      "they are sent inside the answer that opens it, base64, only once it has passed the first four checks, and never from an address of their own",
+      "they are sent inside the answer that opens it, base64, only once it has passed the first five checks, and never from an address of their own",
     );
     expect(protects).toContain(
       "no file can be fetched by its id through a form; the files themselves stay private",

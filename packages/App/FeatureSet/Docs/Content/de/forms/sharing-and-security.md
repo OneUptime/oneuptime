@@ -5,6 +5,7 @@ Ein Formular steht allen offen, die seinen Link haben, und jede Einreichung kann
 :::cards
 - [Den Link teilen](#den-link-teilen): Kopieren, öffnen und zurücksetzen, wenn er sich zu weit verbreitet.
 - [Ein Link für jede Vorlage](#ein-link-für-jede-vorlage): Ein Lesezeichen pro Fall, ein Formular dahinter.
+- [Nur angemeldete Personen](#nur-angemeldete-personen): Laden Sie die Personen ein, die das Formular öffnen dürfen, oder lassen Sie Ihr Single Sign-On sie anmelden.
 - [Eigene Domains](#eigene-domains): Das Formular unter Ihrer eigenen Domain ausliefern, mit kostenlosem Zertifikat.
 - [Was ein Formular schützt](#was-ein-formular-schützt): Jede Prüfung, die eine Anfrage besteht, in Reihenfolge.
 - [Fehlerbehebung](#fehlerbehebung): Was jede Meldung auf der Formularseite bedeutet und was zu tun ist.
@@ -16,6 +17,7 @@ Ein Formular steht allen offen, die seinen Link haben, und jede Einreichung kann
 | --- | --- |
 | **Status** | **Nimmt Einreichungen an** — ob der Link des Formulars funktioniert. |
 | **Link zum Teilen** | Jede Adresse, unter der das Formular erreichbar ist, jeweils mit **Link kopieren**, und **Link zurücksetzen**. |
+| **Wer dieses Formular öffnen kann** | **Nur angemeldete Personen** — ob nur die Personen, die Sie wählen, das Formular öffnen können, sobald sie sich anmelden. |
 | **Nach dem Absenden** | Die **Dankesnachricht**, die Leute nach dem Einreichen sehen, unter der Nummer dessen, was das Formular erstellt hat. |
 | **Weitere Einstellungen** | Die **IP-Zulassungsliste**, eingeklappt, bis Sie sie öffnen. |
 
@@ -28,6 +30,8 @@ Die Karte **Link zum Teilen** listet jede Adresse, unter der das Formular erreic
 - **Link zurücksetzen** gibt dem Formular nach Ihrer Bestätigung einen neuen Link. Der alte Link funktioniert sofort nicht mehr und zeigt die Nicht-verfügbar-Meldung, daher brauchen alle, mit denen Sie ihn geteilt haben, den neuen. Nutzen Sie es, wenn sich ein Link weiter verbreitet hat, als er sollte. Die eigenen Domains des Formulars nennen keinen Schlüssel und funktionieren weiter.
 
 Alle mit dem Link können das Formular öffnen und einreichen, ohne OneUptime-Konto und ohne Anmeldung. Angemeldet zu sein ändert nichts: OneUptime weiß, wer eingereicht hat, nur aus dem Namen und der E-Mail, die ins Formular getippt wurden. Behandeln Sie den Link also wie eine Telefonnummer Ihres Bereitschaftsteams. Teilen Sie ihn dort, wo die Leute, die ihn nutzen sollen, ihn finden — eine Intranetseite, ein Support-Runbook, eine angeheftete Chatnachricht — und nicht auf einer öffentlichen Website, außer Sie möchten Einreichungen von allen.
+
+Damit nur die Personen, die Sie wählen, das Formular öffnen und einreichen, schalten Sie **Nur angemeldete Personen** ein — siehe [Nur angemeldete Personen](#nur-angemeldete-personen).
 
 Der Link trägt einen eigenen zufälligen Schlüssel, nicht die ID des Formulars. Auf einer selbst gehosteten Installation wird er von Ihrem eigenen OneUptime-Host ausgeliefert und funktioniert nur unter der Adresse, die `HTTP_PROTOCOL` und `HOST` festlegen: Unter einem anderen Namen des Servers oder unter seiner IP-Adresse geöffnet, werden die Anfragen des Formulars abgelehnt, als kämen sie von einer anderen Website.
 
@@ -48,6 +52,20 @@ Um keine Einreichungen mehr anzunehmen, ohne das Formular zu löschen, schalten 
 Nach einer Einreichung sagt die Seite "Vielen Dank – Ihre Antwort wurde übermittelt." und nennt die Nummer dessen, was erstellt wurde, dann Ihre **Dankesnachricht**, in Markdown. Sagen Sie damit, was als Nächstes passiert und wohin man sich wendet, wenn etwas dringend ist. Ohne sie zeigt die Seite nur die Standardnachricht.
 
 Ein Bild in der Beschreibung oder der Dankesnachricht des Formulars wird allen gezeigt, die den Link öffnen, solange das Formular **Nimmt Einreichungen an** ist. Schalten Sie das Formular aus oder nehmen Sie das Bild heraus, und das Bild ist wieder privat, außer etwas anderes, das alle sehen, enthält es noch.
+
+## Nur angemeldete Personen
+
+Schalten Sie **Nur angemeldete Personen** unter **Wer dieses Formular öffnen kann** auf der Seite **Teilen** des Formulars ein, damit nur die Personen, die Sie wählen, das Formular öffnen und einreichen. Beim Einschalten werden Sie um eine Bestätigung gebeten. Von da an trifft jeder Besucher zuerst auf eine Anmeldeseite, am Link des Formulars und auf jeder eigenen Domain. Sie zeigt den Namen des Formulars und sonst nichts: nicht seine Fragen, seine Vorlagen oder sein Logo und nicht, wer sich anmelden darf. Nach der Anmeldung zeigt das Formular, wer angemeldet ist, mit **Abmelden** daneben.
+
+Öffnen Sie **Private Benutzer** im Seitenmenü des Formulars, um die Personen, die sich anmelden dürfen, per E-Mail hinzuzufügen. Jede erhält eine Einladung per E-Mail, deren Link sie ein Passwort wählen lässt. Der Link funktioniert 24 Stunden, und **Passwort vergessen?** auf der Anmeldeseite sendet einen neuen. Die Tabelle zeigt, wer **Registriert** ist, wessen Einladung **Einladung gesendet** ist und wann jede Person **Zuletzt angemeldet** war. Wer entfernt wird oder ein neues Passwort bekommt, wird bei der nächsten Anfrage überall abgemeldet.
+
+Öffnen Sie **Single Sign-On**, damit Ihr Identitätsanbieter Personen anmeldet, mit SAML oder OpenID Connect. Jeder Anbieter zeigt die Werte, die Sie in Ihren Identitätsanbieter einfügen. Wen Ihr Identitätsanbieter einlässt, wird bei der ersten Anmeldung ein privater Benutzer. Wird ein Anbieter ausgeschaltet oder gelöscht, werden alle abgemeldet, die er angemeldet hat. **SSO für die Anmeldung erzwingen** schaltet die Anmeldung mit Passwort aus: Alle melden sich dann mit Single Sign-On an, und wer mit einem Passwort angemeldet ist, wird bei der nächsten Anfrage abgemeldet.
+
+Eine Anmeldung gilt, bis sie 30 Tage lang nicht genutzt wird. Ihre Cookies werden nur mit den eigenen Anfragen des Formulars gesendet, sodass keine andere Website das Formular damit öffnen oder einreichen oder jemanden abmelden kann. Anmeldeversuche sind für jede Adresse und jedes Konto begrenzt, und die Anmeldeseite und die Seite für vergessene Passwörter antworten gleich, ob sich eine Adresse anmelden darf oder nicht.
+
+Eine Einreichung nennt nur den Namen und die E-Mail-Adresse, die in das Formular eingegeben wurden, wie bei jedem anderen Formular, nicht den privaten Benutzer, der sie gesendet hat. Ein Bild in der Beschreibung oder der Dankesnachricht des Formulars bleibt unter seiner nicht erratbaren Adresse öffentlich, solange das Formular Einreichungen annimmt, wie auf einer Statusseite, die ihre Besucher zur Anmeldung auffordert: So laden die Browser der privaten Benutzer es.
+
+In OneUptime Cloud brauchen Single Sign-On und **SSO für die Anmeldung erzwingen** den Tarif **Scale**. Über die API sind private Benutzer und Single-Sign-On-Anbieter eigene Datensätze: `/form-private-user`, `/form-sso` und `/form-oidc`, jeder mit nach ihm benannten Berechtigungen.
 
 ## Eigene Domains
 
@@ -119,13 +137,14 @@ Jede Anfrage besteht diese Prüfungen, in dieser Reihenfolge:
 2. Sie muss innerhalb der Ratenbegrenzungen liegen.
 3. Das Formular muss existieren, **Nimmt Einreichungen an** sein und zu einem Projekt mit einem Tarif gehören, der Formulare enthält.
 4. Sie muss von einer Adresse auf der **IP-Zulassungsliste** kommen, wenn das Formular eine hat.
-5. Eine Einreichung muss das Captcha bestehen, wenn die Instanz Captcha eingeschaltet hat.
-6. Jede Antwort muss innerhalb der Größengrenzen liegen und zu ihrer Frage passen — siehe [Ein Formular erstellen](/docs/forms/building#größengrenzen).
-7. Was die Antworten und die Einstellungen ergeben, muss erstellbar sein: Ein Vorfall braucht einen Schweregrad, ein Ereignis ein Ende nach seinem Beginn.
-8. Eine Einreichung muss in das stündliche Kontingent des Formulars passen — siehe [Ratenbegrenzungen](#ratenbegrenzungen).
-9. Ihre Dateien müssen in das stündliche Dateikontingent des Formulars passen, unmittelbar bevor sie gespeichert werden.
+5. Sie muss von einem angemeldeten privaten Benutzer des Formulars kommen, wenn das Formular auf **Nur angemeldete Personen** gestellt ist — siehe [Nur angemeldete Personen](#nur-angemeldete-personen).
+6. Eine Einreichung muss das Captcha bestehen, wenn die Instanz Captcha eingeschaltet hat.
+7. Jede Antwort muss innerhalb der Größengrenzen liegen und zu ihrer Frage passen — siehe [Ein Formular erstellen](/docs/forms/building#größengrenzen).
+8. Was die Antworten und die Einstellungen ergeben, muss erstellbar sein: Ein Vorfall braucht einen Schweregrad, ein Ereignis ein Ende nach seinem Beginn.
+9. Eine Einreichung muss in das stündliche Kontingent des Formulars passen — siehe [Ratenbegrenzungen](#ratenbegrenzungen).
+10. Ihre Dateien müssen in das stündliche Dateikontingent des Formulars passen, unmittelbar bevor sie gespeichert werden.
 
-Logo und Favicon eines Formulars sind Teil des Formulars: Sie werden in der Antwort mitgesendet, die es öffnet, base64, erst wenn es die ersten vier Prüfungen bestanden hat, und nie von einer eigenen Adresse. Niemand kann sie ohne das Formular abrufen, und keine Datei kann über ein Formular anhand ihrer ID abgerufen werden; die Dateien selbst bleiben privat. Ein Formular zeigt nur Bilder, die in seinem eigenen Projekt hochgeladen wurden: Eine Datei eines anderen Projekts wird beim Speichern des Formulars abgelehnt und nie an seine Seite gesendet.
+Logo und Favicon eines Formulars sind Teil des Formulars: Sie werden in der Antwort mitgesendet, die es öffnet, base64, erst wenn es die ersten fünf Prüfungen bestanden hat, und nie von einer eigenen Adresse. Niemand kann sie ohne das Formular abrufen, und keine Datei kann über ein Formular anhand ihrer ID abgerufen werden; die Dateien selbst bleiben privat. Ein Formular zeigt nur Bilder, die in seinem eigenen Projekt hochgeladen wurden: Eine Datei eines anderen Projekts wird beim Speichern des Formulars abgelehnt und nie an seine Seite gesendet.
 
 ### IP-Zulassungsliste
 
