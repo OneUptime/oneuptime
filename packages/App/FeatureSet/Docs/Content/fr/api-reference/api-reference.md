@@ -255,7 +255,7 @@ Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'ast
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Beaucoup d'autres types ont aussi un nom bien à eux, comme les gravités d'incidents, les statuts de moniteur, les pages d'état et les flux de travail, et refusent de la même façon un nom déjà pris :
+Beaucoup d'autres types ont aussi un nom bien à eux, comme les gravités d'incidents, les statuts de moniteur, les pages d'état et les flux de travail, et refusent de la même façon un nom déjà pris, à la création comme au renommage :
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Incident Severity with the same name already exists.
 - `"refusalCode": "name_taken"` : un enregistrement en service le porte. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que cet enregistrement abandonne le nom : le fournisseur Terraform redemande pendant 30 secondes au plus.
 - `"refusalCode": "name_taken_by_archived"` : seul un enregistrement archivé le porte. Désarchivez cet enregistrement, ou choisissez un autre nom : renvoyer la requête n'y change rien, et le fournisseur Terraform ne la renvoie pas.
 
-Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer. Pour les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon. Les étiquettes et les politiques d'astreinte archivées sont laissées de côté.
+Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer, mais jamais vers le nom d'un autre enregistrement. Pour les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon. Les étiquettes et les politiques d'astreinte archivées sont laissées de côté.
+
+#### Des valeurs qu'un autre enregistrement porte déjà
+
+Certaines valeurs qui ne sont pas un nom appartiennent aussi à un seul enregistrement chacune : le domaine d'une page d'état, d'un tableau de bord ou d'un formulaire, un domaine de projet, l'identifiant d'un hôte ou d'un cluster Kubernetes, l'URL de connexion d'un fournisseur SSO et la permission d'une clé d'API, entre autres. Une création, ou une mise à jour qui change l'une d'elles, vers une valeur que porte déjà un autre enregistrement est refusée par un `400` qui le dit :
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+À côté du message, le refus contient un `refusalCode` qui dit ce qui porte la valeur, et un `field` qui nomme le champ dont la valeur est prise, comme `"field": "fullDomain"`. Une valeur de plusieurs champs ensemble arrive sans `field`. Reconnaissez le refus à ce code, pas à la phrase, qui peut être reformulée :
+
+- `"refusalCode": "value_taken"` : un enregistrement en service la porte. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que cet enregistrement abandonne la valeur : le fournisseur Terraform redemande pendant 30 secondes au plus.
+- `"refusalCode": "value_taken_by_archived"` : seul un enregistrement archivé la porte. Désarchivez cet enregistrement, ou choisissez une autre valeur : renvoyer la requête n'y change rien, et le fournisseur Terraform ne la renvoie pas.
+
+Une mise à jour qui renvoie à un enregistrement sa propre valeur, quelle que soit la casse, n'est pas un changement : les enregistrements qui partageaient une valeur auparavant peuvent donc toujours être modifiés, et recevoir chacun la leur.
 
 ### Interrupteurs
 

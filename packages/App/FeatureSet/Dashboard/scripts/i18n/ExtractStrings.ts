@@ -174,6 +174,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What a picker says of records that share a name (#10064): the pill a
+   * twin wears and the day it was made. The rule is the chats' too
+   * (#10314), so it lives outside Common/UI; only the words it marks are
+   * read.
+   */
+  {
+    directory: "packages/Common/Types/Database/SharedNameMarks.ts",
+    kind: "keys",
+  },
+  /*
    * The rest of the Enterprise screens the Dashboard draws (#8634): custom
    * roles, the audit log export, the IP allowlists, the license pages, and
    * the status pages' access controls and branding. Every word they draw
@@ -428,6 +438,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
       "packages/Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog.ts",
     kind: "keys",
   },
+  /*
+   * The blocklist's sentences (#10338): what is wrong with a value to
+   * block, that it is blocked already, and what protects an address - the
+   * Block Address dialog and Protected Entities say them in the reader's
+   * language, and the server answers an API client with the same words in
+   * English. Only the sentences the files mark are read: the rest is the
+   * blocklist's rules.
+   */
+  { directory: "packages/Common/Types/SecurityBlocklist", kind: "keys" },
   /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the

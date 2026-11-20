@@ -20,6 +20,11 @@ import DashboardVariable, {
 } from "Common/Types/Dashboard/DashboardVariable";
 import ObjectID from "Common/Types/ObjectID";
 import Label from "Common/Models/DatabaseModels/Label";
+import {
+  SharedNameFacts,
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
@@ -100,6 +105,14 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [options, setOptions] = useState<Array<DashboardVariableOption>>([]);
+  /*
+   * What tells two labels of one name apart, by id, for the picker alone
+   * (#10314): what is saved is each label's name and id - the dashboard's
+   * toolbar and its shared pages show that, never a label's description.
+   */
+  const [factsById, setFactsById] = useState<Map<string, SharedNameFacts>>(
+    new Map<string, SharedNameFacts>(),
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>();
 
@@ -112,12 +125,16 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
           throw new Error("Select a project to choose labels.");
         }
         const choices: Array<DashboardVariableOption> = [];
+        const facts: Map<string, SharedNameFacts> = new Map<
+          string,
+          SharedNameFacts
+        >();
         let skip: number = 0;
         while (!cancelled) {
           const result: ListResult<Label> = await ModelAPI.getList<Label>({
             modelType: Label,
             query: { projectId },
-            select: { _id: true, name: true },
+            select: { _id: true, name: true, ...getSharedNameSelect(Label) },
             sort: { name: SortOrder.Ascending },
             skip,
             limit: 1000,
@@ -125,6 +142,13 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
           for (const label of result.data) {
             if (label._id && label.name) {
               choices.push({ label: label.name, value: label._id.toString() });
+
+              const labelFacts: SharedNameFacts | undefined =
+                getSharedNameFacts(label);
+
+              if (labelFacts) {
+                facts.set(label._id.toString(), labelFacts);
+              }
             }
           }
           skip += result.data.length;
@@ -134,6 +158,7 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
         }
         if (!cancelled) {
           setOptions(choices);
+          setFactsById(facts);
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -175,7 +200,22 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
           ariaLabel="Allowed project labels"
           isMultiSelect={true}
           placeholder="Choose labels for this variable"
-          options={allOptions}
+          options={allOptions.map(
+            (option: DashboardVariableOption): DropdownOption => {
+              const facts: SharedNameFacts | undefined = factsById.get(
+                option.value,
+              );
+
+              // Two labels of one name told apart while choosing (#10314).
+              return facts
+                ? {
+                    label: option.label,
+                    value: option.value,
+                    sharedName: facts,
+                  }
+                : option;
+            },
+          )}
           value={savedOptions}
           onChange={(values: DropdownValue | Array<DropdownValue> | null) => {
             const selected: Array<string> = Array.isArray(values)
