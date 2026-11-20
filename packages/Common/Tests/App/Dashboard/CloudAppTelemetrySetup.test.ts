@@ -662,7 +662,10 @@ const OTHER_SUBSCRIPTION: string = "3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13";
 const SITE: string = "azure-monitor-collector-northcentralus";
 const SITE_ID: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg-monitoring/providers/Microsoft.Web/sites/${SITE}`;
 
-function connection(fields: Partial<CloudConnection> = {}): CloudConnection {
+// A row's fields; one set to undefined clears what the row has by default.
+type RowFields<T> = { [K in keyof T]?: T[K] | undefined };
+
+function connection(fields: RowFields<CloudConnection> = {}): CloudConnection {
   return Object.assign(new CloudConnection(), {
     _id: "77100000-0000-4000-8000-000000000001",
     name: "Azure production",
@@ -675,7 +678,7 @@ function connection(fields: Partial<CloudConnection> = {}): CloudConnection {
   });
 }
 
-function site(fields: Partial<CloudResource> = {}): CloudResource {
+function site(fields: RowFields<CloudResource> = {}): CloudResource {
   return Object.assign(new CloudResource(), {
     _id: "78000000-0000-4000-8000-000000000001",
     name: SITE,

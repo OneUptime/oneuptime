@@ -667,9 +667,7 @@ describe("what the link reads off its rows", () => {
         cloudReadingsAt: new Date("2026-11-20T11:57:00.000Z"),
       })?.toISOString(),
     ).toBe("2026-11-20T11:57:00.000Z");
-    expect(
-      getAzureMonitorLatestReadingAt({ cloudReadings: undefined }),
-    ).toBeNull();
+    expect(getAzureMonitorLatestReadingAt({})).toBeNull();
     expect(getAzureMonitorLatestReadingAt(null)).toBeNull();
   });
 });
