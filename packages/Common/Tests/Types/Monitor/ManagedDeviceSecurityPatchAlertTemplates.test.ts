@@ -356,7 +356,7 @@ describe("what the monitor reads", () => {
     const hostMetricNames: Array<string> = (
       hostTemplate.data!.hostMonitor?.metricViewConfig.queryConfigs || []
     ).map((config: MetricQueryConfigData): string => {
-      return config.metricQueryData.filterData.metricName || "";
+      return String(config.metricQueryData.filterData.metricName || "");
     });
 
     expect(hostMetricNames).toEqual(["android.os.security_patch.age"]);
