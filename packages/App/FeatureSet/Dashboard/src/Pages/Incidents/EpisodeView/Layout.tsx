@@ -9,6 +9,8 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import PrivateRecordScopeProvider from "../../../Components/PrivateRecord/PrivateRecordScopeProvider";
+import RecordAccessScopeProvider from "../../../Components/RecordAccess/RecordAccessScopeProvider";
+import { RecordAccessKind } from "Common/Types/RecordAccess/RecordAccess";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -39,7 +41,17 @@ const IncidentEpisodeViewLayout: FunctionComponent<
         ownerUserModelType={IncidentEpisodeOwnerUser}
         ownerKey="incidentEpisodeId"
       >
-        <Outlet />
+        {/*
+         * And what the server says the reader may do on this episode by
+         * its labels, its owners and its privacy: every lock on its
+         * pages reads it (RecordAccessScopeProvider, #10272).
+         */}
+        <RecordAccessScopeProvider
+          kind={RecordAccessKind.IncidentEpisode}
+          modelId={modelId}
+        >
+          <Outlet />
+        </RecordAccessScopeProvider>
       </PrivateRecordScopeProvider>
     </ModelPage>
   );

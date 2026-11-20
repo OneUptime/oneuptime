@@ -23,8 +23,13 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import { useWriteDatesInSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -126,6 +131,13 @@ const PublishTime: FunctionComponent<{ date: Date }> = (props: {
   );
 };
 
+/*
+ * What publishing writes: the event's publish time. The server's answer for
+ * this event locks it where its labels or owners keep it from the reader
+ * (RecordAccessScope, #10272).
+ */
+const PUBLISHED_MODEL: ScheduledMaintenance = new ScheduledMaintenance();
+
 const ScheduledMaintenancePublishingNotice: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
@@ -140,10 +152,15 @@ const ScheduledMaintenancePublishingNotice: FunctionComponent<
    * button locked, saying why; while the permissions are not known yet, no
    * button at all (PermissionGate).
    */
+  const recordGateOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PUBLISHED_MODEL);
   const gate: PermissionGateResult = PermissionGate.checkColumnUpdate(
-    new ScheduledMaintenance(),
+    PUBLISHED_MODEL,
     PUBLISH_ON_STATUS_PAGE_AT_COLUMN,
-    { sentence: PublishingNoticeCopy.noPermission },
+    withPrivateRecordGateOptions(
+      { sentence: PublishingNoticeCopy.noPermission },
+      recordGateOptions,
+    ),
   );
 
   const isButtonShown: boolean = gate.isAllowed || Boolean(gate.disabledReason);
