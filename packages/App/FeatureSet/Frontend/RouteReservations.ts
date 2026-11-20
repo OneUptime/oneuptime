@@ -64,6 +64,15 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/opamp",
   /*
+   * The Android agent's log sessions (/android-agent/v1/log-sessions,
+   * AndroidAgentLogSessions): the agent posts beside its OTLP, under
+   * "/telemetry", and the router is mounted on "/" too. POST-only today;
+   * reserved by its own first segment so a GET to it - a person checking
+   * the address the agent was given - is never answered with the
+   * Dashboard's page, or a status page's, at HTTP 200.
+   */
+  "/android-agent",
+  /*
    * The rest of the routes the Telemetry routers serve at the root as well
    * as under "/telemetry" (TelemetryRouteReservation.test.ts reads them
    * from the routers, so a new one fails there until it is listed here).
