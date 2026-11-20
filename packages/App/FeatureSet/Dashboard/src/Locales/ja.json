@@ -60504,5 +60504,14 @@
   "Who Can Open This Form": "このフォームを開ける人",
   "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "フォームを開いて送信できるのは、フォームのプライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人はサインインを求められます。",
   "Showing the first {{count}} series this expression returns.": "この式が返す最初の {{count}} 系列を表示しています。",
-  "Showing the first {{count}} series this expression returns._one": "この式が返す最初の {{count}} 系列を表示しています。"
+  "Showing the first {{count}} series this expression returns._one": "この式が返す最初の {{count}} 系列を表示しています。",
+  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it. An App Service app that sends no traces shows its site's numbers from Azure Monitor instead, and says so.": "各アプリの過去 1 時間のエラー率、リクエスト数、p95 レイテンシです。リクエストがアプリに入るスパンから求めています。トレースを送信しない App Service アプリには、代わりに Azure Monitor によるサイトの数値をその旨とともに表示します。",
+  "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.": "このアプリからトレースを受信していません。これは Azure Monitor によるサイトの数値で、サイトが応答したすべてのリクエスト、5xx ステータスで応答した割合、平均応答時間を示します。",
+  "Pick the app's stack: its steps turn on the App Service resource detector, which names each instance and the app's site, and send its logs with their traces.": "アプリのスタックを選んでください。その手順で App Service のリソース検出機能が有効になり、各インスタンスとアプリのサイトが示され、ログがそれぞれのトレースとともに送信されます。",
+  "Platform Cloud Resource": "プラットフォームのクラウドリソース",
+  "Platform Cloud Resource ID": "プラットフォームのクラウドリソース ID",
+  "Replace `checkout-api` with the name of your App Service app, which ties its telemetry to the app's Azure Monitor numbers, and the subscription id with your own: the SDKs' App Service resource detectors do not set `cloud.account.id`.": "`checkout-api` を App Service アプリの名前に置き換えます。この名前でテレメトリがアプリの Azure Monitor の数値に結び付けられます。サブスクリプション ID もご自身のものに置き換えてください。SDK の App Service リソース検出機能は `cloud.account.id` を設定しません。",
+  "Run the `az` commands in Azure Cloud Shell, with your app's name and resource group in place of `<app-name>` and `<resource-group>`.": "`az` コマンドを Azure Cloud Shell で実行します。`<app-name>` と `<resource-group>` はアプリの名前とリソース グループに置き換えてください。",
+  "{{latency}} on average": "平均 {{latency}}",
+  "{{rate}} server errors": "サーバーエラー {{rate}}"
 }

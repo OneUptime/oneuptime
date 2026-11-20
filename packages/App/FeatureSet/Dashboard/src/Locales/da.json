@@ -60504,5 +60504,14 @@
   "Who Can Open This Form": "Hvem der kan åbne denne formular",
   "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Kun formularens private brugere og de personer, din single sign-on lukker ind, kan åbne og indsende den. Alle andre bliver bedt om at logge ind.",
   "Showing the first {{count}} series this expression returns.": "Viser de første {{count}} serier, som dette udtryk returnerer.",
-  "Showing the first {{count}} series this expression returns._one": "Viser den første serie, som dette udtryk returnerer ({{count}})."
+  "Showing the first {{count}} series this expression returns._one": "Viser den første serie, som dette udtryk returnerer ({{count}}).",
+  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it. An App Service app that sends no traces shows its site's numbers from Azure Monitor instead, and says so.": "Hver apps fejlrate, anmodninger og p95-latens i den seneste time, ud fra de spans, hvor anmodninger kommer ind i appen. En App Service-app, der ikke sender spor, viser i stedet sit sites tal fra Azure Monitor og siger det.",
+  "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.": "Ingen spor modtaget fra denne app. Dette er dens sites tal fra Azure Monitor: hver anmodning, sitet besvarede, andelen besvaret med en 5xx-status og den gennemsnitlige svartid.",
+  "Pick the app's stack: its steps turn on the App Service resource detector, which names each instance and the app's site, and send its logs with their traces.": "Vælg appens stak: dens trin slår App Services ressourcedetektor til, som navngiver hver instans og appens site, og sender dens logge med deres spor.",
+  "Platform Cloud Resource": "Platformens cloud-ressource",
+  "Platform Cloud Resource ID": "Platformens cloud-ressource-id",
+  "Replace `checkout-api` with the name of your App Service app, which ties its telemetry to the app's Azure Monitor numbers, and the subscription id with your own: the SDKs' App Service resource detectors do not set `cloud.account.id`.": "Erstat `checkout-api` med navnet på din App Service-app, som knytter dens telemetri til appens tal fra Azure Monitor, og abonnements-id'et med dit eget: SDK'ernes App Service-ressourcedetektorer sætter ikke `cloud.account.id`.",
+  "Run the `az` commands in Azure Cloud Shell, with your app's name and resource group in place of `<app-name>` and `<resource-group>`.": "Kør `az`-kommandoerne i Azure Cloud Shell med din apps navn og ressourcegruppe i stedet for `<app-name>` og `<resource-group>`.",
+  "{{latency}} on average": "{{latency}} i gennemsnit",
+  "{{rate}} server errors": "{{rate}} serverfejl"
 }

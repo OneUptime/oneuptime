@@ -60504,5 +60504,14 @@
   "Who Can Open This Form": "چه کسی می‌تواند این فرم را باز کند",
   "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "فقط کاربران خصوصی فرم و افرادی که ورود یکپارچهٔ شما راهشان می‌دهد می‌توانند آن را باز کنند و بفرستند. از همهٔ افراد دیگر خواسته می‌شود وارد شوند.",
   "Showing the first {{count}} series this expression returns.": "{{count}} سری اولی که این عبارت برمی‌گرداند نمایش داده می‌شود.",
-  "Showing the first {{count}} series this expression returns._one": "{{count}} سری اولی که این عبارت برمی‌گرداند نمایش داده می‌شود."
+  "Showing the first {{count}} series this expression returns._one": "{{count}} سری اولی که این عبارت برمی‌گرداند نمایش داده می‌شود.",
+  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it. An App Service app that sends no traces shows its site's numbers from Azure Monitor instead, and says so.": "نرخ خطا، درخواست‌ها و تأخیر p95 هر برنامه در یک ساعت گذشته، از اسپن‌هایی که درخواست‌ها از آن‌ها وارد برنامه می‌شوند. برنامهٔ App Service که ترِیس نمی‌فرستد، به‌جای آن اعداد سایتش را از Azure Monitor نشان می‌دهد و این را می‌گوید.",
+  "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.": "هیچ ترِیسی از این برنامه دریافت نشده است. این‌ها اعداد سایت آن از Azure Monitor است: هر درخواستی که سایت به آن پاسخ داد، سهم پاسخ‌های با وضعیت 5xx و میانگین زمان پاسخ.",
+  "Pick the app's stack: its steps turn on the App Service resource detector, which names each instance and the app's site, and send its logs with their traces.": "پشتهٔ برنامه را انتخاب کنید: گام‌های آن تشخیص‌دهندهٔ منبع App Service را روشن می‌کنند که هر نمونه و سایت برنامه را نام می‌برد، و لاگ‌های آن را با ترِیس‌هایشان می‌فرستند.",
+  "Platform Cloud Resource": "منبع ابری بستر",
+  "Platform Cloud Resource ID": "شناسه منبع ابری بستر",
+  "Replace `checkout-api` with the name of your App Service app, which ties its telemetry to the app's Azure Monitor numbers, and the subscription id with your own: the SDKs' App Service resource detectors do not set `cloud.account.id`.": "`checkout-api` را با نام برنامهٔ App Service خودتان جایگزین کنید، که تله‌متری آن را به اعداد Azure Monitor برنامه پیوند می‌دهد، و شناسهٔ اشتراک را با مقدار خودتان: تشخیص‌دهنده‌های منبع App Service در SDKها `cloud.account.id` را تنظیم نمی‌کنند.",
+  "Run the `az` commands in Azure Cloud Shell, with your app's name and resource group in place of `<app-name>` and `<resource-group>`.": "فرمان‌های `az` را در Azure Cloud Shell اجرا کنید و به‌جای `<app-name>` و `<resource-group>` نام و گروه منابع برنامهٔ خود را بگذارید.",
+  "{{latency}} on average": "به‌طور میانگین {{latency}}",
+  "{{rate}} server errors": "{{rate}} خطای سرور"
 }

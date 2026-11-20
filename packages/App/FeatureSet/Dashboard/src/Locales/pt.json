@@ -60504,5 +60504,14 @@
   "Who Can Open This Form": "Quem pode abrir este formulário",
   "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Apenas os usuários privados do formulário e as pessoas que o seu login único deixa entrar podem abri-lo e enviá-lo. Todos os outros precisam entrar.",
   "Showing the first {{count}} series this expression returns.": "Mostrando as primeiras {{count}} séries que esta expressão retorna.",
-  "Showing the first {{count}} series this expression returns._one": "Mostrando a primeira série que esta expressão retorna ({{count}})."
+  "Showing the first {{count}} series this expression returns._one": "Mostrando a primeira série que esta expressão retorna ({{count}}).",
+  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it. An App Service app that sends no traces shows its site's numbers from Azure Monitor instead, and says so.": "A taxa de erro, as requisições e a latência p95 de cada app na última hora, a partir dos spans por onde as requisições entram nele. Um app do App Service que não envia traços mostra no lugar os números do site dele no Azure Monitor, e indica isso.",
+  "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.": "Nenhum traço recebido deste app. Estes são os números do site dele no Azure Monitor: cada requisição que o site respondeu, a parcela respondida com status 5xx e o tempo de resposta médio.",
+  "Pick the app's stack: its steps turn on the App Service resource detector, which names each instance and the app's site, and send its logs with their traces.": "Escolha a stack do app: os passos dela ativam o detector de recursos do App Service, que nomeia cada instância e o site do app, e enviam os logs dele com seus traços.",
+  "Platform Cloud Resource": "Recurso de nuvem da plataforma",
+  "Platform Cloud Resource ID": "ID do recurso de nuvem da plataforma",
+  "Replace `checkout-api` with the name of your App Service app, which ties its telemetry to the app's Azure Monitor numbers, and the subscription id with your own: the SDKs' App Service resource detectors do not set `cloud.account.id`.": "Substitua `checkout-api` pelo nome do seu app do App Service, que liga a telemetria dele aos números do Azure Monitor do app, e o ID da assinatura pelo seu: os detectores de recursos do App Service dos SDKs não definem `cloud.account.id`.",
+  "Run the `az` commands in Azure Cloud Shell, with your app's name and resource group in place of `<app-name>` and `<resource-group>`.": "Execute os comandos `az` no Azure Cloud Shell, com o nome e o grupo de recursos do seu app no lugar de `<app-name>` e `<resource-group>`.",
+  "{{latency}} on average": "{{latency}} em média",
+  "{{rate}} server errors": "{{rate}} de erros do servidor"
 }

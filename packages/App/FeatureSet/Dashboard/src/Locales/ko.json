@@ -60504,5 +60504,14 @@
   "Who Can Open This Form": "이 양식을 열 수 있는 사람",
   "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "양식의 비공개 사용자와 싱글 사인온이 허용한 사람만 양식을 열고 제출할 수 있습니다. 그 밖의 모든 사람은 로그인하라는 요청을 받습니다.",
   "Showing the first {{count}} series this expression returns.": "이 식이 반환하는 처음 {{count}}개 시리즈를 표시합니다.",
-  "Showing the first {{count}} series this expression returns._one": "이 식이 반환하는 처음 {{count}}개 시리즈를 표시합니다."
+  "Showing the first {{count}} series this expression returns._one": "이 식이 반환하는 처음 {{count}}개 시리즈를 표시합니다.",
+  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it. An App Service app that sends no traces shows its site's numbers from Azure Monitor instead, and says so.": "각 앱의 지난 1시간 오류율, 요청 수, p95 지연 시간으로, 요청이 앱으로 들어오는 스팬에서 구합니다. 트레이스를 보내지 않는 App Service 앱은 대신 Azure Monitor의 사이트 수치를 표시하고, 그 사실을 함께 알려 줍니다.",
+  "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.": "이 앱에서 수신된 트레이스가 없습니다. 이 값은 Azure Monitor가 측정한 사이트의 수치로, 사이트가 응답한 모든 요청, 5xx 상태로 응답한 비율, 평균 응답 시간입니다.",
+  "Pick the app's stack: its steps turn on the App Service resource detector, which names each instance and the app's site, and send its logs with their traces.": "앱의 스택을 고르세요. 그 단계에서 App Service 리소스 감지기가 켜져 각 인스턴스와 앱의 사이트를 표시하고, 로그를 각각의 트레이스와 함께 보냅니다.",
+  "Platform Cloud Resource": "플랫폼 클라우드 리소스",
+  "Platform Cloud Resource ID": "플랫폼 클라우드 리소스 ID",
+  "Replace `checkout-api` with the name of your App Service app, which ties its telemetry to the app's Azure Monitor numbers, and the subscription id with your own: the SDKs' App Service resource detectors do not set `cloud.account.id`.": "`checkout-api`를 App Service 앱의 이름으로 바꾸세요. 이 이름이 텔레메트리를 앱의 Azure Monitor 수치와 연결합니다. 구독 ID도 본인 것으로 바꾸세요. SDK의 App Service 리소스 감지기는 `cloud.account.id`를 설정하지 않습니다.",
+  "Run the `az` commands in Azure Cloud Shell, with your app's name and resource group in place of `<app-name>` and `<resource-group>`.": "`az` 명령을 Azure Cloud Shell에서 실행하세요. `<app-name>`과 `<resource-group>` 자리에 앱의 이름과 리소스 그룹을 넣습니다.",
+  "{{latency}} on average": "평균 {{latency}}",
+  "{{rate}} server errors": "서버 오류 {{rate}}"
 }

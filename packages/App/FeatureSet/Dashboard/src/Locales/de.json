@@ -60504,5 +60504,14 @@
   "Who Can Open This Form": "Wer dieses Formular öffnen kann",
   "Only the form's private users, and the people your single sign-on lets in, can open and submit it. Everyone else is asked to sign in.": "Nur die privaten Benutzer des Formulars und die Personen, die Ihr Single Sign-On einlässt, können es öffnen und absenden. Alle anderen werden zur Anmeldung aufgefordert.",
   "Showing the first {{count}} series this expression returns.": "Die ersten {{count}} Reihen, die dieser Ausdruck liefert, werden angezeigt.",
-  "Showing the first {{count}} series this expression returns._one": "Die erste Reihe, die dieser Ausdruck liefert, wird angezeigt ({{count}})."
+  "Showing the first {{count}} series this expression returns._one": "Die erste Reihe, die dieser Ausdruck liefert, wird angezeigt ({{count}}).",
+  "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it. An App Service app that sends no traces shows its site's numbers from Azure Monitor instead, and says so.": "Fehlerrate, Anfragen und p95-Latenz jeder App in der letzten Stunde, aus den Spans, an denen Anfragen in sie eintreten. Eine App-Service-App, die keine Traces sendet, zeigt stattdessen die Werte ihrer Website aus Azure Monitor und sagt das dazu.",
+  "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.": "Von dieser App sind keine Traces eingegangen. Dies sind die Werte ihrer Website aus Azure Monitor: jede Anfrage, die die Website beantwortet hat, der Anteil, der mit einem 5xx-Status beantwortet wurde, und die durchschnittliche Antwortzeit.",
+  "Pick the app's stack: its steps turn on the App Service resource detector, which names each instance and the app's site, and send its logs with their traces.": "Wählen Sie den Stack der App: Seine Schritte schalten den Ressourcendetektor von App Service ein, der jede Instanz und die Website der App benennt, und senden ihre Protokolle mit ihren Traces.",
+  "Platform Cloud Resource": "Plattform-Cloud-Ressource",
+  "Platform Cloud Resource ID": "Plattform-Cloud-Ressourcen-ID",
+  "Replace `checkout-api` with the name of your App Service app, which ties its telemetry to the app's Azure Monitor numbers, and the subscription id with your own: the SDKs' App Service resource detectors do not set `cloud.account.id`.": "Ersetzen Sie `checkout-api` durch den Namen Ihrer App-Service-App, der ihre Telemetrie mit den Azure-Monitor-Werten der App verknüpft, und die Abonnement-ID durch Ihre eigene: Die Ressourcendetektoren der SDKs für App Service setzen `cloud.account.id` nicht.",
+  "Run the `az` commands in Azure Cloud Shell, with your app's name and resource group in place of `<app-name>` and `<resource-group>`.": "Führen Sie die `az`-Befehle in Azure Cloud Shell aus, mit dem Namen und der Ressourcengruppe Ihrer App anstelle von `<app-name>` und `<resource-group>`.",
+  "{{latency}} on average": "{{latency}} im Durchschnitt",
+  "{{rate}} server errors": "{{rate}} Serverfehler"
 }
