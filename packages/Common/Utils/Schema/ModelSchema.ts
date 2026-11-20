@@ -348,6 +348,39 @@ export class ModelSchema extends BaseSchema {
     };
   }
 
+  /*
+   * What the spec says about a permission column - a team's, an API key's
+   * or a custom role's permission: the permission's key, such as
+   * IncidentMember or ReadProjectIncident. A string, as the API takes and
+   * answers it. It was documented as an object, with the example {"read":
+   * true, "write": false, "delete": false}, so every client generated from
+   * the spec took it as JSON: the Terraform provider asked for
+   * jsonencode("IncidentMember") and the CLI for '"IncidentMember"'
+   * (#10300). x-oneuptime-type says which string it is, so the provider
+   * still takes the key written the way it used to ask for.
+   *
+   * No enum: a team may be given more than 1,600 permissions, and more come
+   * with each release. A client generated from an enum would refuse every
+   * permission added after it was, and the enum would add tens of KB to the
+   * spec at each of the twelve places a permission column appears. The
+   * server says of a value that is no permission which picker lists the
+   * ones it takes.
+   */
+  public static getPermissionOpenApi(column: TableColumnMetadata): {
+    type: "string";
+    example: string;
+    "x-oneuptime-type": string;
+  } {
+    return {
+      type: "string",
+      example:
+        typeof column.example === "string" && column.example.trim()
+          ? column.example
+          : Permission.IncidentMember,
+      "x-oneuptime-type": TableColumnType.Permission,
+    };
+  }
+
   public static getModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
@@ -560,10 +593,9 @@ export class ModelSchema extends BaseSchema {
         }
         zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Permission) {
-        zodType = z.any().openapi({
-          type: "object",
-          example: { read: true, write: false, delete: false },
-        });
+        zodType = z
+          .string()
+          .openapi(ModelSchema.getPermissionOpenApi(column));
       } else if (column.type === TableColumnType.CustomFieldType) {
         // What a custom field holds: "Text", "Number", "Dropdown"...
         zodType = z.string().openapi({
@@ -2041,10 +2073,10 @@ export class ModelSchema extends BaseSchema {
         }),
       );
     } else if (column.type === TableColumnType.Permission) {
-      zodType = applyOpenApi(z.any(), {
-        type: "object",
-        example: { read: true, write: false, delete: false },
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getPermissionOpenApi(column),
+      );
     } else if (column.type === TableColumnType.CustomFieldType) {
       // What a custom field holds: "Text", "Number", "Dropdown"...
       zodType = applyOpenApi(z.string(), {
@@ -2543,8 +2575,9 @@ export class ModelSchema extends BaseSchema {
       case TableColumnType.Slug:
         return "example-slug";
 
+      // A permission's key, never "read": no permission is called that.
       case TableColumnType.Permission:
-        return "read";
+        return this.getPermissionOpenApi(column).example;
 
       default:
         return null;

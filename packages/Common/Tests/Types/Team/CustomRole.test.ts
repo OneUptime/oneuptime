@@ -224,6 +224,31 @@ describe("what a custom role may hold", () => {
     );
   });
 
+  test("a permission that is not text, as the API spec's example once was, is no permission picked", () => {
+    for (const permission of [
+      { read: true, write: false, delete: false },
+      ["IncidentMember"],
+      42,
+      true,
+      null,
+      "",
+      "   ",
+    ]) {
+      expect(
+        getCustomRolePermissionProblem({
+          permission: permission as unknown as string,
+        }),
+      ).toBe("Pick a permission.");
+    }
+
+    // The JSON text of a key, quotes and all, is no permission, named as sent.
+    expect(
+      getCustomRolePermissionProblem({ permission: '"IncidentMember"' }),
+    ).toBe(
+      '"IncidentMember" can\'t be given to a team, so it can\'t be part of a custom role.',
+    );
+  });
+
   test.each([
     [Permission.CreateServiceTelemetryService, "Create Service Telemetry Link"],
     [Permission.ReadServiceTelemetryService, "Read Service Telemetry Link"],
