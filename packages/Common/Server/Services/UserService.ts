@@ -14,7 +14,6 @@ import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyCo
 import Attribution, { SignUpAttribution } from "../Utils/Attribution";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
-import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import MailService from "./MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import RequestOriginUtil, {
@@ -48,7 +47,6 @@ import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
-import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
@@ -122,6 +120,8 @@ interface PendingEmailChange {
   userId: ObjectID;
   newEmail: Email;
   timezone: Timezone | null | undefined;
+  // The asking account's language: its link is written in it (#10157).
+  language: string | null | undefined;
   origin: RequestOrigin | undefined;
   /*
    * When the link stops working (#9908): kept on the account with the
@@ -943,6 +943,7 @@ export class Service extends DatabaseService<Model> {
       userId: own.id,
       newEmail: requested,
       timezone: own.timezone,
+      language: own.language,
       origin: updateBy.props.requestOrigin,
       linkExpires: OneUptimeDate.getSomeHoursAfter(
         EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
@@ -979,9 +980,10 @@ export class Service extends DatabaseService<Model> {
     pending: PendingEmailChange,
   ): Promise<void> {
     try {
+      // And, for the email that says it is taken, its own person's language.
       const holder: Model | null = await this.findOneBy({
         query: { email: pending.newEmail },
-        select: { _id: true },
+        select: { _id: true, language: true, timezone: true },
         props: { isRoot: true },
       });
 
@@ -991,6 +993,15 @@ export class Service extends DatabaseService<Model> {
         isTaken: Boolean(holder),
         origin: pending.origin,
         timezone: pending.timezone,
+        language: pending.language,
+        ...(holder
+          ? {
+              holder: {
+                language: holder.language,
+                timezone: holder.timezone,
+              },
+            }
+          : {}),
         linkExpires: pending.linkExpires,
       });
     } catch (err) {
@@ -1569,7 +1580,6 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           email: true,
-          name: true,
         },
         props: {
           isRoot: true,
@@ -1578,50 +1588,34 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
       });
 
+      const props: DatabaseCommonInteractionProps = onUpdate.updateBy.props;
+
       for (const user of onUpdate.carryForward) {
         const newUser: Model | undefined = newUsers.find((u: Model) => {
           return u._id?.toString() === user._id.toString();
         });
 
         if (newUser && newUser.email?.toString() !== user.email.toString()) {
-          // password changed, send password changed mail
-          const generatedToken: ObjectID = ObjectID.generate();
-
-          const emailVerificationToken: EmailVerificationToken =
-            new EmailVerificationToken();
-          emailVerificationToken.userId = user.id;
-          emailVerificationToken.email = newUser.email!;
-          emailVerificationToken.token = generatedToken;
-          emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
-
-          await EmailVerificationTokenService.create({
-            data: emailVerificationToken,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          const host: Hostname = await DatabaseConfig.getHost();
-          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-          MailService.sendMail({
-            toEmail: newUser.email!,
-            subject: "You have changed your email. Please verify your email.",
-            isSubjectLiteral: true,
-            templateType: EmailTemplateType.EmailChanged,
-            vars: {
-              name: newUser.name!.toString(),
-              tokenVerifyUrl: new URL(
-                httpProtocol,
-                host,
-                new Route(AccountsRoute.toString()).addRoute(
-                  "/verify-email/" + generatedToken.toString(),
-                ),
-              ).toString(),
-              homeUrl: new URL(httpProtocol, host).toString(),
-            },
-          }).catch((err: Error) => {
-            logger.error(err, { userId: user.id?.toString() } as LogAttributes);
+          /*
+           * The link that proves the new address, saying who made the change
+           * - by role, as the email to the address it left does - and when,
+           * in the account's own language and time zone, as read before the
+           * write (#10157).
+           */
+          await EmailChangeConfirmation.sendVerificationOfNewAddress({
+            userId: user.id!,
+            newEmail: newUser.email!,
+            changedBy: getEmailAddressChanger({
+              isRoot: props.isRoot === true,
+              isMasterAdmin: props.isMasterAdmin === true,
+              callerUserId: props.userId?.toString(),
+              accountUserId: user.id!.toString(),
+              namedChanger:
+                onUpdate.updateBy.miscDataProps?.[EMAIL_ADDRESS_CHANGED_BY_KEY],
+            }),
+            at: OneUptimeDate.getCurrentDate(),
+            language: user.language,
+            timezone: user.timezone,
           });
 
           await this.updateOneBy({

@@ -3,7 +3,10 @@ import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Util
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
-import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
+import {
+  decodeHtmlEntities,
+  markupAsSpacesWithOutlookContent,
+} from "Common/Tests/Helpers/HtmlText";
 import {
   screenReaderPieces,
   timesSaid,
@@ -667,7 +670,14 @@ describe("the partials every email is built from", () => {
         isSelfHosted: "true",
       });
 
-      expect(textOf(html)).toContain("Need help? Ask your server's admin.");
+      /*
+       * Looked up in the email's language (#10157), the line is escaped
+       * like any value (Utils/EmailLanguage.ts): its "server's" is written
+       * "server&#x27;s", and read as a client shows it.
+       */
+      expect(decodeHtmlEntities(textOf(html))).toContain(
+        "Need help? Ask your server's admin.",
+      );
       expect(html).not.toContain("support@oneuptime.com");
       expect(html).not.toContain("OneUptime");
     },
