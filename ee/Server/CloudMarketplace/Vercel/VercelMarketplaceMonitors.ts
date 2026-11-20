@@ -14,6 +14,11 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorRecommendationSeverityMapper from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 import ObjectID from "Common/Types/ObjectID";
+import ProductKey from "Common/Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  getProductOffMessage,
+} from "Common/Types/Product/ServerProducts";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import MarketplaceSubscriptionService from "Common/Server/Services/MarketplaceSubscriptionService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
@@ -23,6 +28,7 @@ import StatusPageResourceService from "Common/Server/Services/StatusPageResource
 import VercelMarketplaceConnectionService from "Common/Server/Services/VercelMarketplaceConnectionService";
 import VercelMarketplaceInstallationService from "Common/Server/Services/VercelMarketplaceInstallationService";
 import logger from "Common/Server/Utils/Logger";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
 import VercelMarketplaceAPI from "./VercelMarketplaceAPI";
 import VercelMarketplaceResources from "./VercelMarketplaceResources";
 import VercelResource, {
@@ -49,6 +55,16 @@ import VercelResource, {
  * A monitor that cannot be made - the plan's monitor limit, say - is logged
  * and left out; the connection is remembered, and turning the setting off
  * and on, or the next production deployment, tries again.
+ *
+ * The same goes while the server has Monitors switched off (Admin
+ * Dashboard > Settings > Products, #10251): no monitor is made, the
+ * connection is remembered, and once Monitors is on again the next
+ * production deployment, or turning the setting off and on, makes it.
+ * While Status Pages is switched off, a monitor is put on no status page.
+ * Vercel's webhook is billing and is answered whatever is off
+ * (ProductRouteDecisions), but the monitor would be the server's own new
+ * work, written as root, in a product its team cannot open: such work is
+ * refused where it starts (ProductWriteRefusal, #9489).
  */
 
 export interface VercelProjectConnectionEvent {
@@ -215,6 +231,12 @@ export default class VercelMarketplaceMonitors {
       return;
     }
 
+    /*
+     * Deleted while Monitors is switched off too: a monitor keeps checking,
+     * and is billed as an active monitor, while it is off, and this one
+     * watches a project that is gone. Nothing would delete it later: the
+     * connection that names it is deleted now.
+     */
     if (connection.monitorId) {
       try {
         await MonitorService.deleteOneById({
@@ -321,7 +343,8 @@ export default class VercelMarketplaceMonitors {
 
   /*
    * The connected project's monitor, made unless it is there already, its
-   * domain is not known yet, or the resource's setting is off.
+   * domain is not known yet, the resource's setting is off, or the server
+   * has Monitors switched off.
    */
   private static async ensureMonitor(
     purchase: MarketplaceSubscription,
@@ -343,6 +366,16 @@ export default class VercelMarketplaceMonitors {
 
     const name: string =
       connection.vercelProjectName || connection.productionDomain;
+
+    const monitorsOff: string | null =
+      await VercelMarketplaceMonitors.getOffMessage(ProductKey.Monitors);
+
+    if (monitorsOff) {
+      logger.error(
+        `Could not make a monitor for ${connection.productionDomain} (Vercel project ${connection.vercelProjectId}) in project ${purchase.projectId.toString()}: ${monitorsOff}`,
+      );
+      return;
+    }
 
     let monitorId: ObjectID;
 
@@ -420,6 +453,12 @@ export default class VercelMarketplaceMonitors {
     return created.id!;
   }
 
+  /*
+   * Best effort, like the status page itself. Not while the server has
+   * Status Pages switched off: the monitor is still made and checked, but
+   * it is not put on the page later, once Status Pages is on again - like
+   * one the plan's limit kept off it, the team adds it in OneUptime.
+   */
   private static async addToStatusPage(data: {
     projectId: ObjectID;
     statusPageId: ObjectID;
@@ -427,6 +466,16 @@ export default class VercelMarketplaceMonitors {
     displayName: string;
   }): Promise<void> {
     try {
+      const statusPagesOff: string | null =
+        await VercelMarketplaceMonitors.getOffMessage(ProductKey.StatusPages);
+
+      if (statusPagesOff) {
+        logger.error(
+          `Could not add monitor ${data.monitorId.toString()} to status page ${data.statusPageId.toString()}: ${statusPagesOff}`,
+        );
+        return;
+      }
+
       const resource: StatusPageResource = new StatusPageResource();
       resource.projectId = data.projectId;
       resource.statusPageId = data.statusPageId;
@@ -556,6 +605,16 @@ export default class VercelMarketplaceMonitors {
       );
       return null;
     }
+  }
+
+  // Why the server makes no record of a product now (#10251), or null while it is on.
+  private static async getOffMessage(
+    product: ProductKey,
+  ): Promise<string | null> {
+    const reason: ServerProductOffReason | null =
+      await ServerProducts.getOffReasonOfServerWork(product);
+
+    return reason ? getProductOffMessage({ product: product, reason: reason }) : null;
   }
 
   private static getConnectionSelect(): Record<string, true> {
