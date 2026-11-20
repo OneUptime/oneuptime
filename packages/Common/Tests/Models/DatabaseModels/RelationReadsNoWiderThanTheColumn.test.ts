@@ -1232,7 +1232,7 @@ class PlantedVault extends BaseModel {
   tableName: "PlantedViewerRecord",
   singularName: "Planted Viewer Record",
   pluralName: "Planted Viewer Records",
-  icon: IconProp.Table,
+  icon: IconProp.TableCells,
   tableDescription: "A record every Viewer reads, that names its vault.",
 })
 @TableAccessControl({
@@ -1273,7 +1273,7 @@ class PlantedViewerRecord extends BaseModel {
   tableName: "PlantedMemberRecord",
   singularName: "Planted Member Record",
   pluralName: "Planted Member Records",
-  icon: IconProp.Table,
+  icon: IconProp.TableCells,
   tableDescription: "A record every member reads, that names its vault.",
 })
 @TableAccessControl({
