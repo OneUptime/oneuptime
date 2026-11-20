@@ -1,6 +1,7 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import SamlSingleLogoutEndpoint from "../Utils/SamlSingleLogoutEndpoint";
+import SignInAgain from "../Utils/SignInAgain";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import SamlAssertionOneTimeUse, {
   SamlProviderKind,
@@ -35,7 +36,11 @@ import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
-import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import {
+  SessionSignInAgain,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
+import OneUptimeDate from "Common/Types/Date";
 import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
@@ -153,6 +158,10 @@ router.get(
       });
 
       if (!globalSso) {
+        if (SignInAgain.isRequested(req)) {
+          return await SignInAgain.sendToSignInPage(req, res);
+        }
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -215,10 +224,28 @@ router.get(
       const serviceProvider: SamlServiceProvider =
         SamlServiceProviders.forGlobalSso({ globalSsoId: globalSso.id! });
 
+      /*
+       * Sign In Again (#10217): the identity provider is asked to
+       * authenticate the person again (ForceAuthn), with a request whose ID
+       * keeps when they were sent, for the response to name back
+       * (Utils/SignInAgain). Never for the mobile app, which has no prompt.
+       */
+      const isSignInAgain: boolean =
+        SignInAgain.isRequested(req) && !isMobileRequest;
+
       const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
         acsUrl: URL.fromString(serviceProvider.replyUrl),
         signOnUrl: globalSso.signOnURL!,
         issuerUrl: URL.fromString(serviceProvider.entityId),
+        ...(isSignInAgain
+          ? {
+              forceAuthn: true,
+              requestId: SignInAgain.createSamlRequestId({
+                providerId: globalSso.id!,
+                requestedAt: OneUptimeDate.getCurrentDate(),
+              }),
+            }
+          : {}),
       });
 
       if (isMobileRequest) {
@@ -851,6 +878,28 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       });
     }
 
+    /*
+     * A sign-in Sign In Again started (#10217): it confirms the session only
+     * when the identity provider says it authenticated the person at or
+     * after the moment they were sent there (Utils/SignInAgain).
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const signInAgain: SessionSignInAgain | undefined = SignInAgain.judge({
+      requestedAt: SignInAgain.readSamlRequestId({
+        inResponseTo: verifiedSaml.inResponseTo,
+        providerId: globalSsoId,
+        now: now,
+      }),
+      authenticatedAt: verifiedSaml.authnInstant,
+      now: now,
+    });
+
+    SignInAgain.logOutcome({
+      outcome: signInAgain,
+      providerKind: "Global SSO",
+      providerId: globalSsoId,
+    });
+
     const sessionMetadata: SessionMetadata =
       await UserSessionService.createSession({
         userId: alreadySavedUser.id!,
@@ -866,6 +915,8 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         signIn: {
           method: SignInMethod.Saml,
           ssoProviderName: globalSso.name,
+          ssoProviderId: globalSsoId,
+          signInAgain: signInAgain,
         },
         /*
          * With the provider's "Sign out of the identity provider too" on, a

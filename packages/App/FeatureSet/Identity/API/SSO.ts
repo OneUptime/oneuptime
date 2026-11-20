@@ -1,5 +1,6 @@
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import SamlSingleLogoutEndpoint from "../Utils/SamlSingleLogoutEndpoint";
+import SignInAgain from "../Utils/SignInAgain";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import SamlAssertionOneTimeUse, {
   SamlProviderKind,
@@ -74,7 +75,11 @@ import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import User from "Common/Models/DatabaseModels/User";
 import Name from "Common/Types/Name";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
-import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import {
+  SessionSignInAgain,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
+import OneUptimeDate from "Common/Types/Date";
 import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 
@@ -178,6 +183,10 @@ router.get(
       });
 
       if (!projectSSO) {
+        if (SignInAgain.isRequested(req)) {
+          return await SignInAgain.sendToSignInPage(req, res);
+        }
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -204,6 +213,15 @@ router.get(
       }
 
       const isMobileRequest: boolean = req.query["mobile"] === "true";
+
+      /*
+       * Sign In Again (#10217): the identity provider is asked to
+       * authenticate the person again (ForceAuthn), with a request whose ID
+       * keeps when they were sent, for the response to name back
+       * (Utils/SignInAgain). Never for the mobile app, which has no prompt.
+       */
+      const isSignInAgain: boolean =
+        SignInAgain.isRequested(req) && !isMobileRequest;
 
       /*
        * A sign-in the mobile app started keeps its state and PKCE challenge
@@ -239,6 +257,15 @@ router.get(
         acsUrl: URL.fromString(serviceProvider.replyUrl),
         signOnUrl: projectSSO.signOnURL!,
         issuerUrl: URL.fromString(serviceProvider.entityId),
+        ...(isSignInAgain
+          ? {
+              forceAuthn: true,
+              requestId: SignInAgain.createSamlRequestId({
+                providerId: projectSSO.id!,
+                requestedAt: OneUptimeDate.getCurrentDate(),
+              }),
+            }
+          : {}),
       });
 
       if (isMobileRequest) {
@@ -777,6 +804,28 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     // Refresh Permissions for this user here.
     await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
+    /*
+     * A sign-in Sign In Again started (#10217): it confirms the session only
+     * when the identity provider says it authenticated the person at or
+     * after the moment they were sent there (Utils/SignInAgain).
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const signInAgain: SessionSignInAgain | undefined = SignInAgain.judge({
+      requestedAt: SignInAgain.readSamlRequestId({
+        inResponseTo: verifiedSaml.inResponseTo,
+        providerId: projectSSO.id!,
+        now: now,
+      }),
+      authenticatedAt: verifiedSaml.authnInstant,
+      now: now,
+    });
+
+    SignInAgain.logOutcome({
+      outcome: signInAgain,
+      providerKind: "project SSO",
+      providerId: projectSSO.id!,
+    });
+
     const sessionMetadata: SessionMetadata =
       await UserSessionService.createSession({
         userId: alreadySavedUser.id!,
@@ -792,6 +841,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
           method: SignInMethod.Saml,
           ssoProviderName: projectSSO.name,
           ssoProjectId: projectId,
+          ssoProviderId: projectSSO.id!,
+          signInAgain: signInAgain,
         },
         /*
          * With the provider's "Sign out of the identity provider too" on, a

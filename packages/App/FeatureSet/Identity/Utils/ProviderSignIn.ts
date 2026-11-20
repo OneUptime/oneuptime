@@ -33,9 +33,14 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
-import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import {
+  SessionSignInAgain,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
 import User from "Common/Models/DatabaseModels/User";
 import AuthenticationEmail from "./AuthenticationEmail";
+import SignInAgain, { SIGN_IN_AGAIN_STATE_FIELD } from "./SignInAgain";
+import OneUptimeDate from "Common/Types/Date";
 
 /*
  * Signing in with an account another provider vouches for: Sign in with
@@ -74,6 +79,12 @@ export interface ProviderAccount {
   // An address the provider vouches for: its client refuses any other.
   email: Email;
   name: string | null;
+  /*
+   * When the provider says the person signed in (the ID token's auth_time),
+   * or null when it does not say: what Sign In Again holds to the moment it
+   * sent them there (#10217, ./SignInAgain).
+   */
+  authenticatedAt?: Date | null | undefined;
 }
 
 export interface ProviderSignInRequest {
@@ -84,8 +95,13 @@ export interface ProviderSignInRequest {
 }
 
 export interface ProviderSignInClient {
-  // Where to send the browser, and what its callback has to match.
-  createSignInRequest(): ProviderSignInRequest;
+  /*
+   * Where to send the browser, and what its callback has to match. A Sign
+   * In Again asks the provider for a new sign-in, as far as it can be asked.
+   */
+  createSignInRequest(options?: {
+    isSignInAgain?: boolean | undefined;
+  }): ProviderSignInRequest;
   // The account the authorization code is for; throws when there is none to trust.
   completeSignIn(data: {
     code: string;
@@ -338,7 +354,12 @@ const createProviderSignInRouter: (
         return;
       }
 
-      const request: ProviderSignInRequest = client.createSignInRequest();
+      // Sign In Again (#10217): when it sent the person, kept signed with the state.
+      const isSignInAgain: boolean = SignInAgain.isRequested(req);
+
+      const request: ProviderSignInRequest = client.createSignInRequest({
+        isSignInAgain: isSignInAgain,
+      });
 
       // What the callback must match, signed, in a cookie only the callback path sees.
       CookieUtil.setCookie(
@@ -349,6 +370,12 @@ const createProviderSignInRouter: (
             state: request.state,
             nonce: request.nonce,
             codeVerifier: request.codeVerifier,
+            ...(isSignInAgain
+              ? {
+                  [SIGN_IN_AGAIN_STATE_FIELD]:
+                    OneUptimeDate.getCurrentDate().getTime(),
+                }
+              : {}),
           },
           STATE_TTL_IN_SECONDS,
         ),
@@ -452,6 +479,24 @@ const createProviderSignInRouter: (
 
         const user: User = signIn.user;
 
+        /*
+         * A sign-in Sign In Again started (#10217): it confirms the session
+         * only when the provider says the person signed in at or after the
+         * moment they were sent to it (./SignInAgain).
+         */
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const signInAgain: SessionSignInAgain | undefined = SignInAgain.judge({
+          requestedAt: SignInAgain.readStateRequestedAt(stored, now),
+          authenticatedAt: account.authenticatedAt || null,
+          now: now,
+        });
+
+        SignInAgain.logOutcome({
+          outcome: signInAgain,
+          providerKind: "sign-in provider",
+          providerId: provider.path,
+        });
+
         const sessionMetadata: SessionMetadata =
           await UserSessionService.createSession({
             userId: user.id!,
@@ -460,7 +505,10 @@ const createProviderSignInRouter: (
             userAgent: headerValueToString(req.headers["user-agent"]),
             ...extractDeviceInfo(req),
             requestOrigin: RequestOriginUtil.fromRequest(req),
-            signIn: { method: provider.signInMethod },
+            signIn: {
+              method: provider.signInMethod,
+              signInAgain: signInAgain,
+            },
           });
 
         CookieUtil.setUserCookie({
