@@ -273,6 +273,30 @@ export function readPreparedInvitation(args: JSONObject): PreparedInvitation {
   };
 }
 
+/*
+ * The addresses the call named that its prepare found in the project
+ * already (alreadyInProject), each once, in lower case: no invitation goes
+ * to them.
+ */
+export function readAddressesInProjectAlready(
+  args: JSONObject,
+): Array<string> {
+  return readInviteEmails({
+    emails: ToolArgs.getStringArray(args, "alreadyInProject") || [],
+  }).emails;
+}
+
+/*
+ * Everyone the call named is in the project already (#10041): what a
+ * second identical call is told, so it neither invites anyone again nor
+ * reads as a call that named nobody.
+ */
+const EVERYONE_IN_PROJECT_ALREADY: (emails: ReadonlyArray<string>) => string = (
+  emails: ReadonlyArray<string>,
+): string => {
+  return `Nothing proposed: ${emails.join(", ")} ${emails.length === 1 ? "is" : "are"} in this project already, invited or a member, so nobody is invited again and no invitation email is sent. Say so in one sentence.`;
+};
+
 export const InvitePeopleTool: ObservabilityTool = {
   name: "invite_people",
   description:
@@ -315,7 +339,12 @@ export const InvitePeopleTool: ObservabilityTool = {
   ): Promise<PreparedMutation> => {
     const asked: InviteEmails = readInviteEmails(args);
 
-    if (asked.emails.length === 0) {
+    /*
+     * Nothing to invite, or something named that is no address: left as it
+     * was handed, so the check before the card says what is missing - never
+     * a card that leaves "Ana Lopez" out unsaid.
+     */
+    if (asked.emails.length === 0 || asked.notEmails.length > 0) {
       return { arguments: args };
     }
 
@@ -366,6 +395,7 @@ export const InvitePeopleTool: ObservabilityTool = {
           ...args,
           emails: toInvite,
           ...(team ? { teamId: team.id, teamName: team.name } : {}),
+          alreadyInProject: inProject,
         },
         title: aiActionSentence(AI_ACTION_TITLES.invitePeople, {
           people: aiActionList(
@@ -374,7 +404,7 @@ export const InvitePeopleTool: ObservabilityTool = {
         }),
         namedArguments: ["emails"],
         description: description,
-        describedArguments: ["teamId", "teamName"],
+        describedArguments: ["teamId", "teamName", "alreadyInProject"],
       };
     } catch (error) {
       logger.debug(
@@ -390,6 +420,15 @@ export const InvitePeopleTool: ObservabilityTool = {
     ctx: ToolContext,
   ): Promise<SetupActionRefusal | null> => {
     const asked: InviteEmails = readInviteEmails(args);
+    const inProjectAlready: Array<string> = readAddressesInProjectAlready(args);
+
+    if (
+      asked.notEmails.length === 0 &&
+      asked.emails.length === 0 &&
+      inProjectAlready.length > 0
+    ) {
+      return { toldModel: EVERYONE_IN_PROJECT_ALREADY(inProjectAlready) };
+    }
 
     if (asked.notEmails.length > 0 || asked.emails.length === 0) {
       return {

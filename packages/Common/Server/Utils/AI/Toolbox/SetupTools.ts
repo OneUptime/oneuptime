@@ -57,6 +57,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import Email from "../../../../Types/Email";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import ConflictException from "../../../../Types/Exception/ConflictException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -2818,6 +2819,45 @@ function listPolicyNames(policies: ReadonlyArray<OnCallDutyPolicy>): string {
 
 const NO_POLICY_TO_ADD_TO: string = `Nothing proposed: this project has no on-call policy in service to add people to. Propose ${SET_UP_PAGING_TOOL_NAME} to make its first, instead.`;
 
+// A list of names, each in quotes, as a refusal says them.
+function quotedNames(names: ReadonlyArray<string>): string {
+  return names
+    .map((name: string): string => {
+      return `"${name}"`;
+    })
+    .join(", ");
+}
+
+/*
+ * Nobody named is new at the level (#10041): who it pages there already -
+ * what a second identical call finds, so it adds nobody again and makes
+ * no second level - and who is no member or team of the project.
+ */
+const NOBODY_NEW_AT_LEVEL: (data: {
+  args: JSONObject;
+  policy: OnCallDutyPolicy;
+  level: number;
+}) => string = (data: {
+  args: JSONObject;
+  policy: OnCallDutyPolicy;
+  level: number;
+}): string => {
+  const alreadyPaged: Array<string> =
+    ToolArgs.getStringArray(data.args, "alreadyPaged") || [];
+  const notFound: Array<string> =
+    ToolArgs.getStringArray(data.args, "notFound") || [];
+  const notFoundSentence: string =
+    notFound.length > 0
+      ? ` ${quotedNames(notFound)} ${notFound.length === 1 ? "is" : "are"} no member or team of this project: ask the person who they meant, by the name the project knows them by (query_teams lists members).`
+      : "";
+
+  if (alreadyPaged.length > 0) {
+    return `Nothing proposed: level ${data.level} of the on-call policy "${data.policy.name}" pages ${quotedNames(alreadyPaged)} already, so nobody is added again and no level is made.${notFoundSentence} Say so in one sentence.`;
+  }
+
+  return `Nothing proposed: nobody named is a member or a team of this project who is not paged at that level of "${data.policy.name}" already.${notFoundSentence || " Ask the person who to add, by the name the project knows them by (query_teams lists members), and propose it again."}`;
+};
+
 // What a prepared add_to_on_call_policy call runs with.
 export interface PreparedPolicyAddition {
   policyId: string;
@@ -2912,9 +2952,7 @@ async function checkPolicyAddition(
       addition.invitedEmails.length ===
     0
   ) {
-    return {
-      toldModel: `Nothing proposed: nobody named is a member or a team of this project who is not paged at that level of "${policy.name}" already. Ask the person who to add, by the name the project knows them by (query_teams lists members), and propose it again.`,
-    };
+    return { toldModel: NOBODY_NEW_AT_LEVEL({ args, policy, level }) };
   }
 
   // A second level on OneUptime Cloud's Free plan: said before the card.
@@ -3205,6 +3243,9 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
           people: addition.people,
           teamNames: addition.teams,
           invitedEmails: addition.invitedEmails,
+          // What the check says when nobody is new there (#10041).
+          alreadyPaged: alreadyThere,
+          notFound: responders.notFound,
         },
         title: aiActionSentence(AI_ACTION_TITLES.addToOnCallPolicy, {
           policy: JSON.stringify(addition.policyName),
@@ -3225,6 +3266,8 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
           "people",
           "teamNames",
           "invitedEmails",
+          "alreadyPaged",
+          "notFound",
         ],
       };
     } catch (error) {
@@ -3280,8 +3323,52 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
 
     const failures: Array<string> = [];
     let added: boolean = false;
+    // Who is added, by name: those the level pages already by now left out.
+    let people: Array<string> = addition.people;
+    let teams: Array<string> = addition.teams;
 
     if (addition.ruleId) {
+      /*
+       * Who the level pages now (#10041): someone added there since the
+       * card was shown - by a teammate, or by the same call made twice -
+       * gets no second row, which would page them twice. A read that
+       * fails adds the rows the card promised.
+       */
+      let pagedNow: { userIds: Array<string>; teamIds: Array<string> } = {
+        userIds: [],
+        teamIds: [],
+      };
+
+      try {
+        pagedNow = await readLevelMembers(ctx, new ObjectID(addition.ruleId));
+      } catch {
+        pagedNow = { userIds: [], teamIds: [] };
+      }
+
+      const newUserIds: Array<string> = userIds.filter(
+        (userId: string): boolean => {
+          return !pagedNow.userIds.includes(userId);
+        },
+      );
+      const newTeamIds: Array<string> = addition.teamIds.filter(
+        (teamId: string): boolean => {
+          return !pagedNow.teamIds.includes(teamId);
+        },
+      );
+
+      if (newUserIds.length + newTeamIds.length === 0) {
+        throw new ConflictException(
+          `Level ${addition.level} of the on-call policy "${addition.policyName}" pages everyone named already, so nobody was added again.`,
+        );
+      }
+
+      people = addition.people.filter((_name: string, index: number) => {
+        return newUserIds.includes(addition.userIds[index] || "");
+      });
+      teams = addition.teams.filter((_name: string, index: number) => {
+        return newTeamIds.includes(addition.teamIds[index] || "");
+      });
+
       /*
        * A level the policy has: the guided setup's rows, one per person and
        * team (buildLevelMembers), each as the person.
@@ -3290,8 +3377,8 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         projectId: ctx.projectId,
         policyId: policyId,
         ruleId: new ObjectID(addition.ruleId),
-        userIds: userIds,
-        teamIds: addition.teamIds,
+        userIds: newUserIds,
+        teamIds: newTeamIds,
       });
 
       for (const row of members.users) {
@@ -3318,6 +3405,27 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
         }
       }
     } else {
+      /*
+       * A level at this place made since the card was shown (#10041) - by
+       * a teammate, or by the same call made twice - would be a second
+       * escalation rule, paging them after a level the card never named:
+       * nothing is added, and the words say what to do instead. A read
+       * that fails makes the level the card promised.
+       */
+      let levelsNow: number | null = null;
+
+      try {
+        levelsNow = (await readPolicyLevels(ctx, policyId)).length;
+      } catch {
+        levelsNow = null;
+      }
+
+      if (levelsNow !== null && levelsNow >= addition.level) {
+        throw new ConflictException(
+          `The on-call policy "${addition.policyName}" has a level ${addition.level} already, made since this was asked for, so no second one was made and nobody was added. Add them to that level instead, if they belong there.`,
+        );
+      }
+
       /*
        * A new level after the last: the level before waits afterMinutes
        * (buildLevelWait), and a new escalation rule pages them
@@ -3369,14 +3477,14 @@ export const AddToOnCallPolicyTool: ObservabilityTool = {
     }
 
     const who: string = describeLevelInEnglish({
-      people: addition.people,
-      teams: addition.teams,
+      people: people,
+      teams: teams,
       invitedEmails: addition.invitedEmails,
     });
     const responders: ReturnType<typeof aiActionList> = describeLevelResponders(
       {
-        people: addition.people,
-        teams: addition.teams,
+        people: people,
+        teams: teams,
         invitedEmails: addition.invitedEmails,
       },
     );
