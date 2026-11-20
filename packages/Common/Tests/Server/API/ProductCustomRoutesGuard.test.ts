@@ -183,7 +183,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
     },
   },
-  // Its own routes only read today: a write added here names Monitors.
+  /*
+   * Its own routes read, but for Import Alerts' Convert with OneUptime AI
+   * (#7697), which writes nothing and is refused while Monitors is off: an
+   * import's monitors are created through the CRUD API, refused with it.
+   */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
     leftAlone: {},

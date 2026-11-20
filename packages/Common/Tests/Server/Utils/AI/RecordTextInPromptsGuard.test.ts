@@ -197,6 +197,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "A data check from a person's rule: the sentence held to MAX_SENTENCE_LENGTH, the table's name and its columns' names and types from the catalog (never a row), as the user message under a system message that holds every instruction; the model's answer is checked as Custom SQL before anyone sees it.",
   "packages/Common/Server/Utils/AI/Security/DetectionRuleDraft.ts":
     "A detection rule from a person's description: the description as a field of DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH, the Rule Library's own examples, and the model's own YAML back with the parser's error.",
+  "packages/Common/Server/Utils/AI/ObservabilityImport/ImportQueryConversion.ts":
+    "One query of a file a person imports (Grafana, Prometheus, Datadog): the query as a field of IMPORT_QUERY_MAX_LENGTH and the dashboard's variable names, each a field of a name's length, as one JSON value under a system message that holds every instruction; no record of the project is read, and the model's answer is parsed as PromQL before anyone sees it.",
 };
 
 // The one caller that may keep embedded data (rule C).
