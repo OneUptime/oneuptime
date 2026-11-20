@@ -35,44 +35,20 @@ import {
 import PermissionGate, {
   ModelAction,
   PermissionGateOptions,
-  PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import {
   usePrivateRecordGate,
   withPrivateRecordGateOptions,
 } from "Common/UI/Utils/PrivateRecordScope";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-
 /*
- * Why a reader who may not give or take off the episode's roles finds
- * Assign, Add More, Reassign and Remove locked: in the words of what they
- * pressed, not the member table's. The permissions that would allow it
- * follow.
+ * Why a reader who may not change the episode's roles finds Assign, Add
+ * More, Reassign and Remove locked, in the words of what they pressed, and
+ * the gate Reassign asks: the header asks the same (EventRoleGates).
  */
-export const EPISODE_ROLES_LOCKED_SENTENCE: string = translationKey(
-  "You do not have permission to change this episode's roles.",
-);
-
-/*
- * Whether the reader may hand one of the episode's roles on (Reassign):
- * the update of the role row's person, with what the reader holds on a
- * private episode - the gate the roles card's Reassign and the header's
- * commander both ask (#10191, #10195).
- */
-export const getEpisodeRoleReassignGate: (
-  privateRecordOptions: PermissionGateOptions | undefined,
-) => PermissionGateResult = (
-  privateRecordOptions: PermissionGateOptions | undefined,
-): PermissionGateResult => {
-  return PermissionGate.checkColumnUpdate(
-    new IncidentEpisodeRoleMember(),
-    "userId",
-    withPrivateRecordGateOptions(
-      { sentence: EPISODE_ROLES_LOCKED_SENTENCE },
-      privateRecordOptions,
-    ),
-  );
-};
+import {
+  EPISODE_ROLES_LOCKED_SENTENCE,
+  getEpisodeRoleReassignGate,
+} from "../../Utils/EventRoleGates";
 
 export interface ComponentProps {
   incidentEpisodeId: ObjectID;

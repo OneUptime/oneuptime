@@ -5,9 +5,8 @@ import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolic
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
-import IncidentEpisodeMemberRoleAssignment, {
-  getEpisodeRoleReassignGate,
-} from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
+import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
+import { getEpisodeRoleReassignGate } from "../../../Utils/EventRoleGates";
 import {
   assignIncidentEpisodeRole,
   reassignIncidentEpisodeRole,
@@ -504,17 +503,63 @@ const IncidentEpisodeView: FunctionComponent<
       ? rolesSnapshot.value
       : undefined,
   );
+  // Handing it on is the role row's update, as the roles card's Reassign is.
+  const mayReassignRoles: boolean = getEpisodeRoleReassignGate(
+    privateRecordGate(new IncidentEpisodeRoleMember()),
+  ).isAllowed;
   const mayAssignRoles: boolean = PermissionGate.check(
     new IncidentEpisodeRoleMember(),
     ModelAction.Create,
     privateRecordGate(new IncidentEpisodeRoleMember()),
   ).isAllowed;
-  // Handing it on is the role row's update, as the roles card's Reassign is.
-  const mayReassignRoles: boolean = getEpisodeRoleReassignGate(
-    privateRecordGate(new IncidentEpisodeRoleMember()),
-  ).isAllowed;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
+    onAssign:
+      timing.isResolved || !primaryRole || !mayAssignRoles
+        ? undefined
+        : async (person: PeoplePickerOption): Promise<void> => {
+            const episodeId: string = modelIdString;
+
+            await assignIncidentEpisodeRole({
+              incidentEpisodeId: new ObjectID(episodeId),
+              userId: new ObjectID(person.id),
+              roleId: new ObjectID(primaryRole.role.id),
+            });
+
+            // Named at once; the roles card's read says the same a moment later.
+            setRolesSnapshot(
+              (
+                current: {
+                  subjectId: string;
+                  value: EventRolesSnapshot;
+                } | null,
+              ): {
+                subjectId: string;
+                value: EventRolesSnapshot;
+              } | null => {
+                if (!current || current.subjectId !== episodeId) {
+                  return current;
+                }
+
+                return {
+                  subjectId: episodeId,
+                  value:
+                    withRoleGiven({
+                      snapshot: current.value,
+                      roleId: primaryRole.role.id,
+                      person: person,
+                    }) || current.value,
+                };
+              },
+            );
+            setRolesRefreshToken((token: number): number => {
+              return token + 1;
+            });
+            // Role changes are recorded on the episode feed.
+            setContentRefreshToken((token: number): number => {
+              return token + 1;
+            });
+          },
     onReassign:
       timing.isResolved || !primaryRole || !mayReassignRoles
         ? undefined
@@ -550,52 +595,6 @@ const IncidentEpisodeView: FunctionComponent<
                     withRoleReassigned({
                       snapshot: current.value,
                       member: member,
-                      person: person,
-                    }) || current.value,
-                };
-              },
-            );
-            setRolesRefreshToken((token: number): number => {
-              return token + 1;
-            });
-            // Role changes are recorded on the episode feed.
-            setContentRefreshToken((token: number): number => {
-              return token + 1;
-            });
-          },
-    onAssign:
-      timing.isResolved || !primaryRole || !mayAssignRoles
-        ? undefined
-        : async (person: PeoplePickerOption): Promise<void> => {
-            const episodeId: string = modelIdString;
-
-            await assignIncidentEpisodeRole({
-              incidentEpisodeId: new ObjectID(episodeId),
-              userId: new ObjectID(person.id),
-              roleId: new ObjectID(primaryRole.role.id),
-            });
-
-            // Named at once; the roles card's read says the same a moment later.
-            setRolesSnapshot(
-              (
-                current: {
-                  subjectId: string;
-                  value: EventRolesSnapshot;
-                } | null,
-              ): {
-                subjectId: string;
-                value: EventRolesSnapshot;
-              } | null => {
-                if (!current || current.subjectId !== episodeId) {
-                  return current;
-                }
-
-                return {
-                  subjectId: episodeId,
-                  value:
-                    withRoleGiven({
-                      snapshot: current.value,
-                      roleId: primaryRole.role.id,
                       person: person,
                     }) || current.value,
                 };

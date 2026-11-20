@@ -70,9 +70,8 @@ import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation/RemediationDecisionLines";
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
-import IncidentMemberRoleAssignment, {
-  getIncidentRoleReassignGate,
-} from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import { getIncidentRoleReassignGate } from "../../../Utils/EventRoleGates";
 import {
   assignIncidentRole,
   reassignIncidentRole,
@@ -1061,13 +1060,6 @@ const IncidentView: FunctionComponent<
   const isResolved: boolean = Boolean(durationEndDate);
   const headerFacts: Array<EventStatusFact> = [];
 
-  const primaryRole: PrimaryRoleHolding | null =
-    getPrimaryRoleHolding(currentRolesSnapshot);
-  const mayAssignRoles: boolean = PermissionGate.check(
-    new IncidentMember(),
-    ModelAction.Create,
-    privateRecordOptions,
-  ).isAllowed;
   /*
    * Handing the commander's role on from their name (#10195) is the role
    * row's update, as the roles card's Reassign is (#10191): to a reader who
@@ -1075,8 +1067,53 @@ const IncidentView: FunctionComponent<
    */
   const mayReassignRoles: boolean =
     getIncidentRoleReassignGate(privateRecordOptions).isAllowed;
+  const primaryRole: PrimaryRoleHolding | null =
+    getPrimaryRoleHolding(currentRolesSnapshot);
+  const mayAssignRoles: boolean = PermissionGate.check(
+    new IncidentMember(),
+    ModelAction.Create,
+    privateRecordOptions,
+  ).isAllowed;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
+    onAssign:
+      isResolved || !primaryRole || !mayAssignRoles
+        ? undefined
+        : async (person: PeoplePickerOption): Promise<void> => {
+            const incidentId: string = modelIdString;
+
+            await assignIncidentRole({
+              incidentId: new ObjectID(incidentId),
+              userId: new ObjectID(person.id),
+              roleId: new ObjectID(primaryRole.role.id),
+            });
+
+            // Named at once; the roles card's read says the same a moment later.
+            setRolesSnapshot(
+              (
+                current: SubjectValue<EventRolesSnapshot> | null,
+              ): SubjectValue<EventRolesSnapshot> | null => {
+                if (!current || current.subjectId !== incidentId) {
+                  return current;
+                }
+
+                return {
+                  subjectId: incidentId,
+                  value:
+                    withRoleGiven({
+                      snapshot: current.value,
+                      roleId: primaryRole.role.id,
+                      person: person,
+                    }) || current.value,
+                };
+              },
+            );
+            setRolesRefreshToken((token: number): number => {
+              return token + 1;
+            });
+            // A role given is a new feed entry.
+            refreshFeed();
+          },
     onReassign:
       isResolved || !primaryRole || !mayReassignRoles
         ? undefined
@@ -1115,44 +1152,6 @@ const IncidentView: FunctionComponent<
               return token + 1;
             });
             // A role handed on is a new feed entry.
-            refreshFeed();
-          },
-    onAssign:
-      isResolved || !primaryRole || !mayAssignRoles
-        ? undefined
-        : async (person: PeoplePickerOption): Promise<void> => {
-            const incidentId: string = modelIdString;
-
-            await assignIncidentRole({
-              incidentId: new ObjectID(incidentId),
-              userId: new ObjectID(person.id),
-              roleId: new ObjectID(primaryRole.role.id),
-            });
-
-            // Named at once; the roles card's read says the same a moment later.
-            setRolesSnapshot(
-              (
-                current: SubjectValue<EventRolesSnapshot> | null,
-              ): SubjectValue<EventRolesSnapshot> | null => {
-                if (!current || current.subjectId !== incidentId) {
-                  return current;
-                }
-
-                return {
-                  subjectId: incidentId,
-                  value:
-                    withRoleGiven({
-                      snapshot: current.value,
-                      roleId: primaryRole.role.id,
-                      person: person,
-                    }) || current.value,
-                };
-              },
-            );
-            setRolesRefreshToken((token: number): number => {
-              return token + 1;
-            });
-            // A role given is a new feed entry.
             refreshFeed();
           },
   });

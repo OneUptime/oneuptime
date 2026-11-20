@@ -1204,6 +1204,15 @@ html.dark [class*="focus-visible:ring-indigo-"]:focus-visible {
   --tw-ring-color: rgb(129 140 248 / 55%) !important;
 }
 
+/*
+ * A thin ring a control shows under the pointer - the incident header's
+ * commander, whose name hands the role on (#10195) - as ring-indigo-300
+ * is drawn on a dark card.
+ */
+html.dark [class~="hover:ring-indigo-300"]:hover {
+  --tw-ring-color: rgb(129 140 248 / 35%) !important;
+}
+
 html.dark [class*="focus:ring-red-"]:focus,
 html.dark [class*="focus-visible:ring-red-"]:focus-visible {
   --tw-ring-color: rgb(248 113 113 / 50%) !important;

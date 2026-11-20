@@ -154,17 +154,17 @@ export const CLICK_TO_REASSIGN_TEXT: string =
  * the pencil after the label (EventStatusFact.isEditableInPlace) and
  * "Click to reassign" - and it stays lit while its list is open. Its
  * colours are one set or the other, never both: the Dashboard's Tailwind
- * would let whichever rule it wrote last win. The ring is indigo at an
- * opacity, so it reads on the dark theme too.
+ * would let whichever rule it wrote last win. The dark theme draws the
+ * ground and the ring as it draws Assign's (Theme.css).
  */
 export const EVENT_COMMANDER_REASSIGN_CLASS_NAME: string =
   "-my-0.5 -ms-1 inline-flex min-w-0 max-w-full items-center rounded-full py-0.5 pe-2 ps-1 text-start transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export const EVENT_COMMANDER_REASSIGN_IDLE_CLASS_NAME: string =
-  "hover:bg-indigo-50 hover:ring-1 hover:ring-indigo-500/40";
+  "hover:bg-indigo-50 hover:ring-1 hover:ring-indigo-300";
 
 export const EVENT_COMMANDER_REASSIGN_OPEN_CLASS_NAME: string =
-  "bg-indigo-50 ring-1 ring-indigo-500/60";
+  "bg-indigo-50 ring-1 ring-indigo-300";
 
 export const getCommanderReassignClassName: (isOpen: boolean) => string = (
   isOpen: boolean,

@@ -35,45 +35,20 @@ import {
 import PermissionGate, {
   ModelAction,
   PermissionGateOptions,
-  PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import {
   usePrivateRecordGate,
   withPrivateRecordGateOptions,
 } from "Common/UI/Utils/PrivateRecordScope";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-
 /*
- * Why a reader who may not give or take off the incident's roles finds
- * Assign, Add More, Reassign and Remove locked: in the words of what they
- * pressed, not the member table's ("create this Incident Member"). The
- * permissions that would allow it follow.
+ * Why a reader who may not change the incident's roles finds Assign, Add
+ * More, Reassign and Remove locked, in the words of what they pressed, and
+ * the gate Reassign asks: the header asks the same (EventRoleGates).
  */
-export const INCIDENT_ROLES_LOCKED_SENTENCE: string = translationKey(
-  "You do not have permission to change this incident's roles.",
-);
-
-/*
- * Whether the reader may hand one of the incident's roles on (Reassign):
- * the update of the role row's person, with what the reader holds on a
- * private incident. The one gate the roles card's Reassign and the
- * header's commander both ask (#10191, #10195) - never the create and the
- * delete that Reassign used to be.
- */
-export const getIncidentRoleReassignGate: (
-  privateRecordOptions: PermissionGateOptions | undefined,
-) => PermissionGateResult = (
-  privateRecordOptions: PermissionGateOptions | undefined,
-): PermissionGateResult => {
-  return PermissionGate.checkColumnUpdate(
-    new IncidentMember(),
-    "userId",
-    withPrivateRecordGateOptions(
-      { sentence: INCIDENT_ROLES_LOCKED_SENTENCE },
-      privateRecordOptions,
-    ),
-  );
-};
+import {
+  getIncidentRoleReassignGate,
+  INCIDENT_ROLES_LOCKED_SENTENCE,
+} from "../../Utils/EventRoleGates";
 
 export interface ComponentProps {
   incidentId: ObjectID;
