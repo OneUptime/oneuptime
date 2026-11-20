@@ -26,13 +26,16 @@ import {
   TwilioMessageKind,
   getNoTwilioAccountMessage,
 } from "Common/Utils/Project/TwilioAccount";
+import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import ResponseUtil from "Common/Server/Utils/Response";
 import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
 import WorkspaceCommands from "Common/Server/Utils/Workspace/WorkspaceCommands";
 import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDatabase/RetentionTtl";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getTableColumns } from "Common/Types/Database/TableColumn";
 import Domain from "Common/Types/Domain";
-import { isEmptyErrorPhrase } from "Common/Types/Exception/ErrorMessageRule";
+import NotFoundException from "Common/Types/Exception/NotFoundException";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -44,7 +47,7 @@ import MicrosoftTeamsCloudUtil, {
   MicrosoftTeamsCloud,
   MicrosoftTeamsCloudHosts,
 } from "Common/Types/Workspace/MicrosoftTeamsCloud";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
@@ -136,7 +139,6 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Workers/Jobs/CoreSsl/ProvisionPrimaryDomain.ts",
   environmentConfig: `${COMMON_SERVER}/EnvironmentConfig.ts`,
   userService: `${COMMON_SERVER}/Services/UserService.ts`,
-  response: `${COMMON_SERVER}/Utils/Response.ts`,
   startServer: `${COMMON_SERVER}/Utils/StartServer.ts`,
   serviceRoute: "packages/Common/ServiceRoute.ts",
   accountsApiPaths: "packages/App/FeatureSet/Accounts/src/Utils/ApiPaths.ts",
@@ -363,6 +365,47 @@ function readSource(key: string): string {
   expect({ key, known: Boolean(relativePath) }).toEqual({ key, known: true });
 
   return fs.readFileSync(path.join(REPO_DIR, relativePath as string), "utf8");
+}
+
+// What an error answer sent: its status and its body, as the route handed them over.
+interface SentAnswer {
+  status: number | null;
+  body: unknown;
+}
+
+/*
+ * An error answered as the server's catch-all answers it
+ * (Response.sendErrorResponse), drawn into a response that keeps what it
+ * was sent. The log line it writes is left out of the test's output.
+ */
+function sendErrorAnswer(error: NotFoundException): SentAnswer {
+  const answer: SentAnswer = { status: null, body: undefined };
+  const response: ExpressResponse = {
+    status: (code: number): ExpressResponse => {
+      answer.status = code;
+      return response;
+    },
+    send: (body: unknown): ExpressResponse => {
+      answer.body = body;
+      return response;
+    },
+  } as unknown as ExpressResponse;
+
+  const logged: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(logger, "error")
+    .mockImplementation((): void => {});
+
+  try {
+    ResponseUtil.sendErrorResponse(
+      { headers: {}, socket: {} } as unknown as ExpressRequest,
+      response,
+      error,
+    );
+  } finally {
+    logged.mockRestore();
+  }
+
+  return answer;
 }
 
 function sourceExists(relativePath: string): boolean {
@@ -2949,29 +2992,30 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
     );
   });
 
+  /*
+   * The bytes are the answer's, so the answer is drawn here, by the
+   * function the catch-all answers with, rather than read off its source:
+   * the lines this case quoted moved into getErrorDetails (#10049) while
+   * the body stayed byte for byte what it was, and a refactor that changed
+   * the body (a field beside the message, the unexplained-error body) is
+   * what this case must catch.
+   */
   it("OneUptime's own 404 for that path is the 58-byte body the page quotes", () => {
-    const body: string = JSON.stringify({
-      message: "Page not found - /api/microsoft-bot/messages",
-    });
+    // An unmatched GET is answered through Response.sendErrorResponse.
+    expect(readSource("startServer")).toMatch(
+      /app\.get\("\*", \(req: ExpressRequest, res: ExpressResponse\) => \{\s*return Response\.sendErrorResponse\(\s*req,\s*res,\s*new NotFoundException\(`Page not found - \$\{req\.url\}`\),\s*\);/,
+    );
 
-    expect(readSource("startServer")).toContain(
-      "new NotFoundException(`Page not found - ${req.url}`)",
+    const answer: SentAnswer = sendErrorAnswer(
+      new NotFoundException("Page not found - /api/microsoft-bot/messages"),
     );
-    /*
-     * The answer is the message alone: only a BadDataExceptionWithDetails
-     * adds fields beside it, and only an empty message is answered with the
-     * unexplained-error body instead.
-     */
-    const response: string = readSource("response");
-    expect(response).toContain(
-      "error instanceof BadDataExceptionWithDetails ? error.details : {};",
+    // Express sends an object as JSON.stringify writes it.
+    const body: string = JSON.stringify(answer.body);
+
+    expect(answer.status).toBe(404);
+    expect(body).toBe(
+      '{"message":"Page not found - /api/microsoft-bot/messages"}',
     );
-    expect(response).toContain(
-      ".send({ ...details, message: error.message });",
-    );
-    expect(
-      isEmptyErrorPhrase("Page not found - /api/microsoft-bot/messages"),
-    ).toBe(false);
     expect(Buffer.byteLength(body)).toBe(58);
     expect(page).toContain(`\`${body}\``);
     expect(page).toContain(

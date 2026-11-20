@@ -2130,6 +2130,7 @@ import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
+import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
@@ -2280,6 +2281,16 @@ import NetworkDeviceOwnerTeam from "Common/Models/DatabaseModels/NetworkDeviceOw
 import NetworkDeviceOwnerTeamService, {
   Service as NetworkDeviceOwnerTeamServiceType,
 } from "Common/Server/Services/NetworkDeviceOwnerTeamService";
+
+// NetworkSiteOwnerUser and NetworkSiteOwnerTeam (#10188)
+import NetworkSiteOwnerUser from "Common/Models/DatabaseModels/NetworkSiteOwnerUser";
+import NetworkSiteOwnerUserService, {
+  Service as NetworkSiteOwnerUserServiceType,
+} from "Common/Server/Services/NetworkSiteOwnerUserService";
+import NetworkSiteOwnerTeam from "Common/Models/DatabaseModels/NetworkSiteOwnerTeam";
+import NetworkSiteOwnerTeamService, {
+  Service as NetworkSiteOwnerTeamServiceType,
+} from "Common/Server/Services/NetworkSiteOwnerTeamService";
 
 // NetworkDeviceOwnerRule
 import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
@@ -6796,6 +6807,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
 
     /*
+     * A guided setup's run, kept on the server (#7253): one per project,
+     * person and setup, so another device opens the setup where the person
+     * left it. A bare router as WelcomeChecklistAPI is: each route serves
+     * the caller's own run, and the service reads and writes as root.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, GuidedSetupRunAPI);
+
+    /*
      * Asking people how things went (issue #6832): the question at the end
      * of a guided setup, Give feedback, Was this clear? and the first-week
      * check-in, kept on this server for its master admins (Admin Dashboard
@@ -7751,6 +7770,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkDeviceOwnerTeam, NetworkDeviceOwnerTeamServiceType>(
         NetworkDeviceOwnerTeam,
         NetworkDeviceOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // network site owner user
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteOwnerUser, NetworkSiteOwnerUserServiceType>(
+        NetworkSiteOwnerUser,
+        NetworkSiteOwnerUserService,
+      ).getRouter(),
+    );
+
+    // network site owner team
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteOwnerTeam, NetworkSiteOwnerTeamServiceType>(
+        NetworkSiteOwnerTeam,
+        NetworkSiteOwnerTeamService,
       ).getRouter(),
     );
 

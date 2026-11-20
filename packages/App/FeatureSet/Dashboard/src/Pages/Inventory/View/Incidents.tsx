@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import IncidentsTable from "../../../Components/Incident/IncidentsTable";
+import ManagedDeviceRecordsTable from "../../../Components/DeviceManagement/ManagedDeviceRecordsTable";
 import InventoryLinkedResource from "../../../Components/Inventory/InventoryLinkedResource";
 import {
   LinkedResource,
@@ -20,7 +21,23 @@ const InventoryItemIncidents: FunctionComponent<
 
   return (
     <Fragment>
-      <InventoryLinkedResource modelId={modelId} signal="incidents">
+      <InventoryLinkedResource
+        modelId={modelId}
+        signal="incidents"
+        /*
+         * A device a device manager imports, which no Host stands for: the
+         * incidents its device manager's monitors raised about it, for a
+         * monitor made to raise incidents (#10007).
+         */
+        renderManagedDevice={(managedDeviceId: ObjectID): ReactElement => {
+          return (
+            <ManagedDeviceRecordsTable
+              managedDeviceId={managedDeviceId}
+              kind="incident"
+            />
+          );
+        }}
+      >
         {(resource: LinkedResource): ReactElement => {
           return (
             <IncidentsTable

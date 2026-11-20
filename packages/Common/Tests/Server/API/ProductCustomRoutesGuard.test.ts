@@ -1120,6 +1120,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
+      "A person's own progress through a guided setup (#7253), which spans products: it keeps only where they are, and every record a step makes goes through its own product's routes.",
+      {
+        "packages/Common/Server/API/GuidedSetupRunAPI.ts": 2,
+      },
+    ),
+    ...decided(
       "Asking people how OneUptime went - an answer, the words after it, may OneUptime ask - and a master admin deleting an answer (#7366): of no one product. Feedback has its own switch on the server (Admin Dashboard > Feedback), and its routes refuse an answer while it is off.",
       {
         "packages/Common/Server/API/ProductFeedbackAPI.ts": 4,

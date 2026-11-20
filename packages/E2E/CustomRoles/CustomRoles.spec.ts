@@ -176,7 +176,7 @@ function dialog(page: Page): Locator {
 
 // The Teams side menu: "Roles" is also a link in the breadcrumb trail.
 function sideMenu(page: Page): Locator {
-  return page.getByRole("navigation", { name: "Main navigation" });
+  return page.getByRole("navigation", { name: "Pages in this section" });
 }
 
 /*
@@ -721,7 +721,8 @@ test.describe("Teams > Settings > Roles", () => {
  * Roles moved from beside All Teams into the Teams menu's Settings section
  * (the maintainer: "Move the roles page to the settings side menu"), first,
  * above Custom Fields. Settings starts folded on All Teams and opens by
- * itself on the pages inside it.
+ * itself on the pages inside it. A role's own page has its own menu, as a
+ * team's has (#10139): Custom Role > Overview, and its Developer pages.
  */
 test.describe("the Teams menu", () => {
   test("on All Teams, Roles waits in the folded Settings section, and opens from there", async ({
@@ -779,7 +780,7 @@ test.describe("the Teams menu", () => {
     );
   });
 
-  test("Settings opens by itself on Roles, on a role's page and on Custom Fields, each marked", async ({
+  test("Settings opens by itself on Roles and on Custom Fields, each marked; a role's page has its own menu", async ({
     page,
   }: {
     page: Page;
@@ -796,14 +797,24 @@ test.describe("the Teams menu", () => {
     ]);
     await screenshot(page, "teams-menu-on-roles");
 
+    /*
+     * The role's own menu: its page, marked, and its Developer pages,
+     * folded. The trail leads back to Roles.
+     */
     await openRole(page, ROLE_IDS["lead"]!);
-    await expect(menuSection(page, "Settings")).toHaveAttribute(
+    await expect(shownMenuLinks(page)).toHaveText(["Overview"]);
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Overview", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+    await expect(menuSection(page, "Developer")).toHaveAttribute(
       "aria-expanded",
-      "true",
+      "false",
     );
     await expect(
-      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
-    ).toHaveClass(/bg-indigo-50/);
+      page
+        .getByRole("navigation", { name: "Breadcrumb" })
+        .getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveAttribute("href", ROLES_ROUTE);
 
     await page.goto(`${TEAMS_ROUTE}/custom-fields`);
     await expect(menuSection(page, "Settings")).toHaveAttribute(
@@ -841,8 +852,9 @@ test.describe("the Teams menu", () => {
     );
     expect(Math.abs(labelLeft - whereLeft)).toBeLessThanOrEqual(1);
 
+    // A role's own page names its own menu's entry.
     await openRole(page, ROLE_IDS["responder"]!);
-    await expect(menuButton).toContainText("Settings / Roles");
+    await expect(menuButton).toContainText("Custom Role / Overview");
 
     // From All Teams: open the menu, open Settings, tap Roles.
     await page.goto(TEAMS_ROUTE);
@@ -873,18 +885,22 @@ test.describe("a role's page", () => {
     await openRole(page, ROLE_IDS["responder"]!);
 
     /*
-     * The trail ends with the role's name; Roles stays marked in the menu,
-     * its Settings section open.
+     * The trail ends with the role's name, and the page is headed by it.
+     * The role's own menu marks its page, with its Developer pages folded
+     * beneath (#10139).
      */
     await expect(
       page.getByRole("navigation", { name: "Breadcrumb" }),
     ).toContainText("Incident Responder");
+    await expect(page.getByTestId("page-record-title-heading")).toHaveText(
+      "Custom Role - Incident Responder",
+    );
     await expect(
-      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+      sideMenu(page).getByRole("link", { name: "Overview", exact: true }),
     ).toHaveClass(/bg-indigo-50/);
-    await expect(menuSection(page, "Settings")).toHaveAttribute(
+    await expect(menuSection(page, "Developer")).toHaveAttribute(
       "aria-expanded",
-      "true",
+      "false",
     );
 
     // Its ID, under its name and description, as on every record's page.
@@ -1679,6 +1695,132 @@ test.describe("on a phone and in dark mode", () => {
 
     await openRole(page, ROLE_IDS["responder"]!, "?theme=dark");
     await screenshot(page, "dark-role-page");
+  });
+});
+
+/*
+ * A role's Developer pages (#10139). A role's page had no menu of its own,
+ * so the Delete it step #10031 wrote for a custom role's API and CLI pages
+ * was seen by nobody. Its own menu's Developer section opens them, and the
+ * step has a tab for each way of saying what the workflows that run as the
+ * role run as instead.
+ */
+test.describe("a role's Developer pages", () => {
+  const ROLE: string = ROLE_IDS["responder"]!;
+
+  // The step a guide ends with, by its title.
+  function deleteStep(page: Page): Locator {
+    return page
+      .getByTestId(/^setup-guide-step-\d+$/)
+      .filter({ hasText: "Delete it" });
+  }
+
+  test("open from the role's own menu, under the role's name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRole(page, ROLE);
+
+    await menuSection(page, "Developer").click();
+    await expect(shownMenuLinks(page)).toHaveText([
+      "Overview",
+      "Terraform",
+      "Crossplane",
+      "API",
+      "CLI",
+      "AI Assistants",
+    ]);
+    await sideMenu(page)
+      .getByRole("link", { name: "API", exact: true })
+      .click();
+
+    await expectPath(page, `${ROLES_ROUTE}/${ROLE}/developer/api`);
+    await expect(
+      sideMenu(page).getByRole("link", { name: "API", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+    await expect(page.getByTestId("page-record-title-heading")).toHaveText(
+      "Custom Role - Incident Responder",
+    );
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("Incident Responder");
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toContainText("API");
+  });
+
+  test("the API page's Delete it has a tab for each way, each with its request body", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${ROLES_ROUTE}/${ROLE}/developer/api`);
+
+    const step: Locator = deleteStep(page);
+
+    await expect(step.getByRole("tab")).toHaveText([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    await expect(step).toContainText(
+      "If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them.",
+    );
+    await expect(step).toContainText(`/api/custom-role/${ROLE}`);
+    await expect(step).not.toContainText("miscDataProps");
+
+    await step.getByRole("tab", { name: "Default permissions" }).click();
+    await expect(step).toContainText('"workflowsRunAs": "Default"');
+
+    await step.getByRole("tab", { name: "Another custom role" }).click();
+    await expect(step).toContainText('"workflowsRunAs": "CustomRole"');
+    await expect(step).toContainText(
+      '"workflowsRunAsCustomRoleId": "<custom-role-id>"',
+    );
+    await screenshot(page, "role-developer-api-delete");
+  });
+
+  test("the CLI page's Delete it has the same tabs, with the CLI's flags", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${ROLES_ROUTE}/${ROLE}/developer/cli`);
+
+    const step: Locator = deleteStep(page);
+
+    await expect(step.getByRole("tab")).toHaveText([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    await expect(step).toContainText(`oneuptime custom-role delete ${ROLE}`);
+
+    await step.getByRole("tab", { name: "Default permissions" }).click();
+    await expect(step).toContainText("--workflows-run-as Default");
+
+    await step.getByRole("tab", { name: "Another custom role" }).click();
+    await expect(step).toContainText(
+      "--workflows-run-as-custom-role-id '<custom-role-id>'",
+    );
+    await screenshot(page, "role-developer-cli-delete");
+  });
+
+  test("on a phone, the step and its tabs fit the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${ROLES_ROUTE}/${ROLE}/developer/api`);
+
+    await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
+      "Developer / API",
+    );
+    await expect(deleteStep(page).getByRole("tab")).toHaveCount(3);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "phone-role-developer-api");
   });
 });
 

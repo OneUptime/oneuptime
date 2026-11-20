@@ -80,6 +80,8 @@ import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
 import PacketCaptureService from "./PacketCaptureService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
+import NetworkSiteOwnerTeamService from "./NetworkSiteOwnerTeamService";
+import NetworkSiteOwnerUserService from "./NetworkSiteOwnerUserService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NetworkEndpointService from "./NetworkEndpointService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
@@ -560,6 +562,7 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspacePublicNoteApprovalMessageService from "./WorkspacePublicNoteApprovalMessageService";
 import WorkspaceHomeChoiceService from "./WorkspaceHomeChoiceService";
+import GuidedSetupRunService from "./GuidedSetupRunService";
 import OwnerNotificationDeliveryService from "./OwnerNotificationDeliveryService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
@@ -729,6 +732,8 @@ const services: Array<BaseService> = [
   PacketCaptureService,
   NetworkInterfaceService,
   NetworkSiteService,
+  NetworkSiteOwnerTeamService,
+  NetworkSiteOwnerUserService,
   NetworkSiteTypeService,
   NetworkEndpointService,
   NetworkSiteStatusTimelineService,
@@ -1167,6 +1172,7 @@ const services: Array<BaseService> = [
   WorkspaceLiveMessageService,
   WorkspacePublicNoteApprovalMessageService,
   WorkspaceHomeChoiceService,
+  GuidedSetupRunService,
   OwnerNotificationDeliveryService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserGroupService,

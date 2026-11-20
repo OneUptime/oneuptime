@@ -127,6 +127,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   AutoRemediationDecision: AuditLogExemptionKind.RunRecord,
   AutoRemediationSuggestion: AuditLogExemptionKind.RunRecord,
   DataSecurityScan: AuditLogExemptionKind.RunRecord,
+  GuidedSetupRun: AuditLogExemptionKind.RunRecord,
   LlmLog: AuditLogExemptionKind.RunRecord,
   NetworkDeviceDiscoveryImport: AuditLogExemptionKind.RunRecord,
   OnCallDutyPolicyExecutionLog: AuditLogExemptionKind.RunRecord,

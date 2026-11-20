@@ -351,6 +351,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
  * live instead.
  */
 export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
+  {
+    file: `${DASHBOARD}/Components/BulkRelation/useBulkRelationActions.tsx`,
+    form: "BasicFormModal #1",
+    reason:
+      "Set Site, Set Device Role, Set Parent Site and Set Default Probe in a list's Bulk Actions: one pick, and for Set Parent Site a Site Type only when some selected site has none (getMoreFields, useBulkParentSiteActions). One or two fields on one page.",
+  },
   ...[
     `${DASHBOARD}/Pages/Logs/Settings/DropFilterView.tsx`,
     `${DASHBOARD}/Pages/Traces/Settings/DropFilterView.tsx`,

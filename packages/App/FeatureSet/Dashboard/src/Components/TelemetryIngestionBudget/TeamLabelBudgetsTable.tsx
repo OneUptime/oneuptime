@@ -23,6 +23,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -145,6 +149,8 @@ export const getTeamOrLabelOptions: (data: {
         label: team.name || team.id!.toString(),
         // A team's name is its owner's, drawn as written.
         isUserContent: true,
+        // Teams of one name are told apart (#10064).
+        sharedName: getSharedNameFacts(team),
       };
     });
 
@@ -157,6 +163,7 @@ export const getTeamOrLabelOptions: (data: {
         value: getTeamOrLabelOptionValue({ labelId: label.id! }),
         label: label.name || label.id!.toString(),
         isUserContent: true,
+        sharedName: getSharedNameFacts(label),
       };
 
       if (label.color) {
@@ -204,7 +211,7 @@ const fetchTeamOrLabelOptions: (
         query: { projectId: projectId },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        select: { _id: true, name: true },
+        select: { _id: true, name: true, ...getSharedNameSelect(Team) },
         sort: { name: SortOrder.Ascending },
       }),
       ModelAPI.getList<Label>({
@@ -212,7 +219,12 @@ const fetchTeamOrLabelOptions: (
         query: { projectId: projectId },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
-        select: { _id: true, name: true, color: true },
+        select: {
+          _id: true,
+          name: true,
+          color: true,
+          ...getSharedNameSelect(Label),
+        },
         sort: { name: SortOrder.Ascending },
       }),
     ]);

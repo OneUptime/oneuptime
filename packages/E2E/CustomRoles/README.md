@@ -31,9 +31,12 @@ The suite drives custom roles the way a person does:
 - the Roles page: each role with its permission count and description, the
   empty page, and the built-in roles folded under it, opening to all forty;
 - the Teams menu: Roles in its Settings section, first, above Custom Fields;
-  Settings folded on All Teams, open by itself on Roles, a role's page and
-  Custom Fields; and Roles reached from All Teams on a phone, whose menu
-  button's two lines ("Navigate to", "Settings / Roles") start at one edge;
+  Settings folded on All Teams, open by itself on Roles and Custom Fields; and
+  Roles reached from All Teams on a phone, whose menu button's two lines
+  ("Navigate to", "Settings / Roles") start at one edge;
+- a role's own menu (#10139): Custom Role > Overview, marked on its page, and
+  its Developer pages, folded; its Developer > API and CLI pages, whose Delete
+  it step has a tab for each way of saying what its workflows run as;
 - Create Custom Role: a name and the built-in roles it bundles, each sent as
   its own permission of the role for every resource, then the new role's page;
   and a pick the server refuses (`?refuse=AlertMember`): the role is kept, and

@@ -130,7 +130,7 @@ test.describe("Resource archive actions live in Settings", () => {
          * until the section is opened.
          */
         const settingsSectionToggle: Locator = page
-          .locator("aside[role='navigation'][aria-label='Main navigation']")
+          .locator("aside[role='navigation'][aria-label='Pages in this section']")
           .locator(
             "xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]",
           );

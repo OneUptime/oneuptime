@@ -2804,6 +2804,40 @@ describe("automatic investigation footer", () => {
     );
   });
 
+  /*
+   * The dialog opens on Turn on, the action it asks about: it opened on its
+   * first settings link, and Enter followed the link out of the page
+   * instead of turning automatic investigation on (#7360).
+   */
+  test("the confirmation opens on Turn on, never on a settings link", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(
+      makeStatus({
+        automaticInvestigation: { incidents: false, alerts: false },
+      }),
+    );
+    openAgentPage();
+
+    fireEvent.click(
+      await findTestId("ai-access-automatic-investigation-turn-on"),
+    );
+
+    const confirm: HTMLElement = await findDialogTitled(
+      "Turn on automatic investigation?",
+    );
+    const turnOn: HTMLElement = within(confirm).getByTestId(
+      "modal-footer-submit-button",
+    );
+
+    expect(turnOn).toHaveTextContent("Turn on");
+    expect(turnOn).toHaveFocus();
+    expect(within(confirm).getAllByRole("link")).toHaveLength(2);
+
+    for (const link of within(confirm).getAllByRole("link")) {
+      expect(link).not.toHaveFocus();
+    }
+  });
+
   test("turning it on writes only the flag that is off", async () => {
     grant(ADMIN_PERMISSIONS);
     serve(

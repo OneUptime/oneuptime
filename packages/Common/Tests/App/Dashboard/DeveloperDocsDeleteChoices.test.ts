@@ -379,21 +379,103 @@ describe("a custom role's CLI page", () => {
   });
 });
 
-describe("every other resource's Delete it step", () => {
-  const VIEW_PAGES: Array<DeveloperDocsParentPage> =
+function modelOf(tableName: string): DatabaseBaseModelType {
+  return (Models as Array<DatabaseBaseModelType>).find(
+    (modelType: DatabaseBaseModelType): boolean => {
+      return new modelType().tableName === tableName;
+    },
+  )!;
+}
+
+/*
+ * The step is seen where a table whose delete takes choices has a page of
+ * its own: a custom role's (#10139). Until then no page drew it.
+ */
+describe("the pages that draw the step", () => {
+  const WITH_CHOICES: Array<DeveloperDocsParentPage> =
     DEVELOPER_DOCS_PARENT_PAGES.filter(
       (parent: DeveloperDocsParentPage): boolean => {
-        return parent.scope === DeveloperDocsScope.View;
+        return getTablesWithDeleteChoices().includes(parent.tableName);
       },
     );
 
-  function modelOf(tableName: string): DatabaseBaseModelType {
-    return (Models as Array<DatabaseBaseModelType>).find(
-      (modelType: DatabaseBaseModelType): boolean => {
-        return new modelType().tableName === tableName;
+  test("every table whose delete takes choices has a page of its own, and a custom role's is its page", () => {
+    expect(
+      WITH_CHOICES.filter((parent: DeveloperDocsParentPage): boolean => {
+        return parent.scope === DeveloperDocsScope.View;
+      })
+        .map((parent: DeveloperDocsParentPage): string => {
+          return parent.tableName;
+        })
+        .sort(),
+    ).toEqual(getTablesWithDeleteChoices().sort());
+
+    expect(
+      WITH_CHOICES.map((parent: DeveloperDocsParentPage): Array<string> => {
+        return [parent.tableName, parent.scope, parent.pageKey];
+      }),
+    ).toEqual([["CustomRole", DeveloperDocsScope.View, "TEAM_ROLE_VIEW"]]);
+  });
+
+  test.each(
+    WITH_CHOICES.map((parent: DeveloperDocsParentPage): [string] => {
+      return [parent.tableName];
+    }),
+  )(
+    "%s: the API and CLI pages of its own page end with the step and its tabs",
+    (tableName: string) => {
+      const modelType: DatabaseBaseModelType = modelOf(tableName);
+      const choiceStep: DeveloperDocsDeleteChoiceStep | null =
+        getDeveloperDocsDeleteChoiceStep(modelType);
+
+      expect(choiceStep).not.toBeNull();
+
+      for (const page of [
+        DeveloperDocsPageType.Api,
+        DeveloperDocsPageType.Cli,
+      ]) {
+        const steps: Array<DeveloperDocsStep> = getDeveloperDocsGuide(
+          page,
+          viewContext(modelType, {
+            id: ROLE_ID,
+            displayName: "Example",
+            json: { _id: ROLE_ID },
+          }),
+        ).steps;
+        const last: DeveloperDocsStep | undefined = steps[steps.length - 1];
+
+        expect({ page, title: last?.title }).toEqual({
+          page,
+          title: "Delete it",
+        });
+        expect(last?.description).toBe(choiceStep!.description);
+        expect(
+          (last?.variants || []).map(
+            (variant: SetupGuideStepVariant): string => {
+              return variant.label;
+            },
+          ),
+        ).toEqual(
+          choiceStep!.tabs.map((tab: DeveloperDocsDeleteTab): string => {
+            return tab.label;
+          }),
+        );
+      }
+    },
+  );
+});
+
+describe("every other resource's Delete it step", () => {
+  // The resources with a page of their own whose delete takes no choices.
+  const VIEW_PAGES: Array<DeveloperDocsParentPage> =
+    DEVELOPER_DOCS_PARENT_PAGES.filter(
+      (parent: DeveloperDocsParentPage): boolean => {
+        return (
+          parent.scope === DeveloperDocsScope.View &&
+          !getTablesWithDeleteChoices().includes(parent.tableName)
+        );
       },
-    )!;
-  }
+    );
 
   test("covers every resource with a page of its own", () => {
     expect(VIEW_PAGES.length).toBeGreaterThan(30);

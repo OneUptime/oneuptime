@@ -8,7 +8,6 @@ import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMo
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
-import { getTeamsBreadcrumbs } from "@oneuptime/dashboard/Utils/Breadcrumbs/TeamsBreadcrumbs";
 import {
   doesRoleReachAnything,
   getRoleDeleteReachSentence,
@@ -34,11 +33,9 @@ import CustomRoleDeleteWorkflowsChoice from "@oneuptime/dashboard/Components/Cus
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Route from "Common/Types/API/Route";
-import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
-import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -88,6 +85,11 @@ import React, {
  * core keeps the route (Pages/Teams/RoleView.tsx). When the Enterprise
  * license has lapsed or leaves custom roles out, a notice says the role
  * keeps applying, and only removing is offered: the server refuses changes.
+ *
+ * It is drawn in the role's own layout (Pages/Teams/RoleViewLayout, #10139):
+ * the role's side menu, with its Developer pages, and the heading and trail
+ * that name the role ("Project > Teams > Roles > Incident Responder"), read
+ * again when its name is saved here.
  */
 
 const TeamRoleView: FunctionComponent<PageComponentProps> = (
@@ -165,30 +167,6 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
   useEffect(() => {
     readReach();
   }, [readReach]);
-
-  /*
-   * The trail ends with the role's name once it is read - Project > Teams >
-   * Roles > Incident Responder - where the layout alone could only say
-   * "View Role".
-   */
-  const breadcrumbLinks: Array<Link> | null = useMemo(() => {
-    const links: Array<Link> | undefined = getTeamsBreadcrumbs(
-      RouteUtil.getRouteString(PageMap.TEAM_ROLE_VIEW),
-    );
-
-    if (!roleName || !links || links.length === 0) {
-      return null;
-    }
-
-    // The name as it was typed: a name is never translated (Link.isRecordName).
-    return links.map((link: Link, index: number): Link => {
-      return index === links.length - 1
-        ? { ...link, title: roleName, isRecordName: true }
-        : link;
-    });
-  }, [roleName]);
-
-  usePageBreadcrumbLinks(breadcrumbLinks);
 
   const permissionsDescription: string =
     reach && doesRoleReachAnything(reach)

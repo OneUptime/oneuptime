@@ -283,8 +283,9 @@ export default class ExceptionMonitorMeasureReader {
    * and entities, as a mobile app's Crash-free installs reads them, and of
    * its own count's occurrences, every filter with them, over the same
    * window. A row that names no install is no install. A read the time
-   * limit stops reads what it counted by then, so a slow read alerts on
-   * nothing it did not see.
+   * limit stops fails the check with a QueryTimeoutException
+   * (countDistinctNonEmpty), so the check changes nothing rather than judge
+   * a share taken of part of the installs.
    */
   public static async readInstalls(data: {
     projectId: ObjectID;

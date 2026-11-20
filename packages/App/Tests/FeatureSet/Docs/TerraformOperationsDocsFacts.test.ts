@@ -19,7 +19,7 @@ import DocsPlaceholders, {
   getTerraformProviderMatchingConstraint,
   getTerraformProviderVersionConstraint,
 } from "../../../FeatureSet/Docs/Utils/Placeholders";
-import { scanMarkdown } from "./DocsContentSupport";
+import { DOCS_LANGUAGES, readPage, scanMarkdown } from "./DocsContentSupport";
 import { boldPaths } from "./DocsPageShape";
 import {
   codeIn,
@@ -80,6 +80,14 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { getApiKeysStoppedMessage } from "Common/Types/Billing/PlanCutoffCredentials";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODE,
+} from "Common/Types/Exception/NameTakenException";
+import {
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+} from "Common/Types/Database/UniqueName";
 import ObjectID from "Common/Types/ObjectID";
 import { getReferenceRefusalMessage } from "Common/Server/Utils/Database/ProjectScopedReferenceRefusal";
 import { getEmptyDeveloperDocsLiveData } from "Common/Utils/DeveloperDocs/LiveData";
@@ -545,6 +553,8 @@ describe("the importing page", () => {
 
 // A link to a section of the same page: "[text](#anchor)".
 const OWN_SECTION_LINK: RegExp = /\]\(#([^)]+)\)/g;
+// A row's link to a section of its page, with the hash: (#names-another-record-has).
+const SECTION_LINK: RegExp = /\]\((#[^)]+)\)/;
 
 // What ids.go writes for a value that is not an ID, and how it shows one.
 const LOOKS_LIKE_CONSTANT: RegExp = /const looksLike = "([^"]+)"/;
@@ -775,6 +785,107 @@ describe("the troubleshooting page", () => {
     expect(providerSource).toContain(
       "code, _ := parsed[refusalCodeField].(string)",
     );
+  });
+
+  /*
+   * #10065: every kind with a name of its own refuses a taken name with a
+   * code beside its sentence, and the code says what has the name. The
+   * provider asks again only while a record in service has it, which a
+   * rename or a delete of the same apply may give up; an archived record
+   * never gives its name up in an apply, so its refusal fails the apply at
+   * once, with the server's own sentence.
+   */
+  it("says which taken names the provider asks again for, what to do when nothing gives one up, and that an archived record's fails at once", () => {
+    const providerSource: string = readRepoFile(PROVIDER_GENERATOR);
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### Names another record has",
+    );
+
+    // The client is generated with both codes, from Common's constants.
+    expect(NAME_TAKEN_REFUSAL_CODE).toBe("name_taken");
+    expect(NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE).toBe("name_taken_by_archived");
+    expect(providerSource).toMatch(
+      /nameTakenRefusalCode\s+= "\$\{NAME_TAKEN_REFUSAL_CODE\}"/,
+    );
+    expect(providerSource).toMatch(
+      /[=] "\$\{NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE\}"/,
+    );
+
+    // A name given up in the same apply, by a rename or a delete.
+    expect(section).toContain(
+      "a create or a rename onto a name another resource gives up in the same apply, by a rename or a delete,",
+    );
+    expect(section).toContain(
+      "and so does a resource that takes the name of one the apply deletes",
+    );
+
+    // A name nothing in the configuration gives up: what the advice says, and the page.
+    expect(providerSource).toContain(
+      "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record.",
+    );
+    expect(section).toContain(
+      "neither does a name a record outside the configuration has, such as a severity OneUptime made with the project",
+    );
+    expect(section).toContain(
+      "Give the resource a name nobody has, or `terraform import` the record that has the name.",
+    );
+
+    // An archived record's name is not asked again.
+    expect(section).toContain(
+      "An archived record keeps its name, and nothing an apply does to the records in service gives it up.",
+    );
+    expect(section).toContain(
+      "A create or a rename onto it fails at once, with where to unarchive it",
+    );
+
+    // The refusals it quotes are the server's, word for word.
+    expect(section).toContain(
+      `\`${getNameTakenRefusalText(ON_CALL_POLICY_NAME_TAKEN_REFUSAL, "Primary")}\``,
+    );
+    expect(section).toContain(
+      `\`${new IncidentSeverity().singularName} with the same name already exists.\``,
+    );
+    expect(
+      readRepoFile("packages/Common/Server/Services/DatabaseService.ts"),
+    ).toContain(
+      "`${this.model.singularName} with the same name already exists.`",
+    );
+  });
+
+  /*
+   * The error table finds the refusal every other kind words its own way,
+   * beside the four named kinds' row and to the same section, in every
+   * language: the server answers it in English whatever the page's.
+   */
+  it("lists the generic refusal of a taken name in the error table, beside the named kinds' row, in every language", () => {
+    const anchorOf: (line: string) => string | null = (
+      line: string,
+    ): string | null => {
+      return SECTION_LINK.exec(line)?.[1] || null;
+    };
+
+    for (const language of DOCS_LANGUAGES) {
+      const lines: Array<string> = readPage(language, TROUBLESHOOTING).split(
+        "\n",
+      );
+      const named: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("| `There is already a team called`");
+      });
+      const generic: string = lines[named + 1] || "";
+
+      expect({
+        language,
+        named: named >= 0,
+        generic: generic.startsWith("| `with the same name already exists` |"),
+        anchor: anchorOf(generic),
+      }).toEqual({
+        language,
+        named: true,
+        generic: true,
+        anchor: anchorOf(lines[named] || ""),
+      });
+    }
   });
 
   it("names the warning the provider logs for a column OneUptime will not send", () => {
