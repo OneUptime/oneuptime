@@ -172,7 +172,9 @@ describe("a date in OneUptime AI's table", () => {
     const cell: HTMLElement = screen.getAllByTestId("ai-chat-table-cell")[6]!;
 
     expect(cell).toHaveTextContent("Dec 30, 2025");
-    expect(cell.getAttribute("title")).toMatch(/^Dec 30, 2025, 10:10 PM GMT · /);
+    expect(cell.getAttribute("title")).toMatch(
+      /^Dec 30, 2025, 10:10 PM GMT · /,
+    );
   });
 
   test("a value that is not a date is shown as it came, and an empty one as a dash", () => {

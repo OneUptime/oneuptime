@@ -358,7 +358,9 @@ describe("monitor summary action timestamps", () => {
         },
       ]);
 
-      expect(screen.getByText(`${label} Sep 18, 2026, 11:32 BST`)).toBeVisible();
+      expect(
+        screen.getByText(`${label} Sep 18, 2026, 11:32 BST`),
+      ).toBeVisible();
       expect(
         screen.queryByText(/Alert created at|Incident created at/),
       ).not.toBeInTheDocument();

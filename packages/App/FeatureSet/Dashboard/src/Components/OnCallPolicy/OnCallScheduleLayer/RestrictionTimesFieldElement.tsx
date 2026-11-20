@@ -37,7 +37,9 @@ import React, {
  */
 export const getDayOfWeekMenuOptions: (
   translator: Translator,
-) => Array<DropdownOption> = (translator: Translator): Array<DropdownOption> => {
+) => Array<DropdownOption> = (
+  translator: Translator,
+): Array<DropdownOption> => {
   return DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek).map(
     (option: DropdownOption): DropdownOption => {
       return {
@@ -449,9 +451,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
       windowIndex: params.windowIndex,
     });
 
-    const dayOptions: Array<DropdownOption> = getDayOfWeekMenuOptions(
-      translator,
-    );
+    const dayOptions: Array<DropdownOption> =
+      getDayOfWeekMenuOptions(translator);
 
     // The menu's own option for a day, so the day picked reads as listed.
     const dayOption: (day: DayOfWeek) => DropdownOption | undefined = (
