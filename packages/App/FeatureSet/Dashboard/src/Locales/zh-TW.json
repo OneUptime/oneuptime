@@ -59322,5 +59322,22 @@
   "It can show on its status pages at once.": "可能會立即顯示在其狀態頁面上。",
   "It can show on its status pages from {{time}}.": "可能從 {{time}} 起顯示在其狀態頁面上。",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "只有這些狀態頁面可以顯示以此範本建立的維護事件或通知其訂閱者。未選擇任何頁面時，不會顯示在任何狀態頁面上。",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面可以顯示此維護事件或通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。"
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面可以顯示此維護事件或通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。",
+  "A share of installs": "安裝佔比",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "當 {{window}} 內出現相符例外的安裝佔比 {{comparison}} 你輸入的百分比時發出警示。",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "當 {{window}} 內出現相符例外的安裝佔比 {{comparison}} {{count}}% 時發出警示。",
+  "Binary Name": "二進位檔名稱",
+  "Binary UUID": "二進位檔 UUID",
+  "Duplicate Of": "重複自",
+  "Installs": "安裝",
+  "Installs With Exceptions (in %)": "有例外的安裝（%）",
+  "Installs with an exception (in %)": "出現例外的安裝（%）",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash 與 MetricKit 都回報了這次當機。它只計算一次，即這次發生。",
+  "Reported twice": "回報了兩次",
+  "Symbol Count": "符號數",
+  "Symbols": "符號",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "圖表顯示發生了多少例外。對於新例外、再次出現的例外、高於平常的增長或工作階段、安裝佔比，不會繪製圖表。",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "iOS App 某個二進位檔一次建置的函式符號，取自其 dSYM。用於依函式為 App 當機與卡住堆疊中的框架命名，並依函式分組。透過二進位檔的 UUID 與框架比對。",
+  "dSYMs": "dSYM",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "所選範圍內未因當機而結束的工作階段所佔比例。低於 99.5% 時長條變為琥珀色，低於 99% 時變為紅色。下一行是按安裝計算的同一比例，安裝可以代表應用程式的使用者：依據 OpenTelemetry Android 設定的 app.installation.id，或 iOS 應用程式的 device.id；對於兩者都不傳送的應用程式，則顯示有多少工作階段當機。"
 }

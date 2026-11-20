@@ -59322,5 +59322,22 @@
   "It can show on its status pages at once.": "Den kan vises straks på sine statussider.",
   "It can show on its status pages from {{time}}.": "Den kan vises på sine statussider fra {{time}}.",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Kun disse statussider kan vise begivenheder fra denne skabelon eller underrette deres abonnenter. Uden valg vises de ikke på nogen statusside.",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Kun disse statussider kan vise denne begivenhed eller underrette deres abonnenter. I modsætning til en hændelse vises en begivenhed uden valg ikke på nogen statusside."
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Kun disse statussider kan vise denne begivenhed eller underrette deres abonnenter. I modsætning til en hændelse vises en begivenhed uden valg ikke på nogen statusside.",
+  "A share of installs": "En andel af installationerne",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "Advarer, når andelen af installationerne i {{window}} med en matchende undtagelse er {{comparison}} den procent, du indtaster.",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "Advarer, når andelen af installationerne i {{window}} med en matchende undtagelse er {{comparison}} {{count}} %.",
+  "Binary Name": "Binærfilens navn",
+  "Binary UUID": "Binærfilens UUID",
+  "Duplicate Of": "Dublet af",
+  "Installs": "Installationer",
+  "Installs With Exceptions (in %)": "Installationer med undtagelser (i %)",
+  "Installs with an exception (in %)": "Installationer med en undtagelse (i %)",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash og MetricKit rapporterede begge dette nedbrud. Det tælles én gang, som denne forekomst.",
+  "Reported twice": "Rapporteret to gange",
+  "Symbol Count": "Antal symboler",
+  "Symbols": "Symboler",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "Diagrammet viser, hvor mange undtagelser der skete. Det tegnes ikke for nye undtagelser, undtagelser, der kom tilbage, en stigning over det sædvanlige eller en andel af sessionerne eller installationerne.",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "Funktionssymbolerne for ét build af en iOS-apps binærfil, fra dens dSYM. Bruges til at navngive frames i appens nedbruds- og hængestakke efter deres funktioner og til at gruppere dem efter funktion. Matches til en frame via binærfilens UUID.",
+  "dSYMs": "dSYM'er",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "Andelen af sessionerne i det valgte tidsrum, som intet nedbrud afsluttede. Bjælken bliver gul under 99,5 % og rød under 99 %. Linjen nedenfor viser den samme andel for installationerne, en tilnærmelse til appens brugere: det app.installation.id, som OpenTelemetry Android sætter, eller en iOS-apps device.id; for en app, der ikke sender nogen af dem, viser den, hvor mange sessioner der havde et nedbrud."
 }

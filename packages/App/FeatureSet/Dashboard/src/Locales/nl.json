@@ -59322,5 +59322,22 @@
   "It can show on its status pages at once.": "Ze kan meteen op haar statuspagina's worden getoond.",
   "It can show on its status pages from {{time}}.": "Ze kan vanaf {{time}} op haar statuspagina's worden getoond.",
   "Only these status pages can show events from this template or notify their subscribers. With none picked, they show on no status page.": "Alleen deze statuspagina's kunnen gebeurtenissen uit dit sjabloon tonen of hun abonnees informeren. Zonder keuze verschijnen ze op geen enkele statuspagina.",
-  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Alleen deze statuspagina's kunnen deze gebeurtenis tonen of hun abonnees informeren. Anders dan een incident verschijnt een gebeurtenis zonder keuze op geen enkele statuspagina."
+  "Only these status pages can show this event or notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Alleen deze statuspagina's kunnen deze gebeurtenis tonen of hun abonnees informeren. Anders dan een incident verschijnt een gebeurtenis zonder keuze op geen enkele statuspagina.",
+  "A share of installs": "Een aandeel van de installaties",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} the percent you enter.": "Waarschuwt wanneer het aandeel van de installaties in {{window}} met een overeenkomende uitzondering {{comparison}} het percentage is dat u invoert.",
+  "Alerts when the share of the installs in {{window}} with a matching exception is {{comparison}} {{count}}%.": "Waarschuwt wanneer het aandeel van de installaties in {{window}} met een overeenkomende uitzondering {{comparison}} {{count}}% is.",
+  "Binary Name": "Naam van het binaire bestand",
+  "Binary UUID": "UUID van het binaire bestand",
+  "Duplicate Of": "Duplicaat van",
+  "Installs": "Installaties",
+  "Installs With Exceptions (in %)": "Installaties met uitzonderingen (in %)",
+  "Installs with an exception (in %)": "Installaties met een uitzondering (in %)",
+  "KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence.": "KSCrash en MetricKit hebben deze crash allebei gemeld. Hij telt één keer, als dit voorval.",
+  "Reported twice": "Twee keer gemeld",
+  "Symbol Count": "Aantal symbolen",
+  "Symbols": "Symbolen",
+  "The chart shows how many exceptions happened. It is not drawn for new exceptions, exceptions that came back, a rise over the usual or a share of sessions or installs.": "De grafiek toont hoeveel uitzonderingen er zijn opgetreden. Voor nieuwe uitzonderingen, teruggekomen uitzonderingen, een stijging boven het gewone of een aandeel van de sessies of installaties wordt hij niet getekend.",
+  "The function symbols of one build of an iOS app's binary, from its dSYM. Used to name the frames of the app's crash and hang stacks by their functions, and to group them by function. Matched to a frame by the binary's UUID.": "De functiesymbolen van één build van een binair bestand van een iOS-app, uit zijn dSYM. Gebruikt om de frames van de crash- en hangstacks van de app bij hun functies te noemen en ze per functie te groeperen. Aan een frame gekoppeld via de UUID van het binaire bestand.",
+  "dSYMs": "dSYM's",
+  "The share of the selected range's sessions that no crash ended. The bar turns amber below 99.5% and red below 99%. The line below is the same share of installs, a stand-in for its users: the app.installation.id OpenTelemetry Android sets, or an iOS app's device.id; for an app that sends neither, how many sessions crashed.": "Het aandeel sessies in het geselecteerde bereik dat niet door een crash werd beëindigd. De balk wordt oranje onder 99,5% en rood onder 99%. De regel eronder toont hetzelfde aandeel voor de installaties, een benadering van de gebruikers van de app: de app.installation.id die OpenTelemetry Android instelt, of de device.id van een iOS-app; bij een app die geen van beide verstuurt, toont hij hoeveel sessies een crash hadden."
 }
