@@ -234,7 +234,7 @@ describe("what the buttons carry", () => {
 
     expect(
       WorkspaceSecurityPlaybookApproval.getSignedProjectId([
-        { actionType: SlackActionType.AckIncident, actionValue: value },
+        { actionType: SlackActionType.AcknowledgeIncident, actionValue: value },
         {
           actionType: SlackActionType.RejectSecurityPlaybookStep,
           actionValue: "spa1.forged.value",
@@ -276,7 +276,7 @@ describe("what the buttons carry", () => {
     });
     expect(
       WorkspaceSecurityPlaybookApprovalPress.describe({
-        actionType: SlackActionType.AckIncident,
+        actionType: SlackActionType.AcknowledgeIncident,
       }),
     ).toBeNull();
   });

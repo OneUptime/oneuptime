@@ -191,15 +191,19 @@ interface KeyServer {
   close: () => Promise<void>;
 }
 
-const signingKey: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync(
-  "rsa",
-  { modulusLength: 2048 },
-);
+// An RSA key pair, as crypto.generateKeyPairSync makes one.
+interface KeyPair {
+  publicKey: crypto.KeyObject;
+  privateKey: crypto.KeyObject;
+}
+
+const signingKey: KeyPair = crypto.generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
 // A key nobody published: what a forger signs with.
-const forgingKey: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync(
-  "rsa",
-  { modulusLength: 2048 },
-);
+const forgingKey: KeyPair = crypto.generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+});
 
 async function startKeyServer(): Promise<KeyServer> {
   const jwk: JSONObject = signingKey.publicKey.export({
@@ -802,7 +806,7 @@ describe("the Bot Framework's token, checked by the bot's own adapter", () => {
       typeof MicrosoftTeamsUtil.getBotAuthenticationOptions
     > = MicrosoftTeamsUtil.getBotAuthenticationOptions();
 
-    expect(options.MicrosoftAppId).toBe(APP_ID);
+    expect(options["MicrosoftAppId"]).toBe(APP_ID);
     expect(
       await new ConfigurationServiceClientCredentialFactory(
         options,
@@ -1017,7 +1021,11 @@ describe("a playbook step's approval, pressed in Microsoft Teams", () => {
   test("a Teams account with no OneUptime account is asked to connect, and nothing is decided", async () => {
     jest
       .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
-      .mockRejectedValue(new MicrosoftTeamsAccountNotLinkedException());
+      .mockRejectedValue(
+        new MicrosoftTeamsAccountNotLinkedException(
+          "No OneUptime user linked to this Microsoft Teams user.",
+        ),
+      );
 
     const delivery: Delivery = await deliverSigned(
       press("ApproveSecurityPlaybookStep"),
