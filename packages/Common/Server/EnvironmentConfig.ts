@@ -1313,6 +1313,27 @@ export const HstsMaxAgeSeconds: number = parseHstsMaxAgeSeconds(
   process.env["HSTS_MAX_AGE_SECONDS"],
 );
 
+/*
+ * The most a request body may be, and the most JSON values it may hold, on
+ * a route not listed as taking large bodies (Server/Utils/RequestBodyLimit:
+ * probes, agents, webhooks, uploads and the rest take 50 MiB). The body is
+ * read before anyone is signed in, so these are limits for anyone who can
+ * reach the server. Raise them for a client of your own that sends more to
+ * another route. Clamped to what a listed route takes, 50 MiB and a million
+ * values: past that the ingress (client_max_body_size 50M) refuses first.
+ */
+export const RequestBodyMaxBytes: number = parseClampedIntegerFromEnv(
+  "REQUEST_BODY_MAX_BYTES",
+  1024 * 1024,
+  50 * 1024 * 1024,
+);
+
+export const RequestBodyMaxJsonValues: number = parseClampedIntegerFromEnv(
+  "REQUEST_BODY_MAX_JSON_VALUES",
+  100000,
+  1000000,
+);
+
 export const CaptchaEnabled: boolean =
   process.env["CAPTCHA_ENABLED"] === "true";
 

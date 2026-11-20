@@ -5,19 +5,39 @@ import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import RollingTime from "../RollingTime/RollingTime";
+import RollingTimeUtil from "../RollingTime/RollingTimeUtil";
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
+  CLOUD_CONNECTION_READ_INTERVALS,
+  getCloudConnectionDefinition,
+} from "../CloudConnection/CloudConnectionCatalog";
+import {
+  CloudStreamSummary,
+  getStreamedMetricKey,
+  getStreamedMetricKeys,
+  readCloudStreamSummary,
+} from "../CloudConnection/CloudStream";
+import {
+  AwsStreamCoverage,
+  getAwsStreamCoverage,
+  isAwsKeyMetricLeftToStream,
+} from "../CloudConnection/CloudStreamStack";
+import {
   AWS_DEFAULT_PERIOD_SECONDS,
+  AZURE_FIVE_MINUTE_READ_MINUTES,
   AwsKeyMetric,
   AwsStatistic,
+  AzureKeyMetric,
   GCP_OPS_AGENT,
   GcpReadMetric,
   HOURLY_PERIOD_SECONDS,
   getAwsKeyMetrics,
   getAwsStoredMetricName,
+  getAzureKeyMetrics,
   getAzureStoredMetricName,
   getGcpReadMetrics,
   isAzureFiveMinuteKeyMetric,
+  isAzureStreamedKeyMetric,
 } from "../Cloud/CloudKeyMetrics";
 import {
   CLOUD_AVAILABILITY_LOW_PERCENT,
@@ -236,6 +256,342 @@ export const CLOUD_SLOW_METRIC_WINDOW: RollingTime = RollingTime.Past2Days;
 export const CLOUD_SLOW_METRIC_MONITORING_INTERVAL: string = "0 * * * *";
 
 /*
+ * HOW A RECOMMENDED MONITOR'S WINDOW FOLLOWS ITS CONNECTION'S READS (#10028).
+ *
+ * The windows above are sized for a connection read at its cloud's default
+ * interval - every 10 minutes on AWS, every 5 on Azure and Google Cloud:
+ * the first evaluation after a read, which comes within five minutes, holds
+ * every point the read brought. Read every 30 or 60 minutes, a read brings
+ * 30 or 60 minutes of points at once, and its oldest are past a 15-minute
+ * window before they come: a failure that came and went between two reads
+ * was never judged, and the window held no point - the monitor's state left
+ * as it was - most of the time. "All Values" fared worse: it tells a late
+ * read from a series that stopped by how often the series' points arrive
+ * (MetricWindowCoverage), and a window that holds one read's points alone
+ * shows nothing of that, so it judged a level only at an evaluation that
+ * came within a minute or two of the read.
+ *
+ * So a monitor is made with its template's window plus however much longer
+ * its metric's points wait for a read than at its cloud's default interval,
+ * rounded up to a window a monitor offers (getCloudAlertWindow): read every
+ * hour, a 15-minute window is the past 2 hours. What it compares - its
+ * first reading, every reading, a count or a share, at the same line - is
+ * kept, and so is what its window did at the default interval: the first
+ * evaluation after a read judges every point the read brought, and no
+ * evaluation holds fewer of the newest points. A failure between two reads
+ * alerts with the read that brings it, a level is never judged on fewer
+ * readings, and the window holds two reads' points at nearly every
+ * evaluation, so "All Values" sees how often they arrive. What it costs: a
+ * level must hold about as long as a read waits before it alerts (read
+ * every hour, about an hour), and a monitor clears once its longer window
+ * passes without its condition.
+ *
+ *   - An Azure metric kept at five minutes is read in a call of its own
+ *     every 15 minutes at the default interval, and every 20 when read every
+ *     10 (AZURE_FIVE_MINUTE_READ_MINUTES): its window follows that call.
+ *   - A metric its cloud publishes a few times a day (ACM's DaysToExpiry)
+ *     is read once an hour whatever the interval: its 2 days stay.
+ *   - A metric its account's stream writes in place of the read
+ *     (getCloudAlertStreamedMetrics) comes within minutes whatever the
+ *     interval: its window stays its template's.
+ *
+ * The interval is the connection's when the monitor is made. A monitor made
+ * before it changed keeps its window - OneUptime never rewrites a monitor a
+ * team may have tuned - and still counts as the recommendation it was made
+ * from (getCloudAlertTemplateEquivalentSteps), so it is never offered
+ * twice. The connection's form says so where the interval is raised, and a
+ * resource's Recommendations say what a slower interval costs.
+ */
+
+// The windows a widened one rounds up to: those a monitor offers, shortest first.
+const CLOUD_ALERT_WIDENED_WINDOWS: ReadonlyArray<RollingTime> = [
+  RollingTime.Past15Minutes,
+  RollingTime.Past30Minutes,
+  RollingTime.Past1Hour,
+  RollingTime.Past2Hours,
+  RollingTime.Past3Hours,
+  RollingTime.Past6Hours,
+  RollingTime.Past12Hours,
+  RollingTime.Past1Hours,
+  RollingTime.Past2Days,
+];
+
+/*
+ * How many minutes apart a template's metric is read at a connection read
+ * every `readIntervalInMinutes`: the interval, but an Azure five-minute
+ * metric's call, which waits for 15 minutes of its points (every 15 or 20
+ * minutes at the shorter intervals), and a metric read once an hour
+ * whatever the interval.
+ */
+export function getCloudAlertTemplateReadEveryMinutes(
+  template: Pick<CloudAlertTemplate, "provider" | "resourceTypes" | "queries">,
+  readIntervalInMinutes: number,
+): number {
+  const interval: number = Math.max(1, readIntervalInMinutes);
+
+  if (isCloudSlowMetricTemplate(template)) {
+    return HOURLY_PERIOD_SECONDS / 60;
+  }
+
+  if (isCloudFiveMinuteMetricTemplate(template)) {
+    return Math.ceil(AZURE_FIVE_MINUTE_READ_MINUTES / interval) * interval;
+  }
+
+  return interval;
+}
+
+// A template metric's key among a resource's streamed metrics, in lower case.
+export function getCloudAlertMetricStreamKey(
+  metric: Pick<CloudAlertMetric, "provider" | "namespace" | "metricName">,
+): string {
+  return `${metric.provider}|${(metric.namespace || "").trim()}|${metric.metricName.trim()}`.toLowerCase();
+}
+
+/*
+ * Whether its account's stream writes every metric a template reads in
+ * place of its connection's read, by the resource's streamed metrics
+ * (getCloudAlertStreamedMetrics).
+ */
+export function isCloudAlertTemplateStreamed(
+  template: Pick<CloudAlertTemplate, "queries">,
+  streamedMetrics: ReadonlyArray<string> | null | undefined,
+): boolean {
+  if (!streamedMetrics || streamedMetrics.length === 0) {
+    return false;
+  }
+
+  return (
+    template.queries.length > 0 &&
+    template.queries.every((query: CloudAlertQuery): boolean => {
+      return streamedMetrics.includes(
+        getCloudAlertMetricStreamKey(query.metric),
+      );
+    })
+  );
+}
+
+/*
+ * The metrics of a resource's templates its account's stream writes in
+ * place of its connection's reads, as the read leaves them to it
+ * (CloudResourceMetrics.isLeftToStream): an AWS key metric of an account,
+ * Region and namespace a stream delivered lately, from a stack that carries
+ * it; an Azure one a diagnostic setting exports, read a minute at a time, of
+ * a type the account's event hubs delivered lately. Google Cloud streams
+ * none. Each as getCloudAlertMetricStreamKey writes it.
+ */
+export function getCloudAlertStreamedMetrics(data: {
+  provider: unknown;
+  resourceType: unknown;
+  accountId: unknown;
+  region: unknown;
+  streamSummary: unknown;
+  now: Date;
+}): Array<string> {
+  const text: (value: unknown) => string = (value: unknown): string => {
+    return typeof value === "string" ? value.trim() : "";
+  };
+  const provider: string = text(data.provider).toLowerCase();
+  const type: string = text(data.resourceType);
+  const accountId: string = text(data.accountId);
+  const region: string = text(data.region);
+
+  if (!type || !accountId || !data.streamSummary) {
+    return [];
+  }
+
+  const summary: CloudStreamSummary = readCloudStreamSummary(
+    data.streamSummary,
+  );
+
+  if (summary.metricSources.length === 0) {
+    return [];
+  }
+
+  const queries: Array<CloudAlertQuery> = getCloudAlertTemplatesForType({
+    provider,
+    resourceType: type,
+  }).flatMap((template: CloudAlertTemplate): Array<CloudAlertQuery> => {
+    return template.queries;
+  });
+  const streamed: Set<string> = new Set<string>();
+
+  if (provider === CloudProvider.AWS) {
+    const coverage: AwsStreamCoverage = getAwsStreamCoverage({
+      summary,
+      now: data.now,
+    });
+
+    for (const query of queries) {
+      const namespace: string = query.metric.namespace || "";
+      const keyMetric: AwsKeyMetric | undefined = getAwsKeyMetricOf(
+        namespace,
+        query.metric.metricName,
+      );
+
+      if (
+        keyMetric &&
+        isAwsKeyMetricLeftToStream({
+          coverage,
+          accountId,
+          region,
+          namespace,
+          metric: keyMetric,
+        })
+      ) {
+        streamed.add(getCloudAlertMetricStreamKey(query.metric));
+      }
+    }
+  }
+
+  if (
+    provider === CloudProvider.Azure &&
+    getStreamedMetricKeys({ summary, now: data.now }).has(
+      getStreamedMetricKey({ accountId, region, namespace: type }),
+    )
+  ) {
+    const metrics: Array<AzureKeyMetric> =
+      getAzureKeyMetrics(type)?.metrics || [];
+
+    for (const query of queries) {
+      const keyMetric: AzureKeyMetric | undefined = metrics.find(
+        (metric: AzureKeyMetric): boolean => {
+          return metric.name === query.metric.metricName;
+        },
+      );
+
+      // A stream delivers a minute at a time: a metric kept coarser is read.
+      if (
+        keyMetric &&
+        !keyMetric.grain &&
+        isAzureStreamedKeyMetric(type, keyMetric.name)
+      ) {
+        streamed.add(getCloudAlertMetricStreamKey(query.metric));
+      }
+    }
+  }
+
+  return Array.from(streamed).sort();
+}
+
+/*
+ * A template's window for a connection read every `readIntervalInMinutes`
+ * (see HOW A RECOMMENDED MONITOR'S WINDOW FOLLOWS ITS CONNECTION'S READS):
+ * its own, plus how much longer its metric waits for a read than at its
+ * cloud's default interval, rounded up to a window a monitor offers. Its
+ * own when the interval is not known, and when its account's stream writes
+ * what it reads (streamedMetrics: getCloudAlertStreamedMetrics).
+ */
+export function getCloudAlertWindow(data: {
+  template: Pick<
+    CloudAlertTemplate,
+    "provider" | "resourceTypes" | "queries" | "rollingTime"
+  >;
+  readIntervalInMinutes?: number | null | undefined;
+  streamedMetrics?: ReadonlyArray<string> | null | undefined;
+}): RollingTime {
+  const interval: number = Number(data.readIntervalInMinutes);
+  const defaultInterval: number | undefined = getCloudConnectionDefinition(
+    data.template.provider,
+  )?.defaultReadIntervalInMinutes;
+
+  if (
+    !Number.isFinite(interval) ||
+    interval <= 0 ||
+    !defaultInterval ||
+    isCloudAlertTemplateStreamed(data.template, data.streamedMetrics)
+  ) {
+    return data.template.rollingTime;
+  }
+
+  const extraMinutes: number =
+    getCloudAlertTemplateReadEveryMinutes(data.template, interval) -
+    getCloudAlertTemplateReadEveryMinutes(data.template, defaultInterval);
+
+  if (extraMinutes <= 0) {
+    return data.template.rollingTime;
+  }
+
+  const neededMs: number =
+    RollingTimeUtil.getWindowInMs(data.template.rollingTime) +
+    extraMinutes * 60 * 1000;
+
+  return (
+    CLOUD_ALERT_WIDENED_WINDOWS.find((window: RollingTime): boolean => {
+      return RollingTimeUtil.getWindowInMs(window) >= neededMs;
+    }) || data.template.rollingTime
+  );
+}
+
+/*
+ * The windows a monitor made from a template may read, whatever its
+ * connection's interval was when it was made: its own, then each an offered
+ * interval widens it to (getCloudAlertWindow), with the interval that does.
+ */
+export function getCloudAlertTemplateWindows(
+  template: Pick<
+    CloudAlertTemplate,
+    "provider" | "resourceTypes" | "queries" | "rollingTime"
+  >,
+): Array<{ rollingTime: RollingTime; readIntervalInMinutes?: number }> {
+  const windows: Array<{
+    rollingTime: RollingTime;
+    readIntervalInMinutes?: number;
+  }> = [{ rollingTime: template.rollingTime }];
+
+  for (const readIntervalInMinutes of CLOUD_CONNECTION_READ_INTERVALS) {
+    const rollingTime: RollingTime = getCloudAlertWindow({
+      template,
+      readIntervalInMinutes,
+    });
+
+    if (
+      !windows.some((window: { rollingTime: RollingTime }): boolean => {
+        return window.rollingTime === rollingTime;
+      })
+    ) {
+      windows.push({ rollingTime, readIntervalInMinutes });
+    }
+  }
+
+  return windows;
+}
+
+/*
+ * The steps a monitor made from a template for this resource may have
+ * besides the one it would be made with now: one at each other window it
+ * may read (getCloudAlertTemplateWindows). A monitor made before its
+ * connection's interval changed keeps its window, and is still the
+ * recommendation it was made from.
+ */
+export function getCloudAlertTemplateEquivalentSteps(
+  template: CloudAlertTemplate,
+  args: CloudAlertTemplateArgs,
+): Array<MonitorStep> {
+  const now: RollingTime = getCloudAlertWindow({
+    template,
+    readIntervalInMinutes: args.readIntervalInMinutes,
+    streamedMetrics: args.streamedMetrics,
+  });
+
+  return getCloudAlertTemplateWindows(template)
+    .filter((window: { rollingTime: RollingTime }): boolean => {
+      return window.rollingTime !== now;
+    })
+    .map(
+      (window: {
+        rollingTime: RollingTime;
+        readIntervalInMinutes?: number;
+      }): MonitorStep => {
+        return template.getMonitorStep({
+          ...args,
+          readIntervalInMinutes: window.readIntervalInMinutes,
+          streamedMetrics: [],
+        });
+      },
+    );
+}
+
+/*
  * The service each cloud's numbers come from, by its own name - a product
  * name, the same in every language.
  */
@@ -358,6 +714,15 @@ export interface CloudAlertTemplateArgs {
    * by, while its metrics name it by its numeric id.
    */
   resourceName?: string | null | undefined;
+  /*
+   * How often its connection reads its metrics (CloudConnectionCatalog's
+   * readIntervalInMinutes), which its window follows (getCloudAlertWindow,
+   * #10028) - unknown, the window its cloud's default interval reads - and
+   * the metrics its account's stream writes instead, within minutes
+   * whatever the interval (getCloudAlertStreamedMetrics).
+   */
+  readIntervalInMinutes?: number | null | undefined;
+  streamedMetrics?: ReadonlyArray<string> | null | undefined;
   onlineMonitorStatusId: ObjectID;
   offlineMonitorStatusId: ObjectID;
   defaultIncidentSeverityId: ObjectID;
@@ -724,7 +1089,12 @@ function describeCriteria(
   template: CloudAlertTemplate,
   args: CloudAlertTemplateArgs,
 ): string {
-  const minutes: string = template.rollingTime
+  // The window the monitor reads, as its connection's reads have it (#10028).
+  const minutes: string = getCloudAlertWindow({
+    template,
+    readIntervalInMinutes: args.readIntervalInMinutes,
+    streamedMetrics: args.streamedMetrics,
+  })
     .replace("Past ", "")
     .trim()
     .toLowerCase();
@@ -907,7 +1277,12 @@ function buildMonitorStep(
   });
 
   step.setMetricMonitor({
-    rollingTime: template.rollingTime,
+    // Its template's, widened as its connection's reads need (#10028).
+    rollingTime: getCloudAlertWindow({
+      template,
+      readIntervalInMinutes: args.readIntervalInMinutes,
+      streamedMetrics: args.streamedMetrics,
+    }),
     metricViewConfig: {
       queryConfigs: template.queries.map(
         (query: CloudAlertQuery): MetricQueryConfigData => {

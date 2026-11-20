@@ -221,6 +221,29 @@ Ikke grupper en måling som allerede er én skalar for hele systemet (et lederfl
 
 Grupperingsattributtets verdier er også tilgjengelige som [malvariabler](/docs/monitor/incident-alert-templating) i tittelen, beskrivelsen og utbedringsnotatene for varselet eller hendelsen: gruppering etter `host.name` lar tittelen lyde `Disk almost full on {{host.name}}`.
 
+## Varsle om et PromQL-uttrykk
+
+Et trinn kan følge med på et PromQL-uttrykk i stedet for målingsspørringer: spørrespråket til Prometheus, over målingene i prosjektet ditt, som på siden [PromQL](/docs/telemetry/promql). Hver serie uttrykket returnerer, vurderes for seg, slik seriene i en gruppert spørring gjør: den åpner sitt eget varsel eller sin egen hendelse, som løses når serien blir frisk igjen eller ikke lenger returneres.
+
+:::steps
+### Bytt til PromQL
+
+I **Måling å følge med på** klikker du på **PromQL**. **Spørringsbygger** fører tilbake til målingsspørringene.
+
+### Skriv uttrykket
+
+Skriv det, for eksempel `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, eller start fra **Legg til et målingsnavn**. Diagrammet under tegner hver serie over tidsvinduet og sier hva som er galt med et uttrykk som ikke kjører.
+
+### Fastsett regelen
+
+I **Når det skal varsles** velger du under **Målt som** hvordan hver serie måles, og deretter et **Tidsvindu**, en **Betingelse** og en **Verdi**, som for målingsspørringer. Uttrykket evalueres hvert minutt i vinduet, så **Hver verdi (hele vinduet)** over **Siste 5 minutter** krever at en serie overskrider i fem minutter, slik `for: 5m` gjør i en varslingsregel i Prometheus.
+:::
+
+- **En sammenligning i uttrykket** beholder bare seriene den gjelder for: `rate(errors_total[5m]) > 0.1` returnerer seriene over 0.1, og ingen andre. Klikk på **Flytt til Når det skal varsles** for å gjøre den til regelens sammenligning, så diagrammet viser hver serie og regelen vurderer hver enkelt.
+- **Høyst 100 serier per kontroll.** Når uttrykket returnerer flere, vurderer en kontroll 100: først seriene med et åpent varsel eller en åpen hendelse, så de andre i rekkefølgen til etikettene deres. Resten vurderes ikke i den kontrollen, så ingenting åpnes eller løses for dem, og redigeringsprogrammet sier at uttrykket returnerer for mange. Aggreger det med `sum by (...)`, eller legg til etikettmatchere.
+- **Grensene for alle PromQL-spørringer gjelder**, over målingene til tjenestene monitoren nevner, eller til hele prosjektet når den ikke nevner noen.
+- **Avviksbetingelsene tilbys ikke**: et uttrykk har ingen egen historikk å sammenligne med. Det har prognosebetingelsene.
+
 ## Feilsøking
 
 :::details Diagrammet viser en overskridelse, men monitoren varslet ikke

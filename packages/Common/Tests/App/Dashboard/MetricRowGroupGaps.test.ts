@@ -19,7 +19,9 @@ import {
   getCloudResourceAddedMetrics,
   getCloudResourceAddedSplitAttributes,
   getCloudResourceAddedStoredNames,
+  getCloudResourceReadIntervalInMinutes,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
 import {
   CloudAddedMetric,
   CloudAddedMetricScope,
@@ -279,6 +281,111 @@ describe("a cloud resource's gaps", () => {
       }),
     ).toBeUndefined();
     expect(getCloudMonitoredResourceRowGroupGaps(null)).toBeUndefined();
+  });
+
+  /*
+   * #10026: a Storage account's used capacity comes once an hour, 2 to 3
+   * hours after its hour, so the last hour holds none of it: it is counted
+   * as not reported only in a range that can hold its newest point, as its
+   * connection reads it.
+   */
+  test("an hourly metric is counted only in a range that can hold its newest point, by its connection's interval", () => {
+    const HOUR_MS: number = 60 * 60 * 1000;
+    const storageGaps: (config: unknown) => GetMetricRowGroupGaps = (
+      config: unknown,
+    ): GetMetricRowGroupGaps => {
+      return getCloudMonitoredResourceRowGroupGaps({
+        cloudProvider: CloudProvider.Azure,
+        cloudResourceType: "Microsoft.Storage/storageAccounts",
+        cloudConnection: { provider: CloudProvider.Azure, config },
+      })!;
+    };
+    const keysIn: (
+      gaps: GetMetricRowGroupGaps,
+      hours: number,
+    ) => Array<string> = (
+      gaps: GetMetricRowGroupGaps,
+      hours: number,
+    ): Array<string> => {
+      const end: Date = new Date();
+
+      return gaps(
+        [],
+        new InBetween<Date>(new Date(end.getTime() - hours * HOUR_MS), end),
+      ).flatMap((item: MetricRowGroupGap): Array<string> => {
+        return item.keys;
+      });
+    };
+
+    // Read every 5 minutes (its cloud's default): 3 hours and 5 minutes.
+    const everyFive: GetMetricRowGroupGaps = storageGaps({});
+
+    expect(keysIn(everyFive, 1)).not.toContain("usedcapacity");
+    expect(keysIn(everyFive, 1)).toContain("transactions");
+    expect(keysIn(everyFive, 3.25)).toContain("usedcapacity");
+
+    // Read every hour: up to 4 hours old.
+    const hourly: GetMetricRowGroupGaps = storageGaps({
+      readIntervalInMinutes: "60",
+    });
+
+    expect(keysIn(hourly, 3.25)).not.toContain("usedcapacity");
+    expect(keysIn(hourly, 4.25)).toContain("usedcapacity");
+
+    // A row that names no connection: as if read every hour.
+    const unknown: GetMetricRowGroupGaps =
+      getCloudMonitoredResourceRowGroupGaps({
+        cloudProvider: CloudProvider.Azure,
+        cloudResourceType: "Microsoft.Storage/storageAccounts",
+      })!;
+
+    expect(keysIn(unknown, 3.25)).not.toContain("usedcapacity");
+    expect(keysIn(unknown, 6)).toContain("usedcapacity");
+
+    // Without a range, as before: every key metric not reported.
+    expect(
+      everyFive([]).flatMap((item: MetricRowGroupGap): Array<string> => {
+        return item.keys;
+      }),
+    ).toContain("usedcapacity");
+  });
+
+  test("how often a resource's connection reads it, from its connection's settings", () => {
+    expect(
+      getCloudResourceReadIntervalInMinutes({
+        cloudProvider: CloudProvider.Azure,
+        cloudConnection: {
+          provider: CloudProvider.Azure,
+          config: { readIntervalInMinutes: "30" },
+        },
+      }),
+    ).toBe(30);
+    // Its cloud's default when it says none, or an interval it does not offer.
+    expect(
+      getCloudResourceReadIntervalInMinutes({
+        cloudConnection: { provider: CloudProvider.AWS, config: {} },
+      }),
+    ).toBe(10);
+    expect(
+      getCloudResourceReadIntervalInMinutes({
+        cloudConnection: {
+          provider: CloudProvider.GCP,
+          config: { readIntervalInMinutes: 7 },
+        },
+      }),
+    ).toBe(5);
+    // No connection, or a cloud OneUptime does not connect: not known.
+    expect(
+      getCloudResourceReadIntervalInMinutes({
+        cloudProvider: CloudProvider.Azure,
+      }),
+    ).toBeUndefined();
+    expect(
+      getCloudResourceReadIntervalInMinutes({
+        cloudConnection: { provider: "oracle", config: {} },
+      }),
+    ).toBeUndefined();
+    expect(getCloudResourceReadIntervalInMinutes(null)).toBeUndefined();
   });
 });
 

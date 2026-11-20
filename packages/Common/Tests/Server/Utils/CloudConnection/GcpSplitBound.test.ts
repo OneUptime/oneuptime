@@ -5,23 +5,33 @@ import {
   CloudConnectionSettings,
   CloudReadResult,
   GcpSplitLearned,
+  GcpSplitUnranked,
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import { storedAttributesOf } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
 import GcpCloudConnector, {
   GCP_SPLIT_LEARN_EMPTY_EVERY_MS,
   GCP_SPLIT_LEARN_EVERY_MS,
   GCP_SPLIT_MAX_LEARNED_RESOURCES,
+  GCP_SPLIT_RANK_RETRY_MS,
   GcpAddedMetricAsk,
   addGcpSplitResourcesLearned,
   getGcpAddedMetricsToAsk,
   getGcpSplitLearnKey,
+  getGcpSplitRankKey,
   getGcpSplitResourcesChecked,
+  getGcpSplitResourcesToLearn,
   getGcpSplitResourcesUnseen,
+  getGcpSplitUnranked,
+  getGcpSplitValuesPerResource,
+  isGcpPromQlRankRefusal,
   isGcpSplitLearnDue,
+  isGcpSplitRankSkipped,
   learnGcpSplitFromRead,
   planGcpSplitReads,
   toGcpSplitLearned,
 } from "../../../../Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
+import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
+import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import GcpMonitoring, {
   GcpSplitValue,
   GcpTimeSeries,
@@ -1538,6 +1548,225 @@ describe("what a read of every value learns", () => {
 
 // ---- A read, end to end, against Google ------------------------------------
 
+/*
+ * #10165: the resources a read learns alone; #10164: a metric PromQL
+ * refused to rank, remembered.
+ */
+describe("what a read learns alone, and what it remembers PromQL refused", () => {
+  // A VM's `count` commands as values a learning ranks, cmd-00 the quietest.
+  function splitValuesOf(
+    instanceId: string,
+    count: number,
+  ): Array<GcpSplitValue> {
+    return commands(0, count - 1).map(
+      (command: string, index: number): GcpSplitValue => {
+        return valueOf(instanceId, command, index + 1);
+      },
+    );
+  }
+
+  const LEARNED: GcpSplitLearned = {
+    at: NOW.toISOString(),
+    via: "promql",
+    capped: [{ resource: vmLabels("1001"), values: commands(0, 9) }],
+    others: [],
+  };
+
+  test("a type's VMs found since, then the ones found without the metric, each once", () => {
+    expect(getGcpSplitResourcesToLearn(undefined)).toEqual([]);
+    expect(getGcpSplitResourcesToLearn(LEARNED)).toEqual([]);
+    expect(
+      getGcpSplitResourcesToLearn({
+        ...LEARNED,
+        pending: [vmLabels("1004")],
+        checked: [vmLabels("1003"), vmLabels("1004")],
+      }),
+    ).toEqual([vmLabels("1004"), vmLabels("1003")]);
+  });
+
+  test("learning them alone: one that reports joins the learning, one that does not stays checked", () => {
+    const learned: GcpSplitLearned = addGcpSplitResourcesLearned({
+      learned: {
+        ...LEARNED,
+        checked: [vmLabels("1003"), vmLabels("1005")],
+      },
+      resources: [vmLabels("1003"), vmLabels("1005")],
+      added: toGcpSplitLearned({
+        values: splitValuesOf("1003", 4),
+        label: SPLIT_LABEL,
+        at: new Date(NOW.getTime() + 10 * MINUTE_MS),
+        via: "promql",
+      }),
+    });
+
+    expect(learned.at).toBe(NOW.toISOString());
+    expect(learned.others).toEqual([vmLabels("1003")]);
+    expect(learned.checked).toEqual([vmLabels("1005")]);
+  });
+
+  test("a refusal's key: its project, metric, aligner and label, whatever the case of its type", () => {
+    const key: string = getGcpSplitRankKey({
+      projectId: PROJECT_ID,
+      metricType: PROCESS_CPU,
+      aligner: "ALIGN_RATE",
+      label: SPLIT_LABEL,
+    });
+
+    expect(key).toMatch(/^[0-9a-f]{32}$/);
+    expect(
+      getGcpSplitRankKey({
+        projectId: PROJECT_ID,
+        metricType: PROCESS_CPU.toUpperCase(),
+        aligner: "ALIGN_RATE",
+        label: SPLIT_LABEL,
+      }),
+    ).toBe(key);
+
+    for (const other of [
+      { projectId: "acme-dev" },
+      { metricType: "agent.googleapis.com/processes/rss_usage" },
+      { aligner: "ALIGN_MEAN" },
+      { label: "pid" },
+    ]) {
+      expect(
+        getGcpSplitRankKey({
+          projectId: PROJECT_ID,
+          metricType: PROCESS_CPU,
+          aligner: "ALIGN_RATE",
+          label: SPLIT_LABEL,
+          ...other,
+        }),
+      ).not.toBe(key);
+    }
+  });
+
+  test("remembered for a day: straight to the list within it, PromQL asked again after", () => {
+    const unranked: GcpSplitUnranked = {
+      at: NOW.toISOString(),
+      projectId: PROJECT_ID,
+      metricType: PROCESS_CPU,
+      aligner: "ALIGN_RATE",
+      label: SPLIT_LABEL,
+    };
+
+    expect(GCP_SPLIT_RANK_RETRY_MS).toBe(24 * 60 * 60 * 1000);
+    expect(isGcpSplitRankSkipped(undefined, NOW)).toBe(false);
+    expect(isGcpSplitRankSkipped(unranked, NOW)).toBe(true);
+    expect(
+      isGcpSplitRankSkipped(
+        unranked,
+        new Date(NOW.getTime() + GCP_SPLIT_RANK_RETRY_MS - 1),
+      ),
+    ).toBe(true);
+    expect(
+      isGcpSplitRankSkipped(
+        unranked,
+        new Date(NOW.getTime() + GCP_SPLIT_RANK_RETRY_MS),
+      ),
+    ).toBe(false);
+    // A time that cannot be read, or one ahead of the clock, is asked again.
+    expect(isGcpSplitRankSkipped({ ...unranked, at: "soon" }, NOW)).toBe(false);
+    expect(
+      isGcpSplitRankSkipped(
+        { ...unranked, at: new Date(NOW.getTime() + MINUTE_MS).toISOString() },
+        NOW,
+      ),
+    ).toBe(false);
+  });
+
+  test("a refusal is PromQL refusing the query: never PromQL down, throttled or unreachable", () => {
+    const failure: (
+      statusCode: number | undefined,
+      message?: string,
+    ) => Error = (
+      statusCode: number | undefined,
+      message: string = "failed",
+    ): Error => {
+      return new LlmProviderError({
+        message,
+        kind: CloudConnectionFailureKind.Other,
+        statusCode,
+      });
+    };
+
+    expect(isGcpPromQlRankRefusal(failure(400))).toBe(true);
+    expect(isGcpPromQlRankRefusal(failure(422))).toBe(true);
+    expect(
+      isGcpPromQlRankRefusal(
+        failure(
+          undefined,
+          "Google Cloud Monitoring agent.googleapis.com/processes/cpu_time values request was refused: bad",
+        ),
+      ),
+    ).toBe(true);
+
+    for (const statusCode of [401, 403, 404, 429, 500, 503]) {
+      expect(isGcpPromQlRankRefusal(failure(statusCode))).toBe(false);
+    }
+
+    expect(isGcpPromQlRankRefusal(failure(undefined, "socket hang up"))).toBe(
+      false,
+    );
+    expect(isGcpPromQlRankRefusal(new Error("timeout"))).toBe(false);
+    expect(isGcpPromQlRankRefusal("400")).toBe(false);
+  });
+
+  test("what a list bills a resource: its values, on average over those that reported, rounded up", () => {
+    expect(getGcpSplitValuesPerResource([])).toBeUndefined();
+    expect(getGcpSplitValuesPerResource(splitValuesOf("1001", 30))).toBe(30);
+    expect(
+      getGcpSplitValuesPerResource([
+        ...splitValuesOf("1001", 30),
+        ...splitValuesOf("1002", 5),
+        // A value twice is one series.
+        ...splitValuesOf("1002", 1),
+      ]),
+    ).toBe(Math.ceil((30 + 5) / 2));
+  });
+
+  test("what More Metrics reads of it, by the metric's project, type, aligner and label", () => {
+    const unranked: GcpSplitUnranked = {
+      at: NOW.toISOString(),
+      projectId: PROJECT_ID,
+      metricType: PROCESS_CPU,
+      aligner: "ALIGN_RATE",
+      label: SPLIT_LABEL,
+      valuesPerResource: 30,
+    };
+    const pullState: CloudConnectionPullState = {
+      gcpSplitUnranked: { [getGcpSplitRankKey(unranked)]: unranked },
+    };
+
+    expect(
+      getGcpSplitUnranked({
+        pullState,
+        projectId: PROJECT_ID,
+        metricType: PROCESS_CPU,
+        aligner: "ALIGN_RATE",
+        label: SPLIT_LABEL,
+      }),
+    ).toEqual(unranked);
+    expect(
+      getGcpSplitUnranked({
+        pullState,
+        projectId: PROJECT_ID,
+        metricType: PROCESS_CPU,
+        aligner: "ALIGN_RATE",
+        label: "pid",
+      }),
+    ).toBeUndefined();
+    expect(
+      getGcpSplitUnranked({
+        pullState: {},
+        projectId: PROJECT_ID,
+        metricType: PROCESS_CPU,
+        aligner: "ALIGN_RATE",
+        label: SPLIT_LABEL,
+      }),
+    ).toBeUndefined();
+  });
+});
+
 describe("a split read against Google, as it answers and bills", () => {
   test("a type's split by a label of 30 values: Google returns the busiest 10 of the VM that has them, and every value of the VM that has 3", async () => {
     const fake: FakeGoogle = createFakeGoogle({
@@ -1903,7 +2132,14 @@ describe("a split read against Google, as it answers and bills", () => {
     });
   });
 
-  test("a VM of the type that never reports the metric - no Ops Agent - is no new VM: an hour of reads learns once, and a VM made since at the next read", async () => {
+  /*
+   * #10165: a VM the learning's read found without the metric (no Ops
+   * Agent) is no new VM - the hour is not learned again for it - but each
+   * read asks PromQL of it alone, which answers nothing while it reports
+   * nothing: one empty answer a read, which the fake bills as one, as it
+   * bills every call at least one.
+   */
+  test("a VM of the type that never reports the metric - no Ops Agent - is no new VM: an hour of reads learns the whole once, asks of it alone for an empty answer, and learns a VM made since at the next read", async () => {
     const fake: FakeGoogle = createFakeGoogle({
       series: {
         [CPU]: [cpuSeries("1001"), cpuSeries("1003")],
@@ -1922,11 +2158,23 @@ describe("a split read against Google, as it answers and bills", () => {
       );
 
       expect(writtenValues(result)).toHaveLength(10);
+      expect(result.warnings).toEqual([]);
       state = { ...result.nextState, ...withVms() };
     }
 
-    expect(fake.queries).toHaveLength(1);
-    expect(billedForSplit(fake)).toBe(10 + 6 * 10);
+    // The whole once, then 1003 alone at each read after - billed nothing.
+    expect(fake.queries).toHaveLength(6);
+    expect(fake.queries[0]).not.toContain("instance_id=");
+
+    for (const query of fake.queries.slice(1)) {
+      expect(query).toContain(
+        'project_id="acme-prod", instance_id="1003", zone="us-central1-a"',
+      );
+    }
+
+    // Empty answers: the fake bills each call one at least.
+    expect(fake.billed.promql).toEqual([10, 1, 1, 1, 1, 1]);
+    expect(billedForSplit(fake)).toBe(10 + 6 * 10 + 5);
     expect(Object.values(state.gcpSplitValues || {})[0]!.checked).toEqual([
       vmLabels("1003"),
     ]);
@@ -1949,10 +2197,22 @@ describe("a split read against Google, as it answers and bills", () => {
       state = { ...last.nextState, ...withVms() };
     }
 
-    // 1004 alone, its 4 values.
-    expect(fake.queries).toHaveLength(2);
-    expect(fake.queries[1]).toContain('instance_id="1004"');
-    expect(fake.billed.promql).toEqual([10, 4]);
+    // 1004 with 1003, its 4 values: never 1001's 10 again.
+    const learnedAlone: Array<string> = fake.queries.filter(
+      (query: string): boolean => {
+        return query.includes("1004");
+      },
+    );
+
+    expect(learnedAlone).toHaveLength(1);
+    expect(learnedAlone[0]).toContain("1003");
+    expect(learnedAlone[0]).not.toContain("1001");
+    // The whole's 10, 1004's 4, and an empty answer at each other read.
+    expect(
+      fake.billed.promql.reduce((sum: number, series: number): number => {
+        return sum + series;
+      }, 0),
+    ).toBe(10 + 4 + 7);
     expect(writtenValues(last!)).toEqual(
       [
         ...commands(20, 29).map((command: string): string => {
@@ -1966,6 +2226,281 @@ describe("a split read against Google, as it answers and bills", () => {
     expect(Object.values(state.gcpSplitValues || {})[0]!.checked).toEqual([
       vmLabels("1003"),
     ]);
+  });
+
+  /*
+   * #10165: a VM found without the metric starts reporting it - the Ops
+   * Agent installed on it - and is read at that very read: learned alone,
+   * ten values at most, never every VM again, and never read for every
+   * value before it is learned. The hour's learning stays on time.
+   */
+  test("a VM without the Ops Agent that gets it is read at its next read, not at the next hour's learning, and billed for itself alone", async () => {
+    const fake: FakeGoogle = createFakeGoogle({
+      series: {
+        [CPU]: [cpuSeries("1001"), cpuSeries("1003")],
+        [PROCESS_CPU]: processesOf("1001", 30),
+      },
+    });
+    const first: CloudReadResult = await readAt(fake, [addition()], withVms());
+    let state: CloudConnectionPullState = { ...first.nextState, ...withVms() };
+
+    expect(Object.values(state.gcpSplitValues || {})[0]!.checked).toEqual([
+      vmLabels("1003"),
+    ]);
+
+    // Ten minutes on, the agent is installed on 1003: 25 processes.
+    fake.setSeries({
+      [CPU]: [cpuSeries("1001"), cpuSeries("1003")],
+      [PROCESS_CPU]: [...processesOf("1001", 30), ...processesOf("1003", 25)],
+    });
+
+    const read: CloudReadResult = await readAt(
+      fake,
+      [addition()],
+      state,
+      new Date(NOW.getTime() + 10 * MINUTE_MS),
+    );
+
+    state = { ...read.nextState, ...withVms() };
+
+    // Learned alone at this read: its busiest 10, of 25.
+    expect(fake.queries).toHaveLength(2);
+    expect(fake.queries[1]).toContain('instance_id="1003"');
+    expect(fake.queries[1]).not.toContain('instance_id="1001"');
+    expect(fake.billed.promql).toEqual([10, 10]);
+    // And read at it, for those 10 alone - where an hour's wait was.
+    expect(writtenValues(read)).toEqual(
+      [
+        ...commands(20, 29).map((command: string): string => {
+          return `1001:${command}`;
+        }),
+        ...commands(15, 24).map((command: string): string => {
+          return `1003:${command}`;
+        }),
+      ].sort(),
+    );
+
+    const learned: GcpSplitLearned = Object.values(
+      state.gcpSplitValues || {},
+    )[0]!;
+
+    // The learning's own now, its hour kept: no longer one to ask of.
+    expect(learned.at).toBe(NOW.toISOString());
+    expect(learned.checked).toBeUndefined();
+    expect(learned.capped).toEqual([
+      { resource: vmLabels("1001"), values: commands(20, 29).reverse() },
+      { resource: vmLabels("1003"), values: commands(15, 24).reverse() },
+    ]);
+
+    // Every read's split calls ask ten values at most of each VM.
+    for (const url of splitLists(fake)) {
+      expect((metricLabelValuesOf(url) || []).length).toBeLessThanOrEqual(10);
+    }
+
+    // The next read asks nothing alone: 1003 is learned.
+    await readAt(
+      fake,
+      [addition()],
+      state,
+      new Date(NOW.getTime() + 15 * MINUTE_MS),
+    );
+
+    expect(fake.queries).toHaveLength(2);
+  });
+
+  /*
+   * The hour's bill, against #10138's: the reads and the hour's learning,
+   * and an empty answer for asking PromQL of a VM without the agent at each
+   * read; when the agent comes, its own learning and its reads from then
+   * on - never every VM's values learned again.
+   */
+  test("an hour of reads of a type with a VM without the agent costs what it did and an empty answer a read, and the VM that gets it costs its own values from then", async () => {
+    const fake: FakeGoogle = createFakeGoogle({
+      series: {
+        [CPU]: [cpuSeries("1001"), cpuSeries("1003")],
+        [PROCESS_CPU]: processesOf("1001", 30),
+      },
+    });
+    let state: CloudConnectionPullState = withVms();
+    let billedBefore: number = 0;
+
+    for (let read: number = 0; read < 12; read++) {
+      // Half an hour in, the agent is installed on 1003: 4 processes.
+      if (read === 6) {
+        billedBefore = billedForSplit(fake);
+        fake.setSeries({
+          [CPU]: [cpuSeries("1001"), cpuSeries("1003")],
+          [PROCESS_CPU]: [
+            ...processesOf("1001", 30),
+            ...processesOf("1003", 4),
+          ],
+        });
+      }
+
+      const result: CloudReadResult = await readAt(
+        fake,
+        [addition()],
+        state,
+        new Date(NOW.getTime() + read * 5 * MINUTE_MS),
+      );
+
+      expect(writtenValues(result)).toHaveLength(read < 6 ? 10 : 14);
+      state = { ...result.nextState, ...withVms() };
+    }
+
+    /*
+     * The first half hour: #10138's, 10 for the learning and 10 a read, and
+     * the empty answer of asking of 1003 alone at each read after the first.
+     */
+    expect(billedBefore).toBe(10 + 6 * 10 + 5);
+    // Then 1003's 4 to learn it, and its 4 at each of the 6 reads.
+    expect(billedForSplit(fake)).toBe(10 + 12 * 10 + 5 + 4 + 6 * 4);
+  });
+
+  /*
+   * #10164: where PromQL refused to rank a metric, the read remembers it
+   * and learns straight from the hour's list, asking PromQL again a day
+   * after; PromQL that is down is no refusal.
+   */
+  test("a metric PromQL refused to rank is learned from the list without asking PromQL again within the day, and asked again a day after", async () => {
+    let refuses: boolean = true;
+    const fake: FakeGoogle = createFakeGoogle({
+      series: {
+        [CPU]: [cpuSeries("1001")],
+        [PROCESS_CPU]: processesOf("1001", 30),
+      },
+      promQl: (): FakeResponse | undefined => {
+        return refuses
+          ? json(
+              {
+                status: "error",
+                errorType: "bad_data",
+                error:
+                  'invalid parameter "query": rate() cannot be applied to this metric',
+              },
+              400,
+            )
+          : undefined;
+      },
+    });
+    const first: CloudReadResult = await readAt(
+      fake,
+      [ownAddition("1001")],
+      withVms(),
+    );
+    const remembered: Array<GcpSplitUnranked> = Object.values(
+      first.nextState.gcpSplitUnranked || {},
+    );
+
+    // Remembered: when, what, and what the list bills a VM.
+    expect(remembered).toEqual([
+      {
+        at: NOW.toISOString(),
+        projectId: PROJECT_ID,
+        metricType: PROCESS_CPU,
+        aligner: "ALIGN_RATE",
+        label: SPLIT_LABEL,
+        valuesPerResource: 30,
+      },
+    ]);
+    expect(fake.queries).toHaveLength(1);
+
+    // An hour on: learned from the list, PromQL not asked.
+    const hourOn: CloudReadResult = await readAt(
+      fake,
+      [ownAddition("1001")],
+      { ...first.nextState, ...withVms() },
+      new Date(NOW.getTime() + 60 * MINUTE_MS),
+    );
+
+    expect(fake.queries).toHaveLength(1);
+    expect(Object.values(hourOn.nextState.gcpSplitValues || {})[0]!.via).toBe(
+      "list",
+    );
+    expect(hourOn.warnings).toEqual([
+      `Cloud Monitoring could not rank the values of ${PROCESS_CPU} by ${SPLIT_LABEL} with PromQL, so its busiest values were learned from all of them this hour.`,
+    ]);
+    expect(writtenValues(hourOn)).toHaveLength(10);
+    // Its first refusal still dates it.
+    expect(Object.values(hourOn.nextState.gcpSplitUnranked || {})[0]!.at).toBe(
+      NOW.toISOString(),
+    );
+
+    // A day on, PromQL is asked again, ranks it now, and the memory goes.
+    refuses = false;
+
+    const dayOn: CloudReadResult = await readAt(
+      fake,
+      [ownAddition("1001")],
+      { ...hourOn.nextState, ...withVms() },
+      new Date(NOW.getTime() + 25 * 60 * MINUTE_MS),
+    );
+
+    expect(fake.queries).toHaveLength(2);
+    expect(Object.values(dayOn.nextState.gcpSplitValues || {})[0]!.via).toBe(
+      "promql",
+    );
+    expect(dayOn.nextState.gcpSplitUnranked).toBeUndefined();
+  });
+
+  test("PromQL that is down is asked again at the next learning: no refusal is remembered", async () => {
+    const fake: FakeGoogle = createFakeGoogle({
+      series: {
+        [CPU]: [cpuSeries("1001")],
+        [PROCESS_CPU]: processesOf("1001", 30),
+      },
+      promQl: (): FakeResponse => {
+        return json({ error: "unavailable" }, 503);
+      },
+    });
+    const first: CloudReadResult = await readAt(
+      fake,
+      [ownAddition("1001")],
+      withVms(),
+    );
+
+    expect(first.nextState.gcpSplitUnranked).toBeUndefined();
+
+    await readAt(
+      fake,
+      [ownAddition("1001")],
+      { ...first.nextState, ...withVms() },
+      new Date(NOW.getTime() + 60 * MINUTE_MS),
+    );
+
+    // Asked again an hour on.
+    expect(fake.queries.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("a refusal of a metric no longer added is not kept", async () => {
+    const fake: FakeGoogle = createFakeGoogle({
+      series: {
+        [CPU]: [cpuSeries("1001")],
+        [PROCESS_CPU]: processesOf("1001", 30),
+      },
+      promQl: (): FakeResponse => {
+        return json(
+          { status: "error", errorType: "bad_data", error: "no" },
+          400,
+        );
+      },
+    });
+    const first: CloudReadResult = await readAt(
+      fake,
+      [ownAddition("1001")],
+      withVms(),
+    );
+
+    expect(Object.keys(first.nextState.gcpSplitUnranked || {})).toHaveLength(1);
+
+    const removed: CloudReadResult = await readAt(
+      fake,
+      [],
+      { ...first.nextState, ...withVms() },
+      new Date(NOW.getTime() + 5 * MINUTE_MS),
+    );
+
+    expect(removed.nextState.gcpSplitUnranked).toBeUndefined();
   });
 
   test("VMs' own additions are learned together, narrowed to their own VMs, and read each for its values", async () => {

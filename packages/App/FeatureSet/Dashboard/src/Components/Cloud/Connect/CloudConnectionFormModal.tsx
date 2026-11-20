@@ -67,9 +67,12 @@ import {
 } from "./CloudConnectionForm";
 import CloudConnectionTestPanel from "./CloudConnectionTestPanel";
 import {
+  CloudTemplate,
   PASTE_HOLDS_NOTHING,
   PASTE_NOTHING_YET,
   PASTE_STILL_MISSING,
+  drawCloudTemplate,
+  getCloudReadIntervalRaisedWords,
 } from "./CloudConnectionWords";
 import CloudSetupCommand from "./CloudSetupCommand";
 
@@ -555,6 +558,39 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
         : {}),
       ...(field.defaultValue !== undefined
         ? { defaultValue: field.defaultValue }
+        : {}),
+      /*
+       * Raised, it says what becomes of the monitors made from its
+       * resources' Recommendations: each keeps its window (#10028).
+       */
+      ...(isEditing && field.key === READ_INTERVAL_FIELD_KEY
+        ? {
+            getFooterElement: (
+              values: FormValues<JSONObject>,
+            ): ReactElement | undefined => {
+              const words: CloudTemplate | undefined =
+                getCloudReadIntervalRaisedWords({
+                  definition,
+                  savedValue: (props.connection?.config || {})[
+                    READ_INTERVAL_FIELD_KEY
+                  ],
+                  chosenValue: readFormText(
+                    (values as JSONObject)[
+                      configFieldName(READ_INTERVAL_FIELD_KEY)
+                    ] as JSONValue | undefined,
+                  ),
+                });
+
+              return words ? (
+                <div
+                  className="mt-2 text-sm text-amber-700"
+                  data-testid="cloud-connection-read-interval-raised"
+                >
+                  {drawCloudTemplate(translator, words)}
+                </div>
+              ) : undefined;
+            },
+          }
         : {}),
       collapsibleSection: moreFields,
     });

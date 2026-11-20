@@ -2,7 +2,11 @@ import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ProxmoxGuestStopCause,
+  getProxmoxGuestStopCause,
+} from "Common/Utils/Proxmox/ProxmoxGuestPowerTask";
 import {
   StorageUsage,
   StorageUsageLevel,
@@ -12,6 +16,7 @@ import {
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
+  ResourceAttentionSince,
   ResourceAttentionText,
   ResourceHealth,
   getResourceAttentionHealth,
@@ -577,6 +582,161 @@ function guestStoppedCauses(
   return causes;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Who or what stopped a guest that should be running, and when (#10017)
+ * ---------------------------------------------------------------------------
+ *
+ * From the guest's last power task in the cluster's task log - the last
+ * task that started, stopped, shut down, hibernated or restored it - as the
+ * Proxmox AI agent reads it for each stopped guest every few minutes
+ * (Common/Utils/Proxmox/ProxmoxGuestPowerTask) and the ingest keeps it on
+ * the guest's row (ProxmoxResource.lastPowerTask*), cleared once a scrape
+ * sees the guest running. A reading more than a day old is left out: the
+ * agent reads far more often, so one that old means it stopped reading, and
+ * a later task may say otherwise.
+ */
+export const PROXMOX_POWER_TASK_STALE_MS: number = 24 * 60 * 60 * 1000;
+
+const SINCE_STOPPED_BY: string = translationKey("Stopped by {{user}} {{time}}");
+const SINCE_SHUT_DOWN_BY: string = translationKey(
+  "Shut down by {{user}} {{time}}",
+);
+const SINCE_STOPPED_THROUGH_HA_BY: string = translationKey(
+  "Stopped through HA by {{user}} {{time}}",
+);
+const SINCE_HIBERNATED_BY: string = translationKey(
+  "Hibernated by {{user}} {{time}}",
+);
+const SINCE_RESTORED_BY: string = translationKey(
+  "Restored from a backup by {{user}} {{time}}",
+);
+const SINCE_START_FAILED: string = translationKey("Last start failed {{time}}");
+const SINCE_LAST_STARTED: string = translationKey("Last started {{time}}");
+
+/*
+ * Its last start went well and no task stopped it after: Proxmox did not
+ * stop it. Someone shut it down from inside, or it crashed (its process
+ * died, or the host's OOM killer took it).
+ */
+const EXPLANATION_STOPPED_WITHOUT_TASK: string = translationKey(
+  "No Proxmox task stopped it since it last started: it was shut down from inside, or it crashed.",
+);
+
+/*
+ * What HA's state means, as Proxmox VE's HA manager documents it: in error,
+ * HA tried to start or move it and gave up, and only someone disabling it,
+ * fixing the cause and starting it again brings it back; in fence, its node
+ * is outside the quorate part of the cluster, and HA recovers it on another
+ * node once that node is fenced.
+ */
+const EXPLANATION_HA_ERROR: string = translationKey(
+  "HA could not start it and stopped trying. Set its HA state to disabled, fix what keeps it from starting, then set it to started.",
+);
+const EXPLANATION_HA_FENCE: string = translationKey(
+  "Its node is outside the quorate part of the cluster. Once that node is fenced, HA starts it on another node.",
+);
+
+export interface ProxmoxGuestStopFacts {
+  // "Stopped by alice@pve 2 hours ago", "Last start failed 10 minutes ago".
+  since: ResourceAttentionSince | null;
+  // A whole sentence, in English: looked up where it is drawn.
+  explanation: string | null;
+  // Proxmox's own words for why its last start failed, as it wrote them.
+  message: string | null;
+}
+
+function dateOf(value: Date | string | undefined | null): Date | null {
+  if (!value) {
+    return null;
+  }
+  const date: Date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+/*
+ * What the task log says about a stopped guest: who or what stopped it and
+ * when, or that its last start failed and why, or that nothing in Proxmox
+ * stopped it. Null for a guest that runs, one the agent has not read (or
+ * not for a day), or a task this does not word.
+ */
+export function getProxmoxGuestStopFacts(
+  row: ProxmoxResource,
+  now: Date,
+): ProxmoxGuestStopFacts | null {
+  if (row.kind !== "Guest" || row.isUp === true || !row.lastPowerTaskType) {
+    return null;
+  }
+  const at: Date | null = dateOf(row.lastPowerTaskAt);
+  const readAt: Date | null = dateOf(row.powerTaskReadAt);
+  if (
+    !at ||
+    !readAt ||
+    now.getTime() - readAt.getTime() > PROXMOX_POWER_TASK_STALE_MS
+  ) {
+    return null;
+  }
+
+  const user: string = (row.lastPowerTaskUser || "").trim();
+  const byUser: (template: string) => ProxmoxGuestStopFacts | null = (
+    template: string,
+  ): ProxmoxGuestStopFacts | null => {
+    return user
+      ? {
+          since: { at: at, template: template, values: { user: user } },
+          explanation: null,
+          message: null,
+        }
+      : null;
+  };
+
+  switch (
+    getProxmoxGuestStopCause({
+      type: row.lastPowerTaskType,
+      status: row.lastPowerTaskStatus || "",
+    })
+  ) {
+    case ProxmoxGuestStopCause.StoppedBy:
+      return byUser(SINCE_STOPPED_BY);
+    case ProxmoxGuestStopCause.ShutDownBy:
+      return byUser(SINCE_SHUT_DOWN_BY);
+    case ProxmoxGuestStopCause.StoppedThroughHaBy:
+      return byUser(SINCE_STOPPED_THROUGH_HA_BY);
+    case ProxmoxGuestStopCause.HibernatedBy:
+      return byUser(SINCE_HIBERNATED_BY);
+    case ProxmoxGuestStopCause.RestoredBy:
+      return byUser(SINCE_RESTORED_BY);
+    case ProxmoxGuestStopCause.StartFailed:
+      return {
+        since: { at: at, template: SINCE_START_FAILED },
+        explanation: null,
+        message: (row.lastPowerTaskStatus || "").trim() || null,
+      };
+    case ProxmoxGuestStopCause.StoppedWithoutTask:
+      return {
+        since: { at: at, template: SINCE_LAST_STARTED },
+        explanation: EXPLANATION_STOPPED_WITHOUT_TASK,
+        message: null,
+      };
+    default:
+      return null;
+  }
+}
+
+// What HA's error or fence state means for a guest, in English.
+function haExplanationOf(row: ProxmoxResource): string | null {
+  if (row.kind !== "Guest") {
+    return null;
+  }
+  if (row.haState === "error") {
+    return EXPLANATION_HA_ERROR;
+  }
+  if (row.haState === "fence") {
+    return EXPLANATION_HA_FENCE;
+  }
+  return null;
+}
+
 function sameReason(
   a: ResourceAttentionText,
   b: ResourceAttentionText,
@@ -594,6 +754,12 @@ export function getProxmoxProblemItems(data: {
   now: Date;
   // A row older than this has stopped being reported: when it last was says so.
   staleMs: number;
+  /*
+   * Words a row's explanation in the reader's language - what HA's state
+   * means, that nothing in Proxmox stopped a guest. A list that draws no
+   * explanation (the Backups card's) leaves it out.
+   */
+  translator?: Translator | undefined;
 }): Array<ResourceAttentionItem> {
   const nodesByName: Map<string, ProxmoxResource> = new Map();
   for (const row of data.rows) {
@@ -661,6 +827,34 @@ export function getProxmoxProblemItems(data: {
       const failedAt: Date = new Date(row.lastBackupAt);
       if (Number.isFinite(failedAt.getTime())) {
         item.since = { at: failedAt, template: SINCE_BACKUP_FAILED };
+      }
+    }
+
+    /*
+     * A guest that should be running, or one HA gave up on: who or what
+     * stopped it and when, from its task log (#10017), and what HA's state
+     * means and what to do.
+     */
+    if (
+      kind === "Guest" &&
+      (data.problem.kind === "guestsStopped" ||
+        (data.problem.kind === "haState" && isHaCritical(row)))
+    ) {
+      const facts: ProxmoxGuestStopFacts | null = getProxmoxGuestStopFacts(
+        row,
+        data.now,
+      );
+      if (facts?.since) {
+        item.since = facts.since;
+      }
+      if (facts?.message) {
+        item.message = facts.message;
+      }
+      const explanation: string | null =
+        haExplanationOf(row) || facts?.explanation || null;
+      if (explanation && data.translator) {
+        item.explanation =
+          data.translator.translateText(explanation) || explanation;
       }
     }
 

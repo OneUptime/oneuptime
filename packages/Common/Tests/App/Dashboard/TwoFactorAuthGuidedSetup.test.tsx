@@ -31,6 +31,10 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import UserUtil from "../../../UI/Utils/User";
 import UiAnalytics from "../../../UI/Utils/Analytics";
+import {
+  isReauthenticationStatusRequest,
+  reauthenticationStatusAnswer,
+} from "../../Helpers/ReauthenticationStatus";
 import WebAuthnTestUtil, {
   registrationOptions,
 } from "../../Utils/WebAuthnTestUtil";
@@ -211,6 +215,17 @@ beforeEach(() => {
         options: Parameters<typeof API.get>[0],
       ): Promise<HTTPResponse<JSONObject>> => {
         const url: string = options.url?.toString() || "";
+        /*
+         * A security key's registration confirms the session first
+         * (#10155): here it has, so the browser's prompt opens at once.
+         */
+        if (isReauthenticationStatusRequest(url)) {
+          return new HTTPResponse<JSONObject>(
+            200,
+            reauthenticationStatusAnswer(true),
+            {},
+          );
+        }
         if (!url.endsWith("/user/two-factor-auth-status")) {
           throw new Error(`Unexpected request: ${url}`);
         }

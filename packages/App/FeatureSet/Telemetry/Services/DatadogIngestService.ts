@@ -20,6 +20,10 @@ import DatadogIntake, {
   DatadogLogsTranslation,
   DatadogMetricsTranslation,
 } from "../Utils/Compatible/DatadogIntake";
+import DatadogTraces, {
+  DatadogTracerProtocol,
+  DatadogTracesTranslation,
+} from "../Utils/Compatible/DatadogTraces";
 import CompatibleIngestService, {
   CompatibleOtlpBatch,
 } from "./CompatibleIngestService";
@@ -31,17 +35,20 @@ import CompatibleIngestService, {
  * /api/v2/logs on the host:port logs_dd_url names. See DatadogIntake for
  * what each payload becomes.
  *
- * Answered as Datadog's intake answers: 202 with {} for logs, sketches and
- * the Agent's metadata, {"status": "ok"} for v1 series and check runs,
- * {"errors": []} for v2 series, {"valid": true} for a key it validates; a
- * body it cannot read is a 400 with {"errors": ["<why>"]}, and one over the
- * limits (DatadogIntake) a 413 - the Agent drops either payload and logs
- * why - and a queue that cannot take it a 503 (the Agent retries).
+ * Answered as Datadog's intake answers: 202 with {} for logs, sketches,
+ * APM traces and stats and the Agent's metadata, {"status": "ok"} for v1
+ * series and check runs, {"errors": []} for v2 series, {"valid": true} for
+ * a key it validates; and as the Agent answers a tracer: {"rate_by_service":
+ * {}} for /v0.4 and /v0.5 traces (no rates: the tracer keeps its own), "OK"
+ * for /v0.3. A body it cannot read is a 400 with {"errors": ["<why>"]},
+ * and one over the limits (DatadogIntake, DatadogTraces) a 413 - the Agent
+ * and the tracers drop either payload and log why - and a queue that cannot
+ * take it a 503 (they retry).
  *
- * Logs and metrics are counted against their own signals' ingestion
- * budgets as they are queued (CompatibleIngestService), never refused at
- * the door: the Agent reports a 403 as an invalid API key. Each is counted
- * at the size of its body decompressed, as an OTLP export is.
+ * Logs, metrics and traces are counted against their own signals'
+ * ingestion budgets as they are queued (CompatibleIngestService), never
+ * refused at the door: the Agent reports a 403 as an invalid API key. Each
+ * is counted at the size of its body decompressed, as an OTLP export is.
  */
 export default class DatadogIngestService {
   public static setProductType(
@@ -50,6 +57,16 @@ export default class DatadogIngestService {
     next: NextFunction,
   ): void {
     (req as TelemetryRequest).productType = ProductType.Metrics;
+    next();
+  }
+
+  // The APM routes carry traces.
+  public static setTracesProductType(
+    req: ExpressRequest,
+    _res: ExpressResponse,
+    next: NextFunction,
+  ): void {
+    (req as TelemetryRequest).productType = ProductType.Traces;
     next();
   }
 
@@ -87,6 +104,96 @@ export default class DatadogIngestService {
   ): void {
     drainCloudStreamBody(req);
     res.status(202).json({});
+  }
+
+  /*
+   * The APM stats the Agent computes from its traces (/api/v0.2/stats):
+   * OneUptime computes its own from the spans, so they are not kept - but
+   * accepted, so the Agent reports no error for them.
+   */
+  public static acceptTraceStats(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): void {
+    drainCloudStreamBody(req);
+    res.status(202).json({});
+  }
+
+  // POST /api/v0.2/traces: the Agent's AgentPayload, gzip or zstd.
+  @CaptureSpan()
+  public static async ingestTraces(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const body: Buffer = await CompatibleIngestBody.read(req);
+      const translation: DatadogTracesTranslation =
+        DatadogTraces.agentPayloadToOtlp(body, {
+          serviceName: DatadogIngestService.serviceNameOf(req),
+        });
+
+      await DatadogIngestService.enqueue(req, body, {
+        traces: translation.traces,
+      });
+
+      res.status(202).json({});
+    } catch (error) {
+      DatadogIngestService.fail(error, res, next);
+    }
+  }
+
+  /*
+   * PUT or POST /v0.3/traces, /v0.4/traces, /v0.5/traces: what a tracing
+   * library sends the Agent, sent here with no Agent in between.
+   */
+  public static ingestTracerTraces(
+    protocol: DatadogTracerProtocol,
+  ): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const body: Buffer = await CompatibleIngestBody.read(req);
+        const translation: DatadogTracesTranslation =
+          DatadogTraces.tracerTracesToOtlp(body, {
+            protocol: protocol,
+            isJson: protocol !== "v0.5" && DatadogIngestService.isJson(req),
+            serviceName: DatadogIngestService.serviceNameOf(req),
+            tracer: {
+              language: headerValueToString(req.headers["datadog-meta-lang"]),
+              languageVersion: headerValueToString(
+                req.headers["datadog-meta-lang-version"],
+              ),
+              tracerVersion: headerValueToString(
+                req.headers["datadog-meta-tracer-version"],
+              ),
+              containerId: headerValueToString(
+                req.headers["datadog-container-id"],
+              ),
+            },
+          });
+
+        await DatadogIngestService.enqueue(req, body, {
+          traces: translation.traces,
+        });
+
+        if (protocol === "v0.3") {
+          res.status(200).type("text/plain").send("OK\n");
+          return;
+        }
+
+        res.status(200).json({ rate_by_service: {} });
+      } catch (error) {
+        DatadogIngestService.fail(error, res, next);
+      }
+    };
   }
 
   @CaptureSpan()

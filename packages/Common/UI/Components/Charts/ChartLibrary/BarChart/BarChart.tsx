@@ -65,6 +65,10 @@ import {
   ChartValueAxesPlan,
   useValueAxesTicks,
 } from "../Utils/UseValueAxesTicks";
+import PlotHeightProbe, {
+  PlotRoom,
+  usePlotRoom,
+} from "../Utils/PlotHeightProbe";
 import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 import {
   PreparedTooltipEntries,
@@ -745,6 +749,13 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * precision when the chart steps the axis itself (ValueAxisTicks).
    */
   valueFormatter?: ValueAxisFormatter;
+  /*
+   * For a value axis of spans of time, the seconds one value stands for
+   * (1 for seconds, 0.001 for milliseconds): it steps in natural units of
+   * time, 15 sec, 5 min, 30 min, 6 h (issue #10118). Left out, the axis
+   * steps in round decimal steps.
+   */
+  valueDurationUnitInSeconds?: number | undefined;
   startEndOnly?: boolean;
   showXAxis?: boolean;
   showYAxis?: boolean;
@@ -865,6 +876,7 @@ const BarChart: React.ForwardRefExoticComponent<
       secondYAxis: requestedSecondYAxis,
       ownScales: requestedOwnScales,
       onLegendExtraRowsHeightChange,
+      valueDurationUnitInSeconds,
       ...other
     } = props;
     /*
@@ -978,12 +990,14 @@ const BarChart: React.ForwardRefExoticComponent<
     const yAxisDomain: AxisDomain = yAxisDomainEnds;
     const secondYAxisDomain: AxisDomain = secondYAxisDomainEnds;
     /*
-     * Each value axis stepped so its neighbouring ticks read apart, and as
-     * wide as its widest tick (issue #10079): stacked bars reach each
+     * Each value axis stepped evenly in round steps of its unit, and as
+     * wide as its widest tick (issues #10079, #10117): stacked bars reach each
      * stack's sums. The value axis of a vertical chart runs along its
      * bottom, and a chart of shares always reads 0% to 100%: recharts steps
      * both as it always has.
      */
+    // The ticks the plot has room for, once recharts has laid it out.
+    const plotRoom: PlotRoom = usePlotRoom();
     const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
       data: data,
       categories: categories,
@@ -994,13 +1008,16 @@ const BarChart: React.ForwardRefExoticComponent<
       secondDomain: secondYAxisDomainEnds,
       allowDecimals: allowDecimals,
       valueFormatter: valueFormatter,
+      durationUnitInSeconds: valueDurationUnitInSeconds,
+      mostTicks: plotRoom.mostTicks,
       yAxisWidth: yAxisWidth,
       isStacked: type === "stacked",
       isFirstAxisLeftToRecharts: layout === "vertical" || type === "percent",
     });
     /*
      * Each category's value in the tooltip, in the unit of the axis it is
-     * on, to the figures that axis's ticks are written with.
+     * on, to that axis's resolution where its own figures cannot tell two
+     * ticks apart.
      */
     const categoryValueFormatter: (
       category: string,
@@ -1013,8 +1030,8 @@ const BarChart: React.ForwardRefExoticComponent<
         secondYAxis: secondYAxis,
         ownScales: ownScales,
         categoryValueFormatters: categoryValueFormatters,
-        firstAxisPrecision: valueAxes.first.ticks.precision,
-        secondAxisPrecision: valueAxes.second?.ticks.precision,
+        firstAxisPrecision: valueAxes.first.ticks.tooltipPrecision,
+        secondAxisPrecision: valueAxes.second?.ticks.tooltipPrecision,
       });
     };
     const hasOnValueChange: boolean = Boolean(onValueChange);
@@ -1156,6 +1173,8 @@ const BarChart: React.ForwardRefExoticComponent<
               layout={layout}
               barCategoryGap={barCategoryGap ?? "10%"}
             >
+              {/* Hands the axes the plot's height, so a short one takes fewer ticks. */}
+              <PlotHeightProbe onPlotHeight={plotRoom.onPlotHeight} />
               {showGridLines ? (
                 <CartesianGrid
                   className={cx("stroke-gray-100")}

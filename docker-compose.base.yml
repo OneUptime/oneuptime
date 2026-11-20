@@ -278,6 +278,12 @@ x-common-runtime-variables: &common-runtime-variables
   SOURCE_MAP_MAX_BYTES_PER_RESOLVE: ${SOURCE_MAP_MAX_BYTES_PER_RESOLVE:-}
   SOURCE_MAP_RETENTION_DAYS: ${SOURCE_MAP_RETENTION_DAYS:-}
 
+  # The most a request body may be, and the JSON values it may hold, on a
+  # route not listed as taking large bodies (see config.example.env). Blank
+  # means 1 MiB and 100,000 values.
+  REQUEST_BODY_MAX_BYTES: ${REQUEST_BODY_MAX_BYTES:-}
+  REQUEST_BODY_MAX_JSON_VALUES: ${REQUEST_BODY_MAX_JSON_VALUES:-}
+
   # How many appending proxies of your own sit in front of the app. Decides
   # which X-Forwarded-For entry counts as the client for IP allowlists and rate
   # limits. Defaulted because an existing config.env upgraded in place will not

@@ -1229,6 +1229,19 @@ HOST_MOUNTS.forEach((mount, index) => {
     },
   );
 });
+/*
+ * Two spans of time (#10118), in seconds. The gateway's nightly batch job
+ * runs an hour and a half, give or take two seconds: the issue's axis, which
+ * read "1.5000 hours", "1.5003 hours". The host's uptime counts up from twelve
+ * days and five hours at the window's start, a second a second.
+ */
+series("batch.job.duration", { ...hostAttributes }, (time) => {
+  return wave(time, { base: 5400, amplitude: 1.3, period: 13, phase: 0.4 });
+});
+const HOST_BOOTED_AT = NOW.getTime() - 12 * DAY - 5.5 * HOUR;
+series("system.uptime", { ...hostAttributes }, (time) => {
+  return Math.round((time - HOST_BOOTED_AT) / SECOND);
+});
 [
   ["1", "systemd", 0.001],
   ["812", "envoy", 0.18],
@@ -1348,6 +1361,8 @@ const METRIC_UNITS = {
   "system.filesystem.usage": "By",
   "system.network.io": "By",
   "process.cpu.utilization": "1",
+  "batch.job.duration": "s",
+  "system.uptime": "s",
 };
 Object.entries(METRIC_UNITS)
   .sort(([left], [right]) => {

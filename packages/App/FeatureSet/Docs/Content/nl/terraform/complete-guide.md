@@ -11,7 +11,7 @@ Deze handleiding behandelt wat er na je eerste apply komt: hoe de provider zijn 
 
 ## De provider configureren
 
-De provider heeft twee instellingen. Elke instelling komt uit het provider-blok, of anders uit een omgevingsvariabele:
+De provider maakt verbinding met twee instellingen. Elke instelling komt uit het provider-blok, of anders uit een omgevingsvariabele:
 
 | Instelling | Omgevingsvariabele | Als geen van beide is ingesteld |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` is het adres van je OneUptime, zonder `/api`: de provider voegt `https://` toe als het adres geen schema heeft, en `/api` aan het einde. `api_key` is gevoelig, dus Terraform drukt hem nooit af.
+
+Een derde instelling, `exclusive_lists`, bepaalt wat de labels van een configuratie bevatten: zie [Labels en andere lijsten waar OneUptime ook aan toevoegt](#labels-en-andere-lijsten-waar-oneuptime-ook-aan-toevoegt).
 
 De sleutel moet een API-sleutel zijn van het project dat je beheert, met toestemming om elk soort record in je configuratie aan te maken, te lezen, te wijzigen en te verwijderen: zie [Een API-sleutel voor het project aanmaken](/docs/terraform/quick-start#een-api-sleutel-voor-het-project-aanmaken). De master-API-sleutel van een zelf gehoste OneUptime hoort bij geen enkel project, dus een aanmaak met die sleutel mislukt met `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Labels en andere lijsten waar OneUptime ook aan toevoegt
+
+OneUptime voegt zelf toe aan sommige lijsten van een record: een labelregel voegt zijn labels toe aan de records die erbij passen, een bereikbaarheidsregel voegt zijn beleid toe aan de incidenten en waarschuwingen die erbij passen, en de monitorregels van een SLO koppelen de monitors die erbij passen. De referentie zegt het bij elk zo'n attribuut: "OneUptime adds to it too, on its own". Een configuratie die er een instelt, houdt de items die ze opsomt, en laat de rest:
+
+- **Wat de configuratie opsomt, wordt toegevoegd**, en teruggezet als iemand het weghaalt.
+- **Wat je uit de configuratie haalt, wordt weggehaald.** `labels = []` haalt elk label weg dat de configuratie opsomde.
+- **Wat OneUptime of een persoon toevoegt, blijft**, en geen plan toont het als een wijziging.
+- **Weggelaten uit de configuratie** is de lijst van OneUptime: Terraform voegt er niets aan toe en haalt er niets af.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+De state bevat de labels die de configuratie opsomt en die het record heeft, niet elk label van het record: de data source met dezelfde naam leest ze allemaal. Een apply voegt losse labels toe en haalt ze weg, dus een label dat een regel toevoegt terwijl die loopt, blijft ook.
+
+Een import neemt elk label van het record over: som ze allemaal op, zoals de Terraform-pagina van het record in het dashboard doet, anders toont het plan dat de weggelaten labels worden weggehaald. Na een upgrade vanaf een eerdere versie van de provider toont het eerste plan van een configuratie die labels instelt dat ze worden ingesteld: de apply voegt toe wat het record mist, en haalt niets weg.
+
+Om elke zo'n lijst precies te houden op wat de configuratie opsomt, zoals eerdere versies deden, stel je `exclusive_lists` in het provider-blok in. Terraform haalt dan bij elke apply een label weg dat een regel toevoegt:
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

@@ -31,6 +31,8 @@ import UserTwoFactorBackupCode from "../../Models/DatabaseModels/UserTwoFactorBa
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import Response from "../Utils/Response";
 import logger from "../Utils/Logger";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
+import CommonAPI from "./CommonAPI";
 
 /**
  * The two routes a signed-in user needs to manage their recovery codes.
@@ -93,6 +95,23 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
               userId: userId,
             });
 
+          /*
+           * A new set voids every code still unused, and is ten second steps
+           * of its own - with the password, ten ways in. So a set in place of
+           * codes still unused waits until the session has confirmed it's
+           * its person's (#10155), the step "re-prompting for the password
+           * here" below waited for. A first set, or one in place of codes all
+           * spent, takes nothing from anyone, and is what the sign-in page
+           * and the mobile app offer the moment a sign-in with a second step
+           * finishes with none left: it asks nothing, and its owner is still
+           * emailed.
+           */
+          if (previousStatus.unused > 0) {
+            await Reauthentication.assertConfirmed(
+              await CommonAPI.getDatabaseCommonInteractionProps(req),
+            );
+          }
+
           const codes: Array<string> =
             await UserTwoFactorBackupCodeService.regenerateForUser({
               userId: userId,
@@ -113,19 +132,16 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
            * Tell the account holder, at their address rather than in this
            * browser.
            *
-           * This route is the destructive one and it is the one with the least
-           * standing in front of it: a session alone -- no password, no second
-           * factor -- silently voids every recovery code the user is holding.
-           * Somebody who has stolen a session can therefore remove the owner's
-           * way back in and leave no trace the owner would ever look at, and
-           * the owner finds out at the next sign-in they cannot complete.
+           * This route is the destructive one. It used to have a session
+           * alone -- no password, no second factor -- in front of it, so a
+           * stolen session could void every recovery code the user held and
+           * leave no trace the owner would ever look at. Replacing unused
+           * codes now waits for the session to confirm it's its person's
+           * (#10155, above); a first set does not, and the mail is how its
+           * owner hears of it.
            *
-           * The mail does not prevent that; it makes it visible, which is the
-           * same bargain `sendTwoFactorBackupCodeUsedEmail` strikes on the
-           * login path. Re-prompting for the password here would be stronger
-           * still, and is the obvious next step -- it needs a re-authentication
-           * mechanism this codebase does not have yet, so it is deliberately
-           * not invented on this route alone.
+           * The mail makes either visible, which is the same bargain
+           * `sendTwoFactorBackupCodeUsedEmail` strikes on the login path.
            *
            * Detached and never awaited: an unreachable mail server must not
            * fail a regeneration that has already replaced the user's codes,

@@ -50,7 +50,7 @@ Algunas consultas para empezar:
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime almacena las métricas al estilo de OpenTelemetry. PromQL las lee con 
 
 | En OneUptime | En PromQL |
 | --- | --- |
-| Un gauge `system.cpu.utilization` | `system_cpu_utilization` |
-| Un contador `http.requests` | `http_requests`, o `http_requests_total` |
-| Un histograma `http.server.request.duration` | `http_server_request_duration_bucket` (con `le`), `_count` y `_sum` |
+| Un gauge `system.cpu.utilization`, en `1` | `system_cpu_utilization_ratio`, o `system_cpu_utilization` |
+| Un gauge `system.memory.usage`, en `By` | `system_memory_usage_bytes`, o `system_memory_usage` |
+| Un contador `http.requests` | `http_requests_total`, o `http_requests` |
+| Un histograma `http.server.request.duration`, en `s` | `http_server_request_duration_seconds_bucket` (con `le`), `_count` y `_sum`, o los mismos sin `_seconds` |
 | Un summary `rpc.latency` | `rpc_latency` (con `quantile`), `_count` y `_sum` |
 | Un atributo `http.route` | La etiqueta `http_route` |
 | Un atributo de recurso `service.name` | La etiqueta `resource_service_name`, y `job` |
 | Un atributo de recurso `service.instance.id` | La etiqueta `resource_service_instance_id`, e `instance` |
 
 - **Los puntos y los guiones se convierten en guiones bajos** en los nombres de métricas y de etiquetas. Para nombrar una métrica o una etiqueta exactamente como está almacenada, pon su nombre entre comillas, como hace Prometheus 3: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **La unidad forma parte del nombre**, como la escriben Prometheus 3 y el OpenTelemetry Collector: `s` añade `_seconds`, `By` `_bytes`, `By/s` `_bytes_per_second` y `%` `_percent`; un gauge en `1` termina en `_ratio` y un contador en `_total`, y una unidad entre llaves, como `{request}`, no añade nada. El nombre sin su unidad también encuentra la métrica, y **Añadir un nombre de métrica** lista cada métrica con ella.
 - **Los contadores delta se suman** desde el inicio del intervalo de tiempo de la consulta, así que `rate()` e `increase()` los leen como cualquier otro contador.
 - **Los histogramas exponenciales** tienen `_count` y `_sum`, pero no buckets.
 
@@ -144,6 +146,7 @@ Cada consulta está acotada, para que un panel con muchos gráficos no pueda sob
 | Tiempo que puede durar la evaluación | 30 segundos |
 | Hasta dónde mira hacia atrás un selector para encontrar la última muestra de una serie | 5 minutos |
 | El paso de una subconsulta, cuando la consulta lo omite | 1 minuto |
+| Consultas que un proyecto puede enviar cada minuto | 1200 |
 
 ## Solución de problemas
 
@@ -159,10 +162,15 @@ Su nombre en PromQL tiene guiones bajos donde el nombre almacenado tiene puntos,
 La consulta pide más de lo que puede abarcar una lectura. Añade comparadores de etiquetas, acorta el intervalo de tiempo o usa un paso mayor.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+Los paneles, Grafana y los scripts del proyecto enviaron juntos más de 1200 consultas a la API en este minuto. Los paneles vuelven a cargar en el minuto siguiente; actualiza los paneles con menos frecuencia para quedarte por debajo.
+:::
+
 ## Próximos pasos
 
 :::cards
 - [Explorador de métricas](/docs/telemetry/metrics-explorer): Graficar métricas sin escribir una consulta.
-- [Monitor de métricas](/docs/monitor/metrics-monitor): Recibir alertas cuando una métrica supere un umbral.
-- [Fuentes de datos externas](/docs/dashboards/data-sources): Graficar un Prometheus externo en tus paneles.
+- [Monitor de métricas](/docs/monitor/metrics-monitor): Recibir alertas sobre una métrica o una expresión PromQL, con un incidente por serie.
+- [Fuentes de datos externas](/docs/dashboards/data-sources): Graficar PromQL en tus paneles, sobre las métricas de este proyecto o un Prometheus externo.
+- [LogQL](/docs/telemetry/logql): Consultar registros con LogQL, también desde la fuente de datos Loki de Grafana.
 :::
