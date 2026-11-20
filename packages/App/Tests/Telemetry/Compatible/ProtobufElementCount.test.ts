@@ -53,42 +53,44 @@ const encodeV2: (request: JSONObject) => Uint8Array = (
  * The objects and repeated values protobufjs' decoded message holds, as
  * the schema names them: what the count must equal.
  */
-const decodedElements: (value: unknown, schema: ProtobufCountSchema) => number =
-  (value: unknown, schema: ProtobufCountSchema): number => {
-    const message: Record<string, unknown> = value as Record<string, unknown>;
-    let total: number = 0;
-    const type: Record<string, unknown> = (
-      message as { $type?: { fieldsById: Record<number, { name: string }> } }
-    ).$type as unknown as Record<string, unknown>;
-    const fieldsById: Record<number, { name: string }> = (
-      type as unknown as { fieldsById: Record<number, { name: string }> }
-    ).fieldsById;
+const decodedElements: (
+  value: unknown,
+  schema: ProtobufCountSchema,
+) => number = (value: unknown, schema: ProtobufCountSchema): number => {
+  const message: Record<string, unknown> = value as Record<string, unknown>;
+  let total: number = 0;
+  const type: Record<string, unknown> = (
+    message as { $type?: { fieldsById: Record<number, { name: string }> } }
+  ).$type as unknown as Record<string, unknown>;
+  const fieldsById: Record<number, { name: string }> = (
+    type as unknown as { fieldsById: Record<number, { name: string }> }
+  ).fieldsById;
 
-    for (const [id, child] of Object.entries(schema.messages || {})) {
-      const field: { name: string } | undefined = fieldsById[Number(id)];
+  for (const [id, child] of Object.entries(schema.messages || {})) {
+    const field: { name: string } | undefined = fieldsById[Number(id)];
+    const items: unknown = field ? message[field.name] : undefined;
+    const list: Array<unknown> = Array.isArray(items)
+      ? items
+      : items
+        ? [items]
+        : [];
+
+    for (const item of list) {
+      total += 1 + decodedElements(item, child);
+    }
+  }
+
+  for (const set of [schema.varints, schema.fixed64s, schema.strings]) {
+    for (const id of set || []) {
+      const field: { name: string } | undefined = fieldsById[id];
       const items: unknown = field ? message[field.name] : undefined;
-      const list: Array<unknown> = Array.isArray(items)
-        ? items
-        : items
-          ? [items]
-          : [];
 
-      for (const item of list) {
-        total += 1 + decodedElements(item, child);
-      }
+      total += Array.isArray(items) ? items.length : 0;
     }
+  }
 
-    for (const set of [schema.varints, schema.fixed64s, schema.strings]) {
-      for (const id of set || []) {
-        const field: { name: string } | undefined = fieldsById[id];
-        const items: unknown = field ? message[field.name] : undefined;
-
-        total += Array.isArray(items) ? items.length : 0;
-      }
-    }
-
-    return total;
-  };
+  return total;
+};
 
 // A deterministic stream of numbers, so a failing case can be run again.
 const random: (seed: number) => () => number = (
@@ -168,9 +170,12 @@ describe("ProtobufElementCounter - remote write 1.0", () => {
         const histogramCount: number = Math.floor(next() * 2);
 
         timeseries.push({
-          labels: Array.from({ length: labelCount }, (_: unknown, i: number) => {
-            return { name: `l${i}`, value: next() < 0.2 ? "" : `v${i}` };
-          }),
+          labels: Array.from(
+            { length: labelCount },
+            (_: unknown, i: number) => {
+              return { name: `l${i}`, value: next() < 0.2 ? "" : `v${i}` };
+            },
+          ),
           samples: Array.from({ length: sampleCount }, () => {
             return { value: next(), timestamp: Math.floor(next() * 1e12) };
           }),
@@ -269,11 +274,14 @@ describe("ProtobufElementCounter - remote write 1.0", () => {
       [0x0a, 0x02, 0x0a, 0x05, 0x0a, 0x01, 0x61, 0x12, 0x00],
     ],
     ["an unknown field's bytes past the end", [0x5a, 0x09, 0x01]],
-  ])("a body it cannot read is malformed: %s", (_name: string, bytes: Array<number>) => {
-    expect(
-      count(Uint8Array.from(bytes), REMOTE_WRITE_V1_COUNT).outcome,
-    ).toBe(ProtobufElementCountOutcome.Malformed);
-  });
+  ])(
+    "a body it cannot read is malformed: %s",
+    (_name: string, bytes: Array<number>) => {
+      expect(count(Uint8Array.from(bytes), REMOTE_WRITE_V1_COUNT).outcome).toBe(
+        ProtobufElementCountOutcome.Malformed,
+      );
+    },
+  );
 
   test("16 MiB of empty series is counted to the limit in well under a second", () => {
     const body: Buffer = Buffer.alloc(16 * 1024 * 1024);
@@ -349,12 +357,9 @@ describe("ProtobufElementCounter - remote write 2.0", () => {
         { length: Math.floor(next() * 5) },
         () => {
           return {
-            labelsRefs: Array.from(
-              { length: Math.floor(next() * 6) },
-              () => {
-                return Math.floor(next() * 300);
-              },
-            ),
+            labelsRefs: Array.from({ length: Math.floor(next() * 6) }, () => {
+              return Math.floor(next() * 300);
+            }),
             samples: Array.from({ length: Math.floor(next() * 3) }, () => {
               return { value: next(), timestamp: 1, startTimestamp: 1 };
             }),

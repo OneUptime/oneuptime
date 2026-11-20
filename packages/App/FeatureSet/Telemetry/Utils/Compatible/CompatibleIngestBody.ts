@@ -242,7 +242,9 @@ export default class CompatibleIngestBody {
   }
 
   // The most a body may be as sent: the endpoint's ceiling, or the shared one.
-  public static maxBodyBytes(limits?: CompatibleBodyLimits | undefined): number {
+  public static maxBodyBytes(
+    limits?: CompatibleBodyLimits | undefined,
+  ): number {
     return Math.min(
       MAX_OTLP_REQUEST_BYTES,
       limits?.maxBodyBytes ?? MAX_OTLP_REQUEST_BYTES,

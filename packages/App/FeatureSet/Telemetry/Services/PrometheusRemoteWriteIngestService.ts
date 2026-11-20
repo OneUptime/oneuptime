@@ -24,7 +24,9 @@ import PrometheusRemoteWrite, {
   PrometheusTranslation,
   PrometheusWriteRequest,
 } from "../Utils/Compatible/PrometheusRemoteWrite";
-import SnappyBlock, { SnappyTooLargeError } from "../Utils/Compatible/SnappyBlock";
+import SnappyBlock, {
+  SnappyTooLargeError,
+} from "../Utils/Compatible/SnappyBlock";
 import CompatibleIngestService from "./CompatibleIngestService";
 
 /*
@@ -215,9 +217,8 @@ export default class PrometheusRemoteWriteIngestService {
    * is refused, not read as protobuf.
    */
   private static snappyOrAsIs(body: Buffer): Buffer {
-    const maxBytes: number = CompatibleIngestBody.maxDecompressedBytes(
-      REMOTE_WRITE_LIMITS,
-    );
+    const maxBytes: number =
+      CompatibleIngestBody.maxDecompressedBytes(REMOTE_WRITE_LIMITS);
 
     try {
       return SnappyBlock.decompress(body, maxBytes);

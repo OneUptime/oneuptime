@@ -125,8 +125,7 @@ const REFUSAL_WORDS: Record<PrometheusRefusalReason, string> = {
   [PrometheusRefusalReason.InvalidLabels]:
     "of series with a label that has no name, or a label reference outside the symbols",
   [PrometheusRefusalReason.InvalidTimestamp]: "with a negative timestamp",
-  [PrometheusRefusalReason.UnreadableHistogram]:
-    "whose buckets cannot be read",
+  [PrometheusRefusalReason.UnreadableHistogram]: "whose buckets cannot be read",
 };
 
 export class PrometheusRemoteWriteError extends Error {
@@ -552,7 +551,10 @@ export default class PrometheusRemoteWrite {
         "__name__",
       );
 
-      if (series.invalidLabels || PrometheusRemoteWrite.hasUnnamedLabel(series)) {
+      if (
+        series.invalidLabels ||
+        PrometheusRemoteWrite.hasUnnamedLabel(series)
+      ) {
         refuse(
           PrometheusRefusalReason.InvalidLabels,
           series.samples.length,
@@ -629,8 +631,7 @@ export default class PrometheusRemoteWrite {
         });
       }
 
-      const seriesTargets: Array<ExemplarTarget> =
-        targets.get(seriesKey) || [];
+      const seriesTargets: Array<ExemplarTarget> = targets.get(seriesKey) || [];
       targets.set(seriesKey, seriesTargets);
 
       if (series.samples.length > 0) {
@@ -698,7 +699,10 @@ export default class PrometheusRemoteWrite {
          * A stale native histogram carries a NaN sum, and one may have
          * observed an infinity: accepted, with nothing OTLP JSON can carry.
          */
-        if (!Number.isFinite(histogram.sum) || !Number.isFinite(histogram.count)) {
+        if (
+          !Number.isFinite(histogram.sum) ||
+          !Number.isFinite(histogram.count)
+        ) {
           translation.histogramsWritten++;
           continue;
         }
@@ -977,6 +981,18 @@ export default class PrometheusRemoteWrite {
         continue;
       }
 
+      /*
+       * In time order, searched by halving: a request may hold a series'
+       * samples and exemplars by the hundred thousand, and comparing each
+       * exemplar with every datapoint would block the event loop for
+       * minutes.
+       */
+      const sorted: Array<ExemplarTarget> = [...seriesTargets].sort(
+        (a: ExemplarTarget, b: ExemplarTarget): number => {
+          return a.timestampMs - b.timestampMs;
+        },
+      );
+
       for (const exemplar of exemplars) {
         const otlp: JSONObject | null =
           PrometheusRemoteWrite.otlpExemplar(exemplar);
@@ -985,26 +1001,42 @@ export default class PrometheusRemoteWrite {
           continue;
         }
 
-        let nearest: ExemplarTarget | null = null;
-        let nearestDistance: number = Number.POSITIVE_INFINITY;
+        // The first datapoint at or after the exemplar, and the one before.
+        let low: number = 0;
+        let high: number = sorted.length;
 
-        for (const target of seriesTargets) {
-          const distance: number = Math.abs(
-            target.timestampMs - exemplar.timestampMs,
-          );
+        while (low < high) {
+          const middle: number = (low + high) >>> 1;
 
-          if (
-            distance < nearestDistance ||
-            (distance === nearestDistance &&
-              nearest !== null &&
-              target.timestampMs > nearest.timestampMs)
-          ) {
-            nearest = target;
-            nearestDistance = distance;
+          if (sorted[middle]!.timestampMs < exemplar.timestampMs) {
+            low = middle + 1;
+          } else {
+            high = middle;
           }
         }
 
-        if (!nearest || nearestDistance >= nearest.keptDistanceMs) {
+        const after: ExemplarTarget | undefined = sorted[low];
+        const before: ExemplarTarget | undefined =
+          low > 0 ? sorted[low - 1] : undefined;
+
+        // On a tie, the later one: the scrape that counted it.
+        const nearest: ExemplarTarget | undefined =
+          !after ||
+          (before &&
+            exemplar.timestampMs - before.timestampMs <
+              after.timestampMs - exemplar.timestampMs)
+            ? before
+            : after;
+
+        if (!nearest) {
+          continue;
+        }
+
+        const nearestDistance: number = Math.abs(
+          nearest.timestampMs - exemplar.timestampMs,
+        );
+
+        if (nearestDistance >= nearest.keptDistanceMs) {
           continue;
         }
 

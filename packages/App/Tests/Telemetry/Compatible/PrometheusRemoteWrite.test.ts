@@ -484,9 +484,9 @@ describe("PrometheusRemoteWrite - remote write 1.0", () => {
 
     expect(metricsOf(translation)).toHaveLength(1);
     expect(translation.samplesWritten).toBe(1);
-    expect(translation.refused.get(PrometheusRefusalReason.MissingName)).toEqual(
-      { samples: 1, histograms: 0 },
-    );
+    expect(
+      translation.refused.get(PrometheusRefusalReason.MissingName),
+    ).toEqual({ samples: 1, histograms: 0 });
     expect(PrometheusRemoteWrite.describeRefusals(translation)).toBe(
       "Refused 1 sample of series with no metric name (__name__). The rest of the request (1 samples and 0 native histograms) was accepted.",
     );
@@ -1283,6 +1283,42 @@ describe("PrometheusRemoteWrite - exemplars (remote write 1.0)", () => {
     expect(translation.exemplarsWritten).toBe(1);
   });
 
+  test("a series with 50,000 samples and as many exemplars is matched by a search, not a scan of every datapoint", () => {
+    const samples: Array<JSONObject> = [];
+    const exemplars: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < 50000; index++) {
+      samples.push({ value: index, timestamp: 1700000000000 + index * 1000 });
+      exemplars.push({
+        labels: labels({ trace_id: TRACE_ID }),
+        value: 1,
+        // Just before each sample, in reverse order.
+        timestamp: 1700000000000 + (49999 - index) * 1000 - 10,
+      });
+    }
+
+    const body: Uint8Array = WriteRequestV1.encode(
+      WriteRequestV1.fromObject({
+        timeseries: [
+          { labels: labels(counter), samples: samples, exemplars: exemplars },
+        ],
+      }),
+    ).finish();
+    const decoded: PrometheusWriteRequest = PrometheusRemoteWrite.decode(
+      body,
+      PrometheusRemoteWriteVersion.V1,
+    );
+
+    const startedAt: number = Date.now();
+    const translation: PrometheusTranslation =
+      PrometheusRemoteWrite.toOtlp(decoded);
+
+    // Each exemplar against every datapoint: seconds here, minutes at the limit.
+    expect(Date.now() - startedAt).toBeLessThan(3000);
+    // Every datapoint keeps the exemplar 10ms before it.
+    expect(translation.exemplarsWritten).toBe(50000);
+  });
+
   test("an exemplar's NaN value is left out, its trace kept", () => {
     const translation: PrometheusTranslation = translateV1({
       timeseries: [
@@ -1499,9 +1535,7 @@ describe("PrometheusRemoteWrite - what is refused (partial writes)", () => {
       ],
     });
 
-    expect(dataPointsOf(metricNamed(translation, "up").metric)).toHaveLength(
-      1,
-    );
+    expect(dataPointsOf(metricNamed(translation, "up").metric)).toHaveLength(1);
     expect(translation.samplesWritten).toBe(1);
     expect(
       translation.refused.get(PrometheusRefusalReason.InvalidTimestamp),

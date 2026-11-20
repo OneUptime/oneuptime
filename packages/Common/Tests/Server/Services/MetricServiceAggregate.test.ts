@@ -355,7 +355,9 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).toContain(
         "GROUP BY primaryEntityId, timeUnixNano, time, __classic_attributes",
       );
-      expect(query).toContain("SELECT time, primaryEntityId, __classic_attributes AS attributes");
+      expect(query).toContain(
+        "SELECT time, primaryEntityId, __classic_attributes AS attributes",
+      );
     });
 
     it("a Top-K restriction applies to the raw rows, inside the scrape's grouping", () => {

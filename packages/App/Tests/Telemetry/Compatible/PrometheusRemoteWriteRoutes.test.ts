@@ -162,7 +162,8 @@ const headersV2: (extra?: Record<string, string>) => Record<string, string> = (
   extra?: Record<string, string>,
 ): Record<string, string> => {
   return headersV1({
-    "content-type": "application/x-protobuf;proto=io.prometheus.write.v2.Request",
+    "content-type":
+      "application/x-protobuf;proto=io.prometheus.write.v2.Request",
     "x-prometheus-remote-write-version": "2.0.0",
     ...extra,
   });
@@ -385,7 +386,8 @@ describe("the answers a sender retries, and the ones it drops", () => {
     const response: RouteResponse = await write(
       snappyCompress(v1(UP)),
       headersV1({
-        "content-type": "application/x-protobuf;proto=io.prometheus.write.v3.Request",
+        "content-type":
+          "application/x-protobuf;proto=io.prometheus.write.v3.Request",
       }),
     );
 

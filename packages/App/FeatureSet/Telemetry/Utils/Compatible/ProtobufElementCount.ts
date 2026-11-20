@@ -129,7 +129,13 @@ export default class ProtobufElementCounter {
         }
 
         ProtobufElementCounter.add(counter, 1, limit);
-        ProtobufElementCounter.walk(reader, messageEnd, message, counter, limit);
+        ProtobufElementCounter.walk(
+          reader,
+          messageEnd,
+          message,
+          counter,
+          limit,
+        );
 
         if (reader.pos !== messageEnd) {
           throw new Malformed();

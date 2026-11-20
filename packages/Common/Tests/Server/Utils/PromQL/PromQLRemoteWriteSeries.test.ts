@@ -61,7 +61,10 @@ const row: (data: {
   };
 };
 
-const SERIES: Record<string, string> = { job: "api", instance: "10.0.0.7:9090" };
+const SERIES: Record<string, string> = {
+  job: "api",
+  instance: "10.0.0.7:9090",
+};
 
 // latency_seconds_bucket at 0s (all zero) and 60s: 10, 50, 90, 100 observations.
 const BUCKETS: Array<[string, number]> = [

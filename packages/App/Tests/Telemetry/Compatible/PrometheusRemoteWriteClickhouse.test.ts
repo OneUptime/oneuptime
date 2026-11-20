@@ -668,9 +668,12 @@ integration(
 
     test("the exemplar links exactly its bucket's datapoint, at its scrape, to its trace and span", async () => {
       expect(
-        translations.reduce((sum: number, translation: PrometheusTranslation) => {
-          return sum + translation.exemplarsWritten;
-        }, 0),
+        translations.reduce(
+          (sum: number, translation: PrometheusTranslation) => {
+            return sum + translation.exemplarsWritten;
+          },
+          0,
+        ),
       ).toBe(1);
 
       const linked: Array<JSONObject> = await rows(
