@@ -103,8 +103,16 @@ export default class AmazonSesProjectRole {
   // How STS is reached: the data sources' own fetch, unless a test hands in its own.
   private static transport: CloudConnectorTransport | null = null;
 
-  public static useTransport(transport: CloudConnectorTransport | null): void {
+  // How a retry of AWS's waits: the clock's, unless a test hands in its own.
+  private static sleep: ((milliseconds: number) => Promise<void>) | undefined =
+    undefined;
+
+  public static useTransport(
+    transport: CloudConnectorTransport | null,
+    sleep?: ((milliseconds: number) => Promise<void>) | undefined,
+  ): void {
     AmazonSesProjectRole.transport = transport;
+    AmazonSesProjectRole.sleep = transport ? sleep : undefined;
   }
 
   private static getTransport(): CloudConnectorTransport {
@@ -202,6 +210,7 @@ export default class AmazonSesProjectRole {
         projectId,
         connectionId: configId,
         region: getStsRegion([region]),
+        sleep: AmazonSesProjectRole.sleep,
         noCache: data.checksAfresh,
         // A test send is of a saved config: what it found holds for every server's emails.
         keepsVerdict: true,
