@@ -10,10 +10,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import { FieldClassification } from "../../../../Utils/DataSecurity/FieldClassifier";
 import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
-import AIService, {
-  AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
-  AILogResponse,
-} from "../../../Services/AIService";
+import AIService, { AILogResponse } from "../../../Services/AIService";
 import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import DataStoreService from "../../../Services/DataStoreService";
 import DataSecurityFindingWriter, {
@@ -35,9 +32,9 @@ import {
   toStoredFieldSuggestionState,
 } from "../../DataSecurity/FieldSuggestionState";
 import logger from "../../Logger";
+import DataSecurityAiCall from "./DataSecurityAiCall";
 import {
   buildFieldSuggestionPrompt,
-  FIELD_SUGGESTION_SYSTEM_PROMPT,
   FieldSuggestionAnswer,
   FieldSuggestionDataType,
   getFieldReference,
@@ -401,31 +398,25 @@ export default class DataSecurityFieldSuggestion {
     let response: AILogResponse;
 
     try {
-      response = await AIService.executeWithLogging({
+      /*
+       * Through the one Data Security call (DataSecurityAiCall): nothing of
+       * the prompt - the store's field names - nor of the answer, nor a
+       * provider's error, in the AI Logs every project member reads; filed
+       * under AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE, which the
+       * autonomous budget counts; on the project's own model.
+       */
+      response = await DataSecurityAiCall.ask({
         projectId: data.projectId,
-        feature: AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
-        /*
-         * No prompt previews in the AI Logs: they would name the store's
-         * fields, and the AI Logs are read by every project member.
-         */
-        storeContentPreviews: false,
-        storeErrorDetails: false,
+        prompt: buildFieldSuggestionPrompt({
+          storeKind: data.storeKind,
+          dataTypes: data.dataTypes,
+          fields: data.fields,
+        }),
         temperature: 0,
         maxTokens: FIELD_SUGGESTION_MAX_COMPLETION_TOKENS,
         requestTimeoutInMs: FIELD_SUGGESTION_TIMEOUT_IN_MS,
         requestRetries: 0,
         protectRequestParameters: true,
-        messages: [
-          { role: "system", content: FIELD_SUGGESTION_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: buildFieldSuggestionPrompt({
-              storeKind: data.storeKind,
-              dataTypes: data.dataTypes,
-              fields: data.fields,
-            }),
-          },
-        ],
       });
     } catch (error) {
       // Enable AI, an LLM provider, credits, a daily limit: the project's settings, not a fault.

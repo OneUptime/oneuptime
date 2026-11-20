@@ -369,7 +369,7 @@ Los dos pasos de almacenes de datos actúan sobre los almacenes de datos de los 
 
 #### Entidades protegidas
 
-**Entidades protegidas**, en **Playbooks** en el menú, lista los usuarios y hosts a los que ningún playbook aplica contención, como las cuentas de acceso de emergencia, los controladores de dominio y las puertas de enlace VPN. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Administradores de seguridad.
+**Entidades protegidas**, en **Playbooks** en el menú, lista los usuarios, hosts y direcciones IP a los que ningún playbook aplica contención y que la lista de bloqueo nunca bloquea, como las cuentas de acceso de emergencia, los controladores de dominio, las puertas de enlace VPN y las direcciones de oficina. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Una entrada de dirección es una dirección o un rango, como `203.0.113.0/24`, que protege todas las direcciones que contiene. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Administradores de seguridad.
 
 #### Aprobación
 
@@ -378,6 +378,14 @@ Los ocho pasos que dejan a alguien sin acceso esperan aprobación. Solo un Admin
 #### Deshacer
 
 Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención**, **Liberar** o **Activar**. Un cierre de sesión no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto.
+
+### Lista de bloqueo
+
+**Lista de bloqueo**, en **Playbooks** en el menú, lista las direcciones IP y los rangos que bloquea tu proyecto: por qué, hasta cuándo, su caso y quién o qué los añadió. **Bloquear dirección** bloquea una dirección o un rango durante 24 horas, salvo que elijas 1 hora, 7 días o 30 días. Solo un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto puede mantener un bloqueo hasta que alguien lo levante, o bloquear un rango más amplio que un /24 (un /48 en IPv6), y nadie bloquea un rango más amplio que un /8 (un /16 en IPv6). **Levantar** pone fin a un bloqueo, en una fila o en varias a la vez, y **Prolongar** mueve su final.
+
+Las direcciones propias de tu proyecto nunca se bloquean: las entradas de **Entidades protegidas**, tus hosts, nodos de Kubernetes, recursos en la nube, dispositivos de red y endpoints, tus nombres de dirección y sondas, las sondas de OneUptime Cloud, los rangos que no están en internet y la red perimetral que hay delante de tu aplicación. Un bloqueo que afectaría a una de ellas se rechaza, indicando qué es la dirección, y **Entidades protegidas** las lista en **Protección automática**. Cuando OneUptime no puede saber si una dirección es tuya, no la bloquea.
+
+**Aplicado en** muestra cada lugar donde se aplica un bloqueo y si se mantiene allí. Mientras nada aplique la lista de bloqueo, la página lo indica, y un bloqueo se registra pero no bloquea nada. Cada bloqueo, levantamiento y caducidad se guarda en el registro de auditoría del proyecto, y en la cronología de su caso cuando tiene uno.
 
 ### Mensajes
 
@@ -433,7 +441,7 @@ Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, 
 ## Automatizar
 
 - **Flujos de trabajo**: un caso o una nota puede iniciar un flujo de trabajo cuando se crea, se actualiza o se elimina. Un paso **Ejecutar un flujo de trabajo** inicia un flujo de trabajo cuyo desencadenante es un webhook.
-- **API**: los casos, las notas, las tareas, las evidencias, las detecciones, los playbooks, las ejecuciones, las entidades protegidas y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
+- **API**: los casos, las notas, las tareas, las evidencias, las detecciones, los playbooks, las ejecuciones, las entidades protegidas, los bloqueos y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
 - Agentes de IA: el servidor MCP tiene herramientas para casos, notas, tareas, evidencias, detecciones, playbooks y prioridades y estados de caso. Consulta [Servidor MCP](/docs/ai/mcp-server).
 - Terraform: los recursos `oneuptime_security_case_priority` y `oneuptime_security_case_status` mantienen como código las prioridades y estados de un proyecto.
 

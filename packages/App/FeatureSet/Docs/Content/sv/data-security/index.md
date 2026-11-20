@@ -39,7 +39,7 @@ flowchart TB
 - **Bevis maskeras, alltid.** Ett fynd sparar antal och högst tre maskerade prov, som `j***@e******.com`, maskerade inuti skannern innan något lämnar den. Stäng av prover så sparar det bara antal.
 - **Skannern är öppen källkod.** Varje datatyps mönster, kontrollsumma, kontextord och testvärden finns i OneUptimes källkod, så du kan läsa exakt vad som ger ett fynd. Samma kod körs på OneUptimes workers, på en sond och i rutan **Testa**.
 - **Den fungerar med resten av OneUptime.** Ett kritiskt problem öppnar ett säkerhetsärende på datalagret, så att [Security Operations](/docs/telemetry/security-cases) hanterar det som vilket annat hot som helst, och varje säkerhetsärende visar de känsliga data som dess användare och roller kan nå. Det kan skapa ett larm som når den som har jour, och det skickar e-post till datalagrets ägare. Se [Integrationer för Datasäkerhet](/docs/data-security/integrations).
-- **OneUptime AI hjälper dig att åtgärda det.** **Förklara med AI** berättar för ett datalagers ägare vad som är fel och hur det åtgärdas i deras moln, **Åtgärda med AI** öppnar en pull request i din infrastrukturkod, och OneUptime AI föreslår vad ett fält som ingen detektor kunde placera innehåller, så att en person kan bekräfta det.
+- **OneUptime AI hjälper dig att åtgärda det.** **Förklara med AI** berättar för ett datalagers ägare vad som är fel och hur det åtgärdas i deras moln, **Åtgärda med AI** öppnar en pull request i din infrastrukturkod, och OneUptime AI föreslår vad ett fält som ingen detektor kunde placera innehåller, så att en person kan bekräfta det. Dina data skickas aldrig till den: se [OneUptime AI i Datasäkerhet](/docs/data-security/ai).
 
 ## Innan du börjar
 

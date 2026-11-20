@@ -790,12 +790,13 @@ describe("the Custom Probes page: how OneUptime knows a probe is running", () =>
     /*
      * Every authenticated probe request stamps lastAlive, in the one key
      * check every way a probe presents its key goes through (#10222), with
-     * what its body says of the release the probe runs (#9759).
+     * what its body says of the release the probe runs (#9759) and the
+     * address it came from, which the blocklist never blocks (#10338).
      */
     const authorization: string = readSource(PROBE_AUTHORIZATION);
 
-    expect(authorization).toContain(
-      "ProbeService.updateLastAlive(probeId, data.versionReport)",
+    expect(authorization).toMatch(
+      /ProbeService\.updateLastAlive\(\s*probeId,\s*data\.versionReport,\s*resolveClientIp\(req\),?\s*\)/,
     );
     expect(authorization).toContain(
       "versionReport: ProbeReportedVersionUtil.readFromRequest(data),",
