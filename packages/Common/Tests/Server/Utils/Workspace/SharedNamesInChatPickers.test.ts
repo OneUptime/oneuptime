@@ -125,7 +125,7 @@ function record<T extends BaseModel>(type: { new (): T }, facts: Facts): T {
   }
 
   if (facts.createdAt) {
-    row.setValue("createdAt", facts.createdAt);
+    row.createdAt = facts.createdAt;
   }
 
   return row;
