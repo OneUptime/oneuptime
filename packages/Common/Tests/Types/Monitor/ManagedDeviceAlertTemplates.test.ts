@@ -131,7 +131,8 @@ describe("the catalog of a connection's alerts", () => {
       "esper-security-patch-out-of-date",
       "intune-connection-stopped-reading",
       "intune-device-stopped-checking-in",
-      // Intune's device list says no battery: its storage alone.
+      // #10287: an iPhone's or iPad's battery, each asked alone.
+      "intune-low-battery",
       "intune-storage-nearly-full",
       "intune-security-patch-out-of-date",
       "workspace-one-connection-stopped-reading",
@@ -251,6 +252,8 @@ describe("the catalog of a connection's alerts", () => {
     ).toEqual([
       "DeviceManagementConnection:intune-connection-stopped-reading",
       "DeviceManagementConnection:intune-device-stopped-checking-in",
+      // #10287: its iPhones' and iPads' batteries, each asked alone.
+      "DeviceManagementConnection:intune-low-battery",
       "DeviceManagementConnection:intune-storage-nearly-full",
       "DeviceManagementConnection:intune-security-patch-out-of-date",
     ]);

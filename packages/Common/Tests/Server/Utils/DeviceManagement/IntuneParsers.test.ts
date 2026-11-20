@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   getIntuneCheckIns,
   getIntuneGroups,
+  parseIntuneBatteryLevel,
   parseIntuneDetectedApps,
   parseIntuneDevice,
   parseIntuneEnrolledDeviceCount,
@@ -14,8 +15,10 @@ import {
   buildIntuneAndroid,
   buildIntuneDetectedApp,
   buildIntuneDevice,
+  buildIntuneHardwareInformation,
   buildIntuneIpad,
 } from "./FakeIntuneGraph";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 
 /*
  * Graph's Intune answers, read as Microsoft's reference shows them
@@ -282,5 +285,116 @@ describe("a device's discovered apps", () => {
     expect(parseIntuneDetectedApps({ id: "a" })).toEqual([]);
     expect(parseIntuneDetectedApps({ id: "a", detectedApps: {} })).toEqual([]);
     expect(parseIntuneDetectedApps(undefined)).toEqual([]);
+  });
+});
+
+/*
+ * #10287: an iPhone's or an iPad's battery, as beta's single-device GET
+ * with $select=id,hardwareInformation answers it. Graph's reference: the
+ * level is "between 0.0 and 100, or null if the battery level cannot be
+ * determined", filled per check-in on iOS and iPadOS alone.
+ */
+describe("a device's battery", () => {
+  function answerOf(hardware: JSONObject): JSONObject {
+    return {
+      "@odata.context":
+        "https://graph.microsoft.com/beta/$metadata#deviceManagement/managedDevices(id,hardwareInformation)/$entity",
+      id: "7d6c5b4a-3f2e-4d1c-8b0a-9f8e7d6c5b4a",
+      hardwareInformation: buildIntuneHardwareInformation(hardware),
+    };
+  }
+
+  test("an iPhone's level, whole, as Intune last heard it", () => {
+    expect(
+      parseIntuneBatteryLevel(
+        answerOf({
+          serialNumber: "F2LXK1GHJKL0",
+          imei: "35 309310 543210 2",
+          isSupervised: true,
+          productName: "iPhone15,4",
+          batteryLevelPercentage: 87,
+        }),
+      ),
+    ).toBe(87);
+  });
+
+  test("an iPad's, a Double, rounded to a whole percent", () => {
+    expect(
+      parseIntuneBatteryLevel(
+        answerOf({ productName: "iPad12,1", batteryLevelPercentage: 14.5 }),
+      ),
+    ).toBe(15);
+    expect(
+      parseIntuneBatteryLevel(answerOf({ batteryLevelPercentage: 19.4 })),
+    ).toBe(19);
+    // Not below 20% by rounding a 19.6 up: 20 is not low.
+    expect(
+      parseIntuneBatteryLevel(answerOf({ batteryLevelPercentage: 19.6 })),
+    ).toBe(20);
+    // A sliver above 0 is 1%, never 0, which is no battery.
+    expect(
+      parseIntuneBatteryLevel(answerOf({ batteryLevelPercentage: 0.4 })),
+    ).toBe(1);
+    expect(
+      parseIntuneBatteryLevel(answerOf({ batteryLevelPercentage: 100 })),
+    ).toBe(100);
+  });
+
+  test("a device Graph says no level of - a Windows PC, an iPhone without the Device Information right - has none", () => {
+    // A Windows laptop: its battery's health and cycles, never its level.
+    expect(
+      parseIntuneBatteryLevel(
+        answerOf({
+          batteryHealthPercentage: 92,
+          batteryChargeCycles: 311,
+          batterySerialNumber: "SMP-0A1B2C",
+          batteryLevelPercentage: null,
+        }),
+      ),
+    ).toBeNull();
+    // As the list answers it: the defaults, the level among them.
+    expect(parseIntuneBatteryLevel(answerOf({}))).toBeNull();
+    expect(
+      parseIntuneBatteryLevel({ id: "x", hardwareInformation: null }),
+    ).toBeNull();
+    expect(parseIntuneBatteryLevel({ id: "x" })).toBeNull();
+  });
+
+  test("0, out of range or not a number is none", () => {
+    const levels: Array<JSONValue> = [0, -1, 100.5, 250, "high", true, {}, []];
+
+    for (const level of levels) {
+      expect(
+        parseIntuneBatteryLevel(answerOf({ batteryLevelPercentage: level })),
+      ).toBeNull();
+    }
+
+    // A figure written as text still reads: the reference's own JSON says "4.2".
+    expect(
+      parseIntuneBatteryLevel(answerOf({ batteryLevelPercentage: "4.2" })),
+    ).toBe(4);
+    expect(
+      parseIntuneBatteryLevel(answerOf({ batteryLevelPercentage: "42.0" })),
+    ).toBe(42);
+  });
+
+  test("the device under value, as the reference's example writes the answer, reads the same", () => {
+    expect(
+      parseIntuneBatteryLevel({
+        value: {
+          "@odata.type": "#microsoft.graph.managedDevice",
+          id: "705c034c-034c-705c-4c03-5c704c035c70",
+          hardwareInformation: buildIntuneHardwareInformation({
+            batteryLevelPercentage: 7.333333333333333,
+          }),
+        },
+      }),
+    ).toBe(7);
+  });
+
+  test("an answer that is no device is none", () => {
+    for (const answer of [undefined, null, "", "OK", 42, [], {}]) {
+      expect(parseIntuneBatteryLevel(answer)).toBeNull();
+    }
   });
 });

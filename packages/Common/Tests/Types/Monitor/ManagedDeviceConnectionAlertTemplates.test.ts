@@ -514,7 +514,12 @@ describe("the recommendation", () => {
   test("each service's connection, battery and storage templates fingerprint apart", () => {
     const families: Array<Array<string>> = [
       Object.values(CONNECTION_TEMPLATE_IDS),
-      ["esper-low-battery", "workspace-one-low-battery", "soti-low-battery"],
+      [
+        "esper-low-battery",
+        "intune-low-battery",
+        "workspace-one-low-battery",
+        "soti-low-battery",
+      ],
       [
         "esper-storage-nearly-full",
         "intune-storage-nearly-full",

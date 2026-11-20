@@ -51,12 +51,13 @@ import { describe, expect, test } from "@jest/globals";
 
 const CONNECTION_ID: string = ObjectID.generate().toString();
 
-const BATTERY_TEMPLATE_IDS: Partial<Record<DeviceManagementProvider, string>> =
-  {
-    [DeviceManagementProvider.Esper]: "esper-low-battery",
-    [DeviceManagementProvider.WorkspaceOne]: "workspace-one-low-battery",
-    [DeviceManagementProvider.Soti]: "soti-low-battery",
-  };
+const BATTERY_TEMPLATE_IDS: Record<DeviceManagementProvider, string> = {
+  [DeviceManagementProvider.Esper]: "esper-low-battery",
+  // #10287: an iPhone's or iPad's, each asked alone on Graph's beta.
+  [DeviceManagementProvider.Intune]: "intune-low-battery",
+  [DeviceManagementProvider.WorkspaceOne]: "workspace-one-low-battery",
+  [DeviceManagementProvider.Soti]: "soti-low-battery",
+};
 
 const STORAGE_TEMPLATE_IDS: Record<DeviceManagementProvider, string> = {
   [DeviceManagementProvider.Esper]: "esper-storage-nearly-full",
@@ -115,7 +116,7 @@ function hostThreshold(id: string): number {
 }
 
 describe("which connections are offered them", () => {
-  test("Low Battery to each service whose device list says a device's battery; Intune's says none", () => {
+  test("Low Battery to every service, each its own", () => {
     for (const provider of DEVICE_MANAGEMENT_PROVIDERS) {
       const batteries: Array<string> = getManagedDeviceAlertTemplatesFor(
         provider,
@@ -131,10 +132,28 @@ describe("which connections are offered them", () => {
 
       expect({ provider, batteries }).toEqual({
         provider,
-        batteries: BATTERY_TEMPLATE_IDS[provider]
-          ? [BATTERY_TEMPLATE_IDS[provider]]
-          : [],
+        batteries: [BATTERY_TEMPLATE_IDS[provider]],
       });
+      expect(template(BATTERY_TEMPLATE_IDS[provider]).provider).toBe(provider);
+    }
+  });
+
+  test("Intune's says which devices Intune says a battery of: an iPhone's or an iPad's alone", () => {
+    expect(template("intune-low-battery").name).toBe("Intune Low Battery");
+    expect(template("intune-low-battery").summary).toBe(
+      "An iPhone or iPad Intune manages has less than 20% battery left.",
+    );
+    expect(template("intune-low-battery").description).toContain(
+      "Intune says the battery of an iPhone or an iPad alone, as of its last check-in",
+    );
+
+    // The others' devices lists say every device's: no such sentence.
+    for (const id of [
+      "esper-low-battery",
+      "workspace-one-low-battery",
+      "soti-low-battery",
+    ]) {
+      expect(template(id).description).not.toContain("alone, as of");
     }
   });
 
@@ -350,6 +369,7 @@ describe("what the monitors read", () => {
 
   test.each([
     ["esper-low-battery", "[Esper] Low battery"],
+    ["intune-low-battery", "[Intune] Low battery"],
     ["workspace-one-low-battery", "[Workspace ONE] Low battery"],
     ["soti-low-battery", "[SOTI] Low battery"],
     ["esper-storage-nearly-full", "[Esper] Storage nearly full"],

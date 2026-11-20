@@ -26,7 +26,10 @@ import { DeviceManagementTransport } from "../../../../Server/Utils/DeviceManage
  *   - GET /v1.0/deviceManagement/managedDeviceOverview;
  *   - GET /beta/deviceManagement/managedDevices/{id}?$select=id
  *     &$expand=detectedApps: {"id", "detectedApps": [...]}, 404 for a
- *     device it does not know.
+ *     device it does not know;
+ *   - GET /beta/deviceManagement/managedDevices/{id}?$select=id,
+ *     hardwareInformation: {"id", "hardwareInformation": {...}}, the
+ *     device's hardware with Graph's defaults for what it did not report.
  *
  * Faults are scripted per path: answers to give first. Every request is
  * recorded.
@@ -65,6 +68,12 @@ export interface FakeIntuneOptions {
   devices?: Array<JSONObject> | undefined;
   // Each device's discovered apps, by its ID.
   apps?: Record<string, Array<JSONObject>> | undefined;
+  /*
+   * Each device's hardwareInformation, by its ID, as beta's single-device
+   * GET with $select fills it (#10287): a device without one answers the
+   * defaults the list answers (buildIntuneHardwareInformation's).
+   */
+  hardware?: Record<string, JSONObject> | undefined;
   enrolledDeviceCount?: number | undefined;
   // The app registration lacks DeviceManagementManagedDevices.Read.All.
   isPermissionMissing?: boolean | undefined;
@@ -160,6 +169,27 @@ export function buildIntuneIpad(overrides: JSONObject = {}): JSONObject {
   });
 }
 
+// A company iPhone enrolled through Apple Business Manager.
+export function buildIntuneIphone(overrides: JSONObject = {}): JSONObject {
+  return buildIntuneDevice({
+    id: "7d6c5b4a-3f2e-4d1c-8b0a-9f8e7d6c5b4a",
+    deviceName: "Store 412 iPhone",
+    operatingSystem: "iOS",
+    osVersion: "18.1",
+    model: "iPhone 15",
+    manufacturer: "Apple",
+    serialNumber: "F2LXK1GHJKL0",
+    imei: "353093105432102",
+    deviceEnrollmentType: "appleBulkWithUser",
+    isSupervised: true,
+    isEncrypted: true,
+    wiFiMacAddress: "f0:2f:4b:12:34:56",
+    deviceCategoryDisplayName: "Stores",
+    managedDeviceName: "megan_iPhone_3/4/2025_9:12 AM",
+    ...overrides,
+  });
+}
+
 // An Android Enterprise phone, with its security patch level.
 export function buildIntuneAndroid(overrides: JSONObject = {}): JSONObject {
   return buildIntuneDevice({
@@ -177,6 +207,62 @@ export function buildIntuneAndroid(overrides: JSONObject = {}): JSONObject {
     deviceCategoryDisplayName: "Warehouse",
     ...overrides,
   });
+}
+
+/*
+ * A device's hardwareInformation as beta's reference writes it, with the
+ * values Graph gives when nothing was reported: 0, false, null and
+ * "unknown". batteryLevelPercentage is "null if the battery level cannot
+ * be determined", and filled on iOS and iPadOS alone, per check-in.
+ */
+export function buildIntuneHardwareInformation(
+  overrides: JSONObject = {},
+): JSONObject {
+  return {
+    "@odata.type": "microsoft.graph.hardwareInformation",
+    serialNumber: "0F33AB12345678",
+    totalStorageSpace: 0,
+    freeStorageSpace: 0,
+    imei: "",
+    meid: "",
+    manufacturer: null,
+    model: null,
+    phoneNumber: "",
+    subscriberCarrier: "",
+    cellularTechnology: "",
+    wifiMac: "",
+    operatingSystemLanguage: "en-US",
+    isSupervised: false,
+    isEncrypted: true,
+    batterySerialNumber: null,
+    batteryHealthPercentage: 0,
+    batteryChargeCycles: 0,
+    isSharedDevice: false,
+    sharedDeviceCachedUsers: [],
+    tpmSpecificationVersion: "2.0",
+    operatingSystemEdition: null,
+    deviceFullQualifiedDomainName: null,
+    deviceGuardVirtualizationBasedSecurityHardwareRequirementState:
+      "meetHardwareRequirements",
+    deviceGuardVirtualizationBasedSecurityState: "notConfigured",
+    deviceGuardLocalSystemAuthorityCredentialGuardState: "notConfigured",
+    osBuildNumber: null,
+    operatingSystemProductType: 0,
+    ipAddressV4: "",
+    subnetAddress: "",
+    esimIdentifier: null,
+    systemManagementBIOSVersion: null,
+    tpmManufacturer: null,
+    tpmVersion: null,
+    wiredIPv4Addresses: [],
+    batteryLevelPercentage: null,
+    residentUsersCount: null,
+    productName: null,
+    deviceLicensingStatus: "unknown",
+    deviceLicensingLastErrorCode: 0,
+    deviceLicensingLastErrorDescription: null,
+    ...overrides,
+  };
 }
 
 export function buildIntuneDetectedApp(overrides: JSONObject = {}): JSONObject {
@@ -442,6 +528,27 @@ export class FakeIntuneGraph {
       const known: boolean = devices.some((device: JSONObject): boolean => {
         return device["id"] === id;
       });
+
+      // One device's hardware (#10287): filled only when $select names it.
+      if (
+        known &&
+        url.searchParams.get("$expand") === null &&
+        (url.searchParams.get("$select") || "")
+          .split(",")
+          .includes("hardwareInformation")
+      ) {
+        return {
+          status: 200,
+          body: {
+            "@odata.context":
+              "https://graph.microsoft.com/beta/$metadata#deviceManagement/managedDevices(id,hardwareInformation)/$entity",
+            id,
+            hardwareInformation: buildIntuneHardwareInformation(
+              (this.options.hardware || {})[id] || {},
+            ),
+          },
+        };
+      }
 
       if (!known || url.searchParams.get("$expand") !== "detectedApps") {
         return {

@@ -130,8 +130,9 @@ import {
  * read the agent's hw.battery.charge and system.filesystem.utilization, and
  * none of the import's - and no resolving on a connection gone quiet. A
  * dying battery shows hours before the device stops checking in. Esper,
- * Workspace ONE and SOTI report a battery; Intune's device list does not,
- * so an Intune connection is offered Storage Nearly Full alone.
+ * Workspace ONE and SOTI report a battery in their device lists; Intune's
+ * says none, and its reads ask each iPhone and iPad alone once it has
+ * checked in since (#10287): Graph says no other device's battery.
  *
  * And, for every service, SECURITY PATCH OUT OF DATE (#10098): an Android
  * device whose security patch level, as the service reports it, is more than
@@ -1095,6 +1096,11 @@ interface DeviceReadingTemplateSpec {
   summary: string;
   // The service as a sentence names it: "Esper", "Intune", "MobiControl".
   serviceName: string;
+  /*
+   * Which devices the service says it of, when not every one with a
+   * battery: a sentence of its own, said after what the template does.
+   */
+  devicesNote?: string | undefined;
 }
 
 /*
@@ -1114,7 +1120,7 @@ function buildLowBatteryTemplate(
     provider: spec.provider,
     name: spec.name,
     summary: spec.summary,
-    description: `Alert when a device ${spec.serviceName} manages reports less than 20% battery, one alert per device, resolved once it reports 20% or more: a handheld is about to shut down, or a kiosk lost its power, and a device that runs out stops checking in. Every read of the connection records each device's battery as ${spec.serviceName} last heard it. A device without a battery reports none and never raises it. A device that runs the OneUptime Android agent is left to its host's Low Battery.`,
+    description: `Alert when a device ${spec.serviceName} manages reports less than 20% battery, one alert per device, resolved once it reports 20% or more: a handheld is about to shut down, or a kiosk lost its power, and a device that runs out stops checking in. Every read of the connection records each device's battery as ${spec.serviceName} last heard it.${spec.devicesNote ? ` ${spec.devicesNote}` : ""} A device without a battery reports none and never raises it. A device that runs the OneUptime Android agent is left to its host's Low Battery.`,
     category: "Resource",
     severity: "Warning",
     monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
@@ -1253,9 +1259,12 @@ function buildStorageNearlyFullTemplate(
 }
 
 /*
- * Low Battery for each service whose device list says a device's battery:
- * Esper's, Workspace ONE's and SOTI's. Intune's lists none (only a device
- * read on its own, on Graph's beta, says one), so it is offered none.
+ * Low Battery for every service. Esper's, Workspace ONE's and SOTI's device
+ * lists say a device's battery; Intune's says none, so an Intune
+ * connection's reads ask each iPhone and iPad on its own, once it has
+ * checked in since it was last asked (#10287): Graph's beta
+ * hardwareInformation holds a battery level of an iOS or iPadOS device
+ * alone, as of its last check-in.
  */
 const esperLowBatteryTemplate: ManagedDeviceAlertTemplate =
   buildLowBatteryTemplate({
@@ -1264,6 +1273,17 @@ const esperLowBatteryTemplate: ManagedDeviceAlertTemplate =
     name: "Esper Low Battery",
     summary: "A device Esper manages has less than 20% battery left.",
     serviceName: "Esper",
+  });
+
+const intuneLowBatteryTemplate: ManagedDeviceAlertTemplate =
+  buildLowBatteryTemplate({
+    id: "intune-low-battery",
+    provider: DeviceManagementProvider.Intune,
+    name: "Intune Low Battery",
+    summary: "An iPhone or iPad Intune manages has less than 20% battery left.",
+    serviceName: "Intune",
+    devicesNote:
+      "Intune says the battery of an iPhone or an iPad alone, as of its last check-in, about every eight hours.",
   });
 
 const workspaceOneLowBatteryTemplate: ManagedDeviceAlertTemplate =
@@ -1338,6 +1358,7 @@ const ALL_TEMPLATES: ReadonlyArray<ManagedDeviceAlertTemplate> = [
   esperSecurityPatchOutOfDateTemplate,
   intuneConnectionStoppedReadingTemplate,
   intuneDeviceStoppedCheckingInTemplate,
+  intuneLowBatteryTemplate,
   intuneStorageNearlyFullTemplate,
   intuneSecurityPatchOutOfDateTemplate,
   workspaceOneConnectionStoppedReadingTemplate,

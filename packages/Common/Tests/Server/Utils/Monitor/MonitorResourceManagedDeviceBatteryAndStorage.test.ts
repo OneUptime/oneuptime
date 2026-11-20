@@ -41,7 +41,10 @@ import {
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceSync";
 import { ProviderDevice } from "../../../../Server/Utils/DeviceManagement/DeviceManagementTypes";
 import { parseEsperDevice } from "../../../../Server/Utils/DeviceManagement/Esper/EsperParsers";
-import { parseIntuneDevice } from "../../../../Server/Utils/DeviceManagement/Intune/IntuneParsers";
+import {
+  parseIntuneBatteryLevel,
+  parseIntuneDevice,
+} from "../../../../Server/Utils/DeviceManagement/Intune/IntuneParsers";
 import { parseWorkspaceOneDevice } from "../../../../Server/Utils/DeviceManagement/WorkspaceOne/WorkspaceOneParsers";
 import { parseSotiDevice } from "../../../../Server/Utils/DeviceManagement/Soti/SotiParsers";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -81,7 +84,12 @@ import {
   buildEsperAppleDevice,
   buildEsperDevice,
 } from "../DeviceManagement/EsperFixtures";
-import { buildIntuneDevice } from "../DeviceManagement/FakeIntuneGraph";
+import {
+  buildIntuneDevice,
+  buildIntuneHardwareInformation,
+  buildIntuneIpad,
+  buildIntuneIphone,
+} from "../DeviceManagement/FakeIntuneGraph";
 import {
   buildWorkspaceOneAndroid,
   buildWorkspaceOneDevice,
@@ -641,7 +649,29 @@ describe("Esper: battery and storage, from its device list to the alert", () => 
   });
 });
 
-describe("Microsoft Intune: storage, from Graph's device list to the alert", () => {
+/*
+ * Intune's device list says no battery; a read asks each iPhone and iPad
+ * alone (#10287), through beta's hardwareInformation, and sets what it
+ * says on the device before the sync writes it - as here.
+ */
+function intuneAppleDevice(data: {
+  raw: JSONObject;
+  hardware: JSONObject;
+}): ListedDevice {
+  const read: { device: ProviderDevice; lastSyncAt: Date | null } =
+    parseIntuneDevice(data.raw, READ_AT)!;
+
+  read.device.batteryLevel = parseIntuneBatteryLevel({
+    "@odata.context":
+      "https://graph.microsoft.com/beta/$metadata#deviceManagement/managedDevices(id,hardwareInformation)/$entity",
+    id: data.raw["id"],
+    hardwareInformation: buildIntuneHardwareInformation(data.hardware),
+  });
+
+  return { device: read.device, lastCheckInAt: read.lastSyncAt };
+}
+
+describe("Microsoft Intune: battery and storage, from Graph to the alert", () => {
   const rows: () => Array<JSONObject> = (): Array<JSONObject> => {
     const listed: Array<ListedDevice> = [
       // 12 GB free of 255 GB: 95.3% used.
@@ -671,15 +701,104 @@ describe("Microsoft Intune: storage, from Graph's device list to the alert", () 
       return { device: read.device, lastCheckInAt: read.lastSyncAt };
     });
 
+    listed.push(
+      // An iPhone Intune last heard at 15%.
+      intuneAppleDevice({
+        raw: buildIntuneIphone({
+          lastSyncDateTime: new Date(
+            READ_AT.getTime() - 40 * MINUTE,
+          ).toISOString(),
+        }),
+        hardware: { productName: "iPhone15,4", batteryLevelPercentage: 15 },
+      }),
+      // An iPad at 64.5%.
+      intuneAppleDevice({
+        raw: buildIntuneIpad({
+          lastSyncDateTime: new Date(
+            READ_AT.getTime() - 90 * MINUTE,
+          ).toISOString(),
+        }),
+        hardware: { productName: "iPad12,1", batteryLevelPercentage: 64.5 },
+      }),
+      // An iPhone Intune may not read the Device Information of: no level.
+      intuneAppleDevice({
+        raw: buildIntuneIphone({
+          id: "7d6c5b4a-3f2e-4d1c-8b0a-000000000002",
+          deviceName: "Store 413 iPhone",
+          serialNumber: "F2LXK1GHJKL1",
+          imei: "353093105432110",
+          lastSyncDateTime: new Date(
+            READ_AT.getTime() - 20 * MINUTE,
+          ).toISOString(),
+        }),
+        hardware: { batteryLevelPercentage: null },
+      }),
+    );
+
     return rowsOfARead({ provider: DeviceManagementProvider.Intune, listed });
   };
 
-  test("its device list says no battery, so no battery reading is written", () => {
+  test("a PC's battery is never said, so none of its rows is a battery's", () => {
+    const read: Array<JSONObject> = rows();
+
+    for (const pc of ["DESKTOP-FULL01", "DESKTOP-OK0001", "DESKTOP-NEW001"]) {
+      expect(
+        valueOf(read, MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME, pc),
+      ).toBeUndefined();
+    }
+
     expect(
-      rows().filter((row: JSONObject): boolean => {
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        "Store 413 iPhone",
+      ),
+    ).toBeUndefined();
+  });
+
+  test("Intune Low Battery: one alert for the iPhone at 15%, none for the iPad at 65% nor for a device with no level", async () => {
+    const read: Array<JSONObject> = rows();
+
+    expect(
+      valueOf(
+        read,
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        "Store 412 iPhone",
+      ),
+    ).toBe(15);
+    expect(
+      read.filter((row: JSONObject): boolean => {
         return row["name"] === MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME;
       }),
-    ).toEqual([]);
+    ).toHaveLength(2);
+    expect(await alertedFor("intune-low-battery", read)).toEqual([
+      "Store 412 iPhone",
+    ]);
+  });
+
+  test("the iPhone back over 20% at its next check-in resolves it", async () => {
+    const charged: Array<JSONObject> = rowsOfARead({
+      provider: DeviceManagementProvider.Intune,
+      listed: [
+        intuneAppleDevice({
+          raw: buildIntuneIphone({
+            lastSyncDateTime: new Date(
+              READ_AT.getTime() - 5 * MINUTE,
+            ).toISOString(),
+          }),
+          hardware: { batteryLevelPercentage: 81.25 },
+        }),
+      ],
+    });
+
+    expect(
+      valueOf(
+        charged,
+        MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        "Store 412 iPhone",
+      ),
+    ).toBe(81);
+    expect(await alertedFor("intune-low-battery", charged)).toEqual([]);
   });
 
   test("Intune Storage Nearly Full: one alert for the full laptop, none for one that never said its free space", async () => {

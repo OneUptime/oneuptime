@@ -18,6 +18,7 @@ import DeviceManagementProvider from "../../../../Types/DeviceManagement/DeviceM
 import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
 import {
+  FakeIntuneAnswer,
   FakeIntuneGraph,
   FakeIntuneRequest,
   INTUNE_CLIENT_ID,
@@ -28,6 +29,7 @@ import {
   buildIntuneDetectedApp,
   buildIntuneDevice,
   buildIntuneIpad,
+  buildIntuneIphone,
 } from "./FakeIntuneGraph";
 
 /*
@@ -662,5 +664,194 @@ describe("a read", () => {
       `/beta/deviceManagement/managedDevices/${String(DEVICES[0]!["id"])}`,
     );
     expect(request.query.get("$expand")).toBe("detectedApps");
+  });
+});
+
+/*
+ * #10287: an iPhone's or an iPad's battery, from beta's single-device GET
+ * with $select=id,hardwareInformation - Graph fills hardwareInformation
+ * only on a device read alone, and its level on iOS and iPadOS alone -
+ * under the one permission every read takes, paced and counted as every
+ * request is, and slowed down by a 429 as every request is.
+ */
+describe("a device's battery", () => {
+  const IPHONE: ReturnType<typeof buildIntuneDevice> = buildIntuneIphone();
+  const IPAD: ReturnType<typeof buildIntuneDevice> = buildIntuneIpad();
+  const WINDOWS: ReturnType<typeof buildIntuneDevice> = buildIntuneDevice();
+
+  function pathOf(device: ReturnType<typeof buildIntuneDevice>): string {
+    return `/beta/deviceManagement/managedDevices/${String(device["id"])}`;
+  }
+
+  function graphOf(): FakeIntuneGraph {
+    return new FakeIntuneGraph({
+      devices: [IPHONE, IPAD, WINDOWS],
+      hardware: {
+        [String(IPHONE["id"])]: {
+          serialNumber: "F2LXK1GHJKL0",
+          isSupervised: true,
+          productName: "iPhone15,4",
+          batteryLevelPercentage: 18,
+        },
+        [String(IPAD["id"])]: {
+          serialNumber: "DMPXK1ABCDEF",
+          isSupervised: true,
+          productName: "iPad12,1",
+          batteryLevelPercentage: 64.5,
+        },
+        // A laptop's battery health is said; its level never is.
+        [String(WINDOWS["id"])]: {
+          batteryHealthPercentage: 93,
+          batteryChargeCycles: 212,
+          batteryLevelPercentage: null,
+        },
+      },
+    });
+  }
+
+  test("is asked of an iPhone or an iPad alone: Graph says no other device's", () => {
+    const session: DeviceManagementSession = sessionOf(graphOf());
+
+    expect(session.readsBatteryOf).toBeDefined();
+    expect(session.readBatteryLevel).toBeDefined();
+    expect(
+      Object.values(ManagedDevicePlatform).filter(
+        (platform: ManagedDevicePlatform): boolean => {
+          return session.readsBatteryOf!({ platform });
+        },
+      ),
+    ).toEqual([ManagedDevicePlatform.IOS, ManagedDevicePlatform.IPadOS]);
+  });
+
+  test("reads each one's level from beta's hardwareInformation, as Intune last heard it", async () => {
+    const graph: FakeIntuneGraph = graphOf();
+    const session: DeviceManagementSession = sessionOf(graph);
+
+    expect(await session.readBatteryLevel!(String(IPHONE["id"]))).toBe(18);
+    expect(await session.readBatteryLevel!(String(IPAD["id"]))).toBe(65);
+    expect(await session.readBatteryLevel!(String(WINDOWS["id"]))).toBeNull();
+
+    const asked: Array<FakeIntuneRequest> = graph.requests.filter(
+      (request: FakeIntuneRequest): boolean => {
+        return request.path.startsWith("/beta/");
+      },
+    );
+
+    expect(asked).toHaveLength(3);
+    expect(asked[0]!.method).toBe("GET");
+    expect(asked[0]!.host).toBe("graph.microsoft.com");
+    expect(asked[0]!.path).toBe(pathOf(IPHONE));
+    // Its hardware alone: no apps, no other field.
+    expect(asked[0]!.query.get("$select")).toBe("id,hardwareInformation");
+    expect(asked[0]!.query.get("$expand")).toBeNull();
+    expect(asked[0]!.headers["Authorization"]).toBe(`Bearer ${INTUNE_TOKEN}`);
+    expect(asked[0]!.egressLabel).toBe(INTUNE_EGRESS_LABEL);
+    // One token for the read, and one request a device, each counted.
+    expect(session.getRequestCount()).toBe(4);
+  });
+
+  test("a 429 waits as Graph says, and the battery is read all the same", async () => {
+    const graph: FakeIntuneGraph = graphOf();
+
+    // Intune's throttled answer, as Graph writes it.
+    graph.script(pathOf(IPHONE), [
+      {
+        status: 429,
+        headers: { "retry-after": "2" },
+        body: {
+          error: {
+            code: "TooManyRequests",
+            message:
+              '{\r\n  "_version": 3,\r\n  "Message": "Too many requests - Operation ID (for customer support): 00000000-0000-0000-0000-000000000000 - Activity ID: 7a6b5c4d-0000-4000-8000-000000000009 - Url: https://fef.msub03.manage.microsoft.com/DeviceFE/StatelessDeviceFEService/deviceManagement/managedDevices?api-version=5024-07-20",\r\n  "CustomApiErrorPhrase": "",\r\n  "RetryAfter": null,\r\n  "ErrorSourceService": "",\r\n  "HttpHeaders": "{}"\r\n}',
+            innerError: {
+              date: "2026-11-19T12:00:00",
+              "request-id": "7a6b5c4d-0000-4000-8000-000000000009",
+              "client-request-id": "7a6b5c4d-0000-4000-8000-000000000009",
+            },
+          },
+        },
+      },
+    ]);
+
+    const session: DeviceManagementSession = sessionOf(graph);
+
+    expect(await session.readBatteryLevel!(String(IPHONE["id"]))).toBe(18);
+    expect(graph.requestsTo(pathOf(IPHONE))).toHaveLength(2);
+    expect(session.wasRateLimited()).toBe(true);
+  });
+
+  test("a 429 that names no wait backs off, and the battery is read all the same", async () => {
+    const graph: FakeIntuneGraph = graphOf();
+
+    graph.script(pathOf(IPAD), [{ status: 429 }, { status: 429 }]);
+
+    const session: DeviceManagementSession = sessionOf(graph);
+
+    expect(await session.readBatteryLevel!(String(IPAD["id"]))).toBe(65);
+    expect(graph.requestsTo(pathOf(IPAD))).toHaveLength(3);
+    expect(session.wasRateLimited()).toBe(true);
+  });
+
+  test("Graph throttling past what the client waits ends in a rate limit the read can tell", async () => {
+    const graph: FakeIntuneGraph = graphOf();
+
+    graph.script(
+      pathOf(IPHONE),
+      Array.from({ length: 8 }, (): FakeIntuneAnswer => {
+        return { status: 429, headers: { "retry-after": "1" } };
+      }),
+    );
+
+    const failure: LlmProviderError = await failureOf(
+      sessionOf(graph).readBatteryLevel!(String(IPHONE["id"])),
+    );
+
+    expect(failure.kind).toBe(LlmConnectionFailureKind.RateLimited);
+    expect(failure.statusCode).toBe(429);
+    expect(failure.message).toContain("battery request");
+  });
+
+  test("a device Intune no longer knows is a 404 the read can tell", async () => {
+    const failure: LlmProviderError = await failureOf(
+      sessionOf(graphOf()).readBatteryLevel!(
+        "00000000-0000-4000-8000-000000000000",
+      ),
+    );
+
+    expect(failure.statusCode).toBe(404);
+  });
+
+  test("a request Graph no longer takes (a beta property gone) is a 400 the read can tell", async () => {
+    const graph: FakeIntuneGraph = graphOf();
+
+    graph.script(pathOf(IPAD), [
+      {
+        status: 400,
+        body: {
+          error: {
+            code: "BadRequest",
+            message:
+              "Could not find a property named 'hardwareInformation' on type 'microsoft.graph.managedDevice'.",
+          },
+        },
+      },
+    ]);
+
+    const failure: LlmProviderError = await failureOf(
+      sessionOf(graph).readBatteryLevel!(String(IPAD["id"])),
+    );
+
+    expect(failure.statusCode).toBe(400);
+    expect(failure.message).toContain("hardwareInformation");
+  });
+
+  test("a battery asked past the read's budget stops the read's asking", async () => {
+    // The token and one device: the second is past the budget.
+    const session: DeviceManagementSession = sessionOf(graphOf(), 2);
+
+    expect(await session.readBatteryLevel!(String(IPHONE["id"]))).toBe(18);
+    await expect(
+      session.readBatteryLevel!(String(IPAD["id"])),
+    ).rejects.toBeInstanceOf(DeviceManagementBudgetSpent);
   });
 });
