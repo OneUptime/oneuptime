@@ -25,7 +25,8 @@ import { MetricZeroFillOptions } from "Common/Utils/Metrics/MetricZeroFill";
 import MetricSeriesFingerprint, {
   MetricSeriesIdentity,
 } from "Common/Utils/Metrics/MetricSeriesFingerprint";
-import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
+import EventLoop, { EventLoopBudget } from "Common/Server/Utils/EventLoop";
+import SlicedWork, { SlicedWorkSteps } from "Common/Utils/SlicedWork";
 
 /*
  * When a metric monitor's series got their data (#4912's follow-up: a
@@ -127,17 +128,30 @@ const getRowFingerprint: (input: {
  * Whether a query's read looks behind: some series' newest data point -
  * its bucket - ended more than one data point before the window's end.
  */
-export const isReadBehind: (input: {
+interface ReadBehindInput {
   aggregatedResult: AggregatedResult;
   groupByAttributeKeys: Array<string>;
   startAndEndDate: InBetween<Date>;
   readSeries?: ReadSeries | undefined;
-}) => boolean = (input: {
-  aggregatedResult: AggregatedResult;
-  groupByAttributeKeys: Array<string>;
-  startAndEndDate: InBetween<Date>;
-  readSeries?: ReadSeries | undefined;
-}): boolean => {
+}
+
+export const isReadBehind: (input: ReadBehindInput) => boolean = (
+  input: ReadBehindInput,
+): boolean => {
+  return SlicedWork.runToEnd(isReadBehindInSteps(input));
+};
+
+// How many rows isReadBehindInSteps reads between two pauses.
+const READ_BEHIND_ROWS_PER_STEP: number = 1024;
+
+/*
+ * isReadBehind a step at a time, pausing every so many rows: a grouped
+ * read is 40,000 of them, and the first read of an evaluation is where its
+ * series are first read and hashed (#10108).
+ */
+function* isReadBehindInSteps(
+  input: ReadBehindInput,
+): SlicedWorkSteps<boolean> {
   const startMs: number = new Date(
     input.startAndEndDate.startValue as Date,
   ).getTime();
@@ -160,9 +174,18 @@ export const isReadBehind: (input: {
   });
 
   const newestBySeries: Map<string, number> = new Map();
+  let index: number = 0;
 
   for (const row of input.aggregatedResult.data) {
-    const timeMs: number = new Date(row.timestamp).getTime();
+    // A pause every so many rows.
+    if (++index % READ_BEHIND_ROWS_PER_STEP === 0) {
+      yield;
+    }
+
+    const timeMs: number =
+      row.timestamp instanceof Date
+        ? row.timestamp.getTime()
+        : new Date(row.timestamp).getTime();
 
     if (!Number.isFinite(timeMs)) {
       continue;
@@ -187,7 +210,7 @@ export const isReadBehind: (input: {
   }
 
   return false;
-};
+}
 
 /*
  * When each series of one query got its data, read after the query's data
@@ -247,12 +270,14 @@ export const readQueryArrivals: (
   }
 
   if (
-    !isReadBehind({
-      aggregatedResult: input.aggregatedResult,
-      groupByAttributeKeys: input.groupByAttributeKeys,
-      startAndEndDate: input.startAndEndDate,
-      readSeries: input.readSeries,
-    })
+    !(await EventLoop.runInSlices(
+      isReadBehindInSteps({
+        aggregatedResult: input.aggregatedResult,
+        groupByAttributeKeys: input.groupByAttributeKeys,
+        startAndEndDate: input.startAndEndDate,
+        readSeries: input.readSeries,
+      }),
+    ))
   ) {
     return null;
   }

@@ -30,6 +30,9 @@ export interface MetricSeriesIdentity {
   fingerprint: string;
 }
 
+// The series a reader has seen, by each key's value in turn.
+type SeriesTree = Map<string, SeriesTree | MetricSeriesIdentity>;
+
 /**
  * Canonicalize a label dictionary (key/value string pairs identifying a
  * metric series) into a stable short hash. Used to key incidents/alerts
@@ -138,12 +141,18 @@ export default class MetricSeriesFingerprint {
     const sortedKeys: Array<string> = Array.from(
       new Set<string>(attributeKeys),
     ).sort();
-    const prefixes: Array<string> = sortedKeys.map((key: string): string => {
-      return `${key}=`;
-    });
-    const seen: Map<string, MetricSeriesIdentity> = new Map<
+    const lastIndex: number = sortedKeys.length - 1;
+
+    /*
+     * The series seen, by their values of the keys in that order, a level a
+     * key: the values are looked up as they are, never joined into a text
+     * for every row. Two rows with the same values are the same series;
+     * values that differ but join into the same text are hashed into the same
+     * fingerprint, as before.
+     */
+    const seen: SeriesTree = new Map<
       string,
-      MetricSeriesIdentity
+      SeriesTree | MetricSeriesIdentity
     >();
 
     return (sample: AggregatedModel): MetricSeriesIdentity => {
@@ -152,21 +161,30 @@ export default class MetricSeriesFingerprint {
           | JSONObject
           | undefined) || {};
 
-      let canonical: string = "";
+      let level: SeriesTree = seen;
 
-      for (let index: number = 0; index < sortedKeys.length; index++) {
-        const raw: JSONValue | undefined = readOwnValue(
-          attributes,
-          sortedKeys[index]!,
+      for (let index: number = 0; index < lastIndex; index++) {
+        const value: string = MetricSeriesFingerprint.toLabelText(
+          readOwnValue(attributes, sortedKeys[index]!),
         );
+        let next: SeriesTree | undefined = level.get(value) as
+          | SeriesTree
+          | undefined;
 
-        canonical +=
-          (index > 0 ? "|" : "") +
-          prefixes[index]! +
-          (raw === undefined || raw === null ? "" : String(raw));
+        if (!next) {
+          next = new Map<string, SeriesTree | MetricSeriesIdentity>();
+          level.set(value, next);
+        }
+
+        level = next;
       }
 
-      const known: MetricSeriesIdentity | undefined = seen.get(canonical);
+      const lastValue: string = MetricSeriesFingerprint.toLabelText(
+        readOwnValue(attributes, sortedKeys[lastIndex]!),
+      );
+      const known: MetricSeriesIdentity | undefined = level.get(lastValue) as
+        | MetricSeriesIdentity
+        | undefined;
 
       if (known) {
         return known;
@@ -182,10 +200,19 @@ export default class MetricSeriesFingerprint {
         fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
       };
 
-      seen.set(canonical, identity);
+      level.set(lastValue, identity);
 
       return identity;
     };
+  }
+
+  // A label's value as computeFingerprint writes it: "" for none.
+  private static toLabelText(raw: JSONValue | undefined): string {
+    if (raw === undefined || raw === null) {
+      return "";
+    }
+
+    return typeof raw === "string" ? raw : String(raw);
   }
 
   /**

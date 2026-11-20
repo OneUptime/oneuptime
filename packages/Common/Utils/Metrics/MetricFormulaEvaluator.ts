@@ -99,8 +99,15 @@ export interface MetricFormulaEvaluationInput {
   zeroFill?: MetricZeroFillOptions | undefined;
 }
 
+// The group keys a reader has written, by each key's value in turn.
+type GroupKeyTree = Map<string, GroupKeyTree | string>;
+
 // How many rows evaluateFormulaInSteps buckets between two pauses.
 const FORMULA_ROWS_PER_STEP: number = 1024;
+
+// The ISO texts of the times read lately, by their milliseconds.
+const ISO_TEXTS_MAX_ENTRIES: number = 4096;
+const isoTextByTime: Map<number, string> = new Map<number, string>();
 
 // The formulas parsed lately, by their text (toRpn).
 const PARSED_FORMULAS_MAX_ENTRIES: number = 512;
@@ -892,6 +899,30 @@ export default class MetricFormulaEvaluator {
     const prefixes: Array<string> = sortedKeys.map((key: string): string => {
       return `${key}=`;
     });
+    const lastIndex: number = sortedKeys.length - 1;
+
+    /*
+     * The key of each group seen, by its values of the keys in that order,
+     * a level a key: a group's key is written once, and every later row of
+     * it is looked up by its values as they are.
+     */
+    const seen: GroupKeyTree = new Map<string, GroupKeyTree | string>();
+
+    const valueOf: (attributes: JSONObject, index: number) => string = (
+      attributes: JSONObject,
+      index: number,
+    ): string => {
+      const raw: JSONValue | undefined = readOwnValue(
+        attributes,
+        sortedKeys[index]!,
+      );
+
+      if (raw === undefined || raw === null) {
+        return "";
+      }
+
+      return typeof raw === "string" ? raw : String(raw);
+    };
 
     return (sample: AggregatedModel): string => {
       const attributes: JSONObject =
@@ -899,19 +930,41 @@ export default class MetricFormulaEvaluator {
           | JSONObject
           | undefined) || {};
 
+      let level: GroupKeyTree = seen;
+
+      for (let index: number = 0; index < lastIndex; index++) {
+        const value: string = valueOf(attributes, index);
+        let next: GroupKeyTree | undefined = level.get(value) as
+          | GroupKeyTree
+          | undefined;
+
+        if (!next) {
+          next = new Map<string, GroupKeyTree | string>();
+          level.set(value, next);
+        }
+
+        level = next;
+      }
+
+      const lastValue: string = valueOf(attributes, lastIndex);
+      const known: string | undefined = level.get(lastValue) as
+        | string
+        | undefined;
+
+      if (known !== undefined) {
+        return known;
+      }
+
       let groupKey: string = "";
 
       for (let index: number = 0; index < sortedKeys.length; index++) {
-        const raw: JSONValue | undefined = readOwnValue(
-          attributes,
-          sortedKeys[index]!,
-        );
-
         groupKey +=
           (index > 0 ? "|" : "") +
           prefixes[index]! +
-          (raw === undefined || raw === null ? "" : String(raw));
+          valueOf(attributes, index);
       }
+
+      level.set(lastValue, groupKey);
 
       return groupKey;
     };
@@ -1145,7 +1198,27 @@ export default class MetricFormulaEvaluator {
 
   private static normalizeTimestamp(timestamp: Date | string): string {
     if (timestamp instanceof Date) {
-      return timestamp.toISOString();
+      /*
+       * A formula over a grouped monitor's rows writes the same few minutes
+       * hundreds of thousands of times: each is written once (#10108). An
+       * invalid date throws, as it did, before anything is kept.
+       */
+      const timeMs: number = timestamp.getTime();
+      const written: string | undefined = isoTextByTime.get(timeMs);
+
+      if (written !== undefined) {
+        return written;
+      }
+
+      const isoText: string = timestamp.toISOString();
+
+      if (isoTextByTime.size >= ISO_TEXTS_MAX_ENTRIES) {
+        isoTextByTime.clear();
+      }
+
+      isoTextByTime.set(timeMs, isoText);
+
+      return isoText;
     }
 
     /*
