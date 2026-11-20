@@ -98,7 +98,7 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 
 - **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo. Bajo **Tiempo hasta el reconocimiento** y **Tiempo hasta la contención** se ve cómo va el caso frente a sus objetivos de respuesta.
 - **Por qué se abrió este caso**, en la **Vista general**: la detección que abrió el caso y cómo se dispara su regla (su umbral, el campo por el que agrupa y la ventana en la que cuenta), cuántos eventos coincidieron, de dónde venían y en qué periodo, qué busca la regla y hasta dónde llegaron las solicitudes. Bajo **Coincidencias**, los propios eventos, del más antiguo al más reciente: cada uno con lo que busca la regla resaltado, hasta dónde llegó su solicitud, la línea de registro o el producto del que procede, y su **Traza**, sus **Registros** y su **Excepción** a un clic; la línea de registro de la que procede se abre en el explorador de registros en esa línea. Haz clic en un evento para verlo completo, con la línea de registro de la que se leyó. **Guardar en este caso**, en su fila o en su panel, guarda el evento en la página **Evidencias** del caso, nombrando la detección con la que coincidió; un evento que el caso ya guarda lo indica, y lo abre allí. Una detección guarda, al dispararse, hasta 25 de los eventos con los que coincidió, y los lista incluso cuando su retención ya terminó; tu rol ve los de los orígenes que puede leer. Una regla que se dispara para muchos grupos a la vez, también una regla de correlación, guarda eventos de cada uno: 1.000 como máximo en total, así que cada uno guarda al menos 10, y hasta 25 cuando vuelve a dispararse. Para una detección de antes de que los guardara, las coincidencias de una regla son las de su propia condición, para el grupo de la detección, en las ventanas en las que se disparó; una coincidencia de inteligencia de amenazas lista los eventos que contienen su indicador, y la alerta de un producto conectado, el evento tal como se envió. **Dónde mirar después** abre todo sobre la dirección o el usuario del que trata la detección, los eventos y las líneas de registro que lo nombran, los registros de los servicios de los que vienen sus líneas de registro y las trazas de sus solicitudes, cada uno en la ventana de la detección, así como el **Desarrollo** y las **Señales conectadas** del caso. Las demás detecciones del caso quedan plegadas en **Otras detecciones del caso**.
-- **Plan de respuesta**, en la **Vista general**: qué hacer ahora con el caso, lo más urgente primero, bajo **Confirmar que es real**, **Contener la amenaza**, **Corregir lo que lo permitió** y **Cerrar el caso**. Cada paso trata sobre este caso: sus direcciones, usuarios y hosts, hasta dónde llegaron sus solicitudes, con qué indica su regla que también puede dispararse, las tácticas y técnicas de ATT&CK a las que corresponden sus detecciones y los playbooks que tiene el proyecto. Los pasos propios de una regla de detección, escritos bajo **Pasos de respuesta** en su formulario, van primero en la parte del plan a la que corresponden, y las reglas de la biblioteca de reglas traen pasos propios. Un paso que OneUptime puede hacer tiene su propio botón: **Asignarme**, **Añadir excepción** con la regla y la dirección ya rellenadas, **Ejecutar playbook** con el playbook que suspende la cuenta o aplica la contención al host, o con el que sugiere OneUptime AI, **Declarar incidente**, **Marcar como contenido** y **Cerrar caso**. Un paso que OneUptime no puede hacer, como bloquear una dirección en tu firewall, indica **Fuera de OneUptime**, con la dirección a un clic del portapapeles. Marca un paso cuando esté hecho: se guarda como una de las **Tareas** del caso, hecha, con quién la hizo y cuándo. Los pasos que decide el propio caso se marcan solos: está asignado, se declaró un incidente, se ejecutó un playbook, está contenido o cerrado. Una vez hechos todos los pasos que contienen la amenaza, el plan ofrece **Marcar como contenido**, que registra el tiempo hasta la contención del caso. Cuando OneUptime AI ha clasificado el caso, su valoración encabeza el plan, y los pasos que sugiere quedan plegados bajo los del propio plan.
+- **Plan de respuesta**, en la **Vista general**: qué hacer ahora con el caso, lo más urgente primero, bajo **Confirmar que es real**, **Contener la amenaza**, **Corregir lo que lo permitió** y **Cerrar el caso**. Cada paso trata sobre este caso: sus direcciones, usuarios y hosts, hasta dónde llegaron sus solicitudes, con qué indica su regla que también puede dispararse, las tácticas y técnicas de ATT&CK a las que corresponden sus detecciones y los playbooks que tiene el proyecto. Los pasos propios de una regla de detección, escritos bajo **Pasos de respuesta** en su formulario, van primero en la parte del plan a la que corresponden, y las reglas de la biblioteca de reglas traen pasos propios. Un paso que OneUptime puede hacer tiene su propio botón: **Asignarme**, **Añadir excepción** con la regla y la dirección ya rellenadas, **Ejecutar playbook** con el playbook que suspende la cuenta o aplica la contención al host, o con el que sugiere OneUptime AI, **Declarar incidente**, **Marcar como contenido** y **Cerrar caso**. Un paso que OneUptime no puede hacer, como bloquear una dirección en tu firewall, indica **Fuera de OneUptime**, con la dirección a un clic del portapapeles. Marca un paso cuando esté hecho: se guarda como una de las **Tareas** del caso, hecha, con quién la hizo y cuándo. Los pasos que decide el propio caso se marcan solos: está asignado, se declaró un incidente, se ejecutó un playbook, está contenido o cerrado. Una vez hechos todos los pasos que contienen la amenaza, el plan ofrece **Marcar como contenido**, que registra el tiempo hasta la contención del caso. Cuando OneUptime AI ha clasificado el caso, su valoración encabeza el plan, y los pasos que sugiere quedan plegados bajo los del propio plan. OneUptime comprueba por sí mismo la mayoría de los pasos, y dice junto a cada uno lo que encontró: consulta [Cómo comprueba OneUptime un paso](#cómo-comprueba-oneuptime-un-paso).
 - **OneUptime AI**, en la **Vista general**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
 - **Impacto**, en la **Vista general**: lo que el caso pone en riesgo: si OneUptime ha visto que sus registros se alcanzaron desde internet, quién es su propietario, qué cambió por última vez en ellos, y los datos en riesgo: los almacenes con datos sensibles que nombra el caso o a los que pueden llegar sus usuarios y roles (consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations#operaciones-de-seguridad)). Despliéguelo para ver a qué llama cada registro y quién lo llama, los monitores y páginas de estado que lo vigilan y las máquinas con las que hablaron las direcciones del caso.
 - **MITRE ATT&CK**, en la **Vista general**: las tácticas y técnicas a las que corresponden sus detecciones, cada una enlazada a su página en attack.mitre.org.
@@ -114,6 +114,41 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Campos personalizados**: los campos propios del proyecto, rellenados para este caso, y **Editar campos** para cambiarlos. En cuanto el proyecto tiene un campo, la **Vista general** también los muestra, en su última tarjeta. Consulta [Campos personalizados, plantillas de notas y numeración](#campos-personalizados-plantillas-de-notas-y-numeración).
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
 - **Eliminar caso**: elimina para siempre el caso, con sus detecciones, notas, cronología y ejecuciones de playbooks. Para conservar el registro, ciérralo con un veredicto.
+
+### Cómo comprueba OneUptime un paso
+
+Una marca dice que alguien hizo un paso. OneUptime también comprueba por sí mismo los pasos del **Plan de respuesta** de un caso, frente a lo que de verdad pasó: cada minuto mientras el caso está abierto, y al instante cuando se marca un paso, cambia una tarea o un playbook contiene algo. Junto a cada paso que comprobó, el plan dice lo que encontró:
+
+| Junto al paso | Significa |
+| --- | --- |
+| **Comprobado por OneUptime** | OneUptime vio el paso hecho, y se sostiene. Nadie tiene que marcarlo |
+| **Parece hecho** | Lo que ve OneUptime encaja con el paso hecho, pero no lo demuestra. **Confirmar** lo marca como tuyo |
+| **Aún no hecho** | OneUptime ve que el paso sigue pendiente |
+| **OneUptime no puede saberlo** | OneUptime no tiene con qué comprobar el paso, y dice por qué, con **Cómo dejar que OneUptime compruebe esto** |
+| **Dejó de sostenerse** | El paso estaba hecho y ha dejado de funcionar, como una dirección bloqueada que vuelve a pasar |
+| **No es necesario por ahora** | No ha pasado nada que pida el paso |
+
+**Cómo lo sabemos**, junto a lo que encontró OneUptime, abre el resto: qué más vio, un enlace a las trazas o al producto que leyó, y cuándo lo comprobó. El progreso del plan cuenta los pasos que OneUptime comprobó por sí mismo, como en «4 de 9 hechos, 3 comprobados por OneUptime».
+
+| Paso | Lo que lee OneUptime |
+| --- | --- |
+| Bloquear la dirección | Si las solicitudes de la dirección siguen llegando a tu app, en sus trazas y registros de acceso. Una dirección que se queda en silencio parece hecha: puede que se bloqueara, o que simplemente parara |
+| Comprobar que no pasó nada más | Cómo terminó cada solicitud de la dirección desde la primera detección del caso. Cuando tu app las rechazó todas, el paso queda comprobado |
+| Suspender la cuenta | La cuenta en Okta, Microsoft Entra ID o Google Workspace: suspendida, o deshabilitada con sus sesiones cerradas después de abrirse el caso |
+| Sacar el host de la red | El host en CrowdStrike Falcon o Microsoft Defender for Endpoint: contenido o aislado |
+| Declarar un incidente | Si una solicitud superó los controles de tu app, o si cayó un monitor de los servicios a los que llegó, mientras el caso estaba abierto. Hasta entonces, el paso no es necesario por ahora |
+| Descartar un falso positivo | Nada: solo tú puedes descartarlo. El paso enumera lo que OneUptime sabe de la dirección: si alguno de tus registros la tiene, los feeds de inteligencia de amenazas que la incluyen, y los usuarios con sesión iniciada que la usaron en los últimos 30 días |
+
+- Un paso hecho fuera de OneUptime también cuenta. Bloquea la dirección en tu propio firewall, y OneUptime ve que sus solicitudes se detienen; suspende la cuenta en Okta, y OneUptime lo vuelve a leer.
+- Puedes seguir marcando un paso tú mismo, incluso uno que OneUptime no ve hecho. Un paso que OneUptime ha comprobado no necesita marca.
+- Cuando un paso hecho deja de sostenerse, el plan lo dice arriba del todo, la **Cronología** del caso dice lo que vio OneUptime, y se avisa a las personas que se ocupan del caso: consulta [Notificaciones](#notificaciones).
+- OneUptime no puede ver las solicitudes de una dirección cuando tu app no le envía trazas ni registros, cuando sus trazas no dicen de qué dirección vino cada solicitud, o cuando llevan las direcciones de Cloudflare o de un balanceador de carga delante de tu app en lugar de las de tus visitantes. Configura la dirección del cliente (`client.address`) en los spans de servidor de tu app: a partir de `CF-Connecting-IP` detrás de Cloudflare, de `X-Forwarded-For` detrás de un balanceador de carga.
+- OneUptime lee las cuentas y los hosts mediante las conexiones del proyecto a los productos que los tienen, las mismas que usa [Responder con OneUptime](#responder-con-oneuptime). Sin ninguna, no puede saberlo.
+- Un producto que no responde, o una lectura que falla, nunca cuenta como un paso sin hacer: el paso dice que OneUptime no pudo comprobarlo ahora mismo, y OneUptime lo vuelve a intentar en unos minutos.
+
+**Marcar los casos como contenidos cuando se verifiquen**, en **Productos → Eventos de seguridad → Ajustes → Estados de casos**, pasa un caso a Contenido en cuanto cada paso que lo contiene está **Comprobado por OneUptime** o **No es necesario por ahora**. Se registra su tiempo hasta la contención, y la **Cronología** del caso dice que OneUptime verificó cada paso que contiene la amenaza. Un paso que solo parece hecho, o una marca, nunca hace avanzar un caso por sí solo. El ajuste está activado en cada proyecto, y un Propietario del proyecto o un Administrador del proyecto puede desactivarlo: entonces un caso se queda donde está hasta que alguien lo marca como Contenido.
+
+Todas las personas que pueden ver un caso ven lo que encontró OneUptime. Nadie lo edita: quien no esté de acuerdo marca el paso por sí mismo, lo que requiere un rol que pueda gestionar las tareas del caso.
 
 ### Gestionar casos desde la cola
 
@@ -201,7 +236,7 @@ Un Administrador de seguridad gestiona los campos personalizados y las plantilla
 
 ## Notificaciones
 
-OneUptime avisa a las personas de cinco cosas de un caso. Nadie tiene que configurar nada: un proyecto que solo hizo clic en **Activar lo recomendado** se entera de sus casos de prioridad Alta y Crítica por correo y por push.
+OneUptime avisa a las personas de seis cosas de un caso. Nadie tiene que configurar nada: un proyecto que solo hizo clic en **Activar lo recomendado** se entera de sus casos de prioridad Alta y Crítica por correo y por push.
 
 | Notificación | A quién se avisa | Por defecto |
 | --- | --- | --- |
@@ -210,12 +245,13 @@ OneUptime avisa a las personas de cinco cosas de un caso. Nadie tiene que config
 | Paso de playbook esperando mi aprobación | Las personas del caso que pueden aprobar el paso: la persona a la que está asignado y los miembros de su equipo. Si ninguna de ellas puede aprobarlo, todas las personas del proyecto que pueden hacerlo | Por correo y por push |
 | Objetivo de respuesta de un caso de seguridad | Las personas que se ocupan del caso: la persona a la que está asignado y los miembros de su equipo. Si nadie se ocupa de él, las personas a las que se avisa de los casos nuevos con su prioridad | Por correo y por push |
 | Tarea de un caso de seguridad asignada a mí | La persona a la que se entrega una tarea del caso, salvo que la tomara ella misma | Por correo y por push |
+| Paso de un caso de seguridad que dejó de sostenerse | Las personas que se ocupan del caso, cuando un paso que OneUptime vio hecho deja de sostenerse: la persona a la que está asignado y los miembros de su equipo. Si nadie se ocupa de él, las personas a las que se avisa de los casos nuevos de su prioridad | Por correo y por push |
 
 - Solo se avisa a las personas que pueden ver el caso: Propietario del proyecto, Administrador del proyecto y los roles Administrador de seguridad, Miembro de seguridad y Visor de seguridad. A un rol limitado a algunas etiquetas solo se le avisa de los casos con esas etiquetas.
 - A nadie se le avisa de lo que hizo: quien abre un caso a mano, lo asigna o inicia una ejecución no recibe una notificación de ello.
 - Cada persona se entera de un caso una sola vez. Un caso que se abre con prioridad Medium y después sube a Crítico llega, al subir, a las personas que eligieron Alta y Crítica o Solo Crítica, y no otra vez a las que eligieron Media y superior, que ya se enteraron cuando se abrió.
 - El ataque de prueba de **Enviar un ataque de prueba** abre un caso que no avisa a nadie.
-- Un caso Crítico y un paso que espera aprobación se envían al instante, nunca se retienen en un [resumen de correos](/docs/emails/notification-rollup). Lo mismo ocurre con un objetivo de respuesta a punto de incumplirse o incumplido.
+- Un caso Crítico y un paso que espera aprobación se envían al instante, nunca se retienen en un [resumen de correos](/docs/emails/notification-rollup). Lo mismo ocurre con un objetivo de respuesta a punto de incumplirse o incumplido, y con un paso que dejó de sostenerse.
 - La **Cronología** del caso indica a quién se avisó y cuándo.
 
 ### Elegir de qué se te avisa
@@ -449,6 +485,10 @@ Mira la **Cronología** del caso, que indica a quién se notificó. Una notifica
 
 :::details Un caso no muestra ningún vencimiento
 Su prioridad no tiene objetivo de respuesta, o lo recibió después de abrirse el caso: los vencimientos de un caso se fijan al abrirse. El caso del ataque de prueba no tiene ninguno. Consulta [Objetivos de respuesta](#objetivos-de-respuesta).
+:::
+
+:::details Un paso dice «OneUptime no puede saberlo»
+El paso dice por qué, a su lado. Lo más habitual es que tu app no envíe a OneUptime trazas ni registros, que sus trazas no lleven la dirección del cliente, o que el proyecto no tenga conexión con el producto que tiene la cuenta o el host. Consulta [Cómo comprueba OneUptime un paso](#cómo-comprueba-oneuptime-un-paso).
 :::
 
 :::details Un playbook no se ejecutó

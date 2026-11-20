@@ -98,7 +98,7 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 
 - **Översikt**: ärendets beskrivning, etiketter och statussteg, vem som har det och vad som öppnade det, och dess siffror: hur många detektioner det har, hur länge det har varit öppet, och hur lång tid det tog att kvittera och begränsa det. Under **Tid till bekräftelse** och **Tid till begränsning** står hur ärendet ligger till mot sina svarsmål.
 - **Varför ärendet öppnades**, på **Översikt**: detektionen som öppnade ärendet och hur dess regel löser ut (dess tröskel, vad den grupperar efter och fönstret den räknar i), hur många händelser den matchade, från vad och mellan vilka tidpunkter, vad regeln letar efter och hur långt förfrågningarna kom. Under **Träffar** står själva händelserna, de äldsta först: var och en med det som regeln letar efter framhävt, hur långt dess förfrågan kom, loggraden eller produkten den kom från, och dess **Spår**, **Loggar** och **Undantag** ett klick bort; loggraden den kom från öppnas i loggutforskaren vid just den raden. Klicka på en händelse för att se den i sin helhet, med loggraden den lästes från. **Spara i det här ärendet**, på dess rad eller i dess panel, sparar händelsen på ärendets sida **Bevis** och anger vilken detektion som matchade den; en händelse som ärendet redan sparar visar det och öppnas där. En detektion sparar upp till 25 av händelserna den matchade när den löser ut, och listar dem även när de har passerat sin lagringstid; din roll ser dem som kommer från källor den kan läsa. En regel som löser ut för många grupper samtidigt, även en korrelationsregel, sparar händelser för var och en av dem: högst 1 000 totalt, så var och en sparar minst 10, och upp till 25 när den löser ut igen. För en detektion från tiden innan den sparade dem är en regels träffar händelserna som uppfyller dess eget villkor, för detektionens grupp, i de fönster där den löste ut; en träff i hotunderrättelserna listar händelserna som innehåller dess indikator, och ett larm från en ansluten produkt visar den händelse det skickades som. **Titta vidare** öppnar allt om adressen eller användaren som detektionen handlar om, händelserna och loggraderna som nämner den, loggarna från tjänsterna som dess loggrader kom från och spåren för dess förfrågningar, var och en i detektionens tidsfönster, samt ärendets **Förlopp** och **Kopplade signaler**. Ärendets övriga detektioner ligger hopfällda under **Även på ärendet**.
-- **Responsplan**, på **Översikt**: vad som ska göras med ärendet nu, det mest brådskande först, under **Bekräfta att det är verkligt**, **Begränsa det**, **Åtgärda det som gjorde det möjligt** och **Stäng ärendet**. Varje steg gäller just det här ärendet: dess adresser, användare och värdar, hur långt dess förfrågningar kom, vad dess regel säger att den också kan lösa ut vid, ATT&CK-taktikerna och -teknikerna som dess detektioner mappas till, och de playbooks som projektet har. De egna steg som en detektionsregel har, skrivna under **Responssteg** i dess formulär, kommer först i den del av planen som de hör till, och regelbibliotekets regler har egna steg med sig. Ett steg som OneUptime kan utföra har en egen knapp: **Tilldela mig**, **Lägg till undantag** med regeln och adressen ifyllda, **Kör playbook** för den playbook som stänger av kontot eller begränsar värden, eller den som OneUptime AI föreslår, **Deklarera incident**, **Markera som begränsat** och **Stäng ärende**. Ett steg som OneUptime inte kan utföra, till exempel att blockera en adress i din brandvägg, är märkt **Utanför OneUptime**, och adressen kopieras till urklipp med ett klick. Bocka av ett steg när det är klart: det sparas som en klar uppgift bland ärendets **Uppgifter**, med vem som gjorde den och när. Steg som ärendet självt avgör bockar av sig själva: ärendet är tilldelat, en incident har deklarerats, en playbook har körts, ärendet är begränsat eller stängt. När alla steg som begränsar hotet är klara erbjuder planen **Markera som begränsat**, som registrerar ärendets tid till begränsning. När OneUptime AI har bedömt ärendet inleds planen med dess bedömning, och de steg den föreslår ligger hopfällda under planens egna.
+- **Responsplan**, på **Översikt**: vad som ska göras med ärendet nu, det mest brådskande först, under **Bekräfta att det är verkligt**, **Begränsa det**, **Åtgärda det som gjorde det möjligt** och **Stäng ärendet**. Varje steg gäller just det här ärendet: dess adresser, användare och värdar, hur långt dess förfrågningar kom, vad dess regel säger att den också kan lösa ut vid, ATT&CK-taktikerna och -teknikerna som dess detektioner mappas till, och de playbooks som projektet har. De egna steg som en detektionsregel har, skrivna under **Responssteg** i dess formulär, kommer först i den del av planen som de hör till, och regelbibliotekets regler har egna steg med sig. Ett steg som OneUptime kan utföra har en egen knapp: **Tilldela mig**, **Lägg till undantag** med regeln och adressen ifyllda, **Kör playbook** för den playbook som stänger av kontot eller begränsar värden, eller den som OneUptime AI föreslår, **Deklarera incident**, **Markera som begränsat** och **Stäng ärende**. Ett steg som OneUptime inte kan utföra, till exempel att blockera en adress i din brandvägg, är märkt **Utanför OneUptime**, och adressen kopieras till urklipp med ett klick. Bocka av ett steg när det är klart: det sparas som en klar uppgift bland ärendets **Uppgifter**, med vem som gjorde den och när. Steg som ärendet självt avgör bockar av sig själva: ärendet är tilldelat, en incident har deklarerats, en playbook har körts, ärendet är begränsat eller stängt. När alla steg som begränsar hotet är klara erbjuder planen **Markera som begränsat**, som registrerar ärendets tid till begränsning. När OneUptime AI har bedömt ärendet inleds planen med dess bedömning, och de steg den föreslår ligger hopfällda under planens egna. OneUptime kontrollerar själv de flesta steg och visar vid varje steg vad det hittade: se [Så kontrollerar OneUptime ett steg](#så-kontrollerar-oneuptime-ett-steg).
 - **OneUptime AI**, på **Översikt**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 - **Påverkan**, på **Översikt**: vad ärendet sätter på spel: om OneUptime har sett dess poster nås från internet, vem som äger dem, vad som senast ändrades på dem, och data i riskzonen – de datalager med känsliga data som ärendet nämner eller som dess användare och roller kan nå (se [Integrationer för Datasäkerhet](/docs/data-security/integrations#security-operations)). Fäll ut den för att se vad varje post anropar och vad som anropar den, de monitorer och statussidor som bevakar den, och de maskiner som ärendets adresser pratade med.
 - **MITRE ATT&CK**, på **Översikt**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
@@ -114,6 +114,41 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Anpassade fält**: projektets egna fält, ifyllda för det här ärendet, och **Redigera fält** för att ändra dem. Så snart projektet har ett fält visar **Översikt** dem också, i sitt sista kort. Se [Anpassade fält, anteckningsmallar och numrering](#anpassade-fält-anteckningsmallar-och-numrering).
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
 - **Ta bort ärende**: tar bort ärendet för gott, med dess detektioner, anteckningar, tidslinje och playbook-körningar. För att behålla det som dokumentation, stäng det i stället med en bedömning.
+
+### Så kontrollerar OneUptime ett steg
+
+En bock säger att någon har utfört ett steg. OneUptime kontrollerar också själv stegen i ett ärendes **Responsplan** mot det som faktiskt hände: varje minut medan ärendet är öppet, och direkt när ett steg bockas av, en uppgift ändras eller en playbook begränsar något. Vid varje steg det har kontrollerat visar planen vad det hittade:
+
+| Vid steget | Betyder |
+| --- | --- |
+| **Kontrollerad av OneUptime** | OneUptime såg steget utfört, och det håller. Ingen behöver bocka av det |
+| **Ser utfört ut** | Det OneUptime ser stämmer med ett utfört steg, men bevisar det inte. **Bekräfta** bockar av det som ditt |
+| **Inte utfört än** | OneUptime ser att steget återstår |
+| **OneUptime kan inte säga det** | OneUptime har inget att kontrollera steget mot och säger varför, med **Så låter du OneUptime kontrollera detta** |
+| **Håller inte längre** | Steget var utfört och fungerar inte längre, till exempel när en blockerad adress kommer igenom igen |
+| **Inte nödvändigt hittills** | Inget har hänt som kräver steget |
+
+**Hur vi vet det**, vid det OneUptime hittade, öppnar resten: vad det mer såg, en länk till spåren eller produkten det läste, och när det kontrollerade. Planens förlopp räknar de steg OneUptime har kontrollerat själv, som i "4 av 9 utförda, 3 kontrollerade av OneUptime".
+
+| Steg | Vad OneUptime läser |
+| --- | --- |
+| Blockera adressen | Om begäranden från adressen fortfarande når din app, i dess spår och åtkomstloggar. En adress som tystnar ser utförd ut: den kan ha blockerats, eller kan helt enkelt ha slutat |
+| Kontrollera att inget annat kom igenom | Hur varje begäran från adressen har slutat sedan ärendets första identifiering. När din app avvisade alla är steget kontrollerat |
+| Stäng av kontot | Kontot i Okta, Microsoft Entra ID eller Google Workspace: avstängt, eller inaktiverat med sessionerna avslutade efter att ärendet öppnades |
+| Ta värden av nätverket | Värden i CrowdStrike Falcon eller Microsoft Defender for Endpoint: begränsad eller isolerad |
+| Deklarera en incident | Om en begäran tog sig förbi din apps kontroller, eller en monitor för de tjänster den nådde gick ner, medan ärendet var öppet. Fram till dess är steget inte nödvändigt hittills |
+| Uteslut en falsk positiv | Inget: bara du kan utesluta den. Steget visar vad OneUptime vet om adressen: om någon av dina poster har den, flödena med hotinformation som listar den, och de inloggade användare som har använt den under de senaste 30 dagarna |
+
+- Ett steg som har utförts utanför OneUptime räknas också. Blockera adressen i din egen brandvägg, så ser OneUptime att dess begäranden upphör; stäng av kontot i Okta, så läser OneUptime tillbaka det.
+- Du kan fortfarande bocka av ett steg själv, även ett som OneUptime inte ser utfört. Ett steg som OneUptime har kontrollerat behöver ingen bock.
+- När ett utfört steg inte längre håller säger planen det överst, ärendets **Tidslinje** säger vad OneUptime såg, och de som är på ärendet får veta det: se [Aviseringar](#aviseringar).
+- OneUptime kan inte se en adress begäranden när din app inte skickar spår eller loggar till det, när dess spår inte säger vilken adress varje begäran kom från, eller när de bär adresserna från Cloudflare eller en lastbalanserare framför din app i stället för dina besökares. Ange klientens adress (`client.address`) på din apps serverspann: från `CF-Connecting-IP` bakom Cloudflare, från `X-Forwarded-For` bakom en lastbalanserare.
+- OneUptime läser konton och värdar via projektets anslutningar till de produkter som har dem, samma som [Agera genom OneUptime](#agera-genom-oneuptime) använder. Utan någon kan det inte säga det.
+- En produkt som inte svarar, eller en läsning som misslyckas, räknas aldrig som ett steg som inte är utfört: steget säger att OneUptime inte kunde kontrollera det just nu, och OneUptime försöker igen om några minuter.
+
+**Markera ärenden som begränsade när de är verifierade**, under **Produkter → Säkerhetshändelser → Inställningar → Ärendestatusar**, flyttar ett ärende till Begränsad så snart varje steg som begränsar det är **Kontrollerad av OneUptime** eller **Inte nödvändigt hittills**. Dess tid till begränsning registreras, och ärendets **Tidslinje** säger att OneUptime har verifierat varje steg som begränsar hotet. Ett steg som bara ser utfört ut, eller en bock, flyttar aldrig ett ärende av sig självt. Inställningen är påslagen i alla projekt, och en Projektägare eller Projektadministratör kan stänga av den: då stannar ett ärende där det är tills någon markerar det som Begränsad.
+
+Alla som kan se ett ärende ser vad OneUptime hittade. Ingen redigerar det: den som inte håller med bockar av steget själv, vilket kräver en roll som kan arbeta med ärendets uppgifter.
 
 ### Arbeta med ärenden från kön
 
@@ -201,7 +236,7 @@ En Säkerhetsadministratör hanterar de anpassade fälten och anteckningsmallarn
 
 ## Aviseringar
 
-OneUptime berättar för personer om fem saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
+OneUptime berättar för personer om sex saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
 
 | Avisering | Vem som får veta | Som standard |
 | --- | --- | --- |
@@ -210,12 +245,13 @@ OneUptime berättar för personer om fem saker som händer i ett ärende. Ingen 
 | Playbook-steg väntar på mitt godkännande | De personer i ärendet som kan godkänna steget: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen av dem kan godkänna, alla i projektet som kan | E-post och push |
 | Svarsmål för säkerhetsärende | De som är på ärendet: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen är på det, de som får veta om nya ärenden med dess prioritet | E-post och push |
 | Uppgift i säkerhetsärende tilldelad mig | Personen som får en uppgift i ärendet, om inte personen tog den själv | E-post och push |
+| Steg i säkerhetsärende håller inte längre | De som är på ärendet, när ett steg som OneUptime såg utfört inte längre håller: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen är på det, de som får veta om nya ärenden med dess prioritet | E-post och push |
 
 - Bara personer som kan se ärendet får veta om det: Projektägare, Projektadministratör och rollerna Säkerhetsadministratör, Säkerhetsmedlem och Säkerhetstittare. Den som har en roll som är begränsad till vissa etiketter får bara veta om ärenden med de etiketterna.
 - Ingen får veta om det den själv har gjort: den som öppnar ett ärende manuellt, tilldelar det eller startar en körning aviseras inte om det.
 - Varje person får bara veta om ett ärende en gång. Ett ärende som öppnas med Medium och senare stiger till Critical når dem som valde High eller Critical när det stiger, men inte igen dem som valde Medium, som fick veta om det när det öppnades.
 - Testattacken från **Skicka en testattack** öppnar ett ärende som inte aviserar någon.
-- Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup). Detsamma gäller ett svarsmål som håller på att missas eller har missats.
+- Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup). Detsamma gäller ett svarsmål som håller på att missas eller har missats, och ett steg som inte längre håller.
 - Ärendets **Tidslinje** visar vem som fick veta, och när.
 
 ### Välj vad du får veta
@@ -449,6 +485,10 @@ Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om
 
 :::details Ett ärende visar ingen förfallotid
 Dess prioritet har inget svarsmål, eller fick ett först efter att ärendet öppnades: ett ärendes förfallotider sätts när det öppnas. Testattackens ärende har ingen. Se [Svarsmål](#svarsmål).
+:::
+
+:::details Ett steg säger "OneUptime kan inte säga det"
+Steget säger varför, alldeles intill. Oftast skickar din app inga spår eller loggar till OneUptime, dess spår bär inte klientens adress, eller så har projektet ingen anslutning till den produkt som har kontot eller värden. Se [Så kontrollerar OneUptime ett steg](#så-kontrollerar-oneuptime-ett-steg).
 :::
 
 :::details En playbook kördes inte

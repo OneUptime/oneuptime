@@ -1,4 +1,5 @@
 export * from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanWords";
+export * from "Common/Utils/SecurityCase/ResponsePlan/StepCheckWords";
 
 /*
  * The words of a case's Response Plan: what to do about the case now -
@@ -24,6 +25,16 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   aiToggle: string;
   falsePositives: string;
   error: string;
+  checkChip: string;
+  checkLine: string;
+  howWeKnow: string;
+  howWeKnowPanel: string;
+  checkFacts: string;
+  checkLink: string;
+  docsLink: string;
+  confirm: string;
+  regressed: string;
+  checksNotRead: string;
 } = {
   card: "security-case-response-plan",
   progress: "security-case-response-progress",
@@ -39,4 +50,14 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   aiToggle: "security-case-response-ai-toggle",
   falsePositives: "security-case-response-false-positives",
   error: "security-case-response-error",
+  checkChip: "security-case-response-step-check",
+  checkLine: "security-case-response-step-check-line",
+  howWeKnow: "security-case-response-step-how-we-know",
+  howWeKnowPanel: "security-case-response-step-how-we-know-panel",
+  checkFacts: "security-case-response-step-check-facts",
+  checkLink: "security-case-response-step-check-link",
+  docsLink: "security-case-response-step-check-docs",
+  confirm: "security-case-response-step-confirm",
+  regressed: "security-case-response-regressed",
+  checksNotRead: "security-case-response-checks-not-read",
 };

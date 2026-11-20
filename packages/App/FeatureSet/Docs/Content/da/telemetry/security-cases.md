@@ -98,7 +98,7 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 
 - **Oversigt**: sagens beskrivelse, etiketter og statustrin, hvem der har den, og hvad der åbnede den, og dens tal: hvor mange detektioner den har, hvor længe den har været åben, og hvor lang tid det tog at kvittere for den og inddæmme den. Under **Tid til bekræftelse** og **Tid til inddæmning** står, hvordan sagen ligger i forhold til sine responsmål.
 - **Hvorfor denne sag blev åbnet**, på **Oversigt**: den detektion, der åbnede sagen, og hvordan dens regel udløses (dens tærskel, hvad den grupperer efter, og det vindue, den tæller i), hvor mange begivenheder den matchede, hvor de kom fra, og i hvilket tidsrum, hvad reglen leder efter, og hvor langt forespørgslerne nåede. Under **Hvad der matchede** står selve begivenhederne, de ældste først: hver med det, reglen leder efter, fremhævet, hvor langt dens forespørgsel nåede, den loglinje eller det produkt, den kom fra, og **Spor**, **Protokoller** og **Undtagelse** ét klik væk; den loglinje, den kom fra, åbnes i protokoludforskeren ved netop den linje. Klik på en begivenhed for at se hele begivenheden, med den loglinje, den blev læst fra. **Gem på denne sag**, på dens række eller i dens panel, gemmer begivenheden på sagens side **Beviser** og nævner den detektion, der matchede den; en begivenhed, som sagen allerede gemmer, siger det og åbner den der. Når en detektion udløses, gemmer den op til 25 af de begivenheder, den matchede, og viser dem, også når deres opbevaringstid er udløbet; din rolle ser dem fra de kilder, den må læse. En regel, der udløses for mange grupper på én gang, også en korrelationsregel, gemmer begivenheder for hver af dem: højst 1.000 i alt, så hver gemmer mindst 10 og op til 25, når den udløses igen. For en ældre detektion, der endnu ikke gemte begivenheder, er en regels match det, dens egen betingelse matchede, for detektionens gruppe, i de vinduer, den blev udløst i; et match fra trusselsintelligens viser de begivenheder, der indeholder dets indikator, og en advarsel fra et forbundet produkt den begivenhed, den blev sendt som. **Kig videre** åbner alt om den adresse eller bruger, detektionen handler om, de begivenheder og loglinjer, der nævner den, protokollerne fra de tjenester, dens loglinjer kom fra, og sporene for dens forespørgsler, hver inden for detektionens vindue, samt sagens **Forløb** og **Forbundne signaler**. Sagens andre detektioner er foldet sammen under **Også på denne sag**.
-- **Responsplan**, på **Oversigt**: hvad der skal gøres ved sagen nu, det mest presserende først, under **Bekræft, at det er ægte**, **Inddæm det**, **Ret det, der gjorde det muligt** og **Luk sagen**. Hvert trin handler om denne sag: dens adresser, brugere og værter, hvor langt dens forespørgsler nåede, hvad dens regel siger, at den også kan udløses af, de ATT&CK-taktikker og -teknikker, som dens detektioner knyttes til, og de playbooks, projektet har. En detektionsregels egne trin, skrevet under **Responstrin** i dens formular, kommer først i den del af planen, de hører under, og reglerne i regelbiblioteket kommer med deres egne trin. Et trin, som OneUptime kan udføre, har sin egen knap: **Tildel til mig**, **Tilføj undtagelse** med reglen og adressen allerede udfyldt, **Kør playbook** for den playbook, der suspenderer kontoen eller inddæmmer værten, eller den, OneUptime AI foreslår, **Erklær hændelse**, **Markér som inddæmmet** og **Luk sag**. Et trin, som OneUptime ikke kan udføre, f.eks. at blokere en adresse i din firewall, viser **Uden for OneUptime**, med adressen ét klik fra udklipsholderen. Sæt flueben ved et trin, når det er udført: det gemmes som en af sagens **Opgaver**, udført, med hvem der gjorde det og hvornår. Trin, som sagen selv afgør, får flueben af sig selv: den er tildelt, en hændelse er erklæret, en playbook har kørt, den er inddæmmet eller lukket. Når alle trin, der inddæmmer truslen, er udført, tilbyder planen **Markér som inddæmmet**, som registrerer sagens tid til inddæmning. Når OneUptime AI har vurderet sagen, står dens vurdering øverst i planen, og de trin, den foreslår, er foldet sammen under planens egne.
+- **Responsplan**, på **Oversigt**: hvad der skal gøres ved sagen nu, det mest presserende først, under **Bekræft, at det er ægte**, **Inddæm det**, **Ret det, der gjorde det muligt** og **Luk sagen**. Hvert trin handler om denne sag: dens adresser, brugere og værter, hvor langt dens forespørgsler nåede, hvad dens regel siger, at den også kan udløses af, de ATT&CK-taktikker og -teknikker, som dens detektioner knyttes til, og de playbooks, projektet har. En detektionsregels egne trin, skrevet under **Responstrin** i dens formular, kommer først i den del af planen, de hører under, og reglerne i regelbiblioteket kommer med deres egne trin. Et trin, som OneUptime kan udføre, har sin egen knap: **Tildel til mig**, **Tilføj undtagelse** med reglen og adressen allerede udfyldt, **Kør playbook** for den playbook, der suspenderer kontoen eller inddæmmer værten, eller den, OneUptime AI foreslår, **Erklær hændelse**, **Markér som inddæmmet** og **Luk sag**. Et trin, som OneUptime ikke kan udføre, f.eks. at blokere en adresse i din firewall, viser **Uden for OneUptime**, med adressen ét klik fra udklipsholderen. Sæt flueben ved et trin, når det er udført: det gemmes som en af sagens **Opgaver**, udført, med hvem der gjorde det og hvornår. Trin, som sagen selv afgør, får flueben af sig selv: den er tildelt, en hændelse er erklæret, en playbook har kørt, den er inddæmmet eller lukket. Når alle trin, der inddæmmer truslen, er udført, tilbyder planen **Markér som inddæmmet**, som registrerer sagens tid til inddæmning. Når OneUptime AI har vurderet sagen, står dens vurdering øverst i planen, og de trin, den foreslår, er foldet sammen under planens egne. OneUptime kontrollerer selv de fleste trin og viser ved hvert trin, hvad det fandt: se [Sådan kontrollerer OneUptime et trin](#sådan-kontrollerer-oneuptime-et-trin).
 - **OneUptime AI**, på **Oversigt**: hvad OneUptime AI fik ud af sagen, den prioritet og playbook, den foreslår, og beviserne bag. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
 - **Påvirkning**, på **Oversigt**: hvad sagen sætter på spil: om OneUptime har set dens poster blive nået fra internettet, hvem der ejer dem, hvad der sidst blev ændret på dem, og data i fare - de datalagre med følsomme data, som sagen nævner, eller som dens brugere og roller kan nå (se [Datasikkerhedsintegrationer](/docs/data-security/integrations#security-operations)). Fold den ud for at se, hvad hver post kalder, og hvad der kalder den, de monitorer og statussider, der holder øje med den, og de maskiner, sagens adresser talte med.
 - **MITRE ATT&CK**, på **Oversigt**: de taktikker og teknikker, som sagens detektioner knyttes til, hver med et link til sin side på attack.mitre.org.
@@ -114,6 +114,41 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Brugerdefinerede felter**: projektets egne felter, udfyldt for denne sag, og **Rediger felter** til at ændre dem. Så snart projektet har et felt, viser **Oversigt** dem også, i sit sidste kort. Se [Brugerdefinerede felter, noteskabeloner og nummerering](#brugerdefinerede-felter-noteskabeloner-og-nummerering).
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
 - **Slet sag**: sletter sagen for altid, med dens detektioner, noter, tidslinje og playbook-kørsler. Vil du beholde den som dokumentation, så luk den i stedet med en konklusion.
+
+### Sådan kontrollerer OneUptime et trin
+
+Et flueben siger, at nogen har udført et trin. OneUptime kontrollerer også selv trinnene i en sags **Responsplan** ud fra det, der faktisk skete: hvert minut, mens sagen er åben, og med det samme, når et trin krydses af, en opgave ændres, eller en playbook inddæmmer noget. Ved hvert trin, det har kontrolleret, viser planen, hvad det fandt:
+
+| Ved trinnet | Betyder |
+| --- | --- |
+| **Kontrolleret af OneUptime** | OneUptime så trinnet udført, og det holder. Ingen behøver at krydse det af |
+| **Ser udført ud** | Det, OneUptime ser, passer med et udført trin, men beviser det ikke. **Bekræft** krydser det af som dit |
+| **Ikke udført endnu** | OneUptime ser, at trinnet stadig mangler |
+| **OneUptime kan ikke sige det** | OneUptime har intet at kontrollere trinnet ud fra og siger hvorfor, med **Sådan lader du OneUptime kontrollere dette** |
+| **Holder ikke længere** | Trinnet var udført og virker ikke længere, f.eks. når en blokeret adresse kommer igennem igen |
+| **Ikke nødvendigt indtil videre** | Der er ikke sket noget, der kræver trinnet |
+
+**Hvordan vi ved det**, ved det, OneUptime fandt, åbner resten: hvad det ellers så, et link til sporene eller det produkt, det læste, og hvornår det kontrollerede. Planens fremskridt tæller de trin, OneUptime selv har kontrolleret, som i "4 af 9 udført, 3 kontrolleret af OneUptime".
+
+| Trin | Hvad OneUptime læser |
+| --- | --- |
+| Bloker adressen | Om anmodninger fra adressen stadig når din app, i dens spor og adgangslogger. En adresse, der bliver stille, ser udført ud: den kan være blevet blokeret eller kan simpelthen være holdt op |
+| Kontrollér, at intet andet kom igennem | Hvordan hver anmodning fra adressen er endt siden sagens første registrering. Når din app afviste dem alle, er trinnet kontrolleret |
+| Suspender kontoen | Kontoen i Okta, Microsoft Entra ID eller Google Workspace: suspenderet, eller deaktiveret med sessionerne afsluttet, efter at sagen blev åbnet |
+| Tag værten af netværket | Værten i CrowdStrike Falcon eller Microsoft Defender for Endpoint: inddæmmet eller isoleret |
+| Erklær en hændelse | Om en anmodning kom forbi din apps kontroller, eller om en monitor for de tjenester, den nåede, gik ned, mens sagen var åben. Indtil da er trinnet ikke nødvendigt indtil videre |
+| Udeluk en falsk positiv | Intet: kun du kan udelukke den. Trinnet viser, hvad OneUptime ved om adressen: om en af dine poster har den, de feeds med trusselsinformation, der opfører den, og de loggede ind brugere, der har brugt den i de seneste 30 dage |
+
+- Et trin, der er udført uden for OneUptime, tæller også. Bloker adressen i din egen firewall, og OneUptime ser dens anmodninger stoppe; suspender kontoen i Okta, og OneUptime læser det tilbage.
+- Du kan stadig selv krydse et trin af, også et, som OneUptime ikke ser udført. Et trin, OneUptime har kontrolleret, behøver intet flueben.
+- Når et udført trin ikke længere holder, siger planen det øverst, sagens **Tidslinje** siger, hvad OneUptime så, og de personer, der er på sagen, får besked: se [Notifikationer](#notifikationer).
+- OneUptime kan ikke se en adresses anmodninger, når din app ikke sender det spor eller logger, når dens spor ikke siger, hvilken adresse hver anmodning kom fra, eller når de bærer adresserne fra Cloudflare eller en load balancer foran din app i stedet for dine besøgendes. Sæt klientens adresse (`client.address`) på din apps serverspans: ud fra `CF-Connecting-IP` bag Cloudflare, ud fra `X-Forwarded-For` bag en load balancer.
+- OneUptime læser konti og værter gennem projektets forbindelser til de produkter, der har dem, de samme som [Reaktion gennem OneUptime](#reaktion-gennem-oneuptime) bruger. Uden en forbindelse kan det ikke sige det.
+- Et produkt, der ikke svarer, eller en læsning, der mislykkes, tæller aldrig som et trin, der ikke er udført: trinnet siger, at OneUptime ikke kunne kontrollere det lige nu, og OneUptime prøver igen om et par minutter.
+
+**Markér sager som inddæmmet, når de er verificeret**, under **Produkter → Sikkerhedshændelser → Indstillinger → Sagsstatusser**, flytter en sag til Inddæmmet, så snart hvert trin, der inddæmmer den, er **Kontrolleret af OneUptime** eller **Ikke nødvendigt indtil videre**. Dens tid til inddæmning registreres, og sagens **Tidslinje** siger, at OneUptime har verificeret hvert trin, der inddæmmer truslen. Et trin, der kun ser udført ud, eller et flueben flytter aldrig en sag af sig selv. Indstillingen er slået til i alle projekter, og en Projektejer eller Projektadministrator kan slå den fra: så bliver en sag, hvor den er, indtil nogen markerer den som Inddæmmet.
+
+Alle, der kan se en sag, ser, hvad OneUptime fandt. Ingen redigerer det: den, der er uenig, krydser selv trinnet af, og det kræver en rolle, der kan arbejde med sagens opgaver.
 
 ### Behandl sager fra køen
 
@@ -201,7 +236,7 @@ En Sikkerhedsadministrator administrerer de brugerdefinerede felter og noteskabe
 
 ## Notifikationer
 
-OneUptime giver folk besked om fem ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
+OneUptime giver folk besked om seks ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
 
 | Notifikation | Hvem får besked | Som standard |
 | --- | --- | --- |
@@ -210,12 +245,13 @@ OneUptime giver folk besked om fem ting på en sag. Ingen behøver at sætte nog
 | Playbook-trin venter på min godkendelse | De personer på sagen, der kan godkende trinnet: den person, sagen er tildelt, og medlemmerne af dens team. Kan ingen af dem godkende, alle i projektet, der kan | E-mail og push |
 | Responsmål for sikkerhedssag | De personer, der er på sagen: den person, sagen er tildelt, og medlemmerne af dens team. Er ingen på den, de personer, der får besked om nye sager med dens prioritet | E-mail og push |
 | Opgave i sikkerhedssag tildelt mig | Den person, en opgave på sagen gives til, medmindre vedkommende selv tog den | E-mail og push |
+| Trin i sikkerhedssag holder ikke længere | De personer, der er på sagen, når et trin, OneUptime så udført, ikke længere holder: den person, sagen er tildelt, og medlemmerne af dens team. Er ingen på den, de personer, der får besked om nye sager med dens prioritet | E-mail og push |
 
 - Kun personer, der kan se sagen, får besked om den: Projektejere, Projektadministratorer og rollerne Sikkerhedsadministrator, Sikkerhedsmedlem og Sikkerhedsseer. En rolle, der er begrænset til bestemte etiketter, får kun besked om sagerne med de etiketter.
 - Ingen får besked om det, de selv gjorde: den, der åbner en sag manuelt, tildeler den eller starter en kørsel, får ingen notifikation om det.
 - Hver person hører om en sag én gang. En sag, der åbnes på Medium og senere stiger til Kritisk, når ved stigningen frem til dem, der har valgt High eller Kritisk, og ikke igen til dem, der har valgt Medium, for de hørte om den, da den blev åbnet.
 - Testangrebet fra **Send et testangreb** åbner en sag, der ikke giver nogen besked.
-- En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup). Det samme gælder et responsmål, der er ved at blive overskredet eller er overskredet.
+- En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup). Det samme gælder et responsmål, der er ved at blive overskredet eller er overskredet, og et trin, der ikke længere holder.
 - Sagens **Tidslinje** viser, hvem der fik besked, og hvornår.
 
 ### Vælg, hvad du får besked om
@@ -449,6 +485,10 @@ Se sagens **Tidslinje**, som viser, hvem der fik en notifikation. En notifikatio
 
 :::details En sag viser ingen frist
 Dens prioritet har intet responsmål, eller fik først et, efter at sagen blev åbnet: en sags frister sættes, når den åbnes. Testangrebets sag har ingen. Se [Responsmål](#responsmål).
+:::
+
+:::details Et trin siger "OneUptime kan ikke sige det"
+Trinnet siger hvorfor, lige ved siden af. Oftest sender din app ikke OneUptime spor eller logger, dens spor bærer ikke klientens adresse, eller projektet har ingen forbindelse til det produkt, der har kontoen eller værten. Se [Sådan kontrollerer OneUptime et trin](#sådan-kontrollerer-oneuptime-et-trin).
 :::
 
 :::details En playbook kørte ikke

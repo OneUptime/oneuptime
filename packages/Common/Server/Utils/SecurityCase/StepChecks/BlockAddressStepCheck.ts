@@ -362,11 +362,17 @@ const BlockAddressStepCheck: StepCheck = {
     let hourBefore: number | null = null;
 
     try {
+      /*
+       * Quiet - for half an hour, or since the step was done - is said with
+       * what the address sent in the hour before it went quiet. With no
+       * moment asked about, every request counts as after it: the quiet is
+       * the half hour alone.
+       */
       if (reading.total === 0) {
         coverage = await context.evidence.readAddressCoverage();
       } else if (
         reading.lastSeenAt &&
-        reading.afterSince === 0 &&
+        (reading.since === null || reading.afterSince === 0) &&
         context.now.getTime() - reading.lastSeenAt.getTime() >=
           BLOCK_QUIET_MINUTES * MINUTE
       ) {

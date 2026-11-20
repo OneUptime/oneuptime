@@ -20,9 +20,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import SecurityCaseStepCheckState, {
-  SECURITY_CASE_STEP_CHECK_STATES,
-} from "../../Types/SecurityCase/SecurityCaseStepCheckState";
+import SecurityCaseStepCheckState from "../../Types/SecurityCase/SecurityCaseStepCheckState";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -199,7 +197,7 @@ export default class SecurityCaseStepCheck extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    allowedValues: [...SECURITY_CASE_STEP_CHECK_STATES],
+    allowedValues: Object.values(SecurityCaseStepCheckState),
     title: "State",
     description:
       "What OneUptime found: Verified, Looks Done (it fits, but OneUptime cannot prove who did it), Not Done, Cannot Tell (no data to check with), Regressed (it was done, and stopped holding) or Not Needed.",
