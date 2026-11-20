@@ -1,6 +1,7 @@
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ButtonType from "../../../UI/Components/Button/ButtonTypes";
 import Modal, {
+  isLinkThatLeaves,
   ModalWidth,
   pickInitialFocusElement,
 } from "../../../UI/Components/Modal/Modal";
@@ -811,6 +812,79 @@ describe("Modal initial focus", () => {
   });
 
   /*
+   * A link in the body is no field (#7360): the Kubernetes AI agent's
+   * "Turn on automatic investigation?" opened on its "Incident AI settings"
+   * link, and Enter left the page instead of turning it on.
+   */
+  it("starts a confirmation whose body holds links on its action, not on a link", () => {
+    const { getByTestId, getByRole } = render(
+      <Modal
+        title="Turn on automatic investigation?"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Turn on"
+      >
+        <p>This applies to every new incident in the project.</p>
+        <a href="/dashboard/incidents/ai/settings">Incident AI settings</a>
+        <a href="/dashboard/alerts/ai/settings">Alert AI settings</a>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-submit-button")).toHaveFocus();
+    expect(
+      getByRole("link", { name: "Incident AI settings" }),
+    ).not.toHaveFocus();
+  });
+
+  it("starts a destructive confirmation whose body holds a link on Cancel", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="Delete Nightly Backup?"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Delete"
+        submitButtonStyleType={ButtonStyleType.DANGER}
+      >
+        <a href="/dashboard/backups">What a backup keeps</a>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-close-button")).toHaveFocus();
+    expect(getByTestId("modal-footer-submit-button")).not.toHaveFocus();
+  });
+
+  it("starts a form whose body opens with a link on its first field", () => {
+    const { getByLabelText } = render(
+      <Modal
+        title="Add Note"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Add Note"
+      >
+        <a href="/docs/notes">How notes work</a>
+        <label>
+          Note
+          <textarea />
+        </label>
+      </Modal>,
+    );
+
+    expect(getByLabelText("Note")).toHaveFocus();
+  });
+
+  it("starts a picker with no submit on its first choice", () => {
+    const { getByRole } = render(
+      <Modal title="Pick a widget" onClose={getJestMockFunction()}>
+        <a href="/docs/widgets">About widgets</a>
+        <button type="button">Chart</button>
+        <button type="button">Table</button>
+      </Modal>,
+    );
+
+    expect(getByRole("button", { name: "Chart" })).toHaveFocus();
+  });
+
+  /*
    * The Dashboard draws its Tailwind as classes first appear, so the first
    * dialog a page opens can take its focus before its overlay is styled as
    * fixed - for that moment the panel sits at the foot of the page, and a
@@ -1223,6 +1297,15 @@ describe("pickInitialFocusElement", () => {
 
   type MakeDialogFunction = () => DialogParts;
 
+  // A link, as a dialog's body draws one: to another page.
+  const makeLink: () => HTMLElement = (): HTMLElement => {
+    const link: HTMLAnchorElement = document.createElement("a");
+
+    link.href = "/dashboard/settings";
+
+    return link;
+  };
+
   const makeDialog: MakeDialogFunction = (): DialogParts => {
     const footer: HTMLElement = document.createElement("div");
     const leftFooterButton: HTMLElement = makeButton();
@@ -1241,7 +1324,7 @@ describe("pickInitialFocusElement", () => {
       header,
       headerClose,
       headerButton,
-      bodyLink: document.createElement("a"),
+      bodyLink: makeLink(),
       footer,
       leftFooterButton,
       cancel,
@@ -1249,7 +1332,11 @@ describe("pickInitialFocusElement", () => {
     };
   };
 
-  it("prefers anything outside the footer, the header's X aside", () => {
+  /*
+   * A link in the body is no field: Enter on it left the page instead of
+   * doing what the dialog asks (#7360). The submit comes first.
+   */
+  it("passes a link in the body over for the submit, the header's X aside", () => {
     const parts: DialogParts = makeDialog();
 
     expect(
@@ -1263,7 +1350,7 @@ describe("pickInitialFocusElement", () => {
         footer: parts.footer,
         isSubmitDestructive: false,
       }),
-    ).toBe(parts.bodyLink);
+    ).toBe(parts.submit);
   });
 
   it("picks the submit over Cancel and over left-footer extras", () => {
@@ -1351,7 +1438,7 @@ describe("pickInitialFocusElement", () => {
         isSubmitDestructive: false,
         header: parts.header,
       }),
-    ).toBe(parts.bodyLink);
+    ).toBe(parts.submit);
 
     expect(
       pickInitialFocusElement({
@@ -1399,6 +1486,195 @@ describe("pickInitialFocusElement", () => {
         isSubmitDestructive: false,
       }),
     ).toBe(parts.bodyLink);
+  });
+
+  /*
+   * A link in the body is never where a dialog starts (#7360): it leads
+   * away. A confirmation whose body holds one - the Kubernetes AI agent's
+   * "Turn on automatic investigation?" - opened on the link, and Enter
+   * left the page. Any other control in the body still comes first: the
+   * dialog is opened for it (a webhook's Copy URL, Start from scratch).
+   */
+  describe("a link in the body is passed over (#7360)", () => {
+    type MakeFunction = (
+      tag: string,
+      attributes?: Record<string, string>,
+    ) => HTMLElement;
+
+    const make: MakeFunction = (
+      tag: string,
+      attributes: Record<string, string> = {},
+    ): HTMLElement => {
+      const element: HTMLElement = document.createElement(tag);
+
+      for (const [name, value] of Object.entries(attributes)) {
+        element.setAttribute(name, value);
+      }
+
+      return element;
+    };
+
+    it("starts a confirmation with links in its body on its submit", () => {
+      const parts: DialogParts = makeDialog();
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [
+            parts.headerClose,
+            parts.bodyLink,
+            makeLink(),
+            parts.cancel,
+            parts.submit,
+          ],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+          header: parts.header,
+        }),
+      ).toBe(parts.submit);
+    });
+
+    it("starts the same with a DANGER submit on Cancel, the least destructive choice", () => {
+      const parts: DialogParts = makeDialog();
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [
+            parts.headerClose,
+            parts.bodyLink,
+            parts.cancel,
+            parts.submit,
+          ],
+          footer: parts.footer,
+          isSubmitDestructive: true,
+          header: parts.header,
+        }),
+      ).toBe(parts.cancel);
+    });
+
+    it("starts on Cancel when the dialog asks for its close button, a link in the body or not", () => {
+      const parts: DialogParts = makeDialog();
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [parts.bodyLink, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+          isCloseButtonPreferred: true,
+        }),
+      ).toBe(parts.cancel);
+    });
+
+    it("starts a body with a link and then a field on the field", () => {
+      const parts: DialogParts = makeDialog();
+      const name: HTMLElement = make("input");
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [parts.bodyLink, name, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(name);
+    });
+
+    it("still starts a body with only a field on it, a destructive one too", () => {
+      const parts: DialogParts = makeDialog();
+      const confirmName: HTMLElement = make("input");
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [confirmName, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: true,
+        }),
+      ).toBe(confirmName);
+    });
+
+    it("starts on a button the body holds, after a link: the dialog is opened for it", () => {
+      const parts: DialogParts = makeDialog();
+      const copyUrl: HTMLElement = makeButton();
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [
+            parts.bodyLink,
+            copyUrl,
+            parts.cancel,
+            parts.submit,
+          ],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(copyUrl);
+    });
+
+    it("passes over a link drawn as one with a role too", () => {
+      const parts: DialogParts = makeDialog();
+      const roleLink: HTMLElement = make("span", {
+        role: "link",
+        tabindex: "0",
+      });
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [roleLink, parts.cancel, parts.submit],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(parts.submit);
+    });
+
+    it("with no submit and only links in the body, starts on the first link: what it is opened for", () => {
+      const parts: DialogParts = makeDialog();
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [parts.bodyLink, makeLink(), parts.cancel],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(parts.bodyLink);
+    });
+
+    it("with no submit, starts on the body's first choice before a link", () => {
+      const parts: DialogParts = makeDialog();
+      const firstChoice: HTMLElement = makeButton();
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [
+            parts.bodyLink,
+            firstChoice,
+            makeButton(),
+            parts.cancel,
+          ],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(firstChoice);
+    });
+
+    it("with no submit and an empty body, starts on the way out", () => {
+      const parts: DialogParts = makeDialog();
+
+      expect(
+        pickInitialFocusElement({
+          focusableElements: [parts.headerClose, parts.cancel],
+          footer: parts.footer,
+          isSubmitDestructive: false,
+        }),
+      ).toBe(parts.cancel);
+    });
+
+    it("knows a link: an anchor with an address, or a link by its role", () => {
+      expect(isLinkThatLeaves(makeLink())).toBe(true);
+      expect(isLinkThatLeaves(make("span", { role: "link" }))).toBe(true);
+      // An anchor with no address leads nowhere (Link draws a button then).
+      expect(isLinkThatLeaves(make("a"))).toBe(false);
+      expect(isLinkThatLeaves(make("a", { role: "button" }))).toBe(false);
+      expect(isLinkThatLeaves(makeButton())).toBe(false);
+      expect(isLinkThatLeaves(make("input"))).toBe(false);
+    });
   });
 
   /*

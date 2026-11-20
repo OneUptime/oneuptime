@@ -181,22 +181,51 @@ const findFirstChangeable: (
 };
 
 /*
- * Where focus starts when a dialog opens.
+ * A link: pressed, it leaves the dialog - and, but for one opened in a new
+ * tab, the page with what the dialog was about.
+ */
+export const isLinkThatLeaves: (element: HTMLElement) => boolean = (
+  element: HTMLElement,
+): boolean => {
+  return (
+    (element instanceof HTMLAnchorElement && element.hasAttribute("href")) ||
+    element.getAttribute("role") === "link"
+  );
+};
+
+/*
+ * Where focus starts when a dialog opens (WAI-ARIA's dialog pattern: on its
+ * first field for a form, else on the control the dialog is for).
  *
- * A field in the body comes first, so a form can be typed into straight away.
- * A dialog with nothing to fill in - a confirmation, a notice - starts on the
- * button the dialog is for: the affirmative action, so Enter does what the
- * one highlighted button says. Starting on Cancel, the first button in the
- * footer, put the focus ring round Cancel and made it look like the main
- * action. A destructive confirmation (a DANGER submit) is the exception and
- * starts on Cancel, the least destructive choice, so a stray Enter never
- * deletes anything. The header's X is never the starting point, and nor is
- * anything else in the header: a control there (rightElement) is an aside -
- * a way to the help, say - and starting on it would take the focus away from
- * the field the dialog is for. Nor is a field shown only to be read - an edit
- * dialog's start time once it has started, drawn read-only so it can still
- * be read (isReadOnlyField): the first field that can be changed comes
- * before it, and Tab still reaches it.
+ * A control in the body comes first, so a form can be typed into straight
+ * away, and a dialog whose body is what it is opened for starts there: a
+ * webhook trigger's Copy URL, "Start from scratch" in Create Dashboard, the
+ * first of a picker's choices. A link in the body never does: it leads away
+ * from the dialog, and Enter on it left the page. The Kubernetes AI agent's
+ * "Turn on automatic investigation?" opened on its "Incident AI settings"
+ * link, so Enter went to the settings instead of turning it on (#7360). A
+ * link is passed over for the next control in the body, a field after it, or
+ * else the footer.
+ *
+ * A dialog with nothing in its body but words and links - a confirmation, a
+ * notice - starts on the button the dialog is for: the affirmative action,
+ * so Enter does what the one highlighted button says. Starting on Cancel,
+ * the first button in the footer, put the focus ring round Cancel and made
+ * it look like the main action. A destructive confirmation (a DANGER submit)
+ * is the exception and starts on Cancel, the least destructive choice, as
+ * WAI-ARIA advises for a confirmation of what cannot be undone: a stray
+ * Enter never deletes anything. So does a dialog that asks for its close
+ * button (isCloseButtonPreferred). A dialog with no submit button and only
+ * links in its body - a list of pages to open - starts on its first link,
+ * what it is opened for.
+ *
+ * The header's X is never the starting point, and nor is anything else in
+ * the header: a control there (rightElement) is an aside - a way to the
+ * help, say - and starting on it would take the focus away from the field
+ * the dialog is for. Nor is a field shown only to be read - an edit dialog's
+ * start time once it has started, drawn read-only so it can still be read
+ * (isReadOnlyField): the first field that can be changed comes before it,
+ * and Tab still reaches it.
  */
 export const pickInitialFocusElement: (data: {
   focusableElements: Array<HTMLElement>;
@@ -224,14 +253,21 @@ export const pickInitialFocusElement: (data: {
 
   const footer: HTMLElement | null = data.footer;
 
-  const firstOutsideTheFooter: HTMLElement | undefined = findFirstChangeable(
-    candidates.filter((element: HTMLElement) => {
+  const inTheBody: Array<HTMLElement> = candidates.filter(
+    (element: HTMLElement) => {
       return !footer || !footer.contains(element);
+    },
+  );
+
+  // The body's first control that is no link, one that can be changed first.
+  const firstInTheBody: HTMLElement | undefined = findFirstChangeable(
+    inTheBody.filter((element: HTMLElement): boolean => {
+      return !isLinkThatLeaves(element);
     }),
   );
 
-  if (firstOutsideTheFooter || !footer) {
-    return firstOutsideTheFooter || candidates[0];
+  if (firstInTheBody) {
+    return firstInTheBody;
   }
 
   const findFooterButton: (testId: string) => HTMLElement | undefined = (
@@ -239,7 +275,7 @@ export const pickInitialFocusElement: (data: {
   ): HTMLElement | undefined => {
     return candidates.find((element: HTMLElement) => {
       return (
-        footer.contains(element) &&
+        Boolean(footer && footer.contains(element)) &&
         element.getAttribute("data-testid") === testId
       );
     });
@@ -252,12 +288,15 @@ export const pickInitialFocusElement: (data: {
     "modal-footer-close-button",
   );
 
-  const preferred: HTMLElement | undefined =
-    data.isSubmitDestructive || data.isCloseButtonPreferred
+  // A confirmation or a notice: the button it is for.
+  if (submitButton) {
+    return data.isSubmitDestructive || data.isCloseButtonPreferred
       ? cancelButton || submitButton
-      : submitButton || cancelButton;
+      : submitButton;
+  }
 
-  return preferred || candidates[0];
+  // No submit: the links are what the dialog is for, else its way out.
+  return inTheBody[0] || cancelButton || candidates[0];
 };
 
 const Modal: FunctionComponent<ComponentProps> = (
