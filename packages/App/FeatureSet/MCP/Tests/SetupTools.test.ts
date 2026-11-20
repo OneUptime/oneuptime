@@ -253,6 +253,29 @@ describe("the setup tools are listed", () => {
     );
   });
 
+  /*
+   * Someone invited earlier is added by their address before they accept
+   * (#10412): said where an agent reads it, so it does not come back later,
+   * with the one rule that keeps it safe - paged once they join, and
+   * nothing reaches them before.
+   */
+  it("add_to_on_call_policy and invite_people say someone invited is added by their address, and paged once they join", () => {
+    expect(listed("add_to_on_call_policy").description).toContain(
+      "Someone invited to the project who has not joined yet is added by the address they were invited at: they are paged once they join, and nothing reaches them before.",
+    );
+    expect(listed("add_to_on_call_policy").description).not.toContain(
+      "can be added once they join",
+    );
+    expect(
+      JSON.stringify(listed("add_to_on_call_policy").inputSchema),
+    ).toContain(
+      "people invited who have not joined yet, by the address they were invited at",
+    );
+    expect(listed("invite_people").description).toContain(
+      "Someone invited is paged only once they join; add_to_on_call_policy adds them to a policy by their address before that.",
+    );
+  });
+
   // What the card on OneUptime Cloud's Free plan says before it is approved (#9995).
   it("the two that make a monitor say what it costs on the Free plan, at the guided setup's price", () => {
     for (const name of [
