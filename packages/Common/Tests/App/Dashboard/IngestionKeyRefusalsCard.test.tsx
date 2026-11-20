@@ -102,6 +102,11 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "../../../Types/ReadingDirection";
+import {
+  ALL_TELEMETRY_INGEST_REFUSAL_REASONS,
+  TelemetryIngestRefusalReason,
+} from "../../../Types/Telemetry/TelemetryIngestRefusal";
+import { KEY_PAGE_REFUSAL_FIX_WORDS } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestRefusalWords";
 
 const MINUTE_MS: number = 60 * 1000;
 const DAY_MS: number = 24 * 60 * MINUTE_MS;
@@ -334,6 +339,54 @@ describe("the key's Refused Telemetry card", () => {
       within(lines()[1]!).getByTestId("ingestion-key-refusal-reason")
         .textContent,
     ).toBe("Key expired");
+  });
+
+  /*
+   * Every line says what puts it right, in words (#6458): the card linked
+   * only the fixes on another page, so an origin refusal no longer said to
+   * add the origin, and a reason with nothing to link said nothing at all.
+   */
+  test.each([...ALL_TELEMETRY_INGEST_REFUSAL_REASONS])(
+    "a line refused for %s says what puts it right",
+    async (reason: TelemetryIngestRefusalReason) => {
+      arrange([refusalRow({ reason })]);
+      await renderCard();
+
+      expect(lines()).toHaveLength(1);
+      expect(
+        within(lines()[0]!).getByTestId("ingestion-key-refusal-fix")
+          .textContent,
+      ).toBe(KEY_PAGE_REFUSAL_FIX_WORDS[reason]);
+    },
+  );
+
+  test("the fixes say the key's own settings by name, and a Mobile key's says where each key goes", () => {
+    expect(
+      KEY_PAGE_REFUSAL_FIX_WORDS[TelemetryIngestRefusalReason.OriginNotAllowed],
+    ).toBe(
+      "Add the origin the requests came from to this key's Allowed Origins above, with its scheme and any port.",
+    );
+    expect(
+      KEY_PAGE_REFUSAL_FIX_WORDS[
+        TelemetryIngestRefusalReason.KeyRequestsPerMinute
+      ],
+    ).toBe(
+      "Raise this key's Requests Per Minute Limit above, or send less often.",
+    );
+    expect(
+      KEY_PAGE_REFUSAL_FIX_WORDS[
+        TelemetryIngestRefusalReason.MobileKeyNotAllowedHere
+      ],
+    ).toBe(
+      "Use a Browser key in a web page and a Server key everywhere else: a Mobile key is only for its app's traces, logs and metrics, sent over HTTP.",
+    );
+    // One fix per reason, none shared by two.
+    expect(Object.keys(KEY_PAGE_REFUSAL_FIX_WORDS).sort()).toEqual(
+      [...ALL_TELEMETRY_INGEST_REFUSAL_REASONS].sort(),
+    );
+    expect(new Set(Object.values(KEY_PAGE_REFUSAL_FIX_WORDS)).size).toBe(
+      ALL_TELEMETRY_INGEST_REFUSAL_REASONS.length,
+    );
   });
 
   test("a fix in the project's settings is a link; the key's own settings are on this page", async () => {

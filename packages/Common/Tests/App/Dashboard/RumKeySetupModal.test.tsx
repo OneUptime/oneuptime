@@ -394,6 +394,10 @@ describe("the Pick another key dialog", () => {
       "Release and check",
     ]);
     expect(dialog.textContent).toContain(
+      "Pick a Mobile key that is turned on and pinned to this app, or create one.",
+    );
+    expect(dialog.textContent).not.toContain("Pick a Server key");
+    expect(dialog.textContent).toContain(
       "Copies already installed keep sending with the refused key until they update.",
     );
   });

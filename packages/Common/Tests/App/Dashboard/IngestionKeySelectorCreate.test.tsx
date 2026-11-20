@@ -20,7 +20,11 @@ import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
-import IngestionKeySelector from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector";
+import IngestionKeySelector, {
+  BROWSER_KEY_CAUTION,
+  MOBILE_KEY_CAUTION,
+  SERVER_KEY_CAUTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -139,6 +143,8 @@ function makeKey(data: {
   id: string;
   name: string;
   keyType: TelemetryIngestionKeyType;
+  pinnedServiceName?: string | undefined;
+  isEnabled?: boolean | undefined;
 }): TelemetryIngestionKey {
   const key: TelemetryIngestionKey = new TelemetryIngestionKey();
   key.id = new ObjectID(data.id);
@@ -147,6 +153,12 @@ function makeKey(data: {
   key.secretKey = new ObjectID(`secret-${data.id}`);
   if (data.keyType === TelemetryIngestionKeyType.Browser) {
     key.allowedOrigins = JSON.parse(ORIGINS) as Array<string>;
+  }
+  if (data.pinnedServiceName) {
+    key.pinnedServiceName = data.pinnedServiceName;
+  }
+  if (data.isEnabled !== undefined) {
+    key.isEnabled = data.isEnabled;
   }
   return key;
 }
@@ -159,6 +171,8 @@ interface RenderedGuide {
 async function renderSelector(data: {
   keyType: TelemetryIngestionKeyType;
   newKeyName: string;
+  // The app a Mobile key made here is pinned to, when the guide knows it.
+  newKeyPinnedServiceName?: string | undefined;
 }): Promise<RenderedGuide> {
   const onSelectedKeyChange: MockFunction = getJestMockFunction();
 
@@ -170,6 +184,7 @@ async function renderSelector(data: {
           endpointValue="https://oneuptime.example.com"
           keyTypeFilter={data.keyType}
           newKeyName={data.newKeyName}
+          newKeyPinnedServiceName={data.newKeyPinnedServiceName}
           onSelectedKeyChange={(key: TelemetryIngestionKey | null): void => {
             onSelectedKeyChange(key);
           }}
@@ -268,6 +283,191 @@ describe("Creating an ingestion key from a setup guide", () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  /*
+   * Whatever ships in an app is public (#6457): a mobile app's guide makes a
+   * Mobile key, pinned to the app, and never asks for origins.
+   */
+  describe("a mobile app's guide (Mobile keys)", () => {
+    test("creates a Mobile key pinned to the app the guide is for, asking for no origins", async () => {
+      const { user, onSelectedKeyChange } = await renderSelector({
+        keyType: TelemetryIngestionKeyType.Mobile,
+        newKeyName: "RUM key",
+        newKeyPinnedServiceName: "checkout-ios",
+      });
+      expect(
+        await screen.findByText("No mobile ingestion keys yet"),
+      ).toBeInTheDocument();
+      await openCreateDialog(user, "RUM key");
+
+      expect(
+        within(dialog()).getByPlaceholderText("storefront-mobile"),
+      ).toHaveValue("checkout-ios");
+      expect(
+        within(dialog()).queryByRole("textbox", { name: "Allowed Origins" }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(dialog()).queryByRole("radiogroup", { name: "Key Type" }),
+      ).not.toBeInTheDocument();
+
+      const created: TelemetryIngestionKey = makeKey({
+        id: "44444444-4444-4444-8444-444444444444",
+        name: "RUM key",
+        keyType: TelemetryIngestionKeyType.Mobile,
+        pinnedServiceName: "checkout-ios",
+      });
+      createOrUpdateMock.mockImplementation(async () => {
+        listedKeys = [created];
+        return { data: { _id: created.id!.toString(), name: created.name } };
+      });
+
+      const request: CreateRequest = await create(user);
+      expect(request.model.keyType).toBe(TelemetryIngestionKeyType.Mobile);
+      expect(request.model.pinnedServiceName).toBe("checkout-ios");
+      expect(request.model.allowedOrigins).toBeFalsy();
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(
+          (onSelectedKeyChange.mock.calls.at(-1)?.[0] as
+            | TelemetryIngestionKey
+            | null
+            | undefined)?.id?.toString(),
+        ).toBe(created.id!.toString());
+      });
+    });
+
+    test("not knowing the app, it asks for its service name and makes no key without it", async () => {
+      const { user } = await renderSelector({
+        keyType: TelemetryIngestionKeyType.Mobile,
+        newKeyName: "RUM key",
+      });
+      await openCreateDialog(user, "RUM key");
+
+      const pinned: HTMLElement =
+        within(dialog()).getByPlaceholderText("storefront-mobile");
+      expect(pinned).toHaveValue("");
+
+      await waitFor(() => {
+        expect(mainButton()).toHaveTextContent("Create Ingestion Key");
+      });
+      await user.click(mainButton());
+      expect(
+        await within(dialog()).findByText("Pinned Service Name is required."),
+      ).toBeInTheDocument();
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+      await user.type(pinned, "checkout-ios");
+      createOrUpdateMock.mockImplementation(async () => {
+        return {
+          data: {
+            _id: "44444444-4444-4444-8444-444444444444",
+            name: "RUM key",
+          },
+        };
+      });
+      const request: CreateRequest = await create(user);
+      expect(request.model.pinnedServiceName).toBe("checkout-ios");
+      expect(request.model.keyType).toBe(TelemetryIngestionKeyType.Mobile);
+    });
+  });
+
+  /*
+   * Under a picked key's token, what it may do, in plain words (#6458):
+   * where it may go, what it sends from there, and - for a key shipped to
+   * the public - what a copy of it can still do.
+   */
+  describe("the caution under a picked key", () => {
+    test.each([
+      [
+        "a Browser key",
+        makeKey({
+          id: "55555555-5555-4555-8555-555555555555",
+          name: "Storefront key",
+          keyType: TelemetryIngestionKeyType.Browser,
+        }),
+        BROWSER_KEY_CAUTION.replace("{{identities}}", "https://shop.example.com"),
+      ],
+      [
+        "a Mobile key",
+        makeKey({
+          id: "66666666-6666-4666-8666-666666666666",
+          name: "iOS key",
+          keyType: TelemetryIngestionKeyType.Mobile,
+          pinnedServiceName: "checkout-ios",
+        }),
+        MOBILE_KEY_CAUTION.replace("{{service}}", "checkout-ios"),
+      ],
+      [
+        "a Server key",
+        makeKey({
+          id: "77777777-7777-4777-8777-777777777777",
+          name: "Kubernetes key",
+          keyType: TelemetryIngestionKeyType.Server,
+        }),
+        SERVER_KEY_CAUTION,
+      ],
+    ])(
+      "%s",
+      async (
+        _name: string,
+        key: TelemetryIngestionKey,
+        expected: string,
+      ) => {
+        listedKeys = [key];
+        await renderSelector({
+          keyType: key.keyType!,
+          newKeyName: "RUM key",
+        });
+
+        expect(
+          (await screen.findByTestId("ingestion-key-caution")).textContent,
+        ).toBe(expected);
+      },
+    );
+
+    test("the words name what each key may do, and the key that goes elsewhere", () => {
+      expect(BROWSER_KEY_CAUTION).toBe(
+        "Browser key: safe to put in a web page. It can send traces, logs, metrics, session replays and Sentry events, and only from: {{identities}}. An app:// entry lets a React Native app send session replays only, and anyone who has the app can send as it.",
+      );
+      expect(MOBILE_KEY_CAUTION).toBe(
+        "Mobile key: safe to ship in your app. It can send only traces, logs and metrics, all filed under {{service}}, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
+      );
+      expect(SERVER_KEY_CAUTION).toBe(
+        "Server key: keep it secret. It can send every kind of telemetry to this project from anywhere, so put it only in server environment variables and collector settings. Never put it in a web page or a mobile app: use a Browser key in a page and a Mobile key in an app.",
+      );
+    });
+
+    /*
+     * A refused key's "(turned off)" follows its name, and a phone's narrow
+     * picker cut it off with an ellipsis (#6458): the pick wraps, whole.
+     */
+    test("a picked key's name is drawn whole, its \"(turned off)\" included", async () => {
+      listedKeys = [
+        makeKey({
+          id: "88888888-8888-4888-8888-888888888888",
+          name: "Storefront browser key for the checkout pages",
+          keyType: TelemetryIngestionKeyType.Browser,
+          isEnabled: false,
+        }),
+      ];
+      await renderSelector({
+        keyType: TelemetryIngestionKeyType.Browser,
+        newKeyName: "RUM key",
+      });
+
+      const picked: HTMLElement = await screen.findByTestId(
+        "dropdown-value-label",
+      );
+      expect(picked.textContent).toBe(
+        "Storefront browser key for the checkout pages (turned off)",
+      );
+      expect(picked).toHaveClass("whitespace-normal");
+      expect(picked).not.toHaveClass("truncate");
+    });
   });
 
   describe("an agent's guide (Server keys)", () => {
