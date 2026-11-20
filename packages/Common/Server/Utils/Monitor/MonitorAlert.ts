@@ -128,6 +128,11 @@ export default class MonitorAlert {
     keepResponseContent?: boolean | undefined;
     // The step the check ran: the state timeline's copy names its destination.
     monitorStep?: MonitorStep | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<Array<Alert>> {
     /*
      * check active alerts and if there are open alerts, do not create another
@@ -200,6 +205,8 @@ export default class MonitorAlert {
           : input.rootCause;
 
         // then resolve alert.
+        await input.keepEvaluationLock?.();
+
         await this.resolveOpenAlert({
           openAlert: openAlert,
           rootCause: rootCause,
@@ -469,6 +476,11 @@ export default class MonitorAlert {
      * resolveSeriesAlertsByFingerprint). Per-key create + dedupe still run.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -514,6 +526,7 @@ export default class MonitorAlert {
               input.breachingSeriesFingerprintsByCriteriaId,
             disableSeriesAbsenceResolution:
               input.disableSeriesAbsenceResolution,
+            keepEvaluationLock: input.keepEvaluationLock,
           });
 
     if (!input.criteriaInstance.data?.createAlerts) {
@@ -650,6 +663,9 @@ export default class MonitorAlert {
 
     for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
       for (const seriesMatch of seriesToProcess) {
+        // Outside the catch below: a lost lock stops every series.
+        await input.keepEvaluationLock?.();
+
         try {
           const seriesFingerprint: string | undefined =
             seriesMatch?.fingerprint;

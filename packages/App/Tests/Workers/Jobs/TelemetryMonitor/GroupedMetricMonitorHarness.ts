@@ -154,6 +154,8 @@ export interface EvaluationMeasurement {
   clickhouseInserts: number;
   clickhouseInsertBytes: number;
   lockRefreshes: number;
+  // Refreshes that found the lock gone: it ran out, or Valkey lost it.
+  lockRefreshFailures: number;
   lockLost: boolean;
   unhandledRejections: Array<string>;
   // The evaluation as the monitor log keeps it, in bytes of JSON.
@@ -233,8 +235,12 @@ export interface RunEvaluationOptions {
    * part way through (as a Valkey restart would).
    */
   onLockAcquired?: ((lockKey: string, store: FakeValkey) => void) | undefined;
-  // Wraps the work after the reads, for a test that makes it slow.
-  slowDownEvaluationMs?: number | undefined;
+  /*
+   * Makes the criteria take this much longer, for a test of the lock under a
+   * slow evaluation: in one block of the event loop, as a grouped monitor's
+   * criteria were before #10108, or in slices that hand it back.
+   */
+  slowCriteria?: { ms: number; inOneBlock: boolean } | undefined;
 }
 
 function hashOf(value: unknown): string {
@@ -282,6 +288,8 @@ function stableEvent(event: JSONObject): JSONObject {
 export class FakeValkey {
   public status: string = "ready";
   public refreshes: number = 0;
+  // Refreshes that found the lock no longer the holder's.
+  public refreshFailures: number = 0;
   public unknownCommands: Set<string> = new Set<string>();
   private values: Map<string, { value: string; expiresAtMs: number | null }> =
     new Map();
@@ -447,6 +455,7 @@ export class FakeValkey {
         return 1;
       }
 
+      this.refreshFailures++;
       return 0;
     }
 
@@ -1399,8 +1408,43 @@ export async function runFleetEvaluation(
   );
   gcObserver.observe({ entryTypes: ["gc"] });
 
-  // When the lock is held, a test may take it away.
-  const lockKey: string = `${LOCK_NAMESPACE}-${FLEET_MONITOR_ID.toString()}`;
+  if (options.slowCriteria) {
+    const slow: { ms: number; inOneBlock: boolean } = options.slowCriteria;
+    const processMonitorStep: (...args: Array<unknown>) => Promise<unknown> = (
+      MonitorCriteriaEvaluator as unknown as Record<
+        string,
+        (...args: Array<unknown>) => Promise<unknown>
+      >
+    )["processMonitorStep"]!;
+
+    patch(
+      MonitorCriteriaEvaluator,
+      "processMonitorStep",
+      async (...args: Array<unknown>): Promise<unknown> => {
+        const result: unknown = await processMonitorStep(...args);
+        const until: number = performance.now() + slow.ms;
+
+        while (performance.now() < until) {
+          // Busy, as judging series is; in slices, the loop is handed back.
+          const sliceEnd: number = Math.min(until, performance.now() + 20);
+
+          while (performance.now() < sliceEnd) {
+            // Nothing: the time is the point.
+          }
+
+          if (!slow.inOneBlock) {
+            await nextTurn();
+          }
+        }
+
+        return result;
+      },
+      phaseRestorers,
+    );
+  }
+
+  // When the lock is held, a test may take it away. redis-semaphore's key.
+  const lockKey: string = `mutex:${LOCK_NAMESPACE}-${FLEET_MONITOR_ID.toString()}`;
   let lockWatch: NodeJS.Timeout | null = null;
 
   if (options.onLockAcquired) {
@@ -1542,7 +1586,8 @@ export async function runFleetEvaluation(
     clickhouseInserts: stubs.clickhouse.inserts,
     clickhouseInsertBytes: stubs.clickhouse.insertBytes,
     lockRefreshes: stubs.store.refreshes,
-    lockLost: lockLost,
+    lockRefreshFailures: stubs.store.refreshFailures,
+    lockLost: lockLost || stubs.store.refreshFailures > 0,
     unhandledRejections: unhandledRejections,
     monitorLogBytes: monitorLogBytesOf(stubs),
   };

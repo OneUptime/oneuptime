@@ -18,7 +18,7 @@ import DataToProcess from "./DataToProcess";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
+import MonitorEvaluationLock from "./MonitorEvaluationLock";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
@@ -425,13 +425,17 @@ export default class MonitorResourceUtil {
      * this throw is a correctness backstop for the rare residual collision
      * (e.g. cron vs ingest), not the steady-state path.
      */
-    let mutex: SemaphoreMutex | null = null;
+    let evaluationLock: MonitorEvaluationLock | null = null;
     const lockRequestedAt: number = Date.now();
 
     try {
-      mutex = await Semaphore.lock({
-        key: dataToProcess.monitorId.toString(),
-        namespace: "MonitorResourceUtil.monitorResource",
+      /*
+       * Kept by a refresh every second, and never lost in silence: a loss
+       * stops the evaluation at its next write (MonitorEvaluationLock,
+       * #10108).
+       */
+      evaluationLock = await MonitorEvaluationLock.acquire({
+        monitorId: dataToProcess.monitorId,
         acquireTimeout: 2000,
         retryInterval: 100,
         acquireAttemptsLimit: 20,
@@ -453,15 +457,18 @@ export default class MonitorResourceUtil {
       throw err;
     }
 
+    const lock: MonitorEvaluationLock = evaluationLock;
+
     const releaseMutex: () => Promise<void> = async (): Promise<void> => {
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err);
-        }
-        mutex = null;
-      }
+      await lock.release();
+    };
+
+    /*
+     * Before each write the lock protects: stops the evaluation, rather
+     * than write without the lock, once it is lost (MonitorEvaluationLock).
+     */
+    const keepEvaluationLock: () => Promise<void> = async (): Promise<void> => {
+      await lock.keep();
     };
 
     try {
@@ -1311,6 +1318,9 @@ export default class MonitorResourceUtil {
         criteriaInEffect: CriteriaInEffect.forMonitor(monitor),
       });
 
+      // Judged; everything from here writes what was decided.
+      await keepEvaluationLock();
+
       // Check probe agreement for probe-based monitors
       if (
         monitor.monitorType &&
@@ -1443,6 +1453,8 @@ export default class MonitorResourceUtil {
             : undefined;
 
         if (recoveries.fingerprints.length > 0 || wholeMonitor) {
+          await keepEvaluationLock();
+
           await MonitorIncident.resolveSeriesIncidentsByFingerprint({
             monitor: monitor,
             fingerprints: recoveries.fingerprints,
@@ -1478,6 +1490,8 @@ export default class MonitorResourceUtil {
           LogGroupCriteriaFanOut.getResolvedFingerprints(dataToProcess);
 
         if (resolvedLogGroupFingerprints.length > 0) {
+          await keepEvaluationLock();
+
           await MonitorIncident.resolveSeriesIncidentsByFingerprint({
             monitor: monitor,
             fingerprints: resolvedLogGroupFingerprints,
@@ -1702,6 +1716,8 @@ export default class MonitorResourceUtil {
         const suppressedSeriesFingerprints: Set<string> =
           maintenanceSuppression.suppressedSeriesFingerprints;
 
+        await keepEvaluationLock();
+
         /*
          * Planned work on one host of an OpenStack cloud keeps the monitor's status, so a status page
          * stays as it is: see isEveryBreachUnderMaintenance.
@@ -1901,6 +1917,8 @@ export default class MonitorResourceUtil {
             opensAlerts: opensAlerts,
           });
 
+        await keepEvaluationLock();
+
         const openIncidents: Array<Incident> =
           await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
             monitor: monitor,
@@ -1926,6 +1944,7 @@ export default class MonitorResourceUtil {
                 keepResponseContent:
                   MonitorRecordEvidence.keepsResponseContent(monitor),
                 monitorStep: monitorStep,
+                keepEvaluationLock: keepEvaluationLock,
               });
             },
           });
@@ -1955,6 +1974,7 @@ export default class MonitorResourceUtil {
                 keepResponseContent:
                   MonitorRecordEvidence.keepsResponseContent(monitor),
                 monitorStep: monitorStep,
+                keepEvaluationLock: keepEvaluationLock,
               });
             },
           });
@@ -2055,6 +2075,7 @@ export default class MonitorResourceUtil {
               suppressedSeriesFingerprints,
               dependencySuppression,
               disableSeriesAbsenceResolution,
+              keepEvaluationLock: keepEvaluationLock,
             },
           );
 
@@ -2082,6 +2103,7 @@ export default class MonitorResourceUtil {
             suppressedSeriesFingerprints,
             dependencySuppression,
             disableSeriesAbsenceResolution,
+            keepEvaluationLock: keepEvaluationLock,
           });
         }
       } else if (
@@ -2121,6 +2143,8 @@ export default class MonitorResourceUtil {
             opensAlerts: false,
           });
 
+        await keepEvaluationLock();
+
         await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
           monitor: monitor,
           kind: MonitorRecordKind.Incident,
@@ -2139,6 +2163,7 @@ export default class MonitorResourceUtil {
               keepResponseContent:
                 MonitorRecordEvidence.keepsResponseContent(monitor),
               monitorStep: monitorStep,
+              keepEvaluationLock: keepEvaluationLock,
               /*
                * Event-driven grouping: for incoming-request monitors, never
                * absence-resolve per-key (seriesFingerprint) incidents on the
@@ -2180,6 +2205,7 @@ export default class MonitorResourceUtil {
               keepResponseContent:
                 MonitorRecordEvidence.keepsResponseContent(monitor),
               monitorStep: monitorStep,
+              keepEvaluationLock: keepEvaluationLock,
               disableSeriesAbsenceResolution:
                 MonitorResourceUtil.isSeriesResolvedExplicitly({
                   monitor: monitor,
@@ -2275,6 +2301,8 @@ export default class MonitorResourceUtil {
             );
             revertedToDefaultStatus = false;
           } else {
+            await keepEvaluationLock();
+
             try {
               await MonitorStatusTimelineService.create({
                 data: monitorStatusTimeline,

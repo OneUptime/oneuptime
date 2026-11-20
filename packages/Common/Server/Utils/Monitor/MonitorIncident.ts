@@ -141,6 +141,11 @@ export default class MonitorIncident {
     keepResponseContent?: boolean | undefined;
     // The step the check ran: the state timeline's copy names its destination.
     monitorStep?: MonitorStep | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<Array<Incident>> {
     /*
      * check active incidents and if there are open incidents, do not create
@@ -217,6 +222,8 @@ export default class MonitorIncident {
           : input.rootCause;
 
         // then resolve incident.
+        await input.keepEvaluationLock?.();
+
         await this.resolveOpenIncident({
           openIncident: openIncident,
           rootCause: rootCause,
@@ -504,6 +511,11 @@ export default class MonitorIncident {
      * Per-key create + dedupe still happen via matchesPerSeries.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<void> {
     const incidentLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -554,6 +566,7 @@ export default class MonitorIncident {
               input.breachingSeriesFingerprintsByCriteriaId,
             disableSeriesAbsenceResolution:
               input.disableSeriesAbsenceResolution,
+            keepEvaluationLock: input.keepEvaluationLock,
           });
 
     if (!input.criteriaInstance.data?.createIncidents) {
@@ -698,6 +711,9 @@ export default class MonitorIncident {
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
       for (const seriesMatch of seriesToProcess) {
+        // Outside the catch below: a lost lock stops every series.
+        await input.keepEvaluationLock?.();
+
         try {
           const seriesFingerprint: string | undefined =
             seriesMatch?.fingerprint;
