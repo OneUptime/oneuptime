@@ -24,6 +24,12 @@ export default interface ChartReferenceLineProps {
    * line is drawn against the first axis.
    */
   isOnSecondYAxis?: boolean | undefined;
+  /*
+   * Drawn to the scale of its own with this id (OwnScaleYAxis, issue
+   * #10080), for a line of a series drawn there: its value is in that
+   * scale's unit, and its label says it, as no axis does.
+   */
+  ownScaleId?: string | undefined;
 }
 
 // The dash a reference line is drawn with when it names none of its own.

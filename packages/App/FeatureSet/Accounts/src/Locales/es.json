@@ -244,7 +244,13 @@
     "signInWithProvider": "Iniciar sesión con {{name}}",
     "requiredSubtitle": "Este servidor requiere el inicio de sesión único (SSO).",
     "requiredNotSetUp": "El inicio de sesión único aún no está configurado en este servidor. Pida al administrador del servidor que lo configure.",
-    "useDifferentEmail": "Usar otro correo electrónico"
+    "useDifferentEmail": "Usar otro correo electrónico",
+    "lastUsedTitle": "Usado por última vez en este dispositivo",
+    "forgetLastUsed": "Olvidar este proveedor",
+    "emailLinksPrompt": "Podemos enviar a esta dirección los enlaces de inicio de sesión con SSO de todas las organizaciones a las que pertenece.",
+    "emailLinksButton": "Enviarme mis enlaces de inicio de sesión",
+    "emailLinksSent": "Si esta dirección pertenece a una organización que usa el inicio de sesión único, le hemos enviado los enlaces de inicio de sesión con SSO.",
+    "emailLinksCaptchaRequired": "Complete el captcha antes de solicitar los enlaces."
   },
   "adminLogin": {
     "title": "Inicio de sesión de administrador maestro",

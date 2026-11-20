@@ -35,6 +35,7 @@ import RumSessionService from "../../../Server/Services/RumSessionService";
 import SecurityEventService from "../../../Server/Services/SecurityEventService";
 import SpanService from "../../../Server/Services/SpanService";
 import TelemetryUsageBillingService, {
+  getBilledExceptionsFilter,
   TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES,
   TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS,
 } from "../../../Server/Services/TelemetryUsageBillingService";
@@ -104,6 +105,11 @@ describe("stageUnstagedTelemetryUsageForProject", () => {
       .mockImplementation(async (): Promise<Array<string>> => {
         return daysWithLogs;
       });
+
+    // The exceptions found in logs are billed with them (issue #6590).
+    jest
+      .spyOn(ExceptionInstanceService, "getDaysWithRows")
+      .mockResolvedValue([]);
 
     stage = jest
       .spyOn(TelemetryUsageBillingService, "stageTelemetryUsageForProject")
@@ -388,7 +394,8 @@ describe("the catch-up reads the tables each product's usage scan reads", () => 
 
   test.each([
     [ProductType.Traces, { spans: "startTime", exceptions: "time" }],
-    [ProductType.Logs, { logs: "time" }],
+    // And the exceptions found in logs, billed with them (issue #6590).
+    [ProductType.Logs, { logs: "time", exceptions: "time" }],
     [ProductType.Metrics, { metrics: "time" }],
     [ProductType.SecurityEvents, { securityEvents: "time" }],
     [ProductType.SessionReplay, { sessionReplay: "startTime" }],
@@ -424,6 +431,44 @@ describe("the catch-up reads the tables each product's usage scan reads", () => 
     expect(
       [...dayQueries.metrics.mock.calls[0]![0].excludeNames].sort(),
     ).toEqual([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort());
+  });
+
+  test("reads each product's exceptions by the source it bills (issue #6590)", async () => {
+    for (const productType of [ProductType.Traces, ProductType.Logs]) {
+      await TelemetryUsageBillingService.stageUnstagedTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: productType,
+      });
+    }
+
+    expect(
+      dayQueries.exceptions.mock.calls.map(
+        (call: Array<{ attributeFilter?: unknown }>): unknown => {
+          return call[0]!.attributeFilter;
+        },
+      ),
+    ).toEqual([
+      getBilledExceptionsFilter(ProductType.Traces),
+      getBilledExceptionsFilter(ProductType.Logs),
+    ]);
+  });
+
+  test("stages a logs day that only the exceptions found in logs have", async () => {
+    dayQueries.exceptions.mockResolvedValue(["2026-10-21"]);
+    const stage: jest.SpyInstance = jest.spyOn(
+      TelemetryUsageBillingService,
+      "stageTelemetryUsageForProject",
+    );
+
+    await TelemetryUsageBillingService.stageUnstagedTelemetryUsageForProject({
+      projectId: PROJECT_ID,
+      productType: ProductType.Logs,
+    });
+
+    expect(stage).toHaveBeenCalledTimes(1);
+    expect(stage.mock.calls[0]![0].usageDate).toEqual(
+      utcMidnight("2026-10-21"),
+    );
   });
 
   test("stages a traces day that only exceptions have", async () => {

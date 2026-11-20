@@ -263,6 +263,17 @@ export interface SortKeyPageBound {
   offset: Statement;
 }
 
+/*
+ * One attribute a usage scan reads its rows by (groupTelemetryUsageByService,
+ * getDaysWithRows): the rows whose `attributes` map holds `value` under
+ * `key` (isEqual true), or every other row (isEqual false).
+ */
+export interface TelemetryUsageAttributeFilter {
+  key: string;
+  value: string;
+  isEqual: boolean;
+}
+
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
 > extends BaseService {
@@ -1085,6 +1096,14 @@ export default class AnalyticsDatabaseService<
      * statement exactly as it was.
      */
     excludeNames?: Array<string> | undefined;
+    /*
+     * Only the rows whose `attributes` hold - or, with isEqual false, do not
+     * hold - this value under this key: for a table that keeps rows two
+     * products bill apart, as the exceptions found in spans and in logs are
+     * (ExceptionSource). A row without the key reads it as '' and so is
+     * never equal to a value. Absent leaves the statement as it was.
+     */
+    attributeFilter?: TelemetryUsageAttributeFilter | undefined;
   }): Promise<
     Array<{
       primaryEntityId: string;
@@ -1119,6 +1138,8 @@ export default class AnalyticsDatabaseService<
       );
     }
 
+    this.assertTelemetryUsageAttributeFilter(data.attributeFilter);
+
     if (!this.database) {
       this.useDefaultDatabase();
     }
@@ -1149,6 +1170,8 @@ export default class AnalyticsDatabaseService<
         }}`,
       );
     }
+
+    this.appendTelemetryUsageAttributeFilter(statement, data.attributeFilter);
 
     statement.append(SQL` GROUP BY primaryEntityId, primaryEntityType`);
 
@@ -1209,6 +1232,8 @@ export default class AnalyticsDatabaseService<
     endDate: Date;
     // Rows never billed, left out as groupTelemetryUsageByService leaves them out.
     excludeNames?: Array<string> | undefined;
+    // The rows one product bills, as groupTelemetryUsageByService reads them.
+    attributeFilter?: TelemetryUsageAttributeFilter | undefined;
   }): Promise<Array<string>> {
     const timestampColumnName: string = data.timestampColumnName.toString();
 
@@ -1229,6 +1254,8 @@ export default class AnalyticsDatabaseService<
         `excludeNames needs a required name column, and ${this.model.tableName} has none`,
       );
     }
+
+    this.assertTelemetryUsageAttributeFilter(data.attributeFilter);
 
     if (!this.database) {
       this.useDefaultDatabase();
@@ -1256,6 +1283,8 @@ export default class AnalyticsDatabaseService<
       );
     }
 
+    this.appendTelemetryUsageAttributeFilter(statement, data.attributeFilter);
+
     statement.append(SQL` GROUP BY day ORDER BY day`);
 
     /*
@@ -1280,6 +1309,65 @@ export default class AnalyticsDatabaseService<
     }
 
     return days;
+  }
+
+  /*
+   * A usage scan's attribute filter can only read a table whose `attributes`
+   * is a required map of strings: on any other column ClickHouse fails
+   * mid-billing run, or a missing map compares as nothing and every row
+   * drops out of the bill. Refused before the scan, as excludeNames is.
+   */
+  private assertTelemetryUsageAttributeFilter(
+    filter: TelemetryUsageAttributeFilter | undefined,
+  ): void {
+    if (!filter) {
+      return;
+    }
+
+    const column: AnalyticsTableColumn | null =
+      this.model.getTableColumn("attributes");
+
+    if (
+      !column ||
+      !column.required ||
+      column.type !== TableColumnType.MapStringString
+    ) {
+      throw new BadDataException(
+        `An attribute filter needs a table with a required attributes map, and ${this.model.tableName} has none.`,
+      );
+    }
+
+    if (!filter.key) {
+      throw new BadDataException("An attribute filter needs a key.");
+    }
+  }
+
+  // The filter inside the WHERE, its key and value as parameters, never SQL.
+  private appendTelemetryUsageAttributeFilter(
+    statement: Statement,
+    filter: TelemetryUsageAttributeFilter | undefined,
+  ): void {
+    if (!filter) {
+      return;
+    }
+
+    statement.append(
+      filter.isEqual
+        ? SQL` AND attributes[${{
+            type: TableColumnType.Text,
+            value: filter.key,
+          }}] = ${{
+            type: TableColumnType.Text,
+            value: filter.value,
+          }}`
+        : SQL` AND attributes[${{
+            type: TableColumnType.Text,
+            value: filter.key,
+          }}] != ${{
+            type: TableColumnType.Text,
+            value: filter.value,
+          }}`,
+    );
   }
 
   @CaptureSpan()

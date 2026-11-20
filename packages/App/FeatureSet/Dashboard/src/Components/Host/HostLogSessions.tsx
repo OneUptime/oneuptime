@@ -1,9 +1,11 @@
 import HostLogSessionText from "./HostLogSessionText";
+import downloadHostLogSessionLines from "./HostLogSessionDownload";
 import HostLogSession from "Common/Models/DatabaseModels/HostLogSession";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import HostLogSessionUtil, {
   HOST_LOG_SESSION_DEFAULT_DURATION_MINUTES,
+  HOST_LOG_SESSION_NOTE_MAX_LENGTH,
   HostLogSessionLevel,
   HostLogSessionStatus,
 } from "Common/Types/Host/HostLogSession";
@@ -49,6 +51,11 @@ export interface ComponentProps {
  * The list follows the device as it moves a session on (the model's
  * realtime events), so a request reads "Waiting for Approval", then
  * "Collecting", without Refresh.
+ *
+ * A request may carry a note (#9966), which the person at the device reads
+ * under it - why you ask, so a request from a name they may not know is
+ * easier to trust - and a session's lines download as the Logcat text file
+ * a vendor's support asks for (Download Lines).
  */
 const HostLogSessions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -113,6 +120,18 @@ const HostLogSessions: FunctionComponent<ComponentProps> = (
           dropdownOptions: HostLogSessionText.getLevelOptions(translator),
           required: true,
         },
+        {
+          field: { note: true },
+          title: "Note",
+          description:
+            "Shown to the person at the device with the request, to say why you ask.",
+          placeholder: "Checking why the payment app crashes after 6pm",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          validation: {
+            maxLength: HOST_LOG_SESSION_NOTE_MAX_LENGTH,
+          },
+        },
       ]}
       selectMoreFields={{
         statusMessage: true,
@@ -121,6 +140,7 @@ const HostLogSessions: FunctionComponent<ComponentProps> = (
         endsAt: true,
         durationMinutes: true,
         minimumLevel: true,
+        note: true,
         createdByUser: { name: true, email: true },
       }}
       actionButtons={[
@@ -140,6 +160,27 @@ const HostLogSessions: FunctionComponent<ComponentProps> = (
           ): void => {
             props.onShowLines(item);
             onCompleteAction();
+          },
+        },
+        {
+          title: "Download Lines",
+          icon: IconProp.Download,
+          buttonStyleType: ButtonStyleType.OUTLINE,
+          isVisible: (item: HostLogSession): boolean => {
+            return HostLogSessionText.hasLines(item);
+          },
+          onClick: (
+            item: HostLogSession,
+            onCompleteAction: VoidFunction,
+            onError: ErrorFunction,
+          ): void => {
+            downloadHostLogSessionLines(item._id!.toString())
+              .then(() => {
+                onCompleteAction();
+              })
+              .catch((err: Error) => {
+                onError(new Error(API.getFriendlyMessage(err)));
+              });
           },
         },
         {
@@ -213,8 +254,26 @@ const HostLogSessions: FunctionComponent<ComponentProps> = (
               item.createdByUser?.name?.toString() ||
               item.createdByUser?.email?.toString() ||
               "";
+            // Why they asked, as the person at the device read it (#9966).
+            const note: string = item.note?.trim() || "";
 
-            return name ? <span>{name}</span> : <TableEmptyValue />;
+            return (
+              <div className="space-y-1">
+                {name ? <p>{name}</p> : <TableEmptyValue />}
+                {note ? (
+                  <p className="text-sm text-gray-600 break-words" title={note}>
+                    {note}
+                  </p>
+                ) : null}
+              </div>
+            );
+          },
+          getExportValue: (item: HostLogSession): string => {
+            return (
+              item.createdByUser?.name?.toString() ||
+              item.createdByUser?.email?.toString() ||
+              ""
+            );
           },
         },
         {

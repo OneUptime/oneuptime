@@ -46,9 +46,9 @@ Var tredje timme tar OneUptime bort de upptäckta objekt som har varit tysta lä
 
 | Typ av objekt | Tas bort efter så här lång tid utan telemetri |
 | --- | --- |
-| Poddar, deployments, Proxmox-gäster och virtuella VMware-maskiner | 1 dag |
-| Kubernetes-noder och -namnrymder, Proxmox-noder, VMware-värdar, -kluster och -datalager, samt de databaser och fjärrtjänster som dina traces anropar | 7 dagar |
-| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, lagringsarrayer, vCenters och Docker Swarm-kluster | 30 dagar |
+| Poddar, deployments, Proxmox-gäster, OpenStack-instanser och virtuella VMware-maskiner | 1 dag |
+| Kubernetes-noder och -namnrymder, Proxmox-noder, OpenStack-hypervisorer, VMware-värdar, -kluster och -datalager, samt de databaser och fjärrtjänster som dina traces anropar | 7 dagar |
+| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, OpenStack-moln, lagringsarrayer, vCenters och Docker Swarm-kluster | 30 dagar |
 
 En relation som OneUptime har upptäckt tas bort när den inte har setts igen på 30 dagar.
 
@@ -77,6 +77,8 @@ En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriv
 - En värds uppgifter kommer från resursattributen i dess telemetri: dess IP- och MAC-adresser, arkitektur och operativsystem från början, och dess serienummer, märke, modell och firmware när du stämplar på dem.
 - En nätverksenhets uppgifter kommer från dess SNMP-pollning, dess roll och dess plats. Det som dess pollning inte har läst kommer från discovery: den senaste skanningen av dess adress, en routers ARP-tabell eller dess sonds DNS-uppslag. En enhet utan ENTITY-MIB, som en Meraki MX, får ändå sitt märke, sin modell och sitt operativsystem från sin systembeskrivning och sin MAC-adress från sina egna portar. Dess IP-adress visas aldrig som dess värdnamn.
 - En Meraki-enhet hämtar också det som dess pollning lämnar tomt från Meraki-dashboarden, bland annat dess serienummer, modell och firmware, när en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation.
+
+I **Alla objekt** hittar du de Android-enheter som behöver åtgärdas. Filtret **Säkerhetspatchnivå** listar de enheter som står som **Föråldrad**, vars säkerhetspatchnivå är äldre än 90 dagar, samma regel som larmet Security Patch Out of Date i en [värdmonitor](/docs/monitor/host-monitor) läser. Filtret **Agentbehörigheter** listar de enheter där [Android-agenten](/docs/telemetry/android-agent) fortfarande saknar READ_LOGS, READ_DROPBOX_DATA eller åtkomst till användningsdata. Båda har en kolumn med samma namn, dold tills du slår på den, och den följer med i CSV-exporten.
 
 Kortet visar var varje uppgift kom ifrån och när. Den källa som de flesta uppgifterna delar, som en värds collector, en nätverksenhets egen SNMP-pollning eller den discovery-skanning som läste den, nämns en gång, under uppgifterna. Varje annan källa, som en routers ARP-tabell eller ett värde som sparats på enheten, nämns under sin uppgift. Ett värde som har sparats på en nätverksenhet ersätts aldrig av det som discovery läser, och när de två skiljer sig visar kortet båda.
 

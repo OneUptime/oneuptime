@@ -1120,6 +1120,9 @@ import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1
 import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
 import { AddManagedDevicePlatform1809186810000 } from "./1809186810000-AddManagedDevicePlatform";
 import { AddCloudResourceProviderResourceIdIndex1809186900000 } from "./1809186900000-AddCloudResourceProviderResourceIdIndex";
+import { AddTelemetryIngestionTeamLabelBudgets1809186905386 } from "./1809186905386-AddTelemetryIngestionTeamLabelBudgets";
+import { AddDomainVerifiedNameIndex1809186910000 } from "./1809186910000-AddDomainVerifiedNameIndex";
+import { AddHostLogSessionNote1809186919966 } from "./1809186919966-AddHostLogSessionNote";
 
 export default [
   InitialMigration,
@@ -2244,4 +2247,7 @@ export default [
   AddScheduledMaintenanceTemplateTimezone1809186800000,
   AddManagedDevicePlatform1809186810000,
   AddCloudResourceProviderResourceIdIndex1809186900000,
+  AddTelemetryIngestionTeamLabelBudgets1809186905386,
+  AddDomainVerifiedNameIndex1809186910000,
+  AddHostLogSessionNote1809186919966,
 ];

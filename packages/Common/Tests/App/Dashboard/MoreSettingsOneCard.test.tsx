@@ -52,6 +52,11 @@ import StatusPageSettings, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings";
 import { TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryResourceMoreSettings";
 import ProfilesAiSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Settings";
+import UsageHistory, {
+  USAGE_MORE_SETTINGS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/UsageHistory";
+import { TEAM_LABEL_BUDGETS_CARD_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryIngestionBudget/TeamLabelBudgetsTable";
+import { TELEMETRY_USAGE_METRICS_CARD_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryUsage/TelemetryUsageMetricsSwitch";
 import EmbeddedStatus, {
   EMBEDDED_STATUS_BADGE_MORE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmbeddedStatus";
@@ -576,6 +581,24 @@ const PAGES: Array<MoreSettingsPage> = [
     },
     sectionTestId: TELEMETRY_AI_TEST_IDS.advancedSection,
     sectionTitles: [TELEMETRY_AI_RULES_CARD_TITLE],
+    namesSectionsByTitle: true,
+    tableCount: 1,
+  },
+  /*
+   * The project's Usage page folds the budgets of its teams and labels
+   * (#6386) and the switch that publishes its usage as metrics (#6355).
+   */
+  {
+    name: "Project Settings -> Telemetry & APM -> Usage",
+    path: `/dashboard/${PROJECT_ID}/settings/usage-history`,
+    element: (): ReactElement => {
+      return <UsageHistory {...PAGE_PROPS} />;
+    },
+    sectionTestId: USAGE_MORE_SETTINGS_TEST_ID,
+    sectionTitles: [
+      TEAM_LABEL_BUDGETS_CARD_TITLE,
+      TELEMETRY_USAGE_METRICS_CARD_TITLE,
+    ],
     namesSectionsByTitle: true,
     tableCount: 1,
   },

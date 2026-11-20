@@ -244,7 +244,13 @@
     "signInWithProvider": "Accedi con {{name}}",
     "requiredSubtitle": "Questo server richiede il single sign-on (SSO).",
     "requiredNotSetUp": "Il single sign-on non è ancora configurato su questo server. Chiedi all’amministratore del server di configurarlo.",
-    "useDifferentEmail": "Usa un'altra email"
+    "useDifferentEmail": "Usa un'altra email",
+    "lastUsedTitle": "Usato per ultimo su questo dispositivo",
+    "forgetLastUsed": "Dimentica questo provider",
+    "emailLinksPrompt": "Possiamo inviare a questo indirizzo i link di accesso SSO di tutte le organizzazioni a cui appartiene.",
+    "emailLinksButton": "Inviami i miei link di accesso",
+    "emailLinksSent": "Se questo indirizzo appartiene a un’organizzazione che usa il single sign-on, gli abbiamo inviato i link di accesso SSO.",
+    "emailLinksCaptchaRequired": "Completa il captcha prima di richiedere i link."
   },
   "adminLogin": {
     "title": "Accesso amministratore principale",

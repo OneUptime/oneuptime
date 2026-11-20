@@ -317,13 +317,34 @@ export const hasAnyTelemetryIngestionBudgetSetting: (
 export enum TelemetryIngestionBudgetScope {
   Project = "project",
   IngestionKey = "ingestion-key",
+  /*
+   * A team's or a label's budget inside the project (issue #6386): the
+   * telemetry of the services the team owns, or that carry the label.
+   * Counted in the telemetry worker, where a batch's resources are known.
+   */
+  Team = "team",
+  Label = "label",
 }
+
+// The scopes of a team or a label budget.
+export const TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SCOPES: ReadonlyArray<TelemetryIngestionBudgetScope> =
+  [TelemetryIngestionBudgetScope.Team, TelemetryIngestionBudgetScope.Label];
+
+export const isTelemetryIngestionTeamLabelBudgetScope: (
+  value: unknown,
+) => boolean = (value: unknown): boolean => {
+  return TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SCOPES.includes(
+    value as TelemetryIngestionBudgetScope,
+  );
+};
 
 // Where a limit in force comes from.
 export enum TelemetryIngestionBudgetLimitSource {
   Instance = "instance",
   Project = "project",
   IngestionKey = "ingestion-key",
+  Team = "team",
+  Label = "label",
 }
 
 /*
@@ -492,6 +513,90 @@ export const isTelemetryIngestionBudgetLimited: (
     resolved.project.rateLimit.bytes !== null ||
     resolved.ingestionKey !== null
   );
+};
+
+/*
+ * TEAM AND LABEL BUDGETS (issue #6386): a daily budget, inside the project,
+ * for the telemetry of the services a team owns, or of the services that
+ * carry a label - so one team's runaway service stops at its team's budget
+ * while the rest of the project keeps sending, even when every team sends
+ * through one shared collector and ingestion key.
+ *
+ * Counted in the telemetry worker, not on the request path: an ingest
+ * request is never decoded there, so whose telemetry it carries is only
+ * known once the worker has filed each of its resources under its service
+ * (TelemetryIngestAttribution). Which shapes what they are:
+ *
+ *   - only the signals whose telemetry is filed under a service: logs,
+ *     traces, metrics and profiles, not security events;
+ *   - a daily budget and no rate: by then the sender has been answered, so
+ *     a burst over a rate could only be lost, as on MQTT;
+ *   - once one is used up, that team's or label's telemetry of the signal
+ *     is dropped until the budget resets, and the sender is not told. What
+ *     is dropped no longer counts against the project's budget either, so a
+ *     runaway service cannot use up the budget of every other team.
+ *
+ * A team's or label's budget only subdivides the project's: one above the
+ * project's is refused when it is saved, and held to the project's when the
+ * project's is lowered later - as an ingestion key's is.
+ */
+export const TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS: ReadonlyArray<TelemetryIngestionBudgetSignal> =
+  [
+    ProductType.Logs,
+    ProductType.Traces,
+    ProductType.Metrics,
+    ProductType.Profiles,
+  ];
+
+export const isTelemetryIngestionTeamLabelBudgetSignal: (
+  value: unknown,
+) => value is TelemetryIngestionBudgetSignal = (
+  value: unknown,
+): value is TelemetryIngestionBudgetSignal => {
+  return TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS.includes(
+    value as TelemetryIngestionBudgetSignal,
+  );
+};
+
+/*
+ * The daily budget in force for a team or a label: its own, held to the
+ * project's (a project budget lowered below it holds it too), or none.
+ */
+export const resolveTelemetryIngestionTeamLabelBudget: (data: {
+  scope: TelemetryIngestionBudgetScope;
+  ownDailyBudgetInGB: number | null;
+  projectDailyBudget: TelemetryIngestionBudgetLimit;
+}) => TelemetryIngestionBudgetLimit = (data: {
+  scope: TelemetryIngestionBudgetScope;
+  ownDailyBudgetInGB: number | null;
+  projectDailyBudget: TelemetryIngestionBudgetLimit;
+}): TelemetryIngestionBudgetLimit => {
+  if (data.ownDailyBudgetInGB === null) {
+    return NO_LIMIT;
+  }
+
+  const bytes: number = telemetryIngestionBudgetGBToBytes(
+    data.ownDailyBudgetInGB,
+  );
+
+  if (bytes <= 0) {
+    return NO_LIMIT;
+  }
+
+  if (
+    data.projectDailyBudget.bytes !== null &&
+    data.projectDailyBudget.bytes < bytes
+  ) {
+    return data.projectDailyBudget;
+  }
+
+  return {
+    bytes: bytes,
+    source:
+      data.scope === TelemetryIngestionBudgetScope.Label
+        ? TelemetryIngestionBudgetLimitSource.Label
+        : TelemetryIngestionBudgetLimitSource.Team,
+  };
 };
 
 export enum TelemetryIngestionBudgetValueKind {
@@ -954,6 +1059,13 @@ export interface TelemetryIngestionBudgetScopeStatus {
   scope: TelemetryIngestionBudgetScope;
   ingestionKeyId?: string | undefined;
   ingestionKeyName?: string | undefined;
+  // A team's budget: the team, by id and name.
+  teamId?: string | undefined;
+  teamName?: string | undefined;
+  // A label's budget: the label, by id, name and colour.
+  labelId?: string | undefined;
+  labelName?: string | undefined;
+  labelColor?: string | undefined;
   signals: Array<TelemetryIngestionBudgetSignalStatus>;
 }
 
@@ -969,6 +1081,8 @@ export interface TelemetryIngestionBudgetStatus {
   project: TelemetryIngestionBudgetScopeStatus;
   // Each ingestion key of the project that has a budget or a rate of its own.
   ingestionKeys: Array<TelemetryIngestionBudgetScopeStatus>;
+  // Each team and label of the project with a budget of its own (#6386).
+  teamsAndLabels: Array<TelemetryIngestionBudgetScopeStatus>;
 }
 
 const isStatusRecord: (value: unknown) => value is Record<string, unknown> = (
@@ -1074,6 +1188,22 @@ const readScopeStatus: (
     return null;
   }
 
+  // A team or a label is told by its id, as a key is.
+  const isTeam: boolean = scope === TelemetryIngestionBudgetScope.Team;
+  const isLabel: boolean = scope === TelemetryIngestionBudgetScope.Label;
+  const ownId: unknown = isTeam
+    ? value["teamId"]
+    : isLabel
+      ? value["labelId"]
+      : undefined;
+
+  if (
+    (isTeam || isLabel) &&
+    (typeof ownId !== "string" || ownId.trim() === "")
+  ) {
+    return null;
+  }
+
   const signals: Array<TelemetryIngestionBudgetSignalStatus> = [];
 
   for (const entry of value["signals"]) {
@@ -1104,7 +1234,68 @@ const readScopeStatus: (
     }
   }
 
+  // And a team or a label its own.
+  if (isTeam) {
+    read.teamId = ownId as string;
+
+    if (typeof value["teamName"] === "string") {
+      read.teamName = value["teamName"];
+    }
+  }
+
+  if (isLabel) {
+    read.labelId = ownId as string;
+
+    if (typeof value["labelName"] === "string") {
+      read.labelName = value["labelName"];
+    }
+
+    if (typeof value["labelColor"] === "string") {
+      read.labelColor = value["labelColor"];
+    }
+  }
+
   return read;
+};
+
+/*
+ * The teams' and labels' budgets of a status: each by the scope it says it
+ * is (a team or a label, anything else left out), each once, the first
+ * kept, as the server sends them.
+ */
+const readTeamLabelStatuses: (
+  value: unknown,
+) => Array<TelemetryIngestionBudgetScopeStatus> = (
+  value: unknown,
+): Array<TelemetryIngestionBudgetScopeStatus> => {
+  const entries: Array<unknown> = Array.isArray(value) ? value : [];
+  const statuses: Array<TelemetryIngestionBudgetScopeStatus> = [];
+  const read: Set<string> = new Set<string>();
+
+  for (const entry of entries) {
+    if (
+      !isStatusRecord(entry) ||
+      !isTelemetryIngestionTeamLabelBudgetScope(entry["scope"])
+    ) {
+      continue;
+    }
+
+    const scope: TelemetryIngestionBudgetScope = entry[
+      "scope"
+    ] as TelemetryIngestionBudgetScope;
+    const status: TelemetryIngestionBudgetScopeStatus | null = readScopeStatus(
+      entry,
+      scope,
+    );
+    const id: string | undefined = status?.teamId || status?.labelId;
+
+    if (status && id && !read.has(`${scope}:${id}`)) {
+      read.add(`${scope}:${id}`);
+      statuses.push(status);
+    }
+  }
+
+  return statuses;
 };
 
 /*
@@ -1170,6 +1361,8 @@ export const readTelemetryIngestionBudgetStatus: (
     countersAvailable: value["countersAvailable"] !== false,
     project: project,
     ingestionKeys: ingestionKeys,
+    // An older server sends none: no team or label has a budget there.
+    teamsAndLabels: readTeamLabelStatuses(value["teamsAndLabels"]),
   };
 };
 

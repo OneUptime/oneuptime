@@ -46,9 +46,9 @@ Toutes les trois heures, OneUptime retire les éléments découverts restés sil
 
 | Type d'élément | Retiré après ce délai sans télémétrie |
 | --- | --- |
-| Pods, déploiements, invités Proxmox et machines virtuelles VMware | 1 jour |
-| Nœuds et espaces de noms Kubernetes, nœuds Proxmox, hôtes, clusters et datastores VMware, ainsi que les bases de données et services distants que vos traces appellent | 7 jours |
-| Services, hôtes, clusters Kubernetes, Proxmox et Ceph, baies de stockage, vCenters et clusters Docker Swarm | 30 jours |
+| Pods, déploiements, invités Proxmox, instances OpenStack et machines virtuelles VMware | 1 jour |
+| Nœuds et espaces de noms Kubernetes, nœuds Proxmox, hyperviseurs OpenStack, hôtes, clusters et datastores VMware, ainsi que les bases de données et services distants que vos traces appellent | 7 jours |
+| Services, hôtes, clusters Kubernetes, Proxmox et Ceph, clouds OpenStack, baies de stockage, vCenters et clusters Docker Swarm | 30 jours |
 
 Une relation que OneUptime a découverte est retirée dès qu'elle n'a pas été revue pendant 30 jours.
 
@@ -77,6 +77,8 @@ Un hôte ou un équipement réseau a une carte **Détails de l’actif** qui dé
 - Les faits d'un hôte viennent des attributs de ressource de sa télémétrie : ses adresses IP et MAC, son architecture et son système d'exploitation d'emblée, et son numéro de série, sa marque, son modèle et son firmware une fois que vous les y apposez.
 - Les faits d'un équipement réseau viennent de son interrogation SNMP, de son rôle et de son site. Ce que son interrogation n'a pas lu vient de la découverte : la dernière analyse de son adresse, la table ARP d'un routeur ou la résolution DNS de sa sonde. Un équipement sans ENTITY-MIB, comme un Meraki MX, obtient tout de même sa marque, son modèle et son système d'exploitation à partir de sa description système, et son adresse MAC à partir de ses propres ports. Son adresse IP n'est jamais affichée comme son nom d'hôte.
 - Un équipement Meraki prend aussi dans le tableau de bord Meraki ce que son interrogation laisse vide, dont son numéro de série, son modèle et son firmware, quand une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) lit son organisation.
+
+**Tous les éléments** permet de trouver les appareils Android sur lesquels agir. Son filtre **Niveau du correctif de sécurité** liste les appareils **Pas à jour**, dont le niveau de correctif de sécurité date de plus de 90 jours, selon la règle qu'applique l'alerte Security Patch Out of Date du [moniteur d'hôte](/docs/monitor/host-monitor). Son filtre **Autorisations de l'agent** liste les appareils sur lesquels il manque encore à l'[Agent Android](/docs/telemetry/android-agent) READ_LOGS, READ_DROPBOX_DATA ou l'accès aux données d'utilisation. Chacun a une colonne du même nom, masquée jusqu'à ce que vous l'activiez, et l'export CSV la reprend.
 
 La carte indique d'où vient chaque fait et quand. La source que partagent la plupart des faits, comme le collecteur d'un hôte, la propre interrogation SNMP d'un équipement réseau ou l'analyse de découverte qui l'a lu, est nommée une seule fois, sous les faits. Toute autre source, comme la table ARP d'un routeur ou une valeur enregistrée sur l'équipement, est nommée sous son fait. Une valeur enregistrée sur un équipement réseau n'est jamais remplacée par ce que lit la découverte, et quand les deux diffèrent, la carte montre les deux.
 

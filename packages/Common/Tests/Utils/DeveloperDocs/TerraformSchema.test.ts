@@ -313,12 +313,27 @@ describe("a monitor's attributes", () => {
       }).toEqual({ name, isAttribute: false });
     }
 
-    for (const name of ["monitoring_interval", "labels", "monitor_steps"]) {
+    for (const name of ["monitoring_interval", "monitor_steps"]) {
       expect({
         name,
         managed: attribute(Monitor, name).isServerManaged,
       }).toEqual({ name, managed: false });
     }
+
+    /*
+     * Its labels are a person's and a label rule's both (#10052): an
+     * attribute, left out of the configuration a page writes.
+     */
+    expect({
+      managed: attribute(Monitor, "labels").isServerManaged,
+      changedByOneUptimeToo: attribute(Monitor, "labels")
+        .isChangedByOneUptimeToo,
+      startsAtCreate: attribute(Monitor, "labels").startsAtCreate,
+    }).toEqual({
+      managed: true,
+      changedByOneUptimeToo: true,
+      startsAtCreate: false,
+    });
   });
 
   /*

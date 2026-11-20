@@ -13,8 +13,9 @@ import { createHash } from "crypto";
  * checks the per-second rate, and charges both, so two requests racing for
  * the last bytes of a budget cannot both be admitted on a stale read.
  *
- * Per scope (the project, and an ingestion key with a budget of its own) and
- * signal:
+ * Per scope (the project, and an ingestion key with a budget of its own -
+ * and a team or a label with one, which the telemetry worker counts into
+ * the same hashes, TelemetryIngestAttributionCounter) and signal:
  *
  *   - a hash per budget day, `telemetry:budget:day:<day>:<scope>:<id>:<signal>`
  *     with the day's `used` bytes, the `dropped` bytes and `droppedRequests`
@@ -381,9 +382,15 @@ export default class TelemetryIngestionBudgetCounter {
 
     const scope: string = parts[1]!;
 
+    /*
+     * A team's or a label's budget (#6386) is counted by the telemetry
+     * worker (TelemetryIngestAttributionCounter), into day hashes of this
+     * same shape.
+     */
     if (
-      scope !== TelemetryIngestionBudgetScope.Project &&
-      scope !== TelemetryIngestionBudgetScope.IngestionKey
+      !Object.values(TelemetryIngestionBudgetScope).includes(
+        scope as TelemetryIngestionBudgetScope,
+      )
     ) {
       return null;
     }

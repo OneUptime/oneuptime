@@ -70,12 +70,19 @@ import {
 } from "../Utils/TooltipEntries";
 import ChartCurve from "../../Types/ChartCurve";
 import {
+  ChartOwnScale,
   ChartSecondYAxis,
   SECOND_Y_AXIS_ID,
   getCategoryValueFormatter,
   getCategoryYAxisProps,
   getMarkYAxisProps,
+  getOwnScaleYAxisId,
 } from "../Utils/SecondYAxis";
+import {
+  ChartValueAxesPlan,
+  useValueAxesTicks,
+} from "../Utils/UseValueAxesTicks";
+import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
 
 /*
  * recharts invokes child event handlers with varying shapes ((event) for
@@ -697,7 +704,11 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   index: string;
   categories: string[];
   colors?: ChartColorValue[];
-  valueFormatter?: (value: number) => string;
+  /*
+   * How the value axis writes a tick, and the tooltip a value. Handed a
+   * precision when the chart steps the axis itself (ValueAxisTicks).
+   */
+  valueFormatter?: ValueAxisFormatter;
   startEndOnly?: boolean;
   showXAxis?: boolean;
   showYAxis?: boolean;
@@ -749,6 +760,11 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
         bucketEnd: Date,
         // The clicked row: one numeric entry per series + the axis keys.
         valuesAtBucket: Record<string, number | string>,
+        /*
+         * A category's value as the tooltip writes it: in its axis's unit,
+         * to the figures its axis's ticks are written with (#10079).
+         */
+        formatValue?: (category: string, value: number) => string,
       ) => void)
     | undefined;
   /**
@@ -776,6 +792,11 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * line of which is drawn against it (SecondYAxis, issue #10042).
    */
   secondYAxis?: ChartSecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, each for the categories it
+   * names (ChartOwnScale, issue #10080): a unit neither axis can say.
+   */
+  ownScales?: Array<ChartOwnScale> | undefined;
   /*
    * How the tooltip writes a category's value, by category, for a series
    * whose unit is neither axis's. Left out, a category's value is written
@@ -832,6 +853,7 @@ const LineChart: React.ForwardRefExoticComponent<
       isFollowedByLegend = false,
       onLegendExtraRowsHeightChange,
       secondYAxis,
+      ownScales,
       categoryValueFormatters,
       ...other
     } = props;
@@ -923,7 +945,26 @@ const LineChart: React.ForwardRefExoticComponent<
           secondYAxis.maxValue,
         )
       : [];
-    // Each category's value in the tooltip, in the unit of the axis it is on.
+    /*
+     * Each value axis stepped so its neighbouring ticks read apart, and as
+     * wide as its widest tick (issue #10079).
+     */
+    const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
+      data: data,
+      categories: categories,
+      secondYAxis: secondYAxis,
+      ownScales: ownScales,
+      referenceLines: referenceLines,
+      firstDomain: yAxisDomain,
+      secondDomain: secondYAxisDomain,
+      allowDecimals: allowDecimals,
+      valueFormatter: valueFormatter,
+      yAxisWidth: yAxisWidth,
+    });
+    /*
+     * Each category's value in the tooltip, in the unit of the axis it is
+     * on, to the figures that axis's ticks are written with.
+     */
     const categoryValueFormatter: (
       category: string,
     ) => (value: number) => string = (
@@ -933,7 +974,10 @@ const LineChart: React.ForwardRefExoticComponent<
         category: category,
         valueFormatter: valueFormatter,
         secondYAxis: secondYAxis,
+        ownScales: ownScales,
         categoryValueFormatters: categoryValueFormatters,
+        firstAxisPrecision: valueAxes.first.ticks.precision,
+        secondAxisPrecision: valueAxes.second?.ticks.precision,
       });
     };
     const hasOnValueChange: boolean = Boolean(onValueChange);
@@ -1048,6 +1092,9 @@ const LineChart: React.ForwardRefExoticComponent<
         bucket.start,
         bucket.end,
         (data[rowIndex] || {}) as Record<string, number | string>,
+        (category: string, value: number): string => {
+          return categoryValueFormatter(category)(value);
+        },
       );
     }
 
@@ -1170,12 +1217,17 @@ const LineChart: React.ForwardRefExoticComponent<
                 )}
               </XAxis>
               <YAxis
-                width={yAxisWidth}
+                width={valueAxes.first.width}
                 hide={!showYAxis}
                 axisLine={false}
                 tickLine={false}
                 type="number"
-                domain={yAxisDomain as AxisDomain}
+                domain={
+                  (valueAxes.first.ticks.domain || yAxisDomain) as AxisDomain
+                }
+                {...(valueAxes.first.ticks.ticks
+                  ? { ticks: valueAxes.first.ticks.ticks }
+                  : {})}
                 tick={{
                   transform: "translate(-4, 0)",
                   fontSize: 10,
@@ -1190,7 +1242,7 @@ const LineChart: React.ForwardRefExoticComponent<
                   // text fill
                   "fill-gray-500",
                 )}
-                tickFormatter={valueFormatter}
+                tickFormatter={valueAxes.first.tickFormatter}
                 allowDecimals={allowDecimals}
               >
                 {yAxisLabel && (
@@ -1213,11 +1265,17 @@ const LineChart: React.ForwardRefExoticComponent<
                 <YAxis
                   yAxisId={SECOND_Y_AXIS_ID}
                   orientation="right"
-                  width={secondYAxis.width}
+                  width={valueAxes.second?.width ?? secondYAxis.width}
                   axisLine={false}
                   tickLine={false}
                   type="number"
-                  domain={secondYAxisDomain as AxisDomain}
+                  domain={
+                    (valueAxes.second?.ticks.domain ||
+                      secondYAxisDomain) as AxisDomain
+                  }
+                  {...(valueAxes.second?.ticks.ticks
+                    ? { ticks: valueAxes.second.ticks.ticks }
+                    : {})}
                   tick={{
                     transform: "translate(4, 0)",
                     fontSize: 10,
@@ -1227,10 +1285,41 @@ const LineChart: React.ForwardRefExoticComponent<
                   fill=""
                   stroke=""
                   className={cx("tabular-nums", "fill-gray-500")}
-                  tickFormatter={secondYAxis.valueFormatter}
+                  tickFormatter={
+                    valueAxes.second
+                      ? valueAxes.second.tickFormatter
+                      : (value: number): string => {
+                          return secondYAxis.valueFormatter(value);
+                        }
+                  }
                   allowDecimals={allowDecimals}
                 />
               ) : null}
+              {(ownScales || []).map(
+                (ownScale: ChartOwnScale): React.ReactElement => {
+                  /*
+                   * A scale of its own (issue #10080): a value axis recharts
+                   * steps over its categories' values and draws no tick of,
+                   * taking no room.
+                   */
+                  return (
+                    <YAxis
+                      key={`own-scale-${ownScale.id}`}
+                      yAxisId={getOwnScaleYAxisId(ownScale.id)}
+                      hide={true}
+                      type="number"
+                      domain={
+                        getYAxisDomain(
+                          ownScale.autoMinValue,
+                          ownScale.minValue,
+                          ownScale.maxValue,
+                        ) as AxisDomain
+                      }
+                      allowDecimals={allowDecimals}
+                    />
+                  );
+                },
+              )}
               <Tooltip
                 wrapperStyle={{ outline: "none", zIndex: 10 }}
                 isAnimationActive={true}
@@ -1319,7 +1408,7 @@ const LineChart: React.ForwardRefExoticComponent<
                         : undefined,
                       enableLegendSlider,
                       legendPosition,
-                      yAxisWidth,
+                      valueAxes.first.width,
                       onLegendExtraRowsHeightChange,
                     );
                   }}
@@ -1426,7 +1515,7 @@ const LineChart: React.ForwardRefExoticComponent<
                     name={category}
                     type={props.curve || ChartCurve.LINEAR}
                     dataKey={category}
-                    {...getCategoryYAxisProps(category, secondYAxis)}
+                    {...getCategoryYAxisProps(category, secondYAxis, ownScales)}
                     /*
                      * Custom hex → set the stroke inline; named palette → keep ""
                      * so the `stroke-*` Tailwind class on the Line applies.
@@ -1457,7 +1546,11 @@ const LineChart: React.ForwardRefExoticComponent<
                           name={category}
                           type={props.curve || ChartCurve.LINEAR}
                           dataKey={category}
-                          {...getCategoryYAxisProps(category, secondYAxis)}
+                          {...getCategoryYAxisProps(
+                            category,
+                            secondYAxis,
+                            ownScales,
+                          )}
                           stroke="transparent"
                           fill="transparent"
                           legendType="none"
@@ -1502,6 +1595,8 @@ const LineChart: React.ForwardRefExoticComponent<
                           {...getMarkYAxisProps(
                             refLine.isOnSecondYAxis,
                             secondYAxis,
+                            refLine.ownScaleId,
+                            ownScales,
                           )}
                           stroke="none"
                         />
@@ -1511,6 +1606,8 @@ const LineChart: React.ForwardRefExoticComponent<
                         {...getMarkYAxisProps(
                           refLine.isOnSecondYAxis,
                           secondYAxis,
+                          refLine.ownScaleId,
+                          ownScales,
                         )}
                         stroke={refLine.color}
                         strokeDasharray={
@@ -1557,6 +1654,8 @@ const LineChart: React.ForwardRefExoticComponent<
                       {...getMarkYAxisProps(
                         exemplar.original.isOnSecondYAxis,
                         secondYAxis,
+                        exemplar.original.ownScaleId,
+                        ownScales,
                       )}
                       r={5}
                       fill="#7c3aed"

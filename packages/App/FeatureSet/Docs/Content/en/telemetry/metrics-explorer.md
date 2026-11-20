@@ -72,7 +72,7 @@ Open **Display Settings** to pick the **Chart type** (Line, Area or Bar), set a 
 
 Each query draws its own chart. To draw a query on the same chart as the one before it, turn on **Overlay with previous query** in its **Display Settings**.
 
-An overlaid chart reads its left value axis in its first query's unit, and converts a query in another unit of the same kind into it, such as megabytes on a chart in gigabytes. A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit, and the legend under the chart says which axis each series is drawn against. Only a third kind of unit fits neither axis: it is drawn against the left axis, and the chart and the switch both say so.
+An overlaid chart reads its left value axis in its first query's unit, and converts a query in another unit of the same kind into it, such as megabytes on a chart in gigabytes. A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit, and the legend under the chart says which axis each series is drawn against. Only a third kind of unit fits neither axis: it is drawn to a scale of its own, with no axis, and the chart and the switch both say so. Read its values in the legend and the tooltip.
 
 ## Combine queries with a formula
 

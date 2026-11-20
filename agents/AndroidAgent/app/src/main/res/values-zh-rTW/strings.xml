@@ -88,6 +88,7 @@
     <string name="log_session_title">疑難排解用的日誌</string>
     <string name="log_session_request_by">%1$s 在 OneUptime 中請求取得此裝置上所有應用程式的日誌（%3$s以上等級），持續 %2$s。</string>
     <string name="log_session_request">OneUptime 請求取得此裝置上所有應用程式的日誌（%2$s以上等級），持續 %1$s。</string>
+    <string name="log_session_note">「%1$s」</string>
     <string name="log_session_android_prompt">接著 Android 會詢問是否允許存取所有裝置記錄，屆時也請選擇允許。</string>
     <string name="log_session_allow">允許</string>
     <string name="log_session_decline">拒絕</string>

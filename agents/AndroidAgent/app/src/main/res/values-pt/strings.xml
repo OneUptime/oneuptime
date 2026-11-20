@@ -88,6 +88,7 @@
     <string name="log_session_title">Registros para solução de problemas</string>
     <string name="log_session_request_by">%1$s pede, no OneUptime, os registros de todos os apps deste dispositivo por %2$s, a partir do nível %3$s.</string>
     <string name="log_session_request">O OneUptime pede os registros de todos os apps deste dispositivo por %1$s, a partir do nível %2$s.</string>
+    <string name="log_session_note">“%1$s”</string>
     <string name="log_session_android_prompt">Depois, o Android pede que você permita o acesso a todos os registros do dispositivo. Escolha Permitir lá também.</string>
     <string name="log_session_allow">Permitir</string>
     <string name="log_session_decline">Recusar</string>
