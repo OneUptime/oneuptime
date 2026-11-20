@@ -130,7 +130,7 @@ Aus `env=production` wird die Beschriftung `env:production`. Beschriftungen werd
 
 ### Ihre config.yaml bearbeiten
 
-Wählen Sie auf der Seite der Konfiguration **Konfiguration bearbeiten**, ändern Sie das YAML und speichern Sie. OneUptime prüft es zuerst und lehnt eine Konfiguration, die es nicht senden kann, mit Begründung ab: siehe [Was eine Konfiguration darf](#was-eine-konfiguration-darf).
+Wählen Sie auf der Seite der Konfiguration **Konfiguration bearbeiten**, ändern Sie das YAML und speichern Sie. OneUptime prüft es zuerst und lehnt eine Konfiguration, die es nicht senden kann, mit Begründung ab: siehe [Was eine Konfiguration darf](#was-eine-konfiguration-darf). Behalten Sie in einer Linux-Konfiguration die `operators` des Receivers `journald`: Sie legen jede Journal-Zeile unter ihrer systemd-Unit ab, und die Seite einer fehlgeschlagenen Unit sagt daraus, warum sie fehlschlug. Eine Konfiguration ohne sie kann sie aus **Konfiguration anzeigen** des Linux-Standards übernehmen.
 
 ### Zusehen, wie sie die Hosts erreicht
 

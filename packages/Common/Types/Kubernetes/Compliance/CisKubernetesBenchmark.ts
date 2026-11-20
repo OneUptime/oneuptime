@@ -317,7 +317,8 @@ export const CIS_ACCESS_REQUESTS: Readonly<
   "5.1.13": requests(CORE, ["serviceaccounts"], ["create"], "token"),
 };
 
-function bindingFinding(
+// A binding a control fails on: the role it grants, and to whom.
+export function bindingFinding(
   binding: KubernetesComplianceBinding,
   extra: Array<KubernetesComplianceDetail> = [],
 ): KubernetesComplianceFinding {
@@ -339,7 +340,7 @@ function bindingFinding(
 }
 
 // The bindings the cluster's owner made, that grant something to someone.
-function ownBindings(
+export function ownBindings(
   snapshot: KubernetesComplianceSnapshot,
 ): Array<KubernetesComplianceBinding> {
   return snapshot.bindings.filter(

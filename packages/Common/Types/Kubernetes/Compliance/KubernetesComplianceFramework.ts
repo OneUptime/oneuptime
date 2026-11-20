@@ -1,15 +1,17 @@
 /*
  * THE FRAMEWORKS A KUBERNETES CLUSTER ITSELF IS SCORED AGAINST (#9627): the
- * Pod Security Standards' two policies and the CIS Kubernetes Benchmark.
- * Each value is the name a framework's tile prints, and the key a
- * compliance setting stores (DataSecurityComplianceSetting.framework), so
- * none changes once released. Kept apart from the catalog, so the settings
- * model reads the names without the evaluators.
+ * Pod Security Standards' two policies, the CIS Kubernetes Benchmark and the
+ * NSA/CISA Kubernetes Hardening Guide (#9875). Each value is the name a
+ * framework's tile prints, and the key a compliance setting stores
+ * (DataSecurityComplianceSetting.framework), so none changes once released.
+ * Kept apart from the catalog, so the settings model reads the names without
+ * the evaluators.
  */
 export enum KubernetesComplianceFramework {
   PssBaseline = "PSS Baseline",
   PssRestricted = "PSS Restricted",
   CisKubernetes = "CIS Kubernetes",
+  NsaCisaHardening = "NSA/CISA Hardening",
 }
 
 export const ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS: ReadonlyArray<KubernetesComplianceFramework> =
@@ -17,6 +19,7 @@ export const ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS: ReadonlyArray<KubernetesCompl
     KubernetesComplianceFramework.PssBaseline,
     KubernetesComplianceFramework.PssRestricted,
     KubernetesComplianceFramework.CisKubernetes,
+    KubernetesComplianceFramework.NsaCisaHardening,
   ];
 
 export function isKubernetesComplianceFramework(
@@ -48,9 +51,10 @@ export function isKubernetesNamespaceName(value: unknown): value is string {
  * THE OBJECTS A FINDING NAMES (#9874), and so the objects a finding can be
  * accepted for: a workload a pod control fails - a Deployment, StatefulSet,
  * DaemonSet, ReplicaSet, Job, CronJob, DeploymentConfig, or the pod itself
- * when nothing owns it - and the roles, bindings, service accounts and
- * namespaces the CIS benchmark's other controls fail. As Kubernetes names
- * each kind; an accepted finding stores it as written.
+ * when nothing owns it - the roles, bindings, service accounts and
+ * namespaces the CIS benchmark's other controls fail, and the nodes its
+ * node and control plane controls fail, as kube-bench reads them (#9873). As
+ * Kubernetes names each kind; an accepted finding stores it as written.
  */
 export const KUBERNETES_COMPLIANCE_OBJECT_KINDS: ReadonlyArray<string> = [
   "Deployment",
@@ -67,12 +71,14 @@ export const KUBERNETES_COMPLIANCE_OBJECT_KINDS: ReadonlyArray<string> = [
   "ClusterRoleBinding",
   "ServiceAccount",
   "Namespace",
+  "Node",
 ];
 
 // The kinds no namespace holds: a finding names them with none.
 export const CLUSTER_SCOPED_COMPLIANCE_OBJECT_KINDS: ReadonlyArray<string> = [
   "ClusterRole",
   "ClusterRoleBinding",
+  "Node",
 ];
 
 export function isKubernetesComplianceObjectKind(

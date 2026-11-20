@@ -608,6 +608,57 @@ Profiling needs nodes whose `hostPID` is the kernel's root PID namespace, as any
 | `profiling.tracers` | `""` *(all)* | Comma-separated list of language tracers to load. Narrow to e.g. `"go,python"` if you don't care about the others. |
 | `profiling.obiProcessContext` | `true` | Correlate samples with OBI's trace context. With `profiling.enabled`, also asks OBI to keep that context filled (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), which OBI v0.14+ otherwise skips. Has no effect when `ebpf.enabled` is false. |
 
+### Node benchmark (`compliance.nodeBenchmark.*`) — off by default
+
+A cluster's **Compliance** page scores the CIS Kubernetes Benchmark's policy controls from what the Kubernetes API shows (`resourceSpecs.compliance`). The rest of the benchmark, the API server's, controller manager's, scheduler's, etcd's and kubelet's flags and the permissions of their files, can only be read on the nodes. With `compliance.nodeBenchmark.enabled`, [kube-bench](https://github.com/aquasecurity/kube-bench) reads them there on a schedule, and the page scores them as part of the CIS benchmark: each control passing or failing, by node, with the accept and turn-off switches every control has.
+
+**What it costs.** Read this before you turn it on:
+
+- **Root, with the node's process namespace.** Each run starts a pod that runs as root (UID 0) with `hostPID: true`, which kube-bench needs to read the kubelet's and the control plane's command lines from the node's `/proc`. It is not privileged, drops every Linux capability but `DAC_OVERRIDE` (so root can read past a file's mode: a drop-in directory without the search bit, a file of etcd's), forbids privilege escalation and runs on a read-only root filesystem with the runtime's default seccomp profile.
+- **Read-only mounts of the node's Kubernetes directories.** `/etc/kubernetes`, which on a control plane node holds the cluster's CA key, its other private keys and `admin.conf`; `/var/lib/kubelet`, which holds the kubelet's configuration beside every pod's mounted volumes on that node, Secrets and service account tokens among them; `/etc/systemd`; and, by platform, `/lib/systemd` (the generic benchmark), `/home/kubernetes` (GKE) or `/etc/default` (AKS). On a control plane node the generic benchmark adds etcd's data directory and the node's `/etc/passwd` and `/etc/group`, for the owners it checks. Every one is read-only.
+- **A third-party image.** kube-bench is Aqua Security's, not OneUptime's: you trust it with that access for the seconds a run takes. The chart pins a version (`compliance.nodeBenchmark.image.tag`); pin it by digest (`image.digest`) and mirror it to your own registry (`image.repository`) to run exactly the image you reviewed. Air-gapped clusters mirror it like the agent's other images.
+- **What limits it.** Its service account is bound to no role and mounts no token, so a run can't reach the Kubernetes API. A NetworkPolicy keeps its pods off the network, ingress and egress, where the network plugin enforces NetworkPolicies. It sends OneUptime nothing of its own: it writes each check's number and result, never the benchmark's text, as its container's termination message, which the pod's status carries and the agent's resource snapshots already send (`resourceSpecs`). Its pods exist for a run and the last run's results; none runs between runs.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+The first run is at the schedule's next time (every six hours by default). To run it now:
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+**Which benchmark, on which nodes.** One pod runs in each node group (`nodeGroups`, by default one on any worker) and, where the cluster runs its own control plane, one on a control plane node. kube-bench checks what runs on its node itself: the API server's, controller manager's and scheduler's controls only where they run, and etcd's only where etcd does, so an external etcd is never failed. Nodes configured alike need one run between them, so list a node group per set of them (an EKS node group, a GKE or AKS node pool) with the `nodeSelector`, `affinity` and `tolerations` that put it there.
+
+| Platform | `benchmark` (`auto` picks) | Scored | Stays unknown |
+| --- | --- | --- | --- |
+| Self-managed (kubeadm, kind, Kubespray and the like) | `cis-1.12`, the generic CIS benchmark | Sections 1 to 4: control plane files, API server, controller manager, scheduler, etcd, worker node files, kubelet, kube-proxy | The controls kube-bench marks manual, which need a person's review |
+| EKS | `eks-1.8.0`, the CIS Amazon EKS Benchmark | Its worker node section: the kubelet's files and configuration | The control plane: the API server's, controller manager's, scheduler's and etcd's flags and files are AWS's, and no pod reaches them. The benchmark's control plane logging and managed services sections, which read AWS's API |
+| GKE | `gke-1.9.0`, the CIS GKE Benchmark | Its worker node files | The control plane, which is Google's, and the benchmark's managed services section, which reads Google Cloud's API |
+| AKS | `aks-1.8` (set it: AKS's version names no provider) | Its worker node section: the kubelet's files and configuration | The control plane, which is Microsoft's, and the benchmark's managed services section, which reads Azure's API |
+| GKE Autopilot, EKS Fargate, `openshift-restricted` | Left out | | No pod there may read the node's files or share its processes |
+| OpenShift | Left out | | OpenShift's benchmark reads the cluster through `oc` with a cluster reader's rights; OpenShift's Compliance Operator scores it |
+| k3s, RKE2 | Left out by `auto` | | Their components' flags live in the node's journal and in Rancher's own paths; `cis-1.12` runs the generic benchmark anyway |
+
+`auto` reads EKS and GKE off the cluster's Kubernetes version (`v1.32.4-eks-…`, `v1.33.2-gke.…`), as Helm reads it from the API server at `helm install` and `helm upgrade`. A cluster that ran the generic benchmark on EKS, GKE or AKS says on its Compliance page which `benchmark` to set.
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `compliance.nodeBenchmark.enabled` | `false` | Run kube-bench on the nodes. Left out on `gke-autopilot`, `eks-fargate` and the OpenShift presets, and with `resourceSpecs.enabled: false`, which carries its results. |
+| `compliance.nodeBenchmark.schedule` | `37 */6 * * *` | When it runs, as a CronJob schedule. |
+| `compliance.nodeBenchmark.timeZone` | `""` | The IANA time zone the schedule is read in; empty for the controller manager's, UTC on most clusters. |
+| `compliance.nodeBenchmark.benchmark` | `auto` | `auto`, `cis-1.12`, `cis-1.11`, `eks-1.8.0`, `gke-1.9.0` or `aks-1.8`. |
+| `compliance.nodeBenchmark.controlPlane` | `auto` | Also run on a control plane node. `auto` does unless the benchmark is EKS's, GKE's or AKS's. |
+| `compliance.nodeBenchmark.nodeGroups` | `[{name: workers}]` | One pod in each group each run. Each has a `name` (lowercase letters, digits and hyphens, at most 20), and optional `nodeSelector`, `affinity` and `tolerations`. A group with neither `nodeSelector` nor `affinity` prefers a worker node, and runs on the control plane node of a one-node cluster. |
+| `compliance.nodeBenchmark.image.repository` | `docker.io/aquasec/kube-bench` | Where the image comes from; a mirror on an air-gapped cluster. |
+| `compliance.nodeBenchmark.image.tag` | `v0.16.0` | The kube-bench version, which ships the benchmarks above. |
+| `compliance.nodeBenchmark.image.digest` | `""` | A `sha256:` digest, which wins over the tag. |
+| `compliance.nodeBenchmark.resources` | 50m/64Mi, 500m/256Mi | Requests and limits; a run takes seconds. |
+| `compliance.nodeBenchmark.activeDeadlineSeconds` | `600` | A run that takes longer is stopped. |
+
 ### Other data collection knobs
 
 - **`hostMetrics.*`** — host-level OS metrics from the OTel `hostmetrics` receiver, scraped inside the log-collector DaemonSet (no extra pods). Fills the gaps that `kubeletstats` doesn't cover. Every `system.*` series is stamped with the collecting node's `k8s.node.name`, so it groups per node like the `kubeletstats` node metrics; `hostMetrics.collectionInterval` (default `30s`) is the lever if the row volume is more than you need.
