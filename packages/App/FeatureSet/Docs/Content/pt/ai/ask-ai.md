@@ -30,7 +30,7 @@ No modo **Somente leitura** as ações nunca são oferecidas ao modelo, então a
 
 Perguntar à IA também responde a perguntas sobre o próprio OneUptime: «Como recebo um SMS quando o meu site cai?», «O que é um episódio?», «Onde adiciono um segundo número de telefone?». As respostas vêm desta documentação, a cópia que o seu OneUptime serve, por isso funciona sem acesso à internet e não envia nada para nenhum sítio novo. Lê a página no seu idioma quando está traduzida, cita a página e a secção de cada passo e diz que a documentação não cobre algo em vez de adivinhar.
 
-Uma resposta a um «como faço» termina com um botão que abre a página do seu projeto onde o faz, como **Criar monitor** ou **Métodos de notificação**. Só abre páginas que o OneUptime tem: as que a pesquisa (`Ctrl` + `K`) encontra.
+Uma resposta a um «como faço» termina com um botão que abre a página do seu projeto onde o faz, como **Criar monitor** ou **Métodos de notificação**. Só abre páginas que o OneUptime tem: as que a pesquisa (`Ctrl` + `K`) encontra. Se você perguntar sobre um único registro, como uma página de status, ele abre a página própria desse registro, como seus **Domínios personalizados**, e só para um registro que você pode abrir.
 
 ## Abrir o Pergunte à IA
 
@@ -60,7 +60,7 @@ O Pergunte à IA lê o seu projeto com as suas próprias permissões, então vê
 
 ## Contexto da página
 
-O Pergunte à IA sabe de qual página você o abriu. Na página de um incidente, "por que isso aconteceu?" significa aquele incidente: a área de escrita mostra um chip com o assunto da página, e as perguntas que ele sugere são as daquela página. Remova o chip para perguntar sobre o projeto todo, e adicione-o de volta do mesmo jeito. Abra o Pergunte à IA em outra página e o contexto vai junto. A conversa também lembra o primeiro assunto no servidor, então uma pergunta de acompanhamento dias depois ainda entende "este incidente".
+O Pergunte à IA sabe de qual página você o abriu. Na página de um incidente, "por que isso aconteceu?" significa aquele incidente: a área de escrita mostra um chip com o assunto da página, e as perguntas que ele sugere são as daquela página. Remova o chip para perguntar sobre o projeto todo, e adicione-o de volta do mesmo jeito. Abra o Pergunte à IA em outra página e o contexto vai junto. A conversa também lembra o primeiro assunto no servidor, então uma pergunta de acompanhamento dias depois ainda entende "este incidente". Ele também conhece as páginas onde você configura um projeto: **Início**, **Configurações do projeto**, **Configurações do usuário**, **Plantão**, **Páginas de status** e os formulários que criam algo, então «como adiciono um aqui?» é respondido para a página em que você está.
 
 Em um incidente, um alerta, um monitor ou um evento de manutenção, as perguntas também seguem a situação desse registro, lida sempre que o Pergunte à IA se abre nele. Um incidente resolvido pergunta como foi a resposta e o que impediria que ele se repetisse, um alerta resolvido se foi um problema real e com que frequência alertas como ele disparam, e um monitor que não está operacional pergunta por quê. Um evento de manutenção que ainda não começou pergunta se os monitores dele estão saudáveis antes do início, e um que já terminou se eles voltaram ao normal.
 
@@ -147,7 +147,7 @@ O Pergunte à IA conta para os limites diários de IA do próprio projeto quando
 ## Solução de problemas
 
 :::details O Pergunte à IA diz que a IA não está disponível
-O Pergunte à IA diz o motivo antes de você digitar: o plano do projeto não inclui IA, **Habilitar IA** está desligado ou o projeto não tem provedor de LLM. Cada aviso leva à página em que isso se muda.
+O Pergunte à IA diz o motivo antes de você digitar: o plano do projeto não inclui IA, **Habilitar IA** está desligado ou o projeto não tem provedor de LLM. Cada aviso leva à página em que isso se muda. Acima do aviso, o Pergunte à IA ainda procura sua pergunta nesta documentação. Uma resposta que falha, por um limite diário ou porque o provedor não responde, também mostra abaixo as páginas da documentação sobre a pergunta.
 :::
 
 :::details Uma ação foi recusada

@@ -172,6 +172,9 @@ import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DataSourceValueReducer from "Common/Utils/DataSource/DataSourceValueReducer";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayAxisReading,
+  OverlayChartAxes,
   OverlayUnitFit,
 } from "Common/Utils/Metrics/MetricQueryOverlay";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -1605,6 +1608,52 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     expect(chart).toContain("such as bytes on a chart in percent");
     expect(queryConfig).toContain(
       "This query is in {{unit}} and the previous query's chart in {{chartUnit}}",
+    );
+
+    /*
+     * Issue #10042: a unit of another kind is drawn against a second axis,
+     * on the right, and its switch says so; the legend names each axis's
+     * unit and each series' axis; only a third kind fits neither axis, and
+     * is drawn to a scale of its own, with no axis (#10080).
+     */
+    const charts: string = readSource(
+      `${DASHBOARD_APP}/Components/Metrics/MetricCharts.tsx`,
+    );
+    const axes: OverlayChartAxes = MetricQueryOverlay.readChartAxes([
+      { unit: "%" },
+      { unit: "By" },
+      { unit: "ms" },
+    ]);
+
+    expect(
+      axes.readings.map((reading: OverlayAxisReading) => {
+        return reading.axis;
+      }),
+    ).toEqual([OverlayAxis.First, OverlayAxis.Second, OverlayAxis.OwnScale]);
+    expect(axes.readings[2]!.fit).toBe(OverlayUnitFit.Same);
+    expect(axes.ownScaleLeadIndexes).toEqual([2]);
+    expect(chart).toContain(
+      "takes its title, its chart type and its left value axis from its first query",
+    );
+    expect(chart).toContain(
+      "A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit, and the switch says so.",
+    );
+    expect(queryConfig).toContain(
+      "so it is drawn against the chart's right axis.",
+    );
+    expect(charts).toContain('"Left axis: {{unit}}"');
+    expect(charts).toContain('"Right axis: {{unit}}"');
+    expect(charts).toContain('translator.translateText("Right axis")');
+    expect(chart).toContain(
+      "The legend under the chart names each axis's unit and the axis each series is drawn against.",
+    );
+    expect(queryConfig).toContain(
+      "so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.",
+    );
+    expect(charts).toContain('"Own scale: {{unit}}"');
+    expect(charts).toContain('translator.translateText("Own scale")');
+    expect(chart).toContain(
+      "Only a third kind of unit fits neither axis: it is drawn to a scale of its own, with no axis, and the chart and the switch both say so. Read its values in the legend and the tooltip, or give such a query its own chart to read it against an axis.",
     );
 
     // The setting the page names no longer: no such label is drawn.

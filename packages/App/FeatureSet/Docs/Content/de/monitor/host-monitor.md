@@ -137,9 +137,10 @@ Einem Host, dessen Betriebssystem Android ist, etwa einem Kiosk oder einem POS-T
 | Device Overheating | Warnung | `android.thermal.status`, Max, letzte 5 Minuten | 3 (schwerwiegend) oder schlimmer | Unter 3 |
 | Restart Loop | Kritisch | `android.boot.recent_count`, Max, letzte Stunde | Ein Wert liegt bei 3 oder mehr | Jeder Wert liegt unter 3 |
 | Storage Nearly Full | Kritisch | `system.filesystem.utilization`, Max pro `mountpoint`, als Prozentsatz, letzte 5 Minuten | Über 90 % | Bei oder unter 90 % |
+| Security Patch Out of Date | Warnung | `android.os.security_patch.age`, die Tage seit der Sicherheitspatch-Ebene des Geräts, Min, letzte Stunde | Im gesamten Zeitfenster älter als 90 Tage | Ein Messwert von 90 Tagen oder weniger, sobald das Gerät aktualisiert ist |
 | High CPU Utilization | Warnung | `system.cpu.utilization` für den Zustand `idle`, Belegtzeit als 1 minus Leerlauf, als Prozentsatz, letzte 5 Minuten | Über 80 % | Bei oder unter 80 % |
 
-High CPU Utilization wird angeboten, sobald das Gerät seine CPU-Auslastung meldet, wofür der Agent unter Android 8 und neuer sein Geräteinhaber sein muss. Die Warnung eines Android-Geräts beginnt mit adb-Befehlen, die zuerst auszuführen sind, etwa `adb shell dumpsys battery` oder `adb shell getprop sys.boot.reason`, statt mit den Shell-Befehlen eines Servers.
+High CPU Utilization wird angeboten, sobald das Gerät seine CPU-Auslastung meldet, wofür der Agent unter Android 8 und neuer sein Geräteinhaber sein muss. Die Warnung eines Android-Geräts beginnt mit adb-Befehlen, die zuerst auszuführen sind, etwa `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` oder `adb shell getprop ro.build.version.security_patch`, statt mit den Shell-Befehlen eines Servers.
 
 ## Erfasste Metriken
 

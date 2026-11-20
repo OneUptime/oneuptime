@@ -2085,7 +2085,7 @@
   "Security Events": "رویدادهای امنیتی",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "اسپن‌ها. روزهایی که پیش از جداگانه نشان‌دادن استثناها شمرده شده‌اند، استثناهای خود را هم شامل می‌شوند.",
   "Exceptions recorded from spans and logs.": "استثناهایی که از اسپن‌ها و لاگ‌ها ثبت شده‌اند.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "استثناهایی که از اسپن‌ها و لاگ‌ها ثبت شده‌اند. هزینه آن‌ها به‌عنوان بخشی از ترِیس‌ها محاسبه می‌شود.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "استثناهایی که از اسپن‌ها و لاگ‌ها ثبت شده‌اند. هزینه آن‌هایی که در اسپن‌ها پیدا می‌شوند با ترِیس‌ها و آن‌هایی که در لاگ‌ها پیدا می‌شوند با لاگ‌ها محاسبه می‌شود.",
   "Profiles, and the samples recorded with them.": "پروفایل‌ها، و نمونه‌هایی که همراهشان ثبت شده‌اند.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",
@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "نشانی خروج یکپارچهٔ ارائه‌دهندهٔ هویت شما. برای خارج کردن افراد از آن هم لازم است.",
   "Single Logout URL:": "نشانی خروج یکپارچه (Single Logout):",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "برای اینکه افراد از ارائه‌دهندهٔ هویت هم خارج شوند، نشانی خروج یکپارچه و گواهی امضای OneUptime را هم به آن بدهید.",
-  "Download Signing Certificate": "دانلود گواهی امضا"
+  "Download Signing Certificate": "دانلود گواهی امضا",
+  "Team and Label Budgets Today": "بودجه‌های تیم و برچسب امروز",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "آنچه سرویس‌های هر تیم و برچسب امروز فرستاده‌اند. وقتی بودجه‌ای تمام شود، تله‌متری آن‌ها تا {{resetsAt}} حذف می‌شود و بقیه پروژه به فرستادن ادامه می‌دهد.",
+  "Label": "برچسب",
+  "Team or Label": "تیم یا برچسب",
+  "This team's own": "اختصاصی این تیم",
+  "This label's own": "اختصاصی این برچسب"
 }

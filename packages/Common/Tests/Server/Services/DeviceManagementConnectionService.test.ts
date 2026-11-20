@@ -39,6 +39,26 @@ const CONNECTION_ID: ObjectID = new ObjectID(
 );
 const API_KEY: string = "esper-key-0123456789abcdefGHIJKL";
 const NEW_API_KEY: string = "esper-key-ZYXWVUTSRQ9876543210";
+const CLIENT_SECRET: string = "Xq48Q~Zk1Lm9vN0pQrStUvWxYz.AbCdEfGhIjK-L";
+const NEW_CLIENT_SECRET: string = "Yr59R~Al2Mn0wO1qRsTuVwXyZa.BcDeFgHiJkL-M";
+const INTUNE_CLIENT_ID: string = "6731de76-14a6-49ae-97bc-6eba6914391e";
+const INTUNE_TENANT_ID: string = "72f988bf-86f1-41af-91ab-2d7cd011db47";
+
+function newIntuneConnection(
+  overrides: Record<string, unknown> = {},
+): DeviceManagementConnection {
+  return newConnection({
+    provider: DeviceManagementProvider.Intune,
+    config: {
+      tenant: INTUNE_TENANT_ID,
+      clientId: INTUNE_CLIENT_ID,
+      cloud: "public",
+      readIntervalInMinutes: 15,
+    },
+    secrets: JSON.stringify({ clientSecret: CLIENT_SECRET }),
+    ...overrides,
+  });
+}
 
 type HookCaller = {
   onBeforeCreate: (
@@ -127,34 +147,66 @@ afterEach(() => {
 });
 
 describe("what a save reads", () => {
-  test("the service: Esper, or none named", () => {
+  test("the service: Esper or Intune, Esper when none is named", () => {
     expect(DeviceManagementConnectionServiceType.readProvider(undefined)).toBe(
       DeviceManagementProvider.Esper,
     );
+    expect(DeviceManagementConnectionServiceType.readProvider("intune")).toBe(
+      DeviceManagementProvider.Intune,
+    );
     expect(() => {
-      return DeviceManagementConnectionServiceType.readProvider("intune");
-    }).toThrow(/Service must be 'esper'/);
+      return DeviceManagementConnectionServiceType.readProvider("soti");
+    }).toThrow(/Service must be 'esper' or 'intune'/);
   });
 
   test("the credentials: the API key and nothing else", () => {
     expect(
       DeviceManagementConnectionServiceType.readSecrets(
         { apiKey: ` ${API_KEY} ` },
-        { requireApiKey: true },
+        { required: true },
       ),
     ).toEqual({ apiKey: API_KEY });
     expect(() => {
       return DeviceManagementConnectionServiceType.readSecrets(
         { apiKey: API_KEY, token: "x" },
-        { requireApiKey: true },
+        { required: true },
       );
     }).toThrow('Credentials has no "token": an Esper connection takes apiKey.');
     expect(
       DeviceManagementConnectionServiceType.readSecrets(
         { apiKey: "" },
-        { requireApiKey: false },
+        { required: false },
       ),
     ).toEqual({});
+  });
+
+  test("an Intune connection's credentials: its client secret and nothing else", () => {
+    const intune: { required: boolean; provider: DeviceManagementProvider } = {
+      required: true,
+      provider: DeviceManagementProvider.Intune,
+    };
+
+    expect(
+      DeviceManagementConnectionServiceType.readSecrets(
+        { clientSecret: ` ${CLIENT_SECRET} ` },
+        intune,
+      ),
+    ).toEqual({ clientSecret: CLIENT_SECRET });
+    expect(() => {
+      return DeviceManagementConnectionServiceType.readSecrets(
+        { apiKey: API_KEY },
+        intune,
+      );
+    }).toThrow(
+      'Credentials has no "apiKey": an Intune connection takes clientSecret.',
+    );
+    // The secret's ID, copied by mistake from the same page.
+    expect(() => {
+      return DeviceManagementConnectionServiceType.readSecrets(
+        { clientSecret: "3f2b8c1d-4e5f-4a6b-8c7d-9e0f1a2b3c4d" },
+        intune,
+      );
+    }).toThrow(/This is the client secret's ID/);
   });
 
   test("a name for a connection saved without one: the tenant's", () => {
@@ -223,6 +275,146 @@ describe("creating a connection", () => {
         service.onBeforeCreate(createBy(newConnection({ isEnabled: "yes" }))),
       ),
     ).toBe("Enabled must be true or false.");
+  });
+});
+
+describe("an Intune connection (#9837)", () => {
+  test("its tenant, client ID and cloud are stored as checked, its secret as JSON", async () => {
+    const connection: DeviceManagementConnection = newIntuneConnection({
+      config: {
+        tenant: ` {${INTUNE_TENANT_ID.toUpperCase()}} `,
+        clientId: INTUNE_CLIENT_ID.toUpperCase(),
+        readIntervalInMinutes: 30,
+      },
+      secrets: { clientSecret: CLIENT_SECRET },
+    });
+
+    await service.onBeforeCreate(createBy(connection));
+
+    expect(connection.config).toEqual({
+      tenant: INTUNE_TENANT_ID,
+      clientId: INTUNE_CLIENT_ID,
+      cloud: "public",
+      readIntervalInMinutes: 30,
+    });
+    expect(JSON.parse(connection.secrets!)).toEqual({
+      clientSecret: CLIENT_SECRET,
+    });
+    expect(connection.name).toBe(`Intune ${INTUNE_TENANT_ID}`.substring(0, 50));
+  });
+
+  test("a tenant that names none, a client ID that is no GUID, an unknown cloud: each refused", async () => {
+    const refused: (config: JSONObject) => Promise<string> = (
+      config: JSONObject,
+    ): Promise<string> => {
+      return refusal(
+        service.onBeforeCreate(createBy(newIntuneConnection({ config }))),
+      );
+    };
+
+    expect(
+      await refused({ tenant: "common", clientId: INTUNE_CLIENT_ID }),
+    ).toMatch(/Enter your tenant ID/);
+    expect(
+      await refused({ tenant: INTUNE_TENANT_ID, clientId: "my-app" }),
+    ).toMatch(/Application \(client\) ID/);
+    expect(
+      await refused({
+        tenant: INTUNE_TENANT_ID,
+        clientId: INTUNE_CLIENT_ID,
+        cloud: "china",
+      }),
+    ).toBe("Cloud must be one of public, gcc, usgov, dod.");
+    expect(
+      await refused({
+        tenant: INTUNE_TENANT_ID,
+        clientId: INTUNE_CLIENT_ID,
+        apiKey: "x",
+      }),
+    ).toMatch(/an Intune connection takes tenant, clientId, cloud/);
+  });
+
+  test("one tenant per cloud: connected already is refused", async () => {
+    existing = [newIntuneConnection({ name: "Contoso" })];
+
+    expect(
+      await refusal(service.onBeforeCreate(createBy(newIntuneConnection()))),
+    ).toBe(
+      'This Intune tenant is connected already, as "Contoso". Edit that connection instead.',
+    );
+
+    // The same tenant ID in another cloud is another tenant.
+    await service.onBeforeCreate(
+      createBy(
+        newIntuneConnection({
+          config: {
+            tenant: INTUNE_TENANT_ID,
+            clientId: INTUNE_CLIENT_ID,
+            cloud: "usgov",
+          },
+        }),
+      ),
+    );
+  });
+
+  test("an edit keeps the secret left empty, takes a new client ID, and never a new tenant or cloud", async () => {
+    stored = newIntuneConnection({ _id: CONNECTION_ID.toString() });
+
+    const keep: UpdateBy<DeviceManagementConnection> = updateBy({
+      secrets: { clientSecret: "" },
+      config: { clientId: "0d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a" },
+    });
+    await service.onBeforeUpdate(keep);
+    expect(
+      JSON.parse((keep.data as unknown as JSONObject)["secrets"] as string),
+    ).toEqual({ clientSecret: CLIENT_SECRET });
+    expect((keep.data as unknown as JSONObject)["config"]).toMatchObject({
+      clientId: "0d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a",
+    });
+
+    const replace: UpdateBy<DeviceManagementConnection> = updateBy({
+      secrets: { clientSecret: NEW_CLIENT_SECRET },
+    });
+    await service.onBeforeUpdate(replace);
+    expect(
+      JSON.parse((replace.data as unknown as JSONObject)["secrets"] as string),
+    ).toEqual({ clientSecret: NEW_CLIENT_SECRET });
+
+    for (const config of [
+      { tenant: "fabrikam.onmicrosoft.com" },
+      { cloud: "dod" },
+    ]) {
+      expect(await refusal(service.onBeforeUpdate(updateBy({ config })))).toBe(
+        "A connection reads one Intune tenant, in one cloud. To read another one, connect it as well.",
+      );
+    }
+  });
+
+  test("the settings a read uses: the client secret, decrypted", async () => {
+    stored = newIntuneConnection({ _id: CONNECTION_ID.toString() });
+
+    const settings: DeviceManagementSettings =
+      await DeviceManagementConnectionService.getDeviceManagementSettings(
+        ((): DeviceManagementConnection => {
+          const connection: DeviceManagementConnection =
+            new DeviceManagementConnection();
+          connection.id = CONNECTION_ID;
+          return connection;
+        })(),
+      );
+
+    expect(settings).toEqual({
+      provider: DeviceManagementProvider.Intune,
+      projectId: PROJECT_ID.toString(),
+      config: {
+        tenant: INTUNE_TENANT_ID,
+        clientId: INTUNE_CLIENT_ID,
+        cloud: "public",
+        readIntervalInMinutes: 15,
+      },
+      apiKey: "",
+      clientSecret: CLIENT_SECRET,
+    });
   });
 });
 

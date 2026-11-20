@@ -662,6 +662,7 @@ export default class Alert extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "On-Call Policies",
     description: "List of on-call policies affected by this alert.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1815,6 +1816,7 @@ export default class Alert extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -2139,6 +2141,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.JSON,
     title: "Custom Fields",
     description: "Custom Fields on this resource.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.JSON,
@@ -2850,6 +2853,7 @@ export default class Alert extends BaseModel {
     description:
       "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,

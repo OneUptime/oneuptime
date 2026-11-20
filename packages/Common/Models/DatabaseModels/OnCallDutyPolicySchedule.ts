@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -269,6 +270,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Labels",
     description: "Labels to group and filter by.",
     example: [{ name: "production" }, { name: "critical" }],
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

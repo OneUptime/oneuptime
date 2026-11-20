@@ -19,8 +19,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * chart in gigabytes drew a thousand times too high. MetricCharts now hands
  * each chart an overlaid query's values, its warning and critical lines, a
  * monitor rule's line on it and its previous-period line in the chart's
- * unit when the two units are of one kind, and leaves them as they are when
- * they are not, for the chart's warning to say.
+ * unit when the two units are of one kind. A query in a unit of another
+ * kind keeps its values and is drawn against a second axis, on the right
+ * (issue #10042, MetricChartsSecondAxis.test.tsx); only a third kind of
+ * unit, which fits neither axis, is drawn to a scale of its own, and the
+ * chart says so (issue #10080).
  *
  * The real MetricCharts builds the charts; ChartGroup, which would draw
  * them, is stood in for by one that keeps what it was handed.
@@ -457,8 +460,8 @@ describe("another unit of the same kind: converted into the chart's unit", () =>
   });
 });
 
-describe("a unit of another kind: drawn as it is, and said", () => {
-  test("bytes on a chart in percent keep their values, and the chart names both units", () => {
+describe("a unit of another kind: a second axis, and only a third kind said", () => {
+  test("bytes on a chart in percent keep their values, on the right axis, with no warning", () => {
     const [chart] = drawCharts(
       [
         query("a", "cpu", { unit: "%", warning: 80 }),
@@ -469,25 +472,39 @@ describe("a unit of another kind: drawn as it is, and said", () => {
 
     expect(valuesOf(chart!)).toEqual({ cpu: [20, 40], mem_used: [4e9, 5e9] });
     expect(lineValuesOf(chart!)).toEqual([80, 6e9]);
-    expect(screen.getByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toHaveTextContent(
-      "Overlaid queries use different units (Percent, Bytes)",
-    );
+    expect(
+      (chart!.props as { secondYAxis?: { seriesNames: Array<string> } })
+        .secondYAxis?.seriesNames,
+    ).toEqual(["mem_used"]);
+    expect(screen.queryByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toBeNull();
   });
 
-  test("three queries: only the units that cannot be read are named, each once", () => {
+  test("three kinds: only the third, which fits neither axis, is named, each unit once", () => {
     drawCharts(
       [
         query("a", "mem_total", { unit: "GB" }),
         query("b", "mem_used", { unit: "MB", overlay: true }),
         query("c", "cpu", { unit: "%", overlay: true }),
         query("d", "cpu_2", { unit: "%", overlay: true }),
+        query("e", "latency", { unit: "ms", overlay: true }),
+        query("f", "latency_2", { unit: "ms", overlay: true }),
       ],
-      [resultOf([8]), resultOf([4200]), resultOf([20]), resultOf([30])],
+      [
+        resultOf([8]),
+        resultOf([4200]),
+        resultOf([20]),
+        resultOf([30]),
+        resultOf([120]),
+        resultOf([180]),
+      ],
     );
 
-    // Named as the chart's unit badge names them: "GB" as written.
+    /*
+     * Named as the chart's unit badges name them: "GB" as written. Both
+     * millisecond queries share one scale of their own (#10080).
+     */
     expect(screen.getByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toHaveTextContent(
-      "Overlaid queries use different units (GB, Percent) — they share one axis",
+      "Queries in Milliseconds fit neither axis of this chart (GB, Percent), so each kind of unit is drawn to a scale of its own, with no axis",
     );
   });
 });

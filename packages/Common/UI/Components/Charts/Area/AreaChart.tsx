@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
-import YAxis from "../Types/YAxis/YAxis";
+import YAxis, { OwnScaleYAxis, SecondYAxis } from "../Types/YAxis/YAxis";
 import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint, {
   CHART_DATA_POINT_X_AXIS_KEY,
@@ -28,7 +28,8 @@ import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import XAxisType from "../Types/XAxis/XAxisType";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
-import { getYAxisWidthInPx } from "../Utils/YAxisWidth";
+import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
+import Dictionary from "../../../../Types/Dictionary";
 import {
   ChartTimeRangeZoomContextValue,
   ChartTimeRangeZoomHandlers,
@@ -90,6 +91,11 @@ export interface ComponentProps {
         bucketStart: Date,
         bucketEnd: Date,
         valuesAtBucket: Record<string, number | string>,
+        /*
+         * A series' value as the tooltip writes it, by the name it is drawn
+         * with: to the figures its axis's ticks are written with (#10079).
+         */
+        formatValue?: (seriesName: string, value: number) => string,
       ) => void)
     | undefined;
   /*
@@ -113,6 +119,25 @@ export interface ComponentProps {
    * position (index % length).
    */
   colors?: Array<ChartColorValue> | undefined;
+  /*
+   * A second value axis, on the right, for the series it names (issue
+   * #10042): bytes overlaid on a chart in percent. Each axis is as wide as
+   * its own ticks, and the tooltip writes a series' values as its axis does.
+   */
+  secondYAxis?: SecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, for the series each names
+   * (issue #10080): an overlaid query in a unit neither axis can say. Each
+   * series' line keeps its shape, the axes keep theirs, and the tooltip
+   * writes its values with its scale's formatter.
+   */
+  ownScaleYAxes?: Array<OwnScaleYAxis> | undefined;
+  /*
+   * How the tooltip writes a series' values, by its name, for a series whose
+   * unit is neither axis's. Left out, a series' values are written as the
+   * axis it is drawn against writes its ticks.
+   */
+  seriesValueFormatters?: Dictionary<(value: number) => string> | undefined;
 }
 
 export interface AreaInternalProps extends ComponentProps {
@@ -223,16 +248,18 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
   /*
    * The value axis is as wide as the widest tick it draws, and never under
    * the 64 pixels it always had: a tick too wide for it broke over two
-   * lines and was cut at the card's edge (YAxisWidth, #8049).
+   * lines and was cut at the card's edge (YAxisWidth, #8049). A second axis
+   * is measured over its own series, and the first over the rest.
    */
-  const yAxisWidthInPx: number = useMemo(() => {
-    return getYAxisWidthInPx({
+  const valueAxes: ChartValueAxes = useMemo(() => {
+    return getChartValueAxes({
       data: props.data,
-      formatter: props.yAxis.options.formatter,
-      min: props.yAxis.options.min,
-      max: props.yAxis.options.max,
+      yAxis: props.yAxis,
+      secondYAxis: props.secondYAxis,
+      ownScaleYAxes: props.ownScaleYAxes,
     });
-  }, [props.data, props.yAxis]);
+  }, [props.data, props.yAxis, props.secondYAxis, props.ownScaleYAxes]);
+  const yAxisWidthInPx: number = valueAxes.firstYAxisWidthInPx;
 
   const hasNoData: boolean =
     !props.data ||
@@ -308,6 +335,9 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         ghostCategories={props.ghostSeriesNames}
         anomalyBandLowerKey={bandLower}
         anomalyBandUpperKey={bandUpper}
+        secondYAxis={valueAxes.secondYAxis}
+        ownScales={valueAxes.ownScales}
+        categoryValueFormatters={props.seriesValueFormatters}
       />
       {hasNoData && <NoDataMessage />}
     </div>

@@ -147,6 +147,7 @@ export default class ManagedDeviceCheckInMetrics {
         devices: devices,
         hostNames: new Set<string>(),
         asOf: data.asOf,
+        provider: data.provider,
       });
 
     if (unmarked.length === 0) {
@@ -227,6 +228,7 @@ export default class ManagedDeviceCheckInMetrics {
         select: {
           _id: true,
           providerDeviceId: true,
+          platform: true,
           deviceName: true,
           alias: true,
           serialNumber: true,

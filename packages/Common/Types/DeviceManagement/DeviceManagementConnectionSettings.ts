@@ -1,5 +1,6 @@
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
+import DeviceManagementProvider from "./DeviceManagementProvider";
 
 /*
  * What a device management connection keeps besides its secret
@@ -9,14 +10,25 @@ import { JSONObject } from "../JSON";
  *
  * Plain logic, free of React and of the server, so the dashboard's form,
  * the server and the tests all read the same rules.
+ *
+ * Each service keeps its own settings (#9837):
+ *   - Esper: its tenant, the sub-domain of its console;
+ *   - Microsoft Intune: its Microsoft Entra tenant (the directory ID, or a
+ *     domain of it), the application (client) ID of the app registration
+ *     OneUptime signs in as, and the Microsoft cloud the tenant is in.
+ * `tenant` is the one the connection reads, whatever the service: a
+ * project connects it once.
  */
 
 // Keys of `config`.
 export const CONFIG_TENANT_KEY: string = "tenant";
 export const CONFIG_READ_INTERVAL_KEY: string = "readIntervalInMinutes";
+export const CONFIG_CLIENT_ID_KEY: string = "clientId";
+export const CONFIG_CLOUD_KEY: string = "cloud";
 
 // Keys of `secrets`.
 export const SECRET_API_KEY: string = "apiKey";
+export const SECRET_CLIENT_SECRET_KEY: string = "clientSecret";
 
 /*
  * How often the device list, the groups and the check-ins are read, in
@@ -56,6 +68,10 @@ export const MAX_API_KEY_LENGTH: number = 512;
 export interface DeviceManagementConfig {
   tenant: string;
   readIntervalInMinutes: number;
+  // Intune: the app registration's application (client) ID.
+  clientId?: string | undefined;
+  // Intune: the Microsoft cloud the tenant is in (IntuneCloud).
+  cloud?: string | undefined;
 }
 
 // The read interval a value names, or the default for anything else.
@@ -237,31 +253,327 @@ export function getEsperConsoleUrl(tenant: string): string {
 }
 
 /*
+ * MICROSOFT INTUNE (#9837)
+ *
+ * OneUptime reads Intune through Microsoft Graph, signed in as an app
+ * registration of the tenant's own (the client credentials grant), with
+ * one application permission: DeviceManagementManagedDevices.Read.All.
+ * The tenant is its Microsoft Entra directory ID (a GUID) or one of its
+ * domains (contoso.onmicrosoft.com), which Microsoft's sign-in takes alike.
+ */
+
+/*
+ * The Microsoft clouds an Intune tenant can be in, as Microsoft Graph's
+ * national cloud deployments list them, with what each signs in at and
+ * where its Graph answers - the same four OneUptime's Microsoft Entra ID
+ * connection reads:
+ *
+ *   public  the commercial cloud, worldwide;
+ *   gcc     Intune for US Government GCC, in the commercial cloud;
+ *   usgov   Intune for US Government GCC High;
+ *   dod     Intune for the US Department of Defense.
+ *
+ * Intune operated by 21Vianet in China is not among them.
+ */
+export type IntuneCloud = "public" | "gcc" | "usgov" | "dod";
+
+export const INTUNE_CLOUDS: ReadonlyArray<IntuneCloud> = [
+  "public",
+  "gcc",
+  "usgov",
+  "dod",
+];
+
+export const DEFAULT_INTUNE_CLOUD: IntuneCloud = "public";
+
+export interface IntuneCloudHosts {
+  // Where a token is asked for: https://login.microsoftonline.com.
+  loginHost: string;
+  // Where Graph answers: https://graph.microsoft.com.
+  graphHost: string;
+}
+
+const INTUNE_CLOUD_HOSTS: Record<IntuneCloud, IntuneCloudHosts> = {
+  public: {
+    loginHost: "https://login.microsoftonline.com",
+    graphHost: "https://graph.microsoft.com",
+  },
+  gcc: {
+    loginHost: "https://login.microsoftonline.com",
+    graphHost: "https://graph.microsoft.com",
+  },
+  usgov: {
+    loginHost: "https://login.microsoftonline.us",
+    graphHost: "https://graph.microsoft.us",
+  },
+  dod: {
+    loginHost: "https://login.microsoftonline.us",
+    graphHost: "https://dod-graph.microsoft.us",
+  },
+};
+
+// What each cloud is called, under the form's Cloud label: product names.
+export const INTUNE_CLOUD_TITLES: Record<IntuneCloud, string> = {
+  public: "Microsoft Azure (worldwide)",
+  gcc: "Microsoft 365 GCC",
+  usgov: "Microsoft 365 GCC High",
+  dod: "Microsoft 365 DoD",
+};
+
+export function isIntuneCloud(value: unknown): value is IntuneCloud {
+  return (
+    typeof value === "string" &&
+    (INTUNE_CLOUDS as ReadonlyArray<string>).includes(value)
+  );
+}
+
+export function getIntuneCloudHosts(
+  cloud: string | undefined,
+): IntuneCloudHosts {
+  return INTUNE_CLOUD_HOSTS[
+    isIntuneCloud(cloud) ? cloud : DEFAULT_INTUNE_CLOUD
+  ];
+}
+
+// The longest DNS name, and a GUID's shape (8-4-4-4-12 hex digits).
+const MAX_DOMAIN_LENGTH: number = 253;
+const GUID_GROUP_LENGTHS: ReadonlyArray<number> = [8, 4, 4, 4, 12];
+
+// A GUID, as Microsoft writes a directory or an application ID. A loop, not a pattern.
+export function isGuid(text: string): boolean {
+  const groups: Array<string> = text.split("-");
+
+  if (groups.length !== GUID_GROUP_LENGTHS.length) {
+    return false;
+  }
+
+  return groups.every((group: string, index: number): boolean => {
+    if (group.length !== GUID_GROUP_LENGTHS[index]) {
+      return false;
+    }
+
+    for (let at: number = 0; at < group.length; at++) {
+      const code: number = group.charCodeAt(at);
+      const isDigit: boolean = code >= 0x30 && code <= 0x39;
+      const isHexLetter: boolean = code >= 0x61 && code <= 0x66;
+
+      if (!isDigit && !isHexLetter) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+// A domain of two labels or more: contoso.onmicrosoft.com.
+function isDomainName(text: string): boolean {
+  if (!text || text.length > MAX_DOMAIN_LENGTH) {
+    return false;
+  }
+
+  const labels: Array<string> = text.split(".");
+
+  return labels.length >= 2 && labels.every(isDnsLabel);
+}
+
+const INTUNE_TENANT_HELP: string =
+  "Enter your tenant ID: the Directory (tenant) ID on the app registration's Overview in the Microsoft Entra admin center, or a domain of the tenant like contoso.onmicrosoft.com.";
+
+/*
+ * The Intune tenant a value names, lowercased: a directory ID or a domain.
+ * "" for none. Throws, with what to do, for anything else - "common" and
+ * "organizations" included, which name no one tenant: the tenant is a
+ * segment of the sign-in address, so nothing else is ever accepted.
+ */
+export function readIntuneTenant(value: unknown): string {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+
+  if (typeof value !== "string") {
+    throw new BadDataException(INTUNE_TENANT_HELP);
+  }
+
+  let text: string = value.trim().toLowerCase();
+
+  if (!text) {
+    return "";
+  }
+
+  // A GUID copied in braces, as some tools write it.
+  if (text.startsWith("{") && text.endsWith("}")) {
+    text = text.substring(1, text.length - 1);
+  }
+
+  if (text.endsWith(".")) {
+    text = text.substring(0, text.length - 1);
+  }
+
+  if (isGuid(text) || isDomainName(text)) {
+    return text;
+  }
+
+  throw new BadDataException(INTUNE_TENANT_HELP);
+}
+
+const INTUNE_CLIENT_ID_HELP: string =
+  "Enter the Application (client) ID: a GUID on the app registration's Overview in the Microsoft Entra admin center.";
+
+// The application (client) ID a value is, lowercased. Throws for anything else.
+export function readIntuneClientId(value: unknown): string {
+  const text: string =
+    typeof value === "string" ? value.trim().toLowerCase() : "";
+
+  if (!isGuid(text)) {
+    throw new BadDataException(INTUNE_CLIENT_ID_HELP);
+  }
+
+  return text;
+}
+
+// The cloud a value names; none is the commercial cloud. Throws for anything else.
+export function readIntuneCloud(value: unknown): IntuneCloud {
+  if (value === undefined || value === null || value === "") {
+    return DEFAULT_INTUNE_CLOUD;
+  }
+
+  if (!isIntuneCloud(value)) {
+    throw new BadDataException(
+      `Cloud must be one of ${INTUNE_CLOUDS.join(", ")}.`,
+    );
+  }
+
+  return value;
+}
+
+/*
+ * A client secret's value, trimmed. Microsoft's are 40 visible characters
+ * today; the check is loose on purpose, like an Esper key's. A GUID is the
+ * secret's ID, which the same page shows beside its value, and is said so.
+ */
+export function readIntuneClientSecret(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new BadDataException(
+      "Enter the client secret's value. Make one under Certificates & secrets on the app registration.",
+    );
+  }
+
+  const secret: string = value.trim();
+
+  if (isGuid(secret.toLowerCase())) {
+    throw new BadDataException(
+      "This is the client secret's ID. Copy its Value instead: Microsoft shows it once, when the secret is made.",
+    );
+  }
+
+  if (
+    secret.length < MIN_API_KEY_LENGTH ||
+    secret.length > MAX_API_KEY_LENGTH ||
+    !isVisibleAscii(secret)
+  ) {
+    throw new BadDataException(
+      "This is not a client secret: a secret's value is letters, digits and symbols, with no spaces. Copy it again from Certificates & secrets.",
+    );
+  }
+
+  return secret;
+}
+
+// The address of a tenant's Microsoft Entra token endpoint.
+export function getIntuneTokenUrl(data: {
+  cloud: string | undefined;
+  tenant: string;
+}): string {
+  return `${getIntuneCloudHosts(data.cloud).loginHost}/${encodeURIComponent(data.tenant)}/oauth2/v2.0/token`;
+}
+
+/*
+ * What a connection reads, in a line: the Esper console's host
+ * (acme.esper.cloud), or the Intune tenant, with its cloud when it is not
+ * the commercial one. Product words, the same in every language.
+ */
+export function getDeviceManagementConnectionAddress(data: {
+  provider: DeviceManagementProvider | string | undefined;
+  config: DeviceManagementConfig;
+}): string {
+  if (data.provider === DeviceManagementProvider.Intune) {
+    const cloud: IntuneCloud = isIntuneCloud(data.config.cloud)
+      ? data.config.cloud
+      : DEFAULT_INTUNE_CLOUD;
+
+    return cloud === DEFAULT_INTUNE_CLOUD
+      ? data.config.tenant
+      : `${data.config.tenant} (${INTUNE_CLOUD_TITLES[cloud]})`;
+  }
+
+  return data.config.tenant ? getEsperConsoleHost(data.config.tenant) : "";
+}
+
+// The settings each service takes, besides how often to read.
+const CONFIG_KEYS: Record<DeviceManagementProvider, ReadonlyArray<string>> = {
+  [DeviceManagementProvider.Esper]: [
+    CONFIG_TENANT_KEY,
+    CONFIG_READ_INTERVAL_KEY,
+  ],
+  [DeviceManagementProvider.Intune]: [
+    CONFIG_TENANT_KEY,
+    CONFIG_CLIENT_ID_KEY,
+    CONFIG_CLOUD_KEY,
+    CONFIG_READ_INTERVAL_KEY,
+  ],
+};
+
+function readConfigObject(value: unknown): JSONObject {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JSONObject)
+    : {};
+}
+
+// A value read by `read`, or `fallback` when it throws: a stored value is never trusted.
+function readQuietly<T>(read: () => T, fallback: T): T {
+  try {
+    return read();
+  } catch {
+    return fallback;
+  }
+}
+
+/*
  * A connection's settings as they are stored, read without trusting them:
- * an interval that is not one of the choices is the default, a tenant that
- * is not one is "".
+ * an interval that is not one of the choices is the default, a tenant or an
+ * ID that is not one is "". Read as its service's: Esper's when none is
+ * given, as a connection made before there was a choice is.
  */
 export function readDeviceManagementConfig(
   value: unknown,
+  provider?: DeviceManagementProvider | string | undefined,
 ): DeviceManagementConfig {
-  const config: JSONObject =
-    value && typeof value === "object" && !Array.isArray(value)
-      ? (value as JSONObject)
-      : {};
+  const config: JSONObject = readConfigObject(value);
+  const readIntervalInMinutes: number = readDeviceManagementReadInterval(
+    config[CONFIG_READ_INTERVAL_KEY],
+  );
 
-  let tenant: string = "";
-
-  try {
-    tenant = readEsperTenant(config[CONFIG_TENANT_KEY]);
-  } catch {
-    tenant = "";
+  if (provider === DeviceManagementProvider.Intune) {
+    return {
+      tenant: readQuietly((): string => {
+        return readIntuneTenant(config[CONFIG_TENANT_KEY]);
+      }, ""),
+      readIntervalInMinutes,
+      clientId: readQuietly((): string => {
+        return readIntuneClientId(config[CONFIG_CLIENT_ID_KEY]);
+      }, ""),
+      cloud: readQuietly((): IntuneCloud => {
+        return readIntuneCloud(config[CONFIG_CLOUD_KEY]);
+      }, DEFAULT_INTUNE_CLOUD),
+    };
   }
 
   return {
-    tenant: tenant,
-    readIntervalInMinutes: readDeviceManagementReadInterval(
-      config[CONFIG_READ_INTERVAL_KEY],
-    ),
+    tenant: readQuietly((): string => {
+      return readEsperTenant(config[CONFIG_TENANT_KEY]);
+    }, ""),
+    readIntervalInMinutes,
   };
 }
 
@@ -273,7 +585,11 @@ export function readDeviceManagementConfig(
  */
 export function validateDeviceManagementConfig(
   value: unknown,
-  options: { requireTenant: boolean },
+  options: {
+    requireTenant: boolean;
+    // The connection's service; Esper when absent.
+    provider?: DeviceManagementProvider | string | undefined;
+  },
 ): DeviceManagementConfig {
   if (
     value !== undefined &&
@@ -284,11 +600,21 @@ export function validateDeviceManagementConfig(
   }
 
   const config: JSONObject = (value as JSONObject) || {};
+  const isIntune: boolean =
+    options.provider === DeviceManagementProvider.Intune;
+  const keys: ReadonlyArray<string> =
+    CONFIG_KEYS[
+      isIntune
+        ? DeviceManagementProvider.Intune
+        : DeviceManagementProvider.Esper
+    ];
 
   for (const key of Object.keys(config)) {
-    if (![CONFIG_TENANT_KEY, CONFIG_READ_INTERVAL_KEY].includes(key)) {
+    if (!keys.includes(key)) {
       throw new BadDataException(
-        `Settings has no "${key.substring(0, 50)}": an Esper connection takes tenant and readIntervalInMinutes.`,
+        isIntune
+          ? `Settings has no "${key.substring(0, 50)}": an Intune connection takes tenant, clientId, cloud and readIntervalInMinutes.`
+          : `Settings has no "${key.substring(0, 50)}": an Esper connection takes tenant and readIntervalInMinutes.`,
       );
     }
   }
@@ -305,6 +631,28 @@ export function validateDeviceManagementConfig(
     }
   }
 
+  if (isIntune) {
+    const tenant: string = readIntuneTenant(config[CONFIG_TENANT_KEY]);
+
+    if (options.requireTenant && !tenant) {
+      throw new BadDataException(INTUNE_TENANT_HELP);
+    }
+
+    return {
+      tenant: tenant,
+      readIntervalInMinutes: readDeviceManagementReadInterval(interval),
+      // Required with the tenant: the two sign in together.
+      clientId:
+        options.requireTenant ||
+        (config[CONFIG_CLIENT_ID_KEY] !== undefined &&
+          config[CONFIG_CLIENT_ID_KEY] !== null &&
+          config[CONFIG_CLIENT_ID_KEY] !== "")
+          ? readIntuneClientId(config[CONFIG_CLIENT_ID_KEY])
+          : "",
+      cloud: readIntuneCloud(config[CONFIG_CLOUD_KEY]),
+    };
+  }
+
   const tenant: string = readEsperTenant(config[CONFIG_TENANT_KEY]);
 
   if (options.requireTenant && !tenant) {
@@ -317,12 +665,22 @@ export function validateDeviceManagementConfig(
   };
 }
 
-// The JSON a config is stored as.
+// The JSON a config is stored as: only the settings its service takes.
 export function toDeviceManagementConfigJson(
   config: DeviceManagementConfig,
 ): JSONObject {
-  return {
+  const json: JSONObject = {
     [CONFIG_TENANT_KEY]: config.tenant,
     [CONFIG_READ_INTERVAL_KEY]: config.readIntervalInMinutes,
   };
+
+  if (config.clientId !== undefined) {
+    json[CONFIG_CLIENT_ID_KEY] = config.clientId;
+  }
+
+  if (config.cloud !== undefined) {
+    json[CONFIG_CLOUD_KEY] = config.cloud;
+  }
+
+  return json;
 }

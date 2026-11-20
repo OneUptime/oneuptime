@@ -1,6 +1,7 @@
 import BaseAPI from "Common/Server/API/BaseAPI";
 // The values records pick from: BaseAPI, and what uses one. See the class.
 import ArchivableValueAPI from "Common/Server/API/ArchivableValueAPI";
+import HostLogSessionAPI from "Common/Server/API/HostLogSessionAPI";
 import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
 import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
@@ -176,6 +177,9 @@ import TelemetryIngestionKeyService, {
 import TelemetryIngestionKeyRefusalService, {
   Service as TelemetryIngestionKeyRefusalServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyRefusalService";
+import TelemetryIngestionTeamLabelBudgetService, {
+  Service as TelemetryIngestionTeamLabelBudgetServiceType,
+} from "Common/Server/Services/TelemetryIngestionTeamLabelBudgetService";
 import TelemetrySourceMapService, {
   Service as TelemetrySourceMapServiceType,
 } from "Common/Server/Services/TelemetrySourceMapService";
@@ -1141,9 +1145,6 @@ import HostOwnerTeamService, {
 import HostOwnerUserService, {
   Service as HostOwnerUserServiceType,
 } from "Common/Server/Services/HostOwnerUserService";
-import HostLogSessionService, {
-  Service as HostLogSessionServiceType,
-} from "Common/Server/Services/HostLogSessionService";
 import HostCollectorConfigService, {
   Service as HostCollectorConfigServiceType,
 } from "Common/Server/Services/HostCollectorConfigService";
@@ -1781,7 +1782,6 @@ import MessageQueueLabelRule from "Common/Models/DatabaseModels/MessageQueueLabe
 import MessageQueueOwnerRule from "Common/Models/DatabaseModels/MessageQueueOwnerRule";
 import HostOwnerTeam from "Common/Models/DatabaseModels/HostOwnerTeam";
 import HostOwnerUser from "Common/Models/DatabaseModels/HostOwnerUser";
-import HostLogSession from "Common/Models/DatabaseModels/HostLogSession";
 import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
 import HostCollectorConfigVersion from "Common/Models/DatabaseModels/HostCollectorConfigVersion";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -1858,6 +1858,7 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
@@ -4224,6 +4225,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // A team's or a label's ingestion budget inside the project (#6386).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        TelemetryIngestionTeamLabelBudget,
+        TelemetryIngestionTeamLabelBudgetServiceType
+      >(
+        TelemetryIngestionTeamLabelBudget,
+        TelemetryIngestionTeamLabelBudgetService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<TelemetrySourceMap, TelemetrySourceMapServiceType>(
@@ -6442,15 +6455,13 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     /*
      * Log sessions (#9806): every app's logs from an Android device for a
-     * while, asked for and cancelled here; the device moves them on through
-     * the Android agent's own route (Telemetry, AndroidAgentLogSessions).
+     * while, asked for and cancelled here, and their lines downloaded as a
+     * file (#9966); the device moves them on through the Android agent's
+     * own route (Telemetry, AndroidAgentLogSessions).
      */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<HostLogSession, HostLogSessionServiceType>(
-        HostLogSession,
-        HostLogSessionService,
-      ).getRouter(),
+      new HostLogSessionAPI().getRouter(),
     );
 
     /*

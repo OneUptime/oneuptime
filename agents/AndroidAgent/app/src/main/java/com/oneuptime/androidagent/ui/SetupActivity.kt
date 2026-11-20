@@ -80,6 +80,7 @@ class SetupActivity : Activity() {
     private lateinit var usageAccess: Button
     private lateinit var logSessionCard: View
     private lateinit var logSessionText: TextView
+    private lateinit var logSessionNote: TextView
     private lateinit var logSessionPrompt: TextView
     private lateinit var logSessionAnswer: View
     private lateinit var logSessionStop: Button
@@ -118,6 +119,7 @@ class SetupActivity : Activity() {
         usageAccess = findViewById(R.id.usage_access)
         logSessionCard = findViewById(R.id.log_session_card)
         logSessionText = findViewById(R.id.log_session_text)
+        logSessionNote = findViewById(R.id.log_session_note)
         logSessionPrompt = findViewById(R.id.log_session_prompt)
         logSessionAnswer = findViewById(R.id.log_session_answer)
         logSessionStop = findViewById(R.id.log_session_stop)
@@ -303,6 +305,10 @@ class SetupActivity : Activity() {
             return
         }
         logSessionText.text = LogSessionText.state(strings, view, LogSessionText.timeFormatter(this))
+        // Why they ask, while the session is waiting or running: once it ends, how it ended is what matters.
+        val note: String? = if (view.status.isActive) LogSessionText.noteLine(strings, view.request) else null
+        logSessionNote.text = note.orEmpty()
+        logSessionNote.visibility = if (note == null) View.GONE else View.VISIBLE
         val waiting: Boolean = view.status == LogSessionStatus.AWAITING_APPROVAL || view.status == LogSessionStatus.REQUESTED
         logSessionAnswer.visibility = if (waiting) View.VISIBLE else View.GONE
         // Android's own prompt comes after Allow on Android 13 and later: say so before, so it is expected.

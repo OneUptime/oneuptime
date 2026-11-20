@@ -4,6 +4,7 @@ import {
   TerraformResource,
   TerraformAttribute,
   TerraformRelation,
+  SharedAttribute,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
@@ -280,6 +281,65 @@ export class ResourceGenerator {
       });
   }
 
+  /*
+   * The attributes people set and OneUptime changes too (serverOwned
+   * "shared", StaticFiles/shared.go): the labels a label rule adds, an
+   * exception OneUptime resolves. Left out of a configuration, the plan
+   * keeps OneUptime's value, even where the attribute has a default; under
+   * Crossplane, a manifest's value is sent when it changes, and a list
+   * keeps the entries OneUptime added. By Terraform name, with whether each
+   * is a list or a set, held entry by entry.
+   */
+  public static getSharedAttributes(
+    resource: TerraformResource,
+  ): Array<SharedAttribute> {
+    return Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]): boolean => {
+        return (
+          name !== "id" &&
+          attr.serverOwned === "shared" &&
+          Boolean(attr.optional || attr.required)
+        );
+      })
+      .map(([name, attr]: [string, TerraformAttribute]): SharedAttribute => {
+        return {
+          name: StringUtils.toTerraformAttributeName(name),
+          entries: attr.type === "set" || attr.type === "list",
+        };
+      })
+      .sort((a: SharedAttribute, b: SharedAttribute): number => {
+        return a.name.localeCompare(b.name);
+      });
+  }
+
+  /*
+   * The step of a resource's ModifyPlan for what people and OneUptime both
+   * change (planShared, StaticFiles/shared.go), or nothing for a resource
+   * with none.
+   */
+  public static generatePlanSharedCall(resource: TerraformResource): string {
+    const shared: Array<SharedAttribute> =
+      ResourceGenerator.getSharedAttributes(resource);
+
+    if (shared.length === 0) {
+      return "";
+    }
+
+    const attributes: string = shared
+      .map((attribute: SharedAttribute): string => {
+        return `        {name: "${attribute.name}", entries: ${attribute.entries}},`;
+      })
+      .join("\n");
+
+    return `
+    // What people and OneUptime both change: OneUptime's change is never one
+    // to undo (see shared.go).
+    planShared(ctx, req, resp, r.client, []sharedAttribute{
+${attributes}
+    })
+`;
+  }
+
   private providerName: string;
 
   public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
@@ -496,6 +556,17 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("serverowned.go", "internal/provider");
     await this.copyStaticFile("serverowned_test.go", "internal/provider");
     await this.copyStaticFile("serverowned_plan_test.go", "internal/provider");
+
+    /*
+     * What people and OneUptime both change (#10052): the plan that keeps
+     * OneUptime's value when the configuration leaves one out, and, under
+     * Crossplane, sends a manifest's value only when it changes and keeps
+     * the entries OneUptime added to a list - and its tests, on their own
+     * and through the real protocol server against a fake API.
+     */
+    await this.copyStaticFile("shared.go", "internal/provider");
+    await this.copyStaticFile("shared_test.go", "internal/provider");
+    await this.copyStaticFile("shared_plan_test.go", "internal/provider");
 
     /*
      * How the Crossplane provider, which runs this provider in process,
@@ -1776,7 +1847,7 @@ func (r *${resourceTypeName}Resource) ModifyPlan(ctx context.Context, req resour
 
     // Under Crossplane, what a manifest leaves out is the record's (see crossplane.go).
     keepLeftOutUnderCrossplane(ctx, req, resp)
-${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
+${ResourceGenerator.generatePlanSharedCall(resource)}${people.length > 0 ? `\n${people.join("\n")}\n` : ""}${changedTogether
       .map(([name, companion]: [string, string]): string => {
         return `\n    requireChangedTogether(ctx, req, resp, "${name}", "${companion}")\n`;
       })

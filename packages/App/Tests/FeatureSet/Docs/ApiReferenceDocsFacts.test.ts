@@ -23,6 +23,8 @@ import User from "Common/Models/DatabaseModels/User";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
+import ServerOwned from "Common/Types/Database/ServerOwned";
+import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "Common/Types/HostCollector/HostCollectorRoutes";
 import UUIDColumnFilter, {
   EXAMPLE_UUID,
 } from "Common/Server/Types/Database/UUIDColumnFilter";
@@ -793,6 +795,57 @@ describe("OneUptime API Reference: a request and its answer", () => {
 
       expect({ kind, named }).toEqual({ kind, named: true });
     }
+  });
+});
+
+/*
+ * Fields only OneUptime writes (#10053): the refusal the page quotes is the
+ * one the server answers an update with, word for word, and the request
+ * the page names for Try again is the route HostAPI serves.
+ */
+describe("OneUptime API Reference: fields only OneUptime writes", () => {
+  const section: string = englishSection(
+    API_REFERENCE,
+    "### Fields only OneUptime writes",
+  );
+
+  it("quotes the refusal an update that names one is answered with", () => {
+    const quoted: string = (codeBlocks(section, "text")[0] || "").trim();
+
+    expect(quoted).toBe(
+      ColumnRefusalMessage.getWriteRefusal({
+        requestType: "update",
+        column: "telemetryMonitorLastMonitorAt",
+        modelName: new Monitor().singularName,
+        permissions: [],
+      }),
+    );
+    expect(
+      new Monitor().getTableColumnMetadata("telemetryMonitorLastMonitorAt")
+        ?.serverOwned,
+    ).toBe(ServerOwned.Always);
+  });
+
+  it("says a create goes through without them and an update is refused, as DatabaseService does", () => {
+    const writes: string = readRepoFile(
+      "Common/Server/Utils/Database/ColumnsOnlyOneUptimeWrites.ts",
+    );
+
+    expect(section).toContain(
+      "A create that sends one, as a copy of a record you read does, goes through without it",
+    );
+    expect(section).toContain("An update that sends one is refused");
+    expect(writes).toContain("public static takeOut(");
+    expect(writes).toContain("public static refuseOnUpdate(");
+  });
+
+  it("names the request that tries a host's failed collector config again", () => {
+    expect(section).toContain(
+      `\`POST /api/host/:id/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}\``,
+    );
+    expect(readRepoFile("Common/Server/API/HostAPI.ts")).toContain(
+      "/:id/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}",
+    );
   });
 });
 

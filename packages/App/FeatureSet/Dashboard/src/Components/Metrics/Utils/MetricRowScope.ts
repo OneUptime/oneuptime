@@ -81,6 +81,12 @@ export interface MetricRowAggregation {
    * long ago. Unset: the ones that have ended.
    */
   settleMs?: number | undefined;
+  /*
+   * The attributes the chart a click opens splits it by, a series each: a
+   * cloud metric added split by one of its dimensions (#9808) opens a line
+   * per value, as its monitors judge each. Unset: one series.
+   */
+  groupByAttributeKeys?: Array<string> | undefined;
 }
 
 /*

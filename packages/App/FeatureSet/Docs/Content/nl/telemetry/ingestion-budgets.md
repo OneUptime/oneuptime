@@ -6,6 +6,7 @@ Een ingestiebudget begrenst hoeveel telemetrie een project per dag verstuurt, zo
 - [Hoe budgetten werken](#hoe-budgetten-werken): Drie niveaus, geteld terwijl de telemetrie binnenkomt.
 - [De standaardbudgetten van elk project instellen](#de-standaardbudgetten-van-elk-project-instellen): In de instellingen van het Admin Dashboard.
 - [Een ingestiesleutel een eigen budget geven](#een-ingestiesleutel-een-eigen-budget-geven): Een deel van het budget van het project.
+- [Een team of een label een eigen budget geven](#een-team-of-een-label-een-eigen-budget-geven): Voor de services van het team of met het label.
 - [Waarschuwen op een budget](#waarschuwen-op-een-budget): Voordat het op is, en wanneer het op is.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **Voor de budgetten van de instantie en van een project: het Admin Dashboard.** Op een zelfgehoste installatie stelt alleen de instantiebeheerder ze in. De Projecteigenaren en Projectbeheerders zien de budgetten van een project, maar kunnen ze niet wijzigen.
 - **Voor het eigen budget van een sleutel: een rol die ingestiesleutels bewerkt.** Projecteigenaar of Projectbeheerder, of een aangepaste rol met de machtiging Edit Ingestion Key.
+- **Voor het budget van een team of een label: Projecteigenaar of Projectbeheerder.**
 - **Om de budgetten te zien: een rol die het gebruik van het project ziet.** De rollen die de pagina [Telemetriegebruik](/docs/telemetry/usage) zien, zien daar ook de budgetten.
 
 ## De standaardbudgetten van elk project instellen
@@ -94,6 +96,30 @@ Klik op **Wijzigingen opslaan**. Het budget van een sleutel kan niet hoger zijn 
 - **Beide budgetten tellen.** Telemetrie die met de sleutel wordt verzonden, telt tegen het budget van de sleutel en dat van het project, en het budget dat het eerst op is, weigert haar.
 - **Een verlaagd projectbudget geldt ook voor de sleutel.** Wanneer het budget van het project onder dat van een sleutel wordt verlaagd, wordt de sleutel aan dat van het project gehouden.
 
+## Een team of een label een eigen budget geven
+
+Ook het budget van een team of een label is een deel van dat van zijn project, voor de services waarvan het team eigenaar is of die het label hebben: de op hol geslagen service van een team stopt bij het budget van zijn team, terwijl de rest van het project blijft verzenden, zelfs via dezelfde collector en dezelfde ingestiesleutel.
+
+:::steps
+### De pagina Gebruik openen
+
+Ga naar **Projectinstellingen → Telemetrie & APM → Gebruik**, en open **Meer instellingen** onderaan de pagina.
+
+### Het budget toevoegen
+
+Klik op de kaart **Team- en labelbudgetten** op **Budget aanmaken**. Kies het team of het label in **Team of label**, en vul in **Logboeken (GB per dag)** een aantal GB per dag in. De andere signalen staan onder **Meer velden**. Laat een signaal leeg als het geen eigen budget krijgt.
+
+### Het budget opslaan
+
+Klik op **Budget aanmaken**. Het budget van een team of een label kan niet hoger zijn dan dat van zijn project: OneUptime weigert het en zegt wat het maximum is.
+:::
+
+- **Wat het telt.** De logboeken, traces, metrieken en profielen die de services van het team, of de services met het label, via OpenTelemetry (OTLP) versturen. Telemetrie van hosts en andere resources, beveiligingsgebeurtenissen en logboeken van Fluent Bit, Fluentd of syslog tellen alleen mee voor de budgetten van het project en de sleutel.
+- **Is het op, dan wordt de telemetrie verwijderd.** De telemetrie van dat signaal van de services wordt tot de reset verwijderd, en de afzender hoort er niets van: die kreeg zijn antwoord toen de telemetrie binnenkwam. Wat wordt verwijderd, telt niet meer mee voor het budget van het project of de sleutel.
+- **Wie het hoort.** De Projecteigenaren krijgen een e-mail wanneer het budget de waarschuwingsdrempel passeert, en wanneer het op is.
+- **Alleen een dagbudget.** Een team of een label heeft geen snelheidslimiet.
+- **Elk budget telt.** De telemetrie van een service telt mee voor de budgetten van zijn teams en zijn labels, en voor die van de sleutel en het project, en het budget dat het eerst op is, stopt haar. Wanneer het budget van het project onder dat van een team of een label wordt verlaagd, wordt dat aan het budget van het project gehouden.
+
 ## Wat afzenders zien
 
 | Wanneer | Via HTTP | Via OTLP/gRPC | Wat de afzender doet |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Andere HTTP-afzenders krijgen JSON.** Fluent Bit, Fluentd, syslog en de andere HTTP-endpoints krijgen `error`, `message` en `resetsAt`, en bij een snelheidslimiet ook `retryAfterSeconds`.
 - **MQTT en cloudstreams kunnen het niet te horen krijgen.** Telemetrie die via MQTT of uit de stream van een cloudprovider binnenkomt, wordt verworpen zodra het budget ervan op is. Er geldt geen snelheidslimiet voor: ze zou niet opnieuw kunnen worden verzonden.
+- **De services van een team of een label evenmin.** Zodra het budget van een team of een label op is, wordt hun telemetrie aangenomen en daarna verwijderd: zie [Een team of een label een eigen budget geven](#een-team-of-een-label-een-eigen-budget-geven).
 - **Weigeringen worden geteld.** Wat een opgebruikt budget weigert of verwerpt, wordt geteld als verworpen, en elk verzoek dat een snelheidslimiet weigert als beperkt: zie [Het gebruik en de verworpen gegevens van vandaag bekijken](#het-gebruik-en-de-verworpen-gegevens-van-vandaag-bekijken).
 
 ## De waarschuwing en de reset
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Het gebruik en de verworpen gegevens van vandaag bekijken
 
-Ga naar **Projectinstellingen → Telemetrie & APM → Gebruik**. Zolang er een budget of een snelheidslimiet voor het project is ingesteld, opent de pagina met de kaart **Ingestiebudgetten**, en staan de sleutels met een eigen budget op de kaart **Budgetten van ingestiesleutels**:
+Ga naar **Projectinstellingen → Telemetrie & APM → Gebruik**. Zolang er een budget of een snelheidslimiet voor het project is ingesteld, opent de pagina met de kaart **Ingestiebudgetten**, staan de sleutels met een eigen budget op de kaart **Budgetten van ingestiesleutels**, en de teams en labels met een eigen budget op de kaart **Team- en labelbudgetten vandaag**:
 
 | Kolom | Wat die toont |
 | --- | --- |
 | **Signaal** | Het signaal waarvoor de rij geldt. |
 | **Vandaag gebruikt** | Wat er sinds het begin van de budgetdag is geteld, en welk deel van het budget dat is. |
-| **Dagbudget** | Het budget dat geldt, en waar het is ingesteld: **Instantiestandaard**, **Ingesteld voor dit project** of **Eigen budget van deze sleutel**. |
+| **Dagbudget** | Het budget dat geldt, en waar het is ingesteld: **Instantiestandaard**, **Ingesteld voor dit project**, **Eigen budget van deze sleutel**, **Eigen budget van dit team** of **Eigen budget van dit label**. |
 | **Snelheidslimiet** | De snelheidslimiet die geldt. |
 | **Verworpen** | Wat is geweigerd of verworpen omdat het budget op was. |
 | **Beperkt** | Hoeveel verzoeken de snelheidslimiet heeft geweigerd. |
 | **Status** | **Binnen budget**, **Waarschuwing bereikt** of **Opgebruikt**, **Geen dagbudget** voor een signaal met alleen een snelheidslimiet, en **Onbekend** zolang de tellingen niet kunnen worden gelezen. |
 
 - **Op de pagina van een sleutel** toont de kaart **Budgetgebruik van vandaag** wat de sleutel van zijn eigen budgetten heeft gebruikt.
-- **In de explorers** meldt een banner boven de gegevens van logboeken, traces, metrieken, profielen en beveiligingsgebeurtenissen wanneer het budget van dat signaal zijn waarschuwing voorbij is of op is, met **Budgetten bekijken** om de pagina Gebruik te openen.
+- **In de explorers** meldt een banner boven de gegevens van logboeken, traces, metrieken, profielen en beveiligingsgebeurtenissen wanneer het budget van dat signaal zijn waarschuwing voorbij is of op is, of dat van een sleutel, een team of een label op is, met **Budgetten bekijken** om de pagina Gebruik te openen.
 - **In het Admin Dashboard** toont de pagina **Ingestiebudgetten** van een project dezelfde cijfers.
 
 ## Waarschuwen op een budget
@@ -153,9 +180,13 @@ Elk punt heeft deze attributen:
 | --- | --- |
 | `projectId` | De ID van het project. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` of `security-events`. |
-| `scope` | `project`, of `ingestion-key` voor het eigen budget van een sleutel. |
+| `scope` | `project`, `ingestion-key` voor het eigen budget van een sleutel, of `team` of `label` voor dat van een team of een label. |
 | `ingestionKeyId` | De ID van de sleutel, voor het eigen budget van een sleutel. |
 | `ingestionKeyName` | De naam van de sleutel toen het punt werd geschreven, voor het eigen budget van een sleutel. |
+| `teamId` | De ID van het team, voor het budget van een team. |
+| `teamName` | De naam van het team toen het punt werd geschreven, voor het budget van een team. |
+| `labelId` | De ID van het label, voor het budget van een label. |
+| `labelName` | De naam van het label toen het punt werd geschreven, voor het budget van een label. |
 
 Om bij 90% van het logboekbudget van het project te worden gewaarschuwd, maakt u een metrics-monitor op `oneuptime.telemetry.budget.used.percent`, gefilterd op `signal` `logs` en `scope` `project`, die waarschuwt wanneer het maximum boven 90 ligt:
 
@@ -168,6 +199,10 @@ Om bij 90% van het logboekbudget van het project te worden gewaarschuwd, maakt u
 
 :::details Een collector logt 403 voor zijn exports
 Het dagbudget van het project of de sleutel voor dat signaal is op, en de collector verwerpt wat hij niet kan verzenden tot het budget wordt gereset. Bekijk **Vandaag gebruikt** op de pagina Gebruik. Vraag de instantiebeheerder het budget van het project te verhogen, of verstuur minder: een drop-filter helpt hier niet, omdat die telemetrie verwijdert nadat ze is geteld.
+:::
+
+:::details De telemetrie van een team komt niet meer binnen, en geen afzender logt een fout
+Het dagbudget van het team, of van een label van zijn services, is voor dat signaal op, en hun telemetrie wordt verwijderd tot het budget wordt gereset. Bekijk **Vandaag gebruikt** op de kaart **Team- en labelbudgetten vandaag** op de pagina Gebruik, en verhoog het budget onder **Meer instellingen**.
 :::
 
 :::details Een collector logt 429 en probeert het opnieuw

@@ -2473,9 +2473,10 @@ jobs:
           Tests/Server/Types/Database/UUIDColumnFilterPostgres.test.ts
           --forceExit
 
-      # The inventory's overview and status facets, and the host an Esper
-      # device's serial number finds when telemetry names the device
-      # another way (#9586).
+      # The inventory's overview and status facets, its security patch
+      # (#9965) and agent permissions (#9967) facets, and the host an Esper
+      # device's serial number finds when telemetry names the device another
+      # way (#9586).
       - name: Test the inventory overview, status facets and hosts by serial number on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
@@ -2488,6 +2489,8 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/InventoryOverviewPostgres.test.ts
           Tests/Server/Types/Database/InventoryStatusPostgres.test.ts
+          Tests/Server/Types/Database/InventorySecurityPatchPostgres.test.ts
+          Tests/Server/Types/Database/InventoryAgentPermissionsPostgres.test.ts
           Tests/Server/Services/InventoryHostsBySerialNumberPostgres.test.ts
           --forceExit
 
@@ -2701,6 +2704,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/ClearNextEventOfTemplatesThatDoNotRecurPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated ScheduledMaintenanceTemplate table into an
+      # isolated schema, as it was before AddScheduledMaintenanceTemplateTimezone,
+      # and runs the migration on seeded templates (#10037): every one reads
+      # UTC and keeps everything else; read back on UTC, an hourly, daily or
+      # weekly template's schedule works out the next event it holds, and a
+      # monthly one goes back to its first event's day; a template saved
+      # afterwards without a time zone reads UTC; down() drops the column.
+      - name: Test the template time zone migration on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TEMPLATE_TIMEZONE_TESTS: "true"
+          TEMPLATE_TIMEZONE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEMPLATE_TIMEZONE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEMPLATE_TIMEZONE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddScheduledMaintenanceTemplateTimezonePostgres.test.ts
           --forceExit
 
       # Clones the migrated LogSavedView table into an isolated schema, as it
@@ -3076,6 +3099,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/BackfillSsoProviderDomainsPostgres.test.ts
+          --forceExit
+
+      # Copies the migrated Domain table into an isolated schema, fills it
+      # like OneUptime Cloud's (thousands of projects, verified and not,
+      # deleted and not, in every case) and asks Postgres, with EXPLAIN, how
+      # it runs "Sign in with SSO"'s domain lookup - the SQL TypeORM sends:
+      # the whole table without AddDomainVerifiedNameIndex1809186910000, the
+      # index and the one row it returns once the migration builds it, and
+      # never the rows nobody verified (#9988).
+      - name: Test Sign in with SSO's domain lookup index on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DOMAIN_LOOKUP_INDEX_TESTS: "true"
+          DOMAIN_LOOKUP_INDEX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DOMAIN_LOOKUP_INDEX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DOMAIN_LOOKUP_INDEX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddDomainVerifiedNameIndexPostgres.test.ts
           --forceExit
 
       - name: Test team member reads across tenants on migrated Postgres

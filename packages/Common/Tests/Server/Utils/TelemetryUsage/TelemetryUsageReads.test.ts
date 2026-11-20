@@ -569,10 +569,115 @@ describe("exceptions, apart from the traces they are billed with", () => {
     );
   });
 
-  test("takes a part out of Traces rows only, held to the row, and none from a row that has none", () => {
+  test("takes a part out of Traces and Logs rows only (issue #6590), held to the row, and none from a row that has none", () => {
     expect(getExceptionGBSql("u.")).toBe(
-      `(CASE WHEN u."productType" = 'Traces' THEN LEAST(GREATEST(COALESCE(u."exceptionDataIngestedInGB", 0), 0), u."dataIngestedInGB") ELSE 0 END)`,
+      `(CASE WHEN u."productType" IN ('Traces', 'Logs') THEN LEAST(GREATEST(COALESCE(u."exceptionDataIngestedInGB", 0), 0), u."dataIngestedInGB") ELSE 0 END)`,
     );
+  });
+
+  test("shows a Logs row's exceptions apart from its log records (issue #6590)", () => {
+    expect(
+      getSignalAmounts(
+        {
+          productType: ProductType.Logs,
+          dataIngestedInGB: "3",
+          totalCostInUSD: "0.3",
+          exceptionDataIngestedInGB: "1",
+          exceptionCostInUSD: "0.1",
+        },
+        true,
+      ),
+    ).toEqual([
+      {
+        signal: ProductType.Logs,
+        amount: { dataIngestedInGB: 3, totalCostInUSD: 0.3 },
+      },
+      {
+        signal: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+        amount: { dataIngestedInGB: 1, totalCostInUSD: 0.1 },
+      },
+    ]);
+
+    // Logs that were all exceptions have no Logs of their own.
+    expect(
+      getSignalAmounts(
+        {
+          productType: ProductType.Logs,
+          dataIngestedInGB: "0",
+          totalCostInUSD: "0",
+          exceptionDataIngestedInGB: "2",
+          exceptionCostInUSD: "0.2",
+        },
+        false,
+      ),
+    ).toEqual([
+      {
+        signal: TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+        amount: { dataIngestedInGB: 2 },
+      },
+    ]);
+
+    // Any other product's row never shows a part, whatever it holds.
+    expect(
+      getSignalAmounts(
+        {
+          productType: ProductType.Metrics,
+          dataIngestedInGB: "3",
+          totalCostInUSD: "0.3",
+          exceptionDataIngestedInGB: "1",
+          exceptionCostInUSD: "0.1",
+        },
+        false,
+      ),
+    ).toEqual([
+      { signal: ProductType.Metrics, amount: { dataIngestedInGB: 3 } },
+    ]);
+  });
+
+  test("adds the exceptions found in spans and in logs into one Exceptions signal", async () => {
+    answerDays([
+      {
+        day: "2026-10-02",
+        productType: ProductType.Traces,
+        dataIngestedInGB: "1",
+        totalCostInUSD: "0.1",
+        exceptionDataIngestedInGB: "0.5",
+        exceptionCostInUSD: "0.05",
+      },
+      {
+        day: "2026-10-02",
+        productType: ProductType.Logs,
+        dataIngestedInGB: "2",
+        totalCostInUSD: "0.2",
+        exceptionDataIngestedInGB: "0.25",
+        exceptionCostInUSD: "0.025",
+      },
+    ]);
+    answerResources([]);
+    answerLatest("2026-10-03");
+
+    const summary: TelemetryUsageSummary = await readProject(true);
+    const day: TelemetryUsageSummary["days"][number] = summary.days[1]!;
+
+    expect(day.day).toBe("2026-10-02");
+    expect(Object.keys(day.byProduct).sort()).toEqual(
+      [
+        ProductType.Logs,
+        ProductType.Traces,
+        TELEMETRY_USAGE_EXCEPTIONS_SIGNAL,
+      ].sort(),
+    );
+    expect(day.byProduct[ProductType.Traces]!.dataIngestedInGB).toBe(1);
+    expect(day.byProduct[ProductType.Logs]!.dataIngestedInGB).toBe(2);
+    expect(
+      day.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!.dataIngestedInGB,
+    ).toBeCloseTo(0.75, 10);
+    expect(
+      day.byProduct[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!.totalCostInUSD,
+    ).toBeCloseTo(0.075, 10);
+    // Every GB and every cent the rows hold, each counted once.
+    expect(summary.total.dataIngestedInGB).toBeCloseTo(3.75, 10);
+    expect(summary.total.totalCostInUSD).toBeCloseTo(0.375, 10);
   });
 
   test("gives the part its share of the row's cost: the cost grows with the GB", () => {

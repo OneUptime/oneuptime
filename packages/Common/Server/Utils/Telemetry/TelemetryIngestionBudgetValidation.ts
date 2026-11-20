@@ -20,6 +20,7 @@ import {
   TELEMETRY_INGESTION_BUDGET_RESET_TIMEZONE_COLUMN,
   TELEMETRY_INGESTION_BUDGET_SIGNALS,
   TELEMETRY_INGESTION_BUDGET_WARNING_PERCENT_COLUMN,
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
   telemetryIngestionBudgetGBToBytes,
   telemetryIngestionBudgetMBToBytes,
   TelemetryIngestionBudgetResolved,
@@ -113,14 +114,23 @@ export default class TelemetryIngestionBudgetValidation {
         });
 
         if (problem) {
-          throw new BadDataException(
-            `${this.describeColumn(signal, kind)}: ${problem}`,
-          );
+          this.throwValueProblem(signal, kind, problem);
         }
 
         data[column] = normalizeTelemetryIngestionBudgetValue(data[column]);
       }
     }
+  }
+
+  // A budget value's problem, said with the field it is in.
+  private static throwValueProblem(
+    signal: TelemetryIngestionBudgetSignal,
+    kind: TelemetryIngestionBudgetValueKind,
+    problem: string,
+  ): never {
+    throw new BadDataException(
+      `${this.describeColumn(signal, kind)}: ${problem}`,
+    );
   }
 
   // Check and normalize the instance-wide warning threshold and reset time.
@@ -241,6 +251,106 @@ export default class TelemetryIngestionBudgetValidation {
             resolved.project.rateLimit.bytes,
           )}). A key's limit can only subdivide its project's: set ${formatTelemetryIngestionBudgetMBPerSecond(
             resolved.project.rateLimit.bytes,
+          )} or less, or leave it empty to use the project's.`,
+        );
+      }
+    }
+  }
+
+  /*
+   * A team's or a label's budgets (#6386): each daily budget it touches is a
+   * number of GB above 0, or empty for none. It has no rate and no security
+   * events budget (TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS), and the
+   * model has no column for them.
+   */
+  public static applyTeamLabelBudgetColumnRules(
+    data: Record<string, unknown>,
+  ): void {
+    for (const signal of TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS) {
+      const column: string =
+        TELEMETRY_INGESTION_BUDGET_COLUMNS[signal].dailyBudgetInGB;
+
+      if (!isTouched(data, column)) {
+        continue;
+      }
+
+      const problem: string | null = getTelemetryIngestionBudgetValueProblem({
+        value: data[column],
+        kind: TelemetryIngestionBudgetValueKind.DailyBudget,
+        allowZero: false,
+      });
+
+      if (problem) {
+        this.throwValueProblem(
+          signal,
+          TelemetryIngestionBudgetValueKind.DailyBudget,
+          problem,
+        );
+      }
+
+      data[column] = normalizeTelemetryIngestionBudgetValue(data[column]);
+    }
+  }
+
+  /*
+   * A team's or a label's budgets only subdivide its project's, as a key's
+   * do: refuse a daily budget above what the project may send, read fresh.
+   */
+  public static async assertTeamLabelBudgetsWithinProject(data: {
+    projectId: ObjectID;
+    patch: Record<string, unknown>;
+  }): Promise<void> {
+    const touched: Array<TelemetryIngestionBudgetSignal> =
+      TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS.filter(
+        (signal: TelemetryIngestionBudgetSignal): boolean => {
+          return (
+            typeof data.patch[
+              TELEMETRY_INGESTION_BUDGET_COLUMNS[signal].dailyBudgetInGB
+            ] === "number"
+          );
+        },
+      );
+
+    if (touched.length === 0) {
+      return;
+    }
+
+    const instance: TelemetryIngestionBudgetInstanceSettings =
+      await TelemetryIngestionBudgetSettings.getInstanceSettings({
+        fresh: true,
+      });
+    const project: TelemetryIngestionBudgetStoredSettings | null =
+      await TelemetryIngestionBudgetSettings.getProjectOverrides(
+        data.projectId,
+        { fresh: true },
+      );
+
+    for (const signal of touched) {
+      const resolved: TelemetryIngestionBudgetResolved =
+        resolveTelemetryIngestionBudget({
+          signal: signal,
+          instance: instance.budgets,
+          project: project,
+          ingestionKey: null,
+        });
+      const daily: number = data.patch[
+        TELEMETRY_INGESTION_BUDGET_COLUMNS[signal].dailyBudgetInGB
+      ] as number;
+      const projectBytes: number | null = resolved.project.dailyBudget.bytes;
+
+      if (
+        projectBytes !== null &&
+        telemetryIngestionBudgetGBToBytes(daily) > projectBytes
+      ) {
+        throw new BadDataException(
+          `This daily ${getTelemetryIngestionBudgetSignalWords(
+            signal,
+          )} budget (${formatTelemetryIngestionBudgetGB(
+            telemetryIngestionBudgetGBToBytes(daily),
+          )}) is more than the project's (${formatTelemetryIngestionBudgetGB(
+            projectBytes,
+          )}). A team's or a label's budget can only subdivide its project's: set ${formatTelemetryIngestionBudgetGB(
+            projectBytes,
           )} or less, or leave it empty to use the project's.`,
         );
       }

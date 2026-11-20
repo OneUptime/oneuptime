@@ -14,6 +14,12 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
+import { APP_API_URL } from "Common/UI/Config";
+import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "Common/Types/HostCollector/HostCollectorRoutes";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -85,6 +91,29 @@ export interface ComponentProps {
   host: Host;
   // The host changed here (a picked config, Try again): read it again.
   onChanged: () => void;
+}
+
+/*
+ * Try again: the server sends the host its failed config once more
+ * (HostAPI). The failed config's hash is OneUptime's alone to write, so no
+ * update of the host clears it (#10053).
+ */
+export async function tryCollectorConfigAgain(hostId: ObjectID): Promise<void> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        `/host/${hostId.toString()}/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}`,
+      ),
+      data: {},
+      headers: {
+        ...ModelAPI.getCommonHeaders(),
+      },
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
 }
 
 const HostCollectorCard: FunctionComponent<ComponentProps> = (
@@ -433,13 +462,7 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
           onSubmit={() => {
             setIsRetrying(true);
             setRetryError("");
-            ModelAPI.updateById<Host>({
-              modelType: Host,
-              id: new ObjectID(host._id?.toString() || ""),
-              data: {
-                collectorFailedConfigHash: null,
-              },
-            })
+            tryCollectorConfigAgain(new ObjectID(host._id?.toString() || ""))
               .then(() => {
                 setIsRetrying(false);
                 setIsRetryOpen(false);

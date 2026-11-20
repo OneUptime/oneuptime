@@ -143,7 +143,7 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | `/data-store/<id>/scan-now` | **Varrer agora**: amostra o conteúdo do repositório na hora |
 | `/data-store/<id>/check-now` | **Verificar agora**: lê a configuração do repositório de novo e executa as verificações dele |
 | `/data-store-finding/<id>/scrub` | **Limpar** em uma descoberta de telemetria |
-| `/data-store-finding/<id>/drop-metric-impact` | O que **Descartar esta métrica** descartaria para uma descoberta no nome de uma métrica: quantas métricas, e os monitores e painéis que as leem |
+| `/data-store-finding/<id>/drop-metric-impact` | O que **Descartar esta métrica** descartaria para uma descoberta no nome de uma métrica: quantas métricas, e os monitores, painéis, SLOs e regras de gravação que as leem |
 | `/data-store-finding/<id>/drop-metric` | **Descartar esta métrica**: uma regra de pipeline de métricas que descarta para sempre os novos pontos de dados dessas métricas do serviço. Recebe `{"confirmDataLoss": true}` |
 | `/data-security-issue/<id>/explain` | **Explicar com IA** em um problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Corrigir com IA** em um problema |

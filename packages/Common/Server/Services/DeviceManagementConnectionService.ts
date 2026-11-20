@@ -6,12 +6,16 @@ import { JSONObject } from "../../Types/JSON";
 import {
   DeviceManagementConfig,
   SECRET_API_KEY,
+  SECRET_CLIENT_SECRET_KEY,
+  getDeviceManagementConnectionAddress,
   readDeviceManagementConfig,
   readEsperApiKey,
+  readIntuneClientSecret,
   toDeviceManagementConfigJson,
   validateDeviceManagementConfig,
 } from "../../Types/DeviceManagement/DeviceManagementConnectionSettings";
 import DeviceManagementProvider, {
+  getDeviceManagementProviderShortTitle,
   getDeviceManagementProviderTitle,
   isDeviceManagementProvider,
 } from "../../Types/DeviceManagement/DeviceManagementProvider";
@@ -30,20 +34,44 @@ interface ConnectionDeleteCarryForward {
 }
 
 /*
- * Device management connections (an Esper tenant, Inventory > Managed
- * Devices): validated when saved, so a connection that stores is one the
- * read loop can use - a tenant that is not one, a key that is not a key is
- * a form error, not a lastError fifteen minutes later.
+ * Device management connections (an Esper tenant, a Microsoft Intune
+ * tenant: Inventory > Managed Devices): validated when saved, so a
+ * connection that stores is one the read loop can use - a tenant that is
+ * not one, a key that is not a key is a form error, not a lastError
+ * fifteen minutes later.
  *
- * The API key is write-only: an edit form cannot show it, so on an update
- * a key left empty keeps the stored one and a value replaces it.
+ * The secret (Esper's API key, Intune's client secret) is write-only: an
+ * edit form cannot show it, so on an update a secret left empty keeps the
+ * stored one and a value replaces it.
  *
- * The tenant is fixed once a connection is made: its devices are the
- * tenant's, so reading another tenant is a connection of its own.
+ * The tenant is fixed once a connection is made, and so are its service and
+ * an Intune tenant's cloud: its devices are the tenant's, so reading
+ * another tenant is a connection of its own.
  */
 
 // The longest a connection's name is kept.
 const MAX_NAME_LENGTH: number = 50;
+
+// The secrets a connection's service takes, decrypted; one of them per service.
+export interface DeviceManagementSecretValues {
+  apiKey?: string | undefined;
+  clientSecret?: string | undefined;
+}
+
+// The key each service keeps its one secret under, and how it reads it.
+const SECRET_OF: Record<
+  DeviceManagementProvider,
+  { key: string; read: (value: unknown) => string }
+> = {
+  [DeviceManagementProvider.Esper]: {
+    key: SECRET_API_KEY,
+    read: readEsperApiKey,
+  },
+  [DeviceManagementProvider.Intune]: {
+    key: SECRET_CLIENT_SECRET_KEY,
+    read: readIntuneClientSecret,
+  },
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -57,7 +85,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!isDeviceManagementProvider(value)) {
       throw new BadDataException(
-        "Service must be 'esper': the device management services OneUptime can read.",
+        "Service must be 'esper' or 'intune': the device management services OneUptime can read.",
       );
     }
 
@@ -70,35 +98,58 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The secrets a request carries, checked: the API key, and nothing else
-   * (an unknown key is refused rather than stored, so a typo is not "no
-   * key"). With `requireApiKey` false, an empty key means "keep the
-   * stored one" and reads as undefined.
+   * The secrets a request carries, checked: the service's one secret (an
+   * Esper API key, an Intune client secret), and nothing else - an unknown
+   * key is refused rather than stored, so a typo is not "no secret". With
+   * `required` false, an empty secret means "keep the stored one" and
+   * reads as undefined.
    */
   public static readSecrets(
     value: unknown,
-    options: { requireApiKey: boolean },
-  ): { apiKey?: string | undefined } {
+    options: {
+      required: boolean;
+      // The connection's service; Esper when absent.
+      provider?: DeviceManagementProvider | undefined;
+    },
+  ): DeviceManagementSecretValues {
+    const provider: DeviceManagementProvider =
+      options.provider || DeviceManagementProvider.Esper;
+    const secretOf: { key: string; read: (value: unknown) => string } =
+      SECRET_OF[provider];
     const secrets: JSONObject = Service.parseJsonObject(value, "Credentials");
 
     for (const key of Object.keys(secrets)) {
-      if (key !== SECRET_API_KEY) {
+      if (key !== secretOf.key) {
         throw new BadDataException(
-          `Credentials has no "${key.substring(0, 50)}": an Esper connection takes apiKey.`,
+          provider === DeviceManagementProvider.Intune
+            ? `Credentials has no "${key.substring(0, 50)}": an Intune connection takes clientSecret.`
+            : `Credentials has no "${key.substring(0, 50)}": an Esper connection takes apiKey.`,
         );
       }
     }
 
-    const apiKey: unknown = secrets[SECRET_API_KEY];
+    const secret: unknown = secrets[secretOf.key];
 
     if (
-      !options.requireApiKey &&
-      (apiKey === undefined || apiKey === null || apiKey === "")
+      !options.required &&
+      (secret === undefined || secret === null || secret === "")
     ) {
       return {};
     }
 
-    return { apiKey: readEsperApiKey(apiKey) };
+    return { [secretOf.key]: secretOf.read(secret) };
+  }
+
+  // The JSON a connection's secrets are stored as: its service's one.
+  public static toSecretsJson(
+    provider: DeviceManagementProvider,
+    secrets: DeviceManagementSecretValues,
+  ): string {
+    const key: string = SECRET_OF[provider].key;
+
+    return JSON.stringify({
+      [key]: (secrets as Record<string, string | undefined>)[key],
+    });
   }
 
   // A name for a connection saved without one: the tenant's.
@@ -108,7 +159,7 @@ export class Service extends DatabaseService<Model> {
   }): string {
     return (
       data.config.tenant
-        ? `${getDeviceManagementProviderTitle(data.provider)} ${data.config.tenant}`
+        ? `${getDeviceManagementProviderShortTitle(data.provider)} ${data.config.tenant}`
         : getDeviceManagementProviderTitle(data.provider)
     ).substring(0, MAX_NAME_LENGTH);
   }
@@ -128,12 +179,12 @@ export class Service extends DatabaseService<Model> {
 
     const config: DeviceManagementConfig = validateDeviceManagementConfig(
       Service.parseJsonObject(createBy.data.config, "Settings"),
-      { requireTenant: true },
+      { requireTenant: true, provider },
     );
 
-    const secrets: { apiKey?: string | undefined } = Service.readSecrets(
+    const secrets: DeviceManagementSecretValues = Service.readSecrets(
       createBy.data.secrets,
-      { requireApiKey: true },
+      { required: true, provider },
     );
 
     Service.readBoolean(createBy.data.isEnabled, "Enabled");
@@ -148,7 +199,7 @@ export class Service extends DatabaseService<Model> {
     await this.assertTenantNotConnected({
       projectId,
       provider,
-      tenant: config.tenant,
+      config,
     });
 
     if (!createBy.data.name || !createBy.data.name.trim()) {
@@ -160,7 +211,7 @@ export class Service extends DatabaseService<Model> {
       .substring(0, MAX_NAME_LENGTH);
     createBy.data.provider = provider;
     createBy.data.config = toDeviceManagementConfigJson(config);
-    createBy.data.secrets = JSON.stringify({ apiKey: secrets.apiKey });
+    createBy.data.secrets = Service.toSecretsJson(provider, secrets);
 
     return { createBy, carryForward: null };
   }
@@ -168,11 +219,12 @@ export class Service extends DatabaseService<Model> {
   /*
    * One connection per tenant in a project: two would each read it on their
    * own schedule, import every device twice and spend its API budget twice.
+   * An Intune tenant is one per cloud it is in.
    */
   private async assertTenantNotConnected(data: {
     projectId: ObjectID;
     provider: DeviceManagementProvider;
-    tenant: string;
+    config: DeviceManagementConfig;
   }): Promise<void> {
     const existing: Array<Model> = await this.findBy({
       query: { projectId: data.projectId, provider: data.provider },
@@ -182,17 +234,29 @@ export class Service extends DatabaseService<Model> {
       props: { isRoot: true },
     });
 
+    const address: string = getDeviceManagementConnectionAddress({
+      provider: data.provider,
+      config: data.config,
+    });
     const taken: Model | undefined = existing.find(
       (connection: Model): boolean => {
         return (
-          readDeviceManagementConfig(connection.config).tenant === data.tenant
+          getDeviceManagementConnectionAddress({
+            provider: data.provider,
+            config: readDeviceManagementConfig(
+              connection.config,
+              data.provider,
+            ),
+          }) === address
         );
       },
     );
 
     if (taken) {
       throw new BadDataException(
-        `This Esper tenant is connected already, as "${taken.name || ""}". Edit that connection instead.`,
+        data.provider === DeviceManagementProvider.Intune
+          ? `This Intune tenant is connected already, as "${taken.name || ""}". Edit that connection instead.`
+          : `This Esper tenant is connected already, as "${taken.name || ""}". Edit that connection instead.`,
       );
     }
   }
@@ -258,8 +322,12 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("The connection no longer exists.");
     }
 
+    const provider: DeviceManagementProvider = Service.readProvider(
+      current.provider,
+    );
     const stored: DeviceManagementConfig = readDeviceManagementConfig(
       current.config,
+      provider,
     );
 
     if (incoming["config"] !== undefined) {
@@ -268,12 +336,17 @@ export class Service extends DatabaseService<Model> {
           ...toDeviceManagementConfigJson(stored),
           ...Service.parseJsonObject(incoming["config"], "Settings"),
         },
-        { requireTenant: true },
+        { requireTenant: true, provider },
       );
 
-      if (requested.tenant !== stored.tenant) {
+      if (
+        requested.tenant !== stored.tenant ||
+        (requested.cloud || "") !== (stored.cloud || "")
+      ) {
         throw new BadDataException(
-          "A connection reads one Esper tenant. To read another one, connect it as well.",
+          provider === DeviceManagementProvider.Intune
+            ? "A connection reads one Intune tenant, in one cloud. To read another one, connect it as well."
+            : "A connection reads one Esper tenant. To read another one, connect it as well.",
         );
       }
 
@@ -281,21 +354,21 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (incoming["secrets"] !== undefined) {
-      const provided: { apiKey?: string | undefined } = Service.readSecrets(
+      const provided: DeviceManagementSecretValues = Service.readSecrets(
         incoming["secrets"],
-        { requireApiKey: false },
+        { required: false, provider },
       );
 
       const storedSecrets: JSONObject = Service.parseJsonObject(
         current.secrets,
         "Credentials",
       );
+      const key: string = SECRET_OF[provider].key;
+      const secret: string =
+        (provided as Record<string, string | undefined>)[key] ||
+        SECRET_OF[provider].read(storedSecrets[key]);
 
-      const apiKey: string = provided.apiKey
-        ? provided.apiKey
-        : readEsperApiKey(storedSecrets[SECRET_API_KEY]);
-
-      incoming["secrets"] = JSON.stringify({ apiKey });
+      incoming["secrets"] = JSON.stringify({ [key]: secret });
     }
 
     return { updateBy, carryForward: null };
@@ -415,11 +488,22 @@ export class Service extends DatabaseService<Model> {
       secretsJson,
       "Credentials",
     );
+    const service: DeviceManagementProvider = Service.readProvider(provider);
+
+    if (service === DeviceManagementProvider.Intune) {
+      return {
+        provider: service,
+        projectId: projectId.toString(),
+        config: readDeviceManagementConfig(config, service),
+        apiKey: "",
+        clientSecret: readIntuneClientSecret(secrets[SECRET_CLIENT_SECRET_KEY]),
+      };
+    }
 
     return {
-      provider: Service.readProvider(provider),
+      provider: service,
       projectId: projectId.toString(),
-      config: readDeviceManagementConfig(config),
+      config: readDeviceManagementConfig(config, service),
       apiKey: readEsperApiKey(secrets[SECRET_API_KEY]),
     };
   }

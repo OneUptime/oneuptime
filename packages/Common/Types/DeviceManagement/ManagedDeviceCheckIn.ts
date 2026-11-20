@@ -1,8 +1,15 @@
 import Dictionary from "../Dictionary";
 import {
+  ManagedDeviceNaming,
   canonicalizeManagedDeviceIdentity,
-  getManagedDeviceHostName,
+  getManagedDeviceUniqueHostName,
+  getManagedDeviceUniqueName,
+  getSharedManagedDeviceNames,
 } from "./ManagedDeviceIdentity";
+import {
+  ManagedDevicePlatform,
+  readManagedDevicePlatform,
+} from "./ManagedDevicePlatform";
 import {
   ManagedDeviceStatus,
   getManagedDeviceStatus,
@@ -83,6 +90,12 @@ export enum ManagedDeviceCheckInAttribute {
   Group = "oneuptime.managed_device.group",
   // "true" while the device is a host in Hosts (it runs the Android agent).
   IsHost = "oneuptime.managed_device.is_host",
+  /*
+   * What it runs (ManagedDevicePlatform): "android", "ios", "ipados"... A
+   * monitor of an Esper connection reads its Android devices and its Apple
+   * devices apart, since an Apple device checks in hours apart (#9837).
+   */
+  Platform = "oneuptime.managed_device.platform",
   // Its host, as telemetry names it.
   HostName = "resource.host.name",
 }
@@ -97,6 +110,8 @@ const STATUSES_WITH_A_CHECK_IN_AGE: ReadonlySet<ManagedDeviceStatus> =
 // What a reading reads of a device.
 export interface ManagedDeviceCheckInDevice {
   providerDeviceId?: string | undefined;
+  // What it runs; none (a row read before the platform was kept) is Android.
+  platform?: string | undefined | null;
   deviceName?: string | undefined;
   alias?: string | undefined;
   serialNumber?: string | undefined;
@@ -108,12 +123,16 @@ export interface ManagedDeviceCheckInDevice {
 }
 
 export interface ManagedDeviceCheckInReading {
-  // The device's name in the service (its host.name, as written).
+  /*
+   * The device's name in the service (its host.name, as written), with its
+   * host's name after it when another device of the connection shares it.
+   */
   deviceName: string;
   // Its host, as telemetry names it: trimmed and lowercased.
   hostName: string;
   alias: string;
   group: string;
+  platform: ManagedDevicePlatform;
   ageInMinutes: number;
   // Whether it is a host in Hosts, which Host Stopped Reporting watches.
   isHost: boolean;
@@ -151,24 +170,38 @@ export function getManagedDeviceCheckInAgeInMinutes(
 
 /*
  * The readings of a connection's devices at `asOf`: one per device in
- * service with a known check-in, by its name in the service, the first of
- * two that share one (which a service that names its devices uniquely
- * never sends). `hostNames` are the hosts in Hosts, as telemetry names
- * them. Pure.
+ * service with a known check-in, by its name in the service. Two devices
+ * that share a name (Intune's "iPhone") are each told apart by what names
+ * their hosts (getManagedDeviceUniqueHostName), so each is a series of its
+ * own and its reading lands on its own host. `hostNames` are the hosts in
+ * Hosts, as telemetry names them. Pure.
  */
 export function getManagedDeviceCheckInReadings(data: {
   devices: ReadonlyArray<ManagedDeviceCheckInDevice>;
   hostNames: ReadonlySet<string>;
   asOf: Date;
+  // The connection's service; Esper when absent.
+  provider?: string | undefined;
 }): Array<ManagedDeviceCheckInReading> {
   const readings: Array<ManagedDeviceCheckInReading> = [];
   const seen: Set<string> = new Set<string>();
+  // As Inventory names their hosts: from the devices still in the service.
+  const sharedNames: Set<string> = getSharedManagedDeviceNames(
+    data.devices.filter((device: ManagedDeviceCheckInDevice): boolean => {
+      return !device.removedAt;
+    }),
+  );
 
   for (const device of data.devices) {
+    const platform: ManagedDevicePlatform = readManagedDevicePlatform(
+      device.platform,
+    );
     const status: ManagedDeviceStatus = getManagedDeviceStatus({
       providerState: device.providerState,
       lastCheckInAt: device.lastCheckInAt,
       removedAt: device.removedAt,
+      provider: data.provider,
+      platform: platform,
       now: data.asOf,
     });
 
@@ -183,12 +216,15 @@ export function getManagedDeviceCheckInReadings(data: {
       continue;
     }
 
-    const deviceName: string = getManagedDeviceHostName({
+    const naming: ManagedDeviceNaming = {
       deviceName: device.deviceName,
       serialNumber: device.serialNumber,
       providerDeviceId: device.providerDeviceId,
-    });
-    const hostName: string = canonicalizeManagedDeviceIdentity(deviceName);
+    };
+    const deviceName: string = getManagedDeviceUniqueName(naming, sharedNames);
+    const hostName: string = canonicalizeManagedDeviceIdentity(
+      getManagedDeviceUniqueHostName(naming, sharedNames),
+    );
 
     if (!hostName || seen.has(hostName)) {
       continue;
@@ -201,6 +237,7 @@ export function getManagedDeviceCheckInReadings(data: {
       hostName,
       alias: (device.alias || "").trim(),
       group: (device.groupPath || device.groupName || "").trim(),
+      platform,
       ageInMinutes,
       isHost: data.hostNames.has(hostName),
     });
@@ -225,6 +262,7 @@ export function getManagedDeviceCheckInAttributes(data: {
     [ManagedDeviceCheckInAttribute.IsHost]: data.reading.isHost
       ? "true"
       : "false",
+    [ManagedDeviceCheckInAttribute.Platform]: data.reading.platform,
     [ManagedDeviceCheckInAttribute.HostName]: data.reading.hostName,
   };
 

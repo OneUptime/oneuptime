@@ -5,6 +5,7 @@ import {
 } from "../AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import TelemetryReadScopeUtil from "./TelemetryReadScope";
+import LogNumericAttributeSql from "./LogNumericAttributeSql";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
@@ -50,8 +51,10 @@ import { writeOwnValue } from "../../../Utils/LookupTable";
  *
  * The numeric attribute is read with toFloat64OrNull, and a log whose
  * value is missing, not a number or not finite (nan, inf) is left out by
- * the WHERE clause - never read as 0. The bucket comes back as a unix
- * timestamp, so reading it does not depend on the server's time zone.
+ * the WHERE clause - never read as 0 - exactly as the log explorer's
+ * Analytics reads it (LogNumericAttributeSql), so a rule made from a chart
+ * writes the chart's values. The bucket comes back as a unix timestamp, so
+ * reading it does not depend on the server's time zone.
  */
 
 export const LOG_RECORDING_RULE_QUERY_MAX_EXECUTION_TIME_IN_SECONDS: number = 45;
@@ -156,22 +159,8 @@ export default class LogRecordingRuleQuery {
     LogRecordingRuleQuery.appendFilter(statement, filter);
 
     if (needsValueAttribute) {
-      /*
-       * Only logs that carry the attribute, as a finite number. The key
-       * check first rides the attributeKeys bloom index the way
-       * StatementGenerator's map filters do (rows written before that
-       * column existed have it empty and fall through to the value test).
-       */
-      statement.append(
-        SQL` AND (empty(attributeKeys) OR hasAny(attributeKeys, ${{
-          type: TableColumnType.ArrayText,
-          value: [valueAttribute],
-        }})) AND isFinite(`,
-      );
-      statement.append(
-        LogRecordingRuleQuery.buildValueExpression(valueAttribute),
-      );
-      statement.append(")");
+      // Only logs that carry the attribute, as a finite number.
+      LogNumericAttributeSql.appendIsNumberFilter(statement, valueAttribute);
     }
 
     statement.append(" GROUP BY bucket");
@@ -374,13 +363,10 @@ export default class LogRecordingRuleQuery {
     );
   }
 
-  private static buildValueExpression(valueAttribute: string): Statement {
-    return SQL`toFloat64OrNull(attributes[${{
-      type: TableColumnType.Text,
-      value: valueAttribute,
-    }}])`;
-  }
-
+  /*
+   * The count of the minute's logs, or the aggregate of the numeric
+   * attribute, read as the log explorer's Analytics reads it.
+   */
   private static buildAggregateExpression(
     aggregationType: AggregationType,
     valueAttribute: string,
@@ -389,36 +375,10 @@ export default class LogRecordingRuleQuery {
       return new Statement().append("count()");
     }
 
-    const percentileLevel: number | null =
-      LogRecordingRuleDefinitionUtil.getPercentileLevel(aggregationType);
-
-    let functionCall: string;
-
-    if (percentileLevel !== null) {
-      functionCall = `quantile(${percentileLevel})`;
-    } else {
-      const functionNames: Partial<Record<AggregationType, string>> = {
-        [AggregationType.Sum]: "sum",
-        [AggregationType.Avg]: "avg",
-        [AggregationType.Min]: "min",
-        [AggregationType.Max]: "max",
-      };
-
-      const functionName: string | undefined = functionNames[aggregationType];
-
-      if (!functionName) {
-        throw new BadDataException(
-          `Unsupported log recording rule aggregation: ${String(aggregationType)}`,
-        );
-      }
-
-      functionCall = functionName;
-    }
-
-    return new Statement()
-      .append(`${functionCall}(`)
-      .append(LogRecordingRuleQuery.buildValueExpression(valueAttribute))
-      .append(")");
+    return LogNumericAttributeSql.buildAggregateExpression(
+      aggregationType,
+      valueAttribute,
+    );
   }
 
   /*

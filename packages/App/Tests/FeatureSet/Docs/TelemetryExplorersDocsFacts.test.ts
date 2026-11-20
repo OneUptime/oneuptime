@@ -84,6 +84,11 @@ import {
   LogsTableColumnOption,
 } from "Common/UI/Components/LogsViewer/types";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import MetricQueryOverlay, {
+  OverlayAxis,
+  OverlayChartAxes,
+  OverlayUnitFit,
+} from "Common/Utils/Metrics/MetricQueryOverlay";
 import { DEFAULT_SAVED_VIEW_TIME_RANGE } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import { INTERACTIVE_READ_TIME_LIMIT } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
@@ -1133,7 +1138,7 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     );
   });
 
-  it("charts logs as a time series, a top list or a table, counted or unique, top 5 to 50", () => {
+  it("charts logs as a time series, a top list or a table, counted, unique or a numeric attribute's aggregate, top 5 to 50", () => {
     const analytics: string = readCommonSource(
       "UI/Components/LogsViewer/components/LogsAnalyticsView.tsx",
     );
@@ -1148,6 +1153,15 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       'label: "Table"',
       'label: "Count"',
       'label: "Unique Count"',
+      // A numeric attribute's aggregates (#7716).
+      'label: "Sum"',
+      'label: "Average"',
+      'label: "Median (P50)"',
+      'label: "P90"',
+      'label: "P95"',
+      'label: "P99"',
+      'label: "Minimum"',
+      'label: "Maximum"',
       'label: "Severity"',
       'label: "Service"',
       'label: "Trace ID"',
@@ -1157,7 +1171,27 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
     }
 
     expect(page).toContain(
-      "Pick a time series, a top list or a table; count every log, or the unique values of one field; and group by severity, service, trace, span or any attribute, then by a second field. A top list or a table shows the top 5, 10, 25 or 50 groups.",
+      "Pick a time series, a top list or a table, and what it measures: every log counted, the unique values of one field, or the sum, average, median, P90, P95, P99, minimum or maximum of a numeric attribute, such as the P95 of `duration_ms`. Group by severity, service, trace, span or any attribute, then by a second field. A top list or a table shows the top 5, 10, 25 or 50 groups.",
+    );
+  });
+
+  /*
+   * What counts as a number is LogNumericAttributeSql's: toFloat64OrNull,
+   * and only a finite value is read - the WHERE clause leaves the rest out.
+   * A percentile is ClickHouse's quantile, a reservoir of 8,192 values.
+   */
+  it("says which attribute values a numeric aggregate reads, and how close a percentile is", () => {
+    const numberSql: string = readCommonSource(
+      "Server/Utils/Telemetry/LogNumericAttributeSql.ts",
+    );
+
+    expect(numberSql).toContain("toFloat64OrNull(attributes[");
+    expect(numberSql).toContain(") AND isFinite(`");
+    expect(numberSql).toContain("return `quantile(${percentileLevel})`;");
+    expect(numberSql).toContain("8,192 values per group");
+
+    expect(page).toContain(
+      "A numeric attribute is read only where its value is a number: an integer or a decimal, with or without a sign, in scientific notation or not, such as `42`, `-7`, `3.14` or `1e3`. A log without the attribute, or with anything else in it, such as `12ms` or `n/a`, is left out rather than read as 0. A percentile is worked out from up to 8,192 values per point, so a point of more logs than that has a close estimate rather than the exact value.",
     );
   });
 
@@ -1737,6 +1771,84 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
       ),
     ).toEqual(["Line", "Area", "Bar"]);
     expect(page).toContain("**Chart type** (Line, Area or Bar)");
+  });
+
+  /*
+   * Issue #10045: the page says how an overlaid query's unit is read, as
+   * MetricQueryOverlay reads it and the chart draws it (#9961, #10042).
+   */
+  it("says how an overlaid query's unit is read: converted, on a second axis, or on neither", () => {
+    const charts: string = readDashboardSource(
+      "Components/Metrics/MetricCharts.tsx",
+    );
+    const axes: OverlayChartAxes = MetricQueryOverlay.readChartAxes([
+      { unit: "%" },
+      { unit: "By" },
+      { unit: "ms" },
+    ]);
+
+    // The overlay line comes first, then the units, in a paragraph of its own.
+    const overlayLine: number = page.indexOf(
+      "Each query draws its own chart. To draw a query on the same chart as the one before it, turn on **Overlay with previous query**",
+    );
+    const unitsLine: number = page.indexOf(
+      "An overlaid chart reads its left value axis in its first query's unit",
+    );
+
+    expect(overlayLine).toBeGreaterThan(-1);
+    expect(unitsLine).toBeGreaterThan(overlayLine);
+
+    // The same kind: converted into the left axis's unit.
+    expect(
+      MetricQueryOverlay.readChartAxes([{ unit: "GB" }, { unit: "MB" }])
+        .readings[1],
+    ).toMatchObject({
+      axis: OverlayAxis.First,
+      fit: OverlayUnitFit.Converted,
+    });
+    expect(page).toContain(
+      "converts a query in another unit of the same kind into it, such as megabytes on a chart in gigabytes",
+    );
+
+    // Another kind: a second axis on the right, in its own unit.
+    expect(axes.readings[1]).toMatchObject({
+      axis: OverlayAxis.Second,
+      fit: OverlayUnitFit.Same,
+    });
+    expect(axes.secondAxisLeadIndex).toBe(1);
+    expect(page).toContain(
+      "A query in a unit of another kind, such as bytes on a chart in percent, is drawn against a second value axis on the chart's right, in its own unit",
+    );
+
+    // The legend names each series' axis, as the chart's chips do.
+    expect(charts).toContain('translator.translateText("Right axis")');
+    expect(charts).toContain('translator.translateText("Left axis")');
+    expect(page).toContain(
+      "the legend under the chart says which axis each series is drawn against",
+    );
+
+    /*
+     * A third kind: on neither, drawn to a scale of its own with no axis
+     * (#10080), its values in the legend and the tooltip, and said.
+     */
+    expect(axes.readings[2]).toMatchObject({
+      axis: OverlayAxis.OwnScale,
+      fit: OverlayUnitFit.Same,
+      ownScale: 0,
+    });
+    expect(axes.ownScaleLeadIndexes).toEqual([2]);
+    expect(charts).toContain("OVERLAY_UNIT_MISMATCH_TEST_ID");
+    expect(charts).toContain('translator.translateText("Own scale")');
+    expect(charts).toContain(
+      "so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.",
+    );
+    expect(queryConfig).toContain("METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID");
+    expect(queryConfig).toContain(
+      "so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.",
+    );
+    expect(page).toContain(
+      "Only a third kind of unit fits neither axis: it is drawn to a scale of its own, with no axis, and the chart and the switch both say so. Read its values in the legend and the tooltip.",
+    );
   });
 
   it("adds queries and formulas, and reads a formula the way the page writes one", () => {

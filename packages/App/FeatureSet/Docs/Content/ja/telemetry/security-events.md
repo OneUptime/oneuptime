@@ -191,8 +191,8 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | SSH サインイン、sudo | Linux マシンの journal または認証ログを [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) で送信 |
 | Windows イベント | マシン上のコレクターの `windowseventlog` レシーバー、または NXLog や Winlogbeat のように各イベントを JSON で書き出すフォワーダー。OneUptime に追加した [ホスト](/docs/telemetry/hosts) は、Sysmon、Microsoft Defender、PowerShell があればそれらも読み取ります |
 | AWS CloudTrail | CloudWatch Logs に配信される証跡を、コレクターの `awscloudwatch` レシーバーで読み取り。**クラウド** で接続したアカウントなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
-| Google Cloud 監査ログ | Pub/Sub へのログシンクを、コレクターの `googlecloudpubsub` レシーバーで `encoding: raw_text` を指定して読み取り。**クラウド** で接続したプロジェクトなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
-| Azure アクティビティと Entra ID のログ | Event Hub にストリーミングする診断設定を、コレクターの `azureeventhub` レシーバーで `format: raw` を指定して読み取り。**クラウド** で接続したサブスクリプションのアクティビティ ログなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
+| Google Cloud 監査ログ | Pub/Sub へのログシンクを、コレクターの `googlecloudpubsub` レシーバーで `encoding: raw_text` を指定して読み取り。**クラウド** で接続したプロジェクトなら、その [ストリーム](/docs/telemetry/cloud-streaming-google-cloud) または [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
+| Azure アクティビティと Entra ID のログ | Event Hub にストリーミングする診断設定を、コレクターの `azureeventhub` レシーバーで `format: raw` を指定して読み取り。または、接続したサブスクリプションの [ストリーム](/docs/telemetry/cloud-streaming-azure) のイベント ハブに送る。**クラウド** で接続したサブスクリプションのアクティビティ ログなら [クラウド監査ログ](#クラウド-アカウントの監査ログを読み取る) |
 | OpenStack 監査証跡 | クラウドの通知と監査フィルターを `driver = log` でログに送り、エージェントの [ログプロファイル](/docs/telemetry/openstack#誰が何をしたか) で読み取り |
 | CEF、LEEF | 製品の syslog を [rsyslog](/docs/telemetry/syslog) で中継 |
 | Palo Alto Networks、FortiGate、Cisco ASA | ファイアウォール独自の syslog を [rsyslog](/docs/telemetry/syslog) で中継 |
@@ -203,7 +203,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 
 CEF や LEEF の検出結果、Palo Alto Networks、FortiGate、Cisco ASA の脅威など、セキュリティ製品がログに書き込む脅威は、接続した製品のアラートと同じように [ケース](/docs/telemetry/security-cases) を開き、そこに示されたユーザー、ホスト、アドレスのリスクを高めます。どの重大度から開くかは **ログ** の **ケースを開く重大度** で決まり、別の重大度を選ばない限り **高以上** で、**なし** にもできます。製品のサインインやブロックされた接続はイベントのまま残り、ルールで読み取れます。
 
-二つの経路で OneUptime に届くレコードは一度だけ保存されます。たとえば、接続が読み取り、Azure がログにもエクスポートする Microsoft Entra ID のサインインや、ログと接続した AWS アカウントの監査ログの両方にある CloudTrail のレコードです。
+二つの経路で OneUptime に届くレコードは一度だけ保存されます。たとえば、接続が読み取り、Azure がログにもエクスポートする Microsoft Entra ID のサインイン、ログと接続した AWS アカウントの監査ログの両方にある CloudTrail のレコード、クラウド アカウントのストリームが送り、**クラウド監査ログ** も読み取る監査レコードです。
 
 ### クラウド アカウントの監査ログを読み取る
 
