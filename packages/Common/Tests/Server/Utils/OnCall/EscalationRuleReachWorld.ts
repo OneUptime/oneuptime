@@ -99,8 +99,6 @@ export interface TimeLogWrite {
   scheduleId: string | null;
 }
 
-type AnyFunction = (...args: Array<any>) => any;
-
 // The values a QueryHelper.any (a Raw IN) holds, or the value itself.
 export function readQueryValues(value: unknown): Array<string> | null {
   if (value === undefined || value === null) {
@@ -225,7 +223,7 @@ export default class ReachWorld {
   // Answers every read EscalationRuleReach and the services' hooks make here.
   public install(): void {
     jest
-      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy" as never)
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
       .mockImplementation((async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<OnCallDutyPolicyEscalationRuleUser>> => {
@@ -255,10 +253,10 @@ export default class ReachWorld {
             model.onCallDutyPolicyEscalationRuleId = row.ruleId;
             return model;
           });
-      }) as AnyFunction);
+      }) as never);
 
     jest
-      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy" as never)
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
       .mockImplementation((async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<OnCallDutyPolicyEscalationRuleTeam>> => {
@@ -288,10 +286,10 @@ export default class ReachWorld {
             model.onCallDutyPolicyEscalationRuleId = row.ruleId;
             return model;
           });
-      }) as AnyFunction);
+      }) as never);
 
     jest
-      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy" as never)
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
       .mockImplementation((async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<OnCallDutyPolicyEscalationRuleSchedule>> => {
@@ -318,10 +316,10 @@ export default class ReachWorld {
               return model;
             },
           );
-      }) as AnyFunction);
+      }) as never);
 
     jest
-      .spyOn(TeamMemberService, "findBy" as never)
+      .spyOn(TeamMemberService, "findBy")
       .mockImplementation((async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<TeamMember>> => {
@@ -350,7 +348,7 @@ export default class ReachWorld {
             model.hasAcceptedInvitation = membership.accepted;
             return model;
           });
-      }) as AnyFunction);
+      }) as never);
 
     const usersIn: (
       teamIds: Array<ObjectID>,
@@ -391,14 +389,14 @@ export default class ReachWorld {
       teamId: ObjectID,
     ): Promise<Array<User>> => {
       return usersIn([teamId], false);
-    }) as AnyFunction);
+    }) as never);
 
     jest.spyOn(TeamMemberService, "getUsersInTeams").mockImplementation((async (
       teamIds: Array<ObjectID>,
       options?: { acceptedOnly?: boolean },
     ): Promise<Array<User>> => {
       return usersIn(teamIds, Boolean(options?.acceptedOnly));
-    }) as AnyFunction);
+    }) as never);
 
     jest
       .spyOn(ProjectMembership, "getMemberUserIds")
@@ -414,7 +412,7 @@ export default class ReachWorld {
               return userId.toString().toLowerCase();
             }),
         );
-      }) as AnyFunction);
+      }) as never);
 
     jest.spyOn(ProjectMembership, "getMemberKeys").mockImplementation((async (
       pairs: Array<ProjectUserPair>,
@@ -428,7 +426,7 @@ export default class ReachWorld {
             return ProjectMembership.getKey(pair.projectId, pair.userId);
           }),
       );
-    }) as AnyFunction);
+    }) as never);
 
     jest
       .spyOn(OnCallDutyPolicyScheduleService, "getCurrentUserIdInSchedule")
@@ -436,7 +434,7 @@ export default class ReachWorld {
         scheduleId: ObjectID,
       ): Promise<ObjectID | null> => {
         return this.onCall.get(scheduleId.toString()) || null;
-      }) as AnyFunction);
+      }) as never);
 
     jest
       .spyOn(OnCallDutyPolicyScheduleService, "getNextInRotationInSchedule")
@@ -454,7 +452,7 @@ export default class ReachWorld {
           nextUserId: this.next.get(scheduleId.toString()) || null,
           layerName: null,
         };
-      }) as AnyFunction);
+      }) as never);
 
     const record: (
       action: "start" | "end",
@@ -487,13 +485,13 @@ export default class ReachWorld {
       .mockImplementation((async (data: never) => {
         record("start", data);
         return {};
-      }) as AnyFunction);
+      }) as never);
 
     jest
       .spyOn(OnCallDutyPolicyTimeLogService, "endTimeLogForUser")
       .mockImplementation((async (data: never) => {
         record("end", data);
-      }) as AnyFunction);
+      }) as never);
   }
 
   private throwIfFailing(): void {
