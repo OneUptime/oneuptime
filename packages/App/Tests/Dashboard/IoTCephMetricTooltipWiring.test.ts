@@ -827,14 +827,18 @@ describe("Ceph cluster overview", () => {
       "const renderPgDistribution: () => ReactElement",
       "const renderGoldenCharts",
     );
-    expect(bar).toContain("if (!canOpenPgPools) { return {}; }");
+    expect(bar).toContain(
+      "if (!canOpenPgPools && !isPgCountClusterWide) { return {}; }",
+    );
     expect(bar).toContain(
       'label: tx("Degraded PGs"), ...pressToOpenPools("degraded"),',
     );
     expect(bar).toContain(
       'label: tx("Undersized PGs"), ...pressToOpenPools("undersized"),',
     );
-    expect(bar).toContain("clickHint: tx(CEPH_POOL_HINT),");
+    expect(bar).toContain(
+      "clickHint: tx(canOpenPgPools ? CEPH_POOL_HINT : CEPH_PG_CLUSTER_HINT),",
+    );
     // The rest of the bar stays words.
     expect(bar).toContain('label: tx("Active + Clean"), },');
 
@@ -851,10 +855,42 @@ describe("Ceph cluster overview", () => {
       "items: getCephPgStatePoolItems({ items: attentionItems, rows: inventoryRows, pgStatesByPool: pgStatesByPool, state: state, reasonsByPool: reasonsByPool, translator: translator, }),",
     );
     expect(code).toContain(
-      "<ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
+      "{openPgState && canOpenPgPools ? ( <ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
     );
     expect(code).toContain(
       "load={(): Promise<ResourceAttentionDialogRead> => { return loadPgStatePools(openPgState); }}",
+    );
+  });
+
+  /*
+   * A Ceph that counts placement groups for the whole cluster only
+   * (Luminous, the first Mimic releases) never says which pools hold them
+   * (#10016). Its segments open the cluster's own row - Ceph's reason, read
+   * from its cluster-wide ceph_pg_<state> series - and its OSDs that are
+   * down, and the dialog says which pools is not known.
+   */
+  test("on a Ceph that counts them for the whole cluster only, the bar's segments open the cluster's reason and its down OSDs", () => {
+    expect(code).toContain(
+      "const isPgCountClusterWide: boolean = isAttentionCurrent && pgStats !== null && !(pgStatesByPool && pgStatesByPool.size > 0);",
+    );
+    const read: string = segment(
+      code,
+      "const loadPgStateCluster:",
+      "const loadPgStatePools:",
+    );
+    expect(read).toContain(
+      "reasonStates = await loadCephClusterPgReasonStates(clusterName);",
+    );
+    // A failed read of Ceph's reason says so, and keeps the OSDs that are down.
+    expect(read).toContain("} catch { isReasonUnread = true; }");
+    expect(read).toContain(
+      "items: getCephClusterPgStateItems({ state: state, cluster: { name: clusterName }, totals: pgStats, items: attentionItems, rows: inventoryRows, reasonStates: reasonStates, isReasonUnread: isReasonUnread, translator: translator, }),",
+    );
+    expect(code).toContain(
+      "{openPgState && !canOpenPgPools && isPgCountClusterWide ? ( <ResourceAttentionDialog testId={`ceph-pg-${openPgState}-dialog`}",
+    );
+    expect(code).toContain(
+      "description={CEPH_PG_STATE_CLUSTER_DESCRIPTIONS[openPgState]} load={(): Promise<ResourceAttentionDialogRead> => { return loadPgStateCluster(openPgState); }} emptyMessage={CEPH_NO_PG_STATE_CLUSTER[openPgState]}",
     );
   });
 
