@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Besökare loggar in med er OpenID Connect-leverantör, till exempel Google eller Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Besökare loggar in med er SAML-identitetsleverantör, till exempel Okta eller Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Era SAML- och OIDC-identitetsleverantörer och ”Kräv SSO för inloggning”.",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Bara dess privata användare och de personer som er enkla inloggning släpper in ser den. Alla andra ombeds logga in, via dess länk och anpassade domäner."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Bara dess privata användare och de personer som er enkla inloggning släpper in ser den. Alla andra ombeds logga in, via dess länk och anpassade domäner.",
+  "Couldn't load how this resource's metrics were collected.": "Det gick inte att läsa in hur den här resursens mätvärden samlades in.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Molnet svarade att det inte levererar det här mätvärdet för den här resursen, så anslutningen slutar fråga efter det i ett dygn.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Molnet var för upptaget för att svara vid den senaste läsningen. Nästa läsning frågar igen.",
+  "Its metrics are read for the first time at its connection's next read.": "Mätvärdena läses för första gången vid anslutningens nästa läsning.",
+  "Its metrics could not be read at its connection's last read.": "Mätvärdena kunde inte läsas vid anslutningens senaste läsning.",
+  "Its metrics have not been read since {{time}}.": "Mätvärdena har inte lästs sedan {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Mätvärdena lästes {{time}}, men {{count}} av dem kunde inte läsas.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Mätvärdena lästes {{time}}, men ett av dem kunde inte läsas.",
+  "Its metrics were read {{time}}.": "Mätvärdena lästes {{time}}.",
+  "Not read since {{time}}.": "Inte läst sedan {{time}}."
 }

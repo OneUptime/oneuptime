@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "訪問者は、Google や Okta などの OpenID Connect プロバイダーでサインインします。",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "訪問者は、Okta や Microsoft Entra ID などの SAML ID プロバイダーでサインインします。",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "SAML と OIDC の ID プロバイダー、および「サインインに SSO を必須にする」。",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "閲覧できるのは、プライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人には、リンクとカスタムドメインでサインインが求められます。"
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "閲覧できるのは、プライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人には、リンクとカスタムドメインでサインインが求められます。",
+  "Couldn't load how this resource's metrics were collected.": "このリソースのメトリクスの収集状況を読み込めませんでした。",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "クラウドがこのリソースではこのメトリクスを提供していないと応答したため、接続は 1 日間このメトリクスを要求しません。",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "前回の読み取り時、クラウドが混雑していて応答できませんでした。次回の読み取りで再度要求します。",
+  "Its metrics are read for the first time at its connection's next read.": "メトリクスは接続の次回の読み取りで初めて読み取られます。",
+  "Its metrics could not be read at its connection's last read.": "接続の前回の読み取りでメトリクスを読み取れませんでした。",
+  "Its metrics have not been read since {{time}}.": "{{time}} 以降、メトリクスは読み取られていません。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "メトリクスは {{time}} に読み取られましたが、そのうち {{count}} 件は読み取れませんでした。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "メトリクスは {{time}} に読み取られましたが、そのうち 1 件は読み取れませんでした。",
+  "Its metrics were read {{time}}.": "メトリクスは {{time}} に読み取られました。",
+  "Not read since {{time}}.": "{{time}} 以降、読み取られていません。"
 }

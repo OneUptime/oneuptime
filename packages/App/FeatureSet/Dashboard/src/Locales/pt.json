@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Os visitantes entram com o seu provedor OpenID Connect, como Google ou Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Os visitantes entram com o seu provedor de identidade SAML, como Okta ou Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Seus provedores de identidade SAML e OIDC, e \"Exigir SSO para entrar\".",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Apenas seus usuários privados e as pessoas que o seu login único deixa entrar o verão. Todos os outros são solicitados a entrar, no link e nos domínios personalizados dele."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Apenas seus usuários privados e as pessoas que o seu login único deixa entrar o verão. Todos os outros são solicitados a entrar, no link e nos domínios personalizados dele.",
+  "Couldn't load how this resource's metrics were collected.": "Não foi possível carregar como as métricas deste recurso foram coletadas.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "A nuvem respondeu que não fornece esta métrica para este recurso, por isso a conexão deixa de pedi-la por um dia.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "A nuvem estava ocupada demais para responder na última leitura. A próxima leitura pede de novo.",
+  "Its metrics are read for the first time at its connection's next read.": "As métricas são lidas pela primeira vez na próxima leitura da conexão.",
+  "Its metrics could not be read at its connection's last read.": "As métricas não puderam ser lidas na última leitura da conexão.",
+  "Its metrics have not been read since {{time}}.": "As métricas não são lidas desde {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "As métricas foram lidas {{time}}, mas {{count}} delas não puderam ser lidas.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "As métricas foram lidas {{time}}, mas uma delas não pôde ser lida.",
+  "Its metrics were read {{time}}.": "As métricas foram lidas {{time}}.",
+  "Not read since {{time}}.": "Não lida desde {{time}}."
 }

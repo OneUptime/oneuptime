@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Посетители входят через вашего поставщика OpenID Connect, например Google или Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Посетители входят через вашего поставщика удостоверений SAML, например Okta или Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Ваши поставщики удостоверений SAML и OIDC и «Требовать SSO для входа».",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Её увидят только её приватные пользователи и люди, которых впускает ваш единый вход. Всех остальных попросят войти — по её ссылке и на её пользовательских доменах."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Её увидят только её приватные пользователи и люди, которых впускает ваш единый вход. Всех остальных попросят войти — по её ссылке и на её пользовательских доменах.",
+  "Couldn't load how this resource's metrics were collected.": "Не удалось загрузить сведения о том, как собирались метрики этого ресурса.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Облако ответило, что не предоставляет эту метрику для этого ресурса, поэтому подключение не запрашивает её в течение суток.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "При последнем чтении облако было слишком загружено, чтобы ответить. Следующее чтение запросит снова.",
+  "Its metrics are read for the first time at its connection's next read.": "Метрики будут впервые прочитаны при следующем чтении подключения.",
+  "Its metrics could not be read at its connection's last read.": "При последнем чтении подключения не удалось прочитать метрики.",
+  "Its metrics have not been read since {{time}}.": "Метрики не читались с {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Метрики прочитаны {{time}}, но {{count}} из них прочитать не удалось.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Метрики прочитаны {{time}}, но одну из них прочитать не удалось.",
+  "Its metrics were read {{time}}.": "Метрики прочитаны {{time}}.",
+  "Not read since {{time}}.": "Не читалась с {{time}}."
 }

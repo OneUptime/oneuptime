@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "आगंतुक आपके OpenID Connect प्रदाता, जैसे Google या Okta, से साइन इन करते हैं।",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "आगंतुक आपके SAML पहचान प्रदाता, जैसे Okta या Microsoft Entra ID, से साइन इन करते हैं।",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "आपके SAML और OIDC पहचान प्रदाता, और \"साइन इन के लिए SSO अनिवार्य करें\"।",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "इसे केवल इसके निजी उपयोगकर्ता और वे लोग देखेंगे जिन्हें आपका सिंगल साइन-ऑन अंदर आने देता है। बाकी सभी से इसके लिंक और कस्टम डोमेन पर साइन इन करने को कहा जाता है।"
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "इसे केवल इसके निजी उपयोगकर्ता और वे लोग देखेंगे जिन्हें आपका सिंगल साइन-ऑन अंदर आने देता है। बाकी सभी से इसके लिंक और कस्टम डोमेन पर साइन इन करने को कहा जाता है।",
+  "Couldn't load how this resource's metrics were collected.": "यह लोड नहीं हो सका कि इस संसाधन के मेट्रिक्स कैसे एकत्र किए गए।",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "इसके क्लाउड ने जवाब दिया कि वह इस संसाधन के लिए यह मेट्रिक नहीं देता, इसलिए इसका कनेक्शन एक दिन तक इसे नहीं माँगता।",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "पिछली रीडिंग में इसका क्लाउड जवाब देने के लिए बहुत व्यस्त था। अगली रीडिंग इसे फिर से माँगती है।",
+  "Its metrics are read for the first time at its connection's next read.": "इसके मेट्रिक्स इसके कनेक्शन की अगली रीडिंग में पहली बार पढ़े जाएँगे।",
+  "Its metrics could not be read at its connection's last read.": "इसके कनेक्शन की पिछली रीडिंग में इसके मेट्रिक्स नहीं पढ़े जा सके।",
+  "Its metrics have not been read since {{time}}.": "{{time}} से इसके मेट्रिक्स नहीं पढ़े गए हैं।",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "इसके मेट्रिक्स {{time}} पढ़े गए, लेकिन उनमें से {{count}} नहीं पढ़े जा सके।",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "इसके मेट्रिक्स {{time}} पढ़े गए, लेकिन उनमें से एक नहीं पढ़ा जा सका।",
+  "Its metrics were read {{time}}.": "इसके मेट्रिक्स {{time}} पढ़े गए।",
+  "Not read since {{time}}.": "{{time}} से नहीं पढ़ा गया।"
 }

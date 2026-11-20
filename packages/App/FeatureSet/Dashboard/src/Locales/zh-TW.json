@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "訪客透過您的 OpenID Connect 提供者（例如 Google 或 Okta）登入。",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "訪客透過您的 SAML 身分提供者（例如 Okta 或 Microsoft Entra ID）登入。",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "您的 SAML 和 OIDC 身分提供者，以及「登入時要求使用 SSO」。",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "只有其私人使用者和您的單一登入允許的人才能看到它。其他所有人都會在其連結和自訂網域上被要求登入。"
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "只有其私人使用者和您的單一登入允許的人才能看到它。其他所有人都會在其連結和自訂網域上被要求登入。",
+  "Couldn't load how this resource's metrics were collected.": "無法載入此資源指標的收集情況。",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "其雲端回覆不為此資源提供此指標，因此其連線在一天內不再請求它。",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "上次讀取時其雲端過於忙碌，未能回應。下次讀取會再次請求。",
+  "Its metrics are read for the first time at its connection's next read.": "其指標將在其連線下次讀取時首次讀取。",
+  "Its metrics could not be read at its connection's last read.": "其連線上次讀取時未能讀取其指標。",
+  "Its metrics have not been read since {{time}}.": "自 {{time}} 起未讀取其指標。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "其指標已於 {{time}} 讀取，但其中 {{count}} 個未能讀取。",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "其指標已於 {{time}} 讀取，但其中 1 個未能讀取。",
+  "Its metrics were read {{time}}.": "其指標已於 {{time}} 讀取。",
+  "Not read since {{time}}.": "自 {{time}} 起未讀取。"
 }

@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Visitors sign in with your OpenID Connect provider, such as Google or Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Your SAML and OIDC identity providers, and Require SSO to Sign In.",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.",
+  "Couldn't load how this resource's metrics were collected.": "Couldn't load how this resource's metrics were collected.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "Its cloud was too busy to answer for it at the last read. The next read asks again.",
+  "Its metrics are read for the first time at its connection's next read.": "Its metrics are read for the first time at its connection's next read.",
+  "Its metrics could not be read at its connection's last read.": "Its metrics could not be read at its connection's last read.",
+  "Its metrics have not been read since {{time}}.": "Its metrics have not been read since {{time}}.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "Its metrics were read {{time}}, but {{count}} of them could not be.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Its metrics were read {{time}}, but one of them could not be.",
+  "Its metrics were read {{time}}.": "Its metrics were read {{time}}.",
+  "Not read since {{time}}.": "Not read since {{time}}."
 }

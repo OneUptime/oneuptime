@@ -60406,5 +60406,15 @@
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Bezoekers melden zich aan met uw OpenID Connect-provider, zoals Google of Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Bezoekers melden zich aan met uw SAML-identiteitsprovider, zoals Okta of Microsoft Entra ID.",
   "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Uw SAML- en OIDC-identiteitsproviders, en 'SSO vereisen om aan te melden'.",
-  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Alleen de privégebruikers ervan en de mensen die uw single sign-on toelaat, zien het. Alle anderen wordt gevraagd zich aan te melden, via de link en de aangepaste domeinen ervan."
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Alleen de privégebruikers ervan en de mensen die uw single sign-on toelaat, zien het. Alle anderen wordt gevraagd zich aan te melden, via de link en de aangepaste domeinen ervan.",
+  "Couldn't load how this resource's metrics were collected.": "Kon niet laden hoe de metrieken van deze resource zijn verzameld.",
+  "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.": "De cloud antwoordde dat deze metriek voor deze resource niet wordt geleverd, dus de koppeling vraagt er een dag lang niet meer om.",
+  "Its cloud was too busy to answer for it at the last read. The next read asks again.": "De cloud was bij de laatste leesbeurt te druk om te antwoorden. De volgende leesbeurt vraagt het opnieuw.",
+  "Its metrics are read for the first time at its connection's next read.": "De metrieken worden bij de volgende leesbeurt van de koppeling voor het eerst gelezen.",
+  "Its metrics could not be read at its connection's last read.": "De metrieken konden bij de laatste leesbeurt van de koppeling niet worden gelezen.",
+  "Its metrics have not been read since {{time}}.": "De metrieken zijn sinds {{time}} niet gelezen.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be.": "De metrieken zijn {{time}} gelezen, maar {{count}} ervan konden niet worden gelezen.",
+  "Its metrics were read {{time}}, but {{count}} of them could not be._one": "De metrieken zijn {{time}} gelezen, maar één ervan kon niet worden gelezen.",
+  "Its metrics were read {{time}}.": "De metrieken zijn {{time}} gelezen.",
+  "Not read since {{time}}.": "Niet gelezen sinds {{time}}."
 }
