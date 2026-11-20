@@ -13,6 +13,8 @@ import EventRootCauseMetricChart, {
   RootCauseEventReader,
   RootCauseMoments,
 } from "../Telemetry/EventRootCauseMetricChart";
+import { readRootCauseMonitorSteps } from "../Telemetry/RootCauseMonitorSteps";
+import { MONITOR_THROUGH_RELATION_SELECT } from "../Monitor/ReadMonitorSteps";
 import {
   ALERT_EPISODE_FIRST_MEMBER,
   fetchFirstEpisodeMember,
@@ -32,10 +34,12 @@ export interface ComponentProps {
 /*
  * How the Root Cause card reads an alert episode: its first alert, as its
  * Overview picks it (EpisodeFirstMember) - the columns that decide what it
- * charts, with its one monitor, only what the card reads of it, as an
- * alert's own card reads them; then, for a card there is, the episode
- * itself, as its Overview reads it: when it was created and resolved, its
- * state timeline and the project's alert states.
+ * charts, with which monitor it is on and what kind, and that monitor's
+ * steps when it kept no snapshot and the monitor reads metrics, on the
+ * monitor by the reader's own read (#10309), as an alert's own card reads
+ * them; then, for a card there is, the episode itself, as its Overview reads
+ * it: when it was created and resolved, its state timeline and the project's
+ * alert states.
  */
 export const ALERT_EPISODE_ROOT_CAUSE_READER: RootCauseEventReader = {
   subject: EventMetricSubject.AlertEpisode,
@@ -52,15 +56,13 @@ export const ALERT_EPISODE_ROOT_CAUSE_READER: RootCauseEventReader = {
         telemetryQuery: true,
         seriesLabels: true,
         createdCriteriaId: true,
-        monitor: {
-          _id: true,
-          monitorType: true,
-          monitorSteps: true,
-        },
+        monitor: MONITOR_THROUGH_RELATION_SELECT,
       },
     });
 
-    return member ? getAlertEpisodeRootCauseEvent(member) : null;
+    return member
+      ? await readRootCauseMonitorSteps(getAlertEpisodeRootCauseEvent(member))
+      : null;
   },
   readMoments: async (episodeId: ObjectID): Promise<RootCauseMoments> => {
     const [episode, timelines, states]: [
