@@ -25,6 +25,12 @@ enum EmailTemplateType {
   ConfirmEmailChange = "ConfirmEmailChange.hbs",
   EmailChangeAddressTaken = "EmailChangeAddressTaken.hbs",
   ConfirmProjectSsoSignIn = "ConfirmProjectSsoSignIn.hbs",
+  /*
+   * The SSO sign-in links of the organizations an account belongs to, asked
+   * for on "Sign in with SSO" (#9987, Types/Accounts/SsoSignInLinks), in the
+   * account's own language.
+   */
+  SsoSignInLinks = "SsoSignInLinks.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
   AIAgentOwnerAdded = "AIAgentOwnerAdded.hbs",

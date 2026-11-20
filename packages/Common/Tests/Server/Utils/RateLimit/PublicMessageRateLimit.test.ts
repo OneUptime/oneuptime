@@ -230,6 +230,14 @@ describe("the limits in force", () => {
         perClientLimit: 30,
         perContactLimit: 10,
       },
+      /*
+       * An account's organizations' SSO sign-in links (#9987): they do not
+       * change, so one email is what a person needs.
+       */
+      [PublicMessageKind.SsoSignInLinks]: {
+        perClientLimit: 30,
+        perContactLimit: 5,
+      },
       [PublicMessageKind.SignUpEmail]: {
         perClientLimit: 60,
         perContactLimit: 5,
@@ -315,6 +323,16 @@ describe("the limits in force", () => {
         config: PublicMessageRateLimitConfig,
       ): number => {
         return config.kinds[PublicMessageKind.MagicLink].perContactLimit;
+      },
+      SSO_SIGN_IN_LINKS_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.SsoSignInLinks].perClientLimit;
+      },
+      SSO_SIGN_IN_LINKS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.SsoSignInLinks].perContactLimit;
       },
       SIGN_UP_EMAILS_PER_IP: (config: PublicMessageRateLimitConfig): number => {
         return config.kinds[PublicMessageKind.SignUpEmail].perClientLimit;

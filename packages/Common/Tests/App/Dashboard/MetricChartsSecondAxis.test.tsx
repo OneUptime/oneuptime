@@ -35,8 +35,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - its warning and critical lines, a monitor rule's lines, its previous
  *     period's line and its exemplars on its axis, in its axis's unit;
  *   - a percent's soft scale on whichever side it is;
- *   - a third kind of unit, which fits neither axis: on the left as it is,
- *     its values written in its own unit, and said;
+ *   - a third kind of unit, which fits neither axis: drawn to a scale of
+ *     its own, with no axis, one per kind, its lines and exemplars with it,
+ *     its values written in its own unit, and said (issue #10080);
  *   - the legend: each axis's unit, each series' axis, each value in its
  *     own unit, and a moment's values the same way.
  *
@@ -131,7 +132,10 @@ import { Chart } from "../../../UI/Components/Charts/ChartGroup/ChartGroup";
 import { ComponentProps as LineChartProps } from "../../../UI/Components/Charts/Line/LineChart";
 import ChartReferenceLineProps from "../../../UI/Components/Charts/Types/ReferenceLineProps";
 import ExemplarPoint from "../../../UI/Components/Charts/Types/ExemplarPoint";
-import { SecondYAxis } from "../../../UI/Components/Charts/Types/YAxis/YAxis";
+import {
+  OwnScaleYAxis,
+  SecondYAxis,
+} from "../../../UI/Components/Charts/Types/YAxis/YAxis";
 import { PREVIOUS_PERIOD_SERIES_SUFFIX } from "../../../UI/Components/Charts/ChartLibrary/Utils/TooltipEntries";
 import ValueFormatter from "../../../Utils/ValueFormatter";
 
@@ -267,6 +271,7 @@ interface DrawnSeries {
 
 interface ChartAxes {
   secondYAxis?: SecondYAxis | undefined;
+  ownScaleYAxes?: Array<OwnScaleYAxis> | undefined;
   seriesValueFormatters?: Record<string, (value: number) => string> | undefined;
 }
 
@@ -276,6 +281,11 @@ function axesOf(chart: Chart): ChartAxes {
 
 function secondAxisSeries(chart: Chart): Array<string> | undefined {
   return axesOf(chart).secondYAxis?.seriesNames;
+}
+
+// A chart's scales of their own (issue #10080), none as empty.
+function ownScalesOf(chart: Chart): Array<OwnScaleYAxis> {
+  return axesOf(chart).ownScaleYAxes || [];
 }
 
 function valuesOf(chart: Chart): Record<string, Array<number>> {
@@ -741,7 +751,12 @@ describe("a percent axis keeps its scale on either side", () => {
   });
 });
 
-describe("a third kind of unit fits neither axis", () => {
+/*
+ * ISSUE #10080: a third kind of unit fits neither axis. Drawn against the
+ * left axis, it stretched it; it is drawn to a scale of its own now, with no
+ * axis, one per kind of unit, and its lines and exemplars with it.
+ */
+describe("a third kind of unit fits neither axis: a scale of its own", () => {
   const THREE_KINDS: Array<MetricQueryConfigData> = [
     query("a", "cpu", { unit: "%" }),
     query("b", "mem_used", { unit: "By", overlay: true }),
@@ -755,19 +770,53 @@ describe("a third kind of unit fits neither axis", () => {
     resultOf([2, 3]),
   ];
 
-  test("drawn on the left as it is, while the fourth query, in gigabytes, joins the bytes on the right", async () => {
+  test("drawn to a scale of its own, while the fourth query, in gigabytes, joins the bytes on the right", async () => {
     const [chart] = await drawCharts(THREE_KINDS, THREE_KINDS_RESULTS);
+    const ownScales: Array<OwnScaleYAxis> = ownScalesOf(chart!);
 
     expect(secondAxisSeries(chart!)).toEqual(["mem_used", "mem_free"]);
+    expect(ownScales).toHaveLength(1);
+    expect(ownScales[0]!.seriesNames).toEqual(["latency"]);
+    expect(ownScales[0]!.legend).toBe("ms");
+    // A scale of milliseconds fits its values: no percent range.
+    expect(ownScales[0]!.options.min).toBe("auto");
+    expect(ownScales[0]!.options.max).toBe("auto");
+    expect(ownScales[0]!.options.formatter(120)).toBe(written(120, "ms"));
+    // Its values as they are, never on the left axis's percent scale.
     expect(valuesOf(chart!)["latency"]).toEqual([120, 180]);
     // Gigabytes on an axis in bytes: converted into bytes.
     expectClose(valuesOf(chart!)["mem_free"]!, [2e9, 3e9]);
+  });
 
+  test("its warning line is drawn to its scale, in its unit", async () => {
+    const [chart] = await drawCharts(THREE_KINDS, THREE_KINDS_RESULTS);
     const warning: ChartReferenceLineProps = lineNamed(chart!, "Warning");
 
     expect(warning.value).toBe(300);
     expect(warning.isOnSecondYAxis).toBeFalsy();
+    expect(warning.ownScaleId).toBe(ownScalesOf(chart!)[0]!.id);
     expect(warning.label).toBe(`Warning: ${written(300, "ms")}`);
+  });
+
+  test("the left axis keeps its percent scale: the third kind no longer stretches it", async () => {
+    const [chart] = await drawCharts(
+      [
+        query("a", "cpu", { unit: "%" }),
+        query("b", "mem_used", { unit: "By", overlay: true }),
+        query("c", "processes", { unit: "{processes}", overlay: true }),
+      ],
+      [resultOf([20, 40]), resultOf([4e9, 5e9]), resultOf([70, 7000])],
+    );
+    const yAxis: { options: { min: unknown; max: unknown } } = (
+      chart!.props as unknown as {
+        yAxis: { options: { min: unknown; max: unknown } };
+      }
+    ).yAxis;
+
+    // The percent axis's soft range, over the percent series alone.
+    expect(yAxis.options.min).toBe(0);
+    expect(yAxis.options.max).toBe(100);
+    expect(ownScalesOf(chart!)[0]!.seriesNames).toEqual(["processes"]);
   });
 
   test("its tooltip writes its values in its own unit, the others by their axes", async () => {
@@ -783,8 +832,101 @@ describe("a third kind of unit fits neither axis", () => {
     await drawCharts(THREE_KINDS, THREE_KINDS_RESULTS);
 
     expect(screen.getByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toHaveTextContent(
-      "Queries in Milliseconds fit neither axis of this chart (Percent, Bytes), so they are drawn against the left axis and may not be directly comparable.",
+      "Queries in Milliseconds fit neither axis of this chart (Percent, Bytes), so each kind of unit is drawn to a scale of its own, with no axis. Read their values in the legend and the tooltip.",
     );
+  });
+
+  test("a later query of the third kind shares its scale, converted; a fourth kind gets a scale of its own", async () => {
+    const [chart] = await drawCharts(
+      [
+        query("a", "cpu", { unit: "%" }),
+        query("b", "mem_used", { unit: "By", overlay: true }),
+        query("c", "latency", { unit: "ms", overlay: true }),
+        query("d", "processes", { unit: "{processes}", overlay: true }),
+        query("e", "latency_seconds", {
+          unit: "s",
+          overlay: true,
+          critical: 0.5,
+        }),
+      ],
+      [
+        resultOf([20, 40]),
+        resultOf([4e9, 5e9]),
+        resultOf([120, 180]),
+        resultOf([70, 90]),
+        resultOf([0.2, 0.25]),
+      ],
+    );
+    const ownScales: Array<OwnScaleYAxis> = ownScalesOf(chart!);
+
+    expect(
+      ownScales.map((scale: OwnScaleYAxis): Array<string> => {
+        return scale.seriesNames;
+      }),
+    ).toEqual([["latency", "latency_seconds"], ["processes"]]);
+    // Seconds on a scale of milliseconds: converted into milliseconds.
+    expectClose(valuesOf(chart!)["latency_seconds"]!, [200, 250]);
+    // Its critical line too, on the shared scale, in milliseconds.
+    const critical: ChartReferenceLineProps = lineNamed(chart!, "Critical");
+
+    expect(critical.value).toBeCloseTo(500, 9);
+    expect(critical.ownScaleId).toBe(ownScales[0]!.id);
+    expect(critical.label).toBe(`Critical: ${written(500, "ms")}`);
+    // Two scales, two ids.
+    expect(ownScales[0]!.id).not.toBe(ownScales[1]!.id);
+  });
+
+  test("a percent as the third kind keeps its soft 0-100% range on its scale", async () => {
+    const [chart] = await drawCharts(
+      [
+        query("a", "mem_used", { unit: "By" }),
+        query("b", "latency", { unit: "ms", overlay: true }),
+        query("c", "cpu", { unit: "%", overlay: true }),
+      ],
+      [resultOf([4e9, 5e9]), resultOf([120, 180]), resultOf([30, 60])],
+    );
+    const ownScales: Array<OwnScaleYAxis> = ownScalesOf(chart!);
+
+    expect(ownScales[0]!.seriesNames).toEqual(["cpu"]);
+    expect(ownScales[0]!.legend).toBe("%");
+    expect(ownScales[0]!.options.min).toBe(0);
+    expect(ownScales[0]!.options.max).toBe(100);
+  });
+
+  test("its exemplars are drawn to its scale", async () => {
+    exemplarsByMetric["latency"] = [
+      {
+        x: new Date(WINDOW_START.getTime() + 10 * 60 * 1000),
+        y: 150,
+        traceId: "trace-latency",
+      },
+    ];
+
+    try {
+      const [chart] = await drawCharts(THREE_KINDS, THREE_KINDS_RESULTS);
+      const exemplar: ExemplarPoint | undefined = (
+        chart!.exemplarPoints || []
+      ).find((point: ExemplarPoint): boolean => {
+        return point.traceId === "trace-latency";
+      });
+
+      expect(exemplar).toBeDefined();
+      expect(exemplar!.y).toBe(150);
+      expect(exemplar!.ownScaleId).toBe(ownScalesOf(chart!)[0]!.id);
+      expect(exemplar!.isOnSecondYAxis).toBeFalsy();
+    } finally {
+      delete exemplarsByMetric["latency"];
+    }
+  });
+
+  test("a chart whose queries fit its axes has no scale of its own", async () => {
+    const [chart] = await drawCharts(PERCENT_AND_BYTES, [
+      resultOf([20, 40]),
+      resultOf([4e9, 5e9]),
+    ]);
+
+    expect(ownScalesOf(chart!)).toEqual([]);
+    expect(screen.queryByTestId(OVERLAY_UNIT_MISMATCH_TEST_ID)).toBeNull();
   });
 });
 
@@ -817,7 +959,7 @@ describe("the legend says which axis each series uses", () => {
     expect(chipOf("mem_used")).toHaveTextContent(shown(5e9, "By"));
   });
 
-  test("a series on neither axis is on the left, its value in its own unit", async () => {
+  test("a series on neither axis says it has a scale of its own, its value in its own unit", async () => {
     await drawCharts(
       [
         query("a", "cpu", { unit: "%" }),
@@ -827,8 +969,22 @@ describe("the legend says which axis each series uses", () => {
       [resultOf([20]), resultOf([4e9]), resultOf([180])],
     );
 
-    expect(chipAxis("latency")).toBe("Left axis");
+    expect(chipAxis("latency")).toBe("Own scale");
+    expect(chipAxis("cpu")).toBe("Left axis");
+    expect(chipAxis("mem_used")).toBe("Right axis");
     expect(chipOf("latency")).toHaveTextContent(shown(180, "ms"));
+    // The badges name each axis's unit, and the scale of its own.
+    expect(
+      screen
+        .getAllByTestId(CHART_AXIS_UNIT_TEST_ID)
+        .map((badge: HTMLElement): string | null => {
+          return badge.textContent;
+        }),
+    ).toEqual([
+      "Left axis: Percent",
+      "Right axis: Bytes",
+      "Own scale: Milliseconds",
+    ]);
   });
 
   test("a chart with one axis names no axis: its unit as before, and plain chips", async () => {

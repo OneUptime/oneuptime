@@ -8,6 +8,7 @@ import {
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
 import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
+import { SEND_SSO_SIGN_IN_LINKS_ROUTE } from "Common/Types/Accounts/SsoSignInLinks";
 import { getProjectSignInMethodsRoute } from "Common/Types/SSO/SignInMethods";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
@@ -150,6 +151,15 @@ export const getProjectSignInMethodsApiUrl: (projectId: string) => URL = (
     new Route(getProjectSignInMethodsRoute(projectId)),
   );
 };
+
+/*
+ * Emails an address the SSO sign-in links of the organizations its account
+ * belongs to (Common/Types/Accounts/SsoSignInLinks, #9987). It answers every
+ * address alike, so the page says the same thing whatever it was.
+ */
+export const SEND_SSO_SIGN_IN_LINKS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(SEND_SSO_SIGN_IN_LINKS_ROUTE));
 
 export const GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,

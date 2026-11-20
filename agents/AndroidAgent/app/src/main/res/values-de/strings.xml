@@ -88,6 +88,7 @@
     <string name="log_session_title">Protokolle zur Fehlerbehebung</string>
     <string name="log_session_request_by">%1$s bittet in OneUptime um die Protokolle aller Apps auf diesem Gerät für %2$s, ab Stufe %3$s.</string>
     <string name="log_session_request">OneUptime bittet um die Protokolle aller Apps auf diesem Gerät für %1$s, ab Stufe %2$s.</string>
+    <string name="log_session_note">„%1$s“</string>
     <string name="log_session_android_prompt">Android fragt Sie dann, ob Sie den Zugriff auf alle Geräteprotokolle zulassen möchten. Wählen Sie auch dort Zulassen.</string>
     <string name="log_session_allow">Zulassen</string>
     <string name="log_session_decline">Ablehnen</string>

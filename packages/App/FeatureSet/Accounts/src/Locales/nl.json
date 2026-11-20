@@ -244,7 +244,13 @@
     "signInWithProvider": "Inloggen met {{name}}",
     "requiredSubtitle": "Deze server vereist single sign-on (SSO).",
     "requiredNotSetUp": "Single sign-on is nog niet ingesteld op deze server. Vraag uw serverbeheerder om het in te stellen.",
-    "useDifferentEmail": "Ander e-mailadres gebruiken"
+    "useDifferentEmail": "Ander e-mailadres gebruiken",
+    "lastUsedTitle": "Laatst gebruikt op dit apparaat",
+    "forgetLastUsed": "Deze provider vergeten",
+    "emailLinksPrompt": "We kunnen dit adres de SSO-aanmeldlinks sturen van alle organisaties waartoe het behoort.",
+    "emailLinksButton": "Mijn aanmeldlinks e-mailen",
+    "emailLinksSent": "Als dit adres bij een organisatie hoort die single sign-on gebruikt, hebben we het de SSO-aanmeldlinks gestuurd.",
+    "emailLinksCaptchaRequired": "Voltooi de captcha voordat u de links aanvraagt."
   },
   "adminLogin": {
     "title": "Aanmelden als hoofdbeheerder",

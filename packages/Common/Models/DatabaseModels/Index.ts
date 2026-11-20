@@ -492,6 +492,7 @@ import UserWebAuthn from "./UserWebAuthn";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 import TelemetryIngestionKeyRefusal from "./TelemetryIngestionKeyRefusal";
+import TelemetryIngestionTeamLabelBudget from "./TelemetryIngestionTeamLabelBudget";
 
 import TelemetryException from "./TelemetryException";
 import TelemetryExceptionActivity from "./TelemetryExceptionActivity";
@@ -1166,6 +1167,7 @@ const AllModelTypes: Array<{
 
   TelemetryIngestionKey,
   TelemetryIngestionKeyRefusal,
+  TelemetryIngestionTeamLabelBudget,
 
   TelemetryException,
   TelemetryExceptionActivity,

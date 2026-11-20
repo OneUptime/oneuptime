@@ -41,6 +41,17 @@ export interface ValueFormatterOptions {
    * formatter has no translations of its own; English when left out.
    */
   unitName?: ((unit: string) => string) | undefined;
+  /*
+   * The step between the ticks of the value axis the value is written on,
+   * in the value's unit (issue #10079). Given, the value is written with
+   * as many figures after the point as that step needs in the unit it is
+   * written in, and keeps them all: "17.205 GB" on an axis stepping 5 MB
+   * at a time, "17.200 GB" beside it. A chart hands it only to an axis
+   * whose ticks would otherwise all read alike ("17.2 GB" five times), and
+   * to the tooltip that writes its values. Left out, a value is written as
+   * it always was.
+   */
+  step?: number | undefined;
 }
 
 type UnitThreshold = {
@@ -324,9 +335,86 @@ interface ScaledValue {
   unit: string; // e.g. "MB", "hours"
 }
 
+/*
+ * THE FIGURES AFTER THE POINT AN AXIS'S STEP NEEDS (issue #10079).
+ *
+ * A value axis over a range small beside its values wrote the same label on
+ * every tick: a filesystem holding 17.2 GB, give or take a few megabytes,
+ * read "17.2 GB" five times, as the formatter keeps about three figures. A
+ * chart that knows its axis's step hands it over (options.step), and each
+ * value is written with the figures that step needs in the unit the value
+ * is written in: the fewest at which two neighbouring ticks differ, and one
+ * more for a step such as 2.5 that is written exactly with it. A step that
+ * no number of figures writes exactly (a second, in hours) gets the fewest
+ * that keep neighbours apart. Each tick keeps them all, trailing zeros too,
+ * so an axis's ticks line up: "17.200 GB", "17.205 GB", "17.210 GB".
+ */
+const MOST_STEP_DECIMALS: number = 12;
+
+// How many figures after the point `value` is written with: 0.0025 has 4.
+function countWrittenDecimals(value: number): number {
+  const [mantissa, exponent] = value.toExponential().split("e");
+  const mantissaDecimals: number = ((mantissa || "").split(".")[1] || "")
+    .length;
+
+  return Math.max(0, mantissaDecimals - Number(exponent || 0));
+}
+
+/*
+ * The figures after the point a value written in a unit `divisor` times the
+ * axis's own takes, for ticks `step` apart; undefined with no step, as
+ * before.
+ */
+function getDecimalsForStep(
+  step: number | undefined,
+  divisor: number = 1,
+): number | undefined {
+  if (
+    typeof step !== "number" ||
+    !Number.isFinite(step) ||
+    step === 0 ||
+    !Number.isFinite(divisor) ||
+    divisor === 0
+  ) {
+    return undefined;
+  }
+
+  // Rounded to twelve figures: 0.1 + 0.2 is a step of 0.3, not 0.30000000000000004.
+  const scaledStep: number = Number(Math.abs(step / divisor).toPrecision(12));
+
+  if (!(scaledStep > 0) || !Number.isFinite(scaledStep)) {
+    return undefined;
+  }
+
+  // The fewest figures at which values a step apart round apart.
+  const apart: number = Math.max(0, Math.ceil(-Math.log10(scaledStep) - 1e-9));
+  const exact: number = countWrittenDecimals(scaledStep);
+
+  return Math.min(
+    MOST_STEP_DECIMALS,
+    exact <= apart + 1 ? Math.max(apart, exact) : apart,
+  );
+}
+
+// A figure toFixed wrote for a value that rounds to zero from below: "-0.000".
+const NEGATIVE_ZERO: RegExp = /^-0(\.0+)?$/;
+
+// toFixed, without the minus of a value that rounds to zero: "0.000", not "-0.000".
+function toFixedFigures(value: number, decimals: number): string {
+  const written: string = value.toFixed(decimals);
+
+  return NEGATIVE_ZERO.test(written) ? written.slice(1) : written;
+}
+
+// The step in a unit `divisor` times the value's own, or none.
+function stepIn(step: number | undefined, divisor: number): number | undefined {
+  return typeof step === "number" ? step / divisor : undefined;
+}
+
 function formatWithThresholds(
   value: number,
   thresholds: Array<UnitThreshold>,
+  step?: number,
 ): ScaledValue {
   const absValue: number = Math.abs(value);
 
@@ -344,18 +432,27 @@ function formatWithThresholds(
       thresholds.find((t: UnitThreshold) => {
         return t.divisor === 1;
       }) ?? (thresholds[thresholds.length - 1] as UnitThreshold);
-    return { value: "0", unit: natural.unit };
+    return {
+      value: formatNumber(0, stepIn(step, natural.divisor)),
+      unit: natural.unit,
+    };
   }
 
   for (const t of thresholds) {
     if (absValue >= t.threshold) {
-      return { value: formatNumber(value / t.divisor), unit: t.unit };
+      return {
+        value: formatNumber(value / t.divisor, stepIn(step, t.divisor)),
+        unit: t.unit,
+      };
     }
   }
 
   // Fallback: use last threshold
   const last: UnitThreshold = thresholds[thresholds.length - 1]!;
-  return { value: formatNumber(value / last.divisor), unit: last.unit };
+  return {
+    value: formatNumber(value / last.divisor, stepIn(step, last.divisor)),
+    unit: last.unit,
+  };
 }
 
 /*
@@ -366,28 +463,36 @@ function formatWithThresholds(
  * Always renders 2 decimal places of the scaled value, then trims trailing
  * zeros — so neighbouring ticks like 119.20B / 119.25B remain distinct
  * (the user can see the counter rising) while round values stay clean
- * (5K, not 5.00K).
+ * (5K, not 5.00K). On an axis that hands its step over, the figures are the
+ * step's, every one kept: "119.200B", "119.201B" (issue #10079).
  */
-function formatLargeNumber(value: number): string {
+function formatLargeNumber(value: number, step?: number): string {
   const absValue: number = Math.abs(value);
-  let scaled: number;
+  let divisor: number;
   let suffix: string;
 
   if (absValue >= 1e15) {
-    scaled = value / 1e15;
+    divisor = 1e15;
     suffix = "P";
   } else if (absValue >= 1e12) {
-    scaled = value / 1e12;
+    divisor = 1e12;
     suffix = "T";
   } else if (absValue >= 1e9) {
-    scaled = value / 1e9;
+    divisor = 1e9;
     suffix = "B";
   } else if (absValue >= 1e6) {
-    scaled = value / 1e6;
+    divisor = 1e6;
     suffix = "M";
   } else {
-    scaled = value / 1e3;
+    divisor = 1e3;
     suffix = "K";
+  }
+
+  const scaled: number = value / divisor;
+  const stepDecimals: number | undefined = getDecimalsForStep(step, divisor);
+
+  if (stepDecimals !== undefined) {
+    return `${toFixedFigures(scaled, stepDecimals)}${suffix}`;
   }
 
   let formatted: string = scaled.toFixed(2);
@@ -398,15 +503,22 @@ function formatLargeNumber(value: number): string {
   return `${formatted}${suffix}`;
 }
 
-function formatNumber(value: number): string {
+function formatNumber(value: number, step?: number): string {
+  const stepDecimals: number | undefined = getDecimalsForStep(step);
+
   if (value === 0) {
-    return "0";
+    return stepDecimals === undefined ? "0" : toFixedFigures(0, stepDecimals);
   }
 
   const absValue: number = Math.abs(value);
 
   if (absValue >= 1e3) {
-    return formatLargeNumber(value);
+    return formatLargeNumber(value, step);
+  }
+
+  // On an axis that hands its step over, the step's figures (issue #10079).
+  if (stepDecimals !== undefined) {
+    return toFixedFigures(value, stepDecimals);
   }
 
   if (absValue >= 100) {
@@ -444,12 +556,21 @@ function formatNumber(value: number): string {
 /*
  * Percent values always render with two decimal places. Trailing zeros are
  * preserved (so 100 → "100.00", 2 → "2.00") to keep axis ticks and tooltips
- * visually consistent across high- and low-utilization series.
+ * visually consistent across high- and low-utilization series. On an axis
+ * that hands its step over, with the step's figures: "99.995%" beside
+ * "99.990%" (issue #10079).
  */
-function formatPercent(value: number): string {
+function formatPercent(value: number, step?: number): string {
   if (!Number.isFinite(value)) {
     return "0.00";
   }
+
+  const stepDecimals: number | undefined = getDecimalsForStep(step);
+
+  if (stepDecimals !== undefined) {
+    return toFixedFigures(value, stepDecimals);
+  }
+
   return value.toFixed(2);
 }
 
@@ -544,26 +665,61 @@ const languageCompactFormats: Map<string, Intl.NumberFormat | null> = new Map<
   Intl.NumberFormat | null
 >();
 
-function getLanguageCompactFormat(language: string): Intl.NumberFormat | null {
-  if (!languageCompactFormats.has(language)) {
+/*
+ * The language's compact notation: to the two decimals English keeps, or,
+ * for a value on an axis that hands its step over (issue #10079), to
+ * exactly `significantDigits` figures, so every tick keeps the axis's
+ * resolution whichever scale the language writes it in ("119,201 Mrd.",
+ * "1192.01億").
+ */
+function getLanguageCompactFormat(
+  language: string,
+  significantDigits?: number,
+): Intl.NumberFormat | null {
+  const key: string = [language, significantDigits ?? ""].join("|");
+
+  if (!languageCompactFormats.has(key)) {
     let format: Intl.NumberFormat | null = null;
 
     try {
-      const options: IntlFormatOptions = {
-        notation: "compact",
-        compactDisplay: "short",
-        maximumFractionDigits: 2,
-      };
+      const options: IntlFormatOptions =
+        significantDigits === undefined
+          ? {
+              notation: "compact",
+              compactDisplay: "short",
+              maximumFractionDigits: 2,
+            }
+          : {
+              notation: "compact",
+              compactDisplay: "short",
+              minimumSignificantDigits: significantDigits,
+              maximumSignificantDigits: significantDigits,
+            };
 
       format = new Intl.NumberFormat(getNumberLocale(language), options);
     } catch {
       format = null;
     }
 
-    languageCompactFormats.set(language, format);
+    languageCompactFormats.set(key, format);
   }
 
-  return languageCompactFormats.get(language) || null;
+  return languageCompactFormats.get(key) || null;
+}
+
+/*
+ * The significant figures that write `number` to the resolution of a figure
+ * English wrote with `decimals` after the point at `exponent`'s scale:
+ * 119.201B (three decimals of a billion) is to the million, six figures.
+ */
+function getSignificantDigitsFor(
+  number: number,
+  exponent: number,
+  decimals: number,
+): number {
+  const magnitude: number = Math.floor(Math.log10(Math.abs(number)));
+
+  return Math.min(21, Math.max(1, magnitude - (exponent - decimals) + 1));
 }
 
 /*
@@ -711,12 +867,15 @@ function writeTimeWordInLanguage(
  * the number (with its scale letter), the percent sign when it is a
  * percentage ("" otherwise), and the two as the language joins them. Null
  * where there is nothing to rewrite - English, or a text that is not a
- * number - and the English stands.
+ * number - and the English stands. `keepsFigures` is set for a value on an
+ * axis that handed its step over (issue #10079): a scaled number then keeps
+ * every figure English wrote, in the language's own scale.
  */
 function writeNumberInLanguage(
   text: string,
   isPercent: boolean,
   language: string | undefined,
+  keepsFigures: boolean = false,
 ): { value: string; percentSign: string; formatted: string } | null {
   if (isEnglishDateLanguage(language)) {
     return null;
@@ -749,10 +908,17 @@ function writeNumberInLanguage(
    * "۱٫۲ هزار", "120万" - not English's letter after the language's digits.
    */
   if (scaleLetter && !isPercent) {
+    const read: { number: number } | null = readWrittenNumber(text);
     const compact: Intl.NumberFormat | null = getLanguageCompactFormat(
       (language || "").trim(),
+      keepsFigures && read && read.number !== 0
+        ? getSignificantDigitsFor(
+            read.number,
+            SCALE_EXPONENTS[scaleLetter] || 0,
+            fraction.length,
+          )
+        : undefined,
     );
-    const read: { number: number } | null = readWrittenNumber(text);
 
     if (compact && read) {
       const written: string = compact.format(read.number);
@@ -899,6 +1065,13 @@ function formatValueParts(
   unitStyle: UnitStyle,
 ): FormattedValue {
   const trimmedUnit: string = (unit || "").trim();
+  // The step of the axis the value is written on, when it handed one over (#10079).
+  const step: number | undefined =
+    typeof options?.step === "number" &&
+    Number.isFinite(options.step) &&
+    options.step !== 0
+      ? Math.abs(options.step)
+      : undefined;
 
   const build: (partValue: string, partUnit: string) => FormattedValue = (
     partValue: string,
@@ -913,6 +1086,7 @@ function formatValueParts(
       partValue,
       partUnit === "%",
       options?.language,
+      step !== undefined,
     );
 
     if (inLanguage) {
@@ -973,12 +1147,12 @@ function formatValueParts(
     trimmedUnit === "1" &&
     ValueFormatter.isFractionMetric(options?.metricName)
   ) {
-    return build(formatPercent(value * 100), "%");
+    return build(formatPercent(value * 100, stepIn(step, 0.01)), "%");
   }
 
   // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
   if (trimmedUnit === "" || trimmedUnit === "1") {
-    return build(formatNumber(value), "");
+    return build(formatNumber(value, step), "");
   }
 
   /*
@@ -986,7 +1160,7 @@ function formatValueParts(
    * separating space — `25.00%`, never `25 Percent`.
    */
   if (ValueFormatter.isPercentUnit(trimmedUnit)) {
-    return build(formatPercent(value), "%");
+    return build(formatPercent(value, step), "%");
   }
 
   /*
@@ -997,7 +1171,7 @@ function formatValueParts(
    */
   const annotationOnlyUnitPattern: RegExp = /^\{[^{}]*\}$/;
   if (annotationOnlyUnitPattern.test(trimmedUnit)) {
-    return build(formatNumber(value), "");
+    return build(formatNumber(value, step), "");
   }
 
   const normalizedUnit: string = normalizeUnit(unit);
@@ -1005,7 +1179,7 @@ function formatValueParts(
     unitTableMap[normalizedUnit];
 
   if (thresholds) {
-    const scaled: ScaledValue = formatWithThresholds(value, thresholds);
+    const scaled: ScaledValue = formatWithThresholds(value, thresholds, step);
 
     return build(
       scaled.value,
@@ -1030,6 +1204,7 @@ function formatValueParts(
         const scaled: ScaledValue = formatWithThresholds(
           value,
           numeratorThresholds,
+          step,
         );
         const scaledUnit: string =
           unitStyle === "compact"
@@ -1039,7 +1214,7 @@ function formatValueParts(
       }
     }
 
-    return build(formatNumber(value), getRateSymbol(trimmedUnit));
+    return build(formatNumber(value, step), getRateSymbol(trimmedUnit));
   }
 
   /*
@@ -1059,7 +1234,7 @@ function formatValueParts(
    *
    */
   return build(
-    formatNumber(value),
+    formatNumber(value, step),
     unitStyle === "compact"
       ? ValueFormatter.getCompactUnit(unit, options)
       : getValueSymbol(trimmedUnit) ??
@@ -1129,6 +1304,18 @@ export default class ValueFormatter {
     options?: ValueFormatterOptions,
   ): FormattedValue {
     return formatValueParts(value, unit, options, "readable");
+  }
+
+  /*
+   * The figures after the point a value on an axis stepping `step` at a
+   * time is written with (issue #10079): what the `step` option writes, for
+   * a chart's own formatter that writes its figures itself ("99.95%" on an
+   * SLO's axis stepping 0.05 at a time). Undefined for no usable step.
+   */
+  public static getDecimalsForStep(
+    step: number | undefined,
+  ): number | undefined {
+    return getDecimalsForStep(step);
   }
 
   /*

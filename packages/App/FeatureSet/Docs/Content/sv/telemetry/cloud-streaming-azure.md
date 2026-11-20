@@ -83,6 +83,8 @@ En Service Bus- eller Event Hubs-namnrymd strömmar inga mätvärden. Läsningar
 
 En logg arkiveras under sin resurs efter resursens ARM-id, som bärs som `cloud.resource_id`, och behåller sin kategori, åtgärd, resultat och egenskaper som attribut, till exempel `azure.category`.
 
+En post i aktivitetsloggen i kategorin `Administrative`, `Security` eller `Policy`, och en inloggnings-, gransknings- eller riskpost från Microsoft Entra ID, kommer hel, som loggens brödtext, även en som gäller en resursgrupp, en prenumeration eller klientorganisationen i stället för en resurs. Med [Hitta säkerhetshändelser i dina loggar](/docs/telemetry/security-events#hitta-säkerhetshändelser-i-dina-loggar) påslaget läses varje post som en säkerhetshändelse, precis som en från en loggpipeline, och lagras en gång, hur många vägar den än når OneUptime. Kommandot konfigurerar bara resursloggar: en prenumerations aktivitetslogg och loggarna från Microsoft Entra ID når strömmen genom en egen diagnostikinställning som skickar dem till en av dess händelsehubbar.
+
 Virtuella datorer, skalningsuppsättningar, diskar, nätverksgränssnitt, virtuella nätverk, privata slutpunkter, NAT-gatewayer, DNS-zoner och App Service-planer skickar inga egna resursloggar, så deras sidor har ingen flik **Loggar**. Ett lagringskontos loggar är dess tjänsters, och en containerapps loggar är dess miljös.
 
 ## Vad kommandot skapar

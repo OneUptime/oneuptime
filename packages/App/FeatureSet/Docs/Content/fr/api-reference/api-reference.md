@@ -282,6 +282,16 @@ OneUptime enregistre qui a créé un enregistrement — et qui l'a archivé, ré
 
 La référence de l'API marque ces champs en lecture seule. Une valeur qu'une requête envoie pour l'un d'eux à côté d'autres modifications est ignorée, donc le reste de la modification passe ; une mise à jour qui n'envoie rien d'autre est refusée avec un message qui nomme les champs. Les enregistrements que OneUptime crée lui-même au nom de quelqu'un — une note publiée depuis Slack ou Microsoft Teams, un compte créé par une invitation — nomment cette personne.
 
+### Champs que seul OneUptime écrit
+
+Certains champs ne sont écrits que par OneUptime : quand un moniteur de télémétrie s'est exécuté pour la dernière fois et quand il s'exécutera la prochaine fois, ce qu'un agent a signalé en dernier, les échéances d'un SLA, quand un secret client SCIM cesse de fonctionner. La référence de l'API les marque en lecture seule et ne les inclut pas dans les corps de création et de mise à jour. Une création qui en envoie un, comme le fait la copie d'un enregistrement que vous avez lu, passe sans ce champ, et le nouvel enregistrement reçoit la valeur de OneUptime. Une mise à jour qui en envoie un est refusée, et la réponse nomme chacun des champs de ce type qu'elle a envoyés :
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+N'envoyez pas ces champs dans une mise à jour. Les rares qu'une personne modifie ont leur propre requête : renouveler un secret client SCIM fixe le moment où il cesse de fonctionner, et `POST /api/host/:id/try-collector-config-again` renvoie à un hôte la configuration du collecteur qui a échoué sur lui. Un champ que vous et OneUptime modifiez tous les deux, comme les `labels` d'un enregistrement, que les règles d'étiquettes complètent, vous le définissez comme avant.
+
 ## États et épisodes
 
 ### L'état dans lequel commence un nouvel enregistrement

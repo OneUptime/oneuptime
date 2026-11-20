@@ -83,6 +83,8 @@ Et Service Bus- eller Event Hubs-navnerum streamer ingen metrikker. Læsningerne
 
 En log arkiveres under sin ressource efter ressourcens ARM-id, der bæres som `cloud.resource_id`, og beholder sin kategori, handling, resultat og egenskaber som attributter, fx `azure.category`.
 
+En post i aktivitetsloggen af kategorien `Administrative`, `Security` eller `Policy` og en login-, audit- eller risikopost fra Microsoft Entra ID ankommer hel, som sin logs brødtekst, også en, der handler om en ressourcegruppe, et abonnement eller lejeren frem for en ressource. Med [Find sikkerhedshændelser i dine logs](/docs/telemetry/security-events#find-sikkerhedshændelser-i-dine-logs) slået til læses hver som en sikkerhedshændelse, ligesom en fra en logpipeline, og gemmes én gang, uanset hvor mange veje den når OneUptime ad. Kommandoen opsætter kun ressourcelogge: et abonnements aktivitetslog og Microsoft Entra ID's logge når streamen gennem en diagnosticeringsindstilling for sig, der sender dem til en af dens hændelseshubs.
+
 Virtuelle maskiner, skaleringssæt, diske, netværksgrænseflader, virtuelle netværk, private slutpunkter, NAT-gateways, DNS-zoner og App Service-planer sender ingen egne ressourcelogge, så deres sider har ingen fane **Protokoller**. En lagerkontos logge er dens tjenesters, og en container-apps logge er dens miljøs.
 
 ## Hvad kommandoen opretter

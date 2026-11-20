@@ -46,9 +46,9 @@ Hver tredje time fjerner OneUptime de oppdagede elementene som har vært stille 
 
 | Type element | Fjernes etter så lang tid uten telemetri |
 | --- | --- |
-| Pods, deployments, Proxmox-gjester og virtuelle VMware-maskiner | 1 dag |
-| Kubernetes-noder og -navnerom, Proxmox-noder, VMware-verter, -klynger og -datalagre, og databasene og de eksterne tjenestene tracene dine kaller | 7 dager |
-| Tjenester, verter, Kubernetes-, Proxmox- og Ceph-klynger, lagringsarrayer, vCenters og Docker Swarm-klynger | 30 dager |
+| Pods, deployments, Proxmox-gjester, OpenStack-instanser og virtuelle VMware-maskiner | 1 dag |
+| Kubernetes-noder og -navnerom, Proxmox-noder, OpenStack-hypervisorer, VMware-verter, -klynger og -datalagre, og databasene og de eksterne tjenestene tracene dine kaller | 7 dager |
+| Tjenester, verter, Kubernetes-, Proxmox- og Ceph-klynger, OpenStack-skyer, lagringsarrayer, vCenters og Docker Swarm-klynger | 30 dager |
 
 En relasjon OneUptime har oppdaget, fjernes når den ikke er sett igjen på 30 dager.
 
@@ -77,6 +77,8 @@ En vert eller en nettverksenhet har et kort **Eiendelsdetaljer** som beskriver b
 - En verts opplysninger kommer fra ressursattributtene i telemetrien: IP- og MAC-adressene, arkitekturen og operativsystemet fra start, og serienummer, merke, modell og fastvare når du stempler dem på.
 - En nettverksenhets opplysninger kommer fra SNMP-pollingen, rollen og stedet. Det pollingen ikke har lest, kommer fra discovery: den siste skanningen av adressen, en ruters ARP-tabell eller sondens DNS-oppslag. En enhet uten ENTITY-MIB, som en Meraki MX, får likevel merke, modell og operativsystem fra systembeskrivelsen sin, og MAC-adressen fra sine egne porter. IP-adressen vises aldri som vertsnavnet.
 - En Meraki-enhet henter også det pollingen lar stå tomt, fra Meraki-dashbordet, blant annet serienummer, modell og fastvare, når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens.
+
+**Alle elementer** finner Android-enhetene som krever handling. Filteret **Sikkerhetspatchnivå** viser under **Utdatert** enhetene der sikkerhetspatchnivået er mer enn 90 dager gammelt, den samme regelen som varselet Security Patch Out of Date i [Verts-monitor](/docs/monitor/host-monitor) bruker. Filteret **Agenttillatelser** viser enhetene der [Android-agenten](/docs/telemetry/android-agent) fortsatt mangler READ_LOGS, READ_DROPBOX_DATA eller brukstilgang. Hvert filter har en kolonne med samme navn, skjult til du slår den på, og den blir med i CSV-eksporten.
 
 Kortet viser hvor hver opplysning kom fra, og når. Kilden de fleste opplysningene deler, som en verts collector, en nettverksenhets egen SNMP-polling eller discovery-skanningen som leste den, nevnes én gang, under opplysningene. Enhver annen kilde, som en ruters ARP-tabell eller en verdi lagret på enheten, nevnes under sin opplysning. En verdi som er lagret på en nettverksenhet, erstattes aldri av det discovery leser, og når de to er forskjellige, viser kortet begge.
 

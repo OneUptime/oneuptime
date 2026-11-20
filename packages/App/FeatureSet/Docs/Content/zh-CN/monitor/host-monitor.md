@@ -137,9 +137,10 @@ OneUptime 有两种用于机器的监视器。它们可以在同一台主机上�
 | Device Overheating | 警告 | `android.thermal.status`，Max，最近 5 分钟 | 3（严重）或更糟 | 低于 3 |
 | Restart Loop | 严重 | `android.boot.recent_count`，Max，最近一小时 | 任一值不低于 3 | 所有值都低于 3 |
 | Storage Nearly Full | 严重 | `system.filesystem.utilization`，按 `mountpoint` 取 Max，以百分比显示，最近 5 分钟 | 高于 90% | 不高于 90% |
+| Security Patch Out of Date | 警告 | `android.os.security_patch.age`，即设备安全补丁级别距今的天数，Min，最近一小时 | 整个窗口内都超过 90 天 | 设备更新后，出现不超过 90 天的读数 |
 | High CPU Utilization | 警告 | `idle` 状态的 `system.cpu.utilization`，繁忙为 1 减去空闲，以百分比显示，最近 5 分钟 | 高于 80% | 不高于 80% |
 
-设备上报 CPU 使用率后才会提供 High CPU Utilization，而在 Android 8 及更高版本上，这需要代理成为设备所有者。Android 设备的警报以要先运行的 adb 命令开头，例如 `adb shell dumpsys battery` 或 `adb shell getprop sys.boot.reason`，而不是服务器的 shell 命令。
+设备上报 CPU 使用率后才会提供 High CPU Utilization，而在 Android 8 及更高版本上，这需要代理成为设备所有者。Android 设备的警报以要先运行的 adb 命令开头，例如 `adb shell dumpsys battery`、`adb shell getprop sys.boot.reason` 或 `adb shell getprop ro.build.version.security_patch`，而不是服务器的 shell 命令。
 
 ## 收集的指标
 

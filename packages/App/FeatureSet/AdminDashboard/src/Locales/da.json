@@ -2085,7 +2085,7 @@
   "Security Events": "Sikkerhedshændelser",
   "Spans. Days counted before exceptions were shown apart include their exceptions too.": "Spans. Dage, der blev talt, før undtagelser blev vist for sig, indeholder også deres undtagelser.",
   "Exceptions recorded from spans and logs.": "Undtagelser registreret fra spans og protokoller.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.": "Undtagelser registreret fra spans og protokoller. De faktureres som en del af Spor.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.": "Undtagelser registreret fra spans og protokoller. Dem, der findes i spans, faktureres med Spor, og dem, der findes i protokoller, med Protokoller.",
   "Profiles, and the samples recorded with them.": "Profiler og de samples, der er registreret med dem.",
   "{{size}} GB": "{{size}} GB",
   "{{size}} MB": "{{size}} MB",
@@ -4345,5 +4345,11 @@
   "Your identity provider's single sign-out URL. Needed to sign people out of it too.": "Identitetsudbyderens URL til fælles log ud (Single Sign-out). Kræves for også at logge folk ud der.",
   "Single Logout URL:": "Single Logout-URL:",
   "To sign people out of the identity provider too, also give it the Single Logout URL and OneUptime's signing certificate.": "Hvis folk også skal logges ud af identitetsudbyderen, skal du også give den Single Logout-URL'en og OneUptimes signeringscertifikat.",
-  "Download Signing Certificate": "Download signeringscertifikat"
+  "Download Signing Certificate": "Download signeringscertifikat",
+  "Team and Label Budgets Today": "Team- og mærkatbudgetter i dag",
+  "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.": "Hvad tjenesterne for hvert team og hver mærkat har sendt i dag. Når et budget er brugt op, kasseres deres telemetri indtil {{resetsAt}}, og resten af projektet bliver ved med at sende.",
+  "Label": "Mærkat",
+  "Team or Label": "Team eller mærkat",
+  "This team's own": "Teamets eget budget",
+  "This label's own": "Mærkatens eget budget"
 }

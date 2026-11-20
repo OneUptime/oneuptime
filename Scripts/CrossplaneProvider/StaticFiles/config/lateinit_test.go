@@ -67,9 +67,9 @@ func TestWhatOneUptimeKeepsIsDeclaredOnTheResourcesFields(t *testing.T) {
 				if ignored[field] || conditional[field] {
 					t.Errorf("%s.%s: read only, and configured for late initialization", terraformName, field)
 				}
-			case ServerOwnedAfterCreate:
+			case ServerOwnedAfterCreate, ServerOwnedShared:
 				if !settable {
-					t.Errorf("%s.%s: a manifest may start it, and cannot set it", terraformName, field)
+					t.Errorf("%s.%s: a manifest may give it, and cannot set it", terraformName, field)
 				}
 				if !ignored[field] {
 					t.Errorf("%s.%s: late initialization copies it into spec.forProvider", terraformName, field)

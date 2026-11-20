@@ -1,6 +1,10 @@
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
-import { respondToMobileSsoFailure } from "../Utils/MobileSso";
+import {
+  respondToMobileSsoFailure,
+  respondToMobileSsoSuccess,
+  startMobileSsoHandOff,
+} from "../Utils/MobileSso";
 import SsoTeamMembership, {
   SSO_NO_ROOM_ERROR,
   SSO_NO_ROOM_MESSAGE,
@@ -191,6 +195,29 @@ router.get(
 
       const isMobileRequest: boolean = req.query["mobile"] === "true";
 
+      /*
+       * A sign-in the mobile app started keeps its state and PKCE challenge
+       * for the round trip (#9989), its flow carried in the signed state
+       * cookie below.
+       */
+      let mobileFlowId: string | null = null;
+
+      if (isMobileRequest) {
+        const handOff: { flowId: string | null } | null =
+          await startMobileSsoHandOff({
+            req,
+            res,
+            providerId: projectOidc.id!,
+            rememberInCookie: false,
+          });
+
+        if (!handOff) {
+          return;
+        }
+
+        mobileFlowId = handOff.flowId;
+      }
+
       const redirectUri: URL = URL.fromString(
         `${HttpProtocol}${Host}/identity/oidc-callback/${projectOidc.projectId?.toString()}/${projectOidc.id?.toString()}`,
       );
@@ -215,6 +242,8 @@ router.get(
           nonce,
           codeVerifier,
           isMobile: isMobileRequest,
+          // The mobile app's hand-off (#9989): null for any other sign-in.
+          mobileFlowId: mobileFlowId,
         },
         OIDC_STATE_COOKIE_TTL_SECONDS,
       );
@@ -313,6 +342,8 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
     let storedNonce: string;
     let storedCodeVerifier: string;
     let isMobileRequest: boolean;
+    // The mobile app's hand-off (#9989), from the signed cookie alone.
+    let mobileFlowId: string | null = null;
 
     try {
       const decoded: Record<string, unknown> = JSONWebToken.decodeJsonPayload(
@@ -323,6 +354,10 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
       storedNonce = decoded["nonce"] as string;
       storedCodeVerifier = decoded["codeVerifier"] as string;
       isMobileRequest = Boolean(decoded["isMobile"]);
+      mobileFlowId =
+        isMobileRequest && typeof decoded["mobileFlowId"] === "string"
+          ? decoded["mobileFlowId"] || null
+          : null;
     } catch {
       return Response.sendErrorResponse(
         req,
@@ -603,31 +638,31 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
       });
 
-      const params: URLSearchParams = new URLSearchParams();
-      params.set("accessToken", accessToken);
-      params.set("refreshToken", sessionMetadata.refreshToken);
-      params.set(
-        "refreshTokenExpiresAt",
-        sessionMetadata.refreshTokenExpiresAt.toISOString(),
-      );
-      params.set("userId", alreadySavedUser.id!.toString());
-      params.set("email", alreadySavedUser.email!.toString());
-      params.set("name", alreadySavedUser.name?.toString() || "");
-      params.set(
-        "isMasterAdmin",
-        String(alreadySavedUser.isMasterAdmin || false),
-      );
-      params.set("ssoToken", ssoToken);
-      params.set("projectId", projectId.toString());
-
-      const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
-
       logger.info(
         "User logged in with OIDC (mobile): " + result.email.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return res.redirect(deepLinkUrl);
+      /*
+       * A one-time code the app redeems with its PKCE verifier, or - for an
+       * app from before #9989 - the deep link that carries the session
+       * (Utils/MobileSso).
+       */
+      return respondToMobileSsoSuccess({
+        res,
+        flowId: mobileFlowId,
+        signIn: {
+          accessToken,
+          refreshToken: sessionMetadata.refreshToken,
+          refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+          userId: alreadySavedUser.id!.toString(),
+          email: alreadySavedUser.email!.toString(),
+          name: alreadySavedUser.name?.toString() || "",
+          isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
+          ssoToken,
+          projectId: projectId.toString(),
+        },
+      });
     }
 
     CookieUtil.setSSOCookie({

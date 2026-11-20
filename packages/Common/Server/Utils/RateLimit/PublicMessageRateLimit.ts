@@ -37,6 +37,8 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  *  - forgetting an account's password (POST /identity/forgot-password);
  *  - asking for a sign-in link to an account's address
  *    (POST /identity/send-magic-link);
+ *  - asking "Sign in with SSO" to email an address the SSO sign-in links
+ *    of its organizations (POST /identity/send-sso-sign-in-links, #9987);
  *  - signing up for an account (POST /identity/signup), which emails the
  *    address signed up with;
  *  - signing in to an account whose address is not verified yet (each step
@@ -126,6 +128,12 @@ export enum PublicMessageKind {
 
   // POST /identity/send-magic-link: an account's sign-in link.
   MagicLink = "magic-link",
+
+  /*
+   * POST /identity/send-sso-sign-in-links: the SSO sign-in links of the
+   * organizations an account belongs to (#9987).
+   */
+  SsoSignInLinks = "sso-sign-in-links",
 
   /*
    * POST /identity/signup: a new account's welcome, or an invitation's
@@ -332,6 +340,13 @@ const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
  * Counted whether or not the address has an account that a link could sign
  * in, so a refusal says nothing about who has one.
  *
+ * The SSO sign-in links of an account's organizations: thirty from one
+ * address in a quarter of an hour, and five to one address in an hour. The
+ * links do not change - a person needs one email, and five is room for a
+ * slow inbox. Counted whether or not the address has an account, or one in
+ * an organization that uses single sign-on, so a refusal says nothing of
+ * either.
+ *
  * The emails a sign-up for an account sends: sixty from one address in a
  * quarter of an hour - a class or a workshop signs up together, on one
  * network - and five to one address in an hour.
@@ -412,6 +427,13 @@ const CONFIG: PublicMessageRateLimitConfig = {
       perClientLimit: parsePositiveIntFromEnv("MAGIC_LINKS_PER_IP", 30),
       perContactLimit: parsePositiveIntFromEnv("MAGIC_LINKS_PER_CONTACT", 10),
     },
+    [PublicMessageKind.SsoSignInLinks]: {
+      perClientLimit: parsePositiveIntFromEnv("SSO_SIGN_IN_LINKS_PER_IP", 30),
+      perContactLimit: parsePositiveIntFromEnv(
+        "SSO_SIGN_IN_LINKS_PER_CONTACT",
+        5,
+      ),
+    },
     [PublicMessageKind.SignUpEmail]: {
       perClientLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_IP", 60),
       perContactLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_CONTACT", 5),
@@ -451,6 +473,8 @@ const CLIENT_REFUSALS: Record<PublicMessageKind, string> = {
     "Too many password resets asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.MagicLink]:
     "Too many sign-in links asked for from your network. Please wait a few minutes and try again.",
+  [PublicMessageKind.SsoSignInLinks]:
+    "Too many sign-in links asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.SignUpEmail]:
     "Too many sign-ups from your network. Please wait a few minutes and try again.",
 };
@@ -468,6 +492,8 @@ const CLIENT_TEXT_MESSAGE_REFUSALS: Record<PublicMessageKind, string> = {
   [PublicMessageKind.PasswordReset]:
     CLIENT_REFUSALS[PublicMessageKind.PasswordReset],
   [PublicMessageKind.MagicLink]: CLIENT_REFUSALS[PublicMessageKind.MagicLink],
+  [PublicMessageKind.SsoSignInLinks]:
+    CLIENT_REFUSALS[PublicMessageKind.SsoSignInLinks],
   [PublicMessageKind.SignUpEmail]:
     CLIENT_REFUSALS[PublicMessageKind.SignUpEmail],
 };
@@ -509,6 +535,9 @@ const CONTACT_REFUSALS: Record<
   [PublicMessageKind.MagicLink]: (contactName: string): string => {
     return `Too many sign-in links asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
   },
+  [PublicMessageKind.SsoSignInLinks]: (contactName: string): string => {
+    return `Too many sign-in links asked for ${contactName} in the last hour. Please use the links in the latest email, or try again later.`;
+  },
   [PublicMessageKind.SignUpEmail]: (contactName: string): string => {
     return `Too many sign-up emails asked for ${contactName} in the last hour. Please use the link in the latest one, or try again later.`;
   },
@@ -543,6 +572,8 @@ const TEXT_MESSAGE_UNAVAILABLE_REFUSALS: Record<PublicMessageKind, string> = {
   [PublicMessageKind.PasswordReset]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.MagicLink]:
+    "Text messages cannot be sent right now. Please try again in a few minutes.",
+  [PublicMessageKind.SsoSignInLinks]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.SignUpEmail]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
@@ -615,6 +646,9 @@ export default class PublicMessageRateLimit {
         },
         [PublicMessageKind.MagicLink]: {
           ...CONFIG.kinds[PublicMessageKind.MagicLink],
+        },
+        [PublicMessageKind.SsoSignInLinks]: {
+          ...CONFIG.kinds[PublicMessageKind.SsoSignInLinks],
         },
         [PublicMessageKind.SignUpEmail]: {
           ...CONFIG.kinds[PublicMessageKind.SignUpEmail],

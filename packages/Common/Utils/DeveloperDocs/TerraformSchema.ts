@@ -108,11 +108,19 @@ export interface TerraformAttributeDescriptor {
   secretKind?: TerraformSecretKind | undefined;
   /*
    * Set by the server as the resource runs (its current status, when it was
-   * last seen, when its postmortem was posted). Writing the value it has now
+   * last seen, when its postmortem was posted), or changed by it too (the
+   * labels a rule adds, ServerOwned.Shared). Writing the value it has now
    * into a configuration would make Terraform put it back every time the
    * server moves it on, so generated configuration leaves these out.
    */
   isServerManaged: boolean;
+  /*
+   * A value people set and OneUptime changes too (ServerOwned.Shared): the
+   * labels a label rule adds, an exception OneUptime resolves. Left out of a
+   * configuration it keeps OneUptime's value, even with a default; written
+   * in one, Terraform holds the record to it.
+   */
+  isChangedByOneUptimeToo: boolean;
   /*
    * A value a create may give and OneUptime keeps from then on
    * (ServerOwned.AfterCreate): the status a monitor starts in. The provider
@@ -469,7 +477,14 @@ export function isServerManagedColumn(
     return true;
   }
 
-  // The model says OneUptime keeps it (TableColumnMetadata.serverOwned).
+  /*
+   * The model says OneUptime keeps it, or changes it too
+   * (TableColumnMetadata.serverOwned, any kind): a configuration written with
+   * the value it has now would put that value back whenever OneUptime moves
+   * it - a label a rule added, an exception OneUptime resolved (#10052).
+   * Left out, the provider keeps OneUptime's value, even where the attribute
+   * has a default.
+   */
   if (column?.serverOwned) {
     return true;
   }
@@ -664,6 +679,7 @@ export function getTerraformAttributes(
       isRequired: inCreateSchema && isColumnRequiredOnCreate(column),
       secretKind: getSecretKind(columnName, column),
       isServerManaged: isServerManagedColumn(tableName, columnName, column),
+      isChangedByOneUptimeToo: column.serverOwned === ServerOwned.Shared,
       startsAtCreate: column.serverOwned === ServerOwned.AfterCreate,
       readPermissions: accessControl?.read || [],
       isReservedName: TERRAFORM_RESOURCE_META_ARGUMENTS.includes(

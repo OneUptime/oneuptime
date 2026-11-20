@@ -1639,6 +1639,36 @@ describe("IdentityRateLimit", () => {
       );
     });
 
+    /*
+     * #9989: the request names no account - a code, a verifier and a state -
+     * so both counters get the address budget, as the passkey bucket's do,
+     * on a counter of its own.
+     */
+    it("gives the mobile SSO code bucket a budget of its own, by address", () => {
+      const exchange: {
+        windowSeconds: number;
+        perAccountLimit: number;
+        perIpLimit: number;
+      } = IdentityRateLimit.getBucketConfig(
+        IdentityRateLimitBucket.MobileSsoExchange,
+      );
+
+      expect(IdentityRateLimitBucket.MobileSsoExchange).toBe(
+        "mobile-sso-exchange",
+      );
+      expect(exchange).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+      );
+      expect(exchange).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Passkey),
+      );
+      expect(exchange).toEqual({
+        windowSeconds: 15 * 60,
+        perAccountLimit: 300,
+        perIpLimit: 300,
+      });
+    });
+
     it("knows every sign-in bucket there is", () => {
       /*
        * A floor, so the it.each below cannot pass by iterating nothing. Adding
@@ -1654,6 +1684,8 @@ describe("IdentityRateLimit", () => {
           IdentityRateLimitBucket.MagicLink,
           // Not a sign-in, but its one caller shows no refusal at all.
           IdentityRateLimitBucket.SignUpInvitation,
+          // The mobile app redeeming an SSO sign-in's one-time code (#9989).
+          IdentityRateLimitBucket.MobileSsoExchange,
         ]),
       );
       expect(SIGN_IN_BUCKETS).toHaveLength(
