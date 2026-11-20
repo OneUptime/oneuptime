@@ -305,9 +305,70 @@ export function isWiderThanLargestRange(block: NetworkAddressBlock): boolean {
 }
 
 /*
+ * Marks an English sentence as a key of the Dashboard's locales - the same
+ * marker as Common/UI/Utils/TranslateTemplate's translationKey, kept here so
+ * this file stays free of the UI. It returns the text unchanged.
+ *
+ * The Dashboard's locale extractor reads this file for what it marks and
+ * nothing else (a "keys" root of its SOURCE_ROOTS): the Block Address form
+ * says what is wrong with a value in the reader's language, with the very
+ * sentences the server answers an API client with in English.
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
+
+// A sentence with its values, for whoever writes it: the server in English, the Dashboard in the reader's language.
+export interface SecurityBlockSentence {
+  template: string;
+  values: Record<string, string>;
+}
+
+export const SECURITY_BLOCK_SENTENCES: {
+  enterAddress: string;
+  notAnAddress: string;
+  tooWide: string;
+  widerThanAnyone: string;
+  alreadyBlocked: string;
+  alreadyBlockedBy: string;
+  checkFailed: string;
+} = {
+  enterAddress: translationKey("Enter the IP address or range to block."),
+  notAnAddress: translationKey(
+    "Enter an IPv4 or IPv6 address, such as 203.0.113.7, or a range written as an address and a length, such as 203.0.113.0/24.",
+  ),
+  tooWide: translationKey(
+    "{{value}} is wider than a {{largest}}, which would block whole networks. Block single addresses or a narrower range, or ask a Security Admin to block it.",
+  ),
+  widerThanAnyone: translationKey(
+    "{{value}} is wider than a {{widest}}, the widest range OneUptime blocks. Block a narrower range.",
+  ),
+  alreadyBlocked: translationKey("{{value}} is already blocked."),
+  alreadyBlockedBy: translationKey(
+    "{{value}} is already blocked: {{by}} covers it.",
+  ),
+  checkFailed: translationKey(
+    "OneUptime could not check whether {{value}} is one of your own addresses, so it did not block it. Try again in a minute.",
+  ),
+};
+
+// A sentence filled in English, as the server answers.
+export function fillSecurityBlockSentence(
+  sentence: SecurityBlockSentence,
+): string {
+  let text: string = sentence.template;
+
+  for (const [key, value] of Object.entries(sentence.values)) {
+    text = text.split(`{{${key}}}`).join(value);
+  }
+
+  return text;
+}
+
+/*
  * The server's refusals, as sentences: what happened, why, and what to do
- * next. The Dashboard words the same refusals itself (BlocklistCopy), in
- * the reader's language, before it sends a block; these are what an API
+ * next. The Dashboard words the ones a person meets in its form itself, in
+ * the reader's language (SECURITY_BLOCK_SENTENCES); these are what an API
  * client, a playbook and OneUptime AI read.
  */
 export const SECURITY_BLOCK_MESSAGES: {
@@ -327,14 +388,19 @@ export const SECURITY_BLOCK_MESSAGES: {
   notDeletable: string;
   checkFailed: (data: { value: string }) => string;
 } = {
-  enterAddress: "Enter the IP address or range to block.",
-  notAnAddress:
-    "Enter an IPv4 or IPv6 address, such as 203.0.113.7, or a range written as an address and a length, such as 203.0.113.0/24.",
+  enterAddress: SECURITY_BLOCK_SENTENCES.enterAddress,
+  notAnAddress: SECURITY_BLOCK_SENTENCES.notAnAddress,
   tooWide: (data: { value: string; largest: string }): string => {
-    return `${data.value} is wider than a ${data.largest}, which would block whole networks. Block single addresses or a narrower range, or ask a Security Admin to block it.`;
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.tooWide,
+      values: data,
+    });
   },
   widerThanAnyone: (data: { value: string; widest: string }): string => {
-    return `${data.value} is wider than a ${data.widest}, the widest range OneUptime blocks. Block a narrower range.`;
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.widerThanAnyone,
+      values: data,
+    });
   },
   untilLiftedTakesAdmin:
     "Only a Security Admin, a Project Admin or a Project Owner can keep a block until someone lifts it. Choose how long it lasts instead.",
@@ -355,60 +421,94 @@ export const SECURITY_BLOCK_MESSAGES: {
   actionNeverChanges:
     "A block's action never changes. Lift this block and block the address again with the other action.",
   alreadyBlocked: (data: { value: string; by: string }): string => {
-    return data.by === data.value
-      ? `${data.value} is already blocked.`
-      : `${data.value} is already blocked: ${data.by} covers it.`;
+    return fillSecurityBlockSentence(
+      getSecurityBlockAlreadyBlockedSentence(data),
+    );
   },
   notDeletable:
     "Blocks are kept, so a case and the next block of the address can say it was blocked before. Lift the block instead.",
   checkFailed: (data: { value: string }): string => {
-    return `OneUptime could not check whether ${data.value} is one of your own addresses, so it did not block it. Try again in a minute.`;
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.checkFailed,
+      values: data,
+    });
   },
 };
 
+// That a value is blocked already, and by what when it is a range that covers it.
+export function getSecurityBlockAlreadyBlockedSentence(data: {
+  value: string;
+  by: string;
+}): SecurityBlockSentence {
+  return data.by === data.value
+    ? {
+        template: SECURITY_BLOCK_SENTENCES.alreadyBlocked,
+        values: { value: data.value },
+      }
+    : {
+        template: SECURITY_BLOCK_SENTENCES.alreadyBlockedBy,
+        values: { value: data.value, by: data.by },
+      };
+}
+
 /*
- * What is wrong with a value someone wants to block, or null: missing, not
- * an address or a range, or a range wider than allowed. `mayBlockWideRanges`
- * says whether the blocker may go past the largest range (a person with
- * Security Admin, or a Project Owner or Admin); nobody goes past the widest.
+ * What is wrong with a value someone wants to block, as a sentence with its
+ * values, or null: missing, not an address or a range, or a range wider
+ * than allowed. `mayBlockWideRanges` says whether the blocker may go past
+ * the largest range (a person with Security Admin, or a Project Owner or
+ * Admin); nobody goes past the widest.
  */
-export function getSecurityBlockValueProblem(data: {
+export function getSecurityBlockValueSentence(data: {
   value: unknown;
   mayBlockWideRanges: boolean;
-}): string | null {
+}): SecurityBlockSentence | null {
   const text: string = typeof data.value === "string" ? data.value.trim() : "";
 
   if (!text) {
-    return SECURITY_BLOCK_MESSAGES.enterAddress;
+    return { template: SECURITY_BLOCK_SENTENCES.enterAddress, values: {} };
   }
 
   if (text.length > SECURITY_BLOCK_VALUE_MAX_LENGTH) {
-    return SECURITY_BLOCK_MESSAGES.notAnAddress;
+    return { template: SECURITY_BLOCK_SENTENCES.notAnAddress, values: {} };
   }
 
   const read: SecurityBlockValue | null = readSecurityBlockValue(text);
 
   if (!read) {
-    return SECURITY_BLOCK_MESSAGES.notAnAddress;
+    return { template: SECURITY_BLOCK_SENTENCES.notAnAddress, values: {} };
   }
 
   const widest: number = getSecurityBlockWidestPrefix(read.block.family);
 
   if (read.block.prefixLength < widest) {
-    return SECURITY_BLOCK_MESSAGES.widerThanAnyone({
-      value: read.value,
-      widest: `/${widest}`,
-    });
+    return {
+      template: SECURITY_BLOCK_SENTENCES.widerThanAnyone,
+      values: { value: read.value, widest: `/${widest}` },
+    };
   }
 
   if (isWiderThanLargestRange(read.block) && !data.mayBlockWideRanges) {
-    return SECURITY_BLOCK_MESSAGES.tooWide({
-      value: read.value,
-      largest: `/${getSecurityBlockLargestPrefix(read.block.family)}`,
-    });
+    return {
+      template: SECURITY_BLOCK_SENTENCES.tooWide,
+      values: {
+        value: read.value,
+        largest: `/${getSecurityBlockLargestPrefix(read.block.family)}`,
+      },
+    };
   }
 
   return null;
+}
+
+// As getSecurityBlockValueSentence, filled in English, as the server answers.
+export function getSecurityBlockValueProblem(data: {
+  value: unknown;
+  mayBlockWideRanges: boolean;
+}): string | null {
+  const sentence: SecurityBlockSentence | null =
+    getSecurityBlockValueSentence(data);
+
+  return sentence ? fillSecurityBlockSentence(sentence) : null;
 }
 
 /*
