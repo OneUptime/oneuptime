@@ -292,9 +292,13 @@ describe("each level's permission", () => {
   );
 
   test.each(
-    PRODUCT_LEVEL_PERMISSIONS.map((levels: ProductLevelPermissions) => {
-      return [levels.product, levels];
-    }),
+    PRODUCT_LEVEL_PERMISSIONS.map(
+      (
+        levels: ProductLevelPermissions,
+      ): [ProductKey, ProductLevelPermissions] => {
+        return [levels.product, levels];
+      },
+    ),
   )(
     "%s's levels are named for it and say what they reach",
     (_product: ProductKey, levels: ProductLevelPermissions) => {
