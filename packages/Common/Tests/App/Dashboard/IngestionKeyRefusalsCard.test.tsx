@@ -96,6 +96,7 @@ import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/Telemet
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
+import { writeReaderMoment } from "../../../UI/Utils/ReaderMoments";
 import ObjectID from "../../../Types/ObjectID";
 import {
   FIRST_STRONG_ISOLATE,
@@ -280,9 +281,9 @@ describe("the key's Refused Telemetry card", () => {
       within(lines()[0]!).getByTestId("ingestion-key-refusal-detail")
         .textContent,
     ).toBe(
-      `Logs · 1,234 requests refused since ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+      // The day and the time, as every refusal line writes it (#6458).
+      `Logs · 1,234 requests refused since ${writeReaderMoment(
         budget["firstRefusedAt"] as Date,
-        true,
       )}, the latest ${OneUptimeDate.fromNow(
         budget["lastRefusedAt"] as Date,
         new Date(),

@@ -109,6 +109,13 @@ const GOOD_KEY: TelemetryIngestionKey = makeKey({
 const MOBILE_KEY: TelemetryIngestionKey = makeKey({
   id: "key-mobile",
   name: "Mobile Key",
+  keyType: TelemetryIngestionKeyType.Mobile,
+  isEnabled: true,
+});
+
+const SERVER_KEY: TelemetryIngestionKey = makeKey({
+  id: "key-server",
+  name: "Backend Server Key",
   keyType: TelemetryIngestionKeyType.Server,
   isEnabled: true,
 });
@@ -361,8 +368,9 @@ describe("the Pick another key dialog", () => {
     ]);
   });
 
-  test("a mobile app asks for Server keys, and its line is the exporter's headers setting", async () => {
-    const getList: Mock<GetList> = mockKeys([OFF_KEY, MOBILE_KEY]);
+  // A mobile app is never handed a Server key to ship (#6457).
+  test("a mobile app asks for Mobile keys, and its line is the exporter's headers setting", async () => {
+    const getList: Mock<GetList> = mockKeys([OFF_KEY, SERVER_KEY, MOBILE_KEY]);
     const dialog: HTMLElement = open("mobile");
 
     // The exporter's headers setting, with the picked key in it.
@@ -377,7 +385,8 @@ describe("the Pick another key dialog", () => {
       getList.mock.calls.map((call: Array<unknown>): unknown => {
         return (call[0] as ListArguments).query["keyType"];
       }),
-    ).toEqual([TelemetryIngestionKeyType.Server]);
+    ).toEqual([TelemetryIngestionKeyType.Mobile]);
+    expect(dialog.textContent).not.toContain("secret-key-server");
     expect(dialog).toHaveAttribute("data-client", "mobile");
     expect(stepTitles()).toEqual([
       "Choose an ingestion key",

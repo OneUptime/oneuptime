@@ -152,12 +152,16 @@ describe("the client picker", () => {
     expect(resolveRumClient("mobile")).toBe("mobile");
   });
 
-  test("a browser is handed a Browser key, a mobile app a Server key", () => {
+  /*
+   * A mobile app ships its key to everyone who installs it, so it is never
+   * handed a Server key, which writes everything from anywhere (#6457).
+   */
+  test("a browser is handed a Browser key, a mobile app a Mobile key", () => {
     expect(getRumIngestionKeyType("browser")).toBe(
       TelemetryIngestionKeyType.Browser,
     );
     expect(getRumIngestionKeyType("mobile")).toBe(
-      TelemetryIngestionKeyType.Server,
+      TelemetryIngestionKeyType.Mobile,
     );
   });
 });
@@ -171,7 +175,7 @@ describe.each(CLIENT_KEYS)("the %s guide", (client: RumClient) => {
     expect(guide.keyStep?.endpointLabel).toBe("OTLP Endpoint");
     expect(guide.keyStep?.endpointValue).toBe(`${URL}/otlp`);
     expect(guide.keyStep?.description).toContain(
-      client === "mobile" ? "Server key" : "Browser key",
+      client === "mobile" ? "Mobile key" : "Browser key",
     );
     // Rendered as plain text.
     expect(guide.keyStep?.description).not.toMatch(/[`*[\]]/);
@@ -288,8 +292,8 @@ describe.each(CLIENT_KEYS)("the %s guide", (client: RumClient) => {
       "OTEL_RESOURCE_ATTRIBUTES",
       "device.model.identifier",
       "device.manufacturer",
-      "Mobile needs a Server key",
-      "release train",
+      "Anyone who has your app can copy its key",
+      "rotate the key with your releases",
       "opentelemetry-swift",
     ];
     for (const text of browserOnly) {
@@ -487,21 +491,33 @@ describe("the mobile guide", () => {
       ].join("\n"),
     );
     expect(configure).toContain(
-      "Most mobile SDKs set the `device.*` attributes for you — verify it, and set them explicitly as above if the application is filed under Services instead.",
+      "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.",
     );
     expect(configure).toContain(`[Mobile Setup](${RUM_MOBILE_SETUP_DOCS_URL})`);
   });
 
-  test("keeps the warning that a mobile app needs a Server key", () => {
-    expect(guide.keyStep?.description).toContain(
-      "a Browser key is checked against the Origin header, which mobile SDKs do not send",
+  /*
+   * Whatever ships in an app is public (#6457): the guide says so, says
+   * what a copy of its Mobile key can and cannot do, and what it still can.
+   */
+  test("says the app ships a Mobile key, what a copy can do, and what it still can", () => {
+    expect(guide.keyStep?.description).toBe(
+      "Mobile apps send with a Mobile key. It ships inside your app, so anyone who has the app can copy it, but a copy can only send this app's traces, logs and metrics, all filed under the service name the key is pinned to. Pick a key or create one; the settings below update to use it.",
     );
-    expect(
-      topicNamed(guide.advanced, "Protect the key shipped in your app"),
-    ).toContain(
-      "> **Mobile needs a Server key, and a mobile bundle can be unpacked.** A Browser key is enforced against the `Origin` header, which a mobile SDK does not send, so it cannot be used here.",
+    const protect: string = topicNamed(
+      guide.advanced,
+      "Protect the key shipped in your app",
+    );
+    expect(protect).toContain(
+      "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs and metrics, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.",
+    );
+    expect(protect).toContain(
+      "Never ship a **Server** key in an app instead: it can write every kind of telemetry into this project, from anywhere, as any service.",
     );
     expect((guide.prerequisites || []).join("\n")).toContain(
+      "the **Mobile** key in step 1 is pinned to it",
+    );
+    expect(getSetupGuideMarkdown(guide)).not.toContain(
       "**Server** ingestion key",
     );
   });
@@ -530,10 +546,13 @@ describe("the mobile guide", () => {
     ]);
   });
 
-  test("React Native is told it still needs a Server key", () => {
-    expect(
-      topicNamed(guide.advanced, "SDK notes for Android, iOS and React Native"),
-    ).toContain("It still sends with a **Server** key");
+  test("React Native sends with a Mobile key, like any mobile app", () => {
+    const notes: string = topicNamed(
+      guide.advanced,
+      "SDK notes for Android, iOS and React Native",
+    );
+    expect(notes).toContain("It sends with a **Mobile** key, like any mobile app.");
+    expect(notes).not.toContain("**Server** key");
   });
 
   /*

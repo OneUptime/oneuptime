@@ -74,6 +74,14 @@ export interface SetupGuideDocumentationProduct {
   loadersFile: string;
   // The card that draws the guide, and hands it the translations.
   cardFile: string;
+  /*
+   * The page that draws the card: the product's Help > Documentation page,
+   * Pages/<name>/Documentation.tsx, unless the guide is drawn elsewhere -
+   * RUM's on each application's Documentation tab.
+   */
+  documentationPage: string;
+  // Whether that page is the product's own Help > Documentation page.
+  isHelpDocumentationPage: boolean;
   // The constant the card hands SetupGuideCard.
   translationsConstant: string;
   // Every way through the guide (SetupGuideWays).
@@ -98,11 +106,18 @@ function product(data: {
   cardDirectory?: string;
   // A card kept elsewhere, as a path from the Dashboard's src.
   cardPath?: string;
+  // A page other than Pages/<name>/Documentation.tsx that draws the card.
+  documentationPagePath?: string;
 }): SetupGuideDocumentationProduct {
-  const { cardDirectory, cardPath, ...rest } = data;
+  const { cardDirectory, cardPath, documentationPagePath, ...rest } = data;
 
   return {
     ...rest,
+    documentationPage: path.join(
+      DASHBOARD_SOURCE,
+      documentationPagePath || `Pages/${data.name}/Documentation.tsx`,
+    ),
+    isHelpDocumentationPage: !documentationPagePath,
     translationsDirectory: path.join(
       DASHBOARD_SOURCE,
       `Pages/${data.name}/DocumentationTranslations`,
@@ -401,9 +416,13 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
       ],
     }),
     product({
-      // A RUM application's Documentation tab and Add dialog (#6434).
+      /*
+       * A RUM application's Documentation tab and Add dialog (#6434): the
+       * product has no Help > Documentation page of its own.
+       */
       name: "Rum",
       cardPath: "Components/Rum/RumDocumentationCard.tsx",
+      documentationPagePath: "Pages/Rum/View/Documentation.tsx",
       translations: RUM_DOCUMENTATION_TRANSLATIONS,
       translationsConstant: "RUM_DOCUMENTATION_TRANSLATIONS",
       ways: getRumSetupGuideWays,

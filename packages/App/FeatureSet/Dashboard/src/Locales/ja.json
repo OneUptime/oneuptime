@@ -60424,7 +60424,7 @@
   "Add the origin the requests came from to this key's Allowed Origins above, with its scheme and any port.": "リクエストの送信元オリジンを、スキームとポートを含めて、上にあるこのキーの許可されたオリジンに追加してください。",
   "Ask an administrator of this OneUptime server to unblock the project.": "この OneUptime サーバーの管理者に、プロジェクトのブロック解除を依頼してください。",
   "Browser and App Settings": "ブラウザーとアプリの設定",
-  "Browser key: safe to put in a web page. It can send traces, logs, metrics, session replays and Sentry events, and only from: {{identities}}. An app:// entry lets a React Native app send session replays only, and anyone who has the app can send as it.": "ブラウザーキー: ウェブページに置いても安全です。トレース、ログ、メトリクス、セッションリプレイ、Sentry イベントを送信でき、送信元は {{identities}} だけです。app:// のエントリーは React Native アプリにセッションリプレイの送信だけを許し、アプリを持っている人なら誰でもそのアプリとして送信できます。",
+  "Browser key: safe to put in a web page. It can send traces, logs, metrics, session replays and Sentry events, and only from: {{identities}}. An app:// entry lets a React Native app send session replays only, and anyone who has the app can send as it.": "ブラウザーキー: ウェブページに置いても安全です。トレース、ログ、メトリクス、セッションリプレイ、Sentry のイベントを送信でき、送信元は {{identities}} だけです。app:// のエントリーは React Native アプリにセッションリプレイの送信だけを許し、アプリを持っている人なら誰でもそのアプリとして送信できます。",
   "Couldn't check just now. Trying again in a few seconds.": "今は確認できませんでした。数秒後にもう一度試します。",
   "Couldn't check why there are no Web Vitals": "Web Vitals がない理由を確認できませんでした",
   "Couldn't load Web Vitals": "Web Vitals を読み込めませんでした",

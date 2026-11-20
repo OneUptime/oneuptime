@@ -275,6 +275,13 @@ const KEYS: Array<TelemetryIngestionKey> = [
   makeKey({
     id: "key-mobile",
     name: "Mobile key",
+    keyType: TelemetryIngestionKeyType.Mobile,
+    isEnabled: true,
+  }),
+  // The project's backend key, which no app is ever handed (#6457).
+  makeKey({
+    id: "key-backend",
+    name: "Backend key",
     keyType: TelemetryIngestionKeyType.Server,
     isEnabled: true,
   }),
@@ -786,7 +793,14 @@ describe("refusals that are not this application's", () => {
 });
 
 describe("a refused mobile application", () => {
-  test("its pinned Server key expired: Traces says Refused, and the dialog asks for Server keys", async () => {
+  /*
+   * An app set up before Mobile keys existed sends with a Server key pinned
+   * to it; either way the dialog hands it a Mobile key to ship instead.
+   */
+  test.each([
+    TelemetryIngestionKeyType.Mobile,
+    TelemetryIngestionKeyType.Server,
+  ])("its pinned %s key expired: Traces says Refused, and the dialog asks for Mobile keys", async (refusedKeyType: TelemetryIngestionKeyType) => {
     arrange({
       app: { ...silentApp(), clientType: "mobile", sdkLanguage: "swift" },
       refusals: Promise.resolve([
@@ -796,7 +810,7 @@ describe("a refused mobile application", () => {
           reason: TelemetryIngestRefusalReason.KeyExpired,
           telemetryIngestionKey: {
             name: "iOS key",
-            keyType: TelemetryIngestionKeyType.Server,
+            keyType: refusedKeyType,
             pinnedServiceName: "storefront-ios",
           },
         }),
@@ -823,12 +837,13 @@ describe("a refused mobile application", () => {
       .map((args: Record<string, unknown>): unknown => {
         return (args["query"] as Record<string, unknown>)["keyType"];
       });
-    expect(keyReads).toEqual([TelemetryIngestionKeyType.Server]);
+    expect(keyReads).toEqual([TelemetryIngestionKeyType.Mobile]);
     const dialog: HTMLElement = screen.getByTestId("rum-pick-key-setup");
     expect(dialog).toHaveAttribute("data-client", "mobile");
     expect(dialog.textContent).toContain(
       'OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=secret-key-mobile"',
     );
+    expect(dialog.textContent).not.toContain("secret-key-backend");
   });
 });
 
