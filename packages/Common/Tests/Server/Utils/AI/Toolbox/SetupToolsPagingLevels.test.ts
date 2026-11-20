@@ -169,10 +169,15 @@ function members(): void {
           args.query["userId"]!.toString() === person.id
         );
       })
+      .filter((): boolean => {
+        // Every one of them has joined: no invitation of theirs waits.
+        return args.query["hasAcceptedInvitation"] !== false;
+      })
       .map((person: { id: string; membership: string; user: User }) => {
         return model(TeamMember, {
           _id: person.membership,
           userId: new ObjectID(person.id),
+          hasAcceptedInvitation: true,
           ...(args.select["user"] ? { user: person.user } : {}),
         });
       });
@@ -1388,5 +1393,345 @@ describe("add_to_on_call_policy", () => {
         'Added Bo Chen to escalation rule "Level 1"',
       );
     });
+  });
+});
+
+/*
+ * SOMEONE INVITED EARLIER (#10412). Ask AI found only the project's members
+ * and the addresses the same plan invites, so "page cy@acme.example on
+ * Payments" after an earlier invitation answered that Cy was not in the
+ * project until she accepted. An address with a live invitation to this
+ * project - read as the person reads its memberships, by the address the
+ * invitation was sent to - is added to the level by the user its
+ * invitation made, and paged once she joins. No other address is.
+ */
+describe("someone invited earlier, before they accept", () => {
+  const CY_ID: string = "72440000-0000-4000-8000-00000000000c";
+  const CY_MEMBERSHIP: string = "72440000-0000-4000-8000-0000000000c1";
+
+  const POLICY: OnCallDutyPolicy = model(OnCallDutyPolicy, {
+    _id: POLICY_ID,
+    name: "Payments on-call",
+  });
+
+  // The project's one policy, its first level, and who that level pages.
+  function project(firstLevelPages: Array<string> = []): void {
+    jest
+      .spyOn(OnCallDutyPolicyService, "findBy")
+      .mockResolvedValue([POLICY] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+      .mockResolvedValue([
+        model(OnCallDutyPolicyEscalationRule, {
+          _id: FIRST_LEVEL_ID,
+          name: "Level 1",
+          order: 1,
+          escalateAfterInMinutes: 30,
+        }),
+      ] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
+      .mockResolvedValue(
+        firstLevelPages.map((userId: string) => {
+          return model(OnCallDutyPolicyEscalationRuleUser, {
+            userId: new ObjectID(userId),
+          });
+        }) as never,
+      );
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
+      .mockResolvedValue([] as never);
+  }
+
+  /*
+   * Ana, a member; and Cy, invited at cy@acme.example and not joined yet -
+   * whose account has moved to another address since, which the project
+   * does not see. `mayReadInvitations` false: the person may read the
+   * members, not the invitation (a team they do not own); "refused": their
+   * read of it is refused outright.
+   */
+  function membersAndCyInvited(
+    mayReadInvitations: boolean | "refused" = true,
+  ): void {
+    const anaUser: User = model(User, {
+      _id: ANA_ID,
+      name: new Name("Ana Lopez"),
+      email: new Email("ana@acme.example"),
+    });
+    const cyUser: User = model(User, {
+      _id: CY_ID,
+      name: new Name("Cy Lee"),
+      email: new Email("cy.lee@elsewhere.example"),
+    });
+
+    jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
+      select: JSONObject;
+      query: JSONObject;
+      props: { isRoot?: boolean };
+    }): Promise<Array<TeamMember>> => {
+      const rows: Array<TeamMember> = [];
+      const accepted: unknown = args.query["hasAcceptedInvitation"];
+
+      if (accepted !== false) {
+        rows.push(
+          model(TeamMember, {
+            _id: "72440000-0000-4000-8000-0000000000a1",
+            userId: new ObjectID(ANA_ID),
+            hasAcceptedInvitation: true,
+            ...(args.select["user"] ? { user: anaUser } : {}),
+          }),
+        );
+      }
+
+      if (accepted !== true) {
+        if (mayReadInvitations === "refused" && !args.props.isRoot) {
+          throw new Error("You do not have permission to read team members.");
+        }
+
+        if (mayReadInvitations === true || args.props.isRoot) {
+          rows.push(
+            model(TeamMember, {
+              _id: CY_MEMBERSHIP,
+              userId: new ObjectID(CY_ID),
+              hasAcceptedInvitation: false,
+              inviteeEmail: new Email("cy@acme.example"),
+              ...(args.select["user"] ? { user: cyUser } : {}),
+            }),
+          );
+        }
+      }
+
+      return rows;
+    }) as never);
+    jest
+      .spyOn(TeamService, "findBy")
+      .mockResolvedValue([
+        model(Team, { _id: TEAM_ID, name: "Platform" }),
+      ] as never);
+  }
+
+  test("an address invited earlier is added to the level, and paged once they join", async () => {
+    project();
+    membersAndCyInvited();
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        {
+          policy: "Payments on-call",
+          alsoPage: ["Ana Lopez", "Cy@Acme.example"],
+        },
+        ctx,
+      );
+
+    expect(actionLineText(prepared.description)).toBe(
+      'Adds Ana Lopez, cy@acme.example to escalation rule "Level 1". Invited, and paged once they join: cy@acme.example.',
+    );
+    expect(prepared.arguments).toEqual(
+      expect.objectContaining({
+        userIds: [ANA_ID],
+        invitedEmails: ["cy@acme.example"],
+        notFound: [],
+      }),
+    );
+    expect(prepared.description!.every(isKnownAIActionSentence)).toBe(true);
+  });
+
+  test("approved, the level names the user the invitation made, as the person", async () => {
+    project();
+    membersAndCyInvited();
+    const users: Spy = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+      .mockResolvedValue({} as never);
+
+    const result: ToolExecutionResult = await AddToOnCallPolicyTool.execute(
+      {
+        policyId: POLICY_ID,
+        policyName: "Payments on-call",
+        level: 1,
+        ruleId: FIRST_LEVEL_ID,
+        ruleName: "Level 1",
+        invitedEmails: ["cy@acme.example"],
+      },
+      ctx,
+    );
+
+    expect(users).toHaveBeenCalledTimes(1);
+    const created: {
+      data: OnCallDutyPolicyEscalationRuleUser;
+      props: unknown;
+    } = users.mock.calls[0]![0] as {
+      data: OnCallDutyPolicyEscalationRuleUser;
+      props: unknown;
+    };
+    expect(created.data.userId?.toString()).toBe(CY_ID);
+    expect(created.props).toBe(ctx.props);
+    expect(result.dataForLlm).toContain(
+      "cy@acme.example (invited: paged once they join)",
+    );
+  });
+
+  test("an address no invitation of the project was sent to is not found: nothing is proposed for it", async () => {
+    project();
+    membersAndCyInvited();
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { policy: "Payments on-call", alsoPage: ["zed@acme.example"] },
+        ctx,
+      );
+
+    expect(actionLineText(prepared.description)).toBe(
+      "Not in this project, so not paged: zed@acme.example.",
+    );
+    expect(prepared.arguments["invitedEmails"]).toEqual([]);
+
+    const refusal: SetupActionRefusal | null =
+      await AddToOnCallPolicyTool.checkBeforeApproval!(prepared.arguments, ctx);
+
+    expect(refusal?.toldModel).toContain(
+      '"zed@acme.example" is no member or team of this project',
+    );
+  });
+
+  test("approved with an address no invitation was sent to, nothing is written for it", async () => {
+    project();
+    membersAndCyInvited();
+    const users: Spy = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "create")
+      .mockResolvedValue({} as never);
+
+    await expect(
+      AddToOnCallPolicyTool.execute(
+        {
+          policyId: POLICY_ID,
+          policyName: "Payments on-call",
+          level: 1,
+          ruleId: FIRST_LEVEL_ID,
+          ruleName: "Level 1",
+          invitedEmails: ["zed@acme.example"],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(
+      "Nobody named is a member or a team of this project, so nobody was added.",
+    );
+    expect(users).not.toHaveBeenCalled();
+  });
+
+  test("found by the address the invitation was sent to, never by the one the account has moved to", async () => {
+    project();
+    membersAndCyInvited();
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { policy: "Payments on-call", alsoPage: ["cy.lee@elsewhere.example"] },
+        ctx,
+      );
+
+    expect(prepared.arguments["invitedEmails"]).toEqual([]);
+    expect(prepared.arguments["notFound"]).toEqual([
+      "cy.lee@elsewhere.example",
+    ]);
+  });
+
+  test("an invitation is not found by its account's name either", async () => {
+    project();
+    membersAndCyInvited();
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { policy: "Payments on-call", alsoPage: ["Cy Lee"] },
+        ctx,
+      );
+
+    expect(prepared.arguments["invitedEmails"]).toEqual([]);
+    expect(prepared.arguments["notFound"]).toEqual(["Cy Lee"]);
+  });
+
+  test("an invitation the person may not read is not found", async () => {
+    project();
+    membersAndCyInvited(false);
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { policy: "Payments on-call", alsoPage: ["cy@acme.example"] },
+        ctx,
+      );
+
+    expect(prepared.arguments["invitedEmails"]).toEqual([]);
+    expect(prepared.arguments["notFound"]).toEqual(["cy@acme.example"]);
+  });
+
+  test("a read of the invitations refused to the person finds none, and the rest is proposed", async () => {
+    project();
+    membersAndCyInvited("refused");
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        {
+          policy: "Payments on-call",
+          alsoPage: ["Ana Lopez", "cy@acme.example"],
+        },
+        ctx,
+      );
+
+    expect(prepared.arguments).toEqual(
+      expect.objectContaining({
+        userIds: [ANA_ID],
+        invitedEmails: [],
+        notFound: ["cy@acme.example"],
+      }),
+    );
+  });
+
+  test("an invitee the level names already is there already: nobody is added again", async () => {
+    project([CY_ID]);
+    membersAndCyInvited();
+
+    const prepared: PreparedMutation =
+      await AddToOnCallPolicyTool.prepareMutation!(
+        { policy: "Payments on-call", alsoPage: ["cy@acme.example"] },
+        ctx,
+      );
+
+    expect(actionLineText(prepared.description)).toBe(
+      "Already paged there: cy@acme.example.",
+    );
+    expect(prepared.arguments["invitedEmails"]).toEqual([]);
+
+    const refusal: SetupActionRefusal | null =
+      await AddToOnCallPolicyTool.checkBeforeApproval!(prepared.arguments, ctx);
+
+    expect(refusal?.toldModel).toContain('pages "cy@acme.example" already');
+  });
+
+  test("set_up_paging: someone invited earlier and someone the same plan invites, each said as they are", async () => {
+    pagesNobody();
+    membersAndCyInvited();
+
+    const prepared: PreparedMutation = await SetUpPagingTool.prepareMutation!(
+      { alsoPage: ["cy@acme.example", "dee@acme.example"] },
+      {
+        ...ctx,
+        plannedCalls: [
+          {
+            name: INVITE_PEOPLE_TOOL_NAME,
+            arguments: { emails: ["dee@acme.example"] },
+          },
+          {
+            name: "set_up_paging",
+            arguments: { alsoPage: ["cy@acme.example", "dee@acme.example"] },
+          },
+        ],
+      },
+    );
+
+    expect(actionLineText(prepared.description)).toBe(
+      "Pages you for every new incident and alert. Invited in this plan, and paged once they join: dee@acme.example. Invited, and paged once they join: cy@acme.example.",
+    );
+    expect(prepared.arguments["invitedEmails"]).toEqual([
+      "cy@acme.example",
+      "dee@acme.example",
+    ]);
   });
 });

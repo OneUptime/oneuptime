@@ -35,6 +35,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import InvitationInviterUtil from "../../../Server/Utils/TeamMember/InvitationInviter";
+import EscalationRuleReach from "../../../Server/Utils/OnCall/EscalationRuleReach";
 import { callTeamMemberHook } from "../TestingUtils/TeamMemberInvitations";
 
 /*
@@ -915,6 +916,58 @@ describe("TeamMemberService.onCreateSuccess - joining accepts the rest of the pr
     expect(acceptPendingSpy).not.toHaveBeenCalled();
     expect(refreshSpy).toHaveBeenCalledWith(USER_ID, PROJECT_ID);
   });
+
+  /*
+   * An escalation rule may name someone invited, or a team they are invited
+   * to, and pages them once they join (#10412): no rule logged them as on
+   * call while they were only invited, so joining starts those logs.
+   */
+  test("joining, or joining another team, starts the on-call time logs of the rules that page them now", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(true);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+    });
+  });
+
+  test("an invitation alone starts no time log: nothing pages them until they join", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+    const { onCreate: hook, created } = onCreate(false);
+
+    await callHook("onCreateSuccess", hook, created);
+
+    expect(logsSpy).not.toHaveBeenCalled();
+  });
+
+  test("time logs that cannot be started are logged, and the membership stands", async () => {
+    jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockRejectedValue(new Error("The database could not be reached."));
+    const errors: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {});
+    const { onCreate: hook, created } = onCreate(true);
+
+    await expect(callHook("onCreateSuccess", hook, created)).resolves.toBe(
+      created,
+    );
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(errors).toHaveBeenCalledWith(
+      "Could not start the on-call time logs of somebody who joined a project or a team.",
+      expect.anything(),
+    );
+  });
 });
 
 describe("TeamMemberService.onUpdateSuccess - accepting one invitation accepts the project", () => {
@@ -1042,6 +1095,36 @@ describe("TeamMemberService.onUpdateSuccess - accepting one invitation accepts t
     );
 
     expect(addSettingsSpy).toHaveBeenCalledWith(USER_ID, PROJECT_ID);
+  });
+
+  // A rule that named them while they were invited pages them now (#10412).
+  test("accepting starts the on-call time logs of the rules that page them now", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+
+    await callHook(
+      "onUpdateSuccess",
+      onUpdate({ hasAcceptedInvitation: true }),
+      [MEMBER_ID],
+    );
+
+    expect(logsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+    });
+  });
+
+  test("an update that is not an acceptance starts none", async () => {
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(EscalationRuleReach, "openTimeLogsOfMember")
+      .mockResolvedValue(undefined);
+
+    await callHook("onUpdateSuccess", onUpdate({ teamId: TEAM_ID }), [
+      MEMBER_ID,
+    ]);
+
+    expect(logsSpy).not.toHaveBeenCalled();
   });
 });
 

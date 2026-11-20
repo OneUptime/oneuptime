@@ -628,8 +628,10 @@ describe("QueryHelper.searchAllWords versus QueryHelper.search", () => {
     expect(rowMatches(searchAllWords(["michigan", "104822"]), SITE)).toBe(true);
   });
 
-  it("search does not escape LIKE metacharacters; searchAllWords does", () => {
-    expect(paramValues(asRaw(QueryHelper.search("100%")))).toEqual(["%100%%"]);
+  it("both escape LIKE metacharacters (#10545)", () => {
+    expect(paramValues(asRaw(QueryHelper.search("100%")))).toEqual([
+      "%100\\%%",
+    ]);
     expect(paramValues(searchAllWords(["100%"]))).toEqual(["%100\\%%"]);
   });
 

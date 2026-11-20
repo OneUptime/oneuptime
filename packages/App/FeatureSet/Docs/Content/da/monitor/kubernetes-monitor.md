@@ -116,7 +116,7 @@ Disse monitorer evaluerer altid **Metrikværdi** – værdien af den konfigurere
 
 ### Betingelser
 
-Statiske tærskler sammenlignes med den **Tærskel**, du angiver: **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** og **Lig med**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget.
+Statiske tærskler sammenlignes med den **Tærskel**, du angiver: **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**, **Lig med** og **Ikke lig med**. **Har ingen data** passer, når forespørgslen intet sendte i vinduet, og **Har data**, når den sendte noget.
 
 Anomalidetektion mod en baseline kræver ingen tærskel. Vælg en af disse betingelser, så viser formularen i stedet **Følsomhed** og **Baseline-vindue**:
 

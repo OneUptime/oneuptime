@@ -39,6 +39,11 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
+  HashedAddressSignal,
+  getHashedAddressSearchTexts,
+} from "Common/Types/Telemetry/HashedAddressSearch";
+import useHashedAddressSearch from "../Telemetry/HashedAddressSearch";
+import {
   FacetCountAnswer,
   FacetCountRequestPart,
   mergeFacetCountAnswers,
@@ -1718,6 +1723,31 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     exclusions,
   ]);
 
+  /*
+   * The addresses the search also matched by the project's IP Address Hash
+   * token (#10418): the texts the list compares on an exception's message,
+   * and its occurrences' attributes and columns, asked about only when one
+   * holds an address. The list says so above its results.
+   */
+  const hashedAddressSearchTexts: Array<string> = useMemo((): Array<string> => {
+    return [
+      ...getHashedAddressSearchTexts(query, HashedAddressSignal.Exceptions),
+      ...getHashedAddressSearchTexts(
+        {
+          ...instanceScope.columnPredicates,
+          attributes: instanceScope.attributePredicates,
+        },
+        HashedAddressSignal.Exceptions,
+      ),
+      ...Object.values(instanceScope.attributeSelections).flat(),
+    ];
+  }, [query, instanceScope]);
+
+  const hashedAddresses: Array<string> = useHashedAddressSearch({
+    signal: HashedAddressSignal.Exceptions,
+    texts: hashedAddressSearchTexts,
+  });
+
   // Fetch exceptions
   const fetchExceptions: () => Promise<void> = useCallback(async () => {
     setIsLoading(true);
@@ -2891,6 +2921,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       items={exceptions}
       isLoading={isLoading || holdsReads}
       error={error || undefined}
+      hashedAddresses={hashedAddresses}
       onRefresh={() => {
         // A held read goes out by itself once what it waits for is in.
         if (holdsReads) {

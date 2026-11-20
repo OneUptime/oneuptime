@@ -389,6 +389,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "ui",
   },
   /*
+   * A case's Response Plan (#9557), shared with the server, OneUptime AI and
+   * the mobile app (#10340): every step's words and its buttons', and what
+   * OneUptime's own checks of the steps say. The card looks each up as it
+   * draws it; the server keeps a step's key and its evidence's keys, never
+   * the words.
+   */
+  {
+    directory: "packages/Common/Utils/SecurityCase/ResponsePlan",
+    kind: "ui",
+  },
+  /*
    * What is wrong with a detection rule exception, field by field: the
    * Add Exception form shows each problem under its field, in the
    * reader's language, and the API answers a save with the same words.
@@ -607,6 +618,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/OnCallDutyPolicy/UserOverrideTeamAccess.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a person, a team or an on-call schedule was not added to an
+   * escalation rule: the rule pages them already (#10465). The server
+   * refuses in English with their names in the sentence, and the Dashboard
+   * says it in the reader's language with the names as written. Only the
+   * sentences the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/OnCallDutyPolicy/EscalationRuleResponderOnce.ts",
     kind: "keys",
   },
   /*

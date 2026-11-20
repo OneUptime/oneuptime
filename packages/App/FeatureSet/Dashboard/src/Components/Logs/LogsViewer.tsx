@@ -140,6 +140,11 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { APP_API_URL } from "Common/UI/Config";
+import useHashedAddressSearch from "../Telemetry/HashedAddressSearch";
+import {
+  HashedAddressSignal,
+  getHashedAddressSearchTexts,
+} from "Common/Types/Telemetry/HashedAddressSearch";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -1565,6 +1570,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
        * equal content must be the same identity.
        */
     }, [typedAggregateFilterKey]);
+
+  /*
+   * The addresses the search also matched by the project's IP Address Hash
+   * token (#10418): the texts the list's query compares on the body and
+   * the attributes, asked about only when one holds an address. The list
+   * says so above its results.
+   */
+  const hashedAddresses: Array<string> = useHashedAddressSearch({
+    signal: HashedAddressSignal.Logs,
+    texts: getHashedAddressSearchTexts(filterOptions, HashedAddressSignal.Logs),
+  });
 
   /*
    * Monotonic id of the latest facets request, so a slower earlier one
@@ -3256,6 +3272,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           }}
           onFilterChanged={handleFilterChanged}
           filterData={filterOptions}
+          hashedAddresses={hashedAddresses}
           logs={logs}
           showFilters={props.showFilters}
           noLogsMessage={props.noLogsMessage}

@@ -26,6 +26,11 @@ import SecurityRequestTrace, {
   SecurityRequestTraceRows,
 } from "../../../../../Server/Utils/SecurityEvent/RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "../../../../../Server/Utils/SecurityEvent/ScrubbedClientAddresses";
+import SecurityTrustedProxies from "../../../../../Server/Utils/SecurityEvent/SecurityTrustedProxies";
+import {
+  NO_TRUSTED_PROXIES,
+  toTrustedProxies,
+} from "../../../../../Utils/SecurityEvent/ClientAddressTrust";
 import { TelemetryScanWindow } from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/TelemetryScanStatements";
 import { TelemetryWindowRead } from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/TelemetryScanTypes";
 import TraceSecurityScan from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/TraceSecurityScan";
@@ -768,5 +773,115 @@ describe("the log scan names the address behind a line's token, as its row is st
     await store([lineEvent(ACCESS_LINE_OF(tokenOf(ATTACKER)))]);
 
     expect(calls).toEqual(["follow", "vault", "rules", "threat-intel"]);
+  });
+});
+
+/*
+ * The vault names only an address its sender could not have written
+ * (#10416): it reads a token only from the #10397 marker, which the scans
+ * set only for a verified address, and an address a proxy forwarded that
+ * turns out to be a proxy the project trusts is no client.
+ */
+describe("the address the vault names is one its sender could not have written (#10416)", () => {
+  const EDGE: string = "172.70.38.12";
+
+  async function scanSpanWith(
+    attributes: Record<string, string>,
+  ): Promise<NormalizedSecurityEvent> {
+    jest.spyOn(SecurityEventService, "findBy").mockResolvedValue([]);
+    jest.spyOn(SecurityRequestTrace, "followEvents").mockResolvedValue(0);
+    jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([]);
+    jest.spyOn(SpanService, "executeQuery").mockResolvedValue(
+      answer([
+        {
+          ...traversalSpan(""),
+          attributes: {
+            "url.path": "/download",
+            "url.query": "file=../../../../etc/passwd",
+            "http.request.method": "GET",
+            "http.response.status_code": "200",
+            ...attributes,
+          },
+        },
+      ]) as never,
+    );
+
+    const read: TelemetryWindowRead = await TraceSecurityScan.readWindow({
+      window: WINDOW,
+      offset: 0,
+      pageSize: 100,
+    });
+    const prepared: Array<NormalizedSecurityEvent> =
+      await TraceSecurityScan.prepareEvents({
+        projectId: PROJECT_ID,
+        events: read.events,
+      });
+
+    expect(prepared).toHaveLength(1);
+
+    return prepared[0]!;
+  }
+
+  test("a token only client.address held is a claim: the vault is never asked, and no address is named", async () => {
+    jest
+      .spyOn(SecurityTrustedProxies, "getForProject")
+      .mockResolvedValue(NO_TRUSTED_PROXIES);
+    const vault: ReturnType<typeof jest.spyOn> = vaultHolds({
+      [tokenOf(OTHER_ADDRESS)]: OTHER_ADDRESS,
+    });
+
+    const event: NormalizedSecurityEvent = await scanSpanWith({
+      "client.address": tokenOf(OTHER_ADDRESS),
+    });
+
+    expect(vault).not.toHaveBeenCalled();
+    expect(event.principalIp).toBe("");
+    expect(event.observables).not.toContain(OTHER_ADDRESS);
+    expect(readHiddenClientAddress(event)).toBeNull();
+    expect(
+      event.attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust],
+    ).toBe("claimed");
+  });
+
+  test("the hop a private load balancer appended to the recorded X-Forwarded-For is named", async () => {
+    jest
+      .spyOn(SecurityTrustedProxies, "getForProject")
+      .mockResolvedValue(NO_TRUSTED_PROXIES);
+    vaultHolds({
+      [tokenOf(OTHER_ADDRESS)]: OTHER_ADDRESS,
+      [tokenOf(ATTACKER)]: ATTACKER,
+    });
+
+    const event: NormalizedSecurityEvent = await scanSpanWith({
+      "network.peer.address": "10.0.0.5",
+      "client.address": tokenOf(OTHER_ADDRESS),
+      "http.request.header.x-forwarded-for": `["${tokenOf(OTHER_ADDRESS)}, ${tokenOf(ATTACKER)}"]`,
+    });
+
+    expect(event.principalIp).toBe(ATTACKER);
+    expect(
+      event.attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust],
+    ).toBe("trusted-proxy");
+    // The sender's claim stays a claim, as the rule left it.
+    expect(
+      event.attributes[SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress],
+    ).toBe(tokenOf(OTHER_ADDRESS));
+    expect(event.observables).not.toContain(OTHER_ADDRESS);
+  });
+
+  test("a hop that turns out to be a proxy the project trusts - a hashed CDN edge - is not named, and stays hidden", async () => {
+    jest
+      .spyOn(SecurityTrustedProxies, "getForProject")
+      .mockResolvedValue(toTrustedProxies("172.64.0.0/13"));
+    vaultHolds({ [tokenOf(EDGE)]: EDGE });
+
+    const event: NormalizedSecurityEvent = await scanSpanWith({
+      "network.peer.address": "10.0.0.5",
+      "http.request.header.x-forwarded-for": `192.0.2.44, ${tokenOf(EDGE)}`,
+    });
+
+    expect(event.principalIp).toBe("");
+    expect(event.observables).not.toContain(EDGE);
+    expect(readHiddenClientAddress(event)?.value).toBe(tokenOf(EDGE));
   });
 });

@@ -250,6 +250,7 @@ Key Vault, 스토리지 계정, Azure SQL 데이터베이스는 각각 모든 �
 | Okta System Log | 로그인, MFA, 계정, 정책 이벤트 | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | 로그인, 디렉터리 변경, 위험 탐지, 선택하면 실패한 백그라운드 및 앱 로그인, 그리고 Microsoft 365 감사 로그의 메일 전달, 공유, 피싱 판정 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 로그인, Google 자체 탐지, 관리자 변경과 앱 액세스 허용, 드라이브 공유 | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | 방화벽이 엣지에서 차단, 챌린지, 로그 기록한 것, HTTP Activity로 | [Cloudflare](/docs/integrations/cloudflare) |
 
 - 제품 자체의 경고 중 **케이스를 여는 기준**(다른 수준을 고르지 않는 한 **높음 이상**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
 - 연결은 레코드가 설명하는 활동 시각이 아니라, 제품이 레코드를 만든 시각을 기준으로 읽습니다. 매시간 실행되는 SIEM 규칙은 일치한 이벤트보다 한참 뒤에 탐지를 만들지만, 그것도 가져옵니다.

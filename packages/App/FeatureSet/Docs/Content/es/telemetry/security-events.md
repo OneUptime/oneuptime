@@ -250,6 +250,7 @@ Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [cone
 | Okta System Log | Eventos de inicio de sesión, MFA, cuentas y políticas | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Inicios de sesión, cambios de directorio y detecciones de riesgo, si lo eliges los inicios de sesión en segundo plano y de aplicaciones que fallaron, y del registro de auditoría de Microsoft 365, el reenvío de correo, el uso compartido y los veredictos de phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inicios de sesión, las detecciones propias de Google, los cambios de administración y los accesos concedidos a aplicaciones, y el uso compartido en Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Lo que su firewall bloqueó, desafió y registró en el perímetro, como HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Las alertas propias del producto con un nivel igual o superior a **Abrir casos desde** (**Alta y superior** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
 - Una conexión lee los registros según el momento en que el producto los creó, no según el momento de la actividad que describen. Una regla de SIEM que se ejecuta cada hora crea detecciones mucho después de los eventos que coincidieron, y aun así se importan.

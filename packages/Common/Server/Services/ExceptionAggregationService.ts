@@ -1,8 +1,7 @@
-import {
-  SQL,
-  Statement,
-  escapeIlikePattern,
-} from "../Utils/AnalyticsDatabase/Statement";
+import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import HashedAddressSearch, {
+  HashedAddressTokens,
+} from "../Utils/Telemetry/HashedAddressSearch";
 import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
 import Timezone from "../../Types/Timezone";
 import {
@@ -55,6 +54,13 @@ export interface ExceptionFilters {
   traceIds?: Array<string> | undefined;
   escaped?: boolean | undefined;
   messageSearchText?: string | undefined;
+  /*
+   * The project's IP Address Hash tokens, when the request's free text
+   * names an address and the project hashes addresses out of its logs or
+   * spans: the message search then matches an address's token too
+   * (HashedAddressSearch, #10418). Set by the server, never sent.
+   */
+  hashedAddresses?: HashedAddressTokens | undefined;
 }
 
 export interface HistogramRequest extends ExceptionFilters {
@@ -523,11 +529,12 @@ export class ExceptionAggregationService {
        * same treatment here a "disk 100% full" filter counted every exception
        * in the chart while the table below it showed only the matching ones.
        */
-      statement.append(
-        SQL` AND message ILIKE ${{
-          type: TableColumnType.Text,
-          value: `%${escapeIlikePattern(request.messageSearchText.trim())}%`,
-        }}`,
+      statement.append(" AND ").append(
+        HashedAddressSearch.containsCondition({
+          column: "message",
+          text: request.messageSearchText.trim(),
+          tokens: request.hashedAddresses,
+        }),
       );
     }
   }

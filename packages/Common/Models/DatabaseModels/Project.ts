@@ -2798,6 +2798,83 @@ export default class Project extends TenantModel {
   public securityRiskCaseThreshold?: number = undefined;
 
   /*
+   * Moving a security case to Contained once OneUptime has verified every
+   * step that contains it (#10340): the account read back as suspended in
+   * the identity provider, the host as isolated in the EDR - a step that
+   * only looks done, or a person's tick, never moves the case on its own.
+   * The time to contain is recorded and the case's timeline says why. On
+   * for every project, those from before it too: nothing moves on less than
+   * evidence OneUptime can show.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Mark Security Cases Contained When Verified",
+    description:
+      "When on, a security case moves to Contained once OneUptime has verified every step that contains it, and its time to contain is recorded. On unless changed.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: true,
+    type: ColumnType.Boolean,
+  })
+  public markSecurityCaseContainedWhenVerified?: boolean = undefined;
+
+  /*
+   * The proxies the project's apps sit behind (#10416): a CDN's edge, a
+   * load balancer's public addresses (Security Events > Connections, under
+   * More settings). Security Events reads the client address one of them
+   * forwards in X-Forwarded-For as verified, and blames an attack on it; an
+   * address the request only claims is never blamed
+   * (Utils/SecurityEvent/ClientAddressTrust). Private, loopback and
+   * link-local addresses are trusted without being listed. One address or
+   * range a line, at most MAX_TRUSTED_PROXIES; the server refuses anything
+   * else, and keeps each written one way (NetworkAddressBlock).
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Security Trusted Proxies",
+    description:
+      "The proxies your apps sit behind, such as a CDN or a load balancer: Security Events trusts the client address they forward in X-Forwarded-For. One IP address or range a line. Private addresses are trusted without being listed.",
+    example: "203.0.113.0/24",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public securityTrustedProxies?: string = undefined;
+
+  /*
    * Fixing new incidents and alerts automatically (auto-remediation): the
    * master switches, one per kind of signal, as investigation has. OFF for
    * every project, new ones included, and on purpose not among the switches

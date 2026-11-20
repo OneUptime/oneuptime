@@ -43,7 +43,10 @@ import {
 } from "Common/Types/SecurityCase/SecurityFiringKeys";
 import { SecurityEntityRiskContribution } from "Common/Types/SecurityCase/SecurityEntityRisk";
 import { addRiskObservation } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
-import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
+import SigmaClickhouseCompiler, {
+  buildSigmaFieldExpression,
+  buildSigmaFieldHasValue,
+} from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -55,6 +58,11 @@ import {
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import { DetectionRuleDefinition } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  ClientAddressReading,
+  markClientAddressTrust,
+  resolveClientAddress,
+} from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import SecurityHuntRun from "Common/Models/DatabaseModels/SecurityHuntRun";
@@ -263,6 +271,8 @@ interface ArrivingEvent {
   vendorName?: string | undefined;
   productName?: string | undefined;
   sourceId?: ObjectID | undefined;
+  // What the scan wrote of the request beside them: a scrub rule's marker (#10397).
+  attributes?: Record<string, string> | undefined;
 }
 
 interface StoredAlert {
@@ -362,6 +372,7 @@ type AnalyticsTableColumnLike = AnalyticsBaseModel["tableColumns"][number];
 function eventRow(event: ArrivingEvent): JSONObject {
   const attributes: Record<string, string> = {
     "oneuptime.log.id": `log-${event.uid}`,
+    ...(event.attributes || {}),
   };
 
   return {
@@ -1394,6 +1405,348 @@ integration("a scheduled rule judges every event once (#10337)", () => {
 
       expect(firings).toHaveLength(1);
       expect(judgedUids(rule)).toEqual(["alice", "bob", "carol-late"]);
+    });
+  });
+
+  /*
+   * A rule that counts per value leaves out the events with no value for
+   * its group field (#10415): once a scrub rule hid addresses, every failed
+   * sign-in of the app counted as one "IP address" and fired Brute force
+   * from one IP address, with nothing to block. A rule that fires on each
+   * event keeps firing for them.
+   */
+  describe("events with no value for the field a rule counts by (#10415)", () => {
+    // An SSH sign-in a scrub rule hid the address of (#10485), as the log scan stores it.
+    const HIDDEN: Record<string, string> = {
+      "oneuptime.request.client_address_hidden": "scrub-rule",
+      "oneuptime.request.client_address_scrubbed": "[REDACTED]",
+      "oneuptime.request.client_address_scrubbed_in": "log-body",
+    };
+
+    // A detection of the group of events that had no value: recorded naming none.
+    function firingsWithNoValue(rule: DetectionRule): Array<RecordedSignal> {
+      return recordedFor(rule).filter((recorded: RecordedSignal): boolean => {
+        return !recorded.signal.groupValue;
+      });
+    }
+
+    function failures(data: {
+      prefix: string;
+      count: number;
+      fromMinute: number;
+      principalIp?: string | undefined;
+      user?: (index: number) => string;
+      attributes?: Record<string, string> | undefined;
+    }): Array<ArrivingEvent> {
+      const events: Array<ArrivingEvent> = [];
+
+      for (let index: number = 0; index < data.count; index++) {
+        // Ten a minute at most, each a few seconds apart, all in one window.
+        const minute: number = data.fromMinute + Math.floor(index / 10);
+        const second: number = (index % 10) * 5;
+
+        events.push({
+          uid: `${data.prefix}-${index}`,
+          time: at(minute, second),
+          arrivesAt: at(minute, second + 2),
+          principalIp: data.principalIp ?? "",
+          principalUser: data.user ? data.user(index) : `user-${index}`,
+          attributes: data.attributes,
+        });
+      }
+
+      return events;
+    }
+
+    test("ten failed sign-ins with no address in five minutes make no Brute force finding; ten from one address make one", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({ prefix: "nowhere", count: 10, fromMinute: 6 }),
+        ...failures({
+          prefix: "attacker",
+          count: 10,
+          fromMinute: 6,
+          principalIp: "203.0.113.7",
+        }),
+      );
+
+      await runMinutes(1, 20);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "203.0.113.7")).toHaveLength(1);
+      expect(firingsFor(rule, "203.0.113.7")[0]!.eventCount).toBe(10);
+      expect(
+        judgedUids(rule).filter((uid: string): boolean => {
+          return uid.startsWith("nowhere");
+        }),
+      ).toEqual([]);
+    });
+
+    test("failed sign-ins that claim an innocent address are never counted as it: with nothing verified they make no finding, and through a verified peer they count as the peer (#10416)", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+
+      // Each sender writes X-Forwarded-For: 192.0.2.44, someone else's address.
+      const spoofed: ClientAddressReading = resolveClientAddress({
+        forwardedClient: "192.0.2.44",
+        forwardedClientFrom: "client.address",
+      });
+      const throughPeer: ClientAddressReading = resolveClientAddress({
+        peer: "203.0.113.7",
+        forwardedClient: "192.0.2.44",
+        forwardedClientFrom: "client.address",
+        forwardedFor: "192.0.2.44",
+      });
+
+      // What the scans keep of each: the claim beside the address, never as it.
+      function kept(reading: ClientAddressReading): Record<string, string> {
+        const attributes: JSONObject = {};
+
+        markClientAddressTrust(attributes, reading);
+
+        return attributes as Record<string, string>;
+      }
+
+      expect([spoofed.address, throughPeer.address]).toEqual([
+        "",
+        "203.0.113.7",
+      ]);
+
+      arrive(
+        ...failures({
+          prefix: "spoofed",
+          count: 10,
+          fromMinute: 6,
+          attributes: kept(spoofed),
+        }),
+        ...failures({
+          prefix: "through-peer",
+          count: 10,
+          fromMinute: 6,
+          principalIp: throughPeer.address,
+          attributes: kept(throughPeer),
+        }),
+      );
+
+      await runMinutes(1, 20);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "192.0.2.44")).toHaveLength(0);
+      expect(firingsFor(rule, "203.0.113.7")).toHaveLength(1);
+      expect(firingsFor(rule, "203.0.113.7")[0]!.eventCount).toBe(10);
+      expect(
+        judgedUids(rule).filter((uid: string): boolean => {
+          return uid.startsWith("spoofed");
+        }),
+      ).toEqual([]);
+    });
+
+    test("twelve hidden-address failures across different users make no Brute force finding (#10485)", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({
+          prefix: "hidden",
+          count: 12,
+          fromMinute: 6,
+          attributes: HIDDEN,
+        }),
+      );
+
+      await runMinutes(1, 20);
+
+      expect(recordedFor(rule)).toHaveLength(0);
+    });
+
+    test("and a user who failed fifteen times from hidden addresses makes Repeated failed sign-ins for one account", async () => {
+      const brute: DetectionRule = addRule({
+        name: "Brute force from one IP address",
+        intervalInMinutes: 15,
+        matchCountThreshold: 10,
+        lastEvaluatedAt: at(0),
+      });
+      const repeated: DetectionRule = addRule({
+        name: "Repeated failed sign-ins for one account",
+        intervalInMinutes: 15,
+        groupByField: "principalUser",
+        matchCountThreshold: 15,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({
+          prefix: "root",
+          count: 15,
+          fromMinute: 16,
+          user: (): string => {
+            return "root";
+          },
+          attributes: HIDDEN,
+        }),
+      );
+
+      await runMinutes(1, 40);
+
+      expect(recordedFor(brute)).toHaveLength(0);
+      expect(firingsFor(repeated, "root")).toHaveLength(1);
+      expect(firingsFor(repeated, "root")[0]!.eventCount).toBe(15);
+    });
+
+    test("five accounts failing with no address make no Password spraying finding; five from one address make one", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Password spraying",
+        intervalInMinutes: 10,
+        matchCountThreshold: 5,
+        distinctCountField: "principalUser",
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        ...failures({ prefix: "nowhere", count: 5, fromMinute: 12 }),
+        ...failures({
+          prefix: "sprayer",
+          count: 5,
+          fromMinute: 12,
+          principalIp: "198.51.100.9",
+          user: (index: number): string => {
+            return `account-${index}`;
+          },
+        }),
+      );
+
+      await runMinutes(1, 30);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.9")).toHaveLength(1);
+    });
+
+    test("with addresses and without, mixed, only the addressed ones count, each per address", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Three failed sign-ins from one address",
+        intervalInMinutes: 5,
+        matchCountThreshold: 3,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive(
+        // Two and two: neither address reaches three, whatever comes with no address.
+        ...failures({
+          prefix: "a",
+          count: 2,
+          fromMinute: 6,
+          principalIp: "198.51.100.1",
+        }),
+        ...failures({
+          prefix: "b",
+          count: 2,
+          fromMinute: 7,
+          principalIp: "198.51.100.2",
+        }),
+        ...failures({ prefix: "none", count: 6, fromMinute: 8 }),
+        // The next window: three from one address fire it, and only its three count.
+        ...failures({
+          prefix: "c",
+          count: 3,
+          fromMinute: 11,
+          principalIp: "198.51.100.3",
+        }),
+        ...failures({ prefix: "more-none", count: 4, fromMinute: 12 }),
+      );
+
+      await runMinutes(1, 30);
+
+      expect(firingsWithNoValue(rule)).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.1")).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.2")).toHaveLength(0);
+      expect(firingsFor(rule, "198.51.100.3")).toHaveLength(1);
+      expect(firingsFor(rule, "198.51.100.3")[0]!.eventCount).toBe(3);
+      expect(judgedUids(rule)).toEqual(["c-0", "c-1", "c-2"]);
+    });
+
+    test("a rule that fires on each event keeps firing for events with no value for its group field", async () => {
+      // As Many records deleted at once in OneUptime fires for a workflow, which has no user.
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in, per user",
+        intervalInMinutes: 1,
+        groupByField: "principalUser",
+        matchCountThreshold: 1,
+        lastEvaluatedAt: at(0),
+      });
+
+      arrive({
+        uid: "no-one",
+        time: at(6),
+        arrivesAt: at(6, 5),
+        principalIp: "203.0.113.7",
+        principalUser: "",
+      });
+
+      await runMinutes(1, 15);
+
+      // Its detection names no user: a group of no value is recorded as none.
+      expect(recordedFor(rule)).toHaveLength(1);
+      expect(recordedFor(rule)[0]!.signal.groupValue).toBeUndefined();
+      expect(judgedUids(rule)).toEqual(["no-one"]);
+    });
+
+    test("an event a scrub rule hid the address of is read the same by the read the real-time runs make", async () => {
+      // The same statement, as a real-time write hands it its events.
+      arrive(
+        ...failures({
+          prefix: "hidden",
+          count: 10,
+          fromMinute: 6,
+          attributes: HIDDEN,
+        }),
+      );
+      await clockAt(10);
+
+      const definition: DetectionRuleDefinition =
+        SigmaRuleSetParser.parse(FAILED_SIGN_IN);
+
+      if (definition.kind !== "single") {
+        throw new Error("expected a single rule");
+      }
+
+      const read: () => Promise<
+        Array<{ groupValue: string }>
+      > = async (): Promise<Array<{ groupValue: string }>> => {
+        return SecurityEventService.findDetectionMatches({
+          projectId: world.projectId,
+          startTime: at(5),
+          endTime: at(10),
+          whereFragment: SigmaClickhouseCompiler.compile(definition.rule),
+          groupByExpression: buildSigmaFieldExpression("principalIp"),
+          groupHasValueExpression: buildSigmaFieldHasValue("principalIp"),
+          distinctCountExpression: null,
+          minMatchCount: 10,
+          maxGroups: 100,
+          arrival: {
+            kind: "run",
+            arrivedAfter: at(0),
+            arrivedUntil: at(10),
+            candidateStartTime: at(5),
+            candidateEndTime: at(10),
+          },
+        });
+      };
+
+      expect(await read()).toEqual([]);
     });
   });
 

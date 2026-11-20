@@ -114,6 +114,7 @@ import { SsoManagedBy } from "../../Types/SSO/SsoManagedSignIn";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import { EntityManager } from "typeorm";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
+import EscalationRuleReach from "../Utils/OnCall/EscalationRuleReach";
 
 /*
  * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
@@ -2312,6 +2313,11 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       this.noteSecondMemberJoined([
         onCreate.createBy.data.projectId || createdItem.projectId,
       ]);
+
+      this.openOnCallTimeLogsOfMember({
+        projectId: onCreate.createBy.data.projectId || createdItem.projectId,
+        userId: createdItem.userId,
+      });
     }
 
     // Activation event for marketing funnels, attributed to the inviter.
@@ -2443,6 +2449,11 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           projectId: item.projectId!,
           user: item.user,
         });
+
+        this.openOnCallTimeLogsOfMember({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
       }
     }
 
@@ -2472,6 +2483,43 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     return { updateBy, carryForward: onUpdate.carryForward };
+  }
+
+  /*
+   * They joined the project, or another of its teams: an escalation rule
+   * that names them, or one of their teams, pages them from now on - none
+   * did while they were only invited (EscalationRuleReach) - so the on-call
+   * time logs of those rules start now. A log already open is left as it
+   * is. In the background: it never holds up or fails the write, and a log
+   * that cannot be written is logged.
+   */
+  private openOnCallTimeLogsOfMember(data: {
+    projectId: ObjectID | null | undefined;
+    userId: ObjectID | null | undefined;
+  }): void {
+    if (!data.projectId || !data.userId) {
+      return;
+    }
+
+    const projectId: ObjectID = data.projectId;
+    const userId: ObjectID = data.userId;
+
+    EscalationRuleReach.openTimeLogsOfMember({
+      projectId: projectId,
+      userId: userId,
+    }).catch((error: Error): void => {
+      logger.error(
+        "Could not start the on-call time logs of somebody who joined a project or a team.",
+        {
+          projectId: projectId.toString(),
+          userId: userId.toString(),
+        } as LogAttributes,
+      );
+      logger.error(error, {
+        projectId: projectId.toString(),
+        userId: userId.toString(),
+      } as LogAttributes);
+    });
   }
 
   /*

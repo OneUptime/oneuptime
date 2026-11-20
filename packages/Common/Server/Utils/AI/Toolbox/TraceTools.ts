@@ -38,6 +38,8 @@ import {
   AI_READ_WIDGET_TITLES,
 } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, countFigure, windowValues } from "./ReadTableWords";
+import HashedAddressSearch from "../../Telemetry/HashedAddressSearch";
+import { HashedAddressSignal } from "../../../../Types/Telemetry/HashedAddressSearch";
 
 const TRACE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -177,6 +179,11 @@ export const QueryTracesTool: ObservabilityTool = {
       await TelemetryReadAccess.getScope(Span, ctx.props),
     );
 
+    const nameSearchText: string | undefined = ToolArgs.getString(
+      args,
+      "nameSearchText",
+    );
+
     const tableRows: Array<TraceAnalyticsTableRow> =
       await TraceAggregationService.getAnalyticsTable({
         projectId: ctx.projectId,
@@ -187,7 +194,13 @@ export const QueryTracesTool: ObservabilityTool = {
         metric: metric as never,
         groupBy: [groupBy],
         limit: limit,
-        nameSearchText: ToolArgs.getString(args, "nameSearchText"),
+        nameSearchText: nameSearchText,
+        // An address in a span name counts its hashed spans too (#10418).
+        hashedAddresses: await HashedAddressSearch.getTokensForRequest({
+          projectId: ctx.projectId,
+          signal: HashedAddressSignal.Traces,
+          request: { nameSearchText },
+        }),
         ...ToolArgs.scopeServiceIds(scope, serviceId),
         hasException: ToolArgs.getBoolean(args, "hasException"),
         rootOnly: ToolArgs.getBoolean(args, "rootOnly"),

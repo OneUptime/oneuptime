@@ -250,6 +250,7 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 | Okta System Log | 登入、MFA、帳戶和原則事件 | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | 登入、目錄變更和風險偵測，可選的失敗的背景和應用程式登入，以及 Microsoft 365 稽核日誌中的郵件轉寄、共用和網路釣魚判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登入、Google 自身的偵測、管理員變更和應用程式授權，以及雲端硬碟中的共用 | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | 其防火牆在邊緣封鎖、質詢和記錄的請求，作為 HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - 產品本身的警示，只要等級達到或高於 **開啟案例的起始嚴重程度**（預設為 **高及以上**，你也可以選擇其他等級或 **從未**），就會開啟 [案件](/docs/telemetry/security-cases)，並依它們涉及的使用者、主機或位址分組。
 - 連線依產品建立記錄的時間讀取記錄，而不是依記錄所描述活動的時間。每小時執行一次的 SIEM 規則會在它符合的事件之後很久才建立偵測，這些偵測仍然會被匯入。

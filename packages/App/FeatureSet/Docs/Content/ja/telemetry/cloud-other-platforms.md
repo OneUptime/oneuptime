@@ -167,11 +167,16 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 # The Key Vault reference, which resolves to the whole header.
 OTEL_EXPORTER_OTLP_HEADERS=@Microsoft.KeyVault(SecretUri=https://my-vault.vault.azure.net/secrets/oneuptime-otlp-headers/)
 OTEL_RESOURCE_ATTRIBUTES=cloud.account.id=00000000-0000-0000-0000-000000000000
-# Node.js:
-OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 ```
 
-SDK の検出器はプラットフォームをドット付きの `azure.app_service` と書きます。OneUptime は受信時にこれを `azure_app_service` に書き換えます。.NET では `OpenTelemetry.Resources.Azure` を追加し、`.ConfigureResource(r => r.AddAzureAppServiceDetector())` を呼び出します。ほかの言語では、`OTEL_RESOURCE_ATTRIBUTES` に `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` を追加し、`service.instance.id` はコードで `WEBSITE_INSTANCE_ID` から取得します。
+SDK の検出器はプラットフォームをドット付きの `azure.app_service` と書きます。OneUptime は受信時にこれを `azure_app_service` に書き換えます。各スタックには App Service 用の独自のリソース検出器があり、各インスタンスに名前を付け、`cloud.resource_id` にサイトの ID を設定します。これによりアプリがサイトの Azure Monitor の数値に結び付きます。お使いのスタックの検出器を有効にしてください:
+
+| スタック | その App Service リソース検出器 |
+| --- | --- |
+| .NET | `OpenTelemetry.Resources.Azure` と `.ConfigureResource(r => r.AddAzureAppServiceDetector())` |
+| Java | OpenTelemetry Java エージェントと `OTEL_RESOURCE_PROVIDERS_AZURE_ENABLED=true` |
+| Node.js | `@opentelemetry/auto-instrumentations-node` と `OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure` |
+| Python | `opentelemetry-resource-detector-azure` と `OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel,azure_app_service` |
 
 :::steps
 1. アプリのシステム割り当てマネージド ID をオンにし (**Settings → Identity**)、コンテナーに対する **Key Vault Secrets User** を付与します。ヘッダー全体 `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN` を、シークレット `oneuptime-otlp-headers` として保存します。
@@ -182,9 +187,9 @@ SDK の検出器はプラットフォームをドット付きの `azure.app_serv
 
 **ネットワーク:** **VNet integration** で **Route All** を有効にしていない限り、App Service はインターネットに直接接続します。有効にしている場合、VNet には NAT ゲートウェイ、または OneUptime ホストへの TCP 443 を許可するファイアウォールへのルートが必要です。
 
-**アプリのページに表示されるもの:** リクエスト、エラー率、レイテンシはアプリのトレースから得られるため、ログやメトリクスしか送らないアプリではそこに **トレースを受信していません** と表示され、その **セットアップ チェック** が何を追加すればよいかを示します。App Service はアプリに独自の CPU やメモリを与えないため、CPU とメモリのタイルはそのことを示します。**クラウド → 接続** でサブスクリプションを接続すると、アプリの **概要** に **Azure Monitor** セクションが加わり、アプリが何を送っていても、Azure が測定したサイトのリクエスト、サーバー エラーとクライアント エラー、応答時間、CPU 時間、メモリが表示されます。その後、アプリの **インスタンス** タブには Azure がアプリを実行しているインスタンスが、**リビジョン** タブには Azure が保持しているデプロイが一覧表示されます。
+**アプリのページに表示されるもの:** リクエスト、エラー率、レイテンシはアプリのトレースから得られるため、ログやメトリクスしか送らないアプリではそこに **トレースを受信していません** と表示され、その **セットアップ チェック** が何を追加すればよいかを示します。App Service はアプリに独自の CPU やメモリを与えないため、CPU とメモリのタイルはそのことを示します。**クラウド → 接続** でサブスクリプションを接続すると、アプリの **概要** に **Azure Monitor** セクションが加わり、アプリが何を送っていても、Azure が測定したサイトのリクエスト、サーバー エラーとクライアント エラー、応答時間、CPU 時間、メモリが表示されます。その後、アプリの **インスタンス** タブには Azure がアプリを実行しているインスタンスが、**リビジョン** タブには Azure が保持しているデプロイが一覧表示されます。**アプリプラットフォーム → すべてのアプリ** と環境の **アプリ** タブでは、トレースを送らないアプリに、代わりに Azure Monitor によるサイトの数値が表示されます。Azure が数えたリクエスト、5xx ステータスで応答した割合、平均応答時間です。
 
-アプリの **セットアップ** タブには、これらの設定が .NET、Java、Node.js、Python 向けの Azure Cloud Shell コマンドとして表示され、すべてのコマンドにアプリ自身の名前、リソース グループ、サブスクリプションが入っています。サイト自体のコンソール、HTTP、プラットフォームのログも見るには、**クラウド → 接続** でサブスクリプションの行の **メトリクスとログをストリーミング** を選択してください。ログはアプリの **ログ** タブの **Azure 診断設定から** に表示されます。
+アプリの **セットアップ** タブには、これらの設定が .NET、Java、Node.js、Python 向けの Azure Cloud Shell コマンドとして表示され、すべてのコマンドにアプリ自身の名前、リソース グループ、サブスクリプションが入っています。サイト自体のコンソール、HTTP、プラットフォームのログも見るには、**クラウド → 接続** でサブスクリプションの行の **メトリクスとログをストリーミング** を選択してください。ログはアプリの **ログ** タブの **Azure 診断設定から** に表示されます。環境のセットアップ ガイドにも、アプリの名前とリソース グループをプレースホルダーにした、各スタックの手順があります。
 
 ## Azure Container Instances
 

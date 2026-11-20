@@ -17,6 +17,7 @@ import {
   getSecurityEntityIcon,
 } from "Common/Types/SecurityCase/SecurityEntity";
 import {
+  getDetectionExceptionEntity,
   DetectionRuleExceptionKind,
   DetectionRuleExceptionShape,
   DetectionRuleExceptionStatus,
@@ -204,37 +205,10 @@ export function countActiveExceptionsByRule(
 /*
  * The entity a case's detection is about, to start an exception with: the
  * one the rule grouped it by when that is a user, a host or an address,
- * else the first such entity it names. Null when it names none.
+ * else the first such entity it names. Shared with the case's Response Plan,
+ * on the server too (Common/Types/SecurityEvent/DetectionRuleException).
  */
-export function getDetectionExceptionEntity(detection: {
-  groupValue?: string | undefined | null;
-  entities: ReadonlyArray<SecurityEntity>;
-}): SecurityEntity | null {
-  const skippable: Array<SecurityEntity> = detection.entities.filter(
-    (entity: SecurityEntity): boolean => {
-      return (
-        isDetectionRuleExceptionEntityType(entity.type) &&
-        Boolean(entity.value && entity.value.trim())
-      );
-    },
-  );
-
-  const groupValue: string = (detection.groupValue || "").trim().toLowerCase();
-
-  if (groupValue) {
-    const grouped: SecurityEntity | undefined = skippable.find(
-      (entity: SecurityEntity): boolean => {
-        return entity.value.trim().toLowerCase() === groupValue;
-      },
-    );
-
-    if (grouped) {
-      return grouped;
-    }
-  }
-
-  return skippable[0] || null;
-}
+export { getDetectionExceptionEntity };
 
 /*
  * What Add Exception starts with: the rule (the form's rule dropdown holds

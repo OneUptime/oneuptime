@@ -250,6 +250,7 @@ En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbund
 | Okta System Log | Begivenheder om login, MFA, konti og politikker | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Logins, mappeændringer og risikoregistreringer, hvis du vælger det mislykkede baggrunds- og app-logins, og fra Microsoft 365-auditloggen videresendelse af mail, deling og phishingdomme | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, Googles egne fund, administratorændringer og app-adgang, og deling i Drev | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Det, som dens firewall blokerede, udfordrede og loggede ved edge, som HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Produktets egne advarsler på eller over **Åbn sager fra** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
 - En forbindelse læser poster efter det tidspunkt, produktet oprettede dem, ikke efter tidspunktet for den aktivitet, de beskriver. En SIEM-regel, der kører hver time, opretter detektioner længe efter de begivenheder, den matchede, og de importeres alligevel.

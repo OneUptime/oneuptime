@@ -6,7 +6,10 @@ import Dictionary from "Common/Types/Dictionary";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
 
@@ -143,5 +146,162 @@ describe("an infrastructure incident's Logs, Traces and Exceptions tabs", () => 
         "attributes"
       ],
     ).toEqual({ "resource.service.name": "checkout" });
+  });
+});
+
+/*
+ * #10451: a Host, Docker, Podman or IoT Device monitor's snapshot keeps its
+ * resource's logs and traces (MetricTelemetrySnapshot.getSignalScopes), and
+ * the incident's tabs read those: the host, a container host's runtime, a
+ * systemd unit's journal lines - never the metric's own attributes (a
+ * Windows service's `name`), which said nothing was logged.
+ */
+describe("a resource monitor's incident: its Logs, Traces and Exceptions tabs read its resource", () => {
+  function resourceSnapshot(data: {
+    monitorType: MonitorType;
+    config: "hostMonitor" | "dockerMonitor";
+    stepConfig: Dictionary<unknown>;
+    query: MetricQueryConfigData;
+    read: Dictionary<unknown>;
+  }): TelemetryQuery {
+    const step: MonitorStep = new MonitorStep();
+    (step.data as unknown as Dictionary<unknown>)[data.config] = {
+      metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+      rollingTime: RollingTime.Past5Minutes,
+      ...data.stepConfig,
+    };
+
+    const response: MetricMonitorResponse = {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      startAndEndDate: WINDOW,
+      metricResult: [],
+      metricViewConfig: { queryConfigs: [data.query], formulaConfigs: [] },
+      queryAttributes: [data.read],
+    };
+
+    // As the event stores it, and the page reads it back.
+    return JSON.parse(
+      JSON.stringify(
+        MetricTelemetrySnapshot.fromResponse(response, {
+          monitorType: data.monitorType,
+          monitorStep: step,
+        }),
+      ),
+    ) as TelemetryQuery;
+  }
+
+  function attributesOf(query: unknown): unknown {
+    return (query as Record<string, unknown> | undefined)?.["attributes"];
+  }
+
+  test("a Windows service's monitor: the host's logs, spans and exceptions, not ones whose `name` is the service", () => {
+    const companions: CompanionSignalQueries = companionsOf(
+      resourceSnapshot({
+        monitorType: MonitorType.Host,
+        config: "hostMonitor",
+        stepConfig: { hostIdentifier: "web-01" },
+        query: queryOf({ name: "Spooler" }),
+        read: { name: "Spooler", "resource.host.name": "web-01" },
+      }),
+    );
+
+    const host: Dictionary<string> = { "resource.host.name": "web-01" };
+
+    expect(attributesOf(companions.logs?.logQuery)).toEqual(host);
+    expect(attributesOf(companions.traces?.spanQuery)).toEqual(host);
+    expect(attributesOf(companions.exceptions?.exceptionQuery)).toEqual(host);
+    expect(companions.logs?.notCarried).toEqual([]);
+    expect(companions.logs?.serviceIds).toEqual([]);
+    expect(companions.metrics).toBeNull();
+
+    // Before, with no resource scope kept: the service's `name`, and no host.
+    const before: CompanionSignalQueries = companionsOf(
+      snapshotOf(queryOf({ name: "Spooler" }), {
+        name: "Spooler",
+        "resource.host.name": "web-01",
+      }),
+    );
+
+    expect(attributesOf(before.logs?.logQuery)).toEqual({ name: "Spooler" });
+  });
+
+  test("a systemd unit's monitor: the unit's journal lines on its host", () => {
+    const unit: Dictionary<unknown> = {
+      "resource.systemd.unit.name": "nginx.service",
+      "systemd.unit.active_state": "active",
+    };
+
+    const companions: CompanionSignalQueries = companionsOf(
+      resourceSnapshot({
+        monitorType: MonitorType.Host,
+        config: "hostMonitor",
+        stepConfig: { hostIdentifier: "web-01" },
+        query: queryOf(unit),
+        read: { ...unit, "resource.host.name": "web-01" },
+      }),
+    );
+
+    expect(attributesOf(companions.logs?.logQuery)).toEqual({
+      "resource.host.name": "web-01",
+      "systemd.unit.name": "nginx.service",
+    });
+    expect(attributesOf(companions.traces?.spanQuery)).toEqual({
+      "resource.host.name": "web-01",
+    });
+  });
+
+  test("a Docker monitor of one container: the host's container logs, and the container named as not carried", () => {
+    const companions: CompanionSignalQueries = companionsOf(
+      resourceSnapshot({
+        monitorType: MonitorType.Docker,
+        config: "dockerMonitor",
+        stepConfig: {
+          hostIdentifier: "docker-1",
+          containerFilters: { containerName: "api" },
+        },
+        query: queryOf(),
+        read: {
+          "resource.host.name": "docker-1",
+          "resource.container.runtime": "docker",
+          "resource.container.name": "api",
+        },
+      }),
+    );
+
+    expect(attributesOf(companions.logs?.logQuery)).toEqual({
+      "resource.host.name": "docker-1",
+      "resource.container.runtime": "docker",
+    });
+    expect(attributesOf(companions.traces?.spanQuery)).toEqual({
+      "resource.host.name": "docker-1",
+    });
+
+    for (const notCarried of [
+      companions.logs?.notCarried,
+      companions.traces?.notCarried,
+      companions.exceptions?.notCarried,
+    ]) {
+      expect(notCarried).toEqual(['attribute "resource.container.name"']);
+    }
+  });
+
+  test("the window is the snapshot's, as for every companion", () => {
+    const companions: CompanionSignalQueries = companionsOf(
+      resourceSnapshot({
+        monitorType: MonitorType.Host,
+        config: "hostMonitor",
+        stepConfig: { hostIdentifier: "web-01" },
+        query: queryOf(),
+        read: { "resource.host.name": "web-01" },
+      }),
+    );
+
+    const time: InBetween<Date> = (
+      companions.logs?.logQuery as unknown as { time: InBetween<Date> }
+    ).time;
+
+    expect(time.startValue).toEqual(WINDOW.startValue);
+    expect(time.endValue).toEqual(WINDOW.endValue);
   });
 });

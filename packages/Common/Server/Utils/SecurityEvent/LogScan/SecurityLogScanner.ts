@@ -30,6 +30,11 @@ import SecurityProjectWork, {
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
+import SecurityTrustedProxies from "../SecurityTrustedProxies";
+import {
+  NO_TRUSTED_PROXIES,
+  TrustedProxies,
+} from "../../../../Utils/SecurityEvent/ClientAddressTrust";
 import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
@@ -385,9 +390,20 @@ export default class SecurityLogScanner {
 
         const events: Array<NormalizedSecurityEvent> = [];
 
+        /*
+         * A request's attack is blamed on an address its sender could not
+         * have written: one a proxy the project trusts forwarded, or the
+         * connection's own (#10416).
+         */
+        const trustedProxies: TrustedProxies =
+          rows.length > 0
+            ? await SecurityTrustedProxies.getForProject(projectId)
+            : NO_TRUSTED_PROXIES;
+
         for (const row of rows) {
           events.push(
             ...SecurityLogParser.parse({
+              trustedProxies,
               body: typeof row["body"] === "string" ? row["body"] : "",
               attributes: readAttributes(row["attributes"]),
               time: readClickhouseDate(row["time"]) || now,

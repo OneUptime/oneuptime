@@ -414,6 +414,7 @@ describe("both scans name the rule before a page is stored", () => {
           attributes: {
             "url.path": "/download",
             "url.query": "file=../../../../etc/passwd",
+            "network.peer.address": SCRUB_IPV4_MASK,
             "client.address": SCRUB_IPV4_MASK,
           },
         },

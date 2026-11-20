@@ -30,6 +30,8 @@ import logger from "../../../../../Server/Utils/Logger";
 import SecurityCaseImpact, {
   IMPACT_CHANGE_LOOKBACK_IN_DAYS,
   IMPACT_MAX_CLOUD_RESOURCES_READ,
+  IMPACT_MAX_EDGE_ROWS,
+  buildEdgeActivityStatement,
   buildFlowPeersStatement,
   buildReachedRequestsStatement,
   getCaseAddresses,
@@ -931,7 +933,136 @@ describe("SecurityCaseImpact.build", () => {
     });
     expect(json.unreadableSources).toEqual([]);
     expect(json.failedSources).toEqual([]);
-    expect(eventQuery).toHaveBeenCalledTimes(1);
+    // One read for the requests that reached the app, one for what the edge did.
+    expect(eventQuery).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * The security events read for the edge: the requests from the case's
+   * addresses that Cloudflare (or another edge) acted on, grouped by what it
+   * did, beside the app's own requests from the same addresses.
+   */
+  function eventsWithEdge(edge: Array<JSONObject> | Error): void {
+    eventQuery.mockImplementation(async (statement: Statement) => {
+      if (statement.query.includes("AS edgeAction")) {
+        if (edge instanceof Error) {
+          throw edge;
+        }
+
+        return queryResult(edge);
+      }
+
+      return queryResult([
+        {
+          principalIp: "203.0.113.7",
+          requestOutcome: "Reached App",
+          firstSeen: "2026-10-27 06:05:00.000000000",
+        },
+      ]);
+    });
+  }
+
+  test("says what the edge did with the case's addresses, beside how far their requests got in the app", async () => {
+    eventsWithEdge([
+      {
+        principalIp: "203.0.113.7",
+        vendorName: "Cloudflare",
+        edgeAction: "blocked",
+        requestOutcome: "Rejected",
+        requests: "380",
+        maxSampleInterval: "10",
+      },
+      {
+        principalIp: "203.0.113.7",
+        vendorName: "Cloudflare",
+        edgeAction: "challenged",
+        requestOutcome: "Rejected",
+        requests: "20",
+        maxSampleInterval: "10",
+      },
+      {
+        principalIp: "203.0.113.7",
+        vendorName: "Cloudflare",
+        edgeAction: "logged",
+        requestOutcome: "Reached App",
+        requests: "3",
+        maxSampleInterval: "1",
+      },
+      // The app's own logs and traces: no edge action, an outcome of their own.
+      {
+        principalIp: "203.0.113.7",
+        vendorName: "OneUptime",
+        edgeAction: "",
+        requestOutcome: "Reached App",
+        requests: "7",
+        maxSampleInterval: "0",
+      },
+      {
+        principalIp: "203.0.113.7",
+        vendorName: "OneUptime",
+        edgeAction: "",
+        requestOutcome: "Reached Database",
+        requests: "2",
+        maxSampleInterval: "0",
+      },
+    ]);
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(json.edge).toEqual({
+      addresses: [
+        {
+          address: "203.0.113.7",
+          edges: [
+            {
+              edge: "Cloudflare",
+              blocked: 380,
+              challenged: 20,
+              passedChallenge: 0,
+              logged: 3,
+              letThrough: 0,
+              other: 0,
+              isEstimate: true,
+            },
+          ],
+          app: { rejected: 0, reachedApp: 7, errored: 0, reachedDatabase: 2 },
+        },
+      ],
+    });
+    expect(json.failedSources).toEqual([]);
+
+    // For the case's addresses only, in the case's project.
+    const statement: Statement = eventQuery.mock.calls
+      .map((call: Array<unknown>): Statement => {
+        return call[0] as Statement;
+      })
+      .find((candidate: Statement): boolean => {
+        return candidate.query.includes("AS edgeAction");
+      })!;
+
+    expect(Object.values(statement.query_params)).toContainEqual([
+      "203.0.113.7",
+    ]);
+    expect(JSON.stringify(statement.query_params)).toContain(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  test("an edge no event names says nothing at the edge", async () => {
+    eventsWithEdge([]);
+
+    expect((await impact()).edge).toEqual({ addresses: [] });
+  });
+
+  test("an edge read that fails is said, and the rest of the impact is still told", async () => {
+    eventsWithEdge(new Error("ClickHouse timed out"));
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(json.edge).toBeNull();
+    expect(json.failedSources).toEqual([SecurityCaseImpactSource.Events]);
+    expect(json.internet.exposure).toBe(SecurityCaseInternetExposure.Yes);
+    expect(logger.error).toHaveBeenCalled();
   });
 
   test("a case naming no address reads no flows and no requests, and knows nothing to say about the internet but its records' own addresses", async () => {
@@ -1148,5 +1279,35 @@ describe("the reads an impact is made of", () => {
       "Reached Database",
     );
     expect(JSON.stringify(statement.query_params)).not.toContain("Rejected");
+  });
+
+  test("the edge's SQL counts each event as the requests it stands for, by address, product, edge action and outcome", () => {
+    const statement: Statement = buildEdgeActivityStatement({
+      projectId: PROJECT_ID,
+      addresses: ["203.0.113.7'); DROP TABLE x; --"],
+      start: at(0),
+      end: at(60),
+      serviceFilter: {},
+      limit: IMPACT_MAX_EDGE_ROWS,
+    });
+    const params: string = JSON.stringify(statement.query_params);
+
+    expect(statement.query).not.toContain("DROP TABLE");
+    expect(statement.query).toContain("principalIp IN (");
+    // An event Cloudflare sampled stands for its sample interval's requests.
+    expect(statement.query).toContain(
+      "sum(greatest(toUInt64(1), toUInt64OrZero(attributes[",
+    );
+    expect(statement.query).toContain("AS maxSampleInterval");
+    expect(statement.query).toContain(
+      "GROUP BY principalIp, vendorName, edgeAction, requestOutcome",
+    );
+    expect(params).toContain("oneuptime.edge.action");
+    expect(params).toContain("oneuptime.edge.sample_interval");
+    // Web requests only: what an edge acts on, and what the app answered.
+    expect(Object.values(statement.query_params)).toContain(4002);
+    expect(Object.values(statement.query_params)).toContain(
+      IMPACT_MAX_EDGE_ROWS,
+    );
   });
 });

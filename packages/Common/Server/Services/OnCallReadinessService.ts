@@ -329,6 +329,26 @@ export const INVITATION_NOT_ACCEPTED_READINESS_REASONS: ReadonlyArray<string> =
     "Ask them to accept their invitation, or remove them from this policy's escalation rules, schedules and overrides",
   ];
 
+/*
+ * Whether a readiness is of someone invited who has not accepted yet: the
+ * reasons above are theirs alone. What may reach them is the invitation, and
+ * nothing about the project's on-call before they join (#10412): the setup
+ * reminder reads this, with no read of its own.
+ */
+export const isInvitationNotAcceptedReadiness: (
+  readiness: Pick<UserReadiness, "reasons">,
+) => boolean = (readiness: Pick<UserReadiness, "reasons">): boolean => {
+  return (
+    readiness.reasons.length ===
+      INVITATION_NOT_ACCEPTED_READINESS_REASONS.length &&
+    INVITATION_NOT_ACCEPTED_READINESS_REASONS.every(
+      (reason: string, index: number): boolean => {
+        return readiness.reasons[index] === reason;
+      },
+    )
+  );
+};
+
 /**
  * What SHAPE an identifier has, which is all masking needs to know. Kept separate from
  * ReadinessMethodType because five of the seven channels mask identically — a phone is a

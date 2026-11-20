@@ -1,6 +1,7 @@
 import IconProp from "../../Icon/IconProp";
 import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "../GoogleSecOpsRegion";
+import { ConnectorFieldChoicesFromProvider } from "./ConnectorFieldChoices";
 import SecurityEventConnectorProvider from "./SecurityEventConnectorProvider";
 import { translationKey } from "../../Translator";
 
@@ -74,6 +75,13 @@ export interface ConnectorField {
    * description names: the form folds it under More fields.
    */
   isAdvanced?: boolean | undefined;
+  /*
+   * The choices are the product's own, read with the credentials on the
+   * form: a Cloudflare token's accounts and zones (ConnectorFieldChoices).
+   * The form asks such a field after the credentials, as a picker of what
+   * they can read, never as a box to type an ID into.
+   */
+  choicesFromProvider?: ConnectorFieldChoicesFromProvider | undefined;
 }
 
 /*
@@ -168,7 +176,24 @@ export interface SecurityEventConnectorDefinition {
    * generous overlap costs requests, never duplicates.
    */
   cursorOverlapInMinutes: number;
+  /*
+   * None of what the provider imports is an alert (OCSF Detection or
+   * Incident Finding, IMPORTED_ALERT_CLASS_UIDS): Cloudflare's firewall
+   * events are requests. So none opens a case on its own, the form does not
+   * ask Open Cases From, and cases come from the detection rules that read
+   * the events. Absent means the provider imports alerts.
+   */
+  importsNoAlerts?: boolean | undefined;
 }
+
+/*
+ * The most zones one Cloudflare connection reads. Each zone is its own query
+ * on every poll, and Cloudflare's GraphQL Analytics API allows 300 queries
+ * in five minutes: fifty zones read every five minutes leave room for the
+ * rest of what reads the account. An account with more zones takes a second
+ * connection for the rest.
+ */
+export const CLOUDFLARE_MAX_ZONES_PER_CONNECTION: number = 50;
 
 const MICROSOFT_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
   { label: translationKey("Azure public cloud"), value: "public" },
@@ -779,6 +804,66 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           type: "json",
           required: true,
           placeholder: '{ "client_email": "...", "private_key": "..." }',
+        },
+      ],
+    },
+    {
+      provider: SecurityEventConnectorProvider.Cloudflare,
+      title: "Cloudflare",
+      vendorName: "Cloudflare",
+      productName: "Cloudflare WAF",
+      description: translationKey(
+        "Import what Cloudflare's firewall did with the requests it blocked, challenged or logged, as HTTP Activity events with each request's Ray ID.",
+      ),
+      category: "Cloud security",
+      icon: IconProp.Globe,
+      logo: ProviderLogo.Cloudflare,
+      docsPath: "/docs/integrations/cloudflare",
+      defaultPollIntervalInMinutes: 5,
+      supportsAlertingOnlyToggle: false,
+      // Drawn plural with an "s": Preview firewall events, Read firewall events.
+      importedRecordName: "firewall event",
+      /*
+       * Cloudflare's analytics are queryable a minute or two after the
+       * request, later when the edge is busy: each poll re-reads the ten
+       * minutes before its cursor, and the Ray ID dedupe drops what it has.
+       */
+      cursorOverlapInMinutes: 10,
+      importsNoAlerts: true,
+      configFields: [
+        {
+          key: "accountId",
+          title: translationKey("Account"),
+          description: translationKey(
+            "The Cloudflare account to read, from the accounts your API token can read.",
+          ),
+          type: "text",
+          required: true,
+          placeholder: translationKey("Select an account"),
+          choicesFromProvider: { isMultiple: false },
+        },
+        {
+          key: "zoneIds",
+          title: translationKey("Zones"),
+          description: translationKey(
+            "Leave empty to read every zone in the account, including zones added later.",
+          ),
+          type: "text",
+          required: false,
+          // Nothing picked is every zone: the placeholder says so.
+          placeholder: translationKey("All zones"),
+          choicesFromProvider: { isMultiple: true, parentKey: "accountId" },
+        },
+      ],
+      secretFields: [
+        {
+          key: "apiToken",
+          title: translationKey("API token"),
+          description: translationKey(
+            "A Cloudflare API token that can only read: Zone > Analytics > Read and Zone > Zone > Read, on the zones to import.",
+          ),
+          type: "password",
+          required: true,
         },
       ],
     },

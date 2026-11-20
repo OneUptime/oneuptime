@@ -1137,8 +1137,13 @@ import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProj
 import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
 import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
 import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
-import { AddDetectionRunMarksAndFiringKeys1809187370000 } from "./1809187370000-AddDetectionRunMarksAndFiringKeys";
-import { AddDetectionRuleLastFailedAt1809187380000 } from "./1809187380000-AddDetectionRuleLastFailedAt";
+import { AddProjectSecurityTrustedProxies1809187364416 } from "./1809187364416-AddProjectSecurityTrustedProxies";
+import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-AddCloudAppPlatformCloudResource";
+import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
+import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
+import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
+import { AddDetectionRunMarksAndFiringKeys1809187400000 } from "./1809187400000-AddDetectionRunMarksAndFiringKeys";
+import { AddDetectionRuleLastFailedAt1809187410000 } from "./1809187410000-AddDetectionRuleLastFailedAt";
 
 export default [
   InitialMigration,
@@ -2280,6 +2285,11 @@ export default [
   AddSecurityBlocklist1809187150000,
   AddDataSecurityAiRules1809187364000,
   AddAIRunDataSecurityIssueIndex1809187364100,
-  AddDetectionRunMarksAndFiringKeys1809187370000,
-  AddDetectionRuleLastFailedAt1809187380000,
+  AddProjectSecurityTrustedProxies1809187364416,
+  AddCloudAppPlatformCloudResource1809187383700,
+  AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
+  AddSecurityCaseStepChecks1809187390000,
+  AddSecurityCaseNextStepCheckIndex1809187390010,
+  AddDetectionRunMarksAndFiringKeys1809187400000,
+  AddDetectionRuleLastFailedAt1809187410000,
 ];
