@@ -19,13 +19,14 @@ import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
-import { STORED_APP_INSTALLATION_ID_ATTRIBUTE } from "../../Types/Rum/MobileAppTelemetry";
+import { STORED_APP_INSTALL_SQL } from "../../Types/Rum/MobileAppTelemetry";
 
 /*
- * The install an occurrence names (#9716): the attribute ingest copies onto
- * it from its span's or log's resource. A constant key, written inline.
+ * The install an occurrence names (#9716, #9924): its app.installation.id,
+ * else its device.id, which ingest copies onto it from its span's or log's
+ * resource. Constant keys, written inline.
  */
-const INSTALL_EXPRESSION: string = `attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}']`;
+const INSTALL_EXPRESSION: string = STORED_APP_INSTALL_SQL;
 
 export interface HistogramBucket {
   time: string;

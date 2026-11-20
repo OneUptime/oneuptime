@@ -102,6 +102,10 @@ import ExceptionAggregationService, {
   SessionCountResult as ExceptionSessionCountResult,
 } from "Common/Server/Services/ExceptionAggregationService";
 import ExceptionMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/ExceptionMonitorCriteria";
+import ExceptionMonitorMeasureReader, {
+  ExceptionMonitorInstalls,
+} from "Common/Server/Utils/Monitor/ExceptionMonitorMeasures";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import { monitorException } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import {
   MobileFaultCount,
@@ -140,6 +144,33 @@ const BUSY_INSTALLS: number = 120;
 const FLEET_SESSIONS: number = 100;
 const FLEET_INSTALLS: number = 10;
 
+/*
+ * #9924: an iOS app on opentelemetry-swift 2.x, which names its install by
+ * device.id (identifierForVendor) alone, over the past day: 320 sessions on
+ * 300 iPhones (20 of them had a second session), one of which - iPhone 0 -
+ * moved to opentelemetry-swift 3.0 and names both; iPhone 7 reinstalled
+ * after its vendor's last app was removed, so its identifierForVendor
+ * changed; and 6 more iPhones whose spans name no session. MetricKit
+ * crashes on iPhones 1 to 5, each reported in a later session, and on one
+ * of the sessionless iPhones, in no session.
+ */
+const iosAppId: ObjectID = new ObjectID("7900000000000000000000b3");
+
+const IOS_SESSIONS: number = 320;
+const IOS_PHONES: number = 300;
+const IOS_SESSIONLESS_PHONES: number = 6;
+// Its iPhones, the reinstalled one's second identifierForVendor, the sessionless.
+const IOS_INSTALLS: number = IOS_PHONES + 1 + IOS_SESSIONLESS_PHONES;
+const IOS_CRASHED_INSTALLS: number = 6;
+
+function iphone(index: number | string): string {
+  return `ios-${iosAppId.toString()}-${index}`;
+}
+
+function deviceIdOf(phone: string): JSONObject {
+  return { "resource.device.id": phone };
+}
+
 const now: Date = new Date();
 
 const retentionDate: string = OneUptimeDate.toClickhouseDateTime(
@@ -168,6 +199,8 @@ interface SpanFixture {
   at: Date;
   // A span from an SDK that names no install.
   withoutInstall?: boolean;
+  // What its resource names instead of the Android install (#9924).
+  resource?: JSONObject | undefined;
 }
 
 function spanRow(fixture: SpanFixture, index: number): JSONObject {
@@ -176,7 +209,9 @@ function spanRow(fixture: SpanFixture, index: number): JSONObject {
   );
   const attributes: JSONObject = { "app.screen.name": "MenuActivity" };
 
-  if (fixture.session !== null && !fixture.withoutInstall) {
+  if (fixture.resource) {
+    Object.assign(attributes, fixture.resource);
+  } else if (fixture.session !== null && !fixture.withoutInstall) {
     attributes[STORED_APP_INSTALLATION_ID_ATTRIBUTE] = installOf(
       fixture.appId,
       fixture.session,
@@ -218,12 +253,18 @@ interface ExceptionFixture {
   at: Date;
   // An occurrence stored before ingest kept the install.
   withoutInstall?: boolean;
+  // What ingest copied from its log's resource instead (#9924).
+  resource?: JSONObject | undefined;
+  // The session it arrived in, when not the one it is numbered by; '' for none.
+  sessionId?: string | undefined;
 }
 
 function exceptionRow(fixture: ExceptionFixture): JSONObject {
   const attributes: JSONObject = { "exception.source": "log" };
 
-  if (!fixture.withoutInstall) {
+  if (fixture.resource) {
+    Object.assign(attributes, fixture.resource);
+  } else if (!fixture.withoutInstall) {
     attributes[STORED_APP_INSTALLATION_ID_ATTRIBUTE] = installOf(
       fixture.appId,
       fixture.session,
@@ -245,7 +286,10 @@ function exceptionRow(fixture: ExceptionFixture): JSONObject {
     escaped: fixture.escaped,
     traceId: "",
     spanId: "",
-    sessionId: sessionOf(fixture.appId, fixture.session),
+    sessionId:
+      fixture.sessionId !== undefined
+        ? fixture.sessionId
+        : sessionOf(fixture.appId, fixture.session),
     fingerprint: `${fixture.exceptionType}-${fixture.escaped}`,
     spanName: "",
     release: "",
@@ -275,6 +319,42 @@ function spanFixtures(): Array<SpanFixture> {
 
   for (let session: number = 0; session < FLEET_SESSIONS; session++) {
     spans.push({ appId: smallFleetId, session, at: minutesAgo(30, session) });
+  }
+
+  // The iOS app's day, hours before the hour the session rates read.
+  for (let session: number = 0; session < IOS_SESSIONS; session++) {
+    const phone: string = iphone(session % IOS_PHONES);
+
+    spans.push({
+      appId: iosAppId,
+      session,
+      at: minutesAgo(90 + session),
+      resource:
+        session % IOS_PHONES === 0
+          ? {
+              ...deviceIdOf(phone),
+              [STORED_APP_INSTALLATION_ID_ATTRIBUTE]: phone,
+            }
+          : deviceIdOf(phone),
+    });
+  }
+
+  // iPhone 7 after a reinstall: a new identifierForVendor, a new install.
+  spans.push({
+    appId: iosAppId,
+    session: 400,
+    at: minutesAgo(100),
+    resource: deviceIdOf(iphone("7-reinstalled")),
+  });
+
+  // iPhones that send spans with no session.id: installs, with no session.
+  for (let index: number = 0; index < IOS_SESSIONLESS_PHONES; index++) {
+    spans.push({
+      appId: iosAppId,
+      session: null,
+      at: minutesAgo(200, index),
+      resource: deviceIdOf(iphone(`sessionless-${index}`)),
+    });
   }
 
   return spans;
@@ -341,6 +421,32 @@ function exceptionFixtures(): Array<ExceptionFixture> {
     { ...crash(busyAppId, 30), at: minutesAgo(120) },
   ];
 
+  /*
+   * The iOS app's MetricKit crashes: each reported in a later session
+   * (MetricKit delivers on the next launch), with the device.id ingest
+   * copied from its log's resource - and one from a sessionless iPhone.
+   */
+  for (let phone: number = 1; phone <= 5; phone++) {
+    fixtures.push({
+      appId: iosAppId,
+      session: 1000 + phone,
+      exceptionType: "EXC_BAD_ACCESS",
+      escaped: true,
+      at: minutesAgo(80, phone),
+      resource: deviceIdOf(iphone(phone)),
+    });
+  }
+
+  fixtures.push({
+    appId: iosAppId,
+    session: 0,
+    exceptionType: "EXC_BAD_ACCESS",
+    escaped: true,
+    at: minutesAgo(80),
+    resource: deviceIdOf(iphone("sessionless-0")),
+    sessionId: "",
+  });
+
   // In the past five minutes, which App Crashes reads.
   for (let session: number = 0; session < 10; session++) {
     fixtures.push({
@@ -395,6 +501,12 @@ const SERVICES: Array<AnyService> = [
 
 const hour: { startTime: Date; endTime: Date } = {
   startTime: minutesAgo(60),
+  endTime: now,
+};
+
+// The day a daily rate reads (#9924).
+const day: { startTime: Date; endTime: Date } = {
+  startTime: minutesAgo(24 * 60),
   endTime: now,
 };
 
@@ -531,21 +643,24 @@ integration(
     });
 
     describe("crash-free installs, counted as crash-free sessions are", () => {
-      async function overviewOf(appId: ObjectID): Promise<{
+      async function overviewOf(
+        appId: ObjectID,
+        range: { startTime: Date; endTime: Date } = hour,
+      ): Promise<{
         sessions: MobileSessions;
         crashes: MobileFaultCount;
       }> {
         const spans: TraceSessionCountResult =
           await TraceAggregationService.getSessionCount({
             projectId,
-            ...hour,
+            ...range,
             serviceIds: [appId],
             countInstalls: true,
           });
         const crashes: ExceptionSessionCountResult =
           await ExceptionAggregationService.getSessionCount({
             projectId,
-            ...hour,
+            ...range,
             serviceIds: [appId],
             escaped: true,
             excludedExceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
@@ -631,6 +746,79 @@ integration(
         expect(getCrashFreeSessionsPercent(read)).toBe(90);
       });
 
+      /*
+       * #9924: an iOS app's installs are its device.id where it names no
+       * app.installation.id - so it has crash-free installs at all.
+       */
+      test("an iOS app's installs over the day: its iPhones' identifierForVendor, a reinstall a new one, a sessionless iPhone one too", async () => {
+        const result: TraceSessionCountResult =
+          await TraceAggregationService.getSessionCount({
+            projectId,
+            ...day,
+            serviceIds: [iosAppId],
+            countInstalls: true,
+          });
+
+        expect(result).toEqual({
+          // Its 320 sessions and the reinstalled iPhone's.
+          sessions: IOS_SESSIONS + 1,
+          spans: IOS_SESSIONS + 1 + IOS_SESSIONLESS_PHONES,
+          installs: IOS_INSTALLS,
+        });
+      });
+
+      test("an iOS app's crashes name their installs too, one of them in no session", async () => {
+        const result: ExceptionSessionCountResult =
+          await ExceptionAggregationService.getSessionCount({
+            projectId,
+            ...day,
+            serviceIds: [iosAppId],
+            escaped: true,
+            excludedExceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+            countInstalls: true,
+          });
+
+        expect(result).toEqual({
+          sessions: 5,
+          occurrences: IOS_CRASHED_INSTALLS,
+          installs: IOS_CRASHED_INSTALLS,
+          occurrencesWithInstall: IOS_CRASHED_INSTALLS,
+        });
+      });
+
+      test("the Overview reads an iOS app's crash-free installs, where it said only how many sessions crashed", async () => {
+        const read: { sessions: MobileSessions; crashes: MobileFaultCount } =
+          await overviewOf(iosAppId, day);
+
+        expect(read.sessions.installs).toBe(IOS_INSTALLS);
+        expect(read.crashes.installs).toBe(IOS_CRASHED_INSTALLS);
+        // 301 of 307 installs: 98.05% crash-free.
+        expect(getCrashFreeInstallsPercent(read)!.toFixed(2)).toBe("98.05");
+      });
+
+      test("the installs measure reads the same installs, through the monitor's own queries", async () => {
+        const installs: ExceptionMonitorInstalls =
+          await ExceptionMonitorMeasureReader.readInstalls({
+            projectId,
+            config: {
+              ...stepOf("rum-app-daily-crash-rate", iosAppId).data!
+                .exceptionMonitor!,
+            },
+            countQuery: {
+              projectId,
+              primaryEntityId: new Includes([iosAppId]),
+              escaped: true,
+            },
+            windowStart: day.startTime,
+            windowEnd: day.endTime,
+          });
+
+        expect(installs).toEqual({
+          installs: IOS_INSTALLS,
+          installsWithExceptions: IOS_CRASHED_INSTALLS,
+        });
+      });
+
       test("without the installs asked for, the reads are as they were", async () => {
         expect(
           await TraceAggregationService.getSessionCount({
@@ -705,6 +893,62 @@ integration(
         } = await check("rum-app-crashes", smallFleetId);
 
         expect(crashes.matched).toBe("App crash reported");
+      });
+
+      /*
+       * #9924: the same rates per install over a day - the share of the
+       * day's users a crash reached, as the Play Console reads it.
+       */
+      test("Daily Crash Rate reads the day's installs: 6 of an iOS app's 307 crashed, above 1.09% - it alerts", async () => {
+        const { response, matched } = await check(
+          "rum-app-daily-crash-rate",
+          iosAppId,
+        );
+
+        expect(response.exceptionCount).toBe(IOS_CRASHED_INSTALLS);
+        expect(response.installCount).toBe(IOS_INSTALLS);
+        expect(response.installsWithExceptionsCount).toBe(IOS_CRASHED_INSTALLS);
+        expect(response.installsWithExceptionsPercent).toBe(1.95);
+        expect(matched).toBe("Daily crash rate above 1.09%");
+        // A share of installs reads no session.
+        expect(response.sessionCount).toBeUndefined();
+      });
+
+      test("the iOS app's hourly session rate has nothing to read: its day was before the hour", async () => {
+        const { response, matched } = await check(
+          "rum-app-crash-rate",
+          iosAppId,
+        );
+
+        expect(response.sessionCount).toBe(0);
+        expect(response.sessionsWithExceptionsPercent).toBeNull();
+        expect(matched).toBe("Healthy");
+      });
+
+      test("an app on fewer than 250 installs a day is judged on too few: healthy", async () => {
+        const { response, matched } = await check(
+          "rum-app-daily-crash-rate",
+          busyAppId,
+        );
+
+        expect(response.installCount).toBe(BUSY_INSTALLS);
+        // Its 5 crashed phones and the one that crashed two hours ago.
+        expect(response.installsWithExceptionsCount).toBe(6);
+        expect(response.installsWithExceptionsPercent).toBe(5);
+        expect(matched).toBe("Healthy");
+      });
+
+      test("Daily ANR Rate reads the day's ANRs and hangs per install", async () => {
+        const { response, matched } = await check(
+          "rum-app-daily-anr-rate",
+          busyAppId,
+        );
+
+        expect(response.exceptionCount).toBe(3);
+        expect(response.installsWithExceptionsCount).toBe(3);
+        expect(response.installsWithExceptionsPercent).toBe(2.5);
+        // 120 installs are too few to read a daily rate of.
+        expect(matched).toBe("Healthy");
       });
 
       test("an app with no session in the hour has no rate: healthy, not 0% nor an alert", async () => {
