@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -882,6 +883,82 @@ describe("2. Get alerted", () => {
     expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
   });
 
+  /*
+   * #10276: the panel lists each monitor as it is made, and a refused one
+   * with why and Try again - which makes only what is still missing: the
+   * monitors made leave the pick once they watch the service, so a second
+   * Create never makes a second copy of them.
+   */
+  test("the panel lists the monitors picked, then made; Try again makes only the one refused, never a second copy", async () => {
+    expect(IDS.length).toBeGreaterThan(1);
+    api["createMonitors"]!.mockResolvedValueOnce({
+      createdIds: ["mon-1"],
+      failures: [{ name: "checkout Error Burst", message: "Limit reached" }],
+    });
+    await reachAlertStep();
+
+    // Every recommendation picked waits for Create.
+    for (const id of IDS) {
+      expect(
+        screen.getByTestId(`guided-setup-resource-picked-${id}`),
+      ).toHaveAttribute("data-status", "waiting");
+    }
+
+    // What the first Create made watches the service now.
+    api["loadCoveredRecommendationIds"]!.mockResolvedValue(IDS.slice(1));
+    await press("guided-setup-create-monitors");
+
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-mon-1"),
+    ).toHaveAttribute("data-status", "created");
+    expect(
+      screen.getByTestId("guided-setup-resource-refused-0"),
+    ).toHaveAttribute("data-status", "failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-refused-0-error"),
+    ).toHaveTextContent("Limit reached");
+    // Only the refused one is left to make.
+    expect(
+      screen.getByTestId("guided-setup-create-monitors"),
+    ).toHaveTextContent("Create 1 monitor");
+
+    api["createMonitors"]!.mockResolvedValueOnce({
+      createdIds: ["mon-2"],
+      failures: [],
+    });
+    await press("guided-setup-resource-refused-0-retry");
+
+    expect(api["createMonitors"]).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        api["createMonitors"]!.mock.calls[1]![0] as {
+          recommendationIds: Array<string>;
+        }
+      ).recommendationIds,
+    ).toEqual([IDS[0]]);
+    expect(storedRun()["monitorIds"]).toBe("mon-1,mon-2");
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  });
+
+  test("a coverage read that fails after a refusal keeps the pick as it was", async () => {
+    api["createMonitors"]!.mockResolvedValueOnce({
+      createdIds: ["mon-1"],
+      failures: [{ name: "checkout Error Burst", message: "Limit reached" }],
+    });
+    await reachAlertStep();
+    api["loadCoveredRecommendationIds"]!.mockRejectedValue(
+      new Error("Not now"),
+    );
+    await press("guided-setup-create-monitors");
+
+    expect(
+      screen.getByTestId("guided-setup-create-monitors"),
+    ).toHaveTextContent(`Create ${IDS.length} monitors`);
+    expect(
+      screen.getByTestId("guided-setup-resource-refused-0"),
+    ).toHaveAttribute("data-status", "failed");
+  });
+
   test("an error says the server's reason and keeps the step open", async () => {
     api["createMonitors"]!.mockRejectedValue(new Error("Something broke"));
     await reachAlertStep();
@@ -913,10 +990,18 @@ describe("the summary", () => {
     expect(screen.getByTestId("guided-setup-summary")).toHaveTextContent(
       "checkout is sending data",
     );
-    expect(screen.getByText("checkout mon-1")).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/monitors/mon-1`,
-    );
+    expect(
+      within(screen.getByTestId("guided-setup-summary")).getByText(
+        "checkout mon-1",
+      ),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/monitors/mon-1`);
+    // The panel lists them too, made, each opening its page (#10276).
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-mon-1"),
+    ).toHaveAttribute("data-status", "created");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-mon-1-open"),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/monitors/mon-1`);
     expect(
       screen.getByTestId("guided-setup-more-recommendations"),
     ).toHaveAttribute(
