@@ -687,6 +687,10 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
       "ProjectUserProfile",
     ]),
     ...noProduct(
+      "A person's own progress through a guided setup, which spans products.",
+      ["GuidedSetupRun"],
+    ),
+    ...noProduct(
       "How to reach a person, which incidents, alerts and on-call all use.",
       [
         "UserCall",

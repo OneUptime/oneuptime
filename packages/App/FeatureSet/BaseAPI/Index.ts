@@ -2130,6 +2130,7 @@ import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
+import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
@@ -6794,6 +6795,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * own checks are the gate.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
+
+    /*
+     * A guided setup's run, kept on the server (#7253): one per project,
+     * person and setup, so another device opens the setup where the person
+     * left it. A bare router as WelcomeChecklistAPI is: each route serves
+     * the caller's own run, and the service reads and writes as root.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, GuidedSetupRunAPI);
 
     /*
      * Asking people how things went (issue #6832): the question at the end
