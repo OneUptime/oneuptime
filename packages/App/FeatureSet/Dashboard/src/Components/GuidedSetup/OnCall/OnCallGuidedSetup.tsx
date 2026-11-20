@@ -10,8 +10,10 @@ import {
   DEFAULT_REPEAT_TIMES,
   EMAIL_METHOD_TYPE,
   NoAnswerChoice,
+  ON_CALL_RESOURCE_COPY,
   ON_CALL_SETUP,
   ON_CALL_SETUP_COPY,
+  OnCallResource,
   ON_CALL_SETUP_GUIDE_DOCS_PATH,
   OnCallPolicyRecord,
   OnCallProgressFacts,
@@ -41,6 +43,7 @@ import {
   isOnCallSetupFinished,
   isPhoneBalanceTooLow,
   isServerWithoutTwilio,
+  maskPhoneNumber,
   parsePhoneNumber,
   parseRepeatTimes,
   parseWaitMinutes,
@@ -49,9 +52,22 @@ import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
 import { getDescribeItPrompt } from "../AskAiGuidedSetupLinks";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import GuidedSetupRunStore, {
+  GuidedSetupResourceUpdate,
   GuidedSetupRun,
+  GuidedSetupRunSync,
   getFirstOpenStepKey,
 } from "../GuidedSetupProgress";
+import {
+  GuidedSetupResourceRow,
+  GuidedSetupResourceState,
+  getGuidedSetupResourceStatus,
+} from "../GuidedSetupResources";
+import useGuidedSetupRunSync from "../UseGuidedSetupRunSync";
+import { WEBSITE_DOWN_RESOURCE_COPY } from "../WebsiteDown/WebsiteDownSetup";
+import {
+  GuidedSetupResourceStatus,
+  GuidedSetupRunResources,
+} from "Common/Types/GuidedSetup/GuidedSetupRun";
 import AppLink from "../../AppLink/AppLink";
 import {
   getBreakSentence,
@@ -255,10 +271,17 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       userId: userId,
     });
   }, [userId]);
+  // Whether the run is saved to the person's account (#7253), for the panel.
+  const runSync: GuidedSetupRunSync = useGuidedSetupRunSync(store);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [run, setRun] = useState<GuidedSetupRun>({});
+  /*
+   * How each record the run makes is getting on (#10276), kept with the
+   * run: the panel beside the steps draws it.
+   */
+  const [resources, setResources] = useState<GuidedSetupRunResources>({});
   const [reach, setReach] = useState<MyReach | null>(null);
   const [phoneFacts, setPhoneFacts] = useState<ProjectPhoneFacts>(
     NOT_KNOWN_PHONE_FACTS,
@@ -399,10 +422,35 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const progress: ReturnType<typeof getOnCallProgress> =
     getOnCallProgress(facts);
 
-  const saveRun: (values: Record<string, string | boolean | null>) => void = (
+  const saveRun: (
     values: Record<string, string | boolean | null>,
+    progress?: Record<string, GuidedSetupResourceUpdate | null>,
+  ) => void = (
+    values: Record<string, string | boolean | null>,
+    progress?: Record<string, GuidedSetupResourceUpdate | null>,
   ): void => {
-    setRun(store.save(values));
+    setRun(store.save(values, progress));
+    setResources(store.readResources());
+  };
+
+  // Notes how records are getting on, for the panel (and the server).
+  const track: (
+    progress: Record<string, GuidedSetupResourceUpdate | null>,
+  ) => void = (
+    progress: Record<string, GuidedSetupResourceUpdate | null>,
+  ): void => {
+    setResources(store.track(progress));
+  };
+
+  // What the run made on the policy, forgotten with it.
+  const POLICY_RESOURCES_FORGOTTEN: Record<
+    string,
+    GuidedSetupResourceUpdate | null
+  > = {
+    [OnCallResource.OnCallPolicy]: null,
+    [OnCallResource.EscalationRule]: null,
+    [OnCallResource.OnCallRules]: null,
+    [OnCallResource.NoAnswer]: null,
   };
 
   // Where a step leads once it is done: the next step not done, or the summary.
@@ -451,7 +499,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           }
         : null);
 
-    setRun(store.save(getRunWithoutPolicy()));
+    saveRun(getRunWithoutPolicy(), POLICY_RESOURCES_FORGOTTEN);
     setPolicy(null);
     setResponders([]);
     setTestResult(null);
@@ -561,7 +609,11 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     let isActive: boolean = true;
 
     const load: () => Promise<void> = async (): Promise<void> => {
-      let nextRun: GuidedSetupRun = store.read();
+      /*
+       * The server's run (#7253): another device's, a reload's, or this
+       * browser's when OneUptime cannot be reached.
+       */
+      let nextRun: GuidedSetupRun = await store.load();
 
       const [loadedReach, loadedPhone, loadedChoices]: [
         MyReach | null,
@@ -598,7 +650,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
            * (#8432): everything after "who is reached" starts again, and
            * the step says why.
            */
-          nextRun = store.save(getRunWithoutPolicy());
+          nextRun = store.save(
+            getRunWithoutPolicy(),
+            POLICY_RESOURCES_FORGOTTEN,
+          );
           loadedPolicy = null;
         } else {
           loadedResponders = await OnCallSetupApi.loadPolicyReadiness({
@@ -624,6 +679,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       }
 
       setRun(nextRun);
+      setResources(store.readResources());
       setReach(loadedReach);
       setPhoneFacts(loadedPhone);
       setChoices(loadedChoices);
@@ -784,6 +840,14 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       }
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
+      // The panel says the number was not added, and why.
+      track({
+        [OnCallResource.PhoneNumber]: {
+          status: GuidedSetupResourceStatus.Failed,
+          name: maskPhoneNumber(phone),
+          error: API.getFriendlyMessage(err),
+        },
+      });
     }
 
     setIsSaving(false);
@@ -800,6 +864,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       });
     }
 
+    // Added by this run: the panel says it was made here.
+    track({
+      [OnCallResource.PhoneNumber]: {
+        status: GuidedSetupResourceStatus.Created,
+        name: maskPhoneNumber(phone),
+      },
+    });
     setPhoneText("");
     await readReach(true);
   };
@@ -1355,18 +1426,45 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         );
 
         if (mayEditLevels && newUserIds.length + teamIds.length > 0) {
-          await OnCallSetupApi.addToFirstLevel({
-            policyId: policyId,
-            firstLevelId: chosen.levels[0]?.id || null,
-            userIds: newUserIds,
-            teamIds: teamIds,
+          track({
+            [OnCallResource.EscalationRule]: {
+              status: GuidedSetupResourceStatus.Creating,
+            },
           });
+
+          try {
+            await OnCallSetupApi.addToFirstLevel({
+              policyId: policyId,
+              firstLevelId: chosen.levels[0]?.id || null,
+              userIds: newUserIds,
+              teamIds: teamIds,
+            });
+          } catch (err) {
+            // The panel says who could not be added, and why.
+            track({
+              [OnCallResource.EscalationRule]: {
+                status: GuidedSetupResourceStatus.Failed,
+                error: API.getFriendlyMessage(err),
+              },
+            });
+            throw err;
+          }
         }
 
-        saveRun({
-          [OnCallRunValue.PolicyId]: policyId,
-          [OnCallRunValue.PolicyIsExisting]: true,
-        });
+        saveRun(
+          {
+            [OnCallRunValue.PolicyId]: policyId,
+            [OnCallRunValue.PolicyIsExisting]: true,
+          },
+          {
+            [OnCallResource.OnCallPolicy]: {
+              status: GuidedSetupResourceStatus.Existing,
+              recordId: policyId,
+              name: chosen.name,
+            },
+            [OnCallResource.EscalationRule]: null,
+          },
+        );
       } else {
         /*
          * Asked again just before the policy is made: another tab or device
@@ -1400,13 +1498,64 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           return;
         }
 
-        policyId = await OnCallSetupApi.createPolicy({
-          userIds: userIds,
-          teamIds: teamIds,
-          addRules: latest.mayAddRules,
-          translator: translator,
-        });
-        saveRun({ [OnCallRunValue.PolicyId]: policyId });
+        /*
+         * One request makes the policy, its first escalation rule and, where
+         * this person may add them, the two rules that run it: the panel
+         * shows them being made, and made or failed together (#10276).
+         */
+        const policyName: string = getFirstOnCallPolicyName(translator);
+        const making: Record<string, GuidedSetupResourceUpdate | null> = {
+          [OnCallResource.OnCallPolicy]: {
+            status: GuidedSetupResourceStatus.Creating,
+            name: policyName,
+          },
+          [OnCallResource.EscalationRule]: {
+            status: GuidedSetupResourceStatus.Creating,
+          },
+          [OnCallResource.OnCallRules]: latest.mayAddRules
+            ? { status: GuidedSetupResourceStatus.Creating }
+            : null,
+        };
+
+        track(making);
+
+        try {
+          policyId = await OnCallSetupApi.createPolicy({
+            userIds: userIds,
+            teamIds: teamIds,
+            addRules: latest.mayAddRules,
+            translator: translator,
+          });
+        } catch (err) {
+          // Nothing was made: the policy says why, the rest wait for it.
+          track({
+            [OnCallResource.OnCallPolicy]: {
+              status: GuidedSetupResourceStatus.Failed,
+              name: policyName,
+              error: API.getFriendlyMessage(err),
+            },
+            [OnCallResource.EscalationRule]: null,
+            [OnCallResource.OnCallRules]: null,
+          });
+          throw err;
+        }
+
+        saveRun(
+          { [OnCallRunValue.PolicyId]: policyId },
+          {
+            [OnCallResource.OnCallPolicy]: {
+              status: GuidedSetupResourceStatus.Created,
+              recordId: policyId,
+              name: policyName,
+            },
+            [OnCallResource.EscalationRule]: {
+              status: GuidedSetupResourceStatus.Created,
+            },
+            [OnCallResource.OnCallRules]: latest.mayAddRules
+              ? { status: GuidedSetupResourceStatus.Created }
+              : null,
+          },
+        );
       }
 
       // The run has a policy again: why it lost the last one is said no more.
@@ -1467,12 +1616,38 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           getMissingRuleKinds(latest);
 
         if (stillMissing.incident || stillMissing.alert) {
-          await OnCallSetupApi.addEveryNewEventRules({
-            policyId: policy.id,
-            policyName: policy.name,
-            incident: stillMissing.incident,
-            alert: stillMissing.alert,
-            translator: translator,
+          track({
+            [OnCallResource.OnCallRules]: {
+              status: GuidedSetupResourceStatus.Creating,
+            },
+          });
+
+          try {
+            await OnCallSetupApi.addEveryNewEventRules({
+              policyId: policy.id,
+              policyName: policy.name,
+              incident: stillMissing.incident,
+              alert: stillMissing.alert,
+              translator: translator,
+            });
+          } catch (err) {
+            /*
+             * Tried again, only the kinds still missing are added: one made
+             * before the failure is never made twice (#7252).
+             */
+            track({
+              [OnCallResource.OnCallRules]: {
+                status: GuidedSetupResourceStatus.Failed,
+                error: API.getFriendlyMessage(err),
+              },
+            });
+            throw err;
+          }
+
+          track({
+            [OnCallResource.OnCallRules]: {
+              status: GuidedSetupResourceStatus.Created,
+            },
           });
         }
 
@@ -2059,6 +2234,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     }
 
     setIsSaving(true);
+    // A request to save what happens was sent: a failure is the panel's too.
+    let isMaking: boolean = false;
 
     try {
       const latest: OnCallPolicyRecord | null = await OnCallSetupApi.loadPolicy(
@@ -2089,6 +2266,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           return;
         }
 
+        isMaking = true;
+        track({
+          [OnCallResource.NoAnswer]: {
+            status: GuidedSetupResourceStatus.Creating,
+          },
+        });
         await OnCallSetupApi.addSecondLevel({
           policyId: policy.id,
           firstLevel: firstLevel,
@@ -2108,6 +2291,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           return;
         }
 
+        isMaking = true;
+        track({
+          [OnCallResource.NoAnswer]: {
+            status: GuidedSetupResourceStatus.Creating,
+          },
+        });
         await OnCallSetupApi.setRepeat({
           policyId: policy.id,
           firstLevel: firstLevel,
@@ -2115,6 +2304,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           times: times,
         });
       }
+
+      track({
+        [OnCallResource.NoAnswer]: {
+          status: GuidedSetupResourceStatus.Created,
+        },
+      });
 
       /*
        * Read again for the summary. Gone meanwhile: forgotten, and "Who
@@ -2130,6 +2325,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       openNextStep(OnCallSetupStep.NoAnswer);
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
+
+      // The panel says what was not saved, and why, with Try again.
+      if (isMaking) {
+        track({
+          [OnCallResource.NoAnswer]: {
+            status: GuidedSetupResourceStatus.Failed,
+            error: API.getFriendlyMessage(err),
+          },
+        });
+      }
     }
 
     setIsSaving(false);
@@ -2484,42 +2689,262 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     </div>
   );
 
+  /*
+   * WHAT THE SETUP MAKES, for the panel beside the steps (#10276): each
+   * record from what this page knows now and what the run kept, so a
+   * reload or another device draws the same panel.
+   */
+  const stateOf: (
+    key: OnCallResource,
+    facts: {
+      exists: boolean;
+      isExisting?: boolean | undefined;
+      isSkipped?: boolean | undefined;
+    },
+  ) => { status: GuidedSetupResourceStatus; error?: string | undefined } = (
+    key: OnCallResource,
+    facts: {
+      exists: boolean;
+      isExisting?: boolean | undefined;
+      isSkipped?: boolean | undefined;
+    },
+  ): { status: GuidedSetupResourceStatus; error?: string | undefined } => {
+    const state: GuidedSetupResourceState = getGuidedSetupResourceStatus({
+      ...facts,
+      progress: resources[key],
+    });
+
+    return { status: state.status, error: state.error };
+  };
+
+  const reachLine: string = joinList(
+    [emails, phones, pushes]
+      .filter((list: Array<ReachMethod>): boolean => {
+        return list.length > 0;
+      })
+      .map(describeMethods),
+  );
+
+  // Step 1: how the person is reached, and a number they added here.
+  const reachRows: Array<GuidedSetupResourceRow> = [
+    {
+      key: OnCallResource.NotificationMethods,
+      stepKey: OnCallSetupStep.ReachYou,
+      kind: ON_CALL_RESOURCE_COPY.notificationMethods,
+      name: reachLine || undefined,
+      // Theirs already: the setup adds to them, never replaces them.
+      status:
+        emails.length + phones.length + pushes.length > 0
+          ? GuidedSetupResourceStatus.Existing
+          : GuidedSetupResourceStatus.Waiting,
+      route: routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS),
+    },
+  ];
+
+  if (phones.length > 0 || verifying || resources[OnCallResource.PhoneNumber]) {
+    const phoneMade: boolean =
+      resources[OnCallResource.PhoneNumber]?.status ===
+      GuidedSetupResourceStatus.Created;
+
+    reachRows.push({
+      key: OnCallResource.PhoneNumber,
+      stepKey: OnCallSetupStep.ReachYou,
+      kind: ON_CALL_RESOURCE_COPY.phoneNumber,
+      name:
+        phones[0]?.maskedIdentifier ||
+        resources[OnCallResource.PhoneNumber]?.name ||
+        (verifying ? maskPhoneNumber(verifying.phone) : undefined),
+      ...(verifying && phones.length === 0
+        ? {
+            status: GuidedSetupResourceStatus.Creating,
+            statusText: ON_CALL_RESOURCE_COPY.waitingForCode,
+          }
+        : stateOf(OnCallResource.PhoneNumber, {
+            exists: phones.length > 0,
+            isExisting: !phoneMade,
+          })),
+      route:
+        phones.length > 0
+          ? routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)
+          : undefined,
+    });
+  }
+
+  /*
+   * Step 2: the policy - made by the run, with its first escalation rule
+   * and the rules that run it, or one of the project's, picked - and who
+   * it pages first.
+   */
+  const isPolicyOwn: boolean = run[OnCallRunValue.PolicyIsExisting] !== true;
+  const policyRules: { incident: boolean; alert: boolean } | null = policy
+    ? getMissingRuleKinds(policy)
+    : null;
+  const whoRows: Array<GuidedSetupResourceRow> = [
+    {
+      key: OnCallResource.OnCallPolicy,
+      stepKey: OnCallSetupStep.WhoElse,
+      kind: WEBSITE_DOWN_RESOURCE_COPY.onCallPolicy,
+      name:
+        policy?.name ||
+        resources[OnCallResource.OnCallPolicy]?.name ||
+        (isExistingMode
+          ? choices?.policies.find((entry: { id: string }): boolean => {
+              return entry.id === chosenPolicyId;
+            })?.name
+          : getFirstOnCallPolicyName(translator)),
+      ...stateOf(OnCallResource.OnCallPolicy, {
+        exists: Boolean(policy),
+        isExisting: Boolean(policy) && !isPolicyOwn,
+      }),
+      route: policy
+        ? routeOf(PageMap.ON_CALL_DUTY_POLICY_VIEW, policy.id)
+        : undefined,
+      onRetry: () => {
+        void savePeople();
+      },
+    },
+    {
+      key: OnCallResource.EscalationRule,
+      stepKey: OnCallSetupStep.WhoElse,
+      kind: WEBSITE_DOWN_RESOURCE_COPY.escalationRule,
+      detail:
+        firstLevel && firstLevel.names.length > 0
+          ? translator.translateTemplate(
+              WEBSITE_DOWN_RESOURCE_COPY.escalationRuleDetail,
+              { people: joinList(firstLevel.names) },
+            )
+          : undefined,
+      ...stateOf(OnCallResource.EscalationRule, {
+        exists: Boolean(firstLevel),
+        isExisting: Boolean(firstLevel) && !isPolicyOwn,
+      }),
+      route: policy
+        ? routeOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION, policy.id)
+        : undefined,
+      onRetry: () => {
+        void savePeople();
+      },
+    },
+    {
+      key: OnCallResource.OnCallRules,
+      stepKey: OnCallSetupStep.WhoElse,
+      kind: WEBSITE_DOWN_RESOURCE_COPY.onCallRules,
+      detail:
+        translator.translateText(
+          WEBSITE_DOWN_RESOURCE_COPY.onCallRulesDetail,
+        ) || undefined,
+      ...stateOf(OnCallResource.OnCallRules, {
+        // Rules run it for new incidents or alerts.
+        exists: Boolean(
+          policyRules && !(policyRules.incident && policyRules.alert),
+        ),
+        isExisting:
+          Boolean(policy) &&
+          resources[OnCallResource.OnCallRules]?.status !==
+            GuidedSetupResourceStatus.Created,
+      }),
+      route: policy
+        ? routeOf(PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES)
+        : undefined,
+      onRetry: () => {
+        void continueFromPeople();
+      },
+    },
+  ];
+
+  // Step 3: who is paged next, or the page again - or nothing more.
+  const isNoAnswerDone: boolean = run[OnCallRunValue.NoAnswerDone] === true;
+  const hasNoAnswerRule: boolean =
+    Boolean(secondLevel) || Boolean(policy && policy.repeatTimes > 0);
+  const noAnswerRow: GuidedSetupResourceRow = {
+    key: OnCallResource.NoAnswer,
+    stepKey: OnCallSetupStep.NoAnswer,
+    kind: secondLevel
+      ? WEBSITE_DOWN_RESOURCE_COPY.escalationRule
+      : ON_CALL_RESOURCE_COPY.whenNobodyAnswers,
+    detail: isNoAnswerDone || hasNoAnswerRule ? noAnswerDoneLine : undefined,
+    ...(isNoAnswerDone && !hasNoAnswerRule
+      ? { status: GuidedSetupResourceStatus.Skipped }
+      : stateOf(OnCallResource.NoAnswer, {
+          exists: isNoAnswerDone && hasNoAnswerRule,
+          isExisting:
+            resources[OnCallResource.NoAnswer]?.status !==
+            GuidedSetupResourceStatus.Created,
+        })),
+    statusText:
+      isNoAnswerDone && hasNoAnswerRule && !secondLevel
+        ? ON_CALL_RESOURCE_COPY.saved
+        : undefined,
+    route:
+      policy && hasNoAnswerRule
+        ? routeOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION, policy.id)
+        : undefined,
+    onRetry: () => {
+      void saveNoAnswer();
+    },
+  };
+
+  // Step 4: the test page to the policy, sent, then acknowledged.
+  const testRow: GuidedSetupResourceRow = {
+    key: OnCallResource.TestPage,
+    stepKey: OnCallSetupStep.Test,
+    kind: WEBSITE_DOWN_RESOURCE_COPY.testPage,
+    detail: testResult ? getResultSentence(translator, testResult) : undefined,
+    ...(isAcknowledged
+      ? {
+          status: GuidedSetupResourceStatus.Created,
+          statusText: WEBSITE_DOWN_RESOURCE_COPY.acknowledged,
+        }
+      : run[OnCallRunValue.TestSkipped] === true
+        ? { status: GuidedSetupResourceStatus.Skipped }
+        : testResult?.status === OnCallTestPageStatus.Ended ||
+            testResult?.status === OnCallTestPageStatus.Failed
+          ? { status: GuidedSetupResourceStatus.Failed }
+          : executionLogId
+            ? {
+                status: GuidedSetupResourceStatus.Creating,
+                statusText: WEBSITE_DOWN_RESOURCE_COPY.sent,
+              }
+            : { status: GuidedSetupResourceStatus.Waiting }),
+  };
+
   const steps: Array<GuidedSetupFrameStep> = [
     {
       ...progress[0]!,
       title: ON_CALL_SETUP_COPY.reachTitle,
       outcome: ON_CALL_SETUP_COPY.reachOutcome,
-      doneLine: joinList(
-        [emails, phones, pushes]
-          .filter((list: Array<ReachMethod>): boolean => {
-            return list.length > 0;
-          })
-          .map(describeMethods),
-      ),
+      doneLine: reachLine,
+      resources: reachRows,
       content: reachContent,
     },
     {
       ...progress[1]!,
       title: ON_CALL_SETUP_COPY.whoTitle,
+      description: ON_CALL_RESOURCE_COPY.whoDescription,
       outcome: ON_CALL_SETUP_COPY.whoOutcome,
       doneLine: whoDoneLine,
+      resources: whoRows,
       content: whoContent,
     },
     {
       ...progress[2]!,
       title: ON_CALL_SETUP_COPY.noAnswerTitle,
+      description: ON_CALL_RESOURCE_COPY.noAnswerDescription,
       outcome: ON_CALL_SETUP_COPY.noAnswerOutcome,
       doneLine: noAnswerDoneLine,
+      resources: [noAnswerRow],
       content: noAnswerContent,
     },
     {
       ...progress[3]!,
       title: ON_CALL_SETUP_COPY.testTitle,
+      description: ON_CALL_RESOURCE_COPY.testDescription,
       outcome: ON_CALL_SETUP_COPY.testOutcome,
       doneLine:
         isAcknowledged && testResult
           ? getResultSentence(translator, testResult)
           : translator.translateText("Skipped") || "",
+      resources: [testRow],
       content: testContent,
     },
   ];
@@ -2649,9 +3074,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           icon={IconProp.Add}
           dataTestId="on-call-setup-start-over"
           onClick={() => {
-            // Who is reached stays confirmed: it is the person's, not the policy's.
+            /*
+             * Here and on the server: another device starts afresh too. Who
+             * is reached stays confirmed: it is the person's, not the
+             * policy's.
+             */
             store.forget();
-            setRun(store.save({ [OnCallRunValue.ReachConfirmed]: true }));
+            saveRun({ [OnCallRunValue.ReachConfirmed]: true });
             setPolicy(null);
             setIsPolicyMadeElsewhere(false);
             setPolicyGone(null);
@@ -2686,6 +3115,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   return (
     <GuidedSetupFrame
       setup={ON_CALL_SETUP}
+      runSync={runSync}
+      onRetryRunSync={() => {
+        store.retry();
+      }}
       steps={steps}
       openStepKey={openStepKey}
       onOpenStep={(key: string) => {
