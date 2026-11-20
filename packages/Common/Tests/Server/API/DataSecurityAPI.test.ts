@@ -29,6 +29,10 @@ import {
   CodeTaskBlockerType,
 } from "../../../Types/AI/CodeTask";
 import DataTypeNamer from "../../../Types/DataSecurity/DataTypeNamer";
+import {
+  buildDataSecurityFixRequest,
+  buildExplainIssuePrompt,
+} from "../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
 import ProductKey from "../../../Types/Product/ProductKey";
@@ -2219,15 +2223,16 @@ describe("Explain and Fix With AI", () => {
     expect(request.userId).toBe(USER_ID);
     expect(request.feature).toBe(AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE);
     expect(request.maxTokens).toBe(900);
-    expect(request.messages[0]!.role).toBe("system");
-    expect(request.messages[1]).toEqual({
-      role: "user",
-      content: DataSecurityAPI.describeIssue(
-        issueRow!,
-        [],
-        new DataTypeNamer(new Map([[LOYALTY, "Loyalty card number"]])),
-      ),
-    });
+    // The prompt DataSecurityAiInput builds for the issue (#10365).
+    expect(request.messages).toEqual(
+      buildExplainIssuePrompt({
+        issue: issueRow!,
+        findings: [],
+        dataTypeNamer: new DataTypeNamer(
+          new Map([[LOYALTY, "Loyalty card number"]]),
+        ),
+      }).messages,
+    );
     expect(feedSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       dataSecurityIssueId: issueRow!.id,
@@ -2279,9 +2284,11 @@ describe("Explain and Fix With AI", () => {
       }
     ).messages[1]!.content;
 
-    expect(content).toContain(
-      "Data types found: Card number, Loyalty card number, A deleted data type",
-    );
+    expect(
+      ((JSON.parse(content) as JSONObject)["issue"] as JSONObject)[
+        "dataTypes"
+      ],
+    ).toEqual(["Card number", "Loyalty card number", "A deleted data type"]);
     expect(content).not.toContain("custom:");
     // Read once, as OneUptime: OneUptime AI needs the names.
     expect(customTypesSpy).toHaveBeenCalledTimes(1);
@@ -2468,15 +2475,16 @@ describe("Explain and Fix With AI", () => {
     expect(started.repository).toBe(repository);
     expect(started.context).toEqual([]);
     expect(started.message).toContain("Open a pull request.");
-    expect(started.message).toContain(
-      DataSecurityAPI.describeIssue(
+    // The request DataSecurityAiInput builds for the issue (#10365).
+    expect(started.message).toBe(
+      buildDataSecurityFixRequest(
         issueRow!,
         [],
         new DataTypeNamer(new Map([[LOYALTY, "Loyalty card number"]])),
-      ),
+      ).text,
     );
     expect(started.message).toContain(
-      "Data types found: Card number, Loyalty card number",
+      '"dataTypes": [\n      "Card number",\n      "Loyalty card number"\n    ]',
     );
     expect(feedSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
@@ -2755,13 +2763,20 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
     expect(request.messages[0]!.content).toContain(
       "scrub it at ingest, then change the code that writes it",
     );
-    expect(request.messages[1]!.content).toContain(
-      [
-        "Where it was found:",
-        "- Ireland PPS number in attributes.user.pps (Attribute)",
-        "- IP address in attributes.http.client_ip (Attribute)",
-      ].join("\n"),
-    );
+    expect(
+      (JSON.parse(request.messages[1]!.content) as JSONObject)["foundIn"],
+    ).toEqual([
+      {
+        dataType: "Ireland PPS number",
+        location: "attributes.user.pps",
+        locationKind: "Attribute",
+      },
+      {
+        dataType: "IP address",
+        location: "attributes.http.client_ip",
+        locationKind: "Attribute",
+      },
+    ]);
     expect(request.messages[1]!.content).not.toContain("config.token");
     expect(request.messages[1]!.content).not.toContain("user.email");
     expect(request.messages[1]!.content).not.toContain("user.phone");
@@ -2802,9 +2817,13 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
       }
     ).messages[1]!.content;
 
-    expect(content).toContain(
-      "- GitHub token in attributes.config.token (Attribute)",
-    );
+    expect((JSON.parse(content) as JSONObject)["foundIn"]).toEqual([
+      {
+        dataType: "GitHub token",
+        location: "attributes.config.token",
+        locationKind: "Attribute",
+      },
+    ]);
     expect(content).not.toContain("attributes.user.pps");
   });
 
@@ -2840,9 +2859,8 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
     expect(message).not.toContain("infrastructure code");
-    expect(message).toContain(
-      "- Ireland PPS number in attributes.user.pps (Attribute)",
-    );
+    expect(message).toContain('"location": "attributes.user.pps"');
+    expect(message).toContain('"dataType": "Ireland PPS number"');
     expect(message).toContain("Open a pull request.");
   });
 
@@ -2875,49 +2893,56 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
   });
 });
 
-describe("describeIssue", () => {
+describe("the issue as OneUptime AI is told it (DataSecurityAiInput, #10365)", () => {
+  function dataOf(issue: DataSecurityIssue): JSONObject {
+    return JSON.parse(
+      buildExplainIssuePrompt({ issue }).messages[1]!.content,
+    ) as JSONObject;
+  }
+
   test("says what the check saw and how to fix it on the store's cloud, with the store's values filled in", () => {
-    const described: string = DataSecurityAPI.describeIssue(issueOf());
+    const data: JSONObject = dataOf(issueOf());
     const check: ReturnType<typeof getDataSecurityCheck> =
       getDataSecurityCheck("public-read");
+    const issue: JSONObject = data["issue"] as JSONObject;
+    const fix: JSONObject = issue["fix"] as JSONObject;
 
-    expect(described.split("\n").slice(0, 8)).toEqual([
-      "Issue: Anyone on the internet can read it",
-      "Severity: Critical",
-      "Store: customer-exports (AWS S3 Bucket, us-east-1)",
-      "Cloud id: arn:aws:s3:::customer-exports",
-      "Sensitivity: Restricted",
+    expect(issue).toMatchObject({
+      title: "Anyone on the internet can read it",
+      check: "public-read",
+      severity: "Critical",
       // No names handed in: one of the project's own, never by its id (#10363).
-      "Data types found: Card number, Custom data type",
-      "Evidence: The bucket policy grants s3:GetObject to *.",
-      `Why it matters: ${check!.whyItMatters}`,
-    ]);
-    expect(described).toContain(
-      "Suggested fix:\nStep 1: Open the bucket in the S3 console and choose Permissions.",
+      dataTypes: ["Card number", "Custom data type"],
+      evidence: "The bucket policy grants s3:GetObject to *.",
+      whyItMatters: check!.whyItMatters,
+    });
+    expect(data["store"]).toEqual({
+      name: "customer-exports",
+      kind: "AWS S3 Bucket",
+      region: "us-east-1",
+      cloudId: "arn:aws:s3:::customer-exports",
+      sensitivity: "Restricted",
+    });
+    expect((fix["steps"] as Array<string>)[0]).toBe(
+      "Open the bucket in the S3 console and choose Permissions.",
     );
-    expect(described).toContain(
-      "CLI: aws s3api put-public-access-block --bucket customer-exports --public-access-block-configuration",
+    expect(fix["cli"]).toContain(
+      "aws s3api put-public-access-block --bucket customer-exports --public-access-block-configuration",
     );
-    expect(described).toContain(
-      'Terraform:\nresource "aws_s3_bucket_public_access_block" "customer-exports" {',
+    expect(fix["terraform"]).toContain(
+      'resource "aws_s3_bucket_public_access_block" "customer-exports" {',
     );
-    expect(described).not.toContain("{name}");
+    expect(JSON.stringify(data)).not.toContain("{name}");
   });
 
-  test("an issue with little recorded still reads plainly, leaving out what it does not know", () => {
+  test("an issue with little recorded leaves out what it does not know, never guessing it", () => {
     const issue: DataSecurityIssue = new DataSecurityIssue(STORE_ID);
     issue.checkId = "a-check-from-a-later-release";
     issue.severity = SecuritySeverity.Low;
 
-    expect(DataSecurityAPI.describeIssue(issue)).toBe(
-      [
-        "Issue: a-check-from-a-later-release",
-        "Severity: Low",
-        "Store: unknown",
-        "Sensitivity: unknown",
-        "Evidence: none recorded",
-      ].join("\n"),
-    );
+    expect(dataOf(issue)).toEqual({
+      issue: { check: "a-check-from-a-later-release", severity: "Low" },
+    });
   });
 });
 

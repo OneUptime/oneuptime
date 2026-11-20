@@ -2545,10 +2545,10 @@ describe("Data Security Integrations", () => {
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
       "return buildDataSecurityFixRequest(",
     );
-    // The request is what the Code task it starts is asked (#10362).
+    // The request is what the Code task it starts is asked (#10362, #10365).
     expect(
       source("Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask.ts"),
-    ).toContain("message: await data.buildMessage(),");
+    ).toContain("message: request.text,");
     expect(section(page, "## OneUptime AI")).toContain(
       "Terraform, CloudFormation, Bicep or the like",
     );
@@ -2557,7 +2557,7 @@ describe("Data Security Integrations", () => {
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await DataSecurityAPI.readFindingsForAi(projectId, issue)",
+      "await DataSecurityAiReads.readPlaces({ projectId, issue })",
     );
     expect(section(page, "## OneUptime AI")).toContain(
       "For a telemetry issue it asks for a change to the code of the service that writes the data instead",
