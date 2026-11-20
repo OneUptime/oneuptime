@@ -1,13 +1,21 @@
 import EnableRealtimeEventsOn from "../../../Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
+import ColumnLength from "../../../Types/Database/ColumnLength";
+import RecordActorType, {
+  RECORD_ACTOR_COLUMNS,
+} from "../../../Types/Database/RecordActor";
+import { CREATED_BY_USER_ID_COLUMN } from "../../../Types/Database/UserAttribution";
+import type User from "../User";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import EnableAuditLogOn from "../../../Types/BaseDatabase/EnableAuditLogOn";
 import { getCachedDefaultAuditLogOn } from "../../../Types/AuditLog/AuditLogCoverage";
 import EnableWorkflowOn from "../../../Types/BaseDatabase/EnableWorkflowOn";
 import ModelPermission from "../../../Types/BaseDatabase/ModelPermission";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
-import { getColumnAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnAccessControl";
+import ColumnAccessControlDecorator, {
+  getColumnAccessControlForAllColumns,
+} from "../../../Types/Database/AccessControl/ColumnAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "../../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
@@ -54,8 +62,11 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import Text from "../../../Types/Text";
 import {
   BaseEntity,
+  Column,
   CreateDateColumn,
   DeleteDateColumn,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   VersionColumn,
@@ -99,6 +110,42 @@ function getVanillaModel(modelType: {
 
   return vanillaModel;
 }
+
+/*
+ * The User model, read when the relation to whoever last changed a record
+ * is first resolved - never imported at the top. User extends this class,
+ * so a top-level import of it here makes an import cycle in which, whenever
+ * this file is loaded first, User's file runs while this class is still
+ * undefined, and `class User extends undefined` throws. DatabaseService reads
+ * AuditLogService the same way, for the same reason.
+ */
+const getUserModelType: () => { new (): DatabaseBaseModel } = (): {
+  new (): DatabaseBaseModel;
+} => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require("../User").default;
+};
+
+/*
+ * Who may read what created a record and what last changed it (#10290):
+ * whoever may read who created it, on a model that says so, and the
+ * record's own readers otherwise - as they read when it was created. Never
+ * a status page's anonymous visitor, whatever the record lets them read: a
+ * name of someone at the company is not a public status page's to show.
+ */
+const getRecordActorReaders: (data: {
+  createdByUserReaders: Array<Permission> | undefined;
+  recordReaders: Array<Permission> | undefined;
+}) => Array<Permission> = (data: {
+  createdByUserReaders: Array<Permission> | undefined;
+  recordReaders: Array<Permission> | undefined;
+}): Array<Permission> => {
+  return (data.createdByUserReaders || data.recordReaders || []).filter(
+    (permission: Permission): boolean => {
+      return permission !== Permission.Public;
+    },
+  );
+};
 
 export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
@@ -153,6 +200,138 @@ export default class DatabaseBaseModel extends BaseEntity {
   })
   @VersionColumn()
   public version?: number = undefined;
+
+  /*
+   * WHAT CREATED THIS RECORD AND WHAT LAST CHANGED IT, ON EVERY RECORD
+   * (#10290; Types/Database/RecordActor says what each kind is).
+   *
+   * Nullable, so adding them is a change of each table's catalog entry and
+   * nothing else, and a record written before them reads empty - which says
+   * nothing either way. DatabaseService stamps them; no request writes them
+   * (UserAttribution closes them, as it closes createdByUserId). Read by
+   * whoever may read who created the record (getRecordActorReaders).
+   *
+   * "Last modified" is not updatedAt: OneUptime rewrites many records all day
+   * - a monitor's status at every check, a host's last report - and each of
+   * those moves updatedAt. These move only when a person, an API key, a
+   * workflow, an MCP client or a server admin changes the record.
+   */
+  @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
+  @TableColumn({
+    title: "Created By Actor Type",
+    type: TableColumnType.ShortText,
+    computed: true,
+    description:
+      "What created this object: User (a person), ApiKey, Workflow, McpClient (an MCP client acting for a person), MasterAdmin or System (OneUptime itself). Empty for objects created before OneUptime recorded it.",
+    example: "ApiKey",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public createdByActorType?: RecordActorType = undefined;
+
+  @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
+  @TableColumn({
+    title: "Created By Actor ID",
+    type: TableColumnType.ObjectID,
+    computed: true,
+    description:
+      "ID of the API key, workflow or MCP client authorization that created this object. Empty when a person or OneUptime itself created it.",
+    example: "a7c3e1d2-4b5f-4a6e-9c8d-1f2e3d4c5b6a",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public createdByActorId?: ObjectID = undefined;
+
+  @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
+  @TableColumn({
+    title: "Last Modified At",
+    type: TableColumnType.Date,
+    computed: true,
+    description:
+      "When a person, an API key, a workflow or an MCP client last changed this object. OneUptime's own updates (a status, a last report) do not count. Empty until it is changed after it is created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastModifiedAt?: Date = undefined;
+
+  @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
+  @TableColumn({
+    title: "Last Modified By Actor Type",
+    type: TableColumnType.ShortText,
+    computed: true,
+    description:
+      "What last changed this object: User (a person), ApiKey, Workflow, McpClient (an MCP client acting for a person) or MasterAdmin. Empty until it is changed after it is created.",
+    example: "User",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public lastModifiedByActorType?: RecordActorType = undefined;
+
+  @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
+  @TableColumn({
+    title: "Last Modified By Actor ID",
+    type: TableColumnType.ObjectID,
+    computed: true,
+    description:
+      "ID of the API key, workflow or MCP client authorization that last changed this object. Empty when a person last changed it.",
+    example: "b8d4f2e3-5c6a-4b7f-8d9e-2a3b4c5d6e7f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public lastModifiedByActorId?: ObjectID = undefined;
+
+  /*
+   * No foreign key: one on every table would be added and validated with a
+   * scan of each, and would make every user's deletion set this to null in
+   * every table - each a full scan, as nothing indexes it. A person no longer
+   * in OneUptime reads as no one (the relation finds no user).
+   */
+  @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
+  @TableColumn({
+    manyToOneRelationColumn: "lastModifiedByUserId",
+    type: TableColumnType.Entity,
+    modelTypeThunk: getUserModelType,
+    title: "Last Modified by User",
+    description:
+      "Relation to the person who last changed this object, or the member an MCP client changed it for. Empty when an API key or a workflow last changed it.",
+  })
+  @ManyToOne(getUserModelType, {
+    eager: false,
+    nullable: true,
+    createForeignKeyConstraints: false,
+  })
+  @JoinColumn({ name: "lastModifiedByUserId" })
+  public lastModifiedByUser?: User = undefined;
+
+  @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
+  @TableColumn({
+    title: "Last Modified by User ID",
+    type: TableColumnType.ObjectID,
+    computed: true,
+    description:
+      "ID of the person who last changed this object, or the member an MCP client changed it for. Empty when an API key or a workflow last changed it.",
+    example: "c9e5a3f4-6d7b-4c8a-9e0f-3b4c5d6e7f8a",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public lastModifiedByUserId?: ObjectID = undefined;
 
   public createRecordPermissions!: Array<Permission>;
   public readRecordPermissions!: Array<Permission>;
@@ -379,6 +558,23 @@ export default class DatabaseBaseModel extends BaseEntity {
         read: this.readRecordPermissions,
         create: this.createRecordPermissions,
         update: this.updateRecordPermissions,
+      };
+    }
+
+    /*
+     * What created the record and what last changed it: read by whoever may
+     * read who created it, written by no request (getRecordActorReaders).
+     */
+    const recordActorReaders: Array<Permission> = getRecordActorReaders({
+      createdByUserReaders: dictionary[CREATED_BY_USER_ID_COLUMN]?.read,
+      recordReaders: this.readRecordPermissions,
+    });
+
+    for (const key of RECORD_ACTOR_COLUMNS) {
+      dictionary[key] = {
+        read: recordActorReaders,
+        create: [],
+        update: [],
       };
     }
 
