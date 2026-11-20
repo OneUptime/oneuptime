@@ -17,6 +17,7 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
@@ -43,14 +44,22 @@ import {
 import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
 import {
   CloudAlertTemplate,
+  getCloudAlertStreamedMetrics,
   getCloudAlertTemplatesFor,
   getCloudAlertTemplatesForType,
+  getCloudAlertWindow,
   getCloudConnectionsThreshold,
   getCloudMonitoringServiceName,
   isCloudAlertTemplateOfOpsAgent,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
 } from "Common/Types/Monitor/CloudAlertTemplates";
+import {
+  CloudConnectionDefinition,
+  READ_INTERVAL_FIELD_KEY,
+  getCloudConnectionDefinition,
+  getCloudConnectionReadIntervalInMinutes,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import { readCloudResourceReadings } from "Common/Types/Cloud/CloudResourceHealth";
 import { AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE } from "Common/Types/Cloud/CloudMonitoredResource";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
@@ -553,6 +562,155 @@ export function readCloudResourceRecommendationContext(
   };
 }
 
+// A cloud connection as a resource's recommendations read it.
+export interface CloudRecommendationConnection {
+  provider?: unknown;
+  config?: unknown;
+  streamSummary?: unknown;
+}
+
+/*
+ * What a cloud resource's connection says of how its metrics come
+ * (#10028): how often it reads them, and which of them its account's
+ * stream writes instead - each recommended monitor's window follows both
+ * (getCloudAlertWindow). The resource's row says its account and Region,
+ * which its stream is read by. No connection: the context as it was, and
+ * the windows its cloud's default interval reads.
+ */
+export function readCloudConnectionRecommendationContext(data: {
+  context: MonitorRecommendationContext;
+  record: Record<string, unknown>;
+  connection: CloudRecommendationConnection | null | undefined;
+  now: Date;
+}): MonitorRecommendationContext {
+  const provider: string = String(
+    data.connection?.provider || data.context.cloudProvider || "",
+  )
+    .trim()
+    .toLowerCase();
+  const definition: CloudConnectionDefinition | undefined =
+    getCloudConnectionDefinition(provider);
+
+  if (!data.connection || !definition) {
+    return data.context;
+  }
+
+  const config: Record<string, unknown> =
+    data.connection.config &&
+    typeof data.connection.config === "object" &&
+    !Array.isArray(data.connection.config)
+      ? (data.connection.config as Record<string, unknown>)
+      : {};
+
+  return {
+    ...data.context,
+    cloudReadIntervalInMinutes: getCloudConnectionReadIntervalInMinutes(
+      definition,
+      config[READ_INTERVAL_FIELD_KEY],
+    ),
+    cloudStreamedMetrics: getCloudAlertStreamedMetrics({
+      provider,
+      resourceType: data.context.cloudResourceType,
+      accountId: data.record["cloudAccountId"],
+      region: data.record["cloudRegion"],
+      streamSummary: data.connection.streamSummary,
+      now: data.now,
+    }),
+  };
+}
+
+// What a cloud resource's connection's row is read with.
+export const CLOUD_RECOMMENDATION_CONNECTION_SELECT: {
+  provider: true;
+  config: true;
+  streamSummary: true;
+} = { provider: true, config: true, streamSummary: true };
+
+/*
+ * A cloud resource's row, completed with what its connection says
+ * (readCloudConnectionRecommendationContext). The connection is read with
+ * the person's own rights; a read that fails keeps the row's context
+ * (RecommendationResourceRegistry.loadContext): its windows are then its
+ * cloud's default interval's.
+ */
+export async function loadCloudResourceRecommendationContext(data: {
+  model: BaseModel;
+  context: MonitorRecommendationContext;
+}): Promise<MonitorRecommendationContext> {
+  const record: Record<string, unknown> = data.model as unknown as Record<
+    string,
+    unknown
+  >;
+  const connectionId: string = String(record["cloudConnectionId"] || "").trim();
+
+  if (!connectionId) {
+    return data.context;
+  }
+
+  // Imported here: its client reads the browser's config as it loads.
+  const modelApi: typeof import("Common/UI/Utils/ModelAPI/ModelAPI") =
+    await import("Common/UI/Utils/ModelAPI/ModelAPI");
+
+  const connection: CloudConnection | null = await modelApi.default.getItem({
+    modelType: CloudConnection,
+    id: new ObjectID(connectionId),
+    select: CLOUD_RECOMMENDATION_CONNECTION_SELECT,
+  });
+
+  return readCloudConnectionRecommendationContext({
+    context: data.context,
+    record,
+    connection,
+    now: OneUptimeDate.getCurrentDate(),
+  });
+}
+
+/*
+ * Whether a resource read every `readIntervalInMinutes` reads one of
+ * `templates` a longer window than its template's (getCloudAlertWindow,
+ * #10028): its connection is read less often than its cloud's default.
+ */
+export function isCloudAlertWindowWidened(data: {
+  templates: Array<CloudAlertTemplate>;
+  readIntervalInMinutes: number | null | undefined;
+  streamedMetrics?: Array<string> | null | undefined;
+}): boolean {
+  return data.templates.some((template: CloudAlertTemplate): boolean => {
+    return (
+      getCloudAlertWindow({
+        template,
+        readIntervalInMinutes: data.readIntervalInMinutes,
+        streamedMetrics: data.streamedMetrics,
+      }) !== template.rollingTime
+    );
+  });
+}
+
+/*
+ * What reading a connection less often than its cloud's default costs the
+ * recommended monitors whose window it widens (isCloudAlertWindowWidened):
+ * an alert can come up to a read after what it watches, and each monitor
+ * reads a longer window, to judge every reading a read brings - with how
+ * to alert sooner. Of a resource, or of its account's resources.
+ */
+export function describeCloudReadIntervalCost(data: {
+  readIntervalInMinutes: number;
+  isAccount?: boolean | undefined;
+}): string {
+  const minutes: number = data.readIntervalInMinutes;
+  const translator: Translator = getGlobalTranslator();
+
+  return data.isAccount
+    ? translator.translateTemplate(
+        "This account's connection reads metrics every {{minutes}} minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        { minutes: translator.formatNumber(minutes) },
+      )
+    : translator.translateTemplate(
+        "Its connection reads metrics every {{minutes}} minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        { minutes: translator.formatNumber(minutes) },
+      );
+}
+
 /*
  * What an RDS instance's page says of its Connections Near the Limit: why
  * it waits or is not offered, or - when its parameter group is one of the
@@ -648,7 +806,9 @@ export function joinCloudRecommendationNotes(
 
 /*
  * Why a cloud resource is offered fewer recommendations than its type has,
- * or none - said only then: a resource offered all of them needs no note.
+ * or none - said only then: a resource offered all of them needs no note -
+ * and what its connection's interval costs them when it reads them longer
+ * windows (describeCloudReadIntervalCost).
  */
 export function describeCloudResourceRecommendationContext(
   context: MonitorRecommendationContext,
@@ -775,6 +935,22 @@ export function describeCloudResourceRecommendationContext(
 
   if (connectionNote) {
     notes.push(connectionNote);
+  }
+
+  // What its connection's interval costs the monitors it is offered (#10028).
+  if (
+    context.cloudReadIntervalInMinutes &&
+    isCloudAlertWindowWidened({
+      templates: offered,
+      readIntervalInMinutes: context.cloudReadIntervalInMinutes,
+      streamedMetrics: context.cloudStreamedMetrics,
+    })
+  ) {
+    notes.push(
+      describeCloudReadIntervalCost({
+        readIntervalInMinutes: context.cloudReadIntervalInMinutes,
+      }),
+    );
   }
 
   return joinCloudRecommendationNotes(notes);
@@ -1502,12 +1678,17 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       "cloudReadings",
       "cloudProperties",
       "cloudConnectionId",
+      // What its account's stream is read by (loadContext).
+      "cloudAccountId",
+      "cloudRegion",
     ],
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       return readCloudResourceRecommendationContext(
         model as unknown as Record<string, unknown>,
       );
     },
+    // Its connection's interval and stream, which its windows follow.
+    loadContext: loadCloudResourceRecommendationContext,
     describeContext: describeCloudResourceRecommendationContext,
     getCardDescription: (
       context: MonitorRecommendationContext,

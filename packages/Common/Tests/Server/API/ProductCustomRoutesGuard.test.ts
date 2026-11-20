@@ -1102,8 +1102,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * is-user-registered is gone (#9745).
          */
         "packages/Common/Server/API/TeamMemberAPI.ts": 11,
-        // #9762: a master admin clearing one person's sign-in settings.
-        "packages/Common/Server/API/UserAPI.ts": 8,
+        /*
+         * #9762: a master admin clearing one person's sign-in settings.
+         * #10155: a person confirming it's them before they change how
+         * they sign in, and the security key or passkey options for it.
+         */
+        "packages/Common/Server/API/UserAPI.ts": 10,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
       },
     ),
@@ -1239,7 +1243,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
-        "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
+        "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 16,
         "packages/App/FeatureSet/Telemetry/API/DbtArtifactsIngest.ts": 1,
         // #9922: an iOS app's dSYMs, uploaded as its source maps are.
         "packages/App/FeatureSet/Telemetry/API/DsymIngest.ts": 1,
@@ -1370,26 +1374,39 @@ const squash: (text: string) => string = (text: string): string => {
 const REFUSAL: RegExp =
   /ServerProductRoutes\s*\.\s*(refuseWhileOff|refuseWhileOffFor|refuseWhileRecordTableIsOff)\s*\(([^)]*)\)/g;
 
+// A file of the repository's, by its path from the repository's root.
+const readText: (file: string) => string = (file: string): string => {
+  return fs.readFileSync(path.join(REPOSITORY, file), "utf8");
+};
+
+// A file's text, parsed: the file's own, or a fixture's.
+const parseText: (file: string, text: string) => ts.SourceFile = (
+  file: string,
+  text: string,
+): ts.SourceFile => {
+  return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+};
+
 const parse: (file: string) => ts.SourceFile = (
   file: string,
 ): ts.SourceFile => {
-  return ts.createSourceFile(
-    file,
-    fs.readFileSync(path.join(REPOSITORY, file), "utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  return parseText(file, readText(file));
 };
 
 /*
  * Every route a file registers that is not a GET - router.post(...),
  * this.router.put(...), app.delete(...), router.all(...) - with the
  * refusals among its middlewares. A handler's body is never read for one.
+ * The file's own text, or a fixture's.
  */
-const readRegistrations: (file: string) => Array<Registration> = (
+const readRegistrations: (
   file: string,
+  text?: string,
+) => Array<Registration> = (
+  file: string,
+  text: string = readText(file),
 ): Array<Registration> => {
-  const source: ts.SourceFile = parse(file);
+  const source: ts.SourceFile = parseText(file, text);
   const registrations: Array<Registration> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -1497,31 +1514,47 @@ const listServerFiles: () => Array<string> = (): Array<string> => {
 /*
  * A route registered through a computed method - router[method](...) - is
  * one the walk cannot read the verb of, so a POST could hide in it, as the
- * Prometheus API's did before #7700. Each such call of a file: none may be.
+ * Prometheus API's did before #7700 and Vercel Marketplace's provider API's
+ * did before #10230. Each such call among the files given, read with
+ * readFile, as "file: call(...)": none may be, in ee/'s files as in core's.
+ * ee/ decides its own route files (ProductRouteDecisions.ts), but a route
+ * the walk cannot read is one nobody decided.
  */
 const MAY_REGISTER_COMPUTED: RegExp = /(?:router|\bapp)\s*\??\.?\s*\[/i;
 
-const readComputedRegistrations: (file: string) => Array<string> = (
-  file: string,
+const findComputedRegistrations: (
+  files: ReadonlyArray<string>,
+  readFile: (file: string) => string,
+) => Array<string> = (
+  files: ReadonlyArray<string>,
+  readFile: (file: string) => string,
 ): Array<string> => {
-  const source: ts.SourceFile = parse(file);
-  const calls: Array<string> = [];
+  return files.flatMap((file: string): Array<string> => {
+    const text: string = readFile(file);
 
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isElementAccessExpression(node.expression) &&
-      ROUTER.test(node.expression.expression.getText(source))
-    ) {
-      calls.push(squash(node.expression.getText(source)));
+    if (!MAY_REGISTER_COMPUTED.test(text)) {
+      return [];
     }
 
-    ts.forEachChild(node, visit);
-  };
+    const source: ts.SourceFile = parseText(file, text);
+    const calls: Array<string> = [];
 
-  visit(source);
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isElementAccessExpression(node.expression) &&
+        ROUTER.test(node.expression.expression.getText(source))
+      ) {
+        calls.push(`${file}: ${squash(node.expression.getText(source))}(...)`);
+      }
 
-  return calls;
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+
+    return calls;
+  });
 };
 
 const FILES_WITH_ROUTES: Array<string> = listServerFiles().filter(
@@ -1622,24 +1655,9 @@ describe("every route file of the server is held to a decision", () => {
     );
   });
 
+  // Every file of the server's: ee/'s too, where it is checked out (#10230).
   test("no route is registered through a computed method, which the walk cannot read", () => {
-    const computed: Array<string> = listServerFiles()
-      .filter((file: string): boolean => {
-        return (
-          // Core's files: ee/ decides its own (ProductRouteDecisions.ts).
-          !file.startsWith("ee/") &&
-          MAY_REGISTER_COMPUTED.test(
-            fs.readFileSync(path.join(REPOSITORY, file), "utf8"),
-          )
-        );
-      })
-      .flatMap((file: string): Array<string> => {
-        return readComputedRegistrations(file).map((call: string): string => {
-          return `${file}: ${call}(...)`;
-        });
-      });
-
-    expect(computed).toEqual([]);
+    expect(findComputedRegistrations(listServerFiles(), readText)).toEqual([]);
   });
 
   test("every file that registers a route is decided, once", () => {
@@ -2029,4 +2047,117 @@ describe("what the decisions stand on", () => {
       ).toBe(times);
     },
   );
+});
+
+describe("the walk reads the shapes it is meant to", () => {
+  // Vercel Marketplace's provider API registered its routes so before #10230.
+  const THROUGH_A_HELPER: string = `
+    export default class FixtureAPI {
+      public constructor() {
+        this.route("put", installation, async (req, caller) => {
+          return { status: 204 };
+        });
+        this.route("post", resources, async (req, caller) => {
+          return { status: 200 };
+        });
+      }
+
+      private route(method: "put" | "post", path: string, handler: ProviderHandler): void {
+        this.router[method](path, async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+          await handler(req, res);
+        });
+      }
+    }
+  `;
+
+  // And registers them so since: one by one, by their verb.
+  const ONE_BY_ONE: string = `
+    export default class FixtureAPI {
+      public constructor() {
+        // Never this.router[method](...): the walk cannot read its verb.
+        this.router.put(installation, this.providerCall(async (req, caller) => {
+          return { status: 204 };
+        }));
+        this.router.get(installation, this.providerCall(async (req, caller) => {
+          return { status: 200 };
+        }));
+        this.router.post(webhook, async (req: ExpressRequest, res: ExpressResponse) => {
+          await handleWebhook(req, res);
+        });
+      }
+
+      private providerCall(handler: ProviderHandler): ProviderRoute {
+        return async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+          await answers[req.method](req, res);
+        };
+      }
+    }
+  `;
+
+  const fixture: (text: string) => (file: string) => string = (
+    text: string,
+  ): ((file: string) => string) => {
+    return (): string => {
+      return text;
+    };
+  };
+
+  test("the walk reads each route registered by its verb, and none registered through a helper's router[method]", () => {
+    expect(
+      readRegistrations(
+        "ee/Server/Fixture/API/FixtureAPI.ts",
+        THROUGH_A_HELPER,
+      ),
+    ).toEqual([]);
+    expect(
+      readRegistrations("ee/Server/Fixture/API/FixtureAPI.ts", ONE_BY_ONE).map(
+        (registration: Registration): string => {
+          return `${registration.method} ${registration.path}`;
+        },
+      ),
+    ).toEqual(["PUT installation", "POST webhook"]);
+  });
+
+  // #10230: ee/ decides its own route files, but not a route nobody can read.
+  test.each([
+    ["ee/Server/Fixture/API/FixtureAPI.ts"],
+    ["packages/Common/Server/API/FixtureAPI.ts"],
+  ])(
+    "%s: a route registered through a computed method is refused",
+    (file: string) => {
+      expect(
+        findComputedRegistrations([file], fixture(THROUGH_A_HELPER)),
+      ).toEqual([`${file}: this.router[method](...)`]);
+    },
+  );
+
+  test("every computed shape is refused: a loop over the verbs, a verb in quotes, an optional call", () => {
+    const file: string = "ee/Server/Fixture/API/FixtureAPI.ts";
+
+    expect(
+      findComputedRegistrations(
+        [file],
+        fixture(`
+          for (const method of ["get", "post"] as const) {
+            router[method]("/prometheus/api/v1/query", ...requireMetricReadAccess, instantQuery);
+          }
+          this.router["delete"]("/items/:id", handler);
+          app?.[verb]("/status", handler);
+        `),
+      ),
+    ).toEqual([
+      `${file}: router[method](...)`,
+      `${file}: this.router["delete"](...)`,
+      `${file}: app?.[verb](...)`,
+    ]);
+  });
+
+  test("a route registered by its verb, a computed call of something else and a comment are not refused", () => {
+    expect(
+      findComputedRegistrations(
+        ["ee/Server/Fixture/API/FixtureAPI.ts"],
+        fixture(ONE_BY_ONE),
+      ),
+    ).toEqual([]);
+  });
 });

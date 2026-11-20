@@ -24,10 +24,17 @@ import {
 } from "Common/Types/Cloud/CloudMonitoredResource";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  CloudKeyMetricCadence,
   CloudKeyMetricReference,
   getCloudKeyMetricOfStoredName,
-  hasAzureFiveMinuteKeyMetrics,
+  hasCloudKeyMetricsWithCadence,
 } from "Common/Types/Cloud/CloudKeyMetrics";
+import {
+  CloudConnectionDefinition,
+  READ_INTERVAL_FIELD_KEY,
+  getCloudConnectionDefinition,
+  getCloudConnectionReadIntervalInMinutes,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
   CLOUD_KEY_METRIC_GROUP_LABELS,
   CLOUD_KEY_METRIC_GROUP_ORDER,
@@ -172,11 +179,16 @@ export function getCloudMonitoredResourceAttributeDisplayKeys(
  * range, an amount held (messages waiting) over a range read by the minute,
  * up to 3 hours. A summed row shows the intervals its cloud has delivered
  * whole (getSummedRowSettleMs). Each other row says it is the "average of
- * series". A key metric whose points come five minutes apart - an Azure
- * metric kept at five minutes at its finest, an App Service app's health
- * check (CloudKeyMetricReference.intervalSeconds) - says so, "every 5
- * minutes", so its line is never read as a minute's. Undefined for every
- * other resource, whose rows read and caption exactly as they did.
+ * series". A key metric whose points come further apart than its cloud's
+ * others' (CloudKeyMetricReference.cadence) says how often they come, so
+ * its line is never read as a minute's: an Azure metric kept at five
+ * minutes, an App Service app's health check, "every 5 minutes"; one kept
+ * at an hour or six, a Storage account's used capacity or an App Service
+ * app's file system, "every hour" or "every 6 hours"; an S3 bucket's
+ * storage, "once a day" - each with how long ago its newest point is
+ * ("every hour · 2h ago", #10026), since that is the value the row shows.
+ * Undefined for every other resource, whose rows read and caption exactly
+ * as they did.
  */
 export interface CloudMonitoredResourceRowAggregation {
   getRowAggregation: GetMetricRowAggregation;
@@ -190,17 +202,26 @@ export const CLOUD_RESOURCE_AVERAGED_ROW_CAPTION: string =
   translationKey("average of series");
 export const CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION: string =
   translationKey("every 5 minutes");
+export const CLOUD_RESOURCE_HOURLY_ROW_CAPTION: string =
+  translationKey("every hour");
+export const CLOUD_RESOURCE_SIX_HOURLY_ROW_CAPTION: string =
+  translationKey("every 6 hours");
+export const CLOUD_RESOURCE_FEW_TIMES_A_DAY_ROW_CAPTION: string =
+  translationKey("a few times a day");
+export const CLOUD_RESOURCE_DAILY_ROW_CAPTION: string =
+  translationKey("once a day");
 
-// Seconds between two points of a key metric read at five minutes.
-const FIVE_MINUTES_IN_SECONDS: number = 300;
-
-// Whether a type has a key metric whose points come five minutes apart.
-function hasFiveMinuteKeyMetrics(provider: string, type: string): boolean {
-  return (
-    provider.trim().toLowerCase() === CloudProvider.Azure &&
-    hasAzureFiveMinuteKeyMetrics(type)
-  );
-}
+// What a key metric's row says of how often its points come.
+export const CLOUD_RESOURCE_CADENCE_ROW_CAPTIONS: Readonly<
+  Record<CloudKeyMetricCadence, string>
+> = {
+  [CloudKeyMetricCadence.FiveMinutes]: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+  [CloudKeyMetricCadence.Hourly]: CLOUD_RESOURCE_HOURLY_ROW_CAPTION,
+  [CloudKeyMetricCadence.SixHourly]: CLOUD_RESOURCE_SIX_HOURLY_ROW_CAPTION,
+  [CloudKeyMetricCadence.FewTimesADay]:
+    CLOUD_RESOURCE_FEW_TIMES_A_DAY_ROW_CAPTION,
+  [CloudKeyMetricCadence.Daily]: CLOUD_RESOURCE_DAILY_ROW_CAPTION,
+};
 
 export interface CloudMonitoredResourceAggregationSource {
   cloudProvider?: unknown;
@@ -247,7 +268,7 @@ export function getCloudMonitoredResourceRowAggregation(
     type,
   });
 
-  if (!hasSummedMetrics && !hasFiveMinuteKeyMetrics(provider, type)) {
+  if (!hasSummedMetrics && !hasCloudKeyMetricsWithCadence({ provider, type })) {
     return undefined;
   }
 
@@ -284,14 +305,18 @@ export function getCloudMonitoredResourceRowAggregation(
         };
       }
 
-      // Read as every row is, saying its points come five minutes apart.
-      if (
-        getCloudKeyMetricOfStoredName({ provider, type, metricName })
-          ?.intervalSeconds === FIVE_MINUTES_IN_SECONDS
-      ) {
+      /*
+       * Read as every row is, saying how often its points come and how
+       * old its newest is.
+       */
+      const cadence: CloudKeyMetricCadence | undefined =
+        getCloudKeyMetricOfStoredName({ provider, type, metricName })?.cadence;
+
+      if (cadence) {
         return {
           aggregationType: AggregationType.Avg,
-          caption: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+          caption: CLOUD_RESOURCE_CADENCE_ROW_CAPTIONS[cadence],
+          showsNewestPointAge: true,
         };
       }
 
@@ -434,6 +459,38 @@ export function getCloudResourceAddedSplitAttributes(
 export interface CloudMonitoredResourceGapSource
   extends CloudMonitoredResourceAggregationSource {
   telemetryAttributes?: unknown;
+  // Its connection's settings: how often it is read.
+  cloudConnection?: { provider?: unknown; config?: unknown } | null | undefined;
+}
+
+/*
+ * How often a resource's connection reads it, from the row's connection's
+ * settings (its cloud's default when it says none); undefined when the row
+ * names no connection.
+ */
+export function getCloudResourceReadIntervalInMinutes(
+  source: CloudMonitoredResourceGapSource | null | undefined,
+): number | undefined {
+  const connection: { provider?: unknown; config?: unknown } | null =
+    source?.cloudConnection || null;
+  const provider: unknown = connection?.provider ?? source?.cloudProvider;
+  const definition: CloudConnectionDefinition | undefined =
+    typeof provider === "string"
+      ? getCloudConnectionDefinition(provider.trim().toLowerCase())
+      : undefined;
+
+  if (!connection || !definition) {
+    return undefined;
+  }
+
+  const config: unknown = connection.config;
+
+  return getCloudConnectionReadIntervalInMinutes(
+    definition,
+    config && typeof config === "object" && !Array.isArray(config)
+      ? (config as Record<string, unknown>)[READ_INTERVAL_FIELD_KEY]
+      : undefined,
+  );
 }
 
 /*
@@ -441,8 +498,10 @@ export interface CloudMonitoredResourceGapSource
  * list's range (MetricsViewer's getRowGroupGaps, #9569): its type's key
  * metrics (CloudUnreportedKeyMetrics) - an AWS resource's of its own
  * namespace, which its attributes name - none of the reported names is,
- * each section's in its order. Undefined for a resource of a type with no
- * key metrics.
+ * each section's in its order. One whose points come less often than its
+ * others' only once the range can hold its newest point, as its
+ * connection reads it (#10026): an hourly one is not missing from the last
+ * hour. Undefined for a resource of a type with no key metrics.
  */
 export function getCloudMonitoredResourceRowGroupGaps(
   source: CloudMonitoredResourceGapSource | null | undefined,
@@ -469,7 +528,13 @@ export function getCloudMonitoredResourceRowGroupGaps(
     return undefined;
   }
 
-  return (reportedNames: ReadonlyArray<string>): Array<MetricRowGroupGap> => {
+  const readIntervalInMinutes: number | undefined =
+    getCloudResourceReadIntervalInMinutes(source);
+
+  return (
+    reportedNames: ReadonlyArray<string>,
+    startAndEndDate?: InBetween<Date> | undefined,
+  ): Array<MetricRowGroupGap> => {
     const gaps: Map<string, MetricRowGroupGap> = new Map();
 
     for (const metric of getCloudUnreportedKeyMetrics({
@@ -477,6 +542,15 @@ export function getCloudMonitoredResourceRowGroupGaps(
       type,
       namespace,
       reportedMetricNames: reportedNames,
+      ...(startAndEndDate
+        ? {
+            range: {
+              startMs: startAndEndDate.startValue.getTime(),
+              endMs: startAndEndDate.endValue.getTime(),
+            },
+          }
+        : {}),
+      readIntervalInMinutes,
     })) {
       let gap: MetricRowGroupGap | undefined = gaps.get(metric.group);
 

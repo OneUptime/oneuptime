@@ -41,7 +41,24 @@ describe("the words each cause is revoked with", () => {
       // New in #9762: a master admin clearing someone's sign-in settings.
       [SessionEndCause.SignInSettingsCleared]:
         "Sign-in settings cleared by admin",
+      /*
+       * New in #10155: a session that got its person's password or second
+       * step wrong too often while confirming it's them is signed out.
+       */
+      [SessionEndCause.ReauthenticationFailed]:
+        "Too many failed re-authentications",
     });
+  });
+
+  test("a session signed out for failing to confirm it's its person's is a revocation of its own, never a timeout", () => {
+    expect(
+      readSessionEndCause(
+        getSessionEndCauseRevokedReason(SessionEndCause.ReauthenticationFailed),
+      ),
+    ).toBe(SessionEndCause.ReauthenticationFailed);
+    expect(isSessionTimeoutCause(SessionEndCause.ReauthenticationFailed)).toBe(
+      false,
+    );
   });
 
   test("a clear of someone's sign-in settings is a revocation of its own, never a timeout", () => {

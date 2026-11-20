@@ -22,7 +22,10 @@ import API from "Common/UI/Utils/API/API";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { drawCloudTemplate } from "../Connect/CloudConnectionWords";
-import { getCloudAddedMetricCostWords } from "./CloudAddedMetricWords";
+import {
+  GCP_SPLIT_LEARNED_FROM_EVERY_VALUE,
+  getCloudAddedMetricCostWords,
+} from "./CloudAddedMetricWords";
 import { addCloudResourceMetric } from "./CloudResourceMetricsApi";
 
 /*
@@ -100,6 +103,12 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
       return candidate.name === splitBy;
     },
   );
+  /*
+   * Its connection's reads found PromQL cannot rank its values (#10164):
+   * the hourly learning reads every value, which its cost counts.
+   */
+  const learnsEveryValue: boolean =
+    isGcp && Boolean(split?.isLearnedFromEveryValue);
 
   const costOf: (resources: number) => string = (resources: number): string => {
     return drawCloudTemplate(
@@ -119,6 +128,11 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
                 CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
                 split.values || CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
               ),
+              ...(learnsEveryValue && split.learnedValuesPerResource
+                ? {
+                    gcpLearnedValuesPerResource: split.learnedValuesPerResource,
+                  }
+                : {}),
             }
           : {}),
       }),
@@ -256,6 +270,16 @@ const CloudAddMetricModal: FunctionComponent<ComponentProps> = (
                 dataTestId="cloud-add-metric-split"
               />
             </div>
+            {learnsEveryValue ? (
+              <p
+                className="mt-1.5 text-xs text-amber-700"
+                data-testid="cloud-add-metric-split-every-value"
+              >
+                {translator.translateText(GCP_SPLIT_LEARNED_FROM_EVERY_VALUE)}
+              </p>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <></>
