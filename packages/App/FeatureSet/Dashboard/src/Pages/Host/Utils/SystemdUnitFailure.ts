@@ -61,6 +61,13 @@ export const SYSTEMD_UNIT_JOURNAL_READ_LIMIT: number = 50;
 export const SYSTEMD_UNIT_RECENT_LINES_SHOWN: number = 10;
 
 /*
+ * How many failed units one read of why they failed asks about (#9960,
+ * #10129): the Systemd Units list's count opens at most this many, the
+ * newest failure first, and a host's Needs attention says why for as many.
+ */
+export const SYSTEMD_FAILED_UNITS_LISTED: number = 50;
+
+/*
  * How long before a failure a process's exit is the one that failed it:
  * systemd writes the two lines together, a stop timeout's kill the longest
  * after (TimeoutStopSec, 90 seconds by default).
@@ -431,19 +438,15 @@ export interface SystemdFailedUnit {
 }
 
 /*
- * The host's failed units as a list of what failed opens them (#9960), each
- * from the lines its journal holds about it (`lines`: any unit's, filed
- * under systemd.unit.name): the newest failure first, then the units whose
- * journal does not say why, by name.
+ * The lines of a read of several units' journal (any unit's, filed under
+ * systemd.unit.name), by the unit each is about.
  */
-export function getSystemdFailedUnitItems(data: {
-  units: ReadonlyArray<SystemdFailedUnit>;
-  lines: ReadonlyArray<SystemdUnitJournalLine>;
-  translator: Translator;
-}): Array<ResourceAttentionItem> {
+export function groupSystemdJournalLinesByUnit(
+  lines: ReadonlyArray<SystemdUnitJournalLine>,
+): Map<string, Array<SystemdUnitJournalLine>> {
   const linesByUnit: Map<string, Array<SystemdUnitJournalLine>> = new Map();
 
-  for (const line of data.lines) {
+  for (const line of lines) {
     const unitName: string = attribute(line, JOURNALD_SYSTEMD_UNIT_ATTRIBUTE);
     const unitLines: Array<SystemdUnitJournalLine> | undefined =
       linesByUnit.get(unitName);
@@ -454,6 +457,25 @@ export function getSystemdFailedUnitItems(data: {
       linesByUnit.set(unitName, [line]);
     }
   }
+
+  return linesByUnit;
+}
+
+/*
+ * The host's failed units as a list of what failed opens them (#9960), each
+ * from the lines its journal holds about it (`lines`: any unit's, filed
+ * under systemd.unit.name): the newest failure first, then the units whose
+ * journal does not say why, by name.
+ */
+export function getSystemdFailedUnitItems(data: {
+  units: ReadonlyArray<SystemdFailedUnit>;
+  lines: ReadonlyArray<SystemdUnitJournalLine>;
+  translator: Translator;
+}): Array<ResourceAttentionItem> {
+  const linesByUnit: Map<
+    string,
+    Array<SystemdUnitJournalLine>
+  > = groupSystemdJournalLinesByUnit(data.lines);
 
   const rows: Array<{
     item: ResourceAttentionItem;
