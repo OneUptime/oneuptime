@@ -1655,7 +1655,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(check).toContain(
       'RESOLVE="localhost:${INGRESS_PORT}:${resolved_address}"',
     );
-    expect(check).toContain("setting=$(read_setting ONEUPTIME_HTTP_PORT)");
+    // ONEUPTIME_HTTP_PORT, 80 when it names no port, as Compose publishes it.
+    expect(check).toContain("read_published ONEUPTIME_HTTP_PORT 80");
     expect(check).toContain('echo "🚀 OneUptime is up! 🚀"');
     expect(readSource("endpointStatus")).toContain("Maximum retries reached");
 
