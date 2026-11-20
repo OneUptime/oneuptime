@@ -223,7 +223,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     computed: true,
     allowedValues: Object.values(RecordActorType),
     description:
-      "What created this object: User (a person), ApiKey, Workflow, McpClient (an MCP client acting for a person), MasterAdmin or System (OneUptime itself). Empty for objects created before OneUptime recorded it.",
+      "What created this object: User, ApiKey, Workflow, McpClient (for a person), MasterAdmin or System (OneUptime). Empty if made before it was recorded.",
     example: "ApiKey",
   })
   @Column({
@@ -255,7 +255,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.Date,
     computed: true,
     description:
-      "When a person, an API key, a workflow or an MCP client last changed this object. OneUptime's own updates (a status, a last report) do not count. Empty until it is changed after it is created.",
+      "When a person, an API key, a workflow or an MCP client last changed this object. OneUptime's own updates do not count. Empty until it is changed.",
   })
   @Column({
     type: ColumnType.Date,
@@ -270,7 +270,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     computed: true,
     allowedValues: Object.values(RecordActorType),
     description:
-      "What last changed this object: User (a person), ApiKey, Workflow, McpClient (an MCP client acting for a person) or MasterAdmin. Empty until it is changed after it is created.",
+      "What last changed this object: User, ApiKey, Workflow, McpClient (for a person) or MasterAdmin. Empty until it is changed after it is created.",
     example: "User",
   })
   @Column({
