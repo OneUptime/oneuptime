@@ -605,9 +605,11 @@ export default class CloudflareNormalizer {
     setText(CLOUDFLARE_ATTRIBUTES.rulesetId, readText(raw, "rulesetId"));
     setText(CLOUDFLARE_ATTRIBUTES.ruleRef, readText(raw, "ref"));
     setText(CLOUDFLARE_ATTRIBUTES.ruleDescription, ruleDescription);
+    // "00" is how Cloudflare writes "no challenged request before this one".
+    const originatorRayName: string = readText(raw, "originatorRayName");
     setText(
       CLOUDFLARE_ATTRIBUTES.originatorRayId,
-      readText(raw, "originatorRayName"),
+      /^0+$/.test(originatorRayName) ? "" : originatorRayName,
     );
     setText(CLOUDFLARE_ATTRIBUTES.country, readText(raw, "clientCountryName"));
     setText(CLOUDFLARE_ATTRIBUTES.asn, readText(raw, "clientAsn"));

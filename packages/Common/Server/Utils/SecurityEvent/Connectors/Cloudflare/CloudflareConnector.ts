@@ -1248,7 +1248,7 @@ export default class CloudflareConnector implements SecurityEventConnector {
 
       if (startMs < oldestMs) {
         data.warnings.push(
-          `Cloudflare keeps ${zone.name}'s firewall events for ${Math.round(settings.notOlderThanSeconds / 86400)} days; the part of the window before ${new Date(oldestMs).toISOString()} could not be read there.`,
+          `Cloudflare keeps ${zone.name}'s firewall events for ${CloudflareConnector.describeSeconds(settings.notOlderThanSeconds)}; the part of the window before ${new Date(oldestMs).toISOString()} could not be read there.`,
         );
         startMs = oldestMs;
       }
@@ -1444,6 +1444,17 @@ export default class CloudflareConnector implements SecurityEventConnector {
       });
 
     return reaches.length ? Math.min(...reaches) : 7 * DAY_IN_MS;
+  }
+
+  // A plan's reach in days, or in hours when it is shorter than a day.
+  private static describeSeconds(seconds: number): string {
+    if (seconds >= 86400) {
+      const days: number = Math.round(seconds / 86400);
+      return `${days} day${days === 1 ? "" : "s"}`;
+    }
+
+    const hours: number = Math.max(1, Math.round(seconds / 3600));
+    return `${hours} hour${hours === 1 ? "" : "s"}`;
   }
 
   // A zone's plan as people say it: Free, Pro, Business, Enterprise.
