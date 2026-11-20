@@ -685,6 +685,22 @@ function getAzureResponseRoleLines(): Array<string> {
 
 const EXTERNAL_ID_PREFIX: string = "oneuptime-";
 
+// The hexadecimal digits of an external id, after its prefix.
+export const AWS_EXTERNAL_ID_DIGITS: number = 32;
+
+/*
+ * An external id as every project's is written: "oneuptime-" and 32
+ * lowercase hexadecimal digits. The project's own digits are its hash
+ * (getAwsExternalIdForProject); the role check's are random
+ * (AwsSts.probeRoleExternalId), so a trust policy that lets in any id of
+ * this shape ("oneuptime-*") lets the check in too.
+ */
+export function formatAwsExternalId(digits: string): string {
+  return `${EXTERNAL_ID_PREFIX}${digits
+    .toLowerCase()
+    .slice(0, AWS_EXTERNAL_ID_DIGITS)}`;
+}
+
 /*
  * The external id an AWS role trusts OneUptime with, for one project.
  *
@@ -695,11 +711,32 @@ const EXTERNAL_ID_PREFIX: string = "oneuptime-";
  * always read with its own project's external id, so a role ARN copied
  * from another project fails to assume - its trust policy names a
  * different id. It is not a secret.
+ *
+ * Only AWS enforces it, and only for a role whose trust policy has the
+ * condition (getAwsExternalIdCondition): OneUptime refuses a role without
+ * it before reading anything through it (#10405).
  */
 export function getAwsExternalIdForProject(projectId: string): string {
-  return `${EXTERNAL_ID_PREFIX}${Crypto.getSha256Hash(
-    `cloud-connection-aws-external-id:${projectId.trim().toLowerCase()}`,
-  ).slice(0, 32)}`;
+  return formatAwsExternalId(
+    Crypto.getSha256Hash(
+      `cloud-connection-aws-external-id:${projectId.trim().toLowerCase()}`,
+    ),
+  );
+}
+
+// The condition of a role's trust policy that holds OneUptime to one project's external id.
+export function getAwsExternalIdCondition(externalId: string): {
+  StringEquals: { "sts:ExternalId": string };
+} {
+  return { StringEquals: { "sts:ExternalId": externalId } };
+}
+
+/*
+ * The condition as the trust policy the setup command writes has it,
+ * `"Condition":{...}`: what a role made by hand is told to add.
+ */
+export function getAwsExternalIdConditionText(externalId: string): string {
+  return `"Condition":${JSON.stringify(getAwsExternalIdCondition(externalId))}`;
 }
 
 /*
@@ -793,7 +830,7 @@ export function getAwsTrustPolicyDocument(data: {
         Effect: "Allow",
         Principal: { AWS: data.trustedPrincipalArn },
         Action: "sts:AssumeRole",
-        Condition: { StringEquals: { "sts:ExternalId": data.externalId } },
+        Condition: getAwsExternalIdCondition(data.externalId),
       },
     ],
   });
