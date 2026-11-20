@@ -288,6 +288,29 @@
     "templateNone": "无模板",
     "uploadingFiles": "正在上传你的文件…"
   },
+  "formSignIn": {
+    "prompt": "登录后即可打开此表单。",
+    "ssoOnlyPrompt": "使用您所在组织的单点登录进行登录，即可打开此表单。",
+    "noWayIn": "此表单尚未设置任何登录方式。请联系与您共享它的人。",
+    "email": "电子邮件",
+    "password": "密码",
+    "forgotPassword": "忘记密码？",
+    "signIn": "登录",
+    "or": "或",
+    "signInWithProvider": "使用 {{provider}} 登录",
+    "forgotTitle": "忘记密码了？",
+    "forgotPrompt": "输入您的电子邮件地址，我们会发送一个链接，供您设置新密码。",
+    "sendLink": "发送链接",
+    "forgotSent": "如果此地址可以登录此表单，设置新密码的链接已在发送途中。该链接在 24 小时内有效。",
+    "backToSignIn": "返回登录",
+    "resetTitle": "设置新密码",
+    "resetPrompt": "输入您以后登录此表单时使用的密码。",
+    "newPassword": "新密码",
+    "savePassword": "保存密码",
+    "resetDone": "您的密码已保存。请使用它登录以打开表单。",
+    "signedInAs": "已以 {{email}} 身份登录",
+    "signOut": "退出登录"
+  },
   "errors": {
     "forbidden": {
       "title": "禁止访问",
