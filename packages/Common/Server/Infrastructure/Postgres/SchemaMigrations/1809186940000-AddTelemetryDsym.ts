@@ -9,8 +9,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * crash and hang ingest names. A new table: creating it rewrites and blocks
  * nothing.
  */
-export class AddTelemetryDsym1809186930000 implements MigrationInterface {
-  public name: string = "AddTelemetryDsym1809186930000";
+export class AddTelemetryDsym1809186940000 implements MigrationInterface {
+  public name: string = "AddTelemetryDsym1809186940000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

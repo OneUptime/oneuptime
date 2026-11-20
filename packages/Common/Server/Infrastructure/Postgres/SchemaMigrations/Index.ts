@@ -1123,7 +1123,7 @@ import { AddCloudResourceProviderResourceIdIndex1809186900000 } from "./18091869
 import { AddTelemetryIngestionTeamLabelBudgets1809186905386 } from "./1809186905386-AddTelemetryIngestionTeamLabelBudgets";
 import { AddDomainVerifiedNameIndex1809186910000 } from "./1809186910000-AddDomainVerifiedNameIndex";
 import { AddHostLogSessionNote1809186919966 } from "./1809186919966-AddHostLogSessionNote";
-import { AddTelemetryDsym1809186930000 } from "./1809186930000-AddTelemetryDsym";
+import { AddTelemetryDsym1809186940000 } from "./1809186940000-AddTelemetryDsym";
 
 export default [
   InitialMigration,
@@ -2251,5 +2251,5 @@ export default [
   AddTelemetryIngestionTeamLabelBudgets1809186905386,
   AddDomainVerifiedNameIndex1809186910000,
   AddHostLogSessionNote1809186919966,
-  AddTelemetryDsym1809186930000,
+  AddTelemetryDsym1809186940000,
 ];
