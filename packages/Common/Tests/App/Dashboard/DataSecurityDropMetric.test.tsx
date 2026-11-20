@@ -68,6 +68,7 @@ import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { getEmptyMetricOutputReaders } from "../../../Types/Metrics/MetricOutputReaders";
 import Permission from "../../../Types/Permission";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
@@ -894,6 +895,107 @@ describe("the dialog says what dropping loses, before it does", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("under a recording rule it empties, what reads its output metric, on down the chain; and under the count of the ones the reader can't see (#10085)", async () => {
+    const dailyRuleId: string = "9e9e9e9e-0000-4000-8000-0000000000ea";
+    const rateAlertId: string = "9e9e9e9e-0000-4000-8000-0000000000eb";
+    const ratesId: string = "9e9e9e9e-0000-4000-8000-0000000000ec";
+    const ratesWidgetId: string = "9e9e9e9e-0000-4000-8000-0000000000ed";
+
+    impact = impactOf({
+      recordingRules: [
+        {
+          id: RECORDING_RULE_ID,
+          name: "Signup rate",
+          outputMetricName: "signup_rate",
+          outputReaders: {
+            ...getEmptyMetricOutputReaders(),
+            monitors: {
+              readers: [{ id: rateAlertId, name: "Signup rate alert" }],
+              hidden: 1,
+            },
+            recordingRules: {
+              readers: [
+                {
+                  id: dailyRuleId,
+                  name: "Signup rate daily",
+                  outputMetricName: "signup_rate_daily",
+                  outputReaders: {
+                    ...getEmptyMetricOutputReaders(),
+                    dashboards: {
+                      readers: [
+                        {
+                          id: ratesId,
+                          name: "Rates",
+                          widgets: [
+                            {
+                              id: ratesWidgetId,
+                              title: "Daily signups",
+                              type: "Chart",
+                            },
+                          ],
+                        },
+                      ],
+                      hidden: 0,
+                    },
+                  },
+                },
+              ],
+              hidden: 0,
+            },
+          },
+        },
+      ],
+      recordingRulesHidden: 1,
+      recordingRulesHiddenOutputReaders: {
+        ...getEmptyMetricOutputReaders(),
+        slos: { readers: [], hidden: 2 },
+      },
+    });
+    renderModal();
+
+    const rules: HTMLElement = await screen.findByTestId(
+      "data-security-drop-metric-recording-rules",
+    );
+    const output: HTMLElement = within(rules).getByTestId(
+      "data-security-drop-metric-recording-rules-output",
+    );
+
+    expect(output).toHaveTextContent(
+      "These read its output metric, signup_rate:",
+    );
+    expect(
+      within(output).getByRole("link", { name: "Signup rate alert" }),
+    ).toHaveAttribute("href", viewRoute(PageMap.MONITOR_VIEW, rateAlertId));
+    expect(output).toHaveTextContent("and 1 more you can't see");
+    // On down the chain: the daily rule's own output, its widget a link to it.
+    expect(output).toHaveTextContent(
+      "These read its output metric, signup_rate_daily:",
+    );
+    expect(
+      within(output).getByRole("link", { name: "Daily signups" }),
+    ).toHaveAttribute(
+      "href",
+      `${viewRoute(PageMap.DASHBOARD_VIEW, ratesId)}?widget=${ratesWidgetId}`,
+    );
+
+    // The rule the reader can't see: counted, what reads its output under the count.
+    const hidden: HTMLElement = within(rules).getByTestId(
+      "data-security-drop-metric-recording-rules-hidden",
+    );
+
+    expect(hidden).toHaveTextContent("and 1 more you can't see");
+    expect(hidden).toHaveTextContent(
+      "These read the output metrics of the ones you can't see:",
+    );
+    expect(hidden).toHaveTextContent("2 SLOs you can't see");
+    // The dialog still says what reads those metrics, once.
+    expect(
+      screen.getAllByText(
+        "What reads those metrics gets no new data from them:",
+      ),
+    ).toHaveLength(1);
+  });
+
   test("a recording rule opens its list filtered to it, by the list's own Output Metric filter", () => {
     const route: string =
       getMetricRecordingRulesRoute("signup_rate").toString();
@@ -1378,6 +1480,72 @@ describe("the Dashboard's client for the drop", () => {
     });
     // An output metric that is no text is none: the rule's link opens the whole list.
     expect(read.recordingRules[0]!.outputMetricName).toBeUndefined();
+  });
+
+  test("what reads a rule's output metric is read defensively too, and the rules the reader can't see keep theirs apart (#10085)", async () => {
+    answer({
+      isAvailable: true,
+      monitors: [],
+      dashboards: [],
+      slos: [],
+      recordingRules: [
+        {
+          id: RECORDING_RULE_ID,
+          name: "Signup rate",
+          outputMetricName: "signup_rate",
+          outputReaders: {
+            monitors: {
+              readers: [
+                { id: MONITOR_ID, name: "Signup rate alert" },
+                { name: "No id" },
+              ],
+              hidden: "1",
+            },
+            dashboards: "Growth",
+          },
+        },
+        {
+          id: "7c7c7c7c-0000-4000-8000-0000000000c7",
+          name: "Nothing reads its output",
+          outputMetricName: "quiet",
+          outputReaders: { monitors: { readers: [], hidden: 0 } },
+        },
+      ],
+      recordingRulesHidden: 1,
+      recordingRulesHiddenOutputReaders: {
+        slos: { readers: [], hidden: 2 },
+      },
+    } as unknown as JSONObject);
+
+    const read: DataSecurityDropMetricImpact =
+      await DataSecurityApi.getDropMetricImpact(new ObjectID(NAME_FINDING_ID));
+
+    expect(read.recordingRules[0]!.outputReaders).toEqual({
+      monitors: {
+        readers: [{ id: MONITOR_ID, name: "Signup rate alert" }],
+        hidden: 0,
+      },
+      dashboards: { readers: [], hidden: 0 },
+      slos: { readers: [], hidden: 0 },
+      recordingRules: { readers: [], hidden: 0 },
+    });
+    // An answer that says nothing is none: nothing set in under the rule.
+    expect(read.recordingRules[1]!.outputReaders).toBeUndefined();
+    expect(read.recordingRulesHiddenOutputReaders!.slos).toEqual({
+      readers: [],
+      hidden: 2,
+    });
+
+    // Not answered: none, never passed on as it came.
+    answer({
+      isAvailable: true,
+      recordingRulesHiddenOutputReaders: "everything",
+    } as unknown as JSONObject);
+
+    expect(
+      (await DataSecurityApi.getDropMetricImpact(new ObjectID(NAME_FINDING_ID)))
+        .recordingRulesHiddenOutputReaders,
+    ).toBeUndefined();
   });
 
   test("the drop is asked for with the data loss confirmed, and a refusal is thrown", async () => {

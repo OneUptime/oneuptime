@@ -11,9 +11,16 @@ import MetricReadersList, {
   MetricReaderListGroup,
   MetricReaderListKind,
   MetricReaderListReader,
+  MetricReaderListWidget,
   getMetricReaderRoute,
+  getOutputReaderGroups,
   isMetricReaderGroupShown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Readers/MetricReadersList";
+import { getDashboardWidgetRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/DashboardWidgetRoute";
+import {
+  getEmptyMetricOutputReaders,
+  MetricOutputReaders,
+} from "../../../Types/Metrics/MetricOutputReaders";
 import { getMetricRecordingRulesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/RecordingRule/RecordingRulesRoute";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -232,7 +239,7 @@ describe("what reads a metric, listed the one way", () => {
     expect(screen.getByTestId("readers-widgets")).toHaveTextContent(
       "Gauge, p99 <checkout>, Untitled, Widget 0, Widget 1, and 3 more",
     );
-    // The dashboard is the link; its widgets are named, not linked again.
+    // Named by an answer that gives no widget's id: the dashboard alone is a link.
     expect(screen.getAllByRole("link")).toHaveLength(1);
 
     cleanup();
@@ -286,6 +293,381 @@ describe("what reads a metric, listed the one way", () => {
     // No words for it: left to the dialog.
     expect(screen.queryByTestId("readers-slo-unchecked")).toBeNull();
     expect(screen.queryByTestId("readers-dashboard-unchecked")).toBeNull();
+  });
+});
+
+/*
+ * #10084: a widget the list names opens its dashboard at it - the
+ * dashboard's page with ?widget=<the id the board draws it under> - so a
+ * warning that names a widget is one click from the widget itself.
+ */
+describe("a dashboard's widgets, each a link to the dashboard opened at it", () => {
+  test("each widget named opens its dashboard at it; the ones counted are not links", () => {
+    const widgets: Array<MetricReaderListWidget> = [
+      { id: id(11), title: "", type: "Gauge" },
+      { id: id(12), title: "p99 <checkout>", type: "Chart" },
+      ...Array.from(
+        { length: MAX_READER_WIDGETS_SHOWN + 1 },
+        (_: unknown, index: number): MetricReaderListWidget => {
+          return {
+            id: id(20 + index),
+            title: `Widget ${index}`,
+            type: "Chart",
+          };
+        },
+      ),
+    ];
+
+    draw([
+      group(MetricReaderListKind.Dashboard, {
+        readers: [{ id: id(1), name: "Growth", widgets }],
+      }),
+    ]);
+
+    const line: HTMLElement = screen.getByTestId("readers-widgets");
+    const links: Array<HTMLElement> = within(line).getAllByRole("link");
+
+    expect(
+      links.map((link: HTMLElement): string => {
+        return link.textContent || "";
+      }),
+    ).toEqual(["Gauge", "p99 <checkout>", "Widget 0", "Widget 1", "Widget 2"]);
+    links.forEach((link: HTMLElement, index: number): void => {
+      expect(link).toHaveAttribute(
+        "href",
+        `${viewRoute(PageMap.DASHBOARD_VIEW, id(1))}?widget=${widgets[index]!.id}`,
+      );
+    });
+    expect(line).toHaveTextContent("and 3 more");
+    expect(within(line).getByText("and 3 more").closest("a")).toBeNull();
+    // The dashboard is a link of its own, to its top.
+    expect(screen.getByRole("link", { name: "Growth" })).toHaveAttribute(
+      "href",
+      viewRoute(PageMap.DASHBOARD_VIEW, id(1)),
+    );
+  });
+
+  test("a title read the way it is written, and an untitled widget by its kind, inside its link", () => {
+    draw([
+      group(MetricReaderListKind.Dashboard, {
+        readers: [
+          {
+            id: id(1),
+            name: "Growth",
+            widgets: [
+              { id: id(11), title: "مصرف حافظه", type: "Chart" },
+              { id: id(12), title: "", type: "" },
+            ],
+          },
+        ],
+      }),
+    ]);
+
+    const [titled, untitled] = within(
+      screen.getByTestId("readers-widgets"),
+    ).getAllByRole("link") as [HTMLElement, HTMLElement];
+
+    // A name set apart, so a link of it never turns the line round.
+    expect(titled.querySelector("bdi")).toHaveAttribute("dir", "rtl");
+    expect(untitled).toHaveTextContent("Untitled");
+    expect(untitled.querySelector(".italic")).not.toBeNull();
+  });
+
+  test("the widget route: the dashboard's page, with ?widget= when a widget is named", () => {
+    expect(
+      getDashboardWidgetRoute({
+        dashboardId: id(1),
+        widgetId: id(11),
+      }).toString(),
+    ).toBe(`${viewRoute(PageMap.DASHBOARD_VIEW, id(1))}?widget=${id(11)}`);
+    expect(
+      getDashboardWidgetRoute({
+        dashboardId: id(1),
+        widgetId: id(11).toUpperCase(),
+      }).toString(),
+    ).toBe(`${viewRoute(PageMap.DASHBOARD_VIEW, id(1))}?widget=${id(11)}`);
+    for (const widgetId of [undefined, null, "", "a b"]) {
+      expect(
+        getDashboardWidgetRoute({ dashboardId: id(1), widgetId }).toString(),
+      ).toBe(viewRoute(PageMap.DASHBOARD_VIEW, id(1)));
+    }
+  });
+});
+
+/*
+ * #10085: under a recording rule, what reads the metric it writes, which no
+ * longer includes the one taken away - set in under the rule, kind by kind,
+ * each record a link, on down the chain; counted where the reader can't
+ * see it; what reads the outputs of rules they can't see under the rules'
+ * count; and, past the depth followed, more said, never named.
+ */
+describe("what reads a recording rule's output metric, set in under the rule", () => {
+  function readersOfOutput(
+    overrides: Partial<MetricOutputReaders> = {},
+  ): MetricOutputReaders {
+    return { ...getEmptyMetricOutputReaders(), ...overrides };
+  }
+
+  function ruleGroup(
+    reader: Partial<MetricReaderListReader>,
+    overrides: Partial<MetricReaderListGroup> = {},
+  ): MetricReaderListGroup {
+    return group(MetricReaderListKind.RecordingRule, {
+      readers: [
+        {
+          id: id(4),
+          name: "Swap rate",
+          outputMetricName: "swap_rate",
+          ...reader,
+        },
+      ],
+      ...overrides,
+    });
+  }
+
+  test("kind by kind, each record a link, a dashboard's widgets to the dashboard at them, a step's rule on down the chain", () => {
+    draw([
+      ruleGroup({
+        outputReaders: readersOfOutput({
+          monitors: {
+            readers: [{ id: id(5), name: "Swap rate alert" }],
+            hidden: 0,
+          },
+          dashboards: {
+            readers: [
+              {
+                id: id(6),
+                name: "Rates",
+                widgets: [{ id: id(16), title: "Swap rate", type: "Chart" }],
+              },
+            ],
+            hidden: 0,
+          },
+          slos: { readers: [{ id: id(7), name: "Swap budget" }], hidden: 0 },
+          recordingRules: {
+            readers: [
+              {
+                id: id(8),
+                name: "Swap rate daily",
+                outputMetricName: "swap_rate_daily",
+                outputReaders: readersOfOutput({
+                  monitors: {
+                    readers: [{ id: id(9), name: "Daily swap alert" }],
+                    hidden: 0,
+                  },
+                }),
+              },
+            ],
+            hidden: 0,
+          },
+        }),
+      }),
+    ]);
+
+    const output: HTMLElement = screen.getByTestId(
+      "readers-recordingRule-output",
+    );
+
+    // Said once, with the metric the rule writes, as code.
+    expect(
+      within(output).getAllByTestId("readers-recordingRule-output-heading")[0],
+    ).toHaveTextContent("These read its output metric, swap_rate:");
+    expect(output.querySelector("code")).toHaveTextContent("swap_rate");
+    // Set in under the rule, from the reader's own start.
+    expect(output.className).toContain("border-s-2");
+    expect(output.className).toContain("ps-3");
+
+    expect(
+      within(
+        within(output).getByTestId("readers-recordingRule-output-monitor"),
+      ).getByRole("link", { name: "Swap rate alert" }),
+    ).toHaveAttribute("href", viewRoute(PageMap.MONITOR_VIEW, id(5)));
+    expect(
+      within(
+        within(output).getByTestId("readers-recordingRule-output-dashboard"),
+      ).getByRole("link", { name: "Swap rate" }),
+    ).toHaveAttribute(
+      "href",
+      `${viewRoute(PageMap.DASHBOARD_VIEW, id(6))}?widget=${id(16)}`,
+    );
+    expect(
+      within(output).getByRole("link", { name: "Swap budget" }),
+    ).toHaveAttribute("href", viewRoute(PageMap.SLO_VIEW, id(7)));
+
+    // The rule a step leads to opens its list, with what reads its own output under it.
+    const daily: HTMLElement = within(output).getByTestId(
+      "readers-recordingRule-output-recordingRule",
+    );
+
+    expect(
+      within(daily).getByRole("link", { name: "Swap rate daily" }),
+    ).toHaveAttribute(
+      "href",
+      getMetricRecordingRulesRoute("swap_rate_daily").toString(),
+    );
+    expect(
+      within(daily).getByTestId(
+        "readers-recordingRule-output-recordingRule-output",
+      ),
+    ).toHaveTextContent(
+      "These read its output metric, swap_rate_daily:MonitorsDaily swap alert",
+    );
+  });
+
+  test("a step down the chain says no kind's line of its own: the list's top says it", () => {
+    draw([
+      ruleGroup({
+        outputReaders: readersOfOutput({
+          monitors: {
+            readers: [{ id: id(5), name: "Swap rate alert" }],
+            hidden: 0,
+          },
+        }),
+      }),
+    ]);
+
+    const rules: HTMLElement = screen.getByTestId("readers-recordingRule");
+
+    // The rules' own line once, at the top.
+    expect(
+      within(rules).getAllByText("What happens to the recordingRule readers."),
+    ).toHaveLength(1);
+    expect(
+      screen.getByTestId("readers-recordingRule-output-monitor"),
+    ).not.toHaveTextContent("What happens");
+  });
+
+  test("what reads it that the reader can't see is counted, never named; many, the first few named", () => {
+    draw([
+      ruleGroup({
+        outputReaders: readersOfOutput({
+          monitors: {
+            readers: readersOf(MAX_METRIC_READERS_SHOWN + 2, "Alert"),
+            hidden: 3,
+          },
+          slos: { readers: [], hidden: 2 },
+        }),
+      }),
+    ]);
+
+    const monitors: HTMLElement = screen.getByTestId(
+      "readers-recordingRule-output-monitor",
+    );
+
+    expect(within(monitors).getAllByRole("link")).toHaveLength(
+      MAX_METRIC_READERS_SHOWN,
+    );
+    expect(monitors).toHaveTextContent("and 2 more");
+    expect(
+      screen.getByTestId("readers-recordingRule-output-monitor-hidden"),
+    ).toHaveTextContent("and 3 more you can't see");
+    expect(
+      screen.getByTestId("readers-recordingRule-output-slo-hidden"),
+    ).toHaveTextContent("2 SLOs you can't see");
+  });
+
+  test("what reads the outputs of rules the reader can't see is under the rules' count, never naming them", () => {
+    draw([
+      group(MetricReaderListKind.RecordingRule, {
+        hidden: 2,
+        hiddenOutputReaders: readersOfOutput({
+          monitors: {
+            readers: [{ id: id(5), name: "Swap rate alert" }],
+            hidden: 1,
+          },
+        }),
+      }),
+    ]);
+
+    const hidden: HTMLElement = screen.getByTestId(
+      "readers-recordingRule-hidden",
+    );
+
+    expect(hidden).toHaveTextContent("2 recording rules you can't see");
+
+    const outputs: HTMLElement = within(hidden).getByTestId(
+      "readers-recordingRule-hidden-output",
+    );
+
+    expect(outputs).toHaveTextContent(
+      "These read the output metrics of the ones you can't see:",
+    );
+    expect(outputs.querySelector("code")).toBeNull();
+    expect(
+      within(outputs).getByRole("link", { name: "Swap rate alert" }),
+    ).toBeInTheDocument();
+    expect(
+      within(outputs).getByTestId(
+        "readers-recordingRule-hidden-output-monitor-hidden",
+      ),
+    ).toHaveTextContent("and 1 more you can't see");
+  });
+
+  test("past the depth the chain is followed: more said, never named", () => {
+    draw([
+      ruleGroup({
+        outputReaders: readersOfOutput({ isPastDepth: true }),
+      }),
+      group(MetricReaderListKind.Monitor),
+    ]);
+
+    const output: HTMLElement = screen.getByTestId(
+      "readers-recordingRule-output",
+    );
+
+    // No kind to list: no line that leads into one.
+    expect(
+      within(output).queryByTestId("readers-recordingRule-output-heading"),
+    ).toBeNull();
+    expect(
+      within(output).getByTestId("readers-recordingRule-output-past-depth"),
+    ).toHaveTextContent(
+      "More read its output metric, swap_rate, further down the chain.",
+    );
+
+    cleanup();
+    draw([
+      group(MetricReaderListKind.RecordingRule, {
+        hidden: 1,
+        hiddenOutputReaders: readersOfOutput({ isPastDepth: true }),
+      }),
+    ]);
+
+    expect(
+      screen.getByTestId("readers-recordingRule-hidden-output-past-depth"),
+    ).toHaveTextContent(
+      "More read their output metrics further down the chain.",
+    );
+  });
+
+  test("nothing reads its output: nothing set in under it", () => {
+    draw([ruleGroup({}), ruleGroup({ outputReaders: readersOfOutput() })]);
+
+    expect(screen.queryByTestId("readers-recordingRule-output")).toBeNull();
+  });
+
+  test("the answer's kinds as the list's groups, each under its own test id, a rule's hidden outputs with it", () => {
+    const groups: Array<MetricReaderListGroup> = getOutputReaderGroups({
+      readers: readersOfOutput({
+        recordingRules: {
+          readers: [],
+          hidden: 1,
+          hiddenOutputReaders: readersOfOutput({ isPastDepth: true }),
+        },
+      }),
+      dataTestId: "x",
+    });
+
+    expect(
+      groups.map((output: MetricReaderListGroup): string => {
+        return output.dataTestId;
+      }),
+    ).toEqual(["x-monitor", "x-dashboard", "x-slo", "x-recordingRule"]);
+    expect(groups[3]!.hidden).toBe(1);
+    expect(groups[3]!.hiddenOutputReaders).toEqual(
+      readersOfOutput({ isPastDepth: true }),
+    );
+    expect(groups[0]!.words.consequence).toBe("");
   });
 });
 
