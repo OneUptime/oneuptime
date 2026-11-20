@@ -146,6 +146,12 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import Timezone from "Common/Types/Timezone";
+import {
+  getExplorerBarMinutes,
+  getHistogramRequestTimezone,
+  readHistogramBucketTimezone,
+} from "Common/UI/Components/Charts/Utils/HistogramDayBars";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import RangeStartAndEndDateTime, {
@@ -257,7 +263,8 @@ function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   const totalMs: number = endTime.getTime() - startTime.getTime();
   const targetBuckets: number = 40;
   const raw: number = Math.max(60000, Math.floor(totalMs / targetBuckets));
-  return Math.max(1, Math.ceil(raw / 60000));
+  // A bar of half a day or more is a day, from the reader's midnight (#7923).
+  return getExplorerBarMinutes(Math.max(1, Math.ceil(raw / 60000)));
 }
 
 /*
@@ -806,6 +813,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    */
   const [histogramBucketIntervalMs, setHistogramBucketIntervalMs] = useState<
     number | undefined
+  >(undefined);
+  // The zone its day bars were cut in, set with them (#7923).
+  const [histogramBucketTimezone, setHistogramBucketTimezone] = useState<
+    Timezone | undefined
   >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
   /*
@@ -1795,10 +1806,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       dateRange.endValue,
     );
 
+    // A bar of a day starts at the reader's midnight (#7923).
+    const histogramTimezone: Timezone | undefined =
+      getHistogramRequestTimezone();
+
     const payload: JSONObject = {
       startTime: dateRange.startValue.toISOString(),
       endTime: dateRange.endValue.toISOString(),
       bucketSizeInMinutes,
+      ...(histogramTimezone ? { timezone: histogramTimezone } : {}),
     };
 
     /*
@@ -1867,11 +1883,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         []) as unknown as Array<HistogramBucket>;
       setHistogramBuckets(buckets);
       setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
+      setHistogramBucketTimezone(
+        readHistogramBucketTimezone(response.data["bucketTimezone"]),
+      );
       setHistogramError(undefined);
     } catch (err) {
       // Non-critical: the chart's own card says why it has no bars.
       setHistogramBuckets([]);
       setHistogramBucketIntervalMs(undefined);
+      setHistogramBucketTimezone(undefined);
       setHistogramError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setHistogramLoading(false);
@@ -3116,6 +3136,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         }
       }}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
+      histogramBucketTimezone={histogramBucketTimezone}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       // Pagination
       page={page}

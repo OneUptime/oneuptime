@@ -187,8 +187,14 @@ describe("cluster Overview: the page in the issue", () => {
       '<TimeRangeZoomHint revealOnHover={true} className="pointer-events-none absolute right-0 top-full leading-3" />',
     );
     expectCode(header, '<div className="relative flex items-center');
-    // The skeleton and the chart both reveal it on hover of the card.
-    expect(countOf(card, 'className="group/zoomhint rounded-xl')).toBe(2);
+    /*
+     * The skeleton and the chart both reveal it on hover of the card. The
+     * chart's card is a column, its chart at the foot (#7125).
+     */
+    expect(countOf(card, 'className="group/zoomhint rounded-xl')).toBe(1);
+    expect(
+      countOf(card, 'className="group/zoomhint flex flex-col rounded-xl'),
+    ).toBe(1);
   });
 
   test("a change of range - a zoom, a reset, a pick - reloads every golden chart and tile for it", () => {
