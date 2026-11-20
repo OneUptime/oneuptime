@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, test } from "@jest/globals";
 import {
   ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
   PRICING_PAGE_URL,
@@ -11,8 +11,10 @@ import {
   describeWatchedTablePricing,
   getWatchedTablesCostInCents,
   getWatchedTablesCostInUSD,
+  isPayAsYouGoPriceQuoted,
   WatchedTablePricing,
 } from "../../../Types/Billing/PayAsYouGoPricing";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 
 /*
  * These constants are quoted to users, verbatim, on the telemetry ingestion
@@ -144,5 +146,42 @@ describe("Watched table pricing", () => {
         volumePricePerTableInUSD: 1,
       }),
     ).toBe("First 100 tables free, then $1 per table a month");
+  });
+});
+
+/*
+ * When a price is quoted (#9995): one rule for the Dashboard's guided
+ * setups (isProjectOnFreePlan) and Ask AI's setup card - on the Free plan
+ * of an install that bills, and nowhere else.
+ */
+describe("isPayAsYouGoPriceQuoted", () => {
+  test("quotes on the Free plan of an install that bills", () => {
+    expect(
+      isPayAsYouGoPriceQuoted({ isBillingEnabled: true, plan: PlanType.Free }),
+    ).toBe(true);
+  });
+
+  test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "quotes nothing on the %s plan, which includes what it adds",
+    (plan: PlanType) => {
+      expect(isPayAsYouGoPriceQuoted({ isBillingEnabled: true, plan })).toBe(
+        false,
+      );
+    },
+  );
+
+  test("quotes nothing on an install without billing, whatever the plan", () => {
+    expect(
+      isPayAsYouGoPriceQuoted({ isBillingEnabled: false, plan: PlanType.Free }),
+    ).toBe(false);
+  });
+
+  test("fails closed: no plan, or one not known, is quoted nothing", () => {
+    expect(isPayAsYouGoPriceQuoted({ isBillingEnabled: true, plan: null })).toBe(
+      false,
+    );
+    expect(
+      isPayAsYouGoPriceQuoted({ isBillingEnabled: true, plan: undefined }),
+    ).toBe(false);
   });
 });

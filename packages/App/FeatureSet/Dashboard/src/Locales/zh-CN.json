@@ -60172,5 +60172,6 @@
   "Your on-call policies": "你的值班策略",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "你的进度会随时保存到账户中，可在任意设备上继续。",
   "{{count}} of {{total}} ready": "已就绪 {{count}} / {{total}}",
-  "{{count}} of {{total}} ready_one": "已就绪 {{count}} / {{total}}"
+  "{{count}} of {{total}} ready_one": "已就绪 {{count}} / {{total}}",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "在 Free 套餐中，此监视器按使用量计费，每月 {{price}}。"
 }

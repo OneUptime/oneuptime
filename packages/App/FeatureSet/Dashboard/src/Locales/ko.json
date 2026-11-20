@@ -60172,5 +60172,6 @@
   "Your on-call policies": "내 온콜 정책",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "진행 상황은 계정에 계속 저장되므로 어느 기기에서든 이어서 할 수 있습니다.",
   "{{count}} of {{total}} ready": "{{total}}개 중 {{count}}개 준비됨",
-  "{{count}} of {{total}} ready_one": "{{total}}개 중 {{count}}개 준비됨"
+  "{{count}} of {{total}} ready_one": "{{total}}개 중 {{count}}개 준비됨",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "Free 요금제에서는 이 모니터가 사용한 만큼 월 {{price}}로 청구됩니다."
 }

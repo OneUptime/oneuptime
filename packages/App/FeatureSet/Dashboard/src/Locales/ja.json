@@ -60172,5 +60172,6 @@
   "Your on-call policies": "あなたのオンコールポリシー",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "進行状況は随時アカウントに保存されるので、どのデバイスからでも再開できます。",
   "{{count}} of {{total}} ready": "{{total}} 件中 {{count}} 件が準備完了",
-  "{{count}} of {{total}} ready_one": "{{total}} 件中 {{count}} 件が準備完了"
+  "{{count}} of {{total}} ready_one": "{{total}} 件中 {{count}} 件が準備完了",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "Free プランでは、このモニターは使用量に応じて請求され、月額 {{price}} です。"
 }

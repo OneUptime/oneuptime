@@ -60172,5 +60172,6 @@
   "Your on-call policies": "Vos politiques d'astreinte",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Votre progression est enregistrée dans votre compte au fur et à mesure, pour reprendre sur n'importe quel appareil.",
   "{{count}} of {{total}} ready": "{{count}} sur {{total}} prêts",
-  "{{count}} of {{total}} ready_one": "{{count}} sur {{total}} prêt"
+  "{{count}} of {{total}} ready_one": "{{count}} sur {{total}} prêt",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "Sur le forfait Free, ce moniteur est facturé à l'usage, à {{price}} par mois."
 }

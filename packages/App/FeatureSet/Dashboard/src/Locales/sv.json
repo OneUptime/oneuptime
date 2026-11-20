@@ -60172,5 +60172,6 @@
   "Your on-call policies": "Dina jourpolicyer",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Dina framsteg sparas i ditt konto efter hand, så att du kan fortsätta på vilken enhet som helst.",
   "{{count}} of {{total}} ready": "{{count}} av {{total}} klara",
-  "{{count}} of {{total}} ready_one": "{{count}} av {{total}} klar"
+  "{{count}} of {{total}} ready_one": "{{count}} av {{total}} klar",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "På Free-planen faktureras den här övervakningen efter användning, för {{price}} per månad."
 }

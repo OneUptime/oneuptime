@@ -60172,5 +60172,6 @@
   "Your on-call policies": "Dine vagtpolitikker",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Dine fremskridt gemmes løbende på din konto, så du kan fortsætte på enhver enhed.",
   "{{count}} of {{total}} ready": "{{count}} af {{total}} klar",
-  "{{count}} of {{total}} ready_one": "{{count}} af {{total}} klar"
+  "{{count}} of {{total}} ready_one": "{{count}} af {{total}} klar",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "På Free-planen faktureres denne monitor efter forbrug, til {{price}} om måneden."
 }

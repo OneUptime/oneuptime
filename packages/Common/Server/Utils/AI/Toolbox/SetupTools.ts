@@ -134,6 +134,7 @@ import {
   SetupTestPageTarget,
   addMemberUsers,
   countMonitorsSetUpInPlan,
+  describeMonitorPriceForPerson,
   getMissingMethodAdviceForModel,
   getTestPageOfferForModel,
   plainName,
@@ -1134,15 +1135,22 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
       incidentSeverityName = null;
     }
 
+    // What it adds to the bill, on OneUptime Cloud's Free plan (#9995).
+    const price: AIActionSentence | null =
+      await describeMonitorPriceForPerson(ctx);
+
     return {
       arguments: prepared,
-      description: describeWebsiteMonitoringForPerson({
-        address: address,
-        isApi: isApi,
-        minutes: minutes,
-        locationCount: await countNewMonitorLocations(ctx),
-        incidentSeverityName: incidentSeverityName,
-      }),
+      description: [
+        ...describeWebsiteMonitoringForPerson({
+          address: address,
+          isApi: isApi,
+          minutes: minutes,
+          locationCount: await countNewMonitorLocations(ctx),
+          incidentSeverityName: incidentSeverityName,
+        }),
+        ...(price ? [price] : []),
+      ],
       describedArguments: ["address", "isApi", "checkEveryMinutes"],
     };
   },

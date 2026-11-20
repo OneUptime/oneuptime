@@ -60172,5 +60172,6 @@
   "Your on-call policies": "Je bereikbaarheidsbeleid",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Je voortgang wordt onderweg in je account opgeslagen, zodat je op elk apparaat verder kunt.",
   "{{count}} of {{total}} ready": "{{count}} van {{total}} klaar",
-  "{{count}} of {{total}} ready_one": "{{count}} van {{total}} klaar"
+  "{{count}} of {{total}} ready_one": "{{count}} van {{total}} klaar",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "In het Free-abonnement wordt deze monitor naar gebruik gefactureerd, tegen {{price}} per maand."
 }

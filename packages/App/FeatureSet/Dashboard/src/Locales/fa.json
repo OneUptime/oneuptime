@@ -60172,5 +60172,6 @@
   "Your on-call policies": "سیاست‌های آنکال شما",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "پیشرفت شما در حین کار در حسابتان ذخیره می‌شود تا بتوانید روی هر دستگاهی ادامه دهید.",
   "{{count}} of {{total}} ready": "{{count}} از {{total}} آماده",
-  "{{count}} of {{total}} ready_one": "{{count}} از {{total}} آماده"
+  "{{count}} of {{total}} ready_one": "{{count}} از {{total}} آماده",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "در طرح Free، هزینهٔ این مانیتور بر اساس مصرف محاسبه می‌شود: {{price}} در ماه."
 }

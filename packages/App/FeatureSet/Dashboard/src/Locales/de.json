@@ -60172,5 +60172,6 @@
   "Your on-call policies": "Ihre Bereitschaftsrichtlinien",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Ihr Fortschritt wird laufend in Ihrem Konto gespeichert, sodass Sie auf jedem Gerät weitermachen können.",
   "{{count}} of {{total}} ready": "{{count}} von {{total}} bereit",
-  "{{count}} of {{total}} ready_one": "{{count}} von {{total}} bereit"
+  "{{count}} of {{total}} ready_one": "{{count}} von {{total}} bereit",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "Im Free-Tarif wird dieser Monitor nach Nutzung abgerechnet: {{price}} im Monat."
 }

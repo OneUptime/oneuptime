@@ -60172,5 +60172,6 @@
   "Your on-call policies": "سياسات المناوبة لديك",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "يُحفظ تقدّمك في حسابك أولًا بأول، فتتابع على أي جهاز.",
   "{{count}} of {{total}} ready": "الجاهز: {{count}} من {{total}}",
-  "{{count}} of {{total}} ready_one": "الجاهز: {{count}} من {{total}}"
+  "{{count}} of {{total}} ready_one": "الجاهز: {{count}} من {{total}}",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "في خطة Free، تُحتسب رسوم هذه المراقبة حسب الاستخدام، بسعر {{price}} شهريًا."
 }

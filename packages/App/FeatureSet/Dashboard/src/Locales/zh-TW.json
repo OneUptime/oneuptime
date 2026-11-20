@@ -60172,5 +60172,6 @@
   "Your on-call policies": "你的待命策略",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "你的進度會隨時儲存到帳戶中，可在任何裝置上繼續。",
   "{{count}} of {{total}} ready": "已就緒 {{count}} / {{total}}",
-  "{{count}} of {{total}} ready_one": "已就緒 {{count}} / {{total}}"
+  "{{count}} of {{total}} ready_one": "已就緒 {{count}} / {{total}}",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "在 Free 方案中，此監測器依使用量計費，每月 {{price}}。"
 }

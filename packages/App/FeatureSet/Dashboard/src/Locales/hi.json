@@ -60172,5 +60172,6 @@
   "Your on-call policies": "आपकी ऑन-कॉल नीतियाँ",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "आपकी प्रगति साथ-साथ आपके खाते में सहेजी जाती है, ताकि आप किसी भी डिवाइस पर जारी रख सकें।",
   "{{count}} of {{total}} ready": "{{total}} में से {{count}} तैयार",
-  "{{count}} of {{total}} ready_one": "{{total}} में से {{count}} तैयार"
+  "{{count}} of {{total}} ready_one": "{{total}} में से {{count}} तैयार",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "Free प्लान पर इस मॉनिटर का बिल इस्तेमाल के हिसाब से बनता है, {{price}} प्रति माह।"
 }

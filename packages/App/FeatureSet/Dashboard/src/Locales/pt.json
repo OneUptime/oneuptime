@@ -60172,5 +60172,6 @@
   "Your on-call policies": "Suas políticas de plantão",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Seu progresso é salvo na sua conta conforme você avança, para continuar em qualquer dispositivo.",
   "{{count}} of {{total}} ready": "{{count}} de {{total}} prontos",
-  "{{count}} of {{total}} ready_one": "{{count}} de {{total}} pronto"
+  "{{count}} of {{total}} ready_one": "{{count}} de {{total}} pronto",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "No plano Free, este monitor é cobrado conforme o uso, a {{price}} por mês."
 }

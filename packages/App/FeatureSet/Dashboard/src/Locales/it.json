@@ -60172,5 +60172,6 @@
   "Your on-call policies": "Le tue policy di reperibilità",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "I tuoi progressi vengono salvati nel tuo account man mano, così puoi riprendere da qualsiasi dispositivo.",
   "{{count}} of {{total}} ready": "{{count}} di {{total}} pronti",
-  "{{count}} of {{total}} ready_one": "{{count}} di {{total}} pronto"
+  "{{count}} of {{total}} ready_one": "{{count}} di {{total}} pronto",
+  "On the Free plan, this monitor is billed as you use it, at {{price}} a month.": "Sul piano Free, questo monitor viene fatturato in base all'uso, a {{price}} al mese."
 }

@@ -1,3 +1,4 @@
+import { isPayAsYouGoPriceQuoted } from "Common/Types/Billing/PayAsYouGoPricing";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -11,7 +12,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
  * project cached yet, or a plan this deployment does not recognise all return
  * false. Saying nothing is the right answer when we cannot be sure the user
  * would be billed - quoting a price to someone who will never see an invoice
- * is worse than staying quiet.
+ * is worse than staying quiet. The rule is Common's (isPayAsYouGoPriceQuoted),
+ * which Ask AI's setup card quotes a new monitor's price by too (#9995).
  */
 export function isProjectOnFreePlan(): boolean {
   if (!BILLING_ENABLED) {
@@ -31,5 +33,8 @@ export function isProjectOnFreePlan(): boolean {
     return false;
   }
 
-  return currentPlan === PlanType.Free;
+  return isPayAsYouGoPriceQuoted({
+    isBillingEnabled: BILLING_ENABLED,
+    plan: currentPlan,
+  });
 }
