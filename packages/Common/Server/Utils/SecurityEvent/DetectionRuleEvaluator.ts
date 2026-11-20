@@ -19,7 +19,6 @@ import {
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
-  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
   DETECTION_MATCH_COUNT_ATTRIBUTE,
   DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
@@ -79,10 +78,11 @@ import SigmaClickhouseCompiler, {
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
 } from "./Sigma/SigmaClickhouseCompiler";
+import { buildSecurityEventDbRow } from "./SecurityEventRow";
 import {
-  MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES,
-  buildSecurityEventDbRow,
-} from "./SecurityEventRow";
+  floorToSecond,
+  getArrivalEventTimeBounds as getSecurityEventArrivalTimeBounds,
+} from "../../../Types/SecurityEvent/SecurityEventArrival";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   detectionOverflowMarkdown,
@@ -206,11 +206,6 @@ export interface DetectionRuleArrivalRange {
   arrivedUntil: Date;
 }
 
-// A whole second, as createdAt keeps it: the run's edges match its rows exactly.
-function floorToSecond(date: Date): Date {
-  return new Date(Math.floor(date.getTime() / 1000) * 1000);
-}
-
 /*
  * What a scheduled run at `now` judges: what arrived since the rule's last
  * run (lastEvaluatedAt, where that run got to), or - a rule that never ran
@@ -258,22 +253,14 @@ export function getScheduledArrivalRange(data: {
  * and as far ahead of the last as a source's clock may run
  * (MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES, past which ingest stamps an
  * event with when it arrived). Every read of the run is held to it, so the
- * table's sort by event time keeps each read to these parts of it.
+ * table's sort by event time keeps each read to these parts of it. Shared
+ * with a scheduled hunt and the Events page (SecurityEventArrival).
  */
 export function getArrivalEventTimeBounds(range: DetectionRuleArrivalRange): {
   happenedAfter: Date;
   happenedBefore: Date;
 } {
-  return {
-    happenedAfter: OneUptimeDate.addRemoveMinutes(
-      range.arrivedAfter,
-      -DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
-    ),
-    happenedBefore: OneUptimeDate.addRemoveMinutes(
-      range.arrivedUntil,
-      MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES + 1,
-    ),
-  };
+  return getSecurityEventArrivalTimeBounds(range);
 }
 
 /*
