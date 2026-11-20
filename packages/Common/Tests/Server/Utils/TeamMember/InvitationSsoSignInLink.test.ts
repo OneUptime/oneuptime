@@ -401,7 +401,7 @@ describe("the invitation email that carries it", () => {
     await world.create(invite());
 
     const email: EmailMessage = sent();
-    const page: string = email.vars["ssoSignInLink"]!;
+    const page: string = email.vars["ssoSignInLink"] as string;
 
     expect(email.vars["isSsoSignIn"]).toBe("true");
     expect(

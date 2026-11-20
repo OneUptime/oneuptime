@@ -503,7 +503,7 @@ describe("a create that fails sends nothing, and gives back what it took", () =>
 
     const { default: EmailVerificationTokenService } = (await import(
       "../../../Server/Services/EmailVerificationTokenService"
-    )) as { default: { create: MockedFn } };
+    )) as unknown as { default: { create: MockedFn } };
     EmailVerificationTokenService.create.mockRejectedValueOnce(
       new Error("database away") as never,
     );

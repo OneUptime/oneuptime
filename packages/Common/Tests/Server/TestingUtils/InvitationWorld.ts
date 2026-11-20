@@ -30,6 +30,7 @@ import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import InvitationInviterUtil, {
   InvitationInviter,
 } from "../../../Server/Utils/TeamMember/InvitationInviter";
+import Headers from "../../../Types/API/Headers";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
