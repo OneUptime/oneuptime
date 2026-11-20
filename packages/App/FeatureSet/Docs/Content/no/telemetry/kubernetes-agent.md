@@ -202,6 +202,7 @@ Sett dem under **Optional configuration settings** i EKS-konsollen, eller med `-
 - `logs.enabled`, `ebpf.enabled` og `aiAgent.enabled`: pod-logger, eBPF-spor og [Kubernetes-AI-agenten](#kubernetes-ai-agent), alle på som standard.
 - `kubeStateMetrics.enabled`: kube-state-metrics, av som standard.
 - `cost.enabled`: [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), `auto` som standard: på, unntatt med presetet `eks-fargate`.
+- `kubeletstats.nodesProxy`: om agentens ClusterRole gir `nodes/proxy`, som gir tilgang til hele kubelet-API-et og ikke består CIS 5.1.10. `auto`, standarden, gir det på EKS 1.34 og 1.35, der nodene kan kjøre kubeleter eldre enn 1.33. Sett `false` når hver node kjører 1.33 eller nyere (`kubectl get nodes` viser versjonen til hver node): en node med eldre kubelet sender da ingen av node-, pod-, container- og volummålingene som kubeleten dens melder.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -356,6 +357,8 @@ Agenten leser hver kubelet gjennom underressursene kubelet knytter stiene sine t
 | `cost.prometheus.nodesProxy` | `auto` (standard) gir tillatelsen bare med forhåndsinnstillingen `eks-fargate`, der ingen pod når kubelet på en node og kostnads-Prometheus leser cAdvisor gjennom API-serveren. Alle andre steder leser den kubelet på hver node gjennom port 10250 |
 
 Der agentens egen binding ikke består 5.1.10, sier siden at bindingen er agentens, hvorfor den gir `nodes/proxy`, og hvilken verdi som fjerner det.
+
+På Amazon EKS-tillegget, som ikke tar imot Helms `--set`, nevner siden i stedet tilleggets konfigurasjonsverdi: `{"kubeletstats": {"nodesProxy": false}}`, når hver node kjører 1.33 eller nyere. Tillegget har ingen `cost.prometheus.nodesProxy`: med presetet `eks-fargate` og kostnader slått på fjerner bare `{"cost": {"enabled": false}}` `nodes/proxy`.
 
 ## Konfigurasjonsvalg
 

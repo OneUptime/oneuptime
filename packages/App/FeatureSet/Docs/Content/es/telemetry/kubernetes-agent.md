@@ -202,6 +202,7 @@ Establécelos en los **Optional configuration settings** de la consola de EKS, o
 - `logs.enabled`, `ebpf.enabled` y `aiAgent.enabled`: los logs de pods, las trazas de eBPF y el [agente de IA de Kubernetes](#agente-de-ia-de-kubernetes), cada uno activado por defecto.
 - `kubeStateMetrics.enabled`: kube-state-metrics, desactivado por defecto.
 - `cost.enabled`: la [observabilidad de costos](/docs/telemetry/kubernetes-cost), `auto` por defecto: activada, excepto con el preset `eks-fargate`.
+- `kubeletstats.nodesProxy`: si el ClusterRole del agente concede `nodes/proxy`, que da acceso a toda la API del kubelet e incumple el CIS 5.1.10. `auto`, el valor predeterminado, lo concede en EKS 1.34 y 1.35, cuyos nodos pueden ejecutar kubelets anteriores a la 1.33. Establece `false` cuando todos los nodos ejecuten la 1.33 o posterior (`kubectl get nodes` muestra la versión de cada nodo): un nodo cuyo kubelet sea anterior no enviaría entonces ninguna de las métricas de nodo, pod, contenedor y volumen que informa su kubelet.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -356,6 +357,8 @@ El agente lee cada kubelet a través de los subrecursos con los que el kubelet a
 | `cost.prometheus.nodesProxy` | `auto` (el valor predeterminado) lo concede solo con el preset `eks-fargate`, donde ningún pod llega al kubelet de un nodo y el Prometheus de costos lee cAdvisor a través del API server. En todos los demás casos, lee el kubelet de cada nodo en el puerto 10250 |
 
 Donde la propia vinculación del agente incumple el 5.1.10, la página indica que la vinculación es del agente, por qué concede `nodes/proxy` y el valor que lo retira.
+
+En el complemento de Amazon EKS, que no acepta un `--set` de Helm, la página nombra en su lugar el valor de configuración del complemento: `{"kubeletstats": {"nodesProxy": false}}`, cuando todos los nodos ejecuten la 1.33 o posterior. El complemento no tiene `cost.prometheus.nodesProxy`: con el preset `eks-fargate` y los costos activados, solo `{"cost": {"enabled": false}}` retira `nodes/proxy`.
 
 ## Opciones de configuración
 

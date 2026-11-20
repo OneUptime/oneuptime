@@ -202,6 +202,7 @@ kubectl get pods -n oneuptime-agent
 - `logs.enabled`، `ebpf.enabled` و `aiAgent.enabled`: لاگ‌های پاد، ترِیس‌های eBPF و [عامل هوش مصنوعی Kubernetes](#عامل-هوش-مصنوعی-kubernetes)، که هر سه به‌طور پیش‌فرض روشن‌اند.
 - `kubeStateMetrics.enabled`: kube-state-metrics، که به‌طور پیش‌فرض خاموش است.
 - `cost.enabled`: [مشاهده‌پذیری هزینه](/docs/telemetry/kubernetes-cost)، که پیش‌فرضش `auto` است: روشن، جز با پیش‌تنظیم `eks-fargate`.
+- `kubeletstats.nodesProxy`: اینکه ClusterRole عامل `nodes/proxy` را اعطا کند یا نه؛ این دسترسی به کل API در kubelet می‌رسد و در CIS 5.1.10 ناموفق است. `auto`، که پیش‌فرض است، آن را روی EKS 1.34 و 1.35 اعطا می‌کند، که گره‌هایشان ممکن است kubeletهای قدیمی‌تر از 1.33 اجرا کنند. وقتی همه گره‌ها 1.33 یا جدیدتر را اجرا کردند `false` را تنظیم کنید (`kubectl get nodes` نسخه هر گره را نشان می‌دهد): گره‌ای که kubelet قدیمی‌تری دارد آن‌وقت هیچ‌یک از متریک‌های گره، پاد، کانتینر و حجم را که kubeletش گزارش می‌کند نمی‌فرستد.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -356,6 +357,8 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `cost.prometheus.nodesProxy` | `auto` (پیش‌فرض) آن را فقط روی پیش‌تنظیم `eks-fargate` اعطا می‌کند، جایی که هیچ پادی به kubelet یک گره دسترسی ندارد و Prometheusی که عامل برای هزینه‌ها اجرا می‌کند cAdvisor را از راه سرور API می‌خواند. در هر جای دیگر، kubelet هر گره را روی پورت 10250 می‌خواند |
 
 جایی که اتصال نقش خود عامل در 5.1.10 ناموفق است، صفحه می‌گوید که این اتصال نقش متعلق به خود عامل است، چرا `nodes/proxy` را اعطا می‌کند، و کدام مقدار آن را حذف می‌کند.
+
+روی افزونه Amazon EKS، که `--set` در Helm را نمی‌پذیرد، صفحه به‌جای آن مقدار پیکربندی افزونه را نام می‌برد: `{"kubeletstats": {"nodesProxy": false}}`، وقتی همه گره‌ها 1.33 یا جدیدتر را اجرا کردند. افزونه `cost.prometheus.nodesProxy` ندارد: با پیش‌تنظیم `eks-fargate` و هزینه‌های روشن، فقط `{"cost": {"enabled": false}}` دسترسی `nodes/proxy` را حذف می‌کند.
 
 ## گزینه‌های پیکربندی
 

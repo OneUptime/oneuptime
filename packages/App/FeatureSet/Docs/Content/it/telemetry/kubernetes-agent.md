@@ -202,6 +202,7 @@ Impostali nelle **Optional configuration settings** della console di EKS, oppure
 - `logs.enabled`, `ebpf.enabled` e `aiAgent.enabled`: i log dei pod, le tracce eBPF e l'[agente IA Kubernetes](#agente-ia-kubernetes), ciascuno attivo per impostazione predefinita.
 - `kubeStateMetrics.enabled`: kube-state-metrics, disattivato per impostazione predefinita.
 - `cost.enabled`: l'[osservabilità dei costi](/docs/telemetry/kubernetes-cost), `auto` per impostazione predefinita: attiva, tranne con il preset `eks-fargate`.
+- `kubeletstats.nodesProxy`: se il ClusterRole dell'agent concede `nodes/proxy`, che raggiunge l'intera API del kubelet e non rispetta il CIS 5.1.10. `auto`, il valore predefinito, lo concede su EKS 1.34 e 1.35, i cui nodi possono eseguire kubelet precedenti alla 1.33. Imposta `false` quando ogni nodo esegue la 1.33 o successiva (`kubectl get nodes` mostra la versione di ogni nodo): un nodo con un kubelet precedente non invierebbe allora nessuna delle metriche di nodo, pod, container e volume che il suo kubelet riporta.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -356,6 +357,8 @@ L'agent legge ogni kubelet tramite le sottorisorse con cui il kubelet autorizza 
 | `cost.prometheus.nodesProxy` | `auto` (il valore predefinito) lo concede solo con il preset `eks-fargate`, dove nessun pod raggiunge il kubelet di un nodo e il Prometheus dei costi legge cAdvisor tramite l'API server. Ovunque altrove, legge il kubelet di ogni nodo sulla porta 10250 |
 
 Dove l'associazione di ruolo dell'agent stesso non rispetta il 5.1.10, la pagina indica che l'associazione è dell'agent, perché concede `nodes/proxy` e il valore che lo rimuove.
+
+Sul componente aggiuntivo di Amazon EKS, che non accetta un `--set` di Helm, la pagina indica invece il valore di configurazione del componente aggiuntivo: `{"kubeletstats": {"nodesProxy": false}}`, quando ogni nodo esegue la 1.33 o successiva. Il componente aggiuntivo non ha `cost.prometheus.nodesProxy`: con il preset `eks-fargate` e i costi attivati, solo `{"cost": {"enabled": false}}` rimuove `nodes/proxy`.
 
 ## Opzioni di configurazione
 

@@ -202,6 +202,7 @@ EKS コンソールの **Optional configuration settings** で設定するか、
 - `logs.enabled`、`ebpf.enabled`、`aiAgent.enabled`: Pod のログ、eBPF のトレース、[Kubernetes AI エージェント](#kubernetes-ai-エージェント)。いずれもデフォルトで有効です。
 - `kubeStateMetrics.enabled`: kube-state-metrics。デフォルトで無効です。
 - `cost.enabled`: [コストオブザーバビリティ](/docs/telemetry/kubernetes-cost)。デフォルトは `auto` で、`eks-fargate` のプリセットを除いて有効です。
+- `kubeletstats.nodesProxy`: エージェントの ClusterRole が `nodes/proxy` を付与するかどうか。この権限では kubelet API 全体にアクセスでき、CIS 5.1.10 で不合格になります。既定の `auto` では、1.33 より古い kubelet をノードで実行している可能性がある EKS 1.34 と 1.35 で付与します。すべてのノードが 1.33 以降になったら `false` を設定します (`kubectl get nodes` で各ノードのバージョンを確認できます)。そうすると、kubelet がそれより古いノードからは、その kubelet が報告するノード、Pod、コンテナ、ボリュームのメトリクスが一切送られなくなります。
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -356,6 +357,8 @@ Pod セキュリティ標準のスコアは、クラスター自身の Kubernete
 | `cost.prometheus.nodesProxy` | `auto` (既定) では、`eks-fargate` プリセットでのみ付与します。このプリセットではノードの kubelet に到達できる Pod がなく、コスト用 Prometheus は cAdvisor を API サーバー経由で読み取ります。それ以外では、各ノードの kubelet をポート 10250 で読み取ります |
 
 エージェント自身のバインディングが 5.1.10 で不合格になった場合、ページには、そのバインディングがエージェントのものであること、`nodes/proxy` を付与している理由、それを外すための値が表示されます。
+
+Helm の `--set` を受け付けない Amazon EKS アドオンでは、ページには代わりにアドオンの設定値 `{"kubeletstats": {"nodesProxy": false}}` が表示されます (すべてのノードが 1.33 以降になったら設定します)。アドオンには `cost.prometheus.nodesProxy` がないため、`eks-fargate` プリセットでコストを有効にしている場合、`nodes/proxy` を外せるのは `{"cost": {"enabled": false}}` だけです。
 
 ## 設定オプション
 

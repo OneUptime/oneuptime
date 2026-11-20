@@ -202,6 +202,7 @@ kubectl get pods -n oneuptime-agent
 - `logs.enabled`, `ebpf.enabled` और `aiAgent.enabled`: पॉड लॉग, eBPF ट्रेस और [Kubernetes AI एजेंट](#kubernetes-ai-एजेंट), तीनों डिफ़ॉल्ट रूप से चालू हैं।
 - `kubeStateMetrics.enabled`: kube-state-metrics, डिफ़ॉल्ट रूप से बंद।
 - `cost.enabled`: [लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost), डिफ़ॉल्ट रूप से `auto`: `eks-fargate` प्रीसेट को छोड़कर चालू।
+- `kubeletstats.nodesProxy`: एजेंट का ClusterRole `nodes/proxy` देता है या नहीं, जो पूरे kubelet API तक पहुँचता है और CIS 5.1.10 में विफल होता है। `auto`, यानी डिफ़ॉल्ट, इसे EKS 1.34 और 1.35 पर देता है, जिनके नोड 1.33 से पुराने kubelet चला सकते हैं। जब हर नोड पर 1.33 या उसके बाद का संस्करण चलने लगे, तो `false` सेट करें (`kubectl get nodes` हर नोड का संस्करण दिखाता है): तब पुराने kubelet वाला नोड वे नोड, पॉड, कंटेनर और वॉल्यूम मेट्रिक्स बिल्कुल नहीं भेजेगा जो उसका kubelet बताता है।
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -356,6 +357,8 @@ SCC बनाने के लिए cluster-admin अधिकार चाह�
 | `cost.prometheus.nodesProxy` | `auto` (डिफ़ॉल्ट) इसे सिर्फ़ `eks-fargate` प्रीसेट पर देता है, जहाँ कोई पॉड किसी नोड के kubelet तक नहीं पहुँचता और एजेंट का लागत वाला Prometheus API सर्वर के ज़रिए cAdvisor पढ़ता है। बाकी हर जगह यह हर नोड के kubelet को पोर्ट 10250 पर पढ़ता है |
 
 जहाँ एजेंट की अपनी बाइंडिंग 5.1.10 में विफल होती है, वहाँ पेज बताता है कि यह बाइंडिंग एजेंट की अपनी है, वह `nodes/proxy` क्यों देती है, और कौन-सा मान इसे हटाता है।
+
+Amazon EKS ऐड-ऑन पर, जो Helm का `--set` नहीं लेता, पेज इसकी जगह ऐड-ऑन का कॉन्फ़िगरेशन मान बताता है: `{"kubeletstats": {"nodesProxy": false}}`, जब हर नोड पर 1.33 या उसके बाद का संस्करण चलने लगे। ऐड-ऑन में `cost.prometheus.nodesProxy` नहीं है: `eks-fargate` प्रीसेट और चालू लागत के साथ, सिर्फ़ `{"cost": {"enabled": false}}` ही `nodes/proxy` हटाता है।
 
 ## कॉन्फ़िगरेशन विकल्प
 

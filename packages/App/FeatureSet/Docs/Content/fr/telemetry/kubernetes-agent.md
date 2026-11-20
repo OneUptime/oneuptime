@@ -202,6 +202,7 @@ Définissez-les dans les **Optional configuration settings** de la console EKS, 
 - `logs.enabled`, `ebpf.enabled` et `aiAgent.enabled` : les journaux de pods, les traces eBPF et l'[agent IA Kubernetes](#agent-ia-kubernetes), chacun activé par défaut.
 - `kubeStateMetrics.enabled` : kube-state-metrics, désactivé par défaut.
 - `cost.enabled` : l'[observabilité des coûts](/docs/telemetry/kubernetes-cost), `auto` par défaut : activée, sauf avec le preset `eks-fargate`.
+- `kubeletstats.nodesProxy` : si le ClusterRole de l'agent accorde `nodes/proxy`, qui donne accès à toute l'API du kubelet et met en échec le contrôle CIS 5.1.10. `auto`, la valeur par défaut, l'accorde sur EKS 1.34 et 1.35, dont les nœuds peuvent exécuter des kubelets antérieurs à 1.33. Définissez `false` une fois que chaque nœud exécute 1.33 ou une version ultérieure (`kubectl get nodes` affiche la version de chaque nœud) : un nœud dont le kubelet est plus ancien n'enverrait alors aucune des métriques de nœud, de pod, de conteneur et de volume que remonte son kubelet.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -356,6 +357,8 @@ L'agent lit chaque kubelet par les sous-ressources que le kubelet vérifie pour 
 | `cost.prometheus.nodesProxy` | `auto` (la valeur par défaut) ne l'accorde qu'avec le preset `eks-fargate`, où aucun pod ne joint le kubelet d'un nœud et où le Prometheus des coûts lit cAdvisor via l'API server. Partout ailleurs, il lit le kubelet de chaque nœud sur le port 10250 |
 
 Là où la liaison de l'agent lui-même ne satisfait pas le 5.1.10, la page indique que cette liaison appartient à l'agent, pourquoi elle accorde `nodes/proxy`, et la valeur qui le retire.
+
+Sur le module complémentaire Amazon EKS, qui n'accepte pas de `--set` Helm, la page indique à la place la valeur de configuration du module complémentaire : `{"kubeletstats": {"nodesProxy": false}}`, une fois que chaque nœud exécute 1.33 ou une version ultérieure. Le module complémentaire n'a pas de `cost.prometheus.nodesProxy` : avec le preset `eks-fargate` et les coûts activés, seul `{"cost": {"enabled": false}}` retire `nodes/proxy`.
 
 ## Options de configuration
 
