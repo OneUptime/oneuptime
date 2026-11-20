@@ -23,7 +23,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Choisissez une clé d'ingestion à l'étape 1 pour remplir `<YOUR_API_KEY>`.",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
     "Fusionnez-la avec votre directive `connect-src` existante. Pas de Content Security Policy sur votre site ? Passez cette étape.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.":
+  '`200` with `"valid": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.':
     "`200` avec `\"valid\": true` signifie que OneUptime accepte la clé — pour une clé navigateur, le message ajoute qu'elle ne fonctionne que depuis un navigateur, depuis une de ses origines autorisées. `401` signifie qu'elle est inconnue, révoquée, désactivée ou expirée.",
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "Chargez ensuite une page de votre site. En une minute, l'application apparaît sous **Surveillance des utilisateurs réels**, nommée d'après son `service.name`, avec les pages vues, le taux d'erreur et la durée p95.",
@@ -147,7 +147,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "Ce sont les paramètres standard d'OpenTelemetry : un SDK qui les lit dans son environnement les prend tels quels. Sinon, définissez le même endpoint, l'en-tête `x-oneuptime-token` et les attributs de ressource sur l'exportateur OTLP et la ressource du SDK dans le code — [Configuration mobile](/docs/rum/mobile-setup) le montre pour Android, iOS et React Native.",
   "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.":
     "La plupart des SDK mobiles définissent les attributs `device.*` pour vous. `device.model.identifier` remplit l'onglet **Clients** : définissez-le comme ci-dessus si le vôtre ne le fait pas.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.":
+  '`200` with `"valid": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.':
     "`200` avec `\"valid\": true` signifie que OneUptime accepte la clé, et pour une clé mobile le message ajoute qu'elle ne fonctionne que depuis une application mobile. `401` signifie qu'elle est inconnue, révoquée, désactivée ou expirée, et aucune configuration du SDK n'y changera rien.",
   "Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.":
     "Lancez ensuite l'application. Elle apparaît sous **Surveillance des utilisateurs réels** dès son premier lot de télémétrie, nommée d'après le nom de service auquel la clé est épinglée.",

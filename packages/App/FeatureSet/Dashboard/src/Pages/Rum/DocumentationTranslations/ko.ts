@@ -23,14 +23,13 @@ const TRANSLATION: SetupGuideTranslation = {
     "1단계에서 수집 키를 선택하면 `<YOUR_API_KEY>`가 채워집니다.",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
     "기존 `connect-src` 지시어에 병합하세요. 사이트에 Content Security Policy가 없나요? 이 단계는 건너뛰세요.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.":
-    "`200`과 `\"valid\": true`는 OneUptime이 키를 허용한다는 뜻입니다. 브라우저 키라면 메시지에 브라우저에서, 허용된 출처 중 하나에서만 작동한다는 내용이 덧붙습니다. `401`은 키를 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다.",
+  '`200` with `"valid": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.':
+    '`200`과 `"valid": true`는 OneUptime이 키를 허용한다는 뜻입니다. 브라우저 키라면 메시지에 브라우저에서, 허용된 출처 중 하나에서만 작동한다는 내용이 덧붙습니다. `401`은 키를 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다.',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "그런 다음 사이트의 페이지를 로드하세요. 1분 안에 애플리케이션이 `service.name`을 이름으로 하여 페이지 뷰, 오류율, p95 지속 시간과 함께 **실제 사용자 모니터링**에 표시됩니다.",
   "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
     "OneUptime은 리소스에 클라이언트 속성이 있을 때 텔레메트리를 **RUM**으로 분류합니다. 웹의 경우 `browser.platform`, `browser.language` 또는 비어 있지 않은 `browser.brands` 중 하나입니다. 애플리케이션은 `service.name`(대소문자 구분 없음)으로 식별되며, 그 텔레메트리는 이 RUM 애플리케이션에 속하고 백엔드 서비스로 중복 저장되지 않습니다.",
-  "| Attribute | Required | What it does |":
-    "| 속성 | 필수 | 하는 일 |",
+  "| Attribute | Required | What it does |": "| 속성 | 필수 | 하는 일 |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **예** | 애플리케이션의 식별자(예: `storefront-web`). 나중에 이름을 바꾸면 새 애플리케이션이 만들어집니다. |",
   "| `browser.platform` / `browser.language` / `browser.brands` | **one of them** | Marks the telemetry as browser RUM. `browser.platform` also fills the **Clients** tab. |":
@@ -147,8 +146,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "이는 표준 OpenTelemetry 설정입니다. 환경에서 이 값을 읽는 SDK는 그대로 사용합니다. 그렇지 않다면 코드에서 SDK의 OTLP 익스포터와 리소스에 같은 엔드포인트, `x-oneuptime-token` 헤더, 리소스 속성을 설정하세요. [모바일 설정](/docs/rum/mobile-setup)에서 Android, iOS, React Native용 방법을 보여 줍니다.",
   "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.":
     "대부분의 모바일 SDK는 `device.*` 속성을 대신 설정합니다. `device.model.identifier`는 **클라이언트** 탭을 채우므로, 사용하는 SDK가 설정하지 않는다면 위와 같이 설정하세요.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.":
-    "`200`과 `\"valid\": true`는 OneUptime이 키를 허용한다는 뜻이며, 모바일 키라면 메시지에 모바일 앱에서만 작동한다는 내용이 덧붙습니다. `401`은 키를 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻이며, 어떤 SDK 설정으로도 해결되지 않습니다.",
+  '`200` with `"valid": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.':
+    '`200`과 `"valid": true`는 OneUptime이 키를 허용한다는 뜻이며, 모바일 키라면 메시지에 모바일 앱에서만 작동한다는 내용이 덧붙습니다. `401`은 키를 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻이며, 어떤 SDK 설정으로도 해결되지 않습니다.',
   "Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.":
     "그런 다음 앱을 시작하세요. 첫 번째 텔레메트리 배치와 함께, 키에 고정된 서비스 이름으로 **실제 사용자 모니터링**에 표시됩니다.",
   "Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its `service.*`, `device.*`, `os.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":

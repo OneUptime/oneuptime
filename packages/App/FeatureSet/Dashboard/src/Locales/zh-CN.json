@@ -60805,5 +60805,6 @@
   "Web Vitals are being refused": "Web 指标正被拒绝",
   "Web Vitals aren't set up": "Web 指标尚未设置",
   "storefront-mobile": "storefront-mobile",
-  "{{limit}} requests per minute (default for a mobile key)": "每分钟 {{limit}} 个请求（移动端密钥的默认值）"
+  "{{limit}} requests per minute (default for a mobile key)": "每分钟 {{limit}} 个请求（移动端密钥的默认值）",
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "创建移动端遥测摄取密钥。它可以安全地随您的应用分发：它只发送其所固定的应用的追踪、日志和指标。"
 }

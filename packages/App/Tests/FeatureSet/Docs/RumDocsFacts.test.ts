@@ -898,14 +898,27 @@ describe("Ingestion keys: a Browser key for the web, a Mobile key for mobile", (
     );
 
     // No page of the RUM docs tells a mobile app to ship a Server key.
-    for (const page of [RUM_INDEX, MOBILE_SETUP, ANDROID_SETUP, RUM_TROUBLESHOOTING]) {
+    const mobileAppServerKey: RegExp = /mobile app (?:needs|a) \*\*Server\*\*/;
+
+    for (const page of [
+      RUM_INDEX,
+      MOBILE_SETUP,
+      ANDROID_SETUP,
+      RUM_TROUBLESHOOTING,
+    ]) {
       const text: string = englishPage(page);
 
-      expect({ page, server: /mobile app (?:needs|a) \*\*Server\*\*/.test(text) }).toEqual({
+      expect({
+        page,
+        server: mobileAppServerKey.test(text),
+      }).toEqual({
         page,
         server: false,
       });
-      expect({ page, sendsWithServer: text.includes("with a **Server** ingestion key") }).toEqual({
+      expect({
+        page,
+        sendsWithServer: text.includes("with a **Server** ingestion key"),
+      }).toEqual({
         page,
         sendsWithServer: false,
       });

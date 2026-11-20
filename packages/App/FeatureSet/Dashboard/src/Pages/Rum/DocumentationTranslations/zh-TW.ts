@@ -23,14 +23,13 @@ const TRANSLATION: SetupGuideTranslation = {
     "在步驟 1 中選擇一個擷取金鑰來填入 `<YOUR_API_KEY>`。",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
     "將它合併到您現有的 `connect-src` 指令中。您的網站沒有 Content Security Policy？請略過此步驟。",
-  "`200` with `\"valid\": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.":
-    "`200` 加上 `\"valid\": true` 表示 OneUptime 接受該金鑰——對於瀏覽器金鑰，訊息還會說明它只能在瀏覽器中、從其允許的來源之一使用。`401` 表示該金鑰不明、已撤銷、已停用或已到期。",
+  '`200` with `"valid": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.':
+    '`200` 加上 `"valid": true` 表示 OneUptime 接受該金鑰——對於瀏覽器金鑰，訊息還會說明它只能在瀏覽器中、從其允許的來源之一使用。`401` 表示該金鑰不明、已撤銷、已停用或已到期。',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "然後載入您網站的一個頁面。一分鐘內，該應用程式會以其 `service.name` 命名出現在**真實使用者監測**中，並顯示頁面瀏覽量、錯誤率和 p95 持續時間。",
   "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
     "當資源帶有用戶端屬性時，OneUptime 會將遙測歸類為 **RUM**——對於網頁，即 `browser.platform`、`browser.language` 或非空的 `browser.brands` 中的任一個。應用程式以 `service.name`（不區分大小寫）識別，其遙測屬於此 RUM 應用程式——絕不會再以後端服務的形式重複儲存。",
-  "| Attribute | Required | What it does |":
-    "| 屬性 | 必要 | 作用 |",
+  "| Attribute | Required | What it does |": "| 屬性 | 必要 | 作用 |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **是** | 應用程式的識別，例如 `storefront-web`。之後重新命名會建立新的應用程式。 |",
   "| `browser.platform` / `browser.language` / `browser.brands` | **one of them** | Marks the telemetry as browser RUM. `browser.platform` also fills the **Clients** tab. |":
@@ -147,8 +146,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "這些是標準的 OpenTelemetry 設定：從環境中讀取它們的 SDK 會照原樣使用。否則，請在程式碼中為 SDK 的 OTLP 匯出器和資源設定相同的端點、`x-oneuptime-token` 標頭和資源屬性——[行動裝置設定](/docs/rum/mobile-setup)示範了 Android、iOS 和 React Native 的做法。",
   "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.":
     "大多數行動裝置 SDK 會替您設定 `device.*` 屬性。`device.model.identifier` 會填入**用戶端**分頁，因此如果您的 SDK 沒有設定它，請依上面的方式設定。",
-  "`200` with `\"valid\": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.":
-    "`200` 加上 `\"valid\": true` 表示 OneUptime 接受該金鑰；對於行動裝置金鑰，訊息還會說明它只能從行動應用程式使用。`401` 表示該金鑰不明、已撤銷、已停用或已到期，任何 SDK 設定都無法解決。",
+  '`200` with `"valid": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.':
+    '`200` 加上 `"valid": true` 表示 OneUptime 接受該金鑰；對於行動裝置金鑰，訊息還會說明它只能從行動應用程式使用。`401` 表示該金鑰不明、已撤銷、已停用或已到期，任何 SDK 設定都無法解決。',
   "Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.":
     "然後啟動應用程式。它會隨第一批遙測出現在**真實使用者監測**中，並以該金鑰所固定的服務名稱命名。",
   "Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its `service.*`, `device.*`, `os.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":

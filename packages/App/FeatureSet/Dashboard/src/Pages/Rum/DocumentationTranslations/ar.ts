@@ -23,14 +23,13 @@ const TRANSLATION: SetupGuideTranslation = {
     "اختر مفتاح استيعاب في الخطوة 1 لملء `<YOUR_API_KEY>`.",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
     "ادمجه في التوجيه `connect-src` الموجود لديك. ليس لموقعك Content Security Policy؟ تخطَّ هذه الخطوة.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.":
-    "`200` مع `\"valid\": true` يعني أن OneUptime يقبل المفتاح — وفي مفتاح المتصفح تضيف الرسالة أنه لا يعمل إلا من متصفح، ومن أحد أصوله المسموح بها. و`401` يعني أنه غير معروف أو مُلغى أو معطّل أو منتهي الصلاحية.",
+  '`200` with `"valid": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.':
+    '`200` مع `"valid": true` يعني أن OneUptime يقبل المفتاح — وفي مفتاح المتصفح تضيف الرسالة أنه لا يعمل إلا من متصفح، ومن أحد أصوله المسموح بها. و`401` يعني أنه غير معروف أو مُلغى أو معطّل أو منتهي الصلاحية.',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "ثم حمّل صفحة من موقعك. خلال دقيقة يظهر التطبيق تحت **مراقبة المستخدمين الحقيقيين**، باسم `service.name` الخاص به، مع مشاهدات الصفحات ومعدل الأخطاء ومدة p95.",
   "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
     "يصنّف OneUptime القياس عن بُعد على أنه **RUM** عندما يحمل مورده سمات العميل — في الويب أيًّا من `browser.platform` أو `browser.language` أو `browser.brands` غير فارغة. ويُعرَّف التطبيق بـ `service.name` (دون تمييز حالة الأحرف)، والقياس عن بُعد الخاص به ملك لتطبيق RUM هذا — ولا يُكرَّر أبدًا كخدمة خلفية.",
-  "| Attribute | Required | What it does |":
-    "| السمة | مطلوبة | ما تفعله |",
+  "| Attribute | Required | What it does |": "| السمة | مطلوبة | ما تفعله |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **نعم** | هوية التطبيق، مثل `storefront-web`. إعادة تسميته لاحقًا تنشئ تطبيقًا جديدًا. |",
   "| `browser.platform` / `browser.language` / `browser.brands` | **one of them** | Marks the telemetry as browser RUM. `browser.platform` also fills the **Clients** tab. |":
@@ -147,8 +146,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "هذه إعدادات OpenTelemetry القياسية: حزمة SDK التي تقرؤها من بيئتها تأخذها كما هي. وإلا فاضبط نقطة النهاية نفسها والترويسة `x-oneuptime-token` وسمات المورد على مُصدِّر OTLP ومورد SDK في الشيفرة — وتعرض [إعداد الهاتف المحمول](/docs/rum/mobile-setup) ذلك لـ Android وiOS وReact Native.",
   "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.":
     "تضبط معظم حزم SDK للهاتف المحمول سمات `device.*` نيابة عنك. وتملأ `device.model.identifier` علامة التبويب **العملاء**، فاضبطها كما في الأعلى إن لم تفعل حزمتك ذلك.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.":
-    "`200` مع `\"valid\": true` يعني أن OneUptime يقبل المفتاح، وفي مفتاح الهاتف المحمول تضيف الرسالة أنه لا يعمل إلا من تطبيق هاتف محمول. و`401` يعني أنه غير معروف أو مُلغى أو معطّل أو منتهي الصلاحية، ولن يفيد أي إعداد لحزمة SDK.",
+  '`200` with `"valid": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.':
+    '`200` مع `"valid": true` يعني أن OneUptime يقبل المفتاح، وفي مفتاح الهاتف المحمول تضيف الرسالة أنه لا يعمل إلا من تطبيق هاتف محمول. و`401` يعني أنه غير معروف أو مُلغى أو معطّل أو منتهي الصلاحية، ولن يفيد أي إعداد لحزمة SDK.',
   "Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.":
     "ثم شغّل التطبيق. يظهر تحت **مراقبة المستخدمين الحقيقيين** مع أول دفعة من القياس عن بُعد، باسم الخدمة الذي ثُبّت عليه المفتاح.",
   "Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its `service.*`, `device.*`, `os.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":

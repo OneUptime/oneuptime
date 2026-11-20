@@ -23,14 +23,13 @@ const TRANSLATION: SetupGuideTranslation = {
     "在步骤 1 中选择一个摄取密钥来填入 `<YOUR_API_KEY>`。",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
     "将其合并到您现有的 `connect-src` 指令中。您的网站没有 Content Security Policy？跳过此步骤。",
-  "`200` with `\"valid\": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.":
-    "`200` 加上 `\"valid\": true` 表示 OneUptime 接受该密钥——对于浏览器密钥，消息还会说明它只能在浏览器中、从其允许的来源之一使用。`401` 表示该密钥未知、已撤销、已停用或已过期。",
+  '`200` with `"valid": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.':
+    '`200` 加上 `"valid": true` 表示 OneUptime 接受该密钥——对于浏览器密钥，消息还会说明它只能在浏览器中、从其允许的来源之一使用。`401` 表示该密钥未知、已撤销、已停用或已过期。',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "然后加载您网站的一个页面。一分钟内，该应用会以其 `service.name` 命名出现在**真实用户监控**中，并显示页面浏览量、错误率和 p95 时长。",
   "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
     "当资源带有客户端属性时，OneUptime 会将遥测归类为 **RUM**——对于 Web，即 `browser.platform`、`browser.language` 或非空 `browser.brands` 中的任意一个。应用以 `service.name`（不区分大小写）识别，其遥测属于此 RUM 应用——绝不会再作为后端服务重复存储。",
-  "| Attribute | Required | What it does |":
-    "| 属性 | 必需 | 作用 |",
+  "| Attribute | Required | What it does |": "| 属性 | 必需 | 作用 |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **是** | 应用的标识，例如 `storefront-web`。之后重命名会创建新应用。 |",
   "| `browser.platform` / `browser.language` / `browser.brands` | **one of them** | Marks the telemetry as browser RUM. `browser.platform` also fills the **Clients** tab. |":
@@ -147,8 +146,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "这些是标准的 OpenTelemetry 设置：从环境中读取它们的 SDK 会原样使用。否则，请在代码中为 SDK 的 OTLP 导出器和资源设置相同的端点、`x-oneuptime-token` 标头和资源属性——[移动端设置](/docs/rum/mobile-setup)展示了 Android、iOS 和 React Native 的做法。",
   "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.":
     "大多数移动端 SDK 会替您设置 `device.*` 属性。`device.model.identifier` 会填充**客户端**标签页，因此如果您的 SDK 没有设置它，请按上面的方式设置。",
-  "`200` with `\"valid\": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.":
-    "`200` 加上 `\"valid\": true` 表示 OneUptime 接受该密钥；对于移动端密钥，消息还会说明它只能从移动应用使用。`401` 表示该密钥未知、已撤销、已停用或已过期，任何 SDK 配置都无法解决。",
+  '`200` with `"valid": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.':
+    '`200` 加上 `"valid": true` 表示 OneUptime 接受该密钥；对于移动端密钥，消息还会说明它只能从移动应用使用。`401` 表示该密钥未知、已撤销、已停用或已过期，任何 SDK 配置都无法解决。',
   "Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.":
     "然后启动应用。它会随第一批遥测出现在**真实用户监控**中，并以该密钥所固定的服务名称命名。",
   "Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its `service.*`, `device.*`, `os.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":

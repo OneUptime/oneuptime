@@ -60805,5 +60805,6 @@
   "Web Vitals are being refused": "Web Vitals 正遭到拒絕",
   "Web Vitals aren't set up": "Web Vitals 尚未設定",
   "storefront-mobile": "storefront-mobile",
-  "{{limit}} requests per minute (default for a mobile key)": "每分鐘 {{limit}} 個請求（行動裝置金鑰的預設值）"
+  "{{limit}} requests per minute (default for a mobile key)": "每分鐘 {{limit}} 個請求（行動裝置金鑰的預設值）",
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "建立行動裝置遙測擷取金鑰。它可以安全地隨您的應用程式發布：它只傳送其所固定的應用程式的追蹤、日誌和指標。"
 }

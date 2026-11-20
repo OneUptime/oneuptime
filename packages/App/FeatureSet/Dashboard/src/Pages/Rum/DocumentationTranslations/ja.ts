@@ -23,14 +23,13 @@ const TRANSLATION: SetupGuideTranslation = {
     "ステップ 1 で取り込みキーを選ぶと、`<YOUR_API_KEY>` が埋められます。",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
     "既存の `connect-src` ディレクティブにマージしてください。サイトに Content Security Policy がありませんか？ それならこのステップは飛ばしてください。",
-  "`200` with `\"valid\": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.":
-    "`200` と `\"valid\": true` は OneUptime がキーを受け付けることを意味します — ブラウザーキーの場合、メッセージには、ブラウザーから、許可されたオリジンのいずれかからしか動かないことが付け加えられます。`401` はキーが不明、取り消し済み、無効、または期限切れであることを意味します。",
+  '`200` with `"valid": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.':
+    '`200` と `"valid": true` は OneUptime がキーを受け付けることを意味します — ブラウザーキーの場合、メッセージには、ブラウザーから、許可されたオリジンのいずれかからしか動かないことが付け加えられます。`401` はキーが不明、取り消し済み、無効、または期限切れであることを意味します。',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "次に、サイトのページを読み込みます。1 分以内に、アプリケーションが `service.name` の名前で **リアルユーザーモニタリング** の下に表示され、ページビュー、エラー率、p95 の所要時間が表示されます。",
   "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
     "OneUptime は、リソースがクライアント属性 — ウェブなら `browser.platform`、`browser.language`、空でない `browser.brands` のいずれか — を持つとき、テレメトリを **RUM** に分類します。アプリケーションは `service.name` で識別され (大文字と小文字は区別しません)、そのテレメトリはこの RUM アプリケーションのものになります — バックエンドのサービスとして重複して記録されることはありません。",
-  "| Attribute | Required | What it does |":
-    "| 属性 | 必須 | 役割 |",
+  "| Attribute | Required | What it does |": "| 属性 | 必須 | 役割 |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **はい** | アプリケーションの ID。例: `storefront-web`。後から名前を変えると新しいアプリケーションが作られます。 |",
   "| `browser.platform` / `browser.language` / `browser.brands` | **one of them** | Marks the telemetry as browser RUM. `browser.platform` also fills the **Clients** tab. |":
@@ -147,8 +146,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "これらは OpenTelemetry の標準設定です: 環境からこれらを読む SDK はそのまま受け取ります。そうでない場合は、同じエンドポイント、`x-oneuptime-token` ヘッダー、リソース属性を、コードで SDK の OTLP エクスポーターとリソースに設定してください — [モバイルのセットアップ](/docs/rum/mobile-setup) に Android、iOS、React Native での方法があります。",
   "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.":
     "ほとんどのモバイル SDK は `device.*` 属性を設定してくれます。`device.model.identifier` は **クライアント** タブに表示されるので、お使いの SDK が設定しない場合は上のように設定してください。",
-  "`200` with `\"valid\": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.":
-    "`200` と `\"valid\": true` は OneUptime がキーを受け付けることを意味し、モバイルキーの場合、メッセージにはモバイルアプリからしか動かないことが付け加えられます。`401` はキーが不明、取り消し済み、無効、または期限切れであることを意味し、SDK をどう設定しても解決しません。",
+  '`200` with `"valid": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.':
+    '`200` と `"valid": true` は OneUptime がキーを受け付けることを意味し、モバイルキーの場合、メッセージにはモバイルアプリからしか動かないことが付け加えられます。`401` はキーが不明、取り消し済み、無効、または期限切れであることを意味し、SDK をどう設定しても解決しません。',
   "Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.":
     "次に、アプリを起動します。最初のテレメトリのバッチで、キーに固定されたサービス名で **リアルユーザーモニタリング** の下に表示されます。",
   "Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its `service.*`, `device.*`, `os.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":

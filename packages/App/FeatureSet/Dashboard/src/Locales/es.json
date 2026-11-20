@@ -60805,5 +60805,6 @@
   "Web Vitals are being refused": "Se están rechazando las Web Vitals",
   "Web Vitals aren't set up": "Las Web Vitals no están configuradas",
   "storefront-mobile": "storefront-mobile",
-  "{{limit}} requests per minute (default for a mobile key)": "{{limit}} solicitudes por minuto (predeterminado para una clave móvil)"
+  "{{limit}} requests per minute (default for a mobile key)": "{{limit}} solicitudes por minuto (predeterminado para una clave móvil)",
+  "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Crea una clave de ingesta de telemetría móvil. Puedes incluirla en tu app con seguridad: solo envía las trazas, registros y métricas de la app a la que está fijada."
 }

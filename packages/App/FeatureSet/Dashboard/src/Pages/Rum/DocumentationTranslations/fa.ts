@@ -23,14 +23,13 @@ const TRANSLATION: SetupGuideTranslation = {
     "برای پر شدن `<YOUR_API_KEY>`، در گام 1 یک کلید دریافت داده انتخاب کنید.",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
     "آن را با دستور `connect-src` موجود خود ادغام کنید. سایت شما Content Security Policy ندارد؟ از این گام بگذرید.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.":
-    "`200` همراه با `\"valid\": true` یعنی OneUptime کلید را می‌پذیرد — برای کلید مرورگر، پیام اضافه می‌کند که فقط از یک مرورگر و از یکی از مبداهای مجازش کار می‌کند. `401` یعنی کلید ناشناخته، باطل‌شده، غیرفعال یا منقضی است.",
+  '`200` with `"valid": true` means OneUptime accepts the key — for a Browser key the message adds that it only works from a browser, from one of its allowed origins. `401` means it is unknown, revoked, disabled or expired.':
+    '`200` همراه با `"valid": true` یعنی OneUptime کلید را می‌پذیرد — برای کلید مرورگر، پیام اضافه می‌کند که فقط از یک مرورگر و از یکی از مبداهای مجازش کار می‌کند. `401` یعنی کلید ناشناخته، باطل‌شده، غیرفعال یا منقضی است.',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "سپس یک صفحه از سایت خود را باز کنید. ظرف یک دقیقه برنامه زیر **پایش کاربر واقعی** ظاهر می‌شود، با نام `service.name` خودش، همراه با بازدید صفحه، نرخ خطا و مدت p95.",
   "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
     "OneUptime تله‌متری را وقتی **RUM** طبقه‌بندی می‌کند که منبعش ویژگی‌های کلاینت داشته باشد — برای وب، یکی از `browser.platform`، `browser.language` یا یک `browser.brands` غیرخالی. برنامه با `service.name` شناخته می‌شود (بدون حساسیت به بزرگی و کوچکی حروف)، و تله‌متری‌اش متعلق به همین برنامهٔ RUM است — هرگز به‌عنوان یک سرویس بک‌اند تکرار نمی‌شود.",
-  "| Attribute | Required | What it does |":
-    "| ویژگی | الزامی | چه می‌کند |",
+  "| Attribute | Required | What it does |": "| ویژگی | الزامی | چه می‌کند |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **بله** | هویت برنامه، مثلاً `storefront-web`. تغییر نام بعدی آن یک برنامهٔ تازه می‌سازد. |",
   "| `browser.platform` / `browser.language` / `browser.brands` | **one of them** | Marks the telemetry as browser RUM. `browser.platform` also fills the **Clients** tab. |":
@@ -147,8 +146,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "این‌ها تنظیمات استاندارد OpenTelemetry هستند: SDKای که آن‌ها را از محیطش می‌خواند همان‌طور که هستند می‌پذیرد. در غیر این صورت همان نقطه پایانی، سرآیند `x-oneuptime-token` و ویژگی‌های منبع را در کد روی اکسپورتر OTLP و منبع SDK بگذارید — [راه‌اندازی موبایل](/docs/rum/mobile-setup) این کار را برای Android، iOS و React Native نشان می‌دهد.",
   "Most mobile SDKs set the `device.*` attributes for you. `device.model.identifier` fills the **Clients** tab, so set it as above if yours does not.":
     "بیشتر SDKهای موبایل ویژگی‌های `device.*` را برای شما می‌گذارند. `device.model.identifier` برگهٔ **کلاینت‌ها** را پر می‌کند، پس اگر SDK شما این کار را نمی‌کند آن را مانند بالا بگذارید.",
-  "`200` with `\"valid\": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.":
-    "`200` همراه با `\"valid\": true` یعنی OneUptime کلید را می‌پذیرد، و برای کلید موبایل، پیام اضافه می‌کند که فقط از یک اپ موبایل کار می‌کند. `401` یعنی کلید ناشناخته، باطل‌شده، غیرفعال یا منقضی است و هیچ پیکربندی SDK مشکل را حل نمی‌کند.",
+  '`200` with `"valid": true` means OneUptime accepts the key, and for a Mobile key the message adds that it works only from a mobile app. `401` means it is unknown, revoked, disabled or expired, and no amount of SDK configuration will help.':
+    '`200` همراه با `"valid": true` یعنی OneUptime کلید را می‌پذیرد، و برای کلید موبایل، پیام اضافه می‌کند که فقط از یک اپ موبایل کار می‌کند. `401` یعنی کلید ناشناخته، باطل‌شده، غیرفعال یا منقضی است و هیچ پیکربندی SDK مشکل را حل نمی‌کند.',
   "Then launch the app. It appears under **Real User Monitoring** on its first batch of telemetry, named after the service name the key is pinned to.":
     "سپس اپ را اجرا کنید. با اولین دستهٔ تله‌متری زیر **پایش کاربر واقعی** ظاهر می‌شود، با نام سرویسی که کلید به آن سنجاق شده است.",
   "Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its `service.*`, `device.*`, `os.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":
