@@ -227,6 +227,47 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     routePath: "/datadog/api/v1/metadata",
     surfaceMember: "Datadog",
   },
+  // APM: the Agent's intake and stats, and a tracer's own endpoints (PUT and POST each).
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v0.2/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v0.2/stats",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.3/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.3/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.4/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.4/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.5/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.5/traces",
+    surfaceMember: "Datadog",
+  },
   {
     file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
     routePath: "/api/v2/logs",
