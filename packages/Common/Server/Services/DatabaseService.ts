@@ -8889,8 +8889,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * permission be changed onto another's.
    *
    * An update is now held to the rule a create is, once the caller may make
-   * it, in the create's words and with its code (refuseTakenName: a name a
-   * record in service has, or only an archived one):
+   * it, in the create's words and with its codes (refuseTakenName and
+   * refuseTakenValue: what a record in service has, or only an archived
+   * one):
    *
    *   - A write that gives a record its own value again is no change, and
    *     is never refused: every save of an edit form sends the name back,
