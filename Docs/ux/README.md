@@ -981,15 +981,30 @@ what was further down.
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
 - **A time of day writes its hour the way its clock does:** no zero on a 12-hour clock ("5:14 AM",
-  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app.
-  A feed and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the
-  mobile app "Nov 5, 05:14 AM" (#7650). An Intl options object asks `getHourOption` for its hour
-  (`Common/Types/DateLanguage`, or the mobile app's own in `src/utils/date`), or
-  `getLocaleClockHourOption` for a language's own clock, and names `"numeric"` or `"2-digit"` only
-  beside the clock it is right on. Enforced by
+  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app,
+  English's whole dates too ("Nov 5, 2025, 5:14 AM", not "Nov 05 2025, 05:14 AM", #7652). A feed
+  and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the mobile app
+  "Nov 5, 05:14 AM" (#7650). The clock is always the reader's (`getUserPrefers12HourFormat`): a
+  calendar's grid, an AI chat's PDF axis and a connection's local time followed their language's
+  own, "17:14" down a German calendar beside a table's "5:14 PM" (#7651). An Intl options object
+  asks `getHourOption` for its hour (`Common/Types/DateLanguage`, or the mobile app's own in
+  `src/utils/date`), and names `"numeric"` or `"2-digit"` only beside the clock it is right on.
+  Enforced by
   [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
   and
   [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
+- **A date, a time, a day's name and a range are written by one pair of helpers,** `OneUptimeDate`
+  and `Common/Types/DateLanguage`, never by a component's own `Intl.DateTimeFormat`,
+  `toLocaleDateString` or moment pattern. Those took the hour from the browser's tz data instead of
+  OneUptime's: an hour early in Vancouver in an older browser from November 2026, and named "PDT"
+  where every other date said "MST" (#10038). `getDateTimeFormat` works the wall clock out with
+  moment-timezone and has Intl write only the words. A time takes its language's mark between its
+  hours and minutes, as CLDR writes it: "10.05" in Danish, "10:05" elsewhere (#7914). A window
+  within one day names its day and its zone once: "Nov 5, 2025, 5:14 AM – 6:14 AM" on the time range
+  button, "between Nov 13, 2026, 9:00 AM and 5:30 PM GMT+08" on a filter's chip
+  (`getLocalDateTimeRangeEnds`, #7281, #7721). Enforced by
+  [DatesWrittenByOneHelperGuard](../../packages/Common/Tests/Types/DatesWrittenByOneHelperGuard.test.ts),
+  whose list of exceptions only shrinks.
 - **A date and a time are the reader's, never the browser's:** in the zone they picked in User
   Settings, on their 12- or 24-hour clock, written by `OneUptimeDate` or
   `Common/UI/Utils/ReaderMoments` (a moment, a day, a time of day). `toLocaleString`,
@@ -1375,6 +1390,14 @@ then `npm run i18n:validate` from the root.
   [NounKeysDrawnAsLabelsGuard](../../packages/Common/Tests/App/Dashboard/NounKeysDrawnAsLabelsGuard.test.ts)
   and
   [NounLabelsStartWithACapital](../../packages/Common/Tests/App/Dashboard/NounLabelsStartWithACapital.test.tsx).
+- **A day's name standing alone is cased as its language writes it,** by CLDR's contextTransforms,
+  not by "a label starts with a capital": "Lunes" on a Spanish button and in its menu, "Lundi" on a
+  French button but "lundi" in its menu, "mandag" everywhere in Danish, Norwegian and Swedish, whose
+  CLDR data capitalises a language's name in a menu but never a day's (#7660). A day button, its
+  aria-label and its title, a menu of days, a calendar's or a timeline's header and a heading that
+  starts with the day draw it through `writeStandAloneDayName` (`Common/Types/DateLanguage`), or
+  `OneUptimeDate.getDayOfWeekName`; a day inside a sentence keeps the locale's wording. Enforced by
+  [DayNamesStandingAloneGuard](../../packages/Common/Tests/App/Dashboard/DayNamesStandingAloneGuard.test.ts).
 - **A cloud's product name is written as the cloud writes it.** A kind of cloud resource is named by
   the catalog's label, a product's name ("Virtual Machine", "Cloud Run"), in every language and on
   every page: the rows, the cards, the overview, Topology, a Type filter's menu and its chip. The docs'

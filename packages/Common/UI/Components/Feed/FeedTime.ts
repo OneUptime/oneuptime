@@ -9,6 +9,7 @@ import {
   isEnglishDateLanguage,
   rememberEnglishOf,
   writeDigitsInLocale,
+  writeStandAloneDayName,
 } from "../../../Types/DateLanguage";
 import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import Timezone from "../../../Types/Timezone";
@@ -158,6 +159,31 @@ export const getFeedDayKey: (date: Date, timezone: string) => string = (
   timezone: string,
 ): string => {
   return inZone(date, timezone).format("YYYY-MM-DD");
+};
+
+/*
+ * A day's heading above its entries, which starts with the day's name
+ * standing alone: "Martes, 13 de octubre de 2026" in Spanish, "tirsdag 13.
+ * oktober 2026" in Danish, as CLDR has each language write it (#7660).
+ * Inside a sentence the day is formatFeedDay's.
+ */
+export const formatFeedDayHeading: (date: Date, clock: FeedClock) => string = (
+  date: Date,
+  clock: FeedClock,
+): string => {
+  return (
+    rememberedWithEnglish({
+      text: writeStandAloneDayName({
+        name: formatFeedDay(date, clock),
+        language: clock.language,
+        context: "standAlone",
+      }),
+      clock,
+      english: (englishClock: FeedClock): string => {
+        return writeFeedDay(date, englishClock);
+      },
+    }) || ""
+  );
 };
 
 // "Tuesday, October 13, 2026", "Dienstag, 13. Oktober 2026".

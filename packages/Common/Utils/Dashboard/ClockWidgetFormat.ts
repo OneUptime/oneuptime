@@ -11,6 +11,7 @@ import {
   isEnglishDateLanguage,
   writeClockInLocale,
   writeDigitsInLocale,
+  writeStandAloneDayName,
 } from "../../Types/DateLanguage";
 import Timezone from "../../Types/Timezone";
 import type { Moment as MomentType } from "moment-timezone";
@@ -378,7 +379,12 @@ export const getClockWidgetDisplay: GetClockWidgetDisplayFunction = (data: {
     });
 
     if (dateFormat) {
-      display.dateText = dateFormat.format(data.date);
+      // A line under the face that starts with the day standing alone (#7660).
+      display.dateText = writeStandAloneDayName({
+        name: dateFormat.format(data.date),
+        language: data.language,
+        context: "standAlone",
+      });
     }
   }
 

@@ -5,7 +5,7 @@ import {
 } from "../../../Types/DateLanguage";
 import {
   FeedClock,
-  formatFeedDay,
+  formatFeedDayHeading,
   formatFeedFullTime,
   formatFeedTime,
   getFeedDayKey,
@@ -359,7 +359,7 @@ export const getStatusTimelineDayHeading: (
 ): StatusTimelineDayHeading => {
   return {
     dayKey: getFeedDayKey(date, clock.timezone),
-    label: formatFeedDay(date, clock),
+    label: formatFeedDayHeading(date, clock),
     relativeLabel: getFeedRelativeDay(date, clock),
     zoneName: getFeedZoneName(date, clock.timezone),
   };

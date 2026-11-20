@@ -20,6 +20,7 @@ import {
   getDateLocale,
   getDateTimeFormat,
   isEnglishDateLanguage,
+  writeStandAloneDayName,
 } from "../../../Types/DateLanguage";
 import React, {
   FunctionComponent,
@@ -144,7 +145,16 @@ export const formatNextRun: (date: Date, language: string) => string = (
     options: NEXT_RUN_FORMAT,
   });
 
-  return format ? `${format.format(date)} UTC` : english();
+  if (!format) {
+    return english();
+  }
+
+  // An item of the list, which starts with its day's name (#7660).
+  return `${writeStandAloneDayName({
+    name: format.format(date),
+    language: language,
+    context: "menu",
+  })} UTC`;
 };
 
 /**
