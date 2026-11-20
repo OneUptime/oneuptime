@@ -1,5 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
+import { SCRUB_REDACTED_TEXT } from "../../../Server/Utils/Telemetry/ScrubAction";
+import ScrubHashToken from "../../../Server/Utils/Telemetry/ScrubHashToken";
 import { JSONObject } from "../../../Types/JSON";
 import LogScrubAction from "../../../Types/Log/LogScrubAction";
 import LogScrubField from "../../../Types/Log/LogScrubField";
@@ -7,12 +9,14 @@ import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import TraceScrubField from "../../../Types/Trace/TraceScrubField";
 import {
+  IPV4_ADDRESS_MASK,
+  IPV6_ADDRESS_MASK,
+} from "../../../Utils/Telemetry/ScrubIpAddress";
+import {
   AddressScrubRule,
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES,
   HiddenClientAddress,
-  SCRUB_IPV4_MASK,
-  SCRUB_IPV6_MASK,
   SCRUB_REDACTED_VALUE,
   ScrubbedAddress,
   ScrubbedAddressKind,
@@ -23,7 +27,6 @@ import {
   findScrubRuleThatHid,
   getScrubbedKindOfAction,
   getSignalOfScrubbedAddressPlace,
-  isScrubHashToken,
   markClientAddressScrubbed,
   nameClientAddressScrubRule,
   readHiddenClientAddress,
@@ -41,18 +44,22 @@ import {
  * an event keeps, and which of a project's rules explains it.
  */
 
-// Today's Hash action: the first 8 hex characters of an unkeyed SHA-256.
+// The Hash action before #10394: the first 8 hex characters of an unkeyed SHA-256.
 function legacyToken(value: string): string {
   return `[HASHED:${crypto.createHash("sha256").update(value).digest("hex").substring(0, 8)}]`;
 }
 
-// #10394's: 16 hex characters of an HMAC-SHA256 keyed per project.
-function keyedToken(value: string, projectKey: string): string {
-  return `[HASHED:${crypto.createHmac("sha256", projectKey).update(value).digest("hex").substring(0, 16)}]`;
-}
+const PROJECT_A: string = "0192f1a0-0000-7000-8000-00000000a0a1";
+const PROJECT_B: string = "0192f1a0-0000-7000-8000-00000000a0b2";
 
 const LEGACY_TOKEN: string = legacyToken("203.0.113.7");
-const KEYED_TOKEN: string = keyedToken("203.0.113.7", "project-a");
+// The token a Hash rule makes now (#10394): the engines' own function.
+const KEYED_TOKEN: string = ScrubHashToken.ofIpAddress({
+  projectId: PROJECT_A,
+  address: "203.0.113.7",
+});
+const SCRUB_IPV4_MASK: string = IPV4_ADDRESS_MASK;
+const SCRUB_IPV6_MASK: string = IPV6_ADDRESS_MASK;
 
 function rule(overrides: Partial<AddressScrubRule> = {}): AddressScrubRule {
   return {
@@ -88,22 +95,57 @@ describe("what a scrub rule leaves of a whole value", () => {
     }
   });
 
-  test("the tokens are the shapes the hash makes", () => {
+  test("the tokens are the shapes the hash makes, in every project and however the address is written", () => {
     expect(LEGACY_TOKEN).toMatch(/^\[HASHED:[0-9a-f]{8}\]$/);
     expect(KEYED_TOKEN).toMatch(/^\[HASHED:[0-9a-f]{16}\]$/);
+
+    const otherProject: string = ScrubHashToken.ofIpAddress({
+      projectId: PROJECT_B,
+      address: "203.0.113.7",
+    });
     // A project's key makes another token for the same address: each is still one.
-    expect(keyedToken("203.0.113.7", "project-b")).not.toBe(KEYED_TOKEN);
-    expect(isScrubHashToken(keyedToken("203.0.113.7", "project-b"))).toBe(true);
+    expect(otherProject).not.toBe(KEYED_TOKEN);
+    expect(readScrubbedValue(otherProject)?.kind).toBe(
+      ScrubbedAddressKind.Hashed,
+    );
+    // An IPv4 address an IPv6 socket wrote makes the address's own token.
+    expect(
+      ScrubHashToken.ofIpAddress({
+        projectId: PROJECT_A,
+        address: "::ffff:203.0.113.7",
+      }),
+    ).toBe(KEYED_TOKEN);
+
+    for (const address of ["2001:db8::7", "198.51.100.23", "8.8.8.8"]) {
+      const token: string = ScrubHashToken.ofIpAddress({
+        projectId: PROJECT_A,
+        address,
+      });
+
+      expect({ address, read: readScrubbedValue(token) }).toEqual({
+        address,
+        read: { kind: ScrubbedAddressKind.Hashed, value: token },
+      });
+    }
   });
 
-  test("a token of any length from 8 to 64 hex characters is one, and no other", () => {
-    for (const length of [8, 9, 16, 32, 64]) {
-      expect(isScrubHashToken(`[HASHED:${"a".repeat(length)}]`)).toBe(true);
+  test("a token is today's 16 hex characters or the 8 of before, and no other length", () => {
+    for (const length of [8, 16]) {
+      expect(readScrubbedValue(`[HASHED:${"a".repeat(length)}]`)?.kind).toBe(
+        ScrubbedAddressKind.Hashed,
+      );
     }
 
-    for (const length of [0, 1, 7, 65, 100]) {
-      expect(isScrubHashToken(`[HASHED:${"a".repeat(length)}]`)).toBe(false);
+    for (const length of [0, 1, 7, 9, 15, 17, 32, 64]) {
+      expect({
+        length,
+        read: readScrubbedValue(`[HASHED:${"a".repeat(length)}]`),
+      }).toEqual({ length, read: null });
     }
+  });
+
+  test("what Redact leaves is the engines' own word for it", () => {
+    expect(SCRUB_REDACTED_VALUE).toBe(SCRUB_REDACTED_TEXT);
   });
 
   test("an address, a name, nothing, and what no OneUptime rule writes are no value a rule left", () => {

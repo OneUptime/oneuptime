@@ -1,5 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
+import ScrubHashToken from "../../../../Server/Utils/Telemetry/ScrubHashToken";
+import {
+  IPV4_ADDRESS_MASK as SCRUB_IPV4_MASK,
+  IPV6_ADDRESS_MASK as SCRUB_IPV6_MASK,
+} from "../../../../Utils/Telemetry/ScrubIpAddress";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
@@ -8,8 +13,6 @@ import {
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import {
   HiddenClientAddress,
-  SCRUB_IPV4_MASK,
-  SCRUB_IPV6_MASK,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
   readHiddenClientAddress,
@@ -30,7 +33,11 @@ import {
  */
 
 const LEGACY_TOKEN: string = `[HASHED:${crypto.createHash("sha256").update("203.0.113.7").digest("hex").substring(0, 8)}]`;
-const KEYED_TOKEN: string = `[HASHED:${crypto.createHmac("sha256", "project-key").update("203.0.113.7").digest("hex").substring(0, 16)}]`;
+// The token a Hash rule makes now (#10394), by the engines' own function.
+const KEYED_TOKEN: string = ScrubHashToken.ofIpAddress({
+  projectId: "0192f1a0-0000-7000-8000-00000000a0a1",
+  address: "203.0.113.7",
+});
 
 function span(attributes: Record<string, string>): TraceScanSpan {
   return {

@@ -4,6 +4,7 @@ import LogScrubAction from "../../Types/Log/LogScrubAction";
 import LogScrubField from "../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../Types/Log/LogScrubPatternType";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import { isScrubHashToken } from "../../Types/Telemetry/ScrubHashTokenFormat";
 import {
   LOG_SCRUB_RULE_DEFAULTS,
   TRACE_SCRUB_RULE_DEFAULTS,
@@ -25,8 +26,9 @@ import TraceScrubField from "../../Types/Trace/TraceScrubField";
  * rule hid the address: "[REDACTED]" (Redact), "***.***.***.***" or its
  * IPv6 form (Mask, #10393), a custom pattern's mask that keeps an
  * address's first and last characters, or a Hash rule's token: "[HASHED:"
- * and hex, 8 characters before tokens were keyed per project, 16 since
- * (#10394). The project's enabled scrub rules say which rule did
+ * and 16 hex characters keyed per project since #10394, 8 in records
+ * stored before (Types/Telemetry/ScrubHashTokenFormat, the one place that
+ * says how a token is written). The project's enabled scrub rules say which rule did
  * (findScrubRuleThatHid): only an IP Address rule whose action leaves that
  * kind of value, over the part of the record the address was read from.
  * Both are needed. A rule alone cannot say it - a client address that is
@@ -50,7 +52,8 @@ import TraceScrubField from "../../Types/Trace/TraceScrubField";
  * once an event names its address.
  *
  * Pure, and read in the browser too: every reading is an indexOf or a
- * slice over a bounded text, never a regular expression - the text is a
+ * slice over a bounded text, or the token's one anchored pattern of fixed
+ * length over a text of at most MAX_SCRUBBED_ADDRESS_LENGTH - the text is a
  * line anybody can write into a log.
  */
 
@@ -101,32 +104,20 @@ export interface ScrubbedAddress {
 // The value of SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden.
 export const CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE: string = "scrub-rule";
 
-export const SCRUB_REDACTED_VALUE: string = "[REDACTED]";
-
-// What Mask leaves of an IPv4 address, and (#10393) of an IPv6 one.
-export const SCRUB_IPV4_MASK: string = "***.***.***.***";
-export const SCRUB_IPV6_MASK: string =
-  "****:****:****:****:****:****:****:****";
-
-export const SCRUB_HASH_PREFIX: string = "[HASHED:";
-export const SCRUB_HASH_SUFFIX: string = "]";
-
 /*
- * How many hex characters a Hash rule's token holds: 8 before tokens were
- * keyed per project, 16 since (#10394). A token of any length between is
- * read as one, so a token that grows is still known.
+ * What Redact leaves - the engines' SCRUB_REDACTED_TEXT (Server/Utils/
+ * Telemetry/ScrubAction.ts), written again here because this is read in
+ * the browser too; ScrubbedAddress.test.ts fails when the two differ. A
+ * mask is known by its shape, whatever the mask (Utils/Telemetry/
+ * ScrubIpAddress's for an address, ScrubMask's for a custom pattern's).
  */
-export const SCRUB_HASH_MIN_HEX_LENGTH: number = 8;
-export const SCRUB_HASH_MAX_HEX_LENGTH: number = 64;
+export const SCRUB_REDACTED_VALUE: string = "[REDACTED]";
 
 /*
  * The longest text read as an address a rule hid: the longest of them with
  * the brackets, port and IPv4-mapped prefix it may be written with.
  */
 export const MAX_SCRUBBED_ADDRESS_LENGTH: number = 128;
-
-// A Hash rule writes its token's hex in lower case.
-const HEX_DIGITS: string = "0123456789abcdef";
 
 /*
  * The characters a mask is made of: its stars, and what an address keeps of
@@ -136,20 +127,6 @@ const HEX_DIGITS: string = "0123456789abcdef";
 const MASK_CHARACTERS: string = "*.:0123456789abcdefABCDEF";
 
 const IPV4_MAPPED_PREFIX: string = "::ffff:";
-
-function isHexText(text: string): boolean {
-  if (!text) {
-    return false;
-  }
-
-  for (let index: number = 0; index < text.length; index++) {
-    if (HEX_DIGITS.indexOf(text[index]!) === -1) {
-      return false;
-    }
-  }
-
-  return true;
-}
 
 function isDigits(text: string): boolean {
   if (!text) {
@@ -165,30 +142,6 @@ function isDigits(text: string): boolean {
   }
 
   return true;
-}
-
-/*
- * Whether a text is a Hash rule's token: "[HASHED:", lower-case hex and
- * "]", as the rule writes it.
- */
-export function isScrubHashToken(text: string): boolean {
-  if (
-    !text.startsWith(SCRUB_HASH_PREFIX) ||
-    !text.endsWith(SCRUB_HASH_SUFFIX)
-  ) {
-    return false;
-  }
-
-  const hex: string = text.slice(
-    SCRUB_HASH_PREFIX.length,
-    text.length - SCRUB_HASH_SUFFIX.length,
-  );
-
-  return (
-    hex.length >= SCRUB_HASH_MIN_HEX_LENGTH &&
-    hex.length <= SCRUB_HASH_MAX_HEX_LENGTH &&
-    isHexText(hex)
-  );
 }
 
 /*

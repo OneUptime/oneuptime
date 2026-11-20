@@ -8,11 +8,11 @@ import { applyRequestAssessment } from "../../../Utils/SecurityEvent/RequestFoll
 import { RequestTraceAssessment } from "../../../Utils/SecurityEvent/RequestOutcome";
 import {
   HiddenClientAddress,
-  SCRUB_IPV4_MASK,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
   readHiddenClientAddress,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import { IPV4_ADDRESS_MASK as SCRUB_IPV4_MASK } from "../../../Utils/Telemetry/ScrubIpAddress";
 import { logLine } from "./LogParsers/LogParserFixtures";
 
 /*

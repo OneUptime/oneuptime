@@ -39,12 +39,12 @@ import WebAttackLogParser from "../../../../Utils/SecurityEvent/LogParsers/WebAt
 import {
   AddressScrubRule,
   HiddenClientAddress,
-  SCRUB_IPV4_MASK,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
   markClientAddressScrubbed,
   readHiddenClientAddress,
 } from "../../../../Utils/SecurityEvent/ScrubbedAddress";
+import { IPV4_ADDRESS_MASK as SCRUB_IPV4_MASK } from "../../../../Utils/Telemetry/ScrubIpAddress";
 import { logLine } from "../../../Utils/SecurityEvent/LogParsers/LogParserFixtures";
 
 /*

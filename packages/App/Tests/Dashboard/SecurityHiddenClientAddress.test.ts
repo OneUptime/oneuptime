@@ -19,7 +19,6 @@ import { RequestTraceAssessment } from "Common/Utils/SecurityEvent/RequestOutcom
 import WebAttackLogParser from "Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import {
   HiddenClientAddress,
-  SCRUB_IPV4_MASK,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
   markClientAddressScrubbed,
@@ -29,6 +28,7 @@ import {
   Translator,
   createTranslator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { IPV4_ADDRESS_MASK as SCRUB_IPV4_MASK } from "Common/Utils/Telemetry/ScrubIpAddress";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 
 /*
