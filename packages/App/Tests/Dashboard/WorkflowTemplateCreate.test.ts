@@ -700,6 +700,150 @@ describe("applyTemplateVariableValuesToGraph", () => {
       });
     }).not.toThrow();
   });
+
+  /*
+   * #9358: an optional setting a script reads beside others, marked
+   * emptyWhenBlank, sits inside the script's JSON arguments. Left blank, it
+   * gets no workflow variable, so the reference would reach the script as
+   * literal braces, with a warning in every run's log. It is written as
+   * empty text instead, and the arguments stay JSON.
+   */
+  describe("a setting written as empty text when it is left blank", () => {
+    const dynamicsTemplates: Array<WorkflowTemplate> = [
+      getWorkflowTemplate("dynamics-create-case-for-incident"),
+      getWorkflowTemplate("dynamics-create-case-for-alert"),
+    ] as Array<WorkflowTemplate>;
+
+    const scriptArguments: (
+      template: WorkflowTemplate,
+      values: Record<string, string>,
+    ) => JSONObject = (
+      template: WorkflowTemplate,
+      values: Record<string, string>,
+    ): JSONObject => {
+      const workflow: Workflow = buildWorkflowFromTemplate({
+        name: template.workflowName,
+        description: template.workflowDescription,
+        projectId: projectId,
+        template: template,
+        values: values,
+        generateId: generateId,
+      });
+
+      return JSON.parse(
+        argumentsOfComponent(workflow.graph as JSONObject, "prepare-case-1")[
+          "arguments"
+        ] as string,
+      ) as JSONObject;
+    };
+
+    test.each(
+      dynamicsTemplates.map((template: WorkflowTemplate) => {
+        return [template.id, template];
+      }),
+    )(
+      "%s: left blank, the Configuration Item Column is empty text, and gets no variable",
+      (_id: string, template: WorkflowTemplate) => {
+        const values: Record<string, string> = {
+          ...filledValuesFor(template),
+          dynamicsConfigurationItemColumn: "",
+        };
+
+        const args: JSONObject = scriptArguments(template, values);
+
+        expect(args["configurationItemColumn"]).toBe("");
+        // The settings that were filled in keep their references.
+        expect(args["linkColumn"]).toBe(
+          "{{local.variables.dynamicsLinkColumn}}",
+        );
+        expect(
+          buildWorkflowVariables({
+            template: template,
+            values: values,
+            workflowId: workflowId,
+            projectId: projectId,
+          }).map((row: WorkflowVariable): string => {
+            return String(row.name);
+          }),
+        ).not.toContain("dynamicsConfigurationItemColumn");
+      },
+    );
+
+    test.each(
+      dynamicsTemplates.map((template: WorkflowTemplate) => {
+        return [template.id, template];
+      }),
+    )(
+      "%s: filled in, it keeps its reference, and gets its variable",
+      (_id: string, template: WorkflowTemplate) => {
+        const values: Record<string, string> = filledValuesFor(template, {
+          dynamicsConfigurationItemColumn: "new_configurationitem",
+        });
+
+        expect(
+          scriptArguments(template, values)["configurationItemColumn"],
+        ).toBe("{{local.variables.dynamicsConfigurationItemColumn}}");
+        expect(
+          buildWorkflowVariables({
+            template: template,
+            values: values,
+            workflowId: workflowId,
+            projectId: projectId,
+          }).find((row: WorkflowVariable): boolean => {
+            return row.name === "dynamicsConfigurationItemColumn";
+          })?.content,
+        ).toBe("new_configurationitem");
+      },
+    );
+
+    test("emptied wherever it sits, however deep, and a whole argument of it is still dropped", () => {
+      const template: WorkflowTemplate = {
+        ...emailTemplate,
+        variables: [
+          {
+            name: "optionalColumn",
+            title: "Optional Column",
+            description: "A column.",
+            placeholder: "new_column",
+            required: false,
+            isSecret: false,
+            emptyWhenBlank: true,
+          },
+        ],
+      };
+      const graph: JSONObject = {
+        nodes: [
+          {
+            data: {
+              id: "step-1",
+              arguments: {
+                whole: "{{local.variables.optionalColumn}}",
+                text: '{"column": "{{local.variables.optionalColumn}}"}',
+                headers: { "X-Column": "{{local.variables.optionalColumn}}" },
+                list: ["{{local.variables.optionalColumn}}", "kept"],
+              },
+            },
+          },
+        ],
+        edges: [],
+      };
+
+      expect(
+        argumentsOfComponent(
+          applyTemplateVariableValuesToGraph({
+            graph: graph,
+            template: template,
+            values: {},
+          }),
+          "step-1",
+        ),
+      ).toEqual({
+        text: '{"column": ""}',
+        headers: { "X-Column": "" },
+        list: ["", "kept"],
+      });
+    });
+  });
 });
 
 describe("buildWorkflowVariables", () => {
@@ -2326,7 +2470,7 @@ describe("Dynamics 365 templates", () => {
       }
     });
 
-    test("every setting is required", () => {
+    test("every setting but the Configuration Item Column is required", () => {
       const errors: Record<string, string> = validateTemplateVariableValues(
         createCaseTemplate,
         {},
@@ -2336,6 +2480,9 @@ describe("Dynamics 365 templates", () => {
         createCaseTemplate.variables
           .map((variable: WorkflowTemplateVariable): string => {
             return variable.name;
+          })
+          .filter((name: string): boolean => {
+            return name !== "dynamicsConfigurationItemColumn";
           })
           .sort(),
       );
@@ -2384,6 +2531,11 @@ describe("Dynamics 365 templates", () => {
         "dynamicsCustomer",
         "Contoso Pharmaceuticals",
         "Enter the account's id, such as 4f7e6c3a-1b2d-4e5f-8a9b-0c1d2e3f4a5b, or contacts(<id>) to file new cases against a contact.",
+      ],
+      [
+        "dynamicsConfigurationItemColumn",
+        "Configuration Item",
+        "Enter the column's logical name, in lower case and with its prefix, such as new_configurationitem. Its display name will not work.",
       ],
     ])(
       "%s of %j is refused, and the field says what to type instead",
@@ -2443,6 +2595,16 @@ describe("Dynamics 365 templates", () => {
         "oneuptimeUrl",
         "dynamicsAccessToken",
       ]);
+    });
+
+    test("a Configuration Item Column filled in is one more static row", () => {
+      expect(
+        rowsFor(createCaseTemplate, {
+          dynamicsConfigurationItemColumn: "new_configurationitem",
+        }).map((row: WorkflowVariable): string => {
+          return `${row.name}=${row.content || ""}`;
+        }),
+      ).toContain("dynamicsConfigurationItemColumn=new_configurationitem");
     });
 
     test("every other Dynamics 365 template writes the environment, the link column and the OAuth 2.0 row", () => {
@@ -2580,14 +2742,17 @@ describe("Dynamics 365 templates", () => {
       }
     });
 
-    test("nothing is stripped: every argument arrives as the template wrote it", () => {
+    // Left blank, the Configuration Item Column is written as empty text (emptyWhenBlank).
+    test("with every setting filled in, nothing is stripped: every argument arrives as the template wrote it", () => {
       for (const template of dynamicsTemplates) {
         const workflow: Workflow = buildWorkflowFromTemplate({
           name: "Dynamics 365",
           description: "",
           projectId: projectId,
           template: template,
-          values: valuesFor(template),
+          values: valuesFor(template, {
+            dynamicsConfigurationItemColumn: "new_configurationitem",
+          }),
           generateId: generateId,
         });
         const graphSpec: { nodes: Array<{ args?: JSONObject | undefined }> } =

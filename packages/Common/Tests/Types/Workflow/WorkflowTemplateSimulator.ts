@@ -41,8 +41,10 @@
  */
 
 import {
+  WorkflowTemplate,
   getWorkflowTemplate,
   buildGraphForTemplate,
+  emptyBlankSettingReferences,
 } from "../../../Types/Workflow/Templates";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ComponentMetadata, {
@@ -138,25 +140,38 @@ const generateId: GenerateIdFunction = (): string => {
 
 type BuildSimulatedGraphFunction = (
   templateId: string,
-  builtGraph?: JSONObject | undefined,
+  builtGraph: JSONObject | undefined,
+  variables: Dictionary<string>,
 ) => SimulatedGraph;
 
 /*
  * Built through buildGraphForTemplate, the path the create wizard takes, so
  * the simulation runs the graph a user actually gets — not the spec behind it.
  * Or, for a workflow made some other way (a Huntress connection moved to a
- * workflow), the graph that was built for it.
+ * workflow), the graph that was built for it. Either way, a setting the
+ * wizard writes as empty text when it is left blank (emptyWhenBlank) is
+ * written so when the scenario gives it no value, as the wizard does.
  */
 const buildSimulatedGraph: BuildSimulatedGraphFunction = (
   templateId: string,
-  builtGraph?: JSONObject | undefined,
+  builtGraph: JSONObject | undefined,
+  variables: Dictionary<string>,
 ): SimulatedGraph => {
-  const graph: JSONObject | null =
+  const built: JSONObject | null =
     builtGraph || buildGraphForTemplate(templateId, generateId);
 
-  if (!graph) {
+  if (!built) {
     throw new Error(`There is no template ${templateId}.`);
   }
+
+  const template: WorkflowTemplate | null = getWorkflowTemplate(templateId);
+  const graph: JSONObject = template
+    ? emptyBlankSettingReferences({
+        graph: built,
+        template: template,
+        values: variables,
+      })
+    : built;
 
   const nodes: Dictionary<SimulatedNode> = {};
   const outPorts: Dictionary<Dictionary<Array<string>>> = {};
@@ -752,6 +767,7 @@ export const runTemplate: RunTemplateFunction = async (
   const graph: SimulatedGraph = buildSimulatedGraph(
     scenario.templateId,
     scenario.graph,
+    scenario.variables,
   );
 
   for (const componentId of Object.keys(scenario.editCode || {})) {
