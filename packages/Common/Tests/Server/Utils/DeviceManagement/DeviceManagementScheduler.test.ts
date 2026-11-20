@@ -269,7 +269,8 @@ describe("getDueConnectionReadRecord", () => {
       id: DUE,
       nextPullAt: NOW,
     });
-    orphan.projectId = undefined;
+    // A row read without its project, which no claim can write a reading for.
+    orphan.projectId = undefined as unknown as ObjectID;
 
     expect(
       getDueConnectionReadRecord({

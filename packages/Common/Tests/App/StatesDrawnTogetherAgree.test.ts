@@ -736,7 +736,7 @@ describe("the states with keys of their own", () => {
       "Healthy",
     ];
     const words: Array<string> = keys.map((key: string): string => {
-      return russian.translateText(key);
+      return String(russian.translateText(key));
     });
 
     expect(words).toEqual([
@@ -756,7 +756,7 @@ describe("the states with keys of their own", () => {
     // English draws each as its word, as the page always did.
     expect(
       keys.map((key: string): string => {
-        return english.translateText(key);
+        return String(english.translateText(key));
       }),
     ).toEqual(["Off", "Waiting", "Catching up", "Failing", "Stale", "Healthy"]);
 
