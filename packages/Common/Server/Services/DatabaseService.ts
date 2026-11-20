@@ -119,6 +119,8 @@ import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
+import { ARCHIVED_COLUMN } from "../../Utils/ArchivableValues";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -8715,16 +8717,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      const sameValueQuery: Query<TBaseModel> = {
+        [key]: QueryHelper.findWithSameText(
+          (createBy.data as any)[key]
+            ? ((createBy.data as any)[key]! as string)
+            : "",
+        ),
+        ...query,
+      } as Query<TBaseModel>;
+
       existingItemsWithSameNameCount = (
         await this.countBy({
-          query: {
-            [key]: QueryHelper.findWithSameText(
-              (createBy.data as any)[key]
-                ? ((createBy.data as any)[key]! as string)
-                : "",
-            ),
-            ...query,
-          },
+          query: sameValueQuery,
           props: {
             isRoot: true,
           },
@@ -8732,6 +8736,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       ).toNumber();
 
       if (existingItemsWithSameNameCount > 0) {
+        if (key === "name") {
+          await this.refuseTakenName({
+            query: sameValueQuery,
+            count: existingItemsWithSameNameCount,
+          });
+        }
+
         throw new BadDataException(
           `${this.model.singularName} with the same ${key} already exists.`,
         );
@@ -8741,6 +8752,50 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return Promise.resolve(createBy);
+  }
+
+  /*
+   * A NEW RECORD NAMED AS ANOTHER OF ITS KIND (@UniqueColumnBy on name),
+   * refused with the code a program tells it by (NameTakenException,
+   * #10065), as teams', labels' and on-call policies' are: nothing was
+   * written, so a client may ask again once the other record gives the name
+   * up. The Terraform provider does, so a create onto the name of a
+   * resource the same apply renames or deletes goes through in one apply.
+   *
+   * When every record with the name is archived, the code says so, and the
+   * sentence too: an archived record is in no list, and nothing an apply
+   * does to the records in service gives its name up.
+   */
+  private async refuseTakenName(data: {
+    query: Query<TBaseModel>;
+    count: number;
+  }): Promise<never> {
+    const refusal: string = `${this.model.singularName} with the same name already exists.`;
+
+    if (!this.model.hasColumn(ARCHIVED_COLUMN)) {
+      throw new NameTakenException(refusal);
+    }
+
+    const archivedCount: number = (
+      await this.countBy({
+        query: {
+          ...data.query,
+          [ARCHIVED_COLUMN]: true,
+        } as Query<TBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    if (archivedCount < data.count) {
+      throw new NameTakenException(refusal);
+    }
+
+    throw new NameTakenException(
+      `${this.model.singularName} with the same name already exists, and it is archived. Unarchive it, or choose another name.`,
+      { isArchived: true },
+    );
   }
 
   /*
