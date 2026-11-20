@@ -2,15 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import CloudAppHeader from "../../../Components/AppPlatforms/CloudAppHeader";
+import CloudAppLogsTab from "../../../Components/AppPlatforms/CloudAppLogsTab";
 import CloudAppOverviewTab from "../../../Components/AppPlatforms/CloudAppOverviewTab";
 import CloudAppRevisionsTab from "../../../Components/AppPlatforms/CloudAppRevisionsTab";
+import useCloudAppAzure, {
+  CloudAppAzure,
+} from "../../../Components/AppPlatforms/useCloudAppAzure";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
-import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
-import {
-  buildSavedViewScope,
-  SavedViewScopeKind,
-} from "Common/Utils/Telemetry/SavedViewScope";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
 import { getFailedSpansRoute } from "../../../Components/TelemetryResource/FailedSpansRoute";
 import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
@@ -295,6 +294,17 @@ const AppPlatformApp: FunctionComponent<
     onRefresh: refresh,
   });
 
+  /*
+   * An App Service app's site in Azure, read once for every tab (#10294):
+   * its way to Azure Monitor, its instances and deployments, its streamed
+   * logs.
+   */
+  const azure: CloudAppAzure = useCloudAppAzure({
+    app: loaded?.app,
+    environment: loaded?.environment,
+    refreshToken,
+  });
+
   // The window every tab's numbers are over, fixed until the range changes.
   const window: { start: Date; end: Date } = useMemo((): {
     start: Date;
@@ -400,6 +410,7 @@ const AppPlatformApp: FunctionComponent<
                 })
               : undefined
           }
+          azure={azure}
         />
       ),
     },
@@ -430,18 +441,18 @@ const AppPlatformApp: FunctionComponent<
     {
       name: CloudAppTabName.Logs,
       children: isScoped ? (
-        <DashboardLogsViewer
-          id={`cloud-app-logs-${appId.toString()}`}
-          savedViewScope={buildSavedViewScope(
-            SavedViewScopeKind.CloudApp,
-            appId,
-          )}
+        <CloudAppLogsTab
+          appId={appId}
+          app={app}
           logQuery={logQuery}
           attributeFilterDisplayKeys={filterDisplayKeys}
           attributeFilterDisplayValues={filterDisplayValues}
-          showFilters={true}
-          enableRealtime={true}
-          noLogsMessage="Logs appear here when they carry this app's resource attributes and its environment's."
+          site={azure.site}
+          siteStreams={Boolean(
+            azure.lookup?.status === "read" &&
+              azure.lookup.link.connection?.streamKeyCreatedAt,
+          )}
+          diagnosticLogsLastReceivedAt={azure.diagnosticLogsLastReceivedAt}
         />
       ) : (
         notScoped
