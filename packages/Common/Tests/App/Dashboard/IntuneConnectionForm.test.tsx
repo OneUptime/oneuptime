@@ -16,10 +16,11 @@ import * as React from "react";
  * modal is captured instead of drawn, so what is under test is what the
  * form asks, what "Connect" tests and what it saves:
  *
- *   - the choice of device manager hands the page Esper or Intune;
- *   - connect asks the tenant, the client ID and the secret, with the
- *     cloud, the name and the interval under More fields, and the cloud's
- *     choices as Microsoft names them;
+ *   - the choice of device manager hands the page the service chosen;
+ *   - connect walks two steps (LongFormStepsGuard): the app registration -
+ *     the tenant, the client ID and the secret, with the cloud under More
+ *     fields - then the connection's name and how often it is read, and
+ *     the cloud's choices as Microsoft names them;
  *   - it tests before it saves, and a test that fails saves nothing and
  *     says why in Microsoft's words;
  *   - edit keeps the secret left blank, and tests a new secret or a new
@@ -76,6 +77,7 @@ interface CapturedField {
   field: Record<string, boolean>;
   title: string;
   fieldType: string;
+  stepId?: string;
   required?: boolean;
   collapsibleSection?: unknown;
   dropdownOptions?: Array<{
@@ -116,6 +118,24 @@ function lastFormProps(): Record<string, unknown> {
 
 function fieldsOf(props: Record<string, unknown>): Array<CapturedField> {
   return (props["formProps"] as { fields: Array<CapturedField> }).fields;
+}
+
+// Each step's title and the fields on it, in order.
+function stepsOf(props: Record<string, unknown>): Array<string> {
+  const steps: Array<{ id: string; title: string }> = (
+    props["formProps"] as { steps: Array<{ id: string; title: string }> }
+  ).steps;
+
+  return steps.map((step: { id: string; title: string }): string => {
+    return `${step.title}: ${fieldsOf(props)
+      .filter((field: CapturedField): boolean => {
+        return field.stepId === step.id;
+      })
+      .map((field: CapturedField): string => {
+        return field.title;
+      })
+      .join(", ")}`;
+  });
 }
 
 function titled(props: Record<string, unknown>, title: string): CapturedField {
@@ -217,21 +237,13 @@ describe("choosing a device manager", () => {
 });
 
 describe("connecting an Intune tenant", () => {
-  test("asks the tenant, the client ID and the secret; the rest under More fields", () => {
+  test("walks the app registration - the tenant, the client ID and the secret, the cloud folded - then the connection", () => {
     renderForm();
     const props: Record<string, unknown> = lastFormProps();
 
-    expect(
-      fieldsOf(props).map((field: CapturedField): string => {
-        return field.title;
-      }),
-    ).toEqual([
-      "Tenant ID",
-      "Application (Client) ID",
-      "Client Secret",
-      "Cloud",
-      "Name",
-      "Read every",
+    expect(stepsOf(props)).toEqual([
+      "App registration: Tenant ID, Application (Client) ID, Client Secret, Cloud",
+      "Connection: Name, Read every",
     ]);
     expect(titled(props, "Client Secret")).toMatchObject({
       fieldType: "Password",
@@ -241,12 +253,14 @@ describe("connecting an Intune tenant", () => {
       "Tenant ID",
       "Application (Client) ID",
       "Client Secret",
+      "Name",
+      "Read every",
     ]) {
       expect(titled(props, title).collapsibleSection).toBeUndefined();
     }
-    for (const title of ["Cloud", "Name", "Read every"]) {
-      expect(titled(props, title).collapsibleSection).toBeDefined();
-    }
+    // The cloud most tenants never change, under More fields.
+    expect(titled(props, "Cloud").collapsibleSection).toBeDefined();
+    expect(props["submitButtonText"]).toBe("Connect");
     // The clouds as Microsoft names them: product names, never translated.
     expect(titled(props, "Cloud").dropdownOptions).toEqual([
       {
@@ -329,19 +343,13 @@ describe("connecting an Intune tenant", () => {
 });
 
 describe("editing an Intune connection", () => {
-  test("asks its name, client ID, a new secret and the interval; the tenant and cloud are fixed", () => {
+  test("walks its client ID and a new secret, then its name and interval; the tenant and cloud are fixed", () => {
     renderForm(savedConnection());
     const props: Record<string, unknown> = lastFormProps();
 
-    expect(
-      fieldsOf(props).map((field: CapturedField): string => {
-        return field.title;
-      }),
-    ).toEqual([
-      "Name",
-      "Application (Client) ID",
-      "Client Secret",
-      "Read every",
+    expect(stepsOf(props)).toEqual([
+      "App registration: Application (Client) ID, Client Secret",
+      "Connection: Name, Read every",
     ]);
     expect(titled(props, "Client Secret").required).toBe(false);
     expect(

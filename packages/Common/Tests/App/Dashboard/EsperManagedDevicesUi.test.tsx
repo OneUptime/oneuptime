@@ -329,7 +329,7 @@ describe("the Esper connections list", () => {
     ).toBe("Esper refused the API key.");
   });
 
-  test("the choice of device manager: Esper and Microsoft Intune, each by its product name and a neutral icon", () => {
+  test("the choice of device manager: Esper, Microsoft Intune, Workspace ONE UEM and SOTI MobiControl, each by its product name and a neutral icon", () => {
     expect(
       DEVICE_MANAGER_CARD_OPTIONS.map((option: CardSelectOption) => {
         return [option.value, option.title, option.logo];
@@ -337,6 +337,9 @@ describe("the Esper connections list", () => {
     ).toEqual([
       ["esper", "Esper", undefined],
       ["intune", "Microsoft Intune", undefined],
+      // #10086, #10087.
+      ["workspaceone", "Workspace ONE UEM", undefined],
+      ["soti", "SOTI MobiControl", undefined],
     ]);
   });
 
