@@ -54,10 +54,9 @@ const IDENTITY_CACHE_MS: number = 60 * 60 * 1000;
 // After a failed identity check, the next is tried this much later.
 const FAILURE_CACHE_MS: number = 5 * 60 * 1000;
 
+// The variable the log names when it says where OneUptime's key would be.
 export const CLOUD_CONNECT_AWS_ACCESS_KEY_ID_ENV: string =
   "CLOUD_CONNECT_AWS_ACCESS_KEY_ID";
-export const CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY_ENV: string =
-  "CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY";
 
 /*
  * What AWS answers when it does not take the credentials themselves: they
@@ -102,10 +101,10 @@ export default class AwsServerIdentity {
   // The Cloud Connect key, read at call time, so a test (or a restart with new env) sees changes.
   public static getConfiguredKey(): AwsCredentials | null {
     const accessKeyId: string = (
-      process.env[CLOUD_CONNECT_AWS_ACCESS_KEY_ID_ENV] || ""
+      process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] || ""
     ).trim();
     const secretAccessKey: string = (
-      process.env[CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY_ENV] || ""
+      process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] || ""
     ).trim();
 
     if (!accessKeyId || !secretAccessKey) {
