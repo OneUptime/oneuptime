@@ -45,6 +45,13 @@ export const PERMISSION_ROW_MIGRATIONS: ReadonlyArray<string> = [
   "RemoveServiceTelemetryLinkPermissions1809176500000",
   "RemovePermissionsTeamsCannotBeGiven1809178100000",
   "RemovePermissionsThatGrantNothing1809178600000",
+  /*
+   * Writes only the address of an invitation not yet accepted, which no
+   * permission set reads (a set is built from accepted memberships). Listed
+   * all the same, as every write to these tables is: the guard cannot tell
+   * which columns a set reads, and the cost is one rebuild of each set.
+   */
+  "BackfillTeamMemberInviteeEmail1809186970000",
 ];
 
 /*
