@@ -89,7 +89,8 @@ const STORED_SETTINGS: SecurityConnectorSettings = {
 let handler: Handler;
 let props: DatabaseCommonInteractionProps;
 let api: CloudflareFakeApi;
-let next: jest.Mock<NextFunction>;
+// A mock, typed as the handler takes it.
+let next: NextFunction;
 const res: ExpressResponse = {} as ExpressResponse;
 
 function setPermission(permission: Permission, blocked: boolean = false): void {
@@ -147,7 +148,7 @@ beforeAll(() => {
 beforeEach(() => {
   props = { userId: USER, tenantId: PROJECT };
   setPermission(Permission.SecurityAdmin);
-  next = jest.fn<NextFunction>();
+  next = jest.fn() as unknown as NextFunction;
   api = new CloudflareFakeApi([
     {
       id: ZONE_A,

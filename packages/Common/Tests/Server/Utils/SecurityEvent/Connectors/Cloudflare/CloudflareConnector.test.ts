@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import CloudflareConnector, {
   CLOUDFLARE_ANALYTICS_READ_PERMISSION,
   CLOUDFLARE_ZONE_READ_PERMISSION,
@@ -113,16 +114,16 @@ function options(
 interface Harness {
   api: CloudflareFakeApi;
   connector: CloudflareConnector;
-  sleep: jest.Mock<(ms: number) => Promise<void>>;
+  sleep: Mock<(ms: number) => Promise<void>>;
 }
 
 function harness(zones: Array<FakeZone>): Harness {
   const api: CloudflareFakeApi = new CloudflareFakeApi(zones);
-  const sleep: jest.Mock<(ms: number) => Promise<void>> = jest.fn(
-    async (_ms: number): Promise<void> => {
-      return undefined;
-    },
-  );
+  const sleep: Mock<(ms: number) => Promise<void>> = jest.fn<
+    (ms: number) => Promise<void>
+  >(async (_ms: number): Promise<void> => {
+    return undefined;
+  });
   const connector: CloudflareConnector = new CloudflareConnector(
     api.transport(),
     { sleep },

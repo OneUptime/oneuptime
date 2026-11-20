@@ -457,13 +457,18 @@ describe("connectorFieldOptions", () => {
   });
 });
 
+// What the pickers ask the API with: readConnectorFieldChoices's seam.
+type ChoicesFetcher = (
+  body: JSONObject,
+) => Promise<ConnectorFieldChoicesReport>;
+
 describe("readConnectorFieldChoices", () => {
   test("one request per set of credentials, shared by every picker", async () => {
-    const fetcher: jest.Mock<
-      (body: JSONObject) => Promise<ConnectorFieldChoicesReport>
-    > = jest.fn((): Promise<ConnectorFieldChoicesReport> => {
-      return Promise.resolve(choices());
-    });
+    const fetcher: Mock<ChoicesFetcher> = jest.fn<ChoicesFetcher>(
+      (): Promise<ConnectorFieldChoicesReport> => {
+        return Promise.resolve(choices());
+      },
+    );
 
     await Promise.all([
       readConnectorFieldChoices("key-1", {}, fetcher),
@@ -476,10 +481,8 @@ describe("readConnectorFieldChoices", () => {
   });
 
   test("a failed request is forgotten, so Try Again asks again", async () => {
-    const fetcher: jest.Mock<
-      (body: JSONObject) => Promise<ConnectorFieldChoicesReport>
-    > = jest
-      .fn<(body: JSONObject) => Promise<ConnectorFieldChoicesReport>>()
+    const fetcher: Mock<ChoicesFetcher> = jest
+      .fn<ChoicesFetcher>()
       .mockRejectedValueOnce(new Error("refused"))
       .mockResolvedValueOnce(choices());
 
