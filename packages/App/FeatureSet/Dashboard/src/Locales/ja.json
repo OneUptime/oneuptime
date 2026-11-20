@@ -59935,5 +59935,9 @@
   "Couldn't load the team this issue is assigned to. {{error}}": "この問題が割り当てられているチームを読み込めませんでした。{{error}}",
   "Couldn't load this store's data types. {{error}}": "このデータストアのデータタイプを読み込めませんでした。{{error}}",
   "Couldn't load who accepted this issue's risk. {{error}}": "この問題のリスクを受容したユーザーを読み込めませんでした。{{error}}",
-  "Couldn't load who this issue is assigned to. {{error}}": "この問題の割り当て先を読み込めませんでした。{{error}}"
+  "Couldn't load who this issue is assigned to. {{error}}": "この問題の割り当て先を読み込めませんでした。{{error}}",
+  "The device management connection **{{connection}}** was deleted, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "デバイス管理接続 **{{connection}}** は、そのデバイスとともに削除されました。これを作成したモニターでは何も読み取られなくなったため、その監視はオフになり、これは解決されました。",
+  "The device management connection **{{connection}}** was turned off. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "デバイス管理接続 **{{connection}}** はオフになりました。オフの接続は読み取られないため、その読み取りはどれも遅れておらず、これは解決されました。接続が再びオンになっても読み取りが失敗し続ける場合は、そのモニターが再度知らせます。",
+  "{{user}} deleted the device management connection **{{connection}}**, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "{{user}} がデバイス管理接続 **{{connection}}** を、そのデバイスとともに削除しました。これを作成したモニターでは何も読み取られなくなったため、その監視はオフになり、これは解決されました。",
+  "{{user}} turned off the device management connection **{{connection}}**. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "{{user}} がデバイス管理接続 **{{connection}}** をオフにしました。オフの接続は読み取られないため、その読み取りはどれも遅れておらず、これは解決されました。接続が再びオンになっても読み取りが失敗し続ける場合は、そのモニターが再度知らせます。"
 }

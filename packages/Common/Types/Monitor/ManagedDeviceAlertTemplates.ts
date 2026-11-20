@@ -98,7 +98,10 @@ import {
  *     reading - a refused key, the service down, the connection turned off -
  *     and the open alerts stay open until readings arrive again
  *     (MonitorResource.isSilentInfrastructureWindow); the connection's row
- *     on Managed Devices says why.
+ *     on Managed Devices says why. A connection deleted is never read
+ *     again: every monitor that reads it alone is turned off with it, what
+ *     it had open resolved, saying why (DeviceManagementConnectionAlerts,
+ *     #10286).
  *
  * First of each service's, CONNECTION STOPPED READING (#10006): the
  * connection itself, which every other template is fed by. Every read of
@@ -112,7 +115,9 @@ import {
  * command lists the connection's last readings, each with the error its
  * read failed with. Without it a revoked key or a service out of reach
  * froze every device alert of the fleet, and nobody learned the fleet was
- * unwatched.
+ * unwatched. Turning the connection off resolves it, saying who did: no
+ * read of a connection that is off is overdue, and its last reading, 0,
+ * says so to the monitor (DeviceManagementConnectionAlerts, #10286).
  *
  * Where a service reports them, LOW BATTERY and STORAGE NEARLY FULL
  * (#10008): a device's battery, as its service last heard it, under 20%,

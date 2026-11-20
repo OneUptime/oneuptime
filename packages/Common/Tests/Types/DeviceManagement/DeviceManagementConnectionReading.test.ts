@@ -225,6 +225,58 @@ describe("getDeviceManagementConnectionReading", () => {
     ).toBeUndefined();
   });
 
+  /*
+   * Turned off (#10286): nothing is due of a connection that is off, so
+   * none of its reads is overdue - 0, as a read that worked reads - but it
+   * did not read: its last read that worked is still the one it had, and it
+   * carries no error and no failure kind, whatever its last read said.
+   */
+  test("a connection turned off reads 0, keeps its last read that worked, and carries no error", () => {
+    const reading: DeviceManagementConnectionReading =
+      getDeviceManagementConnectionReading({
+        ...BASE,
+        outcome: DeviceManagementConnectionReadOutcome.Off,
+        failureKind: LlmConnectionFailureKind.Authentication,
+        lastError: "Esper refused the API key (401 Unauthorized).",
+      });
+
+    expect(DeviceManagementConnectionReadOutcome.Off).toBe("off");
+    expect(reading).toEqual({
+      ageInMinutes: 0,
+      attributes: {
+        "oneuptime.managed_device.connection.id": CONNECTION_ID,
+        "oneuptime.managed_device.provider": "esper",
+        "oneuptime.managed_device.connection.name": "Esper acme",
+        "oneuptime.managed_device.connection.read.outcome": "off",
+        "oneuptime.managed_device.connection.read_interval": "15",
+        "oneuptime.managed_device.connection.last_successful_read_at":
+          minutesBefore(80).toISOString(),
+      },
+    });
+
+    // One no read has ever worked for says no last read, and reads 0 all the same.
+    const neverRead: DeviceManagementConnectionReading =
+      getDeviceManagementConnectionReading({
+        ...BASE,
+        lastSuccessfulReadAt: null,
+        createdAt: minutesBefore(70),
+        outcome: DeviceManagementConnectionReadOutcome.Off,
+      });
+
+    expect(neverRead.ageInMinutes).toBe(0);
+    expect(
+      neverRead.attributes[
+        DeviceManagementConnectionReadingAttribute.LastSuccessfulReadAt
+      ],
+    ).toBeUndefined();
+  });
+
+  test("the metric says that a connection turned off reads 0", () => {
+    expect(MANAGED_DEVICE_CONNECTION_READ_AGE_DESCRIPTION).toContain(
+      "0 once more when it is turned off, as nothing is due of it then",
+    );
+  });
+
   test("a connection no read has worked for counts from when it was saved, and says no last read", () => {
     const reading: DeviceManagementConnectionReading =
       getDeviceManagementConnectionReading({

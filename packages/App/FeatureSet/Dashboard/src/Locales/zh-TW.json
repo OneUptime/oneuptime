@@ -59935,5 +59935,9 @@
   "Couldn't load the team this issue is assigned to. {{error}}": "無法載入此問題所指派的團隊。{{error}}",
   "Couldn't load this store's data types. {{error}}": "無法載入此資料儲存區的資料類型。{{error}}",
   "Couldn't load who accepted this issue's risk. {{error}}": "無法載入接受此問題風險的人員。{{error}}",
-  "Couldn't load who this issue is assigned to. {{error}}": "無法載入此問題的指派對象。{{error}}"
+  "Couldn't load who this issue is assigned to. {{error}}": "無法載入此問題的指派對象。{{error}}",
+  "The device management connection **{{connection}}** was deleted, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "裝置管理連線 **{{connection}}** 及其裝置已被刪除。開啟此項的監測器已不再讀取任何內容，因此它的監測已被關閉，此項已被解決。",
+  "The device management connection **{{connection}}** was turned off. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "裝置管理連線 **{{connection}}** 已被關閉。連線關閉期間不會被讀取，因此它的讀取都沒有逾期，此項已被解決。如果重新開啟該連線後讀取仍然失敗，它的監測器會再次回報。",
+  "{{user}} deleted the device management connection **{{connection}}**, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.": "{{user}} 刪除了裝置管理連線 **{{connection}}** 及其裝置。開啟此項的監測器已不再讀取任何內容，因此它的監測已被關閉，此項已被解決。",
+  "{{user}} turned off the device management connection **{{connection}}**. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.": "{{user}} 關閉了裝置管理連線 **{{connection}}**。連線關閉期間不會被讀取，因此它的讀取都沒有逾期，此項已被解決。如果重新開啟該連線後讀取仍然失敗，它的監測器會再次回報。"
 }

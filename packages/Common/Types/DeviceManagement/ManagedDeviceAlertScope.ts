@@ -4,7 +4,11 @@ import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import MonitorStep from "../Monitor/MonitorStep";
 import MonitorSteps from "../Monitor/MonitorSteps";
-import { ManagedDeviceCheckInAttribute } from "./ManagedDeviceCheckIn";
+import { MANAGED_DEVICE_CONNECTION_METRIC_NAMES } from "./DeviceManagementConnectionReading";
+import {
+  MANAGED_DEVICE_READING_METRIC_NAMES,
+  ManagedDeviceCheckInAttribute,
+} from "./ManagedDeviceCheckIn";
 import {
   ManagedDeviceNaming,
   getManagedDeviceFallbackHostName,
@@ -108,6 +112,84 @@ export function getMonitorManagedDeviceConnectionIds(
   }
 
   return Array.from(ids);
+}
+
+/*
+ * What a monitor's steps read of one device management connection
+ * (#10286): whether they read that connection alone - every metric query
+ * of every step reads one of the readings a connection writes, its own or
+ * its devices', and names this connection and no other - and which of the
+ * two they read.
+ */
+export interface MonitorConnectionReads {
+  readsThisConnectionAlone: boolean;
+  // The connection's own reading (Connection Stopped Reading's).
+  readsConnectionReading: boolean;
+  // Its devices' readings: check-ins, batteries, storage, security patches.
+  readsDeviceReadings: boolean;
+}
+
+/*
+ * What a monitor's steps read of a connection. A step with no metric
+ * query (an HTTP monitor's, say) is no step of the connection's, so a
+ * monitor with one reads more than the connection. Pure.
+ */
+export function getMonitorConnectionReads(data: {
+  monitorSteps: MonitorSteps | undefined | null;
+  connectionId: string;
+}): MonitorConnectionReads {
+  const reads: MonitorConnectionReads = {
+    readsThisConnectionAlone: false,
+    readsConnectionReading: false,
+    readsDeviceReadings: false,
+  };
+  const steps: Array<MonitorStep> =
+    data.monitorSteps?.data?.monitorStepsInstanceArray || [];
+  let isAlone: boolean = steps.length > 0;
+
+  for (const step of steps) {
+    const queries: Array<MetricQueryConfigData> =
+      MonitorStep.getMetricsViewConfig(step as MonitorStep)?.queryConfigs || [];
+
+    if (queries.length === 0) {
+      isAlone = false;
+    }
+
+    for (const query of queries) {
+      const metricName: unknown =
+        query?.metricQueryData?.filterData?.metricName;
+      const connectionIds: Array<string> = readConnectionIds(query);
+      const namesThisConnection: boolean = connectionIds.includes(
+        data.connectionId,
+      );
+      const isConnectionReading: boolean =
+        typeof metricName === "string" &&
+        MANAGED_DEVICE_CONNECTION_METRIC_NAMES.includes(metricName);
+      const isDeviceReading: boolean =
+        typeof metricName === "string" &&
+        MANAGED_DEVICE_READING_METRIC_NAMES.includes(metricName);
+
+      if (namesThisConnection && isConnectionReading) {
+        reads.readsConnectionReading = true;
+      }
+
+      if (namesThisConnection && isDeviceReading) {
+        reads.readsDeviceReadings = true;
+      }
+
+      if (
+        !(isConnectionReading || isDeviceReading) ||
+        connectionIds.length !== 1 ||
+        !namesThisConnection
+      ) {
+        isAlone = false;
+      }
+    }
+  }
+
+  reads.readsThisConnectionAlone = isAlone;
+
+  return reads;
 }
 
 /*

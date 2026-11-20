@@ -85,7 +85,9 @@ export interface MonitorTurnedOffResult {
 }
 
 // What the root cause of a resolve says, for an incident or an alert.
-type RecordKind = "incident" | "alert";
+export type MonitorTurnedOffRecordKind = "incident" | "alert";
+
+type RecordKind = MonitorTurnedOffRecordKind;
 
 // The records of one kind a resolve went through: resolved, or left alone.
 interface ResolvedRecords {
@@ -142,19 +144,6 @@ export default class MonitorTurnedOff {
       return result;
     }
 
-    const templateIds: MonitorAutoResolveTemplateIds =
-      MonitorAutoResolveTemplates.fromMonitorSteps(monitor.monitorSteps);
-
-    // No criteria of the monitor resolves anything on its own.
-    if (MonitorAutoResolveTemplates.isEmpty(templateIds)) {
-      return result;
-    }
-
-    const logAttributes: LogAttributes = {
-      projectId: monitor.projectId.toString(),
-      monitorId: data.monitorId.toString(),
-    } as LogAttributes;
-
     // Read once, and only when something is resolved: it names a person.
     let turnedOffBy: MarkdownText | null = null;
 
@@ -174,13 +163,81 @@ export default class MonitorTurnedOff {
         return turnedOffBy;
       };
 
+    return await this.resolveWhatItWouldResolve({
+      monitor: monitor,
+      isUpgrade: isUpgrade,
+      why: "after its monitoring was turned off",
+      getRootCause: async (kind: RecordKind): Promise<string> => {
+        return this.getRootCause({
+          kind: kind,
+          monitorName: monitor.name || "",
+          // Upgrading, nobody turned it off now: no person to read.
+          turnedOffBy: isUpgrade
+            ? FeedMarkdown.empty()
+            : await getTurnedOffBy(),
+          isUpgrade: isUpgrade,
+        });
+      },
+    });
+  }
+
+  /*
+   * Resolves the open incidents and alerts a monitor would resolve itself
+   * once its criteria no longer held - those set to resolve on their own
+   * (MonitorAutoResolveTemplates) - with the root cause given, whether its
+   * monitoring is on or off. Shared by turning monitoring off, above, and
+   * by a device management connection turned off or deleted, whose
+   * monitors can never resolve what they opened about it
+   * (DeviceManagementConnectionAlerts, #10286). The root cause is asked for
+   * once per kind, and only when there is something of the kind to
+   * resolve. `why` ends the log line of a failure ("after its monitoring
+   * was turned off"). One record that fails is logged and does not stop
+   * the others.
+   */
+  @CaptureSpan()
+  public static async resolveWhatItWouldResolve(data: {
+    // Read with _id, projectId, name and monitorSteps.
+    monitor: Monitor;
+    getRootCause: (kind: RecordKind) => Promise<string>;
+    why: string;
+    // Upgrading: what a person has worked on is theirs to close.
+    isUpgrade?: boolean | undefined;
+  }): Promise<MonitorTurnedOffResult> {
+    const isUpgrade: boolean = data.isUpgrade === true;
+    const monitor: Monitor = data.monitor;
+    const result: MonitorTurnedOffResult = {
+      resolvedIncidentIds: [],
+      resolvedAlertIds: [],
+      ...(isUpgrade
+        ? { leftForAPersonIncidentIds: [], leftForAPersonAlertIds: [] }
+        : {}),
+    };
+
+    if (!monitor.id || !monitor.projectId) {
+      return result;
+    }
+
+    const templateIds: MonitorAutoResolveTemplateIds =
+      MonitorAutoResolveTemplates.fromMonitorSteps(monitor.monitorSteps);
+
+    // No criteria of the monitor resolves anything on its own.
+    if (MonitorAutoResolveTemplates.isEmpty(templateIds)) {
+      return result;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: monitor.projectId.toString(),
+      monitorId: monitor.id.toString(),
+    } as LogAttributes;
+
     if (Object.keys(templateIds.incidents).length > 0) {
       try {
         const incidents: ResolvedRecords = await this.resolveOpenIncidents({
           monitor: monitor,
           templateIds: templateIds,
-          getTurnedOffBy: getTurnedOffBy,
+          getRootCause: data.getRootCause,
           isUpgrade: isUpgrade,
+          why: data.why,
           logAttributes: logAttributes,
         });
 
@@ -191,7 +248,7 @@ export default class MonitorTurnedOff {
         }
       } catch (err) {
         logger.error(
-          `Resolving the open incidents of monitor ${data.monitorId.toString()} after its monitoring was turned off failed`,
+          `Resolving the open incidents of monitor ${monitor.id.toString()} ${data.why} failed`,
           logAttributes,
         );
         logger.error(err, logAttributes);
@@ -203,8 +260,9 @@ export default class MonitorTurnedOff {
         const alerts: ResolvedRecords = await this.resolveOpenAlerts({
           monitor: monitor,
           templateIds: templateIds,
-          getTurnedOffBy: getTurnedOffBy,
+          getRootCause: data.getRootCause,
           isUpgrade: isUpgrade,
+          why: data.why,
           logAttributes: logAttributes,
         });
 
@@ -215,7 +273,7 @@ export default class MonitorTurnedOff {
         }
       } catch (err) {
         logger.error(
-          `Resolving the open alerts of monitor ${data.monitorId.toString()} after its monitoring was turned off failed`,
+          `Resolving the open alerts of monitor ${monitor.id.toString()} ${data.why} failed`,
           logAttributes,
         );
         logger.error(err, logAttributes);
@@ -367,8 +425,9 @@ export default class MonitorTurnedOff {
   private static async resolveOpenIncidents(data: {
     monitor: Monitor;
     templateIds: MonitorAutoResolveTemplateIds;
-    getTurnedOffBy: () => Promise<MarkdownText>;
+    getRootCause: (kind: RecordKind) => Promise<string>;
     isUpgrade: boolean;
+    why: string;
     logAttributes: LogAttributes;
   }): Promise<ResolvedRecords> {
     const projectId: ObjectID = data.monitor.projectId!;
@@ -434,15 +493,7 @@ export default class MonitorTurnedOff {
         projectId,
       );
 
-    const rootCause: string = this.getRootCause({
-      kind: "incident",
-      monitorName: data.monitor.name || "",
-      // Upgrading, nobody turned it off now: no person to read.
-      turnedOffBy: data.isUpgrade
-        ? FeedMarkdown.empty()
-        : await data.getTurnedOffBy(),
-      isUpgrade: data.isUpgrade,
-    });
+    const rootCause: string = await data.getRootCause("incident");
 
     const resolvedIncidentIds: Array<string> = [];
 
@@ -465,7 +516,7 @@ export default class MonitorTurnedOff {
       } catch (err) {
         /*
          * Resolved meanwhile - by a person, or by a check that was already
-         * on its way when monitoring was turned off: nothing is left to do.
+         * on its way: nothing is left to do.
          */
         if (
           err instanceof BadDataException &&
@@ -475,7 +526,7 @@ export default class MonitorTurnedOff {
         }
 
         logger.error(
-          `Resolving incident ${incident.id?.toString()} after the monitoring of its monitor was turned off failed`,
+          `Resolving incident ${incident.id?.toString()} of monitor ${data.monitor.id?.toString()} ${data.why} failed`,
           data.logAttributes,
         );
         logger.error(err, data.logAttributes);
@@ -491,8 +542,9 @@ export default class MonitorTurnedOff {
   private static async resolveOpenAlerts(data: {
     monitor: Monitor;
     templateIds: MonitorAutoResolveTemplateIds;
-    getTurnedOffBy: () => Promise<MarkdownText>;
+    getRootCause: (kind: RecordKind) => Promise<string>;
     isUpgrade: boolean;
+    why: string;
     logAttributes: LogAttributes;
   }): Promise<ResolvedRecords> {
     const projectId: ObjectID = data.monitor.projectId!;
@@ -553,15 +605,7 @@ export default class MonitorTurnedOff {
     const resolvedStateId: ObjectID =
       await AlertStateTimelineService.getResolvedStateIdForProject(projectId);
 
-    const rootCause: string = this.getRootCause({
-      kind: "alert",
-      monitorName: data.monitor.name || "",
-      // Upgrading, nobody turned it off now: no person to read.
-      turnedOffBy: data.isUpgrade
-        ? FeedMarkdown.empty()
-        : await data.getTurnedOffBy(),
-      isUpgrade: data.isUpgrade,
-    });
+    const rootCause: string = await data.getRootCause("alert");
 
     const resolvedAlertIds: Array<string> = [];
 
@@ -591,7 +635,7 @@ export default class MonitorTurnedOff {
         }
 
         logger.error(
-          `Resolving alert ${alert.id?.toString()} after the monitoring of its monitor was turned off failed`,
+          `Resolving alert ${alert.id?.toString()} of monitor ${data.monitor.id?.toString()} ${data.why} failed`,
           data.logAttributes,
         );
         logger.error(err, data.logAttributes);

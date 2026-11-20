@@ -29,7 +29,8 @@ import { StateListType } from "../StateListType";
  *     the record was updated, its episode changed state, an episode was
  *     acknowledged, resolved or reopened, an incident declared from an alert
  *     or linked to it moved on, a monitor's series or key recovered, the
- *     monitor's monitoring was turned off, a network site recovered, an SLO,
+ *     monitor's monitoring was turned off, its device management
+ *     connection was turned off or deleted, a network site recovered, an SLO,
  *     its burn rate rule or its policy tier no longer holds it open, a
  *     budget's month ended, Data Security or Data Observability closed it,
  *     auto-remediation or OneUptime AI fixed it;
@@ -491,6 +492,36 @@ const MONITORING_TURNED_OFF_NOTES: ReadonlyArray<StatusChangeNote> = [
   },
 ];
 
+/*
+ * DeviceManagementConnectionAlerts (#10286): an incident or alert set to
+ * resolve on its own, resolved when its device management connection was
+ * turned off - its Connection Stopped Reading monitor's - or deleted -
+ * every monitor that read the connection alone, whose monitoring is turned
+ * off with it.
+ */
+const DEVICE_MANAGEMENT_CONNECTION_NOTES: ReadonlyArray<StatusChangeNote> = [
+  {
+    written: translationKey(
+      "{{user}} turned off the device management connection **{{connection}}**. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The device management connection **{{connection}}** was turned off. Nothing reads a connection while it is off, so none of its reads is overdue, and this was resolved. If the connection is turned back on and its reads still fail, its monitor opens a new one.",
+    ),
+  },
+  {
+    written: translationKey(
+      "{{user}} deleted the device management connection **{{connection}}**, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The device management connection **{{connection}}** was deleted, and its devices with it. Nothing is read for the monitor that opened this any more, so its monitoring was turned off, and this was resolved.",
+    ),
+  },
+];
+
 // NetworkSiteService: a site's alert, resolved.
 const NETWORK_SITE_NOTES: ReadonlyArray<StatusChangeNote> = [
   {
@@ -842,6 +873,7 @@ export const STATUS_CHANGE_NOTES: ReadonlyArray<StatusChangeNote> = [
   ...LINKED_ALERT_NOTES,
   ...SERIES_RESOLVED_NOTES,
   ...MONITORING_TURNED_OFF_NOTES,
+  ...DEVICE_MANAGEMENT_CONNECTION_NOTES,
   ...NETWORK_SITE_NOTES,
   ...SLO_NOTES,
   ...BUDGET_NOTES,
