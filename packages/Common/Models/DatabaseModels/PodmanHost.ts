@@ -338,6 +338,7 @@ export default class PodmanHost extends BaseModel {
     description:
       "Unique identifier for this Podman host, sourced from the host.name OTel resource attribute",
     example: "podman-host-prod-1",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: false,
@@ -919,6 +920,7 @@ export default class PodmanHost extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1069,6 +1071,7 @@ export default class PodmanHost extends BaseModel {
     description:
       "When on, OneUptime AI runs read-only commands (docker ps, inspect, logs, stats, events, against the Podman API) on this Podman host, through its Podman AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the Podman host can turn it on or off.",
     defaultValue: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1113,6 +1116,7 @@ export default class PodmanHost extends BaseModel {
       "Disabled: AI never proposes or runs a change on this Podman host. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the Podman host's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the Podman host can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
     defaultValue: ResourceAiRemediationMode.Disabled,
     example: ResourceAiRemediationMode.RequireApproval,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,

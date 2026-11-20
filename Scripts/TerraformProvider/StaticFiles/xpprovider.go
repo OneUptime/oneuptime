@@ -20,3 +20,22 @@ func FrameworkProvider(version string) provider.Provider {
 	internalprovider.RunUnderCrossplane()
 	return internalprovider.New(version)()
 }
+
+// FrameworkProviderFor returns the provider for one reconcile of one managed
+// resource, given what its manifest last applied of the fields people and
+// OneUptime both change, by Terraform name (the Crossplane provider's
+// crossplane.oneuptime.com/last-applied annotation). recorded is false while
+// nothing of the manifest has been applied yet. A manifest's value of such a
+// field is then sent only when it changes, and a list keeps the entries
+// OneUptime added (internalprovider's shared.go, #10052).
+func FrameworkProviderFor(version string, recorded bool, lastApplied map[string]any) provider.Provider {
+	internalprovider.RunUnderCrossplane()
+	fields := map[string]any{}
+	for name, value := range lastApplied {
+		fields[name] = value
+	}
+	return internalprovider.NewUnderCrossplane(version, internalprovider.LastApplied{
+		Recorded: recorded,
+		Fields:   fields,
+	})()
+}

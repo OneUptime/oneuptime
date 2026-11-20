@@ -899,6 +899,7 @@ export default class NetworkDevice extends BaseModel {
     description:
       "MAC address of this device. Lets the topology map find the switch port it is plugged into from the forwarding tables of walked switches, for a device that speaks neither LLDP nor CDP (one monitored by ping alone). Optional: a device whose hostname is an IP address that a walked router's ARP table resolves is matched by address, and the MAC learned that way is stored here.",
     example: "aa:bb:cc:dd:ee:ff",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,
@@ -1138,6 +1139,7 @@ export default class NetworkDevice extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Network Site ID",
     description: "ID of the Network Site this network device belongs to",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -3757,6 +3759,7 @@ export default class NetworkDevice extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

@@ -215,6 +215,7 @@ export default class AlertEpisode extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this alert episode",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: false,
@@ -257,6 +258,7 @@ export default class AlertEpisode extends BaseModel {
     title: "Description",
     description:
       "Description of this alert episode. This is in markdown format.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,
@@ -505,6 +507,7 @@ export default class AlertEpisode extends BaseModel {
     required: false,
     title: "Alert Severity ID",
     description: "Alert Severity ID",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1009,6 +1012,7 @@ export default class AlertEpisode extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "On-Call Policies",
     description: "List of on-call policies to execute for this episode.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1233,6 +1237,7 @@ export default class AlertEpisode extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1564,6 +1569,7 @@ export default class AlertEpisode extends BaseModel {
     description:
       "If true, this alert episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,

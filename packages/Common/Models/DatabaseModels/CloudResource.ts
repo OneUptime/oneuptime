@@ -1184,6 +1184,7 @@ export default class CloudResource extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1409,6 +1410,7 @@ export default class CloudResource extends BaseModel {
     description:
       "Is this cloud resource archived? Archived cloud resources are hidden from lists but keep collecting telemetry.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
