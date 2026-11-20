@@ -1631,21 +1631,49 @@ export default class PendingInviteeProfiles {
   /*
    * The permissions that let nobody filter or order a list by a column of a
    * record a relation reaches (QueryPermission
-   * .canFilterOrOrderByRelatedColumn). On a person's account, CurrentUser:
-   * it means the account's own person, and every signed-in person holds it
-   * (DatabaseCommonInteractionPropsUtil), because a read of the User table
-   * itself is held to the reader's own row (CurrentUserCanAccessRecordBy).
-   * Through a relation the account is whoever the relation names, so it
-   * lets in nobody there, and a filter or order through a relation names of
-   * a person only what any reader of the relation may read - their name,
-   * address, picture and two-factor flag - and their id.
+   * .canFilterOrOrderByRelatedColumn). On a person's own records,
+   * CurrentUser: it means the record's own person, and every signed-in
+   * person holds it (DatabaseCommonInteractionPropsUtil), because a read of
+   * such a table itself is held to the reader's own rows
+   * (CurrentUserCanAccessRecordBy). Through a relation the record is
+   * whoever's the relation names, so it lets in nobody there:
+   *
+   *   - a person's account (#9895): a filter or order through a relation
+   *     names of a person only what any reader of the relation may read -
+   *     their name, address, picture and two-factor flag - and their id;
+   *   - every other table a person reads only their own rows of (#10176):
+   *     their notification methods and rules, their on-call logs and
+   *     their timelines, their sessions and sign-in factors. A project's
+   *     SMS, call and WhatsApp logs relate to the on-call timeline entry
+   *     each was sent for, and through it to the person's rule and method:
+   *     a filter there - `{ userOnCallLogTimeline: { userSms: ... } }` -
+   *     read a colleague's own records one guess at a time. A column any
+   *     reader of the relation may read, and the ids and times every
+   *     select may name, are filtered and ordered by as before.
+   *
+   * But for a read pinned to the caller's own records (`isReadPinnedToCaller`,
+   * OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser: its own person
+   * column is the caller's id, exactly): the records its relations reach
+   * are theirs too - a person's rule names their own methods, their
+   * timeline their own rule and method - so CurrentUser counts there, as a
+   * select of an owner-only column through such a read is let through
+   * (OwnerOnlyColumnPermission.checkRelationSelect). Never on an account:
+   * even a person's own record names other people (whoever overrode their
+   * on-call page), and their accounts stay theirs.
    */
   public static getPermissionsNotCountedThroughRelation(
     relatedModel: BaseModel,
+    options?: { isReadPinnedToCaller?: boolean | undefined } | undefined,
   ): ReadonlyArray<Permission> {
-    return relatedModel.tableName === USER_TABLE_NAME
-      ? [Permission.CurrentUser]
-      : [];
+    if (relatedModel.tableName === USER_TABLE_NAME) {
+      return [Permission.CurrentUser];
+    }
+
+    if (relatedModel.getUserColumn() && !options?.isReadPinnedToCaller) {
+      return [Permission.CurrentUser];
+    }
+
+    return [];
   }
 
   // A related record's id, lower-cased, as a read returns it.
