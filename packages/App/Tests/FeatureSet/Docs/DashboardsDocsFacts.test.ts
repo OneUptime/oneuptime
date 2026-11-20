@@ -143,6 +143,7 @@ import DataSourceType, {
   DataSourceTypeProps,
   DataSourceTypeUtil,
 } from "Common/Types/DataSource/DataSourceType";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "Common/Types/DataSource/ProjectMetricsDataSource";
 import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -2186,7 +2187,7 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
     );
   });
 
-  it("names the widgets a public dashboard cannot show, and drops the External Data Sources ones", () => {
+  it("names the widgets a public dashboard cannot show, and serves the External Data Sources ones only on this project's metrics, without their queries", () => {
     const refusing: Array<string> = fs
       .readdirSync(path.join(PACKAGES_DIR, WIDGET_COMPONENTS_DIR))
       .filter((file: string): boolean => {
@@ -2223,28 +2224,59 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
       );
     }
 
-    // The data source widgets never reach the visitor: the config drops them.
+    /*
+     * The data source widgets reach the visitor only on this project's
+     * metrics, and never with their queries' text (issue #10226): one on an
+     * external data source, or set up with no query, is dropped.
+     */
     const config: DashboardViewConfig = {
       _type: "DashboardViewConfig",
       heightInDashboardUnits: 10,
       components: [
-        { componentType: DashboardComponentType.DataSourceChart },
-        { componentType: DashboardComponentType.DataSourceTable },
+        {
+          componentType: DashboardComponentType.DataSourceChart,
+          arguments: {
+            queries: [
+              {
+                dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+                query: "sum(rate(http_requests_total[5m]))",
+              },
+            ],
+          },
+        },
+        {
+          componentType: DashboardComponentType.DataSourceTable,
+          arguments: {
+            query: {
+              dataSourceId: ObjectID.generate().toString(),
+              query: "SELECT 1",
+            },
+          },
+        },
+        { componentType: DashboardComponentType.DataSourceValue },
         { componentType: DashboardComponentType.Chart },
       ],
     } as unknown as DashboardViewConfig;
-    const served: Array<string> = (
-      PublicDashboardViewConfig.sanitize(config)?.components || []
-    ).map((component: DashboardBaseComponent): string => {
-      return component.componentType;
-    });
+    const servedComponents: Array<DashboardBaseComponent> =
+      PublicDashboardViewConfig.sanitize(config)?.components || [];
+    const served: Array<string> = servedComponents.map(
+      (component: DashboardBaseComponent): string => {
+        return component.componentType;
+      },
+    );
 
-    expect(served).toEqual([DashboardComponentType.Chart]);
+    expect(served).toEqual([
+      DashboardComponentType.DataSourceChart,
+      DashboardComponentType.Chart,
+    ]);
+    expect(JSON.stringify(servedComponents)).not.toContain(
+      "http_requests_total",
+    );
     expect(readSource(DATA_SOURCE_PLACEHOLDER)).toContain(
       `External data sources are ${NOT_ON_PUBLIC_DASHBOARDS}`,
     );
     expect(publicSection).toContain(
-      "The External Data Sources widgets are left out of a public dashboard altogether, because their settings are the query itself.",
+      "The External Data Sources widgets show their data when they read **This project's metrics (PromQL)**, never their queries. A widget on an external data source is left out of a public dashboard altogether.",
     );
   });
 });

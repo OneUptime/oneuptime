@@ -242,6 +242,7 @@ Em **Quando alertar**, escolha em **Medido como** como cada série é medida, um
 - **Uma comparação na expressão** mantém só as séries para as quais ela é verdadeira: `rate(errors_total[5m]) > 0.1` retorna as séries acima de 0.1, e nenhuma outra. Clique em **Mover para Quando alertar** para torná-la a comparação da regra: o gráfico passa a mostrar cada série, e a regra julga cada uma.
 - **No máximo 100 séries por verificação.** Quando a expressão retorna mais, uma verificação julga 100: primeiro as séries com um alerta ou incidente aberto, depois as outras na ordem dos seus rótulos. As demais não são julgadas nessa verificação, então nada se abre nem se resolve para elas, e o editor avisa que a expressão retorna séries demais. Agregue-a com `sum by (...)` ou adicione seletores de rótulos.
 - **Valem os limites de toda consulta PromQL**, sobre as métricas dos serviços que o monitor nomeia, ou de todo o projeto quando ele não nomeia nenhum.
+- **Os gráficos dele desenham a expressão.** O cartão no topo da página **Visão geral** do monitor desenha cada série que a expressão retorna, e um incidente ou alerta que ele abre desenha a única série que o abriu, com o valor do critério como uma linha e o lado que alerta sombreado. Eles a leem como você pode lê-la, com os mesmos limites da página [PromQL](/docs/telemetry/promql).
 - **As condições de anomalia não são oferecidas**: uma expressão não tem um histórico próprio com que se comparar. As condições de previsão, sim.
 
 ## Solução de problemas

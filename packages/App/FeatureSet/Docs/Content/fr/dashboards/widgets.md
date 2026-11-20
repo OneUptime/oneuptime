@@ -250,7 +250,7 @@ Par l'API et Terraform, l'ordre est le `arguments.sort` du widget : une colonne 
 Un [tableau de bord public](/docs/dashboards/sharing) dessine la plupart des widgets pour ses visiteurs, chacun ne montrant que ce pour quoi il a été configuré. Quelques-uns ne peuvent pas s'afficher sans session connectée :
 
 - **Graphique de journaux**, **Graphique de traces**, **Tableau des traces**, **Événements de sécurité**, **Flux des événements de sécurité**, **Entonnoir** et **Rétention des utilisateurs** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
-- Les widgets du groupe External Data Sources sont entièrement retirés d'un tableau de bord public, car leurs paramètres sont la requête elle-même.
+- Les widgets du groupe External Data Sources montrent leurs données quand ils lisent **Métriques de ce projet (PromQL)**, jamais leurs requêtes. Un widget à source de données externe est entièrement retiré d'un tableau de bord public.
 
 ## Quand un widget ne peut pas être affiché
 
