@@ -65,6 +65,7 @@ import {
   getMetricWindowPolicy,
 } from "../CloudMetricWindows";
 import {
+  AwsAddedMetricUnitState,
   CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   CloudConnectionPullState,
   CloudConnectionSettings,
@@ -124,9 +125,18 @@ import {
   AwsListedMetric,
   AwsMetricQuery,
   AwsMetricResult,
+  MAX_QUERIES_PER_CALL,
   getMetricData,
   listMetrics,
 } from "./AwsCloudWatch";
+import {
+  AWS_UNIT_PROBES_PER_READ,
+  AwsUnitProbe,
+  buildAwsUnitProbeQueries,
+  isAwsUnitProbeResult,
+  planAwsUnitProbes,
+  readAwsUnitProbe,
+} from "./AwsAddedMetricUnits";
 import { AWS_ALL_COMMERCIAL_REGIONS, validateAwsRegions } from "./AwsRegions";
 import AwsServerIdentity from "./AwsServerIdentity";
 import {
@@ -227,6 +237,8 @@ interface AwsSeries {
   resource: CloudMonitoredResource;
   // A metric a person added to the reads (CloudAddedMetrics), not a key metric.
   isAdded?: boolean | undefined;
+  // The addition's key: what its unit is learned and kept by (#10077).
+  addedKey?: string | undefined;
 }
 
 /*
@@ -234,21 +246,64 @@ interface AwsSeries {
  * its statistic, every five minutes, and never one a key-metric stream
  * carries (streamedSince null). Its group is not shown anywhere: a
  * resource's page lists an added metric under its own heading. Its unit is
- * the one its datapoints carried when it was added (#9809), else the one
- * AWS documents for it; with neither, it is stored with none, rather than
- * as CloudWatch's "None", which says the metric has no unit.
+ * the one its datapoints carry as the read learned it (`learnedUnit`,
+ * #10077), else as they carried it when it was added (#9809), else the one
+ * AWS documents for it; with none, it is stored with none, rather than as
+ * CloudWatch's "None", which says the metric has no unit.
  */
-export function toAwsAddedKeyMetric(metric: CloudAddedMetric): AwsKeyMetric {
+export function toAwsAddedKeyMetric(
+  metric: CloudAddedMetric,
+  learnedUnit?: string | undefined,
+): AwsKeyMetric {
   return {
     metricName: metric.name,
     statistic: metric.aggregation as AwsStatistic,
     unit:
+      learnedUnit ||
       metric.unit ||
       getAwsDocumentedMetricUnit(metric.namespace || "", metric.name),
     group: CloudKeyMetricGroup.Traffic,
     periodSeconds: AWS_DEFAULT_PERIOD_SECONDS,
     streamedSince: null,
   };
+}
+
+/*
+ * The additions one GetMetricData call reads, as a unit probe asks them
+ * (#10077): each series of one, by its key and query, with the unit it is
+ * believed to have without a probe - kept with it, else documented.
+ */
+function getAwsUnitProbeAdditions(data: {
+  series: ReadonlyArray<AwsSeries>;
+  added: ReadonlyArray<CloudAddedMetric>;
+}): Parameters<typeof planAwsUnitProbes>[0]["additions"] {
+  const additions: Parameters<typeof planAwsUnitProbes>[0]["additions"] = [];
+
+  data.series.forEach((item: AwsSeries, index: number) => {
+    if (!item.isAdded || !item.addedKey) {
+      return;
+    }
+
+    const metric: CloudAddedMetric | undefined = data.added.find(
+      (candidate: CloudAddedMetric): boolean => {
+        return candidate.key === item.addedKey;
+      },
+    );
+
+    additions.push({
+      key: item.addedKey,
+      queryId: `q${index}`,
+      believedUnit: metric
+        ? metric.unit ||
+          getAwsDocumentedMetricUnit(metric.namespace || "", metric.name)
+        : "",
+      namespace: item.metric.namespace,
+      metricName: item.metric.metricName,
+      dimensions: item.metric.dimensions,
+    });
+  });
+
+  return additions;
 }
 
 /*
@@ -905,6 +960,8 @@ export default class AwsCloudConnector implements CloudConnector {
      * listed like its key metrics, each kept for the resources of its type.
      */
     addedMetrics?: Array<CloudAddedMetric> | undefined;
+    // The units the read learned of them, by key (#10077).
+    learnedUnits?: Record<string, AwsAddedMetricUnitState> | undefined;
   }): Promise<Array<AwsSeries>> {
     const kept: Map<string, Array<AwsSeries>> = new Map();
     const toList: Array<{
@@ -913,6 +970,7 @@ export default class AwsCloudConnector implements CloudConnector {
       addedForType?: string | undefined;
       // An addition split by a dimension (#9808): its series of each value.
       splitBy?: string | undefined;
+      addedKey?: string | undefined;
     }> = [
       ...data.pair.namespace.metrics.map(
         (keyMetric: AwsKeyMetric): { keyMetric: AwsKeyMetric } => {
@@ -926,11 +984,16 @@ export default class AwsCloudConnector implements CloudConnector {
           keyMetric: AwsKeyMetric;
           addedForType: string;
           splitBy?: string | undefined;
+          addedKey: string;
         } => {
           return {
-            keyMetric: toAwsAddedKeyMetric(added),
+            keyMetric: toAwsAddedKeyMetric(
+              added,
+              data.learnedUnits?.[added.key]?.unit,
+            ),
             addedForType: added.resourceType.toLowerCase(),
             ...(added.splitBy ? { splitBy: added.splitBy } : {}),
+            addedKey: added.key,
           };
         },
       ),
@@ -944,10 +1007,11 @@ export default class AwsCloudConnector implements CloudConnector {
         own: Array<CloudAddedMetricDimension>;
         splitBy: string;
         listed: Array<AwsListedMetric>;
+        addedKey?: string | undefined;
       }
     > = new Map();
 
-    for (const { keyMetric, addedForType, splitBy } of toList) {
+    for (const { keyMetric, addedForType, splitBy, addedKey } of toList) {
       const listed: Array<AwsListedMetric> = await listMetrics(
         {
           transport: data.options.transport,
@@ -1009,6 +1073,7 @@ export default class AwsCloudConnector implements CloudConnector {
                 own: Array<CloudAddedMetricDimension>;
                 splitBy: string;
                 listed: Array<AwsListedMetric>;
+                addedKey?: string | undefined;
               }
             | undefined = splits.get(splitKey);
 
@@ -1019,6 +1084,7 @@ export default class AwsCloudConnector implements CloudConnector {
               own,
               splitBy,
               listed: [metric],
+              addedKey,
             });
           } else if (own.length === known.own.length) {
             known.listed.push(metric);
@@ -1048,6 +1114,7 @@ export default class AwsCloudConnector implements CloudConnector {
           keyMetric,
           resource,
           ...(addedForType !== undefined ? { isAdded: true } : {}),
+          ...(addedKey ? { addedKey } : {}),
         };
         const fewest: number =
           existing.length > 0
@@ -1079,6 +1146,7 @@ export default class AwsCloudConnector implements CloudConnector {
           keyMetric: split.keyMetric,
           resource: split.resource,
           isAdded: true,
+          ...(split.addedKey ? { addedKey: split.addedKey } : {}),
         });
       }
     }
@@ -1617,6 +1685,19 @@ export default class AwsCloudConnector implements CloudConnector {
     }
 
     const added: Array<CloudAddedMetric> = options.addedMetrics || [];
+    /*
+     * The units the reads learned of the additions (#10077), of the ones
+     * that are still added: asked again in this read where that is due.
+     */
+    const units: Record<string, AwsAddedMetricUnitState> = {};
+
+    for (const metric of added) {
+      if (state.awsAddedMetricUnits?.[metric.key]) {
+        units[metric.key] = state.awsAddedMetricUnits[metric.key]!;
+      }
+    }
+
+    let unitProbesLeft: number = AWS_UNIT_PROBES_PER_READ;
     const listed: Array<Settled<Array<AwsSeries>>> = await mapWithConcurrency(
       pairs,
       CONCURRENCY,
@@ -1631,6 +1712,7 @@ export default class AwsCloudConnector implements CloudConnector {
             added,
             namespace: pair.namespace.namespace,
           }),
+          learnedUnits: units,
         });
       },
     );
@@ -1681,6 +1763,7 @@ export default class AwsCloudConnector implements CloudConnector {
               credentials,
               options,
               budget,
+              learnedUnit: units[metric.key]?.unit,
             })),
           );
         } catch (error) {
@@ -1724,9 +1807,10 @@ export default class AwsCloudConnector implements CloudConnector {
       if (resource) {
         series.push({
           metric: listedMetric,
-          keyMetric: toAwsAddedKeyMetric(metric),
+          keyMetric: toAwsAddedKeyMetric(metric, units[metric.key]?.unit),
           resource,
           isAdded: true,
+          addedKey: metric.key,
         });
       }
     }
@@ -1832,12 +1916,32 @@ export default class AwsCloudConnector implements CloudConnector {
         byRegion.entries(),
       );
 
+      /*
+       * The units of the additions the calls read, asked in those calls
+       * where it is due (#10077): no call more, only a few queries.
+       */
+      const probesOf: Array<Array<AwsUnitProbe>> = [];
+
+      for (const entry of regionEntries) {
+        const probes: Array<AwsUnitProbe> = planAwsUnitProbes({
+          additions: getAwsUnitProbeAdditions({ series: entry[1], added }),
+          units,
+          now,
+          room: MAX_QUERIES_PER_CALL - entry[1].length,
+          probesLeft: unitProbesLeft,
+        });
+
+        unitProbesLeft -= probes.length;
+        probesOf.push(probes);
+      }
+
       const read: Array<Settled<Array<AwsMetricResult>>> =
         await mapWithConcurrency(
           regionEntries,
           CONCURRENCY,
           async (
             entry: [string, Array<AwsSeries>],
+            regionIndex: number,
           ): Promise<Array<AwsMetricResult>> => {
             return await getMetricData(
               {
@@ -1850,18 +1954,25 @@ export default class AwsCloudConnector implements CloudConnector {
                 budget,
               },
               {
-                queries: entry[1].map(
-                  (item: AwsSeries, index: number): AwsMetricQuery => {
-                    return {
-                      id: `q${index}`,
-                      namespace: item.metric.namespace,
-                      metricName: item.metric.metricName,
-                      dimensions: item.metric.dimensions,
-                      statistic: item.keyMetric.statistic,
-                      periodSeconds,
-                    };
-                  },
-                ),
+                queries: [
+                  ...entry[1].map(
+                    (item: AwsSeries, index: number): AwsMetricQuery => {
+                      return {
+                        id: `q${index}`,
+                        namespace: item.metric.namespace,
+                        metricName: item.metric.metricName,
+                        dimensions: item.metric.dimensions,
+                        statistic: item.keyMetric.statistic,
+                        periodSeconds,
+                      };
+                    },
+                  ),
+                  ...(probesOf[regionIndex] || []).flatMap(
+                    (probe: AwsUnitProbe): Array<AwsMetricQuery> => {
+                      return buildAwsUnitProbeQueries(probe, periodSeconds);
+                    },
+                  ),
+                ],
                 startTime: window.start,
                 endTime: window.end,
               },
@@ -1914,7 +2025,35 @@ export default class AwsCloudConnector implements CloudConnector {
 
           const [region, regionSeries] = regionEntries[regionIndex]!;
 
+          // What the calls' unit queries say of each addition's unit (#10077).
+          for (const probe of probesOf[regionIndex] || []) {
+            const before: string | undefined = units[probe.key]?.unit;
+
+            units[probe.key] = readAwsUnitProbe({
+              probe,
+              results: outcome.value,
+              state: units[probe.key],
+              now,
+            });
+
+            const learned: string | undefined = units[probe.key]?.unit;
+
+            // Learned now: this read's points are written with it.
+            if (learned && learned !== before) {
+              for (const item of regionSeries) {
+                if (item.addedKey === probe.key) {
+                  item.keyMetric = { ...item.keyMetric, unit: learned };
+                }
+              }
+            }
+          }
+
           for (const result of outcome.value) {
+            // A unit query's answer is no series of the read's.
+            if (isAwsUnitProbeResult(result.id) || !result.id.startsWith("q")) {
+              continue;
+            }
+
             const item: AwsSeries | undefined =
               regionSeries[Number(result.id.slice(1))];
 
@@ -1943,6 +2082,7 @@ export default class AwsCloudConnector implements CloudConnector {
     }
 
     state.cursors = cursors;
+    state.awsAddedMetricUnits = units;
 
     // 4. Names for resources known by an id.
     const names: Map<string, string> = new Map();
@@ -3120,6 +3260,7 @@ export default class AwsCloudConnector implements CloudConnector {
     credentials: AwsCredentials;
     options: CloudReadOptions;
     budget: CloudReadBudget;
+    learnedUnit?: string | undefined;
   }): Promise<Array<AwsSeries>> {
     const own: Array<CloudAddedMetricDimension> = (
       data.metric.dimensions || []
@@ -3163,9 +3304,10 @@ export default class AwsCloudConnector implements CloudConnector {
     }).map((metric: AwsListedMetric): AwsSeries => {
       return {
         metric,
-        keyMetric: toAwsAddedKeyMetric(data.metric),
+        keyMetric: toAwsAddedKeyMetric(data.metric, data.learnedUnit),
         resource,
         isAdded: true,
+        addedKey: data.metric.key,
       };
     });
   }

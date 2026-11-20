@@ -57,6 +57,12 @@ export interface FakeMetric {
    * CloudWatch does, and lists it when not.
    */
   quiet?: boolean | undefined;
+  /*
+   * The unit its datapoints are published with ("None" when not set): a
+   * GetMetricData query that names another unit (MetricStat.Unit) is
+   * answered with no data, as CloudWatch answers it (#10077).
+   */
+  unit?: string | undefined;
 }
 
 export interface FakeRegion {
@@ -2159,8 +2165,12 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
                 );
               },
             );
+            // A query of another unit than its datapoints': no data.
+            const isOtherUnit: boolean =
+              typeof stat["Unit"] === "string" &&
+              stat["Unit"] !== (found?.unit || "None");
             const values: Array<[number, number]> = (
-              found?.values || []
+              isOtherUnit ? [] : found?.values || []
             ).filter(([time]: [number, number]): boolean => {
               return (
                 time >= Number(body["StartTime"]) &&

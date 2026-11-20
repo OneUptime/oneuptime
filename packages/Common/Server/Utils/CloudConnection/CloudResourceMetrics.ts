@@ -92,6 +92,7 @@ import {
   findAwsMetricUnit,
   listMetrics,
 } from "./Aws/AwsCloudWatch";
+import { getAwsLearnedUnit } from "./Aws/AwsAddedMetricUnits";
 import AzureCloudConnector, {
   AZURE_FIVE_MINUTE_CURSOR,
   SelectedMetric,
@@ -859,6 +860,20 @@ export default class CloudResourceMetrics {
       })
       .join("|");
     const byName: Map<string, CloudPublishedMetric> = new Map();
+    // The unit the connection's reads learned of an addition (#10077), "" for none.
+    const learnedUnitOf: (key: string | undefined) => string = (
+      key: string | undefined,
+    ): string => {
+      return key
+        ? getAwsLearnedUnit({
+            pullState: CloudConnectionPullRunner.readPullState(
+              data.connection.pullState,
+            ),
+            accountId: place.accountId,
+            key,
+          })
+        : "";
+    };
     /*
      * Per metric, its series of one dimension more than the resource's own
      * - a load balancer's per Availability Zone, per target group - by that
@@ -940,8 +955,12 @@ export default class CloudResourceMetrics {
       byName.set(metric.metricName.toLowerCase(), {
         name: metric.metricName,
         namespace: place.namespace,
-        // As its datapoints said when it was added, else as AWS documents it (#9809).
+        /*
+         * As its datapoints carry it, as the reads learned it (#10077), else
+         * as they said when it was added, else as AWS documents it (#9809).
+         */
         unit:
+          learnedUnitOf(status.addedKey) ||
           CloudResourceMetrics.addedUnitOf(data.applying, status.addedKey) ||
           getAwsDocumentedMetricUnit(place.namespace, metric.metricName),
         aggregation: getAwsDefaultStatistic(metric.metricName),
@@ -960,19 +979,20 @@ export default class CloudResourceMetrics {
         continue;
       }
 
+      const splitOnly: string | undefined = CloudResourceMetrics.statusOf({
+        applying: data.applying,
+        namespace: place.namespace,
+        name,
+        isKey: false,
+      }).addedKey;
+
       byName.set(name.toLowerCase(), {
         name,
         namespace: place.namespace,
         unit:
-          CloudResourceMetrics.addedUnitOf(
-            data.applying,
-            CloudResourceMetrics.statusOf({
-              applying: data.applying,
-              namespace: place.namespace,
-              name,
-              isKey: false,
-            }).addedKey,
-          ) || getAwsDocumentedMetricUnit(place.namespace, name),
+          learnedUnitOf(splitOnly) ||
+          CloudResourceMetrics.addedUnitOf(data.applying, splitOnly) ||
+          getAwsDocumentedMetricUnit(place.namespace, name),
         aggregation: getAwsDefaultStatistic(name),
         dimensions: place.dimensions.map(
           (dimension: CloudAddedMetricDimension) => {
@@ -1045,6 +1065,7 @@ export default class CloudResourceMetrics {
           Boolean(data.learnedUnits) &&
           candidate.status === CloudPublishedMetricStatus.Added &&
           Boolean(candidate.addedKey) &&
+          !learnedUnitOf(candidate.addedKey) &&
           !CloudResourceMetrics.addedUnitOf(data.applying, candidate.addedKey)
         );
       })
