@@ -14,7 +14,11 @@ import logger from "../Logger";
  *             log scan reads every minute (LogScan/SecurityLogScanner.ts);
  *   - traces: an enabled "Your OneUptime data" source of kind Traces
  *             (SecurityTelemetrySource), which the trace scan reads
- *             (TelemetryScan/TraceSecurityScan.ts).
+ *             (TelemetryScan/TraceSecurityScan.ts) - or "Your logs" again:
+ *             the log scan follows each event of a line written inside a
+ *             traced request into its trace (RequestTrace/
+ *             SecurityRequestTrace.ts), and takes the client's address
+ *             from the span that answered it when the line names none.
  *
  * Asked by ingest, once a batch, for a project whose scrub rules hash IP
  * addresses: only then does the batch keep the addresses for Security
@@ -94,6 +98,7 @@ export default class SecurityEventsReadTelemetry {
     return Boolean(source);
   }
 
+  // The trace scan's source, else the log scan's, which follows lines into their traces.
   private static async readsTraces(projectId: ObjectID): Promise<boolean> {
     const source: SecurityTelemetrySource | null =
       await SecurityTelemetrySourceService.findOneBy({
@@ -106,6 +111,6 @@ export default class SecurityEventsReadTelemetry {
         props: { isRoot: true },
       });
 
-    return Boolean(source);
+    return Boolean(source) || (await this.readsLogs(projectId));
   }
 }
