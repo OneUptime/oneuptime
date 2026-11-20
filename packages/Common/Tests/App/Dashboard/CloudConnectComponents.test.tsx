@@ -22,14 +22,23 @@ import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeLabel } from "../../../Types/Cloud/CloudResourceCatalog";
 import {
+  CLOUD_CONNECTION_DATA_SECURITY_LEVELS,
+  CLOUD_CONNECTION_DATA_SECURITY_RESPONSES,
   CloudConnectionAuthMethod,
+  CloudConnectionAuthMethodDefinition,
   CloudConnectionCatalog,
+  CloudConnectionDataSecurityLevel,
+  CloudConnectionDataSecurityResponse,
   CloudConnectionDefinition,
   getCloudConnectionDefinition,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
+  CloudConnectionAccessExtra,
   CloudConnectionSetupScope,
+  canSetUpOrganization,
   getAwsExternalIdForProject,
+  getCloudConnectionAccessExtras,
+  getCloudConnectionSetupCommand,
 } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
@@ -52,7 +61,11 @@ import CloudConnectionTestPanel from "../../../../App/FeatureSet/Dashboard/src/C
 import CloudConnectionTiles from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTiles";
 import CloudResourceGroups from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudResourceGroups";
 import CloudSetupCommand, {
+  ACCESS_EXTRA_LINES,
+  ACCESS_READS_LINE,
   ORGANIZATION_SETUP_HINTS,
+  ORGANIZATION_SETUP_HINTS_FOR_ACCESS_BELOW,
+  SETUP_HINTS_FOR_ACCESS_BELOW,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudSetupCommand";
 
 /*
@@ -378,6 +391,316 @@ describe("the setup step", () => {
       "href",
       GCP.shellUrl,
     );
+  });
+});
+
+/*
+ * Data Security's two settings, handed to the setup step (#10336): the
+ * command shown is the one they write, on every cloud and every way in,
+ * and the words around it say what it grants - "can only read" and "Never
+ * data or secrets" only while that holds.
+ */
+describe("the setup step, with Data Security's settings", () => {
+  const ROLE_SETUP: {
+    isAvailable: boolean;
+    trustedPrincipalArn: string;
+    externalId: string;
+  } = {
+    isAvailable: true,
+    trustedPrincipalArn: "arn:aws:iam::999988887777:root",
+    externalId: getAwsExternalIdForProject(PROJECT_ID),
+  };
+
+  interface StepWay {
+    definition: CloudConnectionDefinition;
+    method: CloudConnectionAuthMethod;
+    scope: CloudConnectionSetupScope;
+  }
+
+  const WAYS: Array<StepWay> = CloudConnectionCatalog.flatMap(
+    (definition: CloudConnectionDefinition): Array<StepWay> => {
+      return definition.authMethods.flatMap(
+        (method: CloudConnectionAuthMethodDefinition): Array<StepWay> => {
+          return [
+            CloudConnectionSetupScope.Account,
+            ...(canSetUpOrganization(definition.provider, method.method)
+              ? [CloudConnectionSetupScope.Organization]
+              : []),
+          ].map((scope: CloudConnectionSetupScope): StepWay => {
+            return { definition, method: method.method, scope };
+          });
+        },
+      );
+    },
+  );
+
+  interface StepChoice {
+    dataSecurity: CloudConnectionDataSecurityLevel;
+    dataSecurityResponse: CloudConnectionDataSecurityResponse;
+  }
+
+  const CHOICES: Array<StepChoice> =
+    CLOUD_CONNECTION_DATA_SECURITY_LEVELS.flatMap(
+      (dataSecurity: CloudConnectionDataSecurityLevel): Array<StepChoice> => {
+        return CLOUD_CONNECTION_DATA_SECURITY_RESPONSES.map(
+          (
+            dataSecurityResponse: CloudConnectionDataSecurityResponse,
+          ): StepChoice => {
+            return { dataSecurity, dataSecurityResponse };
+          },
+        );
+      },
+    );
+
+  function drawStep(way: StepWay, choice: StepChoice): void {
+    render(
+      <CloudSetupCommand
+        definition={way.definition}
+        method={way.method}
+        scope={way.scope}
+        dataSecurity={choice.dataSecurity}
+        dataSecurityResponse={choice.dataSecurityResponse}
+        roleSetup={ROLE_SETUP}
+      />,
+    );
+  }
+
+  // The command as drawn, whole: what a person copies and runs.
+  function shownCommand(): string {
+    return (
+      screen.getByTestId("cloud-setup-command-code").querySelector("code")
+        ?.textContent || ""
+    );
+  }
+
+  function describeWay(way: StepWay, choice: StepChoice): string {
+    return [
+      way.definition.provider,
+      way.method,
+      way.scope,
+      choice.dataSecurity,
+      choice.dataSecurityResponse,
+    ].join(" / ");
+  }
+
+  test("shows the command each choice writes, character for character, on every cloud and every way in", () => {
+    let drawn: number = 0;
+
+    for (const way of WAYS) {
+      for (const choice of CHOICES) {
+        drawStep(way, choice);
+
+        expect({
+          way: describeWay(way, choice),
+          command: shownCommand(),
+        }).toEqual({
+          way: describeWay(way, choice),
+          command: getCloudConnectionSetupCommand(
+            way.definition.provider,
+            way.method,
+            { ...ROLE_SETUP, scope: way.scope, ...choice },
+          ),
+        });
+
+        cleanup();
+        drawn++;
+      }
+    }
+
+    expect(drawn).toBe(42);
+  });
+
+  test("left out, both settings are off: the command each way in has always shown", () => {
+    for (const way of WAYS) {
+      render(
+        <CloudSetupCommand
+          definition={way.definition}
+          method={way.method}
+          scope={way.scope}
+          roleSetup={ROLE_SETUP}
+        />,
+      );
+
+      expect(shownCommand()).toBe(
+        getCloudConnectionSetupCommand(way.definition.provider, way.method, {
+          ...ROLE_SETUP,
+          scope: way.scope,
+        }),
+      );
+      expect(screen.getByTestId("cloud-setup-read-only")).toHaveTextContent(
+        way.definition.explanation,
+      );
+      cleanup();
+    }
+  });
+
+  test("a command that only reads keeps its words: the method's hint above it, the cloud's explanation under it", () => {
+    for (const way of WAYS) {
+      for (const choice of CHOICES.filter((candidate: StepChoice): boolean => {
+        return getCloudConnectionAccessExtras(candidate).length === 0;
+      })) {
+        drawStep(way, choice);
+
+        const hint: string =
+          way.scope === CloudConnectionSetupScope.Organization
+            ? ORGANIZATION_SETUP_HINTS[way.definition.provider]
+            : way.definition.authMethods.find(
+                (method: CloudConnectionAuthMethodDefinition): boolean => {
+                  return method.method === way.method;
+                },
+              )!.hint;
+
+        expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(hint);
+        expect(screen.getByTestId("cloud-setup-read-only")).toHaveTextContent(
+          way.definition.explanation,
+        );
+        expect(
+          screen.queryByTestId("cloud-setup-access"),
+        ).not.toBeInTheDocument();
+        cleanup();
+      }
+    }
+
+    // Configuration only is one of them: it reads settings, never data.
+    expect(
+      getCloudConnectionAccessExtras({
+        dataSecurity: "configuration",
+        dataSecurityResponse: "off",
+      }),
+    ).toEqual([]);
+  });
+
+  test("one that reads content samples or may close an exposure: the hint names the access below, and a line under the command says each thing it grants", () => {
+    for (const way of WAYS) {
+      for (const choice of CHOICES) {
+        const extras: Array<CloudConnectionAccessExtra> =
+          getCloudConnectionAccessExtras(choice);
+
+        if (extras.length === 0) {
+          continue;
+        }
+
+        drawStep(way, choice);
+
+        expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(
+          way.scope === CloudConnectionSetupScope.Organization
+            ? ORGANIZATION_SETUP_HINTS_FOR_ACCESS_BELOW[way.definition.provider]
+            : SETUP_HINTS_FOR_ACCESS_BELOW[way.method],
+        );
+        expect(
+          screen.queryByTestId("cloud-setup-read-only"),
+        ).not.toBeInTheDocument();
+        expect(
+          within(screen.getByTestId("cloud-setup-access"))
+            .getAllByRole("listitem")
+            .map((item: HTMLElement): string => {
+              return item.textContent || "";
+            }),
+        ).toEqual([
+          ACCESS_READS_LINE,
+          ...extras.map((extra: CloudConnectionAccessExtra): string => {
+            return ACCESS_EXTRA_LINES[extra];
+          }),
+        ]);
+
+        /*
+         * Nothing on the step - the command's own template included - says
+         * it grants less than it does: no "can only read" beside writes,
+         * no "Never data" beside content samples.
+         */
+        const step: string =
+          screen.getByTestId("cloud-setup-command").textContent || "";
+        const writes: boolean = extras.includes(
+          CloudConnectionAccessExtra.DataSecurityResponse,
+        );
+        const readsData: boolean = extras.includes(
+          CloudConnectionAccessExtra.ContentSamples,
+        );
+
+        expect({
+          way: describeWay(way, choice),
+          saysOnlyReadsBesideWrites: writes && step.includes("can only read"),
+          saysNeverDataBesideSamples: readsData && step.includes("Never data"),
+        }).toEqual({
+          way: describeWay(way, choice),
+          saysOnlyReadsBesideWrites: false,
+          saysNeverDataBesideSamples: false,
+        });
+        cleanup();
+      }
+    }
+  });
+
+  test("each line is the one its choice adds: content samples, Close exposures and fix settings, or both, in that order", () => {
+    drawStep(WAYS[0]!, {
+      dataSecurity: "content",
+      dataSecurityResponse: "off",
+    });
+    expect(
+      screen.getByTestId("cloud-setup-access-content-samples"),
+    ).toHaveTextContent(
+      "Data Security also reads samples of what your data stores hold",
+    );
+    expect(
+      screen.queryByTestId("cloud-setup-access-data-security-response"),
+    ).not.toBeInTheDocument();
+    cleanup();
+
+    drawStep(WAYS[0]!, { dataSecurity: "off", dataSecurityResponse: "block" });
+    expect(
+      screen.getByTestId("cloud-setup-access-data-security-response"),
+    ).toHaveTextContent(
+      "Data Security may also close a data store's exposures and fix its settings.",
+    );
+    expect(
+      screen.queryByTestId("cloud-setup-access-content-samples"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("cloud-setup-access-reads")).toHaveTextContent(
+      "OneUptime reads metrics, resources and how they are set up, changes and health events.",
+    );
+    cleanup();
+
+    drawStep(WAYS[0]!, {
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+    });
+    expect(
+      within(screen.getByTestId("cloud-setup-access"))
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string | null => {
+          return item.getAttribute("data-testid");
+        }),
+    ).toEqual([
+      "cloud-setup-access-reads",
+      "cloud-setup-access-content-samples",
+      "cloud-setup-access-data-security-response",
+    ]);
+  });
+
+  test("a hint for every way in that can grant more, and an organization's for every cloud, each saying where it is run and what it prints", () => {
+    for (const definition of CloudConnectionCatalog) {
+      const organization: string =
+        ORGANIZATION_SETUP_HINTS_FOR_ACCESS_BELOW[definition.provider];
+
+      expect(organization).toContain("with the access below");
+      expect(organization).not.toContain("can only read");
+      // Where it is run, as the read-only hint says it.
+      expect(organization.split(". ")[0]).toBe(
+        ORGANIZATION_SETUP_HINTS[definition.provider].split(". ")[0],
+      );
+
+      for (const method of definition.authMethods) {
+        const hint: string = SETUP_HINTS_FOR_ACCESS_BELOW[method.method];
+
+        expect(hint).toContain("with the access below");
+        expect(hint).not.toContain("can only read");
+        expect(hint.split(". ")[0]).toBe(method.hint.split(". ")[0]);
+        // And what it prints, as the read-only hint says it.
+        expect(hint.split(", and prints ")[1]).toBe(
+          method.hint.split(", and prints ")[1],
+        );
+      }
+    }
   });
 });
 
