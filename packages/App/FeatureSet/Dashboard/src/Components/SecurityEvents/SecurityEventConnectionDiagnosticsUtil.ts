@@ -1139,7 +1139,7 @@ const CONNECTOR_PROVIDER_DETAIL_LABELS: Record<string, string> = {
     "Let through by your rules, with no attack in them",
   ),
   sampledEvents: translationKey("Sampled events"),
-  estimatedRequests: translationKey("Requests they stand for, about"),
+  estimatedRequests: translationKey("Estimated requests they stand for"),
 };
 
 const CONNECTOR_PROVIDER_DETAIL_VALUE_LABELS: Record<

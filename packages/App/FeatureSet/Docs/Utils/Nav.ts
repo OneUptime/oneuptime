@@ -1494,6 +1494,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/google-workspace",
       },
       {
+        title: "Cloudflare",
+        url: "/docs/integrations/cloudflare",
+      },
+      {
         title: "GitHub",
         url: "/docs/integrations/github",
       },

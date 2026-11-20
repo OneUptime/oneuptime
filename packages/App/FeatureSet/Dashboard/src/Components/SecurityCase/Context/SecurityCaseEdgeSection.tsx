@@ -43,38 +43,25 @@ export const SECURITY_CASE_EDGE_TEST_IDS: {
 
 export const EDGE_SECTION_HEADING: string = translationKey("At the edge");
 
+// Plural sentences, looked up by their "other" form (the extractor reads them).
 export const EDGE_STOPPED: PluralTemplate = {
-  one: translationKey("{{edge}} stopped {{count}} request from {{address}}."),
-  other: translationKey(
-    "{{edge}} stopped {{count}} requests from {{address}}.",
-  ),
+  one: "{{edge}} stopped {{count}} request from {{address}}.",
+  other: "{{edge}} stopped {{count}} requests from {{address}}.",
 };
 
 export const EDGE_STOPPED_ABOUT: PluralTemplate = {
-  one: translationKey(
-    "{{edge}} stopped about {{count}} request from {{address}}.",
-  ),
-  other: translationKey(
-    "{{edge}} stopped about {{count}} requests from {{address}}.",
-  ),
+  one: "{{edge}} stopped about {{count}} request from {{address}}.",
+  other: "{{edge}} stopped about {{count}} requests from {{address}}.",
 };
 
 export const EDGE_LET_THROUGH: PluralTemplate = {
-  one: translationKey(
-    "{{edge}} let {{count}} request from {{address}} through.",
-  ),
-  other: translationKey(
-    "{{edge}} let {{count}} requests from {{address}} through.",
-  ),
+  one: "{{edge}} let {{count}} request from {{address}} through.",
+  other: "{{edge}} let {{count}} requests from {{address}} through.",
 };
 
 export const EDGE_LET_THROUGH_ABOUT: PluralTemplate = {
-  one: translationKey(
-    "{{edge}} let about {{count}} request from {{address}} through.",
-  ),
-  other: translationKey(
-    "{{edge}} let about {{count}} requests from {{address}} through.",
-  ),
+  one: "{{edge}} let about {{count}} request from {{address}} through.",
+  other: "{{edge}} let about {{count}} requests from {{address}} through.",
 };
 
 // A figure from sampled events.

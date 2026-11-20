@@ -249,6 +249,7 @@ An AWS account, Google Cloud project or Azure subscription [connected under **Cl
 | Okta System Log | Sign-in, MFA, account and policy events | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Sign-ins, directory changes and risk detections, failed background and app sign-ins if you choose, and the Microsoft 365 audit log's mail forwarding, sharing and phishing verdicts | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Sign-ins, Google's own findings, admin changes and app grants, and Drive sharing | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | What its firewall blocked, challenged and logged at the edge, as HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - The product's own alerts at or above **Open Cases From** (**High and above** unless you choose another level, or **Never**) open [cases](/docs/telemetry/security-cases), grouped by the user, host or address they are about.
 - A connection reads records by the time the product created them, not by the time of the activity they describe. A SIEM rule that runs hourly creates detections long after the events it matched, and they are still imported.
