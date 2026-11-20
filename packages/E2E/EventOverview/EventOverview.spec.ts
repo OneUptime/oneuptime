@@ -264,7 +264,7 @@ const INCIDENT_PAGE: EventPage = {
   stats: [
     {
       label: "Declared",
-      value: "Sep 14, 06:01 PM UTC",
+      value: "Sep 14, 6:01 PM UTC",
       note: "3 minutes after impact began",
       description: "By eu-west-1 probe",
     },
@@ -334,7 +334,7 @@ const ALERT_PAGE: EventPage = {
   stats: [
     {
       label: "Created",
-      value: "Sep 14, 06:06 PM UTC",
+      value: "Sep 14, 6:06 PM UTC",
       description: "By eu-west-1 probe",
     },
     {
@@ -460,7 +460,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     // A grouping rule opened it: nobody to name.
     {
       label: "Declared",
-      value: "Sep 14, 05:56 PM UTC",
+      value: "Sep 14, 5:56 PM UTC",
       description: "Automatically",
     },
     { label: "Acknowledged in", value: "8 minutes" },
@@ -512,7 +512,7 @@ const ALERT_EPISODE_PAGE: EventPage = {
   stats: [
     {
       label: "Created",
-      value: "Sep 14, 05:40 PM UTC",
+      value: "Sep 14, 5:40 PM UTC",
       description: "Automatically",
     },
     { label: "Acknowledged in", value: "15 minutes" },
@@ -20039,20 +20039,20 @@ test.describe("at a glance: when, and what it touched", () => {
        * However many lines it takes, each is whole parts: the date, the
        * time, the zone - never "UT" over "C".
        */
-      expect(lines.join(" ")).toBe("Sep 14, 06:01 PM UTC");
+      expect(lines.join(" ")).toBe("Sep 14, 6:01 PM UTC");
       for (const line of lines) {
         expect([
-          "Sep 14, 06:01 PM UTC",
-          "Sep 14, 06:01 PM",
-          "06:01 PM UTC",
+          "Sep 14, 6:01 PM UTC",
+          "Sep 14, 6:01 PM",
+          "6:01 PM UTC",
           "Sep 14,",
-          "06:01 PM",
+          "6:01 PM",
           "UTC",
         ]).toContain(line);
       }
       // Where the tile is wide enough, one line.
       if (width === 390) {
-        expect(lines).toEqual(["Sep 14, 06:01 PM UTC"]);
+        expect(lines).toEqual(["Sep 14, 6:01 PM UTC"]);
       }
       await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
@@ -20071,7 +20071,7 @@ test.describe("at a glance: when, and what it touched", () => {
       INCIDENT_EPISODE_PAGE.statBar,
       0,
     );
-    expect(lines.join(" ")).toBe("Sep 14, 05:56 PM UTC");
+    expect(lines.join(" ")).toBe("Sep 14, 5:56 PM UTC");
     // Balanced lines: the date over the time and its zone, never a lone zone.
     expect(lines).not.toContain("UTC");
     await expectNoSidewaysScroll(page, { tolerance: 1 });

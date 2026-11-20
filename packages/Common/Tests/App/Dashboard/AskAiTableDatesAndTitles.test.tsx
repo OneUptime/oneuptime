@@ -31,7 +31,7 @@ import { followLanguageForDates } from "../../../UI/Utils/DateDisplayLanguage";
  * ONEUPTIME AI'S TABLES: A DATE AS EVERY TABLE WRITES ONE, AND COLUMN
  * NAMES IN THE READER'S LANGUAGE.
  *
- * A tool's table wrote each date whole - "Oct 14 2026, 11:57 GMT · 3
+ * A tool's table wrote each date whole - "Oct 14, 2026, 11:57 GMT · 3
  * minutes ago" - which took a third of the 768 px chat panel, its year and
  * zone the same on every row; and its column names read in English in
  * every language. A date is short in its cell now, as Table/TableDate
@@ -157,7 +157,7 @@ describe("a date in OneUptime AI's table", () => {
     expect(time).toHaveAttribute("dateTime", THIS_YEAR_ISO);
     expect(cell).toHaveAttribute(
       "title",
-      "Oct 07 2026, 02:05 PM BST · 15\u00A0days ago",
+      "Oct 7, 2026, 2:05 PM BST · 15\u00A0days ago",
     );
     // One line, never cut: no clamp, no zone and no year in the cell.
     expect(cell).toHaveClass("whitespace-nowrap");
@@ -172,7 +172,7 @@ describe("a date in OneUptime AI's table", () => {
     const cell: HTMLElement = screen.getAllByTestId("ai-chat-table-cell")[6]!;
 
     expect(cell).toHaveTextContent("Dec 30, 2025");
-    expect(cell.getAttribute("title")).toMatch(/^Dec 30 2025, 10:10 PM GMT · /);
+    expect(cell.getAttribute("title")).toMatch(/^Dec 30, 2025, 10:10 PM GMT · /);
   });
 
   test("a value that is not a date is shown as it came, and an empty one as a dash", () => {
@@ -213,7 +213,7 @@ describe("a date in OneUptime AI's table", () => {
         title: "Time",
         type: "date",
       }),
-    ).toBe("Oct 07 2026, 02:05 PM BST");
+    ).toBe("Oct 7, 2026, 2:05 PM BST");
     expect(
       formatTableCell("not a date", {
         key: "time",
