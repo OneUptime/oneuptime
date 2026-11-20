@@ -182,7 +182,7 @@ test("Export PDF downloads a site's whole map, named after the site", async ({
   // The header: what, where, when.
   expect(pdf.texts).toContain("NETWORK TOPOLOGY");
   expect(pdf.texts).toContain("London office");
-  expect(pdf.texts.join(" ")).toContain("Exported Sep 07 2026");
+  expect(pdf.texts.join(" ")).toContain("Exported Sep 7, 2026");
   expect(pdf.texts).toContain("7 devices");
   expect(pdf.texts).toContain("6 connections");
 

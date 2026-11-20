@@ -26,6 +26,7 @@ import NetworkControllerConnection from "../../../../Models/DatabaseModels/Netwo
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -687,7 +688,7 @@ describe("what it cannot add, it says", () => {
     await run({
       createDevice: async (data: { device: NetworkDevice }) => {
         if (data.device.name === "Core") {
-          throw new BadDataException(
+          throw new NameTakenException(
             "Network Device with the same name already exists.",
           );
         }
@@ -700,11 +701,45 @@ describe("what it cannot add, it says", () => {
     expect(lastState().addedCount).toBe(3);
   });
 
+  test("a name an archived device has is tried once more under the serial number too, whatever the refusal's words", async () => {
+    await run({
+      createDevice: async (data: { device: NetworkDevice }) => {
+        if (data.device.name === "Core") {
+          throw new NameTakenException(
+            "Network Device with the same name already exists, and it is archived. Unarchive it, or choose another name.",
+            { isArchived: true },
+          );
+        }
+
+        created.push(data.device);
+      },
+    });
+
+    expect(createdNames()).toContain("Core (Q2HP-SWCH-0001)");
+    expect(lastState().addedCount).toBe(3);
+  });
+
+  test("a bad request that is not a taken name is no reason to try another name", async () => {
+    await run({
+      createDevice: async (data: { device: NetworkDevice }) => {
+        if (data.device.name === "Core") {
+          throw new BadDataException(
+            "Network Device with the same name already exists.",
+          );
+        }
+
+        created.push(data.device);
+      },
+    });
+
+    expect(createdNames()).not.toContain("Core (Q2HP-SWCH-0001)");
+  });
+
   test("a name still taken under its serial number is a failure, said plainly", async () => {
     await run({
       createDevice: async (data: { device: NetworkDevice }) => {
         if (data.device.serialNumber === SWITCH.serial) {
-          throw new BadDataException(
+          throw new NameTakenException(
             "Network Device with the same name already exists.",
           );
         }

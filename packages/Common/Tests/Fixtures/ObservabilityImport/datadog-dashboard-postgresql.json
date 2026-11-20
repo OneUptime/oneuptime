@@ -1,0 +1,383 @@
+{
+    "title": "Postgres - Metrics",
+    "description": "This dashboard provides real-time insights into your PostgreSQL databases, so you can monitor throughput and resource utilization metrics from all your servers and troubleshoot performance issues. Further reading on PostgreSQL monitoring:\n\n- [Datadog's guide to key PostgreSQL metrics](https://www.datadoghq.com/blog/postgresql-monitoring/)\n\n- [Collecting metrics with PostgreSQL monitoring tools](https://www.datadoghq.com/blog/postgresql-monitoring-tools/)\n\n- [How to monitor PostgreSQL with Datadog](https://www.datadoghq.com/blog/collect-postgresql-data-with-datadog/)\n\n- [Datadog's PostgreSQL integration docs](https://docs.datadoghq.com/integrations/postgres/)\n\nClone this template dashboard to make changes and add your own graph widgets.",
+    "layout_type": "ordered",
+    "template_variables": [
+        {
+            "default": "*",
+            "prefix": null,
+            "name": "scope"
+        }
+    ],
+    "widgets": [
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "avg:postgresql.rows_fetched{$scope}",
+                                "semantic_mode": "combined"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    },
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "avg:postgresql.rows_returned{$scope}",
+                                "semantic_mode": "combined"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    },
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "avg:postgresql.rows_inserted{$scope}",
+                                "semantic_mode": "combined"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    },
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "avg:postgresql.rows_updated{$scope}",
+                                "semantic_mode": "combined"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "Rows fetched / returned / inserted / updated (per sec)"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "avg:postgresql.connections{$scope} by {db}",
+                                "semantic_mode": "combined"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "Connections"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "postgresql.rows_inserted{$scope}",
+                                "semantic_mode": "combined"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query2",
+                                "query": "postgresql.rows_deleted{$scope}",
+                                "semantic_mode": "combined"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query3",
+                                "query": "postgresql.rows_updated{$scope}",
+                                "semantic_mode": "combined"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            },
+                            {
+                                "formula": "query2"
+                            },
+                            {
+                                "formula": "query3"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "Inserts / updates / deletes (per sec)"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "avg:system.io.util{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "Disk utilization (%)"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "system.load.1{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    },
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "system.load.5{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    },
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "system.load.15{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "System load"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "system.cpu.idle{$scope}"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query2",
+                                "query": "system.cpu.system{$scope}"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query3",
+                                "query": "system.cpu.iowait{$scope}"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query4",
+                                "query": "system.cpu.user{$scope}"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query5",
+                                "query": "system.cpu.stolen{$scope}"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query6",
+                                "query": "system.cpu.guest{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            },
+                            {
+                                "formula": "query2"
+                            },
+                            {
+                                "formula": "query3"
+                            },
+                            {
+                                "formula": "query4"
+                            },
+                            {
+                                "formula": "query5"
+                            },
+                            {
+                                "formula": "query6"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "CPU usage (%)"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "max:system.cpu.iowait{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "I/O wait (%)"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "sum:system.mem.usable{$scope}"
+                            },
+                            {
+                                "data_source": "metrics",
+                                "name": "query2",
+                                "query": "sum:system.mem.total{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            },
+                            {
+                                "formula": "query2 - query1"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "System memory"
+            }
+        },
+        {
+            "definition": {
+                "requests": [
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "sum:system.net.bytes_rcvd{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    },
+                    {
+                        "response_format": "timeseries",
+                        "queries": [
+                            {
+                                "data_source": "metrics",
+                                "name": "query1",
+                                "query": "sum:system.net.bytes_sent{$scope}"
+                            }
+                        ],
+                        "formulas": [
+                            {
+                                "formula": "query1"
+                            }
+                        ]
+                    }
+                ],
+                "type": "timeseries",
+                "title": "Network traffic (per sec)"
+            }
+        }
+    ]
+}

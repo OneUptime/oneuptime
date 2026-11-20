@@ -2,40 +2,51 @@ package provider
 
 /*
  * client.go asks a create or an update again while the server refuses it
- * because another record has the name it asks for (OneUptime/oneuptime#9855),
- * exercised against a real HTTP server.
+ * because a record in service has the name it asks for
+ * (OneUptime/oneuptime#9855, #10065), exercised against a real HTTP server.
  *
  * WHAT THIS FILE PINS
  *
- * Teams, labels, on-call policies and on-call schedules each have a name of
- * their own in a project. Terraform makes the independent changes of one
- * apply side by side, so in a chain of renames - A becomes B while B becomes
- * C - A's rename is refused whenever it runs before B's has given the name
- * up. Nothing is written by a refused write, so the client asks again, with
- * backoff, for a bounded time:
+ * Every kind with a name of its own in a project - teams, labels, on-call
+ * policies and schedules, and since #10065 severities, states, monitor
+ * statuses, status pages, workflows and the rest - refuses a write onto a
+ * name another record of its kind has. Terraform makes the independent
+ * changes of one apply side by side, so in a chain of renames - A becomes B
+ * while B becomes C - A's rename is refused whenever it runs before B's has
+ * given the name up, and a create onto the name of a resource the apply
+ * deletes is refused whenever it runs before the delete. Nothing is written
+ * by a refused write, so the client asks again, with backoff, for a bounded
+ * time:
  *
  *   - a chain converges in one apply, whichever rename runs first, and so
- *     does a create of a name another resource is giving up;
- *   - a swap, or any cycle, can never go first: it gives up once the window
- *     has passed, and the error says to go by way of a temporary name;
+ *     does a create of a name another resource is giving up, by a rename or
+ *     by a delete, whatever the kind's own words for the refusal;
+ *   - a swap, or any cycle, can never go first, and neither can a name a
+ *     record outside the configuration has: either gives up once the window
+ *     has passed, and the error says what to do in both cases;
  *   - only the server's code marks the refusal (refusalCode "name_taken",
  *     Common/Types/Exception/NameTakenException.ts): no other 400 is asked
  *     again - not the refusal's own English without its code, as a server
  *     from before the code answers, nor any other code - and neither is a
  *     read or a delete;
+ *   - a name only an archived record has ("name_taken_by_archived") is
+ *     handed back at once, with the server's own sentence and nothing
+ *     added: nothing an apply does to the records in service gives it up;
  *   - the response handed back can still be read, and Terraform's
  *     cancellation ends the waiting.
  *
  * The fake API below holds named records and refuses a name the way the
- * server does (Common/Server/Utils/Database/UniqueNameInProject.ts): another
- * record's name, whatever its case, on a create or on a rename. What the
- * server really answers - the status, the sentence and the code beside it,
- * through the express error handler a route's next(err) reaches - is pinned
- * on the server's side by
- * Common/Tests/Server/Utils/NameTakenRefusalAnswer.test.ts.
+ * server does (Common/Server/Utils/Database/UniqueNameInProject.ts,
+ * DatabaseService.checkUniqueColumnBy, ArchivableValueGuard): another
+ * record's name, whatever its case, on a create or on a rename, with the
+ * archived code when only an archived record has it. What the server really
+ * answers - the status, the sentence and the code beside it, through the
+ * express error handler a route's next(err) reaches - is pinned on the
+ * server's side by Common/Tests/Server/Utils/NameTakenRefusalAnswer.test.ts.
  */
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -61,12 +72,29 @@ func teamNameTakenSentence(name string) string {
 	return fmt.Sprintf("There is already a team called %s in this project. Pick another name.", name)
 }
 
+/*
+ * The server's generic words for a kind whose model holds its name unique
+ * (DatabaseService.checkUniqueColumnBy): no name in them, and since #10065
+ * the code beside them.
+ */
+const severityNameTakenSentence = "Incident Severity with the same name already exists."
+
+// A new value named as an archived one, as ArchivableValueGuard words it.
+func archivedSeverityNameTakenSentence(name string) string {
+	return fmt.Sprintf("An archived incident severity is already called %q. Unarchive it in Incidents > Settings > Incident Severity, or choose another name.", name)
+}
+
+// The same, for an archived on-call policy (UniqueNameInProject).
+func archivedPolicyNameTakenSentence(name string) string {
+	return fmt.Sprintf("There is already an archived on-call policy called %s in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.", name)
+}
+
 // A refusal body as the server answers it: the sentence, and the code beside it.
-func nameTakenBody(t *testing.T, envelope string, sentence string) string {
+func refusalBody(t *testing.T, envelope string, sentence string, code string) string {
 	t.Helper()
 	encoded, err := json.Marshal(map[string]string{
 		envelope:         sentence,
-		refusalCodeField: nameTakenRefusalCode,
+		refusalCodeField: code,
 	})
 	if err != nil {
 		t.Fatalf("marshalling the refusal: %s", err)
@@ -74,21 +102,82 @@ func nameTakenBody(t *testing.T, envelope string, sentence string) string {
 	return string(encoded)
 }
 
-// namedRecordsAPI holds records by id with a name each, as a project's teams.
+// A refusal of a name a record in service has.
+func nameTakenBody(t *testing.T, envelope string, sentence string) string {
+	t.Helper()
+	return refusalBody(t, envelope, sentence, nameTakenRefusalCode)
+}
+
+// A refusal of a name only an archived record has.
+func nameTakenByArchivedBody(t *testing.T, envelope string, sentence string) string {
+	t.Helper()
+	return refusalBody(t, envelope, sentence, nameTakenByArchivedRefusalCode)
+}
+
+// The words the client adds once nothing gave the name up, without the wait.
+const nothingGaveTheNameUpAdvice = "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record. If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
+
+// Words that only a refusal asked again for the whole window may carry.
+var adviceWords = []string{
+	"asking again",
+	"outside this configuration",
+	"temporary name",
+}
+
+// namedRecordsAPI holds records by id with a name each, as a project's teams
+// or its incident severities.
 type namedRecordsAPI struct {
-	t      *testing.T
-	mu     sync.Mutex
-	names  map[string]string
-	nextID int
+	t *testing.T
+	// The records' collection under /api: "team", "incident-severity".
+	collection string
+	// How the server words a refusal of a name the given record has.
+	sentence func(name string, archived bool) string
+	mu       sync.Mutex
+	names    map[string]string
+	// The records that are archived: each keeps its name, and a write onto
+	// it is refused with the archived code.
+	archived map[string]bool
+	nextID   int
 	// Every request, in the order it arrived: "PUT /team/a Beta".
 	requests []string
 	server   *httptest.Server
 }
 
+// A project's teams, each with a name of its own (UniqueNameInProject).
 func newNamedRecordsAPI(t *testing.T, names map[string]string) (*namedRecordsAPI, *Client) {
 	t.Helper()
 
-	api := &namedRecordsAPI{t: t, names: names}
+	return newNamedRecordsAPIOf(t, "team", func(name string, _ bool) string {
+		return teamNameTakenSentence(name)
+	}, names)
+}
+
+/*
+ * A project's incident severities: a kind whose model holds its name unique
+ * (@UniqueColumnBy), refused in the server's generic words, and an archived
+ * value's name in ArchivableValueGuard's (#10065).
+ */
+func newIncidentSeveritiesAPI(t *testing.T, names map[string]string) (*namedRecordsAPI, *Client) {
+	t.Helper()
+
+	return newNamedRecordsAPIOf(t, "incident-severity", func(name string, archived bool) string {
+		if archived {
+			return archivedSeverityNameTakenSentence(name)
+		}
+		return severityNameTakenSentence
+	}, names)
+}
+
+func newNamedRecordsAPIOf(t *testing.T, collection string, sentence func(name string, archived bool) string, names map[string]string) (*namedRecordsAPI, *Client) {
+	t.Helper()
+
+	api := &namedRecordsAPI{
+		t:          t,
+		collection: collection,
+		sentence:   sentence,
+		names:      names,
+		archived:   map[string]bool{},
+	}
 	api.server = httptest.NewServer(http.HandlerFunc(api.handle))
 	t.Cleanup(api.server.Close)
 
@@ -101,6 +190,13 @@ func newNamedRecordsAPI(t *testing.T, names map[string]string) (*namedRecordsAPI
 	return api, client
 }
 
+// archive marks a record archived: it keeps its name, as the server's do.
+func (api *namedRecordsAPI) archive(id string) {
+	api.mu.Lock()
+	defer api.mu.Unlock()
+	api.archived[id] = true
+}
+
 func (api *namedRecordsAPI) handle(w http.ResponseWriter, r *http.Request) {
 	raw, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -108,40 +204,72 @@ func (api *namedRecordsAPI) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request struct {
-		Data struct {
-			Name string `json:"name"`
-		} `json:"data"`
+	// A delete sends no body; a create and a rename send the record.
+	name := ""
+	if r.Method != http.MethodDelete {
+		var request struct {
+			Data struct {
+				Name string `json:"name"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(raw, &request); err != nil {
+			api.t.Errorf("request body was not JSON (%s): %s", err, raw)
+			return
+		}
+		name = request.Data.Name
 	}
-	if err := json.Unmarshal(raw, &request); err != nil {
-		api.t.Errorf("request body was not JSON (%s): %s", err, raw)
-		return
-	}
-	name := request.Data.Name
 
 	api.mu.Lock()
 	defer api.mu.Unlock()
 
 	api.requests = append(api.requests, fmt.Sprintf("%s %s %s", r.Method, strings.TrimPrefix(r.URL.Path, "/api"), name))
 
+	collection := "/api/" + api.collection
 	id := ""
 	switch {
-	case r.Method == http.MethodPost && r.URL.Path == "/api/team":
-	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/team/"):
-		id = strings.TrimPrefix(r.URL.Path, "/api/team/")
+	case r.Method == http.MethodPost && r.URL.Path == collection:
+	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, collection+"/"):
+		id = strings.TrimPrefix(r.URL.Path, collection+"/")
+	case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, collection+"/"):
+		// A deleted record gives its name up.
+		id = strings.TrimPrefix(r.URL.Path, collection+"/")
+		delete(api.names, id)
+		delete(api.archived, id)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, `{}`)
+		return
 	default:
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	// Another record's name, whatever its case: refused, and nothing written.
+	/*
+	 * Another record's name, whatever its case: refused, and nothing
+	 * written. A record in service is named before an archived one, as the
+	 * server names it, and only a name no record in service has carries the
+	 * archived code.
+	 */
+	taken, takenByArchived := false, false
 	for otherID, otherName := range api.names {
-		if otherID != id && strings.EqualFold(otherName, name) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = io.WriteString(w, nameTakenBody(api.t, "error", teamNameTakenSentence(name)))
-			return
+		if otherID == id || !strings.EqualFold(otherName, name) {
+			continue
 		}
+		if api.archived[otherID] {
+			takenByArchived = true
+		} else {
+			taken = true
+		}
+	}
+	if taken || takenByArchived {
+		code := nameTakenRefusalCode
+		if !taken {
+			code = nameTakenByArchivedRefusalCode
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, refusalBody(api.t, "error", api.sentence(name, !taken), code))
+		return
 	}
 
 	if id == "" {
@@ -185,6 +313,25 @@ func rename(ctx context.Context, client *Client, id string, name string) error {
 		return err
 	}
 	return client.ParseResponse(resp, nil)
+}
+
+// remove deletes a record as a resource's Delete does, and reads the answer as it does.
+func remove(ctx context.Context, client *Client, collection string, id string) error {
+	resp, err := client.Delete(ctx, "/"+collection+"/"+id)
+	if err != nil {
+		return err
+	}
+	return client.ParseResponse(resp, nil)
+}
+
+// saysNoAdvice fails the test for any word of the client's own advice in err.
+func saysNoAdvice(t *testing.T, what string, err error) {
+	t.Helper()
+	for _, words := range adviceWords {
+		if strings.Contains(err.Error(), words) {
+			t.Errorf("%s: only a name a record in service has gets the client's advice (%q): %s", what, words, err)
+		}
+	}
 }
 
 // The issue's own case: refused twice while another resource still has the name, then saved.
@@ -346,6 +493,53 @@ func TestDoRequest_ACreateWaitsForTheNameToBeGivenUp(t *testing.T) {
 }
 
 /*
+ * #10065's own case: one apply deletes a severity and creates another with
+ * its name, side by side. The create runs first and is refused, in the
+ * server's generic words for a kind whose model holds its name unique; it
+ * goes through once the delete, which Terraform starts a little later, has
+ * given the name up - a few requests, well inside the window.
+ */
+func TestDoRequest_ACreateWaitsForADeleteToGiveTheNameUp(t *testing.T) {
+	api, client := newIncidentSeveritiesAPI(t, map[string]string{"old": "Sev1"})
+
+	deleted := make(chan error, 1)
+	go func() {
+		time.Sleep(150 * time.Millisecond)
+		deleted <- remove(context.Background(), client, "incident-severity", "old")
+	}()
+
+	started := time.Now()
+	resp, err := client.Post(context.Background(), "/incident-severity", renameBody("sev1"))
+	if err != nil {
+		t.Fatalf("Post: %s", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := client.ParseResponse(resp, &parsed); err != nil {
+		t.Fatalf("the create should go through once the delete gave the name up, got %s", err)
+	}
+	elapsed := time.Since(started)
+
+	if err := <-deleted; err != nil {
+		t.Fatalf("the delete failed: %s", err)
+	}
+	if api.nameOf("new-1") != "sev1" {
+		t.Errorf("the new severity should be called sev1, got %q", api.nameOf("new-1"))
+	}
+	if asked := api.requestsFor("DELETE /incident-severity/old"); asked != 1 {
+		t.Errorf("the delete is sent once, it was sent %d times", asked)
+	}
+
+	// Bounded: refused while the old one had the name, then saved, inside the window.
+	if asked := api.requestsFor("POST /incident-severity sev1"); asked < 2 || asked > 12 {
+		t.Errorf("the create was sent %d times; it should be refused first, asked again a few times, then saved", asked)
+	}
+	if elapsed >= quickNameTakenRetry.window {
+		t.Errorf("the create took %s, the whole %s window, though the name was given up after 150ms", elapsed, quickNameTakenRetry.window)
+	}
+}
+
+/*
  * A swap can never go first: each rename waits on the other. Both give up
  * once the window has passed, with the server's own refusal and what to do:
  * go by way of a temporary name. Nothing was renamed.
@@ -384,6 +578,7 @@ func TestDoRequest_ASwapGivesUpWithAClearMessage(t *testing.T) {
 			"returned status 400",
 			teamNameTakenSentence(name),
 			"The name was still taken after asking again for 300ms.",
+			"If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record.",
 			"swap names, or rename each other in a cycle",
 			"give one of them a temporary name, apply, then apply the names you want.",
 		} {
@@ -412,6 +607,53 @@ func TestDoRequest_ASwapGivesUpWithAClearMessage(t *testing.T) {
 	}
 }
 
+/*
+ * A name a record outside the configuration has - one OneUptime made with
+ * the project, such as the severity "Critical Incident" - is given up by no
+ * resource of the apply. The create gives up once the window has passed,
+ * with the server's own words and what to do: give the resource another
+ * name, or import that record. Nothing is created.
+ */
+func TestDoRequest_ANameNothingGivesUpEndsWithWhatToDo(t *testing.T) {
+	api, client := newIncidentSeveritiesAPI(t, map[string]string{"seeded": "Critical Incident"})
+	client.nameTakenRetry = nameTakenRetry{
+		window:    300 * time.Millisecond,
+		firstWait: 10 * time.Millisecond,
+		maxWait:   40 * time.Millisecond,
+	}
+
+	started := time.Now()
+	resp, err := client.Post(context.Background(), "/incident-severity", renameBody("Critical Incident"))
+	if err != nil {
+		t.Fatalf("Post: %s", err)
+	}
+	err = client.ParseResponse(resp, nil)
+	elapsed := time.Since(started)
+
+	if err == nil {
+		t.Fatalf("a create onto a name nothing gives up went through")
+	}
+	for _, words := range []string{
+		"returned status 400",
+		severityNameTakenSentence,
+		"The name was still taken after asking again for 300ms. " + nothingGaveTheNameUpAdvice,
+	} {
+		if !strings.Contains(err.Error(), words) {
+			t.Errorf("the error should say %q; it said: %s", words, err)
+		}
+	}
+
+	if api.nameOf("new-1") != "" {
+		t.Errorf("a refused create creates nothing, got %q", api.nameOf("new-1"))
+	}
+	if elapsed < 300*time.Millisecond || elapsed > 3*time.Second {
+		t.Errorf("gave up after %s on a 300ms window", elapsed)
+	}
+	if asked := api.requestsFor("POST /incident-severity Critical Incident"); asked < 3 || asked > 20 {
+		t.Errorf("the create was sent %d times in a 300ms window that waits 10ms, then 20ms, then 40ms", asked)
+	}
+}
+
 // What is asked again: only a 400 that carries the code.
 func TestDoRequest_NeverAsksAgainForAnyOtherRefusal(t *testing.T) {
 	cases := []struct {
@@ -429,6 +671,12 @@ func TestDoRequest_NeverAsksAgainForAnyOtherRefusal(t *testing.T) {
 			name:   "one update that would give several records one name",
 			status: http.StatusBadRequest,
 			body:   jsonBody(t, envelopeError, "Several teams cannot be given one name. Rename one team at a time."),
+		},
+		{
+			// Nothing an apply does to the records in service gives it up (#10065).
+			name:   "a name only an archived record has",
+			status: http.StatusBadRequest,
+			body:   nameTakenByArchivedBody(t, "error", archivedSeverityNameTakenSentence("Sev1")),
 		},
 		{
 			name:   "another refusal's code",
@@ -493,11 +741,137 @@ func TestDoRequest_NeverAsksAgainForAnyOtherRefusal(t *testing.T) {
 				if err == nil {
 					t.Fatalf("%s: expected the refusal to reach the caller as an error", method)
 				}
-				if strings.Contains(err.Error(), "temporary name") {
-					t.Errorf("%s: only a name-taken refusal says to use a temporary name: %s", method, err)
-				}
+				saysNoAdvice(t, method, err)
 			}
 		})
+	}
+}
+
+/*
+ * A name only an archived record has (#10065): somebody retired that
+ * record, and nothing an apply does to the records in service gives its
+ * name up. On a create and an update alike, in either envelope, the refusal
+ * is handed back at once - even with a long window to wait in - as it came,
+ * with the server's own sentence, which says to unarchive it, and nothing
+ * the client would add.
+ */
+func TestDoRequest_NeverAsksAgainForANameOnlyAnArchivedRecordHas(t *testing.T) {
+	sentences := map[string]string{
+		envelopeError:   archivedSeverityNameTakenSentence("Sev1"),
+		envelopeMessage: archivedPolicyNameTakenSentence("Primary"),
+	}
+
+	for envelope, sentence := range sentences {
+		t.Run(envelope, func(t *testing.T) {
+			requests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = io.WriteString(w, nameTakenByArchivedBody(t, envelope, sentence))
+			}))
+			t.Cleanup(server.Close)
+
+			client, err := NewClient(server.URL, "api-key", "test")
+			if err != nil {
+				t.Fatalf("NewClient: %s", err)
+			}
+			// Asked again at all, a request would wait two seconds first.
+			client.nameTakenRetry = nameTakenRetry{
+				window:    time.Minute,
+				firstWait: 2 * time.Second,
+				maxWait:   2 * time.Second,
+			}
+
+			for _, method := range []string{"POST", "PUT", "PATCH"} {
+				requests = 0
+				started := time.Now()
+
+				resp, err := client.DoRequest(context.Background(), method, "/incident-severity/a", renameBody("Sev1"))
+				if err != nil {
+					t.Fatalf("%s: %s", method, err)
+				}
+				if requests != 1 {
+					t.Errorf("%s was asked %d times; a name an archived record has is asked once", method, requests)
+				}
+				if elapsed := time.Since(started); elapsed > time.Second {
+					t.Errorf("%s waited %s before handing the refusal back", method, elapsed)
+				}
+
+				// Handed back as it came: its status, and its body as the server wrote it.
+				if resp.StatusCode != http.StatusBadRequest {
+					t.Fatalf("%s: expected the server's 400 back, got %d", method, resp.StatusCode)
+				}
+				raw, err := io.ReadAll(resp.Body)
+				if err != nil {
+					t.Fatalf("%s: reading the refusal: %s", method, err)
+				}
+				var parsed map[string]interface{}
+				if err := json.Unmarshal(raw, &parsed); err != nil {
+					t.Fatalf("%s: the refusal handed back is not JSON (%s): %s", method, err, raw)
+				}
+				if parsed[envelope] != sentence || parsed[refusalCodeField] != nameTakenByArchivedRefusalCode {
+					t.Errorf("%s: the refusal's body was changed on the way out: %s", method, raw)
+				}
+				if isNameTakenRefusal(raw) {
+					t.Errorf("%s: a name an archived record has is no refusal to ask again", method)
+				}
+
+				// Read as a resource reads it: the server's sentence, and nothing added.
+				resp.Body = io.NopCloser(bytes.NewReader(raw))
+				err = client.ParseResponse(resp, nil)
+				if err == nil {
+					t.Fatalf("%s: expected the refusal to reach the caller as an error", method)
+				}
+				want := fmt.Sprintf("the OneUptime API returned status 400: %s", sentence)
+				if err.Error() != want {
+					t.Errorf("%s: expected exactly %q, got %q", method, want, err)
+				}
+				saysNoAdvice(t, method, err)
+			}
+		})
+	}
+}
+
+/*
+ * The same against the fake API: a create named as an archived severity
+ * fails the apply at once, with ArchivableValueGuard's words, and creates
+ * nothing - even while another severity in service could not be the one in
+ * the way.
+ */
+func TestDoRequest_ANameAnArchivedRecordHasFailsTheApplyAtOnce(t *testing.T) {
+	api, client := newIncidentSeveritiesAPI(t, map[string]string{"retired": "Sev1", "live": "Sev2"})
+	api.archive("retired")
+	client.nameTakenRetry = nameTakenRetry{
+		window:    time.Minute,
+		firstWait: 2 * time.Second,
+		maxWait:   2 * time.Second,
+	}
+
+	started := time.Now()
+	resp, err := client.Post(context.Background(), "/incident-severity", renameBody("sev1"))
+	if err != nil {
+		t.Fatalf("Post: %s", err)
+	}
+	err = client.ParseResponse(resp, nil)
+	elapsed := time.Since(started)
+
+	if err == nil {
+		t.Fatalf("a create onto an archived severity's name went through")
+	}
+	if !strings.Contains(err.Error(), archivedSeverityNameTakenSentence("sev1")) {
+		t.Errorf("the error should be the server's own sentence; it said: %s", err)
+	}
+	saysNoAdvice(t, "the create", err)
+
+	if asked := api.requestsFor("POST /incident-severity sev1"); asked != 1 {
+		t.Errorf("the create was sent %d times; a name an archived record has is asked once", asked)
+	}
+	if elapsed > time.Second {
+		t.Errorf("waited %s before failing on an archived severity's name", elapsed)
+	}
+	if api.nameOf("new-1") != "" {
+		t.Errorf("a refused create creates nothing, got %q", api.nameOf("new-1"))
 	}
 }
 
@@ -691,6 +1065,12 @@ func TestDoRequest_AClientWithoutAWindowAsksOnce(t *testing.T) {
 	if err == nil || strings.Contains(err.Error(), "asking again") || !strings.Contains(err.Error(), "temporary name") {
 		t.Errorf("expected the swap advice without a wait in it, got %v", err)
 	}
+	if advice := client.nameTakenAdvice(); advice != nothingGaveTheNameUpAdvice {
+		t.Errorf("without a window the advice is its two sentences alone, got %q", advice)
+	}
+	if want := teamNameTakenSentence("Beta") + " " + nothingGaveTheNameUpAdvice; !strings.HasSuffix(err.Error(), want) {
+		t.Errorf("expected the server's sentence, then the advice, got %v", err)
+	}
 }
 
 // The provider asks again for about 30 seconds, waiting half a second, then longer, up to 5.
@@ -711,6 +1091,10 @@ func TestNewClient_AsksAgainForThirtySeconds(t *testing.T) {
 	if advice := client.nameTakenAdvice(); !strings.HasPrefix(advice, "The name was still taken after asking again for 30 seconds.") {
 		t.Errorf("the advice should say how long it asked: %s", advice)
 	}
+	wantAdvice := "The name was still taken after asking again for 30 seconds. If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record. If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
+	if advice := client.nameTakenAdvice(); advice != wantAdvice {
+		t.Errorf("expected the advice\n%s\ngot\n%s", wantAdvice, advice)
+	}
 }
 
 func TestIsNameTakenRefusal(t *testing.T) {
@@ -721,10 +1105,17 @@ func TestIsNameTakenRefusal(t *testing.T) {
 	}{
 		{"the code beside an error", nameTakenBody(t, "error", teamNameTakenSentence("Beta")), true},
 		{"the code beside a message", nameTakenBody(t, "message", teamNameTakenSentence("Beta")), true},
+		{"a kind's generic words, with the code", nameTakenBody(t, "message", severityNameTakenSentence), true},
+		// Only an archived record has it: nothing an apply does gives it up (#10065).
 		{
 			"an archived on-call policy's name",
-			nameTakenBody(t, "error", "There is already an archived on-call policy called Primary in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name."),
-			true,
+			nameTakenByArchivedBody(t, "error", archivedPolicyNameTakenSentence("Primary")),
+			false,
+		},
+		{
+			"an archived severity's name",
+			nameTakenByArchivedBody(t, "message", archivedSeverityNameTakenSentence("Sev1")),
+			false,
 		},
 		{"the sentence alone", jsonBody(t, envelopeError, teamNameTakenSentence("Beta")), false},
 		{"another code", `{"error":"x","refusalCode":"ai_off"}`, false},
@@ -741,6 +1132,36 @@ func TestIsNameTakenRefusal(t *testing.T) {
 				t.Errorf("got %v, wanted %v for %s", got, testCase.want, testCase.body)
 			}
 		})
+	}
+}
+
+// The code is read from the field the server puts it in, as it was written.
+func TestRefusalCodeOf(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"a name a record in service has", nameTakenBody(t, "error", teamNameTakenSentence("Beta")), nameTakenRefusalCode},
+		{"a name only an archived record has", nameTakenByArchivedBody(t, "message", archivedSeverityNameTakenSentence("Sev1")), nameTakenByArchivedRefusalCode},
+		{"another refusal's code", `{"message":"x","refusalCode":"ai_off"}`, "ai_off"},
+		{"no code", jsonBody(t, envelopeError, teamNameTakenSentence("Beta")), ""},
+		{"a code that is not text", `{"error":"x","refusalCode":1}`, ""},
+		{"not JSON", `name_taken_by_archived`, ""},
+		{"an empty body", ``, ""},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := refusalCodeOf([]byte(testCase.body)); got != testCase.want {
+				t.Errorf("got %q, wanted %q for %s", got, testCase.want, testCase.body)
+			}
+		})
+	}
+
+	// The two codes are Common's, and never one another.
+	if nameTakenRefusalCode != "name_taken" || nameTakenByArchivedRefusalCode != "name_taken_by_archived" {
+		t.Errorf("the codes drifted from the server's: %q and %q", nameTakenRefusalCode, nameTakenByArchivedRefusalCode)
 	}
 }
 

@@ -30,6 +30,7 @@ import BadDataExceptionWithDetails, {
 } from "../../../Types/Exception/BadDataExceptionWithDetails";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NameTakenException, {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODE,
   REFUSAL_CODE_FIELD,
 } from "../../../Types/Exception/NameTakenException";
@@ -69,7 +70,11 @@ import {
  *     Response.sendErrorResponse - and a detail never replaces the message;
  *   - every kind's refusal of a taken name carries it: a team's, an on-call
  *     policy's (an archived one's too), an on-call schedule's, a label's on
- *     a create and on a rename, and a label named as an archived one;
+ *     a create and on a rename, and a label named as an archived one. A
+ *     name only an archived record has carries "name_taken_by_archived"
+ *     (#10065): nothing an apply does to the records in service gives it
+ *     up, so the provider answers at once, and never asks it again (the
+ *     other kinds: Tests/Server/Services/UniqueNameRefusalCodes.test.ts);
  *   - no other refusal does: one update that would give several records one
  *     name is not a name another record has, and asking it again changes
  *     nothing; a plain bad request carries no code;
@@ -103,6 +108,10 @@ const NAME_TAKEN_DETAILS: JSONObject = {
   [REFUSAL_CODE_FIELD]: NAME_TAKEN_REFUSAL_CODE,
 };
 
+const TAKEN_BY_ARCHIVED_DETAILS: JSONObject = {
+  [REFUSAL_CODE_FIELD]: NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+};
+
 interface UniqueCheckHooks {
   onBeforeCreateUniqueCheck: (createBy: CreateBy<BaseModel>) => Promise<void>;
   onBeforeUpdateUniqueCheck: (updateBy: UpdateBy<BaseModel>) => Promise<void>;
@@ -119,7 +128,11 @@ async function thrownBy(write: Promise<unknown>): Promise<unknown> {
   throw new Error("Expected the write to be refused.");
 }
 
-function expectNameTaken(error: unknown, message: string): void {
+function expectNameTaken(
+  error: unknown,
+  message: string,
+  details: JSONObject = NAME_TAKEN_DETAILS,
+): void {
   expect(error).toBeInstanceOf(NameTakenException);
   // Still bad data, at 400, for everything that reads it as such.
   expect(error).toBeInstanceOf(BadDataException);
@@ -127,7 +140,7 @@ function expectNameTaken(error: unknown, message: string): void {
     ExceptionCode.BadDataException,
   );
   expect((error as NameTakenException).message).toBe(message);
-  expect((error as NameTakenException).details).toEqual(NAME_TAKEN_DETAILS);
+  expect((error as NameTakenException).details).toEqual(details);
 }
 
 function record<TBaseModel extends BaseModel>(
@@ -188,8 +201,21 @@ describe("the exception", () => {
   test("puts its code in the field the AI run refusals put theirs", () => {
     expect(REFUSAL_CODE_FIELD).toBe("refusalCode");
     expect(AI_RUN_REFUSAL_CODE_FIELD).toBe(REFUSAL_CODE_FIELD);
-    // The value a client matches: part of the API, never reworded.
+    // The values a client matches: part of the API, never reworded.
     expect(NAME_TAKEN_REFUSAL_CODE).toBe("name_taken");
+    expect(NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE).toBe("name_taken_by_archived");
+  });
+
+  test("says, in its code, when the record that has the name is archived", () => {
+    expectNameTaken(
+      new NameTakenException(TEAM_TAKEN, { isArchived: true }),
+      TEAM_TAKEN,
+      TAKEN_BY_ARCHIVED_DETAILS,
+    );
+    expectNameTaken(
+      new NameTakenException(TEAM_TAKEN, { isArchived: false }),
+      TEAM_TAKEN,
+    );
   });
 
   test("getErrorDetails reads an exception's details, and nothing of anything else", () => {
@@ -261,6 +287,21 @@ describe("the answer", () => {
     expect(statuses).toEqual([400]);
     expect(bodies).toEqual([
       { error: TEAM_TAKEN, refusalCode: NAME_TAKEN_REFUSAL_CODE },
+    ]);
+  });
+
+  test("a name an archived record has answers its own code, the same ways", () => {
+    handle(new NameTakenException(TEAM_TAKEN, { isArchived: true }));
+    ResponseUtil.sendErrorResponse(
+      { headers: {}, socket: {} } as unknown as ExpressRequest,
+      res,
+      new NameTakenException(TEAM_TAKEN, { isArchived: true }),
+    );
+
+    expect(statuses).toEqual([400, 400]);
+    expect(bodies).toEqual([
+      { error: TEAM_TAKEN, refusalCode: NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE },
+      { message: TEAM_TAKEN, refusalCode: NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE },
     ]);
   });
 
@@ -371,8 +412,11 @@ describe("every kind's refusal of a taken name carries the code", () => {
     },
   );
 
-  test("an archived on-call policy's name, which says where to unarchive it", async () => {
-    getJestSpyOn(OnCallDutyPolicyService, "findOneBy").mockResolvedValue(
+  test("an archived on-call policy's name, which says where to unarchive it, with the archived code", async () => {
+    const findOneBy: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      OnCallDutyPolicyService,
+      "findOneBy",
+    ).mockResolvedValue(
       record(new OnCallDutyPolicy(), {
         id: CLASHING_RECORD_ID,
         name: "Primary",
@@ -385,7 +429,67 @@ describe("every kind's refusal of a taken name carries the code", () => {
         createWith(OnCallDutyPolicyService, new OnCallDutyPolicy(), "Primary"),
       ),
       "There is already an archived on-call policy called Primary in this project. Unarchive it from On-Call > Advanced > Archived Policies, or pick another name.",
+      TAKEN_BY_ARCHIVED_DETAILS,
     );
+
+    // Whether the other record is archived is read with it.
+    const select: Record<string, unknown> = (
+      findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+    expect(select["isArchived"]).toBe(true);
+  });
+
+  test("a policy in service with the name answers name_taken, archived or not", async () => {
+    getJestSpyOn(OnCallDutyPolicyService, "findOneBy").mockResolvedValue(
+      record(new OnCallDutyPolicy(), {
+        id: CLASHING_RECORD_ID,
+        name: "Primary",
+        isArchived: false,
+      }),
+    );
+
+    expectNameTaken(
+      await thrownBy(
+        createWith(OnCallDutyPolicyService, new OnCallDutyPolicy(), "Primary"),
+      ),
+      "There is already an on-call policy called Primary in this project. Pick another name.",
+    );
+  });
+
+  test("a team or a schedule, which cannot be archived, never asks whether the other is", async () => {
+    for (const service of [TeamService, OnCallDutyPolicyScheduleService]) {
+      const findOneBy: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+        service,
+        "findOneBy",
+      ).mockResolvedValue(
+        record(
+          service === TeamService ? new Team() : new OnCallDutyPolicySchedule(),
+          {
+            id: CLASHING_RECORD_ID,
+            name: "Primary",
+          },
+        ),
+      );
+
+      expect(
+        getErrorDetails(
+          await thrownBy(
+            createWith(
+              service,
+              service === TeamService
+                ? new Team()
+                : new OnCallDutyPolicySchedule(),
+              "Primary",
+            ),
+          ),
+        ),
+      ).toEqual(NAME_TAKEN_DETAILS);
+
+      const select: Record<string, unknown> = (
+        findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select["isArchived"]).toBeUndefined();
+    }
   });
 
   test("a label renamed onto another label's name, or an archived label's", async () => {
@@ -422,6 +526,7 @@ describe("every kind's refusal of a taken name carries the code", () => {
         definition: ARCHIVABLE_VALUES[ArchivableValueType.Label],
         name: "Production",
       }),
+      TAKEN_BY_ARCHIVED_DETAILS,
     );
   });
 
@@ -474,6 +579,7 @@ describe("every kind's refusal of a taken name carries the code", () => {
         definition: ARCHIVABLE_VALUES[ArchivableValueType.Label],
         name: "Production",
       }),
+      TAKEN_BY_ARCHIVED_DETAILS,
     );
   });
 });

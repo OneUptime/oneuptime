@@ -11,7 +11,12 @@ import {
   getFeedZoneName,
 } from "Common/UI/Components/Feed/FeedTime";
 import OneUptimeDate from "Common/Types/Date";
-import { formatRelativeAmount, getHourOption } from "Common/Types/DateLanguage";
+import {
+  ReaderDateTimeFormat,
+  formatRelativeAmount,
+  getDateTimeFormat,
+  getHourOption,
+} from "Common/Types/DateLanguage";
 import {
   RUNBOOK_SCHEDULE_DAY_ORDER,
   RUNBOOK_SCHEDULE_HOUR_INTERVALS,
@@ -497,21 +502,16 @@ const pad: (value: number) => string = (value: number): string => {
 
 /*
  * A wall-clock time the way the reader reads times: 09:00, or 9:00 AM for
- * someone who prefers a 12-hour clock.
+ * someone who prefers a 12-hour clock - in their language, as
+ * OneUptimeDate writes a clock of the day: "09.00" in Danish, "오전 9:00"
+ * in Korean. It wrote English's "AM" and a colon on every page.
  */
 export function formatScheduleTime(
   hour: number,
   minute: number,
   use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat(),
 ): string {
-  if (!use12HourFormat) {
-    return `${pad(hour)}:${pad(minute)}`;
-  }
-
-  const suffix: string = hour < 12 ? "AM" : "PM";
-  const twelve: number = hour % 12 === 0 ? 12 : hour % 12;
-
-  return `${twelve}:${pad(minute)} ${suffix}`;
+  return OneUptimeDate.getClockTimeString(hour, minute, { use12HourFormat });
 }
 
 function sameDays(
@@ -824,38 +824,35 @@ export function formatRunTime(data: {
   const use12HourClock: boolean =
     data.use12HourClock ?? OneUptimeDate.getUserPrefers12HourFormat();
 
-  const yearIn: (date: Date) => string = (date: Date): string => {
-    try {
-      return new Intl.DateTimeFormat("en", {
-        year: "numeric",
-        timeZone: data.timezone,
-      }).format(date);
-    } catch {
-      return String(date.getUTCFullYear());
-    }
-  };
-
-  let when: string;
-
-  try {
-    when = new Intl.DateTimeFormat(getFeedLocale(data.language), {
+  // The wall clock from OneUptime's own zone data, as every date (#10038).
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getFeedLocale(data.language),
+    timezones: [data.timezone],
+    options: {
       weekday: "short",
       month: "short",
       day: "numeric",
-      ...(yearIn(data.date) !== yearIn(data.now) ? { year: "numeric" } : {}),
+      ...(OneUptimeDate.isSameYearInTimezone(data.date, data.now, data.timezone)
+        ? {}
+        : { year: "numeric" }),
       hour: getHourOption(use12HourClock),
       minute: "2-digit",
       hour12: use12HourClock,
-      timeZone: data.timezone,
-    }).format(data.date);
+    },
+  });
+
+  let when: string;
+
+  if (format) {
+    when = format.format(data.date);
 
     const zone: string = getFeedZoneName(data.date, data.timezone);
 
     if (zone) {
       when = `${when} ${zone}`;
     }
-  } catch {
-    // A zone Intl does not know: the product's own English format.
+  } else {
+    // A zone nothing knows: the product's own English format.
     when = OneUptimeDate.getDateAsFormattedStringInTimezone({
       date: data.date,
       timezone: data.timezone,

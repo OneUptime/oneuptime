@@ -187,7 +187,7 @@ describe("getTimeRangeButtonLabel", () => {
             new Date("2024-03-01T17:45:00.000Z"),
           ),
         }),
-      ).toBe("Mar 1, 9:15 AM – Mar 1, 5:45 PM");
+      ).toBe("Mar 1, 9:15 AM – 5:45 PM");
     });
 
     test("writes a midnight-to-noon window as 12 AM to 12 PM", () => {
@@ -201,7 +201,7 @@ describe("getTimeRangeButtonLabel", () => {
             new Date("2024-03-01T12:00:00.000Z"),
           ),
         }),
-      ).toBe("Mar 1, 12:00 AM – Mar 1, 12:00 PM");
+      ).toBe("Mar 1, 12:00 AM – 12:00 PM");
     });
 
     test("keeps the en dash separator on both clocks", () => {
@@ -532,7 +532,7 @@ describe("ranges anchored on the page", () => {
             {
               id: "around-start",
               label: "Around the start",
-              detail: "Nov 5, 05:14 – Nov 5, 06:14",
+              detail: "Nov 5, 05:14 – 06:14",
             },
             { id: "hour-before", label: "The hour before it started" },
           ],
@@ -556,7 +556,7 @@ describe("ranges anchored on the page", () => {
     const button: HTMLElement = screen.getByTestId(`${PREFIX}-button`);
 
     expect(button).toHaveTextContent("Around the start");
-    expect(button).toHaveAttribute("title", "Nov 5, 05:14 – Nov 5, 06:14");
+    expect(button).toHaveAttribute("title", "Nov 5, 05:14 – 06:14");
   });
 
   test("they are listed first, each with what it covers, then the presets relative to now", () => {
@@ -573,7 +573,7 @@ describe("ranges anchored on the page", () => {
     expect(text.indexOf("Around the start")).toBeLessThan(
       text.indexOf("Relative to now"),
     );
-    expect(text).toContain("Nov 5, 05:14 – Nov 5, 06:14");
+    expect(text).toContain("Nov 5, 05:14 – 06:14");
     expect(text.indexOf("Relative to now")).toBeLessThan(
       text.indexOf("Past 5 Minutes"),
     );
@@ -720,12 +720,12 @@ describe("ranges anchored on the page", () => {
     ).lastElementChild as HTMLElement;
     const ends: Array<Element> = Array.from(detail.children);
 
-    expect(detail.textContent).toBe("Nov 5, 05:14 – Nov 5, 06:14");
+    expect(detail.textContent).toBe("Nov 5, 05:14 – 06:14");
     expect(
       ends.map((end: Element): string | null => {
         return end.textContent;
       }),
-    ).toEqual(["Nov 5, 05:14 –", "Nov 5, 06:14"]);
+    ).toEqual(["Nov 5, 05:14 –", "06:14"]);
 
     for (const end of ends) {
       expect(end).toHaveClass("whitespace-nowrap");

@@ -255,7 +255,16 @@ Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et pro
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Ud over meddelelsen indeholder svaret `"refusalCode": "name_taken"`. Kend denne afvisning på den kode, ikke på sætningen, som kan blive omformuleret. Intet blev skrevet, så den samme anmodning kan sendes igen, så snart den anden post opgiver navnet: Terraform-provideren spørger igen i op til 30 sekunder.
+Mange andre slags har også deres eget navn, fx hændelsesalvorligheder, monitorstatusser, statussider og arbejdsgange, og afviser et navn, der er taget, på samme måde:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Ud over meddelelsen indeholder hver sådan afvisning en `refusalCode`, der siger, hvad der har navnet. Kend afvisningen på den kode, ikke på sætningen, som kan blive omformuleret:
+
+- `"refusalCode": "name_taken"`: en post i drift har det. Intet blev skrevet, så den samme anmodning kan sendes igen, så snart den post opgiver navnet: Terraform-provideren spørger igen i op til 30 sekunder.
+- `"refusalCode": "name_taken_by_archived"`: kun en arkiveret post har det. Fjern den post fra arkivet, eller vælg et andet navn: det hjælper ikke at sende anmodningen igen, og Terraform-provideren gør det ikke.
 
 En opdatering, der sender en posts eget navn igen, uanset store og små bogstaver, er ingen omdøbning, så poster, der før delte et navn, stadig kan ændres og omdøbes, så de adskiller sig. For teams, etiketter, vagtpolitikker og vagtplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på, hvilke der deler et navn: `{"groups": [["<id>", "<id>"]]}`, hvor hver gruppe er de ID'er, din nøgle må læse, på poster, hvis navne læses ens. Arkiverede etiketter og vagtpolitikker er udeladt.
 

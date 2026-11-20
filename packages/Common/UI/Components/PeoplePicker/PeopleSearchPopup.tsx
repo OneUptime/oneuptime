@@ -3,8 +3,19 @@ import ObjectID from "../../../Types/ObjectID";
 import { AnchoredFieldPopup } from "../../Types/UseAnchoredFieldPopup";
 import API from "../../Utils/API/API";
 import ProjectUtil from "../../Utils/Project";
+import {
+  SharedNameMark,
+  SharedNameOption,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+} from "../../Utils/SharedNameOptions";
+import { createTranslator } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
 import DROPDOWN_MENU_Z_INDEX from "../Dropdown/DropdownMenuZIndex";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+} from "../Dropdown/SharedNameOptionLines";
 import Icon from "../Icon/Icon";
 import PeopleAvatar from "./PeopleAvatar";
 import {
@@ -341,6 +352,21 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     });
   }, [groups]);
 
+  /*
+   * Teams, schedules or policies of the list that share a name (#10064):
+   * each with its list's pill and what sets it apart. By the record, so a
+   * schedule listed both as itself and as its next in rotation is no twin
+   * of itself.
+   */
+  const sharedNameMarks: Map<string, SharedNameMark> = useMemo(() => {
+    return getSharedNameMarks(
+      visibleRows.map((row: PeoplePickerOption): SharedNameOption => {
+        return { value: row.id, label: row.name, sharedName: row.sharedName };
+      }),
+      createTranslator(translateString, undefined, { drawsOnPage: true }),
+    );
+  }, [visibleRows, translateString]);
+
   const clampedActiveIndex: number =
     visibleRows.length === 0
       ? -1
@@ -616,6 +642,10 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                     (kindSubtitle
                       ? translateString(kindSubtitle) || kindSubtitle
                       : undefined);
+                  const sharedNameMark: SharedNameMark | undefined =
+                    row.sharedName
+                      ? sharedNameMarks.get(getSharedNameOptionKey(row.id))
+                      : undefined;
 
                   return (
                     <div
@@ -652,16 +682,45 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                           hasProfilePicture: row.hasProfilePicture,
                         }}
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-gray-900">
-                          {row.name}
-                        </div>
-                        {subtitle && (
-                          <div className="truncate text-xs text-gray-500">
-                            {subtitle}
+                      {sharedNameMark ? (
+                        /*
+                         * One of records that share a name: the pill its
+                         * list draws, and what sets this one apart in place
+                         * of what kind of record it is - the heading says
+                         * that (#10064).
+                         */
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <div className="min-w-0 truncate text-sm font-medium text-gray-900">
+                              {row.name}
+                            </div>
+                            <SharedNamePill mark={sharedNameMark} />
                           </div>
-                        )}
-                      </div>
+                          {sharedNameMark.detail ? (
+                            <SharedNameDetail
+                              mark={sharedNameMark}
+                              className="block truncate text-xs text-gray-500"
+                            />
+                          ) : (
+                            subtitle && (
+                              <div className="truncate text-xs text-gray-500">
+                                {subtitle}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      ) : (
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-gray-900">
+                            {row.name}
+                          </div>
+                          {subtitle && (
+                            <div className="truncate text-xs text-gray-500">
+                              {subtitle}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {isPending ? (
                         <Icon
                           icon={IconProp.Spinner}

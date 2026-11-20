@@ -255,7 +255,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-除訊息外，回應中還包含 `"refusalCode": "name_taken"`。請憑這個代碼辨識此拒絕，而不是憑措辭可能改變的句子。由於沒有寫入任何內容，一旦另一筆記錄讓出該名稱，就可以再次傳送同一請求：Terraform 提供者會在最多 30 秒內再次請求。
+許多其他類型也各自擁有獨一無二的名稱，例如事件嚴重程度、監測器狀態、狀態頁面和工作流程，它們會以同樣的方式拒絕已被占用的名稱：
+
+```text
+Incident Severity with the same name already exists.
+```
+
+除訊息外，每個這類拒絕還包含一個 `refusalCode`，說明是什麼占用了該名稱。請憑這個代碼辨識拒絕，而不是憑措辭可能改變的句子：
+
+- `"refusalCode": "name_taken"`：一筆正在使用的記錄占用了該名稱。由於沒有寫入任何內容，一旦這筆記錄讓出該名稱，就可以再次傳送同一請求：Terraform 提供者會在最多 30 秒內再次請求。
+- `"refusalCode": "name_taken_by_archived"`：只有一筆已封存的記錄占用了該名稱。請取消封存這筆記錄，或另選一個名稱：再次傳送請求無濟於事，Terraform 提供者也不會再次傳送。
 
 以任意大小寫再次傳送記錄自身名稱的更新不算重新命名，因此先前同名的記錄仍然可以修改，也可以重新命名以區分開來。對於團隊、標籤、待命策略和待命排程，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）會回答哪些記錄同名：`{"groups": [["<id>", "<id>"]]}`，每個群組是名稱讀起來相同的記錄中你的金鑰可以讀取的那些記錄的 ID。已封存的標籤和待命策略不計在內。
 
