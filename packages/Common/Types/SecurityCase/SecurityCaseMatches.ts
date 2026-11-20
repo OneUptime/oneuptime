@@ -67,7 +67,10 @@ export const SECURITY_CASE_MATCHES_GUIDANCE_MAX_LENGTH: number = 300;
 export enum SecurityCaseMatchBasis {
   // The rule's own condition, for the detection's group, over its windows.
   RuleCondition = "RuleCondition",
-  // The rules a correlation reads, naming the detection's group.
+  /*
+   * A correlation's steps, for the detection's group as the correlation's
+   * own group-by groups them, over the window its runs read (#9939).
+   */
   CorrelationSteps = "CorrelationSteps",
   // The events that carry the indicator a threat-intel feed listed.
   Indicator = "Indicator",

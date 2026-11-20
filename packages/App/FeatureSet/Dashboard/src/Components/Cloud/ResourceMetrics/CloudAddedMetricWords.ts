@@ -17,7 +17,8 @@ import { CloudTemplate } from "../Connect/CloudConnectionWords";
  * a metric is added, for each choice - this resource, or every resource of
  * its type - from CloudConnectionCost.estimateCloudAddedMetricCost. Each
  * cloud bills its own way, so each says its own unit: AWS's metrics read,
- * Azure's calls, Google Cloud's time series.
+ * Azure's calls, Google Cloud's time series - for a split, at most, since a
+ * resource with fewer values than OneUptime reads returns fewer (#10076).
  */
 
 // A number written the way the sentence's language writes it.
@@ -98,6 +99,16 @@ export function getCloudAddedMetricCostWords(data: {
     return {
       template: translationKey(
         "{{count}} more Azure Monitor calls a month: free within each subscription's first 1,000,000 a month, then about ${{cost}}.",
+      ),
+      values,
+    };
+  }
+
+  // Split (#10076): each resource's busiest values, so at most this.
+  if (estimate.isAtMost) {
+    return {
+      template: translationKey(
+        "Up to {{count}} more time series read a month: free within the first 1,000,000 a month, then up to ${{cost}}.",
       ),
       values,
     };

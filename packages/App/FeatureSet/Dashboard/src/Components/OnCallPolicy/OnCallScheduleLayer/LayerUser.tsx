@@ -94,13 +94,16 @@ export interface ComponentProps {
    */
   onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
   /*
-   * Why "Skip until..." is locked for the reader, or null when it is not.
-   * The skip it saves applies to every on-call policy, so a reader whose
-   * permission to add overrides covers only some policies would be refused
-   * on save (GlobalUserOverrideLock). Locked, the button stays on each row,
-   * opens nothing, and says why on hover, focus or a press.
+   * Why "Skip until..." is locked beside the person `userId`, in English,
+   * or null when it is not. The skip it saves applies to every on-call
+   * policy, so a reader whose permission to add overrides covers only some
+   * policies would be refused on save (GlobalUserOverrideLock): beside
+   * everyone. A reader who manages the user overrides of their own teams'
+   * people only would be refused for anybody else (UserOverrideTeamLimit,
+   * issue #9884): beside them. Locked, the button stays on the row, opens
+   * nothing, and says why on hover, focus or a press.
    */
-  skipLockedReason?: string | null | undefined;
+  getSkipLockedReason?: ((userId: string) => string | null) | undefined;
 }
 
 /*
@@ -225,15 +228,68 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     : [];
   const [showAddUserModal, setShowAddUserModal] = useState<boolean>(false);
 
-  // Every row's locked "Skip until..." is described by the one reason.
+  // The ids of the reasons the rows' locked "Skip until..." are described by.
   const skipLockedReasonId: string = useId();
+
   /*
-   * In the reader's words, looked up once, here, for the tooltip and the
-   * screen reader alike: the tooltip looked it up a second time (#8423).
+   * Each reason in the reader's words, looked up once, here, for the
+   * tooltip and the screen reader alike: the tooltip looked it up a second
+   * time (#8423).
    */
-  const skipLockedReason: string | null = props.skipLockedReason
-    ? translator.translateText(props.skipLockedReason) || props.skipLockedReason
-    : null;
+  const translatedSkipLockedReasons: Map<string, string> = new Map<
+    string,
+    string
+  >();
+
+  // Why "Skip until..." is locked beside `userId`, in the reader's words, or null.
+  const getSkipLockedReason: (userId: ObjectID) => string | null = (
+    userId: ObjectID,
+  ): string | null => {
+    const reason: string | null =
+      props.getSkipLockedReason?.(userId.toString()) || null;
+
+    if (!reason) {
+      return null;
+    }
+
+    let translated: string | undefined =
+      translatedSkipLockedReasons.get(reason);
+
+    if (translated === undefined) {
+      translated = translator.translateText(reason) || reason;
+      translatedSkipLockedReasons.set(reason, translated);
+    }
+
+    return translated;
+  };
+
+  /*
+   * The reasons the rows' locked buttons give, each once, in the order the
+   * rows show them: every row locked for the one reason, or the people
+   * outside the reader's teams for theirs.
+   */
+  const skipLockedReasons: Array<string> = [];
+
+  if (props.onSkipUser) {
+    for (const layerUser of users) {
+      if (!layerUser.user?.id || isAddedLayerUser(layerUser)) {
+        continue;
+      }
+
+      const reason: string | null = getSkipLockedReason(layerUser.user.id);
+
+      if (reason && !skipLockedReasons.includes(reason)) {
+        skipLockedReasons.push(reason);
+      }
+    }
+  }
+
+  // The element a reason is read from, for a screen reader.
+  const getSkipLockedReasonId: (reason: string) => string = (
+    reason: string,
+  ): string => {
+    return `${skipLockedReasonId}-${skipLockedReasons.indexOf(reason)}`;
+  };
 
   const isBusy: boolean = Boolean(props.isDisabled);
 
@@ -283,16 +339,17 @@ const LayerUser: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * "Skip until..." on a person's row. Locked (skipLockedReason), it stays
-   * a button - reached with Tab, named as before - that opens nothing: it
-   * says why on hover, focus or a press, and a screen reader hears the
-   * reason as its description. While the page saves it is disabled for
-   * that moment.
+   * "Skip until..." on a person's row. Locked (getSkipLockedReason), it
+   * stays a button - reached with Tab, named as before - that opens
+   * nothing: it says why on hover, focus or a press, and a screen reader
+   * hears the reason as its description. While the page saves it is
+   * disabled for that moment.
    */
   const getSkipButton: (
     userId: ObjectID,
     displayName: string,
   ) => ReactElement = (userId: ObjectID, displayName: string): ReactElement => {
+    const skipLockedReason: string | null = getSkipLockedReason(userId);
     const isLocked: boolean = Boolean(skipLockedReason);
 
     const button: ReactElement = (
@@ -303,7 +360,9 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           name: displayName,
         })}
         aria-disabled={isLocked ? true : undefined}
-        aria-describedby={isLocked ? skipLockedReasonId : undefined}
+        aria-describedby={
+          skipLockedReason ? getSkipLockedReasonId(skipLockedReason) : undefined
+        }
         disabled={isBusy && !isLocked}
         onClick={() => {
           if (isLocked) {
@@ -654,11 +713,13 @@ const LayerUser: FunctionComponent<ComponentProps> = (
       {getRemovedUsers()}
       {getAddUserButton()}
 
-      {skipLockedReason && (
-        <span id={skipLockedReasonId} hidden={true}>
-          {skipLockedReason}
-        </span>
-      )}
+      {skipLockedReasons.map((reason: string): ReactElement => {
+        return (
+          <span key={reason} id={getSkipLockedReasonId(reason)} hidden={true}>
+            {reason}
+          </span>
+        );
+      })}
 
       {showAddUserModal && (
         <AddLayerUserModal

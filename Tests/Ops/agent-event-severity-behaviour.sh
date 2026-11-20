@@ -190,6 +190,7 @@ run_case() {
   node -e '
 const fs = require("fs");
 const yaml = require("js-yaml");
+const { componentTypeFor } = require("./Utils/CollectorComponentTypes");
 const [rendered, outDir] = process.argv.slice(1);
 const docs = yaml.loadAll(fs.readFileSync(rendered, "utf8")).filter(Boolean);
 const deployment = docs.find((d) => {
@@ -203,11 +204,17 @@ if (!deployment || !configMap) {
 }
 const collector = yaml.load(configMap.data["otel-collector-config.yaml"]);
 const logs = collector.service.pipelines.logs;
-if (!logs.receivers.includes("k8sobjects")) {
-  throw new Error("the logs pipeline no longer reads the k8sobjects receiver");
+// The receiver as the collector the render runs knows it: k8s_objects, or
+// k8sobjects before 0.151.0 (Utils/CollectorComponentTypes.js).
+const objects = componentTypeFor(
+  "k8s_objects",
+  deployment.spec.template.spec.containers[0].image,
+);
+if (!logs.receivers.includes(objects)) {
+  throw new Error(`the logs pipeline no longer reads the ${objects} receiver`);
 }
 // The processors that change what an Event record says, in pipeline order.
-// memory_limiter, k8sattributes (it needs the API server) and batch do not.
+// memory_limiter, k8s_attributes (it needs the API server) and batch do not.
 const wanted = ["resource", "transform/severity"];
 for (const name of wanted) {
   if (!logs.processors.includes(name)) {

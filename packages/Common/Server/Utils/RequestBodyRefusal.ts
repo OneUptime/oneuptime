@@ -1,4 +1,9 @@
 import { UNEXPLAINED_ERROR_MESSAGES } from "../../Types/Exception/UnexplainedError";
+import {
+  JsonElementLimit,
+  JsonElementLimits,
+  JsonElementTallyCount,
+} from "../../Utils/JsonElementCount";
 
 /**
  * A REQUEST BODY THE APP'S BODY PARSERS REFUSED IS THE CLIENT'S, NOT A FAULT
@@ -27,6 +32,12 @@ import { UNEXPLAINED_ERROR_MESSAGES } from "../../Types/Exception/UnexplainedErr
  * "stream.encoding.set") are faults in how the server wires its parsers, and
  * "entity.verify.failed" would be a verify function of ours that threw.
  * Those still answer 500 with a reference.
+ *
+ * Two more are OneUptime's own (#10183). A body over the limit StartServer
+ * holds its route to (RequestBodyLimit) - 1 MB on most routes - says that
+ * limit, as the 50 MB does: OneUptime refused it, and no proxy did. And a
+ * JSON body with more values than its route reads ("entity.too.many.values")
+ * is refused before it is parsed, with how many it may hold.
  */
 
 /*
@@ -34,6 +45,102 @@ import { UNEXPLAINED_ERROR_MESSAGES } from "../../Types/Exception/UnexplainedErr
  * in the bytes raw-body names on the error it raises past it.
  */
 export const APP_BODY_LIMIT_IN_BYTES: number = 50 * 1024 * 1024;
+
+/*
+ * The type of the error StartServer's parsers raise for a JSON body with
+ * more values than its route reads, counted before it is parsed.
+ */
+export const TOO_MANY_JSON_VALUES_TYPE: string = "entity.too.many.values";
+
+/*
+ * Set on the error a parser StartServer runs raises for a body over the
+ * route's limit: its bytes, so the answer can say the limit OneUptime held
+ * it to (see readRequestBodyRefusal).
+ */
+export const APP_REQUEST_BODY_LIMIT_FIELD: string =
+  "appRequestBodyLimitInBytes";
+
+// A size as the too-large sentences say one: "1 MB", "50 MB", "1.5 MB".
+export const describeBodyLimit: (bytes: number) => string = (
+  bytes: number,
+): string => {
+  const mebibytes: number = bytes / (1024 * 1024);
+
+  if (mebibytes >= 1) {
+    return `${Number(mebibytes.toFixed(1))} MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
+
+// "100,000": a count as an English sentence writes it.
+const describeCount: (count: number) => string = (count: number): string => {
+  return count.toLocaleString("en-US");
+};
+
+/*
+ * What a body over the limit StartServer holds its route to says, when the
+ * limit is not the 50 MB the front ends read back: the limit itself, and
+ * that OneUptime takes no more there, so nobody raises a proxy's limit for
+ * it (#8567). Shown as it is.
+ */
+export const getTooLargeForRouteMessage: (bytes: number) => string = (
+  bytes: number,
+): string => {
+  return `What was sent is larger than the ${describeBodyLimit(bytes)} OneUptime takes in one request to this address, so this did not finish. Try again with less at once.`;
+};
+
+// What a JSON body over a limit on its values says, for the limit it passed.
+export const getTooManyJsonValuesMessage: (
+  passed: JsonElementLimit,
+  limit: number,
+) => string = (passed: JsonElementLimit, limit: number): string => {
+  const what: string =
+    passed === JsonElementLimit.ObjectsArraysAndStrings
+      ? "JSON objects, arrays and strings"
+      : "JSON values (objects, arrays, strings and numbers)";
+
+  return `The request body holds more than ${describeCount(limit)} ${what}, the most OneUptime reads in one request to this address, so this did not finish. Send less in each request.`;
+};
+
+export interface TooManyJsonValuesError extends Error {
+  type: string;
+  status: number;
+  statusCode: number;
+  expose: boolean;
+  // Which limit the body passed, and that limit.
+  passed: JsonElementLimit;
+  limit: number;
+}
+
+/*
+ * The error a JSON body with more values than its limits is refused with:
+ * shaped as body-parser's own (a type, a 4xx status, exposed), so
+ * expressErrorHandler answers it as it answers theirs. Thrown from a
+ * parser's verify, it is handed on by body-parser as it is.
+ */
+export const createTooManyJsonValuesError: (
+  count: JsonElementTallyCount,
+  limits: JsonElementLimits,
+) => TooManyJsonValuesError = (
+  count: JsonElementTallyCount,
+  limits: JsonElementLimits,
+): TooManyJsonValuesError => {
+  const passed: JsonElementLimit = count.passed || JsonElementLimit.Values;
+  const limit: number =
+    passed === JsonElementLimit.ObjectsArraysAndStrings
+      ? limits.objectsArraysAndStrings
+      : limits.values;
+
+  return Object.assign(new Error(getTooManyJsonValuesMessage(passed, limit)), {
+    type: TOO_MANY_JSON_VALUES_TYPE,
+    status: 413,
+    statusCode: 413,
+    expose: true,
+    passed: passed,
+    limit: limit,
+  });
+};
 
 export const REQUEST_BODY_REFUSAL_MESSAGES: {
   tooLargeForOneUptime: string;
@@ -45,6 +152,7 @@ export const REQUEST_BODY_REFUSAL_MESSAGES: {
   encodingUnsupported: string;
   charsetUnsupported: string;
   tooDeep: string;
+  tooManyJsonValues: string;
 } = {
   // Over the App's own 50 MB: the front ends read it back (UnexplainedError).
   tooLargeForOneUptime: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
@@ -67,6 +175,12 @@ export const REQUEST_BODY_REFUSAL_MESSAGES: {
     "The request body is in a character set OneUptime does not read, so this did not finish. Send it in UTF-8.",
   tooDeep:
     "The form sent nests its fields deeper than OneUptime reads, so this did not finish. Send it with fewer levels of nesting.",
+  /*
+   * A JSON body with more values than its route reads, when the error does
+   * not say which limit it passed (getTooManyJsonValuesMessage says it).
+   */
+  tooManyJsonValues:
+    "The request body holds more JSON values than OneUptime reads in one request to this address, so this did not finish. Send less in each request.",
 };
 
 interface RequestBodyRefusalRule {
@@ -134,6 +248,76 @@ export const REQUEST_BODY_REFUSALS: Record<string, RequestBodyRefusalRule> = {
     status: 400,
     message: REQUEST_BODY_REFUSAL_MESSAGES.tooDeep,
   },
+  /*
+   * A JSON body with more values than its route reads, refused before it
+   * is parsed (StartServer, GzipRequestBody). OneUptime's own type.
+   */
+  [TOO_MANY_JSON_VALUES_TYPE]: {
+    status: 413,
+    message: REQUEST_BODY_REFUSAL_MESSAGES.tooManyJsonValues,
+  },
+};
+
+/*
+ * The sentence an error says more than its type's: the limit it was held
+ * to, when it names one. Null for the type's own sentence.
+ */
+const messageOf: (type: string, error: unknown) => string | null = (
+  type: string,
+  error: unknown,
+): string | null => {
+  if (type === TOO_MANY_JSON_VALUES_TYPE) {
+    const candidate: { passed?: unknown; limit?: unknown } = error as {
+      passed?: unknown;
+      limit?: unknown;
+    };
+
+    const isLimitKnown: boolean =
+      (candidate.passed === JsonElementLimit.Values ||
+        candidate.passed === JsonElementLimit.ObjectsArraysAndStrings) &&
+      typeof candidate.limit === "number" &&
+      Number.isFinite(candidate.limit);
+
+    return isLimitKnown
+      ? getTooManyJsonValuesMessage(
+          candidate.passed as JsonElementLimit,
+          candidate.limit as number,
+        )
+      : null;
+  }
+
+  if (type !== "entity.too.large") {
+    return null;
+  }
+
+  /*
+   * Past the App's own 50 MB: OneUptime refused it, and says its limit
+   * (#8567), in the sentence the front ends read back.
+   */
+  if (limitOf(error) === APP_BODY_LIMIT_IN_BYTES) {
+    return REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime;
+  }
+
+  /*
+   * Past a smaller limit StartServer holds the route to (1 MB on most
+   * routes): OneUptime refused it too, and says that limit. A limit of
+   * another size, which no StartServer parser named, is a route's own, and
+   * keeps the sentence that names none.
+   */
+  const appLimit: unknown = (error as Record<string, unknown>)[
+    APP_REQUEST_BODY_LIMIT_FIELD
+  ];
+
+  if (
+    typeof appLimit === "number" &&
+    Number.isFinite(appLimit) &&
+    appLimit > 0 &&
+    appLimit === limitOf(error)
+  ) {
+    return getTooLargeForRouteMessage(appLimit);
+  }
+
+  return null;
 };
 
 export interface RequestBodyRefusal {
@@ -194,20 +378,10 @@ export const readRequestBodyRefusal: (
 
   const rule: RequestBodyRefusalRule = REQUEST_BODY_REFUSALS[type]!;
 
-  /*
-   * Past the App's own 50 MB: OneUptime refused it, and says its limit
-   * (#8567). A limit of another size is a route's own, and keeps the
-   * sentence that names none.
-   */
-  const isOverAppLimit: boolean =
-    type === "entity.too.large" && limitOf(error) === APP_BODY_LIMIT_IN_BYTES;
-
   return {
     type: type,
     status: rule.status,
-    message: isOverAppLimit
-      ? REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime
-      : rule.message,
+    message: messageOf(type, error) || rule.message,
   };
 };
 

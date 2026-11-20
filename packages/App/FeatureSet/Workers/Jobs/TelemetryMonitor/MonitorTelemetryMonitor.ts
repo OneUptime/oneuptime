@@ -73,15 +73,23 @@ import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import SpanService, {
+  SpanAttributeGroup,
+  SpanAttributeGroupCount,
   SpanAttributeGroupCountResult,
 } from "Common/Server/Services/SpanService";
 import Span from "Common/Models/AnalyticsModels/Span";
 import {
+  ExpectedTraceGroup,
   TRACE_GROUP_EXPECTED_LIMIT,
   TRACE_GROUP_EXPECTED_LOOKBACK_DAYS,
   TraceGroupBreakdown,
+  TraceGroupContextLabel,
   TraceGroupExpectedCache,
+  WindowTraceGroup,
+  getTraceGroupContextAttributes,
+  getTraceGroupContextLabels,
   mergeQuietGroups,
+  toGroupContext,
   traceStepCountsQuietGroups,
 } from "Common/Server/Utils/Monitor/TraceGroupAbsence";
 import MetricMonitorResponse, {
@@ -1897,6 +1905,16 @@ const monitorTraceGroups: (data: {
   projectId: ObjectID;
   evaluateUntil: Date;
 }): Promise<TraceMonitorResponse> => {
+  /*
+   * A group that is one device carries what its spans last said about the
+   * device - its host.name and model - for its alert to name it by (#9925).
+   * Read beside the groups, never part of them.
+   */
+  const contextLabels: Array<TraceGroupContextLabel> =
+    getTraceGroupContextLabels(data.groupByAttributes);
+  const contextAttributes: Array<string> =
+    getTraceGroupContextAttributes(contextLabels);
+
   const counted: SpanAttributeGroupCountResult =
     await SpanService.countByAttributeGroups({
       query: data.query,
@@ -1905,9 +1923,25 @@ const monitorTraceGroups: (data: {
       props: {
         isRoot: true,
       },
+      ...(contextAttributes.length > 0
+        ? { contextAttributes: contextAttributes }
+        : {}),
     });
 
-  let expectedGroups: Array<Array<string>> = [];
+  const windowGroups: Array<WindowTraceGroup> = counted.groups.map(
+    (group: SpanAttributeGroupCount): WindowTraceGroup => {
+      return {
+        values: group.values,
+        count: group.count,
+        context: toGroupContext({
+          labels: contextLabels,
+          values: group.lastValues || {},
+        }),
+      };
+    },
+  );
+
+  let expectedGroups: Array<ExpectedTraceGroup> = [];
 
   if (traceStepCountsQuietGroups(data.monitorStep)) {
     const windowSeconds: number =
@@ -1932,19 +1966,34 @@ const monitorTraceGroups: (data: {
       key: JSON.stringify({
         monitorId: data.monitorId.toString(),
         groupByAttributes: data.groupByAttributes,
+        contextAttributes: contextAttributes,
         query: JSONFunctions.anyObjectToJSONObject(lookbackQuery),
       }),
       now: data.evaluateUntil,
-      load: (): Promise<Array<Array<string>>> => {
-        return SpanService.findRecentAttributeGroups({
-          query: lookbackQuery,
-          groupByAttributes: data.groupByAttributes,
-          since: since,
-          until: windowStart,
-          limit: TRACE_GROUP_EXPECTED_LIMIT,
-          props: {
-            isRoot: true,
-          },
+      load: async (): Promise<Array<ExpectedTraceGroup>> => {
+        const groups: Array<SpanAttributeGroup> =
+          await SpanService.findRecentAttributeGroups({
+            query: lookbackQuery,
+            groupByAttributes: data.groupByAttributes,
+            since: since,
+            until: windowStart,
+            limit: TRACE_GROUP_EXPECTED_LIMIT,
+            props: {
+              isRoot: true,
+            },
+            ...(contextAttributes.length > 0
+              ? { contextAttributes: contextAttributes }
+              : {}),
+          });
+
+        return groups.map((group: SpanAttributeGroup): ExpectedTraceGroup => {
+          return {
+            values: group.values,
+            context: toGroupContext({
+              labels: contextLabels,
+              values: group.lastValues || {},
+            }),
+          };
         });
       },
     });
@@ -1952,7 +2001,7 @@ const monitorTraceGroups: (data: {
 
   const merged: TraceGroupBreakdown = mergeQuietGroups({
     groupByAttributes: data.groupByAttributes,
-    windowGroups: counted.groups,
+    windowGroups: windowGroups,
     windowGroupCount: counted.totalGroupCount,
     expectedGroups: expectedGroups,
     limit: MaxEntitiesPerCriteria,

@@ -66,6 +66,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { JSONObject } from "../../../Types/JSON";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { getHistogramRequestTimezone } from "../../../UI/Components/Charts/Utils/HistogramDayBars";
 
 const HOUR_WINDOW: RangeStartAndEndDateTime = {
   range: TimeRange.CUSTOM,
@@ -151,6 +152,8 @@ describe("with the viewer's scope", () => {
       startTime: "2026-11-19T09:00:00.000Z",
       endTime: "2026-11-19T10:00:00.000Z",
       bucketSizeInMinutes: 1,
+      // The reader's zone, for a bucket of a day (#7923).
+      timezone: getHistogramRequestTimezone(),
       groupBy: ["severityText"],
       ...POD_SCOPE,
     });

@@ -171,6 +171,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | Название операционной системы | `os.name` | Только от SDK, которые его сообщают: иначе ОС называет `os.description` |
 | Тип устройства | `device.type` | Необязательно: проставьте его так же (`Hypervisor`, `Workstation`) |
 | Расположение | `device.location` | Необязательно: проставьте его так же (`Frankfurt DC, Rack B4`) |
+| Уровень патча безопасности | `android.os.security_patch` | На устройстве Android: от агента Android или из его системы управления устройствами |
 
 Всё, что отмечено «Да», поступает от процессора `resourcedetection` коллектора и уже есть в конфигурации, которую OneUptime генерирует для вас.
 

@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | En global sonde som kjører monitorenes sjekker. Den bruker vertens nettverk. |
 | `global-runner` | `oneuptime/runner` | Den medfølgende globale Runneren, som kjører JavaScript-trinnene i runbooks og koderettingene til OneUptime AI for alle prosjekter. |
 | `postgres` | `postgres:15` | Konfigurasjon og tilstand: monitorer, hendelser, brukere. Lagret i volumet `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetri: logger, målinger, traces og unntak. Lagret i volumet `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | Telemetri: logger, målinger, traces og unntak. Lagret i volumet `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Hurtigbuffer og køer. Den lagrer ingenting på disk. |
 
 > [!NOTE]
@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` sjekker OneUptime på den nye porten, `localhost:8080`, og avslutter med **OneUptime is up!**
+`npm start` sjekker OneUptime der ingressen nå lytter, `127.0.0.1:8080`, og avslutter med **OneUptime is up!**
+
+Bare denne serveren når ingressen nå. Ingressen ruter forespørsler etter vertsnavn: Bare `HOST` og `localhost` når hele applikasjonen, og ethvert annet navn, også adressen `127.0.0.1`, behandles som domenet til en statusside. Derfor sender proxyen din `HOST` videre, navnet nettleseren ba om, sonden kaller `http://localhost:8080`, og sjekken som `npm start` avslutter med, kobler seg som `npm run doctor` til `127.0.0.1:8080` med vertsnavnet `localhost:8080`.
 
 #### Konfigurer proxyen
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Når hver container kjører, kjører du sjekken på nytt med `npm run status-check`. Den sjekker ingressen på porten `ONEUPTIME_HTTP_PORT` angir.
+Når hver container kjører, kjører du sjekken på nytt med `npm run status-check`. Den sjekker ingressen der `ONEUPTIME_HTTP_PORT` publiserer den, med adresse og port, som `127.0.0.1:8080`, og med vertsnavnet `localhost`, slik en nettleser på serveren ville gjort. Med `PROVISION_SSL=true` sjekker den også `HOST` over HTTPS, der `STATUS_PAGE_HTTPS_PORT` publiserer ingressen.
 :::
 
 :::details Nettleseren viser "OneUptime er ikke satt opp for denne adressen"

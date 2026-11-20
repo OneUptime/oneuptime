@@ -1,5 +1,7 @@
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
+  CloudAddedMetricKeepBlock,
+  CloudAddedMetricKeepFor,
   CloudAddedMetricReader,
   CloudAddedMetricReaderKind,
   CloudAddedMetricReaders,
@@ -7,6 +9,7 @@ import {
 } from "../../../Types/Cloud/CloudAddedMetricReaders";
 import {
   CloudMonitoredResource,
+  buildCloudMonitoredResourceIdentifier,
   resolveCloudMonitoredResource,
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import ObjectID from "../../../Types/ObjectID";
@@ -31,6 +34,10 @@ import {
  * read: its stored name, of the connection's service - the one its points
  * are stored under - or of every service, and of a resource its removal
  * stops reading it for, or of every resource (a filter that names none).
+ *
+ * For a type's addition (#10078), which resources of the type its readers
+ * read it of - hidden readers' too, never named - and which of them read
+ * it of every resource: what it can be kept for alone instead of removed.
  */
 
 const READER_KINDS: ReadonlyArray<{
@@ -124,11 +131,9 @@ function toCloudReader(
     kind,
     id: reader.id,
     name: reader.name,
-    widgets: (reader.widgets || []).map(
-      (widget: MetricReaderWidget): string => {
-        return widget.title;
-      },
-    ),
+    widgets: (reader.widgets || []).map((widget: MetricReaderWidget) => {
+      return { title: widget.title, type: widget.type };
+    }),
   };
 
   if (reader.outputMetricName) {
@@ -136,6 +141,33 @@ function toCloudReader(
   }
 
   return found;
+}
+
+/*
+ * What references that read an added metric say of the resources they read
+ * it of: the identifiers of the ones they name (lower case), and whether
+ * one names none, which reads it of every resource.
+ */
+export function getCloudResourcesRead(
+  references: ReadonlyArray<MetricNameReference>,
+): { identifiers: Set<string>; isEveryResource: boolean } {
+  const identifiers: Set<string> = new Set<string>();
+  let isEveryResource: boolean = false;
+
+  for (const reference of references) {
+    const resource: CloudMonitoredResource | null =
+      getNamedCloudResource(reference);
+
+    if (resource) {
+      identifiers.add(
+        buildCloudMonitoredResourceIdentifier(resource).toLowerCase(),
+      );
+    } else {
+      isEveryResource = true;
+    }
+  }
+
+  return { identifiers, isEveryResource };
 }
 
 export async function findCloudAddedMetricReaders(data: {
@@ -150,17 +182,46 @@ export async function findCloudAddedMetricReaders(data: {
    */
   readsResource: (resource: CloudMonitoredResource) => boolean;
   props: DatabaseCommonInteractionProps;
+  /*
+   * A type's addition (#10078): the resources of its type the connection
+   * reads, by their identifiers (any case) - which of them its readers
+   * read it of is what it can be kept for alone (keepFor).
+   */
+  keepForResources?:
+    | ReadonlyArray<{ id: string; name: string; identifier: string }>
+    | undefined;
 }): Promise<CloudAddedMetricReaders> {
+  const isKeepFor: boolean = Boolean(data.keepForResources);
   const found: MetricReaders = await findMetricReaders({
     projectId: data.projectId,
     reads: (reference: MetricNameReference): boolean => {
       return readsCloudAddedMetric(reference, data);
     },
     props: data.props,
+    keepsReferences: isKeepFor,
   });
   const readers: Array<CloudAddedMetricReader> = [];
   const uncheckedKinds: Array<CloudAddedMetricReaderKind> = [];
+  const hiddenByKind: Partial<Record<CloudAddedMetricReaderKind, number>> = {};
+  // The resources every reader reads it of, hidden or not; and whether one reads it of all.
+  const named: Set<string> = new Set<string>();
+  let isEveryResource: boolean = false;
   let hidden: number = 0;
+
+  const note: (references: ReadonlyArray<MetricNameReference>) => boolean = (
+    references: ReadonlyArray<MetricNameReference>,
+  ): boolean => {
+    const read: { identifiers: Set<string>; isEveryResource: boolean } =
+      getCloudResourcesRead(references);
+
+    for (const identifier of read.identifiers) {
+      named.add(identifier);
+    }
+
+    isEveryResource = isEveryResource || read.isEveryResource;
+
+    return read.isEveryResource;
+  };
 
   for (const { from, kind } of READER_KINDS) {
     const ofKind: MetricReadersOfKind = found[from];
@@ -171,14 +232,63 @@ export async function findCloudAddedMetricReaders(data: {
 
     hidden += ofKind.hiddenCount;
 
+    if (ofKind.hiddenCount > 0) {
+      hiddenByKind[kind] = ofKind.hiddenCount;
+    }
+
     for (const reader of ofKind.readers) {
-      readers.push(toCloudReader(kind, reader));
+      const cloudReader: CloudAddedMetricReader = toCloudReader(kind, reader);
+
+      if (isKeepFor && note(reader.references || [])) {
+        cloudReader.readsEveryResource = true;
+      }
+
+      readers.push(cloudReader);
+    }
+
+    if (isKeepFor) {
+      note(ofKind.hiddenReferences || []);
     }
   }
 
-  return {
+  const answer: CloudAddedMetricReaders = {
     readers: sortCloudAddedMetricReaders(readers),
     hidden,
     uncheckedKinds,
+    hiddenByKind,
   };
+
+  // Something reads a type's addition: the resources it can be kept for alone.
+  if (data.keepForResources && (readers.length > 0 || hidden > 0)) {
+    const keepFor: CloudAddedMetricKeepFor = {
+      resources: data.keepForResources
+        .filter((resource: { identifier: string }): boolean => {
+          return named.has(resource.identifier.toLowerCase());
+        })
+        .map((resource: { id: string; name: string }) => {
+          return { id: resource.id, name: resource.name };
+        })
+        .sort(
+          (
+            a: { id: string; name: string },
+            b: { id: string; name: string },
+          ): number => {
+            return (
+              a.name.localeCompare(b.name) ||
+              (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+            );
+          },
+        ),
+    };
+
+    if (uncheckedKinds.length > 0) {
+      keepFor.blockedBy = CloudAddedMetricKeepBlock.Unchecked;
+    } else if (isEveryResource) {
+      keepFor.blockedBy = CloudAddedMetricKeepBlock.EveryResource;
+    }
+
+    answer.keepFor = keepFor;
+  }
+
+  return answer;
 }

@@ -1,3 +1,7 @@
+import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+  GCP_SPLIT_LEARN_EVERY_MINUTES,
+} from "../Cloud/CloudAddedMetrics";
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
   AZURE_FIVE_MINUTE_READ_MINUTES,
@@ -134,6 +138,12 @@ export function countRetiredMetrics(data: {
  * every value in one call of its own, which never rides in the key
  * metrics' call: its filter would split those too.
  *
+ * Google Cloud bills every series a call returns, so a split is read for
+ * each resource's busiest values alone, which a PromQL topk learns once an
+ * hour, returning those alone (#10076): a resource costs the cap's series a
+ * read, and as many again each hour - at most, since one with fewer values
+ * returns fewer (`isAtMost`).
+ *
  * The cost is at the cloud's list price before any free allowance: whether
  * the allowance covers it depends on the rest of the account's use.
  */
@@ -143,6 +153,13 @@ export interface CloudAddedMetricCostEstimate {
   monthlyCostUsd: number;
   // Azure: it rides in a call the resource makes anyway, at no cost.
   ridesInExistingCall: boolean;
+  // Google Cloud, split: the most it costs, a resource of fewer values costing less.
+  isAtMost?: boolean | undefined;
+}
+
+// Google Cloud: the hourly learnings of a split's busiest values a month (#10076).
+export function getGcpSplitLearnsPerMonth(): number {
+  return Math.ceil(MINUTES_PER_MONTH / GCP_SPLIT_LEARN_EVERY_MINUTES);
 }
 
 // Minutes between two of a grain's calls (an Azure ISO 8601 grain).
@@ -172,8 +189,12 @@ export function estimateCloudAddedMetricCost(data: {
 }): CloudAddedMetricCostEstimate {
   const resources: number = Math.max(0, data.resources);
   const reads: number = getReadsPerMonth(data.readIntervalInMinutes);
+  // A split reads at most the cap's values of a resource, whatever it has.
   const series: number = data.isSplit
-    ? Math.max(1, Math.floor(data.seriesPerResource || 1))
+    ? Math.min(
+        CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+        Math.max(1, Math.floor(data.seriesPerResource || 1)),
+      )
     : 1;
 
   if (data.provider === CloudProvider.AWS) {
@@ -215,12 +236,16 @@ export function estimateCloudAddedMetricCost(data: {
     };
   }
 
-  const units: number = resources * series * reads;
+  // A split's reads, and its hourly learning of each resource's busiest values.
+  const units: number = data.isSplit
+    ? resources * series * (reads + getGcpSplitLearnsPerMonth())
+    : resources * reads;
 
   return {
     monthlyUnits: units,
     monthlyCostUsd: (units / 1000000) * GCP_USD_PER_MILLION_TIME_SERIES,
     ridesInExistingCall: false,
+    ...(data.isSplit ? { isAtMost: true } : {}),
   };
 }
 

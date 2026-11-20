@@ -362,10 +362,16 @@ export default class SortValidator {
         props: data.props,
       });
 
+      /*
+       * A column only a person reads of their own account - their language,
+       * whether their address is verified - orders no list of people: a
+       * relation never shows the reader to be that person
+       * (QueryPermission.canFilterOrOrderByRelatedColumn, #9895).
+       */
       if (
         !alwaysReadable.includes(relatedField) &&
         !column.canReadOnRelationQuery &&
-        (!QueryPermission.canReadRelatedColumn({
+        (!QueryPermission.canFilterOrOrderByRelatedColumn({
           relatedModel: relatedModel,
           column: relatedField,
           held: data.held,
@@ -380,7 +386,7 @@ export default class SortValidator {
             column: relatedField,
             relatedModelName: SortValidator.getSingularName(relatedModel),
             relationColumn: data.relationPath,
-            permissions: QueryPermission.getRelatedReadPermissions(
+            permissions: QueryPermission.getRelatedFilterPermissions(
               relatedModel,
               relatedField,
             ),

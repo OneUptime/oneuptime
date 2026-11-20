@@ -8,8 +8,10 @@ package config
 // The fake keeps each record as a JSON object, by its API path ("monitor",
 // "incident"): a create stores what the provider sent and what OneUptime
 // fills in itself (fakeAPI.onCreate), a read answers the record, an update
-// merges what it was sent. A test moves a record the way OneUptime does on
-// its own (fakeAPI.set) and reads back every write the provider made
+// merges what it was sent, and adds and takes off the entries of a list it
+// names in addToList and removeFromList (#10135) as OneUptime's junction
+// tables do. A test moves a record the way OneUptime does on its own
+// (fakeAPI.set) and reads back every write the provider made
 // (fakeAPI.writes).
 
 import (
@@ -45,6 +47,9 @@ type fakeWrite struct {
 	Path   string
 	ID     string
 	Data   map[string]any
+	// An update's entries, by list: what it added, and what it took off.
+	AddToList      map[string]any
+	RemoveFromList map[string]any
 }
 
 type fakeAPI struct {
@@ -123,13 +128,65 @@ func (a *fakeAPI) handle(w http.ResponseWriter, r *http.Request) {
 		for k, v := range data {
 			record[k] = v
 		}
-		a.writes = append(a.writes, fakeWrite{Method: "update", Path: parts[0], ID: parts[1], Data: data})
+		adds, _ := body["addToList"].(map[string]any)
+		removes, _ := body["removeFromList"].(map[string]any)
+		applyListEntries(record, adds, removes)
+		a.writes = append(a.writes, fakeWrite{Method: "update", Path: parts[0], ID: parts[1], Data: data, AddToList: adds, RemoveFromList: removes})
 		writeJSON(w, http.StatusOK, map[string]any{})
 	case r.Method == http.MethodDelete && len(parts) == 2:
 		delete(a.records[parts[0]], parts[1])
 		writeJSON(w, http.StatusOK, map[string]any{})
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]any{"message": "no such endpoint: " + r.Method + " " + r.URL.Path})
+	}
+}
+
+// applyListEntries adds `adds` to a record's lists and takes `removes` off
+// them, by list: an entry added once, one taken off only if there, every
+// other entry left as it is - as OneUptime writes an update's addToList and
+// removeFromList (#10135).
+func applyListEntries(record map[string]any, adds, removes map[string]any) {
+	idOf := func(entry any) string {
+		switch typed := entry.(type) {
+		case string:
+			return strings.ToLower(typed)
+		case map[string]any:
+			id, _ := typed["_id"].(string)
+			return strings.ToLower(id)
+		}
+		return ""
+	}
+	for name, entries := range removes {
+		taken := map[string]bool{}
+		listed, _ := entries.([]any)
+		for _, entry := range listed {
+			taken[idOf(entry)] = true
+		}
+		existing, _ := record[name].([]any)
+		kept := []any{}
+		for _, entry := range existing {
+			if !taken[idOf(entry)] {
+				kept = append(kept, entry)
+			}
+		}
+		record[name] = kept
+	}
+	for name, entries := range adds {
+		existing, _ := record[name].([]any)
+		list := append([]any{}, existing...)
+		listed, _ := entries.([]any)
+		for _, entry := range listed {
+			there := false
+			for _, each := range list {
+				if idOf(each) == idOf(entry) {
+					there = true
+				}
+			}
+			if !there {
+				list = append(list, map[string]any{"_id": idOf(entry)})
+			}
+		}
+		record[name] = list
 	}
 }
 

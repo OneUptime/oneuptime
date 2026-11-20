@@ -4,6 +4,8 @@ import DeviceManagerPickerModal from "../../Components/DeviceManagement/DeviceMa
 import EsperConnectionFormModal from "../../Components/DeviceManagement/EsperConnectionFormModal";
 import IntuneConnectionFormModal from "../../Components/DeviceManagement/IntuneConnectionFormModal";
 import ManagedDevicesTable from "../../Components/DeviceManagement/ManagedDevicesTable";
+import SotiConnectionFormModal from "../../Components/DeviceManagement/SotiConnectionFormModal";
+import WorkspaceOneConnectionFormModal from "../../Components/DeviceManagement/WorkspaceOneConnectionFormModal";
 import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
 import DeviceManagementProvider, {
   readDeviceManagementProvider,
@@ -21,7 +23,8 @@ import React, {
 
 /*
  * Inventory > Managed Devices: the fleets device management services enroll
- * (Esper, issue #9586; Microsoft Intune, #9837). The project's connections
+ * (Esper, issue #9586; Microsoft Intune, #9837; Workspace ONE UEM, #10086;
+ * SOTI MobiControl, #10087). The project's connections
  * come first - how each is doing and what its last read found - and every
  * device they import under them, each one host in Inventory.
  *
@@ -113,6 +116,26 @@ const InventoryManagedDevices: FunctionComponent<PageComponentProps> = (
 
       {form?.provider === DeviceManagementProvider.Intune ? (
         <IntuneConnectionFormModal
+          connection={form.connection}
+          onClose={closeForm}
+          onSaved={onSaved}
+        />
+      ) : (
+        <></>
+      )}
+
+      {form?.provider === DeviceManagementProvider.WorkspaceOne ? (
+        <WorkspaceOneConnectionFormModal
+          connection={form.connection}
+          onClose={closeForm}
+          onSaved={onSaved}
+        />
+      ) : (
+        <></>
+      )}
+
+      {form?.provider === DeviceManagementProvider.Soti ? (
+        <SotiConnectionFormModal
           connection={form.connection}
           onClose={closeForm}
           onSaved={onSaved}

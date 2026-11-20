@@ -12,6 +12,7 @@ import UserResponse from "../Utils/UserResponse";
 import {
   SIGN_UP_INVITATION_PROJECT_KEY,
   SIGN_UP_INVITATION_ROUTE,
+  SIGN_UP_INVITATION_SSO_ROUTE,
   SignUpInvitation,
   toSignUpInvitationAnswerJSON,
 } from "Common/Types/Accounts/SignUpInvitation";
@@ -693,6 +694,51 @@ router.post(
         res,
         toSignUpInvitationAnswerJSON(invitation),
       );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * POST /sign-up-invitation/sso: the sign-up page an invitation opens, as
+ * its person picks one of the project's single sign-on providers (#9898,
+ * Common/Types/Accounts/SignUpInvitation), with the invited address, its
+ * registration token and the project the page showed. On OneUptime Cloud
+ * the token is taken as the mailbox's confirmation of that project's
+ * single sign-on (SignUpInvitationUtil.confirmSsoSignIn), so the provider
+ * signs them in the first time, with no second email; on a self-hosted
+ * server, which asks no mailbox, nothing is written. Nobody is signed in to
+ * ask: the token is the proof of the invited mailbox.
+ *
+ * Every request is answered alike - the same empty success, with no
+ * caching - whatever came of it: a token that is wrong, spent, expired or
+ * another address's, an account that has signed up, is blocked or is an
+ * administrator's, a project with nothing waiting, and a confirmation are
+ * one answer, so asking tells nobody anything, not even whether the
+ * address has an account. The page goes on to the provider either way.
+ * Behind the invitation answer's limiter, on its bucket: the same page asks
+ * both, with the same token, and a live token is all either reads more
+ * for.
+ */
+router.post(
+  SIGN_UP_INVITATION_SSO_ROUTE,
+  signUpInvitationRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      await SignUpInvitationUtil.confirmSsoSignIn({
+        email: req.body?.["email"],
+        token: req.body?.["token"],
+        projectId: req.body?.["projectId"],
+      });
+
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }

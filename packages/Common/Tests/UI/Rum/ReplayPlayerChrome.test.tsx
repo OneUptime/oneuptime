@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { describe, expect, it, jest } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import ReplayScrubber, {
   ReplayScrubberProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayScrubber";
@@ -19,6 +20,7 @@ import {
   derivePhase,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
 import { REPLAY_CONTROL_HEIGHT_CLASS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import {
   LAPTOP_WIDTH_IN_PX,
   PHONE_WIDTH_IN_PX,
@@ -341,14 +343,93 @@ describe("transport row", () => {
    * the page - and, on the shortest viewport the player supports, off
    * the screen.
    */
-  it("opens the speed menu above its trigger", () => {
-    render(<ReplayScrubber {...makeScrubberProps()} />);
+  it("opens the speed menu above its trigger, on the tooltip layer", () => {
+    const offsetHeight: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
 
-    fireEvent.click(screen.getByTestId("replay-speed"));
+    // The transport at the foot of a 768px window, and a 200px menu.
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      get(this: HTMLElement): number {
+        return this.getAttribute("role") === "radiogroup" ? 200 : 0;
+      },
+    });
 
-    expect(screen.getByTestId("replay-speed-menu").className).toContain(
-      "bottom-full",
+    try {
+      render(<ReplayScrubber {...makeScrubberProps()} />);
+
+      const trigger: HTMLElement = screen.getByTestId("replay-speed");
+
+      trigger.getBoundingClientRect = (): DOMRect => {
+        return {
+          x: 120,
+          y: 700,
+          left: 120,
+          top: 700,
+          right: 172,
+          bottom: 732,
+          width: 52,
+          height: 32,
+          toJSON: (): string => {
+            return "";
+          },
+        } as DOMRect;
+      };
+
+      fireEvent.click(trigger);
+
+      const menu: HTMLElement = screen.getByTestId("replay-speed-menu");
+      const layer: HTMLElement | null = menu.closest<HTMLElement>(
+        `.${LAYERED_POPOVER_CLASS_NAME}`,
+      );
+
+      // Drawn on the page's body, outside the player that clips it (#9910).
+      expect(layer?.parentElement).toBe(document.body);
+      expect(layer).toHaveAttribute("data-popper-placement", "top-start");
+      expect(menu.className).not.toContain("absolute");
+    } finally {
+      if (offsetHeight) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "offsetHeight",
+          offsetHeight,
+        );
+      }
+    }
+  });
+
+  it("the speed menu keeps its keys: the arrows choose, Escape closes it back onto its trigger and reaches nothing else", () => {
+    const onSpeedChange: MockFunction = getJestMockFunction();
+    const onWindowKey: MockFunction = getJestMockFunction();
+
+    render(
+      <ReplayScrubber
+        {...makeScrubberProps({
+          onSpeedChange: onSpeedChange as unknown as (speed: number) => void,
+        })}
+      />,
     );
+
+    window.addEventListener("keydown", onWindowKey);
+
+    try {
+      fireEvent.click(screen.getByTestId("replay-speed"));
+
+      const menu: HTMLElement = screen.getByTestId("replay-speed-menu");
+
+      fireEvent.keyDown(menu, { key: "ArrowDown" });
+
+      expect(onSpeedChange).toHaveBeenCalledTimes(1);
+
+      fireEvent.keyDown(document.activeElement || menu, { key: "Escape" });
+
+      expect(screen.queryByTestId("replay-speed-menu")).toBeNull();
+      expect(screen.getByTestId("replay-speed")).toHaveFocus();
+      // The player's own window listener hears neither the arrow nor Escape.
+      expect(onWindowKey).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener("keydown", onWindowKey);
+    }
   });
 
   /*

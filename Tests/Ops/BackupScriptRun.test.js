@@ -9,6 +9,8 @@
  *   - a backup is a dump pg_dump finished that is not empty; what the server
  *     is told is that, and the dump's size, nothing else;
  *   - it asks the ingress on this server (ONEUPTIME_HTTP_PORT), never HOST,
+ *     where it is published and under the name localhost, which the ingress
+ *     serves OneUptime under whatever address it listens on (#10024),
  *     with the cluster key from config.env in the clusterkey header,
  *     URI-encoded - and with no key of its own (empty, or still the
  *     placeholder) it asks nothing;
@@ -170,7 +172,10 @@ describe("whom it asks, with what", () => {
         url: `http://localhost:8080${BACKUP_SCRIPT_RUN_PATH}`,
         options: {
           method: "POST",
-          headers: { clusterkey: encodeURIComponent(SECRET) },
+          headers: {
+            Host: "localhost:8080",
+            clusterkey: encodeURIComponent(SECRET),
+          },
           body: { succeeded: true, sizeInBytes: 7340032 },
         },
       },
@@ -190,16 +195,45 @@ describe("whom it asks, with what", () => {
       1,
     );
     await run(moved.given);
+    // Where it is published, under localhost: by 127.0.0.1 the ingress serves a status page's domain.
     expect(moved.asked[0].url).toBe(
-      "http://localhost:8443/api/admin/health/backup-run",
+      "http://127.0.0.1:8443/api/admin/health/backup-run",
     );
+    expect(moved.asked[0].options.headers.Host).toBe("localhost:8443");
 
     const unset = stubbed({ ONEUPTIME_SECRET: SECRET }, 1);
     await run(unset.given);
     expect(unset.asked[0].url).toBe(
       "http://localhost/api/admin/health/backup-run",
     );
+    expect(unset.asked[0].options.headers.Host).toBe("localhost");
   });
+
+  test.each([
+    ["8080", "http://localhost:8080", "localhost:8080"],
+    ["0.0.0.0:8080", "http://localhost:8080", "localhost:8080"],
+    // Docker publishes :: on IPv6 alone.
+    ["[::]:8080", "http://[::1]:8080", "localhost:8080"],
+    ["127.0.0.1:80", "http://127.0.0.1", "localhost"],
+    ["[::1]:8080", "http://[::1]:8080", "localhost:8080"],
+    ["::1:8080", "http://[::1]:8080", "localhost:8080"],
+    ["10.0.0.5:8080", "http://10.0.0.5:8080", "localhost:8080"],
+    ["2001:db8::5:8080", "http://[2001:db8::5]:8080", "localhost:8080"],
+  ])(
+    "ONEUPTIME_HTTP_PORT=%s: it connects to %s and sends Host: %s",
+    async (setting, origin, host) => {
+      const asked = stubbed(
+        { ONEUPTIME_SECRET: SECRET, ONEUPTIME_HTTP_PORT: setting },
+        1,
+      );
+
+      await run(asked.given);
+      expect(asked.asked).toHaveLength(1);
+      expect(asked.asked[0].url).toBe(`${origin}${BACKUP_SCRIPT_RUN_PATH}`);
+      expect(new URL(asked.asked[0].url).pathname).toBe(BACKUP_SCRIPT_RUN_PATH);
+      expect(asked.asked[0].options.headers.Host).toBe(host);
+    },
+  );
 
   test("no key of its own - empty, or still the placeholder - and it asks nothing", async () => {
     for (const secret of ["", "   ", "please-change-this-to-random-value"]) {
@@ -276,6 +310,7 @@ describe("run as backup.sh runs it", () => {
         received.push({
           method: req.method,
           url: req.url,
+          host: req.headers["host"],
           clusterkey: req.headers["clusterkey"],
           body: JSON.parse(body),
         });
@@ -295,6 +330,8 @@ describe("run as backup.sh runs it", () => {
       {
         method: "POST",
         url: "/api/admin/health/backup-run",
+        // At 127.0.0.1, where it is published, under the name the ingress serves OneUptime under.
+        host: `localhost:${port}`,
         clusterkey: encodeURIComponent(SECRET),
         body: { succeeded: true, sizeInBytes: "PGDMP 12345".length },
       },
@@ -355,9 +392,9 @@ describe("run as backup.sh runs it", () => {
     );
 
     expect(result.code).toBe(1);
-    // 127.0.0.1 is the ingress on this host, asked as localhost (FollowIngressPort).
+    // Where ONEUPTIME_HTTP_PORT publishes the ingress, as it was asked there.
     expect(result.stdout).toContain(
-      `OneUptime did not answer at http://localhost:${port} (ECONNREFUSED)`,
+      `OneUptime did not answer at http://127.0.0.1:${port} (ECONNREFUSED)`,
     );
     expect(result.stdout).not.toContain("Ab+c");
   });

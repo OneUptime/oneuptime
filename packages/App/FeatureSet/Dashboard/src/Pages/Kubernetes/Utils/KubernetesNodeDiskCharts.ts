@@ -1,8 +1,14 @@
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import { KUBERNETES_STORAGE_USAGE_THRESHOLDS } from "Common/Types/Kubernetes/KubernetesStorageHealth";
+import {
+  KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS,
+  KUBERNETES_STORAGE_USAGE_THRESHOLDS,
+} from "Common/Types/Kubernetes/KubernetesStorageHealth";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
-import { formatStorageBytes } from "Common/Utils/Storage/StorageUsage";
+import {
+  StorageUsageThresholds,
+  formatStorageBytes,
+} from "Common/Utils/Storage/StorageUsage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -12,13 +18,14 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  *   - its root filesystem's capacity, with its free space on the same
  *     chart, so the gap between the two lines is what is used;
  *   - how much of it is used (%), with the lines the Nodes list's bar turns
- *     amber and red at - the red one where the kubelet's nodefs eviction
- *     starts (imagefs's, at 85%, comes first on a disk that also holds the
- *     images);
+ *     amber and red at (#10057) - the red one where the kubelet starts
+ *     evicting pods from it: 85% on a root filesystem that also holds the
+ *     images (imagefs.available<15%), as on most nodes, and 90% on one that
+ *     does not (nodefs.available<10%);
  *   - on a node whose container images have a disk of their own, the same
  *     two for that disk, which the kubelet reports as every container's root
  *     filesystem (the largest and smallest reading of a minute: they are the
- *     same disk's).
+ *     same disk's), red from 85%.
  */
 
 export const NODE_DISK_CAPACITY_VARIABLE: string = "node_disk_capacity";
@@ -49,6 +56,11 @@ export function getKubernetesNodeDiskCharts(data: {
     "resource.k8s.cluster.name": data.clusterIdentifier,
     "resource.k8s.node.name": data.nodeName,
   };
+
+  // A root filesystem that holds the images is judged as the images' disk.
+  const rootThresholds: StorageUsageThresholds = data.hasImageDisk
+    ? KUBERNETES_STORAGE_USAGE_THRESHOLDS
+    : KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS;
 
   const queryConfigs: Array<MetricQueryConfigData> = [
     {
@@ -112,8 +124,8 @@ export function getKubernetesNodeDiskCharts(data: {
       metricFormulaData: {
         metricFormula: `((${NODE_DISK_CAPACITY_VARIABLE} - ${NODE_DISK_FREE_VARIABLE}) / ${NODE_DISK_CAPACITY_VARIABLE}) * 100`,
       },
-      warningThreshold: KUBERNETES_STORAGE_USAGE_THRESHOLDS.warningPercent,
-      criticalThreshold: KUBERNETES_STORAGE_USAGE_THRESHOLDS.criticalPercent,
+      warningThreshold: rootThresholds.warningPercent,
+      criticalThreshold: rootThresholds.criticalPercent,
     },
   ];
 
@@ -178,8 +190,8 @@ export function getKubernetesNodeDiskCharts(data: {
       metricFormulaData: {
         metricFormula: `((${NODE_IMAGE_DISK_CAPACITY_VARIABLE} - ${NODE_IMAGE_DISK_FREE_VARIABLE}) / ${NODE_IMAGE_DISK_CAPACITY_VARIABLE}) * 100`,
       },
-      warningThreshold: KUBERNETES_STORAGE_USAGE_THRESHOLDS.warningPercent,
-      criticalThreshold: KUBERNETES_STORAGE_USAGE_THRESHOLDS.criticalPercent,
+      warningThreshold: KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS.warningPercent,
+      criticalThreshold: KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS.criticalPercent,
     });
   }
 

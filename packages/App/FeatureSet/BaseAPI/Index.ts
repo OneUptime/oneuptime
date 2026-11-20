@@ -184,6 +184,9 @@ import TelemetryIngestionTeamLabelBudgetService, {
 import TelemetrySourceMapService, {
   Service as TelemetrySourceMapServiceType,
 } from "Common/Server/Services/TelemetrySourceMapService";
+import TelemetryDsymService, {
+  Service as TelemetryDsymServiceType,
+} from "Common/Server/Services/TelemetryDsymService";
 import IoTDeviceCredentialService, {
   Service as IoTDeviceCredentialServiceType,
 } from "Common/Server/Services/IoTDeviceCredentialService";
@@ -1861,6 +1864,7 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import TelemetryIngestionKeyRefusal from "Common/Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import TelemetryIngestionTeamLabelBudget from "Common/Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
+import TelemetryDsym from "Common/Models/DatabaseModels/TelemetryDsym";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
@@ -4243,6 +4247,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TelemetrySourceMap, TelemetrySourceMapServiceType>(
         TelemetrySourceMap,
         TelemetrySourceMapService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TelemetryDsym, TelemetryDsymServiceType>(
+        TelemetryDsym,
+        TelemetryDsymService,
       ).getRouter(),
     );
 

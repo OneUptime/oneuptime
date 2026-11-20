@@ -5,16 +5,25 @@
  * holds the service's credentials, read on a schedule into ManagedDevice
  * rows, each of which is one host in Inventory.
  *
- * Esper was the first row (#9586), and Microsoft Intune the second (#9837).
- * Workspace ONE and SOTI MobiControl would be rows of the same design.
+ * Esper was the first row (#9586), Microsoft Intune the second (#9837),
+ * and Workspace ONE UEM (#10086) and SOTI MobiControl (#10087) the third
+ * and fourth: the two whose API answers at a server the customer names -
+ * the tenant's own host, in the vendor's cloud or on premises.
  */
 enum DeviceManagementProvider {
   Esper = "esper",
   Intune = "intune",
+  WorkspaceOne = "workspaceone",
+  Soti = "soti",
 }
 
 export const DEVICE_MANAGEMENT_PROVIDERS: ReadonlyArray<DeviceManagementProvider> =
-  [DeviceManagementProvider.Esper, DeviceManagementProvider.Intune];
+  [
+    DeviceManagementProvider.Esper,
+    DeviceManagementProvider.Intune,
+    DeviceManagementProvider.WorkspaceOne,
+    DeviceManagementProvider.Soti,
+  ];
 
 export function isDeviceManagementProvider(
   value: unknown,
@@ -47,6 +56,10 @@ export function getDeviceManagementProviderTitle(
   switch (provider) {
     case DeviceManagementProvider.Intune:
       return "Microsoft Intune";
+    case DeviceManagementProvider.WorkspaceOne:
+      return "Workspace ONE UEM";
+    case DeviceManagementProvider.Soti:
+      return "SOTI MobiControl";
     case DeviceManagementProvider.Esper:
     default:
       return "Esper";
@@ -63,6 +76,10 @@ export function getDeviceManagementProviderShortTitle(
   switch (provider) {
     case DeviceManagementProvider.Intune:
       return "Intune";
+    case DeviceManagementProvider.WorkspaceOne:
+      return "Workspace ONE";
+    case DeviceManagementProvider.Soti:
+      return "SOTI";
     case DeviceManagementProvider.Esper:
     default:
       return "Esper";

@@ -171,6 +171,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | نام سیستم‌عامل | `os.name` | تنها از SDKهایی که گزارشش می‌کنند: وگرنه `os.description` نام سیستم‌عامل را می‌برد |
 | نوع دستگاه | `device.type` | اختیاری: آن را هم به همین شیوه ثبت کنید (`Hypervisor`، `Workstation`) |
 | مکان | `device.location` | اختیاری: آن را هم به همین شیوه ثبت کنید (`Frankfurt DC, Rack B4`) |
+| سطح وصله امنیتی | `android.os.security_patch` | روی دستگاه Android: از عامل Android یا سرویس مدیریت دستگاهش |
 
 هر چیزی که با «بله» نشان خورده از پردازنده `resourcedetection` گردآورنده می‌آید، و از پیش در پیکربندی‌ای هست که OneUptime برایتان می‌سازد.
 

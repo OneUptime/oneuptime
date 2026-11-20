@@ -4,6 +4,7 @@ import {
   Service as MonitorStatusTimelineServiceType,
 } from "../../../Server/Services/MonitorStatusTimelineService";
 import ObjectID from "../../../Types/ObjectID";
+import UptimeDayGrid from "../../../Utils/Uptime/UptimeDayGrid";
 import {
   MonitorGroupUptimeDailyAggregate,
   UptimeDayBucket,
@@ -131,7 +132,12 @@ describe("MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate", () 
     expect(aggregate).toEqual({ monitorGroups: [], timezone: "Asia/Shanghai" });
   });
 
-  test("binds each group's number beside its monitors, the window, the zone, the ranked statuses and the group count", async () => {
+  /*
+   * Issue #10039: the zone's midnights are worked out with OneUptime's own
+   * tz data (UptimeDayGrid) and bound as $5; the zone never reaches
+   * Postgres.
+   */
+  test("binds each group's number beside its monitors, the window, the zone's midnights, the ranked statuses and the group count", async () => {
     const stub: StubbedService = stubService();
 
     await stub.service.getMonitorGroupDailyUptimeAggregate(
@@ -144,10 +150,20 @@ describe("MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate", () 
       [MONITOR_A, MONITOR_B, MONITOR_B],
       WINDOW_START,
       WINDOW_END,
-      "Asia/Shanghai",
+      UptimeDayGrid.getDatabaseParameter({
+        startDate: WINDOW_START,
+        endDate: WINDOW_END,
+        timezone: "Asia/Shanghai",
+      }),
       [OPERATIONAL, DEGRADED, OFFLINE],
       2,
     ]);
+
+    // Shanghai's midnights are 16:00 UTC.
+    for (const midnight of stub.calls[0]!.params[4] as Array<string>) {
+      expect(midnight.slice(11)).toBe("16:00:00.000Z");
+    }
+    expect(stub.calls[0]!.params).not.toContain("Asia/Shanghai");
   });
 
   test("cuts days in UTC when no zone is asked for", async () => {
@@ -156,7 +172,12 @@ describe("MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate", () 
     const aggregate: MonitorGroupUptimeDailyAggregate =
       await stub.service.getMonitorGroupDailyUptimeAggregate(request());
 
-    expect(stub.calls[0]!.params[4]).toBe("UTC");
+    const grid: Array<string> = stub.calls[0]!.params[4] as Array<string>;
+
+    expect(grid.length).toBeGreaterThan(2);
+    for (const midnight of grid) {
+      expect(midnight.slice(11)).toBe("00:00:00.000Z");
+    }
     expect(aggregate.timezone).toBe("UTC");
   });
 
@@ -193,12 +214,10 @@ describe("MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate", () 
 
     const sql: string = flatten(stub.calls[0]!.sql);
 
-    expect(sql).toContain(
-      "generate_series( date_trunc('day', p.win_start AT TIME ZONE p.tz), date_trunc('day', p.eff_end AT TIME ZONE p.tz) + interval '1 day', interval '1 day' )",
-    );
-    expect(sql).toContain(
-      "array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts",
-    );
+    // The grid is bound ($5), worked out with OneUptime's tz data (#10039).
+    expect(sql).toContain("grid AS ( SELECT $5::timestamptz[] AS starts )");
+    expect(sql).not.toContain("AT TIME ZONE");
+    expect(sql).not.toContain("AS tz");
     expect(sql).toContain("width_bucket(src.s, g.starts) AS first_day");
     expect(sql).toContain(
       "width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day",

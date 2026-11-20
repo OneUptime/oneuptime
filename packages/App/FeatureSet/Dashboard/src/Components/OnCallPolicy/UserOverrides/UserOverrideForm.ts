@@ -427,6 +427,29 @@ export interface UserOverrideFormTeamLimit {
   memberIds: ReadonlySet<string> | null;
 }
 
+/*
+ * What a dialog rebuilds its fields for (a useMemo key) as the team limit
+ * becomes known: the teams, the line above the pickers' lists, and how many
+ * of the teams' members are known - null while they are read. Built by
+ * both dialogs that hold the form, Add and Edit User Override and Skip
+ * until..., so the two cannot rebuild for different things. JSON, so a
+ * value not known yet is written as null, never as a mark of its own: a
+ * key is no text anyone reads.
+ */
+export const getUserOverrideFormTeamLimitKey: (
+  teamLimit: UserOverrideFormTeamLimit | undefined,
+) => string = (teamLimit: UserOverrideFormTeamLimit | undefined): string => {
+  if (!teamLimit) {
+    return "";
+  }
+
+  return JSON.stringify({
+    teamIds: teamLimit.teamIds,
+    hint: teamLimit.hint,
+    memberCount: teamLimit.memberIds ? teamLimit.memberIds.size : null,
+  });
+};
+
 // What a picker kept to the teams says when it has nobody to offer.
 export const USER_OVERRIDE_TEAM_PICKER_EMPTY_TEXT: string = translationKey(
   "No one in these teams can be picked.",

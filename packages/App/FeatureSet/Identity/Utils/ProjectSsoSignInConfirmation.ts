@@ -53,8 +53,12 @@ import User from "Common/Models/DatabaseModels/User";
  *
  * On the hosted service (billing on), the first project-SSO sign-in to an
  * account therefore stops before any session exists and emails the account's
- * own address instead. The link in that email, and only that link, records the
- * owner's consent (UserProjectSsoConsent). After that, sign-ins through the
+ * own address instead. The link in that email, and only a link sent to that
+ * address, records the owner's consent (UserProjectSsoConsent): the other is
+ * an invitation email's, taken as the same confirmation when its person picks
+ * the project's single sign-on on the page it opens, so that first sign-in
+ * goes through with no second email (#9898,
+ * SignUpInvitationUtil.confirmSsoSignIn). After that, sign-ins through the
  * project's SSO go straight through, exactly as before. The same click proves
  * the mailbox, so it also verifies the account's address -- which is what
  * "email verification for SSO signups" means here. An address no account

@@ -497,6 +497,7 @@ import TelemetryIngestionTeamLabelBudget from "./TelemetryIngestionTeamLabelBudg
 import TelemetryException from "./TelemetryException";
 import TelemetryExceptionActivity from "./TelemetryExceptionActivity";
 import TelemetrySourceMap from "./TelemetrySourceMap";
+import TelemetryDsym from "./TelemetryDsym";
 import InventoryItem from "./InventoryItem";
 import InventoryItemCustomField from "./InventoryItemCustomField";
 import InventoryItemRelationship from "./InventoryItemRelationship";
@@ -1172,6 +1173,7 @@ const AllModelTypes: Array<{
   TelemetryException,
   TelemetryExceptionActivity,
   TelemetrySourceMap,
+  TelemetryDsym,
   InventoryItem,
   InventoryItemCustomField,
   InventoryItemRelationship,

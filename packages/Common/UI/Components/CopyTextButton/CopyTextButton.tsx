@@ -1,4 +1,7 @@
-import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
+import useClipboardCopy, {
+  ClipboardCopy,
+  ClipboardCopyStatus,
+} from "../../Utils/UseClipboardCopy";
 import React, {
   FunctionComponent,
   MouseEventHandler,
@@ -8,11 +11,14 @@ import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 
+export type CopyTextButtonSize = "xs" | "sm" | "md";
+export type CopyTextButtonVariant = "ghost" | "soft" | "solid";
+
 export interface ComponentProps {
   textToBeCopied: string;
   className?: string | undefined;
-  size?: "xs" | "sm" | "md"; // visual size
-  variant?: "ghost" | "soft" | "solid"; // visual style
+  size?: CopyTextButtonSize; // visual size
+  variant?: CopyTextButtonVariant; // visual style
   iconOnly?: boolean; // render only icon without label
   label?: string; // default: "Copy"
   copiedLabel?: string; // default: "Copied!"
@@ -21,6 +27,55 @@ export interface ComponentProps {
 
 // How long "Copied!" stays on the button.
 export const COPY_TEXT_BUTTON_COPIED_MS: number = 1000;
+
+const SIZE_CLASSES: Record<CopyTextButtonSize, string> = {
+  xs: "text-[10px] px-1.5 py-0.5 rounded",
+  sm: "text-xs px-2 py-1 rounded-md",
+  md: "text-sm px-2.5 py-1.5 rounded-md",
+};
+
+/*
+ * md is 18px written out: Tailwind's spacing scale has no 4.5, so
+ * "w-4.5 h-4.5" matched no rule and the icon was never drawn.
+ */
+export const COPY_TEXT_BUTTON_ICON_SIZES: Record<CopyTextButtonSize, string> = {
+  xs: "w-3.5 h-3.5",
+  sm: "w-4 h-4",
+  md: "w-[1.125rem] h-[1.125rem]",
+};
+
+const VARIANT_CLASSES: Record<CopyTextButtonVariant, string> = {
+  ghost:
+    "bg-transparent border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600",
+  soft: "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200",
+  solid:
+    "bg-indigo-600 text-white border border-indigo-600 hover:bg-indigo-500",
+};
+
+const COPIED_CLASSES: string =
+  "bg-emerald-50 border border-emerald-200 text-emerald-600";
+
+const FAILED_CLASSES: string = "bg-red-50 border border-red-200 text-red-600";
+
+/*
+ * The box a copy button is drawn in, by its size, its look and what its
+ * last copy did. Shared with a copy control drawn beside one - a log row's
+ * Copy Link beside its Copy log message (#9944) - so the two look alike.
+ */
+export function getCopyTextButtonClassName(data: {
+  size: CopyTextButtonSize;
+  variant: CopyTextButtonVariant;
+  status: ClipboardCopyStatus;
+}): string {
+  const stateClasses: string =
+    data.status === ClipboardCopyStatus.Copied
+      ? COPIED_CLASSES
+      : data.status === ClipboardCopyStatus.Failed
+        ? FAILED_CLASSES
+        : VARIANT_CLASSES[data.variant];
+
+  return `inline-flex items-center justify-center gap-1 transition-colors duration-150 cursor-pointer select-none ${stateClasses} ${SIZE_CLASSES[data.size]}`;
+}
 
 /*
  * Copies the text, and says what happened: "Copied!" only once it is on the
@@ -37,8 +92,8 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
   const copied: boolean = clipboard.isCopied;
   const failed: boolean = clipboard.isFailed;
 
-  const size: "xs" | "sm" | "md" = props.size || "xs";
-  const variant: "ghost" | "soft" | "solid" = props.variant || "ghost";
+  const size: CopyTextButtonSize = props.size || "xs";
+  const variant: CopyTextButtonVariant = props.variant || "ghost";
   const { translateString } = useTranslateValue();
   const label: string =
     translateString(props.label || "Copy") || props.label || "Copy";
@@ -58,60 +113,30 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
     await clipboard.copy(props.textToBeCopied);
   };
 
-  const sizeClasses: Record<typeof size, string> = {
-    xs: "text-[10px] px-1.5 py-0.5 rounded",
-    sm: "text-xs px-2 py-1 rounded-md",
-    md: "text-sm px-2.5 py-1.5 rounded-md",
-  } as const;
-
-  /*
-   * md is 18px written out: Tailwind's spacing scale has no 4.5, so
-   * "w-4.5 h-4.5" matched no rule and the icon was never drawn.
-   */
-  const iconSizes: Record<typeof size, string> = {
-    xs: "w-3.5 h-3.5",
-    sm: "w-4 h-4",
-    md: "w-[1.125rem] h-[1.125rem]",
-  } as const;
-
-  const variantClasses: Record<typeof variant, string> = {
-    ghost:
-      "bg-transparent border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600",
-    soft: "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200",
-    solid:
-      "bg-indigo-600 text-white border border-indigo-600 hover:bg-indigo-500",
-  } as const;
-
-  const copiedClasses: string =
-    "bg-emerald-50 border border-emerald-200 text-emerald-600";
-
-  const failedClasses: string = "bg-red-50 border border-red-200 text-red-600";
-
-  let stateClasses: string = variantClasses[variant];
+  const iconSize: string = COPY_TEXT_BUTTON_ICON_SIZES[size];
   let stateIcon: ReactElement = (
-    <Icon icon={IconProp.Copy} className={`${iconSizes[size]}`} />
+    <Icon icon={IconProp.Copy} className={`${iconSize}`} />
   );
   let stateText: string = "";
 
   if (copied) {
-    stateClasses = copiedClasses;
     stateIcon = (
-      <Icon
-        icon={IconProp.Check}
-        className={`${iconSizes[size]} text-emerald-400`}
-      />
+      <Icon icon={IconProp.Check} className={`${iconSize} text-emerald-400`} />
     );
     stateText = copiedLabel;
   } else if (failed) {
-    stateClasses = failedClasses;
-    stateIcon = <Icon icon={IconProp.Alert} className={`${iconSizes[size]}`} />;
+    stateIcon = <Icon icon={IconProp.Alert} className={`${iconSize}`} />;
     stateText = failedLabel;
   }
 
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-1 transition-colors duration-150 cursor-pointer select-none ${stateClasses} ${sizeClasses[size]} ${props.className || ""}`}
+      className={`${getCopyTextButtonClassName({
+        size,
+        variant,
+        status: clipboard.status,
+      })} ${props.className || ""}`}
       onClick={handleCopy}
       onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
         if (e.key === "Enter" || e.key === " ") {

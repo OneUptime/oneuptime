@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | 執行監控檢查的全域探測器。它使用主機的網路。 |
 | `global-runner` | `oneuptime/runner` | 內建的全域 Runner，為所有專案執行運行手冊的 JavaScript 步驟與 OneUptime AI 的程式碼修正。 |
 | `postgres` | `postgres:15` | 設定與狀態：監控、事件、使用者。儲存在 `postgres` 磁碟區中。 |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遙測資料：日誌、指標、追蹤與例外。儲存在 `clickhouse` 磁碟區中。 |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7.38.18` | 遙測資料：日誌、指標、追蹤與例外。儲存在 `clickhouse` 磁碟區中。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | 快取與佇列。它不在磁碟上保存任何資料。 |
 
 > [!NOTE]
@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` 會在新連接埠 `localhost:8080` 上檢查 OneUptime，最後輸出 **OneUptime is up!**
+`npm start` 會在 ingress 現在監聽的位址 `127.0.0.1:8080` 上檢查 OneUptime，最後輸出 **OneUptime is up!**
+
+現在只有這台伺服器能連到 ingress。ingress 依主機名稱轉送請求：只有 `HOST` 和 `localhost` 能連到整個應用程式，其他任何名稱（包括位址 `127.0.0.1`）都會被當作狀態頁面的網域。所以你的代理會把瀏覽器要求的名稱 `HOST` 原樣傳過去，探測器呼叫 `http://localhost:8080`，而 `npm start` 結尾的檢查和 `npm run doctor` 一樣，會用主機名稱 `localhost:8080` 連到 `127.0.0.1:8080`。
 
 #### 設定代理
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-所有容器都執行後，用 `npm run status-check` 再次執行檢查。它會在 `ONEUPTIME_HTTP_PORT` 設定的連接埠上檢查 ingress。
+所有容器都執行後，用 `npm run status-check` 再次執行檢查。它會在 `ONEUPTIME_HTTP_PORT` 發布 ingress 的位址和連接埠（例如 `127.0.0.1:8080`）上，像伺服器上的瀏覽器那樣用主機名稱 `localhost` 檢查 ingress。如果 `PROVISION_SSL=true`，它還會在 `STATUS_PAGE_HTTPS_PORT` 發布 ingress 的地方，透過 HTTPS 檢查 `HOST`。
 :::
 
 :::details 瀏覽器顯示 "此位址未設定 OneUptime"

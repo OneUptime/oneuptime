@@ -8,6 +8,8 @@ import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseMode
 import OnCallDutyPolicyEscalationRuleTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import ProbeOwnerTeam from "../../../Models/DatabaseModels/ProbeOwnerTeam";
+import TelemetryDsym from "../../../Models/DatabaseModels/TelemetryDsym";
+import { getCliResourceName } from "../../../Utils/DeveloperDocs/CliCommands";
 import {
   CLIENT_RESOURCE_NAMES,
   getClientResourceName,
@@ -35,6 +37,13 @@ describe("client resource names", () => {
     expect(getTerraformTypeName(OnCallDutyPolicyEscalationRuleSchedule)).toBe(
       "oneuptime_escalation_rule_schedule",
     );
+  });
+
+  test("an iOS app's uploaded dSYM is a dSYM file, leaving `oneuptime dsym upload` its word", () => {
+    expect(getTerraformTypeName(TelemetryDsym)).toBe("oneuptime_dsym_file");
+    expect(
+      getCliResourceName({ tableName: "TelemetryDsym", singularName: "dSYM" }),
+    ).toBe("dsym-file");
   });
 
   test("every owner team is <thing>_team_owner", () => {

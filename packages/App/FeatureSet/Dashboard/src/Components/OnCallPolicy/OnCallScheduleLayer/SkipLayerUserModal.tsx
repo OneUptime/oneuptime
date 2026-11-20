@@ -1,6 +1,7 @@
 import {
   UserOverrideFormTeamLimit,
   getUserOverrideFormFields,
+  getUserOverrideFormTeamLimitKey,
   prepareUserOverrideForCreate,
   readUserOverridePeople,
 } from "../UserOverrides/UserOverrideForm";
@@ -256,11 +257,8 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
     : undefined;
 
   // What the fields are rebuilt for when the team limit is known.
-  const teamLimitSignature: string = formTeamLimit
-    ? `${formTeamLimit.teamIds.join(",")}|${formTeamLimit.hint || ""}|${
-        formTeamLimit.memberIds ? formTeamLimit.memberIds.size : "-"
-      }`
-    : "";
+  const teamLimitSignature: string =
+    getUserOverrideFormTeamLimitKey(formTeamLimit);
 
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
