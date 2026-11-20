@@ -110,7 +110,10 @@ import {
 import {
   APP_START_SPAN_NAME,
   APP_START_TYPE_ATTRIBUTE,
+  STORED_APP_INSTALL_ATTRIBUTES,
 } from "Common/Types/Rum/MobileAppTelemetry";
+import { DSYM_RETENTION_DAYS } from "Common/Server/Services/TelemetryDsymService";
+import { MATCH_WINDOW_MS } from "Common/Utils/Telemetry/AppleCrashMatch";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import { describe, expect, it, jest } from "@jest/globals";
@@ -1276,6 +1279,81 @@ describe("Mobile Setup", () => {
     it("warns that MetricKit reports late", () => {
       expect(ios).toContain(
         "so a crash or a hang can arrive minutes or a day after it happened",
+      );
+    });
+
+    /*
+     * #9922: the dSYMs that name a crash's frames, uploaded by the CLI or
+     * by curl to the route ingest reads them from, and kept as long as the
+     * page says.
+     */
+    it("uploads dSYMs with the CLI, or as they are with curl, to the route that stores them", () => {
+      const DSYM_UPLOAD_PATH: string = "/dsyms/v1/upload";
+
+      expect(ios).toContain(
+        'oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com',
+      );
+      // The path the CLI posts to, read from its source: the CLI is its own package.
+      expect(
+        fs.readFileSync(
+          path.join(REPO_DIR, "packages/CLI/Commands/DsymCommands.ts"),
+          "utf8",
+        ),
+      ).toContain(`DSYM_UPLOAD_PATH: string = "${DSYM_UPLOAD_PATH}"`);
+      expect(ios).toContain(
+        `curl --fail -X POST "https://oneuptime.com${DSYM_UPLOAD_PATH}"`,
+      );
+      expect(
+        fs.readFileSync(
+          path.join(
+            REPO_DIR,
+            "packages/App/FeatureSet/Telemetry/API/DsymIngest.ts",
+          ),
+          "utf8",
+        ),
+      ).toContain(`"${DSYM_UPLOAD_PATH}"`);
+      expect(ios).toContain(`kept by its UUID for ${DSYM_RETENTION_DAYS} days`);
+    });
+
+    it("says the frames are named by function and grouped by it across releases", () => {
+      expect(ios).toContain(
+        "A frame of your app's code is named by its function, such as `CartViewController.checkout()`, once the dSYM of its build is uploaded",
+      );
+      expect(ios).toContain(
+        "so a crash stays one exception from one release to the next",
+      );
+    });
+
+    // #9923: the matching rule, as AppleCrashMatch holds two reports to it.
+    it("counts a crash KSCrash and MetricKit both report once, by the rule ingest pairs them by", () => {
+      expect(MATCH_WINDOW_MS).toBe(26 * 60 * 60 * 1000);
+      expect(ios).toContain("They are no more than 26 hours apart");
+      expect(ios).toContain(
+        "the first report to arrive is the occurrence, and the second is kept beside it, in the same exception",
+      );
+      expect(ios).toContain("the occurrence reads **Reported twice**");
+      expect(
+        fs.readFileSync(
+          path.join(
+            REPO_DIR,
+            "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/OccuranceTable.tsx",
+          ),
+          "utf8",
+        ),
+      ).toContain('text="Reported twice"');
+    });
+
+    // #9924: an iOS app's installs, from the device.id the page sets.
+    it("counts an iOS app's installs by the device.id its resource sets", () => {
+      expect(STORED_APP_INSTALL_ATTRIBUTES).toEqual([
+        "resource.app.installation.id",
+        "resource.device.id",
+      ]);
+      expect(mobile).toContain(
+        '"device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),',
+      );
+      expect(ios).toContain(
+        "An install is the `device.id` of the resource above, the app's identifier for vendor",
       );
     });
   });

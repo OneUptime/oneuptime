@@ -103,6 +103,7 @@ Listan visar varje sorts post som du kan arbeta med, och dess kommando, till exe
 | `oneuptime deploy` | Registrerar en driftsättning, eller en annan ändring, för diagram och OneUptime AI | [Driftsättningar och ändringar](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | Gör projektets datakontroller likadana som en fil i ditt repository | [Kommandoreferens](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Skickar ett dbt-projekts artefakter efter ett bygge till Dataobserverbarhet | [Kommandoreferens](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | Skickar en iOS-apps dSYM-filer efter ett bygge, så att dess krascher och häng kan läsas per funktion | [Mobilkonfiguration](/docs/rum/mobile-setup#ladda-upp-dina-dsym-filer) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbetar med en sorts post | [Resursoperationer](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Listar en resurs fält och de flaggor som sätter dem | [Resursoperationer](/docs/cli/resource-operations#se-en-resurs-fält) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Gör det som instrumentpanelens knappar gör på incidenter, larm och schemalagt underhåll | [Resursoperationer](/docs/cli/resource-operations#bekräfta-lös-och-lägg-till-anteckningar) |

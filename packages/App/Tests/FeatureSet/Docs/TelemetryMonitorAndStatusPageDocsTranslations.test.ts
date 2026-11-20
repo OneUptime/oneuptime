@@ -214,10 +214,16 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   /*
    * A mobile app's recommendations, as their cards name them: a card draws
    * the template's name as written (RumAlertTemplates), in every language
-   * (#9711, #9713, #9716).
+   * (#9711, #9713, #9716), the daily rates per install too (#9924).
    */
   [TRACES_MONITOR]: ["Device Stopped Reporting", "App Stopped Reporting"],
-  [EXCEPTIONS_MONITOR]: ["App Crashes", "App Crash Rate", "App ANR Rate"],
+  [EXCEPTIONS_MONITOR]: [
+    "App Crashes",
+    "App Crash Rate",
+    "App ANR Rate",
+    "Daily Crash Rate",
+    "Daily ANR Rate",
+  ],
 };
 
 interface FlatLookupLabel {
