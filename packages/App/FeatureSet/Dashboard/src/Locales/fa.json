@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "نمایش رویدادهایی که یک قاعده پاک‌سازی نشانی آن‌ها را پنهان کرده است",
   "The scrub rule {{rule}} hid it from every event of this case.": "قاعده پاک‌سازی {{rule}} آن را در همه رویدادهای این پرونده پنهان کرده است.",
   "The scrub rule {{rule}} masks them.": "قاعده پاک‌سازی {{rule}} آن‌ها را می‌پوشاند.",
-  "The scrub rule {{rule}} redacts them.": "قاعده پاک‌سازی {{rule}} آن‌ها را حذف می‌کند."
+  "The scrub rule {{rule}} redacts them.": "قاعده پاک‌سازی {{rule}} آن‌ها را حذف می‌کند.",
+  "Includes records where these {{count}} addresses were hashed.": "شامل رکوردهایی است که این {{count}} نشانی در آن‌ها درهم‌سازی شده‌اند.",
+  "Includes records where these {{count}} addresses were hashed._one": "شامل رکوردهایی است که این نشانی در آن‌ها درهم‌سازی شده است.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "رکوردهای قدیمی‌تر که توکن آن‌ها ۸ نویسه دارد، مانند {{example}}، را نمی‌توان با یک نشانی تطبیق داد."
 }

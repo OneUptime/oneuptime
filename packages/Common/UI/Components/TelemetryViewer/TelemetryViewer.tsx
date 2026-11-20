@@ -50,6 +50,7 @@ import TelemetrySearchBar, {
 import TelemetryFacetSidebar from "./components/TelemetryFacetSidebar";
 import { hasLockedTelemetryScope } from "./FacetVisibility";
 import TelemetryActiveFilterChips from "./components/TelemetryActiveFilterChips";
+import HashedAddressSearchNote from "./components/HashedAddressSearchNote";
 import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import TelemetryHistogram from "./components/TelemetryHistogram";
 import TelemetryPagination from "./components/TelemetryPagination";
@@ -357,6 +358,13 @@ export interface TelemetryViewerProps<T> {
 
   // -- Bulk Actions on the page's rows; left out, the rows have no boxes --
   bulk?: TelemetryViewerBulk<T> | undefined;
+
+  /*
+   * The addresses the search also matched by the project's IP Address Hash
+   * token (#10418): the results say so, once, above them
+   * (HashedAddressSearchNote). Empty or left out, nothing is said.
+   */
+  hashedAddresses?: Array<string> | undefined;
 }
 
 const DEFAULT_PAGE_SIZE_OPTIONS: Array<number> = [25, 50, 100, 200];
@@ -749,6 +757,11 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           }}
           signal={props.lockedFilterSignal}
         />
+      )}
+
+      {/* What the search matched by an address's hash token, once (#10418) */}
+      {!listError && (
+        <HashedAddressSearchNote addresses={props.hashedAddresses} />
       )}
 
       {/* Main content override (e.g. analytics view) */}

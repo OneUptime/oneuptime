@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "정리 규칙이 주소를 숨긴 이벤트 표시",
   "The scrub rule {{rule}} hid it from every event of this case.": "정리 규칙 {{rule}}이(가) 이 케이스의 모든 이벤트에서 주소를 숨겼습니다.",
   "The scrub rule {{rule}} masks them.": "정리 규칙 {{rule}}이(가) 이를 마스킹합니다.",
-  "The scrub rule {{rule}} redacts them.": "정리 규칙 {{rule}}이(가) 이를 삭제 처리합니다."
+  "The scrub rule {{rule}} redacts them.": "정리 규칙 {{rule}}이(가) 이를 삭제 처리합니다.",
+  "Includes records where these {{count}} addresses were hashed.": "이 {{count}}개 주소가 해싱된 레코드를 포함합니다.",
+  "Includes records where these {{count}} addresses were hashed._one": "이 주소가 해싱된 레코드를 포함합니다.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "토큰이 8자인 이전 레코드(예: {{example}})는 주소와 연결할 수 없습니다."
 }

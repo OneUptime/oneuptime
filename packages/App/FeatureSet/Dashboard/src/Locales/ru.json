@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "Показать события, адрес которых скрыло правило очистки",
   "The scrub rule {{rule}} hid it from every event of this case.": "Правило очистки «{{rule}}» скрыло его во всех событиях этого кейса.",
   "The scrub rule {{rule}} masks them.": "Правило очистки «{{rule}}» маскирует их.",
-  "The scrub rule {{rule}} redacts them.": "Правило очистки «{{rule}}» скрывает их."
+  "The scrub rule {{rule}} redacts them.": "Правило очистки «{{rule}}» скрывает их.",
+  "Includes records where these {{count}} addresses were hashed.": "Включает записи, в которых были хешированы эти адреса ({{count}}).",
+  "Includes records where these {{count}} addresses were hashed._one": "Включает записи, в которых был хеширован этот адрес.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Более старые записи с токеном из 8 символов, например {{example}}, нельзя сопоставить с адресом."
 }

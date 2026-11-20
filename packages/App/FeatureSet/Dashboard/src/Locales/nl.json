@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "Gebeurtenissen tonen waarvan een opschoonregel het adres verborg",
   "The scrub rule {{rule}} hid it from every event of this case.": "De opschoonregel {{rule}} heeft het in elke gebeurtenis van deze zaak verborgen.",
   "The scrub rule {{rule}} masks them.": "De opschoonregel {{rule}} maskeert ze.",
-  "The scrub rule {{rule}} redacts them.": "De opschoonregel {{rule}} redigeert ze."
+  "The scrub rule {{rule}} redacts them.": "De opschoonregel {{rule}} redigeert ze.",
+  "Includes records where these {{count}} addresses were hashed.": "Bevat records waarin deze {{count}} adressen zijn gehasht.",
+  "Includes records where these {{count}} addresses were hashed._one": "Bevat records waarin dit adres is gehasht.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Oudere records waarvan het token 8 tekens heeft, zoals {{example}}, kunnen niet aan een adres worden gekoppeld."
 }

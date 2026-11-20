@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "顯示位址被清除規則隱藏的事件",
   "The scrub rule {{rule}} hid it from every event of this case.": "清除規則 {{rule}} 在此案例的每個事件中都隱藏了該位址。",
   "The scrub rule {{rule}} masks them.": "清除規則 {{rule}} 會將其遮罩。",
-  "The scrub rule {{rule}} redacts them.": "清除規則 {{rule}} 會將其編修。"
+  "The scrub rule {{rule}} redacts them.": "清除規則 {{rule}} 會將其編修。",
+  "Includes records where these {{count}} addresses were hashed.": "包含這 {{count}} 個位址經過雜湊處理的記錄。",
+  "Includes records where these {{count}} addresses were hashed._one": "包含此位址經過雜湊處理的記錄。",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "權杖為 8 個字元的較舊記錄（例如 {{example}}）無法與位址比對。"
 }

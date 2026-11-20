@@ -1053,15 +1053,19 @@ const readHashedAddressSearchTexts: (body: JSONObject) => Array<string> = (
  * the same fields the read binds), and hears back the addresses among them
  * that its search matches by the project's token - none when the project
  * hashes no addresses out of the signal. Read with the signal's own read
- * access; it reads the project's scrub rules and no record, and names no
- * address the person did not type.
+ * access, and held to the caller's read scope: a caller who may read none
+ * of the signal's records hears of no address, as their search shows none.
+ * It reads the project's scrub rules and no record, and names no address
+ * the person did not type.
  */
 const answerHashedAddressSearch: (data: {
   signal: HashedAddressSignal;
+  modelType: typeof Log | typeof Span | typeof ExceptionInstance;
   req: ExpressRequest;
   res: ExpressResponse;
 }) => Promise<void> = async (data: {
   signal: HashedAddressSignal;
+  modelType: typeof Log | typeof Span | typeof ExceptionInstance;
   req: ExpressRequest;
   res: ExpressResponse;
 }): Promise<void> => {
@@ -1076,12 +1080,25 @@ const answerHashedAddressSearch: (data: {
     );
   }
 
-  const addresses: Array<string> =
-    await HashedAddressSearch.getAddressesMatchedByToken({
-      projectId: databaseProps.tenantId,
-      signal: data.signal,
-      texts: readHashedAddressSearchTexts(data.req.body as JSONObject),
-    });
+  const texts: Array<string> = readHashedAddressSearchTexts(
+    data.req.body as JSONObject,
+  );
+
+  const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+    data.modelType,
+    databaseProps,
+  );
+
+  const readsNoRecord: boolean =
+    TelemetryReadScopeUtil.getReadableIds(scope)?.length === 0;
+
+  const addresses: Array<string> = readsNoRecord
+    ? []
+    : await HashedAddressSearch.getAddressesMatchedByToken({
+        projectId: databaseProps.tenantId,
+        signal: data.signal,
+        texts,
+      });
 
   return Response.sendJsonObjectResponse(data.req, data.res, {
     addresses: addresses,
@@ -1099,6 +1116,7 @@ router.post(
     try {
       await answerHashedAddressSearch({
         signal: HashedAddressSignal.Logs,
+        modelType: Log,
         req,
         res,
       });
@@ -1119,6 +1137,7 @@ router.post(
     try {
       await answerHashedAddressSearch({
         signal: HashedAddressSignal.Traces,
+        modelType: Span,
         req,
         res,
       });
@@ -1139,6 +1158,7 @@ router.post(
     try {
       await answerHashedAddressSearch({
         signal: HashedAddressSignal.Exceptions,
+        modelType: ExceptionInstance,
         req,
         res,
       });

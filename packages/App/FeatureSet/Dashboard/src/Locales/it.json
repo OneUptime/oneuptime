@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "Mostra gli eventi il cui indirizzo è stato nascosto da una regola di pulizia",
   "The scrub rule {{rule}} hid it from every event of this case.": "La regola di pulizia {{rule}} l'ha nascosto in ogni evento di questo caso.",
   "The scrub rule {{rule}} masks them.": "La regola di pulizia {{rule}} li maschera.",
-  "The scrub rule {{rule}} redacts them.": "La regola di pulizia {{rule}} li oscura."
+  "The scrub rule {{rule}} redacts them.": "La regola di pulizia {{rule}} li oscura.",
+  "Includes records where these {{count}} addresses were hashed.": "Include i record in cui questi {{count}} indirizzi sono stati sottoposti ad hashing.",
+  "Includes records where these {{count}} addresses were hashed._one": "Include i record in cui questo indirizzo è stato sottoposto ad hashing.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "I record più vecchi il cui token ha 8 caratteri, come {{example}}, non possono essere associati a un indirizzo."
 }

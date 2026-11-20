@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "Vis hændelser, hvis adresse en rensningsregel skjulte",
   "The scrub rule {{rule}} hid it from every event of this case.": "Rensningsreglen {{rule}} skjulte den i alle hændelser i denne sag.",
   "The scrub rule {{rule}} masks them.": "Rensningsreglen {{rule}} maskerer dem.",
-  "The scrub rule {{rule}} redacts them.": "Rensningsreglen {{rule}} skjuler dem."
+  "The scrub rule {{rule}} redacts them.": "Rensningsreglen {{rule}} skjuler dem.",
+  "Includes records where these {{count}} addresses were hashed.": "Omfatter poster, hvor disse {{count}} adresser blev hashet.",
+  "Includes records where these {{count}} addresses were hashed._one": "Omfatter poster, hvor denne adresse blev hashet.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Ældre poster, hvis token har 8 tegn, som {{example}}, kan ikke kobles til en adresse."
 }

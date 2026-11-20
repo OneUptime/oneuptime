@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "Mostrar los eventos cuya dirección ocultó una regla de depuración",
   "The scrub rule {{rule}} hid it from every event of this case.": "La regla de depuración {{rule}} la ocultó en cada evento de este caso.",
   "The scrub rule {{rule}} masks them.": "La regla de depuración {{rule}} las enmascara.",
-  "The scrub rule {{rule}} redacts them.": "La regla de depuración {{rule}} las oculta."
+  "The scrub rule {{rule}} redacts them.": "La regla de depuración {{rule}} las oculta.",
+  "Includes records where these {{count}} addresses were hashed.": "Incluye registros en los que estas {{count}} direcciones se convirtieron en hash.",
+  "Includes records where these {{count}} addresses were hashed._one": "Incluye registros en los que esta dirección se convirtió en hash.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Los registros más antiguos cuyo token tiene 8 caracteres, como {{example}}, no se pueden asociar a una dirección."
 }

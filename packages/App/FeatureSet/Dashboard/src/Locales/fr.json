@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "Afficher les événements dont une règle de nettoyage a masqué l'adresse",
   "The scrub rule {{rule}} hid it from every event of this case.": "La règle de nettoyage {{rule}} l'a masquée dans chaque événement de ce dossier.",
   "The scrub rule {{rule}} masks them.": "La règle de nettoyage {{rule}} les masque.",
-  "The scrub rule {{rule}} redacts them.": "La règle de nettoyage {{rule}} les caviarde."
+  "The scrub rule {{rule}} redacts them.": "La règle de nettoyage {{rule}} les caviarde.",
+  "Includes records where these {{count}} addresses were hashed.": "Inclut les enregistrements où ces {{count}} adresses ont été hachées.",
+  "Includes records where these {{count}} addresses were hashed._one": "Inclut les enregistrements où cette adresse a été hachée.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Les enregistrements plus anciens dont le jeton compte 8 caractères, comme {{example}}, ne peuvent pas être associés à une adresse."
 }

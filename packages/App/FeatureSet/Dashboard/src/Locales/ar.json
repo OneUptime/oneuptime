@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "عرض الأحداث التي أخفت قاعدة تنقية عنوانها",
   "The scrub rule {{rule}} hid it from every event of this case.": "أخفته قاعدة التنقية {{rule}} في كل حدث من أحداث هذه الحالة.",
   "The scrub rule {{rule}} masks them.": "تُخفيها قاعدة التنقية {{rule}}.",
-  "The scrub rule {{rule}} redacts them.": "تحجبها قاعدة التنقية {{rule}}."
+  "The scrub rule {{rule}} redacts them.": "تحجبها قاعدة التنقية {{rule}}.",
+  "Includes records where these {{count}} addresses were hashed.": "يتضمن السجلات التي استُبدلت فيها هذه العناوين ({{count}}) بقيمة تجزئة.",
+  "Includes records where these {{count}} addresses were hashed._one": "يتضمن السجلات التي استُبدل فيها هذا العنوان بقيمة تجزئة.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "لا يمكن مطابقة السجلات الأقدم التي يتكون رمزها من 8 أحرف، مثل {{example}}، مع عنوان."
 }

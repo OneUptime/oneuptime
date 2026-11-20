@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "スクラブルールによってアドレスが非表示にされたイベントを表示",
   "The scrub rule {{rule}} hid it from every event of this case.": "スクラブルール {{rule}} により、このケースのすべてのイベントでアドレスが非表示になっています。",
   "The scrub rule {{rule}} masks them.": "スクラブルール {{rule}} がこれらをマスクします。",
-  "The scrub rule {{rule}} redacts them.": "スクラブルール {{rule}} がこれらを秘匿します。"
+  "The scrub rule {{rule}} redacts them.": "スクラブルール {{rule}} がこれらを秘匿します。",
+  "Includes records where these {{count}} addresses were hashed.": "この {{count}} 件のアドレスがハッシュ化されたレコードを含みます。",
+  "Includes records where these {{count}} addresses were hashed._one": "このアドレスがハッシュ化されたレコードを含みます。",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "トークンが 8 文字の古いレコード ({{example}} など) は、アドレスと照合できません。"
 }

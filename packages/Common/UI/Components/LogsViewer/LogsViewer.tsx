@@ -105,6 +105,7 @@ import ResultTotalUtil, {
 } from "../../Utils/Telemetry/ResultTotal";
 import { TelemetryLoadError } from "../../Utils/Telemetry/TelemetryLoadError";
 import TelemetryLoadErrorMessage from "../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import HashedAddressSearchNote from "../TelemetryViewer/components/HashedAddressSearchNote";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
 import {
   collectLogsEntityIdsToResolve,
@@ -294,6 +295,12 @@ export interface ComponentProps {
    * tooltips. Forwarded to the chip list.
    */
   lockedFilterSignal?: TelemetrySignal | undefined;
+  /*
+   * The addresses the search also matched by the project's IP Address Hash
+   * token (#10418): the results say so, once, above them
+   * (HashedAddressSearchNote). Empty or left out, nothing is said.
+   */
+  hashedAddresses?: Array<string> | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -1641,6 +1648,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           onClearAll={props.onClearAllFilters || (() => {})}
           signal={props.lockedFilterSignal}
         />
+      )}
+
+      {/* What the search matched by an address's hash token, once (#10418) */}
+      {!props.listError && (
+        <HashedAddressSearchNote addresses={props.hashedAddresses} />
       )}
 
       {/* Histogram */}

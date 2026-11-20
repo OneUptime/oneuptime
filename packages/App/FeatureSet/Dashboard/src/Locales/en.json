@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "Show events whose address a scrub rule hid",
   "The scrub rule {{rule}} hid it from every event of this case.": "The scrub rule {{rule}} hid it from every event of this case.",
   "The scrub rule {{rule}} masks them.": "The scrub rule {{rule}} masks them.",
-  "The scrub rule {{rule}} redacts them.": "The scrub rule {{rule}} redacts them."
+  "The scrub rule {{rule}} redacts them.": "The scrub rule {{rule}} redacts them.",
+  "Includes records where these {{count}} addresses were hashed.": "Includes records where these {{count}} addresses were hashed.",
+  "Includes records where these {{count}} addresses were hashed._one": "Includes records where this address was hashed.",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address."
 }

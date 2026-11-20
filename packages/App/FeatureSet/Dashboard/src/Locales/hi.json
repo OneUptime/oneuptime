@@ -60477,5 +60477,8 @@
   "Show events whose address a scrub rule hid": "वे इवेंट दिखाएँ जिनका पता सफ़ाई नियम ने छिपाया",
   "The scrub rule {{rule}} hid it from every event of this case.": "सफ़ाई नियम {{rule}} ने इस केस के हर इवेंट से इसे छिपा दिया।",
   "The scrub rule {{rule}} masks them.": "सफ़ाई नियम {{rule}} उन्हें मास्क करता है।",
-  "The scrub rule {{rule}} redacts them.": "सफ़ाई नियम {{rule}} उन्हें छिपा देता है।"
+  "The scrub rule {{rule}} redacts them.": "सफ़ाई नियम {{rule}} उन्हें छिपा देता है।",
+  "Includes records where these {{count}} addresses were hashed.": "इसमें वे रिकॉर्ड शामिल हैं जिनमें ये {{count}} पते हैश किए गए थे।",
+  "Includes records where these {{count}} addresses were hashed._one": "इसमें वे रिकॉर्ड शामिल हैं जिनमें यह पता हैश किया गया था।",
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "8 वर्णों के टोकन वाले पुराने रिकॉर्ड, जैसे {{example}}, किसी पते से मिलाए नहीं जा सकते।"
 }
