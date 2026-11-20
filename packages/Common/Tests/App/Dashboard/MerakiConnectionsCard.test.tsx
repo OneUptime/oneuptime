@@ -1350,7 +1350,7 @@ describe("the organization's devices that are not network devices here", () => {
     ).toEqual(["added"]);
   });
 
-  test("what an ask did, for a day: the devices and sites it added, and the first few it could not add, with why", async () => {
+  test("what an ask did, for a day: the devices and sites it added, and why the rest could not be added - one line a reason, the most common first", async () => {
     connections = [
       counted(FIRST_ID, COUNTS, {
         lastDeviceAdd: state({
@@ -1361,14 +1361,17 @@ describe("the organization's devices that are not network devices here", () => {
           addedCount: 105,
           createdSiteCount: 1,
           failedCount: 5,
-          failures: [
-            { name: "Core", reason: "Another network device has this name." },
+          failureReasons: [
             {
-              name: "Lobby",
-              reason: "Probe not found or it does not belong to this project.",
+              reason: "Another network device has this name.",
+              count: 1,
+              names: ["Core"],
             },
-            { name: "Till", reason: "Something went wrong." },
-            { name: "Back office", reason: "Something went wrong." },
+            {
+              reason: "Probe not found or it does not belong to this project.",
+              count: 4,
+              names: ["Lobby", "Till", "Back office"],
+            },
           ],
         }),
       }),
@@ -1385,9 +1388,10 @@ describe("the organization's devices that are not network devices here", () => {
         state: "failed-devices",
         text:
           "5 devices could not be added:" +
-          "Core: Another network device has this name." +
-          "Lobby: Probe not found or it does not belong to this project." +
-          "Till: Something went wrong.",
+          "Probe not found or it does not belong to this project." +
+          "4 devices, including Lobby, Till, Back office" +
+          "Another network device has this name." +
+          "1 device: Core",
       },
       // A read came after the ask: what it counted is said again.
       {
@@ -1402,22 +1406,168 @@ describe("the organization's devices that are not network devices here", () => {
     ).toBe("done");
 
     /*
-     * Each one read as it is written - the server's English, on a Persian
-     * page too, keeps its full stop at its end - with its name to scan by.
+     * Each reason read as it is written - the server's English, on a
+     * Persian page too, keeps its full stop at its end - with how many
+     * devices it kept out, and which, to find them by.
      */
-    const failures: Array<HTMLElement> = within(
+    const reasons: Array<HTMLElement> = within(
       within(rows()[0]!).getByTestId("meraki-connection-device-add-failures"),
     ).getAllByRole("listitem");
-    expect(failures).toHaveLength(3);
-    const isolate: Element | null = failures[0]!.querySelector("bdi");
+    expect(reasons).toHaveLength(2);
+    const isolate: Element | null = reasons[0]!.querySelector("bdi");
     expect(isolate).not.toBeNull();
     expect(isolate!.getAttribute("dir")).toBe("ltr");
     expect(isolate!.textContent).toBe(
-      "Core: Another network device has this name.",
+      "Probe not found or it does not belong to this project.",
     );
-    expect(isolate!.querySelector("span.font-medium")?.textContent).toBe(
-      "Core",
+    expect(
+      within(reasons[1]!).getByTestId(
+        "meraki-connection-device-add-failure-devices",
+      ).textContent,
+    ).toBe("1 device: Core");
+  });
+
+  test("#10188's ask: every device refused for one reason is said once, with the count, not once a device", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          toAddCount: 5000,
+          failedCount: 5000,
+          remainingCount: 1300,
+          withoutAddressCount: 700,
+          failureReasons: [
+            {
+              reason:
+                "User is not allowed to create on serialNumber column of Network Device. No permission allows it: the column is set by the server, not by a request.",
+              count: 5000,
+              names: ["AP-1", "AP-2", "AP-3"],
+            },
+          ],
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((line: { state: string; text: string }) => {
+        return `${line.state}: ${line.text}`;
+      }),
+    ).toEqual([
+      "without-address: 700 devices have no address in Meraki (security appliances list none). Add them by hand at addresses your probe can reach, and Meraki fills in the rest.",
+      "failed-devices: 5,000 devices could not be added:" +
+        "User is not allowed to create on serialNumber column of Network Device. No permission allows it: the column is set by the server, not by a request." +
+        "5,000 devices, including AP-1, AP-2, AP-3",
+      "remaining: 1,300 more devices are left to add.Add the rest",
+    ]);
+    expect(
+      within(rows()[0]!).getAllByTestId(
+        "meraki-connection-device-add-failure-reason",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("what was left out, and why, in the words the dialog said it in; and nothing added because of it says only that", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          withoutAddressCount: 1,
+          takenCount: 2,
+          archivedCount: 3,
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((line: { state: string; text: string }) => {
+        return `${line.state}: ${line.text}`;
+      }),
+    ).toEqual([
+      "nothing-added: No devices were added 2\u00A0minutes ago.",
+      "without-address: 1 device has no address in Meraki (security appliances list none). Add it by hand at an address your probe can reach, and Meraki fills in the rest.",
+      "taken: 2 devices share their address, MAC address or serial number with network devices already here.",
+      "archived: 3 devices are archived here, so they are not added again.",
+    ]);
+  });
+
+  test("devices refused for more reasons than an ask keeps: the rest are counted on a line of their own", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Done,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          toAddCount: 12,
+          addedCount: 2,
+          failedCount: 10,
+          failureReasons: [
+            { reason: "Reason one.", count: 4, names: ["A", "B", "C"] },
+            { reason: "Reason two.", count: 2, names: ["D", "E"] },
+          ],
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((line: { state: string }) => {
+        return line.state;
+      }),
+    ).toEqual(["added", "failed-devices", "failed-other-reasons"]);
+    expect(lines(rows()[0]!)[2]!.text).toBe(
+      "4 more devices could not be added for other reasons.",
     );
+    expect(
+      within(rows()[0]!)
+        .getAllByTestId("meraki-connection-device-add-failure-devices")
+        .map((each: HTMLElement) => {
+          return each.textContent;
+        }),
+    ).toEqual(["4 devices, including A, B, C", "2 devices: D, E"]);
+  });
+
+  test("an ask an earlier OneUptime recorded - one failure a device - is said by reason too", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: {
+          ...state({
+            status: NetworkControllerDeviceAddStatus.Done,
+            updatedAt: "2026-10-24T11:58:00.000Z",
+            finishedAt: "2026-10-24T11:58:00.000Z",
+            toAddCount: 5000,
+            failedCount: 5000,
+          }),
+          failureReasons: undefined,
+          failures: [
+            { name: "Core", reason: "Refused for its serial number." },
+            { name: "Lobby", reason: "Refused for its serial number." },
+            { name: "Till", reason: "Refused for its serial number." },
+          ],
+        } as unknown as JSONObject,
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((line: { state: string; text: string }) => {
+        return `${line.state}: ${line.text}`;
+      }),
+    ).toEqual([
+      "failed-devices: 5,000 devices could not be added:" +
+        "Refused for its serial number." +
+        "3 devices: Core, Lobby, Till",
+      "failed-other-reasons: 4,997 more devices could not be added for other reasons.",
+    ]);
   });
 
   test("devices left past an ask's limit are said, with Add devices, until a read counts them", async () => {
@@ -1530,6 +1680,40 @@ describe("the organization's devices that are not network devices here", () => {
           return each.getAttribute("data-tone");
         }),
     ).toEqual(["done", "error"]);
+  });
+
+  test("an ask that failed half way says the sites it added by then, and why devices could not be added", async () => {
+    connections = [
+      counted(FIRST_ID, COUNTS, {
+        lastPulledAt: new Date("2026-10-24T11:00:00.000Z"),
+        lastDeviceAdd: state({
+          status: NetworkControllerDeviceAddStatus.Failed,
+          updatedAt: "2026-10-24T11:58:00.000Z",
+          finishedAt: "2026-10-24T11:58:00.000Z",
+          toAddCount: 110,
+          addedCount: 40,
+          createdSiteCount: 3,
+          failedCount: 2,
+          failureReasons: [
+            { reason: "Something about these.", count: 2, names: ["A", "B"] },
+          ],
+          message:
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
+        }),
+      }),
+    ];
+    await renderCard();
+
+    expect(
+      lines(rows()[0]!).map((each: { state: string; text: string }) => {
+        return `${each.state}: ${each.text}`;
+      }),
+    ).toEqual([
+      "added: Added 40 network devices from Meraki 2 minutes ago.",
+      "add-failed: Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
+      "sites-added: Added 3 sites for their Meraki networks.",
+      "failed-devices: 2 devices could not be added:Something about these.2 devices: A, B",
+    ]);
   });
 
   test("an ask whose worker was lost says it stopped, with the way to carry on", async () => {
