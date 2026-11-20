@@ -902,8 +902,21 @@ describe.each(PAGES)(
     });
 
     test("skips the monitor type read when there are no series labels", () => {
+      /*
+       * The read brings the monitor's type and the metrics its steps read
+       * (#10209): with no series labels there are no commands to pick, so
+       * neither is read, and neither a type nor the metrics read for
+       * another series stay behind to pick the next one's.
+       */
       expect(page.affectedResources).toContain(
-        "if (!hasSeriesLabels) { setMonitorType(undefined); return; }",
+        "if (!hasSeriesLabels) { setMonitorType(undefined); setMetricNames(undefined); return; } fetchMonitorType().catch(",
+      );
+      expect(page.affectedResources).toContain(
+        `}, [${page.noun}IdString, hasSeriesLabels]);`,
+      );
+      // A read that fails forgets both too.
+      expect(page.affectedResources).toContain(
+        "} catch { setMonitorType(undefined); setMetricNames(undefined); }",
       );
     });
   },
