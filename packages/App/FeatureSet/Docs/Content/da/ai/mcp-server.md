@@ -348,12 +348,16 @@ Værktøjet **`oneuptime_move_in_list`** flytter en række i en ordnet liste, fo
 Serveren har også Spørg AI's opsætningshandlinger, ét kald hver: det, du sætter op, i stedet for én post ad gangen. Hver opretter de poster, som Spørg AI og de guidede opsætninger opretter for de samme svar, med de samme tjek:
 
 - **`set_up_website_monitoring`**: en monitor for et website eller en API på en adresse, som åbner en hændelse, når adressen ikke svarer eller svarer med en fejl. Den er din, og en adresse, som en monitor allerede tjekker, får ikke en anden
+- **`set_up_service_monitor`**: en af de monitorer, som den guidede opsætning af telemetri anbefaler for en tjeneste, der sender telemetri: for fejlende forespørgsler, langsomme forespørgsler, uhåndterede undtagelser eller en stigning i fejllogge. Den åbner en advarsel til dit team, og en monitor, som tjenesten allerede har, får ikke en anden
 - **`set_up_paging`**: i et projekt, der endnu ikke tilkalder nogen, dets første vagtpolitik, som tilkalder dig og de personer og teams, du nævner, ved hver ny hændelse og hver ny advarsel
+- **`add_to_on_call_policy`**: medlemmer og teams føjet til en vagtpolitik, som projektet har, på et af dens niveauer eller som et nyt niveau, der tilkalder dem, når ingen kvitterer. Den, et niveau allerede tilkalder, bliver ikke tilføjet to gange
+- **`invite_people`**: personer inviteret til projektet via e-mail. Hver af dem får en invitationsmail i dit navn, og en adresse, der allerede er i projektet, bliver ikke inviteret igen
+- **`set_how_to_reach_me`**: hvordan tilkald når dig, for eksempel en sms med det samme og et opkald efter fem minutter. Den erstatter dine indstillinger i Sådan når man mig og bruger kun de metoder, du har bekræftet
 - **`publish_status_page`**: en offentlig statusside, der viser de monitorer, du nævner
 - **`add_monitors_to_status_page`**: monitorer sat på en statusside, som projektet har
 - **`who_is_told`**: hvem der får besked, når en monitor er nede, og hvad der ville forhindre, at nogen bliver nået. Den ændrer intet
 
-De handler som dig, logget ind med OAuth: en API-nøgle til et projekt kan ikke bruge de fire, der opretter noget. Din klient spørger dig før hver af dem, og dens svar siger, hvad der blev oprettet. Det, der mangler, for eksempel en tilladelse, en adresse eller plads i abonnementet, siges, før noget oprettes.
+De handler som dig, logget ind med OAuth: en API-nøgle til et projekt kan ikke bruge de otte, der opretter noget. Din klient spørger dig før hver af dem, og dens svar siger, hvad der blev oprettet. Det, der mangler, for eksempel en tilladelse, en adresse eller plads i abonnementet, siges, før noget oprettes.
 
 ## Forespørgsel på telemetri
 

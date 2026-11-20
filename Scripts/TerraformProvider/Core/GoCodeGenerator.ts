@@ -98,7 +98,7 @@ ${body}
    * Read and Update and in a data source's Read: the one way generated code
    * reads a number.
    *
-   * numberFromAPI (StaticFiles/apinumber.go) reads every shape the API
+   * NumberFromAPI (StaticFiles/apinumber.go) reads every shape the API
    * answers a number in: a JSON number, numeric text - Postgres hands a
    * decimal column back as text, and servers before the fix for #4719
    * answered it as "99.65" - or either inside a {_type, value} wrapper. It
@@ -115,7 +115,7 @@ ${body}
     attributeRef: string,
     responseValue: string,
   ): string {
-    return `${attributeRef} = numberFromAPI(${attributeRef}, ${responseValue})`;
+    return `${attributeRef} = NumberFromAPI(${attributeRef}, ${responseValue})`;
   }
 
   public static generateImports(imports: string[]): string {

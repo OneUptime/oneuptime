@@ -5,20 +5,24 @@ import ProjectSsoSignInConfirmationAPI from "./API/ProjectSsoSignInConfirmation"
 import SsoAPI from "./API/SSO";
 import StatusPageOidcAPI from "./API/StatusPageOIDC";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
+import DashboardOidcAPI from "./API/DashboardOIDC";
+import DashboardSsoAPI from "./API/DashboardSSO";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
 
 /*
  * Single sign-on: SAML and OIDC for projects, the whole instance (Global SSO
- * and Global OIDC) and status pages. Core serves these routers in every
- * edition. ./Index.ts mounts them, in this order, at ["/api/identity", "/"]:
- * after the authentication and reseller routers, before the Enterprise
- * Edition's identity routers (SCIM) and the status page authentication router.
+ * and Global OIDC), status pages and dashboards. Core serves these routers
+ * in every edition. ./Index.ts mounts them, in this order, at
+ * ["/api/identity", "/"]: after the authentication and reseller routers,
+ * before the Enterprise Edition's identity routers (SCIM) and the status
+ * page authentication router.
  *
  * The route paths are part of every customer's identity provider setup: the
  * SAML ACS URLs (/idp-login/..., /global-idp-login/...,
- * /status-page-idp-login/...) and the OIDC redirect URIs (/oidc-callback/...,
- * /global-oidc-callback/..., /status-page-oidc-callback/...) are pasted into
- * Okta, Entra ID and the like. They must never change;
+ * /status-page-idp-login/..., /dashboard-idp-login/...) and the OIDC redirect
+ * URIs (/oidc-callback/..., /global-oidc-callback/...,
+ * /status-page-oidc-callback/..., /dashboard-oidc-callback/...) are pasted
+ * into Okta, Entra ID and the like. They must never change;
  * Tests/FeatureSet/Identity/SsoRoutePathsUnchanged.test.ts pins every
  * (method, path) pair.
  */
@@ -37,6 +41,13 @@ export const SSO_ROUTERS: ReadonlyArray<SsoRouterEntry> = [
   { name: "GlobalOIDC", router: GlobalOidcAPI },
   { name: "StatusPageSSO", router: StatusPageSsoAPI },
   { name: "StatusPageOIDC", router: StatusPageOidcAPI },
+  /*
+   * A dashboard's public link, for the people who sign in to it (#10250):
+   * its SAML ACS URL (/dashboard-idp-login/...) and OIDC redirect URI
+   * (/dashboard-oidc-callback/...) are pasted into identity providers too.
+   */
+  { name: "DashboardSSO", router: DashboardSsoAPI },
+  { name: "DashboardOIDC", router: DashboardOidcAPI },
   /*
    * Not configured in any identity provider: the page a project-SSO
    * confirmation email links to (only the hosted service sends that email).

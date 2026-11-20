@@ -477,10 +477,21 @@ export interface DataSecurityExplainResult {
   markdown: string;
 }
 
+// A repository the person may ask OneUptime AI to work in (#10362).
+export interface DataSecurityFixRepository {
+  id: string;
+  name: string;
+}
+
 export interface DataSecurityFixResult {
   // What happened, for the toast: a run started, or why it could not.
   message: string;
   aiRunId?: string | undefined;
+  /*
+   * When the person must choose the repository: those of the project's
+   * they may ask OneUptime AI to work in, and only those.
+   */
+  repositories?: Array<DataSecurityFixRepository> | undefined;
 }
 
 // Why a store cannot take a response action now.

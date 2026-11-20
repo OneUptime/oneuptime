@@ -68,6 +68,14 @@ import {
   getCloudKeyMetricsOfResource,
 } from "../../../Types/Cloud/CloudUnreportedKeyMetrics";
 import {
+  CloudMetricCollectionState,
+  CloudMetricNotRead,
+  CloudResourceMetricCollection,
+  CloudResourceMetricStatus,
+  readCloudResourceMetricStatus,
+  sortCloudMetricsNotRead,
+} from "../../../Types/Cloud/CloudResourceMetricCollection";
+import {
   CloudStreamSummary,
   getStreamedMetricKey,
   getStreamedMetricKeys,
@@ -142,7 +150,11 @@ import logger from "../Logger";
  *     report in the range its page shows, when it last did - or that it
  *     never did - and the likely reasons, from the catalog and from what
  *     OneUptime knows of its connection: its Azure metric definitions, its
- *     stream, its last read.
+ *     stream, its last read - and, for an Azure resource, what that read
+ *     could not read of it, in Azure's own words (#10291).
+ *   - collectionOf (#10291): how an Azure resource's metrics were
+ *     collected - when its connection last read them, and what it could
+ *     not read, from what the reads kept (azureMetricStatus).
  *
  * The resource is the caller's to read (CloudResourceService with their
  * props); its connection is read as root once it is the resource's own.
@@ -234,6 +246,8 @@ const CONNECTION_SELECT: JSONObject = {
   pullState: true,
   addedMetrics: true,
   lastPullResult: true,
+  lastError: true,
+  lastSuccessfulPullAt: true,
   streamKeyCreatedAt: true,
   streamSummary: true,
 };
@@ -1985,6 +1999,8 @@ export default class CloudResourceMetrics {
     const knowsWholeLife: boolean = createdAt >= since.getTime();
     const connectionState: CloudUnreportedConnectionState | null =
       CloudResourceMetrics.connectionStateOf(target.connection);
+    const status: CloudResourceMetricStatus =
+      CloudResourceMetrics.metricStatusOf(target);
 
     return metrics.map(
       (metric: CloudResourceKeyMetric): CloudUnreportedKeyMetricReport => {
@@ -2013,10 +2029,140 @@ export default class CloudResourceMetrics {
               metric,
               now,
             }),
+            resourceFailure: status.failed || null,
+            notRead: status.metrics?.[metric.key] || null,
           }),
         };
       },
     );
+  }
+
+  /*
+   * How the resource's metrics were collected (#10291): when its
+   * connection last read them, and what that read could not read of it,
+   * from what the reads kept on the connection (azureMetricStatus) - an
+   * Azure resource's only, which its reads keep. Null for a resource no
+   * connection reads, or another cloud's.
+   */
+  public static async collectionOf(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<CloudResourceMetricCollection | null> {
+    const target: CloudResourceTarget =
+      await CloudResourceMetrics.loadTarget(data);
+
+    return CloudResourceMetrics.getCollection(target);
+  }
+
+  public static getCollection(
+    target: Pick<CloudResourceTarget, "resource" | "provider" | "connection"> &
+      Partial<Pick<CloudResourceTarget, "attributes" | "type">>,
+  ): CloudResourceMetricCollection | null {
+    const connection: CloudConnection | null = target.connection;
+
+    if (target.provider !== CloudProvider.Azure || !connection) {
+      return null;
+    }
+
+    if (!connection.isEnabled) {
+      return {
+        state: CloudMetricCollectionState.Off,
+        lastReadAt: null,
+        metrics: [],
+      };
+    }
+
+    const summary: CloudConnectionReadSummary | undefined =
+      readCloudConnectionReadSummary(connection.lastPullResult);
+    const finishedAt: number = summary ? Date.parse(summary.finishedAt) : NaN;
+    const createdAt: number = target.resource.createdAt
+      ? new Date(target.resource.createdAt).getTime()
+      : 0;
+
+    // No read has finished since it was found: its first is to come.
+    if (!summary || !Number.isFinite(finishedAt) || finishedAt < createdAt) {
+      return {
+        state: CloudMetricCollectionState.Waiting,
+        lastReadAt: null,
+        metrics: [],
+      };
+    }
+
+    if (summary.status === "failed") {
+      const lastSuccess: number = connection.lastSuccessfulPullAt
+        ? new Date(connection.lastSuccessfulPullAt).getTime()
+        : NaN;
+
+      return {
+        state: CloudMetricCollectionState.Failed,
+        lastReadAt:
+          Number.isFinite(lastSuccess) && lastSuccess >= createdAt
+            ? new Date(lastSuccess).toISOString()
+            : null,
+        ...(connection.lastError
+          ? { error: String(connection.lastError) }
+          : {}),
+        metrics: [],
+      };
+    }
+
+    const status: CloudResourceMetricStatus =
+      CloudResourceMetrics.metricStatusOf({
+        resource: target.resource,
+        provider: target.provider,
+        connection,
+        attributes: target.attributes || {},
+      });
+    const metrics: Array<CloudMetricNotRead> = sortCloudMetricsNotRead(
+      Object.values(status.metrics || {}),
+    );
+
+    if (status.failed) {
+      return {
+        state: CloudMetricCollectionState.Failed,
+        lastReadAt: null,
+        failedSince: status.failed.since,
+        ...(status.failed.error ? { error: status.failed.error } : {}),
+        metrics,
+      };
+    }
+
+    return {
+      state:
+        metrics.length > 0
+          ? CloudMetricCollectionState.Partial
+          : CloudMetricCollectionState.Collected,
+      lastReadAt: new Date(finishedAt).toISOString(),
+      metrics,
+    };
+  }
+
+  /*
+   * What the connection's reads kept of an Azure resource's metrics they
+   * could not read, by its ARM id; nothing for another cloud's.
+   */
+  private static metricStatusOf(
+    target: Pick<
+      CloudResourceTarget,
+      "resource" | "provider" | "connection" | "attributes"
+    >,
+  ): CloudResourceMetricStatus {
+    if (target.provider !== CloudProvider.Azure || !target.connection) {
+      return {};
+    }
+
+    const state: CloudConnectionPullState =
+      CloudConnectionPullRunner.readPullState(target.connection.pullState);
+    const armId: string = CloudResourceMetrics.azureResourceIdOf(
+      target as CloudResourceTarget,
+    ).toLowerCase();
+
+    return armId
+      ? readCloudResourceMetricStatus(
+          (state.azureMetricStatus as JSONObject | undefined)?.[armId],
+        )
+      : {};
   }
 
   // What the reasons need of the connection: none when no connection reads the resource.

@@ -2,7 +2,9 @@ import { buildNotificationSms } from "../../Utils/Sms/NotificationSms";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
+import OnCallDutyPolicyEscalationRuleResponderService, {
+  EscalationRuleResponder,
+} from "./OnCallDutyPolicyEscalationRuleResponderService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -17,7 +19,15 @@ import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import {
+  ESCALATION_RULE_USER_INDEX,
+  EscalationRuleNames,
+  getPersonOnRuleAlreadyRefusal,
+} from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 import User from "../../Models/DatabaseModels/User";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
@@ -34,9 +44,71 @@ import OnCallChatByWorkspace, {
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
-export class Service extends OnCallDutyPolicyChildService<Model> {
+export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // One row per person on a rule (EscalationRuleResponderOnce).
+  protected getResponderIndexName(): string {
+    return ESCALATION_RULE_USER_INDEX;
+  }
+
+  protected readResponder(data: Model): EscalationRuleResponder | null {
+    const ruleId: ObjectID | null = this.readRuleId(data);
+    const userId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      ["userId", "user"],
+      "User",
+    );
+
+    if (!ruleId || !userId) {
+      return null;
+    }
+
+    return { ruleId: ruleId, columns: { userId: userId } };
+  }
+
+  /*
+   * "The escalation rule "Level 1" of the on-call policy "Payments" pages
+   * Ana Lopez already": the person as the project knows them - someone only
+   * invited by the name typed for them, else the address they were invited
+   * at (#9823) - else their address.
+   */
+  protected async getAlreadyOnRuleRefusal(data: {
+    responder: EscalationRuleResponder;
+    rule: EscalationRuleNames | null;
+    projectId: ObjectID | null;
+  }): Promise<string> {
+    const userId: ObjectID = data.responder.columns["userId"] as ObjectID;
+
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: {
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const withheld: Map<string, WithheldProfile> = data.projectId
+      ? await PendingInviteeProfiles.readWithheldProfilesInProject({
+          userIds: [userId.toString()],
+          projectId: data.projectId,
+        })
+      : new Map<string, WithheldProfile>();
+
+    return getPersonOnRuleAlreadyRefusal({
+      rule: data.rule,
+      person: PendingInviteeProfiles.getNameInProject({
+        userId: userId,
+        name: user?.name,
+        email: user?.email,
+        withheld: withheld,
+      }),
+    });
   }
 
   protected override async onCreateSuccess(

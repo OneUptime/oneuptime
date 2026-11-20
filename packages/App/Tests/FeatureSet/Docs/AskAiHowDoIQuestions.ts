@@ -1158,6 +1158,32 @@ const DEFAULT_POLICY: AskAiEvalNamedRecord = recordOf(
   PROJECT.policies,
   "Default on-call policy",
 );
+// The records whose own pages a question is asked on since #10104.
+const PRIMARY_ROTATION: AskAiEvalNamedRecord = recordOf(
+  PROJECT.onCallSchedules,
+  "Primary rotation",
+);
+const SUPPORT_LINE: AskAiEvalNamedRecord = recordOf(
+  PROJECT.incomingCallPolicies,
+  "Support line",
+);
+const PLATFORM_TEAM: AskAiEvalNamedRecord = recordOf(PROJECT.teams, "Platform");
+const CHECKOUT_HEALTH: AskAiEvalNamedRecord = recordOf(
+  PROJECT.dashboards,
+  "Checkout health",
+);
+const RESTART_THE_API: AskAiEvalNamedRecord = recordOf(
+  PROJECT.runbooks,
+  "Restart the API",
+);
+const CHECKOUT_AVAILABILITY: AskAiEvalNamedRecord = recordOf(
+  PROJECT.slos,
+  "Checkout availability",
+);
+const REPORT_A_PROBLEM: AskAiEvalNamedRecord = recordOf(
+  PROJECT.forms,
+  "Report a problem",
+);
 
 export const ASK_AI_PAGE_CONTEXT_QUESTIONS: ReadonlyArray<AskAiPageContextQuestion> =
   [
@@ -1197,12 +1223,14 @@ export const ASK_AI_PAGE_CONTEXT_QUESTIONS: ReadonlyArray<AskAiPageContextQuesti
     {
       where: "the Website monitor",
       question: "How do I check this from more places, more often?",
-      // A monitor's page says which monitor, not which of its pages.
+      // A monitor's pages say which of them is on screen too (#10104).
       pageContext: {
         type: AIChatPageContextType.Monitor,
         entityId: WEBSITE_MONITOR.id,
         entityTitle: WEBSITE_MONITOR.name,
+        page: "/dashboard/:projectId/monitors/:id",
       },
+      onPage: "Monitor > Overview",
       searchWords: "monitor probes and interval",
       docsPage: "monitor/create-monitor",
       dashboardPage: "Probes & Interval",
@@ -1224,6 +1252,121 @@ export const ASK_AI_PAGE_CONTEXT_QUESTIONS: ReadonlyArray<AskAiPageContextQuesti
       dashboardPage: "Escalation Rules",
       dashboardPath:
         "/dashboard/:projectId/on-call-duty/policies/:id/escalation",
+    },
+
+    /*
+     * On the records whose pages sent no context before #10104: each ends
+     * at that record's own page, as a status page's does.
+     */
+    {
+      where: "the Primary rotation on-call schedule",
+      question: "How do I add a layer to this schedule?",
+      pageContext: {
+        type: AIChatPageContextType.OnCallSchedule,
+        entityId: PRIMARY_ROTATION.id,
+        entityTitle: PRIMARY_ROTATION.name,
+        page: "/dashboard/:projectId/on-call-duty/schedules/:id",
+      },
+      onPage: "On-Call Schedule > Basic > Overview",
+      searchWords: "on-call schedule layers rotation",
+      docsPage: "on-call/schedules",
+      dashboardPage: "Layers",
+      dashboardPath: "/dashboard/:projectId/on-call-duty/schedules/:id/layers",
+    },
+    {
+      where: "the Support line incoming call policy",
+      question: "How do I make this ring someone else when nobody answers?",
+      pageContext: {
+        type: AIChatPageContextType.IncomingCallPolicy,
+        entityId: SUPPORT_LINE.id,
+        entityTitle: SUPPORT_LINE.name,
+        page: "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id",
+      },
+      onPage: "Incoming Call Policy > Basic > Overview",
+      searchWords: "incoming call policy escalation rules",
+      docsPage: "on-call/incoming-call-policy",
+      dashboardPage: "Escalation Rules",
+      dashboardPath:
+        "/dashboard/:projectId/on-call-duty/incoming-call-policies/:id/escalation",
+    },
+    {
+      where: "the Platform team",
+      question: "How do I add someone to this team?",
+      pageContext: {
+        type: AIChatPageContextType.Team,
+        entityId: PLATFORM_TEAM.id,
+        entityTitle: PLATFORM_TEAM.name,
+        page: "/dashboard/:projectId/teams/:id",
+      },
+      onPage: "Team > Overview > Team Details",
+      searchWords: "add a member to a team",
+      docsPage: "permissions/index",
+      alsoAnswers: ["permissions/inviting-people"],
+      dashboardPage: "Members",
+      dashboardPath: "/dashboard/:projectId/teams/:id/members",
+    },
+    {
+      where: "the Checkout health dashboard",
+      question: "How do I share this with people outside my project?",
+      pageContext: {
+        type: AIChatPageContextType.Dashboard,
+        entityId: CHECKOUT_HEALTH.id,
+        entityTitle: CHECKOUT_HEALTH.name,
+        page: "/dashboard/:projectId/dashboards/:id",
+      },
+      onPage: "Dashboard > Basic > Dashboard",
+      searchWords: "share a dashboard public link",
+      docsPage: "dashboards/sharing",
+      dashboardPage: "Sharing",
+      dashboardPath:
+        "/dashboard/:projectId/dashboards/:id/authentication-settings",
+    },
+    {
+      where: "the Restart the API runbook",
+      question: "How do I make this run on its own when an incident starts?",
+      pageContext: {
+        type: AIChatPageContextType.Runbook,
+        entityId: RESTART_THE_API.id,
+        entityTitle: RESTART_THE_API.name,
+        page: "/dashboard/:projectId/runbooks/:id",
+      },
+      onPage: "Runbook > Basic > Overview",
+      searchWords: "runbook triggers run automatically",
+      docsPage: "runbooks/triggers",
+      alsoAnswers: ["runbooks/rules"],
+      dashboardPage: "Triggers",
+      dashboardPath: "/dashboard/:projectId/runbooks/:id/triggers",
+    },
+    {
+      where: "the Checkout availability SLO",
+      question:
+        "How do I get alerted when this burns its error budget too fast?",
+      pageContext: {
+        type: AIChatPageContextType.Slo,
+        entityId: CHECKOUT_AVAILABILITY.id,
+        entityTitle: CHECKOUT_AVAILABILITY.name,
+        page: "/dashboard/:projectId/slos/:id",
+      },
+      onPage: "SLO > Overview",
+      searchWords: "SLO burn rate alerts",
+      docsPage: "slo/burn-rate-alerts",
+      dashboardPage: "Burn Rate Rules",
+      dashboardPath: "/dashboard/:projectId/slos/:id/burn-rate-rules",
+    },
+    {
+      where: "the Report a problem form",
+      question: "How do I add a question to this form?",
+      pageContext: {
+        type: AIChatPageContextType.Form,
+        entityId: REPORT_A_PROBLEM.id,
+        entityTitle: REPORT_A_PROBLEM.name,
+        page: "/dashboard/:projectId/forms/:id/share",
+      },
+      onPage: "Form > Form > Share",
+      searchWords: "build a form questions",
+      docsPage: "forms/building",
+      dashboardPage: "Build",
+      dashboardPath: "/dashboard/:projectId/forms/:id",
     },
 
     // On a setup page or a create form (#7062).

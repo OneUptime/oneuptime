@@ -55,6 +55,10 @@ import {
   getMetricWindowPolicy,
 } from "../../../Server/Utils/CloudConnection/CloudMetricWindows";
 import { CLOUD_CONNECTION_READ_INTERVALS } from "../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
+  CloudMetricNotRead,
+  CloudMetricNotReadKind,
+} from "../../../Types/Cloud/CloudResourceMetricCollection";
 
 /*
  * Which key metrics a cloud resource did not report, and why (#9569): the
@@ -1260,6 +1264,109 @@ describe("why a key metric was not reported", () => {
       }),
     ).toEqual([]);
   });
+
+  test("what the last read could not read of the resource, in its cloud's words: not served, busy, failed - or the resource as a whole (#10291)", () => {
+    const metric: CloudResourceKeyMetric = metricOf(
+      "azure",
+      VM,
+      "Percentage CPU",
+    );
+    const since: string = "2026-11-19T10:00:00.000Z";
+    const until: string = "2026-11-20T12:00:00.000Z";
+    const notRead: (kind: CloudMetricNotReadKind) => CloudMetricNotRead = (
+      kind: CloudMetricNotReadKind,
+    ): CloudMetricNotRead => {
+      return {
+        name: "Percentage CPU",
+        kind,
+        error: "Azure's words",
+        since,
+        at: since,
+        ...(kind === CloudMetricNotReadKind.Unsupported ? { until } : {}),
+      };
+    };
+
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric,
+        connection: healthy,
+        notRead: notRead(CloudMetricNotReadKind.Unsupported),
+      }),
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.NotServed,
+        error: "Azure's words",
+        since,
+        until,
+      },
+    ]);
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric,
+        connection: healthy,
+        notRead: notRead(CloudMetricNotReadKind.Throttled),
+      }),
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.CloudBusy,
+        error: "Azure's words",
+        since,
+      },
+    ]);
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric,
+        connection: healthy,
+        notRead: notRead(CloudMetricNotReadKind.Failed),
+      }),
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.ReadFailed,
+        fix: "cloud-connect",
+        error: "Azure's words",
+        since,
+      },
+    ]);
+    // The resource as a whole goes first.
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric,
+        connection: healthy,
+        resourceFailure: { error: "HTTP 529", since },
+        notRead: notRead(CloudMetricNotReadKind.Throttled),
+      }),
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.ReadFailed,
+        fix: "cloud-connect",
+        error: "HTTP 529",
+        since,
+      },
+    ]);
+    // A connection off, refused or failed says that instead.
+    expect(
+      reasonsOf(
+        explainCloudUnreportedKeyMetric({
+          metric,
+          connection: { isEnabled: false },
+          notRead: notRead(CloudMetricNotReadKind.Unsupported),
+        }),
+      ),
+    ).toEqual([CloudUnreportedReason.ConnectionOff]);
+    expect(
+      explainCloudUnreportedKeyMetric({
+        metric,
+        connection: {
+          isEnabled: true,
+          lastReadStatus: "failed",
+          lastReadFailureKind: "unavailable",
+        },
+        notRead: notRead(CloudMetricNotReadKind.Unsupported),
+      }),
+    ).toEqual([
+      { reason: CloudUnreportedReason.ReadFailed, fix: "cloud-connect" },
+    ]);
+  });
 });
 
 describe("a reason in words", () => {
@@ -1474,6 +1581,43 @@ describe("the server's answer, read", () => {
     ]);
     expect(readCloudUnreportedKeyMetricReports(undefined)).toEqual([]);
     expect(readCloudUnreportedKeyMetricReports({ metrics: "x" })).toEqual([]);
+  });
+
+  test("a reason's cloud words and times are read with it; ones that are not are left out (#10291)", () => {
+    expect(
+      readCloudUnreportedKeyMetricReports({
+        metrics: [
+          {
+            key: "bytehitratio",
+            name: "ByteHitRatio",
+            lastReportedAt: null,
+            isNeverReported: true,
+            reasons: [
+              {
+                reason: "not-served",
+                error: "Sampling type is not found.",
+                since: "2026-11-19T10:00:00Z",
+                until: "2026-11-20T10:00:00Z",
+              },
+              {
+                reason: "cloud-busy",
+                error: "   ",
+                since: "not a time",
+                until: 12,
+              },
+            ],
+          },
+        ],
+      })[0]!.reasons,
+    ).toEqual([
+      {
+        reason: CloudUnreportedReason.NotServed,
+        error: "Sampling type is not found.",
+        since: "2026-11-19T10:00:00.000Z",
+        until: "2026-11-20T10:00:00.000Z",
+      },
+      { reason: CloudUnreportedReason.CloudBusy },
+    ]);
   });
 
   test("a cadence is read with its reason, one it does not know is left out (#10026)", () => {

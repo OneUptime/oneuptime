@@ -154,10 +154,18 @@ import {
   GCP_READ_ONLY_ROLES,
   GCP_RECOMMENDER_ROLE,
   getAwsAccessKeySetupCommand,
+  getAwsExternalIdConditionText,
+  getAwsExternalIdForProject,
+  getAwsRoleSetupCommand,
   getAzureSetupCommand,
   getCloudConnectionSetupCommand,
   getGcpSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  ROLE_CHECK_PASS_MS,
+  ROLE_CHECK_REFUSAL_MS,
+  getRoleWithoutExternalIdMessage,
+} from "Common/Server/Utils/CloudConnection/Aws/AwsSts";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   getAwsInventoryRowTypes,
@@ -1128,6 +1136,47 @@ describe("Connect a Cloud Account", () => {
       expect(identity).toContain(`process.env["${variable}"]`);
       expect(PAGE).toContain(`\`${variable}\``);
     }
+  });
+
+  /*
+   * A role is used only when it requires the project's external id: checked
+   * by signing in once with an id no project has, the pass kept a day and a
+   * refusal an hour (AwsSts, #10405). The page says so, and what the refusal
+   * means, in the words the check and its message use.
+   */
+  it("says a role must require the project's external ID, how and how often OneUptime checks it, and what the refusal means", () => {
+    const projectId: string = "11111111-1111-4111-8111-111111111111";
+    const externalId: string = getAwsExternalIdForProject(projectId);
+    const heading: string =
+      ":::details The role lets OneUptime sign in without your project's external ID";
+
+    expect(PAGE).toContain(
+      "OneUptime signs in to a role only when its trust policy requires your project's external ID, with the `sts:ExternalId` condition the command writes.",
+    );
+    // The condition the refusal names is the one the command writes.
+    expect(
+      getAwsRoleSetupCommand({
+        trustedPrincipalArn: "arn:aws:iam::999988887777:root",
+        externalId,
+      }),
+    ).toContain(getAwsExternalIdConditionText(externalId));
+    expect(getRoleWithoutExternalIdMessage(projectId)).toContain(
+      getAwsExternalIdConditionText(externalId),
+    );
+
+    // A pass holds a day, a refusal an hour.
+    expect(ROLE_CHECK_PASS_MS).toBe(24 * 60 * 60 * 1000);
+    expect(PAGE).toContain(
+      "Before it reads anything through a role, and again each day, it signs in once with an external ID no project has: AWS refusing that sign-in is the pass, so the role's CloudTrail shows an `AccessDenied` from OneUptime about once a day for each OneUptime server that reads it.",
+    );
+    expect(ROLE_CHECK_REFUSAL_MS).toBe(60 * 60 * 1000);
+    expect(PAGE).toContain("reads use it within the hour.");
+
+    // The troubleshooting entry is named after what the refusal says.
+    expect(PAGE).toContain(heading);
+    expect(getRoleWithoutExternalIdMessage(projectId)).toContain(
+      heading.replace(":::details The role", "This role"),
+    );
   });
 
   it("names the form's fields, buttons and menu as the dashboard draws them", () => {

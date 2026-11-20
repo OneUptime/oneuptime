@@ -785,7 +785,16 @@ export default class CloudLiveRead {
         budget: data.context.budget,
       });
     } catch (error) {
-      if (error instanceof LlmProviderError) {
+      /*
+       * A setting OneUptime refused before AWS was asked to sign in - a role
+       * that lets OneUptime in without the project's external id (#10405),
+       * a server with no AWS identity - is said as it is: AWS did not refuse
+       * anything.
+       */
+      if (
+        error instanceof LlmProviderError &&
+        error.kind !== CloudConnectionFailureKind.Settings
+      ) {
         throw new LlmProviderError({
           message: `OneUptime could not sign in to the connection's role${
             isOrganization ? ` in account ${accountId}` : ""

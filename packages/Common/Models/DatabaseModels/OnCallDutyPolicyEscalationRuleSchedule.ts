@@ -17,6 +17,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { ESCALATION_RULE_SCHEDULE_INDEX } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -75,6 +76,30 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Calendar,
   tableDescription: "Add on-call schedules to your escalation rules.",
 })
+/*
+ * ONE ROW PER SCHEDULE ON A RULE, FOR EACH WAY THE RULE PAGES IT (#10411).
+ * A second row of the same schedule paging the same way told whoever is on
+ * call in it again that they were added, and taking either row out told
+ * them they were removed while the other still paged them
+ * (Types/OnCallDutyPolicy/EscalationRuleResponderOnce). Whoever is on call
+ * in a schedule and the next person in its rotation (pageNextInRotation)
+ * are two responders, so a rule may page both. The service refuses a second
+ * row in words that name the schedule and the rule; this index holds it for
+ * two adds at the same moment. Of the rows not deleted only. Built online
+ * (1809187100000-MakeEscalationRuleRespondersUnique).
+ */
+@Index(
+  ESCALATION_RULE_SCHEDULE_INDEX,
+  [
+    "onCallDutyPolicyEscalationRuleId",
+    "onCallDutyPolicyScheduleId",
+    "pageNextInRotation",
+  ],
+  {
+    unique: true,
+    where: '"deletedAt" IS NULL',
+  },
+)
 export default class OnCallDutyPolicyEscalationRuleSchedule extends BaseModel {
   @ColumnAccessControl({
     create: [

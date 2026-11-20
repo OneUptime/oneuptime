@@ -9,6 +9,7 @@ import {
   TerraformAttribute,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 
 /*
  * AN ATTRIBUTE THAT CHANGES ONLY TOGETHER WITH A NEW VALUE OF ANOTHER (#9814).
@@ -23,7 +24,7 @@ import {
  *   - the parser names the companion by its Terraform name, and the
  *     attribute's documentation says a plan that changes it alone fails;
  *   - the resource's ModifyPlan refuses that plan, before anything is
- *     written (requireChangedTogether, StaticFiles/changestogether.go);
+ *     written (RequireChangedTogether, StaticFiles/changestogether.go);
  *   - the type still changes in place - no RequiresReplace - and the Update
  *     sends both when both change;
  *   - a declaration that cannot be kept (a companion the resource has not,
@@ -205,7 +206,7 @@ async function generate(options: SpecOptions, dir: string): Promise<string> {
   await new ResourceGenerator(config, buildSpec(options)).generateResources();
 
   return fs.readFileSync(
-    path.join(dir, "internal/provider/resource_monitor_secret.go"),
+    path.join(dir, providerGoFilePath("resource_monitor_secret.go")),
     "utf-8",
   );
 }
@@ -356,31 +357,31 @@ describe("the generated resource", () => {
   test("ModifyPlan refuses a type changed alone, before it keeps an unchanged plan", () => {
     const modifyPlan: string = method(resourceGo, "ModifyPlan");
     const refusal: number = modifyPlan.indexOf(
-      'requireChangedTogether(ctx, req, resp, "secret_type", "secret_value")',
+      'RequireChangedTogether(ctx, req, resp, "secret_type", "secret_value")',
     );
 
     expect(refusal).toBeGreaterThan(-1);
     expect(refusal).toBeLessThan(
-      modifyPlan.indexOf("keepStateWhenNothingChanges(ctx, req, resp)"),
+      modifyPlan.indexOf("KeepStateWhenNothingChanges(ctx, req, resp)"),
     );
     // After a destroy has returned: there is nothing to plan then.
     expect(refusal).toBeGreaterThan(
       modifyPlan.indexOf("if req.Plan.Raw.IsNull()"),
     );
     // Once.
-    expect(modifyPlan.split("requireChangedTogether(").length).toBe(2);
+    expect(modifyPlan.split("RequireChangedTogether(").length).toBe(2);
     expect(modifyPlan).toContain(
       "// It refuses a plan that changes secret_type and keeps secret_value (see\n// changestogether.go).",
     );
   });
 
   test("a resource without the declaration refuses nothing, and its ModifyPlan is as it was", () => {
-    expect(plainResourceGo).not.toContain("requireChangedTogether");
+    expect(plainResourceGo).not.toContain("RequireChangedTogether");
     expect(plainResourceGo).not.toContain("changestogether.go");
     expect(method(plainResourceGo, "ModifyPlan")).toBe(
       method(resourceGo, "ModifyPlan")
         .replace(
-          '\n    requireChangedTogether(ctx, req, resp, "secret_type", "secret_value")\n',
+          '\n    RequireChangedTogether(ctx, req, resp, "secret_type", "secret_value")\n',
           "",
         )
         .replace(

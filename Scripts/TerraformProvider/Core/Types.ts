@@ -343,7 +343,7 @@ export interface TerraformAttribute {
 
 /*
  * An attribute people set and OneUptime changes too (serverOwned "shared"),
- * as a resource's ModifyPlan names it to planShared (StaticFiles/shared.go):
+ * as a resource's ModifyPlan names it to PlanShared (StaticFiles/shared.go):
  * its Terraform name, and whether it is a list or a set held entry by entry.
  */
 export interface SharedAttribute {

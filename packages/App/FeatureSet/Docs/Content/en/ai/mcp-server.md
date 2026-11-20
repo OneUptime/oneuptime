@@ -348,12 +348,16 @@ The **`oneuptime_move_in_list`** tool moves a row of an ordered list, such as an
 The server also has Ask AI's setup actions, one call each: what you set up, rather than one record at a time. Each makes the records Ask AI and the guided setups make for the same answers, with the same checks:
 
 - **`set_up_website_monitoring`**: a website or API monitor for an address, which opens an incident when the address does not answer or answers with an error. You own it, and an address a monitor already checks gets no second one
+- **`set_up_service_monitor`**: one of the monitors the telemetry guided setup recommends for a service that sends telemetry, for failing requests, slow requests, unhandled exceptions or a spike in error logs. It opens an alert for your team, and a monitor the service has already gets no second one
 - **`set_up_paging`**: in a project that pages nobody yet, its first on-call policy, which pages you and the people and teams you name for every new incident and alert
+- **`add_to_on_call_policy`**: members and teams added to an on-call policy the project has, at one of its levels or as a new level that pages them when nobody acknowledges. Someone a level pages already is not added twice
+- **`invite_people`**: people invited to the project by email. Each of them gets an invitation email in your name, and an address in the project already is not invited again
+- **`set_how_to_reach_me`**: how pages reach you, such as a text at once and a call after five minutes. It replaces your How to Reach Me, and uses only the methods you have verified
 - **`publish_status_page`**: a public status page that shows the monitors you name
 - **`add_monitors_to_status_page`**: monitors put on a status page the project has
 - **`who_is_told`**: who is told when a monitor goes down, and what would stop them being reached. It changes nothing
 
-They act as you, signed in with OAuth: a project API key cannot use the four that make something. Your client asks you before each of them, and its answer says what was made. What is missing, such as a permission, an address or room in the plan, is said before anything is made.
+They act as you, signed in with OAuth: a project API key cannot use the eight that make something. Your client asks you before each of them, and its answer says what was made. What is missing, such as a permission, an address or room in the plan, is said before anything is made.
 
 ## Querying Telemetry
 

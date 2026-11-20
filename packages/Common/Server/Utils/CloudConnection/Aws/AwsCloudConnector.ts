@@ -656,14 +656,19 @@ export default class AwsCloudConnector implements CloudConnector {
 
   /*
    * The credential every CloudWatch call is signed with: the access key, or
-   * the assumed role's session (reused while it lasts).
+   * the assumed role's session (reused while it lasts). Every way into a
+   * customer's account signs in here - a test, every read, a live read,
+   * Data Security's reads and responses - and a role is signed in to only
+   * once it is known to require the project's external id (AwsSts
+   * assumeRole: a role that lets OneUptime in with any id is refused before
+   * anything is read through it, #10405).
    */
   public async getCredentials(
     settings: CloudConnectionSettings,
     options: CloudConnectorCallOptions & {
       connectionId?: string | undefined;
       budget?: CloudReadBudget | undefined;
-      // A test signs in afresh: a role changed a minute ago is tried as it is.
+      // A test signs in and checks the role afresh: a role changed a minute ago is tried as it is.
       noCache?: boolean | undefined;
     },
   ): Promise<AwsCredentials> {
@@ -683,6 +688,7 @@ export default class AwsCloudConnector implements CloudConnector {
     });
 
     if (!options.noCache) {
+      // Only while the check that let the session be made holds.
       const cached: AwsCredentials | undefined = AssumedRoleCache.get(key);
 
       if (cached) {
@@ -704,7 +710,9 @@ export default class AwsCloudConnector implements CloudConnector {
         region: this.getStsRegion(settings),
         now: options.now,
         timeoutInMs: options.requestTimeoutInMs,
+        sleep: options.sleep,
         budget: options.budget,
+        noCache: options.noCache,
       });
     } catch (error) {
       // The server's own credentials expired or are unknown: new ones next time.

@@ -348,12 +348,16 @@ De tool **`oneuptime_move_in_list`** verplaatst een rij van een geordende lijst,
 De server heeft ook de instelacties van AI vragen, één aanroep per actie: wat je instelt, in plaats van één record tegelijk. Elke actie maakt de records die AI vragen en de begeleide instellingen voor dezelfde antwoorden maken, met dezelfde controles:
 
 - **`set_up_website_monitoring`**: een website- of API-monitor voor een adres, die een incident opent als het adres niet antwoordt of met een fout antwoordt. Hij is van jou, en een adres dat een monitor al controleert krijgt geen tweede
+- **`set_up_service_monitor`**: een van de monitoren die de begeleide telemetrie-instelling aanbeveelt voor een service die telemetrie stuurt: voor mislukte verzoeken, trage verzoeken, onafgehandelde uitzonderingen of een piek in foutlogs. Hij opent een waarschuwing voor je team, en een monitor die de service al heeft krijgt geen tweede
 - **`set_up_paging`**: in een project dat nog niemand oproept, het eerste bereikbaarheidsbeleid, dat jou en de mensen en teams die je noemt oproept bij elk nieuw incident en elke nieuwe waarschuwing
+- **`add_to_on_call_policy`**: leden en teams toegevoegd aan een bereikbaarheidsbeleid dat het project al heeft, op een van de niveaus of als nieuw niveau dat hen oproept als niemand bevestigt. Wie een niveau al oproept, wordt niet twee keer toegevoegd
+- **`invite_people`**: mensen die per e-mail voor het project worden uitgenodigd. Elk van hen krijgt een uitnodigingsmail op jouw naam, en een adres dat al in het project zit wordt niet opnieuw uitgenodigd
+- **`set_how_to_reach_me`**: hoe oproepen je bereiken, bijvoorbeeld meteen een sms en na vijf minuten een telefoontje. Het vervangt je instellingen in Hoe ik bereikbaar ben en gebruikt alleen de methoden die je hebt geverifieerd
 - **`publish_status_page`**: een openbare statuspagina die de monitoren toont die je noemt
 - **`add_monitors_to_status_page`**: monitoren op een statuspagina die het project al heeft
 - **`who_is_told`**: wie wordt ingelicht als een monitor plat ligt, en wat zou verhinderen dat iemand wordt bereikt. Het verandert niets
 
-Ze handelen als jij, aangemeld met OAuth: een API-sleutel van een project kan de vier die iets maken niet gebruiken. Je client vraagt het je voor elk ervan, en het antwoord zegt wat er is gemaakt. Wat ontbreekt, zoals een recht, een adres of ruimte in het abonnement, wordt gezegd voordat er iets wordt gemaakt.
+Ze handelen als jij, aangemeld met OAuth: een API-sleutel van een project kan de acht die iets maken niet gebruiken. Je client vraagt het je voor elk ervan, en het antwoord zegt wat er is gemaakt. Wat ontbreekt, zoals een recht, een adres of ruimte in het abonnement, wordt gezegd voordat er iets wordt gemaakt.
 
 ## Telemetrie opvragen
 

@@ -60,6 +60,7 @@ Quién puede ver un panel fuera del proyecto es una sola elección en su página
 1. **Solo las personas de este proyecto** (la opción predeterminada): el panel no tiene enlace público; su dirección pública muestra una página de no encontrado.
 2. **Cualquiera con el enlace**: cualquiera que tenga el enlace público puede verlo, sin iniciar sesión.
 3. **Cualquiera con el enlace y una contraseña**: los visitantes introducen una contraseña antes de que aparezca el panel.
+4. **Solo quienes inician sesión**: solo lo ven, una vez que inician sesión, los usuarios privados que invitas y las personas que tu inicio de sesión único deja entrar.
 
 En **Más ajustes** de la misma página, la **Lista de IP permitidas** (plan Scale) rechaza las peticiones al enlace público desde cualquier dirección IP que no esté en ella. La configuración pública más restringida es **Cualquiera con el enlace y una contraseña** con una lista de IP permitidas, útil para portales de socios en los que quieres las dos capas.
 

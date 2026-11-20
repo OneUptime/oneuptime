@@ -5,13 +5,20 @@ import OnCallDutyPolicyService from "../../../../../../Server/Services/OnCallDut
 import StatusPageService from "../../../../../../Server/Services/StatusPageService";
 import TeamMemberService from "../../../../../../Server/Services/TeamMemberService";
 import {
+  AskAiEvalNamedRecord,
   AskAiEvalProject,
   AskAiEvalProjectKind,
   getAskAiEvalProject,
 } from "../../../../../../Server/Utils/AI/Eval/AskAi/AskAiEvalProject";
 import AskAiEvalTurnRunner, {
+  AskAiEvalPatches,
   AskAiEvalTurn,
+  getAskingProps,
 } from "../../../../../../Server/Utils/AI/Eval/AskAi/AskAiEvalTurn";
+import { DASHBOARD_RECORD_READERS } from "../../../../../../Server/Utils/AI/Docs/DashboardRecordReaders";
+import { AskAiRecordKind } from "../../../../../../Types/AI/AskAiRecordPages";
+import DatabaseCommonInteractionProps from "../../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ObjectID from "../../../../../../Types/ObjectID";
 import {
   AskAiSetupCase,
   gradeSetupTurn,
@@ -286,5 +293,67 @@ describe("a turn the model does not finish", () => {
         turn,
       ).passed,
     ).toBe(false);
+  });
+});
+
+/*
+ * The records a page question is asked on since #10104 - a schedule, a
+ * call policy, a team, a dashboard, a runbook, an SLO, a form - are read by
+ * their IDs as their Go to buttons read them (DashboardRecordReaders), from
+ * the project and never the database; a record of no project reads null.
+ */
+describe("the records a page question is asked on (#10104)", () => {
+  test("each is read by its ID as its Go to button reads it, and no other", async () => {
+    const project: AskAiEvalProject = getAskAiEvalProject(
+      AskAiEvalProjectKind.PagesPeople,
+    );
+    const patches: AskAiEvalPatches = new AskAiEvalPatches();
+    const databaseReached: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DatabaseService.prototype,
+      "getRepository",
+    );
+
+    (
+      AskAiEvalTurnRunner as unknown as {
+        answerFromProject: (
+          patches: AskAiEvalPatches,
+          project: AskAiEvalProject,
+        ) => void;
+      }
+    ).answerFromProject(patches, project);
+
+    try {
+      const props: DatabaseCommonInteractionProps = getAskingProps(project);
+      const records: Array<[AskAiRecordKind, AskAiEvalNamedRecord]> = [
+        [AskAiRecordKind.OnCallSchedule, project.onCallSchedules[0]!],
+        [AskAiRecordKind.IncomingCallPolicy, project.incomingCallPolicies[0]!],
+        [AskAiRecordKind.Team, project.teams[0]!],
+        [AskAiRecordKind.Dashboard, project.dashboards[0]!],
+        [AskAiRecordKind.Runbook, project.runbooks[0]!],
+        [AskAiRecordKind.Slo, project.slos[0]!],
+        [AskAiRecordKind.Form, project.forms[0]!],
+      ];
+
+      for (const [kind, record] of records) {
+        expect([
+          kind,
+          await DASHBOARD_RECORD_READERS[kind]({
+            id: new ObjectID(record.id),
+            props,
+          }),
+        ]).toEqual([kind, record.name]);
+        expect([
+          kind,
+          await DASHBOARD_RECORD_READERS[kind]({
+            id: ObjectID.generate(),
+            props,
+          }),
+        ]).toEqual([kind, null]);
+      }
+
+      expect(databaseReached).not.toHaveBeenCalled();
+    } finally {
+      patches.restoreAll();
+    }
   });
 });

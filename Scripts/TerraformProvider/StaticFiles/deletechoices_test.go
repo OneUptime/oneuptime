@@ -54,9 +54,9 @@ const workflowsRunAsRefusal = `The workflow "Close stale incidents" runs as the 
 // The body, the hint and the validator on their own.
 
 func TestDeleteChoicesBodyIsWhatStateHolds(t *testing.T) {
-	body := deleteChoicesBody([]deleteChoice{
-		{key: "workflowsRunAs", attribute: runAsAttribute, value: types.StringValue("CustomRole")},
-		{key: "workflowsRunAsCustomRoleId", attribute: runAsRoleAttribute, value: types.StringValue(" " + otherRoleID + " ")},
+	body := DeleteChoicesBody([]DeleteChoice{
+		{Key: "workflowsRunAs", Attribute: runAsAttribute, Value: types.StringValue("CustomRole")},
+		{Key: "workflowsRunAsCustomRoleId", Attribute: runAsRoleAttribute, Value: types.StringValue(" " + otherRoleID + " ")},
 	})
 
 	want := map[string]interface{}{
@@ -70,9 +70,9 @@ func TestDeleteChoicesBodyIsWhatStateHolds(t *testing.T) {
 	}
 
 	// Only what is set is sent.
-	body = deleteChoicesBody([]deleteChoice{
-		{key: "workflowsRunAs", attribute: runAsAttribute, value: types.StringValue("Default")},
-		{key: "workflowsRunAsCustomRoleId", attribute: runAsRoleAttribute, value: types.StringNull()},
+	body = DeleteChoicesBody([]DeleteChoice{
+		{Key: "workflowsRunAs", Attribute: runAsAttribute, Value: types.StringValue("Default")},
+		{Key: "workflowsRunAsCustomRoleId", Attribute: runAsRoleAttribute, Value: types.StringNull()},
 	})
 	want = map[string]interface{}{
 		"miscDataProps": map[string]interface{}{"workflowsRunAs": "Default"},
@@ -84,8 +84,8 @@ func TestDeleteChoicesBodyIsWhatStateHolds(t *testing.T) {
 
 func TestDeleteChoicesBodyIsNoneWhenNothingIsSet(t *testing.T) {
 	for _, value := range []types.String{types.StringNull(), types.StringUnknown(), types.StringValue(""), types.StringValue("  ")} {
-		body := deleteChoicesBody([]deleteChoice{
-			{key: "workflowsRunAs", attribute: runAsAttribute, value: value},
+		body := DeleteChoicesBody([]DeleteChoice{
+			{Key: "workflowsRunAs", Attribute: runAsAttribute, Value: value},
 		})
 		if body != nil {
 			t.Fatalf("%s sent a body: %v", value, body)
@@ -94,31 +94,31 @@ func TestDeleteChoicesBodyIsNoneWhenNothingIsSet(t *testing.T) {
 }
 
 func TestDeleteChoicesHintSaysWhatToSetWhenNoneWasGiven(t *testing.T) {
-	none := []deleteChoice{
-		{key: "workflowsRunAs", attribute: runAsAttribute, value: types.StringNull()},
-		{key: "workflowsRunAsCustomRoleId", attribute: runAsRoleAttribute, value: types.StringNull()},
+	none := []DeleteChoice{
+		{Key: "workflowsRunAs", Attribute: runAsAttribute, Value: types.StringNull()},
+		{Key: "workflowsRunAsCustomRoleId", Attribute: runAsRoleAttribute, Value: types.StringNull()},
 	}
 	refused := fmt.Errorf("the OneUptime API returned status 400: %s", workflowsRunAsRefusal)
 
-	if got := deleteChoicesHint(refused, none, "Set it."); got != "\n\nSet it." {
+	if got := DeleteChoicesHint(refused, none, "Set it."); got != "\n\nSet it." {
 		t.Fatalf("the hint is %q", got)
 	}
 
 	// Refused for anything else: the API's words alone.
-	if got := deleteChoicesHint(errors.New("the OneUptime API returned status 403: You do not have permission to delete Custom Role."), none, "Set it."); got != "" {
+	if got := DeleteChoicesHint(errors.New("the OneUptime API returned status 403: You do not have permission to delete Custom Role."), none, "Set it."); got != "" {
 		t.Fatalf("an unrelated refusal got the hint %q", got)
 	}
 
 	// A choice was given: what is wrong with it is the API's to say.
-	given := []deleteChoice{
-		{key: "workflowsRunAs", attribute: runAsAttribute, value: types.StringValue("CustomRole")},
-		{key: "workflowsRunAsCustomRoleId", attribute: runAsRoleAttribute, value: types.StringValue(otherRoleID)},
+	given := []DeleteChoice{
+		{Key: "workflowsRunAs", Attribute: runAsAttribute, Value: types.StringValue("CustomRole")},
+		{Key: "workflowsRunAsCustomRoleId", Attribute: runAsRoleAttribute, Value: types.StringValue(otherRoleID)},
 	}
-	if got := deleteChoicesHint(refused, given, "Set it."); got != "" {
+	if got := DeleteChoicesHint(refused, given, "Set it."); got != "" {
 		t.Fatalf("a delete that gave a choice got the hint %q", got)
 	}
 
-	if got := deleteChoicesHint(nil, none, "Set it."); got != "" {
+	if got := DeleteChoicesHint(nil, none, "Set it."); got != "" {
 		t.Fatalf("no error got the hint %q", got)
 	}
 }

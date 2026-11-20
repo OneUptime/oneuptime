@@ -5,7 +5,7 @@ description: Set up OneUptime monitors, who is paged, and a status page for a se
 
 # Set up monitors and a status page in OneUptime
 
-Set up the checks for a service through the OneUptime MCP server, decide who is paged when one fails, then give it a status page that shows them. A website or an API, paging and the status page take one call each: the setup tools make what OneUptime's guided setups and Ask AI make for the same answers.
+Set up the checks for a service through the OneUptime MCP server, decide who is paged when one fails, then give it a status page that shows them. A website or an API, a service's recommended monitors, paging, the people on call and the status page take one call each: the setup tools make what OneUptime's guided setups and Ask AI make for the same answers.
 
 The person's own instructions come before these steps: where they ask for something else, do what they ask.
 
@@ -14,7 +14,8 @@ The person's own instructions come before these steps: where they ask for someth
 - The tools come from the `oneuptime` MCP server. The first time a tool needs an identity, the person signs in to OneUptime in the browser, from the client's MCP or connector settings, picks one project and chooses read and write or read only.
 - On OneUptime Cloud, connecting an MCP client and using API keys need the Growth plan or higher. The public status page tools need no credential.
 - Every create is a change to the person's project. Show them what you are about to create and get a yes.
-- The setup tools - `set_up_website_monitoring`, `set_up_paging`, `publish_status_page` and `add_monitors_to_status_page` - act as the person signed in, with their permissions: the monitor is theirs and the policy pages them. A project API key cannot use them.
+- The setup tools - `set_up_website_monitoring`, `set_up_service_monitor`, `set_up_paging`, `add_to_on_call_policy`, `invite_people`, `set_how_to_reach_me`, `publish_status_page` and `add_monitors_to_status_page` - act as the person signed in, with their permissions: the monitor is theirs, the policy pages them, an invitation goes out in their name, and How to Reach Me is their own. A project API key cannot use them.
+- Each setup tool says what a second identical call does, and makes nothing twice: retrying one after a timeout is safe.
 
 ## 1. Confirm where you are
 
@@ -37,7 +38,18 @@ A website or an API needs no search first: `set_up_website_monitoring` makes no 
 }
 ```
 
-Add `"isApi": true` for an API endpoint, such as `https://api.example.com/health`. The monitor opens an incident when the address does not answer or answers with an error, is checked from the locations a new monitor starts with, and belongs to the person, who is emailed when its status changes. The answer's `details` say this in OneUptime's own words: tell the person what was set up from them, and the monitor's ID is in `record`.
+Add `"isApi": true` for an API endpoint, such as `https://api.example.com/health`. The monitor opens an incident when the address does not answer or answers with an error, is checked from the locations a new monitor starts with, and belongs to the person, who is emailed when its status changes. The answer's `details` say this in OneUptime's own words: tell the person what was set up from them, and the monitor's ID is in `record`. On OneUptime Cloud's Free plan each new monitor is billed as it is used: tell the person what it costs a month before you set one up, as the tool's description says, and `details` say it again.
+
+A service that sends OpenTelemetry data to OneUptime gets the monitors the telemetry guided setup recommends with `set_up_service_monitor`, one call for each: `errors` (failing requests), `slow_requests`, `exceptions` and `error_logs`. Each opens an alert for the team, never an incident on a status page:
+
+```json set_up_service_monitor
+{
+  "service": "checkout",
+  "monitor": "errors"
+}
+```
+
+A monitor of data the service does not send yet is refused, and so is one it has already: call it for all four, and tell the person which were set up.
 
 ## 4. Other types: collect the project's IDs
 
@@ -171,6 +183,34 @@ A monitor's incident pages whoever the project's on-call policies page. In a pro
 ```
 
 For someone paged next when nobody acknowledges, add `escalateTo` (or `escalateToTeams`) and `afterMinutes`; to page the same people again, `repeatTimes`. A project that pages people already keeps its own policies and rules, and the tool says so instead of making a second one. A phone number or the app is added and verified by the person: when `details` say one is missing, send them to **User Settings > Notification Methods** in OneUptime.
+
+In a project that pages people already, `add_to_on_call_policy` adds members and teams to one of its policies, by the policy's name: to its first level, or with `level` one past its last and `afterMinutes`, as a new level paged when nobody acknowledges.
+
+```json add_to_on_call_policy
+{
+  "policy": "Default on-call policy",
+  "alsoPage": ["ana@example.com"]
+}
+```
+
+Someone who is not in the project yet is invited first, with `invite_people`: OneUptime emails each address an invitation in the person's name, and they can be added to a policy once they join.
+
+```json invite_people
+{
+  "emails": ["ana@example.com"]
+}
+```
+
+How pages reach the person themselves is their How to Reach Me: `set_how_to_reach_me` sets it from what they said, such as "text me, then call me after five minutes". It replaces how pages reach them now, and reaches only the methods they have verified.
+
+```json set_how_to_reach_me
+{
+  "steps": [
+    { "by": "sms", "afterMinutes": 0 },
+    { "by": "call", "afterMinutes": 5 }
+  ]
+}
+```
 
 ## 7. Check that it works
 
