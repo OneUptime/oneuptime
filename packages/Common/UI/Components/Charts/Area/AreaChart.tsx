@@ -27,6 +27,7 @@ import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import XAxisType from "../Types/XAxis/XAxisType";
+import { getTimeAxisTickInterval } from "../Utils/TimeAxisTicks";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
 import Dictionary from "../../../../Types/Dictionary";
@@ -296,6 +297,8 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
       <AreaChart
         data={records}
         tickGap={30}
+        // A day axis labels its first and last day (TimeAxisTicks, #7126).
+        intervalType={getTimeAxisTickInterval(props.xAxis)}
         index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
         colors={

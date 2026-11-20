@@ -23,6 +23,7 @@ import ChartReferenceLineProps from "../Types/ReferenceLineProps";
 import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import XAxisType from "../Types/XAxis/XAxisType";
+import { getTimeAxisTickInterval } from "../Utils/TimeAxisTicks";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
 import { ChartOwnScale } from "../ChartLibrary/Utils/SecondYAxis";
@@ -218,6 +219,8 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       <BarChart
         data={records}
         tickGap={30}
+        // A day axis labels its first and last day (TimeAxisTicks, #7126).
+        intervalType={getTimeAxisTickInterval(props.xAxis)}
         index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
         type={props.stacked ? "stacked" : "default"}
