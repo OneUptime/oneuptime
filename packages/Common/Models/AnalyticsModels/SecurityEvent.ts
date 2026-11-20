@@ -167,6 +167,17 @@ function arrayTextColumn(
 }
 
 /*
+ * The minmax index on createdAt, when each row arrived. Scheduled detection
+ * rules judge the events that arrived since their last run, whenever they
+ * happened (#10337), and the table is sorted by when events happened: the
+ * index lets that read skip every granule whose rows all arrived outside
+ * the run, so it reads about what an on-time read of the same minutes
+ * would, not the whole day of events late ones may come from. One entry
+ * per granule; two numbers each.
+ */
+export const SECURITY_EVENT_CREATED_AT_INDEX_NAME: string = "idx_created_at";
+
+/*
  * Not @OperationalResource, which Log and Span both are.
  *
  * That decorator's only effect on an analytics model is to widen the table's
@@ -651,6 +662,11 @@ export default class SecurityEvent extends AnalyticsBaseModel {
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "time",
+      createdAtSkipIndex: {
+        name: SECURITY_EVENT_CREATED_AT_INDEX_NAME,
+        type: SkipIndexType.MinMax,
+        granularity: 1,
+      },
     });
   }
 
