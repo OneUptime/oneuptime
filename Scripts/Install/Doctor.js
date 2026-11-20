@@ -20,7 +20,8 @@ const {
   freeDiskBytes,
   hostFindings,
   isIpAddress,
-  isTruthy,
+  pickedPortFindings,
+  provisionsSsl,
   resourceFindings,
   splitHost,
 } = require("./Preflight");
@@ -41,8 +42,10 @@ const { MARKS, listed } = require("./StartOutput");
  * What only this host can see:
  *
  *   - config.env: HOST, HTTP_PROTOCOL and PROVISION_SSL in shapes that
- *     break sign-in or certificates (Preflight's own checks), and a secret
- *     still at the placeholder config.example.env ships.
+ *     break sign-in or certificates, and an ingress port left to Docker to
+ *     pick (Preflight's own checks), a secret still at the placeholder
+ *     config.example.env ships, and HTTP/2 turned off for HOST
+ *     (NGINX_HTTP2=off), which is meant to last only until an upgrade.
  *   - Docker, and every service of this install: running and healthy, or
  *     which one is not, with the last lines of its log.
  *   - OneUptime answers at the ingress on this server.
@@ -74,7 +77,8 @@ const { MARKS, listed } = require("./StartOutput");
  *
  *   ✗  something required fails: OneUptime, or part of it, does not work
  *   !  worth a look; OneUptime works without it
- *   •  worth knowing, and no fault: products an admin switched off
+ *   •  worth knowing, and no fault: products an admin switched off, or
+ *      HTTP/2 turned off until an upgrade (a reminder)
  *
  * Exit codes, so scripts can use it: 0 when nothing is marked ✗, 1 when
  * something is, 2 when the doctor itself failed.
@@ -86,7 +90,9 @@ const { MARKS, listed } = require("./StartOutput");
  * `npm start` ends with `--after-start`: the configuration checks and the
  * server's answer (its preflight checked Docker and the disk, and the
  * status check has just seen every service answer), said only when
- * something needs attention, and never a failed start.
+ * something needs attention, and never a failed start. Of the notes it
+ * says only the reminders: a setting that restarts and upgrades keep until
+ * someone sets it back, said at the start that follows each upgrade.
  *
  * CommonJS with no dependencies and no syntax newer than Node.js 12, as the
  * other install scripts. Every effect is passed in to run(), so the tests
@@ -161,6 +167,88 @@ const finding = (level, message, fix, details) => {
   };
 };
 
+/*
+ * A note that `npm start` says too (isReminder): a setting meant to be set
+ * back, which restarts and upgrades keep until someone does. npm start
+ * says no other note, so it is said at the start after each upgrade, when
+ * it is likeliest to be time to set it back.
+ */
+const reminder = (message) => {
+  return Object.assign(finding("note", message), { isReminder: true });
+};
+
+/*
+ * NGINX_HTTP2 as the ingress reads it (Nginx/envsubst-on-templates.sh):
+ * without its whitespace, wherever it is, and in lower case. "off" for off,
+ * false, no and 0; "on" for on, true, yes, 1 and nothing (Compose hands the
+ * ingress "on" for an empty one: ${NGINX_HTTP2:-on}); "unknown" for
+ * anything else, which the ingress reads as on, with a warning in its log.
+ * The ingress's tr removes the ASCII spaces of [:space:], and so does this.
+ */
+const http2SettingOf = (value) => {
+  const text = String(value === undefined || value === null ? "" : value)
+    .replace(/[ \t\n\v\f\r]/g, "")
+    .toLowerCase();
+
+  if (["", "on", "true", "yes", "1"].indexOf(text) !== -1) {
+    return "on";
+  }
+
+  if (["off", "false", "no", "0"].indexOf(text) !== -1) {
+    return "off";
+  }
+
+  return "unknown";
+};
+
+/*
+ * Pure: HTTP/2 for HOST, from config.env (#9973). NGINX_HTTP2=off turns it
+ * off on the ingress, for when nginx fixes a vulnerability in HTTP/2 and
+ * OneUptime cannot be upgraded yet (#9846, the hardening guide's "Turn
+ * HTTP/2 off until you can upgrade"). It lasts through restarts and
+ * upgrades until it is set back, and OTLP over gRPC to HOST is refused
+ * meanwhile: exporters fail their TLS handshake with "no application
+ * protocol". Easy to leave off after the upgrade that fixes the advisory,
+ * so while it is off the doctor reminds of it, and so does npm start. No
+ * fault: it is what the setting is for.
+ *
+ * Only with PROVISION_SSL, as the ingress reads it: otherwise the ingress
+ * serves no HTTPS for HOST and speaks HTTP/1.1 alone, so the setting
+ * changes nothing (its log says so). And a value it reads as neither on
+ * nor off (NGINX_HTTP2=disabled) keeps HTTP/2 on, which whoever wrote it
+ * did not mean, so it is worth a look.
+ */
+const http2Findings = (settings) => {
+  if (!provisionsSsl(settings)) {
+    return [];
+  }
+
+  const value = String(settings.get("NGINX_HTTP2") || "").trim();
+  const host =
+    splitHost(String(settings.get("HOST") || "").trim()).hostname || "HOST";
+  const setting = http2SettingOf(value);
+
+  if (setting === "off") {
+    return [
+      reminder(
+        `HTTP/2 is off for ${host} (NGINX_HTTP2=${value} in ${CONFIG_FILE}), so OTLP over gRPC to it is refused. Restarts and upgrades keep it off: once OneUptime's ingress runs a fixed nginx, set NGINX_HTTP2=on and run npm start.`,
+      ),
+    ];
+  }
+
+  if (setting === "unknown") {
+    return [
+      finding(
+        "warn",
+        `NGINX_HTTP2 in ${CONFIG_FILE} is ${value}, which the ingress reads as neither on nor off, so HTTP/2 stays on for ${host}.`,
+        "To turn it off, set NGINX_HTTP2=off, then run npm start. To keep it on, set NGINX_HTTP2=on.",
+      ),
+    ];
+  }
+
+  return [];
+};
+
 const FROM_PREFLIGHT_LEVEL = { stop: "fix", warn: "warn", ok: "ok" };
 
 const fromPreflight = (list) => {
@@ -171,11 +259,14 @@ const fromPreflight = (list) => {
 
 /*
  * Pure: config.env's settings in, what to say about them out. Preflight's
- * checks of HOST, HTTP_PROTOCOL and PROVISION_SSL, and every generated
- * secret that still holds config.example.env's placeholder.
+ * checks of HOST, HTTP_PROTOCOL and PROVISION_SSL and of the ingress's
+ * ports, every generated secret that still holds config.example.env's
+ * placeholder, and HTTP/2 turned off for HOST.
  */
 const configFindings = (settings, interfaces) => {
-  const findings = fromPreflight(hostFindings(settings, interfaces));
+  const findings = fromPreflight(
+    pickedPortFindings(settings).concat(hostFindings(settings, interfaces)),
+  );
 
   const isPlaceholder = (name) => {
     const value = settings.get(name);
@@ -220,7 +311,7 @@ const configFindings = (settings, interfaces) => {
     );
   }
 
-  return findings;
+  return findings.concat(http2Findings(settings));
 };
 
 /*
@@ -1272,9 +1363,12 @@ const run = async (options) => {
    * names only, so CoreSSL orders nothing for one, and the configuration
    * check says so. Asked of [2001:db8::1], the TLS connection went to the
    * resolver with the brackets on and came back "the name does not resolve".
+   * And only for PROVISION_SSL=true, as the app and the ingress read it: with
+   * yes or 1 neither serves HOST over HTTPS, and there is no certificate to
+   * check.
    */
   if (
-    isTruthy(settings.get("PROVISION_SSL")) &&
+    provisionsSsl(settings) &&
     hostIsAnAddress &&
     hostname &&
     !isLoopbackOrEmpty(host) &&
@@ -1308,8 +1402,8 @@ const run = async (options) => {
 
   /*
    * What to print: what needs attention, worst first, then what is worth
-   * knowing (not after `npm start`, which says only what needs attention),
-   * and what passed when asked.
+   * knowing (after `npm start`, which says only what needs attention, only
+   * the reminders), and what passed when asked.
    */
   const ofLevel = (level) => {
     return findings.filter((entry) => {
@@ -1317,14 +1411,20 @@ const run = async (options) => {
     });
   };
   const problems = ofLevel("fix").concat(ofLevel("warn"));
-  const shown = problems
-    .concat(afterStart ? [] : ofLevel("note"))
-    .concat(showAll ? ofLevel("ok") : []);
+  const notes = ofLevel("note").filter((entry) => {
+    return !afterStart || entry.isReminder === true;
+  });
+  const shown = problems.concat(notes).concat(showAll ? ofLevel("ok") : []);
   const summary = summaryOf(findings);
 
   if (afterStart) {
     if (problems.length === 0) {
       log(`${MARKS.ok} ${summary}`);
+
+      for (const entry of notes) {
+        log(linesOf(entry).join("\n"));
+      }
+
       return 0;
     }
 
@@ -1411,6 +1511,9 @@ module.exports = {
   TROUBLESHOOTING_COVERAGE,
   MINIMUM_FREE_DISK_TO_RUN_BYTES,
   finding,
+  reminder,
+  http2SettingOf,
+  http2Findings,
   configFindings,
   containersOf,
   logLinesOf,

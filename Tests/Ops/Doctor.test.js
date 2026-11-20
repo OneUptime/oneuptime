@@ -18,12 +18,16 @@ const fs = require("fs");
 const http = require("http");
 const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const {
   DOCTOR_PATH,
   READY_PATH,
   CERTIFICATE_WARN_DAYS,
   TROUBLESHOOTING_COVERAGE,
   MINIMUM_FREE_DISK_TO_RUN_BYTES,
+  http2SettingOf,
+  http2Findings,
+  reminder,
   configFindings,
   containersOf,
   logLinesOf,
@@ -1415,6 +1419,535 @@ describe("the certificate, when PROVISION_SSL is on", () => {
     expect(soon.message).toContain("expires on 2026-11-20, in 8 days");
     expect(expired.level).toBe("fix");
     expect(expired.message).toContain("expired on 2026-11-01");
+  });
+
+  /*
+   * PROVISION_SSL as the app (EnvironmentConfig's ProvisionSsl) and the
+   * ingress (run.sh) read it: "true" alone. The doctor took yes, 1 and on
+   * as well, asked HOST for a certificate neither of them serves, and
+   * reported "PROVISION_SSL=true, but ... does not answer over HTTPS".
+   */
+  test.each(["yes", "1", "on", "TRUE", "True"])(
+    "PROVISION_SSL=%s, which OneUptime reads as off, asks for no certificate",
+    async (value) => {
+      const result = await runDoctor({
+        config: healthyConfig([`PROVISION_SSL=${value}`]),
+        certificate: { error: "ECONNREFUSED" },
+      });
+
+      expect(result.certificates).toEqual([]);
+      expect(result.output).not.toContain("does not answer over HTTPS");
+      expect(result.code).toBe(0);
+    },
+  );
+
+  test.each(["true", " true ", '"true"'])(
+    "PROVISION_SSL=%s asks HOST for its certificate on port 443",
+    async (value) => {
+      const result = await runDoctor({
+        config: healthyConfig([`PROVISION_SSL=${value}`]),
+      });
+
+      expect(result.certificates).toEqual(["oneuptime.example.com:443"]);
+    },
+  );
+});
+
+/*
+ * #9973: NGINX_HTTP2=off turns HTTP/2 off for HOST on the ingress, for when
+ * nginx fixes a vulnerability in HTTP/2 and OneUptime cannot be upgraded yet
+ * (#9846). It lasts through restarts and upgrades until it is set back, and
+ * OTLP over gRPC to HOST is refused meanwhile, so the doctor reminds of it -
+ * a note, no fault - and so does npm start. Only with PROVISION_SSL=true:
+ * otherwise the ingress serves no HTTPS for HOST, and the setting changes
+ * nothing. The setting is read as the ingress's envsubst-on-templates.sh
+ * reads it, and the tests hold the two to each other.
+ */
+const ENVSUBST_SCRIPT = path.join(
+  REPO_ROOT,
+  "packages",
+  "Nginx",
+  "envsubst-on-templates.sh",
+);
+const WITH_CONFIG = path.join(REPO_ROOT, "Scripts", "Install", "WithConfig.sh");
+
+// Every way to write off that the ingress takes: off, false, no and 0, in any case and with whitespace anywhere.
+const HTTP2_OFF = [
+  "off",
+  "OFF",
+  "Off",
+  "oFf",
+  "false",
+  "FALSE",
+  "False",
+  "no",
+  "NO",
+  "No",
+  "0",
+  " off ",
+  "\toff\t",
+  "o f f",
+  "F A L S E",
+];
+// And every way to keep it on: on, true, yes, 1, or nothing.
+const HTTP2_ON = [
+  "",
+  "on",
+  "ON",
+  "On",
+  "true",
+  "TRUE",
+  "yes",
+  "YES",
+  "1",
+  " on ",
+];
+// Anything else, which the ingress reads as on, and warns of in its log.
+const HTTP2_UNKNOWN = [
+  "disabled",
+  "offf",
+  "2",
+  "off;",
+  "off; listen 1234",
+  "nope",
+  "-",
+  // A space beyond ASCII is no space to the ingress's tr.
+  "off ",
+];
+
+/*
+ * What the ingress's own script makes of NGINX_HTTP2: "off", "on" or
+ * "unknown", from what it logs. Without PROVISION_SSL, so it needs no
+ * certificate: it says that off changes nothing, and warns of an unknown
+ * value. `config`, when given, is a config.env, run through WithConfig.sh
+ * as npm start hands it to Compose.
+ */
+const ingressReadsHttp2 = (value, config) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "doctor-http2-"));
+
+  try {
+    const env = {
+      PATH: process.env.PATH,
+      HOST: "oneuptime.example.com",
+      // Nothing to render: the script returns before it writes a file.
+      NGINX_ENVSUBST_TEMPLATE_DIR: path.join(directory, "no-templates"),
+    };
+    let command = ["sh", [ENVSUBST_SCRIPT]];
+
+    if (config === undefined) {
+      env.NGINX_HTTP2 = value;
+    } else {
+      fs.writeFileSync(path.join(directory, "config.env"), config);
+      command = ["sh", [WITH_CONFIG, "sh", ENVSUBST_SCRIPT]];
+    }
+
+    const result = spawnSync(command[0], command[1], {
+      cwd: directory,
+      env: env,
+      encoding: "utf8",
+    });
+
+    expect({ status: result.status, stderr: result.stderr }).toEqual({
+      status: 0,
+      stderr: "",
+    });
+
+    if (result.stdout.includes("NGINX_HTTP2 is off, which changes nothing")) {
+      return "off";
+    }
+
+    if (result.stdout.includes("WARNING: NGINX_HTTP2 is")) {
+      return "unknown";
+    }
+
+    return "on";
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+};
+
+describe("HTTP/2 turned off for HOST (#9973)", () => {
+  const REMINDER =
+    "HTTP/2 is off for oneuptime.example.com (NGINX_HTTP2=off in config.env), so OTLP over gRPC to it is refused. Restarts and upgrades keep it off: once OneUptime's ingress runs a fixed nginx, set NGINX_HTTP2=on and run npm start.";
+
+  const http2With = (lines) => {
+    return http2Findings(settingsOf(lines));
+  };
+
+  describe("NGINX_HTTP2, read as the ingress reads it", () => {
+    test.each(HTTP2_OFF)("%j is off", (value) => {
+      expect(http2SettingOf(value)).toBe("off");
+    });
+
+    test.each(HTTP2_ON)("%j is on", (value) => {
+      expect(http2SettingOf(value)).toBe("on");
+    });
+
+    test("no setting at all is on, as Compose hands the ingress on for it", () => {
+      expect(http2SettingOf(undefined)).toBe("on");
+      expect(http2SettingOf(null)).toBe("on");
+    });
+
+    test.each(HTTP2_UNKNOWN)(
+      "%j is neither, which keeps HTTP/2 on",
+      (value) => {
+        expect(http2SettingOf(value)).toBe("unknown");
+      },
+    );
+
+    test.each(HTTP2_OFF.concat(HTTP2_ON, HTTP2_UNKNOWN))(
+      "the ingress's envsubst-on-templates.sh reads %j the same way",
+      (value) => {
+        expect(ingressReadsHttp2(value)).toBe(http2SettingOf(value));
+      },
+    );
+
+    /*
+     * From config.env, the doctor reads a line as readSettings does, and
+     * npm start hands Compose what WithConfig.sh makes of it: quotes and
+     * the spaces around the value go, the rest stays.
+     */
+    test.each([
+      "NGINX_HTTP2=off",
+      'NGINX_HTTP2="off"',
+      "NGINX_HTTP2='FALSE'",
+      'NGINX_HTTP2=" Off "',
+      "  NGINX_HTTP2 = no  ",
+      "NGINX_HTTP2=0",
+      "NGINX_HTTP2=on",
+      'NGINX_HTTP2=""',
+      "NGINX_HTTP2=",
+      "NGINX_HTTP2=disabled",
+      'NGINX_HTTP2="off; listen 1234"',
+    ])(
+      "the line %j in config.env reaches the ingress as the doctor reads it",
+      (line) => {
+        const config = `HOST=oneuptime.example.com\n${line}\n`;
+
+        expect(ingressReadsHttp2(undefined, config)).toBe(
+          http2SettingOf(readSettings(config).get("NGINX_HTTP2")),
+        );
+      },
+    );
+  });
+
+  test.each(HTTP2_OFF)(
+    "NGINX_HTTP2=%j with PROVISION_SSL=true is a reminder: a note, no fault",
+    (value) => {
+      const found = http2With([
+        "HOST=oneuptime.example.com",
+        "PROVISION_SSL=true",
+        `NGINX_HTTP2=${value}`,
+      ]);
+      const written = value.trim();
+
+      expect(found).toEqual([
+        reminder(
+          REMINDER.replace("NGINX_HTTP2=off in", `NGINX_HTTP2=${written} in`),
+        ),
+      ]);
+      expect(found[0]).toEqual(
+        expect.objectContaining({ level: "note", isReminder: true, fix: null }),
+      );
+    },
+  );
+
+  test("the reminder names the host without its port, and the brackets of an IPv6 one", () => {
+    expect(
+      http2With([
+        "HOST=oneuptime.example.com:8443",
+        "PROVISION_SSL=true",
+        "NGINX_HTTP2=off",
+      ])[0].message,
+    ).toBe(REMINDER);
+    expect(
+      http2With([
+        "HOST=[2001:db8::1]:8443",
+        "PROVISION_SSL=true",
+        "NGINX_HTTP2=off",
+      ])[0].message,
+    ).toContain(
+      "HTTP/2 is off for [2001:db8::1] (NGINX_HTTP2=off in config.env)",
+    );
+  });
+
+  test.each(HTTP2_ON)(
+    "NGINX_HTTP2=%j with PROVISION_SSL=true says nothing",
+    (value) => {
+      expect(
+        http2With([
+          "HOST=oneuptime.example.com",
+          "PROVISION_SSL=true",
+          `NGINX_HTTP2=${value}`,
+        ]),
+      ).toEqual([]);
+    },
+  );
+
+  test("a config.env without NGINX_HTTP2, from before the setting, says nothing", () => {
+    expect(
+      http2With(["HOST=oneuptime.example.com", "PROVISION_SSL=true"]),
+    ).toEqual([]);
+  });
+
+  /*
+   * Without PROVISION_SSL the ingress serves no HTTPS for HOST and speaks
+   * HTTP/1.1 alone: off changes nothing, and neither does a typo.
+   */
+  test.each([
+    ["PROVISION_SSL=false", ["PROVISION_SSL=false"]],
+    ["PROVISION_SSL empty", ["PROVISION_SSL="]],
+    ["no PROVISION_SSL at all", []],
+    ["PROVISION_SSL=yes, which OneUptime reads as off", ["PROVISION_SSL=yes"]],
+    [
+      "PROVISION_SSL=TRUE, which OneUptime reads as off",
+      ["PROVISION_SSL=TRUE"],
+    ],
+    ["PROVISION_SSL=1, which OneUptime reads as off", ["PROVISION_SSL=1"]],
+  ])(
+    "with %s, NGINX_HTTP2=off and an unknown value say nothing",
+    (_label, ssl) => {
+      for (const value of ["off", "FALSE", "0", "disabled"]) {
+        expect(
+          http2With(
+            ["HOST=oneuptime.example.com", `NGINX_HTTP2=${value}`].concat(ssl),
+          ),
+        ).toEqual([]);
+      }
+    },
+  );
+
+  test.each(
+    HTTP2_UNKNOWN.filter((value) => {
+      return value.trim() === value;
+    }),
+  )(
+    "NGINX_HTTP2=%j with PROVISION_SSL=true is worth a look: HTTP/2 stays on, which whoever wrote it did not mean",
+    (value) => {
+      expect(
+        http2With([
+          "HOST=oneuptime.example.com",
+          "PROVISION_SSL=true",
+          `NGINX_HTTP2=${value}`,
+        ]),
+      ).toEqual([
+        finding(
+          "warn",
+          `NGINX_HTTP2 in config.env is ${value}, which the ingress reads as neither on nor off, so HTTP/2 stays on for oneuptime.example.com.`,
+          "To turn it off, set NGINX_HTTP2=off, then run npm start. To keep it on, set NGINX_HTTP2=on.",
+        ),
+      ]);
+    },
+  );
+
+  test("config.env's checks include it", () => {
+    expect(
+      configFindings(
+        settingsOf(healthyConfig(["NGINX_HTTP2=off"]).split("\n")),
+        {},
+      ),
+    ).toEqual([reminder(REMINDER)]);
+  });
+
+  test("config.example.env ships it on, so a new install is reminded of nothing", () => {
+    const template = readSettings(TEMPLATE);
+
+    expect(template.get("NGINX_HTTP2")).toBe("on");
+    expect(
+      http2Findings(
+        new Map(
+          Array.from(template.entries()).concat([
+            ["HOST", "oneuptime.example.com"],
+            ["PROVISION_SSL", "true"],
+          ]),
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("the hardening guide sets it back with the line the reminder gives", () => {
+    const guide = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Docs/Content/en/self-hosted/hardening.md",
+      ),
+      "utf8",
+    );
+
+    expect(guide).toContain("Until you set it back: `NGINX_HTTP2=on`");
+    expect(guide).toContain("set it back once your gateway runs a fixed nginx");
+    expect(REMINDER).toContain("set NGINX_HTTP2=on and run npm start");
+  });
+
+  test("npm run doctor says it on a healthy server, counts it as nothing, and exits 0", async () => {
+    const result = await runDoctor({
+      config: healthyConfig(["NGINX_HTTP2=off"]),
+    });
+
+    expect(result.output).toBe(
+      [
+        "Checking this OneUptime:",
+        `  • ${REMINDER}`,
+        "",
+        "Everything looks right.",
+      ].join("\n"),
+    );
+    expect(result.code).toBe(0);
+  });
+
+  test("after npm start it is said too, under the one line a healthy server gets", async () => {
+    const result = await runDoctor({
+      argv: ["--after-start"],
+      config: healthyConfig(["NGINX_HTTP2=off"]),
+    });
+
+    expect(result.output).toBe(
+      ["✓ Everything looks right.", `  • ${REMINDER}`].join("\n"),
+    );
+    expect(result.code).toBe(0);
+  });
+
+  test("after npm start, beside what needs attention, it comes after it and is not counted", async () => {
+    const answer = serverAnswer([EMAIL_NOT_SET_UP], {
+      products: MONITORING_ONLY,
+    });
+    const result = await runDoctor({
+      argv: ["--after-start"],
+      config: healthyConfig(["NGINX_HTTP2=off"]),
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+    const marks = result.output
+      .split("\n")
+      .filter((line) => {
+        return /^ {2}[✗!•✓] /.test(line);
+      })
+      .map((line) => {
+        return line.slice(2, 3);
+      });
+
+    expect(result.output.split("\n")[0]).toBe(
+      "What needs attention on this server:",
+    );
+    expect(marks).toEqual(["✗", "•"]);
+    expect(result.output).toContain(`  • ${REMINDER}`);
+    // The products switched off are still no reminder: npm start leaves them out.
+    expect(result.output).not.toContain("Products:");
+    expect(result.output).toContain("1 thing to fix.");
+    expect(result.code).toBe(0);
+  });
+
+  test("after npm start, the other notes stay unsaid beside it", async () => {
+    const answer = serverAnswer([], { products: MONITORING_ONLY });
+    const result = await runDoctor({
+      argv: ["--after-start"],
+      config: healthyConfig(["NGINX_HTTP2=off"]),
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(result.output).toBe(
+      ["✓ Everything looks right.", `  • ${REMINDER}`].join("\n"),
+    );
+
+    // While npm run doctor says both.
+    const doctor = await runDoctor({
+      config: healthyConfig(["NGINX_HTTP2=off"]),
+      network: {
+        doctor: { status: 200, body: JSON.stringify(answer), json: answer },
+      },
+    });
+
+    expect(doctor.output).toContain(`  • ${REMINDER}`);
+    expect(doctor.output).toContain(
+      "  • Products: Monitoring and status pages",
+    );
+  });
+
+  test("an unknown value after npm start is worth a look, with its fix", async () => {
+    const result = await runDoctor({
+      argv: ["--after-start"],
+      config: healthyConfig(["NGINX_HTTP2=disabled"]),
+    });
+
+    expect(result.output).toContain(
+      "! NGINX_HTTP2 in config.env is disabled, which the ingress reads as neither on nor off, so HTTP/2 stays on for oneuptime.example.com.",
+    );
+    expect(result.output).toContain(
+      "Fix: To turn it off, set NGINX_HTTP2=off, then run npm start.",
+    );
+    expect(result.output).toContain("Nothing to fix. 1 thing worth a look.");
+    expect(result.code).toBe(0);
+  });
+
+  test("with PROVISION_SSL off, npm start and npm run doctor say nothing of it", async () => {
+    for (const argv of [[], ["--after-start"]]) {
+      const result = await runDoctor({
+        argv: argv,
+        config: healthyConfig([
+          "HTTP_PROTOCOL=http",
+          "PROVISION_SSL=false",
+          "NGINX_HTTP2=off",
+        ]),
+      });
+
+      expect(result.output).not.toContain("HTTP/2");
+      expect(result.output).toContain("Everything looks right.");
+    }
+  });
+
+  /*
+   * The script itself, as npm start ends: nothing answers at the ingress
+   * here (port 1), so the doctor says so, and the reminder follows it. HOST
+   * is localhost, so that it asks no name on the network for a certificate.
+   */
+  test("the real script, run as npm start runs it, prints the reminder after what needs attention", () => {
+    const directory = workspace(
+      healthyConfig([
+        "HOST=localhost",
+        "NGINX_HTTP2=off",
+        "ONEUPTIME_HTTP_PORT=127.0.0.1:1",
+      ]),
+    );
+
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [
+          path.join(REPO_ROOT, "Scripts", "Install", "Doctor.js"),
+          "--after-start",
+        ],
+        {
+          cwd: directory,
+          env: { PATH: process.env.PATH, HOME: directory },
+          encoding: "utf8",
+          timeout: 60 * 1000,
+        },
+      );
+      const lines = result.stdout.split("\n");
+
+      expect(result.status).toBe(0);
+      expect(lines[0]).toBe("What needs attention on this server:");
+      expect(result.stdout).toContain(
+        "✗ OneUptime does not answer at http://127.0.0.1:1 on this server (connection refused)",
+      );
+      expect(result.stdout).toContain(
+        "  • HTTP/2 is off for localhost (NGINX_HTTP2=off in config.env), so OTLP over gRPC to it is refused.",
+      );
+      expect(
+        lines.findIndex((line) => {
+          return line.startsWith("  • HTTP/2 is off");
+        }),
+      ).toBeGreaterThan(
+        lines.findIndex((line) => {
+          return line.startsWith("  ✗ OneUptime does not answer");
+        }),
+      );
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 });
 
