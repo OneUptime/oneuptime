@@ -10,7 +10,18 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
+import { JSONObject } from "../../../Types/JSON";
+import {
+  getEmptyMetricOutputReaders,
+  isMetricOutputReadersEmpty,
+  MAX_OUTPUT_METRIC_DEPTH,
+  MetricOutputReader,
+  MetricOutputReaderKindKey,
+  MetricOutputReaders,
+  MetricOutputReadersOfKind,
+} from "../../../Types/Metrics/MetricOutputReaders";
 import { SearchValueOperator } from "../../../Types/Telemetry/TelemetrySearchQuery";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 import {
   ParsedSloMetricSearch,
   parseSloMetricSearch,
@@ -94,7 +105,7 @@ export interface MetricNameReference {
 
 // A dashboard's widget, as its dashboard names it.
 export interface MetricReaderWidget {
-  // Its componentId.
+  // The id the board draws it under, in lower case: a link opens it there (#10084).
   id: string;
   // Its title, or "" when it has none.
   title: string;
@@ -116,6 +127,12 @@ export interface MetricReader {
    * query reads (#10078). The server's, never sent as they are.
    */
   references?: Array<MetricNameReference> | undefined;
+  /*
+   * A recording rule's, asked for (followsOutputMetrics, #10085): what
+   * reads the metric it writes, which no longer includes what is taken
+   * away - and on down the chain. None when nothing does.
+   */
+  outputReaders?: MetricOutputReaders | undefined;
 }
 
 export interface MetricReadersOfKind {
@@ -130,6 +147,12 @@ export interface MetricReadersOfKind {
    * that read it - what they read, never which records they are.
    */
   hiddenReferences?: Array<MetricNameReference> | undefined;
+  /*
+   * Recording rules', asked for (followsOutputMetrics): what reads the
+   * output metrics of the ones they may not read - never which rules those
+   * are. None when nothing does.
+   */
+  hiddenOutputReaders?: MetricOutputReaders | undefined;
 }
 
 export type MetricReaders = Record<MetricReaderKind, MetricReadersOfKind>;
@@ -333,28 +356,36 @@ export interface DashboardMetricReferences {
  * A dashboard's metric names, widget by widget: each widget's own queries
  * (findMetricNameReferences), named by its id, title and type, and what
  * the rest of the dashboard reads.
+ *
+ * Its widgets are read as every board reads them
+ * (StoredDashboardViewConfig): from the config in whatever shape it was
+ * stored - inside the API reference's envelope, as JSON text, a widget or
+ * its settings written as text - and each is named by the id the board
+ * draws it under, its own or the one every reader derives for a widget
+ * stored without one. So a link to the widget a warning names opens the
+ * board at that very widget (#10084).
  */
 export function findDashboardMetricReferences(
   dashboardViewConfig: unknown,
 ): DashboardMetricReferences {
   const found: DashboardMetricReferences = { widgets: [], dashboard: [] };
-  const config: Record<string, unknown> | undefined = asRecord(
+  const config: JSONObject = StoredDashboardViewConfig.unwrap(
     asStored(dashboardViewConfig),
   );
+  const entries: Array<unknown> =
+    StoredDashboardViewConfig.getComponentEntries(config);
+  const ids: Array<string | null> =
+    StoredDashboardViewConfig.getComponentIds(entries);
 
-  if (!config) {
-    return found;
-  }
+  entries.forEach((entry: unknown, index: number): void => {
+    const id: string | null = ids[index] || null;
 
-  const components: unknown = config["components"];
-
-  for (const item of Array.isArray(components) ? components : []) {
-    const component: Record<string, unknown> | undefined = asRecord(item);
-
-    if (!component) {
-      continue;
+    if (!id || !StoredDashboardViewConfig.isWidgetEntry(entry)) {
+      return;
     }
 
+    const component: JSONObject =
+      StoredDashboardViewConfig.withArgumentsRead(entry);
     const widgetArguments: Record<string, unknown> =
       asRecord(component["arguments"]) || {};
     let title: string = "";
@@ -369,13 +400,13 @@ export function findDashboardMetricReferences(
 
     found.widgets.push({
       widget: {
-        id: readId(component["componentId"]),
+        id: id.toLowerCase(),
         title: title.slice(0, MAX_WIDGET_TITLE_LENGTH),
         type: readText(component["componentType"]),
       },
       references: findMetricNameReferences(component),
     });
-  }
+  });
 
   const rest: Record<string, unknown> = { ...config };
 
@@ -526,97 +557,463 @@ async function findVisibleIds(data: {
   }
 }
 
+function idOf(record: { id?: ObjectID | null }): string {
+  return record.id?.toString() || "";
+}
+
 /*
- * One kind's readers: the records of the project that read the metric, read
- * as the server, then split by what the person asking may read.
+ * ONE READ OF A PROJECT'S RECORDS, ASKED AS OFTEN AS IT TAKES.
+ *
+ * Each kind's records are read once, as the server, and each record kept
+ * as the parts it reads metrics in, with what each part reads: a monitor,
+ * an SLO or a recording rule whole; a dashboard widget by widget, and
+ * apart from them what it reads outside its widgets. A part is what "named
+ * once" is kept by, so a dashboard named for one widget is named again for
+ * another further down a chain (#10085). Asking which records read
+ * something is then a walk of what is in memory: the caller's test of the
+ * metrics taken away, and each recording rule's output metric after it.
  */
-async function findReadersOfKind<T extends { id?: ObjectID | null }>(data: {
+interface ReadingPart {
+  // Unique in the project: its kind, its record and its widget.
+  key: string;
+  references: Array<MetricNameReference>;
+  // A dashboard's widget; none for a record read whole.
+  widget?: MetricReaderWidget | undefined;
+  // What a dashboard reads outside its widgets: asked only when no widget of it reads it.
+  isOutsideWidgets?: boolean | undefined;
+}
+
+interface ReadingRecord {
   kind: MetricReaderKind;
-  projectId: ObjectID;
-  props: DatabaseCommonInteractionProps;
-  // Every record of the kind, read as the server.
-  readAll: () => Promise<Array<T>>;
-  // The records of these ids the person may read, read as them.
-  readVisible: (query: {
-    projectId: ObjectID;
-    ids: Array<string>;
-    props: DatabaseCommonInteractionProps;
-  }) => Promise<Array<{ id?: ObjectID | null | undefined }>>;
-  // The record as a reader, when it reads the metric.
-  readerOf: (record: T) => MetricReader | null;
-  // Whether the hidden readers' references are kept (hiddenReferences).
-  keepsReferences?: boolean | undefined;
-}): Promise<MetricReadersOfKind> {
-  const unchecked: MetricReadersOfKind = {
-    readers: [],
-    hiddenCount: 0,
-    isChecked: false,
+  id: string;
+  name: string;
+  parts: Array<ReadingPart>;
+  // A recording rule's: the metric it writes.
+  outputMetricName?: string | undefined;
+}
+
+// A record found reading it: the parts of it that do.
+interface FoundReader {
+  record: ReadingRecord;
+  parts: Array<ReadingPart>;
+  // A dashboard's widgets among them, in their order on it.
+  widgets: Array<MetricReaderWidget>;
+  // The references that read it, when every one of them is asked (keepsReferences).
+  references: Array<MetricNameReference>;
+}
+
+type FoundByKind = Record<MetricReaderKind, Array<FoundReader>>;
+
+// What reads one recording rule's output metric, found as the server.
+interface FoundOutput {
+  readers: FoundByKind;
+  // More read it, further down the chain than is followed.
+  isPastDepth: boolean;
+}
+
+// The kinds' records, or null for a kind that could not be read.
+type ReadingRecords = Record<MetricReaderKind, Array<ReadingRecord> | null>;
+
+const OUTPUT_KEY_OF_KIND: Record<MetricReaderKind, MetricOutputReaderKindKey> =
+  {
+    [MetricReaderKind.Monitor]: "monitors",
+    [MetricReaderKind.Dashboard]: "dashboards",
+    [MetricReaderKind.ServiceLevelObjective]: "slos",
+    [MetricReaderKind.MetricRecordingRule]: "recordingRules",
   };
-  let records: Array<T>;
 
-  try {
-    records = await data.readAll();
-  } catch (error) {
-    logger.warn(
-      `Metric readers: could not read the ${data.kind} records of project ${data.projectId.toString()}:`,
-    );
-    logger.warn(error);
-
-    return unchecked;
-  }
-
-  const readers: Array<MetricReader> = [];
-
-  for (const record of records) {
-    const reader: MetricReader | null = data.readerOf(record);
-
-    if (reader) {
-      readers.push(reader);
-    }
-  }
-
-  const visible: Set<string> | null = await findVisibleIds({
-    ids: readers.map((reader: MetricReader): string => {
-      return reader.id;
-    }),
-    projectId: data.projectId,
-    read: data.readVisible,
-    props: data.props,
-    kind: data.kind,
-  });
-
-  if (!visible) {
-    return unchecked;
-  }
-
-  const shown: Array<MetricReader> = readers
-    .filter((reader: MetricReader): boolean => {
-      return visible.has(reader.id.toLowerCase());
-    })
-    .sort((a: MetricReader, b: MetricReader): number => {
-      return a.name.localeCompare(b.name);
-    });
-
+function noneFound(): FoundByKind {
   return {
-    readers: shown,
-    hiddenCount: readers.length - shown.length,
-    isChecked: true,
-    ...(data.keepsReferences
-      ? {
-          hiddenReferences: readers
-            .filter((reader: MetricReader): boolean => {
-              return !visible.has(reader.id.toLowerCase());
-            })
-            .flatMap((reader: MetricReader): Array<MetricNameReference> => {
-              return reader.references || [];
-            }),
-        }
+    [MetricReaderKind.Monitor]: [],
+    [MetricReaderKind.Dashboard]: [],
+    [MetricReaderKind.ServiceLevelObjective]: [],
+    [MetricReaderKind.MetricRecordingRule]: [],
+  };
+}
+
+function byName(a: { name: string }, b: { name: string }): number {
+  return a.name.localeCompare(b.name);
+}
+
+function wholeRecord(data: {
+  kind: MetricReaderKind;
+  id: string;
+  name: string;
+  references: Array<MetricNameReference>;
+  outputMetricName?: string | undefined;
+}): ReadingRecord {
+  return {
+    kind: data.kind,
+    id: data.id,
+    name: data.name,
+    parts: [{ key: `${data.kind}:${data.id}`, references: data.references }],
+    ...(data.outputMetricName !== undefined
+      ? { outputMetricName: data.outputMetricName }
       : {}),
   };
 }
 
-function idOf(record: { id?: ObjectID | null }): string {
-  return record.id?.toString() || "";
+function dashboardRecord(dashboard: Dashboard): ReadingRecord | null {
+  const id: string = idOf(dashboard);
+
+  if (!id) {
+    return null;
+  }
+
+  const found: DashboardMetricReferences = findDashboardMetricReferences(
+    dashboard.dashboardViewConfig,
+  );
+  const key: string = `${MetricReaderKind.Dashboard}:${id}/`;
+
+  return {
+    kind: MetricReaderKind.Dashboard,
+    id,
+    name: dashboard.name || "",
+    parts: [
+      ...found.widgets.map(
+        (entry: {
+          widget: MetricReaderWidget;
+          references: Array<MetricNameReference>;
+        }): ReadingPart => {
+          return {
+            key: `${key}${entry.widget.id}`,
+            references: entry.references,
+            widget: entry.widget,
+          };
+        },
+      ),
+      { key, references: found.dashboard, isOutsideWidgets: true },
+    ],
+  };
+}
+
+/*
+ * The parts of a record that read it and are not named already, as a
+ * reader: null when none does. `reading` says which of a part's references
+ * read it - every one, or none but a sign, as asked - and null when none
+ * does. A dashboard's reading outside its widgets is asked only when none
+ * of its widgets reads it, unless every reference is asked.
+ */
+function findReaderParts(
+  record: ReadingRecord,
+  data: {
+    reading: (
+      references: Array<MetricNameReference>,
+    ) => Array<MetricNameReference> | null;
+    isNamed: (part: ReadingPart) => boolean;
+    asksEveryPart: boolean;
+  },
+): FoundReader | null {
+  const found: FoundReader = {
+    record,
+    parts: [],
+    widgets: [],
+    references: [],
+  };
+
+  const ask: (part: ReadingPart) => void = (part: ReadingPart): void => {
+    if (data.isNamed(part)) {
+      return;
+    }
+
+    const reading: Array<MetricNameReference> | null = data.reading(
+      part.references,
+    );
+
+    if (!reading) {
+      return;
+    }
+
+    found.parts.push(part);
+    found.references.push(...reading);
+
+    if (part.widget) {
+      found.widgets.push(part.widget);
+    }
+  };
+
+  for (const part of record.parts) {
+    if (!part.isOutsideWidgets) {
+      ask(part);
+    }
+  }
+
+  for (const part of record.parts) {
+    if (
+      part.isOutsideWidgets &&
+      (data.asksEveryPart || found.parts.length === 0)
+    ) {
+      ask(part);
+    }
+  }
+
+  return found.parts.length > 0 ? found : null;
+}
+
+// A metric's name as an output metric is matched by: whatever its case, or the spaces around it.
+function outputNameOf(name: string | null | undefined): string {
+  return (name || "").trim().toLowerCase();
+}
+
+/*
+ * The records that read each metric by name, in the order they were read:
+ * what a recording rule's output metric is looked up in.
+ */
+function indexByMetricName(
+  records: ReadingRecords,
+): Map<string, Array<ReadingRecord>> {
+  const index: Map<string, Array<ReadingRecord>> = new Map<
+    string,
+    Array<ReadingRecord>
+  >();
+
+  for (const kind of METRIC_READER_KINDS) {
+    for (const record of records[kind] || []) {
+      const names: Set<string> = new Set<string>();
+
+      for (const part of record.parts) {
+        for (const reference of part.references) {
+          names.add(outputNameOf(reference.metricName));
+        }
+      }
+
+      for (const name of names) {
+        if (!name) {
+          continue;
+        }
+
+        const readers: Array<ReadingRecord> = index.get(name) || [];
+
+        readers.push(record);
+        index.set(name, readers);
+      }
+    }
+  }
+
+  return index;
+}
+
+/*
+ * FOLLOWING THE CHAIN (#10085): what reads the output metric of each
+ * recording rule found, and of each rule found among those, kind by kind.
+ *
+ * A rule writes its output for the project, under no service
+ * (ComputeRecordingRules), so a query of the output metric reads it
+ * whatever services or attributes it is limited to: on the safe side, as
+ * a recording rule's own source is read. The chain is followed breadth
+ * first, nearest first, so each record is named at the first place it is
+ * met, and a chain that comes back to a record already named - a rule
+ * reading its own output, two rules reading each other's - ends there. An
+ * output metric is followed MAX_OUTPUT_METRIC_DEPTH steps down at most;
+ * past that, a rule says only that more read its output (isPastDepth).
+ *
+ * `isFirst` orders the rules met at one step: the ones the person may read
+ * first, so a record two rules' outputs both lead to is named under the
+ * one they can see.
+ */
+function followOutputMetrics(data: {
+  direct: FoundByKind;
+  index: Map<string, Array<ReadingRecord>>;
+  isFirst?: ((reader: FoundReader) => boolean) | undefined;
+}): Map<FoundReader, FoundOutput> {
+  const outputs: Map<FoundReader, FoundOutput> = new Map<
+    FoundReader,
+    FoundOutput
+  >();
+  const named: Set<string> = new Set<string>();
+
+  for (const kind of METRIC_READER_KINDS) {
+    for (const reader of data.direct[kind]) {
+      for (const part of reader.parts) {
+        named.add(part.key);
+      }
+    }
+  }
+
+  const ordered: (rules: Array<FoundReader>) => Array<FoundReader> = (
+    rules: Array<FoundReader>,
+  ): Array<FoundReader> => {
+    return [...rules].sort((a: FoundReader, b: FoundReader): number => {
+      const firstA: boolean = data.isFirst ? data.isFirst(a) : true;
+      const firstB: boolean = data.isFirst ? data.isFirst(b) : true;
+
+      if (firstA !== firstB) {
+        return firstA ? -1 : 1;
+      }
+
+      return byName(a.record, b.record);
+    });
+  };
+
+  const readsOutput: (
+    outputName: string,
+  ) => (
+    references: Array<MetricNameReference>,
+  ) => Array<MetricNameReference> | null = (outputName: string) => {
+    return (
+      references: Array<MetricNameReference>,
+    ): Array<MetricNameReference> | null => {
+      return references.some((reference: MetricNameReference): boolean => {
+        return outputNameOf(reference.metricName) === outputName;
+      })
+        ? []
+        : null;
+    };
+  };
+
+  const isNamed: (part: ReadingPart) => boolean = (
+    part: ReadingPart,
+  ): boolean => {
+    return named.has(part.key);
+  };
+
+  const queue: Array<{ rule: FoundReader; depth: number }> = ordered(
+    data.direct[MetricReaderKind.MetricRecordingRule],
+  ).map((rule: FoundReader) => {
+    return { rule, depth: 1 };
+  });
+
+  while (queue.length > 0) {
+    const { rule, depth } = queue.shift()!;
+    const outputName: string = outputNameOf(rule.record.outputMetricName);
+
+    if (!outputName) {
+      continue;
+    }
+
+    const candidates: Array<ReadingRecord> = data.index.get(outputName) || [];
+
+    // Past the last step followed: only whether more read it.
+    if (depth > MAX_OUTPUT_METRIC_DEPTH) {
+      const isReadFurther: boolean = candidates.some(
+        (record: ReadingRecord): boolean => {
+          return (
+            findReaderParts(record, {
+              reading: readsOutput(outputName),
+              isNamed,
+              asksEveryPart: false,
+            }) !== null
+          );
+        },
+      );
+
+      if (isReadFurther) {
+        outputs.set(rule, { readers: noneFound(), isPastDepth: true });
+      }
+
+      continue;
+    }
+
+    const readers: FoundByKind = noneFound();
+
+    for (const record of candidates) {
+      const found: FoundReader | null = findReaderParts(record, {
+        reading: readsOutput(outputName),
+        isNamed,
+        asksEveryPart: false,
+      });
+
+      if (!found) {
+        continue;
+      }
+
+      for (const part of found.parts) {
+        named.add(part.key);
+      }
+
+      readers[record.kind].push(found);
+    }
+
+    if (
+      METRIC_READER_KINDS.some((kind: MetricReaderKind): boolean => {
+        return readers[kind].length > 0;
+      })
+    ) {
+      outputs.set(rule, { readers, isPastDepth: false });
+    }
+
+    for (const next of ordered(readers[MetricReaderKind.MetricRecordingRule])) {
+      queue.push({ rule: next, depth: depth + 1 });
+    }
+  }
+
+  return outputs;
+}
+
+/*
+ * What reads the output metrics of several rules, together: what the ones
+ * the person may not read lead to. A dashboard met under two of them is
+ * one dashboard, with the widgets of both.
+ */
+function mergeOutputs(
+  found: Array<FoundOutput | undefined>,
+): FoundOutput | undefined {
+  const outputs: Array<FoundOutput> = found.filter(
+    (output: FoundOutput | undefined): output is FoundOutput => {
+      return output !== undefined;
+    },
+  );
+
+  if (outputs.length === 0) {
+    return undefined;
+  }
+
+  const merged: FoundOutput = { readers: noneFound(), isPastDepth: false };
+
+  for (const output of outputs) {
+    merged.isPastDepth = merged.isPastDepth || output.isPastDepth;
+
+    for (const kind of METRIC_READER_KINDS) {
+      for (const reader of output.readers[kind]) {
+        const same: FoundReader | undefined = merged.readers[kind].find(
+          (other: FoundReader): boolean => {
+            return other.record === reader.record;
+          },
+        );
+
+        if (same) {
+          same.parts.push(...reader.parts);
+          same.widgets.push(...reader.widgets);
+        } else {
+          merged.readers[kind].push({
+            ...reader,
+            parts: [...reader.parts],
+            widgets: [...reader.widgets],
+          });
+        }
+      }
+    }
+  }
+
+  return merged;
+}
+
+// The ids of every record found, kind by kind: the direct readers and all down the chain.
+function collectIds(data: {
+  direct: FoundByKind;
+  outputs: Map<FoundReader, FoundOutput>;
+}): Record<MetricReaderKind, Set<string>> {
+  const ids: Record<MetricReaderKind, Set<string>> = {
+    [MetricReaderKind.Monitor]: new Set<string>(),
+    [MetricReaderKind.Dashboard]: new Set<string>(),
+    [MetricReaderKind.ServiceLevelObjective]: new Set<string>(),
+    [MetricReaderKind.MetricRecordingRule]: new Set<string>(),
+  };
+  const add: (found: FoundByKind) => void = (found: FoundByKind): void => {
+    for (const kind of METRIC_READER_KINDS) {
+      for (const reader of found[kind]) {
+        ids[kind].add(reader.record.id);
+      }
+    }
+  };
+
+  add(data.direct);
+
+  for (const output of data.outputs.values()) {
+    add(output.readers);
+  }
+
+  return ids;
 }
 
 /*
@@ -635,16 +1032,20 @@ export async function findMetricReaders(data: {
    * not only up to the first that reads it.
    */
   keepsReferences?: boolean | undefined;
+  /*
+   * Follow each recording rule that reads it to what reads the metric it
+   * writes, and on down the chain (MetricReader.outputReaders,
+   * MetricReadersOfKind.hiddenOutputReaders, #10085): what taking the
+   * metric away leaves without data one step further on.
+   */
+  followsOutputMetrics?: boolean | undefined;
 }): Promise<MetricReaders> {
   const keepsReferences: boolean = Boolean(data.keepsReferences);
-  const anyReads: (references: Array<MetricNameReference>) => boolean = (
-    references: Array<MetricNameReference>,
-  ): boolean => {
-    return references.some(data.reads);
-  };
+  const projectId: ObjectID = data.projectId;
+
   /*
-   * A record's references that read it: null for none. Every one of them
-   * is asked when they are kept; else up to the first that reads it.
+   * A part's references that read it: null for none. Every one of them is
+   * asked when they are kept; else up to the first that reads it.
    */
   const readingOf: (
     references: Array<MetricNameReference>,
@@ -652,147 +1053,90 @@ export async function findMetricReaders(data: {
     references: Array<MetricNameReference>,
   ): Array<MetricNameReference> | null => {
     if (!keepsReferences) {
-      return anyReads(references) ? [] : null;
+      return references.some(data.reads) ? [] : null;
     }
 
     const reading: Array<MetricNameReference> = references.filter(data.reads);
 
     return reading.length > 0 ? reading : null;
   };
-  // A reader with its references, when they are kept.
-  const withReferences: (
-    reader: MetricReader,
-    references: Array<MetricNameReference>,
-  ) => MetricReader = (
-    reader: MetricReader,
-    references: Array<MetricNameReference>,
-  ): MetricReader => {
-    return keepsReferences ? { ...reader, references } : reader;
+
+  const readOfKind: <T>(read: {
+    kind: MetricReaderKind;
+    readAll: () => Promise<Array<T>>;
+    recordOf: (record: T) => ReadingRecord | null;
+  }) => Promise<Array<ReadingRecord> | null> = async <T>(read: {
+    kind: MetricReaderKind;
+    readAll: () => Promise<Array<T>>;
+    recordOf: (record: T) => ReadingRecord | null;
+  }): Promise<Array<ReadingRecord> | null> => {
+    let records: Array<T>;
+
+    try {
+      records = await read.readAll();
+    } catch (error) {
+      logger.warn(
+        `Metric readers: could not read the ${read.kind} records of project ${projectId.toString()}:`,
+      );
+      logger.warn(error);
+
+      return null;
+    }
+
+    return records
+      .map(read.recordOf)
+      .filter((record: ReadingRecord | null): record is ReadingRecord => {
+        return record !== null;
+      });
   };
-  const common: {
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-    keepsReferences: boolean;
-  } = { projectId: data.projectId, props: data.props, keepsReferences };
 
   const [
     monitors,
     dashboards,
     slos,
-    recordingRules,
-  ]: Array<MetricReadersOfKind> = await Promise.all([
-    findReadersOfKind<Monitor>({
-      ...common,
+    rules,
+  ]: Array<Array<ReadingRecord> | null> = await Promise.all([
+    readOfKind<Monitor>({
       kind: MetricReaderKind.Monitor,
       readAll: (): Promise<Array<Monitor>> => {
         return MonitorService.findBy({
-          query: { projectId: data.projectId },
+          query: { projectId },
           select: { _id: true, name: true, monitorSteps: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           props: { isRoot: true },
         });
       },
-      readVisible: (query: {
-        projectId: ObjectID;
-        ids: Array<string>;
-        props: DatabaseCommonInteractionProps;
-      }): Promise<Array<Monitor>> => {
-        return MonitorService.findBy({
-          query: {
-            projectId: query.projectId,
-            _id: QueryHelper.any(query.ids),
-          },
-          select: { _id: true },
-          skip: 0,
-          limit: query.ids.length,
-          props: query.props,
-        });
-      },
-      readerOf: (monitor: Monitor): MetricReader | null => {
-        const reading: Array<MetricNameReference> | null = idOf(monitor)
-          ? readingOf(findMetricNameReferences(monitor.monitorSteps))
-          : null;
-
-        return reading
-          ? withReferences(
-              { id: idOf(monitor), name: monitor.name || "" },
-              reading,
-            )
+      recordOf: (monitor: Monitor): ReadingRecord | null => {
+        return idOf(monitor)
+          ? wholeRecord({
+              kind: MetricReaderKind.Monitor,
+              id: idOf(monitor),
+              name: monitor.name || "",
+              references: findMetricNameReferences(monitor.monitorSteps),
+            })
           : null;
       },
     }),
-    findReadersOfKind<Dashboard>({
-      ...common,
+    readOfKind<Dashboard>({
       kind: MetricReaderKind.Dashboard,
       readAll: (): Promise<Array<Dashboard>> => {
         return DashboardService.findBy({
-          query: { projectId: data.projectId },
+          query: { projectId },
           select: { _id: true, name: true, dashboardViewConfig: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           props: { isRoot: true },
         });
       },
-      readVisible: (query: {
-        projectId: ObjectID;
-        ids: Array<string>;
-        props: DatabaseCommonInteractionProps;
-      }): Promise<Array<Dashboard>> => {
-        return DashboardService.findBy({
-          query: {
-            projectId: query.projectId,
-            _id: QueryHelper.any(query.ids),
-          },
-          select: { _id: true },
-          skip: 0,
-          limit: query.ids.length,
-          props: query.props,
-        });
-      },
-      readerOf: (dashboard: Dashboard): MetricReader | null => {
-        const found: DashboardMetricReferences = findDashboardMetricReferences(
-          dashboard.dashboardViewConfig,
-        );
-        const widgets: Array<MetricReaderWidget> = [];
-        const reading: Array<MetricNameReference> = [];
-
-        for (const entry of found.widgets) {
-          const ofWidget: Array<MetricNameReference> | null = readingOf(
-            entry.references,
-          );
-
-          if (ofWidget) {
-            widgets.push(entry.widget);
-            reading.push(...ofWidget);
-          }
-        }
-
-        // Outside its widgets: asked only when none reads it, unless every reference is kept.
-        const ofDashboard: Array<MetricNameReference> | null =
-          keepsReferences || widgets.length === 0
-            ? readingOf(found.dashboard)
-            : null;
-
-        if (ofDashboard) {
-          reading.push(...ofDashboard);
-        }
-
-        return idOf(dashboard) && (widgets.length > 0 || ofDashboard)
-          ? withReferences(
-              { id: idOf(dashboard), name: dashboard.name || "", widgets },
-              reading,
-            )
-          : null;
-      },
+      recordOf: dashboardRecord,
     }),
-    findReadersOfKind<ServiceLevelObjective>({
-      ...common,
+    readOfKind<ServiceLevelObjective>({
       kind: MetricReaderKind.ServiceLevelObjective,
       readAll: (): Promise<Array<ServiceLevelObjective>> => {
         return ServiceLevelObjectiveService.findBy({
           query: {
-            projectId: data.projectId,
+            projectId,
             sliType: SliType.Metric,
             isArchived: false,
           },
@@ -808,46 +1152,30 @@ export async function findMetricReaders(data: {
           props: { isRoot: true },
         });
       },
-      readVisible: (query: {
-        projectId: ObjectID;
-        ids: Array<string>;
-        props: DatabaseCommonInteractionProps;
-      }): Promise<Array<ServiceLevelObjective>> => {
-        return ServiceLevelObjectiveService.findBy({
-          query: {
-            projectId: query.projectId,
-            _id: QueryHelper.any(query.ids),
-          },
-          select: { _id: true },
-          skip: 0,
-          limit: query.ids.length,
-          props: query.props,
-        });
-      },
-      readerOf: (slo: ServiceLevelObjective): MetricReader | null => {
-        const references: Array<MetricNameReference> = findSloMetricReferences({
-          sliType: slo.sliType,
-          metricQueryConfig: slo.metricQueryConfig,
-          serviceIds: (slo.services || []).map((service: Service): string => {
-            return service.id?.toString() || "";
-          }),
-        });
-
-        const reading: Array<MetricNameReference> | null = idOf(slo)
-          ? readingOf(references)
-          : null;
-
-        return reading
-          ? withReferences({ id: idOf(slo), name: slo.name || "" }, reading)
+      recordOf: (slo: ServiceLevelObjective): ReadingRecord | null => {
+        return idOf(slo)
+          ? wholeRecord({
+              kind: MetricReaderKind.ServiceLevelObjective,
+              id: idOf(slo),
+              name: slo.name || "",
+              references: findSloMetricReferences({
+                sliType: slo.sliType,
+                metricQueryConfig: slo.metricQueryConfig,
+                serviceIds: (slo.services || []).map(
+                  (service: Service): string => {
+                    return service.id?.toString() || "";
+                  },
+                ),
+              }),
+            })
           : null;
       },
     }),
-    findReadersOfKind<MetricRecordingRule>({
-      ...common,
+    readOfKind<MetricRecordingRule>({
       kind: MetricReaderKind.MetricRecordingRule,
       readAll: (): Promise<Array<MetricRecordingRule>> => {
         return MetricRecordingRuleService.findBy({
-          query: { projectId: data.projectId },
+          query: { projectId },
           select: {
             _id: true,
             name: true,
@@ -859,45 +1187,331 @@ export async function findMetricReaders(data: {
           props: { isRoot: true },
         });
       },
-      readVisible: (query: {
-        projectId: ObjectID;
-        ids: Array<string>;
-        props: DatabaseCommonInteractionProps;
-      }): Promise<Array<MetricRecordingRule>> => {
-        return MetricRecordingRuleService.findBy({
-          query: {
-            projectId: query.projectId,
-            _id: QueryHelper.any(query.ids),
-          },
-          select: { _id: true },
-          skip: 0,
-          limit: query.ids.length,
-          props: query.props,
-        });
-      },
-      readerOf: (rule: MetricRecordingRule): MetricReader | null => {
-        const reading: Array<MetricNameReference> | null = idOf(rule)
-          ? readingOf(findRecordingRuleMetricReferences(rule.definition))
-          : null;
-
-        return reading
-          ? withReferences(
-              {
-                id: idOf(rule),
-                name: rule.name || "",
-                outputMetricName: rule.outputMetricName || "",
-              },
-              reading,
-            )
+      recordOf: (rule: MetricRecordingRule): ReadingRecord | null => {
+        return idOf(rule)
+          ? wholeRecord({
+              kind: MetricReaderKind.MetricRecordingRule,
+              id: idOf(rule),
+              name: rule.name || "",
+              references: findRecordingRuleMetricReferences(rule.definition),
+              outputMetricName: rule.outputMetricName || "",
+            })
           : null;
       },
     }),
   ]);
 
-  return {
+  const records: ReadingRecords = {
     [MetricReaderKind.Monitor]: monitors!,
     [MetricReaderKind.Dashboard]: dashboards!,
     [MetricReaderKind.ServiceLevelObjective]: slos!,
-    [MetricReaderKind.MetricRecordingRule]: recordingRules!,
+    [MetricReaderKind.MetricRecordingRule]: rules!,
   };
+
+  // What reads what is asked about, as the server.
+  const direct: FoundByKind = noneFound();
+
+  for (const kind of METRIC_READER_KINDS) {
+    for (const record of records[kind] || []) {
+      const found: FoundReader | null = findReaderParts(record, {
+        reading: readingOf,
+        isNamed: (): boolean => {
+          return false;
+        },
+        asksEveryPart: keepsReferences,
+      });
+
+      if (found) {
+        direct[kind].push(found);
+      }
+    }
+  }
+
+  const index: Map<string, Array<ReadingRecord>> | null =
+    data.followsOutputMetrics ? indexByMetricName(records) : null;
+  const reachable: Map<FoundReader, FoundOutput> = index
+    ? followOutputMetrics({ direct, index })
+    : new Map<FoundReader, FoundOutput>();
+
+  // Which of all of them the person may read: one read of each kind, as them.
+  const readVisible: Record<
+    MetricReaderKind,
+    (query: {
+      projectId: ObjectID;
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }) => Promise<Array<{ id?: ObjectID | null | undefined }>>
+  > = {
+    [MetricReaderKind.Monitor]: (query: {
+      projectId: ObjectID;
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<Monitor>> => {
+      return MonitorService.findBy({
+        query: { projectId: query.projectId, _id: QueryHelper.any(query.ids) },
+        select: { _id: true },
+        skip: 0,
+        limit: query.ids.length,
+        props: query.props,
+      });
+    },
+    [MetricReaderKind.Dashboard]: (query: {
+      projectId: ObjectID;
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<Dashboard>> => {
+      return DashboardService.findBy({
+        query: { projectId: query.projectId, _id: QueryHelper.any(query.ids) },
+        select: { _id: true },
+        skip: 0,
+        limit: query.ids.length,
+        props: query.props,
+      });
+    },
+    [MetricReaderKind.ServiceLevelObjective]: (query: {
+      projectId: ObjectID;
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<ServiceLevelObjective>> => {
+      return ServiceLevelObjectiveService.findBy({
+        query: { projectId: query.projectId, _id: QueryHelper.any(query.ids) },
+        select: { _id: true },
+        skip: 0,
+        limit: query.ids.length,
+        props: query.props,
+      });
+    },
+    [MetricReaderKind.MetricRecordingRule]: (query: {
+      projectId: ObjectID;
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<MetricRecordingRule>> => {
+      return MetricRecordingRuleService.findBy({
+        query: { projectId: query.projectId, _id: QueryHelper.any(query.ids) },
+        select: { _id: true },
+        skip: 0,
+        limit: query.ids.length,
+        props: query.props,
+      });
+    },
+  };
+  const candidates: Record<MetricReaderKind, Set<string>> = collectIds({
+    direct,
+    outputs: reachable,
+  });
+  const visibleOfKinds: Array<Set<string> | null> = await Promise.all(
+    METRIC_READER_KINDS.map(
+      (kind: MetricReaderKind): Promise<Set<string> | null> => {
+        // A kind that could not be read has nobody to ask about.
+        if (!records[kind]) {
+          return Promise.resolve(null);
+        }
+
+        return findVisibleIds({
+          ids: Array.from(candidates[kind]),
+          projectId,
+          read: readVisible[kind],
+          props: data.props,
+          kind,
+        });
+      },
+    ),
+  );
+  const visible: Record<MetricReaderKind, Set<string> | null> = {
+    [MetricReaderKind.Monitor]: visibleOfKinds[0]!,
+    [MetricReaderKind.Dashboard]: visibleOfKinds[1]!,
+    [MetricReaderKind.ServiceLevelObjective]: visibleOfKinds[2]!,
+    [MetricReaderKind.MetricRecordingRule]: visibleOfKinds[3]!,
+  };
+  const isVisible: (reader: FoundReader) => boolean = (
+    reader: FoundReader,
+  ): boolean => {
+    return Boolean(
+      visible[reader.record.kind]?.has(reader.record.id.toLowerCase()),
+    );
+  };
+
+  /*
+   * The chain again, now that it is known which rules the person may read:
+   * those first at each step, so what two outputs lead to is named under
+   * the rule they can see. The same records are met; only where.
+   */
+  const outputs: Map<FoundReader, FoundOutput> = index
+    ? followOutputMetrics({ direct, index, isFirst: isVisible })
+    : reachable;
+
+  // What reads an output metric, as the person may know it: named, counted, or - unknown kinds - neither.
+  const toOutputReaders: (
+    found: FoundOutput | undefined,
+  ) => MetricOutputReaders | undefined = (
+    found: FoundOutput | undefined,
+  ): MetricOutputReaders | undefined => {
+    if (!found) {
+      return undefined;
+    }
+
+    const answer: MetricOutputReaders = getEmptyMetricOutputReaders();
+
+    for (const kind of METRIC_READER_KINDS) {
+      if (!visible[kind]) {
+        continue;
+      }
+
+      const ofKind: Array<FoundReader> = found.readers[kind];
+      const hidden: Array<FoundReader> = ofKind.filter(
+        (reader: FoundReader): boolean => {
+          return !isVisible(reader);
+        },
+      );
+      const answered: MetricOutputReadersOfKind = {
+        readers: ofKind
+          .filter(isVisible)
+          .sort((a: FoundReader, b: FoundReader): number => {
+            return byName(a.record, b.record);
+          })
+          .map(toOutputReader),
+        hidden: hidden.length,
+      };
+
+      if (kind === MetricReaderKind.MetricRecordingRule) {
+        const hiddenOutputReaders: MetricOutputReaders | undefined =
+          toOutputReaders(
+            mergeOutputs(
+              hidden.map((rule: FoundReader): FoundOutput | undefined => {
+                return outputs.get(rule);
+              }),
+            ),
+          );
+
+        if (hiddenOutputReaders) {
+          answered.hiddenOutputReaders = hiddenOutputReaders;
+        }
+      }
+
+      answer[OUTPUT_KEY_OF_KIND[kind]] = answered;
+    }
+
+    if (found.isPastDepth) {
+      answer.isPastDepth = true;
+    }
+
+    return isMetricOutputReadersEmpty(answer) ? undefined : answer;
+  };
+
+  const toOutputReader: (reader: FoundReader) => MetricOutputReader = (
+    reader: FoundReader,
+  ): MetricOutputReader => {
+    const answered: MetricOutputReader = {
+      id: reader.record.id,
+      name: reader.record.name,
+    };
+
+    if (reader.record.kind === MetricReaderKind.Dashboard) {
+      answered.widgets = reader.widgets.map(
+        (widget: MetricReaderWidget): MetricReaderWidget => {
+          return { id: widget.id, title: widget.title, type: widget.type };
+        },
+      );
+    }
+
+    if (reader.record.outputMetricName) {
+      answered.outputMetricName = reader.record.outputMetricName;
+    }
+
+    const outputReaders: MetricOutputReaders | undefined = toOutputReaders(
+      outputs.get(reader),
+    );
+
+    if (outputReaders) {
+      answered.outputReaders = outputReaders;
+    }
+
+    return answered;
+  };
+
+  // A reader of what is asked about, as the answer names it.
+  const toReader: (reader: FoundReader) => MetricReader = (
+    reader: FoundReader,
+  ): MetricReader => {
+    const answered: MetricReader = {
+      id: reader.record.id,
+      name: reader.record.name,
+    };
+
+    if (reader.record.kind === MetricReaderKind.Dashboard) {
+      answered.widgets = reader.widgets;
+    }
+
+    if (reader.record.kind === MetricReaderKind.MetricRecordingRule) {
+      answered.outputMetricName = reader.record.outputMetricName || "";
+    }
+
+    if (keepsReferences) {
+      answered.references = reader.references;
+    }
+
+    const outputReaders: MetricOutputReaders | undefined = toOutputReaders(
+      outputs.get(reader),
+    );
+
+    if (outputReaders) {
+      answered.outputReaders = outputReaders;
+    }
+
+    return answered;
+  };
+
+  const answer: MetricReaders = {} as MetricReaders;
+
+  for (const kind of METRIC_READER_KINDS) {
+    const visibleIds: Set<string> | null = visible[kind];
+
+    if (!records[kind] || !visibleIds) {
+      answer[kind] = { readers: [], hiddenCount: 0, isChecked: false };
+      continue;
+    }
+
+    const hidden: Array<FoundReader> = direct[kind].filter(
+      (reader: FoundReader): boolean => {
+        return !isVisible(reader);
+      },
+    );
+    const ofKind: MetricReadersOfKind = {
+      readers: direct[kind]
+        .filter(isVisible)
+        .sort((a: FoundReader, b: FoundReader): number => {
+          return byName(a.record, b.record);
+        })
+        .map(toReader),
+      hiddenCount: hidden.length,
+      isChecked: true,
+    };
+
+    if (keepsReferences) {
+      ofKind.hiddenReferences = hidden.flatMap(
+        (reader: FoundReader): Array<MetricNameReference> => {
+          return reader.references;
+        },
+      );
+    }
+
+    if (kind === MetricReaderKind.MetricRecordingRule && index) {
+      const hiddenOutputReaders: MetricOutputReaders | undefined =
+        toOutputReaders(
+          mergeOutputs(
+            hidden.map((rule: FoundReader): FoundOutput | undefined => {
+              return outputs.get(rule);
+            }),
+          ),
+        );
+
+      if (hiddenOutputReaders) {
+        ofKind.hiddenOutputReaders = hiddenOutputReaders;
+      }
+    }
+
+    answer[kind] = ofKind;
+  }
+
+  return answer;
 }

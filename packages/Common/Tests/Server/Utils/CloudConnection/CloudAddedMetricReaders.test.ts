@@ -598,10 +598,14 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
         kind: CloudAddedMetricReaderKind.Dashboard,
         id: ID(5),
         name: "Databases",
-        // By title and kind (#10107): an untitled one is drawn by its kind.
+        /*
+         * By title and kind (#10107): an untitled one is drawn by its kind.
+         * Each with the id the board draws it under, which its link opens
+         * the dashboard at (#10084).
+         */
         widgets: [
-          { title: "Swap", type: "Chart" },
-          { title: "", type: "Chart" },
+          { id: "chart-1", title: "Swap", type: "Chart" },
+          { id: "chart-3", title: "", type: "Chart" },
         ],
       },
     ]);
@@ -623,8 +627,8 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
         id: ID(5),
         name: "Databases",
         widgets: [
-          { title: "Orders", type: "Table" },
-          { title: "Every database", type: "Table" },
+          { id: "table-1", title: "Orders", type: "Table" },
+          { id: "table-3", title: "Every database", type: "Table" },
         ],
       },
     ]);
@@ -773,8 +777,17 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
             kind: "dashboard",
             id: ID(2),
             name: "B",
-            // An older answer's title alone, the new one's title and kind.
-            widgets: ["W", 3, { title: "X", type: "Gauge" }, null],
+            /*
+             * An older answer's title alone, then its title and kind, the
+             * new one's id too (#10084).
+             */
+            widgets: [
+              "W",
+              3,
+              { title: "X", type: "Gauge" },
+              null,
+              { id: "chart-9", title: "Y", type: "Chart" },
+            ],
           },
           {
             kind: "recordingRule",
@@ -800,9 +813,11 @@ describe("what reads it, as the lookup of what reads a metric finds it", () => {
           kind: CloudAddedMetricReaderKind.Dashboard,
           id: ID(2),
           name: "B",
+          // A widget without its id is named, and opens no widget.
           widgets: [
-            { title: "W", type: "" },
-            { title: "X", type: "Gauge" },
+            { id: "", title: "W", type: "" },
+            { id: "", title: "X", type: "Gauge" },
+            { id: "chart-9", title: "Y", type: "Chart" },
           ],
         },
         {
