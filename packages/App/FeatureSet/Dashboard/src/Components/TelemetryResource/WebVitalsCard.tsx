@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
@@ -16,6 +16,12 @@ export interface WebVitalsCardProps {
   loading: boolean;
   // What the card as a whole shows, in an (i) beside its title.
   description?: string | undefined;
+  /*
+   * Why nothing is drawn, in place of the generic "No web vitals reported
+   * yet": a RUM application's Overview says why from its diagnosis (not set
+   * up, quiet in this range, refused - issue #6379).
+   */
+  emptyState?: ReactNode | undefined;
 }
 
 /* The parts of a vital that decide how it is shown and rated. */
@@ -134,6 +140,13 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                 </div>
               );
             })}
+          </div>
+        ) : !anyReported && props.emptyState ? (
+          <div
+            className="-mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50"
+            data-testid="web-vitals-empty-state"
+          >
+            {props.emptyState}
           </div>
         ) : !anyReported ? (
           <div className="-mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">

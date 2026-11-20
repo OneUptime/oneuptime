@@ -165,7 +165,7 @@ Alt i snippet'et sendes til dine besøgende, så alle kan kopiere tokenet fra di
 | Indstilling | Hvad den gør |
 | --- | --- |
 | **Tilladte oprindelser** | Forespørgsler accepteres kun fra disse oprindelser, hver med sit skema og eventuelle port. En vært må begynde med ét jokertegn `*.`: `https://*.example.com` dækker alle underdomæner af `example.com`, men ikke selve `example.com`. |
-| **Requests Per Minute Limit** | Ét loft for alle besøgende, der bruger nøglen: 6000 forespørgsler pr. minut, medmindre du sætter dit eget. |
+| **Grænse for anmodninger pr. minut** | Ét loft for alle besøgende, der bruger nøglen: 6000 forespørgsler pr. minut, medmindre du sætter dit eget. |
 | **Fastgjort tjenestenavn** | Gennemtvinger `service.name` på alt, hvad nøglen skriver, så en kopi ikke kan udgive sin telemetri for at være en af dine backend-tjenester. |
 | **Udløber den** | Efter denne dato accepteres nøglen ikke længere. |
 | **Aktiveret** | Slå den fra for straks at stoppe en lækket nøgle. |
