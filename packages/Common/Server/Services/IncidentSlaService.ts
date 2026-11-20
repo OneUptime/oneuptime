@@ -76,8 +76,9 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     // The incident and the rule are the project's first (ProjectReferencesService).
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
-    const sla: Model = onCreate.createBy.data;
+    await super.onBeforeCreate(createBy);
+
+    const sla: Model = createBy.data;
     const record: Record<string, unknown> = sla as unknown as Record<
       string,
       unknown
@@ -102,7 +103,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!sla.slaStartedAt && incidentId && ruleId) {
       const projectId: ObjectID | null | undefined =
-        sla.projectId || onCreate.createBy.props.tenantId;
+        sla.projectId || createBy.props.tenantId;
 
       if (projectId) {
         await this.fillInFromRule({
@@ -114,7 +115,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return onCreate;
+    return { createBy: createBy, carryForward: null };
   }
 
   /*

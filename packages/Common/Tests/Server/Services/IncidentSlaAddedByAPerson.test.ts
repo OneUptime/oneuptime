@@ -8,6 +8,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ColumnsOnlyOneUptimeWrites from "../../../Server/Utils/Database/ColumnsOnlyOneUptimeWrites";
 import ServerSetColumns from "../../../Server/Utils/Database/ServerSetColumns";
+import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSla from "../../../Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "../../../Models/DatabaseModels/IncidentSlaRule";
@@ -292,6 +293,39 @@ describe("an SLA a person adds to an incident", () => {
       /incidentId and incident are names for the same field/,
     );
     expect(IncidentService.findOneBy).not.toHaveBeenCalled();
+    expect(sla.slaStartedAt).toBeUndefined();
+  });
+
+  /*
+   * The project's check (ProjectReferencesService) answers first: an SLA
+   * naming another project's incident is refused before anything of the
+   * incident or the rule is read to work it out.
+   */
+  test("names another project's incident: refused by the project's check before anything is read", async () => {
+    stubIncident([timelineRow(CREATED_STATE, DECLARED_AT, true)]);
+
+    jest
+      .spyOn(
+        ProjectReferencesService.prototype as unknown as {
+          onBeforeCreate: (
+            createBy: CreateBy<IncidentSla>,
+          ) => Promise<OnCreate<IncidentSla>>;
+        },
+        "onBeforeCreate",
+      )
+      .mockRejectedValue(
+        new ProjectScopedReferenceException(
+          "This incident sla references records that are not in this project.",
+        ) as never,
+      );
+
+    const sla: IncidentSla = addedSla();
+
+    await expect(beforeCreate(sla)).rejects.toBeInstanceOf(
+      ProjectScopedReferenceException,
+    );
+    expect(IncidentService.findOneBy).not.toHaveBeenCalled();
+    expect(IncidentSlaRuleService.findOneBy).not.toHaveBeenCalled();
     expect(sla.slaStartedAt).toBeUndefined();
   });
 
