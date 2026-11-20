@@ -13,6 +13,23 @@
 # for nothing and ended with "Maximum retries reached" while OneUptime was
 # running - and `npm start --services=...` handed it the list of services as
 # the address to check.
+#
+# Then it checked the address the ingress is published on by that address:
+# with ONEUPTIME_HTTP_PORT=127.0.0.1:8080, the setting the Docker Compose
+# guide gives an install behind a reverse proxy of its own, it asked for
+# http://127.0.0.1:8080. The ingress serves OneUptime only under the names
+# localhost, ingress and HOST (the primary server in Nginx/default.conf.template,
+# and the app's own list of its names); any other name, an IP address
+# included, is a status page's custom domain, which answers 404 at /,
+# /dashboard, /accounts and /admin. So `npm start` and `npm run update` waited
+# five minutes and ended with "Maximum retries reached" while OneUptime was up,
+# and never ran the doctor (#10024). The same for [::1]:8080 and for an address
+# of the server's own, such as 10.0.0.5:8080.
+#
+# Now it connects where the ingress is published, and asks it for localhost:
+# curl's --connect-to sends the request for localhost:8080 to 127.0.0.1:8080,
+# so the ingress reads the Host header localhost:8080, as from a browser on
+# this server. An address given on the command line is checked as it is given.
 
 set -e
 
@@ -54,67 +71,97 @@ read_setting() {
     printf '%s' "$value"
 }
 
-# The address the ingress answers at on this server, from ONEUPTIME_HTTP_PORT
-# as Compose publishes it: a port alone ("8080"), or an address and a port
-# ("127.0.0.1:8080", "[::1]:8080"). Port 80 is left out of the address; an
-# address that means every address of the server (0.0.0.0, ::) is localhost.
-ingress_address() {
+# Where the ingress is published on this server, from ONEUPTIME_HTTP_PORT as
+# Compose publishes it: a port alone ("8080"), or an address and a port
+# ("127.0.0.1:8080", "[::1]:8080", "::1:8080", "10.0.0.5:8080"). Like Compose,
+# it takes what follows the last ":" for the port, and what comes before it,
+# without brackets, for the address. Sets INGRESS_ADDRESS, the address to
+# connect to - localhost for none and for one that means every address of the
+# server (0.0.0.0, ::), an IPv6 address in brackets - and INGRESS_PORT, 80
+# when the setting names none.
+read_ingress() {
     local setting
     setting=$(read_setting ONEUPTIME_HTTP_PORT)
 
-    local address="localhost"
-    local port="$setting"
+    INGRESS_ADDRESS=""
+    INGRESS_PORT="$setting"
 
     case "$setting" in
-        \[*\]:*)
-            address="${setting%:*}"
-            port="${setting##*:}"
-            ;;
         *:*)
-            address="${setting%:*}"
-            port="${setting##*:}"
+            INGRESS_ADDRESS="${setting%:*}"
+            INGRESS_PORT="${setting##*:}"
             ;;
     esac
 
-    case "$address" in
-        "" | "0.0.0.0" | "::" | "[::]") address="localhost" ;;
+    INGRESS_ADDRESS="${INGRESS_ADDRESS#\[}"
+    INGRESS_ADDRESS="${INGRESS_ADDRESS%\]}"
+
+    case "$INGRESS_ADDRESS" in
+        "" | "0.0.0.0" | "::") INGRESS_ADDRESS="localhost" ;;
+        *:*) INGRESS_ADDRESS="[${INGRESS_ADDRESS}]" ;;
     esac
 
-    if [ -z "$port" ] || [ "$port" = "80" ]; then
-        printf '%s' "$address"
+    if [ -z "$INGRESS_PORT" ]; then
+        INGRESS_PORT="80"
+    fi
+}
+
+# An address and a port as a web address writes them: without the port when it is 80.
+with_port() {
+    if [ "$2" = "80" ]; then
+        printf '%s' "$1"
     else
-        printf '%s:%s' "$address" "$port"
+        printf '%s:%s' "$1" "$2"
     fi
 }
 
 HOST_TO_CHECK="${1-}"
 
+# curl's --connect-to for every request of the check, when the ingress is
+# published on one address of this server: "localhost:8080:127.0.0.1:8080"
+# sends the request for localhost:8080 to 127.0.0.1:8080.
+CONNECT_TO=""
+CURL_TARGET=()
+WAITING_AT=""
+
 if [ -z "$HOST_TO_CHECK" ]; then
-    HOST_TO_CHECK=$(ingress_address)
+    read_ingress
+
+    # The name the ingress serves OneUptime under, with the ingress's port.
+    HOST_TO_CHECK=$(with_port localhost "$INGRESS_PORT")
+    WAITING_AT="$HOST_TO_CHECK"
+
+    if [ "$INGRESS_ADDRESS" != "localhost" ]; then
+        CONNECT_TO="localhost:${INGRESS_PORT}:${INGRESS_ADDRESS}:${INGRESS_PORT}"
+        CURL_TARGET=(--connect-to "$CONNECT_TO")
+        WAITING_AT="$(with_port "$INGRESS_ADDRESS" "$INGRESS_PORT"), where ONEUPTIME_HTTP_PORT publishes the ingress"
+    fi
+else
+    WAITING_AT="$HOST_TO_CHECK"
 fi
 
-echo "⏳ Waiting for OneUptime to answer at ${HOST_TO_CHECK}. The first start takes a few minutes, while OneUptime sets up its databases."
+echo "⏳ Waiting for OneUptime to answer at ${WAITING_AT}. The first start takes a few minutes, while OneUptime sets up its databases."
 echo ""
 
 
-bash "$scriptDir/endpoint-status.sh" "App" "$HOST_TO_CHECK"
+bash "$scriptDir/endpoint-status.sh" "App" "$HOST_TO_CHECK" "$CONNECT_TO"
 
-bash "$scriptDir/endpoint-status.sh" "App (Status Check)" "$HOST_TO_CHECK/status"
+bash "$scriptDir/endpoint-status.sh" "App (Status Check)" "$HOST_TO_CHECK/status" "$CONNECT_TO"
 
-bash "$scriptDir/endpoint-status.sh" "App (Ready Check)" "$HOST_TO_CHECK/status/ready"
+bash "$scriptDir/endpoint-status.sh" "App (Ready Check)" "$HOST_TO_CHECK/status/ready" "$CONNECT_TO"
 
-bash "$scriptDir/endpoint-status.sh" "Dashboard" "$HOST_TO_CHECK/dashboard"
+bash "$scriptDir/endpoint-status.sh" "Dashboard" "$HOST_TO_CHECK/dashboard" "$CONNECT_TO"
 
-bash "$scriptDir/endpoint-status.sh" "Admin Dashboard" "$HOST_TO_CHECK/admin/env.js"
+bash "$scriptDir/endpoint-status.sh" "Admin Dashboard" "$HOST_TO_CHECK/admin/env.js" "$CONNECT_TO"
 
-bash "$scriptDir/endpoint-status.sh" "Public Dashboard" "$HOST_TO_CHECK/public-dashboard"
+bash "$scriptDir/endpoint-status.sh" "Public Dashboard" "$HOST_TO_CHECK/public-dashboard" "$CONNECT_TO"
 
-bash "$scriptDir/endpoint-status.sh" "Accounts" "$HOST_TO_CHECK/accounts"
+bash "$scriptDir/endpoint-status.sh" "Accounts" "$HOST_TO_CHECK/accounts" "$CONNECT_TO"
 
 # With the slash: when billing is enabled the bare /status-page is the
 # marketing site's address for /product/status-page, and only /status-page/...
 # reaches the status page app.
-bash "$scriptDir/endpoint-status.sh" "Status Page" "$HOST_TO_CHECK/status-page/"
+bash "$scriptDir/endpoint-status.sh" "Status Page" "$HOST_TO_CHECK/status-page/" "$CONNECT_TO"
 
 # Each check above stops at the first HTTP 200, which is a weaker claim than it
 # looks: nginx serves the static bundles and answers /status/ready as soon as
@@ -147,7 +194,7 @@ while [ "$consecutive_ok" -lt "$REQUIRED_CONSECUTIVE_OK" ]; do
     attempts=$((attempts + 1))
 
     # `|| true` so a connection failure is a non-200 to handle, not a `set -e` abort.
-    status=$(curl -s -o /dev/null -w "%{http_code}" -L "$HOST_TO_CHECK/status/ready" || true)
+    status=$(curl -s -o /dev/null -w "%{http_code}" -L "${CURL_TARGET[@]}" "$HOST_TO_CHECK/status/ready" || true)
 
     if [ "$status" = "200" ]; then
         consecutive_ok=$((consecutive_ok + 1))

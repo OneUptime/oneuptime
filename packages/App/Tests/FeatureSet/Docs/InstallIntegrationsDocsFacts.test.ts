@@ -1632,7 +1632,13 @@ describe("Docker Compose, against the compose files and scripts", () => {
     const check: string = readSource("statusCheck");
 
     expect(check).toContain('HOST_TO_CHECK="${1-}"');
-    expect(check).toContain("HOST_TO_CHECK=$(ingress_address)");
+    // Under localhost, at the address the ingress is published on (#10024).
+    expect(check).toContain(
+      'HOST_TO_CHECK=$(with_port localhost "$INGRESS_PORT")',
+    );
+    expect(check).toContain(
+      'CONNECT_TO="localhost:${INGRESS_PORT}:${INGRESS_ADDRESS}:${INGRESS_PORT}"',
+    );
     expect(check).toContain("setting=$(read_setting ONEUPTIME_HTTP_PORT)");
     expect(check).toContain('echo "🚀 OneUptime is up! 🚀"');
     expect(readSource("endpointStatus")).toContain("Maximum retries reached");
