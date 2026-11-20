@@ -145,6 +145,8 @@ const LEAVES_OUT_AI_CONTEXT: Record<string, string> = {
     "writes one data check from a rule a person typed and the table's own columns: one short call, reviewed before it is added",
   "Utils/AI/ObservabilityImport/ImportQueryConversion.ts":
     "converts one query of a file a person imports, from that file alone: one short call, reviewed before it is used",
+  "Utils/AI/Eval/DataSecurity/DataSecurityEval.ts":
+    "the Data Security eval's made-up cases (#10365) belong to no team, so there is no AI context to read",
 };
 
 // Files that name the role without writing a prompt.

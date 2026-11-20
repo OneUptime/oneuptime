@@ -246,6 +246,7 @@ RFP/
 eval-corpus.json
 eval-replays.json
 ai-benchmark-results.json
+ai-data-security-eval-results.json
 ask-ai-eval-results.json
 code-agent-benchmark-results.json
 

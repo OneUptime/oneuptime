@@ -50,6 +50,14 @@ export const DATA_SECURITY_TELEMETRY_FIX_INSTRUCTION: string =
   "Fix this data security issue in the code of the service that writes this data to its telemetry: find where it logs the value, or sets it on a span, an exception or an AI call, at each place listed, and stop sending it - leave it out, or mask or hash it first - with the smallest change. Open a pull request.";
 
 /*
+ * How Explain with AI asks: the most its explanation may be, and how it is
+ * sampled (the model calls' own default). The eval asks the same
+ * (Eval/DataSecurity), so a score measures what ships.
+ */
+export const DATA_SECURITY_EXPLAIN_MAX_TOKENS: number = 900;
+export const DATA_SECURITY_EXPLAIN_TEMPERATURE: number = 0.7;
+
+/*
  * One place a telemetry issue's data was found (a DataStoreFinding): what
  * the code writes there, never a sample of what it wrote.
  */
