@@ -167,36 +167,90 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * The value is read as the kind the row ends up: an address entry's
-     * value is an address or a range, and a row turned into one keeps a
-     * value only if it reads as one. Every row of one write gets the same
-     * value, so it is read once, as the first row's kind.
+     * The value is read as the kind each row ends up: an address entry's
+     * value is an address or a range, written the one way, and a row turned
+     * into one keeps a value only if it reads as one. One write gives every
+     * row it changes the same value, so it must read the same as each row's
+     * kind - and no two rows of one kind may get it, as a value is listed
+     * once. A write that changes the kind and not the value writes a row's
+     * value again where the new kind spells it another way, one row at a
+     * time.
      */
-    let value: string | undefined = undefined;
+    const written: Array<{
+      row: Model;
+      entityType: SecurityEntityType;
+      value: string;
+    }> = rows
+      .filter((row: Model): boolean => {
+        return Boolean(row.projectId);
+      })
+      .map((row: Model) => {
+        const rowType: SecurityEntityType =
+          entityType || Service.readType(row.entityType);
 
-    for (const row of rows) {
-      if (!row.projectId) {
-        continue;
-      }
+        return {
+          row,
+          entityType: rowType,
+          value: Service.readValue(
+            data["value"] === undefined ? row.value : data["value"],
+            rowType,
+          ),
+        };
+      });
 
-      const rowType: SecurityEntityType =
-        entityType || Service.readType(row.entityType);
-
-      const rowValue: string = Service.readValue(
-        data["value"] === undefined ? row.value : data["value"],
-        rowType,
+    if (data["value"] !== undefined && written.length > 0) {
+      const values: Set<string> = new Set(
+        written.map((entry: { value: string }): string => {
+          return entry.value;
+        }),
       );
 
-      if (data["value"] !== undefined && value === undefined) {
-        value = rowValue;
-        data["value"] = rowValue;
+      if (values.size > 1) {
+        throw new BadDataException(
+          "Change the value of one protected entity at a time: it reads differently as a user, a host and an IP address.",
+        );
       }
 
+      const kinds: Set<SecurityEntityType> = new Set(
+        written.map((entry: { entityType: SecurityEntityType }) => {
+          return entry.entityType;
+        }),
+      );
+
+      if (kinds.size < written.length) {
+        throw new BadDataException(
+          `${written[0]!.entityType} "${written[0]!.value}" can be protected only once. Change one protected entity's value at a time.`,
+        );
+      }
+
+      data["value"] = written[0]!.value;
+    }
+
+    if (data["value"] === undefined) {
+      const respelled: Array<{ row: Model; value: string }> = written.filter(
+        (entry: { row: Model; value: string }): boolean => {
+          return entry.value !== entry.row.value;
+        },
+      );
+
+      // The value written goes to every row of the write: only one row's may be spelled again.
+      if (respelled.length > 0 && written.length > 1) {
+        throw new BadDataException(
+          "Change the kind of one protected entity at a time.",
+        );
+      }
+
+      if (respelled.length === 1) {
+        data["value"] = respelled[0]!.value;
+      }
+    }
+
+    for (const entry of written) {
       await this.assertNotListed({
-        projectId: row.projectId,
-        entityType: rowType,
-        value: rowValue,
-        exceptId: row.id || undefined,
+        projectId: entry.row.projectId!,
+        entityType: entry.entityType,
+        value: entry.value,
+        exceptId: entry.row.id || undefined,
       });
     }
 
