@@ -25,6 +25,7 @@ import {
   probeRoleExternalId,
 } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsDefaultCredentialChain from "../../../../Server/Utils/Aws/AwsDefaultCredentialChain";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import {
   CloudChangesResult,
   CloudConnectionPullState,
@@ -51,6 +52,7 @@ import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
 } from "../../../../Types/CloudConnection/CloudConnectionTest";
+import DatabaseNotConnectedException from "../../../../Types/Exception/DatabaseNotConnectedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -74,8 +76,11 @@ import {
  * nothing read, by any way into an account - when AWS takes that id; the
  * verdict is kept a day (a refusal an hour), a pass only once the sign-in
  * it allowed worked, and a check AWS throttled or did not answer is never
- * a pass. No word a project reads is AWS's own, or names OneUptime's
- * identity.
+ * a pass. The verdict is kept for every server in the shared cache
+ * (#10424): a role is checked once per connection, not once per server, a
+ * test of a saved connection decides for every server at once, and a cache
+ * that is down or gives back anything but a verdict never lets a role in.
+ * No word a project reads is AWS's own, or names OneUptime's identity.
  */
 
 const PROJECT: string = FAKE_PROJECT_ID;
@@ -689,8 +694,8 @@ describe("a role that lets OneUptime in with any external id", () => {
       connector.getCredentials(roleSettings(), callOptions(fake)),
     );
 
-    expect(AssumedRoleCache.get(keyOf())).toBeUndefined();
-    expect(AwsRoleCheckCache.get(keyOf())).toBe("takes-any-external-id");
+    expect(await AssumedRoleCache.get(keyOf())).toBeUndefined();
+    expect(await AwsRoleCheckCache.get(keyOf())).toBe("takes-any-external-id");
   });
 });
 
@@ -740,10 +745,10 @@ describe("how long a check holds", () => {
     const fake: FakeAws = fakeAws({ sessionSeconds: 3 * 24 * 3600 });
 
     await connector.getCredentials(roleSettings(), callOptions(fake));
-    expect(AssumedRoleCache.get(keyOf())).toBeDefined();
+    expect(await AssumedRoleCache.get(keyOf())).toBeDefined();
 
     later(ROLE_CHECK_PASS_MS);
-    expect(AssumedRoleCache.get(keyOf())).toBeUndefined();
+    expect(await AssumedRoleCache.get(keyOf())).toBeUndefined();
 
     await connector.getCredentials(roleSettings(), callOptions(fake));
     expect(countOf(fake)).toEqual({ checks: 2, signIns: 2 });
@@ -769,10 +774,10 @@ describe("how long a check holds", () => {
 
     expect(refusal.message).toBe(getRoleWithoutExternalIdMessage(PROJECT));
     expect(countOf(fake)).toEqual({ checks: 2, signIns: 1 });
-    expect(AssumedRoleCache.get(keyOf())).toBeUndefined();
+    expect(await AssumedRoleCache.get(keyOf())).toBeUndefined();
   });
 
-  test("a refusal holds an hour, so a fixed trust policy is used within the hour", async () => {
+  test("a refusal holds an hour: untested, a fixed trust policy is used once the hour is up", async () => {
     const options: FakeAwsOptions = {
       regions: { "us-east-1": { metrics: ec2("i-0aaa") } },
       rolesTakingAnyExternalId: true,
@@ -816,7 +821,7 @@ describe("how long a check holds", () => {
     );
 
     expect(refused.kind).toBe(CloudConnectionFailureKind.Permission);
-    expect(AwsRoleCheckCache.get(keyOf())).toBeUndefined();
+    expect(await AwsRoleCheckCache.get(keyOf())).toBeUndefined();
 
     // A minute later, its trust policy lets OneUptime in with any id.
     options.refusedRoles = [];
@@ -843,8 +848,8 @@ describe("how long a check holds", () => {
     );
 
     expect(throttled.kind).toBe(CloudConnectionFailureKind.RateLimited);
-    expect(AwsRoleCheckCache.get(keyOf())).toBeUndefined();
-    expect(AssumedRoleCache.get(keyOf())).toBeUndefined();
+    expect(await AwsRoleCheckCache.get(keyOf())).toBeUndefined();
+    expect(await AssumedRoleCache.get(keyOf())).toBeUndefined();
 
     options.assumeRoleError = undefined;
 
@@ -866,11 +871,45 @@ describe("how long a check holds", () => {
     await connector.getCredentials(roleSettings(), callOptions(fake));
 
     expect(countOf(fake)).toEqual({ checks: 2, signIns: 1 });
-    expect(AwsRoleCheckCache.get(keyOf())).toBe("requires-external-id");
+    expect(await AwsRoleCheckCache.get(keyOf())).toBe("requires-external-id");
   });
 
-  test("a test checks afresh every time and keeps nothing", async () => {
+  test("a test of settings never saved checks afresh every time and keeps nothing", async () => {
     const fake: FakeAws = fakeAws();
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      const result: CloudConnectionTestResult = await connector.testConnection(
+        roleSettings(),
+        { ...callOptions(fake), connectionId: undefined },
+      );
+
+      expect(result.status).toBe("pass");
+    }
+
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 2 });
+    // Signed in as a test, under no connection's name.
+    expect(
+      signInsOf(fake).map((signIn: SignIn): string => {
+        return signIn.sessionName;
+      }),
+    ).toEqual(Array(4).fill(getRoleSessionName("test")));
+    expect(
+      await AwsRoleCheckCache.get(
+        AssumedRoleCache.keyOf({
+          projectId: PROJECT,
+          connectionId: "test",
+          roleArn: ROLE_ARN,
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("a test of a saved connection checks afresh every time, whatever is kept, and keeps what it found for its reads", async () => {
+    const fake: FakeAws = fakeAws();
+
+    // A read's pass is kept for the day.
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 1 });
 
     for (let attempt: number = 0; attempt < 2; attempt++) {
       const result: CloudConnectionTestResult = await connector.testConnection(
@@ -881,16 +920,13 @@ describe("how long a check holds", () => {
       expect(result.status).toBe("pass");
     }
 
-    expect(countOf(fake)).toEqual({ checks: 2, signIns: 2 });
-    expect(
-      AwsRoleCheckCache.get(
-        AssumedRoleCache.keyOf({
-          projectId: PROJECT,
-          connectionId: "test",
-          roleArn: ROLE_ARN,
-        }),
-      ),
-    ).toBeUndefined();
+    // Each test checked again, and signed in with its own session.
+    expect(countOf(fake)).toEqual({ checks: 3, signIns: 3 });
+    expect(await AwsRoleCheckCache.get(keyOf())).toBe("requires-external-id");
+
+    // The read after them uses its session and the pass: nothing is asked.
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    expect(countOf(fake)).toEqual({ checks: 3, signIns: 3 });
   });
 
   test("each connection's role is checked on its own", async () => {
@@ -915,10 +951,14 @@ describe("how long a check holds", () => {
     ]);
   });
 
-  test("a clock that went back holds no check longer", () => {
-    AwsRoleCheckCache.set(keyOf(), "requires-external-id", clockMs + HOUR_MS);
+  test("a clock that went back holds no check longer", async () => {
+    await AwsRoleCheckCache.set(
+      keyOf(),
+      "requires-external-id",
+      clockMs + HOUR_MS,
+    );
 
-    expect(AwsRoleCheckCache.get(keyOf())).toBeUndefined();
+    expect(await AwsRoleCheckCache.get(keyOf())).toBeUndefined();
   });
 });
 
@@ -1011,7 +1051,7 @@ describe("signing in to a role (assumeRole)", () => {
       expect(error.message).not.toContain("Rate exceeded");
       expect(error.message).not.toContain("oops");
       // No pass is kept from a sign-in that did not work.
-      expect(AwsRoleCheckCache.get(keyOf())).toBeUndefined();
+      expect(await AwsRoleCheckCache.get(keyOf())).toBeUndefined();
     }
   });
 
@@ -1045,5 +1085,626 @@ describe("signing in to a role (assumeRole)", () => {
         return call.account === FAKE_ACCOUNT_ID;
       }),
     ).toBe(true);
+  });
+});
+
+/*
+ * THE VERDICT, FOR EVERY SERVER (#10424).
+ *
+ * A connection is read by many apps and workers. Its role's verdict is kept
+ * in the shared cache, so whichever of them checked last decides for all:
+ * against a fake of the shared cache, and servers that share it and
+ * nothing else (onAnotherServer: sessions and own checks of their own).
+ */
+describe("the verdict, for every server", () => {
+  interface SharedEntry {
+    value: string;
+    expiresAtMs: number;
+  }
+
+  interface SharedWrite {
+    key: string;
+    value: string;
+    expiresInSeconds: number;
+  }
+
+  // The shared cache: what it holds, whether it can be reached, and what was written to it.
+  let shared: Map<string, SharedEntry>;
+  let isReachable: boolean;
+  let writes: Array<SharedWrite>;
+
+  beforeEach(() => {
+    shared = new Map<string, SharedEntry>();
+    isReachable = true;
+    writes = [];
+
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockImplementation(
+        async (namespace: string, key: string): Promise<string | null> => {
+          if (!isReachable) {
+            throw new DatabaseNotConnectedException("Cache is not connected");
+          }
+
+          const entry: SharedEntry | undefined = shared.get(
+            `${namespace}-${key}`,
+          );
+
+          if (!entry || entry.expiresAtMs <= clockMs) {
+            return null;
+          }
+
+          return entry.value;
+        },
+      );
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockImplementation(
+        async (
+          namespace: string,
+          key: string,
+          value: string,
+          options?: { expiresInSeconds: number },
+        ): Promise<void> => {
+          if (!isReachable) {
+            throw new DatabaseNotConnectedException("Cache is not connected");
+          }
+
+          const expiresInSeconds: number = options?.expiresInSeconds || 0;
+
+          writes.push({ key: `${namespace}-${key}`, value, expiresInSeconds });
+          shared.set(`${namespace}-${key}`, {
+            value,
+            expiresAtMs: clockMs + expiresInSeconds * 1000,
+          });
+        },
+      );
+  });
+
+  // Where the shared cache keeps a connection's verdict.
+  function sharedKeyOf(
+    data: { projectId?: string; connectionId?: string; roleArn?: string } = {},
+  ): string {
+    return `cloud-aws-role-check-${AssumedRoleCache.keyOf({
+      projectId: data.projectId || PROJECT,
+      connectionId: data.connectionId || CONNECTION,
+      roleArn: data.roleArn || ROLE_ARN,
+    })}`;
+  }
+
+  function sharedVerdictOf(key: string = sharedKeyOf()): JSONObject | null {
+    const entry: SharedEntry | undefined = shared.get(key);
+
+    return entry ? (JSON.parse(entry.value) as JSONObject) : null;
+  }
+
+  /*
+   * Another OneUptime server - an app beside the worker - that shares the
+   * cache and nothing else: its own sessions and own checks while `run`
+   * runs, and this server's back after it.
+   */
+  async function onAnotherServer<T>(run: () => Promise<T>): Promise<T> {
+    const sessions: { sessions: Map<string, unknown> } =
+      AssumedRoleCache as unknown as { sessions: Map<string, unknown> };
+    const checks: { ownVerdicts: Map<string, unknown> } =
+      AwsRoleCheckCache as unknown as { ownVerdicts: Map<string, unknown> };
+    const mine: {
+      sessions: Map<string, unknown>;
+      ownVerdicts: Map<string, unknown>;
+    } = { sessions: sessions.sessions, ownVerdicts: checks.ownVerdicts };
+
+    sessions.sessions = new Map<string, unknown>();
+    checks.ownVerdicts = new Map<string, unknown>();
+
+    try {
+      return await run();
+    } finally {
+      sessions.sessions = mine.sessions;
+      checks.ownVerdicts = mine.ownVerdicts;
+    }
+  }
+
+  function roleOptions(options: Partial<FakeAwsOptions> = {}): FakeAwsOptions {
+    return {
+      regions: { "us-east-1": { metrics: ec2("i-0aaa") } },
+      sessionSeconds: 3600,
+      ...options,
+    };
+  }
+
+  // The checks alone: each asked with the check's session policy, whatever its external id.
+  function checksOf(fake: FakeAws): number {
+    return signInsOf(fake).filter((signIn: SignIn): boolean => {
+      return signIn.policy === ROLE_CHECK_SESSION_POLICY;
+    }).length;
+  }
+
+  test("is kept under its project, connection and role ARN", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+
+    expect(Array.from(shared.keys())).toEqual([
+      `cloud-aws-role-check-${PROJECT}|${CONNECTION}|${ROLE_ARN}`,
+    ]);
+  });
+
+  test("a pass one server found is used by every other: the role is checked once, not once per server", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+
+    for (let server: number = 0; server < 3; server++) {
+      await onAnotherServer(async (): Promise<void> => {
+        await connector.getCredentials(roleSettings(), callOptions(fake));
+      });
+    }
+
+    // One check, and a sign-in by each server with the project's own id.
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 4 });
+    expect(sharedVerdictOf()).toEqual({
+      verdict: "requires-external-id",
+      checkedAtMs: NOW.getTime(),
+    });
+  });
+
+  test("a refusal one server found refuses every other's reads, without asking AWS", async () => {
+    const fake: FakeAws = createFakeAws(
+      roleOptions({ rolesTakingAnyExternalId: true }),
+    );
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    const elsewhere: LlmProviderError = await onAnotherServer(
+      async (): Promise<LlmProviderError> => {
+        return await refusalOf(
+          connector.read(roleSettings(), {
+            ...callOptions(fake),
+            state: {},
+            serviceName: "Amazon Web Services",
+            maxRequests: 300,
+            maxDurationMs: 60000,
+          }),
+        );
+      },
+    );
+
+    expect(elsewhere.kind).toBe(CloudConnectionFailureKind.Settings);
+    expect(elsewhere.message).toBe(getRoleWithoutExternalIdMessage(PROJECT));
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 0 });
+    expect(readsOf(fake)).toHaveLength(0);
+  });
+
+  test("a verdict is kept per project, connection and role ARN: one project's pass never stands for another project, or another connection", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+
+    // Another project names the same role ARN: it is checked for that project.
+    const refused: LlmProviderError = await onAnotherServer(
+      async (): Promise<LlmProviderError> => {
+        return await refusalOf(
+          connector.getCredentials(
+            roleSettings({ projectId: OTHER_PROJECT }),
+            callOptions(fake),
+          ),
+        );
+      },
+    );
+
+    // Checked, then refused: the role trusts the first project's id, not this one's.
+    expect(refused.kind).toBe(CloudConnectionFailureKind.Permission);
+    expect(
+      signInsOf(fake).map((signIn: SignIn): string => {
+        return signIn.externalId === getAwsExternalIdForProject(OTHER_PROJECT)
+          ? "other project's id"
+          : signIn.externalId === PROJECT_EXTERNAL_ID
+            ? "project's id"
+            : "check";
+      }),
+    ).toEqual(["check", "project's id", "check", "other project's id"]);
+    expect(
+      sharedVerdictOf(sharedKeyOf({ projectId: OTHER_PROJECT })),
+    ).toBeNull();
+
+    // The same project's other connection to the same role: checked on its own.
+    await onAnotherServer(async (): Promise<void> => {
+      await connector.getCredentials(
+        roleSettings(),
+        callOptions(fake, OTHER_CONNECTION),
+      );
+    });
+
+    expect(checksOf(fake)).toBe(3);
+    expect(
+      writes.map((write: SharedWrite): string => {
+        return write.key;
+      }),
+    ).toEqual([sharedKeyOf(), sharedKeyOf({ connectionId: OTHER_CONNECTION })]);
+  });
+
+  test("a passing test of a saved connection clears its refusal on every server at once", async () => {
+    const options: FakeAwsOptions = roleOptions({
+      rolesTakingAnyExternalId: true,
+    });
+    const fake: FakeAws = createFakeAws(options);
+
+    // A worker's read refuses the role, and keeps the refusal for the hour.
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+    expect(sharedVerdictOf()?.["verdict"]).toBe("takes-any-external-id");
+
+    // The customer adds the condition. Ten minutes on, the worker still refuses, asking nothing.
+    options.rolesTakingAnyExternalId = undefined;
+    later(10 * 60 * 1000);
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 0 });
+
+    // Test, in the app: it passes.
+    const tested: CloudConnectionTestResult = await onAnotherServer(
+      async (): Promise<CloudConnectionTestResult> => {
+        return await connector.testConnection(
+          roleSettings(),
+          callOptions(fake),
+        );
+      },
+    );
+
+    expect(tested.status).toBe("pass");
+    expect(sharedVerdictOf()).toEqual({
+      verdict: "requires-external-id",
+      checkedAtMs: NOW.getTime() + 10 * 60 * 1000,
+    });
+
+    // The worker reads through the role at once - its own refusal is not the verdict - without checking it again.
+    later(60 * 1000);
+    const credentials: AwsCredentials = await connector.getCredentials(
+      roleSettings(),
+      callOptions(fake),
+    );
+
+    expect(credentials.sessionToken).toBe("session-token-abc");
+    // The worker's first check, the test's check and sign-in, the worker's sign-in.
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 2 });
+  });
+
+  test("a test that finds the role taking any id stops every server's reads at once, a session it already has included", async () => {
+    const options: FakeAwsOptions = roleOptions();
+    const fake: FakeAws = createFakeAws(options);
+
+    // A worker reads, and keeps its session for the hour.
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    expect(await AssumedRoleCache.get(keyOf())).toBeDefined();
+
+    // Someone drops the condition, and tests in the app.
+    options.rolesTakingAnyExternalId = true;
+    const tested: CloudConnectionTestResult = await onAnotherServer(
+      async (): Promise<CloudConnectionTestResult> => {
+        return await connector.testConnection(
+          roleSettings(),
+          callOptions(fake),
+        );
+      },
+    );
+
+    expect(tested.status).toBe("fail");
+    expect(tested.message).toBe(getRoleWithoutExternalIdMessage(PROJECT));
+    expect(sharedVerdictOf()?.["verdict"]).toBe("takes-any-external-id");
+
+    // The worker's next read: its session is dropped unused, and nothing is asked of AWS.
+    const refusal: LlmProviderError = await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    expect(refusal.message).toBe(getRoleWithoutExternalIdMessage(PROJECT));
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 1 });
+    expect(await AssumedRoleCache.get(keyOf())).toBeUndefined();
+  });
+
+  test("a test of settings never saved keeps nothing, on any server", async () => {
+    const fake: FakeAws = createFakeAws(
+      roleOptions({ rolesTakingAnyExternalId: true }),
+    );
+
+    const tested: CloudConnectionTestResult = await connector.testConnection(
+      roleSettings(),
+      { ...callOptions(fake), connectionId: undefined },
+    );
+
+    expect(tested.status).toBe("fail");
+    expect(writes).toEqual([]);
+    expect(shared.size).toBe(0);
+  });
+
+  test("a test whose check passes but whose sign-in fails keeps no pass: a refusal kept still holds", async () => {
+    const options: FakeAwsOptions = roleOptions({
+      rolesTakingAnyExternalId: true,
+    });
+    const fake: FakeAws = createFakeAws(options);
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    // The trust policy now lets nobody in: the check passes, the sign-in does not.
+    options.rolesTakingAnyExternalId = undefined;
+    options.refusedRoles = [ROLE_ARN];
+
+    const tested: CloudConnectionTestResult = await onAnotherServer(
+      async (): Promise<CloudConnectionTestResult> => {
+        return await connector.testConnection(
+          roleSettings(),
+          callOptions(fake),
+        );
+      },
+    );
+
+    expect(tested.status).toBe("fail");
+    expect(tested.failureKind).toBe(CloudConnectionFailureKind.Permission);
+    expect(writes).toHaveLength(1);
+    expect(sharedVerdictOf()?.["verdict"]).toBe("takes-any-external-id");
+  });
+
+  test("a test AWS throttled or did not answer keeps nothing: no pass, and a refusal kept still holds", async () => {
+    const options: FakeAwsOptions = roleOptions({
+      rolesTakingAnyExternalId: true,
+    });
+    const fake: FakeAws = createFakeAws(options);
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+    options.rolesTakingAnyExternalId = undefined;
+
+    for (const answer of [
+      stsError(400, "Throttling", "Rate exceeded"),
+      stsError(503, "ServiceUnavailable", "Try later"),
+    ]) {
+      options.assumeRoleError = answer;
+
+      const tested: CloudConnectionTestResult = await onAnotherServer(
+        async (): Promise<CloudConnectionTestResult> => {
+          return await connector.testConnection(
+            roleSettings(),
+            callOptions(fake),
+          );
+        },
+      );
+
+      expect(tested.status).toBe("fail");
+    }
+
+    expect(writes).toHaveLength(1);
+    expect(sharedVerdictOf()?.["verdict"]).toBe("takes-any-external-id");
+  });
+
+  test("a pass is written for every server only once the sign-in it allowed worked", async () => {
+    const fake: FakeAws = createFakeAws(
+      roleOptions({ refusedRoles: [ROLE_ARN] }),
+    );
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    expect(writes).toEqual([]);
+    // Each read checked again: nothing let the next one skip it.
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 2 });
+  });
+
+  test("what is written lasts as long as the verdict, from when the role was checked", async () => {
+    const options: FakeAwsOptions = roleOptions();
+    const fake: FakeAws = createFakeAws(options);
+
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    await onAnotherServer(async (): Promise<void> => {
+      options.rolesTakingAnyExternalId = true;
+      await refusalOf(
+        connector.getCredentials(
+          roleSettings(),
+          callOptions(fake, OTHER_CONNECTION),
+        ),
+      );
+    });
+
+    expect(writes).toEqual([
+      {
+        key: sharedKeyOf(),
+        value: JSON.stringify({
+          verdict: "requires-external-id",
+          checkedAtMs: NOW.getTime(),
+        }),
+        expiresInSeconds: ROLE_CHECK_PASS_MS / 1000,
+      },
+      {
+        key: sharedKeyOf({ connectionId: OTHER_CONNECTION }),
+        value: JSON.stringify({
+          verdict: "takes-any-external-id",
+          checkedAtMs: NOW.getTime(),
+        }),
+        expiresInSeconds: ROLE_CHECK_REFUSAL_MS / 1000,
+      },
+    ]);
+  });
+
+  test("a day after the check, the role is checked again - once, for every server", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    later(ROLE_CHECK_PASS_MS);
+
+    await onAnotherServer(async (): Promise<void> => {
+      await connector.getCredentials(roleSettings(), callOptions(fake));
+    });
+    // This server's session and its own pass are a day old: the shared, new pass lets it sign in unchecked.
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 3 });
+  });
+
+  test("while the shared cache cannot be reached, a server keeps to its own last check, as it did alone", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    isReachable = false;
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    later(2 * HOUR_MS);
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+
+    // Its own pass held: signed in again for a new session, unchecked.
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 2 });
+    expect(shared.size).toBe(0);
+  });
+
+  test("a pass a server only read is not its own: with the shared cache down, it checks afresh", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    await onAnotherServer(async (): Promise<void> => {
+      await connector.getCredentials(roleSettings(), callOptions(fake));
+    });
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    expect(countOf(fake)).toEqual({ checks: 1, signIns: 2 });
+
+    isReachable = false;
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+
+    // Its session was made on a pass it read: dropped, and the role checked again.
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 3 });
+  });
+
+  test("a verdict the shared cache could not take is the server's alone: another server checks afresh", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    isReachable = false;
+    await connector.getCredentials(roleSettings(), callOptions(fake));
+    isReachable = true;
+
+    await onAnotherServer(async (): Promise<void> => {
+      await connector.getCredentials(roleSettings(), callOptions(fake));
+    });
+
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 2 });
+  });
+
+  test("a refusal a server found holds for it while the shared cache is down, whatever a test elsewhere found", async () => {
+    const options: FakeAwsOptions = roleOptions({
+      rolesTakingAnyExternalId: true,
+    });
+    const fake: FakeAws = createFakeAws(options);
+
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    options.rolesTakingAnyExternalId = undefined;
+    isReachable = false;
+
+    const tested: CloudConnectionTestResult = await onAnotherServer(
+      async (): Promise<CloudConnectionTestResult> => {
+        return await connector.testConnection(
+          roleSettings(),
+          callOptions(fake),
+        );
+      },
+    );
+
+    expect(tested.status).toBe("pass");
+
+    // The test's pass is the app's alone; the worker keeps to its refusal, asking nothing.
+    const refusal: LlmProviderError = await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+
+    expect(refusal.message).toBe(getRoleWithoutExternalIdMessage(PROJECT));
+    expect(countOf(fake)).toEqual({ checks: 2, signIns: 1 });
+  });
+
+  test.each([
+    ["nothing at all", ""],
+    ["text that is not JSON", "requires-external-id"],
+    ["JSON cut short", '{"verdict":"requires-external-id","checkedAt'],
+    ["a list", '["requires-external-id"]'],
+    ["a bare verdict", '"requires-external-id"'],
+    ["null", "null"],
+    ["a number", "42"],
+    ["a pass with no time", '{"verdict":"requires-external-id"}'],
+    [
+      "a pass whose time is text",
+      `{"verdict":"requires-external-id","checkedAtMs":"${NOW.getTime()}"}`,
+    ],
+    [
+      "a pass whose time is not a whole number",
+      `{"verdict":"requires-external-id","checkedAtMs":${NOW.getTime() + 0.5}}`,
+    ],
+    [
+      "a pass whose time is before the epoch",
+      '{"verdict":"requires-external-id","checkedAtMs":-5}',
+    ],
+    [
+      "a pass checked in the future",
+      `{"verdict":"requires-external-id","checkedAtMs":${NOW.getTime() + HOUR_MS}}`,
+    ],
+    [
+      "a pass a day old",
+      `{"verdict":"requires-external-id","checkedAtMs":${NOW.getTime() - ROLE_CHECK_PASS_MS}}`,
+    ],
+    [
+      "a verdict of another spelling",
+      `{"verdict":"REQUIRES-EXTERNAL-ID","checkedAtMs":${NOW.getTime()}}`,
+    ],
+    [
+      "a verdict this file does not write",
+      `{"verdict":"pass","checkedAtMs":${NOW.getTime()}}`,
+    ],
+  ])(
+    "%s, read back from the shared cache, is no verdict: the role is checked again, and never let in by it",
+    async (_what: string, value: string) => {
+      const fake: FakeAws = createFakeAws(
+        roleOptions({ rolesTakingAnyExternalId: true }),
+      );
+
+      shared.set(sharedKeyOf(), {
+        value,
+        expiresAtMs: clockMs + ROLE_CHECK_PASS_MS,
+      });
+
+      expect(await AwsRoleCheckCache.get(keyOf())).toBeUndefined();
+
+      const refusal: LlmProviderError = await refusalOf(
+        connector.getCredentials(roleSettings(), callOptions(fake)),
+      );
+
+      expect(refusal.kind).toBe(CloudConnectionFailureKind.Settings);
+      expect(countOf(fake)).toEqual({ checks: 1, signIns: 0 });
+      expect(readsOf(fake)).toHaveLength(0);
+      // What the check found replaced it.
+      expect(sharedVerdictOf()?.["verdict"]).toBe("takes-any-external-id");
+    },
+  );
+
+  test("a verdict read back as this file writes it is the verdict", async () => {
+    const fake: FakeAws = createFakeAws(roleOptions());
+
+    shared.set(sharedKeyOf(), {
+      value: JSON.stringify({
+        verdict: "takes-any-external-id",
+        checkedAtMs: NOW.getTime() - 5 * 60 * 1000,
+      }),
+      expiresAtMs: clockMs + ROLE_CHECK_REFUSAL_MS,
+    });
+
+    expect(await AwsRoleCheckCache.get(keyOf())).toBe("takes-any-external-id");
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
+    // Refused as it holds, and nothing asked of AWS.
+    expect(countOf(fake)).toEqual({ checks: 0, signIns: 0 });
   });
 });

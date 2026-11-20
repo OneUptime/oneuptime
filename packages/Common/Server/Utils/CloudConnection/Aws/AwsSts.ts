@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../../../Types/CloudConnection/AwsRoleExternalIdRefusal";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import {
   AWS_EXTERNAL_ID_DIGITS,
@@ -6,6 +7,8 @@ import {
   getAwsExternalIdConditionText,
   getAwsExternalIdForProject,
 } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import { getRefusalText } from "../../../../Types/Exception/RefusalWithValues";
+import GlobalCache from "../../../Infrastructure/GlobalCache";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import logger from "../../Logger";
 import {
@@ -49,18 +52,33 @@ import {
  * while the check that let it be made holds. AwsRoleSignInGuard.test.ts
  * holds every sign-in to this file.
  *
+ * What a check found - its verdict - is kept per project, connection and
+ * role ARN (AssumedRoleCache.keyOf): no project's verdict ever stands for
+ * another's, and one role ARN connected by two projects is checked for
+ * each. It is kept for every OneUptime server (AwsRoleCheckCache, in the
+ * shared cache, #10424), so a connection is checked once, not once by each
+ * app and worker that reads it:
+ *
  *   - A pass holds a day from when the role was checked, so the customer's
- *     CloudTrail shows one AccessDenied a day per OneUptime server, not one
- *     per read, and a trust policy that loses the condition is caught on
- *     the next day's check. It is kept only once the sign-in it allowed
- *     worked: a role that let nobody in when it was checked is checked
- *     again before anyone is let in.
- *   - A refusal holds an hour: a fixed trust policy is used within the
- *     hour, and a role that takes any id is not signed in to on every read.
+ *     CloudTrail shows about one AccessDenied a day per connection, not one
+ *     per read or per server, and a trust policy that loses the condition
+ *     is caught on the next day's check. It is kept only once the sign-in
+ *     it allowed worked: a role that let nobody in when it was checked is
+ *     checked again before anyone is let in.
+ *   - A refusal holds an hour: a role that takes any id is not signed in
+ *     to on every read.
  *   - A check AWS throttled or did not answer, or answered with anything
  *     but AccessDenied, is no pass: nothing is kept, and the next try
  *     checks again.
- *   - A test (noCache) checks afresh and keeps nothing.
+ *   - A test (noCache) checks afresh, whatever was kept. A test of a saved
+ *     connection keeps what it found for that connection's reads on every
+ *     server (keepsVerdict): once a fixed role passes a test, every read
+ *     uses it at once, and a role found taking any id is read no more. A
+ *     test of settings never saved keeps nothing.
+ *   - When the shared cache cannot be reached, a server keeps to what its
+ *     own last check found, or checks afresh: never to a pass it did not
+ *     find. A value read back that is not a verdict of this file's writing
+ *     is none, and the role is checked again.
  *
  * The probe is not Cloud Connect's alone: anything that signs in to a
  * customer's role with OneUptime's identity (a project's Amazon SES role,
@@ -186,12 +204,16 @@ export function getRoleCheckExternalId(): string {
 /*
  * What a project is told of a role that lets OneUptime in with any
  * external id: what that lets happen, and the condition to add, written
- * as the trust policy of the setup command has it.
+ * as the trust policy of the setup command has it. In English, as every
+ * refusal is sent; the Dashboard says it in its reader's language
+ * (AwsRoleExternalIdRefusal, #10425).
  */
 export function getRoleWithoutExternalIdMessage(projectId: string): string {
-  return `This role lets OneUptime sign in without your project's external ID, so any project that knows its ARN could read your AWS account through OneUptime. OneUptime does not use it until its trust policy requires the external ID: add ${getAwsExternalIdConditionText(
-    getAwsExternalIdForProject(projectId),
-  )} to the statement that trusts OneUptime, or run the setup command again and connect the role it prints.`;
+  return getRefusalText(AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL, {
+    condition: getAwsExternalIdConditionText(
+      getAwsExternalIdForProject(projectId),
+    ),
+  });
 }
 
 function roleWithoutExternalId(projectId: string): LlmProviderError {
@@ -377,56 +399,182 @@ export async function probeRoleExternalId(data: {
   return "takes-any-external-id";
 }
 
+// A check's verdict as it is kept: what it found, and when the role was checked.
+interface KeptRoleCheck {
+  verdict: AwsRoleCheckVerdict;
+  checkedAtMs: number;
+}
+
+const ROLE_CHECK_VERDICTS: ReadonlyArray<AwsRoleCheckVerdict> = [
+  "requires-external-id",
+  "takes-any-external-id",
+];
+
+/*
+ * Where every server keeps the verdicts, in the shared cache. Named here
+ * alone and never exported: AwsRoleSignInGuard holds every write of a
+ * verdict to AwsRoleCheckCache.set.
+ */
+const ROLE_CHECK_CACHE_NAMESPACE: string = "cloud-aws-role-check";
+
+// How long a verdict holds from its check: a pass a day, a refusal an hour.
+function getRoleCheckLifetimeMs(verdict: AwsRoleCheckVerdict): number {
+  return verdict === "requires-external-id"
+    ? ROLE_CHECK_PASS_MS
+    : ROLE_CHECK_REFUSAL_MS;
+}
+
+// Whether a kept check holds now. A clock that went back is no reason to trust an old check longer.
+function holdsNow(kept: KeptRoleCheck, nowMs: number): boolean {
+  const ageMs: number = nowMs - kept.checkedAtMs;
+
+  return ageMs >= 0 && ageMs < getRoleCheckLifetimeMs(kept.verdict);
+}
+
+/*
+ * A verdict as the shared cache gave it back: one of the two verdicts,
+ * with the time of its check, that holds now. Anything else - a value cut
+ * short, another shape, a verdict this file does not write, a time that is
+ * not one - is no verdict at all, and the role is checked again.
+ */
+function readKeptRoleCheck(
+  value: string | null,
+  nowMs: number,
+): KeptRoleCheck | null {
+  if (!value) {
+    return null;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+
+  const verdict: unknown = (parsed as Record<string, unknown>)["verdict"];
+  const checkedAtMs: unknown = (parsed as Record<string, unknown>)[
+    "checkedAtMs"
+  ];
+
+  if (
+    !ROLE_CHECK_VERDICTS.includes(verdict as AwsRoleCheckVerdict) ||
+    typeof checkedAtMs !== "number" ||
+    !Number.isSafeInteger(checkedAtMs) ||
+    checkedAtMs <= 0
+  ) {
+    return null;
+  }
+
+  const kept: KeptRoleCheck = {
+    verdict: verdict as AwsRoleCheckVerdict,
+    checkedAtMs,
+  };
+
+  return holdsNow(kept, nowMs) ? kept : null;
+}
+
+function describeCacheError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /*
  * The last check of each connection's role (AssumedRoleCache.keyOf), while
  * it holds: a pass ROLE_CHECK_PASS_MS from when the role was checked, a
- * refusal ROLE_CHECK_REFUSAL_MS. In this process only.
+ * refusal ROLE_CHECK_REFUSAL_MS.
+ *
+ * Kept in the shared cache (GlobalCache), for every server, and read back
+ * from it while it can be reached: whichever server checked a connection's
+ * role last, and a test of it, decides for all (#10424). Each server also
+ * keeps the verdicts of its own checks, to keep to when the shared cache
+ * cannot be reached; a verdict it only read is never one of them, so an
+ * outage hands no server a pass it did not find.
  */
 export class AwsRoleCheckCache {
-  private static verdicts: Map<
-    string,
-    { verdict: AwsRoleCheckVerdict; checkedAtMs: number }
-  > = new Map();
+  // This server's own checks: what it keeps to while the shared cache is down.
+  private static ownVerdicts: Map<string, KeptRoleCheck> = new Map();
 
-  public static get(key: string): AwsRoleCheckVerdict | undefined {
-    const entry:
-      | { verdict: AwsRoleCheckVerdict; checkedAtMs: number }
-      | undefined = this.verdicts.get(key);
+  public static async get(
+    key: string,
+  ): Promise<AwsRoleCheckVerdict | undefined> {
+    let shared: string | null;
 
-    if (!entry) {
-      return undefined;
+    try {
+      shared = await GlobalCache.getString(ROLE_CHECK_CACHE_NAMESPACE, key);
+    } catch (error) {
+      logger.debug(
+        `Cloud connections: the shared cache could not be reached, so this server keeps to its own last check of role ${key} (${describeCacheError(
+          error,
+        )}).`,
+      );
+
+      return this.getOwn(key);
     }
 
-    const holdsForMs: number =
-      entry.verdict === "requires-external-id"
-        ? ROLE_CHECK_PASS_MS
-        : ROLE_CHECK_REFUSAL_MS;
-    const ageMs: number = Date.now() - entry.checkedAtMs;
-
-    // A clock that went back is no reason to trust an old check longer.
-    if (ageMs < 0 || ageMs >= holdsForMs) {
-      this.verdicts.delete(key);
-      return undefined;
-    }
-
-    return entry.verdict;
+    // When the shared cache answers, its verdict is the one: none is none.
+    return readKeptRoleCheck(shared, Date.now())?.verdict;
   }
 
-  public static set(
+  public static async set(
     key: string,
     verdict: AwsRoleCheckVerdict,
     checkedAtMs: number,
-  ): void {
+  ): Promise<void> {
+    const kept: KeptRoleCheck = { verdict, checkedAtMs };
+
     // A bound: one entry per connection, and connections are few.
-    if (this.verdicts.size > 10000) {
-      this.verdicts.clear();
+    if (this.ownVerdicts.size > 10000 && !this.ownVerdicts.has(key)) {
+      this.ownVerdicts.clear();
     }
 
-    this.verdicts.set(key, { verdict, checkedAtMs });
+    this.ownVerdicts.set(key, kept);
+
+    // Kept for every server as long as it holds from its check, and no longer.
+    const lifetimeMs: number = getRoleCheckLifetimeMs(verdict);
+    const leftMs: number = Math.min(
+      lifetimeMs,
+      lifetimeMs - (Date.now() - checkedAtMs),
+    );
+
+    try {
+      await GlobalCache.setString(
+        ROLE_CHECK_CACHE_NAMESPACE,
+        key,
+        JSON.stringify(kept),
+        { expiresInSeconds: Math.max(1, Math.ceil(leftMs / 1000)) },
+      );
+    } catch (error) {
+      logger.debug(
+        `Cloud connections: the shared cache could not be reached, so the check of role ${key} is kept by this server alone (${describeCacheError(
+          error,
+        )}).`,
+      );
+    }
   }
 
+  // This server's own checks, forgotten (tests). The shared cache's expire on their own.
   public static clear(): void {
-    this.verdicts.clear();
+    this.ownVerdicts.clear();
+  }
+
+  private static getOwn(key: string): AwsRoleCheckVerdict | undefined {
+    const kept: KeptRoleCheck | undefined = this.ownVerdicts.get(key);
+
+    if (!kept) {
+      return undefined;
+    }
+
+    if (!holdsNow(kept, Date.now())) {
+      this.ownVerdicts.delete(key);
+      return undefined;
+    }
+
+    return kept.verdict;
   }
 }
 
@@ -453,15 +601,23 @@ export async function assumeRole(data: {
   timeoutInMs?: number | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   budget?: CloudReadBudget | undefined;
-  // A test checks afresh, and keeps nothing.
+  // A test checks afresh, whatever was kept, and keeps nothing...
   noCache?: boolean | undefined;
+  /*
+   * ...but a test of a saved connection (its own connectionId) keeps what
+   * it found, for that connection's reads on every server: once a fixed
+   * role passes a test, every read uses it at once (#10424). Only what the
+   * check found is kept - a pass once the sign-in it allowed worked.
+   */
+  keepsVerdict?: boolean | undefined;
 }): Promise<AwsAssumedRole> {
   const roleArn: string = data.roleArn.trim();
   const key: string = AssumedRoleCache.keyOf(data);
   const roleSessionName: string = getRoleSessionName(data.connectionId);
+  const keeps: boolean = !data.noCache || data.keepsVerdict === true;
   const kept: AwsRoleCheckVerdict | undefined = data.noCache
     ? undefined
-    : AwsRoleCheckCache.get(key);
+    : await AwsRoleCheckCache.get(key);
   // When this sign-in checked the role itself: kept as a pass once it works.
   let checkedAtMs: number | null = null;
 
@@ -489,8 +645,8 @@ export async function assumeRole(data: {
         `Cloud connections: role ${roleArn} (project ${data.projectId}, connection ${data.connectionId}) let this OneUptime sign in with an external id no project has, so it is not used: its trust policy needs the sts:ExternalId condition. The session AWS handed out was dropped unread.`,
       );
 
-      if (!data.noCache) {
-        AwsRoleCheckCache.set(key, verdict, checkedAtMs);
+      if (keeps) {
+        await AwsRoleCheckCache.set(key, verdict, checkedAtMs);
       }
 
       throw roleWithoutExternalId(data.projectId);
@@ -531,8 +687,9 @@ export async function assumeRole(data: {
     });
   }
 
-  if (checkedAtMs !== null && !data.noCache) {
-    AwsRoleCheckCache.set(key, "requires-external-id", checkedAtMs);
+  // A test's pass replaces a refusal kept for the key: every server reads through the role from now.
+  if (checkedAtMs !== null && keeps) {
+    await AwsRoleCheckCache.set(key, "requires-external-id", checkedAtMs);
   }
 
   return {
@@ -546,9 +703,11 @@ export async function assumeRole(data: {
 /*
  * Assumed roles, per connection and role, reused until shortly before
  * they expire: a read every few minutes signs in once an hour, not on
- * every read. A session is handed out only while the check that let it be
- * made holds (AwsRoleCheckCache): a day after it, the role is checked
- * again before its next session. In this process only.
+ * every read. A session is handed out only while a pass of its role's
+ * check holds (AwsRoleCheckCache, for every server): a day after the
+ * check, the role is checked again before its next session, and a role a
+ * test found taking any id is read through no more, by any server. The
+ * sessions themselves are kept in this process only.
  */
 export class AssumedRoleCache {
   private static sessions: Map<string, AwsAssumedRole> = new Map();
@@ -561,7 +720,7 @@ export class AssumedRoleCache {
     return `${data.projectId}|${data.connectionId}|${data.roleArn.trim()}`;
   }
 
-  public static get(key: string): AwsCredentials | undefined {
+  public static async get(key: string): Promise<AwsCredentials | undefined> {
     const session: AwsAssumedRole | undefined = this.sessions.get(key);
 
     if (!session) {
@@ -569,10 +728,14 @@ export class AssumedRoleCache {
     }
 
     if (
-      AwsRoleCheckCache.get(key) !== "requires-external-id" ||
-      session.expiresAtMs - SESSION_REUSE_MARGIN_MS <= Date.now()
+      session.expiresAtMs - SESSION_REUSE_MARGIN_MS <= Date.now() ||
+      (await AwsRoleCheckCache.get(key)) !== "requires-external-id"
     ) {
-      this.sessions.delete(key);
+      // Not one a sign-in made meanwhile.
+      if (this.sessions.get(key) === session) {
+        this.sessions.delete(key);
+      }
+
       return undefined;
     }
 
@@ -588,7 +751,7 @@ export class AssumedRoleCache {
     this.sessions.set(key, session);
   }
 
-  // Both caches: the sessions, and the checks that let them be made.
+  // Both of this process's caches: the sessions, and its own checks.
   public static clear(): void {
     this.sessions.clear();
     AwsRoleCheckCache.clear();
