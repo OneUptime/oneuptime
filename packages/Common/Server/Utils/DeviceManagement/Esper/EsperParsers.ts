@@ -1,3 +1,4 @@
+import { getManagedDeviceStorageDetails } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import {
   ManagedDevicePlatform,
   readManagedDevicePlatformFromName,
@@ -141,15 +142,91 @@ export function normalizeMacAddress(value: unknown): string {
   return pairs.join(":");
 }
 
-// A battery level in percent: 0 to 100, whole; null for anything else.
-function readBatteryLevel(value: unknown): number | null {
+/*
+ * A battery level in percent: 0 to 100, whole; null for anything else.
+ * Esper documents battery_level without its scale; an Android device's is a
+ * percent, as its console draws it. An Apple device's may be Apple's own
+ * fraction (DeviceInformation's BatteryLevel, 0.0 to 1.0), so on one a
+ * level of 1 or less is read as that fraction: 0.85 is 85%, never 1%, and
+ * a full iPad is never read as one about to die (#10008).
+ */
+export function readEsperBatteryLevel(
+  value: unknown,
+  options: { mayBeAFraction?: boolean | undefined } = {},
+): number | null {
   const level: number | null = readNumber(value);
 
   if (level === null || level < 0 || level > 100) {
     return null;
   }
 
+  if (options.mayBeAFraction && level > 0 && level <= 1) {
+    return Math.round(level * 100);
+  }
+
   return Math.round(level);
+}
+
+/*
+ * The bytes in one of the units Esper writes a size in: decimal for GB and
+ * MB, binary for GiB and MiB (memory_info.units, and its
+ * internal_storage_binary_prefix). Undefined for a unit it does not name.
+ */
+const ESPER_UNIT_BYTES: Readonly<Record<string, number>> = {
+  kb: 1e3,
+  mb: 1e6,
+  gb: 1e9,
+  tb: 1e12,
+  kib: 1024,
+  mib: 1024 ** 2,
+  gib: 1024 ** 3,
+  tib: 1024 ** 4,
+};
+
+// A binary unit's name: KiB, MiB, GiB, TiB.
+const ESPER_BINARY_UNIT: RegExp = /^[kmgt]ib$/;
+
+/*
+ * An Esper Android device's storage in bytes (#10008): its whole internal
+ * storage from memory_info (a number as text, in its units, binary where
+ * its binary prefix says so) and its free space from memory_stats, which
+ * Esper keeps in megabytes - its agent's AVAILABLE_INTERNAL_STORAGE_MEASURED
+ * event and its device documents name the same figure in MB - of the same
+ * base. None where a figure or its unit is missing. Pure.
+ */
+export function readEsperAndroidStorage(data: {
+  memoryInfo: JSONObject;
+  memoryStats: JSONObject;
+}): { totalBytes: number | null; freeBytes: number | null } {
+  const unit: string = cleanText(data.memoryInfo["units"]).toLowerCase();
+  const binaryPrefix: string = cleanText(
+    data.memoryInfo["internal_storage_binary_prefix"],
+  ).toLowerCase();
+  const isBinary: boolean =
+    ESPER_BINARY_UNIT.test(unit) ||
+    ESPER_BINARY_UNIT.test(binaryPrefix) ||
+    binaryPrefix === "binary";
+  // The unit the whole is in, in the base its prefix says: GB read as GiB.
+  const unitBytes: number | undefined = isBinary
+    ? ESPER_UNIT_BYTES[
+        ESPER_BINARY_UNIT.test(unit) ? unit : `${unit.charAt(0)}ib`
+      ]
+    : ESPER_UNIT_BYTES[unit];
+  const total: number | null = readNumber(
+    data.memoryInfo["total_internal_storage"],
+  );
+  const freeMegabytes: number | null = readNumber(
+    data.memoryStats["available_internal_storage"],
+  );
+
+  return {
+    totalBytes:
+      total !== null && unitBytes !== undefined ? total * unitBytes : null,
+    freeBytes:
+      freeMegabytes !== null
+        ? freeMegabytes * (isBinary ? 1024 ** 2 : 1e6)
+        : null,
+  };
 }
 
 /*
@@ -361,6 +438,16 @@ export function parseEsperDevice(value: unknown): ProviderDevice | null {
       "availableStorage",
       readNumber(memoryStats["available_internal_storage"]),
     );
+    // In bytes, for how full it is (#10008).
+    Object.assign(
+      details,
+      getManagedDeviceStorageDetails(
+        readEsperAndroidStorage({
+          memoryInfo: memory,
+          memoryStats: memoryStats,
+        }),
+      ),
+    );
   } else {
     /*
      * An Apple device's memory comes in bytes (memory_stats), its
@@ -384,6 +471,14 @@ export function parseEsperDevice(value: unknown): ProviderDevice | null {
     putDetail(
       "availableStorageBytes",
       readNumber(memoryStats["available_internal_storage"]),
+    );
+    // Both in bytes already, as Esper documents an Apple device's (#10008).
+    Object.assign(
+      details,
+      getManagedDeviceStorageDetails({
+        totalBytes: readNumber(memoryStats["total_internal_storage"]),
+        freeBytes: readNumber(memoryStats["available_internal_storage"]),
+      }),
     );
     putDetail("udid", device["udid"]);
     putDetail("isSupervised", readBoolean(device["is_supervised"]));
@@ -423,7 +518,9 @@ export function parseEsperDevice(value: unknown): ProviderDevice | null {
     state: state === null ? null : Math.round(state),
     groupId: cleanText(device["group_id"]),
     isKioskMode: readBoolean(appMode["is_kiosk"]),
-    batteryLevel: readBatteryLevel(battery["battery_level"]),
+    batteryLevel: readEsperBatteryLevel(battery["battery_level"], {
+      mayBeAFraction: !isAndroid,
+    }),
     ipAddresses: ipAddresses.slice(0, MAX_IP_ADDRESSES),
     macAddress: wifiMac || ethernetMac,
     provisionedAt: provisionedAt,

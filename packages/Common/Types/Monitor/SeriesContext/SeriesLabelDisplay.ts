@@ -241,6 +241,12 @@ const FriendlyLabelNames: Record<string, string> = {
   "oneuptime.managed_device.name": "Device",
   "oneuptime.managed_device.alias": "Device Alias",
   "oneuptime.managed_device.group": "Device Group",
+  /*
+   * A device management connection itself, by its name on Managed Devices:
+   * what Connection Stopped Reading groups by, one alert per connection
+   * (DeviceManagementConnectionReading, #10006).
+   */
+  "oneuptime.managed_device.connection.name": "Connection",
 
   /*
    * --- Mobile apps ---
@@ -389,6 +395,8 @@ const LabelPriority: Record<string, number> = {
   "oneuptime.managed_device.name": 25,
   "oneuptime.managed_device.alias": 26,
   "oneuptime.managed_device.group": 40,
+  // A connection that stopped reading: the connection is what broke.
+  "oneuptime.managed_device.connection.name": 25,
   "app.installation.id": 25,
   /*
    * Network events: what the event happened to (the interface, the

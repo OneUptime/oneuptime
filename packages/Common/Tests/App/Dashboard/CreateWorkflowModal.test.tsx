@@ -2585,13 +2585,20 @@ describe("CreateWorkflowModal Dynamics 365 templates", () => {
     ).toEqual(ALERT_DYNAMICS_TEMPLATE_IDS);
   });
 
-  test("the create-case template asks for its seven settings in order, the secret masked", () => {
+  /*
+   * The seven it needs, then the Configuration Item Column (#9358), which
+   * most leave blank: the one setting the wizard marks as optional.
+   */
+  test("the create-case template asks for its seven settings in order, the secret masked, then an optional eighth", () => {
     renderModal();
     goToConfigure("dynamics-create-case-for-incident");
 
     expect(
       testIdSuffixes(getStepContent(), VARIABLE_INPUT_TEST_ID_PREFIX),
-    ).toEqual(Object.keys(DYNAMICS_VALUES));
+    ).toEqual([
+      ...Object.keys(DYNAMICS_VALUES),
+      "dynamicsConfigurationItemColumn",
+    ]);
 
     for (const name of Object.keys(DYNAMICS_VALUES)) {
       expect(getVariableInput(name)).toHaveAttribute(
@@ -2599,6 +2606,14 @@ describe("CreateWorkflowModal Dynamics 365 templates", () => {
         name === "dynamicsClientSecret" ? "password" : "text",
       );
     }
+
+    expect(getVariableInput("dynamicsConfigurationItemColumn")).toHaveAttribute(
+      "type",
+      "text",
+    );
+    expect(getStepContent()).toHaveTextContent(
+      "Configuration Item Column (Optional)",
+    );
   });
 
   test("values of the wrong shape are refused before anything is created, each saying what to type instead", async () => {

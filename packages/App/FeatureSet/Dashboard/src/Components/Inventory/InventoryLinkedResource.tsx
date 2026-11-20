@@ -19,6 +19,7 @@ import {
   getLinkedResourceKindForEntityType,
 } from "./LinkedResource";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import { MANAGED_DEVICE_RESOURCE_TYPE } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -49,6 +50,15 @@ export interface ComponentProps {
   /** Plural noun for this page: "incidents", "alerts", "maintenance windows". */
   signal: string;
   children: (resource: LinkedResource) => ReactElement;
+  /*
+   * A device a device manager imports, with no Host of its own (the Android
+   * agent does not report it): what its device manager's monitors raised
+   * about it, drawn in place of the empty state (#10007). The device the
+   * item stands for is its ManagedDevice row.
+   */
+  renderManagedDevice?:
+    | ((managedDeviceId: ObjectID) => ReactElement)
+    | undefined;
 }
 
 type ResolveFunction = (
@@ -213,6 +223,15 @@ const InventoryLinkedResource: FunctionComponent<ComponentProps> = (
 
   if (!item) {
     return <ErrorMessage message="This inventory item could not be found." />;
+  }
+
+  if (
+    !resource &&
+    props.renderManagedDevice &&
+    item.resourceType === MANAGED_DEVICE_RESOURCE_TYPE &&
+    item.resourceId
+  ) {
+    return props.renderManagedDevice(new ObjectID(item.resourceId.toString()));
   }
 
   if (!resource) {
