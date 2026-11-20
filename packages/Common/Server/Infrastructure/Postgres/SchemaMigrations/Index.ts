@@ -1125,6 +1125,10 @@ import { AddDomainVerifiedNameIndex1809186910000 } from "./1809186910000-AddDoma
 import { AddHostLogSessionNote1809186919966 } from "./1809186919966-AddHostLogSessionNote";
 import { AddUserNewEmailLinkExpires1809186930000 } from "./1809186930000-AddUserNewEmailLinkExpires";
 import { AddTelemetryDsym1809186940000 } from "./1809186940000-AddTelemetryDsym";
+import { AddProxmoxGuestPowerTask1809186941017 } from "./1809186941017-AddProxmoxGuestPowerTask";
+import { AddTeamMemberInviteeEmail1809186960000 } from "./1809186960000-AddTeamMemberInviteeEmail";
+import { BackfillTeamMemberInviteeEmail1809186970000 } from "./1809186970000-BackfillTeamMemberInviteeEmail";
+import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddNetworkSiteOwnersAndLabels";
 
 export default [
   InitialMigration,
@@ -2254,4 +2258,8 @@ export default [
   AddHostLogSessionNote1809186919966,
   AddUserNewEmailLinkExpires1809186930000,
   AddTelemetryDsym1809186940000,
+  AddProxmoxGuestPowerTask1809186941017,
+  AddTeamMemberInviteeEmail1809186960000,
+  BackfillTeamMemberInviteeEmail1809186970000,
+  AddNetworkSiteOwnersAndLabels1809187000000,
 ];

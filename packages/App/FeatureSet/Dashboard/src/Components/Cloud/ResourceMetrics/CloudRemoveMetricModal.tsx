@@ -58,8 +58,10 @@ import {
  * This Metric asks too) - of this resource, or of any resource of its type
  * for a type's addition - and lists them as Drop This Metric does
  * (MetricReadersList, #10107): kind by kind, each with what removing it
- * does to them, each record a link, the first few and then a count, and
- * the ones the person cannot open counted, never named. Then "Remove
+ * does to them, each record a link - a widget's to its dashboard opened at
+ * it (#10084) - the first few and then a count, under a recording rule what
+ * reads its output metric, on down the chain (#10085), and the ones the
+ * person cannot open counted, never named. Then "Remove
  * Anyway" or "Keep Metric". With none, it is an ordinary confirmation. A
  * lookup that fails says so and still lets the person remove it, and
  * records that could not be checked are said to be.
@@ -251,6 +253,9 @@ export function getCloudReaderGroups(data: {
               ...(reader.outputMetricName
                 ? { outputMetricName: reader.outputMetricName }
                 : {}),
+              ...(reader.outputReaders
+                ? { outputReaders: reader.outputReaders }
+                : {}),
               ...(reader.readsEveryResource
                 ? { note: data.everyResourceNote }
                 : {}),
@@ -260,6 +265,10 @@ export function getCloudReaderGroups(data: {
         isChecked: !data.readers.uncheckedKinds.includes(entry.kind),
         words: CLOUD_READER_KIND_WORDS[entry.kind],
         dataTestId: `cloud-remove-metric-readers-${entry.kind}`,
+        ...(entry.kind === CloudAddedMetricReaderKind.RecordingRule &&
+        data.readers.hiddenOutputReaders
+          ? { hiddenOutputReaders: data.readers.hiddenOutputReaders }
+          : {}),
       };
     },
   );

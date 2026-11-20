@@ -55,7 +55,7 @@ function installExecCommand(
 
 function reveal(): void {
   render(<HiddenText text={SECRET} isCopyable={true} />);
-  fireEvent.click(screen.getByRole("hidden-text"));
+  fireEvent.click(screen.getByRole("button", { name: "Click to reveal" }));
 }
 
 function copyButton(): HTMLElement {
@@ -107,7 +107,9 @@ describe("HiddenText's copy button", () => {
     expect(writeText).toHaveBeenCalledWith(SECRET);
     expect(copyButton()).toHaveAttribute("aria-label", "Copied!");
     expect(copyButton()).toHaveAttribute("data-copy-state", "copied");
-    expect(screen.getByRole("revealed-text")).toHaveClass("text-green-700");
+    expect(screen.getByTestId("hidden-text-value")).toHaveClass(
+      "text-green-700",
+    );
     expect(screen.getByTestId("hidden-text-copy-status")).toHaveTextContent(
       "Copied!",
     );
@@ -117,7 +119,9 @@ describe("HiddenText's copy button", () => {
     });
 
     expect(copyButton()).toHaveAttribute("aria-label", "Copy");
-    expect(screen.getByRole("revealed-text")).not.toHaveClass("text-green-700");
+    expect(screen.getByTestId("hidden-text-value")).not.toHaveClass(
+      "text-green-700",
+    );
   });
 
   test("the bug: with no clipboard API and no copy command it never turns green", async () => {
@@ -126,7 +130,9 @@ describe("HiddenText's copy button", () => {
 
     await pressCopy();
 
-    expect(screen.getByRole("revealed-text")).not.toHaveClass("text-green-700");
+    expect(screen.getByTestId("hidden-text-value")).not.toHaveClass(
+      "text-green-700",
+    );
     expect(copyButton()).not.toHaveAttribute("aria-label", "Copied!");
   });
 

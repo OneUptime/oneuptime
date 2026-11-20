@@ -35,6 +35,7 @@ import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import Errors from "Common/Server/Utils/Errors";
 import { PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE } from "Common/Server/Services/PayAsYouGoBillingService";
 import PublicMessageRateLimit, {
+  INVITATION_NOT_NOW_MESSAGE,
   PublicMessageChannel,
   TeamMessageKind,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
@@ -1692,12 +1693,13 @@ describe("Inviting People", () => {
 
     /*
      * The invitation email is the project's, so its log row is too - sent
-     * again by Resend Invitation as well (#9519).
+     * once the membership is made, after the request (#10180), and again by
+     * Resend Invitation (#9519).
      */
     expect(
       collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
     ).toContain(
-      "MailService.sendMail(invitationEmail, { projectId: createBy.data.projectId!, userId: user.id!, }).catch(",
+      "await MailService.sendMail(invitationEmail, { projectId: data.projectId, userId: invitation.user.id!, });",
     );
     expect(
       collapsed(readCommonSource("Server/Services/TeamMemberService.ts")),
@@ -3429,6 +3431,8 @@ describe("every page", () => {
           kind: TeamMessageKind.Invitation,
           channel: PublicMessageChannel.Email,
         }),
+        // ...or past the cap on every project's invitations to it (#10179).
+        INVITATION_NOT_NOW_MESSAGE,
       ];
 
       for (const message of SERVER_MESSAGES[entry.page] || []) {

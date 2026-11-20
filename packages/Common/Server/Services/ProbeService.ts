@@ -131,6 +131,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whether a cached key digest is the presented key's, compared in constant
+   * time, as the key itself is compared with the database's (#10222): how
+   * long a comparison takes says nothing of how much of a digest matched.
+   * The revocation sentinel, or anything else that is no digest, is not the
+   * same length, and never matches.
+   */
+  public isSameKeyHash(cached: string, presented: string): boolean {
+    const cachedBytes: Buffer = Buffer.from(cached, "utf8");
+    const presentedBytes: Buffer = Buffer.from(presented, "utf8");
+
+    if (cachedBytes.length !== presentedBytes.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(cachedBytes, presentedBytes);
+  }
+
+  /*
    * The auth cache entry of a probe: one per probe, whatever case its id is
    * written in. Postgres reads a uuid in any case, so a probe authenticates
    * with its id upper-cased too - and an entry per spelling would be one
@@ -206,7 +224,10 @@ export class Service extends ProjectReferencesService<Model> {
         GlobalCache.getString(PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE, cacheKey),
       );
 
-      if (cachedKeyHash && cachedKeyHash === presentedKeyHash) {
+      if (
+        cachedKeyHash &&
+        this.isSameKeyHash(cachedKeyHash, presentedKeyHash)
+      ) {
         return true;
       }
     } catch (err) {

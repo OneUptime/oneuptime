@@ -142,7 +142,7 @@ test.describe.skip("Inventory Product", () => {
     for (const subpage of subpages) {
       if (subpage.section) {
         const sectionToggle: Locator = page
-          .locator("aside[role='navigation'][aria-label='Main navigation']")
+          .locator("aside[role='navigation'][aria-label='Pages in this section']")
           .locator(
             `xpath=.//h6[normalize-space(.)='${subpage.section}']/ancestor::button[1]`,
           );

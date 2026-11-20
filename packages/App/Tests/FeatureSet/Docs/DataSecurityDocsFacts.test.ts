@@ -165,6 +165,7 @@ import {
   FINGERPRINT_SLOTS,
 } from "Common/Server/Utils/DataSecurity/Fingerprint";
 import { DATA_STORE_CONTENT_SCAN_OVERDUE_AFTER_IN_MS } from "Common/Utils/DataSecurity/DataStoreContentScanSchedule";
+import { MAX_OUTPUT_METRIC_DEPTH } from "Common/Types/Metrics/MetricOutputReaders";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1653,6 +1654,32 @@ describe("Sensitive Data in Telemetry", () => {
     expect(source(scanner)).toContain(
       'const ONEUPTIME_ATTRIBUTE_PREFIX: string = "oneuptime.";',
     );
+  });
+
+  // #10085 and #10084: the chain the dialog follows, and where a widget's link opens.
+  it("says how far down a chain of recording rules the dialog names what reads their output, as the lookup follows it", () => {
+    const drop: string = section(page, "## Drop This Metric");
+
+    expect(MAX_OUTPUT_METRIC_DEPTH).toBe(3);
+    expect(drop).toContain(
+      "Under each recording rule, it also names what reads the rule's output metric, and what reads theirs in turn, up to three output metrics down the chain.",
+    );
+    expect(drop).toContain(
+      "A widget's link opens its dashboard at that widget.",
+    );
+    // The dialog's own sentence for the step down, as the Dashboard draws it.
+    expect(
+      source(
+        "App/FeatureSet/Dashboard/src/Components/Metrics/Readers/MetricReadersList.tsx",
+      ),
+    ).toContain('"These read its output metric, {{metric}}:"');
+    // Both callers ask the lookup to follow the chain.
+    for (const caller of [
+      `${SERVER}/Telemetry/MetricNameUsers.ts`,
+      "Common/Server/Utils/CloudConnection/CloudAddedMetricReaders.ts",
+    ]) {
+      expect(source(caller)).toContain("followsOutputMetrics: true");
+    }
   });
 
   it("names the rules Scrub It makes as it names them", () => {

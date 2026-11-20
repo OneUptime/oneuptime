@@ -138,9 +138,17 @@ OneUptime 先依裝置在 Esper 中的名稱尋找其項目，再依其序號尋
 
 在 **受管理的裝置** 中，點選連線所在列的 **設定警示**，然後建立 **Esper Android Device Stopped Checking In** 和 **Esper Apple Device Stopped Checking In**。前者會為每台超過 1 小時未向 Esper 簽入的 Android 裝置各開啟一則以該裝置命名的警示，後者則為每台超過一天未簽入的 Apple 裝置開啟，裝置再次簽入後警示即被解決。
 
-每次讀取該連線時，都會以指標 `oneuptime.managed_device.check_in.age` 記錄每台裝置上次簽入距今多少分鐘，監測器每 5 分鐘檢查一次每台裝置的最新值。同時執行 Android Agent 的裝置交由 **Host Stopped Reporting** 監測，因此不會重複發出警示；從 Esper 移除的裝置，其警示會被解決。讀取失敗時不會記錄任何內容，因此在下一次讀取之前，警示既不會開啟也不會解決。對於夜間關機的裝置群，請調高監測器的閾值。
+每次讀取該連線時，都會以指標 `oneuptime.managed_device.check_in.age` 記錄每台裝置上次簽入距今多少分鐘，監測器每 5 分鐘檢查一次每台裝置的最新值。同時執行 Android Agent 的裝置交由 **Host Stopped Reporting** 監測，因此不會重複發出警示；從 Esper 移除的裝置，其警示會被解決。讀取失敗時不會記錄任何裝置的內容，因此在讀取再次成功之前，這些裝置的警示既不會開啟也不會解決。對於夜間關機的裝置群，請調高監測器的閾值。
 
 再建立 **Esper Security Patch Out of Date**，Esper 回報的安全性修補程式等級超過 90 天的每台 Android 裝置都會開啟一則自己的警示，裝置更新後即被解決。每次讀取都會以指標 `oneuptime.managed_device.security_patch.age` 記錄每台 Android 裝置的修補程式等級已過多少天。執行 Android Agent 的裝置交由其主機的 **Security Patch Out of Date** 監測，因此不會重複發出警示。
+
+再建立 **Esper Low Battery** 和 **Esper Storage Nearly Full**，Esper 最近一次讀取的電量低於 20% 的每台裝置都會開啟一則自己的警示，儲存空間已用超過 90% 的每台裝置也是如此，裝置充電或重新有了空間後即被解決。每次讀取都會以指標 `oneuptime.managed_device.battery.level` 和 `oneuptime.managed_device.storage.used` 記錄這兩項。執行 Android Agent 的裝置交由其主機的 **Low Battery** 和 **Storage Nearly Full** 監測，它們在相同的水準發出警示，因此不會重複發出警示。
+
+裝置的警示也會顯示在它的項目上：裝置的 **Esper** 卡片列出與它相關的未解決事件和警示，每則都連結到其頁面；對於 Android Agent 不回報的裝置，其 **警示** 和 **事件** 頁面會列出其連線的監測器針對它發出的每一則。
+
+### 連線停止讀取時收到警示
+
+建立 **Esper Connection Stopped Reading** 後，只要在連線的列將 **狀態** 顯示為 **已過時** 之前所等待的時間內，連線的讀取一次都沒有成功，連線就會開啟一則自己的警示：即三個讀取間隔再加十分鐘，且不少於半小時，預設 15 分鐘間隔下為 55 分鐘。它的第一個偵錯步驟會列出連線最近的值，每個值附帶其讀取失敗時的錯誤，第一次成功的讀取即會解決該警示。每次讀取，以及連線每次到期需要讀取時，都會以指標 `oneuptime.managed_device.connection.read.age` 記錄距上次成功讀取已過多少分鐘。監測器依建立時連線的讀取間隔等待；已關閉的連線不會記錄任何內容，因此它已開啟的警示會一直保持開啟，直到你手動解決。
 
 ## 從 Microsoft Intune 匯入裝置
 
@@ -168,7 +176,7 @@ OneUptime 先依裝置在 Esper 中的名稱尋找其項目，再依其序號尋
 
 Intune 以裝置擁有者取的名稱來命名裝置，因此兩台裝置可能同名：所有沒人改過名稱的 iPhone 都叫 `iPhone`。一個連線中兩台裝置共用的名稱，在資產清單中不屬於其中任何一台：每台裝置改用其序號命名，一旦沒有其他裝置使用這個名稱，就會取回自己的名稱。
 
-若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **Intune Device Stopped Checking In**。它會為每台超過一天未向 Intune 簽入的裝置各開啟一則以該裝置命名的警示。週末關機的筆記型電腦看起來也一樣，所以如果一天對你的裝置來說太短，請調高監測器的閾值。與 Esper 的範本一樣， **Intune Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。
+若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **Intune Device Stopped Checking In**。它會為每台超過一天未向 Intune 簽入的裝置各開啟一則以該裝置命名的警示。週末關機的筆記型電腦看起來也一樣，所以如果一天對你的裝置來說太短，請調高監測器的閾值。與 Esper 的範本一樣， **Intune Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。**Intune Storage Nearly Full** 和 **Intune Connection Stopped Reading** 與 Esper 的範本一樣發出警示。由於 Intune 的裝置清單沒有電量資訊，因此不提供電量警示。
 
 ## 從 Workspace ONE UEM 匯入裝置
 
@@ -194,7 +202,7 @@ Intune 以裝置擁有者取的名稱來命名裝置，因此兩台裝置可能�
 
 從裝置傳送遙測的應用程式或 Android Agent 會依裝置的序號與該裝置合併為一個項目：在其受管理設定中，將 Android Agent 的 `device_serial` 設定設為查閱值 `{DeviceSerialNumber}`。
 
-若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **Workspace ONE Device Stopped Checking In**。它會為每台超過一天未向 Workspace ONE 回報的裝置各開啟一則以該裝置命名的警示。與 Esper 的範本一樣， **Workspace ONE Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。
+若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **Workspace ONE Device Stopped Checking In**。它會為每台超過一天未向 Workspace ONE 回報的裝置各開啟一則以該裝置命名的警示。與 Esper 的範本一樣， **Workspace ONE Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。**Workspace ONE Low Battery**、**Workspace ONE Storage Nearly Full** 和 **Workspace ONE Connection Stopped Reading** 與 Esper 的範本一樣發出警示。
 
 ## 從 SOTI MobiControl 匯入裝置
 
@@ -218,7 +226,7 @@ MobiControl 代理程式與其伺服器保持即時連線，因此代理程式�
 
 從裝置傳送遙測的應用程式或 Android Agent 會依裝置的序號與該裝置合併為一個項目：在其受管理設定中，將 Android Agent 的 `device_serial` 設定設為巨集 `%SERIALNUM%`。
 
-若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者為每台代理程式超過 1 小時未連線的 Android、Windows 或 Linux 裝置開啟一則警示，後者為每台超過一天未簽入的 Apple 裝置開啟一則警示，每則都以該裝置命名。與 Esper 的範本一樣， **SOTI Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。
+若要在裝置停止簽入時收到警示，請點選連線所在列的 **設定警示**，然後建立 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者為每台代理程式超過 1 小時未連線的 Android、Windows 或 Linux 裝置開啟一則警示，後者為每台超過一天未簽入的 Apple 裝置開啟一則警示，每則都以該裝置命名。與 Esper 的範本一樣， **SOTI Security Patch Out of Date** 會為安全性修補程式等級超過 90 天的每台 Android 裝置發出警示。**SOTI Low Battery**、**SOTI Storage Nearly Full** 和 **SOTI Connection Stopped Reading** 與 Esper 的範本一樣發出警示。
 
 ## 手動新增
 

@@ -460,11 +460,14 @@ test.describe("the Hosts list", () => {
       tableRow(page, "edge-01").getByTestId("host-usage-cpu"),
     ).toHaveAttribute("data-tone", "warning");
 
-    // The name, the host name under it and what it runs.
+    /*
+     * The name, the host name under it and what it runs: its OS as people
+     * write it, not as os.type spells it (#9804).
+     */
     await expect(db01.getByTestId("host-identifier")).toHaveText(
       "db-01.prod.internal",
     );
-    await expect(db01.getByTestId("host-os")).toHaveText("linux amd64");
+    await expect(db01.getByTestId("host-os")).toHaveText("Linux amd64");
 
     /*
      * Whether OneUptime hears from a host is the Connection filter: a
@@ -1128,23 +1131,26 @@ test.describe("a host's Overview", () => {
     ).toHaveText("/var/lib/postgresql");
     /*
      * The Filesystem tile named it "var/lib/postgresql/", and the
-     * Filesystems table its mounts, devices and "472 GiB / 500 GiB" the
-     * other way round: each reads left to right now.
+     * Filesystems table its mounts, devices and sizes the other way round:
+     * each reads left to right now - the mount, its device, and what its
+     * storage bar says is used, its Free and its Size (#9647).
      */
     const tileMount: Locator = goldenTile(page, PERSIAN["Filesystem"] as string)
       .getByTestId("golden-metric-tile-sublabel")
       .locator("bdi");
     await expect(tileMount).toHaveText("/var/lib/postgresql");
     expect(await drawnDirection(tileMount)).toBe("ltr");
-    for (const testId of [
-      "host-filesystem-mount",
-      "host-filesystem-device",
-      "host-filesystem-used",
-    ]) {
+    for (const [value, locator] of [
+      ["mount", page.getByTestId("host-filesystem-mount")],
+      ["device", page.getByTestId("host-filesystem-device")],
+      ["used", page.getByTestId("host-filesystem-usage").locator("bdi")],
+      ["free", page.getByTestId("host-filesystem-free")],
+      ["size", page.getByTestId("host-filesystem-size").locator("bdi")],
+    ] as Array<[string, Locator]>) {
       expect({
-        testId: testId,
-        direction: await drawnDirection(page.getByTestId(testId).first()),
-      }).toEqual({ testId: testId, direction: "ltr" });
+        value: value,
+        direction: await drawnDirection(locator.first()),
+      }).toEqual({ value: value, direction: "ltr" });
     }
     /*
      * Its figures in Persian digits beyond the tiles too (#7106): the

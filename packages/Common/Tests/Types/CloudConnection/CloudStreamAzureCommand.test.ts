@@ -3,13 +3,18 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  AZURE_ACTIVITY_LOG_CATEGORIES,
   AZURE_CLOUD_STREAM_COMMAND_DONE,
   AZURE_CLOUD_STREAM_COMMAND_STOPPED,
   AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS,
   AZURE_CLOUD_STREAM_RESOURCE_TYPES,
+  AZURE_DIAGNOSTIC_ACTIVITY_LOG,
+  AZURE_DIAGNOSTIC_ENTRA_ID_LOGS,
   AZURE_DIAGNOSTIC_LOGS,
   AZURE_DIAGNOSTIC_METRICS,
+  AZURE_ENTRA_ID_LOG_CATEGORIES,
   AZURE_EVENT_HUBS_DATA_RECEIVER_ROLE,
+  getAzureCloudStreamEntraCommand,
   STREAM_NOT_A_SUBSCRIPTION,
   STREAM_NO_APP,
   STREAM_NO_SUBSCRIPTION,
@@ -144,11 +149,58 @@ az() {
   case "$1 $2 $3" in
     "resource list "*)
       if listed "$FAKE_FAIL" "resource list $sub"; then echo "(AuthorizationFailed) cannot list" >&2; return 1; fi
-      while IFS=$'\t' read -r owner id loc type; do
+      query=$(flag_value --query "$@")
+      while IFS=$'\t' read -r owner id loc type kind; do
         if [ "$owner" = "$sub" ]; then
-          if has_flag "[].id" "$@"; then printf '%s\n' "$id"; else printf '%s\t%s\t%s\n' "$id" "$loc" "$type"; fi
+          case "$query" in
+            "[].id") printf '%s\n' "$id" ;;
+            "[].[id, type]") printf '%s\t%s\n' "$id" "$type" ;;
+            *) printf '%s\t%s\t%s\t%s\n' "$id" "$loc" "$type" "$kind" ;;
+          esac
         fi
       done <<< "$FAKE_RESOURCES"
+      return 0 ;;
+    "eventhubs namespace list")
+      { printf '%s\n' "$FAKE_NAMESPACES"; sed -n 's/^ns //p' "$STATE"; } | grep . | sort | head -1
+      return 0 ;;
+    "monitor diagnostic-settings subscription")
+      if [ "$4" != create ]; then return 0; fi
+      rule=$(flag_value --event-hub-auth-rule "$@")
+      ns=$(printf '%s' "$rule" | sed -n 's|.*/namespaces/\([^/]*\)/authorizationRules/.*|\1|p')
+      if listed "$FAKE_ACTIVITY_DENIED" "$sub"; then
+        printf '%s\n' "(AuthorizationFailed) The client 'alice@contoso.com' with object id '7c3f9d2a-1b4e-4f6a-8c0d-2e4f6a8b0c1d' does not have authorization to perform action 'microsoft.insights/diagnosticSettings/write' over scope '/subscriptions/$sub/providers/microsoft.insights/diagnosticSettings/$name' or the scope is invalid. If access was recently granted, please refresh your credentials." "Code: AuthorizationFailed" "Message: The client 'alice@contoso.com' with object id '7c3f9d2a-1b4e-4f6a-8c0d-2e4f6a8b0c1d' does not have authorization to perform action 'microsoft.insights/diagnosticSettings/write' over scope '/subscriptions/$sub/providers/microsoft.insights/diagnosticSettings/$name' or the scope is invalid." >&2
+        return 1
+      fi
+      if listed "$FAKE_ACTIVITY_LINKED" "$sub"; then
+        printf '%s\n' "(LinkedAuthorizationFailed) The client 'alice@contoso.com' with object id '7c3f9d2a-1b4e-4f6a-8c0d-2e4f6a8b0c1d' has permission to perform action 'microsoft.insights/diagnosticSettings/write' on scope '/subscriptions/$sub/providers/microsoft.insights/diagnosticSettings/$name'; however, it does not have permission to perform action(s) 'Microsoft.EventHub/namespaces/authorizationRules/listkeys/action' on the linked scope(s) '$rule' (respectively) or the linked scope(s) are invalid." "Code: LinkedAuthorizationFailed" >&2
+        return 1
+      fi
+      if listed "$FAKE_ACTIVITY_FULL" "$sub"; then
+        printf '%s\n' "(BadRequest) Subscription '$sub' has reached the limit of 5 diagnostic settings." "Code: BadRequest" >&2
+        return 1
+      fi
+      if ! listed "$FAKE_NAMESPACES" "$ns" && ! listed "$(cat "$STATE")" "hub $ns"; then
+        echo "(LinkedInvalidPropertyId) Property id '$rule' at path 'properties.eventHubAuthorizationRuleId' is invalid." >&2; return 1
+      fi
+      return 0 ;;
+    "rest --method put"|"rest --method get"|"rest --method delete")
+      case "$3:$FAKE_ENTRA" in
+        put:denied)
+          echo "Forbidden({\"error\":{\"code\":\"AuthorizationFailed\",\"message\":\"The client 'bob@contoso.com' with object id '1d2c3b4a-5e6f-4071-8293-a4b5c6d7e8f9' does not have authorization to perform action 'microsoft.aadiam/diagnosticSettings/write' over scope '/providers/microsoft.aadiam/diagnosticSettings/OneUptime' or the scope is invalid. If access was recently granted, please refresh your credentials.\"}})" >&2
+          return 1 ;;
+        put:linked)
+          echo "Forbidden({\"error\":{\"code\":\"LinkedAuthorizationFailed\",\"message\":\"The client 'bob@contoso.com' with object id '1d2c3b4a-5e6f-4071-8293-a4b5c6d7e8f9' has permission to perform action 'microsoft.aadiam/diagnosticSettings/write' on scope '/providers/microsoft.aadiam/diagnosticSettings/OneUptime'; however, it does not have permission to perform action 'Microsoft.EventHub/namespaces/authorizationRules/listkeys/action' on the linked scope(s).\"}})" >&2
+          return 1 ;;
+        put:invalid)
+          echo "Bad Request({\"error\":{\"code\":\"BadRequest\",\"message\":\"The tenant does not have a license that allows exporting the category SignInLogs.\"}})" >&2
+          return 1 ;;
+        get:none|get:)
+          echo "Not Found({\"error\":{\"code\":\"ResourceNotFound\"}})" >&2
+          return 1 ;;
+        delete:undeletable)
+          echo "Forbidden({\"error\":{\"code\":\"AuthorizationFailed\"}})" >&2
+          return 1 ;;
+      esac
       return 0 ;;
     "group create "*)
       if listed "$FAKE_FAIL" "group create"; then echo "(AuthorizationFailed) The client may not create resource groups." >&2; return 1; fi
@@ -200,6 +252,8 @@ az() {
 `;
 
 interface Scenario {
+  // The rows az resource list answers: "<subscription>\t<id>\t<location>\t<type>\t<kind>".
+  resources?: Array<string>;
   // Resources and the categories Azure takes of each: both, metrics, logs, none, full.
   support?: Record<string, string>;
   namespaces?: Array<string>;
@@ -207,6 +261,28 @@ interface Scenario {
   fail?: Array<string>;
   // The subscriptions the command's resource group is in.
   groups?: Array<string>;
+  /*
+   * The subscriptions whose Activity Log setting Azure refuses, as it
+   * answers: the person may not write diagnostic settings there, may not
+   * read the event hubs' key, or the subscription has 5 settings already.
+   */
+  activityDenied?: Array<string>;
+  activityLinked?: Array<string>;
+  activityFull?: Array<string>;
+  /*
+   * What Azure answers about the tenant's setting: made (""), refused for
+   * want of the role (denied) or of the key (linked), refused for another
+   * reason (invalid); for Stop streaming, none there (none), there and
+   * deleted (exists), or there and not the person's to delete (undeletable).
+   */
+  entra?:
+    | ""
+    | "denied"
+    | "linked"
+    | "invalid"
+    | "none"
+    | "exists"
+    | "undeletable";
 }
 
 interface ShellRun {
@@ -263,7 +339,11 @@ function run(
         TMPDIR: work,
         CALLS: calls,
         STATE: state,
-        FAKE_RESOURCES: RESOURCES.join("\n"),
+        FAKE_RESOURCES: (scenario.resources || RESOURCES).join("\n"),
+        FAKE_ACTIVITY_DENIED: (scenario.activityDenied || []).join("\n"),
+        FAKE_ACTIVITY_LINKED: (scenario.activityLinked || []).join("\n"),
+        FAKE_ACTIVITY_FULL: (scenario.activityFull || []).join("\n"),
+        FAKE_ENTRA: scenario.entra || "",
         FAKE_SUPPORT: Object.keys(support)
           .map((id: string): string => {
             return `${id}\t${support[id]}`;
@@ -303,6 +383,7 @@ function command(
     metrics?: boolean;
     logs?: boolean;
     subscriptions?: Array<string>;
+    activityLog?: boolean;
   } = {},
 ): string {
   return getAzureCloudStreamCommand({
@@ -311,6 +392,7 @@ function command(
     subscriptionIds: data.subscriptions || [SUB_A, SUB_B],
     metrics: data.metrics ?? true,
     logs: data.logs ?? true,
+    activityLog: data.activityLog ?? false,
   });
 }
 
@@ -818,5 +900,429 @@ describe("The Azure stream's names and problems", () => {
       text: STREAM_TOO_MANY_SUBSCRIPTIONS,
       values: { count: String(AZURE_CLOUD_STREAM_MAX_SUBSCRIPTIONS) },
     });
+  });
+});
+
+/*
+ * A storage account's logs are its services' (#10110): with logs, the
+ * command gives each service the account's kind has a setting of its own -
+ * logs alone - and the account itself its metrics, when it streams them.
+ */
+describe("The Azure streaming command and a storage account's services", () => {
+  const ACCOUNT: string = armId(
+    SUB_A,
+    "rg-data",
+    "Microsoft.Storage/storageAccounts",
+    "contosodata",
+  );
+  const BLOB_ONLY: string = armId(
+    SUB_A,
+    "rg-data",
+    "Microsoft.Storage/storageAccounts",
+    "contosoarchive",
+  );
+  const FILES_ONLY: string = armId(
+    SUB_A,
+    "rg-data",
+    "Microsoft.Storage/storageAccounts",
+    "contososhares",
+  );
+  const STORAGE_RESOURCES: Array<string> = [
+    `${SUB_A}\t${ACCOUNT}\teastus\tMicrosoft.Storage/storageAccounts\tStorageV2`,
+    `${SUB_A}\t${BLOB_ONLY}\teastus\tMicrosoft.Storage/storageAccounts\tBlockBlobStorage`,
+    `${SUB_A}\t${FILES_ONLY}\teastus\tMicrosoft.Storage/storageAccounts\tFileStorage`,
+  ];
+  const SERVICES_OF_ACCOUNT: Array<string> = [
+    "blobServices",
+    "fileServices",
+    "queueServices",
+    "tableServices",
+  ].map((service: string): string => {
+    return `${ACCOUNT}/${service}/default`;
+  });
+  const support: Record<string, string> = {
+    [ACCOUNT]: "metrics",
+    [BLOB_ONLY]: "metrics",
+    [FILES_ONLY]: "metrics",
+    ...Object.fromEntries(
+      [
+        ...SERVICES_OF_ACCOUNT,
+        `${BLOB_ONLY}/blobServices/default`,
+        `${FILES_ONLY}/fileServices/default`,
+      ].map((id: string): [string, string] => {
+        return [id, "both"];
+      }),
+    ),
+  };
+
+  test("with metrics and logs, the account sends its metrics and each of its services its logs alone", () => {
+    const shellRun: ShellRun = run(command(), {
+      resources: STORAGE_RESOURCES,
+      support,
+    });
+    const settings: Record<string, Array<string>> = settingsByResource(
+      shellRun,
+    );
+
+    expect(settings[ACCOUNT]).toEqual([
+      `logs+metrics ${ruleOf("eastus")}`,
+      `metrics ${ruleOf("eastus")}`,
+    ]);
+
+    for (const service of SERVICES_OF_ACCOUNT) {
+      expect([service, settings[service]]).toEqual([
+        service,
+        [`logs ${ruleOf("eastus")}`],
+      ]);
+    }
+
+    // The services its kind has, and no other.
+    expect(settings[`${BLOB_ONLY}/blobServices/default`]).toEqual([
+      `logs ${ruleOf("eastus")}`,
+    ]);
+    expect(settings[`${BLOB_ONLY}/fileServices/default`]).toBeUndefined();
+    expect(settings[`${FILES_ONLY}/fileServices/default`]).toEqual([
+      `logs ${ruleOf("eastus")}`,
+    ]);
+    expect(settings[`${FILES_ONLY}/blobServices/default`]).toBeUndefined();
+    expect(shellRun.output).toContain(
+      "Diagnostic settings: 9 resources send to OneUptime's event hubs.",
+    );
+    expect(
+      shellRun.output.some((line: string): boolean => {
+        return line.includes("were left out");
+      }),
+    ).toBe(false);
+  });
+
+  test("with logs alone, the account itself is not tried: its logs are its services'", () => {
+    const settings: Record<string, Array<string>> = settingsByResource(
+      run(command({ metrics: false }), {
+        resources: STORAGE_RESOURCES,
+        support,
+      }),
+    );
+
+    expect(settings[ACCOUNT]).toBeUndefined();
+    expect(settings[SERVICES_OF_ACCOUNT[0]!]).toEqual([
+      `logs ${ruleOf("eastus")}`,
+    ]);
+  });
+
+  test("with metrics alone, no service is set up", () => {
+    const settings: Record<string, Array<string>> = settingsByResource(
+      run(command({ logs: false }), {
+        resources: STORAGE_RESOURCES,
+        support,
+      }),
+    );
+
+    expect(Object.keys(settings).sort()).toEqual(
+      [ACCOUNT, BLOB_ONLY, FILES_ONLY].sort(),
+    );
+  });
+
+  test("Stop streaming deletes each service's setting too", () => {
+    const shellRun: ShellRun = run(
+      getAzureCloudStreamDeleteCommand({
+        connectionId: CONNECTION,
+        subscriptionIds: [SUB_A],
+      }),
+      { resources: STORAGE_RESOURCES },
+    );
+    const deleted: Array<string> = callsOf(
+      shellRun,
+      "monitor diagnostic-settings delete",
+    ).map((call: Array<string>): string => {
+      return flag(call, "--resource") || "";
+    });
+
+    expect(deleted).toEqual(expect.arrayContaining(SERVICES_OF_ACCOUNT));
+    expect(deleted).toContain(ACCOUNT);
+    expect(deleted).toContain(`${BLOB_ONLY}/tableServices/default`);
+  });
+});
+
+/*
+ * Each subscription's Activity Log (#10111): a subscription diagnostic
+ * setting, `az monitor diagnostic-settings subscription create`, to the
+ * first region's event hub - and, when Azure refuses it, what it takes.
+ */
+describe("The Azure streaming command and each subscription's Activity Log", () => {
+  function activityCalls(shellRun: ShellRun): Array<Array<string>> {
+    return callsOf(shellRun, "monitor diagnostic-settings subscription create");
+  }
+
+  test("each subscription's Activity Log is sent to the first region's event hub, the categories Security Events reads alone", () => {
+    const shellRun: ShellRun = run(command({ activityLog: true }));
+    const calls: Array<Array<string>> = activityCalls(shellRun);
+
+    expect(
+      calls.map((call: Array<string>): Array<string | undefined> => {
+        return [
+          flag(call, "--subscription"),
+          flag(call, "--name"),
+          flag(call, "--location"),
+          flag(call, "--event-hub-name"),
+          flag(call, "--event-hub-auth-rule"),
+          flag(call, "--logs"),
+        ];
+      }),
+    ).toEqual(
+      [SUB_A, SUB_B].map((subscription: string) => {
+        return [
+          subscription,
+          NAMES.diagnosticSetting,
+          "eastus",
+          NAMES.eventHub,
+          ruleOf("eastus"),
+          AZURE_DIAGNOSTIC_ACTIVITY_LOG,
+        ];
+      }),
+    );
+    expect(
+      (
+        JSON.parse(AZURE_DIAGNOSTIC_ACTIVITY_LOG) as Array<{
+          category: string;
+        }>
+      ).map((entry: { category: string }): string => {
+        return entry.category;
+      }),
+    ).toEqual(["Administrative", "Security", "Policy"]);
+    expect(AZURE_ACTIVITY_LOG_CATEGORIES).toEqual([
+      "Administrative",
+      "Security",
+      "Policy",
+    ]);
+    // After every resource's, before it is done.
+    expect(shellRun.output.slice(-3)).toEqual([
+      `${SUB_A}: its Activity Log sends to the eastus event hub.`,
+      `${SUB_B}: its Activity Log sends to the eastus event hub.`,
+      AZURE_CLOUD_STREAM_COMMAND_DONE,
+    ]);
+  });
+
+  test("without it, no subscription setting is made", () => {
+    expect(activityCalls(run(command()))).toEqual([]);
+    expect(command()).not.toContain("subscription create");
+  });
+
+  test("a subscription whose setting Azure refuses says what it takes, and the rest goes on", () => {
+    const shellRun: ShellRun = run(command({ activityLog: true }), {
+      activityDenied: [SUB_B],
+    });
+
+    expect(shellRun.output.slice(-3)).toEqual([
+      `${SUB_A}: its Activity Log sends to the eastus event hub.`,
+      `${SUB_B}: its Activity Log is left out: Azure says you may not make its diagnostic setting. It takes Microsoft.Insights/diagnosticSettings/write on the subscription, which its Owner, Contributor and Monitoring Contributor have.`,
+      AZURE_CLOUD_STREAM_COMMAND_DONE,
+    ]);
+    expect(shellRun.status).toBe(0);
+  });
+
+  test("one who may make the setting but not use the event hubs' key is told what that takes", () => {
+    const shellRun: ShellRun = run(command({ activityLog: true }), {
+      activityLinked: [SUB_A],
+    });
+
+    expect(shellRun.output).toContain(
+      `${SUB_A}: its Activity Log is left out: Azure says you may not use the event hubs' key. It takes Microsoft.EventHub/namespaces/authorizationRules/listKeys/action on the resource group ${NAMES.resourceGroup}, which its Owner and Contributor have.`,
+    );
+  });
+
+  test("any other refusal is said in Azure's own first line", () => {
+    const shellRun: ShellRun = run(command({ activityLog: true }), {
+      activityFull: [SUB_A],
+    });
+
+    expect(shellRun.output).toContain(
+      `${SUB_A}: its Activity Log is left out: (BadRequest) Subscription '${SUB_A}' has reached the limit of 5 diagnostic settings.`,
+    );
+  });
+
+  test("the first region's event hub missing is said too, and it never closes the shell", () => {
+    const shellRun: ShellRun = run(
+      command({ activityLog: true }),
+      { fail: ["namespace create eastus"] },
+      "echo STILL-HERE",
+    );
+
+    expect(
+      shellRun.output.some((line: string): boolean => {
+        return line.startsWith(
+          `${SUB_A}: its Activity Log is left out: (LinkedInvalidPropertyId)`,
+        );
+      }),
+    ).toBe(true);
+    expect(shellRun.output[shellRun.output.length - 1]).toBe("STILL-HERE");
+    expect(command({ activityLog: true })).not.toMatch(NO_EXIT);
+  });
+
+  test("Stop streaming deletes each subscription's Activity Log setting", () => {
+    const shellRun: ShellRun = run(
+      getAzureCloudStreamDeleteCommand({
+        connectionId: CONNECTION,
+        subscriptionIds: [SUB_A, SUB_B],
+      }),
+    );
+
+    expect(
+      callsOf(shellRun, "monitor diagnostic-settings subscription delete").map(
+        (call: Array<string>): Array<string | undefined> => {
+          return [
+            flag(call, "--subscription"),
+            flag(call, "--name"),
+            call.includes("--yes") ? "yes" : "asks",
+          ];
+        },
+      ),
+    ).toEqual([
+      [SUB_A, NAMES.diagnosticSetting, "yes"],
+      [SUB_B, NAMES.diagnosticSetting, "yes"],
+    ]);
+  });
+});
+
+/*
+ * Microsoft Entra ID's logs (#10111): the tenant's diagnostic setting, a
+ * command of its own for a Security Administrator, run once the event hubs
+ * are there.
+ */
+describe("Microsoft Entra ID's command, run in bash", () => {
+  const ENTRA_PATH: string = `/providers/microsoft.aadiam/diagnosticSettings/${NAMES.diagnosticSetting}?api-version=2017-04-01`;
+
+  function entraCommand(): string {
+    return getAzureCloudStreamEntraCommand({
+      connectionId: CONNECTION,
+      hostSubscriptionId: SUB_A,
+    });
+  }
+
+  const BOTH_REGIONS: Array<string> = [
+    `${NAMES.namespacePrefix}westeurope`,
+    `${NAMES.namespacePrefix}eastus`,
+  ];
+
+  test("it sends the categories Security Events reads to the first region's event hub, by the tenant's own setting", () => {
+    const shellRun: ShellRun = run(entraCommand(), {
+      namespaces: BOTH_REGIONS,
+    });
+    const puts: Array<Array<string>> = callsOf(shellRun, "rest --method put");
+
+    expect(puts).toHaveLength(1);
+    expect(flag(puts[0]!, "--url")).toBe(ENTRA_PATH);
+    expect(JSON.parse(flag(puts[0]!, "--body") || "{}")).toEqual({
+      properties: {
+        eventHubAuthorizationRuleId: ruleOf("eastus"),
+        eventHubName: NAMES.eventHub,
+        logs: AZURE_ENTRA_ID_LOG_CATEGORIES.map((category: string) => {
+          return { category, enabled: true };
+        }),
+      },
+    });
+    expect(JSON.parse(AZURE_DIAGNOSTIC_ENTRA_ID_LOGS)).toHaveLength(6);
+    expect(
+      callsOf(shellRun, "eventhubs namespace list").map(
+        (call: Array<string>): Array<string | undefined> => {
+          return [flag(call, "--subscription"), flag(call, "--resource-group")];
+        },
+      ),
+    ).toEqual([[SUB_A, NAMES.resourceGroup]]);
+    expect(shellRun.output).toEqual([
+      `Microsoft Entra ID's logs send to the ${NAMES.namespacePrefix}eastus event hub.`,
+    ]);
+    expect(shellRun.status).toBe(0);
+  });
+
+  test("Entra ID's categories are the ones its parser reads", () => {
+    expect(AZURE_ENTRA_ID_LOG_CATEGORIES).toEqual([
+      "SignInLogs",
+      "NonInteractiveUserSignInLogs",
+      "ServicePrincipalSignInLogs",
+      "AuditLogs",
+      "RiskyUsers",
+      "UserRiskEvents",
+    ]);
+  });
+
+  test("run by someone who is not a Security Administrator, it says who may", () => {
+    const shellRun: ShellRun = run(entraCommand(), {
+      namespaces: BOTH_REGIONS,
+      entra: "denied",
+    });
+
+    expect(shellRun.output).toEqual([
+      "Microsoft Entra ID's logs are left out: Azure says you may not make its diagnostic setting. Only a Security Administrator of the tenant may: run this as one.",
+      AZURE_CLOUD_STREAM_COMMAND_STOPPED,
+    ]);
+  });
+
+  test("run by a Security Administrator who may not use the event hubs' key, it says what that takes", () => {
+    const shellRun: ShellRun = run(entraCommand(), {
+      namespaces: BOTH_REGIONS,
+      entra: "linked",
+    });
+
+    expect(shellRun.output[0]).toBe(
+      `Microsoft Entra ID's logs are left out: Azure says you may not use the event hubs' key. It takes Microsoft.EventHub/namespaces/authorizationRules/listKeys/action on the resource group ${NAMES.resourceGroup}, which its Owner and Contributor have.`,
+    );
+  });
+
+  test("any other refusal is said in Azure's own words", () => {
+    const shellRun: ShellRun = run(entraCommand(), {
+      namespaces: BOTH_REGIONS,
+      entra: "invalid",
+    });
+
+    expect(shellRun.output[0]).toBe(
+      'Microsoft Entra ID\'s logs are left out: Bad Request({"error":{"code":"BadRequest","message":"The tenant does not have a license that allows exporting the category SignInLogs."}})',
+    );
+  });
+
+  test("before the stream's command has made the event hubs, it says to run that first, and makes nothing", () => {
+    const shellRun: ShellRun = run(entraCommand(), {}, "echo STILL-HERE");
+
+    expect(shellRun.output).toEqual([
+      `The stream's event hubs are not in ${NAMES.resourceGroup} yet: run the stream's command first.`,
+      AZURE_CLOUD_STREAM_COMMAND_STOPPED,
+      "STILL-HERE",
+    ]);
+    expect(callsOf(shellRun, "rest --method put")).toEqual([]);
+    expect(entraCommand()).not.toMatch(NO_EXIT);
+  });
+
+  test("a host that is no subscription ID never reaches the command", () => {
+    expect(
+      getAzureCloudStreamEntraCommand({
+        connectionId: CONNECTION,
+        hostSubscriptionId: "$(touch pwned)",
+      }),
+    ).not.toContain("pwned");
+  });
+
+  test("Stop streaming deletes the tenant's setting when there is one, or says who may", () => {
+    const stop: string = getAzureCloudStreamDeleteCommand({
+      connectionId: CONNECTION,
+      subscriptionIds: [SUB_A],
+    });
+    const none: ShellRun = run(stop, { entra: "none" });
+    const deleted: ShellRun = run(stop, { entra: "exists" });
+    const left: ShellRun = run(stop, { entra: "undeletable" });
+
+    expect(callsOf(none, "rest --method delete")).toEqual([]);
+    expect(none.output).toEqual([]);
+    expect(
+      callsOf(deleted, "rest --method delete").map(
+        (call: Array<string>): string | undefined => {
+          return flag(call, "--url");
+        },
+      ),
+    ).toEqual([ENTRA_PATH]);
+    expect(deleted.output).toEqual([
+      `Deleted Microsoft Entra ID's diagnostic setting ${NAMES.diagnosticSetting}.`,
+    ]);
+    expect(left.output).toEqual([
+      `Microsoft Entra ID's diagnostic setting ${NAMES.diagnosticSetting} is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center.`,
+    ]);
   });
 });

@@ -105,7 +105,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Lists records, newest first. Labels are listed by name instead, numbered labels first (`2. Team` before `10. Owner`).
+Lists records, newest first. Labels are listed by name instead, numbered labels first (`2. Team` before `10. Owner`). Records you put in order by dragging, such as incident states, are listed in that order.
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [--fields <names>] [--all]

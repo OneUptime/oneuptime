@@ -922,7 +922,7 @@ async function expectHeaderActionsOnTheRight(
 
 function sideMenu(page: Page): Locator {
   return page
-    .locator("aside[role='navigation'][aria-label='Main navigation']")
+    .locator("aside[role='navigation'][aria-label='Pages in this section']")
     .first();
 }
 
@@ -8513,14 +8513,21 @@ test.describe("incident and alert overview", () => {
     await expect(dialog).toContainText(
       "This marks the incident as resolved on the incident timeline.",
     );
-    // A confirm: whether subscribers hear about it, and the note folded.
+    /*
+     * A confirm: whether subscribers hear about it, then the note and the
+     * root cause a resolve asks for (#7765), each folded - no editor open.
+     */
     await expect(
       dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
     ).toBeChecked();
+    for (const folded of ["Add a public note", "Add the root cause"]) {
+      await expect(
+        dialog.getByRole("button", { name: folded }),
+      ).toHaveAttribute("aria-expanded", "false");
+    }
     await expect(
-      dialog.getByRole("button", { name: "Add a public note" }),
-    ).toHaveAttribute("aria-expanded", "false");
-    await expect(dialog.getByTestId("markdown-editor-toolbar")).toBeHidden();
+      dialog.getByTestId("markdown-editor-toolbar").filter({ visible: true }),
+    ).toHaveCount(0);
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Resolve", exact: true })

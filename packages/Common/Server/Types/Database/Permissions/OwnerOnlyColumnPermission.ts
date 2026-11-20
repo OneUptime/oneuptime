@@ -150,7 +150,11 @@ export default class OwnerOnlyColumnPermission {
    * guessing it are the same disclosure given enough attempts, so a WHERE on a
    * marked column is held to the identical standard as a select on it. Nested
    * relation filters are walked too, because `{ userWebhook: { webhookUrl: x } }`
-   * probes exactly the same value from one level out.
+   * probes exactly the same value from one level out - and so, at every
+   * depth, does `{ userOnCallLogTimeline: { userWebhook: { webhookUrl: x } } }`
+   * on a project's SMS log (#10176). Whatever the depth, the read's own query
+   * is the one that decides, as for a select through a relation: only it says
+   * whose rows the joins drag in.
    */
   @CaptureSpan()
   public static checkQueryPermission<TBaseModel extends BaseModel>(
@@ -179,42 +183,84 @@ export default class OwnerOnlyColumnPermission {
         continue;
       }
 
-      const value: unknown = (query as Record<string, unknown>)[columnName];
+      OwnerOnlyColumnPermission.checkRelationFilter({
+        modelType: modelType,
+        query: query as Query<BaseModel>,
+        model: model,
+        relationColumnName: columnName,
+        filter: (query as Record<string, unknown>)[columnName],
+        props: props,
+      });
+    }
+  }
 
-      if (!OwnerOnlyColumnPermission.isPlainObject(value)) {
-        continue;
-      }
+  /*
+   * A filter through one relation of `model` - and every relation filter
+   * nested in it, a level deeper each time - held to route 4: a marked column
+   * of the related record is a predicate only for a read whose own query
+   * (`modelType`, `query`) is pinned to the caller. A list of filters is
+   * walked filter by filter.
+   */
+  private static checkRelationFilter(data: {
+    modelType: DatabaseBaseModelType;
+    query: Query<BaseModel>;
+    model: BaseModel;
+    relationColumnName: string;
+    filter: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    const filters: Array<unknown> = Array.isArray(data.filter)
+      ? data.filter
+      : [data.filter];
 
-      const tableColumnMetadata: TableColumnMetadata =
-        model.getTableColumnMetadata(columnName);
+    const relationFilters: Array<Record<string, unknown>> = filters.filter(
+      (filter: unknown): filter is Record<string, unknown> => {
+        return OwnerOnlyColumnPermission.isPlainObject(filter);
+      },
+    );
 
-      if (
-        !tableColumnMetadata ||
-        !tableColumnMetadata.modelType ||
-        (tableColumnMetadata.type !== TableColumnType.Entity &&
-          tableColumnMetadata.type !== TableColumnType.EntityArray)
-      ) {
-        continue;
-      }
+    if (relationFilters.length === 0) {
+      return;
+    }
 
-      const relatedModel: BaseModel = new tableColumnMetadata.modelType();
+    const tableColumnMetadata: TableColumnMetadata | undefined =
+      data.model.getTableColumnMetadata(data.relationColumnName);
 
-      for (const relatedColumnName in value as Record<string, unknown>) {
-        if (!isOwnerOnlyColumn(relatedModel, relatedColumnName)) {
+    if (
+      !tableColumnMetadata ||
+      !tableColumnMetadata.modelType ||
+      (tableColumnMetadata.type !== TableColumnType.Entity &&
+        tableColumnMetadata.type !== TableColumnType.EntityArray)
+    ) {
+      return;
+    }
+
+    const relatedModel: BaseModel = new tableColumnMetadata.modelType();
+
+    for (const relationFilter of relationFilters) {
+      for (const relatedColumnName in relationFilter) {
+        if (isOwnerOnlyColumn(relatedModel, relatedColumnName)) {
+          if (
+            !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+              data.modelType,
+              data.query,
+              data.props,
+            )
+          ) {
+            throw new NotAuthorizedException(
+              `You do not have permissions to query on ${relatedColumnName} of ${relatedModel.singularName} through ${data.relationColumnName} on ${data.model.singularName}. This column belongs to the user it was created for, so it can only be queried by a request restricted to your own records.`,
+            );
+          }
+
           continue;
         }
 
-        if (
-          !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
-            modelType,
-            query,
-            props,
-          )
-        ) {
-          throw new NotAuthorizedException(
-            `You do not have permissions to query on ${relatedColumnName} of ${relatedModel.singularName} through ${columnName} on ${model.singularName}. This column belongs to the user it was created for, so it can only be queried by a request restricted to your own records.`,
-          );
-        }
+        OwnerOnlyColumnPermission.checkRelationFilter({
+          ...data,
+          model: relatedModel,
+          relationColumnName: relatedColumnName,
+          filter: relationFilter[relatedColumnName],
+        });
       }
     }
   }

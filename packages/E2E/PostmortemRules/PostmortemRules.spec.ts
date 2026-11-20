@@ -68,6 +68,8 @@ const TEMPLATES_DESCRIPTION: string =
 interface Recorded {
   creates: Array<{ model: string; data: Record<string, unknown> }>;
   updates: Array<{ model: string; id: string; data: Record<string, unknown> }>;
+  // Each drop: the row dropped, and the row whose place it took.
+  moves: Array<{ model: string; id: string; placeOfId: string }>;
   deletes: Array<{ model: string; id: string }>;
 }
 
@@ -600,19 +602,24 @@ test.describe("the order rules are tried in", () => {
         "Draft with Customer-facing outage, Security incident",
       ]);
 
+    /*
+     * The drop is a move (POST <list>/:id/move, #9609): the rule takes the
+     * place of the rule it landed on - the top one - and the server numbers
+     * the list again. No rule's number is written.
+     */
     const sent: Recorded = await recorded(page);
+    expect(sent.moves).toEqual([
+      {
+        model: "AIPostmortemRule",
+        id: "90000000-0000-4000-8000-000000000c03",
+        placeOfId: "90000000-0000-4000-8000-000000000c01",
+      },
+    ]);
     expect(
       sent.updates.filter((update: Recorded["updates"][number]): boolean => {
         return update.model === "AIPostmortemRule";
       }),
-    ).toEqual([
-      {
-        model: "AIPostmortemRule",
-        id: "90000000-0000-4000-8000-000000000c03",
-        // The number of the rule it took the place of: the top one's.
-        data: { order: 1 },
-      },
-    ]);
+    ).toEqual([]);
   });
 
   test("a refused drop puts the rules back and says why", async ({

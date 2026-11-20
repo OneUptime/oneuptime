@@ -64,6 +64,13 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/opamp",
   /*
+   * Where the OneUptime Android agent asks every minute for the log sessions
+   * open for its device (/android-agent/v1/log-sessions, #9806), mounted on
+   * "/telemetry" and "/" alike. POST-only; reserved for the same reason as
+   * /fluentd.
+   */
+  "/android-agent",
+  /*
    * The rest of the routes the Telemetry routers serve at the root as well
    * as under "/telemetry" (TelemetryRouteReservation.test.ts reads them
    * from the routers, so a new one fails there until it is listed here).

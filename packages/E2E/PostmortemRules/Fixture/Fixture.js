@@ -37,11 +37,12 @@
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
  * What the page sends is recorded on window.__fixture: `creates` (each
- * created record as JSON), `updates` (each updateById: model, id, data) and
- * `deletes` (model and id) - so the spec checks what was sent, not only
- * what was drawn. The tables answer from in-memory records, which a create,
- * an update or a delete changes, and a drop moves the rows the way the
- * server does (Common/Utils/ListOrder).
+ * created record as JSON), `updates` (each updateById: model, id, data),
+ * `moves` (each drop: model, the row dropped and the row whose place it
+ * took) and `deletes` (model and id) - so the spec checks what was sent,
+ * not only what was drawn. The tables answer from in-memory records, which
+ * a create, an update, a move or a delete changes; a drop moves the rows
+ * the way the server does (POST <list>/:id/move, Common/Utils/ListOrder).
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -72,7 +73,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
-import { getListOrderCollisionChanges } from "Common/Utils/ListOrder";
+import { getListOrderMoveChanges } from "Common/Utils/ListOrder";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -110,6 +111,7 @@ const rulePick = params.get("rulePick");
 window.__fixture = {
   creates: [],
   updates: [],
+  moves: [],
   deletes: [],
 };
 
@@ -493,43 +495,43 @@ ModelAPI.getItem = async (options) => {
   return table.find((item) => idOf(item._id) === idOf(options.id)) || null;
 };
 
-// A list's numbers after one row takes `value`, the way the server keeps them.
-function reorder(table, id, value) {
-  const item = table.find((candidate) => idOf(candidate._id) === idOf(id));
-
-  if (!item) {
-    return;
-  }
-
-  const changes = getListOrderCollisionChanges({
-    siblings: table.map((row) => ({
-      id: idOf(row._id),
-      value: row.order,
-      createdAt: row.createdAt,
-    })),
-    itemId: idOf(id),
-    previousValue: item.order,
-    requestedValue: value,
-    sortOrder: SortOrder.Ascending,
-  });
-
-  for (const change of changes) {
-    const row = table.find((candidate) => idOf(candidate._id) === change.id);
-    if (row) {
-      row.order = change.value;
-    }
-  }
-
-  item.order = value;
-}
-
+/*
+ * A write of a row: what it sends, kept. A rule's number written this way
+ * places that rule alone and moves no other, as the server keeps a
+ * drag-ordered list's numbers (Common/Utils/ListOrder).
+ */
 ModelAPI.updateById = async (options) => {
   const name = tableName(options.modelType);
   const data = JSON.parse(JSON.stringify(options.data || {}));
 
   window.__fixture.updates.push({ model: name, id: idOf(options.id), data });
 
-  if (failNextReorder && data.order !== undefined) {
+  const item = (TABLES[name] || []).find(
+    (candidate) => idOf(candidate._id) === idOf(options.id),
+  );
+  if (item) {
+    Object.assign(item, options.data || {});
+  }
+
+  return new HTTPResponse(200, {}, {});
+};
+
+/*
+ * A drop (POST <list>/:id/move, ModelAPI.moveInList): the rule dropped
+ * takes the place of the rule it was dropped on, the rules between step one
+ * place towards where it was, and the list is numbered 1..n again - as the
+ * server moves a row of a drag-ordered list (ListOrderMaintainer.move, by
+ * getListOrderMoveChanges). ?fail=reorder refuses the next one, as a server
+ * would.
+ */
+ModelAPI.moveInList = async (options) => {
+  const name = tableName(options.modelType);
+  const id = idOf(options.id);
+  const placeOfId = idOf(options.placeOfId);
+
+  window.__fixture.moves.push({ model: name, id, placeOfId });
+
+  if (failNextReorder) {
     failNextReorder = false;
     throw new HTTPErrorResponse(
       500,
@@ -539,19 +541,41 @@ ModelAPI.updateById = async (options) => {
   }
 
   const table = TABLES[name] || [];
+  const move = getListOrderMoveChanges({
+    items: table.map((row) => ({
+      id: idOf(row._id),
+      value: row.order,
+      createdAt: row.createdAt,
+    })),
+    itemId: id,
+    placeOfId,
+    sortOrder: SortOrder.Ascending,
+  });
 
-  if (data.order !== undefined) {
-    reorder(table, options.id, Number(data.order));
-  } else {
-    const item = table.find(
-      (candidate) => idOf(candidate._id) === idOf(options.id),
+  if (move.kind !== "moved") {
+    throw new HTTPErrorResponse(
+      404,
+      {
+        message:
+          "This postmortem rule is no longer in its list. Reload to see the list as it is now.",
+      },
+      {},
     );
-    if (item) {
-      Object.assign(item, options.data || {});
+  }
+
+  for (const change of move.changes) {
+    const row = table.find((candidate) => idOf(candidate._id) === change.id);
+    if (row) {
+      row.order = change.value;
     }
   }
 
-  return new HTTPResponse(200, {}, {});
+  return {
+    changedRows: move.changes.map((change) => ({
+      id: change.id,
+      order: change.value,
+    })),
+  };
 };
 
 function relationList(value, ModelType) {

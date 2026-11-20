@@ -98,6 +98,23 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "reader",
     why: "strips Data Source widgets from what anonymous visitors get, and reads the config their page then draws",
   },
+  "Common/Utils/Metrics/RetiredCloudMetricChartMoves.ts": {
+    role: "reader",
+    why: "finds, and moves, the widgets' queries of a metric its cloud deprecates (#9980) in a stored config its callers take out of storage, with the widgets every board reads",
+  },
+  "Common/Server/Utils/CloudConnection/CloudRetiredMetricReads.ts": {
+    role: "reader",
+    why: "takes the dashboards that name a deprecated cloud metric out of storage, so a connection keeps reading it for the charts still on it; RetiredCloudMetricChartMoves reads each",
+  },
+  "App/FeatureSet/Workers/DataMigrations/MoveChartsAndSlosOffRetiredCloudMetrics.ts":
+    {
+      role: "reader",
+      why: "takes the dashboards that name a deprecated cloud metric out of storage, has RetiredCloudMetricChartMoves read and move each, and writes back what moved",
+    },
+  "Common/Server/Utils/Telemetry/MetricReaders.ts": {
+    role: "reader",
+    why: "reads a project's dashboards to name the ones, and the widgets on them, that read a metric something would take away, such as the metrics Data Security would drop (#9757, #9946)",
+  },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx": {
     role: "handed-a-read-config",
     why: "draws the board DashboardView or the public page read",
@@ -225,6 +242,13 @@ const DASHBOARD_SERVICE: string = "Common/Server/Services/DashboardService.ts";
 const DASHBOARD_API: string = "Common/Server/API/DashboardAPI.ts";
 const PUBLIC_SANITIZER: string =
   "Common/Server/Utils/Dashboard/PublicDashboardViewConfig.ts";
+const RETIRED_METRIC_CHART_MOVES: string =
+  "Common/Utils/Metrics/RetiredCloudMetricChartMoves.ts";
+const RETIRED_METRIC_READS: string =
+  "Common/Server/Utils/CloudConnection/CloudRetiredMetricReads.ts";
+const RETIRED_METRIC_CHART_MIGRATION: string =
+  "App/FeatureSet/Workers/DataMigrations/MoveChartsAndSlosOffRetiredCloudMetrics.ts";
+const METRIC_READERS: string = "Common/Server/Utils/Telemetry/MetricReaders.ts";
 const CANVAS: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx";
 const WIDGET_CARD: string =
@@ -286,6 +310,24 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
         "StoredDashboardViewConfig.unwrap(dashboardViewConfig)",
         "StoredDashboardViewConfig.getComponentEntries(storedConfig)",
         "StoredDashboardViewConfig.read(PublicDashboardViewConfig.sanitize(",
+      ],
+      [RETIRED_METRIC_CHART_MOVES]: [
+        "StoredDashboardViewConfig.unwrap(dashboardViewConfigJSON)",
+        "StoredDashboardViewConfig.getComponentEntries(config)",
+        "StoredDashboardViewConfig.withArgumentsRead(entry)",
+      ],
+      // These two hand the stored config to RetiredCloudMetricChartMoves, which reads it.
+      [RETIRED_METRIC_READS]: [
+        "findRetiredCloudMetricQueriesOfDashboard(readJSON(row.dashboardViewConfig)",
+      ],
+      [RETIRED_METRIC_CHART_MIGRATION]: [
+        "findRetiredCloudMetricQueriesOfDashboard(stored)",
+        "moveRetiredCloudMetricQueriesOfDashboard({dashboardViewConfigJSON:viewConfig,",
+      ],
+      [METRIC_READERS]: [
+        "StoredDashboardViewConfig.unwrap(asStored(dashboardViewConfig)",
+        "StoredDashboardViewConfig.getComponentEntries(config)",
+        "StoredDashboardViewConfig.withArgumentsRead(entry)",
       ],
     };
 

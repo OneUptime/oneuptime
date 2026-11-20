@@ -726,6 +726,15 @@ describe("a read by a caller limited to owned records, every kind the Owned scop
         "IncidentTemplate",
         "IncidentTemplateOwnerTeam",
         "IncidentTemplateOwnerUser",
+        /*
+         * A device is put in a site, and the Sites page draws every site's
+         * parents (#10188): every reader of sites reads every one, and
+         * their health over time.
+         */
+        "NetworkSite",
+        "NetworkSiteOwnerTeam",
+        "NetworkSiteOwnerUser",
+        "NetworkSiteStatusTimeline",
         "OnCallDutyPolicySchedule",
         "OnCallDutyPolicyScheduleCalendarFeed",
         "OnCallDutyPolicyScheduleLayer",

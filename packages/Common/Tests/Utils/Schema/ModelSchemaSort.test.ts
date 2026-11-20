@@ -15,6 +15,10 @@ import SortNulls from "../../../Types/BaseDatabase/SortNulls";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../../Types/Database/AccessControl/OwnerOnlyColumn";
 import {
+  ACCOUNT_DATE_COLUMNS,
+  isAccountDateColumn,
+} from "../../../Types/Database/AccessControl/AccountDateColumns";
+import {
   getTableColumns,
   TableColumnMetadata,
 } from "../../../Types/Database/TableColumn";
@@ -867,7 +871,8 @@ describe("a relation's sort", () => {
             !column.hashed &&
             !column.encrypted &&
             !column.secret &&
-            !isOwnerOnlyColumn(model, key)
+            !isOwnerOnlyColumn(model, key) &&
+            !isAccountDateColumn(model.tableName, key)
           );
         })
         .map(([key]: [string, TableColumnMetadata]): string => {
@@ -957,6 +962,30 @@ describe("a relation's sort", () => {
     expect(severity["description"]).toBe(
       'What a sort may name of the IncidentSeverity a relation of one record points at: a field of it and its order, as in {"order":"ASC"}.',
     );
+  });
+
+  /*
+   * A person's account dates say when they were last active: the API
+   * refuses them as an order through a relation to all but OneUptime and a
+   * master admin (#9823, PendingInviteeProfiles). So the spec offers a
+   * relation to a person by their other fields, and so does the API's
+   * refusal of a relation given only a direction.
+   */
+  test("of a person leaves out their account dates, which no relation is ordered by", () => {
+    const person: Array<string> = Object.keys(
+      propertiesOf(SCHEMAS["UserRelationSortSchema"] as JSONObject),
+    );
+    const refusal: string =
+      refusalOf(Incident, { createdByUser: SortOrder.Descending })?.message ||
+      "";
+
+    expect(person).toEqual(expect.arrayContaining(["_id", "name"]));
+    expect(refusal).toContain("name another of its fields");
+
+    for (const column of ACCOUNT_DATE_COLUMNS) {
+      expect(person).not.toContain(column);
+      expect(refusal).not.toContain(column);
+    }
   });
 
   /*

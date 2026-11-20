@@ -1113,8 +1113,23 @@ function getMemberValueFormatter(
     return ValueFormatter.formatValue(value, member.unit, {
       ...formatterOptions,
       step: precision?.step,
+      largestTick: precision?.largestTick,
     });
   };
+}
+
+/*
+ * For a member whose values are spans of time, the seconds one value stands
+ * for: its axis steps in natural units of time, a quarter of an hour, not a
+ * decimal fraction of one (issue #10118). None for a member a page writes
+ * with its own formatter, which writes its figures its own way.
+ */
+function getMemberDurationUnitInSeconds(
+  member: PanelMember,
+): number | undefined {
+  return member.queryConfig.yAxisValueFormatter
+    ? undefined
+    : ValueFormatter.getDurationUnitInSeconds(member.unit);
 }
 
 /*
@@ -3816,6 +3831,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 precision: YAxisPrecision.NoDecimals,
                 max: secondYAxisMax,
                 min: secondYAxisMin,
+                durationUnitInSeconds:
+                  getMemberDurationUnitInSeconds(secondAxisLead),
               },
               seriesNames: [...panelSeries, ...renderSeries]
                 .filter(isOnSecondAxis)
@@ -3955,6 +3972,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               precision: YAxisPrecision.NoDecimals,
               max: yAxisMax,
               min: yAxisMin,
+              durationUnitInSeconds:
+                getMemberDurationUnitInSeconds(firstMember),
             },
           },
           secondYAxis: secondYAxis,
@@ -4280,11 +4299,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 return ValueFormatter.formatValue(value, formulaUnit, {
                   language: translator.language,
                   step: precision?.step,
+                  largestTick: precision?.largestTick,
                 });
               },
               precision: YAxisPrecision.NoDecimals,
               max: "auto",
               min: "auto",
+              // A span of time steps in natural units of time (#10118).
+              durationUnitInSeconds:
+                ValueFormatter.getDurationUnitInSeconds(formulaUnit),
             },
           },
           curve: ChartCurve.MONOTONE,

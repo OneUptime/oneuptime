@@ -91,6 +91,10 @@ const PAIRS: Array<InterfaceSchemaPair> = [
     schema: (): ZodObject => {
       return valueOf(getMonitorStepSchema());
     },
+    notInTheApi: {
+      totpSecrets:
+        "the TOTP secrets the server hands a probe with the step, for its one-time codes; never set by users and never stored (MonitorStep.toDatabaseJSON)",
+    },
   },
   {
     file: "Types/Monitor/MonitorCriteria.ts",

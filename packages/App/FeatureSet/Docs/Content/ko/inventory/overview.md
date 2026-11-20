@@ -138,9 +138,17 @@ Esper에서 제거된 기기는 **제거됨**으로 표시되고 항목은 보�
 
 **관리형 디바이스**에서 연결 행의 **경고 설정**을 클릭하고 **Esper Android Device Stopped Checking In**과 **Esper Apple Device Stopped Checking In**을 생성합니다. 첫 번째는 1시간 넘게 Esper에 체크인하지 않은 Android 기기마다, 두 번째는 하루 넘게 체크인하지 않은 Apple 기기마다 기기 이름을 붙인 경고를 하나씩 열고, 기기가 다시 체크인하면 해결합니다.
 
-연결을 읽을 때마다 각 기기가 몇 분 전에 마지막으로 체크인했는지를 메트릭 `oneuptime.managed_device.check_in.age`로 기록하며, 모니터는 5분마다 각 기기의 최신 값을 확인합니다. Android Agent도 실행하는 기기는 **Host Stopped Reporting**에 맡기므로 경고가 두 번 울리지 않으며, Esper에서 제거된 기기의 경고는 해결됩니다. 읽기에 실패하면 아무것도 기록되지 않으므로 다음 읽기까지 경고가 열리거나 해결되지 않습니다. 밤에 꺼 두는 기기군이라면 모니터의 임계값을 높이세요.
+연결을 읽을 때마다 각 기기가 몇 분 전에 마지막으로 체크인했는지를 메트릭 `oneuptime.managed_device.check_in.age`로 기록하며, 모니터는 5분마다 각 기기의 최신 값을 확인합니다. Android Agent도 실행하는 기기는 **Host Stopped Reporting**에 맡기므로 경고가 두 번 울리지 않으며, Esper에서 제거된 기기의 경고는 해결됩니다. 읽기에 실패하면 기기에 대해 아무것도 기록되지 않으므로, 읽기가 다시 성공할 때까지 기기의 경고가 열리거나 해결되지 않습니다. 밤에 꺼 두는 기기군이라면 모니터의 임계값을 높이세요.
 
 **Esper Security Patch Out of Date**도 생성하면, Esper가 보고하는 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고가 하나씩 열리고, 기기가 업데이트되면 해결됩니다. 읽을 때마다 각 Android 기기의 패치 수준이 며칠 지났는지를 메트릭 `oneuptime.managed_device.security_patch.age`로 기록합니다. Android Agent를 실행하는 기기는 해당 호스트의 **Security Patch Out of Date**에 맡기므로 경고가 두 번 울리지 않습니다.
+
+**Esper Low Battery**와 **Esper Storage Nearly Full**도 생성하면, Esper가 마지막으로 읽은 배터리가 20% 미만인 기기마다 경고가 하나씩 열리고, 스토리지가 90% 넘게 찬 기기마다도 마찬가지로 열리며, 각각 기기가 충전되거나 공간이 다시 생기면 해결됩니다. 읽을 때마다 둘 다 메트릭 `oneuptime.managed_device.battery.level`과 `oneuptime.managed_device.storage.used`로 기록합니다. Android Agent를 실행하는 기기는 같은 수준에서 경고하는 해당 호스트의 **Low Battery**와 **Storage Nearly Full**에 맡기므로 경고가 두 번 울리지 않습니다.
+
+기기의 경고는 해당 항목에도 표시됩니다. 기기의 **Esper** 카드에는 그 기기에 대해 열려 있는 인시던트와 경고가 각 페이지 링크와 함께 나열되며, Android Agent가 보고하지 않는 기기의 **경고** 페이지와 **인시던트** 페이지에는 연결의 모니터가 그 기기에 대해 발생시킨 경고와 인시던트가 모두 나열됩니다.
+
+### 연결이 더 이상 읽히지 않으면 경고 받기
+
+**Esper Connection Stopped Reading**을 생성하면, 연결의 행이 **상태**를 **오래됨**으로 바꾸기 전까지 기다리는 시간, 즉 읽기 간격 세 번에 10분을 더한 시간(단, 최소 30분) 동안 읽기가 한 번도 성공하지 않을 때 연결 자체에 대한 경고가 열립니다. 기본 15분 간격에서는 55분입니다. 첫 번째 디버깅 단계는 연결의 최근 값을 각 읽기가 실패한 오류와 함께 나열하며, 처음으로 성공한 읽기가 경고를 해결합니다. 읽을 때마다, 그리고 연결의 읽기 차례가 될 때마다 마지막 성공 이후 몇 분이 지났는지를 메트릭 `oneuptime.managed_device.connection.read.age`로 기록합니다. 모니터는 생성할 때의 연결 읽기 간격만큼 기다리며, 꺼 둔 연결은 아무것도 기록하지 않으므로 열려 있던 경고는 직접 해결할 때까지 열린 상태로 남습니다.
 
 ## Microsoft Intune에서 기기 가져오기
 
@@ -168,7 +176,7 @@ Microsoft Entra 관리 센터에서 `App registrations`를 열고 `New registrat
 
 Intune은 소유자가 붙인 이름으로 기기를 부르므로, 두 기기가 같은 이름일 수 있습니다. 아무도 이름을 바꾸지 않은 iPhone은 모두 `iPhone`입니다. 한 연결의 두 기기가 함께 쓰는 이름은 인벤토리에서 어느 쪽의 것도 아닙니다. 각 기기는 대신 일련 번호로 이름이 붙고, 그 이름을 가진 다른 기기가 없어지면 이름을 되찾습니다.
 
-기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Intune Device Stopped Checking In**을 생성합니다. 하루 넘게 Intune에 체크인하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. 주말 동안 꺼 둔 노트북도 똑같이 보이므로, 하루가 너무 짧다면 모니터의 임계값을 높이세요. **Intune Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다.
+기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Intune Device Stopped Checking In**을 생성합니다. 하루 넘게 Intune에 체크인하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. 주말 동안 꺼 둔 노트북도 똑같이 보이므로, 하루가 너무 짧다면 모니터의 임계값을 높이세요. **Intune Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다. **Intune Storage Nearly Full**과 **Intune Connection Stopped Reading**은 Esper의 템플릿처럼 경고합니다. Intune의 기기 목록에는 배터리 수준이 없으므로 배터리 경고는 제공되지 않습니다.
 
 ## Workspace ONE UEM에서 기기 가져오기
 
@@ -194,7 +202,7 @@ Workspace ONE UEM 콘솔에서 `Accounts`, `Administrators`, `Roles`로 차례�
 
 기기에서 텔레메트리를 보내는 앱이나 Android Agent는 기기의 일련 번호로 그 기기와 하나의 항목으로 합쳐집니다. Android Agent의 관리형 구성에서 `device_serial` 설정에 `{DeviceSerialNumber}` 조회 값을 넣으세요.
 
-기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Workspace ONE Device Stopped Checking In**을 생성합니다. 하루 넘게 Workspace ONE에 보고하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. **Workspace ONE Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다.
+기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **Workspace ONE Device Stopped Checking In**을 생성합니다. 하루 넘게 Workspace ONE에 보고하지 않은 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. **Workspace ONE Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다. **Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full**, **Workspace ONE Connection Stopped Reading**은 Esper의 템플릿처럼 경고합니다.
 
 ## SOTI MobiControl에서 기기 가져오기
 
@@ -218,7 +226,7 @@ MobiControl 에이전트는 서버와 실시간 연결을 유지하므로, 에�
 
 기기에서 텔레메트리를 보내는 앱이나 Android Agent는 기기의 일련 번호로 그 기기와 하나의 항목으로 합쳐집니다. Android Agent의 관리형 구성에서 `device_serial` 설정에 `%SERIALNUM%` 매크로를 넣으세요.
 
-기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **SOTI Device Stopped Checking In**과 **SOTI Apple Device Stopped Checking In**을 생성합니다. 첫 번째는 에이전트가 1시간 넘게 연결되지 않은 Android, Windows, Linux 기기마다, 두 번째는 하루 넘게 체크인하지 않은 Apple 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. **SOTI Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다.
+기기의 체크인이 멈췄을 때 경고를 받으려면 연결 행의 **경고 설정**을 클릭하고 **SOTI Device Stopped Checking In**과 **SOTI Apple Device Stopped Checking In**을 생성합니다. 첫 번째는 에이전트가 1시간 넘게 연결되지 않은 Android, Windows, Linux 기기마다, 두 번째는 하루 넘게 체크인하지 않은 Apple 기기마다 기기 이름을 붙인 경고를 하나씩 엽니다. **SOTI Security Patch Out of Date**는 Esper의 템플릿처럼 보안 패치 수준이 90일보다 오래된 Android 기기마다 경고합니다. **SOTI Low Battery**, **SOTI Storage Nearly Full**, **SOTI Connection Stopped Reading**은 Esper의 템플릿처럼 경고합니다.
 
 ## 직접 추가하기
 

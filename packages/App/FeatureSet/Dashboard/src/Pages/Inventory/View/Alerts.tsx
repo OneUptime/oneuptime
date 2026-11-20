@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import AlertsTable from "../../../Components/Alert/AlertsTable";
+import ManagedDeviceRecordsTable from "../../../Components/DeviceManagement/ManagedDeviceRecordsTable";
 import InventoryLinkedResource from "../../../Components/Inventory/InventoryLinkedResource";
 import {
   LinkedResource,
@@ -20,7 +21,22 @@ const InventoryItemAlerts: FunctionComponent<
 
   return (
     <Fragment>
-      <InventoryLinkedResource modelId={modelId} signal="alerts">
+      <InventoryLinkedResource
+        modelId={modelId}
+        signal="alerts"
+        /*
+         * A device a device manager imports, which no Host stands for: the
+         * alerts its device manager's monitors raised about it (#10007).
+         */
+        renderManagedDevice={(managedDeviceId: ObjectID): ReactElement => {
+          return (
+            <ManagedDeviceRecordsTable
+              managedDeviceId={managedDeviceId}
+              kind="alert"
+            />
+          );
+        }}
+      >
         {(resource: LinkedResource): ReactElement => {
           return (
             <AlertsTable

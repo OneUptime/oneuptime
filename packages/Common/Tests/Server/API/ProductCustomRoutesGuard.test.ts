@@ -407,6 +407,12 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  "packages/Common/Server/API/NetworkEmptySitesAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {
+      EMPTY_SITES_PATH: READ,
+    },
+  },
   "packages/Common/Server/API/NetworkDeviceWatchingMonitorsAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {
@@ -1037,9 +1043,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * the phone's browser reads a mobile app's passkey options once,
          * by the one-time hand-off the app was given at sign-in. #9898: the
          * sign-up page an invitation opens says its link is the person's,
-         * as they pick the project's single sign-on.
+         * as they pick the project's single sign-on. #10178: so does the
+         * project's SSO page an invitation opens for someone who has
+         * signed up.
          */
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 23,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 24,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,

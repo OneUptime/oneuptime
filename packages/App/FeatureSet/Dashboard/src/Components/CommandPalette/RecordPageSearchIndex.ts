@@ -1100,6 +1100,24 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
       },
     ],
   },
+  /*
+   * A custom role's page and, from the registry, its Developer pages
+   * (#10139): "incident responder api" opens that role's API page.
+   */
+  {
+    id: "custom-roles",
+    area: "teams",
+    menus: ["Pages/Teams/RoleViewSideMenu.tsx"],
+    recordName: "Custom Role",
+    keywords: ["custom role", "custom roles"],
+    pages: [
+      {
+        page: PageMap.TEAM_ROLE_VIEW,
+        section: "Custom Role",
+        title: "Overview",
+      },
+    ],
+  },
   {
     id: "users",
     area: "users",

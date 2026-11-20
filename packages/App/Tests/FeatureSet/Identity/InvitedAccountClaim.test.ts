@@ -15,6 +15,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
+import { SignUpInvitation } from "Common/Types/Accounts/SignUpInvitation";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ExpressRequest,
@@ -636,8 +637,16 @@ describe("Identity /signup - claiming an invited account without the invitation"
 
     // Third argument is the entity: null, so no user is echoed back.
     expect(args[2]).toBeNull();
+    /*
+     * Check your email, in the words of the server's sign-up: on the hosted
+     * service every sign-up proves its address by email and every address
+     * gets the one answer (EmailProvedSignUp, #9816); a self-hosted server
+     * that proves nothing says the link went to the invited address.
+     */
     expect(
-      (args[4] as Record<string, any>)["miscData"]["registrationEmailSent"],
+      (args[4] as Record<string, any>)["miscData"][
+        IsBillingEnabled ? "emailVerificationRequired" : "registrationEmailSent"
+      ],
     ).toBe(true);
   });
 
@@ -830,7 +839,24 @@ describe("Identity /signup - the paths that must not have changed", () => {
       }),
     );
 
-    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    if (IsBillingEnabled) {
+      /*
+       * On the hosted service every address gets the one answer, check your
+       * email (EmailProvedSignUp, #9816): it never says an address is taken,
+       * and its owner is told by email instead.
+       */
+      expect(sendErrorResponse).not.toHaveBeenCalled();
+      expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+      expect(sendEntityResponse.mock.calls[0]![2]).toBeNull();
+      expect(
+        (sendEntityResponse.mock.calls[0]![4] as Record<string, any>)[
+          "miscData"
+        ]["emailVerificationRequired"],
+      ).toBe(true);
+    } else {
+      expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    }
+
     expectNothingHappened();
   });
 
@@ -980,13 +1006,17 @@ describe("Identity /signup - the paths that must not have changed", () => {
  */
 describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
   it("hands the address and the token to SignUpInvitation, and answers with what it read", async () => {
-    readSignUpInvitation.mockResolvedValue({
+    // An ordinary invitation: no single sign-on manages their sign-in (#9819).
+    const invitation: SignUpInvitation = {
       projectId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       projectName: "Walk Co",
       inviterName: "Ada Walker",
       name: "Grace Member",
       isAccepted: false,
-    });
+      ssoSignIn: null,
+    };
+
+    readSignUpInvitation.mockResolvedValue(invitation);
 
     await invoke("/sign-up-invitation", {
       email: VICTIM_EMAIL,
@@ -1004,6 +1034,7 @@ describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
         inviterName: "Ada Walker",
         name: "Grace Member",
         isAccepted: false,
+        ssoSignIn: null,
       },
     });
     expect(setNoCacheHeaders).toHaveBeenCalled();
