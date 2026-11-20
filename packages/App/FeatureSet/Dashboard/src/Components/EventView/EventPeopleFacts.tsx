@@ -11,9 +11,11 @@ import PeopleSearchPopup, {
   PEOPLE_SEARCH_POPUP_WIDTH_PX,
 } from "Common/UI/Components/PeoplePicker/PeopleSearchPopup";
 import {
+  getPeoplePickerOptionKey,
   PeoplePickerKind,
   PeoplePickerOption,
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useAnchoredFieldPopup, {
   AnchoredFieldPopup,
   getAnchoredPopupTriggerProps,
@@ -37,6 +39,7 @@ import {
 import AddOwnersPopup, { useAddOwnersPopup } from "../Owners/AddOwnersPopup";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import { EventStatusFact } from "./EventStatusPanel";
+import { EVENT_HEADER_FACT_EDITOR_ATTRIBUTE } from "./EventHeaderLayout";
 import {
   EventRoleMember,
   MAX_HEADER_OWNERS,
@@ -69,6 +72,12 @@ import { VisibleItems, splitVisibleItems } from "../../Utils/EventOverview";
  * either. They are offered only to a reader who may add an owner or give
  * the role. Once the record is over, they say "Not assigned" and "None", and
  * offer nothing.
+ *
+ * Once somebody holds the role, their name hands it on (#10195): pointed
+ * at, it lights up with a pencil after its label and "Click to reassign",
+ * and pressed it opens the same list of people, the holder ticked
+ * (ReassignablePerson). It is offered to a reader who may hand a role on
+ * while the record is open; to anyone else the name is plain text.
  */
 
 const LINK_CLASS_NAME: string =
@@ -127,6 +136,45 @@ export const ASSIGN_EMPTY_TEXT: string = translationKey("No people available.");
 
 // What the Assign list leaves out: nobody - it opens while nobody holds the role.
 const NOBODY_PICKED: Set<string> = new Set<string>();
+
+/*
+ * What pointing at the commander's name says it does (#10195), in the
+ * customer's words. A tooltip shows under a pointer; the name's own label
+ * says the same to a screen reader and the keyboard ("Reassign Incident
+ * Commander from Maya Chen").
+ */
+export const CLICK_TO_REASSIGN_TEXT: string =
+  translationKey("Click to reassign");
+
+/*
+ * The commander's name as a control that hands the role on (#10195): laid
+ * out as the person is (avatar, gap, name), its avatar lined up with the
+ * avatars of the facts beside it, as Assign's empty place is. Pointed at,
+ * it shows what it does - a light ground and a thin ring around the name,
+ * the pencil after the label (EventStatusFact.isEditableInPlace) and
+ * "Click to reassign" - and it stays lit while its list is open. Its
+ * colours are one set or the other, never both: the Dashboard's Tailwind
+ * would let whichever rule it wrote last win. The ring is indigo at an
+ * opacity, so it reads on the dark theme too.
+ */
+export const EVENT_COMMANDER_REASSIGN_CLASS_NAME: string =
+  "-my-0.5 -ms-1 inline-flex min-w-0 max-w-full items-center rounded-full py-0.5 pe-2 ps-1 text-start transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+export const EVENT_COMMANDER_REASSIGN_IDLE_CLASS_NAME: string =
+  "hover:bg-indigo-50 hover:ring-1 hover:ring-indigo-500/40";
+
+export const EVENT_COMMANDER_REASSIGN_OPEN_CLASS_NAME: string =
+  "bg-indigo-50 ring-1 ring-indigo-500/60";
+
+export const getCommanderReassignClassName: (isOpen: boolean) => string = (
+  isOpen: boolean,
+): string => {
+  return `${EVENT_COMMANDER_REASSIGN_CLASS_NAME} ${
+    isOpen
+      ? EVENT_COMMANDER_REASSIGN_OPEN_CLASS_NAME
+      : EVENT_COMMANDER_REASSIGN_IDLE_CLASS_NAME
+  }`;
+};
 
 /*
  * Where the avatar would be: a dashed circle with a plus. Decoration - the
@@ -232,6 +280,123 @@ const toOwnerAvatar: (owner: ResourceOwnerEntry) => PeopleAvatarItem = (
   };
 };
 
+/*
+ * Hands the role from `member` to `person` in one change (Reassign).
+ * Rejects with why it was refused, which the list says.
+ */
+export type CommanderReassign = (
+  member: EventRoleMember,
+  person: PeoplePickerOption,
+) => Promise<void>;
+
+interface ReassignablePersonProps {
+  member: EventRoleMember;
+  // The role's name as the label shows it, for what the name is heard as.
+  roleName: string;
+  onReassign: CommanderReassign;
+}
+
+/*
+ * THE COMMANDER'S NAME, WHICH HANDS THE ROLE ON (#10195).
+ *
+ * Changing the commander used to mean scrolling to the Incident Roles card
+ * in the middle of an incident. The name in the header is the control now:
+ * pressed - or Enter, Space or Down from the keyboard - it opens the list
+ * the header's Assign opens (PeopleSearchPopup), right under it, with the
+ * person who holds the role ticked. Picking someone else hands the role to
+ * them at once, in one change (CommanderReassign): it can be handed back
+ * the same way, and the feed says who did it, so nothing asks again.
+ * Picking the person ticked keeps them. A refusal is said in the list,
+ * which stays open; Escape or a press outside closes it, and the focus
+ * goes back to the name.
+ *
+ * Inline rather than the roles card's Reassign dialog: it is where the
+ * reader is already looking, two presses instead of four, and the same
+ * list as Assign, so giving the role and handing it on look and work
+ * alike.
+ */
+const ReassignablePerson: FunctionComponent<ReassignablePersonProps> = (
+  props: ReassignablePersonProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
+    popupMaxHeight: PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
+    popupWidth: PEOPLE_SEARCH_POPUP_WIDTH_PX,
+    revealRoomOnOpen: true,
+  });
+
+  const memberName: string = props.member.name || props.member.email || "";
+
+  /*
+   * The role's name as the header's label shows it: the seeded "Incident
+   * Commander" in the reader's language, a project's own name as written.
+   */
+  const roleText: string =
+    translator.translateText(props.roleName) || props.roleName;
+
+  // What the name does, heard whole: "Reassign Incident Commander from Maya Chen".
+  const reassignText: string = translator.translateTemplate(
+    "Reassign {{role}} from {{member}}",
+    { role: roleText, member: memberName },
+  );
+
+  // The list's name: "Reassign Incident Commander".
+  const listText: string = translator.translateTemplate("Reassign {{role}}", {
+    role: roleText,
+  });
+
+  // The person who holds the role: ticked in the list.
+  const holderKeys: Set<string> = useMemo((): Set<string> => {
+    return new Set<string>([
+      getPeoplePickerOptionKey(PeoplePickerKind.User, props.member.userId),
+    ]);
+  }, [props.member.userId]);
+
+  return (
+    <div className="flex max-w-full">
+      <div ref={popup.anchorRef} className="flex min-w-0 max-w-full">
+        <Tooltip text={CLICK_TO_REASSIGN_TEXT} isHidden={popup.isPopupOpen}>
+          <button
+            type="button"
+            data-testid="event-commander-reassign"
+            {...{ [EVENT_HEADER_FACT_EDITOR_ATTRIBUTE]: "true" }}
+            {...getAnchoredPopupTriggerProps(popup)}
+            aria-label={reassignText}
+            className={getCommanderReassignClassName(popup.isPopupOpen)}
+          >
+            <Person
+              item={toMemberAvatar(props.member)}
+              dataTestId="event-commander-person"
+            />
+          </button>
+        </Tooltip>
+      </div>
+      <PeopleSearchPopup
+        popup={popup}
+        kinds={[PeoplePickerKind.User]}
+        selectedKeys={holderKeys}
+        selectionMode="single"
+        onPick={async (
+          person: PeoplePickerOption,
+          isPicked: boolean,
+        ): Promise<void> => {
+          // The person who holds it already keeps it.
+          if (!isPicked) {
+            await props.onReassign(props.member, person);
+          }
+
+          popup.closePopup(true);
+        }}
+        searchPlaceholder={ASSIGN_SEARCH_PLACEHOLDER}
+        emptyText={ASSIGN_EMPTY_TEXT}
+        ariaLabel={listText}
+        isAriaLabelTranslated={true}
+      />
+    </div>
+  );
+};
+
 export interface CommanderFactValueProps {
   members: Array<EventRoleMember>;
   // The role's name, for what Assign says to a screen reader.
@@ -244,6 +409,14 @@ export interface CommanderFactValueProps {
    * it.
    */
   onAssign?: ((person: PeoplePickerOption) => Promise<void>) | undefined;
+  /*
+   * Offered while the record is still open, to a reader who may hand the
+   * role on (#10195): the name of whoever holds it opens the same list,
+   * and the person picked takes the role over (ReassignablePerson). Left
+   * out - a reader who may not, a record that is over - the name is plain
+   * text, as it always was.
+   */
+  onReassign?: CommanderReassign | undefined;
 }
 
 export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
@@ -335,9 +508,32 @@ export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
       className={VALUE_CLASS_NAME}
     >
       {props.members.map((member: EventRoleMember, index: number) => {
+        /*
+         * Keyed by the row that gives the role: handed on, it is the same
+         * row naming someone else, so the name keeps its place - and the
+         * keyboard's - as it changes.
+         */
+        const key: string = member.memberId || `${member.userId}-${index}`;
+
+        /*
+         * Handed on by the row that gives it: a holder named the moment
+         * Assign gave them the role is plain until the roles card has read
+         * that row, a moment later.
+         */
+        if (props.onReassign && member.memberId) {
+          return (
+            <ReassignablePerson
+              key={key}
+              member={member}
+              roleName={props.roleName}
+              onReassign={props.onReassign}
+            />
+          );
+        }
+
         return (
           <Person
-            key={`${member.userId}-${index}`}
+            key={key}
             item={toMemberAvatar(member)}
             dataTestId="event-commander-person"
           />
@@ -527,6 +723,8 @@ export const PersonFactValue: FunctionComponent<PersonFactValueProps> = (
 export interface CommanderFactInput {
   holding: PrimaryRoleHolding | null;
   onAssign?: ((person: PeoplePickerOption) => Promise<void>) | undefined;
+  // Hands the role on from its holder's name (#10195): see CommanderFactValue.
+  onReassign?: CommanderReassign | undefined;
 }
 
 /*
@@ -549,11 +747,19 @@ export const getCommanderFact: (
     // The project's own name for the role, read the way it was typed.
     isLabelTyped: true,
     icon: input.holding.role.icon || IconProp.ShieldCheck,
+    // Its holder's name hands the role on: a pencil after the label then.
+    isEditableInPlace: Boolean(
+      input.onReassign &&
+        input.holding.members.some((member: EventRoleMember): boolean => {
+          return Boolean(member.memberId);
+        }),
+    ),
     value: (
       <CommanderFactValue
         members={input.holding.members}
         roleName={input.holding.role.name || "Incident Commander"}
         onAssign={input.onAssign}
+        onReassign={input.onReassign}
       />
     ),
   };
