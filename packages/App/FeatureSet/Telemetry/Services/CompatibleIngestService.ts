@@ -176,7 +176,7 @@ export default class CompatibleIngestService {
     jobs: ReadonlyArray<{ signal: CompatibleSignal; records: number }>,
     ingestBytes: CompatibleIngestBytes | undefined,
   ): Array<number | undefined> {
-    if (ingestBytes !== undefined && typeof ingestBytes === "object") {
+    if (ingestBytes && typeof ingestBytes === "object") {
       return jobs.map(
         (job: { signal: CompatibleSignal }): number | undefined => {
           const bytes: number | undefined = ingestBytes[job.signal];
