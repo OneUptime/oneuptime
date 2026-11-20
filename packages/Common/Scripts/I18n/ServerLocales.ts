@@ -153,6 +153,11 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/Accounts/SsoSignInLinks.ts",
   "packages/App/FeatureSet/Identity/Utils/SsoSignInLinksEmail.ts",
   /*
+   * The invitation email's subject (#9897), in the invitee's language, else
+   * the inviter's; its body is the InviteMember template's.
+   */
+  "packages/Common/Types/Team/InvitationEmailWords.ts",
+  /*
    * The email that tells an account's old address the account moved
    * (#9907), in the language on the account.
    */

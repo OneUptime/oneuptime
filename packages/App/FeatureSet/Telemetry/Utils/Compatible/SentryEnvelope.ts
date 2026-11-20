@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { JSONObject } from "Common/Types/JSON";
+import { COMPATIBLE_JSON_MAX_VALUES } from "Common/Types/Telemetry/CompatibleIngest";
+import JsonElementCounter, { JsonValueBudget } from "./JsonElementCount";
 import OtlpJson, {
   OTLP_SEVERITY_ERROR,
   OtlpKeyValue,
@@ -50,15 +52,26 @@ import OtlpJson, {
  * Every time is the item's own: Sentry writes seconds since the epoch, as
  * a fraction or an RFC 3339 string. One that is missing or unreadable is
  * now - never a negative, a zero or NaN.
+ *
+ * LIMITS AND SIZE
+ *
+ * An envelope's header lines and the payloads of the items translated here
+ * are counted before each is parsed (JsonElementCount), against one limit
+ * for the whole envelope (COMPATIBLE_JSON_MAX_VALUES): over it is a
+ * SentryEnvelopeError with status 413. Items of the types skipped - an
+ * attachment, a replay, a profile - are never parsed, nor counted. What a
+ * translation became is sized by the bytes of the items it came from
+ * (ingestBytes), so an envelope's attachments are not counted against a
+ * budget of what OneUptime keeps.
  */
 
 export class SentryEnvelopeError extends Error {
   public readonly statusCode: number;
 
-  public constructor(message: string) {
+  public constructor(message: string, statusCode?: number | undefined) {
     super(message);
     this.name = "SentryEnvelopeError";
-    this.statusCode = 400;
+    this.statusCode = statusCode ?? 400;
   }
 }
 
@@ -74,10 +87,25 @@ export interface ParsedSentryEnvelope {
   droppedItemCount: number;
 }
 
+/*
+ * The bytes of the items a translation's traces and its logs came from:
+ * the size each is counted at against its budget.
+ */
+export interface SentryIngestBytes {
+  traces: number;
+  logs: number;
+}
+
 export interface SentryTranslateOptions {
   nowInMs?: number | undefined;
   // The x-oneuptime-service-name header: the service, whatever the items say.
   serviceName?: string | undefined;
+  /*
+   * The envelope's JSON values counted so far - by parseEnvelope, its
+   * header lines - for its items to be counted against what they left. A
+   * fresh COMPATIBLE_JSON_MAX_VALUES when absent.
+   */
+  jsonValues?: JsonValueBudget | undefined;
 }
 
 /*
@@ -111,6 +139,12 @@ export interface SentryTranslation {
   ignoredItemTypes: Array<string>;
   // Items of a kept type whose payload was not a JSON object.
   malformedItemCount: number;
+  /*
+   * The payload bytes of the items that became spans, and of those that
+   * became log records: an envelope's items of the types skipped, and
+   * items that became nothing, are in neither.
+   */
+  ingestBytes: SentryIngestBytes;
 }
 
 export const MAX_ENVELOPE_ITEMS: number = 100;
@@ -317,6 +351,9 @@ interface TranslationState {
   eventId: string | null;
   // Records from log items so far, against MAX_LOG_RECORDS_PER_ENVELOPE.
   logItemRecordCount: number;
+  // The envelope's JSON values, counted before each item is parsed.
+  jsonValues: JsonValueBudget;
+  ingestBytes: SentryIngestBytes;
 }
 
 // One frame, as a stack trace is written from it.
@@ -359,14 +396,23 @@ export default class SentryEnvelope {
    * JSON object, or a length that is not one or runs past the end, is a
    * malformed envelope (SentryEnvelopeError, a 400). Items past
    * MAX_ENVELOPE_ITEMS are read past and counted, not kept - and a
-   * malformed one there ends the envelope instead of failing it.
+   * malformed one there ends the envelope instead of failing it. Each
+   * header line's JSON values are counted before it is parsed, against
+   * `jsonValues` - which fromEnvelope then counts the items against: an
+   * envelope over its limit is a SentryEnvelopeError, a 413.
    */
-  public static parseEnvelope(body: Buffer): ParsedSentryEnvelope {
+  public static parseEnvelope(
+    body: Buffer,
+    jsonValues: JsonValueBudget = new JsonValueBudget(
+      COMPATIBLE_JSON_MAX_VALUES,
+    ),
+  ): ParsedSentryEnvelope {
     const headerEnd: number = body.indexOf(NEWLINE);
     const header: JSONObject | null = SentryEnvelope.parseHeaderLine(
       body,
       0,
       headerEnd === -1 ? body.length : headerEnd,
+      jsonValues,
     );
 
     if (!header) {
@@ -393,6 +439,7 @@ export default class SentryEnvelope {
         body,
         offset,
         headerLineEnd,
+        jsonValues,
       );
 
       if (!itemHeader) {
@@ -512,7 +559,21 @@ export default class SentryEnvelope {
       malformedItemCount: 0,
       eventId: null,
       logItemRecordCount: 0,
+      jsonValues:
+        options.jsonValues ?? new JsonValueBudget(COMPATIBLE_JSON_MAX_VALUES),
+      ingestBytes: { traces: 0, logs: 0 },
     };
+  }
+
+  /*
+   * The over-the-limit refusal: a 413, which a Sentry SDK drops (it logs
+   * that the envelope was discarded for exceeding size limits).
+   */
+  public static tooManyValues(limit: number): SentryEnvelopeError {
+    return new SentryEnvelopeError(
+      `${JsonElementCounter.tooManyValuesMessage(limit)} Send fewer items an envelope.`,
+      413,
+    );
   }
 
   private static finish(state: TranslationState): SentryTranslation {
@@ -549,6 +610,7 @@ export default class SentryEnvelope {
       accepted: state.accepted,
       ignoredItemTypes: state.ignoredItemTypes,
       malformedItemCount: state.malformedItemCount,
+      ingestBytes: state.ingestBytes,
     };
   }
 
@@ -572,12 +634,17 @@ export default class SentryEnvelope {
 
     const payload: JSONObject | null = SentryEnvelope.parseJsonObject(
       item.payload,
+      state.jsonValues,
     );
 
     if (!payload) {
       state.malformedItemCount++;
       return;
     }
+
+    // What the item became, to count its bytes against that signal.
+    const spansBefore: number = state.accepted.errors + state.accepted.spans;
+    const logsBefore: number = state.accepted.messages + state.accepted.logs;
 
     if (type === "log") {
       SentryEnvelope.translateLogItem(state, payload, defaults);
@@ -591,6 +658,12 @@ export default class SentryEnvelope {
         type === "transaction" ||
           SentryEnvelope.readString(payload["type"]) === "transaction",
       );
+    }
+
+    if (state.accepted.errors + state.accepted.spans > spansBefore) {
+      state.ingestBytes.traces += item.payload.length;
+    } else if (state.accepted.messages + state.accepted.logs > logsBefore) {
+      state.ingestBytes.logs += item.payload.length;
     }
   }
 
@@ -2247,18 +2320,35 @@ export default class SentryEnvelope {
     body: Buffer,
     start: number,
     end: number,
+    jsonValues: JsonValueBudget,
   ): JSONObject | null {
-    try {
-      const parsed: unknown = JSON.parse(body.toString("utf8", start, end));
-      return SentryEnvelope.isObject(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
+    return SentryEnvelope.parseCounted(
+      body.toString("utf8", start, end),
+      jsonValues,
+    );
   }
 
-  private static parseJsonObject(payload: Buffer): JSONObject | null {
+  private static parseJsonObject(
+    payload: Buffer,
+    jsonValues: JsonValueBudget,
+  ): JSONObject | null {
+    return SentryEnvelope.parseCounted(payload.toString("utf8"), jsonValues);
+  }
+
+  /*
+   * A JSON object, its values counted before it is parsed; null for text
+   * that is not one. Past the envelope's limit, a 413.
+   */
+  private static parseCounted(
+    text: string,
+    jsonValues: JsonValueBudget,
+  ): JSONObject | null {
+    if (!jsonValues.take(text)) {
+      throw SentryEnvelope.tooManyValues(jsonValues.limit);
+    }
+
     try {
-      const parsed: unknown = JSON.parse(payload.toString("utf8"));
+      const parsed: unknown = JSON.parse(text);
       return SentryEnvelope.isObject(parsed) ? parsed : null;
     } catch {
       return null;

@@ -359,6 +359,21 @@ work out, starts from a default for everything else, and folds what most people 
   [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts)
   and
   [ResourcePartRowControlsGuard](../../packages/App/Tests/Dashboard/ResourcePartRowControlsGuard.test.ts).
+- **A menu, a list or a panel opens on the tooltip layer, never in place.** Drawn `absolute`
+  under its control, a popup was cut off wherever the box it sat in clipped. The logs toolbar's
+  Columns lost its foot over a trace's empty logs (#9859), and a search's suggestions ran into an
+  investigation drawer's scroll area (#9909). The shared `LayeredPopover`
+  (`Common/UI/Components/Tooltip/LayeredPopover`) draws it on the page's body, placed against the
+  window: under its control, above it where the window has no room, on the roomier side, cut down
+  and scrolling, where neither side has it all, and slid along inside the window's sides. A busy
+  day's "+N more" list opened past a short window's top until it was drawn there too (#9911). Tab
+  goes through a popup as if it sat after its control, Escape closes it and is spent there, and a
+  press outside closes it. A field's popup, such as a search's suggestions, is drawn there with
+  `isFieldPopup`, which leaves Tab, Escape and a press to the field. The popup's own classes are
+  its look only, never a place: no `absolute`, `top-full` or margin under its control. The popups
+  still drawn in place are listed with why each is not cut off today, and the list only shrinks
+  (#10162). Enforced by
+  [HandRolledPopupsGuard](../../packages/Common/Tests/UI/Components/HandRolledPopupsGuard.test.ts).
 - **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
   `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
   focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:

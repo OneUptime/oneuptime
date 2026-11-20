@@ -57,7 +57,22 @@ import TypeOrmPatchVersion from "./TypeOrmPatchVersion";
  * Every other read keeps TypeORM's two queries. PagedFindSql.test.ts holds
  * the plans to the SQL they make, PagedFindPostgres.test.ts holds the pages
  * to TypeORM's own on a real Postgres.
+ *
+ * A read may also hand an adjuster (FindBuilderAdjuster): it is given every
+ * builder the read makes from its options - the read's own and its id
+ * page's - once TypeORM has built it, before it runs. DatabaseService hands
+ * PendingInviteeProfiles' order of a person's profile, as its reader sees
+ * them (#9895).
  */
+
+/*
+ * What a read does to the builder TypeORM makes from its find options,
+ * before it runs (see above).
+ */
+export type FindBuilderAdjuster = <TEntity extends ObjectLiteral>(
+  queryBuilder: SelectQueryBuilder<TEntity>,
+) => void;
+
 export default class PagedFind {
   /*
    * The find options the id page knows how to read. A read that sets any
@@ -85,24 +100,47 @@ export default class PagedFind {
   public static async find<TEntity extends ObjectLiteral>(
     repository: Repository<TEntity>,
     options: FindManyOptions<TEntity>,
+    adjust?: FindBuilderAdjuster | null | undefined,
   ): Promise<Array<TEntity>> {
-    /*
-     * A repository that is not TypeORM's (a test's stand-in) reads itself,
-     * and so does every repository on a TypeORM other than the one this was
-     * written for (TypeOrmPatchVersion).
-     */
-    if (
-      !(repository instanceof Repository) ||
-      !TypeOrmPatchVersion.isPatchedVersion()
-    ) {
+    // A repository that is not TypeORM's (a test's stand-in) reads itself.
+    if (!(repository instanceof Repository)) {
       return await (repository as Repository<TEntity>).find(options);
     }
 
+    /*
+     * So does every repository on a TypeORM other than the one this was
+     * written for (TypeOrmPatchVersion): as repository.find builds it
+     * (EntityManager.find), and with the read's adjuster, which no TypeORM
+     * may skip - it is what the reader may see.
+     */
+    if (!TypeOrmPatchVersion.isPatchedVersion()) {
+      if (!adjust) {
+        return await repository.find(options);
+      }
+
+      const typeOrmBuilder: SelectQueryBuilder<TEntity> = repository.manager
+        .createQueryBuilder<TEntity>(
+          repository.metadata.target as never,
+          FindOptionsUtils.extractFindManyOptionsAlias(options) ||
+            repository.metadata.name,
+        )
+        .setFindOptions(options || {});
+
+      adjust(typeOrmBuilder);
+
+      return await typeOrmBuilder.getMany();
+    }
+
     const queryBuilder: SelectQueryBuilder<TEntity> =
-      PagedFind.createQueryBuilder(repository, options);
+      PagedFind.createQueryBuilder(repository, options, adjust);
 
     const idPageBuilder: SelectQueryBuilder<TEntity> | null =
-      PagedFind.createIdPageQueryBuilder(repository, options, queryBuilder);
+      PagedFind.createIdPageQueryBuilder(
+        repository,
+        options,
+        queryBuilder,
+        adjust,
+      );
 
     if (!idPageBuilder) {
       return await queryBuilder.getMany();
@@ -162,9 +200,10 @@ export default class PagedFind {
     repository: Repository<TEntity>,
     options: FindManyOptions<TEntity>,
     queryBuilder?: SelectQueryBuilder<TEntity> | undefined,
+    adjust?: FindBuilderAdjuster | null | undefined,
   ): SelectQueryBuilder<TEntity> | null {
     const fullBuilder: SelectQueryBuilder<TEntity> =
-      queryBuilder || PagedFind.createQueryBuilder(repository, options);
+      queryBuilder || PagedFind.createQueryBuilder(repository, options, adjust);
 
     if (!PagedFind.isTypeOrmTwoQueryPage(fullBuilder)) {
       return null;
@@ -234,9 +273,11 @@ export default class PagedFind {
       idOptions.take = options.take;
     }
 
+    // Ordered as the read is: its adjuster too.
     const idBuilder: SelectQueryBuilder<TEntity> = PagedFind.createQueryBuilder(
       repository,
       idOptions,
+      adjust,
     );
 
     /*
@@ -341,6 +382,7 @@ export default class PagedFind {
   public static createQueryBuilder<TEntity extends ObjectLiteral>(
     repository: Repository<TEntity>,
     options: FindManyOptions<TEntity>,
+    adjust?: FindBuilderAdjuster | null | undefined,
   ): SelectQueryBuilder<TEntity> {
     const metadata: EntityMetadata = repository.metadata;
 
@@ -351,6 +393,11 @@ export default class PagedFind {
         FindOptionsUtils.extractFindManyOptionsAlias(options) || metadata.name,
       )
       .setFindOptions(options || {});
+
+    // What the read does to its builder, once TypeORM has built it.
+    if (adjust) {
+      adjust(queryBuilder);
+    }
 
     PagedFind.takePageInOneQueryWherePossible(queryBuilder, options);
 
