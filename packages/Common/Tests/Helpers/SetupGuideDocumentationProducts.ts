@@ -28,6 +28,8 @@ import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Page
 import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import { MESSAGE_QUEUE_SETUP_GUIDE_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown";
 import { MESSAGE_QUEUE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationTranslations";
+import { RUM_CLIENTS } from "../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
+import { RUM_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
   getMessageQueueSetupGuideWays,
@@ -43,6 +45,7 @@ import {
   getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
   getPodmanSetupGuideWays,
+  getRumSetupGuideWays,
 } from "./SetupGuideWays";
 
 /*
@@ -395,6 +398,44 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Producers",
         "Consumers",
         "Seen recently",
+      ],
+    }),
+    product({
+      // A RUM application's Documentation tab and Add dialog (#6434).
+      name: "Rum",
+      cardPath: "Components/Rum/RumDocumentationCard.tsx",
+      translations: RUM_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "RUM_DOCUMENTATION_TRANSLATIONS",
+      ways: getRumSetupGuideWays,
+      // The card asks what the reader instruments: a browser or a mobile app.
+      options: RUM_CLIENTS,
+      dashboardWords: [
+        "Real User Monitoring",
+        "Settings",
+        "Label Rules",
+        "Owner Rules",
+        // An application's tabs and the states its header shows.
+        "Overview",
+        "Exceptions",
+        "Logs",
+        "Traces",
+        "Metrics",
+        "Clients",
+        "Core Web Vitals",
+        "Session Replay",
+        "Receiving data",
+        "No recent traffic",
+        // The key's own page, and the kinds of key it names.
+        "Allowed Origins",
+        "Pinned Service Name",
+        "Requests Per Minute Limit",
+        "Expires At",
+        "Enabled",
+        "Browser",
+        "Server",
+        "Mobile",
+        // The guide's own topic, named from other topics.
+        "How OneUptime recognises a browser app",
       ],
     }),
   ];

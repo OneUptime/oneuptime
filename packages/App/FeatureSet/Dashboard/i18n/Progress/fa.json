@@ -384,6 +384,7 @@
     "sensor-001",
     "sk-...",
     "storage-01 · RegionOne",
+    "storefront-mobile",
     "storefront-web",
     "sum by (job) (rate(http_requests_total[5m]))",
     "support@example.com",

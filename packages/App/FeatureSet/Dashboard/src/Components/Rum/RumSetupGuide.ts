@@ -570,7 +570,7 @@ function getMobileAdvancedTopics(data: RumGuideData): Array<SetupGuideTopic> {
       title: "How OneUptime recognises a mobile app",
       summary:
         "service.name plus device.id or device.model.identifier makes a mobile RUM application.",
-      markdown: `Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — the \`service.*\`, \`device.*\`, \`os.*\`, \`telemetry.*\`, \`app.*\` and \`deployment.*\` attributes and \`oneuptime.label.*\` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.
+      markdown: `Everything a Mobile key sends is filed as this mobile app, under the service name the key is pinned to, whatever its resource says. The key keeps only what an app says about itself on the resource — such as its \`service.*\`, \`device.*\`, \`os.*\` and \`telemetry.*\` attributes and its \`oneuptime.label.*\` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.
 
 With any other key, OneUptime classifies telemetry as **mobile RUM** when its resource carries \`device.id\` or \`device.model.identifier\`. The application is identified by \`service.name\` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.
 

@@ -13,6 +13,7 @@ import {
   getRumSetupGuide,
   resolveRumClient,
 } from "./RumSetupGuide";
+import { RUM_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Rum/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -62,6 +63,8 @@ const RumDocumentationCard: FunctionComponent<ComponentProps> = (
           appName: props.appName,
         });
       }}
+      // The guide's markdown in the reader's language (#6434).
+      translations={RUM_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}
