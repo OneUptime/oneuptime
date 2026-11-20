@@ -122,5 +122,9 @@ describe("the round-trip test", () => {
     expect(fs.readFileSync(copied, "utf-8")).toContain(
       "func TestRunbookSteps_CreateRefreshAndUpdateKeepTheArray(",
     );
+    // An HTTP request step's certificate settings (OneUptime#10277).
+    expect(fs.readFileSync(copied, "utf-8")).toContain(
+      "func TestRunbookSteps_HttpStepCertificateSettingsKeepTheirValues(",
+    );
   });
 });
