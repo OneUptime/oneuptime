@@ -1,3 +1,4 @@
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
 import SecurityBlockService, {
   SecurityBlockLiftStatus,
@@ -60,7 +61,9 @@ import type { SpyInstance } from "jest-mock";
  *   - renewing, making permanent and lifting one, each said on the case's
  *     timeline, with who lifted it and when written by OneUptime;
  *   - what never changes: a block's value and action, an ended block, and
- *     that no block is deleted.
+ *     that no block is deleted;
+ *   - the audit log: each block made, renewed and lifted is in it, as the
+ *     person's who did it (the expiry's own is SecurityBlockExpiry's).
  *
  * Who may do each is the model's lists, held by the real permission layer:
  * this suite runs each as the people the lists name.
@@ -124,6 +127,38 @@ describe("SecurityBlockService", () => {
   let protectionSpy: SpyInstance<
     typeof SecurityProtectedAddresses.findProtection
   >;
+  let auditCreateSpy: SpyInstance<typeof AuditLogService.recordCreate>;
+  let auditUpdateSpy: SpyInstance<typeof AuditLogService.recordUpdate>;
+
+  // What the audit log was handed of each change: the columns and who made it.
+  function auditedCreates(): Array<{ value: unknown; userId: unknown }> {
+    return auditCreateSpy.mock.calls.map((call: Array<unknown>) => {
+      const data: {
+        createdItem: BaseModel;
+        props: DatabaseCommonInteractionProps;
+      } = call[0] as never;
+      return {
+        value: data.createdItem.getValue("value"),
+        userId: data.props.userId?.toString(),
+      };
+    });
+  }
+
+  function auditedUpdates(): Array<{
+    fields: Record<string, unknown>;
+    userId: unknown;
+  }> {
+    return auditUpdateSpy.mock.calls.map((call: Array<unknown>) => {
+      const data: {
+        updatedFields: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      } = call[0] as never;
+      return {
+        fields: data.updatedFields,
+        userId: data.props.userId?.toString(),
+      };
+    });
+  }
 
   function rows(): Array<StoredRow> {
     return table.rows;
@@ -184,6 +219,12 @@ describe("SecurityBlockService", () => {
     protectionSpy = jest
       .spyOn(SecurityProtectedAddresses, "findProtection")
       .mockResolvedValue({ protection: null, unreadSources: [] });
+    auditCreateSpy = jest
+      .spyOn(AuditLogService, "recordCreate")
+      .mockResolvedValue(undefined);
+    auditUpdateSpy = jest
+      .spyOn(AuditLogService, "recordUpdate")
+      .mockResolvedValue(undefined);
 
     table = useInMemoryTable(service, []);
 
@@ -253,6 +294,11 @@ describe("SecurityBlockService", () => {
         expect(expiresAt).toBeLessThanOrEqual(Date.now() + 24 * HOUR_IN_MS);
 
         expect(reconcileSpy).toHaveBeenCalledWith(PROJECT_ID);
+
+        // In the audit log, as the person's.
+        expect(auditedCreates()).toEqual([
+          { value: "2001:db8::7", userId: props.userId!.toString() },
+        ]);
       },
     );
 
@@ -777,6 +823,23 @@ describe("SecurityBlockService", () => {
           "✅ Lifted the block on `35.205.11.131`: A partner's office, not an attacker.",
         ]);
         expect(reconcileSpy).toHaveBeenCalledWith(PROJECT_ID);
+
+        // In the audit log, as the person's: the state, why, who and when.
+        const audited: Array<{
+          fields: Record<string, unknown>;
+          userId: unknown;
+        }> = auditedUpdates();
+        expect(audited).toHaveLength(1);
+        expect(audited[0]!.userId).toBe(props.userId!.toString());
+        expect(audited[0]!.fields).toEqual(
+          expect.objectContaining({
+            state: SecurityBlockState.Lifted,
+            liftReason: "A partner's office, not an attacker",
+          }),
+        );
+        expect(Object.keys(audited[0]!.fields)).toEqual(
+          expect.arrayContaining(["liftedAt", "liftedByUserId"]),
+        );
       },
     );
 
@@ -870,6 +933,10 @@ describe("SecurityBlockService", () => {
       expect(feedLines()[0]).toMatch(
         /^🚫 The block on `35\.205\.11\.131` now ends in (6|7) days\.$/,
       );
+
+      // In the audit log: its new end.
+      expect(auditedUpdates()).toHaveLength(1);
+      expect(Object.keys(auditedUpdates()[0]!.fields)).toEqual(["expiresAt"]);
     });
 
     test("making a block permanent takes a Security Admin", async () => {

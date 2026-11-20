@@ -324,3 +324,216 @@ describe("NetworkAddressBlockUtil.readAddress", () => {
     });
   });
 });
+
+/*
+ * Whether one block holds another, and whether two share any address: what
+ * the blocklist (#10338) reads a block against the project's own addresses
+ * and ranges with, and a value against the active ranges that cover it.
+ * Subnets are either nested or apart, so two overlap exactly when one holds
+ * the other.
+ */
+describe("NetworkAddressBlockUtil.containsBlock", () => {
+  test("a subnet holds the addresses and the narrower subnets inside it", () => {
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.0.0.0/8"),
+        parsed("10.18.167.0/24"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.18.167.0/24"),
+        parsed("10.18.167.35"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("2001:db8::/32"),
+        parsed("2001:db8:1::/48"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("2001:db8:1::/48"),
+        parsed("2001:db8:1:ffff::7"),
+      ),
+    ).toBe(true);
+  });
+
+  test("a block holds itself", () => {
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.18.167.0/24"),
+        parsed("10.18.167.99/24"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("2001:db8::7"),
+        parsed("2001:DB8:0:0:0:0:0:7"),
+      ),
+    ).toBe(true);
+  });
+
+  test("a narrower subnet never holds a wider one, nor one beside it", () => {
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.18.167.0/24"),
+        parsed("10.0.0.0/8"),
+      ),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.18.167.0/24"),
+        parsed("10.18.168.0/24"),
+      ),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.18.167.35"),
+        parsed("10.18.167.36"),
+      ),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("2001:db8:1::/48"),
+        parsed("2001:db8:2::/48"),
+      ),
+    ).toBe(false);
+  });
+
+  test("blocks of different families never hold each other", () => {
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("::/0"),
+        parsed("10.18.167.35"),
+      ),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("0.0.0.0/0"),
+        parsed("2001:db8::7"),
+      ),
+    ).toBe(false);
+  });
+
+  test("the widest block of a family holds every block of it", () => {
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("0.0.0.0/0"),
+        parsed("203.0.113.0/24"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("::/0"),
+        parsed("2001:db8::/48"),
+      ),
+    ).toBe(true);
+  });
+
+  test("a subnet that does not end on a group's edge holds what is inside it, bit by bit", () => {
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.18.160.0/20"),
+        parsed("10.18.175.255"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("10.18.160.0/20"),
+        parsed("10.18.176.0"),
+      ),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("2001:db8:8000::/33"),
+        parsed("2001:db8:ffff::1"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.containsBlock(
+        parsed("2001:db8:8000::/33"),
+        parsed("2001:db8:7fff::1"),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("NetworkAddressBlockUtil.overlaps", () => {
+  test("two blocks overlap when either holds the other, whichever is given first", () => {
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("10.0.0.0/8"),
+        parsed("10.18.167.35"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("10.18.167.35"),
+        parsed("10.0.0.0/8"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("2001:db8::/32"),
+        parsed("2001:db8:1::/48"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("2001:db8:1::/48"),
+        parsed("2001:db8::/32"),
+      ),
+    ).toBe(true);
+  });
+
+  test("equal blocks overlap", () => {
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("203.0.113.0/24"),
+        parsed("203.0.113.0/24"),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("2001:db8::7"),
+        parsed("2001:db8::7"),
+      ),
+    ).toBe(true);
+  });
+
+  test("blocks apart do not", () => {
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("203.0.113.0/25"),
+        parsed("203.0.113.128/25"),
+      ),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("2001:db8:1::/48"),
+        parsed("2001:db8:2::1"),
+      ),
+    ).toBe(false);
+  });
+
+  test("blocks of different families never overlap, however wide", () => {
+    expect(
+      NetworkAddressBlockUtil.overlaps(parsed("0.0.0.0/0"), parsed("::/0")),
+    ).toBe(false);
+    // An IPv4 address an IPv6 one maps is that IPv4 address: it is IPv4's.
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("::ffff:10.0.0.5"),
+        parsed("::/0"),
+      ),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.overlaps(
+        parsed("::ffff:10.0.0.5"),
+        parsed("10.0.0.0/8"),
+      ),
+    ).toBe(true);
+  });
+});
