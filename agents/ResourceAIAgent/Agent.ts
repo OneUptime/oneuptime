@@ -33,6 +33,9 @@ import {
   describeProxyEnvironment,
   enableProxyFromEnvironment,
 } from "./Proxy";
+import ProxmoxGuestTaskReporter, {
+  GUEST_TASKS_INTERVAL_ENV,
+} from "./ProxmoxGuestTasks";
 import { AgentIdentity, AgentSession } from "./Registration";
 import { SleepFunction, sleep as defaultSleep } from "./Sleep";
 import AiResourceType, {
@@ -157,6 +160,8 @@ export default class ResourceAiAgent {
   private session: AgentSession | null = null;
   private heartbeat: HeartbeatLoop | null = null;
   private jobLoop: JobLoop | null = null;
+  // A Proxmox cluster's: who or what stopped each stopped guest (#10017).
+  private guestTasks: ProxmoxGuestTaskReporter | null = null;
   private healthServer: http.Server | null = null;
   private shuttingDown: Promise<void> | null = null;
   // Asking the executor for the resource's name again, after a failure.
@@ -349,6 +354,31 @@ export default class ResourceAiAgent {
     void this.session.ensureRegistered();
     this.heartbeat.start();
     this.jobLoop.start();
+
+    /*
+     * A Proxmox cluster's agent also reads, every few minutes, the task log
+     * of each guest that is stopped, and sends who or what stopped it with
+     * the cluster's metrics: reads only, whatever OneUptime AI may do
+     * (ProxmoxGuestTasks).
+     */
+    if (resourceType === AiResourceType.ProxmoxCluster) {
+      this.guestTasks = new ProxmoxGuestTaskReporter({
+        config: this.config,
+        env: this.options.env,
+        logger: Logger,
+      });
+      if (this.guestTasks.isEnabled()) {
+        this.guestTasks.start();
+      } else {
+        Logger.info(
+          `Not reading the guests' task log: ${GUEST_TASKS_INTERVAL_ENV} is 0.`,
+        );
+      }
+    }
+  }
+
+  public getGuestTasks(): ProxmoxGuestTaskReporter | null {
+    return this.guestTasks;
   }
 
   // Idempotent: every caller shares the one shutdown.
@@ -536,6 +566,8 @@ export default class ResourceAiAgent {
         this.jobLoop ? this.jobLoop.stop(graceMs) : Promise.resolve(true),
         this.heartbeat ? this.heartbeat.stop(graceMs) : Promise.resolve(true),
         this.session ? this.session.stop(graceMs) : Promise.resolve(true),
+        // A round of reads left unfinished is read again by the next agent.
+        this.guestTasks ? this.guestTasks.stop(graceMs) : Promise.resolve(true),
       ]);
 
     if (!jobFinished) {

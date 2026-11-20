@@ -1341,6 +1341,143 @@ export function getCephPgStatePoolItems(data: {
 
 /*
  * ---------------------------------------------------------------------------
+ * The same, on a Ceph that counts placement groups for the whole cluster
+ * ---------------------------------------------------------------------------
+ *
+ * Luminous and the first Mimic releases export every ceph_pg_<state> for
+ * the cluster as a whole, with no pool_id: they never say which pools hold
+ * the degraded or undersized placement groups (#10016). They do say what
+ * Ceph is doing about them - the same states, for the cluster - and the
+ * inventory knows which OSDs are down, the usual reason a placement group
+ * is missing copies. So the bar's segment opens the cluster's own row (how
+ * many, how many it has, and Ceph's reason in the reader's words and in
+ * Ceph's own), then each OSD that is down, a step from its page; the
+ * dialog says plainly that which pools hold them is not known.
+ */
+
+// What Ceph's reason was when its states for the cluster could not be read.
+export const CEPH_PG_REASON_READ_FAILED: string = translationKey(
+  "Couldn't read what Ceph is doing about them.",
+);
+
+// Why a down OSD is listed with the cluster's degraded or undersized groups.
+export const CEPH_PG_DOWN_OSD_EXPLANATION: string = translationKey(
+  "Its placement groups are missing the copies it holds until it is back, or until Ceph copies them to other OSDs.",
+);
+
+export function getCephClusterPgStateItems(data: {
+  state: CephPgProblemState;
+  cluster: { name: string };
+  // The cluster's placement groups by state: its only counts.
+  totals: CephPoolPgStates;
+  // Needs attention's items and the inventory, for the OSDs that are down.
+  items: Array<ResourceAttentionItem>;
+  rows: Array<CephResource>;
+  // Ceph's other states for the cluster; null when it reported none.
+  reasonStates: CephPgReasonStates | null;
+  // The states could not be read at all.
+  isReasonUnread?: boolean | undefined;
+  translator: Translator;
+}): Array<ResourceAttentionItem> {
+  const count: number = Math.round(data.totals[data.state] ?? 0);
+  if (count <= 0) {
+    return [];
+  }
+
+  const reasons: Array<ResourceAttentionText> = [];
+  const own: { one: string; other: string } =
+    data.state === "degraded" ? REASON_PGS_DEGRADED : REASON_PGS_UNDERSIZED;
+  reasons.push({ text: own.other, plural: { one: own.one, count: count } });
+  // The bar's other problem state, when the cluster has it too.
+  const otherState: CephPgProblemState =
+    data.state === "degraded" ? "undersized" : "degraded";
+  const otherCount: number = Math.round(data.totals[otherState] ?? 0);
+  if (otherCount > 0) {
+    const other: { one: string; other: string } =
+      otherState === "degraded" ? REASON_PGS_DEGRADED : REASON_PGS_UNDERSIZED;
+    reasons.push({
+      text: other.other,
+      plural: { one: other.one, count: otherCount },
+    });
+  }
+
+  let isCritical: boolean = false;
+  if (data.totals.total !== null && data.totals.active !== null) {
+    const inactive: number = Math.max(
+      0,
+      Math.round(data.totals.total - data.totals.active),
+    );
+    if (inactive > 0) {
+      reasons.push({
+        text: REASON_PGS_INACTIVE.other,
+        plural: { one: REASON_PGS_INACTIVE.one, count: inactive },
+      });
+      isCritical = true;
+    }
+  }
+
+  const states: CephPgReasonStates | null = data.reasonStates;
+  if (
+    states &&
+    countOf(states, "recovery_unfound") + countOf(states, "backfill_unfound") >
+      0
+  ) {
+    // Ceph cannot bring them back by itself: someone has to act.
+    isCritical = true;
+  }
+
+  const cluster: ResourceAttentionItem = {
+    key: CEPH_CLUSTER_ATTENTION_KEY,
+    kind: CEPH_KIND_CLUSTER,
+    icon: IconProp.Ceph,
+    name: data.cluster.name,
+    severity: isCritical
+      ? ResourceAttentionSeverity.Critical
+      : ResourceAttentionSeverity.Warning,
+    reasons: reasons,
+  };
+  if (data.totals.total !== null && data.totals.total > 0) {
+    cluster.facts = [
+      {
+        key: "placementGroups",
+        label: FACT_PLACEMENT_GROUPS,
+        value: String(Math.round(data.totals.total)),
+        isCount: true,
+      },
+    ];
+  }
+  if (data.isReasonUnread) {
+    cluster.explanation =
+      data.translator.translateText(CEPH_PG_REASON_READ_FAILED) ||
+      CEPH_PG_REASON_READ_FAILED;
+  } else {
+    cluster.explanation = getCephPgReasonSentences(
+      states || {},
+      data.translator,
+    ).join(" ");
+    const asCephWritesIt: string = states
+      ? formatCephPgReasonStates(states)
+      : "";
+    if (asCephWritesIt) {
+      cluster.message = asCephWritesIt;
+    }
+  }
+
+  const explanation: string =
+    data.translator.translateText(CEPH_PG_DOWN_OSD_EXPLANATION) ||
+    CEPH_PG_DOWN_OSD_EXPLANATION;
+  const downOsds: Array<ResourceAttentionItem> = getCephDownOsdItems({
+    items: data.items,
+    rows: data.rows,
+  }).map((item: ResourceAttentionItem): ResourceAttentionItem => {
+    return { ...item, explanation: explanation };
+  });
+
+  return [cluster, ...downOsds];
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Which part an open incident or alert is about
  * ---------------------------------------------------------------------------
  *

@@ -1125,6 +1125,7 @@ import { AddDomainVerifiedNameIndex1809186910000 } from "./1809186910000-AddDoma
 import { AddHostLogSessionNote1809186919966 } from "./1809186919966-AddHostLogSessionNote";
 import { AddUserNewEmailLinkExpires1809186930000 } from "./1809186930000-AddUserNewEmailLinkExpires";
 import { AddTelemetryDsym1809186940000 } from "./1809186940000-AddTelemetryDsym";
+import { AddProxmoxGuestPowerTask1809186941017 } from "./1809186941017-AddProxmoxGuestPowerTask";
 
 export default [
   InitialMigration,
@@ -2254,4 +2255,5 @@ export default [
   AddHostLogSessionNote1809186919966,
   AddUserNewEmailLinkExpires1809186930000,
   AddTelemetryDsym1809186940000,
+  AddProxmoxGuestPowerTask1809186941017,
 ];
