@@ -232,7 +232,9 @@ Cada persona elige por sí misma, en **Ajustes de usuario → Ajustes de notific
 
 Las opciones siguen las prioridades de caso del proyecto, con sus propios nombres: estas son las de un proyecto nuevo.
 
-No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre el caso en la app OneUptime On-Call (1.7.0 o posterior), donde puedes aprobar o rechazar un paso de playbook en espera, hacerte cargo del caso y cerrarlo. Su enlace abre el caso en el navegador.
+No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre el caso en la app OneUptime On-Call (1.7.0 o posterior), donde puedes aprobar o rechazar un paso de playbook en espera, hacerte cargo del caso y cerrarlo. Su enlace abre el caso en el navegador. Una notificación push sobre un paso que espera tu aprobación abre esa misma aprobación, con sus pruebas; si alguien la decidió entretanto, el caso dice quién, cuándo y cómo fue el paso.
+
+Un paso que espera tu aprobación te llega en Slack o Microsoft Teams como un mensaje desde el que puedes aprobarlo, y su email dice qué hará el paso y por qué: consulta [Aprobar desde Slack y Microsoft Teams](#aprobar-desde-slack-y-microsoft-teams).
 
 ### Publicar en canales de Slack, Microsoft Teams y Mattermost
 
@@ -375,9 +377,20 @@ Los dos pasos de almacenes de datos actúan sobre los almacenes de datos de los 
 
 Los ocho pasos que dejan a alguien sin acceso esperan aprobación. Solo un Administrador de seguridad puede desactivar **Requiere aprobación** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Actuar sobre** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
 
+#### Aprobar desde Slack y Microsoft Teams
+
+Un paso que espera aprobación es un mensaje con **Aprobar**, **Rechazar** y **Abrir caso**; cuando actúa sobre más de un usuario o host, también te deja aprobar solo algunos. Va a los canales y chats de cada regla de casos de seguridad cuyas **Actualizaciones** publican **Aprobaciones pendientes**, y a cada aprobador que eligió Slack o Microsoft Teams para **Paso de playbook esperando mi aprobación**, en el idioma de su cuenta. Dice qué hará el paso y a través de qué conexión, cada usuario o host sobre el que actúa y por qué, los protegidos que deja en paz, quién o qué lo pidió, las pruebas detrás del caso (hasta dónde llegaron las solicitudes detrás de él, qué sabe threat intel, que nada sobre lo que actúa está protegido) y si se puede deshacer. El email que pide la aprobación dice lo mismo; su botón abre la aprobación en el caso y nunca decide nada, porque los escáneres de correo siguen los enlaces.
+
+- Al aprobar solo algunos, se muestran los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar en paz. Al menos uno se queda, o rechaza el paso en su lugar.
+- Pulsar un botón decide como tú, a través de la cuenta de Slack o Microsoft Teams que conectaste a OneUptime. Si aún no la has conectado, se te pide que la conectes y vuelvas a pulsar. Necesitas un rol que pueda ejecutar playbooks y poder ver el caso; quien inició la ejecución no puede aprobarla, aunque sí rechazarla. Una negativa dice por qué: en Slack solo la ves tú.
+- OneUptime comprueba que cada pulsación llegó de Slack o Microsoft Teams y decide una sola vez: una pulsación repetida, reenviada o en un mensaje sobre otro paso no decide nada, y una pulsación después de que alguien decidiera dice quién y cuándo.
+- Cuando alguien decide, en Slack, en Microsoft Teams, en el caso o en la app, cada copia del mensaje dice quién lo aprobó o rechazó y cuándo, luego cómo fue el paso y qué pasó con cada usuario o host, sin más botones que **Abrir caso**. La decisión se guarda en la cronología del caso, indicando que vino de Slack o Microsoft Teams, y en el registro de auditoría del proyecto.
+
+Mattermost recibe la aprobación como texto, sin botones.
+
 #### Deshacer
 
-Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención**, **Liberar** o **Activar**. Un cierre de sesión no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto.
+Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención**, **Liberar** o **Activar**. Un cierre de sesión no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto. En la app OneUptime On-Call, el caso muestra lo que contuvieron sus playbooks, y cada uno se puede deshacer desde allí.
 
 ### Mensajes
 

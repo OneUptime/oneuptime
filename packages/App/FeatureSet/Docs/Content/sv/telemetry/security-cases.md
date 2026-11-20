@@ -232,7 +232,9 @@ Var och en väljer själv, under **Användarinställningar → Aviseringsinstäl
 
 Valen följer projektets ärendeprioriteter, under deras egna namn: det här är ett nytt projekts val.
 
-WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren.
+WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren. En push-avisering om ett steg som väntar på ditt godkännande öppnar själva godkännandet, med bevisen; har någon beslutat om det sedan dess säger ärendet vem, när och hur steget gick.
+
+Ett steg som väntar på ditt godkännande når dig i Slack eller Microsoft Teams som ett meddelande du kan godkänna från, och dess mejl säger vad steget kommer att göra och varför: se [Godkänn från Slack och Microsoft Teams](#godkänn-från-slack-och-microsoft-teams).
 
 ### Posta i kanaler i Slack, Microsoft Teams och Mattermost
 
@@ -375,9 +377,20 @@ De två datalagerstegen agerar på de datalager som ärendet handlar om, högst 
 
 De åtta stegen som stänger ute någon väntar på godkännande. Bara en Säkerhetsadministratör kan slå av **Kräver godkännande** för ett av dem, och OneUptime registrerar vem som gjorde det. Godkännandet listar användarna eller värdarna som steget skulle agera på under **Agera på**, alla förbockade: avmarkera dem som steget ska lämna i fred. Skyddade finns inte med bland alternativen. Den som startade en körning kan inte godkänna dess steg: det gör någon annan, men den som startade körningen kan fortfarande avvisa steget.
 
+#### Godkänn från Slack och Microsoft Teams
+
+Ett steg som väntar på godkännande är ett meddelande med **Godkänn**, **Avvisa** och **Öppna ärende**; när det agerar på mer än en användare eller värd kan du också godkänna bara några av dem. Det går till kanalerna och chattarna för varje regel för säkerhetsärenden vars **Uppdateringar** postar **Väntande godkännanden**, och till varje godkännare som har valt Slack eller Microsoft Teams för **Playbook-steg väntar på mitt godkännande**, på språket på deras konto. Det säger vad steget kommer att göra och genom vilken anslutning, varje användare eller värd det agerar på och varför, de skyddade det lämnar ifred, vem eller vad som frågade, bevisen bakom ärendet (hur långt förfrågningarna bakom det kom, vad threat intel vet, att inget det agerar på är skyddat) och om det kan ångras. Mejlet som ber om godkännandet säger samma sak; dess knapp öppnar godkännandet på ärendet och beslutar aldrig något, eftersom e-postskannrar följer länkar.
+
+- Godkänner du bara några listas de användare eller värdar som steget skulle agera på, alla markerade: avmarkera dem det ska lämna ifred. Minst en blir kvar, annars avvisar du steget i stället.
+- Ett tryck på en knapp beslutar som du, genom det Slack- eller Microsoft Teams-konto du har kopplat till OneUptime. Har du inte kopplat det ännu blir du ombedd att koppla det och sedan trycka igen. Du behöver en roll som kan köra playbooks och kunna se ärendet; den som startade körningen kan inte godkänna den, men kan avvisa den. Ett avslag säger varför: i Slack är det bara du som ser det.
+- OneUptime kontrollerar att varje tryck kom från Slack eller Microsoft Teams och beslutar en gång: ett tryck som upprepas, skickas igen eller görs på ett meddelande om ett annat steg beslutar ingenting, och ett tryck efter att någon har beslutat säger vem och när.
+- När någon beslutar, i Slack, i Microsoft Teams, på ärendet eller i appen, säger varje kopia av meddelandet vem som godkände eller avvisade det och när, sedan hur steget gick och vad som hände med varje användare eller värd, utan andra knappar än **Öppna ärende**. Beslutet sparas på ärendets tidslinje, med att det kom från Slack eller Microsoft Teams, och i projektets granskningslogg.
+
+Mattermost får godkännandet som text, utan knappar.
+
 #### Ångra
 
-Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning**, **Frigör** eller **Aktivera**. En utloggning kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg.
+Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning**, **Frigör** eller **Aktivera**. En utloggning kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg. I appen OneUptime On-Call listar ärendet vad dess playbooks har begränsat, och vart och ett kan ångras därifrån.
 
 ### Meddelanden
 

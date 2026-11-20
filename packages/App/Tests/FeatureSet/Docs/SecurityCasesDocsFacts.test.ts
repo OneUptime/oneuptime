@@ -2095,7 +2095,24 @@ describe("Security Cases and Playbooks docs", () => {
     );
     // The app opens the case's own screen from them.
     expect(handlers).toMatch(
-      /case "security-case": \/\*.{0,600}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId \},/,
+      /case "security-case": \/\*.{0,800}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId, /,
+    );
+    /*
+     * An approval's push names its run: the screen opens on that approval,
+     * with its evidence, or says what became of it (#10341).
+     */
+    expect(
+      flat(source("Common/Server/Utils/PushNotificationUtil.ts")),
+    ).toContain("...(params.runId ? { runId: params.runId } : {}),");
+    expect(handlers).toContain(
+      '...(typeof data.runId === "string" && isUuid(data.runId) ? { runId: data.runId } : {}),',
+    );
+    expect(caseScreen).toContain(
+      "<PlaybookApprovalDecidedNotice readout={decidedApproval} />",
+    );
+    expect(approval).toContain('testID="playbook-approval-evidence"');
+    expect(englishPage()).toContain(
+      "A push about a step waiting for your approval opens on that approval, with its evidence; when somebody decided it since, the case says who, when and how the step went.",
     );
     // Where the waiting step is decided, the case taken on and closed.
     expect(approval).toContain('label="Approve"');
