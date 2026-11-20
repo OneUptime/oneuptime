@@ -97,8 +97,78 @@ export interface SecurityCaseIngestResult {
 
 const LONG_TEXT_LIMIT: number = 480;
 
+/*
+ * The most detections whose kept events one read takes (#9943): a rule's
+ * firing opens at most 100 groups (DETECTION_MAX_GROUPS_PER_EVALUATION), so
+ * one read takes what every detection a firing repeats kept - at most 64 KB
+ * each, 6.4 MB in all - and a larger batch (a feed's check) takes a read
+ * per hundred.
+ */
+export const SECURITY_CASE_INGEST_KEPT_EVENTS_READ_SIZE: number = 100;
+
+/*
+ * What the detections a batch repeats kept of the events they matched, by
+ * the detection's id: null for one that kept nothing. A detection that is
+ * not here was not read (its read failed), and is read on its own.
+ */
+export type KeptEventsOfDetections = Map<
+  string,
+  SecurityDetectionMatchedEvents | null
+>;
+
 function clamp(text: string, limit: number): string {
   return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
+}
+
+/*
+ * The detection a signal repeats: the one with its fingerprint whose case
+ * is still open. Undefined for a signal that opens or joins a case.
+ */
+export function findRepeatedDetection(data: {
+  detections: Array<SecurityDetection>;
+  fingerprint: string;
+  openCases: Map<string, SecurityCase>;
+}): SecurityDetection | undefined {
+  return data.detections.find((detection: SecurityDetection): boolean => {
+    return (
+      detection.fingerprint === data.fingerprint &&
+      Boolean(detection.securityCaseId) &&
+      data.openCases.has(detection.securityCaseId!.toString())
+    );
+  });
+}
+
+/*
+ * The ids of the detections a batch's signals repeat, each once, in the
+ * signals' order - those whose signal brings events to keep: a signal
+ * that kept none adds nothing to what its detection kept, so it reads
+ * nothing of it.
+ */
+export function getRepeatedDetectionIdsToRead(data: {
+  signals: Array<SecurityDetectionSignal>;
+  detections: Array<SecurityDetection>;
+  openCases: Map<string, SecurityCase>;
+}): Array<string> {
+  const ids: Set<string> = new Set<string>();
+
+  for (const signal of data.signals) {
+    if (!signal.matchedEvents) {
+      continue;
+    }
+
+    const repeated: SecurityDetection | undefined = findRepeatedDetection({
+      detections: data.detections,
+      fingerprint: clamp(signal.fingerprint, LONG_TEXT_LIMIT),
+      openCases: data.openCases,
+    });
+    const id: string = repeated?.id?.toString() || "";
+
+    if (id) {
+      ids.add(id);
+    }
+  }
+
+  return Array.from(ids);
 }
 
 /*
@@ -350,19 +420,32 @@ export default class SecurityCaseIngest {
       }
     }
 
+    /*
+     * What every detection the batch repeats kept before, read at once
+     * (#9943): a correlation firing again for 100 groups read what each of
+     * its 100 detections kept with a read of its own. Kept current as the
+     * batch writes, so a detection the batch writes twice merges onto its
+     * own last write, as it did when it read the row again each time.
+     */
+    const keptEvents: KeptEventsOfDetections =
+      await this.readKeptEventsOfDetections({
+        projectId,
+        detectionIds: getRepeatedDetectionIdsToRead({
+          signals,
+          detections: existingDetections,
+          openCases,
+        }),
+      });
+
     for (const signal of signals) {
       try {
         const fingerprint: string = clamp(signal.fingerprint, LONG_TEXT_LIMIT);
 
-        const repeated: SecurityDetection | undefined = existingDetections.find(
-          (detection: SecurityDetection): boolean => {
-            return (
-              detection.fingerprint === fingerprint &&
-              Boolean(detection.securityCaseId) &&
-              openCases.has(detection.securityCaseId!.toString())
-            );
-          },
-        );
+        const repeated: SecurityDetection | undefined = findRepeatedDetection({
+          detections: existingDetections,
+          fingerprint,
+          openCases,
+        });
 
         if (repeated) {
           await this.recordRepeat({
@@ -370,6 +453,7 @@ export default class SecurityCaseIngest {
             detection: repeated,
             securityCase: openCases.get(repeated.securityCaseId!.toString())!,
             values,
+            keptEvents,
           });
           result.detectionsRepeated++;
           continue;
@@ -388,6 +472,7 @@ export default class SecurityCaseIngest {
             securityCase: joined,
             isOpeningDetection: false,
             values,
+            keptEvents,
           });
           existingDetections.push(detection);
           result.detectionsAdded++;
@@ -419,6 +504,7 @@ export default class SecurityCaseIngest {
           securityCase: opened,
           isOpeningDetection: true,
           values,
+          keptEvents,
         });
         existingDetections.push(detection);
         result.casesOpened++;
@@ -544,6 +630,8 @@ export default class SecurityCaseIngest {
     securityCase: SecurityCase;
     isOpeningDetection: boolean;
     values: ProjectSecurityCaseValues;
+    // What the batch's detections keep: the new one's is added.
+    keptEvents: KeptEventsOfDetections;
   }): Promise<SecurityDetection> {
     const { signal, securityCase } = data;
 
@@ -596,11 +684,15 @@ export default class SecurityCaseIngest {
       detection.eventUid = clamp(signal.eventUid, LONG_TEXT_LIMIT);
     }
 
-    if (signal.matchedEvents) {
-      detection.matchedEvents = keepSecurityDetectionMatchedEvents({
-        kept: null,
-        firing: signal.matchedEvents,
-      }) as unknown as JSONObject;
+    const kept: SecurityDetectionMatchedEvents | null = signal.matchedEvents
+      ? keepSecurityDetectionMatchedEvents({
+          kept: null,
+          firing: signal.matchedEvents,
+        })
+      : null;
+
+    if (kept) {
+      detection.matchedEvents = kept as unknown as JSONObject;
     }
 
     const created: SecurityDetection = await SecurityDetectionService.create({
@@ -609,6 +701,11 @@ export default class SecurityCaseIngest {
         isRoot: true,
       },
     });
+
+    // A signal later in the batch can repeat it: it merges onto this.
+    if (created.id) {
+      data.keptEvents.set(created.id.toString(), kept);
+    }
 
     await SecurityCaseService.atomicAddToColumnsByIdWithoutHooks({
       id: securityCase.id!,
@@ -738,6 +835,8 @@ export default class SecurityCaseIngest {
     detection: SecurityDetection;
     securityCase: SecurityCase;
     values: ProjectSecurityCaseValues;
+    // What the batch's detections keep, read once for the batch.
+    keptEvents: KeptEventsOfDetections;
   }): Promise<void> {
     const { signal, detection } = data;
 
@@ -766,16 +865,26 @@ export default class SecurityCaseIngest {
     /*
      * The firing's events add to what the detection kept, until it is
      * full; its request outcomes add to the ones counted before. Read and
-     * written under the project's lock, so two firings never lose either.
+     * written under the project's lock, so two firings never lose either:
+     * read with the batch's other repeats (readKeptEventsOfDetections),
+     * or on its own when that read did not take it.
      */
-    if (signal.matchedEvents) {
-      const kept: SecurityDetectionMatchedEvents | null =
-        await this.readMatchedEvents(detection);
+    const id: string = detection.id!.toString();
+    let merged: SecurityDetectionMatchedEvents | null = null;
 
-      set.matchedEvents = keepSecurityDetectionMatchedEvents({
+    if (signal.matchedEvents) {
+      const kept: SecurityDetectionMatchedEvents | null = data.keptEvents.has(
+        id,
+      )
+        ? data.keptEvents.get(id) || null
+        : await this.readMatchedEvents(detection);
+
+      merged = keepSecurityDetectionMatchedEvents({
         kept,
         firing: signal.matchedEvents,
-      }) as unknown as NonNullable<
+      });
+
+      set.matchedEvents = merged as unknown as NonNullable<
         PartialEntity<SecurityDetection>["matchedEvents"]
       >;
     }
@@ -789,6 +898,11 @@ export default class SecurityCaseIngest {
       set: set,
     });
 
+    // Written: a later repeat of it in this batch merges onto this.
+    if (merged) {
+      data.keptEvents.set(id, merged);
+    }
+
     await SecurityCaseService.updateColumnsByIdWithoutHooks({
       id: data.securityCase.id!,
       data: {
@@ -801,6 +915,79 @@ export default class SecurityCaseIngest {
       signal,
       values: data.values,
     });
+  }
+
+  /*
+   * What each of the detections kept of the events they matched, by id
+   * (#9943): in reads of at most SECURITY_CASE_INGEST_KEPT_EVENTS_READ_SIZE
+   * detections, one for any rule's firing. As OneUptime, since no role reads
+   * the column (SecurityDetection.matchedEvents), and only this project's
+   * detections: the ids are the repeats the batch found among them. A
+   * detection the read does not return kept nothing, as a read of it alone
+   * says. A read that fails is logged and leaves its detections out: each
+   * is read on its own, as before, and nothing it kept is lost.
+   */
+  public static async readKeptEventsOfDetections(data: {
+    projectId: ObjectID;
+    detectionIds: Array<string>;
+  }): Promise<KeptEventsOfDetections> {
+    const kept: KeptEventsOfDetections = new Map();
+    const ids: Array<string> = Array.from(new Set(data.detectionIds)).filter(
+      Boolean,
+    );
+
+    for (
+      let start: number = 0;
+      start < ids.length;
+      start += SECURITY_CASE_INGEST_KEPT_EVENTS_READ_SIZE
+    ) {
+      const chunk: Array<string> = ids.slice(
+        start,
+        start + SECURITY_CASE_INGEST_KEPT_EVENTS_READ_SIZE,
+      );
+
+      try {
+        const rows: Array<SecurityDetection> =
+          await SecurityDetectionService.findBy({
+            query: {
+              projectId: data.projectId,
+              _id: new Includes(chunk),
+            },
+            select: {
+              _id: true,
+              matchedEvents: true,
+            },
+            skip: 0,
+            limit: chunk.length,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const byId: Map<string, SecurityDetection> = new Map();
+
+        for (const row of rows) {
+          const rowId: string = row.id?.toString() || row._id?.toString() || "";
+
+          if (rowId) {
+            byId.set(rowId, row);
+          }
+        }
+
+        for (const id of chunk) {
+          kept.set(
+            id,
+            readSecurityDetectionMatchedEvents(byId.get(id)?.matchedEvents),
+          );
+        }
+      } catch (error) {
+        logger.warn(
+          `SecurityCaseIngest: what ${chunk.length} detections of project ${data.projectId.toString()} kept could not be read at once; each is read on its own: ${error}`,
+        );
+      }
+    }
+
+    return kept;
   }
 
   // What a detection kept of the events it matched before; null when nothing.
