@@ -80,7 +80,11 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
-import { getIssuePartNotLoadedSentence } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssuePartsNotLoaded";
+import {
+  ISSUE_PART_NOT_LOADED,
+  ISSUE_STORE_NOT_LOADED,
+  IssuePartNotLoadedSentence,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssuePartsNotLoaded";
 import { STORE_DATA_TYPES_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/StoreDataTypes";
 import DataSecurityIssueViewLayout, {
   ISSUE_NOT_FOUND,
@@ -460,10 +464,7 @@ describe("a data security issue's page, through the server", () => {
           "data-security-issue-part-not-loaded-dataStore",
         ),
       ).toHaveTextContent(
-        getIssuePartNotLoadedSentence("dataStore").replace(
-          "{{error}}",
-          NAME_REFUSAL,
-        ),
+        ISSUE_STORE_NOT_LOADED.replace("{{error}}", NAME_REFUSAL),
       );
       expect(
         within(notice).queryByTestId(
@@ -568,9 +569,29 @@ describe("every record the issue's page names has its own sentence when it canno
         return relation;
       }),
   )("%s", (relation: string) => {
-    expect(getIssuePartNotLoadedSentence(relation)).not.toBe(
-      getIssuePartNotLoadedSentence("somethingElse"),
+    const { container } = render(
+      <IssuePartNotLoadedSentence
+        part={{ relation: relation, error: "Refused here." }}
+      />,
     );
-    expect(getIssuePartNotLoadedSentence(relation)).toMatch(/\{\{error\}\}$/);
+    const sentence: string = container.textContent || "";
+
+    // Its own words, not the sentence for a part nobody named.
+    expect(sentence).not.toBe(
+      ISSUE_PART_NOT_LOADED.replace("{{error}}", "Refused here."),
+    );
+    expect(sentence).toMatch(/^Couldn't load .+\. Refused here\.$/);
+  });
+
+  test("a part nobody named still says what failed, and why", () => {
+    const { container } = render(
+      <IssuePartNotLoadedSentence
+        part={{ relation: "somethingElse", error: "Refused here." }}
+      />,
+    );
+
+    expect(container.textContent).toBe(
+      ISSUE_PART_NOT_LOADED.replace("{{error}}", "Refused here."),
+    );
   });
 });

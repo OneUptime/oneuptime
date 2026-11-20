@@ -16,30 +16,69 @@ import React, { FunctionComponent, ReactElement } from "react";
  * issue from 14.0.99 to 17.0.0.
  */
 
-// What each record the issue names is, as the sentence names it.
-export const ISSUE_PART_NOT_LOADED: Readonly<Record<string, string>> = {
-  dataStore: translationKey(
-    "Couldn't load the store this issue is on. {{error}}",
-  ),
-  assignedToUser: translationKey(
-    "Couldn't load who this issue is assigned to. {{error}}",
-  ),
-  assignedToTeam: translationKey(
-    "Couldn't load the team this issue is assigned to. {{error}}",
-  ),
-  acceptedByUser: translationKey(
-    "Couldn't load who accepted this issue's risk. {{error}}",
-  ),
-};
+export const ISSUE_STORE_NOT_LOADED: string = translationKey(
+  "Couldn't load the store this issue is on. {{error}}",
+);
+
+export const ISSUE_ASSIGNEE_NOT_LOADED: string = translationKey(
+  "Couldn't load who this issue is assigned to. {{error}}",
+);
+
+export const ISSUE_ASSIGNED_TEAM_NOT_LOADED: string = translationKey(
+  "Couldn't load the team this issue is assigned to. {{error}}",
+);
+
+export const ISSUE_ACCEPTED_BY_NOT_LOADED: string = translationKey(
+  "Couldn't load who accepted this issue's risk. {{error}}",
+);
 
 // A record the issue names that has no sentence of its own above.
-export const ISSUE_PART_NOT_LOADED_OTHERWISE: string = translationKey(
+export const ISSUE_PART_NOT_LOADED: string = translationKey(
   "Couldn't load part of this issue. {{error}}",
 );
 
-export function getIssuePartNotLoadedSentence(relation: string): string {
-  return ISSUE_PART_NOT_LOADED[relation] || ISSUE_PART_NOT_LOADED_OTHERWISE;
-}
+// What could not be loaded, named as the issue names it, and why.
+export const IssuePartNotLoadedSentence: FunctionComponent<{
+  part: UnloadedPart;
+}> = (props: { part: UnloadedPart }): ReactElement => {
+  switch (props.part.relation) {
+    case "dataStore":
+      return (
+        <ErrorSentence
+          template={ISSUE_STORE_NOT_LOADED}
+          error={props.part.error}
+        />
+      );
+    case "assignedToUser":
+      return (
+        <ErrorSentence
+          template={ISSUE_ASSIGNEE_NOT_LOADED}
+          error={props.part.error}
+        />
+      );
+    case "assignedToTeam":
+      return (
+        <ErrorSentence
+          template={ISSUE_ASSIGNED_TEAM_NOT_LOADED}
+          error={props.part.error}
+        />
+      );
+    case "acceptedByUser":
+      return (
+        <ErrorSentence
+          template={ISSUE_ACCEPTED_BY_NOT_LOADED}
+          error={props.part.error}
+        />
+      );
+    default:
+      return (
+        <ErrorSentence
+          template={ISSUE_PART_NOT_LOADED}
+          error={props.part.error}
+        />
+      );
+  }
+};
 
 export interface ComponentProps {
   parts: Array<UnloadedPart>;
@@ -67,10 +106,7 @@ const IssuePartsNotLoaded: FunctionComponent<ComponentProps> = (
                 key={part.relation}
                 data-testid={`data-security-issue-part-not-loaded-${part.relation}`}
               >
-                <ErrorSentence
-                  template={getIssuePartNotLoadedSentence(part.relation)}
-                  error={part.error}
-                />
+                <IssuePartNotLoadedSentence part={part} />
               </div>
             );
           })}
