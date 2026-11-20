@@ -560,3 +560,406 @@ describe("the savings lane", () => {
     expect(readSavings).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A read of costs that carries on where it stopped (#10295): an Azure
+ * tenant's subscriptions are read one by one at the pace Cost Management
+ * allows, and the ones a read could not reach are queued - read at the
+ * first read from when they may be, each as far back as its own first read
+ * needs, while the twelve-hour beat stays where it was.
+ */
+describe("the costs lane, carrying on where a read stopped", () => {
+  const SUB_A: string = "aaaaaaaa-0000-4000-8000-00000000000a";
+  const SUB_B: string = "aaaaaaaa-0000-4000-8000-00000000000b";
+  const SUB_C: string = "aaaaaaaa-0000-4000-8000-00000000000c";
+  const SUB_D: string = "aaaaaaaa-0000-4000-8000-00000000000d";
+  const ROWS: Record<string, ObjectID> = {
+    [SUB_A]: new ObjectID("55555555-5555-4555-8555-55555555555a"),
+    [SUB_B]: new ObjectID("55555555-5555-4555-8555-55555555555b"),
+    [SUB_C]: new ObjectID("55555555-5555-4555-8555-55555555555c"),
+    [SUB_D]: new ObjectID("55555555-5555-4555-8555-55555555555d"),
+  };
+  const LANE_WINDOW: { start: Date; end: Date } = {
+    start: new Date("2026-11-13T00:00:00.000Z"),
+    end: new Date("2026-11-21T00:00:00.000Z"),
+  };
+  const FIRST_WINDOW: { start: Date; end: Date } = {
+    start: new Date("2026-09-01T00:00:00.000Z"),
+    end: new Date("2026-11-21T00:00:00.000Z"),
+  };
+  const RETRY_AT: string = "2026-11-20T12:02:10.000Z";
+  const READ_INTERVAL_MS: number = 5 * 60 * 1000;
+  const QUEUED_MESSAGE: string =
+    "Azure Cost Management limits how fast the tenant's costs are read.";
+
+  function azureLane(
+    given: CloudConnector,
+    state: CloudConnectionPullState,
+  ): Parameters<typeof CloudConnectionLanes.runCosts>[0] {
+    return {
+      ...lane(given, state),
+      provider: CloudProvider.Azure,
+      settings: { ...SETTINGS, provider: CloudProvider.Azure },
+      readIntervalMs: READ_INTERVAL_MS,
+    };
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(CloudAccountService, "findBy")
+      .mockImplementation(async (): Promise<Array<CloudAccount>> => {
+        return [SUB_A, SUB_B, SUB_C, SUB_D].map(
+          (subscriptionId: string): CloudAccount => {
+            const row: CloudAccount = new CloudAccount();
+            row.id = ROWS[subscriptionId]!;
+            row.accountId = subscriptionId;
+
+            // D has figures from before; C never had any.
+            if (subscriptionId === SUB_D) {
+              row.costSummary = summary({
+                monthToDate: 77,
+              }) as unknown as JSONObject;
+            }
+
+            return row;
+          },
+        );
+      });
+    jest
+      .spyOn(CloudCostWriter, "summarize")
+      .mockImplementation(
+        async (input: {
+          cloudAccountIds: Array<string>;
+        }): Promise<Map<string, CloudAccountCostSummary>> => {
+          return new Map(
+            input.cloudAccountIds.map(
+              (id: string): [string, CloudAccountCostSummary] => {
+                return [id, summary({ monthToDate: 5 })];
+              },
+            ),
+          );
+        },
+      );
+  });
+
+  function readOf(): CloudCostsResult {
+    return {
+      records: [SUB_A, SUB_B].map((accountId: string) => {
+        return {
+          accountId,
+          day: "2026-11-19",
+          service: "Virtual Machines",
+          region: "eastus",
+          resourceId: "",
+          amount: 3,
+          currency: "USD",
+        };
+      }),
+      accounts: [
+        { accountId: SUB_A, state: CloudCostState.Reading },
+        // Never read before: read over a first read's days.
+        {
+          accountId: SUB_B,
+          state: CloudCostState.Reading,
+          window: FIRST_WINDOW,
+        },
+        {
+          accountId: SUB_C,
+          state: CloudCostState.Queued,
+          message: QUEUED_MESSAGE,
+          retryAt: RETRY_AT,
+        },
+        {
+          accountId: SUB_D,
+          state: CloudCostState.Queued,
+          message: QUEUED_MESSAGE,
+          retryAt: "2026-11-20T12:30:00.000Z",
+        },
+      ],
+      warnings: [],
+      complete: false,
+    };
+  }
+
+  test("each account's days are written over its own window: an account's first read apart", () => {
+    expect(
+      CloudConnectionLanes.groupCostAccountsByWindow({
+        outcomes: readOf().accounts,
+        window: LANE_WINDOW,
+      }),
+    ).toEqual([
+      { window: LANE_WINDOW, accounts: new Set([SUB_A]) },
+      { window: FIRST_WINDOW, accounts: new Set([SUB_B]) },
+    ]);
+  });
+
+  test("a queued account is read at the connection's first read from its time", () => {
+    // Two minutes ten from now: the next read, five minutes on.
+    expect(
+      CloudConnectionLanes.getQueuedCostsReadAt({
+        retryAt: RETRY_AT,
+        now: NOW,
+        readIntervalMs: READ_INTERVAL_MS,
+      }),
+    ).toBe("2026-11-20T12:05:00.000Z");
+    // Twelve minutes from now: the third read.
+    expect(
+      CloudConnectionLanes.getQueuedCostsReadAt({
+        retryAt: "2026-11-20T12:12:00.000Z",
+        now: NOW,
+        readIntervalMs: READ_INTERVAL_MS,
+      }),
+    ).toBe("2026-11-20T12:15:00.000Z");
+    // A time gone by, or none: the next read.
+    expect(
+      CloudConnectionLanes.getQueuedCostsReadAt({
+        retryAt: "2026-11-20T11:00:00.000Z",
+        now: NOW,
+        readIntervalMs: READ_INTERVAL_MS,
+      }),
+    ).toBe("2026-11-20T12:05:00.000Z");
+    expect(
+      CloudConnectionLanes.getQueuedCostsReadAt({
+        retryAt: "soon",
+        now: NOW,
+        readIntervalMs: READ_INTERVAL_MS,
+      }),
+    ).toBe("2026-11-20T12:05:00.000Z");
+    // No interval known: its own time.
+    expect(
+      CloudConnectionLanes.getQueuedCostsReadAt({
+        retryAt: RETRY_AT,
+        now: NOW,
+      }),
+    ).toBe(RETRY_AT);
+  });
+
+  test("what a read got to: when each account read was read, and the earliest an account put off may be", () => {
+    const state: CloudConnectionPullState = {
+      costAccountsReadAt: {
+        // Read two days ago: remembered.
+        "bbbbbbbb-0000-4000-8000-000000000001": "2026-11-18T12:00:00.000Z",
+        // Not read for 50 days: gone from the connection.
+        "bbbbbbbb-0000-4000-8000-000000000002": "2026-10-01T12:00:00.000Z",
+      },
+    };
+
+    CloudConnectionLanes.keepCostProgress({
+      state,
+      outcomes: readOf().accounts,
+      now: NOW,
+    });
+
+    expect(state.costAccountsReadAt).toEqual({
+      "bbbbbbbb-0000-4000-8000-000000000001": "2026-11-18T12:00:00.000Z",
+      [SUB_A]: NOW.toISOString(),
+      [SUB_B]: NOW.toISOString(),
+    });
+    expect(state.costsPending).toEqual({
+      accounts: [SUB_C, SUB_D],
+      at: RETRY_AT,
+    });
+
+    // Nothing put off: nothing pending.
+    CloudConnectionLanes.keepCostProgress({
+      state,
+      outcomes: [{ accountId: SUB_C, state: CloudCostState.Reading }],
+      now: NOW,
+    });
+
+    expect(state.costsPending).toBeUndefined();
+  });
+
+  test("written over each window, the queued without figures say when, those with figures keep them", async () => {
+    const write: SpyInstance<typeof CloudCostWriter.write> = jest
+      .spyOn(CloudCostWriter, "write")
+      .mockImplementation(async () => {
+        return { seriesCount: 1, rowsWritten: 1, recordsWithoutAccount: 0 };
+      });
+    let asked: CloudCostsOptions | null = null;
+    const state: CloudConnectionPullState = {
+      costsReadAt: new Date(
+        NOW.getTime() - CLOUD_COSTS_INTERVAL_MS - 1000,
+      ).toISOString(),
+      costsVersion: 2,
+    };
+
+    const outcome: CloudCostsLaneOutcome = await CloudConnectionLanes.runCosts(
+      azureLane(
+        connector({
+          provider: CloudProvider.Azure,
+          readCosts: async (
+            _settings: CloudConnectionSettings,
+            options: CloudCostsOptions,
+          ): Promise<CloudCostsResult> => {
+            asked = options;
+            return readOf();
+          },
+        }),
+        state,
+      ),
+    );
+
+    expect(outcome).toMatchObject({
+      ran: true,
+      rowsWritten: 2,
+      accountsRead: 2,
+    });
+    // A whole read: every account, and an account's first read's days offered.
+    expect(asked!.accounts).toBeUndefined();
+    expect(asked!.start).toEqual(LANE_WINDOW.start);
+    expect(asked!.firstReadWindow).toEqual(FIRST_WINDOW);
+
+    expect(
+      write.mock.calls.map((call: Parameters<typeof CloudCostWriter.write>) => {
+        return [call[0].window, Array.from(call[0].accountsRead)];
+      }),
+    ).toEqual([
+      [LANE_WINDOW, [SUB_A]],
+      [FIRST_WINDOW, [SUB_B]],
+    ]);
+
+    const byId: Map<string, JSONObject> = new Map(
+      accountUpdates.map((entry: { id: string; data: JSONObject }) => {
+        return [entry.id, entry.data];
+      }),
+    );
+
+    // C, never read: queued, with when it is read.
+    expect(byId.get(ROWS[SUB_C]!.toString())!["costSummary"]).toMatchObject({
+      state: CloudCostState.Queued,
+      nextReadAt: "2026-11-20T12:05:00.000Z",
+      monthToDate: 0,
+    });
+    // D keeps its figures, and stays reading: its summary is not written.
+    expect(byId.has(ROWS[SUB_D]!.toString())).toBe(false);
+
+    expect(state.costsReadAt).toBe(NOW.toISOString());
+    expect(state.costsPending).toEqual({
+      accounts: [SUB_C, SUB_D],
+      at: RETRY_AT,
+    });
+    expect(Object.keys(state.costAccountsReadAt || {}).sort()).toEqual(
+      [SUB_A, SUB_B].sort(),
+    );
+  });
+
+  test("due again from the accounts' time, before the twelve hours: only they are read, and the beat stays", async () => {
+    jest.spyOn(CloudCostWriter, "write").mockImplementation(async () => {
+      return { seriesCount: 1, rowsWritten: 1, recordsWithoutAccount: 0 };
+    });
+    const readAt: string = new Date(
+      NOW.getTime() - 5 * 60 * 1000,
+    ).toISOString();
+    const state: CloudConnectionPullState = {
+      costsReadAt: readAt,
+      costsVersion: 2,
+      costsPending: { accounts: [SUB_C, SUB_D], at: RETRY_AT },
+    };
+
+    // Before its time: not due.
+    expect(
+      CloudConnectionLanes.isCostsDue(
+        state,
+        new Date(Date.parse(RETRY_AT) - 1000),
+      ),
+    ).toBe(false);
+    expect(CloudConnectionLanes.isCostsDue(state, NOW)).toBe(false);
+
+    const later: Date = new Date("2026-11-20T12:05:00.000Z");
+
+    expect(CloudConnectionLanes.isCostsDue(state, later)).toBe(true);
+
+    let asked: CloudCostsOptions | null = null;
+
+    await CloudConnectionLanes.runCosts({
+      ...azureLane(
+        connector({
+          provider: CloudProvider.Azure,
+          readCosts: async (
+            _settings: CloudConnectionSettings,
+            options: CloudCostsOptions,
+          ): Promise<CloudCostsResult> => {
+            asked = options;
+            return {
+              records: [],
+              accounts: [
+                { accountId: SUB_C, state: CloudCostState.Reading },
+                { accountId: SUB_D, state: CloudCostState.Reading },
+              ],
+              warnings: [],
+              complete: true,
+            };
+          },
+        }),
+        state,
+      ),
+      now: later,
+    });
+
+    expect(asked!.accounts).toEqual([SUB_C, SUB_D]);
+    expect(state.costsPending).toBeUndefined();
+    // The next whole read is still twelve hours after the last.
+    expect(state.costsReadAt).toBe(readAt);
+  });
+
+  test("carrying on, a read that fails as a whole is tried again within the hour, the beat untouched", async () => {
+    const readAt: string = new Date(
+      NOW.getTime() - 5 * 60 * 1000,
+    ).toISOString();
+    const state: CloudConnectionPullState = {
+      costsReadAt: readAt,
+      costsVersion: 2,
+      costsPending: { accounts: [SUB_C], at: "2026-11-20T11:59:00.000Z" },
+    };
+
+    const outcome: CloudCostsLaneOutcome = await CloudConnectionLanes.runCosts(
+      azureLane(
+        connector({
+          provider: CloudProvider.Azure,
+          readCosts: async (): Promise<CloudCostsResult> => {
+            throw new Error("Azure Resource Manager is having a bad day");
+          },
+        }),
+        state,
+      ),
+    );
+
+    expect(outcome.warnings).toEqual([
+      "Could not read the accounts' costs: Azure Resource Manager is having a bad day",
+    ]);
+    expect(state.costsReadAt).toBe(readAt);
+    expect(state.costsPending).toEqual({
+      accounts: [SUB_C],
+      at: new Date(NOW.getTime() + CLOUD_COSTS_RETRY_MS).toISOString(),
+    });
+  });
+
+  test("a cloud that reads every account at once never queues: nothing pending", async () => {
+    jest.spyOn(CloudCostWriter, "write").mockImplementation(async () => {
+      return { seriesCount: 1, rowsWritten: 1, recordsWithoutAccount: 0 };
+    });
+    const state: CloudConnectionPullState = {};
+
+    await CloudConnectionLanes.runCosts(
+      lane(
+        connector({
+          readCosts: async (): Promise<CloudCostsResult> => {
+            return {
+              records: [],
+              accounts: [
+                { accountId: "123456789012", state: CloudCostState.Reading },
+              ],
+              warnings: [],
+              complete: true,
+            };
+          },
+        }),
+        state,
+      ),
+    );
+
+    expect(state.costsPending).toBeUndefined();
+    expect(state.costsReadAt).toBe(NOW.toISOString());
+  });
+});
