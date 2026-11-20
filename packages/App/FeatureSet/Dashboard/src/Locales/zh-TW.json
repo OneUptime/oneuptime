@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "僅被已停用的規則涵蓋",
   "Create a new user group": "建立新的使用者群組",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "正在建立…",
   "Critical only": "僅嚴重",
   "Current Step Index": "目前步驟索引",
   "Delete Case": "刪除案例",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "你的待命策略",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "你的進度會隨時儲存到帳戶中，可在任何裝置上繼續。",
   "{{count}} of {{total}} ready": "已就緒 {{count}} / {{total}}",
-  "{{count}} of {{total}} ready_one": "已就緒 {{count}} / {{total}}"
+  "{{count}} of {{total}} ready_one": "已就緒 {{count}} / {{total}}",
+  "Monitors shown": "顯示的監測器",
+  "Pick what you want to do first, and its steps show here.": "選擇您想先做的事，相應的步驟會顯示在這裡。",
+  "Your first steps": "您的第一步"
 }

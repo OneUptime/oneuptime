@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Покрыта только выключенными правилами",
   "Create a new user group": "Создать новую группу пользователей",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Создаётся…",
   "Critical only": "Только Критический",
   "Current Step Index": "Индекс текущего шага",
   "Delete Case": "Удалить кейс",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "Ваши политики дежурства",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Ваш прогресс сохраняется в учётной записи по ходу работы, поэтому продолжить можно на любом устройстве.",
   "{{count}} of {{total}} ready": "Готово: {{count}} из {{total}}",
-  "{{count}} of {{total}} ready_one": "Готово: {{count}} из {{total}}"
+  "{{count}} of {{total}} ready_one": "Готово: {{count}} из {{total}}",
+  "Monitors shown": "Показанные мониторы",
+  "Pick what you want to do first, and its steps show here.": "Выберите, с чего хотите начать, и здесь появятся нужные шаги.",
+  "Your first steps": "Ваши первые шаги"
 }

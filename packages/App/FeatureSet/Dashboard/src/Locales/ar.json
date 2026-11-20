@@ -60006,5 +60006,8 @@
   "Your on-call policies": "سياسات المناوبة لديك",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "يُحفظ تقدّمك في حسابك أولًا بأول، فتتابع على أي جهاز.",
   "{{count}} of {{total}} ready": "الجاهز: {{count}} من {{total}}",
-  "{{count}} of {{total}} ready_one": "الجاهز: {{count}} من {{total}}"
+  "{{count}} of {{total}} ready_one": "الجاهز: {{count}} من {{total}}",
+  "Monitors shown": "المراقبات المعروضة",
+  "Pick what you want to do first, and its steps show here.": "اختر ما تريد فعله أولًا، وستظهر خطواته هنا.",
+  "Your first steps": "خطواتك الأولى"
 }

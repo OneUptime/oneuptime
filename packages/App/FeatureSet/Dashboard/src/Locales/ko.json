@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "비활성 규칙만 다룸",
   "Create a new user group": "새 사용자 그룹 만들기",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "만드는 중…",
   "Critical only": "심각만",
   "Current Step Index": "현재 단계 인덱스",
   "Delete Case": "케이스 삭제",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "내 온콜 정책",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "진행 상황은 계정에 계속 저장되므로 어느 기기에서든 이어서 할 수 있습니다.",
   "{{count}} of {{total}} ready": "{{total}}개 중 {{count}}개 준비됨",
-  "{{count}} of {{total}} ready_one": "{{total}}개 중 {{count}}개 준비됨"
+  "{{count}} of {{total}} ready_one": "{{total}}개 중 {{count}}개 준비됨",
+  "Monitors shown": "표시되는 모니터",
+  "Pick what you want to do first, and its steps show here.": "먼저 하고 싶은 일을 고르면 그 단계가 여기에 표시됩니다.",
+  "Your first steps": "첫 단계"
 }

@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Endast täckt av inaktiverade regler",
   "Create a new user group": "Skapa en ny användargrupp",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Skapas…",
   "Critical only": "Endast Kritisk",
   "Current Step Index": "Index för aktuellt steg",
   "Delete Case": "Ta bort ärende",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "Dina jourpolicyer",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Dina framsteg sparas i ditt konto efter hand, så att du kan fortsätta på vilken enhet som helst.",
   "{{count}} of {{total}} ready": "{{count}} av {{total}} klara",
-  "{{count}} of {{total}} ready_one": "{{count}} av {{total}} klar"
+  "{{count}} of {{total}} ready_one": "{{count}} av {{total}} klar",
+  "Monitors shown": "Visade monitorer",
+  "Pick what you want to do first, and its steps show here.": "Välj vad du vill göra först, så visas stegen här.",
+  "Your first steps": "Dina första steg"
 }

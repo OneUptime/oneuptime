@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Alleen gedekt door uitgeschakelde regels",
   "Create a new user group": "Nieuwe gebruikersgroep maken",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Wordt gemaakt…",
   "Critical only": "Alleen Kritiek",
   "Current Step Index": "Index van huidige stap",
   "Delete Case": "Zaak verwijderen",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "Je bereikbaarheidsbeleid",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Je voortgang wordt onderweg in je account opgeslagen, zodat je op elk apparaat verder kunt.",
   "{{count}} of {{total}} ready": "{{count}} van {{total}} klaar",
-  "{{count}} of {{total}} ready_one": "{{count}} van {{total}} klaar"
+  "{{count}} of {{total}} ready_one": "{{count}} van {{total}} klaar",
+  "Monitors shown": "Getoonde monitoren",
+  "Pick what you want to do first, and its steps show here.": "Kies wat je eerst wilt doen, en de stappen ervoor verschijnen hier.",
+  "Your first steps": "Je eerste stappen"
 }

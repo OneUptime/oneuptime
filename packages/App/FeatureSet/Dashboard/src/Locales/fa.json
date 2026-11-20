@@ -60006,5 +60006,8 @@
   "Your on-call policies": "سیاست‌های آنکال شما",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "پیشرفت شما در حین کار در حسابتان ذخیره می‌شود تا بتوانید روی هر دستگاهی ادامه دهید.",
   "{{count}} of {{total}} ready": "{{count}} از {{total}} آماده",
-  "{{count}} of {{total}} ready_one": "{{count}} از {{total}} آماده"
+  "{{count}} of {{total}} ready_one": "{{count}} از {{total}} آماده",
+  "Monitors shown": "مانیتورهای نمایش‌داده‌شده",
+  "Pick what you want to do first, and its steps show here.": "انتخاب کنید که اول می‌خواهید چه کاری بکنید تا گام‌هایش اینجا نشان داده شوند.",
+  "Your first steps": "نخستین گام‌های شما"
 }

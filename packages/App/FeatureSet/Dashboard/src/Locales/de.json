@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Nur von deaktivierten Regeln abgedeckt",
   "Create a new user group": "Neue Benutzergruppe erstellen",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Wird erstellt…",
   "Critical only": "Nur Kritisch",
   "Current Step Index": "Index des aktuellen Schritts",
   "Delete Case": "Fall löschen",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "Ihre Bereitschaftsrichtlinien",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Ihr Fortschritt wird laufend in Ihrem Konto gespeichert, sodass Sie auf jedem Gerät weitermachen können.",
   "{{count}} of {{total}} ready": "{{count}} von {{total}} bereit",
-  "{{count}} of {{total}} ready_one": "{{count}} von {{total}} bereit"
+  "{{count}} of {{total}} ready_one": "{{count}} von {{total}} bereit",
+  "Monitors shown": "Angezeigte Monitore",
+  "Pick what you want to do first, and its steps show here.": "Wählen Sie, was Sie zuerst tun möchten, und die Schritte dafür erscheinen hier.",
+  "Your first steps": "Ihre ersten Schritte"
 }

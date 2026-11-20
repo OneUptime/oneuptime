@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "仅被已停用的规则覆盖",
   "Create a new user group": "新建用户组",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "正在创建…",
   "Critical only": "仅严重",
   "Current Step Index": "当前步骤索引",
   "Delete Case": "删除案例",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "你的值班策略",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "你的进度会随时保存到账户中，可在任意设备上继续。",
   "{{count}} of {{total}} ready": "已就绪 {{count}} / {{total}}",
-  "{{count}} of {{total}} ready_one": "已就绪 {{count}} / {{total}}"
+  "{{count}} of {{total}} ready_one": "已就绪 {{count}} / {{total}}",
+  "Monitors shown": "显示的监视器",
+  "Pick what you want to do first, and its steps show here.": "选择您想先做的事，相应的步骤会显示在这里。",
+  "Your first steps": "您的第一步"
 }

@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "無効なルールでのみカバー",
   "Create a new user group": "新しいユーザーグループを作成",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "作成中…",
   "Critical only": "重大のみ",
   "Current Step Index": "現在のステップのインデックス",
   "Delete Case": "ケースを削除",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "あなたのオンコールポリシー",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "進行状況は随時アカウントに保存されるので、どのデバイスからでも再開できます。",
   "{{count}} of {{total}} ready": "{{total}} 件中 {{count}} 件が準備完了",
-  "{{count}} of {{total}} ready_one": "{{total}} 件中 {{count}} 件が準備完了"
+  "{{count}} of {{total}} ready_one": "{{total}} 件中 {{count}} 件が準備完了",
+  "Monitors shown": "表示するモニター",
+  "Pick what you want to do first, and its steps show here.": "最初にやりたいことを選ぶと、そのステップがここに表示されます。",
+  "Your first steps": "最初のステップ"
 }

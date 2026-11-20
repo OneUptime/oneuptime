@@ -60006,5 +60006,8 @@
   "Your on-call policies": "Your on-call policies",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Your progress is saved to your account as you go, so you can pick up on any device.",
   "{{count}} of {{total}} ready": "{{count}} of {{total}} ready",
-  "{{count}} of {{total}} ready_one": "{{count}} of {{total}} ready"
+  "{{count}} of {{total}} ready_one": "{{count}} of {{total}} ready",
+  "Monitors shown": "Monitors shown",
+  "Pick what you want to do first, and its steps show here.": "Pick what you want to do first, and its steps show here.",
+  "Your first steps": "Your first steps"
 }

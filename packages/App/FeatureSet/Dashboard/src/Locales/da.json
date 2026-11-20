@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Kun dækket af deaktiverede regler",
   "Create a new user group": "Opret en ny brugergruppe",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Opretter…",
   "Critical only": "Kun Kritisk",
   "Current Step Index": "Indeks for aktuelt trin",
   "Delete Case": "Slet sag",
@@ -60006,5 +60006,8 @@
   "Your on-call policies": "Dine vagtpolitikker",
   "Your progress is saved to your account as you go, so you can pick up on any device.": "Dine fremskridt gemmes løbende på din konto, så du kan fortsætte på enhver enhed.",
   "{{count}} of {{total}} ready": "{{count}} af {{total}} klar",
-  "{{count}} of {{total}} ready_one": "{{count}} af {{total}} klar"
+  "{{count}} of {{total}} ready_one": "{{count}} af {{total}} klar",
+  "Monitors shown": "Viste monitorer",
+  "Pick what you want to do first, and its steps show here.": "Vælg, hvad du vil gøre først, så vises trinene her.",
+  "Your first steps": "Dine første skridt"
 }
