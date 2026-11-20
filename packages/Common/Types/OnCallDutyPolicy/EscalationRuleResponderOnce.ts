@@ -31,8 +31,10 @@
  * time, so nobody is paged twice by it, and it keeps taking a person twice.
  */
 
-// The rows each index holds: those not deleted.
-export const ESCALATION_RULE_RESPONDER_ROWS: string = '"deletedAt" IS NULL';
+/*
+ * The indexes, by name: each holds the rows not deleted (`"deletedAt" IS
+ * NULL`), as every read reads them.
+ */
 
 // One row per person on a rule.
 export const ESCALATION_RULE_USER_INDEX: string =
