@@ -42,9 +42,10 @@ set -e
 scriptDir=$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")
 
 # A setting the way `npm start` reads it: config.env's last assignment of it,
-# without surrounding whitespace, quotes or a carriage return, or else the
-# environment's value. config.env comes first: some shells (zsh) set a HOST
-# of their own.
+# with or without an "export " before it, as Scripts/Install/WithConfig.sh
+# hands it to Compose, without surrounding whitespace, quotes or a carriage
+# return, or else the environment's value. config.env comes first: some
+# shells (zsh) set a HOST of their own.
 read_setting() {
     local name="$1"
     local value=""
@@ -52,7 +53,7 @@ read_setting() {
 
     if [ -f ./config.env ]; then
         local line
-        line=$(grep -E "^[[:space:]]*${name}[[:space:]]*=" ./config.env | tail -n 1 || true)
+        line=$(grep -E "^[[:space:]]*(export[[:space:]]+)?${name}[[:space:]]*=" ./config.env | tail -n 1 || true)
         if [ -n "$line" ]; then
             value="${line#*=}"
             found="true"

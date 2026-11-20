@@ -2,7 +2,7 @@
 // on, when config.env moves the ingress off port 80 or onto one address.
 
 const fs = require("fs");
-const { readSettings } = require("./ReplacePlaceholderSecrets");
+const { assignedKeyOf, readSettings } = require("./ReplacePlaceholderSecrets");
 const { ok, listed } = require("./StartOutput");
 
 /*
@@ -48,19 +48,6 @@ const PORT_NUMBER = /^\d{1,5}$/;
 // http://<loopback>[:port][/] and nothing more: the shape config.example.env ships.
 const LOOPBACK_URL =
   /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::(\d{1,5}))?\/?$/i;
-
-const isCommentLine = (line) => {
-  const trimmed = line.trim();
-  return trimmed.startsWith("#") || trimmed.startsWith("//");
-};
-
-const assignedKeyOf = (line) => {
-  if (isCommentLine(line) || line.indexOf("=") === -1) {
-    return null;
-  }
-
-  return line.split("=")[0].trim();
-};
 
 const unquotedValueOf = (line) => {
   const value = line.slice(line.indexOf("=") + 1).trim();

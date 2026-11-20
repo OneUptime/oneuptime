@@ -346,6 +346,52 @@ describe("the address it checks", () => {
     expect(result.calls[0]).toBe("localhost:8080");
   });
 
+  // As Scripts/Install/WithConfig.sh hands such a line to Compose.
+  test.each([
+    "export ONEUPTIME_HTTP_PORT=8080",
+    "export\tONEUPTIME_HTTP_PORT=8080",
+    "  export   ONEUPTIME_HTTP_PORT = 8080",
+  ])("%j is read as ONEUPTIME_HTTP_PORT, as Compose gets it", (line) => {
+    const result = statusCheck({
+      config: configWith(["ONEUPTIME_HTTP_PORT=80", line]),
+    });
+
+    expect(result.calls[0]).toBe("localhost:8080");
+  });
+
+  test("an export before HOST and PROVISION_SSL is read too: HOST is asked for over HTTPS", () => {
+    const result = statusCheck({
+      config: configWith([
+        "export HOST=oneuptime.example.com",
+        "export PROVISION_SSL=true",
+        "export STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443",
+      ]),
+    });
+    const https = result.requests.filter((argv) => {
+      return argv[argv.length - 1].startsWith("https://");
+    });
+
+    expect(https).toHaveLength(1);
+    expect(requestOf(https[0])).toEqual({
+      host: "oneuptime.example.com:8443",
+      path: "/status/ready",
+      connectsTo: "127.0.0.1:8443",
+    });
+  });
+
+  test("a name that only starts with export, or a commented-out export, is no setting", () => {
+    for (const line of [
+      "exportONEUPTIME_HTTP_PORT=8080",
+      "# export ONEUPTIME_HTTP_PORT=8080",
+    ]) {
+      const result = statusCheck({
+        config: configWith(["ONEUPTIME_HTTP_PORT=9090", line]),
+      });
+
+      expect(result.calls[0]).toBe("localhost:9090");
+    }
+  });
+
   test("config.env wins over the environment, which npm start exports from it anyway", () => {
     const result = statusCheck({
       config: configWith(["ONEUPTIME_HTTP_PORT=8080"]),
