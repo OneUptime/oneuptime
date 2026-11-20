@@ -1117,6 +1117,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_SETTINGS_CHECKS]: "settings/checks",
   [PageMap.DATA_SECURITY_SETTINGS_RESIDENCY]: "settings/residency",
   [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: "settings/scanning",
+  [PageMap.DATA_SECURITY_SETTINGS_AI]: "settings/ai",
   [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.DATA_SECURITY_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_SETTINGS_LABEL_RULES]: "settings/label-rules",
@@ -8937,6 +8938,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_SETTINGS_SCANNING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_SCANNING]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_SETTINGS_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_AI]
     }`,
   ),
 

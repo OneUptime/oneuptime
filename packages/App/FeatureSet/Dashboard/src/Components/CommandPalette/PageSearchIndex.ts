@@ -2979,6 +2979,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Clock,
             keywords: ["scan schedule", "scanning", "sampling"],
           },
+          {
+            page: PageMap.DATA_SECURITY_SETTINGS_AI,
+            title: "OneUptime AI",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "what ai sees",
+              "what is sent to ai",
+              "ai privacy",
+              "llm",
+              "model",
+            ],
+          },
         ],
       },
       {

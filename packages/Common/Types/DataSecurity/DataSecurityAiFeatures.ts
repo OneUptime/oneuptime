@@ -160,7 +160,7 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       sends: [
         translationKey("The kind of store, and the data types it may name"),
         translationKey(
-          "Each field's name, the names of the fields beside it, and the shapes of its values: every letter as a or A, every digit as 9",
+          "Each field's name, the names of the fields beside it, and the shapes of its values, such as AA-9999 for the value AB-1234",
         ),
         translationKey("How many values were read, and how long they are"),
       ],

@@ -33,6 +33,7 @@ import {
   buildDataSecurityFixRequest,
   buildExplainIssuePrompt,
 } from "../../../Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt";
+import DataSecurityAiSettings from "../../../Server/Utils/AI/DataSecurity/DataSecurityAiSettings";
 import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
 import ProductKey from "../../../Types/Product/ProductKey";
@@ -412,6 +413,16 @@ const ROUTES: Array<RouteCase> = [
       Permission.EditDataStore,
     ],
   },
+  {
+    /*
+     * What OneUptime AI sees (#10365): for whoever reads Data Security;
+     * each part of the answer is read with the reader's own permissions.
+     */
+    name: "what OneUptime AI sees",
+    path: DATA_SECURITY_API_ROUTES.aiInput,
+    allowed: READ,
+    refused: [Permission.ProjectMember, Permission.ReadLlmLog],
+  },
 ];
 
 // Each route with each permission it answers, and each it refuses.
@@ -480,6 +491,7 @@ let findingUpdateSpy: jest.SpyInstance;
 let connectionsSpy: jest.SpyInstance;
 let feedSpy: jest.SpyInstance;
 let aiSpy: jest.SpyInstance;
+let aiSettingsSpy: jest.SpyInstance;
 let repositoriesSpy: jest.SpyInstance;
 let codeTaskSpy: jest.SpyInstance;
 let scrubSpy: jest.SpyInstance;
@@ -578,6 +590,7 @@ function readsMade(): number {
     databaseServerFindOneSpy,
     clusterFindOneSpy,
     customTypesSpy,
+    aiSettingsSpy,
     readableSpy,
     readableOneSpy,
     canAskSpy,
@@ -699,6 +712,14 @@ beforeEach(() => {
   aiSpy = jest
     .spyOn(AIService, "executeWithLogging")
     .mockResolvedValue({ content: "Turn on Block Public Access." } as never);
+  // What OneUptime AI sees: its own suite reads it (DataSecurityAiSettings).
+  aiSettingsSpy = jest.spyOn(DataSecurityAiSettings, "read").mockResolvedValue({
+    isAiEnabled: true,
+    canReadModels: false,
+    projectModel: null,
+    codeAgentModel: null,
+    example: null,
+  });
   repositoriesSpy = jest
     .spyOn(CodeRepositoryService, "findBy")
     .mockImplementation((async () => {
@@ -880,6 +901,7 @@ describe("routes and who may call them", () => {
     expect(DATA_SECURITY_API_ROUTES.fixIssueWithAi("x")).toBe(
       "/data-security-issue/x/fix-with-ai",
     );
+    expect(DATA_SECURITY_API_ROUTES.aiInput).toBe("/data-security/ai-input");
   });
 
   // The explanation spells out the issue's evidence (#10361).
@@ -2285,9 +2307,7 @@ describe("Explain and Fix With AI", () => {
     ).messages[1]!.content;
 
     expect(
-      ((JSON.parse(content) as JSONObject)["issue"] as JSONObject)[
-        "dataTypes"
-      ],
+      ((JSON.parse(content) as JSONObject)["issue"] as JSONObject)["dataTypes"],
     ).toEqual(["Card number", "Loyalty card number", "A deleted data type"]);
     expect(content).not.toContain("custom:");
     // Read once, as OneUptime: OneUptime AI needs the names.
@@ -2890,6 +2910,45 @@ describe("Explain and Fix With AI on a telemetry issue", () => {
     );
     expect(several.answer!["repositories"]).toHaveLength(2);
     expect(codeTaskSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("what OneUptime AI sees (#10365)", () => {
+  test("is read with the caller's own permissions, for the issue asked for", async () => {
+    const issueId: ObjectID = ObjectID.generate();
+
+    await call(
+      DATA_SECURITY_API_ROUTES.aiInput,
+      {},
+      {
+        withExample: true,
+        issueId: issueId.toString(),
+      },
+    );
+
+    expect(aiSettingsSpy).toHaveBeenCalledTimes(1);
+    expect(aiSettingsSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      props: { userId: USER_ID },
+      withExample: true,
+      issueId,
+    });
+  });
+
+  test("builds no example unless asked to", async () => {
+    await call(DATA_SECURITY_API_ROUTES.aiInput, {}, { withExample: "yes" });
+
+    expect(
+      (aiSettingsSpy.mock.calls[0]![0] as { withExample: boolean }).withExample,
+    ).toBe(false);
+  });
+
+  test("an issue id that is not one asks for none: the riskiest open issue's", async () => {
+    await call(DATA_SECURITY_API_ROUTES.aiInput, {}, { issueId: "nope" });
+
+    expect(
+      (aiSettingsSpy.mock.calls[0]![0] as { issueId?: ObjectID }).issueId,
+    ).toBeUndefined();
   });
 });
 

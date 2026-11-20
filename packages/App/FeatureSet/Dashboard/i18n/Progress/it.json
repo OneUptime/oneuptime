@@ -337,6 +337,7 @@
     "Script",
     "Seccomp",
     "Seccomp (Restricted)",
+    "Self-hosted",
     "Server",
     "Server / VM",
     "Server: {{server}}",

@@ -64,6 +64,7 @@ import { AiContextActivity } from "../../Types/AI/AiContext";
 import DataSecurityAiCall from "../Utils/AI/DataSecurity/DataSecurityAiCall";
 import { DataSecurityAiCodeRequest } from "../Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityAiReads from "../Utils/AI/DataSecurity/DataSecurityAiReads";
+import DataSecurityAiSettings from "../Utils/AI/DataSecurity/DataSecurityAiSettings";
 import DataSecurityCodeTask, {
   DataSecurityFixCode,
 } from "../Utils/AI/DataSecurity/DataSecurityCodeTask";
@@ -71,6 +72,8 @@ import ProjectDataTypeNames from "../Utils/DataSecurity/ProjectDataTypeNames";
 import {
   buildDataSecurityFixRequest,
   buildExplainIssuePrompt,
+  DATA_SECURITY_EXPLAIN_MAX_TOKENS,
+  DATA_SECURITY_EXPLAIN_TEMPERATURE,
 } from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
@@ -158,7 +161,12 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    AI is for anyone who may change the issue, in a repository they may
  *    change in Code, under every check a task in Code is asked
  *    (DataSecurityCodeTask, #10362). Each names a data type as the project
- *    does (ProjectDataTypeNames, #10363);
+ *    does (ProjectDataTypeNames, #10363), and builds what it sends through
+ *    DataSecurityAiInput, the one way a Data Security prompt is made
+ *    (#10365);
+ *  - What OneUptime AI sees, for Settings > OneUptime AI: the model each
+ *    feature runs on and the exact input one issue would send, each to who
+ *    may read it (DataSecurityAiSettings);
  *  - Block public access and Revoke sharing on a cloud store, for anyone
  *    who may edit it, through the store's cloud connection and only when
  *    its "Data security response" setting is on (DataSecurityResponse) -
@@ -644,7 +652,8 @@ export default class DataSecurityAPI extends BaseAPI<
             dataTypeNamer: await ProjectDataTypeNames.read({ projectId }),
             aiContext,
           }),
-          maxTokens: 900,
+          maxTokens: DATA_SECURITY_EXPLAIN_MAX_TOKENS,
+          temperature: DATA_SECURITY_EXPLAIN_TEMPERATURE,
         });
 
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
@@ -661,6 +670,36 @@ export default class DataSecurityAPI extends BaseAPI<
         });
 
         return { markdown: response.content };
+      },
+    );
+
+    /*
+     * What OneUptime AI sees (Settings > OneUptime AI, #10365): whether AI
+     * is on, the model each feature runs on - to who may read the project's
+     * LLM providers - and the exact input one issue would send, to who may
+     * read that issue. Every part is read with the caller's own props; a
+     * read, so it answers while Data Security is off on the server too.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.aiInput,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const issueId: unknown = body["issueId"];
+
+        return (await DataSecurityAiSettings.read({
+          projectId,
+          props,
+          withExample: body["withExample"] === true,
+          issueId:
+            typeof issueId === "string" && ObjectID.isValidUUID(issueId)
+              ? new ObjectID(issueId)
+              : undefined,
+        })) as unknown as JSONObject;
       },
     );
 
