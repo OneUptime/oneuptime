@@ -27,12 +27,14 @@ import {
   SecurityPlaybookApprovalProgress,
   SecurityPlaybookApprovalSourceKind,
   SecurityPlaybookApprovalStandingKind,
+  SecurityPlaybookApprovalText,
   SecurityPlaybookApprovalTime,
   SecurityPlaybookApprovalWording,
   SecurityPlaybookApprovalWordingContext,
   getProposedTargets,
   getSecurityPlaybookApprovalButtonWords,
   getSecurityPlaybookApprovalFormWords,
+  getSecurityPlaybookApprovalText,
   offersApproveSome,
   wordSecurityPlaybookApproval,
   wordSecurityPlaybookApprovalAnswer,
@@ -831,5 +833,76 @@ describe("each playbook action's title, as a message names it", () => {
       "Block Address",
     );
     expect(getSecurityPlaybookActionTitleWords(undefined)).toBe("");
+  });
+});
+
+/*
+ * The approval as plain lines, for what is not a chat message - an email's
+ * rows, the mobile app's card: the same words as every chat copy, the
+ * protected targets apart from the ones it acts on.
+ */
+describe("the approval as plain lines", () => {
+  test("the wording's text, the targets it acts on apart from the protected ones it leaves alone", () => {
+    const ask: SecurityPlaybookApprovalAsk = askOf();
+    const wording: SecurityPlaybookApprovalWording = word(ask);
+    const text: SecurityPlaybookApprovalText = getSecurityPlaybookApprovalText({
+      ask,
+      context: ENGLISH,
+    });
+
+    expect(text).toEqual({
+      headline: wording.headline.text,
+      action: wording.action.text,
+      targets: texts(wording.targets).slice(0, 2),
+      leftAlone: texts(wording.targets).slice(2),
+      source: wording.source.text,
+      evidence: texts(wording.evidence),
+      undo: wording.undo.text,
+    });
+    expect(text.targets).toEqual([
+      "alice@acme.com: the case is grouped on it",
+      "bob@acme.com: known to threat intel",
+    ]);
+    expect(text.leftAlone).toHaveLength(1);
+    expect(text.leftAlone[0]).toContain("ceo@acme.com");
+    // Text, never Markdown: a target is its value, not code.
+    expect(JSON.stringify(text)).not.toContain("`");
+  });
+
+  test("an approved step carries how it went; a waiting one has no progress", () => {
+    expect(
+      getSecurityPlaybookApprovalText({ ask: askOf(), context: ENGLISH }),
+    ).not.toHaveProperty("progress");
+
+    const approved: SecurityPlaybookApprovalText =
+      getSecurityPlaybookApprovalText({
+        ask: askOf({
+          standing: {
+            kind: SecurityPlaybookApprovalStandingKind.Approved,
+            deciderName: "Jane Doe",
+            decidedAt: DECIDED_AT,
+            progress: SecurityPlaybookApprovalProgress.Done,
+            completedAt: COMPLETED_AT,
+          },
+        }),
+        context: ENGLISH,
+      });
+
+    expect(approved.headline).toContain("Approved by Jane Doe");
+    expect(approved.progress).toContain(COMPLETED_AT.toISOString());
+  });
+
+  test("in the reader's language", () => {
+    const german: SecurityPlaybookApprovalText =
+      getSecurityPlaybookApprovalText({
+        ask: askOf(),
+        context: contextIn("de"),
+      });
+
+    expect(german.headline).toBe(word(askOf(), contextIn("de")).headline.text);
+    expect(german.headline).not.toBe(
+      getSecurityPlaybookApprovalText({ ask: askOf(), context: ENGLISH })
+        .headline,
+    );
   });
 });
