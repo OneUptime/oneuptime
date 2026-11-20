@@ -20,7 +20,9 @@ import * as AwsSts from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
  *      and is called by the check and by assumeRole alone, which checks
  *      before it signs in;
  *   3. anything but Cloud Connect's own sign-in takes OneUptime's own AWS
- *      credentials, which are what a role trusts (USES_ONEUPTIME_IDENTITY).
+ *      credentials, which are what a role trusts (USES_ONEUPTIME_IDENTITY);
+ *   4. anything but AwsSts writes a check's verdict (AwsRoleCheckCache.set):
+ *      a pass written elsewhere would let assumeRole skip the check.
  *
  * A new caller - a project's Amazon SES role (#7378) - signs in with
  * AwsSts.assumeRole and its own connection id, and is listed in 3.
@@ -90,6 +92,9 @@ const USES_ONEUPTIME_IDENTITY: Record<string, string> = {
 };
 const ONEUPTIME_IDENTITY_PATTERN: RegExp =
   /AwsServerIdentity\.getCredentials\(|AwsCloudConnector\.getServerCredentials\(/;
+
+// A check's verdict written: only AwsSts may.
+const VERDICT_WRITE_PATTERN: RegExp = /AwsRoleCheckCache\.set\(/;
 
 // A function's first line in AwsSts, and a call to its raw sign-in.
 const FUNCTION_START: RegExp = /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\(/;
@@ -314,5 +319,19 @@ describe("OneUptime's own AWS identity", () => {
      * customer's role with AwsSts.assumeRole, and is listed here with why.
      */
     expect(users).toEqual(Object.keys(USES_ONEUPTIME_IDENTITY).sort());
+  });
+});
+
+describe("a check's verdict", () => {
+  test("is written by AwsSts alone: a pass written anywhere else would let a sign-in skip the check", () => {
+    const writers: Array<string> = Array.from(
+      new Set(
+        findings(SOURCE_FILES, [
+          { name: "a verdict written", pattern: VERDICT_WRITE_PATTERN },
+        ]).map(fileOf),
+      ),
+    );
+
+    expect(writers).toEqual([STS_FILE]);
   });
 });
