@@ -183,6 +183,8 @@ import ProfileService from "../Services/ProfileService";
 import ProfileSampleService from "../Services/ProfileSampleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Permission, { PermissionHelper } from "../../Types/Permission";
+import ProductKey from "../../Types/Product/ProductKey";
+import { withProductLevelsOf } from "../../Types/Product/ProductLevels";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import SubscriptionPlan, {
@@ -5720,17 +5722,25 @@ router.post(
  * - an incoherent grant rather than a safer one, and exactly what
  * RumSession's own comment says the ACL exists to prevent.
  */
+/*
+ * Each session replay list here takes RUM's levels where the project-wide
+ * roles are on it (Types/Product/ProductLevels), as RumSession's and
+ * RumSessionChunk's own lists do: RUM Admin wherever Project Admin is.
+ */
 const requireSessionReplayListAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
   UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.TelemetryAdmin,
-      Permission.ReadRumSessionReplay,
-      Permission.ReadRumSessionReplayPayload,
-    ],
+    permissions: withProductLevelsOf({
+      products: [ProductKey.Rum],
+      permissions: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.TelemetryAdmin,
+        Permission.ReadRumSessionReplay,
+        Permission.ReadRumSessionReplayPayload,
+      ],
+    }),
   }),
 ];
 
@@ -5744,36 +5754,42 @@ const requireSessionReplayPayloadAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
   UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.TelemetryAdmin,
-      Permission.ReadRumSessionReplayPayload,
-    ],
+    permissions: withProductLevelsOf({
+      products: [ProductKey.Rum],
+      permissions: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.TelemetryAdmin,
+        Permission.ReadRumSessionReplayPayload,
+      ],
+    }),
   }),
 ];
 
 /* The permission list each guard above enforces, reused for label scope. */
-const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.TelemetryAdmin,
-  Permission.ReadRumSessionReplay,
-  /*
-   * Watching implies listing.
-   *
-   * RumSession's own table read ACL contains this permission for a reason it
-   * states outright: a role granted only the watch permission could fetch
-   * payloads (the payload routes authorize on it alone) while being 401'd on
-   * the manifest and the list - an incoherent grant rather than a safer one.
-   * Leaving it out here meant a support-engineer role built from "Watch
-   * Session Replays" + "Read RUM Application" - the natural pairing, and the
-   * one the permission's own description suggests - got a permission error
-   * on the session list and a silently missing "Watch what the user saw"
-   * card on every exception page.
-   */
-  Permission.ReadRumSessionReplayPayload,
-];
+const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = withProductLevelsOf({
+  products: [ProductKey.Rum],
+  permissions: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.TelemetryAdmin,
+    Permission.ReadRumSessionReplay,
+    /*
+     * Watching implies listing.
+     *
+     * RumSession's own table read ACL contains this permission for a reason it
+     * states outright: a role granted only the watch permission could fetch
+     * payloads (the payload routes authorize on it alone) while being 401'd on
+     * the manifest and the list - an incoherent grant rather than a safer one.
+     * Leaving it out here meant a support-engineer role built from "Watch
+     * Session Replays" + "Read RUM Application" - the natural pairing, and the
+     * one the permission's own description suggests - got a permission error
+     * on the session list and a silently missing "Watch what the user saw"
+     * card on every exception page.
+     */
+    Permission.ReadRumSessionReplayPayload,
+  ],
+});
 
 /*
  * The optional audit-table enrichment must admit an audit-only reviewer so a
@@ -5829,23 +5845,31 @@ const requireSessionReplayResolveAccess: Array<RequestHandler> = [
   }),
 ];
 
-const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.TelemetryAdmin,
-  Permission.ReadRumSessionReplayPayload,
-];
+const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> =
+  withProductLevelsOf({
+    products: [ProductKey.Rum],
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.TelemetryAdmin,
+      Permission.ReadRumSessionReplayPayload,
+    ],
+  });
 
 /*
  * The raw end-user identifier carries its own narrower ACL on the model
  * (no TelemetryAdmin): knowing that *a* user had a bad session is triage,
  * knowing *which named person* is a further disclosure again.
  */
-const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ReadRumSessionReplayPayload,
-];
+const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> =
+  withProductLevelsOf({
+    products: [ProductKey.Rum],
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadRumSessionReplayPayload,
+    ],
+  });
 
 /*
  * The sentence that tells a caller without SESSION_REPLAY_IDENTITY_PERMISSIONS
@@ -9997,12 +10021,15 @@ const requireSessionReplayTargetAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
   UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.TelemetryAdmin,
-      Permission.EditRumApplication,
-    ],
+    permissions: withProductLevelsOf({
+      products: [ProductKey.Rum],
+      permissions: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.TelemetryAdmin,
+        Permission.EditRumApplication,
+      ],
+    }),
   }),
 ];
 
@@ -10064,12 +10091,15 @@ router.post(
         projectId: projectId,
         rumApplicationId: rumApplicationId,
         databaseProps: databaseProps,
-        permissions: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.TelemetryAdmin,
-          Permission.EditRumApplication,
-        ],
+        permissions: withProductLevelsOf({
+          products: [ProductKey.Rum],
+          permissions: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.TelemetryAdmin,
+            Permission.EditRumApplication,
+          ],
+        }),
       });
 
       /*

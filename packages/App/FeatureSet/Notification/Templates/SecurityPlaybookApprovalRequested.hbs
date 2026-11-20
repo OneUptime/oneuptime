@@ -5,6 +5,11 @@
   reject it (SecurityCaseNotifications). The run does nothing until then.
   Every value is written with a double stash: playbook, step and case names
   are text people and detections wrote.
+
+  It says what the step does, to what and why each target is one, what it
+  leaves alone, the evidence and whether it can be undone (#10341), so
+  nobody approves blind. Its button opens the approval on the case and
+  decides nothing: a mail scanner follows every link in an email.
 --}}
 {{> Logo this}}
 {{> EmailTitle title=emailTitle }}
@@ -18,7 +23,11 @@
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Playbook: " plainText=playbookName }}
 {{> DetailBoxField title="Step Waiting: " plainText=stepDescription }}
+{{> DetailBoxField title="Will Do: " plainText=approvalAction }}
 {{> DetailBoxField title="Would Act On: " plainText=stepTargets }}
+{{> DetailBoxField title="Left Alone: " plainText=approvalLeftAlone }}
+{{> DetailBoxField title="Evidence: " plainText=approvalEvidence }}
+{{> DetailBoxField title="Can Be Undone: " plainText=approvalUndo }}
 {{> DetailBoxField title="Started: " plainText=startedBy }}
 {{> DetailBoxField title="Case: " plainText=caseTitle }}
 {{> DetailBoxField title="Priority: " plainText=casePriority color=priorityColor textColor=priorityTextColor }}

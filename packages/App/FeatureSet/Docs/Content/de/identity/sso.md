@@ -287,6 +287,31 @@ Der Browser geht zur Abmeldung des Anbieters, sobald OneUptime ihn abgemeldet ha
 Ein Anbieter, bei dem sie nicht registriert ist, zeigt nach einer Abmeldung von OneUptime seine eigene Fehlerseite, statt die Person zurückzuschicken; von OneUptime ist sie trotzdem abgemeldet.
 :::
 
+## Erneut anmelden, um zu bestätigen, dass Sie es sind
+
+Bevor jemand ändert, wie er sich anmeldet, oder sein Konto löscht, bittet OneUptime ihn, [zu bestätigen, dass er es ist](/docs/introduction/your-account#bestätigen-dass-sie-es-sind). Wer sich nur über Ihren Identitätsanbieter anmeldet, ohne Passwort oder Passkey in OneUptime, bestätigt mit **Erneut anmelden**: OneUptime schickt die Person zum Anbieter und bittet ihn, sie sich erneut anmelden zu lassen. Das zählt nur, wenn der Anbieter sagt, dass sie sich zu diesem Zeitpunkt oder danach angemeldet hat, mit einer Minute Spielraum für die beiden Uhren. Ein Anbieter, der sie mit einer bestehenden Sitzung sofort wieder anmeldet oder nicht mitteilt, wann sie sich angemeldet hat, bestätigt nichts, und die Person erfährt, dass sie Sie bitten soll, das zu ändern.
+
+:::tabs
+@tab SAML
+OneUptime sendet `ForceAuthn="true"` und liest aus dem `AuthnInstant` der Assertion, wann sich die Person angemeldet hat.
+
+| Identitätsanbieter | Was einzustellen ist |
+| --- | --- |
+| Okta | Bearbeiten Sie auf dem Tab **General** die **SAML Settings**, klicken Sie auf **Show Advanced Settings** und setzen Sie **Honor Force Authentication** auf **Yes**. Steht es auf **No**, ignoriert Okta die Anfrage. |
+| Microsoft Entra ID | Nichts: Entra ID folgt der Anfrage, und sein `AuthnInstant` ist der Zeitpunkt, zu dem sich die Person angemeldet hat. |
+| Keycloak | Nichts: Keycloak folgt der Anfrage. Sein `AuthnInstant` ist allerdings der Zeitpunkt seiner Antwort, nicht der Anmeldung der Person, daher kann OneUptime nicht prüfen, ob Keycloak sie erneut gefragt hat. Binden Sie Keycloak über OpenID Connect an, damit OneUptime selbst prüft. |
+| Google Workspace | Nichts einzustellen. Google sagt nicht, ob es der Anfrage folgt. Sein `AuthnInstant` ist die letzte Anmeldung der Person bei Google, daher meldet sich, wer noch bei Google angemeldet ist, zuerst bei Google ab. |
+@tab OpenID Connect
+OneUptime sendet `prompt=login` und `max_age=0` und liest aus dem `auth_time` des ID-Tokens, wann sich die Person angemeldet hat.
+
+| Identitätsanbieter | Was einzustellen ist |
+| --- | --- |
+| Okta | Nichts: Okta folgt beidem und sendet immer `auth_time`. |
+| Microsoft Entra ID | Klicken Sie in der **Token configuration** der App-Registrierung auf **Add optional claim**, wählen Sie **ID** und fügen Sie `auth_time` hinzu: Entra ID sendet es nur als optionalen Claim. Es folgt `prompt=login`. |
+| Keycloak | Behalten Sie den Client-Scope `basic` am Client: Er enthält `auth_time`. Keycloak 25 und neuer geben jedem Client diesen Scope. |
+| Google Workspace | Schalten Sie **Session age claims** für den OAuth-Client unter **Google Auth Platform** > **Settings** > **Advanced Settings** ein; die App muss veröffentlicht und verifiziert sein. Google folgt keiner der beiden Anfragen, daher fragt OneUptime es stattdessen nach `auth_time`, und wer noch bei Google angemeldet ist, meldet sich zuerst bei Google ab. |
+:::
+
 ## Rollen und Teams für SSO-Benutzer
 
 OneUptime übernimmt keine Rollen oder Gruppen aus Ihrem Identitätsanbieter. Was jemand tun darf, ergibt sich aus den Teams, in denen die Person ist: Ein Anbieter fügt Neue seinen **Teams** hinzu, und Teams und ihre Berechtigungen verwalten Sie in OneUptime, wie es [Benutzer, Teams & Berechtigungen](/docs/permissions/index) beschreibt. Um die Teammitgliedschaft mit Ihrem Identitätsanbieter abzugleichen, verwenden Sie [SCIM](/docs/identity/scim). Jedes Team, dem jemand bei der Anmeldung beitritt, wird auf der Seite **Audit-Protokolle** dieses Teams als Änderung der Person erfasst, die sich angemeldet hat.

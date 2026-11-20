@@ -210,6 +210,14 @@ router.get(
         );
       }
 
+      /*
+       * Never a Sign In Again (#10331, Common/Types/Accounts/Reauthentication,
+       * SignInAgainProvider.Vercel): OneUptime cannot ask Vercel to have the
+       * person sign in again, and Vercel's ID token does not say when they
+       * signed in, so a sign-in from Vercel - however recent, whatever the
+       * query says - confirms nobody's session. The prompt says so, and
+       * offers what does: an emailed sign-in link, or a password.
+       */
       const sessionMetadata: SessionMetadata =
         await UserSessionService.createSession({
           userId: user.id!,

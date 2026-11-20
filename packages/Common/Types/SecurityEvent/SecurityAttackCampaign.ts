@@ -42,6 +42,11 @@ export interface SecurityAttackCampaign {
   sampleTargets: Array<string>;
   firstSeen: string;
   lastSeen: string;
+  /*
+   * Of its requests, those whose address a scrub rule hid (#10397) - only
+   * the campaign with no address has any. Absent when none did.
+   */
+  hiddenAddressCount?: number | undefined;
 }
 
 export interface SecurityAttackCampaignsResult {
@@ -61,6 +66,21 @@ export function getCampaignGotThroughCount(
     campaign.reachedAppCount +
     campaign.erroredCount +
     campaign.reachedDatabaseCount
+  );
+}
+
+/*
+ * The campaign of requests with no address is that of requests whose
+ * address a scrub rule hid, every one of them (#10397): its row says so,
+ * not "Unknown address".
+ */
+export function isCampaignAddressHidden(
+  campaign: SecurityAttackCampaign,
+): boolean {
+  return (
+    !campaign.sourceIp &&
+    campaign.requestCount > 0 &&
+    (campaign.hiddenAddressCount || 0) >= campaign.requestCount
   );
 }
 
@@ -112,8 +132,10 @@ export function readSecurityAttackCampaign(
   row: JSONObject,
 ): SecurityAttackCampaign {
   const worstOutcome: string = readText(row["worstOutcome"]);
+  const hiddenAddressCount: number = readNumber(row["hiddenAddressCount"]);
 
   return {
+    ...(hiddenAddressCount > 0 ? { hiddenAddressCount } : {}),
     sourceIp: readText(row["sourceIp"]),
     requestCount: readNumber(row["requestCount"]),
     rejectedCount: readNumber(row["rejectedCount"]),

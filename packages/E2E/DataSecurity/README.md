@@ -17,6 +17,7 @@ An offline harness for Data Security's pages, mounted from the product's real ro
 | Issues              | `/data-security/issues`              | On a phone                                                                                                     |
 | An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links             |
 | An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                              |
+| AI                  | `/data-security/ai`                  | What OneUptime AI proposes, made and left alone; Approve shows the change first; at 1280 and on a phone        |
 | Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                                     |
 | Scan Settings       | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                                           |
 
@@ -60,8 +61,13 @@ count, worst severity and risk are worked out from its open issues, as the evalu
 | `?response=` | `on` (default) or `off`: the bucket's cloud connection has "Data security response" on, or off                                                  |
 | `?data=`     | `default`, `empty` (a new project: no cloud connection, nothing found) or `busy` (26 more stores with long names, an open issue or two on each) |
 | `?fail=`     | `reads`: every read fails, as when the API is down, so each page shows how it says so                                                           |
+| `?ai=`       | `on`: OneUptime AI has a proposal waiting on the logs' email issue, a change made without asking and an issue left alone (Data Security → AI)   |
 
 The spec pins the browser clock to `2026-10-27T12:00:00Z`.
+
+The project has Enable AI and **Work on new issues** on, as a new project does, and a provider to use. A
+press on a proposal moves it on - made, dismissed or undone - and a Security Viewer's is refused, as the
+server refuses it.
 
 Besides the tables above, it models Compliance's scores (worked out from the stores and their open
 issues with the catalog's own `scoreComplianceFramework`, as the server does), an owner rule, the

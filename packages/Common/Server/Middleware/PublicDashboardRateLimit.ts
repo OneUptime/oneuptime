@@ -32,8 +32,11 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * One limiter covers the whole surface rather than per-route budgets. The
  * routes differ enormously in cost, but the thing being bounded is request
  * volume from a single origin, and a uniform ceiling is the one an operator
- * can reason about. Only /master-password gets its own, much tighter bucket,
- * because it is the one route where the abuse is guessing rather than load.
+ * can reason about. Two routes get buckets of their own: /master-password,
+ * much tighter, because it is the one route where the abuse is guessing
+ * rather than load, and /promql-query (issue #10226), because each of its
+ * requests evaluates a PromQL query - its own counters, so a board of
+ * PromQL widgets neither spends nor draws on the other reads' allowance.
  *
  * The status page master password route (/status-page-api/master-password,
  * rewritten to /api/status-page) is the same oracle on a different surface,
@@ -80,6 +83,13 @@ export enum PublicDashboardRateLimitScope {
 export enum PublicDashboardRateLimitBucket {
   /* Every public dashboard read route. */
   Read = "read",
+
+  /*
+   * Dashboard /promql-query only (issue #10226): each request evaluates a
+   * PromQL query over the project's metrics, which costs far more than any
+   * other read - so a tighter budget of its own, per dashboard and visitor.
+   */
+  PromQL = "promql",
 
   /*
    * Dashboard /master-password only. Tighter, because each request costs a
@@ -224,6 +234,33 @@ const READ_BUCKET: BucketConfig = {
   perIpLimit: parsePositiveIntFromEnv(
     "PUBLIC_DASHBOARD_RATE_LIMIT_PER_IP_PER_WINDOW",
     1800,
+  ),
+  surface: DASHBOARD_SURFACE,
+  isPasswordAttempt: false,
+};
+
+/*
+ * PromQL budget (issue #10226). Each request runs one query of one of the
+ * dashboard's PromQL widgets: up to 30 seconds of the engine over up to a
+ * million metric points, where any other read is one database query. Sized
+ * like the read budget, for wall displays rather than for one viewer: a
+ * dashboard of a dozen PromQL queries refreshing every 30 seconds is ~24
+ * requests a minute per display, so 240 covers ten displays behind one
+ * address - and a loop that would run thousands of queries a minute runs
+ * at most that many.
+ */
+const PROMQL_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "PUBLIC_DASHBOARD_PROMQL_RATE_LIMIT_WINDOW_SECONDS",
+    60,
+  ),
+  perResourceLimit: parsePositiveIntFromEnv(
+    "PUBLIC_DASHBOARD_PROMQL_RATE_LIMIT_PER_DASHBOARD_PER_WINDOW",
+    240,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "PUBLIC_DASHBOARD_PROMQL_RATE_LIMIT_PER_IP_PER_WINDOW",
+    480,
   ),
   surface: DASHBOARD_SURFACE,
   isPasswordAttempt: false,
@@ -424,6 +461,8 @@ export default class PublicDashboardRateLimit {
     switch (bucket) {
       case PublicDashboardRateLimitBucket.MasterPassword:
         return MASTER_PASSWORD_BUCKET;
+      case PublicDashboardRateLimitBucket.PromQL:
+        return PROMQL_BUCKET;
       case PublicDashboardRateLimitBucket.StatusPageMasterPassword:
         return STATUS_PAGE_MASTER_PASSWORD_BUCKET;
       default:

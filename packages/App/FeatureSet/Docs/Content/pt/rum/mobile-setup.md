@@ -3,7 +3,7 @@
 Instrumente um aplicativo Android, iOS ou React Native com o OpenTelemetry para que ele se reporte ao OneUptime como uma aplicação RUM móvel. Qualquer outra plataforma com um SDK do OpenTelemetry funciona da mesma forma.
 
 :::cards
-- [O que o OneUptime precisa](#o-que-o-oneuptime-precisa): Dois atributos de recurso, enviados com uma chave Servidor.
+- [O que o OneUptime precisa](#o-que-o-oneuptime-precisa): Dois atributos de recurso, enviados com uma chave Celular.
 - [Configurar sua plataforma](#configurar-sua-plataforma): Android, iOS, React Native e as demais.
 - [Falhas e travamentos no iOS](#falhas-e-travamentos-no-ios): Os relatórios do MetricKit e do KSCrash em Exceções, nomeados pelos seus dSYMs.
 - [Verificar se chega](#verificar-se-chega): Testar a chave e depois encontrar o aplicativo.
@@ -12,12 +12,12 @@ Instrumente um aplicativo Android, iOS ou React Native com o OpenTelemetry para 
 
 ## Como funciona
 
-O seu aplicativo exporta OTLP direto para o OneUptime com uma chave de ingestão **Servidor**. São os atributos `device.*` no recurso dele que o classificam como RUM móvel, e não como serviço de backend.
+O seu aplicativo exporta OTLP direto para o OneUptime com uma chave de ingestão **Celular**, fixada ao aplicativo, então tudo o que ele envia é arquivado como esse aplicativo RUM móvel. Com qualquer outra chave, são os atributos `device.*` no recurso dele que o classificam como RUM móvel, e não como serviço de backend.
 
 ```mermaid title="O que um aplicativo móvel envia, e com qual chave"
 flowchart TB
     app["Seu aplicativo móvel"] --> sdk["SDK do OpenTelemetry<br/>com atributos device.*"]
-    sdk -->|"OTLP com uma<br/>chave Servidor"| oneuptime["OneUptime"]
+    sdk -->|"OTLP com uma<br/>chave Celular"| oneuptime["OneUptime"]
     oneuptime --> rum["Aplicação RUM móvel"]
     replay["SDK de reprodução<br/>do React Native"] -->|"gravações com uma<br/>chave Browser"| oneuptime
 ```
@@ -31,7 +31,7 @@ Dois atributos de recurso, em cada lote que o seu aplicativo exporta:
 | `service.name` | A identidade da aplicação, por exemplo `storefront-android`. |
 | `device.id` ou `device.model.identifier` | Marca a telemetria como RUM móvel. `device.model.identifier` também preenche a página **Clientes**. |
 
-Sem um atributo de dispositivo, a telemetria chega mesmo assim e você pode consultá-la, mas ela é arquivada como serviço de backend em vez de aplicação RUM.
+Enviada com qualquer outra chave, a telemetria sem um atributo de dispositivo chega mesmo assim e você pode consultá-la, mas ela é arquivada como serviço de backend em vez de aplicação RUM.
 
 `device.manufacturer` também marca um lote como móvel, mas só em um recurso sem identidade de host, porque o inventário de um host informa com ele o fabricante de uma máquina. Defina também `device.id` ou `device.model.identifier`, como faz cada receita abaixo, e isso nunca importa.
 
@@ -40,7 +40,7 @@ Faça de `device.id` um identificador próprio da instalação, nunca um ID de p
 ## Antes de começar
 
 - Um aplicativo com um SDK do OpenTelemetry: o SDK Java do OpenTelemetry ou o OpenTelemetry Android, o opentelemetry-swift, ou o SDK JavaScript do OpenTelemetry para React Native.
-- Uma chave de ingestão **Servidor**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** com **Criar chave de ingestão**. Uma chave **Navegador** é recusada a partir de um aplicativo móvel: ela é verificada contra o cabeçalho `Origin`, que os SDKs móveis não enviam.
+- Uma chave de ingestão **Celular**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** com **Criar chave de ingestão**, com o `service.name` do seu aplicativo em **Nome do serviço fixado**. Uma chave **Navegador** é recusada a partir de um aplicativo móvel: ela é verificada contra o cabeçalho `Origin`, que os SDKs móveis não enviam. Nunca coloque uma chave **Servidor** em um aplicativo.
 - Estas configurações de OTLP. Se você hospeda o OneUptime por conta própria, troque `https://oneuptime.com` pelo seu próprio host.
 
 | Configuração | Valor |
@@ -52,7 +52,7 @@ Faça de `device.id` um identificador próprio da instalação, nunca um ID de p
 | Registros | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Na página da chave, defina um **Nome do serviço fixado** para que uma cópia não possa gravar com os nomes dos seus serviços de backend, adicione um **Requests Per Minute Limit** e uma data em **Expira em**, e troque a chave a cada versão.
+> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Uma cópia de uma chave Celular só pode enviar os traços, registros e métricas deste aplicativo, arquivados sob o seu **Nome do serviço fixado**, e nunca a partir de uma página web. Ainda assim, ela pode enviar dados inventados para este aplicativo, até o **Limite de solicitações por minuto** da chave, então adicione uma data em **Expira em** e troque a chave a cada versão.
 
 ## Configurar sua plataforma
 
@@ -136,7 +136,7 @@ OpenTelemetry.registerTracerProvider(
 
 `UIDevice.current.model` devolve um nome curto como `iPhone`, o que mantém a página **Clientes** com uma linha por tipo de dispositivo. `identifierForVendor` é a instalação pela qual o OneUptime conta as instalações sem falhas, como diz [Marcar as sessões](#marcar-as-sessões).
 @tab React Native
-O React Native executa o SDK JavaScript do OpenTelemetry, então monte o provider, o exportador OTLP e o processador de lotes como em [Configuração para navegadores](/docs/rum/browser-setup), com três mudanças: envie com uma chave **Servidor**, deixe de fora `browserDetector` e `DocumentLoadInstrumentation`, e defina os atributos de dispositivo você mesmo.
+O React Native executa o SDK JavaScript do OpenTelemetry, então monte o provider, o exportador OTLP e o processador de lotes como em [Configuração para navegadores](/docs/rum/browser-setup), com três mudanças: envie com uma chave **Celular**, deixe de fora `browserDetector` e `DocumentLoadInstrumentation`, e defina os atributos de dispositivo você mesmo.
 
 ```ts
 import { Platform } from "react-native";
@@ -276,7 +276,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` com `"valid": true` significa que a chave foi aceita. Uma chave Browser também responde `200`, mas a mensagem dela diz que só funciona a partir de um navegador: um aplicativo móvel precisa de uma chave Servidor. `401` significa que a chave é desconhecida, foi revogada, desativada ou expirou, e nenhuma configuração do SDK resolve isso.
+`200` com `"valid": true` significa que a chave foi aceita. Uma chave Browser também responde `200`, mas a mensagem dela diz que só funciona a partir de um navegador: um aplicativo móvel precisa de uma chave Celular. `401` significa que a chave é desconhecida, foi revogada, desativada ou expirou, e nenhuma configuração do SDK resolve isso.
 
 ### Iniciar o aplicativo
 
@@ -289,20 +289,20 @@ Abra a página **Clientes** da aplicação: cada modelo de dispositivo de `devic
 
 ## Session Replay em dispositivos móveis
 
-Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com uma chave **Navegador** cujas **Origens permitidas** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS: uma chave diferente da chave Servidor que o seu SDK do OpenTelemetry usa. [Instalar no React Native](/docs/telemetry/session-replay#instalação-no-react-native) mostra o passo a passo.
+Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com uma chave **Navegador** cujas **Origens permitidas** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS: uma chave diferente da chave Celular que o seu SDK do OpenTelemetry usa. [Instalar no React Native](/docs/telemetry/session-replay#instalação-no-react-native) mostra o passo a passo.
 
 Aplicativos nativos de Android e iOS, e as demais plataformas, não têm gravador de sessão: a página **Reprodução de sessões** deles fica vazia, enquanto traços, registros, métricas, exceções e a página **Clientes** funcionam normalmente.
 
 ## Solução de problemas
 
 :::details A verificação da chave devolve 401, ou a chave é recusada
-Um `401` significa que a chave é desconhecida, foi revogada, desativada ou expirou: crie uma chave Servidor e recompile o aplicativo com ela.
+Um `401` significa que a chave é desconhecida, foi revogada, desativada ou expirou: crie uma chave Celular e recompile o aplicativo com ela.
 
-Uma chave Browser passa na verificação, mas toda exportação de um aplicativo móvel é recusada com um `422` que diz `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` Use uma chave **Servidor**.
+Uma chave Browser passa na verificação, mas toda exportação de um aplicativo móvel é recusada com um `422` que diz `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Use uma chave **Celular**. Uma chave Celular também é recusada com um `422` por gRPC e a partir de uma página web: exporte por OTLP/HTTP.
 :::
 
 :::details O aplicativo aparece em Serviços em vez de Monitoramento de Usuários Reais
-O recurso não tem `device.id` nem `device.model.identifier`, então a telemetria foi arquivada como serviço de backend. Defina-os como em [Configurar sua plataforma](#configurar-sua-plataforma).
+A telemetria foi enviada com uma chave que não é Celular, e o recurso não tem `device.id` nem `device.model.identifier`, então ela foi arquivada como serviço de backend. Envie com uma chave Celular, ou defina-os como em [Configurar sua plataforma](#configurar-sua-plataforma).
 
 O serviço já criado não vira uma aplicação RUM, então exclua-o em **Produtos → Serviços** quando a telemetria RUM chegar.
 :::

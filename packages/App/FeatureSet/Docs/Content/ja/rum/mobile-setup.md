@@ -3,7 +3,7 @@
 Android、iOS、React Native のアプリを OpenTelemetry でインストルメントし、モバイルの RUM アプリケーションとして OneUptime に報告させます。OpenTelemetry SDK があるほかのプラットフォームも同じ方法で動きます。
 
 :::cards
-- [OneUptime に必要なもの](#oneuptime-に必要なもの): サーバーキーで送る 2 つのリソース属性。
+- [OneUptime に必要なもの](#oneuptime-に必要なもの): モバイルキーで送る 2 つのリソース属性。
 - [プラットフォームの設定](#プラットフォームの設定): Android、iOS、React Native、そのほか。
 - [iOS のクラッシュとハング](#ios-のクラッシュとハング): 例外に表示される MetricKit と KSCrash のレポート。dSYM で名前が付きます。
 - [到着の確認](#到着を確認する): キーを確認してから、アプリを探します。
@@ -12,12 +12,12 @@ Android、iOS、React Native のアプリを OpenTelemetry でインストルメ
 
 ## 仕組み
 
-アプリは **サーバー** の取り込みキーを使って、OTLP を OneUptime に直接エクスポートします。バックエンドサービスではなくモバイル RUM として分類させるのは、そのリソースの `device.*` 属性です。
+アプリは、アプリに固定した **モバイル** の取り込みキーを使って、OTLP を OneUptime に直接エクスポートします。そのため、送ったものはすべてそのモバイル RUM アプリケーションとして分類されます。ほかのキーの場合、バックエンドサービスではなくモバイル RUM として分類させるのは、そのリソースの `device.*` 属性です。
 
 ```mermaid title="モバイルアプリが送るものと使うキー"
 flowchart TB
     app["あなたのモバイルアプリ"] --> sdk["OpenTelemetry SDK<br/>と device.* 属性"]
-    sdk -->|"OTLP と<br/>サーバーキー"| oneuptime["OneUptime"]
+    sdk -->|"OTLP と<br/>モバイルキー"| oneuptime["OneUptime"]
     oneuptime --> rum["モバイル RUM アプリケーション"]
     replay["React Native の<br/>リプレイ SDK"] -->|"ブラウザーキーで<br/>送る録画"| oneuptime
 ```
@@ -31,7 +31,7 @@ flowchart TB
 | `service.name` | アプリケーションの識別子です。例: `storefront-android` 。 |
 | `device.id` または `device.model.identifier` | テレメトリをモバイル RUM としてマークします。 `device.model.identifier` は **クライアント** ページにも使われます。 |
 
-デバイスの属性がなくてもテレメトリは届き、クエリもできますが、RUM アプリケーションではなくバックエンドサービスとして分類されます。
+ほかのキーで送った場合、デバイスの属性がなくてもテレメトリは届き、クエリもできますが、RUM アプリケーションではなくバックエンドサービスとして分類されます。
 
 `device.manufacturer` もバッチをモバイルとしてマークしますが、ホストの識別子がないリソースに限られます。ホストのインベントリがマシンのメーカーをこの属性で報告するためです。下のどのレシピとも同じように `device.id` か `device.model.identifier` も設定すれば、このことは問題になりません。
 
@@ -40,7 +40,7 @@ flowchart TB
 ## 始める前に
 
 - OpenTelemetry SDK を組み込んだアプリ。OpenTelemetry Java SDK または OpenTelemetry Android、opentelemetry-swift、React Native なら OpenTelemetry JavaScript SDK です。
-- **プロジェクト設定 → テレメトリと APM → 取り込みキー** で **取り込みキーを作成** を使って作成した **サーバー** の取り込みキー。 **ブラウザー** キーはモバイルアプリからは拒否されます。このキーは `Origin` ヘッダーで確認されますが、モバイル SDK はこのヘッダーを送らないためです。
+- **プロジェクト設定 → テレメトリと APM → 取り込みキー** で **取り込みキーを作成** を使って作成し、 **固定されたサービス名** にアプリの `service.name` を設定した **モバイル** の取り込みキー。 **ブラウザー** キーはモバイルアプリからは拒否されます。このキーは `Origin` ヘッダーで確認されますが、モバイル SDK はこのヘッダーを送らないためです。アプリに **サーバー** キーを入れて配布してはいけません。
 - 次の OTLP の設定。OneUptime をセルフホストしている場合は、 `https://oneuptime.com` を自分のホストに置き換えてください。
 
 | 設定 | 値 |
@@ -52,7 +52,7 @@ flowchart TB
 | ログ | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> キーはアプリの中に入って配布され、アプリは展開できるため、誰かにコピーされる前提で考えてください。キーのページで **固定されたサービス名** を設定してコピーがバックエンドサービスの名前で書き込めないようにし、 **1 分あたりのリクエスト数の上限** と **有効期限** の日付を加え、リリースごとにキーをローテーションしてください。
+> キーはアプリの中に入って配布され、アプリは展開できるため、誰かにコピーされる前提で考えてください。モバイルキーのコピーが送れるのは、このアプリのトレース、ログ、メトリクスだけで、すべて **固定されたサービス名** の下に分類され、Web ページからは送れません。それでもキーの **1 分あたりのリクエスト数の上限** までは、このアプリの作り話のデータを送れます。そのため **有効期限** の日付を加え、リリースごとにキーをローテーションしてください。
 
 ## プラットフォームの設定
 
@@ -136,7 +136,7 @@ OpenTelemetry.registerTracerProvider(
 
 `UIDevice.current.model` は `iPhone` のような短い名前を返すため、 **クライアント** ページはデバイスの種類ごとに 1 行にまとまります。 `identifierForVendor` は、OneUptime がクラッシュのないインストールを数えるときのインストールを表します。詳しくは [セッションを記録する](#セッションを記録する) を参照してください。
 @tab React Native
-React Native は OpenTelemetry JavaScript SDK で動くため、 [ブラウザーのセットアップ](/docs/rum/browser-setup) と同じようにプロバイダー、OTLP エクスポーター、バッチプロセッサーを作り、3 か所だけ変えます。 **サーバー** キーで送ること、 `browserDetector` と `DocumentLoadInstrumentation` を外すこと、デバイスの属性を自分で設定することです。
+React Native は OpenTelemetry JavaScript SDK で動くため、 [ブラウザーのセットアップ](/docs/rum/browser-setup) と同じようにプロバイダー、OTLP エクスポーター、バッチプロセッサーを作り、3 か所だけ変えます。 **モバイル** キーで送ること、 `browserDetector` と `DocumentLoadInstrumentation` を外すこと、デバイスの属性を自分で設定することです。
 
 ```ts
 import { Platform } from "react-native";
@@ -276,7 +276,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` と `"valid": true` は、キーが受け付けられたことを示します。ブラウザーキーも `200` を返しますが、メッセージにはブラウザーからしか使えないと書かれています。モバイルアプリにはサーバーキーが必要です。 `401` は、キーが不明、取り消し済み、無効化済み、または期限切れであることを示し、SDK の設定では解決できません。
+`200` と `"valid": true` は、キーが受け付けられたことを示します。ブラウザーキーも `200` を返しますが、メッセージにはブラウザーからしか使えないと書かれています。モバイルアプリにはモバイルキーが必要です。 `401` は、キーが不明、取り消し済み、無効化済み、または期限切れであることを示し、SDK の設定では解決できません。
 
 ### アプリを起動する
 
@@ -289,20 +289,20 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## モバイルのセッションリプレイ
 
-React Native アプリは `@oneuptime/react-native-replay` でセッションを録画できます。ネイティブのビューツリーをワイヤーフレームとして記録し、スクリーンショットや画面上のテキストは決して記録しません。その録画は Web の録画と同じプレーヤーで開きます。送信には **ブラウザー** キーを使い、その **許可されたオリジン** には、アプリを `app://` に続けて Android のアプリケーション ID または iOS のバンドル ID の形で登録します。これは OpenTelemetry SDK が使うサーバーキーとは別のキーです。手順は [React Native へのインストール](/docs/telemetry/session-replay#react-native-へのインストール) で説明しています。
+React Native アプリは `@oneuptime/react-native-replay` でセッションを録画できます。ネイティブのビューツリーをワイヤーフレームとして記録し、スクリーンショットや画面上のテキストは決して記録しません。その録画は Web の録画と同じプレーヤーで開きます。送信には **ブラウザー** キーを使い、その **許可されたオリジン** には、アプリを `app://` に続けて Android のアプリケーション ID または iOS のバンドル ID の形で登録します。これは OpenTelemetry SDK が使うモバイルキーとは別のキーです。手順は [React Native へのインストール](/docs/telemetry/session-replay#react-native-へのインストール) で説明しています。
 
 ネイティブの Android アプリと iOS アプリ、そしてほかのプラットフォームにはセッションの録画機能がありません。それらの **セッションリプレイ** ページは空のままですが、トレース、ログ、メトリクス、例外、 **クライアント** ページは通常どおり動きます。
 
 ## トラブルシューティング
 
 :::details キーの確認で 401 が返る、またはキーが拒否される
-`401` は、キーが不明、取り消し済み、無効化済み、または期限切れであることを示します。サーバーキーを作成し、そのキーでアプリをビルドし直してください。
+`401` は、キーが不明、取り消し済み、無効化済み、または期限切れであることを示します。モバイルキーを作成し、そのキーでアプリをビルドし直してください。
 
-ブラウザーキーは確認には通りますが、モバイルアプリからのエクスポートはすべて `422` と `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` で拒否されます。 **サーバー** キーを使ってください。
+ブラウザーキーは確認には通りますが、モバイルアプリからのエクスポートはすべて `422` と `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` で拒否されます。 **モバイル** キーを使ってください。モバイルキーも、gRPC や Web ページから送ると `422` で拒否されます。OTLP/HTTP でエクスポートしてください。
 :::
 
 :::details アプリがリアルユーザーモニタリングではなくサービスに表示される
-リソースに `device.id` も `device.model.identifier` もないため、テレメトリがバックエンドサービスに分類されました。 [プラットフォームの設定](#プラットフォームの設定) のように設定してください。
+モバイルキー以外のキーで送られ、リソースに `device.id` も `device.model.identifier` もないため、テレメトリがバックエンドサービスに分類されました。モバイルキーで送るか、 [プラットフォームの設定](#プラットフォームの設定) のように設定してください。
 
 すでに作成されたサービスは RUM アプリケーションには変わらないため、RUM のテレメトリが届いたら **製品 → サービス** で削除してください。
 :::

@@ -1067,6 +1067,85 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * TURNING THE MASTER API KEY BACK ON WAITS UNTIL THE MASTER ADMIN'S
+   * SESSION CONFIRMS IT'S THEM (#10330, Utils/Reauthentication).
+   *
+   * The key is root in every project, and Admin Dashboard > Settings > API
+   * Key's Enabled switch turns a key that was turned off back on. Its value
+   * cannot be read back, so whoever holds the session cannot use it - but
+   * whoever holds the key, a script or someone who has left, could again.
+   * So a write that turns it on (isMasterApiKeyEnabled: anything but false
+   * or null) is refused until the session has confirmed, as making a new
+   * key is (POST /global-config/master-api-key, #10216), and goes through
+   * once it has: the Admin Dashboard asks and sends it again. The master
+   * API key has no session, and is refused. Turning it off asks nothing: it
+   * only takes a way in away, and must be possible at once. OneUptime's own
+   * writes (props.isRoot: createMasterApiKey) are not asked. On a create as
+   * on an update: the API reaches both.
+   */
+  public async assertMasterApiKeyTurnOnIsConfirmed(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    if (props.isRoot || !Service.turnsMasterApiKeyOn(data)) {
+      return;
+    }
+
+    await Reauthentication.assertConfirmed(
+      props,
+      ReauthenticationPurpose.AdminChange,
+    );
+  }
+
+  /*
+   * Whether a write turns the master API key on: it writes
+   * isMasterApiKeyEnabled, as anything that is not off (false) or unset
+   * (null). A value that is not a boolean counts as on, so a write the
+   * database would read as true is never let through unasked.
+   */
+  public static turnsMasterApiKeyOn(data: unknown): boolean {
+    const value: unknown = (
+      data as Record<string, unknown> | null | undefined
+    )?.["isMasterApiKeyEnabled"];
+
+    return value !== undefined && value !== null && value !== false;
+  }
+
+  /*
+   * What the server's log says when someone turns the master API key on or
+   * off (#10330), and who: a master admin by their id, or a key by its name
+   * - the master API key turning itself off. Null for a write that does not
+   * switch it, and for OneUptime's own (a new key, createMasterApiKey,
+   * which keeps who made it on the key itself).
+   */
+  public static getMasterApiKeySwitchLogLine(data: {
+    data: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): string | null {
+    const value: unknown = (
+      data.data as Record<string, unknown> | null | undefined
+    )?.["isMasterApiKeyEnabled"];
+
+    if (value === undefined || data.props.isRoot) {
+      return null;
+    }
+
+    const state: string = Service.turnsMasterApiKeyOn(data.data) ? "on" : "off";
+
+    let by: string = "a request with no user";
+
+    if (data.props.sessionId && data.props.userId) {
+      by = `master admin ${data.props.userId.toString()}`;
+    } else if (data.props.apiKeyName) {
+      by = `the API key "${data.props.apiKeyName}"`;
+    } else if (data.props.userId) {
+      by = `user ${data.props.userId.toString()}`;
+    }
+
+    return `The master API key was turned ${state} by ${by}.`;
+  }
+
+  /*
    * Refuses any write to ROOT_ONLY_LICENSE_COLUMNS that does not come from
    * OneUptime itself. An explicit null counts as a write: clearing the license
    * token is as much a forgery as setting one.
@@ -1903,6 +1982,10 @@ export class Service extends DatabaseService<Model> {
     this.assertMasterApiKeyWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
     this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
+    await this.assertMasterApiKeyTurnOnIsConfirmed(
+      createBy.data,
+      createBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
@@ -1943,6 +2026,10 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
     await this.assertEmailSettingsChangeIsConfirmed(updateBy);
+    await this.assertMasterApiKeyTurnOnIsConfirmed(
+      updateBy.data,
+      updateBy.props,
+    );
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
@@ -2173,6 +2260,17 @@ export class Service extends DatabaseService<Model> {
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+
+    /*
+     * The master API key turned on or off (#10330): recorded for whoever
+     * runs the server, with who did it.
+     */
+    const masterApiKeySwitch: string | null =
+      Service.getMasterApiKeySwitchLogLine(onUpdate.updateBy);
+
+    if (masterApiKeySwitch) {
+      logger.info(masterApiKeySwitch);
+    }
 
     if (
       (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })

@@ -5,6 +5,7 @@ Un modulo è aperto a chiunque abbia il suo link, e ogni invio può chiamare il 
 :::cards
 - [Condividere il link](#condividere-il-link): Copialo, aprilo e reimpostalo quando arriva troppo lontano.
 - [Un link per ogni modello](#un-link-per-ogni-modello): Un segnalibro per caso, un solo modulo dietro a tutti.
+- [Solo chi accede](#solo-chi-accede): Invita le persone che possono aprire il modulo, o lascia che il tuo single sign-on le faccia accedere.
 - [Domini personalizzati](#domini-personalizzati): Pubblica il modulo sul tuo dominio, con un certificato gratuito.
 - [Cosa protegge un modulo](#cosa-protegge-un-modulo): Ogni controllo che una richiesta supera, in ordine.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Cosa significa ogni messaggio sulla pagina del modulo, e cosa fare.
@@ -16,6 +17,7 @@ Un modulo è aperto a chiunque abbia il suo link, e ogni invio può chiamare il 
 | --- | --- |
 | **Stato** | **Accetta invii** — se il link del modulo funziona. |
 | **Link di condivisione** | Ogni indirizzo a cui risponde il modulo, ciascuno con **Copia link**, e **Reimposta link**. |
+| **Chi può aprire questo modulo** | **Solo chi accede** — se solo le persone che scegli possono aprire il modulo, dopo aver effettuato l'accesso. |
 | **Dopo l'invio** | Il **Messaggio di ringraziamento** che le persone vedono dopo l'invio, sotto il numero di ciò che il modulo ha creato. |
 | **Altre impostazioni** | La **Lista IP consentiti**, chiusa finché non la apri. |
 
@@ -28,6 +30,8 @@ La scheda **Link di condivisione** elenca ogni indirizzo a cui risponde il modul
 - **Reimposta link** dà al modulo un nuovo link, dopo la tua conferma. Il vecchio link smette subito di funzionare e mostra il messaggio di non disponibilità, quindi tutti quelli con cui l'hai condiviso hanno bisogno di quello nuovo. Usalo quando un link è arrivato più lontano del dovuto. I domini personalizzati del modulo non contengono alcuna chiave, e continuano a funzionare.
 
 Chiunque abbia il link può aprire il modulo e inviarlo, senza un account OneUptime e senza accedere. Aver effettuato l'accesso non cambia nulla: OneUptime sa chi ha inviato solo dal nome e dall'email digitati nel modulo. Quindi tratta il link come un numero di telefono del tuo team di reperibilità. Condividilo dove lo troveranno le persone che devono usarlo — una pagina della intranet, un runbook del supporto, un messaggio fissato in una chat — e non su un sito web pubblico, a meno che tu non voglia invii da chiunque.
+
+Perché solo le persone che scegli aprano e inviino il modulo, attiva **Solo chi accede** — vedi [Solo chi accede](#solo-chi-accede).
 
 Il link contiene una chiave casuale propria, non l'ID del modulo. In un'installazione self-hosted viene servito dal tuo host OneUptime, e funziona solo all'indirizzo configurato da `HTTP_PROTOCOL` e `HOST`: se aperto con un altro nome del server, o con il suo indirizzo IP, le richieste del modulo vengono rifiutate come provenienti da un altro sito web.
 
@@ -48,6 +52,20 @@ Per smettere di accettare invii senza eliminare il modulo, disattiva **Accetta i
 Dopo un invio, la pagina dice "Grazie — la tua risposta è stata inviata." e dà il numero di ciò che è stato creato, poi il tuo **Messaggio di ringraziamento**, in Markdown. Usalo per dire cosa succede dopo, e a chi rivolgersi quando qualcosa è urgente. Senza di esso, la pagina mostra solo il messaggio standard.
 
 Un'immagine nella descrizione o nel messaggio di ringraziamento del modulo viene mostrata a tutti quelli che aprono il link finché il modulo è in **Accetta invii**. Disattiva il modulo, o togli l'immagine, e l'immagine torna privata, a meno che qualcos'altro che tutti vedono la contenga ancora.
+
+## Solo chi accede
+
+Attiva **Solo chi accede**, in **Chi può aprire questo modulo** nella pagina **Condividi** del modulo, perché solo le persone che scegli aprano e inviino il modulo. Attivarlo ti chiede di confermare. Da quel momento, ogni visitatore trova prima una pagina di accesso, sul link del modulo e su ogni dominio personalizzato. Mostra il nome del modulo e nient'altro: né le sue domande, né i suoi modelli, né il suo logo, né chi può accedere. Dopo l'accesso, il modulo dice chi ha effettuato l'accesso, con **Esci** accanto.
+
+Apri **Utenti privati** nel menu laterale del modulo per aggiungere via e-mail le persone che possono accedere. Ognuna riceve via e-mail un invito il cui link le permette di scegliere una password. Il link è valido per 24 ore, e **Password dimenticata?** nella pagina di accesso ne invia uno nuovo. La tabella mostra chi è **Registrato**, quale invito è **Invito inviato** e l'**Ultimo accesso** di ciascuno. Rimuovere qualcuno, o una nuova password, lo disconnette ovunque alla sua richiesta successiva.
+
+Apri **Single Sign-On** perché il tuo provider di identità faccia accedere le persone, con SAML o OpenID Connect. Ogni provider mostra i valori da incollare nel tuo provider di identità. Chiunque il tuo provider di identità ammetta diventa un utente privato al primo accesso. Disattivare un provider, o eliminarlo, disconnette tutti quelli a cui ha dato accesso. **Richiedi l'SSO per l'accesso** disattiva l'accesso con password: allora tutti accedono con il single sign-on, e chi ha effettuato l'accesso con una password viene disconnesso alla sua richiesta successiva.
+
+Un accesso dura finché non resta inutilizzato per 30 giorni. I suoi cookie vengono inviati solo con le richieste del modulo stesso, quindi nessun altro sito può aprire o inviare il modulo con essi né disconnettere qualcuno. I tentativi di accesso sono limitati per ogni indirizzo e ogni account, e le pagine di accesso e di password dimenticata rispondono allo stesso modo, che un indirizzo possa accedere o no.
+
+Un invio nomina solo il nome e l'e-mail scritti nel modulo, come per qualsiasi altro modulo, non l'utente privato che l'ha inviato. Un'immagine nella descrizione o nel messaggio di ringraziamento del modulo resta pubblica al suo indirizzo impossibile da indovinare finché il modulo accetta invii, come su una pagina di stato che chiede ai visitatori di accedere: è così che i browser degli utenti privati la caricano.
+
+Su OneUptime Cloud, il single sign-on e **Richiedi l'SSO per l'accesso** richiedono il piano **Scale**. Nell'API, gli utenti privati e i provider di single sign-on sono record a sé: `/form-private-user`, `/form-sso` e `/form-oidc`, ciascuno con permessi che portano il suo nome.
 
 ## Domini personalizzati
 
@@ -119,13 +137,14 @@ Ogni richiesta supera questi controlli, in questo ordine:
 2. Deve rientrare nei limiti di frequenza.
 3. Il modulo deve esistere, essere in **Accetta invii** e appartenere a un progetto con un piano che include i moduli.
 4. Deve arrivare da un indirizzo della **Lista IP consentiti**, quando il modulo ne ha una.
-5. Un invio deve superare il captcha, quando l'istanza ha il captcha attivo.
-6. Ogni risposta deve rientrare nei limiti di dimensione e adattarsi alla sua domanda — vedi [Creare un modulo](/docs/forms/building#limiti-di-dimensione).
-7. Ciò che formano le risposte e le impostazioni deve poter essere creato: un incidente ha bisogno di una gravità, un evento di una fine successiva al suo inizio.
-8. Un invio deve rientrare nella quota oraria del modulo — vedi [Limiti di frequenza](#limiti-di-frequenza).
-9. I suoi file devono rientrare nella quota oraria di file del modulo, subito prima di essere salvati.
+5. Deve arrivare da uno degli utenti privati del modulo, dopo l'accesso, quando il modulo è impostato su **Solo chi accede** — vedi [Solo chi accede](#solo-chi-accede).
+6. Un invio deve superare il captcha, quando l'istanza ha il captcha attivo.
+7. Ogni risposta deve rientrare nei limiti di dimensione e adattarsi alla sua domanda — vedi [Creare un modulo](/docs/forms/building#limiti-di-dimensione).
+8. Ciò che formano le risposte e le impostazioni deve poter essere creato: un incidente ha bisogno di una gravità, un evento di una fine successiva al suo inizio.
+9. Un invio deve rientrare nella quota oraria del modulo — vedi [Limiti di frequenza](#limiti-di-frequenza).
+10. I suoi file devono rientrare nella quota oraria di file del modulo, subito prima di essere salvati.
 
-Il logo e la favicon di un modulo fanno parte del modulo: vengono inviati dentro la risposta che lo apre, in base64, solo dopo che ha superato i primi quattro controlli, e mai da un indirizzo proprio. Nessuno può ottenerli senza il modulo, e nessun file può essere ottenuto tramite il suo id attraverso un modulo; i file stessi restano privati. Un modulo mostra solo immagini caricate nel proprio progetto: un file di un altro progetto viene rifiutato quando il modulo viene salvato, e non viene mai inviato alla sua pagina.
+Il logo e la favicon di un modulo fanno parte del modulo: vengono inviati dentro la risposta che lo apre, in base64, solo dopo che ha superato i primi cinque controlli, e mai da un indirizzo proprio. Nessuno può ottenerli senza il modulo, e nessun file può essere ottenuto tramite il suo id attraverso un modulo; i file stessi restano privati. Un modulo mostra solo immagini caricate nel proprio progetto: un file di un altro progetto viene rifiutato quando il modulo viene salvato, e non viene mai inviato alla sua pagina.
 
 ### Lista IP consentiti
 

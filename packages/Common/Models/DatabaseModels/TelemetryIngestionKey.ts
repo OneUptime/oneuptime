@@ -428,7 +428,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Key Type",
     description:
-      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. This cannot be changed after the key is created - create a new key instead.",
+      "Server keys are for backend services and OpenTelemetry collectors: full ingest, no origin checks. Browser keys are write-only client keys: listed web origins may send traces, logs, metrics, session replays and Sentry events, while listed app:// identities currently authorize React Native session replay only. Mobile keys are write-only keys for one mobile app: pinned to its service name, they send only that app's OTLP traces, logs and metrics over HTTP, never from a web page. This cannot be changed after the key is created - create a new key instead.",
     defaultValue: TelemetryIngestionKeyType.Server,
     example: TelemetryIngestionKeyType.Server,
   })
@@ -477,7 +477,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.JSON,
     title: "Allowed Origins",
     description:
-      "Web origins (for example https://app.example.com or https://*.example.com) and exact React Native identities (for example app://com.example.mobile) that may use this key. Required on a Browser key. Web requests need a listed Origin; mobile replay requests without Origin need a listed app identity. app:// entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key.",
+      "Web origins (for example https://app.example.com or https://*.example.com) and exact React Native identities (for example app://com.example.mobile) that may use this key. Required on a Browser key. Web requests need a listed Origin; mobile replay requests without Origin need a listed app identity. app:// entries cannot use wildcards and are self-asserted identifiers, not platform attestation. Ignored on a Server key and on a Mobile key, because neither a server nor a mobile app sends an Origin header.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -515,7 +515,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Pinned Service Name",
     description:
-      "When set, every OpenTelemetry resource ingested with this key has its service.name REPLACED with this value. This is what stops data written with a scraped key from masquerading as another service: forged spans land in one service you can see and mute, instead of poisoning your backend services' dashboards and alerts.",
+      "When set, every OpenTelemetry resource ingested with this key has its service.name REPLACED with this value. This is what stops data written with a scraped key from masquerading as another service: forged spans land in one service you can see and mute, instead of poisoning your backend services' dashboards and alerts. Required on a Mobile key, where it is the service.name of the app the key ships in.",
     example: "checkout-web",
   })
   @Column({
@@ -649,7 +649,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.Number,
     title: "Requests Per Minute Limit",
     description:
-      "Maximum ingest requests per minute accepted with this key. Leave empty to use the shipped default for a Browser key, and to leave a Server key unlimited. The limit is per key, across every client using it, so it has to clear your whole fleet - see DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE for the default and the reasoning behind its size.",
+      "Maximum ingest requests per minute accepted with this key. Leave empty to use the shipped default for a Browser or Mobile key, and to leave a Server key unlimited. The limit is per key, across every client using it, so it has to clear your whole fleet - see DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE for the default and the reasoning behind its size.",
     example: 6000,
   })
   @Column({

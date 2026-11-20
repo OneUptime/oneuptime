@@ -89,10 +89,16 @@ Veja [Gatilhos de fluxo de trabalho](/docs/workflows/triggers) para os campos qu
 
 ## OneUptime AI
 
-Duas ações em um problema pedem ajuda ao OneUptime AI. As duas enviam ao OneUptime AI o título e a gravidade do problema, o nome, o tipo, a região e o ID de nuvem do repositório, a sensibilidade e os tipos de dados dele, cada um pelo seu nome (os seus próprios pelo nome que você deu a eles), a evidência, por que a verificação importa e a correção para a nuvem do repositório - nunca as amostras de uma descoberta. As duas rodam sob os interruptores e limites de OneUptime AI do projeto.
+Duas ações em um problema pedem ajuda ao OneUptime AI. As duas enviam ao OneUptime AI o título e a gravidade do problema, o nome, o tipo, a região e o ID de nuvem do repositório, a sensibilidade e os tipos de dados dele, cada um pelo seu nome (os seus próprios pelo nome que você deu a eles), a evidência, por que a verificação importa e a correção para a nuvem do repositório - nunca as amostras de uma descoberta. As duas rodam sob os interruptores e limites de OneUptime AI do projeto. O que cada uma envia, o que nunca envia e o modelo em que roda estão em [OneUptime AI na Segurança de dados](/docs/data-security/ai).
 
 - **Explicar com IA** escreve, para o proprietário do repositório, o que está errado, o que pode acontecer e os passos exatos para corrigir isso na nuvem dele. A explicação fica guardada na **Linha do tempo** do problema. Nem o problema enviado nem a resposta ficam guardados em **Configurações do projeto → IA → Registros de IA**, que qualquer Membro do projeto e Visualizador pode ler: essa linha diz só que a chamada foi feita e quanto custou. Qualquer pessoa que pode ler o problema pode pedir.
 - **Corrigir com IA** pede ao OneUptime AI que corrija o problema no seu código de infraestrutura - Terraform, CloudFormation, Bicep ou similares - com a menor mudança que faz a verificação passar, e que abra um pull request. Ele precisa que o repositório de código com o código de infraestrutura do repositório de dados esteja conectado em **Código**: escolha-o em **Repositório** quando você puder pedir em vários. O pull request aparece em **Código** (veja [Código](/docs/ai/ai-agent)). Membros de segurança e funções acima podem pedir, em um repositório que possam alterar em **Código**, como exige pedir à IA ali: uma função de segurança sozinha não lê nem altera nenhum repositório, então dê também à equipe deles **Read Code Repository** e **Edit Code Repository**. Quando a IA não pode trabalhar agora (está desligada, o projeto ficou sem créditos de IA, atingiu seus limites diários ou nenhum Runner está online), Corrigir com IA diz o que corrigir e não inicia nada.
+
+### Por conta própria
+
+Com **Trabalhar em problemas novos** ligado em **Segurança de dados → IA**, como nos projetos novos, o OneUptime AI trabalha por conta própria em cada novo problema crítico ou alto. Ele escreve a análise do problema, como **Explicar com IA** faz e a partir do que essa ação envia, e a coloca na **Linha do tempo** do problema. Para um problema de telemetria, ele propõe as regras de limpeza que ocultam os dados dele na telemetria nova. Uma proposta aguarda nessa página em **Aguardando você**, as mais arriscadas primeiro, com o que vai mudar, por quê, como será comprovado e como desfazer. **Aprovar** faz a mudança com as suas próprias permissões: uma regra de limpeza exige permissão para criar regras de limpeza de logs, regras de limpeza de traces ou regras de pipeline de métricas. **Dispensar proposta** diz não, com um motivo que vai para a linha do tempo do problema. A própria verificação do problema decide se uma mudança funcionou: o repositório é verificado de novo, e o problema é resolvido quando não resta nenhum dos dados dele.
+
+Por padrão, o OneUptime AI pergunta antes de cada mudança, exceto uma que só oculta dados, pode ser desfeita e está comprovadamente segura, e nunca apaga dados nem aciona ninguém sem perguntar. Uma mudança que ele fez sem perguntar aparece em **Feito pela IA**, com **Desfazer**. **Por que a IA não agiu** lista os problemas que ele analisou e deixou como estavam, e por quê. Cada proposta, aprovação, dispensa e reversão está na **Linha do tempo** do problema e do repositório. Com a chave desligada, ou a IA desligada no projeto, a segurança de dados funciona como sempre, e **Explicar com IA** e **Corrigir com IA** continuam funcionando quando você os aciona.
 
 ### Pergunte à IA
 
@@ -130,6 +136,7 @@ Tudo o que a Segurança de dados guarda é um registro da API do OneUptime, lido
 | Tipos de dados personalizados, configurações das verificações, configurações de conformidade e regras de residência | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | As configurações do projeto | `/data-security-setting` |
 | Proprietários, regras de proprietário e regras de rótulos | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| O que o OneUptime AI propõe para um problema, e por que ele agiu ou não em um | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. Cada uma é um `POST`:
 
@@ -149,6 +156,9 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | `/data-security-issue/<id>/fix-with-ai` | **Corrigir com IA** em um problema |
 | `/data-store/<id>/response-actions` | Quais ações de resposta o repositório pode receber agora, e por que não |
 | `/data-store/<id>/respond` | Uma ação de resposta no repositório, como **Bloquear acesso público** ou **Ativar o versionamento**, com o problema a partir do qual foi executada |
+| `/data-security-ai-proposal/<id>/approve` | **Aprovar** em uma mudança que o OneUptime AI propõe, que a faz com as suas próprias permissões. Recebe o `expectedPlanFingerprint` da proposta que foi mostrada a você e recusa uma que mudou desde então |
+| `/data-security-ai-proposal/<id>/dismiss` | **Dispensar proposta**, com `{"reason": "..."}`, que vai para a linha do tempo do problema |
+| `/data-security-ai-proposal/<id>/undo` | **Desfazer** em uma mudança que o OneUptime AI fez: ela é revertida, e o repositório é verificado de novo |
 
 O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, configurações de conformidade, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
 

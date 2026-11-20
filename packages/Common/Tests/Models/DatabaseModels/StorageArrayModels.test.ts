@@ -19,6 +19,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { isProductLevelPermission } from "../../../Types/Product/ProductLevels";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
@@ -1040,16 +1041,36 @@ describe("Storage Array database models", () => {
         expect(props!.description).not.toMatch(/Ceph|Proxmox|vCenter/);
       }
 
-      // No stray extra members — the catalogue must not sprout a 24th.
+      /*
+       * No stray extra members — the catalogue must not sprout a 24th. The
+       * product's levels (#10289) are a family of their own, pinned below.
+       */
       const storageArrayEnumMembers: Array<string> = Array.from(
         enumValues,
       ).filter((value: string) => {
-        return value.includes("StorageArray");
+        return (
+          value.includes("StorageArray") && !isProductLevelPermission(value)
+        );
       });
 
       expect(storageArrayEnumMembers.sort()).toEqual(
         [...STORAGE_ARRAY_PERMISSIONS].sort(),
       );
+
+      // Storage Arrays' three levels, and no other array-named permission.
+      expect(
+        Array.from(enumValues)
+          .filter((value: string) => {
+            return (
+              value.includes("StorageArray") && isProductLevelPermission(value)
+            );
+          })
+          .sort(),
+      ).toEqual([
+        "StorageArrayAdmin",
+        "StorageArrayMember",
+        "StorageArrayViewer",
+      ]);
     });
 
     test("array Delete/Edit/Read are label-scoped access-control permissions; everything else is not", () => {

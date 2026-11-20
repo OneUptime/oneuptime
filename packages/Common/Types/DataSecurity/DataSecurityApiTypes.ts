@@ -1,3 +1,4 @@
+import { JSONObject } from "../JSON";
 import { MetricOutputReaders } from "../Metrics/MetricOutputReaders";
 import SecuritySeverity from "../SecuritySeverity";
 import ComplianceFramework from "./ComplianceFramework";
@@ -34,6 +35,10 @@ export const DATA_SECURITY_API_ROUTES: {
   fixIssueWithAi: (issueId: string) => string;
   responseActions: (dataStoreId: string) => string;
   respond: (dataStoreId: string) => string;
+  approveAiProposal: (proposalId: string) => string;
+  dismissAiProposal: (proposalId: string) => string;
+  undoAiProposal: (proposalId: string) => string;
+  aiInput: string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -80,6 +85,26 @@ export const DATA_SECURITY_API_ROUTES: {
   respond: (dataStoreId: string): string => {
     return `/data-store/${dataStoreId}/respond`;
   },
+  /*
+   * A proposal of OneUptime AI's (#10364): approve it, { expectedPlanFingerprint,
+   * expectedApprovalStep } - the plan and step its person was shown; dismiss
+   * it, { reason }; or undo a change that was made.
+   */
+  approveAiProposal: (proposalId: string): string => {
+    return `/data-security-ai-proposal/${proposalId}/approve`;
+  },
+  dismissAiProposal: (proposalId: string): string => {
+    return `/data-security-ai-proposal/${proposalId}/dismiss`;
+  },
+  undoAiProposal: (proposalId: string): string => {
+    return `/data-security-ai-proposal/${proposalId}/undo`;
+  },
+  /*
+   * What OneUptime AI sees (#10365): the model each feature runs on, and -
+   * with { withExample: true } - the exact input one of the project's issues
+   * would send. { withExample?, issueId? }.
+   */
+  aiInput: "/data-security/ai-input",
 };
 
 export interface DataSecurityOverviewIssue {
@@ -523,4 +548,66 @@ export interface DataSecurityResponseResult {
   // Whether anything changed: false when the store was already closed.
   changed: boolean;
   summary: string;
+}
+
+/*
+ * WHAT ONEUPTIME AI SEES, AS DATA SECURITY > SETTINGS > ONEUPTIME AI SHOWS IT
+ * (#10365): the model each feature runs on, and the exact input one real
+ * issue of the project would send. What each feature sends and keeps is
+ * the catalog's (DataSecurityAiFeatures); this is what only the server
+ * knows.
+ */
+
+// A model a feature runs on, as Settings names it: never its key or address.
+export interface DataSecurityAiModelSummary {
+  name: string;
+  llmType: string;
+  modelName: string;
+  // One of the project's own providers, or the server's, which every project shares.
+  isProjectProvider: boolean;
+  // Run where its owner runs it: Ollama, vLLM or any OpenAI-compatible endpoint.
+  isSelfHosted: boolean;
+}
+
+// Why Settings shows no example.
+export enum DataSecurityAiExampleUnavailableReason {
+  // The project has no open issue to show one for.
+  NoIssue = "NoIssue",
+  // The reader may not read the project's issues.
+  NoPermission = "NoPermission",
+}
+
+/*
+ * Explain with AI's input for one issue, exactly as it would be sent - but
+ * the project's AI context, which goes first in its system message, is
+ * said by its length: it is the project's settings to read.
+ */
+export interface DataSecurityAiInputExample {
+  dataSecurityIssueId: string;
+  issueTitle: string;
+  // The system message, without the AI context.
+  system: string;
+  // The user message: one JSON value of data.
+  data: JSONObject;
+  // What Fix with AI would ask the coding agent for the same issue.
+  fixRequest: string;
+  // The AI context's length in characters; 0 when the project has none.
+  aiContextCharacterCount: number;
+}
+
+export interface DataSecurityAiInputResponse {
+  // The project's Enable AI: with it off, nothing is sent at all.
+  isAiEnabled: boolean;
+  /*
+   * Whether the reader may read the project's LLM providers: the models
+   * below are named only to who may (LlmProvider's readers).
+   */
+  canReadModels: boolean;
+  // What Explain and the field suggestions run on when no AI rule picks one.
+  projectModel: DataSecurityAiModelSummary | null;
+  // What Fix with AI's coding agent runs on.
+  codeAgentModel: DataSecurityAiModelSummary | null;
+  // Only when asked for (withExample): null otherwise.
+  example: DataSecurityAiInputExample | null;
+  exampleUnavailableReason?: DataSecurityAiExampleUnavailableReason | undefined;
 }

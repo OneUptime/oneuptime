@@ -287,6 +287,31 @@ OneUptime がサインアウトしたあと、ブラウザーはプロバイダ�
 登録していないプロバイダーは、OneUptime からのサインアウト後に本人を戻さず、プロバイダー自身のエラーページを表示します。それでも OneUptime からはサインアウトしています。
 :::
 
+## 本人確認のためにもう一度サインインする
+
+サインイン方法を変更したりアカウントを削除したりする前に、OneUptime は [本人確認](/docs/introduction/your-account#本人確認) を求めます。OneUptime にパスワードもパスキーもなく、ID プロバイダーだけでサインインする人は、 **もう一度サインイン** で確認します。OneUptime はその人をプロバイダーに送り、もう一度サインインさせるよう求めます。確認になるのは、その時点以降にサインインしたとプロバイダーが伝えた場合だけです (2 つの時計のずれとして前後 1 分を許容します)。すでにあるセッションでそのままサインインさせ直すプロバイダーや、サインインした時刻を伝えないプロバイダーでは本人確認にならず、その人には設定の変更をあなたに頼むよう表示されます。
+
+:::tabs
+@tab SAML
+OneUptime は `ForceAuthn="true"` を送り、サインインした時刻をアサーションの `AuthnInstant` から読み取ります。
+
+| ID プロバイダー | 設定する内容 |
+| --- | --- |
+| Okta | **General** タブで **SAML Settings** を編集し、 **Show Advanced Settings** をクリックして **Honor Force Authentication** を **Yes** にします。 **No** のままだと、Okta は要求を無視します。 |
+| Microsoft Entra ID | なし。Entra ID は要求に従い、その `AuthnInstant` はその人がサインインした時刻です。 |
+| Keycloak | なし。Keycloak は要求に従います。ただしその `AuthnInstant` はサインインした時刻ではなく応答した時刻なので、Keycloak がもう一度尋ねたかどうかを OneUptime は確かめられません。OneUptime 自身が確かめられるよう、Keycloak は OpenID Connect で接続してください。 |
+| Google Workspace | 設定は不要です。Google は要求に従うかどうかを明らかにしていません。その `AuthnInstant` はその人が最後に Google にサインインした時刻なので、まだ Google にサインインしている人は、先に Google からサインアウトします。 |
+@tab OpenID Connect
+OneUptime は `prompt=login` と `max_age=0` を送り、サインインした時刻を ID トークンの `auth_time` から読み取ります。
+
+| ID プロバイダー | 設定する内容 |
+| --- | --- |
+| Okta | なし。Okta は両方に従い、常に `auth_time` を送ります。 |
+| Microsoft Entra ID | アプリ登録の **Token configuration** で **Add optional claim** をクリックし、 **ID** を選んで `auth_time` を追加します。Entra ID はこれを省略可能な要求としてのみ送ります。`prompt=login` には従います。 |
+| Keycloak | クライアントに `basic` クライアントスコープを残してください。これに `auth_time` が含まれます。Keycloak 25 以降は、すべてのクライアントにこのスコープを付けます。 |
+| Google Workspace | OAuth クライアントの **Session age claims** を、 **Google Auth Platform** > **Settings** > **Advanced Settings** でオンにします。アプリは公開済みで確認済みである必要があります。Google はどちらの要求も受け付けないため、OneUptime は代わりに `auth_time` を求めます。まだ Google にサインインしている人は、先に Google からサインアウトします。 |
+:::
+
 ## SSO ユーザーのロールとチーム
 
 OneUptime は、アイデンティティプロバイダーのロールやグループを取り込みません。その人ができることは、所属するチームで決まります。プロバイダーは新しい人を自分の **チーム** に追加し、チームとその権限は、[ユーザー、チーム、権限](/docs/permissions/index) で説明しているとおり OneUptime で管理します。チームのメンバー構成をアイデンティティプロバイダーと同期させるには、[SCIM](/docs/identity/scim) を使ってください。サインイン時に参加したチームは、それぞれそのチームの **監査ログ** ページに、サインインした人による変更として記録されます。

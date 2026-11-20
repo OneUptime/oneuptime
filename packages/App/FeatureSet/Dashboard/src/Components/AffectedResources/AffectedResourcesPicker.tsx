@@ -40,6 +40,17 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  SharedNameMark,
+  getSharedNameFacts,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+} from "Common/UI/Components/Dropdown/SharedNameOptionLines";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -1507,7 +1518,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
           query: {} as never,
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { _id: true, name: true, color: true } as never,
+          select: {
+            _id: true,
+            name: true,
+            color: true,
+            // What tells two labels of one name apart (#10314).
+            ...getSharedNameSelect(Label),
+          } as never,
           sort: { name: SortOrder.Ascending } as never,
         });
         if (cancelled) {
@@ -1636,6 +1653,25 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
    * for both tabs keeps the input behavior intuitive — the user types,
    * the visible list narrows, regardless of which tab they're on.
    */
+  /*
+   * Labels named alike before names were held to one label each (#10314):
+   * each wears its list's pill, and what sets it apart under its name.
+   * Twins are found among every label the tab offers, so one the search
+   * hides still tells its twin apart.
+   */
+  const labelMarks: Map<string, SharedNameMark> = useMemo(() => {
+    return getSharedNameMarks(
+      allLabels.map((label: Label) => {
+        return {
+          value: label._id ? String(label._id) : "",
+          label: label.name || "",
+          sharedName: getSharedNameFacts(label),
+        };
+      }),
+      translator,
+    );
+  }, [allLabels, translator]);
+
   const filteredLabels: Array<Label> = useMemo(() => {
     const q: string = searchQuery.trim().toLowerCase();
     if (q === "") {
@@ -2789,6 +2825,8 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                       : undefined;
                     const previewCapTotal: number =
                       LABEL_PREVIEW_LIMIT_PER_TYPE * resourceTypes.length;
+                    const labelMark: SharedNameMark | undefined =
+                      labelMarks.get(getSharedNameOptionKey(labelId));
 
                     return (
                       <div
@@ -2884,10 +2922,26 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                                 aria-hidden="true"
                               />
                             )}
-                            <span className="truncate">
-                              {label.name ||
-                                translator.translateText("Unnamed Label")}
-                            </span>
+                            {labelMark ? (
+                              <span className="flex min-w-0 flex-col">
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <span className="truncate">
+                                    {label.name ||
+                                      translator.translateText("Unnamed Label")}
+                                  </span>
+                                  <SharedNamePill mark={labelMark} />
+                                </span>
+                                <SharedNameDetail
+                                  mark={labelMark}
+                                  className="block truncate text-xs text-gray-500"
+                                />
+                              </span>
+                            ) : (
+                              <span className="truncate">
+                                {label.name ||
+                                  translator.translateText("Unnamed Label")}
+                              </span>
+                            )}
                           </button>
                           {previewResources !== undefined && (
                             <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

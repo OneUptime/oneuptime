@@ -448,6 +448,25 @@ jobs:
           Tests/Server/Services/DashboardPrivateUserSessionsPostgres.test.ts
           --forceExit
 
+      # The sessions of a form's private users (#10249), the same rules on
+      # the form's own tables: a refresh token kept as its hash and rotated
+      # in one conditional write, a session that counts only for its own
+      # form and private user while its sign-in still counts, a single
+      # sign-on code exchanged once, and a new password or a removed private
+      # user ending every session of theirs.
+      - name: Test form private user sessions on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_FORM_PRIVATE_USER_TESTS: "true"
+          FORM_PRIVATE_USER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          FORM_PRIVATE_USER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          FORM_PRIVATE_USER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/FormPrivateUserSessionsPostgres.test.ts
+          --forceExit
+
       # Deleting the rows older than their table keeps them (issue #8894):
       # 1000 a statement, one DELETE a batch, a run out of time taking one
       # batch of each table and the next run the rest, a table with no
@@ -4436,6 +4455,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/RedactLatestIncomingRequestsPostgres.test.ts
+          --forceExit
+
+      # Explain with AI's rows of the AI Logs, written again as a call writes
+      # one now (#10361): each preview of a Data Security issue's explanation
+      # becomes the words a call that keeps none writes, and a failed call's
+      # error the words one that keeps no error details writes, deleted rows
+      # too; no other feature's row, and nothing else of the row, changes;
+      # it walks more rows than a page and changes nothing the second time.
+      # Clones the migrated LlmLog table into an isolated schema.
+      - name: Test taking Data Security issues out of the AI Logs on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_LLM_LOG_REDACTION_TESTS: "true"
+          LLM_LOG_REDACTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LLM_LOG_REDACTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LLM_LOG_REDACTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RedactDataSecurityIssueExplanationLogsPostgres.test.ts
           --forceExit
 
       # The master API key through the upgrade that stores it hashed (#7901):

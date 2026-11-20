@@ -156,11 +156,11 @@ Sommige wijzigingen vragen u eerst te bevestigen dat u het bent, ook al bent u a
 - tweefactorauthenticatie uitschakelt;
 - uw account verwijdert.
 
-Het venster **Bevestig dat u het bent** vraagt om uw wachtwoord en, zolang tweefactorauthenticatie is ingeschakeld, om uw tweede stap: een code uit uw authenticator-app, uw beveiligingssleutel of een van uw back-upcodes. Met een passkey klikt u in plaats daarvan op **Passkey gebruiken**. Meldt u zich alleen aan via single sign-on, Google of Microsoft, klik dan op **Opnieuw aanmelden**: OneUptime vraagt uw identiteitsprovider u opnieuw te laten aanmelden en brengt u daarna terug naar de pagina. Dan wordt de wijziging doorgevoerd.
+Het venster **Bevestig dat u het bent** vraagt om uw wachtwoord en, zolang tweefactorauthenticatie is ingeschakeld, om uw tweede stap: een code uit uw authenticator-app, uw beveiligingssleutel of een van uw back-upcodes. Met een passkey klikt u in plaats daarvan op **Passkey gebruiken**. Meldt u zich alleen aan via single sign-on, Google of Microsoft, klik dan op **Opnieuw aanmelden**: OneUptime vraagt uw identiteitsprovider u opnieuw te laten aanmelden en brengt u daarna terug naar de pagina. Dan wordt de wijziging doorgevoerd. Meldt u zich alleen aan met Vercel, dat niet kan bevestigen dat u het bent, kies dan in plaats daarvan **Op een andere manier aanmelden** en meld u aan met een link die u per e-mail krijgt.
 
 Nadat u hebt bevestigd, wordt het u in die browser 10 minuten lang niet opnieuw gevraagd. Vijf verkeerde pogingen melden die browser af, maar vergrendelen uw account nooit: meld u opnieuw aan en probeer het nog een keer. OneUptime stuurt u een e-mail als dat gebeurt, en telkens wanneer een back-upcode bevestigt dat u het bent.
 
-Op een zelf-gehoste server bevestigen hoofdbeheerders op dezelfde manier dat zij het zijn voordat ze wijzigen hoe iemand anders zich aanmeldt, iemand hoofdbeheerder maken, de single sign-on-providers of e-mailinstellingen van de server wijzigen of een master API-sleutel maken. De master API-sleutel kan deze wijzigingen niet doen.
+Op een zelf-gehoste server bevestigen hoofdbeheerders op dezelfde manier dat zij het zijn voordat ze wijzigen hoe iemand anders zich aanmeldt, het account van iemand anders verwijderen, iemand hoofdbeheerder maken, de single sign-on-providers of e-mailinstellingen van de server wijzigen of een master API-sleutel maken of weer inschakelen. De master API-sleutel kan deze wijzigingen niet doen.
 
 Opnieuw aanmelden telt alleen als uw identiteitsprovider aangeeft dat u zich hebt aangemeld nadat OneUptime u ernaartoe stuurde. Meldt de provider u aan met een sessie die hij al heeft, zonder om uw wachtwoord te vragen, dan bevestigt dat niets: meld u eerst af bij de provider en klik dan op **Opnieuw aanmelden**. Waar uw server aanmelden met een gemailde link toestaat, doet **Op een andere manier aanmelden** dat in plaats daarvan. Wat OneUptime aan elke provider vraagt, en wat een beheerder kan wijzigen als opnieuw aanmelden niets bevestigt:
 
@@ -170,6 +170,9 @@ Opnieuw aanmelden telt alleen als uw identiteitsprovider aangeeft dat u zich heb
 | OpenID Connect | `prompt=login` en `max_age=0`, en wanneer u zich aanmeldde (`auth_time`) | Laat de provider `auth_time` meesturen. Voeg het in Microsoft Entra ID als optionele claim toe aan het ID-token. |
 | Google | Wanneer u zich aanmeldde (`auth_time`). Google kan niet worden gevraagd u opnieuw te laten aanmelden. | Schakel Session age claims in voor de Google-aanmeldapp van de server, die gepubliceerd en geverifieerd moet zijn. |
 | Microsoft | `prompt=login` en `max_age=0`, en wanneer u zich aanmeldde (`auth_time`) | Voeg `auth_time` als optionele claim toe aan het ID-token van de Microsoft-aanmeldapp van de server. |
+| Vercel | Niets: Vercel kan niet worden gevraagd u opnieuw te laten aanmelden, en geeft niet door wanneer u zich hebt aangemeld. | Het bevestigt nooit. Kies **Op een andere manier aanmelden** en meld u aan met een link die u per e-mail krijgt, of stel een wachtwoord in met **Wachtwoord vergeten?** en bevestig daarmee. |
+
+Wat u instelt in Okta, Microsoft Entra ID, Keycloak en Google Workspace, staat op de pagina [SSO](/docs/identity/sso#opnieuw-aanmelden-om-te-bevestigen-dat-u-het-bent).
 
 ## Uw projecten
 

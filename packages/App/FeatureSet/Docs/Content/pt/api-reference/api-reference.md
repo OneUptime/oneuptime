@@ -255,7 +255,7 @@ Cada equipe, rótulo, política de plantão e agendamento de plantão tem um nom
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Muitos outros tipos também têm um nome só seu, como severidades de incidentes, status de monitor, páginas de status e workflows, e recusam um nome já usado da mesma forma:
+Muitos outros tipos também têm um nome só seu, como severidades de incidentes, status de monitor, páginas de status e workflows, e recusam um nome já usado da mesma forma, tanto ao criar quanto ao renomear:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Ao lado da mensagem, cada recusa desse tipo traz um `refusalCode` que diz o que 
 - `"refusalCode": "name_taken"`: um registro em serviço tem o nome. Nada foi gravado, então a mesma requisição pode ser enviada de novo assim que esse registro liberar o nome: o provider do Terraform tenta de novo por até 30 segundos.
 - `"refusalCode": "name_taken_by_archived"`: só um registro arquivado tem o nome. Desarquive esse registro ou escolha outro nome: enviar a requisição de novo não adianta, e o provider do Terraform não faz isso.
 
-Uma atualização que envia de novo o próprio nome de um registro, em maiúsculas ou minúsculas, não é uma renomeação, então registros que compartilhavam um nome antes ainda podem ser alterados, e renomeados para se diferenciarem. Para equipes, rótulos, políticas de plantão e agendamentos de plantão, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) responde quais compartilham um nome: `{"groups": [["<id>", "<id>"]]}`, cada grupo com os IDs, que a sua chave pode ler, dos registros cujos nomes se leem igual. Rótulos e políticas de plantão arquivados ficam de fora.
+Uma atualização que envia de novo o próprio nome de um registro, em maiúsculas ou minúsculas, não é uma renomeação, então registros que compartilhavam um nome antes ainda podem ser alterados, e renomeados para se diferenciarem, mas nunca para o nome de outro registro. Para equipes, rótulos, políticas de plantão e agendamentos de plantão, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) responde quais compartilham um nome: `{"groups": [["<id>", "<id>"]]}`, cada grupo com os IDs, que a sua chave pode ler, dos registros cujos nomes se leem igual. Rótulos e políticas de plantão arquivados ficam de fora.
+
+#### Valores que outro registro já tem
+
+Alguns valores que não são um nome também pertencem a um só registro cada: o domínio de uma página de status, de um painel ou de um formulário, um domínio do projeto, o identificador de um host ou de um cluster Kubernetes, a URL de login de um provedor de SSO e a permissão de uma chave de API, entre outros. Uma criação, ou uma atualização que muda um deles, para um valor que outro registro já tem é recusada com um `400` que diz isso:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Ao lado da mensagem, a recusa traz um `refusalCode` que diz o que tem o valor, e um `field` que nomeia o campo cujo valor já é usado, como `"field": "fullDomain"`. Um valor de vários campos juntos vem sem `field`. Reconheça a recusa pelo código, não pela frase, que pode ser reescrita:
+
+- `"refusalCode": "value_taken"`: um registro em serviço tem o valor. Nada foi gravado, então a mesma requisição pode ser enviada de novo assim que esse registro liberar o valor: o provider do Terraform tenta de novo por até 30 segundos.
+- `"refusalCode": "value_taken_by_archived"`: só um registro arquivado tem o valor. Desarquive esse registro ou escolha outro valor: enviar a requisição de novo não adianta, e o provider do Terraform não faz isso.
+
+Uma atualização que envia de novo o próprio valor de um registro, em maiúsculas ou minúsculas, não é uma alteração, então registros que compartilhavam um valor antes ainda podem ser alterados, e receber valores diferentes.
 
 ### Chaves liga/desliga
 

@@ -156,6 +156,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
   /*
+   * What each OneUptime AI feature of Data Security sends, never sends and
+   * keeps (#10365): Data Security > Settings > OneUptime AI draws the
+   * catalog, and the server and the guard read the same file. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataSecurityAiFeatures.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -171,6 +181,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Database/UniqueName.ts",
+    kind: "keys",
+  },
+  /*
+   * What a picker says of records that share a name (#10064): the pill a
+   * twin wears and the day it was made. The rule is the chats' too
+   * (#10314), so it lives outside Common/UI; only the words it marks are
+   * read.
+   */
+  {
+    directory: "packages/Common/Types/Database/SharedNameMarks.ts",
     kind: "keys",
   },
   /*
@@ -348,6 +368,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/ServerSending/ServerSendingWords.ts",
     kind: "ui",
   },
+  /*
+   * What a project is told of its Amazon SES IAM role (#7378): why it was
+   * not signed in to, or a save was refused. The server sends the English,
+   * and Send Test Email and the form say it in the reader's language. Only
+   * the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Email/AmazonSesRoleWords.ts",
+    kind: "keys",
+  },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
   /*
@@ -418,6 +448,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
       "packages/Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog.ts",
     kind: "keys",
   },
+  /*
+   * The blocklist's sentences (#10338): what is wrong with a value to
+   * block, that it is blocked already, and what protects an address - the
+   * Block Address dialog and Protected Entities say them in the reader's
+   * language, and the server answers an API client with the same words in
+   * English. Only the sentences the files mark are read: the rest is the
+   * blocklist's rules.
+   */
+  { directory: "packages/Common/Types/SecurityBlocklist", kind: "keys" },
   /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the

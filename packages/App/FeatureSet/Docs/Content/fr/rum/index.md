@@ -94,7 +94,7 @@ Une application affiche **Reçoit des données** tant que la télémétrie arriv
 :::steps
 ### Créer une clé d'ingestion
 
-Ouvrez **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et cliquez sur **Créer une clé d'ingestion**. Une application web a besoin d'une clé **Navigateur**, qui ne fonctionne que depuis les origines que vous listez. Une application mobile a besoin d'une clé **Serveur**, car un SDK mobile n'envoie pas d'en-tête `Origin`.
+Ouvrez **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et cliquez sur **Créer une clé d'ingestion**. Une application web a besoin d'une clé **Navigateur**, qui ne fonctionne que depuis les origines que vous listez. Une application mobile a besoin d'une clé **Mobile**, épinglée au `service.name` de l'application : elle est livrée dans l'application, elle ne peut donc envoyer que les traces, les journaux et les métriques de cette application.
 
 ### Instrumenter votre application
 

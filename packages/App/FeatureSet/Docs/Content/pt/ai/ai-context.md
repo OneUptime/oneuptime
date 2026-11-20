@@ -66,6 +66,7 @@ Uma regra de IA pode ter notas próprias sobre os incidentes ou alertas que ela 
 | As respostas no Slack e no Microsoft Teams | As notas do projeto |
 | Os rascunhos de post-mortem, de incidentes e de episódios | As notas do projeto |
 | A triagem do AI Insights e a dos casos de segurança | As notas do projeto |
+| Explicar com IA, em um problema de segurança de dados | As notas do projeto |
 
 As chamadas que só reformulam ou julgam o que recebem não o leem: os rascunhos de notas e de notas públicas, os resumos de chamadas, o resumo, a confiança e a nota de uma investigação, e o título de uma conversa. Nem os prompts que as pessoas escrevem por conta própria, na etapa de IA de um workflow ou de um runbook.
 

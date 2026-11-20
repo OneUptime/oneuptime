@@ -3,7 +3,7 @@
 Instrumenteer een Android-, iOS- of React Native-app met OpenTelemetry, zodat hij zich bij OneUptime meldt als mobiele RUM-applicatie. Elk ander platform met een OpenTelemetry-SDK werkt op dezelfde manier.
 
 :::cards
-- [Wat OneUptime nodig heeft](#wat-oneuptime-nodig-heeft): Twee resource-attributen, verstuurd met een Server-sleutel.
+- [Wat OneUptime nodig heeft](#wat-oneuptime-nodig-heeft): Twee resource-attributen, verstuurd met een Mobiel-sleutel.
 - [Je platform instellen](#je-platform-instellen): Android, iOS, React Native en de rest.
 - [Crashes en vastlopers op iOS](#crashes-en-vastlopers-op-ios): De rapporten van MetricKit en KSCrash in Uitzonderingen, benoemd door je dSYM's.
 - [Controleren of het binnenkomt](#controleren-of-het-binnenkomt): De sleutel testen en dan de app vinden.
@@ -12,12 +12,12 @@ Instrumenteer een Android-, iOS- of React Native-app met OpenTelemetry, zodat hi
 
 ## Zo werkt het
 
-Je app exporteert OTLP rechtstreeks naar OneUptime met een **Server**-ingestiesleutel. De `device.*`-attributen op de resource zijn wat hem als mobiele RUM indeelt in plaats van als backend-service.
+Je app exporteert OTLP rechtstreeks naar OneUptime met een **Mobiel**-ingestiesleutel, vastgezet op de app, dus alles wat hij verstuurt wordt als die mobiele RUM-applicatie ingedeeld. Met elke andere sleutel zijn de `device.*`-attributen op de resource wat hem als mobiele RUM indeelt in plaats van als backend-service.
 
 ```mermaid title="Wat een mobiele app verstuurt, en met welke sleutel"
 flowchart TB
     app["Je mobiele app"] --> sdk["OpenTelemetry-SDK<br/>met device.*-attributen"]
-    sdk -->|"OTLP met een<br/>Server-sleutel"| oneuptime["OneUptime"]
+    sdk -->|"OTLP met een<br/>Mobiel-sleutel"| oneuptime["OneUptime"]
     oneuptime --> rum["Mobiele RUM-applicatie"]
     replay["React Native-<br/>replay-SDK"] -->|"opnames met een<br/>Browser-sleutel"| oneuptime
 ```
@@ -31,7 +31,7 @@ Twee resource-attributen, op elke batch die je app exporteert:
 | `service.name` | De identiteit van de applicatie, bijvoorbeeld `storefront-android`. |
 | `device.id` of `device.model.identifier` | Markeert de telemetrie als mobiele RUM. `device.model.identifier` vult ook de pagina **Clients**. |
 
-Zonder apparaatattribuut komt de telemetrie toch binnen en kun je haar opvragen, maar ze wordt als backend-service ingedeeld in plaats van als RUM-applicatie.
+Verstuurd met een andere sleutel komt telemetrie zonder apparaatattribuut toch binnen en kun je haar opvragen, maar ze wordt als backend-service ingedeeld in plaats van als RUM-applicatie.
 
 `device.manufacturer` markeert een batch ook als mobiel, maar alleen op een resource zonder host-identiteit, omdat de inventaris van een host daarmee het merk van een machine meldt. Stel ook `device.id` of `device.model.identifier` in, zoals elk recept hieronder doet, en dit maakt nooit uit.
 
@@ -40,7 +40,7 @@ Maak van `device.id` een ID per installatie, nooit een advertentie-ID of iets an
 ## Voordat je begint
 
 - Een app met een OpenTelemetry-SDK: de OpenTelemetry Java SDK of OpenTelemetry Android, opentelemetry-swift, of de OpenTelemetry JavaScript SDK voor React Native.
-- Een **Server**-ingestiesleutel, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** met **Ingestiesleutel aanmaken**. Een **Browser**-sleutel wordt vanuit een mobiele app geweigerd: hij wordt gecontroleerd tegen de header `Origin`, die mobiele SDK's niet versturen.
+- Een **Mobiel**-ingestiesleutel, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** met **Ingestiesleutel aanmaken**, met de `service.name` van je app als **Vastgezette servicenaam**. Een **Browser**-sleutel wordt vanuit een mobiele app geweigerd: hij wordt gecontroleerd tegen de header `Origin`, die mobiele SDK's niet versturen. Lever nooit een **Server**-sleutel mee in een app.
 - Deze OTLP-instellingen. Host je OneUptime zelf, vervang `https://oneuptime.com` dan door je eigen host.
 
 | Instelling | Waarde |
@@ -52,7 +52,7 @@ Maak van `device.id` een ID per installatie, nooit een advertentie-ID of iets an
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Stel op de pagina van de sleutel een **Vastgezette servicenaam** in, zodat een kopie niet onder de namen van je backend-services kan schrijven, voeg een **Requests Per Minute Limit** en een datum bij **Verloopt om** toe, en vervang de sleutel bij elke release.
+> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Een kopie van een Mobiel-sleutel kan alleen de traces, logs en metrieken van deze app versturen, ingedeeld onder zijn **Vastgezette servicenaam**, en nooit vanaf een webpagina. Hij kan wel verzonnen gegevens voor deze app versturen, tot de **Limiet voor verzoeken per minuut** van de sleutel, dus voeg een datum bij **Verloopt om** toe en vervang de sleutel bij elke release.
 
 ## Je platform instellen
 
@@ -136,7 +136,7 @@ OpenTelemetry.registerTracerProvider(
 
 `UIDevice.current.model` geeft een korte naam zoals `iPhone`, waardoor de pagina **Clients** één rij per soort apparaat houdt. `identifierForVendor` is de installatie waarop OneUptime de crashvrije installaties telt, zoals [Sessies vastleggen](#sessies-vastleggen) beschrijft.
 @tab React Native
-React Native draait de OpenTelemetry JavaScript SDK, dus bouw de provider, de OTLP-exporter en de batch-processor zoals in [Browserconfiguratie](/docs/rum/browser-setup), met drie wijzigingen: verstuur met een **Server**-sleutel, laat `browserDetector` en `DocumentLoadInstrumentation` weg, en stel de apparaatattributen zelf in.
+React Native draait de OpenTelemetry JavaScript SDK, dus bouw de provider, de OTLP-exporter en de batch-processor zoals in [Browserconfiguratie](/docs/rum/browser-setup), met drie wijzigingen: verstuur met een **Mobiel**-sleutel, laat `browserDetector` en `DocumentLoadInstrumentation` weg, en stel de apparaatattributen zelf in.
 
 ```ts
 import { Platform } from "react-native";
@@ -276,7 +276,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` met `"valid": true` betekent dat de sleutel wordt geaccepteerd. Een Browser-sleutel antwoordt ook met `200`, maar zijn bericht zegt dat hij alleen vanuit een browser werkt: een mobiele app heeft een Server-sleutel nodig. `401` betekent dat de sleutel onbekend, ingetrokken, uitgeschakeld of verlopen is, en geen SDK-instelling lost dat op.
+`200` met `"valid": true` betekent dat de sleutel wordt geaccepteerd. Een Browser-sleutel antwoordt ook met `200`, maar zijn bericht zegt dat hij alleen vanuit een browser werkt: een mobiele app heeft een Mobiel-sleutel nodig. `401` betekent dat de sleutel onbekend, ingetrokken, uitgeschakeld of verlopen is, en geen SDK-instelling lost dat op.
 
 ### De app starten
 
@@ -289,20 +289,20 @@ Open de pagina **Clients** van de applicatie: elk apparaatmodel uit `device.mode
 
 ## Session Replay op mobiel
 
-React Native-apps kunnen sessies opnemen met `@oneuptime/react-native-replay`. Het neemt de native viewboom op als draadmodel, nooit schermafbeeldingen of de tekst op het scherm, en de opnames openen in dezelfde speler als die van het web. Het verstuurt met een **Browser**-sleutel waarvan de **Toegestane origins** je app vermelden als `app://` gevolgd door de Android-applicatie-ID of de iOS-bundle-ID: een andere sleutel dan de Server-sleutel die je OpenTelemetry-SDK gebruikt. [Installeren in React Native](/docs/telemetry/session-replay#installeren-in-react-native) leidt je erdoorheen.
+React Native-apps kunnen sessies opnemen met `@oneuptime/react-native-replay`. Het neemt de native viewboom op als draadmodel, nooit schermafbeeldingen of de tekst op het scherm, en de opnames openen in dezelfde speler als die van het web. Het verstuurt met een **Browser**-sleutel waarvan de **Toegestane origins** je app vermelden als `app://` gevolgd door de Android-applicatie-ID of de iOS-bundle-ID: een andere sleutel dan de Mobiel-sleutel die je OpenTelemetry-SDK gebruikt. [Installeren in React Native](/docs/telemetry/session-replay#installeren-in-react-native) leidt je erdoorheen.
 
 Native Android- en iOS-apps, en de andere platforms, hebben geen sessierecorder: hun pagina **Sessieherhaling** blijft leeg, terwijl traces, logs, metrieken, uitzonderingen en de pagina **Clients** gewoon werken.
 
 ## Probleemoplossing
 
 :::details De sleutelcontrole geeft 401, of de sleutel wordt geweigerd
-Een `401` betekent dat de sleutel onbekend, ingetrokken, uitgeschakeld of verlopen is: maak een Server-sleutel aan en bouw de app er opnieuw mee.
+Een `401` betekent dat de sleutel onbekend, ingetrokken, uitgeschakeld of verlopen is: maak een Mobiel-sleutel aan en bouw de app er opnieuw mee.
 
-Een Browser-sleutel doorstaat de controle, maar elke export vanuit een mobiele app wordt geweigerd met een `422` die luidt: `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` Gebruik een **Server**-sleutel.
+Een Browser-sleutel doorstaat de controle, maar elke export vanuit een mobiele app wordt geweigerd met een `422` die luidt: `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` Gebruik een **Mobiel**-sleutel. Ook een Mobiel-sleutel wordt met een `422` geweigerd via gRPC en vanaf een webpagina: exporteer via OTLP/HTTP.
 :::
 
 :::details De app verschijnt onder Services in plaats van onder Real User Monitoring
-De resource heeft geen `device.id` of `device.model.identifier`, dus de telemetrie is als backend-service ingedeeld. Stel ze in zoals bij [Je platform instellen](#je-platform-instellen).
+De telemetrie is met een andere sleutel dan een Mobiel-sleutel verstuurd, en de resource heeft geen `device.id` of `device.model.identifier`, dus ze is als backend-service ingedeeld. Verstuur met een Mobiel-sleutel, of stel ze in zoals bij [Je platform instellen](#je-platform-instellen).
 
 De service die al is aangemaakt, wordt geen RUM-applicatie, dus verwijder hem onder **Producten → Services** zodra er RUM-telemetrie binnenkomt.
 :::

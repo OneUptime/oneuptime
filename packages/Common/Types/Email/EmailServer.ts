@@ -54,7 +54,12 @@ export default interface EmailServer {
    *     ServerIamRole, the Region alone: it signs in as the server's own
    *     IAM role. Only the server's own settings set that
    *     (Notification/Config.getGlobalEmailProviderServer); a project's
-   *     config never does, and is refused if it says so;
+   *     config never does, and is refused if it says so. A project's config
+   *     may instead sign in to an IAM role in its own AWS account (#7378):
+   *     awsRoleArn, awsRoleProjectId and awsRegion, with no key. The
+   *     project is the config row's own (ProjectSmtpConfigService), and the
+   *     external id the role is signed in to with is derived from it alone
+   *     (AmazonSesProjectRole);
    *   - SendGrid, Postmark and Resend: apiKey (Postmark's server API token);
    *   - Mailgun: apiKey, mailgunDomain (the sending domain, such as
    *     mg.example.com) and mailgunRegion (US or EU).
@@ -64,6 +69,9 @@ export default interface EmailServer {
   awsAccessKeyId?: string | undefined;
   awsSecretAccessKey?: string | undefined;
   awsRegion?: string | undefined;
+  // A project's config only: the IAM role in its own AWS account, and the config's project.
+  awsRoleArn?: string | undefined;
+  awsRoleProjectId?: string | undefined;
   mailgunDomain?: string | undefined;
   mailgunRegion?: MailgunRegion | undefined;
 }

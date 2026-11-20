@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * One nullable column added to an existing table: no rewrite, no scan, no
  * default to fill. Every rule starts as one whose last run worked.
  */
-export class AddDetectionRuleLastFailedAt1809187220000
+export class AddDetectionRuleLastFailedAt1809187380000
   implements MigrationInterface
 {
-  public name: string = "AddDetectionRuleLastFailedAt1809187220000";
+  public name: string = "AddDetectionRuleLastFailedAt1809187380000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

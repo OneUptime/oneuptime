@@ -156,6 +156,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Playbooks", PageMap.SECURITY_PLAYBOOKS],
       ["Approvals", PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL],
       ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
+      // What the project blocks, beside what no block may touch.
+      ["Blocklist", PageMap.SECURITY_BLOCKLIST],
       ["Protected Entities", PageMap.SECURITY_PROTECTED_ENTITIES],
     ],
   ],

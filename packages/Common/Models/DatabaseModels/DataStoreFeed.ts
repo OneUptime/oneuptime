@@ -41,6 +41,17 @@ export enum DataStoreFeedEventType {
   LabelRuleExecuted = "LabelRuleExecuted",
   // A response action changed the store's cloud configuration (DataSecurityResponse).
   ResponseActionTaken = "ResponseActionTaken",
+  /*
+   * What OneUptime AI proposed for one of the store's issues, and what
+   * became of it (DataSecurityAiProposals, #10364), as the issue's timeline
+   * says it.
+   */
+  AiProposed = "AiProposed",
+  AiProposalApproved = "AiProposalApproved",
+  AiChangeMade = "AiChangeMade",
+  AiProposalDismissed = "AiProposalDismissed",
+  AiChangeUndone = "AiChangeUndone",
+  AiChangeFailed = "AiChangeFailed",
 }
 
 @EnableDocumentation()

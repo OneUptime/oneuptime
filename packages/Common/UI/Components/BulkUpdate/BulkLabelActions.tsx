@@ -17,13 +17,13 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import { sortLabels } from "../../../Utils/LabelOrder";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import { SharedNameFactsReads } from "../../Utils/SharedNameFactsReads";
 import ProjectUtil from "../../Utils/Project";
 import {
   SharedNameFacts,
   getSharedNameFacts,
   getSharedNameSelect,
 } from "../../Utils/SharedNameOptions";
-import { getNameKey } from "../../../Types/Database/UniqueName";
 import { SharedNameKind } from "../../../Types/Database/SharedNames";
 import PermissionGate, {
   ModelAction,
@@ -46,7 +46,8 @@ import {
  * The labels of a bulk Remove Labels that share a name, read on their own
  * with what tells them apart (#10064): the items' labels come through a
  * relation, which reads no description. Nothing is read when no two share
- * a name, and a read that fails leaves them without it.
+ * a name, and a read that fails leaves them without it - the one re-read
+ * every list of names alone makes (SharedNameFactsReads, #10314).
  */
 export const BulkLabelReads: {
   readFactsOfLabelsSharingAName: (
@@ -56,57 +57,12 @@ export const BulkLabelReads: {
   readFactsOfLabelsSharingAName: async (
     labels: Array<Label>,
   ): Promise<Map<string, SharedNameFacts>> => {
-    const facts: Map<string, SharedNameFacts> = new Map<
-      string,
-      SharedNameFacts
-    >();
-    const idsByName: Map<string, Array<string>> = new Map<
-      string,
-      Array<string>
-    >();
-
-    for (const label of labels) {
-      const id: string = label._id?.toString() || "";
-      const nameKey: string = getNameKey(label.name);
-
-      if (id && nameKey) {
-        idsByName.set(nameKey, [...(idsByName.get(nameKey) || []), id]);
-      }
-    }
-
-    const sharingIds: Array<string> = Array.from(idsByName.values())
-      .filter((ids: Array<string>): boolean => {
-        return ids.length > 1;
-      })
-      .flat();
-
-    if (sharingIds.length === 0) {
-      return facts;
-    }
-
-    try {
-      const result: ListResult<Label> = await ModelAPI.getList<Label>({
-        modelType: Label,
-        query: { _id: new Includes(sharingIds) } as any,
-        limit: sharingIds.length,
-        skip: 0,
-        select: { _id: true, name: true, ...getSharedNameSelect(Label) },
-        sort: {},
-      });
-
-      for (const label of result.data) {
-        const labelFacts: SharedNameFacts | undefined =
-          getSharedNameFacts(label);
-
-        if (label._id && labelFacts) {
-          facts.set(label._id.toString(), labelFacts);
-        }
-      }
-    } catch {
-      // Marked all the same, without what sets each apart.
-    }
-
-    return facts;
+    return await SharedNameFactsReads.readFactsOfRecordsSharingAName({
+      modelType: Label,
+      records: labels.map((label: Label) => {
+        return { id: label._id?.toString() || "", name: label.name || "" };
+      }),
+    });
   },
 };
 

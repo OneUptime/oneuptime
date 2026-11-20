@@ -129,6 +129,26 @@ Die Abrechnung hat drei eigene Rollen. `BillingViewer` liest die Abrechnung des 
 
 Alle {{PERMISSION_ROLE_COUNT}} Rollen sind in der [Berechtigungsreferenz](/docs/permissions/reference) aufgeführt.
 
+### Produktstufen
+
+Eine Produktstufe gibt einem Team ein Produkt, auf einer Stufe, und sonst nichts vom Projekt: `CloudAdmin`, `NetworkViewer`, `HostMember`. Jede Stufe tut mit den eigenen Datensätzen des Produkts, was eine projektweite Rolle mit jedem Datensatz tut:
+
+- **Betrachter** liest dort, was die Rolle Betrachter liest, und ändert nichts.
+- **Mitglied** erstellt, ändert und löscht außerdem die Datensätze des Produkts, wie es ein Projektmitglied tut.
+- **Administrator** tut dort außerdem, was ein Projektadministrator tut: die Einstellungen des Produkts, seine Verbindungen und Zugangsdaten sowie seine Label- und Eigentümerregeln.
+
+Eine Stufe erreicht nie ein anderes Produkt und auch nicht die Einstellungen, Teams, Mitglieder, API-Schlüssel, SSO oder die Abrechnung des Projekts.
+
+:::steps
+1. Öffnen Sie die Seite **Berechtigungen** des Teams.
+2. Wählen Sie unter **Produktzugriff** eine Stufe für jedes Produkt, mit dem das Team arbeitet. Leeren Sie die Stufe eines Produkts, um dem Team das Produkt wieder zu nehmen.
+:::
+
+- **Monitore, Vorfälle und die anderen Bereiche mit eigenen Rollen** vergeben Sie mit **Rolle hinzufügen** unter **Ein Bereich**. Ebenso die Telemetrie-Rollen für Protokolle, Metriken, Traces, Profile und Ausnahmen sowie die Security-Rollen.
+- **KI / LLM, Inventar und Formulare** haben nur eine Betrachter- und eine Administratorstufe, weil ein Projektmitglied dort nichts ändert.
+- **Eine Stufe ist eine Berechtigung wie jede andere.** Sie können sie in der Tabelle der Berechtigungen auf einige Labels oder auf eigene Datensätze beschränken, sie sperren, in eine benutzerdefinierte Rolle aufnehmen oder einem API-Schlüssel geben. Eine Stufe können Sie wie jede Berechtigung nur vergeben, wenn Sie sie selbst haben, es sei denn, Sie sind Projektinhaber.
+- **Eine Stufe liest die Datensätze des Produkts, nicht seine Telemetrie.** Ein Team mit `HostViewer` sieht die Hosts des Projekts und braucht für deren Diagramme zusätzlich `TelemetryViewer`.
+
 ### Granulare Berechtigungen
 
 Jede einzelne Fähigkeit ist auch für sich vergebbar — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` und {{PERMISSION_TOTAL_COUNT}} weitere. Nutzen Sie diese, wenn eine Rolle zu breit ist und Sie genau eine Sache vergeben möchten.

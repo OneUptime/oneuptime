@@ -326,6 +326,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "block permission",
     "A CI pipeline that only reports deployments.",
     "Someone who should not change billing or see invoices.",
+    // Product levels (#10289): the notes under the section's steps.
+    "Monitors, Incidents and the other areas with roles of their own",
+    "AI / LLM, Inventory and Forms",
+    "A level is a permission like any other.",
+    "A level reads the product's records, not its telemetry.",
   ],
   [PUSH_PAGE]: [
     "The responder turned it on for that device.",

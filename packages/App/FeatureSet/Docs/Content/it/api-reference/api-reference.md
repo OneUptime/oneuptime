@@ -255,7 +255,7 @@ Team, etichette, policy di reperibilità e pianificazioni di reperibilità hanno
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Anche molti altri tipi hanno un nome tutto loro, come le gravità degli incidenti, gli stati dei monitor, le pagine di stato e i flussi di lavoro, e rifiutano allo stesso modo un nome già preso:
+Anche molti altri tipi hanno un nome tutto loro, come le gravità degli incidenti, gli stati dei monitor, le pagine di stato e i flussi di lavoro, e rifiutano allo stesso modo un nome già preso, sia alla creazione sia alla ridenominazione:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Accanto al messaggio, ognuno di questi rifiuti contiene un `refusalCode` che dic
 - `"refusalCode": "name_taken"`: lo ha un record in servizio. Non è stato scritto nulla, quindi la stessa richiesta si può inviare di nuovo appena quel record lascia il nome: il provider Terraform riprova fino a 30 secondi.
 - `"refusalCode": "name_taken_by_archived"`: lo ha solo un record archiviato. Annulla l'archiviazione di quel record, o scegli un altro nome: inviare di nuovo la richiesta non serve, e il provider Terraform non lo fa.
 
-Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli. Per team, etichette, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo. Le etichette e le policy di reperibilità archiviate sono escluse.
+Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli, ma mai con il nome di un altro record. Per team, etichette, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo. Le etichette e le policy di reperibilità archiviate sono escluse.
+
+#### Valori che un altro record ha già
+
+Anche alcuni valori che non sono un nome appartengono a un solo record ciascuno: il dominio di una pagina di stato, di una dashboard o di un modulo, un dominio del progetto, l'identificatore di un host o di un cluster Kubernetes, l'URL di accesso di un provider SSO e il permesso di una chiave API, tra gli altri. Una creazione, o un aggiornamento che ne cambia uno, verso un valore che ha già un altro record viene rifiutata con un `400` che lo dice:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Accanto al messaggio, il rifiuto contiene un `refusalCode` che dice che cosa ha il valore, e un `field` che nomina il campo il cui valore è già preso, come `"field": "fullDomain"`. Un valore di più campi insieme arriva senza `field`. Riconosci il rifiuto dal codice, non dalla frase, che può essere riformulata:
+
+- `"refusalCode": "value_taken"`: lo ha un record in servizio. Non è stato scritto nulla, quindi la stessa richiesta si può inviare di nuovo appena quel record lascia il valore: il provider Terraform riprova fino a 30 secondi.
+- `"refusalCode": "value_taken_by_archived"`: lo ha solo un record archiviato. Annulla l'archiviazione di quel record, o scegli un altro valore: inviare di nuovo la richiesta non serve, e il provider Terraform non lo fa.
+
+Un aggiornamento che invia di nuovo a un record il suo stesso valore, in maiuscolo o minuscolo, non è una modifica, quindi i record che prima condividevano un valore si possono ancora modificare, e ricevere valori distinti.
 
 ### Interruttori
 

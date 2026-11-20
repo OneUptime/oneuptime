@@ -658,10 +658,14 @@ describe("a license change applies to the next request, with the same mounted ro
 });
 
 describe("single sign-on is core and never license-gated, with the Enterprise Edition loaded", () => {
-  // The SAML Single Logout URLs and the signing certificate are core too (#9603).
-  test("the core SSO routers are all there: 25 routes across 7 routers", () => {
-    expect(SSO_ROUTERS).toHaveLength(7);
-    expect(CORE_SSO_ROUTES).toHaveLength(25);
+  /*
+   * The SAML Single Logout URLs and the signing certificate are core too
+   * (#9603), and so are a dashboard's and a form's SAML and OIDC sign-ins,
+   * two routes each (#10250, #10249).
+   */
+  test("the core SSO routers are all there: 33 routes across 11 routers", () => {
+    expect(SSO_ROUTERS).toHaveLength(11);
+    expect(CORE_SSO_ROUTES).toHaveLength(33);
   });
 
   test("no core SSO route has a license gate anywhere in its handler stack", () => {

@@ -89,10 +89,16 @@ Se [Utløsere for arbeidsflyter](/docs/workflows/triggers) for feltene hver utl�
 
 ## OneUptime AI
 
-To handlinger på et problem ber OneUptime AI om hjelp. Begge sender OneUptime AI problemets tittel og alvorlighetsgrad, datalagerets navn, type, region og sky-ID, sensitiviteten og datatypene, hver med sitt navn (dine egne datatyper med navnet du ga dem), bevisene, hvorfor kontrollen er viktig, og løsningen for datalagerets sky – aldri prøvene fra et funn. Begge kjører under prosjektets brytere og grenser for OneUptime AI.
+To handlinger på et problem ber OneUptime AI om hjelp. Begge sender OneUptime AI problemets tittel og alvorlighetsgrad, datalagerets navn, type, region og sky-ID, sensitiviteten og datatypene, hver med sitt navn (dine egne datatyper med navnet du ga dem), bevisene, hvorfor kontrollen er viktig, og løsningen for datalagerets sky – aldri prøvene fra et funn. Begge kjører under prosjektets brytere og grenser for OneUptime AI. Hva hver av dem sender, hva den aldri sender, og modellen den kjører på, står på [OneUptime AI i Datasikkerhet](/docs/data-security/ai).
 
 - **Forklar med AI** skriver, for eieren av datalageret, hva som er galt, hva som kan skje, og de nøyaktige stegene for å rette det i skyen deres. Forklaringen lagres på problemets **Tidslinje**. Verken problemet som ble sendt eller svaret lagres i **Prosjektinnstillinger → KI → AI-logger**, som alle med rollen Prosjektmedlem eller Leser kan lese: raden sier bare at kallet ble gjort, og hva det kostet. Alle som kan lese problemet, kan be om den.
 - **Fiks med AI** ber OneUptime AI rette problemet i infrastrukturkoden din – Terraform, CloudFormation, Bicep eller lignende – med den minste endringen som får kontrollen til å bestå, og åpne en pull request. Den krever at kodelageret med infrastrukturkoden til datalageret er koblet til under **Kode**: velg det under **Kodelager** når du kan be om den i flere. Pull requesten vises under **Kode** (se [Kode](/docs/ai/ai-agent)). Sikkerhetsmedlemmer og høyere kan be om den, i et kodelager de kan endre under **Kode**, slik det kreves for å be KI om noe der: en sikkerhetsrolle leser og endrer ingen kodelagre på egen hånd, så gi teamet deres også **Read Code Repository** og **Edit Code Repository**. Når KI ikke kan arbeide nå – den er slått av, prosjektet er tomt for KI-kreditter, de daglige grensene er nådd, eller ingen Runner er på nett – sier Fiks med AI hva som må rettes, og starter ingenting.
+
+### På egen hånd
+
+Med **Jobb med nye problemer** slått på under **Datasikkerhet → KI**, slik det er for nye prosjekter, jobber OneUptime AI på egen hånd med hvert nytt kritisk eller høyt problem. Den skriver problemets analyse, slik **Forklar med AI** gjør og ut fra det den sender, og legger den på problemets **Tidslinje**. For et telemetriproblem foreslår den rensingsreglene som skjuler dataene i ny telemetri. Et forslag venter på den siden under **Venter på deg**, de mest risikable først, med hva som endres, hvorfor, hvordan det bevises og hvordan det angres. **Godkjenn** gjør endringen med dine egne tillatelser: en rensingsregel krever tillatelse til å lage rensingsregler for logger, rensingsregler for spor eller pipelineregler for målinger. **Avvis forslaget** sier nei, med en begrunnelse som legges på problemets tidslinje. Problemets egen kontroll avgjør om en endring virket: datalageret kontrolleres på nytt, og problemet løses når ingen av dataene er igjen.
+
+Som standard spør OneUptime AI før hver endring, unntatt en som bare skjuler data, kan angres og er bevist trygg, og den sletter aldri data eller varsler noen uten å spørre. En endring den gjorde uten å spørre, står under **Gjort av AI**, med **Angre**. **Hvorfor AI ikke handlet** viser problemene den så på og lot være, og hvorfor. Hvert forslag, hver godkjenning, avvisning og angring står på problemets og datalagerets **Tidslinje**. Med bryteren av, eller KI av for prosjektet, fungerer datasikkerhet som alltid, og **Forklar med AI** og **Fiks med AI** virker fortsatt når du trykker på dem.
 
 ### Spør AI
 
@@ -130,6 +136,7 @@ Alt Datasikkerhet tar vare på, er en post i OneUptime-API-et, som leses med de 
 | Egendefinerte datatyper, kontrollinnstillinger, samsvarsinnstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Prosjektets innstillinger | `/data-security-setting` |
 | Eiere, eierregler og etikettregler | `/data-store-owner-user`, `/data-store-owner-team`, `/data-store-owner-rule`, `/data-store-label-rule` |
+| Hva OneUptime AI foreslår for et problem, og hvorfor den handlet eller ikke handlet på et | `/data-security-ai-proposal`, `/data-security-ai-decision` |
 
 Noen få svar beregnes ved forespørsel i stedet for å lagres. Hver av dem er en `POST`:
 
@@ -149,6 +156,9 @@ Noen få svar beregnes ved forespørsel i stedet for å lagres. Hver av dem er e
 | `/data-security-issue/<id>/fix-with-ai` | **Fiks med AI** på et problem |
 | `/data-store/<id>/response-actions` | Hvilke responshandlinger datalageret kan utføre nå, og hvorfor ikke |
 | `/data-store/<id>/respond` | Én responshandling på datalageret, for eksempel **Blokker offentlig tilgang** eller **Slå på versjonskontroll**, med problemet den ble kjørt fra |
+| `/data-security-ai-proposal/<id>/approve` | **Godkjenn** på en endring OneUptime AI foreslår, som gjøres med dine egne tillatelser. Tar `expectedPlanFingerprint` for forslaget du ble vist, og avviser et som har endret seg siden |
+| `/data-security-ai-proposal/<id>/dismiss` | **Avvis forslaget**, med `{"reason": "..."}`, som legges på problemets tidslinje |
+| `/data-security-ai-proposal/<id>/undo` | **Angre** på en endring OneUptime AI gjorde: den trekkes tilbake, og datalageret kontrolleres på nytt |
 
 [Terraform-provideren](/docs/terraform/index) har en ressurs for hver type post du oppretter – datalagre du legger til selv, egendefinerte datatyper, kontrollinnstillinger, samsvarsinnstillinger, residensregler, eier- og etikettregler – oppkalt etter posten, for eksempel `oneuptime_residency_rule`.
 

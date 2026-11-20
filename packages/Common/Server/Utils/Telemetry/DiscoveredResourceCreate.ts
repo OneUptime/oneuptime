@@ -6,10 +6,10 @@ import Select from "../../Types/Database/Select";
 import Sort from "../../Types/Database/Sort";
 import CaptureSpan from "./CaptureSpan";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import NameTakenException, {
   NameHolder,
 } from "../../../Types/Exception/NameTakenException";
+import ValueTakenException from "../../../Types/Exception/ValueTakenException";
 import ObjectID from "../../../Types/ObjectID";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
@@ -44,7 +44,10 @@ import {
  *     ("Host with the same name already exists.") when the truth is that
  *     the host is already there. A clash of names says what to do about it,
  *     and carries the code a program tells a taken name by: whether the
- *     resource that has it is archived (NameTakenException, #10065).
+ *     resource that has it is archived (NameTakenException, #10065). A
+ *     clash of identifiers carries the code a program tells any other taken
+ *     value by, the same way (ValueTakenException, #10319), so a host moved
+ *     from one Terraform resource to another converges in one apply.
  *
  * Ingest's own creates (root) are left as they come but for a missing name.
  * Discovery always names what it creates and settles its own races, so it
@@ -257,6 +260,10 @@ export default class DiscoveredResourceCreate {
           _id: true,
           isArchived: true,
         } as unknown as Select<TModel>,
+        // One in service is named before an archived one.
+        sort: {
+          isArchived: SortOrder.Ascending,
+        } as unknown as Sort<TModel>,
         props: {
           isRoot: true,
         },
@@ -264,11 +271,17 @@ export default class DiscoveredResourceCreate {
 
       if (sameIdentity) {
         const message: string = data.naming.getIdentityTakenMessage(identity);
+        const isArchived: boolean =
+          readColumn(sameIdentity, "isArchived") === true;
 
-        throw new BadDataException(
-          readColumn(sameIdentity, "isArchived") === true
-            ? `${message} ${ARCHIVED_RESOURCE_HINT}`
-            : message,
+        /*
+         * With the code a program tells a taken value by (#10319): another
+         * resource of the same Terraform apply may be giving the
+         * identifier up.
+         */
+        throw new ValueTakenException(
+          isArchived ? `${message} ${ARCHIVED_RESOURCE_HINT}` : message,
+          { field: data.naming.identityColumn, isArchived: isArchived },
         );
       }
     }

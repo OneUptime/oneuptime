@@ -9,13 +9,6 @@ import {
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import Select from "../../../Types/Database/Select";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import {
-  CheckRemediation,
-  DataSecurityCheckInfo,
-  fillRemediationText,
-  getCheckRemediation,
-  getDataSecurityCheck,
-} from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
@@ -25,10 +18,7 @@ import { isBuiltInDataType } from "../../../../Types/DataSecurity/DataTypeCatalo
 import { isCustomDataTypeId } from "../../../../Types/DataSecurity/CustomDataTypeId";
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
 import ProjectDataTypeNames from "../../DataSecurity/ProjectDataTypeNames";
-import {
-  DataStoreKind,
-  DataStoreProvider,
-} from "../../../../Types/DataSecurity/DataStoreKind";
+import { DataStoreProvider } from "../../../../Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "../../../../Types/DataSecurity/DataStorePosture";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -43,6 +33,7 @@ import DataStoreService from "../../../Services/DataStoreService";
 import QueryPermission from "../../../Types/Database/Permissions/QueryPermission";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import DataSecurityAiInput from "../DataSecurity/DataSecurityAiInput";
 import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
@@ -300,27 +291,12 @@ const STORE_SELECT: {
   isPublicByDesign: true,
 };
 
+// A store as the tools list it: the allow-list's row (DataSecurityAiInput).
 export function describeStoreRow(
   store: DataStore,
   dataTypeNamer: DataTypeNamer = BUILT_IN_NAMER,
 ): JSONObject {
-  return {
-    dataStoreId: store.id?.toString() || "",
-    name: store.name || "",
-    kind: store.kind || "",
-    provider: store.provider || "",
-    region: store.region || "",
-    environment: store.environment || "",
-    sensitivity: effectiveSensitivity(store),
-    dataTypes: dataTypeNamer.namesOf(store.dataTypeIds).join(", "),
-    exposure: store.exposure || DataStoreExposure.Unknown,
-    publicByDesign: Boolean(store.isPublicByDesign),
-    openIssues: store.openIssueCount || 0,
-    highestIssueSeverity: store.highestIssueSeverity || "",
-    riskScore: store.riskScore || 0,
-    contentScannedAt: store.contentScannedAt || null,
-    configurationReadAt: store.configurationReadAt || null,
-  };
+  return DataSecurityAiInput.storeRow(store, dataTypeNamer);
 }
 
 /*
@@ -699,29 +675,7 @@ async function readOneStore(
     findings.isReadable
       ? serialize(
           findings.value.map((finding: DataStoreFinding): JSONObject => {
-            return {
-              // The name the finding kept stands in only when nothing else knows it.
-              dataType: namer.nameOf(
-                finding.dataTypeId || "",
-                finding.dataTypeName,
-              ),
-              location: finding.location || "",
-              locationKind: finding.locationKind || "",
-              confidence: finding.confidence || "",
-              matches: finding.matchCount || 0,
-              ofValuesSampled: finding.valueCount || 0,
-              distinctValues: finding.distinctValues || 0,
-              scrubbedAtIngest: Boolean(finding.isScrubbed),
-              /*
-               * OneUptime AI's suggestion from the field's name and the
-               * shapes of its values: it counts only once a person confirms it.
-               */
-              ...(finding.isAiSuggested
-                ? { suggestedByOneUptimeAi: true }
-                : {}),
-              ...(finding.isConfirmed ? { confirmedByAPerson: true } : {}),
-              lastSeenAt: finding.lastSeenAt || null,
-            };
+            return DataSecurityAiInput.findingRow(finding, namer);
           }),
         )
       : "",
@@ -739,13 +693,7 @@ async function readOneStore(
     issues.isReadable
       ? serialize(
           issues.value.map((issue: DataSecurityIssue): JSONObject => {
-            return {
-              dataSecurityIssueId: issue.id?.toString() || "",
-              title: issue.title || "",
-              checkId: issue.checkId || "",
-              severity: issue.severity || "",
-              riskScore: issue.riskScore || 0,
-            };
+            return DataSecurityAiInput.storeIssueRow(issue);
           }),
         )
       : "",
@@ -802,18 +750,9 @@ export function sortAccess(
   });
 }
 
+// An access entry as the tools list it: the allow-list's row (DataSecurityAiInput).
 export function describeAccessRow(entry: DataStoreAccess): JSONObject {
-  return {
-    principal: entry.principalName || entry.principal || "",
-    principalId: entry.principal || "",
-    type: entry.principalType || "",
-    level: entry.accessLevel || "",
-    grantedVia: entry.grantedVia || "",
-    public: Boolean(entry.isPublic),
-    outsideYourAccounts: Boolean(entry.isExternal),
-    seenInTraces: Boolean(entry.isSeenInTraces),
-    lastUsedAt: entry.lastUsedAt || null,
-  };
+  return DataSecurityAiInput.accessRow(entry);
 }
 
 /*
@@ -1028,18 +967,7 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
 
     const rows: Array<JSONObject> = issues.map(
       (issue: DataSecurityIssue): JSONObject => {
-        return {
-          dataSecurityIssueId: issue.id?.toString() || "",
-          title: issue.title || "",
-          store: issue.dataStore?.name || "",
-          storeKind: issue.dataStore?.kind || "",
-          dataStoreId: issue.dataStoreId?.toString() || "",
-          checkId: issue.checkId || "",
-          severity: issue.severity || "",
-          riskScore: issue.riskScore || 0,
-          status: issue.status || "",
-          firstDetectedAt: issue.firstDetectedAt || null,
-        };
+        return DataSecurityAiInput.issueListRow(issue);
       },
     );
     const serialized: SerializedResult =
@@ -1156,65 +1084,11 @@ export async function readOneIssue(
     );
   }
 
-  const check: DataSecurityCheckInfo | undefined = getDataSecurityCheck(
-    issue.checkId || "",
+  // What its check saw, its store, and the fix: the allow-list's row.
+  const row: JSONObject = DataSecurityAiInput.issueRow(
+    issue,
+    await getToolDataTypeNames(ctx).namerFor(issue.dataTypeIds || []),
   );
-  const kind: DataStoreKind | undefined = issue.dataStore?.kind as
-    | DataStoreKind
-    | undefined;
-  const remediation: CheckRemediation | undefined =
-    check && kind ? getCheckRemediation(check, kind) : undefined;
-  const values: { name: string; region?: string | undefined } = {
-    name: issue.dataStore?.name || "<store>",
-    region: issue.dataStore?.region,
-  };
-
-  const row: JSONObject = {
-    dataSecurityIssueId: issue.id.toString(),
-    title: issue.title || check?.title || "",
-    checkId: issue.checkId || "",
-    group: issue.checkGroup || check?.group || "",
-    severity: issue.severity || "",
-    riskScore: issue.riskScore || 0,
-    status: issue.status || "",
-    store: issue.dataStore?.name || "",
-    storeKind: kind || "",
-    region: issue.dataStore?.region || "",
-    dataStoreId: issue.dataStoreId?.toString() || "",
-    // Only a sensitivity read: one the caller may not read is not "Public".
-    storeSensitivity: issue.dataStore?.sensitivity
-      ? effectiveSensitivity(issue.dataStore)
-      : "",
-    exposure: issue.dataStore?.exposure || "",
-    dataTypes: (
-      await getToolDataTypeNames(ctx).namerFor(issue.dataTypeIds || [])
-    )
-      .namesOf(issue.dataTypeIds)
-      .join(", "),
-    evidence: issue.evidence || "",
-    whatIsWrong: check?.description || "",
-    whyItMatters: check?.whyItMatters || "",
-    fixSteps: remediation
-      ? remediation.steps
-          .map((step: string, index: number): string => {
-            return `${index + 1}. ${fillRemediationText(step, values)}`;
-          })
-          .join(" ")
-      : "",
-    fixCli: remediation?.cli
-      ? fillRemediationText(remediation.cli, values)
-      : "",
-    fixTerraform: remediation?.terraform
-      ? fillRemediationText(remediation.terraform, values)
-      : "",
-    firstDetectedAt: issue.firstDetectedAt || null,
-    lastDetectedAt: issue.lastDetectedAt || null,
-    resolvedAt: issue.resolvedAt || null,
-    acceptedUntil: issue.acceptedUntil || null,
-    securityCaseId: issue.securityCaseId?.toString() || "",
-    alertId: issue.alertId?.toString() || "",
-    incidentId: issue.incidentId?.toString() || "",
-  };
   const serialized: SerializedResult = ToolResultSerializer.serializeRows([
     row,
   ]);
@@ -1440,15 +1314,7 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
       .map((entry: DataStoreAccess): JSONObject => {
         const store: DataStore = storesById.get(entry.dataStoreId!.toString())!;
 
-        return {
-          ...describeAccessRow(entry),
-          store: store.name || "",
-          dataStoreId: store.id!.toString(),
-          storeKind: store.kind || "",
-          sensitivity: effectiveSensitivity(store),
-          dataTypes: namer.namesOf(store.dataTypeIds).join(", "),
-          riskScore: store.riskScore || 0,
-        };
+        return DataSecurityAiInput.reachableStoreRow(entry, store, namer);
       })
       .sort((a: JSONObject, b: JSONObject): number => {
         const rank: number =

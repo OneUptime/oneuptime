@@ -129,6 +129,26 @@ Fakturering har tre egne roller. `BillingViewer` leser prosjektets fakturering �
 
 Alle {{PERMISSION_ROLE_COUNT}} roller står i [Tillatelsesreferansen](/docs/permissions/reference).
 
+### Produktnivåer
+
+Et produktnivå gir et team ett produkt, på ett nivå, og ingenting annet av prosjektet: `CloudAdmin`, `NetworkViewer`, `HostMember`. Hvert nivå gjør med produktets egne poster det en prosjektomfattende rolle gjør med alle poster:
+
+- **Leser** leser der det samme som rollen Leser, og endrer ingenting.
+- **Medlem** oppretter, endrer og sletter også produktets poster, slik et Prosjektmedlem gjør.
+- **Administrator** gjør der også det en Prosjektadministrator gjør: produktets innstillinger, tilkoblingene og påloggingsinformasjonen dets, og etikett- og eierreglene dets.
+
+Et nivå når aldri et annet produkt, og heller ikke prosjektets innstillinger, team, medlemmer, API-nøkler, SSO eller fakturering.
+
+:::steps
+1. Åpne teamets side **Tillatelser**.
+2. Velg under **Produkttilgang** et nivå for hvert produkt teamet jobber med. Tøm et produkts nivå for å ta produktet fra teamet igjen.
+:::
+
+- **Monitorer, Hendelser og de andre områdene med egne roller** gis med **Legg til rolle**, under **Ett område**. Det samme gjelder Telemetry-rollene, for Logger, Målinger, Spor, Profiler og Unntak, og Security-rollene.
+- **AI / LLM, Inventar og Skjemaer** har bare nivåene Leser og Administrator, fordi et Prosjektmedlem ikke endrer noe i dem.
+- **Et nivå er en tillatelse som alle andre.** Du kan begrense det til noen etiketter eller til eide poster i tabellen med tillatelser, blokkere det, legge det i en egendefinert rolle eller gi det til en API-nøkkel. Som med alle tillatelser kan du bare gi et nivå hvis du har det selv, med mindre du er Prosjekteier.
+- **Et nivå leser produktets poster, ikke telemetrien dets.** Et team med `HostViewer` ser prosjektets verter, og trenger også `TelemetryViewer` for diagrammene deres.
+
 ### Granulære tillatelser
 
 Hver enkelt evne kan også tildeles alene — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` og {{PERMISSION_TOTAL_COUNT}} andre. Bruk disse når en rolle er for bred og du må gi akkurat én ting.

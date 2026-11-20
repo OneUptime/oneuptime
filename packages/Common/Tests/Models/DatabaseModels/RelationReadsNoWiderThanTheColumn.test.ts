@@ -771,6 +771,29 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
       ],
     },
   },
+  {
+    reason:
+      "Which app a cloud resource's instance runs (#10289): a cloud's resources and their instances are Cloud's and App Platforms' both, so Cloud's levels read an instance's app as App Platforms' readers do - its name, platform, service and revisions, and when its signals last arrived - to say what the instance is. Changing an app is OneUptime's alone.",
+    columns: {
+      CloudApp: [
+        "appKey",
+        "cloudPlatform",
+        "cloudResourceId",
+        "currentRevision",
+        "currentRevisionSince",
+        "groupName",
+        "lastSeenAt",
+        "logsLastReceivedAt",
+        "metricsLastReceivedAt",
+        "name",
+        "previousRevision",
+        "revisionAttribute",
+        "serviceName",
+        "signalArrivalsTrackedSince",
+        "tracesLastReceivedAt",
+      ],
+    },
+  },
 ];
 
 /*
@@ -1036,11 +1059,15 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
         WIDER_ON_PURPOSE,
       );
 
+      /*
+       * Data Observability's own levels (#10289) read a data asset as Viewer,
+       * Project Member and Project Admin do, so the leak would reach them too.
+       */
       expect(unrecorded).toEqual(
         expect.arrayContaining([
-          "DataAsset.dataStore reads DataStore.sensitivity for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
-          "DataAlert.dataStore reads DataStore.exposure for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
-          "DataWarehouseJob.dataStore reads DataStore.riskScore for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
+          "DataAsset.dataStore reads DataStore.sensitivity for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
+          "DataAlert.dataStore reads DataStore.exposure for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
+          "DataWarehouseJob.dataStore reads DataStore.riskScore for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
           "DataSecurityIssue.dataStore reads DataStore.cloudAccountNumber for ReadDataSecurityIssue",
         ]),
       );

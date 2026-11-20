@@ -51,7 +51,8 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Playbook** | Playbooks | Passi che vengono eseguiti sui casi, da soli o a mano |
 | **Approvazioni** | Playbooks | I passi dei playbook in attesa che qualcuno li approvi o li rifiuti |
 | **Esecuzioni** | Playbooks | Cosa ha fatto ogni playbook, passo per passo |
-| **Entità protette** | Playbooks | Gli utenti e gli host a cui nessun playbook applica il contenimento |
+| **Blocklist** | Playbooks | Gli indirizzi che il tuo progetto blocca, fino a quando e dove viene applicato ogni blocco |
+| **Entità protette** | Playbooks | Gli utenti, gli host e gli indirizzi a cui nessun playbook applica il contenimento e che nessun blocco tocca |
 | **Impostazioni** | IA | Se OneUptime AI classifica ogni nuovo caso |
 | **Connessioni** | Connections | I tuoi log, i prodotti di sicurezza che OneUptime interroga e i SIEM a cui invia |
 | **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di acquisizione |
@@ -72,8 +73,8 @@ I dati di sicurezza li leggono solo i ruoli Proprietario del progetto e Amminist
 | Ruolo | Cosa può fare |
 | --- | --- |
 | Amministratore della sicurezza | Tutto: eventi, casi, playbook, regole di rilevamento, feed di threat intel e connessioni |
-| Membro della sicurezza | Leggere eventi e threat intel, gestire i casi, eseguire playbook e approvarne i passi, e creare, modificare ed eliminare regole di rilevamento e feed. Non può configurare playbook né connessioni, né eliminare dati di sicurezza. |
-| Visualizzatore della sicurezza | Leggere eventi, casi, playbook, regole, feed, indicatori e connessioni |
+| Membro della sicurezza | Leggere eventi e threat intel, gestire i casi, eseguire playbook e approvarne i passi, bloccare indirizzi, e creare, modificare ed eliminare regole di rilevamento e feed. Non può configurare playbook né connessioni, né eliminare dati di sicurezza. |
+| Visualizzatore della sicurezza | Leggere eventi, casi, playbook, la blocklist, regole, feed, indicatori e connessioni |
 
 ## Inviare eventi di sicurezza
 

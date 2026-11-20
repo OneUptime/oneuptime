@@ -1,3 +1,11 @@
+/*
+ * Must stay the first import: the Dashboard's client builds its API URL from
+ * HOST when UI/Config loads. `npm run test` exports HOST from config.env, and
+ * the Postgres Schema Drift job, which runs this suite, has no config.env:
+ * with no HOST the URL is http:///api, whose "api" a URL parser reads as the
+ * host, and every request missed the routes served under /api.
+ */
+import "../../UI/Utils/API/DashboardHost";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import IncidentAPI from "../../../Server/API/IncidentAPI";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";

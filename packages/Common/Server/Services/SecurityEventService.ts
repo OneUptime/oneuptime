@@ -36,6 +36,7 @@ import {
   readSecurityAttackCampaign,
 } from "../../Types/SecurityEvent/SecurityAttackCampaign";
 import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import { CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE } from "../../Utils/SecurityEvent/ScrubbedAddress";
 import { assertDetectionReadFits } from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
 import SecurityWatchlistQueryBinder from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistQueryBinder";
 import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
@@ -867,6 +868,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
    * how far they got, what kinds of attack, which tools, which requests.
    * Worst first - the furthest any request got, then the most requests -
    * and at most `limit + 1` rows, so the caller can tell there were more.
+   * The row of requests with no address counts those whose address a scrub
+   * rule hid (#10397), so it can say why it names none.
    */
   public async findAttackCampaigns(data: {
     projectId: ObjectID;
@@ -917,7 +920,13 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     }}]) AS attackKinds, groupUniqArray(3)(attributes[${{
       type: TableColumnType.Text,
       value: SECURITY_REQUEST_ATTRIBUTES.userAgent,
-    }}]) AS userAgents, uniq(targetResource) AS targetCount, groupUniqArray(3)(substring(targetResource, 1, 300)) AS sampleTargets, min(time) AS firstSeen, max(time) AS lastSeen FROM `;
+    }}]) AS userAgents, uniq(targetResource) AS targetCount, groupUniqArray(3)(substring(targetResource, 1, 300)) AS sampleTargets, min(time) AS firstSeen, max(time) AS lastSeen, countIf(principalIp = '' AND attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+    }}] = ${{
+      type: TableColumnType.Text,
+      value: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+    }}) AS hiddenAddressCount FROM `;
     statement.append(`${databaseName}.${this.model.tableName}`);
     statement.append(
       SQL` WHERE projectId = ${{

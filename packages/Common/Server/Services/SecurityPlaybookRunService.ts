@@ -12,6 +12,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import SecurityPlaybookEngine from "../Utils/SecurityPlaybook/SecurityPlaybookEngine";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import WorkspaceSecurityPlaybookApprovalMessages from "../Utils/Workspace/WorkspaceSecurityPlaybookApprovalMessages";
 import Includes from "../../Types/BaseDatabase/Includes";
 import { Gray500, Indigo500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
@@ -321,6 +322,16 @@ export class Service extends ProjectReferencesService<Model> {
     if (!run?.projectId || !run.securityCaseId) {
       return;
     }
+
+    /*
+     * A step that waited for approval, or was approved and had not run:
+     * every copy of its message in Slack and Microsoft Teams says the run
+     * was cancelled, and asks nobody any more.
+     */
+    WorkspaceSecurityPlaybookApprovalMessages.refreshInBackground({
+      projectId: run.projectId,
+      runId: data.runId,
+    });
 
     await SecurityCaseFeedService.createSecurityCaseFeedItem({
       projectId: run.projectId,

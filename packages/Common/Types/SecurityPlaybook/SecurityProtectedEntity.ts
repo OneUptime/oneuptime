@@ -1,26 +1,35 @@
 import { SecurityEntityType } from "../SecurityCase/SecurityEntity";
+import NetworkAddressBlockUtil, {
+  NetworkAddressBlock,
+} from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 
 /*
- * The users and hosts a project's containment never touches: break-glass
- * accounts, domain controllers, the VPN gateway every attack against the
- * network names. A protected entry is a value or a pattern of one, matched
- * whatever the case: `*` stands for any run of characters, so `svc-*`
- * protects every service account and `*.corp.example.com` every host of a
- * domain. A containment step reports a protected target as protected, and
- * neither it nor an approver can act on it.
+ * The users, hosts and addresses a project's containment never touches:
+ * break-glass accounts, domain controllers, the VPN gateway every attack
+ * against the network names, the office's address. A protected user or host
+ * is a value or a pattern of one, matched whatever the case: `*` stands for
+ * any run of characters, so `svc-*` protects every service account and
+ * `*.corp.example.com` every host of a domain. A protected address is an
+ * IPv4 or IPv6 address or a range of them (203.0.113.0/24, 2001:db8::/48),
+ * matched as a range: it protects every address inside it, and refuses a
+ * block of a range that holds any of them. A containment step reports a
+ * protected target as protected, and neither it nor an approver can act on
+ * it; the blocklist refuses to block it (#10338).
  */
 
 /*
  * The kinds of entity containment acts on, and so the ones a project
- * protects. A data store is neither: the steps that close a store's
- * exposure (Block public access to data stores, Revoke data store sharing)
- * change how it is shared, never cut anyone off, and a store meant to be
- * public is protected where it is described - marked public by design in
- * its Settings, which those steps leave alone.
+ * protects: users and hosts, which playbooks suspend and contain, and
+ * addresses, which the blocklist blocks. A data store is none of them: the
+ * steps that close a store's exposure (Block public access to data stores,
+ * Revoke data store sharing) change how it is shared, never cut anyone off,
+ * and a store meant to be public is protected where it is described -
+ * marked public by design in its Settings, which those steps leave alone.
  */
 export const PROTECTED_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
   SecurityEntityType.User,
   SecurityEntityType.Host,
+  SecurityEntityType.IpAddress,
 ];
 
 export const PROTECTED_ENTITY_VALUE_MAX_LENGTH: number = 500;
@@ -39,6 +48,43 @@ export function isProtectedEntityType(
   return (
     typeof value === "string" &&
     (PROTECTED_ENTITY_TYPES as ReadonlyArray<string>).includes(value)
+  );
+}
+
+/*
+ * A protected address as stored: an address or a range written the one way
+ * blocks are (NetworkAddressBlock: an IPv6 address compressed in lowercase,
+ * a range as its first address and its length), or null when the value is
+ * neither.
+ */
+export function normalizeProtectedAddressValue(value: unknown): string | null {
+  const block: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+    typeof value === "string" ? value : "",
+  );
+
+  return block ? block.text : null;
+}
+
+/*
+ * Whether an address or a range is protected by an entry of the list that
+ * names an address or a range: whether the two share any address. A block
+ * of 203.0.113.0/24 is refused by an entry of 203.0.113.10, and a block of
+ * 203.0.113.10 by an entry of 203.0.113.0/24. Never true for a value that is
+ * not an address or a range, or for two of different families.
+ */
+export function matchesProtectedAddress(
+  entryValue: string,
+  value: string,
+): boolean {
+  const entry: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+    entryValue || "",
+  );
+  const block: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+    value || "",
+  );
+
+  return Boolean(
+    entry && block && NetworkAddressBlockUtil.overlaps(entry, block),
   );
 }
 
@@ -106,16 +152,22 @@ export function matchesProtectedEntityPattern(
   return text.length - last.length >= position && text.endsWith(last);
 }
 
-// The entry that protects this entity, if any.
+/*
+ * The entry that protects this entity, if any: a user or a host by its
+ * value or pattern, an address by the range it falls in.
+ */
 export function findProtectingRule(data: {
   type: SecurityEntityType;
   value: string;
   rules: ReadonlyArray<ProtectedEntityRule>;
 }): ProtectedEntityRule | undefined {
   return data.rules.find((rule: ProtectedEntityRule): boolean => {
-    return (
-      rule.type === data.type &&
-      matchesProtectedEntityPattern(rule.value, data.value)
-    );
+    if (rule.type !== data.type) {
+      return false;
+    }
+
+    return rule.type === SecurityEntityType.IpAddress
+      ? matchesProtectedAddress(rule.value, data.value)
+      : matchesProtectedEntityPattern(rule.value, data.value);
   });
 }

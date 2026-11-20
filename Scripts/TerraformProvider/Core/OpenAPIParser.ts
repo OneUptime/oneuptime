@@ -1346,8 +1346,16 @@ export class OpenAPIParser {
         continue;
       }
 
+      /*
+       * A permission is required by the API, and optional here all the
+       * same, as it has always been: the spec documented it as an object a
+       * create could leave out until OneUptime#10300, and a configuration or
+       * a Crossplane manifest that takes over a row by its ID without saying
+       * its permission keeps the row's. A create without one is refused by
+       * OneUptime, in its own words.
+       */
       const required: boolean = Boolean(
-        inCreate && createSchema[name]?.required,
+        inCreate && createSchema[name]?.required && !source.isPermission,
       );
 
       /*
@@ -1521,6 +1529,17 @@ export class OpenAPIParser {
    */
   public static readonly SHOWN_ONCE_DESCRIPTION: string =
     "Kept in state from the answer to the create: OneUptime never reads it back, so a resource imported into Terraform has none. Replace the resource for a new one.";
+
+  /*
+   * What the reference says of a permission a configuration writes
+   * (isPermission): how it is written, and that the way earlier versions of
+   * the provider asked for still works.
+   */
+  public static readonly PERMISSION_DESCRIPTION: string =
+    'A permission\'s key, such as `"IncidentMember"`. Written with `jsonencode()`, as earlier versions of this provider asked, it is the same permission.';
+
+  // The spec's x-oneuptime-type of a permission column (ModelSchema).
+  public static readonly PERMISSION_TYPE: string = "Permission";
 
   /*
    * Whether a data source attribute can be a lookup argument: a single plain
@@ -1818,6 +1837,30 @@ export class OpenAPIParser {
     if (this.isPhoneSchema(prop)) {
       return {
         attribute: { ...base, type: "string", isPhone: true },
+        requiredInCreate: required,
+      };
+    }
+
+    /*
+     * A permission's key, such as IncidentMember: a plain string. The spec
+     * documented it as an object until OneUptime#10300, so the provider made
+     * it a JSON attribute, written with jsonencode("IncidentMember"); it
+     * still takes that as the same permission, from a configuration and
+     * from state (StaticFiles/permissionkey.go). The reference says so where
+     * it is written; read, it is the key alone.
+     */
+    if (prop["x-oneuptime-type"] === OpenAPIParser.PERMISSION_TYPE) {
+      return {
+        attribute: {
+          ...base,
+          type: "string",
+          isPermission: true,
+          description: computed
+            ? description
+            : [description, OpenAPIParser.PERMISSION_DESCRIPTION]
+                .filter(Boolean)
+                .join(" "),
+        },
         requiredInCreate: required,
       };
     }

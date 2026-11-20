@@ -1132,8 +1132,13 @@ import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddN
 import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
 import { AddDashboardPrivateUsersAndSingleSignOn1809187030250 } from "./1809187030250-AddDashboardPrivateUsersAndSingleSignOn";
 import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000-MakeEscalationRuleRespondersUnique";
-import { AddDetectionRunMarksAndFiringKeys1809187210000 } from "./1809187210000-AddDetectionRunMarksAndFiringKeys";
-import { AddDetectionRuleLastFailedAt1809187220000 } from "./1809187220000-AddDetectionRuleLastFailedAt";
+import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
+import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProjectAmazonSesIamRole";
+import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
+import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
+import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
+import { AddDetectionRunMarksAndFiringKeys1809187370000 } from "./1809187370000-AddDetectionRunMarksAndFiringKeys";
+import { AddDetectionRuleLastFailedAt1809187380000 } from "./1809187380000-AddDetectionRuleLastFailedAt";
 
 export default [
   InitialMigration,
@@ -2270,6 +2275,11 @@ export default [
   AddGuidedSetupRun1809187025300,
   AddDashboardPrivateUsersAndSingleSignOn1809187030250,
   MakeEscalationRuleRespondersUnique1809187100000,
-  AddDetectionRunMarksAndFiringKeys1809187210000,
-  AddDetectionRuleLastFailedAt1809187220000,
+  AddFormPrivateUsersAndSingleSignOn1809187140120,
+  AddProjectAmazonSesIamRole1809187142000,
+  AddSecurityBlocklist1809187150000,
+  AddDataSecurityAiRules1809187364000,
+  AddAIRunDataSecurityIssueIndex1809187364100,
+  AddDetectionRunMarksAndFiringKeys1809187370000,
+  AddDetectionRuleLastFailedAt1809187380000,
 ];

@@ -69,6 +69,15 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * The column telemetry is matched on is held to one resource each by
+   * checkMatchColumn above, in its own words: the generic check of an
+   * update leaves it out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return [CEPH_CLUSTER_MATCH_COLUMN.column];
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,

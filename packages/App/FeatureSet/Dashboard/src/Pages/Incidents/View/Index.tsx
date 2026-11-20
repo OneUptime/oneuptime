@@ -1422,6 +1422,7 @@ const IncidentView: FunctionComponent<
               telemetryQuery={telemetryQuery}
               evaluationWindow={telemetrySnapshotWindow}
               seriesSummary={seriesSummary}
+              seriesLabels={seriesLabels}
               subject={EventMetricSubject.Incident}
               eventId={modelIdString}
               startedAt={responseTimes.startedAt}

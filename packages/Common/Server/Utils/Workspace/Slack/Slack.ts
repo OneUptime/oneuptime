@@ -3651,13 +3651,23 @@ export default class SlackUtil extends WorkspaceBase {
     const isMiltiSelect: boolean =
       data.payloadDropdownBlock.multiSelect || false;
 
+    /*
+     * An option's text is one line Slack takes 75 characters of, and refuses
+     * the whole form past that: a record's name can be longer. A label that
+     * tells a twin apart (WorkspaceSharedNames, #10314) is made to fit
+     * already, its name cut before what sets it apart; this cut is for the
+     * rest. A select draws no description, so none is sent.
+     */
     const toOption: (option: DropdownOption) => JSONObject = (
       option: DropdownOption,
     ): JSONObject => {
       return {
         text: {
           type: "plain_text",
-          text: option.label,
+          text: SlackUtil.cutPlainText(
+            String(option.label ?? ""),
+            SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+          ),
         },
         value: option.value,
       };

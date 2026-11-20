@@ -255,7 +255,7 @@ Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne haben in einem P
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Auch viele andere Arten haben einen eigenen Namen, etwa Schweregrade von Vorfällen, Monitorstatus, Statusseiten und Workflows, und lehnen einen vergebenen Namen auf dieselbe Weise ab:
+Auch viele andere Arten haben einen eigenen Namen, etwa Schweregrade von Vorfällen, Monitorstatus, Statusseiten und Workflows, und lehnen einen vergebenen Namen auf dieselbe Weise ab, beim Anlegen wie beim Umbenennen:
 
 ```text
 Incident Severity with the same name already exists.
@@ -266,7 +266,22 @@ Neben der Meldung enthält jede solche Ablehnung einen `refusalCode`, der sagt, 
 - `"refusalCode": "name_taken"`: Ein Datensatz, der in Dienst ist, hat ihn. Es wurde nichts geschrieben, daher kann dieselbe Anfrage erneut gesendet werden, sobald dieser Datensatz den Namen aufgibt: Der Terraform-Provider fragt bis zu 30 Sekunden lang erneut an.
 - `"refusalCode": "name_taken_by_archived"`: Nur ein archivierter Datensatz hat ihn. Holen Sie diesen Datensatz aus dem Archiv, oder wählen Sie einen anderen Namen: Die Anfrage erneut zu senden hilft nicht, und der Terraform-Provider tut es nicht.
 
-Ein Update, das den eigenen Namen eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Umbenennung, sodass Datensätze, die sich vorher einen Namen geteilt haben, weiterhin geändert und so umbenannt werden können, dass sie sich unterscheiden. Für Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne beantwortet `GET /api/shared-names/team` (oder `label`, `on-call-policy`, `on-call-schedule`), welche sich einen Namen teilen: `{"groups": [["<id>", "<id>"]]}`, jede Gruppe die IDs der Datensätze mit gleich lautenden Namen, die Ihr Schlüssel lesen darf. Archivierte Labels und Bereitschaftsrichtlinien werden ausgelassen.
+Ein Update, das den eigenen Namen eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Umbenennung, sodass Datensätze, die sich vorher einen Namen geteilt haben, weiterhin geändert und so umbenannt werden können, dass sie sich unterscheiden, aber nie in den Namen eines anderen Datensatzes. Für Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne beantwortet `GET /api/shared-names/team` (oder `label`, `on-call-policy`, `on-call-schedule`), welche sich einen Namen teilen: `{"groups": [["<id>", "<id>"]]}`, jede Gruppe die IDs der Datensätze mit gleich lautenden Namen, die Ihr Schlüssel lesen darf. Archivierte Labels und Bereitschaftsrichtlinien werden ausgelassen.
+
+#### Werte, die schon ein anderer Datensatz hat
+
+Auch manche Werte, die kein Name sind, gehören jeweils nur einem Datensatz: die Domain einer Statusseite, eines Dashboards oder eines Formulars, eine Projekt-Domain, die Kennung eines Hosts oder eines Kubernetes-Clusters, die Anmelde-URL eines SSO-Anbieters und die Berechtigung eines API-Schlüssels, unter anderem. Ein Anlegen, oder ein Update, das einen davon ändert, auf einen Wert, den schon ein anderer Datensatz hat, wird mit einem `400` abgelehnt, der das sagt:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Neben der Meldung enthält die Ablehnung einen `refusalCode`, der sagt, was den Wert hat, und ein `field`, das das Feld nennt, dessen Wert vergeben ist, etwa `"field": "fullDomain"`. Ein Wert aus mehreren Feldern zusammen kommt ohne `field`. Erkennen Sie die Ablehnung am Code, nicht am Satz, der umformuliert werden kann:
+
+- `"refusalCode": "value_taken"`: Ein Datensatz, der in Dienst ist, hat ihn. Es wurde nichts geschrieben, daher kann dieselbe Anfrage erneut gesendet werden, sobald dieser Datensatz den Wert aufgibt: Der Terraform-Provider fragt bis zu 30 Sekunden lang erneut an.
+- `"refusalCode": "value_taken_by_archived"`: Nur ein archivierter Datensatz hat ihn. Holen Sie diesen Datensatz aus dem Archiv, oder wählen Sie einen anderen Wert: Die Anfrage erneut zu senden hilft nicht, und der Terraform-Provider tut es nicht.
+
+Ein Update, das den eigenen Wert eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Änderung, sodass Datensätze, die sich vorher einen Wert geteilt haben, weiterhin geändert werden und jeweils einen eigenen Wert bekommen können.
 
 ### Schalter
 

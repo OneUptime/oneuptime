@@ -12,11 +12,11 @@ Instrumenteer een native Android-app met OpenTelemetry Android, zodat hij zich b
 
 ## Zo werkt het
 
-OpenTelemetry Android draait in je app. Het verstuurt traces, logs en metrieken via OTLP naar OneUptime met een **Server**-ingestiesleutel, en voegt een W3C-header `traceparent` toe aan de verzoeken die je app doet, zodat de spans van je backend zich bij de traces van de app aansluiten.
+OpenTelemetry Android draait in je app. Het verstuurt traces, logs en metrieken via OTLP naar OneUptime met een **Mobiel**-ingestiesleutel, vastgezet op je app, en voegt een W3C-header `traceparent` toe aan de verzoeken die je app doet, zodat de spans van je backend zich bij de traces van de app aansluiten.
 
 ```mermaid title="Van de app naar OneUptime, en door je backend"
 flowchart TB
-    app["Je Android-app<br/>met OpenTelemetry Android"] -->|"OTLP met een<br/>Server-sleutel"| oneuptime["OneUptime"]
+    app["Je Android-app<br/>met OpenTelemetry Android"] -->|"OTLP met een<br/>Mobiel-sleutel"| oneuptime["OneUptime"]
     app -->|"verzoeken met een<br/>traceparent-header"| api["Je API's: bestellingen,<br/>kassa, keukenscherm"]
     api -->|"OTLP"| oneuptime
     oneuptime --> rum["Mobiele RUM-applicatie"]
@@ -26,7 +26,7 @@ flowchart TB
 ## Voordat je begint
 
 - Een Android-app waarvan de `minSdk` 23 of hoger is, gebouwd met `compileSdk` 34 of hoger. Zet bij een `minSdk` onder 26 [core library desugaring](https://developer.android.com/studio/write/java8-support#library-desugaring) aan, met Android Gradle Plugin 8.3.0 of later en `android.useFullClasspathForDexingTransform=true` in `gradle.properties`.
-- Een **Server**-ingestiesleutel, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** met **Ingestiesleutel aanmaken**. Een **Browser**-sleutel wordt vanuit een app geweigerd: hij wordt gecontroleerd tegen de header `Origin`, die een app niet verstuurt.
+- Een **Mobiel**-ingestiesleutel, aangemaakt onder **Projectinstellingen → Telemetrie & APM → Ingestiesleutels** met **Ingestiesleutel aanmaken**, met de `service.name` van je app als **Vastgezette servicenaam**. Een **Browser**-sleutel wordt vanuit een app geweigerd: hij wordt gecontroleerd tegen de header `Origin`, die een app niet verstuurt.
 - Deze OTLP-instellingen. Host je OneUptime zelf, vervang `https://oneuptime.com` dan door je eigen host.
 
 | Instelling | Waarde |
@@ -35,7 +35,7 @@ flowchart TB
 | Header | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 
 > [!WARNING]
-> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Stel op de pagina van de sleutel een **Vastgezette servicenaam**, een **Requests Per Minute Limit** en een datum bij **Verloopt om** in, en vervang de sleutel bij je releases.
+> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Stel op de pagina van de sleutel een **Vastgezette servicenaam**, een **Limiet voor verzoeken per minuut** en een datum bij **Verloopt om** in, en vervang de sleutel bij je releases.
 
 ## OpenTelemetry Android toevoegen
 
@@ -303,7 +303,7 @@ OpenTelemetry Android stelt `device.model.identifier` zelf in, dus de app is met
 :::
 
 :::details Er komt niets binnen, of de sleutel wordt geweigerd
-Voer de sleutelcontrole uit in [OpenTelemetry Android toevoegen](#opentelemetry-android-toevoegen). Een `401` betekent dat de sleutel onbekend, ingetrokken, uitgeschakeld of verlopen is. Een **Browser**-sleutel wordt vanuit een app geweigerd: gebruik een **Server**-sleutel. Controleer of `baseUrl` eindigt op `/otlp`, zonder `/v1/traces`: de agent voegt het pad zelf toe.
+Voer de sleutelcontrole uit in [OpenTelemetry Android toevoegen](#opentelemetry-android-toevoegen). Een `401` betekent dat de sleutel onbekend, ingetrokken, uitgeschakeld of verlopen is. Een **Browser**-sleutel wordt vanuit een app geweigerd: gebruik een **Mobiel**-sleutel. Controleer of `baseUrl` eindigt op `/otlp`, zonder `/v1/traces`: de agent voegt het pad zelf toe.
 :::
 
 :::details Een crash of een ANR staat niet in Uitzonderingen

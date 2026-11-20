@@ -8,6 +8,7 @@ import SlackMonitorActions from "./Monitor";
 import SlackOnCallDutyActions from "./OnCallDutyPolicy";
 import SlackPageActions from "./Page";
 import SlackScheduledMaintenanceActions from "./ScheduledMaintenance";
+import WorkspaceSecurityPlaybookApproval from "../../WorkspaceSecurityPlaybookApproval";
 
 /*
  * The product a Slack button, form or command acts in (#7479): what the
@@ -58,6 +59,11 @@ export const getProductOfSlackAction: (
     })
   ) {
     return ProductKey.ScheduledMaintenance;
+  }
+
+  // A playbook step waiting for approval: a security case's.
+  if (WorkspaceSecurityPlaybookApproval.isApprovalAction(actionType)) {
+    return ProductKey.SecurityEvents;
   }
 
   return null;

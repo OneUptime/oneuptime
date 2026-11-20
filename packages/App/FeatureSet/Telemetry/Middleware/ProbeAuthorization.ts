@@ -22,6 +22,7 @@ import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import { resolveClientIp } from "Common/Server/Utils/ClientIp";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import NumberUtil from "Common/Utils/Number";
 
@@ -366,17 +367,21 @@ export default class ProbeAuthorization {
      * including the /alive heartbeat itself — to Postgres write latency,
      * which is precisely the coupling that let a slow database mark
      * healthy probes Disconnected. A request that says nothing of the
-     * release the probe runs leaves the release kept alone.
+     * release the probe runs leaves the release kept alone. The address
+     * the request came from rides along too: the probe's checks leave from
+     * it, so the blocklist never blocks it (#10338).
      */
-    ProbeService.updateLastAlive(probeId, data.versionReport).catch(
-      (err: Error) => {
-        logger.error(
-          `Failed to update lastAlive for probe ${probeId.toString()}`,
-          getLogAttributesFromRequest(req as any),
-        );
-        logger.error(err, getLogAttributesFromRequest(req as any));
-      },
-    );
+    ProbeService.updateLastAlive(
+      probeId,
+      data.versionReport,
+      resolveClientIp(req),
+    ).catch((err: Error) => {
+      logger.error(
+        `Failed to update lastAlive for probe ${probeId.toString()}`,
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    });
 
     /*
      * From here on the request is this probe's, and req.probe is how a

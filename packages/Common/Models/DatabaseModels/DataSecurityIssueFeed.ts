@@ -45,6 +45,18 @@ export enum DataSecurityIssueFeedEventType {
   AiFixRequested = "AiFixRequested",
   // Public access blocked or sharing revoked from the issue (DataSecurityResponse).
   ResponseActionTaken = "ResponseActionTaken",
+  /*
+   * What OneUptime AI proposed for the issue, and what became of it
+   * (DataSecurityAiProposals, #10364): proposed; approved first, where two
+   * people approve a riskier change; made, after approval or without
+   * asking; dismissed; undone; or failed.
+   */
+  AiProposed = "AiProposed",
+  AiProposalApproved = "AiProposalApproved",
+  AiChangeMade = "AiChangeMade",
+  AiProposalDismissed = "AiProposalDismissed",
+  AiChangeUndone = "AiChangeUndone",
+  AiChangeFailed = "AiChangeFailed",
 }
 
 /*

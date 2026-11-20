@@ -175,6 +175,10 @@ import IncidentStateTimeline from "./IncidentStateTimeline";
 import Form from "./Form";
 import FormSubmission from "./FormSubmission";
 import FormDomain from "./FormDomain";
+import FormPrivateUser from "./FormPrivateUser";
+import FormPrivateUserSession from "./FormPrivateUserSession";
+import FormSSO from "./FormSso";
+import FormOIDC from "./FormOidc";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -222,6 +226,8 @@ import DataStoreLabelRule from "./DataStoreLabelRule";
 import DataSecurityFlow from "./DataSecurityFlow";
 import DataSecurityIssue from "./DataSecurityIssue";
 import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
+import DataSecurityAiProposal from "./DataSecurityAiProposal";
+import DataSecurityAiDecision from "./DataSecurityAiDecision";
 import DataSecurityScan from "./DataSecurityScan";
 import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
@@ -251,6 +257,8 @@ import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityBlock from "./SecurityBlock";
+import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
@@ -745,6 +753,8 @@ const AllModelTypes: Array<{
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
+  DataSecurityAiProposal,
+  DataSecurityAiDecision,
   DataSecurityScan,
   DataSecurityCustomDataType,
   DataSecurityCheckSetting,
@@ -774,6 +784,8 @@ const AllModelTypes: Array<{
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,
+  SecurityBlock,
+  SecurityBlockEnforcement,
   SecurityEntityRisk,
   SecurityEntityCriticality,
   SecurityEventDestination,
@@ -844,6 +856,10 @@ const AllModelTypes: Array<{
   Form,
   FormSubmission,
   FormDomain,
+  FormPrivateUser,
+  FormPrivateUserSession,
+  FormSSO,
+  FormOIDC,
 
   AlertState,
   Alert,
