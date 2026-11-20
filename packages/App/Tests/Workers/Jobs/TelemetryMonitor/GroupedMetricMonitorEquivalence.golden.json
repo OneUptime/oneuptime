@@ -1,0 +1,1902 @@
+{
+  "note": "Written by GroupedMetricMonitorEquivalence.test.ts from the code before #10108. Compared with, never rewritten, unless an evaluation is meant to decide differently.",
+  "cases": {
+    "a fleet where series breach every criteria, with alerts open": {
+      "criteriaMetId": "criteria-container-too-many-tasks",
+      "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` — **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` — **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n",
+      "evaluatedCriteriaIds": [
+        "criteria-container-too-many-tasks",
+        "criteria-container-restarted",
+        "criteria-container-just-started"
+      ],
+      "matchedCriteria": [
+        {
+          "criteriaId": "criteria-container-too-many-tasks",
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` — **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` — **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n",
+          "series": [
+            {
+              "fingerprint": "aa5792ea1ae23f52",
+              "labels": {
+                "resource.host.name": "docker-host-0004.prod.fleet.internal",
+                "resource.container.name": "inventory-sync-4-15"
+              },
+              "rootCause": "- Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.",
+              "metricContextHash": "69bffaf4b8331091d21d820b"
+            },
+            {
+              "fingerprint": "0537696538e07fe9",
+              "labels": {
+                "resource.host.name": "docker-host-0011.prod.fleet.internal",
+                "resource.container.name": "metrics-collector-4-7"
+              },
+              "rootCause": "- Tasks ranged from 2349 to 2355 across all 2 readings, above the 2000 threshold.",
+              "metricContextHash": "19ae7bc6783f97bcbab5853d"
+            },
+            {
+              "fingerprint": "c9ab4821ef9063ef",
+              "labels": {
+                "resource.host.name": "docker-host-0014.prod.fleet.internal",
+                "resource.container.name": "catalog-search-0-26"
+              },
+              "rootCause": "- Tasks ranged from 2482 to 2485 across all 2 readings, above the 2000 threshold.",
+              "metricContextHash": "226315f8392928f0a7179118"
+            },
+            {
+              "fingerprint": "335826ac806e54cf",
+              "labels": {
+                "resource.host.name": "docker-host-0023.prod.fleet.internal",
+                "resource.container.name": "notification-dispatcher-2-18"
+              },
+              "rootCause": "- Tasks ranged from 2286 to 2309 across all 3 readings, above the 2000 threshold.",
+              "metricContextHash": "561676b957723491b64b0b74"
+            },
+            {
+              "fingerprint": "339d0456234ac259",
+              "labels": {
+                "resource.host.name": "docker-host-0049.prod.fleet.internal",
+                "resource.container.name": "redis-cache-0-32"
+              },
+              "rootCause": "- Tasks ranged from 2235 to 2241 across all 3 readings, above the 2000 threshold.",
+              "metricContextHash": "1a75b9bcd1efab184d317c4f"
+            },
+            {
+              "fingerprint": "8b668e3eeb389972",
+              "labels": {
+                "resource.host.name": "docker-host-0053.prod.fleet.internal",
+                "resource.container.name": "checkout-api-4-12"
+              },
+              "rootCause": "- Tasks ranged from 2181 to 2194 across all 3 readings, above the 2000 threshold.",
+              "metricContextHash": "64fae341931072fd9905c04a"
+            },
+            {
+              "fingerprint": "e1ae8111434d1871",
+              "labels": {
+                "resource.host.name": "docker-host-0008.prod.fleet.internal",
+                "resource.container.name": "nginx-edge-1-10"
+              },
+              "rootCause": "- Tasks was 2437 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "85fcca6da86a7d9bdb46d2d5"
+            },
+            {
+              "fingerprint": "e2d37efbf554cf20",
+              "labels": {
+                "resource.host.name": "docker-host-0015.prod.fleet.internal",
+                "resource.container.name": "notification-dispatcher-1-30"
+              },
+              "rootCause": "- Tasks was 2167 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "ac1363268bbcb808bb9522f2"
+            },
+            {
+              "fingerprint": "8553222f3f08eb36",
+              "labels": {
+                "resource.host.name": "docker-host-0019.prod.fleet.internal",
+                "resource.container.name": "metrics-collector-5-31"
+              },
+              "rootCause": "- Tasks was 2294 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "b691bb16bcb2625124aed40f"
+            },
+            {
+              "fingerprint": "80ba5886142b15a2",
+              "labels": {
+                "resource.host.name": "docker-host-0029.prod.fleet.internal",
+                "resource.container.name": "postgres-replica-1-21"
+              },
+              "rootCause": "- Tasks was 2209 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "e8f5f8e047baf29507b1e5fe"
+            },
+            {
+              "fingerprint": "9a0cfbcaf8bec1dc",
+              "labels": {
+                "resource.host.name": "docker-host-0034.prod.fleet.internal",
+                "resource.container.name": "payments-worker-6-1"
+              },
+              "rootCause": "- Tasks was 2258 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "b100d0436d578cb34d9536bb"
+            },
+            {
+              "fingerprint": "4eae8e69ab9e5a78",
+              "labels": {
+                "resource.host.name": "docker-host-0050.prod.fleet.internal",
+                "resource.container.name": "payments-worker-1-1"
+              },
+              "rootCause": "- Tasks ranged from 2260 to 2280 across all 2 readings, above the 2000 threshold.",
+              "metricContextHash": "9ba0612451ef84335a712adb"
+            },
+            {
+              "fingerprint": "104a0c8a3ec6f2ee",
+              "labels": {
+                "resource.host.name": "docker-host-0055.prod.fleet.internal",
+                "resource.container.name": "web-frontend-6-4"
+              },
+              "rootCause": "- Tasks was 2206 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "5e735d4e9eb7e78ecbf4361a"
+            },
+            {
+              "fingerprint": "5ff54971613df335",
+              "labels": {
+                "resource.host.name": "docker-host-0055.prod.fleet.internal",
+                "resource.container.name": "notification-dispatcher-6-30"
+              },
+              "rootCause": "- Tasks ranged from 2238 to 2240 across all 2 readings, above the 2000 threshold.",
+              "metricContextHash": "ae69a5753a30ea82074990dc"
+            },
+            {
+              "fingerprint": "2719ea2af491dd56",
+              "labels": {
+                "resource.host.name": "docker-host-0007.prod.fleet.internal",
+                "resource.container.name": "payments-worker-0-25"
+              },
+              "rootCause": "- Tasks ranged from 2460 to 2468 across all 2 readings, above the 2000 threshold.",
+              "metricContextHash": "a1d0741a0f3fbc065e451dcb"
+            },
+            {
+              "fingerprint": "391098ad09b1956d",
+              "labels": {
+                "resource.host.name": "docker-host-0052.prod.fleet.internal",
+                "resource.container.name": "notification-dispatcher-3-18"
+              },
+              "rootCause": "- Tasks was 2190 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "91ff7c0b770ac8ba69f88f33"
+            },
+            {
+              "fingerprint": "58bd7bd514932c6f",
+              "labels": {
+                "resource.host.name": "docker-host-0019.prod.fleet.internal",
+                "resource.container.name": "payments-worker-5-13"
+              },
+              "rootCause": "- Tasks was 2530 in 1 reading, above the 2000 threshold.",
+              "metricContextHash": "adbc2f3bdc0153f87f6e0460"
+            }
+          ]
+        },
+        {
+          "criteriaId": "criteria-container-restarted",
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container restarted\n\n**Metric Details**\n- Metric: `a - b`\n- Alias: `e`\n- Formula: `a - b`\n- Components:\n  - `a` = `container.restarts`\n  - `b` = `container.restarts`\n\n\n**Breaching Samples**\n1 of 5 samples breached the threshold.\n\n1. `2026-11-17T10:02:00.000Z` — **1**\n   - `a`: 4\n   - `b`: 3\n   - `resource.host.name`: `docker-host-0009.prod.fleet.internal`\n   - `resource.container.name`: `payments-worker-2-1`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.restarts%22%2C%22variable%22%3A%22a%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+%28highest%29%22%2C%22description%22%3A%22Restarts+%28highest%29%22%2C%22legend%22%3A%22Restarts+%28highest%29%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.restarts%22%2C%22variable%22%3A%22b%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+%28lowest%29%22%2C%22description%22%3A%22Restarts+%28lowest%29%22%2C%22legend%22%3A%22Restarts+%28lowest%29%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.uptime%22%2C%22variable%22%3A%22c%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%2C%22alias%22%3A%7B%22title%22%3A%22Uptime%22%2C%22description%22%3A%22Uptime%22%2C%22legend%22%3A%22Uptime%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.pids.count%22%2C%22variable%22%3A%22d%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%2C%22alias%22%3A%7B%22title%22%3A%22Tasks%22%2C%22description%22%3A%22Tasks%22%2C%22legend%22%3A%22Tasks%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%5D&metricFormulas=%5B%7B%22formula%22%3A%22a+-+b%22%2C%22variable%22%3A%22e%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+in+the+minute%22%2C%22description%22%3A%22Restarts+in+the+minute%22%2C%22legend%22%3A%22Restarts+in+the+minute%22%7D%7D%5D&startTime=2026-11-17T09%3A32%3A00.000Z&endTime=2026-11-17T10%3A17%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0009.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22payments-worker-2-1%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A32%3A00.000Z&end=2026-11-17T10%3A17%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0009.prod.fleet.internal+%40resource.container.name%3Apayments-worker-2-1&range=Custom&start=2026-11-17T09%3A32%3A00.000Z&end=2026-11-17T10%3A17%3A00.000Z)\n\n**Filter Conditions Met**: Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n",
+          "series": [
+            {
+              "fingerprint": "170f1be353af7ff0",
+              "labels": {
+                "resource.host.name": "docker-host-0009.prod.fleet.internal",
+                "resource.container.name": "payments-worker-2-1"
+              },
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "metricContextHash": "2b87c36b34a5e9016095ec25"
+            },
+            {
+              "fingerprint": "a2509ea7ee57d5ea",
+              "labels": {
+                "resource.host.name": "docker-host-0016.prod.fleet.internal",
+                "resource.container.name": "catalog-search-2-2"
+              },
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "metricContextHash": "4ff3c25c3093bb1fa511da1e"
+            },
+            {
+              "fingerprint": "08476ee3911a5f56",
+              "labels": {
+                "resource.host.name": "docker-host-0019.prod.fleet.internal",
+                "resource.container.name": "auth-gateway-5-5"
+              },
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "metricContextHash": "14f3836df70a42c05d1074c9"
+            },
+            {
+              "fingerprint": "2ebdffe152b2edac",
+              "labels": {
+                "resource.host.name": "docker-host-0038.prod.fleet.internal",
+                "resource.container.name": "payments-worker-3-25"
+              },
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "metricContextHash": "4672acc834045e6f22ff5055"
+            }
+          ]
+        },
+        {
+          "criteriaId": "criteria-container-just-started",
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container just started\n\n**Metric Details**\n- Metric: `container.uptime`\n- Alias: `c`\n- Unit: Seconds\n- Aggregation: Min\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n3 of 3 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` — **5.57 min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n2. `2026-11-17T10:02:00.000Z` — **7.57 min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n3. `2026-11-17T10:04:00.000Z` — **9.57 min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.uptime%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0047.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22auth-gateway-5-17%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0047.prod.fleet.internal+%40resource.container.name%3Aauth-gateway-5-17&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Uptime ranged from 5.57 min to 9.57 min across all 3 readings, below the 15 min threshold.\n",
+          "series": [
+            {
+              "fingerprint": "01d701d49cad2223",
+              "labels": {
+                "resource.host.name": "docker-host-0047.prod.fleet.internal",
+                "resource.container.name": "auth-gateway-5-17"
+              },
+              "rootCause": "- Uptime ranged from 5.57 min to 9.57 min across all 3 readings, below the 15 min threshold.",
+              "metricContextHash": "9ecd2f2cb9cf66f9812c1d4f"
+            },
+            {
+              "fingerprint": "e2af5984ebac0232",
+              "labels": {
+                "resource.host.name": "docker-host-0049.prod.fleet.internal",
+                "resource.container.name": "catalog-search-0-14"
+              },
+              "rootCause": "- Uptime ranged from 8.4 min to 12.4 min across all 3 readings, below the 15 min threshold.",
+              "metricContextHash": "5436dd5feeab2a209a6af360"
+            },
+            {
+              "fingerprint": "6650833644b4b66b",
+              "labels": {
+                "resource.host.name": "docker-host-0050.prod.fleet.internal",
+                "resource.container.name": "checkout-api-1-0"
+              },
+              "rootCause": "- Uptime ranged from 5.5 min to 9.5 min across all 3 readings, below the 15 min threshold.",
+              "metricContextHash": "304a2fd1697fcf06c5a97d33"
+            },
+            {
+              "fingerprint": "28fdbb19faae64a9",
+              "labels": {
+                "resource.host.name": "docker-host-0033.prod.fleet.internal",
+                "resource.container.name": "inventory-sync-5-15"
+              },
+              "rootCause": "- Uptime ranged from 6.47 min to 8.47 min across all 2 readings, below the 15 min threshold.",
+              "metricContextHash": "e3073080afd3dc892208a8eb"
+            },
+            {
+              "fingerprint": "8a269d0ababb9a38",
+              "labels": {
+                "resource.host.name": "docker-host-0049.prod.fleet.internal",
+                "resource.container.name": "payments-worker-0-1"
+              },
+              "rootCause": "- Uptime ranged from 9.17 min to 11.2 min across all 2 readings, below the 15 min threshold.",
+              "metricContextHash": "fdaab0d23e9c41227f5ef7a5"
+            },
+            {
+              "fingerprint": "fba8c91b73ffc91f",
+              "labels": {
+                "resource.host.name": "docker-host-0056.prod.fleet.internal",
+                "resource.container.name": "postgres-replica-0-9"
+              },
+              "rootCause": "- Uptime ranged from 7.75 min to 9.75 min across all 2 readings, below the 15 min threshold.",
+              "metricContextHash": "d600bbc6f202fc0cd089e967"
+            }
+          ]
+        }
+      ],
+      "createdAlerts": [
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "aa5792ea1ae23f52",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0004.prod.fleet.internal",
+            "resource.container.name": "inventory-sync-4-15"
+          },
+          "title": "docker-host-0004.prod.fleet.internal inventory-sync-4-15 holds too many tasks",
+          "description": "inventory-sync-4-15 on docker-host-0004.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "4e0026f11fbfdc9481841afe",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "0537696538e07fe9",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0011.prod.fleet.internal",
+            "resource.container.name": "metrics-collector-4-7"
+          },
+          "title": "docker-host-0011.prod.fleet.internal metrics-collector-4-7 holds too many tasks",
+          "description": "metrics-collector-4-7 on docker-host-0011.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks ranged from 2349 to 2355 across all 2 readings, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "dfd691fdcda9608d267d0746",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "c9ab4821ef9063ef",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0014.prod.fleet.internal",
+            "resource.container.name": "catalog-search-0-26"
+          },
+          "title": "docker-host-0014.prod.fleet.internal catalog-search-0-26 holds too many tasks",
+          "description": "catalog-search-0-26 on docker-host-0014.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks ranged from 2482 to 2485 across all 2 readings, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "e7984257f0b4879f3f4eec7b",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "339d0456234ac259",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0049.prod.fleet.internal",
+            "resource.container.name": "redis-cache-0-32"
+          },
+          "title": "docker-host-0049.prod.fleet.internal redis-cache-0-32 holds too many tasks",
+          "description": "redis-cache-0-32 on docker-host-0049.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks ranged from 2235 to 2241 across all 3 readings, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "756e26eb967cfe9310644b17",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "8b668e3eeb389972",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0053.prod.fleet.internal",
+            "resource.container.name": "checkout-api-4-12"
+          },
+          "title": "docker-host-0053.prod.fleet.internal checkout-api-4-12 holds too many tasks",
+          "description": "checkout-api-4-12 on docker-host-0053.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks ranged from 2181 to 2194 across all 3 readings, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "83df3100f1938b1ea5e00b63",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "e1ae8111434d1871",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0008.prod.fleet.internal",
+            "resource.container.name": "nginx-edge-1-10"
+          },
+          "title": "docker-host-0008.prod.fleet.internal nginx-edge-1-10 holds too many tasks",
+          "description": "nginx-edge-1-10 on docker-host-0008.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks was 2437 in 1 reading, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "5ee88ff1f862220cbc124837",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "e2d37efbf554cf20",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0015.prod.fleet.internal",
+            "resource.container.name": "notification-dispatcher-1-30"
+          },
+          "title": "docker-host-0015.prod.fleet.internal notification-dispatcher-1-30 holds too many tasks",
+          "description": "notification-dispatcher-1-30 on docker-host-0015.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks was 2167 in 1 reading, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "afdca5b19104b14bc0872b20",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "8553222f3f08eb36",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0019.prod.fleet.internal",
+            "resource.container.name": "metrics-collector-5-31"
+          },
+          "title": "docker-host-0019.prod.fleet.internal metrics-collector-5-31 holds too many tasks",
+          "description": "metrics-collector-5-31 on docker-host-0019.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks was 2294 in 1 reading, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "f60dae3391a12da5422f0e41",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "80ba5886142b15a2",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0029.prod.fleet.internal",
+            "resource.container.name": "postgres-replica-1-21"
+          },
+          "title": "docker-host-0029.prod.fleet.internal postgres-replica-1-21 holds too many tasks",
+          "description": "postgres-replica-1-21 on docker-host-0029.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks was 2209 in 1 reading, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "8423f7b8641453c8df9814d8",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "9a0cfbcaf8bec1dc",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0034.prod.fleet.internal",
+            "resource.container.name": "payments-worker-6-1"
+          },
+          "title": "docker-host-0034.prod.fleet.internal payments-worker-6-1 holds too many tasks",
+          "description": "payments-worker-6-1 on docker-host-0034.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks was 2258 in 1 reading, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "14fc34071c0abf7445322b17",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "4eae8e69ab9e5a78",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0050.prod.fleet.internal",
+            "resource.container.name": "payments-worker-1-1"
+          },
+          "title": "docker-host-0050.prod.fleet.internal payments-worker-1-1 holds too many tasks",
+          "description": "payments-worker-1-1 on docker-host-0050.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks ranged from 2260 to 2280 across all 2 readings, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "41acdd72164599bbaab597c9",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "104a0c8a3ec6f2ee",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0055.prod.fleet.internal",
+            "resource.container.name": "web-frontend-6-4"
+          },
+          "title": "docker-host-0055.prod.fleet.internal web-frontend-6-4 holds too many tasks",
+          "description": "web-frontend-6-4 on docker-host-0055.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks was 2206 in 1 reading, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "2ed73f400308f20bfe6dc538",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "5ff54971613df335",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0055.prod.fleet.internal",
+            "resource.container.name": "notification-dispatcher-6-30"
+          },
+          "title": "docker-host-0055.prod.fleet.internal notification-dispatcher-6-30 holds too many tasks",
+          "description": "notification-dispatcher-6-30 on docker-host-0055.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks ranged from 2238 to 2240 across all 2 readings, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "0242acc01f996292da547e7e",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-too-many-tasks",
+          "seriesFingerprint": "391098ad09b1956d",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0052.prod.fleet.internal",
+            "resource.container.name": "notification-dispatcher-3-18"
+          },
+          "title": "docker-host-0052.prod.fleet.internal notification-dispatcher-3-18 holds too many tasks",
+          "description": "notification-dispatcher-3-18 on docker-host-0052.prod.fleet.internal held more than 2,000 tasks for the whole window.",
+          "rootCause": "- Tasks was 2190 in 1 reading, above the 2000 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "8c3398255d8f5e5e4d1dd37e",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-restarted",
+          "seriesFingerprint": "170f1be353af7ff0",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0009.prod.fleet.internal",
+            "resource.container.name": "payments-worker-2-1"
+          },
+          "title": "docker-host-0009.prod.fleet.internal payments-worker-2-1 restarted",
+          "description": "payments-worker-2-1 on docker-host-0009.prod.fleet.internal restarted in the last 5 minutes.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "166d421015e646c630e8f0c8",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-restarted",
+          "seriesFingerprint": "a2509ea7ee57d5ea",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0016.prod.fleet.internal",
+            "resource.container.name": "catalog-search-2-2"
+          },
+          "title": "docker-host-0016.prod.fleet.internal catalog-search-2-2 restarted",
+          "description": "catalog-search-2-2 on docker-host-0016.prod.fleet.internal restarted in the last 5 minutes.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "72efbdf37755bd4e91788cc1",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-restarted",
+          "seriesFingerprint": "08476ee3911a5f56",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0019.prod.fleet.internal",
+            "resource.container.name": "auth-gateway-5-5"
+          },
+          "title": "docker-host-0019.prod.fleet.internal auth-gateway-5-5 restarted",
+          "description": "auth-gateway-5-5 on docker-host-0019.prod.fleet.internal restarted in the last 5 minutes.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "bfd629c3b8ff0f7fc0755763",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-restarted",
+          "seriesFingerprint": "2ebdffe152b2edac",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0038.prod.fleet.internal",
+            "resource.container.name": "payments-worker-3-25"
+          },
+          "title": "docker-host-0038.prod.fleet.internal payments-worker-3-25 restarted",
+          "description": "payments-worker-3-25 on docker-host-0038.prod.fleet.internal restarted in the last 5 minutes.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "883c2f34095d4d19bff7e831",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-just-started",
+          "seriesFingerprint": "01d701d49cad2223",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0047.prod.fleet.internal",
+            "resource.container.name": "auth-gateway-5-17"
+          },
+          "title": "docker-host-0047.prod.fleet.internal auth-gateway-5-17 started less than 15 minutes ago",
+          "description": "auth-gateway-5-17 on docker-host-0047.prod.fleet.internal has been up for less than 15 minutes.",
+          "rootCause": "- Uptime ranged from 5.57 min to 9.57 min across all 3 readings, below the 15 min threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "4822bd88999340c621ad3196",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-just-started",
+          "seriesFingerprint": "e2af5984ebac0232",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0049.prod.fleet.internal",
+            "resource.container.name": "catalog-search-0-14"
+          },
+          "title": "docker-host-0049.prod.fleet.internal catalog-search-0-14 started less than 15 minutes ago",
+          "description": "catalog-search-0-14 on docker-host-0049.prod.fleet.internal has been up for less than 15 minutes.",
+          "rootCause": "- Uptime ranged from 8.4 min to 12.4 min across all 3 readings, below the 15 min threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "321c3bf37c40787333004e61",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-just-started",
+          "seriesFingerprint": "6650833644b4b66b",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0050.prod.fleet.internal",
+            "resource.container.name": "checkout-api-1-0"
+          },
+          "title": "docker-host-0050.prod.fleet.internal checkout-api-1-0 started less than 15 minutes ago",
+          "description": "checkout-api-1-0 on docker-host-0050.prod.fleet.internal has been up for less than 15 minutes.",
+          "rootCause": "- Uptime ranged from 5.5 min to 9.5 min across all 3 readings, below the 15 min threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "1803bff4b5f9f1025d80e26f",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-just-started",
+          "seriesFingerprint": "8a269d0ababb9a38",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0049.prod.fleet.internal",
+            "resource.container.name": "payments-worker-0-1"
+          },
+          "title": "docker-host-0049.prod.fleet.internal payments-worker-0-1 started less than 15 minutes ago",
+          "description": "payments-worker-0-1 on docker-host-0049.prod.fleet.internal has been up for less than 15 minutes.",
+          "rootCause": "- Uptime ranged from 9.17 min to 11.2 min across all 2 readings, below the 15 min threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "ba7f44ed4f0678057bf20206",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        },
+        {
+          "createdCriteriaId": "criteria-container-just-started",
+          "seriesFingerprint": "fba8c91b73ffc91f",
+          "seriesLabels": {
+            "resource.host.name": "docker-host-0056.prod.fleet.internal",
+            "resource.container.name": "postgres-replica-0-9"
+          },
+          "title": "docker-host-0056.prod.fleet.internal postgres-replica-0-9 started less than 15 minutes ago",
+          "description": "postgres-replica-0-9 on docker-host-0056.prod.fleet.internal has been up for less than 15 minutes.",
+          "rootCause": "- Uptime ranged from 7.75 min to 9.75 min across all 2 readings, below the 15 min threshold.",
+          "alertSeverityId": "10108000-0000-4000-8000-000000000005",
+          "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
+          "remediationNotes": null,
+          "createdStateLogHash": "c4bd401c7608555b370f756e",
+          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "evaluationDetailsHash": "none",
+          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+        }
+      ],
+      "resolvedAlerts": [
+        {
+          "alertId": "10108000-0000-4000-9000-000000000003",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: notification-dispatcher-1-18 | Host: docker-host-0001.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
+          "stateChangeLogHash": "52ce8cfa2baad03ff7ff01f1"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000006",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: checkout-api-0-0 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
+          "stateChangeLogHash": "a4e95c692431c2e1dbeda64d"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000007",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: payments-worker-0-1 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
+          "stateChangeLogHash": "87aeeb29ef1f5dca8bf05da2"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000008",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: catalog-search-0-2 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
+          "stateChangeLogHash": "f2cf9ff52993a3dbc46e9be3"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000009",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: inventory-sync-0-3 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
+          "stateChangeLogHash": "1c1e012a2307283278a1e138"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000010",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: web-frontend-0-4 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
+          "stateChangeLogHash": "135c42cd8c853f5b801d96e1"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000011",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: auth-gateway-0-5 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container just started\".",
+          "stateChangeLogHash": "863ab0624d796fd7c4c10962"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000012",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: decommissioned-batch-job | Host: docker-host-9999.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
+          "stateChangeLogHash": "dce6fb6ec704d5fb6c10f4f5"
+        }
+      ],
+      "statusChanges": [
+        {
+          "monitorStatusId": "10108000-0000-4000-8000-000000000004",
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` — **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` — **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n",
+          "statusChangeLogHash": "1a066f523b96fac2b91ebaf3"
+        }
+      ],
+      "criteriaResults": [
+        {
+          "criteriaId": "criteria-container-too-many-tasks",
+          "criteriaName": "Container holds too many tasks",
+          "filterCondition": "Any",
+          "met": true,
+          "message": "Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.",
+          "filters": [
+            {
+              "checkOn": "Metric Value",
+              "filterType": "Greater Than",
+              "value": 2000,
+              "met": true,
+              "message": "Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.",
+              "messageSentence": {
+                "template": "{{observation}}, {{comparison}}.",
+                "values": {
+                  "observation": {
+                    "template": "{{observation}} across {{readings}}",
+                    "values": {
+                      "observation": {
+                        "template": "{{subject}} ranged from {{low}} to {{high}}",
+                        "values": {
+                          "subject": "Tasks",
+                          "low": "2391",
+                          "high": "2412"
+                        }
+                      },
+                      "readings": {
+                        "template": "all {{count}} readings",
+                        "values": {
+                          "count": "2"
+                        }
+                      }
+                    }
+                  },
+                  "comparison": {
+                    "template": "above the {{threshold}} threshold",
+                    "values": {
+                      "threshold": "2000"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "criteriaId": "criteria-container-restarted",
+          "criteriaName": "Container restarted",
+          "filterCondition": "Any",
+          "met": true,
+          "message": "Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "filters": [
+            {
+              "checkOn": "Metric Value",
+              "filterType": "Greater Than",
+              "value": 0,
+              "met": true,
+              "message": "Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "messageSentence": {
+                "template": "{{observation}}, {{comparison}}.",
+                "values": {
+                  "observation": {
+                    "template": "{{observation}} in {{readings}}",
+                    "values": {
+                      "observation": {
+                        "template": "{{subject}} was {{value}}",
+                        "values": {
+                          "subject": "Restarts in the minute",
+                          "value": "1"
+                        }
+                      },
+                      "readings": {
+                        "template": "{{count}} of {{total}} readings",
+                        "values": {
+                          "count": "1",
+                          "total": "5"
+                        }
+                      }
+                    }
+                  },
+                  "comparison": {
+                    "template": "above the {{threshold}} threshold",
+                    "values": {
+                      "threshold": "0"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "criteriaId": "criteria-container-just-started",
+          "criteriaName": "Container just started",
+          "filterCondition": "Any",
+          "met": true,
+          "message": "Uptime ranged from 5.57 min to 9.57 min across all 3 readings, below the 15 min threshold.",
+          "filters": [
+            {
+              "checkOn": "Metric Value",
+              "filterType": "Less Than",
+              "value": 900,
+              "met": true,
+              "message": "Uptime ranged from 5.57 min to 9.57 min across all 3 readings, below the 15 min threshold.",
+              "messageSentence": {
+                "template": "{{observation}}, {{comparison}}.",
+                "values": {
+                  "observation": {
+                    "template": "{{observation}} across {{readings}}",
+                    "values": {
+                      "observation": {
+                        "template": "{{subject}} ranged from {{low}} to {{high}}",
+                        "values": {
+                          "subject": "Uptime",
+                          "low": "5.57 min",
+                          "high": "9.57 min"
+                        }
+                      },
+                      "readings": {
+                        "template": "all {{count}} readings",
+                        "values": {
+                          "count": "3"
+                        }
+                      }
+                    }
+                  },
+                  "comparison": {
+                    "template": "below the {{threshold}} threshold",
+                    "values": {
+                      "threshold": "15 min"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "type": "criteria-met",
+          "title": "Criteria met: Container holds too many tasks",
+          "message": "Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "criteria-met",
+          "title": "Criteria met: Container restarted",
+          "message": "Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "relatedCriteriaId": "criteria-container-restarted"
+        },
+        {
+          "type": "criteria-met",
+          "title": "Criteria met: Container just started",
+          "message": "Uptime ranged from 5.57 min to 9.57 min across all 3 readings, below the 15 min threshold.",
+          "relatedCriteriaId": "criteria-container-just-started"
+        },
+        {
+          "type": "monitor-status-changed",
+          "title": "Monitor status updated",
+          "titleSentence": {
+            "template": "Monitor status updated"
+          },
+          "message": "Monitor status changed to \"Degraded\" because criteria \"Container holds too many tasks\" was met.",
+          "messageSentence": {
+            "template": "Monitor status changed to \"{{status}}\" because criteria \"{{criteria}}\" was met.",
+            "values": {
+              "status": "Degraded",
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 3 (criteria-container-restarted)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 3 (criteria-container-restarted)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000003",
+          "relatedAlertNumber": 3,
+          "relatedAlertNumberWithPrefix": "A-3",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 6 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 6 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000006",
+          "relatedAlertNumber": 6,
+          "relatedAlertNumberWithPrefix": "A-6",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 7 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 7 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000007",
+          "relatedAlertNumber": 7,
+          "relatedAlertNumberWithPrefix": "A-7",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 8 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 8 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000008",
+          "relatedAlertNumber": 8,
+          "relatedAlertNumberWithPrefix": "A-8",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 9 (criteria-container-restarted)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 9 (criteria-container-restarted)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000009",
+          "relatedAlertNumber": 9,
+          "relatedAlertNumberWithPrefix": "A-9",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 10 (criteria-container-restarted)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 10 (criteria-container-restarted)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000010",
+          "relatedAlertNumber": 10,
+          "relatedAlertNumberWithPrefix": "A-10",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 11 (criteria-container-just-started)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 11 (criteria-container-just-started)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000011",
+          "relatedAlertNumber": 11,
+          "relatedAlertNumberWithPrefix": "A-11",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 12 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 12 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000012",
+          "relatedAlertNumber": 12,
+          "relatedAlertNumberWithPrefix": "A-12",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0004.prod.fleet.internal inventory-sync-4-15 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0004.prod.fleet.internal inventory-sync-4-15 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001001",
+          "relatedAlertNumber": 1001,
+          "relatedAlertNumberWithPrefix": "A-1001"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0011.prod.fleet.internal metrics-collector-4-7 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0011.prod.fleet.internal metrics-collector-4-7 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001002",
+          "relatedAlertNumber": 1002,
+          "relatedAlertNumberWithPrefix": "A-1002"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0014.prod.fleet.internal catalog-search-0-26 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0014.prod.fleet.internal catalog-search-0-26 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001003",
+          "relatedAlertNumber": 1003,
+          "relatedAlertNumberWithPrefix": "A-1003"
+        },
+        {
+          "type": "alert-skipped",
+          "title": "Alert already active: Open alert 2 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert already active: {{title}}",
+            "values": {
+              "title": "Open alert 2 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Skipped creating a new alert because an active alert exists for this criteria and series (Container: notification-dispatcher-2-18 | Host: docker-host-0023.prod.fleet.internal).",
+          "messageSentence": {
+            "template": "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+            "values": {
+              "series": "Container: notification-dispatcher-2-18 | Host: docker-host-0023.prod.fleet.internal"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-9000-000000000002",
+          "relatedAlertNumber": 2,
+          "relatedAlertNumberWithPrefix": "A-2"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0049.prod.fleet.internal redis-cache-0-32 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0049.prod.fleet.internal redis-cache-0-32 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001004",
+          "relatedAlertNumber": 1004,
+          "relatedAlertNumberWithPrefix": "A-1004"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0053.prod.fleet.internal checkout-api-4-12 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0053.prod.fleet.internal checkout-api-4-12 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001005",
+          "relatedAlertNumber": 1005,
+          "relatedAlertNumberWithPrefix": "A-1005"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0008.prod.fleet.internal nginx-edge-1-10 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0008.prod.fleet.internal nginx-edge-1-10 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001006",
+          "relatedAlertNumber": 1006,
+          "relatedAlertNumberWithPrefix": "A-1006"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0015.prod.fleet.internal notification-dispatcher-1-30 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0015.prod.fleet.internal notification-dispatcher-1-30 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001007",
+          "relatedAlertNumber": 1007,
+          "relatedAlertNumberWithPrefix": "A-1007"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0019.prod.fleet.internal metrics-collector-5-31 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0019.prod.fleet.internal metrics-collector-5-31 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001008",
+          "relatedAlertNumber": 1008,
+          "relatedAlertNumberWithPrefix": "A-1008"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0029.prod.fleet.internal postgres-replica-1-21 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0029.prod.fleet.internal postgres-replica-1-21 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001009",
+          "relatedAlertNumber": 1009,
+          "relatedAlertNumberWithPrefix": "A-1009"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0034.prod.fleet.internal payments-worker-6-1 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0034.prod.fleet.internal payments-worker-6-1 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001010",
+          "relatedAlertNumber": 1010,
+          "relatedAlertNumberWithPrefix": "A-1010"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0050.prod.fleet.internal payments-worker-1-1 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0050.prod.fleet.internal payments-worker-1-1 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001011",
+          "relatedAlertNumber": 1011,
+          "relatedAlertNumberWithPrefix": "A-1011"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0055.prod.fleet.internal web-frontend-6-4 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0055.prod.fleet.internal web-frontend-6-4 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001012",
+          "relatedAlertNumber": 1012,
+          "relatedAlertNumberWithPrefix": "A-1012"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0055.prod.fleet.internal notification-dispatcher-6-30 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0055.prod.fleet.internal notification-dispatcher-6-30 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001013",
+          "relatedAlertNumber": 1013,
+          "relatedAlertNumberWithPrefix": "A-1013"
+        },
+        {
+          "type": "alert-skipped",
+          "title": "Alert already active: Open alert 1 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert already active: {{title}}",
+            "values": {
+              "title": "Open alert 1 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Skipped creating a new alert because an active alert exists for this criteria and series (Container: payments-worker-0-25 | Host: docker-host-0007.prod.fleet.internal).",
+          "messageSentence": {
+            "template": "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+            "values": {
+              "series": "Container: payments-worker-0-25 | Host: docker-host-0007.prod.fleet.internal"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-9000-000000000001",
+          "relatedAlertNumber": 1,
+          "relatedAlertNumberWithPrefix": "A-1"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0052.prod.fleet.internal notification-dispatcher-3-18 holds too many tasks",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0052.prod.fleet.internal notification-dispatcher-3-18 holds too many tasks"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container holds too many tasks\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container holds too many tasks"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001014",
+          "relatedAlertNumber": 1014,
+          "relatedAlertNumberWithPrefix": "A-1014"
+        },
+        {
+          "type": "alert-skipped",
+          "title": "Alert already active: Open alert 5 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert already active: {{title}}",
+            "values": {
+              "title": "Open alert 5 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Skipped creating a new alert because an active alert exists for this criteria and series (Container: payments-worker-5-13 | Host: docker-host-0019.prod.fleet.internal).",
+          "messageSentence": {
+            "template": "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+            "values": {
+              "series": "Container: payments-worker-5-13 | Host: docker-host-0019.prod.fleet.internal"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-too-many-tasks",
+          "relatedAlertId": "10108000-0000-4000-9000-000000000005",
+          "relatedAlertNumber": 5,
+          "relatedAlertNumberWithPrefix": "A-5"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0009.prod.fleet.internal payments-worker-2-1 restarted",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0009.prod.fleet.internal payments-worker-2-1 restarted"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container restarted\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container restarted"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-restarted",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001015",
+          "relatedAlertNumber": 1015,
+          "relatedAlertNumberWithPrefix": "A-1015"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0016.prod.fleet.internal catalog-search-2-2 restarted",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0016.prod.fleet.internal catalog-search-2-2 restarted"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container restarted\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container restarted"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-restarted",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001016",
+          "relatedAlertNumber": 1016,
+          "relatedAlertNumberWithPrefix": "A-1016"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0019.prod.fleet.internal auth-gateway-5-5 restarted",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0019.prod.fleet.internal auth-gateway-5-5 restarted"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container restarted\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container restarted"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-restarted",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001017",
+          "relatedAlertNumber": 1017,
+          "relatedAlertNumberWithPrefix": "A-1017"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0038.prod.fleet.internal payments-worker-3-25 restarted",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0038.prod.fleet.internal payments-worker-3-25 restarted"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container restarted\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container restarted"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-restarted",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001018",
+          "relatedAlertNumber": 1018,
+          "relatedAlertNumberWithPrefix": "A-1018"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0047.prod.fleet.internal auth-gateway-5-17 started less than 15 minutes ago",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0047.prod.fleet.internal auth-gateway-5-17 started less than 15 minutes ago"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container just started\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container just started"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-just-started",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001019",
+          "relatedAlertNumber": 1019,
+          "relatedAlertNumberWithPrefix": "A-1019"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0049.prod.fleet.internal catalog-search-0-14 started less than 15 minutes ago",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0049.prod.fleet.internal catalog-search-0-14 started less than 15 minutes ago"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container just started\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container just started"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-just-started",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001020",
+          "relatedAlertNumber": 1020,
+          "relatedAlertNumberWithPrefix": "A-1020"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0050.prod.fleet.internal checkout-api-1-0 started less than 15 minutes ago",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0050.prod.fleet.internal checkout-api-1-0 started less than 15 minutes ago"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container just started\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container just started"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-just-started",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001021",
+          "relatedAlertNumber": 1021,
+          "relatedAlertNumberWithPrefix": "A-1021"
+        },
+        {
+          "type": "alert-skipped",
+          "title": "Alert already active: Open alert 4 (criteria-container-just-started)",
+          "titleSentence": {
+            "template": "Alert already active: {{title}}",
+            "values": {
+              "title": "Open alert 4 (criteria-container-just-started)"
+            }
+          },
+          "message": "Skipped creating a new alert because an active alert exists for this criteria and series (Container: inventory-sync-5-15 | Host: docker-host-0033.prod.fleet.internal).",
+          "messageSentence": {
+            "template": "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+            "values": {
+              "series": "Container: inventory-sync-5-15 | Host: docker-host-0033.prod.fleet.internal"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-just-started",
+          "relatedAlertId": "10108000-0000-4000-9000-000000000004",
+          "relatedAlertNumber": 4,
+          "relatedAlertNumberWithPrefix": "A-4"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0049.prod.fleet.internal payments-worker-0-1 started less than 15 minutes ago",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0049.prod.fleet.internal payments-worker-0-1 started less than 15 minutes ago"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container just started\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container just started"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-just-started",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001022",
+          "relatedAlertNumber": 1022,
+          "relatedAlertNumberWithPrefix": "A-1022"
+        },
+        {
+          "type": "alert-created",
+          "title": "Alert created: docker-host-0056.prod.fleet.internal postgres-replica-0-9 started less than 15 minutes ago",
+          "titleSentence": {
+            "template": "Alert created: {{title}}",
+            "values": {
+              "title": "docker-host-0056.prod.fleet.internal postgres-replica-0-9 started less than 15 minutes ago"
+            }
+          },
+          "message": "Alert triggered from criteria \"Container just started\".",
+          "messageSentence": {
+            "template": "Alert triggered from criteria \"{{criteria}}\".",
+            "values": {
+              "criteria": "Container just started"
+            }
+          },
+          "relatedCriteriaId": "criteria-container-just-started",
+          "relatedAlertId": "10108000-0000-4000-a000-000000001023",
+          "relatedAlertNumber": 1023,
+          "relatedAlertNumberWithPrefix": "A-1023"
+        }
+      ]
+    },
+    "a quiet fleet: nothing breaches, the open alerts resolve, the status goes back": {
+      "criteriaMetId": null,
+      "rootCause": null,
+      "evaluatedCriteriaIds": [
+        "criteria-container-too-many-tasks",
+        "criteria-container-restarted",
+        "criteria-container-just-started"
+      ],
+      "matchedCriteria": [],
+      "createdAlerts": [],
+      "resolvedAlerts": [
+        {
+          "alertId": "10108000-0000-4000-9000-000000000001",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
+          "stateChangeLogHash": "9a7ff56bba75a0a4fe354e9a"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000002",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
+          "stateChangeLogHash": "d4ace9cb8cab39e3d22c0cf0"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000003",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
+          "stateChangeLogHash": "d071e3d9deff08f88ae26305"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000004",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
+          "stateChangeLogHash": "5aede08b6b3b2ca065844831"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000005",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
+          "stateChangeLogHash": "b851f55563e11d704bbd791d"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000006",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
+          "stateChangeLogHash": "72f488d9a269e49e5caa7a56"
+        },
+        {
+          "alertId": "10108000-0000-4000-9000-000000000007",
+          "alertStateId": "10108000-0000-4000-8000-000000000008",
+          "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
+          "stateChangeLogHash": "7d1852fcae0865e1e07c1431"
+        }
+      ],
+      "statusChanges": [
+        {
+          "monitorStatusId": "10108000-0000-4000-8000-000000000003",
+          "rootCause": "No monitoring criteria met. Change to default status. ",
+          "statusChangeLogHash": "419fd5aeeb97621b690b9d59"
+        }
+      ],
+      "criteriaResults": [
+        {
+          "criteriaId": "criteria-container-too-many-tasks",
+          "criteriaName": "Container holds too many tasks",
+          "filterCondition": "Any",
+          "met": false,
+          "message": "No filters met the configured conditions.",
+          "filters": [
+            {
+              "checkOn": "Metric Value",
+              "filterType": "Greater Than",
+              "value": 2000,
+              "met": false,
+              "message": "Metric Value (d) recorded latest 127 (min 6, max 328) across 3732 data points. (expected to be greater than 2000 using all values)."
+            }
+          ]
+        },
+        {
+          "criteriaId": "criteria-container-restarted",
+          "criteriaName": "Container restarted",
+          "filterCondition": "Any",
+          "met": false,
+          "message": "No filters met the configured conditions.",
+          "filters": [
+            {
+              "checkOn": "Metric Value",
+              "filterType": "Greater Than",
+              "value": 0,
+              "met": false,
+              "message": "Metric Value (e) recorded latest 0 (min 0, max 0) across 3732 data points. (expected to be greater than 0 using any value)."
+            }
+          ]
+        },
+        {
+          "criteriaId": "criteria-container-just-started",
+          "criteriaName": "Container just started",
+          "filterCondition": "Any",
+          "met": false,
+          "message": "No filters met the configured conditions.",
+          "filters": [
+            {
+              "checkOn": "Metric Value",
+              "filterType": "Less Than",
+              "value": 900,
+              "met": false,
+              "message": "Metric Value (c) recorded latest 9 days (min 2 days, max 41 days) across 3732 data points. (expected to be less than 15 min using all values)."
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "type": "criteria-not-met",
+          "title": "Criteria not met: Container holds too many tasks",
+          "message": "No filters met the configured conditions.",
+          "relatedCriteriaId": "criteria-container-too-many-tasks"
+        },
+        {
+          "type": "criteria-not-met",
+          "title": "Criteria not met: Container restarted",
+          "message": "No filters met the configured conditions.",
+          "relatedCriteriaId": "criteria-container-restarted"
+        },
+        {
+          "type": "criteria-not-met",
+          "title": "Criteria not met: Container just started",
+          "message": "No filters met the configured conditions.",
+          "relatedCriteriaId": "criteria-container-just-started"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 1 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 1 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000001",
+          "relatedAlertNumber": 1,
+          "relatedAlertNumberWithPrefix": "A-1"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 2 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 2 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000002",
+          "relatedAlertNumber": 2,
+          "relatedAlertNumberWithPrefix": "A-2"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 3 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 3 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000003",
+          "relatedAlertNumber": 3,
+          "relatedAlertNumberWithPrefix": "A-3"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 4 (criteria-container-restarted)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 4 (criteria-container-restarted)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000004",
+          "relatedAlertNumber": 4,
+          "relatedAlertNumberWithPrefix": "A-4"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 5 (criteria-container-restarted)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 5 (criteria-container-restarted)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000005",
+          "relatedAlertNumber": 5,
+          "relatedAlertNumberWithPrefix": "A-5"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 6 (criteria-container-just-started)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 6 (criteria-container-just-started)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000006",
+          "relatedAlertNumber": 6,
+          "relatedAlertNumberWithPrefix": "A-6"
+        },
+        {
+          "type": "alert-resolved",
+          "title": "Alert resolved: Open alert 7 (criteria-container-too-many-tasks)",
+          "titleSentence": {
+            "template": "Alert resolved: {{title}}",
+            "values": {
+              "title": "Open alert 7 (criteria-container-too-many-tasks)"
+            }
+          },
+          "message": "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          "messageSentence": {
+            "template": "Alert auto-resolved because autoresolve is enabled for this criteria."
+          },
+          "relatedAlertId": "10108000-0000-4000-9000-000000000007",
+          "relatedAlertNumber": 7,
+          "relatedAlertNumberWithPrefix": "A-7"
+        },
+        {
+          "type": "monitor-status-changed",
+          "title": "Monitor status reverted",
+          "titleSentence": {
+            "template": "Monitor status reverted"
+          },
+          "message": "Monitor status reverted to \"Operational\" because no monitoring criteria were met.",
+          "messageSentence": {
+            "template": "Monitor status reverted to \"{{status}}\" because no monitoring criteria were met.",
+            "values": {
+              "status": "Operational"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
