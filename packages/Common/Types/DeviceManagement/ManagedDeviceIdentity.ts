@@ -46,8 +46,10 @@
  * host another device already holds is never taken.
  *
  * Every service keeps the same contract (#9837): a Microsoft Intune
- * device's host.name is its device name in Intune, and its serial number is
- * Intune's. A name two devices of a connection share is no one host's: see
+ * device's host.name is its device name in Intune, a Workspace ONE device's
+ * the name it reports (#10086) and a SOTI MobiControl device's its name in
+ * MobiControl (#10087), and its serial number is the service's. A name two
+ * devices of a connection share is no one host's: see
  * getManagedDeviceUniqueHostName.
  */
 
@@ -95,6 +97,8 @@ export interface ManagedDeviceServiceAttributeKeys {
 const SERVICE_ATTRIBUTE_NAMESPACES: Readonly<Record<string, string>> = {
   esper: "esper",
   intune: "intune",
+  workspaceone: "workspaceone",
+  soti: "soti",
 };
 
 export const MANAGED_DEVICE_SERVICE_ATTRIBUTE_NAMESPACES: ReadonlyArray<string> =

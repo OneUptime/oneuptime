@@ -15,8 +15,9 @@ import {
 
 /*
  * "Connect device manager" (#9837): which service enrolls the devices -
- * Esper or Microsoft Intune - before that service's own form asks for its
- * settings. One question; nothing is saved here.
+ * Esper, Microsoft Intune, Workspace ONE UEM or SOTI MobiControl - before
+ * that service's own form asks for its settings. One question; nothing is
+ * saved here.
  */
 
 export interface ComponentProps {
