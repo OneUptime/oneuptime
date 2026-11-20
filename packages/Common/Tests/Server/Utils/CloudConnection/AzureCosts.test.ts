@@ -231,6 +231,8 @@ describe("a subscription's daily costs from Cost Management", () => {
         return request.url.includes("evil.example.com");
       }),
     ).toHaveLength(0);
+    // Not all there is: never written as if it were, which would take back the rest.
+    expect(read.complete).toBe(false);
   });
 
   test("204 No Content is a subscription with no costs, not a failure", async () => {

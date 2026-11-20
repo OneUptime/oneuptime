@@ -12,6 +12,7 @@ import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProvi
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import {
   FakeProviderApi,
+  FakeResponder,
   FakeResponse,
   createFakeProviderApi,
   json,
@@ -35,7 +36,7 @@ const QUERY_PATH: string = `/subscriptions/${SUBSCRIPTION}/providers/Microsoft.C
 const THROTTLED_BODY: string =
   '{"error":{"code":"429","message":"Too many requests. Please retry."}}';
 
-function apiOf(respond: () => FakeResponse): FakeProviderApi {
+function apiOf(respond: FakeResponder): FakeProviderApi {
   return createFakeProviderApi([
     {
       host: "login.microsoftonline.com",

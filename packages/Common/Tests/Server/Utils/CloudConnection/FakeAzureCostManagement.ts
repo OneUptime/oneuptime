@@ -365,21 +365,20 @@ export class FakeAzureCostManagement {
         ).join(","),
     };
 
-    return {
-      status: 200,
-      body: {
-        properties: {
-          columns: COLUMNS,
-          rows: page,
-          ...(next < rows.length
-            ? {
-                nextLink: `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2023-11-01&$skiptoken=${next}`,
-              }
-            : {}),
-        },
+    // Its rows as Cost Management answers them: each a list of numbers and text.
+    const answer: JSONObject = {
+      properties: {
+        columns: COLUMNS,
+        rows: page as unknown as JSONObject,
+        ...(next < rows.length
+          ? {
+              nextLink: `https://management.azure.com/subscriptions/${subscriptionId}/providers/Microsoft.CostManagement/query?api-version=2023-11-01&$skiptoken=${next}`,
+            }
+          : {}),
       },
-      headers: record.headers,
     };
+
+    return { status: 200, body: answer, headers: record.headers };
   }
 }
 

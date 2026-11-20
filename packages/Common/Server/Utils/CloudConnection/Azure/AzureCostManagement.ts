@@ -458,8 +458,16 @@ export class AzureCostReader {
 
       const next: string = readText(properties["nextLink"]);
 
-      if (!next || next === url || !this.arm.isManagementUrl(next)) {
+      if (!next || next === url) {
         return { complete: true };
+      }
+
+      /*
+       * A next page elsewhere is never asked with the token - and what was
+       * read is not all there is, so it is not written as if it were.
+       */
+      if (!this.arm.isManagementUrl(next)) {
+        return { complete: false };
       }
 
       url = next;
