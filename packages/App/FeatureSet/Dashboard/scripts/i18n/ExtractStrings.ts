@@ -419,6 +419,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The blocklist's sentences (#10338): what is wrong with a value to
+   * block, that it is blocked already, and what protects an address - the
+   * Block Address dialog and Protected Entities say them in the reader's
+   * language, and the server answers an API client with the same words in
+   * English. Only the sentences the files mark are read: the rest is the
+   * blocklist's rules.
+   */
+  { directory: "packages/Common/Types/SecurityBlocklist", kind: "keys" },
+  /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the
    * sentences the file marks are read: the choices' names are drawn as

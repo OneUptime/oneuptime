@@ -500,10 +500,13 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Readies a record for its write: its value as kept, its action, its
-   * source and its end - and says why not, when it is not to be written.
-   * Null when it may be. Reads nothing, so a create runs it again once the
-   * fields only OneUptime writes were taken out of the caller's record.
+   * Readies a record for its write: its value as kept, its action and its
+   * end - and says why not, when it is not to be written. Null when it may
+   * be. Reads nothing, so a create runs it again on the record as the
+   * caller's create left it. What only OneUptime writes - the kind of value,
+   * who made it - is written once the create is permitted
+   * (onCreatePermitted): written here, a person's create would be held to
+   * them and refused.
    */
   private normalize(data: {
     record: Model;
@@ -520,9 +523,6 @@ export class Service extends ProjectReferencesService<Model> {
     if (!record.projectId) {
       return refused("A block needs a project.");
     }
-
-    const source: SecurityBlockSource = this.getSource(record, props);
-    record.source = source;
 
     /*
      * Past the largest range only for a person or a key with Security Admin:
@@ -544,7 +544,6 @@ export class Service extends ProjectReferencesService<Model> {
 
     const read: SecurityBlockValue = readSecurityBlockValue(record.value)!;
     record.value = read.value;
-    record.indicatorType = read.indicatorType;
 
     if (record.action === undefined || record.action === null) {
       record.action = SecurityBlockAction.Block;
@@ -594,8 +593,6 @@ export class Service extends ProjectReferencesService<Model> {
         delete record.reason;
       }
     }
-
-    record.state = SecurityBlockState.Active;
 
     return null;
   }
@@ -699,10 +696,9 @@ export class Service extends ProjectReferencesService<Model> {
     const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
-     * Normalized again: the create took out what only OneUptime writes (its
-     * kind, its source, its state) from a caller's record. A block() call
-     * has read what the block would meet already; a create through the API
-     * reads it here.
+     * Normalized again, as the create left the caller's record. A block()
+     * call has read what the block would meet already; a create through the
+     * API reads it here.
      */
     const refusal: SecurityBlockOutcome | null =
       this.normalize({ record: createBy.data, props: createBy.props, now }) ||
@@ -721,6 +717,29 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return onCreate;
+  }
+
+  /*
+   * What OneUptime records about the block itself, which no caller writes:
+   * the kind of value it holds, and who or what made it - written once the
+   * caller's create has passed every check, so it is never held against
+   * their column permissions. A new block is Active.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const record: Model = onCreate.createBy.data;
+    const read: SecurityBlockValue | null = readSecurityBlockValue(
+      record.value,
+    );
+
+    if (read) {
+      record.indicatorType = read.indicatorType;
+    }
+
+    record.source = this.getSource(record, onCreate.createBy.props);
+    record.state = SecurityBlockState.Active;
   }
 
   @CaptureSpan()
@@ -863,11 +882,6 @@ export class Service extends ProjectReferencesService<Model> {
       ? updateBy.props.userId
       : undefined;
 
-    if (isLift) {
-      data["liftedAt"] = now;
-      data["liftedByUserId"] = userId || null;
-    }
-
     const carry: UpdateCarry = {
       rows,
       isLift,
@@ -879,6 +893,30 @@ export class Service extends ProjectReferencesService<Model> {
     };
 
     return { updateBy: onUpdate.updateBy, carryForward: carry };
+  }
+
+  /*
+   * A lift records when, and by whom - a person, or nobody for OneUptime's
+   * own lift (a playbook's undo, OneUptime AI) and an API key's - written
+   * once the update has passed every check, as no caller writes them.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (data["state"] !== SecurityBlockState.Lifted) {
+      return;
+    }
+
+    data["liftedAt"] = OneUptimeDate.getCurrentDate();
+    data["liftedByUserId"] = isPerson(updateBy.props)
+      ? updateBy.props.userId || null
+      : null;
   }
 
   @CaptureSpan()
@@ -900,11 +938,15 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      projects.set(row.projectId.toString(), row.projectId);
+      // One spelling of the project, however the row was read.
+      const projectId: ObjectID = new ObjectID(row.projectId.toString());
+      projects.set(projectId.toString(), projectId);
 
       await SecurityBlockTimeline.write({
-        projectId: row.projectId,
-        securityCaseId: row.securityCaseId,
+        projectId,
+        securityCaseId: row.securityCaseId
+          ? new ObjectID(row.securityCaseId.toString())
+          : null,
         markdown: carry.isLift
           ? blockLiftedMarkdown({
               value: row.value || "",

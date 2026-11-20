@@ -1054,6 +1054,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  [PageMap.SECURITY_BLOCKLIST]: "blocklist",
   [PageMap.SECURITY_PROTECTED_ENTITIES]: "protected-entities",
   // Workspace, at the addresses every product's Workspace pages have.
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK]:
@@ -8644,6 +8645,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_PLAYBOOK_RUNS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_BLOCKLIST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST]
     }`,
   ),
 
