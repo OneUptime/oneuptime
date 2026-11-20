@@ -139,7 +139,9 @@ import {
   readAwsUnitProbe,
 } from "./AwsAddedMetricUnits";
 import { AWS_ALL_COMMERCIAL_REGIONS, validateAwsRegions } from "./AwsRegions";
-import AwsServerIdentity from "./AwsServerIdentity";
+import AwsServerIdentity, { AwsServerCredentials } from "./AwsServerIdentity";
+import { AwsCredentialChainError } from "../../Aws/AwsDefaultCredentialChain";
+import logger from "../../Logger";
 import {
   AssumedRoleCache,
   AwsAssumedRole,
@@ -654,14 +656,19 @@ export default class AwsCloudConnector implements CloudConnector {
 
   /*
    * The credential every CloudWatch call is signed with: the access key, or
-   * the assumed role's session (reused while it lasts).
+   * the assumed role's session (reused while it lasts). Every way into a
+   * customer's account signs in here - a test, every read, a live read,
+   * Data Security's reads and responses - and a role is signed in to only
+   * once it is known to require the project's external id (AwsSts
+   * assumeRole: a role that lets OneUptime in with any id is refused before
+   * anything is read through it, #10405).
    */
   public async getCredentials(
     settings: CloudConnectionSettings,
     options: CloudConnectorCallOptions & {
       connectionId?: string | undefined;
       budget?: CloudReadBudget | undefined;
-      // A test signs in afresh: a role changed a minute ago is tried as it is.
+      // A test signs in and checks the role afresh: a role changed a minute ago is tried as it is.
       noCache?: boolean | undefined;
     },
   ): Promise<AwsCredentials> {
@@ -670,17 +677,6 @@ export default class AwsCloudConnector implements CloudConnector {
         accessKeyId: readCloudSetting(settings.config, "accessKeyId"),
         secretAccessKey: readCloudSetting(settings.secrets, "secretAccessKey"),
       };
-    }
-
-    const serverCredentials: AwsCredentials | null =
-      AwsServerIdentity.getCredentials();
-
-    if (!serverCredentials) {
-      throw new LlmProviderError({
-        message:
-          "This OneUptime has no AWS identity to sign in to the role with any more (CLOUD_CONNECT_AWS_ACCESS_KEY_ID). Connect with an access key instead.",
-        kind: CloudConnectionFailureKind.Settings,
-      });
     }
 
     const roleArn: string = readCloudSetting(settings.config, "roleArn");
@@ -692,6 +688,7 @@ export default class AwsCloudConnector implements CloudConnector {
     });
 
     if (!options.noCache) {
+      // Only while the check that let the session be made holds.
       const cached: AwsCredentials | undefined = AssumedRoleCache.get(key);
 
       if (cached) {
@@ -699,23 +696,64 @@ export default class AwsCloudConnector implements CloudConnector {
       }
     }
 
-    const session: AwsAssumedRole = await assumeRole({
-      transport: options.transport,
-      credentials: serverCredentials,
-      roleArn,
-      projectId: settings.projectId,
-      connectionId,
-      region: this.getStsRegion(settings),
-      now: options.now,
-      timeoutInMs: options.requestTimeoutInMs,
-      budget: options.budget,
-    });
+    const server: AwsServerCredentials =
+      await AwsCloudConnector.getServerCredentials();
+    let session: AwsAssumedRole;
+
+    try {
+      session = await assumeRole({
+        transport: options.transport,
+        credentials: server.credentials,
+        roleArn,
+        projectId: settings.projectId,
+        connectionId,
+        region: this.getStsRegion(settings),
+        now: options.now,
+        timeoutInMs: options.requestTimeoutInMs,
+        sleep: options.sleep,
+        budget: options.budget,
+        noCache: options.noCache,
+      });
+    } catch (error) {
+      // The server's own credentials expired or are unknown: new ones next time.
+      AwsServerIdentity.refusedBy({ source: server.source, error });
+      throw error;
+    }
 
     if (!options.noCache) {
       AssumedRoleCache.set(key, session);
     }
 
     return session.credentials;
+  }
+
+  /*
+   * This OneUptime's own AWS identity, to sign in to a customer's role
+   * with: its Cloud Connect key, or the server's own credentials. Without
+   * one, the project is told so in words that name nothing of the server
+   * (its role, its account, its agents), and the server's log says why.
+   */
+  public static async getServerCredentials(): Promise<AwsServerCredentials> {
+    try {
+      return await AwsServerIdentity.getCredentials();
+    } catch (error) {
+      if (!(error instanceof AwsCredentialChainError)) {
+        throw error;
+      }
+
+      logger.warn(
+        `Cloud connections: this OneUptime could not sign in to a customer's AWS role: it has no Cloud Connect access key (CLOUD_CONNECT_AWS_ACCESS_KEY_ID), and its own AWS credentials did not work. ${error.message}`,
+      );
+
+      throw new LlmProviderError({
+        message: error.isRetryable
+          ? "This OneUptime could not get its own AWS credentials just now, so it could not sign in to the role. It tries again on the next read."
+          : "This OneUptime has no AWS identity to sign in to the role with: no Cloud Connect access key is set, and the server's own AWS credentials did not work. The server's log says why. Connect with an access key instead.",
+        kind: error.isRetryable
+          ? CloudConnectionFailureKind.Unavailable
+          : CloudConnectionFailureKind.Settings,
+      });
+    }
   }
 
   private resolveSeries(data: {

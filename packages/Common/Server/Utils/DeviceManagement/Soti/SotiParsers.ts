@@ -1,4 +1,7 @@
-import { getManagedDeviceStorageDetails } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
+import {
+  getManagedDeviceChargingDetails,
+  getManagedDeviceStorageDetails,
+} from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import {
   ManagedDevicePlatform,
   readManagedDevicePlatformFromName,
@@ -322,6 +325,13 @@ export function parseSotiDevice(
       totalBytes: readNumber(memory["TotalStorage"]),
       freeBytes: readNumber(memory["AvailableStorage"]),
     }),
+    /*
+     * Whether it is on its charger, for Low Battery to leave be (#10288):
+     * IsCharging, a Boolean MobiControl's REST API lists for an Android+
+     * device alone (its Device Properties Spreadsheet). Every other kind of
+     * device has none, and says nothing.
+     */
+    getManagedDeviceChargingDetails(readBoolean(raw["IsCharging"])),
   );
 
   const battery: number | null = readNumber(raw["BatteryStatus"]);

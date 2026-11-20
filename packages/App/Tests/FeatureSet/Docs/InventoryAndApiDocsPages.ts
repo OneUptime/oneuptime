@@ -105,8 +105,9 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *     the Android Agent reports (#9835); and each device manager's Security
  *     Patch Out of Date (#10098), with the Android Agent's own Security
  *     Patch Out of Date for a device it reports; each device manager's Low
- *     Battery and Storage Nearly Full (#10008), with the Android Agent's
- *     own, and each connection's Connection Stopped Reading (#10006).
+ *     Battery and Storage Nearly Full (#10008; Intune's Low Battery since
+ *     #10287), with the Android Agent's own, and each connection's
+ *     Connection Stopped Reading (#10006).
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -124,6 +125,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "SOTI Security Patch Out of Date",
       "Security Patch Out of Date",
       "Esper Low Battery",
+      "Intune Low Battery",
       "Workspace ONE Low Battery",
       "SOTI Low Battery",
       "Low Battery",

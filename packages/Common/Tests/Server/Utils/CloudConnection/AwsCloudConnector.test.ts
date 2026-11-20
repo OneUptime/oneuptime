@@ -15,6 +15,12 @@ import AwsRetry from "../../../../Server/Utils/CloudConnection/Aws/AwsRetry";
 import { isAwsUnitProbeResult } from "../../../../Server/Utils/CloudConnection/Aws/AwsAddedMetricUnits";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
+import AwsDefaultCredentialChain, {
+  AwsChainHttpRequest,
+  AwsChainHttpResponse,
+} from "../../../../Server/Utils/Aws/AwsDefaultCredentialChain";
+import logger from "../../../../Server/Utils/Logger";
+import { SpyInstance } from "jest-mock";
 import { storedAttributesOf } from "../../../../Server/Utils/CloudConnection/CloudMetricPayload";
 import {
   CloudConnectionPullState,
@@ -240,16 +246,64 @@ function resolvedFromPayloads(result: CloudReadResult): Array<{
   return found;
 }
 
+// A server with no AWS credentials of its own, the metadata service turned off: nothing is asked.
+const noServerCredentials: () => AwsDefaultCredentialChain =
+  (): AwsDefaultCredentialChain => {
+    return new AwsDefaultCredentialChain({
+      env: { AWS_EC2_METADATA_DISABLED: "true" },
+    });
+  };
+
+// A server whose pods have an EKS Pod Identity role (#7379): the agent's answer, scripted.
+const POD_IDENTITY_SESSION_TOKEN: string = "IQoJb3JpZ2luPodIdentitySession";
+const serverOnEks: (answer?: AwsChainHttpResponse) => {
+  chain: AwsDefaultCredentialChain;
+  asked: Array<AwsChainHttpRequest>;
+} = (
+  answer?: AwsChainHttpResponse,
+): { chain: AwsDefaultCredentialChain; asked: Array<AwsChainHttpRequest> } => {
+  const asked: Array<AwsChainHttpRequest> = [];
+
+  return {
+    asked,
+    chain: new AwsDefaultCredentialChain({
+      env: {
+        AWS_CONTAINER_CREDENTIALS_FULL_URI:
+          "http://169.254.170.23/v1/credentials",
+        AWS_CONTAINER_AUTHORIZATION_TOKEN: "pod-identity-agent-token",
+      },
+      httpClient: async (
+        request: AwsChainHttpRequest,
+      ): Promise<AwsChainHttpResponse> => {
+        asked.push(request);
+
+        return (
+          answer || {
+            status: 200,
+            bodyText: JSON.stringify({
+              AccessKeyId: "ASIAPODIDENTITYROLE1",
+              SecretAccessKey: "podIdentitySecretEXAMPLE",
+              Token: POD_IDENTITY_SESSION_TOKEN,
+              Expiration: "2099-01-01T00:00:00Z",
+            }),
+          }
+        );
+      },
+    }),
+  };
+};
+
 beforeEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
   AssumedRoleCache.clear();
-  AwsServerIdentity.clearCache();
+  AwsServerIdentity.useCredentialChain(noServerCredentials());
 });
 
 afterEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  AwsServerIdentity.useCredentialChain(null);
   jest.restoreAllMocks();
 });
 
@@ -288,6 +342,14 @@ describe("validateSettings", () => {
       connector.validateSettings(roleSettings());
     }).toThrow("This OneUptime has no AWS identity");
 
+    // The server's own credentials are an identity too (#7379).
+    AwsServerIdentity.useCredentialChain(serverOnEks().chain);
+
+    expect(() => {
+      connector.validateSettings(roleSettings());
+    }).not.toThrow();
+
+    AwsServerIdentity.useCredentialChain(noServerCredentials());
     giveOneUptimeAnAwsIdentity();
 
     expect(() => {
@@ -498,18 +560,26 @@ describe("testConnection", () => {
 
     expect(result.status).toBe("pass");
 
-    const assume: { body: URLSearchParams; request: DataSourceHttpRequest } =
-      fake.stsCalls.find((call: { action: string }): boolean => {
-        return call.action === "AssumeRole";
-      })!;
+    // First the check that the role requires the external id, then the sign-in.
+    const [check, assume]: Array<{
+      body: URLSearchParams;
+      request: DataSourceHttpRequest;
+    }> = fake.stsCalls.filter((call: { action: string }): boolean => {
+      return call.action === "AssumeRole";
+    });
 
-    expect(assume.body.get("RoleArn")).toBe(ROLE_ARN);
-    expect(assume.body.get("ExternalId")).toBe(
+    expect(check!.body.get("RoleArn")).toBe(ROLE_ARN);
+    expect(check!.body.get("ExternalId")).toMatch(/^oneuptime-[0-9a-f]{32}$/);
+    expect(check!.body.get("ExternalId")).not.toBe(
       getAwsExternalIdForProject(PROJECT),
     );
-    expect(assume.body.get("DurationSeconds")).toBe("3600");
+    expect(assume!.body.get("RoleArn")).toBe(ROLE_ARN);
+    expect(assume!.body.get("ExternalId")).toBe(
+      getAwsExternalIdForProject(PROJECT),
+    );
+    expect(assume!.body.get("DurationSeconds")).toBe("3600");
     expect(
-      (assume.request.headers as Record<string, string>)["Authorization"],
+      (assume!.request.headers as Record<string, string>)["Authorization"],
     ).toContain("Credential=AKIAONEUPTIMESERVER1/");
 
     // Every call after it is signed with the role's session.
@@ -527,6 +597,199 @@ describe("testConnection", () => {
       "Credential=ASIAASSUMEDROLE00001/",
     );
     expect(headers["X-Amz-Security-Token"]).toBe("session-token-abc");
+  });
+
+  test("with no Cloud Connect key, the role is assumed as the server's own IAM role, its session token signing the call (#7379)", async () => {
+    const server: {
+      chain: AwsDefaultCredentialChain;
+      asked: Array<AwsChainHttpRequest>;
+    } = serverOnEks();
+    AwsServerIdentity.useCredentialChain(server.chain);
+    const fake: FakeAws = createFakeAws({
+      regions: { "us-east-1": { metrics: ec2("i-0aaa") } },
+    });
+
+    const result: CloudConnectionTestResult = await connector.testConnection(
+      {
+        ...roleSettings(),
+        config: { ...roleSettings().config, regions: "us-east-1" },
+      },
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
+    );
+
+    expect(result.status).toBe("pass");
+    expect(server.asked).toHaveLength(1);
+    expect(server.asked[0]!.headers["Authorization"]).toBe(
+      "pod-identity-agent-token",
+    );
+
+    // The check and the sign-in are both the server's own role's calls.
+    const signIns: Array<{
+      body: URLSearchParams;
+      request: DataSourceHttpRequest;
+    }> = fake.stsCalls.filter((call: { action: string }): boolean => {
+      return call.action === "AssumeRole";
+    });
+
+    expect(
+      signIns.map((call: { body: URLSearchParams }): string => {
+        return call.body.get("ExternalId") || "";
+      })[1],
+    ).toBe(getAwsExternalIdForProject(PROJECT));
+    expect(signIns).toHaveLength(2);
+
+    for (const signIn of signIns) {
+      const headers: Record<string, string> = signIn.request.headers as Record<
+        string,
+        string
+      >;
+
+      expect(headers["Authorization"]).toContain(
+        "Credential=ASIAPODIDENTITYROLE1/",
+      );
+      expect(headers["X-Amz-Security-Token"]).toBe(POD_IDENTITY_SESSION_TOKEN);
+    }
+  });
+
+  test("a Cloud Connect key, when set, wins over the server's own role: nothing changes for installations that set one", async () => {
+    giveOneUptimeAnAwsIdentity();
+    const server: {
+      chain: AwsDefaultCredentialChain;
+      asked: Array<AwsChainHttpRequest>;
+    } = serverOnEks();
+    AwsServerIdentity.useCredentialChain(server.chain);
+    const fake: FakeAws = createFakeAws({ regions: {} });
+
+    await connector.testConnection(roleSettings(), {
+      transport: fake.transport,
+      now: () => {
+        return NOW;
+      },
+    });
+
+    const assume: { request: DataSourceHttpRequest } = fake.stsCalls.find(
+      (call: { action: string }): boolean => {
+        return call.action === "AssumeRole";
+      },
+    )!;
+    const headers: Record<string, string> = assume.request.headers as Record<
+      string,
+      string
+    >;
+
+    expect(headers["Authorization"]).toContain(
+      "Credential=AKIAONEUPTIMESERVER1/",
+    );
+    expect(headers["X-Amz-Security-Token"]).toBeUndefined();
+    expect(server.asked).toHaveLength(0);
+  });
+
+  test("a server whose own credentials fail tells the project so in words that name nothing of the server, and logs why", async () => {
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((): void => {});
+    AwsServerIdentity.useCredentialChain(
+      serverOnEks({
+        status: 403,
+        bodyText: "token pod-identity-agent-token is not valid for this pod",
+      }).chain,
+    );
+    const fake: FakeAws = createFakeAws({ regions: {} });
+
+    const result: CloudConnectionTestResult = await connector.testConnection(
+      roleSettings(),
+      {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      },
+    );
+
+    expect(result.status).toBe("fail");
+    expect(result.failureKind).toBe(CloudConnectionFailureKind.Settings);
+    expect(result.message).toContain(
+      "This OneUptime has no AWS identity to sign in to the role with",
+    );
+
+    for (const detail of [
+      "169.254.170.23",
+      "Pod Identity",
+      "pod-identity-agent-token",
+    ]) {
+      expect(result.message).not.toContain(detail);
+    }
+
+    // The server's log says which source failed - its token scrubbed.
+    const logged: string = warn.mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .join("\n");
+
+    expect(logged).toContain("The EKS Pod Identity agent (169.254.170.23)");
+    expect(logged).not.toContain("pod-identity-agent-token");
+    expect(fake.stsCalls).toHaveLength(0);
+  });
+
+  test("the server's own credentials AWS no longer takes are fetched again for the next sign-in", async () => {
+    const server: {
+      chain: AwsDefaultCredentialChain;
+      asked: Array<AwsChainHttpRequest>;
+    } = serverOnEks();
+    AwsServerIdentity.useCredentialChain(server.chain);
+    const fake: FakeAws = createFakeAws({
+      regions: {},
+      assumeRoleError: stsError(
+        403,
+        "ExpiredToken",
+        "The security token included in the request is expired",
+      ),
+    });
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      await connector.testConnection(roleSettings(), {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      });
+    }
+
+    // Asked again after AWS refused the first: not served from the chain's cache.
+    expect(server.asked).toHaveLength(2);
+  });
+
+  test("a refusal that is the role's own leaves the server's credentials in hand", async () => {
+    const server: {
+      chain: AwsDefaultCredentialChain;
+      asked: Array<AwsChainHttpRequest>;
+    } = serverOnEks();
+    AwsServerIdentity.useCredentialChain(server.chain);
+    const fake: FakeAws = createFakeAws({
+      regions: {},
+      assumeRoleError: stsError(
+        403,
+        "AccessDenied",
+        "User is not authorized to perform: sts:AssumeRole",
+      ),
+    });
+
+    for (let attempt: number = 0; attempt < 2; attempt++) {
+      await connector.testConnection(roleSettings(), {
+        transport: fake.transport,
+        now: () => {
+          return NOW;
+        },
+      });
+    }
+
+    expect(server.asked).toHaveLength(1);
   });
 
   test("a role that does not trust OneUptime says how to fix it", async () => {
@@ -553,6 +816,15 @@ describe("testConnection", () => {
     expect(result.status).toBe("fail");
     expect(result.failureKind).toBe(CloudConnectionFailureKind.Permission);
     expect(result.message).toContain("run the setup command again");
+    // AWS's answer names OneUptime's own identity: the project never reads it.
+    for (const detail of [
+      "999988887777",
+      "user/oneuptime",
+      "is not authorized",
+      "HTTP 403",
+    ]) {
+      expect(result.message).not.toContain(detail);
+    }
   });
 });
 
@@ -960,7 +1232,7 @@ describe("read", () => {
     expect(fake.cloudWatchCalls).toHaveLength(0);
   });
 
-  test("a role is assumed once and its session reused by the next read", async () => {
+  test("a role is checked and assumed once, and its session reused by the next read", async () => {
     giveOneUptimeAnAwsIdentity();
     const fake: FakeAws = createFakeAws({
       regions: { "us-east-1": { metrics: ec2("i-0aaa", [10]) } },
@@ -981,11 +1253,18 @@ describe("read", () => {
       },
     });
 
+    // The check (an external id no project has), then the sign-in: neither again.
     expect(
-      fake.stsCalls.filter((call: { action: string }): boolean => {
-        return call.action === "AssumeRole";
-      }),
-    ).toHaveLength(1);
+      fake.stsCalls
+        .filter((call: { action: string }): boolean => {
+          return call.action === "AssumeRole";
+        })
+        .map((call: { body: URLSearchParams }): boolean => {
+          return (
+            call.body.get("ExternalId") === getAwsExternalIdForProject(PROJECT)
+          );
+        }),
+    ).toEqual([false, true]);
   });
 
   /*

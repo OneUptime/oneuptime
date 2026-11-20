@@ -51,6 +51,7 @@ import {
   LLMToolDefinition,
 } from "../../LLM/LLMService";
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
+import { readArgumentsTheSchemaTakes } from "../Toolbox/SetupActionRunner";
 import {
   ObservabilityTool,
   PlannedToolCall,
@@ -1959,6 +1960,21 @@ export default class ChatAgentRunner {
 
     if (!tool?.prepareMutation || toolCall.argumentsParseError) {
       return undefined;
+    }
+
+    /*
+     * A setup action takes from the model only what its schema takes
+     * (#10041), as the route that runs them outside the chat does: what its
+     * prepare works out - the record each name stands for, by id, the team
+     * an invitation joins - is never the model's to hand it, even where
+     * the prepare finds nothing and leaves the arguments as they were. An
+     * approved card runs the arguments persisted here, prepared once.
+     */
+    if (AIToolbox.isSetupAction(toolCall.name)) {
+      toolCall.arguments = readArgumentsTheSchemaTakes(
+        tool,
+        toolCall.arguments || {},
+      );
     }
 
     try {

@@ -7,6 +7,9 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION,
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_CHARGING_UNIT,
   MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
@@ -65,7 +68,9 @@ import TelemetryUtil from "../Telemetry/Telemetry";
  *
  * And, for each device that reports them, its battery in percent and how
  * much of its storage is in use (#10008), each under a metric of its own:
- * what a device manager's Low Battery and Storage Nearly Full read.
+ * what a device manager's Low Battery and Storage Nearly Full read. Beside
+ * a battery, whether the device is on its charger, where its service says
+ * so (#10288): what Low Battery reads to leave a charging device be.
  */
 
 // Devices read from the database per page, as the read runner reads them.
@@ -92,6 +97,8 @@ export interface ManagedDeviceCheckInOutcome {
   securityPatchReadingCount: number;
   // Battery readings written beside them: devices that report a battery.
   batteryReadingCount: number;
+  // Of those devices, the ones whose service says whether each is on its charger.
+  chargingReadingCount: number;
   // Storage readings written beside them: devices that report their free space.
   storageReadingCount: number;
 }
@@ -246,6 +253,39 @@ export function buildManagedDeviceBatteryRow(
 }
 
 /*
+ * One reading's charging row (#10288): 1 while the device is on its
+ * charger, 0 on its battery, as its service last heard it - with the
+ * battery row's very attributes, so a monitor that reads both finds each
+ * device's two as one series. Undefined for a reading whose service says
+ * neither, or with no battery. Pure.
+ */
+export function buildManagedDeviceChargingRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject | undefined {
+  if (
+    data.reading.isCharging === undefined ||
+    data.reading.batteryLevel === undefined
+  ) {
+    return undefined;
+  }
+
+  return buildManagedDeviceReadingRow({
+    projectId: data.projectId,
+    connectionId: data.connectionId,
+    hostName: data.reading.hostName,
+    name: MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+    value: data.reading.isCharging ? 1 : 0,
+    attributes: getManagedDeviceCheckInAttributes({
+      reading: data.reading,
+      connectionId: data.connectionId.toString(),
+      provider: data.provider,
+    }),
+    asOf: data.asOf,
+    retentionDate: data.retentionDate,
+  });
+}
+
+/*
  * One reading's storage row (#10008): how much of the device's own storage
  * is in use, in percent, with its free and whole bytes on it. Undefined for
  * a reading with no storage. Pure.
@@ -301,6 +341,7 @@ export default class ManagedDeviceCheckInMetrics {
         hostCount: 0,
         securityPatchReadingCount: 0,
         batteryReadingCount: 0,
+        chargingReadingCount: 0,
         storageReadingCount: 0,
       };
     }
@@ -330,6 +371,7 @@ export default class ManagedDeviceCheckInMetrics {
     const rows: Array<JSONObject> = [];
     let securityPatchReadingCount: number = 0;
     let batteryReadingCount: number = 0;
+    let chargingReadingCount: number = 0;
     let storageReadingCount: number = 0;
 
     for (const reading of readings) {
@@ -362,6 +404,15 @@ export default class ManagedDeviceCheckInMetrics {
         batteryReadingCount++;
       }
 
+      // Whether it is on its charger, beside its battery (#10288).
+      const chargingRow: JSONObject | undefined =
+        buildManagedDeviceChargingRow(row);
+
+      if (chargingRow) {
+        rows.push(chargingRow);
+        chargingReadingCount++;
+      }
+
       const storageRow: JSONObject | undefined =
         buildManagedDeviceStorageRow(row);
 
@@ -385,6 +436,7 @@ export default class ManagedDeviceCheckInMetrics {
       projectId: data.projectId,
       hasSecurityPatchReadings: securityPatchReadingCount > 0,
       hasBatteryReadings: batteryReadingCount > 0,
+      hasChargingReadings: chargingReadingCount > 0,
       hasStorageReadings: storageReadingCount > 0,
     });
 
@@ -397,6 +449,7 @@ export default class ManagedDeviceCheckInMetrics {
       ).length,
       securityPatchReadingCount,
       batteryReadingCount,
+      chargingReadingCount,
       storageReadingCount,
     };
   }
@@ -506,6 +559,7 @@ export default class ManagedDeviceCheckInMetrics {
     projectId: ObjectID;
     hasSecurityPatchReadings: boolean;
     hasBatteryReadings: boolean;
+    hasChargingReadings: boolean;
     hasStorageReadings: boolean;
   }): Promise<void> {
     const checkIns: MetricType = new MetricType();
@@ -534,6 +588,15 @@ export default class ManagedDeviceCheckInMetrics {
       batteries.unit = MANAGED_DEVICE_BATTERY_LEVEL_UNIT;
       metricNameServiceNameMap[MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME] =
         batteries;
+    }
+
+    if (data.hasChargingReadings) {
+      const charging: MetricType = new MetricType();
+      charging.name = MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME;
+      charging.description = MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION;
+      charging.unit = MANAGED_DEVICE_BATTERY_CHARGING_UNIT;
+      metricNameServiceNameMap[MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME] =
+        charging;
     }
 
     if (data.hasStorageReadings) {

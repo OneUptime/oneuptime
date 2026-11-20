@@ -206,6 +206,23 @@ export interface DeviceManagementSession {
     | ((providerDeviceId: string) => Promise<Date | null>)
     | undefined;
   /*
+   * Whether the service says a device's battery only when the device is
+   * asked about on its own (#10287): Intune's iPhones and iPads, whose
+   * level Graph's beta hardwareInformation holds, and its list none. Absent
+   * for a service whose device list says every battery it knows
+   * (ProviderDevice.batteryLevel): nothing is then asked one by one.
+   */
+  readsBatteryOf?:
+    | ((device: { platform: ManagedDevicePlatform }) => boolean)
+    | undefined;
+  /*
+   * One device's battery in percent, as the service last heard it, asked
+   * on its own: null when it says none.
+   */
+  readBatteryLevel?:
+    | ((providerDeviceId: string) => Promise<number | null>)
+    | undefined;
+  /*
    * Whether the service lists a device's installed apps, by its platform:
    * Esper lists an Android device's, but an Apple device's only as the IDs
    * of the apps it pushed. A device it does not is never due.

@@ -1208,4 +1208,112 @@ export default class Dashboard extends BaseModel {
     create: PlanType.Scale,
   })
   public ipWhitelist?: string = undefined;
+
+  /*
+   * Only people who sign in (Types/Dashboard/DashboardAccess): the public
+   * link - OneUptime's own address and every custom domain - shows a
+   * sign-in page, and every public route refuses a visitor who holds no
+   * session of one of this dashboard's private users (DashboardPrivateUser,
+   * DashboardService.hasReadAccess). Means nothing while the dashboard is
+   * not public, and wins over the master password: a dashboard that asks
+   * its visitors to sign in never takes the password instead.
+   *
+   * Private users are a Growth feature on OneUptime Cloud, as a status
+   * page's are: turning this on - on a create too - needs Growth; turning it
+   * off is its default and works on every plan (Types/Billing/
+   * PlanGatedColumnDefault). A dashboard a trial left asking visitors to
+   * sign in keeps asking until it is turned off: the read check reads the
+   * column, never the plan, so it never opens up by itself.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDashboard,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Sign In",
+    description:
+      "Only this dashboard's private users can open its public link, once they sign in with a password or single sign-on.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Growth,
+  })
+  public requireSignIn?: boolean = undefined;
+
+  /*
+   * Require SSO to Sign In: while the dashboard asks its visitors to sign
+   * in, only its single sign-on lets them in - a private user's password
+   * no longer does, and a session one signed in with stops counting at its
+   * next request (DashboardPrivateUserSessionService.addSignInRule). As on
+   * a status page, single sign-on is a Scale feature on OneUptime Cloud:
+   * turning this on needs Scale; turning it off works on every plan.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateDashboard,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDashboard,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditDashboard,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require SSO",
+    description:
+      "While the dashboard asks its visitors to sign in, only its single sign-on lets them in: private users' passwords no longer do.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public requireSsoForLogin?: boolean = undefined;
 }

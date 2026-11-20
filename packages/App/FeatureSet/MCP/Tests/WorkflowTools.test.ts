@@ -147,9 +147,13 @@ const WORKFLOW_TOOL_NAMES: string[] = [
   "oneuptime_whoami",
   // Every ordered list's move, as the dashboard's drag (Tests/MoveInList).
   "oneuptime_move_in_list",
-  // Ask AI's setup actions, one call each (Tests/SetupTools, #7241).
+  // Ask AI's setup actions, one call each (Tests/SetupTools, #7241, #10041).
   "set_up_website_monitoring",
+  "set_up_service_monitor",
   "set_up_paging",
+  "add_to_on_call_policy",
+  "invite_people",
+  "set_how_to_reach_me",
   "publish_status_page",
   "add_monitors_to_status_page",
   "who_is_told",

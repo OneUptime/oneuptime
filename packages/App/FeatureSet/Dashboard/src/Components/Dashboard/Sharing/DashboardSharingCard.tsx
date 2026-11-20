@@ -34,6 +34,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { getPlanNeededToWriteColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
@@ -58,6 +59,7 @@ import DashboardSharingCopy, {
   DASHBOARD_SHARING_LOCKED_TEST_ID,
   DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID,
   DASHBOARD_SHARING_SET_PASSWORD_TEST_ID,
+  DASHBOARD_SHARING_SIGN_IN_TEST_ID,
   DashboardAccessConfirmationCopy,
   getDashboardAccessChoiceTestId,
   getDashboardAccessConfirmationCopy,
@@ -76,9 +78,12 @@ import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface
 
 /*
  * "Who can view this dashboard", on a dashboard's Sharing page: only people
- * in this project, anyone with the link, or anyone with the link and a
- * password - one choice (see DashboardSharingCopy for why, and
- * Common/Types/Dashboard/DashboardAccess for the rule the server enforces).
+ * in this project, anyone with the link, anyone with the link and a
+ * password, or only people who sign in - one choice (see
+ * DashboardSharingCopy for why, and Common/Types/Dashboard/DashboardAccess
+ * for the rule the server enforces). Under Only people who sign in, while
+ * it is the choice: the ways to its Private Users and Single Sign-On
+ * (#10250).
  *
  * - The checked choice is what the server enforces now, read from the
  *   dashboard.
@@ -332,6 +337,53 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Under Only people who sign in, while it is the choice: the ways to who
+   * signs in - the dashboard's private users, and its single sign-on.
+   */
+  const getSignInDetails: () => ReactElement = (): ReactElement => {
+    return (
+      <div
+        className="space-y-2"
+        data-testid={DASHBOARD_SHARING_SIGN_IN_TEST_ID}
+      >
+        <p>{translate(DashboardSharingCopy.signInManage)}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            title={DashboardSharingCopy.privateUsers}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.User}
+            dataTestId={`${DASHBOARD_SHARING_SIGN_IN_TEST_ID}-private-users`}
+            onClick={() => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.DASHBOARD_VIEW_PRIVATE_USERS] as Route,
+                  { modelId: props.dashboardId },
+                ),
+              );
+            }}
+          />
+          <Button
+            title={DashboardSharingCopy.singleSignOn}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.Lock}
+            dataTestId={`${DASHBOARD_SHARING_SIGN_IN_TEST_ID}-single-sign-on`}
+            onClick={() => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON] as Route,
+                  { modelId: props.dashboardId },
+                ),
+              );
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   // Under the password choice, while it is the choice.
   const getPasswordDetails: (data: {
     gate: PermissionGateResult;
@@ -447,6 +499,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
+                {access === DashboardAccess.SignIn ? getSignInDetails() : <></>}
               </div>
             );
           }

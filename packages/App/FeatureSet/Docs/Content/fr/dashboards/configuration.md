@@ -60,6 +60,7 @@ Qui peut voir un tableau de bord hors du projet est un choix unique sur sa page 
 1. **Uniquement les personnes de ce projet** (par défaut) — le tableau de bord n'a pas de lien public ; son adresse publique affiche une page « introuvable ».
 2. **Toute personne disposant du lien** — quiconque a le lien public peut le voir, sans se connecter.
 3. **Toute personne disposant du lien et d'un mot de passe** — les visiteurs saisissent un mot de passe avant que le tableau de bord n'apparaisse.
+4. **Uniquement les personnes qui se connectent** — seuls les utilisateurs privés que vous invitez, et les personnes que votre authentification unique laisse entrer, le voient une fois connectés.
 
 Sous **Plus de paramètres** sur la même page, la **Liste d'autorisation IP** (offre Scale) rejette les requêtes vers le lien public de toute adresse IP qui n'y figure pas. La configuration publique la plus verrouillée est **Toute personne disposant du lien et d'un mot de passe** avec une liste d'autorisation IP — utile pour les portails partenaires où vous voulez les deux protections.
 

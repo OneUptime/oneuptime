@@ -4,7 +4,12 @@ import Dictionary from "../Dictionary";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import { EvaluateOverTimeType, FilterType } from "./CriteriaFilter";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+  NoDataPolicy,
+} from "./CriteriaFilter";
+import FilterCondition from "../Filter/FilterCondition";
 import MonitorType from "./MonitorType";
 import MonitorStepMetricMonitor from "./MonitorStepMetricMonitor";
 import RollingTime from "../RollingTime/RollingTime";
@@ -23,6 +28,8 @@ import {
   MANAGED_DEVICE_CONNECTION_READ_AGE_UNIT,
 } from "../DeviceManagement/DeviceManagementConnectionReading";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_CHARGING_UNIT,
   MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
@@ -44,9 +51,9 @@ import {
  * The curated alert library for ONE device management connection (a
  * DeviceManagementConnection row: an Esper tenant, #9835): Metrics monitors
  * over the readings each read of the connection writes for its devices
- * (ManagedDeviceCheckIn), filtered on the connection's id, so one monitor
- * watches every device the connection imports - one enrolled next week
- * too - and alerts once per device.
+ * (ManagedDeviceCheckIn), filtered on the connection's id and its service,
+ * so one monitor watches every device the connection imports - one
+ * enrolled next week too - and alerts once per device.
  *
  * A connection is offered its own service's templates
  * (getManagedDeviceAlertTemplatesFor), each with the silence that says a
@@ -98,7 +105,10 @@ import {
  *     reading - a refused key, the service down, the connection turned off -
  *     and the open alerts stay open until readings arrive again
  *     (MonitorResource.isSilentInfrastructureWindow); the connection's row
- *     on Managed Devices says why.
+ *     on Managed Devices says why. A connection deleted is never read
+ *     again: every monitor that reads it alone is turned off with it, what
+ *     it had open resolved, saying why (DeviceManagementConnectionAlerts,
+ *     #10286).
  *
  * First of each service's, CONNECTION STOPPED READING (#10006): the
  * connection itself, which every other template is fed by. Every read of
@@ -112,7 +122,9 @@ import {
  * command lists the connection's last readings, each with the error its
  * read failed with. Without it a revoked key or a service out of reach
  * froze every device alert of the fleet, and nobody learned the fleet was
- * unwatched.
+ * unwatched. Turning the connection off resolves it, saying who did: no
+ * read of a connection that is off is overdue, and its last reading, 0,
+ * says so to the monitor (DeviceManagementConnectionAlerts, #10286).
  *
  * Where a service reports them, LOW BATTERY and STORAGE NEARLY FULL
  * (#10008): a device's battery, as its service last heard it, under 20%,
@@ -125,8 +137,12 @@ import {
  * read the agent's hw.battery.charge and system.filesystem.utilization, and
  * none of the import's - and no resolving on a connection gone quiet. A
  * dying battery shows hours before the device stops checking in. Esper,
- * Workspace ONE and SOTI report a battery; Intune's device list does not,
- * so an Intune connection is offered Storage Nearly Full alone.
+ * Workspace ONE and SOTI report a battery in their device lists; Intune's
+ * says none, and its reads ask each iPhone and iPad alone once it has
+ * checked in since (#10287): Graph says no other device's battery.
+ * Workspace ONE's and MobiControl's lists say whether a device is on its
+ * charger too, and their Low Battery reads that beside the battery and
+ * leaves a device on its charger be (#10288).
  *
  * And, for every service, SECURITY PATCH OUT OF DATE (#10098): an Android
  * device whose security patch level, as the service reports it, is more than
@@ -237,6 +253,8 @@ const SECURITY_PATCH_METRIC_ALIAS: string = "days_since_security_patch";
 
 const BATTERY_METRIC_ALIAS: string = "battery_percent";
 
+const CHARGING_METRIC_ALIAS: string = "on_charger";
+
 const STORAGE_METRIC_ALIAS: string = "storage_used_percent";
 
 export type ManagedDeviceAlertTemplateCategory =
@@ -301,6 +319,17 @@ export interface ManagedDeviceAlertTemplate {
    */
   followsReadInterval?: boolean | undefined;
   getMonitorStep: (args: ManagedDeviceAlertTemplateArgs) => MonitorStep;
+  /*
+   * The steps a monitor made from an earlier version of it has, which are
+   * still it (getManagedDeviceAlertTemplateEquivalentSteps): a check-in or
+   * security patch template's query, made before it read its service as
+   * well as its connection (#10059, #10123, #10182), reads the same
+   * devices. So a monitor made then still counts as made, and is never
+   * offered a second time.
+   */
+  getEarlierMonitorSteps?:
+    | ((args: ManagedDeviceAlertTemplateArgs) => Array<MonitorStep>)
+    | undefined;
 }
 
 /*
@@ -308,14 +337,17 @@ export interface ManagedDeviceAlertTemplate {
  * one's last check-in, the devices no agent reports - of the given
  * platforms, where the template reads some apart - one series per device.
  * Max per minute: two reads in one minute ("Read now" beside a scheduled
- * one) say the longer silence, never a mix of the two.
+ * one) say the longer silence, never a mix of the two. The service, where
+ * it is given, is read too (see buildManagedDeviceReadingMetricMonitor).
  */
 export function buildManagedDeviceCheckInMetricMonitor(data: {
   deviceManagementConnectionId: string;
   platforms?: ReadonlyArray<ManagedDevicePlatform> | undefined;
+  provider?: DeviceManagementProvider | undefined;
 }): MonitorStepMetricMonitor {
   return buildManagedDeviceReadingMetricMonitor({
     deviceManagementConnectionId: data.deviceManagementConnectionId,
+    provider: data.provider,
     platforms: data.platforms,
     metricName: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
     metricAlias: METRIC_ALIAS,
@@ -329,13 +361,16 @@ export function buildManagedDeviceCheckInMetricMonitor(data: {
 /*
  * The query of a connection's Android devices' security patches (#10098):
  * the days since each one's patch level, of the devices no agent reports,
- * one series per device. Max per minute, as the check-ins read theirs.
+ * one series per device. Max per minute, as the check-ins read theirs, and
+ * the service read too where it is given.
  */
 export function buildManagedDeviceSecurityPatchMetricMonitor(data: {
   deviceManagementConnectionId: string;
+  provider?: DeviceManagementProvider | undefined;
 }): MonitorStepMetricMonitor {
   return buildManagedDeviceReadingMetricMonitor({
     deviceManagementConnectionId: data.deviceManagementConnectionId,
+    provider: data.provider,
     // Android's alone: no other platform has a security patch level.
     platforms: [ManagedDevicePlatform.Android],
     metricName: MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
@@ -355,18 +390,48 @@ export function buildManagedDeviceSecurityPatchMetricMonitor(data: {
 export function buildManagedDeviceBatteryMetricMonitor(data: {
   deviceManagementConnectionId: string;
   provider: DeviceManagementProvider;
+  /*
+   * With a second query, of whether each device is on its charger, for a
+   * service that says it (#10288): the same devices, one series each, so
+   * a device's two readings are judged together.
+   */
+  readsCharging?: boolean | undefined;
 }): MonitorStepMetricMonitor {
-  return buildManagedDeviceReadingMetricMonitor({
-    deviceManagementConnectionId: data.deviceManagementConnectionId,
-    provider: data.provider,
-    metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
-    metricAlias: BATTERY_METRIC_ALIAS,
-    title: "Battery",
-    description:
-      "Each device's battery, as its device manager last heard it, at the connection's latest read.",
-    legendUnit: MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
-    aggregationType: MetricsAggregationType.Min,
-  });
+  const batteries: MonitorStepMetricMonitor =
+    buildManagedDeviceReadingMetricMonitor({
+      deviceManagementConnectionId: data.deviceManagementConnectionId,
+      provider: data.provider,
+      metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+      metricAlias: BATTERY_METRIC_ALIAS,
+      title: "Battery",
+      description:
+        "Each device's battery, as its device manager last heard it, at the connection's latest read.",
+      legendUnit: MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
+      aggregationType: MetricsAggregationType.Min,
+    });
+
+  if (!data.readsCharging) {
+    return batteries;
+  }
+
+  // Max per minute: on its charger at either of two reads is on it.
+  const charging: MonitorStepMetricMonitor =
+    buildManagedDeviceReadingMetricMonitor({
+      deviceManagementConnectionId: data.deviceManagementConnectionId,
+      provider: data.provider,
+      metricName: MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+      metricAlias: CHARGING_METRIC_ALIAS,
+      title: "On charger",
+      description:
+        "Whether each device is on its charger, 1 on power and 0 on its battery, as its device manager last heard it, at the connection's latest read.",
+      legendUnit: MANAGED_DEVICE_BATTERY_CHARGING_UNIT,
+    });
+
+  batteries.metricViewConfig.queryConfigs.push(
+    ...charging.metricViewConfig.queryConfigs,
+  );
+
+  return batteries;
 }
 
 /*
@@ -395,11 +460,16 @@ export function buildManagedDeviceStorageMetricMonitor(data: {
  * agent reports, of the given platforms, one series per device. Max per
  * minute unless the metric says otherwise.
  *
- * The service, where it is given, is read as well (#10008): it changes no
- * reading the connection's id does not already pick, and it keeps each
- * service's template of a metric apart from the others' in the
+ * The service, where it is given, is read as well - every template gives
+ * it: it changes no reading the connection's id does not already pick (a
+ * connection reads one service, and every reading names it), and it keeps
+ * each service's template of a metric apart from the others' in the
  * recommendations' fingerprint (MonitorRecommendationUtil), so a monitor
- * made from Esper's is never another service's.
+ * made from Esper's is never another service's. The battery and storage
+ * templates read it from the start (#10008); the check-in and security
+ * patch templates since their services' templates of one metric were told
+ * apart, and a monitor made from one of them before is still theirs
+ * (getEarlierMonitorSteps).
  */
 function buildManagedDeviceReadingMetricMonitor(data: {
   deviceManagementConnectionId: string;
@@ -483,6 +553,77 @@ interface CheckInTemplateSpec {
 function buildCheckInTemplate(
   spec: CheckInTemplateSpec,
 ): ManagedDeviceAlertTemplate {
+  /*
+   * The template's step, its query reading the template's service - or,
+   * for a monitor made before it did, the connection alone.
+   */
+  const buildStep: (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ) => MonitorStep = (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Metrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setMetricMonitor(
+      buildManagedDeviceCheckInMetricMonitor({
+        deviceManagementConnectionId: args.deviceManagementConnectionId,
+        platforms: spec.platforms,
+        provider,
+      }),
+    );
+
+    const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance({
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      incidentSeverityId: args.defaultIncidentSeverityId,
+      alertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      metricAlias: METRIC_ALIAS,
+      filterType: FilterType.GreaterThan,
+      value: spec.thresholdInMinutes,
+      incidentTitle: spec.incidentTitle,
+      incidentDescription: spec.incidentDescription,
+      criteriaName: "A device stopped checking in",
+      criteriaDescription: spec.criteriaDescription,
+      resourceNoun: "device",
+      /*
+       * Each device holds one reading here, its latest
+       * (judgeLatestReading): Any Value is that reading. All Values would
+       * also ask one reading to cover the two-hour window, which a reading
+       * taken every 15 minutes never does (MetricWindowCoverage).
+       */
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      metricAlias: METRIC_ALIAS,
+      filterType: FilterType.LessThanOrEqualTo,
+      value: spec.thresholdInMinutes,
+      /*
+       * No dead band: a device that checks in again reads a few minutes,
+       * nowhere near the threshold, and a band would only keep the monitor
+       * offline for a device that reads exactly the threshold.
+       */
+      recoveryValue: spec.thresholdInMinutes,
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+    step.setMonitorCriteria(criteria);
+
+    return step;
+  };
+
   return {
     id: spec.id,
     provider: spec.provider,
@@ -496,65 +637,13 @@ function buildCheckInTemplate(
     thresholdInMinutes: spec.thresholdInMinutes,
     platforms: spec.platforms,
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
-        monitorName: args.monitorName,
-        monitorType: MonitorType.Metrics,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-      });
-
-      step.setMetricMonitor(
-        buildManagedDeviceCheckInMetricMonitor({
-          deviceManagementConnectionId: args.deviceManagementConnectionId,
-          platforms: spec.platforms,
-        }),
-      );
-
-      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
-        {
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias: METRIC_ALIAS,
-          filterType: FilterType.GreaterThan,
-          value: spec.thresholdInMinutes,
-          incidentTitle: spec.incidentTitle,
-          incidentDescription: spec.incidentDescription,
-          criteriaName: "A device stopped checking in",
-          criteriaDescription: spec.criteriaDescription,
-          resourceNoun: "device",
-          /*
-           * Each device holds one reading here, its latest
-           * (judgeLatestReading): Any Value is that reading. All Values
-           * would also ask one reading to cover the two-hour window, which a
-           * reading taken every 15 minutes never does (MetricWindowCoverage).
-           */
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-        },
-      );
-
-      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: METRIC_ALIAS,
-        filterType: FilterType.LessThanOrEqualTo,
-        value: spec.thresholdInMinutes,
-        /*
-         * No dead band: a device that checks in again reads a few minutes,
-         * nowhere near the threshold, and a band would only keep the
-         * monitor offline for a device that reads exactly the threshold.
-         */
-        recoveryValue: spec.thresholdInMinutes,
-        metricAggregationType: EvaluateOverTimeType.AnyValue,
-      });
-
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-      step.setMonitorCriteria(criteria);
-
-      return step;
+      return buildStep(args, spec.provider);
+    },
+    // A monitor made before the query read its service (#9835, #9837, #10086, #10087).
+    getEarlierMonitorSteps: (
+      args: ManagedDeviceAlertTemplateArgs,
+    ): Array<MonitorStep> => {
+      return [buildStep(args, undefined)];
     },
   };
 }
@@ -919,6 +1008,64 @@ function buildSecurityPatchTemplate(
    */
   const maxAge: number = ANDROID_SECURITY_PATCH_MAX_AGE_DAYS;
 
+  // Its step, its query reading its service - or, made before, the connection alone.
+  const buildStep: (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ) => MonitorStep = (
+    args: ManagedDeviceAlertTemplateArgs,
+    provider: DeviceManagementProvider | undefined,
+  ): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Metrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setMetricMonitor(
+      buildManagedDeviceSecurityPatchMetricMonitor({
+        deviceManagementConnectionId: args.deviceManagementConnectionId,
+        provider,
+      }),
+    );
+
+    const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance({
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      incidentSeverityId: args.defaultIncidentSeverityId,
+      alertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      metricAlias: SECURITY_PATCH_METRIC_ALIAS,
+      filterType: FilterType.GreaterThan,
+      value: maxAge,
+      incidentTitle: `[${spec.serviceName}] Security patch out of date`,
+      incidentDescription: `An Android device ${spec.serviceName} manages has a security patch level more than 90 days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through the system update policy ${spec.serviceName} sets on it, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. This resolves on its own once ${spec.serviceName} reports a patch level from the last 90 days.`,
+      criteriaName: "A device's security patch is out of date",
+      criteriaDescription: `Triggers when a device's latest reading says its security patch level is more than 90 days old, once for each such device.`,
+      resourceNoun: "device",
+      // Each device holds one reading here, its latest: Any Value is that reading.
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      metricAlias: SECURITY_PATCH_METRIC_ALIAS,
+      filterType: FilterType.LessThanOrEqualTo,
+      value: maxAge,
+      // No dead band: an update to a patch from the last 90 days is up to date.
+      recoveryValue: maxAge,
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+    });
+
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+    step.setMonitorCriteria(criteria);
+
+    return step;
+  };
+
   return {
     id: spec.id,
     provider: spec.provider,
@@ -932,55 +1079,13 @@ function buildSecurityPatchTemplate(
     maxSecurityPatchAgeInDays: maxAge,
     platforms: [ManagedDevicePlatform.Android],
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
-        monitorName: args.monitorName,
-        monitorType: MonitorType.Metrics,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-      });
-
-      step.setMetricMonitor(
-        buildManagedDeviceSecurityPatchMetricMonitor({
-          deviceManagementConnectionId: args.deviceManagementConnectionId,
-        }),
-      );
-
-      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
-        {
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias: SECURITY_PATCH_METRIC_ALIAS,
-          filterType: FilterType.GreaterThan,
-          value: maxAge,
-          incidentTitle: `[${spec.serviceName}] Security patch out of date`,
-          incidentDescription: `An Android device ${spec.serviceName} manages has a security patch level more than 90 days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through the system update policy ${spec.serviceName} sets on it, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. This resolves on its own once ${spec.serviceName} reports a patch level from the last 90 days.`,
-          criteriaName: "A device's security patch is out of date",
-          criteriaDescription: `Triggers when a device's latest reading says its security patch level is more than 90 days old, once for each such device.`,
-          resourceNoun: "device",
-          // Each device holds one reading here, its latest: Any Value is that reading.
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-        },
-      );
-
-      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: SECURITY_PATCH_METRIC_ALIAS,
-        filterType: FilterType.LessThanOrEqualTo,
-        value: maxAge,
-        // No dead band: an update to a patch from the last 90 days is up to date.
-        recoveryValue: maxAge,
-        metricAggregationType: EvaluateOverTimeType.AnyValue,
-      });
-
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-      step.setMonitorCriteria(criteria);
-
-      return step;
+      return buildStep(args, spec.provider);
+    },
+    // A monitor made before the query read its service (#10098).
+    getEarlierMonitorSteps: (
+      args: ManagedDeviceAlertTemplateArgs,
+    ): Array<MonitorStep> => {
+      return [buildStep(args, undefined)];
     },
   };
 }
@@ -1033,6 +1138,17 @@ interface DeviceReadingTemplateSpec {
   summary: string;
   // The service as a sentence names it: "Esper", "Intune", "MobiControl".
   serviceName: string;
+  /*
+   * Which devices the service says it of, when not every one with a
+   * battery: a sentence of its own, said after what the template does.
+   */
+  devicesNote?: string | undefined;
+  /*
+   * For a service that says whether a device is on its charger (#10288):
+   * how it says it, a sentence of its own. Its Low Battery then reads that
+   * beside the battery, and leaves a device on its charger be.
+   */
+  chargingNote?: string | undefined;
 }
 
 /*
@@ -1040,76 +1156,136 @@ interface DeviceReadingTemplateSpec {
  * reading of its battery, under 20% fires, one alert per device; 20% or
  * more resolves. No dead band: a battery only falls between two reads
  * until it is charged, and then it climbs past the threshold.
+ *
+ * Where the service says whether a device is on its charger (#10288,
+ * spec.chargingNote), the step reads that too, per device, and a device on
+ * its charger is left be: it fires only below 20% and off its charger, and
+ * resolves once the device reports 20% or more or is put on its charger.
+ * A device its service says neither of has no charging reading, which
+ * counts as off its charger (Treat As Zero), so it alerts as before. A
+ * monitor made before, which reads the battery alone, is still this
+ * template's (getEarlierMonitorSteps).
  */
 function buildLowBatteryTemplate(
   spec: DeviceReadingTemplateSpec,
 ): ManagedDeviceAlertTemplate {
   // The words write the number out, "20%", as the agent's template's do.
   const minPercent: number = MANAGED_DEVICE_LOW_BATTERY_PERCENT;
+  const readsCharging: boolean = Boolean(spec.chargingNote);
+
+  const buildStep: (
+    args: ManagedDeviceAlertTemplateArgs,
+    withCharging: boolean,
+  ) => MonitorStep = (
+    args: ManagedDeviceAlertTemplateArgs,
+    withCharging: boolean,
+  ): MonitorStep => {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorName: args.monitorName,
+      monitorType: MonitorType.Metrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+    });
+
+    step.setMetricMonitor(
+      buildManagedDeviceBatteryMetricMonitor({
+        deviceManagementConnectionId: args.deviceManagementConnectionId,
+        provider: spec.provider,
+        readsCharging: withCharging,
+      }),
+    );
+
+    const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance({
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      incidentSeverityId: args.defaultIncidentSeverityId,
+      alertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      metricAlias: BATTERY_METRIC_ALIAS,
+      filterType: FilterType.LessThan,
+      value: minPercent,
+      incidentTitle: `[${getDeviceManagementProviderShortTitle(spec.provider)}] Low battery`,
+      incidentDescription: `A device ${spec.serviceName} manages reports less than 20% battery, so it will shut down soon unless it is charged, and then stops checking in. Put it on its charger or swap its battery; a kiosk or a terminal meant to stay on power has lost it, so check its cable, adapter and socket. The battery is the one the device last reported to ${spec.serviceName}. This resolves on its own once it reports 20% or more${withCharging ? `, or ${spec.serviceName} reports it on its charger` : ""}.`,
+      criteriaName: "A device's battery is low",
+      criteriaDescription: withCharging
+        ? "Triggers when a device's latest reading says its battery is below 20% and it is not on its charger, once for each such device."
+        : "Triggers when a device's latest reading says its battery is below 20%, once for each such device.",
+      resourceNoun: "device",
+      // Each device holds one reading here, its latest: Any Value is that reading.
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+      ...(withCharging
+        ? {
+            // Both of a device's readings: low, and not on its charger.
+            filterCondition: FilterCondition.All,
+            additionalFilters: [
+              {
+                metricAlias: CHARGING_METRIC_ALIAS,
+                filterType: FilterType.LessThan,
+                value: 1,
+                // A device its service says neither of is off its charger.
+                onNoDataPolicy: NoDataPolicy.TreatAsZero,
+              },
+            ],
+          }
+        : {}),
+    });
+
+    const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      metricAlias: BATTERY_METRIC_ALIAS,
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: minPercent,
+      recoveryValue: minPercent,
+      metricAggregationType: EvaluateOverTimeType.AnyValue,
+      ...(withCharging
+        ? {
+            // 20% or more, or on its charger: either is well.
+            filterCondition: FilterCondition.Any,
+            additionalFilters: [
+              {
+                metricAlias: CHARGING_METRIC_ALIAS,
+                filterType: FilterType.GreaterThanOrEqualTo,
+                value: 1,
+              },
+            ],
+            // 0 or 1: on its charger is 1, with no dead band below it.
+            isBinaryMetric: true,
+          }
+        : {}),
+    });
+
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+    step.setMonitorCriteria(criteria);
+
+    return step;
+  };
 
   return {
     id: spec.id,
     provider: spec.provider,
     name: spec.name,
     summary: spec.summary,
-    description: `Alert when a device ${spec.serviceName} manages reports less than 20% battery, one alert per device, resolved once it reports 20% or more: a handheld is about to shut down, or a kiosk lost its power, and a device that runs out stops checking in. Every read of the connection records each device's battery as ${spec.serviceName} last heard it. A device without a battery reports none and never raises it. A device that runs the OneUptime Android agent is left to its host's Low Battery.`,
+    description: `Alert when a device ${spec.serviceName} manages reports less than 20% battery, one alert per device, resolved once it reports 20% or more: a handheld is about to shut down, or a kiosk lost its power, and a device that runs out stops checking in. Every read of the connection records each device's battery as ${spec.serviceName} last heard it.${spec.devicesNote ? ` ${spec.devicesNote}` : ""}${spec.chargingNote ? ` ${spec.chargingNote}` : ""} A device without a battery reports none and never raises it. A device that runs the OneUptime Android agent is left to its host's Low Battery.`,
     category: "Resource",
     severity: "Warning",
     monitoringInterval: MANAGED_DEVICE_ALERT_MONITORING_INTERVAL,
     metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
     minBatteryPercent: minPercent,
     getMonitorStep: (args: ManagedDeviceAlertTemplateArgs): MonitorStep => {
-      const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
-        monitorName: args.monitorName,
-        monitorType: MonitorType.Metrics,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-      });
-
-      step.setMetricMonitor(
-        buildManagedDeviceBatteryMetricMonitor({
-          deviceManagementConnectionId: args.deviceManagementConnectionId,
-          provider: spec.provider,
-        }),
-      );
-
-      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
-        {
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias: BATTERY_METRIC_ALIAS,
-          filterType: FilterType.LessThan,
-          value: minPercent,
-          incidentTitle: `[${getDeviceManagementProviderShortTitle(spec.provider)}] Low battery`,
-          incidentDescription: `A device ${spec.serviceName} manages reports less than 20% battery, so it will shut down soon unless it is charged, and then stops checking in. Put it on its charger or swap its battery; a kiosk or a terminal meant to stay on power has lost it, so check its cable, adapter and socket. The battery is the one the device last reported to ${spec.serviceName}. This resolves on its own once it reports 20% or more.`,
-          criteriaName: "A device's battery is low",
-          criteriaDescription:
-            "Triggers when a device's latest reading says its battery is below 20%, once for each such device.",
-          resourceNoun: "device",
-          // Each device holds one reading here, its latest: Any Value is that reading.
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-        },
-      );
-
-      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: BATTERY_METRIC_ALIAS,
-        filterType: FilterType.GreaterThanOrEqualTo,
-        value: minPercent,
-        recoveryValue: minPercent,
-        metricAggregationType: EvaluateOverTimeType.AnyValue,
-      });
-
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-      step.setMonitorCriteria(criteria);
-
-      return step;
+      return buildStep(args, readsCharging);
     },
+    // A monitor made before it read the charging state: the battery alone.
+    ...(readsCharging
+      ? {
+          getEarlierMonitorSteps: (
+            args: ManagedDeviceAlertTemplateArgs,
+          ): Array<MonitorStep> => {
+            return [buildStep(args, false)];
+          },
+        }
+      : {}),
   };
 }
 
@@ -1191,9 +1367,18 @@ function buildStorageNearlyFullTemplate(
 }
 
 /*
- * Low Battery for each service whose device list says a device's battery:
- * Esper's, Workspace ONE's and SOTI's. Intune's lists none (only a device
- * read on its own, on Graph's beta, says one), so it is offered none.
+ * Low Battery for every service. Esper's, Workspace ONE's and SOTI's device
+ * lists say a device's battery; Intune's says none, so an Intune
+ * connection's reads ask each iPhone and iPad on its own, once it has
+ * checked in since it was last asked (#10287): Graph's beta
+ * hardwareInformation holds a battery level of an iOS or iPadOS device
+ * alone, as of its last check-in.
+ *
+ * Workspace ONE's and SOTI's lists also say whether a device is on its
+ * charger (#10288): Workspace ONE's AcLineStatus of every device but an
+ * Apple one (whose MDM reports no power source), and MobiControl's
+ * IsCharging of an Android+ device. Their Low Battery leaves such a device
+ * be. Esper's device list and Intune's hardwareInformation say neither.
  */
 const esperLowBatteryTemplate: ManagedDeviceAlertTemplate =
   buildLowBatteryTemplate({
@@ -1204,6 +1389,17 @@ const esperLowBatteryTemplate: ManagedDeviceAlertTemplate =
     serviceName: "Esper",
   });
 
+const intuneLowBatteryTemplate: ManagedDeviceAlertTemplate =
+  buildLowBatteryTemplate({
+    id: "intune-low-battery",
+    provider: DeviceManagementProvider.Intune,
+    name: "Intune Low Battery",
+    summary: "An iPhone or iPad Intune manages has less than 20% battery left.",
+    serviceName: "Intune",
+    devicesNote:
+      "Intune says the battery of an iPhone or an iPad alone, as of its last check-in, about every eight hours.",
+  });
+
 const workspaceOneLowBatteryTemplate: ManagedDeviceAlertTemplate =
   buildLowBatteryTemplate({
     id: "workspace-one-low-battery",
@@ -1211,6 +1407,9 @@ const workspaceOneLowBatteryTemplate: ManagedDeviceAlertTemplate =
     name: "Workspace ONE Low Battery",
     summary: "A device Workspace ONE manages has less than 20% battery left.",
     serviceName: "Workspace ONE",
+    // #10288: its device list says whether each is on power (AcLineStatus).
+    chargingNote:
+      "A device Workspace ONE says is on power, on its charger or its dock, is left be, and its alert resolves.",
   });
 
 const sotiLowBatteryTemplate: ManagedDeviceAlertTemplate =
@@ -1220,6 +1419,9 @@ const sotiLowBatteryTemplate: ManagedDeviceAlertTemplate =
     name: "SOTI Low Battery",
     summary: "A device MobiControl manages has less than 20% battery left.",
     serviceName: "MobiControl",
+    // #10288: its device list says whether an Android+ device is charging.
+    chargingNote:
+      "An Android device MobiControl says is charging is left be, and its alert resolves.",
   });
 
 // Storage Nearly Full for every service: each says a device's storage and its free space.
@@ -1276,6 +1478,7 @@ const ALL_TEMPLATES: ReadonlyArray<ManagedDeviceAlertTemplate> = [
   esperSecurityPatchOutOfDateTemplate,
   intuneConnectionStoppedReadingTemplate,
   intuneDeviceStoppedCheckingInTemplate,
+  intuneLowBatteryTemplate,
   intuneStorageNearlyFullTemplate,
   intuneSecurityPatchOutOfDateTemplate,
   workspaceOneConnectionStoppedReadingTemplate,
@@ -1322,26 +1525,43 @@ export function getManagedDeviceAlertTemplateById(
   );
 }
 
+// Whether a monitor made from a template may have another step than the template's own.
+export function hasManagedDeviceAlertTemplateEquivalentSteps(
+  template: ManagedDeviceAlertTemplate,
+): boolean {
+  return Boolean(
+    template.followsReadInterval || template.getEarlierMonitorSteps,
+  );
+}
+
 /*
  * The other steps a monitor made from a template may have and still be it
- * (MonitorRecommendation.getEquivalentMonitorSteps): Connection Stopped
- * Reading's at each wait another read interval a connection may have gives
- * it, for a monitor made before its connection's interval changed, which
- * keeps the wait it was made with and is never offered a second time. No
- * other template's step follows the interval.
+ * (MonitorRecommendation.getEquivalentMonitorSteps), each of which counts
+ * as made, so the template is never offered a second time:
+ *
+ *   - those of an earlier version of it (getEarlierMonitorSteps): a
+ *     check-in or security patch template's from before its query read its
+ *     service;
+ *   - Connection Stopped Reading's at each wait another read interval a
+ *     connection may have gives it, for a monitor made before its
+ *     connection's interval changed, which keeps the wait it was made
+ *     with. No other template's step follows the interval.
  */
 export function getManagedDeviceAlertTemplateEquivalentSteps(
   template: ManagedDeviceAlertTemplate,
   args: ManagedDeviceAlertTemplateArgs,
 ): Array<MonitorStep> {
+  const steps: Array<MonitorStep> = [
+    ...(template.getEarlierMonitorSteps?.(args) || []),
+  ];
+
   if (!template.followsReadInterval) {
-    return [];
+    return steps;
   }
 
   const waits: Set<number> = new Set<number>([
     getManagedDeviceConnectionStoppedReadingMinutes(args.readIntervalInMinutes),
   ]);
-  const steps: Array<MonitorStep> = [];
 
   for (const interval of DEVICE_MANAGEMENT_READ_INTERVALS_IN_MINUTES) {
     const wait: number =

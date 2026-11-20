@@ -42,6 +42,7 @@ import {
   DeviceManagementSettings,
   DeviceManagementTransport,
   ProviderApp,
+  ProviderDevice,
   ProviderGroup,
   getDeviceManagementSecretValues,
   readDeviceManagementPullState,
@@ -78,7 +79,10 @@ import {
  *   2. reads the fleet through the SSRF-guarded fetch: who the key is, the
  *      devices, their groups, and the check-ins since the last window -
  *      then, one by one and while its budget lasts, the check-in of a
- *      device no window had (once a day at most per device);
+ *      device no window had (once a day at most per device), and the
+ *      battery of a device whose service says one only of a device asked
+ *      about alone, once it has checked in since it was last asked
+ *      (getBatteryLookups, #10287: Intune's iPhones and iPads);
  *   3. writes what changed (ManagedDeviceSync): new devices, changed ones,
  *      devices that left the list (marked removed, never from a list cut
  *      short), devices back on it, and devices gone 30 days (deleted, after
@@ -147,6 +151,24 @@ export const CHECK_INS_NOT_RECORDED_WARNING: string =
   "How long since each device checked in could not be recorded this time, so its alerts have nothing new to read: the next read tries again.";
 export const CONNECTION_READ_NOT_RECORDED_WARNING: string =
   "How this read went could not be recorded for the connection's own alert this time: the next read tries again.";
+export const BATTERIES_NOT_READ_WARNING: string =
+  "Some devices' battery levels could not be read this time: the next read tries again.";
+
+/*
+ * The most devices one read asks about one by one for their battery
+ * (#10287): a service whose device list says no battery (Intune) says a
+ * device's only when asked about it alone, one request each.
+ */
+export const MAX_BATTERY_LOOKUPS_PER_READ: number = 200;
+
+/*
+ * Where a device's details keep the check-in its battery was asked at
+ * (#10287), as an ISO time. A device reports a new battery level when it
+ * checks in, so it is asked again once it has checked in since - and one
+ * not asked when it was due, the read's budget spent or its service busy,
+ * is asked at the next read.
+ */
+export const BATTERY_READ_AT_CHECK_IN_DETAIL: string = "batteryReadAtCheckIn";
 
 export interface DeviceManagementReadDependencies {
   transport?: DeviceManagementTransport | undefined;
@@ -263,6 +285,71 @@ export function getCheckInLookups(data: {
       return left.askedAt - right.askedAt;
     })
     .slice(0, MAX_CHECK_IN_LOOKUPS_PER_READ)
+    .map((entry: { id: string }): string => {
+      return entry.id;
+    });
+}
+
+/*
+ * The devices whose battery to ask about one by one (#10287), for a
+ * service that says a battery only of a device asked about alone: listed
+ * now, of a platform it says one for, with a check-in, and asked at an
+ * older check-in or never - never asked first, then the ones asked at the
+ * oldest check-in - at most MAX_BATTERY_LOOKUPS_PER_READ. Pure.
+ */
+export function getBatteryLookups(data: {
+  devices: ReadonlyArray<{
+    providerDeviceId: string;
+    platform: ManagedDevicePlatform;
+  }>;
+  readsBatteryOf: (device: { platform: ManagedDevicePlatform }) => boolean;
+  // When each device's battery was last asked about, at which check-in (ISO).
+  askedAtCheckIns: ReadonlyMap<string, string>;
+  // Each device's newest check-in this read knows.
+  checkIns: ReadonlyMap<string, Date>;
+}): Array<string> {
+  const due: Array<{ id: string; askedAt: number }> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const device of data.devices) {
+    if (
+      seen.has(device.providerDeviceId) ||
+      !data.readsBatteryOf({ platform: device.platform })
+    ) {
+      continue;
+    }
+
+    seen.add(device.providerDeviceId);
+
+    const checkIn: Date | undefined = data.checkIns.get(
+      device.providerDeviceId,
+    );
+
+    // A device that never checked in has said nothing to ask about.
+    if (!checkIn) {
+      continue;
+    }
+
+    const askedAtCheckIn: string | undefined = data.askedAtCheckIns.get(
+      device.providerDeviceId,
+    );
+    const askedAt: number = askedAtCheckIn ? Date.parse(askedAtCheckIn) : NaN;
+
+    if (Number.isFinite(askedAt) && askedAt >= checkIn.getTime()) {
+      continue;
+    }
+
+    due.push({
+      id: device.providerDeviceId,
+      askedAt: Number.isFinite(askedAt) ? askedAt : 0,
+    });
+  }
+
+  return due
+    .sort((left: { askedAt: number }, right: { askedAt: number }): number => {
+      return left.askedAt - right.askedAt;
+    })
+    .slice(0, MAX_BATTERY_LOOKUPS_PER_READ)
     .map((entry: { id: string }): string => {
       return entry.id;
     });
@@ -501,6 +588,25 @@ export default class DeviceManagementReadRunner {
 
           throw error;
         }
+      }
+
+      /*
+       * The batteries a service says only of a device asked about alone
+       * (#10287: Intune's iPhones and iPads), before the devices are
+       * written: each device's battery as last asked, and anew for those
+       * that checked in since.
+       */
+      if (
+        session.readsBatteryOf &&
+        session.readBatteryLevel &&
+        !(await DeviceManagementReadRunner.readBatteries({
+          session,
+          fleet,
+          storedDevices,
+          checkIns,
+        }))
+      ) {
+        warnings.push(BATTERIES_NOT_READ_WARNING);
       }
 
       const groups: Map<string, ProviderGroup> = new Map<
@@ -1161,6 +1267,123 @@ export default class DeviceManagementReadRunner {
       failed,
       mayCarryOn,
     };
+  }
+
+  /*
+   * The battery of each listed device whose service says one only when
+   * asked about the device alone (#10287), set on the fleet's devices
+   * before they are written:
+   *
+   *   - every such device keeps what it was last asked - its level, and
+   *     the check-in it was asked at (BATTERY_READ_AT_CHECK_IN_DETAIL) -
+   *     as its service's device list says none;
+   *   - the ones that checked in since are asked again
+   *     (getBatteryLookups), one request each, while the read's budget
+   *     lasts.
+   *
+   * A device not asked when it was due keeps its marker, so the next read
+   * asks it. A device its service no longer knows (404) is skipped; any
+   * other refusal - a key refused, a permission missing, Graph asking to
+   * slow down past what its client waits, a request it no longer takes -
+   * ends the batteries for this read. False then, which the read keeps as
+   * a warning, never its failure.
+   */
+  private static async readBatteries(data: {
+    session: DeviceManagementSession;
+    fleet: DeviceManagementFleetRead;
+    storedDevices: Array<StoredManagedDevice>;
+    checkIns: ReadonlyMap<string, Date>;
+  }): Promise<boolean> {
+    const readsBatteryOf: (device: {
+      platform: ManagedDevicePlatform;
+    }) => boolean = data.session.readsBatteryOf!.bind(data.session);
+    const storedById: Map<string, StoredManagedDevice> = new Map<
+      string,
+      StoredManagedDevice
+    >();
+    const askedAtCheckIns: Map<string, string> = new Map<string, string>();
+
+    for (const device of data.storedDevices) {
+      storedById.set(device.providerDeviceId, device);
+
+      const askedAt: unknown =
+        device.fields.details?.[BATTERY_READ_AT_CHECK_IN_DETAIL];
+
+      if (typeof askedAt === "string" && askedAt) {
+        askedAtCheckIns.set(device.providerDeviceId, askedAt);
+      }
+    }
+
+    const listedById: Map<string, ProviderDevice> = new Map<
+      string,
+      ProviderDevice
+    >();
+
+    for (const device of data.fleet.devices) {
+      if (!readsBatteryOf({ platform: device.platform })) {
+        continue;
+      }
+
+      listedById.set(device.providerDeviceId, device);
+
+      // What it was last asked, kept: its service's list says no battery.
+      const stored: StoredManagedDevice | undefined = storedById.get(
+        device.providerDeviceId,
+      );
+      device.batteryLevel = stored?.fields.batteryLevel ?? null;
+
+      const askedAt: string | undefined = askedAtCheckIns.get(
+        device.providerDeviceId,
+      );
+
+      if (askedAt) {
+        device.details = {
+          ...device.details,
+          [BATTERY_READ_AT_CHECK_IN_DETAIL]: askedAt,
+        };
+      }
+    }
+
+    for (const id of getBatteryLookups({
+      devices: data.fleet.devices,
+      readsBatteryOf,
+      askedAtCheckIns,
+      checkIns: data.checkIns,
+    })) {
+      if (!data.session.hasBudgetFor(1)) {
+        return true;
+      }
+
+      const device: ProviderDevice = listedById.get(id)!;
+      const checkIn: Date = data.checkIns.get(id)!;
+
+      try {
+        device.batteryLevel = await data.session.readBatteryLevel!(id);
+        device.details = {
+          ...device.details,
+          [BATTERY_READ_AT_CHECK_IN_DETAIL]: checkIn.toISOString(),
+        };
+      } catch (error) {
+        if (error instanceof DeviceManagementBudgetSpent) {
+          return true;
+        }
+
+        // A device its service no longer knows: the list drops it next.
+        if (error instanceof LlmProviderError && error.statusCode === 404) {
+          continue;
+        }
+
+        logger.debug(
+          `Managed device ${id}: its battery could not be read, and no other is asked this read: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
+        return false;
+      }
+    }
+
+    return true;
   }
 
   // One device's apps: what changed written, and when they were read.

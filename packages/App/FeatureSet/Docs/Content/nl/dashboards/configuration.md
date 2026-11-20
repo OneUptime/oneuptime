@@ -60,6 +60,7 @@ Wie een dashboard buiten het project kan zien, is één keuze op de pagina **Del
 1. **Alleen mensen in dit project** (de standaard): het dashboard heeft geen openbare link; het openbare adres toont een pagina 'niet gevonden'.
 2. **Iedereen met de link**: iedereen die de openbare link heeft, kan het zien, zonder zich aan te melden.
 3. **Iedereen met de link en een wachtwoord**: bezoekers voeren een wachtwoord in voordat het dashboard verschijnt.
+4. **Alleen mensen die inloggen**: alleen de privégebruikers die je uitnodigt en de mensen die je single sign-on toelaat, zien het zodra ze zich aanmelden.
 
 Onder **Meer instellingen** op dezelfde pagina weigert de **IP-toelatingslijst** (abonnement Scale) verzoeken aan de openbare link vanaf elk IP-adres dat er niet op staat. De strengst afgeschermde openbare opzet is **Iedereen met de link en een wachtwoord** met een IP-toelatingslijst: handig voor partnerportalen waar je beide lagen wilt.
 

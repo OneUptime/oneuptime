@@ -299,6 +299,11 @@ describe("what the monitor reads", () => {
         [ManagedDeviceCheckInAttribute.ConnectionId]: CONNECTION_ID,
         // The Android agent's devices are their hosts' (no second alert).
         [ManagedDeviceCheckInAttribute.IsHost]: "false",
+        /*
+         * Its own service: it keeps each service's patch template apart
+         * from the others', which read the same metric.
+         */
+        [ManagedDeviceCheckInAttribute.Provider]: provider,
         [ManagedDeviceCheckInAttribute.Platform]: ManagedDevicePlatform.Android,
       });
       expect(query.metricQueryData.filterData.aggegationType).toBe(
@@ -330,6 +335,7 @@ describe("what the monitor reads", () => {
     expect(
       buildManagedDeviceSecurityPatchMetricMonitor({
         deviceManagementConnectionId: CONNECTION_ID,
+        provider: DeviceManagementProvider.Esper,
       }),
     ).toEqual(metricMonitorOf(stepOf()));
   });

@@ -202,16 +202,17 @@ export default class SeriesContextEnricher {
 
     /*
      * Just the unmentioned labels, in the order the shared formatter put
-     * them in (the context first), with its own title cap, rather than
-     * this module reimplementing either.
+     * them in (the context first), with its own title cap and separator,
+     * rather than this module reimplementing any of them. The title is
+     * plain text, and so is its suffix: a feed item or a chat message that
+     * places the title escapes it there (mdText), so it is not escaped
+     * here, which would show its backslashes.
      */
-    const summary: string = SeriesLabelDisplay.formatInlineLabels(unmentioned);
+    const suffix: string = SeriesLabelDisplay.formatTitleSuffix(unmentioned);
 
-    if (!summary) {
+    if (!suffix) {
       return title;
     }
-
-    const suffix: string = ` - ${summary}`;
 
     /*
      * `Alert.title` and `Incident.title` are LongText, i.e. 500
@@ -253,6 +254,12 @@ export default class SeriesContextEnricher {
     monitorType: MonitorType | undefined;
     // As enrichTitle reads it: said first, never the identity.
     seriesContext?: JSONObject | undefined;
+    /*
+     * The metrics the monitor's step reads, where known: a managed device's
+     * commands are then only those of the reading its monitor reads
+     * (SeriesDebugHints, #10209).
+     */
+    metricNames?: ReadonlyArray<string> | undefined;
   }): string {
     const description: string = input.description || "";
 
@@ -297,6 +304,7 @@ export default class SeriesContextEnricher {
     const commandsBlock: string = SeriesDebugHints.buildMarkdownBlock({
       monitorType: input.monitorType,
       seriesLabels: input.seriesLabels,
+      metricNames: input.metricNames,
     });
 
     /*

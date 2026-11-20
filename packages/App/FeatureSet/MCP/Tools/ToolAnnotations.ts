@@ -16,9 +16,11 @@
  *
  * A tool is open-world when it reaches past the caller's project. The public
  * status page tools read any public status page on the instance, without a
- * credential. And a write is open-world when what it changes is published:
- * shown on a public status page and sent to the page's subscribers. Every
- * other tool works inside the one project its credential belongs to.
+ * credential. A write is open-world when what it changes is published:
+ * shown on a public status page and sent to the page's subscribers. And
+ * invite_people emails addresses that need not be anyone in the project
+ * yet (#10041). Every other tool works inside the one project its
+ * credential belongs to.
  */
 
 import { ToolAnnotations } from "../Types/McpTypes";
@@ -62,7 +64,10 @@ export function readOnlyToolAnnotations(options?: {
 export function writeToolAnnotations(options?: {
   // Calling it again with the same arguments changes nothing more.
   idempotent?: boolean | undefined;
-  // What it changes is published: on a status page, and to its subscribers.
+  /*
+   * What it changes is published - on a status page, and to its
+   * subscribers - or it emails people outside the project.
+   */
   openWorld?: boolean | undefined;
 }): ToolAnnotations {
   return {

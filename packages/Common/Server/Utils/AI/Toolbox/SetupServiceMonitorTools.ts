@@ -55,7 +55,11 @@ import ProjectMilestoneService from "../../../Services/ProjectMilestoneService";
 import ServiceService from "../../../Services/ServiceService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import { citationSentence } from "./ReadTableWords";
-import { SETUP_PLAN_ORDER, readMonitorPlanRefusal } from "./SetupPlan";
+import {
+  SETUP_PLAN_ORDER,
+  describeMonitorPriceForPerson,
+  readMonitorPlanRefusal,
+} from "./SetupPlan";
 import {
   ObservabilityTool,
   PreparedMutation,
@@ -498,6 +502,10 @@ export const SetUpServiceMonitorTool: ObservabilityTool = {
         return { arguments: args };
       }
 
+      // What it adds to the bill, on OneUptime Cloud's Free plan (#9995).
+      const price: AIActionSentence | null =
+        await describeMonitorPriceForPerson(ctx);
+
       return {
         arguments: {
           ...args,
@@ -512,6 +520,7 @@ export const SetUpServiceMonitorTool: ObservabilityTool = {
           aiActionSentence(AI_ACTION_LINES.serviceMonitorOpensAlerts, {
             service: reading.plan.service.name,
           }),
+          ...(price ? [price] : []),
         ],
         describedArguments: ["service", "serviceId"],
       };

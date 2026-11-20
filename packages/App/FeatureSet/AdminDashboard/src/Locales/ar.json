@@ -4413,5 +4413,18 @@
   "Same name as another label": "مطابق لاسم تسمية أخرى",
   "Same name as another policy": "مطابق لاسم سياسة أخرى",
   "Same name as another schedule": "مطابق لاسم جدول آخر",
-  "Created {{date}}": "أُنشئ {{date}}"
+  "Created {{date}}": "أُنشئ {{date}}",
+  "Signs In As": "يسجّل الدخول باسم",
+  "Check again": "تحقّق مرة أخرى",
+  "Couldn't ask the server which AWS identity it signs in as. {{error}}": "تعذّر سؤال الخادم عن هوية AWS التي يسجّل الدخول بها. {{error}}",
+  "This server cannot sign in to AWS. {{error}}": "لا يستطيع هذا الخادم تسجيل الدخول إلى AWS. {{error}}",
+  "A test email shows whether it may send.": "تُظهر رسالة بريد اختبارية ما إذا كان مسموحًا له بالإرسال.",
+  "From AWS_ACCESS_KEY_ID in the server's environment.": "من AWS_ACCESS_KEY_ID في بيئة الخادم.",
+  "From the server's AWS profile.": "من ملف تعريف AWS الخاص بالخادم.",
+  "From IAM roles for service accounts.": "من أدوار IAM لحسابات الخدمة.",
+  "From EKS Pod Identity.": "من EKS Pod Identity.",
+  "From the ECS task role.": "من دور مهمة ECS.",
+  "From the container credentials endpoint.": "من نقطة نهاية بيانات اعتماد الحاوية.",
+  "From the EC2 instance profile.": "من ملف تعريف مثيل EC2.",
+  "The server did not say which AWS identity it signs in as.": "لم يذكر الخادم هوية AWS التي يسجّل الدخول بها."
 }

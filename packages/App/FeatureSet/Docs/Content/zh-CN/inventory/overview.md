@@ -148,7 +148,7 @@ OneUptime 先按设备在 Esper 中的名称查找其条目，再按其序列号
 
 ### 连接停止读取时收到警报
 
-创建 **Esper Connection Stopped Reading** 后，只要在连接的行将 **状态** 显示为 **已过时** 之前所等待的时长内，连接的读取一次都没有成功，连接就会打开一条自己的警报：即三个读取间隔再加十分钟，且不少于半小时，默认 15 分钟间隔下为 55 分钟。它的第一个调试步骤会列出连接最近的值，每个值附带其读取失败时的错误，第一次成功的读取即会解决该警报。每次读取，以及连接每次到期需要读取时，都会以指标 `oneuptime.managed_device.connection.read.age` 记录距上次成功读取已过多少分钟。监视器按创建时连接的读取间隔等待；已关闭的连接不会记录任何内容，因此它已打开的警报会一直保持打开，直到你手动解决。
+创建 **Esper Connection Stopped Reading** 后，只要在连接的行将 **状态** 显示为 **已过时** 之前所等待的时长内，连接的读取一次都没有成功，连接就会打开一条自己的警报：即三个读取间隔再加十分钟，且不少于半小时，默认 15 分钟间隔下为 55 分钟。它的第一个调试步骤会列出连接最近的值，每个值附带其读取失败时的错误，第一次成功的读取即会解决该警报。每次读取，以及连接每次到期需要读取时，都会以指标 `oneuptime.managed_device.connection.read.age` 记录距上次成功读取已过多少分钟。监视器按创建时连接的读取间隔等待。关闭连接会解决它已打开的警报，因为已关闭的连接没有逾期的读取；它的设备的警报保持原样，直到它再次读取。删除连接会解决只读取该连接的监视器已打开的内容，并关闭它们的监控。
 
 ## 从 Microsoft Intune 导入设备
 
@@ -176,7 +176,7 @@ OneUptime 先按设备在 Esper 中的名称查找其条目，再按其序列号
 
 Intune 用设备所有者起的名字来命名设备，因此两台设备可能同名：所有没人改过名的 iPhone 都叫 `iPhone`。一个连接中两台设备共用的名字，在资产清单中不属于其中任何一台：每台设备改用其序列号命名，一旦没有其他设备使用这个名字，就会取回自己的名字。
 
-要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Intune Device Stopped Checking In**。它会为每台超过一天未向 Intune 签入的设备各打开一条以该设备命名的警报。周末关机的笔记本电脑看起来也一样，所以如果一天对你的设备来说太短，请调高监视器的阈值。与 Esper 的模板一样， **Intune Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**Intune Storage Nearly Full** 和 **Intune Connection Stopped Reading** 与 Esper 的模板一样发出警报。由于 Intune 的设备列表没有电量信息，因此不提供电量警报。
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Intune Device Stopped Checking In**。它会为每台超过一天未向 Intune 签入的设备各打开一条以该设备命名的警报。周末关机的笔记本电脑看起来也一样，所以如果一天对你的设备来说太短，请调高监视器的阈值。与 Esper 的模板一样， **Intune Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**Intune Low Battery**、**Intune Storage Nearly Full** 和 **Intune Connection Stopped Reading** 与 Esper 的模板一样发出警报。Intune 只知道 iPhone 或 iPad 的电量，且是其上次签入时的电量，因此 **Intune Low Battery** 针对这些设备发出警报。
 
 ## 从 Workspace ONE UEM 导入设备
 
@@ -202,7 +202,7 @@ Intune 用设备所有者起的名字来命名设备，因此两台设备可能�
 
 从设备发送遥测的应用或 Android Agent 会按设备的序列号与该设备合并为一个条目：在其托管配置中，将 Android Agent 的 `device_serial` 设置设为查找值 `{DeviceSerialNumber}`。
 
-要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Workspace ONE Device Stopped Checking In**。它会为每台超过一天未向 Workspace ONE 报告的设备各打开一条以该设备命名的警报。与 Esper 的模板一样， **Workspace ONE Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**Workspace ONE Low Battery**、**Workspace ONE Storage Nearly Full** 和 **Workspace ONE Connection Stopped Reading** 与 Esper 的模板一样发出警报。
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Workspace ONE Device Stopped Checking In**。它会为每台超过一天未向 Workspace ONE 报告的设备各打开一条以该设备命名的警报。与 Esper 的模板一样， **Workspace ONE Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**Workspace ONE Low Battery**、**Workspace ONE Storage Nearly Full** 和 **Workspace ONE Connection Stopped Reading** 与 Esper 的模板一样发出警报。Workspace ONE 报告已接通电源、即在充电器或底座上的设备不计入 **Workspace ONE Low Battery**，它已打开的警报也会被解决。
 
 ## 从 SOTI MobiControl 导入设备
 
@@ -226,7 +226,7 @@ MobiControl 代理与其服务器保持实时连接，因此代理已连接的�
 
 从设备发送遥测的应用或 Android Agent 会按设备的序列号与该设备合并为一个条目：在其托管配置中，将 Android Agent 的 `device_serial` 设置设为宏 `%SERIALNUM%`。
 
-要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者为每台代理超过 1 小时未连接的 Android、Windows 或 Linux 设备打开一条警报，后者为每台超过一天未签入的 Apple 设备打开一条警报，每条都以该设备命名。与 Esper 的模板一样， **SOTI Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**SOTI Low Battery**、**SOTI Storage Nearly Full** 和 **SOTI Connection Stopped Reading** 与 Esper 的模板一样发出警报。
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者为每台代理超过 1 小时未连接的 Android、Windows 或 Linux 设备打开一条警报，后者为每台超过一天未签入的 Apple 设备打开一条警报，每条都以该设备命名。与 Esper 的模板一样， **SOTI Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**SOTI Low Battery**、**SOTI Storage Nearly Full** 和 **SOTI Connection Stopped Reading** 与 Esper 的模板一样发出警报。MobiControl 报告正在充电的 Android 设备不计入 **SOTI Low Battery**，它已打开的警报也会被解决。
 
 ## 手动添加
 

@@ -47,7 +47,10 @@ import {
 } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
-import { getManagedDeviceAlertTemplateById } from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
+import {
+  ManagedDeviceAlertTemplate,
+  getManagedDeviceAlertTemplateById,
+} from "../../../../Types/Monitor/ManagedDeviceAlertTemplates";
 import { getHostAlertTemplateById } from "../../../../Types/Monitor/HostAlertTemplates";
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
@@ -129,14 +132,17 @@ function device(
  * The rows one read of the connection writes for these devices, as
  * ManagedDeviceCheckInMetrics.record writes them: a check-in each, and a
  * security patch reading for each Android device with a level. `hosts`
- * are the devices the Android agent reports (hosts in Hosts).
+ * are the devices the Android agent reports (hosts in Hosts). Every row
+ * names the connection's service: Esper's, unless another is given.
  */
 function rowsOfARead(data: {
   devices: Array<ManagedDeviceCheckInDevice>;
   hosts?: Array<string> | undefined;
   readAt?: Date | undefined;
+  provider?: string | undefined;
 }): Array<JSONObject> {
   const readAt: Date = data.readAt || READ_AT;
+  const provider: string = data.provider || "esper";
   const readings: Array<ManagedDeviceCheckInReading> =
     getManagedDeviceCheckInReadings({
       devices: data.devices,
@@ -146,7 +152,7 @@ function rowsOfARead(data: {
         }),
       ),
       asOf: readAt,
-      provider: "esper",
+      provider,
     });
   const rows: Array<JSONObject> = [];
 
@@ -154,7 +160,7 @@ function rowsOfARead(data: {
     const input: ManagedDeviceReadingRowInput = {
       projectId: PROJECT,
       connectionId: CONNECTION,
-      provider: "esper",
+      provider,
       reading,
       asOf: readAt,
       retentionDate: RETENTION,
@@ -648,6 +654,7 @@ describe("every device manager's template, through the same code", () => {
     async (templateId: string) => {
       useStep(patchStep(templateId));
 
+      // The rows its own service's connection writes: each names the service.
       const rows: Array<JSONObject> = rowsOfARead({
         devices: [
           device("DEVICE-BEHIND", "2025-01-05"),
@@ -655,10 +662,56 @@ describe("every device manager's template, through the same code", () => {
           device("DEVICE-AGENT", "2025-01-05"),
         ],
         hosts: ["DEVICE-AGENT"],
+        provider: getManagedDeviceAlertTemplateById(templateId)!.provider,
       });
 
       const response: ProbeApiIngestResponse =
         await MonitorResourceUtil.monitorResource(check(rows));
+
+      expect(response.criteriaMetId).toBe(unhealthyId());
+      expect(alertedDevices()).toEqual(["DEVICE-BEHIND"]);
+    },
+  );
+
+  /*
+   * A monitor made before the template read its service reads the
+   * connection alone, and alerts on the same devices: every reading of the
+   * connection names its service.
+   */
+  test.each([
+    ["esper-security-patch-out-of-date"],
+    ["intune-security-patch-out-of-date"],
+    ["workspace-one-security-patch-out-of-date"],
+    ["soti-security-patch-out-of-date"],
+  ])(
+    "%s made before it read its service alerts on the same devices",
+    async (templateId: string) => {
+      const template: ManagedDeviceAlertTemplate =
+        getManagedDeviceAlertTemplateById(templateId)!;
+
+      useStep(
+        template.getEarlierMonitorSteps!({
+          deviceManagementConnectionId: CONNECTION.toString(),
+          onlineMonitorStatusId: ONLINE,
+          offlineMonitorStatusId: OFFLINE,
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "Stores West - Security Patch Out of Date",
+        })[0]!,
+      );
+
+      const response: ProbeApiIngestResponse =
+        await MonitorResourceUtil.monitorResource(
+          check(
+            rowsOfARead({
+              devices: [
+                device("DEVICE-BEHIND", "2025-01-05"),
+                device("DEVICE-CURRENT", "2026-11-05"),
+              ],
+              provider: template.provider,
+            }),
+          ),
+        );
 
       expect(response.criteriaMetId).toBe(unhealthyId());
       expect(alertedDevices()).toEqual(["DEVICE-BEHIND"]);

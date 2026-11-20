@@ -20,6 +20,11 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import {
+  MonitorRecommendation,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import KeepManagedDeviceCheckInMonitorsOnAndroid, {
   FEED_MARKDOWN,
@@ -98,7 +103,9 @@ function templateStep(template: ManagedDeviceAlertTemplate): MonitorStep {
 
 /*
  * The step a monitor made before #9837 holds: the Android template's, with
- * no platform in its query - what the template made then.
+ * no platform in its query - what the template made then - and no service,
+ * which the templates' queries read since their services' templates were
+ * told apart.
  */
 function stepMadeBefore(): MonitorStep {
   const step: MonitorStep = templateStep(androidTemplate());
@@ -107,6 +114,7 @@ function stepMadeBefore(): MonitorStep {
     .attributes as Record<string, unknown>;
 
   delete attributes[ManagedDeviceCheckInAttribute.Platform];
+  delete attributes[ManagedDeviceCheckInAttribute.Provider];
 
   return step;
 }
@@ -406,13 +414,48 @@ describe("KeepManagedDeviceCheckInMonitorsOnAndroid", () => {
           monitors.rows[0]!.monitorSteps as JSONObject,
         ).data!.monitorStepsInstanceArray[0]!;
 
+        /*
+         * The template's step before its query read its service: the
+         * connection's Android devices, as the pinned query reads them.
+         */
         expect(
           MonitorRecommendationUtil.getFingerprintFromMonitorStep(pinned),
         ).toEqual(
           MonitorRecommendationUtil.getFingerprintFromMonitorStep(
-            templateStep(androidTemplate()),
+            androidTemplate().getEarlierMonitorSteps!({
+              deviceManagementConnectionId: CONNECTION_ID,
+              onlineMonitorStatusId: STATUS_IDS.online,
+              offlineMonitorStatusId: STATUS_IDS.offline,
+              defaultIncidentSeverityId: STATUS_IDS.incident,
+              defaultAlertSeverityId: STATUS_IDS.alert,
+              monitorName: "Esper acme - Esper Device Stopped Checking In",
+            })[0]!,
           ),
         );
+
+        // So the Recommendations page counts it as made.
+        const recommendations: Array<MonitorRecommendation> =
+          MonitorRecommendationCatalog.getRecommendations(
+            MonitorRecommendationResourceType.DeviceManagementConnection,
+            { deviceManagementProvider: "esper" },
+          );
+
+        expect([
+          ...MonitorRecommendationUtil.getCoveredRecommendationIds({
+            recommendations,
+            existingMonitorSteps: [pinned],
+            args: {
+              resourceIdentifier: CONNECTION_ID,
+              onlineMonitorStatusId: STATUS_IDS.online,
+              offlineMonitorStatusId: STATUS_IDS.offline,
+              defaultIncidentSeverityId: STATUS_IDS.incident,
+              defaultAlertSeverityId: STATUS_IDS.alert,
+              monitorName: "Esper acme",
+            },
+          }),
+        ]).toEqual([
+          "DeviceManagementConnection:esper-device-stopped-checking-in",
+        ]);
       });
     });
   });

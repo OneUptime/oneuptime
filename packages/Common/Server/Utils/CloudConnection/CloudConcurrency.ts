@@ -38,3 +38,74 @@ export async function mapWithConcurrency<TItem, TResult>(
 
   return results;
 }
+
+/*
+ * AT MOST SO MANY AT ONCE, PER KEY - FEWER ONCE THE CLOUD SAYS IT IS BUSY.
+ *
+ * A cloud's own limits are often per place, not per caller: Azure Monitor
+ * answers "too many queries are in flight" for a subscription's region
+ * whatever else the read is doing elsewhere. Work that shares a key (a
+ * subscription and Region) runs `limit` at a time, and each time the cloud
+ * says it is busy (slowDown) that key's limit halves, to one at least, for
+ * the rest of the work - so a read that met a throttle asks it gently from
+ * then on, while other keys go on at their own pace. Waiters are served in
+ * the order they came.
+ */
+export class CloudKeyedLimiter {
+  private readonly initialLimit: number;
+  private readonly limits: Map<string, number> = new Map();
+  private readonly running: Map<string, number> = new Map();
+  private readonly waiting: Map<string, Array<() => void>> = new Map();
+
+  public constructor(limit: number) {
+    this.initialLimit = Math.max(1, Math.floor(limit));
+  }
+
+  // How many of the key's may run at once now.
+  public getLimit(key: string): number {
+    return this.limits.get(key) ?? this.initialLimit;
+  }
+
+  // The cloud said the key's place is busy: half as many of its at once from now.
+  public slowDown(key: string): void {
+    this.limits.set(key, Math.max(1, Math.floor(this.getLimit(key) / 2)));
+  }
+
+  public async run<T>(key: string, work: () => Promise<T>): Promise<T> {
+    await this.acquire(key);
+
+    try {
+      return await work();
+    } finally {
+      this.release(key);
+    }
+  }
+
+  private async acquire(key: string): Promise<void> {
+    if ((this.running.get(key) || 0) < this.getLimit(key)) {
+      this.running.set(key, (this.running.get(key) || 0) + 1);
+      return;
+    }
+
+    await new Promise<void>((resolve: () => void) => {
+      const queue: Array<() => void> = this.waiting.get(key) || [];
+      queue.push(resolve);
+      this.waiting.set(key, queue);
+    });
+  }
+
+  // A slot freed: the next waiter takes it, while the key's limit allows.
+  private release(key: string): void {
+    const running: number = Math.max(0, (this.running.get(key) || 0) - 1);
+    const queue: Array<() => void> = this.waiting.get(key) || [];
+
+    if (queue.length > 0 && running < this.getLimit(key)) {
+      const next: () => void = queue.shift()!;
+      this.running.set(key, running + 1);
+      next();
+      return;
+    }
+
+    this.running.set(key, running);
+  }
+}

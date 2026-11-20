@@ -62,6 +62,7 @@ jest.mock(
 );
 
 import CloudUnreportedKeyMetricsList, {
+  CLOUD_UNREPORTED_ERROR_TEST_ID,
   CLOUD_UNREPORTED_ROW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
 import { CloudKeyMetricCondition } from "../../../Types/Cloud/CloudKeyMetricCondition";
@@ -255,6 +256,80 @@ describe("a section's key metrics not reported", () => {
     await waitFor(() => {
       expect(rows()).toHaveLength(1);
     });
+  });
+
+  test("what its cloud answered follows the reason a read kept it with, in the cloud's own words, read left to right (#10291)", async () => {
+    mockExplain.mockImplementation(() => {
+      return Promise.resolve([
+        {
+          key: "bytehitratio",
+          name: "ByteHitRatio",
+          lastReportedAt: null,
+          isNeverReported: true,
+          reasons: [
+            {
+              reason: CloudUnreportedReason.NotServed,
+              error:
+                "Sampling type is not found. Metric: AzureFrontdoorShoebox/ByteHitRatio. Sampling type requested: Sum.",
+              since: "2026-11-19T07:00:00.000Z",
+              until: "2026-11-20T07:00:00.000Z",
+            },
+          ],
+        },
+        {
+          key: "cpupercentage",
+          name: "CpuPercentage",
+          lastReportedAt: "2026-11-19T07:00:00.000Z",
+          isNeverReported: false,
+          reasons: [
+            {
+              reason: CloudUnreportedReason.CloudBusy,
+              error:
+                "Query was throttled with reason: ServerBusy. Too many queries are in flight.",
+            },
+            {
+              reason: CloudUnreportedReason.NoPermission,
+              fix: "cloud-connect",
+            },
+          ],
+        },
+      ]);
+    });
+    await renderList(["bytehitratio", "cpupercentage"]);
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    expect(
+      within(rows()[0]!).getByText(
+        "Its cloud answered that it does not serve this metric for this resource, so its connection stops asking for it for a day.",
+      ),
+    ).toBeInTheDocument();
+
+    const words: HTMLElement = within(rows()[0]!).getByTestId(
+      CLOUD_UNREPORTED_ERROR_TEST_ID,
+    );
+
+    expect(words).toHaveTextContent(
+      "Sampling type is not found. Metric: AzureFrontdoorShoebox/ByteHitRatio. Sampling type requested: Sum.",
+    );
+    expect(words).toHaveAttribute("dir", "ltr");
+    expect(words.className).toContain("font-mono");
+
+    // The busy one's reason, then its words; the next reason has none.
+    const reasons: Array<Element> = Array.from(
+      rows()[1]!.querySelectorAll("ul > li"),
+    );
+
+    expect(reasons[0]!.textContent).toBe(
+      "Its cloud was too busy to answer for it at the last read. The next read asks again.Query was throttled with reason: ServerBusy. Too many queries are in flight.",
+    );
+    expect(
+      within(reasons[1] as HTMLElement).queryByTestId(
+        CLOUD_UNREPORTED_ERROR_TEST_ID,
+      ),
+    ).toBeNull();
   });
 
   test("a question that fails says why", async () => {
