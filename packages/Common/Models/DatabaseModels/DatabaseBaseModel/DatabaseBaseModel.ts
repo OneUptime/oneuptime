@@ -221,6 +221,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     title: "Created By Actor Type",
     type: TableColumnType.ShortText,
     computed: true,
+    allowedValues: Object.values(RecordActorType),
     description:
       "What created this object: User (a person), ApiKey, Workflow, McpClient (an MCP client acting for a person), MasterAdmin or System (OneUptime itself). Empty for objects created before OneUptime recorded it.",
     example: "ApiKey",
@@ -267,6 +268,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     title: "Last Modified By Actor Type",
     type: TableColumnType.ShortText,
     computed: true,
+    allowedValues: Object.values(RecordActorType),
     description:
       "What last changed this object: User (a person), ApiKey, Workflow, McpClient (an MCP client acting for a person) or MasterAdmin. Empty until it is changed after it is created.",
     example: "User",
