@@ -1299,7 +1299,7 @@ test("only the engine that priced the hour is read again, while it is the one in
   assert.strictEqual(
     (await resolver.rereadAllocations({ ...WINDOW, engineUrl: KUBECOST_URL }))
       .status,
-    "unavailable",
+    "elsewhere",
   );
 
   await resolver.fetchAllocations(WINDOW);
@@ -1309,9 +1309,10 @@ test("only the engine that priced the hour is read again, while it is the one in
     engineUrl: BUNDLED_URL,
   });
 
-  assert.strictEqual(elsewhere.status, "unavailable");
+  // Kept for later, without asking anything: no engine answered for it.
+  assert.strictEqual(elsewhere.status, "elsewhere");
   assert.match(
-    elsewhere.status === "unavailable" ? elsewhere.reason : "",
+    elsewhere.status === "elsewhere" ? elsewhere.reason : "",
     /not the one in use/,
   );
   assert.strictEqual(kubecost.fetches, 1);
@@ -1335,9 +1336,9 @@ test("an engine that does not reconcile with a bill is never read again", async 
     engineUrl: OPENCOST_URL,
   });
 
-  assert.strictEqual(reading.status, "unavailable");
+  assert.strictEqual(reading.status, "elsewhere");
   assert.match(
-    reading.status === "unavailable" ? reading.reason : "",
+    reading.status === "elsewhere" ? reading.reason : "",
     /does not reconcile/,
   );
   assert.strictEqual(opencost.fetches, 1);

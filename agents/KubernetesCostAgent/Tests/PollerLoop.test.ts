@@ -803,6 +803,51 @@ test("an hour the engine cannot give again now is asked again at the next tick",
   assert.strictEqual(poller.status().corrections?.lastCorrectionError, null);
 });
 
+test("an hour another engine priced is passed over and kept, and the engine in use's hours are read meanwhile", async (): Promise<void> => {
+  const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { tick, later, corrections } = makeCorrectingPoller(engine, shipper);
+
+  await tick();
+  const hours: Array<number> = firstReadings(shipper).map(
+    (call: ShipCall): number => {
+      return Date.parse(call.rows[0]!.windowStart);
+    },
+  );
+  const away: number = hours[0]!;
+
+  // The Kubecost that priced the first hour is not the one in use now.
+  engine.later.set(away, {
+    status: "elsewhere",
+    reason: "the engine that priced the window is not the one in use",
+  });
+  later(READ_AGAIN_AFTER_MS + WINDOW_MS);
+  await tick();
+
+  const corrected: Set<number> = new Set<number>(
+    correctionsOf(shipper).map((call: ShipCall): number => {
+      return Date.parse(call.rows[0]!.windowStart);
+    }),
+  );
+
+  // Every other hour was read and corrected, whatever the order.
+  for (const hour of hours.slice(1)) {
+    assert.ok(corrected.has(hour));
+  }
+  assert.ok(!corrected.has(away));
+  // And the one passed over is still owed, for when its engine is back.
+  assert.ok(corrections.get(away));
+
+  engine.later.delete(away);
+  await tick();
+
+  assert.ok(
+    correctionsOf(shipper).some((call: ShipCall): boolean => {
+      return Date.parse(call.rows[0]!.windowStart) === away;
+    }),
+  );
+});
+
 test("a reading the engine cannot give whole keeps the hour as shipped, and is not asked for again", async (): Promise<void> => {
   const engine: ReconcilingEngineStub = new ReconcilingEngineStub();
   const shipper: ShipperStub = new ShipperStub();

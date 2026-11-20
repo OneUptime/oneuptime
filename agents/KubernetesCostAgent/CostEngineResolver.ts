@@ -598,14 +598,14 @@ export class CostEngineResolver implements CostEngineSource {
 
     if (!engine || engine.client.baseUrl !== data.engineUrl) {
       return {
-        status: "unavailable",
+        status: "elsewhere",
         reason: "the engine that priced the window is not the one in use",
       };
     }
 
     if (engine.pricing?.source !== "billing-integration") {
       return {
-        status: "unavailable",
+        status: "elsewhere",
         reason:
           "the engine in use does not reconcile its prices with a cloud bill",
       };

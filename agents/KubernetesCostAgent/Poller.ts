@@ -250,14 +250,19 @@ export class Poller {
       };
     }
 
-    if (reading.status === "unavailable") {
-      // Asked again at the next tick, until the window is past its ages.
+    if (reading.status === "unavailable" || reading.status === "elsewhere") {
+      /*
+       * Asked again later, until the window is past its ages. A window of
+       * another engine than the one in use costs nothing to pass over, so
+       * the windows of the engine in use are read meanwhile; an engine that
+       * did not answer stops the pass until the next tick.
+       */
       this.lastCorrectionErr = reading.reason;
       Logger.debug("could not read a cost window again; trying later", {
         windowStart: windowStart.toISOString(),
         reason: reading.reason,
       });
-      return false;
+      return reading.status === "elsewhere";
     }
 
     if (reading.status === "nothing") {

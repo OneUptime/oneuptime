@@ -287,12 +287,16 @@ export interface CostEngineSource {
 /*
  * A later reading of a window (#9969). "read": the whole window, to correct
  * it with. "nothing": the engine answered, but with nothing whole, so the
- * window stays as it is. "unavailable": the engine that priced it is not
- * in use, does not reconcile, or did not answer: it is asked again later.
+ * window stays as it is. "elsewhere": the engine that priced it is not the
+ * one in use, or no longer reconciles: it is asked again later, and the
+ * windows of the engine in use are read meanwhile. "unavailable": the engine
+ * did not answer: it is asked again at the next tick, and so is every other
+ * window, rather than each wait out its own timeout now.
  */
 export type CorrectionReading =
   | { status: "read"; allocations: Array<EngineAllocation> }
   | { status: "nothing"; reason: string }
+  | { status: "elsewhere"; reason: string }
   | { status: "unavailable"; reason: string };
 
 // One http_sd target group, as Prometheus reads it.
