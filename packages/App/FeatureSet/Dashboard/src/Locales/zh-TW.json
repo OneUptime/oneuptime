@@ -51963,11 +51963,8 @@
   "Use OneUptime as the HTTP Event Collector, with the ingestion key as the HEC token.": "將 OneUptime 用作 HTTP Event Collector，並以擷取金鑰作為 HEC 權杖。",
   "Every log keeps its host, source, sourcetype and index, and its fields become attributes.": "每筆日誌都會保留其 host、source、sourcetype 和 index，其欄位會成為屬性。",
   "Metric events are stored as metrics. Set service.name in an event's fields to name its service.": "指標事件會儲存為指標。在事件的欄位中設定 service.name，即可指定其服務名稱。",
-  "The Datadog Agent you already run: its metrics and logs.": "你已在執行的 Datadog Agent：其指標和日誌。",
   "Datadog URL": "Datadog 網址",
-  "Point the Agent's metrics and logs at OneUptime, with the ingestion key as its API key.": "將 Agent 的指標和日誌指向 OneUptime，並以擷取金鑰作為其 API 金鑰。",
   "Tags become attributes, and the service, env and version tags name the service.": "標記會成為屬性，service、env 和 version 標記用來命名服務。",
-  "Metrics, distributions, service checks and logs are kept. Turn off APM and process collection, which OneUptime does not read from the Agent yet.": "指標、分布、服務檢查和日誌都會保留。請關閉 APM 和處理程序收集，OneUptime 目前還不會從 Agent 讀取這些資料。",
   "Keep your Sentry SDK and change its DSN.": "保留你的 Sentry SDK，並變更其 DSN。",
   "DSN": "DSN",
   "Replace the DSN where you set up Sentry. The rest of your Sentry code stays as it is.": "在你設定 Sentry 的位置替換 DSN。其餘 Sentry 程式碼維持不變。",
@@ -59716,5 +59713,9 @@
   "New Email Link Expires": "新電子郵件地址連結的到期時間",
   "Send Link Again": "重新寄送連結",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "我們寄送到 {{email}} 的連結已過期，因此您的電子郵件地址沒有變更。請寄送新連結以完成變更，或取消此變更。",
-  "We emailed the new address again.": "我們已再次寄送電子郵件到新地址。"
+  "We emailed the new address again.": "我們已再次寄送電子郵件到新地址。",
+  "Cron check-ins and user feedback appear in Logs, and profiles in Profiles.": "Cron check-in 和使用者意見回饋會出現在「日誌」中，效能剖析資料出現在「效能剖析」中。",
+  "Metrics, distributions, service checks, logs and APM traces are kept, and errors in a span appear in Exceptions. Turn off process collection, which OneUptime does not read from the Agent yet.": "指標、分布、服務檢查、日誌和 APM 追蹤都會保留，span 中的錯誤會出現在「例外」中。請關閉處理程序收集，OneUptime 目前還不會從 Agent 讀取這些資料。",
+  "Point the Agent's metrics, logs and APM traces at OneUptime, with the ingestion key as its API key.": "將 Agent 的指標、日誌和 APM 追蹤指向 OneUptime，並以擷取金鑰作為其 API 金鑰。",
+  "The Datadog Agent you already run: its metrics, logs and APM traces.": "你已在執行的 Datadog Agent：其指標、日誌和 APM 追蹤。"
 }

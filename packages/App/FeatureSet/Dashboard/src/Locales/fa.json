@@ -51963,11 +51963,8 @@
   "Use OneUptime as the HTTP Event Collector, with the ingestion key as the HEC token.": "از OneUptime به‌عنوان HTTP Event Collector استفاده کنید و کلید دریافت داده را توکن HEC قرار دهید.",
   "Every log keeps its host, source, sourcetype and index, and its fields become attributes.": "هر لاگ host، source، sourcetype و index خود را حفظ می‌کند و فیلدهایش به ویژگی تبدیل می‌شوند.",
   "Metric events are stored as metrics. Set service.name in an event's fields to name its service.": "رویدادهای متریک به‌صورت متریک ذخیره می‌شوند. برای نام‌گذاری سرویس یک رویداد، service.name را در فیلدهای آن تنظیم کنید.",
-  "The Datadog Agent you already run: its metrics and logs.": "Datadog Agent که همین حالا اجرا می‌کنید: متریک‌ها و لاگ‌های آن.",
   "Datadog URL": "URL مربوط به Datadog",
-  "Point the Agent's metrics and logs at OneUptime, with the ingestion key as its API key.": "متریک‌ها و لاگ‌های Agent را به OneUptime هدایت کنید و کلید دریافت داده را کلید API آن قرار دهید.",
   "Tags become attributes, and the service, env and version tags name the service.": "تگ‌ها به ویژگی تبدیل می‌شوند و تگ‌های service، env و version نام سرویس را تعیین می‌کنند.",
-  "Metrics, distributions, service checks and logs are kept. Turn off APM and process collection, which OneUptime does not read from the Agent yet.": "متریک‌ها، توزیع‌ها، service checkها و لاگ‌ها نگه داشته می‌شوند. APM و جمع‌آوری فرایندها را خاموش کنید؛ OneUptime هنوز آن‌ها را از Agent نمی‌خواند.",
   "Keep your Sentry SDK and change its DSN.": "SDK مربوط به Sentry را نگه دارید و DSN آن را تغییر دهید.",
   "DSN": "نام منبع داده (DSN)",
   "Replace the DSN where you set up Sentry. The rest of your Sentry code stays as it is.": "DSN را در جایی که Sentry را راه‌اندازی می‌کنید جایگزین کنید. بقیه کد Sentry شما همان‌طور که هست می‌ماند.",
@@ -59716,5 +59713,9 @@
   "New Email Link Expires": "زمان انقضای پیوند نشانی ایمیل جدید",
   "Send Link Again": "ارسال دوباره پیوند",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "پیوندی که به {{email}} ایمیل کردیم منقضی شده است، بنابراین نشانی ایمیل شما تغییر نکرده است. برای کامل کردن تغییر یک پیوند جدید بفرستید، یا تغییر را لغو کنید.",
-  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم."
+  "We emailed the new address again.": "دوباره به نشانی جدید ایمیل فرستادیم.",
+  "Cron check-ins and user feedback appear in Logs, and profiles in Profiles.": "اعلام حضور کارهای cron و بازخورد کاربران در «لاگ‌ها» نمایش داده می‌شوند، و پروفایل‌ها در «پروفایل‌ها».",
+  "Metrics, distributions, service checks, logs and APM traces are kept, and errors in a span appear in Exceptions. Turn off process collection, which OneUptime does not read from the Agent yet.": "متریک‌ها، توزیع‌ها، service checkها، لاگ‌ها و ترِیس‌های APM نگه داشته می‌شوند، و خطاهای یک اسپن در «استثناها» نمایش داده می‌شوند. جمع‌آوری فرایندها را خاموش کنید؛ OneUptime هنوز آن را از Agent نمی‌خواند.",
+  "Point the Agent's metrics, logs and APM traces at OneUptime, with the ingestion key as its API key.": "متریک‌ها، لاگ‌ها و ترِیس‌های APM در Agent را به OneUptime هدایت کنید و کلید دریافت داده را کلید API آن قرار دهید.",
+  "The Datadog Agent you already run: its metrics, logs and APM traces.": "Datadog Agent که همین حالا اجرا می‌کنید: متریک‌ها، لاگ‌ها و ترِیس‌های APM آن."
 }

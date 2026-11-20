@@ -51963,11 +51963,8 @@
   "Use OneUptime as the HTTP Event Collector, with the ingestion key as the HEC token.": "Usa OneUptime como HTTP Event Collector, con la clave de ingesta como token de HEC.",
   "Every log keeps its host, source, sourcetype and index, and its fields become attributes.": "Cada registro conserva su host, source, sourcetype e index, y sus campos se convierten en atributos.",
   "Metric events are stored as metrics. Set service.name in an event's fields to name its service.": "Los eventos de métrica se guardan como métricas. Define service.name en los campos de un evento para nombrar su servicio.",
-  "The Datadog Agent you already run: its metrics and logs.": "El Datadog Agent que ya ejecutas: sus métricas y registros.",
   "Datadog URL": "URL de Datadog",
-  "Point the Agent's metrics and logs at OneUptime, with the ingestion key as its API key.": "Apunta las métricas y los registros del Agent a OneUptime, con la clave de ingesta como clave de API.",
   "Tags become attributes, and the service, env and version tags name the service.": "Las etiquetas se convierten en atributos, y las etiquetas service, env y version dan nombre al servicio.",
-  "Metrics, distributions, service checks and logs are kept. Turn off APM and process collection, which OneUptime does not read from the Agent yet.": "Se conservan las métricas, distribuciones, service checks y registros. Desactiva APM y la recopilación de procesos, que OneUptime aún no lee del Agent.",
   "Keep your Sentry SDK and change its DSN.": "Conserva tu SDK de Sentry y cambia su DSN.",
   "DSN": "DSN",
   "Replace the DSN where you set up Sentry. The rest of your Sentry code stays as it is.": "Reemplaza el DSN donde configuras Sentry. El resto de tu código de Sentry se queda como está.",
@@ -59716,5 +59713,9 @@
   "New Email Link Expires": "Caducidad del enlace de la nueva dirección de correo electrónico",
   "Send Link Again": "Volver a enviar el enlace",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "El enlace que enviamos a {{email}} caducó, así que tu dirección de correo electrónico no ha cambiado. Envía un enlace nuevo para terminar el cambio, o cancélalo.",
-  "We emailed the new address again.": "Volvimos a enviar un correo a la nueva dirección."
+  "We emailed the new address again.": "Volvimos a enviar un correo a la nueva dirección.",
+  "Cron check-ins and user feedback appear in Logs, and profiles in Profiles.": "Los check-ins de cron y los comentarios de los usuarios aparecen en «Registros», y los perfiles en «Perfiles».",
+  "Metrics, distributions, service checks, logs and APM traces are kept, and errors in a span appear in Exceptions. Turn off process collection, which OneUptime does not read from the Agent yet.": "Se conservan las métricas, distribuciones, service checks, registros y trazas de APM, y los errores de un span aparecen en «Excepciones». Desactiva la recopilación de procesos, que OneUptime aún no lee del Agent.",
+  "Point the Agent's metrics, logs and APM traces at OneUptime, with the ingestion key as its API key.": "Apunta las métricas, los registros y las trazas de APM del Agent a OneUptime, con la clave de ingesta como clave de API.",
+  "The Datadog Agent you already run: its metrics, logs and APM traces.": "El Datadog Agent que ya ejecutas: sus métricas, registros y trazas de APM."
 }

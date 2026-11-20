@@ -51963,11 +51963,8 @@
   "Use OneUptime as the HTTP Event Collector, with the ingestion key as the HEC token.": "Bruk OneUptime som HTTP Event Collector, med inntaksnøkkelen som HEC-token.",
   "Every log keeps its host, source, sourcetype and index, and its fields become attributes.": "Hver loggoppføring beholder host, source, sourcetype og index, og feltene blir attributter.",
   "Metric events are stored as metrics. Set service.name in an event's fields to name its service.": "Målingshendelser lagres som målinger. Angi service.name i feltene til en hendelse for å navngi tjenesten dens.",
-  "The Datadog Agent you already run: its metrics and logs.": "Datadog Agent som du allerede kjører: målingene og loggene fra den.",
   "Datadog URL": "Datadog-URL",
-  "Point the Agent's metrics and logs at OneUptime, with the ingestion key as its API key.": "Pek Agentens målinger og logger mot OneUptime, med inntaksnøkkelen som API-nøkkel.",
   "Tags become attributes, and the service, env and version tags name the service.": "Tagger blir attributter, og taggene service, env og version navngir tjenesten.",
-  "Metrics, distributions, service checks and logs are kept. Turn off APM and process collection, which OneUptime does not read from the Agent yet.": "Målinger, distribusjoner, service checks og logger beholdes. Slå av APM og prosessinnsamling, som OneUptime ennå ikke leser fra Agenten.",
   "Keep your Sentry SDK and change its DSN.": "Behold Sentry-SDK-et ditt og bytt DSN-en.",
   "DSN": "DSN",
   "Replace the DSN where you set up Sentry. The rest of your Sentry code stays as it is.": "Erstatt DSN-en der du setter opp Sentry. Resten av Sentry-koden din forblir uendret.",
@@ -59716,5 +59713,9 @@
   "New Email Link Expires": "Utløp for lenke til ny e-postadresse",
   "Send Link Again": "Send lenken på nytt",
   "The link we emailed to {{email}} has expired, so your email address has not changed. Send a new link to finish the change, or cancel it.": "Lenken vi sendte til {{email}}, er utløpt, så e-postadressen din er ikke endret. Send en ny lenke for å fullføre endringen, eller avbryt den.",
-  "We emailed the new address again.": "Vi har sendt en e-post til den nye adressen på nytt."
+  "We emailed the new address again.": "Vi har sendt en e-post til den nye adressen på nytt.",
+  "Cron check-ins and user feedback appear in Logs, and profiles in Profiles.": "Cron-check-ins og tilbakemeldinger fra brukere vises i «Logger», og profiler i «Profiler».",
+  "Metrics, distributions, service checks, logs and APM traces are kept, and errors in a span appear in Exceptions. Turn off process collection, which OneUptime does not read from the Agent yet.": "Målinger, distribusjoner, service checks, logger og APM-traces beholdes, og feil i et span vises i «Unntak». Slå av prosessinnsamling, som OneUptime ennå ikke leser fra Agenten.",
+  "Point the Agent's metrics, logs and APM traces at OneUptime, with the ingestion key as its API key.": "Pek Agentens målinger, logger og APM-traces mot OneUptime, med inntaksnøkkelen som API-nøkkel.",
+  "The Datadog Agent you already run: its metrics, logs and APM traces.": "Datadog Agent som du allerede kjører: målingene, loggene og APM-tracene fra den."
 }
