@@ -59,12 +59,20 @@ function countWithoutType(sites: Array<NetworkSite>): number {
   }).length;
 }
 
-function useBulkParentSiteActions(): BulkRelationActionsResult<NetworkSite> {
+export interface BulkParentSiteActionsOptions {
+  // Told once the sites have moved: the page draws its hierarchy again.
+  onDone?: (() => void) | undefined;
+}
+
+function useBulkParentSiteActions(
+  options?: BulkParentSiteActionsOptions,
+): BulkRelationActionsResult<NetworkSite> {
   const translator: Translator = useTranslator();
 
   return useBulkRelationActions<NetworkSite>({
     modelType: NetworkSite,
     column: "parentSiteId",
+    onDone: options?.onDone,
     set: {
       title: SET_PARENT_SITE_ACTION_TITLE,
       icon: IconProp.BuildingOffice,

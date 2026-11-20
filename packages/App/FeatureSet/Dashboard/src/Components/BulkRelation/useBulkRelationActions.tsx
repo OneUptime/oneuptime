@@ -130,6 +130,12 @@ export interface BulkRelationConfig<T extends BaseModel> {
    * hover, for one who may not update the records (BulkDeviceActionGate).
    */
   gate: (action: BulkActionButtonSchema<T>) => BulkActionButtonSchema<T>;
+  /*
+   * Told once a Set or Clear has written what it could: a page that draws
+   * the relation beside the list reads it again (the Sites page's
+   * hierarchy, after Set Parent Site). The list reads its own rows again.
+   */
+  onDone?: (() => void) | undefined;
 }
 
 /*
@@ -231,6 +237,7 @@ function useBulkRelationActions<T extends BaseModel>(
     });
 
     setBulkActionProps(null);
+    config.onDone?.();
   };
 
   const setAction: BulkActionButtonSchema<T> = {

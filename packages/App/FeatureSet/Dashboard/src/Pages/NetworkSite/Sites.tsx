@@ -424,7 +424,12 @@ const NetworkSites: FunctionComponent<
    * its own; Delete is ModelTable's, for who may delete sites.
    */
   const { bulkActions: parentSiteBulkActions, modals: parentSiteModals } =
-    useBulkParentSiteActions();
+    useBulkParentSiteActions({
+      // The hierarchy and the summary cards read the moved sites again.
+      onDone: () => {
+        setRefreshToggle(Date.now().toString());
+      },
+    });
 
   const { bulkActions: defaultProbeBulkActions, modals: defaultProbeModals } =
     useBulkDefaultProbeActions();

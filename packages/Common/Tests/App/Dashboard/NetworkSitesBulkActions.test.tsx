@@ -83,6 +83,9 @@ interface CapturedModal {
 
 const mockModals: Record<string, CapturedModal> = {};
 
+// What the page hands its hierarchy each time it draws it.
+const mockHierarchyToggles: Array<string | undefined> = [];
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SharedName/SharedNamesApi",
   () => {
@@ -383,7 +386,8 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: () => {
+      default: (props: { refreshToggle?: string | undefined }) => {
+        mockHierarchyToggles.push(props.refreshToggle);
         return null;
       },
     };
@@ -698,6 +702,8 @@ beforeEach(() => {
     delete mockModals[key];
   }
 
+  mockHierarchyToggles.length = 0;
+
   holding([Permission.ProjectOwner]);
   PermissionGate.clearPermissionPropsCache();
   TableFilterUrlState.resetClaimedKeys();
@@ -801,6 +807,10 @@ describe("the Sites list's Bulk Actions, over 705 sites", () => {
     expect(updatedIds()).not.toContain(YORK);
     expect(site(NORTH)["parentSiteId"]).toBeUndefined();
     expect(document.body.textContent).toContain(IS_PICKED_PARENT_REASON);
+
+    // The hierarchy above the list reads the moved sites again.
+    expect(mockHierarchyToggles[0]).toBe("");
+    expect(mockHierarchyToggles[mockHierarchyToggles.length - 1]).not.toBe("");
   });
 
   test("Clear Parent Site asks first, counting the sites it moves, and moves only them", async () => {
