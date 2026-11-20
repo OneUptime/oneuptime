@@ -23,6 +23,10 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  EmailAddressChangedBy,
+} from "Common/Types/Accounts/EmailAddressChangedEmail";
 import Name from "Common/Types/Name";
 import Text from "Common/Types/Text";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
@@ -2513,6 +2517,15 @@ const updateProjectScimUser: (data: {
       await UserService.updateOneById({
         id: userId,
         data: updateData,
+        /*
+         * A new address is the identity provider's change: the address the
+         * account leaves is told so, by role (#9907,
+         * UserService.tellPreviousAddressesOfChange).
+         */
+        miscDataProps: {
+          [EMAIL_ADDRESS_CHANGED_BY_KEY]:
+            EmailAddressChangedBy.IdentityProvider,
+        },
         props: { isRoot: true },
       });
     } catch (err) {

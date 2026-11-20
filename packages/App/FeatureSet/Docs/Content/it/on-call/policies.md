@@ -50,7 +50,7 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 | --- | --- |
 | **Base** | **Panoramica**, **Regole di escalation** e **Proprietari** |
 | **Log** | **Log di esecuzione** e **Log di notifica** |
-| **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA** |
+| **Sviluppatori** | **Terraform**, **Crossplane**, **API**, **CLI** e **Assistenti IA** |
 | **Avanzato** | **Sostituzioni utente**, **Campi personalizzati**, **Impostazioni**, **Log di audit** ed **Elimina policy** |
 
 **Base** è aperta; le altre sezioni partono chiuse finché non ci fate clic.

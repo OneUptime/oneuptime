@@ -202,6 +202,7 @@ Setzen Sie sie in den **Optional configuration settings** der EKS-Konsole oder m
 - `logs.enabled`, `ebpf.enabled` und `aiAgent.enabled`: Pod-Logs, eBPF-Traces und der [Kubernetes-KI-Agent](#kubernetes-ki-agent), jeweils standardmäßig aktiv.
 - `kubeStateMetrics.enabled`: kube-state-metrics, standardmäßig aus.
 - `cost.enabled`: [Kosten-Observability](/docs/telemetry/kubernetes-cost), standardmäßig `auto`: an, außer mit dem Preset `eks-fargate`.
+- `kubeletstats.nodesProxy`: ob die ClusterRole des Agents `nodes/proxy` gewährt, worüber die gesamte Kubelet-API erreichbar ist und was gegen CIS 5.1.10 verstößt. `auto`, der Standard, gewährt es auf EKS 1.34 und 1.35, deren Knoten Kubelets älter als 1.33 ausführen können. Setzen Sie `false`, sobald jeder Knoten 1.33 oder neuer ausführt (`kubectl get nodes` zeigt die Version jedes Knotens): Ein Knoten mit älterem Kubelet sendet dann keine der Knoten-, Pod-, Container- und Volume-Metriken, die sein Kubelet meldet.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -390,6 +391,8 @@ Der Agent liest jedes Kubelet über die Unterressourcen, auf die das Kubelet sei
 | `cost.prometheus.nodesProxy` | `auto` (der Standard) gewährt die Berechtigung nur mit dem Preset `eks-fargate`, wo kein Pod das Kubelet eines Knotens erreicht und das Kosten-Prometheus cAdvisor über den API-Server liest. Überall sonst liest es das Kubelet jedes Knotens auf Port 10250 |
 
 Wo die eigene Rollenbindung des Agents gegen 5.1.10 verstößt, sagt die Seite, dass es die Rollenbindung des Agents ist, warum sie `nodes/proxy` gewährt und mit welchem Wert das wegfällt.
+
+Beim Add-on für Amazon EKS, das kein Helm-`--set` annimmt, nennt die Seite stattdessen den Konfigurationswert des Add-ons: `{"kubeletstats": {"nodesProxy": false}}`, sobald jeder Knoten 1.33 oder neuer ausführt. Das Add-on hat kein `cost.prometheus.nodesProxy`: Mit dem Preset `eks-fargate` und eingeschalteten Kosten entfällt `nodes/proxy` nur mit `{"cost": {"enabled": false}}`.
 
 ## Konfigurationsoptionen
 

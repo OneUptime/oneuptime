@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 Med Grafana Alloy legger du til en `prometheus.remote_write`-komponent og videresender skrapingene dine til den:
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-Remote write 1.0 og 2.0 tas begge imot, snappy-komprimert slik alle avsendere sender dem.
+Remote write 1.0 og 2.0 tas begge imot, snappy-komprimert slik alle avsendere sender dem. For å sende 2.0, som har med type, enhet og beskrivelse for hver serie, angir du `protobuf_message: io.prometheus.write.v2.Request` (Prometheus 3) eller `protobuf_message = "io.prometheus.write.v2.Request"` (Alloy). Prometheus sender exemplars med `send_exemplars: true` når den lagrer dem (`--enable-feature=exemplar-storage`); Alloy sender dem som standard.
 
 ### Hva en serie blir til
 
 - **Navnet og etikettene beholdes.** `http_requests_total{job="checkout", code="500"}` er målingen `http_requests_total` med attributtene `job` og `code`, så en spørring som flyttes fra Grafana, finner den.
 - **Jobben er tjenesten.** Hver `job` blir en tjeneste, og hver `instance` blir tjenesteinstansen dens, slik OpenTelemetrys Prometheus-regler kartlegger dem.
 - **Typene beholdes.** Tellere, og bøttene og antallene i et histogram, er kumulative summer, så ratene deres vises riktig i diagrammer. En type kommer fra metadataene avsenderen sender med; uten dem er et navn som slutter på `_total`, en teller, og en `_bucket` med en `le`-etikett en histogrambøtte.
+- **Klassiske histogrammer viser persentilene sine.** Et klassisk histogram beholder seriene `_bucket`, `_count` og `_sum`. Vis målingen `_bucket` med P50 til P99 i [Målingsutforsker](/docs/telemetry/metrics-explorer), så leses bøttene i hver scrape som ett histogram, uansett hvilken request hver bøtte kom i. I [PromQL](/docs/telemetry/promql) svarer `histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` som i Prometheus.
 - **Native histogrammer** blir eksponentielle histogrammer, og native histogrammer med egendefinerte bøtter blir vanlige histogrammer.
-- **Beholdes ikke:** staleness-markører og andre samples med NaN eller uendelige verdier, `_created`-seriene til tellere, og exemplars.
+- **Exemplars lenker til traces.** Et exemplar med en etikett `trace_id` (eller `traceID`) knytter datapunktet sitt til den tracen og det spanet: klikk på punktet i diagrammet for målingen for å se tracen eller loggene. Verdien og de andre etikettene beholdes ikke, og heller ikke et exemplar der datapunktet kom i en annen request.
+- **Beholdes ikke:** staleness-markører og andre verdier som er NaN eller uendelige, og `_created`-seriene til tellere. De telles likevel som skrevet, så avsenderen ikke melder om mislykkede samples.
+- **Avvises:** data som ingen versjon av remote write tillater, for eksempel en serie uten målingsnavn eller et sample med et negativt tidsstempel. Resten av requesten lagres, og avsenderen får `400` med det som ble avvist.
 
 ## Loki
 
@@ -106,6 +115,8 @@ I Fluent Bit tar `loki`-utdataen verten og stien hver for seg:
     Http_Passwd  YOUR_TELEMETRY_KEY
     Labels       job=fluent-bit
 ```
+
+OneUptime svarer slik Loki gjør: `204` når en push er lagret, `400` for en den ikke kan lese, `413` for en over grensene nedenfor, `401` for en manglende eller ukjent nøkkel, `403` for et oppbrukt dagsbudsjett, `429` med `Retry-After` over en hastighetsgrense og `503` når den ikke kan ta imot en akkurat nå. Promtail, Alloy og Vector prøver en `429` eller en `503` på nytt, og forkaster enhver annen avvist batch og logger hvorfor; Fluent Bit forkaster en `400` og prøver alt annet på nytt, opptil sin `Retry_Limit`.
 
 ### Hva en strøm blir til
 
@@ -209,8 +220,10 @@ Ettallet `1` på slutten av DSN-en kreves av SDK-ene til Sentry og leses ikke. D
 
 ## Grenser og inntaksbudsjetter
 
-- **Requeststørrelse** – ingressen i OneUptime godtar requester på opptil 4 MB under `/telemetry`, og innholdet i hver request kan være på høyst 64 MB dekomprimert.
-- **Inntaksbudsjetter** – Prometheus remote write og Loki sjekkes mot budsjettet for målinger eller logger før innholdet leses, og avvises med `403` når det er brukt opp. En HEC-batch, en Datadog-nyttelast eller en Sentry-konvolutt kan inneholde flere signaler, så hvert signal telles mot sitt eget budsjett når det lagres, og forkastes når det budsjettet er brukt opp.
+- **Requeststørrelse** – ingressen i OneUptime godtar requester på opptil 4 MB under `/telemetry`, og innholdet i hver request kan være på høyst 64 MB dekomprimert. En request fra Prometheus remote write kan være på høyst 32 MB dekomprimert og inneholde høyst 500 000 serier, etiketter og samples, slik at ingen enkelt request kan bruke opp minnet til serveren. Prometheus og Alloy sender som standard 2 000 samples per request, langt under begge; en request over avvises med `413`, så senk `max_samples_per_send` i `queue_config`.
+- **Loki-pusher** – en push kan være på høyst 32 MB dekomprimert og inneholde høyst 500 000 oppføringer, etiketter og strukturerte metadata, der etikettene til en strøm telles én gang for hver av oppføringene dens. Promtail og Alloy sender som standard batcher på 1 MB, langt under begge; en push over avvises med `413`, så senk batchstørrelsen til klienten.
+- **JSON- og Datadog-nyttelaster** – et JSON-innhold kan inneholde høyst 1 000 000 verdier (objekter, matriser, strenger og tall), og en protobuf-nyttelast fra Datadog Agent høyst 500 000 serier, punkter, tagger og sketcher. Hver telles før den leses, og en request over en grense avvises med `413`.
+- **Inntaksbudsjetter** – Prometheus remote write og Loki sjekkes mot budsjettet for målinger eller logger før innholdet leses, og avvises med `403` når det er brukt opp. Hver request telles deretter med den dekomprimerte størrelsen, slik en OTLP-request telles, også mot budsjettene til et team eller en etikett. En HEC-batch, en Datadog-nyttelast eller en Sentry-konvolutt kan inneholde flere signaler, så hvert signal telles mot sitt eget budsjett når det lagres, og forkastes når det budsjettet er brukt opp: loggene og målehendelsene i en HEC-batch deler størrelsen dens, og en Sentry-konvolutt telles med elementene OneUptime beholder, ikke med vedleggene, replayene eller profilene.
 
 ## Feilsøking
 

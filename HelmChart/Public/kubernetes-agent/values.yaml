@@ -14,6 +14,15 @@
 # has the details.
 chartDefaultsVersion: "0.7.3"
 
+# How this agent was installed, for OneUptime's pages to say how to change one
+# of its settings. Do not set it: the Amazon EKS add-on, which is this chart,
+# sets it to aws-eks-addon (HelmChart/Marketplace/build.py), and it is empty
+# for a Helm install. The agent's ClusterRole carries it as its
+# oneuptime.com/installed-as label, so the cluster's Compliance page names the
+# add-on's configuration value that drops nodes/proxy, not a --set an add-on
+# buyer cannot run.
+installedAs: ""
+
 # Preset for the kind of cluster you're installing into. Sets compatible
 # defaults for log collection and security context — so you don't have to
 # think about hostPath, Pod Security Standards, or which log collection mode

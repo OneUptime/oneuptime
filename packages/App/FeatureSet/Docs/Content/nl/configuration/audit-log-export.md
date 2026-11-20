@@ -148,7 +148,7 @@ Elke vermelding is één JSON-object, met de sleutels altijd in deze volgorde:
 | `mcpOAuthGrantId`, `mcpClientName` | De MCP-client waarlangs ze is gedaan, als die er is. |
 | `workflowId`, `workflowName` | De workflow die ze heeft gedaan, als die er is. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | In versie 3, waarmee de stap van de workflow draaide: `Default`, `ProjectOwner` of `CustomRole`, en de naam die de rol toen had. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | In versie 3, met wiens machtigingen hij draaide: de id van de persoon of van de API-sleutel van het project, en de naam die die toen had. Elk van deze vijf sleutels is `null` als geen workflow de wijziging heeft gedaan. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | In versie 3, met wiens machtigingen hij draaide: de id van de persoon of van de API-sleutel van het project, en de naam die die toen had. Elk van deze vijf sleutels is `null` als geen workflow de wijziging heeft gedaan. |
 | `changes` | Elk gewijzigd veld: `field`, met `oldValue` en `newValue`, en in versie 2 `summary`. |
 
 Een bestand bevat één vermelding per regel, gecomprimeerd met gzip, en wordt opgeborgen onder het uur van zijn eerste vermelding: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

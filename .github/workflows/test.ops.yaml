@@ -152,12 +152,21 @@ jobs:
       # (NodeImageHeapLimit.test.js) in node:26-alpine3.24 containers with
       # real memory limits, so the kernel's cgroup files and BusyBox's ash
       # check what the start scripts hand node.
+      #
+      # RUN_STATUS_CHECK_INGRESS_TESTS runs npm start's status check against
+      # the real ingress (StatusCheckIngress.test.js): the ingress template
+      # under the nginx image the ingress is built FROM, in front of a
+      # stand-in App on node:26-alpine3.24, published on 127.0.0.1, [::1],
+      # an address of the runner's own and a port alone, as
+      # ONEUPTIME_HTTP_PORT can publish it (#10024). The check must pass on
+      # each, and the check it replaced must fail on one address.
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
           RUN_NPM_CLI_UPDATE_TESTS: "1"
           RUN_COMPOSE_DATABASE_RUNTIME_TESTS: "1"
           RUN_NODE_HEAP_CONTAINER_TESTS: "1"
+          RUN_STATUS_CHECK_INGRESS_TESTS: "1"
       # The eBPF end-to-end test (the "Kubernetes Agent eBPF E2E" workflow)
       # needs a cluster and only runs when the chart changes; its assertions
       # do not. These unit tests feed Tests/Ops/agent-ebpf-e2e/analyze.py

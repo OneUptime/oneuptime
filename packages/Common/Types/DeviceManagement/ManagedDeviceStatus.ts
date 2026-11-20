@@ -31,9 +31,13 @@ import {
  * service wakes it, hours apart: Esper says its iOS devices report more
  * than 30 minutes "as expected behavior", and its console's next bucket is
  * a day. A device a service reads on a sync schedule (Intune's, every eight
- * hours or so) is the same. So each device has a check-in cadence
- * (getManagedDeviceCheckInCadence), and its window is the cadence's:
- * MANAGED_DEVICE_ONLINE_WINDOW_MINUTES for a heartbeat,
+ * hours or so, and Workspace ONE's, #10086) is the same. A SOTI MobiControl
+ * agent (#10087) keeps a live connection to its server instead, as Esper's
+ * does, so a SOTI device is quiet only once that connection is gone - but
+ * an iPhone or a Mac it manages checks in through Apple's push, hours
+ * apart, as an Esper Apple device does. So each device has a check-in
+ * cadence (getManagedDeviceCheckInCadence), and its window is the
+ * cadence's: MANAGED_DEVICE_ONLINE_WINDOW_MINUTES for a heartbeat,
  * MANAGED_DEVICE_SYNC_ONLINE_WINDOW_MINUTES for a sync.
  */
 
@@ -57,7 +61,9 @@ export enum ManagedDeviceCheckInCadence {
 /*
  * How often a device checks in, by its service and its platform. A device
  * whose service is not known (a row read without its connection) is
- * Esper's, as every device was before #9837.
+ * Esper's, as every device was before #9837. An agent that keeps a live
+ * connection (Esper's, SOTI's) is a heartbeat, but not on an Apple device,
+ * which checks in through Apple's push service.
  */
 export function getManagedDeviceCheckInCadence(data: {
   provider?: DeviceManagementProvider | string | undefined | null;
@@ -65,7 +71,10 @@ export function getManagedDeviceCheckInCadence(data: {
 }): ManagedDeviceCheckInCadence {
   const provider: string = data.provider || DeviceManagementProvider.Esper;
 
-  if (provider === DeviceManagementProvider.Esper) {
+  if (
+    provider === DeviceManagementProvider.Esper ||
+    provider === DeviceManagementProvider.Soti
+  ) {
     return isAppleManagedDevicePlatform(data.platform)
       ? ManagedDeviceCheckInCadence.Sync
       : ManagedDeviceCheckInCadence.Heartbeat;

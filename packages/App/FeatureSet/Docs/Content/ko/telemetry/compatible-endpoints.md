@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 Grafana Alloy에서는 `prometheus.remote_write` 컴포넌트를 추가하고 스크레이프한 데이터를 그쪽으로 전달합니다.
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-remote write 1.0과 2.0을 모두 받으며, 모든 발신자가 보내는 대로 snappy로 압축된 형식입니다.
+remote write 1.0과 2.0을 모두 받으며, 모든 발신자가 보내는 대로 snappy로 압축된 형식입니다. 각 시리즈의 유형, 단위, 설명까지 담는 2.0을 보내려면 `protobuf_message: io.prometheus.write.v2.Request`(Prometheus 3) 또는 `protobuf_message = "io.prometheus.write.v2.Request"`(Alloy)를 설정합니다. Prometheus는 exemplar를 저장하도록 하면(`--enable-feature=exemplar-storage`) `send_exemplars: true`로 이를 보내며, Alloy는 기본으로 보냅니다.
 
 ### 시리즈가 변환되는 방식
 
 - **이름과 레이블은 그대로 유지됩니다.** `http_requests_total{job="checkout", code="500"}`은 속성 `job`과 `code`가 있는 메트릭 `http_requests_total`이 되므로, Grafana에서 옮겨 온 쿼리도 이를 찾습니다.
 - **job이 서비스가 됩니다.** OpenTelemetry의 Prometheus 매핑 규칙대로 각 `job`은 서비스가 되고, 각 `instance`는 그 서비스 인스턴스가 됩니다.
 - **유형이 유지됩니다.** 카운터, 그리고 히스토그램의 버킷과 카운트는 누적 합계가 되므로 rate가 차트에 올바르게 그려집니다. 유형은 발신자가 포함한 메타데이터에서 정해지며, 메타데이터가 없으면 이름이 `_total`로 끝나는 것은 카운터, `le` 레이블이 있는 `_bucket`은 히스토그램 버킷이 됩니다.
+- **클래식 히스토그램은 백분위수를 차트로 그립니다.** 클래식 히스토그램은 `_bucket`, `_count`, `_sum` 시리즈로 유지됩니다. [메트릭 탐색기](/docs/telemetry/metrics-explorer)에서 그 `_bucket` 메트릭을 P50부터 P99로 차트에 그리면, 각 버킷이 어느 요청으로 도착했든 스크레이프마다의 버킷이 하나의 히스토그램으로 읽힙니다. [PromQL](/docs/telemetry/promql)에서는 `histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))`가 Prometheus와 같은 값을 돌려줍니다.
 - **네이티브 히스토그램**은 지수 히스토그램이 되고, 사용자 지정 버킷이 있는 네이티브 히스토그램은 히스토그램이 됩니다.
-- **유지되지 않는 것:** staleness 마커와 그 밖의 NaN 또는 무한대 샘플, 카운터의 `_created` 시리즈, exemplar.
+- **Exemplar는 트레이스로 연결됩니다.** `trace_id`(또는 `traceID`) 레이블이 있는 exemplar는 데이터 포인트를 그 트레이스와 스팬에 연결합니다. 메트릭 차트에서 그 점을 클릭하면 트레이스나 그 로그를 볼 수 있습니다. exemplar의 값과 다른 레이블은 유지되지 않으며, 데이터 포인트가 다른 요청으로 도착한 exemplar도 유지되지 않습니다.
+- **유지되지 않는 것:** staleness 마커와 그 밖의 NaN 또는 무한대 값, 카운터의 `_created` 시리즈. 그래도 기록된 것으로 집계되므로 발신자는 실패한 샘플을 보고하지 않습니다.
+- **거부되는 것:** 어느 버전의 remote write도 허용하지 않는 데이터입니다. 예를 들어 메트릭 이름이 없는 시리즈나 타임스탬프가 음수인 샘플입니다. 요청의 나머지는 저장되며, 발신자는 거부된 내용을 담은 `400`을 받습니다.
 
 ## Loki
 
@@ -106,6 +115,8 @@ Fluent Bit의 `loki` 출력은 호스트와 경로를 따로 받습니다.
     Http_Passwd  YOUR_TELEMETRY_KEY
     Labels       job=fluent-bit
 ```
+
+OneUptime은 Loki와 같은 방식으로 응답합니다. push가 저장되면 `204`, 읽을 수 없는 push에는 `400`, 아래 한도를 넘는 push에는 `413`, 키가 없거나 알 수 없으면 `401`, 일일 예산이 소진되면 `403`, 속도 한도를 넘으면 `Retry-After`와 함께 `429`, 지금 받을 수 없으면 `503`입니다. Promtail, Alloy, Vector는 `429`나 `503`을 재시도하고, 그 밖에 거부된 배치는 이유를 로그에 남기고 버립니다. Fluent Bit는 `400`을 버리고, 나머지는 `Retry_Limit`까지 재시도합니다.
 
 ### 스트림이 변환되는 방식
 
@@ -209,8 +220,10 @@ DSN 끝의 `1`은 Sentry SDK가 요구하는 것으로, 읽지는 않습니다. 
 
 ## 한도와 수집 예산
 
-- **요청 크기**: OneUptime의 인그레스는 `/telemetry` 아래에서 최대 4MB의 요청을 받으며, 각 본문은 압축을 풀었을 때 최대 64MB까지입니다.
-- **수집 예산**: Prometheus remote write와 Loki는 본문을 읽기 전에 메트릭 또는 로그 예산과 대조되며, 예산이 소진되면 `403`으로 거부됩니다. HEC 배치, Datadog 페이로드, Sentry 엔벨로프는 여러 신호를 담을 수 있으므로, 각 신호는 저장될 때 자체 예산에 집계되고 그 예산이 소진되면 버려집니다.
+- **요청 크기**: OneUptime의 인그레스는 `/telemetry` 아래에서 최대 4MB의 요청을 받으며, 각 본문은 압축을 풀었을 때 최대 64MB까지입니다. Prometheus remote write 요청은 압축을 풀었을 때 최대 32MB, 시리즈, 레이블, 샘플을 합쳐 최대 500,000개까지 담을 수 있어, 어떤 요청 하나도 서버의 메모리를 바닥낼 수 없습니다. Prometheus와 Alloy는 기본적으로 요청마다 2,000개의 샘플을 보내므로 두 한도에 한참 못 미칩니다. 한도를 넘은 요청은 `413`으로 거부되니, 그런 경우 `queue_config`의 `max_samples_per_send`를 낮추세요.
+- **Loki push**: push는 압축을 풀었을 때 최대 32MB, 항목, 레이블, 구조화 메타데이터를 합쳐 최대 500,000개까지 담을 수 있으며, 스트림의 레이블은 그 항목마다 한 번씩 셉니다. Promtail과 Alloy는 기본적으로 1MB 배치를 보내므로 두 한도에 한참 못 미칩니다. 한도를 넘은 push는 `413`으로 거부되니, 그런 경우 클라이언트의 배치 크기를 낮추세요.
+- **JSON과 Datadog 페이로드**: JSON 본문은 값(객체, 배열, 문자열, 숫자)을 최대 1,000,000개, Datadog Agent의 protobuf 페이로드는 시리즈, 포인트, 태그, 스케치를 최대 500,000개까지 담을 수 있습니다. 각각 읽기 전에 세며, 한도를 넘은 요청은 `413`으로 거부됩니다.
+- **수집 예산**: Prometheus remote write와 Loki는 본문을 읽기 전에 메트릭 또는 로그 예산과 대조되며, 예산이 소진되면 `403`으로 거부됩니다. 그다음 모든 요청은 OTLP 요청처럼 압축을 푼 크기로 집계되며, 팀이나 레이블의 예산에도 집계됩니다. HEC 배치, Datadog 페이로드, Sentry 엔벨로프는 여러 신호를 담을 수 있으므로, 각 신호는 저장될 때 자체 예산에 집계되고 그 예산이 소진되면 버려집니다. HEC 배치의 로그와 메트릭 이벤트는 그 크기를 나눠 가지며, Sentry 엔벨로프는 OneUptime이 보관하는 항목의 크기로 집계되고, 첨부 파일, 리플레이, 프로필은 집계되지 않습니다.
 
 ## 문제 해결
 

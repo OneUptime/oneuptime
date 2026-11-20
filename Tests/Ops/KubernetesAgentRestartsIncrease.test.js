@@ -42,9 +42,9 @@ const path = require("path");
 const yaml = require("js-yaml");
 const behaviour = require("./Utils/KubernetesAgentRestartsIncreaseBehaviour");
 const {
-  processorNamesFor,
+  componentNamesFor,
   templateForPinnedCollector,
-} = require("./Utils/CumulativeToDeltaProcessor");
+} = require("./Utils/CollectorComponentTypes");
 
 // The collector a `helm upgrade --reuse-values` keeps on a release from before 0.161.0.
 const REUSE_VALUES_IMAGE = "otel/opentelemetry-collector-contrib:0.96.0";
@@ -61,9 +61,10 @@ function readRepoFile(file) {
 
 /*
  * The Deployment template as the chart renders it for the collector it pins:
- * the template asks kubernetes-agent.cumulativeToDeltaProcessor for the
- * cumulative-to-delta processor's type, which is cumulative_to_delta there
- * (and cumulativetodelta before 0.157.0: Utils/CumulativeToDeltaProcessor.js).
+ * the template asks kubernetes-agent.componentType for each renamed
+ * component's type, which is the new one there (cumulative_to_delta,
+ * k8s_attributes, otlp_http; the old ones before each rename:
+ * Utils/CollectorComponentTypes.js).
  */
 function readDeploymentTemplate() {
   return templateForPinnedCollector(readRepoFile(DEPLOYMENT_TEMPLATE));
@@ -365,7 +366,7 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
     const template = readDeploymentTemplate();
     const extracted = template
       .substring(
-        template.indexOf("      k8sattributes:\n"),
+        template.indexOf("      k8s_attributes:\n"),
         template.indexOf("          labels:\n"),
       )
       .split("\n")
@@ -588,16 +589,16 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
     ]);
     // The template's list, but the processors only some values turn on:
     // filter/telemetry (filters.metrics or a namespace filter) and
-    // resourcedetection/openshift (the OpenShift presets). The script's
+    // resource_detection/openshift (the OpenShift presets). The script's
     // render has the eBPF filter (eBPF is on by default).
     expect(
       pipeline.processors.filter((name) => {
         return (
-          name !== "filter/telemetry" && name !== "resourcedetection/openshift"
+          name !== "filter/telemetry" && name !== "resource_detection/openshift"
         );
       }),
     ).toEqual(behaviour.METRICS_PIPELINE_PROCESSORS);
-    expect(pipeline.exporters).toEqual(["otlphttp"]);
+    expect(pipeline.exporters).toEqual(["otlp_http"]);
 
     expect(behaviour.liftedMetricsProcessors()).toEqual(
       behaviour.METRICS_PIPELINE_PROCESSORS.filter((name) => {
@@ -621,9 +622,13 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
 
   // A rendered cluster collector config, named as `image` knows its processors.
   function stubCollector(image) {
-    const lifted = processorNamesFor(behaviour.LIFTED_PROCESSORS, image);
-    const metricsProcessors = processorNamesFor(
+    const lifted = componentNamesFor(behaviour.LIFTED_PROCESSORS, image);
+    const metricsProcessors = componentNamesFor(
       behaviour.METRICS_PIPELINE_PROCESSORS,
+      image,
+    );
+    const [exporter, objects, attributes] = componentNamesFor(
+      ["otlp_http", "k8s_objects", "k8s_attributes"],
       image,
     );
     const names = [...lifted, ...metricsProcessors];
@@ -639,12 +644,12 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
           metrics: {
             receivers: ["k8s_cluster", behaviour.CONNECTOR, "otlp"],
             processors: [...metricsProcessors],
-            exporters: ["otlphttp"],
+            exporters: [exporter],
           },
           logs: {
-            receivers: ["k8sobjects"],
-            processors: ["memory_limiter", "k8sattributes", "batch"],
-            exporters: ["otlphttp"],
+            receivers: [objects],
+            processors: ["memory_limiter", attributes, "batch"],
+            exporters: [exporter],
           },
           [behaviour.PIPELINE]: {
             receivers: ["k8s_cluster"],
@@ -729,7 +734,7 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
     const refusals = {
       "the restarts pipeline exports to the exporter": (collector) => {
         collector.service.pipelines[behaviour.PIPELINE].exporters = [
-          "otlphttp",
+          "otlp_http",
         ];
       },
       "the metrics pipeline does not take them": (collector) => {
@@ -741,17 +746,17 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
       "no connector": (collector) => {
         delete collector.connectors;
       },
-      "k8sattributes runs before the conversion": (collector) => {
+      "k8s_attributes runs before the conversion": (collector) => {
         collector.service.pipelines[behaviour.PIPELINE].processors.splice(
           1,
           0,
-          "k8sattributes",
+          "k8s_attributes",
         );
       },
-      "the metrics pipeline runs no k8sattributes": (collector) => {
+      "the metrics pipeline runs no k8s_attributes": (collector) => {
         collector.service.pipelines.metrics.processors =
           collector.service.pipelines.metrics.processors.filter((name) => {
-            return name !== "k8sattributes";
+            return name !== "k8s_attributes";
           });
       },
     };

@@ -173,9 +173,11 @@ import {
   ingestionBudgetStatus,
   isIngestionBudgetRead,
 } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -3001,11 +3003,17 @@ ModelAPI.updateById = async (options) => {
  */
 table(Metric);
 table(Span);
+/*
+ * The project uses no Security Events: an opened log line's details read
+ * the events naming it (SecurityEventsInSignal), and find none.
+ */
+table(SecurityEvent);
 const ANALYTICS_TABLES = [
   tableName(Log),
   tableName(ChangeEvent),
   tableName(Metric),
   tableName(Span),
+  tableName(SecurityEvent),
 ];
 
 /*
@@ -3714,6 +3722,11 @@ function FixtureShell() {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
         <Outlet />
       </div>
+      {/*
+       * Where a page's toasts are said, as the Dashboard's src/Index.tsx
+       * draws it: a log row's Copy Link says "Link copied" there (#9944).
+       */}
+      <ToastRegion />
     </>
   );
 }

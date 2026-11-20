@@ -13,7 +13,7 @@ const {
   isPlaceholderValue,
   readSettings,
 } = require("./ReplacePlaceholderSecrets");
-const { ingressUrlOf } = require("./FollowIngressPort");
+const { ingressRequestOf } = require("./FollowIngressPort");
 const {
   CONFIG_FILE,
   dockerFindings,
@@ -1204,10 +1204,17 @@ const run = async (options) => {
     );
   }
 
-  // OneUptime at the ingress, then what the server says of itself.
-  const ingress = ingressUrlOf(settings.get("ONEUPTIME_HTTP_PORT"));
+  /*
+   * OneUptime at the ingress, then what the server says of itself: asked
+   * where ONEUPTIME_HTTP_PORT publishes the ingress, under localhost, the
+   * name it serves OneUptime under whatever address it listens on (#10024).
+   */
+  const ingress = ingressRequestOf(settings.get("ONEUPTIME_HTTP_PORT"));
   const ingressUrl = ingress ? ingress.url : "http://localhost";
-  const ready = await request(`${ingressUrl}${READY_PATH}`, {});
+  const ingressHost = ingress ? ingress.host : "localhost";
+  const ready = await request(`${ingressUrl}${READY_PATH}`, {
+    headers: { Host: ingressHost },
+  });
   add(ingressFindings(ingressUrl, ready));
 
   /*
@@ -1232,7 +1239,7 @@ const run = async (options) => {
      */
     const answer = await request(`${ingressUrl}${DOCTOR_PATH}`, {
       method: "POST",
-      headers: { clusterkey: encodeURIComponent(secret) },
+      headers: { Host: ingressHost, clusterkey: encodeURIComponent(secret) },
     });
 
     add(serverFindings(answer, publicUrl));

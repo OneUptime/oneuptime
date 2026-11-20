@@ -12,6 +12,7 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import ProviderPicker from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ProviderPicker";
 import { ChatProvider } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/useAiChat";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 
 /*
  * Ask AI's LLM provider picker. Drawn only when a project has more than one
@@ -151,33 +152,57 @@ describe("ProviderPicker", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
-  test("opens upwards by default, from a composer at the foot of the dialog", () => {
-    renderPicker();
-
-    fireEvent.click(trigger());
-
-    expect(screen.getByRole("menu")).toHaveClass("bottom-full", "mb-1.5");
-  });
-
-  test("opens downwards from the composer at the top of Ask AI's start", () => {
-    renderPicker({ menuSide: "bottom" });
+  test("draws its menu on the tooltip layer, never inside the box that holds the composer (#9910)", () => {
+    render(
+      <div data-testid="dialog" style={{ overflow: "hidden" }}>
+        <ProviderPicker
+          providers={PROVIDERS}
+          selectedProviderId="provider-0"
+          onSelect={getJestMockFunction()}
+        />
+      </div>,
+    );
 
     fireEvent.click(trigger());
 
     const menu: HTMLElement = screen.getByRole("menu");
-    expect(menu).toHaveClass("top-full", "mt-1.5");
-    expect(menu).not.toHaveClass("bottom-full");
+
+    expect(screen.getByTestId("dialog")).not.toContainElement(menu);
+    expect(menu.closest(`.${LAYERED_POPOVER_CLASS_NAME}`)?.parentElement).toBe(
+      document.body,
+    );
+    expect(menu).toHaveClass("w-72", "max-w-[calc(100vw-1rem)]");
+    expect(menu).not.toHaveClass("absolute", "left-2", "bottom-full");
+  });
+
+  test("Tab on the button goes into the menu, and on from the button past its last", () => {
+    renderPicker();
+
+    fireEvent.click(trigger());
+    act(() => {
+      trigger().focus();
+    });
+
+    const items: Array<HTMLElement> = screen.getAllByRole("menuitemradio");
+
+    expect(fireEvent.keyDown(trigger(), { key: "Tab" })).toBe(false);
+    expect(items[0]).toHaveFocus();
+    fireEvent.keyDown(items[0]!, { key: "Tab" });
+    expect(items[1]).toHaveFocus();
+    expect(fireEvent.keyDown(items[1]!, { key: "Tab" })).toBe(true);
+    expect(trigger()).toHaveFocus();
+    expect(screen.queryByRole("menu")).toBeNull();
   });
 });
 
 /*
- * The menu's side is measured, which jsdom does not do: these stub where
- * the button is, how tall the menu is and the box that clips them both
- * (Ask AI's dialog), and put the real methods back after each test.
+ * The menu is placed against the window, on the tooltip layer, which jsdom
+ * does not lay out: these stub the window's height, where the button is and
+ * how tall the menu is, and put the real ones back after each test.
  */
 interface StubbedLayout {
   button: [number, number];
-  boundary: [number, number];
+  windowHeight: number;
   menuHeight: number;
 }
 
@@ -187,11 +212,11 @@ function rectOf(top: number, bottom: number): DOMRect {
   return {
     top: top,
     bottom: bottom,
-    left: 0,
-    right: 200,
+    left: 80,
+    right: 280,
     width: 200,
     height: bottom - top,
-    x: 0,
+    x: 80,
     y: top,
     toJSON: () => {
       return {};
@@ -199,11 +224,28 @@ function rectOf(top: number, bottom: number): DOMRect {
   };
 }
 
+function stubProperty(
+  target: HTMLElement,
+  property: string,
+  getter: (this: HTMLElement) => number,
+): void {
+  const original: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(target, property);
+
+  Object.defineProperty(target, property, { configurable: true, get: getter });
+
+  restoreLayout.push(() => {
+    if (original) {
+      Object.defineProperty(target, property, original);
+    } else {
+      Reflect.deleteProperty(target, property);
+    }
+  });
+}
+
 function stubLayout(layout: StubbedLayout): void {
   const originalRect: () => DOMRect =
     HTMLElement.prototype.getBoundingClientRect;
-  const originalOffsetHeight: PropertyDescriptor | undefined =
-    Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
 
   HTMLElement.prototype.getBoundingClientRect = function (
     this: HTMLElement,
@@ -212,44 +254,61 @@ function stubLayout(layout: StubbedLayout): void {
       return rectOf(layout.button[0], layout.button[1]);
     }
 
-    if (this.hasAttribute("data-boundary")) {
-      return rectOf(layout.boundary[0], layout.boundary[1]);
-    }
-
     return originalRect.call(this);
   };
-
-  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
-    configurable: true,
-    get(this: HTMLElement): number {
-      return this.getAttribute("role") === "menu" ? layout.menuHeight : 0;
-    },
-  });
-
   restoreLayout.push(() => {
     HTMLElement.prototype.getBoundingClientRect = originalRect;
+  });
 
-    if (originalOffsetHeight) {
-      Object.defineProperty(
-        HTMLElement.prototype,
-        "offsetHeight",
-        originalOffsetHeight,
-      );
-    }
+  stubProperty(document.documentElement, "clientHeight", () => {
+    return layout.windowHeight;
+  });
+  stubProperty(document.documentElement, "clientWidth", () => {
+    return 1280;
+  });
+  stubProperty(HTMLElement.prototype, "offsetHeight", function () {
+    return this.getAttribute("role") === "menu" ? layout.menuHeight : 0;
   });
 }
 
 afterEach(() => {
-  for (const restore of restoreLayout.splice(0)) {
+  for (const restore of restoreLayout.splice(0).reverse()) {
     restore();
   }
 });
 
+function openedPlacement(): string | null {
+  fireEvent.click(trigger());
+
+  return (
+    screen
+      .getByRole("menu")
+      .closest(`.${LAYERED_POPOVER_CLASS_NAME}`)
+      ?.getAttribute("data-popper-placement") || null
+  );
+}
+
+describe("ProviderPicker — where the menu opens", () => {
+  test("opens upwards by default, from a composer at the foot of the dialog, from the button's start", () => {
+    stubLayout({ button: [740, 766], windowHeight: 800, menuHeight: 190 });
+    renderPicker();
+
+    expect(openedPlacement()).toBe("top-start");
+  });
+
+  test("opens downwards from the composer at the top of Ask AI's start", () => {
+    stubLayout({ button: [200, 226], windowHeight: 800, menuHeight: 190 });
+    renderPicker({ menuSide: "bottom" });
+
+    expect(openedPlacement()).toBe("bottom-start");
+  });
+});
+
 describe("ProviderPicker — a menu that would not fit", () => {
-  test("asked to open down where the dialog would cut it off, it opens up", () => {
-    stubLayout({ button: [600, 626], boundary: [24, 776], menuHeight: 190 });
+  test("asked to open down where the window has no room, it opens up", () => {
+    stubLayout({ button: [600, 626], windowHeight: 800, menuHeight: 190 });
     render(
-      <div data-boundary="" style={{ overflowY: "hidden" }}>
+      <div style={{ overflowY: "hidden" }}>
         <ProviderPicker
           providers={PROVIDERS}
           selectedProviderId="provider-0"
@@ -259,17 +318,13 @@ describe("ProviderPicker — a menu that would not fit", () => {
       </div>,
     );
 
-    fireEvent.click(trigger());
-
-    const menu: HTMLElement = screen.getByRole("menu");
-    expect(menu).toHaveAttribute("data-menu-side", "top");
-    expect(menu).toHaveClass("bottom-full", "mb-1.5");
+    expect(openedPlacement()).toBe("top-start");
   });
 
   test("with room below, it opens down as asked", () => {
-    stubLayout({ button: [402, 428], boundary: [24, 776], menuHeight: 190 });
+    stubLayout({ button: [402, 428], windowHeight: 800, menuHeight: 190 });
     render(
-      <div data-boundary="" style={{ overflowY: "hidden" }}>
+      <div style={{ overflowY: "hidden" }}>
         <ProviderPicker
           providers={PROVIDERS}
           selectedProviderId="provider-0"
@@ -279,11 +334,6 @@ describe("ProviderPicker — a menu that would not fit", () => {
       </div>,
     );
 
-    fireEvent.click(trigger());
-
-    expect(screen.getByRole("menu")).toHaveAttribute(
-      "data-menu-side",
-      "bottom",
-    );
+    expect(openedPlacement()).toBe("bottom-start");
   });
 });

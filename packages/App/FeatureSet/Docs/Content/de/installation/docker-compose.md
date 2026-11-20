@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` prüft OneUptime auf seinem neuen Port, `localhost:8080`, und endet mit **OneUptime is up!**
+`npm start` prüft OneUptime dort, wo der Ingress jetzt lauscht, `127.0.0.1:8080`, und endet mit **OneUptime is up!**
+
+Nur dieser Server erreicht den Ingress jetzt. Der Ingress leitet Anfragen nach Hostnamen weiter: Nur `HOST` und `localhost` erreichen die gesamte Anwendung, und jeder andere Name, auch die Adresse `127.0.0.1`, wird als Domain einer Statusseite behandelt. Darum gibt Ihr Proxy `HOST` weiter, den Namen, den der Browser angefragt hat, die Sonde ruft `http://localhost:8080` auf, und die Prüfung, mit der `npm start` endet, verbindet sich wie `npm run doctor` mit `127.0.0.1:8080`, unter dem Hostnamen `localhost:8080`.
 
 #### Den Proxy konfigurieren
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Sobald jeder Container läuft, führen Sie die Prüfung mit `npm run status-check` erneut aus. Sie prüft den Ingress auf dem Port, den `ONEUPTIME_HTTP_PORT` festlegt.
+Sobald jeder Container läuft, führen Sie die Prüfung mit `npm run status-check` erneut aus. Sie prüft den Ingress dort, wo `ONEUPTIME_HTTP_PORT` ihn veröffentlicht, mit Adresse und Port, etwa `127.0.0.1:8080`, und unter dem Hostnamen `localhost`, wie ein Browser auf dem Server.
 :::
 
 :::details Der Browser zeigt "OneUptime ist für diese Adresse nicht eingerichtet"

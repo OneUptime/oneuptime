@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` tjekker OneUptime på dens nye port, `localhost:8080`, og slutter med **OneUptime is up!**
+`npm start` tjekker OneUptime dér, hvor ingressen nu lytter, `127.0.0.1:8080`, og slutter med **OneUptime is up!**
+
+Kun denne server når nu ingressen. Ingressen sender anmodninger videre efter værtsnavn: Kun `HOST` og `localhost` når hele applikationen, og ethvert andet navn, også adressen `127.0.0.1`, behandles som en statussides domæne. Derfor sender din proxy `HOST` videre, det navn browseren bad om, sonden kalder `http://localhost:8080`, og tjekket, som `npm start` slutter med, forbinder ligesom `npm run doctor` til `127.0.0.1:8080` med værtsnavnet `localhost:8080`.
 
 #### Konfigurér proxyen
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-Når hver container kører, så kør tjekket igen med `npm run status-check`. Det tjekker ingressen på den port, `ONEUPTIME_HTTP_PORT` angiver.
+Når hver container kører, så kør tjekket igen med `npm run status-check`. Det tjekker ingressen dér, hvor `ONEUPTIME_HTTP_PORT` udgiver den, med adresse og port, som `127.0.0.1:8080`, og med værtsnavnet `localhost`, som en browser på serveren ville gøre.
 :::
 
 :::details Browseren viser "OneUptime er ikke sat op til denne adresse"

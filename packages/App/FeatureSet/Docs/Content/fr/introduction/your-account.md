@@ -41,7 +41,7 @@ Cliquez sur votre photo en haut à droite et choisissez **Profil**. La page **Vu
 
 Cliquez sur **Modifier : Utilisateur** et changez ce dont vous avez besoin :
 
-- **E-mail** : l'adresse avec laquelle vous vous connectez. Si vous la changez, OneUptime envoie un lien à la nouvelle adresse, et votre adresse change dès que vous l'ouvrez. D'ici là, vous vous connectez avec l'adresse actuelle, et **Annuler la modification** arrête la modification. L'adresse d'un administrateur principal change aussitôt.
+- **E-mail** : l'adresse avec laquelle vous vous connectez. Si vous la changez, OneUptime envoie un lien à la nouvelle adresse, et votre adresse change dès que vous l'ouvrez. D'ici là, vous vous connectez avec l'adresse actuelle, et **Annuler la modification** arrête la modification. L'adresse d'un administrateur principal change aussitôt. Si le lien expire, **Renvoyer le lien** en envoie un nouveau. Chaque fois que votre adresse change, OneUptime écrit à l'adresse que vous aviez.
 - **Nom complet** : le nom que votre équipe voit partout dans OneUptime.
 - **Fuseau horaire** : le fuseau dans lequel le tableau de bord affiche et lit les heures, et celui des heures indiquées dans les notifications qui vous sont envoyées.
 - **Langue** : la langue du tableau de bord dans chaque navigateur où vous vous connectez, et celle de vos alertes d'astreinte. Non définie, vos alertes sont en anglais et le tableau de bord suit votre navigateur.
@@ -191,7 +191,11 @@ Cette adresse a déjà un compte OneUptime, donc l'inscription n'a rien créé n
 :::
 
 :::details Mon adresse e-mail n'a pas changé
-Votre adresse ne change qu'une fois ouvert le lien envoyé par OneUptime à la nouvelle adresse. Le lien fonctionne pendant 24 heures. S'il a expiré, changez à nouveau votre e-mail pour en recevoir un nouveau. Si un autre compte utilise déjà cette adresse, l'e-mail envoyé à celle-ci le dit, et votre adresse reste telle quelle.
+Votre adresse ne change qu'une fois ouvert le lien envoyé par OneUptime à la nouvelle adresse. Le lien fonctionne pendant 24 heures. Une fois qu'il a expiré, votre profil l'indique, et **Renvoyer le lien** en envoie un nouveau. Si un autre compte utilise déjà cette adresse, l'e-mail envoyé à celle-ci le dit, et votre adresse reste telle quelle.
+:::
+
+:::details J'ai reçu un e-mail indiquant que mon adresse e-mail a été modifiée
+OneUptime écrit à l'adresse qu'avait votre compte chaque fois que cette adresse change : quand vous ouvrez le lien envoyé à une nouvelle adresse, quand un administrateur du serveur la modifie, ou quand le fournisseur d'identité de votre organisation la modifie. Si c'est vous qui l'avez modifiée, il n'y a rien à faire. Sinon, une personne qui pouvait se connecter à votre compte l'a transféré vers une adresse qui lui appartient : depuis votre ancienne adresse, contactez l'administrateur de votre serveur ou, sur OneUptime Cloud, support@oneuptime.com, qui peuvent le rétablir. L'e-mail ne montre qu'une partie de la nouvelle adresse et ne contient aucun lien pour annuler la modification : un tel lien fonctionnerait pour quiconque lit votre ancienne boîte mail.
 :::
 
 :::details J'ai perdu mon application d'authentification

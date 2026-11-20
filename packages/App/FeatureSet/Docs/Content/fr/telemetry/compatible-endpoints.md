@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 Avec Grafana Alloy, ajoutez un composant `prometheus.remote_write` et transmettez-lui vos scrapes :
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-Remote write 1.0 et 2.0 sont tous deux acceptés, compressés en snappy comme tous les émetteurs les envoient.
+Remote write 1.0 et 2.0 sont tous deux acceptés, compressés en snappy comme tous les émetteurs les envoient. Pour envoyer 2.0, qui transmet le type, l'unité et la description de chaque série, réglez `protobuf_message: io.prometheus.write.v2.Request` (Prometheus 3) ou `protobuf_message = "io.prometheus.write.v2.Request"` (Alloy). Prometheus envoie les exemplars avec `send_exemplars: true` dès qu'il les conserve (`--enable-feature=exemplar-storage`) ; Alloy les envoie par défaut.
 
 ### Ce que devient une série
 
 - **Son nom et ses labels restent.** `http_requests_total{job="checkout", code="500"}` est la métrique `http_requests_total` avec les attributs `job` et `code`, si bien qu'une requête reprise de Grafana la retrouve.
 - **Le job est le service.** Chaque `job` devient un service, et chaque `instance` son instance de service, selon la correspondance des règles Prometheus d'OpenTelemetry.
 - **Les types sont conservés.** Les compteurs, ainsi que les buckets et le nombre d'observations d'un histogramme, sont des sommes cumulatives, si bien que leurs taux s'affichent correctement dans les graphiques. Le type vient des métadonnées que l'émetteur inclut ; sans elles, un nom en `_total` est un compteur, et un `_bucket` avec un label `le`, un bucket d'histogramme.
+- **Les histogrammes classiques affichent leurs percentiles.** Un histogramme classique garde ses séries `_bucket`, `_count` et `_sum`. Affichez sa métrique `_bucket` avec P50 à P99 dans l'[Explorateur de métriques](/docs/telemetry/metrics-explorer) : les buckets de chaque scrape sont lus comme un seul histogramme, quelle que soit la requête par laquelle chaque bucket est arrivé. En [PromQL](/docs/telemetry/promql), `histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` répond comme dans Prometheus.
 - **Les histogrammes natifs** deviennent des histogrammes exponentiels, et les histogrammes natifs à buckets personnalisés deviennent des histogrammes.
-- **Non conservés :** les marqueurs d'obsolescence et autres échantillons NaN ou infinis, les séries `_created` des compteurs et les exemplars.
+- **Les exemplars renvoient aux traces.** Un exemplar avec un label `trace_id` (ou `traceID`) relie son point de données à cette trace et à ce span : sur le graphique de la métrique, cliquez sur son point pour voir la trace ou ses logs. Sa valeur et ses autres labels ne sont pas conservés, pas plus qu'un exemplar dont le point de données est arrivé dans une autre requête.
+- **Non conservés :** les marqueurs d'obsolescence et autres valeurs NaN ou infinies, ainsi que les séries `_created` des compteurs. Ils sont tout de même comptés comme écrits, si bien que l'émetteur ne signale aucun échantillon en échec.
+- **Refusées :** les données qu'aucune version de remote write n'autorise, comme une série sans nom de métrique ou un échantillon à l'horodatage négatif. Le reste de la requête est stocké, et l'émetteur reçoit un `400` qui indique ce qui a été refusé.
 
 ## Loki
 
@@ -106,6 +115,8 @@ La sortie `loki` de Fluent Bit prend l'hôte et le chemin séparément :
     Http_Passwd  YOUR_TELEMETRY_KEY
     Labels       job=fluent-bit
 ```
+
+OneUptime répond comme Loki : `204` une fois un push stocké, `400` pour un push qu'il ne peut pas lire, `413` pour un push au-delà des limites ci-dessous, `401` pour une clé absente ou inconnue, `403` pour un budget quotidien épuisé, `429` avec `Retry-After` au-delà d'un débit, et `503` quand il ne peut pas en prendre un sur le moment. Promtail, Alloy et Vector réessaient un `429` ou un `503`, et écartent tout autre lot refusé en journalisant pourquoi ; Fluent Bit écarte un `400` et réessaie tout le reste, jusqu'à son `Retry_Limit`.
 
 ### Ce que devient un flux
 
@@ -209,8 +220,10 @@ Le `1` à la fin du DSN est exigé par les SDK Sentry et n'est pas lu. Le DSN d'
 
 ## Limites et budgets d'ingestion
 
-- **Taille des requêtes** – l'ingress de OneUptime accepte des requêtes jusqu'à 4 Mo sous `/telemetry`, et chaque corps peut se décompresser en 64 Mo au plus.
-- **Budgets d'ingestion** – Prometheus remote write et Loki sont vérifiés par rapport au budget de métriques ou de logs avant la lecture de leur corps, et refusés avec `403` quand il est épuisé. Un lot HEC, une charge utile Datadog ou une enveloppe Sentry peut porter plusieurs signaux : chaque signal est donc décompté de son propre budget au moment où il est stocké, et écarté quand ce budget est épuisé.
+- **Taille des requêtes** – l'ingress de OneUptime accepte des requêtes jusqu'à 4 Mo sous `/telemetry`, et chaque corps peut se décompresser en 64 Mo au plus. Une requête Prometheus remote write peut se décompresser en 32 Mo au plus et contenir au plus 500 000 séries, labels et échantillons, pour qu'aucune requête ne puisse à elle seule épuiser la mémoire du serveur. Prometheus et Alloy envoient par défaut 2 000 échantillons par requête, bien en dessous des deux ; une requête au-delà est refusée avec `413`, baissez alors `max_samples_per_send` dans `queue_config`.
+- **Pushs Loki** – un push peut se décompresser en 32 Mo au plus et contenir au plus 500 000 entrées, labels et métadonnées structurées, les labels d'un flux comptant une fois pour chacune de ses entrées. Promtail et Alloy envoient par défaut des lots de 1 Mo, bien en dessous des deux ; un push au-delà est refusé avec `413`, baissez alors la taille de lot du client.
+- **Charges utiles JSON et Datadog** – un corps JSON peut contenir au plus 1 000 000 valeurs (objets, tableaux, chaînes et nombres), et une charge utile protobuf du Datadog Agent au plus 500 000 séries, points, tags et sketches. Chacune est comptée avant d'être lue, et une requête au-delà d'une limite est refusée avec `413`.
+- **Budgets d'ingestion** – Prometheus remote write et Loki sont vérifiés par rapport au budget de métriques ou de logs avant la lecture de leur corps, et refusés avec `403` quand il est épuisé. Chaque requête est ensuite décomptée à sa taille décompressée, comme une requête OTLP, y compris des budgets d'une équipe ou d'une étiquette. Un lot HEC, une charge utile Datadog ou une enveloppe Sentry peut porter plusieurs signaux : chaque signal est donc décompté de son propre budget au moment où il est stocké, et écarté quand ce budget est épuisé. Les logs et les événements de métrique d'un lot HEC se partagent sa taille, et une enveloppe Sentry est décomptée aux éléments que OneUptime conserve, pas à ses pièces jointes, replays ou profils.
 
 ## Dépannage
 

@@ -25,6 +25,8 @@ const SHORTCUT_ROWS: Array<ShortcutRow> = [
   { keys: ["j"], description: "Move to next log row" },
   { keys: ["k"], description: "Move to previous log row" },
   { keys: [KeyboardKey.Enter], description: "Expand / collapse selected log" },
+  // The selected row's Copy Link (#9944), without opening it.
+  { keys: ["l"], description: "Copy link to selected log" },
   { keys: [KeyboardKey.Escape], description: "Close detail panel" },
   { keys: ["/"], description: "Focus search bar" },
   {

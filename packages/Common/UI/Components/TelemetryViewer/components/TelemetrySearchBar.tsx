@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useRef,
   useEffect,
+  useId,
   useImperativeHandle,
   forwardRef,
   KeyboardEvent,
@@ -20,6 +21,7 @@ import TelemetrySearchSuggestions from "./TelemetrySearchSuggestions";
 import TelemetrySearchHelp from "./TelemetrySearchHelp";
 import { SearchHelpRow } from "../types";
 import { readOwnValue } from "../../../../Utils/LookupTable";
+import { isInsideComponent } from "../../../Types/UseComponentOutsideClick";
 
 export interface TelemetrySearchBarProps {
   value: string;
@@ -96,6 +98,9 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
       useRef<HTMLInputElement>(null!);
     const containerRef: React.RefObject<HTMLDivElement> =
       useRef<HTMLDivElement>(null!);
+    // The popups' ids, for the search's aria-owns.
+    const suggestionsId: string = useId();
+    const helpId: string = useId();
 
     const fieldAliasMap: Record<string, string> = props.fieldAliasMap || {};
 
@@ -429,13 +434,19 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
       [props],
     );
 
+    /*
+     * A press outside the search closes its suggestions and its help. They
+     * are drawn on the tooltip layer, not inside the search's box, so a
+     * press on them is told apart by isInsideComponent, which counts a
+     * popup drawn there from the search as the search's own.
+     */
     useEffect(() => {
       const handleClickOutside: (e: MouseEvent) => void = (
         e: MouseEvent,
       ): void => {
         if (
           containerRef.current &&
-          !containerRef.current.contains(e.target as Node)
+          !isInsideComponent(containerRef.current, e.target)
         ) {
           setShowSuggestions(false);
           setShowHelp(false);
@@ -465,8 +476,21 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
         ? `No matching values — press Enter to filter by "${partialValue}"`
         : undefined;
 
+    /*
+     * The suggestions and the help are drawn on the tooltip layer, hung from
+     * this box (LayeredPopover), so a drawer or a card the search sits in
+     * never cuts them off (#9909). The box owns the one that is open, so a
+     * screen reader still meets it right after the search, where it was
+     * drawn before.
+     */
+    const ownedPopupId: string | undefined = shouldShowSuggestions
+      ? suggestionsId
+      : shouldShowHelp
+        ? helpId
+        : undefined;
+
     return (
-      <div ref={containerRef} className="relative">
+      <div ref={containerRef} className="relative" aria-owns={ownedPopupId}>
         <div
           className={`flex items-center gap-2 rounded-lg border bg-white px-3 py-2 transition-colors ${
             isFocused
@@ -544,6 +568,8 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
 
         {shouldShowSuggestions && (
           <TelemetrySearchSuggestions
+            anchorRef={containerRef}
+            id={suggestionsId}
             suggestions={filteredSuggestions}
             selectedIndex={selectedSuggestionIndex}
             onSelect={applySuggestion}
@@ -561,6 +587,8 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
 
         {shouldShowHelp && props.helpRows && (
           <TelemetrySearchHelp
+            anchorRef={containerRef}
+            id={helpId}
             rows={props.helpRows}
             combinedExample={props.helpCombinedExample}
             onExampleClick={handleExampleClick}

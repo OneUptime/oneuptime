@@ -404,9 +404,9 @@ describe("what a step ran as, for the audit log (#9766)", () => {
     expect([...WORKFLOW_RUN_AS_AUDIT_COLUMNS]).toEqual([
       "workflowRunAs",
       "workflowRunAsCustomRoleName",
-      "workflowRunAsGivenByUserId",
-      "workflowRunAsGivenByApiKeyId",
-      "workflowRunAsGivenByName",
+      "workflowRunAsGiverUserId",
+      "workflowRunAsGiverApiKeyId",
+      "workflowRunAsGiverName",
     ]);
   });
 
@@ -431,8 +431,8 @@ describe("what a step ran as, for the audit log (#9766)", () => {
       }),
     ).toEqual({
       workflowRunAs: WorkflowRunAs.ProjectOwner,
-      workflowRunAsGivenByUserId: PERSON_ID,
-      workflowRunAsGivenByName: "Jane Doe",
+      workflowRunAsGiverUserId: PERSON_ID,
+      workflowRunAsGiverName: "Jane Doe",
     });
   });
 
@@ -448,8 +448,8 @@ describe("what a step ran as, for the audit log (#9766)", () => {
     ).toEqual({
       workflowRunAs: WorkflowRunAs.CustomRole,
       workflowRunAsCustomRoleName: "Team Provisioner",
-      workflowRunAsGivenByApiKeyId: KEY_ID,
-      workflowRunAsGivenByName: "Terraform",
+      workflowRunAsGiverApiKeyId: KEY_ID,
+      workflowRunAsGiverName: "Terraform",
     });
   });
 

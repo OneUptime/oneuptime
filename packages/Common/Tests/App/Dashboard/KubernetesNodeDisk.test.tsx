@@ -152,16 +152,73 @@ describe("a node's disks, read from its row", () => {
     const disk: KubernetesNodeDisk = getKubernetesNodeDisk(
       {
         latestVolumeCapacityBytes: 100 * GIB,
-        latestVolumeAvailableBytes: 15 * GIB,
+        latestVolumeAvailableBytes: 18 * GIB,
         latestVolumeMeasuredAt: new Date(NOW - MINUTE),
       },
       NOW,
     );
-    expect(disk.root?.usedPercent).toBe(85);
+    expect(disk.root?.usedPercent).toBe(82);
     expect(disk.root?.level).toBe(StorageUsageLevel.Warning);
     expect(disk.image).toBeNull();
     expect(disk.measuredAt).toEqual(new Date(NOW - MINUTE));
     expect(disk.isStale).toBe(false);
+  });
+
+  /*
+   * A root filesystem that holds the node's images, as on most nodes, is red
+   * from 85%, where the kubelet starts evicting pods from it; one whose
+   * images have a disk of their own is red from 90% (#10057).
+   */
+  test("its root filesystem is red at the line its kubelet evicts pods at: 85% holding the images, 90% holding none", () => {
+    const at85: {
+      latestVolumeCapacityBytes: number;
+      latestVolumeAvailableBytes: number;
+      latestVolumeMeasuredAt: Date;
+    } = {
+      latestVolumeCapacityBytes: 100 * GIB,
+      latestVolumeAvailableBytes: 15 * GIB,
+      latestVolumeMeasuredAt: new Date(NOW - MINUTE),
+    };
+
+    expect(getKubernetesNodeDisk(at85, NOW).root?.level).toBe(
+      StorageUsageLevel.Critical,
+    );
+    expect(
+      getKubernetesNodeDisk(
+        {
+          ...at85,
+          latestImageFsCapacityBytes: 500 * GIB,
+          latestImageFsAvailableBytes: 400 * GIB,
+        },
+        NOW,
+      ).root?.level,
+    ).toBe(StorageUsageLevel.Warning);
+    expect(
+      getKubernetesNodeDisk(
+        {
+          ...at85,
+          latestVolumeAvailableBytes: 10 * GIB,
+          latestImageFsCapacityBytes: 500 * GIB,
+          latestImageFsAvailableBytes: 400 * GIB,
+        },
+        NOW,
+      ).root?.level,
+    ).toBe(StorageUsageLevel.Critical);
+  });
+
+  test("an image disk of its own is red from 85%", () => {
+    const disk: KubernetesNodeDisk = getKubernetesNodeDisk(
+      {
+        latestVolumeCapacityBytes: 100 * GIB,
+        latestVolumeAvailableBytes: 60 * GIB,
+        latestImageFsCapacityBytes: 100 * GIB,
+        latestImageFsAvailableBytes: 15 * GIB,
+        latestVolumeMeasuredAt: new Date(NOW - MINUTE),
+      },
+      NOW,
+    );
+    expect(disk.image?.level).toBe(StorageUsageLevel.Critical);
+    expect(disk.root?.level).toBe(StorageUsageLevel.Normal);
   });
 
   test("its image filesystem when it is a disk of its own, from text as Postgres hands it", () => {
@@ -270,8 +327,9 @@ describe("a node's disk charts", () => {
     expect(used.metricFormulaData.metricFormula).toBe(
       "((node_disk_capacity - node_disk_free) / node_disk_capacity) * 100",
     );
+    // Its root filesystem holds the images: red where the kubelet evicts pods from it.
     expect(used.warningThreshold).toBe(80);
-    expect(used.criticalThreshold).toBe(90);
+    expect(used.criticalThreshold).toBe(85);
     expect(used.metricAliasData.legendUnit).toBe("%");
   });
 
@@ -293,6 +351,11 @@ describe("a node's disk charts", () => {
     expect(charts.formulaConfigs[1]!.metricFormulaData.metricFormula).toBe(
       "((node_image_disk_capacity - node_image_disk_free) / node_image_disk_capacity) * 100",
     );
+    // A root filesystem that holds no images is red from 90%, the image disk from 85%.
+    expect(charts.formulaConfigs[0]!.warningThreshold).toBe(80);
+    expect(charts.formulaConfigs[0]!.criticalThreshold).toBe(90);
+    expect(charts.formulaConfigs[1]!.warningThreshold).toBe(80);
+    expect(charts.formulaConfigs[1]!.criticalThreshold).toBe(85);
   });
 });
 
@@ -306,7 +369,7 @@ describe("the node page's Disk card", () => {
       <KubernetesNodeDiskCard
         disk={getKubernetesNodeDisk({
           latestVolumeCapacityBytes: 100 * GIB,
-          latestVolumeAvailableBytes: 15 * GIB,
+          latestVolumeAvailableBytes: 18 * GIB,
           latestVolumeMeasuredAt: new Date(),
         })}
         isLoading={false}
@@ -318,11 +381,11 @@ describe("the node page's Disk card", () => {
     expect(
       screen.getByTestId(`${KUBERNETES_NODE_DISK_CARD_TEST_ID}-used`)
         .textContent,
-    ).toBe("85\u00A0GiB");
+    ).toBe("82\u00A0GiB");
     expect(
       screen.getByTestId(`${KUBERNETES_NODE_DISK_CARD_TEST_ID}-free`)
         .textContent,
-    ).toBe("15\u00A0GiB");
+    ).toBe("18\u00A0GiB");
     expect(
       screen.getByTestId(`${KUBERNETES_NODE_DISK_CARD_TEST_ID}-capacity`)
         .textContent,

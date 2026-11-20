@@ -209,7 +209,7 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 
 ### 워크플로가 실행에 쓰는 사용자 지정 역할
 
-OneUptime은 워크플로가 실행에 쓰는 사용자 지정 역할을, 대신 무엇으로 실행할지 삭제에서 밝힐 때만 삭제하고, 밝히지 않은 삭제는 워크플로의 이름을 들어 거부합니다. `--workflows-run-as`로 밝히세요. `Default`는 기본 권한이고, `CustomRole`은 내가 팀에 줄 수 있는 다른 사용자 지정 역할로, 그 ID를 `--workflows-run-as-custom-role-id`에 줍니다. Project Owner는 안 됩니다. 역할을 삭제해도 워크플로가 할 수 있는 일은 늘어나지 않습니다.
+OneUptime은 워크플로가 실행에 쓰는 사용자 지정 역할을, 대신 무엇으로 실행할지 삭제에서 밝힐 때만 삭제하고, 밝히지 않은 삭제는 워크플로의 이름을 들어 거부합니다. `--workflows-run-as`로 밝히세요. `Default`는 기본 권한이고, `CustomRole`은 내가 팀에 줄 수 있는 다른 사용자 지정 역할로, 그 ID를 `--workflows-run-as-custom-role-id`에 줍니다. 프로젝트 소유자는 안 됩니다. 역할을 삭제해도 워크플로가 할 수 있는 일은 늘어나지 않습니다.
 
 ```bash
 # They run with the default permissions

@@ -149,8 +149,8 @@ flowchart TB
 | etcd No Leader | 控制平面 | etcd 没有选出的领导者 | 严重 |
 | API Server Request Saturation | 控制平面 | API 服务器在整个窗口内持有 200 个或更多正在处理的请求 | 严重 |
 | Scheduler Backlog | 正在调度 | 调度器的待处理 Pod 队列在 5 分钟内一直不为空 | 警告 |
-| High Node Disk Usage | 存储 | 节点的文件系统使用率超过 90% | 警告 |
-| Node Image Disk Almost Full | 存储 | 节点存放容器镜像的磁盘使用率超过 90% | 警告 |
+| High Node Disk Usage | 存储 | 节点的文件系统使用率超过 85% | 警告 |
+| Node Image Disk Almost Full | 存储 | 节点存放容器镜像的磁盘使用率超过 85% | 警告 |
 | PVC Almost Full | 存储 | 持久卷声明的使用率超过 90% | 警告 |
 | DaemonSet Pods Not Ready | 工作负载 | DaemonSet 在 15 分钟内一直有节点上没有它的就绪 Pod | 警告 |
 | DaemonSet Misscheduled Nodes | 工作负载 | DaemonSet 在不再匹配其节点选择器、亲和性或容忍度的节点上运行 Pod | 警告 |
@@ -169,7 +169,7 @@ flowchart TB
 
 **High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 与调度器一样，只计算尚未结束的 Pod 的请求（request）。处于 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被删除之前，集群仍会上报其请求：这些不计入。
 
-**Node Image Disk Almost Full** 读取 kubelet 报告的、每个运行中的容器写入自身文件的磁盘，因为代理本身不上报节点的镜像磁盘。在常见布局中这就是镜像磁盘，但并非每个节点都如此：如果节点像大多数节点一样把镜像放在根文件系统上，它就是根文件系统，因此该模板会与 **High Node Disk Usage** 同时触发；在 kubelet 的拆分镜像文件系统（`KubeletSeparateDiskGC`）下，它是容器写入的磁盘，而不是镜像所在的磁盘；没有运行中容器的节点则不上报任何内容。请为节点列表显示 **镜像专用磁盘** 列的集群创建它，即有节点把镜像放在自己专用磁盘上的集群。kubelet 默认在该磁盘使用率达到 85% 时删除未使用的镜像，并在可用空间低于 15% 时驱逐 Pod。
+**Node Image Disk Almost Full** 读取 kubelet 报告的、每个运行中的容器写入自身文件的磁盘，因为代理本身不上报节点的镜像磁盘。在常见布局中这就是镜像磁盘，但并非每个节点都如此：如果节点像大多数节点一样把镜像放在根文件系统上，它就是根文件系统，因此该模板会与 **High Node Disk Usage** 同时触发；在 kubelet 的拆分镜像文件系统（`KubeletSeparateDiskGC`）下，它是容器写入的磁盘，而不是镜像所在的磁盘；没有运行中容器的节点则不上报任何内容。只有当某个节点把镜像放在自己专用的磁盘上时，集群的建议才会提供它，此时节点列表会显示 **镜像专用磁盘** 列；**警报内容** 列表则对任何集群都列出它。kubelet 默认在存放镜像的磁盘使用率达到 85% 时删除未使用的镜像，并在可用空间低于 15% 时驱逐 Pod，因此该模板和 **High Node Disk Usage** 在 85% 时触发，并在 80% 时让监视器恢复在线，镜像垃圾回收会把磁盘降到这个水平。在镜像有专用磁盘的节点上，kubelet 按根文件系统从 90% 起驱逐 Pod，因此在那里 **High Node Disk Usage** 会在驱逐开始之前触发。
 
 **Cluster Stopped Reporting** 会在集群的代理 10 分钟内没有任何数据到达时触发：代理被卸载或不断崩溃、它的 API 密钥被撤销、它失去了通往 OneUptime 的路由，或者集群的 API 服务器不再响应它。数据恢复后即会解决。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 

@@ -29,7 +29,7 @@ import {
   CompactionResult,
   CONTINUE_ANSWER_INSTRUCTION,
   frameToolResult,
-  getToolResultLoopOutput,
+  getToolResultLoopCall,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
@@ -693,12 +693,13 @@ export default class ObservabilityAssistant {
           if (toolCall.argumentsParseError) {
             const parseErrorText: string = `Error calling ${toolCall.name}: ${toolCall.argumentsParseError} Emit the tool call again with valid JSON arguments.`;
 
-            roundCalls.push({
-              name: toolCall.name,
-              arguments: toolCall.arguments,
-              output: parseErrorText,
-              isError: true,
-            });
+            roundCalls.push(
+              getToolResultLoopCall({
+                toolCall,
+                content: parseErrorText,
+                isError: true,
+              }),
+            );
 
             messages.push({
               role: "tool",
@@ -784,12 +785,13 @@ export default class ObservabilityAssistant {
           const toolDurationMs: number = Date.now() - toolStartedAtMs;
 
           if (!outcome.success || !outcome.result) {
-            roundCalls.push({
-              name: toolCall.name,
-              arguments: toolCall.arguments,
-              output: getToolResultLoopOutput(outcome.textForLlm),
-              isError: true,
-            });
+            roundCalls.push(
+              getToolResultLoopCall({
+                toolCall,
+                content: outcome.textForLlm,
+                isError: true,
+              }),
+            );
 
             await emitStep({
               type: "tool_failed",
@@ -879,14 +881,16 @@ export default class ObservabilityAssistant {
 
           /*
            * What the model was shown, less the citation it was framed with:
-           * what a compaction that leaves the result out names it by.
+           * what a compaction that leaves the result out names it by
+           * (getToolResultLoopCall, the same for every agent loop).
            */
-          roundCalls.push({
-            name: toolCall.name,
-            arguments: toolCall.arguments,
-            output: getToolResultLoopOutput(framedResult),
-            isError: false,
-          });
+          roundCalls.push(
+            getToolResultLoopCall({
+              toolCall,
+              content: framedResult,
+              isError: false,
+            }),
+          );
         }
 
         /*

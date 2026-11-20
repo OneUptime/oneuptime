@@ -179,7 +179,7 @@ Open een incident en zijn eigen zijmenu groepeert de pagina's zo:
 | **Team**               | **Rollen**, **Bereikbaarheidsuitvoeringen**, **Eigenaren**                                |
 | **Meldingen**          | **Meldingslogboeken**, **AI-logboeken** — ingeklapt tot je op **Meldingen** klikt         |
 | **Notities**           | **Privénotities**, **Openbare notities**                                                  |
-| **Ontwikkelaars**      | **Terraform**, **API**, **CLI**, **AI-assistenten** — ingeklapt tot je op **Ontwikkelaars** klikt |
+| **Ontwikkelaars**      | **Terraform**, **Crossplane**, **API**, **CLI**, **AI-assistenten** — ingeklapt tot je op **Ontwikkelaars** klikt |
 | **Geavanceerd**        | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Incident verwijderen** — ingeklapt tot je op **Geavanceerd** klikt |
 
 Wat elke pagina bevat:

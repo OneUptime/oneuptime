@@ -1,11 +1,30 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, RefObject } from "react";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
+import LayeredPopover from "../../Tooltip/LayeredPopover";
+import {
+  TELEMETRY_SEARCH_HELP_DESCRIPTION_CELL_CLASS_NAME,
+  TELEMETRY_SEARCH_HELP_EXAMPLE_CELL_CLASS_NAME,
+  TELEMETRY_SEARCH_HELP_ROW_CLASS_NAME,
+  TELEMETRY_SEARCH_HELP_SYNTAX_CELL_CLASS_NAME,
+  TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME,
+} from "../../TelemetryViewer/components/TelemetrySearchHelp";
 
 export interface LogSearchHelpProps {
+  /*
+   * The search box the panel hangs from: it is drawn on the tooltip layer
+   * against it (LayeredPopover), so a drawer or a card the search sits in
+   * never cuts it off (#9909).
+   */
+  anchorRef: RefObject<HTMLElement | null>;
+  // The panel's id, for the search's aria-owns.
+  id?: string | undefined;
   onExampleClick?: ((example: string) => void) | undefined;
 }
+
+// The panel, for tests that read it.
+export const LOG_SEARCH_HELP_TEST_ID: string = "log-search-help";
 
 interface HelpRow {
   syntax: string;
@@ -82,74 +101,93 @@ const HELP_ROWS: Array<HelpRow> = [
   },
 ];
 
+/*
+ * The logs search's syntax panel, dropped down while the search is empty:
+ * the popup of a field (LayeredPopover's isFieldPopup), so the focus, the
+ * keys and a press stay the search's, as they were while the panel was
+ * drawn in place. As the explorers' panel is (TelemetrySearchHelp), it is
+ * 36rem from md up and as wide as its search below that, and below sm each
+ * row puts the token and its example on one line and what it does under
+ * both: hung 36rem wide in place, it ran past a phone's screen.
+ */
 const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
   props: LogSearchHelpProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   return (
-    <div className="absolute left-0 top-full z-50 mt-1 w-[36rem] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
-      <div className="border-b border-gray-100 px-3 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-          {translator.translateText("Search syntax")}
-        </span>
-      </div>
+    <LayeredPopover anchorRef={props.anchorRef} isFieldPopup={true}>
+      <div
+        id={props.id}
+        data-testid={LOG_SEARCH_HELP_TEST_ID}
+        className={`${TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME} overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg`}
+      >
+        <div className="border-b border-gray-100 px-3 py-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            {translator.translateText("Search syntax")}
+          </span>
+        </div>
 
-      <table className="w-full">
-        <tbody>
-          {HELP_ROWS.map((row: HelpRow) => {
-            return (
-              <tr
-                key={row.syntax}
-                className="cursor-pointer transition-colors hover:bg-gray-50"
-                onMouseDown={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  if (props.onExampleClick) {
-                    props.onExampleClick(row.example);
-                  }
-                }}
-              >
-                <td className="whitespace-nowrap py-1.5 pl-3 pr-2">
-                  <code className="font-mono text-xs text-indigo-600">
-                    {translator.translateText(row.syntax)}
-                  </code>
-                </td>
-                <td className="py-1.5 px-2">
-                  <span className="text-xs text-gray-500">
-                    {translator.translateText(row.description)}
-                  </span>
-                </td>
-                <td className="whitespace-nowrap py-1.5 pl-2 pr-3 text-right">
+        <table className="w-full max-sm:block">
+          <tbody className="max-sm:block">
+            {HELP_ROWS.map((row: HelpRow) => {
+              return (
+                <tr
+                  key={row.syntax}
+                  className={TELEMETRY_SEARCH_HELP_ROW_CLASS_NAME}
+                  onMouseDown={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    if (props.onExampleClick) {
+                      props.onExampleClick(row.example);
+                    }
+                  }}
+                >
+                  <td className={TELEMETRY_SEARCH_HELP_SYNTAX_CELL_CLASS_NAME}>
+                    <code className="font-mono text-xs text-indigo-600">
+                      {translator.translateText(row.syntax)}
+                    </code>
+                  </td>
+                  <td
+                    className={
+                      TELEMETRY_SEARCH_HELP_DESCRIPTION_CELL_CLASS_NAME
+                    }
+                  >
+                    <span className="text-xs text-gray-500">
+                      {translator.translateText(row.description)}
+                    </span>
+                  </td>
+                  <td className={TELEMETRY_SEARCH_HELP_EXAMPLE_CELL_CLASS_NAME}>
+                    <code className="font-mono text-xs text-gray-500">
+                      {row.example}
+                    </code>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div className="border-t border-gray-100 px-3 py-1.5">
+          <span className="text-[10px] text-gray-400">
+            <TranslatedSentence
+              template="Press {{key}} to search · Filters combine with AND · {{example}} · Use {{escape}} for a literal asterisk"
+              slots={{
+                key: (
+                  <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-xs">
+                    Enter
+                  </kbd>
+                ),
+                example: (
                   <code className="font-mono text-xs text-gray-500">
-                    {row.example}
+                    severity:error service:api &quot;timeout&quot;
                   </code>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <div className="border-t border-gray-100 px-3 py-1.5">
-        <span className="text-[10px] text-gray-400">
-          <TranslatedSentence
-            template="Press {{key}} to search · Filters combine with AND · {{example}} · Use {{escape}} for a literal asterisk"
-            slots={{
-              key: (
-                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-xs">
-                  Enter
-                </kbd>
-              ),
-              example: (
-                <code className="font-mono text-xs text-gray-500">
-                  severity:error service:api &quot;timeout&quot;
-                </code>
-              ),
-              escape: <code className="font-mono text-xs">\*</code>,
-            }}
-          />
-        </span>
+                ),
+                escape: <code className="font-mono text-xs">\*</code>,
+              }}
+            />
+          </span>
+        </div>
       </div>
-    </div>
+    </LayeredPopover>
   );
 };
 

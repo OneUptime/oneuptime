@@ -56,12 +56,14 @@ import {
 
 /*
  * The project's device management connections - Esper, Microsoft Intune
- * (#9837): how each is doing, when it was last read and what that read
- * found, and what can be done with it - read it now, turn it off or on,
- * edit or delete it. Connect and edit go through the service's own form
- * (EsperConnectionFormModal, IntuneConnectionFormModal, opened by the
- * page): its secret is write-only and tested before it is saved, which
- * ModelTable's own form cannot express.
+ * (#9837), Workspace ONE UEM (#10086), SOTI MobiControl (#10087): how each
+ * is doing, when it was last read and what that read found, and what can
+ * be done with it - read it now, turn it off or on, edit or delete it.
+ * Connect and edit go through the service's own form (EsperConnectionFormModal,
+ * IntuneConnectionFormModal, WorkspaceOneConnectionFormModal,
+ * SotiConnectionFormModal, opened by the page): its secrets are write-only
+ * and tested before they are saved, which ModelTable's own form cannot
+ * express.
  */
 
 export interface ComponentProps {
@@ -269,7 +271,7 @@ const DeviceManagementConnectionsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Device Managers",
           description:
-            "The Esper and Microsoft Intune tenants whose devices are imported into Inventory and kept current. They send nothing on their own, so each is read on a schedule.",
+            "The device managers whose devices are imported into Inventory and kept current. They send nothing on their own, so each is read on a schedule.",
         }}
         noItemsMessage="No device managers connected yet."
         filters={[]}

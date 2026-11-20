@@ -342,6 +342,78 @@ describe("summaries", () => {
   });
 });
 
+describe("classic histograms and summaries sent as their series", () => {
+  test("a sum carrying an le attribute keeps it, so each bucket is a series of its own", () => {
+    expect(
+      seriesOf({
+        rows: ["0.1", "0.5", "+Inf"].map((le: string, index: number) => {
+          return row({
+            name: "latency_bucket",
+            metricPointType: "Sum",
+            aggregationTemporality: "Cumulative",
+            attributes: { host: "a", le: le },
+            value: (index + 1) * 10,
+          });
+        }),
+        requests: [
+          request("latency_bucket", PromQLSeriesKind.Value, "latency_bucket"),
+        ],
+      }),
+    ).toEqual({
+      'latency_bucket{host="a", le="0.1"}': [[60, 10]],
+      'latency_bucket{host="a", le="0.5"}': [[60, 20]],
+      'latency_bucket{host="a", le="+Inf"}': [[60, 30]],
+    });
+  });
+
+  test("a gauge carrying a quantile attribute keeps it", () => {
+    expect(
+      seriesOf({
+        rows: [
+          row({ attributes: { host: "a", quantile: "0.5" }, value: 12 }),
+          row({ attributes: { host: "a", quantile: "0.99" }, value: 80 }),
+        ],
+        requests: [request("metric", PromQLSeriesKind.Value, "metric")],
+      }),
+    ).toEqual({
+      'metric{host="a", quantile="0.5"}': [[60, 12]],
+      'metric{host="a", quantile="0.99"}': [[60, 80]],
+    });
+  });
+
+  test("an empty le attribute is no label", () => {
+    expect(
+      seriesOf({
+        rows: [row({ attributes: { host: "a", le: "" } })],
+        requests: [request("metric", PromQLSeriesKind.Value, "metric")],
+      }),
+    ).toEqual({ 'metric{host="a"}': [[60, 1]] });
+  });
+
+  test("a histogram's buckets take le from its bounds, never from an attribute named le", () => {
+    expect(
+      seriesOf({
+        rows: [
+          row({
+            name: "latency",
+            metricPointType: "Histogram",
+            attributes: { host: "a", le: "attribute" },
+            bucketCounts: [1, 2],
+            explicitBounds: [0.5],
+            count: 3,
+          }),
+        ],
+        requests: [
+          request("latency", PromQLSeriesKind.Bucket, "latency_bucket"),
+        ],
+      }),
+    ).toEqual({
+      'latency_bucket{host="a", le="0.5"}': [[60, 1]],
+      'latency_bucket{host="a", le="+Inf"}': [[60, 3]],
+    });
+  });
+});
+
 describe("matchers and the window", () => {
   test("only series whose labels satisfy every matcher are kept", () => {
     expect(
