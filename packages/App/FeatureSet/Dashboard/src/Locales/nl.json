@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "De metrieken zijn {{time}} gelezen, maar {{count}} ervan konden niet worden gelezen.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "De metrieken zijn {{time}} gelezen, maar één ervan kon niet worden gelezen.",
   "Its metrics were read {{time}}.": "De metrieken zijn {{time}} gelezen.",
-  "Not read since {{time}}.": "Niet gelezen sinds {{time}}."
+  "Not read since {{time}}.": "Niet gelezen sinds {{time}}.",
+  "A scrub rule hid it from every event of this case.": "Een opschoonregel heeft het in elke gebeurtenis van deze zaak verborgen.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Zoek het adres waar deze verzoeken vandaan kwamen in de logboeken van uw load balancer of firewall, en blokkeer het daar.",
+  "From an address a scrub rule hid": "Van een adres dat een opschoonregel verborg",
+  "Hidden by a scrub rule": "Verborgen door een opschoonregel",
+  "Hidden by the scrub rule {{rule}}": "Verborgen door de opschoonregel {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "IP-adressen worden uit uw logboeken verwijderd, dus Beveiligingsgebeurtenissen kan u niet vertellen welk adres u moet blokkeren.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "IP-adressen worden uit uw traces verwijderd, dus Beveiligingsgebeurtenissen kan u niet vertellen welk adres u moet blokkeren.",
+  "Open Scrub Rules": "Scrub-regels openen",
+  "Show events whose address a scrub rule hid": "Gebeurtenissen tonen waarvan een opschoonregel het adres verborg",
+  "The scrub rule {{rule}} hid it from every event of this case.": "De opschoonregel {{rule}} heeft het in elke gebeurtenis van deze zaak verborgen.",
+  "The scrub rule {{rule}} masks them.": "De opschoonregel {{rule}} maskeert ze.",
+  "The scrub rule {{rule}} redacts them.": "De opschoonregel {{rule}} redigeert ze."
 }

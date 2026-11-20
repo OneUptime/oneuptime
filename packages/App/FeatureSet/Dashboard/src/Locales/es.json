@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Sus métricas se leyeron {{time}}, pero {{count}} de ellas no se pudieron leer.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Sus métricas se leyeron {{time}}, pero una de ellas no se pudo leer.",
   "Its metrics were read {{time}}.": "Sus métricas se leyeron {{time}}.",
-  "Not read since {{time}}.": "Sin leer desde el {{time}}."
+  "Not read since {{time}}.": "Sin leer desde el {{time}}.",
+  "A scrub rule hid it from every event of this case.": "Una regla de depuración la ocultó en cada evento de este caso.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Encontrar la dirección de la que llegaron estas solicitudes en los registros de tu balanceador de carga o de tu firewall, y bloquearla allí.",
+  "From an address a scrub rule hid": "Desde una dirección que ocultó una regla de depuración",
+  "Hidden by a scrub rule": "Oculta por una regla de depuración",
+  "Hidden by the scrub rule {{rule}}": "Oculta por la regla de depuración {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "Las direcciones IP se depuran de tus registros, así que Eventos de seguridad no puede decirte qué dirección bloquear.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "Las direcciones IP se depuran de tus trazas, así que Eventos de seguridad no puede decirte qué dirección bloquear.",
+  "Open Scrub Rules": "Abrir reglas de depuración",
+  "Show events whose address a scrub rule hid": "Mostrar los eventos cuya dirección ocultó una regla de depuración",
+  "The scrub rule {{rule}} hid it from every event of this case.": "La regla de depuración {{rule}} la ocultó en cada evento de este caso.",
+  "The scrub rule {{rule}} masks them.": "La regla de depuración {{rule}} las enmascara.",
+  "The scrub rule {{rule}} redacts them.": "La regla de depuración {{rule}} las oculta."
 }

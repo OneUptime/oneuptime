@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Метрики прочитаны {{time}}, но {{count}} из них прочитать не удалось.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Метрики прочитаны {{time}}, но одну из них прочитать не удалось.",
   "Its metrics were read {{time}}.": "Метрики прочитаны {{time}}.",
-  "Not read since {{time}}.": "Не читалась с {{time}}."
+  "Not read since {{time}}.": "Не читалась с {{time}}.",
+  "A scrub rule hid it from every event of this case.": "Правило очистки скрыло его во всех событиях этого кейса.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Найдите адрес, с которого пришли эти запросы, в журналах балансировщика нагрузки или межсетевого экрана и заблокируйте его там.",
+  "From an address a scrub rule hid": "С адреса, скрытого правилом очистки",
+  "Hidden by a scrub rule": "Скрыт правилом очистки",
+  "Hidden by the scrub rule {{rule}}": "Скрыт правилом очистки «{{rule}}»",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "IP-адреса удаляются из ваших журналов, поэтому «События безопасности» не могут подсказать, какой адрес заблокировать.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "IP-адреса удаляются из ваших трассировок, поэтому «События безопасности» не могут подсказать, какой адрес заблокировать.",
+  "Open Scrub Rules": "Открыть правила очистки",
+  "Show events whose address a scrub rule hid": "Показать события, адрес которых скрыло правило очистки",
+  "The scrub rule {{rule}} hid it from every event of this case.": "Правило очистки «{{rule}}» скрыло его во всех событиях этого кейса.",
+  "The scrub rule {{rule}} masks them.": "Правило очистки «{{rule}}» маскирует их.",
+  "The scrub rule {{rule}} redacts them.": "Правило очистки «{{rule}}» скрывает их."
 }

@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Le sue metriche sono state lette {{time}}, ma {{count}} di esse non è stato possibile leggerle.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Le sue metriche sono state lette {{time}}, ma una di esse non è stato possibile leggerla.",
   "Its metrics were read {{time}}.": "Le sue metriche sono state lette {{time}}.",
-  "Not read since {{time}}.": "Non letta dal {{time}}."
+  "Not read since {{time}}.": "Non letta dal {{time}}.",
+  "A scrub rule hid it from every event of this case.": "Una regola di pulizia l'ha nascosto in ogni evento di questo caso.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Trova l'indirizzo da cui sono arrivate queste richieste nei log del tuo bilanciatore di carico o del tuo firewall, e bloccalo lì.",
+  "From an address a scrub rule hid": "Da un indirizzo nascosto da una regola di pulizia",
+  "Hidden by a scrub rule": "Nascosto da una regola di pulizia",
+  "Hidden by the scrub rule {{rule}}": "Nascosto dalla regola di pulizia {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "Gli indirizzi IP vengono rimossi dai tuoi log, quindi Eventi di sicurezza non può dirti quale indirizzo bloccare.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "Gli indirizzi IP vengono rimossi dalle tue tracce, quindi Eventi di sicurezza non può dirti quale indirizzo bloccare.",
+  "Open Scrub Rules": "Apri le regole di mascheramento",
+  "Show events whose address a scrub rule hid": "Mostra gli eventi il cui indirizzo è stato nascosto da una regola di pulizia",
+  "The scrub rule {{rule}} hid it from every event of this case.": "La regola di pulizia {{rule}} l'ha nascosto in ogni evento di questo caso.",
+  "The scrub rule {{rule}} masks them.": "La regola di pulizia {{rule}} li maschera.",
+  "The scrub rule {{rule}} redacts them.": "La regola di pulizia {{rule}} li oscura."
 }

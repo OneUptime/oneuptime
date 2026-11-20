@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Its metrics were read {{time}}, but {{count}} of them could not be.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Its metrics were read {{time}}, but one of them could not be.",
   "Its metrics were read {{time}}.": "Its metrics were read {{time}}.",
-  "Not read since {{time}}.": "Not read since {{time}}."
+  "Not read since {{time}}.": "Not read since {{time}}.",
+  "A scrub rule hid it from every event of this case.": "A scrub rule hid it from every event of this case.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.",
+  "From an address a scrub rule hid": "From an address a scrub rule hid",
+  "Hidden by a scrub rule": "Hidden by a scrub rule",
+  "Hidden by the scrub rule {{rule}}": "Hidden by the scrub rule {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.",
+  "Open Scrub Rules": "Open Scrub Rules",
+  "Show events whose address a scrub rule hid": "Show events whose address a scrub rule hid",
+  "The scrub rule {{rule}} hid it from every event of this case.": "The scrub rule {{rule}} hid it from every event of this case.",
+  "The scrub rule {{rule}} masks them.": "The scrub rule {{rule}} masks them.",
+  "The scrub rule {{rule}} redacts them.": "The scrub rule {{rule}} redacts them."
 }

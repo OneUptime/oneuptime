@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "متریک‌هایش {{time}} خوانده شدند، اما {{count}} مورد از آن‌ها خوانده نشد.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "متریک‌هایش {{time}} خوانده شدند، اما یکی از آن‌ها خوانده نشد.",
   "Its metrics were read {{time}}.": "متریک‌هایش {{time}} خوانده شدند.",
-  "Not read since {{time}}.": "از {{time}} خوانده نشده است."
+  "Not read since {{time}}.": "از {{time}} خوانده نشده است.",
+  "A scrub rule hid it from every event of this case.": "یک قاعده پاک‌سازی آن را در همه رویدادهای این پرونده پنهان کرده است.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "نشانی‌ای را که این درخواست‌ها از آن آمده‌اند در لاگ‌های متعادل‌کننده بار یا فایروال خود پیدا کنید و همان‌جا مسدودش کنید.",
+  "From an address a scrub rule hid": "از نشانی‌ای که یک قاعده پاک‌سازی پنهان کرده است",
+  "Hidden by a scrub rule": "پنهان‌شده توسط یک قاعده پاک‌سازی",
+  "Hidden by the scrub rule {{rule}}": "پنهان‌شده توسط قاعده پاک‌سازی {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "آدرس‌های IP از لاگ‌های شما پاک می‌شوند، بنابراین رویدادهای امنیتی نمی‌تواند به شما بگوید کدام نشانی را مسدود کنید.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "آدرس‌های IP از ترِیس‌های شما پاک می‌شوند، بنابراین رویدادهای امنیتی نمی‌تواند به شما بگوید کدام نشانی را مسدود کنید.",
+  "Open Scrub Rules": "باز کردن قواعد پالایش",
+  "Show events whose address a scrub rule hid": "نمایش رویدادهایی که یک قاعده پاک‌سازی نشانی آن‌ها را پنهان کرده است",
+  "The scrub rule {{rule}} hid it from every event of this case.": "قاعده پاک‌سازی {{rule}} آن را در همه رویدادهای این پرونده پنهان کرده است.",
+  "The scrub rule {{rule}} masks them.": "قاعده پاک‌سازی {{rule}} آن‌ها را می‌پوشاند.",
+  "The scrub rule {{rule}} redacts them.": "قاعده پاک‌سازی {{rule}} آن‌ها را حذف می‌کند."
 }

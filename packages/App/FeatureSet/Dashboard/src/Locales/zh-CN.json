@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "其指标已于 {{time}} 读取，但其中 {{count}} 个未能读取。",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "其指标已于 {{time}} 读取，但其中 1 个未能读取。",
   "Its metrics were read {{time}}.": "其指标已于 {{time}} 读取。",
-  "Not read since {{time}}.": "自 {{time}} 起未读取。"
+  "Not read since {{time}}.": "自 {{time}} 起未读取。",
+  "A scrub rule hid it from every event of this case.": "清除规则在此案例的每个事件中都隐藏了该地址。",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "在负载均衡器或防火墙的日志中找到这些请求的来源地址，并在那里拦截它。",
+  "From an address a scrub rule hid": "来自被清除规则隐藏的地址",
+  "Hidden by a scrub rule": "已被清除规则隐藏",
+  "Hidden by the scrub rule {{rule}}": "已被清除规则 {{rule}} 隐藏",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "你的日志中的 IP 地址已被清除，因此安全事件无法告诉你应拦截哪个地址。",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "你的追踪中的 IP 地址已被清除，因此安全事件无法告诉你应拦截哪个地址。",
+  "Open Scrub Rules": "打开清理规则",
+  "Show events whose address a scrub rule hid": "显示地址被清除规则隐藏的事件",
+  "The scrub rule {{rule}} hid it from every event of this case.": "清除规则 {{rule}} 在此案例的每个事件中都隐藏了该地址。",
+  "The scrub rule {{rule}} masks them.": "清除规则 {{rule}} 会对其进行掩码处理。",
+  "The scrub rule {{rule}} redacts them.": "清除规则 {{rule}} 会对其进行脱敏。"
 }

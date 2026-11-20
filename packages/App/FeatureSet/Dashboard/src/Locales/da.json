@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Metrikkerne blev læst {{time}}, men {{count}} af dem kunne ikke læses.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Metrikkerne blev læst {{time}}, men én af dem kunne ikke læses.",
   "Its metrics were read {{time}}.": "Metrikkerne blev læst {{time}}.",
-  "Not read since {{time}}.": "Ikke læst siden {{time}}."
+  "Not read since {{time}}.": "Ikke læst siden {{time}}.",
+  "A scrub rule hid it from every event of this case.": "En rensningsregel skjulte den i alle hændelser i denne sag.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Find adressen, som disse anmodninger kom fra, i din load balancers eller firewalls logge, og bloker den der.",
+  "From an address a scrub rule hid": "Fra en adresse, som en rensningsregel skjulte",
+  "Hidden by a scrub rule": "Skjult af en rensningsregel",
+  "Hidden by the scrub rule {{rule}}": "Skjult af rensningsreglen {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "IP-adresser fjernes fra dine protokoller, så Sikkerhedshændelser kan ikke fortælle dig, hvilken adresse du skal blokere.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "IP-adresser fjernes fra dine spor, så Sikkerhedshændelser kan ikke fortælle dig, hvilken adresse du skal blokere.",
+  "Open Scrub Rules": "Åbn scrub-regler",
+  "Show events whose address a scrub rule hid": "Vis hændelser, hvis adresse en rensningsregel skjulte",
+  "The scrub rule {{rule}} hid it from every event of this case.": "Rensningsreglen {{rule}} skjulte den i alle hændelser i denne sag.",
+  "The scrub rule {{rule}} masks them.": "Rensningsreglen {{rule}} maskerer dem.",
+  "The scrub rule {{rule}} redacts them.": "Rensningsreglen {{rule}} skjuler dem."
 }

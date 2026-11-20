@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "メトリクスは {{time}} に読み取られましたが、そのうち {{count}} 件は読み取れませんでした。",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "メトリクスは {{time}} に読み取られましたが、そのうち 1 件は読み取れませんでした。",
   "Its metrics were read {{time}}.": "メトリクスは {{time}} に読み取られました。",
-  "Not read since {{time}}.": "{{time}} 以降、読み取られていません。"
+  "Not read since {{time}}.": "{{time}} 以降、読み取られていません。",
+  "A scrub rule hid it from every event of this case.": "スクラブルールにより、このケースのすべてのイベントでアドレスが非表示になっています。",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "これらのリクエストの送信元アドレスをロードバランサーまたはファイアウォールのログで特定し、そこでブロックします。",
+  "From an address a scrub rule hid": "スクラブルールによって非表示にされたアドレスから",
+  "Hidden by a scrub rule": "スクラブルールによって非表示",
+  "Hidden by the scrub rule {{rule}}": "スクラブルール {{rule}} によって非表示",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "IP アドレスがログからスクラブされているため、セキュリティイベントはブロックすべきアドレスを示せません。",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "IP アドレスがトレースからスクラブされているため、セキュリティイベントはブロックすべきアドレスを示せません。",
+  "Open Scrub Rules": "スクラブルールを開く",
+  "Show events whose address a scrub rule hid": "スクラブルールによってアドレスが非表示にされたイベントを表示",
+  "The scrub rule {{rule}} hid it from every event of this case.": "スクラブルール {{rule}} により、このケースのすべてのイベントでアドレスが非表示になっています。",
+  "The scrub rule {{rule}} masks them.": "スクラブルール {{rule}} がこれらをマスクします。",
+  "The scrub rule {{rule}} redacts them.": "スクラブルール {{rule}} がこれらを秘匿します。"
 }

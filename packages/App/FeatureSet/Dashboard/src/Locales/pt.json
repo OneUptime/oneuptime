@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "As métricas foram lidas {{time}}, mas {{count}} delas não puderam ser lidas.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "As métricas foram lidas {{time}}, mas uma delas não pôde ser lida.",
   "Its metrics were read {{time}}.": "As métricas foram lidas {{time}}.",
-  "Not read since {{time}}.": "Não lida desde {{time}}."
+  "Not read since {{time}}.": "Não lida desde {{time}}.",
+  "A scrub rule hid it from every event of this case.": "Uma regra de limpeza o ocultou em todos os eventos deste caso.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Encontrar o endereço de onde vieram estas solicitações nos registros do seu balanceador de carga ou do seu firewall, e bloqueá-lo lá.",
+  "From an address a scrub rule hid": "De um endereço ocultado por uma regra de limpeza",
+  "Hidden by a scrub rule": "Ocultado por uma regra de limpeza",
+  "Hidden by the scrub rule {{rule}}": "Ocultado pela regra de limpeza {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "Os endereços IP são removidos dos seus registros, por isso os Eventos de segurança não conseguem informar qual endereço bloquear.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "Os endereços IP são removidos dos seus traços, por isso os Eventos de segurança não conseguem informar qual endereço bloquear.",
+  "Open Scrub Rules": "Abrir regras de mascaramento",
+  "Show events whose address a scrub rule hid": "Mostrar os eventos cujo endereço foi ocultado por uma regra de limpeza",
+  "The scrub rule {{rule}} hid it from every event of this case.": "A regra de limpeza {{rule}} o ocultou em todos os eventos deste caso.",
+  "The scrub rule {{rule}} masks them.": "A regra de limpeza {{rule}} os mascara.",
+  "The scrub rule {{rule}} redacts them.": "A regra de limpeza {{rule}} os oculta."
 }

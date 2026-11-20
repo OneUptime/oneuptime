@@ -60416,5 +60416,17 @@
   "Its metrics were read {{time}}, but {{count}} of them could not be.": "Ses métriques ont été lues {{time}}, mais {{count}} d'entre elles n'ont pas pu l'être.",
   "Its metrics were read {{time}}, but {{count}} of them could not be._one": "Ses métriques ont été lues {{time}}, mais l'une d'elles n'a pas pu l'être.",
   "Its metrics were read {{time}}.": "Ses métriques ont été lues {{time}}.",
-  "Not read since {{time}}.": "Non lue depuis le {{time}}."
+  "Not read since {{time}}.": "Non lue depuis le {{time}}.",
+  "A scrub rule hid it from every event of this case.": "Une règle de nettoyage l'a masquée dans chaque événement de ce dossier.",
+  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.": "Trouver l'adresse d'où venaient ces requêtes dans les journaux de votre équilibreur de charge ou de votre pare-feu, et la bloquer là.",
+  "From an address a scrub rule hid": "D'une adresse masquée par une règle de nettoyage",
+  "Hidden by a scrub rule": "Masquée par une règle de nettoyage",
+  "Hidden by the scrub rule {{rule}}": "Masquée par la règle de nettoyage {{rule}}",
+  "IP addresses are scrubbed from your logs, so Security Events can't tell you which address to block.": "Les adresses IP sont masquées dans vos journaux, donc Événements de sécurité ne peut pas vous indiquer quelle adresse bloquer.",
+  "IP addresses are scrubbed from your traces, so Security Events can't tell you which address to block.": "Les adresses IP sont masquées dans vos traces, donc Événements de sécurité ne peut pas vous indiquer quelle adresse bloquer.",
+  "Open Scrub Rules": "Ouvrir les règles de masquage",
+  "Show events whose address a scrub rule hid": "Afficher les événements dont une règle de nettoyage a masqué l'adresse",
+  "The scrub rule {{rule}} hid it from every event of this case.": "La règle de nettoyage {{rule}} l'a masquée dans chaque événement de ce dossier.",
+  "The scrub rule {{rule}} masks them.": "La règle de nettoyage {{rule}} les masque.",
+  "The scrub rule {{rule}} redacts them.": "La règle de nettoyage {{rule}} les caviarde."
 }
