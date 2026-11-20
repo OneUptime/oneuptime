@@ -554,15 +554,17 @@ describe("a collection's key, before its report is parsed", () => {
     next: NextFunction,
   ) => Promise<void>;
 
+  type NextSpy = ReturnType<typeof jest.fn>;
+
   async function run(
     middleware: Middleware,
     req: Dictionary<unknown>,
-  ): Promise<{ req: ProbeExpressRequest; next: jest.Mock }> {
+  ): Promise<{ req: ProbeExpressRequest; next: NextSpy }> {
     const request: ProbeExpressRequest = {
       headers: {},
       ...req,
     } as unknown as ProbeExpressRequest;
-    const next: jest.Mock = jest.fn();
+    const next: NextSpy = jest.fn();
 
     await middleware(request, mockResponse, next as unknown as NextFunction);
 

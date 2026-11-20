@@ -96,7 +96,7 @@ const mockInserted: Array<unknown> = [];
 jest.mock("Common/Server/Utils/Telemetry/TelemetryWriterServer", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/Telemetry/TelemetryWriterServer",
-  );
+  ) as Record<string, unknown>;
 
   return {
     __esModule: true,
