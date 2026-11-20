@@ -242,6 +242,35 @@ the address from the cluster either way: docs/configuration.md in the chart,
 
 To keep things as they are, set nginx.service.externalTrafficPolicy=Cluster.
 {{- end }}
+{{- /*
+  nginx.http2: false turns HTTP/2 off for host on the gateway, for when nginx
+  fixes a vulnerability in HTTP/2 and OneUptime cannot be upgraded yet
+  (#9846). Every helm upgrade keeps it off until it is set back, and OTLP
+  over gRPC to host is refused meanwhile, so the notes say so at every
+  install and upgrade while it is off (#9973): the upgrade that brings a
+  fixed nginx is the time to set it back. Only where it changes anything: a
+  gateway this chart runs, which serves host over HTTPS itself
+  (ssl.provision, with a host to name the certificate by); otherwise it
+  speaks HTTP/1.1 alone. false is read as templates/nginx.yaml reads it, and
+  host without its port as the gateway names it
+  (tests/notes-nginx-http2_test.yaml).
+*/}}
+{{- $http2Host := trim (toString (default "" .Values.host)) }}
+{{- $gatewayProvisionsSsl := and (kindIs "map" .Values.ssl) .Values.ssl.provision }}
+{{- if and .Values.nginx.enabled (not .Values.deployment.disableDeployments) $gatewayProvisionsSsl $http2Host (eq (toString .Values.nginx.http2) "false") }}
+{{- if hasPrefix "[" $http2Host }}
+{{- $http2Host = regexReplaceAll `^(\[[^\]]*\]).*$` $http2Host "${1}" }}
+{{- else }}
+{{- $http2Host = regexReplaceAll `:[0-9]*$` $http2Host "" }}
+{{- end }}
+
+HTTP/2 is off for {{ $http2Host }} (nginx.http2: false), so OTLP over gRPC to it is refused.
+
+Upgrades keep it off: once the gateway runs a fixed nginx, set nginx.http2:
+true in your values and run helm upgrade. OTLP over HTTP and browsers keep
+working over HTTP/1.1 meanwhile. Details:
+https://oneuptime.com/docs/self-hosted/hardening
+{{- end }}
 {{- if .Values.vllm.enabled }}
 
 vLLM (local LLM server) is enabled. Its OpenAI-compatible endpoint inside the cluster is:
