@@ -251,6 +251,8 @@ import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityBlock from "./SecurityBlock";
+import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
@@ -774,6 +776,8 @@ const AllModelTypes: Array<{
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,
+  SecurityBlock,
+  SecurityBlockEnforcement,
   SecurityEntityRisk,
   SecurityEntityCriticality,
   SecurityEventDestination,

@@ -310,6 +310,11 @@ enum Permission {
   EditSecurityPlaybookRun = "EditSecurityPlaybookRun",
   ReadSecurityPlaybookRun = "ReadSecurityPlaybookRun",
 
+  // The Blocklist (the addresses the project blocks, and where each is enforced)
+  CreateSecurityBlock = "CreateSecurityBlock",
+  EditSecurityBlock = "EditSecurityBlock",
+  ReadSecurityBlock = "ReadSecurityBlock",
+
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
   DeleteDataStore = "DeleteDataStore",
@@ -9350,6 +9355,38 @@ export class PermissionHelper {
         title: "Read Security Playbook Run",
         description:
           "This permission can read Security Playbook runs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Blocklist Permissions
+      {
+        permission: Permission.CreateSecurityBlock,
+        title: "Create Security Block",
+        description:
+          "This permission can block IP addresses and ranges on the Blocklist of this project, except the project's protected addresses.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityBlock,
+        title: "Edit Security Block",
+        description:
+          "This permission can lift and extend the blocks on the Blocklist of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityBlock,
+        title: "Read Security Block",
+        description:
+          "This permission can read the Blocklist of this project: what is blocked, why, until when and where it is enforced.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
