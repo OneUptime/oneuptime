@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Couverte uniquement par des règles désactivées",
   "Create a new user group": "Créer un groupe d'utilisateurs",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Création…",
   "Critical only": "Critique uniquement",
   "Current Step Index": "Index de l'étape actuelle",
   "Delete Case": "Supprimer le dossier",
@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "Vos autorisations ne s'étendent pas à cet événement de maintenance.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Les coûts de vos comptes sont lus à tour de rôle, aussi vite que leur cloud le permet.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Votre cloud limite la vitesse à laquelle les coûts peuvent être lus, donc ceux-ci sont lus ensuite, vers {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Votre cloud limite la vitesse à laquelle les coûts peuvent être lus, donc ceux-ci sont lus lors de la prochaine lecture de la connexion."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Votre cloud limite la vitesse à laquelle les coûts peuvent être lus, donc ceux-ci sont lus lors de la prochaine lecture de la connexion.",
+  "Monitors shown": "Moniteurs affichés",
+  "Pick what you want to do first, and its steps show here.": "Choisissez ce que vous voulez faire en premier, et ses étapes s’affichent ici.",
+  "Your first steps": "Vos premiers pas"
 }

@@ -14,6 +14,7 @@ import GuidedSetupResourcePanel, {
   GuidedSetupStepRecords,
 } from "./GuidedSetupResourcePanel";
 import { GuidedSetupResourceRow } from "./GuidedSetupResources";
+import { ONBOARDING_PAGE_CLASS_NAME } from "./OnboardingPage";
 import SetupFeedback from "../Feedback/SetupFeedback";
 import { openAskAi } from "../AIChat/AskAiEvents";
 import {
@@ -181,10 +182,10 @@ export const GUIDED_SETUP_PROGRESS_LABEL: string =
  * A guided setup's page (Page's className): centred, and as wide as its
  * steps and its panel need, so a screen of any width frames the job - a
  * 2,500-pixel screen showed the steps in its left third and nothing beside
- * them (#10276). Its breadcrumbs and title line up with the steps.
+ * them (#10276). Its breadcrumbs and title line up with the steps. Home's
+ * quickstart, which leads here, is framed the same way (OnboardingPage).
  */
-export const GUIDED_SETUP_PAGE_CLASS_NAME: string =
-  "mb-auto mx-auto mt-5 h-max w-full max-w-7xl px-4 sm:px-6 lg:px-8";
+export const GUIDED_SETUP_PAGE_CLASS_NAME: string = ONBOARDING_PAGE_CLASS_NAME;
 
 /*
  * The frame's two columns from lg up: the steps, taking the room there is,

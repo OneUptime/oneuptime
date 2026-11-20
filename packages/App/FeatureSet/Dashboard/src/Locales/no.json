@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Bare dekket av deaktiverte regler",
   "Create a new user group": "Opprett en ny brukergruppe",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Oppretter…",
   "Critical only": "Bare Kritisk",
   "Current Step Index": "Indeks for gjeldende trinn",
   "Delete Case": "Slett sak",
@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "Tillatelsene dine når ikke denne vedlikeholdshendelsen.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Kostnadene til kontoene dine leses etter tur, så raskt som skyen deres tillater.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses som de neste, rundt {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses ved tilkoblingens neste lesing."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Skyen din begrenser hvor raskt kostnader kan leses, så disse leses ved tilkoblingens neste lesing.",
+  "Monitors shown": "Viste monitorer",
+  "Pick what you want to do first, and its steps show here.": "Velg hva du vil gjøre først, så vises trinnene her.",
+  "Your first steps": "Dine første steg"
 }

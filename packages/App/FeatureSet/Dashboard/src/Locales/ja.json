@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "無効なルールでのみカバー",
   "Create a new user group": "新しいユーザーグループを作成",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "作成中…",
   "Critical only": "重大のみ",
   "Current Step Index": "現在のステップのインデックス",
   "Delete Case": "ケースを削除",
@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "あなたの権限はこのメンテナンスイベントには及びません。",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "アカウントのコストは、クラウドが許す速さで順番に読み取られます。",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "クラウドがコストを読み取る速さを制限しているため、これらは次の順番として{{time}}頃に読み取られます。",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "クラウドがコストを読み取る速さを制限しているため、これらは接続の次回の読み取りで読み取られます。"
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "クラウドがコストを読み取る速さを制限しているため、これらは接続の次回の読み取りで読み取られます。",
+  "Monitors shown": "表示するモニター",
+  "Pick what you want to do first, and its steps show here.": "最初にやりたいことを選ぶと、そのステップがここに表示されます。",
+  "Your first steps": "最初のステップ"
 }

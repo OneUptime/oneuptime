@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "비활성 규칙만 다룸",
   "Create a new user group": "새 사용자 그룹 만들기",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "만드는 중…",
   "Critical only": "심각만",
   "Current Step Index": "현재 단계 인덱스",
   "Delete Case": "케이스 삭제",
@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "권한이 이 유지 관리 이벤트에는 미치지 않습니다.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "계정 비용은 클라우드가 허용하는 속도로 차례대로 읽습니다.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 다음 차례로 {{time}}쯤 읽습니다.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "클라우드가 비용을 읽는 속도를 제한하므로 이 비용은 연결의 다음 읽기 때 읽습니다.",
+  "Monitors shown": "표시되는 모니터",
+  "Pick what you want to do first, and its steps show here.": "먼저 하고 싶은 일을 고르면 그 단계가 여기에 표시됩니다.",
+  "Your first steps": "첫 단계"
 }

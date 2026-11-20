@@ -38,10 +38,20 @@ import {
 } from "../AskAiGuidedSetupLinks";
 import useGuidedSetupRunSync from "../UseGuidedSetupRunSync";
 import GuidedSetupRunStore, {
+  GuidedSetupResourceUpdate,
   GuidedSetupRun,
   GuidedSetupRunSync,
   getFirstOpenStepKey,
 } from "../GuidedSetupProgress";
+import {
+  StatusPageSetupResource,
+  getStatusPageSetupRows,
+} from "./StatusPageSetupResources";
+import {
+  GuidedSetupResourceStatus,
+  GuidedSetupRunResources,
+} from "Common/Types/GuidedSetup/GuidedSetupRun";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 import AppLink from "../../AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -212,10 +222,30 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   const progress: ReturnType<typeof getStatusPageSetupProgress> =
     getStatusPageSetupProgress(facts);
 
-  const saveRun: (values: Record<string, string | boolean | null>) => void = (
+  /*
+   * How the page and what it shows are getting on, for the panel (#10276),
+   * kept with the run on the server (#7253).
+   */
+  const [resources, setResources] = useState<GuidedSetupRunResources>({});
+
+  const saveRun: (
     values: Record<string, string | boolean | null>,
+    resourceProgress?: Record<string, GuidedSetupResourceUpdate | null>,
+  ) => void = (
+    values: Record<string, string | boolean | null>,
+    resourceProgress?: Record<string, GuidedSetupResourceUpdate | null>,
   ): void => {
-    setRun(store.save(values));
+    setRun(store.save(values, resourceProgress));
+    setResources(store.readResources());
+  };
+
+  // Notes how records are getting on, for the panel (and the server).
+  const track: (
+    resourceProgress: Record<string, GuidedSetupResourceUpdate | null>,
+  ) => void = (
+    resourceProgress: Record<string, GuidedSetupResourceUpdate | null>,
+  ): void => {
+    setResources(store.track(resourceProgress));
   };
 
   /*
@@ -305,6 +335,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       }
 
       setRun(nextRun);
+      setResources(store.readResources());
       setStatusPage(loadedPage);
       setShown(loadedShown);
       setMonitors(loadedMonitors);
@@ -451,7 +482,20 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     if (goesOnAsItIs && chosenPage && chosenShown) {
       setPickError("");
       setSaveError("");
-      saveRun({ [StatusPageSetupRunValue.StatusPageId]: chosenPage.id });
+      saveRun(
+        { [StatusPageSetupRunValue.StatusPageId]: chosenPage.id },
+        {
+          [StatusPageSetupResource.StatusPage]: {
+            status: GuidedSetupResourceStatus.Existing,
+            recordId: chosenPage.id,
+            name: chosenPage.name,
+          },
+          [StatusPageSetupResource.ShownMonitors]: {
+            status: GuidedSetupResourceStatus.Existing,
+            name: joinList(chosenShown.names),
+          },
+        },
+      );
       setStatusPage({
         id: chosenPage.id,
         name: chosenPage.name,
@@ -473,6 +517,20 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     setPickError("");
     setSaveError("");
     setIsSaving(true);
+
+    // What goes on the page, named for the panel while it is added.
+    const pickedNames: string = joinList([
+      ...pickedMonitorGroups.map((group: StatusPageSetupMonitorGroup) => {
+        return group.name;
+      }),
+      ...pickedMonitors.map((monitor: StatusPageSetupMonitor) => {
+        return monitor.name;
+      }),
+    ]);
+    // Which record a failure is the panel's to say: the page, then its monitors.
+    let failing: StatusPageSetupResource = statusPage
+      ? StatusPageSetupResource.ShownMonitors
+      : StatusPageSetupResource.StatusPage;
 
     try {
       let page: StatusPageSetupRecord | null = statusPage;
@@ -506,13 +564,37 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           page = pageThere;
           isFoundByName = true;
         } else {
+          // The panel shows it being made (#10276).
+          track({
+            [StatusPageSetupResource.StatusPage]: {
+              status: GuidedSetupResourceStatus.Creating,
+              name: name.trim(),
+            },
+          });
           const statusPageId: string =
             await StatusPageSetupApi.createStatusPage(name);
-          saveRun({ [StatusPageSetupRunValue.StatusPageId]: statusPageId });
+          saveRun(
+            { [StatusPageSetupRunValue.StatusPageId]: statusPageId },
+            {
+              [StatusPageSetupResource.StatusPage]: {
+                status: GuidedSetupResourceStatus.Created,
+                recordId: statusPageId,
+                name: name.trim(),
+              },
+            },
+          );
           page = { id: statusPageId, name: name.trim() };
           setStatusPage(page);
         }
       }
+
+      failing = StatusPageSetupResource.ShownMonitors;
+      track({
+        [StatusPageSetupResource.ShownMonitors]: {
+          status: GuidedSetupResourceStatus.Creating,
+          name: pickedNames,
+        },
+      });
 
       await StatusPageSetupApi.addMonitors({
         statusPageId: page.id,
@@ -528,7 +610,16 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
        * again.
        */
       if (pageThere) {
-        saveRun({ [StatusPageSetupRunValue.StatusPageId]: pageThere.id });
+        saveRun(
+          { [StatusPageSetupRunValue.StatusPageId]: pageThere.id },
+          {
+            [StatusPageSetupResource.StatusPage]: {
+              status: GuidedSetupResourceStatus.Existing,
+              recordId: pageThere.id,
+              name: pageThere.name,
+            },
+          },
+        );
         setStatusPage(pageThere);
         setIsFoundStatusPage(isFoundByName);
       }
@@ -560,12 +651,32 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         });
 
       setShown(nextShown);
+      track({
+        [StatusPageSetupResource.ShownMonitors]: {
+          status: GuidedSetupResourceStatus.Created,
+          recordId: page.id,
+          name: joinList(nextShown.names),
+        },
+      });
 
       if (nextShown.count > 0) {
         setOpenStepKey(StatusPageSetupStep.Review);
       }
     } catch (err) {
-      setSaveError(API.getFriendlyMessage(err));
+      const message: string = API.getFriendlyMessage(err);
+
+      setSaveError(message);
+      // The panel says which record was not made, and why, with Try again.
+      track({
+        [failing]: {
+          status: GuidedSetupResourceStatus.Failed,
+          name:
+            failing === StatusPageSetupResource.StatusPage
+              ? name.trim()
+              : pickedNames,
+          error: message,
+        },
+      });
     }
 
     setIsSaving(false);
@@ -943,6 +1054,22 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * The page the panel lists, and what it shows: the run's, or the
+   * project's page picked in step 1 while it is open (#7517) - there
+   * already, so it is in use, never made.
+   */
+  const rowPage: { id: string; name: string } | null = statusPage
+    ? { id: statusPage.id, name: statusPage.name }
+    : chosenPage
+      ? { id: chosenPage.id, name: chosenPage.name }
+      : null;
+  const rowShown: ShownMonitors = statusPage
+    ? shown
+    : chosenPage
+      ? chosenShown || NOTHING_SHOWN
+      : NOTHING_SHOWN;
+
   const steps: Array<GuidedSetupFrameStep> = [
     {
       ...progress[0]!,
@@ -957,6 +1084,40 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           })
         : undefined,
       content: pickContent,
+      // The page and what it shows, as they are made (#10276).
+      resources: getStatusPageSetupRows({
+        page: rowPage,
+        newPageName: name,
+        isExistingPage:
+          isFoundStatusPage ||
+          Boolean(chosenPage) ||
+          resources[StatusPageSetupResource.StatusPage]?.status ===
+            GuidedSetupResourceStatus.Existing,
+        isSaving: isSaving,
+        shownNames: rowShown.names,
+        shownCount: rowShown.count,
+        pickedNames: [
+          ...pickedMonitorGroups.map((group: StatusPageSetupMonitorGroup) => {
+            return group.name;
+          }),
+          ...pickedMonitors.map((monitor: StatusPageSetupMonitor) => {
+            return monitor.name;
+          }),
+        ],
+        resources: resources,
+        pageRoute: rowPage
+          ? routeOf(PageMap.STATUS_PAGE_VIEW, rowPage.id)
+          : undefined,
+        shownRoute: rowPage
+          ? routeOf(PageMap.STATUS_PAGE_VIEW_RESOURCES, rowPage.id)
+          : undefined,
+        joinNames: (names: ReadonlyArray<string>): string => {
+          return joinList(names);
+        },
+        onRetry: () => {
+          void createAndAdd();
+        },
+      }),
     },
     {
       ...progress[1]!,
@@ -1119,6 +1280,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           onClick={() => {
             store.forget();
             setRun({});
+            setResources({});
             setStatusPage(null);
             setIsFoundStatusPage(false);
             setShown(NOTHING_SHOWN);

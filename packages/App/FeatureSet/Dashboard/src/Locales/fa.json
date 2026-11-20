@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "مجوزهای شما به این رویداد تعمیر و نگهداری نمی‌رسد.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "هزینه‌های حساب‌های شما به نوبت خوانده می‌شوند، به همان سرعتی که ابرشان اجازه می‌دهد.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در نوبت بعد، حدود {{time}} خوانده می‌شوند.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در خواندن بعدی اتصال خوانده می‌شوند."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "ابر شما سرعت خواندن هزینه‌ها را محدود می‌کند، پس این‌ها در خواندن بعدی اتصال خوانده می‌شوند.",
+  "Monitors shown": "مانیتورهای نمایش‌داده‌شده",
+  "Pick what you want to do first, and its steps show here.": "انتخاب کنید که اول می‌خواهید چه کاری بکنید تا گام‌هایش اینجا نشان داده شوند.",
+  "Your first steps": "نخستین گام‌های شما"
 }

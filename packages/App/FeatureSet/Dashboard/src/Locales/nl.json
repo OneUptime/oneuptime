@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Alleen gedekt door uitgeschakelde regels",
   "Create a new user group": "Nieuwe gebruikersgroep maken",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Wordt gemaakt…",
   "Critical only": "Alleen Kritiek",
   "Current Step Index": "Index van huidige stap",
   "Delete Case": "Zaak verwijderen",
@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "Uw rechten gelden niet voor deze onderhoudsgebeurtenis.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "De kosten van uw accounts worden om de beurt gelezen, zo snel als hun cloud toestaat.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden hierna gelezen, rond {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden gelezen bij de volgende leesactie van de koppeling."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Uw cloud beperkt hoe snel kosten gelezen kunnen worden, dus deze worden gelezen bij de volgende leesactie van de koppeling.",
+  "Monitors shown": "Getoonde monitoren",
+  "Pick what you want to do first, and its steps show here.": "Kies wat je eerst wilt doen, en de stappen ervoor verschijnen hier.",
+  "Your first steps": "Je eerste stappen"
 }

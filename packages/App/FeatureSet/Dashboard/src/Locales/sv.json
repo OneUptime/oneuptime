@@ -27698,7 +27698,7 @@
   "Covered by disabled rules only": "Endast täckt av inaktiverade regler",
   "Create a new user group": "Skapa en ny användargrupp",
   "Create a playbook": "Create a playbook",
-  "Creating…": "Creating…",
+  "Creating…": "Skapas…",
   "Critical only": "Endast Kritisk",
   "Current Step Index": "Index för aktuellt steg",
   "Delete Case": "Ta bort ärende",
@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "Dina behörigheter når inte den här underhållshändelsen.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "Dina kontons kostnader läses i tur och ordning, så snabbt som deras moln tillåter.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "Ditt moln begränsar hur snabbt kostnader kan läsas, så dessa läses härnäst, runt {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ditt moln begränsar hur snabbt kostnader kan läsas, så dessa läses vid anslutningens nästa läsning."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "Ditt moln begränsar hur snabbt kostnader kan läsas, så dessa läses vid anslutningens nästa läsning.",
+  "Monitors shown": "Visade monitorer",
+  "Pick what you want to do first, and its steps show here.": "Välj vad du vill göra först, så visas stegen här.",
+  "Your first steps": "Dina första steg"
 }

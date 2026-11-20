@@ -60219,5 +60219,8 @@
   "Your permissions do not reach this maintenance event.": "أذوناتك لا تشمل حدث الصيانة هذا.",
   "Your accounts' costs are read in turn, as fast as their cloud allows.": "تُقرأ تكاليف حساباتك بالتناوب، بالسرعة التي تسمح بها سحابتها.",
   "Your cloud limits how fast costs can be read, so these are read next, at about {{time}}.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف تاليًا، نحو {{time}}.",
-  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف مع القراءة التالية للاتصال."
+  "Your cloud limits how fast costs can be read, so these are read with the connection's next read.": "تحدّ سحابتك من سرعة قراءة التكاليف، لذا تُقرأ هذه التكاليف مع القراءة التالية للاتصال.",
+  "Monitors shown": "المراقبات المعروضة",
+  "Pick what you want to do first, and its steps show here.": "اختر ما تريد فعله أولًا، وستظهر خطواته هنا.",
+  "Your first steps": "خطواتك الأولى"
 }
