@@ -166,11 +166,12 @@ export interface MonitorRecommendationResourceTypeDefinition {
   /*
    * What to recommend for ONE resource of this type.
    *
-   * Most resource types ignore the argument entirely — every Kubernetes
-   * cluster is offered the same eighteen recommendations, and a
-   * zero-argument function satisfies this type, so those are declared
-   * exactly as they were. Services, databases and RUM applications are the
-   * exceptions: see `MonitorRecommendationContext`.
+   * Most resource types ignore the argument entirely — every Docker host
+   * is offered the same recommendations, and a zero-argument function
+   * satisfies this type, so those are declared exactly as they were.
+   * Services, databases, RUM applications and Kubernetes clusters (OpenShift,
+   * an image disk of a node's own) are among the exceptions: see
+   * `MonitorRecommendationContext`.
    *
    * Passing no context means "nothing is known about this resource", and the
    * only honest answer to that is the context-free subset. It does NOT mean
@@ -332,18 +333,40 @@ function getOpenShiftRecommendations(): Array<MonitorRecommendation> {
 }
 
 /*
+ * The template that watches a node's image disk of its own (#10056): offered
+ * among a cluster's recommendations only where some node has one.
+ */
+export const KUBERNETES_IMAGE_DISK_TEMPLATE_ID: string =
+  "k8s-node-image-disk-almost-full";
+
+/*
  * What to recommend for one cluster: the Kubernetes recommendations, and on an
  * OpenShift cluster the OpenShift ones after them. A cluster whose platform is
- * not known yet is offered the Kubernetes ones only.
+ * not known yet is offered the Kubernetes ones only. Node Image Disk Almost
+ * Full is among them only once some node of the cluster keeps its images on
+ * a disk of its own: on a node that keeps them on its root filesystem, as most
+ * do, it reads that root filesystem, which High Node Disk Usage watches, and
+ * both would fire for one full disk.
  */
 function getKubernetesRecommendationsFor(
   context?: MonitorRecommendationContext | undefined,
 ): Array<MonitorRecommendation> {
+  const kubernetes: Array<MonitorRecommendation> =
+    context?.kubernetesHasSeparateImageDisk === true
+      ? getKubernetesRecommendations()
+      : getKubernetesRecommendations().filter(
+          (recommendation: MonitorRecommendation): boolean => {
+            return (
+              recommendation.templateId !== KUBERNETES_IMAGE_DISK_TEMPLATE_ID
+            );
+          },
+        );
+
   if (context?.kubernetesProvider !== OPENSHIFT_KUBERNETES_PROVIDER) {
-    return getKubernetesRecommendations();
+    return kubernetes;
   }
 
-  return [...getKubernetesRecommendations(), ...getOpenShiftRecommendations()];
+  return [...kubernetes, ...getOpenShiftRecommendations()];
 }
 
 function getAllKubernetesRecommendations(): Array<MonitorRecommendation> {

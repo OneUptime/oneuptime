@@ -2605,7 +2605,11 @@ describe("KubernetesAlertTemplates - Node Image Disk Almost Full", () => {
     };
   }
 
-  test("is a Storage warning the picker and the cluster's recommendations offer next to High Node Disk Usage", () => {
+  /*
+   * The cluster's recommendations offer it only where some node has an image
+   * disk of its own (#10056): KubernetesImageDiskRecommendation.test.ts.
+   */
+  test("is a Storage warning the picker offers next to High Node Disk Usage", () => {
     const template: KubernetesAlertTemplate | undefined =
       getKubernetesAlertTemplateById(ID);
 

@@ -69,12 +69,22 @@ jest.mock(
  */
 const mockModelApiGetItem: jest.Mock = jest.fn();
 
+/*
+ * A Kubernetes cluster's context is finished by counting its nodes with an
+ * image disk of their own (hasKubernetesClusterSeparateImageDisk), with the
+ * same client. What each answer does to the context is pinned below.
+ */
+const mockModelApiCount: jest.Mock = jest.fn();
+
 jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
       getItem: (data: unknown): Promise<unknown> => {
         return mockModelApiGetItem(data);
+      },
+      count: (data: unknown): Promise<unknown> => {
+        return mockModelApiCount(data);
       },
     },
   };
@@ -108,6 +118,8 @@ import ObjectID from "Common/Types/ObjectID";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
@@ -124,7 +136,9 @@ import {
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Permission from "Common/Types/Permission";
 import TechStack from "Common/Types/Service/TechStack";
-import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import MonitorRecommendationCatalog, {
+  KUBERNETES_IMAGE_DISK_TEMPLATE_ID,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import {
   MonitorRecommendation,
   MonitorRecommendationContext,
@@ -1359,6 +1373,146 @@ describe("RecommendationResourceRegistry", () => {
         }
       },
     );
+  });
+
+  /*
+   * Node Image Disk Almost Full is recommended only where some node of the
+   * cluster keeps its container images on a disk of its own (#10056): the
+   * cluster's row cannot say, so loadContext counts its nodes whose rows
+   * hold an image disk reading, which ingest writes for such a node alone.
+   * The page says why, when it is offered.
+   */
+  describe("Kubernetes cluster image disk context", () => {
+    const CLUSTER_ID: string = "71000000-0000-4000-8000-0000000000aa";
+    const IMAGE_DISK_NOTE: string =
+      "Some nodes of this cluster keep their container images on a disk of their own, so the recommendations below include an alert on that disk.";
+
+    function clusterOf(provider: unknown = null): KubernetesCluster {
+      const model: KubernetesCluster = new KubernetesCluster();
+      const fields: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+      fields["_id"] = CLUSTER_ID;
+      fields["provider"] = provider;
+      return model;
+    }
+
+    async function loadedContext(
+      count: number | Error,
+      provider: unknown = null,
+    ): Promise<MonitorRecommendationContext> {
+      mockModelApiCount.mockReset();
+      if (count instanceof Error) {
+        mockModelApiCount.mockRejectedValue(count);
+      } else {
+        mockModelApiCount.mockResolvedValue(count);
+      }
+      return await RecommendationResourceRegistry.loadContext({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        model: clusterOf(provider),
+      });
+    }
+
+    function idsOffered(context: MonitorRecommendationContext): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.Kubernetes,
+        context,
+      ).map((recommendation: MonitorRecommendation): string => {
+        return recommendation.templateId;
+      });
+    }
+
+    test("counts the cluster's nodes whose row reads an image disk of their own", async () => {
+      await loadedContext(2);
+
+      expect(mockModelApiCount).toHaveBeenCalledTimes(1);
+      const request: {
+        modelType: unknown;
+        query: Record<string, unknown>;
+      } = mockModelApiCount.mock.calls[0]![0];
+      expect(request.modelType).toBe(KubernetesResource);
+      expect(Object.keys(request.query).sort()).toEqual([
+        "kind",
+        "kubernetesClusterId",
+        "latestImageFsCapacityBytes",
+      ]);
+      expect(String(request.query["kubernetesClusterId"])).toBe(CLUSTER_ID);
+      expect(request.query["kind"]).toBe("Node");
+      expect(request.query["latestImageFsCapacityBytes"]).toBeInstanceOf(
+        NotNull,
+      );
+    });
+
+    test("a cluster with such a node is offered the image disk alert, and told why", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(1);
+
+      expect(context.kubernetesHasSeparateImageDisk).toBe(true);
+      expect(idsOffered(context)).toContain(KUBERNETES_IMAGE_DISK_TEMPLATE_ID);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          context: context,
+        }),
+      ).toBe(IMAGE_DISK_NOTE);
+    });
+
+    test("a cluster with none is not, and gets no note", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(0);
+
+      expect(context.kubernetesHasSeparateImageDisk).toBe(false);
+      expect(idsOffered(context)).not.toContain(
+        KUBERNETES_IMAGE_DISK_TEMPLATE_ID,
+      );
+      expect(idsOffered(context)).toContain("k8s-high-disk-usage");
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          context: context,
+        }),
+      ).toBeUndefined();
+    });
+
+    test("a count that fails leaves it withheld, and the rest of the context standing", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(
+        new Error("connection reset"),
+        OPENSHIFT_KUBERNETES_PROVIDER,
+      );
+
+      expect(context.kubernetesHasSeparateImageDisk).toBeUndefined();
+      expect(context.kubernetesProvider).toBe(OPENSHIFT_KUBERNETES_PROVIDER);
+      expect(idsOffered(context)).not.toContain(
+        KUBERNETES_IMAGE_DISK_TEMPLATE_ID,
+      );
+    });
+
+    test("keeps the provider it read, and an OpenShift cluster with such a node is told both", async () => {
+      const context: MonitorRecommendationContext = await loadedContext(
+        3,
+        OPENSHIFT_KUBERNETES_PROVIDER,
+      );
+
+      expect(context).toEqual({
+        kubernetesProvider: OPENSHIFT_KUBERNETES_PROVIDER,
+        kubernetesHasSeparateImageDisk: true,
+      });
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          context: context,
+        }),
+      ).toBe(
+        `This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates. ${IMAGE_DISK_NOTE}`,
+      );
+    });
+
+    test("selects nothing more of the cluster's row: the fact is the nodes'", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.Kubernetes,
+        ),
+      ).toEqual({ clusterIdentifier: true, name: true, provider: true });
+    });
   });
 
   /*
