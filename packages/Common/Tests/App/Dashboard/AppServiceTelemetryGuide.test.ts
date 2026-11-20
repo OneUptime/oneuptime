@@ -40,6 +40,10 @@ const SUBSCRIPTION: string = "d6252cc9-f01c-428b-924d-9896199f9a13";
 const SITE: string = "azure-monitor-collector-northcentralus";
 const GROUP: string = "rg-monitoring";
 
+// A command block of the guide's Markdown, and a code span of a sentence.
+const FENCED_BLOCK: RegExp = /```[\s\S]*?```/g;
+const INLINE_CODE: RegExp = /`[^`\n]+`/g;
+
 function guide(
   stack: AppServiceStack,
   app: Record<string, string> = {
@@ -334,11 +338,17 @@ describe("in every language", () => {
         }).toEqual({ language, stack, intro: false });
         expect(worded.language).toBe(language);
 
-        // Every code span of a sentence is kept as written.
+        /*
+         * Every code span of a sentence is kept as written. The spans are
+         * read once the fenced commands are gone: a fence's backticks would
+         * pair a span's with the words around it.
+         */
         const spans: (text: string) => Array<string> = (
           text: string,
         ): Array<string> => {
-          return (text.match(/`[^`]+`/g) || []).sort();
+          return (
+            text.replace(FENCED_BLOCK, "").match(INLINE_CODE) || []
+          ).sort();
         };
 
         expect({
@@ -350,6 +360,10 @@ describe("in every language", () => {
           stack,
           spans: spans(getSetupGuideMarkdown(english)),
         });
+        // The sentences do name code: the check above has spans to compare.
+        expect(
+          spans(getSetupGuideMarkdown(english)).length,
+        ).toBeGreaterThanOrEqual(3);
       }
     }
   });

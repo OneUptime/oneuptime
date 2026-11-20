@@ -198,9 +198,6 @@ export const CLOUD_APP_AZURE_SITE_ELSEWHERE_HINT: string = translationKey(
 export const CLOUD_APP_AZURE_SLOT: string = translationKey(
   "It runs in deployment slot {{slot}}, which Azure Monitor reports as a resource of its own that OneUptime does not read yet.",
 );
-export const CLOUD_APP_AZURE_UNKNOWN: string = translationKey(
-  "The cloud connections could not be read.",
-);
 
 // The Azure Monitor metrics' row.
 export const CLOUD_APP_AZURE_METRICS_NEXT_READ: string = translationKey(
@@ -228,9 +225,13 @@ export const CLOUD_APP_AZURE_IMAGE: string = translationKey(
   "Azure runs the image {{image}}.",
 );
 
-// What a row's action says.
-export const CLOUD_APP_OPEN_CONNECTIONS: string =
-  translationKey("Open connections");
+/*
+ * What a row's action says. Not "Open connections": that key is a count of
+ * a database's open connections, and its languages word it so.
+ */
+export const CLOUD_APP_OPEN_CONNECTIONS: string = translationKey(
+  "See the cloud connections",
+);
 export const CLOUD_APP_SET_UP_TELEMETRY: string = translationKey(
   "Set up traces and logs",
 );
