@@ -88,6 +88,8 @@ Il ruolo e l'utente possono fare questo, e nient'altro:
 
 In ogni regione, OneUptime elenca le istanze e i volumi EC2, le VPC, le subnet e i gruppi di sicurezza, i gateway NAT, i gruppi Auto Scaling, i bilanciatori di carico (Application, Network, Gateway e Classic), i cluster EKS, i cluster e i servizi ECS, le funzioni Lambda, i database RDS, ElastiCache, le code SQS, gli argomenti SNS, le tabelle DynamoDB, i flussi Kinesis, le macchine a stati di Step Functions, le API di API Gateway, i file system EFS, i domini OpenSearch, i servizi App Runner, gli ambienti Elastic Beanstalk, le ACL web WAF, i firewall Network Firewall, i pool di utenti Cognito, le API GraphQL AppSync e gli endpoint SageMaker, con i loro tag, le distribuzioni CloudFront e le loro ACL web una sola volta, in us-east-1, e gli acceleratori Global Accelerator una sola volta, in us-west-2. Registra anche come sono collegati: la subnet e la VPC in cui gira ogni risorsa e i gruppi di sicurezza che la proteggono, dove ogni bilanciatore di carico invia il traffico, e la rete e le istanze dei nodi di ogni cluster EKS. Un ruolo creato prima che OneUptime elencasse un tipo viene comunque letto senza di esso, e senza avvisi: esegui di nuovo il comando per elencare anche quel tipo, come le subnet, i gruppi di sicurezza e i cluster EKS, oppure le ACL web, i firewall, gli acceleratori, i pool di utenti, le API GraphQL e gli endpoint, che vengono allora elencati ancora prima di segnalare una metrica.
 
+OneUptime accede a un ruolo solo quando la sua policy di attendibilità richiede l'ID esterno del tuo progetto, con la condizione `sts:ExternalId` che il comando scrive. Prima di leggere qualsiasi cosa tramite un ruolo, e di nuovo ogni giorno, OneUptime vi accede una volta con un ID esterno che nessun progetto ha: il rifiuto di AWS è il superamento del controllo, quindi il CloudTrail del ruolo mostra un `AccessDenied` di OneUptime circa una volta al giorno per ogni server OneUptime che lo legge. Un ruolo che lascia passare quell'accesso permetterebbe a qualsiasi progetto che ne conosce l'ARN di leggere il tuo account tramite OneUptime, quindi OneUptime lo rifiuta, non legge nulla tramite esso e indica quale condizione aggiungere.
+
 > [!NOTE]
 > Su un OneUptime self-hosted, la via del **Ruolo IAM** richiede un'identità AWS propria di OneUptime che possa chiamare `sts:AssumeRole`: il ruolo IAM con cui gira il server (il ruolo dei suoi pod su Amazon EKS, impostato in `serviceAccount.annotations` del chart Helm, il suo ruolo di task su Amazon ECS o il suo profilo di istanza su Amazon EC2), oppure la chiave di un utente IAM in `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` e `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY`, usata ogni volta che è impostata. Senza nessuno dei due, il modulo offre una **Chiave di accesso**.
 
@@ -338,6 +340,10 @@ Copia tutto ciò che il comando ha stampato e incollalo di nuovo. Una chiave cre
 
 :::details Il test accede, ma non riesce a leggere
 Esegui di nuovo il comando: concede i ruoli di cui OneUptime ha bisogno. Su AWS, esegui il comando che il modulo mostra per questo progetto: un ruolo creato per un altro progetto si fida dell'ID esterno di quel progetto, non di questo.
+:::
+
+:::details Il ruolo fa accedere OneUptime senza l'ID esterno del tuo progetto
+La sua policy di attendibilità non richiede l'ID esterno del tuo progetto con la condizione `sts:ExternalId`, quindi qualsiasi progetto che conosce l'ARN del ruolo potrebbe leggere il tuo account tramite OneUptime, e OneUptime non usa il ruolo. Aggiungi la condizione mostrata dal messaggio all'istruzione che si fida di OneUptime, oppure esegui di nuovo il comando e collega il ruolo che stampa. Un test ricontrolla subito il ruolo, e le letture lo usano entro un'ora.
 :::
 
 :::details Google Cloud non lascia che il comando crei una chiave

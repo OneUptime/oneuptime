@@ -4,6 +4,7 @@ import {
   DataSourceHttpResponse,
 } from "../../../../Server/Utils/DataSource/HttpFetch";
 import { LlmConnectorTransport } from "../../../../Server/Utils/LlmObservability/LlmConnectorTypes";
+import { getAwsExternalIdForProject } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import {
   FakeProviderApi,
@@ -28,6 +29,12 @@ import {
  * that account, and GetCallerIdentity answers with it: an organization's
  * accounts are told apart the way AWS tells them apart.
  *
+ * Each role holds a sign-in to its trust policy, as AWS does: made by the
+ * setup command, it requires the external id of the project it was made
+ * for, and refuses any other with AccessDenied - OneUptime's check of a
+ * role (AwsSts.probeRoleExternalId) among them. A role made without the
+ * condition (rolesTakingAnyExternalId) lets any id in.
+ *
  * For data security, the data stores' APIs too: S3 (GET, path style, each
  * bucket answering only at its own Region - anywhere else with a
  * PermanentRedirect - and its settings not set answered as S3 answers
@@ -44,6 +51,17 @@ import {
  */
 
 export const FAKE_ACCOUNT_ID: string = "123456789012";
+
+// The project the fake's roles were made for, unless a test says otherwise (trustedProjectId).
+export const FAKE_PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
+
+/*
+ * OneUptime's own identity, as AWS names it in its answers to it: an
+ * AccessDenied of sts:AssumeRole says "User: <this> is not authorized". A
+ * project must never read it.
+ */
+export const FAKE_ONEUPTIME_IDENTITY_ARN: string =
+  "arn:aws:iam::999988887777:user/oneuptime-cloud-connect";
 
 export interface FakeMetric {
   namespace: string;
@@ -294,8 +312,23 @@ export interface FakeAwsOptions {
   account?: string | undefined;
   callerIdentityError?: FakeResponse | undefined;
   assumeRoleError?: FakeResponse | undefined;
+  // AssumeRole answered with these in turn first (a check throttled, then answered).
+  assumeRoleAnswers?: Array<FakeResponse> | undefined;
   // Role ARNs (any case) whose AssumeRole is refused: a member without the role.
   refusedRoles?: Array<string> | undefined;
+  /*
+   * The project whose external id every role requires
+   * (getAwsExternalIdForProject): FAKE_PROJECT_ID unless said.
+   */
+  trustedProjectId?: string | undefined;
+  /*
+   * Role ARNs (any case) made without the sts:ExternalId condition, whose
+   * trust policy lets OneUptime in with any external id; true for every
+   * role.
+   */
+  rolesTakingAnyExternalId?: Array<string> | true | undefined;
+  // How long a session AWS hands out lasts, from the clock's now (Date.now); 2099 when not said.
+  sessionSeconds?: number | undefined;
   organizationAccounts?: Array<FakeOrganizationAccount> | undefined;
   organizationsError?: FakeResponse | undefined;
   accountAlias?: string | undefined;
@@ -1466,6 +1499,12 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const classicLoadBalancerCalls: FakeAws["classicLoadBalancerCalls"] = [];
   const eksCalls: FakeAws["eksCalls"] = [];
   const assumedRoles: Array<string> = [];
+  const assumeRoleAnswers: Array<FakeResponse> = [
+    ...(options.assumeRoleAnswers || []),
+  ];
+  const trustedExternalId: string = getAwsExternalIdForProject(
+    options.trustedProjectId || FAKE_PROJECT_ID,
+  );
   const organizationsCalls: Array<string> = [];
   const cloudTrailCalls: FakeAws["cloudTrailCalls"] = [];
   const healthCalls: FakeAws["healthCalls"] = [];
@@ -1540,16 +1579,40 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
           const roleArn: string = form.get("RoleArn") || "";
           assumedRoles.push(roleArn);
 
+          const scripted: FakeResponse | undefined = assumeRoleAnswers.shift();
+
+          if (scripted) {
+            return scripted;
+          }
+
+          // What AWS says to a sign-in it refuses: it names the caller.
+          const refusal: FakeResponse = stsError(
+            403,
+            "AccessDenied",
+            `User: ${FAKE_ONEUPTIME_IDENTITY_ARN} is not authorized to perform: sts:AssumeRole on resource: ${roleArn}`,
+          );
+
           if (
             (options.refusedRoles || []).some((refused: string): boolean => {
               return refused.toLowerCase() === roleArn.toLowerCase();
             })
           ) {
-            return stsError(
-              403,
-              "AccessDenied",
-              "User is not authorized to perform: sts:AssumeRole",
+            return refusal;
+          }
+
+          const takesAnyExternalId: boolean =
+            options.rolesTakingAnyExternalId === true ||
+            (options.rolesTakingAnyExternalId || []).some(
+              (taking: string): boolean => {
+                return taking.toLowerCase() === roleArn.toLowerCase();
+              },
             );
+
+          if (
+            !takesAnyExternalId &&
+            form.get("ExternalId") !== trustedExternalId
+          ) {
+            return refusal;
           }
 
           // A key that names the role's account, for GetCallerIdentity.
@@ -1561,7 +1624,13 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
 
           return {
             status: 200,
-            body: `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><AssumedRoleUser><Arn>arn:aws:sts::${roleAccount || account}:assumed-role/OneUptimeReadOnly/x</Arn><AssumedRoleId>AROA:x</AssumedRoleId></AssumedRoleUser><Credentials><AccessKeyId>${keyId}</AccessKeyId><SecretAccessKey>assumed/secret&amp;key</SecretAccessKey><SessionToken>session-token-abc</SessionToken><Expiration>2099-01-01T00:00:00Z</Expiration></Credentials></AssumeRoleResult></AssumeRoleResponse>`,
+            body: `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><AssumedRoleUser><Arn>arn:aws:sts::${roleAccount || account}:assumed-role/OneUptimeReadOnly/x</Arn><AssumedRoleId>AROA:x</AssumedRoleId></AssumedRoleUser><Credentials><AccessKeyId>${keyId}</AccessKeyId><SecretAccessKey>assumed/secret&amp;key</SecretAccessKey><SessionToken>session-token-abc</SessionToken><Expiration>${
+              options.sessionSeconds === undefined
+                ? "2099-01-01T00:00:00Z"
+                : new Date(
+                    Date.now() + options.sessionSeconds * 1000,
+                  ).toISOString()
+            }</Expiration></Credentials></AssumeRoleResult></AssumeRoleResponse>`,
           };
         }
 

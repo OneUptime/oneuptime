@@ -88,6 +88,8 @@ Die Rolle und der Benutzer können Folgendes tun, und sonst nichts:
 
 In jeder Region listet OneUptime EC2-Instanzen und -Volumes, VPCs, Subnetze und Sicherheitsgruppen, NAT-Gateways, Auto-Scaling-Gruppen, Load Balancer (Application, Network, Gateway und Classic), EKS-Cluster, ECS-Cluster und -Dienste, Lambda-Funktionen, RDS-Datenbanken, ElastiCache, SQS-Warteschlangen, SNS-Themen, DynamoDB-Tabellen, Kinesis-Streams, Step-Functions-Zustandsautomaten, API-Gateway-APIs, EFS-Dateisysteme, OpenSearch-Domänen, App-Runner-Dienste, Elastic-Beanstalk-Umgebungen, WAF-Web-ACLs, Network-Firewall-Firewalls, Cognito-Benutzerpools, AppSync-GraphQL-APIs und SageMaker-Endpunkte mit ihren Tags auf, CloudFront-Distributionen und ihre Web-ACLs einmal, in us-east-1, und Global-Accelerator-Beschleuniger einmal, in us-west-2. Es hält auch fest, wie sie zusammenhängen: in welchem Subnetz und welcher VPC eine Ressource läuft und welche Sicherheitsgruppen sie schützen, wohin jeder Load Balancer Traffic sendet und das Netzwerk und die Knoten-Instanzen jedes EKS-Clusters. Eine Rolle, die angelegt wurde, bevor OneUptime einen Typ auflistete, wird weiter ohne ihn gelesen, ohne Warnung: Führen Sie den Befehl erneut aus, damit auch dieser Typ aufgelistet wird, etwa Subnetze, Sicherheitsgruppen und EKS-Cluster oder die Web-ACLs, Firewalls, Beschleuniger, Benutzerpools, GraphQL-APIs und Endpunkte, die dann schon aufgelistet werden, bevor sie eine Metrik melden.
 
+OneUptime meldet sich nur bei einer Rolle an, deren Vertrauensrichtlinie die externe ID Ihres Projekts verlangt, mit der Bedingung `sts:ExternalId`, die der Befehl schreibt. Bevor OneUptime etwas über eine Rolle liest, und danach jeden Tag erneut, meldet es sich einmal mit einer externen ID an, die kein Projekt hat: Lehnt AWS diese Anmeldung ab, ist die Prüfung bestanden, daher zeigt das CloudTrail der Rolle etwa einmal am Tag ein `AccessDenied` von OneUptime für jeden OneUptime-Server, der sie liest. Eine Rolle, die diese Anmeldung durchlässt, ließe jedes Projekt, das ihren ARN kennt, Ihr Konto über OneUptime lesen, deshalb lehnt OneUptime sie ab, liest nichts über sie und sagt, welche Bedingung hinzuzufügen ist.
+
 > [!NOTE]
 > Bei einem selbst gehosteten OneUptime braucht der Weg über eine **IAM-Rolle** eine eigene AWS-Identität von OneUptime, die `sts:AssumeRole` aufrufen darf: die IAM-Rolle, unter der der Server läuft (auf Amazon EKS die Rolle seiner Pods, gesetzt in `serviceAccount.annotations` des Helm-Charts, auf Amazon ECS seine Task-Rolle, auf Amazon EC2 sein Instanzprofil), oder den Schlüssel eines IAM-Benutzers in `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` und `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY`, der verwendet wird, sobald er gesetzt ist. Ohne beides bietet das Formular einen **Zugriffsschlüssel** an.
 
@@ -338,6 +340,10 @@ Kopieren Sie alles, was der Befehl ausgegeben hat, und fügen Sie es erneut ein.
 
 :::details Der Test meldet sich an, kann aber nicht lesen
 Führen Sie den Befehl erneut aus: Er vergibt die Rollen, die OneUptime braucht. Führen Sie bei AWS den Befehl aus, den das Formular für dieses Projekt zeigt: Eine Rolle, die für ein anderes Projekt erstellt wurde, vertraut der externen ID jenes Projekts, nicht der dieses Projekts.
+:::
+
+:::details Die Rolle lässt die Anmeldung von OneUptime ohne die externe ID Ihres Projekts zu
+Ihre Vertrauensrichtlinie verlangt die externe ID Ihres Projekts nicht mit der Bedingung `sts:ExternalId`, daher könnte jedes Projekt, das den ARN der Rolle kennt, Ihr Konto über OneUptime lesen, und OneUptime verwendet die Rolle nicht. Fügen Sie die Bedingung, die die Meldung zeigt, der Anweisung hinzu, die OneUptime vertraut, oder führen Sie den Befehl erneut aus und verbinden Sie die Rolle, die er ausgibt. Ein Test prüft die Rolle sofort erneut, und Lesevorgänge verwenden sie innerhalb einer Stunde.
 :::
 
 :::details Google Cloud lässt den Befehl keinen Schlüssel erstellen

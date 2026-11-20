@@ -88,6 +88,8 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 OneUptime 會列出每個區域中的 EC2 執行個體和磁碟區、VPC、子網路和安全群組、NAT 閘道、Auto Scaling 群組、負載平衡器（Application、Network、Gateway 和 Classic）、EKS 叢集、ECS 叢集和服務、Lambda 函式、RDS 資料庫、ElastiCache、SQS 佇列、SNS 主題、DynamoDB 資料表、Kinesis 資料串流、Step Functions 狀態機、API Gateway API、EFS 檔案系統、OpenSearch 網域、App Runner 服務、Elastic Beanstalk 環境、WAF Web ACL、Network Firewall 防火牆、Cognito 使用者集區、AppSync GraphQL API 和 SageMaker 端點，並附上它們的標籤；CloudFront 分佈及其 Web ACL 只在 us-east-1 中列出一次，Global Accelerator 加速器只在 us-west-2 中列出一次。它還會記錄它們之間的連接：每個資源所在的子網路和 VPC 以及保護它的安全群組、每個負載平衡器把流量送往何處，以及每個 EKS 叢集的網路和節點執行個體。在 OneUptime 列出某種類型之前建立的角色仍會被讀取，只是不含該類型，也不會顯示警告：再次執行命令即可同時列出該類型，例如子網路、安全群組和 EKS 叢集，或之後新增的 Web ACL、防火牆、加速器、使用者集區、GraphQL API 和端點，它們隨後會在回報指標之前就被列出。
 
+只有當角色的信任政策以指令寫入的 `sts:ExternalId` 條件要求你專案的外部 ID 時，OneUptime 才會登入該角色。在透過角色讀取任何內容之前，以及之後每天，OneUptime 都會用一個不屬於任何專案的外部 ID 登入一次：AWS 拒絕這次登入即為通過，因此對於每台讀取該角色的 OneUptime 伺服器，角色的 CloudTrail 大約每天會顯示一次來自 OneUptime 的 `AccessDenied`。允許這次登入通過的角色，會讓任何知道其 ARN 的專案透過 OneUptime 讀取你的帳戶，因此 OneUptime 會拒絕該角色，不透過它讀取任何內容，並說明要新增哪個條件。
+
 > [!NOTE]
 > 在自行託管的 OneUptime 上，**IAM 角色** 方式需要 OneUptime 自己的、可以呼叫 `sts:AssumeRole` 的 AWS 身分：伺服器執行時使用的 IAM 角色（在 Amazon EKS 上是其 Pod 的角色，在 Helm Chart 的 `serviceAccount.annotations` 中設定；在 Amazon ECS 上是其工作角色；在 Amazon EC2 上是其執行個體設定檔），或是 `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` 和 `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` 中某個 IAM 使用者的金鑰，設定了金鑰時一律使用金鑰。兩者都沒有時，表單會提供 **存取金鑰**。
 
@@ -338,6 +340,10 @@ OneUptime AI 在調查時會透過上述的唯讀存取讀取每個已連線的�
 
 :::details 測試可以登入，但無法讀取
 再次執行該指令：它會授予 OneUptime 所需的角色。在 AWS 上，請執行表單為此專案顯示的指令：為其他專案建立的角色信任的是那個專案的外部 ID，而不是此專案的外部 ID。
+:::
+
+:::details 角色允許 OneUptime 在沒有你專案外部 ID 的情況下登入
+它的信任政策沒有用 `sts:ExternalId` 條件要求你專案的外部 ID，因此任何知道該角色 ARN 的專案都能透過 OneUptime 讀取你的帳戶，OneUptime 也不會使用該角色。請將訊息中顯示的條件新增到信任 OneUptime 的那條陳述式中，或再次執行該指令並連接它輸出的角色。測試會立即重新檢查該角色，讀取會在一小時內開始使用它。
 :::
 
 :::details Google Cloud 不允許該指令建立金鑰
