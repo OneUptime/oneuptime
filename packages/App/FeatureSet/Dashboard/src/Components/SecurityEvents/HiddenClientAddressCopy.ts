@@ -49,22 +49,17 @@ export const SCRUB_RULE_MASKS_THEM: string = translationKey(
   "The scrub rule {{rule}} masks them.",
 );
 
-// What the setup item's and the Response Plan's buttons open: the logs' or the traces' Scrub Rules.
-export const OPEN_SCRUB_RULES: string = translationKey("Open Scrub Rules");
-
 /*
- * The Response Plan, where it would say to block the address: every event
- * of the case had its address hidden, so there is none to block. The step
- * says what to do instead, and the line under it why.
+ * What the setup item's and the Response Plan's buttons open (the logs' or
+ * the traces' Scrub Rules), and the Response Plan's step where it would say
+ * to block the address: every event of the case had its address hidden, so
+ * there is none to block. The step says what to do instead, and the line
+ * under it why. The plan is built in Common for the server and the browser
+ * (#10340), so its words live there, and these are the same words.
  */
-export const STEP_FIND_HIDDEN_ADDRESS: string = translationKey(
-  "Find the address these requests came from in your load balancer's or firewall's logs, and block it there.",
-);
-
-export const ADDRESS_HIDDEN_FROM_CASE: string = translationKey(
-  "A scrub rule hid it from every event of this case.",
-);
-
-export const ADDRESS_HIDDEN_FROM_CASE_BY_RULE: string = translationKey(
-  "The scrub rule {{rule}} hid it from every event of this case.",
-);
+export {
+  ACTION_OPEN_SCRUB_RULES as OPEN_SCRUB_RULES,
+  ADDRESS_HIDDEN_FROM_CASE,
+  ADDRESS_HIDDEN_FROM_CASE_BY_RULE,
+  STEP_FIND_HIDDEN_ADDRESS,
+} from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanWords";

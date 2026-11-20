@@ -62,6 +62,16 @@ const NEW_EVENTS: Array<NotificationSettingEventType> = [
   NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
 ];
 
+/*
+ * The walk seeds every security case setting a member lacks: the ones that
+ * came after these two too - a step of a case I am on that stops holding
+ * (#10340), which AddSecurityCaseStepRegressedNotificationSettingsForUsers
+ * runs the walk again for.
+ */
+const LATER_EVENTS: Array<NotificationSettingEventType> = [
+  NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+];
+
 const DATA_MIGRATIONS_DIR: string = path.resolve(
   __dirname,
   "../../../FeatureSet/Workers/DataMigrations",
@@ -258,9 +268,9 @@ describe("AddSecurityCaseTargetAndTaskNotificationSettingsForUsers with the real
   test("a member from before gets the two new settings, email and push on, and keeps the rest as they were", async () => {
     await new AddSecurityCaseTargetAndTaskNotificationSettingsForUsers().migrate();
 
-    expect(creates).toBe(2);
+    expect(creates).toBe(NEW_EVENTS.length + LATER_EVENTS.length);
 
-    for (const eventType of NEW_EVENTS) {
+    for (const eventType of [...NEW_EVENTS, ...LATER_EVENTS]) {
       expect(rows.get(key(USER_A, PROJECT_1, eventType))).toEqual({
         alertByEmail: true,
         alertByPush: true,
@@ -282,6 +292,6 @@ describe("AddSecurityCaseTargetAndTaskNotificationSettingsForUsers with the real
     await new AddSecurityCaseTargetAndTaskNotificationSettingsForUsers().migrate();
     await new AddSecurityCaseTargetAndTaskNotificationSettingsForUsers().migrate();
 
-    expect(creates).toBe(2);
+    expect(creates).toBe(NEW_EVENTS.length + LATER_EVENTS.length);
   });
 });

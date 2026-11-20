@@ -8,6 +8,7 @@ import {
 import useArchivableValues, {
   ArchivableValues,
 } from "../../../Components/ArchivableValue/UseArchivableValues";
+import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ArchivableValueType } from "Common/Utils/ArchivableValues";
@@ -16,10 +17,13 @@ import {
   StateListDefinition,
   StateListType,
 } from "Common/Utils/StateOrder";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import ObjectID from "Common/Types/ObjectID";
 import React, {
   Fragment,
   FunctionComponent,
@@ -39,6 +43,29 @@ const SINGULAR_NAME: string = translationKey("Case Status");
 const PLURAL_NAME: string = translationKey("Case Statuses");
 
 /*
+ * Moving a case to Contained once OneUptime has verified every step of its
+ * Response Plan that contains the threat (#10340): the project's choice, on
+ * unless somebody turns it off (Project.markSecurityCaseContainedWhenVerified).
+ */
+export const CONTAINED_WHEN_VERIFIED_TITLE: string = translationKey(
+  "Mark Cases Contained When Verified",
+);
+export const CONTAINED_WHEN_VERIFIED_DESCRIPTION: string = translationKey(
+  "OneUptime checks the steps of each case's Response Plan itself, and can move a case on when they hold.",
+);
+export const CONTAINED_WHEN_VERIFIED_SWITCH: string = translationKey(
+  "Mark a case Contained when OneUptime has verified every containment step",
+);
+export const CONTAINED_WHEN_VERIFIED_ON: string = translationKey(
+  "A case moves to Contained once OneUptime has verified every step that contains it, and its time to contain is recorded.",
+);
+export const CONTAINED_WHEN_VERIFIED_OFF: string = translationKey(
+  "A case stays where it is until somebody marks it Contained.",
+);
+export const CONTAINED_WHEN_VERIFIED_TEST_ID: string =
+  "security-case-contained-when-verified";
+
+/*
  * Security Events > Settings > Case Statuses: the project's own statuses a
  * case moves through, in the order a case comes through them - dragged into
  * order, created and edited from the usual form, each saying what a case in
@@ -52,6 +79,10 @@ const PLURAL_NAME: string = translationKey("Case Statuses");
  * are the steps every case goes through. A team adds its own - "Triage",
  * "Eradicating", "Closed - Duplicate" - when its process has a step of its
  * own. Drawn as the incident states and postmortem statuses are.
+ *
+ * Above them, one switch: whether OneUptime moves a case to Contained
+ * itself once it has verified every containment step (#10340). It saves
+ * the moment it is flipped.
  */
 const SecurityCaseStatusesPage: FunctionComponent<
   PageComponentProps
@@ -67,9 +98,30 @@ const SecurityCaseStatusesPage: FunctionComponent<
 
   // The rows on the page, which "Counts as" is worked out from.
   const [rows, setRows] = useState<Array<SecurityCaseStatus>>([]);
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   return (
     <Fragment>
+      {projectId ? (
+        <div className="mb-6">
+          <ModelSwitchCard<Project>
+            modelType={Project}
+            modelId={projectId}
+            column="markSecurityCaseContainedWhenVerified"
+            cardTitle={CONTAINED_WHEN_VERIFIED_TITLE}
+            cardDescription={CONTAINED_WHEN_VERIFIED_DESCRIPTION}
+            title={CONTAINED_WHEN_VERIFIED_SWITCH}
+            getDescription={(isOn: boolean): string => {
+              return isOn
+                ? CONTAINED_WHEN_VERIFIED_ON
+                : CONTAINED_WHEN_VERIFIED_OFF;
+            }}
+            dataTestId={CONTAINED_WHEN_VERIFIED_TEST_ID}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
       <ModelTable<SecurityCaseStatus>
         modelType={SecurityCaseStatus}
         singularName={SINGULAR_NAME}
