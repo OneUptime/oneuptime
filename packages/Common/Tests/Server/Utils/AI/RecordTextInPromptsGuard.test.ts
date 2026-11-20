@@ -159,6 +159,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "Note drafts: AlertAIContextBuilder.formatAlertContextForNote, every field a draftField.",
   "packages/Common/Server/API/DataSecurityAPI.ts":
     "Explain on a Data Security issue: DataSecurityIssuePrompt, the check's own words, and the store's name, cloud id and the evidence each a field - never a finding's samples.",
+  "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts":
+    "OneUptime AI's own analysis of a new Data Security issue (#10364): DataSecurityIssuePrompt, as Explain sends it - the check's own words, and the store's name, cloud id and the evidence each a field - never a finding's samples.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts":
     "Explain an exception: ExceptionExplanationPrompt cuts its message, stack trace, span names, log bodies and deploy titles to fixed lengths before ExceptionSanitizer scrubs them, and sends only allowlisted span attributes.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts":
