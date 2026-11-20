@@ -83,6 +83,7 @@ import {
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
+  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
   DETECTION_MATCH_COUNT_ATTRIBUTE,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
@@ -1818,7 +1819,7 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("runs the rules every minute over back-to-back windows, at most 24 hours back, recording every group and opening cases for the 100 highest", () => {
+  it("runs the rules every minute over what arrived since their last run, at most 24 hours back, recording every group and opening cases for the 100 highest", () => {
     const job: string = source("detectionJob");
     const evaluator: string = flat(source("detectionEvaluator"));
     const service: string = flat(source("securityEventService"));
@@ -1830,9 +1831,25 @@ describe("the Security Events page", () => {
     expect(job).toContain(
       "DetectionRuleEvaluator.evaluateDueRulesForProject(projectId, lease)",
     );
+    // What arrived since the last run (#10337), at most a day back.
     expect(evaluator).toContain(
-      "let startTime: Date = rule.lastEvaluatedAt ? rule.lastEvaluatedAt : OneUptimeDate.addRemoveMinutes(endTime, -intervalInMinutes); if (OneUptimeDate.isBefore(startTime, earliestAllowed)) { startTime = earliestAllowed; }",
+      "let arrivedAfter: Date = lastRun && !Number.isNaN(lastRun.getTime()) ? floorToSecond(lastRun) : OneUptimeDate.addRemoveMinutes( arrivedUntil, -Math.max(1, data.evaluationIntervalInMinutes || 1), ); if (OneUptimeDate.isBefore(arrivedAfter, earliest)) { arrivedAfter = earliest; }",
     );
+    // ...whenever it happened, as long as it arrived within a day of that.
+    expect(service).toContain(
+      "AND time >= createdAt - toIntervalSecond(${{ type: TableColumnType.Number, value: DETECTION_RUN_LATE_EVENT_SECONDS, }}))`;",
+    );
+    expect(DETECTION_LATE_EVENT_WINDOW_IN_MINUTES).toBe(24 * 60);
+    // A rule that counts reads the windows of its interval on the clock that hold what arrived.
+    expect(evaluator).toContain(
+      "const window: RealTimeCountWindow = getRealTimeCountWindow({ time: arrivalWindow.windowStart, evaluationIntervalInMinutes: windowInMinutes, });",
+    );
+    expect(
+      getRealTimeCountWindow({
+        time: new Date("2026-11-04T09:58:00.000Z"),
+        evaluationIntervalInMinutes: 10,
+      }).endTime,
+    ).toEqual(new Date("2026-11-04T10:00:00.000Z"));
     expect(evaluator).toContain(
       "maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,",
     );
@@ -1851,14 +1868,17 @@ describe("the Security Events page", () => {
     expect(page).toContain(
       "OneUptime checks every minute for enabled rules whose interval has passed since their last run.",
     );
-    // Each run stops two minutes short of now, for events still on their way.
+    // Each run stops two minutes short of now, for events still being written.
     expect(DETECTION_EVALUATION_DELAY_IN_SECONDS).toBe(2 * 60);
     expect(evaluator).toContain("DETECTION_EVALUATION_DELAY_IN_SECONDS");
     expect(page).toContain(
-      "Each run reads the events whose event time falls between the previous run and two minutes ago, then moves on.",
+      "Each run reads the events that reached OneUptime between the previous run and two minutes ago, whenever they happened, then moves on.",
     );
     expect(page).toContain(
-      "- An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.",
+      "- A rule that counts, and a correlation, count in windows as long as the interval, back to back on the clock: with a 10-minute interval, failures at 09:58 and 10:01 fall in different windows and are counted apart, so leave headroom when you choose a threshold.",
+    );
+    expect(page).toContain(
+      "- An event that arrives late is still read, once, by the next run, and counted in the window it happened in: a group fires when its window reaches the count, and at most once a window. One that arrives more than a day after it happened is stored and searchable, but the rule's runs don't read it; **Run on Past Events** does.",
     );
     expect(page).toContain(
       "the next run covers the whole gap, up to the last 24 hours.",

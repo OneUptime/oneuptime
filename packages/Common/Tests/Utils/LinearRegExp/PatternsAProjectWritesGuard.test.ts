@@ -326,6 +326,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
   },
   {
+    file: "packages/Common/Utils/Telemetry/ScrubIpAddress.ts",
+    count: 1,
+    builtFrom:
+      "the IP address type's two built-in detectors' patterns (IP_ADDRESS_DETECTORS), pattern literals of Utils/DataSecurity/Detectors/ContactDetectors that DetectorCatalog holds to bounded quantifiers",
+  },
+  {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",
     count: 1,
     builtFrom: "nothing: a scanner's own match method, handed a position",

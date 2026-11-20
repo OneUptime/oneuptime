@@ -242,6 +242,7 @@ I **Når det skal varsles** velger du under **Målt som** hvordan hver serie må
 - **En sammenligning i uttrykket** beholder bare seriene den gjelder for: `rate(errors_total[5m]) > 0.1` returnerer seriene over 0.1, og ingen andre. Klikk på **Flytt til Når det skal varsles** for å gjøre den til regelens sammenligning, så diagrammet viser hver serie og regelen vurderer hver enkelt.
 - **Høyst 100 serier per kontroll.** Når uttrykket returnerer flere, vurderer en kontroll 100: først seriene med et åpent varsel eller en åpen hendelse, så de andre i rekkefølgen til etikettene deres. Resten vurderes ikke i den kontrollen, så ingenting åpnes eller løses for dem, og redigeringsprogrammet sier at uttrykket returnerer for mange. Aggreger det med `sum by (...)`, eller legg til etikettmatchere.
 - **Grensene for alle PromQL-spørringer gjelder**, over målingene til tjenestene monitoren nevner, eller til hele prosjektet når den ikke nevner noen.
+- **Diagrammene tegner uttrykket.** Kortet øverst på monitorens side **Oversikt** tegner hver serie uttrykket returnerer, og en hendelse eller et varsel den åpner, tegner den ene serien som åpnet den, med kriteriets verdi som en linje og siden som varsler skravert. De leser uttrykket slik du har lov til å lese det, med de samme grensene som siden [PromQL](/docs/telemetry/promql).
 - **Avviksbetingelsene tilbys ikke**: et uttrykk har ingen egen historikk å sammenligne med. Det har prognosebetingelsene.
 
 ## Feilsøking

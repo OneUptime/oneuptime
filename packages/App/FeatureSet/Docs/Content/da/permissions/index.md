@@ -129,6 +129,26 @@ Fakturering har tre roller for sig selv. `BillingViewer` læser projektets faktu
 
 Alle {{PERMISSION_ROLE_COUNT}} roller står i [Tilladelsesreferencen](/docs/permissions/reference).
 
+### Produktniveauer
+
+Et produktniveau giver et team ét produkt, på ét niveau, og intet andet af projektet: `CloudAdmin`, `NetworkViewer`, `HostMember`. Hvert niveau gør med produktets egne poster, hvad en projektdækkende rolle gør med alle poster:
+
+- **Seer** læser dér, hvad rollen Seer læser, og ændrer intet.
+- **Medlem** opretter, ændrer og sletter også produktets poster, som et Projektmedlem gør.
+- **Administrator** gør dér også, hvad en Projektadministrator gør: produktets indstillinger, dets forbindelser og legitimationsoplysninger og dets label- og ejerregler.
+
+Et niveau når aldrig et andet produkt og heller ikke projektets indstillinger, teams, medlemmer, API-nøgler, SSO eller fakturering.
+
+:::steps
+1. Åbn teamets side **Tilladelser**.
+2. Vælg under **Produktadgang** et niveau for hvert produkt, teamet arbejder med. Ryd et produkts niveau for at tage produktet fra teamet igen.
+:::
+
+- **Monitorer, Hændelser og de andre områder med egne roller** gives med **Tilføj rolle** under **Ét område**. Det samme gælder Telemetry-rollerne for Protokoller, Metrikker, Spor, Profiler og Undtagelser samt Security-rollerne.
+- **AI / LLM, Inventar og Formularer** har kun niveauerne Seer og Administrator, fordi et Projektmedlem ikke ændrer noget i dem.
+- **Et niveau er en tilladelse som alle andre.** Du kan begrænse det til nogle labels eller til ejede poster i tabellen med tilladelser, blokere det, lægge det i en brugerdefineret rolle eller give det til en API-nøgle. Som med alle tilladelser kan du kun give et niveau, hvis du selv har det, medmindre du er Projektejer.
+- **Et niveau læser produktets poster, ikke dets telemetri.** Et team med `HostViewer` ser projektets værter og har også brug for `TelemetryViewer` til deres diagrammer.
+
 ### Granulære tilladelser
 
 Hver enkelt evne kan også tildeles for sig — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` og {{PERMISSION_TOTAL_COUNT}} andre. Brug dem, når en rolle er for bred, og du skal give præcis én ting.

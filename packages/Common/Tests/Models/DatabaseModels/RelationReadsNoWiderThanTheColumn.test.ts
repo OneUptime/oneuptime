@@ -5,8 +5,15 @@ import {
 } from "./RelationReadWidening";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
+import DataSecurityScan from "../../../Models/DatabaseModels/DataSecurityScan";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
+import ThreatIntelFeed from "../../../Models/DatabaseModels/ThreatIntelFeed";
 import ColumnAccessControl from "../../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../../Types/Database/AccessControl/TableAccessControl";
 import RelationReaders from "../../../Types/Database/RelationReaders";
@@ -420,7 +427,7 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
   },
   {
     reason:
-      "The monitors an incident, an alert, a log, a data check or a rule names, and the template, network policy and group a monitor or a status page's resource comes from: their names, kinds and state wherever they are listed. And a monitor's steps, which an incident's and an alert's Root Cause card reads to chart the metric the monitor watched - the whole of what the monitor checks, for every reader of the incident or alert, which #10309 weighs narrowing to the query the card charts.",
+      "The monitors an incident, an alert, a log, a data check or a rule names, and the template, network policy and group a monitor or a status page's resource comes from: their names, kinds and state wherever they are listed. Never what a monitor checks: its steps - its URLs, request headers and bodies, its queries and criteria - are no relation's to read, and a page that needs them reads them on the monitor, by the monitor's own read (#10309).",
     columns: {
       Monitor: [
         "autoProvisionedNetworkDeviceId",
@@ -430,7 +437,6 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
         "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent",
         "firstMeasuredAt",
         "isArchived",
-        "monitorSteps",
         "monitorTemplateId",
         "monitorType",
         "name",
@@ -725,106 +731,14 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
   },
   {
     reason:
-      "A Security record names the record it is about - a data security issue its case, a finding its last scan, a watchlist its feed, a feed its connection, a data store its cloud account and connection - and a custom role given the first reads the second through it, as the Security tiers read it anyway. Their credentials never: an encrypted column is no relation's label. The pages read only the names through these relations, and #10310 weighs holding the rest to their own read (RelationReaders.ColumnReaders).",
+      "Which feed a watchlist follows, which connection a feed reads through, which kind of scan last read a finding, which case a data security issue is worked in, and which cloud account and connection a data store is in: by its name, its kind or provider and whether it is on, and a case by its number. A custom role given the first reads which of the second it names, as the Security tiers read a store's cloud account and connection by name. Never what the second holds: a feed's URLs, cursor and page token, a connection's settings and errors, a scan's figures, a case's title, verdict, assignees and due dates, a cloud connection's configuration and an account's id follow the record's own read through every relation (#10310).",
     columns: {
-      CloudAccount: [
-        "accountId",
-        "cloudConnectionId",
-        "lastSeenAt",
-        "name",
-        "provider",
-        "providerAccountName",
-        "regionCount",
-        "resourceCount",
-      ],
-      CloudConnection: [
-        "addedMetrics",
-        "config",
-        "isEnabled",
-        "lastError",
-        "lastPulledAt",
-        "lastSuccessfulPullAt",
-        "name",
-        "provider",
-        "serviceId",
-        "streamKeyCreatedAt",
-      ],
-      DataSecurityScan: [
-        "bytesRead",
-        "cloudConnectionId",
-        "dataStoreId",
-        "durationInMs",
-        "errorMessage",
-        "findingsFound",
-        "finishedAt",
-        "kind",
-        "objectsRead",
-        "probeId",
-        "rowsRead",
-        "startedAt",
-        "status",
-        "storesRead",
-      ],
-      SecurityCase: [
-        "acknowledgeDueAt",
-        "acknowledgeMissedAt",
-        "acknowledgedAt",
-        "assignedToTeamId",
-        "assignedToUserId",
-        "caseNumber",
-        "caseNumberWithPrefix",
-        "closedAt",
-        "containDueAt",
-        "containMissedAt",
-        "containedAt",
-        "detectionCount",
-        "firstDetectedAt",
-        "incidentId",
-        "lastDetectedAt",
-        "nextDueAt",
-        "securityCasePriorityId",
-        "securityCaseStatusId",
-        "source",
-        "title",
-        "verdict",
-      ],
-      SecurityEventConnection: [
-        "alertingOnly",
-        "caseMinimumSeverity",
-        "cursor",
-        "isEnabled",
-        "lastError",
-        "lastEventIngestedAt",
-        "lastPolledAt",
-        "lastSuccessfulPollAt",
-        "name",
-        "pollIntervalInMinutes",
-        "provider",
-      ],
-      ThreatIntelFeed: [
-        "apiRootUrl",
-        "collectionId",
-        "cursor",
-        "feedType",
-        "indicatorConfidence",
-        "isEnabled",
-        "lastError",
-        "lastEvaluatedAt",
-        "lastMatchAt",
-        "lastMatchError",
-        "lastPollSummary",
-        "lastPolledAt",
-        "listUrl",
-        "minimumConfidence",
-        "name",
-        "nextPageToken",
-        "pollIntervalInMinutes",
-        "securityEventConnectionId",
-        "shouldCreateAlert",
-        "shouldCreateCase",
-        "shouldCreateIncident",
-        "shouldWriteDetectionFinding",
-      ],
+      CloudAccount: ["name", "provider"],
+      CloudConnection: ["isEnabled", "name", "provider"],
+      DataSecurityScan: ["kind"],
+      SecurityCase: ["caseNumber", "caseNumberWithPrefix"],
+      SecurityEventConnection: ["isEnabled", "name", "provider"],
+      ThreatIntelFeed: ["feedType", "isEnabled", "name"],
     },
   },
   {
@@ -854,6 +768,29 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
         "llmProviderId",
         "permissionMode",
         "title",
+      ],
+    },
+  },
+  {
+    reason:
+      "Which app a cloud resource's instance runs (#10289): a cloud's resources and their instances are Cloud's and App Platforms' both, so Cloud's levels read an instance's app as App Platforms' readers do - its name, platform, service and revisions, and when its signals last arrived - to say what the instance is. Changing an app is OneUptime's alone.",
+    columns: {
+      CloudApp: [
+        "appKey",
+        "cloudPlatform",
+        "cloudResourceId",
+        "currentRevision",
+        "currentRevisionSince",
+        "groupName",
+        "lastSeenAt",
+        "logsLastReceivedAt",
+        "metricsLastReceivedAt",
+        "name",
+        "previousRevision",
+        "revisionAttribute",
+        "serviceName",
+        "signalArrivalsTrackedSince",
+        "tracesLastReceivedAt",
       ],
     },
   },
@@ -1122,11 +1059,15 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
         WIDER_ON_PURPOSE,
       );
 
+      /*
+       * Data Observability's own levels (#10289) read a data asset as Viewer,
+       * Project Member and Project Admin do, so the leak would reach them too.
+       */
       expect(unrecorded).toEqual(
         expect.arrayContaining([
-          "DataAsset.dataStore reads DataStore.sensitivity for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
-          "DataAlert.dataStore reads DataStore.exposure for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
-          "DataWarehouseJob.dataStore reads DataStore.riskScore for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
+          "DataAsset.dataStore reads DataStore.sensitivity for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
+          "DataAlert.dataStore reads DataStore.exposure for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
+          "DataWarehouseJob.dataStore reads DataStore.riskScore for ProjectMember, Viewer, TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset, DataObservabilityAdmin, DataObservabilityMember, DataObservabilityViewer",
           "DataSecurityIssue.dataStore reads DataStore.cloudAccountNumber for ReadDataSecurityIssue",
         ]),
       );
@@ -1155,6 +1096,250 @@ describe("a data store's security facts are no relation's label (#10281)", () =>
         return read.relatedModel === "Project" && !isTenantColumn(read);
       }),
     ).toEqual([]);
+  });
+});
+
+describe("a monitor's steps are no relation's label (#10309)", () => {
+  const steps: TableColumnMetadata = new Monitor().getTableColumnMetadata(
+    "monitorSteps",
+  );
+
+  const stepsReads: (
+    reads: ReadonlyArray<WiderRelationRead>,
+  ) => Array<WiderRelationRead> = (
+    reads: ReadonlyArray<WiderRelationRead>,
+  ): Array<WiderRelationRead> => {
+    return reads.filter((read: WiderRelationRead): boolean => {
+      return read.relatedModel === "Monitor" && read.column === "monitorSteps";
+    });
+  };
+
+  test("no relation reads what a monitor checks: its steps", () => {
+    expect(Boolean(steps.canReadOnRelationQuery)).toBe(false);
+    expect(stepsReads(WIDER_READS)).toEqual([]);
+    expect(recordedColumns(WIDER_ON_PURPOSE).has("Monitor.monitorSteps")).toBe(
+      false,
+    );
+  });
+
+  test("planted back as a label, as 17.1.0 shipped it, the guard names it through every relation that reaches a monitor, with who reads it there", () => {
+    steps.canReadOnRelationQuery = true;
+
+    try {
+      const reads: Array<WiderRelationRead> = findWiderRelationReads(
+        AllModelTypes as Array<{ new (): BaseModel }>,
+      );
+      const unrecorded: Array<string> = getUnrecordedWiderReads(
+        reads,
+        WIDER_ON_PURPOSE,
+      );
+
+      expect(unrecorded).toEqual(
+        expect.arrayContaining([
+          "Incident.monitors reads Monitor.monitorSteps for IncidentAdmin, IncidentMember, IncidentViewer, ReadProjectIncident",
+          "Alert.monitor reads Monitor.monitorSteps for AlertAdmin, AlertMember, AlertViewer, ReadAlert",
+          "ScheduledMaintenance.monitors reads Monitor.monitorSteps for ScheduledMaintenanceAdmin, ScheduledMaintenanceMember, ScheduledMaintenanceViewer, ReadProjectScheduledMaintenance",
+          "StatusPageResource.monitor reads Monitor.monitorSteps for StatusPageAdmin, StatusPageMember, StatusPageViewer",
+          "DataCheck.monitor reads Monitor.monitorSteps for TelemetryAdmin, TelemetryMember, TelemetryViewer, ReadDataAsset",
+        ]),
+      );
+      // Each of the 44 relations it was read wider through, and nothing else.
+      expect(stepsReads(reads)).toHaveLength(44);
+      expect(unrecorded).toHaveLength(44);
+      expect(
+        unrecorded.every((read: string): boolean => {
+          return read.includes(" reads Monitor.monitorSteps for ");
+        }),
+      ).toBe(true);
+    } finally {
+      delete steps.canReadOnRelationQuery;
+    }
+
+    expect(getUnrecordedWiderReads(WIDER_READS, WIDER_ON_PURPOSE)).toEqual([]);
+  });
+
+  test("written down again with a reason, it fails as a column the guard no longer finds wider", () => {
+    expect(
+      getRecordedButNotWider(WIDER_READS, [
+        {
+          reason:
+            "Planted: a monitor's steps, written down as if every reader of an incident or an alert read them through it, as before #10309.",
+          columns: { Monitor: ["monitorSteps"] },
+        },
+      ]),
+    ).toEqual(["Monitor.monitorSteps"]);
+  });
+});
+
+describe("a Security record's details are no relation's label (#10310)", () => {
+  interface HeldRecord {
+    model: BaseModel;
+    // What says which record it is: read by every reader of a relation to it.
+    labels: Array<string>;
+    // How many of its columns a relation reads only for its own readers.
+    heldCount: number;
+  }
+
+  const RECORDS: Array<HeldRecord> = [
+    {
+      model: new ThreatIntelFeed(),
+      labels: ["feedType", "isEnabled", "name"],
+      heldCount: 19,
+    },
+    {
+      model: new SecurityEventConnection(),
+      labels: ["isEnabled", "name", "provider"],
+      heldCount: 8,
+    },
+    { model: new DataSecurityScan(), labels: ["kind"], heldCount: 13 },
+    {
+      model: new SecurityCase(),
+      labels: ["caseNumber", "caseNumberWithPrefix"],
+      heldCount: 19,
+    },
+    {
+      model: new CloudConnection(),
+      labels: ["isEnabled", "name", "provider"],
+      heldCount: 7,
+    },
+    { model: new CloudAccount(), labels: ["name", "provider"], heldCount: 6 },
+  ];
+
+  const heldOf: (record: HeldRecord) => Array<TableColumnMetadata> = (
+    record: HeldRecord,
+  ): Array<TableColumnMetadata> => {
+    return Object.values(getTableColumns(record.model)).filter(
+      (metadata: TableColumnMetadata | undefined): boolean => {
+        return RelationReadersUtil.isHeldToItsOwnRead(metadata);
+      },
+    ) as Array<TableColumnMetadata>;
+  };
+
+  test.each(
+    RECORDS.map((record: HeldRecord): [string, HeldRecord] => {
+      return [record.model.tableName!, record];
+    }),
+  )(
+    "%s: every reader of a relation reads which record it is, and the rest only its own readers",
+    (_name: string, record: HeldRecord) => {
+      const columns: Dictionary<TableColumnMetadata> = getTableColumns(
+        record.model,
+      );
+      const labels: Array<string> = Object.keys(columns).filter(
+        (column: string): boolean => {
+          return (
+            !ALWAYS_SELECTABLE_COLUMNS.includes(column) &&
+            column !== "projectId" &&
+            RelationReadersUtil.isReadByEveryReaderOfTheRelation(
+              columns[column],
+            )
+          );
+        },
+      );
+      const held: Array<string> = Object.keys(columns).filter(
+        (column: string): boolean => {
+          return RelationReadersUtil.isHeldToItsOwnRead(columns[column]);
+        },
+      );
+
+      expect(labels.sort()).toEqual(record.labels);
+      expect(held).toHaveLength(record.heldCount);
+
+      for (const column of held) {
+        expect({
+          column: column,
+          readers: [
+            ...(record.model.getColumnAccessControlFor(column)?.read || []),
+          ].sort(),
+        }).toEqual({
+          column: column,
+          readers: [...(record.model.readRecordPermissions || [])].sort(),
+        });
+      }
+
+      // On the guard's list, only which record it is.
+      expect(
+        WIDER_ON_PURPOSE.flatMap((entry: WiderOnPurpose): Array<string> => {
+          return entry.columns[record.model.tableName!] || [];
+        }).sort(),
+      ).toEqual(record.labels);
+    },
+  );
+
+  test("as 17.1.0 shipped them, the guard names each detail through each relation that read it wider, and who read it", () => {
+    const held: Array<TableColumnMetadata> = RECORDS.flatMap(heldOf);
+
+    expect(held).toHaveLength(72);
+
+    // The column metadata is the models' own: planted off, and put back.
+    for (const metadata of held) {
+      delete metadata.relationReaders;
+    }
+
+    try {
+      const unrecorded: Array<string> = getUnrecordedWiderReads(
+        findWiderRelationReads(AllModelTypes as Array<{ new (): BaseModel }>),
+        WIDER_ON_PURPOSE,
+      );
+
+      expect(unrecorded).toEqual(
+        expect.arrayContaining([
+          "SecurityWatchlist.threatIntelFeed reads ThreatIntelFeed.listUrl for ReadProjectDetectionRule",
+          "SecurityWatchlist.threatIntelFeed reads ThreatIntelFeed.apiRootUrl for ReadProjectDetectionRule",
+          "SecurityWatchlist.threatIntelFeed reads ThreatIntelFeed.nextPageToken for ReadProjectDetectionRule",
+          "ThreatIntelFeed.securityEventConnection reads SecurityEventConnection.cursor for ReadProjectThreatIntelFeed",
+          "DataStoreFinding.lastScan reads DataSecurityScan.errorMessage for ReadDataStoreFinding",
+          "DataSecurityIssue.securityCase reads SecurityCase.title for ReadDataSecurityIssue",
+          "DataSecurityIssue.securityCase reads SecurityCase.verdict for ReadDataSecurityIssue",
+          "DataStore.cloudConnection reads CloudConnection.config for SecurityAdmin, SecurityMember, SecurityViewer, ReadDataStore",
+          "DataSecurityScan.cloudConnection reads CloudConnection.config for SecurityAdmin, SecurityMember, SecurityViewer, ReadDataSecurityScan",
+          "DataStore.cloudAccount reads CloudAccount.accountId for SecurityAdmin, SecurityMember, SecurityViewer, ReadDataStore",
+        ]),
+      );
+      // Each detail through each relation it was read wider through: a cloud connection's through two.
+      expect(unrecorded).toHaveLength(19 + 8 + 13 + 19 + 7 * 2 + 6);
+    } finally {
+      for (const metadata of held) {
+        metadata.relationReaders = RelationReaders.ColumnReaders;
+      }
+    }
+
+    expect(getUnrecordedWiderReads(WIDER_READS, WIDER_ON_PURPOSE)).toEqual([]);
+  });
+
+  test("one detail planted back as a label fails the guard alone: a feed's list URL, which can carry a token", () => {
+    const listUrl: TableColumnMetadata =
+      new ThreatIntelFeed().getTableColumnMetadata("listUrl");
+
+    delete listUrl.relationReaders;
+
+    try {
+      expect(
+        getUnrecordedWiderReads(
+          findWiderRelationReads(AllModelTypes as Array<{ new (): BaseModel }>),
+          WIDER_ON_PURPOSE,
+        ),
+      ).toEqual([
+        "SecurityWatchlist.threatIntelFeed reads ThreatIntelFeed.listUrl for ReadProjectDetectionRule",
+      ]);
+    } finally {
+      listUrl.relationReaders = RelationReaders.ColumnReaders;
+    }
+  });
+
+  test("the details written down again with the old reason fail as columns the guard no longer finds wider", () => {
+    expect(
+      getRecordedButNotWider(WIDER_READS, [
+        {
+          reason:
+            "Planted: a feed's list URL and a cloud connection's configuration, written down as if every reader of a watchlist or a data store read them, as before #10310.",
+          columns: {
+            CloudConnection: ["config"],
+            ThreatIntelFeed: ["listUrl"],
+          },
+        },
+      ]),
+    ).toEqual(["CloudConnection.config", "ThreatIntelFeed.listUrl"]);
   });
 });
 

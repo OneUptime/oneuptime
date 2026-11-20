@@ -1448,6 +1448,18 @@ import DashboardSSOService, {
 import DashboardOIDCService, {
   Service as DashboardOIDCServiceType,
 } from "Common/Server/Services/DashboardOidcService";
+import FormPrivateUserService, {
+  Service as FormPrivateUserServiceType,
+} from "Common/Server/Services/FormPrivateUserService";
+import FormSSOService, {
+  Service as FormSSOServiceType,
+} from "Common/Server/Services/FormSsoService";
+import FormOIDCService, {
+  Service as FormOIDCServiceType,
+} from "Common/Server/Services/FormOidcService";
+import FormPrivateUser from "Common/Models/DatabaseModels/FormPrivateUser";
+import FormSSO from "Common/Models/DatabaseModels/FormSso";
+import FormOIDC from "Common/Models/DatabaseModels/FormOidc";
 import DashboardPrivateUser from "Common/Models/DatabaseModels/DashboardPrivateUser";
 import DashboardSSO from "Common/Models/DatabaseModels/DashboardSso";
 import DashboardOIDC from "Common/Models/DatabaseModels/DashboardOidc";
@@ -7252,6 +7264,34 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DashboardOIDC, DashboardOIDCServiceType>(
         DashboardOIDC,
         DashboardOIDCService,
+      ).getRouter(),
+    );
+
+    /*
+     * Who signs in to a form's public link when it asks its visitors to
+     * (#10249): its private users, and its SAML and OIDC single sign-on.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<FormPrivateUser, FormPrivateUserServiceType>(
+        FormPrivateUser,
+        FormPrivateUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<FormSSO, FormSSOServiceType>(
+        FormSSO,
+        FormSSOService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<FormOIDC, FormOIDCServiceType>(
+        FormOIDC,
+        FormOIDCService,
       ).getRouter(),
     );
 

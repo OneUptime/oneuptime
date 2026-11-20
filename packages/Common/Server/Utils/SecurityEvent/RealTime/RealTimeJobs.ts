@@ -15,13 +15,14 @@ import Queue, { QueueName } from "../../../Infrastructure/Queue";
  *   - A confirmation: the events one write handed one rule, by id. A rule
  *     that counts, and a correlation, read the window of its interval
  *     around them, as it stood when they arrived (countsInWindows).
- *   - A handover: every event of a window, for a rule that has just started
- *     to run in real time. Until every process has read the rule again
- *     (REAL_TIME_RULES_CACHE_TTL_MS), the events it writes are screened
- *     without it; and a rule taken off its schedule last read its events
- *     at its last run. The handover reads both - from where the schedule
- *     stopped until every process screens for it - once that window's late
- *     events are in, as a scheduled run would.
+ *   - A handover: every event that arrived in a window, for a rule that has
+ *     just started to run in real time. Until every process has read the
+ *     rule again (REAL_TIME_RULES_CACHE_TTL_MS), the events it writes are
+ *     screened without it; and a rule taken off its schedule last judged
+ *     what had arrived by its last run. The handover judges both - what
+ *     arrived from where the schedule stopped until every process screens
+ *     for it, whenever it happened - once every event stamped by then is in
+ *     the table, as a scheduled run judges what arrived (#10337).
  */
 
 export const REAL_TIME_DETECTION_JOB: string =
@@ -53,7 +54,7 @@ export interface RealTimeCandidate {
   time: string;
 }
 
-// The window a handover reads (ISO 8601), by when its events happened.
+// The window a handover reads (ISO 8601), by when its events arrived.
 export interface RealTimeWindow {
   startTime: string;
   endTime: string;
@@ -135,9 +136,9 @@ export default class RealTimeJobs {
   }
 
   /*
-   * A handover (getRealTimeHandoverWindow), run once the window's events,
-   * late ones included, are in: DETECTION_EVALUATION_DELAY_IN_SECONDS after
-   * its end, as a scheduled run reads.
+   * A handover (getRealTimeHandoverWindow), run once every event that
+   * arrived in its window is in the table: DETECTION_EVALUATION_DELAY_IN_SECONDS
+   * after its end, as a scheduled run judges what arrived.
    */
   public static async enqueueHandover(data: {
     projectId: ObjectID;

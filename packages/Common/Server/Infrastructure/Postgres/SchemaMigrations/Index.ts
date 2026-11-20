@@ -1131,6 +1131,8 @@ import { BackfillTeamMemberInviteeEmail1809186970000 } from "./1809186970000-Bac
 import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddNetworkSiteOwnersAndLabels";
 import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
 import { AddDashboardPrivateUsersAndSingleSignOn1809187030250 } from "./1809187030250-AddDashboardPrivateUsersAndSingleSignOn";
+import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000-MakeEscalationRuleRespondersUnique";
+import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
 import { AddDataSecurityAiRules1809187364000 } from "./1809187364000-AddDataSecurityAiRules";
 import { AddAIRunDataSecurityIssueIndex1809187364100 } from "./1809187364100-AddAIRunDataSecurityIssueIndex";
 
@@ -2268,6 +2270,8 @@ export default [
   AddNetworkSiteOwnersAndLabels1809187000000,
   AddGuidedSetupRun1809187025300,
   AddDashboardPrivateUsersAndSingleSignOn1809187030250,
+  MakeEscalationRuleRespondersUnique1809187100000,
+  AddFormPrivateUsersAndSingleSignOn1809187140120,
   AddDataSecurityAiRules1809187364000,
   AddAIRunDataSecurityIssueIndex1809187364100,
 ];

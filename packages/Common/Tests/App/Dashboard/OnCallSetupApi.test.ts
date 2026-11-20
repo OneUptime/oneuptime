@@ -585,6 +585,69 @@ describe("people added to an existing policy", () => {
     expect(callsFor(createSpy, OnCallDutyPolicyEscalationRule)).toEqual([]);
   });
 
+  test("a person or team the rule pages already is not added again: the rule takes each once (#10411)", async () => {
+    const TEAM_THERE: string = "71000000-0000-4000-8000-000000000001";
+    const TEAM_NEW: string = "71000000-0000-4000-8000-000000000002";
+    const GRACE: string = "40000000-0000-4000-8000-000000000003";
+
+    // Who the first level pages by now: the person asking, and a team.
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+      query: Record<string, unknown>;
+    }) => {
+      if (args.modelType === OnCallDutyPolicyEscalationRuleUser) {
+        expect(String(args.query["onCallDutyPolicyEscalationRuleId"])).toBe(
+          LEVEL_1,
+        );
+        return list([
+          model(OnCallDutyPolicyEscalationRuleUser, {
+            userId: new ObjectID(USER_ID),
+          }),
+        ]);
+      }
+
+      if (args.modelType === OnCallDutyPolicyEscalationRuleTeam) {
+        expect(String(args.query["onCallDutyPolicyEscalationRuleId"])).toBe(
+          LEVEL_1,
+        );
+        return list([
+          model(OnCallDutyPolicyEscalationRuleTeam, {
+            teamId: new ObjectID(TEAM_THERE),
+          }),
+        ]);
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+
+    await OnCallSetupApi.addToFirstLevel({
+      policyId: POLICY_ID,
+      firstLevelId: LEVEL_1,
+      // Ids compared without case, as the server compares them.
+      userIds: [USER_ID.toUpperCase(), GRACE],
+      teamIds: [TEAM_THERE, TEAM_NEW],
+    });
+
+    expect(
+      callsFor(createSpy, OnCallDutyPolicyEscalationRuleUser).map(
+        (args: Record<string, unknown>): string | undefined => {
+          return (
+            args["model"] as OnCallDutyPolicyEscalationRuleUser
+          ).userId?.toString();
+        },
+      ),
+    ).toEqual([GRACE]);
+    expect(
+      callsFor(createSpy, OnCallDutyPolicyEscalationRuleTeam).map(
+        (args: Record<string, unknown>): string | undefined => {
+          return (
+            args["model"] as OnCallDutyPolicyEscalationRuleTeam
+          ).teamId?.toString();
+        },
+      ),
+    ).toEqual([TEAM_NEW]);
+  });
+
   test("make its first escalation rule when it has none", async () => {
     await OnCallSetupApi.addToFirstLevel({
       policyId: POLICY_ID,

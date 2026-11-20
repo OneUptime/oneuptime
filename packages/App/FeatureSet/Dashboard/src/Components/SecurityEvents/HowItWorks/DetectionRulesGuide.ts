@@ -7,6 +7,7 @@ import {
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
+  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
   DETECTION_MATCH_COUNT_ATTRIBUTE,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
@@ -58,6 +59,10 @@ const DETECTION_EVALUATION_DELAY_IN_MINUTES: number =
 const DETECTIONS_PRODUCT_NAME: string = "OneUptime Detections";
 
 const LOOKBACK_IN_HOURS: number = DETECTION_MAX_LOOKBACK_IN_MINUTES / 60;
+
+// How long after it happened an event may arrive and still be checked by a rule's runs.
+const LATE_EVENT_WINDOW_IN_HOURS: number =
+  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES / 60;
 
 const SIGMA_LEVELS_IN_ORDER: Array<SigmaLevel> = [
   SigmaLevel.Informational,
@@ -598,12 +603,12 @@ Its **Status** says **Real time**. Turned on, it first reads what arrived since 
 
 #### Which events each run sees
 
-Each run searches the events whose **event time** falls between where the previous run stopped and **${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes ago**, then moves its starting point forward. The ${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes leave time for events still on their way - a log line read a minute after it was written, a batch a source sends late - so they are counted in the run that covers their time instead of being missed:
+Each run searches the events that **arrived** between where the previous run stopped and **${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes ago**, whenever they happened, then moves its starting point forward. The ${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes leave time for events still being written, so every event is checked once:
 
-- **Windows are back to back, not rolling.** With a 10-minute interval, events at 09:58 and 10:01 can land in different runs and are counted separately. Leave some headroom when you choose a threshold.
+- **A rule that counts counts by when events happened.** Its windows are as long as its **Evaluation Interval**, back to back on the clock: with a 10-minute interval, events at 09:58 and 10:01 fall in different windows and are counted separately. Leave some headroom when you choose a threshold.
 - **The first run** looks back one interval.
-- **After a gap** — a worker outage, or a rule re-enabled after being disabled — the next run covers the whole gap, up to the last ${LOOKBACK_IN_HOURS}${NO_BREAK_SPACE}hours. For that one run, a "5 in 10 minutes" rule behaves like "5 since the last run".
-- **Late events are not re-checked.** The window uses the time each event says it happened, not when it arrived. An event that reaches OneUptime more than ${DETECTION_EVALUATION_DELAY_IN_MINUTES}${NO_BREAK_SPACE}minutes after that time, once a run has covered it, is stored and searchable, but that rule will not evaluate it.
+- **After a gap** — a worker outage, or a rule re-enabled after being disabled — the next run checks everything that arrived during it, up to the last ${LOOKBACK_IN_HOURS}${NO_BREAK_SPACE}hours.
+- **Late events are checked too.** A log line read a minute after it was written, a span read when its request ended, a batch a shipper held back: each is checked by the first run after it arrives, and counted in the window it happened in. A group fires when its window reaches the count - however late the event that makes it arrives - and at most once a window. An event that reaches OneUptime more than ${LATE_EVENT_WINDOW_IN_HOURS}${NO_BREAK_SPACE}hours after it happened is stored and searchable, but no run checks it: **Run on Past Events** does.
 
 #### Group By Field
 

@@ -419,13 +419,23 @@ describe("issue #6338: a widget a public dashboard cannot draw is served its tit
 });
 
 describe("issue #6338: a widget the page draws is served the settings its type has, as stored, and nothing else", () => {
+  /*
+   * The Data Source widgets are drawn too, but only while every query of
+   * theirs reads this project's metrics, and their queries are served
+   * without their text: their own suite is below (issue #10226).
+   */
   const DRAWN_TYPES: Array<string> = Object.keys(
     PUBLIC_DASHBOARD_WIDGET_SETTINGS,
   ).filter((componentType: string): boolean => {
-    return !isPublicDashboardUndrawnWidgetType(componentType);
+    return (
+      !isPublicDashboardUndrawnWidgetType(componentType) &&
+      !DataSourceComponentTypes.includes(
+        componentType as DashboardComponentType,
+      )
+    );
   });
 
-  test("covers every type the page draws: all but the Data Source widgets and the widgets it cannot draw", () => {
+  test("covers every type the page draws: all but the Data Source widgets, served with their queries' text left out, and the widgets it cannot draw", () => {
     expect(DRAWN_TYPES.sort()).toEqual(
       Object.values(DashboardComponentType)
         .filter((componentType: DashboardComponentType): boolean => {
@@ -436,6 +446,13 @@ describe("issue #6338: a widget the page draws is served the settings its type h
         })
         .sort(),
     );
+
+    for (const componentType of DataSourceComponentTypes) {
+      expect([
+        componentType,
+        Boolean(decisionOf(componentType).servedWithoutQueryText),
+      ]).toEqual([componentType, true]);
+    }
   });
 
   test.each(DRAWN_TYPES)(
@@ -531,13 +548,19 @@ describe("issue #6338: a widget the page draws is served the settings its type h
     }
   });
 
-  test("a type no board draws, no type and a Data Source widget are served no settings at all, as before", () => {
+  test("a type no board draws, no type and a Data Source widget of an outside system are served no settings at all, as before", () => {
     const stored: DashboardViewConfig = configOf([
       widgetOf("HostMetricChart", { title: "secret", text: "secret" }),
       widgetOf(" Text ", { text: "secret" }),
       widgetOf("", { text: "secret" }),
       widgetOf(DashboardComponentType.DataSourceTable, {
         query: { query: "SELECT secret" },
+      }),
+      widgetOf(DashboardComponentType.DataSourceChart, {
+        queries: [
+          { dataSourceId: "ab000000-0000-4000-8000-0000000000d1", query: "up" },
+        ],
+        chartTitle: "secret",
       }),
     ]);
 
@@ -554,6 +577,206 @@ describe("issue #6338: a widget the page draws is served the settings its type h
       [" Text ", false],
       ["", false],
     ]);
+  });
+});
+
+describe("issue #10226: a Data Source widget that reads only this project's metrics is served without its queries' text", () => {
+  const SECRET_QUERY: string =
+    'sum by (pod) (rate(payments_internal_secret_total{namespace="billing"}[5m]))';
+
+  // Every setting each Data Source type draws with, and its queries.
+  const settingsByType: Record<string, JSONObject> = {
+    [DashboardComponentType.DataSourceChart]: {
+      chartTitle: "Payments",
+      chartDescription: "Per pod",
+      chartType: "Line",
+      unit: "req/s",
+      queries: [
+        // A blank card the editor seeded: not set up, not served.
+        { id: "q0", dataSourceId: "oneuptime-metrics", query: "  " },
+        {
+          id: "q1",
+          dataSourceId: "oneuptime-metrics",
+          query: SECRET_QUERY,
+          legend: "{{pod}}",
+        },
+        { id: "q2", dataSourceId: "oneuptime-metrics", query: SECRET_QUERY },
+      ],
+    },
+    [DashboardComponentType.DataSourceValue]: {
+      title: "Payments",
+      reduce: "Last",
+      unit: "req/s",
+      warningThreshold: 5,
+      criticalThreshold: 9,
+      trendDirection: "Up",
+      query: { dataSourceId: "oneuptime-metrics", query: SECRET_QUERY },
+    },
+    [DashboardComponentType.DataSourceGauge]: {
+      gaugeTitle: "Payments",
+      reduce: "Max",
+      unit: "%",
+      minValue: 0,
+      maxValue: 100,
+      warningThreshold: 70,
+      criticalThreshold: 90,
+      query: { dataSourceId: "oneuptime-metrics", query: SECRET_QUERY },
+    },
+    [DashboardComponentType.DataSourceTable]: {
+      tableTitle: "Payments",
+      tableDescription: "Per pod",
+      maxRows: 10,
+      sort: "value:desc",
+      query: { dataSourceId: "oneuptime-metrics", query: SECRET_QUERY },
+    },
+  };
+
+  const servedQueriesByType: Record<string, unknown> = {
+    [DashboardComponentType.DataSourceChart]: [
+      { id: "q1", dataSourceId: "oneuptime-metrics", legend: "{{pod}}" },
+      { id: "q2", dataSourceId: "oneuptime-metrics" },
+    ],
+    [DashboardComponentType.DataSourceValue]: {
+      dataSourceId: "oneuptime-metrics",
+    },
+    [DashboardComponentType.DataSourceGauge]: {
+      dataSourceId: "oneuptime-metrics",
+    },
+    [DashboardComponentType.DataSourceTable]: {
+      dataSourceId: "oneuptime-metrics",
+    },
+  };
+
+  test.each([...DataSourceComponentTypes])(
+    "%s: served with every setting it draws with, and its set-up queries without their text, in every shape it is stored in",
+    (componentType: DashboardComponentType) => {
+      const settings: JSONObject = {
+        ...settingsByType[componentType]!,
+        // A key its type does not have, which a script left there.
+        notes: "for the owner only: secret",
+      };
+
+      for (const shape of STORED_SHAPES) {
+        const stored: DashboardViewConfig = configOf([
+          shape.store(widgetOf(componentType, settings)),
+        ]);
+
+        const json: string = servedJSON(stored);
+
+        expect([shape.name, json.includes("secret")]).toEqual([
+          shape.name,
+          false,
+        ]);
+        expect([shape.name, json.includes("billing")]).toEqual([
+          shape.name,
+          false,
+        ]);
+
+        const [served] = servedWidgets(stored);
+        const queryKey: string =
+          componentType === DashboardComponentType.DataSourceChart
+            ? "queries"
+            : "query";
+        const expected: JSONObject = { ...settingsByType[componentType]! };
+        delete expected[queryKey];
+
+        expect([shape.name, served!["arguments"]]).toEqual([
+          shape.name,
+          {
+            ...expected,
+            [queryKey]: servedQueriesByType[componentType],
+          },
+        ]);
+
+        // The route finds the widget the page draws, under the same id.
+        const drawnId: string =
+          pageDraws(stored).components[0]!.componentId.toString();
+
+        expect(
+          PublicDashboardViewConfig.getDrawnDataSourceWidgets(stored).map(
+            (widget: { componentId: string; queries: Array<unknown> }) => {
+              return [widget.componentId, widget.queries.length];
+            },
+          ),
+        ).toEqual([
+          [
+            drawnId,
+            componentType === DashboardComponentType.DataSourceChart ? 2 : 1,
+          ],
+        ]);
+      }
+    },
+  );
+
+  test("a widget with one query of an outside system among its own is left out whole, and so is one with no query set up", () => {
+    const stored: DashboardViewConfig = configOf([
+      widgetOf(DashboardComponentType.DataSourceChart, {
+        chartTitle: "secret mixed",
+        queries: [
+          { dataSourceId: "oneuptime-metrics", query: "up" },
+          {
+            dataSourceId: "ab000000-0000-4000-8000-0000000000d1",
+            query: "secret_outside_metric",
+          },
+        ],
+      }),
+      widgetOf(DashboardComponentType.DataSourceValue, {
+        title: "secret unset",
+        query: { dataSourceId: "oneuptime-metrics", query: "   " },
+      }),
+      widgetOf(DashboardComponentType.DataSourceGauge, {
+        gaugeTitle: "secret none",
+      }),
+      widgetOf(DashboardComponentType.Text, { text: "Hello" }),
+    ]);
+
+    expect(servedJSON(stored)).not.toContain("secret");
+    expect(
+      servedWidgets(stored).map((widget: ServedWidget): unknown => {
+        return widget["componentType"];
+      }),
+    ).toEqual([DashboardComponentType.Text]);
+    expect(PublicDashboardViewConfig.getDrawnDataSourceWidgets(stored)).toEqual(
+      [],
+    );
+  });
+
+  test("widgets stored without ids are found by the ids the page derives for them, which the left-out widgets do not shift apart", () => {
+    const chart: JSONObject = widgetOf(DashboardComponentType.DataSourceChart, {
+      queries: [{ dataSourceId: "oneuptime-metrics", query: "up" }],
+    });
+    const value: JSONObject = widgetOf(DashboardComponentType.DataSourceValue, {
+      query: { dataSourceId: "oneuptime-metrics", query: "sum(up)" },
+    });
+    delete chart["componentId"];
+
+    const stored: DashboardViewConfig = configOf([
+      widgetOf(DashboardComponentType.DataSourceTable, {
+        query: {
+          dataSourceId: "ab000000-0000-4000-8000-0000000000d1",
+          query: "x",
+        },
+      }),
+      chart,
+      // The same id twice: the second gets one of its own on every board.
+      value,
+      { ...value },
+    ]);
+
+    const drawnIds: Array<string> = pageDraws(stored).components.map(
+      (component: DashboardBaseComponent): string => {
+        return component.componentId.toString();
+      },
+    );
+
+    expect(drawnIds).toHaveLength(3);
+    expect(
+      PublicDashboardViewConfig.getDrawnDataSourceWidgets(stored).map(
+        (widget: { componentId: string }): string => {
+          return widget.componentId;
+        },
+      ),
+    ).toEqual(drawnIds);
   });
 });
 

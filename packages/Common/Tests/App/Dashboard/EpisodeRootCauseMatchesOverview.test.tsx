@@ -161,6 +161,7 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Route from "../../../Types/API/Route";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -256,9 +257,10 @@ const LOGS_SNAPSHOT: Record<string, unknown> = {
 function monitorOf(
   monitorType: MonitorType,
   metricName: string,
+  monitorId: string,
 ): Record<string, unknown> {
   return {
-    _id: "99999999-9999-4999-8999-999999999999",
+    _id: monitorId,
     monitorType: monitorType,
     monitorSteps: {
       data: {
@@ -396,9 +398,13 @@ function generateEpisode(random: SeededRandom, draw: number): GeneratedEpisode {
     const snapshotKind: number = isPlain ? 3 : random(4);
     const monitorKind: number = isPlain ? 0 : random(4);
     const metricName: string = random(5) ? `m-${draw}-${index}` : "";
+    const idSuffix: string = String(
+      draw * 100000 + ((index * 7919) % 100000),
+    ).padStart(12, "0");
+    const monitorId: string = `99999999-9999-4999-8999-${idSuffix}`;
 
     members.push({
-      id: `66666666-6666-4666-8666-${String(draw * 100000 + ((index * 7919) % 100000)).padStart(12, "0")}`,
+      id: `66666666-6666-4666-8666-${idSuffix}`,
       startedAt: startedAt,
       createdAt: at(random(120)),
       isHidden: !isPlain && random(8) === 0,
@@ -415,9 +421,13 @@ function generateEpisode(random: SeededRandom, draw: number): GeneratedEpisode {
       ]),
       monitor: [
         null,
-        monitorOf(MonitorType.Metrics, metricName ? `${metricName}-now` : ""),
-        monitorOf(MonitorType.Metrics, `${metricName || "x"}-now`),
-        monitorOf(MonitorType.API, "api.metric"),
+        monitorOf(
+          MonitorType.Metrics,
+          metricName ? `${metricName}-now` : "",
+          monitorId,
+        ),
+        monitorOf(MonitorType.Metrics, `${metricName || "x"}-now`, monitorId),
+        monitorOf(MonitorType.API, "api.metric", monitorId),
       ][monitorKind]!,
       snapshotHasMetric: snapshotKind === 0 && metricName !== "",
       monitorHasMetric:
@@ -578,6 +588,25 @@ function serve(): void {
       return listOf([]);
     }
 
+    // A monitor's steps, read on it by its own read (#10309).
+    if (request.modelType === Monitor) {
+      const ids: Set<string> = new Set<string>(
+        (request.query["_id"] as Includes).values.map((id: unknown): string => {
+          return String(id);
+        }),
+      );
+
+      return listOf(
+        episode.members
+          .map((member: GeneratedMember): Record<string, unknown> | null => {
+            return member.monitor;
+          })
+          .filter((monitor: Record<string, unknown> | null): boolean => {
+            return Boolean(monitor) && ids.has(String(monitor!["_id"]));
+          }) as Array<Record<string, unknown>>,
+      );
+    }
+
     if (request.modelType === kind.membershipModel) {
       return listOf(
         episode.membership
@@ -612,12 +641,19 @@ function serve(): void {
           });
           row.id = new ObjectID(member.id);
 
+          const monitor: Record<string, unknown> | null = member.monitor
+            ? {
+                _id: member.monitor["_id"],
+                monitorType: member.monitor["monitorType"],
+              }
+            : null;
+
           if (kind.memberModel === Incident) {
-            (row as unknown as Record<string, unknown>)["monitors"] =
-              member.monitor ? [member.monitor] : [];
+            (row as unknown as Record<string, unknown>)["monitors"] = monitor
+              ? [monitor]
+              : [];
           } else {
-            (row as unknown as Record<string, unknown>)["monitor"] =
-              member.monitor;
+            (row as unknown as Record<string, unknown>)["monitor"] = monitor;
           }
 
           return row;

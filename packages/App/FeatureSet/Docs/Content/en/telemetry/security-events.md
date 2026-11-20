@@ -484,9 +484,9 @@ detection:
 | **Run in Real Time** | Off on a new rule. On, the rule checks each event as it arrives instead of every interval; see [Real-time rules](#real-time-rules). |
 | **Group By Field** | Optional. Matches that share this field's value, such as `principalHost`, are counted, alerted and deduplicated together: one alert per host instead of hundreds. |
 | **Distinct Count Field** | Optional. Count the different values of this field instead of the matching events. Empty values are not counted. |
-| **Match Count Threshold** | A group fires only when its count reaches this number within one run, or one window in real time: 1 to 1000000, and 1 fires on any match. |
+| **Match Count Threshold** | A group fires only when its count reaches this number within one window of the rule's interval: 1 to 1000000, and 1 fires on any match. |
 
-Group By and Distinct Count take the same field names as the rule. With them, the threshold says "this many, from the same thing, in one run", with no monitor on top:
+Group By and Distinct Count take the same field names as the rule. With them, the threshold says "this many, from the same thing, in one window", with no monitor on top:
 
 | Goal | Group By Field | Distinct Count Field | Threshold |
 | --- | --- | --- | --- |
@@ -498,11 +498,11 @@ Group By and Distinct Count take the same field names as the rule. With them, th
 
 ### When a rule runs
 
-OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events whose event time falls between the previous run and two minutes ago, then moves on. The two minutes leave room for events still on their way, such as a log line read a minute after it was written:
+OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events that reached OneUptime between the previous run and two minutes ago, whenever they happened, then moves on. The two minutes leave room for events still being written:
 
-- Windows are back to back, not rolling. With a 10-minute interval, failures at 09:58 and 10:01 can land in different runs and are counted apart, so leave headroom when you choose a threshold.
+- A rule that counts, and a correlation, count in windows as long as the interval, back to back on the clock: with a 10-minute interval, failures at 09:58 and 10:01 fall in different windows and are counted apart, so leave headroom when you choose a threshold.
 - After a gap, such as a worker outage or a rule turned back on, the next run covers the whole gap, up to the last 24 hours.
-- An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.
+- An event that arrives late is still read, once, by the next run, and counted in the window it happened in: a group fires when its window reaches the count, and at most once a window. One that arrives more than a day after it happened is stored and searchable, but the rule's runs don't read it; **Run on Past Events** does.
 - Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.
 
 ### Real-time rules
