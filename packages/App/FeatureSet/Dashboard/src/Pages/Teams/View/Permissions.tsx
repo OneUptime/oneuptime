@@ -83,7 +83,8 @@ const TeamViewPermissions: FunctionComponent<PageComponentProps> = (
         currentProject={props.currentProject}
         customRoleCount={getCustomRoleCount(customRoles)}
         refreshToggle={tableRefresh}
-        onRowsChange={() => {
+        // Told after every load of the table, so after each row it changed.
+        onPermissionCountChange={() => {
           if (!hasTableLoaded.current) {
             hasTableLoaded.current = true;
             return;
