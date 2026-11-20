@@ -45,6 +45,8 @@ export const getGlobalTranslator: () => Translator = (): Translator => {
         defaultValue: text,
         keySeparator: false,
         nsSeparator: false,
+        // A key naming a section of keys comes back as the section: no wording.
+        returnObjects: true,
       });
 
       return typeof translated === "string" ? translated : undefined;
