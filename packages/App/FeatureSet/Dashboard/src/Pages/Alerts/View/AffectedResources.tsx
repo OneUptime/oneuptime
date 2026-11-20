@@ -120,8 +120,12 @@ const AlertAffectedResources: FunctionComponent<ComponentProps> = (
         },
       });
 
+      // Read first, so the commands are drawn once, for what the monitor reads.
+      const metricNames: Array<string> | undefined =
+        await readMetricNamesOfMonitor(alert?.monitor);
+
       setMonitorType(alert?.monitor?.monitorType);
-      setMetricNames(await readMetricNamesOfMonitor(alert?.monitor));
+      setMetricNames(metricNames);
     } catch {
       setMonitorType(undefined);
       setMetricNames(undefined);

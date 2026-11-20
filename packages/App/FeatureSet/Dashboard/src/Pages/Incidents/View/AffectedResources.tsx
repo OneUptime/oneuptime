@@ -128,9 +128,12 @@ const IncidentAffectedResources: FunctionComponent<ComponentProps> = (
        * one monitor, so the first is the one that raised it.
        */
       const monitor: Monitor | undefined = incident?.monitors?.[0];
+      // Read first, so the commands are drawn once, for what the monitor reads.
+      const metricNames: Array<string> | undefined =
+        await readMetricNamesOfMonitor(monitor);
 
       setMonitorType(monitor?.monitorType);
-      setMetricNames(await readMetricNamesOfMonitor(monitor));
+      setMetricNames(metricNames);
     } catch {
       setMonitorType(undefined);
       setMetricNames(undefined);
