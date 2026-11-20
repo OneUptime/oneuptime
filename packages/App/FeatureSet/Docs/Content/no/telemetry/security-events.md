@@ -51,7 +51,8 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
 | **Godkjenninger** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
 | **Playbook-kjøringer** | Playbooks | Hva hver playbook gjorde, steg for steg |
-| **Beskyttede entiteter** | Playbooks | Brukerne og vertene som ingen playbook demmer inn |
+| **Blokkeringsliste** | Playbooks | Adressene prosjektet ditt blokkerer, til når, og hvor hver blokkering håndheves |
+| **Beskyttede entiteter** | Playbooks | Brukerne, vertene og adressene som ingen playbook demmer inn og ingen blokkering rører |
 | **Innstillinger** | KI | Om OneUptime AI vurderer hver nye sak |
 | **Tilkoblinger** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
 | **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med inntaksnøkkelen din |
@@ -72,8 +73,8 @@ Sikkerhetsdata kan bare leses av rollene Prosjekteier og Prosjektadministrator o
 | Rolle | Hva den kan gjøre |
 | --- | --- |
 | Sikkerhetsadministrator | Alt: hendelser, saker, playbooks, deteksjonsregler, threat intel-feeder og tilkoblinger |
-| Sikkerhetsmedlem | Lese hendelser og threat intel, behandle saker, kjøre playbooks og godkjenne stegene deres, og opprette, endre og slette deteksjonsregler og feeder. Den kan ikke sette opp playbooks eller tilkoblinger, eller slette sikkerhetsdata. |
-| Sikkerhetsleser | Lese hendelser, saker, playbooks, regler, feeder, indikatorer og tilkoblinger |
+| Sikkerhetsmedlem | Lese hendelser og threat intel, behandle saker, kjøre playbooks og godkjenne stegene deres, blokkere adresser, og opprette, endre og slette deteksjonsregler og feeder. Den kan ikke sette opp playbooks eller tilkoblinger, eller slette sikkerhetsdata. |
+| Sikkerhetsleser | Lese hendelser, saker, playbooks, blokkeringslisten, regler, feeder, indikatorer og tilkoblinger |
 
 ## Send sikkerhetshendelser
 
