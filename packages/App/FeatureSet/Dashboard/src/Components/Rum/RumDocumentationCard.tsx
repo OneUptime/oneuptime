@@ -36,13 +36,18 @@ const RumDocumentationCard: FunctionComponent<ComponentProps> = (
       description={props.description}
       icon={IconProp.Globe}
       newKeyName={translationKey("RUM key")}
+      /*
+       * A Mobile key made on an app's Documentation tab is pinned to that
+       * app (issue #6457): everything it sends is filed under its name.
+       */
+      newKeyPinnedServiceName={props.appName}
       optionsLabel="What are you instrumenting?"
       options={RUM_CLIENTS}
       initialOption={props.clientType}
       /*
        * The browser snippet is public, so the picker lists and creates only
-       * Browser keys for it; a mobile app cannot use one, so it gets Server
-       * keys only.
+       * Browser keys for it; a mobile app cannot use one, and must never
+       * ship a Server key, so it gets Mobile keys only.
        */
       getKeyTypeFilter={(
         option: string | undefined,

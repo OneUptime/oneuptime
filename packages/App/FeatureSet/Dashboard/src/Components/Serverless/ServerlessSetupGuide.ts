@@ -2,6 +2,7 @@ import {
   FaasCloudPlatform,
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SetupGuideContent,
@@ -742,8 +743,10 @@ export function getServerlessSetupGuide(
         "Your function sends its telemetry to OneUptime with this key. Pick an existing key or create a new one — the settings below update to use it.",
       endpointLabel: "OTLP Endpoint",
       endpointValue: `${options.oneuptimeUrl}/otlp`,
-      endpointHint:
+      // A key of the locale files, as every guide's hint is (#6458).
+      endpointHint: translationKey(
         "OTEL_EXPORTER_OTLP_ENDPOINT takes this address; the SDK adds /v1/traces, /v1/metrics and /v1/logs to it.",
+      ),
     },
     prerequisites: getPrerequisites(data.platform),
     steps: getSteps(data),
