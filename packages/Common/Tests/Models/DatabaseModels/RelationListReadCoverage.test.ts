@@ -306,6 +306,9 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
     "A custom role is read by everyone who may read a team's permissions; the reference check refuses another project's role, and giving one - to a team or an API key - is held to the grant ceiling of every permission in it, and to a read of the role for a key.",
   User: "People are held to membership of the project (ProjectScopedReferenceValidator), not to a read of the user table.",
   Team: "Every member reads the project's teams; the reference check refuses another project's team.",
+  // A team or label budget's label (#6386).
+  Label:
+    "Every member reads the project's labels, and a team or label budget names the one whose services it is for: TelemetryIngestionTeamLabelBudgetService refuses another project's label like a missing one, and a budget's label never changes.",
   File: "A record points only at its own project's files (FileOwnership), checked on every create and update.",
   AlertSeverity: PROJECT_SETTING,
   IncidentSeverity: PROJECT_SETTING,

@@ -108,7 +108,7 @@ OneUptime → Dynamics 365 のテンプレートは、**プライベートイン
 
 ### テンプレートが尋ねる内容
 
-作成ウィザードの **設定** ステップでは、最大 7 つの値を尋ねられます。どのテンプレートも最初の 5 つ (Dynamics 365 の設定) を尋ね、サポート案件を作成する 2 つのテンプレートは最後の 2 つも尋ねます。このステップは、何かを作成する前に Dynamics 365 の各設定の形式を確認し、代わりに入力すべきものを示します。形式の誤った値は、実行するまでどこでもエラーにならないためです。
+作成ウィザードの **設定** ステップでは、最大 8 つの値を尋ねられます。どのテンプレートも最初の 5 つ (Dynamics 365 の設定) を尋ね、サポート案件を作成する 2 つのテンプレートは最後の 3 つも尋ねます (最後の 1 つは省略可能です)。このステップは、何かを作成する前に Dynamics 365 の各設定の形式を確認し、代わりに入力すべきものを示します。形式の誤った値は、実行するまでどこでもエラーにならないためです。
 
 - **Dynamics 365 Environment URL** — 環境のアドレス。例: `https://yourorg.crm.dynamics.com`。[Power Platform 管理センター](https://admin.powerplatform.microsoft.com/) の **Environments**、自分の環境、**Environment URL** で確認できます。アドレスのみを入力し、`/api/data/v9.2` で終わる Web API のエンドポイントは使わず、末尾にスラッシュを付けません。
 - **Directory (Tenant) ID** — アプリの登録の **Overview** ページから。
@@ -117,6 +117,7 @@ OneUptime → Dynamics 365 のテンプレートは、**プライベートイン
 - **Case Link Column** — リンク列の論理名。例: `new_oneuptimelink`。
 - **Customer for New Cases** — サポート案件を作成する 2 つのテンプレートだけが尋ねます。すべてのサポート案件には顧客が必要ですが、OneUptime のインシデントには顧客がないため、新しいサポート案件はすべて 1 つの顧客に対して作成されます。取引先企業の ID を貼り付けるか、取引先担当者の場合は `contacts(<id>)` を貼り付けます。Dynamics 365 でレコードを開くと、アドレスの `id=` の後の部分が ID です。
 - **OneUptime URL** — サポート案件を作成する 2 つのテンプレートだけが尋ねます。OneUptime を開くアドレスで、例は `https://oneuptime.com` です。サポート案件の説明は、これを使ってインシデントやアラートにリンクします。
+- **Configuration Item Column** — 省略可能で、サポート案件を作成する 2 つのテンプレートだけが尋ねます。Dynamics 365 でサポート案件ごとに 1 つの構成アイテムが必要な場合に使う、Case テーブルのテキスト列の論理名です。例: `new_configurationitem`。新しいサポート案件は、インシデントやアラートの影響を受けるリソースのうち、`CONFIGURATION_ITEM_PRECEDENCE` が選んだ 1 つの名前をこの列に書き込みます。列を使わない場合は空欄のままにします。
 
 **テンプレートのサインイン方法。** ウィザードは、テナント、クライアント ID、シークレットを、ワークフローの **ワークフロー変数** にある 1 つの [OAuth 2.0 変数](/docs/workflows/variables#oauth-20-変数自動で更新されるトークン) `dynamicsAccessToken` に保存します。内容は Client Credentials、トークン URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`、スコープ `<environment URL>/.default`、そしてリクエスト本文で送信され暗号化して保存されるクライアントシークレットです。Dynamics 365 へのすべての呼び出しは `Authorization: Bearer {{local.variables.dynamicsAccessToken}}` を送信します。OneUptime は、ステップが最初に必要とするときにトークンを取得し、期限切れの前に新しいトークンを取得し、実行ログとステップのトレースでは `[REDACTED]` に置き換えます。
 
@@ -229,6 +230,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `SEVERITY_TO_PRIORITY`, `DEFAULT_PRIORITY` | Dynamics 365 のサポート案件を作成 — `prepare-case-1` | プロジェクトの重大度は、順序に従ってサポート案件の優先度に割り振られます。最も重大なものは High (`1`)、最も軽いものは Low (`3`)、その間は Normal (`2`) のサポート案件になります。重大度を小文字の名前で指定すると、優先度を自分で選べます。例: `{ 'major incident': 1 }`。`DEFAULT_PRIORITY` (`2`) は、プロジェクトの一覧にない重大度や、重大度が一つしかないプロジェクトに使われます。 |
 | `CASE_ORIGIN`, `CASE_TYPE` | Dynamics 365 のサポート案件を作成 — `prepare-case-1` | 新しいサポート案件の `caseorigincode` (`3`、Web) と `casetypecode` (`2`、Problem)。ほかの列を設定するには、同じスクリプトの `CASE` に論理名で追加します。 |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Dynamics 365 のサポート案件を作成 — `prepare-case-1` | Case テーブル自体の上限である 200 文字と 2000 文字。どれだけ切り詰められても、説明には OneUptime へのリンクが残ります。Case テーブルでより多く許可している場合は上げてください。 |
+| `CONFIGURATION_ITEM_PRECEDENCE`, `MAX_CONFIGURATION_ITEM_LENGTH` | Dynamics 365 のサポート案件を作成 — `prepare-case-1` | 構成アイテムの列に入る影響を受けるリソース。リストのうちレコードがリンクしている最初の種類の、名前順で最初のものです。リストはダッシュボードの順序に従い、ホストが先頭で、モニターは末尾に移されています。そのため、Kubernetes クラスターを監視するモニターのサポート案件にはクラスターの名前が入ります。サポート案件を開くときに一度だけ選ばれ、100 文字で切り詰められます。どちらの場合も、サポート案件の説明にはすべての影響を受けるリソースが記載されます。 |
 | `RESOLVED_CASE_STATUS` | Dynamics 365 のサポート案件を解決 — `plan-case-1` | 解決されたレコードがサポート案件をクローズするときのステータス。`5` は Problem Solved、`1000` は Information Provided です。 |
 | `STATE_TO_CASE_STATUS` | Dynamics 365 のサポート案件を解決 — `plan-case-1` | 独自の解決済みの状態で、状態の名前によって、別の解決済みステータスでサポート案件をクローズします。 `{ Closed: 1000 }` は Information Provided としてクローズします。サポート案件が変わるのはレコードが解決されたときだけで、Researching のようなアクティブなステータスが設定されることはありません。 |
 | `PRIORITY_RANK` | Dynamics 365 のサポート案件から作成 — `prepare-incident-1`、`prepare-alert-1` | サポート案件の優先度 (`1` High、`2` Normal、`3` Low) を、`0` (最も重大な重大度)、`1`、`2` (最も軽い重大度) に対応付けます。一覧にない優先度は中央になります。新しいプロジェクトにある二つのアラートの重大度では、`2: 1` を `2: 0` に変えない限り、Normal は Low になります。 |
