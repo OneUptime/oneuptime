@@ -203,12 +203,11 @@ function write(chunks: Array<Buffer>, value: Encodable): void {
   }
 
   if (Array.isArray(value)) {
-    writeLength(
-      chunks,
-      value.length,
-      { code: 0x90, max: 15 },
-      [null, 0xdc, 0xdd],
-    );
+    writeLength(chunks, value.length, { code: 0x90, max: 15 }, [
+      null,
+      0xdc,
+      0xdd,
+    ]);
 
     for (const item of value) {
       write(chunks, item);
@@ -224,12 +223,11 @@ function write(chunks: Array<Buffer>, value: Encodable): void {
           return [key, (value as { [key: string]: Encodable })[key]!];
         });
 
-  writeLength(
-    chunks,
-    entries.length,
-    { code: 0x80, max: 15 },
-    [null, 0xde, 0xdf],
-  );
+  writeLength(chunks, entries.length, { code: 0x80, max: 15 }, [
+    null,
+    0xde,
+    0xdf,
+  ]);
 
   for (const [key, item] of entries) {
     write(chunks, key);

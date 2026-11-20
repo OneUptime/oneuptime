@@ -141,15 +141,21 @@ beforeEach(() => {
 
   (TelemetryIngestionBudget.admit as jest.Mock).mockReset();
 
-  for (const [name, signal] of [
-    ["addLogIngestJob", "logs"],
-    ["addMetricIngestJob", "metrics"],
-    ["addTraceIngestJob", "traces"],
-  ] as const) {
-    queue[name]!.mockReset().mockImplementation(async (req: unknown) => {
-      recordJob(jobs, signal, req as TelemetryRequest);
-    });
-  }
+  queue["addLogIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "logs", req as TelemetryRequest);
+    },
+  );
+  queue["addMetricIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "metrics", req as TelemetryRequest);
+    },
+  );
+  queue["addTraceIngestJob"]!.mockReset().mockImplementation(
+    async (req: unknown) => {
+      recordJob(jobs, "traces", req as TelemetryRequest);
+    },
+  );
 
   jest.spyOn(AppMetrics, "getIngestCounter").mockReturnValue(
     instrument(() => {

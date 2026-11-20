@@ -208,8 +208,9 @@ for (const [typeName, fieldNames] of UNREAD_FIELDS) {
   >;
 }
 
-export const DatadogAgentPayloadAsRead: protobuf.Type =
-  ReadingProto.lookupType("datadog.trace.AgentPayload");
+export const DatadogAgentPayloadAsRead: protobuf.Type = ReadingProto.lookupType(
+  "datadog.trace.AgentPayload",
+);
 
 /*
  * What an AgentPayload, as read, decodes into an object, for the count taken
@@ -303,6 +304,10 @@ const UINT64_MAX: bigint = BigInt("18446744073709551615");
 const INT64_MAX: bigint = BigInt("9223372036854775807");
 
 const DIGITS: RegExp = /^-?\d{1,20}$/;
+// A whole number written as text, small enough to be one exactly ("200").
+const SMALL_INTEGER_TEXT: RegExp = /^\d{1,15}$/;
+// A span ID written in decimal, as dd-trace writes one in a JSON link.
+const DECIMAL_ID: RegExp = /^\d+$/;
 const HEX_TRACE_ID_HIGH: RegExp = /^[0-9a-fA-F]{1,16}$/;
 
 /*
@@ -312,15 +317,13 @@ const HEX_TRACE_ID_HIGH: RegExp = /^[0-9a-fA-F]{1,16}$/;
 const JSON_UINT64: RegExp =
   /"(trace_id|trace_id_high|span_id|parent_id|start|duration|time_unix_nano)"(\s*):(\s*)(-?\d{16,})(?![\d.eE])/g;
 
-const SPAN_KINDS_BY_TAG: ReadonlyMap<string, number> = new Map<string, number>(
-  [
-    ["server", SPAN_KIND_SERVER],
-    ["client", SPAN_KIND_CLIENT],
-    ["producer", SPAN_KIND_PRODUCER],
-    ["consumer", SPAN_KIND_CONSUMER],
-    ["internal", SPAN_KIND_INTERNAL],
-  ],
-);
+const SPAN_KINDS_BY_TAG: ReadonlyMap<string, number> = new Map<string, number>([
+  ["server", SPAN_KIND_SERVER],
+  ["client", SPAN_KIND_CLIENT],
+  ["producer", SPAN_KIND_PRODUCER],
+  ["consumer", SPAN_KIND_CONSUMER],
+  ["internal", SPAN_KIND_INTERNAL],
+]);
 
 // A span type that calls out of the process, for a span with no span.kind.
 const CLIENT_SPAN_TYPES: ReadonlySet<string> = new Set<string>([
@@ -593,11 +596,7 @@ export default class DatadogTraces {
       }),
     };
 
-    return DatadogTraces.translate(
-      [view],
-      { hostname: "", env: "" },
-      options,
-    );
+    return DatadogTraces.translate([view], { hostname: "", env: "" }, options);
   }
 
   private static decodeAgentPayload(body: Buffer | Uint8Array): JSONObject {
@@ -1125,10 +1124,7 @@ export default class DatadogTraces {
       tags: tags,
       links: DatadogTraces.list(DatadogTraces.field(span, "span_links"))
         .map((link: unknown): JSONObject | null => {
-          const attributes: Map<string, TagValue> = new Map<
-            string,
-            TagValue
-          >();
+          const attributes: Map<string, TagValue> = new Map<string, TagValue>();
 
           for (const [key, value] of DatadogTraces.entries(
             DatadogTraces.field(link, "attributes"),
@@ -1163,8 +1159,7 @@ export default class DatadogTraces {
           for (const [key, value] of DatadogTraces.entries(
             DatadogTraces.field(event, "attributes"),
           )) {
-            const tag: TagValue | null =
-              DatadogTraces.attributeAnyValue(value);
+            const tag: TagValue | null = DatadogTraces.attributeAnyValue(value);
 
             if (typeof key === "string" && tag !== null) {
               OtlpJson.pushAll(attributes, DatadogTraces.attribute(key, tag));
@@ -1222,55 +1217,57 @@ export default class DatadogTraces {
       return strings[index]!;
     };
 
-    return DatadogTraces.list(body[1]).map((trace: unknown): Array<SpanView> => {
-      return DatadogTraces.list(trace).map((span: unknown): SpanView => {
-        if (!Array.isArray(span) || span.length !== 12) {
-          throw notV05();
-        }
-
-        const fields: Array<MsgpackValue> = span as Array<MsgpackValue>;
-        const tags: Map<string, TagValue> = new Map<string, TagValue>();
-
-        for (const [key, value] of DatadogTraces.entries(fields[9])) {
-          tags.set(
-            lookup(key as MsgpackValue),
-            lookup(value as MsgpackValue),
-          );
-        }
-
-        for (const [key, value] of DatadogTraces.entries(fields[10])) {
-          const number: number | null = Msgpack.toNumber(
-            value as MsgpackValue,
-          );
-
-          if (number !== null) {
-            tags.set(lookup(key as MsgpackValue), number);
+    return DatadogTraces.list(body[1]).map(
+      (trace: unknown): Array<SpanView> => {
+        return DatadogTraces.list(trace).map((span: unknown): SpanView => {
+          if (!Array.isArray(span) || span.length !== 12) {
+            throw notV05();
           }
-        }
 
-        tags.delete("");
+          const fields: Array<MsgpackValue> = span as Array<MsgpackValue>;
+          const tags: Map<string, TagValue> = new Map<string, TagValue>();
 
-        return {
-          service: lookup(fields[0]),
-          name: lookup(fields[1]),
-          resource: lookup(fields[2]),
-          type: lookup(fields[11]),
-          traceIdHigh: null,
-          traceIdLow: DatadogTraces.uint64(fields[3]),
-          spanId: DatadogTraces.uint64(fields[4]),
-          parentId: DatadogTraces.uint64(fields[5]),
-          start: DatadogTraces.int64(fields[6]),
-          duration: DatadogTraces.int64(fields[7]),
-          error: DatadogTraces.isError(fields[8]),
-          tags: tags,
-          links: [],
-          events: [],
-          kind: 0,
-          env: "",
-          version: "",
-        };
-      });
-    });
+          for (const [key, value] of DatadogTraces.entries(fields[9])) {
+            tags.set(
+              lookup(key as MsgpackValue),
+              lookup(value as MsgpackValue),
+            );
+          }
+
+          for (const [key, value] of DatadogTraces.entries(fields[10])) {
+            const number: number | null = Msgpack.toNumber(
+              value as MsgpackValue,
+            );
+
+            if (number !== null) {
+              tags.set(lookup(key as MsgpackValue), number);
+            }
+          }
+
+          tags.delete("");
+
+          return {
+            service: lookup(fields[0]),
+            name: lookup(fields[1]),
+            resource: lookup(fields[2]),
+            type: lookup(fields[11]),
+            traceIdHigh: null,
+            traceIdLow: DatadogTraces.uint64(fields[3]),
+            spanId: DatadogTraces.uint64(fields[4]),
+            parentId: DatadogTraces.uint64(fields[5]),
+            start: DatadogTraces.int64(fields[6]),
+            duration: DatadogTraces.int64(fields[7]),
+            error: DatadogTraces.isError(fields[8]),
+            tags: tags,
+            links: [],
+            events: [],
+            kind: 0,
+            env: "",
+            version: "",
+          };
+        });
+      },
+    );
   }
 
   private static translate(
@@ -1427,17 +1424,11 @@ export default class DatadogTraces {
       attributes,
       OtlpJson.stringAttribute("datadog.operation_name", span.name),
       OtlpJson.stringAttribute("datadog.span_type", span.type),
-      OtlpJson.stringAttribute(
-        "datadog.trace_id",
-        span.traceIdLow.toString(),
-      ),
+      OtlpJson.stringAttribute("datadog.trace_id", span.traceIdLow.toString()),
       OtlpJson.stringAttribute("datadog.span_id", span.spanId.toString()),
     );
 
-    const baseService: string = DatadogTraces.tagText(
-      tags,
-      "_dd.base_service",
-    );
+    const baseService: string = DatadogTraces.tagText(tags, "_dd.base_service");
 
     if (baseService && span.service && baseService !== span.service) {
       OtlpJson.pushAll(
@@ -1629,7 +1620,7 @@ export default class DatadogTraces {
 
   // A number written as text ("200") as the integer it is; anything else as it is.
   private static asInteger(value: TagValue): TagValue {
-    if (typeof value === "string" && /^\d{1,15}$/.test(value.trim())) {
+    if (typeof value === "string" && SMALL_INTEGER_TEXT.test(value.trim())) {
       return Number(value.trim());
     }
 
@@ -1719,7 +1710,7 @@ export default class DatadogTraces {
       const hexSpanId: string =
         typeof DatadogTraces.field(link, "span_id") === "string" &&
         String(DatadogTraces.field(link, "span_id")).length === 16 &&
-        !/^\d+$/.test(String(DatadogTraces.field(link, "span_id")))
+        !DECIMAL_ID.test(String(DatadogTraces.field(link, "span_id")))
           ? OtlpJson.hexId(DatadogTraces.field(link, "span_id"), 16)
           : "";
       const traceIdHigh: bigint = hexTraceId

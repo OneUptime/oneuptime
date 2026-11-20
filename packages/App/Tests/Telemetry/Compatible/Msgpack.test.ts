@@ -378,8 +378,6 @@ describe("Msgpack's readers", () => {
     expect(Msgpack.toText(Buffer.from("bin"))).toBe("bin");
     expect(Msgpack.toText("str")).toBe("str");
     expect(Msgpack.toText(null)).toBe("");
-    expect(Msgpack.decode(encodeMsgpack(new Int64(BigInt(5))))).toBe(
-      BigInt(5),
-    );
+    expect(Msgpack.decode(encodeMsgpack(new Int64(BigInt(5))))).toBe(BigInt(5));
   });
 });

@@ -44,7 +44,9 @@ interface FlatSpan {
 }
 
 // An OTLP attribute's value as the JS value it holds: an int64 as its decimal string.
-const valueOf: (value: JSONObject) => unknown = (value: JSONObject): unknown => {
+const valueOf: (value: JSONObject) => unknown = (
+  value: JSONObject,
+): unknown => {
   if ("stringValue" in value) {
     return value["stringValue"];
   }
@@ -60,9 +62,7 @@ const valueOf: (value: JSONObject) => unknown = (value: JSONObject): unknown => 
   return value["boolValue"];
 };
 
-const attributeMap: (
-  attributes: unknown,
-) => Record<string, unknown> = (
+const attributeMap: (attributes: unknown) => Record<string, unknown> = (
   attributes: unknown,
 ): Record<string, unknown> => {
   const map: Record<string, unknown> = {};
@@ -222,7 +222,9 @@ describe("DatadogTraces.agentPayloadToOtlp: the Agent's AgentPayload", () => {
 
   test("a failed span is an ERROR with an exception event of its type, message and stack trace", () => {
     const charge: FlatSpan = bySpanId(spansOf(translate()), hex16("3"));
-    const end: string = (BigInt("1700000000130000000") + BigInt(5000000)).toString();
+    const end: string = (
+      BigInt("1700000000130000000") + BigInt(5000000)
+    ).toString();
 
     expect(charge.span["status"]).toEqual({
       code: 2,
@@ -296,8 +298,8 @@ describe("DatadogTraces.agentPayloadToOtlp: the Agent's AgentPayload", () => {
       object["tracerPayloads"] as Array<JSONObject>
     )[0]!;
     const spans: Array<JSONObject> = (
-      (tracerPayload["chunks"] as Array<JSONObject>)[0]!["spans"] as Array<JSONObject>
-    );
+      tracerPayload["chunks"] as Array<JSONObject>
+    )[0]!["spans"] as Array<JSONObject>;
     spans[2]!["service"] = "billing";
 
     const translation: DatadogTracesTranslation =
@@ -308,9 +310,9 @@ describe("DatadogTraces.agentPayloadToOtlp: the Agent's AgentPayload", () => {
     expect(
       (translation.traces!["resourceSpans"] as Array<JSONObject>).length,
     ).toBe(2);
-    expect(bySpanId(spansOf(translation), hex16("3")).resource["service.name"]).toBe(
-      "billing",
-    );
+    expect(
+      bySpanId(spansOf(translation), hex16("3")).resource["service.name"],
+    ).toBe("billing");
   });
 
   test("a v1 payload: strings by reference, 128-bit IDs from the chunk, typed attributes, links and events", () => {
@@ -397,12 +399,10 @@ describe("DatadogTraces.agentPayloadToOtlp: the Agent's AgentPayload", () => {
   test("native span links and events, and the JSON tags of a tracer that could not send them natively", () => {
     const object: JSONObject = pythonAgentPayloadObject();
     const spans: Array<JSONObject> = (
-      (
-        (object["tracerPayloads"] as Array<JSONObject>)[0]![
-          "chunks"
-        ] as Array<JSONObject>
-      )[0]!["spans"] as Array<JSONObject>
-    );
+      (object["tracerPayloads"] as Array<JSONObject>)[0]![
+        "chunks"
+      ] as Array<JSONObject>
+    )[0]!["spans"] as Array<JSONObject>;
 
     spans[0]!["spanLinks"] = [
       {
@@ -504,12 +504,10 @@ describe("DatadogTraces.agentPayloadToOtlp: the Agent's AgentPayload", () => {
   test("a span with no trace ID or span ID is dropped and counted", () => {
     const object: JSONObject = pythonAgentPayloadObject();
     const spans: Array<JSONObject> = (
-      (
-        (object["tracerPayloads"] as Array<JSONObject>)[0]![
-          "chunks"
-        ] as Array<JSONObject>
-      )[0]!["spans"] as Array<JSONObject>
-    );
+      (object["tracerPayloads"] as Array<JSONObject>)[0]![
+        "chunks"
+      ] as Array<JSONObject>
+    )[0]!["spans"] as Array<JSONObject>;
     spans[1]!["spanID"] = "0";
     spans[2]!["traceID"] = "0";
 
@@ -538,7 +536,9 @@ describe("DatadogTraces.agentPayloadToOtlp: the Agent's AgentPayload", () => {
       decoded["tracerPayloads"] as Array<JSONObject>
     )[0]!;
     const span: JSONObject = (
-      (tracerPayload["chunks"] as Array<JSONObject>)[0]!["spans"] as Array<JSONObject>
+      (tracerPayload["chunks"] as Array<JSONObject>)[0]![
+        "spans"
+      ] as Array<JSONObject>
     )[0]!;
 
     expect(span["meta_struct"]).toBeUndefined();
@@ -601,12 +601,9 @@ describe("DatadogTraces.agentPayloadToOtlp: the Agent's AgentPayload", () => {
     ]);
     const body: Buffer = lengthDelimited(11, lengthDelimited(10, entry));
 
-    expectRefusal(
-      () => {
-        return DatadogTraces.agentPayloadToOtlp(body);
-      },
-      400,
-    );
+    expectRefusal(() => {
+      return DatadogTraces.agentPayloadToOtlp(body);
+    }, 400);
   });
 
   test("spans past the cap of a request are dropped and counted", () => {
@@ -900,14 +897,11 @@ describe("DatadogTraces.tracerTracesToOtlp: a tracer's own endpoints", () => {
   });
 
   test("a body that is no traces is a 400; an empty array is no spans", () => {
-    expectRefusal(
-      () => {
-        return DatadogTraces.tracerTracesToOtlp(encodeMsgpack({ a: 1 }), {
-          protocol: "v0.4",
-        });
-      },
-      400,
-    );
+    expectRefusal(() => {
+      return DatadogTraces.tracerTracesToOtlp(encodeMsgpack({ a: 1 }), {
+        protocol: "v0.4",
+      });
+    }, 400);
     expectRefusal(
       () => {
         return DatadogTraces.tracerTracesToOtlp(Buffer.from([0xc1]), {
@@ -962,15 +956,12 @@ describe("DatadogTraces.tracerTracesToOtlp: a tracer's own endpoints", () => {
     const parse: jest.SpyInstance = jest.spyOn(JSON, "parse");
 
     try {
-      expectRefusal(
-        () => {
-          return DatadogTraces.tracerTracesToOtlp(
-            Buffer.from(`[${"[],".repeat(COMPATIBLE_JSON_MAX_VALUES)}[]]`),
-            { protocol: "v0.4", isJson: true },
-          );
-        },
-        413,
-      );
+      expectRefusal(() => {
+        return DatadogTraces.tracerTracesToOtlp(
+          Buffer.from(`[${"[],".repeat(COMPATIBLE_JSON_MAX_VALUES)}[]]`),
+          { protocol: "v0.4", isJson: true },
+        );
+      }, 413);
       expect(parse).not.toHaveBeenCalled();
     } finally {
       parse.mockRestore();

@@ -50,12 +50,13 @@ const credentials: RequestHandler = CompatibleIngestCredential.middleware([
  * password (https://<user>:<key>@<host>/telemetry/datadog, which
  * dd-trace-go sends as basic auth), or a header a proxy in front adds.
  */
-const tracerCredentials: RequestHandler =
-  CompatibleIngestCredential.middleware([
+const tracerCredentials: RequestHandler = CompatibleIngestCredential.middleware(
+  [
     CompatibleCredentialScheme.DatadogApiKey,
     CompatibleCredentialScheme.Basic,
     CompatibleCredentialScheme.Bearer,
-  ]);
+  ],
+);
 
 /*
  * OneUptime's own ingest metrics, by what each route carries. The Agent's
