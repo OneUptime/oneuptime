@@ -5,6 +5,7 @@ import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
@@ -303,11 +304,12 @@ function toReason(error: unknown): string {
   ).substring(0, MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH);
 }
 
+/*
+ * Another device has the name: told by the refusal's kind, never its words,
+ * which say more when that device is archived (NameTakenException, #10065).
+ */
 function isNameTaken(error: unknown): boolean {
-  return (
-    error instanceof BadDataException &&
-    error.message === "Network Device with the same name already exists."
-  );
+  return error instanceof NameTakenException;
 }
 
 function toSiteKey(name: string): string {

@@ -1,6 +1,7 @@
 /** @timezone UTC */
 
 import "@testing-library/jest-dom";
+import { SharedNameKind } from "../../../Types/Database/SharedNames";
 import {
   afterEach,
   beforeEach,
@@ -426,15 +427,37 @@ describe("the requests", () => {
         limit: 1,
       } as never);
 
+    // With what tells it from a policy of its name (#10064).
     expect(await SetupHealthQuickFixApi.getPolicies()).toEqual([
-      { id: PRIMARY, name: "Primary" },
+      {
+        id: PRIMARY,
+        name: "Primary",
+        sharedName: {
+          kind: SharedNameKind.OnCallPolicy,
+          description: undefined,
+          createdAt: undefined,
+        },
+      },
     ]);
 
-    const asked: { modelType: unknown; query: unknown } = list.mock
-      .calls[0]![0] as unknown as { modelType: unknown; query: unknown };
+    const asked: {
+      modelType: unknown;
+      query: unknown;
+      select: Record<string, unknown>;
+    } = list.mock.calls[0]![0] as unknown as {
+      modelType: unknown;
+      query: unknown;
+      select: Record<string, unknown>;
+    };
 
     expect(asked.modelType).toBe(OnCallDutyPolicy);
     expect(asked.query).toEqual({ isArchived: false });
+    expect(asked.select).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+    });
   });
 });
 

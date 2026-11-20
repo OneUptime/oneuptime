@@ -9,6 +9,7 @@ import OwnedBy, {
 } from "Common/Types/BaseDatabase/OwnedBy";
 import ObjectID from "Common/Types/ObjectID";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import type { SharedNameFacts } from "Common/UI/Utils/SharedNameOptions";
 
 /*
  * WHAT THE OWNER CHIP PUTS IN A LIST'S QUERY.
@@ -75,6 +76,8 @@ export const getOwnerKey: (owner: OwnerKey) => string = (
 export interface OwnerChipCandidate extends OwnerKey {
   name: string;
   hasProfilePicture?: boolean | undefined;
+  // A team's: what tells it from another team of its name (#10064).
+  sharedName?: SharedNameFacts | undefined;
 }
 
 // The headings the chip lists people and teams under, as the picker does.
@@ -104,6 +107,7 @@ export const getOwnerChipOption: (
       hasProfilePicture:
         candidate.kind === "user" && Boolean(candidate.hasProfilePicture),
     },
+    ...(candidate.sharedName ? { sharedName: candidate.sharedName } : {}),
   };
 };
 

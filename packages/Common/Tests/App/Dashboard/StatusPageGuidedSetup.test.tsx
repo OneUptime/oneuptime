@@ -46,6 +46,21 @@ const api: Record<string, MockFunction> = {
 };
 let mayCreate: boolean = true;
 
+/*
+ * The server's guided setup runs (#7253), in memory: the store reads and
+ * writes them as it would the server's (GuidedSetupRunServerMock).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupRunApi",
+  () => {
+    return (
+      jest.requireActual("./GuidedSetupRunServerMock") as {
+        guidedSetupRunApiModule: unknown;
+      }
+    ).guidedSetupRunApiModule;
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi",
   () => {
@@ -125,6 +140,10 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  guidedSetupRunServer,
+  readKeptRunValues,
+} from "./GuidedSetupRunServerMock";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006806";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -153,7 +172,7 @@ const storedRun: () => Record<string, unknown> = (): Record<
   string,
   unknown
 > => {
-  return JSON.parse(window.localStorage.getItem(RUN_KEY) || "{}") as Record<
+  return readKeptRunValues(window.localStorage.getItem(RUN_KEY)) as Record<
     string,
     unknown
   >;
@@ -213,6 +232,7 @@ const nameField: () => HTMLInputElement = (): HTMLInputElement => {
 };
 
 beforeEach(() => {
+  guidedSetupRunServer.reset();
   window.localStorage.clear();
   mayCreate = true;
   isBillingEnabled = false;
@@ -255,11 +275,18 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-// What the setup sets up, beside the steps (#8897), in the order listed.
+/*
+ * What the setup sets up, beside the steps (#8897), in the order listed:
+ * each step's outcome, whatever records the panel lists under it (#10276).
+ */
 const outcomesBeside: () => Array<string> = (): Array<string> => {
   return Array.from(
-    screen.getByTestId("guided-setup-aside").querySelectorAll("li"),
-  ).map((item: HTMLLIElement): string => {
+    screen
+      .getByTestId("guided-setup-aside")
+      .querySelectorAll(
+        '[data-testid^="guided-setup-outcome-"][data-testid$="-text"]',
+      ),
+  ).map((item: Element): string => {
     return item.textContent || "";
   });
 };
@@ -815,7 +842,9 @@ describe("the summary", () => {
     await reachSummary();
     await press("guided-setup-start-over");
 
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(stepState("pick")).toBe("open");
     // "Acme Status" is taken by the page just set up: another needs its own.
     expect(nameField().value).toBe("");
@@ -846,6 +875,30 @@ describe("the summary", () => {
 });
 
 describe("leaving and coming back", () => {
+  test("a run only the server kept - another device's - opens at the step it was on (#7253)", async () => {
+    guidedSetupRunServer.seed("status_page", { statusPageId: PAGE_ID });
+    await renderSetup();
+
+    expect(stepState("pick")).toBe("done");
+    expect(stepState("review")).toBe("open");
+    expect(api["loadStatusPage"]).toHaveBeenCalledWith(PAGE_ID);
+    expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    // And this browser keeps a copy, for when OneUptime is out of reach.
+    expect(storedRun()).toEqual({ statusPageId: PAGE_ID });
+  });
+
+  test("a run an older Dashboard kept in this browser is sent to the server the first time it opens (#7253)", async () => {
+    keepRun({ statusPageId: PAGE_ID, reviewed: true });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(guidedSetupRunServer.valuesOf("status_page")).toEqual({
+        statusPageId: PAGE_ID,
+        reviewed: true,
+      });
+    });
+  });
+
   test("a page that shows monitors opens the review, and nothing is made again", async () => {
     keepRun({ statusPageId: PAGE_ID });
     await renderSetup();
@@ -888,7 +941,9 @@ describe("leaving and coming back", () => {
     api["loadStatusPage"]!.mockResolvedValue(null);
     await renderSetup();
 
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(stepState("pick")).toBe("open");
     expect(stepState("review")).toBe("upcoming");
   });
@@ -1056,9 +1111,15 @@ describe("a run the browser lost, or another tab (#7252)", () => {
   };
 
   // The browser forgets the run; the page stays on the server. Then the page opens again.
+  /*
+   * The run gone from the browser and the server both - an older
+   * Dashboard's, kept in a browser since cleared: what the server keeps
+   * now (#7253) never had it.
+   */
   const loseTheRunAndOpenAgain: () => Promise<void> =
     async (): Promise<void> => {
       window.localStorage.clear();
+      guidedSetupRunServer.reset();
       cleanup();
       await renderSetup();
     };

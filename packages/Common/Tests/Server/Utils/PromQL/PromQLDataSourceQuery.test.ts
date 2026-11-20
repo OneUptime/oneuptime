@@ -23,6 +23,7 @@ import {
   compilePromQLMatchers,
 } from "../../../../Utils/PromQL/PromQLLabels";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The data source widgets' built-in source (issue #7713): a widget's
@@ -176,7 +177,7 @@ describe("who may run PromQL over the project's metrics", () => {
   });
 
   test("the project's metrics are read for the services the person may read", async () => {
-    const serviceFilter: jest.SpiedFunction<
+    const serviceFilter: SpyInstance<
       typeof TelemetryReadAccess.getServiceFilter
     > = jest
       .spyOn(TelemetryReadAccess, "getServiceFilter")

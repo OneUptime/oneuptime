@@ -122,15 +122,15 @@ async function open(
 }
 
 /*
- * The laptop menu, by the name it gives itself: "Main navigation", or what
- * the reader's language calls it.
+ * The laptop menu, by the name it gives itself: "Pages in this section",
+ * or what the reader's language calls it.
  */
-function desktopMenu(page: Page, name: string = "Main navigation"): Locator {
+function desktopMenu(page: Page, name: string = "Pages in this section"): Locator {
   return page.locator(`aside[role='navigation'][aria-label='${name}']`);
 }
 
 function phoneMenu(page: Page): Locator {
-  return page.locator("div[role='navigation'][aria-label='Main navigation']");
+  return page.locator("div[role='navigation'][aria-label='Pages in this section']");
 }
 
 // A section's toggle, by its heading's text (CSS draws it in capitals).
@@ -382,7 +382,7 @@ test.describe("at a laptop's 1280 pixels", () => {
     page: Page;
   }) => {
     await open(page, `${RUNNERS}?lang=de`);
-    const menu: Locator = desktopMenu(page, "Hauptnavigation");
+    const menu: Locator = desktopMenu(page, "Seiten in diesem Bereich");
 
     await expect(link(menu, RUNNERS)).toHaveText(GERMAN_RUNNERS);
     expect(await isMarked(link(menu, RUNNERS))).toBe(true);

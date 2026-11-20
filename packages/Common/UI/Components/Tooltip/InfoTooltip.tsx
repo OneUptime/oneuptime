@@ -57,6 +57,8 @@ const InfoTooltip: FunctionComponent<ComponentProps> = (
           label: translatableTerm(props.label),
         })}
         data-testid={props.dataTestId}
+        // It explains, so a dialog never starts on it (DialogAside).
+        data-dialog-aside="true"
         className={`inline-flex flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-gray-600 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
           props.className || ""
         }`}

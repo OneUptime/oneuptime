@@ -234,6 +234,18 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       scope: DeveloperDocsScope.View,
       tableName: "Team",
     },
+    /*
+     * A custom role, on its own page (#10139): people keep roles as code
+     * (oneuptime_custom_role, /custom-role, oneuptime custom-role), and its
+     * Delete it step says what the workflows that run as it need (#10031).
+     * No list scope: the Teams menu's Developer section is the teams', and
+     * a second one of that name for the roles would read as the same.
+     */
+    {
+      pageKey: PageMap.TEAM_ROLE_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "CustomRole",
+    },
     // Dashboards
     {
       pageKey: PageMap.DASHBOARDS,

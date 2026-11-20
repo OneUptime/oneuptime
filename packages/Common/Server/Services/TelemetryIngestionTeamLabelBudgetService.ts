@@ -210,13 +210,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const budgets: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { projectId: true },
-      skip: 0,
-      limit: deleteBy.limit,
-      props: { isRoot: true },
-    });
+    /*
+     * The budgets the delete removes, and the delete held to them: the
+     * projects told once it is done are exactly those whose budgets went.
+     */
+    const budgets: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { projectId: true },
+    );
 
     return { deleteBy, carryForward: budgets };
   }

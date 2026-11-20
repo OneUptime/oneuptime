@@ -37,6 +37,21 @@ const api: Record<string, MockFunction> = {
 };
 let mayCreate: boolean = true;
 
+/*
+ * The server's guided setup runs (#7253), in memory: the store reads and
+ * writes them as it would the server's (GuidedSetupRunServerMock).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupRunApi",
+  () => {
+    return (
+      jest.requireActual("./GuidedSetupRunServerMock") as {
+        guidedSetupRunApiModule: unknown;
+      }
+    ).guidedSetupRunApiModule;
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetupApi",
   () => {
@@ -262,6 +277,10 @@ import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCall
 import { createTranslator, Translator } from "../../../Types/Translator";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import {
+  guidedSetupRunServer,
+  readKeptRunValues,
+} from "./GuidedSetupRunServerMock";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006806";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -282,7 +301,7 @@ const storedRun: () => Record<string, unknown> = (): Record<
   string,
   unknown
 > => {
-  return JSON.parse(window.localStorage.getItem(RUN_KEY) || "{}") as Record<
+  return readKeptRunValues(window.localStorage.getItem(RUN_KEY)) as Record<
     string,
     unknown
   >;
@@ -343,6 +362,7 @@ const reachAlertStep: () => Promise<void> = async (): Promise<void> => {
 };
 
 beforeEach(() => {
+  guidedSetupRunServer.reset();
   window.localStorage.clear();
   mayCreate = true;
   consentRequired = false;
@@ -392,11 +412,18 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-// What the setup sets up, beside the steps (#8897), in the order listed.
+/*
+ * What the setup sets up, beside the steps (#8897), in the order listed:
+ * each step's outcome, whatever records the panel lists under it (#10276).
+ */
 const outcomesBeside: () => Array<string> = (): Array<string> => {
   return Array.from(
-    screen.getByTestId("guided-setup-aside").querySelectorAll("li"),
-  ).map((item: HTMLLIElement): string => {
+    screen
+      .getByTestId("guided-setup-aside")
+      .querySelectorAll(
+        '[data-testid^="guided-setup-outcome-"][data-testid$="-text"]',
+      ),
+  ).map((item: Element): string => {
     return item.textContent || "";
   });
 };
@@ -907,7 +934,9 @@ describe("the summary", () => {
     await renderSetup();
     await press("guided-setup-start-over");
 
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(stepState("send")).toBe("open");
   });
 });
@@ -1221,6 +1250,28 @@ describe("getTelemetryWhoIsToldWords", () => {
 });
 
 describe("leaving and coming back", () => {
+  test("a run only the server kept - another device's - opens at the step it was on (#7253)", async () => {
+    guidedSetupRunServer.seed("telemetry", { serviceId: "svc-new" });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(stepState("alert")).toBe("open");
+    });
+    expect(stepState("send")).toBe("done");
+    expect(api["loadService"]).toHaveBeenCalledWith("svc-new");
+  });
+
+  test("OneUptime out of reach when the page opens: it opens on what this browser kept (#7253)", async () => {
+    keepRun({ serviceId: "svc-new" });
+    guidedSetupRunServer.isDown = true;
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(stepState("alert")).toBe("open");
+    });
+    expect(stepState("send")).toBe("done");
+  });
+
   test("a service that reported opens the alert step, and asks nothing again", async () => {
     keepRun({ serviceId: "svc-new" });
     await renderSetup();
@@ -1247,7 +1298,9 @@ describe("leaving and coming back", () => {
     api["loadService"]!.mockResolvedValue(null);
     await renderSetup();
 
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(stepState("send")).toBe("open");
   });
 

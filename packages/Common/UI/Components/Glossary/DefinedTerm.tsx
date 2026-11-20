@@ -389,6 +389,8 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
           aria-labelledby={wordId}
           data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
           data-glossary-term={props.term}
+          // It explains, so a dialog never starts on it (DialogAside).
+          data-dialog-aside="true"
           className={DEFINED_TERM_CLASS_NAME}
           onClick={keepDefinedTermPress}
           onKeyDown={keepDefinedTermKeys}

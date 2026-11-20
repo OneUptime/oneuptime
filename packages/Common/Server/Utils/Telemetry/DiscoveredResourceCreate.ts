@@ -3,10 +3,15 @@ import CreateBy from "../../Types/Database/CreateBy";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
+import Sort from "../../Types/Database/Sort";
 import CaptureSpan from "./CaptureSpan";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException, {
+  NameHolder,
+} from "../../../Types/Exception/NameTakenException";
 import ObjectID from "../../../Types/ObjectID";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import {
   getCloudEnvironmentNameFromIdentity,
   getNameFromIdentity,
@@ -37,7 +42,9 @@ import {
  *     what exists). The identifier is checked first: a resource named after
  *     its identifier would otherwise be reported as a clash of names
  *     ("Host with the same name already exists.") when the truth is that
- *     the host is already there. A clash of names says what to do about it.
+ *     the host is already there. A clash of names says what to do about it,
+ *     and carries the code a program tells a taken name by: whether the
+ *     resource that has it is archived (NameTakenException, #10065).
  *
  * Ingest's own creates (root) are left as they come but for a missing name.
  * Discovery always names what it creates and settles its own races, so it
@@ -51,8 +58,11 @@ export interface DiscoveredResourceNaming<TModel extends BaseModel> {
   getDefaultName: (data: TModel) => string;
   // The refusal when another resource of the project has this identifier.
   getIdentityTakenMessage: (identity: string) => string;
-  // The refusal when another resource of the project has this name.
-  getNameTakenMessage: (name: string) => string;
+  /*
+   * The refusal when another resource of the project has this name: an
+   * archived one is said to be archived, since no list shows it.
+   */
+  getNameTakenMessage: (name: string, holder?: NameHolder) => string;
 }
 
 export interface NamedAfterIdentityOptions {
@@ -83,12 +93,22 @@ const readColumn: (data: BaseModel, column: string) => unknown = (
 /**
  * The refusal when another resource already has the name, with what to do
  * about it - for a person (the create form's Display Name) and an API
- * caller (the name) alike.
+ * caller (the name) alike. An archived one is in no list, so the refusal
+ * says it is there, and how to bring it back.
  */
 export const getDiscoveredResourceNameTakenMessage: (data: {
   resourceName: string;
   name: string;
-}) => string = (data: { resourceName: string; name: string }): string => {
+  isArchived?: boolean | undefined;
+}) => string = (data: {
+  resourceName: string;
+  name: string;
+  isArchived?: boolean | undefined;
+}): string => {
+  if (data.isArchived) {
+    return `An archived ${data.resourceName} is already named "${data.name}". Unarchive it, or give this one a different display name.`;
+  }
+
   return `Another ${data.resourceName} is already named "${data.name}". Give this one a different display name.`;
 };
 
@@ -110,10 +130,11 @@ export const namedAfterIdentity: <TModel extends BaseModel>(
     getIdentityTakenMessage: (identity: string): string => {
       return `A ${options.resourceName} with the ${options.identityName} "${identity}" already exists.`;
     },
-    getNameTakenMessage: (name: string): string => {
+    getNameTakenMessage: (name: string, holder?: NameHolder): string => {
       return getDiscoveredResourceNameTakenMessage({
         resourceName: options.resourceName,
         name: name,
+        isArchived: holder?.isArchived,
       });
     },
   };
@@ -141,10 +162,11 @@ export const namedAfterCloudEnvironment: <
     getIdentityTakenMessage: (identity: string): string => {
       return `A cloud environment for this platform, account and region (${identity}) already exists.`;
     },
-    getNameTakenMessage: (name: string): string => {
+    getNameTakenMessage: (name: string, holder?: NameHolder): string => {
       return getDiscoveredResourceNameTakenMessage({
         resourceName: "cloud environment",
         name: name,
+        isArchived: holder?.isArchived,
       });
     },
   };
@@ -261,14 +283,27 @@ export default class DiscoveredResourceCreate {
         } as unknown as Query<TModel>,
         select: {
           _id: true,
+          isArchived: true,
         } as unknown as Select<TModel>,
+        // One in service is named before an archived one.
+        sort: {
+          isArchived: SortOrder.Ascending,
+        } as unknown as Sort<TModel>,
         props: {
           isRoot: true,
         },
       });
 
       if (sameName) {
-        throw new BadDataException(data.naming.getNameTakenMessage(name));
+        const holder: NameHolder = {
+          isArchived: readColumn(sameName, "isArchived") === true,
+        };
+
+        // With the code a program tells a taken name by (#10065).
+        throw new NameTakenException(
+          data.naming.getNameTakenMessage(name, holder),
+          holder,
+        );
       }
     }
   }

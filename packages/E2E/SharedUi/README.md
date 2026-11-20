@@ -115,7 +115,19 @@ The suite checks what jsdom cannot:
   Tab and Escape (#9909). It also has Ask AI's pickers in a card that rounds
   its corners, Code's repository picker in a request box that clips, and a
   player's sessions menu (#9910). Each is checked at 1280 and 390 pixels,
-  with its keyboard.
+  with its keyboard;
+- what a keyboard and a screen reader meet on every page (`?section=a11y`,
+  `KeyboardAndLandmarks.spec.ts`), at 1280 and 390 pixels, light and dark,
+  and in Persian: the top bar, the trail and a side menu are three
+  navigation landmarks named "Main menu", "Breadcrumb" and "Pages in this
+  section", in the reader's language (#7963); a confirmation whose body
+  holds links opens on its action, so Enter does what it asks and follows
+  no link, and a delete opens on Cancel (#7360); a list's saved views are
+  renamed and deleted with the keyboard alone, each view's Rename and Delete
+  menu items named with the view and the focus back on Saved Views after
+  each dialog, its row read from the right in Persian (#6922); and a
+  secret's "Click to reveal" is a button found by its words, the secret by
+  its test id (#7964).
 
 `Fixture/Fixture.js` records every read on `window.__fixture.reads`, every
 write on `window.__fixture.updates`, and every read it does not model on
@@ -140,6 +152,6 @@ node SharedUi/Fixture/server.js
 
 Then open
 `http://127.0.0.1:4329/dashboard/10000000-0000-4000-8000-000000000001/shared-ui`,
-with `?section=buttons|dialogs|sections|pills|avatars|states|keyboard|popups|layered-popups` for one part,
+with `?section=buttons|dialogs|sections|pills|avatars|states|keyboard|popups|layered-popups|a11y` for one part,
 `&theme=dark`, `&lang=de|ja|fa|zh-CN`, `&layout=side-menu` or `&read=<ms>`.
 `SHARED_UI_FIXTURE_PORT` moves it to another port.

@@ -922,7 +922,7 @@ async function expectHeaderActionsOnTheRight(
 
 function sideMenu(page: Page): Locator {
   return page
-    .locator("aside[role='navigation'][aria-label='Main navigation']")
+    .locator("aside[role='navigation'][aria-label='Pages in this section']")
     .first();
 }
 

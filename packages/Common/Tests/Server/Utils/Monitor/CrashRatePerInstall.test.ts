@@ -17,6 +17,7 @@ import ModelPermission from "../../../../Server/Types/AnalyticsDatabase/ModelPer
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import QueryTimeoutException from "../../../../Types/Exception/QueryTimeoutException";
 import {
   CheckOn,
   CriteriaFilter,
@@ -456,6 +457,34 @@ describe("the installs a share is taken of", () => {
       installsWithExceptionsPercent: 100,
     });
   });
+
+  /*
+   * Either count stopped at its time limit fails the read, so the check
+   * changes nothing: a share taken of the installs counted by then would be
+   * judged as the window's, and fewer installs read more of them as crashed.
+   */
+  test.each([
+    ["the window's installs", SpanService],
+    ["the crashed installs", ExceptionInstanceService],
+  ] as Array<[string, typeof SpanService | typeof ExceptionInstanceService]>)(
+    "%s stopped at the time limit fail the read, never a share of part of them",
+    async (
+      _name: string,
+      service: typeof SpanService | typeof ExceptionInstanceService,
+    ) => {
+      const stop: QueryTimeoutException = new QueryTimeoutException(
+        "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.",
+      );
+
+      jest
+        .spyOn(service, "countDistinctNonEmpty")
+        .mockRejectedValue(stop as never);
+
+      await expect(read([CheckOn.InstallsWithExceptionsPercent])).rejects.toBe(
+        stop,
+      );
+    },
+  );
 });
 
 function response(
@@ -629,7 +658,9 @@ describe("the distinct count an install share is read with", () => {
       / WHERE TRUE AND \{p\d+:Identifier\} = \{p\d+:String\} AND \{p\d+:Identifier\} IN \{p\d+:Array\(String\)\} AND retentionDate >= now\(\) /,
     );
     expect(sql).toContain("max_execution_time = 45");
-    expect(sql).toContain("timeout_overflow_mode = 'break'");
+    // Stopped with an error, as an exact count is: never part of a count.
+    expect(sql).toContain("timeout_overflow_mode = 'throw'");
+    expect(sql).not.toContain("'break'");
   });
 
   test("reads the count through the count hooks and the read permission, and as a number however it arrives", async () => {

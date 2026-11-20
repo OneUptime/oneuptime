@@ -24,6 +24,8 @@ import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
+import NetworkSiteOwnerTeam from "./NetworkSiteOwnerTeam";
+import NetworkSiteOwnerUser from "./NetworkSiteOwnerUser";
 import NetworkSiteType from "./NetworkSiteType";
 import NetworkEndpoint from "./NetworkEndpoint";
 import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
@@ -404,6 +406,7 @@ import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 import WorkspaceLiveMessage from "./WorkspaceLiveMessage";
 import WorkspacePublicNoteApprovalMessage from "./WorkspacePublicNoteApprovalMessage";
 import WorkspaceHomeChoice from "./WorkspaceHomeChoice";
+import GuidedSetupRun from "./GuidedSetupRun";
 import OwnerNotificationDelivery from "./OwnerNotificationDelivery";
 // Status Page
 import StatusPage from "./StatusPage";
@@ -1040,6 +1043,7 @@ const AllModelTypes: Array<{
   WorkspaceLiveMessage,
   WorkspacePublicNoteApprovalMessage,
   WorkspaceHomeChoice,
+  GuidedSetupRun,
   OwnerNotificationDelivery,
   CallLog,
   EmailLog,
@@ -1246,6 +1250,8 @@ const AllModelTypes: Array<{
   PacketCapture,
   NetworkInterface,
   NetworkSite,
+  NetworkSiteOwnerTeam,
+  NetworkSiteOwnerUser,
   NetworkSiteType,
   NetworkEndpoint,
   NetworkSiteStatusTimeline,

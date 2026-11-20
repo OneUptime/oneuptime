@@ -75,6 +75,24 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
+/*
+ * The list's Bulk Actions read the project's labels when the page draws
+ * (#10188): it has none here.
+ */
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCommonHeaders: (): JSONObject => {
+        return {};
+      },
+      getList: async (): Promise<JSONObject> => {
+        return { data: [], count: 0, skip: 0, limit: 0 };
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
     __esModule: true,

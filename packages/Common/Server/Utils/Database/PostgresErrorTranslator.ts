@@ -4,6 +4,7 @@ import {
 } from "../../../Utils/ArchivableValues";
 import { splitCapitalRunsBeforeWords } from "../../../Utils/CapitalRuns";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NameTakenException from "../../../Types/Exception/NameTakenException";
 import Exception from "../../../Types/Exception/Exception";
 
 /*
@@ -316,12 +317,23 @@ export default class PostgresErrorTranslator {
       })
       .join(", ");
 
+    const refusal: string =
+      columns.length === 1
+        ? `${subject} with this ${fields} already exists. Please use a different value and try again.`
+        : `${subject} with the same ${fields} already exists. Please use different values and try again.`;
+
+    /*
+     * An index that holds a record's name one of its kind (a data
+     * product's, a Ceph cluster's in its project): the name is taken, and
+     * nothing was written. Said with the code a program tells a taken name
+     * by, as the checks before the write say it (NameTakenException,
+     * #10065), so a client may ask again once the other record gives the
+     * name up.
+     */
     return this.tag(
-      new BadDataException(
-        columns.length === 1
-          ? `${subject} with this ${fields} already exists. Please use a different value and try again.`
-          : `${subject} with the same ${fields} already exists. Please use different values and try again.`,
-      ),
+      columns.includes("name")
+        ? new NameTakenException(refusal)
+        : new BadDataException(refusal),
       driverError,
     );
   }
