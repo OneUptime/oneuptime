@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "Ikke krev tofaktorautentisering",
       "bulkDoNotRequireTwoFactorAuthTitle": "Slutt å kreve tofaktorautentisering for {{userCount}} bruker(e)",
       "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valgte bruker(e) kan logge inn med passordet alene. Alt de allerede har satt opp, beholdes, men det blir ikke lenger spurt om det.",
+      "bulkDeleteTitle": "Slett {{userCount}} bruker(e)",
+      "bulkDeleteDescription": "{{userCount}} valgte bruker(e) slettes for godt, og det kan ikke angres. En bruker som fortsatt er medlem av et prosjekt, slettes ikke: fjern brukeren fra prosjektene sine først.",
       "createdAndEmailed": "{{name}} er opprettet. En lenke for å angi passordet ble sendt til {{email}}.",
       "createdWithPassword": "{{name}} er opprettet. Del passordet du anga, på en sikker måte.",
       "setPasswordLinkTitle": "Send en lenke for å angi passordet",

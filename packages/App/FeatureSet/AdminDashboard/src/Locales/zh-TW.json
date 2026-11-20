@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "取消雙重驗證要求",
       "bulkDoNotRequireTwoFactorAuthTitle": "取消對 {{userCount}} 位使用者的雙重驗證要求",
       "bulkDoNotRequireTwoFactorAuthDescription": "所選的 {{userCount}} 位使用者將可以只使用密碼登入。他們已設定的內容會保留，但不會再要求進行驗證。",
+      "bulkDeleteTitle": "刪除 {{userCount}} 位使用者",
+      "bulkDeleteDescription": "所選的 {{userCount}} 位使用者將被永久刪除，且無法復原。仍是某個專案成員的使用者不會被刪除：請先將其從所在專案中移除。",
       "createdAndEmailed": "已建立 {{name}}。設定密碼的連結已寄送至 {{email}}。",
       "createdWithPassword": "已建立 {{name}}。請以安全的方式將您設定的密碼告訴對方。",
       "setPasswordLinkTitle": "傳送設定密碼的連結",

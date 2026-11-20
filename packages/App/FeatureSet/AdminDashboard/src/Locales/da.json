@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "Kræv ikke tofaktorgodkendelse",
       "bulkDoNotRequireTwoFactorAuthTitle": "Stop med at kræve tofaktorgodkendelse for {{userCount}} bruger(e)",
       "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valgte bruger(e) kan logge ind med adgangskoden alene. Alt, hvad de allerede har konfigureret, bevares, men der bliver ikke længere bedt om det.",
+      "bulkDeleteTitle": "Slet {{userCount}} bruger(e)",
+      "bulkDeleteDescription": "{{userCount}} valgte bruger(e) slettes for altid, og det kan ikke fortrydes. En bruger, der stadig er medlem af et projekt, slettes ikke: fjern brugeren fra sine projekter først.",
       "createdAndEmailed": "{{name}} er oprettet. Et link til at angive en adgangskode er sendt til {{email}}.",
       "createdWithPassword": "{{name}} er oprettet. Giv den adgangskode, du har angivet, videre på en sikker måde.",
       "setPasswordLinkTitle": "Send et link til at angive adgangskoden",

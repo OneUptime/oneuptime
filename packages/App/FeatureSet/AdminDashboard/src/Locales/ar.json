@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "عدم اشتراط المصادقة الثنائية",
       "bulkDoNotRequireTwoFactorAuthTitle": "إيقاف اشتراط المصادقة الثنائية للمستخدمين ({{userCount}})",
       "bulkDoNotRequireTwoFactorAuthDescription": "سيتمكن المستخدمون المحددون ({{userCount}}) من تسجيل الدخول بكلمة المرور وحدها. يُحتفظ بكل ما أعدّوه مسبقًا لكن لن يُطلب بعد الآن.",
+      "bulkDeleteTitle": "حذف المستخدمين ({{userCount}})",
+      "bulkDeleteDescription": "سيُحذف المستخدمون المحددون ({{userCount}}) نهائيًا، ولا يمكن التراجع عن ذلك. لا يُحذف المستخدم الذي لا يزال عضوًا في مشروع: أزله من مشاريعه أولًا.",
       "createdAndEmailed": "تم إنشاء {{name}}. أُرسل رابط لتعيين كلمة المرور إلى {{email}}.",
       "createdWithPassword": "تم إنشاء {{name}}. شارك كلمة المرور التي عيّنتها معه بطريقة آمنة.",
       "setPasswordLinkTitle": "أرسل رابطًا لتعيين كلمة المرور",

@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "取消双因素身份验证要求",
       "bulkDoNotRequireTwoFactorAuthTitle": "取消对 {{userCount}} 位用户的双因素身份验证要求",
       "bulkDoNotRequireTwoFactorAuthDescription": "所选的 {{userCount}} 位用户将可以仅使用密码登录。他们已设置的内容会保留，但不会再要求进行验证。",
+      "bulkDeleteTitle": "删除 {{userCount}} 位用户",
+      "bulkDeleteDescription": "所选的 {{userCount}} 位用户将被永久删除，且无法撤销。仍是某个项目成员的用户不会被删除：请先将其从所在项目中移除。",
       "createdAndEmailed": "已创建 {{name}}。设置密码的链接已发送至 {{email}}。",
       "createdWithPassword": "已创建 {{name}}。请通过安全的方式把您设置的密码告诉对方。",
       "setPasswordLinkTitle": "发送设置密码的链接",

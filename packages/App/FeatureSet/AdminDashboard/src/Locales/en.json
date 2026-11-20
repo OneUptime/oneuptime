@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "Do Not Require Two Factor Auth",
       "bulkDoNotRequireTwoFactorAuthTitle": "Stop Requiring Two Factor Auth for {{userCount}} User(s)",
       "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} selected user(s) will be able to sign in with their password alone. Anything they have already set up is kept but no longer asked for.",
+      "bulkDeleteTitle": "Delete {{userCount}} User(s)",
+      "bulkDeleteDescription": "{{userCount}} selected user(s) will be deleted for good, which cannot be undone. A user who is still a member of a project is not deleted: remove them from their projects first.",
       "createdAndEmailed": "{{name}} created. A link to set their password was emailed to {{email}}.",
       "createdWithPassword": "{{name}} created. Share the password you set with them securely.",
       "setPasswordLinkTitle": "Send Them a Link to Set Their Password",

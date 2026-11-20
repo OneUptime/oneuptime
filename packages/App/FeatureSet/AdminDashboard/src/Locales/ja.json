@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "2 要素認証を必須にしない",
       "bulkDoNotRequireTwoFactorAuthTitle": "{{userCount}} 人のユーザーの 2 要素認証の必須を解除",
       "bulkDoNotRequireTwoFactorAuthDescription": "選択した {{userCount}} 人のユーザーはパスワードだけでサインインできるようになります。すでに設定済みの内容は保持されますが、今後は要求されません。",
+      "bulkDeleteTitle": "{{userCount}} 人のユーザーを削除",
+      "bulkDeleteDescription": "選択した {{userCount}} 人のユーザーは完全に削除され、元に戻せません。まだプロジェクトのメンバーであるユーザーは削除されません。先にそのユーザーをプロジェクトから外してください。",
       "createdAndEmailed": "{{name}} を作成しました。パスワード設定用のリンクを {{email}} に送信しました。",
       "createdWithPassword": "{{name}} を作成しました。設定したパスワードは安全な方法で伝えてください。",
       "setPasswordLinkTitle": "パスワード設定用のリンクを送る",

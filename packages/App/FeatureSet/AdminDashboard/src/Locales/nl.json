@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "Tweefactorauthenticatie niet verplichten",
       "bulkDoNotRequireTwoFactorAuthTitle": "Tweefactorauthenticatie niet langer verplichten voor {{userCount}} gebruiker(s)",
       "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} geselecteerde gebruiker(s) kunnen zich met alleen hun wachtwoord aanmelden. Wat zij al hebben ingesteld blijft bewaard, maar er wordt niet meer om gevraagd.",
+      "bulkDeleteTitle": "{{userCount}} gebruiker(s) verwijderen",
+      "bulkDeleteDescription": "{{userCount}} geselecteerde gebruiker(s) worden definitief verwijderd; dat kan niet ongedaan worden gemaakt. Een gebruiker die nog lid is van een project wordt niet verwijderd: haal hem eerst uit zijn projecten.",
       "createdAndEmailed": "{{name}} is aangemaakt. Er is een link om het wachtwoord in te stellen gemaild naar {{email}}.",
       "createdWithPassword": "{{name}} is aangemaakt. Geef het wachtwoord dat je hebt ingesteld op een veilige manier door.",
       "setPasswordLinkTitle": "Stuur een link om het wachtwoord in te stellen",

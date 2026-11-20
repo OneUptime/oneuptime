@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "Kräv inte tvåfaktorsautentisering",
       "bulkDoNotRequireTwoFactorAuthTitle": "Sluta kräva tvåfaktorsautentisering för {{userCount}} användare",
       "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valda användare kan logga in med enbart sitt lösenord. Allt som de redan har konfigurerat behålls men efterfrågas inte längre.",
+      "bulkDeleteTitle": "Ta bort {{userCount}} användare",
+      "bulkDeleteDescription": "{{userCount}} valda användare tas bort för gott, och det går inte att ångra. En användare som fortfarande är medlem i ett projekt tas inte bort: ta först bort användaren från sina projekt.",
       "createdAndEmailed": "{{name}} har skapats. En länk för att ange lösenordet har skickats till {{email}}.",
       "createdWithPassword": "{{name}} har skapats. Dela lösenordet du angav på ett säkert sätt.",
       "setPasswordLinkTitle": "Skicka en länk för att ange lösenordet",

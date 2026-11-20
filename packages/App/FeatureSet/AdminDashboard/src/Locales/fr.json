@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "Ne pas exiger l'authentification à deux facteurs",
       "bulkDoNotRequireTwoFactorAuthTitle": "Cesser d'exiger l'authentification à deux facteurs pour {{userCount}} utilisateur(s)",
       "bulkDoNotRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) pourront se connecter avec leur seul mot de passe. Ce qu'ils ont déjà configuré est conservé mais ne leur sera plus demandé.",
+      "bulkDeleteTitle": "Supprimer {{userCount}} utilisateur(s)",
+      "bulkDeleteDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) seront supprimés définitivement, ce qui est irréversible. Un utilisateur encore membre d'un projet n'est pas supprimé : retirez-le d'abord de ses projets.",
       "createdAndEmailed": "{{name}} a été créé. Un lien pour définir son mot de passe a été envoyé à {{email}}.",
       "createdWithPassword": "{{name}} a été créé. Transmettez-lui le mot de passe choisi de manière sécurisée.",
       "setPasswordLinkTitle": "Envoyer un lien pour définir le mot de passe",

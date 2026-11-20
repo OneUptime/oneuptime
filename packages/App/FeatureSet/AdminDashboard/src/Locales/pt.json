@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "Não exigir autenticação de dois fatores",
       "bulkDoNotRequireTwoFactorAuthTitle": "Deixar de exigir autenticação de dois fatores para {{userCount}} usuário(s)",
       "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} usuário(s) selecionado(s) poderão fazer login apenas com a senha. Tudo o que já configuraram é mantido, mas deixa de ser solicitado.",
+      "bulkDeleteTitle": "Excluir {{userCount}} usuário(s)",
+      "bulkDeleteDescription": "{{userCount}} usuário(s) selecionado(s) serão excluídos para sempre, e isso não pode ser desfeito. Um usuário que ainda é membro de um projeto não é excluído: remova-o primeiro dos projetos dele.",
       "createdAndEmailed": "{{name}} criado. Um link para definir a senha foi enviado para {{email}}.",
       "createdWithPassword": "{{name}} criado. Compartilhe a senha que você definiu de forma segura.",
       "setPasswordLinkTitle": "Envie um link para definir a senha",

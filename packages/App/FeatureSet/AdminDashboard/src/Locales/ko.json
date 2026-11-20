@@ -161,6 +161,8 @@
       "bulkDoNotRequireTwoFactorAuth": "2단계 인증 요구 안 함",
       "bulkDoNotRequireTwoFactorAuthTitle": "사용자 {{userCount}}명의 2단계 인증 요구 해제",
       "bulkDoNotRequireTwoFactorAuthDescription": "선택한 사용자 {{userCount}}명은 비밀번호만으로 로그인할 수 있게 됩니다. 이미 설정한 내용은 그대로 유지되지만 더 이상 요구되지 않습니다.",
+      "bulkDeleteTitle": "사용자 {{userCount}}명 삭제",
+      "bulkDeleteDescription": "선택한 사용자 {{userCount}}명이 영구적으로 삭제되며 되돌릴 수 없습니다. 아직 프로젝트의 멤버인 사용자는 삭제되지 않습니다. 먼저 그 사용자를 프로젝트에서 제거하세요.",
       "createdAndEmailed": "{{name}}을(를) 만들었습니다. 비밀번호 설정 링크를 {{email}}(으)로 보냈습니다.",
       "createdWithPassword": "{{name}}을(를) 만들었습니다. 설정한 비밀번호를 안전한 방법으로 전달하세요.",
       "setPasswordLinkTitle": "비밀번호 설정 링크 보내기",
