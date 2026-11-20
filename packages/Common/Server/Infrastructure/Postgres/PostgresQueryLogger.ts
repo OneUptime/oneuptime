@@ -1,4 +1,9 @@
-import { AdvancedConsoleLogger, LoggerOptions, QueryRunner } from "typeorm";
+import {
+  AdvancedConsoleLogger,
+  LogMessage,
+  LoggerOptions,
+  QueryRunner,
+} from "typeorm";
 import EventLoopStalls from "../../Utils/EventLoopStalls";
 
 /*
@@ -71,14 +76,12 @@ export default class PostgresQueryLogger extends AdvancedConsoleLogger {
       this.writeLog(
         "warn",
         [
-          {
-            type: "query-slow",
+          PostgresQueryLogger.statementLine({
             prefix: "query is slow",
-            message: query,
-            format: "sql",
+            query,
             parameters,
-            additionalInfo: { time },
-          },
+            time,
+          }),
           {
             type: "query-slow",
             prefix: "execution time",
@@ -93,14 +96,12 @@ export default class PostgresQueryLogger extends AdvancedConsoleLogger {
     this.writeLog(
       "warn",
       [
-        {
-          type: "query-slow",
+        PostgresQueryLogger.statementLine({
           prefix: "query waited for the event loop",
-          message: query,
-          format: "sql",
+          query,
           parameters,
-          additionalInfo: { time },
-        },
+          time,
+        }),
         {
           type: "query-slow",
           prefix: "execution time",
@@ -109,5 +110,22 @@ export default class PostgresQueryLogger extends AdvancedConsoleLogger {
       ],
       queryRunner,
     );
+  }
+
+  // The statement's line, as TypeORM writes a slow statement's.
+  private static statementLine(data: {
+    prefix: string;
+    query: string;
+    parameters?: Array<unknown> | undefined;
+    time: number;
+  }): LogMessage {
+    return {
+      type: "query-slow",
+      prefix: data.prefix,
+      message: data.query,
+      format: "sql",
+      ...(data.parameters ? { parameters: data.parameters } : {}),
+      additionalInfo: { time: data.time },
+    };
   }
 }
