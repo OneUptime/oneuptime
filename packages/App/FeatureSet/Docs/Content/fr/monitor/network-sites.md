@@ -44,6 +44,8 @@ Le type, le nom, la description, le parent et l'emplacement d'un site se modifie
 
 Les sites qui ne contiennent rien partent en une fois : **Supprimer les sites vides**, dans le menu en haut de la liste **Sites**, liste chaque site sans équipements (archivés compris), sans sites en dessous et sans point de terminaison, lien, règle ou événement de maintenance qui l’utilise. Il nomme les dix premiers et supprime, une fois que vous confirmez, exactement les sites listés : un site qui reçoit un équipement entre-temps est conservé. Il est réservé à qui peut supprimer des sites.
 
+La carte **Hiérarchie** en haut de la page **Sites** dessine l'arbre. Elle reste repliée jusqu'à ce que vous cliquiez sur **Afficher la hiérarchie**, et reste affichée la fois suivante si vous la laissez affichée. Elle liste d'abord les sites du premier niveau, cinquante à la fois, et les sites enfants d'un site une fois que vous l'ouvrez. **Rechercher des sites par nom** trouve un site n'importe où dans l'arbre et ouvre les sites au-dessus de lui, et **Masquer les sites sans équipements** écarte chaque site sans équipement, ni en lui ni en dessous.
+
 Chaque équipement est rattaché à un site. Le sous-arbre d'un site, c'est le site lui-même plus chaque site en dessous, et la santé du site est agrégée à partir des équipements de ce sous-arbre, si bien qu'une région sans équipements propres a quand même un statut, parce que les unités en dessous en ont un.
 
 > [!NOTE]
@@ -81,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` et `siteType` sont obligatoires. `siteType` doit être l'un des types de site du projet.
 - `parentName` nomme le site parent, qui peut figurer dans le même fichier : les lignes sans parent, ou avec un parent qui existe déjà, passent en premier, puis leurs enfants. Laissez-le vide pour un site de premier niveau.
 - Une ligne dont le parent est introuvable est ignorée, et les résultats la signalent. **Aperçu de l'import** montre ce que le fichier va créer avant que quoi que ce soit ne soit écrit.
+
+## Modifier de nombreux sites à la fois
+
+Une importation d'une organisation Meraki ajoute un site pour chacun de ses réseaux, tous au premier niveau. Vous ne les ouvrez pas un par un : sélectionnez-les dans la liste **Sites**, en cochant des lignes ou en sélectionnant tous les sites qui correspondent aux filtres, et ouvrez **Actions groupées**.
+
+| Action | Ce qu'elle fait |
+| --- | --- |
+| **Définir le site parent** / **Retirer le site parent** | Déplace chaque site sélectionné sous le site que vous choisissez, avec tous les sites situés en dessous, où il compte dans la santé de ce site. **Retirer le site parent** les déplace au premier niveau. Un site a besoin d'un type pour se placer sous un autre, et un site ajouté par une importation Meraki n'en a pas : quand certains des sites sélectionnés n'ont pas de type, la boîte de dialogue demande le type qu'ils reçoivent, et les autres gardent le leur. |
+| **Définir la sonde par défaut** / **Retirer la sonde par défaut** | Définit la [sonde par défaut](#valeurs-par-défaut-de-surveillance) de chaque site sélectionné, pour les équipements qui y seront ajoutés plus tard. Les équipements déjà présents gardent leurs sondes. |
+| **Ajouter des étiquettes** / **Retirer des étiquettes** | Les étiquettes regroupent les sites pour que vous puissiez les filtrer et les sélectionner ensemble. Elles ne décident pas de qui peut voir un site. |
+| **Ajouter un propriétaire** / **Retirer un propriétaire** | Les propriétaires d'un site possèdent l'alerte qu'il déclenche lorsqu'il est défaillant. La page **Propriétaires** d'un site les liste. |
+
+Chaque action est une boîte de dialogue et un enregistrement pour toute la sélection, et chaque site passe par les mêmes vérifications qu'une modification sur sa propre page Paramètres. Quand une action se termine, elle indique combien de sites ont changé, lesquels ont échoué et pourquoi (un site ne peut aller ni sous lui-même ni sous un site situé en dessous, ni sous un site d'un type qui ne contient que des équipements), et lesquels elle n'a pas changés et pourquoi : un site déjà sous ce parent, ou le site choisi comme parent.
 
 ## La carte
 
@@ -213,7 +228,7 @@ Rattacher un moniteur au même événement fait toujours ce que cela a toujours 
 
 ## Alertes sur un site
 
-La carte **Alertes** de la page **Paramètres** d'un site a **Alerter en cas de mauvaise santé** : une alerte s'ouvre quand l'agrégation du site passe à un statut non opérationnel, et se résout d'elle-même quand le site se rétablit. **Gravité de l'alerte** définit sa gravité ; laissée vide, c'est la plus grave du projet.
+La carte **Alertes** de la page **Paramètres** d'un site a **Alerter en cas de mauvaise santé** : une alerte s'ouvre quand l'agrégation du site passe à un statut non opérationnel, et se résout d'elle-même quand le site se rétablit. **Gravité de l'alerte** définit sa gravité ; laissée vide, c'est la plus grave du projet. Les propriétaires du site, sur sa page **Propriétaires**, possèdent l'alerte.
 
 Elle n'alerte que sur le changement : l'activer pour un site déjà en mauvaise santé arme le prochain changement au lieu d'alerter sur le passé. Degraded n'est pas opérationnel : un site sous la politique de proportion alerte donc dès qu'un des équipements qui rendent compte est hors service, comme un site sous la politique du pire statut ; l'alerte reste ouverte, sans seconde alerte, pendant que le site passe de Degraded à Offline et inversement, et son titre nomme le statut que le site a atteint en premier.
 

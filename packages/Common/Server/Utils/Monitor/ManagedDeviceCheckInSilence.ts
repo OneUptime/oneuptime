@@ -1,4 +1,5 @@
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
+import { MANAGED_DEVICE_CONNECTION_METRIC_NAMES } from "../../../Types/DeviceManagement/DeviceManagementConnectionReading";
 import { MANAGED_DEVICE_READING_METRIC_NAMES } from "../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -21,14 +22,27 @@ import DataToProcess from "./DataToProcess";
  * (MonitorResource.isSilentInfrastructureWindow); the connection's row on
  * Inventory > Managed Devices says why it stopped.
  *
- * The same holds for the security patch ages the same reads write (#10098:
- * a device manager's Security Patch Out of Date): no patch reading of any
- * device is a connection that stopped reading, not every device updated.
+ * The same holds for the other readings the same reads write of their
+ * devices (#10098: a device manager's Security Patch Out of Date; #10008:
+ * its Low Battery and Storage Nearly Full): no reading of any device is a
+ * connection that stopped reading, not every device updated, charged or
+ * cleared.
+ *
+ * And for the connection's own reading (#10006: Connection Stopped
+ * Reading), which its reads and the scheduler write while it is turned on:
+ * a window with none of them says the connection was turned off or
+ * deleted, or that OneUptime's workers stopped - never that it reads again.
+ * Its alert stays open until a read that works says so.
  */
+const READINGS_OF_A_CONNECTION: ReadonlyArray<string> = [
+  ...MANAGED_DEVICE_READING_METRIC_NAMES,
+  ...MANAGED_DEVICE_CONNECTION_METRIC_NAMES,
+];
+
 export default class ManagedDeviceCheckInSilence {
   /*
-   * Whether every query of the monitor reads what the managed devices'
-   * connection writes of them: their check-ins, or their security patches.
+   * Whether every query of the monitor reads what a device management
+   * connection writes: its devices' readings, or its own.
    */
   public static readsCheckIns(
     response: MetricMonitorResponse | undefined,
@@ -44,7 +58,7 @@ export default class ManagedDeviceCheckInSilence {
 
         return (
           typeof metricName === "string" &&
-          MANAGED_DEVICE_READING_METRIC_NAMES.includes(metricName)
+          READINGS_OF_A_CONNECTION.includes(metricName)
         );
       })
     );

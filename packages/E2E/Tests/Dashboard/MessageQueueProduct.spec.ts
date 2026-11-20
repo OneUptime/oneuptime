@@ -1433,7 +1433,7 @@ test.describe.skip("Queues Product", () => {
      * hidden until the section is opened.
      */
     const settingsSectionToggle: Locator = page
-      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator("aside[role='navigation'][aria-label='Pages in this section']")
       .locator(
         "xpath=.//h6[normalize-space(.)='Settings']/ancestor::button[1]",
       );
@@ -1500,7 +1500,7 @@ test.describe.skip("Queues Product", () => {
      * opened.
      */
     const productAdvancedToggle: Locator = page
-      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator("aside[role='navigation'][aria-label='Pages in this section']")
       .locator(
         "xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]",
       );
@@ -1566,7 +1566,7 @@ test.describe.skip("Queues Product", () => {
     );
     // The queue's Advanced section, which holds Delete Queue, by its heading.
     const advancedToggle: Locator = page
-      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator("aside[role='navigation'][aria-label='Pages in this section']")
       .locator(
         "xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]",
       );

@@ -51,6 +51,12 @@ export function getNetworkSiteBreadcrumbs(
       PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
       ["Project", "Network", "View Site", "Scheduled Maintenance"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_OWNERS, [
+      "Project",
+      "Network",
+      "View Site",
+      "Owners",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_VIEW_SETTINGS, [
       "Project",
       "Network",

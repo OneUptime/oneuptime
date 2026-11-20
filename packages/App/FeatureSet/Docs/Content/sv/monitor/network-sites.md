@@ -44,6 +44,8 @@ En plats typ, namn, beskrivning, förälder och läge redigeras på ett ställe:
 
 Platser som inte innehåller något försvinner i ett steg: **Ta bort tomma platser** i menyn överst i listan **Platser** visar varje plats utan enheter (även arkiverade), utan platser under sig och utan slutpunkt, länk, regel eller underhållshändelse som använder den. Den nämner de tio första och tar bort, när du bekräftar, exakt de visade platserna: En plats som under tiden får en enhet behålls. Den är för alla som får ta bort platser.
 
+Kortet **Hierarchy** överst på sidan **Platser** ritar trädet. Det förblir hopfällt tills du trycker på **Visa hierarki**, och förblir visat nästa gång om du låter det vara visat. Det listar först platserna på översta nivån, femtio i taget, och en plats underordnade platser när du öppnar den. **Sök efter platser på namn** hittar en plats var som helst i trädet och öppnar platserna ovanför den, och **Dölj platser utan enheter** utelämnar varje plats utan enheter i sig eller under sig.
+
 Varje enhet kopplas till en plats. En plats underträd är platsen själv plus varje plats under den, och underträdets enheter är det som dess hälsa sammanfattas från, så en region utan egna enheter har ändå en status, eftersom enheterna under den har det.
 
 > [!NOTE]
@@ -81,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` och `siteType` är obligatoriska. `siteType` måste vara en av projektets platstyper.
 - `parentName` namnger den överordnade platsen, som kan finnas i samma fil: rader utan förälder, eller med en förälder som redan finns, går först, sedan deras barn. Lämna det tomt för en plats på översta nivån.
 - En rad vars förälder inte kan hittas hoppas över, och resultaten listar den. **Förhandsgranska import** visar vad filen kommer att skapa innan något skrivs.
+
+## Ändra många platser på en gång
+
+En import av en Meraki-organisation lägger till en plats för vart och ett av dess nätverk, alla på översta nivån. Du öppnar dem inte en i taget: markera dem i listan **Platser**, genom att bocka för rader eller markera alla platser som filtren matchar, och öppna **Massåtgärder**.
+
+| Åtgärd | Vad den gör |
+| --- | --- |
+| **Ange överordnad plats** / **Rensa överordnad plats** | Flyttar varje markerad plats under platsen du väljer, med alla platser under den, där den räknas in i den platsens hälsa. **Rensa överordnad plats** flyttar dem till översta nivån. En plats behöver en typ för att ligga under en annan, och en plats som en Meraki-import lägger till saknar typ: när några av de markerade platserna saknar typ frågar dialogrutan efter typen de får, och de andra behåller sin. |
+| **Ange standardsond** / **Rensa standardsond** | Anger [standardsonden](#standardvärden-för-övervakning) för varje markerad plats, för de enheter som läggs till senare. Enheterna som redan finns där behåller sina sonder. |
+| **Lägg till etiketter** / **Ta bort etiketter** | Etiketter grupperar platser så att du kan filtrera och välja dem tillsammans. De avgör inte vem som kan se en plats. |
+| **Lägg till ägare** / **Ta bort ägare** | En plats ägare äger larmet som den utlöser när den inte är felfri. Platsens egen sida **Ägare** listar dem. |
+
+Varje åtgärd är en dialogruta och en sparning för hela urvalet, och varje plats går igenom samma kontroller som en redigering på dess egen sida Inställningar. När en åtgärd är klar listar den hur många platser som ändrades, vilka som misslyckades och varför (en plats kan inte hamna under sig själv eller en plats under sig, eller under en plats av en typ som bara innehåller enheter), och vilka den inte ändrade och varför: en plats som redan låg under den överordnade platsen, eller platsen som valts som överordnad.
 
 ## Kartan
 
@@ -213,7 +228,7 @@ Att koppla en monitor till samma händelse gör fortfarande det det alltid har g
 
 ## Larm på en plats
 
-Kortet **Alerting** på en plats sida **Inställningar** har **Alert When Unhealthy**: ett larm öppnas när platsens sammanfattning övergår till en status som inte är i drift, och löser sig själv när platsen återhämtar sig. **Larmallvar** anger dess allvarlighetsgrad; tomt betyder projektets allvarligaste.
+Kortet **Alerting** på en plats sida **Inställningar** har **Alert When Unhealthy**: ett larm öppnas när platsens sammanfattning övergår till en status som inte är i drift, och löser sig själv när platsen återhämtar sig. **Larmallvar** anger dess allvarlighetsgrad; tomt betyder projektets allvarligaste. Platsens ägare, på dess sida **Ägare**, äger larmet.
 
 Den varnar bara för ändringen: att slå på den för en plats som redan är ohälsosam förbereder nästa ändring i stället för att varna om det förflutna. Degraded är inte i drift, så en plats med procentpolicyn varnar så snart en av dess rapporterande enheter är nere, precis som en plats med policyn för sämsta status; larmet förblir öppen, utan en andra, medan platsen växlar mellan Degraded och Offline, och dess titel namnger den status som platsen nådde först.
 

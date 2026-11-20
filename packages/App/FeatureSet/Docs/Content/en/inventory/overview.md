@@ -138,9 +138,17 @@ A device removed from Esper is marked **Removed**, and its item is archived: it 
 
 On **Managed Devices**, click **Set up alerts** on the connection's row, and create **Esper Android Device Stopped Checking In** and **Esper Apple Device Stopped Checking In**. The first opens one alert for each Android device that has not checked in with Esper for more than an hour, and the second for each Apple device that has not for more than a day, each named after the device and resolved once it checks in again.
 
-Each read of the connection records how many minutes ago each device last checked in, as the metric `oneuptime.managed_device.check_in.age`, and the monitor checks each device's latest reading every 5 minutes. A device that also runs the Android Agent is left to **Host Stopped Reporting**, so it never alerts twice, and a device removed from Esper resolves its alert. A read that fails records nothing, so no alert opens or resolves until the next one. For a fleet that is switched off at night, raise the monitor's threshold.
+Each read of the connection records how many minutes ago each device last checked in, as the metric `oneuptime.managed_device.check_in.age`, and the monitor checks each device's latest reading every 5 minutes. A device that also runs the Android Agent is left to **Host Stopped Reporting**, so it never alerts twice, and a device removed from Esper resolves its alert. A read that fails records nothing of the devices, so none of their alerts opens or resolves until a read works again. For a fleet that is switched off at night, raise the monitor's threshold.
 
 Create **Esper Security Patch Out of Date** too, and each Android device whose security patch level, as Esper reports it, is more than 90 days old opens an alert of its own, resolved once the device is updated. Each read records how many days old each Android device's patch level is, as the metric `oneuptime.managed_device.security_patch.age`. A device that runs the Android Agent is left to its host's **Security Patch Out of Date**, so it never alerts twice.
+
+Create **Esper Low Battery** and **Esper Storage Nearly Full** too: each device whose battery, as Esper last read it, is below 20% opens an alert of its own, and so does each device whose storage is more than 90% full, each resolved once the device is charged or has room again. Each read records both, as the metrics `oneuptime.managed_device.battery.level` and `oneuptime.managed_device.storage.used`. A device that runs the Android Agent is left to its host's **Low Battery** and **Storage Nearly Full**, which alert at the same levels, so it never alerts twice.
+
+A device's alerts are on its item too: its **Esper** card lists the incidents and alerts open about it, each a link to its page, and the **Alerts** and **Incidents** pages of a device the Android Agent does not report list every one its connection's monitors raised about it.
+
+### Get an alert when the connection stops reading
+
+Create **Esper Connection Stopped Reading**, and the connection opens an alert of its own once no read of it has worked for as long as its row waits before its **Status** says **Stale**: three of its read intervals and ten minutes more, and never less than half an hour, so 55 minutes at the default 15. Its first debugging step lists the connection's last readings, each with the error its read failed with, and the first read that works resolves it. Each read, and each read the connection falls due for, records how many minutes it has been since one worked, as the metric `oneuptime.managed_device.connection.read.age`. The monitor waits as long as the connection's read interval says when you create it, and a connection turned off records nothing, so an alert it had open stays open until you resolve it.
 
 ## Import devices from Microsoft Intune
 
@@ -168,7 +176,7 @@ A device checks in with Intune about every eight hours, and its last check-in is
 
 Intune names a device what its owner called it, so two devices can share a name: every iPhone nobody renamed is `iPhone`. A name two devices of a connection share is neither one's in Inventory: each is named by its serial number instead, and takes its name back once no other device has it.
 
-To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Intune Device Stopped Checking In**. It opens one alert for each device that has not checked in with Intune for more than a day, named after the device. A laptop left off over a weekend reads the same, so raise the monitor's threshold if a day is too soon for yours. **Intune Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Intune Device Stopped Checking In**. It opens one alert for each device that has not checked in with Intune for more than a day, named after the device. A laptop left off over a weekend reads the same, so raise the monitor's threshold if a day is too soon for yours. **Intune Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does. **Intune Storage Nearly Full** and **Intune Connection Stopped Reading** alert as Esper's do. No battery alert is offered, as Intune's list of devices has no battery level.
 
 ## Import devices from Workspace ONE UEM
 
@@ -194,7 +202,7 @@ A device reports to Workspace ONE on its own schedule, an iPhone hours apart, so
 
 An app or the Android Agent that sends telemetry from a device joins it as one item by the device's serial number: set the Android Agent's `device_serial` setting to the `{DeviceSerialNumber}` lookup value in its managed configuration.
 
-To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Workspace ONE Device Stopped Checking In**. It opens one alert for each device that has not reported to Workspace ONE for more than a day, named after the device. **Workspace ONE Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **Workspace ONE Device Stopped Checking In**. It opens one alert for each device that has not reported to Workspace ONE for more than a day, named after the device. **Workspace ONE Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does. **Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full** and **Workspace ONE Connection Stopped Reading** alert as Esper's do.
 
 ## Import devices from SOTI MobiControl
 
@@ -218,7 +226,7 @@ A MobiControl agent keeps a live connection to its server, so a device whose age
 
 An app or the Android Agent that sends telemetry from a device joins it as one item by the device's serial number: set the Android Agent's `device_serial` setting to the `%SERIALNUM%` macro in its managed configuration.
 
-To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **SOTI Device Stopped Checking In** and **SOTI Apple Device Stopped Checking In**. The first opens one alert for each Android, Windows or Linux device whose agent has not been connected for more than an hour, and the second for each Apple device that has not checked in for more than a day, each named after the device. **SOTI Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does.
+To get an alert when a device stops checking in, click **Set up alerts** on the connection's row and create **SOTI Device Stopped Checking In** and **SOTI Apple Device Stopped Checking In**. The first opens one alert for each Android, Windows or Linux device whose agent has not been connected for more than an hour, and the second for each Apple device that has not checked in for more than a day, each named after the device. **SOTI Security Patch Out of Date** alerts on each Android device whose security patch level is more than 90 days old, as Esper's does. **SOTI Low Battery**, **SOTI Storage Nearly Full** and **SOTI Connection Stopped Reading** alert as Esper's do.
 
 ## Add something by hand
 

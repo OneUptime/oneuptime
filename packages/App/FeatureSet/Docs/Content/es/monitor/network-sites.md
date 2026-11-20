@@ -44,6 +44,8 @@ El tipo, el nombre, la descripción, el padre y la ubicación de un sitio se edi
 
 Los sitios que no contienen nada se eliminan de una vez: **Eliminar sitios vacíos**, en el menú de la parte superior de la lista **Sitios**, lista cada sitio sin dispositivos (archivados incluidos), sin sitios debajo y sin ningún endpoint, enlace, regla ni evento de mantenimiento que lo use. Nombra los diez primeros y, cuando confirmas, elimina exactamente los sitios listados: un sitio que recibe un dispositivo mientras tanto se conserva. Es para quien puede eliminar sitios.
 
+La tarjeta **Jerarquía** en la parte superior de la página **Sitios** dibuja el árbol. Permanece plegada hasta que pulses **Mostrar la jerarquía**, y sigue mostrándose la próxima vez si la dejas mostrada. Lista primero los sitios del nivel superior, de cincuenta en cincuenta, y los sitios hijos de un sitio cuando lo abres. **Buscar sitios por nombre** encuentra un sitio en cualquier parte del árbol y abre los sitios que tiene encima, y **Ocultar los sitios sin dispositivos** deja fuera cada sitio sin ningún dispositivo en él ni debajo.
+
 Cada dispositivo pertenece a un sitio. El subárbol de un sitio es el propio sitio más todos los sitios que tiene debajo, y los dispositivos del subárbol son de los que se resume su salud, así que una región sin dispositivos propios sigue teniendo un estado, porque las unidades de debajo lo tienen.
 
 > [!NOTE]
@@ -81,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` y `siteType` son obligatorios. `siteType` debe ser uno de los tipos de sitio del proyecto.
 - `parentName` nombra el sitio padre, que puede estar en el mismo archivo: las filas sin padre, o con un padre que ya existe, entran primero, y después sus hijos. Déjalo vacío para un sitio de nivel superior.
 - Una fila cuyo padre no se encuentra se omite, y los resultados la listan. **Previsualizar importación** muestra lo que creará el archivo antes de escribir nada.
+
+## Cambiar muchos sitios a la vez
+
+Una importación de una organización de Meraki añade un sitio por cada una de sus redes, todos en el nivel superior. No los abres uno a uno: selecciónalos en la lista **Sitios**, marcando filas o seleccionando todos los sitios que coinciden con los filtros, y abre **Acciones masivas**.
+
+| Acción | Qué hace |
+| --- | --- |
+| **Definir el sitio padre** / **Quitar el sitio padre** | Mueve cada sitio seleccionado bajo el sitio que elijas, con todos los sitios que tiene debajo, donde cuenta para la salud de ese sitio. **Quitar el sitio padre** los mueve al nivel superior. Un sitio necesita un tipo para estar bajo otro, y un sitio que añade una importación de Meraki no lo tiene: cuando algunos de los sitios seleccionados no tienen tipo, el diálogo pide el tipo que reciben, y los demás conservan el suyo. |
+| **Definir la sonda predeterminada** / **Quitar la sonda predeterminada** | Define la [sonda predeterminada](#valores-predeterminados-de-monitoreo) de cada sitio seleccionado, para los dispositivos que se le añadan más tarde. Los dispositivos que ya están en él conservan sus sondas. |
+| **Añadir etiquetas** / **Quitar etiquetas** | Las etiquetas agrupan los sitios para que puedas filtrarlos y seleccionarlos juntos. No deciden quién puede ver un sitio. |
+| **Añadir propietario** / **Quitar propietario** | Los propietarios de un sitio son los propietarios de la alerta que genera cuando no está sano. La página **Propietarios** de un sitio los lista. |
+
+Cada acción es un diálogo y un guardado para toda la selección, y cada sitio pasa por las mismas comprobaciones que una edición en su propia página de Ajustes. Cuando una acción termina, indica cuántos sitios cambiaron, cuáles fallaron y por qué (un sitio no puede ir bajo sí mismo ni bajo un sitio que tiene debajo, ni bajo un sitio de un tipo que solo contiene dispositivos), y cuáles no cambió y por qué: un sitio que ya estaba bajo ese padre, o el sitio elegido como padre.
 
 ## El mapa
 
@@ -213,7 +228,7 @@ Asociar un monitor al mismo evento sigue haciendo lo de siempre: el monitoreo ac
 
 ## Alertas sobre un sitio
 
-La tarjeta **Alertas** de la página **Ajustes** de un sitio tiene **Alertar cuando no esté en buen estado**: se abre una alerta cuando el resumen del sitio pasa a un estado que no es operativo, y se resuelve sola cuando el sitio se recupera. **Gravedad de la alerta** fija su gravedad; si se deja vacía, es la más grave del proyecto.
+La tarjeta **Alertas** de la página **Ajustes** de un sitio tiene **Alertar cuando no esté en buen estado**: se abre una alerta cuando el resumen del sitio pasa a un estado que no es operativo, y se resuelve sola cuando el sitio se recupera. **Gravedad de la alerta** fija su gravedad; si se deja vacía, es la más grave del proyecto. Los propietarios del sitio, en su página **Propietarios**, son los propietarios de la alerta.
 
 Solo alerta sobre el cambio: activarla en un sitio que ya no está en buen estado arma el siguiente cambio en lugar de alertar sobre el pasado. Degraded no es operativo, así que un sitio con la política de porcentaje alerta en cuanto uno de sus dispositivos que informan cae, igual que un sitio con la política del peor estado; la alerta sigue abierta, sin una segunda, mientras el sitio pasa entre Degraded y Offline, y su título nombra el estado al que llegó primero el sitio.
 

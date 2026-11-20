@@ -109,7 +109,7 @@ const detailBasePath: () => string = (): string => {
 
 const desktopMenu: () => Locator = (): Locator => {
   return ctx.page.locator(
-    "aside[role='navigation'][aria-label='Main navigation']",
+    "aside[role='navigation'][aria-label='Pages in this section']",
   );
 };
 
@@ -640,7 +640,7 @@ test.describe("Exception detail pages", () => {
     await expect(mobileToggle).toHaveAttribute("aria-expanded", "true");
 
     const mobileMenu: Locator = ctx.page.locator(
-      "div[role='navigation'][aria-label='Main navigation']:visible",
+      "div[role='navigation'][aria-label='Pages in this section']:visible",
     );
     await expect(mobileMenu).toBeVisible();
     await mobileMenu
@@ -660,7 +660,7 @@ test.describe("Exception detail pages", () => {
 
     await mobileToggle.click();
     await ctx.page
-      .locator("div[role='navigation'][aria-label='Main navigation']:visible")
+      .locator("div[role='navigation'][aria-label='Pages in this section']:visible")
       .getByRole("link", { name: "Fix with AI", exact: true })
       .click();
     await expect(ctx.page).toHaveURL(

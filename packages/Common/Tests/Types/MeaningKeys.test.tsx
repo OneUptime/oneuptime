@@ -117,11 +117,13 @@ describe("the keys that name their meaning", () => {
         "Array (storage array)",
         "Call (phone call)",
         "Capabilities (Linux capabilities)",
+        "Catching up (device manager connection)",
         "Change (schema change)",
         "Created (import result)",
         "Deleted (invoice status)",
         "Expired (rule exception)",
         "Expired (threat indicator)",
+        "Failing (device manager connection)",
         "Free (storage space)",
         "From (range start)",
         "Insights (explorer analytics)",
@@ -142,6 +144,7 @@ describe("the keys that name their meaning", () => {
         "Upcoming (rule exception)",
         "Valid (OAuth token)",
         "View (database object)",
+        "Waiting (device manager connection)",
       ].sort(),
     );
     expect(getWordOfMeaningKey(VIEW)).toBe("View");
@@ -194,6 +197,17 @@ describe("the keys that name their meaning", () => {
       "Not fetched yet",
     );
     expect(getWordOfMeaningKey("Expired")).toBeUndefined();
+    // #10009: a device manager connection's states, beside its Off, Stale and Healthy.
+    expect(getWordOfMeaningKey("Waiting (device manager connection)")).toBe(
+      "Waiting",
+    );
+    expect(getWordOfMeaningKey("Catching up (device manager connection)")).toBe(
+      "Catching up",
+    );
+    expect(getWordOfMeaningKey("Failing (device manager connection)")).toBe(
+      "Failing",
+    );
+    expect(getWordOfMeaningKey("Waiting")).toBeUndefined();
     /*
      * #9877: a Pod Security Standards control's Linux capabilities, apart
      * from what a Runner or a recording can do.
