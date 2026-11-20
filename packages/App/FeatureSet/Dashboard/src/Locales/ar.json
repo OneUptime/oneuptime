@@ -60313,5 +60313,7 @@
   "`AddAzureAppServiceDetector()` names each instance (`service.instance.id`) and the site (`cloud.resource_id`). Each log written through `ILogger` inside a request carries that request's trace, so it opens its trace.": "يسمّي `AddAzureAppServiceDetector()` كل مثيل (`service.instance.id`) والموقع (`cloud.resource_id`). وكل سجل يُكتب عبر `ILogger` داخل طلب يحمل تتبع ذلك الطلب، فيفتح تتبعه.",
   "`OTEL_SERVICE_NAME` names the app as its App Service app, and `cloud.account.id` adds its subscription, which the SDK detectors leave out: together they tie its telemetry to the Azure Monitor numbers of its site.": "يسمّي `OTEL_SERVICE_NAME` التطبيق باسم تطبيق App Service الخاص به، ويضيف `cloud.account.id` اشتراكه الذي تُغفله كواشف SDK: ويربطان معًا بيانات القياس عن بُعد الخاصة به بأرقام Azure Monitor لموقعه.",
   "running, as Azure reports": "قيد التشغيل، كما يُبلغ Azure",
-  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "الموقع {{site}} في الاشتراك {{other}}، لا في {{subscription}} الذي تذكره بيانات القياس عن بُعد الخاصة به."
+  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "الموقع {{site}} في الاشتراك {{other}}، لا في {{subscription}} الذي تذكره بيانات القياس عن بُعد الخاصة به.",
+  "Public IPv4 and IPv6 addresses, not private, loopback or link-local ones.": "عناوين IPv4 وIPv6 العامة، وليس العناوين الخاصة أو عناوين الاسترجاع (loopback) أو العناوين المحلية للرابط (link-local).",
+  "Replaces it with a token unique to this project, so equal values still look alike and no one can work back to the value.": "يستبدله برمز خاص بهذا المشروع، بحيث تظل القيم المتساوية متشابهة ولا يستطيع أحد الوصول منه إلى القيمة الأصلية."
 }

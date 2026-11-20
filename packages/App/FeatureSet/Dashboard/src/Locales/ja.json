@@ -60313,5 +60313,7 @@
   "`AddAzureAppServiceDetector()` names each instance (`service.instance.id`) and the site (`cloud.resource_id`). Each log written through `ILogger` inside a request carries that request's trace, so it opens its trace.": "`AddAzureAppServiceDetector()` は各インスタンス (`service.instance.id`) とサイト (`cloud.resource_id`) を示します。リクエスト内で `ILogger` を通して書き込まれた各ログは、そのリクエストのトレースを持つため、そのトレースを開けます。",
   "`OTEL_SERVICE_NAME` names the app as its App Service app, and `cloud.account.id` adds its subscription, which the SDK detectors leave out: together they tie its telemetry to the Azure Monitor numbers of its site.": "`OTEL_SERVICE_NAME` はアプリに App Service アプリと同じ名前を付け、`cloud.account.id` は SDK の検出機能が省くサブスクリプションを追加します。この 2 つで、テレメトリーがサイトの Azure Monitor の数値に結び付きます。",
   "running, as Azure reports": "実行中 (Azure の報告による)",
-  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} は、テレメトリーが示す {{subscription}} ではなく、サブスクリプション {{other}} にあります。"
+  "{{site}} is in subscription {{other}}, not in {{subscription}}, which its telemetry names.": "{{site}} は、テレメトリーが示す {{subscription}} ではなく、サブスクリプション {{other}} にあります。",
+  "Public IPv4 and IPv6 addresses, not private, loopback or link-local ones.": "パブリックな IPv4 アドレスと IPv6 アドレス。プライベートアドレス、ループバックアドレス、リンクローカルアドレスは対象外です。",
+  "Replaces it with a token unique to this project, so equal values still look alike and no one can work back to the value.": "このプロジェクト固有のトークンに置き換えるので、同じ値は同じに見え、誰も元の値を割り出せません。"
 }
