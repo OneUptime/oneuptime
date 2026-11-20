@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Infrastructure/Redis", () => {
   return {
@@ -517,7 +518,7 @@ describe("deleting your own account (Danger Zone > Delete Account, #10220)", () 
     const membership: TeamMember = new TeamMember();
     membership._id = ObjectID.generate().toString();
     jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([membership]);
-    const assertConfirmed: jest.SpiedFunction<
+    const assertConfirmed: SpyInstance<
       typeof Reauthentication.assertConfirmed
     > = jest.spyOn(Reauthentication, "assertConfirmed");
 
@@ -584,14 +585,15 @@ describe.each([
     hooks: ProviderHooks<GlobalSso | GlobalOidc>,
     makeProvider: () => GlobalSso | GlobalOidc,
   ) => {
-    let locked: jest.SpiedFunction<
-      typeof GlobalSsoProviderChanges.beforeProviderUpdate
-    >;
+    // The lock on the server's sign-in rules a provider's change takes.
+    let locked: Mock<(...args: Array<never>) => unknown>;
 
     beforeEach(() => {
       locked = jest
         .spyOn(GlobalSsoProviderChanges, "beforeProviderUpdate")
-        .mockResolvedValue(undefined as never);
+        .mockResolvedValue(undefined as never) as unknown as Mock<
+        (...args: Array<never>) => unknown
+      >;
       jest
         .spyOn(GlobalSsoProviderChanges, "beforeProviderWrite")
         .mockResolvedValue(undefined as never);
