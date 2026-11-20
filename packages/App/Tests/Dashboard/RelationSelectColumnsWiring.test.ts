@@ -174,6 +174,30 @@ describe("relation selects only name columns the permission layer allows", () =>
     }
   });
 
+  test("the store's facts a relation reads only for the store's readers are sent for each reader: the issue page, an identity's reach (#10281)", () => {
+    const perReader: Array<string> = sitesWhere(
+      (site: RelationSelectSite): boolean => {
+        return (
+          site.relation === "dataStore" &&
+          site.column === "sensitivity" &&
+          (site.file.endsWith("Pages/DataSecurity/IssueView/Layout.tsx") ||
+            site.file.endsWith(
+              "Components/DataSecurity/IdentityReachList.tsx",
+            ) ||
+            site.file.endsWith("Utils/AI/Toolbox/DataSecurityTools.ts"))
+        );
+      },
+    ).map((site: RelationSelectSite): string => {
+      return `${site.file.split("/").pop()} ${site.modelName} ${site.isReadPerReader}`;
+    });
+
+    expect(perReader.sort()).toEqual([
+      "DataSecurityTools.ts DataSecurityIssue true",
+      "IdentityReachList.tsx DataStoreAccess true",
+      "Layout.tsx DataSecurityIssue true",
+    ]);
+  });
+
   test("a table's columns are covered, a column declared apart included: the issues list's store and a table's Lineage", () => {
     expect(
       sitesWhere((site: RelationSelectSite): boolean => {
@@ -363,12 +387,35 @@ describe("the guard fails on a planted read the server refuses", () => {
       "  } as never);",
       "}",
     ].join("\n"),
-    // What a relation reads: nothing to fail.
+    /*
+     * #10281's shape: a column a relation reads only for those who may read
+     * it on the store, in a table every reader of data assets reads.
+     */
+    "PlantedOwnRead.tsx": [
+      'import DataAsset from "Common/Models/DatabaseModels/DataAsset";',
+      "",
+      "export const Planted = () => {",
+      "  return (",
+      "    <ModelTable<DataAsset>",
+      "      modelType={DataAsset}",
+      '      columns={[{ field: { dataStore: { sensitivity: true } }, title: "Store" }]}',
+      "    />",
+      "  );",
+      "};",
+    ].join("\n"),
+    /*
+     * What a relation reads: nothing to fail. The store's labels, and its
+     * sensitivity in a select sent for each reader without what they may
+     * not read - in the dashboard, and on the server.
+     */
     "PlantedClean.tsx": [
       'import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";',
       'import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";',
+      'import PermissionGate from "Common/UI/Utils/PermissionGate";',
       "",
       "export const STORE_SELECT = { _id: true, name: true, kind: true };",
+      "",
+      "export const ISSUE_SELECT = { title: true, dataStore: { sensitivity: true } };",
       "",
       "export const Planted = () => {",
       "  void ModelAPI.getItem<DataSecurityIssue>({",
@@ -376,13 +423,30 @@ describe("the guard fails on a planted read the server refuses", () => {
       "    select: { title: true, dataStore: STORE_SELECT },",
       "  } as never);",
       "",
+      "  void ModelAPI.getItem<DataSecurityIssue>({",
+      "    modelType: DataSecurityIssue,",
+      "    select: PermissionGate.getSelectReadableThroughRelations(DataSecurityIssue, ISSUE_SELECT),",
+      "  } as never);",
+      "",
       "  return (",
       "    <ModelTable",
       "      modelType={DataSecurityIssue}",
-      '      columns={[{ field: { dataStore: { sensitivity: true } }, title: "Store" }]}',
+      '      columns={[{ field: { dataStore: { environment: true } }, title: "Store" }]}',
       "    />",
       "  );",
       "};",
+    ].join("\n"),
+    "PlantedCleanServer.ts": [
+      'import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";',
+      'import QueryPermission from "Common/Server/Types/Database/Permissions/QueryPermission";',
+      "",
+      "export function selectFor(props: never): unknown {",
+      "  return QueryPermission.getSelectReadableThroughRelations({",
+      "    modelType: DataSecurityIssue,",
+      "    select: { _id: true, dataStore: { name: true, riskScore: true } },",
+      "    props: props,",
+      "  });",
+      "}",
     ].join("\n"),
   };
 
@@ -442,6 +506,11 @@ describe("the guard fails on a planted read the server refuses", () => {
       "a relation's columns spread in",
       'Column cloudTags on Data Store does not support read on relation query."',
     ],
+    [
+      "PlantedOwnRead.tsx",
+      "a column a relation reads only for its own readers, sent to every reader of the relation (#10281)",
+      '"You do not have permissions to read sensitivity of Data Store through dataStore on Data Asset."',
+    ],
   ])("%s: %s", (fileName: string, _shape: string, refusal: string) => {
     const violations: Array<string> = violationsOf(fileName);
 
@@ -457,25 +526,73 @@ describe("the guard fails on a planted read the server refuses", () => {
     );
   });
 
-  test("the planted reads are every violation there is, and the clean one has none", () => {
+  test("the planted reads are every violation there is, and the clean ones have none", () => {
     expect(violationsOf("PlantedClean.tsx")).toEqual([]);
-    expect(planted.violations).toHaveLength(7);
+    expect(violationsOf("PlantedCleanServer.ts")).toEqual([]);
+    expect(planted.violations).toHaveLength(8);
 
-    // The clean file was read, and every column of it checked.
+    // The clean files were read, and every column of them checked.
     expect(
       planted.sites
         .filter((site: RelationSelectSite): boolean => {
-          return site.file.endsWith("PlantedClean.tsx");
+          return (
+            site.file.endsWith("PlantedClean.tsx") ||
+            site.file.endsWith("PlantedCleanServer.ts")
+          );
         })
         .map((site: RelationSelectSite): string => {
-          return `${site.shape} ${site.relation}.${site.column}`;
+          return `${site.shape} ${site.relation}.${site.column}${
+            site.isReadPerReader ? " (for each reader)" : ""
+          }`;
         })
         .sort(),
     ).toEqual([
-      "columns dataStore.sensitivity",
+      "columns dataStore.environment",
       "select dataStore._id",
       "select dataStore.kind",
       "select dataStore.name",
+      "select dataStore.name (for each reader)",
+      "select dataStore.riskScore (for each reader)",
+      "select dataStore.sensitivity (for each reader)",
     ]);
   });
+
+  test("a column held to its own read passes once the planted table sends it for each reader", async () => {
+    const fixedFolder: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "relation-select-guard-fixed-"),
+    );
+
+    try {
+      fs.writeFileSync(
+        path.join(fixedFolder, "PlantedOwnRead.ts"),
+        [
+          'import DataAsset from "Common/Models/DatabaseModels/DataAsset";',
+          'import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";',
+          'import PermissionGate from "Common/UI/Utils/PermissionGate";',
+          "",
+          "export async function readAssets(): Promise<unknown> {",
+          "  return await ModelAPI.getList<DataAsset>({",
+          "    modelType: DataAsset,",
+          "    select: PermissionGate.getSelectReadableThroughRelations(DataAsset, {",
+          "      dataStore: { name: true, sensitivity: true },",
+          "    }),",
+          "  } as never);",
+          "}",
+        ].join("\n"),
+      );
+
+      const fixed: RelationSelectScan = await scanRelationSelects([
+        fixedFolder,
+      ]);
+
+      expect(fixed.violations).toEqual([]);
+      expect(
+        fixed.sites.map((site: RelationSelectSite): string => {
+          return `${site.relation}.${site.column} ${site.isReadPerReader}`;
+        }),
+      ).toEqual(["dataStore.name true", "dataStore.sensitivity true"]);
+    } finally {
+      fs.rmSync(fixedFolder, { recursive: true, force: true });
+    }
+  }, 600000);
 });

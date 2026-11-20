@@ -252,6 +252,10 @@ import UserPreferences, {
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "../../Utils/SharedNameOptions";
 import InlineLoadingLine from "../Loader/InlineLoadingLine";
 import InlineSeparator from "../InlineSeparator/InlineSeparator";
 import { refreshSideMenuCounts } from "../SideMenu/SideMenuCountRefresh";
@@ -2643,6 +2647,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             (select as Dictionary<boolean>)["isArchived"] = true;
           }
 
+          /*
+           * A team's, a label's, an on-call policy's or a schedule's
+           * description and when it was made: the filter's dropdown tells
+           * records of one name apart by them (SharedNameOptions, #10064).
+           */
+          const isListedByName: boolean =
+            filter.filterDropdownField.label === "name" &&
+            Boolean(filter.filterEntityType.prototype instanceof BaseModel);
+
+          if (isListedByName) {
+            Object.assign(
+              select,
+              getSharedNameSelect(
+                filter.filterEntityType as DatabaseBaseModelType,
+              ),
+            );
+          }
+
           if (accessControlColumnName) {
             (select as Dictionary<JSONObject>)[accessControlColumnName] = {
               _id: true,
@@ -2682,6 +2704,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               item.getColumnValue("isArchived") === true
             ) {
               option.isArchived = true;
+            }
+
+            const sharedName: DropdownOption["sharedName"] = isListedByName
+              ? getSharedNameFacts(item as unknown as BaseModel)
+              : undefined;
+
+            if (sharedName) {
+              option.sharedName = sharedName;
             }
 
             if (colorColumnName) {

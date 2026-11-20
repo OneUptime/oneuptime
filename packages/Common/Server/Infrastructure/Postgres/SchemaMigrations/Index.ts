@@ -1129,6 +1129,7 @@ import { AddProxmoxGuestPowerTask1809186941017 } from "./1809186941017-AddProxmo
 import { AddTeamMemberInviteeEmail1809186960000 } from "./1809186960000-AddTeamMemberInviteeEmail";
 import { BackfillTeamMemberInviteeEmail1809186970000 } from "./1809186970000-BackfillTeamMemberInviteeEmail";
 import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddNetworkSiteOwnersAndLabels";
+import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
 
 export default [
   InitialMigration,
@@ -2262,4 +2263,5 @@ export default [
   AddTeamMemberInviteeEmail1809186960000,
   BackfillTeamMemberInviteeEmail1809186970000,
   AddNetworkSiteOwnersAndLabels1809187000000,
+  AddGuidedSetupRun1809187025300,
 ];

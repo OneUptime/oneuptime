@@ -40,6 +40,12 @@ export default interface DataSecurityIssueViewContext {
  * does not support read on relation query." in place of every issue from
  * 14.0.99 (#10238). The kinds of data the store holds are read from the
  * store itself, when the issue has none of its own (StoreDataTypes.ts).
+ *
+ * The store's name, kind and environment are read through the issue by
+ * every reader of issues; its other facts here only by who may read the
+ * store (RelationReaders.ColumnReaders, #10281), and the layout leaves them
+ * out of the read for anyone else
+ * (PermissionGate.getSelectReadableThroughRelations).
  */
 export const DATA_SECURITY_ISSUE_VIEW_SELECT: Select<DataSecurityIssue> = {
   _id: true,

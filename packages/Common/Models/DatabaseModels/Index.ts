@@ -406,6 +406,7 @@ import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 import WorkspaceLiveMessage from "./WorkspaceLiveMessage";
 import WorkspacePublicNoteApprovalMessage from "./WorkspacePublicNoteApprovalMessage";
 import WorkspaceHomeChoice from "./WorkspaceHomeChoice";
+import GuidedSetupRun from "./GuidedSetupRun";
 import OwnerNotificationDelivery from "./OwnerNotificationDelivery";
 // Status Page
 import StatusPage from "./StatusPage";
@@ -1042,6 +1043,7 @@ const AllModelTypes: Array<{
   WorkspaceLiveMessage,
   WorkspacePublicNoteApprovalMessage,
   WorkspaceHomeChoice,
+  GuidedSetupRun,
   OwnerNotificationDelivery,
   CallLog,
   EmailLog,

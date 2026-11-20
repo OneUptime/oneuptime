@@ -23,8 +23,10 @@ import {
 import TelemetryWhoIsTold from "./TelemetryWhoIsTold";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
 import { getDescribeItPrompt } from "../AskAiGuidedSetupLinks";
+import useGuidedSetupRunSync from "../UseGuidedSetupRunSync";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
+  GuidedSetupRunSync,
   getFirstOpenStepKey,
 } from "../GuidedSetupProgress";
 import WebsiteDownApi from "../WebsiteDown/WebsiteDownApi";
@@ -122,6 +124,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
       userId: userId,
     });
   }, [userId]);
+  const runSync: GuidedSetupRunSync = useGuidedSetupRunSync(store);
 
   /*
    * Step 2's monitors: for the data the project's first data says arrived
@@ -179,7 +182,8 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
     let isActive: boolean = true;
 
     const load: () => Promise<void> = async (): Promise<void> => {
-      const stored: GuidedSetupRun = store.read();
+      // The server's run (#7253): another device's, or this one's.
+      const stored: GuidedSetupRun = await store.load();
       let nextRun: GuidedSetupRun = stored;
       let loadedService: TelemetrySetupService | null = null;
       let loadedMonitors: Array<TelemetrySetupMonitor> = [];
@@ -903,6 +907,10 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
   return (
     <GuidedSetupFrame
       setup={TELEMETRY_SETUP}
+      runSync={runSync}
+      onRetryRunSync={() => {
+        store.retry();
+      }}
       steps={steps}
       openStepKey={openStepKey}
       onOpenStep={(key: string) => {
