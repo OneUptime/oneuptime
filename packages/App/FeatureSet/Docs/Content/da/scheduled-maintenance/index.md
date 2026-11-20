@@ -59,7 +59,7 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 | **Regler**    | **Ejerregler**, **Runbook-regler**, **Etiketregler**, **Påmindelsesregler**.                                                   |
 | **Indstillinger** | **Vedligeholdelsesstatus**, **Vedligeholdelsesskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger**, **Nummerering**. |
 
-**Oversigt** er åben; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API**, **CLI** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
+**Oversigt** er åben; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
 
 Listen viser **Nummer for planlagt vedligeholdelse**, **Titel**, **Aktuel tilstand**, **Berørte ressourcer**, **Vist på statusside**, **Begynder den**, **Varighed**, **Slutter den**, **Etiketter** og **Ejere**. Vælg begivenheder for at handle på flere ad gangen: **Markér som {{state}}**, **Skift tilstand**, **Tildel til mig**, **Tilføj ejer**, **Fjern ejer**, **Tilføj etiketter**, **Fjern etiketter** eller **Slet**. Menuen **⋯** for enden af hver begivenheds række gør det samme for netop den begivenhed: skridtene **Markér som {{state}}**, så længe begivenheden kan tage dem, **Skift tilstand**, **Tildel til mig**, indtil du ejer den, og **Tilføj ejer**.
 
@@ -85,7 +85,7 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 | **Oversigt** | **Oversigt**, **Tilstandstidslinje**, **Beskrivelse**, **Runbooks**, **Ejere** |
 | **Notifikationer**   | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om begivenheden, og hvad AI har gjort for den |
 | **Noter**         | **Private noter** og **Offentlige noter**                                                      |
-| **Udvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: begivenheden styret fra kode            |
+| **Udvikler**      | **Terraform**, **Crossplane**, **API**, **CLI** og **AI-assistenter**: begivenheden styret fra kode            |
 | **Avanceret**     | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet vedligeholdelseshændelse**             |
 
 **Oversigt** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.

@@ -320,6 +320,11 @@ const RUNBOOK_MENU: ReadonlyArray<MenuPage> = [
     section: "Developer",
     path: `${RUNBOOK_PATH}/developer/terraform`,
   },
+  {
+    title: "Crossplane",
+    section: "Developer",
+    path: `${RUNBOOK_PATH}/developer/crossplane`,
+  },
   { title: "API", section: "Developer", path: `${RUNBOOK_PATH}/developer/api` },
   { title: "CLI", section: "Developer", path: `${RUNBOOK_PATH}/developer/cli` },
   {
@@ -499,13 +504,13 @@ describe("a runbook's side menu", () => {
     expect(linksIn("Developer")).toEqual(linksOf("Developer"));
   });
 
-  test("lists all thirteen pages once, in order", async () => {
+  test("lists all fourteen pages once, in order", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    expect(hrefs).toHaveLength(13);
-    expect(new Set(hrefs).size).toBe(13);
+    expect(hrefs).toHaveLength(14);
+    expect(new Set(hrefs).size).toBe(14);
     expect(hrefs).toEqual(
       RUNBOOK_MENU.map((page: MenuPage): string => {
         return page.path;

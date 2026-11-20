@@ -5,6 +5,12 @@ name: Crossplane Provider
 # package, and runs packages/E2E/Crossplane: that package installed by
 # Crossplane in a kind cluster, managing a OneUptime this job brings up.
 #
+# Each leg builds, checks and installs the package of its runner's platform.
+# Pull requests, pushes and releases run on amd64 alone; the nightly run
+# tests the arm64 package too, on an arm64 runner, so a package that only
+# breaks there (#6617) is found before a release publishes it. The release
+# itself checks both packages before it pushes them (release.yml).
+#
 # The concurrency group is the one terraform-provider-e2e.yml explains: a
 # pull request's group is "<workflow name>-<PR number>", the group
 # cancel-closed-pr-runs.yml joins to stop it; release.yml passes its run id as
@@ -57,9 +63,15 @@ on:
 
 jobs:
   crossplane-e2e:
-    name: Crossplane provider
-    runs-on: ubuntu-latest
+    # The amd64 leg keeps the name pull requests wait on.
+    name: Crossplane provider${{ matrix.arch == 'arm64' && ' on arm64' || '' }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
+    strategy:
+      # The nightly arm64 leg's failure says nothing about amd64's.
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(github.event_name == 'schedule' && '[{"arch":"amd64","runner":"ubuntu-latest"},{"arch":"arm64","runner":"ubuntu-24.04-arm"}]' || '[{"arch":"amd64","runner":"ubuntu-latest"}]') }}
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       APP_TAG: latest
@@ -97,15 +109,24 @@ jobs:
       - name: Set up the Crossplane tools
         uses: ./.github/actions/setup-crossplane-tools
 
-      # Both are on ubuntu-latest; installed the way the Helm chart tests do
-      # where an image lacks them.
+      # Both are on ubuntu-latest and ubuntu-24.04-arm; installed the way the
+      # Helm chart tests do where an image lacks them, kubectl for the
+      # runner's own architecture.
       - name: Install helm and kubectl if missing
         run: |
           set -euo pipefail
           command -v helm >/dev/null || curl -fsSL --retry 5 https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           if ! command -v kubectl >/dev/null; then
+            case "${RUNNER_ARCH}" in
+              X64) arch=amd64 ;;
+              ARM64) arch=arm64 ;;
+              *)
+                echo "::error title=No kubectl::No kubectl is downloaded for ${RUNNER_ARCH}."
+                exit 1
+                ;;
+            esac
             ver="$(curl -fsSL --retry 5 https://dl.k8s.io/release/stable.txt)"
-            curl -fsSL --retry 5 -o "$RUNNER_TEMP/kubectl" "https://dl.k8s.io/release/${ver}/bin/linux/amd64/kubectl"
+            curl -fsSL --retry 5 -o "$RUNNER_TEMP/kubectl" "https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubectl"
             sudo install -m 0755 "$RUNNER_TEMP/kubectl" /usr/local/bin/kubectl
           fi
           helm version --short
@@ -163,7 +184,13 @@ jobs:
         run: |
           set -euo pipefail
           bash ./Scripts/CrossplaneProvider/build-package.sh \
-            --version "$(head -n 1 VERSION)" --platforms linux/amd64
+            --version "$(head -n 1 VERSION)" --platforms linux/${{ matrix.arch }}
+
+      # Its image's platform, its binary's architecture and its package.yaml,
+      # and the binary started on this runner: a package that cannot run here
+      # fails in a second, not after the stack is up.
+      - name: Check the provider's package
+        run: bash ./Scripts/CrossplaneProvider/check-package.sh --platforms linux/${{ matrix.arch }} --run
 
       # The pinned, cached gomplate, so prerun's configure.sh does not download
       # it (see .github/actions/setup-gomplate).

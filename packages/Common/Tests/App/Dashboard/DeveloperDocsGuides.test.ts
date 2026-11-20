@@ -25,6 +25,7 @@ import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -427,7 +428,7 @@ describe("Terraform pages that need more care", () => {
     });
   });
 
-  test("a Kubernetes cluster's provider is left out of its configuration, and the page says why", () => {
+  test("a Kubernetes cluster's provider is left out of its configuration: OneUptime keeps it", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
     cluster.name = "production-us-east";
@@ -446,10 +447,30 @@ describe("Terraform pages that need more care", () => {
       }),
     );
 
-    expect(guide.steps[1]?.markdown).not.toMatch(/^\s*provider\s*=/m);
-    expect(guide.steps[1]?.markdown).toContain(
-      "Left out because Terraform reserves the name for its own use: `provider`.",
+    expect(guide.steps[1]?.markdown).not.toMatch(/^\s*provider(_value)?\s*=/m);
+    expect(guide.steps[1]?.markdown).not.toContain("reserves the name");
+  });
+
+  test("a cloud account's configuration sets its provider as provider_value, which Terraform takes", () => {
+    const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+      DeveloperDocsPageType.Terraform,
+      context({
+        resource: getDeveloperDocsResource(CloudAccount),
+        record: {
+          id: "2a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+          displayName: "Production",
+          json: {
+            _id: "2a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+            name: "Production",
+            provider: "aws",
+            accountId: "123456789012",
+          },
+        },
+      }),
     );
+
+    expect(guide.steps[1]?.markdown).toMatch(/^\s*provider_value\s*= "aws"$/m);
+    expect(guide.steps[1]?.markdown).not.toContain("reserves the name");
   });
 
   test("an inventory item's list page says why Terraform does not create them, and still imports them", () => {

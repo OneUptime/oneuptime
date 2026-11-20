@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-L'ID de l'enregistrement figure dans le bloc `import` qu'écrit sa page **Développeurs → Terraform** dans le tableau de bord, et `oneuptime <resource> list` liste les ID d'un type d'enregistrement avec la [CLI de OneUptime](/docs/cli/resource-operations#lister-des-enregistrements). Une fois la ressource prête, `status.atProvider` montre l'enregistrement. Pour le gérer à partir de là, écrivez ses champs dans `spec.forProvider` et réglez `managementPolicies` sur `["*"]`.
+La page **Développeurs → Crossplane** de l'enregistrement, dans le tableau de bord, écrit ce manifeste pour vous, avec son ID, ainsi qu'un manifeste qui reprend l'enregistrement avec ses champs tels qu'ils sont. `oneuptime <resource> list` liste les ID d'un type d'enregistrement avec la [CLI de OneUptime](/docs/cli/resource-operations#lister-des-enregistrements). Une fois la ressource prête, `status.atProvider` montre l'enregistrement. Pour le gérer à partir de là, écrivez ses champs dans `spec.forProvider` et réglez `managementPolicies` sur `["*"]`.
 
 ## Secrets
 

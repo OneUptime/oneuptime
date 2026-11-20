@@ -25,8 +25,9 @@ import SnappyBlock, { SnappyTooLargeError } from "./SnappyBlock";
  *
  * The body may be at most MAX_OTLP_REQUEST_BYTES as sent (the OTLP routes'
  * ceiling; the shipped nginx cuts /telemetry to 4 MiB) and at most
- * MAX_DECOMPRESSED_OTLP_BODY_BYTES once its coding is undone. The codings
- * are the ones these tools send: gzip, deflate (zlib or raw), zstd, brotli
+ * MAX_DECOMPRESSED_OTLP_BODY_BYTES once its coding is undone, unless the
+ * endpoint holds it to less (CompatibleBodyLimits). The codings are the
+ * ones these tools send: gzip, deflate (zlib or raw), zstd, brotli
  * (Sentry's Python SDK) and snappy (Prometheus remote write).
  */
 
@@ -39,6 +40,14 @@ export const SUPPORTED_COMPATIBLE_CONTENT_ENCODINGS: ReadonlyArray<string> = [
   "br",
   "snappy",
 ];
+
+// An endpoint's own ceilings, below the shared ones.
+export interface CompatibleBodyLimits {
+  // As sent.
+  maxBodyBytes?: number | undefined;
+  // Once its coding is undone.
+  maxDecompressedBytes?: number | undefined;
+}
 
 export class CompatibleBodyError extends Error {
   public readonly statusCode: number;
@@ -96,12 +105,16 @@ export default class CompatibleIngestBody {
    * back as the bytes it was, so a route still works behind a stack that
    * did not leave its path alone.
    */
-  public static async readRaw(req: ExpressRequest): Promise<Buffer> {
+  public static async readRaw(
+    req: ExpressRequest,
+    limits?: CompatibleBodyLimits | undefined,
+  ): Promise<Buffer> {
     const body: unknown = req.body;
+    const maxBodyBytes: number = CompatibleIngestBody.maxBodyBytes(limits);
 
     if (Buffer.isBuffer(body)) {
-      if (body.length > MAX_OTLP_REQUEST_BYTES) {
-        throw CompatibleIngestBody.tooLarge();
+      if (body.length > maxBodyBytes) {
+        throw CompatibleIngestBody.tooLarge(maxBodyBytes);
       }
 
       return body;
@@ -124,10 +137,10 @@ export default class CompatibleIngestBody {
     }
 
     try {
-      return await readCloudStreamBody(req, MAX_OTLP_REQUEST_BYTES);
+      return await readCloudStreamBody(req, maxBodyBytes);
     } catch (error) {
       if (error instanceof CloudStreamBodyTooLarge) {
-        throw CompatibleIngestBody.tooLarge();
+        throw CompatibleIngestBody.tooLarge(maxBodyBytes);
       }
 
       throw error;
@@ -141,7 +154,10 @@ export default class CompatibleIngestBody {
    */
   public static async read(
     req: ExpressRequest,
-    options?: { assumeEncoding?: CompatibleBodyEncoding | undefined },
+    options?: {
+      assumeEncoding?: CompatibleBodyEncoding | undefined;
+      limits?: CompatibleBodyLimits | undefined;
+    },
   ): Promise<Buffer> {
     const encoding: CompatibleBodyEncoding | null =
       CompatibleIngestBody.encodingOf(req.headers["content-encoding"]);
@@ -159,41 +175,63 @@ export default class CompatibleIngestBody {
       );
     }
 
-    const raw: Buffer = await CompatibleIngestBody.readRaw(req);
+    const raw: Buffer = await CompatibleIngestBody.readRaw(
+      req,
+      options?.limits,
+    );
 
     const effective: CompatibleBodyEncoding =
       encoding === "none" && options?.assumeEncoding
         ? options.assumeEncoding
         : encoding;
 
-    return await CompatibleIngestBody.decode(raw, effective);
+    return await CompatibleIngestBody.decode(raw, effective, options?.limits);
   }
 
   public static async decode(
     raw: Buffer,
     encoding: CompatibleBodyEncoding,
+    limits?: CompatibleBodyLimits | undefined,
   ): Promise<Buffer> {
+    const maxDecompressedBytes: number =
+      CompatibleIngestBody.maxDecompressedBytes(limits);
+
     try {
       if (encoding === "snappy") {
-        return SnappyBlock.decompress(raw, MAX_DECOMPRESSED_OTLP_BODY_BYTES);
+        return SnappyBlock.decompress(raw, maxDecompressedBytes);
       }
 
       if (encoding === "br") {
         return await brotliDecompressAsync(raw, {
-          maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+          maxOutputLength: maxDecompressedBytes,
         });
       }
 
-      return await OtelPayloadDecoder.decompress(raw, encoding);
+      const decoded: Buffer = await OtelPayloadDecoder.decompress(
+        raw,
+        encoding,
+      );
+
+      /*
+       * The shared decoder stops at the shared ceiling; a lower one of the
+       * endpoint's own is held here. A body sent as it is counts as its
+       * own decompressed size.
+       */
+      if (decoded.length > maxDecompressedBytes) {
+        throw CompatibleIngestBody.decompressesTooLarge(maxDecompressedBytes);
+      }
+
+      return decoded;
     } catch (error) {
+      if (error instanceof CompatibleBodyError) {
+        throw error;
+      }
+
       if (
         error instanceof SnappyTooLargeError ||
         (error as { code?: string } | null)?.code === "ERR_BUFFER_TOO_LARGE"
       ) {
-        throw new CompatibleBodyError(
-          413,
-          `The request body may not decompress to more than ${MAX_DECOMPRESSED_OTLP_BODY_BYTES} bytes.`,
-        );
+        throw CompatibleIngestBody.decompressesTooLarge(maxDecompressedBytes);
       }
 
       throw new CompatibleBodyError(
@@ -203,10 +241,39 @@ export default class CompatibleIngestBody {
     }
   }
 
-  private static tooLarge(): CompatibleBodyError {
+  // The most a body may be as sent: the endpoint's ceiling, or the shared one.
+  public static maxBodyBytes(
+    limits?: CompatibleBodyLimits | undefined,
+  ): number {
+    return Math.min(
+      MAX_OTLP_REQUEST_BYTES,
+      limits?.maxBodyBytes ?? MAX_OTLP_REQUEST_BYTES,
+    );
+  }
+
+  // The most a body may be once its coding is undone.
+  public static maxDecompressedBytes(
+    limits?: CompatibleBodyLimits | undefined,
+  ): number {
+    return Math.min(
+      MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+      limits?.maxDecompressedBytes ?? MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+    );
+  }
+
+  public static decompressesTooLarge(
+    maxDecompressedBytes: number,
+  ): CompatibleBodyError {
     return new CompatibleBodyError(
       413,
-      `The request body may not exceed ${MAX_OTLP_REQUEST_BYTES} bytes.`,
+      `The request body may not decompress to more than ${maxDecompressedBytes} bytes.`,
+    );
+  }
+
+  private static tooLarge(maxBodyBytes: number): CompatibleBodyError {
+    return new CompatibleBodyError(
+      413,
+      `The request body may not exceed ${maxBodyBytes} bytes.`,
     );
   }
 }

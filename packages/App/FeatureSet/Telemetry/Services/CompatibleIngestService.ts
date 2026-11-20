@@ -32,6 +32,14 @@ import TelemetryQueueService from "./Queue/TelemetryQueueService";
  * against its own signal's budget as it is queued, and one over a used-up
  * budget is dropped there. A job of another signal than the door checked
  * never takes the door's charge.
+ *
+ * A budget counts a request at the size of its body decompressed, as it
+ * counts an OTLP export - not at the size of the OTLP JSON it becomes,
+ * which can be several times larger. An endpoint hands that size in
+ * (ingestBytes); the job that takes the door's charge is counted at it,
+ * and carries it for the worker to share out over the batch's services,
+ * teams and labels (TelemetryIngestAttribution), so every budget counts
+ * the same bytes.
  */
 
 export interface CompatibleOtlpBatch {
@@ -79,6 +87,12 @@ export default class CompatibleIngestService {
     req: TelemetryRequest;
     surface: TelemetryIngestSurface;
     batch: CompatibleOtlpBatch;
+    /*
+     * The request's body decompressed, in bytes: what the job of the
+     * door's signal is counted at. Absent, it is counted at the size of the
+     * OTLP JSON it is queued as.
+     */
+    ingestBytes?: number | undefined;
   }): Promise<CompatibleEnqueueResult> {
     const req: TelemetryRequest = data.req;
     const doorSignal: TelemetryIngestionBudgetSignal | null =
@@ -151,6 +165,17 @@ export default class CompatibleIngestService {
         delete req.telemetryIngestionBudgetCharge;
       }
 
+      if (
+        takesDoorCharge &&
+        typeof data.ingestBytes === "number" &&
+        Number.isFinite(data.ingestBytes) &&
+        data.ingestBytes >= 0
+      ) {
+        req.telemetryIngestBytes = data.ingestBytes;
+      } else {
+        delete req.telemetryIngestBytes;
+      }
+
       if (takesDoorCharge) {
         isDoorChargeTaken = true;
       }
@@ -179,6 +204,7 @@ export default class CompatibleIngestService {
     }
 
     req.body = null;
+    delete req.telemetryIngestBytes;
 
     return result;
   }

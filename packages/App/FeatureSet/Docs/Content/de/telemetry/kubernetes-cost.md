@@ -63,7 +63,7 @@ Die ersten Kosten erscheinen, nachdem die erste volle Stunde abgeschlossen ist, 
 
 Die Kostenmetriken (`node_total_hourly_cost`, `pv_hourly_cost` und die übrigen) sind gewöhnliche Metriken: Sie stehen im Metrik-Explorer, auf eigenen Dashboards und in Metrik-Monitoren zur Verfügung. Für ein fertiges Dashboard gehen Sie zu **Produkte → Dashboards**, wählen **Dashboard erstellen** und dann **Kubernetes Cost Dashboard**: Verläufe der stündlichen Knotenkosten, Stückkosten für CPU und Speicher sowie Ausgaben für Volumes und Load Balancer.
 
-Unter den Zahlen sagen die Übersicht und die Seite **Kosten**, woher ihre Preise stammen: aus den Listenpreisen einer Cloud, aus Ihrer Preistabelle oder aus den Standardsätzen von OpenCost, gleich welche Engine den Cluster bepreist, Kubecost 3 eingeschlossen. Ein Kubecost, das Ihre Cloud-Rechnung liest, gleicht seine Preise etwa anderthalb Tage nach jeder Stunde mit dieser Rechnung ab; daher weist die Zeile die Zahlen dann als seine Listenpreise von vor diesem Abgleich aus. Die Effizienz ist überall dieselbe Zahl, die Effizienzmetrik eingeschlossen: wie viel der angeforderten CPU und des angeforderten Speichers genutzt wurde, wobei jede Stunde eines Containers nach dem gewichtet wird, was seine CPU und sein Speicher kosten, sodass ein günstiger Job, der nichts nutzt, einen gut ausgelasteten Cluster nicht nach unten ziehen kann; Leerlaufkapazität wird nicht mitgezählt.
+Unter den Zahlen sagen die Übersicht und die Seite **Kosten**, woher ihre Preise stammen: aus den Listenpreisen einer Cloud, aus Ihrer Preistabelle oder aus den Standardsätzen von OpenCost, gleich welche Engine den Cluster bepreist, Kubecost 3 eingeschlossen. Ein Kubecost, das Ihre Cloud-Rechnung liest, gleicht seine Preise etwa zwei Tage nach jeder Stunde mit dieser Rechnung ab, und OneUptime übernimmt jede abgeglichene Stunde; daher sagt die Zeile, bis wann die Zahlen mit Ihrer Rechnung abgeglichen sind. Die Effizienz ist überall dieselbe Zahl, die Effizienzmetrik eingeschlossen: wie viel der angeforderten CPU und des angeforderten Speichers genutzt wurde, wobei jede Stunde eines Containers nach dem gewichtet wird, was seine CPU und sein Speicher kosten, sodass ein günstiger Job, der nichts nutzt, einen gut ausgelasteten Cluster nicht nach unten ziehen kann; Leerlaufkapazität wird nicht mitgezählt.
 
 ## Betreiben Sie bereits Kubecost oder OpenCost?
 
@@ -191,7 +191,7 @@ Lesen Sie seine Logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-o
 :::
 
 :::details Die Übersicht sagt, dass das mitgelieferte OpenCost nicht gebraucht wird
-Der Cluster betreibt sein eigenes Kubecost oder OpenCost, und der Kosten-Agent liest dieses, sodass das OpenCost, das das Chart mitgeliefert hat, nichts bepreist. Aktualisieren Sie mit `--set cost.engine.url=auto`, um es und sein Prometheus abzuschalten, oder setzen Sie `cost.engine.preferExisting=false`, um stattdessen die mitgelieferte Engine zu lesen. Mit Kubecost 3, das kein Prometheus liest, kommen die Speicherempfehlungen aus dem mitgelieferten: Geben Sie in derselben Aktualisierung mit `cost.engine.prometheusUrl` ein anderes an.
+Der Cluster betreibt sein eigenes Kubecost oder OpenCost, und der Kosten-Agent liest dieses, sodass das OpenCost, das das Chart mitgeliefert hat, nichts bepreist. Aktualisieren Sie mit `--set cost.engine.url=auto`, um es und sein Prometheus abzuschalten, oder setzen Sie `cost.engine.preferExisting=false`, um stattdessen die mitgelieferte Engine zu lesen. Kommen die Speicherempfehlungen aus dem mitgelieferten Prometheus, wie bei Kubecost 3, das keines liest, sagt der Hinweis das: Geben Sie in derselben Aktualisierung mit `cost.engine.prometheusUrl` ein anderes an, oder behalten Sie die mitgelieferte Engine. Der Kosten-Agent schaltet sie nie selbst ab: Er schreibt nichts in Ihren Cluster, und die mitgelieferte Engine ist sein Rückfall, solange Ihre nicht antwortet.
 :::
 
 :::details Der Kosten-Agent liest Ihre Engine nicht
@@ -215,7 +215,7 @@ Kein Speicher-Spitzenwert hat OneUptime erreicht, daher wurde der Speicher nicht
 :::
 
 :::details Die Zahlen weichen von der Oberfläche der Engine ab
-OneUptime sendet ganze, abgeschlossene Stunden, so wie die Engine sie nach ihrem Abschluss bepreist hat, ihre Abgleichskorrekturen eingeschlossen: Die Ausgaben der laufenden Stunde erscheinen, nachdem sie abgeschlossen ist. Ein Kubecost, das Ihre Cloud-Rechnung liest, gleicht jede Stunde etwa anderthalb Tage später mit ihr ab, und OneUptime behält die Stunde so, wie sie zuerst bepreist wurde.
+OneUptime sendet ganze, abgeschlossene Stunden, so wie die Engine sie nach ihrem Abschluss bepreist hat, ihre Abgleichskorrekturen eingeschlossen: Die Ausgaben der laufenden Stunde erscheinen, nachdem sie abgeschlossen ist. Ein Kubecost, das Ihre Cloud-Rechnung liest, gleicht jede Stunde etwa zwei Tage später mit ihr ab: OneUptime liest die Stunde 36 Stunden, 47 Stunden und 4 Tage danach erneut und übernimmt, was sich geändert hat. Kubecost behält stündliche Zahlen standardmäßig 49 Stunden lang, daher behält eine Stunde, die es danach abgleicht, die Zahl, die OneUptime zuletzt gelesen hat: Um jeden Abgleich zu übernehmen, behalten Sie sie 4 Tage lang (`kubecostAggregator.etlHourlyStoreDurationHours: 96` bei Kubecost 2, `aggregator.retention1h: 96` bei Kubecost 3).
 :::
 
 :::details Das mitgelieferte Prometheus wurde neu gestartet

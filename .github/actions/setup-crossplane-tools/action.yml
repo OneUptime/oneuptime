@@ -4,13 +4,18 @@ description: >-
   CLI builds and pushes the provider's package
   (Scripts/CrossplaneProvider/build-package.sh and publish-package.sh), and
   kind runs the cluster of its end-to-end test (packages/E2E/Crossplane).
-  Linux on amd64 only. Needs the repository checked out.
+  Linux on amd64 and arm64, whose nightly run tests the arm64 package.
+  Needs the repository checked out.
 
 # The same pattern as .github/actions/setup-gomplate: each binary is pinned by
 # the sha256 of the file that gets installed, kept in the Actions cache under
 # that pin, and only downloaded on a miss, by
 # Scripts/GHA/fetch_pinned_artifact.sh, which installs nothing that does not
 # match its pin (a copy restored from the cache included).
+#
+# The versions are the end-to-end test's: Scripts/CrossplaneProvider/Core/
+# Pins.ts reads them from here, and the Crossplane Provider Pins workflow
+# says when a newer release is out.
 
 runs:
   using: composite
@@ -21,18 +26,33 @@ runs:
       run: |
         set -euo pipefail
         # The digests are pinned here, never fetched from the release they
-        # verify: crossplane.sha256 of the CLI's release, and
-        # kind-linux-amd64.sha256sum of kind's (the kind that
+        # verify: crossplane.sha256 of the CLI's release for the platform, and
+        # kind-linux-<arch>.sha256sum of kind's (the kind that
         # test.kubernetes-agent-ebpf-e2e.yaml pins too).
-        if [[ "${RUNNER_OS}/${RUNNER_ARCH}" != "Linux/X64" ]]; then
-          echo "::error title=No pinned Crossplane tools::.github/actions/setup-crossplane-tools pins linux/amd64 builds, and this runner is ${RUNNER_OS}/${RUNNER_ARCH}."
-          exit 1
-        fi
+        crossplane_version="v2.5.0"
+        kind_version="v0.33.0"
+        case "${RUNNER_OS}/${RUNNER_ARCH}" in
+          Linux/X64)
+            arch="amd64"
+            crossplane_sha256="065dd6b40c9ea5fc71e49900d5c924cc0bec7f58375922ddbde6b402f292347e"
+            kind_sha256="aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d"
+            ;;
+          Linux/ARM64)
+            arch="arm64"
+            crossplane_sha256="2ae3bfe43206e47454c2634dace1427bd35794f616619e8f34ce23ce5b811dfd"
+            kind_sha256="20022bee6cfcd5086cb7234d218e3454e6090022f2a8f55d1fa7fcf42c3867a2"
+            ;;
+          *)
+            echo "::error title=No pinned Crossplane tools::.github/actions/setup-crossplane-tools pins linux/amd64 and linux/arm64 builds, and this runner is ${RUNNER_OS}/${RUNNER_ARCH}."
+            exit 1
+            ;;
+        esac
         {
-          echo "crossplane_version=v2.5.0"
-          echo "crossplane_sha256=065dd6b40c9ea5fc71e49900d5c924cc0bec7f58375922ddbde6b402f292347e"
-          echo "kind_version=v0.33.0"
-          echo "kind_sha256=aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d"
+          echo "platform=linux-${arch}"
+          echo "crossplane_version=${crossplane_version}"
+          echo "crossplane_sha256=${crossplane_sha256}"
+          echo "kind_version=${kind_version}"
+          echo "kind_sha256=${kind_sha256}"
           echo "dir=${RUNNER_TEMP}/crossplane-tools"
         } >>"$GITHUB_OUTPUT"
 
@@ -41,7 +61,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: ${{ steps.pin.outputs.dir }}
-        key: crossplane-tools-linux-amd64-${{ steps.pin.outputs.crossplane_sha256 }}-${{ steps.pin.outputs.kind_sha256 }}
+        key: crossplane-tools-${{ steps.pin.outputs.platform }}-${{ steps.pin.outputs.crossplane_sha256 }}-${{ steps.pin.outputs.kind_sha256 }}
 
     # Runs on a hit too: a restored copy is only used after it verifies, and
     # one that does not is downloaded again.
@@ -52,14 +72,18 @@ runs:
         CROSSPLANE_SHA256: ${{ steps.pin.outputs.crossplane_sha256 }}
         KIND_VERSION: ${{ steps.pin.outputs.kind_version }}
         KIND_SHA256: ${{ steps.pin.outputs.kind_sha256 }}
+        PLATFORM: ${{ steps.pin.outputs.platform }}
         TOOLS_DIR: ${{ steps.pin.outputs.dir }}
       run: |
         set -euo pipefail
         FETCH="${GITHUB_WORKSPACE}/Scripts/GHA/fetch_pinned_artifact.sh"
+        # linux_<arch> in the CLI's paths, linux-<arch> in kind's file names.
+        PLATFORM_UNDERSCORE="${PLATFORM/-/_}"
+        PLATFORM_HYPHEN="${PLATFORM}"
         bash "$FETCH" --name crossplane --sha256 "$CROSSPLANE_SHA256" --dest "$TOOLS_DIR" --mode 0755 \
-          --source file "https://cli.crossplane.io/stable/${CROSSPLANE_VERSION}/bin/linux_amd64/crossplane"
+          --source file "https://cli.crossplane.io/stable/${CROSSPLANE_VERSION}/bin/${PLATFORM_UNDERSCORE}/crossplane"
         bash "$FETCH" --name kind --sha256 "$KIND_SHA256" --dest "$TOOLS_DIR" --mode 0755 \
-          --source file "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          --source file "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-${PLATFORM_HYPHEN}"
 
     # Saved straight away rather than by actions/cache's post step, which only
     # saves when the whole job succeeds.
