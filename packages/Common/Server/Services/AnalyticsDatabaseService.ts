@@ -14,6 +14,7 @@ import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import FindOneBy from "../Types/AnalyticsDatabase/FindOneBy";
 import FindOneByID from "../Types/AnalyticsDatabase/FindOneByID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { EventLoopBudget } from "../Utils/EventLoop";
 import {
   DatabaseTriggerType,
   OnCreate,
@@ -1515,7 +1516,18 @@ export default class AnalyticsDatabaseService<
         groupByColumnNames.push("attributes");
       }
 
+      /*
+       * A grouped read is a row per series and bucket - 40,000 of them for
+       * a monitor over 16,000 series (#10108) - so the loop hands the event
+       * loop back as it goes.
+       */
+      const budget: EventLoopBudget = new EventLoopBudget();
+
       for (const item of items) {
+        if (budget.isSpent()) {
+          await budget.handBack();
+        }
+
         if (
           !(item as JSONObject)[
             aggregateBy.aggregationTimestampColumnName as string
