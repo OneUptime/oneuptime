@@ -61021,5 +61021,6 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "创建移动端遥测摄取密钥。它可以安全地随您的应用分发：它只发送其所固定的应用的追踪、日志和指标。",
   "Includes records where these {{count}} addresses were hashed.": "包含这 {{count}} 个地址被哈希处理的记录。",
   "Includes records where these {{count}} addresses were hashed._one": "包含此地址被哈希处理的记录。",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "令牌为 8 个字符的较早记录（例如 {{example}}）无法与地址匹配。"
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "令牌为 8 个字符的较早记录（例如 {{example}}）无法与地址匹配。",
+  "No monitors to link yet.": "还没有可关联的监视器。"
 }

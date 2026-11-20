@@ -61021,5 +61021,6 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Crea una clave de ingesta de telemetría móvil. Puedes incluirla en tu app con seguridad: solo envía las trazas, registros y métricas de la app a la que está fijada.",
   "Includes records where these {{count}} addresses were hashed.": "Incluye registros en los que estas {{count}} direcciones se convirtieron en hash.",
   "Includes records where these {{count}} addresses were hashed._one": "Incluye registros en los que esta dirección se convirtió en hash.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Los registros más antiguos cuyo token tiene 8 caracteres, como {{example}}, no se pueden asociar a una dirección."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Los registros más antiguos cuyo token tiene 8 caracteres, como {{example}}, no se pueden asociar a una dirección.",
+  "No monitors to link yet.": "Aún no hay monitores que vincular."
 }

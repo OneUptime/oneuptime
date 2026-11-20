@@ -61021,5 +61021,6 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Erstellen Sie einen mobilen Ingestion-Schlüssel für Telemetrie. Sie können ihn gefahrlos mit Ihrer App ausliefern: Er sendet nur Traces, Protokolle und Metriken der App, auf die er festgelegt ist.",
   "Includes records where these {{count}} addresses were hashed.": "Enthält Datensätze, in denen diese {{count}} Adressen gehasht wurden.",
   "Includes records where these {{count}} addresses were hashed._one": "Enthält Datensätze, in denen diese Adresse gehasht wurde.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Ältere Datensätze, deren Token 8 Zeichen hat, etwa {{example}}, lassen sich keiner Adresse zuordnen."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Ältere Datensätze, deren Token 8 Zeichen hat, etwa {{example}}, lassen sich keiner Adresse zuordnen.",
+  "No monitors to link yet.": "Noch keine Monitore zum Verknüpfen."
 }

@@ -61021,5 +61021,6 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "建立行動裝置遙測擷取金鑰。它可以安全地隨您的應用程式發布：它只傳送其所固定的應用程式的追蹤、日誌和指標。",
   "Includes records where these {{count}} addresses were hashed.": "包含這 {{count}} 個位址經過雜湊處理的記錄。",
   "Includes records where these {{count}} addresses were hashed._one": "包含此位址經過雜湊處理的記錄。",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "權杖為 8 個字元的較舊記錄（例如 {{example}}）無法與位址比對。"
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "權杖為 8 個字元的較舊記錄（例如 {{example}}）無法與位址比對。",
+  "No monitors to link yet.": "尚無可連結的監測器。"
 }

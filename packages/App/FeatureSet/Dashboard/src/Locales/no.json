@@ -61021,5 +61021,6 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "Opprett en mobil inntaksnøkkel for telemetri. Den kan trygt følge med i appen din: den sender bare spor, logger og målinger fra appen den er festet til.",
   "Includes records where these {{count}} addresses were hashed.": "Inkluderer poster der disse {{count}} adressene ble hashet.",
   "Includes records where these {{count}} addresses were hashed._one": "Inkluderer poster der denne adressen ble hashet.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Eldre poster med et token på 8 tegn, som {{example}}, kan ikke knyttes til en adresse."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "Eldre poster med et token på 8 tegn, som {{example}}, kan ikke knyttes til en adresse.",
+  "No monitors to link yet.": "Ingen monitorer å koble til ennå."
 }

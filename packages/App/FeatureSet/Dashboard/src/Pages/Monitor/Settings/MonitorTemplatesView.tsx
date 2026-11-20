@@ -28,17 +28,19 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
+import {
+  getLinkableMonitorsQuery,
+  LinkableMonitorsQuery,
+} from "Common/Utils/Monitor/MonitorTemplateLinkableMonitors";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
@@ -231,13 +233,34 @@ const MonitorTemplatesView: FunctionComponent<
   const [singleSyncError, setSingleSyncError] = useState<string>("");
 
   const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
-  const [eligibleMonitors, setEligibleMonitors] = useState<Array<Monitor>>([]);
-  const [isLoadingEligibleMonitors, setIsLoadingEligibleMonitors] =
-    useState<boolean>(false);
   const [isLinking, setIsLinking] = useState<boolean>(false);
   const [linkError, setLinkError] = useState<string>("");
-  // Bumped to read the monitors that can be linked again, the dialog open.
-  const [eligibleMonitorsReads, setEligibleMonitorsReads] = useState<number>(0);
+  /*
+   * The monitors the Link dialog's picker starts with: none when it opens,
+   * and the ones it could not link when some were linked and some were not
+   * (#7678), so Link tries those again. A new form key starts the picker
+   * over with them, the dialog staying open.
+   */
+  const [monitorIdsToRetry, setMonitorIdsToRetry] = useState<Array<string>>([]);
+  const [linkFormKey, setLinkFormKey] = useState<number>(0);
+
+  /*
+   * What the picker lists, searched on the server (#10399): the project's
+   * monitors of the template's type that are not linked to it, archived
+   * ones left out. Memoized, as the query is part of what the picker
+   * searches again on.
+   */
+  const linkableMonitorsQuery: LinkableMonitorsQuery | undefined =
+    useMemo(() => {
+      if (!monitorType) {
+        return undefined;
+      }
+
+      return getLinkableMonitorsQuery({
+        monitorTemplateId: modelId,
+        monitorType: monitorType,
+      });
+    }, [monitorType, modelId]);
 
   const [unlinkTarget, setUnlinkTarget] = useState<Monitor | null>(null);
   const [isUnlinking, setIsUnlinking] = useState<boolean>(false);
@@ -522,66 +545,6 @@ const MonitorTemplatesView: FunctionComponent<
     }
   };
 
-  /*
-   * Pull monitors eligible to be linked when the Link modal opens. We fetch
-   * all monitors in this project of the matching type and filter out the ones
-   * already linked here on the client — there's no clean cross-project
-   * null-or-not-equal filter at the query-DSL level.
-   */
-  useEffect(() => {
-    if (!showLinkModal || !monitorType) {
-      return;
-    }
-
-    const loadEligible: () => Promise<void> = async (): Promise<void> => {
-      /*
-       * The dialog's error is left as it is: opening the dialog clears it,
-       * and when the list is read again because some monitors could not be
-       * linked, it says which.
-       */
-      setIsLoadingEligibleMonitors(true);
-      try {
-        const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
-          modelType: Monitor,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            monitorType: monitorType,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            monitorTemplateId: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-        const templateIdString: string = modelId.toString();
-        const eligible: Array<Monitor> = result.data.filter(
-          (monitor: Monitor) => {
-            return (
-              !monitor.monitorTemplateId ||
-              monitor.monitorTemplateId.toString() !== templateIdString
-            );
-          },
-        );
-
-        setEligibleMonitors(eligible);
-      } catch (e) {
-        setLinkError((current: string): string => {
-          return current || API.getFriendlyMessage(e);
-        });
-        setEligibleMonitors([]);
-      }
-      setIsLoadingEligibleMonitors(false);
-    };
-
-    loadEligible();
-  }, [showLinkModal, monitorType, modelId, eligibleMonitorsReads]);
-
   const onLinkSubmit: (formData: {
     monitorIds: Array<string>;
   }) => Promise<void> = async (formData: {
@@ -597,6 +560,8 @@ const MonitorTemplatesView: FunctionComponent<
     setLinkError("");
 
     const errors: Array<string> = [];
+    // The monitors that were not linked, to keep picked for another try.
+    const notLinkedIds: Array<string> = [];
     for (const monitorId of monitorIds) {
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -608,9 +573,11 @@ const MonitorTemplatesView: FunctionComponent<
           });
         if (response.isFailure()) {
           errors.push(API.getFriendlyMessage(response));
+          notLinkedIds.push(monitorId);
         }
       } catch (e) {
         errors.push(API.getFriendlyMessage(e));
+        notLinkedIds.push(monitorId);
       }
     }
 
@@ -639,15 +606,20 @@ const MonitorTemplatesView: FunctionComponent<
               translator: translator,
             }),
       );
-      // The dialog stays open: the monitors that were linked leave its list.
-      setEligibleMonitorsReads((reads: number): number => {
-        return reads + 1;
+      /*
+       * The dialog stays open with only the monitors that were not linked
+       * still picked: the ones that were leave it, and the server leaves
+       * them out of its list from now on, as they are this template's.
+       */
+      setMonitorIdsToRetry(notLinkedIds);
+      setLinkFormKey((key: number): number => {
+        return key + 1;
       });
       return;
     }
 
     setShowLinkModal(false);
-    setEligibleMonitors([]);
+    setMonitorIdsToRetry([]);
     setSyncResultTitle("Done");
     setSyncResultMessage(
       translator.translatePlural(LINKED_MONITORS_RESULT, monitorIds.length),
@@ -1304,6 +1276,7 @@ const MonitorTemplatesView: FunctionComponent<
             onClick: () => {
               setSyncResultMessage("");
               setLinkError("");
+              setMonitorIdsToRetry([]);
               setShowLinkModal(true);
             },
           },
@@ -1502,51 +1475,48 @@ const MonitorTemplatesView: FunctionComponent<
         />
       )}
 
-      {showLinkModal && (
+      {showLinkModal && linkableMonitorsQuery && (
         <BasicFormModal<{ monitorIds: Array<string> }>
           title="Link Existing Monitors"
-          description={
-            isLoadingEligibleMonitors
-              ? "Loading monitors that can be linked…"
-              : monitorType
-                ? translator.translateTemplate(
-                    "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.",
-                    { monitorType: translatableTerm(monitorType) },
-                  )
-                : translator.translateTemplate(
-                    "Pick monitors to link to this template. Monitors linked to another template move to this one.",
-                  )
-          }
+          description={translator.translateTemplate(
+            "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.",
+            {
+              monitorType: translatableTerm(linkableMonitorsQuery.monitorType),
+            },
+          )}
           submitButtonText="Link"
           isLoading={isLinking}
           error={linkError}
           onClose={() => {
             setShowLinkModal(false);
             setLinkError("");
-            setEligibleMonitors([]);
+            setMonitorIdsToRetry([]);
           }}
           onSubmit={onLinkSubmit}
+          formKey={`link-monitors-${linkFormKey}`}
           formProps={{
+            initialValues: { monitorIds: monitorIdsToRetry },
             fields: [
               {
                 field: {
                   monitorIds: true,
                 },
                 title: "Monitors",
-                description:
-                  eligibleMonitors.length === 0 && !isLoadingEligibleMonitors
-                    ? "No eligible monitors found in this project for this monitor type."
-                    : "",
                 fieldType: FormFieldSchemaType.MultiSelectDropdown,
                 required: true,
-                dropdownOptions: eligibleMonitors.map((monitor: Monitor) => {
-                  return {
-                    label: monitor.name || "(unnamed monitor)",
-                    value: monitor._id?.toString() || "",
-                    // A monitor's own name as written, never looked up.
-                    isUserContent: Boolean(monitor.name),
-                  };
-                }),
+                /*
+                 * Searched on the server as the reader types, 50 names at a
+                 * time, within linkableMonitorsQuery (#10399): every monitor
+                 * it may link, however many the project has, and none it
+                 * has linked. A monitor's name is drawn as written.
+                 */
+                dropdownModal: {
+                  type: Monitor,
+                  labelField: "name",
+                  valueField: "_id",
+                  query: linkableMonitorsQuery,
+                  emptyListText: translationKey("No monitors to link yet."),
+                },
               },
             ],
           }}

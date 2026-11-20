@@ -61021,5 +61021,6 @@
   "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs and metrics of the app it is pinned to.": "یک کلید دریافت داده موبایل برای تله‌متری بسازید. منتشر کردنش همراه اپ امن است: فقط ترِیس‌ها، لاگ‌ها و متریک‌های اپی را می‌فرستد که به آن سنجاق شده است.",
   "Includes records where these {{count}} addresses were hashed.": "شامل رکوردهایی است که این {{count}} نشانی در آن‌ها درهم‌سازی شده‌اند.",
   "Includes records where these {{count}} addresses were hashed._one": "شامل رکوردهایی است که این نشانی در آن‌ها درهم‌سازی شده است.",
-  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "رکوردهای قدیمی‌تر که توکن آن‌ها ۸ نویسه دارد، مانند {{example}}، را نمی‌توان با یک نشانی تطبیق داد."
+  "Older records whose token has 8 characters, such as {{example}}, can't be matched to an address.": "رکوردهای قدیمی‌تر که توکن آن‌ها ۸ نویسه دارد، مانند {{example}}، را نمی‌توان با یک نشانی تطبیق داد.",
+  "No monitors to link yet.": "هنوز مانیتوری برای پیوند دادن وجود ندارد."
 }
