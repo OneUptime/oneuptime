@@ -98,6 +98,10 @@ const COVERED: Record<string, Coverage> = {
       suites: [MORE_SETTINGS_ONE_CARD],
       drawnBy: "Pages/Alerts/Settings/AlertAISettings",
     },
+  "packages/App/FeatureSet/Dashboard/src/Pages/Settings/UsageHistory.tsx": {
+    suites: [MORE_SETTINGS_ONE_CARD],
+    drawnBy: "Pages/Settings/UsageHistory",
+  },
   "packages/App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings.tsx": {
     suites: ["CodeRepositorySettingsPage.test.tsx"],
     drawnBy: "Pages/Code/Repository/Settings",

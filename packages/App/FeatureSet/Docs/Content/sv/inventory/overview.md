@@ -5,7 +5,8 @@ Inventariet är en enda lista över allt OneUptime vet om din miljö: tjänster,
 :::cards
 - [Så hamnar objekt i inventariet](#så-hamnar-objekt-i-inventariet): Upptäckta, speglade eller tillagda av dig.
 - [Hitta rätt](#hitta-rätt): Inventariets sidor och varje objekts egna sidor.
-- [Importera enheter från Esper](#importera-enheter-från-esper): Varje Android-enhet som din Esper-tenant registrerar, alltid aktuell.
+- [Importera enheter från Esper](#importera-enheter-från-esper): Varje Android- och Apple-enhet som din Esper-tenant registrerar, alltid aktuell.
+- [Importera enheter från Microsoft Intune](#importera-enheter-från-microsoft-intune): Varje Windows-dator, Mac, iPhone, iPad och Android-enhet som Intune hanterar, alltid aktuell.
 - [Lägg till något manuellt](#lägg-till-något-manuellt): Ett API från tredje part, en extern databas eller en appliance.
 - [Arkivera i stället för att radera](#arkivera-i-stället-för-att-radera): Sättet att städa listan som består.
 :::
@@ -26,14 +27,14 @@ flowchart TB
 | Källa | I API:t | Var det kommer ifrån | Hur länge det stannar |
 | --- | --- | --- | --- |
 | **Upptäckt** | `discovered` | OpenTelemetry-resursattribut, lästa när telemetri kommer in: en tjänst, en värd, ett Kubernetes-objekt eller en virtuell maskin som skickar telemetri. | Registreras på nytt med varje batch. Tas bort när det har varit tyst längre än fönstret för sin typ (se nedan). |
-| **Speglat** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar, Podman-värdar och de Android-enheter som en Esper-anslutning importerar. Kopieras var 15:e minut. En Esper-enhet kopieras varje gång dess anslutning läses. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
+| **Speglat** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar, Podman-värdar och de enheter som en Esper- eller Microsoft Intune-anslutning importerar. Kopieras var 15:e minut. En Esper-enhet kopieras varje gång dess anslutning läses. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
 | **Tillagt av dig** | `manual` | Tillagt av dig, för något OneUptime inte kan se: ett API från tredje part, en databas som en leverantör sköter, en appliance i ett rack. | Tills du raderar det. Inget får det att löpa ut. |
 
 Ett upptäckt eller speglat objekt kan inte byta namn eller få en annan typ: källan skulle skriva över ändringen vid nästa genomgång. Objektets sida **Inställningar** berättar i stället var en bestående ändring ska göras. Det du alltid kan lägga till på vilket objekt som helst, oavsett källa, är värden i anpassade fält: se [Anpassade inventariefält](/docs/inventory/custom-fields).
 
 ### Hur länge ett tyst objekt stannar
 
-Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för det flyttas tidpunkten då det senast sågs fram, och listans kolumn **Status** visar hur nyligen det var. Detsamma gäller en Android-enhet från Esper: varje gång den checkar in hos Esper. Andra speglade objekt och de du har lagt till har inget hjärtslag, så deras status förblir tom i stället för att larma.
+Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för det flyttas tidpunkten då det senast sågs fram, och listans kolumn **Status** visar hur nyligen det var. Detsamma gäller en enhet från Esper eller Intune: varje gång den checkar in hos sin MDM. Andra speglade objekt och de du har lagt till har inget hjärtslag, så deras status förblir tom i stället för att larma.
 
 | Status | Vad det betyder |
 | --- | --- |
@@ -45,9 +46,9 @@ Var tredje timme tar OneUptime bort de upptäckta objekt som har varit tysta lä
 
 | Typ av objekt | Tas bort efter så här lång tid utan telemetri |
 | --- | --- |
-| Poddar, deployments, Proxmox-gäster och virtuella VMware-maskiner | 1 dag |
-| Kubernetes-noder och -namnrymder, Proxmox-noder, VMware-värdar, -kluster och -datalager, samt de databaser och fjärrtjänster som dina traces anropar | 7 dagar |
-| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, lagringsarrayer, vCenters och Docker Swarm-kluster | 30 dagar |
+| Poddar, deployments, Proxmox-gäster, OpenStack-instanser och virtuella VMware-maskiner | 1 dag |
+| Kubernetes-noder och -namnrymder, Proxmox-noder, OpenStack-hypervisorer, VMware-värdar, -kluster och -datalager, samt de databaser och fjärrtjänster som dina traces anropar | 7 dagar |
+| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, OpenStack-moln, lagringsarrayer, vCenters och Docker Swarm-kluster | 30 dagar |
 
 En relation som OneUptime har upptäckt tas bort när den inte har setts igen på 30 dagar.
 
@@ -59,7 +60,7 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 | --- | --- |
 | **Översikt** | Hur många objekt du har, vad de är, hur många som har tystnat och vad som lades till senast. |
 | **Alla objekt** | Alla objekt. Sök på namn, beskrivning eller identitetsnyckel, avgränsa listan efter typ, källa, status eller anpassat fält, och lägg till ett objekt manuellt. |
-| **Hanterade enheter** | Dina Esper-anslutningar och varje Android-enhet som de importerar, med dess status, grupp, modell och Android-version. |
+| **Hanterade enheter** | Dina Esper- och Microsoft Intune-anslutningar och varje enhet som de importerar, med dess status, grupp, modell och operativsystem. |
 | **Topologikarta** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
 | **Tystnat** | De objekt som inget har hörts från på mer än ett dygn: upptäckta objekt som inte har skickat någon telemetri och enheter som har slutat checka in hos Esper. |
 | **Efter källa** | Objekten från en källa: **Upptäckt**, **Speglat** eller **Tillagt av dig**. |
@@ -77,6 +78,8 @@ En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriv
 - En nätverksenhets uppgifter kommer från dess SNMP-pollning, dess roll och dess plats. Det som dess pollning inte har läst kommer från discovery: den senaste skanningen av dess adress, en routers ARP-tabell eller dess sonds DNS-uppslag. En enhet utan ENTITY-MIB, som en Meraki MX, får ändå sitt märke, sin modell och sitt operativsystem från sin systembeskrivning och sin MAC-adress från sina egna portar. Dess IP-adress visas aldrig som dess värdnamn.
 - En Meraki-enhet hämtar också det som dess pollning lämnar tomt från Meraki-dashboarden, bland annat dess serienummer, modell och firmware, när en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation.
 
+I **Alla objekt** hittar du de Android-enheter som behöver åtgärdas. Filtret **Säkerhetspatchnivå** listar de enheter som står som **Föråldrad**, vars säkerhetspatchnivå är äldre än 90 dagar, samma regel som larmet Security Patch Out of Date i en [värdmonitor](/docs/monitor/host-monitor) läser. Filtret **Agentbehörigheter** listar de enheter där [Android-agenten](/docs/telemetry/android-agent) fortfarande saknar READ_LOGS, READ_DROPBOX_DATA eller åtkomst till användningsdata. Båda har en kolumn med samma namn, dold tills du slår på den, och den följer med i CSV-exporten.
+
 Kortet visar var varje uppgift kom ifrån och när. Den källa som de flesta uppgifterna delar, som en värds collector, en nätverksenhets egen SNMP-pollning eller den discovery-skanning som läste den, nämns en gång, under uppgifterna. Varje annan källa, som en routers ARP-tabell eller ett värde som sparats på enheten, nämns under sin uppgift. Ett värde som har sparats på en nätverksenhet ersätts aldrig av det som discovery läser, och när de två skiljer sig visar kortet båda.
 
 En nätverksenhets kort har en knapp **Uppdatera** för den som får redigera nätverksenheter. Den läser enheten igen nu: dess sond pollar den inom en minut, och dess Meraki-anslutning läser organisationen igen. Kortet säger när den nya avläsningen har kommit in, eller att sonden inte kunde nå enheten, och objektet kopieras från enheten så snart avläsningen har kommit in.
@@ -89,7 +92,7 @@ Ett objekts sida **Anslutningar** listar dess grannar i båda riktningarna, grup
 
 ## Importera enheter från Esper
 
-Anslut en Esper-tenant, så finns varje Android-enhet som den registrerar i inventariet, även de enheter vars app aldrig har startat. Varje enhet är en värd, med det som bara Esper vet om den: dess grupp, dess Android-version, byggnummer och säkerhetspatchnivå, dess serienummer och IMEI, dess batteri och lagring samt dess installerade appar. Esper skickar ingenting av sig självt, så OneUptime läser den enligt ett schema: enheterna var 15:e minut och varje enhets appar var 6:e timme.
+Anslut en Esper-tenant, så finns varje enhet som den registrerar i inventariet: dess Android-enheter, även de vars app aldrig har startat, och dess iPhone, iPad och Apple TV. Varje enhet är en värd, med det som bara Esper vet om den: dess grupp, dess operativsystem och byggnummer, dess serienummer och IMEI, dess batteri och lagring samt, för en Android-enhet, dess säkerhetspatchnivå och installerade appar. Esper skickar ingenting av sig självt, så OneUptime läser den enligt ett schema: enheterna var 15:e minut och varje Android-enhets appar var 6:e timme.
 
 :::steps
 ### Skapa en API-nyckel i Esper
@@ -98,16 +101,16 @@ Skapa en nyckel i Esper-konsolen under API Key Management. OneUptime läser bara
 
 ### Anslut tenanten
 
-Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade enheter**, och klicka på **Anslut Esper**. Ange **Tenant**, namnet före `.esper.cloud` i adressen till din Esper-konsol (`acme` för `acme.esper.cloud`), och **API-nyckel**. Under **Fler fält** finns anslutningens namn och hur ofta den läses.
+Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade enheter**, klicka på **Anslut MDM** och välj **Esper**. Ange **Tenant**, namnet före `.esper.cloud` i adressen till din Esper-konsol (`acme` för `acme.esper.cloud`), och **API-nyckel**. Under **Fler fält** finns anslutningens namn och hur ofta den läses.
 
 ### Kontrollera den första läsningen
 
-**Anslut** testar nyckeln innan något sparas: den visar hur många Android-enheter en läsning kommer att importera, eller vad som är fel och hur du åtgärdar det. Den första läsningen startar inom en minut, och anslutningens rad visar hur den gick.
+**Anslut** testar nyckeln innan något sparas: den visar hur många enheter en läsning kommer att importera, eller vad som är fel och hur du åtgärdar det. Den första läsningen startar inom en minut, och anslutningens rad visar hur den gick.
 :::
 
 | Vad Esper rapporterar | Var det visas |
 | --- | --- |
-| Modell, tillverkare, serienummer, Android-version, byggnummer samt IP- och MAC-adresser | Enhetens kort **Tillgångsdetaljer** och kolumnerna i **Alla objekt** |
+| Modell, tillverkare, serienummer, operativsystem och dess version, byggnummer samt IP- och MAC-adresser | Enhetens kort **Tillgångsdetaljer** och kolumnerna i **Alla objekt** |
 | Status, senaste incheckning, grupp, säkerhetspatchnivå, IMEI, batteri, lagring och Esper-agent | Enhetens kort **Esper** och listan **Enheter** under **Hanterade enheter** |
 | Appar och deras versioner | Enhetens lista **Installerade appar** |
 
@@ -124,15 +127,43 @@ OneUptime hittar en enhets objekt efter dess namn i Esper och sedan efter dess s
 
 ### När en enhet tystnar eller lämnar Esper
 
-En enhet som inte har checkat in på 30 minuter är **Offline** och visar hur länge sedan den senast gjorde det. Objektets **Status** följer enhetens senaste incheckning, eller dess telemetri när den är nyare, så en enhet som har varit tyst i ett dygn finns på sidan **Tystnat**.
+En Android-enhet som inte har checkat in på 30 minuter är **Offline** och visar hur länge sedan den senast gjorde det; en iPhone, iPad eller Apple TV, som checkar in när Apples push-tjänst väcker den, ofta med timmar emellan, är **Offline** efter ett dygn. Objektets **Status** följer enhetens senaste incheckning, eller dess telemetri när den är nyare, så en enhet som har varit tyst i ett dygn finns på sidan **Tystnat**.
 
 En enhet som tas bort från Esper markeras som **Borttagen**, och dess objekt arkiveras: det försvinner från listan och väntar under **Avancerad → Arkiverad**. En enhet som kommer tillbaka till Esper kommer tillbaka till listan. 30 dagar efter att den försvann raderas enheten, och dess objekt likaså, såvida inte telemetri eller du har lagt till något i det.
 
 ### Få ett larm när en enhet slutar checka in
 
-Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Esper på mer än en timme, namngivet efter enheten, och löser det så snart enheten checkar in igen.
+Under **Hanterade enheter** klickar du på **Konfigurera larm** på anslutningens rad och skapar **Esper Android Device Stopped Checking In** och **Esper Apple Device Stopped Checking In**. Den första öppnar ett larm för varje Android-enhet som inte har checkat in hos Esper på mer än en timme, den andra för varje Apple-enhet efter mer än ett dygn, vart och ett namngivet efter enheten och löst så snart den checkar in igen.
 
 Varje läsning av anslutningen registrerar som mätvärdet `oneuptime.managed_device.check_in.age` hur många minuter sedan varje enhet senast checkade in, och monitorn kontrollerar varje enhets senaste värde var 5:e minut. En enhet som också kör Android Agent lämnas åt **Host Stopped Reporting**, så den larmar aldrig två gånger, och en enhet som tagits bort från Esper löser sitt larm. En läsning som misslyckas registrerar ingenting, så inget larm öppnas eller löses förrän vid nästa. Höj monitorns tröskel för en flotta som stängs av på natten.
+
+## Importera enheter från Microsoft Intune
+
+Anslut en Microsoft Intune-tenant, så finns varje enhet som Intune hanterar i inventariet: dess Windows-datorer, Mac-datorer, iPhone, iPad, Android-enheter och Linux-maskiner. Varje enhet är en värd, med det som Intune vet om den: dess kategori, dess operativsystem och dess version, dess serienummer och IMEI, dess efterlevnad, ägarskap och registrering, dess lagring och de appar som Intune har hittat på den. Intune skickar ingenting av sig självt, så OneUptime läser den enligt ett schema: enheterna var 15:e minut och varje enhets appar var 6:e timme.
+
+:::steps
+### Registrera en app i Microsoft Entra
+
+Öppna `App registrations` i administrationscentret för Microsoft Entra och klicka på `New registration`. Ge den ett namn, behåll `Accounts in this organizational directory only` och registrera den. Dess sida `Overview` visar de två ID:n som OneUptime frågar efter: `Application (client) ID` och `Directory (tenant) ID`.
+
+### Låt den läsa enheterna i Intune
+
+Under `API permissions` klickar du på `Add a permission`, sedan `Microsoft Graph`, sedan `Application permissions`, och lägger till `DeviceManagementManagedDevices.Read.All`. Klicka sedan på `Grant admin consent`, vilket bara en administratör för tenanten kan göra. Den enda behörigheten är allt OneUptime behöver: den listar enheterna och de appar som Intune har hittat på dem, och kan inte ändra något.
+
+### Skapa en klienthemlighet
+
+Under `Certificates & secrets` klickar du på `New client secret` och kopierar dess `Value`, inte dess `Secret ID`: Microsoft visar värdet en gång. En hemlighet slutar fungera när den löper ut, så skapa en ny innan dess och ange den när du redigerar anslutningen.
+
+### Anslut Intune-tenanten
+
+Gå till **Produkter → Resurser → Inventarie** och sedan till **Hanterade enheter**, klicka på **Anslut MDM** och välj **Microsoft Intune**. Ange **Tenant-ID**, **Program-ID (klient)** och **Klienthemlighet**. Om tenanten finns i ett moln för den amerikanska regeringen väljer du det som **Moln** under **Fler fält**. **Anslut** testar appregistreringen innan något sparas: den säger hur många enheter en läsning kommer att importera, eller vad som är fel och hur du åtgärdar det.
+:::
+
+En enhet checkar in hos Intune ungefär var åttonde timme, och dess senaste incheckning är när den senast gjorde det: en enhet som inte har gjort det på ett dygn är **Offline**. Dess appar är de som Intune har hittat på den, som Microsoft Graph bara listar i sin betaversion: för en personlig enhet de appar som Intune hanterar. Grupperna i Intune är Microsoft Entra-grupper, som den här behörigheten inte läser, så en enhets grupp är dess enhetskategori. Ingenting om en enhets användare läses.
+
+Intune namnger en enhet med det namn dess ägare gav den, så två enheter kan ha samma namn: varje iPhone som ingen har bytt namn på heter `iPhone`. Ett namn som två enheter i en anslutning delar är ingen av dem i inventariet: var och en namnges i stället efter sitt serienummer och får tillbaka sitt namn så snart ingen annan enhet har det.
+
+För att få ett larm när en enhet slutar checka in klickar du på **Konfigurera larm** på anslutningens rad och skapar **Intune Device Stopped Checking In**. Den öppnar ett larm för varje enhet som inte har checkat in hos Intune på mer än ett dygn, namngivet efter enheten. En bärbar dator som är avstängd under en helg ser likadan ut, så höj monitorns tröskel om ett dygn är för kort för dina.
 
 ## Lägg till något manuellt
 

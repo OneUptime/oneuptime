@@ -24,6 +24,15 @@ import {
  *   - the legend names each axis's unit and each series' axis, with no
  *     warning; and the card holds all of it, on a phone too.
  *
+ * ISSUE #10079: every axis's neighbouring ticks read apart, the filesystem's
+ * the issue saw read "17.2 GB" five times among them, and each axis is as
+ * wide as its widest tick.
+ *
+ * ISSUE #10080: a third kind of unit (the host's processes, a count, on a
+ * chart in percent and bytes) is drawn to a scale of its own: two axes, never
+ * a third, the percent axis kept to percent, the processes' line spread over
+ * the plot, its chip saying "Own scale", and the chart saying so.
+ *
  * Screenshots (synthetic data) land in output/playwright/chart-time-zoom-ui.
  */
 
@@ -42,6 +51,10 @@ const UNIT_MISMATCH_TEST_ID: string = "metric-chart-overlay-unit-mismatch";
 
 const PERCENT_METRIC: string = "system.cpu.utilization";
 const BYTES_METRIC: string = "k8s.node.memory.usage";
+// About 70 processes on average: a count, a third kind of unit beside those.
+const COUNT_METRIC: string = "system.processes.count";
+// A filesystem at 17.2 GB on average, give or take a few bytes (#10079).
+const FILESYSTEM_METRIC: string = "system.filesystem.usage";
 
 interface SpecWindow {
   __chartTimeZoomFixture: {
@@ -124,23 +137,78 @@ test.afterEach(async ({ page }: { page: Page }) => {
   expect(unhandled, "requests the fixture does not model").toEqual([]);
 });
 
-// Memory utilization, with filesystem usage overlaid on its chart.
-function overlaidPath(): string {
+// The explorer drawing these metrics, each overlaid on the chart before it.
+function explorerPath(metricNames: Array<string>): string {
   const search: URLSearchParams = new URLSearchParams({
-    metricQueries: JSON.stringify([
-      { metricName: PERCENT_METRIC, variable: "a", aggregationType: "Avg" },
-      {
-        metricName: BYTES_METRIC,
-        variable: "b",
-        aggregationType: "Avg",
-        chartType: "line",
-        overlayWithPreviousQuery: true,
-      },
-    ]),
+    metricQueries: JSON.stringify(
+      metricNames.map((metricName: string, index: number) => {
+        return {
+          metricName: metricName,
+          variable: String.fromCharCode(97 + index),
+          aggregationType: "Avg",
+          ...(index > 0
+            ? { chartType: "line", overlayWithPreviousQuery: true }
+            : {}),
+        };
+      }),
+    ),
     range: "Past 30 Mins",
   });
 
   return `${EXPLORER_PATH}?${search.toString()}`;
+}
+
+// CPU utilization, with the nodes' memory usage overlaid on its chart.
+function overlaidPath(): string {
+  return explorerPath([PERCENT_METRIC, BYTES_METRIC]);
+}
+
+// No two neighbouring ticks of an axis read alike (#10079).
+function expectTicksApart(axis: AxisReading, name: string): void {
+  expect(axis.ticks.length, `${name}'s ticks`).toBeGreaterThan(1);
+  for (let index: number = 1; index < axis.ticks.length; index++) {
+    expect(axis.ticks[index], `${name}'s tick ${index}`).not.toBe(
+      axis.ticks[index - 1],
+    );
+  }
+}
+
+// The axes a chart draws, left first.
+function axesLeftFirst(chart: ChartReading): Array<AxisReading> {
+  return [...chart.axes].sort((a: AxisReading, b: AxisReading): number => {
+    return a.left - b.left;
+  });
+}
+
+// A series' line, found by its legend chip's colour.
+function curveOfSeries(
+  chart: ChartReading,
+  seriesName: string,
+): CurveReading | undefined {
+  const color: string | undefined = chart.chipColorBySeries[seriesName];
+
+  return color
+    ? chart.curves.find((curve: CurveReading): boolean => {
+        return curve.stroke === color;
+      })
+    : undefined;
+}
+
+// The card's content fits it, on a phone too.
+async function expectCardFits(card: Locator): Promise<void> {
+  const cardFit: { overflow: number; right: number; viewport: number } =
+    await card.evaluate(
+      (element: Element): { overflow: number; right: number; viewport: number } => {
+        return {
+          overflow: element.scrollWidth - element.clientWidth,
+          right: element.getBoundingClientRect().right,
+          viewport: document.documentElement.clientWidth,
+        };
+      },
+    );
+
+  expect(cardFit.overflow).toBeLessThanOrEqual(0);
+  expect(cardFit.right).toBeLessThanOrEqual(cardFit.viewport);
 }
 
 async function readChart(card: Locator): Promise<ChartReading> {
@@ -257,6 +325,9 @@ test.describe("metrics explorer: bytes overlaid on percent get an axis of their 
       for (const tick of right!.ticks) {
         expect(tick, "a right tick").toMatch(/(^0|B)$/);
       }
+      // Each axis's neighbouring ticks read apart (#10079).
+      expectTicksApart(left!, "the left axis");
+      expectTicksApart(right!, "the right axis");
 
       /*
        * The bytes line, found by its legend chip's colour, is read on its
@@ -320,6 +391,135 @@ test.describe("metrics explorer: bytes overlaid on percent get an axis of their 
       await card.scrollIntoViewIfNeeded();
       await card.screenshot({
         path: `${SCREENSHOT_DIRECTORY}/metric-explorer-second-axis-${width}-synthetic.png`,
+      });
+    });
+  }
+});
+
+test.describe("metrics explorer: a value axis over a narrow range reads apart (#10079)", () => {
+  for (const width of [1280, 390]) {
+    test(`the issue's filesystem: no two neighbouring ticks alike, none cut, at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      test.setTimeout(180000);
+      await page.setViewportSize({ width: width, height: 1000 });
+      await page.goto(explorerPath([FILESYSTEM_METRIC]));
+
+      const cards: Locator = page.getByTestId(CARD_TEST_ID);
+      await expect(cards).toHaveCount(1, { timeout: 60000 });
+      const card: Locator = cards.first();
+      await expect(card.locator(".recharts-yAxis-tick-labels")).toHaveCount(1, {
+        timeout: 30000,
+      });
+      await expect(
+        card.locator(".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value"),
+      ).not.toHaveCount(0, { timeout: 30000 });
+
+      const chart: ChartReading = await readChart(card);
+      const [axis] = axesLeftFirst(chart);
+
+      // It read "17.2 GB" five times; now each tick is its own.
+      expectTicksApart(axis!, "the filesystem's axis");
+      for (const tick of axis!.ticks) {
+        expect(tick, "a filesystem tick").toMatch(/^\d+\.\d+\s?GB$/);
+      }
+
+      // Its axis is as wide as its widest tick: every tick inside the card,
+      // left of the plot, on a phone too.
+      const cardLeft: number = await card.evaluate((element: Element): number => {
+        return element.getBoundingClientRect().left;
+      });
+      expect(axis!.left).toBeGreaterThanOrEqual(cardLeft);
+      expect(axis!.right).toBeLessThanOrEqual(chart.plotLeft + 1);
+      await expectCardFits(card);
+
+      await card.scrollIntoViewIfNeeded();
+      await card.screenshot({
+        path: `${SCREENSHOT_DIRECTORY}/metric-explorer-narrow-axis-${width}-synthetic.png`,
+      });
+    });
+  }
+});
+
+test.describe("metrics explorer: a third kind of unit is drawn to a scale of its own (#10080)", () => {
+  for (const width of [1280, 390]) {
+    test(`two axes, never a third, and the processes' line on its own scale, at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      test.setTimeout(180000);
+      await page.setViewportSize({ width: width, height: 1000 });
+      await page.goto(
+        explorerPath([PERCENT_METRIC, BYTES_METRIC, COUNT_METRIC]),
+      );
+
+      const cards: Locator = page.getByTestId(CARD_TEST_ID);
+      await expect(cards).toHaveCount(1, { timeout: 60000 });
+      const card: Locator = cards.first();
+      await expect(card.locator(".recharts-yAxis-tick-labels")).toHaveCount(2, {
+        timeout: 30000,
+      });
+      await expect(
+        card.locator(
+          '.recharts-line-curve:not([stroke="transparent"]), .recharts-area-curve',
+        ),
+      ).toHaveCount(3, { timeout: 30000 });
+
+      const chart: ChartReading = await readChart(card);
+      const [left, right] = axesLeftFirst(chart);
+
+      // Two axes, each in its own unit; no axis writes the processes' count.
+      expect(chart.axes).toHaveLength(2);
+      for (const tick of left!.ticks) {
+        expect(tick, "a left tick").toMatch(/%$/);
+        // The percent axis is never pulled up to thousands (it read 7,000%).
+        expect(
+          Number(tick.replace(/[^0-9.]/g, "")),
+          "a left tick's percent",
+        ).toBeLessThanOrEqual(100);
+      }
+      for (const tick of right!.ticks) {
+        expect(tick, "a right tick").toMatch(/(^0|B)$/);
+      }
+      expectTicksApart(left!, "the left axis");
+      expectTicksApart(right!, "the right axis");
+
+      // The processes' line keeps its shape over the plot, on its own scale.
+      const countCurve: CurveReading | undefined = curveOfSeries(
+        chart,
+        COUNT_METRIC,
+      );
+      const plotHeight: number = chart.plotBottom - chart.plotTop;
+
+      expect(countCurve, "the processes' line").toBeDefined();
+      expect(countCurve!.top).toBeGreaterThanOrEqual(chart.plotTop - 2);
+      expect(countCurve!.bottom).toBeLessThanOrEqual(chart.plotBottom + 2);
+      expect(countCurve!.bottom - countCurve!.top).toBeGreaterThan(
+        plotHeight * 0.25,
+      );
+
+      // The legend and the chart say so.
+      await expect(card.getByTestId(AXIS_UNIT_TEST_ID)).toHaveText([
+        "Left axis: Percent",
+        "Right axis: Bytes",
+        /^Own scale: /,
+      ]);
+      await expect(
+        card
+          .getByRole("button", { name: new RegExp(COUNT_METRIC) })
+          .getByTestId(SERIES_AXIS_TEST_ID),
+      ).toHaveText("Own scale");
+      await expect(card.getByTestId(UNIT_MISMATCH_TEST_ID)).toContainText(
+        "is drawn to a scale of its own, with no axis",
+      );
+      await expectCardFits(card);
+
+      await card.scrollIntoViewIfNeeded();
+      await card.screenshot({
+        path: `${SCREENSHOT_DIRECTORY}/metric-explorer-own-scale-${width}-synthetic.png`,
       });
     });
   }

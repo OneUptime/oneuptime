@@ -28,6 +28,10 @@ import {
   TerraformOmissionReason,
   TerraformResourceConfig,
 } from "../../../Utils/DeveloperDocs/TerraformConfig";
+import {
+  getTerraformAttributes,
+  TerraformAttributeDescriptor,
+} from "../../../Utils/DeveloperDocs/TerraformSchema";
 
 /*
  * The configuration the Developer > Terraform pages show. It is generated so
@@ -262,13 +266,19 @@ describe("a workflow as Terraform", () => {
     expect(config.resourceHcl).not.toMatch(/^\s*webhook_signing_secret\s*=/m);
   });
 
-  test("labels are a set of ids", () => {
+  /*
+   * A label rule adds labels on its own (ServerOwned.Shared, #10052): written
+   * with the ones it has now, the configuration would take a rule's next
+   * label off at the next plan. Left out, the provider keeps them all.
+   */
+  test("its labels are left to OneUptime, which a label rule adds to", () => {
     const config: TerraformResourceConfig = configFor(
       workflow({ labels: [label()] }),
       Workflow,
     );
 
-    expect(config.resourceHcl).toContain(`labels      = ["${LABEL_ID}"]`);
+    expect(config.resourceHcl).not.toContain("labels");
+    expect(config.resourceHcl).not.toContain(LABEL_ID);
   });
 
   test("its graph is written with jsonencode, and a secret in it comes from a variable", () => {
@@ -589,7 +599,14 @@ describe("a status page as Terraform", () => {
 });
 
 describe("which attributes are safe to write", () => {
-  test("an update-only setting that differs from its default is written, or plan would reset it", () => {
+  /*
+   * The AI agent's registration and reports set a cluster's AI settings, so
+   * they are OneUptime's too (ServerOwned.Shared, #10052): left out, even
+   * where one differs from its default, as the provider keeps OneUptime's
+   * value of an attribute a configuration leaves out instead of planning
+   * its default (StaticFiles/shared.go).
+   */
+  test("an update-only setting OneUptime changes too is left out, even off its default: the plan keeps it", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = ObjectID.generate().toString();
     cluster.name = "prod-eu";
@@ -599,8 +616,15 @@ describe("which attributes are safe to write", () => {
 
     const hcl: string = configFor(cluster, KubernetesCluster).resourceHcl;
 
-    expect(hcl).toContain("is_ai_investigation_enabled = false");
+    expect(hcl).not.toContain("is_ai_investigation_enabled");
     expect(hcl).not.toContain("agent_version");
+    expect(
+      getTerraformAttributes(KubernetesCluster).find(
+        (attribute: TerraformAttributeDescriptor): boolean => {
+          return attribute.columnName === "isAiInvestigationEnabled";
+        },
+      )?.isChangedByOneUptimeToo,
+    ).toBe(true);
   });
 
   test("a create-only setting is written when required, and left to the server otherwise", () => {
@@ -735,8 +759,8 @@ describe("the records a resource's ids point at", () => {
         `    "${MONITOR_IDS[0]}", # Checkout API`,
         `    "${MONITOR_IDS[1]}", # Website`,
         "  ]",
-        `  labels                      = ["${LABEL_ID}"] # production`,
-        `  change_monitor_status_to_id = "${STATUS_ID}"   # Degraded`,
+        // Its labels are OneUptime's too, which a label rule adds (#10052).
+        `  change_monitor_status_to_id = "${STATUS_ID}" # Degraded`,
         "}",
         "",
       ].join("\n"),

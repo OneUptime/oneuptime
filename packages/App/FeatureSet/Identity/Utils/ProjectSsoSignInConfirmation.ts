@@ -761,6 +761,17 @@ export default class ProjectSsoSignInConfirmation {
    * The sign-in a new-account link carries, when it was made by this server
    * for the provider and project its path names; null for anything else.
    * An expired link is read with `isExpired` set, so the page can say so.
+   *
+   * Read as raw claims (JSONWebToken.decodeJsonPayload), not as a person's
+   * token (JSONWebToken.decode): the link is no one's identity. It names no
+   * account and no session, says a purpose of its own that no person's token
+   * says (PROJECT_SSO_NEW_ACCOUNT_PURPOSE, never a JsonWebTokenPurpose), and
+   * confirming it signs nobody in - it hands the person back to the
+   * provider's own sign-in. So no reader of a person's token takes it, and it
+   * takes none of theirs: each claim below is checked against the path, the
+   * purpose first. TokenPurposeGuard lists this file with that reason, and
+   * ProjectSsoNewAccountLinkIsItsOwnKind proves both directions with real
+   * signatures.
    */
   public static readNewAccountToken(data: {
     account: string;

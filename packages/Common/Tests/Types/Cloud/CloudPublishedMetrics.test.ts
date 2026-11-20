@@ -7,6 +7,7 @@ import {
   CloudPublishedMetricBlock,
   CloudPublishedMetricStatus,
   CloudPublishedMetricsListing,
+  getCloudPublishedMetricUnitText,
   readCloudPublishedMetricsListing,
   sortCloudPublishedMetrics,
 } from "../../../Types/Cloud/CloudPublishedMetrics";
@@ -293,5 +294,121 @@ describe("what one more metric costs a month", () => {
         readIntervalInMinutes: 5,
       }).monthlyUnits,
     ).toBe(0);
+  });
+});
+
+/*
+ * #9808: a metric added split by a dimension is a series per value: each
+ * one more metric read on AWS, more time series on Google Cloud, and on
+ * Azure a call of its own, which never rides in the key metrics' call.
+ */
+describe("what a metric split by a dimension costs a month", () => {
+  const reads: number = getReadsPerMonth(5);
+
+  test("AWS and Google Cloud count each value's series", () => {
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.AWS,
+        resources: 2,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 3,
+      }).monthlyUnits,
+    ).toBe(2 * 3 * reads);
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.GCP,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        isSplit: true,
+        seriesPerResource: 10,
+      }),
+    ).toEqual({
+      monthlyUnits: 10 * reads,
+      monthlyCostUsd:
+        ((10 * reads) / 1000000) * GCP_USD_PER_MILLION_TIME_SERIES,
+      ridesInExistingCall: false,
+    });
+    // Unsplit, a series a resource, whatever the count says.
+    expect(
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.AWS,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        seriesPerResource: 7,
+      }).monthlyUnits,
+    ).toBe(reads);
+  });
+
+  test("Azure: a call of its own each read, however few metrics the key metrics' call has", () => {
+    const split: ReturnType<typeof estimateCloudAddedMetricCost> =
+      estimateCloudAddedMetricCost({
+        provider: CloudProvider.Azure,
+        resources: 1,
+        readIntervalInMinutes: 5,
+        azureGrain: "PT1M",
+        azureMetricsInCall: 3,
+        isSplit: true,
+        seriesPerResource: 10,
+      });
+
+    expect(split.ridesInExistingCall).toBe(false);
+    // Every value in the one call: a call a read, not a call a value.
+    expect(split.monthlyUnits).toBe(reads);
+    expect(split.monthlyCostUsd).toBe(
+      (reads / 1000) * AZURE_USD_PER_THOUSAND_METRIC_READS,
+    );
+  });
+});
+
+describe("what a listed metric can be split by", () => {
+  test("its dimensions, in words where the cloud gives them, with their values; whether it is read only split; an addition's split", () => {
+    const listing: CloudPublishedMetricsListing | null =
+      readCloudPublishedMetricsListing({
+        provider: "aws",
+        resourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        metrics: [
+          {
+            name: "HTTPCode_Target_2XX_Count",
+            unit: "Count",
+            aggregation: "Sum",
+            status: "available",
+            splits: [
+              { name: "AvailabilityZone", values: 3 },
+              { name: "TargetGroup", displayName: "Target group", values: 2.5 },
+              { name: "" },
+              "not one",
+            ],
+            isSplitRequired: true,
+          },
+          {
+            name: "RequestCountPerTarget",
+            unit: "Count",
+            aggregation: "Sum",
+            status: "added",
+            addedKey: "k",
+            addedSplitBy: "TargetGroup",
+          },
+        ],
+        resourcesOfType: 1,
+        readIntervalInMinutes: 5,
+        addedForResource: 1,
+        canEdit: true,
+      });
+
+    expect(listing!.metrics[0]!.splits).toEqual([
+      { name: "AvailabilityZone", values: 3 },
+      { name: "TargetGroup", displayName: "Target group", values: 2 },
+    ]);
+    expect(listing!.metrics[0]!.isSplitRequired).toBe(true);
+    expect(listing!.metrics[1]!.addedSplitBy).toBe("TargetGroup");
+    expect(listing!.metrics[1]!.isSplitRequired).toBeUndefined();
+  });
+
+  test("a cloud's own word for no unit is no unit the list shows", () => {
+    expect(getCloudPublishedMetricUnitText("None")).toBe("");
+    expect(getCloudPublishedMetricUnitText("Unspecified")).toBe("");
+    expect(getCloudPublishedMetricUnitText(" Bytes ")).toBe("Bytes");
+    expect(getCloudPublishedMetricUnitText("")).toBe("");
   });
 });

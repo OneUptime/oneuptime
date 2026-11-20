@@ -101,6 +101,30 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValue(5, "")).toBe("5");
     });
 
+    /*
+     * CloudWatch's "None" is the unit of a metric published without one
+     * (an AWS metric added from a resource's More Metrics read with it until
+     * its datapoints say otherwise, #9809), and Azure Monitor's
+     * "Unspecified" the same. Both read "5 None" and "5 Unspecified" on
+     * every chart and axis.
+     */
+    test("a cloud's own word for no unit renders a bare number, never as a unit", () => {
+      for (const unit of ["None", "none", "Unspecified", " None "]) {
+        expect(ValueFormatter.formatValue(5, unit)).toBe("5");
+        expect(ValueFormatter.formatValue(1234, unit)).toBe("1.23K");
+        expect(ValueFormatter.getCompactUnit(unit)).toBe("");
+        expect(ValueFormatter.getReadableUnit(unit)).toBe("");
+      }
+    });
+
+    test("a cloud's no-unit is never read as a share, as '1' can be", () => {
+      expect(
+        ValueFormatter.formatValue(0.25, "None", {
+          metricName: "system.cpu.utilization",
+        }),
+      ).toBe("0.25");
+    });
+
     test("fraction metric with unit '1' renders as a percentage", () => {
       expect(
         ValueFormatter.formatValue(0.25, "1", {

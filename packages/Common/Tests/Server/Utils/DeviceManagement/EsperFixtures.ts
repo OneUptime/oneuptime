@@ -158,6 +158,124 @@ export function buildEsperDevice(fixture: EsperDeviceFixture): JSONObject {
   };
 }
 
+export interface EsperAppleDeviceFixture {
+  id: string;
+  name: string;
+  // device_AppleDeviceV2's os: "iOS", "iPadOS" or "tvOS".
+  os?: string | undefined;
+  alias?: string | undefined;
+  serial?: string | undefined;
+  state?: number | undefined;
+  groupId?: string | undefined;
+  model?: string | undefined;
+  osVersion?: string | undefined;
+  buildNumber?: string | undefined;
+  lastSeen?: string | null | undefined;
+  isKiosk?: boolean | undefined;
+  batteryLevel?: number | undefined;
+}
+
+/*
+ * An Apple device as GET /v2/devices/ answers it (device_AppleDeviceV2,
+ * Esper's OpenAPI reference, read November 2026): platform APPLE, its os
+ * one of iOS, iPadOS and tvOS, its UDID, supervision and DEP fields, its
+ * last_seen, and its memory in bytes (memory_stats). No Esper agent and no
+ * network stats.
+ */
+export function buildEsperAppleDevice(
+  fixture: EsperAppleDeviceFixture,
+): JSONObject {
+  return {
+    timezone_string: "America/Los_Angeles",
+    id: fixture.id,
+    name: fixture.name,
+    alias: fixture.alias ?? "",
+    os: fixture.os ?? "iPadOS",
+    state: fixture.state ?? 1,
+    platform: "APPLE",
+    serial: fixture.serial ?? "DMPXK2ABQ1GC",
+    os_version: fixture.osVersion ?? "17.4.1",
+    global_device_id: `GID-${fixture.id.substring(0, 8)}`,
+    tenant_id: "5a0b6f4e-1111-4c4c-8888-222233334444",
+    group_id: fixture.groupId ?? null,
+    tags: [],
+    hardware_info: {
+      brand: "",
+      model: fixture.model ?? "iPad (10th generation)",
+      model_number: "MPQ03LL/A",
+      serial: fixture.serial ?? "DMPXK2ABQ1GC",
+      manufacturer: "",
+      hardware: "",
+      device_baseband_version: "",
+    },
+    software_info: {
+      os_version: fixture.osVersion ?? "17.4.1",
+      os_build_number: fixture.buildNumber ?? "21E236",
+      bootloader_version: "",
+      security_path_level: "",
+      device_kernel_version: "",
+      eea_version: null,
+      esper_agent_info: {},
+      foundation_info: null,
+      airwave_info: null,
+    },
+    network_info: {
+      imei1: "",
+      imei2: "",
+      wifi_mac_address: "3c:22:fb:10:aa:21",
+      ethernet_mac_address: "",
+      iccid1: "",
+      iccid2: "",
+      phone_number_1: "",
+      phone_number_2: "",
+      network_type: "WI-FI",
+    },
+    memory_info: {},
+    blueprint_info: null,
+    udid: "00008030-001A2D3C0E91402E",
+    dep_profile: "Stores",
+    dep_profile_push_time: "2026-03-02T15:00:00Z",
+    dep_profile_assign_time: "2026-03-02T14:00:00Z",
+    dep_profile_status: "pushed",
+    enrolment_info: {
+      enrolment_id: "e-0001",
+      enrolment_user_id: "u-0001",
+    },
+    last_seen:
+      fixture.lastSeen === undefined
+        ? "2026-11-19T09:30:00Z"
+        : fixture.lastSeen,
+    tokens: { push_magic: "", push_token: "", device_token: "" },
+    is_supervised: true,
+    device_source: "ABM",
+    managed_by: "BLUEPRINT",
+    provisioned_with: "BLUEPRINT",
+    provisioned_on: "2026-03-02T15:04:05Z",
+    is_seamless: false,
+    is_locked_down: false,
+    is_ddm_enabled: true,
+    app_mode_meta:
+      fixture.isKiosk === true
+        ? {
+            is_kiosk: true,
+            app_id: "a1b2c3d4-0000-4000-8000-000000000009",
+            app_type: "TENANT_IOS",
+          }
+        : null,
+    created_by: "admin@example.com",
+    updated_by: "admin@example.com",
+    created_at: "2026-03-02T15:00:00Z",
+    memory_stats: {
+      total_memory: 4000000000,
+      total_internal_storage: 64000000000,
+      available_ram: 1200000000,
+      available_internal_storage: 31500000000,
+    },
+    battery_stats: { battery_level: fixture.batteryLevel ?? 76 },
+    updated_at: "2026-11-18T09:30:00Z",
+  };
+}
+
 // A group as GET /enterprise/{eid}/devicegroup/ answers it.
 export function buildEsperGroup(data: {
   id: string;

@@ -1,0 +1,48 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title=(t "Your SSO sign-in links") }}
+
+{{!--
+  The SSO sign-in links of the projects an account has joined, asked for
+  on "Sign in with SSO" when it found no provider for the address's domain
+  (#9987, Common/Types/Accounts/SsoSignInLinks, sent by
+  App/FeatureSet/Identity/Utils/SsoSignInLinksEmail). Sent only to the
+  address on the account, in the account's own language - and asked for by
+  whoever typed the address, who may not have been its owner, so it says
+  exactly what it is and that it can be ignored.
+
+  A project's name is its admins' words, so it goes into the button's
+  sentence only through tt, which puts each value in as written into an
+  escaped slot. Each button is OneUptime's own page for its project
+  (/accounts/sso/<project id>), which lists its providers: the email links
+  to no identity provider. One button per project, and one detail card for
+  the request, as every email has one.
+--}}
+
+{{> InfoBlock info=(ttHtml "Someone asked for the single sign-on (SSO) sign-in links of the projects your {{product}} account is in. Each button below opens that project's SSO sign-in page." product=productName)}}
+
+{{#each projects}}
+{{> ButtonBlock buttonUrl=this.signInUrl buttonText=(tt "Sign In to {{project}}" project=this.projectName) }}
+{{/each}}
+
+{{> InfoBlock info=(tHtml "Bookmark a project's link to sign in through it next time. Signing in still goes through your organization's identity provider.")}}
+
+{{!--
+  When, from where and on which device it was asked for, in the reader's
+  own time zone: anybody who knows an address can ask, so this is how its
+  owner tells their own request from a stranger's.
+--}}
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=(t "Asked for at:") plainText=requestedAt }}
+{{> DetailBoxField title=(t "IP address:") plainText=requestIpAddress }}
+{{> DetailBoxField title=(t "Approximate location:") plainText=requestLocation }}
+{{> DetailBoxField title=(t "Device:") plainText=requestDevice }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info=(tHtml "If you did not ask for these links, you can ignore this email. Nothing on your account has changed.")}}
+
+{{> Footer this}}
+
+{{> End this}}

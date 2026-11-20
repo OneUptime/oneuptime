@@ -4,7 +4,14 @@ import {
 } from "../Utils/ApiPaths";
 import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
+import {
+  RememberedSsoProviderRead,
+  rememberSsoProvider,
+  useRememberedSsoProvider,
+} from "../Utils/RememberedSsoProvider";
 import SessionEndedNotice from "../Components/SessionEndedNotice/SessionEndedNotice";
+import SsoSignInLinksOffer from "../Components/SsoSignInLinksOffer/SsoSignInLinksOffer";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -80,6 +87,10 @@ export const SSO_PROJECTS_TEST_ID: string = "sso-projects";
 export const USE_DIFFERENT_EMAIL_TEST_ID: string = "sso-use-different-email";
 export const SSO_SUBTITLE_TEST_ID: string = "sso-subtitle";
 export const LOOKED_UP_EMAIL_TEST_ID: string = "sso-looked-up-email";
+export const LAST_USED_PROVIDER_TEST_ID: string = "sso-last-used";
+export const LAST_USED_PROVIDER_OPTION_TEST_ID: string =
+  "sso-last-used-provider";
+export const FORGET_LAST_USED_TEST_ID: string = "sso-forget-last-used";
 
 /*
  * Signing in with single sign-on (/accounts/sso), and - while the whole
@@ -100,6 +111,17 @@ export const LOOKED_UP_EMAIL_TEST_ID: string = "sso-looked-up-email";
  * page whose one way in is one provider draws it as its filled button. The
  * server refuses a password meanwhile anyway (SsoRequiredSignIn); master
  * admins sign in with theirs at /accounts/admin-login.
+ *
+ * The project provider this browser last signed in with comes first, as
+ * "Last used on this device", with a way to forget it (#9986,
+ * Utils/RememberedSsoProvider): only its kind and its and its project's ids
+ * are kept, never the address, and the server is asked by the project's id
+ * whether it is still there and on before it is offered.
+ *
+ * When the lookup finds nothing - an address on another domain than its
+ * organization's - the page offers to email the address its organizations'
+ * SSO sign-in links (#9987, Components/SsoSignInLinksOffer), and says the
+ * same thing whatever the address.
  */
 const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -125,7 +147,15 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
   );
   const signInMethods: SignInMethods | null = signInMethodsRead.signInMethods;
 
+  // The project provider this browser last signed in with, still on.
+  const rememberedRead: RememberedSsoProviderRead = useRememberedSsoProvider();
+
   const [error, setError] = useState<string | undefined>(undefined);
+  /*
+   * The address the last lookup found no provider for: the one its
+   * organizations' SSO sign-in links may be emailed to.
+   */
+  const [nothingFoundFor, setNothingFoundFor] = useState<string>("");
   /*
    * The email lookup is running. The form stays where it is, its button
    * busy: it used to give way to a page-wide loader and come back empty, so
@@ -159,6 +189,10 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
   const projectsHeadingRef: MutableRefObject<HTMLHeadingElement | null> =
     useRef<HTMLHeadingElement | null>(null);
 
+  // The page's own heading: where the focus goes once a provider is forgotten.
+  const pageHeadingRef: MutableRefObject<HTMLHeadingElement | null> =
+    useRef<HTMLHeadingElement | null>(null);
+
   useEffect(() => {
     if (isListingProjects) {
       projectsHeadingRef.current?.focus();
@@ -177,6 +211,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
 
     // A new lookup answers for itself: the last one's error goes.
     setError(undefined);
+    setNothingFoundFor("");
     setLookedUpEmail(email.toString());
     setIsLookingUp(true);
 
@@ -232,6 +267,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
             domain: getEmailDomain(email.toString()),
           }),
         );
+        setNothingFoundFor(email.toString());
       } else {
         setSamlConfigs(nextSaml);
         setOidcConfigs(nextOidc);
@@ -282,6 +318,15 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
         });
 
         if (route) {
+          /*
+           * A project's own provider is remembered for next time, on this
+           * device: its kind and ids, nothing more. An instance-wide one is
+           * on the page anyway.
+           */
+          rememberSsoProvider({
+            provider: data.provider,
+            projectId: data.projectId,
+          });
           startSignIn(route);
         }
       },
@@ -290,9 +335,11 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
 
   /*
    * Until the page knows whether the server requires SSO it draws nothing of
-   * its own: never a way back to a password it may then take away.
+   * its own: never a way back to a password it may then take away. Nor while
+   * the server is asked about the provider this browser last used, so the
+   * page does not move under the reader when it arrives.
    */
-  if (signInMethodsRead.isReading || isLeaving) {
+  if (signInMethodsRead.isReading || rememberedRead.isReading || isLeaving) {
     return <AuthPageSkeleton fields={1} />;
   }
 
@@ -531,15 +578,57 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
       ? undefined
       : t("sso.emailFormSubtitle");
 
+  /*
+   * The project provider this browser last signed in with, first: one
+   * outlined option like the others (the email form keeps the page's one
+   * filled button), and a quiet way to forget it. Forgotten, the focus goes
+   * to the page's heading rather than nowhere.
+   */
+  const lastUsed: ReactElement | null = rememberedRead.offered ? (
+    <div className="mb-6" data-testid={LAST_USED_PROVIDER_TEST_ID}>
+      <h3 className="mb-3 text-center text-sm font-medium tracking-tight text-gray-900">
+        {t("sso.lastUsedTitle")}
+      </h3>
+      <SsoProviderOptions
+        options={[
+          toProviderOption({
+            provider: rememberedRead.offered.provider,
+            projectId: rememberedRead.offered.projectId,
+            dataTestId: LAST_USED_PROVIDER_OPTION_TEST_ID,
+          }),
+        ]}
+      />
+      <div className="mt-2 flex justify-center">
+        <Button
+          title={t("sso.forgetLastUsed")}
+          isTitleTranslated={true}
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+          dataTestId={FORGET_LAST_USED_TEST_ID}
+          onClick={() => {
+            rememberedRead.forget();
+            pageHeadingRef.current?.focus();
+          }}
+        />
+      </div>
+      <LabelledDivider
+        label={t("common.or")}
+        className="mt-5"
+        dataTestId="sso-last-used-divider"
+      />
+    </div>
+  ) : null;
+
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       {renderHeader(
         isSsoRequired ? t("login.title") : t("sso.title"),
         subtitle,
+        pageHeadingRef,
       )}
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
         <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
+          {lastUsed}
           {providerOptions.length > 0 && (
             <div
               className={hasEmailForm ? "mb-6" : ""}
@@ -594,30 +683,47 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
                 await fetchSsoConfigs(data["email"] as Email);
               }}
               footer={
-                isSsoRequired ? undefined : (
-                  /*
-                   * The way back to the password form, drawn as the password
-                   * page draws its other ways in: an outlined button under
-                   * "or", as wide and as tall as this page's own button
-                   * (SignInOptionStyle). It was a small text link, the
-                   * mirror of the one that brought the visitor here. Not
-                   * while the server requires SSO: it would only refuse.
-                   */
-                  <div data-testid="sign-in-options">
-                    <LabelledDivider
-                      label={t("common.or")}
-                      className="my-5"
-                      dataTestId="sign-in-options-divider"
+                <>
+                  {/*
+                   * The lookup found nothing for this address: its
+                   * organizations' SSO sign-in links can be emailed to it
+                   * instead, the same answer whatever the address. A new
+                   * lookup starts the offer again (its key).
+                   */}
+                  {nothingFoundFor && (
+                    <SsoSignInLinksOffer
+                      key={nothingFoundFor}
+                      email={nothingFoundFor}
                     />
-                    <SignInOptionLink
-                      to={new Route("/accounts/login")}
-                      id="password-login"
-                      dataTestId="password-login"
-                      icon={IconProp.Lock}
-                      title={t("sso.signInWithPassword")}
-                    />
-                  </div>
-                )
+                  )}
+                  {isSsoRequired ? (
+                    <></>
+                  ) : (
+                    /*
+                     * The way back to the password form, drawn as the
+                     * password page draws its other ways in: an outlined
+                     * button under "or", as wide and as tall as this
+                     * page's own button (SignInOptionStyle). It was a small
+                     * text link, the mirror of the one that brought the
+                     * visitor here. Not while the server requires SSO: it
+                     * would only refuse.
+                     */
+                    <div data-testid="sign-in-options">
+                      <LabelledDivider
+                        label={t("common.or")}
+                        className="my-5"
+                        dataTestId="sign-in-options-divider"
+                      />
+                      <SignInOptionLink
+                        to={new Route("/accounts/login")}
+                        id="password-login"
+                        dataTestId="password-login"
+                        icon={IconProp.Lock}
+                        title={t("sso.signInWithPassword")}
+                      />
+                    </div>
+                  )}
+                </>
               }
             />
           )}

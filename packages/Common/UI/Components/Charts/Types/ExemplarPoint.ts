@@ -8,4 +8,9 @@ export default interface ExemplarPoint {
    * exemplar of a series drawn there: y is in that axis's unit.
    */
   isOnSecondYAxis?: boolean | undefined;
+  /*
+   * Drawn to the scale of its own with this id (OwnScaleYAxis, issue
+   * #10080), for an exemplar of a series drawn there: y is in its unit.
+   */
+  ownScaleId?: string | undefined;
 }

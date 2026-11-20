@@ -70,6 +70,7 @@ import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import EncryptedColumnValue from "../Utils/Database/EncryptedColumnValue";
+import ColumnsOnlyOneUptimeWrites from "../Utils/Database/ColumnsOnlyOneUptimeWrites";
 import PresentedKey from "../Utils/PresentedKey/PresentedKey";
 import PresentedKeysAtRest from "../Utils/PresentedKey/PresentedKeysAtRest";
 import PasswordHash from "../Utils/PasswordHash";
@@ -5454,6 +5455,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): void {
     this.decideUserAttributionOnCreate(createBy.data, createBy.props);
 
+    ColumnsOnlyOneUptimeWrites.takeOut({
+      model: this.model,
+      record: createBy.data,
+      props: createBy.props,
+    });
+
     ModelPermission.checkComputedColumnsSentOnCreate(
       this.modelType,
       createBy.data,
@@ -7128,6 +7135,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     // Who did something to the record is OneUptime's to say. See the helper.
     this.decideUserAttributionOnCreate(createBy.data, createBy.props);
+
+    /*
+     * And what only OneUptime writes is OneUptime's to write, under both
+     * names of a reference: dropped from a create that does not run as
+     * OneUptime itself (ColumnsOnlyOneUptimeWrites, #10053).
+     */
+    ColumnsOnlyOneUptimeWrites.takeOut({
+      model: this.model,
+      record: createBy.data,
+      props: createBy.props,
+    });
 
     // One reference, one value, whichever name it is sent under. See the helper.
     this.assertRelationNamesAgree(createBy.data, createBy.props);
@@ -11337,6 +11355,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.enforceTenantRelationMatchesScalar(updateBy.data, updateBy.props);
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
+
+      /*
+       * What only OneUptime writes is not an update's to change: refused,
+       * naming the columns, before any hook reads the write
+       * (ColumnsOnlyOneUptimeWrites, #10053).
+       */
+      ColumnsOnlyOneUptimeWrites.refuseOnUpdate({
+        model: this.model,
+        record: updateBy.data,
+        props: updateBy.props,
+      });
 
       // Who did something to the record is OneUptime's to say. See the helpers.
       this.assertUpdateChangesSomething(

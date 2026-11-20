@@ -104,7 +104,7 @@ Android lässt eine App die Logs anderer Apps nur mit der Berechtigung READ_LOGS
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Führen Sie diesen Befehl bei Esper über **Secure Remote ADB** aus: Schalten Sie den ADB-Zugriff für das Gerät ein, verbinden Sie sich mit `espercli secureadb connect -d DEVICE_ID` und führen Sie dann den Befehl aus. Android startet den Agenten neu, sobald die Berechtigung erteilt ist, und der Agent beginnt sofort zu lesen.
+Führen Sie diesen Befehl bei Esper über **Secure Remote ADB** aus: Schalten Sie den ADB-Zugriff für das Gerät ein, verbinden Sie sich mit `espercli secureadb connect --device DEVICE_ID` und führen Sie dann den Befehl aus. Android startet den Agenten neu, sobald die Berechtigung erteilt ist, und der Agent beginnt sofort zu lesen.
 
 Was der Agent dann liest, hängt von der Android-Version ab:
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 Der erste Befehl gilt für Android 15 und neuer; den Zugriff auf Nutzungsdaten können Sie auch auf dem Gerät unter **Einstellungen → Zugriff auf Nutzungsdaten** einschalten. Eine Geräterichtlinie kann diese Berechtigungen nicht erteilen, und der Bildschirm des Agenten listet die Befehle auf, die noch auszuführen sind. Damit hat jeder Absturz unter **Ausnahmen** seinen vollständigen Stack-Trace, ein nativer Absturz sein Signal und die Bibliothek, in der er abgestürzt ist, ein ANR den Stack seines Hauptthreads und ein Neustart unter **Protokolle** den Grund, den Android dafür angibt. Kartennummern, E-Mail-Adressen, Tokens und Passwörter in dem, was der Agent liest, werden vor dem Senden durch `[card number]`, `[email]`, `[token]` und `[redacted]` ersetzt.
 
+### Berechtigungen auf der ganzen Flotte erteilen
+
+Jede Meldung des Agenten gibt an, welche dieser Berechtigungen ihm noch fehlen. Um die Geräte aufzulisten, die sie brauchen, öffnen Sie das **Inventar**, dann **Alle Elemente**, und filtern Sie nach **Agent-Berechtigungen**: **Fehlt**. Schalten Sie die Spalte **Agent-Berechtigungen** ein, um zu sehen, was jedem Gerät fehlt, und exportieren Sie die Liste als CSV.
+
+Eine Geräterichtlinie kann diese Berechtigungen nicht erteilen: READ_LOGS und READ_DROPBOX_DATA sind Berechtigungen, die nur adb, das System oder der Hersteller des Geräts vergeben kann, und der Zugriff auf Nutzungsdaten wird mit adb oder von der Person am Gerät eingeschaltet. Was Esper anbietet und warum nichts davon sie erteilt:
+
+- **App-Berechtigungen**, in einem Blueprint oder mit dem Befehl `SET_APP_PERMISSION`, laufen über die Geräteinhaber-API von Android, die nur die Berechtigungen erteilt, um die eine App die Person am Gerät bittet. Die Berechtigungen des Agenten verweigert Android.
+- **Verwaltete Konfiguration** legt die eigenen Einstellungen des Agenten fest, nie die Berechtigungen von Android.
+- **Run Shell Script** läuft auf Linux- und Windows-Geräten, nicht auf Android-Geräten.
+- **Secure Remote ADB** erreicht jeweils ein Gerät, von einem Computer aus, auf dem `espercli` läuft. Auf Geräten mit Esper Foundation ist dafür niemand am Gerät nötig. Auf anderen Geräten muss beim ersten Mal jemand am Gerät **Allow USB debugging?** bestätigen.
+
+Erteilen Sie sie daher mit adb:
+
+- **Vor der Auslieferung eines Geräts**, wenn es über ein USB-Kabel eingerichtet wird. Folgendes erteilt alle drei auf jedem Gerät, das mit dem Computer verbunden ist:
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  Unter Android 14 und älter meldet der zweite Befehl, die Berechtigung sei unbekannt: Dieses Gerät braucht sie nicht.
+- **Auf einem Gerät im Einsatz**, über Secure Remote ADB, jeweils ein Gerät aus der Liste **Fehlt**.
+- **Nur den Zugriff auf Nutzungsdaten** kann die Person am Gerät einschalten, unter **Einstellungen → Zugriff auf Nutzungsdaten** oder mit der Schaltfläche auf dem Bildschirm des Agenten.
+
+Mit seiner nächsten Meldung, innerhalb einer Minute, verschwindet das Gerät von der Liste **Fehlt**.
+
 ### CPU-Auslastung
 
 Ab Android 8 hält Android die CPU-Auslastung eines Geräts vor Apps verborgen. Nur eine App, die Geräteinhaber ist, kann sie lesen, und nur auf Geräten, deren Hardware sie meldet. Der Agent liest sie, wenn er der Geräteinhaber ist. Das legen Sie mit adb fest, auf einem Gerät ohne Konten und ohne anderen Geräteinhaber:
@@ -141,16 +170,20 @@ Eine Protokollsitzung sendet für eine Weile die Logs aller Apps eines Geräts, 
 :::steps
 ### Eine Sitzung anfordern
 
-Öffnen Sie das Gerät unter **Hosts**, dann **Protokolle**, und klicken Sie unter **Protokollsitzungen** auf **Protokollsitzung anfordern**. Wählen Sie, wie lange das Gerät seine Logs sendet, von 15 Minuten bis 4 Stunden, und die niedrigste Stufe, die es sendet: **Info**, **Debug** oder **Ausführlich**.
+Öffnen Sie das Gerät unter **Hosts**, dann **Protokolle**, und klicken Sie unter **Protokollsitzungen** auf **Protokollsitzung anfordern**. Wählen Sie, wie lange das Gerät seine Logs sendet, von 15 Minuten bis 4 Stunden, und die niedrigste Stufe, die es sendet: **Info**, **Debug** oder **Ausführlich**. Fügen Sie eine **Notiz** hinzu, die sagt, warum Sie fragen, etwa „Prüfen, warum die Zahlungs-App nach 18 Uhr abstürzt“.
 
 ### Am Gerät zulassen
 
-Innerhalb einer Minute zeigt das Gerät eine Benachrichtigung, dass jemand seine Logs angefordert hat, mit dessen Namen. Die Person am Gerät öffnet den Agenten und tippt auf **Zulassen**. Unter Android 13 und neuer fragt Android dann, ob der Zugriff auf alle Geräteprotokolle erlaubt werden soll, und die Person erlaubt auch das.
+Innerhalb einer Minute zeigt das Gerät eine Benachrichtigung, dass jemand seine Logs angefordert hat, mit dessen Namen und Ihrer Notiz. Die Person am Gerät öffnet den Agenten, wo die Anfrage mit Ihrer Notiz darunter erscheint, und tippt auf **Zulassen**. Unter Android 13 und neuer fragt Android dann, ob der Zugriff auf alle Geräteprotokolle erlaubt werden soll, und die Person erlaubt auch das.
 
 ### Die Zeilen lesen
 
-Die Sitzung zeigt **Wird erfasst** an, und die Zeilen aller Apps kommen in den Logs des Geräts an. Klicken Sie auf **Zeilen anzeigen**, um nur die Zeilen der Sitzung zu sehen. Die Sitzung endet, wenn ihre Zeit abgelaufen ist oder wenn jemand sie auf dem Gerät stoppt oder in OneUptime abbricht.
+Die Sitzung zeigt **Wird erfasst** an, und die Zeilen aller Apps kommen in den Logs des Geräts an. Klicken Sie auf **Zeilen anzeigen**, um nur die Zeilen der Sitzung zu sehen, oder auf **Zeilen herunterladen**, um sie als Datei zu speichern. Die Sitzung endet, wenn ihre Zeit abgelaufen ist oder wenn jemand sie auf dem Gerät stoppt oder in OneUptime abbricht.
 :::
+
+Die Notiz ist eine Zeile mit bis zu 200 Zeichen. Das Gerät zeigt sie so, wie Sie sie geschrieben haben, in Anführungszeichen, in der Benachrichtigung und auf dem Bildschirm des Agenten, solange die Sitzung wartet oder läuft; sie wird nie übersetzt. Zeilenumbrüche werden zu Leerzeichen, und Kartennummern, E-Mail-Adressen, Tokens und Passwörter darin werden vor dem Speichern durch `[card number]`, `[email]`, `[token]` und `[redacted]` ersetzt, wie in dem, was der Agent sendet. Die Liste der Sitzungen zeigt sie unter dem Namen der Person, die angefragt hat, und die **Audit-Protokolle** des Hosts halten sie mit der Anfrage fest.
+
+**Zeilen herunterladen** speichert die Zeilen der Sitzung als Textdatei in dem Format, das `logcat -v threadtime` ausgibt und das der Support eines Anbieters lesen kann: jede Zeile mit ihrer Uhrzeit auf die Millisekunde genau, ihrem Prozess und Thread, ihrer Stufe, ihrem Tag und ihrer Nachricht. Die Zeitangaben sind in UTC. Die ersten Zeilen der Datei nennen die Sitzung, das Gerät und die Notiz und sagen, wer angefragt hat. Die Datei enthält die Zeilen, die unter **Protokolle** erscheinen, so, wie der Agent sie geschwärzt hat, und erfordert daher dieselbe Berechtigung wie das Lesen der Logs des Geräts. Eine Datei enthält höchstens 100.000 Zeilen und 32 MB; die Datei einer längeren Sitzung endet mit der Angabe, wie viele Zeilen die Sitzung hat.
 
 Eine Sitzung braucht READ_LOGS und `logcat_enabled`; ohne sie zeigt sie **Nicht verfügbar** an. Auf einem Gerät läuft jeweils nur eine Sitzung. Eine Anfrage, die niemand innerhalb einer Stunde zulässt, läuft ab, und eine Sitzung, während der das Gerät neu startet, endet damit, denn die Berechtigung von Android endet mit dem Prozess des Agenten. Um eine Sitzung anzufordern, brauchen Sie die Berechtigung, den Host zu bearbeiten, und die **Audit-Protokolle** des Hosts halten fest, wer sie angefordert hat und wann.
 
@@ -165,11 +198,15 @@ Eine Sitzung braucht READ_LOGS und `logcat_enabled`; ohne sie zeigt sie **Nicht 
 | Neustarts | **Protokolle**, mit `@event.name:device.boot`: wie lange das Gerät lief, ob es sauber heruntergefahren wurde, wie lange es aus war, warum es neu gestartet ist, und Neustartschleifen |
 | Installierte Apps | **Protokolle**, mit `@event.name:android.package.inventory` einmal am Tag sowie bei jeder Installation, jedem Update und jeder Entfernung |
 | Abstürze und ANRs jeder App | **Ausnahmen**, als nicht behandelt, benannt nach der App, mit ihren Stacks, wenn der Agent die [DropBox](#absturz-stack-traces-und-neustartgründe) liest |
-| Hersteller, Modell, Seriennummer, Betriebssystemversion, Sicherheitspatch-Ebene und Firmware | Das Element des Geräts im **Inventar** |
+| Hersteller, Modell, Seriennummer, Betriebssystemversion, Sicherheitspatch-Ebene und Firmware | Das Element des Geräts im **Inventar**, mit dem Filter und der Spalte **Sicherheitspatch-Ebene** |
+| Wie alt seine Sicherheitspatch-Ebene ist | Die Metrik `android.os.security_patch.age`, in Tagen |
+| Die Berechtigungen, die dem Agenten noch fehlen | Das Element des Geräts im **Inventar**, mit dem Filter und der Spalte **Agent-Berechtigungen** |
 
 Unter **Hosts** lautet das Betriebssystem des Geräts Android, mit dem Android-Logo.
 
-Die Starts des Geräts in der letzten Stunde sind die Metrik `android.boot.recent_count`, und ein Gerät, das immer wieder neu startet, schreibt bei jedem Hochfahren ein Log mit dem Schweregrad Warnung. Unter **Hosts** werden einem Android-Gerät eigene Warnungsvorlagen angeboten: Device Unplugged, Low Battery, Device Overheating, Restart Loop und Storage Nearly Full, dazu Host Stopped Reporting, Host Restarted und High Memory Utilization sowie High CPU Utilization, sobald es seine CPU-Auslastung meldet. Die ersten Debug-Befehle jeder Warnung sind adb-Befehle. Siehe [Host-Überwachung](/docs/monitor/host-monitor#android-geräte).
+Ein Gerät ist mit seinen Sicherheitspatches im Rückstand, wenn seine Sicherheitspatch-Ebene älter als 90 Tage ist. Google veröffentlicht jeden Monat ein Android-Sicherheitsbulletin, und Android Enterprise Recommended verpflichtet den Hersteller eines Geräts, jedes innerhalb von 90 Tagen auszuliefern, sodass einem Gerät, das weiter zurückliegt, Korrekturen fehlen, die sein Hersteller hätte ausliefern sollen. Im **Inventar** listet der Filter **Sicherheitspatch-Ebene** diese Geräte unter **Nicht aktuell** auf; die Vorlage **Security Patch Out of Date** löst für jedes davon eine Warnung aus.
+
+Die Starts des Geräts in der letzten Stunde sind die Metrik `android.boot.recent_count`, und ein Gerät, das immer wieder neu startet, schreibt bei jedem Hochfahren ein Log mit dem Schweregrad Warnung. Unter **Hosts** werden einem Android-Gerät eigene Warnungsvorlagen angeboten: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full und Security Patch Out of Date, dazu Host Stopped Reporting, Host Restarted und High Memory Utilization sowie High CPU Utilization, sobald es seine CPU-Auslastung meldet. Die ersten Debug-Befehle jeder Warnung sind adb-Befehle. Siehe [Host-Überwachung](/docs/monitor/host-monitor#android-geräte).
 
 ## Fehlerbehebung
 

@@ -7,6 +7,7 @@ import {
 import { buildFixtureSpec } from "../../TerraformProvider/Tests/Fixtures";
 import {
   collectServerOwned,
+  collectSharedUpdateOnly,
   renderServerOwnedGo,
   ServerOwnedMap,
 } from "../Core/ServerOwned";
@@ -132,5 +133,116 @@ describe("config/zz_server_owned.go", () => {
     expect(renderServerOwnedGo({})).toContain(
       "var generatedServerOwned = map[string]map[string]string{\n}\n",
     );
+    expect(renderServerOwnedGo({})).toContain(
+      "var generatedSharedUpdateOnly = map[string][]string{\n}\n",
+    );
+  });
+
+  test("names, for each resource, the shared fields only an update writes, in order", () => {
+    const go: string = renderServerOwnedGo(
+      { oneuptime_kubernetes_cluster: { labels: "shared" } },
+      {
+        oneuptime_kubernetes_cluster: [
+          "is_ai_investigation_enabled",
+          "ai_remediation_mode",
+        ].sort(),
+      },
+    );
+
+    expect(go).toContain(
+      '\t"oneuptime_kubernetes_cluster": {"ai_remediation_mode", "is_ai_investigation_enabled"},',
+    );
+    expect(go).toContain('\t\t"labels": "shared",');
+  });
+});
+
+/*
+ * What people and OneUptime both change (#10052): "shared" reaches the
+ * provider's configuration as the other kinds do, and the ones no create
+ * sends are named apart, so what is recorded as applied before a create
+ * leaves them out (config/lastapplied.go).
+ */
+describe("the fields people and OneUptime both change", () => {
+  const labels: TerraformAttribute = {
+    type: "set",
+    optional: true,
+    computed: true,
+    serverOwned: "shared",
+  };
+  const aiInvestigation: TerraformAttribute = {
+    type: "bool",
+    optional: true,
+    computed: true,
+    serverOwned: "shared",
+  };
+
+  function cluster(): TerraformResource {
+    return {
+      ...resource("kubernetes_cluster", {
+        id,
+        name: { type: "string", required: true },
+        labels,
+        is_ai_investigation_enabled: aiInvestigation,
+      }),
+      operationSchemas: {
+        create: {
+          name: { type: "string", required: true },
+          labels,
+        },
+        update: {
+          name: { type: "string" },
+          labels,
+          is_ai_investigation_enabled: aiInvestigation,
+        },
+      },
+    };
+  }
+
+  test("are collected with their kind", () => {
+    expect(collectServerOwned([cluster()])).toEqual({
+      oneuptime_kubernetes_cluster: {
+        labels: "shared",
+        is_ai_investigation_enabled: "shared",
+      },
+    });
+  });
+
+  test("and the ones no create sends, apart", () => {
+    expect(collectSharedUpdateOnly([cluster()])).toEqual({
+      oneuptime_kubernetes_cluster: ["is_ai_investigation_enabled"],
+    });
+  });
+
+  test("none, for a resource whose create sends every one", () => {
+    expect(
+      collectSharedUpdateOnly([
+        {
+          ...resource("monitor", { id, labels }),
+          operationSchemas: { create: { labels }, update: { labels } },
+        },
+      ]),
+    ).toEqual({});
+  });
+
+  test("come from the real parser reading x-oneuptime-server-owned", () => {
+    const spec: OpenAPISpec = JSON.parse(
+      JSON.stringify(buildFixtureSpec()),
+    ) as OpenAPISpec;
+    const schemas: Record<string, any> = spec.components!.schemas!;
+    for (const schemaName of Object.keys(schemas)) {
+      const property: any = schemas[schemaName]?.properties?.["labels"];
+      if (property && schemaName.startsWith("Monitor")) {
+        property["x-oneuptime-server-owned"] = "shared";
+      }
+    }
+    const parser: OpenAPIParser = new OpenAPIParser();
+    parser.setSpec(spec);
+
+    expect(
+      collectServerOwned(parser.getResources())["oneuptime_monitor"],
+    ).toEqual(expect.objectContaining({ labels: "shared" }));
+    expect(
+      collectSharedUpdateOnly(parser.getResources())["oneuptime_monitor"],
+    ).toBeUndefined();
   });
 });

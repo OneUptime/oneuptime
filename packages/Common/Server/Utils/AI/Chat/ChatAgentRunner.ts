@@ -2457,6 +2457,8 @@ export default class ChatAgentRunner {
       currentTime: OneUptimeDate.getCurrentDate(),
       permissionMode: request.permissionMode,
       pageContext: pageContext,
+      // "The docs do not cover this." in the reader's words (#7064).
+      language: request.language,
     });
 
     const messages: Array<LLMMessage> = [

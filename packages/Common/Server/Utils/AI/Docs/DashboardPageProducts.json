@@ -1,0 +1,1620 @@
+{
+  "/dashboard/:projectId/incidents/create": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/monitors/create": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/alerts/create": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/create": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/status-pages/announcements/create": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/on-call-duty/policies": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/schedules": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/dashboards": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/workflows": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/monitors": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/setup": [
+    "monitors",
+    "on-call"
+  ],
+  "/dashboard/:projectId/monitors/disabled": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/inoperational": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/probe-disconnected": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/probe-disabled": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/workspace-connection-slack": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/workspace-connection-microsoft-teams": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/workspace-connection-mattermost": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/owner-rules": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/label-rules": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/status": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/custom-fields": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/secrets": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/incoming-request-secrets": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/templates": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/settings/probes": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/archived": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/developer/terraform": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/developer/api": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/developer/cli": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/monitors/developer/ai-assistants": [
+    "monitors"
+  ],
+  "/dashboard/:projectId/incidents": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/unresolved": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/postmortems": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/action-items": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/episodes": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/episodes/unresolved": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/workspace-connection-slack": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/workspace-connection-microsoft-teams": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/workspace-connection-mattermost": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/grouping-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/on-call-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/owner-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/runbook-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/privacy-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/label-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/sla-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/reminder-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/state": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/severity": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/templates": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/note-templates": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/postmortem-templates": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/postmortem-statuses": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/custom-fields": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/roles": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/measurements": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/linked-alerts": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/public-note-approval": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/subscriber-notifications": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/episode-membership": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/numbering": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/data-retention": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/ai/insights": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/ai/logs": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/ai/settings": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/developer/terraform": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/developer/api": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/developer/cli": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/developer/ai-assistants": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/alerts": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/unresolved": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/episodes": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/episodes/unresolved": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/workspace-connection-slack": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/workspace-connection-microsoft-teams": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/workspace-connection-mattermost": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/grouping-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/on-call-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/incident-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/owner-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/runbook-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/privacy-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/label-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/reminder-rules": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/state": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/severity": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/note-templates": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/custom-fields": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/measurements": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/episode-membership": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/numbering": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/settings/data-retention": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/ai/insights": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/ai/logs": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/ai/settings": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/developer/terraform": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/developer/api": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/developer/cli": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/alerts/developer/ai-assistants": [
+    "alerts"
+  ],
+  "/dashboard/:projectId/on-call-duty/setup": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/readiness": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/incoming-call-policies": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/schedule-timeline": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/user-overrides": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/calendar-feeds": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/execution-logs": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/policies/archived": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/user-time-logs": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/workspace-connection-slack": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/workspace-connection-microsoft-teams": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/workspace-connection-mattermost": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/settings/custom-fields": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/settings/label-rules": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/settings/owner-rules": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/policies/developer/terraform": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/policies/developer/api": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/policies/developer/cli": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/on-call-duty/policies/developer/ai-assistants": [
+    "on-call"
+  ],
+  "/dashboard/:projectId/status-pages/setup": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/announcements": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/settings/owner-rules": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/settings/label-rules": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/settings/announcement-templates": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/settings/subscriber-notification-templates": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/settings/custom-fields": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/archived": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/developer/terraform": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/developer/api": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/developer/cli": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/status-pages/developer/ai-assistants": [
+    "status-pages"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/ongoing": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/calendar": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-slack": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-microsoft-teams": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-mattermost": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/owner-rules": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/runbook-rules": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/label-rules": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/reminder-rules": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/state": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/templates": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/note-templates": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/custom-fields": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/measurements": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/public-note-approval": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/calendar": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/numbering": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/developer/terraform": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/developer/api": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/developer/cli": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/developer/ai-assistants": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/slos": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/workspace-connection-slack": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/workspace-connection-microsoft-teams": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/workspace-connection-mattermost": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/settings/owner-rules": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/settings/label-rules": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/archived": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/developer/terraform": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/developer/api": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/developer/cli": [
+    "slos"
+  ],
+  "/dashboard/:projectId/slos/developer/ai-assistants": [
+    "slos"
+  ],
+  "/dashboard/:projectId/logs": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/insights": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/documentation": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/settings/pipelines": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/settings/drop-filters": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/settings/scrub-rules": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/settings/recording-rules": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/ai/insights": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/ai/activity": [
+    "logs"
+  ],
+  "/dashboard/:projectId/logs/ai/settings": [
+    "logs"
+  ],
+  "/dashboard/:projectId/metrics": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/promql": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/insights": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/documentation": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/settings/pipeline-rules": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/settings/recording-rules": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/ai/insights": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/ai/logs": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/metrics/ai/settings": [
+    "metrics"
+  ],
+  "/dashboard/:projectId/traces": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/insights": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/documentation": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/settings/pipelines": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/settings/drop-filters": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/settings/scrub-rules": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/settings/recording-rules": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/ai/insights": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/ai/logs": [
+    "traces"
+  ],
+  "/dashboard/:projectId/traces/ai/settings": [
+    "traces"
+  ],
+  "/dashboard/:projectId/profiles": [
+    "profiles"
+  ],
+  "/dashboard/:projectId/profiles/insights": [
+    "profiles"
+  ],
+  "/dashboard/:projectId/profiles/ai/insights": [
+    "profiles"
+  ],
+  "/dashboard/:projectId/profiles/ai/logs": [
+    "profiles"
+  ],
+  "/dashboard/:projectId/profiles/ai/settings": [
+    "profiles"
+  ],
+  "/dashboard/:projectId/profiles/documentation": [
+    "profiles"
+  ],
+  "/dashboard/:projectId/exceptions/unresolved": [
+    "exceptions"
+  ],
+  "/dashboard/:projectId/exceptions/overview": [
+    "exceptions"
+  ],
+  "/dashboard/:projectId/exceptions/documentation": [
+    "exceptions"
+  ],
+  "/dashboard/:projectId/exceptions/ai/insights": [
+    "exceptions"
+  ],
+  "/dashboard/:projectId/exceptions/ai/logs": [
+    "exceptions"
+  ],
+  "/dashboard/:projectId/exceptions/ai/settings": [
+    "exceptions"
+  ],
+  "/dashboard/:projectId/llm/conversations": [
+    "llm"
+  ],
+  "/dashboard/:projectId/llm/calls": [
+    "llm"
+  ],
+  "/dashboard/:projectId/llm/usage": [
+    "llm"
+  ],
+  "/dashboard/:projectId/llm/alerts": [
+    "llm"
+  ],
+  "/dashboard/:projectId/llm/budgets": [
+    "llm"
+  ],
+  "/dashboard/:projectId/llm/pricing": [
+    "llm"
+  ],
+  "/dashboard/:projectId/llm/connect": [
+    "llm"
+  ],
+  "/dashboard/:projectId/security-events/overview": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/cases": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/cases/assigned-to-me": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/cases/unassigned": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/cases/closed": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/cases/all": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/hunts": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/hunt-library": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/campaigns": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/entity-risk": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/correlate": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/detection-rules": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/rule-exceptions": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/watchlists": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/rule-library": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/threat-intel": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/attack-coverage": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/playbooks": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/playbook-runs": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/playbook-runs/all": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/protected-entities": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/ai/settings": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/workspace-connection-slack": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/workspace-connection-microsoft-teams": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/workspace-connection-mattermost": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/connections": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/documentation": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/settings/case-priorities": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/settings/response-targets": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/settings/case-statuses": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/settings/custom-fields": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/settings/note-templates": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/settings/numbering": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/security-events/settings/risk-scoring": [
+    "security-events"
+  ],
+  "/dashboard/:projectId/data-security/overview": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/stores": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/issues": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/sensitive-data": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/telemetry": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/flows": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/access": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/compliance": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/settings/data-types": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/settings/checks": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/settings/residency": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/settings/scanning": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/settings/owner-rules": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/settings/label-rules": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/documentation": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/scans": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/stores/archived": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-observability/overview": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/issues": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/tables": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/pipelines": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/schema-changes": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/stores": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/storage-paths": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/checks": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/reconciliations": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/lineage": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/data-products": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/bi-dashboards": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/spend": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/tables/unused": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/settings/owner-rules": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/settings/label-rules": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/documentation": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/settings": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/data-observability/tables/dropped": [
+    "data-observability"
+  ],
+  "/dashboard/:projectId/ai/insights": [
+    "ai-insights"
+  ],
+  "/dashboard/:projectId/ai/insights/settings": [
+    "ai-insights"
+  ],
+  "/dashboard/:projectId/code": [
+    "code"
+  ],
+  "/dashboard/:projectId/code/repositories": [
+    "code"
+  ],
+  "/dashboard/:projectId/code/developer/terraform": [
+    "code"
+  ],
+  "/dashboard/:projectId/code/developer/api": [
+    "code"
+  ],
+  "/dashboard/:projectId/code/developer/cli": [
+    "code"
+  ],
+  "/dashboard/:projectId/code/developer/ai-assistants": [
+    "code"
+  ],
+  "/dashboard/:projectId/inventory/overview": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/items": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/managed-devices": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/topology/overview": [
+    "topology"
+  ],
+  "/dashboard/:projectId/inventory/settings/custom-fields": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/documentation": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/archived": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/items/developer/terraform": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/items/developer/api": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/items/developer/cli": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/inventory/items/developer/ai-assistants": [
+    "inventory"
+  ],
+  "/dashboard/:projectId/service": [
+    "services"
+  ],
+  "/dashboard/:projectId/service/setup": [
+    "services",
+    "logs",
+    "metrics",
+    "traces"
+  ],
+  "/dashboard/:projectId/service/settings/owner-rules": [
+    "services"
+  ],
+  "/dashboard/:projectId/service/settings/label-rules": [
+    "services"
+  ],
+  "/dashboard/:projectId/service/archived": [
+    "services"
+  ],
+  "/dashboard/:projectId/service/developer/terraform": [
+    "services"
+  ],
+  "/dashboard/:projectId/service/developer/api": [
+    "services"
+  ],
+  "/dashboard/:projectId/service/developer/cli": [
+    "services"
+  ],
+  "/dashboard/:projectId/service/developer/ai-assistants": [
+    "services"
+  ],
+  "/dashboard/:projectId/databases": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/documentation": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/settings/owner-rules": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/settings/label-rules": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/archived": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/developer/terraform": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/developer/api": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/developer/cli": [
+    "databases"
+  ],
+  "/dashboard/:projectId/databases/developer/ai-assistants": [
+    "databases"
+  ],
+  "/dashboard/:projectId/queues": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/topology": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/documentation": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/settings/owner-rules": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/settings/label-rules": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/archived": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/developer/terraform": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/developer/api": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/developer/cli": [
+    "queues"
+  ],
+  "/dashboard/:projectId/queues/developer/ai-assistants": [
+    "queues"
+  ],
+  "/dashboard/:projectId/rum": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/settings/owner-rules": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/settings/label-rules": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/settings/session-replay": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/archived": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/developer/terraform": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/developer/api": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/developer/cli": [
+    "rum"
+  ],
+  "/dashboard/:projectId/rum/developer/ai-assistants": [
+    "rum"
+  ],
+  "/dashboard/:projectId/host": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/documentation": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/collector-configs": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/settings/owner-rules": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/settings/label-rules": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/archived": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/developer/terraform": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/developer/api": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/developer/cli": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/host/developer/ai-assistants": [
+    "hosts"
+  ],
+  "/dashboard/:projectId/kubernetes": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/compliance": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/costs": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/documentation": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/settings/owner-rules": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/settings/label-rules": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/archived": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/developer/terraform": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/developer/api": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/developer/cli": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/kubernetes/developer/ai-assistants": [
+    "kubernetes"
+  ],
+  "/dashboard/:projectId/docker": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/documentation": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/settings/owner-rules": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/settings/label-rules": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/archived": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/developer/terraform": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/developer/api": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/developer/cli": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/developer/ai-assistants": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker-swarm": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/documentation": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/settings/owner-rules": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/settings/label-rules": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/archived": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/developer/terraform": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/developer/api": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/developer/cli": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/docker-swarm/developer/ai-assistants": [
+    "docker-swarm"
+  ],
+  "/dashboard/:projectId/podman": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/documentation": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/settings/owner-rules": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/settings/label-rules": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/archived": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/developer/terraform": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/developer/api": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/developer/cli": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/developer/ai-assistants": [
+    "podman"
+  ],
+  "/dashboard/:projectId/serverless": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/settings/owner-rules": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/settings/label-rules": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/archived": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/developer/terraform": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/developer/api": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/developer/cli": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/serverless/developer/ai-assistants": [
+    "serverless"
+  ],
+  "/dashboard/:projectId/app-platforms": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/apps": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/environments": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/settings/owner-rules": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/settings/label-rules": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/archived": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/environments/developer/terraform": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/environments/developer/api": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/environments/developer/cli": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/app-platforms/environments/developer/ai-assistants": [
+    "app-platforms"
+  ],
+  "/dashboard/:projectId/cloud": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/accounts": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/resources": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/connect": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/costs": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/savings": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/budgets": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/settings/owner-rules": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/settings/label-rules": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/archived": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/resources/developer/terraform": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/resources/developer/api": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/resources/developer/cli": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/resources/developer/ai-assistants": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/proxmox": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/documentation": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/settings/owner-rules": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/settings/label-rules": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/archived": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/developer/terraform": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/developer/api": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/developer/cli": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/proxmox/developer/ai-assistants": [
+    "proxmox"
+  ],
+  "/dashboard/:projectId/openstack": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/documentation": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/settings/owner-rules": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/settings/label-rules": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/archived": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/developer/terraform": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/developer/api": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/developer/cli": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/developer/ai-assistants": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/vmware": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/documentation": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/settings/owner-rules": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/settings/label-rules": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/archived": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/developer/terraform": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/developer/api": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/developer/cli": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/vmware/developer/ai-assistants": [
+    "vmware"
+  ],
+  "/dashboard/:projectId/ceph": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/documentation": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/settings/owner-rules": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/settings/label-rules": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/archived": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/developer/terraform": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/developer/api": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/developer/cli": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/ceph/developer/ai-assistants": [
+    "ceph"
+  ],
+  "/dashboard/:projectId/storage-arrays": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/documentation": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/settings/owner-rules": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/settings/label-rules": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/archived": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/developer/terraform": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/developer/api": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/developer/cli": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/developer/ai-assistants": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/network-devices/overview": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-sites": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-sites/map": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/traffic": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/events": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/discovery": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/topology": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/endpoints": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/latency-matrix": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-sites/links": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/device-links": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/auto-import-rules": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-sites/assignment-rules": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/naming-rules": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/owner-rules": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/label-rules": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/link-rules": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/alert-policies": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/snmp-credential-profiles": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/device-roles": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-sites/settings/site-types": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/address-names": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/settings/oid-collection-templates": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/snmp-walk": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/archived": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/developer/terraform": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/developer/api": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/developer/cli": [
+    "network"
+  ],
+  "/dashboard/:projectId/network-devices/developer/ai-assistants": [
+    "network"
+  ],
+  "/dashboard/:projectId/iot": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/documentation": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/settings/owner-rules": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/settings/label-rules": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/archived": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/developer/terraform": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/developer/api": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/developer/cli": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/developer/ai-assistants": [
+    "iot"
+  ],
+  "/dashboard/:projectId/dashboards/playlists": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/settings/owner-rules": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/settings/label-rules": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/settings/data-sources": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/archived": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/developer/terraform": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/developer/api": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/developer/cli": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/dashboards/developer/ai-assistants": [
+    "dashboards"
+  ],
+  "/dashboard/:projectId/workflows/variables": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/logs": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/settings/owner-rules": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/settings/label-rules": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/archived": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/developer/terraform": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/developer/api": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/developer/cli": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/workflows/developer/ai-assistants": [
+    "workflows"
+  ],
+  "/dashboard/:projectId/runbooks": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/executions": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/runners": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/settings/variables": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/settings/owner-rules": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/settings/label-rules": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/developer/terraform": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/developer/api": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/developer/cli": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/developer/ai-assistants": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/forms": [
+    "forms"
+  ],
+  "/dashboard/:projectId/forms/submissions": [
+    "forms"
+  ],
+  "/dashboard/:projectId/forms/developer/terraform": [
+    "forms"
+  ],
+  "/dashboard/:projectId/forms/developer/api": [
+    "forms"
+  ],
+  "/dashboard/:projectId/forms/developer/cli": [
+    "forms"
+  ],
+  "/dashboard/:projectId/forms/developer/ai-assistants": [
+    "forms"
+  ]
+}

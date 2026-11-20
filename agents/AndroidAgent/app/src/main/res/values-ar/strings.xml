@@ -88,6 +88,7 @@
     <string name="log_session_title">سجلات لاستكشاف الأخطاء وإصلاحها</string>
     <string name="log_session_request_by">طلبٌ من %1$s في OneUptime: سجلات كل التطبيقات على هذا الجهاز (%2$s، بمستوى %3$s فأعلى).</string>
     <string name="log_session_request">يطلب OneUptime سجلات كل التطبيقات على هذا الجهاز (%1$s، بمستوى %2$s فأعلى).</string>
+    <string name="log_session_note">«%1$s»</string>
     <string name="log_session_android_prompt">سيطلب منك Android بعد ذلك السماح بالوصول إلى جميع سجلات الجهاز. اختر «السماح» هناك أيضًا.</string>
     <string name="log_session_allow">السماح</string>
     <string name="log_session_decline">رفض</string>

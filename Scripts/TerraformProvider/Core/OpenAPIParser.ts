@@ -720,9 +720,26 @@ export class OpenAPIParser {
   public static readonly AFTER_CREATE_DESCRIPTION: string =
     "OneUptime keeps it up to date once the record exists: the value given here is the one the record starts with, and a later change of it is never sent.";
 
+  /*
+   * What the reference says of an attribute people set and OneUptime
+   * changes too ("shared", #10052): the labels a label rule adds, an
+   * exception OneUptime resolves. In words true of Terraform and of the
+   * Crossplane provider, whose kinds `kubectl explain` describes with them;
+   * what a configured value does in each is in its own guide.
+   */
+  public static readonly SHARED_DESCRIPTION: string =
+    "OneUptime changes it too, on its own: left out, it keeps the value OneUptime gives it.";
+
   private describeWhatOneUptimeOwns(resource: TerraformResource): void {
     for (const attribute of Object.values(resource.schema)) {
-      if (attribute.serverOwned !== "after-create") {
+      const sentence: string | undefined =
+        attribute.serverOwned === "after-create"
+          ? OpenAPIParser.AFTER_CREATE_DESCRIPTION
+          : attribute.serverOwned === "shared"
+            ? OpenAPIParser.SHARED_DESCRIPTION
+            : undefined;
+
+      if (!sentence) {
         continue;
       }
 
@@ -731,10 +748,7 @@ export class OpenAPIParser {
         continue;
       }
 
-      attribute.description = [
-        attribute.description,
-        OpenAPIParser.AFTER_CREATE_DESCRIPTION,
-      ]
+      attribute.description = [attribute.description, sentence]
         .filter(Boolean)
         .join(" ");
     }

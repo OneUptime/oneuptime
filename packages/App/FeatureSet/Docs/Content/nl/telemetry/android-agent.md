@@ -104,7 +104,7 @@ Android laat een app de logs van andere apps alleen lezen met de toestemming REA
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-Voer die opdracht met Esper uit via **Secure Remote ADB**: zet ADB-toegang aan voor het apparaat, maak verbinding met `espercli secureadb connect -d DEVICE_ID` en voer dan de opdracht uit. Android herstart de agent wanneer de toestemming wordt verleend, en de agent begint meteen te lezen.
+Voer die opdracht met Esper uit via **Secure Remote ADB**: zet ADB-toegang aan voor het apparaat, maak verbinding met `espercli secureadb connect --device DEVICE_ID` en voer dan de opdracht uit. Android herstart de agent wanneer de toestemming wordt verleend, en de agent begint meteen te lezen.
 
 Wat de agent daarna leest, hangt af van de Android-versie:
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 De eerste opdracht is voor Android 15 en later; gebruikstoegang kun je ook aanzetten in **Instellingen → Gebruikstoegang** van het apparaat. Geen apparaatbeleid kan ze verlenen, en het scherm van de agent toont de opdrachten die je nog moet uitvoeren. Daarmee heeft elke crash in **Uitzonderingen** zijn volledige stacktrace, een native crash zijn signaal en de bibliotheek waarin hij crashte, een ANR de stack van zijn hoofdthread, en een herstart in **Logboeken** de reden die Android ervoor geeft. Kaartnummers, e-mailadressen, tokens en wachtwoorden in wat de agent leest, worden vervangen door `[card number]`, `[email]`, `[token]` en `[redacted]` voordat het wordt verstuurd.
 
+### Ze op een hele vloot verlenen
+
+Elk rapport van de agent vermeldt welke hiervan hij nog mist. Voor een lijst van de apparaten die ze nodig hebben, open je **Inventaris**, dan **Alle items**, en filter je op **Agentmachtigingen**: **Ontbreekt**. Zet de kolom **Agentmachtigingen** aan om te zien wat elk apparaat mist, en exporteer de lijst als CSV.
+
+Geen apparaatbeleid kan ze verlenen: READ_LOGS en READ_DROPBOX_DATA zijn toestemmingen die alleen adb, het systeem of de fabrikant van het apparaat kan geven, en gebruikstoegang wordt ingesteld door adb of door de persoon bij het apparaat. Wat Esper biedt, en waarom niets daarvan ze verleent:
+
+- **Apptoestemmingen**, in een blueprint of met de opdracht `SET_APP_PERMISSION`, lopen via de apparaateigenaar-API van Android, die alleen de toestemmingen verleent die een app aan de persoon bij het apparaat vraagt. Android weigert deze drie.
+- **Beheerde configuratie** stelt de eigen instellingen van de agent in, nooit de toestemmingen van Android.
+- **Run Shell Script** draait op Linux- en Windows-apparaten, niet op Android-apparaten.
+- **Secure Remote ADB** bereikt één apparaat tegelijk, vanaf een computer waarop `espercli` draait. Op apparaten met Esper Foundation is er niemand bij het apparaat nodig. Op andere apparaten moet iemand bij het apparaat de eerste keer **Allow USB debugging?** accepteren.
+
+Verleen ze dus met adb:
+
+- **Voordat een apparaat wordt uitgeleverd**, wanneer het met een USB-kabel wordt klaargemaakt. Dit verleent alle drie op elk apparaat dat op de computer is aangesloten:
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  Op Android 14 en eerder meldt de tweede opdracht dat de toestemming onbekend is: dat apparaat heeft ze niet nodig.
+- **Op een apparaat in het veld**, via Secure Remote ADB, één apparaat uit de lijst **Ontbreekt** tegelijk.
+- **Alleen gebruikstoegang** kan de persoon bij het apparaat aanzetten, onder **Instellingen → Gebruikstoegang**, of met de knop op het scherm van de agent.
+
+Binnen een minuut haalt het volgende rapport van het apparaat het van de lijst **Ontbreekt**.
+
 ### CPU-gebruik
 
 Vanaf Android 8 houdt Android het CPU-gebruik van een apparaat verborgen voor apps. Alleen een app die apparaateigenaar is, kan het lezen, en alleen op apparaten waarvan de hardware het meldt. De agent leest het als hij de apparaateigenaar is, wat je met adb instelt op een apparaat zonder accounts en zonder andere apparaateigenaar:
@@ -141,16 +170,20 @@ Een logsessie stuurt een tijdlang de logs van elke app van een apparaat, om prob
 :::steps
 ### Een logsessie aanvragen
 
-Open het apparaat in **Hosts**, dan **Logboeken**, en klik op **Logsessie aanvragen** in **Logsessies**. Kies hoe lang het apparaat zijn logs verstuurt, van 15 minuten tot 4 uur, en het laagste niveau dat het verstuurt: **Info**, **Debug** of **Uitgebreid**.
+Open het apparaat in **Hosts**, dan **Logboeken**, en klik op **Logsessie aanvragen** in **Logsessies**. Kies hoe lang het apparaat zijn logs verstuurt, van 15 minuten tot 4 uur, en het laagste niveau dat het verstuurt: **Info**, **Debug** of **Uitgebreid**. Voeg een **Notitie** toe om te zeggen waarom je erom vraagt, zoals "Uitzoeken waarom de betaalapp na 18.00 uur vastloopt".
 
 ### Toestaan op het apparaat
 
-Binnen een minuut toont het apparaat een melding dat iemand om zijn logs heeft gevraagd, met diens naam. De persoon bij het apparaat opent de agent en tikt op **Toestaan**. Op Android 13 en later vraagt Android daarna om toegang tot alle apparaatlogboeken toe te staan, en ook dat staat die persoon toe.
+Binnen een minuut toont het apparaat een melding dat iemand om zijn logs heeft gevraagd, met diens naam en je notitie. De persoon bij het apparaat opent de agent, waar het verzoek staat met je notitie eronder, en tikt op **Toestaan**. Op Android 13 en later vraagt Android daarna om toegang tot alle apparaatlogboeken toe te staan, en ook dat staat die persoon toe.
 
 ### De regels lezen
 
-De sessie staat op **Wordt verzameld**, en de regels van elke app komen binnen in de logs van het apparaat. Klik op **Regels tonen** om de regels van de sessie apart te zien. De sessie eindigt als de tijd om is, of als iemand haar op het apparaat stopt of in OneUptime annuleert.
+De sessie staat op **Wordt verzameld**, en de regels van elke app komen binnen in de logs van het apparaat. Klik op **Regels tonen** om de regels van de sessie apart te zien, of op **Regels downloaden** om ze als bestand op te slaan. De sessie eindigt als de tijd om is, of als iemand haar op het apparaat stopt of in OneUptime annuleert.
 :::
+
+De notitie is één regel van maximaal 200 tekens. Het apparaat toont haar zoals je haar schreef, tussen aanhalingstekens, in de melding en op het scherm van de agent zolang de sessie wacht of loopt; ze wordt nooit vertaald. Regeleinden worden spaties, en kaartnummers, e-mailadressen, tokens en wachtwoorden erin worden vervangen door `[card number]`, `[email]`, `[token]` en `[redacted]` voordat ze wordt bewaard, net als in wat de agent verstuurt. De lijst met sessies toont haar onder wie erom vroeg, en de **Auditlogboeken** van de host bewaren haar bij het verzoek.
+
+**Regels downloaden** slaat de regels van de sessie op als tekstbestand in de indeling die `logcat -v threadtime` afdrukt en die de support van een leverancier kan lezen: elke regel met zijn tijd tot op de milliseconde, zijn proces en thread, zijn niveau, zijn tag en zijn bericht. Tijden staan in UTC. De eerste regels van het bestand vermelden om welke sessie, welk apparaat en welke notitie het gaat, en wie erom vroeg. Het bevat de regels die **Logboeken** toont, zoals de agent ze heeft gemaskeerd, dus het vereist dezelfde toestemming als het lezen van de logs van het apparaat. Een bestand bevat hoogstens 100.000 regels en 32 MB; het bestand van een langere sessie vermeldt aan het eind hoeveel regels de sessie heeft.
 
 Een sessie heeft READ_LOGS en `logcat_enabled` nodig; zonder die staat ze op **Niet beschikbaar**. Er draait één sessie tegelijk op een apparaat. Een verzoek dat niemand binnen een uur toestaat, verloopt, en een sessie waarin het apparaat herstart, eindigt daarmee, omdat de toestemming van Android eindigt met het proces van de agent. Een sessie aanvragen vereist toestemming om de host te bewerken, en de **Auditlogboeken** van de host houden bij wie erom vroeg, en wanneer.
 
@@ -165,11 +198,15 @@ Een sessie heeft READ_LOGS en `logcat_enabled` nodig; zonder die staat ze op **N
 | Herstarts | **Logboeken**, met `@event.name:device.boot`: hoe lang het apparaat aan stond, of het netjes is afgesloten, hoe lang het uit stond, waarom het herstartte, en herstartlussen |
 | Geïnstalleerde apps | **Logboeken**, met `@event.name:android.package.inventory` één keer per dag, en elke installatie, update en verwijdering |
 | Crashes en ANR's van elke app | **Uitzonderingen**, als niet-afgehandeld, genoemd naar de app, met hun stacks als de agent [DropBox](#stack-traces-van-crashes-en-redenen-voor-herstarts) leest |
-| Merk, model, serienummer, OS-versie, beveiligingspatchniveau en firmware | Het item van het apparaat in **Inventaris** |
+| Merk, model, serienummer, OS-versie, beveiligingspatchniveau en firmware | Het item van het apparaat in **Inventaris**, met het filter en de kolom **Beveiligingspatchniveau** |
+| Hoe oud zijn beveiligingspatchniveau is | De metriek `android.os.security_patch.age`, in dagen |
+| Wat er nog aan de agent verleend moet worden | Het item van het apparaat in **Inventaris**, met het filter en de kolom **Agentmachtigingen** |
 
 In **Hosts** staat als OS van het apparaat Android, met het logo van Android.
 
-Het aantal starts van het apparaat in het afgelopen uur is de metriek `android.boot.recent_count`, en een apparaat dat blijft herstarten, logt bij elke start een waarschuwing. In **Hosts** krijgt een Android-apparaat eigen waarschuwingssjablonen aangeboden: Device Unplugged, Low Battery, Device Overheating, Restart Loop en Storage Nearly Full, met Host Stopped Reporting, Host Restarted en High Memory Utilization, en High CPU Utilization zodra het CPU-gebruik meldt. De eerste debugopdrachten van elke waarschuwing zijn adb-opdrachten. Zie [Host-monitor](/docs/monitor/host-monitor#android-apparaten).
+Een apparaat loopt achter met zijn beveiligingspatches als zijn beveiligingspatchniveau ouder is dan 90 dagen. Google publiceert elke maand een Android-beveiligingsbulletin, en Android Enterprise Recommended verplicht de fabrikant van een apparaat om elk daarvan binnen 90 dagen uit te brengen, dus een apparaat dat verder achterloopt, mist fixes die zijn fabrikant al had moeten uitbrengen. In **Inventaris** toont het filter **Beveiligingspatchniveau** de apparaten die **Niet actueel** zijn; het sjabloon **Security Patch Out of Date** geeft voor elk ervan een waarschuwing.
+
+Het aantal starts van het apparaat in het afgelopen uur is de metriek `android.boot.recent_count`, en een apparaat dat blijft herstarten, logt bij elke start een waarschuwing. In **Hosts** krijgt een Android-apparaat eigen waarschuwingssjablonen aangeboden: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full en Security Patch Out of Date, met Host Stopped Reporting, Host Restarted en High Memory Utilization, en High CPU Utilization zodra het CPU-gebruik meldt. De eerste debugopdrachten van elke waarschuwing zijn adb-opdrachten. Zie [Host-monitor](/docs/monitor/host-monitor#android-apparaten).
 
 ## Probleemoplossing
 

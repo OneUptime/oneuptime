@@ -29,11 +29,22 @@ import ValueFormatter from "../ValueFormatter";
  * The first query in a unit of another kind gives the chart a second value
  * axis, on its right, written in its unit (issue #10042), and every later
  * query in that kind of unit is read against that axis the same way: drawn as
- * it is, or converted into the second axis's unit (readChartAxes). Only a
- * third kind of unit fits neither axis: it is still drawn, against the first,
- * as the switch says, and the chart and the query's switch say so. Drawing it
- * on a chart of its own instead would make the switch do nothing, and would
- * break the chain for the queries overlaid after it.
+ * it is, or converted into the second axis's unit (readChartAxes).
+ *
+ * A third kind of unit fits neither axis. Drawn against the first as it was,
+ * it stretched it: about 70 processes pulled a 0-1 fraction's axis up to
+ * 7,000%, and the percent line lay flat along the bottom. So it is drawn to a
+ * scale of its own, with no axis (issue #10080): its line keeps its shape over
+ * the plot's height and the axes keep theirs, its values are read in the
+ * legend and the tooltip in its own unit, and the chart and the query's switch
+ * say so. The first query of such a kind leads its scale, in its unit, and a
+ * later one of the same kind is read against it the same way, drawn as it is
+ * or converted (milliseconds on a scale in seconds), so the lines on one scale
+ * compare. A query of yet another kind leads a scale of its own. Drawing a
+ * third kind on a chart of its own instead would make the switch do nothing,
+ * and would break the chain for the queries overlaid after it; a third
+ * visible axis would take a phone's plot and leave the reader to match two
+ * right-hand axes to their lines.
  *
  * Pure and React-free, so the suites read it without a browser.
  */
@@ -77,16 +88,25 @@ export enum OverlayAxis {
    * is of a kind the first axis cannot say.
    */
   Second = "Second",
+  /*
+   * A scale of its own, with no axis drawn (issue #10080): for a query in a
+   * third kind of unit, which neither axis can say. One per kind of unit, in
+   * the unit of the chart's first query of that kind.
+   */
+  OwnScale = "OwnScale",
 }
 
 /*
  * How a query of a chart reads on the axis it is drawn against: its fit and
- * factor are against that axis's unit. A query that fits neither axis (a
- * third kind of unit) is drawn against the first, as it is, and its fit
- * says Different.
+ * factor are against that axis's unit, or its own scale's.
  */
 export interface OverlayAxisReading extends OverlayUnitReading {
   axis: OverlayAxis;
+  /*
+   * For a query drawn to a scale of its own, which of the chart's own scales
+   * (OverlayChartAxes.ownScaleLeadIndexes) it is drawn to.
+   */
+  ownScale?: number | undefined;
 }
 
 // A query of a chart, by the unit it is drawn in.
@@ -105,6 +125,12 @@ export interface OverlayChartAxes {
    * second axis is written in; null while the chart has one axis.
    */
   secondAxisLeadIndex: number | null;
+  /*
+   * The positions, among the chart's queries, of the ones whose unit each of
+   * the chart's own scales is in (issue #10080), in the chart's order; empty
+   * while every query fits one of its axes.
+   */
+  ownScaleLeadIndexes: Array<number>;
 }
 
 const ON_FIRST_AXIS_AS_IT_IS: OverlayAxisReading = {
@@ -116,12 +142,6 @@ const ON_FIRST_AXIS_AS_IT_IS: OverlayAxisReading = {
 const ON_SECOND_AXIS_AS_IT_IS: OverlayAxisReading = {
   axis: OverlayAxis.Second,
   fit: OverlayUnitFit.Same,
-  factor: 1,
-};
-
-const ON_NEITHER_AXIS: OverlayAxisReading = {
-  axis: OverlayAxis.First,
-  fit: OverlayUnitFit.Different,
   factor: 1,
 };
 
@@ -325,7 +345,9 @@ export default class MetricQueryOverlay {
    * one whose unit is of another kind gives the chart its second axis, in its
    * unit, and every one after it that the first axis cannot read either is
    * read against the second the same way. A query neither axis can read is
-   * drawn against the first, as it is.
+   * drawn to a scale of its own (issue #10080): the own scale of its kind of
+   * unit, read against that scale's lead the same way, or, for the first
+   * query of its kind, a new one in its unit.
    */
   public static readChartAxes(
     queries: Array<OverlayChartQueryUnit>,
@@ -333,6 +355,27 @@ export default class MetricQueryOverlay {
     const readings: Array<OverlayAxisReading> = [];
     const lead: OverlayChartQueryUnit | undefined = queries[0];
     let secondAxisLeadIndex: number | null = null;
+    const ownScaleLeadIndexes: Array<number> = [];
+
+    // How `query` reads against the query at `leadIndex`.
+    const readAgainst: (
+      leadIndex: number,
+      query: OverlayChartQueryUnit,
+    ) => OverlayUnitReading = (
+      leadIndex: number,
+      query: OverlayChartQueryUnit,
+    ): OverlayUnitReading => {
+      const scaleLead: OverlayChartQueryUnit = queries[
+        leadIndex
+      ] as OverlayChartQueryUnit;
+
+      return MetricQueryOverlay.readUnit({
+        chartUnit: scaleLead.unit,
+        chartMetricName: scaleLead.metricName,
+        queryUnit: query.unit,
+        queryMetricName: query.metricName,
+      });
+    };
 
     queries.forEach((query: OverlayChartQueryUnit, index: number): void => {
       if (index === 0 || !lead) {
@@ -340,12 +383,7 @@ export default class MetricQueryOverlay {
         return;
       }
 
-      const onFirstAxis: OverlayUnitReading = MetricQueryOverlay.readUnit({
-        chartUnit: lead.unit,
-        chartMetricName: lead.metricName,
-        queryUnit: query.unit,
-        queryMetricName: query.metricName,
-      });
+      const onFirstAxis: OverlayUnitReading = readAgainst(0, query);
 
       if (onFirstAxis.fit !== OverlayUnitFit.Different) {
         readings.push({ ...onFirstAxis, axis: OverlayAxis.First });
@@ -358,26 +396,50 @@ export default class MetricQueryOverlay {
         return;
       }
 
-      const secondAxisLead: OverlayChartQueryUnit = queries[
-        secondAxisLeadIndex
-      ] as OverlayChartQueryUnit;
-      const onSecondAxis: OverlayUnitReading = MetricQueryOverlay.readUnit({
-        chartUnit: secondAxisLead.unit,
-        chartMetricName: secondAxisLead.metricName,
-        queryUnit: query.unit,
-        queryMetricName: query.metricName,
-      });
-
-      readings.push(
-        onSecondAxis.fit === OverlayUnitFit.Different
-          ? ON_NEITHER_AXIS
-          : { ...onSecondAxis, axis: OverlayAxis.Second },
+      const onSecondAxis: OverlayUnitReading = readAgainst(
+        secondAxisLeadIndex,
+        query,
       );
+
+      if (onSecondAxis.fit !== OverlayUnitFit.Different) {
+        readings.push({ ...onSecondAxis, axis: OverlayAxis.Second });
+        return;
+      }
+
+      // A third kind: the own scale of its kind, or a new one in its unit.
+      for (
+        let ownScale: number = 0;
+        ownScale < ownScaleLeadIndexes.length;
+        ownScale++
+      ) {
+        const onOwnScale: OverlayUnitReading = readAgainst(
+          ownScaleLeadIndexes[ownScale] as number,
+          query,
+        );
+
+        if (onOwnScale.fit !== OverlayUnitFit.Different) {
+          readings.push({
+            ...onOwnScale,
+            axis: OverlayAxis.OwnScale,
+            ownScale: ownScale,
+          });
+          return;
+        }
+      }
+
+      ownScaleLeadIndexes.push(index);
+      readings.push({
+        axis: OverlayAxis.OwnScale,
+        fit: OverlayUnitFit.Same,
+        factor: 1,
+        ownScale: ownScaleLeadIndexes.length - 1,
+      });
     });
 
     return {
       readings: readings,
       secondAxisLeadIndex: secondAxisLeadIndex,
+      ownScaleLeadIndexes: ownScaleLeadIndexes,
     };
   }
 

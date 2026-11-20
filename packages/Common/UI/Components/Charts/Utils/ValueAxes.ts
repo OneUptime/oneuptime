@@ -1,6 +1,9 @@
 import SeriesPoint from "../Types/SeriesPoints";
-import YAxis, { SecondYAxis } from "../Types/YAxis/YAxis";
-import { ChartSecondYAxis } from "../ChartLibrary/Utils/SecondYAxis";
+import YAxis, { OwnScaleYAxis, SecondYAxis } from "../Types/YAxis/YAxis";
+import {
+  ChartOwnScale,
+  ChartSecondYAxis,
+} from "../ChartLibrary/Utils/SecondYAxis";
 import { getYAxisWidthInPx } from "./YAxisWidth";
 
 /*
@@ -14,6 +17,12 @@ import { getYAxisWidthInPx } from "./YAxisWidth";
  * The second axis keeps its room while it names any series, even one the
  * reader has hidden from the chart's legend, so hiding a line never moves
  * the plot: with nothing drawn against it, it writes no ticks.
+ *
+ * A chart handed scales of their own (OwnScaleYAxis, issue #10080) draws each
+ * one's series to it, with no axis: neither axis is measured over them, and
+ * neither takes them in. A scale is kept while it names any series, shown or
+ * not, so the lines and exemplars of a hidden series are never drawn against
+ * an axis they do not belong to.
  */
 
 export interface ChartValueAxes {
@@ -21,26 +30,71 @@ export interface ChartValueAxes {
   firstYAxisWidthInPx: number;
   // The second axis as the chart library draws it; undefined for none.
   secondYAxis: ChartSecondYAxis | undefined;
+  // The scales of their own as the chart library draws them; none, empty.
+  ownScales: Array<ChartOwnScale>;
 }
 
 export function getChartValueAxes(input: {
   data: Array<SeriesPoint>;
   yAxis: YAxis;
   secondYAxis?: SecondYAxis | undefined;
+  ownScaleYAxes?: Array<OwnScaleYAxis> | undefined;
 }): ChartValueAxes {
+  const ownScaleYAxes: Array<OwnScaleYAxis> = (
+    input.ownScaleYAxes || []
+  ).filter((scale: OwnScaleYAxis): boolean => {
+    return scale.seriesNames.length > 0;
+  });
+  const ownScaleSeriesNames: Set<string> = new Set<string>(
+    ownScaleYAxes.flatMap((scale: OwnScaleYAxis): Array<string> => {
+      return scale.seriesNames;
+    }),
+  );
   const secondAxisSeriesNames: Set<string> = new Set<string>(
-    input.secondYAxis?.seriesNames || [],
+    (input.secondYAxis?.seriesNames || []).filter((name: string): boolean => {
+      return !ownScaleSeriesNames.has(name);
+    }),
+  );
+  const isOnOwnScale: (series: SeriesPoint) => boolean = (
+    series: SeriesPoint,
+  ): boolean => {
+    return ownScaleSeriesNames.has(series.seriesName);
+  };
+  const ownScales: Array<ChartOwnScale> = ownScaleYAxes.map(
+    (scale: OwnScaleYAxis): ChartOwnScale => {
+      const names: Set<string> = new Set<string>(scale.seriesNames);
+
+      return {
+        id: scale.id,
+        categories: input.data
+          .filter((series: SeriesPoint): boolean => {
+            return names.has(series.seriesName);
+          })
+          .map((series: SeriesPoint): string => {
+            return series.seriesName;
+          }),
+        valueFormatter: scale.options.formatter,
+        autoMinValue: scale.options.min === "auto",
+        minValue:
+          typeof scale.options.min === "number" ? scale.options.min : undefined,
+        maxValue:
+          typeof scale.options.max === "number" ? scale.options.max : undefined,
+      };
+    },
   );
 
   if (!input.secondYAxis || secondAxisSeriesNames.size === 0) {
     return {
       firstYAxisWidthInPx: getYAxisWidthInPx({
-        data: input.data,
+        data: input.data.filter((series: SeriesPoint): boolean => {
+          return !isOnOwnScale(series);
+        }),
         formatter: input.yAxis.options.formatter,
         min: input.yAxis.options.min,
         max: input.yAxis.options.max,
       }),
       secondYAxis: undefined,
+      ownScales: ownScales,
     };
   }
 
@@ -51,7 +105,7 @@ export function getChartValueAxes(input: {
   };
   const firstAxisData: Array<SeriesPoint> = input.data.filter(
     (series: SeriesPoint): boolean => {
-      return !isOnSecondAxis(series);
+      return !isOnSecondAxis(series) && !isOnOwnScale(series);
     },
   );
   const secondAxisData: Array<SeriesPoint> = input.data.filter(isOnSecondAxis);
@@ -81,5 +135,6 @@ export function getChartValueAxes(input: {
       maxValue:
         typeof second.options.max === "number" ? second.options.max : undefined,
     },
+    ownScales: ownScales,
   };
 }

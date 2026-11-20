@@ -17,6 +17,7 @@ import {
   getCloudMonitoredResourceRowGroup,
   getCloudMonitoredResourceRowGroupGaps,
   getCloudResourceAddedMetrics,
+  getCloudResourceAddedSplitAttributes,
   getCloudResourceAddedStoredNames,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
@@ -351,6 +352,42 @@ describe("a cloud resource's added metrics", () => {
         cloudConnection: null,
       }),
     ).toEqual([]);
+  });
+
+  /*
+   * #9808: an addition split by a dimension opens its chart split by the
+   * attribute its series carry the value in, a line per value.
+   */
+  test("the additions split by a dimension, each by the name it is stored under and the attribute of its value", () => {
+    const split: typeof SOURCE = {
+      ...SOURCE,
+      cloudConnection: {
+        addedMetrics: toStoredCloudAddedMetrics([
+          added({ splitBy: "Instance" }),
+          added({
+            scope: CloudAddedMetricScope.Resource,
+            cloudResourceId: ROW,
+            azureResourceId: "/subscriptions/x/rg/site",
+            name: "Http3xx",
+            aggregation: "Total",
+          }),
+          // Another resource's own split: never this one's.
+          added({
+            scope: CloudAddedMetricScope.Resource,
+            cloudResourceId: "another-row",
+            azureResourceId: "/subscriptions/x/rg/other",
+            name: "Http401",
+            splitBy: "Instance",
+          }),
+        ]),
+      },
+    };
+
+    expect(
+      Array.from(getCloudResourceAddedSplitAttributes(split).entries()),
+    ).toEqual([["azure_averagememoryworkingset_average", "metadata_instance"]]);
+    expect(getCloudResourceAddedSplitAttributes(SOURCE).size).toBe(0);
+    expect(getCloudResourceAddedSplitAttributes(null).size).toBe(0);
   });
 
   test("read under Added metrics, after every key metric's section and before Other, in the order they were added", () => {

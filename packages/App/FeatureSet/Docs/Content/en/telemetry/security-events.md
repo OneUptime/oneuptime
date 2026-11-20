@@ -191,8 +191,8 @@ Each kind reaches OneUptime as ordinary logs:
 | SSH sign-ins, sudo | A Linux machine's journal or auth log, with the [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows events | The collector's `windowseventlog` receiver on the machine, or a forwarder that writes each event as JSON, such as NXLog or Winlogbeat. A [host](/docs/telemetry/hosts) added to OneUptime also reads Sysmon, Microsoft Defender and PowerShell where it has them |
 | AWS CloudTrail | A trail delivered to CloudWatch Logs, read by the collector's `awscloudwatch` receiver, or, for an account connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
-| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text`, or, for a project connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
-| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or, for a subscription's Activity Log, connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text`, or, for a project connected under **Cloud**, its [stream](/docs/telemetry/cloud-streaming-google-cloud) or [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or to the event hub of a connected subscription's [stream](/docs/telemetry/cloud-streaming-azure), or, for a subscription's Activity Log, connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
 | OpenStack audit trail | A cloud's notifications and audit filter sent to its logs with `driver = log`, read by the agent's [logs profile](/docs/telemetry/openstack#who-did-what) |
 | CEF, LEEF | The product's syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | The firewall's own syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +203,7 @@ On **Your logs**, each kind says when it was last found, and **Check a log line*
 
 A threat a security product writes in your logs, such as a CEF or LEEF finding or a Palo Alto Networks, FortiGate or Cisco ASA threat, opens a [case](/docs/telemetry/security-cases) as a connected product's alert does, and adds to the risk of the user, host or address it names. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**. The product's sign-ins and blocked connections stay events, for your rules to read.
 
-A record that reaches OneUptime two ways is stored once: a Microsoft Entra ID sign-in its connection reads and Azure's export of it in your logs, or a CloudTrail record in your logs and in a connected AWS account's audit log.
+A record that reaches OneUptime two ways is stored once: a Microsoft Entra ID sign-in its connection reads and Azure's export of it in your logs, a CloudTrail record in your logs and in a connected AWS account's audit log, or an audit record a cloud account's stream sends that **Cloud audit logs** reads too.
 
 ### Read your cloud accounts' audit logs
 

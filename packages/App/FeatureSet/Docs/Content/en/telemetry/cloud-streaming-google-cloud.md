@@ -71,6 +71,8 @@ The dialog asks every few seconds what arrived. Pub/Sub pushes an entry within a
 
 Each log keeps its entry's time to the nanosecond, its severity, its trace and span, and its HTTP request in the OpenTelemetry semantic conventions' names. It is filed under a resource when its monitored resource is a kind whose metrics OneUptime reads, such as a VM (`gce_instance`), a Cloud Run service (`cloud_run_revision`) or a Cloud SQL instance (`cloudsql_database`), and carries the resource's ID as `cloud.resource_id`. An external load balancer's request logs, written under `http_load_balancer`, are filed under its URL map, the `https_lb_rule` its metrics land on.
 
+An audit log's entry arrives whole, as its log's body: with [Find security events in your logs](/docs/telemetry/security-events#find-security-events-in-your-logs) on, each is read as a security event, as one from a log pipeline is, and stored once however many ways it reaches OneUptime.
+
 An instance group's logs are its VMs', so its page has no **Logs** tab. An entry of another kind streams all the same, under its project.
 
 ## What the command creates

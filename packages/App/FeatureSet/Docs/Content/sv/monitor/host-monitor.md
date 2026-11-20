@@ -137,9 +137,10 @@ En värd vars OS är Android, till exempel en kiosk eller en kassaterminal som k
 | Device Overheating | Varning | `android.thermal.status`, Max, senaste 5 minuterna | 3 (allvarlig) eller värre | Under 3 |
 | Restart Loop | Kritisk | `android.boot.recent_count`, Max, senaste timmen | Något värde är 3 eller mer | Alla värden är under 3 |
 | Storage Nearly Full | Kritisk | `system.filesystem.utilization`, Max per `mountpoint`, som procent, senaste 5 minuterna | Över 90 % | Vid eller under 90 % |
+| Security Patch Out of Date | Varning | `android.os.security_patch.age`, antalet dagar sedan enhetens säkerhetspatchnivå, Min, senaste timmen | Äldre än 90 dagar under hela fönstret | En avläsning på 90 dagar eller färre, när enheten har uppdaterats |
 | High CPU Utilization | Varning | `system.cpu.utilization` för tillståndet `idle`, upptagen som 1 minus idle, som procent, senaste 5 minuterna | Över 80 % | Vid eller under 80 % |
 
-High CPU Utilization erbjuds när enheten rapporterar CPU-användning, vilket på Android 8 och senare kräver att agenten är dess enhetsägare. En Android-enhets larm börjar med adb-kommandon att köra först, som `adb shell dumpsys battery` eller `adb shell getprop sys.boot.reason`, i stället för en servers skalkommandon.
+High CPU Utilization erbjuds när enheten rapporterar CPU-användning, vilket på Android 8 och senare kräver att agenten är dess enhetsägare. En Android-enhets larm börjar med adb-kommandon att köra först, som `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` eller `adb shell getprop ro.build.version.security_patch`, i stället för en servers skalkommandon.
 
 ## Insamlade mätvärden
 

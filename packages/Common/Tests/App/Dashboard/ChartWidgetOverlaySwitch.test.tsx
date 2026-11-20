@@ -40,8 +40,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - a widget saved with the switch on opens with it on;
  *   - a query in a unit of another kind than the chart it joins says, under
  *     the switch, that it is drawn against the chart's right axis, and a
- *     third kind of unit, which neither axis can read, says so as a warning,
- *     in the reader's language (issue #10042);
+ *     third kind of unit, which neither axis can read, says it is drawn to
+ *     a scale of its own, with no axis, in the reader's language (issues
+ *     #10042, #10080);
  *   - Add Query gives a new query a letter no query or formula has.
  */
 
@@ -97,7 +98,7 @@ const OVERLAY_SWITCH: string = "Overlay with previous query";
 const AXIS_NOTE: string =
   "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.";
 const NEITHER_AXIS_NOTE: string =
-  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so its values will not read right on either axis.";
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.";
 
 function metricType(name: string, unit: string): MetricType {
   const type: MetricType = new MetricType();
@@ -649,7 +650,7 @@ describe("under the switch: which axis of the chart it joins the query is drawn 
     );
   });
 
-  test("a third kind of unit fits neither axis: said as a warning, naming both axes' units", () => {
+  test("a third kind of unit fits neither axis: said as a hint, naming both axes' units and its own scale", () => {
     drawSettings(
       chartWith(query("a", "mem_used"), [
         query("b", "cpu_usage_percent", { overlayWithPreviousQuery: true }),
@@ -661,7 +662,7 @@ describe("under the switch: which axis of the chart it joins the query is drawn 
     openDisplaySettings(third!, "Display Settings");
 
     expect(warningIn(third!)).toHaveTextContent(
-      "This query is in Milliseconds, and the previous query's chart has axes in Bytes and Percent, so its values will not read right on either axis.",
+      "This query is in Milliseconds, and the previous query's chart has axes in Bytes and Percent, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.",
     );
     expect(axisNoteIn(third!)).toBeNull();
   });
@@ -719,7 +720,7 @@ describe("under the switch: which axis of the chart it joins the query is drawn 
       "Diese Abfrage ist in Prozent und das Diagramm der vorherigen Abfrage in Bytes, daher wird sie an der rechten Achse des Diagramms gezeichnet.",
     );
     expect(warningIn(third!)).toHaveTextContent(
-      "Diese Abfrage ist in Millisekunden, und das Diagramm der vorherigen Abfrage hat Achsen in Bytes und Prozent",
+      "Diese Abfrage ist in Millisekunden, und das Diagramm der vorherigen Abfrage hat Achsen in Bytes und Prozent, daher wird sie auf einer eigenen Skala ohne Achse gezeichnet.",
     );
     expect(
       within(second!).getByRole("switch", {

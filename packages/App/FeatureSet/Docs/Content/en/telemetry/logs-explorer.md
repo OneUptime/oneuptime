@@ -112,7 +112,9 @@ Saved views belong to the project, so everyone in it sees the same views, and ea
 
 ## Chart your logs
 
-Switch the list to **Analytics** to count logs instead of reading them. Pick a time series, a top list or a table; count every log, or the unique values of one field; and group by severity, service, trace, span or any attribute, then by a second field. A top list or a table shows the top 5, 10, 25 or 50 groups.
+Switch the list to **Analytics** to chart logs instead of reading them. Pick a time series, a top list or a table, and what it measures: every log counted, the unique values of one field, or the sum, average, median, P90, P95, P99, minimum or maximum of a numeric attribute, such as the P95 of `duration_ms`. Group by severity, service, trace, span or any attribute, then by a second field. A top list or a table shows the top 5, 10, 25 or 50 groups.
+
+A numeric attribute is read only where its value is a number: an integer or a decimal, with or without a sign, in scientific notation or not, such as `42`, `-7`, `3.14` or `1e3`. A log without the attribute, or with anything else in it, such as `12ms` or `n/a`, is left out rather than read as 0. A percentile is worked out from up to 8,192 values per point, so a point of more logs than that has a close estimate rather than the exact value.
 
 Click **List** to go back to the lines themselves.
 

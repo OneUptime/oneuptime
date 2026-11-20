@@ -73,13 +73,15 @@ object AgentNotifications {
                 Intent(context, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
+        // Folded, the request; opened, the request and the requester's note under it (#9966).
         val text: String = LogSessionText.requestSentence(context, request)
+        val expanded: String = LogSessionText.notificationText(context, request)
         val notification: Notification =
             NotificationCompat.Builder(context, REQUEST_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_agent)
                 .setContentTitle(context.getString(R.string.notification_request_title))
                 .setContentText(text)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
                 .setContentIntent(open)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
