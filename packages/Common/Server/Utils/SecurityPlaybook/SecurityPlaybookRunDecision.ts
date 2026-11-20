@@ -571,8 +571,13 @@ export default class SecurityPlaybookRunDecision {
         caseNumber: securityCase?.caseNumberWithPrefix || "",
       });
     } catch (error) {
+      // The product's own words, without a full stop of their own.
+      const reason: string = (
+        error instanceof Error ? error.message : String(error)
+      ).replace(/[.\s]+$/, "");
+
       throw new BadDataException(
-        `${undo.title} did not work: ${error instanceof Error ? error.message : String(error)}`,
+        `${undo.title} did not work for ${target.value}: ${reason}. Try again, or release it in the product itself.`,
       );
     }
 

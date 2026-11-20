@@ -67,7 +67,9 @@ export default class SlackSecurityPlaybookApprovalActions {
       return Response.sendErrorResponse(
         data.req,
         data.res,
-        new BadDataException("Invalid Action Type"),
+        new BadDataException(
+          "This Slack button is not one of a playbook step's approval, so nothing was done.",
+        ),
       );
     }
 
