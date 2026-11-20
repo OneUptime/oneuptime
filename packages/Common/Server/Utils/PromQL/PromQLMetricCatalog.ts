@@ -20,7 +20,10 @@ import ObjectID from "../../../Types/ObjectID";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import { PROMQL_METRIC_NAME_LABEL } from "../../../Utils/PromQL/PromQLAst";
 import {
-  promQLSeriesNamesOf,
+  PromQLStoredMetric,
+  prometheusSeriesNamesOf,
+  toPrometheusFamilyName,
+  toPrometheusUnit,
   toPromQLLabelName,
 } from "../../../Utils/PromQL/PromQLMetricNames";
 import { writeOwnValue } from "../../../Utils/LookupTable";
@@ -149,7 +152,22 @@ const readCatalog: (
   });
 };
 
-// Every PromQL metric name the caller may see, sorted.
+// A catalog row as the metric it describes, its name as ingest stores it.
+const toStoredMetric: (metricType: MetricType) => PromQLStoredMetric = (
+  metricType: MetricType,
+): PromQLStoredMetric => {
+  return {
+    name: (metricType.name || "").toLowerCase(),
+    unit: metricType.unit || undefined,
+    isMonotonic: metricType.isMonotonic === true,
+  };
+};
+
+/*
+ * Every PromQL metric name the caller may see, sorted: each series under
+ * the name Prometheus gives it, with its unit (issue #7715). The name
+ * without the unit finds the same series, and is not listed again.
+ */
 export const listPromQLMetricNames: (data: {
   projectId: ObjectID;
   props: DatabaseCommonInteractionProps;
@@ -164,15 +182,15 @@ export const listPromQLMetricNames: (data: {
   const names: Set<string> = new Set<string>();
 
   for (const metricType of catalog) {
-    const storedName: string = (metricType.name || "").toLowerCase();
+    const metric: PromQLStoredMetric = toStoredMetric(metricType);
 
-    if (!storedName) {
+    if (!metric.name) {
       continue;
     }
 
-    for (const series of promQLSeriesNamesOf(
-      storedName,
-      pointTypes.get(storedName),
+    for (const series of prometheusSeriesNamesOf(
+      metric,
+      pointTypes.get(metric.name),
     )) {
       names.add(series.name);
     }
@@ -293,7 +311,9 @@ export interface PrometheusMetricMetadata {
 /*
  * Each metric's type, help and unit, keyed by its PromQL name, as
  * /api/v1/metadata answers them. A histogram's or summary's series share
- * its entry under the base name, as in Prometheus.
+ * its entry under the base name, as in Prometheus. The name and the unit
+ * are Prometheus' (issue #7715): `http_server_request_duration_seconds` in
+ * `seconds`, a counter's name with its `_total`.
  */
 export const listPromQLMetricMetadata: (data: {
   projectId: ObjectID;
@@ -314,17 +334,14 @@ export const listPromQLMetricMetadata: (data: {
   let count: number = 0;
 
   for (const metricType of catalog) {
-    const storedName: string = (metricType.name || "").toLowerCase();
+    const metric: PromQLStoredMetric = toStoredMetric(metricType);
 
-    if (!storedName) {
+    if (!metric.name) {
       continue;
     }
 
-    const pointType: string | undefined = pointTypes.get(storedName);
-    const base: string | undefined = promQLSeriesNamesOf(
-      storedName,
-      undefined,
-    )[0]?.name;
+    const pointType: string | undefined = pointTypes.get(metric.name);
+    const base: string = toPrometheusFamilyName({ metric, pointType });
 
     if (!base || (data.metric && data.metric !== base)) {
       continue;
@@ -343,7 +360,7 @@ export const listPromQLMetricMetadata: (data: {
       {
         type,
         help: metricType.description || "",
-        unit: metricType.unit || "",
+        unit: toPrometheusUnit(metric.unit),
       },
     ]);
     count++;
