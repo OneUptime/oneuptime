@@ -22,8 +22,19 @@ import EmailVerificationTokenService from "../../Services/EmailVerificationToken
 import MailService from "../../Services/MailService";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
-import RequestOriginUtil from "../RequestOrigin/RequestOriginUtil";
+import RequestOriginUtil, {
+  RequestOriginEmailVars,
+  UNKNOWN_DEVICE,
+} from "../RequestOrigin/RequestOriginUtil";
 import ServerSendingStatus from "../ServerSending/ServerSendingStatus";
+import { writeInLanguage } from "../ServerTranslation";
+import {
+  EmailAddressChangedBy,
+  getEmailAddressChangerVariables,
+} from "../../../Types/Accounts/EmailAddressChangedEmail";
+import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
+import { translationKey, Translator } from "../../../Types/Translator";
+import { getUserWritingLanguage } from "../../../Types/UserLanguage";
 
 /*
  * CHANGING YOUR OWN EMAIL ADDRESS SAYS NOTHING ABOUT THE NEW ONE (#9821).
@@ -76,6 +87,12 @@ export const EMAIL_CHANGE_UNAVAILABLE_MESSAGE: string =
 export const EMAIL_CHANGE_CANNOT_BE_EMAILED_MESSAGE: string =
   "This server cannot send email yet, so it cannot confirm a new email address. Ask your server's admin to change your email address.";
 
+// An email's subject and the request's rows, written in its reader's language.
+interface WrittenInLanguage {
+  subject: string;
+  origin: Record<string, string>;
+}
+
 export default class EmailChangeConfirmation {
   /*
    * Whether this person may ask for a new address now: the server can send
@@ -88,9 +105,7 @@ export default class EmailChangeConfirmation {
     userId: ObjectID;
     newEmail: Email;
   }): Promise<void> {
-    if (!(await EmailChangeConfirmation.canSendEmail())) {
-      throw new BadDataException(EMAIL_CHANGE_CANNOT_BE_EMAILED_MESSAGE);
-    }
+    await EmailChangeConfirmation.assertCanConfirm();
 
     /*
      * The account first, and the address only while the account may still
@@ -140,6 +155,12 @@ export default class EmailChangeConfirmation {
    * write kept beside the waiting address (User.newUnverifiedTemporaryEmailExpires,
    * #9908), so User Profile says it has expired exactly when it has.
    * EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS from now when left out.
+   *
+   * Each email in its reader's language and time zone (#10157): the link,
+   * in the asking account's (`language`, `timezone`) - a new address is
+   * most often its own person's; word that the address is taken, in the
+   * language and time zone of the account that has it (`holder`), whose
+   * person reads it, whoever asked. Its subject too.
    */
   public static async sendForPendingChange(data: {
     userId: ObjectID;
@@ -147,23 +168,40 @@ export default class EmailChangeConfirmation {
     isTaken: boolean;
     origin?: RequestOrigin | undefined;
     timezone?: Timezone | null | undefined;
+    language?: string | null | undefined;
+    holder?:
+      | {
+          language?: string | null | undefined;
+          timezone?: Timezone | null | undefined;
+        }
+      | undefined;
     linkExpires?: Date | undefined;
   }): Promise<void> {
     try {
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
       const homeURL: string = new URL(httpProtocol, host).toString();
-      const originVars: Record<string, string> = RequestOriginUtil.getEmailVars(
-        {
-          origin: data.origin,
-          timezone: data.timezone,
-        },
-      ) as unknown as Record<string, string>;
+      const productName: string = ProductBrandingText.getProductName();
 
       if (data.isTaken) {
+        const language: string = getUserWritingLanguage({
+          language: data.holder?.language,
+        });
+        const written: WrittenInLanguage = EmailChangeConfirmation.writeIn({
+          language: language,
+          origin: data.origin,
+          timezone: data.holder?.timezone,
+          subject: (translator: Translator): string => {
+            return translator.translateTemplate(
+              translationKey("This address already has a {{product}} account"),
+              { product: productName },
+            );
+          },
+        });
+
         await MailService.sendMail({
           toEmail: data.newEmail,
-          subject: `This address already has a ${ProductBrandingText.getProductName()} account`,
+          subject: written.subject,
           isSubjectLiteral: true,
           templateType: EmailTemplateType.EmailChangeAddressTaken,
           vars: {
@@ -173,12 +211,28 @@ export default class EmailChangeConfirmation {
               new Route(AccountsRoute.toString()).addRoute("/login"),
             ).toString(),
             homeURL: homeURL,
-            ...originVars,
+            ...written.origin,
           },
+          ...EmailChangeConfirmation.languageOf(language),
         });
 
         return;
       }
+
+      const language: string = getUserWritingLanguage({
+        language: data.language,
+      });
+      const written: WrittenInLanguage = EmailChangeConfirmation.writeIn({
+        language: language,
+        origin: data.origin,
+        timezone: data.timezone,
+        subject: (translator: Translator): string => {
+          return translator.translateTemplate(
+            translationKey("Confirm your new {{product}} email address"),
+            { product: productName },
+          );
+        },
+      });
 
       // A bearer secret: from the CSPRNG, never a fallback generator.
       const token: ObjectID = new ObjectID(randomUUID());
@@ -200,7 +254,7 @@ export default class EmailChangeConfirmation {
 
       await MailService.sendMail({
         toEmail: data.newEmail,
-        subject: `Confirm your new ${ProductBrandingText.getProductName()} email address`,
+        subject: written.subject,
         isSubjectLiteral: true,
         templateType: EmailTemplateType.ConfirmEmailChange,
         vars: {
@@ -213,11 +267,150 @@ export default class EmailChangeConfirmation {
           ).toString(),
           expiresInHours: EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS.toString(),
           homeURL: homeURL,
-          ...originVars,
+          ...written.origin,
         },
+        ...EmailChangeConfirmation.languageOf(language),
       });
     } catch (err) {
       logger.error(err, { userId: data.userId.toString() });
+    }
+  }
+
+  /*
+   * THE LINK TO AN ADDRESS WRITTEN STRAIGHT AWAY (EmailChanged.hbs).
+   *
+   * A master admin's change, the organization's identity provider's through
+   * SCIM, or another write OneUptime makes moves an account to a new address
+   * at once (UserService.onUpdateSuccess); the new address is then proven by
+   * a link to it before it signs in. The email says who made the change, by
+   * role (Types/Accounts/EmailAddressChangedEmail's changers, as the email
+   * to the address the account left names them), and when, in the
+   * account's language and time zone (#10157). Its link works for a day.
+   *
+   * Throws only when the link cannot be made: the caller marks the address
+   * unverified once it has one. The email itself is not waited for, and a
+   * failure to send it is logged by the account's id.
+   */
+  public static async sendVerificationOfNewAddress(data: {
+    userId: ObjectID;
+    newEmail: Email;
+    changedBy: EmailAddressChangedBy;
+    at?: Date | undefined;
+    language?: string | null | undefined;
+    timezone?: Timezone | null | undefined;
+  }): Promise<void> {
+    // A bearer secret: from the CSPRNG, never a fallback generator.
+    const token: ObjectID = new ObjectID(randomUUID());
+
+    const row: EmailVerificationToken = new EmailVerificationToken();
+    row.userId = data.userId;
+    row.email = data.newEmail;
+    row.token = token;
+    row.expires = OneUptimeDate.getOneDayAfter();
+
+    await EmailVerificationTokenService.create({
+      data: row,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+    const productName: string = ProductBrandingText.getProductName();
+    const language: string = getUserWritingLanguage({
+      language: data.language,
+    });
+    const written: WrittenInLanguage = EmailChangeConfirmation.writeIn({
+      language: language,
+      at: data.at,
+      timezone: data.timezone,
+      subject: (translator: Translator): string => {
+        return translator.translateTemplate(
+          translationKey(
+            "Verify the new email address of your {{product}} account",
+          ),
+          { product: productName },
+        );
+      },
+    });
+
+    MailService.sendMail({
+      toEmail: data.newEmail,
+      subject: written.subject,
+      isSubjectLiteral: true,
+      templateType: EmailTemplateType.EmailChanged,
+      vars: {
+        tokenVerifyUrl: new URL(
+          httpProtocol,
+          host,
+          new Route(AccountsRoute.toString()).addRoute(
+            "/verify-email/" + token.toString(),
+          ),
+        ).toString(),
+        homeUrl: new URL(httpProtocol, host).toString(),
+        changedAt: written.origin["requestedAt"] || "",
+        ...getEmailAddressChangerVariables(data.changedBy),
+      },
+      ...EmailChangeConfirmation.languageOf(language),
+    }).catch((err: Error) => {
+      logger.error(err, { userId: data.userId.toString() });
+    });
+  }
+
+  /*
+   * A subject, the time and the request's rows in `language`, as one piece
+   * of work (writeInLanguage writes OneUptime's dates in it while it runs):
+   * the request's device, where nobody could name it, in the reader's words.
+   */
+  private static writeIn(data: {
+    language: string;
+    origin?: RequestOrigin | undefined;
+    at?: Date | undefined;
+    timezone?: Timezone | null | undefined;
+    subject: (translator: Translator) => string;
+  }): WrittenInLanguage {
+    return writeInLanguage(
+      data.language,
+      (translator: Translator): WrittenInLanguage => {
+        const origin: RequestOriginEmailVars = RequestOriginUtil.getEmailVars({
+          origin: data.origin,
+          at: data.at,
+          timezone: data.timezone,
+        });
+
+        return {
+          subject: data.subject(translator),
+          origin: {
+            ...origin,
+            ...(origin.requestDevice === UNKNOWN_DEVICE
+              ? {
+                  requestDevice:
+                    translator.translateText(
+                      translationKey("Unknown device"),
+                    ) || UNKNOWN_DEVICE,
+                }
+              : {}),
+          } as Record<string, string>,
+        };
+      },
+    );
+  }
+
+  // What an email in `language` hands the mail service: nothing for English.
+  private static languageOf(language: string): { language?: string } {
+    return language === DEFAULT_READER_LANGUAGE ? {} : { language: language };
+  }
+
+  /*
+   * Refuses a change of address on a server that cannot send the email that
+   * confirms it, with what to do instead. Asked before the session is asked
+   * to confirm it's its person's (#10155, UserService): nobody confirms for
+   * a change that cannot happen.
+   */
+  public static async assertCanConfirm(): Promise<void> {
+    if (!(await EmailChangeConfirmation.canSendEmail())) {
+      throw new BadDataException(EMAIL_CHANGE_CANNOT_BE_EMAILED_MESSAGE);
     }
   }
 

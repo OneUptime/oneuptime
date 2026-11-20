@@ -1444,6 +1444,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           routeFor: getPartRoute,
           now: OneUptimeDate.getCurrentDate(),
           staleMs: METRIC_STALE_MS,
+          translator: translator,
         })
       : [];
   };

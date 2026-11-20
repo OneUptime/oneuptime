@@ -142,7 +142,9 @@ export function countRetiredMetrics(data: {
  * each resource's busiest values alone, which a PromQL topk learns once an
  * hour, returning those alone (#10076): a resource costs the cap's series a
  * read, and as many again each hour - at most, since one with fewer values
- * returns fewer (`isAtMost`).
+ * returns fewer (`isAtMost`). Where PromQL cannot rank its values (#10164),
+ * the hour's learning lists them all: every value of each resource an hour
+ * (`gcpLearnedValuesPerResource`).
  *
  * The cost is at the cloud's list price before any free allowance: whether
  * the allowance covers it depends on the rest of the account's use.
@@ -186,6 +188,13 @@ export function estimateCloudAddedMetricCost(data: {
    */
   isSplit?: boolean | undefined;
   seriesPerResource?: number | undefined;
+  /*
+   * Google Cloud, split: a metric PromQL cannot rank (#10164), learned from
+   * a list of the hour that returns every value of each resource once - the
+   * values a resource has, which the connection's reads found. Unset: a
+   * PromQL topk, the cap's series a resource.
+   */
+  gcpLearnedValuesPerResource?: number | undefined;
 }): CloudAddedMetricCostEstimate {
   const resources: number = Math.max(0, data.resources);
   const reads: number = getReadsPerMonth(data.readIntervalInMinutes);
@@ -236,9 +245,17 @@ export function estimateCloudAddedMetricCost(data: {
     };
   }
 
-  // A split's reads, and its hourly learning of each resource's busiest values.
+  /*
+   * A split's reads, and its hourly learning of each resource's busiest
+   * values: the cap's series by PromQL, or every value where PromQL cannot
+   * rank them.
+   */
+  const learnedSeries: number =
+    data.gcpLearnedValuesPerResource !== undefined
+      ? Math.max(1, Math.ceil(data.gcpLearnedValuesPerResource))
+      : series;
   const units: number = data.isSplit
-    ? resources * series * (reads + getGcpSplitLearnsPerMonth())
+    ? resources * (series * reads + learnedSeries * getGcpSplitLearnsPerMonth())
     : resources * reads;
 
   return {

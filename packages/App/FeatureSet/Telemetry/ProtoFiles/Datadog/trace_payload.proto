@@ -1,0 +1,228 @@
+// The Datadog trace-agent's trace intake payload, as protocol buffers.
+// Wire-compatible with pkg/proto/datadog/trace/{agent_payload,
+// tracer_payload,span}.proto and pkg/proto/datadog/trace/idx/
+// {tracer_payload,span}.proto in https://github.com/DataDog/datadog-agent
+// (package datadog.trace), with the Go-only options left out. The v1
+// ("idx") messages, a package of their own there, are prefixed Idx here:
+// a message's name never reaches the wire, only its field numbers do.
+//
+// The Agent posts an AgentPayload, compressed, to apm_dd_url +
+// /api/v0.2/traces: what its tracers sent it in tracerPayloads, and in
+// idxTracerPayloads what came from a tracer speaking the v1 protocol
+// (/v1.0/traces), with its strings in a table.
+// Used by Utils/Compatible/DatadogTraces.ts.
+
+syntax = "proto3";
+
+package datadog.trace;
+
+message AgentPayload {
+  string hostName = 1;
+  string env = 2;
+  repeated TracerPayload tracerPayloads = 5;
+  map<string, string> tags = 6;
+  string agentVersion = 7;
+  double targetTPS = 8;
+  double errorTPS = 9;
+  bool rareSamplerEnabled = 10;
+  repeated IdxTracerPayload idxTracerPayloads = 11;
+}
+
+message TracerPayload {
+  string containerID = 1;
+  string languageName = 2;
+  string languageVersion = 3;
+  string tracerVersion = 4;
+  string runtimeID = 5;
+  repeated TraceChunk chunks = 6;
+  map<string, string> tags = 7;
+  string env = 8;
+  string hostname = 9;
+  string appVersion = 10;
+  ContainerDebug containerDebug = 11;
+}
+
+message ContainerDebug {
+  string error = 1;
+  int64 latencyMs = 2;
+  bool wasBuffered = 3;
+  int64 bufferMs = 4;
+  string bufferEvictionReason = 5;
+}
+
+message TraceChunk {
+  int32 priority = 1;
+  string origin = 2;
+  repeated Span spans = 3;
+  map<string, string> tags = 4;
+  bool droppedTrace = 5;
+}
+
+message Span {
+  string service = 1;
+  string name = 2;
+  string resource = 3;
+  uint64 traceID = 4;
+  uint64 spanID = 5;
+  uint64 parentID = 6;
+  int64 start = 7;
+  int64 duration = 8;
+  int32 error = 9;
+  map<string, string> meta = 10;
+  map<string, double> metrics = 11;
+  string type = 12;
+  map<string, bytes> meta_struct = 13;
+  repeated SpanLink spanLinks = 14;
+  repeated SpanEvent spanEvents = 15;
+}
+
+message SpanLink {
+  uint64 traceID = 1;
+  uint64 traceID_high = 2;
+  uint64 spanID = 3;
+  map<string, string> attributes = 4;
+  string tracestate = 5;
+  uint32 flags = 6;
+}
+
+message SpanEvent {
+  fixed64 time_unix_nano = 1;
+  string name = 2;
+  map<string, AttributeAnyValue> attributes = 3;
+}
+
+message AttributeAnyValue {
+  enum AttributeAnyValueType {
+    STRING_VALUE = 0;
+    BOOL_VALUE = 1;
+    INT_VALUE = 2;
+    DOUBLE_VALUE = 3;
+    ARRAY_VALUE = 4;
+  }
+  AttributeAnyValueType type = 1;
+  string string_value = 2;
+  bool bool_value = 3;
+  int64 int_value = 4;
+  double double_value = 5;
+  AttributeArray array_value = 6;
+}
+
+message AttributeArray {
+  repeated AttributeArrayValue values = 1;
+}
+
+message AttributeArrayValue {
+  enum AttributeArrayValueType {
+    STRING_VALUE = 0;
+    BOOL_VALUE = 1;
+    INT_VALUE = 2;
+    DOUBLE_VALUE = 3;
+  }
+  AttributeArrayValueType type = 1;
+  string string_value = 2;
+  bool bool_value = 3;
+  int64 int_value = 4;
+  double double_value = 5;
+}
+
+// The v1 protocol: every string is a reference into the payload's strings.
+
+message IdxTracerPayload {
+  repeated string strings = 1;
+  uint32 containerIDRef = 2;
+  uint32 languageNameRef = 3;
+  uint32 languageVersionRef = 4;
+  uint32 tracerVersionRef = 5;
+  uint32 runtimeIDRef = 6;
+  uint32 envRef = 7;
+  uint32 hostnameRef = 8;
+  uint32 appVersionRef = 9;
+  map<uint32, IdxAnyValue> attributes = 10;
+  repeated IdxTraceChunk chunks = 11;
+  IdxContainerDebug containerDebug = 12;
+}
+
+message IdxContainerDebug {
+  uint32 errorRef = 1;
+  int64 latencyMs = 2;
+  bool wasBuffered = 3;
+  int64 bufferMs = 4;
+  uint32 bufferEvictionReasonRef = 5;
+}
+
+message IdxTraceChunk {
+  int32 priority = 1;
+  uint32 originRef = 2;
+  map<uint32, IdxAnyValue> attributes = 3;
+  repeated IdxSpan spans = 4;
+  bool droppedTrace = 5;
+  bytes traceID = 6;
+  uint32 samplingMechanism = 7;
+}
+
+message IdxSpan {
+  uint32 serviceRef = 1;
+  uint32 nameRef = 2;
+  uint32 resourceRef = 3;
+  fixed64 spanID = 4;
+  uint64 parentID = 5;
+  fixed64 start = 6;
+  uint64 duration = 7;
+  bool error = 8;
+  map<uint32, IdxAnyValue> attributes = 9;
+  uint32 typeRef = 10;
+  repeated IdxSpanLink links = 11;
+  repeated IdxSpanEvent events = 12;
+  uint32 envRef = 13;
+  uint32 versionRef = 14;
+  uint32 componentRef = 15;
+  IdxSpanKind kind = 16;
+}
+
+enum IdxSpanKind {
+  SPAN_KIND_UNSPECIFIED = 0;
+  SPAN_KIND_INTERNAL = 1;
+  SPAN_KIND_SERVER = 2;
+  SPAN_KIND_CLIENT = 3;
+  SPAN_KIND_PRODUCER = 4;
+  SPAN_KIND_CONSUMER = 5;
+}
+
+message IdxAnyValue {
+  oneof value {
+    uint32 stringValueRef = 1;
+    bool boolValue = 2;
+    double doubleValue = 3;
+    int64 intValue = 4;
+    bytes bytesValue = 5;
+    IdxArrayValue arrayValue = 6;
+    IdxKeyValueList keyValueList = 7;
+  }
+}
+
+message IdxKeyValue {
+  uint32 key = 1;
+  IdxAnyValue value = 2;
+}
+
+message IdxArrayValue {
+  repeated IdxAnyValue values = 1;
+}
+
+message IdxKeyValueList {
+  repeated IdxKeyValue keyValues = 1;
+}
+
+message IdxSpanLink {
+  bytes traceID = 1;
+  fixed64 spanID = 2;
+  map<uint32, IdxAnyValue> attributes = 3;
+  uint32 tracestateRef = 4;
+  uint32 flags = 5;
+}
+
+message IdxSpanEvent {
+  fixed64 time = 1;
+  uint32 nameRef = 2;
+  map<uint32, IdxAnyValue> attributes = 3;
+}

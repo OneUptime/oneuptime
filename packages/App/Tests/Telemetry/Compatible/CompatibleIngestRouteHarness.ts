@@ -39,7 +39,7 @@ export function serverPolicy(
 }
 
 export interface QueuedJob {
-  signal: "logs" | "metrics" | "traces";
+  signal: "logs" | "metrics" | "traces" | "profiles";
   body: JSONObject;
   productType: string;
   contentType: string | undefined;

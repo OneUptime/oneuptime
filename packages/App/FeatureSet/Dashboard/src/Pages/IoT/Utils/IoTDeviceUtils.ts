@@ -114,15 +114,10 @@ export function displayNameForDevice(row: IoTDeviceModel): string {
 }
 
 /*
- * Display status for a device: Online/Offline. Empty until the first
- * iot_device_up datapoint lands.
+ * A device's state is IoTFleetConnection's getIoTDeviceStatus: Online or
+ * Offline while its fleet reports, the fleet disconnected while it does not
+ * (#10014).
  */
-export function displayStatusForDevice(row: IoTDeviceModel): string {
-  if (row.isUp === undefined || row.isUp === null) {
-    return "";
-  }
-  return row.isUp ? "Online" : "Offline";
-}
 
 const INVENTORY_SELECT: Record<string, boolean> = {
   kind: true,
@@ -211,7 +206,6 @@ export default {
   routeParamFromExternalId,
   externalIdFromRouteParam,
   displayNameForDevice,
-  displayStatusForDevice,
   fetchIoTInventoryRows,
   fetchIoTInventoryRow,
 };

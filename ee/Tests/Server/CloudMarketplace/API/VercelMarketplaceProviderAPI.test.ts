@@ -24,16 +24,17 @@ type Handler = (req: unknown, res: unknown) => Promise<void>;
 interface RecordedRoute {
   method: string;
   path: string;
-  handler: Handler;
+  // Every handler it is registered with, in order: one, which checks the call first.
+  handlers: Array<Handler>;
 }
 
 const routes: Array<RecordedRoute> = [];
 
-const record: (method: string) => (path: string, handler: Handler) => void = (
+const record: (
   method: string,
-) => {
-  return (path: string, handler: Handler): void => {
-    routes.push({ method: method, path: path, handler: handler });
+) => (path: string, ...handlers: Array<Handler>) => void = (method: string) => {
+  return (path: string, ...handlers: Array<Handler>): void => {
+    routes.push({ method: method, path: path, handlers: handlers });
   };
 };
 
@@ -104,11 +105,11 @@ const route: (method: string, path: string) => Handler = (
     },
   );
 
-  if (!found) {
-    throw new Error(`No route ${method} ${path}`);
+  if (!found || found.handlers.length !== 1) {
+    throw new Error(`No route ${method} ${path} with one handler`);
   }
 
-  return found.handler;
+  return found.handlers[0]!;
 };
 
 const call: (
@@ -176,6 +177,88 @@ describe("VercelMarketplaceProviderAPI routes", () => {
       `POST ${RESOURCE}/secrets/rotate`,
       "POST /marketplace/vercel/webhook",
     ]);
+  });
+
+  it("registers each route with one handler, and no middleware before it", () => {
+    expect(
+      routes
+        .filter((each: RecordedRoute) => {
+          return each.handlers.length !== 1;
+        })
+        .map((each: RecordedRoute) => {
+          return `${each.method} ${each.path}: ${each.handlers.length} handlers`;
+        }),
+    ).toEqual([]);
+  });
+
+  /*
+   * Each route is registered one by one (#10230), so nothing but this keeps
+   * a route added later from skipping the checks: every route but the
+   * webhook, which checks its signature instead, is a provider API call.
+   */
+  it("checks the server and Vercel's token on every route but the webhook, before the provider runs", async () => {
+    const providerRoutes: Array<RecordedRoute> = routes.filter(
+      (each: RecordedRoute) => {
+        return each.path !== "/marketplace/vercel/webhook";
+      },
+    );
+    // Everything the provider API's routes hand a call to.
+    const provider: Array<jest.SpyInstance> = [
+      jest.spyOn(VercelMarketplaceProvider, "upsertInstallation"),
+      jest.spyOn(VercelMarketplaceProvider, "getInstallation"),
+      jest.spyOn(VercelMarketplaceProvider, "deleteInstallation"),
+      jest.spyOn(VercelMarketplaceProvider, "assertCallerOf"),
+      jest.spyOn(VercelMarketplaceProvider, "listPlans"),
+      jest.spyOn(VercelMarketplaceProvider, "provisionResource"),
+      jest.spyOn(VercelMarketplaceProvider, "getResource"),
+      jest.spyOn(VercelMarketplaceProvider, "updateResource"),
+      jest.spyOn(VercelMarketplaceProvider, "deleteResource"),
+      jest.spyOn(VercelMarketplaceProvider, "rotateSecrets"),
+    ];
+
+    expect(providerRoutes).toHaveLength(12);
+
+    for (const each of providerRoutes) {
+      const params: Record<string, unknown> = {
+        params: { installationId: "icfg_acme", resourceId: "res_1" },
+      };
+
+      jest
+        .spyOn(MarketplaceConfig, "isVercelConfigured")
+        .mockReturnValueOnce(false);
+
+      const notSold: FakeResponse = await call(each.method, each.path, params);
+
+      auth.verifyAuthorizationHeader.mockRejectedValueOnce(
+        new VercelAuthError("The token is not valid: jwt expired"),
+      );
+
+      const refused: FakeResponse = await call(each.method, each.path, params);
+
+      expect({
+        route: `${each.method} ${each.path}`,
+        notSold: notSold.statusCode,
+        refused: refused.statusCode,
+        body: refused.body,
+      }).toEqual({
+        route: `${each.method} ${each.path}`,
+        notSold: 404,
+        refused: 403,
+        body: {
+          error: {
+            code: "forbidden",
+            message: "The token is not valid: jwt expired",
+          },
+        },
+      });
+    }
+
+    // The token was read once a route, after the server's check let it through.
+    expect(auth.verifyAuthorizationHeader).toHaveBeenCalledTimes(12);
+
+    for (const spy of provider) {
+      expect(spy).not.toHaveBeenCalled();
+    }
   });
 
   it("answers 404 on a server that does not sell through Vercel, without reading the token", async () => {
