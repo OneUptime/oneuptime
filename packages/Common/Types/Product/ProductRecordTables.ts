@@ -354,6 +354,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "SecurityWatchlistItem",
     "ThreatIntelFeed",
     AnalyticsTableName.SecurityEvent,
+    AnalyticsTableName.SecurityEventLateArrival,
     AnalyticsTableName.ThreatIntelIndicator,
   ],
   [ProductKey.DataSecurity]: [

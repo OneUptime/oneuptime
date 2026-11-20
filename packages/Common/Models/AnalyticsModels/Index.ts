@@ -1,6 +1,7 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "./Log";
 import SecurityEvent from "./SecurityEvent";
+import SecurityEventLateArrival from "./SecurityEventLateArrival";
 import Metric from "./Metric";
 import MetricItemAggMV1m from "./MetricItemAggMV1m";
 import MetricItemAggMV1mByHostV2 from "./MetricItemAggMV1mByHostV2";
@@ -86,6 +87,11 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   RumProductAnalyticsEvent,
   AuditLog,
   SecurityEvent,
+  /*
+   * Events that arrived more than a day late (#10491): an aggregate target
+   * filled by a view on SecurityEvent inserts.
+   */
+  SecurityEventLateArrival,
   ChangeEvent,
   ThreatIntelIndicator,
 ];

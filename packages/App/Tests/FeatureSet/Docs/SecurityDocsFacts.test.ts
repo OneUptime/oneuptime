@@ -101,6 +101,11 @@ import {
   getNextStretch,
   getScheduledArrivalRange,
 } from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import SecurityEventLateArrival from "Common/Models/AnalyticsModels/SecurityEventLateArrival";
+import {
+  SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS,
+  SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS,
+} from "Common/Types/SecurityEvent/SecurityEventLateArrival";
 import {
   DETECTION_REAL_TIME_RULES_MAX,
   REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
@@ -1924,6 +1929,23 @@ describe("the Security Events page", () => {
     );
     expect(page).toContain(
       "- An event that arrives late is still read, once, by the next run, and counted in the window it happened in: a group fires when its window reaches the count, and at most once a window. One that arrives more than a day after it happened is stored and searchable, but the rule's runs don't read it; **Run on Past Events** does.",
+    );
+    /*
+     * What arrives later than that is counted by a view whose filter is the
+     * exact complement of a run's bound, and Detection Rules says so for the
+     * last week, opening Run on Past Events over it (#10491).
+     */
+    expect(SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS).toBe(
+      DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60,
+    );
+    expect(
+      new SecurityEventLateArrival().materializedViews[0]?.query,
+    ).toContain(
+      `WHERE time < createdAt - toIntervalSecond(${SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS})`,
+    );
+    expect(SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS).toBe(7);
+    expect(page).toContain(
+      "**Run on Past Events** does. That is on purpose, so a backfill of history doesn't open alerts about the past: when any arrived that late in the last 7 days, a notice above the rules says how many, from which sources and when they happened, and opens **Run on Past Events** over that time.",
     );
     expect(page).toContain(
       "the next run covers the whole gap, up to the last 24 hours.",

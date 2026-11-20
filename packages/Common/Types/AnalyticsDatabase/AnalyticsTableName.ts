@@ -8,6 +8,13 @@ enum AnalyticsTableName {
    */
   SecurityEvent = "SecurityEventItemV1",
   /*
+   * Security events that arrived more than a day after they happened, which
+   * no detection rule's run judges (#10491): counted per project, source and
+   * day they arrived by a materialized view on SecurityEventItemV1, so
+   * Detection Rules can say so without reading the events.
+   */
+  SecurityEventLateArrival = "SecurityEventLateArrivalV1",
+  /*
    * Normalized IOC rows from STIX/TAXII threat-intel feeds. Keyed by
    * (projectId, feedId, indicatorValue, stixId) on ReplacingMergeTree so
    * a re-polled indicator upserts by its `version` (STIX modified

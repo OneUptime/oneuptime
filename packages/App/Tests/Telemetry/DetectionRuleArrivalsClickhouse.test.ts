@@ -22,6 +22,9 @@ import SecurityEventService, {
   DetectionArrivalWindow,
   isDetectionArrivalCandidate,
 } from "Common/Server/Services/SecurityEventService";
+import SecurityEventLateArrivalService from "Common/Server/Services/SecurityEventLateArrivalService";
+import SecurityEventLateArrival from "Common/Models/AnalyticsModels/SecurityEventLateArrival";
+import { SecurityEventLateArrivals } from "Common/Types/SecurityEvent/SecurityEventLateArrival";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import SecurityCaseIngest, {
@@ -163,6 +166,7 @@ const database: string = `detection_arrivals_test_${process.pid}_${Date.now()}`;
 const SECOND: number = 1000;
 const MINUTE: number = 60 * SECOND;
 const HOUR: number = 60 * MINUTE;
+const DAY: number = 24 * HOUR;
 
 // Every test's minute 0: on the hour, a day back, so a day of history fits after it.
 const BASE: Date = new Date(Math.floor(Date.now() / HOUR) * HOUR - 26 * HOUR);
@@ -255,6 +259,10 @@ interface ArrivingEvent {
   principalIp?: string | undefined;
   principalUser?: string | undefined;
   statusName?: string | undefined;
+  // The source it came from (#10491): its vendor and product, and the resource it is written under.
+  vendorName?: string | undefined;
+  productName?: string | undefined;
+  sourceId?: ObjectID | undefined;
 }
 
 interface StoredAlert {
@@ -359,10 +367,12 @@ function eventRow(event: ArrivingEvent): JSONObject {
   return {
     _id: ObjectID.generateTimeOrdered().toString(),
     projectId: world.projectId.toString(),
-    primaryEntityId: world.sourceId.toString(),
+    primaryEntityId: (event.sourceId || world.sourceId).toString(),
     primaryEntityType: ServiceType.OpenTelemetry,
     time: OneUptimeDate.toClickhouseDateTime64(event.time),
     createdAt: OneUptimeDate.toClickhouseDateTime(event.arrivesAt),
+    vendorName: event.vendorName ?? "",
+    productName: event.productName ?? "",
     eventUid: event.uid,
     classUid: 3002,
     className: "Authentication",
@@ -2540,6 +2550,242 @@ integration("a scheduled rule judges every event once (#10337)", () => {
         },
       ]);
       expect(huntRuns).toHaveLength(1);
+    });
+  });
+
+  /*
+   * An event written more than a day after it happened is not judged by any
+   * rule's run, on purpose (Common/Types/SecurityEvent/
+   * SecurityEventLateArrival). The model's own view counts each one as it is
+   * written, per source and day it arrived, and Detection Rules reads the
+   * last week of them to say so (#10491).
+   */
+  describe("events that arrive more than a day after they happened (#10491)", () => {
+    const lateModel: SecurityEventLateArrival = new SecurityEventLateArrival();
+    const OKTA: { vendorName: string; productName: string } = {
+      vendorName: "Okta",
+      productName: "Okta Workforce Identity",
+    };
+    const FALCON: { vendorName: string; productName: string } = {
+      vendorName: "CrowdStrike",
+      productName: "Falcon",
+    };
+
+    let lateOriginal: ConnectableService | null = null;
+
+    beforeAll(async (): Promise<void> => {
+      // The count's table under a plain AggregatingMergeTree, and the model's own view, as boot writes it.
+      const generator: StatementGenerator<AnalyticsBaseModel> =
+        new StatementGenerator<AnalyticsBaseModel>({
+          modelType: SecurityEventLateArrival,
+          database: clickhouse,
+        });
+      const columns: Statement = generator.toColumnsCreateStatement(
+        lateModel.tableColumns,
+      );
+
+      await client.command({
+        query: `CREATE TABLE ${database}.${lateModel.tableName} (${columns.query}) ENGINE = AggregatingMergeTree PARTITION BY (${lateModel.partitionKey}) ORDER BY (${lateModel.sortKeys.join(", ")})`,
+        query_params: columns.query_params,
+      });
+      // Unqualified, as the model declares it: this client's database is the suite's.
+      await client.command({ query: lateModel.materializedViews[0]!.query });
+
+      const lateService: ConnectableService =
+        SecurityEventLateArrivalService as unknown as ConnectableService;
+
+      lateOriginal = {
+        database: lateService.database,
+        databaseClient: lateService.databaseClient,
+      };
+      lateService.database = clickhouse;
+      lateService.databaseClient = client;
+    });
+
+    afterAll(async (): Promise<void> => {
+      if (lateOriginal) {
+        Object.assign(SecurityEventLateArrivalService, lateOriginal);
+      }
+
+      // The view writes on every insert into the events: gone before any other block writes.
+      await client.command({
+        query: `DROP VIEW IF EXISTS ${database}.${lateModel.materializedViews[0]!.name}`,
+      });
+    });
+
+    function readLate(
+      data: {
+        now?: Date | undefined;
+        serviceFilter?: Parameters<
+          typeof SecurityEventLateArrivalService.getLateArrivals
+        >[0]["serviceFilter"];
+        projectId?: ObjectID | undefined;
+      } = {},
+    ): Promise<SecurityEventLateArrivals> {
+      return SecurityEventLateArrivalService.getLateArrivals({
+        projectId: data.projectId || world.projectId,
+        now: data.now || at(1520),
+        serviceFilter: data.serviceFilter,
+      });
+    }
+
+    test("counts exactly the events a rule's run does not judge: written more than a day after they happened", async () => {
+      const rule: DetectionRule = addRule({
+        name: "Any failed sign-in",
+        intervalInMinutes: 1,
+        lastEvaluatedAt: at(1490),
+      });
+      const arrival: Date = at(1500);
+      const dayBefore: Date = new Date(arrival.getTime() - DAY);
+
+      arrive(
+        { uid: "on-time", time: at(1499), arrivesAt: arrival, ...OKTA },
+        {
+          uid: "23-hours-late",
+          time: new Date(arrival.getTime() - 23 * HOUR),
+          arrivesAt: arrival,
+          ...OKTA,
+        },
+        // A day to the second: the last a run reads.
+        { uid: "a-day-late", time: dayBefore, arrivesAt: arrival, ...OKTA },
+        {
+          uid: "a-day-and-a-second-late",
+          time: new Date(dayBefore.getTime() - SECOND),
+          arrivesAt: arrival,
+          ...OKTA,
+        },
+        {
+          uid: "three-days-late",
+          time: new Date(arrival.getTime() - 3 * DAY),
+          arrivesAt: arrival,
+          ...OKTA,
+        },
+      );
+
+      await runMinutes(1491, 1505);
+
+      // Each event either judged by a run, or counted here: never both, never neither.
+      expect(judgedUids(rule)).toEqual([
+        "23-hours-late",
+        "a-day-late",
+        "on-time",
+      ]);
+      expect(await readLate()).toEqual({
+        arrivedSince: new Date(
+          Date.UTC(
+            at(1520).getUTCFullYear(),
+            at(1520).getUTCMonth(),
+            at(1520).getUTCDate() - 6,
+          ),
+        ),
+        eventCount: 2,
+        sources: [
+          {
+            ...OKTA,
+            eventCount: 2,
+            happenedFrom: new Date(arrival.getTime() - 3 * DAY),
+            happenedTo: new Date(dayBefore.getTime() - SECOND),
+            arrivedFrom: arrival,
+            arrivedTo: arrival,
+          },
+        ],
+      });
+    });
+
+    test("a row a source, the most first, merged across writes, and only the sources the reader may read", async () => {
+      const falconSource: ObjectID = ObjectID.generate();
+
+      arrive(
+        {
+          uid: "okta-late",
+          time: at(1500 - 2 * 24 * 60),
+          arrivesAt: at(1500),
+          ...OKTA,
+        },
+        {
+          uid: "falcon-late-1",
+          time: at(1500 - 3 * 24 * 60),
+          arrivesAt: at(1500),
+          ...FALCON,
+          sourceId: falconSource,
+        },
+        {
+          // Written by a later insert: one row of the source all the same.
+          uid: "falcon-late-2",
+          time: at(1510 - 4 * 24 * 60),
+          arrivesAt: at(1510),
+          ...FALCON,
+          sourceId: falconSource,
+        },
+      );
+
+      world.clock = at(1500);
+      await writeArrived();
+      world.clock = at(1510);
+      await writeArrived();
+
+      const all: SecurityEventLateArrivals = await readLate();
+
+      expect(all.eventCount).toBe(3);
+      expect(all.sources).toEqual([
+        {
+          ...FALCON,
+          eventCount: 2,
+          happenedFrom: at(1510 - 4 * 24 * 60),
+          happenedTo: at(1500 - 3 * 24 * 60),
+          arrivedFrom: at(1500),
+          arrivedTo: at(1510),
+        },
+        {
+          ...OKTA,
+          eventCount: 1,
+          happenedFrom: at(1500 - 2 * 24 * 60),
+          happenedTo: at(1500 - 2 * 24 * 60),
+          arrivedFrom: at(1500),
+          arrivedTo: at(1500),
+        },
+      ]);
+
+      // A reader scoped to some sources counts theirs alone.
+      expect(
+        (
+          await readLate({ serviceFilter: { serviceIds: [world.sourceId] } })
+        ).sources.map((source: { productName: string }): string => {
+          return source.productName;
+        }),
+      ).toEqual([OKTA.productName]);
+      expect(
+        (
+          await readLate({
+            serviceFilter: { excludedServiceIds: [world.sourceId] },
+          })
+        ).sources.map((source: { productName: string }): string => {
+          return source.productName;
+        }),
+      ).toEqual([FALCON.productName]);
+
+      // Another project's are its own.
+      expect(
+        (await readLate({ projectId: ObjectID.generate() })).eventCount,
+      ).toBe(0);
+    });
+
+    test("tells of the last week: what arrived late before that is not told", async () => {
+      const lastWeek: Date = new Date(at(1500).getTime() - 8 * DAY);
+
+      arrive({
+        uid: "late-last-week",
+        time: new Date(lastWeek.getTime() - 3 * DAY),
+        arrivesAt: lastWeek,
+        ...OKTA,
+      });
+
+      world.clock = at(1500);
+      await writeArrived();
+
+      expect((await readLate()).eventCount).toBe(0);
+      // Read in the week it arrived, it is there.
+      expect((await readLate({ now: lastWeek })).eventCount).toBe(1);
     });
   });
 
