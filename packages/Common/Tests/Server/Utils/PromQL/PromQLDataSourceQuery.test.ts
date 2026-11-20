@@ -286,6 +286,48 @@ describe("a chart's, a value's and a gauge's answer", () => {
   });
 });
 
+describe("a query written for Grafana (issue #7697)", () => {
+  test("its interval and range macros are filled from the window and step it runs at", async () => {
+    const source: HeldSeries = new HeldSeries();
+
+    // A 5-minute step: $__rate_interval is 5m + 15s, the range 10 minutes.
+    const answer: ProjectMetricsQueryAnswer = await run({
+      query: "sum(avg_over_time(requests[$__rate_interval])) + 0 * $__range_s",
+      resultKind: DataSourceResultKind.TimeSeries,
+      stepInSeconds: 300,
+      source,
+    });
+
+    expect(
+      answer.resultKind === DataSourceResultKind.TimeSeries
+        ? answer.result.data
+        : [],
+    ).toHaveLength(3);
+    // Each step read back the rate interval's 315 seconds.
+    const last: PromQLSeriesSelection | undefined =
+      source.selections[source.selections.length - 1];
+
+    expect(last).toBeDefined();
+    expect(
+      (last?.endTimeMs || 0) - (last?.startTimeMs || 0),
+    ).toBeGreaterThanOrEqual(10 * 60000 + 315000);
+  });
+
+  test("a table reads them at the end of the window", async () => {
+    const answer: ProjectMetricsQueryAnswer = await run({
+      query: "sum(avg_over_time(requests[$__range]))",
+      resultKind: DataSourceResultKind.Table,
+    });
+
+    expect(answer.resultKind).toBe(DataSourceResultKind.Table);
+    expect(
+      answer.resultKind === DataSourceResultKind.Table
+        ? answer.result.rows[0]?.["value"]
+        : undefined,
+    ).toBe(7);
+  });
+});
+
 describe("a table's answer", () => {
   test("each series' value at the end of the window, a column per label", async () => {
     const answer: ProjectMetricsQueryAnswer = await run({
