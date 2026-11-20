@@ -1,17 +1,18 @@
 /**
- * Who can view a dashboard: one choice of three (only people in this
- * project, anyone with the link, anyone with the link and a password),
- * stored in three columns.
+ * Who can view a dashboard: one choice of four (only people in this
+ * project, anyone with the link, anyone with the link and a password, only
+ * people who sign in), stored in four columns.
  *
  * The rule here is the one the server enforces (DashboardService.
- * hasReadAccess answers the public link only for a public dashboard, and
- * asks its visitors for the password whenever the switch is on - letting
- * nobody in when no password is set), and the one the public dashboard
- * app and the Sharing page read. These tests pin it for every state the
- * three columns can be in, and pin what a move from any state to any
- * choice writes: only the columns that change, and never a state the
- * server would read as a different choice than the one picked - nor the
- * locked one, once the password the move asks for is entered.
+ * hasReadAccess answers the public link only for a public dashboard, asks
+ * its visitors to sign in whenever requireSignIn is on, and otherwise asks
+ * for the password whenever the switch is on - letting nobody in when no
+ * password is set), and the one the public dashboard app and the Sharing
+ * page read. These tests pin it for every state the columns can be in, and
+ * pin what a move from any state to any choice writes: only the columns
+ * that change, and never a state the server would read as a different
+ * choice than the one picked - nor the locked one, once the password the
+ * move asks for is entered.
  */
 
 import {
@@ -19,6 +20,7 @@ import {
   DASHBOARD_ACCESS_COLUMN_NAMES,
   DASHBOARD_ACCESS_COLUMNS,
   DASHBOARD_MASTER_PASSWORD_COLUMN,
+  DASHBOARD_REQUIRE_SIGN_IN_COLUMN,
   DashboardAccess,
   DashboardAccessColumns,
   DashboardAccessState,
@@ -30,26 +32,32 @@ import {
   isDashboardMasterPasswordRequired,
   isDashboardPasswordNeededFor,
   isDashboardPublic,
+  isDashboardSignInRequired,
 } from "../../../Types/Dashboard/DashboardAccess";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import { describe, expect, test } from "@jest/globals";
 
 type Stored = boolean | null | undefined;
 
-// Every state the three columns can be in, nothing stored included.
+// Every state the columns can be in, nothing stored included.
 const STORED_VALUES: Array<Stored> = [true, false, null, undefined];
 
 const ALL_STATES: Array<DashboardAccessState> = STORED_VALUES.flatMap(
   (isPublicDashboard: Stored): Array<DashboardAccessState> => {
     return STORED_VALUES.flatMap(
       (enableMasterPassword: Stored): Array<DashboardAccessState> => {
-        return [true, false].map(
-          (hasMasterPassword: boolean): DashboardAccessState => {
-            return {
-              isPublicDashboard,
-              enableMasterPassword,
-              hasMasterPassword,
-            };
+        return STORED_VALUES.flatMap(
+          (requireSignIn: Stored): Array<DashboardAccessState> => {
+            return [true, false].map(
+              (hasMasterPassword: boolean): DashboardAccessState => {
+                return {
+                  isPublicDashboard,
+                  enableMasterPassword,
+                  hasMasterPassword,
+                  requireSignIn,
+                };
+              },
+            );
           },
         );
       },
@@ -62,43 +70,51 @@ const describeState: (state: DashboardAccessState) => string = (
 ): string => {
   return `public=${String(state.isPublicDashboard)} switch=${String(
     state.enableMasterPassword,
-  )} password=${String(state.hasMasterPassword)}`;
+  )} password=${String(state.hasMasterPassword)} sign-in=${String(
+    state.requireSignIn,
+  )}`;
 };
 
 describe("who can view a dashboard, read off its columns", () => {
-  test("the three choices, in the order they are offered: the default first", () => {
+  test("the four choices, in the order they are offered: the default first, the newest last", () => {
     expect(DASHBOARD_ACCESS_CHOICES).toEqual([
       DashboardAccess.ProjectOnly,
       DashboardAccess.AnyoneWithLink,
       DashboardAccess.AnyoneWithPassword,
+      DashboardAccess.SignIn,
     ]);
   });
 
-  test("a dashboard that is not public is for the project only, whatever the password switch says", () => {
+  test("a dashboard that is not public is for the project only, whatever the password and sign-in switches say", () => {
     for (const isPublicDashboard of [false, null, undefined]) {
       for (const enableMasterPassword of STORED_VALUES) {
-        for (const hasMasterPassword of [true, false]) {
-          const state: DashboardAccessState = {
-            isPublicDashboard,
-            enableMasterPassword,
-            hasMasterPassword,
-          };
+        for (const requireSignIn of STORED_VALUES) {
+          for (const hasMasterPassword of [true, false]) {
+            const state: DashboardAccessState = {
+              isPublicDashboard,
+              enableMasterPassword,
+              hasMasterPassword,
+              requireSignIn,
+            };
 
-          expect([describeState(state), getDashboardAccess(state)]).toEqual([
-            describeState(state),
-            DashboardAccess.ProjectOnly,
-          ]);
-          expect(isDashboardPublic(state)).toBe(false);
-          // A private dashboard never asks for the password...
-          expect(isDashboardMasterPasswordRequired(state)).toBe(false);
-          // ...so it is never locked by a missing one either.
-          expect(isDashboardLockedWithoutPassword(state)).toBe(false);
+            expect([describeState(state), getDashboardAccess(state)]).toEqual([
+              describeState(state),
+              DashboardAccess.ProjectOnly,
+            ]);
+            expect(isDashboardPublic(state)).toBe(false);
+            // A private dashboard never asks for the password...
+            expect(isDashboardMasterPasswordRequired(state)).toBe(false);
+            // ...nor anyone to sign in...
+            expect(isDashboardSignInRequired(state)).toBe(false);
+            // ...so it is never locked by a missing password either.
+            expect(isDashboardLockedWithoutPassword(state)).toBe(false);
+          }
         }
       }
     }
   });
 
-  test("nothing stored reads as the columns' defaults, which the model declares: not public, switch off", () => {
+  test("nothing stored reads as the columns' defaults, which the model declares: not public, switches off", () => {
     const model: Dashboard = new Dashboard();
 
     expect(model.getTableColumnMetadata("isPublicDashboard").defaultValue).toBe(
@@ -107,6 +123,9 @@ describe("who can view a dashboard, read off its columns", () => {
     expect(
       model.getTableColumnMetadata("enableMasterPassword").defaultValue,
     ).toBe(false);
+    expect(model.getTableColumnMetadata("requireSignIn").defaultValue).toBe(
+      false,
+    );
 
     const nothingStored: DashboardAccessState = {
       isPublicDashboard: undefined,
@@ -119,6 +138,7 @@ describe("who can view a dashboard, read off its columns", () => {
     const publicWithNoSwitch: DashboardAccessState = {
       isPublicDashboard: true,
       enableMasterPassword: null,
+      requireSignIn: null,
       hasMasterPassword: true,
     };
 
@@ -127,18 +147,42 @@ describe("who can view a dashboard, read off its columns", () => {
     );
   });
 
-  test("a public dashboard with the switch off is open to anyone with the link, a stored password or not", () => {
-    for (const enableMasterPassword of [false, null, undefined]) {
-      for (const hasMasterPassword of [true, false]) {
-        const state: DashboardAccessState = {
-          isPublicDashboard: true,
-          enableMasterPassword,
-          hasMasterPassword,
-        };
+  test("a state read without the sign-in column reads as it did before there was one", () => {
+    // What a reader that never selects requireSignIn sees.
+    expect(
+      getDashboardAccess({
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+      }),
+    ).toBe(DashboardAccess.AnyoneWithLink);
+    expect(
+      getDashboardAccess({
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+      }),
+    ).toBe(DashboardAccess.AnyoneWithPassword);
+  });
 
-        expect(getDashboardAccess(state)).toBe(DashboardAccess.AnyoneWithLink);
-        expect(isDashboardMasterPasswordRequired(state)).toBe(false);
-        expect(isDashboardLockedWithoutPassword(state)).toBe(false);
+  test("a public dashboard with both switches off is open to anyone with the link, a stored password or not", () => {
+    for (const enableMasterPassword of [false, null, undefined]) {
+      for (const requireSignIn of [false, null, undefined]) {
+        for (const hasMasterPassword of [true, false]) {
+          const state: DashboardAccessState = {
+            isPublicDashboard: true,
+            enableMasterPassword,
+            requireSignIn,
+            hasMasterPassword,
+          };
+
+          expect(getDashboardAccess(state)).toBe(
+            DashboardAccess.AnyoneWithLink,
+          );
+          expect(isDashboardMasterPasswordRequired(state)).toBe(false);
+          expect(isDashboardSignInRequired(state)).toBe(false);
+          expect(isDashboardLockedWithoutPassword(state)).toBe(false);
+        }
       }
     }
   });
@@ -153,6 +197,7 @@ describe("who can view a dashboard, read off its columns", () => {
     expect(getDashboardAccess(state)).toBe(DashboardAccess.AnyoneWithPassword);
     expect(isDashboardPublic(state)).toBe(true);
     expect(isDashboardMasterPasswordRequired(state)).toBe(true);
+    expect(isDashboardSignInRequired(state)).toBe(false);
     expect(isDashboardLockedWithoutPassword(state)).toBe(false);
   });
 
@@ -168,19 +213,63 @@ describe("who can view a dashboard, read off its columns", () => {
     expect(isDashboardLockedWithoutPassword(state)).toBe(true);
   });
 
-  test("the password is required exactly when the dashboard is public and the switch is on", () => {
+  test("a public dashboard with sign-in on asks its visitors to sign in, and never for the password, whatever the password switch says", () => {
+    for (const enableMasterPassword of STORED_VALUES) {
+      for (const hasMasterPassword of [true, false]) {
+        const state: DashboardAccessState = {
+          isPublicDashboard: true,
+          enableMasterPassword,
+          requireSignIn: true,
+          hasMasterPassword,
+        };
+
+        expect([describeState(state), getDashboardAccess(state)]).toEqual([
+          describeState(state),
+          DashboardAccess.SignIn,
+        ]);
+        expect(isDashboardPublic(state)).toBe(true);
+        expect(isDashboardSignInRequired(state)).toBe(true);
+        expect(isDashboardMasterPasswordRequired(state)).toBe(false);
+        // Signing in is no password, so a missing one locks nothing.
+        expect(isDashboardLockedWithoutPassword(state)).toBe(false);
+      }
+    }
+  });
+
+  test("the password is required exactly when the dashboard is public, the switch is on and sign-in is off", () => {
     for (const state of ALL_STATES) {
       expect([
         describeState(state),
         isDashboardMasterPasswordRequired(state),
       ]).toEqual([
         describeState(state),
-        state.isPublicDashboard === true && state.enableMasterPassword === true,
+        state.isPublicDashboard === true &&
+          state.enableMasterPassword === true &&
+          state.requireSignIn !== true,
       ]);
     }
   });
 
-  test("the switches alone decide the password requirement (the public app knows nothing of the hash)", () => {
+  test("sign-in is required exactly when the dashboard is public and sign-in is on", () => {
+    for (const state of ALL_STATES) {
+      expect([describeState(state), isDashboardSignInRequired(state)]).toEqual([
+        describeState(state),
+        state.isPublicDashboard === true && state.requireSignIn === true,
+      ]);
+    }
+  });
+
+  test("no state asks for both: a dashboard that asks visitors to sign in never takes the password instead", () => {
+    for (const state of ALL_STATES) {
+      expect([
+        describeState(state),
+        isDashboardSignInRequired(state) &&
+          isDashboardMasterPasswordRequired(state),
+      ]).toEqual([describeState(state), false]);
+    }
+  });
+
+  test("the switches alone decide the password and sign-in requirements (the public app knows nothing of the hash)", () => {
     expect(
       isDashboardMasterPasswordRequired({
         isPublicDashboard: true,
@@ -193,30 +282,53 @@ describe("who can view a dashboard, read off its columns", () => {
         enableMasterPassword: true,
       }),
     ).toBe(false);
+    expect(
+      isDashboardSignInRequired({
+        isPublicDashboard: true,
+        requireSignIn: true,
+      }),
+    ).toBe(true);
+    expect(
+      isDashboardSignInRequired({
+        isPublicDashboard: false,
+        requireSignIn: true,
+      }),
+    ).toBe(false);
   });
 });
 
 describe("what each choice stores", () => {
-  test("only the project: not public, and the password switch off", () => {
+  test("only the project: not public, and both switches off", () => {
     expect(DASHBOARD_ACCESS_COLUMNS[DashboardAccess.ProjectOnly]).toEqual({
       isPublicDashboard: false,
       enableMasterPassword: false,
+      requireSignIn: false,
     });
   });
 
-  test("anyone with the link: public, the switch off", () => {
+  test("anyone with the link: public, both switches off", () => {
     expect(DASHBOARD_ACCESS_COLUMNS[DashboardAccess.AnyoneWithLink]).toEqual({
       isPublicDashboard: true,
       enableMasterPassword: false,
+      requireSignIn: false,
     });
   });
 
-  test("anyone with the link and a password: public, the switch on", () => {
+  test("anyone with the link and a password: public, the password switch on", () => {
     expect(
       DASHBOARD_ACCESS_COLUMNS[DashboardAccess.AnyoneWithPassword],
     ).toEqual({
       isPublicDashboard: true,
       enableMasterPassword: true,
+      requireSignIn: false,
+    });
+  });
+
+  test("only people who sign in: public, sign-in on, the password switch off", () => {
+    expect(DASHBOARD_ACCESS_COLUMNS[DashboardAccess.SignIn]).toEqual({
+      isPublicDashboard: true,
+      enableMasterPassword: false,
+      requireSignIn: true,
     });
   });
 
@@ -239,8 +351,10 @@ describe("what each choice stores", () => {
     expect(DASHBOARD_ACCESS_COLUMN_NAMES).toEqual([
       "isPublicDashboard",
       "enableMasterPassword",
+      "requireSignIn",
     ]);
     expect(DASHBOARD_MASTER_PASSWORD_COLUMN).toBe("masterPassword");
+    expect(DASHBOARD_REQUIRE_SIGN_IN_COLUMN).toBe("requireSignIn");
 
     for (const column of [
       ...DASHBOARD_ACCESS_COLUMN_NAMES,
@@ -281,6 +395,7 @@ describe("a move writes only the columns that change", () => {
       // ...and a column is written exactly when its stored value differs.
       const storedPublic: boolean = from.isPublicDashboard === true;
       const storedSwitch: boolean = from.enableMasterPassword === true;
+      const storedSignIn: boolean = from.requireSignIn === true;
 
       expect([
         describeState(from),
@@ -296,6 +411,10 @@ describe("a move writes only the columns that change", () => {
         describeState(from),
         storedSwitch !== target.enableMasterPassword,
       ]);
+      expect([
+        describeState(from),
+        changes.requireSignIn !== undefined,
+      ]).toEqual([describeState(from), storedSignIn !== target.requireSignIn]);
 
       expect(getDashboardAccessColumnsWritten({ from, to })).toEqual(
         DASHBOARD_ACCESS_COLUMN_NAMES.filter(
@@ -307,13 +426,14 @@ describe("a move writes only the columns that change", () => {
     }
   });
 
-  test("moving between the two public choices never carries the public switch (Growth-gated)", () => {
+  test("moving between the public choices never carries the public switch (Growth-gated)", () => {
     for (const from of ALL_STATES.filter((state: DashboardAccessState) => {
       return state.isPublicDashboard === true;
     })) {
       for (const to of [
         DashboardAccess.AnyoneWithLink,
         DashboardAccess.AnyoneWithPassword,
+        DashboardAccess.SignIn,
       ]) {
         expect(
           getDashboardAccessChanges({ from, to }).isPublicDashboard,
@@ -334,6 +454,17 @@ describe("a move writes only the columns that change", () => {
     ).toEqual({ isPublicDashboard: false, enableMasterPassword: false });
   });
 
+  test("making a dashboard that asks visitors to sign in private turns sign-in off, so sharing the link again opens it to anyone", () => {
+    const from: DashboardAccessState = {
+      ...DASHBOARD_ACCESS_COLUMNS[DashboardAccess.SignIn],
+      hasMasterPassword: false,
+    };
+
+    expect(
+      getDashboardAccessChanges({ from, to: DashboardAccess.ProjectOnly }),
+    ).toEqual({ isPublicDashboard: false, requireSignIn: false });
+  });
+
   test("sharing a private dashboard whose switch was left on writes the public switch and turns the password off", () => {
     const from: DashboardAccessState = {
       isPublicDashboard: false,
@@ -344,6 +475,37 @@ describe("a move writes only the columns that change", () => {
     expect(
       getDashboardAccessChanges({ from, to: DashboardAccess.AnyoneWithLink }),
     ).toEqual({ isPublicDashboard: true, enableMasterPassword: false });
+  });
+
+  test("moving from the password to sign-in turns the password switch off and keeps the password", () => {
+    const from: DashboardAccessState = {
+      ...DASHBOARD_ACCESS_COLUMNS[DashboardAccess.AnyoneWithPassword],
+      hasMasterPassword: true,
+    };
+
+    expect(
+      getDashboardAccessChanges({ from, to: DashboardAccess.SignIn }),
+    ).toEqual({ enableMasterPassword: false, requireSignIn: true });
+
+    const after: DashboardAccessState = getDashboardAccessStateAfter({
+      from,
+      to: DashboardAccess.SignIn,
+      isPasswordEntered: false,
+    });
+
+    expect(after.hasMasterPassword).toBe(true);
+    expect(getDashboardAccess(after)).toBe(DashboardAccess.SignIn);
+  });
+
+  test("moving from sign-in back to anyone with the link turns sign-in off and nothing else", () => {
+    const from: DashboardAccessState = {
+      ...DASHBOARD_ACCESS_COLUMNS[DashboardAccess.SignIn],
+      hasMasterPassword: true,
+    };
+
+    expect(
+      getDashboardAccessChanges({ from, to: DashboardAccess.AnyoneWithLink }),
+    ).toEqual({ requireSignIn: false });
   });
 
   test("a move to the choice already held never writes the public switch, and changes nothing the server reads", () => {
@@ -357,16 +519,27 @@ describe("a move writes only the columns that change", () => {
         undefined,
       ]);
 
+      // The server reads the same choice after it as before.
+      expect([
+        describeState(from),
+        getDashboardAccess({ ...from, ...changes }),
+      ]).toEqual([describeState(from), held]);
+
       /*
-       * Only a private dashboard's leftover password switch would be tidied
-       * away, which nothing reads (the Sharing page never offers the choice
-       * already held anyway).
+       * Only a switch nothing reads is tidied away: a private dashboard's
+       * leftover password or sign-in switch, or the password switch of a
+       * dashboard that asks its visitors to sign in (the Sharing page never
+       * offers the choice already held anyway).
        */
-      if (changes.enableMasterPassword !== undefined) {
-        expect([describeState(from), held, changes]).toEqual([
+      if (Object.keys(changes).length > 0) {
+        expect([
           describeState(from),
-          DashboardAccess.ProjectOnly,
-          { enableMasterPassword: false },
+          held === DashboardAccess.ProjectOnly ||
+            held === DashboardAccess.SignIn,
+        ]).toEqual([describeState(from), true]);
+        expect([describeState(from), changes.isPublicDashboard]).toEqual([
+          describeState(from),
+          undefined,
         ]);
       }
     }
@@ -456,5 +629,13 @@ describe("the dashboard after a move reads as the choice made, and is never lock
         to: DashboardAccess.AnyoneWithPassword,
       }),
     ).toBe(true);
+  });
+
+  test("a move to sign-in never asks for a password: none is needed", () => {
+    for (const from of ALL_STATES) {
+      expect(
+        isDashboardPasswordNeededFor({ from, to: DashboardAccess.SignIn }),
+      ).toBe(false);
+    }
   });
 });

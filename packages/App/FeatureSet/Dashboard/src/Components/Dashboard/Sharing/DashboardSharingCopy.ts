@@ -123,7 +123,7 @@ export const DASHBOARD_ACCESS_CONFIRMATION_COPY: Record<
   [DashboardAccess.SignIn]: {
     title: translationKey("Ask visitors to sign in?"),
     description: translationKey(
-      "Only this dashboard's private users and the people your single sign-on lets in will see it, once they sign in. Everyone else is asked to sign in, on the public link and every custom domain.",
+      "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.",
     ),
     submitButtonText: translationKey("Require Sign In"),
   },

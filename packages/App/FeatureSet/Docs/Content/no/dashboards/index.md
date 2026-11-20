@@ -61,6 +61,8 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 | **Deling** | Hvem som kan se det, den offentlige lenken og en IP-tillatelsesliste under Flere innstillinger. |
 | **Merkevare** | Sidetittel, beskrivelse, logo, tema og favicon for det offentlige dashbordet. |
 | **Egendefinerte domener** | Host det offentlige dashbordet på ditt eget domene. |
+| **Private brukere** | Personene som kan logge på den offentlige lenken, når bare personer som logger inn, kan se den. |
+| **Enkel pålogging** | SAML- og OpenID Connect-leverandørene de logger på med, og **Krev SSO for å logge på**. |
 | **Innstillinger** | Dupliser, eksporter eller arkiver dashbordet. |
 | **Eiere** | Brukerne og teamene som eier det. |
 | **Revisjonslogger** | Hver endring som er gjort på dashbordet, og hvem som gjorde den. |

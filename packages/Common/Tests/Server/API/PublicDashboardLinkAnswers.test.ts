@@ -39,7 +39,12 @@ import BaseAPI from "../../../Server/API/BaseAPI";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
 import PublicDashboardRateLimit from "../../../Server/Middleware/PublicDashboardRateLimit";
 import DashboardDomainService from "../../../Server/Services/DashboardDomainService";
+import DashboardPrivateUserSessionService from "../../../Server/Services/DashboardPrivateUserSessionService";
 import DashboardService from "../../../Server/Services/DashboardService";
+import { PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE } from "../../../Server/Utils/Dashboard/PublicDashboardAccess";
+import DashboardPrivateUser from "../../../Models/DatabaseModels/DashboardPrivateUser";
+import DashboardPrivateUserSession from "../../../Models/DatabaseModels/DashboardPrivateUserSession";
+import Email from "../../../Types/Email";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import {
@@ -114,6 +119,12 @@ if (
  *   - Every public dashboard route, including ones added later, answers a
  *     private or archived dashboard exactly like a missing one, and reads
  *     nothing it would send before deciding.
+ *   - A dashboard only people who sign in can view (#10250): the metadata
+ *     and page head show only what its sign-in page shows, every route that
+ *     serves its content - including ones added later - refuses a visitor
+ *     who is not signed in as one of its private users, reading nothing it
+ *     would send, and lets one who is through; and the session is looked up
+ *     only for such a dashboard.
  */
 
 const PUBLIC_ID: ObjectID = new ObjectID(
@@ -144,6 +155,13 @@ const ALLOWLISTED_PROTECTED_ID: ObjectID = new ObjectID(
   "ab000000-0000-4000-8000-000000000009",
 );
 const PLAIN_ID: ObjectID = new ObjectID("ab000000-0000-4000-8000-00000000000a");
+// Only people who sign in (#10250), and the same behind an IP allowlist.
+const SIGN_IN_ID: ObjectID = new ObjectID(
+  "ab000000-0000-4000-8000-00000000000b",
+);
+const ALLOWLISTED_SIGN_IN_ID: ObjectID = new ObjectID(
+  "ab000000-0000-4000-8000-00000000000c",
+);
 // An id no dashboard has: what every refusal of the link must read like.
 const MISSING_ID: ObjectID = new ObjectID(
   "ab000000-0000-4000-8000-0000000000ff",
@@ -161,9 +179,19 @@ const PROTECTED_DOMAIN: string = "status.protected.example.com";
 const ALLOWLISTED_DOMAIN: string = "status.allowlisted.example.com";
 const PRIVATE_DOMAIN: string = "status.private.example.com";
 const ARCHIVED_DOMAIN: string = "status.archived.example.com";
+const SIGN_IN_DOMAIN: string = "status.sign-in.example.com";
 const UNKNOWN_DOMAIN: string = "status.nobody.example.com";
 
 const PASSWORD: string = "open sesame";
+
+// A private user of the sign-in dashboards, and the session they hold.
+const PRIVATE_USER_ID: ObjectID = new ObjectID(
+  "ab000000-0000-4000-8000-0000000000a1",
+);
+const SESSION_ID: ObjectID = new ObjectID(
+  "ab000000-0000-4000-8000-0000000000a2",
+);
+const SIGNED_IN_EMAIL: string = "visitor@example.com";
 
 const ALLOWED_IP: string = "203.0.113.7";
 const OTHER_IP: string = "198.51.100.5";
@@ -211,6 +239,7 @@ type StoredOptions = {
   isPublicDashboard: boolean;
   enableMasterPassword?: boolean | undefined;
   hasMasterPassword?: boolean | undefined;
+  requireSignIn?: boolean | undefined;
   isArchived?: boolean | undefined;
   ipWhitelist?: string | undefined;
   withoutPageBranding?: boolean | undefined;
@@ -241,6 +270,8 @@ const storedDashboard: (options: StoredOptions) => Dashboard = (
   } as unknown as DashboardViewConfig;
   dashboard.isPublicDashboard = options.isPublicDashboard;
   dashboard.enableMasterPassword = options.enableMasterPassword === true;
+  dashboard.requireSignIn = options.requireSignIn === true;
+  dashboard.requireSsoForLogin = false;
   dashboard.isArchived = options.isArchived === true;
 
   if (options.hasMasterPassword) {
@@ -332,6 +363,23 @@ for (const options of [
     isPublicDashboard: true,
     withoutPageBranding: true,
   },
+  {
+    id: SIGN_IN_ID,
+    label: "Sign-in only",
+    isPublicDashboard: true,
+    requireSignIn: true,
+    // A password kept from when it was shared with one opens nothing.
+    hasMasterPassword: true,
+    theme: DashboardTheme.Dark,
+  },
+  {
+    id: ALLOWLISTED_SIGN_IN_ID,
+    label: "Allowlisted sign-in only",
+    isPublicDashboard: true,
+    requireSignIn: true,
+    ipWhitelist: ALLOWED_IP,
+    theme: DashboardTheme.Dark,
+  },
 ] as Array<StoredOptions>) {
   DASHBOARDS[options.id.toString()] = storedDashboard(options);
 }
@@ -342,6 +390,7 @@ const DOMAINS: Dictionary<ObjectID> = {
   [ALLOWLISTED_DOMAIN]: ALLOWLISTED_ID,
   [PRIVATE_DOMAIN]: PRIVATE_ID,
   [ARCHIVED_DOMAIN]: ARCHIVED_ID,
+  [SIGN_IN_DOMAIN]: SIGN_IN_ID,
 };
 
 /*
@@ -359,16 +408,21 @@ const fullMetadata: (
   id: ObjectID,
   label: string,
   enableMasterPassword: boolean,
+  // Who is signed in, on a dashboard that asks its visitors to sign in.
+  signedInAs?: string | undefined,
 ) => JSONObject = (
   id: ObjectID,
   label: string,
   enableMasterPassword: boolean,
+  signedInAs?: string | undefined,
 ): JSONObject => {
   return {
     _id: id.toString(),
     name: `${label} name`,
     isPublicDashboard: true,
     enableMasterPassword,
+    requireSignIn: Boolean(signedInAs),
+    signedInAs: signedInAs || null,
     pageTitle: `${label} page title`,
     faviconFile: { file: base64Of(`${label} favicon`), fileType: "image/png" },
     theme: themeOf(id),
@@ -389,6 +443,43 @@ const promptMetadata: (id: ObjectID, label: string) => JSONObject = (
     pageDescription: "",
     logoFile: null,
   };
+};
+
+/*
+ * What a dashboard's sign-in page shows: all its metadata may carry before
+ * the visitor signs in - the prompt's, and that the link asks for sign-in.
+ */
+const signInPromptMetadata: (id: ObjectID, label: string) => JSONObject = (
+  id: ObjectID,
+  label: string,
+): JSONObject => {
+  return {
+    ...promptMetadata(id, label),
+    enableMasterPassword: false,
+    requireSignIn: true,
+  };
+};
+
+/*
+ * The access-token cookie the sign-in route sets, as a browser sends it
+ * back: a real token, signed for this session of the given dashboard, in
+ * the cookie of the dashboard asked about.
+ */
+const sessionCookie: (
+  cookieDashboardId: ObjectID,
+  tokenDashboardId?: ObjectID | undefined,
+) => string = (
+  cookieDashboardId: ObjectID,
+  tokenDashboardId?: ObjectID | undefined,
+): string => {
+  return `${CookieUtil.getDashboardPrivateUserTokenKey(cookieDashboardId)}=${JSONWebToken.signDashboardPrivateUserSessionToken(
+    {
+      dashboardId: tokenDashboardId || cookieDashboardId,
+      userId: PRIVATE_USER_ID,
+      sessionId: SESSION_ID,
+      expiresInSeconds: 900,
+    },
+  )}`;
 };
 
 const unlockCookie: (dashboardId: ObjectID) => string = (
@@ -599,6 +690,9 @@ let api: DashboardAPI;
 let verifyPassword: SpyInstance<
   typeof DashboardService.verifyHashedColumnValue
 >;
+let findSession: SpyInstance<
+  typeof DashboardPrivateUserSessionService.findSignedInSession
+>;
 
 describe("a dashboard's public link answers only what its visitor may see", () => {
   let server: http.Server;
@@ -674,6 +768,49 @@ describe("a dashboard's public link answers only what its visitor may see", () =
         },
       );
 
+    /*
+     * The session the session cookie names is live, on either sign-in
+     * dashboard; no other session is. The lookup itself (ended, removed,
+     * Require SSO) has suites of its own.
+     */
+    findSession = jest
+      .spyOn(DashboardPrivateUserSessionService, "findSignedInSession")
+      .mockImplementation(
+        async (lookup: {
+          resourceId: ObjectID;
+          sessionId: ObjectID;
+          privateUserId: ObjectID;
+        }): Promise<DashboardPrivateUserSession | null> => {
+          const isSignInDashboard: boolean = [
+            SIGN_IN_ID,
+            ALLOWLISTED_SIGN_IN_ID,
+          ]
+            .map((id: ObjectID): string => {
+              return id.toString();
+            })
+            .includes(lookup.resourceId.toString());
+
+          if (
+            !isSignInDashboard ||
+            lookup.sessionId.toString() !== SESSION_ID.toString() ||
+            lookup.privateUserId.toString() !== PRIVATE_USER_ID.toString()
+          ) {
+            return null;
+          }
+
+          const privateUser: DashboardPrivateUser = new DashboardPrivateUser();
+          privateUser.id = PRIVATE_USER_ID;
+          privateUser.email = new Email(SIGNED_IN_EMAIL);
+
+          const session: DashboardPrivateUserSession =
+            new DashboardPrivateUserSession();
+          session.id = SESSION_ID;
+          session.dashboardPrivateUser = privateUser;
+
+          return session;
+        },
+      );
+
     // The stored hash stands for PASSWORD: the hashing has suites of its own.
     verifyPassword = jest
       .spyOn(DashboardService, "verifyHashedColumnValue")
@@ -722,6 +859,7 @@ describe("a dashboard's public link answers only what its visitor may see", () =
   beforeEach(() => {
     lookups.length = 0;
     verifyPassword.mockClear();
+    findSession.mockClear();
   });
 
   describe.each([
@@ -906,7 +1044,11 @@ describe("a dashboard's public link answers only what its visitor may see", () =
 
       it("never carries a stored password's hash or salt", async () => {
         for (const id of Object.keys(DASHBOARDS)) {
-          for (const cookie of [undefined, unlockCookie(new ObjectID(id))]) {
+          for (const cookie of [
+            undefined,
+            unlockCookie(new ObjectID(id)),
+            sessionCookie(new ObjectID(id)),
+          ]) {
             const result: HttpResult = await metadata(id, {
               forwardedFor: ALLOWED_IP,
               ...(cookie ? { cookie } : {}),
@@ -916,6 +1058,139 @@ describe("a dashboard's public link answers only what its visitor may see", () =
             expect(JSON.stringify(result.body)).not.toContain("salt");
           }
         }
+      });
+
+      describe("a dashboard only people who sign in can view", () => {
+        it("answers a visitor who is not signed in with only what its sign-in page shows, reading nothing more", async () => {
+          const result: HttpResult = await metadata(SIGN_IN_ID);
+
+          expect(result.status).toBe(200);
+          expect(result.body).toEqual(
+            signInPromptMetadata(SIGN_IN_ID, "Sign-in only"),
+          );
+          expect(contentColumnsRead(SIGN_IN_ID)).toEqual(
+            ["faviconFile", "name", "pageTitle", "theme"].sort(),
+          );
+        });
+
+        it("answers the same whatever the visitor holds: its unlock cookie, a session of another dashboard, a token that does not decode", async () => {
+          for (const cookie of [
+            unlockCookie(SIGN_IN_ID),
+            sessionCookie(SIGN_IN_ID, PUBLIC_ID),
+            `${CookieUtil.getDashboardPrivateUserTokenKey(SIGN_IN_ID)}=not-a-token`,
+            // Its unlock cookie's token, in the session's place.
+            `${CookieUtil.getDashboardPrivateUserTokenKey(SIGN_IN_ID)}=${unlockCookie(SIGN_IN_ID).split("=").slice(1).join("=")}`,
+          ]) {
+            const result: HttpResult = await metadata(SIGN_IN_ID, { cookie });
+
+            expect(result.body).toEqual(
+              signInPromptMetadata(SIGN_IN_ID, "Sign-in only"),
+            );
+          }
+        });
+
+        it("answers one of its private users, signed in, in full - and who they are signed in as", async () => {
+          const result: HttpResult = await metadata(SIGN_IN_ID, {
+            cookie: sessionCookie(SIGN_IN_ID),
+          });
+
+          expect(result.status).toBe(200);
+          expect(result.body).toEqual(
+            fullMetadata(SIGN_IN_ID, "Sign-in only", false, SIGNED_IN_EMAIL),
+          );
+        });
+
+        it("names nobody on a dashboard that asks nobody to sign in, whatever cookie a visitor holds", async () => {
+          for (const id of [PUBLIC_ID, PROTECTED_ID]) {
+            const result: HttpResult = await metadata(id, {
+              cookie: `${sessionCookie(id)}; ${unlockCookie(id)}`,
+            });
+
+            expect(result.body?.["signedInAs"]).toBeNull();
+            expect(result.body?.["requireSignIn"]).toBe(false);
+          }
+        });
+
+        it("refuses an address its IP allowlist does not name before the sign-in page, signed in or not", async () => {
+          for (const cookie of [
+            undefined,
+            sessionCookie(ALLOWLISTED_SIGN_IN_ID),
+          ]) {
+            const result: HttpResult = await metadata(ALLOWLISTED_SIGN_IN_ID, {
+              forwardedFor: OTHER_IP,
+              ...(cookie ? { cookie } : {}),
+            });
+
+            expect(result.status).toBe(403);
+            expect(JSON.stringify(result.body)).not.toContain("Allowlisted");
+            expect(JSON.stringify(result.body)).not.toContain(SIGNED_IN_EMAIL);
+          }
+
+          expect(
+            (
+              await metadata(ALLOWLISTED_SIGN_IN_ID, {
+                forwardedFor: ALLOWED_IP,
+              })
+            ).body,
+          ).toEqual(
+            signInPromptMetadata(
+              ALLOWLISTED_SIGN_IN_ID,
+              "Allowlisted sign-in only",
+            ),
+          );
+          expect(
+            (
+              await metadata(ALLOWLISTED_SIGN_IN_ID, {
+                forwardedFor: ALLOWED_IP,
+                cookie: sessionCookie(ALLOWLISTED_SIGN_IN_ID),
+              })
+            ).body,
+          ).toEqual(
+            fullMetadata(
+              ALLOWLISTED_SIGN_IN_ID,
+              "Allowlisted sign-in only",
+              false,
+              SIGNED_IN_EMAIL,
+            ),
+          );
+        });
+      });
+    });
+
+    describe("the sign-in session is looked up only for a dashboard that asks for it", () => {
+      it("never looks a session up on a dashboard that asks nobody to sign in", async () => {
+        for (const id of [PUBLIC_ID, PROTECTED_ID, PRIVATE_ID, ARCHIVED_ID]) {
+          await metadata(id, { cookie: sessionCookie(id) });
+          await send({
+            method: "GET",
+            path: `/api/dashboard/overview/${id.toString()}`,
+            cookie: sessionCookie(id),
+          });
+        }
+
+        expect(findSession).not.toHaveBeenCalled();
+      });
+
+      it("never looks one up for a visitor holding no session cookie", async () => {
+        await metadata(SIGN_IN_ID);
+        await send({
+          method: "GET",
+          path: `/api/dashboard/overview/${SIGN_IN_ID.toString()}`,
+        });
+
+        expect(findSession).not.toHaveBeenCalled();
+      });
+
+      it("looks it up live, on every request, for a dashboard that asks for it", async () => {
+        for (let i: number = 0; i < 3; i++) {
+          await send({
+            method: "GET",
+            path: `/api/dashboard/overview/${SIGN_IN_ID.toString()}`,
+            cookie: sessionCookie(SIGN_IN_ID),
+          });
+        }
+
+        expect(findSession).toHaveBeenCalledTimes(3);
       });
     });
 
@@ -967,6 +1242,27 @@ describe("a dashboard's public link answers only what its visitor may see", () =
           description: DEFAULT_SEO_DESCRIPTION,
           theme: DashboardTheme.Light,
         });
+      });
+
+      it("holds only the title and theme of a dashboard only people who sign in can view, even for one signed in", async () => {
+        const expected: JSONObject = {
+          _id: SIGN_IN_ID.toString(),
+          title: "Sign-in only page title",
+          description: DEFAULT_SEO_DESCRIPTION,
+          // Its sign-in page is drawn in it, before the first paint.
+          theme: DashboardTheme.Dark,
+        };
+
+        expect((await seo(SIGN_IN_ID)).body).toEqual(expected);
+        expect(
+          (await seo(SIGN_IN_ID, { cookie: sessionCookie(SIGN_IN_ID) })).body,
+        ).toEqual(expected);
+        expect((await seo(SIGN_IN_DOMAIN)).body).toEqual(expected);
+        expect(contentColumnsRead(SIGN_IN_ID)).toEqual(
+          ["name", "pageTitle", "theme"].sort(),
+        );
+        // The page head is the same for everyone: no session is looked up.
+        expect(findSession).not.toHaveBeenCalled();
       });
 
       it.each([
@@ -1050,6 +1346,8 @@ describe("a dashboard's public link answers only what its visitor may see", () =
         ["anyone with the link may view", PUBLIC_DOMAIN, PUBLIC_ID],
         ["is shared with a password", PROTECTED_DOMAIN, PROTECTED_ID],
         ["has an IP allowlist", ALLOWLISTED_DOMAIN, ALLOWLISTED_ID],
+        // Its sign-in page is shown on the domain, as on the public link.
+        ["asks its visitors to sign in", SIGN_IN_DOMAIN, SIGN_IN_ID],
       ])(
         "names the dashboard of a domain whose dashboard %s: the routes the app calls next decide the rest",
         async (_label: string, domain: string, id: ObjectID) => {
@@ -1202,6 +1500,17 @@ describe("a dashboard's public link answers only what its visitor may see", () =
           "Master password has not been configured for this dashboard.",
         );
       });
+
+      it("says a dashboard that asks its visitors to sign in has no password to enter - a kept one included - and tries none", async () => {
+        const result: HttpResult = await unlock(SIGN_IN_ID);
+
+        expect(result.status).toBe(400);
+        expect(errorMessageOf(result)).toBe(
+          "Master password has not been configured for this dashboard.",
+        );
+        expect(result.setCookie).toEqual([]);
+        expect(verifyPassword).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -1309,5 +1618,144 @@ describe("a dashboard's public link answers only what its visitor may see", () =
         }
       },
     );
+
+    /*
+     * A dashboard only people who sign in can view (#10250). The routes
+     * that answer before anyone signs in - the metadata and page head the
+     * sign-in page is drawn from, the domain lookup, and the password route
+     * (which opens nothing here) - have tests of their own above; every
+     * other route serves the dashboard's content, and is walked here,
+     * routes added later included.
+     */
+    const SIGN_IN_PAGE_ROUTES: Array<string> = [
+      DOMAIN_ROUTE,
+      "POST /dashboard/metadata/:dashboardId",
+      "GET /dashboard/seo/:dashboardIdOrDomain",
+      "POST /dashboard/master-password/:dashboardId",
+    ];
+
+    const contentRoutes: () => Array<string> = (): Array<string> => {
+      return publicRoutes().filter((key: string): boolean => {
+        return !SIGN_IN_PAGE_ROUTES.includes(key);
+      });
+    };
+
+    it("names the routes that serve a dashboard's content: the overview, the view config and every widget's data", () => {
+      const routes: Array<string> = contentRoutes();
+
+      for (const route of SIGN_IN_PAGE_ROUTES) {
+        expect([route, publicRoutes().includes(route)]).toEqual([route, true]);
+      }
+
+      for (const route of [
+        "POST /dashboard/overview/:dashboardIdOrDomain",
+        "GET /dashboard/overview/:dashboardIdOrDomain",
+        "POST /dashboard/view-config/:dashboardId",
+        "POST /dashboard/metrics-aggregate/:dashboardId",
+      ]) {
+        expect([route, routes.includes(route)]).toEqual([route, true]);
+      }
+    });
+
+    it.each([
+      ["a visitor holding nothing", undefined],
+      [
+        "a visitor holding the unlock cookie of a password it was once shared with",
+        unlockCookie(SIGN_IN_ID),
+      ],
+      [
+        "a visitor holding a session of another dashboard",
+        sessionCookie(SIGN_IN_ID, PUBLIC_ID),
+      ],
+    ])(
+      "refuses %s on every route that serves a dashboard only people who sign in can view, reading nothing it would send",
+      async (_label: string, cookie: string | undefined) => {
+        for (const key of contentRoutes()) {
+          const method: "GET" | "POST" = key.startsWith("GET") ? "GET" : "POST";
+
+          lookups.length = 0;
+
+          const result: HttpResult = await send({
+            method,
+            path: pathFor(key, SIGN_IN_ID.toString()),
+            body: REQUEST_BODY,
+            cookie,
+            forwardedFor: ALLOWED_IP,
+          });
+
+          expect([key, result.status]).toEqual([key, 401]);
+          expect([key, errorMessageOf(result)]).toEqual([
+            key,
+            PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+          ]);
+          expect([key, contentColumnsRead(SIGN_IN_ID)]).toEqual([key, []]);
+        }
+      },
+    );
+
+    it("lets one of its private users, signed in, through on every route that serves it", async () => {
+      for (const key of contentRoutes()) {
+        const method: "GET" | "POST" = key.startsWith("GET") ? "GET" : "POST";
+
+        const result: HttpResult = await send({
+          method,
+          path: pathFor(key, SIGN_IN_ID.toString()),
+          body: REQUEST_BODY,
+          cookie: sessionCookie(SIGN_IN_ID),
+          forwardedFor: ALLOWED_IP,
+        });
+
+        // Past the link's decision: whatever the route answers next, it is not that.
+        expect([key, errorMessageOf(result)]).not.toEqual([
+          key,
+          PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+        ]);
+        expect([key, result.status === 401 || result.status === 403]).toEqual([
+          key,
+          false,
+        ]);
+      }
+    });
+
+    it("refuses the overview asked for by the dashboard's custom domain too, until the visitor signs in", async () => {
+      for (const method of ["GET", "POST"] as Array<"GET" | "POST">) {
+        const anonymous: HttpResult = await send({
+          method,
+          path: `/api/dashboard/overview/${SIGN_IN_DOMAIN}`,
+          body: {},
+        });
+
+        expect(anonymous.status).toBe(401);
+        expect(errorMessageOf(anonymous)).toBe(
+          PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+        );
+
+        const signedIn: HttpResult = await send({
+          method,
+          path: `/api/dashboard/overview/${SIGN_IN_DOMAIN}`,
+          body: {},
+          cookie: sessionCookie(SIGN_IN_ID),
+        });
+
+        expect(signedIn.status).toBe(200);
+        expect(signedIn.body?.["name"]).toBe("Sign-in only name");
+      }
+    });
+
+    it("refuses an address its IP allowlist does not name on every route, signed in or not", async () => {
+      for (const key of contentRoutes()) {
+        const method: "GET" | "POST" = key.startsWith("GET") ? "GET" : "POST";
+
+        const result: HttpResult = await send({
+          method,
+          path: pathFor(key, ALLOWLISTED_SIGN_IN_ID.toString()),
+          body: REQUEST_BODY,
+          cookie: sessionCookie(ALLOWLISTED_SIGN_IN_ID),
+          forwardedFor: OTHER_IP,
+        });
+
+        expect([key, result.status]).toEqual([key, 403]);
+      }
+    });
   });
 });

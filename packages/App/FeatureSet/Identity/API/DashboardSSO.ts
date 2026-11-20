@@ -84,7 +84,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Dashboard SSO ID not found"),
+          new BadRequestException(
+            "This sign-in link names no single sign-on provider. Open the dashboard's link and sign in from there.",
+          ),
         );
       }
 
@@ -112,7 +114,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("SSO Config not found"),
+          new BadRequestException(
+            "This single sign-on provider is not set up for this dashboard, or is turned off. Ask the dashboard's team to check its Single Sign-On settings.",
+          ),
         );
       }
 
@@ -120,7 +124,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Sign On URL not found"),
+          new BadRequestException(
+            "This single sign-on provider has no Sign On URL. Ask the dashboard's team to add it on the dashboard's Single Sign-On page.",
+          ),
         );
       }
 
@@ -160,7 +166,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("SAML response not found"),
+          new BadRequestException(
+            "The identity provider sent no SAML response. Open the dashboard's link and sign in again.",
+          ),
         );
       }
 
@@ -184,7 +192,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Dashboard SSO ID not found"),
+          new BadRequestException(
+            "This sign-in link names no single sign-on provider. Open the dashboard's link and sign in from there.",
+          ),
         );
       }
 
@@ -212,7 +222,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("SSO Config not found"),
+          new BadRequestException(
+            "This single sign-on provider is not set up for this dashboard, or is turned off. Ask the dashboard's team to check its Single Sign-On settings.",
+          ),
         );
       }
 
@@ -220,7 +232,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("SSO Config Project ID not found"),
+          new BadRequestException(
+            "This single sign-on provider belongs to no project. Ask the dashboard's team to set it up again.",
+          ),
         );
       }
 
@@ -230,7 +244,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Issuer URL not found"),
+          new BadRequestException(
+            "This single sign-on provider has no Issuer URL. Ask the dashboard's team to add it on the dashboard's Single Sign-On page.",
+          ),
         );
       }
 
@@ -238,7 +254,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Sign on URL not found"),
+          new BadRequestException(
+            "This single sign-on provider has no Sign On URL. Ask the dashboard's team to add it on the dashboard's Single Sign-On page.",
+          ),
         );
       }
 
@@ -246,7 +264,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Public Certificate not found"),
+          new BadRequestException(
+            "This single sign-on provider has no public certificate. Ask the dashboard's team to add it on the dashboard's Single Sign-On page.",
+          ),
         );
       }
 
@@ -280,7 +300,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Issuer URL does not match"),
+          new BadRequestException(
+            "The identity provider that signed this response is not the one this dashboard trusts. Ask the dashboard's team to check the provider's Issuer URL.",
+          ),
         );
       }
 

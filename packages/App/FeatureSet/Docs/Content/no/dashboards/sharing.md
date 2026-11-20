@@ -1,10 +1,11 @@
 # Deling & offentlige dashbord
 
-Som standard er et dashbord privat for prosjektet ditt: bare personer som logger på prosjektet ditt, kan se det. Du kan også dele det via en offentlig lenke, beskytte lenken med et passord, begrense den til bestemte IP-adresser og hoste dashbordet på ditt eget domene. Denne siden dekker alle fire.
+Som standard er et dashbord privat for prosjektet ditt: bare personer som logger på prosjektet ditt, kan se det. Du kan også dele det via en offentlig lenke, beskytte lenken med et passord eller be de besøkende om å logge på, begrense den til bestemte IP-adresser og hoste dashbordet på ditt eget domene. Denne siden dekker alt dette.
 
 :::cards
-- [Hvem som kan se et dashbord](#hvem-som-kan-se-et-dashbord): Ett valg av tre, med abonnementet hvert valg krever.
+- [Hvem som kan se et dashbord](#hvem-som-kan-se-et-dashbord): Ett valg av fire, med abonnementet hvert valg krever.
 - [Deling med passord](#deling-med-passord): Del lenken, og deretter passordet, med personene som skal se det.
+- [Bare personer som logger inn](#bare-personer-som-logger-inn): Inviter personene som kan åpne det, eller la den enkle påloggingen deres logge dem på.
 - [IP-tillatelsesliste](#ip-tillatelsesliste): Åpne den offentlige lenken bare for kontoret ditt eller VPN-en din.
 - [Egendefinerte domener](#egendefinerte-domener): Server dashbordet på ditt eget domene, med et gratis sertifikat.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["En besøkende åpner<br/>den offentlige lenken"] --> shared("Er dashbordet<br/>delt offentlig?")
     shared -->|"Nei"| missing["En side med<br/>'ikke funnet'"]
     shared -->|"Ja"| allowed("Står adressen deres<br/>på IP-tillatelseslisten?")
-    allowed -->|"Ja, eller<br/>ingen liste"| locked("Kreves det<br/>et passord?")
+    allowed -->|"Ja, eller<br/>ingen liste"| signin("Må besøkende<br/>logge på?")
     allowed -->|"Nei"| denied["En side med<br/>Access Denied"]
+    signin -->|"Ja"| signinpage["Påloggings-<br/>siden"]
+    signinpage --> board["Dashbordet"]
+    signin -->|"Nei"| locked("Kreves det<br/>et passord?")
     locked -->|"Ja"| prompt["Spørsmålet<br/>om passordet"]
-    prompt --> board["Dashbordet"]
+    prompt --> board
     locked -->|"Nei"| board
 ```
 
@@ -32,14 +36,15 @@ flowchart TB
 - **Bare personer i dette prosjektet** (standard): medlemmer ser dashbordet når de logger på OneUptime. Det har ingen offentlig lenke: den offentlige adressen viser den samme siden med "ikke funnet" som en adresse uten dashbord, og ingenting om dashbordet, ikke engang navnet.
 - **Alle med lenken**: dashbordet er offentlig. Alle som har lenken, kan se det uten å logge på.
 - **Alle med lenken og et passord**: besøkende åpner lenken og skriver deretter inn ett passord som du deler med dem. Ingen trenger en konto.
+- **Bare personer som logger inn**: dashbordet har en offentlig lenke, og bare personene du velger, åpner det når de har logget på der: de private brukerne du inviterer, og personene den enkle påloggingen deres slipper inn. Se [Bare personer som logger inn](#bare-personer-som-logger-inn).
 
-Når du velger et alternativ, blir du bedt om å bekrefte, med en forklaring av hva som endres for besøkende, og så gjelder det umiddelbart. Velger du **Alle med lenken og et passord**, ber den samme dialogen om passordet når dashbordet ikke har noe; så lenge det er valget, erstatter **Endre passord** det. Så lenge dashbordet er offentlig, står adressene besøkende åpner det på, under valget: først de egendefinerte domenene, deretter den offentlige lenken, hver med **Kopier lenke**. Et egendefinert domene som ikke er live ennå, er merket med **Ikke live ennå**, med årsaken.
+Når du velger et alternativ, blir du bedt om å bekrefte, med en forklaring av hva som endres for besøkende, og så gjelder det umiddelbart. Velger du **Alle med lenken og et passord**, ber den samme dialogen om passordet når dashbordet ikke har noe; så lenge det er valget, erstatter **Endre passord** det. Så lenge dashbordet er offentlig, står adressene besøkende åpner det på, under valget: først de egendefinerte domenene, deretter den offentlige lenken, hver med **Kopier lenke**. Et egendefinert domene som ikke er live ennå, er merket med **Ikke live ennå**, med årsaken. Så lenge **Bare personer som logger inn** er valget, er **Private brukere** og **Enkel pålogging** ett klikk unna under det.
 
 Innenfor prosjektet styrer eiere og etiketter hvem som ser hva: se [Dashbord-konfigurasjon & tillatelser](/docs/dashboards/configuration). Den som kan se dashbordet, men ikke redigere det, ser valget og kan kopiere den offentlige lenken, men kan ikke endre valget.
 
-På OneUptime Cloud krever deling av et dashbord abonnementet **Growth**: på et lavere abonnement viser de to offentlige valgene abonnementet de krever, og kan ikke velges. Å gjøre et dashbord privat igjen (**Bare personer i dette prosjektet**) fungerer på alle abonnementer, så et dashbord som sto offentlig da en prøveperiode tok slutt, eller etter et bytte til et lavere abonnement, alltid kan slutte å være delt; dialogen sier at det krever **Growth** å dele det igjen. Å bytte mellom **Alle med lenken** og **Alle med lenken og et passord**, og å endre passordet, fungerer på alle abonnementer. Et dashbord som opprettes gjennom API-et eller Terraform, er underlagt de samme abonnementene: opprettet offentlig krever det **Growth**, og opprettet med en IP-tillatelsesliste **Scale**.
+På OneUptime Cloud krever deling av et dashbord abonnementet **Growth**: på et lavere abonnement viser de offentlige valgene abonnementet de krever, og kan ikke velges. Å gjøre et dashbord privat igjen (**Bare personer i dette prosjektet**) fungerer på alle abonnementer, så et dashbord som sto offentlig da en prøveperiode tok slutt, eller etter et bytte til et lavere abonnement, alltid kan slutte å være delt; dialogen sier at det krever **Growth** å dele det igjen. Å bytte mellom **Alle med lenken** og **Alle med lenken og et passord**, og å endre passordet, fungerer på alle abonnementer. **Bare personer som logger inn** krever også **Growth**, slik de private brukerne gjør, og den enkle påloggingen krever **Scale**; å bytte bort fra det fungerer på alle abonnementer, og dialogen sier at det krever **Growth** å velge det igjen. Et dashbord som opprettes gjennom API-et eller Terraform, er underlagt de samme abonnementene: opprettet offentlig krever det **Growth**, og opprettet med en IP-tillatelsesliste **Scale**.
 
-Valget lagres i tre kolonner, som API-et og Terraform leser og skriver som før: `isPublicDashboard`, `enableMasterPassword` og `masterPassword`. Bare et offentlig dashbord har en offentlig lenke, og de besøkende blir bedt om passordet når `enableMasterPassword` er på. Et offentlig dashbord med `enableMasterPassword` på, men uten angitt passord, slipper ingen inn via den offentlige lenken: siden **Deling** viser det som **Alle med lenken og et passord**, sier at ingen kan åpne lenken ennå, og tilbyr **Angi passord**. Å velge **Bare personer i dette prosjektet** slår også av `enableMasterPassword` og beholder passordet, slik at en ny deling med passord kan bruke det igjen.
+Valget lagres i fire kolonner, som API-et og Terraform leser og skriver: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` og `requireSignIn`. Bare et offentlig dashbord har en offentlig lenke, og de besøkende blir bedt om passordet når `enableMasterPassword` er på. Et offentlig dashbord med `enableMasterPassword` på, men uten angitt passord, slipper ingen inn via den offentlige lenken: siden **Deling** viser det som **Alle med lenken og et passord**, sier at ingen kan åpne lenken ennå, og tilbyr **Angi passord**. Å velge **Bare personer i dette prosjektet** slår også av `enableMasterPassword` og beholder passordet, slik at en ny deling med passord kan bruke det igjen. Et offentlig dashbord med `requireSignIn` på ber de besøkende om å logge på, og aldri om passordet: å velge **Bare personer som logger inn** slår av `enableMasterPassword` og beholder også passordet.
 
 ## Offentlige dashbord
 
@@ -64,7 +69,19 @@ Bruk et passord når:
 - Du vil dele med en partner eller kunde, men ikke vil at URL-en skal være nyttig hvis den lekker.
 - Dashbordet er "halvoffentlig": åpent nok til at du ikke vil invitere hver seer som teammedlem, men ikke åpent nok til å legge det på det åpne internettet.
 
-For strengere tilgangskontroll (separate kontoer per seer, et revisjonsspor over hvem som så hva) holder du dashbordet på **Bare personer i dette prosjektet** og inviterer heller seerne som skrivebeskyttede teammedlemmer.
+For strengere tilgangskontroll (separate kontoer per seer, et revisjonsspor over hvem som så hva) holder du dashbordet på **Bare personer i dette prosjektet** og inviterer heller seerne som skrivebeskyttede teammedlemmer, eller velger **Bare personer som logger inn**.
+
+## Bare personer som logger inn
+
+Velg **Bare personer som logger inn** for å la bare personene du velger, åpne den offentlige lenken. Hver besøkende møter først en påloggingsside, på den offentlige lenken og på hvert egendefinerte domene. Den viser dashbordets navn, sidetittel og favicon, i temaet dets, og ingenting annet: verken widgetene eller hvem som kan logge på. Etter påloggingen viser dashbordet hvem som er logget på, med en knapp for å logge ut.
+
+Åpne **Offentlig lenke → Private brukere** i dashbordets sidemeny for å legge til personene som kan logge på, via e-post. Hver får en invitasjon på e-post med en lenke der de velger et passord. Lenken virker i 24 timer, og påloggingssidens lenke for glemt passord sender en ny. Tabellen viser hvem som er **Registrert**, hvem sin invitasjon er **Invitasjon sendt**, og når hver enkelt var **Sist innlogget**. Å fjerne noen, eller et nytt passord, logger dem ut overalt ved neste forespørsel.
+
+Åpne **Offentlig lenke → Enkel pålogging** for å la identitetsleverandøren deres logge personer på, med SAML eller OpenID Connect. Hver leverandør viser verdiene du limer inn i identitetsleverandøren. Alle identitetsleverandøren slipper inn, blir en privat bruker første gang de logger på. Å slå av en leverandør, eller slette den, logger ut alle den har logget på. **Krev SSO for å logge på** slår av pålogging med passord: alle logger da på med enkel pålogging, og alle som er logget på med et passord, logges ut ved neste forespørsel.
+
+En pålogging varer til den har vært ubrukt i 30 dager. Informasjonskapslene sendes bare til dashbordets egen adresse, så ingen andre nettsteder kan lese dashbordet med dem eller logge noen ut. Påloggingsforsøk er begrenset for hver adresse og hver konto, og påloggingssiden og siden for glemt passord svarer likt, enten en adresse kan logge på eller ikke.
+
+Gjennom API-et er private brukere og leverandører av enkel pålogging egne oppføringer: `/dashboard-private-user`, `/dashboard-sso` og `/dashboard-oidc`, hver med tillatelser oppkalt etter seg.
 
 ## IP-tillatelsesliste
 

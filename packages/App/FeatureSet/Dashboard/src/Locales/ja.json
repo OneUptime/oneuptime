@@ -59889,7 +59889,6 @@
   "Invite the people who can sign in, or let your single sign-on sign them in.": "サインインできる人を招待するか、シングルサインオンでサインインできるようにします。",
   "It applies while only people who sign in can view this dashboard.": "サインインした人だけがこのダッシュボードを見られる間に適用されます。",
   "Manage OpenID Connect (OIDC) sign-in for a dashboard that asks its visitors to sign in": "訪問者にサインインを求めるダッシュボードの OpenID Connect (OIDC) サインインを管理します",
-  "Only this dashboard's private users and the people your single sign-on lets in will see it, once they sign in. Everyone else is asked to sign in, on the public link and every custom domain.": "このダッシュボードを見られるのは、サインインしたプライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人には、公開リンクとすべてのカスタムドメインでサインインが求められます。",
   "People who can sign in to open a dashboard's public link when it asks its visitors to sign in.": "訪問者にサインインを求めるダッシュボードの公開リンクを、サインインして開ける人。",
   "People who can sign in to open this dashboard's public link. Each one is emailed an invitation when you add them.": "サインインしてこのダッシュボードの公開リンクを開ける人。追加すると、各ユーザーに招待メールが送信されます。",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will see this dashboard. Test SSO first.": "プライベートユーザーはパスワードでサインインできなくなり、SSO プロバイダーが許可した人だけがこのダッシュボードを見られます。先に SSO をテストしてください。",
@@ -59903,5 +59902,6 @@
   "Visitors sign in on the link first: the private users you invite, and the people your single sign-on lets in.": "訪問者はまずリンクでサインインします。招待したプライベートユーザーと、シングルサインオンで許可された人が対象です。",
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "訪問者は、Google や Okta などの OpenID Connect プロバイダーでサインインします。",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "訪問者は、Okta や Microsoft Entra ID などの SAML ID プロバイダーでサインインします。",
-  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "SAML と OIDC の ID プロバイダー、および「サインインに SSO を必須にする」。"
+  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "SAML と OIDC の ID プロバイダー、および「サインインに SSO を必須にする」。",
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "閲覧できるのは、プライベートユーザーと、シングルサインオンで許可された人だけです。それ以外の人には、リンクとカスタムドメインでサインインが求められます。"
 }

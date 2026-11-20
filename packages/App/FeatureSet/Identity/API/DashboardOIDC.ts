@@ -98,7 +98,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Dashboard OIDC ID not found"),
+          new BadRequestException(
+            "This sign-in link names no OpenID Connect provider. Open the dashboard's link and sign in from there.",
+          ),
         );
       }
 
@@ -127,7 +129,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("OIDC Config not found"),
+          new BadRequestException(
+            "This OpenID Connect provider is not set up for this dashboard, or is turned off. Ask the dashboard's team to check its Single Sign-On settings.",
+          ),
         );
       }
 
@@ -135,7 +139,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Discovery URL not configured"),
+          new BadRequestException(
+            "This OpenID Connect provider has no Discovery URL. Ask the dashboard's team to add it on the dashboard's Single Sign-On page.",
+          ),
         );
       }
 
@@ -143,7 +149,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("OIDC client credentials not configured"),
+          new BadRequestException(
+            "This OpenID Connect provider has no client ID or client secret. Ask the dashboard's team to add them on the dashboard's Single Sign-On page.",
+          ),
         );
       }
 
@@ -225,7 +233,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Dashboard OIDC ID not found"),
+          new BadRequestException(
+            "This sign-in link names no OpenID Connect provider. Open the dashboard's link and sign in from there.",
+          ),
         );
       }
 
@@ -298,7 +308,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("OIDC Config not found"),
+          new BadRequestException(
+            "This OpenID Connect provider is not set up for this dashboard, or is turned off. Ask the dashboard's team to check its Single Sign-On settings.",
+          ),
         );
       }
 
@@ -306,7 +318,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("OIDC Config Project ID not found"),
+          new BadRequestException(
+            "This OpenID Connect provider belongs to no project. Ask the dashboard's team to set it up again.",
+          ),
         );
       }
 
@@ -319,7 +333,9 @@ router.get(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("OIDC Config is incomplete"),
+          new BadRequestException(
+            "This OpenID Connect provider is missing its Discovery URL, Issuer URL, client ID or client secret. Ask the dashboard's team to complete it on the dashboard's Single Sign-On page.",
+          ),
         );
       }
 

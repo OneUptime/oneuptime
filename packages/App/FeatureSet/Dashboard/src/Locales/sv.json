@@ -59889,7 +59889,6 @@
   "Invite the people who can sign in, or let your single sign-on sign them in.": "Bjud in de personer som får logga in, eller låt er enkla inloggning logga in dem.",
   "It applies while only people who sign in can view this dashboard.": "Det gäller så länge bara personer som loggar in kan se den här instrumentpanelen.",
   "Manage OpenID Connect (OIDC) sign-in for a dashboard that asks its visitors to sign in": "Hantera inloggning med OpenID Connect (OIDC) för en instrumentpanel som ber sina besökare logga in",
-  "Only this dashboard's private users and the people your single sign-on lets in will see it, once they sign in. Everyone else is asked to sign in, on the public link and every custom domain.": "Bara instrumentpanelens privata användare och de personer som er enkla inloggning släpper in ser den, när de har loggat in. Alla andra ombeds logga in, via den offentliga länken och varje anpassad domän.",
   "People who can sign in to open a dashboard's public link when it asks its visitors to sign in.": "Personer som kan logga in för att öppna en instrumentpanels offentliga länk när den ber sina besökare logga in.",
   "People who can sign in to open this dashboard's public link. Each one is emailed an invitation when you add them.": "Personer som kan logga in för att öppna den här instrumentpanelens offentliga länk. Var och en får en inbjudan via e-post när du lägger till dem.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will see this dashboard. Test SSO first.": "Privata användare kan inte längre logga in med lösenord; bara personer som er SSO-leverantör släpper in ser den här instrumentpanelen. Testa SSO först.",
@@ -59903,5 +59902,6 @@
   "Visitors sign in on the link first: the private users you invite, and the people your single sign-on lets in.": "Besökare loggar först in via länken: de privata användare du bjuder in och de personer som er enkla inloggning släpper in.",
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Besökare loggar in med er OpenID Connect-leverantör, till exempel Google eller Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Besökare loggar in med er SAML-identitetsleverantör, till exempel Okta eller Microsoft Entra ID.",
-  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Era SAML- och OIDC-identitetsleverantörer och ”Kräv SSO för inloggning”."
+  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Era SAML- och OIDC-identitetsleverantörer och ”Kräv SSO för inloggning”.",
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Bara dess privata användare och de personer som er enkla inloggning släpper in ser den. Alla andra ombeds logga in, via dess länk och anpassade domäner."
 }

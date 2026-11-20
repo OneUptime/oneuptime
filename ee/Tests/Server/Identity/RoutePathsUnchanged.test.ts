@@ -309,8 +309,20 @@ describe("ee identity routers", () => {
       }),
     );
 
-    // The core SSO routes this compares against are really there (20 of them).
-    expect(coreSsoRoutes.size).toBe(20);
+    /*
+     * The core SSO routes this compares against are really there (29 of
+     * them, a dashboard's four for the people who sign in to its public
+     * link included, #10250).
+     */
+    expect(coreSsoRoutes.size).toBe(29);
+    for (const dashboardRoute of [
+      "GET /dashboard-sso/:dashboardId/:dashboardSsoId",
+      "POST /dashboard-idp-login/:dashboardId/:dashboardSsoId",
+      "GET /dashboard-oidc/:dashboardId/:dashboardOidcId",
+      "GET /dashboard-oidc-callback/:dashboardId/:dashboardOidcId",
+    ]) {
+      expect(coreSsoRoutes.has(dashboardRoute)).toBe(true);
+    }
 
     for (const entry of IDENTITY_ROUTERS) {
       for (const route of getRoutes(entry.router)) {

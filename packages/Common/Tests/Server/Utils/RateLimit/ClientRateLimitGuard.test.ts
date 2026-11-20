@@ -122,6 +122,12 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a status page single sign-on",
   "packages/App/FeatureSet/Identity/API/StatusPageOIDC.ts":
     "records the address of a status page single sign-on",
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    "records the address of a dashboard private user's sign-in (#10250); its attempts are counted by IdentityRateLimit, and its password resets by PublicMessageRateLimit",
+  "packages/App/FeatureSet/Identity/API/DashboardSSO.ts":
+    "records the address of a dashboard single sign-on",
+  "packages/App/FeatureSet/Identity/API/DashboardOIDC.ts":
+    "records the address of a dashboard single sign-on",
   "packages/App/FeatureSet/Notification/API/Telegram.ts":
     "hands the address to VerificationCodeRateLimit.consume, which counts through ClientRateLimitCounter",
   "packages/App/FeatureSet/Runbook/API/RunbookWebhook.ts":

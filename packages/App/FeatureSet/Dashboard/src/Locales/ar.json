@@ -59889,7 +59889,6 @@
   "Invite the people who can sign in, or let your single sign-on sign them in.": "ادعُ الأشخاص الذين يمكنهم تسجيل الدخول، أو دع تسجيل الدخول الموحّد لديك يُدخلهم.",
   "It applies while only people who sign in can view this dashboard.": "يسري ذلك ما دام لا يرى لوحة المعلومات هذه إلا من يسجّلون الدخول.",
   "Manage OpenID Connect (OIDC) sign-in for a dashboard that asks its visitors to sign in": "إدارة تسجيل الدخول عبر OpenID Connect (OIDC) للوحة معلومات تطلب من زوّارها تسجيل الدخول",
-  "Only this dashboard's private users and the people your single sign-on lets in will see it, once they sign in. Everyone else is asked to sign in, on the public link and every custom domain.": "لن يرى لوحة المعلومات هذه إلا مستخدموها الخاصون والأشخاص الذين يسمح لهم تسجيل الدخول الموحّد لديك، بعد أن يسجّلوا الدخول. ويُطلب من الجميع غيرهم تسجيل الدخول، على الرابط العام وعلى كل نطاق مخصص.",
   "People who can sign in to open a dashboard's public link when it asks its visitors to sign in.": "الأشخاص الذين يمكنهم تسجيل الدخول لفتح الرابط العام للوحة معلومات عندما تطلب من زوّارها تسجيل الدخول.",
   "People who can sign in to open this dashboard's public link. Each one is emailed an invitation when you add them.": "الأشخاص الذين يمكنهم تسجيل الدخول لفتح الرابط العام للوحة المعلومات هذه. يتلقى كل منهم دعوة بالبريد الإلكتروني عند إضافته.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will see this dashboard. Test SSO first.": "لن يتمكن المستخدمون الخاصون من تسجيل الدخول بكلمة مرور بعد الآن؛ ولن يرى لوحة المعلومات هذه إلا من يسمح لهم موفّر SSO لديك. اختبر SSO أولًا.",
@@ -59903,5 +59902,6 @@
   "Visitors sign in on the link first: the private users you invite, and the people your single sign-on lets in.": "يسجّل الزوّار الدخول على الرابط أولًا: المستخدمون الخاصون الذين تدعوهم، والأشخاص الذين يسمح لهم تسجيل الدخول الموحّد لديك.",
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "يسجّل الزوّار الدخول عبر موفّر OpenID Connect لديك، مثل Google أو Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "يسجّل الزوّار الدخول عبر موفّر هوية SAML لديك، مثل Okta أو Microsoft Entra ID.",
-  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "موفّرو هوية SAML وOIDC لديك، و«اشتراط SSO لتسجيل الدخول»."
+  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "موفّرو هوية SAML وOIDC لديك، و«اشتراط SSO لتسجيل الدخول».",
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "لن يراها إلا مستخدموها الخاصون والأشخاص الذين يسمح لهم تسجيل الدخول الموحّد لديك. ويُطلب من الجميع غيرهم تسجيل الدخول على رابطها ونطاقاتها المخصصة."
 }

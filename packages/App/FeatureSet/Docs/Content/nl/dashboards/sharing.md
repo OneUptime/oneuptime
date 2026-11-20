@@ -1,10 +1,11 @@
 # Delen en publieke dashboards
 
-Standaard is een dashboard privé voor je project: alleen mensen die zich bij je project aanmelden, kunnen het zien. Je kunt het ook delen via een openbare link, die link beschermen met een wachtwoord, hem beperken tot bepaalde IP-adressen, en het hosten op je eigen domein. Deze pagina behandelt alle vier.
+Standaard is een dashboard privé voor je project: alleen mensen die zich bij je project aanmelden, kunnen het zien. Je kunt het ook delen via een openbare link, die link beschermen met een wachtwoord of de bezoekers vragen zich aan te melden, hem beperken tot bepaalde IP-adressen, en het hosten op je eigen domein. Deze pagina behandelt het allemaal.
 
 :::cards
-- [Wie een dashboard kan zien](#wie-een-dashboard-kan-zien): Eén keuze uit drie, met het abonnement dat elke keuze vereist.
+- [Wie een dashboard kan zien](#wie-een-dashboard-kan-zien): Eén keuze uit vier, met het abonnement dat elke keuze vereist.
 - [Delen met een wachtwoord](#delen-met-een-wachtwoord): Deel de link, en daarna het wachtwoord, met de mensen die het moeten zien.
+- [Alleen mensen die inloggen](#alleen-mensen-die-inloggen): Nodig de mensen uit die het mogen openen, of laat je single sign-on ze aanmelden.
 - [IP-toelatingslijst](#ip-toelatingslijst): Open de openbare link alleen voor je kantoor of je VPN.
 - [Aangepaste domeinen](#aangepaste-domeinen): Bied het dashboard aan op je eigen domein, met een gratis certificaat.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["Een bezoeker opent<br/>de openbare link"] --> shared("Is het dashboard<br/>openbaar gedeeld?")
     shared -->|"Nee"| missing["Een pagina<br/>'niet gevonden'"]
     shared -->|"Ja"| allowed("Staat zijn adres op<br/>de IP-toelatingslijst?")
-    allowed -->|"Ja, of<br/>geen lijst"| locked("Is een wachtwoord<br/>vereist?")
+    allowed -->|"Ja, of<br/>geen lijst"| signin("Moeten bezoekers<br/>zich aanmelden?")
     allowed -->|"Nee"| denied["Een pagina<br/>Access Denied"]
+    signin -->|"Ja"| signinpage["De aanmeld-<br/>pagina"]
+    signinpage --> board["Het dashboard"]
+    signin -->|"Nee"| locked("Is een wachtwoord<br/>vereist?")
     locked -->|"Ja"| prompt["De vraag om<br/>het wachtwoord"]
-    prompt --> board["Het dashboard"]
+    prompt --> board
     locked -->|"Nee"| board
 ```
 
@@ -32,14 +36,15 @@ Open het dashboard en kies **⋯ → Delen**, of open **Delen** in het zijmenu v
 - **Alleen mensen in dit project** (de standaard): leden zien het dashboard als ze zich bij OneUptime aanmelden. Het heeft geen openbare link: het openbare adres toont dezelfde pagina 'niet gevonden' als een adres zonder dashboard, en niets over het dashboard, zelfs de naam niet.
 - **Iedereen met de link**: het dashboard is openbaar. Iedereen die de link heeft, kan het zien, zonder zich aan te melden.
 - **Iedereen met de link en een wachtwoord**: bezoekers openen de link en voeren daarna één wachtwoord in dat jij met hen deelt. Niemand heeft een account nodig.
+- **Alleen mensen die inloggen**: het dashboard heeft een openbare link, en alleen de mensen die jij kiest openen het, zodra ze zich daar aanmelden: de privégebruikers die je uitnodigt en de mensen die je single sign-on toelaat. Zie [Alleen mensen die inloggen](#alleen-mensen-die-inloggen).
 
-Een keuze maken vraagt om bevestiging, met wat er voor bezoekers verandert, en wordt dan meteen toegepast. **Iedereen met de link en een wachtwoord** kiezen vraagt in hetzelfde dialoogvenster om het wachtwoord als het dashboard er nog geen heeft; zolang dat de keuze is, vervangt **Wachtwoord wijzigen** het. Zolang het dashboard openbaar is, staan de adressen waarop bezoekers het openen onder de keuze: eerst de aangepaste domeinen, dan de openbare link, elk met **Link kopiëren**. Een aangepast domein dat nog niet live is, is gemarkeerd met **Nog niet live**, met de reden.
+Een keuze maken vraagt om bevestiging, met wat er voor bezoekers verandert, en wordt dan meteen toegepast. **Iedereen met de link en een wachtwoord** kiezen vraagt in hetzelfde dialoogvenster om het wachtwoord als het dashboard er nog geen heeft; zolang dat de keuze is, vervangt **Wachtwoord wijzigen** het. Zolang het dashboard openbaar is, staan de adressen waarop bezoekers het openen onder de keuze: eerst de aangepaste domeinen, dan de openbare link, elk met **Link kopiëren**. Een aangepast domein dat nog niet live is, is gemarkeerd met **Nog niet live**, met de reden. Zolang **Alleen mensen die inloggen** de keuze is, staan **Privégebruikers** en **Single Sign-On** er één klik onder.
 
 Binnen het project bepalen eigenaren en labels wie wat ziet: zie [Dashboard-configuratie en machtigingen](/docs/dashboards/configuration). Wie het dashboard kan zien maar niet kan bewerken, ziet de keuze en kan de openbare link kopiëren, maar kan haar niet wijzigen.
 
-In OneUptime Cloud vereist het delen van een dashboard het abonnement **Growth**: in een lager abonnement tonen de twee openbare keuzes het abonnement dat ze nodig hebben en kunnen ze niet worden gekozen. Een dashboard weer privé maken (**Alleen mensen in dit project**) werkt in elk abonnement, dus een dashboard dat openbaar bleef toen een proefperiode afliep, of na een overstap naar een lager abonnement, kan altijd stoppen met delen; het dialoogvenster zegt dat opnieuw delen **Growth** vereist. Wisselen tussen **Iedereen met de link** en **Iedereen met de link en een wachtwoord**, en het wachtwoord wijzigen, werkt in elk abonnement. Een dashboard dat via de API of Terraform wordt gemaakt, valt onder dezelfde abonnementen: openbaar aangemaakt vereist het **Growth**, en aangemaakt met een IP-toelatingslijst **Scale**.
+In OneUptime Cloud vereist het delen van een dashboard het abonnement **Growth**: in een lager abonnement tonen de openbare keuzes het abonnement dat ze nodig hebben en kunnen ze niet worden gekozen. Een dashboard weer privé maken (**Alleen mensen in dit project**) werkt in elk abonnement, dus een dashboard dat openbaar bleef toen een proefperiode afliep, of na een overstap naar een lager abonnement, kan altijd stoppen met delen; het dialoogvenster zegt dat opnieuw delen **Growth** vereist. Wisselen tussen **Iedereen met de link** en **Iedereen met de link en een wachtwoord**, en het wachtwoord wijzigen, werkt in elk abonnement. **Alleen mensen die inloggen** vereist ook **Growth**, net als de privégebruikers ervan, en de single sign-on ervan vereist **Scale**; ervan af stappen werkt in elk abonnement, en het dialoogvenster zegt dat het opnieuw kiezen **Growth** vereist. Een dashboard dat via de API of Terraform wordt gemaakt, valt onder dezelfde abonnementen: openbaar aangemaakt vereist het **Growth**, en aangemaakt met een IP-toelatingslijst **Scale**.
 
-De keuze wordt opgeslagen in drie kolommen, die de API en Terraform lezen en schrijven zoals voorheen: `isPublicDashboard`, `enableMasterPassword` en `masterPassword`. Alleen een openbaar dashboard heeft een openbare link, en de bezoekers ervan krijgen de vraag om het wachtwoord zolang `enableMasterPassword` aan staat. Een openbaar dashboard met `enableMasterPassword` aan maar zonder ingesteld wachtwoord laat niemand binnen via de openbare link: de pagina **Delen** toont het als **Iedereen met de link en een wachtwoord**, zegt dat nog niemand de link kan openen, en biedt **Wachtwoord instellen** aan. **Alleen mensen in dit project** kiezen zet ook `enableMasterPassword` uit en bewaart het wachtwoord, zodat opnieuw delen met een wachtwoord het kan hergebruiken.
+De keuze wordt opgeslagen in vier kolommen, die de API en Terraform lezen en schrijven: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` en `requireSignIn`. Alleen een openbaar dashboard heeft een openbare link, en de bezoekers ervan krijgen de vraag om het wachtwoord zolang `enableMasterPassword` aan staat. Een openbaar dashboard met `enableMasterPassword` aan maar zonder ingesteld wachtwoord laat niemand binnen via de openbare link: de pagina **Delen** toont het als **Iedereen met de link en een wachtwoord**, zegt dat nog niemand de link kan openen, en biedt **Wachtwoord instellen** aan. **Alleen mensen in dit project** kiezen zet ook `enableMasterPassword` uit en bewaart het wachtwoord, zodat opnieuw delen met een wachtwoord het kan hergebruiken. Een openbaar dashboard met `requireSignIn` aan vraagt de bezoekers zich aan te melden, en nooit om het wachtwoord: **Alleen mensen die inloggen** kiezen zet `enableMasterPassword` uit en bewaart het wachtwoord ook.
 
 ## Openbare dashboards
 
@@ -64,7 +69,19 @@ Gebruik een wachtwoord als:
 - Je wilt delen met een partner of klant, maar niet wilt dat de URL bruikbaar is als hij uitlekt.
 - Het dashboard "semi-openbaar" is: open genoeg dat je niet elke kijker als teamlid wilt uitnodigen, maar niet zo open dat je het op het open internet zet.
 
-Voor strengere toegang (een eigen account per kijker, een audittrail van wie wat heeft bekeken) houd je het dashboard op **Alleen mensen in dit project** en nodig je kijkers in plaats daarvan uit als teamleden met alleen-lezen toegang.
+Voor strengere toegang (een eigen account per kijker, een audittrail van wie wat heeft bekeken) houd je het dashboard op **Alleen mensen in dit project** en nodig je kijkers in plaats daarvan uit als teamleden met alleen-lezen toegang, of kies je **Alleen mensen die inloggen**.
+
+## Alleen mensen die inloggen
+
+Kies **Alleen mensen die inloggen** om alleen de mensen die jij kiest de openbare link te laten openen. Elke bezoeker komt eerst op een aanmeldpagina, via de openbare link en op elk aangepast domein. Die toont de naam, de paginatitel en het favicon van het dashboard, in het thema ervan, en verder niets: niet de widgets en niet wie zich mag aanmelden. Na het aanmelden zegt het dashboard wie er is aangemeld, met een knop om af te melden.
+
+Open **Openbare link → Privégebruikers** in het zijmenu van het dashboard om de mensen die zich mogen aanmelden per e-mail toe te voegen. Elk krijgt per e-mail een uitnodiging met een link waarmee ze een wachtwoord kiezen. De link werkt 24 uur, en de link voor een vergeten wachtwoord op de aanmeldpagina stuurt een nieuwe. De tabel toont wie **Aangemeld** is, wiens uitnodiging **Uitnodiging verzonden** is en wanneer elk **Laatst ingelogd** was. Iemand verwijderen, of een nieuw wachtwoord, meldt die persoon bij het volgende verzoek overal af.
+
+Open **Openbare link → Single Sign-On** om je identiteitsprovider mensen te laten aanmelden, met SAML of OpenID Connect. Elke provider toont de waarden die je in je identiteitsprovider plakt. Wie je identiteitsprovider toelaat, wordt bij de eerste aanmelding een privégebruiker. Een provider uitzetten, of verwijderen, meldt iedereen af die hij heeft aangemeld. **SSO vereisen om aan te melden** zet aanmelden met een wachtwoord uit: iedereen meldt zich dan aan met single sign-on, en wie met een wachtwoord is aangemeld, wordt bij het volgende verzoek afgemeld.
+
+Een aanmelding blijft geldig tot ze 30 dagen niet is gebruikt. De cookies ervan worden alleen naar het eigen adres van het dashboard gestuurd, zodat geen andere site er het dashboard mee kan lezen of iemand kan afmelden. Aanmeldpogingen zijn beperkt voor elk adres en elk account, en de aanmeldpagina en de pagina voor een vergeten wachtwoord antwoorden hetzelfde, of een adres zich nu mag aanmelden of niet.
+
+Via de API zijn privégebruikers en single sign-on-providers eigen records: `/dashboard-private-user`, `/dashboard-sso` en `/dashboard-oidc`, elk met rechten die naar ze zijn genoemd.
 
 ## IP-toelatingslijst
 

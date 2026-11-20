@@ -1,4 +1,7 @@
 import PublicAddressCopy from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
+import { PRIVATE_USER_RESET_LINK_LIFETIME_IN_DAYS } from "Common/Server/Services/PrivateUserServiceBase";
+import { PRIVATE_USER_SESSION_TTL_DAYS } from "Common/Server/Services/PrivateUserSessionServiceBase";
+import { PUBLIC_DASHBOARD_API_COOKIE_PATH } from "Common/Server/Utils/Cookie";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -6,7 +9,8 @@ import path from "path";
 /*
  * Who can view a dashboard is one choice on its Sharing page (also ⋯ ->
  * Share on the dashboard): only people in this project, anyone with the
- * link, or anyone with the link and a password, with the IP allowlist under
+ * link, anyone with the link and a password, or only people who sign in
+ * (#10250), with the IP allowlist under
  * More settings. It used to be "Authentication", under Advanced, with an "Is
  * Visible to Public" switch, a "Master Password" card with a "Require Master
  * Password" switch, and an "IP Whitelist" card - and the English guides sent
@@ -38,6 +42,7 @@ const CHOICES: Array<string> = [
   "**Only people in this project**",
   "**Anyone with the link**",
   "**Anyone with the link and a password**",
+  "**Only people who sign in**",
 ];
 
 function expectInOrder(text: string, parts: Array<string>): void {
@@ -80,7 +85,7 @@ describe("the English sharing guide", () => {
     );
   });
 
-  it("lists the three choices in order, the default first", () => {
+  it("lists the four choices in order, the default first", () => {
     const list: Array<string> = section
       .split("\n")
       .filter((line: string): boolean => {
@@ -145,7 +150,7 @@ describe("the English sharing guide", () => {
 
   it("says what a choice stores, the rule the server keeps, and the locked state", () => {
     expect(section).toContain(
-      "`isPublicDashboard`, `enableMasterPassword` and `masterPassword`",
+      "`isPublicDashboard`, `enableMasterPassword`, `masterPassword` and `requireSignIn`",
     );
     expect(section).toContain(
       "Only a public dashboard has a public link, and its visitors are asked for the password whenever `enableMasterPassword` is on.",
@@ -178,6 +183,67 @@ describe("the English sharing guide", () => {
       "the folded **More settings** header shows **IP Allowlist** with the number of entries it holds",
     );
     expect(allowlist).not.toContain("**Configured**");
+  });
+
+  it("says what only people who sign in stores, needs and leaves of the password", () => {
+    expect(section).toContain(
+      "**Only people who sign in** needs **Growth** too, as its private users do, and its single sign-on needs **Scale**",
+    );
+    expect(section).toContain(
+      "A public dashboard with `requireSignIn` on asks its visitors to sign in, and never for the password",
+    );
+    expect(section).toContain(
+      "While **Only people who sign in** is the choice, **Private Users** and **Single Sign-On** are one click away under it.",
+    );
+  });
+
+  describe("the section on only people who sign in (#10250)", () => {
+    const signIn: string = sectionOf(page, "Only people who sign in");
+
+    it("says the sign-in page shows only the name, page title and favicon, on every address", () => {
+      expect(signIn).toContain(
+        "Every visitor meets a sign-in page first, on the public link and on every custom domain. It shows the dashboard's name, page title and favicon, in its theme, and nothing else: not its widgets, and not who may sign in.",
+      );
+    });
+
+    it("names the two pages under Public Link, and the invitation's link lifetime the server keeps", () => {
+      expect(PRIVATE_USER_RESET_LINK_LIFETIME_IN_DAYS).toBe(1);
+      expect(signIn).toContain(
+        "Open **Public Link → Private Users** in the dashboard's side menu",
+      );
+      expect(signIn).toContain("The link works for 24 hours");
+      expect(signIn).toContain("Open **Public Link → Single Sign-On**");
+    });
+
+    it("says what Require SSO to Sign In and turning a provider off do to sessions", () => {
+      expect(signIn).toContain(
+        "Turning a provider off, or deleting it, signs out everyone it signed in.",
+      );
+      expect(signIn).toContain(
+        "**Require SSO to Sign In** turns password sign-in off: everyone then signs in with single sign-on, and anyone signed in with a password is signed out at their next request.",
+      );
+    });
+
+    it("states the session's idle limit and the cookies' reach as the server sets them", () => {
+      expect(PRIVATE_USER_SESSION_TTL_DAYS).toBe(30);
+      expect(PUBLIC_DASHBOARD_API_COOKIE_PATH).toBe("/public-dashboard-api");
+      expect(signIn).toContain(
+        "A sign-in lasts until it goes unused for 30 days. Its cookies are sent only to the dashboard's own address",
+      );
+      expect(signIn).toContain(
+        "the sign-in and forgotten password pages answer the same whether or not an address may sign in.",
+      );
+    });
+
+    it("names the records the API keeps, as the models' routes are", () => {
+      for (const route of [
+        "/dashboard-private-user",
+        "/dashboard-sso",
+        "/dashboard-oidc",
+      ]) {
+        expect(signIn).toContain(`\`${route}\``);
+      }
+    });
   });
 
   it("has the password section, named for the choice", () => {
@@ -245,7 +311,7 @@ describe("the English configuration guide", () => {
   const page: string = readPage("en/dashboards/configuration.md");
   const section: string = sectionOf(page, "Access for public dashboards");
 
-  it("names Sharing and its three choices, in order", () => {
+  it("names Sharing and its four choices, in order", () => {
     expect(section).toContain(
       "is one choice on its **Sharing** page (also **⋯ → Share** on the dashboard itself;",
     );

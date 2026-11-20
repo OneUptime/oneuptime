@@ -60,6 +60,7 @@ Chi può vedere una dashboard fuori dal progetto è un'unica scelta nella sua pa
 1. **Solo le persone di questo progetto** (l'impostazione predefinita): la dashboard non ha un link pubblico; il suo indirizzo pubblico mostra una pagina non trovata.
 2. **Chiunque abbia il link**: chiunque abbia il link pubblico può vederla, senza accedere.
 3. **Chiunque abbia il link e una password**: i visitatori inseriscono una password prima che compaia la dashboard.
+4. **Solo chi accede**: la vedono, una volta effettuato l'accesso, solo gli utenti privati che inviti e le persone ammesse dal tuo single sign-on.
 
 In **Altre impostazioni** nella stessa pagina, la **Lista IP consentiti** (piano Scale) rifiuta le richieste al link pubblico da qualsiasi indirizzo IP che non vi compare. La configurazione pubblica più blindata è **Chiunque abbia il link e una password** con una lista di IP consentiti: utile per i portali dei partner in cui vuoi entrambi i livelli.
 

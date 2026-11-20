@@ -59889,7 +59889,6 @@
   "Invite the people who can sign in, or let your single sign-on sign them in.": "Пригласите людей, которые могут входить, или позвольте вашему единому входу впускать их.",
   "It applies while only people who sign in can view this dashboard.": "Действует, пока эту панель видят только вошедшие пользователи.",
   "Manage OpenID Connect (OIDC) sign-in for a dashboard that asks its visitors to sign in": "Управление входом через OpenID Connect (OIDC) для панели, которая просит посетителей войти",
-  "Only this dashboard's private users and the people your single sign-on lets in will see it, once they sign in. Everyone else is asked to sign in, on the public link and every custom domain.": "Эту панель увидят только её приватные пользователи и люди, которых впускает ваш единый вход, после того как войдут. Всех остальных попросят войти — по публичной ссылке и на каждом пользовательском домене.",
   "People who can sign in to open a dashboard's public link when it asks its visitors to sign in.": "Люди, которые могут войти, чтобы открыть публичную ссылку панели, когда она просит посетителей войти.",
   "People who can sign in to open this dashboard's public link. Each one is emailed an invitation when you add them.": "Люди, которые могут войти, чтобы открыть публичную ссылку этой панели. Каждый получает приглашение по электронной почте, когда вы его добавляете.",
   "Private users can no longer sign in with a password; only people your SSO provider lets in will see this dashboard. Test SSO first.": "Приватные пользователи больше не смогут входить по паролю; эту панель увидят только люди, которых впускает ваш поставщик SSO. Сначала проверьте SSO.",
@@ -59903,5 +59902,6 @@
   "Visitors sign in on the link first: the private users you invite, and the people your single sign-on lets in.": "Посетители сначала входят по ссылке: приглашённые вами приватные пользователи и люди, которых впускает ваш единый вход.",
   "Visitors sign in with your OpenID Connect provider, such as Google or Okta.": "Посетители входят через вашего поставщика OpenID Connect, например Google или Okta.",
   "Visitors sign in with your SAML identity provider, such as Okta or Microsoft Entra ID.": "Посетители входят через вашего поставщика удостоверений SAML, например Okta или Microsoft Entra ID.",
-  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Ваши поставщики удостоверений SAML и OIDC и «Требовать SSO для входа»."
+  "Your SAML and OIDC identity providers, and Require SSO to Sign In.": "Ваши поставщики удостоверений SAML и OIDC и «Требовать SSO для входа».",
+  "Only its private users and the people your single sign-on lets in will see it. Everyone else is asked to sign in, on its link and custom domains.": "Её увидят только её приватные пользователи и люди, которых впускает ваш единый вход. Всех остальных попросят войти — по её ссылке и на её пользовательских доменах."
 }

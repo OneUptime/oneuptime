@@ -30,13 +30,14 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  * /identity/... to them. Changing one silently breaks sign-in for every
  * customer that uses it, with nothing on our side to notice.
  *
- * PINNED_ROUTES is the full (method, path) list of the seven SSO routers: the
+ * PINNED_ROUTES is the full (method, path) list of the nine SSO routers: the
  * six that were registered in packages/App/FeatureSet/Identity/API/*.ts at
  * commit 2eeec4a847, read from the live routers' stacks (not from the source
  * text) before they moved to ee/ and back, plus the confirmation page added
- * while they were in ee/, and the SAML Single Logout URLs and the signing
+ * while they were in ee/, the SAML Single Logout URLs and the signing
  * certificate a project's and the instance's SAML providers give identity
- * providers since #9603. The order is the registration order, which is also
+ * providers since #9603, and a dashboard's SAML and OIDC sign-in for the
+ * people who sign in to its public link (#10250). The order is the registration order, which is also
  * Express's match order. Changing this list is changing a public contract: it
  * needs a migration plan for every configured identity provider, not just an
  * updated test. (The SCIM routes are the Enterprise Edition's and are pinned
@@ -81,6 +82,16 @@ jest.mock("../../../FeatureSet/Identity/API/SignInMethods", () => {
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
+// A dashboard's sign-in on its public link (#10250), mounted after the rest.
+jest.mock(
+  "../../../FeatureSet/Identity/API/DashboardPrivateUserAuthentication",
+  () => {
+    return {
+      __esModule: true,
+      default: { coreRouter: "dashboard-private-user" },
+    };
+  },
+);
 
 type PinnedRoute = [method: string, path: string];
 
@@ -139,6 +150,21 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
     routes: [
       ["GET", "/status-page-oidc/:statusPageId/:statusPageOidcId"],
       ["GET", "/status-page-oidc-callback/:statusPageId/:statusPageOidcId"],
+    ],
+  },
+  // A dashboard's public link, for the people who sign in to it (#10250).
+  {
+    name: "DashboardSSO",
+    routes: [
+      ["GET", "/dashboard-sso/:dashboardId/:dashboardSsoId"],
+      ["POST", "/dashboard-idp-login/:dashboardId/:dashboardSsoId"],
+    ],
+  },
+  {
+    name: "DashboardOIDC",
+    routes: [
+      ["GET", "/dashboard-oidc/:dashboardId/:dashboardOidcId"],
+      ["GET", "/dashboard-oidc-callback/:dashboardId/:dashboardOidcId"],
     ],
   },
   /*
@@ -285,7 +311,7 @@ const readAppFile: (...parts: Array<string>) => string = (
 };
 
 describe("core SSO routers", () => {
-  test("are the seven SSO routers, in mount order", () => {
+  test("are the nine SSO routers, in mount order", () => {
     expect(
       SSO_ROUTERS.map((entry: SsoRouterEntry): string => {
         return entry.name;
@@ -304,7 +330,7 @@ describe("core SSO routers", () => {
     },
   );
 
-  test("together serve all 25 SSO routes, in mount order", () => {
+  test("together serve all 29 SSO routes, in mount order", () => {
     const served: Array<PinnedRoute> = SSO_ROUTERS.flatMap(
       (entry: SsoRouterEntry): Array<PinnedRoute> => {
         return getRoutes(entry.router);
@@ -312,7 +338,7 @@ describe("core SSO routers", () => {
     );
 
     expect(served).toEqual(ALL_PINNED);
-    expect(served).toHaveLength(25);
+    expect(served).toHaveLength(29);
   });
 
   test("each is a distinct router, and no (method, path) is served twice", () => {
@@ -322,7 +348,7 @@ describe("core SSO routers", () => {
           return entry.router;
         }),
       ).size,
-    ).toBe(7);
+    ).toBe(9);
     expect(
       new Set(
         ALL_PINNED.map((route: PinnedRoute): string => {
@@ -401,6 +427,8 @@ describe("the URLs the product hands out are all served", () => {
     "global-oidc-callback",
     "status-page-idp-login",
     "status-page-oidc-callback",
+    "dashboard-idp-login",
+    "dashboard-oidc-callback",
     "global-sso",
     "global-oidc",
   ];
@@ -453,6 +481,21 @@ describe("the URLs the product hands out are all served", () => {
         "OIDC.tsx",
       ],
       prints: [{ head: "status-page-oidc-callback", parameters: 2 }],
+    },
+    {
+      // A dashboard's Single Sign-On page, SAML and OIDC (#10250).
+      file: [
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Components",
+        "PrivateAccess",
+        "PrivateAccessKinds.ts",
+      ],
+      prints: [
+        { head: "dashboard-idp-login", parameters: 2 },
+        { head: "dashboard-oidc-callback", parameters: 2 },
+      ],
     },
     {
       file: [
@@ -542,6 +585,12 @@ describe("the URLs the product hands out are all served", () => {
         statusPageSsoId: "22222222-2222-4222-8222-222222222222",
       }).replyUrl;
     },
+    "DashboardSSO.ts": (): string => {
+      return SamlServiceProviders.forDashboardSso({
+        dashboardId: "11111111-1111-4111-8111-111111111111",
+        dashboardSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
   };
 
   // The shape of the path of a built URL after its /identity/.
@@ -583,6 +632,12 @@ describe("the URLs the product hands out are all served", () => {
     [
       "StatusPageOIDC.ts",
       { head: "status-page-oidc-callback", parameters: 2 },
+      "GET",
+    ],
+    ["DashboardSSO.ts", { head: "dashboard-idp-login", parameters: 2 }, "POST"],
+    [
+      "DashboardOIDC.ts",
+      { head: "dashboard-oidc-callback", parameters: 2 },
       "GET",
     ],
   ] as Array<[string, PathShape, string]>)(
@@ -654,6 +709,15 @@ describe("the URLs the product hands out are all served", () => {
       SamlServiceProviders.forStatusPageSso({
         statusPageId: "11111111-1111-4111-8111-111111111111",
         statusPageSsoId: "22222222-2222-4222-8222-222222222222",
+      }).singleLogoutUrl,
+    ).toBeUndefined();
+  });
+
+  test("nor has a dashboard's: it signs visitors in to the dashboard, not to OneUptime", () => {
+    expect(
+      SamlServiceProviders.forDashboardSso({
+        dashboardId: "11111111-1111-4111-8111-111111111111",
+        dashboardSsoId: "22222222-2222-4222-8222-222222222222",
       }).singleLogoutUrl,
     ).toBeUndefined();
   });
@@ -774,6 +838,11 @@ describe("the Identity feature set mounts the SSO routers", () => {
           paths: ["/api/identity/status-page", "/status-page"],
           router: { coreRouter: "status-page" },
         },
+        // Only under the public dashboard's API path: nothing at the root.
+        {
+          paths: "/api/dashboard/private-user",
+          router: { coreRouter: "dashboard-private-user" },
+        },
       ]);
 
       // The very same router instances, not copies.
@@ -801,6 +870,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
         return entry.router;
       }),
       { coreRouter: "status-page" },
+      { coreRouter: "dashboard-private-user" },
     ]);
   });
 
@@ -846,6 +916,10 @@ describe("the Identity feature set mounts the SSO routers", () => {
       {
         paths: ["/api/identity/status-page", "/status-page"],
         router: { coreRouter: "status-page" },
+      },
+      {
+        paths: "/api/dashboard/private-user",
+        router: { coreRouter: "dashboard-private-user" },
       },
     ]);
   });

@@ -428,6 +428,26 @@ jobs:
           Tests/Server/Utils/Retention/SoftDeletedRowsPurgePostgres.test.ts
           --forceExit
 
+      # The sessions of a dashboard's private users (#10250), on copies of
+      # the migrated tables: a refresh token kept as its hash and rotated in
+      # one conditional write, a session that counts only for its own
+      # dashboard and private user while its sign-in still counts (Require
+      # SSO, a provider turned off or deleted), a single sign-on code
+      # exchanged once, and a new password or a removed private user ending
+      # every session of theirs.
+      - name: Test dashboard private user sessions on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DASHBOARD_PRIVATE_USER_TESTS: "true"
+          DASHBOARD_PRIVATE_USER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DASHBOARD_PRIVATE_USER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DASHBOARD_PRIVATE_USER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DashboardPrivateUserSessionsPostgres.test.ts
+          --forceExit
+
       # Deleting the rows older than their table keeps them (issue #8894):
       # 1000 a statement, one DELETE a batch, a run out of time taking one
       # batch of each table and the next run the rest, a table with no
