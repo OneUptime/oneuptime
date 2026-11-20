@@ -180,7 +180,22 @@ export default class IncidentMember extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentMember,
     ],
-    update: [],
+    /*
+     * Reassign hands the role to someone else in one write: the row keeps
+     * its incident and its role, and names another person
+     * (IncidentMemberService.onUpdatePermitted). It was a delete and a
+     * create, which asked a permission to take people off roles of whoever
+     * only meant to hand one on, and left the role with nobody when the
+     * second step failed (#10191).
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentMember,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "userId",
@@ -223,7 +238,15 @@ export default class IncidentMember extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentMember,
     ],
-    update: [],
+    // Reassign: see the user relation above.
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentMember,
+    ],
   })
   @Index()
   @TableColumn({
