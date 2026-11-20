@@ -96,7 +96,10 @@ const OWN_CARD_EMAILS: Array<[string, Record<string, string>, Array<string>]> =
     [
       "TwoFactorWrongCodes",
       { wrongCodeCount: "5", enteredAt: "Oct 18, 2026, 12:07 UTC" },
-      ["Wrong codes in a row: 5", "Last wrong code at: Oct 18, 2026, 12:07 UTC"],
+      [
+        "Wrong codes in a row: 5",
+        "Last wrong code at: Oct 18, 2026, 12:07 UTC",
+      ],
     ],
     [
       "TwoFactorBackupCodeUsed",

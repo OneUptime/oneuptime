@@ -209,9 +209,7 @@ describe("DashboardDateTime", () => {
       OneUptimeDate.setUserTimezone(Timezone.AustraliaSydney);
 
       // Sydney is already in 2027 while UTC is still in 2026.
-      expect(getDashboardDateTime(newYearsEve).label).toBe(
-        "Jan 1, 2027 10:30",
-      );
+      expect(getDashboardDateTime(newYearsEve).label).toBe("Jan 1, 2027 10:30");
     });
 
     it("handles zones at a half-hour offset", () => {

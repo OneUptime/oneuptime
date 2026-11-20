@@ -264,7 +264,7 @@ describe("DetailBoxField escaping", () => {
       declaredAt: "Sep 5, 2026, 10:55 AM BST<br/>Sep 5, 2026, 5:55 AM EDT",
     });
 
-    expect(html).toContain("BST<br/>Sep 05");
+    expect(html).toContain("BST<br/>Sep 5");
     expect(html).not.toContain("&lt;br/&gt;");
   });
 
