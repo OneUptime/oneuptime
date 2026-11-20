@@ -1671,17 +1671,49 @@ describe("KubernetesCostIngestService corrections", () => {
   });
 
   test("a container the window does not have is written whole, usage and all", async () => {
+    // The window holds another container: this one was collected late.
+    findWindowSlicesMock.mockResolvedValue([
+      slice({ podName: "api-def" }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ cpuCoreHours: 1.5, totalCost: 0.07 })]),
+    );
+
+    const rows: Array<JSONObject> = writtenRows();
+    expect(rows).toHaveLength(1);
+
+    const row: JSONObject = rows[0]!;
+    expect(row["podName"]).toBe("api-abc");
+    expect(row["isCostAdjustment"]).toBe(false);
+    expect(row["cpuCoreHours"]).toBe(1.5);
+    expect(row["totalCost"]).toBe(0.07);
+    expect(row["labels"]).toEqual({ team: "payments" });
+  });
+
+  test("a window that holds nothing is left alone: a correction never stands in for a first reading", async () => {
+    // What a restarted agent's reading of an hour from before it ran finds.
     findWindowSlicesMock.mockResolvedValue([] as never);
 
     await KubernetesCostIngestService.processFromQueue(
       correction([makeAllocation({ cpuCoreHours: 1.5, totalCost: 0.07 })]),
     );
 
-    const row: JSONObject = writtenRows()[0]!;
-    expect(row["isCostAdjustment"]).toBe(false);
-    expect(row["cpuCoreHours"]).toBe(1.5);
-    expect(row["totalCost"]).toBe(0.07);
-    expect(row["labels"]).toEqual({ team: "payments" });
+    expect(insertCorrectionMock).not.toHaveBeenCalled();
+    expect(insertMetricsMock).not.toHaveBeenCalled();
+    // Routine, so not a warning.
+    expect(logger.warn as unknown as MockedFn).not.toHaveBeenCalled();
+    expect(
+      (logger.debug as unknown as MockedFn).mock.calls.some(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]).includes(
+            "the window holds nothing to correct",
+          );
+        },
+      ),
+    ).toBe(true);
+    // And the lock is given back.
+    expect(releaseMock).toHaveBeenCalledTimes(1);
   });
 
   test("a container the window has and the reading lacks is left as it is", async () => {
@@ -1896,7 +1928,32 @@ describe("KubernetesCostIngestService.buildCorrection", () => {
         { row, metricSource: source },
         { row: { ...row, totalCost: 9 }, metricSource: source },
       ],
-      stored: [],
+      // The window holds another container; this one is new to it.
+      stored: [
+        {
+          namespace: "prod",
+          controllerKind: "deployment",
+          controllerName: "api",
+          podName: "api-def",
+          containerName: "api",
+          nodeName: "",
+          providerId: "",
+          labels: {},
+          costEngine: "Kubecost",
+          costEngineService: "",
+          cpuCost: 0,
+          gpuCost: 0,
+          ramCost: 0,
+          pvCost: 0,
+          networkCost: 0,
+          loadBalancerCost: 0,
+          sharedCost: 0,
+          externalCost: 0,
+          totalCost: 0.1,
+          efficiencyWeight: 0,
+          weightedEfficiency: 0,
+        },
+      ],
       costEngine: {
         engine: "Kubecost",
         service: "",

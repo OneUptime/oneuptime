@@ -46,7 +46,9 @@ import { KubernetesCostAllocationIngestRow } from "./Types";
  * poller hands the schedule the hours a previous process may have shipped
  * (seed): each is read once more at the age it last passed, in case that
  * reading was missed, and then at the ages after. Without its fingerprint,
- * every such reading is sent, and the server leaves what has not changed.
+ * every such reading is sent, and the server leaves what has not changed,
+ * and an hour it holds nothing of (one from before the agent ran): a
+ * correction corrects a first reading, and never stands in for one.
  */
 
 const HOUR_MS: number = 60 * 60 * 1000;

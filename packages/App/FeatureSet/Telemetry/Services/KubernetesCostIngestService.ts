@@ -431,8 +431,11 @@ export default class KubernetesCostIngestService {
    * as it was. A container the reading has and the window does not is
    * written whole. One the window has and the reading does not is left as
    * it is: a reading short of a container says nothing of what it cost.
-   * And a window priced by another engine than the reading's is left alone:
-   * one engine's figures never go in place of another's.
+   * A window priced by another engine than the reading's is left alone:
+   * one engine's figures never go in place of another's. And so is a window
+   * that holds nothing: a correction corrects what a first reading stored,
+   * and never stands in for one (after a restart the agent reads again
+   * hours it cannot tell it shipped, from before it was installed too).
    */
   private static async processCorrection(data: {
     allocations: Array<KubernetesCostAllocationIngestRow>;
@@ -515,9 +518,17 @@ export default class KubernetesCostIngestService {
         });
 
         if (correction.refused) {
-          logger.warn(
-            `KubernetesCostIngestService: a later reading of window ${window.windowStart.toISOString()} for cluster "${data.clusterName}" was not brought in: ${correction.refused}`,
-          );
+          const message: string = `KubernetesCostIngestService: a later reading of window ${window.windowStart.toISOString()} for cluster "${data.clusterName}" was not brought in: ${correction.refused}`;
+
+          /*
+           * A window with nothing in it is what a restarted agent's reading
+           * of an hour it never shipped finds: routine, not a warning.
+           */
+          if (stored.length === 0) {
+            logger.debug(message);
+          } else {
+            logger.warn(message);
+          }
           continue;
         }
 
@@ -588,6 +599,15 @@ export default class KubernetesCostIngestService {
     if (!data.costEngine || !data.costEngine.engine) {
       return {
         refused: "the reading does not say which engine priced it",
+        rows: [],
+        metricSources: [],
+      };
+    }
+
+    if (data.stored.length === 0) {
+      return {
+        refused:
+          "the window holds nothing to correct: no first reading of it was stored",
         rows: [],
         metricSources: [],
       };
