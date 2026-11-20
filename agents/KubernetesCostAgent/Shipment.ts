@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { correctionFingerprint } from "./EngineCorrections";
 import { KubernetesCostAllocationIngestRow } from "./Types";
 
 /*
@@ -58,9 +59,21 @@ export interface Shipment {
   rows: Array<KubernetesCostAllocationIngestRow>;
 }
 
+/*
+ * A correction (#9969) is a later reading of a window whose rows the server
+ * holds, and its identity is a hash of its costs too (EngineCorrections'
+ * correctionFingerprint): it never matches the first delivery's, so a
+ * server older than corrections takes it for another delivery of a window
+ * it has and skips it, rather than for that delivery's own chunks. The same
+ * reading sent twice still hashes the same.
+ */
 export const buildShipment: (
   rows: Array<KubernetesCostAllocationIngestRow>,
-) => Shipment = (rows: Array<KubernetesCostAllocationIngestRow>): Shipment => {
+  options?: { correction?: boolean | undefined },
+) => Shipment = (
+  rows: Array<KubernetesCostAllocationIngestRow>,
+  options?: { correction?: boolean | undefined },
+): Shipment => {
   const identified: Array<{
     key: string;
     row: KubernetesCostAllocationIngestRow;
@@ -93,6 +106,13 @@ export const buildShipment: (
   );
 
   const hash: ReturnType<typeof createHash> = createHash("sha256");
+
+  if (options?.correction) {
+    hash.update("correction\n");
+    hash.update(correctionFingerprint(rows));
+    hash.update("\n");
+  }
+
   for (const entry of identified) {
     hash.update(entry.key);
     hash.update("\n");

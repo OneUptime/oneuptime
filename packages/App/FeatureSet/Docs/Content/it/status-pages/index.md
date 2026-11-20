@@ -98,7 +98,7 @@ Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppa
 | **Iscritti** | **Iscritti** (un'unica pagina, con una scheda per ogni canale: E-mail, SMS, Slack, Microsoft Teams e Webhook), **Impostazioni iscritti**, **Log di notifica**: ciò che è stato inviato agli iscritti. |
 | **Branding** | **Branding** (logo, titolo, favicon, link, piè di pagina, colori e lingue, in un'unica pagina), **Domini personalizzati**, **HTML, CSS e JavaScript**. |
 | **Sicurezza** | **Accesso** (chi può vedere la pagina), **Utenti privati**, **Single Sign-On** (una scheda per SAML e una per OIDC), **SCIM**. |
-| **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA**: la pagina come codice. |
+| **Sviluppatori** | **Terraform**, **Crossplane**, **API**, **CLI**, **Assistenti IA**: la pagina come codice. |
 | **Avanzato** | **MCP**, **Stato incorporato**, **Report**, **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina pagina di stato**. |
 
 Solo **Panoramica** e **Risorse**, ciò che la pagina mostra, partono aperte. Tutte le altre sezioni partono chiuse, come le sezioni poco usate di ogni menu di OneUptime: fate clic sul titolo di una sezione per mostrarne le pagine. Una sezione si apre da sola quando vi trovate su una delle sue pagine, come **Impostazioni** o **Iscritti**.

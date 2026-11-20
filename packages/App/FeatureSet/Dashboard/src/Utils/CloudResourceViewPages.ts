@@ -51,6 +51,7 @@ export enum CloudResourceViewTab {
   AuditLogs = "audit-logs",
   Delete = "delete",
   DeveloperTerraform = "developer-terraform",
+  DeveloperCrossplane = "developer-crossplane",
   DeveloperApi = "developer-api",
   DeveloperCli = "developer-cli",
   DeveloperAiAssistants = "developer-ai-assistants",
@@ -85,6 +86,7 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   [CloudResourceViewTab.AuditLogs]: "audit-logs",
   [CloudResourceViewTab.Delete]: "delete",
   [CloudResourceViewTab.DeveloperTerraform]: "developer/terraform",
+  [CloudResourceViewTab.DeveloperCrossplane]: "developer/crossplane",
   [CloudResourceViewTab.DeveloperApi]: "developer/api",
   [CloudResourceViewTab.DeveloperCli]: "developer/cli",
   [CloudResourceViewTab.DeveloperAiAssistants]: "developer/ai-assistants",
@@ -124,6 +126,10 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.DeveloperTerraform]: getDeveloperDocsPageKey(
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
     DeveloperDocsPageType.Terraform,
+  ),
+  [CloudResourceViewTab.DeveloperCrossplane]: getDeveloperDocsPageKey(
+    PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+    DeveloperDocsPageType.Crossplane,
   ),
   [CloudResourceViewTab.DeveloperApi]: getDeveloperDocsPageKey(
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
@@ -182,6 +188,10 @@ export const RESOURCE_VIEW_PAGES: Readonly<
   [CloudResourceViewTab.DeveloperTerraform]: getDeveloperDocsPageKey(
     PageMap.CLOUD_RESOURCE_VIEW,
     DeveloperDocsPageType.Terraform,
+  ),
+  [CloudResourceViewTab.DeveloperCrossplane]: getDeveloperDocsPageKey(
+    PageMap.CLOUD_RESOURCE_VIEW,
+    DeveloperDocsPageType.Crossplane,
   ),
   [CloudResourceViewTab.DeveloperApi]: getDeveloperDocsPageKey(
     PageMap.CLOUD_RESOURCE_VIEW,

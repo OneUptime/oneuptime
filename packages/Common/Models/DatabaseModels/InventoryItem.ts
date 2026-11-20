@@ -527,6 +527,7 @@ export default class InventoryItem extends DatabaseBaseModel {
     description:
       "Is this item archived? Archived items are hidden from the default list but keep their identity and keep collecting telemetry.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,

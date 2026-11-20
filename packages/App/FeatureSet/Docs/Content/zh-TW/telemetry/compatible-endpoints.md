@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 使用 Grafana Alloy 時，新增一個 `prometheus.remote_write` 元件，並將抓取結果轉送給它：
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-remote write 1.0 與 2.0 都可以接受，並且與所有傳送端的傳送方式一樣，經過 snappy 壓縮。
+remote write 1.0 與 2.0 都可以接受，並且與所有傳送端的傳送方式一樣，經過 snappy 壓縮。要傳送帶有每個序列的類型、單位與描述的 2.0，請設定 `protobuf_message: io.prometheus.write.v2.Request`（Prometheus 3）或 `protobuf_message = "io.prometheus.write.v2.Request"`（Alloy）。Prometheus 在儲存 exemplar 之後（`--enable-feature=exemplar-storage`），會透過 `send_exemplars: true` 傳送它們；Alloy 預設就會傳送。
 
 ### 序列會變成什麼
 
 - **名稱與標籤保持不變。** `http_requests_total{job="checkout", code="500"}` 會成為帶有屬性 `job` 與 `code` 的指標 `http_requests_total`，因此從 Grafana 移過來的查詢也能找到它。
 - **job 就是服務。** 依照 OpenTelemetry 對 Prometheus 的對應規則，每個 `job` 成為一個服務，每個 `instance` 成為該服務的執行個體。
 - **類型會保留。** 計數器，以及直方圖的區間與計數，都是累積總和，因此它們的速率能正確繪製成圖表。類型來自傳送端附帶的中繼資料；沒有中繼資料時，名稱以 `_total` 結尾的是計數器，帶有 `le` 標籤的 `_bucket` 是直方圖的區間。
+- **傳統直方圖可以繪製百分位數。** 傳統直方圖保留其 `_bucket`、`_count` 與 `_sum` 序列。在[指標瀏覽器](/docs/telemetry/metrics-explorer)中以 P50 到 P99 繪製其 `_bucket` 指標，每次抓取的區間都會作為一個直方圖讀取，無論每個區間是透過哪個請求抵達。在 [PromQL](/docs/telemetry/promql) 中，`histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` 的結果與 Prometheus 中相同。
 - **原生直方圖** 會變成指數直方圖，具有自訂區間的原生直方圖會變成直方圖。
-- **不保留：** 過時標記（staleness marker）以及其他 NaN 或無限大樣本、計數器的 `_created` 序列，以及 exemplar。
+- **exemplar 連結到追蹤。** 帶有 `trace_id`（或 `traceID`）標籤的 exemplar 會將它的資料點連結到該追蹤與 span：在指標的圖表上點選它的點，即可檢視該追蹤或它的日誌。它的值與其他標籤不會保留，資料點透過另一個請求抵達的 exemplar 也不會保留。
+- **不保留：** 過時標記（staleness marker）以及其他 NaN 或無限大的值，以及計數器的 `_created` 序列。它們仍會計為已寫入，因此傳送端不會回報失敗的樣本。
+- **拒絕：** 任何版本的 remote write 都不允許的資料，例如沒有指標名稱的序列，或時間戳記為負數的樣本。請求的其餘部分會被儲存，傳送端會收到說明哪些內容遭拒的 `400`。
 
 ## Loki
 
@@ -209,8 +218,8 @@ DSN 結尾的 `1` 是 Sentry SDK 所要求的，不會被讀取。瀏覽器應�
 
 ## 限制與擷取預算
 
-- **請求大小**：OneUptime 的輸入端在 `/telemetry` 下接受最大 4 MB 的請求，每個內文解壓縮後最多 64 MB。
-- **擷取預算**：Prometheus remote write 與 Loki 在讀取內文之前，就會對照指標或日誌預算進行檢查，預算用完時以 `403` 拒絕。HEC 批次、Datadog 承載或 Sentry 信封可能帶有多種訊號，因此每種訊號會在儲存時計入它自己的預算，並在該預算用完時遭到捨棄。
+- **請求大小**：OneUptime 的輸入端在 `/telemetry` 下接受最大 4 MB 的請求，每個內文解壓縮後最多 64 MB。Prometheus remote write 請求解壓縮後最多 32 MB，最多包含 500,000 個序列、標籤與樣本，因此任何單一請求都無法耗盡伺服器的記憶體。Prometheus 與 Alloy 預設每個請求傳送 2,000 個樣本，遠低於這兩個上限；超過上限的請求會以 `413` 拒絕，此時請調低 `queue_config` 中的 `max_samples_per_send`。
+- **擷取預算**：Prometheus remote write 與 Loki 在讀取內文之前，就會對照指標或日誌預算進行檢查，預算用完時以 `403` 拒絕。之後，remote write 請求會像 OTLP 請求一樣按解壓縮後的大小計入，也會計入團隊或標籤的預算。HEC 批次、Datadog 承載或 Sentry 信封可能帶有多種訊號，因此每種訊號會在儲存時計入它自己的預算，並在該預算用完時遭到捨棄。
 
 ## 疑難排解
 

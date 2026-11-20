@@ -232,7 +232,7 @@ describe("everyone else's changes name no workflow", () => {
     expect(entry.workflowId).toBeUndefined();
     expect(entry.workflowName).toBeUndefined();
     expect(entry.workflowRunAs).toBeUndefined();
-    expect(entry.workflowRunAsGivenByName).toBeUndefined();
+    expect(entry.workflowRunAsGiverName).toBeUndefined();
   });
 });
 
@@ -263,10 +263,9 @@ describe("what the workflow ran as", () => {
     return {
       workflowRunAs: entry.workflowRunAs,
       workflowRunAsCustomRoleName: entry.workflowRunAsCustomRoleName,
-      workflowRunAsGivenByUserId: entry.workflowRunAsGivenByUserId?.toString(),
-      workflowRunAsGivenByApiKeyId:
-        entry.workflowRunAsGivenByApiKeyId?.toString(),
-      workflowRunAsGivenByName: entry.workflowRunAsGivenByName,
+      workflowRunAsGiverUserId: entry.workflowRunAsGiverUserId?.toString(),
+      workflowRunAsGiverApiKeyId: entry.workflowRunAsGiverApiKeyId?.toString(),
+      workflowRunAsGiverName: entry.workflowRunAsGiverName,
     };
   }
 
@@ -276,9 +275,9 @@ describe("what the workflow ran as", () => {
     expect(ranAs(harness.inserted[0]!)).toEqual({
       workflowRunAs: WorkflowRunAs.Default,
       workflowRunAsCustomRoleName: undefined,
-      workflowRunAsGivenByUserId: undefined,
-      workflowRunAsGivenByApiKeyId: undefined,
-      workflowRunAsGivenByName: undefined,
+      workflowRunAsGiverUserId: undefined,
+      workflowRunAsGiverApiKeyId: undefined,
+      workflowRunAsGiverName: undefined,
     });
   });
 
@@ -296,9 +295,9 @@ describe("what the workflow ran as", () => {
     expect(ranAs(entry)).toEqual({
       workflowRunAs: WorkflowRunAs.ProjectOwner,
       workflowRunAsCustomRoleName: undefined,
-      workflowRunAsGivenByUserId: GIVER_ID.toString(),
-      workflowRunAsGivenByApiKeyId: undefined,
-      workflowRunAsGivenByName: "Jane Doe",
+      workflowRunAsGiverUserId: GIVER_ID.toString(),
+      workflowRunAsGiverApiKeyId: undefined,
+      workflowRunAsGiverName: "Jane Doe",
     });
     // Still the workflow's change, not the person's.
     expect(entry.userType).toBe(UserType.Workflow);
@@ -322,9 +321,9 @@ describe("what the workflow ran as", () => {
     expect(ranAs(entry)).toEqual({
       workflowRunAs: WorkflowRunAs.CustomRole,
       workflowRunAsCustomRoleName: "Team Provisioner",
-      workflowRunAsGivenByUserId: undefined,
-      workflowRunAsGivenByApiKeyId: KEY_ID.toString(),
-      workflowRunAsGivenByName: "Terraform",
+      workflowRunAsGiverUserId: undefined,
+      workflowRunAsGiverApiKeyId: KEY_ID.toString(),
+      workflowRunAsGiverName: "Terraform",
     });
     // The key gave the permissions; it made no request: no API key actor.
     expect(entry.apiKeyId).toBeUndefined();
@@ -358,8 +357,8 @@ describe("what the workflow ran as", () => {
 
     for (const entry of harness.inserted) {
       expect(entry.workflowRunAs).toBe(WorkflowRunAs.ProjectOwner);
-      expect(entry.workflowRunAsGivenByName).toBe("Jane Doe");
-      expect(entry.workflowRunAsGivenByUserId?.toString()).toBe(
+      expect(entry.workflowRunAsGiverName).toBe("Jane Doe");
+      expect(entry.workflowRunAsGiverUserId?.toString()).toBe(
         GIVER_ID.toString(),
       );
     }
@@ -379,10 +378,10 @@ describe("what the workflow ran as", () => {
     const entry: AuditLog = harness.inserted[0]!;
 
     expect(entry.workflowRunAs).toBe(WorkflowRunAs.ProjectOwner);
-    expect(entry.workflowRunAsGivenByApiKeyId?.toString()).toBe(
+    expect(entry.workflowRunAsGiverApiKeyId?.toString()).toBe(
       KEY_ID.toString(),
     );
-    expect(entry.workflowRunAsGivenByName).toBe("Terraform");
+    expect(entry.workflowRunAsGiverName).toBe("Terraform");
   });
 
   test("a record with no workflow beside it, or none of the values, says nothing", async () => {

@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 Med Grafana Alloy tilføjer du en `prometheus.remote_write`-komponent og videresender dine scrapes til den:
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-Remote write 1.0 og 2.0 accepteres begge, komprimeret med snappy, sådan som alle afsendere sender dem.
+Remote write 1.0 og 2.0 accepteres begge, komprimeret med snappy, sådan som alle afsendere sender dem. For at sende 2.0, som har hver series type, enhed og beskrivelse med, skal du angive `protobuf_message: io.prometheus.write.v2.Request` (Prometheus 3) eller `protobuf_message = "io.prometheus.write.v2.Request"` (Alloy). Prometheus sender exemplars med `send_exemplars: true`, når den gemmer dem (`--enable-feature=exemplar-storage`); Alloy sender dem som standard.
 
 ### Hvad en serie bliver til
 
 - **Navn og labels bevares.** `http_requests_total{job="checkout", code="500"}` er metrikken `http_requests_total` med attributterne `job` og `code`, så en forespørgsel, der flyttes fra Grafana, finder den.
 - **Jobbet er tjenesten.** Hvert `job` bliver en tjeneste og hver `instance` dens tjenesteinstans, sådan som OpenTelemetrys Prometheus-regler kortlægger dem.
 - **Typer bevares.** Tællere samt et histograms buckets og antal er kumulative summer, så deres rater vises korrekt i diagrammer. En type kommer fra de metadata, afsenderen sender med; uden dem er et navn, der ender på `_total`, en tæller, og en `_bucket` med en `le`-label en histogram-bucket.
+- **Klassiske histogrammer viser deres percentiler.** Et klassisk histogram beholder sine serier `_bucket`, `_count` og `_sum`. Vis dets metrik `_bucket` med P50 til P99 i [Metrikudforsker](/docs/telemetry/metrics-explorer), så læses hver scrapes buckets som ét histogram, uanset hvilken request hver bucket kom med. I [PromQL](/docs/telemetry/promql) svarer `histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` som i Prometheus.
 - **Native histogrammer** bliver til eksponentielle histogrammer, og native histogrammer med brugerdefinerede buckets bliver til almindelige histogrammer.
-- **Bevares ikke:** staleness-markører og andre samples med NaN eller uendelige værdier, tælleres `_created`-serier og exemplars.
+- **Exemplars linker til traces.** Et exemplar med en label `trace_id` (eller `traceID`) knytter sit datapunkt til den trace og det span: klik på dets punkt i metrikkens diagram for at se tracen eller dens logs. Dets værdi og dets andre labels bevares ikke, og det gør et exemplar heller ikke, hvis dets datapunkt kom med en anden request.
+- **Bevares ikke:** staleness-markører og andre værdier, der er NaN eller uendelige, samt tælleres `_created`-serier. De tælles stadig som skrevet, så afsenderen ikke melder fejlede samples.
+- **Afvises:** data, som ingen version af remote write tillader, for eksempel en serie uden metriknavn eller et sample med et negativt tidsstempel. Resten af requesten gemmes, og afsenderen får `400` med det, der blev afvist.
 
 ## Loki
 
@@ -209,8 +218,8 @@ Det afsluttende `1` i DSN'en kræves af Sentrys SDK'er og læses ikke. En browse
 
 ## Grænser og indtagelsesbudgetter
 
-- **Requeststørrelse** – OneUptimes ingress accepterer requests på op til 4 MB under `/telemetry`, og hver requests indhold må højst fylde 64 MB dekomprimeret.
-- **Indtagelsesbudgetter** – Prometheus remote write og Loki tjekkes mod budgettet for metrikker eller logs, før deres indhold læses, og afvises med `403`, når det er brugt op. En HEC-batch, en Datadog-nyttelast eller en Sentry-kuvert kan indeholde flere signaler, så hvert signal tælles mod sit eget budget, når det gemmes, og smides væk, når det budget er brugt op.
+- **Requeststørrelse** – OneUptimes ingress accepterer requests på op til 4 MB under `/telemetry`, og hver requests indhold må højst fylde 64 MB dekomprimeret. En request fra Prometheus remote write må højst fylde 32 MB dekomprimeret og højst indeholde 500.000 serier, labels og samples, så ingen enkelt request kan opbruge serverens hukommelse. Prometheus og Alloy sender som standard 2.000 samples pr. request, langt under begge; en request over afvises med `413`, så sænk `max_samples_per_send` i `queue_config`.
+- **Indtagelsesbudgetter** – Prometheus remote write og Loki tjekkes mod budgettet for metrikker eller logs, før deres indhold læses, og afvises med `403`, når det er brugt op. En request fra remote write tælles derefter med sin dekomprimerede størrelse, ligesom en OTLP-request, også mod et teams eller en mærkats budgetter. En HEC-batch, en Datadog-nyttelast eller en Sentry-kuvert kan indeholde flere signaler, så hvert signal tælles mod sit eget budget, når det gemmes, og smides væk, når det budget er brugt op.
 
 ## Fejlfinding
 

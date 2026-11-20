@@ -68,10 +68,17 @@ func monitorWithoutExternalName(t *testing.T, id string) *v1alpha1.Monitor {
 	return mg
 }
 
+// The external name's first, so the record of what a manifest last applied
+// (lastapplied.go), the second of a resource with fields people and
+// OneUptime both change, knows whether the record exists.
 func TestEveryResourceGetsItsExternalNameFromItsStatus(t *testing.T) {
 	for name, r := range provider.Resources {
-		if len(r.InitializerFns) != 1 {
-			t.Errorf("%s has %d initializers, want the external name's", name, len(r.InitializerFns))
+		want := 1
+		if len(SharedFields(name)) > 0 {
+			want = 2
+		}
+		if len(r.InitializerFns) != want {
+			t.Errorf("%s has %d initializers, want %d: the external name's first", name, len(r.InitializerFns), want)
 		}
 	}
 }

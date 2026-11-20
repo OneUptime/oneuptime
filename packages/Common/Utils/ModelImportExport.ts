@@ -3,6 +3,7 @@ import BaseModel, {
 } from "../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "../Types/BaseDatabase/AccessControl";
 import Select from "../Types/BaseDatabase/Select";
+import ServerOwned from "../Types/Database/ServerOwned";
 import { TableColumnMetadata } from "../Types/Database/TableColumn";
 import TableColumnType from "../Types/Database/TableColumnType";
 import OneUptimeDate from "../Types/Date";
@@ -67,16 +68,12 @@ const EXCLUDED_COLUMN_TYPES: Array<TableColumnType> = [
 const EXCLUDED_COLUMNS_BY_TABLE: Dictionary<Array<string>> = {
   StatusPage: ["embeddedOverallStatusToken"],
   /*
-   * An Incoming Request monitor's latest request needs no entry: nobody may
-   * create it (#6541), which the generic filters below already leave out.
+   * A monitor's runtime state - its server monitor's last response and
+   * report, when a heartbeat was checked, a telemetry monitor's evaluation
+   * times - needs no entry: only OneUptime writes it, which the generic
+   * filters below leave out. An Incoming Request monitor's latest request
+   * needs none either: nobody may create it (#6541).
    */
-  Monitor: [
-    "serverMonitorResponse",
-    "incomingRequestMonitorHeartbeatCheckedAt",
-    "serverMonitorRequestReceivedAt",
-    "telemetryMonitorNextMonitorAt",
-    "telemetryMonitorLastMonitorAt",
-  ],
   /*
    * What a workflow runs as stays with it (#9695): an export - like a
    * Duplicate - starts its copy on Default. Exported, a Project Owner
@@ -153,6 +150,18 @@ export default class ModelImportExport {
       }
 
       if (metadata.computed || metadata.hashed || metadata.encrypted) {
+        continue;
+      }
+
+      /*
+       * What only OneUptime writes (ServerOwned.Always) is the source
+       * record's runtime state - a status page's next report, a monitor's
+       * last evaluation - and no create takes a value for it (#10053): an
+       * export of it would seed the copy with the original's state, and a
+       * file exported before now has it dropped on import, since the import
+       * reads only these columns.
+       */
+      if (metadata.serverOwned === ServerOwned.Always) {
         continue;
       }
 

@@ -1,5 +1,6 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import ColumnLength from "../../../Types/Database/ColumnLength";
+import ServerSetColumns from "../Database/ServerSetColumns";
 import { JSONObject } from "../../../Types/JSON";
 import {
   ADDABLE_CONTROLLER_PRODUCT_TYPES,
@@ -656,7 +657,14 @@ export function buildNetworkDeviceFromController(data: {
   device.projectId = data.projectId;
   device.name = data.name;
   device.hostname = data.device.lanIp;
-  device.serialNumber = data.device.serial;
+
+  /*
+   * What the controller reports is OneUptime's to write, for the person who
+   * adds the device (ServerSetColumns): the API takes no value for a column
+   * only OneUptime writes from a person (#10053), and nobody may give a
+   * device's serial number on a create.
+   */
+  ServerSetColumns.set(device, { serialNumber: data.device.serial });
 
   if (data.device.mac) {
     device.macAddress = data.device.mac;
@@ -681,9 +689,11 @@ export function buildNetworkDeviceFromController(data: {
   });
 
   if (reading) {
-    device.discoveredDetails = {
-      [DISCOVERED_DETAILS_CONTROLLER_KEY]: reading as unknown as JSONObject,
-    };
+    ServerSetColumns.set(device, {
+      discoveredDetails: {
+        [DISCOVERED_DETAILS_CONTROLLER_KEY]: reading as unknown as JSONObject,
+      },
+    });
   }
 
   return device;

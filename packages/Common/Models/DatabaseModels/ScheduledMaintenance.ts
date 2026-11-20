@@ -1523,6 +1523,7 @@ export default class ScheduledMaintenance extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -2043,6 +2044,7 @@ export default class ScheduledMaintenance extends BaseModel {
     type: TableColumnType.JSON,
     title: "Custom Fields",
     description: "Custom Fields on this resource.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.JSON,

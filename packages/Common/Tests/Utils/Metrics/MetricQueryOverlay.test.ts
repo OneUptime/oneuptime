@@ -504,19 +504,47 @@ describe("readChartAxes: which axis each query of a chart is read against", () =
     expect(axes.readings[3]!.factor).toBe(1000);
   });
 
-  test("a third kind of unit fits neither axis: drawn against the first, as it is", () => {
+  test("a third kind of unit fits neither axis: drawn to a scale of its own, and its kind's later queries share it", () => {
     const axes: OverlayChartAxes = axesOf("%", "By", "ms", "s");
 
     expect(sides(axes)).toEqual([
       "First:Same",
       "Second:Same",
-      "First:Different",
-      "First:Different",
+      "OwnScale:Same",
+      "OwnScale:Converted",
     ]);
+    // Milliseconds lead the scale; seconds are read on it in milliseconds.
+    expect(axes.ownScaleLeadIndexes).toEqual([2]);
+    expect(axes.readings[2]!.ownScale).toBe(0);
+    expect(axes.readings[3]!.ownScale).toBe(0);
     expect(axes.readings[2]!.factor).toBe(1);
-    expect(axes.readings[3]!.factor).toBe(1);
+    expect(axes.readings[3]!.factor).toBe(1000);
     // The second axis stays the first other kind's.
     expect(axes.secondAxisLeadIndex).toBe(1);
+  });
+
+  test("each further kind of unit leads a scale of its own", () => {
+    const axes: OverlayChartAxes = axesOf("%", "By", "ms", "{processes}", "s");
+
+    expect(sides(axes)).toEqual([
+      "First:Same",
+      "Second:Same",
+      "OwnScale:Same",
+      "OwnScale:Same",
+      "OwnScale:Converted",
+    ]);
+    expect(axes.ownScaleLeadIndexes).toEqual([2, 3]);
+    expect(
+      axes.readings.map((reading: OverlayAxisReading) => {
+        return reading.ownScale;
+      }),
+    ).toEqual([undefined, undefined, 0, 1, 0]);
+  });
+
+  test("a chart whose queries fit its axes has no scale of its own", () => {
+    expect(axesOf("%", "By", "GB", "%").ownScaleLeadIndexes).toEqual([]);
+    expect(axesOf("%").ownScaleLeadIndexes).toEqual([]);
+    expect(axesOf().ownScaleLeadIndexes).toEqual([]);
   });
 
   test("a count beside a unit: the count's chart gives the unit the second axis", () => {
@@ -560,8 +588,9 @@ describe("readChartAxes: which axis each query of a chart is read against", () =
    * the first axis as it is; the second axis, when there is one, is led by
    * the first query the first axis cannot read, which is on it as it is;
    * every other query is read against its axis's lead exactly as readUnit
-   * reads the pair, and a query on neither axis is one that neither lead
-   * can read.
+   * reads the pair; and a query neither lead can read is drawn to a scale
+   * of its own (#10080): the first scale whose lead reads it, read as
+   * readUnit reads that pair, or a new one it leads, as it is.
    */
   test("a sweep of charts reads each query against its axis's lead, as readUnit does", () => {
     const units: Array<string> = [
@@ -606,6 +635,9 @@ describe("readChartAxes: which axis each query of a chart is read against", () =
         second: firstOtherKind === -1 ? null : firstOtherKind,
       });
 
+      // The scales of their own as the sweep finds them, by their leads.
+      const ownScaleLeads: Array<number> = [];
+
       chart.forEach((unit: string, index: number): void => {
         if (index === 0) {
           return;
@@ -623,20 +655,64 @@ describe("readChartAxes: which axis each query of a chart is read against", () =
           return;
         }
 
+        if (index === firstOtherKind) {
+          expect({ chart, index, reading }).toEqual({
+            chart,
+            index,
+            reading: {
+              axis: OverlayAxis.Second,
+              fit: OverlayUnitFit.Same,
+              factor: 1,
+            },
+          });
+          return;
+        }
+
         const onSecond: OverlayUnitReading = read(chart[firstOtherKind]!, unit);
+
+        if (onSecond.fit !== OverlayUnitFit.Different) {
+          expect({ chart, index, reading }).toEqual({
+            chart,
+            index,
+            reading: { ...onSecond, axis: OverlayAxis.Second },
+          });
+          return;
+        }
+
+        const ownScale: number = ownScaleLeads.findIndex(
+          (leadIndex: number): boolean => {
+            return (
+              read(chart[leadIndex]!, unit).fit !== OverlayUnitFit.Different
+            );
+          },
+        );
+
+        if (ownScale === -1) {
+          ownScaleLeads.push(index);
+        }
 
         expect({ chart, index, reading }).toEqual({
           chart,
           index,
           reading:
-            onSecond.fit === OverlayUnitFit.Different
+            ownScale === -1
               ? {
-                  axis: OverlayAxis.First,
-                  fit: OverlayUnitFit.Different,
+                  axis: OverlayAxis.OwnScale,
+                  fit: OverlayUnitFit.Same,
                   factor: 1,
+                  ownScale: ownScaleLeads.length - 1,
                 }
-              : { ...onSecond, axis: OverlayAxis.Second },
+              : {
+                  ...read(chart[ownScaleLeads[ownScale]!]!, unit),
+                  axis: OverlayAxis.OwnScale,
+                  ownScale: ownScale,
+                },
         });
+      });
+
+      expect({ chart, ownScales: axes.ownScaleLeadIndexes }).toEqual({
+        chart,
+        ownScales: ownScaleLeads,
       });
     }
   });

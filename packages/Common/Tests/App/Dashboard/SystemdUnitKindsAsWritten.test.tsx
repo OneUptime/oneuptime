@@ -431,6 +431,9 @@ test("each language has a word of its own for some kind, which the page must not
 const SYSTEMD_PAGE_SOURCES: Array<string> = [
   "Pages/Host/View/SystemdUnits.tsx",
   "Pages/Host/View/SystemdUnitView.tsx",
+  // The Failed pill both pages draw, and why a unit failed (#9748, #9960).
+  "Components/Host/SystemdUnitFailedPill.tsx",
+  "Pages/Host/Utils/SystemdUnitFailure.ts",
 ].map((file: string): string => {
   return path.resolve(
     __dirname,

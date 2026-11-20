@@ -23,6 +23,23 @@ export const COMPATIBLE_INGEST_URL_PREFIX: string = "/telemetry";
 // Prometheus remote write (1.0 and 2.0): a Prometheus server, Grafana Alloy, an agent.
 export const PROMETHEUS_REMOTE_WRITE_PATH: string = "/prometheus/api/v1/write";
 
+/*
+ * The most a remote write request may be, as sent and once its snappy
+ * compression is undone. Prometheus and Alloy send 2,000 samples a request
+ * by default, well under a megabyte; VictoriaMetrics' own receiver holds a
+ * request to the same 32 MiB.
+ */
+export const PROMETHEUS_REMOTE_WRITE_MAX_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * The most series, labels, samples, exemplars, histograms and histogram
+ * buckets one remote write request may hold, counted before it is decoded:
+ * each one is an object in memory once it is, so a small body packed with
+ * empty series cannot take gigabytes. 2,000 samples of series with a dozen
+ * labels are about 28,000.
+ */
+export const PROMETHEUS_REMOTE_WRITE_MAX_ELEMENTS: number = 500000;
+
 // Loki's push API, at Loki's own path: Promtail, Grafana Alloy, Fluent Bit, Vector.
 export const LOKI_PUSH_PATH: string = "/loki/api/v1/push";
 

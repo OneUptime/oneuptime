@@ -23,9 +23,14 @@ export const AUDIT_LOG_WORKFLOW_RUN_AS_COLUMN_KEYS: Array<string> = [
  *
  *   AuditLogV2: workflowRunAs                Nullable(String)
  *               workflowRunAsCustomRoleName  Nullable(String)
- *               workflowRunAsGivenByUserId   Nullable(String)
- *               workflowRunAsGivenByApiKeyId Nullable(String)
- *               workflowRunAsGivenByName     Nullable(String)
+ *               workflowRunAsGiverUserId     Nullable(String)
+ *               workflowRunAsGiverApiKeyId   Nullable(String)
+ *               workflowRunAsGiverName       Nullable(String)
+ *
+ * (The giver's three were named workflowRunAsGivenBy{UserId,ApiKeyId,Name}
+ * when this was written; this adds what the model declares, and
+ * CopyAuditLogWorkflowRunAsGiverColumns carries over what an install
+ * recorded under the first names.)
  *
  * Metadata-only and idempotent: ADD COLUMN IF NOT EXISTS, no part
  * rewritten, nothing backfilled. Modelled on AddAuditLogWorkflowColumns,

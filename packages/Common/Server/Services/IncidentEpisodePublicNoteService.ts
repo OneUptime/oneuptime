@@ -1,3 +1,4 @@
+import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -264,7 +265,10 @@ export class Service extends ProjectReferencesService<Model> {
     publicNote.note = data.note;
 
     if (data.postedFromSlackMessageId) {
-      publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
+      // The message it came from: OneUptime's to write (ServerSetColumns, #10053).
+      ServerSetColumns.set(publicNote, {
+        postedFromSlackMessageId: data.postedFromSlackMessageId,
+      });
     }
 
     return await SavedChatMessageNote.create({

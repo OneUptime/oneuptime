@@ -148,7 +148,7 @@ UDP では、メッセージの長さは最大で **最大メッセージサイ�
 | `mcpOAuthGrantId`, `mcpClientName` | 変更に使われた MCP クライアント (ある場合)。 |
 | `workflowId`, `workflowName` | 変更したワークフロー (ある場合)。 |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | バージョン 3 で、ワークフローのステップが何として実行されたか (`Default`、`ProjectOwner`、`CustomRole` のいずれか) と、その時点のロール名。 |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | バージョン 3 で、誰の権限で実行されたか。人またはプロジェクトの API キーの id と、その時点の名前です。変更をワークフローが行っていない場合、この五つのキーはすべて `null` です。 |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | バージョン 3 で、誰の権限で実行されたか。人またはプロジェクトの API キーの id と、その時点の名前です。変更をワークフローが行っていない場合、この五つのキーはすべて `null` です。 |
 | `changes` | 変更された各フィールド。`field` と、`oldValue` および `newValue`、バージョン 2 では `summary`。 |
 
 ファイルは一行にひとつのエントリを収めて gzip で圧縮され、最初のエントリの時間ごとに整理されます: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`。

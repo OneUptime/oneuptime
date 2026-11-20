@@ -26,10 +26,16 @@ import {
 import {
   CliExample,
   getCliCreateExample,
+  getCliDeleteExample,
   getCliGetExample,
   getCliListExample,
   getCliUpdateExample,
 } from "Common/Utils/DeveloperDocs/CliExamples";
+import {
+  DeleteChoiceWay,
+  getDeleteChoiceWayData,
+  getDeleteChoiceWays,
+} from "Common/Utils/DeveloperDocs/DeleteChoices";
 import {
   DeveloperDocsApiBody,
   DeveloperDocsApiFilter,
@@ -428,5 +434,79 @@ describe("the Developer > CLI pages' commands", () => {
       teamId: FIXTURE_RECORD_ID,
       userId: FIXTURE_USER_ID,
     });
+  });
+
+  /*
+   * A custom role's Delete it step (#10031) has a tab for the plain delete
+   * and one for each way of saying what the workflows that run as it run
+   * as instead. Each tab's command, run through the real program, sends
+   * the body the API page's tab sends - once the other role's ID is filled
+   * in where the page leaves <custom-role-id>.
+   */
+  it("delete a custom role each way its Delete it step shows, sending what the API page sends", async () => {
+    const otherRoleId: string = "5a0e0000-0000-4000-8000-0000000000bb";
+    const customRole: DatabaseBaseModelType = modelOf("CustomRole");
+    const filledIn: (data: JSONObject) => JSONObject = (
+      data: JSONObject,
+    ): JSONObject => {
+      return JSON.parse(
+        JSON.stringify(data).replace("<custom-role-id>", otherRoleId),
+      ) as JSONObject;
+    };
+
+    const plain: CliExample = getCliDeleteExample({
+      modelType: customRole,
+      id: FIXTURE_RECORD_ID,
+    });
+
+    expectReadsBack(plain);
+
+    const plainRequest: ApiRequestOptions = await requestOf(plain);
+
+    expect(plainRequest.operation).toBe("delete");
+    expect(plainRequest.id).toBe(FIXTURE_RECORD_ID);
+    expect(plainRequest.miscDataProps || {}).toEqual({});
+
+    const ways: Array<DeleteChoiceWay> = getDeleteChoiceWays("CustomRole");
+
+    expect(ways.length).toBe(2);
+
+    for (const way of ways) {
+      const sent: JSONObject = filledIn(getDeleteChoiceWayData(way));
+      const command: CliExample = getCliDeleteExample({
+        modelType: customRole,
+        id: FIXTURE_RECORD_ID,
+        choices: sent,
+      });
+
+      expectReadsBack(command);
+
+      const request: ApiRequestOptions = await requestOf(command);
+
+      expect(request.operation).toBe("delete");
+      expect(request.id).toBe(FIXTURE_RECORD_ID);
+      expect(request.miscDataProps).toEqual(sent);
+    }
+  });
+
+  it("refuse a custom role's delete copied with <custom-role-id> left in it, before anything is sent", async () => {
+    const [, customRoleWay] = getDeleteChoiceWays("CustomRole");
+    const command: CliExample = getCliDeleteExample({
+      modelType: modelOf("CustomRole"),
+      id: FIXTURE_RECORD_ID,
+      choices: getDeleteChoiceWayData(customRoleWay!),
+    });
+
+    // As the page shows it: the placeholder quoted, so a shell reads it as a word.
+    expectReadsBack(command);
+    mockExecuteApiRequest.mockClear();
+
+    const run: CliRun = await runCli(command.args);
+
+    expect(run.exitCode).not.toBeUndefined();
+    expect(run.errors.join("\n")).toContain(
+      '--workflows-run-as-custom-role-id takes an ID, such as 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11, and "<custom-role-id>" is not one.',
+    );
+    expect(mockExecuteApiRequest).not.toHaveBeenCalled();
   });
 });

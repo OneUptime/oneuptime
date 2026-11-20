@@ -28,7 +28,7 @@ flowchart TB
 | Fane | Hva den viser |
 | --- | --- |
 | **Samtaler** | Hver samtale AI-en din har hatt, med dem som trenger oppmerksomhet først. Over listen: samtaler, AI-svar, hvor mange som trenger oppmerksomhet, kostnad og den typiske svartiden. |
-| **Kall** | Hvert modell-, embedding-, agent- og verktøykall. Filtrer på tjeneste, leverandør, modell, operasjon, person, team eller samtale; klikk på et kall for å åpne det i trace-visningen. |
+| **Kall** | Hvert modell-, embedding-, agent- og verktøykall. Filtrer på tjeneste, leverandør, modell, operasjon, person, team, samtale eller status; et kall som feilet, viser feilen sin under statusen sin. Klikk på et kall for å åpne det i trace-visningen. |
 | **Forbruk** | Kall, tokens og kostnad for et tidsrom, rangert etter ansatt, team, modell, leverandør eller app; under **Leverandørkontoer**, hva de tilkoblede kontoene dine ble fakturert. |
 | **Varsler** | Ferdige varsler for når AI-en svarer dårlig, og AI / LLM-monitorene dine. |
 | **Budsjetter** | Daglige kostnadsgrenser, publisert som målinger du kan varsle på. |
@@ -239,7 +239,7 @@ Et ferdig varsel oppretter et varsel som løser seg selv, og viser monitoren som
 
 ## Se hvem som bruker hva
 
-Fanen **Forbruk** viser kall, tokens og kostnad for et tidsrom (de siste 7 dagene, med mindre du velger et annet) og en tabell over de 25 største i én av fem inndelinger: **Ansatt**, **Team**, **Modell**, **Leverandør** og **Applikasjon / Tjeneste**. Kall som ikke nevner noen, telles under **Ikke tilordnet** og kastes aldri.
+Fanen **Forbruk** viser kall, tokens og kostnad for et tidsrom (de siste 7 dagene, med mindre du velger et annet) og en tabell over de 25 største i én av fem inndelinger: **Ansatt**, **Team**, **Modell**, **Leverandør** og **Applikasjon / Tjeneste**. Kall som ikke nevner noen, telles under **Ikke tilordnet** og kastes aldri. Feilraten under **AI-kall** åpner **Kall** med tidsrommets kall som feilet, med **Status** satt til **Feil**.
 
 Dette er **AI-kallene dine**. Velg **Leverandørkontoer** i stedet for å se hva de tilkoblede kontoene dine hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor ble fakturert: se [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts#se-forbruket). De to legges aldri sammen.
 

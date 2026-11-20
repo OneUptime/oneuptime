@@ -1,5 +1,10 @@
 import { CsvRow, toCsv } from "../DataSecurity/ComplianceExport";
-import { NOT_EVALUATED_REASONS } from "./KubernetesComplianceModel";
+import {
+  NOT_EVALUATED_REASONS,
+  NotScoredGroup,
+  NotScoredLine,
+  getNotScoredGroups,
+} from "./KubernetesComplianceModel";
 import {
   KubernetesComplianceAcceptanceEntry,
   KubernetesComplianceFrameworkResponse,
@@ -7,9 +12,6 @@ import {
   KubernetesComplianceTurnedOff,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceApiTypes";
 import {
-  CIS_NOT_SCORED,
-  CIS_NOT_SCORED_REASON_WORDS,
-  CisNotScoredGroup,
   KubernetesComplianceControlInfo,
   findKubernetesComplianceControl,
 } from "Common/Types/Kubernetes/Compliance/KubernetesComplianceCatalog";
@@ -33,7 +35,9 @@ import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
  * by whom and why, and the findings accepted for one object (#9874), by
  * whom, why and until when. A workload read from its pod template, as it
  * runs no pod, says so (#9880). The CIS report also lists the benchmark's
- * controls not scored here, and why. CSV a spreadsheet opens (TableColumnsToCsv
+ * controls not scored here, and why - as kube-bench leaves them, when it
+ * reads the nodes (#9873) - and the NSA/CISA guide's (#9875) its
+ * recommendations no source answers. CSV a spreadsheet opens (TableColumnsToCsv
  * escapes every field and makes a formula text) or JSON; the headers and
  * sentences are the English an auditor files them under.
  */
@@ -164,6 +168,28 @@ export function describeKubernetesTurnedOff(
     .join(LIST_SEPARATOR);
 }
 
+/*
+ * A control's fix as English writes it, with what it says to set or run in
+ * it: "Set --profiling=false in the API server's manifest on each control
+ * plane node." (#9873).
+ */
+export function getFixText(
+  info: Pick<KubernetesComplianceControlInfo, "fix" | "fixSlots"> | undefined,
+): string {
+  if (!info) {
+    return "";
+  }
+
+  const slots: Record<string, string> = info.fixSlots || {};
+
+  return info.fix.replace(
+    /\{\{(\w+)\}\}/g,
+    (match: string, name: string): string => {
+      return slots[name] ?? match;
+    },
+  );
+}
+
 function controlRow(
   framework: KubernetesComplianceFrameworkResponse,
   requirement: KubernetesComplianceRequirementResult,
@@ -192,36 +218,57 @@ function controlRow(
         ? [`and ${requirement.failingCount - requirement.findings.length} more`]
         : []),
     ].join(LIST_SEPARATOR),
-    requirement.failingCount > 0 ? info?.fix || "" : "",
+    requirement.failingCount > 0 ? getFixText(info) : "",
     describeKubernetesTurnedOff(framework, requirement.requirement),
     String(requirement.acceptedCount || 0),
     describeAccepted(framework, requirement),
   ];
 }
 
-// The benchmark's controls not scored here, as rows that say why.
-function notScoredRows(): Array<CsvRow> {
-  return CIS_NOT_SCORED.map((group: CisNotScoredGroup): CsvRow => {
-    return [
-      KubernetesComplianceFramework.CisKubernetes,
-      group.id,
-      group.controlCount > 1
-        ? `${group.title} (${group.controlCount} controls)`
-        : group.title,
-      "Not scored here",
-      group.why || CIS_NOT_SCORED_REASON_WORDS[group.reason],
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-    ];
-  });
+// What the framework does not score, as rows that say why.
+function notScoredRows(
+  framework: KubernetesComplianceFramework,
+  compliance: Pick<KubernetesComplianceResponse, "nodeBenchmark">,
+): Array<CsvRow> {
+  const empty: Array<string> = ["", "", "", "", "", ""];
+
+  return getNotScoredGroups(framework, compliance).flatMap(
+    (group: NotScoredGroup): Array<CsvRow> => {
+      return [
+        ...group.lines.map((line: NotScoredLine): CsvRow => {
+          return [
+            framework,
+            line.id,
+            line.controlCount > 1
+              ? `${line.title} (${line.controlCount} controls)`
+              : line.title,
+            "Not scored here",
+            line.why || group.reason,
+            ...empty,
+          ];
+        }),
+        ...(group.manualChecks || []).map((check: string): CsvRow => {
+          return [
+            framework,
+            check,
+            "",
+            "Not scored here",
+            group.reason,
+            ...empty,
+          ];
+        }),
+      ];
+    },
+  );
 }
 
+/*
+ * The report as CSV. The cluster's answer says what kube-bench read
+ * (#9873); without it, the CIS benchmark's node controls read as not run.
+ */
 export function getKubernetesFrameworkReportCsv(
   framework: KubernetesComplianceFrameworkResponse,
+  compliance: Pick<KubernetesComplianceResponse, "nodeBenchmark"> = {},
 ): string {
   return toCsv([
     REPORT_HEADER,
@@ -230,9 +277,7 @@ export function getKubernetesFrameworkReportCsv(
         return controlRow(framework, requirement);
       },
     ),
-    ...(framework.framework === KubernetesComplianceFramework.CisKubernetes
-      ? notScoredRows()
-      : []),
+    ...notScoredRows(framework.framework, compliance),
   ]);
 }
 
@@ -241,7 +286,8 @@ export function getKubernetesFrameworkReport(
   compliance: Pick<
     KubernetesComplianceResponse,
     "clusterId" | "kubernetesVersion" | "standardVersion" | "provider"
-  >,
+  > &
+    Partial<Pick<KubernetesComplianceResponse, "nodeBenchmark">>,
   framework: KubernetesComplianceFrameworkResponse,
   exportedAt: Date,
 ): Record<string, unknown> {
@@ -271,22 +317,40 @@ export function getKubernetesFrameworkReport(
         return {
           ...requirement,
           description: info?.description || "",
-          fix: info?.fix || "",
+          fix: getFixText(info),
+          ...(info?.section ? { section: info.section } : {}),
         };
       },
     ),
-    notScored:
-      framework.framework === KubernetesComplianceFramework.CisKubernetes
-        ? CIS_NOT_SCORED.map((group: CisNotScoredGroup) => {
+    // What kube-bench read of the nodes (#9873), for the CIS benchmark.
+    ...(framework.framework === KubernetesComplianceFramework.CisKubernetes
+      ? { nodeBenchmark: compliance.nodeBenchmark || null }
+      : {}),
+    notScored: getNotScoredGroups(framework.framework, compliance).flatMap(
+      (group: NotScoredGroup) => {
+        return [
+          ...group.lines.map((line: NotScoredLine) => {
             return {
-              id: group.id,
-              title: group.title,
-              controlCount: group.controlCount,
-              reason: group.reason,
-              why: group.why || CIS_NOT_SCORED_REASON_WORDS[group.reason],
+              id: line.id,
+              title: line.title,
+              controlCount: line.controlCount,
+              reason: group.key,
+              why: line.why || group.reason,
+              ...(line.section ? { section: line.section } : {}),
             };
-          })
-        : [],
+          }),
+          ...(group.manualChecks || []).map((check: string) => {
+            return {
+              id: check,
+              title: "",
+              controlCount: 1,
+              reason: group.key,
+              why: group.reason,
+            };
+          }),
+        ];
+      },
+    ),
     // What is turned off of it, for the cluster or a namespace, with who, when and why.
     turnedOff: framework.turnedOff || [],
     /*
@@ -304,9 +368,10 @@ function fileLabel(framework: KubernetesComplianceFrameworkResponse): string {
 
 export function downloadKubernetesFrameworkReportCsv(
   framework: KubernetesComplianceFrameworkResponse,
+  compliance: Pick<KubernetesComplianceResponse, "nodeBenchmark"> = {},
 ): void {
   TableColumnsToCsv.downloadCsv({
-    csv: getKubernetesFrameworkReportCsv(framework),
+    csv: getKubernetesFrameworkReportCsv(framework, compliance),
     filename: TableColumnsToCsv.getExportFilename(fileLabel(framework)),
   });
 }

@@ -32,7 +32,7 @@ kind의 필드는 Terraform 리소스의 인수를 camelCase로 바꾼 것이며
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider`는 OneUptime에 있는 그대로의 레코드를 `id`와 함께 보여 줍니다. 생략한 필드를 OneUptime이 기본값 등으로 채우면, 그 값은 레코드가 만들어진 뒤 `spec.forProvider`에 복사됩니다. 그래서 다음 확인에서 바꿀 것이 없습니다. 단, OneUptime이 직접 최신으로 유지하는 필드는 절대 복사되지 않습니다. [OneUptime이 최신으로 유지하는 필드](#oneuptime이-최신으로-유지하는-필드)를 참고하세요.
+`status.atProvider`는 OneUptime에 있는 그대로의 레코드를 `id`와 함께 보여 줍니다. 생략한 필드를 OneUptime이 기본값 등으로 채우면, 그 값은 레코드가 만들어진 뒤 `spec.forProvider`에 복사됩니다. 그래서 다음 확인에서 바꿀 것이 없습니다. 단, OneUptime이 직접 최신으로 유지하는 필드나 OneUptime도 바꾸는 필드는 절대 복사되지 않습니다. [OneUptime이 최신으로 유지하는 필드](#oneuptime이-최신으로-유지하는-필드)를 참고하세요.
 
 ## 다른 리소스 참조하기
 
@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-레코드의 ID는 대시보드에서 그 레코드의 **개발자 → Terraform** 페이지가 작성하는 `import` 블록에 있으며, [OneUptime CLI](/docs/cli/resource-operations#레코드-나열)의 `oneuptime <resource> list`로 한 종류의 레코드 ID를 나열할 수도 있습니다. 리소스가 준비되면 `status.atProvider`에 레코드가 표시됩니다. 그때부터 레코드를 관리하려면 필드를 `spec.forProvider`에 쓰고 `managementPolicies`를 `["*"]`로 설정하세요.
+대시보드에서 그 레코드의 **개발자 → Crossplane** 페이지가 레코드의 ID가 담긴 이 매니페스트와, 필드를 그대로 둔 채 레코드를 가져오는 매니페스트를 작성해 줍니다. [OneUptime CLI](/docs/cli/resource-operations#레코드-나열)의 `oneuptime <resource> list`로 한 종류의 레코드 ID를 나열할 수도 있습니다. 리소스가 준비되면 `status.atProvider`에 레코드가 표시됩니다. 그때부터 레코드를 관리하려면 필드를 `spec.forProvider`에 쓰고 `managementPolicies`를 `["*"]`로 설정하세요.
 
 ## 시크릿
 
@@ -104,7 +104,7 @@ kubectl -n team-a get secret collector-telemetry-key -o jsonpath='{.data.attribu
 
 ## Kubernetes 밖에서 이루어진 변경
 
-프로바이더는 10분마다 모든 리소스를 해당 레코드와 비교하고, 누군가 OneUptime에서 바꾼 것을 되돌립니다. 더 자주 확인하려면 프로바이더에 `--poll`을 넣은 런타임 구성을 지정하세요.
+프로바이더는 10분마다 모든 리소스를 해당 레코드와 비교하고, 누군가 OneUptime에서 바꾼 것을 되돌립니다. 단, OneUptime도 바꾸는 필드(아래 참고)는 되돌리지 않습니다. 더 자주 확인하려면 프로바이더에 `--poll`을 넣은 런타임 구성을 지정하세요.
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -136,12 +136,15 @@ spec:
 
 ### OneUptime이 최신으로 유지하는 필드
 
-일부 필드는 OneUptime이 최신으로 유지하는 것이며, 프로바이더는 이를 OneUptime에 맡깁니다. 프로바이더는 이 필드들을 `spec.forProvider`에 복사하지도, 되돌리지도 않습니다.
+일부 필드는 OneUptime이 최신으로 유지하거나 OneUptime도 바꾸는 것이며, 프로바이더는 OneUptime이 바꾼 내용을 건드리지 않습니다. 프로바이더는 이 필드들을 `spec.forProvider`에 복사하지도, 되돌리지도 않습니다.
 
 - 텔레메트리 모니터가 마지막으로 실행된 시각(`telemetryMonitorLastMonitorAt`)이나 Kubernetes 클러스터의 노드 수(`nodeCount`)처럼 OneUptime만 쓰는 필드는 `status.atProvider`에만 표시됩니다.
 - 모니터의 `currentMonitorStatusId`나 인시던트의 `currentIncidentStateId`처럼 레코드의 초기값을 지정할 수 있는 필드는 `spec.initProvider`나 `spec.forProvider`에 써서 레코드를 만들 수 있습니다. 그 뒤로는 모니터의 확인이 모니터 상태를 바꾸듯 OneUptime이 그 값을 바꾸며, 현재 값은 `status.atProvider`에 표시됩니다.
+- 레이블 규칙이 레이블을 추가하는 레코드의 `labels`, 예외의 `isResolved`, 검색이 옮기는 네트워크 디바이스의 `siteId`처럼 사용자와 OneUptime이 모두 바꾸는 필드는 사용자가 직접 `spec.forProvider`에 씁니다. 프로바이더는 레코드를 만들 때, 그리고 매니페스트의 값이 바뀔 때마다 그 값을 보내며, 그 사이에 OneUptime이 바꾼 내용은 건드리지 않습니다. `labels` 같은 목록은 OneUptime이 추가한 항목을 유지하고, 매니페스트에 있는데 누군가 뺀 항목을 되찾으며, 매니페스트에서 뺀 항목은 목록에서 빠집니다.
 
-`kubectl explain`은 초기값을 지정할 수 있는 각 필드의 설명에서 이를 알려 줍니다. 이전 버전의 프로바이더가 `spec.forProvider`를 이 필드들로 채운 리소스도, 아무것도 수정하지 않아도 저절로 OneUptime과 충돌하지 않게 됩니다.
+`kubectl explain`은 초기값을 지정할 수 있는 각 필드와 OneUptime도 바꾸는 각 필드의 설명에서 이를 알려 줍니다. 이전 버전의 프로바이더가 `spec.forProvider`를 이 필드들로 채운 리소스도, 아무것도 수정하지 않아도 저절로 OneUptime과 충돌하지 않게 됩니다.
+
+프로바이더는 OneUptime도 바꾸는 필드에 대해 매니페스트가 마지막으로 적용한 내용을 리소스의 `crossplane.oneuptime.com/last-applied` 주석에 보관합니다. `labels`처럼 이전 버전의 프로바이더가 채운 목록에서는 사용자가 뺀 항목이 OneUptime의 항목으로 레코드에 남습니다. 사용자가 목록을 처음 바꾼 뒤 매니페스트에 있는 항목은 사용자의 것이 되며, 사용자가 빼면 레코드에서도 빠집니다.
 
 ## 리소스 삭제하기
 
