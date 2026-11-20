@@ -31,6 +31,11 @@ export default class MonitorStatusTimelineUtil {
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
+    /*
+     * The series of a grouped check the evaluation matched: what the log of
+     * the change keeps first (MonitorStoredCheck.boundSeries).
+     */
+    seriesActedOn?: ReadonlySet<string> | undefined;
   }): Promise<MonitorStatusTimeline | null> {
     // criteria filters are met, now process the actions.
 
@@ -189,6 +194,7 @@ export default class MonitorStatusTimelineUtil {
           input.monitor,
         ),
         monitorStep: input.monitorStep,
+        firstFingerprints: input.seriesActedOn,
       });
       monitorStatusTimeline.rootCause = input.rootCause;
 

@@ -17,6 +17,7 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
+import ToolResultSerializer from "../../../../Server/Utils/AI/Toolbox/Serializer";
 import { buildObservabilityChatSystemPrompt } from "../../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
 import DataSecurityIssueService from "../../../../Server/Services/DataSecurityIssueService";
 import DataStoreAccessService from "../../../../Server/Services/DataStoreAccessService";
@@ -40,7 +41,10 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
 import SecuritySeverity from "../../../../Types/SecuritySeverity";
+import { customDomainCaller } from "../../API/CustomDomainCallers";
+import { ON_HIGHEST_PLAN } from "../../TestingUtils/RequestPlan";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
@@ -535,6 +539,116 @@ describe("query_data_security_issues", () => {
     expect(result.dataForLlm).toContain(alertId.toString());
     expect(result.dataForLlm).toContain(incidentId.toString());
   });
+
+  /*
+   * Read with the caller's own permissions: a store's region, sensitivity
+   * and exposure are read through the issue only by who may read the store
+   * (#10281). The tool asks for them only then, so a custom role that reads
+   * issues and not stores is told the issue, and its store's name and kind,
+   * instead of being refused it.
+   */
+  function callerHolding(permissions: Array<Permission>): ToolContext {
+    return {
+      projectId: PROJECT_ID,
+      props: {
+        ...customDomainCaller({
+          permissions: permissions,
+          projectId: PROJECT_ID,
+        }),
+        ...ON_HIGHEST_PLAN,
+      },
+    };
+  }
+
+  test.each([
+    ["a security viewer", [Permission.SecurityViewer], true],
+    ["a project admin", [Permission.ProjectAdmin], true],
+    [
+      "a custom role that reads issues and not stores",
+      [Permission.ReadDataSecurityIssue],
+      false,
+    ],
+  ] as Array<[string, Array<Permission>, boolean]>)(
+    "one issue, for %s, reads of its store what they may read through it",
+    async (
+      _who: string,
+      permissions: Array<Permission>,
+      readsStore: boolean,
+    ) => {
+      const read: DataSecurityIssue = issue();
+
+      const spy: SpyInstance<typeof DataSecurityIssueService.findOneBy> = jest
+        .spyOn(DataSecurityIssueService, "findOneBy")
+        .mockImplementation(async (findBy: unknown): Promise<never> => {
+          // The store as the database joins it: the columns asked of it.
+          const asked: JSONObject = (findBy as JSONObject)[
+            "select"
+          ] as JSONObject;
+          const joined: DataStore = new DataStore(STORE_A);
+
+          for (const column of Object.keys(
+            (asked["dataStore"] as JSONObject) || {},
+          )) {
+            (joined as unknown as JSONObject)[column] = (
+              CARDS as unknown as JSONObject
+            )[column] as never;
+          }
+
+          read.dataStore = joined;
+          return read as never;
+        });
+
+      const rows: SpyInstance<typeof ToolResultSerializer.serializeRows> =
+        jest.spyOn(ToolResultSerializer, "serializeRows");
+
+      const result: ToolExecutionResult =
+        await QueryDataSecurityIssuesTool.execute(
+          { dataSecurityIssueId: ISSUE_ID.toString() },
+          callerHolding(permissions),
+        );
+      const storeAsked: JSONObject = (
+        (spy.mock.calls[0]![0] as unknown as JSONObject)["select"] as JSONObject
+      )["dataStore"] as JSONObject;
+
+      expect(Object.keys(storeAsked).sort()).toEqual(
+        readsStore
+          ? [
+              "exposure",
+              "kind",
+              "name",
+              "region",
+              "sensitivity",
+              "sensitivityOverride",
+            ]
+          : ["kind", "name"],
+      );
+      expect(result.dataForLlm).toContain("card-exports");
+
+      const row: JSONObject = (rows.mock.calls[0]![0] as Array<JSONObject>)[0]!;
+
+      // Never "Public" for a sensitivity it did not read.
+      expect({
+        store: row["store"],
+        storeSensitivity: row["storeSensitivity"],
+        exposure: row["exposure"],
+        region: row["region"],
+      }).toEqual(
+        readsStore
+          ? {
+              store: "card-exports",
+              storeSensitivity: DataSensitivity.Restricted,
+              exposure: DataStoreExposure.Public,
+              region: "eu-west-1",
+            }
+          : {
+              store: "card-exports",
+              storeSensitivity: "",
+              exposure: "",
+              region: "",
+            },
+      );
+    },
+  );
 });
 
 describe("query_data_store_access", () => {

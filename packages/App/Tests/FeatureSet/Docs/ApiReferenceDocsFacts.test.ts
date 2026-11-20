@@ -46,6 +46,7 @@ import UUIDColumnFilter, {
 } from "Common/Server/Types/Database/UUIDColumnFilter";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OwnedByFilter, {
@@ -68,13 +69,19 @@ import LIMIT_MAX, {
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NameTakenException, {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODES,
   REFUSAL_CODE_FIELD,
 } from "Common/Types/Exception/NameTakenException";
 import {
   SharedNameKind,
   getSharedNamesRoute,
 } from "Common/Types/Database/SharedNames";
+import {
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+} from "Common/Types/Database/UniqueName";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -149,6 +156,8 @@ const ROUTE_REGISTRATION: RegExp =
 const CURL_BODY: RegExp = /-d '(\{[\s\S]*?\})'/;
 // "If not: 400", in a diagram's label: the status a check answers.
 const DIAGRAM_STATUS: RegExp = /If not:(?: |<br\/>)(\d{3}(?: or \d{3})?)/g;
+// A line that names a refusal's code: - `"refusalCode": "name_taken"`: ...
+const REFUSAL_CODE_LINE: RegExp = /^- `([^`]+)`: /;
 // A card's title in the Access picker: `title: "Viewer",`.
 const OPTION_TITLE: RegExp = /title: "([^"]+)",/g;
 
@@ -863,11 +872,14 @@ describe("OneUptime API Reference: a request and its answer", () => {
   });
 
   /*
-   * #9855, #9856: a name another record has is refused with a code beside
-   * its sentence, which a client reads in its place, and the records that
-   * share a name are answered for every kind that has a name of its own.
+   * #9855, #9856, #10065: a name another record has is refused with a code
+   * beside its sentence, which a client reads in its place, for every kind
+   * that has a name of its own. The code says what has the name - a record
+   * in service, which may give it up, or an archived one, which will not -
+   * and the records that share a name are answered for the four kinds the
+   * dashboard marks.
    */
-  it("names the code a taken name is refused with, and every kind the shared names are answered for", () => {
+  it("names the codes a taken name is refused with, what each means, and every kind the shared names are answered for", () => {
     const section: string = englishSection(
       API_REFERENCE,
       "#### Names another record has",
@@ -877,8 +889,63 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(new NameTakenException("x").details).toEqual({
       [REFUSAL_CODE_FIELD]: NAME_TAKEN_REFUSAL_CODE,
     });
+    expect(new NameTakenException("x", { isArchived: true }).details).toEqual({
+      [REFUSAL_CODE_FIELD]: NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    });
     expect(section).toContain(
       `\`"${REFUSAL_CODE_FIELD}": "${NAME_TAKEN_REFUSAL_CODE}"\``,
+    );
+    expect(section).toContain(
+      `carries a \`${REFUSAL_CODE_FIELD}\` that says what has the name`,
+    );
+
+    // Every code the server sends, a line each, in Common's order.
+    const codeLines: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- ");
+      });
+
+    expect(
+      codeLines.map((line: string): string | null => {
+        return REFUSAL_CODE_LINE.exec(line)?.[1] || null;
+      }),
+    ).toEqual(
+      NAME_TAKEN_REFUSAL_CODES.map((code: string): string => {
+        return `"${REFUSAL_CODE_FIELD}": "${code}"`;
+      }),
+    );
+    expect(NAME_TAKEN_REFUSAL_CODES).toEqual([
+      NAME_TAKEN_REFUSAL_CODE,
+      NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    ]);
+
+    // A record in service may give the name up: the provider asks again.
+    expect(codeLines[0]).toContain("a record in service has it");
+    expect(codeLines[0]).toContain(
+      "the Terraform provider asks again for up to 30 seconds",
+    );
+    // An archived one will not: nothing asks again.
+    expect(codeLines[1]).toContain("only an archived record has it");
+    expect(codeLines[1]).toContain(
+      "sending the request again does not help, and the Terraform provider does not",
+    );
+
+    /*
+     * The refusals it quotes, word for word: a named kind's, and the one
+     * every other kind with a name of its own answers a create with
+     * (DatabaseService.refuseTakenName).
+     */
+    expect(
+      codeBlocks(section, "text").map((block: string): string => {
+        return block.trim();
+      }),
+    ).toEqual([
+      getNameTakenRefusalText(ON_CALL_POLICY_NAME_TAKEN_REFUSAL, "Primary"),
+      `${new IncidentSeverity().singularName} with the same name already exists.`,
+    ]);
+    expect(readRepoFile(DATABASE_SERVICE)).toContain(
+      "`${this.model.singularName} with the same name already exists.`",
     );
 
     // The route, and each kind it answers for, by the name the route takes.

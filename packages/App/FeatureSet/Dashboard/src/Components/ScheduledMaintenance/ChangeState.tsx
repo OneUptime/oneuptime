@@ -6,7 +6,14 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
 import { StateListType } from "Common/Utils/StateOrder";
@@ -219,10 +226,21 @@ const OverdueNotice: FunctionComponent<OverdueNoticeProps> = (
   );
 };
 
+// What a state change writes: a new row on the event's state timeline.
+const STATE_CHANGE_MODEL: ScheduledMaintenanceStateTimeline =
+  new ScheduledMaintenanceStateTimeline();
+
 const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * What the server says the reader may do on this event: a state change
+   * its labels or owners keep from them is locked here, saying why
+   * (RecordAccessScope, #10272).
+   */
+  const recordGateOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(STATE_CHANGE_MODEL);
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
@@ -713,13 +731,16 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
          * the words of what they pressed, not the timeline's.
          */
         stateChangeGate={PermissionGate.check(
-          new ScheduledMaintenanceStateTimeline(),
+          STATE_CHANGE_MODEL,
           ModelAction.Create,
-          {
-            sentence: translationKey(
-              "You do not have permission to change this event's state.",
-            ),
-          },
+          withPrivateRecordGateOptions(
+            {
+              sentence: translationKey(
+                "You do not have permission to change this event's state.",
+              ),
+            },
+            recordGateOptions,
+          ),
         )}
         identifier={props.eventNumber}
         title={props.title}

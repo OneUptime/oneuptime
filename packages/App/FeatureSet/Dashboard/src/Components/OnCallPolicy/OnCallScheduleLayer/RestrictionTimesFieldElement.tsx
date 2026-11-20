@@ -10,7 +10,10 @@ import RestrictionTimes, {
 import TimezoneAlias from "Common/Types/TimezoneAlias";
 import Typeof from "Common/Types/Typeof";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Dropdown from "Common/UI/Components/Dropdown/Dropdown";
+import Dropdown, {
+  DropdownOption,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import { writeStandAloneDayName } from "Common/Types/DateLanguage";
 // removed InputType.TIME usage in favor of TimePicker
 import TimePicker from "Common/UI/Components/TimePicker/Index";
 import BasicRadioButtons from "Common/UI/Components/RadioButtons/BasicRadioButtons";
@@ -25,6 +28,33 @@ import React, {
   useId,
   useState,
 } from "react";
+
+/*
+ * The days of the week as a weekly window's two day menus list them: each
+ * name as the reader's language writes a day in a menu (#7660) - "Lunes"
+ * in Spanish, "lundi" in French, "mandag" in Danish, as CLDR has it - drawn
+ * as written, so the day picked reads as it is listed.
+ */
+export const getDayOfWeekMenuOptions: (
+  translator: Translator,
+) => Array<DropdownOption> = (
+  translator: Translator,
+): Array<DropdownOption> => {
+  return DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek).map(
+    (option: DropdownOption): DropdownOption => {
+      return {
+        ...option,
+        label: writeStandAloneDayName({
+          name: translator.translateText(option.label) || option.label,
+          language: translator.language,
+          context: "menu",
+        }),
+        isUserContent: true,
+        isInPageDirection: true,
+      };
+    },
+  );
+};
 
 export interface ComponentProps {
   error?: string | undefined;
@@ -421,6 +451,18 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
       windowIndex: params.windowIndex,
     });
 
+    const dayOptions: Array<DropdownOption> =
+      getDayOfWeekMenuOptions(translator);
+
+    // The menu's own option for a day, so the day picked reads as listed.
+    const dayOption: (day: DayOfWeek) => DropdownOption | undefined = (
+      day: DayOfWeek,
+    ): DropdownOption | undefined => {
+      return dayOptions.find((option: DropdownOption): boolean => {
+        return option.value === day;
+      });
+    };
+
     /*
      * One window, one row: From and To side by side, each its day over its
      * time, and Delete level with the times. The day picker is as wide as
@@ -439,11 +481,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
               <Dropdown
                 ariaLabelledby={labelIds.from}
                 isClearable={false}
-                options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}
-                value={DropdownUtil.getDropdownOptionFromEnumForValue(
-                  DayOfWeek,
-                  params.weeklyRestriction.startDay,
-                )}
+                options={dayOptions}
+                value={dayOption(params.weeklyRestriction.startDay)}
                 onChange={(value: any) => {
                   const weeklyRestriction: WeeklyResctriction = {
                     ...params.weeklyRestriction,
@@ -500,11 +539,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
               <Dropdown
                 ariaLabelledby={labelIds.to}
                 isClearable={false}
-                options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}
-                value={DropdownUtil.getDropdownOptionFromEnumForValue(
-                  DayOfWeek,
-                  params.weeklyRestriction.endDay,
-                )}
+                options={dayOptions}
+                value={dayOption(params.weeklyRestriction.endDay)}
                 onChange={(value: any) => {
                   const weeklyRestriction: WeeklyResctriction = {
                     ...params.weeklyRestriction,

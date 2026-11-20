@@ -255,7 +255,16 @@ Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne haben in einem P
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Neben der Meldung enthält die Antwort `"refusalCode": "name_taken"`. Erkennen Sie diese Ablehnung an diesem Code, nicht am Satz, der umformuliert werden kann. Es wurde nichts geschrieben, daher kann dieselbe Anfrage erneut gesendet werden, sobald der andere Datensatz den Namen aufgibt: Der Terraform-Provider fragt bis zu 30 Sekunden lang erneut an.
+Auch viele andere Arten haben einen eigenen Namen, etwa Schweregrade von Vorfällen, Monitorstatus, Statusseiten und Workflows, und lehnen einen vergebenen Namen auf dieselbe Weise ab:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Neben der Meldung enthält jede solche Ablehnung einen `refusalCode`, der sagt, was den Namen hat. Erkennen Sie die Ablehnung an diesem Code, nicht am Satz, der umformuliert werden kann:
+
+- `"refusalCode": "name_taken"`: Ein Datensatz, der in Dienst ist, hat ihn. Es wurde nichts geschrieben, daher kann dieselbe Anfrage erneut gesendet werden, sobald dieser Datensatz den Namen aufgibt: Der Terraform-Provider fragt bis zu 30 Sekunden lang erneut an.
+- `"refusalCode": "name_taken_by_archived"`: Nur ein archivierter Datensatz hat ihn. Holen Sie diesen Datensatz aus dem Archiv, oder wählen Sie einen anderen Namen: Die Anfrage erneut zu senden hilft nicht, und der Terraform-Provider tut es nicht.
 
 Ein Update, das den eigenen Namen eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Umbenennung, sodass Datensätze, die sich vorher einen Namen geteilt haben, weiterhin geändert und so umbenannt werden können, dass sie sich unterscheiden. Für Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne beantwortet `GET /api/shared-names/team` (oder `label`, `on-call-policy`, `on-call-schedule`), welche sich einen Namen teilen: `{"groups": [["<id>", "<id>"]]}`, jede Gruppe die IDs der Datensätze mit gleich lautenden Namen, die Ihr Schlüssel lesen darf. Archivierte Labels und Bereitschaftsrichtlinien werden ausgelassen.
 

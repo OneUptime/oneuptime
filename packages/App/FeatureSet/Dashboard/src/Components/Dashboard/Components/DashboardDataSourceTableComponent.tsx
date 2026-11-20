@@ -208,10 +208,12 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     }
 
     try {
-      const interpolatedQuery: string = DataSourceQueryText.applyVariables(
-        state.queryConfig.query,
-        state.variables,
-      );
+      const interpolatedQuery: string =
+        DataSourceQueryText.applyVariablesForSource({
+          dataSourceId: state.queryConfig.dataSourceId,
+          queryText: state.queryConfig.query,
+          variables: state.variables,
+        });
       const fetched: DataSourceTableResult =
         await DataSourceQueryUtil.fetchTable({
           queryConfig: { ...state.queryConfig, query: interpolatedQuery },

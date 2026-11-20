@@ -428,9 +428,18 @@ describe("a data security issue's page, through the server", () => {
       ).toHaveTextContent(
         /^Couldn't load this store's data types\. .*Data Store/,
       );
-      // The rest of the issue, its store's name and sensitivity included.
+      /*
+       * The rest of the issue, and which store it is on. Not the store's
+       * sensitivity, which a relation reads only for who may read the store
+       * (#10281) - and never "Public" in its place.
+       */
       expect(screen.getByText("On customer-exports")).toBeInTheDocument();
-      expect(within(storeHolds()).getByText("Restricted")).toBeInTheDocument();
+      expect(
+        within(storeHolds()).queryByText("Restricted"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(storeHolds()).queryByText("Public"),
+      ).not.toBeInTheDocument();
       expect(
         screen.queryByTestId("data-security-issue-parts-not-loaded"),
       ).not.toBeInTheDocument();

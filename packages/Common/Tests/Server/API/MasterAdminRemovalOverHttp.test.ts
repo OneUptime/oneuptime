@@ -84,6 +84,18 @@ import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
 import { treatEverySessionAsLive } from "../TestingUtils/LiveSessions";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+
+/*
+ * A master admin's change to how someone signs in waits until the session confirms it's its
+ * person's (Confirm It's You, #10216): every session here has confirmed.
+ * The check itself, through the same hooks and routes, is pinned by
+ * Tests/Server/Services/AdminReauthenticationGates.test.ts and
+ * Tests/Server/API/AdminReauthenticationRoutes.test.ts.
+ */
+beforeEach(() => {
+  confirmEverySession();
+});
 
 /*
  * A real Express app: an error that walks the routes registered after the

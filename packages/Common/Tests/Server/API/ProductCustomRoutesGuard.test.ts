@@ -183,7 +183,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
     },
   },
-  // Its own routes only read today: a write added here names Monitors.
+  /*
+   * Its own routes read, but for Import Alerts' Convert with OneUptime AI
+   * (#7697), which writes nothing and is refused while Monitors is off: an
+   * import's monitors are created through the CRUD API, refused with it.
+   */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
     leftAlone: {},
@@ -1117,6 +1121,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          */
         "packages/Common/Server/API/UserAPI.ts": 10,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
+      },
+    ),
+    ...decided(
+      "A person's own progress through a guided setup (#7253), which spans products: it keeps only where they are, and every record a step makes goes through its own product's routes.",
+      {
+        "packages/Common/Server/API/GuidedSetupRunAPI.ts": 2,
       },
     ),
     ...decided(

@@ -2,8 +2,13 @@ import { AZURE_MAX_SPLIT_SERIES_PER_METRIC } from "../../../../Types/Cloud/Cloud
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
-import { DataSourceHttpResponse } from "../../DataSource/HttpFetch";
+import {
+  DataSourceHttpResponse,
+  getDataSourceHttpStatusError,
+} from "../../DataSource/HttpFetch";
+import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import LlmProviderHttp, {
+  LlmProviderRequest,
   buildQueryString,
   readArray,
   readObject,
@@ -19,6 +24,7 @@ import {
   CloudReadBudgetSpent,
 } from "../CloudConnectorTypes";
 import { withCloudRetries } from "../CloudRetry";
+import { AzureRateLimit, readAzureRateLimit } from "./AzureRateLimit";
 
 /*
  * Azure Resource Manager and Azure Monitor, the calls an Azure cloud
@@ -49,6 +55,15 @@ import { withCloudRetries } from "../CloudRetry";
  *          resource with its tags and properties
  *   GET/POST anything else the inventory, the changes and the billing read,
  *       through get() and post() - always on the management host.
+ *   POST {arm}{scope}/providers/Microsoft.CostManagement/query
+ *       (queryCostManagement)
+ *       -> one page of a cost query, asked once - its caller paces it
+ *          against the tenant's quotas and asks again (AzureCostManagement)
+ *          - naming OneUptime as its client type.
+ *
+ * Every request reads its answer's status and headers itself: a throttled
+ * answer says how long to wait in them (AzureRateLimit), and the transport
+ * would have thrown them away.
  *
  *   GET https://{account}.blob.core.windows.net/... (getStorageText,
  *       getStorageBytes)
@@ -190,6 +205,46 @@ export interface AzureArmOptions {
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
 }
 
+/*
+ * An answer outside 2xx, as the transport would have thrown it ("Azure
+ * cost query failed with HTTP 429: ..."), with what its headers said of
+ * Azure's rate limits: the wait they asked for is its retryAfterSeconds too,
+ * which CloudRetry waits.
+ */
+export class AzureArmError extends LlmProviderError {
+  public rateLimit: AzureRateLimit;
+
+  public constructor(failure: LlmProviderError, rateLimit: AzureRateLimit) {
+    super({
+      message: failure.message,
+      kind: failure.kind,
+      statusCode: failure.statusCode,
+      retryAfterSeconds:
+        rateLimit.retryAfterMs !== undefined
+          ? rateLimit.retryAfterMs / 1000
+          : failure.retryAfterSeconds,
+      responseBody: failure.responseBody,
+    });
+    this.rateLimit = rateLimit;
+  }
+}
+
+// What a query answered: its JSON, and what its headers said of the limits.
+export interface AzureArmAnswer {
+  body: JSONObject;
+  rateLimit: AzureRateLimit;
+}
+
+/*
+ * What Cost Management is told the caller is (its ClientType request
+ * header). Microsoft's support says a caller that names none shares one
+ * pool of requests with every other caller that names none, which a busy
+ * minute anywhere spends ("x-ms-ratelimit-remaining-microsoft.
+ * costmanagement-clienttype-requests: DefaultQuota:0"). OneUptime, as its
+ * User-Agent says.
+ */
+export const AZURE_COST_CLIENT_TYPE: string = "OneUptime";
+
 export default class AzureArm {
   private options: AzureArmOptions;
   private tokens: EntraTokenClient;
@@ -209,6 +264,139 @@ export default class AzureArm {
 
   public getManagementBaseUrl(): string {
     return EntraTokenClient.getEndpoints(this.options.cloud).managementBaseUrl;
+  }
+
+  /*
+   * Whose rate limits the app's requests count against: its tenant's, in
+   * its cloud. Every connection of the tenant shares them (AzureCostPacer).
+   */
+  public getRateLimitKey(): string {
+    return `${this.options.cloud}|${this.options.tenantId.trim().toLowerCase()}`;
+  }
+
+  /*
+   * One request, its answer judged here rather than by the transport, which
+   * throws an answer outside 2xx away with its headers - where an Azure
+   * throttle says how long to wait (AzureRateLimit). So every request asks
+   * for every status (acceptAnyStatus), and one outside 2xx is thrown as the
+   * very error the transport's would have become, carrying what its headers
+   * said (AzureArmError). A transport that throws for the status anyway (a
+   * test's) is answered as before.
+   */
+  private async send(
+    request: LlmProviderRequest,
+  ): Promise<{ response: DataSourceHttpResponse; rateLimit: AzureRateLimit }> {
+    const response: DataSourceHttpResponse = await LlmProviderHttp.send({
+      ...request,
+      acceptAnyStatus: true,
+    });
+    const rateLimit: AzureRateLimit = readAzureRateLimit(response.headers);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return { response, rateLimit };
+    }
+
+    throw new AzureArmError(
+      LlmProviderError.from({
+        error: getDataSourceHttpStatusError(
+          response.statusCode,
+          response.bodyText || "",
+        ),
+        step: request.step,
+        providerTitle: request.providerTitle,
+        secretValues: request.secretValues,
+      }),
+      rateLimit,
+    );
+  }
+
+  // send(), answered as a JSON object.
+  private async requestJson(
+    request: LlmProviderRequest,
+  ): Promise<AzureArmAnswer> {
+    return AzureArm.readJsonAnswer(request, await this.send(request));
+  }
+
+  // An answer's JSON object, else LlmProviderHttp.requestJson's failure.
+  private static readJsonAnswer(
+    request: LlmProviderRequest,
+    sent: { response: DataSourceHttpResponse; rateLimit: AzureRateLimit },
+  ): AzureArmAnswer {
+    const json: unknown = sent.response.bodyJson;
+
+    if (!json || typeof json !== "object" || Array.isArray(json)) {
+      throw new LlmProviderError({
+        message: LlmProviderError.redact(
+          `${request.providerTitle} ${request.step} returned a response that is not a JSON object (HTTP ${sent.response.statusCode}).`,
+          request.secretValues,
+        ),
+        kind: LlmProviderError.kindFromStatus(sent.response.statusCode),
+        statusCode: sent.response.statusCode,
+      });
+    }
+
+    return { body: json as JSONObject, rateLimit: sent.rateLimit };
+  }
+
+  /*
+   * One Cost Management query (a POST of its body, or of its next page),
+   * asked once: whoever asks paces it and asks again (AzureCostManagement),
+   * from what the answer's headers say - handed back with its JSON, and on
+   * the AzureArmError a throttled answer is thrown as. Each request is one
+   * of the read's budget, and names OneUptime as its client type.
+   */
+  public async queryCostManagement(
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<AzureArmAnswer> {
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const token: string = await this.tokens.getAccessToken(
+      this.getManagementBaseUrl(),
+    );
+    const request: LlmProviderRequest = {
+      transport: this.options.transport,
+      method: "POST",
+      url,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ClientType: AZURE_COST_CLIENT_TYPE,
+      },
+      body: JSON.stringify(body),
+      timeoutInMs: this.options.requestTimeoutInMs,
+      step,
+      providerTitle: PROVIDER_TITLE,
+      secretValues: [this.options.clientSecret, token],
+    };
+
+    /*
+     * 204 No Content: the reference's "resource is not available" - no
+     * costs to give, which reads as an empty answer, not a failure.
+     */
+    const sent: {
+      response: DataSourceHttpResponse;
+      rateLimit: AzureRateLimit;
+    } = await this.send(request);
+
+    if (sent.response.statusCode === 204) {
+      return { body: {}, rateLimit: sent.rateLimit };
+    }
+
+    return AzureArm.readJsonAnswer(request, sent);
+  }
+
+  // Whether a URL is on the management host, where the token may go.
+  public isManagementUrl(url: string): boolean {
+    try {
+      return new URL(url).host === new URL(this.getManagementBaseUrl()).host;
+    } catch {
+      return false;
+    }
   }
 
   /*
@@ -298,21 +486,23 @@ export default class AzureArm {
           AZURE_STORAGE_RESOURCE,
         );
 
-        return await LlmProviderHttp.send({
-          transport: this.options.transport,
-          method: "GET",
-          url: data.url,
-          headers: {
-            ...(data.headers || {}),
-            Authorization: `Bearer ${token}`,
-            "x-ms-version": AZURE_STORAGE_SERVICE_VERSION,
-          },
-          timeoutInMs: this.options.requestTimeoutInMs,
-          keepBodyBytes: data.keepBodyBytes,
-          step: data.step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        return (
+          await this.send({
+            transport: this.options.transport,
+            method: "GET",
+            url: data.url,
+            headers: {
+              ...(data.headers || {}),
+              Authorization: `Bearer ${token}`,
+              "x-ms-version": AZURE_STORAGE_SERVICE_VERSION,
+            },
+            timeoutInMs: this.options.requestTimeoutInMs,
+            keepBodyBytes: data.keepBodyBytes,
+            step: data.step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).response;
       },
     });
   }
@@ -351,21 +541,23 @@ export default class AzureArm {
           this.getManagementBaseUrl(),
         );
 
-        return await LlmProviderHttp.requestJson({
-          transport: this.options.transport,
-          method: "POST",
-          url,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-          timeoutInMs: this.options.requestTimeoutInMs,
-          step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        return (
+          await this.requestJson({
+            transport: this.options.transport,
+            method: "POST",
+            url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).body;
       },
     });
   }
@@ -433,21 +625,23 @@ export default class AzureArm {
           this.getManagementBaseUrl(),
         );
 
-        const response: DataSourceHttpResponse = await LlmProviderHttp.send({
-          transport: this.options.transport,
-          method,
-          url,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-          timeoutInMs: this.options.requestTimeoutInMs,
-          step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        const response: DataSourceHttpResponse = (
+          await this.send({
+            transport: this.options.transport,
+            method,
+            url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).response;
 
         return readObject(response.bodyJson);
       },
@@ -546,19 +740,21 @@ export default class AzureArm {
           this.getManagementBaseUrl(),
         );
 
-        return await LlmProviderHttp.requestJson({
-          transport: this.options.transport,
-          method: "GET",
-          url,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-          timeoutInMs: this.options.requestTimeoutInMs,
-          step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        return (
+          await this.requestJson({
+            transport: this.options.transport,
+            method: "GET",
+            url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).body;
       },
     });
   }

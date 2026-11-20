@@ -1,10 +1,14 @@
 import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import PermissionGate, {
+  ModelAction,
   PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { withPrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
+import {
+  usePrivateRecordGateOptions,
+  withPrivateRecordGateOptions,
+} from "Common/UI/Utils/PrivateRecordScope";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -67,4 +71,52 @@ export const getEpisodeRoleReassignGate: (
       privateRecordOptions,
     ),
   );
+};
+
+/*
+ * WHAT THE OVERVIEW'S HEADER OFFERS OF THE RECORD'S PRIMARY ROLE: Assign,
+ * while nobody holds it - a new role row - and the commander's name, which
+ * hands it on - the role row's update (#10195). Asked with what the reader
+ * holds on a private record and what the server says they may do on this
+ * one (#10272): a reader whose permission does not reach the record sees
+ * the name as plain text, and no Assign.
+ */
+export interface EventRoleGates {
+  mayAssign: boolean;
+  mayReassign: boolean;
+}
+
+const INCIDENT_ROLE_ROW: IncidentMember = new IncidentMember();
+const EPISODE_ROLE_ROW: IncidentEpisodeRoleMember =
+  new IncidentEpisodeRoleMember();
+
+// The incident page's header asks these.
+export const useIncidentRoleGates: () => EventRoleGates =
+  (): EventRoleGates => {
+    const options: PermissionGateOptions | undefined =
+      usePrivateRecordGateOptions(INCIDENT_ROLE_ROW);
+
+    return {
+      mayAssign: PermissionGate.check(
+        INCIDENT_ROLE_ROW,
+        ModelAction.Create,
+        options,
+      ).isAllowed,
+      mayReassign: getIncidentRoleReassignGate(options).isAllowed,
+    };
+  };
+
+// And an incident episode's.
+export const useEpisodeRoleGates: () => EventRoleGates = (): EventRoleGates => {
+  const options: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(EPISODE_ROLE_ROW);
+
+  return {
+    mayAssign: PermissionGate.check(
+      EPISODE_ROLE_ROW,
+      ModelAction.Create,
+      options,
+    ).isAllowed,
+    mayReassign: getEpisodeRoleReassignGate(options).isAllowed,
+  };
 };

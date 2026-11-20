@@ -2128,8 +2128,11 @@ describe("IncidentPublicNote custom template variable values", () => {
       const expected: string =
         OneUptimeDate.getDateAsUserFriendlyFormattedString(POSTED_AT);
 
-      // Server side the formatter uses a 12-hour clock and a zone name.
-      expect(expected).toMatch(/^Mar 0[45] 2026, \d{2}:\d{2} (AM|PM) \S+/);
+      /*
+       * Server side the formatter uses a 12-hour clock and a zone name, with
+       * no zero on the day or the hour (#7652).
+       */
+      expect(expected).toMatch(/^Mar [45], 2026, \d{1,2}:\d{2} (AM|PM) \S+/);
       expect(expected).not.toBe(
         OneUptimeDate.getDateAsUserFriendlyFormattedString(new Date()),
       );

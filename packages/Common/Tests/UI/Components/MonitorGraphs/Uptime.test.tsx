@@ -610,9 +610,9 @@ describe("MonitorUptimeGraph - uptimeTimezone", () => {
 
     // The zone is not the browser's (UTC), so the labels say which it is.
     expect(barLabels()).toEqual([
-      "Jan 01, 2026 (JST): 90% uptime",
-      "Jan 02, 2026 (JST): 91% uptime",
-      "Jan 03, 2026 (JST): 92% uptime",
+      "Jan 1, 2026 (JST): 90% uptime",
+      "Jan 2, 2026 (JST): 91% uptime",
+      "Jan 3, 2026 (JST): 92% uptime",
     ]);
 
     // Each bar opens as the Tokyo midnight it stands for.
@@ -648,9 +648,9 @@ describe("MonitorUptimeGraph - uptimeTimezone", () => {
     });
 
     expect(barLabels()).toEqual([
-      "Jan 01, 2026: 90% uptime",
-      "Jan 02, 2026: 92% uptime",
-      "Jan 03, 2026: no data",
+      "Jan 1, 2026: 90% uptime",
+      "Jan 2, 2026: 92% uptime",
+      "Jan 3, 2026: no data",
     ]);
   });
 
@@ -699,9 +699,9 @@ describe("MonitorUptimeGraph - uptimeTimezone", () => {
 
     expect(inUtc).toEqual(omitted);
     expect(inUtc.labels).toEqual([
-      "Jan 01, 2026: 75% uptime",
-      "Jan 02, 2026: 50% uptime",
-      "Jan 03, 2026: 99% uptime",
+      "Jan 1, 2026: 75% uptime",
+      "Jan 2, 2026: 50% uptime",
+      "Jan 3, 2026: 99% uptime",
     ]);
   });
 });

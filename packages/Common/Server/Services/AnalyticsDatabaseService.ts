@@ -14,6 +14,7 @@ import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import FindOneBy from "../Types/AnalyticsDatabase/FindOneBy";
 import FindOneByID from "../Types/AnalyticsDatabase/FindOneByID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { EventLoopBudget } from "../Utils/EventLoop";
 import {
   DatabaseTriggerType,
   OnCreate,
@@ -1515,7 +1516,18 @@ export default class AnalyticsDatabaseService<
         groupByColumnNames.push("attributes");
       }
 
+      /*
+       * A grouped read is a row per series and bucket - 40,000 of them for
+       * a monitor over 16,000 series (#10108) - so the loop hands the event
+       * loop back as it goes.
+       */
+      const budget: EventLoopBudget = new EventLoopBudget();
+
       for (const item of items) {
+        if (budget.isSpent()) {
+          await budget.handBack();
+        }
+
         if (
           !(item as JSONObject)[
             aggregateBy.aggregationTimestampColumnName as string
@@ -1815,8 +1827,9 @@ export default class AnalyticsDatabaseService<
    * a count of the same query would. The expression is SQL written in
    * code, never a request's: a mobile app's install, the first of two
    * attributes with a value (MobileAppTelemetry.STORED_APP_INSTALL_SQL,
-   * #9924). Exact, as countBy's distinct count is, and stopped as countBy's
-   * is when the time limit passes.
+   * #9924). Exact, as countBy's exact count is, and stopped as that one is
+   * when the time limit passes: with an error, a QueryTimeoutException,
+   * never a number counted from part of the rows.
    */
   @CaptureSpan()
   public async countDistinctNonEmpty(input: {
@@ -1877,10 +1890,20 @@ export default class AnalyticsDatabaseService<
       .append(SQL` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `)
       .append(this.statementGenerator.toWhereStatement(input.query))
       .append(this.getRetentionReadFilter());
+
+    /*
+     * 'throw', as an exact count stops (issue #4707). This count is one side
+     * of an Exceptions monitor's share of installs, which the monitor alerts
+     * on and shows ("6 of 400 installs"): one side counted from part of its
+     * rows makes the share wrong, and a denominator cut short reads more of
+     * the installs as crashed than were. 'break' never handed back part of
+     * the count anyway: ClickHouse answers a count it broke off with an
+     * empty body (see countBy), which executeQuery already reads as a stop.
+     */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: "throw",
       }),
     );
 

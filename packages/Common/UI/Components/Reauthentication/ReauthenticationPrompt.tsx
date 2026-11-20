@@ -1,31 +1,37 @@
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import URL from "../../../Types/API/URL";
 import {
+  REAUTHENTICATE_QUERY_PARAM,
   REAUTHENTICATION_FIELDS,
   REAUTHENTICATION_MESSAGES,
   REAUTHENTICATION_ROUTE,
   REAUTHENTICATION_WEBAUTHN_OPTIONS_ROUTE,
   ReauthenticationMethods,
+  ReauthenticationPurpose,
+  ReauthenticationSignInAgain,
   ReauthenticationStatus,
   ReauthenticationWebAuthnKind,
-} from "Common/Types/Accounts/Reauthentication";
-import Email from "Common/Types/Email";
-import { JSONObject } from "Common/Types/JSON";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
-import FieldLabel from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Input, { InputType } from "Common/UI/Components/Input/Input";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { ACCOUNTS_URL, APP_API_URL } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
-import Navigation from "Common/UI/Utils/Navigation";
-import Reauthentication from "Common/UI/Utils/Reauthentication";
-import SessionEndReturn from "Common/UI/Utils/SessionEndReturn";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import UserUtil from "Common/UI/Utils/User";
-import WebAuthn from "Common/UI/Utils/WebAuthn";
+  SignInAgainProvider,
+  SignInAgainRefusal,
+} from "../../../Types/Accounts/Reauthentication";
+import Email from "../../../Types/Email";
+import { JSONObject } from "../../../Types/JSON";
+import Alert, { AlertType } from "../Alerts/Alert";
+import Button, { ButtonStyleType } from "../Button/Button";
+import FieldError from "../Forms/Fields/FieldError";
+import FieldLabel from "../Forms/Fields/FieldLabel";
+import Input, { InputType } from "../Input/Input";
+import Modal, { ModalWidth } from "../Modal/Modal";
+import { ACCOUNTS_URL, APP_API_URL, IDENTITY_URL } from "../../Config";
+import API from "../../Utils/API/API";
+import Navigation from "../../Utils/Navigation";
+import Reauthentication from "../../Utils/Reauthentication";
+import SessionEndReturn from "../../Utils/SessionEndReturn";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import UserUtil from "../../Utils/User";
+import WebAuthn from "../../Utils/WebAuthn";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -38,16 +44,16 @@ import React, {
 /*
  * CONFIRM IT'S YOU (#10155, Common/Types/Accounts/Reauthentication).
  *
- * A change to how a person signs in - a new password or email address, a
- * passkey, a security key or an authenticator app added or removed, unused
- * backup codes replaced, two-factor authentication turned off - waits until
- * their session confirms it's theirs. This is the one prompt that asks,
- * mounted once in App.tsx: the API client hands it every such refusal
- * (Common/UI/Utils/Reauthentication) and sends the change again once the
- * person has confirmed, so no page asks on its own and nothing they typed
- * is lost.
+ * A change that waits until the person's session confirms it's theirs - a
+ * change to how they sign in, deleting their own account (#10220), or a
+ * master admin's change to how someone else signs in, or to the server's
+ * (#10216) - is asked here. One prompt, mounted once in the Dashboard's and
+ * the Admin Dashboard's App.tsx: the API client hands it every such refusal
+ * (Common/UI/Utils/Reauthentication), with what it is for, and sends the
+ * change again once the person has confirmed, so no page asks on its own
+ * and nothing they typed is lost.
  *
- * It asks for what signs the account in, in one dialog:
+ * It asks for what signs the account in, in one dialog, and says what for:
  *
  *   - the password, and - while two-factor authentication is on - the
  *     second step beside it: a code from the authenticator app, the
@@ -55,14 +61,29 @@ import React, {
  *     Use a Passkey instead, where the account has one;
  *   - a passkey, for an account with no password;
  *   - Sign In Again, for an account that signs in with neither (single
- *     sign-on, Google, Microsoft): it signs out and comes back to the page
- *     once the person has signed in.
+ *     sign-on, Google, Microsoft, a sign-in link): it signs out and back in
+ *     through the session's own sign-in, asking the identity provider to
+ *     authenticate the person again (#10217), and comes back to the page.
+ *     When the last one did not confirm it's them - the provider used a
+ *     session it had, or did not say when they signed in - it says so, with
+ *     what their administrator can change, and offers Sign In Another Way
+ *     where an emailed sign-in link can stand in.
  *
  * A wrong answer says what was wrong under its field, in the reader's
  * words; too many in one session sign it out (the server decides, and the
  * API client takes the browser to the sign-in page). Cancel answers the
  * change with its refusal, which says what to do.
  */
+
+// What the prompt says it asks for, one sentence for each way of confirming.
+export interface PromptDescriptions {
+  password: string;
+  passwordAndCode: string;
+  passwordAndSecurityKey: string;
+  passwordAndBackupCode: string;
+  passkey: string;
+  signInAgain: string;
+}
 
 export const REAUTHENTICATION_PROMPT_COPY: {
   title: string;
@@ -84,6 +105,14 @@ export const REAUTHENTICATION_PROMPT_COPY: {
   confirm: string;
   enterCode: string;
   enterBackupCode: string;
+  signInAnotherWay: string;
+  signInAgainReusedSession: string;
+  signInAgainNoSignInTime: string;
+  signInAgainHintReusedSession: string;
+  signInAgainHintNoSignInTime: string;
+  signInAgainHintMicrosoft: string;
+  signInAgainHintGoogle: string;
+  signInAgainWithLink: string;
 } = {
   title: translationKey("Confirm It's You"),
   signInAgainTitle: translationKey("Sign In Again"),
@@ -118,6 +147,82 @@ export const REAUTHENTICATION_PROMPT_COPY: {
     "Enter the 6-digit code from your authenticator app.",
   ),
   enterBackupCode: translationKey("Enter one of your backup codes."),
+  // Signs out, to the sign-in page: an emailed sign-in link stands in.
+  signInAnotherWay: translationKey("Sign In Another Way"),
+  // Why the last Sign In Again did not confirm it's you (#10217).
+  signInAgainReusedSession: translationKey(
+    "{{provider}} signed you in with a session it already had, without asking for your password, so it did not confirm it's you. Sign out of {{provider}} first, then click Sign In Again.",
+  ),
+  signInAgainNoSignInTime: translationKey(
+    "{{provider}} did not say when you signed in, so it did not confirm it's you.",
+  ),
+  // What the person's administrator can change, for each.
+  signInAgainHintReusedSession: translationKey(
+    "If this keeps happening, ask your administrator to set {{provider}} to honor requests to sign in again, such as Honor Force Authentication in Okta.",
+  ),
+  signInAgainHintNoSignInTime: translationKey(
+    "Ask your administrator to set {{provider}} to send the time you signed in, such as the auth_time claim in Microsoft Entra ID.",
+  ),
+  signInAgainHintMicrosoft: translationKey(
+    "Ask your server's admin to add the auth_time claim to the ID token of the server's Microsoft sign-in app.",
+  ),
+  signInAgainHintGoogle: translationKey(
+    "Ask your server's admin to turn on Session age claims for the server's Google sign-in app.",
+  ),
+  signInAgainWithLink: translationKey(
+    "You can also choose Sign In Another Way, and sign in with a link emailed to you.",
+  ),
+};
+
+/*
+ * What the prompt says, for what the confirmation is for: a change to how
+ * you sign in (the words above), deleting your own account, or a master
+ * admin's change to how someone else signs in, or to the server's.
+ */
+export const REAUTHENTICATION_PROMPT_DESCRIPTIONS: Record<
+  ReauthenticationPurpose,
+  PromptDescriptions
+> = {
+  [ReauthenticationPurpose.OwnSignIn]: {
+    password: REAUTHENTICATION_PROMPT_COPY.password,
+    passwordAndCode: REAUTHENTICATION_PROMPT_COPY.passwordAndCode,
+    passwordAndSecurityKey: REAUTHENTICATION_PROMPT_COPY.passwordAndSecurityKey,
+    passwordAndBackupCode: REAUTHENTICATION_PROMPT_COPY.passwordAndBackupCode,
+    passkey: REAUTHENTICATION_PROMPT_COPY.passkey,
+    signInAgain: REAUTHENTICATION_PROMPT_COPY.signInAgain,
+  },
+  [ReauthenticationPurpose.DeleteAccount]: {
+    password: translationKey("Enter your password to delete your account."),
+    passwordAndCode: translationKey(
+      "Enter your password and a code from your authenticator app to delete your account.",
+    ),
+    passwordAndSecurityKey: translationKey(
+      "Enter your password, then use your security key, to delete your account.",
+    ),
+    passwordAndBackupCode: translationKey(
+      "Enter your password and one of your backup codes to delete your account.",
+    ),
+    passkey: translationKey("Use your passkey to delete your account."),
+    signInAgain: translationKey(
+      "To delete your account, sign in again first. You'll come back to this page.",
+    ),
+  },
+  [ReauthenticationPurpose.AdminChange]: {
+    password: translationKey("Enter your password to make this change."),
+    passwordAndCode: translationKey(
+      "Enter your password and a code from your authenticator app to make this change.",
+    ),
+    passwordAndSecurityKey: translationKey(
+      "Enter your password, then use your security key, to make this change.",
+    ),
+    passwordAndBackupCode: translationKey(
+      "Enter your password and one of your backup codes to make this change.",
+    ),
+    passkey: translationKey("Use your passkey to make this change."),
+    signInAgain: translationKey(
+      "To make this change, sign in again first. You'll come back to this page.",
+    ),
+  },
 };
 
 // An authenticator app's code: six digits.
@@ -189,35 +294,115 @@ const SWITCH_TO_WAY: Record<SecondStepWay, string> = {
   [SecondStepWay.BackupCode]: REAUTHENTICATION_PROMPT_COPY.useBackupCode,
 };
 
-// What the prompt says it is asking for.
+// What the prompt says it is asking for, and what for.
 export const getPromptDescription: (
   methods: ReauthenticationMethods,
   way: SecondStepWay | null,
+  purpose?: ReauthenticationPurpose | undefined,
 ) => string = (
   methods: ReauthenticationMethods,
   way: SecondStepWay | null,
+  purpose?: ReauthenticationPurpose | undefined,
 ): string => {
+  const descriptions: PromptDescriptions =
+    REAUTHENTICATION_PROMPT_DESCRIPTIONS[
+      purpose || ReauthenticationPurpose.OwnSignIn
+    ] ||
+    REAUTHENTICATION_PROMPT_DESCRIPTIONS[ReauthenticationPurpose.OwnSignIn];
+
   if (methods.signInAgain) {
-    return REAUTHENTICATION_PROMPT_COPY.signInAgain;
+    return descriptions.signInAgain;
   }
 
   if (!methods.password) {
-    return REAUTHENTICATION_PROMPT_COPY.passkey;
+    return descriptions.passkey;
   }
 
   if (way === SecondStepWay.AuthenticatorApp) {
-    return REAUTHENTICATION_PROMPT_COPY.passwordAndCode;
+    return descriptions.passwordAndCode;
   }
 
   if (way === SecondStepWay.SecurityKey) {
-    return REAUTHENTICATION_PROMPT_COPY.passwordAndSecurityKey;
+    return descriptions.passwordAndSecurityKey;
   }
 
   if (way === SecondStepWay.BackupCode) {
-    return REAUTHENTICATION_PROMPT_COPY.passwordAndBackupCode;
+    return descriptions.passwordAndBackupCode;
   }
 
-  return REAUTHENTICATION_PROMPT_COPY.password;
+  return descriptions.password;
+};
+
+// Why the last Sign In Again did not confirm it's you, and what can change it.
+export interface SignInAgainNotice {
+  // The English templates, each with {{provider}}: why, then what to do.
+  reason: string;
+  hint: string | null;
+  // Whether to add that an emailed sign-in link stands in.
+  offersSignInLink: boolean;
+}
+
+/*
+ * What the prompt says of a Sign In Again that did not confirm it's you
+ * (#10217), or null when the last one did not try, or when it is not known
+ * whom it went through. The hint names what the person's administrator can
+ * change: their identity provider's setting for a single sign-on; for
+ * Microsoft and Google, the server's own app's. Google cannot be asked to
+ * ask again at all, so it has no hint for a reused session.
+ */
+export const getSignInAgainNotice: (
+  signInAgain: ReauthenticationSignInAgain | null,
+) => SignInAgainNotice | null = (
+  signInAgain: ReauthenticationSignInAgain | null,
+): SignInAgainNotice | null => {
+  if (!signInAgain?.refusal || !signInAgain.providerName) {
+    return null;
+  }
+
+  const isReused: boolean =
+    signInAgain.refusal === SignInAgainRefusal.ReusedSession;
+
+  let hint: string | null = null;
+
+  if (signInAgain.provider === SignInAgainProvider.SingleSignOn) {
+    hint = isReused
+      ? REAUTHENTICATION_PROMPT_COPY.signInAgainHintReusedSession
+      : REAUTHENTICATION_PROMPT_COPY.signInAgainHintNoSignInTime;
+  } else if (
+    !isReused &&
+    signInAgain.provider === SignInAgainProvider.Microsoft
+  ) {
+    hint = REAUTHENTICATION_PROMPT_COPY.signInAgainHintMicrosoft;
+  } else if (!isReused && signInAgain.provider === SignInAgainProvider.Google) {
+    hint = REAUTHENTICATION_PROMPT_COPY.signInAgainHintGoogle;
+  }
+
+  return {
+    reason: isReused
+      ? REAUTHENTICATION_PROMPT_COPY.signInAgainReusedSession
+      : REAUTHENTICATION_PROMPT_COPY.signInAgainNoSignInTime,
+    hint: hint,
+    offersSignInLink: signInAgain.canUseSignInLink,
+  };
+};
+
+/*
+ * Where Sign In Again takes the browser: the session's own sign-in, under
+ * Identity's address, asking its provider to authenticate the person again
+ * (REAUTHENTICATE_QUERY_PARAM); null for the sign-in page.
+ */
+export const getSignInAgainUrl: (
+  signInAgain: ReauthenticationSignInAgain | null,
+) => URL | null = (
+  signInAgain: ReauthenticationSignInAgain | null,
+): URL | null => {
+  if (!signInAgain?.route) {
+    return null;
+  }
+
+  return URL.fromString(IDENTITY_URL.toString())
+    .addRoute(signInAgain.route)
+    .addQueryParam(REAUTHENTICATE_QUERY_PARAM, "true");
 };
 
 // Where a refusal is said: under its field, or over the dialog.
@@ -262,6 +447,8 @@ export const placePromptError: (message: string) => PromptError = (
 interface OpenPrompt {
   methods: ReauthenticationMethods;
   windowInMinutes: number;
+  purpose: ReauthenticationPurpose;
+  signInAgain: ReauthenticationSignInAgain | null;
   resolve: (isConfirmed: boolean) => void;
 }
 
@@ -287,8 +474,10 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
   };
 
   const open: (
+    purpose: ReauthenticationPurpose,
     resolve: (isConfirmed: boolean) => void,
   ) => Promise<void> = async (
+    purpose: ReauthenticationPurpose,
     resolve: (isConfirmed: boolean) => void,
   ): Promise<void> => {
     const status: ReauthenticationStatus | null =
@@ -309,6 +498,8 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
     const opened: OpenPrompt = {
       methods: status.methods,
       windowInMinutes: status.windowInMinutes,
+      purpose: purpose,
+      signInAgain: status.signInAgain,
       resolve: resolve,
     };
 
@@ -340,13 +531,15 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
 
   // The API client's way to ask, while the prompt is mounted.
   useEffect(() => {
-    Reauthentication.setAsker((): Promise<boolean> => {
-      return new Promise<boolean>(
-        (resolve: (isConfirmed: boolean) => void): void => {
-          void open(resolve);
-        },
-      );
-    });
+    Reauthentication.setAsker(
+      (purpose: ReauthenticationPurpose): Promise<boolean> => {
+        return new Promise<boolean>(
+          (resolve: (isConfirmed: boolean) => void): void => {
+            void open(purpose, resolve);
+          },
+        );
+      },
+    );
 
     return () => {
       Reauthentication.setAsker(null);
@@ -514,11 +707,22 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
 
   /*
    * Signs out and back in, coming back to this page (SessionEndReturn), as
-   * a session that ended does - through the identity provider's sign-out
-   * first where the person's organization asks for it, as Sign Out does,
-   * so the provider asks who they are again too.
+   * a session that ended does.
+   *
+   * Through the session's own sign-in when the server names it (#10217):
+   * its start asks the identity provider to authenticate the person again,
+   * and keeps when it sent them, for the sign-in to be held to. Signing out
+   * of the provider first would lose that, and the provider is asked to ask
+   * again anyway. Otherwise - a sign-in link, a session that does not say,
+   * Sign In Another Way - to the sign-in page, through the identity
+   * provider's sign-out first where the person's organization asks for it,
+   * as Sign Out does.
    */
-  const signInAgain: () => Promise<void> = async (): Promise<void> => {
+  const signInAgain: (options: {
+    isAnotherWay: boolean;
+  }) => Promise<void> = async (options: {
+    isAnotherWay: boolean;
+  }): Promise<void> => {
     if (busyRef.current) {
       return;
     }
@@ -526,10 +730,16 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
     setBusy(true);
     SessionEndReturn.rememberCurrentPage(UserUtil.getUserId().toString());
 
+    const ownSignIn: URL | null = options.isAnotherWay
+      ? null
+      : getSignInAgainUrl(promptRef.current?.signInAgain || null);
+
     const identityProviderSignOutUrl: URL | null = await UserUtil.logout();
 
     close(false);
-    Navigation.navigate(identityProviderSignOutUrl || ACCOUNTS_URL);
+    Navigation.navigate(
+      ownSignIn || identityProviderSignOutUrl || ACCOUNTS_URL,
+    );
   };
 
   if (!prompt) {
@@ -541,10 +751,14 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
   const isPasskeyOnly: boolean = !methods.signInAgain && !methods.password;
   const email: Email | null = UserUtil.getEmail();
   const otherWays: Array<SecondStepWay> = getOtherSecondStepWays(methods, way);
+  const signInAgainNotice: SignInAgainNotice | null = isSignInAgain
+    ? getSignInAgainNotice(prompt.signInAgain)
+    : null;
+  const providerName: string = prompt.signInAgain?.providerName || "";
 
   const submit: () => void = (): void => {
     if (isSignInAgain) {
-      void signInAgain();
+      void signInAgain({ isAnotherWay: false });
       return;
     }
 
@@ -556,6 +770,34 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
     void confirmWithPassword();
   };
 
+  const secondaryButton:
+    | {
+        title: string;
+        onClick: () => void;
+        disabled: boolean;
+        dataTestId: string;
+      }
+    | undefined =
+    methods.passkey && methods.password && !isSignInAgain
+      ? {
+          title: REAUTHENTICATION_PROMPT_COPY.usePasskey,
+          onClick: () => {
+            void confirmWithPasskey();
+          },
+          disabled: isBusy,
+          dataTestId: "reauthentication-use-passkey",
+        }
+      : isSignInAgain && prompt.signInAgain?.canUseSignInLink
+        ? {
+            title: REAUTHENTICATION_PROMPT_COPY.signInAnotherWay,
+            onClick: () => {
+              void signInAgain({ isAnotherWay: true });
+            },
+            disabled: isBusy,
+            dataTestId: "reauthentication-sign-in-another-way",
+          }
+        : undefined;
+
   return (
     <Modal
       title={
@@ -563,7 +805,7 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
           ? REAUTHENTICATION_PROMPT_COPY.signInAgainTitle
           : REAUTHENTICATION_PROMPT_COPY.title
       }
-      description={getPromptDescription(methods, way)}
+      description={getPromptDescription(methods, way, prompt.purpose)}
       modalWidth={ModalWidth.Normal}
       submitButtonText={
         isSignInAgain
@@ -585,20 +827,44 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
       error={
         error?.place === PromptErrorPlace.Dialog ? error.message : undefined
       }
-      secondaryButton={
-        methods.passkey && methods.password && !isSignInAgain
-          ? {
-              title: REAUTHENTICATION_PROMPT_COPY.usePasskey,
-              onClick: () => {
-                void confirmWithPasskey();
-              },
-              disabled: isBusy,
-              dataTestId: "reauthentication-use-passkey",
-            }
-          : undefined
-      }
+      secondaryButton={secondaryButton}
     >
       <div data-testid="reauthentication-prompt">
+        {signInAgainNotice ? (
+          <Alert
+            type={AlertType.WARNING}
+            dataTestId="reauthentication-sign-in-again-notice"
+            title={
+              <div className="space-y-2">
+                <p data-testid="reauthentication-sign-in-again-reason">
+                  {translator.translateTemplate(signInAgainNotice.reason, {
+                    provider: providerName,
+                  })}
+                </p>
+                {signInAgainNotice.hint ? (
+                  <p data-testid="reauthentication-sign-in-again-hint">
+                    {translator.translateTemplate(signInAgainNotice.hint, {
+                      provider: providerName,
+                    })}
+                  </p>
+                ) : (
+                  <></>
+                )}
+                {signInAgainNotice.offersSignInLink ? (
+                  <p data-testid="reauthentication-sign-in-again-link">
+                    {translator.translateText(
+                      REAUTHENTICATION_PROMPT_COPY.signInAgainWithLink,
+                    )}
+                  </p>
+                ) : (
+                  <></>
+                )}
+              </div>
+            }
+          />
+        ) : (
+          <></>
+        )}
         {isSignInAgain || isPasskeyOnly ? (
           <></>
         ) : (
@@ -631,8 +897,8 @@ const ReauthenticationPrompt: FunctionComponent = (): ReactElement => {
               />
               {/*
                * The password the person signs in with, so their password
-               * manager may fill it: the one Dashboard field that asks for
-               * it (PasswordManagerCredentialFields).
+               * manager may fill it: the one field of each app that asks
+               * for it (PasswordManagerCredentialFields).
                */}
               <Input
                 id={passwordId}

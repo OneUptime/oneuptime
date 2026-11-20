@@ -43,7 +43,12 @@ const MAX_IMPACT_LISTED: number = 50;
 const CHANGES_BEFORE_IN_HOURS: number = 24;
 const CHANGES_AFTER_IN_HOURS: number = 1;
 
-const DATA_ALERT_SELECT: {
+/*
+ * What the card reads of a data alert. Its store by its name alone: a
+ * relation reads which store it is for every reader of the alert, and the
+ * store's security facts only for who may read the store (#10281).
+ */
+export const DATA_ALERT_SELECT: {
   _id: true;
   alertId: true;
   causeAlertId: true;

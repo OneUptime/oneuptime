@@ -1,4 +1,5 @@
 import { performance } from "perf_hooks";
+import { SlicedWorkSteps } from "../../Utils/SlicedWork";
 
 /*
  * How long a loop over a batch - a telemetry ingest job's records, say - may
@@ -43,7 +44,17 @@ export default class EventLoop {
    */
   public static async yieldToEventLoop(): Promise<void> {
     return new Promise<void>((resolve: () => void) => {
-      setImmediate(resolve);
+      if (typeof setImmediate === "function") {
+        setImmediate(resolve);
+        return;
+      }
+
+      /*
+       * A runtime without setImmediate - the browser-like environment
+       * Common's tests run server code in: a timer turns the loop as well.
+       * Node always has it.
+       */
+      setTimeout(resolve, 0);
     });
   }
 
@@ -53,6 +64,30 @@ export default class EventLoop {
    */
   public static now(): number {
     return performance.now();
+  }
+
+  /*
+   * Runs work written to pause (SlicedWork) and hands the event loop back
+   * at a pause whenever the work since the loop was last handed back has
+   * taken the budget: one budget for the whole work, or the caller's, so a
+   * loop that drives several pieces of work keeps one clock. Its result is
+   * the work's; what it throws is thrown here.
+   */
+  public static async runInSlices<T>(
+    work: SlicedWorkSteps<T>,
+    budget: EventLoopBudget = new EventLoopBudget(),
+  ): Promise<T> {
+    let step: IteratorResult<void, T> = work.next();
+
+    while (!step.done) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
+      step = work.next();
+    }
+
+    return step.value;
   }
 }
 

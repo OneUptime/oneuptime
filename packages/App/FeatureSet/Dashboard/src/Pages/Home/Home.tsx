@@ -34,6 +34,7 @@ import { PaletteCreateActionGates } from "../../Components/CommandPalette/Dashbo
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import { HomeFrame } from "./Layout";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
@@ -49,6 +50,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { useOutletContext } from "react-router-dom";
 
 /*
  * Home: the first page of a project, and the one people come back to.
@@ -70,7 +72,9 @@ import React, {
  * eight. Only what cannot wait shows above it: an incident or anything
  * else that needs someone (the health card), and a server that is not set
  * up, to its admin. Hiding the quickstart, or finishing it, brings the
- * rest of Home back, and the line left behind shows it again.
+ * rest of Home back, and the line left behind shows it again. While the
+ * quickstart is all of Home, Home's frame centres the page, as a guided
+ * setup's is (HomeFrame, #10276).
  *
  * The headline, the strip and the open-work list are drawn from ONE parallel
  * batch (UseHomeOverview / HomeOverviewData), so they always agree and the
@@ -264,6 +268,27 @@ const Home: FunctionComponent<ComponentProps> = (
     });
   }, [props.projects]);
 
+  const mode: HomeMode = getHomeMode(welcome);
+
+  /*
+   * Home's frame centres the page while the quickstart is all of it, and
+   * gives it back its width when Home leaves (#10276). Undefined where Home
+   * is drawn without its frame.
+   */
+  const frame: HomeFrame | undefined = useOutletContext<
+    HomeFrame | undefined
+  >();
+
+  useEffect(() => {
+    frame?.setIsQuickstart(mode === HomeMode.Quickstart);
+  }, [frame, mode]);
+
+  useEffect(() => {
+    return () => {
+      frame?.setIsQuickstart(false);
+    };
+  }, [frame]);
+
   if (!currentProjectId || !currentProjectIdString) {
     return <PageSkeleton />;
   }
@@ -275,7 +300,6 @@ const Home: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const mode: HomeMode = getHomeMode(welcome);
   const counts: HomeCounts | null = data ? getHomeCounts(data) : null;
 
   const commandBar: ReactElement = (
