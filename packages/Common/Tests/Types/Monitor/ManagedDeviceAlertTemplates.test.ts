@@ -113,7 +113,7 @@ function filterOf(instance: MonitorCriteriaInstance): CriteriaFilter {
 }
 
 describe("the catalog of a connection's alerts", () => {
-  test("is an Esper connection's Android devices and its Apple devices, an Intune connection's devices, a Workspace ONE connection's, and a SOTI connection's devices and its Apple devices, each stopped checking in", () => {
+  test("is an Esper connection's Android devices and its Apple devices, an Intune connection's devices, a Workspace ONE connection's, and a SOTI connection's devices and its Apple devices, each stopped checking in, and each service's Android devices behind on security patches", () => {
     expect(
       getAllManagedDeviceAlertTemplates().map(
         (candidate: ManagedDeviceAlertTemplate) => {
@@ -123,10 +123,14 @@ describe("the catalog of a connection's alerts", () => {
     ).toEqual([
       "esper-device-stopped-checking-in",
       "esper-apple-device-stopped-checking-in",
+      "esper-security-patch-out-of-date",
       "intune-device-stopped-checking-in",
+      "intune-security-patch-out-of-date",
       "workspace-one-device-stopped-checking-in",
+      "workspace-one-security-patch-out-of-date",
       "soti-device-stopped-checking-in",
       "soti-apple-device-stopped-checking-in",
+      "soti-security-patch-out-of-date",
     ]);
     expect(template().name).toBe("Esper Android Device Stopped Checking In");
     expect(appleTemplate().name).toBe("Esper Apple Device Stopped Checking In");
@@ -164,6 +168,8 @@ describe("the catalog of a connection's alerts", () => {
       ).toEqual([
         "DeviceManagementConnection:esper-device-stopped-checking-in",
         "DeviceManagementConnection:esper-apple-device-stopped-checking-in",
+        // #10098: its Android devices behind on their security patches.
+        "DeviceManagementConnection:esper-security-patch-out-of-date",
       ]);
     }
 
@@ -217,7 +223,10 @@ describe("the catalog of a connection's alerts", () => {
       ).map((recommendation: MonitorRecommendation) => {
         return recommendation.recommendationId;
       }),
-    ).toEqual(["DeviceManagementConnection:intune-device-stopped-checking-in"]);
+    ).toEqual([
+      "DeviceManagementConnection:intune-device-stopped-checking-in",
+      "DeviceManagementConnection:intune-security-patch-out-of-date",
+    ]);
     expect(intune.name).toBe("Intune Device Stopped Checking In");
     expect(intune.summary).toBe(
       "A device has not checked in with Intune for more than a day.",
@@ -521,6 +530,12 @@ describe("the alert a device opens", () => {
           "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
         command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.check_in.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
       },
+      // A series names the device alone, of either template (#10098).
+      {
+        purpose:
+          "An Android device's security patch at each read: how many days old it was, and its level",
+        command: `oneuptime metric list --query '{"name":"oneuptime.managed_device.security_patch.age","attributes":{"oneuptime.managed_device.name":"ESP-ID-AAAAW"}}' --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+      },
     ]);
   });
 });
@@ -630,6 +645,7 @@ describe("a Workspace ONE or SOTI connection's alerts", () => {
 
     expect(recommendedFor(DeviceManagementProvider.WorkspaceOne)).toEqual([
       "DeviceManagementConnection:workspace-one-device-stopped-checking-in",
+      "DeviceManagementConnection:workspace-one-security-patch-out-of-date",
     ]);
     expect(workspaceOne).toMatchObject({
       name: "Workspace ONE Device Stopped Checking In",
@@ -656,6 +672,7 @@ describe("a Workspace ONE or SOTI connection's alerts", () => {
     expect(recommendedFor(DeviceManagementProvider.Soti)).toEqual([
       "DeviceManagementConnection:soti-device-stopped-checking-in",
       "DeviceManagementConnection:soti-apple-device-stopped-checking-in",
+      "DeviceManagementConnection:soti-security-patch-out-of-date",
     ]);
     expect(agents.name).toBe("SOTI Device Stopped Checking In");
     expect(apple.name).toBe("SOTI Apple Device Stopped Checking In");

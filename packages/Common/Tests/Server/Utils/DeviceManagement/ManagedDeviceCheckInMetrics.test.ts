@@ -12,6 +12,7 @@ import MetricService from "../../../../Server/Services/MetricService";
 import ManagedDeviceCheckInMetrics, {
   ManagedDeviceCheckInOutcome,
   buildManagedDeviceCheckInRow,
+  buildManagedDeviceSecurityPatchRow,
 } from "../../../../Server/Utils/DeviceManagement/ManagedDeviceCheckInMetrics";
 import logger from "../../../../Server/Utils/Logger";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
@@ -21,6 +22,10 @@ import {
   MANAGED_DEVICE_CHECK_IN_AGE_DESCRIPTION,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_DESCRIPTION,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT,
+  ManagedDeviceCheckInReading,
 } from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { EsperDeviceState } from "../../../../Types/DeviceManagement/ManagedDeviceStatus";
 import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
@@ -56,11 +61,21 @@ function deviceRow(values: {
   minutesQuiet?: number | undefined;
   alias?: string | undefined;
   state?: number | undefined;
+  platform?: ManagedDevicePlatform | undefined;
+  securityPatchLevel?: string | undefined;
 }): ManagedDevice {
   const row: ManagedDevice = new ManagedDevice();
   row._id = values.id;
   row.providerDeviceId = values.id;
   row.deviceName = values.name;
+
+  if (values.platform) {
+    row.platform = values.platform;
+  }
+
+  if (values.securityPatchLevel !== undefined) {
+    row.securityPatchLevel = values.securityPatchLevel;
+  }
 
   if (values.alias) {
     row.alias = values.alias;
@@ -178,7 +193,11 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
 
     const outcome: ManagedDeviceCheckInOutcome = await record();
 
-    expect(outcome).toEqual({ readingCount: 2, hostCount: 0 });
+    expect(outcome).toEqual({
+      readingCount: 2,
+      hostCount: 0,
+      securityPatchReadingCount: 0,
+    });
     expect(rowOf("ESP-ID-AAAAW")["value"]).toBe(4);
     expect(rowOf("ESP-ID-AAAAX")["value"]).toBe(75);
     expect(rowOf("ESP-ID-AAAAX")["time"]).toBe(
@@ -236,7 +255,11 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
       ],
     ];
 
-    expect(await record()).toEqual({ readingCount: 0, hostCount: 0 });
+    expect(await record()).toEqual({
+      readingCount: 0,
+      hostCount: 0,
+      securityPatchReadingCount: 0,
+    });
     expect(insert).not.toHaveBeenCalled();
     expect(hostFindBy).not.toHaveBeenCalled();
     expect(register).not.toHaveBeenCalled();
@@ -254,7 +277,11 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
 
     const outcome: ManagedDeviceCheckInOutcome = await record();
 
-    expect(outcome).toEqual({ readingCount: 3, hostCount: 1 });
+    expect(outcome).toEqual({
+      readingCount: 3,
+      hostCount: 1,
+      securityPatchReadingCount: 0,
+    });
 
     const isHost: (name: string) => string = (name: string): string => {
       return (rowOf(name)["attributes"] as Dictionary<string>)[
@@ -309,7 +336,11 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
     ];
     register.mockRejectedValue(new Error("Postgres went away"));
 
-    expect(await record()).toEqual({ readingCount: 1, hostCount: 0 });
+    expect(await record()).toEqual({
+      readingCount: 1,
+      hostCount: 0,
+      securityPatchReadingCount: 0,
+    });
     expect(insert).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalled();
   });
@@ -349,6 +380,269 @@ describe("ManagedDeviceCheckInMetrics.record", () => {
         OneUptimeDate.addRemoveDurationInDays(AS_OF, 7),
       ),
     );
+  });
+});
+
+/*
+ * Beside each Android device's check-in, how old its security patch is
+ * (#10098): what a device manager's Security Patch Out of Date reads.
+ */
+describe("ManagedDeviceCheckInMetrics.record: security patches", () => {
+  function rowsOf(metricName: string): Array<JSONObject> {
+    return writtenRows().filter((candidate: JSONObject): boolean => {
+      return candidate["name"] === metricName;
+    });
+  }
+
+  function patchRowOf(name: string): JSONObject | undefined {
+    return rowsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME).find(
+      (candidate: JSONObject): boolean => {
+        return (
+          (candidate["attributes"] as Dictionary<string>)[
+            "oneuptime.managed_device.name"
+          ] === name
+        );
+      },
+    );
+  }
+
+  test("asks for each device's patch level with the rest of what a reading reads", async () => {
+    await record();
+
+    const select: JSONObject = (
+      deviceFindBy.mock.calls[0]![0] as { select: JSONObject }
+    ).select;
+    expect(select["securityPatchLevel"]).toBe(true);
+    expect(select["platform"]).toBe(true);
+  });
+
+  test("an Android device with a level gets a patch reading beside its check-in: its age in days, its level on it", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "ESP-ID-AAAAW",
+          minutesQuiet: 4,
+          securityPatchLevel: "2024-06-05",
+        }),
+        deviceRow({
+          id: "d2",
+          name: "ESP-ID-AAAAX",
+          minutesQuiet: 9,
+          securityPatchLevel: "2026-11-01",
+        }),
+      ],
+    ];
+
+    const outcome: ManagedDeviceCheckInOutcome = await record();
+
+    expect(outcome).toEqual({
+      readingCount: 2,
+      hostCount: 0,
+      securityPatchReadingCount: 2,
+    });
+    // One write, the check-ins and the patches together.
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(rowsOf(MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME)).toHaveLength(2);
+    expect(rowsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME)).toHaveLength(
+      2,
+    );
+
+    const behind: JSONObject = patchRowOf("ESP-ID-AAAAW")!;
+    expect(behind["value"]).toBe(897);
+    expect(
+      (behind["attributes"] as Dictionary<string>)[
+        "oneuptime.managed_device.security_patch.level"
+      ],
+    ).toBe("2024-06-05");
+    expect(patchRowOf("ESP-ID-AAAAX")!["value"]).toBe(18);
+    expect(behind["time"]).toBe(OneUptimeDate.toClickhouseDateTime(AS_OF));
+  });
+
+  test("an iPhone, or an Android device with no level or one that is no date, gets its check-in alone", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "iPhone-1",
+          minutesQuiet: 4,
+          platform: ManagedDevicePlatform.IOS,
+          securityPatchLevel: "2024-06-05",
+        }),
+        deviceRow({ id: "d2", name: "ESP-ID-AAAAX", minutesQuiet: 4 }),
+        deviceRow({
+          id: "d3",
+          name: "ESP-ID-AAAAY",
+          minutesQuiet: 4,
+          securityPatchLevel: "2023-02-30",
+        }),
+      ],
+    ];
+
+    expect(await record()).toEqual({
+      readingCount: 3,
+      hostCount: 0,
+      securityPatchReadingCount: 0,
+    });
+    expect(rowsOf(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME)).toEqual([]);
+  });
+
+  test("a device the Android agent reports is marked a host on its patch reading too, which the template leaves out", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "ESP-ID-AAAAW",
+          minutesQuiet: 4,
+          securityPatchLevel: "2024-06-05",
+        }),
+      ],
+    ];
+    hosts = [hostRow("esp-id-aaaaw")];
+
+    const outcome: ManagedDeviceCheckInOutcome = await record();
+
+    expect(outcome.hostCount).toBe(1);
+    expect(outcome.securityPatchReadingCount).toBe(1);
+    expect(
+      (patchRowOf("ESP-ID-AAAAW")!["attributes"] as Dictionary<string>)[
+        "oneuptime.managed_device.is_host"
+      ],
+    ).toBe("true");
+  });
+
+  test("puts the patch metric in the catalog beside the check-ins, once a read wrote one", async () => {
+    devicePages = [
+      [
+        deviceRow({
+          id: "d1",
+          name: "ESP-ID-AAAAW",
+          minutesQuiet: 4,
+          securityPatchLevel: "2024-06-05",
+        }),
+      ],
+    ];
+
+    await record();
+
+    const map: Dictionary<MetricType> = (
+      register.mock.calls[0]![0] as {
+        metricNameServiceNameMap: Dictionary<MetricType>;
+      }
+    ).metricNameServiceNameMap;
+
+    expect(Object.keys(map).sort()).toEqual(
+      [
+        MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+        MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+      ].sort(),
+    );
+    expect(map[MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME]!.unit).toBe(
+      MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT,
+    );
+    expect(
+      map[MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME]!.description,
+    ).toBe(MANAGED_DEVICE_SECURITY_PATCH_AGE_DESCRIPTION);
+  });
+
+  test("a read with no patch to say catalogs the check-ins alone", async () => {
+    devicePages = [
+      [deviceRow({ id: "d1", name: "ESP-ID-AAAAW", minutesQuiet: 4 })],
+    ];
+
+    await record();
+
+    expect(
+      Object.keys(
+        (
+          register.mock.calls[0]![0] as {
+            metricNameServiceNameMap: Dictionary<MetricType>;
+          }
+        ).metricNameServiceNameMap,
+      ),
+    ).toEqual([MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME]);
+  });
+});
+
+describe("buildManagedDeviceSecurityPatchRow", () => {
+  const reading: ManagedDeviceCheckInReading = {
+    deviceName: "ESP-ID-AAAAW",
+    hostName: "esp-id-aaaaw",
+    alias: "Store 12 Kiosk 3",
+    group: "Stores/Store 12",
+    platform: ManagedDevicePlatform.Android,
+    ageInMinutes: 12,
+    isHost: false,
+    securityPatch: { level: "2024-06-05", ageInDays: 897 },
+  };
+  const retentionDate: Date = new Date("2026-12-19T12:00:00.000Z");
+
+  function build(
+    of: ManagedDeviceCheckInReading = reading,
+  ): JSONObject | undefined {
+    return buildManagedDeviceSecurityPatchRow({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: "esper",
+      reading: of,
+      asOf: AS_OF,
+      retentionDate,
+    });
+  }
+
+  test("is the check-in's row of the same device, with its patch's age and level", () => {
+    const checkIn: JSONObject = buildManagedDeviceCheckInRow({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: "esper",
+      reading,
+      asOf: AS_OF,
+      retentionDate,
+    });
+    const patch: JSONObject = build()!;
+
+    expect(patch["name"]).toBe(MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME);
+    expect(patch["value"]).toBe(897);
+    expect(checkIn["value"]).toBe(12);
+
+    for (const key of [
+      "projectId",
+      "primaryEntityId",
+      "primaryEntityType",
+      "metricPointType",
+      "time",
+      "timeUnixNano",
+      "entityKeys",
+      "hostEntityKey",
+      "retentionDate",
+    ]) {
+      expect({ key, value: patch[key] }).toEqual({ key, value: checkIn[key] });
+    }
+
+    expect(patch["primaryEntityType"]).toBe(
+      ServiceType.DeviceManagementConnection,
+    );
+    expect(patch["hostEntityKey"]).toBe(
+      keyForHost(PROJECT.toString(), "esp-id-aaaaw"),
+    );
+    expect(patch["attributes"]).toEqual({
+      ...(checkIn["attributes"] as JSONObject),
+      "oneuptime.managed_device.security_patch.level": "2024-06-05",
+    });
+    expect(patch["attributeKeys"]).toEqual(
+      [
+        ...(checkIn["attributeKeys"] as Array<string>),
+        "oneuptime.managed_device.security_patch.level",
+      ].sort(),
+    );
+    expect(patch["_id"]).not.toBe(checkIn["_id"]);
+  });
+
+  test("a reading with no patch has no row", () => {
+    const withoutPatch: ManagedDeviceCheckInReading = { ...reading };
+    delete withoutPatch.securityPatch;
+
+    expect(build(withoutPatch)).toBeUndefined();
   });
 });
 
