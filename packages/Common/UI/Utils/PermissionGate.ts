@@ -12,6 +12,7 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
+import { isProductLevelPermission } from "../../Types/Product/ProductLevels";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import Select from "../../Types/BaseDatabase/Select";
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
@@ -1441,12 +1442,38 @@ export default class PermissionGate {
   }
 
   /*
+   * A permission a lock names as a role: a built-in role, or a product's
+   * level (Cloud Admin, Network Viewer: Types/Product/ProductLevels), which
+   * is a project-wide role kept to one product's records.
+   */
+  private static isNamedAsRole(
+    permissionProps: PermissionProps | undefined,
+  ): boolean {
+    return Boolean(
+      permissionProps &&
+        (permissionProps.isRolePermission ||
+          isProductLevelPermission(permissionProps.permission)),
+    );
+  }
+
+  // A permission of a list's own, which a team or a custom role can be given.
+  private static isOwnPermission(
+    permissionProps: PermissionProps | undefined,
+  ): boolean {
+    return Boolean(
+      permissionProps &&
+        !this.isNamedAsRole(permissionProps) &&
+        permissionProps.isAssignableToTenant,
+    );
+  }
+
+  /*
    * What a lock names of a list of permissions that would allow it, in the
    * list's order (see NEEDS_PERMISSION_TEMPLATE): the permissions of its
-   * own that a team or a custom role can be given; the built-in roles when
-   * it has none; and when it has neither (Public, Logged in User), every
-   * title it has, as before. Unknown permissions are skipped
-   * (getPermissionTitles).
+   * own that a team or a custom role can be given; the built-in roles and
+   * the products' levels when it has none; and when it has neither
+   * (Public, Logged in User), every title it has, as before. Unknown
+   * permissions are skipped (getPermissionTitles).
    */
   public static getPermissionsToName(
     permissions: ReadonlyArray<Permission>,
@@ -1455,13 +1482,7 @@ export default class PermissionGate {
 
     const own: Array<Permission> = permissions.filter(
       (permission: Permission): boolean => {
-        const permissionProps: PermissionProps | undefined = props[permission];
-
-        return Boolean(
-          permissionProps &&
-            !permissionProps.isRolePermission &&
-            permissionProps.isAssignableToTenant,
-        );
+        return this.isOwnPermission(props[permission]);
       },
     );
 
@@ -1471,7 +1492,7 @@ export default class PermissionGate {
 
     const roles: Array<Permission> = permissions.filter(
       (permission: Permission): boolean => {
-        return Boolean(props[permission]?.isRolePermission);
+        return this.isNamedAsRole(props[permission]);
       },
     );
 
@@ -1506,13 +1527,7 @@ export default class PermissionGate {
     const isOwn: (permission: Permission) => boolean = (
       permission: Permission,
     ): boolean => {
-      const permissionProps: PermissionProps | undefined = props[permission];
-
-      return Boolean(
-        permissionProps &&
-          !permissionProps.isRolePermission &&
-          permissionProps.isAssignableToTenant,
-      );
+      return this.isOwnPermission(props[permission]);
     };
 
     const kinds: Set<PermissionProps["group"]> = new Set(

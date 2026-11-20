@@ -21,6 +21,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import { withProductLevelsOnLists } from "../../../Types/Product/ProductLevels";
 import Text from "../../../Types/Text";
 import CommonModel from "./CommonModel";
 
@@ -195,7 +196,26 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.tableBillingAccessControl = data.tableBillingAccessControl;
     this.allowAccessIfSubscriptionIsUnpaid =
       data.allowAccessIfSubscriptionIsUnpaid || false;
-    this.accessControl = data.accessControl;
+
+    /*
+     * The table's lists and each column's, with the levels of the product
+     * whose records the table holds (Types/Product/ProductLevels: RUM Admin
+     * wherever a RUM table lets in Project Admin), as a database model's
+     * lists are read (Types/Database/AccessControl).
+     */
+    this.accessControl = data.accessControl
+      ? withProductLevelsOnLists(data.tableName, data.accessControl)
+      : data.accessControl;
+
+    for (const column of columns) {
+      if (column.accessControl) {
+        column.accessControl = withProductLevelsOnLists(
+          data.tableName,
+          column.accessControl,
+          data.accessControl || {},
+        );
+      }
+    }
     this.enableWorkflowOn = data.enableWorkflowOn;
     this.crudApiPath = data.crudApiPath;
     this.enableDocumentation = data.enableDocumentation || false;
