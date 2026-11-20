@@ -13,6 +13,7 @@ import {
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NameTakenException from "../../../Types/Exception/NameTakenException";
+import ValueTakenException from "../../../Types/Exception/ValueTakenException";
 import ObjectID from "../../../Types/ObjectID";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 
@@ -45,7 +46,9 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
  *     with a unique index of their own would only answer with the
  *     database's generic refusal. A name refused so carries the code a
  *     program tells a taken name by, which says whether the resource that
- *     has it is archived (NameTakenException, #10065).
+ *     has it is archived (NameTakenException, #10065), and an identifier
+ *     the code of any other taken value, the same way (ValueTakenException,
+ *     #10319).
  *
  * Only a change is looked up. An edit form sends the column back unchanged
  * with every save, so saving a resource's description never trips over a
@@ -224,6 +227,10 @@ export default class DiscoveredResourceUpdate {
       throw new NameTakenException(refusal, { isArchived: isArchived });
     }
 
-    throw new BadDataException(refusal);
+    // An identifier, with the code of any other taken value (#10319).
+    throw new ValueTakenException(refusal, {
+      field: column,
+      isArchived: isArchived,
+    });
   }
 }

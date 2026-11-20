@@ -174,6 +174,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What a picker says of records that share a name (#10064): the pill a
+   * twin wears and the day it was made. The rule is the chats' too
+   * (#10314), so it lives outside Common/UI; only the words it marks are
+   * read.
+   */
+  {
+    directory: "packages/Common/Types/Database/SharedNameMarks.ts",
+    kind: "keys",
+  },
+  /*
    * The rest of the Enterprise screens the Dashboard draws (#8634): custom
    * roles, the audit log export, the IP allowlists, the license pages, and
    * the status pages' access controls and branding. Every word they draw

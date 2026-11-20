@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SharedNameKind } from "../../../Types/Database/SharedNames";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -1404,8 +1405,62 @@ describe("the project's policies to set up (#8234)", () => {
 
     expect(await offeredIds()).toEqual([LIVE_ID]);
     expect((await OnCallSetupApi.loadPolicyChoices()).policies).toEqual([
-      { id: LIVE_ID, name: "Payments" },
+      {
+        id: LIVE_ID,
+        name: "Payments",
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
+      },
     ]);
+  });
+
+  /*
+   * Two policies of one name, named alike before names were held to one
+   * policy each, are told apart in the step's picker (#10314): each choice
+   * carries its description and when it was made, which the Dropdown marks
+   * the twins by.
+   */
+  test("each policy comes with what tells it from another of its name", async () => {
+    const MARCH: Date = new Date("2024-03-05T09:30:00.000Z");
+
+    serve([
+      {
+        _id: LIVE_ID,
+        name: "Payments",
+        isArchived: false,
+        description: "EU checkout",
+        createdAt: MARCH,
+      } as never,
+      { _id: POLICY_ID, name: "payments", isArchived: false } as never,
+    ]);
+
+    expect((await OnCallSetupApi.loadPolicyChoices()).policies).toEqual([
+      {
+        id: LIVE_ID,
+        name: "Payments",
+        sharedName: {
+          kind: SharedNameKind.OnCallPolicy,
+          description: "EU checkout",
+          createdAt: MARCH,
+        },
+      },
+      {
+        id: POLICY_ID,
+        name: "payments",
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
+      },
+    ]);
+
+    const calls: Array<Record<string, unknown>> = callsFor(
+      getListSpy,
+      OnCallDutyPolicy,
+    );
+
+    expect(calls[0]!["select"]).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+    });
   });
 
   test("policies in service are all offered, by name", async () => {
