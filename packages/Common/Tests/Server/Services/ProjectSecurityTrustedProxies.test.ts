@@ -4,6 +4,9 @@ import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import SecurityEdgeRanges, {
+  CLOUDFLARE_EDGE,
+} from "../../../Server/Utils/SecurityBlocklist/SecurityEdgeRanges";
 import SecurityTrustedProxies, {
   TRUSTED_PROXIES_CACHE_TTL_MS,
 } from "../../../Server/Utils/SecurityEvent/SecurityTrustedProxies";
@@ -18,9 +21,12 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import {
+  ClientAddressReading,
+  ClientAddressTrust,
   MAX_TRUSTED_PROXIES,
   TrustedProxies,
   isTrustedProxy,
+  resolveClientAddress,
 } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
@@ -101,6 +107,7 @@ const hooks: ProjectHookAccess = ProjectService as unknown as ProjectHookAccess;
 afterEach(() => {
   jest.restoreAllMocks();
   SecurityTrustedProxies.clearCache();
+  SecurityEdgeRanges.setFetchForTests(null);
 });
 
 describe("Project.securityTrustedProxies: the column", () => {
@@ -312,6 +319,95 @@ describe("SecurityTrustedProxies: what the scans read", () => {
         await SecurityTrustedProxies.getForProject(PROJECT_ID),
       ),
     ).toBe(true);
+    expect(findOne).toHaveBeenCalledTimes(2);
+  });
+
+  it("trusts the published ranges of an edge the project has connected, so the client it forwards is verified", async () => {
+    const project: Project = new Project();
+    project.securityTrustedProxies = "198.51.100.0/24";
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
+
+    const edges: SpyInstance<typeof SecurityEdgeRanges.findConnectedEdges> =
+      jest
+        .spyOn(SecurityEdgeRanges, "findConnectedEdges")
+        .mockResolvedValue([CLOUDFLARE_EDGE]);
+
+    SecurityEdgeRanges.setFetchForTests(
+      async (url: string): Promise<string> => {
+        return url.endsWith("v6")
+          ? "2606:4700::/32\n"
+          : "104.16.0.0/13\n172.64.0.0/13\n";
+      },
+    );
+
+    const proxies: TrustedProxies =
+      await SecurityTrustedProxies.getForProject(PROJECT_ID);
+
+    expect(edges).toHaveBeenCalledWith(PROJECT_ID);
+    expect(isTrustedProxy("104.16.1.1", proxies)).toBe(true);
+    expect(isTrustedProxy("2606:4700::6810:84e5", proxies)).toBe(true);
+    // Its own list still counts.
+    expect(isTrustedProxy("198.51.100.7", proxies)).toBe(true);
+    expect(isTrustedProxy("203.0.113.7", proxies)).toBe(false);
+
+    /*
+     * A connected Cloudflare edge as the peer, with its forwarded address:
+     * the client Cloudflare added is verified; what the sender wrote is
+     * only claimed.
+     */
+    const reading: ClientAddressReading = resolveClientAddress(
+      {
+        peer: "104.16.1.1",
+        forwardedClient: "192.0.2.44",
+        forwardedClientFrom: "client.address",
+        forwardedFor: "192.0.2.44, 203.0.113.7",
+      },
+      proxies,
+    );
+
+    expect(reading.address).toBe("203.0.113.7");
+    expect(reading.trust).toBe(ClientAddressTrust.TrustedProxy);
+    expect(reading.claimed?.address).toBe("192.0.2.44");
+  });
+
+  it("an edge the project has not connected is not trusted: its address is the one that connected", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(new Project());
+    jest.spyOn(SecurityEdgeRanges, "findConnectedEdges").mockResolvedValue([]);
+
+    const proxies: TrustedProxies =
+      await SecurityTrustedProxies.getForProject(PROJECT_ID);
+    const reading: ClientAddressReading = resolveClientAddress(
+      { peer: "104.16.1.1", forwardedFor: "192.0.2.44, 203.0.113.7" },
+      proxies,
+    );
+
+    expect(isTrustedProxy("104.16.1.1", proxies)).toBe(false);
+    expect(reading.address).toBe("104.16.1.1");
+    expect(reading.trust).toBe(ClientAddressTrust.Peer);
+  });
+
+  it("edges that cannot be read leave the project's own list trusted, and are read again next time", async () => {
+    const project: Project = new Project();
+    project.securityTrustedProxies = "198.51.100.0/24";
+
+    const findOne: SpyInstance<typeof ProjectService.findOneById> = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(project);
+    const edges: SpyInstance<typeof SecurityEdgeRanges.findConnectedEdges> =
+      jest
+        .spyOn(SecurityEdgeRanges, "findConnectedEdges")
+        .mockRejectedValueOnce(new Error("database is down"))
+        .mockResolvedValueOnce([]);
+
+    const proxies: TrustedProxies =
+      await SecurityTrustedProxies.getForProject(PROJECT_ID);
+
+    expect(isTrustedProxy("198.51.100.7", proxies)).toBe(true);
+    expect(isTrustedProxy("104.16.1.1", proxies)).toBe(false);
+
+    await SecurityTrustedProxies.getForProject(PROJECT_ID);
+
+    expect(edges).toHaveBeenCalledTimes(2);
     expect(findOne).toHaveBeenCalledTimes(2);
   });
 });
