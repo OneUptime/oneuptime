@@ -104,6 +104,12 @@ ID 공급자의 로그아웃 URL을 **추가 필드**의 **로그아웃 URL**에
 
 Okta, Microsoft Entra ID, Auth0, Keycloak에서 이 설정이 어디에 있는지는 [SSO](/docs/identity/sso) 페이지에 있습니다.
 
+## 본인 확인을 위해 다시 로그인하기
+
+글로벌 공급자로만 로그인하는 사람은 로그인 방식을 바꾸거나 계정을 삭제하기 전에 **다시 로그인**으로 본인 확인을 합니다. OneUptime은 그 사람을 SAML이면 `ForceAuthn="true"`, OpenID Connect면 `prompt=login`과 `max_age=0`과 함께 공급자에게 돌려보내고, 공급자가 `AuthnInstant`나 `auth_time`으로 그 시점이나 그 이후에 로그인했다고 알려 줄 때만 인정합니다. 글로벌 공급자를 추가, 변경, 삭제할 때는 먼저 [본인 확인](/docs/introduction/your-account#본인-확인)을 요청받습니다.
+
+Okta, Microsoft Entra ID, Keycloak, Google Workspace에서 무엇을 설정할지는 [SSO](/docs/identity/sso#본인-확인을-위해-다시-로그인하기) 페이지에 있습니다.
+
 ## SSO 필수 지정
 
 글로벌 공급자를 구성해도 누구에게 사용을 강제하지는 않으며, 비밀번호 로그인도 계속 작동합니다. SSO를 필수로 지정하려면 프로젝트나 인스턴스 전체에서 요건을 켜세요.

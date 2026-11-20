@@ -1,5 +1,6 @@
 import DataObservabilityAPI from "../../../Server/API/DataObservabilityAPI";
 import DataSecurityAPI from "../../../Server/API/DataSecurityAPI";
+import DataSecurityAiReads from "../../../Server/Utils/AI/DataSecurity/DataSecurityAiReads";
 import SecurityCaseAPI from "../../../Server/API/SecurityCaseAPI";
 import CloudConnectionService from "../../../Server/Services/CloudConnectionService";
 import DataAssetFeedService from "../../../Server/Services/DataAssetFeedService";
@@ -578,7 +579,7 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
         issue.checkId = SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID;
         issue.dataStoreId = ObjectID.generate();
 
-        await DataSecurityAPI.readFindingsForAi(PROJECT, issue);
+        await DataSecurityAiReads.readPlaces({ projectId: PROJECT, issue });
 
         expect(
           datesComparedWith(compared).map((date: Date): number => {

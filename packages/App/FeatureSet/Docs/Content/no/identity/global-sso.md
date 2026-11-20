@@ -104,6 +104,12 @@ Registrer omdirigerings-URI-en etter utlogging som kortet **URL-en til identitet
 
 Hvor Okta, Microsoft Entra ID, Auth0 og Keycloak har disse innstillingene, står på siden [SSO](/docs/identity/sso).
 
+## Logge på igjen for å bekrefte at det er deg
+
+Den som bare logger på via en global leverandør, bekrefter at det er dem med **Logg på igjen** før de endrer hvordan de logger på, eller sletter kontoen sin: OneUptime sender dem tilbake til leverandøren med `ForceAuthn="true"` for SAML, eller `prompt=login` og `max_age=0` for OpenID Connect, og teller det bare når leverandøren sier i `AuthnInstant` eller `auth_time` at de logget på i det øyeblikket eller senere. Når du legger til, endrer eller sletter en global leverandør, blir du først bedt om å [bekrefte at det er deg](/docs/introduction/your-account#bekreft-at-det-er-deg).
+
+Hva du skal stille inn i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#logge-på-igjen-for-å-bekrefte-at-det-er-deg).
+
 ## Håndhev SSO
 
 Å sette opp en global leverandør tvinger ingen til å bruke den; pålogging med passord fungerer fortsatt. For å kreve SSO slår du på kravet for et prosjekt eller for hele instansen:

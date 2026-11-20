@@ -129,6 +129,26 @@ Billing has three roles of its own. `BillingViewer` reads the project's billing 
 
 All {{PERMISSION_ROLE_COUNT}} roles are listed in the [Permission Reference](/docs/permissions/reference).
 
+### Product levels
+
+A product level gives a team one product, at one level, and nothing else of the project: `CloudAdmin`, `NetworkViewer`, `HostMember`. Each level does on the product's own records what a project-wide role does on every record:
+
+- **Viewer** reads what Viewer reads there, and changes nothing.
+- **Member** also creates, changes and deletes the product's records, as Project Member does.
+- **Admin** also does what Project Admin does there: the product's settings, its connections and credentials, and its label and owner rules.
+
+A level never reaches another product, nor the project's settings, teams, members, API keys, SSO or billing.
+
+:::steps
+1. Open the team's **Permissions** page.
+2. Under **Product Access**, pick a level for each product the team works with. Clear a product's level to take the product away.
+:::
+
+- **Monitors, Incidents and the other areas with roles of their own** are given with **Add Role**, under **One area**. So are the Telemetry roles, for Logs, Metrics, Traces, Profiles and Exceptions, and the Security roles.
+- **AI / LLM, Inventory and Forms** have a Viewer and an Admin level only, because Project Member changes nothing of them.
+- **A level is a permission like any other.** You can limit it to some labels or to owned records in the permissions table, block it, put it into a custom role, or give it to an API key. You can give a level only if you hold it yourself, as with every permission, unless you are a Project Owner.
+- **A level reads the product's records, not its telemetry.** A team with `HostViewer` sees the project's hosts, and needs `TelemetryViewer` too for their charts.
+
 ### Granular permissions
 
 Every individual capability is also assignable on its own — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage`, and {{PERMISSION_TOTAL_COUNT}} others. Use these when a role is too broad and you need to hand out exactly one thing.

@@ -1,3 +1,4 @@
+import { isAwsRoleArn } from "../Cloud/AwsRoleArn";
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
   AZURE_SECRET_EXPIRES_AT_KEY,
@@ -204,55 +205,10 @@ function readAwsAccessKey(text: string): CloudConnectionPasteResult {
 }
 
 /*
- * An IAM role ARN: arn:<partition>:iam::<12 digits>:role/<path and name>.
- * Checked piece by piece rather than with one pattern.
+ * An IAM role ARN (Types/Cloud/AwsRoleArn): kept there, importing nothing,
+ * for the forms that check one outside Cloud Connect too.
  */
-export function isAwsRoleArn(value: string): boolean {
-  const parts: Array<string> = value.split(":");
-
-  if (parts.length !== 6 || parts[0] !== "arn" || parts[2] !== "iam") {
-    return false;
-  }
-
-  const partition: string = parts[1]!;
-  const accountId: string = parts[4]!;
-  const resource: string = parts[5]!;
-
-  if (
-    partition !== "aws" &&
-    partition !== "aws-us-gov" &&
-    partition !== "aws-cn"
-  ) {
-    return false;
-  }
-
-  if (parts[3] !== "" || accountId.length !== 12) {
-    return false;
-  }
-
-  for (const character of accountId) {
-    if (character < "0" || character > "9") {
-      return false;
-    }
-  }
-
-  if (!resource.startsWith("role/") || resource.length <= 5) {
-    return false;
-  }
-
-  // IAM names and paths: letters, digits and +=,.@_-/ - at most 512 long.
-  if (resource.length > 517) {
-    return false;
-  }
-
-  for (const character of resource.slice(5)) {
-    if (!isAlphanumeric(character) && !"+=,.@_-/".includes(character)) {
-      return false;
-    }
-  }
-
-  return !resource.endsWith("/");
-}
+export { isAwsRoleArn };
 
 function readAwsRole(text: string): CloudConnectionPasteResult {
   for (const part of words(text)) {

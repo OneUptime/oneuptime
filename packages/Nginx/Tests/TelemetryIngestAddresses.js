@@ -467,6 +467,54 @@ const TELEMETRY_INGEST_ADDRESSES = [
       },
     ],
   },
+
+  // The Agent's APM traces and stats, which it posts under its apm_dd_url.
+  ...["/datadog/api/v0.2/traces", "/datadog/api/v0.2/stats"].map((route) => {
+    return {
+      method: "POST",
+      route,
+      addresses: [
+        {
+          address: `/telemetry${route}`,
+          handedOutBy: [
+            {
+              file: COMPATIBLE_INGEST_DOCS,
+              contains: "apm_dd_url: https://oneuptime.com/telemetry/datadog",
+            },
+          ],
+        },
+      ],
+    };
+  }),
+
+  /*
+   * A tracing library's own trace endpoints, for dd-trace-go sending with
+   * no Agent in between: it PUTs or POSTs them under its DD_TRACE_AGENT_URL.
+   */
+  ...["/datadog/v0.3/traces", "/datadog/v0.4/traces", "/datadog/v0.5/traces"]
+    .flatMap((route) => {
+      return ["PUT", "POST"].map((method) => {
+        return { method, route };
+      });
+    })
+    .map(({ method, route }) => {
+      return {
+        method,
+        route,
+        addresses: [
+          {
+            address: `/telemetry${route}`,
+            handedOutBy: [
+              {
+                file: COMPATIBLE_INGEST_DOCS,
+                contains:
+                  "DD_TRACE_AGENT_URL=https://oneuptime:YOUR_TELEMETRY_KEY@oneuptime.com/telemetry/datadog",
+              },
+            ],
+          },
+        ],
+      };
+    }),
   {
     method: "POST",
     route: "/api/v2/logs",

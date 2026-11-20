@@ -85,6 +85,11 @@ import {
   NAME_TAKEN_REFUSAL_CODE,
 } from "Common/Types/Exception/NameTakenException";
 import {
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "Common/Types/Exception/ValueTakenException";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
+import {
   ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
   getNameTakenRefusalText,
 } from "Common/Types/Database/UniqueName";
@@ -885,6 +890,108 @@ describe("the troubleshooting page", () => {
         generic: true,
         anchor: anchorOf(lines[named] || ""),
       });
+    }
+  });
+
+  /*
+   * #10319: a domain, an identifier or another value a record holds alone
+   * is refused with codes of its own, and the provider asks it again as it
+   * asks a name, so a domain moved from one resource to another converges
+   * in one apply; once nothing gives it up, it says what to do in a
+   * value's words, and an archived holder fails the apply at once.
+   */
+  it("says the provider asks again for a domain or an identifier another resource gives up, how it gives up, and that an archived record's fails at once", () => {
+    const providerSource: string = readRepoFile(PROVIDER_GENERATOR);
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### Domains and identifiers another record has",
+    );
+
+    // The client is generated with both codes, from Common's constants.
+    expect(VALUE_TAKEN_REFUSAL_CODE).toBe("value_taken");
+    expect(VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE).toBe(
+      "value_taken_by_archived",
+    );
+    expect(providerSource).toMatch(
+      /valueTakenRefusalCode\s+= "\$\{VALUE_TAKEN_REFUSAL_CODE\}"/,
+    );
+    expect(providerSource).toMatch(
+      /valueTakenByArchivedRefusalCode = "\$\{VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE\}"/,
+    );
+    expect(providerSource).toContain(
+      "return code == nameTakenRefusalCode || code == valueTakenRefusalCode",
+    );
+
+    // Asked again for the window a name is, and moving a domain converges.
+    expect(section).toContain(
+      "The provider asks again for up to 30 seconds here as well",
+    );
+    expect(section).toContain(
+      "moving a domain from one resource to another in one apply, which deletes the one and creates the other side by side, goes through in one apply",
+    );
+
+    // What the client says once nothing gave the value up, as the page quotes it.
+    expect(providerSource).toContain(
+      'return fmt.Sprintf("The value was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)',
+    );
+    expect(section).toContain(
+      "`The value was still taken after asking again for 30 seconds.`",
+    );
+    expect(providerSource).toContain(
+      "If a record outside this configuration has it, give this resource another value, or import that record.",
+    );
+    expect(section).toContain(
+      "Give the resource a value nobody has, or `terraform import` the record that has it.",
+    );
+    expect(providerSource).toContain(
+      "give one of them a temporary value, apply, then apply the values you want.",
+    );
+    expect(section).toContain("For a swap, give one of them a temporary value");
+
+    // An archived holder's is not asked again.
+    expect(section).toContain(
+      "A value only an archived record has, such as an archived host's host name, fails at once",
+    );
+
+    // The refusal it quotes is the server's, word for word.
+    expect(section).toContain(
+      `\`${new StatusPageDomain().singularName} with the same fullDomain already exists.\``,
+    );
+    expect(
+      readRepoFile("packages/Common/Server/Services/DatabaseService.ts"),
+    ).toContain(
+      "`${this.model.singularName} with the same ${data.column} already exists.`",
+    );
+  });
+
+  /*
+   * The error table finds a taken domain or identifier, right after the
+   * generic refusal of a taken name, and sends it to its own section, in
+   * every language.
+   */
+  it("lists the refusal of a taken domain or identifier in the error table, after the taken name's, linked to its own section, in every language", () => {
+    for (const language of DOCS_LANGUAGES) {
+      const page: string = readPage(language, TROUBLESHOOTING);
+      const lines: Array<string> = page.split("\n");
+      const generic: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("| `with the same name already exists` |");
+      });
+      const valueRow: string = lines[generic + 1] || "";
+      const anchor: string | null = SECTION_LINK.exec(valueRow)?.[1] || null;
+      const slugs: Array<string> = scanMarkdown(page).headings.map(
+        (heading: { slug: string }): string => {
+          return `#${heading.slug}`;
+        },
+      );
+
+      expect({
+        language,
+        quotes:
+          valueRow.startsWith("|") && valueRow.includes("`already exists`"),
+        resolves: Boolean(anchor) && slugs.includes(anchor!),
+        another:
+          anchor !== (SECTION_LINK.exec(lines[generic] || "")?.[1] || null),
+      }).toEqual({ language, quotes: true, resolves: true, another: true });
     }
   });
 

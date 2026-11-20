@@ -5,6 +5,7 @@ Um formulário está aberto a qualquer pessoa que tenha o link dele, e cada envi
 :::cards
 - [Partilhar o link](#partilhar-o-link): Copie-o, abra-o e redefina-o quando ele se espalhar demais.
 - [Um link para cada modelo](#um-link-para-cada-modelo): Um favorito por caso, um único formulário por trás de todos.
+- [Apenas quem entra](#apenas-quem-entra): Convide as pessoas que podem abrir o formulário, ou deixe seu login único fazer a entrada delas.
 - [Domínios personalizados](#domínios-personalizados): Sirva o formulário no seu próprio domínio, com um certificado gratuito.
 - [O que protege um formulário](#o-que-protege-um-formulário): Cada verificação pela qual uma solicitação passa, em ordem.
 - [Solução de problemas](#solução-de-problemas): O que cada mensagem na página do formulário significa, e o que fazer.
@@ -16,6 +17,7 @@ Um formulário está aberto a qualquer pessoa que tenha o link dele, e cada envi
 | --- | --- |
 | **Status** | **Aceita envios** — se o link do formulário funciona. |
 | **Link de compartilhamento** | Cada endereço em que o formulário responde, cada um com **Copiar link**, e **Redefinir link**. |
+| **Quem pode abrir este formulário** | **Apenas quem entra** — se só as pessoas que você escolhe podem abrir o formulário, depois de entrar. |
 | **Depois de enviar** | A **Mensagem de agradecimento** que as pessoas veem depois de enviar, abaixo do número do que o formulário criou. |
 | **Mais configurações** | A **Lista de IPs permitidos**, recolhida até você abri-la. |
 
@@ -28,6 +30,8 @@ O cartão **Link de compartilhamento** lista cada endereço em que o formulário
 - **Redefinir link** dá ao formulário um novo link, depois que você confirma. O link antigo para de funcionar na hora e mostra a mensagem de indisponível, então todos com quem você o partilhou precisam do novo. Use-o quando um link se espalhou mais do que devia. Os domínios personalizados do formulário não levam chave nenhuma, e continuam funcionando.
 
 Qualquer pessoa com o link pode abrir o formulário e enviá-lo, sem uma conta do OneUptime e sem fazer login. Estar com a sessão iniciada não muda nada: o OneUptime só sabe quem enviou pelo nome e pelo e-mail digitados no formulário. Então trate o link como um número de telefone da sua equipe de plantão. Partilhe-o onde as pessoas que devem usá-lo vão encontrá-lo — uma página da intranet, um runbook de suporte, uma mensagem fixada em um chat — e não em um site público, a menos que você queira envios de qualquer pessoa.
+
+Para que só as pessoas que você escolhe abram e enviem o formulário, ative **Apenas quem entra** — veja [Apenas quem entra](#apenas-quem-entra).
 
 O link traz uma chave aleatória própria, não o ID do formulário. Em uma instalação auto-hospedada, ele é servido pelo seu próprio host do OneUptime, e só funciona no endereço que `HTTP_PROTOCOL` e `HOST` configuram: aberto com outro nome do servidor, ou pelo endereço IP dele, as solicitações do formulário são recusadas como vindas de outro site.
 
@@ -48,6 +52,20 @@ Para parar de aceitar envios sem excluir o formulário, desative **Aceita envios
 Depois de um envio, a página diz "Obrigado — sua resposta foi enviada." e dá o número do que foi criado, e depois a sua **Mensagem de agradecimento**, em Markdown. Use-a para dizer o que acontece a seguir, e a quem recorrer quando algo for urgente. Sem ela, a página mostra só a mensagem padrão.
 
 Uma imagem na descrição ou na mensagem de agradecimento do formulário é mostrada a todos que abrem o link enquanto o formulário estiver em **Aceita envios**. Desative o formulário, ou tire a imagem, e a imagem volta a ser privada, a menos que outra coisa que todos veem ainda a contenha.
+
+## Apenas quem entra
+
+Ative **Apenas quem entra**, em **Quem pode abrir este formulário** na página **Partilhar** do formulário, para que só as pessoas que você escolhe abram e enviem o formulário. Ao ativar, você precisa confirmar. A partir daí, cada visitante encontra primeiro uma página de entrada, no link do formulário e em cada domínio personalizado. Ela mostra o nome do formulário e nada mais: nem suas perguntas, nem seus modelos, nem seu logotipo, nem quem pode entrar. Depois de entrar, o formulário diz quem entrou, com **Sair** ao lado.
+
+Abra **Usuários privados** no menu lateral do formulário para adicionar, por e-mail, as pessoas que podem entrar. Cada uma recebe por e-mail um convite cujo link permite escolher uma senha. O link funciona por 24 horas, e **Esqueceu a senha?** na página de entrada envia um novo. A tabela mostra quem está **Cadastrado**, qual convite está como **Convite enviado** e o **Último acesso** de cada um. Remover alguém, ou uma nova senha, encerra a sessão dessa pessoa em todo lugar na próxima solicitação.
+
+Abra **Login único** para que seu provedor de identidade faça a entrada das pessoas, com SAML ou OpenID Connect. Cada provedor mostra os valores a colar no seu provedor de identidade. Quem seu provedor de identidade deixar entrar vira um usuário privado na primeira vez que entra. Desativar um provedor, ou excluí-lo, encerra a sessão de todos que ele fez entrar. **Exigir SSO para entrar** desativa a entrada com senha: todos passam a entrar com login único, e quem entrou com uma senha tem a sessão encerrada na próxima solicitação.
+
+Uma sessão dura até ficar 30 dias sem uso. Seus cookies são enviados só com as solicitações do próprio formulário, então nenhum outro site consegue abrir ou enviar o formulário com eles, nem encerrar a sessão de alguém. As tentativas de entrada são limitadas para cada endereço e cada conta, e as páginas de entrada e de senha esquecida respondem igual, quer um endereço possa entrar, quer não.
+
+Um envio nomeia só o nome e o e-mail digitados no formulário, como em qualquer outro formulário, não o usuário privado que o fez. Uma imagem na descrição ou na mensagem de agradecimento do formulário continua pública no seu endereço impossível de adivinhar enquanto o formulário aceita envios, como numa página de status que pede aos visitantes para entrar: é assim que os navegadores dos usuários privados a carregam.
+
+No OneUptime Cloud, o login único e **Exigir SSO para entrar** requerem o plano **Scale**. Na API, os usuários privados e os provedores de login único são registros próprios: `/form-private-user`, `/form-sso` e `/form-oidc`, cada um com permissões que levam seu nome.
 
 ## Domínios personalizados
 
@@ -119,13 +137,14 @@ Cada solicitação passa por estas verificações, nesta ordem:
 2. Ela precisa estar dentro dos limites de taxa.
 3. O formulário precisa existir, estar em **Aceita envios** e pertencer a um projeto em um plano que inclua formulários.
 4. Ela precisa vir de um endereço da **Lista de IPs permitidos**, quando o formulário tiver uma.
-5. Um envio precisa passar pelo captcha, quando a instância tiver o captcha ativado.
-6. Cada resposta precisa estar dentro dos limites de tamanho e se encaixar na pergunta — consulte [Criar um formulário](/docs/forms/building#limites-de-tamanho).
-7. O que as respostas e as configurações formam precisa poder ser criado: um incidente precisa de uma gravidade, um evento de um fim depois do início.
-8. Um envio precisa caber na cota por hora do formulário — consulte [Limites de taxa](#limites-de-taxa).
-9. Os arquivos precisam caber na cota por hora de arquivos do formulário, logo antes de serem guardados.
+5. Ela precisa vir de um dos usuários privados do formulário, com a sessão iniciada, quando o formulário está definido como **Apenas quem entra** — veja [Apenas quem entra](#apenas-quem-entra).
+6. Um envio precisa passar pelo captcha, quando a instância tiver o captcha ativado.
+7. Cada resposta precisa estar dentro dos limites de tamanho e se encaixar na pergunta — consulte [Criar um formulário](/docs/forms/building#limites-de-tamanho).
+8. O que as respostas e as configurações formam precisa poder ser criado: um incidente precisa de uma gravidade, um evento de um fim depois do início.
+9. Um envio precisa caber na cota por hora do formulário — consulte [Limites de taxa](#limites-de-taxa).
+10. Os arquivos precisam caber na cota por hora de arquivos do formulário, logo antes de serem guardados.
 
-O logotipo e o favicon de um formulário fazem parte do formulário: eles são enviados dentro da resposta que o abre, em base64, só depois de ela passar pelas quatro primeiras verificações, e nunca a partir de um endereço próprio. Ninguém consegue obtê-los sem o formulário, e nenhum arquivo pode ser obtido pelo id dele por meio de um formulário; os próprios arquivos continuam privados. Um formulário só mostra imagens enviadas no próprio projeto dele: um arquivo de outro projeto é recusado quando o formulário é salvo, e nunca é enviado à página dele.
+O logotipo e o favicon de um formulário fazem parte do formulário: eles são enviados dentro da resposta que o abre, em base64, só depois de ela passar pelas cinco primeiras verificações, e nunca a partir de um endereço próprio. Ninguém consegue obtê-los sem o formulário, e nenhum arquivo pode ser obtido pelo id dele por meio de um formulário; os próprios arquivos continuam privados. Um formulário só mostra imagens enviadas no próprio projeto dele: um arquivo de outro projeto é recusado quando o formulário é salvo, e nunca é enviado à página dele.
 
 ### Lista de IPs permitidos
 

@@ -105,6 +105,7 @@ import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLeng
 import Columns from "../../Types/Database/Columns";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import DatabaseProperty from "../../Types/Database/DatabaseProperty";
 import {
   TableColumnMetadata,
   getTableColumns,
@@ -131,6 +132,7 @@ import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NameTakenException from "../../Types/Exception/NameTakenException";
+import ValueTakenException from "../../Types/Exception/ValueTakenException";
 import { ARCHIVED_COLUMN } from "../../Utils/ArchivableValues";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
@@ -351,6 +353,19 @@ interface SwitchStamp {
   switchColumn: string;
   isOn: boolean;
   stampedColumns: Array<string>;
+}
+
+/*
+ * A value an update writes to a @UniqueColumnBy column, held to one record
+ * of its scope (see checkUniqueColumnByOnUpdate).
+ */
+interface UniqueColumnWrite {
+  // The column: "name", "signOnURL".
+  column: string;
+  // The columns it is unique within: ["projectId"], ["runbookId", "projectId"].
+  scope: Array<string>;
+  // What the update writes to it: text that is not blank, or a number.
+  value: string | number;
 }
 
 /*
@@ -2943,6 +2958,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<void> {
     // A place holder method used for overriding.
     return Promise.resolve();
+  }
+
+  /*
+   * The @UniqueColumnBy columns this service holds to one record each on an
+   * update itself, in words of its own (its onBeforeUpdate or
+   * onBeforeUpdateUniqueCheck): a resource's column telemetry is matched on
+   * (DiscoveredResourceUpdate), a variable's name. The check every other
+   * column of its kind is held to on an update (checkUniqueColumnByOnUpdate,
+   * #10318) leaves these out, so a clash is refused once, in one set of
+   * words. A column named here must be checked by the service, on every
+   * update that writes it: UniqueColumnRenameRefusals (Common Tests) renames
+   * every kind onto a taken value through its own service. None by default.
+   */
+  protected getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return [];
   }
 
   /*
@@ -8840,9 +8870,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           });
         }
 
-        throw new BadDataException(
-          `${this.model.singularName} with the same ${key} already exists.`,
-        );
+        await this.refuseTakenValue({
+          column: key,
+          query: sameValueQuery,
+          count: existingItemsWithSameNameCount,
+        });
       }
 
       existingItemsWithSameNameCount = 0;
@@ -8893,6 +8925,383 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       `${this.model.singularName} with the same name already exists, and it is archived. Unarchive it, or choose another name.`,
       { isArchived: true },
     );
+  }
+
+  /*
+   * A VALUE ANOTHER RECORD OF ITS KIND HAS, IN A @UniqueColumnBy COLUMN
+   * THAT IS NOT THE NAME - a status page's domain, an SSO provider's
+   * sign-on URL, an API key's permission - refused in the words it always
+   * was, with the code a program tells a taken value by (ValueTakenException,
+   * #10319) and the column: nothing was written, so a client may ask again
+   * once the other record gives the value up, as the Terraform provider does
+   * for a domain moved from one resource to another in one apply.
+   *
+   * When every record with the value is archived, the code and the
+   * sentence say so, as for a name.
+   */
+  private async refuseTakenValue(data: {
+    column: string;
+    query: Query<TBaseModel>;
+    count: number;
+  }): Promise<never> {
+    const refusal: string = `${this.model.singularName} with the same ${data.column} already exists.`;
+
+    if (!this.model.hasColumn(ARCHIVED_COLUMN)) {
+      throw new ValueTakenException(refusal, { field: data.column });
+    }
+
+    const archivedCount: number = (
+      await this.countBy({
+        query: {
+          ...data.query,
+          [ARCHIVED_COLUMN]: true,
+        } as Query<TBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+
+    if (archivedCount < data.count) {
+      throw new ValueTakenException(refusal, { field: data.column });
+    }
+
+    throw new ValueTakenException(
+      `${this.model.singularName} with the same ${data.column} already exists, and it is archived. Unarchive it, or choose another ${data.column}.`,
+      { field: data.column, isArchived: true },
+    );
+  }
+
+  /*
+   * AN UPDATE HELD TO ITS MODEL'S @UniqueColumnBy, AS A CREATE IS (#10318).
+   *
+   * A create is refused a value another record of its scope has
+   * (checkUniqueColumnBy), and an update was not: some seventy kinds hold
+   * their name one of their kind - incident and alert severities and
+   * states, monitor statuses, status pages and their groups, dashboards,
+   * workflows, runbooks, custom fields and the rest - so a second
+   * "Critical" severity could not be made, but another severity could be
+   * renamed "Critical", and every picker drew the two alike. So could an
+   * SSO provider's sign-on URL, a project's domain or an API key's
+   * permission be changed onto another's.
+   *
+   * An update is now held to the rule a create is, once the caller may make
+   * it, in the create's words and with its codes (refuseTakenName and
+   * refuseTakenValue: what a record in service has, or only an archived
+   * one):
+   *
+   *   - A write that gives a record its own value again is no change, and
+   *     is never refused: every save of an edit form sends the name back,
+   *     perhaps in another case or with spaces around it.
+   *   - A change onto a value another record of its scope has, in service
+   *     or archived, compared as a create compares it, is refused.
+   *   - One update that would give several records of one scope one value
+   *     is refused, with no code: they would share it the moment it was
+   *     written, and asking again changes nothing.
+   *
+   * Records that already share a value - from before this rule, when a
+   * rename was let through, or from two creates at one moment - keep it:
+   * nothing renames them. Each can still be edited, written with its own
+   * value again, and renamed apart, never onto another record's value, its
+   * twin's included.
+   *
+   * The rows are the ones the update writes (findRowsAndHoldUpdateToThem),
+   * the update held to them. The other record is counted as OneUptime: one
+   * the caller may not read holds its value all the same, and the refusal
+   * says nothing of it but that the value is taken.
+   *
+   * OneUptime's own writes are trusted, as UniqueNameInProject trusts them:
+   * telemetry naming what it found, a rule naming a device, a data
+   * migration. A column the service holds unique itself, in words of its
+   * own, is left to it (getUniqueColumnsCheckedOnUpdate).
+   */
+  private async checkUniqueColumnByOnUpdate(
+    updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    if (updateBy.props.isRoot) {
+      return;
+    }
+
+    const written: Array<UniqueColumnWrite> = this.getUniqueColumnWrites(
+      updateBy.data as Record<string, unknown>,
+    );
+
+    if (written.length === 0) {
+      return;
+    }
+
+    const select: Dictionary<boolean> = { _id: true };
+
+    for (const write of written) {
+      select[write.column] = true;
+
+      for (const scopeColumn of write.scope) {
+        select[scopeColumn] = true;
+      }
+    }
+
+    const rows: Array<TBaseModel> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as Select<TBaseModel>,
+    );
+
+    for (const write of written) {
+      await this.refuseUniqueColumnClashOnUpdate({
+        write: write,
+        rows: rows,
+        data: updateBy.data as Record<string, unknown>,
+      });
+    }
+  }
+
+  /*
+   * The @UniqueColumnBy columns an update writes a value to, with the
+   * columns each is unique within and the value as the check compares it:
+   * text that is not blank - a value kept as text, such as a domain, read
+   * as its text - or a number. No value - none sent, null, blank text - is
+   * the column's own checks' to answer, and so is a value of any other
+   * type. A column the service checks itself is left out.
+   */
+  private getUniqueColumnWrites(
+    data: Record<string, unknown>,
+  ): Array<UniqueColumnWrite> {
+    const uniqueColumnsBy: Dictionary<string | Array<string>> =
+      getUniqueColumnsBy(this.model);
+
+    const checkedByService: Set<string> = new Set<string>(
+      this.getUniqueColumnsCheckedOnUpdate(),
+    );
+
+    const writes: Array<UniqueColumnWrite> = [];
+
+    for (const column of Object.keys(uniqueColumnsBy)) {
+      const scope: string | Array<string> | undefined = uniqueColumnsBy[column];
+
+      if (!scope || checkedByService.has(column)) {
+        continue;
+      }
+
+      const value: string | number | null = DatabaseService.toUniqueValue(
+        data?.[column],
+      );
+
+      if (value === null) {
+        continue;
+      }
+
+      writes.push({
+        column: column,
+        scope: Array.isArray(scope) ? scope : [scope],
+        value: value,
+      });
+    }
+
+    return writes;
+  }
+
+  /*
+   * A value of a unique column as the check compares it: text that is not
+   * blank, a value kept as text (a Domain) as its text, a number. Null for
+   * anything else: no value, and an ID, which no column a person may change
+   * is held unique by.
+   */
+  private static toUniqueValue(value: unknown): string | number | null {
+    if (typeof value === Typeof.Number) {
+      return Number.isFinite(value as number) ? (value as number) : null;
+    }
+
+    const text: string | null =
+      typeof value === Typeof.String
+        ? (value as string)
+        : value instanceof DatabaseProperty && !(value instanceof ObjectID)
+          ? value.toString()
+          : null;
+
+    return text !== null && text.trim().length > 0 ? text : null;
+  }
+
+  // One column of an update, held to its value among the rows it writes.
+  private async refuseUniqueColumnClashOnUpdate(data: {
+    write: UniqueColumnWrite;
+    rows: Array<TBaseModel>;
+    data: Record<string, unknown>;
+  }): Promise<void> {
+    const { write } = data;
+
+    // Its own value again, perhaps in another case: no change.
+    const changed: Array<TBaseModel> = data.rows.filter(
+      (row: TBaseModel): boolean => {
+        return !DatabaseService.isSameUniqueValue(
+          (row as unknown as Record<string, unknown>)[write.column],
+          write.value,
+        );
+      },
+    );
+
+    if (changed.length === 0) {
+      return;
+    }
+
+    const scopesSeen: Set<string> = new Set<string>();
+    const checks: Array<{ row: TBaseModel; scopeQuery: Query<TBaseModel> }> =
+      [];
+
+    for (const row of changed) {
+      const scopeValues: Array<unknown> = write.scope.map(
+        (scopeColumn: string): unknown => {
+          return this.getScopeValueOfRow({
+            row: row,
+            column: scopeColumn,
+            data: data.data,
+          });
+        },
+      );
+
+      const scopeKey: string = scopeValues
+        .map((value: unknown): string => {
+          return DatabaseService.uniqueScopeKeyOf(value);
+        })
+        .join("\u0000");
+
+      // Two of them in one scope would share it the moment it was written.
+      if (scopesSeen.has(scopeKey)) {
+        throw new BadDataException(this.getSeveralGivenOneValueRefusal(write));
+      }
+
+      scopesSeen.add(scopeKey);
+
+      const scopeQuery: Dictionary<unknown> = {};
+
+      write.scope.forEach((scopeColumn: string, index: number): void => {
+        const value: unknown = scopeValues[index];
+
+        scopeQuery[scopeColumn] =
+          value === null || value === undefined ? QueryHelper.isNull() : value;
+      });
+
+      checks.push({ row, scopeQuery: scopeQuery as Query<TBaseModel> });
+    }
+
+    for (const check of checks) {
+      const rowId: string | undefined = check.row._id?.toString();
+
+      if (!rowId) {
+        continue;
+      }
+
+      const sameValueQuery: Query<TBaseModel> = {
+        [write.column]: QueryHelper.findWithSameText(write.value),
+        ...check.scopeQuery,
+        _id: QueryHelper.notEquals(rowId),
+      } as Query<TBaseModel>;
+
+      const count: number = (
+        await this.countBy({
+          query: sameValueQuery,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber();
+
+      if (count === 0) {
+        continue;
+      }
+
+      if (write.column === "name") {
+        await this.refuseTakenName({
+          query: sameValueQuery,
+          count: count,
+        });
+      }
+
+      await this.refuseTakenValue({
+        column: write.column,
+        query: sameValueQuery,
+        count: count,
+      });
+    }
+  }
+
+  /*
+   * A column a record is unique within, as it will be once the update is
+   * written: what the update gives it, or else what the row holds.
+   */
+  private getScopeValueOfRow(data: {
+    row: TBaseModel;
+    column: string;
+    data: Record<string, unknown>;
+  }): unknown {
+    // Under either of its names, as a create's scope is read.
+    const written: unknown = this.getWrittenColumnValue(
+      (data.data || {}) as PartialEntity<TBaseModel>,
+      data.column,
+    );
+
+    if (written === undefined) {
+      return (data.row as unknown as Record<string, unknown>)[data.column];
+    }
+
+    if (
+      this.model.getTableColumnMetadata(data.column)?.type ===
+      TableColumnType.ObjectID
+    ) {
+      const id: string | null = RelationValueUtil.getRelationId(written);
+
+      return id ? new ObjectID(id) : null;
+    }
+
+    return written;
+  }
+
+  /*
+   * The refusal of one update that would give several records of one scope
+   * one value: "Several Incident Severities cannot be given one name.
+   * Rename one at a time." Named after the column as the create's refusal
+   * names it.
+   */
+  private getSeveralGivenOneValueRefusal(write: UniqueColumnWrite): string {
+    const records: string =
+      this.model.pluralName || this.model.singularName || "records";
+
+    if (write.column === "name") {
+      return `Several ${records} cannot be given one name. Rename one at a time.`;
+    }
+
+    return `Several ${records} cannot be given one ${write.column}. Change one at a time.`;
+  }
+
+  // Whether a stored value is the value written, as the unique check compares them.
+  private static isSameUniqueValue(
+    stored: unknown,
+    written: string | number,
+  ): boolean {
+    if (typeof written === Typeof.Number) {
+      return (
+        (typeof stored === Typeof.Number || typeof stored === Typeof.String) &&
+        Number(stored) === written
+      );
+    }
+
+    const storedText: string | number | null =
+      DatabaseService.toUniqueValue(stored);
+
+    return (
+      typeof storedText === Typeof.String &&
+      (storedText as string).trim().toLowerCase() ===
+        (written as string).trim().toLowerCase()
+    );
+  }
+
+  // A scope value, as text two of one scope share: an ID whatever its case.
+  private static uniqueScopeKeyOf(value: unknown): string {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    const id: string | null = RelationValueUtil.getRelationId(value);
+
+    return (id || String(value)).toLowerCase();
   }
 
   /*
@@ -11874,6 +12283,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // A service's own words for a clash, now the caller may make the write.
       if (!updateBy.props.ignoreHooks) {
         await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
+
+        // Then what a create is held to: @UniqueColumnBy. See the helper.
+        await this.checkUniqueColumnByOnUpdate(beforeUpdateBy);
+
         await this.onUpdatePermitted(beforeUpdateBy);
       }
 

@@ -11,6 +11,7 @@ import MicrosoftTeamsIncidentMoreActions from "./IncidentMoreActions";
 import MicrosoftTeamsMonitorActions from "./Monitor";
 import MicrosoftTeamsOnCallDutyActions from "./OnCallDutyPolicy";
 import MicrosoftTeamsScheduledMaintenanceActions from "./ScheduledMaintenance";
+import MicrosoftTeamsSecurityPlaybookApprovalActions from "./SecurityPlaybookApproval";
 
 /*
  * The product a Microsoft Teams button or card acts in (#7479): what the
@@ -77,6 +78,15 @@ export const getProductOfMicrosoftTeamsAction: (
     })
   ) {
     return ProductKey.ScheduledMaintenance;
+  }
+
+  // A playbook step waiting for approval: a security case's.
+  if (
+    MicrosoftTeamsSecurityPlaybookApprovalActions.isSecurityPlaybookApprovalAction(
+      actionType,
+    )
+  ) {
+    return ProductKey.SecurityEvents;
   }
 
   return null;

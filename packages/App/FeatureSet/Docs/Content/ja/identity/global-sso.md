@@ -104,6 +104,12 @@ ID プロバイダーのサインアウト URL を、**その他の項目** の 
 
 Okta、Microsoft Entra ID、Auth0、Keycloak でこれらの設定がある場所は、[SSO](/docs/identity/sso) のページにあります。
 
+## 本人確認のためにもう一度サインインする
+
+グローバルプロバイダーだけでサインインする人は、サインイン方法を変更したりアカウントを削除したりする前に、 **もう一度サインイン** で本人確認をします。OneUptime はその人を、SAML なら `ForceAuthn="true"`、OpenID Connect なら `prompt=login` と `max_age=0` を付けてプロバイダーに戻し、その時点以降にサインインしたとプロバイダーが `AuthnInstant` または `auth_time` で伝えた場合だけ確認とみなします。グローバルプロバイダーを追加、変更、削除するときは、先に [本人確認](/docs/introduction/your-account#本人確認) を求められます。
+
+Okta、Microsoft Entra ID、Keycloak、Google Workspace で設定する内容は、[SSO](/docs/identity/sso#本人確認のためにもう一度サインインする) のページにあります。
+
 ## SSO を必須にする
 
 グローバルプロバイダーを設定しても、誰かにその使用を強制することはなく、パスワードでのサインインも引き続き使えます。SSO を必須にするには、プロジェクトまたはインスタンス全体で要件をオンにします。

@@ -66,6 +66,7 @@ Una regla de IA puede tener sus propias notas sobre los incidentes o las alertas
 | Las respuestas en Slack y Microsoft Teams | Las notas del proyecto |
 | Los borradores de post mortem, de incidentes y de episodios | Las notas del proyecto |
 | La clasificación de AI Insights y la de los casos de seguridad | Las notas del proyecto |
+| Explicar con IA, en un problema de seguridad de datos | Las notas del proyecto |
 
 Las llamadas que solo reformulan o juzgan lo que reciben no lo leen: los borradores de notas y de notas públicas, los resúmenes de llamadas, el resumen, la confianza y la nota de una investigación, y el título de una conversación. Tampoco los prompts que las personas escriben ellas mismas, en el paso de IA de un flujo de trabajo o de un runbook.
 

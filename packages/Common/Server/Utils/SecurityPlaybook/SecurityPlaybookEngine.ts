@@ -58,6 +58,7 @@ import {
   playbookStoppedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import PartialEntity from "../../../Types/Database/PartialEntity";
+import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
 
 export const SECURITY_PLAYBOOK_RUN_JOB: string =
   "SecurityPlaybooks:RunPlaybook";
@@ -575,6 +576,18 @@ export default class SecurityPlaybookEngine {
         currentStepIndex: index + 1,
         threatIntelMatched,
       });
+
+      /*
+       * A step somebody approved: its approval message, in every channel
+       * and direct message it was sent to, says how the step went
+       * (WorkspaceSecurityPlaybookApprovalMessages).
+       */
+      if (results[index]!.approval) {
+        WorkspaceSecurityPlaybookApprovalMessages.refreshInBackground({
+          projectId,
+          runId,
+        });
+      }
 
       if (summaryText && !outcome.hasWrittenOwnFeed) {
         await SecurityCaseFeedService.createSecurityCaseFeedItem({

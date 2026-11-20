@@ -132,9 +132,12 @@ const METRIC_INVESTIGATION_WORDS: string = readSource(
   "EventMetricInvestigation.ts",
 );
 
-// The card says the narrowing it was handed, in its subject's words.
+/*
+ * The card says the narrowing it was handed, in its subject's words - a
+ * PromQL monitor's by the labels it named the series by (issue #10227).
+ */
 const PANEL_SAYS_THE_NARROWING: string =
-  "const description: string = props.seriesSummary ? translator.translateTemplate(words.scopedDescription, { seriesSummary: props.seriesSummary, })";
+  "const seriesSummary: string = promQLQuery ? getPromQLSeriesSummary(promQLSeriesLabels) : props.seriesSummary; const description: string = seriesSummary ? translator.translateTemplate(words.scopedDescription, { seriesSummary: seriesSummary, })";
 
 const SCOPED_DESCRIPTIONS: Array<string> = [
   'scopedDescription: translationKey( "Metrics related to this incident, scoped to the affected series ({{seriesSummary}}).", ),',

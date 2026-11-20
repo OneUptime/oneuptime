@@ -345,6 +345,10 @@ beforeEach(() => {
       writes.push({ statusPageId: where._id.toString(), data: written });
       return { affected: 1 };
     },
+    // No other page of the project has the name a write gives one (#10318).
+    count: async (): Promise<number> => {
+      return 0;
+    },
   } as never);
 
   getJestSpyOn(StatusPageService, "onTriggerWorkflow").mockResolvedValue(

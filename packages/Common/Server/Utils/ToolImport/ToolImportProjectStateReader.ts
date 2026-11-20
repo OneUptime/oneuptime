@@ -1084,9 +1084,28 @@ export default class ToolImportProjectStateReader {
         ]
       : grantable;
 
+    // When each was made, by id: tells two teams of one name apart (#10314).
+    const createdAtById: Map<string, Date> = new Map<string, Date>();
+
+    for (const team of teams) {
+      if (
+        team.id &&
+        team.createdAt instanceof Date &&
+        !isNaN(team.createdAt.getTime())
+      ) {
+        createdAtById.set(team.id.toString(), team.createdAt);
+      }
+    }
+
     return {
       teams: ordered.map((team: InviteTeam): ToolImportInviteTeam => {
-        return { id: team.id, name: team.name };
+        const createdAt: Date | undefined = createdAtById.get(team.id);
+
+        return {
+          id: team.id,
+          name: team.name,
+          ...(createdAt ? { createdAt: createdAt.toISOString() } : {}),
+        };
       }),
       defaultId: defaultTeam?.id || null,
     };

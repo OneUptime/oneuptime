@@ -237,6 +237,15 @@ export interface MonitorStepMetricReads {
    * (MetricsQuery.telemetryServiceIds, issue #6266). Empty: every service.
    */
   telemetryServiceIds: Array<string>;
+  /*
+   * The PromQL expression a Metrics step written in PromQL evaluates
+   * (issue #10227): its one query is then the expression, under
+   * PROMQL_METRIC_ALIAS (MonitorStepMetricMonitorUtil.getPromQLViewConfig),
+   * which names no metric - so its charts run the expression, never the
+   * builder's queries the step keeps from before it was switched. Absent
+   * on every other step.
+   */
+  promQLQuery?: string | undefined;
 }
 
 interface ReadAttributesInput {
@@ -870,6 +879,36 @@ export default class MonitorStepMetricQueries {
       return null;
     }
 
+    const metricMonitorSettings: MonitorStepMetricMonitor | undefined =
+      input.monitorType === MonitorType.Metrics
+        ? (settings as MonitorStepMetricMonitor)
+        : undefined;
+
+    /*
+     * A step written in PromQL reads its expression (issue #10227): its one
+     * query, named by the expression, and no formula - never the builder's
+     * queries it keeps from before it was switched.
+     */
+    if (MonitorStepMetricMonitorUtil.isPromQL(metricMonitorSettings)) {
+      const promQLQuery: string = MonitorStepMetricMonitorUtil.getPromQLQuery(
+        metricMonitorSettings,
+      );
+
+      return {
+        queryConfigs:
+          MonitorStepMetricMonitorUtil.getPromQLViewConfig(promQLQuery)
+            .queryConfigs,
+        formulaConfigs: [],
+        rollingTime: RollingTimeUtil.fromValueOrDefault(settings.rollingTime),
+        aggregatesWholeWindow: false,
+        telemetryServiceIds: MonitorStepMetricQueries.getReadServiceIds({
+          monitorType: input.monitorType,
+          settings: settings,
+        }),
+        promQLQuery: promQLQuery,
+      };
+    }
+
     // Array-shaped whatever the stored JSON holds (see getMetricViewConfig).
     const metricViewConfig: MetricsViewConfig =
       MonitorStepMetricMonitorUtil.getMetricViewConfig(
@@ -887,11 +926,6 @@ export default class MonitorStepMetricQueries {
         ),
       });
 
-    const metricMonitor: MonitorStepMetricMonitor | undefined =
-      input.monitorType === MonitorType.Metrics
-        ? (settings as MonitorStepMetricMonitor)
-        : undefined;
-
     return {
       queryConfigs: queryConfigs,
       formulaConfigs: metricViewConfig.formulaConfigs.filter(
@@ -901,8 +935,9 @@ export default class MonitorStepMetricQueries {
       ),
       // Written another way ("15 minutes") or not at all, as the worker reads it.
       rollingTime: RollingTimeUtil.fromValueOrDefault(settings.rollingTime),
-      aggregatesWholeWindow:
-        MonitorStepMetricMonitorUtil.aggregatesWholeWindow(metricMonitor),
+      aggregatesWholeWindow: MonitorStepMetricMonitorUtil.aggregatesWholeWindow(
+        metricMonitorSettings,
+      ),
       telemetryServiceIds: MonitorStepMetricQueries.getReadServiceIds({
         monitorType: input.monitorType,
         settings: settings,

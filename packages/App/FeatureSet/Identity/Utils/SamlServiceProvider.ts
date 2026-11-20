@@ -103,6 +103,25 @@ export default class SamlServiceProviders {
     };
   }
 
+  /*
+   * A form's SAML provider (#10249), for the people who sign in to its
+   * public link: its own Entity ID and Reply URL, shown on the form's
+   * Single Sign-On page (Forms/View/SingleSignOn) exactly so.
+   */
+  public static forFormSso(data: {
+    formId: ObjectID | string;
+    formSsoId: ObjectID | string;
+  }): SamlServiceProvider {
+    const formId: string = data.formId.toString();
+    const formSsoId: string = data.formSsoId.toString();
+
+    return {
+      entityId: `${SamlServiceProviders.getServerAddress()}/form-sso/${formId}/${formSsoId}`,
+      replyUrl: `${SamlServiceProviders.getIdentityAddress()}/form-idp-login/${formId}/${formSsoId}`,
+      serverAddress: SamlServiceProviders.getServerAddress(),
+    };
+  }
+
   public static forGlobalSso(data: {
     globalSsoId: ObjectID | string;
   }): SamlServiceProvider {

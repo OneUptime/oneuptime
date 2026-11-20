@@ -250,7 +250,7 @@ Tramite l'API e Terraform, l'ordine è l'`arguments.sort` del widget: una colonn
 Una [dashboard pubblica](/docs/dashboards/sharing) disegna la maggior parte dei widget per i suoi visitatori, e ciascuno mostra solo ciò per cui è stato configurato. Alcuni non possono essere mostrati senza una sessione con accesso:
 
 - **Grafico dei log**, **Grafico delle tracce**, **Tabella delle tracce**, **Eventi di sicurezza**, **Flusso degli eventi di sicurezza**, **Funnel** e **Fidelizzazione degli utenti** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
-- I widget di Fonti di dati esterne vengono esclusi del tutto da una dashboard pubblica, perché le loro impostazioni sono la query stessa.
+- I widget di Fonti di dati esterne mostrano i loro dati quando leggono **Metriche di questo progetto (PromQL)**, mai le loro query. Un widget con un'origine dati esterna viene escluso del tutto da una dashboard pubblica.
 
 ## Quando un widget non può essere mostrato
 

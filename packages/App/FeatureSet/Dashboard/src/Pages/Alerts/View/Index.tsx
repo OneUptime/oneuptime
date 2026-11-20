@@ -1188,6 +1188,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               telemetryQuery={telemetryQuery}
               evaluationWindow={telemetrySnapshotWindow}
               seriesSummary={seriesSummary}
+              seriesLabels={seriesLabels}
               subject={EventMetricSubject.Alert}
               eventId={modelIdString}
               startedAt={responseTimes.startedAt}

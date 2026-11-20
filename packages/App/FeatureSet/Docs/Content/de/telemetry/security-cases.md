@@ -232,7 +232,9 @@ Jede Person wählt selbst, unter **Benutzereinstellungen → Benachrichtigungsei
 
 Die Auswahl folgt den Fallprioritäten des Projekts, unter ihren eigenen Namen: Dies sind die eines neuen Projekts.
 
-Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet den Fall in der App OneUptime On-Call (1.7.0 oder neuer), wo Sie einen wartenden Playbook-Schritt genehmigen oder ablehnen, den Fall übernehmen und schließen können. Ihr Link öffnet den Fall im Browser.
+Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet den Fall in der App OneUptime On-Call (1.7.0 oder neuer), wo Sie einen wartenden Playbook-Schritt genehmigen oder ablehnen, den Fall übernehmen und schließen können. Ihr Link öffnet den Fall im Browser. Eine Push-Benachrichtigung zu einem Schritt, der auf Ihre Genehmigung wartet, öffnet genau diese Genehmigung mit ihren Belegen; hat inzwischen jemand entschieden, zeigt der Fall, wer, wann und wie der Schritt verlaufen ist.
+
+Ein Schritt, der auf Ihre Genehmigung wartet, erreicht Sie in Slack oder Microsoft Teams als Nachricht, aus der Sie ihn genehmigen können, und seine E-Mail sagt, was der Schritt tun wird und warum: siehe [Aus Slack und Microsoft Teams genehmigen](#aus-slack-und-microsoft-teams-genehmigen).
 
 ### In Kanäle von Slack, Microsoft Teams und Mattermost posten
 
@@ -369,15 +371,34 @@ Die beiden Datenspeicher-Schritte wirken auf die Datenspeicher, um die es im Fal
 
 #### Geschützte Entitäten
 
-**Geschützte Entitäten**, im Menü unter **Playbooks**, listet die Benutzer und Hosts, die kein Playbook eindämmt, etwa Notfallzugriffskonten, Domänencontroller und VPN-Gateways. Ein Wert passt unabhängig von der Groß- und Kleinschreibung, und `*` steht für eine beliebige Folge von Zeichen: `svc-*` schützt jedes Dienstkonto. Ein Schritt meldet einen geschützten Benutzer oder Host als geschützt und lässt ihn unangetastet. Sicherheits-Administratoren pflegen die Liste.
+**Geschützte Entitäten**, im Menü unter **Playbooks**, listet die Benutzer, Hosts und IP-Adressen, die kein Playbook eindämmt und die Sperrliste nie sperrt, etwa Notfallzugriffskonten, Domänencontroller, VPN-Gateways und Büroadressen. Ein Wert passt unabhängig von der Groß- und Kleinschreibung, und `*` steht für eine beliebige Folge von Zeichen: `svc-*` schützt jedes Dienstkonto. Ein Adresseintrag ist eine Adresse oder ein Bereich, etwa `203.0.113.0/24`, der jede Adresse darin schützt. Ein Schritt meldet einen geschützten Benutzer oder Host als geschützt und lässt ihn unangetastet. Sicherheits-Administratoren pflegen die Liste.
 
 #### Genehmigung
 
 Die acht Schritte, die jemanden aussperren, warten auf Genehmigung. Nur ein Sicherheits-Administrator kann **Genehmigung erforderlich** für einen von ihnen abschalten, und OneUptime hält fest, wer das getan hat. Die Genehmigung listet unter **Anwenden auf** die Benutzer oder Hosts, auf die der Schritt wirken würde, alle angehakt: Entfernen Sie den Haken bei allen, die er unangetastet lassen soll. Geschützte werden nicht angeboten. Wer eine Ausführung gestartet hat, kann ihre Schritte nicht genehmigen: Das tut jemand anderes, ablehnen kann er sie aber weiterhin.
 
+#### Aus Slack und Microsoft Teams genehmigen
+
+Ein Schritt, der auf Genehmigung wartet, ist eine Nachricht mit **Genehmigen**, **Ablehnen** und **Fall öffnen**; wirkt er auf mehr als einen Benutzer oder Host, können Sie auch nur einen Teil davon genehmigen. Sie geht an die Kanäle und Chats jeder Regel für Sicherheitsfälle, deren **Aktualisierungen** **Genehmigungsanfragen** posten, und an jede genehmigende Person, die Slack oder Microsoft Teams für **Playbook-Schritt wartet auf meine Genehmigung** gewählt hat, in der Sprache ihres Kontos. Sie sagt, was der Schritt tun wird und über welche Verbindung, auf welche Benutzer oder Hosts er wirkt und warum, welche geschützten er auslässt, wer oder was gefragt hat, welche Belege hinter dem Fall stehen (wie weit die Anfragen dahinter gekommen sind, was Threat Intelligence weiß, dass nichts, worauf er wirkt, geschützt ist) und ob er sich rückgängig machen lässt. Die E-Mail, die um die Genehmigung bittet, sagt dasselbe; ihre Schaltfläche öffnet die Genehmigung am Fall und entscheidet nie etwas, da Mail-Scanner Links folgen.
+
+- Wer nur einen Teil genehmigt, sieht die Benutzer oder Hosts, auf die der Schritt wirken würde, alle angehakt: Entfernen Sie den Haken bei denen, die er auslassen soll. Mindestens einer bleibt, sonst lehnen Sie den Schritt stattdessen ab.
+- Ein Druck auf eine Schaltfläche entscheidet als Sie, über das Slack- oder Microsoft-Teams-Konto, das Sie mit OneUptime verbunden haben. Sind Sie noch nicht verbunden, werden Sie gebeten, die Verbindung herzustellen und dann erneut zu drücken. Sie brauchen eine Rolle, die Playbooks ausführen darf, und müssen den Fall sehen können; wer die Ausführung gestartet hat, kann sie nicht genehmigen, aber ablehnen. Eine Ablehnung sagt, warum: In Slack sehen nur Sie sie.
+- OneUptime prüft, dass jeder Druck aus Slack oder Microsoft Teams kam, und entscheidet einmal: Ein wiederholter, erneut gesendeter oder auf einer Nachricht zu einem anderen Schritt gemachter Druck entscheidet nichts, und ein Druck, nachdem jemand entschieden hat, sagt, wer und wann.
+- Sobald jemand entscheidet, in Slack, in Microsoft Teams, am Fall oder in der App, sagt jede Kopie der Nachricht, wer sie wann genehmigt oder abgelehnt hat, dann, wie der Schritt verlaufen ist und was aus jedem Benutzer oder Host wurde, ohne andere Schaltflächen als **Fall öffnen**. Die Entscheidung wird in der Zeitachse des Falls festgehalten, mit dem Hinweis, dass sie aus Slack oder Microsoft Teams kam, und im Audit-Protokoll des Projekts.
+
+Mattermost erhält die Genehmigung als Text, ohne Schaltflächen.
+
 #### Rückgängig machen
 
-Die Schritte zum Rückgängigmachen wirken auf die Benutzer oder Hosts, um die es im Fall geht, wie die Schritte, die sie rückgängig machen. Sobald die Ausführung beendet ist, hat ein eingedämmter Benutzer oder Host an seinem Schritt außerdem eine eigene Schaltfläche: **Sperre aufheben**, **Eindämmung aufheben**, **Freigeben** oder **Aktivieren**. Eine Abmeldung lässt sich nicht rückgängig machen. Jedes Rückgängigmachen wird in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten.
+Die Schritte zum Rückgängigmachen wirken auf die Benutzer oder Hosts, um die es im Fall geht, wie die Schritte, die sie rückgängig machen. Sobald die Ausführung beendet ist, hat ein eingedämmter Benutzer oder Host an seinem Schritt außerdem eine eigene Schaltfläche: **Sperre aufheben**, **Eindämmung aufheben**, **Freigeben** oder **Aktivieren**. Eine Abmeldung lässt sich nicht rückgängig machen. Jedes Rückgängigmachen wird in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. In der App OneUptime On-Call listet der Fall auf, was seine Playbooks eingedämmt haben, und jedes davon lässt sich dort rückgängig machen.
+
+### Sperrliste
+
+**Sperrliste**, im Menü unter **Playbooks**, listet die IP-Adressen und Bereiche, die Ihr Projekt sperrt: warum, bis wann, zu welchem Fall sie gehören und wer oder was sie hinzugefügt hat. **Adresse sperren** sperrt eine Adresse oder einen Bereich für 24 Stunden, sofern Sie nicht 1 Stunde, 7 Tage oder 30 Tage wählen. Nur ein Sicherheits-Administrator, ein Projektadministrator oder ein Projektinhaber kann eine Sperre behalten, bis jemand sie aufhebt, oder einen Bereich sperren, der größer als ein /24 ist (ein /48 bei IPv6), und niemand sperrt einen Bereich, der größer als ein /8 ist (ein /16 bei IPv6). **Aufheben** beendet eine Sperre, in einer Zeile oder in mehreren auf einmal, und **Verlängern** verschiebt ihr Ende.
+
+Die eigenen Adressen Ihres Projekts werden nie gesperrt: die Einträge unter **Geschützte Entitäten**, Ihre Hosts, Kubernetes-Knoten, Cloud-Ressourcen, Netzwerkgeräte und -endpunkte, Ihre Adressnamen und Sonden, die Sonden von OneUptime Cloud, die Bereiche, die nicht im Internet liegen, und das Edge-Netzwerk vor Ihrer App. Eine Sperre, die eine davon treffen würde, wird abgelehnt, mit dem Hinweis, was die Adresse ist, und **Geschützte Entitäten** listet sie unter **Automatisch geschützt**. Wenn OneUptime nicht feststellen kann, ob eine Adresse Ihnen gehört, sperrt es sie nicht.
+
+**Durchgesetzt bei** zeigt jeden Ort, an dem eine Sperre durchgesetzt wird, und ob sie dort greift. Solange nichts die Sperrliste durchsetzt, sagt die Seite das, und eine Sperre wird erfasst, sperrt aber nichts. Jede Sperre, Aufhebung und jeder Ablauf wird im Audit-Protokoll des Projekts festgehalten und, wenn es einen Fall gibt, auch in der Zeitachse dieses Falls.
 
 ### Nachrichten
 
@@ -433,7 +454,7 @@ Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erke
 ## Automatisieren
 
 - **Arbeitsabläufe**: Ein Fall oder eine Notiz kann einen Workflow starten, wenn er oder sie erstellt, aktualisiert oder gelöscht wird. Ein Schritt **Arbeitsablauf ausführen** startet einen Workflow, dessen Trigger ein Webhook ist.
-- **API**: Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
+- **API**: Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten, Sperren sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
 - KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks sowie Fallprioritäten und Fallstatus. Siehe [MCP-Server](/docs/ai/mcp-server).
 - Terraform: Die Ressourcen `oneuptime_security_case_priority` und `oneuptime_security_case_status` halten die Prioritäten und Status eines Projekts als Code fest.
 

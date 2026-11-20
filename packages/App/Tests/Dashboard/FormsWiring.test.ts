@@ -362,6 +362,9 @@ describe("the menus", () => {
       "OnSubmit",
       "Share",
       "CustomDomains",
+      // Who may sign in, once only people who sign in can open it (#10249).
+      "PrivateUsers",
+      "SingleSign-On",
       "Submissions",
       "Advanced",
       "DuplicateForm",

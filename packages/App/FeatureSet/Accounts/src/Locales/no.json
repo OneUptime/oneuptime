@@ -288,6 +288,29 @@
     "templateNone": "Ingen mal",
     "uploadingFiles": "Filene dine lastes opp…"
   },
+  "formSignIn": {
+    "prompt": "Logg på for å åpne dette skjemaet.",
+    "ssoOnlyPrompt": "Logg på med organisasjonens single sign-on for å åpne dette skjemaet.",
+    "noWayIn": "Det er ennå ikke satt opp noen måte å logge på dette skjemaet. Spør personen som delte det med deg.",
+    "email": "E-post",
+    "password": "Passord",
+    "forgotPassword": "Glemt passordet?",
+    "signIn": "Logg på",
+    "or": "eller",
+    "signInWithProvider": "Logg på med {{provider}}",
+    "forgotTitle": "Har du glemt passordet?",
+    "forgotPrompt": "Skriv inn e-postadressen din, så sender vi deg en lenke for å velge et nytt passord.",
+    "sendLink": "Send lenke",
+    "forgotSent": "Hvis denne adressen kan logge på dette skjemaet, er en lenke for å velge et nytt passord på vei. Lenken virker i 24 timer.",
+    "backToSignIn": "Tilbake til pålogging",
+    "resetTitle": "Velg et nytt passord",
+    "resetPrompt": "Skriv inn passordet du vil logge på dette skjemaet med.",
+    "newPassword": "Nytt passord",
+    "savePassword": "Lagre passord",
+    "resetDone": "Passordet ditt er lagret. Logg på med det for å åpne skjemaet.",
+    "signedInAs": "Logget på som {{email}}",
+    "signOut": "Logg ut"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbudt",

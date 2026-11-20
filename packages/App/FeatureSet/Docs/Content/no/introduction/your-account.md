@@ -156,11 +156,11 @@ Noen endringer ber deg først bekrefte at det er deg, selv om du er pålogget, s
 - slår av tofaktorautentisering;
 - sletter kontoen din.
 
-Dialogen **Bekreft at det er deg** ber om passordet ditt og, mens tofaktorautentisering er slått på, om det andre trinnet ditt: en kode fra autentiseringsappen, sikkerhetsnøkkelen din eller en av reservekodene dine. Med en passnøkkel klikker du i stedet på **Bruk en passnøkkel**. Logger du bare på med enkel pålogging, Google eller Microsoft, klikker du på **Logg på igjen**: OneUptime får identitetsleverandøren din til å be deg logge på igjen, og sender deg så tilbake til siden. Deretter blir endringen gjort.
+Dialogen **Bekreft at det er deg** ber om passordet ditt og, mens tofaktorautentisering er slått på, om det andre trinnet ditt: en kode fra autentiseringsappen, sikkerhetsnøkkelen din eller en av reservekodene dine. Med en passnøkkel klikker du i stedet på **Bruk en passnøkkel**. Logger du bare på med enkel pålogging, Google eller Microsoft, klikker du på **Logg på igjen**: OneUptime får identitetsleverandøren din til å be deg logge på igjen, og sender deg så tilbake til siden. Deretter blir endringen gjort. Logger du bare på med Vercel, som ikke kan bekrefte at det er deg, velger du i stedet **Logg på på en annen måte** og logger på med en lenke som sendes til e-posten din.
 
 Når du har bekreftet, blir du ikke spurt igjen på 10 minutter i den nettleseren. Fem feil forsøk logger av den nettleseren, men låser aldri kontoen din: Logg på igjen, og prøv en gang til. OneUptime sender deg en e-post når det skjer, og hver gang en reservekode bekrefter at det er deg.
 
-På en selvhostet server bekrefter hovedadministratorer på samme måte at det er dem, før de endrer hvordan noen andre logger på, gjør noen til hovedadministrator, endrer serverens leverandører for enkel pålogging eller e-postinnstillinger, eller oppretter en hoved-API-nøkkel. Hoved-API-nøkkelen kan ikke gjøre disse endringene.
+På en selvhostet server bekrefter hovedadministratorer på samme måte at det er dem, før de endrer hvordan noen andre logger på, sletter kontoen til noen andre, gjør noen til hovedadministrator, endrer serverens leverandører for enkel pålogging eller e-postinnstillinger, eller oppretter en hoved-API-nøkkel eller slår den på igjen. Hoved-API-nøkkelen kan ikke gjøre disse endringene.
 
 Å logge på igjen teller bare når identitetsleverandøren din sier at du logget på etter at OneUptime sendte deg dit. Logger leverandøren deg på med en økt den allerede har, uten å be om passordet ditt, bekrefter det ingenting: Logg først av hos leverandøren, og klikk så på **Logg på igjen**. Der serveren din lar deg logge på med en lenke på e-post, gjør **Logg på på en annen måte** det i stedet. Hva OneUptime ber hver leverandør om, og hva en administrator kan endre når en ny pålogging ikke bekrefter noe:
 
@@ -170,6 +170,9 @@ På en selvhostet server bekrefter hovedadministratorer på samme måte at det e
 | OpenID Connect | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Få leverandøren til å sende `auth_time`. I Microsoft Entra ID legger du det til i ID-tokenet som et valgfritt krav. |
 | Google | Når du logget på (`auth_time`). Google kan ikke bes om å få deg til å logge på igjen. | Slå på Session age claims for serverens Google-påloggingsapp, som må være publisert og verifisert. |
 | Microsoft | `prompt=login` og `max_age=0`, og når du logget på (`auth_time`) | Legg til `auth_time` i ID-tokenet til serverens Microsoft-påloggingsapp som et valgfritt krav. |
+| Vercel | Ingenting: Vercel kan ikke bes om å få deg til å logge på igjen, og sier ikke når du logget på. | Det bekrefter aldri. Velg **Logg på på en annen måte** og logg på med en lenke som sendes til e-posten din, eller lag et passord med **Glemt passord?** og bekreft med det. |
+
+Hva du skal stille inn i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#logge-på-igjen-for-å-bekrefte-at-det-er-deg).
 
 ## Prosjektene dine
 
