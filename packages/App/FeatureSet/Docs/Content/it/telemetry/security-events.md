@@ -250,6 +250,7 @@ Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati i
 | Okta System Log | Eventi di accesso, MFA, account e criteri | [Okta System Log](/docs/integrations/okta) |
 | Microsoft Entra ID | Accessi, modifiche alla directory e rilevamenti di rischio, se lo scegli gli accessi in background e delle app non riusciti, e dal log di audit di Microsoft 365 l'inoltro della posta, le condivisioni e i verdetti di phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Accessi, i rilevamenti di Google, le modifiche di amministrazione e gli accessi concessi alle app, e le condivisioni in Drive | [Google Workspace](/docs/integrations/google-workspace) |
+| Cloudflare | Ciò che il suo firewall ha bloccato, sottoposto a challenge e registrato all'edge, come HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
 
 - Gli avvisi propri del prodotto di livello pari o superiore a **Apri casi da** (**Alta e superiori** a meno che tu non scelga un altro livello, oppure **Mai**) aprono [casi](/docs/telemetry/security-cases), raggruppati per l'utente, l'host o l'indirizzo che riguardano.
 - Una connessione legge i record in base al momento in cui il prodotto li ha creati, non al momento dell'attività che descrivono. Una regola SIEM che gira ogni ora crea rilevamenti molto dopo gli eventi corrispondenti, e vengono comunque importati.
