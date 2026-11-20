@@ -108,7 +108,9 @@ beforeEach(() => {
   AssumedRoleCache.clear();
   AwsServerIdentity.clearCache();
   AwsServerIdentity.useCredentialChain(
-    new AwsDefaultCredentialChain({ env: { AWS_EC2_METADATA_DISABLED: "true" } }),
+    new AwsDefaultCredentialChain({
+      env: { AWS_EC2_METADATA_DISABLED: "true" },
+    }),
   );
   clockMs = NOW.getTime();
   jest.spyOn(Date, "now").mockImplementation((): number => {
@@ -186,22 +188,19 @@ function signInsOf(fake: FakeAws): Array<SignIn> {
     .filter((call: { action: string }): boolean => {
       return call.action === "AssumeRole";
     })
-    .map(
-      (call: { body: URLSearchParams; request: DataSourceHttpRequest }) => {
-        return {
-          roleArn: call.body.get("RoleArn") || "",
-          externalId: call.body.get("ExternalId") || "",
-          sessionName: call.body.get("RoleSessionName") || "",
-          durationSeconds: call.body.get("DurationSeconds") || "",
-          policy: call.body.get("Policy"),
-          authorization:
-            (call.request.headers as Record<string, string>)[
-              "Authorization"
-            ] || "",
-          url: call.request.url,
-        };
-      },
-    );
+    .map((call: { body: URLSearchParams; request: DataSourceHttpRequest }) => {
+      return {
+        roleArn: call.body.get("RoleArn") || "",
+        externalId: call.body.get("ExternalId") || "",
+        sessionName: call.body.get("RoleSessionName") || "",
+        durationSeconds: call.body.get("DurationSeconds") || "",
+        policy: call.body.get("Policy"),
+        authorization:
+          (call.request.headers as Record<string, string>)["Authorization"] ||
+          "",
+        url: call.request.url,
+      };
+    });
 }
 
 // The checks (an external id no project has) and the project's own sign-ins.
@@ -344,7 +343,9 @@ describe("checking a role (probeRoleExternalId)", () => {
       "takes-any-external-id",
     );
     expect(
-      await check(fakeAws({ rolesTakingAnyExternalId: [ROLE_ARN.toUpperCase()] })),
+      await check(
+        fakeAws({ rolesTakingAnyExternalId: [ROLE_ARN.toUpperCase()] }),
+      ),
     ).toBe("takes-any-external-id");
   });
 
@@ -381,7 +382,9 @@ describe("checking a role (probeRoleExternalId)", () => {
     const error: LlmProviderError = await refusalOf(check(fake));
 
     expect(error.kind).toBe(CloudConnectionFailureKind.Unavailable);
-    expect(error.message).toContain("AWS did not answer while OneUptime checked");
+    expect(error.message).toContain(
+      "AWS did not answer while OneUptime checked",
+    );
   });
 
   test("a check that never reached AWS is no pass", async () => {
@@ -402,7 +405,9 @@ describe("checking a role (probeRoleExternalId)", () => {
 
     expect(tries).toBeGreaterThan(0);
     expect(error.kind).toBe(CloudConnectionFailureKind.Unavailable);
-    expect(error.message).toContain("AWS did not answer while OneUptime checked");
+    expect(error.message).toContain(
+      "AWS did not answer while OneUptime checked",
+    );
     expect(error.message).not.toContain("ETIMEDOUT");
   });
 
@@ -500,7 +505,8 @@ describe("a role that lets OneUptime in with any external id", () => {
 
   test("is told the condition the setup command's trust policy has, with the project's own external id and nothing of the server's", async () => {
     const message: string = getRoleWithoutExternalIdMessage(PROJECT);
-    const condition: string = getAwsExternalIdConditionText(PROJECT_EXTERNAL_ID);
+    const condition: string =
+      getAwsExternalIdConditionText(PROJECT_EXTERNAL_ID);
     const setup: { trustedPrincipalArn: string; externalId: string } = {
       trustedPrincipalArn: "arn:aws:iam::999988887777:root",
       externalId: PROJECT_EXTERNAL_ID,
@@ -662,7 +668,9 @@ describe("a role that lets OneUptime in with any external id", () => {
     ).toEqual([false]);
     // Nothing is signed with a session of the member's account.
     for (const request of readsOf(fake)) {
-      expect(JSON.stringify(request.headers)).not.toContain(`ASIA${MEMBER}ROLE`);
+      expect(JSON.stringify(request.headers)).not.toContain(
+        `ASIA${MEMBER}ROLE`,
+      );
     }
     expect(
       warn.mock.calls.some((call: Array<unknown>): boolean => {
@@ -677,7 +685,9 @@ describe("a role that lets OneUptime in with any external id", () => {
   test("never hands its session out: dropped unread, and no session is kept", async () => {
     const fake: FakeAws = fakeAws({ rolesTakingAnyExternalId: true });
 
-    await refusalOf(connector.getCredentials(roleSettings(), callOptions(fake)));
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
 
     expect(AssumedRoleCache.get(keyOf())).toBeUndefined();
     expect(AwsRoleCheckCache.get(keyOf())).toBe("takes-any-external-id");
@@ -769,11 +779,15 @@ describe("how long a check holds", () => {
     };
     const fake: FakeAws = createFakeAws(options);
 
-    await refusalOf(connector.getCredentials(roleSettings(), callOptions(fake)));
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
 
     // Within the hour: refused without asking AWS.
     later(30 * 60 * 1000);
-    await refusalOf(connector.getCredentials(roleSettings(), callOptions(fake)));
+    await refusalOf(
+      connector.getCredentials(roleSettings(), callOptions(fake)),
+    );
     expect(countOf(fake)).toEqual({ checks: 1, signIns: 0 });
 
     // The customer adds the condition: the hour after the check, it is used.
@@ -971,7 +985,9 @@ describe("signing in to a role (assumeRole)", () => {
         stsError(500, "InternalFailure", "oops"),
         CloudConnectionFailureKind.Unavailable,
       ],
-    ] as Array<[{ status: number; body: string }, CloudConnectionFailureKind]>) {
+    ] as Array<
+      [{ status: number; body: string }, CloudConnectionFailureKind]
+    >) {
       AssumedRoleCache.clear();
       // The check passes (refused); every sign-in after it fails so.
       const fake: FakeAws = fakeAws({
@@ -989,7 +1005,9 @@ describe("signing in to a role (assumeRole)", () => {
 
       expect(error.kind).toBe(kind);
       expect(error.message).toContain("signed in to the role");
-      expect(error.message).toContain("OneUptime tries again on the next read.");
+      expect(error.message).toContain(
+        "OneUptime tries again on the next read.",
+      );
       expect(error.message).not.toContain("Rate exceeded");
       expect(error.message).not.toContain("oops");
       // No pass is kept from a sign-in that did not work.

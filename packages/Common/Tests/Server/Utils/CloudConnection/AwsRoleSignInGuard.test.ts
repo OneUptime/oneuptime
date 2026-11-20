@@ -26,8 +26,17 @@ import * as AwsSts from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
  * AwsSts.assumeRole and its own connection id, and is listed in 3.
  */
 
-const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..", "..", "..");
-const STS_FILE: string = "packages/Common/Server/Utils/CloudConnection/Aws/AwsSts.ts";
+const REPOSITORY_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
+const STS_FILE: string =
+  "packages/Common/Server/Utils/CloudConnection/Aws/AwsSts.ts";
 
 // Where the product's code is, and what of it is not.
 const SCAN_ROOTS: ReadonlyArray<string> = ["packages", "ee", "agents"];
@@ -58,7 +67,10 @@ const SIGN_IN_PATTERNS: ReadonlyArray<{ name: string; pattern: RegExp }> = [
   { name: "AssumeRoleCommand", pattern: /\bAssumeRoleCommand\b/ },
   { name: "fromTemporaryCredentials", pattern: /\bfromTemporaryCredentials\b/ },
   { name: "stscreds", pattern: /\bstscreds\.\w*AssumeRole/ },
-  { name: "an STS client's AssumeRole", pattern: /\.AssumeRole\(\s*(ctx|context)/ },
+  {
+    name: "an STS client's AssumeRole",
+    pattern: /\.AssumeRole\(\s*(ctx|context)/,
+  },
 ];
 
 // The files that may ask STS for AssumeRole, and why.
@@ -78,6 +90,10 @@ const USES_ONEUPTIME_IDENTITY: Record<string, string> = {
 };
 const ONEUPTIME_IDENTITY_PATTERN: RegExp =
   /AwsServerIdentity\.getCredentials\(|AwsCloudConnector\.getServerCredentials\(/;
+
+// A function's first line in AwsSts, and a call to its raw sign-in.
+const FUNCTION_START: RegExp = /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\(/;
+const RAW_SIGN_IN_CALL: RegExp = /\brequestRoleSession\(/;
 
 function relative(file: string): string {
   return path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/");
@@ -241,7 +257,9 @@ describe("only AwsSts signs in to a customer's role", () => {
 
     expect(Object.keys(AwsSts)).not.toContain("requestRoleSession");
     expect(text).toMatch(/\nasync function requestRoleSession\(/);
-    expect(text).not.toMatch(/export\s+(async\s+)?function\s+requestRoleSession/);
+    expect(text).not.toMatch(
+      /export\s+(async\s+)?function\s+requestRoleSession/,
+    );
     expect(text.match(/["'`]AssumeRole["'`]/g)).toHaveLength(1);
 
     // Where each call to it is: inside which function.
@@ -249,15 +267,14 @@ describe("only AwsSts signs in to a customer's role", () => {
     let current: string = "";
 
     for (const line of text.split("\n")) {
-      const opened: RegExpExecArray | null =
-        /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\(/.exec(line);
+      const opened: RegExpExecArray | null = FUNCTION_START.exec(line);
 
       if (opened) {
         current = opened[1]!;
         continue;
       }
 
-      if (/\brequestRoleSession\(/.test(line)) {
+      if (RAW_SIGN_IN_CALL.test(line)) {
         callers.push(current);
       }
     }
