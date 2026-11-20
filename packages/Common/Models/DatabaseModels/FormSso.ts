@@ -1,0 +1,659 @@
+import Project from "./Project";
+import Form from "./Form";
+import User from "./User";
+import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import Route from "../../Types/API/Route";
+import URL from "../../Types/API/URL";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
+import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import ColumnType from "../../Types/Database/ColumnType";
+import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import TableColumn from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
+import TableMetadata from "../../Types/Database/TableMetadata";
+import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import IconProp from "../../Types/Icon/IconProp";
+import ObjectID from "../../Types/ObjectID";
+import Permission from "../../Types/Permission";
+import DigestMethod from "../../Types/SSO/DigestMethod";
+import SignatureMethod from "../../Types/SSO/SignatureMethod";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+
+@EnableDocumentation()
+@CanAccessIfCanReadOn("form")
+@TableBillingAccessControl({
+  create: PlanType.Scale,
+  read: PlanType.Scale,
+  update: PlanType.Scale,
+  delete: PlanType.Scale,
+  // Signs private users in after a downgrade: readable on every plan.
+  readableBelowPlan: true,
+})
+@TenantColumn("projectId")
+@TableAccessControl({
+  create: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.CreateFormSSO,
+  ],
+  read: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.ReadFormSSO,
+  ],
+  delete: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.DeleteFormSSO,
+  ],
+  update: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.EditFormSSO,
+  ],
+})
+@CrudApiEndpoint(new Route("/form-sso"))
+@TableMetadata({
+  tableName: "FormSSO",
+  singularName: "Form SSO",
+  pluralName: "Form SSO",
+  icon: IconProp.Lock,
+  tableDescription: "Configure SAML single sign-on for a form that asks its visitors to sign in",
+})
+@OwnedThrough("formId", Form)
+@Entity({
+  name: "FormSSO",
+})
+export default class FormSSO extends BaseModel {
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "projectId",
+    type: TableColumnType.Entity,
+    modelType: Project,
+    title: "Project",
+    description: "Relation to Project Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return Project;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "projectId" })
+  public project?: Project = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Project ID",
+    description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public projectId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "formId",
+    type: TableColumnType.Entity,
+    modelType: Form,
+    title: "Form",
+    description:
+      "Relation to the form this provider signs people in to.",
+  })
+  @ManyToOne(
+    () => {
+      return Form;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "formId" })
+  public form?: Form = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    title: "Form ID",
+    description: "ID of the form this provider signs people in to.",
+    example: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public formId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Name",
+    description: "Any friendly name of this object",
+    example: "Corporate SSO",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  @UniqueColumnBy("projectId")
+  public name?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    example: "SAML 2.0 sign-in for the operations form",
+    description:
+      "What this sign-in is for, such as which identity provider it uses.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.LongText,
+  })
+  public description?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SignatureMethod),
+    canReadOnRelationQuery: true,
+    example: "RSA-SHA256",
+    description:
+      "The algorithm your identity provider signs SAML responses with.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public signatureMethod?: SignatureMethod = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(DigestMethod),
+    canReadOnRelationQuery: true,
+    example: "SHA256",
+    description:
+      "The digest algorithm your identity provider's SAML signatures use.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public digestMethod?: DigestMethod = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.LongURL,
+    canReadOnRelationQuery: true,
+    example: "https://idp.example.com/saml/sso",
+    description:
+      "Your identity provider's single sign-on URL, where visitors are sent to sign in.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.LongURL,
+    transformer: URL.getDatabaseTransformer(),
+  })
+  @UniqueColumnBy("projectId")
+  public signOnURL?: URL = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.VeryLongText,
+    canReadOnRelationQuery: true,
+    example: "https://idp.example.com/saml/metadata",
+    description:
+      "Your identity provider's issuer (entity ID), as its SAML responses name it.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.VeryLongText,
+  })
+  public issuerURL?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.VeryLongText,
+    canReadOnRelationQuery: true,
+    example:
+      "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJAKL0UG+mRKU...\n-----END CERTIFICATE-----",
+    description:
+      "Your identity provider's signing certificate, in PEM, to check its SAML responses with.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.VeryLongText,
+  })
+  public publicCertificate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "createdByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Created by User",
+    description:
+      "Relation to User who created this object (if this object was created by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "createdByUserId" })
+  public createdByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Created by User ID",
+    description:
+      "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78901",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public createdByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "deletedByUserId",
+    type: TableColumnType.Entity,
+    title: "Deleted by User",
+    modelType: User,
+    description:
+      "Relation to User who deleted this object (if this object was deleted by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      cascade: false,
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "deletedByUserId" })
+  public deletedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Deleted by User ID",
+    description:
+      "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public deletedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadFormSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditFormSSO,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+    example: true,
+    description:
+      "When on, visitors of a form that asks them to sign in can sign in with this provider.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isEnabled?: boolean = undefined;
+
+  // Is this integration tested?
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateFormSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+
+      Permission.ReadFormSSO,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+    example: false,
+    description:
+      "Whether a sign-in with this provider has been tested. It does not turn the provider on.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isTested?: boolean = undefined;
+
+  /*
+   * When this provider was last turned off. Turning a form's
+   * provider off ends the sign-ins it gave on the form: a private
+   * user's session it signed in before this time no longer counts, even
+   * once the provider is turned on again, so the person signs in again
+   * (FormPrivateUserSessionService.addSignInRule). OneUptime writes
+   * it when the provider is turned off (Server/Utils/SsoSignInsEnded); no
+   * one reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Sign-ins Ended At",
+    description:
+      "Internal: when this provider was last turned off. Sign-ins it gave before then no longer count.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public signInsEndedAt?: Date = undefined;
+}
