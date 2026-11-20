@@ -17,6 +17,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
+import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import Permission from "../../../Types/Permission";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
@@ -46,7 +47,16 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
       return (
         <div data-testid="sites-table-menu">
           {(props.cardProps?.buttons || []).map(
-            (button: CardButtonSchema): ReactElement => {
+            (
+              item: CardButtonSchema | ReactElement,
+              index: number,
+            ): ReactElement => {
+              if (React.isValidElement(item)) {
+                return <div key={index}>{item}</div>;
+              }
+
+              const button: CardButtonSchema = item as CardButtonSchema;
+
               return (
                 <button
                   key={button.title}
@@ -188,11 +198,16 @@ jest.mock(
 );
 
 import NetworkSites from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Sites";
+import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 function renderPage(): void {
+  const props: PageComponentProps = {
+    pageRoute: new Route("/dashboard/:projectId/network-sites"),
+  } as unknown as PageComponentProps;
+
   render(
     <MemoryRouter>
-      <NetworkSites {...({} as never)} />
+      <NetworkSites {...props} />
     </MemoryRouter>,
   );
 }

@@ -513,7 +513,7 @@ function setUpWorld(networkCount: number): void {
     .spyOn(AuditLogService, "recordCreate")
     .mockImplementation(
       async (data: {
-        model: { tableName?: string | undefined };
+        model: { tableName?: string | null | undefined };
         props: DatabaseCommonInteractionProps;
       }): Promise<void> => {
         audited.push({
