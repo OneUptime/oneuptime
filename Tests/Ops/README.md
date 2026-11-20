@@ -87,10 +87,13 @@ Test" workflow provides both:
   `[::1]`, an address of the machine's own and a port alone, and runs
   `Tests/Scripts/status-check.sh` with the real curl against each (#10024):
   it must pass on every one, the check as it was before
-  (`Fixtures/StatusCheckBefore10024`) must fail on one address, and the
-  doctor's after-start run must ask the same ingress under `localhost`. The
-  workflow sets the variable on the jest step, and the suite checks that it
-  does. It removes the two containers and the network it creates.
+  (`Fixtures/StatusCheckBefore10024`) must fail on one address, the
+  doctor's after-start run must ask the same ingress under `localhost`, and
+  a bundled probe's 2 MB report must reach the App at the address
+  `FollowIngressPort` gives it. Where Docker cannot publish on `[::1]`, it
+  runs without that address and says so. The workflow sets the variable on
+  the jest step, and the suite checks that it does. It removes the two
+  containers and the network it creates.
 - **packages/Common's and packages/Nginx's packages.**
   `PruneUnreachablePackages.test.js` walks the real certificate sidecar's
   imports, as the ingress image's build does, only where both are installed
