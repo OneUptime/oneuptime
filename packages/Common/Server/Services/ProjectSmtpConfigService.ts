@@ -5,7 +5,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialChanges";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { isAwsRegion } from "../../Types/Cloud/AwsRegionCode";
-import { isAwsRoleArn } from "../../Types/CloudConnection/CloudConnectionPaste";
+import { isAwsRoleArn } from "../../Types/Cloud/AwsRoleArn";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
   AMAZON_SES_AUTHENTICATION_TYPE_INVALID,

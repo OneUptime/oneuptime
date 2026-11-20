@@ -1,5 +1,8 @@
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
-import { isAwsRoleArn } from "../../../Types/CloudConnection/CloudConnectionPaste";
+import {
+  getAwsRoleArnAccount,
+  isAwsRoleArn,
+} from "../../../Types/Cloud/AwsRoleArn";
 import {
   getAmazonSesRoleTrustPolicy,
   getAwsSesExternalIdForProject,
@@ -86,11 +89,6 @@ export class AmazonSesRoleSignInError extends Error {
 export interface AmazonSesRoleSession {
   credentials: AwsCredentials;
   key: string;
-}
-
-// The 12-digit account of a role ARN (arn:<partition>:iam::<account>:role/...).
-export function getAwsRoleArnAccount(roleArn: string): string {
-  return roleArn.trim().split(":")[4] || "";
 }
 
 // What AWS's answer means for another try: slowed down, or no answer, could pass.
