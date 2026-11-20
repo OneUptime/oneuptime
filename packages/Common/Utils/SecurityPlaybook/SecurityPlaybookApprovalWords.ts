@@ -44,7 +44,7 @@ import FeedMarkdown, { MarkdownText } from "../Markdown/FeedMarkdown";
  * AI (#10352, #10353) all contain through a playbook run, so their asks are
  * made of the same parts - a source of their own, and the evidence they
  * hold. Pure: the server reads the run into an ask
- * (Server/Utils/SecurityPlaybook/SecurityPlaybookApprovalAsk), and each chat
+ * (Server/Utils/SecurityPlaybook/SecurityPlaybookApprovalReader), and each chat
  * lays the wording out as it draws a message (WorkspaceSecurityPlaybook
  * Approval); the email takes the plain text.
  *
@@ -150,6 +150,8 @@ export enum SecurityPlaybookApprovalProgress {
   Failed = "Failed",
   // The run was cancelled before the step ran.
   CancelledBeforeRun = "Cancelled Before Run",
+  // The run ended otherwise before the step ran: it failed, say.
+  StoppedBeforeRun = "Stopped Before Run",
 }
 
 export interface SecurityPlaybookApprovalStanding {
@@ -263,6 +265,7 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   progressDone: string;
   progressFailed: string;
   progressCancelledBeforeRun: string;
+  progressStoppedBeforeRun: string;
   actionThrough: string;
   targetGroupedOn: string;
   targetThreatIntel: string;
@@ -326,6 +329,9 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   progressFailed: translationKey("Failed at {{time}}: {{error}}"),
   progressCancelledBeforeRun: translationKey(
     "The run was cancelled before this step ran.",
+  ),
+  progressStoppedBeforeRun: translationKey(
+    "The run stopped before this step ran.",
   ),
   actionThrough: translationKey("{{action}}, through {{connection}}"),
   targetGroupedOn: translationKey("{{target}}: the case is grouped on it"),
@@ -513,16 +519,14 @@ const asCodeList: (
   context: SecurityPlaybookApprovalWordingContext,
   values: Array<string>,
 ): ApprovalValue => {
-  const language: string = context.translator.language;
-
   return {
     markdown: formatList(
       values.map((value: string): string => {
         return FeedMarkdown.code(value).toString();
       }),
-      language,
+      context.translator,
     ),
-    text: formatList(values, language),
+    text: formatList(values, context.translator),
   };
 };
 
@@ -661,6 +665,8 @@ function wordProgress(
       });
     case SecurityPlaybookApprovalProgress.CancelledBeforeRun:
       return say(context, words.progressCancelledBeforeRun);
+    case SecurityPlaybookApprovalProgress.StoppedBeforeRun:
+      return say(context, words.progressStoppedBeforeRun);
     default:
       return say(context, words.progressRunning);
   }
@@ -862,19 +868,18 @@ function wordRequests(
     return undefined;
   }
 
-  const language: string = context.translator.language;
   const outcomes: ApprovalValue = {
     markdown: formatList(
       parts.map((part: SecurityPlaybookApprovalLine): string => {
         return part.markdown.toString();
       }),
-      language,
+      context.translator,
     ),
     text: formatList(
       parts.map((part: SecurityPlaybookApprovalLine): string => {
         return part.text;
       }),
-      language,
+      context.translator,
     ),
   };
 

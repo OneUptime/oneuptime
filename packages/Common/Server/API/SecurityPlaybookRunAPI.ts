@@ -63,6 +63,11 @@ import CommonAPI from "./CommonAPI";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../Types/Workspace/WorkspaceType";
+import SecurityPlaybookApprovalReader from "../Utils/SecurityPlaybook/SecurityPlaybookApprovalReader";
+import WorkspaceSecurityPlaybookApprovalMessages from "../Utils/Workspace/WorkspaceSecurityPlaybookApprovalMessages";
 
 // The longest comment an approval keeps.
 export const APPROVAL_COMMENT_MAX_LENGTH: number = 2000;
@@ -77,6 +82,20 @@ export const RUN_NOT_FOUND_MESSAGE: string = "Playbook run not found.";
 
 export const RUN_CHANGE_REFUSED_MESSAGE: string =
   "You do not have permission to approve, reject or undo the steps of this playbook run.";
+
+export const APPROVAL_CHANGED_MESSAGE: string =
+  "This step changed after you were asked about it, so nothing was decided. Refresh to see it as it is now.";
+
+/*
+ * A decision made from a message that asked about another step, or about
+ * other targets, than the run waits on now (a chat's button): nothing is
+ * decided.
+ */
+export class SecurityPlaybookApprovalChangedException extends BadDataException {
+  public constructor() {
+    super(APPROVAL_CHANGED_MESSAGE);
+  }
+}
 
 const RUN_SELECT: {
   _id: true;
@@ -349,6 +368,15 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
      * ticked. Every target of the step when the request names none.
      */
     targets?: Array<string> | undefined;
+    // Where it was decided, when not in OneUptime: a chat's button.
+    from?: WorkspaceType | undefined;
+    /*
+     * What the decision was asked about - a chat's message: the step and
+     * what it proposed (SecurityPlaybookApprovalReader.getTargetsDigest). A
+     * run that waits on another step, or on other targets, is decided on
+     * by nobody from it.
+     */
+    expected?: { stepId: string; targetsDigest: string } | undefined;
   }): Promise<void> {
     const run: SecurityPlaybookRun = await this.readRun(data);
 
@@ -382,6 +410,17 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
 
     if (!step || !results[index]) {
       throw new BadDataException("The step waiting for approval is missing.");
+    }
+
+    if (
+      data.expected &&
+      (step.id !== data.expected.stepId ||
+        SecurityPlaybookApprovalReader.getTargetsDigest({
+          step,
+          targets: results[index]!.targets,
+        }) !== data.expected.targetsDigest)
+    ) {
+      throw new SecurityPlaybookApprovalChangedException();
     }
 
     const targets: Array<SecurityPlaybookTarget> | undefined = isApproved
@@ -469,6 +508,7 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
           isApproved,
           targets: isApproved ? kept : undefined,
           leftOut: isApproved ? leftOut : undefined,
+          from: data.from ? getWorkspaceTypeDisplayName(data.from) : undefined,
         }).toString(),
         moreInformationInMarkdown: data.comment
           ? FeedMarkdown.multilineText(data.comment).toString()
@@ -490,6 +530,16 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
         logger.error(error);
       }
     }
+
+    /*
+     * Every copy of the step's approval message, in Slack and Microsoft
+     * Teams, says who decided and what came of it - wherever it was
+     * decided (WorkspaceSecurityPlaybookApprovalMessages).
+     */
+    WorkspaceSecurityPlaybookApprovalMessages.refreshInBackground({
+      projectId: data.projectId,
+      runId: data.runId,
+    });
   }
 
   /*
@@ -711,6 +761,12 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
       steps,
       target: undone,
       props: data.props,
+    });
+
+    // The step's approval message says it was undone, and by whom.
+    WorkspaceSecurityPlaybookApprovalMessages.refreshInBackground({
+      projectId: data.projectId,
+      runId: data.runId,
     });
 
     if (run.securityCaseId) {

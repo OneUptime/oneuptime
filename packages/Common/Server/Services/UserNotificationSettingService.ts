@@ -227,6 +227,17 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     workspaceMessage?:
       | {
           messageBlocks: Array<WorkspaceMessageBlock>;
+          /*
+           * The message as each chat draws it, when they differ - a
+           * playbook step's approval, whose lines a Microsoft Teams card
+           * sets as paragraphs (WorkspaceSecurityPlaybookApproval). A chat
+           * it does not name gets the message made from the email's
+           * subject and the SMS, as for every other event: Mattermost,
+           * whose posts have no buttons for it.
+           */
+          messageBlocksByWorkspaceType?:
+            | Partial<Record<WorkspaceType, Array<WorkspaceMessageBlock>>>
+            | undefined;
           // What the message's notification says.
           notificationText: string;
           /*
@@ -700,34 +711,70 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           workspaceMarkdown = lines.join("\n");
         }
 
-        // The event's own chat message, when it has one.
-        const ownMessageBlocks: Array<WorkspaceMessageBlock> =
-          data.workspaceMessage?.messageBlocks || [];
-        const notificationText: string | undefined =
-          ownMessageBlocks.length > 0
-            ? data.workspaceMessage?.notificationText || undefined
-            : undefined;
-        // Who keeps where the event's own message landed.
-        const onSent:
-          | ((sent: WorkspaceSentDirectMessage) => Promise<void>)
-          | undefined =
-          ownMessageBlocks.length > 0
-            ? data.workspaceMessage?.onSent || undefined
-            : undefined;
+        const markdownBlock: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: workspaceMarkdown,
+        };
 
-        if (!workspaceMarkdown && ownMessageBlocks.length === 0) {
+        /*
+         * What one chat is sent: the event's own message, as that chat
+         * draws it, when it has one - with its notification line, and told
+         * where it landed - else the message made from the subject and the
+         * SMS. Null when there is nothing to send.
+         */
+        const getChatMessage: (workspaceType: WorkspaceType) => {
+          messageBlocks: Array<WorkspaceMessageBlock>;
+          notificationText?: string | undefined;
+          onSent?:
+            | ((sent: WorkspaceSentDirectMessage) => Promise<void>)
+            | undefined;
+        } | null = (
+          workspaceType: WorkspaceType,
+        ): {
+          messageBlocks: Array<WorkspaceMessageBlock>;
+          notificationText?: string | undefined;
+          onSent?:
+            | ((sent: WorkspaceSentDirectMessage) => Promise<void>)
+            | undefined;
+        } | null => {
+          const byType:
+            | Partial<Record<WorkspaceType, Array<WorkspaceMessageBlock>>>
+            | undefined = data.workspaceMessage?.messageBlocksByWorkspaceType;
+          const ownMessageBlocks: Array<WorkspaceMessageBlock> =
+            (byType
+              ? byType[workspaceType]
+              : data.workspaceMessage?.messageBlocks) || [];
+
+          if (ownMessageBlocks.length > 0) {
+            return {
+              messageBlocks: ownMessageBlocks,
+              notificationText:
+                data.workspaceMessage?.notificationText || undefined,
+              // Who keeps where the event's own message landed.
+              onSent: data.workspaceMessage?.onSent || undefined,
+            };
+          }
+
+          return workspaceMarkdown ? { messageBlocks: [markdownBlock] } : null;
+        };
+
+        if (
+          !getChatMessage(WorkspaceType.Slack) &&
+          !getChatMessage(WorkspaceType.MicrosoftTeams) &&
+          !getChatMessage(WorkspaceType.Mattermost)
+        ) {
           logger.warn(
             "Skipping workspace notification because message body is empty.",
           );
         } else {
-          const markdownBlock: WorkspacePayloadMarkdown = {
-            _type: "WorkspacePayloadMarkdown",
-            text: workspaceMarkdown,
-          };
-          const messageBlocks: Array<WorkspaceMessageBlock> =
-            ownMessageBlocks.length > 0 ? ownMessageBlocks : [markdownBlock];
+          const slackMessage: ReturnType<typeof getChatMessage> =
+            getChatMessage(WorkspaceType.Slack);
+          const teamsMessage: ReturnType<typeof getChatMessage> =
+            getChatMessage(WorkspaceType.MicrosoftTeams);
+          const mattermostMessage: ReturnType<typeof getChatMessage> =
+            getChatMessage(WorkspaceType.Mattermost);
 
-          if (notificationSettings.alertBySlack) {
+          if (notificationSettings.alertBySlack && slackMessage) {
             const userSlacks: Array<UserSlack> = await UserSlackService.findBy({
               query: {
                 userId: data.userId,
@@ -753,11 +800,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 projectId: data.projectId,
                 workspaceType: WorkspaceType.Slack,
                 workspaceUserId: userSlack.slackUserId,
-                messageBlocks: messageBlocks,
-                ...(notificationText
-                  ? { notificationText: notificationText }
+                messageBlocks: slackMessage.messageBlocks,
+                ...(slackMessage.notificationText
+                  ? { notificationText: slackMessage.notificationText }
                   : {}),
-                ...(onSent ? { onSent: onSent } : {}),
+                ...(slackMessage.onSent ? { onSent: slackMessage.onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -774,7 +821,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             }
           }
 
-          if (notificationSettings.alertByMicrosoftTeams) {
+          if (notificationSettings.alertByMicrosoftTeams && teamsMessage) {
             const userMicrosoftTeamsAccounts: Array<UserMicrosoftTeams> =
               await UserMicrosoftTeamsService.findBy({
                 query: {
@@ -801,11 +848,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 projectId: data.projectId,
                 workspaceType: WorkspaceType.MicrosoftTeams,
                 workspaceUserId: userMicrosoftTeams.microsoftTeamsUserId,
-                messageBlocks: messageBlocks,
-                ...(notificationText
-                  ? { notificationText: notificationText }
+                messageBlocks: teamsMessage.messageBlocks,
+                ...(teamsMessage.notificationText
+                  ? { notificationText: teamsMessage.notificationText }
                   : {}),
-                ...(onSent ? { onSent: onSent } : {}),
+                ...(teamsMessage.onSent ? { onSent: teamsMessage.onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
@@ -822,7 +869,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             }
           }
 
-          if (notificationSettings.alertByMattermost) {
+          if (notificationSettings.alertByMattermost && mattermostMessage) {
             const userMattermostAccounts: Array<UserMattermost> =
               await UserMattermostService.findBy({
                 query: {
@@ -849,11 +896,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 projectId: data.projectId,
                 workspaceType: WorkspaceType.Mattermost,
                 workspaceUserId: userMattermost.mattermostUserId,
-                messageBlocks: messageBlocks,
-                ...(notificationText
-                  ? { notificationText: notificationText }
+                messageBlocks: mattermostMessage.messageBlocks,
+                ...(mattermostMessage.notificationText
+                  ? { notificationText: mattermostMessage.notificationText }
                   : {}),
-                ...(onSent ? { onSent: onSent } : {}),
+                ...(mattermostMessage.onSent ? { onSent: mattermostMessage.onSent } : {}),
                 messageSummary: subject || smsBody,
                 userId: data.userId,
                 incidentId: data.incidentId,
