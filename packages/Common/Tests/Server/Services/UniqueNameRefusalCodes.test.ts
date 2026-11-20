@@ -9,7 +9,10 @@ import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Host from "../../../Models/DatabaseModels/Host";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
-import { getUniqueColumnBy } from "../../../Types/Database/UniqueColumnBy";
+import {
+  getUniqueColumnBy,
+  getUniqueColumnsBy,
+} from "../../../Types/Database/UniqueColumnBy";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
 import NameTakenException, {
@@ -19,6 +22,13 @@ import NameTakenException, {
   REFUSAL_CODE_FIELD,
   getNameTakenRefusalCode,
 } from "../../../Types/Exception/NameTakenException";
+import ValueTakenException, {
+  TAKEN_FIELD_DETAIL,
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODES,
+  getValueTakenRefusalCode,
+} from "../../../Types/Exception/ValueTakenException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import {
@@ -43,8 +53,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * so a kind added later is held to it too, and the code says what has the
  * name: "name_taken" for a record in service, which an apply may be giving
  * up, "name_taken_by_archived" for an archived one, which it is not. A
- * taken value of any other column (a domain, a host name) is no name, and
- * carries none.
+ * taken value of any other column (a domain, a host name) is no name: it
+ * carries the codes of a taken value instead, "value_taken" and
+ * "value_taken_by_archived", with the field (#10319).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -330,34 +341,221 @@ describe("a kind whose model holds its name one of its kind (@UniqueColumnBy)", 
   });
 });
 
-describe("a taken value of a unique column that is not a name", () => {
-  test("is refused as before, with no code: a domain, a host name", async () => {
-    const domainService: DatabaseService<BaseModel> =
-      new DatabaseService<BaseModel>(StatusPageDomain);
+/*
+ * A TAKEN VALUE OF A UNIQUE COLUMN THAT IS NOT A NAME (#10319): a status
+ * page's or a dashboard's domain, a host's identifier, an SSO provider's
+ * sign-on URL. Refused in its words as before, now with the code a program
+ * tells a taken value by and the field: a domain moved from one Terraform
+ * resource to another in one apply converges, as a name does.
+ */
 
-    jest
-      .spyOn(domainService, "countBy")
-      .mockResolvedValue(new PositiveNumber(1));
+interface ValueKind extends NamedKind {
+  column: string;
+}
 
-    const domain: BaseModel = new StatusPageDomain();
-    Object.assign(domain, {
-      fullDomain: "status.example.com",
-      projectId: PROJECT_ID,
+// Every column a model holds unique that is not its name, and what in.
+const VALUE_KINDS: Array<ValueKind> = AllModelTypes.flatMap(
+  (type: ModelType): Array<ValueKind> => {
+    const columns: Record<string, string | Array<string>> = getUniqueColumnsBy(
+      new type(),
+    ) as Record<string, string | Array<string>>;
+
+    return Object.keys(columns)
+      .filter((column: string): boolean => {
+        return column !== "name";
+      })
+      .map((column: string): ValueKind => {
+        const scope: string | Array<string> = columns[column]!;
+
+        return {
+          type: type,
+          column: column,
+          scope: Array.isArray(scope) ? scope : [scope],
+        };
+      });
+  },
+);
+
+function valueCases(kinds: Array<ValueKind>): Array<[string, ValueKind]> {
+  return kinds.map((kind: ValueKind): [string, ValueKind] => {
+    return [`${nameOf(kind.type)}.${kind.column}`, kind];
+  });
+}
+
+// A new record of the kind whose unique column holds a value, in its scope.
+function newValueRecord(kind: ValueKind): BaseModel {
+  const record: BaseModel = new kind.type();
+  const fields: Record<string, unknown> = record as unknown as Record<
+    string,
+    unknown
+  >;
+
+  fields[kind.column] = "status.example.com";
+
+  for (const column of kind.scope) {
+    fields[column] = column === "projectId" ? PROJECT_ID : PARENT_ID;
+  }
+
+  return record;
+}
+
+/*
+ * The kind's service with its count answered: one record with the value,
+ * archived or not, and no record with the name.
+ */
+function serviceWithValue(
+  kind: ValueKind,
+  holder: { isArchived: boolean },
+): {
+  service: DatabaseService<BaseModel>;
+  queries: Array<Record<string, unknown>>;
+} {
+  const service: DatabaseService<BaseModel> = new DatabaseService<BaseModel>(
+    kind.type,
+  );
+  const queries: Array<Record<string, unknown>> = [];
+
+  jest
+    .spyOn(service, "countBy")
+    .mockImplementation(async (countBy: unknown): Promise<PositiveNumber> => {
+      const query: Record<string, unknown> = (
+        countBy as { query: Record<string, unknown> }
+      ).query;
+
+      queries.push(query);
+
+      if (!Object.prototype.hasOwnProperty.call(query, kind.column)) {
+        return new PositiveNumber(0);
+      }
+
+      if (query[ARCHIVED_COLUMN] === true) {
+        return new PositiveNumber(holder.isArchived ? 1 : 0);
+      }
+
+      return new PositiveNumber(1);
     });
 
-    const domainError: unknown = await refusalOf(create(domainService, domain));
+  return { service, queries };
+}
 
-    expect(domainError).toBeInstanceOf(BadDataException);
-    expect(domainError).not.toBeInstanceOf(NameTakenException);
-    expect((domainError as Error).message).toBe(
-      "Status Page Domain with the same fullDomain already exists.",
+function expectValueTaken(error: unknown, code: string, field: string): void {
+  expect(error).toBeInstanceOf(ValueTakenException);
+  // A value, not a name: a client that tells names apart is not misled.
+  expect(error).not.toBeInstanceOf(NameTakenException);
+  expect(error).toBeInstanceOf(BadDataException);
+  expect((error as ValueTakenException).code).toBe(400);
+  expect((error as ValueTakenException).field).toBe(field);
+  expect(getErrorDetails(error)).toEqual({
+    [REFUSAL_CODE_FIELD]: code,
+    [TAKEN_FIELD_DETAIL]: field,
+  });
+}
+
+describe("a taken value of a unique column that is not a name", () => {
+  test("the codes say what has the value, and are part of the API: never reworded", () => {
+    expect(VALUE_TAKEN_REFUSAL_CODE).toBe("value_taken");
+    expect(VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE).toBe(
+      "value_taken_by_archived",
     );
-    expect(getErrorDetails(domainError)).toEqual({});
+    expect(VALUE_TAKEN_REFUSAL_CODES).toEqual([
+      "value_taken",
+      "value_taken_by_archived",
+    ]);
+    expect(TAKEN_FIELD_DETAIL).toBe("field");
+    expect(getValueTakenRefusalCode()).toBe(VALUE_TAKEN_REFUSAL_CODE);
+    expect(getValueTakenRefusalCode({ isArchived: true })).toBe(
+      VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    );
+    // No field when several fields' values together are taken.
+    expect(getErrorDetails(new ValueTakenException("Taken."))).toEqual({
+      [REFUSAL_CODE_FIELD]: VALUE_TAKEN_REFUSAL_CODE,
+    });
+    expect(new ValueTakenException("Taken.").field).toBeNull();
+  });
 
+  test("the columns are read off the models: the domains, identifiers and sign-on URLs among them", () => {
+    expect(
+      VALUE_KINDS.map((kind: ValueKind): string => {
+        return `${nameOf(kind.type)}.${kind.column}`;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "StatusPageDomain.fullDomain",
+        "DashboardDomain.fullDomain",
+        "Domain.domain",
+        "Host.hostIdentifier",
+        "KubernetesCluster.clusterIdentifier",
+        "ProjectSSO.signOnURL",
+      ]),
+    );
+  });
+
+  test.each(valueCases(VALUE_KINDS))(
+    "%s: a create onto a value a record in service has is refused with value_taken and its field, in its words as before",
+    async (_label: string, kind: ValueKind) => {
+      const { service } = serviceWithValue(kind, { isArchived: false });
+
+      const error: unknown = await refusalOf(
+        create(service, newValueRecord(kind)),
+      );
+
+      expectValueTaken(error, VALUE_TAKEN_REFUSAL_CODE, kind.column);
+      expect((error as Error).message).toBe(
+        `${new kind.type().singularName} with the same ${kind.column} already exists.`,
+      );
+    },
+  );
+
+  test.each(
+    valueCases(
+      VALUE_KINDS.filter((kind: ValueKind): boolean => {
+        return new kind.type().hasColumn(ARCHIVED_COLUMN);
+      }),
+    ),
+  )(
+    "%s: a create onto a value only an archived record has is refused with value_taken_by_archived, and says so",
+    async (_label: string, kind: ValueKind) => {
+      const { service } = serviceWithValue(kind, { isArchived: true });
+
+      const error: unknown = await refusalOf(
+        create(service, newValueRecord(kind)),
+      );
+
+      expectValueTaken(
+        error,
+        VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+        kind.column,
+      );
+      expect((error as Error).message).toBe(
+        `${new kind.type().singularName} with the same ${kind.column} already exists, and it is archived. Unarchive it, or choose another ${kind.column}.`,
+      );
+    },
+  );
+
+  test("a status page domain, which cannot be archived, is never asked whether the other is", async () => {
+    const kind: ValueKind = VALUE_KINDS.find((each: ValueKind): boolean => {
+      return each.type === StatusPageDomain;
+    })!;
+
+    const { service, queries } = serviceWithValue(kind, { isArchived: true });
+
+    expectValueTaken(
+      await refusalOf(create(service, newValueRecord(kind))),
+      VALUE_TAKEN_REFUSAL_CODE,
+      "fullDomain",
+    );
+    expect(
+      queries.some((query: Record<string, unknown>): boolean => {
+        return Object.prototype.hasOwnProperty.call(query, ARCHIVED_COLUMN);
+      }),
+    ).toBe(false);
+  });
+
+  test("a host whose identifier alone is taken is refused for the identifier, as a value, never for its name", async () => {
     const hostService: DatabaseService<BaseModel> =
       new DatabaseService<BaseModel>(Host);
 
-    // Only the host name is taken: the record's name is free.
+    // Only the host name is taken, by a host in service: the record's name is free.
     jest
       .spyOn(hostService, "countBy")
       .mockImplementation(async (countBy: unknown): Promise<PositiveNumber> => {
@@ -366,7 +564,10 @@ describe("a taken value of a unique column that is not a name", () => {
         ).query;
 
         return new PositiveNumber(
-          Object.prototype.hasOwnProperty.call(query, "hostIdentifier") ? 1 : 0,
+          Object.prototype.hasOwnProperty.call(query, "hostIdentifier") &&
+          query[ARCHIVED_COLUMN] !== true
+            ? 1
+            : 0,
         );
       });
 
@@ -379,12 +580,14 @@ describe("a taken value of a unique column that is not a name", () => {
 
     const identifierError: unknown = await refusalOf(create(hostService, host));
 
-    expect(identifierError).toBeInstanceOf(BadDataException);
-    expect(identifierError).not.toBeInstanceOf(NameTakenException);
+    expectValueTaken(
+      identifierError,
+      VALUE_TAKEN_REFUSAL_CODE,
+      "hostIdentifier",
+    );
     expect((identifierError as Error).message).toBe(
       "Host with the same hostIdentifier already exists.",
     );
-    expect(getErrorDetails(identifierError)).toEqual({});
   });
 });
 
@@ -462,15 +665,52 @@ describe("a unique index that holds a name (PostgresErrorTranslator)", () => {
     ).toBe("UQ_DataProduct_projectId_name");
   });
 
-  test("any other index's refusal carries no code", () => {
+  /*
+   * Any other index's refusal is a taken value (#10319): nothing was
+   * written, so it carries value_taken, with the field when the index
+   * holds one beside the project, still tagged as the unique violation it
+   * was.
+   */
+  test("any other index's refusal carries value_taken, with the field it holds beside the project", () => {
     const translated: unknown = PostgresErrorTranslator.translate(
       uniqueViolation(
         'Key ("projectId", "sessionId")=(0193c0de-d0d0-4aaa-8bbb-000000000001, abc) already exists.',
       ),
     );
 
-    expect(translated).toBeInstanceOf(BadDataException);
-    expect(translated).not.toBeInstanceOf(NameTakenException);
-    expect(getErrorDetails(translated)).toEqual({});
+    expectValueTaken(translated, VALUE_TAKEN_REFUSAL_CODE, "sessionId");
+    expect((translated as TranslatedPostgresException).postgresErrorCode).toBe(
+      "23505",
+    );
+  });
+
+  test("an index of several values, or one whose columns Postgres does not say, carries value_taken with no field", () => {
+    for (const detail of [
+      'Key ("projectId", "monitorId", "teamId")=(0193c0de-d0d0-4aaa-8bbb-000000000001, a, b) already exists.',
+      "Key already exists.",
+    ]) {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        uniqueViolation(detail),
+      );
+
+      expect(translated).toBeInstanceOf(ValueTakenException);
+      expect(getErrorDetails(translated)).toEqual({
+        [REFUSAL_CODE_FIELD]: VALUE_TAKEN_REFUSAL_CODE,
+      });
+    }
+  });
+
+  test("a duplicate found before the write (@UniqueColumnsTogether) carries value_taken too, tagged as the index's would be", () => {
+    const duplicate: unknown =
+      PostgresErrorTranslator.createUniqueViolationException(
+        "This team already owns this monitor.",
+        "UQ_MonitorOwnerTeam_monitorId_teamId",
+      );
+
+    expect(duplicate).toBeInstanceOf(ValueTakenException);
+    expect(getErrorDetails(duplicate)).toEqual({
+      [REFUSAL_CODE_FIELD]: VALUE_TAKEN_REFUSAL_CODE,
+    });
+    expect(PostgresErrorTranslator.isUniqueViolation(duplicate)).toBe(true);
   });
 });

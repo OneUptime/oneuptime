@@ -2,7 +2,13 @@ import { expect } from "@jest/globals";
 import IdentityFeatureSet from "../../../FeatureSet/Identity/Index";
 import { SSO_SIGN_IN_CONFIRMATION_VIEW } from "../../../FeatureSet/Identity/API/ProjectSsoSignInConfirmation";
 import { MOBILE_SSO_CALLBACK_URL } from "../../../FeatureSet/Identity/Utils/MobileSso";
+import DashboardOidcService from "Common/Server/Services/DashboardOidcService";
+import DashboardService from "Common/Server/Services/DashboardService";
+import DashboardSsoService from "Common/Server/Services/DashboardSsoService";
 import DomainService from "Common/Server/Services/DomainService";
+import FormOidcService from "Common/Server/Services/FormOidcService";
+import FormService from "Common/Server/Services/FormService";
+import FormSsoService from "Common/Server/Services/FormSsoService";
 import {
   SAML_SIGN_OUT_NOT_SET_UP_MESSAGE,
   SAML_SIGN_OUT_NOT_SET_UP_TITLE,
@@ -477,6 +483,94 @@ export const SSO_ROUTE_PROBES: ReadonlyArray<SsoProbe> = [
       "OIDC login session expired. Please try signing in again.",
     ),
   },
+  /*
+   * A dashboard's and a form's single sign-on (#10250, #10249): a start
+   * that names no provider is refused before anything is read, a SAML
+   * response for a provider it does not have is refused, and an OIDC
+   * callback without its state cookie has nothing to finish.
+   */
+  {
+    label: "dashboard SAML start naming no provider",
+    router: "DashboardSSO",
+    method: "GET",
+    route: "/dashboard-sso/:dashboardId/:dashboardSsoId",
+    path: `/dashboard-sso/${PROJECT_ID}/not-a-provider`,
+    expected: badRequest(
+      "This sign-in link names no single sign-on provider. Open the dashboard's link and sign in from there.",
+    ),
+  },
+  {
+    label: "dashboard SAML reply for an unknown provider",
+    router: "DashboardSSO",
+    method: "POST",
+    route: "/dashboard-idp-login/:dashboardId/:dashboardSsoId",
+    path: `/dashboard-idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
+    form: { SAMLResponse: SAML_RESPONSE },
+    expected: badRequest(
+      "This single sign-on provider is not set up for this dashboard, or is turned off. Ask the dashboard's team to check its Single Sign-On settings.",
+    ),
+  },
+  {
+    label: "dashboard OIDC start naming no provider",
+    router: "DashboardOIDC",
+    method: "GET",
+    route: "/dashboard-oidc/:dashboardId/:dashboardOidcId",
+    path: `/dashboard-oidc/${PROJECT_ID}/not-a-provider`,
+    expected: badRequest(
+      "This sign-in link names no OpenID Connect provider. Open the dashboard's link and sign in from there.",
+    ),
+  },
+  {
+    label: "dashboard OIDC callback without its state cookie",
+    router: "DashboardOIDC",
+    method: "GET",
+    route: "/dashboard-oidc-callback/:dashboardId/:dashboardOidcId",
+    path: `/dashboard-oidc-callback/${PROJECT_ID}/${PROVIDER_ID}?code=code&state=state`,
+    expected: badRequest(
+      "OIDC sign-in session expired. Please try signing in again.",
+    ),
+  },
+  {
+    label: "form SAML start naming no provider",
+    router: "FormSSO",
+    method: "GET",
+    route: "/form-sso/:formId/:formSsoId",
+    path: `/form-sso/${PROJECT_ID}/not-a-provider`,
+    expected: badRequest(
+      "This sign-in link names no single sign-on provider. Open the form's link and sign in from there.",
+    ),
+  },
+  {
+    label: "form SAML reply for an unknown provider",
+    router: "FormSSO",
+    method: "POST",
+    route: "/form-idp-login/:formId/:formSsoId",
+    path: `/form-idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
+    form: { SAMLResponse: SAML_RESPONSE },
+    expected: badRequest(
+      "This single sign-on provider is not set up for this form, or is turned off. Ask the form's team to check its Single Sign-On settings.",
+    ),
+  },
+  {
+    label: "form OIDC start naming no provider",
+    router: "FormOIDC",
+    method: "GET",
+    route: "/form-oidc/:formId/:formOidcId",
+    path: `/form-oidc/${PROJECT_ID}/not-a-provider`,
+    expected: badRequest(
+      "This sign-in link names no OpenID Connect provider. Open the form's link and sign in from there.",
+    ),
+  },
+  {
+    label: "form OIDC callback without its state cookie",
+    router: "FormOIDC",
+    method: "GET",
+    route: "/form-oidc-callback/:formId/:formOidcId",
+    path: `/form-oidc-callback/${PROJECT_ID}/${PROVIDER_ID}?code=code&state=state`,
+    expected: badRequest(
+      "OIDC sign-in session expired. Please try signing in again.",
+    ),
+  },
   {
     label: "project SSO confirmation page for a forged link",
     router: "ProjectSsoSignInConfirmation",
@@ -514,6 +608,13 @@ export const stubSsoDatabaseReads: () => Array<jest.SpyInstance> =
       jest.spyOn(GlobalOIDCService, "findOneBy").mockResolvedValue(null),
       jest.spyOn(StatusPageSsoService, "findOneBy").mockResolvedValue(null),
       jest.spyOn(StatusPageOidcService, "findOneBy").mockResolvedValue(null),
+      // The dashboard or form a sign-in is for, and their providers (#10250, #10249).
+      jest.spyOn(DashboardService, "findOneById").mockResolvedValue(null),
+      jest.spyOn(DashboardSsoService, "findOneBy").mockResolvedValue(null),
+      jest.spyOn(DashboardOidcService, "findOneBy").mockResolvedValue(null),
+      jest.spyOn(FormService, "findOneById").mockResolvedValue(null),
+      jest.spyOn(FormSsoService, "findOneBy").mockResolvedValue(null),
+      jest.spyOn(FormOidcService, "findOneBy").mockResolvedValue(null),
       jest
         .spyOn(InstanceSamlSigningKeyService, "getCertificate")
         .mockResolvedValue(PROBE_SIGNING_CERTIFICATE),

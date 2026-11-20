@@ -41,6 +41,7 @@ import {
 } from "../../Types/Form/FormFileAnswer";
 import MimeType from "../../Types/File/MimeType";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
   BuiltPublicForm,
@@ -114,6 +115,16 @@ import MalwareScanner, {
   ScannedFile,
 } from "../Utils/MalwareScan/MalwareScanner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+
+import UsableCustomDomain from "../Utils/CustomDomain/UsableCustomDomain";
+import { FormSessionReader } from "./FormPrivateUserSessionService";
+import FormDomain from "../../Models/DatabaseModels/FormDomain";
+import FormPrivateUserSession from "../../Models/DatabaseModels/FormPrivateUserSession";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import {
+  FORM_SIGN_IN_REQUIRED_MESSAGE,
+  FormSignInState,
+} from "../../Types/Form/FormPrivateUserSignIn";
 
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 /*
@@ -540,16 +551,22 @@ export class Service extends DatabaseService<Model> {
    *
    * clientIp is the trusted client address (resolveClientIp), or undefined
    * when there is none; a form with an IP allowlist refuses the latter.
+   * formSession reads the visitor's session of a form that asks its
+   * visitors to sign in (#10249) - from the form's own cookie, and nothing
+   * else of who is calling: without one of its private users', such a form
+   * is not shown.
    */
   @CaptureSpan()
   public async getPublicForm(data: {
     shareKey: string | undefined;
     clientIp: string | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicForm> {
     const form: Model = await this.getFormForPublicRequest({
       shareKey: data.shareKey,
       clientIp: data.clientIp,
       includeBranding: true,
+      formSession: data.formSession,
     });
     const built: BuiltPublicForm = await this.buildPublicFormFor(form);
 
@@ -572,10 +589,12 @@ export class Service extends DatabaseService<Model> {
   public async getPublicFormOnCustomDomain(data: {
     hostname: string | null;
     clientIp: string | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicForm> {
     return await this.getPublicForm({
       shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
       clientIp: data.clientIp,
+      formSession: data.formSession,
     });
   }
 
@@ -592,23 +611,26 @@ export class Service extends DatabaseService<Model> {
     request: PublicFormSubmissionRequest;
     clientIp: string | undefined;
     captchaRemoteIp?: string | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicFormSubmissionResult> {
     return await this.submitPublicForm({
       shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
       request: data.request,
       clientIp: data.clientIp,
       captchaRemoteIp: data.captchaRemoteIp,
+      formSession: data.formSession,
     });
   }
 
   /**
    * The name of the form a visit to its own domain opens, for the title of
    * the page the App serves there (FeatureSet/Frontend) - the name the page
-   * shows once it has read the form - or null when the visitor would not be
-   * shown the form: no form has the domain, the form is off or below its
-   * plan, or the visitor's network is outside its IP allowlist. Read with
-   * every check the form's own read makes, so the title never names a form
-   * the page then refuses. Never throws.
+   * shows once it has read the form, or on its sign-in page (#10249) - or
+   * null when the visitor would not be shown the form: no form has the
+   * domain, the form is off or below its plan, or the visitor's network is
+   * outside its IP allowlist. Read with every check the form's own read
+   * makes before its sign-in, so the title never names a form the page then
+   * refuses - and from the form's access columns alone. Never throws.
    */
   @CaptureSpan()
   public async getFormNameOnCustomDomain(data: {
@@ -616,7 +638,7 @@ export class Service extends DatabaseService<Model> {
     clientIp: string | undefined;
   }): Promise<string | null> {
     try {
-      const form: Model = await this.getFormForPublicRequest({
+      const form: Model = await this.getFormAccessForPublicRequest({
         shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
         clientIp: data.clientIp,
       });
@@ -656,8 +678,10 @@ export class Service extends DatabaseService<Model> {
    * for the questions the page asks.
    *
    * In order, each step refusing before the next one costs anything: the
-   * same checks as getPublicForm (link, form on, plan, network), then the
-   * instance captcha when it is on, then the answers against the form's
+   * same checks as getPublicForm (link, form on, plan, network, and on a
+   * form that asks its visitors to sign in, its private user's session -
+   * #10249), then the instance captcha when it is on, then the answers
+   * against the form's
    * questions (validateFormSubmission) and the length of the title as it
    * will be stored, then the target's own refusals (the target handler's
    * prepare: a form left with no severity, a window that ends before it
@@ -683,10 +707,16 @@ export class Service extends DatabaseService<Model> {
     clientIp: string | undefined;
     // The address hCaptcha is told the token was solved from.
     captchaRemoteIp?: string | undefined;
+    /*
+     * The session of a form that asks its visitors to sign in (#10249):
+     * without one of its private users', such a form takes nothing.
+     */
+    formSession?: FormSessionReader | undefined;
   }): Promise<PublicFormSubmissionResult> {
     const form: Model = await this.getFormForPublicRequest({
       shareKey: data.shareKey,
       clientIp: data.clientIp,
+      formSession: data.formSession,
     });
 
     if (CaptchaUtil.isCaptchaEnabled()) {
@@ -1278,10 +1308,14 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The form a public request names, once the request has passed every
-   * check that comes before learning anything about it. Checked in this
-   * order, each needing the one before: the link has a share key's shape
-   * (so junk never reaches Postgres), a form holds that key, the form is on,
-   * its project's plan includes forms, and the visitor's network is allowed.
+   * check that comes before learning anything about it: the link has a
+   * share key's shape, a form holds that key, the form is on, its
+   * project's plan includes forms, and the visitor's network is allowed -
+   * and, on a form that asks its visitors to sign in (#10249), the visitor
+   * holds a live session of one of the form's private users (formSession):
+   * anyone else is answered FORM_SIGN_IN_REQUIRED_MESSAGE, and nothing the
+   * form asks or does is used. Without a reader, the answer is the same.
+   * The form is read in the one lookup.
    *
    * includeBranding reads the form's logo and favicon - the images
    * themselves and the project each was uploaded in, through the form's own
@@ -1292,7 +1326,95 @@ export class Service extends DatabaseService<Model> {
     shareKey: string | undefined;
     clientIp: string | undefined;
     includeBranding?: boolean | undefined;
+    formSession?: FormSessionReader | undefined;
   }): Promise<Model> {
+    // In the one lookup: nothing of it is used before every check below.
+    const form: Model = await this.assertPubliclyReachable({
+      form: await this.findFormByShareKey({
+        shareKey: data.shareKey,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          description: true,
+          isEnabled: true,
+          targetType: true,
+          fields: true,
+          targetSettings: true,
+          templates: true,
+          successMessage: true,
+          ipWhitelist: true,
+          requireSignIn: true,
+          requireSsoForLogin: true,
+          ...(data.includeBranding
+            ? {
+                logoAltText: true,
+                logoFile: {
+                  file: true,
+                  fileType: true,
+                  projectId: true,
+                },
+                faviconFile: {
+                  file: true,
+                  fileType: true,
+                  projectId: true,
+                },
+              }
+            : {}),
+        },
+      }),
+      clientIp: data.clientIp,
+    });
+
+    if (
+      form.requireSignIn &&
+      !(await this.findSignedInSession({
+        formSession: data.formSession,
+        form: form,
+      }))
+    ) {
+      throw new NotAuthenticatedException(FORM_SIGN_IN_REQUIRED_MESSAGE);
+    }
+
+    return form;
+  }
+
+  /*
+   * Who may reach the form a public request names (#10249), for the routes
+   * that come before the form itself - its sign-in state and its page's
+   * title - with every check a visit makes but its sign-in. Returns the
+   * form's access columns only: its id, project and name, its allowlist,
+   * and whether - and how - it asks its visitors to sign in.
+   */
+  private async getFormAccessForPublicRequest(data: {
+    shareKey: string | undefined;
+    clientIp: string | undefined;
+  }): Promise<Model> {
+    return await this.assertPubliclyReachable({
+      form: await this.findFormByShareKey({
+        shareKey: data.shareKey,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          isEnabled: true,
+          ipWhitelist: true,
+          requireSignIn: true,
+          requireSsoForLogin: true,
+        },
+      }),
+      clientIp: data.clientIp,
+    });
+  }
+
+  /*
+   * The form a link's share key names, or null - a value with no share
+   * key's shape is never looked up, so junk never reaches Postgres.
+   */
+  private async findFormByShareKey(data: {
+    shareKey: string | undefined;
+    select: Select<Model>;
+  }): Promise<Model | null> {
     const shareKey: string =
       typeof data.shareKey === "string"
         ? data.shareKey.trim().toLowerCase()
@@ -1302,42 +1424,27 @@ export class Service extends DatabaseService<Model> {
       throw new NotFoundException(FORM_NOT_AVAILABLE_MESSAGE);
     }
 
-    const form: Model | null = await this.findOneBy({
+    return await this.findOneBy({
       query: {
         shareKey: new ObjectID(shareKey),
       },
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-        description: true,
-        isEnabled: true,
-        targetType: true,
-        fields: true,
-        targetSettings: true,
-        templates: true,
-        successMessage: true,
-        ipWhitelist: true,
-        ...(data.includeBranding
-          ? {
-              logoAltText: true,
-              logoFile: {
-                file: true,
-                fileType: true,
-                projectId: true,
-              },
-              faviconFile: {
-                file: true,
-                fileType: true,
-                projectId: true,
-              },
-            }
-          : {}),
-      },
+      select: data.select,
       props: {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * The checks every public request is held to, after its form is read:
+   * the form is on, its project's plan includes forms, and the visitor's
+   * network is allowed. Returns the form, or throws the answer.
+   */
+  private async assertPubliclyReachable(data: {
+    form: Model | null;
+    clientIp: string | undefined;
+  }): Promise<Model> {
+    const form: Model | null = data.form;
 
     // Only a form that is switched on. A missing or null switch is off.
     if (!form || !form.id || !form.projectId || form.isEnabled !== true) {
@@ -1365,6 +1472,171 @@ export class Service extends DatabaseService<Model> {
     }
 
     return form;
+  }
+
+  /*
+   * The live session of one of this form's private users the visitor
+   * holds, or null - read only for a form that asks its visitors to sign
+   * in, through the reader its route handed over: the form's own cookie
+   * (FormPrivateUserSessionService.getSessionReader), and nothing else of
+   * who is calling.
+   */
+  private async findSignedInSession(data: {
+    formSession: FormSessionReader | undefined;
+    form: Model;
+    withEmail?: boolean | undefined;
+  }): Promise<FormPrivateUserSession | null> {
+    if (!data.formSession || !data.form.id) {
+      return null;
+    }
+
+    return await data.formSession({
+      formId: data.form.id,
+      requireSsoForLogin: data.form.requireSsoForLogin,
+      withEmail: data.withEmail,
+    });
+  }
+
+  /**
+   * What a form's page reads before anything else (#10249): whether the
+   * form asks its visitors to sign in - and only when it does, its id, which
+   * the sign-in routes take, its name, for the sign-in page's title, and the
+   * address of the private user signed in on this host, if one is. Held to
+   * every check a visit is (getFormAccessForPublicRequest): a form that is
+   * off, below its plan or outside the visitor's network answers here as
+   * it does everywhere else. Nothing else of the form.
+   */
+  @CaptureSpan()
+  public async getSignInState(data: {
+    shareKey: string | undefined;
+    clientIp: string | undefined;
+    formSession: FormSessionReader;
+  }): Promise<FormSignInState> {
+    const access: Model = await this.getFormAccessForPublicRequest({
+      shareKey: data.shareKey,
+      clientIp: data.clientIp,
+    });
+
+    if (!access.requireSignIn) {
+      return { requireSignIn: false };
+    }
+
+    const session: FormPrivateUserSession | null =
+      await this.findSignedInSession({
+        formSession: data.formSession,
+        form: access,
+        withEmail: true,
+      });
+
+    const signedInEmail: string | undefined = session?.formPrivateUser?.email
+      ?.toString()
+      .trim();
+
+    return {
+      requireSignIn: true,
+      formId: access.id!.toString(),
+      name: (access.name || "").trim() || undefined,
+      signedInAs: signedInEmail || null,
+    };
+  }
+
+  // The sign-in state of the form a custom domain answers with (getSignInState).
+  @CaptureSpan()
+  public async getSignInStateOnCustomDomain(data: {
+    hostname: string | null;
+    clientIp: string | undefined;
+    formSession: FormSessionReader;
+  }): Promise<FormSignInState> {
+    return await this.getSignInState({
+      shareKey: await this.getShareKeyOnCustomDomain(data.hostname),
+      clientIp: data.clientIp,
+      formSession: data.formSession,
+    });
+  }
+
+  /**
+   * The form a sign-in to its public link is for (#10249), by its id - the
+   * id the sign-in routes take - held to every check a visit is: on, on its
+   * plan, inside its IP allowlist, and asking its visitors to sign in. Its
+   * access columns only. Throws the answer a visit would get, or - for a
+   * form that does not ask anybody to sign in - BadData with
+   * `notAskedMessage`.
+   */
+  @CaptureSpan()
+  public async getFormForSignIn(data: {
+    formId: ObjectID;
+    clientIp: string | undefined;
+    notAskedMessage: string;
+  }): Promise<Model> {
+    const form: Model = await this.assertPubliclyReachable({
+      form: await this.findOneById({
+        id: data.formId,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          isEnabled: true,
+          ipWhitelist: true,
+          requireSignIn: true,
+          requireSsoForLogin: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      }),
+      clientIp: data.clientIp,
+    });
+
+    if (!form.requireSignIn) {
+      throw new BadDataException(data.notAskedMessage);
+    }
+
+    return form;
+  }
+
+  /*
+   * The form's public link (#10249): its custom domain's address when it
+   * has a usable one (Utils/CustomDomain/UsableCustomDomain - the rule a
+   * status page's and a dashboard's links follow), else
+   * /accounts/form/<share key> on OneUptime's own. Where a private user's
+   * emails send them, and where single sign-on sends them back.
+   */
+  @CaptureSpan()
+  public async getPublicFormUrl(formId: ObjectID): Promise<string> {
+    const form: Model | null = await this.findOneById({
+      id: formId,
+      select: {
+        _id: true,
+        shareKey: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    const domains: Array<FormDomain> = await FormDomainService.findBy({
+      query: {
+        formId: formId,
+      },
+      select: {
+        fullDomain: true,
+        isSslProvisioned: true,
+        isCustomCertificate: true,
+        isCnameVerified: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    return await UsableCustomDomain.getAddress({
+      domains: domains,
+      fallbackPath: `/accounts/form/${form?.shareKey?.toString() || ""}`,
+    });
   }
 
   // The record the dashboard lists under the form's Submissions.

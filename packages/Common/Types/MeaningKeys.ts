@@ -101,6 +101,8 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   // A rule exception past its expiry, and a window not started yet (Rule Exceptions).
   "Expired (rule exception)",
   "Upcoming (rule exception)",
+  // A block of the blocklist whose time is up: the Blocklist's Expires and State filter.
+  "Expired (block)",
   // A workflow variable's OAuth token: never fetched, and valid.
   "Not fetched yet (OAuth token)",
   "Valid (OAuth token)",

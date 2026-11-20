@@ -300,6 +300,15 @@ export interface TerraformAttribute {
    * digits (StaticFiles/phone.go).
    */
   isPhone?: boolean;
+  /*
+   * A permission's key, such as IncidentMember (the spec's
+   * x-oneuptime-type Permission): a team's, an API key's or a custom
+   * role's permission. A plain string, which the provider took as JSON
+   * until OneUptime#10300, so it still takes the key written with
+   * jsonencode() as the same permission, from a configuration and from
+   * state (StaticFiles/permissionkey.go).
+   */
+  isPermission?: boolean;
   isMonitorSteps?: boolean; // MonitorSteps wrapper — emitted as a typed nested attribute (monitorsteps.go)
   enumValues?: string[]; // Allowed values from the spec's enum — emitted as a OneOf validator
   /*

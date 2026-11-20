@@ -51,7 +51,8 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
 | **Aprovações** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
 | **Execuções** | Playbooks | O que cada playbook fez, etapa por etapa |
-| **Entidades protegidas** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
+| **Lista de bloqueio** | Playbooks | Os endereços que seu projeto bloqueia, até quando e onde cada bloqueio é aplicado |
+| **Entidades protegidas** | Playbooks | Os usuários, hosts e endereços aos quais nenhum playbook aplica contenção e que nenhum bloqueio afeta |
 | **Configurações** | IA | Se o OneUptime AI classifica cada caso novo |
 | **Conexões** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
 | **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
@@ -72,8 +73,8 @@ Os dados de segurança só são lidos pelos papéis Proprietário do projeto e A
 | Papel | O que pode fazer |
 | --- | --- |
 | Administrador de segurança | Tudo: eventos, casos, playbooks, regras de detecção, feeds de inteligência de ameaças e conexões |
-| Membro de segurança | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
-| Visualizador de segurança | Ler eventos, casos, playbooks, regras, feeds, indicadores e conexões |
+| Membro de segurança | Ler eventos e inteligência de ameaças, tratar casos, executar playbooks e aprovar as etapas deles, bloquear endereços, e criar, alterar e excluir regras de detecção e feeds. Não pode configurar playbooks nem conexões, nem excluir dados de segurança. |
+| Visualizador de segurança | Ler eventos, casos, playbooks, a lista de bloqueio, regras, feeds, indicadores e conexões |
 
 ## Enviar eventos de segurança
 
@@ -484,9 +485,9 @@ detection:
 | **Executar em tempo real** | Desativado em uma regra nova. Ativado, a regra verifica cada evento assim que ele chega, em vez de a cada intervalo; veja [Regras em tempo real](#regras-em-tempo-real). |
 | **Campo de agrupamento** | Opcional. As correspondências que compartilham o valor deste campo, como `principalHost`, são contadas, alertadas e deduplicadas juntas: um alerta por host em vez de centenas. |
 | **Campo de contagem distinta** | Opcional. Conta os valores diferentes deste campo em vez dos eventos correspondentes. Valores vazios não contam. |
-| **Limite de correspondências** | Um grupo só dispara quando a contagem dele atinge este número dentro de uma execução, ou de uma janela em tempo real: de 1 a 1000000, e 1 dispara em qualquer correspondência. |
+| **Limite de correspondências** | Um grupo só dispara quando a contagem dele atinge este número dentro de uma janela do intervalo da regra: de 1 a 1000000, e 1 dispara em qualquer correspondência. |
 
-O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra. Com eles, o limite diz "tantos, da mesma coisa, em uma execução", sem um monitor por cima:
+O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra. Com eles, o limite diz "tantos, da mesma coisa, em uma janela", sem um monitor por cima:
 
 | Objetivo | Group By Field | Distinct Count Field | Limite |
 | --- | --- | --- | --- |
@@ -498,11 +499,11 @@ O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra
 
 ### Quando uma regra roda
 
-O OneUptime verifica a cada minuto quais regras habilitadas já passaram do intervalo desde a última execução. Cada execução lê os eventos cujo horário do evento cai entre a execução anterior e dois minutos atrás, e depois avança. Os dois minutos dão tempo aos eventos que ainda estão a caminho, como uma linha de log lida um minuto depois de escrita:
+O OneUptime verifica a cada minuto quais regras habilitadas já passaram do intervalo desde a última execução. Cada execução lê os eventos que chegaram ao OneUptime entre a execução anterior e dois minutos atrás, não importa quando aconteceram, e depois avança. Os dois minutos dão tempo aos eventos que ainda estão sendo gravados:
 
-- As janelas vêm uma depois da outra, não deslizam. Com um intervalo de 10 minutos, falhas às 09:58 e às 10:01 podem cair em execuções diferentes e são contadas separadamente, então deixe folga ao escolher um limite.
+- Uma regra que conta e uma correlação contam em janelas do tamanho do intervalo, uma após a outra no relógio: com um intervalo de 10 minutos, falhas às 09:58 e às 10:01 caem em janelas diferentes e são contadas separadamente, então deixe folga ao escolher um limite.
 - Depois de uma lacuna, como uma queda do worker ou uma regra reativada, a próxima execução cobre a lacuna inteira, até as últimas 24 horas.
-- Um evento que chega com mais de dois minutos de atraso, depois que uma execução já cobriu o seu horário, é salvo e pode ser pesquisado, mas essa regra nunca o lê.
+- Um evento que chega atrasado é lido mesmo assim, uma vez, pela execução seguinte, e contado na janela em que aconteceu: um grupo dispara quando a janela dele atinge a contagem, e no máximo uma vez por janela. Um que chega mais de um dia depois de acontecer é salvo e pode ser pesquisado, mas as execuções da regra não o leem; **Executar em eventos passados** o lê.
 - Cada grupo que atinge o limite vira um Detection Finding, até 10.000 por execução. Alertas, incidentes e casos abrem para os 100 com as contagens mais altas; o restante compartilha um caso sobre a regra, e o **Último erro** da regra diz quantos grupos corresponderam.
 
 ### Regras em tempo real

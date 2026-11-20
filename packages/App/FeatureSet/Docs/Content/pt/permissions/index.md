@@ -129,6 +129,26 @@ O faturamento tem três funções próprias. `BillingViewer` lê o faturamento d
 
 Todas as {{PERMISSION_ROLE_COUNT}} funções estão listadas na [Referência de permissões](/docs/permissions/reference).
 
+### Níveis de produto
+
+Um nível de produto dá a uma equipe um único produto, em um único nível, e nada mais do projeto: `CloudAdmin`, `NetworkViewer`, `HostMember`. Cada nível faz nos registros próprios do produto o que uma função de todo o projeto faz em todos os registros:
+
+- **Visualizador** lê ali o que a função Visualizador lê, e não altera nada.
+- **Membro** também cria, altera e exclui os registros do produto, como faz um Membro do projeto.
+- **Administrador** também faz ali o que um Administrador do projeto faz: as configurações do produto, as suas conexões e credenciais, e as suas regras de rótulos e de proprietários.
+
+Um nível nunca alcança outro produto, nem as configurações, as equipes, os membros, as chaves de API, o SSO ou o faturamento do projeto.
+
+:::steps
+1. Abra a página **Permissões** da equipe.
+2. Em **Acesso aos produtos**, escolha um nível para cada produto com que a equipe trabalha. Limpe o nível de um produto para tirar esse produto da equipe.
+:::
+
+- **Monitores, Incidentes e as outras áreas com funções próprias** são dados com **Adicionar função**, em **Uma área**. O mesmo vale para as funções de Telemetry, para Registros, Métricas, Traços, Perfis e Exceções, e para as funções Security.
+- **IA / LLM, Inventário e Formulários** têm só um nível Visualizador e um nível Administrador, porque um Membro do projeto não altera nada neles.
+- **Um nível é uma permissão como qualquer outra.** Você pode limitá-lo a alguns rótulos ou aos registros próprios na tabela de permissões, bloqueá-lo, colocá-lo em uma função personalizada ou dá-lo a uma chave de API. Como com toda permissão, você só pode dar um nível se você mesmo o tiver, a menos que seja Proprietário do projeto.
+- **Um nível lê os registros do produto, não a sua telemetria.** Uma equipe com `HostViewer` vê os hosts do projeto, e precisa também de `TelemetryViewer` para os gráficos deles.
+
 ### Permissões granulares
 
 Cada capacidade individual também pode ser atribuída sozinha — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` e mais {{PERMISSION_TOTAL_COUNT}}. Use-as quando uma função for ampla demais e você precisar conceder exatamente uma coisa.

@@ -1,7 +1,9 @@
 import EnableRealtimeEventsOn from "../../../Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndex,
+} from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Projection from "../../../Types/AnalyticsDatabase/Projection";
 import MaterializedView from "../../../Types/AnalyticsDatabase/MaterializedView";
@@ -21,6 +23,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import { withProductLevelsOnLists } from "../../../Types/Product/ProductLevels";
 import Text from "../../../Types/Text";
 import CommonModel from "./CommonModel";
 
@@ -87,6 +90,14 @@ export default class AnalyticsBaseModel extends CommonModel {
      */
     includeBaseColumns?: boolean | undefined;
     /*
+     * A skip index on the base `createdAt` column, for a table that is read
+     * by when its rows arrived: SecurityEvent, whose scheduled detection
+     * rules judge what arrived since their last run (#10337). The tables
+     * are sorted by when their rows happened, so without one such a read
+     * scans every row of its time range for the few that arrived.
+     */
+    createdAtSkipIndex?: SkipIndex | undefined;
+    /*
      * Column that `findBy` falls back to when the caller doesn't
      * specify a `sort`. Defaults to `createdAt` (matching the legacy
      * behavior), but heavy analytics tables should override this to
@@ -133,7 +144,14 @@ export default class AnalyticsBaseModel extends CommonModel {
           description: "Date and Time when the object was created.",
           required: true,
           type: TableColumnType.Date,
+          skipIndex: data.createdAtSkipIndex,
         }),
+      );
+    }
+
+    if (data.includeBaseColumns === false && data.createdAtSkipIndex) {
+      throw new BadDataException(
+        "createdAtSkipIndex needs the base columns: createdAt is not part of the table schema when includeBaseColumns is false",
       );
     }
 
@@ -195,7 +213,26 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.tableBillingAccessControl = data.tableBillingAccessControl;
     this.allowAccessIfSubscriptionIsUnpaid =
       data.allowAccessIfSubscriptionIsUnpaid || false;
-    this.accessControl = data.accessControl;
+
+    /*
+     * The table's lists and each column's, with the levels of the product
+     * whose records the table holds (Types/Product/ProductLevels: RUM Admin
+     * wherever a RUM table lets in Project Admin), as a database model's
+     * lists are read (Types/Database/AccessControl).
+     */
+    this.accessControl = data.accessControl
+      ? withProductLevelsOnLists(data.tableName, data.accessControl)
+      : data.accessControl;
+
+    for (const column of columns) {
+      if (column.accessControl) {
+        column.accessControl = withProductLevelsOnLists(
+          data.tableName,
+          column.accessControl,
+          data.accessControl || {},
+        );
+      }
+    }
     this.enableWorkflowOn = data.enableWorkflowOn;
     this.crudApiPath = data.crudApiPath;
     this.enableDocumentation = data.enableDocumentation || false;

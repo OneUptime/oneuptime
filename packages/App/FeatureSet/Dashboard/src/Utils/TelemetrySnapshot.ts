@@ -10,6 +10,12 @@ export interface DerivedTelemetrySnapshot {
   snapshotWindow: InBetween<Date> | null;
   /** "host.name = prod-01" — the narrowing actually applied; "" if none. */
   seriesSummary: string;
+  /*
+   * The series the event opened for, by its labels: what a PromQL
+   * monitor's card charts alone (issue #10227). None for an event of no one
+   * series.
+   */
+  seriesLabels?: JSONObject | undefined;
 }
 
 export const EMPTY_TELEMETRY_SNAPSHOT: DerivedTelemetrySnapshot = {
@@ -85,5 +91,10 @@ export function deriveTelemetrySnapshot(
     };
   }
 
-  return { telemetryQuery, snapshotWindow, seriesSummary };
+  return {
+    telemetryQuery,
+    snapshotWindow,
+    seriesSummary,
+    ...(input.seriesLabels ? { seriesLabels: input.seriesLabels } : {}),
+  };
 }

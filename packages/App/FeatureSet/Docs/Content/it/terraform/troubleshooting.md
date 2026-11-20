@@ -24,6 +24,7 @@ Cerca nella tabella qui sotto il messaggio che Terraform ha stampato, o ciò che
 | `Not Found` o `Ambiguous Match` da una sorgente dati | Correggi gli argomenti della ricerca: vedi [Ricerche che non trovano nulla o ne trovano diversi](#ricerche-che-non-trovano-nulla-o-ne-trovano-diversi) |
 | `There is already a team called` (un'etichetta, una policy di reperibilità, una pianificazione di reperibilità) | Dagli un nome che nessun altro del suo tipo abbia, o rinomina prima l'altro: vedi [Nomi che un altro record ha già](#nomi-che-un-altro-record-ha-già) |
 | `with the same name already exists` | Dagli un nome che nessun altro del suo tipo abbia, o importa il record che lo ha: vedi [Nomi che un altro record ha già](#nomi-che-un-altro-record-ha-già) |
+| `already exists` per un dominio, un nome host o un URL di accesso | Dagli un valore che nessun altro record abbia, o importa il record che lo ha: vedi [Domini e identificatori che un altro record ha già](#domini-e-identificatori-che-un-altro-record-ha-già) |
 | `Cannot import non-existent remote object` | Controlla l'ID e le autorizzazioni della chiave: vedi [Importare risorse](/docs/terraform/importing-resources#risoluzione-dei-problemi) |
 | `Provider produced inconsistent result after apply` | Aggiorna il provider: vedi [Risultato incoerente dopo l'apply](#risultato-incoerente-dopo-lapply) |
 | Un piano crea una risorsa che non hai aggiunto | La chiave non può più leggerla, e OneUptime ha risposto `404`: restituisci alla chiave l'accesso in lettura, poi importa la risorsa con `terraform import`: vedi [Una risorsa lascia lo stato, e l'apply successivo la crea di nuovo](#una-risorsa-lascia-lo-stato-e-lapply-successivo-la-crea-di-nuovo) |
@@ -114,6 +115,14 @@ Terraform esegue in parallelo le modifiche di un apply, quindi una creazione o u
 Un record archiviato mantiene il suo nome, e nulla di ciò che un apply fa ai record in servizio lo libera. Una creazione o una ridenominazione verso quel nome fallisce subito, e il messaggio dice dove annullarne l'archiviazione: annulla l'archiviazione o scegli un altro nome.
 
 Con un provider meno recente o un OneUptime meno recente, il primo rifiuto fa fallire l'apply: applica di nuovo, oppure aggiungi un `depends_on` dalla risorsa che prende il nome a quella che lo lascia.
+
+### Domini e identificatori che un altro record ha già
+
+Il dominio di una pagina di stato, di una dashboard o di un modulo, un dominio del progetto, l'identificatore di un host o di un cluster Kubernetes e l'URL di accesso di un provider SSO appartengono anch'essi a un solo record ciascuno, comunque siano scritte maiuscole e minuscole. Una creazione, o una modifica, verso uno di essi che ha già un altro record riceve come risposta `400`, come `Status Page Domain with the same fullDomain already exists.`
+
+Anche qui il provider riprova fino a 30 secondi, quindi spostare un dominio da una risorsa a un'altra in un solo apply, che elimina l'una e crea l'altra in parallelo, va a buon fine in un solo apply. Uno scambio di due valori non va mai a buon fine, e nemmeno un valore che ha un record fuori dalla configurazione: dopo 30 secondi l'apply fallisce con `The value was still taken after asking again for 30 seconds.` Dai alla risorsa un valore che nessuno ha, o importa con `terraform import` il record che ha il valore. Per uno scambio, dai a una delle risorse un valore temporaneo, applica, poi fai il resto della modifica.
+
+Un valore che ha solo un record archiviato, come il nome host di un host archiviato, fallisce subito, e il messaggio dice che cosa fare: annulla l'archiviazione di quel record o scegli un altro valore.
 
 ## Piani che non si stabilizzano
 

@@ -97,6 +97,7 @@ import {
   withoutValuesTransportIgnores,
 } from "../../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
 import AmazonSesAuthenticationType from "../../../../Types/Email/AmazonSesAuthenticationType";
+import ProjectAmazonSesAuthenticationType from "../../../../Types/Email/ProjectAmazonSesAuthenticationType";
 import MailgunRegion from "../../../../Types/Email/MailgunRegion";
 import type { CardSelectOption } from "../../../../UI/Components/CardSelect/CardSelect";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -493,7 +494,13 @@ describe("a project's Custom SMTP config", () => {
   test.each([
     [
       "amazon-ses",
-      ["amazonSesAccessKeyId", "amazonSesSecretAccessKey", "amazonSesRegion"],
+      [
+        "amazonSesAuthenticationType",
+        "amazonSesAccessKeyId",
+        "amazonSesSecretAccessKey",
+        "amazonSesRoleArn",
+        "amazonSesRegion",
+      ],
     ],
     ["sendgrid", ["sendgridApiKey"]],
     ["mailgun", ["mailgunApiKey", "mailgunDomain", "mailgunRegion"]],
@@ -532,8 +539,10 @@ describe("a project's Custom SMTP config", () => {
         "clientSecret",
         "tokenUrl",
         "scope",
+        "amazonSesAuthenticationType",
         "amazonSesAccessKeyId",
         "amazonSesSecretAccessKey",
+        "amazonSesRoleArn",
         "amazonSesRegion",
         "sendgridApiKey",
         "mailgunApiKey",
@@ -628,8 +637,10 @@ describe("a project's Custom SMTP config", () => {
       "oauth:clientSecret",
       "oauth:tokenUrl",
       "oauth:scope",
+      "amazon-ses:amazonSesAuthenticationType",
       "amazon-ses:amazonSesAccessKeyId",
       "amazon-ses:amazonSesSecretAccessKey",
+      "amazon-ses:amazonSesRoleArn",
       "amazon-ses:amazonSesRegion",
       "sendgrid:sendgridApiKey",
       "mailgun:mailgunApiKey",
@@ -734,6 +745,9 @@ describe("the providers' cards", () => {
         "amazonSesAccessKeyId",
         "amazonSesSecretAccessKey",
         "amazonSesRegion",
+        // How it signs in, and its IAM role (#7378): another provider keeps neither.
+        "amazonSesAuthenticationType",
+        "amazonSesRoleArn",
       ],
       [MailTransportType.SendGrid]: ["sendgridApiKey"],
       [MailTransportType.Mailgun]: [
@@ -857,7 +871,13 @@ describe("each provider's fields", () => {
       expect(factory().map(describeField)).toEqual(
         (PROJECT_FIELDS as Array<Field<unknown>>)
           .filter((field: Field<unknown>): boolean => {
-            return field.stepId === step;
+            return (
+              field.stepId === step &&
+              // A project's own sign-in and its role (#7378), beside the key.
+              !["amazonSesAuthenticationType", "amazonSesRoleArn"].includes(
+                keyOf(field),
+              )
+            );
           })
           .map(describeField),
       );
@@ -1605,8 +1625,26 @@ describe("what each transport and sign-in shows", () => {
         "name",
         "transportType",
         "description",
+        "amazonSesAuthenticationType",
         "amazonSesAccessKeyId",
         "amazonSesSecretAccessKey",
+        "amazonSesRegion",
+        "fromEmail",
+        "fromName",
+      ],
+    },
+    {
+      name: "Amazon SES with an IAM role in the project's account: its Role ARN and Region, and no key",
+      values: {
+        transportType: MailTransportType.AmazonSES,
+        amazonSesAuthenticationType: ProjectAmazonSesAuthenticationType.IamRole,
+      },
+      project: [
+        "name",
+        "transportType",
+        "description",
+        "amazonSesAuthenticationType",
+        "amazonSesRoleArn",
         "amazonSesRegion",
         "fromEmail",
         "fromName",
@@ -2091,7 +2129,9 @@ describe("the instance's provider cards", () => {
       EMAIL_PROVIDER_CHOICES.find((choice: CardSelectOption): boolean => {
         return choice.value === MailTransportType.AmazonSES;
       })!.description,
-    ).toBe("Send through Amazon Simple Email Service with an IAM access key.");
+    ).toBe(
+      "Send through Amazon Simple Email Service with an IAM access key or an IAM role in your AWS account.",
+    );
 
     // Custom SMTP and SendGrid have cards of the page's own.
     expect(
@@ -2124,13 +2164,17 @@ describe("the instance's provider cards", () => {
         ["sender", "Sender", false],
       ]);
 
+      /*
+       * Amazon SES's step is the project's but for its role (#7378): the
+       * instance signs in with its key or the server's own role, never a
+       * role it assumes.
+       */
       expect(openOn(fields, projectStep.id)).toEqual(
-        transport === MailTransportType.AmazonSES
-          ? [
-              "amazonSesAuthenticationType",
-              ...openOn(PROJECT_FIELDS, projectStep.id),
-            ]
-          : openOn(PROJECT_FIELDS, projectStep.id),
+        openOn(PROJECT_FIELDS, projectStep.id).filter(
+          (column: string): boolean => {
+            return column !== "amazonSesRoleArn";
+          },
+        ),
       );
       expect(openOn(fields, "sender")).toEqual([
         GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport].fromEmail,
@@ -2416,16 +2460,28 @@ describe("the instance's Amazon SES card: an access key, or this server's IAM ro
     expect(rowsOn(fields, "amazon-ses")).toBe(4);
   });
 
-  test("a project's config never asks it: only the server's own email may use the server's role", () => {
+  test("a project's config is never offered it: only the server's own email may use the server's role", () => {
+    const projectChoices: Array<unknown> = fieldFor(
+      PROJECT_FIELDS,
+      "amazonSesAuthenticationType",
+    ).radioButtonOptions!.map((choice: RadioButton): unknown => {
+      return choice.value;
+    });
+
+    // A project signs in with its key, or a role in its own account (#7378).
+    expect(projectChoices).toEqual([
+      ProjectAmazonSesAuthenticationType.AccessKey,
+      ProjectAmazonSesAuthenticationType.IamRole,
+    ]);
+    expect(projectChoices).not.toContain(
+      AmazonSesAuthenticationType.ServerIamRole,
+    );
+    // Nor can its column keep the server's value.
     expect(
-      PROJECT_FIELDS.map((field: Field<ProjectSmtpConfig>): string => {
-        return keyOf(field);
-      }),
-    ).not.toContain("amazonSesAuthenticationType");
-    // A project's config has nowhere to keep one.
-    expect(
-      new ProjectSmtpConfig().hasColumn("amazonSesAuthenticationType"),
-    ).toBe(false);
+      new ProjectSmtpConfig().getTableColumnMetadata(
+        "amazonSesAuthenticationType",
+      ).allowedValues,
+    ).toEqual(Object.values(ProjectAmazonSesAuthenticationType));
     expect(new GlobalConfig().hasColumn("amazonSesAuthenticationType")).toBe(
       true,
     );

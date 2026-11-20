@@ -24,6 +24,7 @@ Busque en la tabla de abajo el mensaje que imprimió Terraform, o lo que vio que
 | `Not Found` o `Ambiguous Match` de una fuente de datos | Corrija los argumentos de la búsqueda: consulte [Búsquedas que no encuentran ninguno o encuentran varios](#búsquedas-que-no-encuentran-ninguno-o-encuentran-varios) |
 | `There is already a team called` (una etiqueta, una política de guardia, una programación de guardia) | Dele un nombre que no tenga ningún otro de su tipo, o cambie primero el nombre del otro: consulte [Nombres que ya tiene otro registro](#nombres-que-ya-tiene-otro-registro) |
 | `with the same name already exists` | Dele un nombre que no tenga ningún otro de su tipo, o importe el registro que lo tiene: consulte [Nombres que ya tiene otro registro](#nombres-que-ya-tiene-otro-registro) |
+| `already exists` para un dominio, un nombre de host o una URL de inicio de sesión | Dele un valor que no tenga ningún otro registro, o importe el registro que lo tiene: consulte [Dominios e identificadores que ya tiene otro registro](#dominios-e-identificadores-que-ya-tiene-otro-registro) |
 | `Cannot import non-existent remote object` | Compruebe el ID y los permisos de la clave: consulte [Importar recursos](/docs/terraform/importing-resources#solución-de-problemas) |
 | `Provider produced inconsistent result after apply` | Actualice el proveedor: consulte [Resultado incoherente tras el apply](#resultado-incoherente-tras-el-apply) |
 | Un plan crea un recurso que usted no añadió | La clave ya no puede leerlo, y OneUptime respondió `404`: devuelva a la clave el acceso de lectura y luego importe el recurso con `terraform import`: consulte [Un recurso sale del estado, y el siguiente apply lo vuelve a crear](#un-recurso-sale-del-estado-y-el-siguiente-apply-lo-vuelve-a-crear) |
@@ -114,6 +115,14 @@ Terraform hace los cambios de un apply en paralelo, así que una creación o un 
 Un registro archivado conserva su nombre, y nada de lo que un apply hace con los registros en servicio lo libera. Una creación o un cambio de nombre a ese nombre falla enseguida, y el mensaje dice dónde desarchivarlo: desarchívelo o elija otro nombre.
 
 Con un proveedor más antiguo o un OneUptime más antiguo, el primer rechazo hace fallar el apply: vuelva a aplicar, o añada un `depends_on` del recurso que toma el nombre al que lo deja.
+
+### Dominios e identificadores que ya tiene otro registro
+
+El dominio de una página de estado, de un panel o de un formulario, un dominio del proyecto, el identificador de un host o de un clúster de Kubernetes y la URL de inicio de sesión de un proveedor de SSO también pertenecen a un solo registro cada uno, sin importar mayúsculas ni minúsculas. Una creación, o un cambio, a uno que ya tiene otro registro recibe como respuesta `400`, como `Status Page Domain with the same fullDomain already exists.`
+
+El proveedor también vuelve a pedirlo aquí durante hasta 30 segundos, así que mover un dominio de un recurso a otro en un mismo apply, que elimina uno y crea el otro en paralelo, se completa en un solo apply. Un intercambio de dos valores nunca se completa, y tampoco un valor que tiene un registro fuera de la configuración: pasados 30 segundos, el apply falla con `The value was still taken after asking again for 30 seconds.` Dé al recurso un valor que nadie tenga, o importe con `terraform import` el registro que tiene el valor. En un intercambio, dé a uno de ellos un valor temporal, aplique y luego haga el resto del cambio.
+
+Un valor que solo tiene un registro archivado, como el nombre de host de un host archivado, falla enseguida, y el mensaje dice qué hacer: desarchive ese registro o elija otro valor.
 
 ## Planes que no se estabilizan
 

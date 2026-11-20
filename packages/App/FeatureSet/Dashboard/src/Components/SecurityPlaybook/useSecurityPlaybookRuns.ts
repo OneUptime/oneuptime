@@ -7,6 +7,7 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import { isFinishedSecurityPlaybookRunStatus } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import {
@@ -57,29 +58,37 @@ const useSecurityPlaybookRuns: (data: {
         await ModelAPI.getList<SecurityPlaybookRun>({
           modelType: SecurityPlaybookRun,
           query: queryRef.current,
-          select: {
-            _id: true,
-            securityCaseId: true,
-            securityCase: {
+          /*
+           * A case's title is read through the run for who may read the case
+           * itself (#10310): the Security tiers who read runs, but a team
+           * kept from cases, which reads which case by its number alone.
+           */
+          select: PermissionGate.getSelectReadableThroughRelations(
+            SecurityPlaybookRun,
+            {
               _id: true,
-              caseNumberWithPrefix: true,
-              title: true,
+              securityCaseId: true,
+              securityCase: {
+                _id: true,
+                caseNumberWithPrefix: true,
+                title: true,
+              },
+              playbookName: true,
+              trigger: true,
+              status: true,
+              steps: true,
+              stepResults: true,
+              currentStepIndex: true,
+              startedAt: true,
+              completedAt: true,
+              errorMessage: true,
+              createdAt: true,
+              triggeredByUser: {
+                name: true,
+                email: true,
+              },
             },
-            playbookName: true,
-            trigger: true,
-            status: true,
-            steps: true,
-            stepResults: true,
-            currentStepIndex: true,
-            startedAt: true,
-            completedAt: true,
-            errorMessage: true,
-            createdAt: true,
-            triggeredByUser: {
-              name: true,
-              email: true,
-            },
-          },
+          ),
           sort: { createdAt: SortOrder.Descending },
           skip: 0,
           limit: data.limit,

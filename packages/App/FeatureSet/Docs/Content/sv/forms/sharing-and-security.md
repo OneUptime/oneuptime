@@ -5,6 +5,7 @@ Ett formulär är öppet för alla som har dess länk, och varje inlämning kan 
 :::cards
 - [Dela länken](#dela-länken): Kopiera den, öppna den och återställ den när den sprids för långt.
 - [En länk för varje mall](#en-länk-för-varje-mall): Ett bokmärke per fall, ett enda formulär bakom alla.
+- [Bara personer som loggar in](#bara-personer-som-loggar-in): Bjud in de personer som får öppna formuläret, eller låt er identitetsleverantör logga in dem med enkel inloggning.
 - [Anpassade domäner](#anpassade-domäner): Visa formuläret på din egen domän, med ett kostnadsfritt certifikat.
 - [Vad som skyddar ett formulär](#vad-som-skyddar-ett-formulär): Varje kontroll som en begäran passerar, i ordning.
 - [Felsökning](#felsökning): Vad varje meddelande på formulärets sida betyder, och vad du ska göra.
@@ -16,6 +17,7 @@ Ett formulär är öppet för alla som har dess länk, och varje inlämning kan 
 | --- | --- |
 | **Status** | **Tar emot inlämningar** — om formulärets länk fungerar. |
 | **Delningslänk** | Varje adress som formuläret svarar på, var och en med **Kopiera länk**, och **Återställ länk**. |
+| **Vem som kan öppna det här formuläret** | **Bara personer som loggar in** — om bara de personer du väljer kan öppna formuläret, när de loggar in. |
 | **Efter inlämning** | Det **Tackmeddelande** som personer ser när de har lämnat in, under numret på det som formuläret skapade. |
 | **Fler inställningar** | **IP-tillåtelselista**, hopfälld tills du öppnar den. |
 
@@ -28,6 +30,8 @@ Kortet **Delningslänk** listar varje adress som formuläret svarar på: först 
 - **Återställ länk** ger formuläret en ny länk, efter att du har bekräftat. Den gamla länken slutar fungera direkt och visar meddelandet om att formuläret inte är tillgängligt, så alla som du delade den med behöver den nya. Använd den när en länk har spridits längre än den borde. Formulärets anpassade domäner innehåller ingen nyckel och fortsätter att fungera.
 
 Alla med länken kan öppna formuläret och lämna in det, utan ett OneUptime-konto och utan att logga in. Att vara inloggad ändrar ingenting: OneUptime vet bara vem som lämnade in utifrån det namn och den e-post som skrivs i formuläret. Behandla därför länken som ett telefonnummer till ditt jourteam. Dela den där de som ska använda den hittar den — en intranätsida, en supportrunbook, ett fäst chattmeddelande — och inte på en offentlig webbplats, om du inte vill ha inlämningar från vem som helst.
+
+För att bara de personer du väljer ska kunna öppna och lämna in formuläret slår du på **Bara personer som loggar in** — se [Bara personer som loggar in](#bara-personer-som-loggar-in).
 
 Länken innehåller en egen slumpmässig nyckel, inte formulärets ID. På en egenvärdad installation serveras den från din egen OneUptime-värd, och fungerar bara på den adress som `HTTP_PROTOCOL` och `HOST` konfigurerar: öppnad under ett annat namn för servern, eller på dess IP-adress, avvisas formulärets begäranden som om de kom från en annan webbplats.
 
@@ -48,6 +52,20 @@ För att sluta ta emot inlämningar utan att ta bort formuläret stänger du av 
 Efter en inlämning säger sidan "Tack — ditt svar har skickats." och anger numret på det som skapades, sedan ditt **Tackmeddelande**, i Markdown. Använd det för att säga vad som händer härnäst, och vart man ska vända sig när något är brådskande. Utan ett visar sidan bara standardmeddelandet.
 
 En bild i formulärets beskrivning eller tackmeddelande visas för alla som öppnar länken så länge formuläret står på **Tar emot inlämningar**. Stäng av formuläret, eller ta bort bilden, så är bilden privat igen, om inte något annat som alla ser fortfarande innehåller den.
+
+## Bara personer som loggar in
+
+Slå på **Bara personer som loggar in** under **Vem som kan öppna det här formuläret** på formulärets sida **Dela** för att bara de personer du väljer ska kunna öppna och lämna in formuläret. När du slår på det ombeds du bekräfta. Från och med då möter varje besökare först en inloggningssida, på formulärets länk och på varje anpassad domän. Den visar formulärets namn och inget annat: varken dess frågor, dess mallar eller dess logotyp, eller vem som får logga in. Efter inloggningen visar formuläret vem som är inloggad, med **Logga ut** bredvid.
+
+Öppna **Privata användare** i formulärets sidomeny för att lägga till de personer som får logga in, via e-post. Var och en får en inbjudan via e-post vars länk låter dem välja ett lösenord. Länken fungerar i 24 timmar, och **Glömt lösenordet?** på inloggningssidan skickar en ny. Tabellen visar vem som är **Registrerad**, vems inbjudan är **Inbjudan skickad** och när var och en var **Senast inloggad**. Att ta bort någon, eller ett nytt lösenord, loggar ut dem överallt vid deras nästa begäran.
+
+Öppna **Enkel inloggning** för att låta er identitetsleverantör logga in personer, med SAML eller OpenID Connect. Varje leverantör visar de värden du klistrar in i er identitetsleverantör. Alla som er identitetsleverantör släpper in blir en privat användare första gången de loggar in. Att stänga av en leverantör, eller ta bort den, loggar ut alla som den har loggat in. **Kräv SSO för inloggning** stänger av inloggning med lösenord: alla loggar då in med enkel inloggning, och alla som är inloggade med ett lösenord loggas ut vid sin nästa begäran.
+
+En inloggning gäller tills den har varit oanvänd i 30 dagar. Dess cookies skickas bara med formulärets egna begäranden, så ingen annan webbplats kan öppna eller lämna in formuläret med dem eller logga ut någon. Inloggningsförsök är begränsade för varje adress och varje konto, och inloggningssidan och sidan för glömt lösenord svarar likadant, oavsett om en adress får logga in eller inte.
+
+En inlämning nämner bara det namn och den e-post som skrivits i formuläret, som på alla andra formulär, inte den privata användare som lämnade in den. En bild i formulärets beskrivning eller tackmeddelande förblir offentlig på sin adress som inte går att gissa så länge formuläret tar emot inlämningar, som på en statussida som ber sina besökare logga in: så laddar de privata användarnas webbläsare den.
+
+På OneUptime Cloud kräver enkel inloggning **Scale**-planen, och det gör **Kräv SSO för inloggning** också. Via API:et är privata användare och leverantörer av enkel inloggning egna poster: `/form-private-user`, `/form-sso` och `/form-oidc`, var och en med behörigheter uppkallade efter sig.
 
 ## Anpassade domäner
 
@@ -119,13 +137,14 @@ Varje begäran passerar de här kontrollerna, i den här ordningen:
 2. Den måste ligga inom frekvensgränserna.
 3. Formuläret måste finnas, stå på **Tar emot inlämningar** och höra till ett projekt med en plan som omfattar formulär.
 4. Den måste komma från en adress på **IP-tillåtelselista**, när formuläret har en.
-5. En inlämning måste klara captchan, när instansen har captcha påslaget.
-6. Varje svar måste ligga inom storleksgränserna och passa sin fråga — se [Bygga ett formulär](/docs/forms/building#storleksgränser).
-7. Det som svaren och inställningarna bildar måste kunna skapas: en incident behöver en allvarlighetsgrad, en händelse ett slut efter sin början.
-8. En inlämning måste rymmas inom formulärets timkvot — se [Frekvensgränser](#frekvensgränser).
-9. Dess filer måste rymmas inom formulärets timkvot för filer, precis innan de sparas.
+5. Den måste komma från en av formulärets privata användare, inloggad, när formuläret är inställt på **Bara personer som loggar in** — se [Bara personer som loggar in](#bara-personer-som-loggar-in).
+6. En inlämning måste klara captchan, när instansen har captcha påslaget.
+7. Varje svar måste ligga inom storleksgränserna och passa sin fråga — se [Bygga ett formulär](/docs/forms/building#storleksgränser).
+8. Det som svaren och inställningarna bildar måste kunna skapas: en incident behöver en allvarlighetsgrad, en händelse ett slut efter sin början.
+9. En inlämning måste rymmas inom formulärets timkvot — se [Frekvensgränser](#frekvensgränser).
+10. Dess filer måste rymmas inom formulärets timkvot för filer, precis innan de sparas.
 
-Ett formulärs logotyp och favicon är en del av formuläret: de skickas inuti svaret som öppnar det, i base64, först när det har klarat de fyra första kontrollerna, och aldrig från en egen adress. Ingen kan hämta dem utan formuläret, och ingen fil kan hämtas via sitt id genom ett formulär; själva filerna förblir privata. Ett formulär visar bara bilder som har laddats upp i dess eget projekt: en fil från ett annat projekt avvisas när formuläret sparas, och skickas aldrig till dess sida.
+Ett formulärs logotyp och favicon är en del av formuläret: de skickas inuti svaret som öppnar det, i base64, först när det har klarat de fem första kontrollerna, och aldrig från en egen adress. Ingen kan hämta dem utan formuläret, och ingen fil kan hämtas via sitt id genom ett formulär; själva filerna förblir privata. Ett formulär visar bara bilder som har laddats upp i dess eget projekt: en fil från ett annat projekt avvisas när formuläret sparas, och skickas aldrig till dess sida.
 
 ### IP-tillåtelselista
 

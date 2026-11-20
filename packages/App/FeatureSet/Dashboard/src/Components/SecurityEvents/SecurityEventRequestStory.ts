@@ -17,6 +17,13 @@ import {
   RequestTraceAssessment,
   readStatusCode,
 } from "Common/Utils/SecurityEvent/RequestOutcome";
+import {
+  HiddenClientAddress,
+  ScrubbedAddress,
+  ScrubbedAddressPlace,
+  readHiddenClientAddress,
+  readScrubbedAddress,
+} from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ERRORED,
@@ -53,6 +60,11 @@ export interface SecurityEventRequestFacts {
   url: string;
   route: string;
   clientAddress: string;
+  /*
+   * The client address a scrub rule hid (#10397), when the request names
+   * none: who sent it is said that way instead.
+   */
+  hiddenClientAddress: HiddenClientAddress | null;
   userAgent: string;
   userId: string;
   durationMs: number;
@@ -85,6 +97,9 @@ export function readSecurityEventRequestFacts(
   event: SecurityEvent,
 ): SecurityEventRequestFacts {
   const attributes: JSONObject = (event.attributes || {}) as JSONObject;
+  const clientAddress: string =
+    readText(attributes, SECURITY_REQUEST_ATTRIBUTES.clientAddress) ||
+    (event.principalIp || "").trim();
 
   return {
     outcome: isSecurityEventRequestOutcome(event.requestOutcome)
@@ -96,9 +111,10 @@ export function readSecurityEventRequestFacts(
     method: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.method),
     url: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.url),
     route: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.route),
-    clientAddress:
-      readText(attributes, SECURITY_REQUEST_ATTRIBUTES.clientAddress) ||
-      (event.principalIp || "").trim(),
+    clientAddress,
+    hiddenClientAddress: clientAddress
+      ? null
+      : readHiddenClientAddress({ principalIp: "", attributes }),
     userAgent: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.userAgent),
     userId: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.userId),
     durationMs: readNumber(attributes, SECURITY_REQUEST_ATTRIBUTES.durationMs),
@@ -138,6 +154,33 @@ function firstOf(current: string, found: string): string {
 }
 
 /*
+ * The client address a fresh read of the trace found, and what a trace
+ * scrub rule left of it when one hid it: never "[REDACTED]" as an address.
+ */
+function readFoundClientAddress(found: string): {
+  clientAddress: string;
+  hidden: HiddenClientAddress | null;
+} {
+  const scrubbed: ScrubbedAddress | null = readScrubbedAddress(found || "");
+
+  if (!scrubbed) {
+    return { clientAddress: (found || "").trim(), hidden: null };
+  }
+
+  return {
+    clientAddress: "",
+    hidden: {
+      kind: scrubbed.kind,
+      value: scrubbed.value,
+      place: ScrubbedAddressPlace.SpanAttributes,
+      signal: "trace",
+      ruleId: "",
+      ruleName: "",
+    },
+  };
+}
+
+/*
  * What the event said, completed by a fresh read of its trace: a fact the
  * event lacks is taken from the read, and the outcome is the more serious
  * of the two.
@@ -155,6 +198,12 @@ export function mergeAssessment(
     getRequestOutcomeRank(facts.outcome)
       ? assessment.outcome
       : facts.outcome;
+  const found: { clientAddress: string; hidden: HiddenClientAddress | null } =
+    readFoundClientAddress(assessment.clientAddress);
+  const clientAddress: string = firstOf(
+    facts.clientAddress,
+    found.clientAddress,
+  );
 
   return {
     outcome,
@@ -162,7 +211,11 @@ export function mergeAssessment(
     method: firstOf(facts.method, assessment.method.toUpperCase()),
     url: firstOf(facts.url, assessment.url),
     route: firstOf(facts.route, assessment.route),
-    clientAddress: firstOf(facts.clientAddress, assessment.clientAddress),
+    clientAddress,
+    // What the event said of a hidden address first: it names the rule.
+    hiddenClientAddress: clientAddress
+      ? null
+      : facts.hiddenClientAddress || found.hidden,
     userAgent: firstOf(facts.userAgent, assessment.userAgent),
     userId: firstOf(facts.userId, assessment.userId),
     durationMs: facts.durationMs || assessment.durationMs,

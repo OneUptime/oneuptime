@@ -6,6 +6,7 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import { MonitorStepMetricMonitorUtil } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
@@ -31,6 +32,7 @@ import {
   MonitorMetricStep,
   getMonitorMetricSteps,
   getMonitorResourceName,
+  hasMonitorMetrics,
 } from "./MonitorMetricInvestigation";
 
 /*
@@ -60,11 +62,23 @@ import {
  * charted and anchored alike. An episode charts its first member, read as
  * that incident or alert is read, anchored on the episode itself (see
  * below). Pure: the cards and their tests read it the same way.
+ *
+ * The event's monitors are read through it by which they are and what kind:
+ * no relation reads a monitor's steps, the whole of what it checks (#10309).
+ * Only for an event that kept no snapshot are the steps of its monitors that
+ * read metrics read, on each monitor by the reader's own read
+ * (getRootCauseMonitorIdsToRead, withRootCauseMonitorSteps). A reader who
+ * may not read the monitor gets no card from it, as the event's Overview
+ * charts nothing for such an event; one that kept a snapshot is charted for
+ * every reader of the event, from the event alone.
  */
 
 // What it reads of the event's monitors.
 export interface RootCauseMonitor {
+  // Which monitor it is: its steps are read on the monitor itself (#10309).
+  _id?: ObjectID | string | null | undefined;
   monitorType?: MonitorType | undefined;
+  // Read on the monitor, only when the card charts from it.
   monitorSteps?: MonitorSteps | undefined | null;
 }
 
@@ -75,6 +89,11 @@ export interface RootCauseMetrics {
   evaluationWindow: InBetween<Date> | null;
   // "host.name = prod-01": what the charts were narrowed to; "" when nothing.
   seriesSummary: string;
+  /*
+   * The series the event opened for, by its labels: what a PromQL monitor's
+   * card charts alone (issue #10227).
+   */
+  seriesLabels?: JSONObject | null | undefined;
   /*
    * Set when the event kept no metric snapshot and the card charts its
    * monitor as the monitor reads now: the resource that monitor watches,
@@ -109,6 +128,19 @@ type HasQueriesFunction = (
 const hasMetric: HasQueriesFunction = (
   queryConfigs: Array<MetricQueryConfigData> | null | undefined,
 ): boolean => {
+  /*
+   * A PromQL step's snapshot names no metric: its one query is the
+   * expression the check evaluated (issue #10227), which the card charts.
+   */
+  if (
+    MonitorStepMetricMonitorUtil.getPromQLQueryOfViewConfig({
+      queryConfigs: queryConfigs || [],
+      formulaConfigs: [],
+    })
+  ) {
+    return true;
+  }
+
   return (queryConfigs || []).some(
     (queryConfig: MetricQueryConfigData): boolean => {
       return Boolean(
@@ -178,6 +210,25 @@ const chooseStep: (input: {
   return first;
 };
 
+type IsMetricSnapshotFunction = (
+  snapshot: TelemetryQuery | null | undefined,
+) => boolean;
+
+/*
+ * Whether the event kept a snapshot of a metric check: what the card charts
+ * then, from the event alone, whatever its monitors are now.
+ */
+const isMetricSnapshot: IsMetricSnapshotFunction = (
+  snapshot: TelemetryQuery | null | undefined,
+): boolean => {
+  return Boolean(
+    snapshot &&
+      snapshot.telemetryType === TelemetryType.Metric &&
+      snapshot.metricViewData &&
+      hasMetric(snapshot.metricViewData.queryConfigs),
+  );
+};
+
 export function getRootCauseMetrics(
   input: RootCauseMetricsInput,
 ): RootCauseMetrics | null {
@@ -185,12 +236,7 @@ export function getRootCauseMetrics(
   const snapshotView: MetricViewData | null | undefined =
     snapshot?.metricViewData;
 
-  if (
-    snapshot &&
-    snapshot.telemetryType === TelemetryType.Metric &&
-    snapshotView &&
-    hasMetric(snapshotView.queryConfigs)
-  ) {
+  if (snapshot && snapshotView && isMetricSnapshot(snapshot)) {
     return {
       telemetryQuery: {
         ...snapshot,
@@ -206,6 +252,7 @@ export function getRootCauseMetrics(
         seriesLabels: input.seriesLabels,
         unsetLabel: input.unsetLabel,
       }),
+      seriesLabels: input.seriesLabels,
       chartedFromMonitorNow: undefined,
     };
   }
@@ -242,6 +289,7 @@ export function getRootCauseMetrics(
       seriesLabels: input.seriesLabels,
       unsetLabel: input.unsetLabel,
     }),
+    seriesLabels: input.seriesLabels,
     chartedFromMonitorNow: {
       resourceName: getMonitorResourceName(
         MonitorStepMetricQueries.getSettings({
@@ -458,6 +506,89 @@ export function getAlertEpisodeRootCauseEvent(
   member: AlertRootCauseRow & EpisodeMemberRootCauseRow,
 ): RootCauseEvent {
   return readEpisodeEvent(member, getAlertRootCauseEvent(member));
+}
+
+/*
+ * THE STEPS OF THE MONITORS IT CHARTS FROM, READ ON EACH MONITOR (#10309).
+ *
+ * An incident or an alert names its monitors by which they are and what
+ * kind; their steps are read on the monitors themselves, by the reader's own
+ * read of them, and only for a card that charts from them: an event that
+ * kept no metric snapshot, on a monitor of a kind that reads metrics. An
+ * event that kept one is charted from the event alone, and an HTTP check's
+ * headers or a website's URL are never read for a card that could not chart
+ * them anyway.
+ */
+
+// The ids of the monitors whose steps the card charts from: none to read.
+export function getRootCauseMonitorIdsToRead(
+  event: RootCauseMetricsInput,
+): Array<string> {
+  if (isMetricSnapshot(event.telemetryQuery)) {
+    return [];
+  }
+
+  const ids: Array<string> = [];
+
+  for (const monitor of event.monitors || []) {
+    if (!monitor || typeof monitor !== "object") {
+      continue;
+    }
+
+    const monitorId: string | undefined = readId(monitor._id);
+
+    if (
+      monitorId &&
+      hasMonitorMetrics(monitor.monitorType) &&
+      !ids.includes(monitorId)
+    ) {
+      ids.push(monitorId);
+    }
+  }
+
+  return ids;
+}
+
+/*
+ * The event with its monitors' steps as each monitor's own read answered
+ * them, in the event's order, and from nowhere else. A monitor the reader
+ * may not read, or one since deleted, has none: the card charts nothing
+ * from it.
+ */
+export function withRootCauseMonitorSteps(
+  event: RootCauseEvent,
+  read: ReadonlyArray<RootCauseMonitor>,
+): RootCauseEvent {
+  const readById: Map<string, RootCauseMonitor> = new Map<
+    string,
+    RootCauseMonitor
+  >();
+
+  for (const monitor of read) {
+    const monitorId: string | undefined = readId(monitor?._id);
+
+    if (monitorId) {
+      readById.set(monitorId, monitor);
+    }
+  }
+
+  return {
+    ...event,
+    monitors: event.monitors.map(
+      (monitor: RootCauseMonitor): RootCauseMonitor => {
+        const monitorId: string | undefined = readId(monitor._id);
+        const steps: RootCauseMonitor | undefined = monitorId
+          ? readById.get(monitorId)
+          : undefined;
+
+        return {
+          ...monitor,
+          monitorType: steps?.monitorType || monitor.monitorType,
+          monitorSteps: steps?.monitorSteps,
+        };
+      },
+    ),
+  };
 }
 
 /*

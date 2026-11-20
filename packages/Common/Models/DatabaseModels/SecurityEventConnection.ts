@@ -11,6 +11,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -33,6 +34,15 @@ const adminPermissions: Array<Permission> = [
   Permission.SecurityAdmin,
 ];
 
+/*
+ * Through a relation too (#10310). A threat-intel feed names the connection
+ * it reads through, and a custom role that reads feeds reads the feed: of
+ * the connection, which one it is - its name, its provider and whether it
+ * is on - and nothing of how it polls or what it last read. Every other
+ * column a relation reads is held to the connection's own read
+ * (RelationReaders.ColumnReaders): its cursor, its errors, its poll times
+ * and its settings.
+ */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -251,6 +261,7 @@ export default class SecurityEventConnection extends BaseModel {
     required: true,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description: "How often new records are polled, in minutes.",
     defaultValue: 5,
     isDefaultValueColumn: true,
@@ -276,6 +287,7 @@ export default class SecurityEventConnection extends BaseModel {
     defaultValue: true,
     isDefaultValueColumn: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.Boolean, nullable: false, default: true })
   public alertingOnly?: boolean = undefined;
@@ -301,6 +313,7 @@ export default class SecurityEventConnection extends BaseModel {
       "Imported alerts at or above this severity (Low, Medium, High or Critical) open security cases. Empty imports them as events only.",
     defaultValue: "High",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -318,6 +331,7 @@ export default class SecurityEventConnection extends BaseModel {
     description:
       "When a complete poll last finished successfully, including an empty result.",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastSuccessfulPollAt?: Date = undefined;
@@ -330,6 +344,7 @@ export default class SecurityEventConnection extends BaseModel {
     description:
       "When a new security event was last imported from this connection.",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastEventIngestedAt?: Date = undefined;
@@ -355,6 +370,7 @@ export default class SecurityEventConnection extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "When this connection was last polled. Null means it has never run.",
   })
@@ -374,6 +390,7 @@ export default class SecurityEventConnection extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "Poll cursor: the end of the last completely processed creation-time window, as an ISO string.",
   })
@@ -394,6 +411,7 @@ export default class SecurityEventConnection extends BaseModel {
     required: false,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     description:
       "The most recent poll error with credentials redacted, if any. Cleared on the next successful poll.",
   })

@@ -373,9 +373,13 @@ describe("translations", () => {
 
   const english: Record<string, unknown> = readLocale("en");
 
-  // Words some languages write as English does ("Password" in Italian).
+  /*
+   * Words some languages write as English does: "Password" in Italian, and
+   * "Single Sign-On" in German, Italian and Dutch.
+   */
   const SAME_AS_ENGLISH_SOMEWHERE: Array<string> = [
     DashboardSharingCopy.passwordFieldTitle,
+    DashboardSharingCopy.singleSignOn,
   ];
 
   test("the strings are all there to check", () => {

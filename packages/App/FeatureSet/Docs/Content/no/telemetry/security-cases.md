@@ -371,7 +371,7 @@ De to stegene for datalagre handler på datalagrene saken gjelder, høyst 10: da
 
 #### Beskyttede entiteter
 
-**Beskyttede entiteter**, under **Playbooks** i menyen, viser brukerne og vertene som ingen playbook demmer inn, for eksempel nødtilgangskontoer, domenekontrollere og VPN-gatewayer. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Sikkerhetsadministratorer vedlikeholder listen.
+**Beskyttede entiteter**, under **Playbooks** i menyen, viser brukerne, vertene og IP-adressene som ingen playbook demmer inn og blokkeringslisten aldri blokkerer, for eksempel nødtilgangskontoer, domenekontrollere, VPN-gatewayer og kontoradresser. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. En adresseoppføring er en adresse eller et område, for eksempel `203.0.113.0/24`, som beskytter hver adresse i det. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Sikkerhetsadministratorer vedlikeholder listen.
 
 #### Godkjenning
 
@@ -391,6 +391,14 @@ Mattermost får godkjenningen som tekst, uten knapper.
 #### Angre
 
 Angrestegene handler på brukerne eller vertene saken gjelder, akkurat som stegene de angrer. Når kjøringen har stoppet, har en inndemmet bruker eller vert også en egen knapp på steget sitt: **Opphev suspensjon**, **Opphev begrensning**, **Frigi** eller **Aktiver**. En utlogging kan ikke angres. Alt som angres, lagres på tidslinjen til saken og i revisjonsloggen til prosjektet. I OneUptime On-Call-appen viser saken hva playbookene dens har inndemmet, og hver av dem kan angres derfra.
+
+### Blokkeringsliste
+
+**Blokkeringsliste**, under **Playbooks** i menyen, viser IP-adressene og områdene prosjektet ditt blokkerer: hvorfor, til når, saken deres og hvem eller hva som la dem til. **Blokker adresse** blokkerer en adresse eller et område i 24 timer, med mindre du velger 1 time, 7 dager eller 30 dager. Bare en Sikkerhetsadministrator, en Prosjektadministrator eller en Prosjekteier kan beholde en blokkering til noen opphever den, eller blokkere et område som er bredere enn et /24 (et /48 for IPv6), og ingen blokkerer et område som er bredere enn et /8 (et /16 for IPv6). **Opphev** avslutter en blokkering, på én rad eller flere samtidig, og **Forleng** flytter slutten.
+
+Prosjektets egne adresser blokkeres aldri: oppføringene i **Beskyttede entiteter**, vertene dine, Kubernetes-noder, skyressurser, nettverksenheter og -endepunkter, adressenavnene og sondene dine, sondene til OneUptime Cloud, områdene som ikke er på internett, og edge-nettverket foran appen din. En blokkering som ville truffet en av dem, avvises med beskjed om hva adressen er, og **Beskyttede entiteter** viser dem under **Automatisk beskyttet**. Når OneUptime ikke kan avgjøre om en adresse er din, blokkerer den den ikke.
+
+**Håndhevet hos** viser hvert sted en blokkering håndheves, og om den holder der. Så lenge ingenting håndhever blokkeringslisten, sier siden det, og en blokkering registreres, men blokkerer ingenting. Hver blokkering, oppheving og utløp lagres i revisjonsloggen til prosjektet, og på tidslinjen til saken når den har en sak.
 
 ### Meldinger
 
@@ -446,7 +454,7 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 ## Automatiser
 
 - **Arbeidsflyter**: en sak eller et notat kan starte en arbeidsflyt når den opprettes, oppdateres eller slettes. Et steg **Kjør en arbeidsflyt** starter en arbeidsflyt som har en webhook som utløser.
-- **API**: saker, notater, oppgaver, bevis, deteksjoner, playbooks, kjøringer, beskyttede entiteter og saksprioriteter og saksstatuser har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-referanse](/docs/api-reference/api-reference).
+- **API**: saker, notater, oppgaver, bevis, deteksjoner, playbooks, kjøringer, beskyttede entiteter, blokkeringer og saksprioriteter og saksstatuser har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` og `/security-case-status`. Se [API-referanse](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har verktøy for saker, notater, oppgaver, bevis, deteksjoner, playbooks og saksprioriteter og saksstatuser. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: ressursene `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder prioritetene og statusene til et prosjekt som kode.
 

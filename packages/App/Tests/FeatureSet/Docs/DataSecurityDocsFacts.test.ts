@@ -20,6 +20,7 @@ import {
 } from "./DocsTranslationChecks";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
+  CloudConnectionAuthMethod,
   CloudConnectionDefinition,
   CloudConnectionField,
   DATA_SECURITY_FIELD_KEY,
@@ -50,6 +51,8 @@ import {
   getAwsDataSecurityPolicyDocument,
   getAwsRoleSetupCommand,
   getAzureSetupCommand,
+  getCloudConnectionCommandSettings,
+  getCloudConnectionSetupCommand,
   getGcpSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import ComplianceFramework, {
@@ -209,6 +212,8 @@ const TELEMETRY: string = "data-security/telemetry";
 const FLOWS: string = "data-security/flows-access-residency";
 const COMPLIANCE: string = "data-security/compliance";
 const INTEGRATIONS: string = "data-security/integrations";
+// OneUptime AI in Data Security (#10365): its own facts, DataSecurityAiDocsFacts.
+const AI: string = "data-security/ai";
 
 const PAGES: ReadonlyArray<string> = [
   INDEX,
@@ -219,6 +224,7 @@ const PAGES: ReadonlyArray<string> = [
   FLOWS,
   COMPLIANCE,
   INTEGRATIONS,
+  AI,
 ];
 
 const LINE_BREAK: RegExp = /\n/;
@@ -596,6 +602,76 @@ describe("Set Up Data Security", () => {
       "**Configuration and content samples**",
     ]);
     expect(page).toContain("Under **More fields**, set **Data security**");
+  });
+
+  /*
+   * "The command the form shows changes with the level", and with Data
+   * security response "then grants these narrow writes" - true since the
+   * form writes its command from the settings it saves and asks both with
+   * it (#10336); before, the command never took them.
+   */
+  it("says the command the form shows grants the level and the response's writes, as the form writes it from them", () => {
+    const response: string = section(
+      page,
+      "## Let Data Security close an exposure",
+    );
+
+    expect(page).toContain(
+      "The command the form shows changes with the level.",
+    );
+    expect(response).toContain(
+      "and the command the form shows then grants these narrow writes",
+    );
+
+    for (const provider of [
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]) {
+      for (const key of [
+        DATA_SECURITY_FIELD_KEY,
+        DATA_SECURITY_RESPONSE_FIELD_KEY,
+      ]) {
+        const field: CloudConnectionField | undefined = (
+          getCloudConnectionDefinition(provider) as CloudConnectionDefinition
+        ).configFields.find((candidate: CloudConnectionField): boolean => {
+          return candidate.key === key;
+        });
+
+        // Asked with the command, folded under More fields there.
+        expect({
+          provider,
+          key,
+          changesSetupCommand: field?.changesSetupCommand,
+          isAdvanced: field?.isAdvanced,
+        }).toEqual({
+          provider,
+          key,
+          changesSetupCommand: true,
+          isAdvanced: true,
+        });
+      }
+    }
+
+    // What a connection saves is what its command grants.
+    const command: string | undefined = getCloudConnectionSetupCommand(
+      CloudProvider.AWS,
+      CloudConnectionAuthMethod.AwsAccessKey,
+      getCloudConnectionCommandSettings({
+        [DATA_SECURITY_FIELD_KEY]: "configuration",
+        [DATA_SECURITY_RESPONSE_FIELD_KEY]: "block",
+      }),
+    );
+
+    expect(command).toBe(
+      getAwsAccessKeySetupCommand({
+        dataSecurity: "configuration",
+        dataSecurityResponse: "block",
+      }),
+    );
+    expect(command).toContain(
+      `--policy-name ${AWS_DATA_SECURITY_RESPONSE_POLICY_NAME} `,
+    );
   });
 
   it("lists every AWS action of the configuration level, by what it is for", () => {
@@ -985,6 +1061,10 @@ describe("Connect a Cloud Account's Data security section", () => {
     ]);
     expect(dataSecurity).toContain(
       "Under **More fields**, **Data security** is **Off** until you choose otherwise",
+    );
+    // True since the form asks it with the command and writes the command from it (#10336).
+    expect(dataSecurity).toContain(
+      "and the command the form shows changes with it",
     );
   });
 
@@ -2545,10 +2625,10 @@ describe("Data Security Integrations", () => {
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
       "return buildDataSecurityFixRequest(",
     );
-    // The request is what the Code task it starts is asked (#10362).
+    // The request is what the Code task it starts is asked (#10362, #10365).
     expect(
       source("Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask.ts"),
-    ).toContain("message: await data.buildMessage(),");
+    ).toContain("message: request.text,");
     expect(section(page, "## OneUptime AI")).toContain(
       "Terraform, CloudFormation, Bicep or the like",
     );
@@ -2557,7 +2637,7 @@ describe("Data Security Integrations", () => {
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await DataSecurityAPI.readFindingsForAi(projectId, issue)",
+      "await DataSecurityAiReads.readPlaces({ projectId, issue })",
     );
     expect(section(page, "## OneUptime AI")).toContain(
       "For a telemetry issue it asks for a change to the code of the service that writes the data instead",

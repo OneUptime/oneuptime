@@ -1,4 +1,5 @@
 import ToolImportLogo from "./ToolImportLogo";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
 import ToolImportNoteList from "./ToolImportNoteList";
 import {
   countTickedKeys,
@@ -484,9 +485,26 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
   const isWaitingForConsent: boolean =
     isMovingSubscribers && !subscribersConsent;
 
+  /*
+   * Two teams of one name told apart (#10314): by when each was made, the
+   * most the plan holds of a team.
+   */
   const teamOptions: Array<DropdownOption> = plan.inviteTeams.map(
     (team: ToolImportInviteTeam): DropdownOption => {
-      return { value: team.id, label: team.name, isUserContent: true };
+      const createdAt: Date | undefined = team.createdAt
+        ? new Date(team.createdAt)
+        : undefined;
+
+      return {
+        value: team.id,
+        label: team.name,
+        isUserContent: true,
+        sharedName: {
+          kind: SharedNameKind.Team,
+          createdAt:
+            createdAt && !isNaN(createdAt.getTime()) ? createdAt : undefined,
+        },
+      };
     },
   );
 

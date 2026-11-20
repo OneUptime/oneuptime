@@ -371,7 +371,7 @@ Les deux étapes de magasin de données agissent sur les magasins de données su
 
 #### Entités protégées
 
-**Entités protégées**, sous **Playbooks** dans le menu, liste les utilisateurs et les hôtes qu'aucun playbook ne confine, comme les comptes d'accès d'urgence, les contrôleurs de domaine et les passerelles VPN. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Administrateurs de la sécurité qui gèrent la liste.
+**Entités protégées**, sous **Playbooks** dans le menu, liste les utilisateurs, les hôtes et les adresses IP qu'aucun playbook ne confine et que la liste de blocage ne bloque jamais, comme les comptes d'accès d'urgence, les contrôleurs de domaine, les passerelles VPN et les adresses des bureaux. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une entrée d'adresse est une adresse ou une plage, comme `203.0.113.0/24`, qui protège chaque adresse qu'elle contient. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Administrateurs de la sécurité qui gèrent la liste.
 
 #### Approbation
 
@@ -391,6 +391,14 @@ Mattermost reçoit l'approbation sous forme de texte, sans boutons.
 #### Annulation
 
 Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels porte le dossier, comme les étapes qu'elles annulent. Une fois l'exécution arrêtée, un utilisateur ou un hôte confiné a aussi son propre bouton sur son étape : **Réactiver**, **Lever le confinement**, **Libérer** ou **Activer**. Une déconnexion ne peut pas être annulée. Chaque annulation est conservée dans la chronologie du dossier et dans le journal d'audit du projet. Dans l'application OneUptime On-Call, le dossier liste ce que ses playbooks ont confiné, et chacun peut y être annulé.
+
+### Liste de blocage
+
+**Liste de blocage**, sous **Playbooks** dans le menu, liste les adresses IP et les plages que votre projet bloque : pourquoi, jusqu'à quand, leur dossier et qui ou quoi les a ajoutées. **Bloquer une adresse** bloque une adresse ou une plage pendant 24 heures, sauf si vous choisissez 1 heure, 7 jours ou 30 jours. Seul un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut conserver un blocage jusqu'à ce que quelqu'un le lève, ou bloquer une plage plus large qu'un /24 (un /48 en IPv6), et personne ne bloque une plage plus large qu'un /8 (un /16 en IPv6). **Lever** met fin à un blocage, sur une ligne ou sur plusieurs à la fois, et **Prolonger** repousse sa fin.
+
+Les propres adresses de votre projet ne sont jamais bloquées : les entrées d'**Entités protégées**, vos hôtes, nœuds Kubernetes, ressources cloud, équipements réseau et points de terminaison, vos noms d'adresse et vos sondes, les sondes de OneUptime Cloud, les plages qui ne sont pas sur Internet, et le réseau en périphérie placé devant votre application. Un blocage qui en toucherait une est refusé, avec ce qu'est l'adresse, et **Entités protégées** les liste sous **Protection automatique**. Quand OneUptime ne peut pas déterminer si une adresse est la vôtre, il ne la bloque pas.
+
+**Appliqué sur** indique chaque endroit où un blocage est appliqué, et s'il y tient. Tant que rien n'applique la liste de blocage, la page l'indique, et un blocage est enregistré mais ne bloque rien. Chaque blocage, levée et expiration est conservé dans le journal d'audit du projet, et dans la chronologie de son dossier quand il en a un.
 
 ### Messages
 
@@ -446,7 +454,7 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 ## Automatiser
 
 - **Flux de travail** : un dossier ou une note peut lancer un flux de travail quand il est créé, mis à jour ou supprimé. Une étape **Exécuter un flux de travail** lance un flux de travail dont le déclencheur est un webhook.
-- **API** : les dossiers, les notes, les tâches, les preuves, les détections, les playbooks, les exécutions, les entités protégées ainsi que les priorités et statuts de dossier ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` et `/security-case-status`. Voir [Référence de l'API](/docs/api-reference/api-reference).
+- **API** : les dossiers, les notes, les tâches, les preuves, les détections, les playbooks, les exécutions, les entités protégées, les blocages ainsi que les priorités et statuts de dossier ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` et `/security-case-status`. Voir [Référence de l'API](/docs/api-reference/api-reference).
 - Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les tâches, les preuves, les détections, les playbooks ainsi que les priorités et statuts de dossier. Voir [Serveur MCP](/docs/ai/mcp-server).
 - Terraform : les ressources `oneuptime_security_case_priority` et `oneuptime_security_case_status` gèrent sous forme de code les priorités et statuts d'un projet.
 

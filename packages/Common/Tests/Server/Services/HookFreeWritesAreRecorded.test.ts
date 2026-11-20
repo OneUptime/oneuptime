@@ -628,6 +628,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":
         Why.Reported,
     },
+  // A block past its end, Expired by the expiry worker's compare-and-set, recorded as OneUptime's (#10338).
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlockExpiry.ts": {
+    "SecurityBlockExpiry.expireBlock SecurityBlock": Why.Recorded,
+  },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
     "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,
     "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,

@@ -1,4 +1,6 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import LabelService from "./LabelService";
 import TeamService from "./TeamService";
 import CreateBy from "../Types/Database/CreateBy";
@@ -25,7 +27,9 @@ import RelationValueUtil from "../Utils/Database/RelationValueUtil";
  * what may be saved, and the ingest caches told when it changes.
  *
  *   - It is a team's or a label's, never both and never neither, and the
- *     team or the label is the project's own.
+ *     team or the label is the project's own: this service's own check
+ *     (assertTargetInProject), in its own words, and every other record a
+ *     budget names gets the project check (ProjectReferencesService).
  *   - Each daily budget is a number of GB above 0, or empty, and no more
  *     than the project's own (TelemetryIngestionBudgetValidation), read
  *     fresh, as a key's are.
@@ -76,15 +80,32 @@ const clearsEveryDailyBudget: (data: Record<string, unknown>) => boolean = (
   );
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The team and the label are this service's to check, so its own words
+   * stay the answer: a create's is read pinned to the budget's project, for
+   * every caller, root included, and another project's is refused exactly
+   * as a missing one (assertTargetInProject); an update names neither, as
+   * whose budget it is never changes. Every other reference a budget comes
+   * to name gets the project check.
+   */
+  protected override getRelationsCheckedByService(
+    _write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return ["team", "label"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // Every other reference is the project's first (ProjectReferencesService).
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown
@@ -146,6 +167,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // Every other reference is the project's first (ProjectReferencesService).
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown

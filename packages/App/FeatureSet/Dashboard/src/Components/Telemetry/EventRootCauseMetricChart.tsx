@@ -276,6 +276,7 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
       telemetryQuery={metrics.telemetryQuery}
       evaluationWindow={metrics.evaluationWindow}
       seriesSummary={metrics.seriesSummary}
+      seriesLabels={metrics.seriesLabels}
       subject={reader.subject}
       eventId={
         ROOT_CAUSE_SUBJECT_IS_ONE_EVENT[reader.subject] ? eventId : undefined

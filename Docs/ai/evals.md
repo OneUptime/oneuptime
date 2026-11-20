@@ -10,6 +10,7 @@ whether investigations and Ask AI's answers got better or worse. Run them before
 | `npm run ai-eval`                      | How did past runs score, from what was recorded? (No model is called.)                          | A database.                                  |
 | `npm run benchmark` in packages/Runner | Does the Code agent fix customer-shaped tasks, and how many rounds, tools, tokens and minutes?  | A model key. No database, no project.        |
 | `npm run ask-ai-eval`                  | Does Ask AI propose the right setup plan, and answer a how-do-I from the right docs page?       | A model key. No database, no project.        |
+| `npm run ai-data-security-eval`        | Does each of Data Security's AI features answer its fixed cases right, from what it is sent?    | A model key. No database, no project.        |
 | **Project Settings → AI → AI Results** | What came of the AI's work in production: pages avoided, fixes verified, root causes confirmed. | Nothing: it is a page in the product.        |
 
 Every command here reads its model key from the environment only: `AI_EVAL_LLM_API_KEY` for the model under test and
@@ -240,6 +241,57 @@ Add the request or the question to its list. A setup request asked in a new kind
 `AskAiEvalProject`. `AskAiEvalTurn.test.ts` asks every setup request of a model that proposes the expected plan,
 offline, and fails if a check before the card reads anything the eval does not answer.
 
+## Data Security: every AI feature on fixed cases
+
+`npm run ai-data-security-eval` runs every OneUptime AI feature of Data Security (#10365) on made-up cases
+(`packages/Common/Server/Utils/AI/Eval/DataSecurity/DataSecurityEvalCases.ts`), with the model you name. Each case's
+input is built by the feature's own builder, `DataSecurityAiInput`, so a change to a prompt is measured as it ships.
+Each answer is scored by words a check reads, never by a judge:
+
+| Feature         | A case passes when                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Explain with AI | The explanation says each fact the case names, and none of the words a right answer never says, such as what a planted instruction in a store's name asked for. |
+| Field suggestions | The answer, read as the product reads it, gives at least 75% of the fields the type the case expects, or none.     |
+| Fix with AI     | Handed the request Fix with AI gives the coding agent, with the files it names, the model's changed files match what the fix needs and nothing it must not. This measures the request; the Code agent benchmark measures the agent's loop. |
+| Ask AI          | Handed the rows its Data Security tools read, the answer names what the case names.                                    |
+
+```
+npm run ai-data-security-eval -- --list
+AI_EVAL_LLM_API_KEY=... npm run ai-data-security-eval -- --llm-type=Anthropic --model=claude-opus-5-5
+AI_EVAL_LLM_API_KEY=... npm run ai-data-security-eval -- --llm-type=Anthropic --model=claude-opus-5-5 --feature=SuggestFieldTypes --repeat=3
+```
+
+A feature's score is the share of its cases that pass; with `--repeat`, a case passes when more than half its runs
+pass. `--enforce-thresholds` exits 1 when a feature scores under its threshold (`DATA_SECURITY_EVAL_THRESHOLDS` in
+`DataSecurityEval.ts`). Options: `--feature=<id>[,<id>]` (`ExplainIssue`, `FixIssue`, `SuggestFieldTypes`, `AskAi`),
+`--case=<id>[,<id>]`, `--changed-files=<path>` (only the features the files listed in it change), `--repeat=<k>` and
+`--report-markdown=<path>`. Every answer and score goes to `./ai-data-security-eval-results.json`.
+
+The **Data Security AI Eval** workflow (`.github/workflows/data-security-ai-eval.yml`) runs it with `claude-opus-5-5`:
+
+- on a pull request that changes a Data Security AI feature's prompt, the builder, the eval or the workflow, and then
+  only the features the pull request changes;
+- nightly on main, and by hand (**Run workflow**), with which features or cases and how many runs a case gets;
+- on the release branch before a release (`RELEASING.md`), where every feature must meet its threshold.
+
+It reads the model's key from the repository secret `AI_EVAL_LLM_API_KEY`, as the AI Benchmark does, and without it
+says so and passes, having run nothing. The scores go to the job's summary and every answer to the
+`data-security-ai-eval-results` artifact.
+
+### Adding a case, or a feature
+
+A new AI feature of Data Security is listed in `Types/DataSecurity/DataSecurityAiFeatures.ts` first. Its cases go in
+`DataSecurityEvalCases.ts`, its input is built in `buildEvalCall` with the feature's builder, its answer scored in
+`scoreAnswer`, and its threshold set in `DATA_SECURITY_EVAL_THRESHOLDS`. The eval's tests
+(`packages/Common/Tests/Server/Utils/AI/Eval/DataSecurity`) fail until every feature has two cases, each a right
+answer passes and a wrong one fails, and each fix's checks fail on the code as the case finds it and pass on the fix
+a person would make.
+
+Cases are made up. Never copy a customer's store, field or code into one. When people approve or dismiss OneUptime
+AI's proposals (#10364), the verdict is kept as a label with OneUptime's catalog values only
+(`DataSecurityEvalLabels`): the feature, the check, the built-in data types, the kinds of store and location. Read the
+labels for the kinds of proposals people dismiss most, and write cases of that shape.
+
 ## Where the code is
 
 - `packages/Common/Server/Utils/AI/Eval/`: the recorder (`InvestigationRecorder`), the replay
@@ -251,4 +303,7 @@ offline, and fails if a check before the card reads anything the eval does not a
   (`AskAiEvalReport`).
 - `packages/Runner/Benchmark/` and `packages/Runner/Scripts/RunCodeAgentBenchmark.ts`: the Code agent benchmark, its
   tasks (`CodeAgentBenchmarkTasks`), the server it stands in for (`CodeAgentBenchmarkServer`) and its command line.
+- `packages/Common/Server/Utils/AI/Eval/DataSecurity/` and `Scripts/AI/RunDataSecurityEval.ts`: the Data Security
+  eval, its cases (`DataSecurityEvalCases`), its scoring (`DataSecurityEval`), its command line, its report and its
+  labels.
 - `packages/Common/Server/Utils/AI/Outcomes/` and `POST /ai-activity/outcomes`: what the AI Results page counts.

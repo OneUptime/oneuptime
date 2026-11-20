@@ -115,6 +115,12 @@ export const DASHBOARD_SHARED_TEXT_SOURCES: ReadonlyArray<string> = [
    * editor names them.
    */
   "packages/Common/Types/SecurityPlaybook/SecurityPlaybookActionWords.ts",
+  /*
+   * What a chat's picker says of records that share a name (#10314):
+   * "Created {{date}}", as the Dashboard's pickers word it (#10064), in the
+   * language on the reader's account.
+   */
+  "packages/Common/Types/Database/SharedNameMarks.ts",
 ];
 
 export const DASHBOARD_LOCALES_DIRECTORY: string = path.join(

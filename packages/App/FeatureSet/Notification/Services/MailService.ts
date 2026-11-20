@@ -815,11 +815,25 @@ export default class MailService {
     transportType: MailTransportType,
   ): boolean {
     if (transportType === MailTransportType.AmazonSES) {
-      for (const key of [
-        "SMTP_AWS_ACCESS_KEY_ID",
-        "SMTP_AWS_SECRET_ACCESS_KEY",
-        "SMTP_AWS_REGION",
-      ]) {
+      /*
+       * A project's config signs in with an access key, or with an IAM role
+       * in its own AWS account (#7378): the role's ARN, with the config and
+       * its project - the external id is derived from that project alone.
+       */
+      const signsInWithRole: boolean = Boolean(obj["SMTP_AWS_ROLE_ARN"]);
+
+      for (const key of signsInWithRole
+        ? [
+            "SMTP_AWS_ROLE_ARN",
+            "SMTP_AWS_ROLE_PROJECT_ID",
+            "SMTP_ID",
+            "SMTP_AWS_REGION",
+          ]
+        : [
+            "SMTP_AWS_ACCESS_KEY_ID",
+            "SMTP_AWS_SECRET_ACCESS_KEY",
+            "SMTP_AWS_REGION",
+          ]) {
         if (!obj[key]) {
           logger.error(`${key} not found for Amazon SES`, EXTERNAL_FAULT);
           return false;
@@ -887,6 +901,15 @@ export default class MailService {
           obj["SMTP_AWS_SECRET_ACCESS_KEY"]?.toString() || undefined,
         awsRegion:
           obj["SMTP_AWS_REGION"]?.toString().trim().toLowerCase() || undefined,
+        // A project's Amazon SES role: read for Amazon SES alone.
+        awsRoleArn:
+          transportType === MailTransportType.AmazonSES
+            ? obj["SMTP_AWS_ROLE_ARN"]?.toString().trim() || undefined
+            : undefined,
+        awsRoleProjectId:
+          transportType === MailTransportType.AmazonSES
+            ? obj["SMTP_AWS_ROLE_PROJECT_ID"]?.toString().trim() || undefined
+            : undefined,
         mailgunDomain:
           obj["SMTP_MAILGUN_DOMAIN"]?.toString().trim().toLowerCase() ||
           undefined,

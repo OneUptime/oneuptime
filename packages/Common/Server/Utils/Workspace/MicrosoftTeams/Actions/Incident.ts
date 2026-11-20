@@ -18,6 +18,10 @@ import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceSharedNames, {
+  WorkspaceNamedOption,
+} from "../../WorkspaceSharedNames";
+import { getSharedNameSelect } from "../../../../../Types/Database/SharedNameMarks";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventStanding,
@@ -33,6 +37,7 @@ import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/O
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
 import { truncateToLength } from "../../../Database/TruncateColumnValue";
 import MicrosoftTeamsCardChoices, {
+  MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH,
   MicrosoftTeamsCardChoiceList,
 } from "../MicrosoftTeamsCardChoices";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
@@ -1265,15 +1270,24 @@ export default class MicrosoftTeamsIncidentActions {
         select: {
           name: true,
           _id: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
         },
         limit: 50,
       });
 
-    const choices: Array<{ title: string; value: string }> = onCallPolicies
-      .map((policy: OnCallDutyPolicy) => {
+    // Two policies of one name told apart in their titles (#10314).
+    const choices: Array<{ title: string; value: string }> = (
+      await WorkspaceSharedNames.getOptions({
+        records: onCallPolicies,
+        readerUserId: props.userId,
+        maxLength: MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH,
+      })
+    )
+      .map((option: WorkspaceNamedOption) => {
         return {
-          title: policy.name || "",
-          value: policy._id?.toString() || "",
+          title: option.label,
+          value: option.value,
         };
       })
       .filter((choice: { title: string; value: string }) => {

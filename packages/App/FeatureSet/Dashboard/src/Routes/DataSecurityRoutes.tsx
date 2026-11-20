@@ -27,6 +27,7 @@ import DataSecurityDataTypesPage from "../Pages/DataSecurity/Settings/DataTypes"
 import DataSecurityChecksPage from "../Pages/DataSecurity/Settings/Checks";
 import DataSecurityResidencyPage from "../Pages/DataSecurity/Settings/Residency";
 import DataSecurityScanningPage from "../Pages/DataSecurity/Settings/Scanning";
+import DataSecurityAiSettingsPage from "../Pages/DataSecurity/Settings/AI";
 import DataSecurityOwnerRulesPage from "../Pages/DataSecurity/Settings/OwnerRules";
 import DataSecurityLabelRulesPage from "../Pages/DataSecurity/Settings/LabelRules";
 import DataStoreOverviewPage from "../Pages/DataSecurity/StoreView/Overview";
@@ -219,6 +220,15 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.DATA_SECURITY_SETTINGS_SCANNING] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={DataSecurityRoutePath[PageMap.DATA_SECURITY_SETTINGS_AI] || ""}
+          element={
+            <DataSecurityAiSettingsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.DATA_SECURITY_SETTINGS_AI] as Route}
             />
           }
         />

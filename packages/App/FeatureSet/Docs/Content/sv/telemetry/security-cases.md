@@ -371,7 +371,7 @@ De två datalagerstegen agerar på de datalager som ärendet handlar om, högst 
 
 #### Skyddade entiteter
 
-**Skyddade entiteter**, under **Playbooks** i menyn, listar de användare och värdar som ingen playbook begränsar, till exempel konton för nödåtkomst, domänkontrollanter och VPN-gatewayer. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Säkerhetsadministratör.
+**Skyddade entiteter**, under **Playbooks** i menyn, listar de användare, värdar och IP-adresser som ingen playbook begränsar och blocklistan aldrig blockerar, till exempel konton för nödåtkomst, domänkontrollanter, VPN-gatewayer och kontorsadresser. Ett värde matchar oavsett skiftläge, och `*` står för en valfri följd av tecken: `svc-*` skyddar alla tjänstkonton. En adresspost är en adress eller ett intervall, till exempel `203.0.113.0/24`, som skyddar varje adress i det. Ett steg rapporterar en skyddad användare eller värd som skyddad och lämnar den i fred. Listan sköts av användare med rollen Säkerhetsadministratör.
 
 #### Godkännande
 
@@ -391,6 +391,14 @@ Mattermost får godkännandet som text, utan knappar.
 #### Ångra
 
 Ångringsstegen agerar på de användare eller värdar som ärendet handlar om, precis som stegen de ångrar. När körningen har stannat har en begränsad användare eller värd också en egen knapp på sitt steg: **Häv avstängning**, **Häv begränsning**, **Frigör** eller **Aktivera**. En utloggning kan inte ångras. Varje ångring sparas på ärendets tidslinje och i projektets granskningslogg. I appen OneUptime On-Call listar ärendet vad dess playbooks har begränsat, och vart och ett kan ångras därifrån.
+
+### Blocklista
+
+**Blocklista**, under **Playbooks** i menyn, listar de IP-adresser och intervall som ditt projekt blockerar: varför, till när, deras ärende och vem eller vad som lade till dem. **Blockera adress** blockerar en adress eller ett intervall i 24 timmar om du inte väljer 1 timme, 7 dagar eller 30 dagar. Bara en Säkerhetsadministratör, en Projektadministratör eller en Projektägare kan behålla en blockering tills någon häver den, eller blockera ett intervall som är bredare än ett /24 (ett /48 för IPv6), och ingen blockerar ett intervall som är bredare än ett /8 (ett /16 för IPv6). **Häv** avslutar en blockering, på en rad eller flera på en gång, och **Förläng** flyttar dess slut.
+
+Ditt projekts egna adresser blockeras aldrig: posterna i **Skyddade entiteter**, dina värdar, Kubernetes-noder, molnresurser, nätverksenheter och slutpunkter, dina adressnamn och sonder, OneUptime Clouds sonder, de intervall som inte finns på internet och edge-nätverket framför din app. En blockering som skulle träffa en av dem avvisas med besked om vad adressen är, och **Skyddade entiteter** listar dem under **Automatiskt skyddade**. När OneUptime inte kan avgöra om en adress är din blockerar den den inte.
+
+**Tillämpad hos** visar varje ställe där en blockering tillämpas och om den håller där. Så länge inget tillämpar blocklistan säger sidan det, och en blockering registreras men blockerar ingenting. Varje blockering, hävning och utgång sparas i projektets granskningslogg, och på ärendets tidslinje när den har ett ärende.
 
 ### Meddelanden
 
@@ -446,7 +454,7 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 ## Automatisera
 
 - **Arbetsflöden**: ett ärende eller en anteckning kan starta ett arbetsflöde när det skapas, uppdateras eller tas bort. Ett steg **Kör ett arbetsflöde** startar ett arbetsflöde vars utlösare är en webhook.
-- **API**: ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks, körningar, skyddade entiteter och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
+- **API**: ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks, körningar, skyddade entiteter, blockeringar och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
 - AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, uppgifter, bevis, detektioner, playbooks och ärendeprioriteter och ärendestatusar. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: resurserna `oneuptime_security_case_priority` och `oneuptime_security_case_status` håller ett projekts prioriteter och statusar som kod.
 

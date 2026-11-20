@@ -371,7 +371,7 @@ The two data store steps act on the data stores the case is about, at most 10: t
 
 #### Protected entities
 
-**Protected Entities**, under **Playbooks** in the menu, lists the users and hosts no playbook contains, such as break-glass accounts, domain controllers and VPN gateways. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account. A step reports a protected user or host as protected and leaves it alone. Security Admins keep the list.
+**Protected Entities**, under **Playbooks** in the menu, lists the users, hosts and IP addresses no playbook contains and the blocklist never blocks, such as break-glass accounts, domain controllers, VPN gateways and office addresses. A value matches whatever its case, and `*` stands for any run of characters: `svc-*` protects every service account. An address entry is an address or a range, such as `203.0.113.0/24`, which protects every address in it. A step reports a protected user or host as protected and leaves it alone. Security Admins keep the list.
 
 #### Approval
 
@@ -391,6 +391,14 @@ Mattermost gets the approval as text, without buttons.
 #### Undo
 
 The undo steps act on the users or hosts the case is about, like the steps they undo. Once the run has stopped, a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone. Every undo is kept on the case's timeline and in the project's audit log. In the OneUptime On-Call app, the case lists what its playbooks contained, each of which can be undone from there.
+
+### Blocklist
+
+**Blocklist**, under **Playbooks** in the menu, lists the IP addresses and ranges your project blocks: why, until when, its case and who or what added it. **Block Address** blocks an address or a range for 24 hours unless you choose 1 hour, 7 days or 30 days. Only a Security Admin, a Project Admin or a Project Owner can keep a block until someone lifts it, or block a range wider than a /24 (a /48 for IPv6), and no one blocks a range wider than a /8 (a /16 for IPv6). **Lift** ends a block, on one row or several at once, and **Extend** moves its end.
+
+Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app. A block that would meet one is refused, saying what the address is, and **Protected Entities** lists them under **Protected Automatically**. When OneUptime cannot tell whether an address is yours, it does not block it.
+
+**Enforced At** shows each place a block is enforced, and whether it holds there. While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case.
 
 ### Messages
 
@@ -446,7 +454,7 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 ## Automate
 
 - **Workflows**: a case or a note can start a workflow when it is created, updated or deleted. A **Run a workflow** step starts a workflow whose trigger is a webhook.
-- **API**: cases, notes, tasks, evidence, detections, playbooks, runs, protected entities, and case priorities and statuses have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` and `/security-case-status`. See [API Reference](/docs/api-reference/api-reference).
+- **API**: cases, notes, tasks, evidence, detections, playbooks, runs, protected entities, blocks, and case priorities and statuses have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` and `/security-case-status`. See [API Reference](/docs/api-reference/api-reference).
 - AI agents: the MCP server has tools for cases, notes, tasks, evidence, detections, playbooks, and case priorities and statuses. See [MCP Server](/docs/ai/mcp-server).
 - Terraform: the `oneuptime_security_case_priority` and `oneuptime_security_case_status` resources keep a project's priorities and statuses as code.
 
