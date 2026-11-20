@@ -118,9 +118,7 @@ describe("both install steps say a Browser key is public", () => {
     expect(
       lineWith("en", SESSION_REPLAY, "Then copy the key's **Secret Key**."),
     ).toContain(`Then copy the key's **Secret Key**. ${PUBLIC["en"]}`);
-    expect(
-      lineWith("en", BROWSER_SETUP, "Copy its **Secret Key**"),
-    ).toContain(
+    expect(lineWith("en", BROWSER_SETUP, "Copy its **Secret Key**")).toContain(
       `it is the token the SDK sends as \`x-oneuptime-token\`. ${PUBLIC["en"]}`,
     );
   });

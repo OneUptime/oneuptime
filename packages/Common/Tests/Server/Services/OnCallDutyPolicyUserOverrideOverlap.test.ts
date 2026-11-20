@@ -607,6 +607,12 @@ describe("through the service", () => {
       ]);
     });
 
+    /*
+     * Who is only invited to the project too (#9823), in the same
+     * transaction: a read of its own would wait for another connection while
+     * the lock is held, and with every connection held by a write queued
+     * behind the lock none is ever free (UserOverrideOverlapPostgres).
+     */
     test("a refused add reads who is named, for the refusal, and saves nothing", async () => {
       await refusalOf(add({ from: "15:00", until: "16:00" }));
 
@@ -614,6 +620,9 @@ describe("through the service", () => {
         "lock",
         "find OnCallDutyPolicyUserOverride",
         "find User",
+        PendingInviteeProfiles.getPendingMembershipsStatement({
+          projectId: PROJECT,
+        }),
       ]);
     });
   });

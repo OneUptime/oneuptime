@@ -96,6 +96,8 @@ const ROW_SWITCH_NOT_OFFERED: Record<string, string> = {
     "A provider's attached projects are attached and removed: an attachment is not edited from the Admin Dashboard, and its switch is set with it.",
   "AdminDashboard/src/Pages/Settings/GlobalOIDC/View.tsx":
     "A provider's attached projects are attached and removed: an attachment is not edited from the Admin Dashboard, and its switch is set with it.",
+  "ee/Dashboard/CustomRoles/CustomRoleWorkflowsTable.tsx":
+    "A custom role's page lists the workflows that run as the role (Enterprise), read only: it shows everything a change to the role reaches, with Disabled beside a workflow that is off, and a workflow is turned on and off on the Workflows list, by who may edit it.",
 };
 
 /*

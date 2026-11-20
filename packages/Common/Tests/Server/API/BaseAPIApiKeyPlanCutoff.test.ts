@@ -117,9 +117,14 @@ type ApiMethod =
   | "count"
   | "getItem"
   | "updateItem"
-  | "deleteItem";
+  | "deleteItem"
+  | "moveItem";
 
-// Every CRUD route, and the BaseAPI method its handler serves it with.
+/*
+ * Every CRUD route, and the BaseAPI method its handler serves it with. A
+ * pipeline is a row of a drag-ordered list, so its table answers the move
+ * request too (issue #9609).
+ */
 const ROUTES: ReadonlyArray<{
   method: string;
   uri: string;
@@ -159,6 +164,12 @@ const ROUTES: ReadonlyArray<{
     method: "POST",
     uri: `${PATH}/:id/delete-item`,
     serves: "deleteItem",
+    isWrite: true,
+  },
+  {
+    method: "POST",
+    uri: `${PATH}/:id/move`,
+    serves: "moveItem",
     isWrite: true,
   },
 ];
@@ -240,6 +251,9 @@ beforeEach(() => {
       undefined,
     ),
     deleteItem: getJestSpyOn(logPipelineApi, "deleteItem").mockResolvedValue(
+      undefined,
+    ),
+    moveItem: getJestSpyOn(logPipelineApi, "moveItem").mockResolvedValue(
       undefined,
     ),
   };

@@ -18,6 +18,7 @@ import {
   resolveCloudMonitoredResource,
 } from "../../../Types/Cloud/CloudMonitoredResource";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { writeOwnValue } from "../../LookupTable";
 import {
   MAX_RESOURCE_ID_LENGTH,
   getAzureResourceIdKey,
@@ -1508,7 +1509,7 @@ export function getGoogleTopLevelResourceName(name: string): string | null {
   return top.length < name.length ? top : null;
 }
 
-// A LogEntry's monitored resource labels, as text.
+// A LogEntry's monitored resource labels, as text, each key the label's own.
 function readLabels(value: JSONValue | undefined): Record<string, string> {
   const labels: Record<string, string> = {};
   const object: JSONObject | null = asObject(value);
@@ -1520,8 +1521,8 @@ function readLabels(value: JSONValue | undefined): Record<string, string> {
   for (const key of Object.keys(object).slice(0, 50)) {
     const item: string = text(object[key] as JSONValue);
 
-    if (item && key !== "__proto__" && key.length <= 256) {
-      labels[key] = item;
+    if (item && key.length <= 256) {
+      writeOwnValue(labels, key, item);
     }
   }
 

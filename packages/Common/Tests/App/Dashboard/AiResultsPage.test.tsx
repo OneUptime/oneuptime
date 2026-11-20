@@ -687,7 +687,7 @@ describe("the cards", () => {
       within(rootCauses).getAllByTestId("ai-results-fact").map(textOf),
     ).toEqual([
       "Judged by a responder6",
-      "Graded against the incident's root cause10",
+      "Graded against the root cause people wrote10",
       "Not judged yet4",
     ]);
   });
@@ -841,7 +841,7 @@ describe("before there is anything to count", () => {
       ).map(textOf),
     ).toEqual([
       "No judged investigations yet.",
-      "An investigation is judged when a responder confirms or rejects it on its AI card, or when someone writes the root cause as they resolve its incident.",
+      "An investigation is judged when a responder confirms or rejects it on its AI card, or when someone writes the root cause as they resolve its incident or alert.",
     ]);
   });
 

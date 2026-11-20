@@ -340,16 +340,10 @@ describe("an environment at an address from before the split", () => {
     expect(landedOn()).toBe(`${APP_PLATFORMS}/${ROW_ID}/traces`);
   });
 
-  test("the row is read once in each view: its kind, and in Cloud's what its menu draws", async () => {
+  test("the row is read once in each view: its kind, and in Cloud's whether its menu has Logs and Security Events", async () => {
     await visit(`${CLOUD}/${ROW_ID}/logs`);
 
-    /*
-     * Cloud's view reads it, forwards, and App Platforms' reads it again.
-     * Cloud's read holds what its menu needs, in the same request: its
-     * provider and type say whether it has Logs and Recommendations, and
-     * its ID and the names and addresses it answers on whether an event
-     * can reach its Security Events (canCloudResourceHaveSecurityEvents).
-     */
+    // Cloud's view reads it, forwards, and App Platforms' reads it again.
     expect(
       mockItemRequests.map((request: ItemRequest): Array<unknown> => {
         return [request.modelType.name, request.id.toString(), request.select];
@@ -362,6 +356,7 @@ describe("an environment at an address from before the split", () => {
           cloudResourceKind: true,
           cloudProvider: true,
           cloudResourceType: true,
+          // The ID its audit log names it by, and the names and addresses it answers on (#9779).
           providerResourceId: true,
           cloudEndpoints: true,
         },
