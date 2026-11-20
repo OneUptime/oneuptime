@@ -267,6 +267,13 @@ describe("which columns record a person doing something", () => {
       "firstApproved",
       "humanVerdict",
       /*
+       * SecurityBlock.liftedByUserId: who lifted a block of the blocklist
+       * (#10338). SecurityBlockService stamps it from the caller once the
+       * lift is permitted, and leaves it empty for OneUptime's own; no
+       * request chooses it.
+       */
+      "lifted",
+      /*
        * MarketplaceSubscription.linkedByUserId: who linked a cloud
        * marketplace purchase to a project, on the purchase page. OneUptime
        * stamps it from the signed-in caller as the link is made; no request

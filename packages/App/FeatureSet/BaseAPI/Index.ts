@@ -717,9 +717,11 @@ import SecurityDetectionService, {
 import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
-import SecurityProtectedEntityService, {
-  Service as SecurityProtectedEntityServiceType,
-} from "Common/Server/Services/SecurityProtectedEntityService";
+import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
+import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
+import SecurityBlockEnforcementService, {
+  Service as SecurityBlockEnforcementServiceType,
+} from "Common/Server/Services/SecurityBlockEnforcementService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -1974,7 +1976,7 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
-import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -4835,12 +4837,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new SecurityPlaybookRunAPI().getRouter(),
     );
 
+    // Protected entities' CRUD, with what OneUptime protects by itself.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
-        SecurityProtectedEntity,
-        SecurityProtectedEntityService,
-      ).getRouter(),
+      new SecurityProtectedEntityAPI().getRouter(),
+    );
+
+    // The blocklist's CRUD, with its check and where it is enforced (#10338).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlockAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlockEnforcement,
+        SecurityBlockEnforcementServiceType
+      >(SecurityBlockEnforcement, SecurityBlockEnforcementService).getRouter(),
     );
 
     /*
