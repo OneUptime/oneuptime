@@ -612,12 +612,12 @@ tests:
           pattern: "(?m)^      - key: oneuptime\\.kubernetes\\.distribution\\n        value: openshift\\n        action: insert$"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "(?m)^  resourcedetection/openshift:\\n    detectors: \\[openshift\\]\\n    override: false\\n    openshift:\\n      resource_attributes:\\n        k8s\\.cluster\\.name:\\n          enabled: false\\n        cloud\\.region:\\n          enabled: false$"
+          pattern: "(?m)^  resource_detection/openshift:\\n    detectors: \\[openshift\\]\\n    override: false\\n    openshift:\\n      resource_attributes:\\n        k8s\\.cluster\\.name:\\n          enabled: false\\n        cloud\\.region:\\n          enabled: false$"
       # metrics, logs and the eBPF traces pipeline: each one that stamps
       # the cluster's identity runs the detector after it.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "(?s)^(?:.*?\\n        - resource\\n        - resourcedetection/openshift\\n){3}"
+          pattern: "(?s)^(?:.*?\\n        - resource\\n        - resource_detection/openshift\\n){3}"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n        - resource\\n        - (?:[^r]|r[^e])"
@@ -632,10 +632,10 @@ tests:
           pattern: "(?m)^      - key: oneuptime\\.kubernetes\\.distribution\\n        value: openshift\\n        action: upsert$"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "(?m)^  resourcedetection/openshift:$"
+          pattern: "(?m)^  resource_detection/openshift:$"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "(?s)^(?:.*?\\n        - resource\\n        - resourcedetection/openshift\\n){2}"
+          pattern: "(?s)^(?:.*?\\n        - resource\\n        - resource_detection/openshift\\n){2}"
 
   - it: stamps the distribution on profiles, without the detector the profiler's distribution cannot run
     template: templates/configmap-profiling.yaml
@@ -648,17 +648,17 @@ tests:
           pattern: "(?m)^      - key: oneuptime\\.kubernetes\\.distribution\\n        value: openshift\\n        action: insert$"
       - notMatchRegex:
           path: data["config.yaml"]
-          pattern: "resourcedetection"
+          pattern: "resource_?detection"
 
   - it: neither stamps the distribution nor runs the detector on the standard preset
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "resourcedetection|oneuptime\\.kubernetes\\.distribution"
+          pattern: "resource_?detection|oneuptime\\.kubernetes\\.distribution"
         template: templates/configmap-deployment.yaml
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "resourcedetection|oneuptime\\.kubernetes\\.distribution"
+          pattern: "resource_?detection|oneuptime\\.kubernetes\\.distribution"
         template: templates/configmap-daemonset.yaml
 
   # --- OpenShift's own objects -------------------------------------------------
@@ -669,10 +669,10 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^  k8sobjects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: clusterversions\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: routes\n        mode: pull\n        interval: 300s\n        group: route\.openshift\.io\n      - name: deploymentconfigs\n        mode: pull\n        interval: 300s\n        group: apps\.openshift\.io\n      - name: services\n        mode: pull\n        interval: 300s$'
+          pattern: '(?m)^  k8s_objects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: clusterversions\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: routes\n        mode: pull\n        interval: 300s\n        group: route\.openshift\.io\n      - name: deploymentconfigs\n        mode: pull\n        interval: 300s\n        group: apps\.openshift\.io\n      - name: services\n        mode: pull\n        interval: 300s$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/openshift$'
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8s_objects\n        - k8s_objects/openshift$'
 
   - it: pulls them as often as the other resource specs
     template: templates/configmap-deployment.yaml
@@ -765,14 +765,14 @@ tests:
           pattern: '(?m)^  transform/openshift-route-tls:\n    error_mode: ignore\n    log_statements:\n      - context: log\n        statements:\n          - set\(body\["spec"\]\["tls"\]\["key"\], "REDACTED"\) where IsMap\(body\) and body\["kind"\] == "Route" and body\["spec"\]\["tls"\]\["key"\] != nil$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^      processors:\n        - memory_limiter\n        # First, so no other processor holds a Route''s key\.\n        - transform/openshift-route-tls\n        - k8sattributes$'
+          pattern: '(?m)^      processors:\n        - memory_limiter\n        # First, so no other processor holds a Route''s key\.\n        - transform/openshift-route-tls\n        - k8s_attributes$'
 
   - it: pulls none of them, and replaces nothing, on the standard preset
     template: templates/configmap-deployment.yaml
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: 'k8sobjects/openshift|transform/openshift-route-tls'
+          pattern: 'k8s_?objects/openshift|transform/openshift-route-tls'
 
   - it: pulls none of them when resource specs are off
     template: templates/configmap-deployment.yaml
@@ -782,7 +782,7 @@ tests:
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: 'k8sobjects/openshift|transform/openshift-route-tls'
+          pattern: 'k8s_?objects/openshift|transform/openshift-route-tls'
 
   - it: pulls none of them on a collector without the receiver's error_mode, before 0.125.0
     template: templates/configmap-deployment.yaml
@@ -792,7 +792,7 @@ tests:
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: 'k8sobjects/openshift|transform/openshift-route-tls|error_mode: ignore\n    objects:'
+          pattern: 'k8s_?objects/openshift|transform/openshift-route-tls|error_mode: ignore\n    objects:'
 
   - it: pulls them from collector 0.125.0 on
     template: templates/configmap-deployment.yaml

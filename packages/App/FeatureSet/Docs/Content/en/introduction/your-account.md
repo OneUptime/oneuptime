@@ -41,7 +41,7 @@ Click your picture at the top right and choose **Profile**. The **Overview** pag
 
 Click **Edit User** and change what you need:
 
-- **Email**: the address you sign in with. If you change it, OneUptime emails a link to the new address, and your address changes once you open it. Until then you sign in with your current one, and **Cancel Change** stops the change. A master admin's own address changes at once.
+- **Email**: the address you sign in with. If you change it, OneUptime emails a link to the new address, and your address changes once you open it. Until then you sign in with your current one, and **Cancel Change** stops the change. A master admin's own address changes at once. If the link expires, **Send Link Again** sends a new one. Whenever your address changes, OneUptime emails the address you had.
 - **Full Name**: the name your team sees across OneUptime.
 - **Timezone**: the time zone the dashboard shows and reads times in, and the one used for the times in notifications sent to you.
 - **Language**: the language of the dashboard on every browser you sign in on, and of your on-call pages. Not set, your pages are in English and the dashboard follows your browser.
@@ -191,7 +191,11 @@ That address already has a OneUptime account, so signing up created and changed 
 :::
 
 :::details My email address has not changed
-Your address changes only once you open the link OneUptime sent to the new address. The link works for 24 hours: if it has expired, change your email again to get a new one. If another account already uses that address, the email sent there says so, and your address stays as it is.
+Your address changes only once you open the link OneUptime sent to the new address. The link works for 24 hours: once it has expired, your profile says so, and **Send Link Again** sends a new one. If another account already uses that address, the email sent there says so, and your address stays as it is.
+:::
+
+:::details I got an email saying my email address was changed
+OneUptime emails the address your account had whenever its address changes: when you open the link sent to a new address, when a server admin changes it, or when your organization's identity provider changes it. If you made the change, there is nothing to do. If you did not, someone who could sign in to your account moved it to an address of their own: from your old address, contact your server's admin, or support@oneuptime.com on OneUptime Cloud, who can move it back. The email shows only part of the new address, and has no link to undo the change: such a link would work for anyone who reads your old mailbox.
 :::
 
 :::details I lost my authenticator app

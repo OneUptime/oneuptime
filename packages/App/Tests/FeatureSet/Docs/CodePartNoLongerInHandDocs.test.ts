@@ -1,5 +1,10 @@
-import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
-import { dashboardLocale, readAsTheDocsWriteIt } from "./DocsDashboardLabels";
+import { DOCS_LANGUAGES } from "./DocsContentSupport";
+import {
+  codeChangeCautionIndex,
+  codeChangeCautionQuoting,
+  codeChangesSectionOf,
+  codeDocsTranslatorFor,
+} from "./CodeChangesDocsSection";
 import { readRepoFile } from "./InventoryAndApiDocsSupport";
 import {
   AI_ACTION_CODE_FILE,
@@ -22,23 +27,24 @@ import {
   getCodeFileLinesShown,
   seeCodeFile,
 } from "Common/Types/CodeRepository/CodeFileSeen";
-import { createTranslator, Translator } from "Common/Types/Translator";
+import { Translator } from "Common/Types/Translator";
 import { describe, expect, it } from "@jest/globals";
 
 /*
  * What the Ask AI page says about a file Ask AI read all of, in several
  * parts, and no longer has some of those parts (issue #6984), in every
  * docs language: the card line it quotes is the one that language's
- * Dashboard draws, with the file as the card writes it, on the
- * code-change bullet, right after what it says of a file read earlier in
- * the same answer and left out since (#6570) and before what it says of
- * values hidden (#6364). Before this, the page said nothing of the line,
- * and its "once Ask AI has read all of the file, in one read or in
- * several, the card says nothing of it" read as if lines it no longer has
- * still counted. The English is held to the code that makes it true.
+ * Dashboard draws, with the file as the card writes it, a caution of its
+ * own in the page's Code changes section (#6983), right after the one
+ * about a file read earlier in the same answer and left out since (#6570)
+ * and right before the one about a file read only in part (#6330), in the
+ * card's order. Before #6984, the page said nothing of the line, and its
+ * "once Ask AI has read all of the file, in one read or in several, the
+ * card says nothing of it" read as if lines it no longer has still
+ * counted: it now says "and still has all of its text". The English is
+ * held to the code that makes it true.
  */
 
-const PAGE: string = "ai/ask-ai";
 const FILE: string = "src/billing/charge.ts";
 
 const lineFor: (
@@ -65,44 +71,19 @@ const LEFT_OUT: AIActionSentence = lineFor(
   FILE,
 );
 
-// The card's line for a file read only in part (issue #6330), said earlier on the bullet.
+// The card's line for a file read only in part (issue #6330), the caution right after it.
 const READ_IN_PART: AIActionSentence = lineFor(
   AI_ACTION_PLURAL_LINES.codeFilesReadInPart,
   FILE,
 );
 
-// The card's line for values hidden (issue #6364), which comes after it.
+// The card's line for values hidden (issue #6364), the card's first caution.
 const VALUES_HIDDEN: AIActionSentence = lineFor(
   AI_ACTION_PLURAL_LINES.codeFilesValuesHidden,
   "config/servers.ts",
 );
 
-const translatorFor: (language: string) => Translator = (
-  language: string,
-): Translator => {
-  const words: Record<string, unknown> = dashboardLocale(language);
-
-  // What it draws, as the page writes it (asTheDocsWriteIt).
-  return readAsTheDocsWriteIt(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = words[text];
-      return typeof value === "string" ? value : undefined;
-    }, language),
-  );
-};
-
-// The bullet about proposing code changes, which says it all.
-const codeBulletOf: (language: string) => string = (
-  language: string,
-): string => {
-  return (
-    readPage(language, PAGE)
-      .split("\n")
-      .find((line: string): boolean => {
-        return line.startsWith("- ") && line.includes(FILE);
-      }) || ""
-  );
-};
+const translatorFor: (language: string) => Translator = codeDocsTranslatorFor;
 
 const flat: (text: string) => string = (text: string): string => {
   return text.replace(/\s+/g, " ");
@@ -159,41 +140,34 @@ const decide: (
 };
 
 describe("the Ask AI page on a file Ask AI read in parts and no longer has some of (issue #6984)", () => {
-  it("quotes the card line as the English card says it, on the code-change bullet", () => {
-    const bullet: string = codeBulletOf("en");
+  it("quotes the card line as the English card says it, as a caution of its own in the Code changes section", () => {
     const line: string = describeAIActionSentence(PART_NO_LONGER_IN_HAND);
 
     expect(line).toBe(
       "Ask AI read this file and no longer has part of its text, and its version replaces all of it: src/billing/charge.ts.",
     );
-    expect(bullet).toMatch(/^- Propose a code change:/);
-    expect(bullet).toContain(`"${line}"`);
+    expect(codeChangeCautionQuoting("en", line)).toBe(
+      `  - "${line}" Ask AI read the file in several parts and no longer has some of them.`,
+    );
   });
 
   it("says when: read in several parts, some of them no longer had", () => {
-    expect(codeBulletOf("en")).toContain(
-      `If Ask AI read the file in several parts and no longer has some of them, the card says so, for example "${describeAIActionSentence(PART_NO_LONGER_IN_HAND)}"`,
+    expect(codeChangesSectionOf("en")).toContain(
+      `"${describeAIActionSentence(PART_NO_LONGER_IN_HAND)}" Ask AI read the file in several parts and no longer has some of them.`,
     );
   });
 
-  it("keeps what it says of a file read all of, and of one read again, around it", () => {
-    const bullet: string = codeBulletOf("en");
-    const said: number = bullet.indexOf(
-      "If Ask AI read the file in several parts",
-    );
-    const readAll: number = bullet.indexOf(
-      "Once Ask AI has read all of the file, in one read or in several, the card says nothing of it.",
-    );
-    const readAgain: number = bullet.indexOf(
-      `"${describeAIActionSentence(PART_NO_LONGER_IN_HAND)}" Once Ask AI reads the file again in the answer that changes it, the card says nothing of it.`,
-    );
+  it("says a file read all of says nothing only while all of its text is still had, and so does one read again", () => {
+    const section: string = codeChangesSectionOf("en");
 
-    expect(said).toBeGreaterThan(-1);
-    // Read all of it, every part still had: nothing - said before.
-    expect(readAll).toBeGreaterThan(-1);
-    expect(readAll).toBeLessThan(said);
-    // Read again in the answer that changes it: nothing - said right after.
-    expect(readAgain).toBeGreaterThan(said);
+    // Read all of it, every part still had: nothing.
+    expect(section).toContain(
+      "Once it has read all of the file, in one read or in several, and still has all of its text, the card says nothing of it.",
+    );
+    // Read again in the answer that changes it: nothing.
+    expect(section).toContain(
+      "Once Ask AI reads the file again in the answer that changes it, the card says nothing of it.",
+    );
   });
 
   it("is true of the code", () => {
@@ -245,9 +219,16 @@ describe("the Ask AI page on a file Ask AI read in parts and no longer has some 
       "CodeFileUnseen.PartNoLongerInHand, ); if (partNoLongerInHand.length > 0) { lines.push( aiActionPluralSentence( AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand,",
     );
 
-    // In Auto-run nothing is committed, and the model reads those lines again.
-    expect(seen).toContain(
+    /*
+     * In Auto-run nothing is committed - the action's record and its Skipped
+     * row say so, in words of their own (issue #6982) - and the model reads
+     * those lines again.
+     */
+    expect(flat(readRepoFile("Common/Types/AI/AIActionWords.ts"))).toContain(
       '"Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text."',
+    );
+    expect(seen).toContain(
+      "[CodeFileUnseen.PartNoLongerInHand]: AI_ACTION_CODE_NOT_MADE.notCommittedPartNoLongerInHand,",
     );
     expect(seen).toContain("Read the lines you no longer have again now");
   });
@@ -264,11 +245,11 @@ describe("the Ask AI page on a file Ask AI read in parts and no longer has some 
         expect(line).not.toContain("no longer has part");
       }
       expect(line).toContain(FILE);
-      expect(codeBulletOf(language)).toContain(line);
+      expect(codeChangeCautionQuoting(language, line)).toBeDefined();
     });
 
-    it("says it right after the line about a file left out of this answer, and before the one about hidden values, once", () => {
-      const bullet: string = codeBulletOf(language);
+    it("says it right after the caution about a file left out of this answer, and right before the one about a file read in part, once", () => {
+      const section: string = codeChangesSectionOf(language);
       const translator: Translator = translatorFor(language);
       const part: string = describeAIActionSentence(
         PART_NO_LONGER_IN_HAND,
@@ -283,33 +264,43 @@ describe("the Ask AI page on a file Ask AI read in parts and no longer has some 
 
       // Three different lines, each said once.
       expect(new Set([part, left, inPart]).size).toBe(3);
-      expect(bullet.split(part)).toHaveLength(2);
-      expect(bullet.split(left)).toHaveLength(2);
+      expect(section.split(part)).toHaveLength(2);
+      expect(section.split(left)).toHaveLength(2);
 
-      expect(bullet.indexOf(inPart)).toBeGreaterThan(-1);
-      expect(bullet.indexOf(left)).toBeGreaterThan(bullet.indexOf(inPart));
-      expect(bullet.indexOf(part)).toBeGreaterThan(bullet.indexOf(left));
-      expect(bullet.indexOf(hidden)).toBeGreaterThan(bullet.indexOf(part));
-
-      // Between the two lines: one sentence that says when, in the language.
-      const between: string = bullet.slice(
-        bullet.indexOf(left) + left.length,
-        bullet.indexOf(part),
+      // The card's order: hidden values first, ..., left out, part no longer had, read in part.
+      expect(codeChangeCautionIndex(language, hidden)).toBe(0);
+      expect(codeChangeCautionIndex(language, part)).toBe(
+        codeChangeCautionIndex(language, left) + 1,
+      );
+      expect(codeChangeCautionIndex(language, inPart)).toBe(
+        codeChangeCautionIndex(language, part) + 1,
       );
 
-      expect(between).toContain("Ask AI");
-      expect(between.length).toBeLessThan(200);
+      // After the quote: one sentence that says when, in the language.
+      const item: string = codeChangeCautionQuoting(language, part)!;
+      const when: string = item.slice(item.indexOf(part) + part.length);
+
+      expect(when.length).toBeGreaterThan(10);
+      expect(when.length).toBeLessThan(200);
       if (language !== "en") {
-        expect(between).not.toContain("several parts");
+        expect(when).not.toContain("several parts");
       }
     });
 
-    it("keeps the bullet one line, in its place", () => {
-      const lines: Array<string> = readPage(language, PAGE).split("\n");
-      const english: Array<string> = readPage("en", PAGE).split("\n");
-
-      expect(lines.indexOf(codeBulletOf(language))).toBe(
-        english.indexOf(codeBulletOf("en")),
+    it("keeps the caution in its place: where the English page has it", () => {
+      expect(
+        codeChangeCautionIndex(
+          language,
+          describeAIActionSentence(
+            PART_NO_LONGER_IN_HAND,
+            translatorFor(language),
+          ),
+        ),
+      ).toBe(
+        codeChangeCautionIndex(
+          "en",
+          describeAIActionSentence(PART_NO_LONGER_IN_HAND),
+        ),
       );
     });
   });

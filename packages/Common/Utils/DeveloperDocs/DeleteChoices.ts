@@ -190,6 +190,49 @@ function companionsOf(
   });
 }
 
+// CustomRole -> custom-role, as the API's path and the CLI's command write a table.
+function toKebabCase(name: string): string {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase();
+}
+
+/*
+ * A choice's value in an example a reader fills in: <custom-role-id> for
+ * the ID of a custom role. The dashboard's Developer pages, the CLI's help
+ * and its hint after a refusal all write it so (#10031).
+ */
+export function getDeleteChoiceExampleValue(choice: {
+  key: string;
+  relatedTableName?: string | undefined;
+}): string {
+  if (choice.relatedTableName) {
+    return `<${toKebabCase(choice.relatedTableName)}-id>`;
+  }
+
+  return `<${toKebabCase(choice.key)}>`;
+}
+
+/*
+ * What a delete sends for one way, as the API takes it in miscDataProps:
+ * the way's value, and each choice given with it as `valueOf` fills it in -
+ * the example's placeholder by default ({ workflowsRunAs: "CustomRole",
+ * workflowsRunAsCustomRoleId: "<custom-role-id>" }), or a record's ID.
+ */
+export function getDeleteChoiceWayData(
+  way: DeleteChoiceWay,
+  valueOf: (choice: DeleteChoice) => string = getDeleteChoiceExampleValue,
+): JSONObject {
+  const data: JSONObject = { [way.key]: way.value };
+
+  for (const companion of way.with) {
+    data[companion.key] = valueOf(companion);
+  }
+
+  return data;
+}
+
 // Every way a delete of a record of `tableName` says its choices, in order.
 export function getDeleteChoiceWays(
   tableName: string | null | undefined,

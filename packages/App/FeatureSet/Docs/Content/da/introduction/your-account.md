@@ -41,7 +41,7 @@ Klik på dit billede øverst til højre, og vælg **Profil**. Siden **Oversigt**
 
 Klik på **Rediger Bruger**, og ret det, du har brug for:
 
-- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, sender OneUptime et link til den nye adresse, og din adresse ændres, når du åbner det. Indtil da logger du ind med den nuværende, og **Annuller ændring** stopper ændringen. En hovedadministrators egen adresse ændres med det samme.
+- **E-mail**: den adresse, du logger ind med. Hvis du ændrer den, sender OneUptime et link til den nye adresse, og din adresse ændres, når du åbner det. Indtil da logger du ind med den nuværende, og **Annuller ændring** stopper ændringen. En hovedadministrators egen adresse ændres med det samme. Udløber linket, sender **Send link igen** et nyt. Hver gang din adresse ændres, sender OneUptime en e-mail til den adresse, du havde.
 - **Fulde navn**: det navn, dit team ser overalt i OneUptime.
 - **Tidszone**: den tidszone, dashboardet viser og læser tider i, og den, der bruges til tiderne i notifikationer til dig.
 - **Sprog**: sproget i dashboardet i alle browsere, du logger ind i, og i dine vagttilkald. Ikke valgt: dine tilkald er på engelsk, og dashboardet følger din browser.
@@ -191,7 +191,11 @@ Den adresse har allerede en OneUptime-konto, så tilmeldingen oprettede og ændr
 :::
 
 :::details Min e-mailadresse er ikke ændret
-Din adresse ændres først, når du åbner linket, som OneUptime sendte til den nye adresse. Linket virker i 24 timer: Er det udløbet, så ændr din e-mail igen for at få et nyt. Bruger en anden konto allerede den adresse, står det i e-mailen dertil, og din adresse forbliver, som den er.
+Din adresse ændres først, når du åbner linket, som OneUptime sendte til den nye adresse. Linket virker i 24 timer: Er det udløbet, står det på din profil, og **Send link igen** sender et nyt. Bruger en anden konto allerede den adresse, står det i e-mailen dertil, og din adresse forbliver, som den er.
+:::
+
+:::details Jeg fik en e-mail om, at min e-mailadresse er ændret
+OneUptime sender en e-mail til den adresse, din konto havde, hver gang adressen ændres: når du åbner linket, der er sendt til en ny adresse, når en serveradministrator ændrer den, eller når din organisations identitetsudbyder ændrer den. Har du selv ændret den, skal du ikke gøre noget. Hvis ikke, har en person, der kunne logge ind på din konto, flyttet den til sin egen adresse: Kontakt fra din gamle adresse din serveradministrator eller, på OneUptime Cloud, support@oneuptime.com, som kan flytte den tilbage. E-mailen viser kun en del af den nye adresse og har intet link til at fortryde ændringen: Et sådant link ville virke for alle, der læser din gamle indbakke.
 :::
 
 :::details Jeg har mistet min godkendelsesapp

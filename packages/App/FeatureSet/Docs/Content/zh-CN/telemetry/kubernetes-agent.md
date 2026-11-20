@@ -202,6 +202,7 @@ kubectl get pods -n oneuptime-agent
 - `logs.enabled`、`ebpf.enabled` 和 `aiAgent.enabled`：Pod 日志、eBPF 追踪和 [Kubernetes AI 代理](#kubernetes-ai-代理)，均默认开启。
 - `kubeStateMetrics.enabled`：kube-state-metrics，默认关闭。
 - `cost.enabled`：[成本可观测性](/docs/telemetry/kubernetes-cost)，默认为 `auto`：开启，但使用 `eks-fargate` 预设时除外。
+- `kubeletstats.nodesProxy`：代理的 ClusterRole 是否授予 `nodes/proxy`。它可以访问整个 kubelet API，并且无法通过 CIS 5.1.10。默认值 `auto` 在 EKS 1.34 和 1.35 上授予它，因为这些版本的节点可能运行早于 1.33 的 kubelet。所有节点都运行 1.33 或更高版本后，设为 `false`（`kubectl get nodes` 会显示每个节点的版本）：此后 kubelet 更旧的节点将不再发送其 kubelet 报告的任何节点、Pod、容器和卷指标。
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -390,6 +391,8 @@ kube-bench 运行集群所在平台的基准，并依据集群的 Kubernetes 版
 | `cost.prometheus.nodesProxy` | `auto`（默认）仅在 `eks-fargate` 预设上授予它：该预设上没有 Pod 能访问节点的 kubelet，用于成本的 Prometheus 通过 API 服务器读取 cAdvisor。在其他所有地方，它通过端口 10250 读取每个节点的 kubelet |
 
 当代理自身的角色绑定未通过 5.1.10 时，页面会说明该角色绑定属于代理、它为什么授予 `nodes/proxy`，以及去掉它的值。
+
+Amazon EKS 附加组件不接受 Helm 的 `--set`，因此页面会改为给出附加组件的配置值：`{"kubeletstats": {"nodesProxy": false}}`，在所有节点都运行 1.33 或更高版本后使用。附加组件没有 `cost.prometheus.nodesProxy`：使用 `eks-fargate` 预设并开启成本时，只有 `{"cost": {"enabled": false}}` 才能去掉 `nodes/proxy`。
 
 ## 配置选项
 

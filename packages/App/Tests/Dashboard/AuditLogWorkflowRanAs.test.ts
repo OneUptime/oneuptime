@@ -18,8 +18,8 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 function entry(data: {
   workflowRunAs?: string;
   workflowRunAsCustomRoleName?: string;
-  workflowRunAsGivenByName?: string;
-  workflowRunAsGivenByApiKeyId?: ObjectID;
+  workflowRunAsGiverName?: string;
+  workflowRunAsGiverApiKeyId?: ObjectID;
 }): AuditLog {
   const row: AuditLog = new AuditLog();
 
@@ -29,11 +29,11 @@ function entry(data: {
   if (data.workflowRunAsCustomRoleName !== undefined) {
     row.workflowRunAsCustomRoleName = data.workflowRunAsCustomRoleName;
   }
-  if (data.workflowRunAsGivenByName !== undefined) {
-    row.workflowRunAsGivenByName = data.workflowRunAsGivenByName;
+  if (data.workflowRunAsGiverName !== undefined) {
+    row.workflowRunAsGiverName = data.workflowRunAsGiverName;
   }
-  if (data.workflowRunAsGivenByApiKeyId !== undefined) {
-    row.workflowRunAsGivenByApiKeyId = data.workflowRunAsGivenByApiKeyId;
+  if (data.workflowRunAsGiverApiKeyId !== undefined) {
+    row.workflowRunAsGiverApiKeyId = data.workflowRunAsGiverApiKeyId;
   }
 
   return row;
@@ -55,7 +55,7 @@ describe("what a workflow's change ran as", () => {
       getAuditLogWorkflowRanAs(
         entry({
           workflowRunAs: WorkflowRunAs.Default,
-          workflowRunAsGivenByName: "Jane Doe",
+          workflowRunAsGiverName: "Jane Doe",
         }),
       ),
     ).toEqual({ runAs: WorkflowRunAs.Default });
@@ -66,7 +66,7 @@ describe("what a workflow's change ran as", () => {
       getAuditLogWorkflowRanAs(
         entry({
           workflowRunAs: WorkflowRunAs.ProjectOwner,
-          workflowRunAsGivenByName: "Jane Doe",
+          workflowRunAsGiverName: "Jane Doe",
         }),
       ),
     ).toEqual({
@@ -83,8 +83,8 @@ describe("what a workflow's change ran as", () => {
         entry({
           workflowRunAs: WorkflowRunAs.CustomRole,
           workflowRunAsCustomRoleName: "Incident Responder",
-          workflowRunAsGivenByName: "Terraform",
-          workflowRunAsGivenByApiKeyId: ObjectID.generate(),
+          workflowRunAsGiverName: "Terraform",
+          workflowRunAsGiverApiKeyId: ObjectID.generate(),
         }),
       ),
     ).toEqual({

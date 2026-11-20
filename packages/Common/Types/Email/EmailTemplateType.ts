@@ -24,6 +24,12 @@ enum EmailTemplateType {
    */
   ConfirmEmailChange = "ConfirmEmailChange.hbs",
   EmailChangeAddressTaken = "EmailChangeAddressTaken.hbs",
+  /*
+   * An account's address changed, however it changed (#9907): to the
+   * address it had, in the account's own language
+   * (Types/Accounts/EmailAddressChangedEmail).
+   */
+  EmailAddressChanged = "EmailAddressChanged.hbs",
   ConfirmProjectSsoSignIn = "ConfirmProjectSsoSignIn.hbs",
   /*
    * The SSO sign-in links of the organizations an account belongs to, asked

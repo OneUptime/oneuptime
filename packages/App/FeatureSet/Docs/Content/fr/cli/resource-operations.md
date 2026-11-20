@@ -209,7 +209,7 @@ Elle répond `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.
 
 ### Un rôle personnalisé sous lequel s'exécutent des flux de travail
 
-OneUptime ne supprime un rôle personnalisé sous lequel s'exécutent des flux de travail que si la suppression dit sous quoi ils s'exécutent à la place, et refuse celle qui ne le dit pas, en nommant les flux de travail. Dites-le avec `--workflows-run-as` : `Default`, les autorisations par défaut, ou `CustomRole`, un autre rôle personnalisé que vous pourriez donner à une équipe, avec son ID dans `--workflows-run-as-custom-role-id`. Jamais Project Owner : supprimer un rôle n'étend jamais ce qu'un flux de travail peut faire.
+OneUptime ne supprime un rôle personnalisé sous lequel s'exécutent des flux de travail que si la suppression dit sous quoi ils s'exécutent à la place, et refuse celle qui ne le dit pas, en nommant les flux de travail. Dites-le avec `--workflows-run-as` : `Default`, les autorisations par défaut, ou `CustomRole`, un autre rôle personnalisé que vous pourriez donner à une équipe, avec son ID dans `--workflows-run-as-custom-role-id`. Jamais Propriétaire du projet : supprimer un rôle n'étend jamais ce qu'un flux de travail peut faire.
 
 ```bash
 # They run with the default permissions

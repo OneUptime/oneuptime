@@ -149,8 +149,8 @@ flowchart TB
 | etcd No Leader | 控制平面 | etcd 沒有選出領導者 | 嚴重 |
 | API Server Request Saturation | 控制平面 | API 伺服器在整個視窗內持有 200 個以上正在處理的請求 | 嚴重 |
 | Scheduler Backlog | 排程中 | 排程器的待處理 Pod 佇列在 5 分鐘內一直不是空的 | 警告 |
-| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 90% | 警告 |
-| Node Image Disk Almost Full | 儲存空間 | 節點存放容器映像的磁碟使用率超過 90% | 警告 |
+| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 85% | 警告 |
+| Node Image Disk Almost Full | 儲存空間 | 節點存放容器映像的磁碟使用率超過 85% | 警告 |
 | PVC Almost Full | 儲存空間 | 持久卷宣告的使用率超過 90% | 警告 |
 | DaemonSet Pods Not Ready | 工作負載 | DaemonSet 在 15 分鐘內一直有節點上沒有它的就緒 Pod | 警告 |
 | DaemonSet Misscheduled Nodes | 工作負載 | DaemonSet 在不再符合其節點選取器、親和性或容忍度的節點上執行 Pod | 警告 |
@@ -169,7 +169,7 @@ flowchart TB
 
 **High Node CPU Request Commitment** 和 **High Node Memory Request Commitment** 與排程器一樣，只計算尚未結束的 Pod 的請求（request）。處於 Succeeded 或 Failed 的 Pod（例如已完成的 Job 的 Pod）在被刪除之前，叢集仍會回報其請求：這些不計入。
 
-**Node Image Disk Almost Full** 讀取 kubelet 回報的、每個執行中的容器寫入自身檔案的磁碟，因為代理程式本身不回報節點的映像磁碟。在常見配置中這就是映像磁碟，但並非每個節點都如此：如果節點像大多數節點一樣把映像放在根檔案系統上，它就是根檔案系統，因此該範本會與 **High Node Disk Usage** 同時觸發；在 kubelet 的分割映像檔案系統（`KubeletSeparateDiskGC`）下，它是容器寫入的磁碟，而不是映像所在的磁碟；沒有執行中容器的節點則不回報任何內容。請為節點清單顯示 **映像專用磁碟** 欄的叢集建立它，即有節點把映像放在自己專用磁碟上的叢集。kubelet 預設在該磁碟使用率達到 85% 時刪除未使用的映像，並在可用空間低於 15% 時逐出 Pod。
+**Node Image Disk Almost Full** 讀取 kubelet 回報的、每個執行中的容器寫入自身檔案的磁碟，因為代理程式本身不回報節點的映像磁碟。在常見配置中這就是映像磁碟，但並非每個節點都如此：如果節點像大多數節點一樣把映像放在根檔案系統上，它就是根檔案系統，因此該範本會與 **High Node Disk Usage** 同時觸發；在 kubelet 的分割映像檔案系統（`KubeletSeparateDiskGC`）下，它是容器寫入的磁碟，而不是映像所在的磁碟；沒有執行中容器的節點則不回報任何內容。只有當某個節點把映像放在自己專用的磁碟上時，叢集的建議才會提供它，此時節點清單會顯示 **映像專用磁碟** 欄；**告警內容** 清單則對任何叢集都列出它。kubelet 預設在存放映像的磁碟使用率達到 85% 時刪除未使用的映像，並在可用空間低於 15% 時逐出 Pod，因此該範本和 **High Node Disk Usage** 會在 85% 時觸發，並在 80% 時讓監測器恢復上線，映像垃圾回收會把磁碟降到這個水準。在映像有專用磁碟的節點上，kubelet 依根檔案系統從 90% 起逐出 Pod，因此在那裡 **High Node Disk Usage** 會在逐出開始之前觸發。
 
 **Cluster Stopped Reporting** 會在叢集的代理程式 10 分鐘內沒有任何資料送達時觸發：代理程式被解除安裝或不斷當機、它的 API 金鑰被撤銷、它失去通往 OneUptime 的路由，或者叢集的 API 伺服器不再回應它。資料恢復後即會解決。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 

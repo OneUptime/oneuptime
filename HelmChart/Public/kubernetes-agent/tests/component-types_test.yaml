@@ -1,0 +1,433 @@
+# The collectors name their components as the collector they run does (#9930).
+#
+# opentelemetry-collector-contrib renamed seven of the components the chart's
+# configs use to snake_case (kubelet_stats, host_metrics, file_log,
+# k8s_attributes, k8s_objects, resource_detection, cumulative_to_delta), and
+# the collector's own OTLP HTTP exporter is otlp_http. Each old type is a
+# deprecated alias, which collector 0.165.0, the chart's pin, warns about on
+# every start, and a later release drops, refusing the whole config. A
+# collector older than a rename knows only the old type and refuses the new
+# one, and `helm upgrade --reuse-values` keeps 0.96.0 on a release from before
+# 0.161.0. So kubernetes-agent.componentType writes each by its new type from
+# the first release that has it, and by its old type before; these tests pin
+# both sides of every one of those releases.
+#
+# Only a component's type changes: its own name after the slash
+# (file_log/audit, k8s_objects/compliance) stays, and so do the chart's values
+# (kubeletstats.nodesProxy and the rest name a part of the chart, not a
+# component). Tests/Ops/validate-collector-configs.sh runs the rendered configs
+# on the pinned collector and on 0.96.0, and starts the pinned ones to check
+# that the collector warns about no alias; Tests/Ops/CollectorComponentTypes
+# holds its table to the one in _helpers.tpl.
+#
+# The patterns read the rendered collector config with the ConfigMap's own
+# indent stripped: a component at 2, a pipeline's components at 8. They are
+# single-quoted, so a backslash is the regex's own.
+suite: the collectors name their components as the collector they run does
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+  - templates/configmap-deployment.yaml
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+  logs.enabled: true
+  logs.mode: daemonset
+  auditLogs.enabled: true
+  hostMetrics.enabled: true
+tests:
+  # --- The collector the chart pins ---------------------------------------------------------------
+  - it: the node collector names every renamed component by its new type
+    template: templates/configmap-daemonset.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubelet_stats:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  host_metrics:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  file_log:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  file_log/audit:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8s_attributes:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  otlp_http:$'
+
+  - it: and its pipelines name them the same way
+    template: templates/configmap-daemonset.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    metrics:\n      receivers:\n        - kubelet_stats\n        - prometheus/cadvisor\n        - host_metrics\n      processors:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - file_log\n        - file_log/audit\n      processors:\n        - memory_limiter\n        - k8s_attributes$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)(?:.*?\n      exporters:\n        - otlp_http\n){2}'
+
+  - it: the cluster collector names every renamed component by its new type, and its pipelines the same
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8s_objects:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8s_objects/compliance:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8s_attributes:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  cumulative_to_delta/restarts-increase:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  cumulative_to_delta/job-failures-increase:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  otlp_http:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8s_objects\n        - k8s_objects/compliance\n      processors:\n        - memory_limiter\n        - k8s_attributes$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)(?:.*?\n      exporters:\n        - otlp_http\n){3}'
+
+  - it: neither collector names a component by an old type, as a component or in a pipeline
+    templates:
+      - templates/configmap-daemonset.yaml
+      - templates/configmap-deployment.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^(?:  |        - )(?:kubeletstats|hostmetrics|filelog|k8sattributes|k8sobjects|resourcedetection|cumulativetodelta|otlphttp)(?:/[a-z-]+)?:?$'
+
+  - it: names the OpenShift detector and the OpenShift objects' receiver by their new types on the openshift preset
+    templates:
+      - templates/configmap-daemonset.yaml
+      - templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  resource_detection/openshift:\n    detectors: \[openshift\]$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - resource\n        - resource_detection/openshift$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'resourcedetection'
+
+  - it: names the OpenShift objects' receiver after its new type
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8s_objects/openshift:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - k8s_objects\n        - k8s_objects/openshift\n        - k8s_objects/compliance$'
+
+  # --- The 0.96.0 a --reuse-values upgrade keeps ---------------------------------------------------
+  - it: names every one by its old type for 0.96.0, which knows no new type
+    template: templates/configmap-daemonset.yaml
+    values:
+      - values/reuse-values-14.0.10.yaml
+    set:
+      logs.enabled: true
+      logs.mode: daemonset
+      auditLogs.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubeletstats:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  hostmetrics:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  filelog/audit:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sattributes:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  otlphttp:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - filelog\n        - filelog/audit\n      processors:\n        - memory_limiter\n        - k8sattributes$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^(?:  |        - )(?:kubelet_stats|host_metrics|file_log|k8s_attributes|otlp_http)(?:/[a-z-]+)?:?$'
+
+  - it: and so does the cluster collector, whatever the OpenShift preset adds
+    template: templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.96.0"
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sobjects:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  cumulativetodelta/restarts-increase:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  resourcedetection/openshift:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - resource\n        - resourcedetection/openshift$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^(?:  |        - )(?:k8s_objects|k8s_attributes|cumulative_to_delta|resource_detection|otlp_http)(?:/[a-z-]+)?:?$'
+
+  # --- Each rename, on both sides of the release that made it -------------------------------------
+  - it: writes otlphttp for 0.143.0
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "0.143.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  otlphttp:$'
+
+  - it: writes otlp_http from 0.144.0, the release that renamed it
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "0.144.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  otlp_http:$'
+      # Nothing renamed later has its new type yet.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sattributes:$'
+
+  - it: writes k8sattributes for 0.145.0
+    template: templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.145.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sattributes:$'
+
+  - it: writes k8s_attributes from 0.146.0
+    template: templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.146.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8s_attributes:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - k8s_attributes$'
+
+  - it: writes filelog for 0.148.0
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "0.148.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  filelog:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - filelog\n        - filelog/audit$'
+
+  - it: writes file_log from 0.149.0, its own name after the slash kept
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "0.149.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  file_log:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  file_log/audit:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - file_log\n        - file_log/audit$'
+
+  - it: writes hostmetrics and k8sobjects for 0.150.0
+    templates:
+      - templates/configmap-daemonset.yaml
+      - templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.150.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  (?:hostmetrics|k8sobjects):$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^(?:  |        - )(?:host_metrics|k8s_objects)(?:/[a-z-]+)?:?$'
+
+  - it: writes host_metrics and k8s_objects from 0.151.0
+    templates:
+      - templates/configmap-daemonset.yaml
+      - templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.151.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  (?:host_metrics|k8s_objects):$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^(?:  |        - )(?:hostmetrics|k8sobjects)(?:/[a-z-]+)?:?$'
+
+  - it: writes kubeletstats for 0.151.0
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "0.151.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubeletstats:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      receivers:\n        - kubeletstats$'
+
+  - it: writes kubelet_stats from 0.152.0
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "0.152.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubelet_stats:$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      receivers:\n        - kubelet_stats$'
+
+  - it: writes resourcedetection for 0.152.0
+    templates:
+      - templates/configmap-daemonset.yaml
+      - templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.152.0"
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  resourcedetection/openshift:$'
+
+  - it: writes resource_detection from 0.153.0
+    templates:
+      - templates/configmap-daemonset.yaml
+      - templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.153.0"
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  resource_detection/openshift:$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'resourcedetection'
+
+  - it: writes cumulativetodelta for 0.156.0
+    template: templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.156.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  cumulativetodelta/job-failures-increase:$'
+
+  - it: writes cumulative_to_delta from 0.157.0
+    template: templates/configmap-deployment.yaml
+    set:
+      image.tag: "0.157.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  cumulative_to_delta/job-failures-increase:$'
+
+  # --- How the version is read --------------------------------------------------------------------
+  - it: reads the version at the front of a tag with a v or a digest
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "v0.152.0@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubelet_stats:$'
+
+  - it: takes a tag that names no version for this chart's default
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: latest
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubelet_stats:$'
+
+  - it: takes an older version in such a tag at its word
+    template: templates/configmap-daemonset.yaml
+    set:
+      image.tag: "v0.96.0-mirror"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubeletstats:$'
+
+  # --- What does not change -----------------------------------------------------------------------
+  - it: keeps the chart's own values for the kubelet receiver as they are
+    template: templates/configmap-daemonset.yaml
+    set:
+      kubeletstats.volumeMetrics.enabled: false
+      kubeletstats.utilizationMetrics.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubelet_stats:\n(?:    [^\n]*\n)*?    metric_groups:\n      - node\n      - pod\n      - container\n    extra_metadata_labels:'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'k8s\.pod\.cpu_limit_utilization|filter/volume-series'
+
+  # --- The notes -------------------------------------------------------------------------------
+  - it: the notes name the receivers as the collector the chart pins calls them
+    template: templates/NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Node, pod, and container resource metrics \\(kubelet_stats\\)\\n"
+      - matchRegexRaw:
+          pattern: "  - Kubernetes events \\(k8s_objects\\)\\n"
+      - matchRegexRaw:
+          pattern: "  - Pod logs from /var/log/pods \\(file_log DaemonSet\\)\\n"
+
+  - it: and as 0.96.0 calls them, for a release upgraded with --reuse-values
+    template: templates/NOTES.txt
+    values:
+      - values/reuse-values-14.0.10.yaml
+    set:
+      logs.enabled: true
+      logs.mode: daemonset
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - Node, pod, and container resource metrics \\(kubeletstats\\)\\n"
+      - matchRegexRaw:
+          pattern: "  - Kubernetes events \\(k8sobjects\\)\\n"
+      - matchRegexRaw:
+          pattern: "  - Pod logs from /var/log/pods \\(filelog DaemonSet\\)\\n"

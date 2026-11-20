@@ -209,7 +209,7 @@ oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 
 ### ワークフローが実行に使っているカスタムロール
 
-OneUptime は、ワークフローが実行に使っているカスタムロールを、代わりに何として実行するかを削除で示したときだけ削除し、示さない削除はワークフローの名前を挙げて拒否します。`--workflows-run-as` で示してください。`Default` はデフォルトの権限、`CustomRole` はあなたがチームに与えられる別のカスタムロールで、その ID を `--workflows-run-as-custom-role-id` に指定します。Project Owner にはなりません。ロールを削除しても、ワークフローにできることが増えることはありません。
+OneUptime は、ワークフローが実行に使っているカスタムロールを、代わりに何として実行するかを削除で示したときだけ削除し、示さない削除はワークフローの名前を挙げて拒否します。`--workflows-run-as` で示してください。`Default` はデフォルトの権限、`CustomRole` はあなたがチームに与えられる別のカスタムロールで、その ID を `--workflows-run-as-custom-role-id` に指定します。プロジェクト所有者にはなりません。ロールを削除しても、ワークフローにできることが増えることはありません。
 
 ```bash
 # They run with the default permissions
