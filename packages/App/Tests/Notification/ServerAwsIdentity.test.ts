@@ -19,6 +19,7 @@ import ServerAwsIdentityService from "../../FeatureSet/Notification/Services/Ser
 import UserMiddleware, {
   RequestSession,
 } from "Common/Server/Middleware/UserAuthorization";
+import ProjectMiddleware from "Common/Server/Middleware/ProjectAuthorization";
 import AwsDefaultCredentialChain, {
   AwsChainEnvironment,
   AwsChainHttpRequest,
@@ -563,6 +564,8 @@ describe("over HTTP, with the real master-admin middleware", () => {
   let server: http.Server;
   let port: number;
 
+  const MASTER_API_KEY: string = "8e1a3a52-6d64-4f1f-9a2e-5f0f9c1d2b34";
+
   // The session each request's x-test-session header names.
   const SESSIONS: Record<string, RequestSession> = {
     none: { kind: "none" },
@@ -570,21 +573,21 @@ describe("over HTTP, with the real master-admin middleware", () => {
     blocked: {
       kind: "blocked",
       session: {
-        userId: new ObjectID(),
+        userId: ObjectID.generate(),
         isMasterAdmin: true,
       } as unknown as JSONWebTokenData,
     },
     user: {
       kind: "user",
       session: {
-        userId: new ObjectID(),
+        userId: ObjectID.generate(),
         isMasterAdmin: false,
       } as unknown as JSONWebTokenData,
     },
     admin: {
       kind: "user",
       session: {
-        userId: new ObjectID(),
+        userId: ObjectID.generate(),
         isMasterAdmin: true,
       } as unknown as JSONWebTokenData,
     },
@@ -719,10 +722,10 @@ describe("over HTTP, with the real master-admin middleware", () => {
     ["a blocked user", { session: "blocked" }, 401],
     ["a normal user", { session: "user" }, 422],
     [
-      "the master API key alone: it never reaches the server's AWS identity",
+      "the master API key alone, though it is the real one: it never reaches the server's AWS identity",
       {
         session: "none",
-        headers: { apikey: "8e1a3a52-6d64-4f1f-9a2e-5f0f9c1d2b34" },
+        headers: { apikey: MASTER_API_KEY },
       },
       401,
     ],
@@ -737,9 +740,17 @@ describe("over HTTP, with the real master-admin middleware", () => {
     ) => {
       const check: SpyInstance<typeof ServerAwsIdentityService.check> =
         jest.spyOn(ServerAwsIdentityService, "check");
+      /*
+       * The key is the server's master key: a middleware that took it (the
+       * master-admin-or-key one) would let the request in.
+       */
+      const isMasterKey: SpyInstance<typeof ProjectMiddleware.isMasterApiKey> =
+        jest.spyOn(ProjectMiddleware, "isMasterApiKey").mockResolvedValue(true);
 
       const result: { status: number; body: JSONObject | null } =
         await get(request);
+
+      expect(isMasterKey).not.toHaveBeenCalled();
 
       expect(result.status).toBe(status);
       expect(check).not.toHaveBeenCalled();

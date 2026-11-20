@@ -444,14 +444,30 @@ const defaultReadFile: (path: string) => Promise<string> = (
   return fs.promises.readFile(path, "utf8");
 };
 
-/*
- * The answers that mean the server may not write a file: denied, or on a
- * read-only mount. Anything else - the file gone since it was read,
- * included - is taken as a file it could write, so a credential_process
- * never runs on a doubt.
- */
-const CANNOT_WRITE_CODES: ReadonlyArray<string> = ["EACCES", "EPERM", "EROFS"];
+// The code a Node error names (ENOENT), or "".
+const errorCodeOf: (error: unknown) => string = (error: unknown): string => {
+  const code: unknown = (error as { code?: unknown } | null)?.code;
 
+  return typeof code === "string" ? code : "";
+};
+
+/*
+ * Whether the server could change a file, as a credential_process asks
+ * before it runs from one. It cannot only when:
+ *
+ *   - the file is on a read-only mount (EROFS): nothing in the server can
+ *     write it, root included;
+ *   - or it may not write the file (EACCES, EPERM) and the file is
+ *     another user's. A file the server's own user owns is one it can
+ *     make writable again (chmod), so a mode that denies writing now
+ *     proves nothing: an image that runs as a user of its own (Iron Bank's
+ *     runs as node) would otherwise run whatever that user wrote and then
+ *     made read-only.
+ *
+ * Root may write any file but a read-only mount's. Anything else - the
+ * file gone since it was read, its owner unknown - is taken as a file it
+ * could change, so a credential_process never runs on a doubt.
+ */
 export const defaultCanWriteFile: (path: string) => Promise<boolean> = async (
   path: string,
 ): Promise<boolean> => {
@@ -459,9 +475,24 @@ export const defaultCanWriteFile: (path: string) => Promise<boolean> = async (
     await fs.promises.access(path, fs.constants.W_OK);
     return true;
   } catch (error) {
-    const code: unknown = (error as { code?: unknown } | null)?.code;
+    const code: string = errorCodeOf(error);
 
-    return !(typeof code === "string" && CANNOT_WRITE_CODES.includes(code));
+    if (code === "EROFS") {
+      return false;
+    }
+
+    if (code !== "EACCES" && code !== "EPERM") {
+      return true;
+    }
+  }
+
+  try {
+    const owner: number = (await fs.promises.stat(path)).uid;
+    const self: number | undefined = process.getuid?.();
+
+    return self === undefined || owner === self;
+  } catch {
+    return true;
   }
 };
 
@@ -472,13 +503,6 @@ const UNREAD_PROFILE_SIGN_INS: ReadonlyArray<string> = [
   "sso_start_url",
   "web_identity_token_file",
 ];
-
-// The code a Node error names (ENOENT), or "".
-const errorCodeOf: (error: unknown) => string = (error: unknown): string => {
-  const code: unknown = (error as { code?: unknown } | null)?.code;
-
-  return typeof code === "string" ? code : "";
-};
 
 interface CachedCredentials {
   credentials: AwsChainCredentials;

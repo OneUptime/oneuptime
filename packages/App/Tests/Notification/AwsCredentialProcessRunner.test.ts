@@ -272,15 +272,26 @@ describe("whether the server could change a file", () => {
     expect(await defaultCanWriteFile(path.join(directory, "gone"))).toBe(true);
   });
 
-  test("a file it may not write is one it cannot change (not as root, which may write any file but a read-only mount's)", async () => {
-    if (process.getuid && process.getuid() === 0) {
-      return;
-    }
-
+  test("a file its own user owns is one it could change, read-only or not: it may chmod it back", async () => {
     const file: string = path.join(directory, "read-only");
 
     fs.writeFileSync(file, "[default]\n", { mode: 0o400 });
 
-    expect(await defaultCanWriteFile(file)).toBe(false);
+    // Whatever wrote it, then made it read-only, could have planted a program.
+    expect(await defaultCanWriteFile(file)).toBe(true);
+
+    fs.chmodSync(file, 0o000);
+
+    expect(await defaultCanWriteFile(file)).toBe(true);
+  });
+
+  test("a file another user owns, which it may not write, is one it cannot change (not as root, which may write any file but a read-only mount's)", async () => {
+    if (process.getuid && process.getuid() === 0) {
+      return;
+    }
+
+    // root's, 0644 on every Linux: this user may read it and never change it.
+    expect(fs.statSync("/etc/passwd").uid).not.toBe(process.getuid?.());
+    expect(await defaultCanWriteFile("/etc/passwd")).toBe(false);
   });
 });
