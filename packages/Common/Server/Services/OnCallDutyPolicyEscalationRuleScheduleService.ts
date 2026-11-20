@@ -35,6 +35,12 @@ import FeedMarkdown, {
 } from "../../Utils/Markdown/FeedMarkdown";
 import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import EscalationRuleReach, {
+  EVERY_PATH,
+  EscalationRuleOfReach,
+  RulePath,
+  RuleReach,
+} from "../Utils/OnCall/EscalationRuleReach";
 import {
   ESCALATION_RULE_SCHEDULE_INDEX,
   EscalationRuleNames,
@@ -314,6 +320,36 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     }
 
     /*
+     * Who the rule pages now, and through what (EscalationRuleReach): the
+     * schedule pages whoever is on call in it while they are a member of the
+     * project - someone only invited is paged once they join, and nothing
+     * reaches them before, not this message nor an on-call time log. They
+     * hear "added" once for the rule: not when a row made before this one
+     * pages them already - by name, through one of its teams, or another of
+     * its schedules they are on call in. A read that fails tells and logs
+     * them as before.
+     */
+    const reach: RuleReach | null = await EscalationRuleReach.readOrNull({
+      ...this.getRuleOfRow(createdModel),
+      withSchedules: true,
+    });
+    const paths: Array<RulePath> | null = reach
+      ? EscalationRuleReach.getPaths(reach, userOnSchedule)
+      : null;
+
+    if (paths && !EscalationRuleReach.isPagedByRow(paths, createdItemId)) {
+      return createdItem;
+    }
+
+    const isNewToRule: boolean =
+      !paths ||
+      !EscalationRuleReach.wasPagedBefore({
+        paths: paths,
+        rowId: createdItemId,
+        kinds: EVERY_PATH,
+      });
+
+    /*
      * Open the roster user's on-call time log for this schedule/rule/policy.
      * Mirrors onDeleteSuccess's endTimeLogForUser (detaching a schedule closes
      * the log, so attaching must open it). Without this, attaching a schedule
@@ -351,7 +387,7 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
     const sendEmailToUserId: ObjectID | undefined | null = userOnSchedule;
 
-    if (!sendEmailToUserId) {
+    if (!sendEmailToUserId || !isNewToRule) {
       return createdItem;
     }
 
@@ -558,6 +594,22 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       }),
     );
 
+    // Who each rule still pages, read after the rows went (EscalationRuleReach).
+    const reachByRule: Map<string, RuleReach | null> =
+      await EscalationRuleReach.readEach({
+        rules: deletedItems
+          .filter((deletedItem: Model): boolean => {
+            return !deletedItem.pageNextInRotation;
+          })
+          .map((deletedItem: Model): EscalationRuleOfReach => {
+            return this.getRuleOfRow(deletedItem);
+          }),
+        withSchedules: true,
+      });
+
+    // One message for one person on one rule, however many of its schedules went.
+    const told: Set<string> = new Set<string>();
+
     for (const deletedItem of deletedItems) {
       /*
        * A row that paged the next person in the rotation never paged the
@@ -611,9 +663,49 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
       const sendEmailToUserId: ObjectID | undefined | null = userOnSchedule;
 
-      if (!sendEmailToUserId) {
-        return onDelete;
+      if (!sendEmailToUserId || !deletedItem.projectId) {
+        continue;
       }
+
+      /*
+       * They are told they were removed only when nothing on the rule pages
+       * them any more (EscalationRuleReach): not while they are named on it,
+       * in one of its teams, or on call or next in the rotation in another
+       * of its schedules - their time log stays open on those instead. A
+       * member of the project is told; someone only invited was told
+       * nothing when the schedule was added, and is told nothing now.
+       */
+      const rule: EscalationRuleOfReach = this.getRuleOfRow(deletedItem);
+      const reach: RuleReach | null | undefined = reachByRule.get(
+        EscalationRuleReach.getRuleKey(rule),
+      );
+      const paths: Array<RulePath> = reach
+        ? EscalationRuleReach.getPaths(reach, sendEmailToUserId)
+        : [];
+
+      if (paths.length > 0) {
+        EscalationRuleReach.keepTimeLogsOpen({
+          ...rule,
+          policyId: deletedItem.onCallDutyPolicy!.id!,
+          userId: sendEmailToUserId,
+          paths: paths,
+        });
+
+        continue;
+      }
+
+      const toldKey: string = `${EscalationRuleReach.getRuleKey(rule)}:${sendEmailToUserId.toString().toLowerCase()}`;
+
+      if (
+        told.has(toldKey) ||
+        !(await EscalationRuleReach.readMembers([
+          { projectId: deletedItem.projectId, userId: sendEmailToUserId },
+        ])).isMember(deletedItem.projectId, sendEmailToUserId)
+      ) {
+        continue;
+      }
+
+      told.add(toldKey);
 
       const scheduleName: string =
         deletedItem.onCallDutyPolicySchedule?.name || "No name provided";
